@@ -58,7 +58,7 @@ public:
     int empty();
 
 private:
-    void teca_meta_data::set_prop(
+    void set_prop(
         const std::string &name,
         teca_variant_array *prop_val);
 

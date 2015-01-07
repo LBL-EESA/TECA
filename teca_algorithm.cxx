@@ -583,7 +583,7 @@ int teca_algorithm::validate_cache(output_port_t &current)
 }
 
 // --------------------------------------------------------------------------
-void teca_algorithm::clear_modified(output_port_t &current)
+void teca_algorithm::clear_modified(output_port_t current)
 {
     p_teca_algorithm alg = ::algorithm(current) ?
         ::algorithm(current) : this->shared_from_this();

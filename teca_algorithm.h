@@ -122,7 +122,7 @@ private:
     int validate_cache(output_port_t &current);
 
     // clear the modified flag after execution
-    void clear_modified(output_port_t &current);
+    void clear_modified(output_port_t current);
 
     // serialize the configuration to a stream
     virtual void to_stream(std::ostream &os);
@@ -131,5 +131,27 @@ private:
 private:
     teca_algorithm_internals *internals;
 };
+
+// this is a convenience macro to be used to
+// declare New and enable seamless operation
+// with std C++11 shared pointer
+#define TECA_ALGORITHM_STATIC_NEW(T)                                    \
+                                                                        \
+static p_##T New()                                                      \
+{                                                                       \
+    return p_##T(new T);                                                \
+}                                                                       \
+                                                                        \
+using enable_shared_from_this<teca_algorithm>::shared_from_this;        \
+                                                                        \
+std::shared_ptr<T> shared_from_this()                                   \
+{                                                                       \
+    return std::static_pointer_cast<T>(shared_from_this());             \
+}                                                                       \
+                                                                        \
+shared_ptr<T const> shared_from_this() const                            \
+{                                                                       \
+    return static_pointer_cast<T const>(shared_from_this());            \
+}
 
 #endif

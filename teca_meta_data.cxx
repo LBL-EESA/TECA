@@ -114,7 +114,7 @@ void teca_meta_data::set_prop(
         = new teca_variant_array_impl<T>(n_vals);
 
     for (unsigned int i = 0; i < n_vals; ++i)
-        prop_val.set(i, val[i]);
+        prop_val->set(i, val[i]);
 
     this->set_prop(name, prop_val);
 }
@@ -128,7 +128,7 @@ int teca_meta_data::get_prop(const std::string &name, T &val)
     if (it == this->props.end())
         return -1;
 
-    it->second.get(val);
+    it->second->get(val);
     return 0;
 }
 
@@ -143,7 +143,7 @@ int teca_meta_data::get_prop(const std::string &name, vector<T> &vals)
 
     T *data;
     unsigned int size;
-    it->second.get_data(data, size);
+    it->second->get_data(data, size);
 
     vals.assign(data, data+size);
     return 0;
@@ -158,7 +158,7 @@ int teca_meta_data::get_prop(const std::string &name, T *vals)
     if (it == this->props.end())
         return -1;
 
-    it->second.get(vals);
+    it->second->get(vals);
     return 0;
 }
 
