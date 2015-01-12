@@ -10,6 +10,8 @@ set(teca_srcs
 if (MSVC)
     # enable exceptions
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
+else()
+    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
