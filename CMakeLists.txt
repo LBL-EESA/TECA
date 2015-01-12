@@ -8,9 +8,15 @@ set(teca_srcs
     )
 
 if (MSVC)
+    # enable exceptions
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
 endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 add_library(teca ${teca_srcs})
+
+set(BUILD_TESTING OFF CACHE BOOL "Enable tests")
+if (BUILD_TESTING)
+    add_subdirectory(test)
+endif()

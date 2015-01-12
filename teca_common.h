@@ -1,7 +1,14 @@
 #ifndef teca_common_h
 #define teca_common_h
 
-#define template_dispatch_case(t, p, body)  \
+#include <iostream>
+
+#define TECA_ERROR(msg)                                         \
+    std::cerr                                                   \
+        << "ERROR " << __FILE__ << ":" << __LINE__ << std::endl \
+        << " " msg << std::endl;
+
+#define TEMPLATE_DISPATCH_CASE(t, p, body)  \
     if (dynamic_cast<t*>(p))                \
     {                                       \
         typedef t TT;                       \
@@ -10,14 +17,14 @@
 
 // macro for helping downcast to POD types
 // don't add classes to this.
-#define template_dispatch(t, p, body)                   \
-    template_dispatch_case(t<char>, p, body)            \
-    template_dispatch_case(t<unsigned char>, p, body)   \
-    template_dispatch_case(t<int>, p, body)             \
-    template_dispatch_case(t<unsigned int>, p, body)    \
-    template_dispatch_case(t<long>, p, body)            \
-    template_dispatch_case(t<unsigned long>, p, body)   \
-    template_dispatch_case(t<float>, p, body)           \
-    template_dispatch_case(t<double>, p, body)
+#define TEMPLATE_DISPATCH(t, p, body)                   \
+    TEMPLATE_DISPATCH_CASE(t<char>, p, body)            \
+    TEMPLATE_DISPATCH_CASE(t<unsigned char>, p, body)   \
+    TEMPLATE_DISPATCH_CASE(t<int>, p, body)             \
+    TEMPLATE_DISPATCH_CASE(t<unsigned int>, p, body)    \
+    TEMPLATE_DISPATCH_CASE(t<long>, p, body)            \
+    TEMPLATE_DISPATCH_CASE(t<unsigned long>, p, body)   \
+    TEMPLATE_DISPATCH_CASE(t<float>, p, body)           \
+    TEMPLATE_DISPATCH_CASE(t<double>, p, body)
 
 #endif

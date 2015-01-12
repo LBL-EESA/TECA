@@ -83,89 +83,9 @@ void teca_meta_data::set_prop(
 }
 
 // --------------------------------------------------------------------------
-template<typename T>
-void teca_meta_data::set_prop(const std::string &name, const T &val)
+int teca_meta_data::get_prop_size(const std::string &name, unsigned int &n) const
 {
-    this->set_prop(name, val, 1);
-}
-
-// --------------------------------------------------------------------------
-template<typename T>
-void teca_meta_data::set_prop(
-    const std::string &name,
-    const T *val,
-    unsigned int n)
-{
-    teca_variant_array *prop_val
-        = new teca_variant_array_impl<T>(&val, n);
-
-    this->set_prop(name, prop_val);
-}
-
-// --------------------------------------------------------------------------
-template<typename T>
-void teca_meta_data::set_prop(
-    const std::string &name,
-    const std::vector<T> &val)
-{
-    unsigned int n_vals = val.size();
-
-    teca_variant_array *prop_val
-        = new teca_variant_array_impl<T>(n_vals);
-
-    for (unsigned int i = 0; i < n_vals; ++i)
-        prop_val->set(i, val[i]);
-
-    this->set_prop(name, prop_val);
-}
-
-// --------------------------------------------------------------------------
-template<typename T>
-int teca_meta_data::get_prop(const std::string &name, T &val)
-{
-    prop_map_t::iterator it = this->props.find(name);
-
-    if (it == this->props.end())
-        return -1;
-
-    it->second->get(val);
-    return 0;
-}
-
-// --------------------------------------------------------------------------
-template<typename T>
-int teca_meta_data::get_prop(const std::string &name, vector<T> &vals)
-{
-    prop_map_t::iterator it = this->props.find(name);
-
-    if (it == this->props.end())
-        return -1;
-
-    T *data;
-    unsigned int size;
-    it->second->get_data(data, size);
-
-    vals.assign(data, data+size);
-    return 0;
-}
-
-// --------------------------------------------------------------------------
-template<typename T>
-int teca_meta_data::get_prop(const std::string &name, T *vals)
-{
-    prop_map_t::iterator it = this->props.find(name);
-
-    if (it == this->props.end())
-        return -1;
-
-    it->second->get(vals);
-    return 0;
-}
-
-// --------------------------------------------------------------------------
-int teca_meta_data::get_prop_size(const std::string &name, unsigned int &n)
-{
-    prop_map_t::iterator it = this->props.find(name);
+    prop_map_t::const_iterator it = this->props.find(name);
 
     if (it == this->props.end())
         return -1;
@@ -190,15 +110,15 @@ int teca_meta_data::remove_prop(const std::string &name)
 }
 
 // --------------------------------------------------------------------------
-int teca_meta_data::has_prop(const std::string &name)
+int teca_meta_data::has(const std::string &name) const
 {
     return this->props.count(name);
 }
 
 // --------------------------------------------------------------------------
-int teca_meta_data::empty()
+int teca_meta_data::empty() const
 {
-    return this->props.size();
+    return this->props.empty();
 }
 
 // --------------------------------------------------------------------------
@@ -209,9 +129,40 @@ unsigned long long teca_meta_data::get_next_id()
 }
 
 // --------------------------------------------------------------------------
-bool operator<(
-    const teca_meta_data &lhs,
-    const teca_meta_data &rhs)
+bool operator<(const teca_meta_data &lhs, const teca_meta_data &rhs)
 {
     return lhs.id < rhs.id;
+}
+
+// --------------------------------------------------------------------------
+bool operator==(const teca_meta_data &lhs, const teca_meta_data &rhs)
+{
+    teca_meta_data::prop_map_t::const_iterator rit = rhs.props.begin();
+    teca_meta_data::prop_map_t::const_iterator rend = rhs.props.end();
+    teca_meta_data::prop_map_t::const_iterator lend = lhs.props.end();
+    for (; rit != rend; ++rit)
+    {
+        teca_meta_data::prop_map_t::const_iterator lit = lhs.props.find(rit->first);
+        if ((lit == lend) || !(*lit->second == *rit->second))
+            return false;
+    }
+    return true;
+}
+
+// --------------------------------------------------------------------------
+teca_meta_data operator&(const teca_meta_data &lhs, const teca_meta_data &rhs)
+{
+    teca_meta_data isect;
+    teca_meta_data::prop_map_t::const_iterator rit = rhs.props.begin();
+    teca_meta_data::prop_map_t::const_iterator rend = rhs.props.end();
+    teca_meta_data::prop_map_t::const_iterator lend = lhs.props.end();
+    for (; rit != rend; ++rit)
+    {
+        teca_meta_data::prop_map_t::const_iterator lit = lhs.props.find(rit->first);
+        if ((lit != lend) && (*lit->second == *rit->second))
+        {
+            isect.set_prop(rit->first, rit->second->new_copy());
+        }
+    }
+    return isect;
 }
