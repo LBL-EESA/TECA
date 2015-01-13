@@ -102,7 +102,7 @@ private:
     virtual
     teca_meta_data get_output_meta_data(
         unsigned int port,
-        std::vector<teca_meta_data> &input_md);
+        const std::vector<teca_meta_data> &input_md);
 
     // implementations must override this method and
     // generate a set of requests describing the data
@@ -113,8 +113,8 @@ private:
     virtual
     std::vector<teca_meta_data> get_upstream_request(
         unsigned int port,
-        std::vector<teca_meta_data> &input_md,
-        teca_meta_data &request);
+        const std::vector<teca_meta_data> &input_md,
+        const teca_meta_data &request);
 
     // implementations must override this method and
     // produce the output dataset for the port named
@@ -128,8 +128,8 @@ private:
     virtual
     p_teca_dataset execute(
         unsigned int port,
-        std::vector<p_teca_dataset> &input_data,
-        teca_meta_data &request);
+        const std::vector<p_teca_dataset> &input_data,
+        const teca_meta_data &request);
 
     // implementations may choose to override this method
     // to gain control of keys used in the cache. By default

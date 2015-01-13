@@ -32,7 +32,7 @@ public:
     // set the scalar to multiply by
     TECA_ALGORITHM_PROPERTY(double, scalar)
 
-    // set the name of the array to multiply
+    // set the name of the array to multiply (optional)
     TECA_ALGORITHM_PROPERTY(std::string, array_name)
 
 protected:
@@ -43,25 +43,25 @@ protected:
     // set one.
     int get_active_array(
         const teca_meta_data &input_md,
-        std::string &active_array);
+        std::string &active_array) const;
 
 private:
     virtual
     teca_meta_data get_output_meta_data(
         unsigned int port,
-        std::vector<teca_meta_data> &input_md);
+        const std::vector<teca_meta_data> &input_md);
 
     virtual
     std::vector<teca_meta_data> get_upstream_request(
         unsigned int port,
-        std::vector<teca_meta_data> &input_md,
-        teca_meta_data &request);
+        const std::vector<teca_meta_data> &input_md,
+        const teca_meta_data &request);
 
     virtual
     p_teca_dataset execute(
         unsigned int port,
-        std::vector<p_teca_dataset> &input_data,
-        teca_meta_data &request);
+        const std::vector<p_teca_dataset> &input_data,
+        const teca_meta_data &request);
 
 private:
     std::string array_name;

@@ -26,7 +26,7 @@ array_add::~array_add()
 int array_add::get_active_array(
     const std::string &user_array,
     const teca_meta_data &input_md,
-    std::string &active_array)
+    std::string &active_array) const
 {
     if (user_array.empty())
     {
@@ -54,7 +54,7 @@ int array_add::get_active_array(
 // --------------------------------------------------------------------------
 teca_meta_data array_add::get_output_meta_data(
     unsigned int port,
-    std::vector<teca_meta_data> &input_md)
+    const std::vector<teca_meta_data> &input_md)
 {
     cerr << "array_add::get_output_meta_data" << endl;
 
@@ -82,8 +82,8 @@ teca_meta_data array_add::get_output_meta_data(
 // --------------------------------------------------------------------------
 std::vector<teca_meta_data> array_add::get_upstream_request(
     unsigned int port,
-    std::vector<teca_meta_data> &input_md,
-    teca_meta_data &request)
+    const std::vector<teca_meta_data> &input_md,
+    const teca_meta_data &request)
 {
     cerr << "array_add::get_upstream_request" << endl;
 
@@ -113,8 +113,8 @@ std::vector<teca_meta_data> array_add::get_upstream_request(
 // --------------------------------------------------------------------------
 p_teca_dataset array_add::execute(
     unsigned int port,
-    std::vector<p_teca_dataset> &input_data,
-    teca_meta_data &request)
+    const std::vector<p_teca_dataset> &input_data,
+    const teca_meta_data &request)
 {
     p_array a_out = array::New();
 

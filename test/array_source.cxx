@@ -45,7 +45,7 @@ void array_source::set_number_of_arrays(unsigned int n)
 // --------------------------------------------------------------------------
 teca_meta_data array_source::get_output_meta_data(
     unsigned int port,
-    std::vector<teca_meta_data> &input_md)
+    const std::vector<teca_meta_data> &input_md)
 {
     cerr << "array_source::get_output_meta_data" << endl;
 
@@ -70,8 +70,8 @@ teca_meta_data array_source::get_output_meta_data(
 // --------------------------------------------------------------------------
 p_teca_dataset array_source::execute(
     unsigned int port,
-    std::vector<p_teca_dataset> &input_data,
-    teca_meta_data &request)
+    const std::vector<p_teca_dataset> &input_data,
+    const teca_meta_data &request)
 {
 
     // get the time request

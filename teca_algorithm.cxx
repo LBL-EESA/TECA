@@ -591,18 +591,6 @@ teca_meta_data teca_algorithm::get_output_meta_data(output_port_t &current)
 }
 
 // --------------------------------------------------------------------------
-teca_meta_data teca_algorithm::get_output_meta_data(
-    unsigned int port,
-    vector<teca_meta_data> &input_md)
-{
-    // pass meta data through
-    if (input_md.size())
-        return input_md[0];
-
-    return teca_meta_data();
-}
-
-// --------------------------------------------------------------------------
 p_teca_dataset teca_algorithm::request_data(
     output_port_t &current,
     teca_meta_data &request)
@@ -651,34 +639,6 @@ p_teca_dataset teca_algorithm::request_data(
     }
 
     return out_data;
-}
-
-// --------------------------------------------------------------------------
-p_teca_dataset teca_algorithm::execute(
-        unsigned int port,
-        vector<p_teca_dataset> &input_data,
-        teca_meta_data &request)
-{
-    (void) port;
-    (void) input_data;
-    (void) request;
-
-    // do nothing
-    return p_teca_dataset();
-}
-
-// --------------------------------------------------------------------------
-vector<teca_meta_data> teca_algorithm::get_upstream_request(
-    unsigned int port,
-    vector<teca_meta_data> &input_md,
-    teca_meta_data &request)
-{
-    (void) port;
-    (void) input_md;
-
-    // forward request upstream
-    return vector<teca_meta_data>(
-        this->internals->get_number_of_inputs(), request);
 }
 
 // --------------------------------------------------------------------------
@@ -778,3 +738,44 @@ void teca_algorithm::from_stream(istream &is)
 {
     this->internals->from_stream(is);
 }
+
+// --------------------------------------------------------------------------
+teca_meta_data teca_algorithm::get_output_meta_data(
+    unsigned int port,
+    const vector<teca_meta_data> &input_md)
+{
+    // the default implementation passes meta data through
+    if (input_md.size())
+        return input_md[0];
+
+    return teca_meta_data();
+}
+
+// --------------------------------------------------------------------------
+p_teca_dataset teca_algorithm::execute(
+        unsigned int port,
+        const vector<p_teca_dataset> &input_data,
+        const teca_meta_data &request)
+{
+    (void) port;
+    (void) input_data;
+    (void) request;
+
+    // default implementation does nothing
+    return p_teca_dataset();
+}
+
+// --------------------------------------------------------------------------
+vector<teca_meta_data> teca_algorithm::get_upstream_request(
+    unsigned int port,
+    const vector<teca_meta_data> &input_md,
+    const teca_meta_data &request)
+{
+    (void) port;
+    (void) input_md;
+
+    // default implementation forwards request upstream
+    return vector<teca_meta_data>(
+        this->internals->get_number_of_inputs(), request);
+}
+
