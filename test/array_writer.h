@@ -28,8 +28,8 @@ private:
     virtual
     p_teca_dataset execute(
         unsigned int port,
-        std::vector<p_teca_dataset> &input_data,
-        teca_meta_data &request);
+        const std::vector<p_teca_dataset> &input_data,
+        const teca_meta_data &request);
 };
 
 #endif

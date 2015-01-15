@@ -50,6 +50,10 @@ int array_executive::initialize(const teca_meta_data &md)
             this->requests.push_back(req);
         }
     }
+
+    cerr << "array_executive::initialize n_times="
+     << n_times << " n_arrays=" << n_arrays << endl;
+
     return 0;
 }
 

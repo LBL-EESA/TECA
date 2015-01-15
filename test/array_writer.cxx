@@ -25,8 +25,8 @@ array_writer::~array_writer()
 // --------------------------------------------------------------------------
 p_teca_dataset array_writer::execute(
     unsigned int port,
-    std::vector<p_teca_dataset> &input_data,
-    teca_meta_data &request)
+    const std::vector<p_teca_dataset> &input_data,
+    const teca_meta_data &request)
 {
     p_array a_in = std::dynamic_pointer_cast<array>(input_data[0]);
     if (!a_in)

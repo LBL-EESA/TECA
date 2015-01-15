@@ -1,12 +1,8 @@
 #ifndef teca_algorithm_executive_h
 #define teca_algorithm_executive_h
 
+#include "teca_algorithm_executive_fwd.h"
 #include "teca_meta_data.h"
-
-#include <memory>
-
-class teca_algorithm_executive;
-typedef std::shared_ptr<teca_algorithm_executive> p_teca_algorithm_executive;
 
 // base class for executives. algorithm executives control pipeline
 // execution by providing a series of requests. this allows for
@@ -39,28 +35,5 @@ protected:
     teca_algorithm_executive(const teca_algorithm_executive &);
     void operator=(const teca_algorithm_executive &);
 };
-
-// this is a convenience macro to be used to declare a static
-// New method that will be used to construct new objects in
-// shared_ptr's. This manages the details of interoperability
-// with std C++11 shared pointer
-#define TECA_ALGORITHM_EXECUTIVE_STATIC_NEW(T)                              \
-                                                                            \
-static p_##T New()                                                          \
-{                                                                           \
-    return p_##T(new T);                                                    \
-}                                                                           \
-                                                                            \
-using enable_shared_from_this<teca_algorithm_executive>::shared_from_this;  \
-                                                                            \
-std::shared_ptr<T> shared_from_this()                                       \
-{                                                                           \
-    return std::static_pointer_cast<T>(shared_from_this());                 \
-}                                                                           \
-                                                                            \
-std::shared_ptr<T const> shared_from_this() const                           \
-{                                                                           \
-    return std::static_pointer_cast<T const>(shared_from_this());           \
-}
 
 #endif

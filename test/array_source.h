@@ -16,6 +16,7 @@ metadata keys:
      time
      array_names
      array_size
+     extent
 
 request keys:
      time (required)

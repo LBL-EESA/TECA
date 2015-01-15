@@ -6,15 +6,14 @@
 #include <utility>
 #include <iosfwd>
 
-// TODO these are only needed here for p_X typedefs
-#include "teca_dataset.h"
-#include "teca_meta_data.h"
-#include "teca_algorithm_executive.h"
-
-class teca_algorithm;
-typedef std::shared_ptr<teca_algorithm> p_teca_algorithm;
-
+// forward delcaration of ref counted types
+#include "teca_dataset_fwd.h"
+#include "teca_algorithm_fwd.h"
+#include "teca_algorithm_executive_fwd.h"
 class teca_algorithm_internals;
+class teca_algorithm_thread_pool;
+
+#include "teca_meta_data.h"
 
 // interface to teca pipeline architecture. all sources/readers
 // filters, sinks/writers will implement this interface
@@ -70,14 +69,17 @@ public:
     // set the executive
     void set_executive(p_teca_algorithm_executive exec);
 
+    // set the number of threads to use (default 1)
+    void set_number_of_threads(unsigned int);
+
 protected:
     teca_algorithm();
 
-    teca_algorithm(const teca_algorithm &src);
-    teca_algorithm(teca_algorithm &&src);
+    teca_algorithm(const teca_algorithm &src) = delete;
+    teca_algorithm(teca_algorithm &&src) = delete;
 
-    teca_algorithm &operator=(const teca_algorithm &src);
-    teca_algorithm &operator=(teca_algorithm &&src);
+    teca_algorithm &operator=(const teca_algorithm &src) = delete;
+    teca_algorithm &operator=(teca_algorithm &&src) = delete;
 
     // implementations should call this from their
     // constructors to setup the internal caches
@@ -139,77 +141,37 @@ private:
     virtual
     teca_meta_data get_cache_key(
         unsigned int port,
-        const teca_meta_data &request);
+        const teca_meta_data &request) const;
 
-    // manage meta data reporting  phase of pipeline
-    // execution.
+    // driver function that manage meta data reporting  phase
+    // of pipeline execution.
+    static
     teca_meta_data get_output_meta_data(output_port_t &current);
 
-    // manage execution of the given requst on the
-    // named port
+    // driver function that manages execution of the given
+    // requst on the named port
+    static
     p_teca_dataset request_data(
         output_port_t &port,
-        teca_meta_data &request);
+        const teca_meta_data &request);
 
-    // clear chache where modified flag has been set
+    // driver function that clears the output data cache
+    //  where modified flag has been set
+    static
     int validate_cache(output_port_t &current);
 
     // clear the modified flag after execution
+    static
     void clear_modified(output_port_t current);
 
     // serialize the configuration to a stream
-    virtual void to_stream(std::ostream &os);
+    virtual void to_stream(std::ostream &os) const;
     virtual void from_stream(std::istream &is);
 
 private:
     teca_algorithm_internals *internals;
+
+    friend class teca_algorithm_thread_pool;
 };
-
-// this is a convenience macro to be used to declare a static
-// New method that will be used to construct new objects in
-// shared_ptr's. This manages the details of interoperability
-// with std C++11 shared pointer
-#define TECA_ALGORITHM_STATIC_NEW(T)                             \
-                                                                 \
-static p_##T New()                                               \
-{                                                                \
-    return p_##T(new T);                                         \
-}                                                                \
-                                                                 \
-using enable_shared_from_this<teca_algorithm>::shared_from_this; \
-                                                                 \
-std::shared_ptr<T> shared_from_this()                            \
-{                                                                \
-    return std::static_pointer_cast<T>(shared_from_this());      \
-}                                                                \
-                                                                 \
-std::shared_ptr<T const> shared_from_this() const                     \
-{                                                                \
-    return std::static_pointer_cast<T const>(shared_from_this());     \
-}
-
-// convenience macro to declare standard set_X/get_X methods
-// where X is the name of a class member. will manage the
-// algorithm's modified state for the user.
-#define TECA_ALGORITHM_PROPERTY(T, NAME) \
-                                         \
-void set_##NAME(const T &v)              \
-{                                        \
-    if (this->NAME != v)                 \
-    {                                    \
-        this->NAME = v;                  \
-        this->set_modified();            \
-    }                                    \
-}                                        \
-                                         \
-const T &get_##NAME() const              \
-{                                        \
-    return this->NAME;                   \
-}                                        \
-                                         \
-T &get_##NAME()                          \
-{                                        \
-    return this->NAME;                   \
-}
 
 #endif
