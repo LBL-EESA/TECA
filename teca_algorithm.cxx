@@ -9,9 +9,7 @@
 #include <iostream>
 #include <utility>
 #include <algorithm>
-#include <thread>
 #include <mutex>
-#include <atomic>
 
 using std::vector;
 using std::map;
@@ -19,148 +17,7 @@ using std::string;
 using std::ostream;
 using std::istream;
 using std::pair;
-using std::thread;
 using std::mutex;
-using std::lock_guard;
-using std::atomic;
-
-namespace {
-// convenience functions for accessing port and algorithm
-// from an output port
-static
-p_teca_algorithm &algorithm(teca_algorithm::output_port_t &op)
-{ return op.first; }
-
-static
-unsigned int &port(teca_algorithm::output_port_t &op)
-{ return op.second; }
-};
-
-
-class teca_algorithm_thread_pool;
-typedef std::shared_ptr<teca_algorithm_thread_pool> p_teca_algorithm_thread_pool;
-
-// a class to manage a fixed size pool of threads that dispatch
-// data requests to teca_algorithm
-class teca_algorithm_thread_pool
-{
-public:
-    typedef
-    pair<teca_algorithm::output_port_t, teca_meta_data>
-        data_request_t;
-
-    // construct the thread pool with the default number
-    // of threads (1-the number of cores)
-    teca_algorithm_thread_pool();
-    // contruct the thread pool with n worker threads
-    teca_algorithm_thread_pool(unsigned int n);
-
-    ~teca_algorithm_thread_pool();
-
-    // add a task
-    void add_data_request(
-        teca_algorithm::output_port_t &port,
-        const teca_meta_data &req);
-
-    // wait for all pending tasks to complete
-    void wait_pending();
-
-    // get the number of threads
-    unsigned int size()
-    { return m_threads.size(); }
-
-protected:
-    teca_algorithm_thread_pool(const teca_algorithm_thread_pool &) = delete;
-    void operator=(const teca_algorithm_thread_pool &) = delete;
-
-    // create n threads for the pool
-    void create_threads(unsigned int n_threads);
-
-private:
-    atomic<bool> m_live;
-    atomic<unsigned long> m_pending;
-    teca_threadsafe_queue<data_request_t> m_queue;
-    vector<thread> m_threads;
-};
-
-namespace {
-// convenience functions for accessing output port and request
-// from a task meta data
-teca_algorithm::output_port_t &port(teca_algorithm_thread_pool::data_request_t &task)
-{ return task.first; }
-
-teca_meta_data &request(teca_algorithm_thread_pool::data_request_t &task)
-{ return task.second; }
-};
-
-// --------------------------------------------------------------------------
-teca_algorithm_thread_pool::teca_algorithm_thread_pool()
-    : m_live(true), m_pending(0)
-{
-    unsigned int n_threads = std::max(1u, thread::hardware_concurrency()-1);
-    this->create_threads(n_threads);
-}
-
-// --------------------------------------------------------------------------
-teca_algorithm_thread_pool::teca_algorithm_thread_pool(unsigned int n_threads)
-    : m_live(true), m_pending(0)
-{
-    this->create_threads(n_threads);
-}
-
-// --------------------------------------------------------------------------
-void teca_algorithm_thread_pool::create_threads(unsigned int n_threads)
-{
-    for (unsigned int i = 0; i < n_threads; ++i)
-    {
-        m_threads.push_back(thread([this]()
-        {
-            while (m_live.load())
-            {
-                data_request_t task;
-                if (m_queue.try_pop(task))
-                {
-                    teca_algorithm::request_data(
-                        ::port(task), ::request(task));
-                    --m_pending;
-                }
-                else
-                {
-                    std::this_thread::yield();
-                }
-            }
-        }));
-    }
-}
-
-// --------------------------------------------------------------------------
-teca_algorithm_thread_pool::~teca_algorithm_thread_pool()
-{
-    m_live = false;
-    std::for_each(
-        m_threads.begin(), m_threads.end(),
-        [](thread &t) { t.join(); });
-}
-
-// --------------------------------------------------------------------------
-void teca_algorithm_thread_pool::add_data_request(
-        teca_algorithm::output_port_t &port,
-        const teca_meta_data &req)
-{
-    m_queue.push(data_request_t(port, req));
-    ++m_pending;
-}
-
-// --------------------------------------------------------------------------
-void teca_algorithm_thread_pool::wait_pending()
-{
-    while (m_pending.load())
-        std::this_thread::yield();
-}
-
-
-
-
 
 
 // implementation for managing input connections
@@ -170,12 +27,7 @@ class teca_algorithm_internals
 public:
     teca_algorithm_internals();
     ~teca_algorithm_internals();
-
-    teca_algorithm_internals(const teca_algorithm_internals &other) = delete;
-    teca_algorithm_internals(teca_algorithm_internals &&other) = delete;
-
-    teca_algorithm_internals &operator=(const teca_algorithm_internals &other) = delete;
-    teca_algorithm_internals &operator=(teca_algorithm_internals &&other) = delete;
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_algorithm_internals)
 
     // this setsup the output cache. calling
     // this will remove all cached data.
@@ -186,11 +38,11 @@ public:
     unsigned int get_number_of_outputs() const;
 
     // set/get the input
-    teca_algorithm::output_port_t &get_input(unsigned int i);
+    teca_algorithm_output_port &get_input(unsigned int i);
 
     void set_input(
         unsigned int conn,
-        const teca_algorithm::output_port_t &port);
+        const teca_algorithm_output_port &port);
 
     // insert a dataset into the cache for the
     // given request (thread safe)
@@ -246,7 +98,7 @@ public:
 
     // links to upstream stages indexed by input
     // connection id
-    vector<teca_algorithm::output_port_t> inputs;
+    vector<teca_algorithm_output_port> inputs;
 
     // cached output data. maps from a request
     // to the cached dataset, one per output port
@@ -261,9 +113,6 @@ public:
 
     // executive
     p_teca_algorithm_executive exec;
-
-    // thread pool
-    p_teca_algorithm_thread_pool thread_pool;
 };
 
 // --------------------------------------------------------------------------
@@ -272,8 +121,7 @@ teca_algorithm_internals::teca_algorithm_internals()
     name("teca_algorithm"),
     data_cache_size(1),
     modified(1),
-    exec(teca_algorithm_executive::New()),
-    thread_pool(new teca_algorithm_thread_pool(1))
+    exec(teca_algorithm_executive::New())
 {
     this->set_number_of_outputs(1);
 }
@@ -281,87 +129,12 @@ teca_algorithm_internals::teca_algorithm_internals()
 // --------------------------------------------------------------------------
 teca_algorithm_internals::~teca_algorithm_internals()
 {}
-/*
-// --------------------------------------------------------------------------
-teca_algorithm_internals::teca_algorithm_internals(
-    const teca_algorithm_internals &other)
-            :
-    name(other.name),
-    inputs(other.inputs),
-    data_cache_size(other.data_cache_size),
-    data_cache(other.data_cache),
-    modified(other.modified),
-    exec(other.exec),
-    request_queue(other.request_queue)
-{}
-
-// --------------------------------------------------------------------------
-teca_algorithm_internals::teca_algorithm_internals(
-    teca_algorithm_internals &&other)
-{
-    this->name.swap(other.name);
-    this->inputs.swap(other.inputs);
-    this->data_cache_size = other.data_cache_size;
-    this->data_cache.swap(other.data_cache);
-    this->modified.swap(other.modified);
-    this->exec.swap(other.exec);
-    this->equest_queue.swap(other.request_queue);
-}
-
-// --------------------------------------------------------------------------
-teca_algorithm_internals &teca_algorithm_internals::operator=(
-    const teca_algorithm_internals &other)
-{
-    if (&other == this)
-        return *this;
-
-    this->name = other.name;
-    this->inputs = other.inputs;
-    this->data_cache_size = other.data_cache_size;
-    this->data_cache = other.data_cache;
-    this->modified = other.modified;
-    this->exec = other.exec;
-    this->request_queue = other.request_queue;
-
-    return *this;
-}
-
-// --------------------------------------------------------------------------
-teca_algorithm_internals &teca_algorithm_internals::operator=(
-    teca_algorithm_internals &&other)
-{
-    if (&other == this)
-        return *this;
-
-    this->name.clear();
-    this->name.swap(other.name);
-
-    this->inputs.clear();
-    this->inputs.swap(other.inputs);
-
-    this->data_cache_size = other.data_cache_size;
-
-    this->data_cache.clear();
-    this->data_cache.swap(other.data_cache);
-
-    this->modified.clear();
-    this->modified.swap(other.modified);
-
-    this->exec.reset();
-    this->exec.swap(other.exec);
-
-    this->request_queue.clear();
-    this->request_queue.swap(other.request_queue);
-
-    return *this;
-}
-*/
 
 // --------------------------------------------------------------------------
 void teca_algorithm_internals::set_number_of_inputs(unsigned int n)
 {
     this->inputs.clear();
-    this->inputs.resize(n, teca_algorithm::output_port_t(nullptr, 0));
+    this->inputs.resize(n, teca_algorithm_output_port(nullptr, 0));
 }
 
 // --------------------------------------------------------------------------
@@ -373,13 +146,13 @@ unsigned int teca_algorithm_internals::get_number_of_inputs() const
 // --------------------------------------------------------------------------
 void teca_algorithm_internals::set_input(
     unsigned int conn,
-    const teca_algorithm::output_port_t &port)
+    const teca_algorithm_output_port &port)
 {
     this->inputs[conn] = port;
 }
 
 // --------------------------------------------------------------------------
-teca_algorithm::output_port_t &teca_algorithm_internals::get_input(
+teca_algorithm_output_port &teca_algorithm_internals::get_input(
     unsigned int conn)
 {
     return this->inputs[conn];
@@ -551,16 +324,6 @@ void teca_algorithm_internals::set_executive(p_teca_algorithm_executive &e)
 }
 
 // --------------------------------------------------------------------------
-void teca_algorithm_internals::set_number_of_threads(unsigned int n_threads)
-{
-    if (this->thread_pool->size() != n_threads)
-    {
-        this->thread_pool
-            = std::make_shared<teca_algorithm_thread_pool>(n_threads);
-    }
-}
-
-// --------------------------------------------------------------------------
 void teca_algorithm_internals::to_stream(ostream &os) const
 {
     // TODO
@@ -573,7 +336,6 @@ void teca_algorithm_internals::from_stream(istream &is)
     // TODO
     (void) is;
 }
-
 
 
 
@@ -601,62 +363,33 @@ teca_algorithm::~teca_algorithm()
     delete this->internals;
 }
 
-/*// --------------------------------------------------------------------------
-teca_algorithm::teca_algorithm(const teca_algorithm &src)
-    : internals(new teca_algorithm_internals(*src.internals))
-{}
-
 // --------------------------------------------------------------------------
-teca_algorithm::teca_algorithm(teca_algorithm &&src)
-    : internals(new teca_algorithm_internals(std::move(*src.internals)))
-{}
-
-// --------------------------------------------------------------------------
-teca_algorithm &teca_algorithm::operator=(const teca_algorithm &src)
-{
-    if (this == &src)
-        return *this;
-
-    teca_algorithm_internals *tmp
-        = new teca_algorithm_internals(*src.internals);
-
-    delete this->internals;
-    this->internals = tmp;
-
-    return *this;
-}
-
-// --------------------------------------------------------------------------
-teca_algorithm &teca_algorithm::operator=(teca_algorithm &&src)
-{
-    if (this == &src)
-        return *this;
-
-    *this->internals = std::move(*src.internals);
-
-    return *this;
-}*/
-
-// --------------------------------------------------------------------------
-teca_algorithm::output_port_t teca_algorithm::get_output_port(
+teca_algorithm_output_port teca_algorithm::get_output_port(
     unsigned int port)
 {
-    return teca_algorithm::output_port_t(this->shared_from_this(), port);
+    return teca_algorithm_output_port(this->shared_from_this(), port);
 }
 
 // --------------------------------------------------------------------------
 void teca_algorithm::set_input_connection(
     unsigned int conn,
-    const output_port_t &upstream)
+    const teca_algorithm_output_port &upstream)
 {
     this->internals->set_input(conn, upstream);
     this->set_modified();
 }
 
 // --------------------------------------------------------------------------
+teca_algorithm_output_port &teca_algorithm::get_input_connection(
+    unsigned int i)
+{
+    return this->internals->get_input(i);
+}
+
+// --------------------------------------------------------------------------
 void teca_algorithm::remove_input_connection(unsigned int id)
 {
-    this->set_input_connection(id, output_port_t(nullptr, 0));
+    this->set_input_connection(id, teca_algorithm_output_port(nullptr, 0));
     this->set_modified();
 }
 
@@ -672,17 +405,19 @@ void teca_algorithm::clear_input_connections()
 }
 
 // --------------------------------------------------------------------------
+int teca_algorithm::cache_output_data(
+    unsigned int port,
+    const teca_meta_data &key,
+    p_teca_dataset &data)
+{
+    return this->internals->cache_output_data(port, key, data);
+}
+
+// --------------------------------------------------------------------------
 p_teca_dataset teca_algorithm::get_output_data(
     unsigned int port,
-    const teca_meta_data &request,
-    int filter)
+    const teca_meta_data &key)
 {
-    teca_meta_data key;
-    if (filter)
-        key = this->get_cache_key(port, request);
-    else
-        key = request;
-
     return this->internals->get_output_data(port, key);
 }
 
@@ -690,6 +425,12 @@ p_teca_dataset teca_algorithm::get_output_data(
 p_teca_dataset teca_algorithm::get_output_data(unsigned int port)
 {
     return this->internals->get_output_data(port);
+}
+
+// --------------------------------------------------------------------------
+void teca_algorithm::clear_cache(unsigned int port)
+{
+    this->internals->clear_data_cache(port);
 }
 
 // --------------------------------------------------------------------------
@@ -710,27 +451,51 @@ void teca_algorithm::set_cache_size(unsigned int n)
 }
 
 // --------------------------------------------------------------------------
+void teca_algorithm::set_modified()
+{
+    this->internals->set_modified();
+}
+
+// --------------------------------------------------------------------------
+void teca_algorithm::set_modified(unsigned int port)
+{
+    this->internals->set_modified(port);
+}
+
+// --------------------------------------------------------------------------
+int teca_algorithm::get_modified(unsigned int port)
+{
+    return this->internals->get_modified(port);
+}
+
+// --------------------------------------------------------------------------
+void teca_algorithm::clear_modified(unsigned int port)
+{
+    this->internals->clear_modified(port);
+}
+
+// --------------------------------------------------------------------------
 void teca_algorithm::set_executive(p_teca_algorithm_executive exec)
 {
     this->internals->set_executive(exec);
 }
 
 // --------------------------------------------------------------------------
-void teca_algorithm::set_number_of_inputs(unsigned int n)
+void teca_algorithm::set_number_of_input_connections(unsigned int n)
 {
     this->internals->set_number_of_inputs(n);
 }
 
 // --------------------------------------------------------------------------
-void teca_algorithm::set_number_of_outputs(unsigned int n)
+unsigned int teca_algorithm::get_number_of_input_connections()
 {
-    this->internals->set_number_of_outputs(n);
+    return internals->get_number_of_inputs();
 }
 
 // --------------------------------------------------------------------------
-void teca_algorithm::set_number_of_threads(unsigned int n)
+void teca_algorithm::set_number_of_output_ports(unsigned int n)
 {
-    this->internals->set_number_of_threads(n);
+    this->internals->set_number_of_outputs(n);
 }
 
 // --------------------------------------------------------------------------
@@ -770,7 +535,7 @@ vector<teca_meta_data> teca_algorithm::get_upstream_request(
 
     // default implementation forwards request upstream
     return vector<teca_meta_data>(
-        this->internals->get_number_of_inputs(), request);
+        this->get_number_of_input_connections(), request);
 }
 
 // --------------------------------------------------------------------------
@@ -783,20 +548,21 @@ teca_meta_data teca_algorithm::get_cache_key(
 }
 
 // --------------------------------------------------------------------------
-teca_meta_data teca_algorithm::get_output_meta_data(output_port_t &current)
+teca_meta_data teca_algorithm::get_output_meta_data(
+    teca_algorithm_output_port &current)
 {
-    p_teca_algorithm alg = ::algorithm(current);
-    unsigned int port = ::port(current);
+    p_teca_algorithm alg = get_algorithm(current);
+    unsigned int port = get_port(current);
 
     // gather upstream metadata one per input
     // connection.
 
-    unsigned int n_inputs = alg->internals->get_number_of_inputs();
+    unsigned int n_inputs = alg->get_number_of_input_connections();
     vector<teca_meta_data> input_md(n_inputs);
     for (unsigned int i = 0; i < n_inputs; ++i)
     {
         input_md[i]
-          = alg->get_output_meta_data(alg->internals->get_input(i));
+          = alg->get_output_meta_data(alg->get_input_connection(i));
     }
 
     // now that we have metadata for the algorithm's
@@ -807,26 +573,26 @@ teca_meta_data teca_algorithm::get_output_meta_data(output_port_t &current)
 
 // --------------------------------------------------------------------------
 p_teca_dataset teca_algorithm::request_data(
-    output_port_t &current,
+    teca_algorithm_output_port &current,
     const teca_meta_data &request)
 {
     // execute current algorithm to fulfill the request.
     // return the data
-    p_teca_algorithm &alg = ::algorithm(current);
-    unsigned int port = ::port(current);
+    p_teca_algorithm &alg = get_algorithm(current);
+    unsigned int port = get_port(current);
 
     // check for cached data
     teca_meta_data key = alg->get_cache_key(port, request);
-    p_teca_dataset out_data = alg->internals->get_output_data(port, key);
+    p_teca_dataset out_data = alg->get_output_data(port, key);
     if (!out_data)
     {
         // determine what data is available on our inputs
-        unsigned int n_inputs = alg->internals->get_number_of_inputs();
+        unsigned int n_inputs = alg->get_number_of_input_connections();
         vector<teca_meta_data> input_md(n_inputs);
         for (unsigned int i = 0; i < n_inputs; ++i)
         {
             input_md[i]
-              = alg->get_output_meta_data(alg->internals->get_input(i));
+              = alg->get_output_meta_data(alg->get_input_connection(i));
         }
 
         // get requests for upstream data
@@ -841,8 +607,10 @@ p_teca_dataset teca_algorithm::request_data(
         {
             if (!up_reqs[i].empty())
             {
+                unsigned int conn = i%n_inputs;
+
                 input_data[i]
-                  = alg->request_data(alg->internals->get_input(i%n_inputs), up_reqs[i]);
+                  = alg->request_data(alg->get_input_connection(conn), up_reqs[i]);
             }
         }
 
@@ -850,27 +618,26 @@ p_teca_dataset teca_algorithm::request_data(
         out_data = alg->execute(port, input_data, request);
 
         // cache
-        alg->internals->cache_output_data(port, key, out_data);
+        alg->cache_output_data(port, key, out_data);
     }
 
     return out_data;
 }
 
 // --------------------------------------------------------------------------
-int teca_algorithm::validate_cache(output_port_t &current)
+int teca_algorithm::validate_cache(teca_algorithm_output_port &current)
 {
-    p_teca_algorithm alg = ::algorithm(current);
-    unsigned int port = ::port(current);
+    p_teca_algorithm alg = get_algorithm(current);
+    unsigned int port = get_port(current);
 
-    unsigned int n = alg->internals->get_number_of_inputs();
+    unsigned int n = alg->get_number_of_input_connections();
     for (unsigned int i = 0; i<n; ++i)
     {
-        output_port_t upstream = alg->internals->get_input(i);
+        teca_algorithm_output_port upstream = alg->get_input_connection(i);
 
-        if (alg->validate_cache(upstream)
-            || alg->internals->get_modified(port))
+        if (alg->validate_cache(upstream) || alg->get_modified(port))
         {
-            alg->internals->clear_data_cache(port);
+            alg->clear_cache(port);
             return 1;
         }
     }
@@ -881,18 +648,18 @@ int teca_algorithm::validate_cache(output_port_t &current)
 }
 
 // --------------------------------------------------------------------------
-void teca_algorithm::clear_modified(output_port_t current)
+void teca_algorithm::clear_modified(teca_algorithm_output_port current)
 {
-    p_teca_algorithm alg = ::algorithm(current);
-    unsigned int port = ::port(current);
+    p_teca_algorithm alg = get_algorithm(current);
+    unsigned int port = get_port(current);
 
-    unsigned int n = alg->internals->get_number_of_inputs();
+    unsigned int n = alg->get_number_of_input_connections();
     for (unsigned int i = 0; i < n; ++i)
     {
-        alg->clear_modified(alg->internals->get_input(i));
+        alg->clear_modified(alg->get_input_connection(i));
     }
 
-    alg->internals->clear_modified(::port(current));
+    alg->clear_modified(port);
 }
 
 // --------------------------------------------------------------------------
@@ -904,10 +671,10 @@ int teca_algorithm::update()
     unsigned int n_out = this->internals->get_number_of_outputs();
     for (unsigned int i = 0; i < n_out; ++i)
     {
-        output_port_t port = this->get_output_port(i);
+        teca_algorithm_output_port port = this->get_output_port(i);
 
         // make sure caches are wiped where inputs have changed
-        teca_algorithm::validate_cache(port);
+        this->validate_cache(port);
 
         // initialize the executive
         if (exec->initialize(teca_algorithm::get_output_meta_data(port)))
@@ -919,27 +686,15 @@ int teca_algorithm::update()
         // let thread pool execute the requests
         teca_meta_data request;
         while ((request = exec->get_next_request()))
-            this->internals->thread_pool->add_data_request(port, request);
+        {
+            this->request_data(port, request);
+        }
 
-        // wait for execution of all requests to complete
-        this->internals->thread_pool->wait_pending();
 
         // clear modfied flags
-        teca_algorithm::clear_modified(port);
+        this->clear_modified(port);
     }
     return 0;
-}
-
-// --------------------------------------------------------------------------
-void teca_algorithm::set_modified()
-{
-    this->internals->set_modified();
-}
-
-// --------------------------------------------------------------------------
-void teca_algorithm::set_modified(unsigned int port)
-{
-    this->internals->set_modified(port);
 }
 
 // --------------------------------------------------------------------------

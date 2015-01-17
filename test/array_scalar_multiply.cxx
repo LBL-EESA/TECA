@@ -14,8 +14,8 @@ using std::endl;
 // --------------------------------------------------------------------------
 array_scalar_multiply::array_scalar_multiply() : scalar(0)
 {
-    this->set_number_of_inputs(1);
-    this->set_number_of_outputs(1);
+    this->set_number_of_input_connections(1);
+    this->set_number_of_output_ports(1);
 }
 
 // --------------------------------------------------------------------------

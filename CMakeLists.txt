@@ -5,6 +5,7 @@ set(teca_srcs
     teca_variant_array.cxx
     teca_meta_data.cxx
     teca_algorithm.cxx
+    teca_threaded_algorithm.cxx
     )
 
 if (MSVC)

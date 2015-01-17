@@ -14,8 +14,8 @@ using std::endl;
 // --------------------------------------------------------------------------
 array_add::array_add()
 {
-    this->set_number_of_inputs(2);
-    this->set_number_of_outputs(1);
+    this->set_number_of_input_connections(2);
+    this->set_number_of_output_ports(1);
 }
 
 // --------------------------------------------------------------------------

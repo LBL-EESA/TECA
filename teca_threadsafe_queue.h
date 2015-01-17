@@ -18,6 +18,7 @@ public:
 
     // push a value onto the queue
     void push(const T &val);
+    void push(T &&val);
 
     // pop a value from the queue, will block until data is ready.
     void pop(T &val);
@@ -85,6 +86,15 @@ void teca_threadsafe_queue<T>::push(const T &val)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_queue.push(val);
+    m_ready.notify_one();
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
+void teca_threadsafe_queue<T>::push(T &&val)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_queue.push(std::move(val));
     m_ready.notify_one();
 }
 

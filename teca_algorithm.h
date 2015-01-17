@@ -1,11 +1,6 @@
 #ifndef teca_algorithm_h
 #define teca_algorithm_h
 
-#include <vector>
-#include <memory>
-#include <utility>
-#include <iosfwd>
-
 // forward delcaration of ref counted types
 #include "teca_dataset_fwd.h"
 #include "teca_algorithm_fwd.h"
@@ -13,54 +8,54 @@
 class teca_algorithm_internals;
 class teca_algorithm_thread_pool;
 
+// for types used in the api
 #include "teca_meta_data.h"
+#include "teca_algorithm_output_port.h"
+#include <vector>
+#include <utility>
+#include <iosfwd>
 
 // interface to teca pipeline architecture. all sources/readers
 // filters, sinks/writers will implement this interface
 class teca_algorithm : public std::enable_shared_from_this<teca_algorithm>
 {
 public:
-    // convinience method for creating the algorithm
-    // in a shared pointer.
+    // construct/destruct
     static p_teca_algorithm New();
     virtual ~teca_algorithm();
 
-    // convenience method tp get an output port from
-    // the algorithm to be used during pipeline building
-    typedef std::pair<p_teca_algorithm, unsigned int> output_port_t;
-    output_port_t get_output_port(unsigned int port = 0);
+    // get an output port from the algorithm. to be used
+    // during pipeline building
+    teca_algorithm_output_port get_output_port(unsigned int port = 0);
 
     // set an input to this algorithm
-    void set_input_connection(const output_port_t &port)
+    void set_input_connection(const teca_algorithm_output_port &port)
     { this->set_input_connection(0, port); }
 
     void set_input_connection(
         unsigned int id,
-        const output_port_t &port);
+        const teca_algorithm_output_port &port);
 
     // remove input connections
     void remove_input_connection(unsigned int id);
+
+    // remove all input connections
     void clear_input_connections();
 
-    // access the cached data produced by this algorithm.
-    // when no request is specified the dataset on the
-    // top(most recent) of the cache is returned. When
-    // a request is specified it may optionally be filtered
-    // by the implementations cache key filter. see also
-    // get_cache_key
+    // access the cached data produced by this algorithm. when no
+    // request is specified the dataset on the top(most recent) of
+    // the cache is returned. When a request is specified it may
+    // optionally be filtered by the implementations cache key filter.
+    // see also get_cache_key (threadsafe)
     p_teca_dataset get_output_data(unsigned int port = 0);
-
-    p_teca_dataset get_output_data(
-        unsigned int port,
-        const teca_meta_data &request,
-        int filter = 1);
 
     // remove a dataset from the top/bottom of the cache. the
     // top of the cache has the most recently created dataset.
     // top or bottom is selected via the boolean argument.
+    // (threadsafe)
     void pop_cache(unsigned int port = 0, int top = 0);
 
-    // set the cache size. the default is 1.
+    // set the cache size. the default is 1. (threadsafe)
     void set_cache_size(unsigned int n);
 
     // execute the pipeline from this instance up.
@@ -74,27 +69,26 @@ public:
 
 protected:
     teca_algorithm();
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_algorithm)
 
-    teca_algorithm(const teca_algorithm &src) = delete;
-    teca_algorithm(teca_algorithm &&src) = delete;
+    // implementations should call this from their constructors
+    // to setup the internal caches and data structures required
+    // for execution.
+    void set_number_of_input_connections(unsigned int n);
+    void set_number_of_output_ports(unsigned int n);
 
-    teca_algorithm &operator=(const teca_algorithm &src) = delete;
-    teca_algorithm &operator=(teca_algorithm &&src) = delete;
-
-    // implementations should call this from their
-    // constructors to setup the internal caches
-    // and data structures required for execution.
-    void set_number_of_inputs(unsigned int n);
-    void set_number_of_outputs(unsigned int n);
-
-    // set the modified flag on the given output
-    // port's cache. should be called when user
-    // modifies properties on the object
-    // that require the output to be regenerated.
+    // set the modified flag on the given output port's cache.
+    // should be called when user modifies properties on the
+    // object that require the output to be regenerated.
     void set_modified();
     void set_modified(unsigned int port);
 
-private:
+protected:
+// this section contains methods that developers
+// typically need to override when implementing
+// teca_algorithm's such as reader, filters, and
+// writers.
+
     // implementations must override this method to provide
     // information to downstream consumers about what data
     // will be produced on each output port. The port to
@@ -143,35 +137,76 @@ private:
         unsigned int port,
         const teca_meta_data &request) const;
 
-    // driver function that manage meta data reporting  phase
-    // of pipeline execution.
-    static
-    teca_meta_data get_output_meta_data(output_port_t &current);
-
-    // driver function that manages execution of the given
-    // requst on the named port
-    static
-    p_teca_dataset request_data(
-        output_port_t &port,
-        const teca_meta_data &request);
-
-    // driver function that clears the output data cache
-    //  where modified flag has been set
-    static
-    int validate_cache(output_port_t &current);
-
-    // clear the modified flag after execution
-    static
-    void clear_modified(output_port_t current);
-
-    // serialize the configuration to a stream
+    // serialize the configuration to a stream. this should
+    // store the public user modifiable properties so that
+    // runtime configuration may be saved and restored..
     virtual void to_stream(std::ostream &os) const;
     virtual void from_stream(std::istream &is);
 
+protected:
+// this section contains methods that control the
+// pipeline's behavior. these would typically only
+// need to be overriden when designing a new class
+// of algorithms.
+
+    // driver function that manage meta data reporting  phase
+    // of pipeline execution.
+    virtual
+    teca_meta_data get_output_meta_data(
+        teca_algorithm_output_port &current);
+
+    // driver function that manages execution of the given
+    // requst on the named port
+    virtual
+    p_teca_dataset request_data(
+        teca_algorithm_output_port &port,
+        const teca_meta_data &request);
+
+    // driver function that clears the output data cache
+    // where modified flag has been set from the current
+    // port upstream.
+    virtual
+    int validate_cache(teca_algorithm_output_port &current);
+
+    // driver function that clears the modified flag on the
+    // named port and all of it's upstream connections.
+    virtual
+    void clear_modified(teca_algorithm_output_port current);
+
+protected:
+// api exposing internals for use in driver methods
+
+    // search the given port's cache for the dataset associated
+    // with the given request. see also get_cache_key. (threadsafe)
+    p_teca_dataset get_output_data(
+        unsigned int port,
+        const teca_meta_data &request);
+
+    // add or update the given request , dataset pair in the cache.
+    // see also get_cache_key. (threadsafe)
+    int cache_output_data(
+        unsigned int port,
+        const teca_meta_data &request,
+        p_teca_dataset &data);
+
+    // clear the cache on the given output port
+    void clear_cache(unsigned int port);
+
+    // get the number of input connections
+    unsigned int get_number_of_input_connections();
+
+    // get the output port associated with this algorithm's
+    // i'th input connection.
+    teca_algorithm_output_port &get_input_connection(unsigned int i);
+
+    // clear the modified flag on the i'th output
+    void clear_modified(unsigned int port);
+
+    // return the output port's modified flag value
+    int get_modified(unsigned int port);
+
 private:
     teca_algorithm_internals *internals;
-
-    friend class teca_algorithm_thread_pool;
 };
 
 #endif

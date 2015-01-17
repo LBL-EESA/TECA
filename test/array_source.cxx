@@ -18,8 +18,8 @@ array_source::array_source() :
     array_size(0),
     number_of_timesteps(0)
 {
-    this->set_number_of_inputs(0);
-    this->set_number_of_outputs(1);
+    this->set_number_of_input_connections(0);
+    this->set_number_of_output_ports(1);
 }
 
 // --------------------------------------------------------------------------
