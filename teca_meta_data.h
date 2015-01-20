@@ -15,9 +15,9 @@ class teca_meta_data
 {
 public:
     teca_meta_data();
+    ~teca_meta_data();
     teca_meta_data(const teca_meta_data &other);
     teca_meta_data(teca_meta_data &&other);
-    ~teca_meta_data();
     teca_meta_data &operator=(const teca_meta_data &other);
     teca_meta_data &operator=(teca_meta_data &&other);
 

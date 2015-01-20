@@ -112,7 +112,7 @@ public:
         { this->swap(other); }
 */
 
-    virtual teca_variant_array *new_copy() const
+    virtual teca_variant_array *new_copy() const override
     { return new teca_variant_array_impl<T>(*this); }
 
     ~teca_variant_array_impl() { this->clear(); }
@@ -133,7 +133,8 @@ public:
     }
 */
     template <typename U>
-    void get(U &val, unsigned int i=0) const { val = m_data[i]; }
+    void get(U &val, unsigned int i=0) const
+    { val = m_data[i]; }
 
     template <typename U>
     void get(U *beg, U *end) const
@@ -144,16 +145,20 @@ public:
     }
 
     template <typename U>
-    void get(std::vector<U> &val) const { val.assign(m_data.begin(), m_data.end()); }
+    void get(std::vector<U> &val) const
+    { val.assign(m_data.begin(), m_data.end()); }
 
     template <typename U>
-    void set(const U &val, unsigned int i=0) { m_data[i] = val; }
+    void set(const U &val, unsigned int i=0)
+    { m_data[i] = val; }
 
     template <typename U>
-    void set(U *beg, U *end) { m_data.assign(beg, end); }
+    void set(U *beg, U *end)
+    { m_data.assign(beg, end); }
 
     template <typename U>
-    void set(const std::vector<U> &val) { m_data = val; }
+    void set(const std::vector<U> &val)
+    { m_data = val; }
 
     template <typename U>
     void append(const std::vector<U> &val)
@@ -162,9 +167,14 @@ public:
     template <typename U>
     void append(const U &val) { m_data.push_back(val); }
 
-    virtual unsigned int size() const { return m_data.size(); }
-    virtual void resize(unsigned int n) { m_data.resize(n); }
-    virtual void clear() { m_data.clear(); }
+    virtual unsigned int size() const override
+    { return m_data.size(); }
+
+    virtual void resize(unsigned int n) override
+    { m_data.resize(n); }
+
+    virtual void clear() override
+    { m_data.clear(); }
 
     void copy(const teca_variant_array &other)
     {
@@ -176,7 +186,7 @@ public:
          throw std::bad_cast();
     }
 
-    virtual void swap(teca_variant_array &other)
+    virtual void swap(teca_variant_array &other) override
     {
         typedef teca_variant_array_impl<T> TT;
         TT *other_t = dynamic_cast<TT*>(&other);
@@ -188,7 +198,7 @@ public:
         throw std::bad_cast();
     }
 
-    virtual bool equal(const teca_variant_array &other)
+    virtual bool equal(const teca_variant_array &other) override
     {
         typedef teca_variant_array_impl<T> TT;
         const TT *other_t = dynamic_cast<const TT*>(&other);

@@ -40,7 +40,7 @@ public:
 public:
     p_teca_threaded_algorithm m_alg;
     teca_algorithm_output_port m_up_port;
-    const teca_meta_data &m_up_req;
+    teca_meta_data m_up_req;
 };
 
 // task
@@ -61,6 +61,7 @@ public:
     // will be used.
     teca_thread_pool();
     teca_thread_pool(unsigned int n);
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_thread_pool)
     ~teca_thread_pool();
 
     // add a data request task to the queue, returns a future
@@ -79,9 +80,7 @@ public:
     unsigned int size()
     { return m_threads.size(); }
 
-protected:
-    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_thread_pool)
-
+private:
     // create n threads for the pool
     void create_threads(unsigned int n_threads);
 
@@ -101,8 +100,7 @@ teca_thread_pool::teca_thread_pool() : m_live(true)
 }
 
 // --------------------------------------------------------------------------
-teca_thread_pool::teca_thread_pool(unsigned int n)
-    : m_live(true)
+teca_thread_pool::teca_thread_pool(unsigned int n) : m_live(true)
 {
     this->create_threads(n);
 }
@@ -114,6 +112,7 @@ void teca_thread_pool::create_threads(unsigned int n_threads)
     {
         m_threads.push_back(thread([this]()
         {
+            // "main" for each thread in the pool
             while (m_live.load())
             {
                 data_request_task task;
@@ -150,6 +149,8 @@ void teca_thread_pool::push_data_request(
 // --------------------------------------------------------------------------
 void teca_thread_pool::pop_datasets(vector<p_teca_dataset> &data)
 {
+    // wait on all pending requests and gather the generated
+    // datasets
     size_t n = m_dataset_futures.size();
     std::for_each(
         m_dataset_futures.begin(),
