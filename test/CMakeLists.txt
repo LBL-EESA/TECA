@@ -2,10 +2,12 @@ cmake_minimum_required(VERSION 2.8)
 project(teca_test)
 
 set(array_test_srcs
+    array.cxx
     array_add.cxx
     array_executive.cxx
     array_scalar_multiply.cxx
     array_source.cxx
+    array_temporal_stats.cxx
     array_time_average.cxx
     array_writer.cxx
     )

@@ -8,6 +8,7 @@
 
 class array;
 typedef std::shared_ptr<array> p_array;
+class teca_binary_stream;
 
 // trivial implementation of an array based datatset
 // for testing the pipeline
@@ -20,6 +21,19 @@ public:
     TECA_DATASET_PROPERTY(std::vector<double>, data)
     TECA_DATASET_PROPERTY(std::vector<size_t>, extent)
     TECA_DATASET_PROPERTY(std::string, name)
+
+    // return true if the dataset is empty.
+    virtual bool empty() noexcept override
+    { return this->data.empty(); }
+
+    // return a new dataset of the same type
+    virtual p_teca_dataset new_instance() override
+    { return p_teca_dataset(new array); }
+
+    // serialize the dataset to/from the given stream
+    // for I/O or communication
+    virtual void to_stream(teca_binary_stream &s) override;
+    virtual void from_stream(teca_binary_stream &s) override;
 
     void copy_structure(const p_array &other)
     {

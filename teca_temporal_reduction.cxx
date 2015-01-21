@@ -1,4 +1,5 @@
 #include "teca_temporal_reduction.h"
+#include "teca_binary_stream.h"
 
 #if defined(TECA_MPI)
 #include <mpi.h>
@@ -60,9 +61,9 @@ std::vector<teca_meta_data> teca_temporal_reduction::get_upstream_request(
     size_t n_ranks = 1;
 #ifdef TECA_MPI
     int tmp = 0;
-    MPI_Comm_size(&tmp);
+    MPI_Comm_size(MPI_COMM_WORLD, &tmp);
     n_ranks = tmp;
-    MPI_Comm_rank(&tmp);
+    MPI_Comm_rank(MPI_COMM_WORLD, &tmp);
     rank = tmp;
 #endif
     size_t n_times = time.size();
@@ -188,7 +189,7 @@ p_teca_dataset teca_temporal_reduction::reduce_remote(
     // send up
     if (rank)
     {
-        local_data.to_stream(bstr);
+        local_data->to_stream(bstr);
 
         if (MPI_Send(
                 bstr.get_data(),

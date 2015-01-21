@@ -18,6 +18,8 @@
 //          time
 //      consumes:
 //          time
+//
+// TODO -- api for setting MPI communicator
 class teca_temporal_reduction : public teca_threaded_algorithm
 {
 public:
