@@ -20,3 +20,6 @@ target_link_libraries(test_array_time_average teca teca_test_array)
 
 add_executable(test_array_branches test_array_branches.cpp)
 target_link_libraries(test_array_branches teca teca_test_array)
+
+add_executable(test_array_temporal_reduction test_array_temporal_reduction.cpp)
+target_link_libraries(test_array_temporal_reduction teca teca_test_array ${MPI_CXX_LIBRARIES})

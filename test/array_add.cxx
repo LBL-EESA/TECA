@@ -141,7 +141,7 @@ p_teca_dataset array_add::execute(
 
     size_t n_elem = a_out->size();
     for (size_t i = 0; i < n_elem; ++i)
-        (*a_out)[i] = (*a_in_1)[i] + (*a_in_2)[i];
+        a_out->get(i) = a_in_1->get(i) + a_in_2->get(i);
 
     cerr << "array_add::execute " << active_array << endl;
 

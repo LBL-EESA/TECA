@@ -24,9 +24,11 @@ public:
     // set from a scalar property
     template<typename T>
     void set_prop(const std::string &name, const T &val);
+
     // set from an array of length n
     template<typename T>
     void set_prop(const std::string &name, const T *val, unsigned int n);
+
     // set from a vector
     template<typename T>
     void set_prop(const std::string &name, const std::vector<T> &val);
@@ -34,9 +36,11 @@ public:
     // get ith prop value (default to 0th)
     template<typename T>
     int get_prop(const std::string &name, T &val) const;
+
     // get n prop values to an array. see also get_prop_size
     template<typename T>
     int get_prop(const std::string &name, T *val, unsigned int n) const;
+
     // get all prop values to a vector
     template<typename T>
     int get_prop(const std::string &name, std::vector<T> &val) const;

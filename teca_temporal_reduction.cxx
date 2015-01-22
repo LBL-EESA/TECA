@@ -6,6 +6,8 @@
 #endif
 
 using std::vector;
+using std::cerr;
+using std::endl;
 
 namespace {
 #if defined(TECA_MPI)
@@ -118,15 +120,26 @@ p_teca_dataset teca_temporal_reduction::reduce_local(
     std::vector<p_teca_dataset> input_data)
 {
     size_t n_in = input_data.size();
-    while (n_in > 0)
+
+    if (n_in == 0)
+        return p_teca_dataset();
+
+    if (n_in == 1)
+        return input_data[0];
+
+    while (n_in > 1)
     {
-        for (size_t i = 0; i+1 < n_in; i+=2)
-            input_data[i/2] = this->reduce(input_data[i], input_data[i+1]);
-
         if (n_in % 2)
-            input_data[n_in%2+1] = input_data.back();
+            input_data[0] = this->reduce(input_data[0], input_data[n_in-1]);
 
-        n_in = n_in/2 + n_in%2;
+        size_t n = n_in/2;
+        for (size_t i = 0; i < n; ++i)
+        {
+            size_t ii = 2*i;
+            input_data[i] = this->reduce(input_data[ii], input_data[ii+1]);
+        }
+
+        n_in = n;
     }
     return input_data[0];
 }
@@ -159,6 +172,7 @@ p_teca_dataset teca_temporal_reduction::reduce_remote(
     // recv from left
     if (left_id <= n_ranks)
     {
+        cerr << id << " recv from " << left_id << endl;
         if (::recv(MPI_COMM_WORLD, left_id-1, 3210, bstr))
         {
             TECA_ERROR("failed to recv from left")
@@ -174,6 +188,7 @@ p_teca_dataset teca_temporal_reduction::reduce_remote(
     // recv from right
     if (right_id <= n_ranks)
     {
+        cerr << id << " recv from " << right_id << endl;
         if (::recv(MPI_COMM_WORLD, right_id-1, 3210, bstr))
         {
             TECA_ERROR("failed to recv from right")
@@ -189,6 +204,7 @@ p_teca_dataset teca_temporal_reduction::reduce_remote(
     // send up
     if (rank)
     {
+        cerr << id << " send to " << up_id << endl;
         local_data->to_stream(bstr);
 
         if (MPI_Send(

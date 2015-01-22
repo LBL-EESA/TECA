@@ -1,14 +1,10 @@
 #ifndef array_h
 #define array_h
 
+#include "array_fwd.h"
 #include "teca_dataset.h"
 
 #include <vector>
-#include <memory>
-
-class array;
-typedef std::shared_ptr<array> p_array;
-class teca_binary_stream;
 
 // trivial implementation of an array based datatset
 // for testing the pipeline
@@ -60,6 +56,9 @@ public:
         this->extent[0] = 0;
         this->extent[1] = 0;
     }
+
+    double &get(size_t i)
+    { return this->data[i]; }
 
     double &operator[](size_t i)
     { return this->data[i]; }

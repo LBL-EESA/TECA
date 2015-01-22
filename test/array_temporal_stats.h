@@ -1,6 +1,8 @@
 #ifndef array_temporal_stats_h
 #define array_temporal_stats_h
 
+#include "array_fwd.h"
+
 #include "teca_temporal_reduction.h"
 #include "teca_meta_data.h"
 
@@ -24,9 +26,16 @@ public:
     // set the array to process
     TECA_ALGORITHM_PROPERTY(std::string, array_name)
 
-protected:
-    array_temporal_stats(){}
+private:
+    // helpers
+    p_array new_stats_array();
+    p_array new_stats_array(p_array input);
+    p_array new_stats_array(p_array l_input, p_array r_input);
 
+protected:
+    array_temporal_stats();
+
+    // overrides
     p_teca_dataset reduce(
         const p_teca_dataset &left,
         const p_teca_dataset &right) override;

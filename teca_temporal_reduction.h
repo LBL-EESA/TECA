@@ -25,10 +25,10 @@ class teca_temporal_reduction : public teca_threaded_algorithm
 public:
     //TECA_THREADED_ALGORITHM_STATIC_NEW(teca_temporal_reduction)
     TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_temporal_reduction)
-    virtual ~teca_temporal_reduction();
+    virtual ~teca_temporal_reduction(){}
 
 protected:
-    teca_temporal_reduction();
+    teca_temporal_reduction(){}
 
 protected:
 // overrides that derived classes need to implement.

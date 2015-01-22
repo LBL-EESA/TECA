@@ -9,13 +9,36 @@ using std::endl;
 using std::vector;
 using std::string;
 
-namespace {
-// helper to compute stats on the given array
-int compute_stats(p_array input, p_array stats) noexcept
+
+// --------------------------------------------------------------------------
+array_temporal_stats::array_temporal_stats()
 {
-    double &min = (*stats)[0];
-    double &max = (*stats)[1];
-    double &avg = (*stats)[2];
+    this->set_number_of_input_connections(1);
+    this->set_number_of_output_ports(1);
+}
+
+// --------------------------------------------------------------------------
+p_array array_temporal_stats::new_stats_array(
+    p_array l_input,
+    p_array r_input)
+{
+    p_array stats = this->new_stats_array();
+
+    stats->get(0) = l_input->get(0) < r_input->get(0) ? l_input->get(0) : r_input->get(0);
+    stats->get(1) = l_input->get(1) > r_input->get(1) ? l_input->get(1) : r_input->get(1);
+    stats->get(2) = (l_input->get(2) + r_input->get(2))/2.0;
+
+    return stats;
+}
+
+// --------------------------------------------------------------------------
+p_array array_temporal_stats::new_stats_array(p_array input)
+{
+    p_array stats = this->new_stats_array();
+
+    double &min = stats->get(0);
+    double &max = stats->get(1);
+    double &avg = stats->get(2);
 
     std::for_each(
         input->get_data().cbegin(),
@@ -29,9 +52,23 @@ int compute_stats(p_array input, p_array stats) noexcept
 
     avg /= input->size();
 
-    return 0;
+    return stats;
 }
-};
+
+// --------------------------------------------------------------------------
+p_array array_temporal_stats::new_stats_array()
+{
+    p_array stats = array::New();
+
+    stats->set_name(array_name + "_stats");
+    stats->resize(3);
+
+    stats->get(0) = std::numeric_limits<double>::max();
+    stats->get(1) = -std::numeric_limits<double>::max();
+    stats->get(2) = 0.0;
+
+    return stats;
+}
 
 // --------------------------------------------------------------------------
 std::vector<teca_meta_data> array_temporal_stats::initialize_upstream_request(
@@ -41,7 +78,7 @@ std::vector<teca_meta_data> array_temporal_stats::initialize_upstream_request(
 {
     cerr << "array_temporal_stats::initialize_upstream_request" << endl;
 
-    vector<teca_meta_data> up_reqs(1);
+    vector<teca_meta_data> up_reqs(1, request);
     up_reqs[0].set_prop("array_name", this->array_name);
 
     return up_reqs;
@@ -55,7 +92,7 @@ teca_meta_data array_temporal_stats::initialize_output_meta_data(
     cerr << "array_temporal_stats::intialize_output_meta_data" << endl;
 
     teca_meta_data output_md(input_md[0]);
-    output_md.set_prop("array_name", this->array_name + "_stats");
+    output_md.set_prop("array_names", this->array_name + "_stats");
 
     return output_md;
 }
@@ -82,41 +119,35 @@ p_teca_dataset array_temporal_stats::reduce(
         return p_teca_dataset();
     }
 
-    p_array stats = array::New();
-    string active_array = this->array_name + "_stats";
-    bool l_active = l_in->get_name() == active_array;
-    bool r_active = r_in->get_name() == active_array;
+    p_array stats;
+
+    bool l_active = l_in->get_name() == this->array_name;
+    bool r_active = r_in->get_name() == this->array_name;
     if (l_active && r_active)
     {
-        (*stats)[0] = (*l_in)[0] < (*r_in)[0] ? (*l_in)[0] : (*r_in)[0];
-        (*stats)[1] = (*l_in)[1] > (*r_in)[1] ? (*l_in)[1] : (*r_in)[1];
-        (*stats)[2] = ((*l_in)[2] + (*r_in)[2])/2.0;
+        // bopth left and right contain data
+        p_array l_stats = this->new_stats_array(l_in);
+        p_array r_stats = this->new_stats_array(r_in);
+        stats = this->new_stats_array(l_stats, r_stats);
     }
     else
     if (l_active)
     {
-        stats->copy_data(l_in);
-        stats->copy_structure(l_in);
-        ::compute_stats(r_in, stats);
+        // left contains data, right contains stats
+        p_array l_stats = this->new_stats_array(l_in);
+        stats = this->new_stats_array(l_stats, r_in);
     }
     else
     if (r_active)
     {
-        stats->copy_data(r_in);
-        stats->copy_structure(r_in);
-        ::compute_stats(l_in, stats);
+        // right contains data, left contains stats
+        p_array r_stats = this->new_stats_array(r_in);
+        stats = this->new_stats_array(l_in, r_stats);
     }
     else
     {
-        stats->set_name(this->array_name + "_stats");
-        stats->resize(3);
-
-        (*stats)[0] = std::numeric_limits<double>::max();
-        (*stats)[1] = -std::numeric_limits<double>::max();
-        (*stats)[2] = 0.0;
-
-        ::compute_stats(l_in, stats);
-        ::compute_stats(r_in, stats);
+        // both left and right contains stats
+        stats = this->new_stats_array(l_in, r_in);
     }
 
     return stats;

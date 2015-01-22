@@ -25,14 +25,15 @@ int array_executive::initialize(const teca_meta_data &md)
     vector<double> time;
     if (md.get_prop("time", time))
     {
-        TECA_ERROR("time meta data not found")
-        return -2;
+        //TECA_ERROR("time meta data not found")
+        //return -2;
+        time.push_back(0.0);
     }
 
     vector<size_t> extent;
     if (md.get_prop("extent", extent))
     {
-        TECA_ERROR("extent meata data not found")
+        TECA_ERROR("extent meta data not found")
         return -3;
     }
 
