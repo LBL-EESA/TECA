@@ -7,6 +7,10 @@
 #include <vector>
 #include "teca_variant_array.h"
 
+// TODO --
+// add api fpor nesting
+// fix perfect forwarding and moving
+
 // a generic container for meta data in the form
 // of name=value pairs. value arrays are supported.
 // see meta data producer-consumer documentation for

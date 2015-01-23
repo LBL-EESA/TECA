@@ -76,7 +76,8 @@ std::vector<teca_meta_data> array_temporal_stats::initialize_upstream_request(
     const std::vector<teca_meta_data> &input_md,
     const teca_meta_data &request)
 {
-    cerr << "array_temporal_stats::initialize_upstream_request" << endl;
+    cerr << teca_parallel_id()
+        << "array_temporal_stats::initialize_upstream_request" << endl;
 
     vector<teca_meta_data> up_reqs(1, request);
     up_reqs[0].set_prop("array_name", this->array_name);
@@ -89,7 +90,8 @@ teca_meta_data array_temporal_stats::initialize_output_meta_data(
     unsigned int port,
     const std::vector<teca_meta_data> &input_md)
 {
-    cerr << "array_temporal_stats::intialize_output_meta_data" << endl;
+    cerr << teca_parallel_id()
+        << "array_temporal_stats::intialize_output_meta_data" << endl;
 
     teca_meta_data output_md(input_md[0]);
     output_md.set_prop("array_names", this->array_name + "_stats");
@@ -102,7 +104,8 @@ p_teca_dataset array_temporal_stats::reduce(
     const p_teca_dataset &left,
     const p_teca_dataset &right)
 {
-    cerr << "array_temporal_stats::reduce" << endl;
+    cerr << teca_parallel_id()
+        << "array_temporal_stats::reduce" << endl;
 
     // validate inputs
     p_array l_in = std::dynamic_pointer_cast<array>(left);

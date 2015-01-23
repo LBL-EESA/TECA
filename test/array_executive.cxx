@@ -52,8 +52,9 @@ int array_executive::initialize(const teca_meta_data &md)
         }
     }
 
-    cerr << "array_executive::initialize n_times="
-     << n_times << " n_arrays=" << n_arrays << endl;
+    cerr << teca_parallel_id()
+        << "array_executive::initialize n_times="
+        << n_times << " n_arrays=" << n_arrays << endl;
 
     return 0;
 }
@@ -73,7 +74,8 @@ teca_meta_data array_executive::get_next_request()
         req.get_prop("array_name", active_array);
         req.get_prop("time", time);
 
-        cerr << "array_executive::get_next_request array="
+        cerr << teca_parallel_id()
+            << "array_executive::get_next_request array="
             << active_array << " time=" << time << endl;
     }
     return req;

@@ -30,12 +30,10 @@ p_teca_dataset array_writer::execute(
 {
     p_array a_in = std::dynamic_pointer_cast<array>(input_data[0]);
     if (!a_in)
-    {
-        TECA_ERROR("no array to process")
         return p_teca_dataset();
-    }
 
-    cerr << "array_writer::execute array=" << a_in->get_name() << " extent=["
+    cerr << teca_parallel_id()
+        << "array_writer::execute array=" << a_in->get_name() << " extent=["
         << a_in->get_extent()[0] << ", " << a_in->get_extent()[1] << "] values=[";
 
     size_t n_elem = a_in->size();

@@ -7,6 +7,7 @@ set(teca_srcs
     teca_algorithm.cxx
     teca_binary_stream.cxx
     teca_meta_data.cxx
+    teca_parallel_id.cxx
     teca_temporal_reduction.cxx
     teca_threaded_algorithm.cxx
     teca_variant_array.cxx
@@ -30,7 +31,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 add_library(teca ${teca_srcs})
 
 if (MPI_C_FOUND)
-    target_link_libraries(teca ${MPI_C_LIBRARIES})
+    target_link_libraries(teca ${MPI_CXX_LIBRARIES})
 endif()
 
 set(BUILD_TESTING OFF CACHE BOOL "Enable tests")

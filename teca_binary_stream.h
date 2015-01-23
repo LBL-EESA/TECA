@@ -13,15 +13,15 @@ class teca_binary_stream
 {
 public:
     teca_binary_stream();
-    ~teca_binary_stream();
+    ~teca_binary_stream() noexcept;
     teca_binary_stream(const teca_binary_stream &s);
-    teca_binary_stream(teca_binary_stream &&s);
+    teca_binary_stream(teca_binary_stream &&s) noexcept;
     const teca_binary_stream &operator=(const teca_binary_stream &other);
-    const teca_binary_stream &operator=(teca_binary_stream &&other);
+    const teca_binary_stream &operator=(teca_binary_stream &&other) noexcept;
 
     // Release all resources, set to a uninitialized
     // state.
-    void clear();
+    void clear() noexcept;
 
     // Alolocate n_bytes for the stream.
     void resize(size_t n_bytes);
@@ -30,19 +30,19 @@ public:
     void grow(size_t n_bytes);
 
     // Get a pointer to the stream internal representation.
-    char *get_data()
+    unsigned char *get_data() noexcept
     { return m_data; }
 
     // Get the size of the m_data in the stream.
-    size_t size() const
+    size_t size() const noexcept
     { return m_data_p - m_data; }
 
     // Set the stream position to the head of the strem
-    void rewind()
+    void rewind() noexcept
     { m_data_p = m_data; }
 
     // swap the two objects
-    void swap(teca_binary_stream &other);
+    void swap(teca_binary_stream &other) noexcept;
 
     // Insert/Extract to/from the stream.
     template <typename T> void pack(T *val);
@@ -56,13 +56,13 @@ public:
     void unpack(std::string &str);
     template<typename T> void pack(std::vector<T> &v);
     template<typename T> void unpack(std::vector<T> &v);
-    void pack(std::map<std::string, int> &m);
-    void unpack(std::map<std::string, int> &m);
+    /*void pack(std::map<std::string, int> &m);
+    void unpack(std::map<std::string, int> &m);*/
 
 private:
     size_t m_size;
-    char *m_data;
-    char *m_data_p;
+    unsigned char *m_data;
+    unsigned char *m_data_p;
 };
 
 //-----------------------------------------------------------------------------
@@ -126,7 +126,7 @@ void teca_binary_stream::unpack(std::string &str)
     this->unpack(slen);
 
     str.resize(slen);
-    str.assign(m_data_p, slen);
+    str.assign(reinterpret_cast<char*>(m_data_p), slen);
 
     m_data_p += slen;
 }
@@ -150,6 +150,7 @@ void teca_binary_stream::unpack(std::vector<T> &v)
     this->unpack(&v[0], vlen);
 }
 
+/*
 //-----------------------------------------------------------------------------
 inline
 void teca_binary_stream::pack(std::map<std::string, int> &m)
@@ -184,5 +185,6 @@ void teca_binary_stream::unpack(std::map<std::string, int> &m)
         m[key] = val;
     }
 }
+*/
 
 #endif

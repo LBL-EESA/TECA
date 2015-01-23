@@ -60,12 +60,13 @@ public:
 
     // execute the pipeline from this instance up.
     virtual int update();
+    virtual int update(unsigned int port);
+
+    // get meta data considering this instance up.
+    virtual teca_meta_data update_meta_data(unsigned int port);
 
     // set the executive
     void set_executive(p_teca_algorithm_executive exec);
-
-    // set the number of threads to use (default 1)
-    void set_number_of_threads(unsigned int);
 
 protected:
     teca_algorithm();

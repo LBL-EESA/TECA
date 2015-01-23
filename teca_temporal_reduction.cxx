@@ -9,27 +9,48 @@ using std::vector;
 using std::cerr;
 using std::endl;
 
+// TODO handle large messages
 namespace {
 #if defined(TECA_MPI)
-// helper for receiving data over MPI
-int recv(MPI_Comm comm, int src, int tag, teca_binary_stream &s)
+// helper for sending binary data over MPI
+int send(MPI_Comm comm, int dest, teca_binary_stream &s)
 {
-    // TODO -
-    // handle arrays longer than int count can represent
-
-    MPI_Status stat;
-    if (MPI_Probe(src, tag, comm, &stat))
+    unsigned long long n = s.size();
+    if (MPI_Send(&n, 1, MPI_UNSIGNED_LONG_LONG, dest, 3210, comm))
     {
-        TECA_ERROR("failed to probe")
+        TECA_ERROR("failed to send send message size")
         return -1;
     }
 
-    int count = 0;
-    MPI_Get_count(&stat, MPI_BYTE, &count);
+    if (MPI_Send(
+            s.get_data(),
+            n,
+            MPI_UNSIGNED_CHAR,
+            dest,
+            3211,
+            MPI_COMM_WORLD))
+    {
+        TECA_ERROR("failed to send message")
+        return -2;
+    }
 
-    s.resize(count);
+    return 0;
+}
 
-    if (MPI_Recv(s.get_data(), count, MPI_BYTE, src, tag, comm, &stat))
+// helper for receiving data over MPI
+int recv(MPI_Comm comm, int src, teca_binary_stream &s)
+{
+    size_t n = 0;
+    MPI_Status stat;
+    if (MPI_Recv(&n, 1, MPI_UNSIGNED_LONG_LONG, src, 3210, comm, &stat))
+    {
+        TECA_ERROR("failed to receive")
+        return -2;
+    }
+
+    s.resize(n);
+
+    if (MPI_Recv(s.get_data(), n, MPI_UNSIGNED_CHAR, src, 3211, comm, &stat))
     {
         TECA_ERROR("failed to receive")
         return -2;
@@ -61,7 +82,7 @@ std::vector<teca_meta_data> teca_temporal_reduction::get_upstream_request(
     // to process.
     size_t rank = 0;
     size_t n_ranks = 1;
-#ifdef TECA_MPI
+#if defined(TECA_MPI)
     int tmp = 0;
     MPI_Comm_size(MPI_COMM_WORLD, &tmp);
     n_ranks = tmp;
@@ -89,13 +110,14 @@ std::vector<teca_meta_data> teca_temporal_reduction::get_upstream_request(
 
     // apply the base request to local times.
     // requests are mapped onto inputs round robbin
-    for (size_t i = block_start; i < block_size; ++i)
+    for (size_t i = 0; i < block_size; ++i)
     {
+        size_t ii = i + block_start;
         size_t n_reqs = base_req.size();
         for (size_t j = 0; j < n_reqs; ++j)
         {
             up_req.push_back(base_req[j]);
-            up_req.back().set_prop("time", time[i]);
+            up_req.back().set_prop("time", time[ii]);
         }
     }
 
@@ -172,8 +194,7 @@ p_teca_dataset teca_temporal_reduction::reduce_remote(
     // recv from left
     if (left_id <= n_ranks)
     {
-        cerr << id << " recv from " << left_id << endl;
-        if (::recv(MPI_COMM_WORLD, left_id-1, 3210, bstr))
+        if (::recv(MPI_COMM_WORLD, left_id-1, bstr))
         {
             TECA_ERROR("failed to recv from left")
             return p_teca_dataset();
@@ -188,8 +209,7 @@ p_teca_dataset teca_temporal_reduction::reduce_remote(
     // recv from right
     if (right_id <= n_ranks)
     {
-        cerr << id << " recv from " << right_id << endl;
-        if (::recv(MPI_COMM_WORLD, right_id-1, 3210, bstr))
+        if (::recv(MPI_COMM_WORLD, right_id-1,  bstr))
         {
             TECA_ERROR("failed to recv from right")
             return p_teca_dataset();
@@ -204,16 +224,9 @@ p_teca_dataset teca_temporal_reduction::reduce_remote(
     // send up
     if (rank)
     {
-        cerr << id << " send to " << up_id << endl;
         local_data->to_stream(bstr);
 
-        if (MPI_Send(
-                bstr.get_data(),
-                bstr.size(),
-                MPI_BYTE,
-                up_id,
-                3210,
-                MPI_COMM_WORLD))
+        if (::send(MPI_COMM_WORLD, up_id-1, bstr))
             TECA_ERROR("failed to send up")
 
         // all but root returns an empty dataset

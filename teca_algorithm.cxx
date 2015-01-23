@@ -663,38 +663,53 @@ void teca_algorithm::clear_modified(teca_algorithm_output_port current)
 }
 
 // --------------------------------------------------------------------------
+int teca_algorithm::update(unsigned int port_id)
+{
+    teca_algorithm_output_port port = this->get_output_port(port_id);
+
+    // make sure caches are wiped where inputs have changed
+    this->validate_cache(port);
+
+    // initialize the executive
+    p_teca_algorithm_executive exec = this->internals->get_executive();
+    if (exec->initialize(this->get_output_meta_data(port)))
+    {
+        TECA_ERROR("failed to initialize the executive")
+        return -1;
+    }
+
+    // issue requests for data
+    teca_meta_data request;
+    while ((request = exec->get_next_request()))
+        this->request_data(port, request);
+
+    // clear modfied flags
+    this->clear_modified(port);
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
 int teca_algorithm::update()
 {
-    p_teca_algorithm_executive exec = this->internals->get_executive();
-
     // produce data on each of our outputs
     unsigned int n_out = this->internals->get_number_of_outputs();
     for (unsigned int i = 0; i < n_out; ++i)
     {
-        teca_algorithm_output_port port = this->get_output_port(i);
-
-        // make sure caches are wiped where inputs have changed
-        this->validate_cache(port);
-
-        // initialize the executive
-        if (exec->initialize(teca_algorithm::get_output_meta_data(port)))
+        if (this->update(i))
         {
-            TECA_ERROR("failed to initialize the executive")
+            TECA_ERROR("failed to update port " << i)
             return -1;
         }
-
-        // let thread pool execute the requests
-        teca_meta_data request;
-        while ((request = exec->get_next_request()))
-        {
-            this->request_data(port, request);
-        }
-
-
-        // clear modfied flags
-        this->clear_modified(port);
     }
     return 0;
+}
+
+// --------------------------------------------------------------------------
+teca_meta_data teca_algorithm::update_meta_data(unsigned int port_id)
+{
+    teca_algorithm_output_port port = this->get_output_port(port_id);
+    return this->get_output_meta_data(port);
 }
 
 // --------------------------------------------------------------------------
