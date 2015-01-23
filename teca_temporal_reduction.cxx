@@ -9,7 +9,8 @@ using std::vector;
 using std::cerr;
 using std::endl;
 
-// TODO handle large messages
+// TODO
+// handle large messages
 namespace {
 #if defined(TECA_MPI)
 // helper for sending binary data over MPI
@@ -83,11 +84,16 @@ std::vector<teca_meta_data> teca_temporal_reduction::get_upstream_request(
     size_t rank = 0;
     size_t n_ranks = 1;
 #if defined(TECA_MPI)
-    int tmp = 0;
-    MPI_Comm_size(MPI_COMM_WORLD, &tmp);
-    n_ranks = tmp;
-    MPI_Comm_rank(MPI_COMM_WORLD, &tmp);
-    rank = tmp;
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
+    {
+        int tmp = 0;
+        MPI_Comm_size(MPI_COMM_WORLD, &tmp);
+        n_ranks = tmp;
+        MPI_Comm_rank(MPI_COMM_WORLD, &tmp);
+        rank = tmp;
+    }
 #endif
     size_t n_times = time.size();
     size_t n_big_blocks = n_times%n_ranks;
@@ -171,66 +177,71 @@ p_teca_dataset teca_temporal_reduction::reduce_remote(
     p_teca_dataset local_data)
 {
 #if defined(TECA_MPI)
-    size_t rank = 0;
-    size_t n_ranks = 1;
-    int tmp = 0;
-    MPI_Comm_size(MPI_COMM_WORLD, &tmp);
-    n_ranks = tmp;
-    MPI_Comm_rank(MPI_COMM_WORLD, &tmp);
-    rank = tmp;
-
-    // special case 1 rank, nothing to do
-    if (n_ranks < 2)
-        return local_data;
-
-    // reduce remote datasets in binary tree order
-    size_t id = rank + 1;
-    size_t up_id = id/2;
-    size_t left_id = 2*id;
-    size_t right_id = left_id + 1;
-
-    teca_binary_stream bstr;
-
-    // recv from left
-    if (left_id <= n_ranks)
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
     {
-        if (::recv(MPI_COMM_WORLD, left_id-1, bstr))
+        size_t rank = 0;
+        size_t n_ranks = 1;
+        int tmp = 0;
+        MPI_Comm_size(MPI_COMM_WORLD, &tmp);
+        n_ranks = tmp;
+        MPI_Comm_rank(MPI_COMM_WORLD, &tmp);
+        rank = tmp;
+
+        // special case 1 rank, nothing to do
+        if (n_ranks < 2)
+            return local_data;
+
+        // reduce remote datasets in binary tree order
+        size_t id = rank + 1;
+        size_t up_id = id/2;
+        size_t left_id = 2*id;
+        size_t right_id = left_id + 1;
+
+        teca_binary_stream bstr;
+
+        // recv from left
+        if (left_id <= n_ranks)
         {
-            TECA_ERROR("failed to recv from left")
+            if (::recv(MPI_COMM_WORLD, left_id-1, bstr))
+            {
+                TECA_ERROR("failed to recv from left")
+                return p_teca_dataset();
+            }
+            p_teca_dataset left_data = local_data->new_instance();
+            left_data->from_stream(bstr);
+            local_data = this->reduce(local_data, left_data);
+
+            bstr.resize(0);
+        }
+
+        // recv from right
+        if (right_id <= n_ranks)
+        {
+            if (::recv(MPI_COMM_WORLD, right_id-1,  bstr))
+            {
+                TECA_ERROR("failed to recv from right")
+                return p_teca_dataset();
+            }
+            p_teca_dataset right_data = local_data->new_instance();
+            right_data->from_stream(bstr);
+            local_data = this->reduce(local_data, right_data);
+
+            bstr.resize(0);
+        }
+
+        // send up
+        if (rank)
+        {
+            local_data->to_stream(bstr);
+
+            if (::send(MPI_COMM_WORLD, up_id-1, bstr))
+                TECA_ERROR("failed to send up")
+
+            // all but root returns an empty dataset
             return p_teca_dataset();
         }
-        p_teca_dataset left_data = local_data->new_instance();
-        left_data->from_stream(bstr);
-        local_data = this->reduce(local_data, left_data);
-
-        bstr.resize(0);
-    }
-
-    // recv from right
-    if (right_id <= n_ranks)
-    {
-        if (::recv(MPI_COMM_WORLD, right_id-1,  bstr))
-        {
-            TECA_ERROR("failed to recv from right")
-            return p_teca_dataset();
-        }
-        p_teca_dataset right_data = local_data->new_instance();
-        right_data->from_stream(bstr);
-        local_data = this->reduce(local_data, right_data);
-
-        bstr.resize(0);
-    }
-
-    // send up
-    if (rank)
-    {
-        local_data->to_stream(bstr);
-
-        if (::send(MPI_COMM_WORLD, up_id-1, bstr))
-            TECA_ERROR("failed to send up")
-
-        // all but root returns an empty dataset
-        return p_teca_dataset();
     }
 #endif
     // rank 0 has all the data

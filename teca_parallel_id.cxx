@@ -15,7 +15,10 @@ ostream &operator<<(ostream &os, const teca_parallel_id &id)
 {
     int rank = 0;
 #if defined(TECA_MPI)
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 #endif
     ostringstream oss;
     oss << "[" << rank << ":" << std::this_thread::get_id() << "]";

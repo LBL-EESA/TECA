@@ -48,7 +48,7 @@ int main(int argc, char **argv)
     add->set_array_2("array_1");
 */
     p_array_temporal_stats stats = array_temporal_stats::New();
-    stats->set_thread_pool_size(1);
+    stats->set_thread_pool_size(8);
     stats->set_array_name("array_1");
 
     p_array_writer wri = array_writer::New();
