@@ -19,14 +19,23 @@ arrays, for example with metadata.
 class teca_variant_array
 {
 public:
+    // construct
     teca_variant_array(){}
-    virtual ~teca_variant_array(){}
+    virtual ~teca_variant_array() noexcept {}
+
+    // copy
+    teca_variant_array(const teca_variant_array &other)
+    { this->copy(other); }
 
     teca_variant_array &operator=(const teca_variant_array &other)
     { this->copy(other); return *this; }
 
+    // move
+    teca_variant_array(teca_variant_array &&other)
+    { this->swap(other); }
+
     teca_variant_array &operator=(teca_variant_array &&other)
-    { this->copy(other); other.clear(); return *this; }
+    { this->swap(other); return *this; }
 
     // return a new'ly allocated object, initialized
     // copy from this. caller must delete.
@@ -67,11 +76,11 @@ public:
     void append(const std::vector<std::string> &vals);
 
     // get the number of elements in the array
-    virtual unsigned int size() const = 0;
+    virtual unsigned int size() const noexcept = 0;
     virtual void resize(unsigned int i) = 0;
 
     // free all the internal data
-    virtual void clear() = 0;
+    virtual void clear() noexcept = 0;
 
     // copy the contents from the other array.
     // an excpetion is thrown when no conversion
@@ -96,26 +105,33 @@ template <typename T>
 class teca_variant_array_impl : public teca_variant_array
 {
 public:
+    // construct
     teca_variant_array_impl() {}
     teca_variant_array_impl(unsigned int n) : m_data(n) {}
+
     teca_variant_array_impl(T *vals, unsigned int n)
         : m_data(vals, vals+n) {}
 
+    ~teca_variant_array_impl() noexcept
+    { this->clear(); }
+
+    // copy
     template <typename U>
     teca_variant_array_impl(const teca_variant_array_impl<U> &other)
         : m_data(other.m_data) {}
 
     teca_variant_array_impl(const teca_variant_array_impl<T> &other)
         : m_data(other.m_data) {}
-/*
-    teca_variant_array_impl(teca_variant_array_impl<T> &&other)
-        { this->swap(other); }
-*/
 
     virtual teca_variant_array *new_copy() const override
     { return new teca_variant_array_impl<T>(*this); }
 
-    ~teca_variant_array_impl() { this->clear(); }
+    teca_variant_array_impl<T> &
+    operator=(const teca_variant_array_impl<T> &other)
+    {
+        m_data.assign(other.m_data.begin(), other.m_data.end());
+        return *this;
+    }
 
     template <typename U>
     teca_variant_array_impl<T> &
@@ -124,20 +140,24 @@ public:
         m_data.assign(other.m_data.begin(), other.m_data.end());
         return *this;
     }
-/*
+
+    // move
+    teca_variant_array_impl(teca_variant_array_impl<T> &&other)
+        : m_data(std::move(other.m_data)) {}
+
     teca_variant_array_impl<T> &
     operator=(teca_variant_array_impl<T> &&other)
     {
         m_data = std::move(other.m_data);
         return *this;
     }
-*/
+
     template <typename U>
     void get(U &val, unsigned int i=0) const
     { val = m_data[i]; }
 
     template <typename U>
-    void get(U *beg, U *end) const
+    void get(U *beg, U *end) const noexcept
     {
         typename std::vector<T>::iterator data_it = m_data.begin();
         for (T *it = beg; it != end; ++it)
@@ -167,13 +187,13 @@ public:
     template <typename U>
     void append(const U &val) { m_data.push_back(val); }
 
-    virtual unsigned int size() const override
+    virtual unsigned int size() const noexcept override
     { return m_data.size(); }
 
     virtual void resize(unsigned int n) override
     { m_data.resize(n); }
 
-    virtual void clear() override
+    virtual void clear() noexcept override
     { m_data.clear(); }
 
     void copy(const teca_variant_array &other)

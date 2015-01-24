@@ -12,11 +12,16 @@
 class teca_binary_stream
 {
 public:
+    // construct
     teca_binary_stream();
     ~teca_binary_stream() noexcept;
+
+    // copy
     teca_binary_stream(const teca_binary_stream &s);
-    teca_binary_stream(teca_binary_stream &&s) noexcept;
     const teca_binary_stream &operator=(const teca_binary_stream &other);
+
+    // move
+    teca_binary_stream(teca_binary_stream &&s) noexcept;
     const teca_binary_stream &operator=(teca_binary_stream &&other) noexcept;
 
     // Release all resources, set to a uninitialized
