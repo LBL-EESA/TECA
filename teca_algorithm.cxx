@@ -26,7 +26,7 @@ class teca_algorithm_internals
 {
 public:
     teca_algorithm_internals();
-    ~teca_algorithm_internals();
+    ~teca_algorithm_internals() noexcept;
     TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_algorithm_internals)
 
     // this setsup the output cache. calling
@@ -34,8 +34,8 @@ public:
     void set_number_of_inputs(unsigned int n);
     void set_number_of_outputs(unsigned int n);
 
-    unsigned int get_number_of_inputs() const;
-    unsigned int get_number_of_outputs() const;
+    unsigned int get_number_of_inputs() const noexcept;
+    unsigned int get_number_of_outputs() const noexcept;
 
     // set/get the input
     teca_algorithm_output_port &get_input(unsigned int i);
@@ -70,7 +70,7 @@ public:
     // sets the maximum nuber of datasets to cache
     // per output port
     void set_data_cache_size(unsigned int n);
-    unsigned int get_data_cache_size() const;
+    unsigned int get_data_cache_size() const noexcept;
 
     // set/clear modified flag for the given port
     void set_modified();
@@ -127,7 +127,7 @@ teca_algorithm_internals::teca_algorithm_internals()
 }
 
 // --------------------------------------------------------------------------
-teca_algorithm_internals::~teca_algorithm_internals()
+teca_algorithm_internals::~teca_algorithm_internals() noexcept
 {}
 
 // --------------------------------------------------------------------------
@@ -138,7 +138,7 @@ void teca_algorithm_internals::set_number_of_inputs(unsigned int n)
 }
 
 // --------------------------------------------------------------------------
-unsigned int teca_algorithm_internals::get_number_of_inputs() const
+unsigned int teca_algorithm_internals::get_number_of_inputs() const noexcept
 {
     return this->inputs.size();
 }
@@ -177,7 +177,7 @@ void teca_algorithm_internals::set_number_of_outputs(unsigned int n)
 }
 
 // --------------------------------------------------------------------------
-unsigned int teca_algorithm_internals::get_number_of_outputs() const
+unsigned int teca_algorithm_internals::get_number_of_outputs() const noexcept
 {
     return this->data_cache.size();
 }
@@ -197,7 +197,7 @@ void teca_algorithm_internals::set_data_cache_size(unsigned int n)
 }
 
 // --------------------------------------------------------------------------
-unsigned int teca_algorithm_internals::get_data_cache_size() const
+unsigned int teca_algorithm_internals::get_data_cache_size() const noexcept
 {
     return this->data_cache_size;
 }
@@ -352,13 +352,11 @@ p_teca_algorithm teca_algorithm::New()
 }
 
 // --------------------------------------------------------------------------
-teca_algorithm::teca_algorithm()
-{
-    this->internals = new teca_algorithm_internals;
-}
+teca_algorithm::teca_algorithm() : internals(new teca_algorithm_internals)
+{}
 
 // --------------------------------------------------------------------------
-teca_algorithm::~teca_algorithm()
+teca_algorithm::~teca_algorithm() noexcept
 {
     delete this->internals;
 }
@@ -463,7 +461,7 @@ void teca_algorithm::set_modified(unsigned int port)
 }
 
 // --------------------------------------------------------------------------
-int teca_algorithm::get_modified(unsigned int port)
+int teca_algorithm::get_modified(unsigned int port) const
 {
     return this->internals->get_modified(port);
 }
@@ -607,10 +605,11 @@ p_teca_dataset teca_algorithm::request_data(
         {
             if (!up_reqs[i].empty())
             {
-                unsigned int conn = i%n_inputs;
+                teca_algorithm_output_port conn
+                    = alg->get_input_connection(i%n_inputs);
 
                 input_data[i]
-                  = alg->request_data(alg->get_input_connection(conn), up_reqs[i]);
+                    = get_algorithm(conn)->request_data(conn, up_reqs[i]);
             }
         }
 

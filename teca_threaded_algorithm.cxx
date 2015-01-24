@@ -23,13 +23,12 @@ using std::dynamic_pointer_cast;
 
 // function that executes the data request and returns the
 // requested dataset
-// static
-class data_request
+class teca_data_request
 {
 public:
-    data_request(
-        p_teca_threaded_algorithm alg,
-        teca_algorithm_output_port up_port,
+    teca_data_request(
+        const p_teca_algorithm &alg,
+        const teca_algorithm_output_port up_port,
         const teca_meta_data &up_req)
         : m_alg(alg), m_up_port(up_port), m_up_req(up_req)
     {}
@@ -38,18 +37,18 @@ public:
     { return m_alg->request_data(m_up_port, m_up_req); }
 
 public:
-    p_teca_threaded_algorithm m_alg;
+    p_teca_algorithm m_alg;
     teca_algorithm_output_port m_up_port;
     teca_meta_data m_up_req;
 };
 
 // task
 typedef
-packaged_task<p_teca_dataset()> data_request_task;
+packaged_task<p_teca_dataset()> teca_data_request_task;
 
 class teca_thread_pool;
-typedef std::shared_ptr<teca_thread_pool>
-    p_teca_thread_pool;
+typedef
+std::shared_ptr<teca_thread_pool> p_teca_thread_pool;
 
 // a class to manage a fixed size pool of threads that dispatch
 // data requests to teca_algorithm
@@ -61,14 +60,14 @@ public:
     // will be used.
     teca_thread_pool();
     teca_thread_pool(unsigned int n);
+    ~teca_thread_pool() noexcept;
     TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_thread_pool)
-    ~teca_thread_pool();
 
     // add a data request task to the queue, returns a future
     // from which the generated dataset can be accessed.
     void push_data_request(
-        p_teca_threaded_algorithm &alg,
-        teca_algorithm_output_port &up_port,
+        const p_teca_algorithm &alg,
+        const teca_algorithm_output_port &up_port,
         const teca_meta_data &up_req);
 
     // wait for all of the requests to execute and transfer
@@ -77,7 +76,7 @@ public:
     void pop_datasets(vector<p_teca_dataset> &data);
 
     // get the number of threads
-    unsigned int size()
+    unsigned int size() const noexcept
     { return m_threads.size(); }
 
 private:
@@ -86,7 +85,7 @@ private:
 
 private:
     atomic<bool> m_live;
-    teca_threadsafe_queue<data_request_task> m_queue;
+    teca_threadsafe_queue<teca_data_request_task> m_queue;
     vector<future<p_teca_dataset>> m_dataset_futures;
     vector<thread> m_threads;
 };
@@ -115,7 +114,7 @@ void teca_thread_pool::create_threads(unsigned int n_threads)
             // "main" for each thread in the pool
             while (m_live.load())
             {
-                data_request_task task;
+                teca_data_request_task task;
                 if (m_queue.try_pop(task))
                     task();
                 else
@@ -136,12 +135,12 @@ teca_thread_pool::~teca_thread_pool()
 
 // --------------------------------------------------------------------------
 void teca_thread_pool::push_data_request(
-        p_teca_threaded_algorithm &alg,
-        teca_algorithm_output_port &up_port,
+        const p_teca_algorithm &alg,
+        const teca_algorithm_output_port &up_port,
         const teca_meta_data &up_req)
 {
-    data_request dreq(alg, up_port, up_req);
-    data_request_task task(dreq);
+    teca_data_request dreq(alg, up_port, up_req);
+    teca_data_request_task task(dreq);
     m_dataset_futures.push_back(task.get_future());
     m_queue.push(std::move(task));
 }
@@ -174,7 +173,7 @@ public:
 
     void thread_pool_resize(unsigned int n);
 
-    unsigned int get_thread_pool_size()
+    unsigned int get_thread_pool_size() const noexcept
     { return this->thread_pool->size(); }
 
 public:
@@ -204,7 +203,7 @@ teca_threaded_algorithm::teca_threaded_algorithm()
 {}
 
 // --------------------------------------------------------------------------
-teca_threaded_algorithm::~teca_threaded_algorithm()
+teca_threaded_algorithm::~teca_threaded_algorithm() noexcept
 {
     delete this->internals;
 }
@@ -216,7 +215,7 @@ void teca_threaded_algorithm::set_thread_pool_size(unsigned int n)
 }
 
 // --------------------------------------------------------------------------
-unsigned int teca_threaded_algorithm::get_thread_pool_size()
+unsigned int teca_threaded_algorithm::get_thread_pool_size() const noexcept
 {
     return this->internals->get_thread_pool_size();
 }
@@ -228,15 +227,8 @@ p_teca_dataset teca_threaded_algorithm::request_data(
 {
     // execute current algorithm to fulfill the request.
     // return the data
-    p_teca_threaded_algorithm alg
-        = dynamic_pointer_cast<teca_threaded_algorithm>(get_algorithm(current));
-
-    // fall back to serial request_data for teca_algorithm
-    if (!alg)
-        return this->teca_algorithm::request_data(current, request);
-
+    p_teca_algorithm alg = get_algorithm(current);
     unsigned int port = get_port(current);
-
 
     // check for cached data
     teca_meta_data key = alg->get_cache_key(port, request);
@@ -271,7 +263,8 @@ p_teca_dataset teca_threaded_algorithm::request_data(
                 teca_algorithm_output_port &up_port
                     = alg->get_input_connection(i%n_inputs);
 
-                work_queue->push_data_request(alg, up_port, up_reqs[i]);
+                work_queue->push_data_request(
+                    get_algorithm(up_port), up_port, up_reqs[i]);
             }
         }
 

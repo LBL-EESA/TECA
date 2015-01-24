@@ -17,12 +17,12 @@ class teca_threaded_algorithm : public teca_algorithm
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_threaded_algorithm)
     TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_threaded_algorithm)
-    virtual ~teca_threaded_algorithm();
+    virtual ~teca_threaded_algorithm() noexcept;
 
     // set/get the number of threads in the pool. default
     // is to use 1 - the number of cores.
     void set_thread_pool_size(unsigned int n_threads);
-    unsigned int get_thread_pool_size();
+    unsigned int get_thread_pool_size() const noexcept;
 
 protected:
     teca_threaded_algorithm();
@@ -37,7 +37,6 @@ protected:
 
 private:
     teca_threaded_algorithm_internals *internals;
-    friend class data_request;
 };
 
 #endif

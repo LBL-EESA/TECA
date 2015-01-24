@@ -22,7 +22,8 @@ class teca_algorithm : public std::enable_shared_from_this<teca_algorithm>
 public:
     // construct/destruct
     static p_teca_algorithm New();
-    virtual ~teca_algorithm();
+    virtual ~teca_algorithm() noexcept;
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_algorithm)
 
     // get an output port from the algorithm. to be used
     // during pipeline building
@@ -70,7 +71,6 @@ public:
 
 protected:
     teca_algorithm();
-    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_algorithm)
 
     // implementations should call this from their constructors
     // to setup the internal caches and data structures required
@@ -204,10 +204,13 @@ protected:
     void clear_modified(unsigned int port);
 
     // return the output port's modified flag value
-    int get_modified(unsigned int port);
+    int get_modified(unsigned int port) const;
 
 private:
     teca_algorithm_internals *internals;
+
+    friend class teca_threaded_algorithm;
+    friend class teca_data_request;
 };
 
 #endif
