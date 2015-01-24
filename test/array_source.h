@@ -40,6 +40,9 @@ public:
     // set the number of timesteps to generate
     TECA_ALGORITHM_PROPERTY(unsigned int, number_of_timesteps)
 
+    // set the time step size
+    TECA_ALGORITHM_PROPERTY(double, time_delta)
+
 protected:
     array_source();
 
@@ -59,6 +62,7 @@ private:
     std::vector<std::string> array_names;
     unsigned int array_size;
     unsigned int number_of_timesteps;
+    double time_delta;
 };
 
 #endif

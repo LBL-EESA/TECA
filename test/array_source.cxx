@@ -16,7 +16,8 @@ using std::endl;
 // --------------------------------------------------------------------------
 array_source::array_source() :
     array_size(0),
-    number_of_timesteps(0)
+    number_of_timesteps(0),
+    time_delta(0.01)
 {
     this->set_number_of_input_connections(0);
     this->set_number_of_output_ports(1);
@@ -47,15 +48,17 @@ teca_meta_data array_source::get_output_meta_data(
     unsigned int port,
     const std::vector<teca_meta_data> &input_md)
 {
+#ifndef TECA_NDEBUG
     cerr << teca_parallel_id()
         << "array_source::get_output_meta_data" << endl;
+#endif
 
     teca_meta_data output_md;
 
     // report time
     vector<double> time;
     for (unsigned int i = 0; i < this->number_of_timesteps; ++i)
-        time.push_back(0.01*(i+1));
+        time.push_back(this->time_delta*(i+1));
     output_md.set_prop("time", time);
 
     // report array extents
@@ -120,11 +123,13 @@ p_teca_dataset array_source::execute(
     for (unsigned int i = active_extent[0]; i < active_extent[1]; ++i)
         a_out->append(array_id + active_time);
 
+#ifndef TECA_NDEBUG
     cerr << teca_parallel_id()
         << "array_source::execute array=" << active_array
         << " time=" << active_time << " extent=["
         << active_extent[0] << ", " << active_extent[1]
         << "]" << endl;
+#endif
 
     return a_out;
 }

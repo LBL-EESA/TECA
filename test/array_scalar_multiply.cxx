@@ -54,7 +54,10 @@ teca_meta_data array_scalar_multiply::get_output_meta_data(
     unsigned int port,
     const std::vector<teca_meta_data> &input_md)
 {
-    cerr << "array_scalar_multiply::get_output_meta_data" << endl;
+#ifndef TECA_NDEBUG
+    cerr << teca_parallel_id()
+        << "array_scalar_multiply::get_output_meta_data" << endl;
+#endif
 
     teca_meta_data output_md(input_md[0]);
 
@@ -74,7 +77,10 @@ std::vector<teca_meta_data> array_scalar_multiply::get_upstream_request(
     const std::vector<teca_meta_data> &input_md,
     const teca_meta_data &request)
 {
-    cerr << "array_scalar_multiply::get_upstream_request" << endl;
+#ifndef TECA_NDEBUG
+    cerr << teca_parallel_id()
+        << "array_scalar_multiply::get_upstream_request" << endl;
+#endif
 
     vector<teca_meta_data> up_reqs;
 
@@ -99,7 +105,10 @@ p_teca_dataset array_scalar_multiply::execute(
     const std::vector<p_teca_dataset> &input_data,
     const teca_meta_data &request)
 {
-    cerr << "array_scalar_multiply::execute" << endl;
+#ifndef TECA_NDEBUG
+    cerr << teca_parallel_id()
+        << "array_scalar_multiply::execute" << endl;
+#endif
 
     p_array a_in = std::dynamic_pointer_cast<array>(input_data[0]);
     if (!a_in)

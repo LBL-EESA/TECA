@@ -52,9 +52,11 @@ int array_executive::initialize(const teca_meta_data &md)
         }
     }
 
+#ifndef TECA_NDEBUG
     cerr << teca_parallel_id()
         << "array_executive::initialize n_times="
         << n_times << " n_arrays=" << n_arrays << endl;
+#endif
 
     return 0;
 }
@@ -74,9 +76,11 @@ teca_meta_data array_executive::get_next_request()
         req.get_prop("array_name", active_array);
         req.get_prop("time", time);
 
+#ifndef TECA_NDEBUG
         cerr << teca_parallel_id()
             << "array_executive::get_next_request array="
             << active_array << " time=" << time << endl;
+#endif
     }
     return req;
 }

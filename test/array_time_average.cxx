@@ -96,11 +96,14 @@ std::vector<teca_meta_data> array_time_average::get_upstream_request(
         up_reqs.push_back(up_req);
     }
 
-    cerr << "array_time_average::get_upstream_request array="
+#ifndef TECA_NDEBUG
+    cerr << teca_parallel_id()
+        << "array_time_average::get_upstream_request array="
         << active_array << " time=" << current_time << " times=[ ";
     for (size_t i = 0; i < n; ++i)
         cerr << active_times[i] << " ";
     cerr << "]" << endl;
+#endif
 
     return up_reqs;
 }
@@ -111,7 +114,10 @@ p_teca_dataset array_time_average::execute(
     const std::vector<p_teca_dataset> &input_data,
     const teca_meta_data &request)
 {
-    cerr << "array_time_average::execute" << endl;
+#ifndef TECA_NDEBUG
+    cerr << teca_parallel_id()
+        << "array_time_average::execute" << endl;
+#endif
 
     p_array a_out = array::New();
     p_array a_in = std::dynamic_pointer_cast<array>(input_data[0]);

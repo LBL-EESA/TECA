@@ -7,7 +7,7 @@
 #define TECA_ERROR(msg)                                          \
     std::cerr << teca_parallel_id()                              \
         << " ERROR " << __FILE__ << ":" << __LINE__ << std::endl \
-        << " " msg << std::endl;
+        << "" msg << std::endl;
 
 // TODO -- move these so we don't pull in the above headers
 // inadvertantly
