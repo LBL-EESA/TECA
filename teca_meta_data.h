@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include "teca_variant_array.h"
+#include "teca_compiler.h"
 
 // a generic container for meta data in the form
 // of name=value pairs. value arrays are supported.
@@ -14,13 +15,13 @@ class teca_meta_data
 {
 public:
     teca_meta_data();
-    ~teca_meta_data() noexcept;
+    ~teca_meta_data() TECA_NOEXCEPT;
 
     teca_meta_data(const teca_meta_data &other);
     teca_meta_data &operator=(const teca_meta_data &other);
 
-    teca_meta_data(teca_meta_data &&other) noexcept;
-    teca_meta_data &operator=(teca_meta_data &&other) noexcept;
+    teca_meta_data(teca_meta_data &&other) TECA_NOEXCEPT;
+    teca_meta_data &operator=(teca_meta_data &&other) TECA_NOEXCEPT;
 
     // set from a scalar property
     template<typename T>
@@ -36,14 +37,14 @@ public:
 
     // get ith prop value (default to 0th) return 0 if successful
     template<typename T>
-    int get_prop(const std::string &name, T &val) const noexcept;
+    int get_prop(const std::string &name, T &val) const TECA_NOEXCEPT;
 
     // get n prop values to an array. see also get_prop_size.
     // return 0 if successful
     template<typename T>
     int get_prop(
         const std::string &name,
-        T *val, unsigned int n) const noexcept;
+        T *val, unsigned int n) const TECA_NOEXCEPT;
 
     // get all prop values to a vector. return 0 if successful
     template<typename T>
@@ -52,7 +53,7 @@ public:
     // get the length of the property value. return 0 if successful
     int get_prop_size(
         const std::string &name,
-        unsigned int &size) const noexcept;
+        unsigned int &size) const TECA_NOEXCEPT;
 
     // remove. return 0 if successful
     int remove_prop(const std::string &name);
@@ -62,13 +63,13 @@ public:
 
     // returns true if there is a property with the given
     // name already in the container.
-    int has(const std::string &name) const noexcept;
+    int has(const std::string &name) const TECA_NOEXCEPT;
 
     // return true if empty
-    int empty() const noexcept;
+    int empty() const TECA_NOEXCEPT;
 
     // return true if not empty
-    explicit operator bool() const noexcept
+    explicit operator bool() const TECA_NOEXCEPT
     { return !empty(); }
 
 private:
@@ -76,26 +77,26 @@ private:
         const std::string &name,
         teca_variant_array *prop_val);
 
-    unsigned long long get_next_id() const noexcept;
+    unsigned long long get_next_id() const TECA_NOEXCEPT;
 
 private:
     unsigned long long id;
     typedef std::map<std::string, teca_variant_array*> prop_map_t;
     prop_map_t props;
 
-    friend bool operator<(const teca_meta_data &, const teca_meta_data &) noexcept;
-    friend bool operator==(const teca_meta_data &, const teca_meta_data &) noexcept;
+    friend bool operator<(const teca_meta_data &, const teca_meta_data &) TECA_NOEXCEPT;
+    friend bool operator==(const teca_meta_data &, const teca_meta_data &) TECA_NOEXCEPT;
     friend teca_meta_data operator&(const teca_meta_data &, const teca_meta_data &);
 };
 
 // comparison function so that metadata can be
 // used as a key in std::map.
-bool operator<(const teca_meta_data &lhs, const teca_meta_data &rhs) noexcept;
+bool operator<(const teca_meta_data &lhs, const teca_meta_data &rhs) TECA_NOEXCEPT;
 
 // compare meta data objects. two objects are considered
 // equal if both have the same set of keys and all of the values
 // are equal
-bool operator==(const teca_meta_data &lhs, const teca_meta_data &rhs) noexcept;
+bool operator==(const teca_meta_data &lhs, const teca_meta_data &rhs) TECA_NOEXCEPT;
 
 // intersect two metadata objects. return a new object with
 // common key value pairs
@@ -145,7 +146,7 @@ void teca_meta_data::set_prop(
 
 // --------------------------------------------------------------------------
 template<typename T>
-int teca_meta_data::get_prop(const std::string &name, T &val) const noexcept
+int teca_meta_data::get_prop(const std::string &name, T &val) const TECA_NOEXCEPT
 {
     prop_map_t::const_iterator it = this->props.find(name);
 
@@ -177,7 +178,7 @@ int teca_meta_data::get_prop(
 template<typename T>
 int teca_meta_data::get_prop(
     const std::string &name,
-    T *vals, unsigned int n) const noexcept
+    T *vals, unsigned int n) const TECA_NOEXCEPT
 {
     prop_map_t::const_iterator it = this->props.find(name);
 

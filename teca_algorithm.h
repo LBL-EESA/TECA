@@ -9,6 +9,7 @@ class teca_algorithm_internals;
 class teca_algorithm_thread_pool;
 
 // for types used in the api
+#include "teca_compiler.h"
 #include "teca_meta_data.h"
 #include "teca_algorithm_output_port.h"
 #include <vector>
@@ -22,7 +23,7 @@ class teca_algorithm : public std::enable_shared_from_this<teca_algorithm>
 public:
     // construct/destruct
     static p_teca_algorithm New();
-    virtual ~teca_algorithm() noexcept;
+    virtual ~teca_algorithm() TECA_NOEXCEPT;
     TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_algorithm)
 
     // get an output port from the algorithm. to be used

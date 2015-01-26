@@ -1,6 +1,7 @@
 #ifndef teca_threaded_algorithm_h
 #define teca_threaded_algorithm_h
 
+#include "teca_compiler.h"
 #include "teca_algorithm.h"
 #include "teca_threaded_algorithm_fwd.h"
 #include "teca_dataset.h"
@@ -17,12 +18,12 @@ class teca_threaded_algorithm : public teca_algorithm
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_threaded_algorithm)
     TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_threaded_algorithm)
-    virtual ~teca_threaded_algorithm() noexcept;
+    virtual ~teca_threaded_algorithm() TECA_NOEXCEPT;
 
     // set/get the number of threads in the pool. default
     // is to use 1 - the number of cores.
     void set_thread_pool_size(unsigned int n_threads);
-    unsigned int get_thread_pool_size() const noexcept;
+    unsigned int get_thread_pool_size() const TECA_NOEXCEPT;
 
 protected:
     teca_threaded_algorithm();

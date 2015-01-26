@@ -9,6 +9,7 @@
 #include <algorithm>
 
 #include "teca_common.h"
+#include "teca_compiler.h"
 
 /// type agnostic container for simple arrays
 /**
@@ -21,7 +22,7 @@ class teca_variant_array
 public:
     // construct
     teca_variant_array(){}
-    virtual ~teca_variant_array() noexcept {}
+    virtual ~teca_variant_array() TECA_NOEXCEPT {}
 
     // copy
     teca_variant_array(const teca_variant_array &other)
@@ -76,11 +77,11 @@ public:
     void append(const std::vector<std::string> &vals);
 
     // get the number of elements in the array
-    virtual unsigned int size() const noexcept = 0;
+    virtual unsigned int size() const TECA_NOEXCEPT = 0;
     virtual void resize(unsigned int i) = 0;
 
     // free all the internal data
-    virtual void clear() noexcept = 0;
+    virtual void clear() TECA_NOEXCEPT = 0;
 
     // copy the contents from the other array.
     // an excpetion is thrown when no conversion
@@ -112,7 +113,7 @@ public:
     teca_variant_array_impl(T *vals, unsigned int n)
         : m_data(vals, vals+n) {}
 
-    ~teca_variant_array_impl() noexcept
+    ~teca_variant_array_impl() TECA_NOEXCEPT
     { this->clear(); }
 
     // copy
@@ -157,7 +158,7 @@ public:
     { val = m_data[i]; }
 
     template <typename U>
-    void get(U *beg, U *end) const noexcept
+    void get(U *beg, U *end) const TECA_NOEXCEPT
     {
         typename std::vector<T>::iterator data_it = m_data.begin();
         for (T *it = beg; it != end; ++it)
@@ -187,13 +188,13 @@ public:
     template <typename U>
     void append(const U &val) { m_data.push_back(val); }
 
-    virtual unsigned int size() const noexcept override
+    virtual unsigned int size() const TECA_NOEXCEPT override
     { return m_data.size(); }
 
     virtual void resize(unsigned int n) override
     { m_data.resize(n); }
 
-    virtual void clear() noexcept override
+    virtual void clear() TECA_NOEXCEPT override
     { m_data.clear(); }
 
     void copy(const teca_variant_array &other)

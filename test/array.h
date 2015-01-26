@@ -3,6 +3,7 @@
 
 #include "array_fwd.h"
 #include "teca_dataset.h"
+#include "teca_compiler.h"
 
 #include <vector>
 
@@ -19,7 +20,7 @@ public:
     TECA_DATASET_PROPERTY(std::string, name)
 
     // return true if the dataset is empty.
-    virtual bool empty() noexcept override
+    virtual bool empty() TECA_NOEXCEPT override
     { return this->data.empty(); }
 
     // return a new dataset of the same type

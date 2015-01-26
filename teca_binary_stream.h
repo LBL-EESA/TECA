@@ -2,6 +2,7 @@
 #define teca_binary_stream_h
 
 #include "teca_common.h"
+#include "teca_compiler.h"
 
 #include <cstdlib>
 #include <string>
@@ -14,19 +15,19 @@ class teca_binary_stream
 public:
     // construct
     teca_binary_stream();
-    ~teca_binary_stream() noexcept;
+    ~teca_binary_stream() TECA_NOEXCEPT;
 
     // copy
     teca_binary_stream(const teca_binary_stream &s);
     const teca_binary_stream &operator=(const teca_binary_stream &other);
 
     // move
-    teca_binary_stream(teca_binary_stream &&s) noexcept;
-    const teca_binary_stream &operator=(teca_binary_stream &&other) noexcept;
+    teca_binary_stream(teca_binary_stream &&s) TECA_NOEXCEPT;
+    const teca_binary_stream &operator=(teca_binary_stream &&other) TECA_NOEXCEPT;
 
     // Release all resources, set to a uninitialized
     // state.
-    void clear() noexcept;
+    void clear() TECA_NOEXCEPT;
 
     // Alolocate n_bytes for the stream.
     void resize(size_t n_bytes);
@@ -35,19 +36,19 @@ public:
     void grow(size_t n_bytes);
 
     // Get a pointer to the stream internal representation.
-    unsigned char *get_data() noexcept
+    unsigned char *get_data() TECA_NOEXCEPT
     { return m_data; }
 
     // Get the size of the m_data in the stream.
-    size_t size() const noexcept
+    size_t size() const TECA_NOEXCEPT
     { return m_data_p - m_data; }
 
     // Set the stream position to the head of the strem
-    void rewind() noexcept
+    void rewind() TECA_NOEXCEPT
     { m_data_p = m_data; }
 
     // swap the two objects
-    void swap(teca_binary_stream &other) noexcept;
+    void swap(teca_binary_stream &other) TECA_NOEXCEPT;
 
     // Insert/Extract to/from the stream.
     template <typename T> void pack(T *val);

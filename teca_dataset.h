@@ -2,6 +2,7 @@
 #define teca_dataset_h
 
 #include "teca_dataset_fwd.h"
+#include "teca_compiler.h"
 class teca_binary_stream;
 
 class teca_dataset : public std::enable_shared_from_this<teca_dataset>
@@ -11,11 +12,11 @@ public:
 
     // covert to bool. true if the dataset is not empty.
     // otherwise false.
-    explicit operator bool() noexcept
+    explicit operator bool() TECA_NOEXCEPT
     { return !this->empty(); }
 
     // return true if the dataset is empty.
-    virtual bool empty() noexcept
+    virtual bool empty() TECA_NOEXCEPT
     { return true; }
 
     // return a new dataset of the same type

@@ -26,7 +26,7 @@ class teca_algorithm_internals
 {
 public:
     teca_algorithm_internals();
-    ~teca_algorithm_internals() noexcept;
+    ~teca_algorithm_internals() TECA_NOEXCEPT;
     TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_algorithm_internals)
 
     // this setsup the output cache. calling
@@ -34,8 +34,8 @@ public:
     void set_number_of_inputs(unsigned int n);
     void set_number_of_outputs(unsigned int n);
 
-    unsigned int get_number_of_inputs() const noexcept;
-    unsigned int get_number_of_outputs() const noexcept;
+    unsigned int get_number_of_inputs() const TECA_NOEXCEPT;
+    unsigned int get_number_of_outputs() const TECA_NOEXCEPT;
 
     // set/get the input
     teca_algorithm_output_port &get_input(unsigned int i);
@@ -70,7 +70,7 @@ public:
     // sets the maximum nuber of datasets to cache
     // per output port
     void set_data_cache_size(unsigned int n);
-    unsigned int get_data_cache_size() const noexcept;
+    unsigned int get_data_cache_size() const TECA_NOEXCEPT;
 
     // set/clear modified flag for the given port
     void set_modified();
@@ -127,7 +127,7 @@ teca_algorithm_internals::teca_algorithm_internals()
 }
 
 // --------------------------------------------------------------------------
-teca_algorithm_internals::~teca_algorithm_internals() noexcept
+teca_algorithm_internals::~teca_algorithm_internals() TECA_NOEXCEPT
 {}
 
 // --------------------------------------------------------------------------
@@ -138,7 +138,7 @@ void teca_algorithm_internals::set_number_of_inputs(unsigned int n)
 }
 
 // --------------------------------------------------------------------------
-unsigned int teca_algorithm_internals::get_number_of_inputs() const noexcept
+unsigned int teca_algorithm_internals::get_number_of_inputs() const TECA_NOEXCEPT
 {
     return this->inputs.size();
 }
@@ -177,7 +177,7 @@ void teca_algorithm_internals::set_number_of_outputs(unsigned int n)
 }
 
 // --------------------------------------------------------------------------
-unsigned int teca_algorithm_internals::get_number_of_outputs() const noexcept
+unsigned int teca_algorithm_internals::get_number_of_outputs() const TECA_NOEXCEPT
 {
     return this->data_cache.size();
 }
@@ -197,7 +197,7 @@ void teca_algorithm_internals::set_data_cache_size(unsigned int n)
 }
 
 // --------------------------------------------------------------------------
-unsigned int teca_algorithm_internals::get_data_cache_size() const noexcept
+unsigned int teca_algorithm_internals::get_data_cache_size() const TECA_NOEXCEPT
 {
     return this->data_cache_size;
 }
@@ -356,7 +356,7 @@ teca_algorithm::teca_algorithm() : internals(new teca_algorithm_internals)
 {}
 
 // --------------------------------------------------------------------------
-teca_algorithm::~teca_algorithm() noexcept
+teca_algorithm::~teca_algorithm() TECA_NOEXCEPT
 {
     delete this->internals;
 }

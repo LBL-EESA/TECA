@@ -7,7 +7,7 @@ teca_binary_stream::teca_binary_stream()
 {}
 
 //-----------------------------------------------------------------------------
-teca_binary_stream::~teca_binary_stream() noexcept
+teca_binary_stream::~teca_binary_stream() TECA_NOEXCEPT
 {
     this->clear();
 }
@@ -17,7 +17,7 @@ teca_binary_stream::teca_binary_stream(const teca_binary_stream &other)
 { *this = other; }
 
 //-----------------------------------------------------------------------------
-teca_binary_stream::teca_binary_stream(teca_binary_stream &&other) noexcept
+teca_binary_stream::teca_binary_stream(teca_binary_stream &&other) TECA_NOEXCEPT
      : m_size(0), m_data(nullptr), m_data_p(nullptr)
 { this->swap(other); }
 
@@ -41,7 +41,7 @@ const teca_binary_stream &teca_binary_stream::operator=(
 
 //-----------------------------------------------------------------------------
 const teca_binary_stream &teca_binary_stream::operator=(
-    teca_binary_stream &&other) noexcept
+    teca_binary_stream &&other) TECA_NOEXCEPT
 {
     teca_binary_stream tmp(std::move(other));
     this->swap(tmp);
@@ -49,7 +49,7 @@ const teca_binary_stream &teca_binary_stream::operator=(
 }
 
 //-----------------------------------------------------------------------------
-void teca_binary_stream::clear() noexcept
+void teca_binary_stream::clear() TECA_NOEXCEPT
 {
     free(m_data);
     m_data = nullptr;
@@ -95,7 +95,7 @@ void teca_binary_stream::grow(size_t n_bytes)
 }
 
 //-----------------------------------------------------------------------------
-void teca_binary_stream::swap(teca_binary_stream &other) noexcept
+void teca_binary_stream::swap(teca_binary_stream &other) TECA_NOEXCEPT
 {
     std::swap(m_data, other.m_data);
     std::swap(m_data_p, other.m_data_p);

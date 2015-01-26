@@ -19,12 +19,12 @@ teca_meta_data::teca_meta_data(const teca_meta_data &other)
 }
 
 // --------------------------------------------------------------------------
-teca_meta_data::teca_meta_data(teca_meta_data &&other) noexcept
+teca_meta_data::teca_meta_data(teca_meta_data &&other) TECA_NOEXCEPT
     : id(other.id), props(std::move(other.props))
 {}
 
 // --------------------------------------------------------------------------
-teca_meta_data::~teca_meta_data() noexcept
+teca_meta_data::~teca_meta_data() TECA_NOEXCEPT
 {
     this->clear_props();
 }
@@ -47,7 +47,7 @@ teca_meta_data &teca_meta_data::operator=(const teca_meta_data &other)
 }
 
 // --------------------------------------------------------------------------
-teca_meta_data &teca_meta_data::operator=(teca_meta_data &&other) noexcept
+teca_meta_data &teca_meta_data::operator=(teca_meta_data &&other) TECA_NOEXCEPT
 {
     if (&other == this)
         return *this;
@@ -87,7 +87,7 @@ void teca_meta_data::set_prop(
 // --------------------------------------------------------------------------
 int teca_meta_data::get_prop_size(
     const std::string &name,
-    unsigned int &n) const noexcept
+    unsigned int &n) const TECA_NOEXCEPT
 {
     prop_map_t::const_iterator it = this->props.find(name);
 
@@ -114,32 +114,32 @@ int teca_meta_data::remove_prop(const std::string &name)
 }
 
 // --------------------------------------------------------------------------
-int teca_meta_data::has(const std::string &name) const noexcept
+int teca_meta_data::has(const std::string &name) const TECA_NOEXCEPT
 {
     return this->props.count(name);
 }
 
 // --------------------------------------------------------------------------
-int teca_meta_data::empty() const noexcept
+int teca_meta_data::empty() const TECA_NOEXCEPT
 {
     return this->props.empty();
 }
 
 // --------------------------------------------------------------------------
-unsigned long long teca_meta_data::get_next_id() const noexcept
+unsigned long long teca_meta_data::get_next_id() const TECA_NOEXCEPT
 {
     static unsigned long long id = 0;
     return id++;
 }
 
 // --------------------------------------------------------------------------
-bool operator<(const teca_meta_data &lhs, const teca_meta_data &rhs) noexcept
+bool operator<(const teca_meta_data &lhs, const teca_meta_data &rhs) TECA_NOEXCEPT
 {
     return lhs.id < rhs.id;
 }
 
 // --------------------------------------------------------------------------
-bool operator==(const teca_meta_data &lhs, const teca_meta_data &rhs) noexcept
+bool operator==(const teca_meta_data &lhs, const teca_meta_data &rhs) TECA_NOEXCEPT
 {
     teca_meta_data::prop_map_t::const_iterator rit = rhs.props.begin();
     teca_meta_data::prop_map_t::const_iterator rend = rhs.props.end();
