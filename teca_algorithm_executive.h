@@ -22,7 +22,7 @@ public:
     // initialize requests from the given metadata object.
     // this is a place where work partitioning across MPI
     // ranks can occur
-    virtual int initialize(const teca_meta_data &md)
+    virtual int initialize(const teca_meta_data &)
     { return 0; }
 
     // get the next request until all requests have been

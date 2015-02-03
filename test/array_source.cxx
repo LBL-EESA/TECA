@@ -52,6 +52,8 @@ teca_meta_data array_source::get_output_meta_data(
     cerr << teca_parallel_id()
         << "array_source::get_output_meta_data" << endl;
 #endif
+    (void) port;
+    (void) input_md;
 
     teca_meta_data output_md;
 
@@ -77,6 +79,9 @@ p_teca_dataset array_source::execute(
     const std::vector<p_teca_dataset> &input_data,
     const teca_meta_data &request)
 {
+    (void) port;
+    (void) input_data;
+
     // get the time request
     double active_time;
     if (request.get_prop("time", active_time))

@@ -28,6 +28,9 @@ p_teca_dataset array_writer::execute(
     const std::vector<p_teca_dataset> &input_data,
     const teca_meta_data &request)
 {
+    (void) port;
+    (void) request;
+
     p_array a_in = std::dynamic_pointer_cast<array>(input_data[0]);
     if (!a_in)
         return p_teca_dataset();

@@ -11,7 +11,7 @@ using std::ostream;
 #include <mpi.h>
 #endif
 
-ostream &operator<<(ostream &os, const teca_parallel_id &id)
+ostream &operator<<(ostream &os, const teca_parallel_id &)
 {
     int rank = 0;
 #if defined(TECA_MPI)

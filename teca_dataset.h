@@ -25,8 +25,8 @@ public:
 
     // serialize the dataset to/from the given stream
     // for I/O or communication
-    virtual void to_stream(teca_binary_stream &s) {}
-    virtual void from_stream(teca_binary_stream &s) {}
+    virtual void to_stream(teca_binary_stream &) {}
+    virtual void from_stream(teca_binary_stream &) {}
 
 // TODO
 

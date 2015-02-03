@@ -501,6 +501,8 @@ teca_meta_data teca_algorithm::get_output_meta_data(
     unsigned int port,
     const vector<teca_meta_data> &input_md)
 {
+    (void)port;
+
     // the default implementation passes meta data through
     if (input_md.size())
         return input_md[0];
@@ -541,6 +543,8 @@ teca_meta_data teca_algorithm::get_cache_key(
     unsigned int port,
     const teca_meta_data &request) const
 {
+    (void) port;
+
     // default implementation passes the request through
     return request;
 }

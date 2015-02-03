@@ -80,6 +80,8 @@ std::vector<teca_meta_data> array_temporal_stats::initialize_upstream_request(
     cerr << teca_parallel_id()
         << "array_temporal_stats::initialize_upstream_request" << endl;
 #endif
+    (void) port;
+    (void) input_md;
 
     vector<teca_meta_data> up_reqs(1, request);
     up_reqs[0].set_prop("array_name", this->array_name);
@@ -96,6 +98,7 @@ teca_meta_data array_temporal_stats::initialize_output_meta_data(
     cerr << teca_parallel_id()
         << "array_temporal_stats::intialize_output_meta_data" << endl;
 #endif
+    (void) port;
 
     teca_meta_data output_md(input_md[0]);
     output_md.set_prop("array_names", this->array_name + "_stats");

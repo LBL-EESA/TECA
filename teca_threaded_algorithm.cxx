@@ -150,7 +150,6 @@ void teca_thread_pool::pop_datasets(vector<p_teca_dataset> &data)
 {
     // wait on all pending requests and gather the generated
     // datasets
-    size_t n = m_dataset_futures.size();
     std::for_each(
         m_dataset_futures.begin(),
         m_dataset_futures.end(),

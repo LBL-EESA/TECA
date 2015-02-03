@@ -60,6 +60,7 @@ teca_meta_data array_add::get_output_meta_data(
     cerr << teca_parallel_id()
         << "array_add::get_output_meta_data" << endl;
 #endif
+    (void)port;
 
     teca_meta_data output_md(input_md[0]);
 
@@ -92,6 +93,7 @@ std::vector<teca_meta_data> array_add::get_upstream_request(
     cerr << teca_parallel_id()
         << "array_add::get_upstream_request" << endl;
 #endif
+    (void)port;
 
     vector<teca_meta_data> up_reqs(2);
 
@@ -122,6 +124,8 @@ p_teca_dataset array_add::execute(
     const std::vector<p_teca_dataset> &input_data,
     const teca_meta_data &request)
 {
+    (void)port;
+
     p_array a_out = array::New();
 
     // get the array on the two inputs

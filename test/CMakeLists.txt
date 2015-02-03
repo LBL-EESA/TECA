@@ -34,7 +34,6 @@ target_link_libraries(
     teca teca_test_array
     )
 
-if (MPI_C_FOUND) 
 add_executable(
     test_array_temporal_reduction
     test_array_temporal_reduction.cpp
@@ -42,6 +41,11 @@ add_executable(
 target_link_libraries(
     test_array_temporal_reduction
     teca teca_test_array
-    ${MPI_CXX_LIBRARIES}
     )
+
+if (MPI_CXX_FOUND) 
+    target_link_libraries(
+        test_array_temporal_reduction
+        ${MPI_CXX_LIBRARIES}
+        )
 endif()

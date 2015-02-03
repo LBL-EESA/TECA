@@ -65,6 +65,8 @@ std::vector<teca_meta_data> array_time_average::get_upstream_request(
     const std::vector<teca_meta_data> &input_md,
     const teca_meta_data &request)
 {
+    (void) port;
+
     vector<teca_meta_data> up_reqs;
 
     // get the active array from the incoming request
@@ -118,6 +120,8 @@ p_teca_dataset array_time_average::execute(
     cerr << teca_parallel_id()
         << "array_time_average::execute" << endl;
 #endif
+    (void) port;
+    (void) request;
 
     p_array a_out = array::New();
     p_array a_in = std::dynamic_pointer_cast<array>(input_data[0]);

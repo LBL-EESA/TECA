@@ -254,6 +254,10 @@ p_teca_dataset teca_temporal_reduction::execute(
     const std::vector<p_teca_dataset> &input_data,
     const teca_meta_data &request)
 {
+    // TODO -- do those need to be forward into overrides?
+    (void)port;
+    (void)request;
+
     size_t n_in = input_data.size();
     if (n_in == 0)
     {
