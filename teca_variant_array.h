@@ -121,7 +121,7 @@ public:
         : m_data(other.m_data) {}
 
     teca_variant_array_impl(const teca_variant_array_impl<T> &other)
-        : m_data(other.m_data) {}
+        : teca_variant_array(other), m_data(other.m_data) {}
 
     virtual teca_variant_array *new_copy() const override
     { return new teca_variant_array_impl<T>(*this); }
