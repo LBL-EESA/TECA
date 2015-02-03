@@ -5,6 +5,7 @@
 #include "teca_dataset.h"
 #include "teca_compiler.h"
 
+#include <string>
 #include <vector>
 
 // trivial implementation of an array based datatset
@@ -25,7 +26,7 @@ public:
 
     // return a new dataset of the same type
     virtual p_teca_dataset new_instance() override
-    { return p_teca_dataset(new array); }
+    { return p_teca_dataset(new array()); }
 
     // serialize the dataset to/from the given stream
     // for I/O or communication
