@@ -32,8 +32,7 @@ public:
     { this->copy(other); return *this; }
 
     // move
-    teca_variant_array(teca_variant_array &&other)
-    { this->swap(other); }
+    teca_variant_array(teca_variant_array &&other) = delete;
 
     teca_variant_array &operator=(teca_variant_array &&other)
     { this->swap(other); return *this; }

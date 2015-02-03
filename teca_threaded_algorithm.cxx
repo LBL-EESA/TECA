@@ -125,7 +125,7 @@ void teca_thread_pool::create_threads(unsigned int n_threads)
 }
 
 // --------------------------------------------------------------------------
-teca_thread_pool::~teca_thread_pool()
+teca_thread_pool::~teca_thread_pool() TECA_NOEXCEPT
 {
     m_live = false;
     std::for_each(
