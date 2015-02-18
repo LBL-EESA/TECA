@@ -2,7 +2,7 @@
 #include "teca_common.h"
 
 // --------------------------------------------------------------------------
-void teca_variant_array::get(std::string &val, unsigned int i) const
+void teca_variant_array::get(std::string &val, unsigned long i) const
 {
     TEMPLATE_DISPATCH_CASE(const teca_variant_array_impl<std::string>, this,
         TT *this_t = static_cast<TT*>(this);
@@ -36,7 +36,7 @@ void teca_variant_array::set(const std::vector<std::string> &vals)
 }
 
 // --------------------------------------------------------------------------
-void teca_variant_array::set(const std::string &val, unsigned int i)
+void teca_variant_array::set(const std::string &val, unsigned long i)
 {
     TEMPLATE_DISPATCH_CASE(teca_variant_array_impl<std::string>, this,
         TT *this_t = static_cast<TT*>(this);

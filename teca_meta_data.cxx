@@ -7,7 +7,7 @@ using std::pair;
 using std::vector;
 
 // --------------------------------------------------------------------------
-teca_meta_data::teca_meta_data()
+teca_meta_data::teca_meta_data() TECA_NOEXCEPT
 {
     this->id = this->get_next_id();
 }
@@ -60,26 +60,19 @@ teca_meta_data &teca_meta_data::operator=(teca_meta_data &&other) TECA_NOEXCEPT
 // --------------------------------------------------------------------------
 void teca_meta_data::clear_props()
 {
-    prop_map_t::iterator it = this->props.begin();
-    prop_map_t::iterator end = this->props.end();
-    for ( ; it != end; ++it)
-    {
-        delete it->second;
-    }
     this->props.clear();
 }
 
 // --------------------------------------------------------------------------
 void teca_meta_data::set_prop(
     const std::string &name,
-    teca_variant_array *prop_val)
+    p_teca_variant_array prop_val)
 {
     pair<prop_map_t::iterator, bool> ret
         = this->props.insert(make_pair(name, prop_val));
 
     if (!ret.second)
     {
-        delete ret.first->second;
         ret.first->second = prop_val;
     }
 }
@@ -100,14 +93,13 @@ int teca_meta_data::get_prop_size(
 }
 
 // --------------------------------------------------------------------------
-int teca_meta_data::remove_prop(const std::string &name)
+int teca_meta_data::remove_prop(const std::string &name) TECA_NOEXCEPT
 {
     prop_map_t::iterator it = this->props.find(name);
 
     if (it == this->props.end())
         return -1;
 
-    delete it->second;
     this->props.erase(it);
 
     return 0;

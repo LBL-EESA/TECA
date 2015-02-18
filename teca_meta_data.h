@@ -14,7 +14,7 @@
 class teca_meta_data
 {
 public:
-    teca_meta_data();
+    teca_meta_data() TECA_NOEXCEPT;
     ~teca_meta_data() TECA_NOEXCEPT;
 
     teca_meta_data(const teca_meta_data &other);
@@ -35,18 +35,19 @@ public:
     template<typename T>
     void set_prop(const std::string &name, const std::vector<T> &val);
 
-    // get ith prop value (default to 0th) return 0 if successful
+    // get ith prop value. return 0 if successful
     template<typename T>
-    int get_prop(const std::string &name, T &val) const TECA_NOEXCEPT;
+    int get_prop(const std::string &name, T &val) const;
 
     // get n prop values to an array. see also get_prop_size.
     // return 0 if successful
     template<typename T>
     int get_prop(
         const std::string &name,
-        T *val, unsigned int n) const TECA_NOEXCEPT;
+        T *val, unsigned int n) const;
 
-    // get all prop values to a vector. return 0 if successful
+    // copy prop values from the named prop into the passed in vector.
+    // return 0 if successful
     template<typename T>
     int get_prop(const std::string &name, std::vector<T> &val) const;
 
@@ -56,7 +57,7 @@ public:
         unsigned int &size) const TECA_NOEXCEPT;
 
     // remove. return 0 if successful
-    int remove_prop(const std::string &name);
+    int remove_prop(const std::string &name) TECA_NOEXCEPT;
 
     // remove all
     void clear_props();
@@ -75,13 +76,13 @@ public:
 private:
     void set_prop(
         const std::string &name,
-        teca_variant_array *prop_val);
+        p_teca_variant_array prop_val);
 
     unsigned long long get_next_id() const TECA_NOEXCEPT;
 
 private:
     unsigned long long id;
-    typedef std::map<std::string, teca_variant_array*> prop_map_t;
+    typedef std::map<std::string, p_teca_variant_array> prop_map_t;
     prop_map_t props;
 
     friend bool operator<(const teca_meta_data &, const teca_meta_data &) TECA_NOEXCEPT;
@@ -106,8 +107,8 @@ teca_meta_data operator&(const teca_meta_data &lhs, const teca_meta_data &rhs);
 template<typename T>
 void teca_meta_data::set_prop(const std::string &name, const T &val)
 {
-    teca_variant_array *prop_val
-        = new teca_variant_array_impl<T>(1);
+    p_teca_variant_array prop_val
+        = teca_variant_array_impl<T>::New(1);
 
     prop_val->set(val, 0);
 
@@ -121,8 +122,8 @@ void teca_meta_data::set_prop(
     const T *val,
     unsigned int n)
 {
-    teca_variant_array *prop_val
-        = new teca_variant_array_impl<T>(val, n);
+    p_teca_variant_array prop_val
+        = teca_variant_array_impl<T>::New(val, n);
 
     this->set_prop(name, prop_val);
 }
@@ -135,8 +136,8 @@ void teca_meta_data::set_prop(
 {
     unsigned int n_vals = val.size();
 
-    teca_variant_array *prop_val
-        = new teca_variant_array_impl<T>(n_vals);
+    p_teca_variant_array prop_val
+        = teca_variant_array_impl<T>::New(n_vals);
 
     for (unsigned int i = 0; i < n_vals; ++i)
         prop_val->set(val[i], i);
@@ -146,7 +147,7 @@ void teca_meta_data::set_prop(
 
 // --------------------------------------------------------------------------
 template<typename T>
-int teca_meta_data::get_prop(const std::string &name, T &val) const TECA_NOEXCEPT
+int teca_meta_data::get_prop(const std::string &name, T &val) const
 {
     prop_map_t::const_iterator it = this->props.find(name);
 
@@ -178,7 +179,7 @@ int teca_meta_data::get_prop(
 template<typename T>
 int teca_meta_data::get_prop(
     const std::string &name,
-    T *vals, unsigned int n) const TECA_NOEXCEPT
+    T *vals, unsigned int n) const
 {
     prop_map_t::const_iterator it = this->props.find(name);
 
@@ -189,4 +190,7 @@ int teca_meta_data::get_prop(
 
     return 0;
 }
+
+// convenience defs for nesting metadata
+using teca_meta_data_array = teca_variant_array_impl<teca_meta_data>;
 #endif
