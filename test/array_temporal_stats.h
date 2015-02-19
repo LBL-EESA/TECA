@@ -4,7 +4,7 @@
 #include "array_fwd.h"
 
 #include "teca_temporal_reduction.h"
-#include "teca_meta_data.h"
+#include "teca_metadata.h"
 
 #include <memory>
 #include <string>
@@ -40,14 +40,14 @@ protected:
         const p_teca_dataset &left,
         const p_teca_dataset &right) override;
 
-    std::vector<teca_meta_data> initialize_upstream_request(
+    std::vector<teca_metadata> initialize_upstream_request(
         unsigned int port,
-        const std::vector<teca_meta_data> &input_md,
-        const teca_meta_data &request) override;
+        const std::vector<teca_metadata> &input_md,
+        const teca_metadata &request) override;
 
-    teca_meta_data initialize_output_meta_data(
+    teca_metadata initialize_output_metadata(
         unsigned int port,
-        const std::vector<teca_meta_data> &input_md) override;
+        const std::vector<teca_metadata> &input_md) override;
 
 private:
     std::string array_name;

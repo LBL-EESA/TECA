@@ -10,7 +10,7 @@ class teca_algorithm_thread_pool;
 
 // for types used in the api
 #include "teca_compiler.h"
-#include "teca_meta_data.h"
+#include "teca_metadata.h"
 #include "teca_algorithm_output_port.h"
 #include <vector>
 #include <utility>
@@ -65,7 +65,7 @@ public:
     virtual int update(unsigned int port);
 
     // get meta data considering this instance up.
-    virtual teca_meta_data update_meta_data(unsigned int port);
+    virtual teca_metadata update_metadata(unsigned int port);
 
     // set the executive
     void set_executive(p_teca_algorithm_executive exec);
@@ -98,9 +98,9 @@ protected:
     // the second argument contains a list of the metadata
     // describing data on all of the inputs.
     virtual
-    teca_meta_data get_output_meta_data(
+    teca_metadata get_output_metadata(
         unsigned int port,
-        const std::vector<teca_meta_data> &input_md);
+        const std::vector<teca_metadata> &input_md);
 
     // implementations must override this method and
     // generate a set of requests describing the data
@@ -109,10 +109,10 @@ protected:
     // and request. If no data is needed on an input
     // then the list should contain a null request.
     virtual
-    std::vector<teca_meta_data> get_upstream_request(
+    std::vector<teca_metadata> get_upstream_request(
         unsigned int port,
-        const std::vector<teca_meta_data> &input_md,
-        const teca_meta_data &request);
+        const std::vector<teca_metadata> &input_md,
+        const teca_metadata &request);
 
     // implementations must override this method and
     // produce the output dataset for the port named
@@ -127,7 +127,7 @@ protected:
     p_teca_dataset execute(
         unsigned int port,
         const std::vector<p_teca_dataset> &input_data,
-        const teca_meta_data &request);
+        const teca_metadata &request);
 
     // implementations may choose to override this method
     // to gain control of keys used in the cache. By default
@@ -135,9 +135,9 @@ protected:
     // gives implementor the chance to filter the passed in
     // request.
     virtual
-    teca_meta_data get_cache_key(
+    teca_metadata get_cache_key(
         unsigned int port,
-        const teca_meta_data &request) const;
+        const teca_metadata &request) const;
 
     // serialize the configuration to a stream. this should
     // store the public user modifiable properties so that
@@ -154,7 +154,7 @@ protected:
     // driver function that manage meta data reporting  phase
     // of pipeline execution.
     virtual
-    teca_meta_data get_output_meta_data(
+    teca_metadata get_output_metadata(
         teca_algorithm_output_port &current);
 
     // driver function that manages execution of the given
@@ -162,7 +162,7 @@ protected:
     virtual
     p_teca_dataset request_data(
         teca_algorithm_output_port &port,
-        const teca_meta_data &request);
+        const teca_metadata &request);
 
     // driver function that clears the output data cache
     // where modified flag has been set from the current
@@ -182,13 +182,13 @@ protected:
     // with the given request. see also get_cache_key. (threadsafe)
     p_teca_dataset get_output_data(
         unsigned int port,
-        const teca_meta_data &request);
+        const teca_metadata &request);
 
     // add or update the given request , dataset pair in the cache.
     // see also get_cache_key. (threadsafe)
     int cache_output_data(
         unsigned int port,
-        const teca_meta_data &request,
+        const teca_metadata &request,
         p_teca_dataset &data);
 
     // clear the cache on the given output port

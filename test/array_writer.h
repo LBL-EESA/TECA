@@ -2,7 +2,7 @@
 #define array_writer_h
 
 #include "teca_algorithm.h"
-#include "teca_meta_data.h"
+#include "teca_metadata.h"
 
 #include <memory>
 #include <vector>
@@ -29,7 +29,7 @@ private:
     p_teca_dataset execute(
         unsigned int port,
         const std::vector<p_teca_dataset> &input_data,
-        const teca_meta_data &request);
+        const teca_metadata &request);
 };
 
 #endif

@@ -2,7 +2,7 @@
 #define array_add_h
 
 #include "teca_algorithm.h"
-#include "teca_meta_data.h"
+#include "teca_metadata.h"
 
 #include <memory>
 #include <string>
@@ -33,26 +33,26 @@ protected:
     // these
     int get_active_array(
         const std::string &user_array,
-        const teca_meta_data &input_md,
+        const teca_metadata &input_md,
         std::string &active_array) const;
 
 private:
     virtual
-    teca_meta_data get_output_meta_data(
+    teca_metadata get_output_metadata(
         unsigned int port,
-        const std::vector<teca_meta_data> &input_md);
+        const std::vector<teca_metadata> &input_md);
 
     virtual
-    std::vector<teca_meta_data> get_upstream_request(
+    std::vector<teca_metadata> get_upstream_request(
         unsigned int port,
-        const std::vector<teca_meta_data> &input_md,
-        const teca_meta_data &request);
+        const std::vector<teca_metadata> &input_md,
+        const teca_metadata &request);
 
     virtual
     p_teca_dataset execute(
         unsigned int port,
         const std::vector<p_teca_dataset> &input_data,
-        const teca_meta_data &request);
+        const teca_metadata &request);
 
 private:
     std::string array_1;

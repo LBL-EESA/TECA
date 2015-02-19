@@ -44,18 +44,18 @@ void array_source::set_number_of_arrays(unsigned int n)
 }
 
 // --------------------------------------------------------------------------
-teca_meta_data array_source::get_output_meta_data(
+teca_metadata array_source::get_output_metadata(
     unsigned int port,
-    const std::vector<teca_meta_data> &input_md)
+    const std::vector<teca_metadata> &input_md)
 {
 #ifndef TECA_NDEBUG
     cerr << teca_parallel_id()
-        << "array_source::get_output_meta_data" << endl;
+        << "array_source::get_output_metadata" << endl;
 #endif
     (void) port;
     (void) input_md;
 
-    teca_meta_data output_md;
+    teca_metadata output_md;
 
     // report time
     vector<double> time;
@@ -77,7 +77,7 @@ teca_meta_data array_source::get_output_meta_data(
 p_teca_dataset array_source::execute(
     unsigned int port,
     const std::vector<p_teca_dataset> &input_data,
-    const teca_meta_data &request)
+    const teca_metadata &request)
 {
     (void) port;
     (void) input_data;

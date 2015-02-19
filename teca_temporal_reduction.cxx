@@ -63,12 +63,12 @@ int recv(MPI_Comm comm, int src, teca_binary_stream &s)
 };
 
 // --------------------------------------------------------------------------
-std::vector<teca_meta_data> teca_temporal_reduction::get_upstream_request(
+std::vector<teca_metadata> teca_temporal_reduction::get_upstream_request(
     unsigned int port,
-    const std::vector<teca_meta_data> &input_md,
-    const teca_meta_data &request)
+    const std::vector<teca_metadata> &input_md,
+    const teca_metadata &request)
 {
-    vector<teca_meta_data> up_req;
+    vector<teca_metadata> up_req;
 
     // locate available times
     vector<double> time;
@@ -111,7 +111,7 @@ std::vector<teca_meta_data> teca_temporal_reduction::get_upstream_request(
     }
 
     // get the filters basic request
-    vector<teca_meta_data> base_req
+    vector<teca_metadata> base_req
         = this->initialize_upstream_request(port, input_md, request);
 
     // apply the base request to local times.
@@ -131,12 +131,12 @@ std::vector<teca_meta_data> teca_temporal_reduction::get_upstream_request(
 }
 
 // --------------------------------------------------------------------------
-teca_meta_data teca_temporal_reduction::get_output_meta_data(
+teca_metadata teca_temporal_reduction::get_output_metadata(
     unsigned int port,
-    const std::vector<teca_meta_data> &input_md)
+    const std::vector<teca_metadata> &input_md)
 {
-    teca_meta_data output_md
-        = this->initialize_output_meta_data(port, input_md);
+    teca_metadata output_md
+        = this->initialize_output_metadata(port, input_md);
 
     output_md.remove_prop("time");
 
@@ -252,7 +252,7 @@ p_teca_dataset teca_temporal_reduction::reduce_remote(
 p_teca_dataset teca_temporal_reduction::execute(
     unsigned int port,
     const std::vector<p_teca_dataset> &input_data,
-    const teca_meta_data &request)
+    const teca_metadata &request)
 {
     // TODO -- do those need to be forward into overrides?
     (void)port;

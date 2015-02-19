@@ -25,8 +25,8 @@ array_time_average::~array_time_average()
 
 // --------------------------------------------------------------------------
 int array_time_average::get_active_times(
-    const teca_meta_data &input_md,
-    const teca_meta_data &request,
+    const teca_metadata &input_md,
+    const teca_metadata &request,
     double &current_time,
     std::vector<double> &active_times) const
 {
@@ -60,14 +60,14 @@ int array_time_average::get_active_times(
 }
 
 // --------------------------------------------------------------------------
-std::vector<teca_meta_data> array_time_average::get_upstream_request(
+std::vector<teca_metadata> array_time_average::get_upstream_request(
     unsigned int port,
-    const std::vector<teca_meta_data> &input_md,
-    const teca_meta_data &request)
+    const std::vector<teca_metadata> &input_md,
+    const teca_metadata &request)
 {
     (void) port;
 
-    vector<teca_meta_data> up_reqs;
+    vector<teca_metadata> up_reqs;
 
     // get the active array from the incoming request
     string active_array;
@@ -92,7 +92,7 @@ std::vector<teca_meta_data> array_time_average::get_upstream_request(
     size_t n = active_times.size();
     for (size_t i = 0; i < n; ++i)
     {
-        teca_meta_data up_req(request);
+        teca_metadata up_req(request);
         up_req.set_prop("array_name", active_array);
         up_req.set_prop("time", active_times[i]);
         up_reqs.push_back(up_req);
@@ -114,7 +114,7 @@ std::vector<teca_meta_data> array_time_average::get_upstream_request(
 p_teca_dataset array_time_average::execute(
     unsigned int port,
     const std::vector<p_teca_dataset> &input_data,
-    const teca_meta_data &request)
+    const teca_metadata &request)
 {
 #ifndef TECA_NDEBUG
     cerr << teca_parallel_id()

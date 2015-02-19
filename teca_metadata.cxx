@@ -1,4 +1,4 @@
-#include <teca_meta_data.h>
+#include <teca_metadata.h>
 #include <utility>
 
 using std::string;
@@ -7,30 +7,30 @@ using std::pair;
 using std::vector;
 
 // --------------------------------------------------------------------------
-teca_meta_data::teca_meta_data() TECA_NOEXCEPT
+teca_metadata::teca_metadata() TECA_NOEXCEPT
 {
     this->id = this->get_next_id();
 }
 
 // --------------------------------------------------------------------------
-teca_meta_data::teca_meta_data(const teca_meta_data &other)
+teca_metadata::teca_metadata(const teca_metadata &other)
 {
     *this = other;
 }
 
 // --------------------------------------------------------------------------
-teca_meta_data::teca_meta_data(teca_meta_data &&other) TECA_NOEXCEPT
+teca_metadata::teca_metadata(teca_metadata &&other) TECA_NOEXCEPT
     : id(other.id), props(std::move(other.props))
 {}
 
 // --------------------------------------------------------------------------
-teca_meta_data::~teca_meta_data() TECA_NOEXCEPT
+teca_metadata::~teca_metadata() TECA_NOEXCEPT
 {
     this->clear_props();
 }
 
 // --------------------------------------------------------------------------
-teca_meta_data &teca_meta_data::operator=(const teca_meta_data &other)
+teca_metadata &teca_metadata::operator=(const teca_metadata &other)
 {
     if (&other == this)
         return *this;
@@ -47,7 +47,7 @@ teca_meta_data &teca_meta_data::operator=(const teca_meta_data &other)
 }
 
 // --------------------------------------------------------------------------
-teca_meta_data &teca_meta_data::operator=(teca_meta_data &&other) TECA_NOEXCEPT
+teca_metadata &teca_metadata::operator=(teca_metadata &&other) TECA_NOEXCEPT
 {
     if (&other == this)
         return *this;
@@ -58,13 +58,13 @@ teca_meta_data &teca_meta_data::operator=(teca_meta_data &&other) TECA_NOEXCEPT
 }
 
 // --------------------------------------------------------------------------
-void teca_meta_data::clear_props()
+void teca_metadata::clear_props()
 {
     this->props.clear();
 }
 
 // --------------------------------------------------------------------------
-void teca_meta_data::set_prop(
+void teca_metadata::set_prop(
     const std::string &name,
     p_teca_variant_array prop_val)
 {
@@ -78,7 +78,7 @@ void teca_meta_data::set_prop(
 }
 
 // --------------------------------------------------------------------------
-int teca_meta_data::get_prop_size(
+int teca_metadata::get_prop_size(
     const std::string &name,
     unsigned int &n) const TECA_NOEXCEPT
 {
@@ -93,7 +93,7 @@ int teca_meta_data::get_prop_size(
 }
 
 // --------------------------------------------------------------------------
-int teca_meta_data::remove_prop(const std::string &name) TECA_NOEXCEPT
+int teca_metadata::remove_prop(const std::string &name) TECA_NOEXCEPT
 {
     prop_map_t::iterator it = this->props.find(name);
 
@@ -106,39 +106,39 @@ int teca_meta_data::remove_prop(const std::string &name) TECA_NOEXCEPT
 }
 
 // --------------------------------------------------------------------------
-int teca_meta_data::has(const std::string &name) const TECA_NOEXCEPT
+int teca_metadata::has(const std::string &name) const TECA_NOEXCEPT
 {
     return this->props.count(name);
 }
 
 // --------------------------------------------------------------------------
-int teca_meta_data::empty() const TECA_NOEXCEPT
+int teca_metadata::empty() const TECA_NOEXCEPT
 {
     return this->props.empty();
 }
 
 // --------------------------------------------------------------------------
-unsigned long long teca_meta_data::get_next_id() const TECA_NOEXCEPT
+unsigned long long teca_metadata::get_next_id() const TECA_NOEXCEPT
 {
     static unsigned long long id = 0;
     return id++;
 }
 
 // --------------------------------------------------------------------------
-bool operator<(const teca_meta_data &lhs, const teca_meta_data &rhs) TECA_NOEXCEPT
+bool operator<(const teca_metadata &lhs, const teca_metadata &rhs) TECA_NOEXCEPT
 {
     return lhs.id < rhs.id;
 }
 
 // --------------------------------------------------------------------------
-bool operator==(const teca_meta_data &lhs, const teca_meta_data &rhs) TECA_NOEXCEPT
+bool operator==(const teca_metadata &lhs, const teca_metadata &rhs) TECA_NOEXCEPT
 {
-    teca_meta_data::prop_map_t::const_iterator rit = rhs.props.begin();
-    teca_meta_data::prop_map_t::const_iterator rend = rhs.props.end();
-    teca_meta_data::prop_map_t::const_iterator lend = lhs.props.end();
+    teca_metadata::prop_map_t::const_iterator rit = rhs.props.begin();
+    teca_metadata::prop_map_t::const_iterator rend = rhs.props.end();
+    teca_metadata::prop_map_t::const_iterator lend = lhs.props.end();
     for (; rit != rend; ++rit)
     {
-        teca_meta_data::prop_map_t::const_iterator lit = lhs.props.find(rit->first);
+        teca_metadata::prop_map_t::const_iterator lit = lhs.props.find(rit->first);
         if ((lit == lend) || !(*lit->second == *rit->second))
             return false;
     }
@@ -146,15 +146,15 @@ bool operator==(const teca_meta_data &lhs, const teca_meta_data &rhs) TECA_NOEXC
 }
 
 // --------------------------------------------------------------------------
-teca_meta_data operator&(const teca_meta_data &lhs, const teca_meta_data &rhs)
+teca_metadata operator&(const teca_metadata &lhs, const teca_metadata &rhs)
 {
-    teca_meta_data isect;
-    teca_meta_data::prop_map_t::const_iterator rit = rhs.props.begin();
-    teca_meta_data::prop_map_t::const_iterator rend = rhs.props.end();
-    teca_meta_data::prop_map_t::const_iterator lend = lhs.props.end();
+    teca_metadata isect;
+    teca_metadata::prop_map_t::const_iterator rit = rhs.props.begin();
+    teca_metadata::prop_map_t::const_iterator rend = rhs.props.end();
+    teca_metadata::prop_map_t::const_iterator lend = lhs.props.end();
     for (; rit != rend; ++rit)
     {
-        teca_meta_data::prop_map_t::const_iterator lit = lhs.props.find(rit->first);
+        teca_metadata::prop_map_t::const_iterator lit = lhs.props.find(rit->first);
         if ((lit != lend) && (*lit->second == *rit->second))
         {
             isect.set_prop(rit->first, rit->second->new_copy());

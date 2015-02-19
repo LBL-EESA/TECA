@@ -2,7 +2,7 @@
 #define teca_algorithm_executive_h
 
 #include "teca_algorithm_executive_fwd.h"
-#include "teca_meta_data.h"
+#include "teca_metadata.h"
 
 // base class for executives. algorithm executives control pipeline
 // execution by providing a series of requests. this allows for
@@ -22,13 +22,13 @@ public:
     // initialize requests from the given metadata object.
     // this is a place where work partitioning across MPI
     // ranks can occur
-    virtual int initialize(const teca_meta_data &)
+    virtual int initialize(const teca_metadata &)
     { return 0; }
 
     // get the next request until all requests have been
     // processed. an empty request is returned.
-    virtual teca_meta_data get_next_request()
-    { return teca_meta_data(); }
+    virtual teca_metadata get_next_request()
+    { return teca_metadata(); }
 
 protected:
     teca_algorithm_executive() {}

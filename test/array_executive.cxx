@@ -11,7 +11,7 @@ using std::cerr;
 using std::endl;
 
 // --------------------------------------------------------------------------
-int array_executive::initialize(const teca_meta_data &md)
+int array_executive::initialize(const teca_metadata &md)
 {
     this->requests.clear();
 
@@ -44,7 +44,7 @@ int array_executive::initialize(const teca_meta_data &md)
     {
         for (size_t j = 0; j < n_arrays; ++j)
         {
-            teca_meta_data req;
+            teca_metadata req;
             req.set_prop("time", time[i]);
             req.set_prop("array_name", array_names[j]);
             req.set_prop("extent", extent);
@@ -62,9 +62,9 @@ int array_executive::initialize(const teca_meta_data &md)
 }
 
 // --------------------------------------------------------------------------
-teca_meta_data array_executive::get_next_request()
+teca_metadata array_executive::get_next_request()
 {
-    teca_meta_data req;
+    teca_metadata req;
     if (!this->requests.empty())
     {
         req = this->requests.back();

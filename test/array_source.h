@@ -48,15 +48,15 @@ protected:
 
 private:
     virtual
-    teca_meta_data get_output_meta_data(
+    teca_metadata get_output_metadata(
         unsigned int port,
-        const std::vector<teca_meta_data> &input_md);
+        const std::vector<teca_metadata> &input_md);
 
     virtual
     p_teca_dataset execute(
         unsigned int port,
         const std::vector<p_teca_dataset> &input_data,
-        const teca_meta_data &request);
+        const teca_metadata &request);
 
 private:
     std::vector<std::string> array_names;

@@ -71,10 +71,10 @@ p_array array_temporal_stats::new_stats_array()
 }
 
 // --------------------------------------------------------------------------
-std::vector<teca_meta_data> array_temporal_stats::initialize_upstream_request(
+std::vector<teca_metadata> array_temporal_stats::initialize_upstream_request(
     unsigned int port,
-    const std::vector<teca_meta_data> &input_md,
-    const teca_meta_data &request)
+    const std::vector<teca_metadata> &input_md,
+    const teca_metadata &request)
 {
 #ifndef TECA_NDEBUG
     cerr << teca_parallel_id()
@@ -83,24 +83,24 @@ std::vector<teca_meta_data> array_temporal_stats::initialize_upstream_request(
     (void) port;
     (void) input_md;
 
-    vector<teca_meta_data> up_reqs(1, request);
+    vector<teca_metadata> up_reqs(1, request);
     up_reqs[0].set_prop("array_name", this->array_name);
 
     return up_reqs;
 }
 
 // --------------------------------------------------------------------------
-teca_meta_data array_temporal_stats::initialize_output_meta_data(
+teca_metadata array_temporal_stats::initialize_output_metadata(
     unsigned int port,
-    const std::vector<teca_meta_data> &input_md)
+    const std::vector<teca_metadata> &input_md)
 {
 #ifndef TECA_NDEBUG
     cerr << teca_parallel_id()
-        << "array_temporal_stats::intialize_output_meta_data" << endl;
+        << "array_temporal_stats::intialize_output_metadata" << endl;
 #endif
     (void) port;
 
-    teca_meta_data output_md(input_md[0]);
+    teca_metadata output_md(input_md[0]);
     output_md.set_prop("array_names", this->array_name + "_stats");
 
     return output_md;

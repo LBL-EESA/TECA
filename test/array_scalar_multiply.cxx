@@ -24,7 +24,7 @@ array_scalar_multiply::~array_scalar_multiply()
 
 // --------------------------------------------------------------------------
 int array_scalar_multiply::get_active_array(
-    const teca_meta_data &input_md,
+    const teca_metadata &input_md,
     std::string &active_array) const
 {
     if (this->array_name.empty())
@@ -50,17 +50,17 @@ int array_scalar_multiply::get_active_array(
 }
 
 // --------------------------------------------------------------------------
-teca_meta_data array_scalar_multiply::get_output_meta_data(
+teca_metadata array_scalar_multiply::get_output_metadata(
     unsigned int port,
-    const std::vector<teca_meta_data> &input_md)
+    const std::vector<teca_metadata> &input_md)
 {
 #ifndef TECA_NDEBUG
     cerr << teca_parallel_id()
-        << "array_scalar_multiply::get_output_meta_data" << endl;
+        << "array_scalar_multiply::get_output_metadata" << endl;
 #endif
     (void)port;
 
-    teca_meta_data output_md(input_md[0]);
+    teca_metadata output_md(input_md[0]);
 
     // if the user has requested a specific array then
     // replace "array_names" in the output metadata.
@@ -73,10 +73,10 @@ teca_meta_data array_scalar_multiply::get_output_meta_data(
 }
 
 // --------------------------------------------------------------------------
-std::vector<teca_meta_data> array_scalar_multiply::get_upstream_request(
+std::vector<teca_metadata> array_scalar_multiply::get_upstream_request(
     unsigned int port,
-    const std::vector<teca_meta_data> &input_md,
-    const teca_meta_data &request)
+    const std::vector<teca_metadata> &input_md,
+    const teca_metadata &request)
 {
 #ifndef TECA_NDEBUG
     cerr << teca_parallel_id()
@@ -85,7 +85,7 @@ std::vector<teca_meta_data> array_scalar_multiply::get_upstream_request(
     (void)port;
     (void)input_md;
 
-    vector<teca_meta_data> up_reqs;
+    vector<teca_metadata> up_reqs;
 
     // get the active array from the incoming request
     string active_array;
@@ -95,7 +95,7 @@ std::vector<teca_meta_data> array_scalar_multiply::get_upstream_request(
         return up_reqs;
     }
 
-    teca_meta_data up_req(request);
+    teca_metadata up_req(request);
     up_req.set_prop("array_name", active_array);
 
     up_reqs.push_back(up_req);
@@ -106,7 +106,7 @@ std::vector<teca_meta_data> array_scalar_multiply::get_upstream_request(
 p_teca_dataset array_scalar_multiply::execute(
     unsigned int port,
     const std::vector<p_teca_dataset> &input_data,
-    const teca_meta_data &request)
+    const teca_metadata &request)
 {
 #ifndef TECA_NDEBUG
     cerr << teca_parallel_id()

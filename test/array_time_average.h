@@ -2,7 +2,7 @@
 #define array_time_average_h
 
 #include "teca_algorithm.h"
-#include "teca_meta_data.h"
+#include "teca_metadata.h"
 
 #include <memory>
 #include <string>
@@ -33,23 +33,23 @@ protected:
     // helper that creates a list of times required
     // to compute the average
     int get_active_times(
-        const teca_meta_data &request,
-        const teca_meta_data &input_md,
+        const teca_metadata &request,
+        const teca_metadata &input_md,
         double &current_time,
         std::vector<double> &active_times) const;
 
 private:
     virtual
-    std::vector<teca_meta_data> get_upstream_request(
+    std::vector<teca_metadata> get_upstream_request(
         unsigned int port,
-        const std::vector<teca_meta_data> &input_md,
-        const teca_meta_data &request);
+        const std::vector<teca_metadata> &input_md,
+        const teca_metadata &request);
 
     virtual
     p_teca_dataset execute(
         unsigned int port,
         const std::vector<p_teca_dataset> &input_data,
-        const teca_meta_data &request);
+        const teca_metadata &request);
 
 private:
     std::string array_name;

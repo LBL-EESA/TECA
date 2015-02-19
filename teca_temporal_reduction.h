@@ -5,7 +5,7 @@
 #include "teca_temporal_reduction_fwd.h"
 
 #include "teca_threaded_algorithm.h"
-#include "teca_meta_data.h"
+#include "teca_metadata.h"
 
 #include <vector>
 
@@ -45,18 +45,18 @@ protected:
     // which here is already implemented to handle the application
     // of requests over all timesteps.
     virtual
-    std::vector<teca_meta_data> initialize_upstream_request(
+    std::vector<teca_metadata> initialize_upstream_request(
         unsigned int port,
-        const std::vector<teca_meta_data> &input_md,
-        const teca_meta_data &request) = 0;
+        const std::vector<teca_metadata> &input_md,
+        const teca_metadata &request) = 0;
 
     // override that allows derived classes to report what they can
-    // produce. this will be called from get_output_meta_data which
+    // produce. this will be called from get_output_metadata which
     // will strip out time and partition time across MPI ranks.
     virtual
-    teca_meta_data initialize_output_meta_data(
+    teca_metadata initialize_output_metadata(
         unsigned int port,
-        const std::vector<teca_meta_data> &input_md) = 0;
+        const std::vector<teca_metadata> &input_md) = 0;
 
 
 protected:
@@ -67,10 +67,10 @@ protected:
     // call initialize_upstream_request and apply the results to
     // all time steps.
     virtual
-    std::vector<teca_meta_data> get_upstream_request(
+    std::vector<teca_metadata> get_upstream_request(
         unsigned int port,
-        const std::vector<teca_meta_data> &input_md,
-        const teca_meta_data &request) override;
+        const std::vector<teca_metadata> &input_md,
+        const teca_metadata &request) override;
 
     // uses MPI communication to collect remote data for
     // required for the reduction. calls "reduce" with
@@ -81,14 +81,14 @@ protected:
     p_teca_dataset execute(
         unsigned int port,
         const std::vector<p_teca_dataset> &input_data,
-        const teca_meta_data &request) override;
+        const teca_metadata &request) override;
 
     // consumes time metadata, partitions time's across
     // MPI ranks.
     virtual
-    teca_meta_data get_output_meta_data(
+    teca_metadata get_output_metadata(
         unsigned int port,
-        const std::vector<teca_meta_data> &input_md) override;
+        const std::vector<teca_metadata> &input_md) override;
 
 private:
     // drivers for reducing the local and remote datasets.

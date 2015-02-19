@@ -1,5 +1,5 @@
-#ifndef teca_meta_data_h
-#define teca_meta_data_h
+#ifndef teca_metadata_h
+#define teca_metadata_h
 
 #include <map>
 #include <string>
@@ -11,17 +11,17 @@
 // of name=value pairs. value arrays are supported.
 // see meta data producer-consumer documentation for
 // information about what names are valid.
-class teca_meta_data
+class teca_metadata
 {
 public:
-    teca_meta_data() TECA_NOEXCEPT;
-    ~teca_meta_data() TECA_NOEXCEPT;
+    teca_metadata() TECA_NOEXCEPT;
+    ~teca_metadata() TECA_NOEXCEPT;
 
-    teca_meta_data(const teca_meta_data &other);
-    teca_meta_data &operator=(const teca_meta_data &other);
+    teca_metadata(const teca_metadata &other);
+    teca_metadata &operator=(const teca_metadata &other);
 
-    teca_meta_data(teca_meta_data &&other) TECA_NOEXCEPT;
-    teca_meta_data &operator=(teca_meta_data &&other) TECA_NOEXCEPT;
+    teca_metadata(teca_metadata &&other) TECA_NOEXCEPT;
+    teca_metadata &operator=(teca_metadata &&other) TECA_NOEXCEPT;
 
     // set from a scalar property
     template<typename T>
@@ -85,27 +85,27 @@ private:
     typedef std::map<std::string, p_teca_variant_array> prop_map_t;
     prop_map_t props;
 
-    friend bool operator<(const teca_meta_data &, const teca_meta_data &) TECA_NOEXCEPT;
-    friend bool operator==(const teca_meta_data &, const teca_meta_data &) TECA_NOEXCEPT;
-    friend teca_meta_data operator&(const teca_meta_data &, const teca_meta_data &);
+    friend bool operator<(const teca_metadata &, const teca_metadata &) TECA_NOEXCEPT;
+    friend bool operator==(const teca_metadata &, const teca_metadata &) TECA_NOEXCEPT;
+    friend teca_metadata operator&(const teca_metadata &, const teca_metadata &);
 };
 
 // comparison function so that metadata can be
 // used as a key in std::map.
-bool operator<(const teca_meta_data &lhs, const teca_meta_data &rhs) TECA_NOEXCEPT;
+bool operator<(const teca_metadata &lhs, const teca_metadata &rhs) TECA_NOEXCEPT;
 
 // compare meta data objects. two objects are considered
 // equal if both have the same set of keys and all of the values
 // are equal
-bool operator==(const teca_meta_data &lhs, const teca_meta_data &rhs) TECA_NOEXCEPT;
+bool operator==(const teca_metadata &lhs, const teca_metadata &rhs) TECA_NOEXCEPT;
 
 // intersect two metadata objects. return a new object with
 // common key value pairs
-teca_meta_data operator&(const teca_meta_data &lhs, const teca_meta_data &rhs);
+teca_metadata operator&(const teca_metadata &lhs, const teca_metadata &rhs);
 
 // --------------------------------------------------------------------------
 template<typename T>
-void teca_meta_data::set_prop(const std::string &name, const T &val)
+void teca_metadata::set_prop(const std::string &name, const T &val)
 {
     p_teca_variant_array prop_val
         = teca_variant_array_impl<T>::New(1);
@@ -117,7 +117,7 @@ void teca_meta_data::set_prop(const std::string &name, const T &val)
 
 // --------------------------------------------------------------------------
 template<typename T>
-void teca_meta_data::set_prop(
+void teca_metadata::set_prop(
     const std::string &name,
     const T *val,
     unsigned int n)
@@ -130,7 +130,7 @@ void teca_meta_data::set_prop(
 
 // --------------------------------------------------------------------------
 template<typename T>
-void teca_meta_data::set_prop(
+void teca_metadata::set_prop(
     const std::string &name,
     const std::vector<T> &val)
 {
@@ -147,7 +147,7 @@ void teca_meta_data::set_prop(
 
 // --------------------------------------------------------------------------
 template<typename T>
-int teca_meta_data::get_prop(const std::string &name, T &val) const
+int teca_metadata::get_prop(const std::string &name, T &val) const
 {
     prop_map_t::const_iterator it = this->props.find(name);
 
@@ -161,7 +161,7 @@ int teca_meta_data::get_prop(const std::string &name, T &val) const
 
 // --------------------------------------------------------------------------
 template<typename T>
-int teca_meta_data::get_prop(
+int teca_metadata::get_prop(
     const std::string &name,
     std::vector<T> &vals) const
 {
@@ -177,7 +177,7 @@ int teca_meta_data::get_prop(
 
 // --------------------------------------------------------------------------
 template<typename T>
-int teca_meta_data::get_prop(
+int teca_metadata::get_prop(
     const std::string &name,
     T *vals, unsigned int n) const
 {
@@ -192,5 +192,5 @@ int teca_meta_data::get_prop(
 }
 
 // convenience defs for nesting metadata
-using teca_meta_data_array = teca_variant_array_impl<teca_meta_data>;
+using teca_metadata_array = teca_variant_array_impl<teca_metadata>;
 #endif

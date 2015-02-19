@@ -25,7 +25,7 @@ array_add::~array_add()
 // --------------------------------------------------------------------------
 int array_add::get_active_array(
     const std::string &user_array,
-    const teca_meta_data &input_md,
+    const teca_metadata &input_md,
     std::string &active_array) const
 {
     if (user_array.empty())
@@ -52,17 +52,17 @@ int array_add::get_active_array(
 
 
 // --------------------------------------------------------------------------
-teca_meta_data array_add::get_output_meta_data(
+teca_metadata array_add::get_output_metadata(
     unsigned int port,
-    const std::vector<teca_meta_data> &input_md)
+    const std::vector<teca_metadata> &input_md)
 {
 #ifndef TECA_NDEBUG
     cerr << teca_parallel_id()
-        << "array_add::get_output_meta_data" << endl;
+        << "array_add::get_output_metadata" << endl;
 #endif
     (void)port;
 
-    teca_meta_data output_md(input_md[0]);
+    teca_metadata output_md(input_md[0]);
 
     // get the active arrays
     string active_array_1;
@@ -84,10 +84,10 @@ teca_meta_data array_add::get_output_meta_data(
 }
 
 // --------------------------------------------------------------------------
-std::vector<teca_meta_data> array_add::get_upstream_request(
+std::vector<teca_metadata> array_add::get_upstream_request(
     unsigned int port,
-    const std::vector<teca_meta_data> &input_md,
-    const teca_meta_data &request)
+    const std::vector<teca_metadata> &input_md,
+    const teca_metadata &request)
 {
 #ifndef TECA_NDEBUG
     cerr << teca_parallel_id()
@@ -95,7 +95,7 @@ std::vector<teca_meta_data> array_add::get_upstream_request(
 #endif
     (void)port;
 
-    vector<teca_meta_data> up_reqs(2);
+    vector<teca_metadata> up_reqs(2);
 
     // get the active arrays
     string active_array_1;
@@ -107,11 +107,11 @@ std::vector<teca_meta_data> array_add::get_upstream_request(
         return up_reqs;
     }
 
-    teca_meta_data up_req_1(request);
+    teca_metadata up_req_1(request);
     up_req_1.set_prop("array_name", active_array_1);
     up_reqs[0] = up_req_1;
 
-    teca_meta_data up_req_2(request);
+    teca_metadata up_req_2(request);
     up_req_2.set_prop("array_name", active_array_2);
     up_reqs[1] = up_req_2;
 
@@ -122,7 +122,7 @@ std::vector<teca_meta_data> array_add::get_upstream_request(
 p_teca_dataset array_add::execute(
     unsigned int port,
     const std::vector<p_teca_dataset> &input_data,
-    const teca_meta_data &request)
+    const teca_metadata &request)
 {
     (void)port;
 
@@ -146,6 +146,7 @@ p_teca_dataset array_add::execute(
     }
 
     // compute the output
+    // +    a_out->shallow_copy_metadata(a_in_1);
     a_out->copy_structure(a_in_1);
     a_out->set_name(active_array);
 

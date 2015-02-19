@@ -26,7 +26,7 @@ array_writer::~array_writer()
 p_teca_dataset array_writer::execute(
     unsigned int port,
     const std::vector<p_teca_dataset> &input_data,
-    const teca_meta_data &request)
+    const teca_metadata &request)
 {
     (void) port;
     (void) request;

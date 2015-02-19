@@ -1,5 +1,5 @@
 #include "teca_threaded_algorithm.h"
-#include "teca_meta_data.h"
+#include "teca_metadata.h"
 #include "teca_threadsafe_queue.h"
 
 #include <memory>
@@ -29,7 +29,7 @@ public:
     teca_data_request(
         const p_teca_algorithm &alg,
         const teca_algorithm_output_port up_port,
-        const teca_meta_data &up_req)
+        const teca_metadata &up_req)
         : m_alg(alg), m_up_port(up_port), m_up_req(up_req)
     {}
 
@@ -39,7 +39,7 @@ public:
 public:
     p_teca_algorithm m_alg;
     teca_algorithm_output_port m_up_port;
-    teca_meta_data m_up_req;
+    teca_metadata m_up_req;
 };
 
 // task
@@ -68,7 +68,7 @@ public:
     void push_data_request(
         const p_teca_algorithm &alg,
         const teca_algorithm_output_port &up_port,
-        const teca_meta_data &up_req);
+        const teca_metadata &up_req);
 
     // wait for all of the requests to execute and transfer
     // datasets in the order that corresponding requests
@@ -137,7 +137,7 @@ teca_thread_pool::~teca_thread_pool() TECA_NOEXCEPT
 void teca_thread_pool::push_data_request(
         const p_teca_algorithm &alg,
         const teca_algorithm_output_port &up_port,
-        const teca_meta_data &up_req)
+        const teca_metadata &up_req)
 {
     teca_data_request dreq(alg, up_port, up_req);
     teca_data_request_task task(dreq);
@@ -222,7 +222,7 @@ unsigned int teca_threaded_algorithm::get_thread_pool_size() const TECA_NOEXCEPT
 // --------------------------------------------------------------------------
 p_teca_dataset teca_threaded_algorithm::request_data(
     teca_algorithm_output_port &current,
-    const teca_meta_data &request)
+    const teca_metadata &request)
 {
     // execute current algorithm to fulfill the request.
     // return the data
@@ -230,21 +230,21 @@ p_teca_dataset teca_threaded_algorithm::request_data(
     unsigned int port = get_port(current);
 
     // check for cached data
-    teca_meta_data key = alg->get_cache_key(port, request);
+    teca_metadata key = alg->get_cache_key(port, request);
     p_teca_dataset out_data = alg->get_output_data(port, key);
     if (!out_data)
     {
         // determine what data is available on our inputs
         unsigned int n_inputs = alg->get_number_of_input_connections();
-        vector<teca_meta_data> input_md(n_inputs);
+        vector<teca_metadata> input_md(n_inputs);
         for (unsigned int i = 0; i < n_inputs; ++i)
         {
             input_md[i]
-              = alg->get_output_meta_data(alg->get_input_connection(i));
+              = alg->get_output_metadata(alg->get_input_connection(i));
         }
 
         // get requests for upstream data
-        vector<teca_meta_data> up_reqs
+        vector<teca_metadata> up_reqs
             = alg->get_upstream_request(port, input_md, request);
 
         // push data requests on to the thread pool's work

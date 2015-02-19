@@ -5,7 +5,7 @@
 #include "teca_algorithm.h"
 #include "teca_threaded_algorithm_fwd.h"
 #include "teca_dataset.h"
-class teca_meta_data;
+class teca_metadata;
 class teca_threaded_algorithm_internals;
 
 #include "teca_algorithm_output_port.h"
@@ -34,7 +34,7 @@ protected:
     virtual
     p_teca_dataset request_data(
         teca_algorithm_output_port &port,
-        const teca_meta_data &request) override;
+        const teca_metadata &request) override;
 
 private:
     teca_threaded_algorithm_internals *internals;

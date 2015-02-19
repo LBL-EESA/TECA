@@ -6,7 +6,7 @@ find_package(MPI)
 set(teca_srcs
     teca_algorithm.cxx
     teca_binary_stream.cxx
-    teca_meta_data.cxx
+    teca_metadata.cxx
     teca_parallel_id.cxx
     teca_temporal_reduction.cxx
     teca_threaded_algorithm.cxx
