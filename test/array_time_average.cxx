@@ -127,7 +127,7 @@ p_teca_dataset array_time_average::execute(
     p_array a_in = std::dynamic_pointer_cast<array>(input_data[0]);
     if (a_in)
     {
-        a_out->copy_structure(a_in);
+        a_out->copy_metadata(a_in);
     }
     size_t n_elem = a_out->size();
 

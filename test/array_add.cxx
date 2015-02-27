@@ -146,8 +146,7 @@ p_teca_dataset array_add::execute(
     }
 
     // compute the output
-    // +    a_out->shallow_copy_metadata(a_in_1);
-    a_out->copy_structure(a_in_1);
+    a_out->copy_metadata(a_in_1);
     a_out->set_name(active_array);
 
     size_t n_elem = a_out->size();

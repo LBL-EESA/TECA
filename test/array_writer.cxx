@@ -35,15 +35,10 @@ p_teca_dataset array_writer::execute(
     if (!a_in)
         return p_teca_dataset();
 
-    cerr << teca_parallel_id()
-        << "array_writer::execute array=" << a_in->get_name() << " extent=["
-        << a_in->get_extent()[0] << ", " << a_in->get_extent()[1] << "] values=[";
+    ostringstream oss;
+    a_in->to_stream(oss);
 
-    size_t n_elem = a_in->size();
-    for (size_t i = 0; i < n_elem; ++i)
-        cerr << " " << (*a_in)[i];
-
-    cerr << " ]" << endl << endl;
+    cerr << teca_parallel_id() << "array_writer::execute " << oss.str() << endl;
 
     return p_teca_dataset();
 }

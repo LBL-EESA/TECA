@@ -28,6 +28,14 @@ std::shared_ptr<T const> shared_from_this() const                   \
     return std::static_pointer_cast<T const>(shared_from_this());   \
 }
 
+// convenience macro to expose default copy,
+// shallow_copy and swap
+#define TECA_DATASET_COPY_SWAP()        \
+    using teca_dataset::swap;           \
+    using teca_dataset::copy;           \
+    using teca_dataset::shallow_copy;   \
+    using teca_dataset::copy_metadata;
+
 // convenience macro for adding properties to dataset
 // objects
 #define TECA_DATASET_PROPERTY(T, name)  \

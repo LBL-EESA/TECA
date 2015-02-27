@@ -123,7 +123,7 @@ p_teca_dataset array_scalar_multiply::execute(
     }
 
     p_array a_out = array::New();
-    a_out->copy_structure(a_in);
+    a_out->copy_metadata(a_in);
 
     std::transform(
         a_in->get_data().begin(),
