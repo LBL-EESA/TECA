@@ -7,10 +7,14 @@
 #include <typeinfo>
 #include <iterator>
 #include <algorithm>
+#include <type_traits>
+#include <utility>
 
 #include "teca_common.h"
 #include "teca_compiler.h"
+#include "teca_binary_stream.h"
 #include "teca_variant_array_fwd.h"
+
 
 /// type agnostic container for array based data
 /**
@@ -111,7 +115,41 @@ public:
 
     // compare the two objects for equality
     virtual bool equal(const teca_variant_array &other) = 0;
+
+    // serrialize to/from stream
+    virtual void to_stream(teca_binary_stream &s) = 0;
+    virtual void from_stream(teca_binary_stream &s) = 0;
 };
+
+
+
+
+// tag for contiguous arrays
+template<typename T>
+struct pack_array
+    : std::integral_constant<bool,
+    std::is_arithmetic<T>::value ||
+    std::is_same<T, std::string>::value>
+{};
+
+// tag for array of structs
+template<typename T>
+struct pack_object
+    : std::integral_constant<bool,
+    !std::is_pointer<T>::value &&
+    !pack_array<T>::value>
+{};
+
+// tag for array of pointers to structs
+template<typename T>
+struct pack_object_ptr
+    : std::integral_constant<bool,
+    std::is_pointer<T>::value &&
+    !pack_array<T>::value>
+{};
+
+
+
 
 // implementation of our type agnostic container
 // for simple arrays
@@ -160,6 +198,9 @@ public:
     template<typename U>
     void get(std::vector<U> &val) const;
 
+    // pointer to the data
+    T *get(){ return &m_data[0]; }
+
     // set the ith value
     template<typename U>
     void set(const U &val, unsigned long i=0);
@@ -205,6 +246,10 @@ public:
     // virtual equavalince test
     virtual bool equal(const teca_variant_array &other) override;
 
+    // serialize to/from stream
+    virtual void to_stream(teca_binary_stream &s) override;
+    virtual void from_stream(teca_binary_stream &s) override;
+
 protected:
     // construct
     teca_variant_array_impl() TECA_NOEXCEPT {}
@@ -226,6 +271,24 @@ protected:
     teca_variant_array_impl(const teca_variant_array_impl<T> &other)
         : m_data(other.m_data) {}
 
+    // tag dispatch c style array
+    template <typename U = T>
+    void to(teca_binary_stream &s,
+        typename std::enable_if<pack_array<U>::value, U>::type* = 0);
+
+    template <typename U = T>
+    void from(teca_binary_stream &s,
+        typename std::enable_if<pack_array<U>::value, U>::type* = 0);
+
+
+    // tag dispatch array of objects
+    template <typename U = T>
+    void to(teca_binary_stream &s,
+        typename std::enable_if<pack_object<U>::value, U>::type* = 0);
+
+    template <typename U = T>
+    void from(teca_binary_stream &s,
+        typename std::enable_if<pack_object<U>::value, U>::type* = 0);
 private:
     std::vector<T> m_data;
 
@@ -523,6 +586,72 @@ bool teca_variant_array_impl<T>::equal(const teca_variant_array &other)
     }
     throw std::bad_cast();
     return false;
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
+void teca_variant_array_impl<T>::to_stream(teca_binary_stream &s)
+{
+    this->to<T>(s);
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
+void teca_variant_array_impl<T>::from_stream(teca_binary_stream &s)
+{
+    this->from<T>(s);
+}
+
+
+// --------------------------------------------------------------------------
+template<typename T>
+    template <typename U>
+void teca_variant_array_impl<T>::to(
+    teca_binary_stream &s,
+    typename std::enable_if<pack_array<U>::value, U>::type*)
+{
+    s.pack(this->m_data);
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
+    template <typename U>
+void teca_variant_array_impl<T>::from(
+    teca_binary_stream &s,
+    typename std::enable_if<pack_array<U>::value, U>::type*)
+{
+    s.unpack(this->m_data);
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
+    template <typename U>
+void teca_variant_array_impl<T>::to(
+    teca_binary_stream &s,
+    typename std::enable_if<pack_object<U>::value, U>::type*)
+{
+    unsigned long long n = this->size();
+    s.pack(n);
+    for (unsigned long long i=0; i<n; ++i)
+    {
+       this->m_data[i].to_stream(s);
+    }
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
+    template <typename U>
+void teca_variant_array_impl<T>::from(
+    teca_binary_stream &s,
+    typename std::enable_if<pack_object<U>::value, U>::type*)
+{
+    unsigned long long n;
+    s.unpack(n);
+    this->resize(n);
+    for (unsigned long long i=0; i<n; ++i)
+    {
+       this->m_data[i].from_stream(s);
+    }
 }
 
 #endif

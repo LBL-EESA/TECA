@@ -12,6 +12,9 @@
 // TODO -- move these so we don't pull in the above headers
 // inadvertantly
 
+// t - derived type
+// p - base class pointer
+// body - code to execute
 #define TEMPLATE_DISPATCH_CASE(t, p, body)  \
     if (dynamic_cast<t*>(p))                \
     {                                       \
@@ -21,6 +24,9 @@
 
 // macro for helping downcast to POD types
 // don't add classes to this.
+// t - templated derived type
+// p - pointer
+// body - code to execute on match
 #define TEMPLATE_DISPATCH(t, p, body)                   \
     TEMPLATE_DISPATCH_CASE(t<char>, p, body)            \
     TEMPLATE_DISPATCH_CASE(t<unsigned char>, p, body)   \

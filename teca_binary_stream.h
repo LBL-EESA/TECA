@@ -60,7 +60,7 @@ public:
     // specializations
     void pack(const std::string &str);
     void unpack(std::string &str);
-    template<typename T> void pack(std::vector<T> &v);
+    template<typename T> void pack(const std::vector<T> &v);
     template<typename T> void unpack(std::vector<T> &v);
     /*void pack(std::map<std::string, int> &m);
     void unpack(std::map<std::string, int> &m);*/
@@ -139,7 +139,7 @@ void teca_binary_stream::unpack(std::string &str)
 
 //-----------------------------------------------------------------------------
 template<typename T>
-void teca_binary_stream::pack(std::vector<T> &v)
+void teca_binary_stream::pack(const std::vector<T> &v)
 {
     const size_t vlen = v.size();
     this->pack(vlen);
