@@ -8,6 +8,7 @@ set(teca_srcs
     teca_binary_stream.cxx
     teca_metadata.cxx
     teca_parallel_id.cxx
+    teca_table.cxx
     teca_temporal_reduction.cxx
     teca_threaded_algorithm.cxx
     teca_variant_array.cxx

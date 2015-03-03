@@ -4,7 +4,7 @@
 // --------------------------------------------------------------------------
 void teca_variant_array::get(std::string &val, unsigned long i) const
 {
-    TEMPLATE_DISPATCH_CASE(const teca_variant_array_impl<std::string>, this,
+    TEMPLATE_DISPATCH_CASE(const teca_variant_array_impl, std::string, this,
         TT *this_t = static_cast<TT*>(this);
         this_t->get(val, i);
         return;
@@ -15,7 +15,7 @@ void teca_variant_array::get(std::string &val, unsigned long i) const
 // --------------------------------------------------------------------------
 void teca_variant_array::get(std::vector<std::string> &vals) const
 {
-    TEMPLATE_DISPATCH_CASE(const teca_variant_array_impl<std::string>, this,
+    TEMPLATE_DISPATCH_CASE(const teca_variant_array_impl, std::string, this,
         TT *this_t = static_cast<TT*>(this);
         this_t->get(vals);
         return;
@@ -38,7 +38,7 @@ void teca_variant_array::set(const std::vector<std::string> &vals)
 // --------------------------------------------------------------------------
 void teca_variant_array::set(const std::string &val, unsigned long i)
 {
-    TEMPLATE_DISPATCH_CASE(teca_variant_array_impl<std::string>, this,
+    TEMPLATE_DISPATCH_CASE(teca_variant_array_impl, std::string, this,
         TT *this_t = static_cast<TT*>(this);
         this_t->set(val, i);
         return;
@@ -49,7 +49,7 @@ void teca_variant_array::set(const std::string &val, unsigned long i)
 // --------------------------------------------------------------------------
 void teca_variant_array::append(const std::string &val)
 {
-    TEMPLATE_DISPATCH_CASE(teca_variant_array_impl<std::string>, this,
+    TEMPLATE_DISPATCH_CASE(teca_variant_array_impl, std::string, this,
         TT *this_t = static_cast<TT*>(this);
         this_t->append(val);
         return;
@@ -60,7 +60,7 @@ void teca_variant_array::append(const std::string &val)
 // --------------------------------------------------------------------------
 void teca_variant_array::append(const std::vector<std::string> &vals)
 {
-    TEMPLATE_DISPATCH_CASE(teca_variant_array_impl<std::string>, this,
+    TEMPLATE_DISPATCH_CASE(teca_variant_array_impl, std::string, this,
         TT *this_t = static_cast<TT*>(this);
         this_t->append(vals);
         return;

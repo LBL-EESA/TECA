@@ -124,7 +124,8 @@ public:
 
 
 
-// tag for contiguous arrays
+// tag for contiguous arrays, and objects that have
+// overrides in teca_binary_stream
 template<typename T>
 struct pack_array
     : std::integral_constant<bool,
@@ -132,7 +133,7 @@ struct pack_array
     std::is_same<T, std::string>::value>
 {};
 
-// tag for array of structs
+// tag for arrays of other objects
 template<typename T>
 struct pack_object
     : std::integral_constant<bool,
@@ -140,7 +141,6 @@ struct pack_object
     !pack_array<T>::value>
 {};
 
-// tag for array of pointers to structs
 template<typename T>
 struct pack_object_ptr
     : std::integral_constant<bool,
@@ -271,7 +271,8 @@ protected:
     teca_variant_array_impl(const teca_variant_array_impl<T> &other)
         : m_data(other.m_data) {}
 
-    // tag dispatch c style array
+    // tag dispatch c style array, and types that have overrides in
+    // binary stream
     template <typename U = T>
     void to(teca_binary_stream &s,
         typename std::enable_if<pack_array<U>::value, U>::type* = 0);
@@ -280,8 +281,7 @@ protected:
     void from(teca_binary_stream &s,
         typename std::enable_if<pack_array<U>::value, U>::type* = 0);
 
-
-    // tag dispatch array of objects
+    // tag dispatch array of other objects
     template <typename U = T>
     void to(teca_binary_stream &s,
         typename std::enable_if<pack_object<U>::value, U>::type* = 0);

@@ -15,11 +15,12 @@
 // t - derived type
 // p - base class pointer
 // body - code to execute
-#define TEMPLATE_DISPATCH_CASE(t, p, body)  \
-    if (dynamic_cast<t*>(p))                \
-    {                                       \
-        typedef t TT;                       \
-        body                                \
+#define TEMPLATE_DISPATCH_CASE(tt, nt, p, body) \
+    if (dynamic_cast<tt<nt>*>(p))               \
+    {                                           \
+        typedef tt<nt> TT;                      \
+        typedef nt NT;                          \
+        body                                    \
     }
 
 // macro for helping downcast to POD types
@@ -28,13 +29,13 @@
 // p - pointer
 // body - code to execute on match
 #define TEMPLATE_DISPATCH(t, p, body)                   \
-    TEMPLATE_DISPATCH_CASE(t<char>, p, body)            \
-    TEMPLATE_DISPATCH_CASE(t<unsigned char>, p, body)   \
-    TEMPLATE_DISPATCH_CASE(t<int>, p, body)             \
-    TEMPLATE_DISPATCH_CASE(t<unsigned int>, p, body)    \
-    TEMPLATE_DISPATCH_CASE(t<long>, p, body)            \
-    TEMPLATE_DISPATCH_CASE(t<unsigned long>, p, body)   \
-    TEMPLATE_DISPATCH_CASE(t<float>, p, body)           \
-    TEMPLATE_DISPATCH_CASE(t<double>, p, body)
+    TEMPLATE_DISPATCH_CASE(t, char, p, body)            \
+    TEMPLATE_DISPATCH_CASE(t, unsigned char, p, body)   \
+    TEMPLATE_DISPATCH_CASE(t, int, p, body)             \
+    TEMPLATE_DISPATCH_CASE(t, unsigned int, p, body)    \
+    TEMPLATE_DISPATCH_CASE(t, long, p, body)            \
+    TEMPLATE_DISPATCH_CASE(t, unsigned long, p, body)   \
+    TEMPLATE_DISPATCH_CASE(t, float, p, body)           \
+    TEMPLATE_DISPATCH_CASE(t, double, p, body)
 
 #endif

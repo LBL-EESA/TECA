@@ -43,7 +43,10 @@ target_link_libraries(
     teca teca_test_array
     )
 
-if (MPI_CXX_FOUND) 
+add_executable(test_table test_table.cpp)
+target_link_libraries(test_table teca)
+
+if (MPI_CXX_FOUND)
     target_link_libraries(
         test_array_temporal_reduction
         ${MPI_CXX_LIBRARIES}
