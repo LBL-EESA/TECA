@@ -11,7 +11,7 @@ using std::ostream;
 p_teca_dataset array::new_copy() const
 {
     p_teca_dataset a(new array());
-    a->copy(this);
+    a->copy(this->shared_from_this());
     return a;
 }
 
@@ -31,13 +31,13 @@ void array::clear()
 }
 
 // --------------------------------------------------------------------------
-void array::copy(const teca_dataset *other)
+void array::copy(const const_p_teca_dataset &other)
 {
-    const array *other_a = dynamic_cast<const array*>(other);
-    if (! other_a)
+    const_p_array other_a = std::dynamic_pointer_cast<const array>(other);
+    if (!other_a)
         throw std::bad_cast();
 
-    if (this == other_a)
+    if (this == other_a.get())
         return;
 
     this->name = other_a->name;
@@ -46,7 +46,7 @@ void array::copy(const teca_dataset *other)
 }
 
 // --------------------------------------------------------------------------
-void array::shallow_copy(const teca_dataset *other)
+void array::shallow_copy(const p_teca_dataset &other)
 {
     // TODO : need to store internal data in shared ptr
     // to support shallow copies.
@@ -54,13 +54,13 @@ void array::shallow_copy(const teca_dataset *other)
 }
 
 // --------------------------------------------------------------------------
-void array::copy_metadata(const teca_dataset *other)
+void array::copy_metadata(const const_p_teca_dataset &other)
 {
-    const array *other_a = dynamic_cast<const array*>(other);
-    if (! other_a)
+    const_p_array other_a = std::dynamic_pointer_cast<const array>(other);
+    if (!other_a)
         throw std::bad_cast();
 
-    if (this == other_a)
+    if (this == other_a.get())
         return;
 
     this->name = other_a->name;
@@ -69,10 +69,10 @@ void array::copy_metadata(const teca_dataset *other)
 }
 
 // --------------------------------------------------------------------------
-void array::swap(teca_dataset *other)
+void array::swap(p_teca_dataset &other)
 {
-    array *other_a = dynamic_cast<array*>(other);
-    if (! other_a)
+    p_array other_a = std::dynamic_pointer_cast<array>(other);
+    if (!other_a)
         throw std::bad_cast();
 
     std::swap(this->name, other_a->name);

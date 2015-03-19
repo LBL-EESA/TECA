@@ -4,7 +4,8 @@
 #include <memory>
 
 class teca_algorithm_executive;
-typedef std::shared_ptr<teca_algorithm_executive> p_teca_algorithm_executive;
+using p_teca_algorithm_executive = std::shared_ptr<teca_algorithm_executive>;
+using const_p_teca_algorithm_executive = std::shared_ptr<const teca_algorithm_executive>;
 
 // this is a convenience macro to be used to declare a static
 // New method that will be used to construct new objects in

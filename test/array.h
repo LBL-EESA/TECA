@@ -48,6 +48,11 @@ public:
     void append(double d)
     { this->data.push_back(d); }
 
+    virtual void copy(const const_p_teca_dataset &) override;
+    virtual void shallow_copy(const p_teca_dataset &) override;
+    virtual void copy_metadata(const const_p_teca_dataset &) override;
+    virtual void swap(p_teca_dataset &) override;
+
     // serialize the dataset to/from the given stream
     // for I/O or communication
     virtual void to_stream(teca_binary_stream &s) const override;
@@ -60,13 +65,6 @@ protected:
 
     array(const array &);
     void operator=(const array &);
-
-    virtual void copy(const teca_dataset *) override;
-    virtual void shallow_copy(const teca_dataset *) override;
-
-    virtual void copy_metadata(const teca_dataset *) override;
-
-    virtual void swap(teca_dataset *other) override;
 
 private:
     std::string name;

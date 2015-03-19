@@ -103,7 +103,7 @@ public:
     // cached output data. maps from a request
     // to the cached dataset, one per output port
     unsigned int data_cache_size;
-    typedef map<teca_metadata, p_teca_dataset> req_data_map;
+    using req_data_map = map<teca_metadata, p_teca_dataset>;
     vector<req_data_map> data_cache;
     mutex data_cache_mutex;
 

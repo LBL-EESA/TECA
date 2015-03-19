@@ -15,12 +15,18 @@ public:
     virtual ~teca_dataset() TECA_NOEXCEPT = default;
 
     // copy assign. this is a shallow copy
-    const teca_dataset &operator=(p_teca_dataset &other)
-    { this->shallow_copy(other); return *this; }
+    p_teca_dataset operator=(const p_teca_dataset &other)
+    {
+        this->shallow_copy(other);
+        return this->shared_from_this();
+    }
 
     // move assignment
-    const teca_dataset &operator=(p_teca_dataset &&other)
-    { this->swap(other); return *this; }
+    p_teca_dataset operator=(p_teca_dataset &&other)
+    {
+        this->swap(other);
+        return this->shared_from_this();
+    }
 
     // covert to bool. true if the dataset is not empty.
     // otherwise false.
@@ -40,27 +46,14 @@ public:
 
     // copy data and metadata. shallow copy uses reference
     // counting, while copy duplicates the data.
-    virtual void copy(const p_teca_dataset &other)
-    { this->copy(other.get()); }
-
-    virtual void copy(const teca_dataset *) = 0;
-
-    virtual void shallow_copy(const p_teca_dataset &other)
-    { this->shallow_copy(other.get()); }
-
-    virtual void shallow_copy(const teca_dataset *) = 0;
+    virtual void copy(const const_p_teca_dataset &other) = 0;
+    virtual void shallow_copy(const p_teca_dataset &other) = 0;
 
     // copy metadata. always a deep copy.
-    virtual void copy_metadata(const p_teca_dataset &other)
-    { this->copy_metadata(other.get()); }
-
-    virtual void copy_metadata(const teca_dataset *) = 0;
+    virtual void copy_metadata(const const_p_teca_dataset &other) = 0;
 
     // swap internals of the two objects
-    virtual void swap(p_teca_dataset &other)
-    { this->swap(other.get()); }
-
-    virtual void swap(teca_dataset *) = 0;
+    virtual void swap(p_teca_dataset &other) = 0;
 
     // serialize the dataset to/from the given stream
     // for I/O or communication

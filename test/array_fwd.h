@@ -4,7 +4,9 @@
 #include <memory>
 
 class array;
-typedef std::shared_ptr<array> p_array;
+using p_array = std::shared_ptr<array>;
+using const_p_array = std::shared_ptr<const array>;
+
 class teca_binary_stream;
 
 #endif

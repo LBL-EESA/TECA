@@ -82,7 +82,7 @@ private:
 
 private:
     unsigned long long id;
-    typedef std::map<std::string, p_teca_variant_array> prop_map_t;
+    using prop_map_t = std::map<std::string, p_teca_variant_array>;
     prop_map_t props;
 
     friend bool operator<(const teca_metadata &, const teca_metadata &) TECA_NOEXCEPT;

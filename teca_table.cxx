@@ -7,7 +7,7 @@ using std::map;
 
 // --------------------------------------------------------------------------
 teca_table::teca_table()
-    : impl(new teca_table::teca_table_impl), active_column(0)
+    : impl(teca_array_collection::New()), active_column(0)
 {}
 
 // --------------------------------------------------------------------------
@@ -26,29 +26,27 @@ p_teca_dataset teca_table::new_copy() const
 // --------------------------------------------------------------------------
 void teca_table::clear()
 {
+    this->impl->clear();
     this->active_column = 0;
-    this->impl->column_names.clear();
-    this->impl->column_data.clear();
-    this->impl->name_data_map.clear();
 }
 
 // --------------------------------------------------------------------------
 bool teca_table::empty() const TECA_NOEXCEPT
 {
-    return this->impl->column_data.empty();
+    return this->impl->size() == 0;
 }
 
 // --------------------------------------------------------------------------
 unsigned int teca_table::get_number_of_columns() const TECA_NOEXCEPT
 {
-    return this->impl->column_data.size();
+    return this->impl->size();
 }
 
 // --------------------------------------------------------------------------
 unsigned long teca_table::get_number_of_rows() const TECA_NOEXCEPT
 {
-    if (this->impl->column_data.size())
-        return this->impl->column_data[0]->size();
+    if (this->impl->size())
+        return this->impl->get(0)->size();
 
     return 0;
 }
@@ -56,56 +54,47 @@ unsigned long teca_table::get_number_of_rows() const TECA_NOEXCEPT
 // --------------------------------------------------------------------------
 p_teca_variant_array teca_table::get_column(const std::string &col_name)
 {
-    return this->impl->column_data[this->impl->name_data_map[col_name]];
+    return this->impl->get(col_name);
 }
 
 // --------------------------------------------------------------------------
 void teca_table::resize(unsigned long n)
 {
-    unsigned int n_cols = this->impl->column_data.size();
+    unsigned int n_cols = this->impl->size();
     for (unsigned int i = 0; i < n_cols; ++i)
-        this->impl->column_data[i]->resize(n);
+        this->impl->get(i)->resize(n);
 }
 
 // --------------------------------------------------------------------------
 void teca_table::reserve(unsigned long n)
 {
-    unsigned int n_cols = this->impl->column_data.size();
+    unsigned int n_cols = this->impl->size();
     for (unsigned int i = 0; i < n_cols; ++i)
-        this->impl->column_data[i]->reserve(n);
+        this->impl->get(i)->reserve(n);
 }
 
 // --------------------------------------------------------------------------
 void teca_table::to_stream(teca_binary_stream &s) const
 {
-    unsigned int n_cols = this->impl->column_data.size();
-    s.pack(n_cols);
-    s.pack(this->impl->column_names);
-    for (unsigned int i = 0; i < n_cols; ++i)
-        this->impl->column_data[i]->to_stream(s);
+    this->impl->to_stream(s);
 }
 
 // --------------------------------------------------------------------------
 void teca_table::from_stream(teca_binary_stream &s)
 {
-    unsigned int n_cols;
-    s.unpack(n_cols);
-    s.unpack(this->impl->column_names);
-    for (unsigned int i = 0; i < n_cols; ++i)
-        this->impl->column_data[i]->from_stream(s);
-
-    this->active_column = 0;
+    this->clear();
+    this->impl->from_stream(s);
 }
 
 // --------------------------------------------------------------------------
 void teca_table::to_stream(std::ostream &s) const
 {
-    unsigned int n_cols = this->impl->column_names.size();
+    unsigned int n_cols = this->impl->size();
     if (n_cols)
     {
-        s << this->impl->column_names[0];
+        s << this->impl->get_name(0);
         for (unsigned int i = 1; i < n_cols; ++i)
-            s << ", " << this->impl->column_names[i];
+            s << ", " << this->impl->get_name(i);
         s << std::endl;
     }
     unsigned long long n_rows = this->get_number_of_rows();
@@ -114,8 +103,8 @@ void teca_table::to_stream(std::ostream &s) const
         if (n_cols)
         {
             TEMPLATE_DISPATCH(teca_variant_array_impl,
-                this->impl->column_data[0].get(),
-                TT *a = dynamic_cast<TT*>(this->impl->column_data[0].get());
+                this->impl->get(0).get(),
+                TT *a = dynamic_cast<TT*>(this->impl->get(0).get());
                 NT v = NT();
                 a->get(v, j);
                 s << v;
@@ -123,8 +112,8 @@ void teca_table::to_stream(std::ostream &s) const
             for (unsigned int i = 1; i < n_cols; ++i)
             {
                 TEMPLATE_DISPATCH(teca_variant_array_impl,
-                    this->impl->column_data[i].get(),
-                    TT *a = dynamic_cast<TT*>(this->impl->column_data[i].get());
+                    this->impl->get(i).get(),
+                    TT *a = dynamic_cast<TT*>(this->impl->get(i).get());
                     NT v = NT();
                     a->get(v, j);
                     s << ", " << v;
@@ -136,67 +125,64 @@ void teca_table::to_stream(std::ostream &s) const
 }
 
 // --------------------------------------------------------------------------
-void teca_table::copy(const teca_dataset *dataset)
+void teca_table::copy(const const_p_teca_dataset &dataset)
 {
-    const teca_table *other = dynamic_cast<const teca_table*>(dataset);
+    const_p_teca_table other
+        = std::dynamic_pointer_cast<const teca_table>(dataset);
 
     if (!other)
         throw std::bad_cast();
 
-    if (this == other)
+    if (this == other.get())
         return;
 
-    this->impl = std::make_shared<teca_table::teca_table_impl>();
+    this->clear();
+    this->impl->copy(other->impl);
+}
 
-    this->impl->column_names = other->impl->column_names;
+// --------------------------------------------------------------------------
+void teca_table::shallow_copy(const p_teca_dataset &dataset)
+{
+    const_p_teca_table other
+        = std::dynamic_pointer_cast<const teca_table>(dataset);
+
+    if (!other)
+        throw std::bad_cast();
+
+    this->clear();
+    this->impl->shallow_copy(other->impl);
+}
+
+// --------------------------------------------------------------------------
+void teca_table::copy_metadata(const const_p_teca_dataset &dataset)
+{
+    const_p_teca_table other
+        = std::dynamic_pointer_cast<const teca_table>(dataset);
+
+    if (!other)
+        throw std::bad_cast();
+
+    this->clear();
+
     unsigned int n_cols = other->get_number_of_columns();
-    this->impl->column_data.resize(n_cols);
     for (unsigned int i=0; i<n_cols; ++i)
-        this->impl->column_data[i] = other->impl->column_data[i]->new_copy();
-    this->impl->name_data_map = other->impl->name_data_map;
-
-    this->active_column = 0;
+    {
+        this->impl->add(
+            other->impl->get_name(i),
+            other->impl->get(i)->new_instance());
+    }
 }
 
 // --------------------------------------------------------------------------
-void teca_table::shallow_copy(const teca_dataset *dataset)
+void teca_table::swap(p_teca_dataset &dataset)
 {
-    const teca_table *other = dynamic_cast<const teca_table*>(dataset);
+    p_teca_table other
+        = std::dynamic_pointer_cast<teca_table>(dataset);
 
     if (!other)
         throw std::bad_cast();
 
-    this->impl = other->impl;
-    this->active_column = 0;
-}
-
-// --------------------------------------------------------------------------
-void teca_table::copy_metadata(const teca_dataset *dataset)
-{
-    const teca_table *other = dynamic_cast<const teca_table*>(dataset);
-
-    if (!other)
-        throw std::bad_cast();
-
-    this->impl->column_names = other->impl->column_names;
-    unsigned int n_cols = other->get_number_of_columns();
-    this->resize(n_cols);
-    for (unsigned int i=0; i<n_cols; ++i)
-        this->impl->column_data[i] = other->impl->column_data[i]->new_instance();
-    this->impl->name_data_map = other->impl->name_data_map;
-
-    this->active_column = 0;
-}
-
-// --------------------------------------------------------------------------
-void teca_table::swap(teca_dataset *dataset)
-{
-    teca_table *other = dynamic_cast<teca_table*>(dataset);
-
-    if (!other)
-        throw std::bad_cast();
-
-    std::shared_ptr<teca_table::teca_table_impl> tmp(this->impl);
+    p_teca_array_collection tmp(this->impl);
     this->impl = other->impl;
     other->impl = tmp;
 

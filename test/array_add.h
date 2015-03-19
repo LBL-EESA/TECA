@@ -9,7 +9,7 @@
 #include <vector>
 
 class array_add;
-typedef std::shared_ptr<array_add> p_array_add;
+using p_array_add = std::shared_ptr<array_add>;
 
 /**
 an example implementation of a teca_algorithm

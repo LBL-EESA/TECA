@@ -26,7 +26,7 @@ void teca_variant_array::get(std::vector<std::string> &vals) const
 // --------------------------------------------------------------------------
 void teca_variant_array::set(const std::vector<std::string> &vals)
 {
-    typedef teca_variant_array_impl<std::string> TT;
+    using TT = teca_variant_array_impl<std::string>;
     TT *this_t = dynamic_cast<TT *>(this);
     if (this_t)
     {
@@ -71,7 +71,7 @@ void teca_variant_array::append(const std::vector<std::string> &vals)
 // --------------------------------------------------------------------------
 void teca_variant_array::copy(const teca_variant_array &other)
 {
-    typedef teca_variant_array_impl<std::string> STT;
+    using STT = teca_variant_array_impl<std::string>;
     if (dynamic_cast<STT*>(this) && dynamic_cast<const STT*>(&other))
     {
         STT *this_t = static_cast<STT*>(this);

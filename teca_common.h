@@ -18,8 +18,8 @@
 #define TEMPLATE_DISPATCH_CASE(tt, nt, p, body) \
     if (dynamic_cast<tt<nt>*>(p))               \
     {                                           \
-        typedef tt<nt> TT;                      \
-        typedef nt NT;                          \
+        using TT = tt<nt>;                      \
+        using NT = nt;                          \
         body                                    \
     }
 

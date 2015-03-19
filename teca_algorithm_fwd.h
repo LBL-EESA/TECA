@@ -2,7 +2,8 @@
 #define teca_algorithm_fwd_h
 
 class teca_algorithm;
-typedef std::shared_ptr<teca_algorithm> p_teca_algorithm;
+using p_teca_algorithm = std::shared_ptr<teca_algorithm>;
+using const_p_teca_algorithm = std::shared_ptr<const teca_algorithm>;
 
 // this is a convenience macro to be used to declare a static
 // New method that will be used to construct new objects in

@@ -4,6 +4,7 @@
 #include "teca_dataset.h"
 #include "teca_table_fwd.h"
 #include "teca_variant_array.h"
+#include "teca_array_collection.h"
 
 #include <map>
 #include <vector>
@@ -79,6 +80,17 @@ public:
     // stream to/from human readable representation
     virtual void to_stream(std::ostream &) const override;
 
+    // copy data and metadata. shallow copy uses reference
+    // counting, while copy duplicates the data.
+    virtual void copy(const const_p_teca_dataset &other) override;
+    virtual void shallow_copy(const p_teca_dataset &other) override;
+
+    // copy metadata. always a deep copy.
+    virtual void copy_metadata(const const_p_teca_dataset &other) override;
+
+    // swap internals of the two objects
+    virtual void swap(p_teca_dataset &other) override;
+
 protected:
     teca_table();
     teca_table(const teca_table &other) = default;
@@ -87,25 +99,8 @@ protected:
     void declare_columns(){}
     void append(){}
 
-    // copy data and metadata. shallow copy uses reference
-    // counting, while copy duplicates the data.
-    virtual void copy(const teca_dataset *) override;
-    virtual void shallow_copy(const teca_dataset *) override;
-
-    // copy metadata. always a deep copy.
-    virtual void copy_metadata(const teca_dataset *) override;
-
-    // swap internals of the two objects
-    virtual void swap(teca_dataset *) override;
-
 private:
-    struct teca_table_impl
-    {
-        std::vector<std::string> column_names;
-        std::vector<p_teca_variant_array> column_data;
-        std::map<std::string,unsigned int> name_data_map;
-    };
-    std::shared_ptr<teca_table_impl> impl;
+    std::shared_ptr<teca_array_collection> impl;
     unsigned int active_column;
 };
 
@@ -117,26 +112,22 @@ private:
 inline
 p_teca_variant_array teca_table::get_column(unsigned int i)
 {
-    return this->impl->column_data[i];
+    return this->impl->get(i);
 }
 
 // --------------------------------------------------------------------------
 template<typename nT, typename cT, typename... oT>
 void teca_table::declare_columns(nT &&col_name, cT col_type, oT &&... args)
 {
-    this->declare_column(std::forward<nT>(col_name), col_type);
-    //this->declare_columns(std::forward<oT...>(args...));
+    this->impl->declare(std::forward<nT>(col_name), col_type);
     this->declare_columns(args...);
 }
 
 // --------------------------------------------------------------------------
 template<typename nT, typename cT>
-void teca_table::declare_column(nT &&col_name, cT)
+void teca_table::declare_column(nT &&col_name, cT col_type)
 {
-    unsigned int col_id = this->impl->column_data.size();
-    this->impl->column_names.emplace_back(std::forward<nT>(col_name));
-    this->impl->column_data.emplace_back(teca_variant_array_impl<cT>::New());
-    this->impl->name_data_map.emplace(std::forward<nT>(col_name), col_id);
+    this->impl->declare(std::forward<nT>(col_name), col_type);
 }
 
 // --------------------------------------------------------------------------
@@ -144,8 +135,7 @@ template<typename cT, typename... oT>
 void teca_table::append(cT &&val, oT &&... args)
 {
    unsigned int col = this->active_column++%this->get_number_of_columns();
-   this->impl->column_data[col]->append(std::forward<cT>(val));
-   //this->append(std::forward<oT...>(args...));
+   this->impl->get(col)->append(std::forward<cT>(val));
    this->append(args...);
 }
 

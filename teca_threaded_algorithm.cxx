@@ -43,12 +43,10 @@ public:
 };
 
 // task
-typedef
-packaged_task<p_teca_dataset()> teca_data_request_task;
+using teca_data_request_task = packaged_task<p_teca_dataset()>;
 
 class teca_thread_pool;
-typedef
-std::shared_ptr<teca_thread_pool> p_teca_thread_pool;
+using p_teca_thread_pool = std::shared_ptr<teca_thread_pool>;
 
 // a class to manage a fixed size pool of threads that dispatch
 // data requests to teca_algorithm

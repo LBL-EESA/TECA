@@ -564,7 +564,7 @@ void teca_variant_array_impl<T>::copy(const teca_variant_array &other)
 template<typename T>
 void teca_variant_array_impl<T>::swap(teca_variant_array &other)
 {
-    typedef teca_variant_array_impl<T> TT;
+    using TT = teca_variant_array_impl<T>;
     TT *other_t = dynamic_cast<TT*>(&other);
     if (other_t)
     {
@@ -578,7 +578,7 @@ void teca_variant_array_impl<T>::swap(teca_variant_array &other)
 template<typename T>
 bool teca_variant_array_impl<T>::equal(const teca_variant_array &other)
 {
-    typedef teca_variant_array_impl<T> TT;
+    using TT = teca_variant_array_impl<T>;
     const TT *other_t = dynamic_cast<const TT*>(&other);
     if (other_t)
     {

@@ -8,7 +8,7 @@
 #include <vector>
 
 class array_executive;
-typedef std::shared_ptr<array_executive> p_array_executive;
+using p_array_executive = std::shared_ptr<array_executive>;
 
 class array_executive : public teca_algorithm_executive
 {

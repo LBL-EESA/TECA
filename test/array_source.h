@@ -7,7 +7,7 @@
 #include "teca_algorithm.h"
 
 class array_source;
-typedef std::shared_ptr<array_source> p_array_source;
+using p_array_source = std::shared_ptr<array_source>;
 
 /** an example implementation of a teca_algorithm
 that generates arrays over a number of timesteps

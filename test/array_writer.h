@@ -9,7 +9,7 @@
 #include <iostream>
 
 class array_writer;
-typedef std::shared_ptr<array_writer> p_array_writer;
+using p_array_writer = std::shared_ptr<array_writer>;
 
 /**
 an example implementation of a teca_algorithm

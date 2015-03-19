@@ -4,7 +4,8 @@
 #include <memory>
 
 class teca_dataset;
-typedef std::shared_ptr<teca_dataset> p_teca_dataset;
+using p_teca_dataset = std::shared_ptr<teca_dataset>;
+using const_p_teca_dataset = std::shared_ptr<const teca_dataset>;
 
 // this is a convenience macro to be used to
 // declare New and enable seamless operation

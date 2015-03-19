@@ -9,7 +9,7 @@
 #include <vector>
 
 class array_time_average;
-typedef std::shared_ptr<array_time_average> p_array_time_average;
+using p_array_time_average = std::shared_ptr<array_time_average>;
 
 /**
 an example implementation of a teca_algorithm

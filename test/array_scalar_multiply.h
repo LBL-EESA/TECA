@@ -9,7 +9,8 @@
 #include <vector>
 
 class array_scalar_multiply;
-typedef std::shared_ptr<array_scalar_multiply> p_array_scalar_multiply;
+using p_array_scalar_multiply
+    = std::shared_ptr<array_scalar_multiply>;
 
 /**
 an example implementation of a teca_algorithm

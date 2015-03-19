@@ -11,8 +11,7 @@
 #include <vector>
 
 class array_temporal_stats;
-typedef std::shared_ptr<array_temporal_stats> p_array_temporal_stats;
-
+using p_array_temporal_stats = std::shared_ptr<array_temporal_stats>;
 
 /** example demonstarting a temporal reduction. min, average
  and max are computed over time steps for the named array.

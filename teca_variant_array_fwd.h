@@ -5,11 +5,16 @@
 
 class teca_variant_array;
 using p_teca_variant_array = std::shared_ptr<teca_variant_array>;
+using const_p_teca_variant_array = std::shared_ptr<const teca_variant_array>;
 
 template<typename T>
 class teca_variant_array_impl;
+
 template<typename T>
 using p_teca_variant_array_impl = std::shared_ptr<teca_variant_array_impl<T>>;
+
+template<typename T>
+using const_p_teca_variant_array_impl = std::shared_ptr<teca_variant_array_impl<const T>>;
 
 // convenience defs for POD types
 using teca_float_array = teca_variant_array_impl<float>;

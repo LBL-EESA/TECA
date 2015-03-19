@@ -1,8 +1,8 @@
 #ifndef teca_algorithm_output_port_h
 #define teca_algorithm_output_port_h
 
-typedef std::pair<p_teca_algorithm, unsigned int>
-    teca_algorithm_output_port;
+using teca_algorithm_output_port
+    = std::pair<p_teca_algorithm, unsigned int>;
 
 // convenience functions for accessing port and algorithm
 // from an output port
