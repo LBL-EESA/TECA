@@ -37,7 +37,7 @@ int array_scalar_multiply::get_active_array(
         }
 
         vector<string> array_names;
-        input_md.get_prop("array_names", array_names);
+        input_md.get("array_names", array_names);
 
         active_array = array_names[0];
     }
@@ -67,7 +67,7 @@ teca_metadata array_scalar_multiply::get_output_metadata(
     // otherwise pass through and rely on down stream
     // requests to select the array to process
     if (this->array_name.size())
-        output_md.set_prop("array_names", this->array_name);
+        output_md.set("array_names", this->array_name);
 
     return output_md;
 }
@@ -89,14 +89,14 @@ std::vector<teca_metadata> array_scalar_multiply::get_upstream_request(
 
     // get the active array from the incoming request
     string active_array;
-    if (request.get_prop("array_name", active_array))
+    if (request.get("array_name", active_array))
     {
         TECA_ERROR("array_name is not set on incoming the request")
         return up_reqs;
     }
 
     teca_metadata up_req(request);
-    up_req.set_prop("array_name", active_array);
+    up_req.set("array_name", active_array);
 
     up_reqs.push_back(up_req);
     return up_reqs;

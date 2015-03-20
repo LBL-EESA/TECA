@@ -25,42 +25,42 @@ public:
 
     // set from a scalar property
     template<typename T>
-    void set_prop(const std::string &name, const T &val);
+    void set(const std::string &name, const T &val);
 
     // set from an array of length n
     template<typename T>
-    void set_prop(const std::string &name, const T *val, unsigned int n);
+    void set(const std::string &name, const T *val, unsigned int n);
 
     // set from a vector
     template<typename T>
-    void set_prop(const std::string &name, const std::vector<T> &val);
+    void set(const std::string &name, const std::vector<T> &val);
 
     // get ith prop value. return 0 if successful
     template<typename T>
-    int get_prop(const std::string &name, T &val) const;
+    int get(const std::string &name, T &val) const;
 
-    // get n prop values to an array. see also get_prop_size.
+    // get n prop values to an array. see also get_size.
     // return 0 if successful
     template<typename T>
-    int get_prop(
+    int get(
         const std::string &name,
         T *val, unsigned int n) const;
 
     // copy prop values from the named prop into the passed in vector.
     // return 0 if successful
     template<typename T>
-    int get_prop(const std::string &name, std::vector<T> &val) const;
+    int get(const std::string &name, std::vector<T> &val) const;
 
     // get the length of the property value. return 0 if successful
-    int get_prop_size(
+    int get_size(
         const std::string &name,
         unsigned int &size) const TECA_NOEXCEPT;
 
     // remove. return 0 if successful
-    int remove_prop(const std::string &name) TECA_NOEXCEPT;
+    int remove(const std::string &name) TECA_NOEXCEPT;
 
     // remove all
-    void clear_props();
+    void clear();
 
     // returns true if there is a property with the given
     // name already in the container.
@@ -74,7 +74,7 @@ public:
     { return !empty(); }
 
 private:
-    void set_prop(
+    void set(
         const std::string &name,
         p_teca_variant_array prop_val);
 
@@ -105,49 +105,46 @@ teca_metadata operator&(const teca_metadata &lhs, const teca_metadata &rhs);
 
 // --------------------------------------------------------------------------
 template<typename T>
-void teca_metadata::set_prop(const std::string &name, const T &val)
+void teca_metadata::set(const std::string &name, const T &val)
 {
     p_teca_variant_array prop_val
         = teca_variant_array_impl<T>::New(1);
 
-    prop_val->set(val, 0);
+    prop_val->set(val);
 
-    this->set_prop(name, prop_val);
+    this->set(name, prop_val);
 }
 
 // --------------------------------------------------------------------------
 template<typename T>
-void teca_metadata::set_prop(
+void teca_metadata::set(
     const std::string &name,
-    const T *val,
-    unsigned int n)
+    const T *vals,
+    unsigned int n_vals)
 {
     p_teca_variant_array prop_val
-        = teca_variant_array_impl<T>::New(val, n);
+        = teca_variant_array_impl<T>::New(vals, n_vals);
 
-    this->set_prop(name, prop_val);
+    this->set(name, prop_val);
 }
 
 // --------------------------------------------------------------------------
 template<typename T>
-void teca_metadata::set_prop(
+void teca_metadata::set(
     const std::string &name,
-    const std::vector<T> &val)
+    const std::vector<T> &vals)
 {
-    unsigned int n_vals = val.size();
+    unsigned int n_vals = vals.size();
 
     p_teca_variant_array prop_val
-        = teca_variant_array_impl<T>::New(n_vals);
+        = teca_variant_array_impl<T>::New(&vals[0], n_vals);
 
-    for (unsigned int i = 0; i < n_vals; ++i)
-        prop_val->set(val[i], i);
-
-    this->set_prop(name, prop_val);
+    this->set(name, prop_val);
 }
 
 // --------------------------------------------------------------------------
 template<typename T>
-int teca_metadata::get_prop(const std::string &name, T &val) const
+int teca_metadata::get(const std::string &name, T &val) const
 {
     prop_map_t::const_iterator it = this->props.find(name);
 
@@ -161,7 +158,7 @@ int teca_metadata::get_prop(const std::string &name, T &val) const
 
 // --------------------------------------------------------------------------
 template<typename T>
-int teca_metadata::get_prop(
+int teca_metadata::get(
     const std::string &name,
     std::vector<T> &vals) const
 {
@@ -177,7 +174,7 @@ int teca_metadata::get_prop(
 
 // --------------------------------------------------------------------------
 template<typename T>
-int teca_metadata::get_prop(
+int teca_metadata::get(
     const std::string &name,
     T *vals, unsigned int n) const
 {

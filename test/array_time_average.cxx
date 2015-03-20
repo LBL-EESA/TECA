@@ -32,14 +32,14 @@ int array_time_average::get_active_times(
 {
     // get times available
     vector<double> time;
-    if (input_md.get_prop("time", time))
+    if (input_md.get("time", time))
     {
         TECA_ERROR("time metadata not found")
         return -1;
     }
 
     // get the requested time
-    request.get_prop("time", current_time);
+    request.get("time", current_time);
 
     vector<double>::iterator it = std::find(time.begin(), time.end(), current_time);
     if (it == time.end())
@@ -71,7 +71,7 @@ std::vector<teca_metadata> array_time_average::get_upstream_request(
 
     // get the active array from the incoming request
     string active_array;
-    if (request.get_prop("array_name", active_array))
+    if (request.get("array_name", active_array))
     {
         TECA_ERROR("array_name is not set on incoming the request")
         return up_reqs;
@@ -93,8 +93,8 @@ std::vector<teca_metadata> array_time_average::get_upstream_request(
     for (size_t i = 0; i < n; ++i)
     {
         teca_metadata up_req(request);
-        up_req.set_prop("array_name", active_array);
-        up_req.set_prop("time", active_times[i]);
+        up_req.set("array_name", active_array);
+        up_req.set("time", active_times[i]);
         up_reqs.push_back(up_req);
     }
 

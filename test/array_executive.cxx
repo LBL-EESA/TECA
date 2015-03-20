@@ -16,14 +16,14 @@ int array_executive::initialize(const teca_metadata &md)
     this->requests.clear();
 
     vector<string> array_names;
-    if (md.get_prop("array_names", array_names))
+    if (md.get("array_names", array_names))
     {
         TECA_ERROR("array_names meta data not found")
         return -1;
     }
 
     vector<double> time;
-    if (md.get_prop("time", time))
+    if (md.get("time", time))
     {
         //TECA_ERROR("time meta data not found")
         //return -2;
@@ -31,7 +31,7 @@ int array_executive::initialize(const teca_metadata &md)
     }
 
     vector<size_t> extent;
-    if (md.get_prop("extent", extent))
+    if (md.get("extent", extent))
     {
         TECA_ERROR("extent meta data not found")
         return -3;
@@ -45,9 +45,9 @@ int array_executive::initialize(const teca_metadata &md)
         for (size_t j = 0; j < n_arrays; ++j)
         {
             teca_metadata req;
-            req.set_prop("time", time[i]);
-            req.set_prop("array_name", array_names[j]);
-            req.set_prop("extent", extent);
+            req.set("time", time[i]);
+            req.set("array_name", array_names[j]);
+            req.set("extent", extent);
             this->requests.push_back(req);
         }
     }
@@ -73,8 +73,8 @@ teca_metadata array_executive::get_next_request()
         double time;
         string active_array;
 
-        req.get_prop("array_name", active_array);
-        req.get_prop("time", time);
+        req.get("array_name", active_array);
+        req.get("time", time);
 
 #ifndef TECA_NDEBUG
         cerr << teca_parallel_id()

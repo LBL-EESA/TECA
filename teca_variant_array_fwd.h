@@ -32,16 +32,21 @@ using teca_unsigned_long_long_array = teca_variant_array_impl<unsigned long long
 // New method that will be used to construct new objects in
 // shared_ptr's. This manages the details of interoperability
 // with std C++11 shared pointer
-#define TECA_VARIANT_ARRAY_STATIC_NEW(T)                                \
+#define TECA_VARIANT_ARRAY_STATIC_NEW(T, t)                             \
                                                                         \
-static p_##T New()                                                      \
+static p_##T<t> New()                                                   \
 {                                                                       \
-    return p_##T(new T);                                                \
+    return p_##T<t>(new T<t>);                                          \
 }                                                                       \
                                                                         \
-static p_##T New(size_t n)                                              \
+static p_##T<t> New(size_t n)                                           \
 {                                                                       \
-    return p_##T(new T(n));                                             \
+    return p_##T<t>(new T<t>(n));                                       \
+}                                                                       \
+                                                                        \
+static p_##T<t> New(const t *vals, size_t n)                            \
+{                                                                       \
+    return p_##T<t>(new T<t>(vals, n));                                 \
 }                                                                       \
                                                                         \
 using enable_shared_from_this<teca_variant_array>::shared_from_this;    \

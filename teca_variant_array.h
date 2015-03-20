@@ -72,8 +72,13 @@ public:
     void set(const std::vector<std::string> &vals);
 
     template<typename T>
-    void set(const T &val, unsigned long i=0);
-    void set(const std::string &val, unsigned long i=0);
+    void set(const T &val)
+    { this->set(0, val); }
+
+    template<typename T>
+    void set(unsigned long i, const T &val);
+
+    void set(unsigned long i, const std::string &val);
 
     template<typename T>
     void set(T *begin, T *end);
@@ -158,7 +163,7 @@ class teca_variant_array_impl : public teca_variant_array
 {
 public:
     // construct
-    TECA_VARIANT_ARRAY_STATIC_NEW(teca_variant_array_impl<T>)
+    TECA_VARIANT_ARRAY_STATIC_NEW(teca_variant_array_impl, T)
 
     // destruct
     virtual ~teca_variant_array_impl() TECA_NOEXCEPT;
@@ -203,7 +208,11 @@ public:
 
     // set the ith value
     template<typename U>
-    void set(const U &val, unsigned long i=0);
+    void set(unsigned long i, const U &val);
+
+    template<typename U>
+    void set(const U &val)
+    { this->set(0, val); }
 
     // copy data, replacing contents described by the
     // passed in range
@@ -259,7 +268,7 @@ protected:
         : m_data(n) {}
 
     // construct from a c-array of length n
-    teca_variant_array_impl(T *vals, unsigned long n)
+    teca_variant_array_impl(const T *vals, unsigned long n)
         : m_data(vals, vals+n) {}
 
     // copy construct from an instance of different type
@@ -296,8 +305,31 @@ private:
     template<typename U> friend class teca_variant_array_impl;
 };
 
+// t - derived type
+// p - base class pointer
+// body - code to execute
+#define TEMPLATE_DISPATCH_CASE(tt, nt, p, body) \
+    if (dynamic_cast<tt<nt>*>(p))               \
+    {                                           \
+        using TT = tt<nt>;                      \
+        using NT = nt;                          \
+        body                                    \
+    }
 
-
+// macro for helping downcast to POD types
+// don't add classes to this.
+// t - templated derived type
+// p - pointer
+// body - code to execute on match
+#define TEMPLATE_DISPATCH(t, p, body)                   \
+    TEMPLATE_DISPATCH_CASE(t, char, p, body)            \
+    TEMPLATE_DISPATCH_CASE(t, unsigned char, p, body)   \
+    TEMPLATE_DISPATCH_CASE(t, int, p, body)             \
+    TEMPLATE_DISPATCH_CASE(t, unsigned int, p, body)    \
+    TEMPLATE_DISPATCH_CASE(t, long, p, body)            \
+    TEMPLATE_DISPATCH_CASE(t, unsigned long, p, body)   \
+    TEMPLATE_DISPATCH_CASE(t, float, p, body)           \
+    TEMPLATE_DISPATCH_CASE(t, double, p, body)
 
 // --------------------------------------------------------------------------
 template<typename T>
@@ -349,11 +381,11 @@ void teca_variant_array::set(const std::vector<T> &vals)
 
 // --------------------------------------------------------------------------
 template<typename T>
-void teca_variant_array::set(const T &val, unsigned long i)
+void teca_variant_array::set(unsigned long i, const T &val)
 {
     TEMPLATE_DISPATCH(teca_variant_array_impl, this,
         TT *this_t = static_cast<TT*>(this);
-        this_t->set(val, i);
+        this_t->set(i, val);
         return;
         )
     throw std::bad_cast();
@@ -485,7 +517,7 @@ void teca_variant_array_impl<T>::get(std::vector<U> &val) const
 // --------------------------------------------------------------------------
 template<typename T>
 template<typename U>
-void teca_variant_array_impl<T>::set(const U &val, unsigned long i)
+void teca_variant_array_impl<T>::set(unsigned long i, const U &val)
 {
     m_data[i] = val;
 }

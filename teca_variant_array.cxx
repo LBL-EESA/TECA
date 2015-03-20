@@ -36,11 +36,11 @@ void teca_variant_array::set(const std::vector<std::string> &vals)
 }
 
 // --------------------------------------------------------------------------
-void teca_variant_array::set(const std::string &val, unsigned long i)
+void teca_variant_array::set(unsigned long i, const std::string &val)
 {
     TEMPLATE_DISPATCH_CASE(teca_variant_array_impl, std::string, this,
         TT *this_t = static_cast<TT*>(this);
-        this_t->set(val, i);
+        this_t->set(i, val);
         return;
         )
     throw std::bad_cast();

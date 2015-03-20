@@ -72,7 +72,7 @@ std::vector<teca_metadata> teca_temporal_reduction::get_upstream_request(
 
     // locate available times
     vector<double> time;
-    if (input_md[0].get_prop("time", time))
+    if (input_md[0].get("time", time))
     {
         TECA_ERROR("missing time metadata")
         return up_req;
@@ -123,7 +123,7 @@ std::vector<teca_metadata> teca_temporal_reduction::get_upstream_request(
         for (size_t j = 0; j < n_reqs; ++j)
         {
             up_req.push_back(base_req[j]);
-            up_req.back().set_prop("time", time[ii]);
+            up_req.back().set("time", time[ii]);
         }
     }
 
@@ -138,7 +138,7 @@ teca_metadata teca_temporal_reduction::get_output_metadata(
     teca_metadata output_md
         = this->initialize_output_metadata(port, input_md);
 
-    output_md.remove_prop("time");
+    output_md.remove("time");
 
     return output_md;
 }

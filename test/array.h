@@ -20,8 +20,6 @@ public:
     TECA_DATASET_PROPERTY(std::vector<size_t>, extent)
     TECA_DATASET_PROPERTY(std::string, name)
 
-    TECA_DATASET_COPY_SWAP()
-
     // return true if the dataset is empty.
     virtual bool empty() const TECA_NOEXCEPT override
     { return this->data.empty(); }

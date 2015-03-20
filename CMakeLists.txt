@@ -12,6 +12,7 @@ set(teca_srcs
     teca_table.cxx
     teca_temporal_reduction.cxx
     teca_threaded_algorithm.cxx
+    teca_uniform_cartesian_mesh.cxx
     teca_variant_array.cxx
     )
 

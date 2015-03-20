@@ -61,14 +61,14 @@ teca_metadata array_source::get_output_metadata(
     vector<double> time;
     for (unsigned int i = 0; i < this->number_of_timesteps; ++i)
         time.push_back(this->time_delta*(i+1));
-    output_md.set_prop("time", time);
+    output_md.set("time", time);
 
     // report array extents
     vector<unsigned int> extent = {0, this->array_size};
-    output_md.set_prop("extent", extent);
+    output_md.set("extent", extent);
 
     // report array names
-    output_md.set_prop("array_names", this->array_names);
+    output_md.set("array_names", this->array_names);
 
     return output_md;
 }
@@ -84,7 +84,7 @@ p_teca_dataset array_source::execute(
 
     // get the time request
     double active_time;
-    if (request.get_prop("time", active_time))
+    if (request.get("time", active_time))
     {
         TECA_ERROR("request is missing time")
         return p_teca_dataset();
@@ -92,7 +92,7 @@ p_teca_dataset array_source::execute(
 
     // get array request
     string active_array;
-    if (request.get_prop("array_name", active_array))
+    if (request.get("array_name", active_array))
     {
         TECA_ERROR("request is missing array_name")
         return p_teca_dataset();
@@ -114,7 +114,7 @@ p_teca_dataset array_source::execute(
 
     // get the extent request
     vector<size_t> active_extent;
-    if (request.get_prop("extent", active_extent))
+    if (request.get("extent", active_extent))
     {
         TECA_ERROR("request is missing extent")
         return p_teca_dataset();

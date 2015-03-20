@@ -20,8 +20,6 @@ public:
     TECA_DATASET_STATIC_NEW(teca_table)
     virtual ~teca_table() = default;
 
-    TECA_DATASET_COPY_SWAP()
-
     // virtual constructor. return a new dataset of the same type.
     virtual p_teca_dataset new_instance() const override;
 
@@ -100,7 +98,7 @@ protected:
     void append(){}
 
 private:
-    std::shared_ptr<teca_array_collection> impl;
+    p_teca_array_collection impl;
     unsigned int active_column;
 };
 

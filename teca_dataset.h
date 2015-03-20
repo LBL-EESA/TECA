@@ -15,18 +15,12 @@ public:
     virtual ~teca_dataset() TECA_NOEXCEPT = default;
 
     // copy assign. this is a shallow copy
-    p_teca_dataset operator=(const p_teca_dataset &other)
-    {
-        this->shallow_copy(other);
-        return this->shared_from_this();
-    }
+    void operator=(const p_teca_dataset &other)
+    { this->shallow_copy(other); }
 
     // move assignment
-    p_teca_dataset operator=(p_teca_dataset &&other)
-    {
-        this->swap(other);
-        return this->shared_from_this();
-    }
+    void operator=(p_teca_dataset &&other)
+    { this->swap(other); }
 
     // covert to bool. true if the dataset is not empty.
     // otherwise false.

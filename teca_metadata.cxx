@@ -26,7 +26,7 @@ teca_metadata::teca_metadata(teca_metadata &&other) TECA_NOEXCEPT
 // --------------------------------------------------------------------------
 teca_metadata::~teca_metadata() TECA_NOEXCEPT
 {
-    this->clear_props();
+    this->clear();
 }
 
 // --------------------------------------------------------------------------
@@ -36,7 +36,7 @@ teca_metadata &teca_metadata::operator=(const teca_metadata &other)
         return *this;
 
     this->id = other.id;
-    this->clear_props();
+    this->clear();
 
     prop_map_t::const_iterator it = other.props.begin();
     prop_map_t::const_iterator end = other.props.end();
@@ -58,13 +58,13 @@ teca_metadata &teca_metadata::operator=(teca_metadata &&other) TECA_NOEXCEPT
 }
 
 // --------------------------------------------------------------------------
-void teca_metadata::clear_props()
+void teca_metadata::clear()
 {
     this->props.clear();
 }
 
 // --------------------------------------------------------------------------
-void teca_metadata::set_prop(
+void teca_metadata::set(
     const std::string &name,
     p_teca_variant_array prop_val)
 {
@@ -78,7 +78,7 @@ void teca_metadata::set_prop(
 }
 
 // --------------------------------------------------------------------------
-int teca_metadata::get_prop_size(
+int teca_metadata::get_size(
     const std::string &name,
     unsigned int &n) const TECA_NOEXCEPT
 {
@@ -93,7 +93,7 @@ int teca_metadata::get_prop_size(
 }
 
 // --------------------------------------------------------------------------
-int teca_metadata::remove_prop(const std::string &name) TECA_NOEXCEPT
+int teca_metadata::remove(const std::string &name) TECA_NOEXCEPT
 {
     prop_map_t::iterator it = this->props.find(name);
 
@@ -157,7 +157,7 @@ teca_metadata operator&(const teca_metadata &lhs, const teca_metadata &rhs)
         teca_metadata::prop_map_t::const_iterator lit = lhs.props.find(rit->first);
         if ((lit != lend) && (*lit->second == *rit->second))
         {
-            isect.set_prop(rit->first, rit->second->new_copy());
+            isect.set(rit->first, rit->second->new_copy());
         }
     }
     return isect;
