@@ -73,6 +73,10 @@ public:
     explicit operator bool() const TECA_NOEXCEPT
     { return !empty(); }
 
+    // serialize to binary for I/O.
+    void to_stream(teca_binary_stream &s) const;
+    void from_stream(teca_binary_stream &s);
+
 private:
     void set(
         const std::string &name,

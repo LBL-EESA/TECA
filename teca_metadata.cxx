@@ -125,6 +125,45 @@ unsigned long long teca_metadata::get_next_id() const TECA_NOEXCEPT
 }
 
 // --------------------------------------------------------------------------
+void teca_metadata::to_stream(teca_binary_stream &s) const
+{
+    unsigned int n_props = this->props.size();
+    s.pack(n_props);
+
+    teca_metadata::prop_map_t::const_iterator it = this->props.cbegin();
+    teca_metadata::prop_map_t::const_iterator end = this->props.cend();
+    for (; it != end; ++it)
+    {
+        s.pack(it->first);
+        s.pack(it->second->type_code());
+        it->second->to_stream(s);
+    }
+}
+
+// --------------------------------------------------------------------------
+void teca_metadata::from_stream(teca_binary_stream &s)
+{
+    unsigned int n_props;
+    s.unpack(n_props);
+
+    for (unsigned int i = 0; i <= n_props; ++i)
+    {
+        string key;
+        s.unpack(key);
+
+        unsigned int type_code;
+        s.unpack(type_code);
+
+        p_teca_variant_array val
+            = teca_variant_array_factory::New(type_code);
+
+        val->from_stream(s);
+
+        this->set(key, val);
+    }
+}
+
+// --------------------------------------------------------------------------
 bool operator<(const teca_metadata &lhs, const teca_metadata &rhs) TECA_NOEXCEPT
 {
     return lhs.id < rhs.id;

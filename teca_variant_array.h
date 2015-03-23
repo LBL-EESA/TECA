@@ -124,6 +124,9 @@ public:
     // serrialize to/from stream
     virtual void to_stream(teca_binary_stream &s) = 0;
     virtual void from_stream(teca_binary_stream &s) = 0;
+
+    // used for serialization
+    virtual unsigned int type_code() const TECA_NOEXCEPT = 0;
 };
 
 
@@ -298,6 +301,9 @@ protected:
     template <typename U = T>
     void from(teca_binary_stream &s,
         typename std::enable_if<pack_object<U>::value, U>::type* = 0);
+
+    // for serializaztion
+    virtual unsigned int type_code() const TECA_NOEXCEPT override;
 private:
     std::vector<T> m_data;
 
@@ -684,6 +690,81 @@ void teca_variant_array_impl<T>::from(
     {
        this->m_data[i].from_stream(s);
     }
+}
+
+template <typename T>
+struct teca_variant_array_code
+{};
+
+template <unsigned int I>
+struct teca_variant_array_new
+{};
+
+#define TECA_VARIANT_ARRAY_TT_SPEC(T, v) \
+template <> \
+struct teca_variant_array_code<T> \
+{ \
+    static unsigned int get() TECA_NOEXCEPT { return v; } \
+}; \
+template <> \
+struct teca_variant_array_new<v> \
+{ \
+    static p_teca_variant_array_impl<T> New() \
+    { return teca_variant_array_impl<T>::New(); } \
+};
+
+TECA_VARIANT_ARRAY_TT_SPEC(char, 1)
+TECA_VARIANT_ARRAY_TT_SPEC(unsigned char, 2)
+TECA_VARIANT_ARRAY_TT_SPEC(int, 3)
+TECA_VARIANT_ARRAY_TT_SPEC(unsigned int, 4)
+TECA_VARIANT_ARRAY_TT_SPEC(long, 5)
+TECA_VARIANT_ARRAY_TT_SPEC(unsigned long, 6)
+TECA_VARIANT_ARRAY_TT_SPEC(long long, 7)
+TECA_VARIANT_ARRAY_TT_SPEC(unsigned long long, 8)
+TECA_VARIANT_ARRAY_TT_SPEC(float, 9)
+TECA_VARIANT_ARRAY_TT_SPEC(double, 10)
+TECA_VARIANT_ARRAY_TT_SPEC(std::string, 11)
+
+struct teca_variant_array_factory
+{
+    static p_teca_variant_array New(unsigned int type_code)
+    {
+        switch (type_code)
+        {
+        case 1:
+            return teca_variant_array_new<1>::New();
+        case 2:
+            return teca_variant_array_new<2>::New();
+        case 3:
+            return teca_variant_array_new<3>::New();
+        case 4:
+            return teca_variant_array_new<4>::New();
+        case 5:
+            return teca_variant_array_new<5>::New();
+        case 6:
+            return teca_variant_array_new<6>::New();
+        case 7:
+            return teca_variant_array_new<7>::New();
+        case 8:
+            return teca_variant_array_new<8>::New();
+        case 9:
+            return teca_variant_array_new<9>::New();
+        case 10:
+            return teca_variant_array_new<10>::New();
+        case 11:
+            return teca_variant_array_new<11>::New();
+        default:
+            TECA_ERROR("Failed to create teca_variant_array for " << type_code)
+        }
+    return nullptr;
+    }
+};
+
+// --------------------------------------------------------------------------
+template<typename T>
+unsigned int teca_variant_array_impl<T>::type_code() const TECA_NOEXCEPT
+{
+    return teca_variant_array_code<T>::get();
 }
 
 #endif

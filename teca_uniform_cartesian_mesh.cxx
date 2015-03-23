@@ -87,8 +87,7 @@ void teca_uniform_cartesian_mesh::swap(p_teca_dataset &dataset)
 // --------------------------------------------------------------------------
 void teca_uniform_cartesian_mesh::to_stream(teca_binary_stream &s) const
 {
-    // TODO
-    //m_impl->metadata.to_stream(s);
+    m_impl->metadata.to_stream(s);
     m_impl->point_arrays->to_stream(s);
     m_impl->cell_arrays->to_stream(s);
     m_impl->edge_arrays->to_stream(s);
@@ -98,8 +97,7 @@ void teca_uniform_cartesian_mesh::to_stream(teca_binary_stream &s) const
 // --------------------------------------------------------------------------
 void teca_uniform_cartesian_mesh::from_stream(teca_binary_stream &s)
 {
-    // TODO
-    //m_impl->metadata.from_stream(s);
+    m_impl->metadata.from_stream(s);
     m_impl->point_arrays->from_stream(s);
     m_impl->cell_arrays->from_stream(s);
     m_impl->edge_arrays->from_stream(s);
