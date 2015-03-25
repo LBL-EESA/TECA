@@ -59,11 +59,11 @@ TECA_DATASET_METADATA_ ## len (T, md_obj, key)
 #define TECA_DATASET_METADATA_1(T, md_obj, key) \
 void set_##key(T val_1) \
 { \
-    md_obj->set<T>(#key, val_1); \
+    md_obj.set<T>(#key, val_1); \
 } \
 int get_##key(T &val_1) \
 { \
-    return md_obj->get<T>(#key, val_1); \
+    return md_obj.get<T>(#key, val_1); \
 }
 
 #define TECA_DATASET_METADATA_2(T, md_obj, key) \

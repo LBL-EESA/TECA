@@ -8,6 +8,7 @@ set(teca_srcs
     teca_array_collection.cxx
     teca_binary_stream.cxx
     teca_metadata.cxx
+    teca_mesh.cxx
     teca_parallel_id.cxx
     teca_table.cxx
     teca_temporal_reduction.cxx
