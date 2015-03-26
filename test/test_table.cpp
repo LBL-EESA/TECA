@@ -3,7 +3,7 @@
 #include <iostream>
 using namespace std;
 
-int main(int argc, char **argv)
+int main(int, char **)
 {
     p_teca_table t = teca_table::New();
 
