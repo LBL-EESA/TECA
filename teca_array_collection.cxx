@@ -12,7 +12,7 @@ void teca_array_collection::clear()
 // ----------------------------------------------------------------------------
 unsigned int teca_array_collection::add(p_teca_variant_array array)
 {
-    return this->add("", array);
+    return this->set("", array);
 }
 
 // ----------------------------------------------------------------------------
@@ -25,6 +25,32 @@ unsigned int teca_array_collection::add(
     m_names.push_back(name);
     m_name_array_map[name] = id;
     return id;
+}
+
+// ----------------------------------------------------------------------------
+int teca_array_collection::set(unsigned int i, p_teca_variant_array array)
+{
+    if (i >= m_names.size())
+        return -1;
+
+    m_arrays[i] = array;
+
+    return 0;
+}
+
+// ----------------------------------------------------------------------------
+int teca_array_collection::set(
+    const std::string &name,
+    p_teca_variant_array array)
+{
+    name_array_map_t::iterator loc = m_name_array_map.find(name);
+
+    if (loc == m_name_array_map.end())
+        return -1;
+
+    m_arrays[loc->second] = array;
+
+    return 0;
 }
 
 // ----------------------------------------------------------------------------
@@ -80,6 +106,14 @@ void teca_array_collection::shallow_copy(const p_teca_array_collection &other)
     unsigned int n = other->size();
     for (unsigned int i = 0; i < n; ++i)
         m_arrays.push_back(other->get(i));
+}
+
+// --------------------------------------------------------------------------
+void teca_array_collection::swap(p_teca_array_collection &other)
+{
+    std::swap(m_names, other->m_names);
+    std::swap(m_name_array_map, other->m_name_array_map);
+    std::swap(m_arrays, other->m_arrays);
 }
 
 // --------------------------------------------------------------------------

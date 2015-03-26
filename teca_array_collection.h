@@ -34,9 +34,13 @@ public:
     template<typename nT, typename aT>
     void declare(nT &&a_name, aT a_type);
 
-    // add
+    // add, return the index of the new entry.
     unsigned int add(p_teca_variant_array array);
     unsigned int add(const std::string &name, p_teca_variant_array array);
+
+    // set, return 0 on success.
+    int set(unsigned int i, p_teca_variant_array array);
+    int set(const std::string &name, p_teca_variant_array array);
 
     // remove
     int remove(unsigned int i);
@@ -69,6 +73,9 @@ public:
     // copy
     void copy(const const_p_teca_array_collection &other);
     void shallow_copy(const p_teca_array_collection &other);
+
+    // swap
+    void swap(p_teca_array_collection &other);
 
     // serialize the data to/from the given stream
     // for I/O or communication
