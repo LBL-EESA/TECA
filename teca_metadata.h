@@ -35,6 +35,11 @@ public:
     template<typename T>
     void set(const std::string &name, const std::vector<T> &val);
 
+    // set a variant array
+    void set(
+        const std::string &name,
+        p_teca_variant_array prop_val);
+
     // get ith prop value. return 0 if successful
     template<typename T>
     int get(const std::string &name, T &val) const;
@@ -78,10 +83,6 @@ public:
     void from_stream(teca_binary_stream &s);
 
 private:
-    void set(
-        const std::string &name,
-        p_teca_variant_array prop_val);
-
     unsigned long long get_next_id() const TECA_NOEXCEPT;
 
 private:
@@ -114,7 +115,7 @@ void teca_metadata::set(const std::string &name, const T &val)
     p_teca_variant_array prop_val
         = teca_variant_array_impl<T>::New(1);
 
-    prop_val->set(val);
+    prop_val->set(0, val);
 
     this->set(name, prop_val);
 }
@@ -155,7 +156,7 @@ int teca_metadata::get(const std::string &name, T &val) const
     if (it == this->props.end())
         return -1;
 
-    it->second->get(val);
+    it->second->get(0, val);
 
     return 0;
 }
