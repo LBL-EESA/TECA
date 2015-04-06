@@ -1,6 +1,7 @@
 #ifndef teca_metadata_h
 #define teca_metadata_h
 
+#include <iosfwd>
 #include <map>
 #include <string>
 #include <vector>
@@ -78,9 +79,13 @@ public:
     explicit operator bool() const TECA_NOEXCEPT
     { return !empty(); }
 
-    // serialize to binary for I/O.
+    // serialize to/from binary
     void to_stream(teca_binary_stream &s) const;
     void from_stream(teca_binary_stream &s);
+
+    // serialize to/from ascii
+    void to_stream(std::ostream &os) const;
+    void from_stream(std::ostream &) {}
 
 private:
     unsigned long long get_next_id() const TECA_NOEXCEPT;

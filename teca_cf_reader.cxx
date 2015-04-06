@@ -209,7 +209,6 @@ teca_metadata teca_cf_reader::get_output_metadata(
         }
         free(buffer);
 
-        // TODO
         output_md.set(var_name, atts);
     }
     output_md.set("variables", vars);

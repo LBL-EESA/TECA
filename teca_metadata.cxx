@@ -1,10 +1,13 @@
 #include <teca_metadata.h>
 #include <utility>
+#include <ostream>
 
 using std::string;
 using std::map;
 using std::pair;
 using std::vector;
+using std::ostream;
+using std::endl;
 
 // --------------------------------------------------------------------------
 teca_metadata::teca_metadata() TECA_NOEXCEPT
@@ -160,6 +163,32 @@ void teca_metadata::from_stream(teca_binary_stream &s)
         val->from_stream(s);
 
         this->set(key, val);
+    }
+}
+
+// --------------------------------------------------------------------------
+void teca_metadata::to_stream(ostream &os) const
+{
+    prop_map_t::const_iterator it = this->props.cbegin();
+    prop_map_t::const_iterator end = this->props.cend();
+    for (; it != end; ++it)
+    {
+        os << it->first << " = " << "{";
+        TEMPLATE_DISPATCH_CASE(
+            teca_variant_array_impl, std::string, it->second.get(),
+            const TT *val = static_cast<const TT*>(it->second.get());
+            val->to_stream(os);
+            )
+        TEMPLATE_DISPATCH_CASE(
+            teca_variant_array_impl, teca_metadata, it->second.get(),
+            const TT *val = static_cast<const TT*>(it->second.get());
+            val->to_stream(os);
+            )
+        TEMPLATE_DISPATCH(teca_variant_array_impl, it->second.get(),
+            const TT *val = static_cast<const TT*>(it->second.get());
+            val->to_stream(os);
+            )
+        os << "}" << endl;
     }
 }
 
