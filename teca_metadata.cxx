@@ -44,7 +44,10 @@ teca_metadata &teca_metadata::operator=(const teca_metadata &other)
     prop_map_t::const_iterator it = other.props.begin();
     prop_map_t::const_iterator end = other.props.end();
     for ( ; it != end; ++it)
-        this->props[it->first] = it->second->new_copy();
+    {
+        this->props[it->first]
+             = it->second ? it->second->new_copy() : it->second;
+    }
 
     return *this;
 }

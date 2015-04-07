@@ -19,7 +19,6 @@ add_executable(
     test_array_time_average
     test_array_time_average.cpp
     )
-
 target_link_libraries(
     test_array_time_average
     teca teca_test_array
@@ -45,6 +44,13 @@ target_link_libraries(
 
 add_executable(test_table test_table.cpp)
 target_link_libraries(test_table teca)
+
+add_executable(
+    test_cf_reader
+    test_cf_reader.cpp
+    cf_reader_driver.cxx
+    )
+target_link_libraries(test_cf_reader teca)
 
 if (MPI_CXX_FOUND)
     target_link_libraries(

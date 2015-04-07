@@ -940,9 +940,15 @@ void teca_variant_array_impl<T>::to_ascii(
     size_t n = this->m_data.size();
     if (n)
     {
-        s << this->m_data[0];
+        s << (std::is_same<T, std::string>::value ? "\"" : "")
+            << this->m_data[0]
+            << (std::is_same<T, std::string>::value ? "\"" : "");
         for (size_t i = 1; i < n; ++i)
-            s << ", " << this->m_data[i];
+        {
+            s << (std::is_same<T, std::string>::value ? ", \"" : ", ")
+                << this->m_data[i]
+                << (std::is_same<T, std::string>::value ? "\"" : "");
+        }
     }
 }
 
@@ -973,7 +979,7 @@ void teca_variant_array_impl<T>::to_ascii(
         {
             s << ", {";
             this->m_data[i].to_stream(s);
-            s << "{";
+            s << "}";
         }
     }
 }

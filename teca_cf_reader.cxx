@@ -71,8 +71,8 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
     vector<string> files;
 
-    string path = strip_path_from_filename(this->files_regex);
-    string regex = strip_filename_from_path(this->files_regex);
+    string regex = strip_path_from_filename(this->files_regex);
+    string path = strip_filename_from_path(this->files_regex);
 
     if (teca_file_util::locate_files(path, regex, files))
     {
@@ -109,7 +109,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
         || ((ierr = nc_inq_varid(file_id, x_axis_variable.c_str(), &x_id)) != NC_NOERR)
         || ((ierr = nc_inq_vartype(file_id, x_id, &x_t)) != NC_NOERR)
         || ((ierr = nc_inq_dimid(file_id, y_axis_variable.c_str(), &y_id)) != NC_NOERR)
-        || ((ierr = nc_inq_dimlen(file_id, y_id, &n_x)) != NC_NOERR)
+        || ((ierr = nc_inq_dimlen(file_id, y_id, &n_y)) != NC_NOERR)
         || ((ierr = nc_inq_varid(file_id, y_axis_variable.c_str(), &y_id)) != NC_NOERR)
         || ((ierr = nc_inq_vartype(file_id, y_id, &y_t)) != NC_NOERR)
         || (!z_axis_variable.empty()
@@ -169,8 +169,8 @@ teca_metadata teca_cf_reader::get_output_metadata(
             }
 
             // skip dimensions
-            if (string(var_name) != dim_name)
-                break;
+            //if (string(var_name) == dim_name)
+            //    break;
 
             dim_names.push_back(dim_name);
             dims.push_back(dim);
@@ -191,7 +191,8 @@ teca_metadata teca_cf_reader::get_output_metadata(
             char att_name[NC_MAX_NAME + 1] = {'\0'};
             nc_type att_type = 0;
             size_t att_len = 0;
-            if ((ierr = nc_inq_att(file_id, i, att_name, &att_type, &att_len)) != NC_NOERR)
+            if (((ierr = nc_inq_attname(file_id, i, ii, att_name)) != NC_NOERR)
+                || ((ierr = nc_inq_att(file_id, i, att_name, &att_type, &att_len)) != NC_NOERR))
             {
                 nc_close(file_id);
                 TECA_ERROR(
@@ -211,9 +212,10 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
         output_md.set(var_name, atts);
     }
+
     output_md.set("variables", vars);
 
-    // read spatial coordinate arrays
+    // read coordinate arrays
     p_teca_variant_array x_axis;
     NC_DISPATCH_FP(x_t,
         size_t x_0 = 0;
@@ -261,19 +263,6 @@ teca_metadata teca_cf_reader::get_output_metadata(
             z_axis = z;
             )
     }
-
-    output_md.set("x_axis_variable", x_axis_variable);
-    output_md.set("y_axis_variable", y_axis_variable);
-    output_md.set("z_axis_variable", z_axis_variable);
-    output_md.set(x_axis_variable, x_axis);
-    output_md.set(y_axis_variable, y_axis);
-    output_md.set(z_axis_variable, z_axis);
-
-    vector<size_t> whole_extent(6, 0);
-    whole_extent[1] = n_x - 1;
-    whole_extent[3] = n_y - 1;
-    whole_extent[5] = n_z - 1;
-    output_md.set("whole_extent", whole_extent);
 
     // collect time steps from this and the rest of the files
     p_teca_variant_array t_axis;
@@ -335,8 +324,24 @@ teca_metadata teca_cf_reader::get_output_metadata(
             )
         nc_close(file_id);
     }
-    output_md.set("t_axis_variable", t_axis_variable);
-    output_md.set(t_axis_variable, t_axis);
+
+    teca_metadata coords;
+    coords.set("x_variable", x_axis_variable);
+    coords.set("y_variable", y_axis_variable);
+    coords.set("z_variable", z_axis_variable);
+    coords.set("t_variable", t_axis_variable);
+    coords.set("x", x_axis);
+    coords.set("y", y_axis);
+    coords.set("z", z_axis);
+    coords.set("t", t_axis);
+
+    vector<size_t> whole_extent(6, 0);
+    whole_extent[1] = n_x - 1;
+    whole_extent[3] = n_y - 1;
+    whole_extent[5] = n_z - 1;
+    coords.set("whole_extent", whole_extent);
+
+    output_md.set("coordinates", coords);
 
     return output_md;
 }
@@ -348,4 +353,5 @@ p_teca_dataset teca_cf_reader::execute(
     const teca_metadata &request)
 {
 
+    return nullptr;
 }
