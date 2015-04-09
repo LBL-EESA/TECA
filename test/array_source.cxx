@@ -61,14 +61,14 @@ teca_metadata array_source::get_output_metadata(
     vector<double> time;
     for (unsigned int i = 0; i < this->number_of_timesteps; ++i)
         time.push_back(this->time_delta*(i+1));
-    output_md.set("time", time);
+    output_md.insert("time", time);
 
     // report array extents
     vector<unsigned int> extent = {0, this->array_size};
-    output_md.set("extent", extent);
+    output_md.insert("extent", extent);
 
     // report array names
-    output_md.set("array_names", this->array_names);
+    output_md.insert("array_names", this->array_names);
 
     return output_md;
 }

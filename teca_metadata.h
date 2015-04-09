@@ -24,26 +24,89 @@ public:
     teca_metadata(teca_metadata &&other) TECA_NOEXCEPT;
     teca_metadata &operator=(teca_metadata &&other) TECA_NOEXCEPT;
 
-    // set from a scalar property
-    template<typename T>
-    void set(const std::string &name, const T &val);
+    // get the length of the named property. return 0 if successful
+    int size(
+        const std::string &name,
+        unsigned int &size) const TECA_NOEXCEPT;
 
-    // set from an array of length n
-    template<typename T>
-    void set(const std::string &name, const T *val, unsigned int n);
+    // resize the named property
+    void resize(const std::string &name, unsigned int n);
 
-    // set from a vector
+    // declare a property. properties must be declared or inserted
+    // before accessing them via set/get.
     template<typename T>
-    void set(const std::string &name, const std::vector<T> &val);
+    void declare(const std::string &name);
 
-    // set a variant array
-    void set(
+    template<typename T>
+    void declare(const std::string &name, unsigned int n);
+
+    // insert a scalar value. if the property doesn't exist
+    // it is created. if it does it is replaced.
+    template<typename T>
+    void insert(const std::string &name, const T &val);
+
+    // insert an array of length n. if the property doesn't exist
+    // it is created. if it does it is replaced.
+    template<typename T>
+    void insert(const std::string &name, const T *val, unsigned int n);
+
+    // insert a vector. if the property doesn't exist
+    // it is created. if it does it is replaced.
+    template<typename T>
+    void insert(const std::string &name, const std::vector<T> &val);
+
+    // insert a variant array directly. if the property doesn't exist
+    // it is created. if it does it is replaced.
+    void insert(
         const std::string &name,
         p_teca_variant_array prop_val);
 
+    // append a value to the named property. does
+    // nothing if the property doesn't exist. return 0
+    // on success.
+    template<typename T>
+    int append(const std::string &name, const T &val);
+
+    // set a scalar. replaces the current value and does
+    // nothing if the property doesn't exist. return 0
+    // on success.
+    template<typename T>
+    int set(const std::string &name, const T &val)
+    { return this->set<T>(name, 0, val); }
+
+    // set the ith value from a scalar. replaces the current value and does
+    // nothing if the property doesn't exist. return 0
+    // on success.
+    template<typename T>
+    int set(const std::string &name, unsigned int i, const T &val);
+
+    // set an array of length n. replaces the current value and does
+    // nothing if the property doesn't exist. return 0
+    // on success.
+    template<typename T>
+    int set(const std::string &name, const T *val, unsigned int n);
+
+    // set a vector. replaces the current value and does
+    // nothing if the property doesn't exist. return 0
+    // on success.
+    template<typename T>
+    int set(const std::string &name, const std::vector<T> &val);
+
+    // set a variant array directly. replaces the current value and does
+    // nothing if the property doesn't exist. return 0
+    // on success.
+    int set(
+        const std::string &name,
+        p_teca_variant_array prop_val);
+
+    // get prop value. return 0 if successful
+    template<typename T>
+    int get(const std::string &name, T &val) const
+    { return this->get<T>(name, 0, val); }
+
     // get ith prop value. return 0 if successful
     template<typename T>
-    int get(const std::string &name, T &val) const;
+    int get(const std::string &name, unsigned int i, T &val) const;
 
     // get n prop values to an array. see also get_size.
     // return 0 if successful
@@ -57,10 +120,10 @@ public:
     template<typename T>
     int get(const std::string &name, std::vector<T> &val) const;
 
-    // get the length of the property value. return 0 if successful
-    int get_size(
-        const std::string &name,
-        unsigned int &size) const TECA_NOEXCEPT;
+    // get the variant array, or nullptr if the
+    // property doesn't exist
+    p_teca_variant_array get(const std::string &name);
+
 
     // remove. return 0 if successful
     int remove(const std::string &name) TECA_NOEXCEPT;
@@ -115,19 +178,55 @@ teca_metadata operator&(const teca_metadata &lhs, const teca_metadata &rhs);
 
 // --------------------------------------------------------------------------
 template<typename T>
-void teca_metadata::set(const std::string &name, const T &val)
+void teca_metadata::declare(const std::string &name)
 {
     p_teca_variant_array prop_val
-        = teca_variant_array_impl<T>::New(1);
-
-    prop_val->set(0, val);
+        = teca_variant_array_impl<T>::New();
 
     this->set(name, prop_val);
 }
 
 // --------------------------------------------------------------------------
 template<typename T>
-void teca_metadata::set(
+void teca_metadata::declare(const std::string &name, unsigned int n)
+{
+    p_teca_variant_array prop_val
+        = teca_variant_array_impl<T>::New(n);
+
+    this->set(name, prop_val);
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
+int teca_metadata::append(const std::string &name, const T &val)
+{
+    prop_map_t::iterator it = this->props.find(name);
+    if (it == this->props.end())
+    {
+        TECA_ERROR(
+            << "attempt to access non-existant property \""
+            << name << "\" ignored!")
+        return -1;
+    }
+
+    it->second->append(val);
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
+void teca_metadata::insert(const std::string &name, const T &val)
+{
+    p_teca_variant_array prop_val
+        = teca_variant_array_impl<T>::New(&val, 1);
+
+    this->props[name] = prop_val;
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
+void teca_metadata::insert(
     const std::string &name,
     const T *vals,
     unsigned int n_vals)
@@ -135,33 +234,92 @@ void teca_metadata::set(
     p_teca_variant_array prop_val
         = teca_variant_array_impl<T>::New(vals, n_vals);
 
-    this->set(name, prop_val);
+    this->props[name] = prop_val;
 }
 
 // --------------------------------------------------------------------------
 template<typename T>
-void teca_metadata::set(
+void teca_metadata::insert(
     const std::string &name,
     const std::vector<T> &vals)
 {
-    unsigned int n_vals = vals.size();
+    size_t n = vals.size();
 
     p_teca_variant_array prop_val
-        = teca_variant_array_impl<T>::New(&vals[0], n_vals);
+        = teca_variant_array_impl<T>::New(&vals[0], n);
 
-    this->set(name, prop_val);
+    this->props[name] = prop_val;
 }
 
 // --------------------------------------------------------------------------
 template<typename T>
-int teca_metadata::get(const std::string &name, T &val) const
+int teca_metadata::set(const std::string &name, unsigned int i, const T &val)
+{
+    prop_map_t::iterator it = this->props.find(name);
+    if (it == this->props.end())
+    {
+        TECA_ERROR(
+            << "attempt to access non-existant property \""
+            << name << "\" ignored!")
+        return -1;
+    }
+
+    it->second->set(i, val);
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
+int teca_metadata::set(
+    const std::string &name,
+    const T *vals,
+    unsigned int n_vals)
+{
+    prop_map_t::iterator it = this->props.find(name);
+    if (it == this->props.end())
+    {
+        TECA_ERROR(
+            << "attempt to access non-existant property \""
+            << name << "\" ignored!")
+        return -1;
+    }
+
+    it->second->set(0, n_vals-1, vals);
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
+int teca_metadata::set(
+    const std::string &name,
+    const std::vector<T> &vals)
+{
+    prop_map_t::iterator it = this->props.find(name);
+    if (it == this->props.end())
+    {
+        TECA_ERROR(
+            << "attempt to access non-existant property \""
+            << name << "\" ignored!")
+        return -1;
+    }
+
+    it->second->set(vals);
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
+int teca_metadata::get(const std::string &name, unsigned int i, T &val) const
 {
     prop_map_t::const_iterator it = this->props.find(name);
 
     if (it == this->props.end())
         return -1;
 
-    it->second->get(0, val);
+    it->second->get(i, val);
 
     return 0;
 }
@@ -193,7 +351,7 @@ int teca_metadata::get(
     if (it == this->props.end())
         return -1;
 
-    it->second->get(vals, vals+n);
+    it->second->get(0, n-1, vals);
 
     return 0;
 }

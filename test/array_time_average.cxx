@@ -93,8 +93,8 @@ std::vector<teca_metadata> array_time_average::get_upstream_request(
     for (size_t i = 0; i < n; ++i)
     {
         teca_metadata up_req(request);
-        up_req.set("array_name", active_array);
-        up_req.set("time", active_times[i]);
+        up_req.insert("array_name", active_array);
+        up_req.insert("time", active_times[i]);
         up_reqs.push_back(up_req);
     }
 
