@@ -61,6 +61,7 @@ private:
     std::string y_axis_variable;
     std::string z_axis_variable;
     std::string t_axis_variable;
+    teca_metadata md;
 };
 
 #endif

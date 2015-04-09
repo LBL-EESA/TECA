@@ -32,6 +32,10 @@ public:
     p_teca_array_collection get_face_arrays()
     { return m_impl->face_arrays; }
 
+    // get non-geometric data
+    p_teca_array_collection get_information_arrays()
+    { return m_impl->info_arrays; }
+
     // return true if the dataset is empty.
     virtual bool empty() const TECA_NOEXCEPT override;
 
@@ -66,6 +70,7 @@ public:
         p_teca_array_collection cell_arrays;
         p_teca_array_collection edge_arrays;
         p_teca_array_collection face_arrays;
+        p_teca_array_collection info_arrays;
     };
     std::shared_ptr<impl_t> m_impl;
 };

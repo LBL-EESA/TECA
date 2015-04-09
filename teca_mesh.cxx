@@ -25,6 +25,7 @@ void teca_mesh::copy(const const_p_teca_dataset &dataset)
     m_impl->cell_arrays->copy(other->m_impl->cell_arrays);
     m_impl->edge_arrays->copy(other->m_impl->edge_arrays);
     m_impl->face_arrays->copy(other->m_impl->face_arrays);
+    m_impl->info_arrays->copy(other->m_impl->info_arrays);
 }
 
 // --------------------------------------------------------------------------
@@ -46,6 +47,7 @@ void teca_mesh::shallow_copy(const p_teca_dataset &dataset)
     m_impl->cell_arrays->shallow_copy(other->m_impl->cell_arrays);
     m_impl->edge_arrays->shallow_copy(other->m_impl->edge_arrays);
     m_impl->face_arrays->shallow_copy(other->m_impl->face_arrays);
+    m_impl->info_arrays->shallow_copy(other->m_impl->info_arrays);
 }
 
 // --------------------------------------------------------------------------
@@ -87,6 +89,7 @@ void teca_mesh::to_stream(teca_binary_stream &s) const
     m_impl->cell_arrays->to_stream(s);
     m_impl->edge_arrays->to_stream(s);
     m_impl->face_arrays->to_stream(s);
+    m_impl->info_arrays->to_stream(s);
 }
 
 // --------------------------------------------------------------------------
@@ -97,6 +100,7 @@ void teca_mesh::from_stream(teca_binary_stream &s)
     m_impl->cell_arrays->from_stream(s);
     m_impl->edge_arrays->from_stream(s);
     m_impl->face_arrays->from_stream(s);
+    m_impl->info_arrays->from_stream(s);
 }
 
 // --------------------------------------------------------------------------
@@ -112,5 +116,6 @@ bool teca_mesh::empty() const TECA_NOEXCEPT
         !( m_impl->point_arrays->size()
         || m_impl->cell_arrays->size()
         || m_impl->edge_arrays->size()
-        || m_impl->face_arrays->size());
+        || m_impl->face_arrays->size()
+        || m_impl->info_arrays->size());
 }

@@ -21,8 +21,8 @@ public:
     // set/get metadata
     TECA_DATASET_METADATA(time, double, 1, m_impl->metadata)
     TECA_DATASET_METADATA(time_step, unsigned long, 1, m_impl->metadata)
+    TECA_DATASET_METADATA(whole_extent, unsigned long, 6, m_impl->metadata)
     TECA_DATASET_METADATA(extent, unsigned long, 6, m_impl->metadata)
-    TECA_DATASET_METADATA(local_extent, unsigned long, 6, m_impl->metadata)
 
     // get coordinate arrays
     p_teca_variant_array get_x_coordinates()
@@ -57,8 +57,9 @@ public:
     virtual void copy(const const_p_teca_dataset &) override;
     virtual void shallow_copy(const p_teca_dataset &) override;
 
+    // TODO -- should override and copy coordinate arrays
     // copy metadata. always a deep copy.
-    virtual void copy_metadata(const const_p_teca_dataset &) override;
+    //virtual void copy_metadata(const const_p_teca_dataset &) override;
 
     // swap internals of the two objects
     virtual void swap(p_teca_dataset &) override;
