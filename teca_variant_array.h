@@ -60,6 +60,7 @@ public:
     // virtual copy construct. return a new'ly allocated object,
     // initialized copy from this. caller must delete.
     virtual p_teca_variant_array new_copy() const = 0;
+    virtual p_teca_variant_array new_copy(size_t start, size_t end) const = 0;
 
     // return true if values are equal
     bool operator==(const teca_variant_array &other)
@@ -76,8 +77,8 @@ public:
     { this->get_dispatch<T>(vals); }
 
     template<typename T>
-    void get(T *begin, T *end) const
-    { this->get_dispatch<T>(begin, end); }
+    void get(size_t start, size_t end, T *vals) const
+    { this->get_dispatch<T>(start, end, vals); }
 
     // set methods. could throw std::bad_cast if the
     // passed in type is not castable to the internal type.
@@ -90,8 +91,8 @@ public:
     { this->set_dispatch<T>(i, val); }
 
     template<typename T>
-    void set(const T *begin, const T *end)
-    { this->set_dispatch<T>(begin, end); }
+    void set(size_t start, size_t end, const T *vals)
+    { this->set_dispatch<T>(start, end, vals); }
 
     // append methods. could throw std::bad_cast if the
     // passed in type is not castable to the internal type.
@@ -180,11 +181,11 @@ private:
         typename std::enable_if<object_dispatch<T>::value, T>::type* = 0);
 
     template<typename T>
-    void set_dispatch(const T *begin, const T *end,
+    void set_dispatch(size_t start, size_t end, const T *vals,
         typename std::enable_if<pod_dispatch<T>::value, T>::type* = 0);
 
     template<typename T>
-    void set_dispatch(const T *begin, const T *end,
+    void set_dispatch(size_t start, size_t end, const T *vals,
         typename std::enable_if<object_dispatch<T>::value, T>::type* = 0);
 
     template<typename T>
@@ -204,11 +205,11 @@ private:
         typename std::enable_if<object_dispatch<T>::value, T>::type* = 0) const;
 
     template<typename T>
-    void get_dispatch(T *begin, T *end,
+    void get_dispatch(size_t start, size_t end, T *vals,
         typename std::enable_if<pod_dispatch<T>::value, T>::type* = 0) const;
 
     template<typename T>
-    void get_dispatch(T *begin, T *end,
+    void get_dispatch(size_t start, size_t end, T *vals,
         typename std::enable_if<object_dispatch<T>::value, T>::type* = 0) const;
 };
 
@@ -256,6 +257,7 @@ public:
 
     // virtual constructor
     virtual p_teca_variant_array new_copy() const override;
+    virtual p_teca_variant_array new_copy(size_t start, size_t end) const override;
     virtual p_teca_variant_array new_instance() const override;
 
     // copy
@@ -273,13 +275,20 @@ public:
     operator=(teca_variant_array_impl<T> &&other);
 
     // get the ith value
+    T &get(unsigned long i)
+    { return m_data[i]; }
+
+    const T &get(unsigned long i) const
+    { return m_data[i]; }
+
+    // get the ith value
     template<typename U>
     void get(unsigned long i, U &val) const;
 
-    // get n values from the begining of the data as
-    // described by the passed in range
+    // get a range of values decribed by [start end]
+    // inclusive
     template<typename U>
-    void get(U *beg, U *end) const;
+    void get(size_t start, size_t end, U *vals) const;
 
     // copy the data out into the passed in vector
     template<typename U>
@@ -292,10 +301,10 @@ public:
     template<typename U>
     void set(unsigned long i, const U &val);
 
-    // copy data, replacing contents described by the
-    // passed in range
+    // set a range opf values described by [start end]
+    // inclusive
     template<typename U>
-    void set(const U *beg, const U *end);
+    void set(size_t start, size_t end, const U *vals);
 
     // copy data, replacing contents with the passed in
     // vector
@@ -457,14 +466,16 @@ private:
 // t - templated derived type
 // p - pointer
 // body - code to execute on match
-#define TEMPLATE_DISPATCH(t, p, body)                   \
-    TEMPLATE_DISPATCH_CASE(t, char, p, body)            \
-    TEMPLATE_DISPATCH_CASE(t, unsigned char, p, body)   \
-    TEMPLATE_DISPATCH_CASE(t, int, p, body)             \
-    TEMPLATE_DISPATCH_CASE(t, unsigned int, p, body)    \
-    TEMPLATE_DISPATCH_CASE(t, long, p, body)            \
-    TEMPLATE_DISPATCH_CASE(t, unsigned long, p, body)   \
-    TEMPLATE_DISPATCH_CASE(t, float, p, body)           \
+#define TEMPLATE_DISPATCH(t, p, body)                       \
+    TEMPLATE_DISPATCH_CASE(t, char, p, body)                \
+    TEMPLATE_DISPATCH_CASE(t, unsigned char, p, body)       \
+    TEMPLATE_DISPATCH_CASE(t, short int, p, body)           \
+    TEMPLATE_DISPATCH_CASE(t, short unsigned int, p, body)  \
+    TEMPLATE_DISPATCH_CASE(t, int, p, body)                 \
+    TEMPLATE_DISPATCH_CASE(t, unsigned int, p, body)        \
+    TEMPLATE_DISPATCH_CASE(t, long, p, body)                \
+    TEMPLATE_DISPATCH_CASE(t, unsigned long, p, body)       \
+    TEMPLATE_DISPATCH_CASE(t, float, p, body)               \
     TEMPLATE_DISPATCH_CASE(t, double, p, body)
 
 // --------------------------------------------------------------------------
@@ -521,12 +532,12 @@ void teca_variant_array::get_dispatch(unsigned long i, T &val,
 
 // --------------------------------------------------------------------------
 template<typename T>
-void teca_variant_array::get_dispatch(T *begin, T *end,
+void teca_variant_array::get_dispatch(size_t start, size_t end, T *vals,
     typename std::enable_if<pod_dispatch<T>::value, T>::type*) const
 {
     TEMPLATE_DISPATCH(const teca_variant_array_impl, this,
         TT *this_t = static_cast<TT*>(this);
-        this_t->get(begin, end);
+        this_t->get(start, end, vals);
         return;
         )
     throw std::bad_cast();
@@ -534,12 +545,12 @@ void teca_variant_array::get_dispatch(T *begin, T *end,
 
 // --------------------------------------------------------------------------
 template<typename T>
-void teca_variant_array::get_dispatch(T *begin, T *end,
+void teca_variant_array::get_dispatch(size_t start, size_t end, T *vals,
     typename std::enable_if<object_dispatch<T>::value, T>::type*) const
 {
     TEMPLATE_DISPATCH_CASE(const teca_variant_array_impl, T, this,
         TT *this_t = static_cast<TT*>(this);
-        this_t->get(begin, end);
+        this_t->get(start, end, vals);
         return;
         )
     throw std::bad_cast();
@@ -599,12 +610,12 @@ void teca_variant_array::set_dispatch(unsigned long i, const T &val,
 
 // --------------------------------------------------------------------------
 template<typename T>
-void teca_variant_array::set_dispatch(const T *begin, const T *end,
+void teca_variant_array::set_dispatch(size_t start, size_t end, const T *vals,
     typename std::enable_if<pod_dispatch<T>::value, T>::type*)
 {
     TEMPLATE_DISPATCH(teca_variant_array_impl, this,
         TT *this_t = static_cast<TT*>(this);
-        this_t->set(begin, end);
+        this_t->set(start, end, vals);
         return;
         )
     throw std::bad_cast();
@@ -612,12 +623,12 @@ void teca_variant_array::set_dispatch(const T *begin, const T *end,
 
 // --------------------------------------------------------------------------
 template<typename T>
-void teca_variant_array::set_dispatch(const T *begin, const T *end,
+void teca_variant_array::set_dispatch(size_t start, size_t end, const T *vals,
     typename std::enable_if<object_dispatch<T>::value, T>::type*)
 {
     TEMPLATE_DISPATCH_CASE(const teca_variant_array_impl, T, this,
         TT *this_t = static_cast<TT*>(this);
-        this_t->set(begin, end);
+        this_t->set(start, end, vals);
         return;
         )
     throw std::bad_cast();
@@ -695,6 +706,16 @@ p_teca_variant_array teca_variant_array_impl<T>::new_copy() const
 
 // --------------------------------------------------------------------------
 template<typename T>
+p_teca_variant_array teca_variant_array_impl<T>::new_copy(
+    size_t start, size_t end) const
+{
+    p_teca_variant_array_impl<T> c = teca_variant_array_impl<T>::New(end-start+1);
+    this->get(start, end, c->get());
+    return c;
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
 p_teca_variant_array teca_variant_array_impl<T>::new_instance() const
 {
     return p_teca_variant_array(new teca_variant_array_impl<T>());
@@ -747,11 +768,10 @@ void teca_variant_array_impl<T>::get(unsigned long i, U &val) const
 // --------------------------------------------------------------------------
 template<typename T>
 template<typename U>
-void teca_variant_array_impl<T>::get(U *beg, U *end) const
+void teca_variant_array_impl<T>::get(size_t start, size_t end, U *vals) const
 {
-    typename std::vector<T>::iterator data_it = m_data.begin();
-    for (T *it = beg; it != end; ++it)
-        *it = *data_it;
+    for (size_t i = start, ii = 0; i <= end; ++i, ++ii)
+        vals[ii] = m_data[i];
 }
 
 // --------------------------------------------------------------------------
@@ -773,9 +793,10 @@ void teca_variant_array_impl<T>::set(unsigned long i, const U &val)
 // --------------------------------------------------------------------------
 template<typename T>
 template<typename U>
-void teca_variant_array_impl<T>::set(const U *beg, const U *end)
+void teca_variant_array_impl<T>::set(size_t start, size_t end, const U *vals)
 {
-    m_data.assign(beg, end);
+    for (size_t i = start, ii = 0; i <= end; ++i, ++ii)
+        m_data[i] = vals[ii];
 }
 
 // --------------------------------------------------------------------------
@@ -783,7 +804,10 @@ template<typename T>
 template<typename U>
 void teca_variant_array_impl<T>::set(const std::vector<U> &val)
 {
-    m_data = val;
+    size_t n = val.size();
+    m_data.resize(n);
+    for (size_t i = 0; i < n; ++i)
+        m_data[i] = static_cast<T>(val[i]);
 }
 
 // --------------------------------------------------------------------------
@@ -930,6 +954,9 @@ void teca_variant_array_impl<T>::from_binary(
        this->m_data[i].from_stream(s);
 }
 
+#define STR_DELIM(_a, _b) \
+    (std::is_same<T, std::string>::value ? _a : _b)
+
 // --------------------------------------------------------------------------
 template<typename T>
     template <typename U>
@@ -940,14 +967,12 @@ void teca_variant_array_impl<T>::to_ascii(
     size_t n = this->m_data.size();
     if (n)
     {
-        s << (std::is_same<T, std::string>::value ? "\"" : "")
-            << this->m_data[0]
-            << (std::is_same<T, std::string>::value ? "\"" : "");
+        s << STR_DELIM("\"", "")
+             << this->m_data[0] << STR_DELIM("\"", "");
         for (size_t i = 1; i < n; ++i)
         {
-            s << (std::is_same<T, std::string>::value ? ", \"" : ", ")
-                << this->m_data[i]
-                << (std::is_same<T, std::string>::value ? "\"" : "");
+            s << STR_DELIM(", \"", ", ")
+                << this->m_data[i] << STR_DELIM("\"", "");
         }
     }
 }
@@ -1027,14 +1052,16 @@ TECA_VARIANT_ARRAY_TT_SPEC(char, 1)
 TECA_VARIANT_ARRAY_TT_SPEC(unsigned char, 2)
 TECA_VARIANT_ARRAY_TT_SPEC(int, 3)
 TECA_VARIANT_ARRAY_TT_SPEC(unsigned int, 4)
-TECA_VARIANT_ARRAY_TT_SPEC(long, 5)
-TECA_VARIANT_ARRAY_TT_SPEC(unsigned long, 6)
-TECA_VARIANT_ARRAY_TT_SPEC(long long, 7)
-TECA_VARIANT_ARRAY_TT_SPEC(unsigned long long, 8)
-TECA_VARIANT_ARRAY_TT_SPEC(float, 9)
-TECA_VARIANT_ARRAY_TT_SPEC(double, 10)
-TECA_VARIANT_ARRAY_TT_SPEC(std::string, 11)
-TECA_VARIANT_ARRAY_TT_SPEC(teca_metadata, 12)
+TECA_VARIANT_ARRAY_TT_SPEC(short int, 5)
+TECA_VARIANT_ARRAY_TT_SPEC(short unsigned int, 6)
+TECA_VARIANT_ARRAY_TT_SPEC(long, 7)
+TECA_VARIANT_ARRAY_TT_SPEC(unsigned long, 8)
+TECA_VARIANT_ARRAY_TT_SPEC(long long, 9)
+TECA_VARIANT_ARRAY_TT_SPEC(unsigned long long, 10)
+TECA_VARIANT_ARRAY_TT_SPEC(float, 11)
+TECA_VARIANT_ARRAY_TT_SPEC(double, 12)
+TECA_VARIANT_ARRAY_TT_SPEC(std::string, 13)
+TECA_VARIANT_ARRAY_TT_SPEC(teca_metadata, 14)
 
 struct teca_variant_array_factory
 {
@@ -1054,6 +1081,8 @@ struct teca_variant_array_factory
         TECA_VARIANT_ARRAY_FACTORY_NEW(10)
         TECA_VARIANT_ARRAY_FACTORY_NEW(11)
         TECA_VARIANT_ARRAY_FACTORY_NEW(12)
+        TECA_VARIANT_ARRAY_FACTORY_NEW(13)
+        TECA_VARIANT_ARRAY_FACTORY_NEW(14)
         default:
             TECA_ERROR(
                 << "Failed to create from "

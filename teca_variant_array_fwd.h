@@ -2,6 +2,7 @@
 #define teca_variant_array_fwd_h
 
 #include <memory>
+#include <string>
 
 class teca_variant_array;
 using p_teca_variant_array = std::shared_ptr<teca_variant_array>;
@@ -17,16 +18,39 @@ template<typename T>
 using const_p_teca_variant_array_impl = std::shared_ptr<teca_variant_array_impl<const T>>;
 
 // convenience defs for POD types
+using teca_string_array = teca_variant_array_impl<std::string>;
+using p_teca_string_array = std::shared_ptr<teca_variant_array_impl<std::string>>;
+using const_p_teca_string_array = std::shared_ptr<teca_variant_array_impl<std::string>>;
 using teca_float_array = teca_variant_array_impl<float>;
+using p_teca_float_array = std::shared_ptr<teca_variant_array_impl<float>>;
+using const_p_teca_float_array = std::shared_ptr<teca_variant_array_impl<float>>;
 using teca_double_array = teca_variant_array_impl<double>;
-using teca_int_array = teca_variant_array_impl<int>;
-using teca_unsigned_int_array = teca_variant_array_impl<unsigned int>;
+using p_teca_double_array = std::shared_ptr<teca_variant_array_impl<double>>;
+using const_p_teca_double_array = std::shared_ptr<teca_variant_array_impl<double>>;
 using teca_char_array = teca_variant_array_impl<char>;
+using p_teca_char_array = std::shared_ptr<teca_variant_array_impl<char>>;
+using const_p_teca_char_array = std::shared_ptr<teca_variant_array_impl<char>>;
 using teca_unsigned_char_array = teca_variant_array_impl<unsigned char>;
+using p_teca_unsigned_char_array = std::shared_ptr<teca_variant_array_impl<unsigned char>>;
+using const_p_teca_unsigned_char_array = std::shared_ptr<teca_variant_array_impl<unsigned char>>;
+using teca_int_array = teca_variant_array_impl<int>;
+using p_teca_int_array = std::shared_ptr<teca_variant_array_impl<int>>;
+using const_p_teca_int_array = std::shared_ptr<teca_variant_array_impl<int>>;
+using teca_unsigned_int_array = teca_variant_array_impl<unsigned int>;
+using p_teca_unsigned_int_array = std::shared_ptr<teca_variant_array_impl<unsigned int>>;
+using const_p_teca_unsigned_int_array = std::shared_ptr<teca_variant_array_impl<unsigned int>>;
 using teca_long_array = teca_variant_array_impl<long>;
+using p_teca_long_array = std::shared_ptr<teca_variant_array_impl<long>>;
+using const_p_teca_long_array = std::shared_ptr<teca_variant_array_impl<long>>;
 using teca_unsigned_long_array = teca_variant_array_impl<unsigned long>;
+using p_teca_unsigned_long_array = std::shared_ptr<teca_variant_array_impl<unsigned long>>;
+using const_p_teca_unsigned_long_array = std::shared_ptr<teca_variant_array_impl<unsigned long>>;
 using teca_long_long_array = teca_variant_array_impl<long long>;
+using p_teca_long_long_array = std::shared_ptr<teca_variant_array_impl<long long>>;
+using const_p_teca_long_long_array = std::shared_ptr<teca_variant_array_impl<long long>>;
 using teca_unsigned_long_long_array = teca_variant_array_impl<unsigned long long>;
+using p_teca_unsigned_long_long_array = std::shared_ptr<teca_variant_array_impl<unsigned long long>>;
+using const_p_teca_unsigned_long_long_array = std::shared_ptr<teca_variant_array_impl<unsigned long long>>;
 
 // this is a convenience macro to be used to declare a static
 // New method that will be used to construct new objects in
