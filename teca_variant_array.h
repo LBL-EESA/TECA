@@ -431,7 +431,7 @@ private:
     friend class teca_variant_array;
     template<typename U> friend class teca_variant_array_impl;
 };
-
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
 #pragma GCC diagnostic ignored "-Wunused-local-typedefs"
 
 // tt<nt> - derived type

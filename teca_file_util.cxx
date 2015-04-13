@@ -113,7 +113,12 @@ int locate_files(
             path.c_str(),
             &entries,
             teca_file_util::scandir_filter,
-            versionsort);
+#ifdef __APPLE__
+            alphasort
+#else
+            versionsort
+#endif
+            );
 
     if (n_files < 0)
     {

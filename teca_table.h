@@ -93,7 +93,7 @@ protected:
     teca_table();
     teca_table(const teca_table &other) = default;
     teca_table(teca_table &&other) = default;
-    teca_table &operator=(teca_table &other) = default;
+    teca_table &operator=(const teca_table &other) = default;
     void declare_columns(){}
     void append(){}
 

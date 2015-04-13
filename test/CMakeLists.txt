@@ -45,12 +45,14 @@ target_link_libraries(
 add_executable(test_table test_table.cpp)
 target_link_libraries(test_table teca)
 
-add_executable(
-    test_cf_reader
-    test_cf_reader.cpp
-    cf_reader_driver.cxx
-    )
-target_link_libraries(test_cf_reader teca)
+if (NETCDF_FOUND)
+    add_executable(
+        test_cf_reader
+        test_cf_reader.cpp
+        cf_reader_driver.cxx
+        )
+    target_link_libraries(test_cf_reader teca)
+endif()
 
 if (MPI_CXX_FOUND)
     target_link_libraries(
