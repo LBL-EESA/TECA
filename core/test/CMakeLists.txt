@@ -1,5 +1,9 @@
-cmake_minimum_required(VERSION 2.8)
-project(teca_test)
+project(teca_core_test)
+
+include_directories(
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    $<TARGET_PROPERTY:teca_core,INTERFACE_INCLUDE_DIRECTORIES>
+    )
 
 set(array_test_srcs
     array.cxx
@@ -13,7 +17,7 @@ set(array_test_srcs
     )
 
 add_library(teca_test_array ${array_test_srcs})
-target_link_libraries(teca_test_array teca)
+target_link_libraries(teca_test_array teca_core)
 
 add_executable(
     test_array_time_average
@@ -21,7 +25,7 @@ add_executable(
     )
 target_link_libraries(
     test_array_time_average
-    teca teca_test_array
+    teca_core teca_test_array
     )
 
 add_executable(
@@ -30,7 +34,7 @@ add_executable(
     )
 target_link_libraries(
     test_array_branches
-    teca teca_test_array
+    teca_core teca_test_array
     )
 
 add_executable(
@@ -39,20 +43,8 @@ add_executable(
     )
 target_link_libraries(
     test_array_temporal_reduction
-    teca teca_test_array
+    teca_core teca_test_array
     )
-
-add_executable(test_table test_table.cpp)
-target_link_libraries(test_table teca)
-
-if (NETCDF_FOUND AND VTK_FOUND)
-    add_executable(
-        test_cf_reader
-        test_cf_reader.cpp
-        )
-    target_link_libraries(test_cf_reader teca)
-endif()
-
 if (MPI_CXX_FOUND)
     target_link_libraries(
         test_array_temporal_reduction
