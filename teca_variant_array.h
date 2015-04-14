@@ -475,6 +475,8 @@ private:
     TEMPLATE_DISPATCH_CASE(t, unsigned int, p, body)        \
     TEMPLATE_DISPATCH_CASE(t, long, p, body)                \
     TEMPLATE_DISPATCH_CASE(t, unsigned long, p, body)       \
+    TEMPLATE_DISPATCH_CASE(t, long long, p, body)           \
+    TEMPLATE_DISPATCH_CASE(t, unsigned long long, p, body)  \
     TEMPLATE_DISPATCH_CASE(t, float, p, body)               \
     TEMPLATE_DISPATCH_CASE(t, double, p, body)
 
