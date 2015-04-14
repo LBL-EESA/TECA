@@ -69,6 +69,7 @@ public:
 
     // set the executive
     void set_executive(p_teca_algorithm_executive exec);
+    p_teca_algorithm_executive get_executive();
 
 protected:
     teca_algorithm();

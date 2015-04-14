@@ -479,6 +479,12 @@ void teca_algorithm::set_executive(p_teca_algorithm_executive exec)
 }
 
 // --------------------------------------------------------------------------
+p_teca_algorithm_executive teca_algorithm::get_executive()
+{
+    return this->internals->get_executive();
+}
+
+// --------------------------------------------------------------------------
 void teca_algorithm::set_number_of_input_connections(unsigned int n)
 {
     this->internals->set_number_of_inputs(n);
