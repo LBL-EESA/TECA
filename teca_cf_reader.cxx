@@ -89,9 +89,15 @@ teca_metadata teca_cf_reader::get_output_metadata(
         return teca_metadata();
     }
 
+    // fix up file names
+    size_t n_files = files.size();
+
+    for (size_t i = 0; i < n_files; ++i)
+        files[i] = path + PATH_SEP + files[i];
+
     int ierr = 0;
     int file_id = 0;
-    string file = path + PATH_SEP + files[0];
+    const string &file = files[0];
 
     // get mesh coordinates and dimensions
     int x_id = 0;
@@ -287,10 +293,12 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
     // collect time steps from this and the rest of the files
     vector<unsigned long> step_count;
+    unsigned long number_of_time_steps = 0;
 
     p_teca_variant_array t_axis;
     if (!t_axis_variable.empty())
     {
+        number_of_time_steps += n_t;
         step_count.push_back(n_t);
 
         NC_DISPATCH_FP(t_t,
@@ -307,10 +315,9 @@ teca_metadata teca_cf_reader::get_output_metadata(
             t_axis = t;
             )
 
-        size_t n_files = files.size();
         for (size_t i = 1; i < n_files; ++i)
         {
-            string file = path + PATH_SEP + files[i];
+            const string &file = files[i];
             if (((ierr = nc_open(file.c_str(), NC_NOWRITE, &file_id)) != NC_NOERR)
                 || ((ierr = nc_inq_dimid(file_id, t_axis_variable.c_str(), &t_id)) != NC_NOERR)
                 || ((ierr = nc_inq_dimlen(file_id, t_id, &n_t)) != NC_NOERR)
@@ -324,6 +331,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 return teca_metadata();
             }
 
+            number_of_time_steps += n_t;
             step_count.push_back(n_t);
 
             NC_DISPATCH_FP(t_t,
@@ -354,6 +362,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
     }
     else
     {
+        number_of_time_steps = 1;
         step_count.push_back(1);
 
         NC_DISPATCH_FP(x_t,
@@ -377,11 +386,11 @@ teca_metadata teca_cf_reader::get_output_metadata(
     whole_extent[1] = n_x - 1;
     whole_extent[3] = n_y - 1;
     whole_extent[5] = n_z - 1;
-    coords.insert("whole_extent", whole_extent);
-
+    this->md.insert("whole_extent", whole_extent);
     this->md.insert("coordinates", coords);
     this->md.insert("files", files);
     this->md.insert("step_count", step_count);
+    this->md.insert("number_of_time_steps", number_of_time_steps);
 
     return this->md;
 }
@@ -392,6 +401,8 @@ p_teca_dataset teca_cf_reader::execute(
     const std::vector<p_teca_dataset> &input_data,
     const teca_metadata &request)
 {
+    (void)input_data;
+
     // get coordinates
     teca_metadata coords;
     if (this->md.get("coordinates", coords))
@@ -401,8 +412,8 @@ p_teca_dataset teca_cf_reader::execute(
     }
 
     p_teca_variant_array in_x, in_y, in_z, in_t;
-    if (coords.get("x", in_x) || coords.get("y", in_y)
-        || coords.get("z", in_z) || coords.get("t", in_t))
+    if (!(in_x = coords.get("x")) || !(in_y = coords.get("y"))
+        || !(in_z = coords.get("z")) || !(in_t = coords.get("t")))
     {
         TECA_ERROR("metadata is missing coordinate arrays")
         return nullptr;
@@ -448,7 +459,7 @@ p_teca_dataset teca_cf_reader::execute(
     unsigned long idx = 0;
     unsigned long count = 0;
     for (unsigned int i = 1;
-        (count + step_count[i] < time_step) && (i < step_count.size());
+        (i < step_count.size()) && ((count + step_count[i]) <= time_step);
         count += step_count[i], ++idx, ++i)
     {}
     unsigned long offs = time_step - count;
@@ -560,12 +571,14 @@ p_teca_dataset teca_cf_reader::execute(
                 || ((ierr = nc_close(file_id)) != NC_NOERR))
             {
                 nc_close(file_id);
-                TECA_ERROR("Failed to read " << arrays[i])
+                TECA_ERROR(
+                    << "Failed to read " << arrays[i] << " "
+                    << file << endl << nc_strerror(ierr))
                 continue;
             }
             array = a;
             )
-        mesh->get_point_arrays()->add(arrays[i], array);
+        mesh->get_point_arrays()->append(arrays[i], array);
     }
 
     return mesh;

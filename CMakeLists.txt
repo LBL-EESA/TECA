@@ -15,6 +15,7 @@ set(teca_srcs
     teca_table.cxx
     teca_temporal_reduction.cxx
     teca_threaded_algorithm.cxx
+    teca_time_step_executive.cxx
     teca_uniform_cartesian_mesh.cxx
     teca_variant_array.cxx
     )
@@ -61,6 +62,15 @@ if (NETCDF_FOUND)
     include_directories(${NETCDF_INCLUDE_DIRS})
 endif()
 
+find_package(VTK QUIET)
+if (VTK_FOUND)
+    message(STATUS "VTK support -- enabled")
+    include(${VTK_USE_FILE})
+    list(APPEND teca_srcs teca_vtk_cartesian_mesh_writer.cxx)
+else()
+    message(STATUS "VTK support -- not found. set VTK_DIR to enable.")
+endif()
+
 add_library(teca ${teca_srcs})
 
 if (MPI_CXX_FOUND)
@@ -70,6 +80,10 @@ endif()
 if (NETCDF_FOUND)
     target_link_libraries(teca ${NETCDF_LIBRARIES})
 endif()
+
+if (VTK_FOUND)
+    target_link_libraries(teca ${VTK_LIBRARIES})
+ endif()
 
 set(BUILD_TESTING OFF CACHE BOOL "Enable tests")
 if (BUILD_TESTING)

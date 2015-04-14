@@ -1,24 +1,55 @@
 #include "teca_cf_reader.h"
-#include "cf_reader_driver.h"
+#include "teca_vtk_cartesian_mesh_writer.h"
+#include "teca_time_step_executive.h"
 
+#include <vector>
+#include <string>
 #include <iostream>
 using namespace std;
 
+// example use
+// ./test/test_cf_reader ~/work/teca/data/'cam5_1_amip_run2.cam2.h2.1991-10-.*' tmp 0 -1 PS
+
 int main(int argc, char **argv)
 {
-    if (argc < 2)
+    if (argc < 6)
     {
-        cerr << "Usage error: set files regex on command line" << endl;
+        cerr << endl << "Usage error:" << endl
+            << "test_cf_reader [input regex] [output base] [first step] [last step] [array] [array] ..." << endl
+            << endl;
         return -1;
     }
 
+    // parse command line
+    string regex = argv[1];
+    string base = argv[2];
+    long first_step = atoi(argv[3]);
+    long last_step = atoi(argv[4]);
+    vector<string> arrays;
+    arrays.push_back(argv[5]);
+    for (int i = 6; i < argc; ++i)
+        arrays.push_back(argv[i]);
+
+    // create the cf reader
     p_teca_cf_reader r = teca_cf_reader::New();
     r->set_files_regex(argv[1]);
 
-    p_cf_reader_driver d = cf_reader_driver::New();
-    d->set_input_connection(r->get_output_port());
+    // create the vtk writer connected to the cf reader
+    p_teca_vtk_cartesian_mesh_writer w = teca_vtk_cartesian_mesh_writer::New();
+    w->set_base_file_name(argv[2]);
+    w->set_input_connection(r->get_output_port());
 
-    d->update();
+    // set the executive on the writer to stream time steps
+    p_teca_time_step_executive exec = teca_time_step_executive::New();
+    // optional
+    exec->set_first_step(first_step);
+    exec->set_last_step(last_step);
+    exec->set_arrays(arrays);
+
+    w->set_executive(exec);
+
+    // run the pipeline
+    w->update();
 
     return 0;
 }
