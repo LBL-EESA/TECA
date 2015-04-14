@@ -4,6 +4,11 @@
 teca_mesh::teca_mesh()
     : m_impl(std::make_shared<teca_mesh::impl_t>())
 {
+    m_impl->point_arrays = teca_array_collection::New();
+    m_impl->cell_arrays = teca_array_collection::New();
+    m_impl->edge_arrays = teca_array_collection::New();
+    m_impl->face_arrays = teca_array_collection::New();
+    m_impl->info_arrays = teca_array_collection::New();
 }
 
 // --------------------------------------------------------------------------
