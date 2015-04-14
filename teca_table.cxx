@@ -167,7 +167,7 @@ void teca_table::copy_metadata(const const_p_teca_dataset &dataset)
     unsigned int n_cols = other->get_number_of_columns();
     for (unsigned int i=0; i<n_cols; ++i)
     {
-        this->impl->add(
+        this->impl->append(
             other->impl->get_name(i),
             other->impl->get(i)->new_instance());
     }

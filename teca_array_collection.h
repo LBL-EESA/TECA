@@ -35,8 +35,9 @@ public:
     void declare(nT &&a_name, aT a_type);
 
     // add, return the index of the new entry.
-    unsigned int add(p_teca_variant_array array);
-    unsigned int add(const std::string &name, p_teca_variant_array array);
+    // or -1 if the array name already exists.
+    int append(p_teca_variant_array array);
+    int append(const std::string &name, p_teca_variant_array array);
 
     // set, return 0 on success.
     int set(unsigned int i, p_teca_variant_array array);

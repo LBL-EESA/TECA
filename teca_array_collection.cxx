@@ -1,5 +1,7 @@
 #include "teca_array_collection.h"
 
+#include <sstream>
+using std::ostringstream;
 
 // ----------------------------------------------------------------------------
 void teca_array_collection::clear()
@@ -10,20 +12,39 @@ void teca_array_collection::clear()
 }
 
 // ----------------------------------------------------------------------------
-unsigned int teca_array_collection::add(p_teca_variant_array array)
+int teca_array_collection::append(p_teca_variant_array array)
 {
-    return this->set("", array);
+    unsigned int id = m_arrays.size();
+
+    ostringstream oss;
+    oss << "array_" << id;
+
+    return this->append(oss.str(), array);
 }
 
 // ----------------------------------------------------------------------------
-unsigned int teca_array_collection::add(
+int teca_array_collection::append(
     const std::string &name,
     p_teca_variant_array array)
 {
+    name_array_map_t::iterator loc = m_name_array_map.find(name);
+    if (loc != m_name_array_map.end())
+        return -1;
+
     unsigned int id = m_arrays.size();
+
+    std::pair<name_array_map_t::iterator, bool> ret
+        = m_name_array_map.insert(std::make_pair(name, id));
+
+    if (!ret.second)
+    {
+        TECA_ERROR("Failed to append " << name << " exists")
+        return -1;
+    }
+
     m_arrays.push_back(array);
     m_names.push_back(name);
-    m_name_array_map[name] = id;
+
     return id;
 }
 
@@ -43,12 +64,18 @@ int teca_array_collection::set(
     const std::string &name,
     p_teca_variant_array array)
 {
-    name_array_map_t::iterator loc = m_name_array_map.find(name);
+    std::pair<name_array_map_t::iterator, bool> ret
+        = m_name_array_map.insert(std::make_pair(name, m_arrays.size()));
 
-    if (loc == m_name_array_map.end())
-        return -1;
-
-    m_arrays[loc->second] = array;
+    if (ret.second)
+    {
+        m_names.push_back(name);
+        m_arrays.push_back(array);
+    }
+    else
+    {
+        m_arrays[(ret.first)->second] = array;
+    }
 
     return 0;
 }
