@@ -145,6 +145,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
     // enumerate mesh arrays and their attributes
     vector<string> vars;
+    vector<string> time_vars; // anything that has the time dimension as it's only dim
     for (int i = 0; i < n_vars; ++i)
     {
         char var_name[NC_MAX_NAME + 1] = {'\0'};
@@ -187,6 +188,9 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
         vars.push_back(var_name);
 
+        if ((n_dims == 1) && (dim_names[0] == t_axis_variable))
+            time_vars.push_back(var_name);
+
         teca_metadata atts;
         atts.insert("id", i);
         atts.insert("dims", dims);
@@ -222,6 +226,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
     }
 
     this->md.insert("variables", vars);
+    this->md.insert("time variables", time_vars);
 
     // read coordinate arrays
     p_teca_variant_array x_axis;
@@ -471,6 +476,15 @@ p_teca_dataset teca_cf_reader::execute(
         return nullptr;
     }
 
+    // open the file that contains this step
+    int ierr = 0;
+    int file_id = 0;
+    if ((ierr = nc_open(file.c_str(), NC_NOWRITE, &file_id)) != NC_NOERR)
+    {
+        TECA_ERROR("Failed to open " << file << endl << nc_strerror(ierr))
+        return nullptr;
+    }
+
     // create output dataset
     p_teca_cartesian_mesh mesh = teca_cartesian_mesh::New();
     mesh->set_x_coordinates(out_x);
@@ -561,18 +575,13 @@ p_teca_dataset teca_cf_reader::execute(
         }
 
         // read
-        int ierr = 0;
-        int file_id = 0;
         p_teca_variant_array array;
         NC_DISPATCH(type,
             p_teca_variant_array_impl<NC_T> a = teca_variant_array_impl<NC_T>::New(mesh_size);
-            if (((ierr = nc_open(file.c_str(), NC_NOWRITE, &file_id)) != NC_NOERR)
-                || ((ierr = nc_get_vara(file_id,  id, &starts[0], &counts[0], a->get())) != NC_NOERR)
-                || ((ierr = nc_close(file_id)) != NC_NOERR))
+            if ((ierr = nc_get_vara(file_id,  id, &starts[0], &counts[0], a->get())) != NC_NOERR)
             {
-                nc_close(file_id);
                 TECA_ERROR(
-                    << "Failed to read " << arrays[i] << " "
+                    << "Failed to read \"" << arrays[i] << "\" "
                     << file << endl << nc_strerror(ierr))
                 continue;
             }
@@ -580,6 +589,44 @@ p_teca_dataset teca_cf_reader::execute(
             )
         mesh->get_point_arrays()->append(arrays[i], array);
     }
+
+    // read time vars
+    vector<string> time_vars;
+    this->md.get("time variables", time_vars);
+    size_t n_time_vars = time_vars.size();
+    for (size_t i = 0; i < n_time_vars; ++i)
+    {
+        // get metadata
+        teca_metadata atts;
+        int type = 0;
+        int id = 0;
+
+        if (this->md.get(time_vars[i], atts)
+            || atts.get("type", 0, type)
+            || atts.get("id", 0, id))
+        {
+            TECA_ERROR("metadata issue can't read \"" << time_vars[i] << "\"")
+            continue;
+        }
+
+        // read
+        int ierr = 0;
+        p_teca_variant_array array;
+        size_t one = 1;
+        NC_DISPATCH(type,
+            p_teca_variant_array_impl<NC_T> a = teca_variant_array_impl<NC_T>::New(1);
+            if ((ierr = nc_get_vara(file_id,  id, &starts[0], &one, a->get())) != NC_NOERR)
+            {
+                TECA_ERROR(
+                    << "Failed to read \"" << time_vars[i] << "\" "
+                    << file << endl << nc_strerror(ierr))
+                continue;
+            }
+            array = a;
+            )
+        mesh->get_information_arrays()->append(time_vars[i], array);
+    }
+    nc_close(file_id);
 
     return mesh;
 }
