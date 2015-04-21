@@ -480,6 +480,13 @@ private:
     TEMPLATE_DISPATCH_CASE(t, float, p, body)               \
     TEMPLATE_DISPATCH_CASE(t, double, p, body)
 
+// variant that limits dispatch to floating point types
+// for use in numerical compuatation where integer types
+// are not supported (ie, math operations from std library)
+#define TEMPLATE_DISPATCH_FP(t, p, body)                    \
+    TEMPLATE_DISPATCH_CASE(t, float, p, body)               \
+    TEMPLATE_DISPATCH_CASE(t, double, p, body)
+
 // --------------------------------------------------------------------------
 template<typename T>
 void teca_variant_array::get_dispatch(std::vector<T> &vals,
