@@ -601,8 +601,8 @@ unsigned sauf(const unsigned nrow, const unsigned ncol, unsigned *image)
 // criteria. retrun true if so.
 template<typename T>
 bool river_start_criteria_lat(
-    vector<int> &boundary_r,
-    T *p_lat,
+    const vector<int> &boundary_r,
+    const T *p_lat,
     T river_start_lat)
 {
     unsigned long n = boundary_r.size();
@@ -618,8 +618,8 @@ bool river_start_criteria_lat(
 // criteria. retrun true if so.
 template<typename T>
 bool river_start_criteria_lon(
-    vector<int> &boundary_c,
-    T *p_lon,
+    const vector<int> &boundary_c,
+    const T *p_lon,
     T river_start_lon)
 {
     unsigned long n = boundary_c.size();
@@ -629,6 +629,24 @@ bool river_start_criteria_lon(
             return true;
     }
     return false;
+}
+
+// helper return true if the start criteria is
+// met, and classifies the ar as PE if it starts
+// in the bottom boundary.
+template<typename T>
+bool river_start_criteria(
+    const vector<int> &boundary_r,
+    const vector<int> &boundary_c,
+    const T *p_lat,
+    const T *p_lon,
+    T start_lat,
+    T start_lon,
+    atmospheric_river &ar)
+{
+    return
+         ((ar.pe = river_start_criteria_lat(boundary_r, p_lat, start_lat))
+         || river_start_criteria_lon(boundary_c, p_lon, start_lon));
 }
 
 // do any of the detected points meet the river end
@@ -745,7 +763,9 @@ template <typename T>
 T avg_width(
     const vector<int> &boundary_r,
     const vector<int> &boundary_c,
-    T ar_len, T *p_lat, T *p_lon)
+    T ar_len,
+    const T *p_lat,
+    const T *p_lon)
 {
     // length of cell in lat direction
     T lat_val[2] = {p_lat[boundary_r[0]], p_lat[boundary_r[0] + 1]};
@@ -801,7 +821,8 @@ template<typename T>
 T medial_length(
     const vector<int> &boundary_r,
     const vector<int> &boundary_c,
-    T *p_lat, T *p_lon)
+    const T *p_lat,
+    const T *p_lon)
 {
     vector<int> jb_r1;
     vector<int> jb_c1;
@@ -859,6 +880,29 @@ T medial_length(
 
     return total_dist;
 }
+
+
+// helper return true if the geometric conditions
+// on an ar are satisfied. also stores the length
+// and width of the river.
+template <typename T>
+bool river_geometric_criteria(
+    const vector<int> &boundary_r,
+    const vector<int> &boundary_c,
+    const T *p_lat,
+    const T *p_lon,
+    double river_length,
+    double river_width,
+    atmospheric_river &ar)
+{
+    ar.length = medial_length(boundary_r, boundary_c, p_lat, p_lon);
+
+    ar.width = avg_width(boundary_r, boundary_c,
+        static_cast<T>(ar.length), p_lat, p_lon);
+
+    return (ar.length >= river_length) && (ar.width <= river_width);
+}
+
 
 /*
 * The main function that checks whether an AR event exists in
@@ -925,18 +969,17 @@ bool ar_detect(
             // check for ar criteria
             unsigned long count = boundary_r.size();
             if ((count > thr_count)
-                && (((ar.pe = river_start_criteria_lat(boundary_r, p_lat, start_lat))
-                || river_start_criteria_lon(boundary_c, p_lon, start_lon))
+                && river_start_criteria(
+                    boundary_r, boundary_c, p_lat, p_lon,
+                    start_lat, start_lon, ar)
                 && river_end_criteria(
                     boundary_r, boundary_c, p_lat, p_lon,
                     end_lat_low, end_lon_low,
                     end_lat_high, end_lon_high,
                     ar)
-                && ((ar.length = medial_length(
-                    boundary_r, boundary_c, p_lat, p_lon)) >= river_length)
-                && ((ar.width = avg_width(
-                    boundary_r, boundary_c,
-                    static_cast<NT>(ar.length), p_lat, p_lon)) <= river_width)))
+                && river_geometric_criteria(
+                    boundary_r, boundary_c, p_lat, p_lon,
+                    river_length, river_width, ar))
             {
                 return true;
             }
