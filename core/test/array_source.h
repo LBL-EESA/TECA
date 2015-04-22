@@ -14,12 +14,13 @@ that generates arrays over a number of timesteps
 
 metadata keys:
      time
+     number_of_time_steps
      array_names
      array_size
      extent
 
 request keys:
-     time (required)
+     time_step (required)
      array_name (required)
      extent (required)
 */

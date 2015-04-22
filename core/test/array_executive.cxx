@@ -45,6 +45,7 @@ int array_executive::initialize(const teca_metadata &md)
         for (size_t j = 0; j < n_arrays; ++j)
         {
             teca_metadata req;
+            req.insert("time_step", i);
             req.insert("time", time[i]);
             req.insert("array_name", array_names[j]);
             req.insert("extent", extent);

@@ -63,6 +63,9 @@ teca_metadata array_source::get_output_metadata(
         time.push_back(this->time_delta*(i+1));
     output_md.insert("time", time);
 
+    // report time steps
+    output_md.insert("number_of_time_steps", this->number_of_timesteps);
+
     // report array extents
     vector<unsigned int> extent = {0, this->array_size};
     output_md.insert("extent", extent);
@@ -83,19 +86,20 @@ const_p_teca_dataset array_source::execute(
     (void) input_data;
 
     // get the time request
-    double active_time;
-    if (request.get("time", active_time))
+    unsigned long time_step;
+    if (request.get("time_step", time_step))
     {
-        TECA_ERROR("request is missing time")
-        return p_teca_dataset();
+        TECA_ERROR("request is missing \"time_step\"")
+        return nullptr;
     }
+    double active_time = this->time_delta*(time_step + 1);
 
     // get array request
     string active_array;
     if (request.get("array_name", active_array))
     {
         TECA_ERROR("request is missing array_name")
-        return p_teca_dataset();
+        return nullptr;
     }
 
     vector<string>::iterator it
@@ -108,7 +112,7 @@ const_p_teca_dataset array_source::execute(
     {
         TECA_ERROR(
             << "invalid array \"" << active_array << "\" requested");
-        return p_teca_dataset();
+        return nullptr;
     }
     size_t array_id = it - this->array_names.begin();
 
@@ -117,7 +121,7 @@ const_p_teca_dataset array_source::execute(
     if (request.get("extent", active_extent))
     {
         TECA_ERROR("request is missing extent")
-        return p_teca_dataset();
+        return nullptr;
     }
 
     // generate the a_out array
@@ -131,8 +135,8 @@ const_p_teca_dataset array_source::execute(
 #ifndef TECA_NDEBUG
     cerr << teca_parallel_id()
         << "array_source::execute array=" << active_array
-        << " time=" << active_time << " extent=["
-        << active_extent[0] << ", " << active_extent[1]
+        << " time_step=" << time_step << " time=" << active_time
+        << " extent=[" << active_extent[0] << ", " << active_extent[1]
         << "]" << endl;
 #endif
 

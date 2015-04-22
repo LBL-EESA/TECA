@@ -30,14 +30,6 @@ public:
 protected:
     array_time_average();
 
-    // helper that creates a list of times required
-    // to compute the average
-    int get_active_times(
-        const teca_metadata &request,
-        const teca_metadata &input_md,
-        double &current_time,
-        std::vector<double> &active_times) const;
-
 private:
     std::vector<teca_metadata> get_upstream_request(
         unsigned int port,

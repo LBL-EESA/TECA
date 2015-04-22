@@ -15,15 +15,15 @@
 //
 // meta data keys:
 //      requires:
-//          time
+//          number_of_time_steps - the number of time steps available
+//
 //      consumes:
-//          time
+//          time_step
 //
 // TODO -- api for setting MPI communicator
 class teca_temporal_reduction : public teca_threaded_algorithm
 {
 public:
-    //TECA_THREADED_ALGORITHM_STATIC_NEW(teca_temporal_reduction)
     TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_temporal_reduction)
     virtual ~teca_temporal_reduction(){}
 

@@ -71,10 +71,10 @@ std::vector<teca_metadata> teca_temporal_reduction::get_upstream_request(
     vector<teca_metadata> up_req;
 
     // locate available times
-    vector<double> time;
-    if (input_md[0].get("time", time))
+    unsigned long n_times;
+    if (input_md[0].get("number_of_time_steps", n_times))
     {
-        TECA_ERROR("missing time metadata")
+        TECA_ERROR("metadata is missing \"number_of_time_steps\"")
         return up_req;
     }
 
@@ -95,7 +95,6 @@ std::vector<teca_metadata> teca_temporal_reduction::get_upstream_request(
         rank = tmp;
     }
 #endif
-    size_t n_times = time.size();
     size_t n_big_blocks = n_times%n_ranks;
     size_t block_size = 1;
     size_t block_start = 0;
@@ -123,7 +122,7 @@ std::vector<teca_metadata> teca_temporal_reduction::get_upstream_request(
         for (size_t j = 0; j < n_reqs; ++j)
         {
             up_req.push_back(base_req[j]);
-            up_req.back().set("time", time[ii]);
+            up_req.back().set("time_step", ii);
         }
     }
 
@@ -138,7 +137,7 @@ teca_metadata teca_temporal_reduction::get_output_metadata(
     teca_metadata output_md
         = this->initialize_output_metadata(port, input_md);
 
-    output_md.remove("time");
+    output_md.remove("time_step");
 
     return output_md;
 }
