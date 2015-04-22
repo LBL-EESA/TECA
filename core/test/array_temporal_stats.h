@@ -28,16 +28,16 @@ public:
 private:
     // helpers
     p_array new_stats_array();
-    p_array new_stats_array(p_array input);
-    p_array new_stats_array(p_array l_input, p_array r_input);
+    p_array new_stats_array(const_p_array input);
+    p_array new_stats_array(const_p_array l_input, const_p_array r_input);
 
 protected:
     array_temporal_stats();
 
     // overrides
     p_teca_dataset reduce(
-        const p_teca_dataset &left,
-        const p_teca_dataset &right) override;
+        const const_p_teca_dataset &left,
+        const const_p_teca_dataset &right) override;
 
     std::vector<teca_metadata> initialize_upstream_request(
         unsigned int port,

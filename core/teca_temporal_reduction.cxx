@@ -10,7 +10,7 @@ using std::cerr;
 using std::endl;
 
 // TODO
-// handle large messages
+// handle large messages, ie work around int in MPI api
 namespace {
 #if defined(TECA_MPI)
 // helper for sending binary data over MPI
@@ -144,8 +144,8 @@ teca_metadata teca_temporal_reduction::get_output_metadata(
 }
 
 // --------------------------------------------------------------------------
-p_teca_dataset teca_temporal_reduction::reduce_local(
-    std::vector<p_teca_dataset> input_data)
+const_p_teca_dataset teca_temporal_reduction::reduce_local(
+    std::vector<const_p_teca_dataset> input_data) // NOTE -- pass by value is intended
 {
     size_t n_in = input_data.size();
 
@@ -173,8 +173,8 @@ p_teca_dataset teca_temporal_reduction::reduce_local(
 }
 
 // --------------------------------------------------------------------------
-p_teca_dataset teca_temporal_reduction::reduce_remote(
-    p_teca_dataset local_data)
+const_p_teca_dataset teca_temporal_reduction::reduce_remote(
+    const_p_teca_dataset local_data) // NOTE -- pass by value is intentional
 {
 #if defined(TECA_MPI)
     int is_init = 0;
@@ -249,9 +249,9 @@ p_teca_dataset teca_temporal_reduction::reduce_remote(
 }
 
 // --------------------------------------------------------------------------
-p_teca_dataset teca_temporal_reduction::execute(
+const_p_teca_dataset teca_temporal_reduction::execute(
     unsigned int port,
-    const std::vector<p_teca_dataset> &input_data,
+    const std::vector<const_p_teca_dataset> &input_data,
     const teca_metadata &request)
 {
     // TODO -- do those need to be forward into overrides?

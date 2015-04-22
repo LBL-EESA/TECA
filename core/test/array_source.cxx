@@ -74,9 +74,9 @@ teca_metadata array_source::get_output_metadata(
 }
 
 // --------------------------------------------------------------------------
-p_teca_dataset array_source::execute(
+const_p_teca_dataset array_source::execute(
     unsigned int port,
-    const std::vector<p_teca_dataset> &input_data,
+    const std::vector<const_p_teca_dataset> &input_data,
     const teca_metadata &request)
 {
     (void) port;

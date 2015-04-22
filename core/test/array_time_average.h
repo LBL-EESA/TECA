@@ -39,17 +39,15 @@ protected:
         std::vector<double> &active_times) const;
 
 private:
-    virtual
     std::vector<teca_metadata> get_upstream_request(
         unsigned int port,
         const std::vector<teca_metadata> &input_md,
-        const teca_metadata &request);
+        const teca_metadata &request) override;
 
-    virtual
-    p_teca_dataset execute(
+    const_p_teca_dataset execute(
         unsigned int port,
-        const std::vector<p_teca_dataset> &input_data,
-        const teca_metadata &request);
+        const std::vector<const_p_teca_dataset> &input_data,
+        const teca_metadata &request) override;
 
 private:
     std::string array_name;

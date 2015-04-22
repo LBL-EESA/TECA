@@ -103,9 +103,9 @@ std::vector<teca_metadata> array_scalar_multiply::get_upstream_request(
 }
 
 // --------------------------------------------------------------------------
-p_teca_dataset array_scalar_multiply::execute(
+const_p_teca_dataset array_scalar_multiply::execute(
     unsigned int port,
-    const std::vector<p_teca_dataset> &input_data,
+    const std::vector<const_p_teca_dataset> &input_data,
     const teca_metadata &request)
 {
 #ifndef TECA_NDEBUG
@@ -115,7 +115,9 @@ p_teca_dataset array_scalar_multiply::execute(
     (void)port;
     (void)request;
 
-    p_array a_in = std::dynamic_pointer_cast<array>(input_data[0]);
+    const_p_array a_in
+        = std::dynamic_pointer_cast<const array>(input_data[0]);
+
     if (!a_in)
     {
         TECA_ERROR("no array to process")

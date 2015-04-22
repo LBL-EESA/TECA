@@ -19,8 +19,8 @@ array_temporal_stats::array_temporal_stats()
 
 // --------------------------------------------------------------------------
 p_array array_temporal_stats::new_stats_array(
-    p_array l_input,
-    p_array r_input)
+    const_p_array l_input,
+    const_p_array r_input)
 {
     p_array stats = this->new_stats_array();
 
@@ -32,7 +32,7 @@ p_array array_temporal_stats::new_stats_array(
 }
 
 // --------------------------------------------------------------------------
-p_array array_temporal_stats::new_stats_array(p_array input)
+p_array array_temporal_stats::new_stats_array(const_p_array input)
 {
     p_array stats = this->new_stats_array();
 
@@ -108,8 +108,8 @@ teca_metadata array_temporal_stats::initialize_output_metadata(
 
 // --------------------------------------------------------------------------
 p_teca_dataset array_temporal_stats::reduce(
-    const p_teca_dataset &left,
-    const p_teca_dataset &right)
+    const const_p_teca_dataset &left,
+    const const_p_teca_dataset &right)
 {
 #ifndef TECA_NDEBUG
     cerr << teca_parallel_id()
@@ -117,14 +117,14 @@ p_teca_dataset array_temporal_stats::reduce(
 #endif
 
     // validate inputs
-    p_array l_in = std::dynamic_pointer_cast<array>(left);
+    const_p_array l_in = std::dynamic_pointer_cast<const array>(left);
     if (!l_in)
     {
         TECA_ERROR("left input is not an array")
         return p_teca_dataset();
     }
 
-    p_array r_in = std::dynamic_pointer_cast<array>(right);
+    const_p_array r_in = std::dynamic_pointer_cast<const array>(right);
     if (!r_in)
     {
         TECA_ERROR("right input is not an array")

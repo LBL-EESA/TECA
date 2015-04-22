@@ -63,10 +63,13 @@ teca_cf_reader::teca_cf_reader() :
 
 // --------------------------------------------------------------------------
 teca_metadata teca_cf_reader::get_output_metadata(
-    unsigned int,
-    const std::vector<teca_metadata> &)
+    unsigned int port,
+    const std::vector<teca_metadata> &input_md)
 {
     cerr << "teca_cf_reader::get_output_metadata" << endl;
+
+    (void)port;
+    (void)input_md;
 
     // TODO -- fix md cacheing
     if (!this->get_modified(0) && this->md)
@@ -401,9 +404,9 @@ teca_metadata teca_cf_reader::get_output_metadata(
 }
 
 // --------------------------------------------------------------------------
-p_teca_dataset teca_cf_reader::execute(
+const_p_teca_dataset teca_cf_reader::execute(
     unsigned int,
-    const std::vector<p_teca_dataset> &input_data,
+    const std::vector<const_p_teca_dataset> &input_data,
     const teca_metadata &request)
 {
     (void)input_data;

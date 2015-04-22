@@ -111,9 +111,9 @@ std::vector<teca_metadata> array_time_average::get_upstream_request(
 }
 
 // --------------------------------------------------------------------------
-p_teca_dataset array_time_average::execute(
+const_p_teca_dataset array_time_average::execute(
     unsigned int port,
-    const std::vector<p_teca_dataset> &input_data,
+    const std::vector<const_p_teca_dataset> &input_data,
     const teca_metadata &request)
 {
 #ifndef TECA_NDEBUG
@@ -124,7 +124,7 @@ p_teca_dataset array_time_average::execute(
     (void) request;
 
     p_array a_out = array::New();
-    p_array a_in = std::dynamic_pointer_cast<array>(input_data[0]);
+    const_p_array a_in = std::dynamic_pointer_cast<const array>(input_data[0]);
     if (a_in)
     {
         a_out->copy_metadata(a_in);
@@ -134,7 +134,7 @@ p_teca_dataset array_time_average::execute(
     size_t n_times = input_data.size();
     for (size_t i = 0; i < n_times; ++i)
     {
-        p_array a_in = std::dynamic_pointer_cast<array>(input_data[i]);
+        const_p_array a_in = std::dynamic_pointer_cast<const array>(input_data[i]);
         if (!a_in)
         {
             TECA_ERROR("array " << i << " is invalid")
@@ -142,7 +142,7 @@ p_teca_dataset array_time_average::execute(
         }
 
         vector<double>::iterator out_it = a_out->get_data().begin();
-        vector<double>::iterator in_it = a_in->get_data().begin();
+        vector<double>::const_iterator in_it = a_in->get_data().cbegin();
         for (size_t j = 0; j < n_elem; ++j, ++out_it, ++in_it)
         {
             *out_it += *in_it;

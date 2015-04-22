@@ -119,9 +119,9 @@ std::vector<teca_metadata> array_add::get_upstream_request(
 }
 
 // --------------------------------------------------------------------------
-p_teca_dataset array_add::execute(
+const_p_teca_dataset array_add::execute(
     unsigned int port,
-    const std::vector<p_teca_dataset> &input_data,
+    const std::vector<const_p_teca_dataset> &input_data,
     const teca_metadata &request)
 {
     (void)port;
@@ -129,8 +129,8 @@ p_teca_dataset array_add::execute(
     p_array a_out = array::New();
 
     // get the array on the two inputs
-    p_array a_in_1 = std::dynamic_pointer_cast<array>(input_data[0]);
-    p_array a_in_2 = std::dynamic_pointer_cast<array>(input_data[1]);
+    const_p_array a_in_1 = std::dynamic_pointer_cast<const array>(input_data[0]);
+    const_p_array a_in_2 = std::dynamic_pointer_cast<const array>(input_data[1]);
     if (!a_in_1 || !a_in_2)
     {
         TECA_ERROR("required inputs are not present")

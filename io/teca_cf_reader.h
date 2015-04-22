@@ -45,13 +45,13 @@ request keys:
 output:
     generates a 1,2 or 3D cartesian mesh for the requested timestep
     on the requested extent with the requested point based arrays
-    and time variables.
+    and value at this timestep for all time variables.
 */
 class teca_cf_reader : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_cf_reader)
-    virtual ~teca_cf_reader() = default;
+    ~teca_cf_reader() = default;
 
     TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_cf_reader)
 
@@ -73,15 +73,13 @@ protected:
     teca_cf_reader();
 
 private:
-    virtual
     teca_metadata get_output_metadata(
         unsigned int port,
         const std::vector<teca_metadata> &input_md) override;
 
-    virtual
-    p_teca_dataset execute(
+    const_p_teca_dataset execute(
         unsigned int port,
-        const std::vector<p_teca_dataset> &input_data,
+        const std::vector<const_p_teca_dataset> &input_data,
         const teca_metadata &request) override;
 
 private:

@@ -32,7 +32,7 @@ protected:
     // requst on the named port. each upstream request issued
     // will be executed by the thread pool.
     virtual
-    p_teca_dataset request_data(
+    const_p_teca_dataset request_data(
         teca_algorithm_output_port &port,
         const teca_metadata &request) override;
 

@@ -40,7 +40,13 @@ public:
     double &get(size_t i)
     { return this->data[i]; }
 
+    const double &get(size_t i) const
+    { return this->data[i]; }
+
     double &operator[](size_t i)
+    { return this->data[i]; }
+
+    const double &operator[](size_t i) const
     { return this->data[i]; }
 
     void append(double d)

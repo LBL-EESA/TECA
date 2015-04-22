@@ -49,17 +49,17 @@ public:
     int cache_output_data(
         unsigned int port,
         const teca_metadata &request,
-        p_teca_dataset data);
+        const_p_teca_dataset data);
 
     // get a pointer to the cached dataset. if
     // a no dataset is cached for the given request
     // then return is null (thread safe)
-    p_teca_dataset get_output_data(
+    const_p_teca_dataset get_output_data(
         unsigned int port,
         const teca_metadata &request);
 
     // get a pointer to the "first" cached dataset.
-    p_teca_dataset get_output_data(unsigned int port);
+    const_p_teca_dataset get_output_data(unsigned int port);
 
     // clear the cache (thread safe)
     void clear_data_cache(unsigned int port);
@@ -103,7 +103,7 @@ public:
     // cached output data. maps from a request
     // to the cached dataset, one per output port
     unsigned int data_cache_size;
-    using req_data_map = map<teca_metadata, p_teca_dataset>;
+    using req_data_map = map<teca_metadata, const_p_teca_dataset>;
     vector<req_data_map> data_cache;
     mutex data_cache_mutex;
 
@@ -228,7 +228,7 @@ void teca_algorithm_internals::pop_cache(unsigned int port, int top)
 int teca_algorithm_internals::cache_output_data(
     unsigned int port,
     const teca_metadata &request,
-    p_teca_dataset data)
+    const_p_teca_dataset data)
 {
     if (this->data_cache_size)
     {
@@ -247,7 +247,7 @@ int teca_algorithm_internals::cache_output_data(
 }
 
 // --------------------------------------------------------------------------
-p_teca_dataset teca_algorithm_internals::get_output_data(
+const_p_teca_dataset teca_algorithm_internals::get_output_data(
     unsigned int port,
     const teca_metadata &request)
 {
@@ -261,18 +261,18 @@ p_teca_dataset teca_algorithm_internals::get_output_data(
         return it->second;
     }
 
-    return p_teca_dataset();
+    return const_p_teca_dataset();
 }
 
 // --------------------------------------------------------------------------
-p_teca_dataset teca_algorithm_internals::get_output_data(unsigned int port)
+const_p_teca_dataset teca_algorithm_internals::get_output_data(unsigned int port)
 {
     std::lock_guard<mutex> lock(this->data_cache_mutex);
 
     req_data_map &cache = this->data_cache[port];
 
     if (cache.empty())
-        return p_teca_dataset();
+        return const_p_teca_dataset();
 
     return cache.rbegin()->second; // newest
 }
@@ -406,13 +406,13 @@ void teca_algorithm::clear_input_connections()
 int teca_algorithm::cache_output_data(
     unsigned int port,
     const teca_metadata &key,
-    p_teca_dataset &data)
+    const_p_teca_dataset &data)
 {
     return this->internals->cache_output_data(port, key, data);
 }
 
 // --------------------------------------------------------------------------
-p_teca_dataset teca_algorithm::get_output_data(
+const_p_teca_dataset teca_algorithm::get_output_data(
     unsigned int port,
     const teca_metadata &key)
 {
@@ -420,7 +420,7 @@ p_teca_dataset teca_algorithm::get_output_data(
 }
 
 // --------------------------------------------------------------------------
-p_teca_dataset teca_algorithm::get_output_data(unsigned int port)
+const_p_teca_dataset teca_algorithm::get_output_data(unsigned int port)
 {
     return this->internals->get_output_data(port);
 }
@@ -517,20 +517,6 @@ teca_metadata teca_algorithm::get_output_metadata(
 }
 
 // --------------------------------------------------------------------------
-p_teca_dataset teca_algorithm::execute(
-        unsigned int port,
-        const vector<p_teca_dataset> &input_data,
-        const teca_metadata &request)
-{
-    (void) port;
-    (void) input_data;
-    (void) request;
-
-    // default implementation does nothing
-    return p_teca_dataset();
-}
-
-// --------------------------------------------------------------------------
 vector<teca_metadata> teca_algorithm::get_upstream_request(
     unsigned int port,
     const vector<teca_metadata> &input_md,
@@ -542,6 +528,20 @@ vector<teca_metadata> teca_algorithm::get_upstream_request(
     // default implementation forwards request upstream
     return vector<teca_metadata>(
         this->get_number_of_input_connections(), request);
+}
+
+// --------------------------------------------------------------------------
+const_p_teca_dataset teca_algorithm::execute(
+        unsigned int port,
+        const vector<const_p_teca_dataset> &input_data,
+        const teca_metadata &request)
+{
+    (void) port;
+    (void) input_data;
+    (void) request;
+
+    // default implementation does nothing
+    return p_teca_dataset();
 }
 
 // --------------------------------------------------------------------------
@@ -580,7 +580,7 @@ teca_metadata teca_algorithm::get_output_metadata(
 }
 
 // --------------------------------------------------------------------------
-p_teca_dataset teca_algorithm::request_data(
+const_p_teca_dataset teca_algorithm::request_data(
     teca_algorithm_output_port &current,
     const teca_metadata &request)
 {
@@ -591,7 +591,7 @@ p_teca_dataset teca_algorithm::request_data(
 
     // check for cached data
     teca_metadata key = alg->get_cache_key(port, request);
-    p_teca_dataset out_data = alg->get_output_data(port, key);
+    const_p_teca_dataset out_data = alg->get_output_data(port, key);
     if (!out_data)
     {
         // determine what data is available on our inputs
@@ -610,7 +610,7 @@ p_teca_dataset teca_algorithm::request_data(
         // get the upstream data mapping the requests round-robbin
         // on to the inputs
         size_t n_up_reqs = up_reqs.size();
-        vector<p_teca_dataset> input_data(n_up_reqs);
+        vector<const_p_teca_dataset> input_data(n_up_reqs);
         for (unsigned int i = 0; i < n_up_reqs; ++i)
         {
             if (!up_reqs[i].empty())

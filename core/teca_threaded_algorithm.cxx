@@ -33,7 +33,7 @@ public:
         : m_alg(alg), m_up_port(up_port), m_up_req(up_req)
     {}
 
-    p_teca_dataset operator()()
+    const_p_teca_dataset operator()()
     { return m_alg->request_data(m_up_port, m_up_req); }
 
 public:
@@ -43,7 +43,7 @@ public:
 };
 
 // task
-using teca_data_request_task = packaged_task<p_teca_dataset()>;
+using teca_data_request_task = packaged_task<const_p_teca_dataset()>;
 
 class teca_thread_pool;
 using p_teca_thread_pool = std::shared_ptr<teca_thread_pool>;
@@ -71,7 +71,7 @@ public:
     // wait for all of the requests to execute and transfer
     // datasets in the order that corresponding requests
     // were added to the queue.
-    void pop_datasets(vector<p_teca_dataset> &data);
+    void pop_datasets(vector<const_p_teca_dataset> &data);
 
     // get the number of threads
     unsigned int size() const TECA_NOEXCEPT
@@ -84,7 +84,7 @@ private:
 private:
     atomic<bool> m_live;
     teca_threadsafe_queue<teca_data_request_task> m_queue;
-    vector<future<p_teca_dataset>> m_dataset_futures;
+    vector<future<const_p_teca_dataset>> m_dataset_futures;
     vector<thread> m_threads;
 };
 
@@ -144,14 +144,14 @@ void teca_thread_pool::push_data_request(
 }
 
 // --------------------------------------------------------------------------
-void teca_thread_pool::pop_datasets(vector<p_teca_dataset> &data)
+void teca_thread_pool::pop_datasets(vector<const_p_teca_dataset> &data)
 {
     // wait on all pending requests and gather the generated
     // datasets
     std::for_each(
         m_dataset_futures.begin(),
         m_dataset_futures.end(),
-        [&data] (future<p_teca_dataset> &f)
+        [&data] (future<const_p_teca_dataset> &f)
         {
             data.push_back(f.get());
         });
@@ -218,7 +218,7 @@ unsigned int teca_threaded_algorithm::get_thread_pool_size() const TECA_NOEXCEPT
 }
 
 // --------------------------------------------------------------------------
-p_teca_dataset teca_threaded_algorithm::request_data(
+const_p_teca_dataset teca_threaded_algorithm::request_data(
     teca_algorithm_output_port &current,
     const teca_metadata &request)
 {
@@ -229,7 +229,7 @@ p_teca_dataset teca_threaded_algorithm::request_data(
 
     // check for cached data
     teca_metadata key = alg->get_cache_key(port, request);
-    p_teca_dataset out_data = alg->get_output_data(port, key);
+    const_p_teca_dataset out_data = alg->get_output_data(port, key);
     if (!out_data)
     {
         // determine what data is available on our inputs
@@ -266,7 +266,7 @@ p_teca_dataset teca_threaded_algorithm::request_data(
         }
 
         // get the requested data. will block until it's ready.
-        vector<p_teca_dataset> input_data;
+        vector<const_p_teca_dataset> input_data;
         work_queue->pop_datasets(input_data);
 
         // execute override

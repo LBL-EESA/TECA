@@ -49,7 +49,7 @@ public:
     // the cache is returned. When a request is specified it may
     // optionally be filtered by the implementations cache key filter.
     // see also get_cache_key (threadsafe)
-    p_teca_dataset get_output_data(unsigned int port = 0);
+    const_p_teca_dataset get_output_data(unsigned int port = 0);
 
     // remove a dataset from the top/bottom of the cache. the
     // top of the cache has the most recently created dataset.
@@ -126,9 +126,9 @@ protected:
     // as it sees fit.
     // TODO -- input data should be const
     virtual
-    p_teca_dataset execute(
+    const_p_teca_dataset execute(
         unsigned int port,
-        const std::vector<p_teca_dataset> &input_data,
+        const std::vector<const_p_teca_dataset> &input_data,
         const teca_metadata &request);
 
     // implementations may choose to override this method
@@ -162,7 +162,7 @@ protected:
     // driver function that manages execution of the given
     // requst on the named port
     virtual
-    p_teca_dataset request_data(
+    const_p_teca_dataset request_data(
         teca_algorithm_output_port &port,
         const teca_metadata &request);
 
@@ -182,7 +182,7 @@ protected:
 
     // search the given port's cache for the dataset associated
     // with the given request. see also get_cache_key. (threadsafe)
-    p_teca_dataset get_output_data(
+    const_p_teca_dataset get_output_data(
         unsigned int port,
         const teca_metadata &request);
 
@@ -191,7 +191,7 @@ protected:
     int cache_output_data(
         unsigned int port,
         const teca_metadata &request,
-        p_teca_dataset &data);
+        const_p_teca_dataset &data);
 
     // clear the cache on the given output port
     void clear_cache(unsigned int port);

@@ -47,16 +47,14 @@ protected:
     array_source();
 
 private:
-    virtual
     teca_metadata get_output_metadata(
         unsigned int port,
-        const std::vector<teca_metadata> &input_md);
+        const std::vector<teca_metadata> &input_md) override;
 
-    virtual
-    p_teca_dataset execute(
+    const_p_teca_dataset execute(
         unsigned int port,
-        const std::vector<p_teca_dataset> &input_data,
-        const teca_metadata &request);
+        const std::vector<const_p_teca_dataset> &input_data,
+        const teca_metadata &request) override;
 
 private:
     std::vector<std::string> array_names;
