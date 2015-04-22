@@ -58,6 +58,12 @@ p_teca_variant_array teca_table::get_column(const std::string &col_name)
 }
 
 // --------------------------------------------------------------------------
+const_p_teca_variant_array teca_table::get_column(const std::string &col_name) const
+{
+    return this->impl->get(col_name);
+}
+
+// --------------------------------------------------------------------------
 void teca_table::resize(unsigned long n)
 {
     unsigned int n_cols = this->impl->size();
@@ -187,4 +193,22 @@ void teca_table::swap(p_teca_dataset &dataset)
     other->impl = tmp;
 
     this->active_column = 0;
+}
+
+
+// --------------------------------------------------------------------------
+void teca_table::append(const const_p_teca_table &other)
+{
+    if (!other)
+        return;
+
+    size_t n_cols = 0;
+    if ((n_cols = other->get_number_of_columns()) != this->get_number_of_columns())
+    {
+        TECA_ERROR("append failed. Number of columns don't match")
+        return;
+    }
+
+    for (size_t i = 0; i < n_cols; ++i)
+        this->get_column(i)->append(other->get_column(i));
 }

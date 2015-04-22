@@ -8,6 +8,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
 
 set(teca_alg_srcs
     teca_ar_detect.cxx
+    teca_table_reduce.cxx
     )
 
 add_library(teca_alg ${teca_alg_srcs})

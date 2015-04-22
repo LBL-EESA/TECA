@@ -50,6 +50,9 @@ public:
     p_teca_variant_array get_column(unsigned int i);
     p_teca_variant_array get_column(const std::string &col_name);
 
+    const_p_teca_variant_array get_column(unsigned int i) const;
+    const_p_teca_variant_array get_column(const std::string &col_name) const;
+
     // default initialize n rows of data
     void resize(unsigned long n);
 
@@ -89,6 +92,10 @@ public:
     // swap internals of the two objects
     virtual void swap(p_teca_dataset &other) override;
 
+    // append the passed in table. must have identical
+    // column layout.
+    void append(const const_p_teca_table &other);
+
 protected:
     teca_table();
     teca_table(const teca_table &other) = default;
@@ -109,6 +116,13 @@ private:
 // --------------------------------------------------------------------------
 inline
 p_teca_variant_array teca_table::get_column(unsigned int i)
+{
+    return this->impl->get(i);
+}
+
+// --------------------------------------------------------------------------
+inline
+const_p_teca_variant_array teca_table::get_column(unsigned int i) const
 {
     return this->impl->get(i);
 }
