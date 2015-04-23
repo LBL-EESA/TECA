@@ -8,6 +8,7 @@ include_directories(
 
 set(teca_io_srcs
     teca_file_util.cxx
+    teca_table_writer.cxx
     )
 
 if (WIN32)
