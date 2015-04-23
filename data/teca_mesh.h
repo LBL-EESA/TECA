@@ -16,24 +16,46 @@ class teca_mesh : public teca_dataset
 public:
     virtual ~teca_mesh() = default;
 
+    // get metadata
+    teca_metadata &get_metadata()
+    { return m_impl->metadata; }
+
+    const teca_metadata &get_metadata() const
+    { return m_impl->metadata; }
+
     // get point centered data
     p_teca_array_collection get_point_arrays()
+    { return m_impl->point_arrays; }
+
+    const_p_teca_array_collection get_point_arrays() const
     { return m_impl->point_arrays; }
 
     // get cell centered data
     p_teca_array_collection get_cell_arrays()
     { return m_impl->cell_arrays; }
 
+    const_p_teca_array_collection get_cell_arrays() const
+    { return m_impl->cell_arrays; }
+
     // get edge centered data
     p_teca_array_collection get_edge_arrays()
+    { return m_impl->edge_arrays; }
+
+    const_p_teca_array_collection get_edge_arrays() const
     { return m_impl->edge_arrays; }
 
     // get face centered data
     p_teca_array_collection get_face_arrays()
     { return m_impl->face_arrays; }
 
+    const_p_teca_array_collection get_face_arrays() const
+    { return m_impl->face_arrays; }
+
     // get non-geometric data
     p_teca_array_collection get_information_arrays()
+    { return m_impl->info_arrays; }
+
+    const_p_teca_array_collection get_information_arrays() const
     { return m_impl->info_arrays; }
 
     // return true if the dataset is empty.

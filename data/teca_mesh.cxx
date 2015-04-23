@@ -68,10 +68,6 @@ void teca_mesh::swap(p_teca_dataset &dataset)
         return;
 
     std::swap(m_impl, other->m_impl);
-
-    teca_metadata tmp(m_impl->metadata);
-    m_impl->metadata = other->m_impl->metadata;
-    other->m_impl->metadata = tmp;
 }
 
 // --------------------------------------------------------------------------
