@@ -31,11 +31,11 @@ protected:
     teca_vtk_cartesian_mesh_writer();
 
 private:
-    virtual
-    p_teca_dataset execute(
+
+    const_p_teca_dataset execute(
         unsigned int port,
-        const std::vector<p_teca_dataset> &input_data,
-        const teca_metadata &request);
+        const std::vector<const_p_teca_dataset> &input_data,
+        const teca_metadata &request) override;
 
 private:
     std::string base_file_name;

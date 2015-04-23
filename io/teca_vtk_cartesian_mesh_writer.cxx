@@ -62,15 +62,15 @@ teca_vtk_cartesian_mesh_writer::~teca_vtk_cartesian_mesh_writer()
 {}
 
 // --------------------------------------------------------------------------
-p_teca_dataset teca_vtk_cartesian_mesh_writer::execute(
+const_p_teca_dataset teca_vtk_cartesian_mesh_writer::execute(
     unsigned int port,
-    const std::vector<p_teca_dataset> &input_data,
+    const std::vector<const_p_teca_dataset> &input_data,
     const teca_metadata &request)
 {
     (void) port;
 
-    p_teca_cartesian_mesh mesh
-        = std::dynamic_pointer_cast<teca_cartesian_mesh>(input_data[0]);
+    const_p_teca_cartesian_mesh mesh
+        = std::dynamic_pointer_cast<const teca_cartesian_mesh>(input_data[0]);
 
     if (!mesh)
     {
@@ -96,9 +96,9 @@ p_teca_dataset teca_vtk_cartesian_mesh_writer::execute(
     rg->SetExtent(&extent[0]);
 
     // transfer coordinates
-    p_teca_variant_array x = mesh->get_x_coordinates();
-    TEMPLATE_DISPATCH(teca_variant_array_impl, x.get(),
-        TT *xx = static_cast<TT*>(x.get());
+    const_p_teca_variant_array x = mesh->get_x_coordinates();
+    TEMPLATE_DISPATCH(const teca_variant_array_impl, x.get(),
+        const TT *xx = static_cast<const TT*>(x.get());
         vtk_tt<NT>::type *a = vtk_tt<NT>::type::New();
         a->SetNumberOfTuples(xx->size());
         NT *p_a = a->GetPointer(0);
@@ -107,9 +107,9 @@ p_teca_dataset teca_vtk_cartesian_mesh_writer::execute(
         a->Delete();
         );
 
-    p_teca_variant_array y = mesh->get_y_coordinates();
-    TEMPLATE_DISPATCH(teca_variant_array_impl, y.get(),
-        TT *yy = static_cast<TT*>(y.get());
+    const_p_teca_variant_array y = mesh->get_y_coordinates();
+    TEMPLATE_DISPATCH(const teca_variant_array_impl, y.get(),
+        const TT *yy = static_cast<const TT*>(y.get());
          vtk_tt<NT>::type *a = vtk_tt<NT>::type::New();
         a->SetNumberOfTuples(yy->size());
         NT *p_a = a->GetPointer(0);
@@ -118,9 +118,9 @@ p_teca_dataset teca_vtk_cartesian_mesh_writer::execute(
         a->Delete();
         )
 
-    p_teca_variant_array z = mesh->get_z_coordinates();
-    TEMPLATE_DISPATCH(teca_variant_array_impl, z.get(),
-        TT *zz = static_cast<TT*>(z.get());
+    const_p_teca_variant_array z = mesh->get_z_coordinates();
+    TEMPLATE_DISPATCH( const teca_variant_array_impl, z.get(),
+        const TT *zz = static_cast<const TT*>(z.get());
         vtk_tt<NT>::type *a = vtk_tt<NT>::type::New();
         a->SetNumberOfTuples(zz->size());
         NT *p_a = a->GetPointer(0);
@@ -129,16 +129,16 @@ p_teca_dataset teca_vtk_cartesian_mesh_writer::execute(
         a->Delete();
         )
 
-    // transfor point data
-    p_teca_array_collection pd = mesh->get_point_arrays();
+    // transform point data
+    const_p_teca_array_collection pd = mesh->get_point_arrays();
     unsigned int n_arrays = pd->size();
     for (unsigned int i = 0; i< n_arrays; ++i)
     {
-        p_teca_variant_array a = pd->get(i);
+        const_p_teca_variant_array a = pd->get(i);
         string name = pd->get_name(i);
 
-        TEMPLATE_DISPATCH(teca_variant_array_impl, a.get(),
-            TT *aa = static_cast<TT*>(a.get());
+        TEMPLATE_DISPATCH(const teca_variant_array_impl, a.get(),
+            const TT *aa = static_cast<const TT*>(a.get());
             vtk_tt<NT>::type *b = vtk_tt<NT>::type::New();
             b->SetNumberOfTuples(aa->size());
             b->SetName(name.c_str());
