@@ -296,6 +296,7 @@ public:
 
     // pointer to the data
     T *get(){ return &m_data[0]; }
+    const T *get() const { return &m_data[0]; }
 
     // set the ith value
     template<typename U>
