@@ -24,14 +24,25 @@ public:
     TECA_DATASET_METADATA(whole_extent, unsigned long, 6, m_impl->metadata)
     TECA_DATASET_METADATA(extent, unsigned long, 6, m_impl->metadata)
 
-    // get coordinate arrays
+    // get x coordinate array
     p_teca_variant_array get_x_coordinates()
     { return m_coordinate_arrays->get("x"); }
 
+    const_p_teca_variant_array get_x_coordinates() const
+    { return m_coordinate_arrays->get("x"); }
+
+    // get y coordinate array
     p_teca_variant_array get_y_coordinates()
     { return m_coordinate_arrays->get("y"); }
 
+    const_p_teca_variant_array get_y_coordinates() const
+    { return m_coordinate_arrays->get("y"); }
+
+    // get z coordinate array
     p_teca_variant_array get_z_coordinates()
+    { return m_coordinate_arrays->get("z"); }
+
+    const_p_teca_variant_array get_z_coordinates() const
     { return m_coordinate_arrays->get("z"); }
 
     // set coordinate arrays
