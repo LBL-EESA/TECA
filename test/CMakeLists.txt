@@ -1,24 +1,17 @@
-project(teca_core_test)
+project(teca_test)
+
+add_subdirectory(test_array)
 
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
     $<TARGET_PROPERTY:teca_core,INTERFACE_INCLUDE_DIRECTORIES>
+    $<TARGET_PROPERTY:teca_data,INTERFACE_INCLUDE_DIRECTORIES>
+    $<TARGET_PROPERTY:teca_alg,INTERFACE_INCLUDE_DIRECTORIES>
+    $<TARGET_PROPERTY:teca_io,INTERFACE_INCLUDE_DIRECTORIES>
+    $<TARGET_PROPERTY:teca_test_array,INTERFACE_INCLUDE_DIRECTORIES>
     )
 
-set(array_test_srcs
-    array.cxx
-    array_add.cxx
-    array_executive.cxx
-    array_scalar_multiply.cxx
-    array_source.cxx
-    array_temporal_stats.cxx
-    array_time_average.cxx
-    array_writer.cxx
-    )
-
-add_library(teca_test_array ${array_test_srcs})
-target_link_libraries(teca_test_array teca_core)
-
+# core tests
 add_executable(
     test_array_time_average
     test_array_time_average.cpp
@@ -50,4 +43,13 @@ if (MPI_CXX_FOUND)
         test_array_temporal_reduction
         ${MPI_CXX_LIBRARIES}
         )
+endif()
+
+# io tests
+if (NETCDF_FOUND AND VTK_FOUND)
+    add_executable(
+        test_cf_reader
+        test_cf_reader.cpp
+        )
+    target_link_libraries(test_cf_reader teca_core teca_data teca_io)
 endif()

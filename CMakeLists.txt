@@ -39,3 +39,6 @@ add_subdirectory(io)
 add_subdirectory(alg)
 
 set(BUILD_TESTING OFF CACHE BOOL "Enable tests")
+if (BUILD_TESTING)
+    add_subdirectory(test)
+endif()

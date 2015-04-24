@@ -29,7 +29,3 @@ endif()
 target_include_directories(teca_core
     INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}
     )
-
-if (BUILD_TESTING)
-    add_subdirectory(test)
-endif()

@@ -44,6 +44,6 @@ if (VTK_FOUND)
     target_link_libraries(teca_io ${VTK_LIBRARIES})
 endif()
 
-if (BUILD_TESTING)
-    add_subdirectory(test)
-endif()
+target_include_directories(teca_io
+    INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}
+    )
