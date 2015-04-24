@@ -53,3 +53,6 @@ if (NETCDF_FOUND AND VTK_FOUND)
         )
     target_link_libraries(test_cf_reader teca_core teca_data teca_io)
 endif()
+
+add_executable(test_table_writer test_table_writer.cpp)
+target_link_libraries(test_table_writer teca_core teca_data teca_io teca_alg)
