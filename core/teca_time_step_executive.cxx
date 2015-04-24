@@ -88,12 +88,8 @@ int teca_time_step_executive::initialize(const teca_metadata &md)
         return -1;
     }
 
-    vector<unsigned long> whole_extent;
-    if (md.get("whole_extent", whole_extent))
-    {
-        TECA_ERROR("metadata missing \"whole_extent\"")
-        return -1;
-    }
+    vector<unsigned long> whole_extent(6, 0l);
+    md.get("whole_extent", whole_extent);
 
     unsigned long step = this->first_step;
     do
