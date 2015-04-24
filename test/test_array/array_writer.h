@@ -1,15 +1,14 @@
 #ifndef array_writer_h
 #define array_writer_h
 
+#include "teca_shared_object.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
 
-#include <memory>
 #include <vector>
 #include <iostream>
 
-class array_writer;
-using p_array_writer = std::shared_ptr<array_writer>;
+TECA_SHARED_OBJECT_FORWARD_DECL(array_writer)
 
 /**
 an example implementation of a teca_algorithm

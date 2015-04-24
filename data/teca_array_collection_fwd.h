@@ -1,10 +1,8 @@
 #ifndef teca_array_collection_fwd_h
 #define teca_array_collection_fwd_h
 
-#include <memory>
+#include "teca_shared_object.h"
 
-class teca_array_collection;
-using p_teca_array_collection = std::shared_ptr<teca_array_collection>;
-using const_p_teca_array_collection = std::shared_ptr<const teca_array_collection>;
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_array_collection)
 
 #endif

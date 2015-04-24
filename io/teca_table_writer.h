@@ -1,17 +1,15 @@
 #ifndef teca_table_writer_h
 #define teca_table_writer_h
 
+#include "teca_shared_object.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
 #include "teca_table_fwd.h"
 
-#include <memory>
 #include <vector>
 #include <string>
 
-class teca_table_writer;
-using p_teca_table_writer = std::shared_ptr<teca_table_writer>;
-using const_p_teca_table_writer = std::shared_ptr<const teca_table_writer>;
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_table_writer)
 
 /**
 an algorithm that writes cartesian meshes in VTK format.

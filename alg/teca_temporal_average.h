@@ -1,16 +1,14 @@
 #ifndef teca_temporal_average_h
 #define teca_temporal_average_h
 
+#include "teca_shared_object.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
 
-#include <memory>
 #include <string>
 #include <vector>
 
-class teca_temporal_average;
-using p_teca_temporal_average = std::shared_ptr<teca_temporal_average>;
-using const_p_teca_temporal_average = std::shared_ptr<teca_temporal_average>;
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_temporal_average)
 
 /// an algorithm that averages data in time
 /**

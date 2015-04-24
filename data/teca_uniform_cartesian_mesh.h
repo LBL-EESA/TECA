@@ -1,15 +1,8 @@
 #ifndef teca_uniform_cartesian_mesh_h
 #define teca_uniform_cartesian_mesh_h
 
+#include "teca_uniform_cartesian_mesh_fwd.h"
 #include "teca_mesh.h"
-
-class teca_uniform_cartesian_mesh;
-
-using p_teca_uniform_cartesian_mesh
-    = std::shared_ptr<teca_uniform_cartesian_mesh>;
-
-using const_p_teca_uniform_cartesian_mesh
-    = std::shared_ptr<const teca_uniform_cartesian_mesh>;
 
 /// data on a uniform cartesian mesh
 class teca_uniform_cartesian_mesh : public teca_mesh

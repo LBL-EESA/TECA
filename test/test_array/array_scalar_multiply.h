@@ -1,16 +1,14 @@
 #ifndef array_scalar_multiply_h
 #define array_scalar_multiply_h
 
+#include "teca_shared_object.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
 
-#include <memory>
 #include <string>
 #include <vector>
 
-class array_scalar_multiply;
-using p_array_scalar_multiply
-    = std::shared_ptr<array_scalar_multiply>;
+TECA_SHARED_OBJECT_FORWARD_DECL(array_scalar_multiply)
 
 /**
 an example implementation of a teca_algorithm

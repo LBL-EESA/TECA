@@ -8,6 +8,8 @@
 #include <string>
 #include <vector>
 
+class teca_binary_stream;
+
 // trivial implementation of an array based datatset
 // for testing the pipeline
 class array : public teca_dataset

@@ -1,14 +1,10 @@
 #ifndef teca_mesh_h
 #define teca_mesh_h
 
+#include "teca_mesh_fwd.h"
 #include "teca_dataset.h"
 #include "teca_metadata.h"
 #include "teca_array_collection.h"
-
-class teca_mesh;
-
-using p_teca_mesh = std::shared_ptr<teca_mesh>;
-using const_p_teca_mesh = std::shared_ptr<const teca_mesh>;
 
 /// data on a physically uniform cartesian mesh
 class teca_mesh : public teca_dataset

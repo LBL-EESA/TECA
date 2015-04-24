@@ -1,13 +1,12 @@
 #ifndef array_source_h
 #define array_source_h
 
-#include <memory>
+#include "teca_shared_object.h"
+#include "teca_algorithm.h"
 #include <vector>
 #include <string>
-#include "teca_algorithm.h"
 
-class array_source;
-using p_array_source = std::shared_ptr<array_source>;
+TECA_SHARED_OBJECT_FORWARD_DECL(array_source)
 
 /** an example implementation of a teca_algorithm
 that generates arrays over a number of timesteps

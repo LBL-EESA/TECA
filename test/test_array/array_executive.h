@@ -1,14 +1,13 @@
 #ifndef array_executive_h
 #define array_executive_h
 
+#include "teca_shared_object.h"
 #include "teca_algorithm_executive.h"
 #include "teca_metadata.h"
 
-#include <memory>
 #include <vector>
 
-class array_executive;
-using p_array_executive = std::shared_ptr<array_executive>;
+TECA_SHARED_OBJECT_FORWARD_DECL(array_executive)
 
 class array_executive : public teca_algorithm_executive
 {

@@ -1,20 +1,14 @@
 #ifndef teca_vtk_cartesian_mesh_writer_h
 #define teca_vtk_cartesian_mesh_writer_h
 
+#include "teca_shared_object.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
 
-#include <memory>
 #include <vector>
 #include <string>
 
-class teca_vtk_cartesian_mesh_writer;
-
-using p_teca_vtk_cartesian_mesh_writer
-    = std::shared_ptr<teca_vtk_cartesian_mesh_writer>;
-
-using const_p_teca_vtk_cartesian_mesh_writer
-    = std::shared_ptr<const teca_vtk_cartesian_mesh_writer>;
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_vtk_cartesian_mesh_writer)
 
 /**
 an algorithm that writes cartesian meshes in VTK format.

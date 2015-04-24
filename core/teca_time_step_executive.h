@@ -1,15 +1,13 @@
 #ifndef teca_time_step_executive_h
 #define teca_time_step_executive_h
 
+#include "teca_shared_object.h"
 #include "teca_algorithm_executive.h"
 #include "teca_metadata.h"
 
-#include <memory>
 #include <vector>
 
-class teca_time_step_executive;
-using p_teca_time_step_executive = std::shared_ptr<teca_time_step_executive>;
-using const_p_teca_time_step_executive = std::shared_ptr<const teca_time_step_executive>;
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_time_step_executive)
 
 ///
 /**

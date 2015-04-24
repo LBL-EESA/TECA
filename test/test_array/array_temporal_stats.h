@@ -1,17 +1,16 @@
 #ifndef array_temporal_stats_h
 #define array_temporal_stats_h
 
+#include "teca_shared_object.h"
 #include "array_fwd.h"
 
 #include "teca_temporal_reduction.h"
 #include "teca_metadata.h"
 
-#include <memory>
 #include <string>
 #include <vector>
 
-class array_temporal_stats;
-using p_array_temporal_stats = std::shared_ptr<array_temporal_stats>;
+TECA_SHARED_OBJECT_FORWARD_DECL(array_temporal_stats)
 
 /** example demonstarting a temporal reduction. min, average
  and max are computed over time steps for the named array.

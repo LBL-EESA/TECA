@@ -1,17 +1,14 @@
 #ifndef teca_ar_detect_h
 #define teca_ar_detect_h
 
+#include "teca_shared_object.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
 
-#include <memory>
 #include <string>
 #include <vector>
 
-class teca_ar_detect;
-
-using p_teca_ar_detect = std::shared_ptr<teca_ar_detect>;
-using const_p_teca_ar_detect = std::shared_ptr<const teca_ar_detect>;
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_ar_detect)
 
 /**
 an example implementation of a teca_algorithm

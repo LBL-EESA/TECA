@@ -2,14 +2,7 @@
 #define teca_cartesian_mesh_h
 
 #include "teca_mesh.h"
-
-class teca_cartesian_mesh;
-
-using p_teca_cartesian_mesh
-    = std::shared_ptr<teca_cartesian_mesh>;
-
-using const_p_teca_cartesian_mesh
-    = std::shared_ptr<const teca_cartesian_mesh>;
+#include "teca_cartesian_mesh_fwd.h"
 
 /// data on a physically uniform cartesian mesh
 class teca_cartesian_mesh : public teca_mesh

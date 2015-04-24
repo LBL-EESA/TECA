@@ -1,11 +1,9 @@
 #ifndef teca_algorithm_executive_fwd_h
 #define teca_algorithm_executive_fwd_h
 
-#include <memory>
+#include "teca_shared_object.h"
 
-class teca_algorithm_executive;
-using p_teca_algorithm_executive = std::shared_ptr<teca_algorithm_executive>;
-using const_p_teca_algorithm_executive = std::shared_ptr<const teca_algorithm_executive>;
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_algorithm_executive)
 
 // this is a convenience macro to be used to declare a static
 // New method that will be used to construct new objects in

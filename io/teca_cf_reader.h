@@ -3,14 +3,12 @@
 
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
+#include "teca_shared_object.h"
 
 #include <vector>
 #include <string>
-#include <memory>
 
-class teca_cf_reader;
-using p_teca_cf_reader = std::shared_ptr<teca_cf_reader>;
-using const_p_teca_cf_reader = std::shared_ptr<const teca_cf_reader>;
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_cf_reader)
 
 /// a reader for data stored in NetCDF CF format
 /**

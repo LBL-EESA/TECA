@@ -1,15 +1,14 @@
 #ifndef array_add_h
 #define array_add_h
 
+#include "teca_shared_object.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
 
-#include <memory>
 #include <string>
 #include <vector>
 
-class array_add;
-using p_array_add = std::shared_ptr<array_add>;
+TECA_SHARED_OBJECT_FORWARD_DECL(array_add)
 
 /**
 an example implementation of a teca_algorithm

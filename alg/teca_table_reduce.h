@@ -1,18 +1,15 @@
 #ifndef teca_table_reduce_h
 #define teca_table_reduce_h
 
+#include "teca_shared_object.h"
 #include "teca_dataset_fwd.h"
 #include "teca_metadata.h"
 #include "teca_temporal_reduction.h"
 
-#include <memory>
 #include <string>
 #include <vector>
 
-class teca_table_reduce;
-using p_teca_table_reduce = std::shared_ptr<teca_table_reduce>;
-using const_p_teca_table_reduce = std::shared_ptr<const teca_table_reduce>;
-
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_table_reduce)
 
 // a reduction on tabular data over time steps
 /**

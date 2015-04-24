@@ -2,12 +2,11 @@
 #define teca_dataset_fwd_h
 
 #include "teca_common.h"
-#include <memory>
+#include "teca_shared_object.h"
+
 #include <vector>
 
-class teca_dataset;
-using p_teca_dataset = std::shared_ptr<teca_dataset>;
-using const_p_teca_dataset = std::shared_ptr<const teca_dataset>;
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_dataset)
 
 // this is a convenience macro to be used to
 // declare New and enable seamless operation
