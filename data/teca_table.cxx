@@ -112,8 +112,16 @@ void teca_table::to_stream(std::ostream &s) const
                 this->impl->get(0).get(),
                 TT *a = dynamic_cast<TT*>(this->impl->get(0).get());
                 NT v = NT();
-                a->get(v, j);
+                a->get(j, v);
                 s << v;
+                )
+            else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
+                std::string,
+                this->impl->get(0).get(),
+                TT *a = dynamic_cast<TT*>(this->impl->get(0).get());
+                NT v = NT();
+                a->get(j, v);
+                s << ", \"" << v << "\"";
                 )
             for (unsigned int i = 1; i < n_cols; ++i)
             {
@@ -121,8 +129,16 @@ void teca_table::to_stream(std::ostream &s) const
                     this->impl->get(i).get(),
                     TT *a = dynamic_cast<TT*>(this->impl->get(i).get());
                     NT v = NT();
-                    a->get(v, j);
+                    a->get(j, v);
                     s << ", " << v;
+                    )
+                else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
+                    std::string,
+                    this->impl->get(i).get(),
+                    TT *a = dynamic_cast<TT*>(this->impl->get(i).get());
+                    NT v = NT();
+                    a->get(j, v);
+                    s << ", \"" << v << "\"";
                     )
             }
         }
