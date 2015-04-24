@@ -467,19 +467,19 @@ private:
 // t - templated derived type
 // p - pointer
 // body - code to execute on match
-#define TEMPLATE_DISPATCH(t, p, body)                       \
-    TEMPLATE_DISPATCH_CASE(t, char, p, body)                \
-    TEMPLATE_DISPATCH_CASE(t, unsigned char, p, body)       \
-    TEMPLATE_DISPATCH_CASE(t, short int, p, body)           \
-    TEMPLATE_DISPATCH_CASE(t, short unsigned int, p, body)  \
-    TEMPLATE_DISPATCH_CASE(t, int, p, body)                 \
-    TEMPLATE_DISPATCH_CASE(t, unsigned int, p, body)        \
-    TEMPLATE_DISPATCH_CASE(t, long, p, body)                \
-    TEMPLATE_DISPATCH_CASE(t, unsigned long, p, body)       \
-    TEMPLATE_DISPATCH_CASE(t, long long, p, body)           \
-    TEMPLATE_DISPATCH_CASE(t, unsigned long long, p, body)  \
-    TEMPLATE_DISPATCH_CASE(t, float, p, body)               \
-    TEMPLATE_DISPATCH_CASE(t, double, p, body)
+#define TEMPLATE_DISPATCH(t, p, body)                           \
+    TEMPLATE_DISPATCH_CASE(t, float, p, body)                   \
+    else TEMPLATE_DISPATCH_CASE(t, double, p, body)             \
+    else TEMPLATE_DISPATCH_CASE(t, long long, p, body)          \
+    else TEMPLATE_DISPATCH_CASE(t, unsigned long long, p, body) \
+    else TEMPLATE_DISPATCH_CASE(t, long, p, body)               \
+    else TEMPLATE_DISPATCH_CASE(t, int, p, body)                \
+    else TEMPLATE_DISPATCH_CASE(t, unsigned int, p, body)       \
+    else TEMPLATE_DISPATCH_CASE(t, unsigned long, p, body)      \
+    else TEMPLATE_DISPATCH_CASE(t, short int, p, body)          \
+    else TEMPLATE_DISPATCH_CASE(t, short unsigned int, p, body) \
+    else TEMPLATE_DISPATCH_CASE(t, char, p, body)               \
+    else TEMPLATE_DISPATCH_CASE(t, unsigned char, p, body)
 
 // variant that limits dispatch to floating point types
 // for use in numerical compuatation where integer types
