@@ -172,6 +172,10 @@ bool operator<(const teca_metadata &lhs, const teca_metadata &rhs) TECA_NOEXCEPT
 // are equal
 bool operator==(const teca_metadata &lhs, const teca_metadata &rhs) TECA_NOEXCEPT;
 
+inline
+bool operator!=(const teca_metadata &lhs, const teca_metadata &rhs) TECA_NOEXCEPT
+{ return !(lhs == rhs); }
+
 // intersect two metadata objects. return a new object with
 // common key value pairs
 teca_metadata operator&(const teca_metadata &lhs, const teca_metadata &rhs);
