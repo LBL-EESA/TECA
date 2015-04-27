@@ -66,8 +66,10 @@ teca_metadata teca_cf_reader::get_output_metadata(
     unsigned int port,
     const std::vector<teca_metadata> &input_md)
 {
-    cerr << "teca_cf_reader::get_output_metadata" << endl;
-
+#ifdef TECA_DEBUG
+    cerr << teca_parallel_id()
+        << "teca_cf_reader::get_output_metadata" << endl;
+#endif
     (void)port;
     (void)input_md;
 
@@ -147,6 +149,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
     }
 
     // enumerate mesh arrays and their attributes
+    teca_metadata atrs;
     vector<string> vars;
     vector<string> time_vars; // anything that has the time dimension as it's only dim
     for (int i = 0; i < n_vars; ++i)
@@ -225,10 +228,11 @@ teca_metadata teca_cf_reader::get_output_metadata(
         }
         free(buffer);
 
-        this->md.insert(var_name, atts);
+        atrs.insert(var_name, atts);
     }
 
     this->md.insert("variables", vars);
+    this->md.insert("attributes", atrs);
     this->md.insert("time variables", time_vars);
 
     // read coordinate arrays
@@ -535,6 +539,13 @@ const_p_teca_dataset teca_cf_reader::execute(
         mesh_size *= count;
     }
 
+    teca_metadata atrs;
+    if (this->md.get("attributes", atrs))
+    {
+        TECA_ERROR("metadata missing \"attributes\"")
+        return nullptr;
+    }
+
     // read requested arrays
     size_t n_arrays = arrays.size();
     for (size_t i = 0; i < n_arrays; ++i)
@@ -545,7 +556,7 @@ const_p_teca_dataset teca_cf_reader::execute(
         int id = 0;
         p_teca_string_array dim_names;
 
-        if (this->md.get(arrays[i], atts)
+        if (atrs.get(arrays[i], atts)
             || atts.get("type", 0, type)
             || atts.get("id", 0, id)
             || !(dim_names = std::dynamic_pointer_cast<teca_string_array>(atts.get("dim_names"))))
@@ -604,7 +615,7 @@ const_p_teca_dataset teca_cf_reader::execute(
         int type = 0;
         int id = 0;
 
-        if (this->md.get(time_vars[i], atts)
+        if (atrs.get(time_vars[i], atts)
             || atts.get("type", 0, type)
             || atts.get("id", 0, id))
         {
