@@ -61,7 +61,7 @@ void set_##key(const T & val_1) \
 { \
     md_obj.insert<T>(#key, val_1); \
 } \
-int get_##key(T &val_1) \
+int get_##key(T &val_1) const \
 { \
     return md_obj.get<T>(#key, val_1); \
 }
@@ -71,7 +71,7 @@ void set_##key(const T & val_1, const T & val_2) \
 { \
     md_obj.insert<T>(#key, {val_1, val_2}); \
 } \
-int get_##key(T &val_1, T &val_2) \
+int get_##key(T &val_1, T &val_2) const \
 { \
     std::vector<T> vals; \
     if (md_obj.get<T>(#key, vals)) \
@@ -86,7 +86,7 @@ void set_##key(const T & val_1, const T & val_2, const T & val_3) \
 { \
     md_obj.insert<T>(#key, {val_1, val_2, val_3}); \
 } \
-int get_##key(T &val_1, T &val_2, T &val_3) \
+int get_##key(T &val_1, T &val_2, T &val_3) const \
 { \
     std::vector<T> vals; \
     if (md_obj.get<T>(#key, vals)) \
@@ -125,7 +125,7 @@ void set_##key(const std::vector<T> &vals) \
         TECA_ERROR(#key " requires " #len " values") \
     md_obj.insert<T>(#key, vals); \
 } \
-void get_##key(std::vector<T> &vals) \
+void get_##key(std::vector<T> &vals) const \
 { \
     md_obj.get<T>(#key, vals); \
 }
@@ -135,7 +135,7 @@ void set_##key(const T *vals) \
 { \
     md_obj.insert<T>(#key, vals, len); \
 } \
-void get_##key(T *vals) \
+void get_##key(T *vals) const \
 { \
     md_obj.get<T>(#key, vals, len); \
 }
