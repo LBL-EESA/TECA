@@ -122,7 +122,7 @@ std::vector<teca_metadata> teca_temporal_reduction::get_upstream_request(
         for (size_t j = 0; j < n_reqs; ++j)
         {
             up_req.push_back(base_req[j]);
-            up_req.back().set("time_step", ii);
+            up_req.back().insert("time_step", ii);
         }
     }
 
