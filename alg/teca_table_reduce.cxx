@@ -72,7 +72,7 @@ p_teca_dataset teca_table_reduce::reduce(
         output_table
             = std::dynamic_pointer_cast<teca_table>(left_table->new_copy());
 
-        output_table->append(right_table);
+        output_table->concatenate(right_table);
     }
     else
     if (left)

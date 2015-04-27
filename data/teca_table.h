@@ -94,7 +94,7 @@ public:
 
     // append the passed in table. must have identical
     // column layout.
-    void append(const const_p_teca_table &other);
+    void concatenate(const const_p_teca_table &other);
 
 protected:
     teca_table();

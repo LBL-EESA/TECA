@@ -211,9 +211,8 @@ void teca_table::swap(p_teca_dataset &dataset)
     this->active_column = 0;
 }
 
-
 // --------------------------------------------------------------------------
-void teca_table::append(const const_p_teca_table &other)
+void teca_table::concatenate(const const_p_teca_table &other)
 {
     if (!other)
         return;
@@ -226,5 +225,5 @@ void teca_table::append(const const_p_teca_table &other)
     }
 
     for (size_t i = 0; i < n_cols; ++i)
-        this->get_column(i)->append(other->get_column(i));
+        this->get_column(i)->append(*(other->get_column(i).get()));
 }
