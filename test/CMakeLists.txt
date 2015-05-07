@@ -13,34 +13,34 @@ include_directories(
 
 # core tests
 add_executable(
-    test_array_time_average
-    test_array_time_average.cpp
+    test_pipeline_time_average
+    test_pipeline_time_average.cpp
     )
 target_link_libraries(
-    test_array_time_average
+    test_pipeline_time_average
     teca_core teca_test_array
     )
 
 add_executable(
-    test_array_branches
-    test_array_branches.cpp
+    test_pipeline_branches
+    test_pipeline_branches.cpp
     )
 target_link_libraries(
-    test_array_branches
+    test_pipeline_branches
     teca_core teca_test_array
     )
 
 add_executable(
-    test_array_temporal_reduction
-    test_array_temporal_reduction.cpp
+    test_pipeline_temporal_reduction
+    test_pipeline_temporal_reduction.cpp
     )
 target_link_libraries(
-    test_array_temporal_reduction
+    test_pipeline_temporal_reduction
     teca_core teca_test_array
     )
 if (MPI_CXX_FOUND)
     target_link_libraries(
-        test_array_temporal_reduction
+        test_pipeline_temporal_reduction
         ${MPI_CXX_LIBRARIES}
         )
 endif()
