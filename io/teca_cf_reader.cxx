@@ -483,12 +483,10 @@ const_p_teca_dataset teca_cf_reader::execute(
         return nullptr;
     }
 
-    // open the file that contains this step
-    int ierr = 0;
-    int file_id = 0;
-    if ((ierr = nc_open(file.c_str(), NC_NOWRITE, &file_id)) != NC_NOERR)
+    teca_metadata atrs;
+    if (this->md.get("attributes", atrs))
     {
-        TECA_ERROR("Failed to open " << file << endl << nc_strerror(ierr))
+        TECA_ERROR("metadata missing \"attributes\"")
         return nullptr;
     }
 
@@ -501,6 +499,27 @@ const_p_teca_dataset teca_cf_reader::execute(
     mesh->set_time_step(time_step);
     mesh->set_whole_extent(whole_extent);
     mesh->set_extent(extent);
+
+    // get the time offset
+    teca_metadata time_atts;
+    std::string calendar;
+    std::string units;
+    if (!atrs.get("time", time_atts)
+       && !time_atts.get("calendar", calendar)
+       && !time_atts.get("units", units))
+    {
+        mesh->set_calendar(calendar);
+        mesh->set_time_units(units);
+    }
+
+    // open the file that contains this step
+    int ierr = 0;
+    int file_id = 0;
+    if ((ierr = nc_open(file.c_str(), NC_NOWRITE, &file_id)) != NC_NOERR)
+    {
+        TECA_ERROR("Failed to open " << file << endl << nc_strerror(ierr))
+        return nullptr;
+    }
 
     // figure out the mapping between our extent and netcdf
     // representation
@@ -539,12 +558,6 @@ const_p_teca_dataset teca_cf_reader::execute(
         mesh_size *= count;
     }
 
-    teca_metadata atrs;
-    if (this->md.get("attributes", atrs))
-    {
-        TECA_ERROR("metadata missing \"attributes\"")
-        return nullptr;
-    }
 
     // read requested arrays
     size_t n_arrays = arrays.size();
