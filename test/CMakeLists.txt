@@ -56,6 +56,14 @@ if (TECA_HAS_NETCDF)
             test_cf_reader
             teca_core teca_data teca_io
             )
+        add_executable(
+            test_temporal_average
+            test_temporal_average.cpp
+            )
+        target_link_libraries(
+            test_temporal_average
+            teca_core teca_data teca_io teca_alg
+            )
     endif()
 endif()
 
