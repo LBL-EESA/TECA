@@ -1,5 +1,6 @@
 project(teca_io)
 
+
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
     $<TARGET_PROPERTY:teca_core,INTERFACE_INCLUDE_DIRECTORIES>
@@ -20,6 +21,7 @@ if (NETCDF_FOUND)
     message(STATUS "NetCDF support -- enabled")
     list(APPEND teca_io_srcs teca_cf_reader.cxx)
     include_directories(${NETCDF_INCLUDE_DIRS})
+    set(TECA_HAS_NETCDF ON CACHE INTERNAL "NetCDF support")
 else()
     message(STATUS "NetCDF support -- not found. set NETCDF_DIR to enable.")
 endif()
@@ -29,6 +31,7 @@ if (VTK_FOUND)
     message(STATUS "VTK support -- enabled")
     include(${VTK_USE_FILE})
     list(APPEND teca_io_srcs teca_vtk_cartesian_mesh_writer.cxx)
+    set(TECA_HAS_VTK ON CACHE INTERNAL "VTK support")
 else()
     message(STATUS "VTK support -- not found. set VTK_DIR to enable.")
 endif()

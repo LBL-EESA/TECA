@@ -46,13 +46,24 @@ if (MPI_CXX_FOUND)
 endif()
 
 # io tests
-if (NETCDF_FOUND AND VTK_FOUND)
-    add_executable(
-        test_cf_reader
-        test_cf_reader.cpp
-        )
-    target_link_libraries(test_cf_reader teca_core teca_data teca_io)
+if (TECA_HAS_NETCDF)
+    if (TECA_HAS_VTK)
+        add_executable(
+            test_cf_reader
+            test_cf_reader.cpp
+            )
+        target_link_libraries(
+            test_cf_reader
+            teca_core teca_data teca_io
+            )
+    endif()
 endif()
 
-add_executable(test_table_writer test_table_writer.cpp)
-target_link_libraries(test_table_writer teca_core teca_data teca_io teca_alg)
+add_executable(
+    test_table_writer
+    test_table_writer.cpp
+    )
+target_link_libraries(
+    test_table_writer
+    teca_core teca_data teca_io teca_alg
+    )
