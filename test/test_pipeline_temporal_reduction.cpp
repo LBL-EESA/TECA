@@ -76,8 +76,6 @@ int main(int argc, char **argv)
 
     // execute
     cerr << "execute..." << endl;
-    p_array_executive exec = array_executive::New();
-    wri->set_executive(exec);
     wri->update();
     cerr << endl;
 

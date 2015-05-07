@@ -67,7 +67,7 @@ teca_metadata array_source::get_output_metadata(
     output_md.insert("number_of_time_steps", this->number_of_timesteps);
 
     // report array extents
-    vector<unsigned int> extent = {0, this->array_size};
+    vector<size_t> extent = {0, this->array_size};
     output_md.insert("extent", extent);
 
     // report array names
@@ -117,12 +117,8 @@ const_p_teca_dataset array_source::execute(
     size_t array_id = it - this->array_names.begin();
 
     // get the extent request
-    vector<size_t> active_extent;
-    if (request.get("extent", active_extent))
-    {
-        TECA_ERROR("request is missing extent")
-        return nullptr;
-    }
+    vector<size_t> active_extent = {0, this->array_size};
+    request.get("extent", active_extent);
 
     // generate the a_out array
     p_array a_out = array::New();
