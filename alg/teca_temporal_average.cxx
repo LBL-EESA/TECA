@@ -135,24 +135,21 @@ const_p_teca_dataset teca_temporal_average::execute(
         }
     }
 
-    // scale by the filter width
-    for (size_t i = 0; i < n_meshes; ++i)
+    // scale result by the filter width
+    for (size_t j = 0; j < n_arrays; ++j)
     {
-        for (size_t j = 0; j < n_arrays; ++j)
-        {
-            p_teca_variant_array out_a = out_arrays->get(j);
+        p_teca_variant_array out_a = out_arrays->get(j);
 
-            TEMPLATE_DISPATCH(
-                teca_variant_array_impl,
-                out_a.get(),
+        TEMPLATE_DISPATCH(
+            teca_variant_array_impl,
+            out_a.get(),
 
-                NT *p_out_a = dynamic_cast<TT*>(out_a.get())->get();
-                NT fac = static_cast<NT>(n_meshes);
+            NT *p_out_a = dynamic_cast<TT*>(out_a.get())->get();
+            NT fac = static_cast<NT>(n_meshes);
 
-                for (size_t q = 0; q < n_elem; ++q)
-                    p_out_a[q] /= fac;
-                )
-        }
+            for (size_t q = 0; q < n_elem; ++q)
+                p_out_a[q] /= fac;
+            )
     }
 
     // get active time step
