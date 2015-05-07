@@ -21,7 +21,7 @@ std::vector<teca_metadata> teca_table_reduce::initialize_upstream_request(
     const std::vector<teca_metadata> &input_md,
     const teca_metadata &request)
 {
-#ifndef TECA_NDEBUG
+#ifdef TECA_DEBUG
     cerr << teca_parallel_id()
         << "teca_table_reduce::initialize_upstream_request" << endl;
 #endif
@@ -37,7 +37,7 @@ teca_metadata teca_table_reduce::initialize_output_metadata(
     unsigned int port,
     const std::vector<teca_metadata> &input_md)
 {
-#ifndef TECA_NDEBUG
+#ifdef TECA_DEBUG
     cerr << teca_parallel_id()
         << "teca_table_reduce::intialize_output_metadata" << endl;
 #endif
@@ -52,7 +52,7 @@ p_teca_dataset teca_table_reduce::reduce(
     const const_p_teca_dataset &left_ds,
     const const_p_teca_dataset &right_ds)
 {
-#ifndef TECA_NDEBUG
+#ifdef TECA_DEBUG
     cerr << teca_parallel_id()
         << "teca_table_reduce::reduce" << endl;
 #endif
