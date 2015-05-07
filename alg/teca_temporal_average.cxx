@@ -13,7 +13,8 @@ using std::cerr;
 using std::endl;
 
 // --------------------------------------------------------------------------
-teca_temporal_average::teca_temporal_average() : filter_width(3)
+teca_temporal_average::teca_temporal_average()
+    : filter_width(3), filter_type(backward)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -49,8 +50,36 @@ std::vector<teca_metadata> teca_temporal_average::get_upstream_request(
         return up_reqs;
     }
 
-    long first = active_step - this->filter_width/2;
-    long last = active_step + this->filter_width/2;
+    if (this->filter_width % 2 == 0)
+    {
+        TECA_ERROR("\"filter_width\" must be odd")
+        return up_reqs;
+    }
+
+    long first = 0;
+    long last = 0;
+    switch(this->filter_type)
+    {
+        case backward:
+            first = active_step - this->filter_width - 1;
+            last = active_step;
+            break;
+        case centered:
+            {
+            long delta = this->filter_width/2;
+            first = active_step - delta;
+            last = active_step + delta;
+            }
+            break;
+        case forward:
+            first = active_step;
+            last = active_step + this->filter_width - 1;
+            break;
+        default:
+            TECA_ERROR("Invalid \"filter_type\" " << this->filter_type)
+            return up_reqs;
+    }
+
     for (long i = first; i <= last; ++i)
     {
         // make a request for each time that will be used in the
@@ -72,7 +101,7 @@ const_p_teca_dataset teca_temporal_average::execute(
     const std::vector<const_p_teca_dataset> &input_data,
     const teca_metadata &request)
 {
-#ifndef TECA_NDEBUG
+#ifdef TECA_DEBUG
     cerr << teca_parallel_id()
         << "teca_temporal_average::execute" << endl;
 #endif

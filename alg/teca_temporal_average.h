@@ -25,6 +25,15 @@ public:
     // set the number of steps to average. should be odd.
     TECA_ALGORITHM_PROPERTY(unsigned int, filter_width)
 
+
+    // select the filter stencil, default is backward
+    enum {
+        backward,
+        centered,
+        forward
+    };
+    TECA_ALGORITHM_PROPERTY(int, filter_type)
+
 protected:
     teca_temporal_average();
 
@@ -41,6 +50,7 @@ private:
 
 private:
     unsigned int filter_width;
+    int filter_type;
 };
 
 #endif

@@ -38,6 +38,7 @@ int main(int argc, char **argv)
 
     p_teca_temporal_average a = teca_temporal_average::New();
     a->set_filter_width(filter_width);
+    a->set_filter_type(teca_temporal_average::backward);
     a->set_input_connection(r->get_output_port());
 
     // create the vtk writer connected to the cf reader
