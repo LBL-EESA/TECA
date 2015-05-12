@@ -34,7 +34,7 @@ int main(int argc, char **argv)
 
     // create the cf reader
     p_teca_cf_reader r = teca_cf_reader::New();
-    r->set_files_regex(argv[1]);
+    r->set_files_regex(regex);
 
     p_teca_temporal_average a = teca_temporal_average::New();
     a->set_filter_width(filter_width);
@@ -43,12 +43,11 @@ int main(int argc, char **argv)
 
     // create the vtk writer connected to the cf reader
     p_teca_vtk_cartesian_mesh_writer w = teca_vtk_cartesian_mesh_writer::New();
-    w->set_base_file_name(argv[2]);
+    w->set_base_file_name(base);
     w->set_input_connection(a->get_output_port());
 
     // set the executive on the writer to stream time steps
     p_teca_time_step_executive exec = teca_time_step_executive::New();
-    // optional
     exec->set_first_step(first_step);
     exec->set_last_step(last_step);
     exec->set_arrays(arrays);
