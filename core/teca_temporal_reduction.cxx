@@ -63,6 +63,11 @@ int recv(MPI_Comm comm, int src, teca_binary_stream &s)
 };
 
 // --------------------------------------------------------------------------
+teca_temporal_reduction::teca_temporal_reduction()
+    : first_step(0), last_step(-1)
+{}
+
+// --------------------------------------------------------------------------
 std::vector<teca_metadata> teca_temporal_reduction::get_upstream_request(
     unsigned int port,
     const std::vector<teca_metadata> &input_md,
@@ -71,12 +76,22 @@ std::vector<teca_metadata> teca_temporal_reduction::get_upstream_request(
     vector<teca_metadata> up_req;
 
     // locate available times
-    unsigned long n_times;
+    long n_times;
     if (input_md[0].get("number_of_time_steps", n_times))
     {
         TECA_ERROR("metadata is missing \"number_of_time_steps\"")
         return up_req;
     }
+
+    // apply restriction
+    long last
+        = this->last_step >= 0 ? this->last_step : n_times - 1;
+
+    long first
+        = ((this->first_step >= 0) && (this->first_step <= last))
+            ? this->first_step : 0;
+
+    n_times = last - first + 1;
 
     // partition time across MPI ranks. each rank
     // will end up with a unique block of times
@@ -117,12 +132,12 @@ std::vector<teca_metadata> teca_temporal_reduction::get_upstream_request(
     // requests are mapped onto inputs round robbin
     for (size_t i = 0; i < block_size; ++i)
     {
-        size_t ii = i + block_start;
+        size_t step = i + block_start + first;
         size_t n_reqs = base_req.size();
         for (size_t j = 0; j < n_reqs; ++j)
         {
             up_req.push_back(base_req[j]);
-            up_req.back().insert("time_step", ii);
+            up_req.back().insert("time_step", step);
         }
     }
 
@@ -144,7 +159,7 @@ teca_metadata teca_temporal_reduction::get_output_metadata(
 
 // --------------------------------------------------------------------------
 const_p_teca_dataset teca_temporal_reduction::reduce_local(
-    std::vector<const_p_teca_dataset> input_data) // NOTE -- pass by value is intended
+    std::vector<const_p_teca_dataset> input_data) // pass by value is intentional
 {
     size_t n_in = input_data.size();
 
@@ -173,7 +188,7 @@ const_p_teca_dataset teca_temporal_reduction::reduce_local(
 
 // --------------------------------------------------------------------------
 const_p_teca_dataset teca_temporal_reduction::reduce_remote(
-    const_p_teca_dataset local_data) // NOTE -- pass by value is intentional
+    const_p_teca_dataset local_data) // pass by value is intentional
 {
 #if defined(TECA_MPI)
     int is_init = 0;

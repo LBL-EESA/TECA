@@ -10,8 +10,10 @@
 #include <vector>
 
 // base class for MPI+threads temporal reduction over
-// time. times are partitioned across MPI ranks and
-// threads.
+// time. the available time steps  are partitioned
+// across MPI ranks and threads. one can restrict
+// operation to a range of time steps by setting
+// first and last steps to process.
 //
 // meta data keys:
 //      requires:
@@ -19,16 +21,23 @@
 //
 //      consumes:
 //          time_step
-//
-// TODO -- api for setting MPI communicator
 class teca_temporal_reduction : public teca_threaded_algorithm
 {
 public:
     TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_temporal_reduction)
     virtual ~teca_temporal_reduction(){}
 
+    // set the range of time steps to process.
+    // setting first_step=0 and last_step=-1 results
+    // in processing all available steps. this is
+    // the default.
+    TECA_ALGORITHM_PROPERTY(long, first_step)
+    TECA_ALGORITHM_PROPERTY(long, last_step)
+
+    // TODO -- api for setting MPI communicator
+
 protected:
-    teca_temporal_reduction(){}
+    teca_temporal_reduction();
 
 protected:
 // overrides that derived classes need to implement.
@@ -94,6 +103,10 @@ private:
         std::vector<const_p_teca_dataset> local_data);
 
     const_p_teca_dataset reduce_remote(const_p_teca_dataset local_data);
+
+private:
+    long first_step;
+    long last_step;
 };
 
 #endif
