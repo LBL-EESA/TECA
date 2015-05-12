@@ -325,6 +325,7 @@ public:
 
     // resize the data
     virtual void resize(unsigned long n) override;
+    void resize(unsigned long n, T &val);
 
     // reserve space
     virtual void reserve(unsigned long n) override;
@@ -368,6 +369,11 @@ protected:
     // construct with preallocated size
     teca_variant_array_impl(unsigned long n)
         : m_data(n) {}
+
+    // construct with preallocated size and initialized
+    // to a specific value
+    teca_variant_array_impl(unsigned long n, const T &v)
+        : m_data(n, v) {}
 
     // construct from a c-array of length n
     teca_variant_array_impl(const T *vals, unsigned long n)
@@ -846,6 +852,13 @@ template<typename T>
 void teca_variant_array_impl<T>::resize(unsigned long n)
 {
     m_data.resize(n);
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
+void teca_variant_array_impl<T>::resize(unsigned long n, T &val)
+{
+    m_data.resize(n, val);
 }
 
 // --------------------------------------------------------------------------

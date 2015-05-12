@@ -59,6 +59,11 @@ static p_##T<t> New(size_t n)                                           \
     return p_##T<t>(new T<t>(n));                                       \
 }                                                                       \
                                                                         \
+static p_##T<t> New(size_t n, const t &v)                               \
+{                                                                       \
+    return p_##T<t>(new T<t>(n, v));                                    \
+}                                                                       \
+                                                                        \
 static p_##T<t> New(const t *vals, size_t n)                            \
 {                                                                       \
     return p_##T<t>(new T<t>(vals, n));                                 \
