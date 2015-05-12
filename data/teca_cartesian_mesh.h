@@ -41,13 +41,13 @@ public:
     { return m_coordinate_arrays->get("z"); }
 
     // set coordinate arrays
-    void set_x_coordinates(p_teca_variant_array &a)
+    void set_x_coordinates(const p_teca_variant_array &a)
     { m_coordinate_arrays->set("x", a); }
 
-    void set_y_coordinates(p_teca_variant_array &a)
+    void set_y_coordinates(const p_teca_variant_array &a)
     { m_coordinate_arrays->set("y", a); }
 
-    void set_z_coordinates(p_teca_variant_array &a)
+    void set_z_coordinates(const p_teca_variant_array &a)
     { m_coordinate_arrays->set("z", a); }
 
     // virtual constructor. return a new dataset of the same type.
