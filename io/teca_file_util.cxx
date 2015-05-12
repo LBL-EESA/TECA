@@ -134,7 +134,12 @@ int locate_files(
     }
 
     for (int i = 0; i < n_files; ++i)
+    {
         file_list.push_back(entries[i]->d_name);
+        free(entries[i]);
+        entries[i] = nullptr;
+    }
+    free(entries);
 
     return 0;
 }
