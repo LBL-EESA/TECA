@@ -12,6 +12,8 @@ using std::vector;
 using std::cerr;
 using std::endl;
 
+//#define TECA_DEBUG
+
 // --------------------------------------------------------------------------
 teca_temporal_average::teca_temporal_average()
     : filter_width(3), filter_type(backward)
@@ -30,6 +32,24 @@ std::vector<teca_metadata> teca_temporal_average::get_upstream_request(
     const std::vector<teca_metadata> &input_md,
     const teca_metadata &request)
 {
+#ifdef TECA_DEBUG
+    std::string type = "unknown";
+    switch(this->filter_type)
+    {
+        case backward:
+            type = "backward";
+            break;
+        case centered:
+            type = "centered";
+            break;
+        case forward:
+            type = "forward";
+            break;
+    }
+    cerr << teca_parallel_id()
+        << "teca_temporal_average::get_upstream_request filter_type="
+        << type << endl;
+#endif
     (void) port;
 
     vector<teca_metadata> up_reqs;
@@ -86,6 +106,10 @@ std::vector<teca_metadata> teca_temporal_average::get_upstream_request(
         // average
         if ((i >= 0) && (i < num_steps))
         {
+#ifdef TECA_DEBUG
+            cerr << teca_parallel_id()
+                << "request time_step " << i << endl;
+#endif
             teca_metadata up_req(request);
             up_req.insert("time_step", i);
             up_reqs.push_back(up_req);
@@ -113,7 +137,6 @@ const_p_teca_dataset teca_temporal_average::execute(
 
     if (!out_mesh)
     {
-        // TODO -- add support for other datatypes
         TECA_ERROR("input data[0] is not a teca_mesh")
         return nullptr;
     }
