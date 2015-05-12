@@ -125,9 +125,9 @@ void set_##key(const std::vector<T> &vals) \
         TECA_ERROR(#key " requires " #len " values") \
     md_obj.insert<T>(#key, vals); \
 } \
-void get_##key(std::vector<T> &vals) const \
+int get_##key(std::vector<T> &vals) const \
 { \
-    md_obj.get<T>(#key, vals); \
+    return md_obj.get<T>(#key, vals); \
 }
 
 #define TECA_DATASET_METADATA_A(T, md_obj, key, len) \
@@ -135,9 +135,9 @@ void set_##key(const T *vals) \
 { \
     md_obj.insert<T>(#key, vals, len); \
 } \
-void get_##key(T *vals) const \
+int get_##key(T *vals) const \
 { \
-    md_obj.get<T>(#key, vals, len); \
+    return md_obj.get<T>(#key, vals, len); \
 }
 
 #endif
