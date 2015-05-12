@@ -33,14 +33,16 @@ public:
     // set function that responds to reporting stage
     // of pipeline execution. the function must return
     // a metedata object describing the data that could
-    // be produced during the execution stage.
+    // be produced during the execution stage. the default
+    // function returns an empty metadata object.
     TECA_ALGORITHM_PROPERTY(
         std::function<teca_metadata()>,
         report_function)
 
     // set the function that responds to the execution stage
     // of pipeline execution. the function must return
-    // a dataset containing the requested data.
+    // a dataset containing the requested data. the default
+    // function returns a nullptr.
     TECA_ALGORITHM_PROPERTY(
         std::function<const_p_teca_dataset(const teca_metadata &)>,
         execute_function)

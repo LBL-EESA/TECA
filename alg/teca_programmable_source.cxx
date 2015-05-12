@@ -10,6 +10,21 @@ teca_programmable_source::teca_programmable_source()
 {
     this->set_number_of_input_connections(0);
     this->set_number_of_output_ports(1);
+
+    // set default functions
+    // default report function returns
+    // empty metadata object
+    this->set_report_function(
+        []() -> teca_metadata
+        { return teca_metadata(); }
+        );
+
+    // default execute function returns
+    // nullptr
+    this->set_execute_function(
+        [] (const teca_metadata &) -> const_p_teca_dataset
+        { return nullptr; }
+        );
 }
 
 // --------------------------------------------------------------------------
