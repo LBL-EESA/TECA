@@ -67,7 +67,7 @@ const_p_teca_dataset teca_vtk_cartesian_mesh_writer::execute(
     const std::vector<const_p_teca_dataset> &input_data,
     const teca_metadata &request)
 {
-    (void) port;
+    (void)port;
 
     const_p_teca_cartesian_mesh mesh
         = std::dynamic_pointer_cast<const teca_cartesian_mesh>(input_data[0]);
@@ -78,22 +78,25 @@ const_p_teca_dataset teca_vtk_cartesian_mesh_writer::execute(
         return nullptr;
     }
 
-    unsigned long time_step;
-    if (request.get("time_step", time_step))
+    unsigned long time_step = 0;
+    if (mesh->get_time_step(time_step) && request.get("time_step", time_step))
     {
         TECA_ERROR("request missing \"time_step\"")
         return nullptr;
     }
 
-    vector<int> extent;
-    if (request.get("extent", extent))
+    vector<unsigned long> extent(6, 0);
+    if (mesh->get_extent(extent) && request.get("extent", extent))
     {
         TECA_ERROR("request missing \"extent\"")
         return nullptr;
     }
 
     vtkRectilinearGrid *rg = vtkRectilinearGrid::New();
-    rg->SetExtent(&extent[0]);
+    rg->SetExtent(
+        extent[0], extent[1],
+        extent[2], extent[3],
+        extent[4], extent[5]);
 
     // transfer coordinates
     const_p_teca_variant_array x = mesh->get_x_coordinates();

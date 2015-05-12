@@ -19,13 +19,14 @@ public:
     TECA_ALGORITHM_STATIC_NEW(teca_vtk_cartesian_mesh_writer)
     ~teca_vtk_cartesian_mesh_writer();
 
+    // set the base file name. both time step and
+    // extension are appended.
     TECA_ALGORITHM_PROPERTY(std::string, base_file_name)
 
 protected:
     teca_vtk_cartesian_mesh_writer();
 
 private:
-
     const_p_teca_dataset execute(
         unsigned int port,
         const std::vector<const_p_teca_dataset> &input_data,
