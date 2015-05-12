@@ -124,7 +124,6 @@ protected:
     // such as arrays, subset region, timestep etc.
     // The implementation is free to handle the request
     // as it sees fit.
-    // TODO -- input data should be const
     virtual
     const_p_teca_dataset execute(
         unsigned int port,
