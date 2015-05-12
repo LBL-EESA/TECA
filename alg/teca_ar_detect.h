@@ -41,16 +41,16 @@ public:
     TECA_ALGORITHM_PROPERTY(double, search_lon_high)
 
     // set/get the river source region in lat lon coordinate system
-    // defaults are 180 19
-    TECA_ALGORITHM_PROPERTY(double, river_start_lon_low)
+    // defaults are 18 180
     TECA_ALGORITHM_PROPERTY(double, river_start_lat_low)
+    TECA_ALGORITHM_PROPERTY(double, river_start_lon_low)
 
     // set/get the river ladfall region in lat lon coordinate system
-    // defaults are 233 238 29 56
-    TECA_ALGORITHM_PROPERTY(double, river_end_lon_low)
-    TECA_ALGORITHM_PROPERTY(double, river_end_lon_high)
+    // defaults are  29 233 56 238
     TECA_ALGORITHM_PROPERTY(double, river_end_lat_low)
+    TECA_ALGORITHM_PROPERTY(double, river_end_lon_low)
     TECA_ALGORITHM_PROPERTY(double, river_end_lat_high)
+    TECA_ALGORITHM_PROPERTY(double, river_end_lon_high)
 
     // set/get the area as a percent of the search space that
     // a potential river must occupy
@@ -60,7 +60,6 @@ public:
     // are 1250 2000
     TECA_ALGORITHM_PROPERTY(double, river_width)
     TECA_ALGORITHM_PROPERTY(double, river_length)
-
 
 protected:
     teca_ar_detect();
@@ -75,19 +74,19 @@ private:
     virtual
     teca_metadata get_output_metadata(
         unsigned int port,
-        const std::vector<teca_metadata> &input_md);
+        const std::vector<teca_metadata> &input_md) override;
 
     virtual
     std::vector<teca_metadata> get_upstream_request(
         unsigned int port,
         const std::vector<teca_metadata> &input_md,
-        const teca_metadata &request);
+        const teca_metadata &request) override;
 
     virtual
-    p_teca_dataset execute(
+    const_p_teca_dataset execute(
         unsigned int port,
-        const std::vector<p_teca_dataset> &input_data,
-        const teca_metadata &request);
+        const std::vector<const_p_teca_dataset> &input_data,
+        const teca_metadata &request) override;
 
 private:
     std::string water_vapor_variable;

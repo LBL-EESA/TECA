@@ -65,6 +65,14 @@ if (TECA_HAS_NETCDF)
             teca_core teca_data teca_io teca_alg
             )
     endif()
+    add_executable(
+        test_ar_detect
+        test_ar_detect.cpp
+        )
+    target_link_libraries(
+        test_ar_detect
+        teca_core teca_data teca_io teca_alg
+        )
 endif()
 
 add_executable(
