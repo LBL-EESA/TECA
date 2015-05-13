@@ -1,4 +1,5 @@
 #include "teca_cf_reader.h"
+#include "teca_temporal_average.h"
 #include "teca_ar_detect.h"
 #include "teca_table_reduce.h"
 #include "teca_table_writer.h"
@@ -17,7 +18,7 @@ int main(int argc, char **argv)
     if (argc < 3)
     {
         cerr << endl << "Usage error:" << endl
-            << "test_cf_reader [input regex] [output base] [first step] [last step]" << endl
+            << "test_cf_reader [input regex] [output base] [filter width] [first step] [last step]" << endl
             << endl;
         return -1;
     }
@@ -25,12 +26,15 @@ int main(int argc, char **argv)
     // parse command line
     string regex = argv[1];
     string base = argv[2];
-    long first_step = 0;
+    int filter_width = 0;
     if (argc > 3)
-        first_step = atoi(argv[3]);
-    long last_step = -1;
+        filter_width = atoi(argv[3]);
+    long first_step = 0;
     if (argc > 4)
-        last_step = atoi(argv[4]);
+        first_step = atoi(argv[4]);
+    long last_step = -1;
+    if (argc > 5)
+        last_step = atoi(argv[5]);
 
     // cf reader
     p_teca_cf_reader cfr = teca_cf_reader::New();
@@ -38,7 +42,20 @@ int main(int argc, char **argv)
 
     // ar detect
     p_teca_ar_detect ard = teca_ar_detect::New();
-    ard->set_input_connection(cfr->get_output_port());
+
+    // temporal average
+    if (filter_width)
+    {
+        p_teca_temporal_average avg = teca_temporal_average::New();
+        avg->set_filter_type(teca_temporal_average::backward);
+        avg->set_filter_width(filter_width);
+        avg->set_input_connection(cfr->get_output_port());
+        ard->set_input_connection(avg->get_output_port());
+    }
+    else
+    {
+        ard->set_input_connection(cfr->get_output_port());
+    }
 
     // reduction
     p_teca_table_reduce tr = teca_table_reduce::New();
