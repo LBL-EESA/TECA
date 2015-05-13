@@ -70,22 +70,18 @@ std::vector<teca_metadata> teca_temporal_average::get_upstream_request(
         return up_reqs;
     }
 
-    if (this->filter_width % 2 == 0)
-    {
-        TECA_ERROR("\"filter_width\" must be odd")
-        return up_reqs;
-    }
-
     long first = 0;
     long last = 0;
     switch(this->filter_type)
     {
         case backward:
-            first = active_step - this->filter_width - 1;
+            first = active_step - this->filter_width + 1;
             last = active_step;
             break;
         case centered:
             {
+            if (this->filter_width % 2 == 0)
+                TECA_ERROR("\"filter_width\" should be odd for centered calculation")
             long delta = this->filter_width/2;
             first = active_step - delta;
             last = active_step + delta;
