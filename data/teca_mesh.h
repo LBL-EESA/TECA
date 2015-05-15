@@ -6,7 +6,7 @@
 #include "teca_metadata.h"
 #include "teca_array_collection.h"
 
-/// data on a physically uniform cartesian mesh
+/// class for geometric data
 class teca_mesh : public teca_dataset
 {
 public:
