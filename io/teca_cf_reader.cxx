@@ -138,8 +138,8 @@ teca_metadata teca_cf_reader::get_output_metadata(
         && (((ierr = nc_inq_dimid(file_id, t_axis_variable.c_str(), &t_id)) != NC_NOERR)
         || ((ierr = nc_inq_dimlen(file_id, t_id, &n_t)) != NC_NOERR)
         || ((ierr = nc_inq_varid(file_id, t_axis_variable.c_str(), &t_id)) != NC_NOERR)
-        || ((ierr = nc_inq_vartype(file_id, t_id, &t_t)) != NC_NOERR)
-        || ((ierr = nc_inq_nvars(file_id, &n_vars)) != NC_NOERR))))
+        || ((ierr = nc_inq_vartype(file_id, t_id, &t_t)) != NC_NOERR)))
+        || ((ierr = nc_inq_nvars(file_id, &n_vars)) != NC_NOERR))
     {
         nc_close(file_id);
         TECA_ERROR(
