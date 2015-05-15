@@ -438,6 +438,8 @@ private:
     friend class teca_variant_array;
     template<typename U> friend class teca_variant_array_impl;
 };
+
+
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
 #pragma GCC diagnostic ignored "-Wunused-local-typedefs"
 
@@ -450,6 +452,18 @@ private:
         using TT = tt<nt>;                      \
         using NT = nt;                          \
         body                                    \
+    }
+
+// tt<nt> - derived type
+// p - base class pointer
+// i - id suffix
+// body - code to execute
+#define NESTED_TEMPLATE_DISPATCH_CASE(tt, nt, p, i, body)   \
+    if (dynamic_cast<tt<nt>*>(p))                           \
+    {                                                       \
+        using TT##i = tt<nt>;                               \
+        using NT##i = nt;                                   \
+        body                                                \
     }
 
 // tt<nt> - derived type
@@ -493,6 +507,34 @@ private:
 #define TEMPLATE_DISPATCH_FP(t, p, body)                    \
     TEMPLATE_DISPATCH_CASE(t, float, p, body)               \
     TEMPLATE_DISPATCH_CASE(t, double, p, body)
+
+
+// macro for helping downcast to POD types
+// don't add classes to this.
+// t - templated derived type
+// p - pointer
+// i - id for nesting
+// body - code to execute on match
+#define NESTED_TEMPLATE_DISPATCH(t, p, i, body)                           \
+    NESTED_TEMPLATE_DISPATCH_CASE(t, float, p, i, body)                   \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, double, p, i, body)             \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, long long, p, i, body)          \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, unsigned long long, p, i, body) \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, long, p, i, body)               \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, int, p, i, body)                \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, unsigned int, p, i, body)       \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, unsigned long, p, i, body)      \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, short int, p, i, body)          \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, short unsigned int, p, i, body) \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, char, p, i, body)               \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, unsigned char, p, i, body)
+
+// variant that limits dispatch to floating point types
+// for use in numerical compuatation where integer types
+// are not supported (ie, math operations from std library)
+#define NESTED_TEMPLATE_DISPATCH_FP(t, p, i, body)                    \
+    NESTED_TEMPLATE_DISPATCH_CASE(t, float, p, i, body)               \
+    NESTED_TEMPLATE_DISPATCH_CASE(t, double, p, i, body)
 
 // --------------------------------------------------------------------------
 template<typename T>
