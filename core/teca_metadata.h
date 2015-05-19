@@ -61,9 +61,9 @@ public:
         const std::string &name,
         p_teca_variant_array prop_val);
 
-    // append a value to the named property. does
-    // nothing if the property doesn't exist. return 0
-    // on success.
+    // append a value to the named property. reports
+    // an error and does nothing if the property doesn't
+    // exist. return 0 on success.
     template<typename T>
     int append(const std::string &name, const T &val);
 
@@ -208,9 +208,6 @@ int teca_metadata::append(const std::string &name, const T &val)
     prop_map_t::iterator it = this->props.find(name);
     if (it == this->props.end())
     {
-        TECA_ERROR(
-            << "attempt to access non-existant property \""
-            << name << "\" ignored!")
         return -1;
     }
 
