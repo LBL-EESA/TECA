@@ -108,6 +108,17 @@ p_teca_variant_array teca_metadata::get(const std::string &name)
 }
 
 // --------------------------------------------------------------------------
+const_p_teca_variant_array teca_metadata::get(const std::string &name) const
+{
+    prop_map_t::const_iterator it = this->props.find(name);
+
+    if (it == this->props.end())
+        return nullptr;
+
+    return it->second;
+}
+
+// --------------------------------------------------------------------------
 int teca_metadata::size(
     const std::string &name,
     unsigned int &n) const TECA_NOEXCEPT

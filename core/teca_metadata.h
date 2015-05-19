@@ -123,6 +123,7 @@ public:
     // get the variant array, or nullptr if the
     // property doesn't exist
     p_teca_variant_array get(const std::string &name);
+    const_p_teca_variant_array get(const std::string &name) const;
 
 
     // remove. return 0 if successful
