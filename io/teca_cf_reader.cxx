@@ -202,6 +202,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
         atts.insert("dims", dims);
         atts.insert("dim_names", dim_names);
         atts.insert("type", var_type);
+        atts.insert("centering", std::string("point"));
 
         char *buffer = nullptr;
         for (int ii = 0; ii < n_atts; ++ii)
@@ -326,6 +327,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
             }
             t_axis = t;
             )
+        nc_close(file_id);
 
         for (size_t i = 1; i < n_files; ++i)
         {
@@ -369,11 +371,14 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     return teca_metadata();
                 }
                 )
+
             nc_close(file_id);
         }
     }
     else
     {
+        nc_close(file_id);
+
         number_of_time_steps = 1;
         step_count.push_back(1);
 
@@ -456,8 +461,10 @@ const_p_teca_dataset teca_cf_reader::execute(
     p_teca_variant_array out_y = in_y->new_copy(extent[2], extent[3]);
     p_teca_variant_array out_z = in_z->new_copy(extent[4], extent[5]);
 
+    // TODO -- requesting out of bounds time step should be an error
+    // need to ignore for now because we don't have a temporal regrid
     double t = 0.0;
-    if (in_t)
+    if (in_t && (time_step < in_t->size()))
         in_t->get(time_step, t);
 
     // locate file with this time step
@@ -653,6 +660,7 @@ const_p_teca_dataset teca_cf_reader::execute(
             )
         mesh->get_information_arrays()->append(time_vars[i], array);
     }
+
     nc_close(file_id);
 
     return mesh;
