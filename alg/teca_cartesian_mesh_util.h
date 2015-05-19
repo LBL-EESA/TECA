@@ -48,21 +48,25 @@ int index_of(const T *data, size_t l, size_t r, T val, bool lower, unsigned long
 }
 
 // return the extent corresponding to the
-// supplied bounding box. return 0 if successful.
+// supplied bounding box. when cover_bbox is true the
+// bounds of the returned extent covers the supplied
+// bounding box. when cover_bbox is false the returned
+// extent is the largest extent contained by the bounding
+// box. return 0 if successful.
 template <typename T>
 int bounds_to_extent(
     T low_x,  T high_x, T low_y, T high_y, T low_z, T high_z,
     const T *p_x, const T *p_y, const T *p_z,
     unsigned long high_i, unsigned long high_j, unsigned long high_k,
-    std::vector<unsigned long> &extent)
+    bool cover_bbox, std::vector<unsigned long> &extent)
 {
     extent.resize(6, 0l);
-    if (index_of(p_x, 0, high_i, low_x, false, extent[0])
-        || index_of(p_x, 0, high_i, high_x, true, extent[1])
-        || index_of(p_y, 0, high_j, low_y, false, extent[2])
-        || index_of(p_y, 0, high_j, high_y, true, extent[3])
-        || index_of(p_z, 0, high_k, low_z, false, extent[4])
-        || index_of(p_z, 0, high_k, high_z, true, extent[5]))
+    if ((high_i && (index_of(p_x, 0, high_i, low_x, cover_bbox, extent[0])
+        || index_of(p_x, 0, high_i, high_x, !cover_bbox, extent[1])))
+        || (high_j && (index_of(p_y, 0, high_j, low_y, cover_bbox, extent[2])
+        || index_of(p_y, 0, high_j, high_y, !cover_bbox, extent[3])))
+        || (high_k && (index_of(p_z, 0, high_k, low_z, cover_bbox, extent[4])
+        || index_of(p_z, 0, high_k, high_z, !cover_bbox, extent[5]))))
     {
         return -1;
     }
