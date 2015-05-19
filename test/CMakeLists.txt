@@ -64,6 +64,16 @@ if (TECA_HAS_NETCDF)
             test_temporal_average
             teca_core teca_data teca_io teca_alg
             )
+        add_executable(
+            test_cartesian_mesh_regrid
+            test_cartesian_mesh_regrid.cpp
+            )
+        target_link_libraries(
+            test_cartesian_mesh_regrid
+            teca_core teca_data teca_io teca_alg
+            )
+
+
     endif()
     add_executable(
         test_ar_detect
