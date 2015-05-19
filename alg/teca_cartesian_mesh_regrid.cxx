@@ -58,7 +58,7 @@ int convert_extent(
                 source_x->size() - 1,
                 source_y->size() - 1,
                 source_z->size() - 1,
-                source_ext);
+                true, source_ext);
             )
         )
 
@@ -89,23 +89,23 @@ int interpolate_nearest(
     unsigned long j = 0;
     unsigned long k = 0;
 
-    if (index_of(p_x, 0, ihi, cx, true, i)
-        || index_of(p_y, 0, jhi, cy, true, j)
-        || index_of(p_z, 0, khi, cz, true, k))
+    if ((ihi && index_of(p_x, 0, ihi, cx, true, i))
+        || (jhi && index_of(p_y, 0, jhi, cy, true, j))
+        || (khi && index_of(p_z, 0, khi, cz, true, k)))
     {
         // cx,cy,cz is outside the coordinate axes
         return -1;
     }
 
     // get i,j of node greater than cx,cy
-    unsigned long ii = std::min(i+1, ihi);
-    unsigned long jj = std::min(j+1, jhi);
-    unsigned long kk = std::min(k+1, khi);
+    unsigned long ii = std::min(i + 1, ihi);
+    unsigned long jj = std::min(j + 1, jhi);
+    unsigned long kk = std::min(k + 1, khi);
 
     // get index of nearest node
     unsigned long p = (cx - p_x[i]) <= (p_x[ii] - cx) ? i : ii;
     unsigned long q = (cy - p_y[j]) <= (p_y[jj] - cy) ? j : jj;
-    unsigned long r = (cz - p_z[j]) <= (p_z[jj] - cz) ? k : kk;
+    unsigned long r = (cz - p_z[k]) <= (p_z[kk] - cz) ? k : kk;
 
     // assign value from nearest node
     val = p_data[p + nx*q + nxy*r];
@@ -148,6 +148,26 @@ void teca_cartesian_mesh_regrid::add_array(
     this->set_modified();
 }
 
+// --------------------------------------------------------------------------
+teca_metadata teca_cartesian_mesh_regrid::get_output_metadata(
+    unsigned int port,
+    const std::vector<teca_metadata> &input_md)
+{
+#ifdef TECA_DEBUG
+    cerr << teca_parallel_id()
+        << "teca_cf_reader::get_output_metadata" << endl;
+#endif
+    (void)port;
+
+    // copy metadata from the target input then
+    // append variable metadata from the source input
+    teca_metadata output_md(input_md[0]);
+    output_md.append("variables", input_md[1].get("variables"));
+    output_md.append("attributes", input_md[1].get("attributes"));
+    output_md.append("time_vars", input_md[1].get("time_vars"));
+
+    return output_md;
+}
 
 // --------------------------------------------------------------------------
 std::vector<teca_metadata> teca_cartesian_mesh_regrid::get_upstream_request(
@@ -155,85 +175,85 @@ std::vector<teca_metadata> teca_cartesian_mesh_regrid::get_upstream_request(
     const std::vector<teca_metadata> &input_md,
     const teca_metadata &request)
 {
-    vector<teca_metadata> up_reqs;
+    (void)port;
 
-    switch (port)
+    vector<teca_metadata> up_reqs(2);
+
+    // compose the target request
+    teca_metadata target_req(request);
+
+    // clear our keys
+    target_req.remove("regrid_source_arrays");
+    target_req.remove("regrid_target_arrays");
+
+    // compose the source request
+    // merge in named arrays
+    vector<string> arrays;
+    request.get("regrid_source_arrays", arrays);
+
+    std::copy(this->source_arrays.begin(),
+        this->source_arrays.end(), std::back_inserter(arrays));
+
+    // TODO -- check that each array has attribute centering=point
+
+    // get the target extent and coordinates
+    vector<unsigned long> target_extent(6, 0l);
+    request.get("extent", target_extent);
+
+    teca_metadata target_coords;
+    p_teca_variant_array target_x;
+    p_teca_variant_array target_y;
+    p_teca_variant_array target_z;
+
+    if (input_md[0].get("coordinates", target_coords)
+        || !(target_x = target_coords.get("x"))
+        || !(target_y = target_coords.get("y"))
+        || !(target_z = target_coords.get("z")))
     {
-        case 0:
-            // pass through
-            up_reqs.push_back(request);
-            break;
-
-        case 1:
-            {
-            // pass through
-            teca_metadata req(request);
-
-            // clear our keys
-            req.remove("regrid_source_arrays");
-            req.remove("regrid_target_arrays");
-
-            // merge in named sources
-            vector<string> arrays;
-
-            request.get("regrid_source_arrays", arrays);
-
-            std::copy(this->source_arrays.begin(),
-                this->source_arrays.end(), std::back_inserter(arrays));
-
-
-            // get the target extent and coordinates
-            vector<unsigned long> target_extent(6, 0l);
-            request.get("extent", target_extent);
-
-            teca_metadata target_coords;
-            p_teca_variant_array target_x;
-            p_teca_variant_array target_y;
-            p_teca_variant_array target_z;
-
-            if (input_md[0].get("coordinates", target_coords)
-                || target_coords.get("x", target_x)
-                || target_coords.get("x", target_x)
-                || target_coords.get("x", target_x))
-            {
-                TECA_ERROR("failed to locate target mesh coordinates")
-                return up_reqs;
-            }
-
-            // get the source extent and coordinates
-            teca_metadata source_coords;
-            p_teca_variant_array source_x;
-            p_teca_variant_array source_y;
-            p_teca_variant_array source_z;
-
-            if (input_md[0].get("coordinates", source_coords)
-                || source_coords.get("x", source_x)
-                || source_coords.get("x", source_x)
-                || source_coords.get("x", source_x))
-            {
-                TECA_ERROR("failed to locate source mesh coordinates")
-                return up_reqs;
-            }
-
-            // map the target extent to the source mesh
-            vector<unsigned long> source_extent(6, 0l);
-            if (convert_extent(
-                target_extent,
-                target_x, target_y, target_z,
-                source_x, source_y, source_z,
-                source_extent))
-            {
-                TECA_ERROR("failed to convert from target to source extent")
-                return up_reqs;
-            }
-
-            // build the request
-            req.insert("arrays", arrays);
-            req.insert("extent", source_extent);
-            up_reqs.push_back(req);
-            }
-            break;
+        TECA_ERROR("failed to locate target mesh coordinates")
+        return up_reqs;
     }
+
+    // get the source extent and coordinates
+    teca_metadata source_coords;
+    p_teca_variant_array source_x;
+    p_teca_variant_array source_y;
+    p_teca_variant_array source_z;
+
+    if (input_md[1].get("coordinates", source_coords)
+        || !(source_x = source_coords.get("x"))
+        || !(source_y = source_coords.get("y"))
+        || !(source_z = source_coords.get("z")))
+    {
+        TECA_ERROR("failed to locate source mesh coordinates")
+        return up_reqs;
+    }
+
+    // map the target extent to the source mesh
+    vector<unsigned long> source_extent(6, 0l);
+    if (convert_extent(
+        target_extent,
+        target_x, target_y, target_z,
+        source_x, source_y, source_z,
+        source_extent))
+    {
+        TECA_ERROR("failed to convert from target to source extent")
+        return up_reqs;
+    }
+
+    // build the request
+    teca_metadata source_req(target_req);
+    source_req.insert("arrays", arrays);
+    source_req.insert("extent", source_extent);
+
+    // TODO -- how should time be handled? we could
+    // interpolate data from source input to the time value
+    // requested. but this should be handled upstream
+    // in a dedicated filter.
+
+    // send the requests up
+    up_reqs[0] = target_req;
+    up_reqs[1] = source_req;
 
     return up_reqs;
 }
@@ -251,7 +271,8 @@ const_p_teca_dataset teca_cartesian_mesh_regrid::execute(
     (void)port;
 
     p_teca_cartesian_mesh in_target
-        = std::dynamic_pointer_cast<teca_cartesian_mesh>(std::const_pointer_cast<teca_dataset>(input_data[0]));
+        = std::dynamic_pointer_cast<teca_cartesian_mesh>(
+            std::const_pointer_cast<teca_dataset>(input_data[0]));
 
     const_p_teca_cartesian_mesh source
         = std::dynamic_pointer_cast<const teca_cartesian_mesh>(input_data[1]);
@@ -298,8 +319,10 @@ const_p_teca_dataset teca_cartesian_mesh_regrid::execute(
     const_p_teca_variant_array target_zc = target->get_z_coordinates();
     p_teca_array_collection target_ac = target->get_point_arrays();
 
-    unsigned long target_size
-        = target_xc->size()*target_yc->size()*target_zc->size();
+    unsigned long target_nx = target_xc->size();
+    unsigned long target_ny = target_yc->size();
+    unsigned long target_nz = target_zc->size();
+    unsigned long target_size = target_nx*target_ny*target_nz;
 
     const_p_teca_variant_array source_xc = source->get_x_coordinates();
     const_p_teca_variant_array source_yc = source->get_y_coordinates();
@@ -348,25 +371,19 @@ const_p_teca_dataset teca_cartesian_mesh_regrid::execute(
                     NT3 *p_target_a = std::dynamic_pointer_cast<TT3>(target_a)->get();
 
                     unsigned long q = 0;
-                    for (unsigned long k = target_ext[4]; k <= target_ext[5]; ++k)
+                    for (unsigned long k = 0; k < target_nz; ++k)
                     {
-                        for (unsigned long j = target_ext[2]; j <= target_ext[3]; ++j)
+                        for (unsigned long j = 0; j < target_ny; ++j)
                         {
-                            for (unsigned long i = target_ext[0]; i <= target_ext[1]; ++i, ++q)
+                            for (unsigned long i = 0; i < target_nx; ++i, ++q)
                             {
                                 if (interpolate_nearest<NT2,NT3>(
                                     static_cast<NT2>(p_target_xc[i]),
                                     static_cast<NT2>(p_target_yc[j]),
                                     static_cast<NT2>(p_target_zc[k]),
-                                    p_source_xc,
-                                    p_source_yc,
-                                    p_source_zc,
-                                    p_source_a,
-                                    source_ihi,
-                                    source_jhi,
-                                    source_khi,
-                                    source_nx,
-                                    source_nxy,
+                                    p_source_xc, p_source_yc, p_source_zc,
+                                    p_source_a, source_ihi, source_jhi, source_khi,
+                                    source_nx, source_nxy,
                                     p_target_a[q]))
                                 {
                                     TECA_ERROR("failed to interpolate " << i << ", " << j << ", " << k)
@@ -376,7 +393,10 @@ const_p_teca_dataset teca_cartesian_mesh_regrid::execute(
                         }
                     }
 
-                    target_ac->set(target_arrays[i], target_a);
+                    const string &name
+                        = target_arrays[i].size() ? target_arrays[i] : source_arrays[i];
+
+                    target_ac->set(name, target_a);
                     )
                 }
                 )

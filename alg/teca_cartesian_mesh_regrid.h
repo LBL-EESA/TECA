@@ -11,12 +11,13 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_cartesian_mesh_regrid)
 
-/// moves arrays from one cartesian mesh to another
+/// transfer data between meshes defined on the same coordinate system
 /**
-an algorithm that moves arrays from one cartesian mesh
-to another using nearest or linear interpolation. the
-first input is the target mesh. the second input is the
-source mesh. the arrays to move from source to target
+an algorithm that transfers data between cartesian meshes
+defined in the same world coordinate system but potentially
+different resolutions. nearest or linear interpolation are
+supported. the first input is the target mesh. the second input
+is the source mesh. the arrays to move from source to target
 can be selected using add_array api or in the request
 key regrid_source_arrays. arrays may be optionally renamed
 as they are moved from one mesh to another. Target names
@@ -62,8 +63,10 @@ protected:
     teca_cartesian_mesh_regrid();
 
 private:
-    // TODO -- filter cache key for port 1, remove
-    // everything but time step, extent, and arrays
+
+    teca_metadata get_output_metadata(
+        unsigned int port,
+        const std::vector<teca_metadata> &input_md) override;
 
     std::vector<teca_metadata> get_upstream_request(
         unsigned int port,
