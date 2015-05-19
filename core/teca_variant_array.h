@@ -123,15 +123,24 @@ public:
     // is not virtual so that string can be handled
     // as a special case in the base class.
     void copy(const teca_variant_array &other);
+    void copy(const const_p_teca_variant_array &other)
+    { this->copy(*other.get()); }
+
     void append(const teca_variant_array &other);
+    void append(const const_p_teca_variant_array &other)
+    { this->append(*other.get()); }
 
     // swap the contents of this and the other object.
     // an excpetion is thrown when no conversion
     // between the two types exists.
     virtual void swap(teca_variant_array &other) = 0;
+    void swap(const p_teca_variant_array &other)
+    { this->swap(*other.get()); }
 
     // compare the two objects for equality
     virtual bool equal(const teca_variant_array &other) = 0;
+    bool equal(const const_p_teca_variant_array &other)
+    { return this->equal(*other.get()); }
 
     // serrialize to/from stream
     virtual void to_stream(teca_binary_stream &s) const = 0;
