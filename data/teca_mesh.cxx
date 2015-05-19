@@ -1,15 +1,18 @@
 #include "teca_mesh.h"
 
+teca_mesh::impl_t::impl_t()
+{
+    this->point_arrays = teca_array_collection::New();
+    this->cell_arrays = teca_array_collection::New();
+    this->edge_arrays = teca_array_collection::New();
+    this->face_arrays = teca_array_collection::New();
+    this->info_arrays = teca_array_collection::New();
+}
+
 // --------------------------------------------------------------------------
 teca_mesh::teca_mesh()
     : m_impl(std::make_shared<teca_mesh::impl_t>())
-{
-    m_impl->point_arrays = teca_array_collection::New();
-    m_impl->cell_arrays = teca_array_collection::New();
-    m_impl->edge_arrays = teca_array_collection::New();
-    m_impl->face_arrays = teca_array_collection::New();
-    m_impl->info_arrays = teca_array_collection::New();
-}
+{}
 
 // --------------------------------------------------------------------------
 void teca_mesh::copy(const const_p_teca_dataset &dataset)

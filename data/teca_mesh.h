@@ -83,6 +83,8 @@ protected:
 public:
     struct impl_t
     {
+        impl_t();
+        //
         teca_metadata metadata;
         p_teca_array_collection point_arrays;
         p_teca_array_collection cell_arrays;
