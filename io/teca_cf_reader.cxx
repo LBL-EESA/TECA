@@ -16,6 +16,10 @@ using teca_file_util::strip_path_from_filename;
 using teca_file_util::strip_filename_from_path;
 using teca_file_util::locate_files;
 
+#if defined(TECA_HAS_MPI)
+#include <mpi.h>
+#endif
+
 // macro to help with netcdf data types
 #define NC_DISPATCH_FP(tc_, code_)                          \
     switch (tc_)                                            \
@@ -52,6 +56,61 @@ using teca_file_util::locate_files;
         break;                              \
     }
 
+// RAII for managing netcdf files
+class teca_cf_reader::netcdf_handle
+{
+public:
+    // initialize with a handle returned from
+    // nc_open/nc_create etc
+    netcdf_handle(int h) : m_handle(h)
+    {}
+
+    // close the file during destruction
+    ~netcdf_handle()
+    { this->close(); }
+
+    // this is a move only class, and should
+    // only be initialized with an valid handle
+    netcdf_handle() = delete;
+    netcdf_handle(const netcdf_handle &) = delete;
+    void operator=(const netcdf_handle &) = delete;
+
+    // move construction takes ownership
+    // from the other object
+    netcdf_handle(netcdf_handle &&other)
+    {
+        m_handle = other.m_handle;
+        other.m_handle = 0;
+    }
+
+    // move asdsignment takes ownership
+    // from the other object
+    void operator=(netcdf_handle &&other)
+    {
+        this->close();
+        m_handle = other.m_handle;
+        other.m_handle = 0;
+    }
+
+    // close the file
+    void close()
+    {
+        if (m_handle)
+        {
+            nc_close(m_handle);
+            m_handle = 0;
+        }
+    }
+
+    // dereference a pointer to the object
+    // returns a reference to the handle
+    int &get()
+    { return m_handle; }
+
+private:
+    int m_handle;
+};
+
 // --------------------------------------------------------------------------
 teca_cf_reader::teca_cf_reader() :
     files_regex(""),
@@ -60,6 +119,92 @@ teca_cf_reader::teca_cf_reader() :
     z_axis_variable(""),
     t_axis_variable("time")
 {}
+
+// --------------------------------------------------------------------------
+teca_cf_reader::~teca_cf_reader()
+{
+    this->clear_handles();
+}
+
+// --------------------------------------------------------------------------
+void teca_cf_reader::set_modified()
+{
+    // clear cached metadata before forwarding on to
+    // the base class.
+    this->clear_cached_metadata();
+    teca_algorithm::set_modified();
+}
+
+// --------------------------------------------------------------------------
+void teca_cf_reader::clear_cached_metadata()
+{
+    this->metadata.clear();
+    this->clear_handles();
+}
+
+// --------------------------------------------------------------------------
+void teca_cf_reader::clear_handles()
+{
+    handle_map_t::iterator it = this->handles.begin();
+    handle_map_t::iterator last = this->handles.end();
+    for (; it != last; ++it)
+    {
+        delete it->second;
+        it->second = nullptr;
+    }
+    this->handles.clear();
+}
+
+// --------------------------------------------------------------------------
+void teca_cf_reader::initialize_handles(const vector<string> &files)
+{
+    this->clear_handles();
+    size_t n_files = files.size();
+    for (size_t i = 0; i < n_files; ++i)
+        this->handles[files[i]] = nullptr;
+}
+
+// --------------------------------------------------------------------------
+int teca_cf_reader::get_handle_threadsafe(
+    const string &path,
+    const string &file,
+    int &file_id)
+{
+    // lock the mutex
+    std::lock_guard<std::mutex> lock(this->handles_mutex);
+
+    // get the current handle
+    handle_map_t::iterator it = this->handles.find(file);
+
+    if (it == this->handles.end())
+    {
+        // map should already be initialized. if this occurs
+        // there's a bug in the reader class
+        TECA_ERROR("File \"" << file << "\" is not in the handle cache")
+        return -1;
+    }
+
+    // return the cached value
+    if (it->second)
+    {
+        file_id = it->second->get();
+        return 0;
+    }
+
+    // open the file
+    string file_path = path + PATH_SEP + file;
+    int ierr = 0;
+    if ((ierr = nc_open(file_path.c_str(), NC_NOWRITE, &file_id)) != NC_NOERR)
+    {
+        TECA_ERROR("Failed to open " << file << endl << nc_strerror(ierr))
+        return -1;
+    }
+
+    // cache the handle
+    it->second = new teca_cf_reader::netcdf_handle(file_id);
+
+    return 0;
+}
 
 // --------------------------------------------------------------------------
 teca_metadata teca_cf_reader::get_output_metadata(
@@ -73,343 +218,467 @@ teca_metadata teca_cf_reader::get_output_metadata(
     (void)port;
     (void)input_md;
 
-    // TODO -- fix md cacheing
-    if (!this->get_modified(0) && this->md)
-        return this->md;
+    // return cached metadata. cache is cleared if
+    // any of the algorithms properties are modified
+    if (this->metadata)
+        return this->metadata;
 
-    this->md.clear();
-
-    vector<string> files;
-
-    string regex = strip_path_from_filename(this->files_regex);
-    string path = strip_filename_from_path(this->files_regex);
-
-    if (teca_file_util::locate_files(path, regex, files))
+    // TODO -- use teca specific communicator
+    int rank = 0;
+    int n_ranks = 1;
+#if defined(TECA_HAS_MPI)
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
     {
-        TECA_ERROR(
-            << "Failed to locate any files." << endl
-            << this->files_regex << endl
-            << path << endl
-            << regex)
-        return teca_metadata();
+        int tmp = 0;
+        MPI_Comm_size(MPI_COMM_WORLD, &tmp);
+        n_ranks = tmp;
+        MPI_Comm_rank(MPI_COMM_WORLD, &tmp);
+        rank = tmp;
     }
 
-    // fix up file names
-    size_t n_files = files.size();
+    teca_binary_stream bstr;
+    unsigned long long bstr_size;
+#endif
 
-    for (size_t i = 0; i < n_files; ++i)
-        files[i] = path + PATH_SEP + files[i];
-
-    int ierr = 0;
-    int file_id = 0;
-    const string &file = files[0];
-
-    // get mesh coordinates and dimensions
-    int x_id = 0;
-    int y_id = 0;
-    int z_id = 0;
-    int t_id = 0;
-    size_t n_x = 1;
-    size_t n_y = 1;
-    size_t n_z = 1;
-    size_t n_t = 1;
-    nc_type x_t = 0;
-    nc_type y_t = 0;
-    nc_type z_t = 0;
-    nc_type t_t = 0;
-    int n_vars = 0;
-
-    if (((ierr = nc_open(file.c_str(), NC_NOWRITE, &file_id)) != NC_NOERR)
-        || ((ierr = nc_inq_dimid(file_id, x_axis_variable.c_str(), &x_id)) != NC_NOERR)
-        || ((ierr = nc_inq_dimlen(file_id, x_id, &n_x)) != NC_NOERR)
-        || ((ierr = nc_inq_varid(file_id, x_axis_variable.c_str(), &x_id)) != NC_NOERR)
-        || ((ierr = nc_inq_vartype(file_id, x_id, &x_t)) != NC_NOERR)
-        || (!y_axis_variable.empty()
-        && (((ierr = nc_inq_dimid(file_id, y_axis_variable.c_str(), &y_id)) != NC_NOERR)
-        || ((ierr = nc_inq_dimlen(file_id, y_id, &n_y)) != NC_NOERR)
-        || ((ierr = nc_inq_varid(file_id, y_axis_variable.c_str(), &y_id)) != NC_NOERR)
-        || ((ierr = nc_inq_vartype(file_id, y_id, &y_t)) != NC_NOERR)))
-        || (!z_axis_variable.empty()
-        && (((ierr = nc_inq_dimid(file_id, z_axis_variable.c_str(), &z_id)) != NC_NOERR)
-        || ((ierr = nc_inq_dimlen(file_id, z_id, &n_x)) != NC_NOERR)
-        || ((ierr = nc_inq_varid(file_id, z_axis_variable.c_str(), &z_id)) != NC_NOERR)
-        || ((ierr = nc_inq_vartype(file_id, z_id, &z_t)) != NC_NOERR)))
-        || (!t_axis_variable.empty()
-        && (((ierr = nc_inq_dimid(file_id, t_axis_variable.c_str(), &t_id)) != NC_NOERR)
-        || ((ierr = nc_inq_dimlen(file_id, t_id, &n_t)) != NC_NOERR)
-        || ((ierr = nc_inq_varid(file_id, t_axis_variable.c_str(), &t_id)) != NC_NOERR)
-        || ((ierr = nc_inq_vartype(file_id, t_id, &t_t)) != NC_NOERR)))
-        || ((ierr = nc_inq_nvars(file_id, &n_vars)) != NC_NOERR))
+    // only rank 0 will parse the dataset. once
+    // parsed metadata is broadcast to all
+    int root_rank = n_ranks - 1;
+    if (rank == root_rank)
     {
-        nc_close(file_id);
-        TECA_ERROR(
-            << "Failed to query mesh properties, " << file << endl
-            << nc_strerror(ierr))
-        return teca_metadata();
-    }
+        vector<string> files;
 
-    // enumerate mesh arrays and their attributes
-    teca_metadata atrs;
-    vector<string> vars;
-    vector<string> time_vars; // anything that has the time dimension as it's only dim
-    for (int i = 0; i < n_vars; ++i)
-    {
-        char var_name[NC_MAX_NAME + 1] = {'\0'};
-        nc_type var_type = 0;
-        int n_dims = 0;
-        int dim_id[NC_MAX_VAR_DIMS] = {0};
-        int n_atts = 0;
+        string regex = strip_path_from_filename(this->files_regex);
+        string path = strip_filename_from_path(this->files_regex);
 
-        if ((ierr = nc_inq_var(file_id, i, var_name, &var_type, &n_dims, dim_id, &n_atts)) != NC_NOERR)
+        if (teca_file_util::locate_files(path, regex, files))
         {
-            nc_close(file_id);
             TECA_ERROR(
-                << "Failed to query " << i << "th variable, "
-                << file << endl << nc_strerror(ierr))
+                << "Failed to locate any files" << endl
+                << this->files_regex << endl
+                << path << endl
+                << regex)
             return teca_metadata();
         }
 
-        // skip scalars
-        if (n_dims == 0)
-            continue;
+        int ierr = 0;
+        int file_id = 0;
+        string file = path + PATH_SEP + files[0];
 
-        vector<size_t> dims;
-        vector<string> dim_names;
-        for (int ii = 0; ii < n_dims; ++ii)
+        // get mesh coordinates and dimensions
+        int x_id = 0;
+        int y_id = 0;
+        int z_id = 0;
+        int t_id = 0;
+        size_t n_x = 1;
+        size_t n_y = 1;
+        size_t n_z = 1;
+        size_t n_t = 1;
+        nc_type x_t = 0;
+        nc_type y_t = 0;
+        nc_type z_t = 0;
+        nc_type t_t = 0;
+        int n_vars = 0;
+
+        if ((ierr = nc_open(file.c_str(), NC_NOWRITE, &file_id)) != NC_NOERR)
         {
-            char dim_name[NC_MAX_NAME + 1] = {'\0'};
-            size_t dim = 0;
-            if ((ierr = nc_inq_dim(file_id, dim_id[ii], dim_name, &dim)) != NC_NOERR)
-            {
-                nc_close(file_id);
-                TECA_ERROR(
-                    << "Failed to query " << ii << "th dimension of variable, "
-                    << var_name << ", " << file << endl << nc_strerror(ierr))
-                return teca_metadata();
-            }
-
-            dim_names.push_back(dim_name);
-            dims.push_back(dim);
-        }
-
-        vars.push_back(var_name);
-
-        if ((n_dims == 1) && (dim_names[0] == t_axis_variable))
-            time_vars.push_back(var_name);
-
-        teca_metadata atts;
-        atts.insert("id", i);
-        atts.insert("dims", dims);
-        atts.insert("dim_names", dim_names);
-        atts.insert("type", var_type);
-        atts.insert("centering", std::string("point"));
-
-        char *buffer = nullptr;
-        for (int ii = 0; ii < n_atts; ++ii)
-        {
-            char att_name[NC_MAX_NAME + 1] = {'\0'};
-            nc_type att_type = 0;
-            size_t att_len = 0;
-            if (((ierr = nc_inq_attname(file_id, i, ii, att_name)) != NC_NOERR)
-                || ((ierr = nc_inq_att(file_id, i, att_name, &att_type, &att_len)) != NC_NOERR))
-            {
-                nc_close(file_id);
-                TECA_ERROR(
-                    << "Failed to query " << ii << "th attribute of variable, "
-                    << var_name << ", " << file << endl << nc_strerror(ierr))
-                return teca_metadata();
-            }
-            if (att_type == NC_CHAR)
-            {
-                buffer = static_cast<char*>(realloc(buffer, att_len + 1));
-                buffer[att_len] = '\0';
-                nc_get_att_text(file_id, i, att_name, buffer);
-                atts.insert(att_name, string(buffer));
-            }
-        }
-        free(buffer);
-
-        atrs.insert(var_name, atts);
-    }
-
-    this->md.insert("variables", vars);
-    this->md.insert("attributes", atrs);
-    this->md.insert("time variables", time_vars);
-
-    // read coordinate arrays
-    p_teca_variant_array x_axis;
-    NC_DISPATCH_FP(x_t,
-        size_t x_0 = 0;
-        p_teca_variant_array_impl<NC_T> x = teca_variant_array_impl<NC_T>::New(n_x);
-        if ((ierr = nc_get_vara(file_id, x_id, &x_0, &n_x, x->get())) != NC_NOERR)
-        {
-            nc_close(file_id);
-            TECA_ERROR(
-                << "Failed to read x axis, " << x_axis_variable << endl
-                << file << endl << nc_strerror(ierr))
+            TECA_ERROR("Failed to open " << file << endl << nc_strerror(ierr))
             return teca_metadata();
         }
-        x_axis = x;
-        )
 
-    p_teca_variant_array y_axis;
-    if (!y_axis_variable.empty())
-    {
-        NC_DISPATCH_FP(y_t,
-            size_t y_0 = 0;
-            p_teca_variant_array_impl<NC_T> y = teca_variant_array_impl<NC_T>::New(n_y);
-            if ((ierr = nc_get_vara(file_id, y_id, &y_0, &n_y, y->get())) != NC_NOERR)
-            {
-                nc_close(file_id);
-                TECA_ERROR(
-                    << "Failed to read y axis, " << y_axis_variable << endl
-                    << file << endl << nc_strerror(ierr))
-                return teca_metadata();
-            }
-            y_axis = y;
-            )
-    }
-    else
-    {
-        NC_DISPATCH_FP(x_t,
-            p_teca_variant_array_impl<NC_T> y = teca_variant_array_impl<NC_T>::New(1);
-            y->set(0, NC_T());
-            y_axis = y;
-            )
-    }
+        // initialize the file map
+        this->initialize_handles(files);
 
-    p_teca_variant_array z_axis;
-    if (!z_axis_variable.empty())
-    {
-        NC_DISPATCH_FP(z_t,
-            size_t z_0 = 0;
-            p_teca_variant_array_impl<NC_T> z = teca_variant_array_impl<NC_T>::New(n_z);
-            if ((ierr = nc_get_vara(file_id, z_id, &z_0, &n_z, z->get())) != NC_NOERR)
-            {
-                nc_close(file_id);
-                TECA_ERROR(
-                    << "Failed to read z axis, " << z_axis_variable << endl
-                    << file << endl << nc_strerror(ierr))
-                return teca_metadata();
-            }
-            z_axis = z;
-            )
-    }
-    else
-    {
-        NC_DISPATCH_FP(x_t,
-            p_teca_variant_array_impl<NC_T> z = teca_variant_array_impl<NC_T>::New(1);
-            z->set(0, NC_T());
-            z_axis = z;
-            )
-    }
+        // cache the file handle
+        this->handles[files[0]] = new teca_cf_reader::netcdf_handle(file_id);
 
-    // collect time steps from this and the rest of the files
-    vector<unsigned long> step_count;
-    unsigned long number_of_time_steps = 0;
-
-    p_teca_variant_array t_axis;
-    if (!t_axis_variable.empty())
-    {
-        number_of_time_steps += n_t;
-        step_count.push_back(n_t);
-
-        NC_DISPATCH_FP(t_t,
-            size_t t_0 = 0;
-            p_teca_variant_array_impl<NC_T> t = teca_variant_array_impl<NC_T>::New(n_t);
-            if ((ierr = nc_get_vara(file_id, t_id, &t_0, &n_t, t->get())) != NC_NOERR)
-            {
-                nc_close(file_id);
-                TECA_ERROR(
-                    << "Failed to read t axis, " << t_axis_variable << endl
-                    << file << endl << nc_strerror(ierr))
-                return teca_metadata();
-            }
-            t_axis = t;
-            )
-        nc_close(file_id);
-
-        for (size_t i = 1; i < n_files; ++i)
+        // query mesh axes
+        if (((ierr = nc_inq_dimid(file_id, x_axis_variable.c_str(), &x_id)) != NC_NOERR)
+            || ((ierr = nc_inq_dimlen(file_id, x_id, &n_x)) != NC_NOERR)
+            || ((ierr = nc_inq_varid(file_id, x_axis_variable.c_str(), &x_id)) != NC_NOERR)
+            || ((ierr = nc_inq_vartype(file_id, x_id, &x_t)) != NC_NOERR))
         {
-            const string &file = files[i];
-            if (((ierr = nc_open(file.c_str(), NC_NOWRITE, &file_id)) != NC_NOERR)
-                || ((ierr = nc_inq_dimid(file_id, t_axis_variable.c_str(), &t_id)) != NC_NOERR)
-                || ((ierr = nc_inq_dimlen(file_id, t_id, &n_t)) != NC_NOERR)
-                || ((ierr = nc_inq_varid(file_id, t_axis_variable.c_str(), &t_id)) != NC_NOERR)
-                || ((ierr = nc_inq_vartype(file_id, t_id, &t_t)) != NC_NOERR))
+            this->clear_cached_metadata();
+            TECA_ERROR(
+                << "Failed to query x axis variable \"" << x_axis_variable
+                << "\" in file \"" << file << "\"" << endl
+                << nc_strerror(ierr))
+            return teca_metadata();
+        }
+
+        if (!y_axis_variable.empty()
+            && (((ierr = nc_inq_dimid(file_id, y_axis_variable.c_str(), &y_id)) != NC_NOERR)
+            || ((ierr = nc_inq_dimlen(file_id, y_id, &n_y)) != NC_NOERR)
+            || ((ierr = nc_inq_varid(file_id, y_axis_variable.c_str(), &y_id)) != NC_NOERR)
+            || ((ierr = nc_inq_vartype(file_id, y_id, &y_t)) != NC_NOERR)))
+        {
+            this->clear_cached_metadata();
+            TECA_ERROR(
+                << "Failed to query y axis variable \"" << y_axis_variable
+                << "\" in file \"" << file << "\"" << endl
+                << nc_strerror(ierr))
+            return teca_metadata();
+        }
+
+        if (!z_axis_variable.empty()
+            && (((ierr = nc_inq_dimid(file_id, z_axis_variable.c_str(), &z_id)) != NC_NOERR)
+            || ((ierr = nc_inq_dimlen(file_id, z_id, &n_x)) != NC_NOERR)
+            || ((ierr = nc_inq_varid(file_id, z_axis_variable.c_str(), &z_id)) != NC_NOERR)
+            || ((ierr = nc_inq_vartype(file_id, z_id, &z_t)) != NC_NOERR)))
+        {
+            this->clear_cached_metadata();
+            TECA_ERROR(
+                << "Failed to query z axis variable \"" << z_axis_variable
+                << "\" in file \"" << file << "\"" << endl
+                << nc_strerror(ierr))
+            return teca_metadata();
+        }
+
+        if ((!t_axis_variable.empty()
+            && (((ierr = nc_inq_dimid(file_id, t_axis_variable.c_str(), &t_id)) != NC_NOERR)
+            || ((ierr = nc_inq_dimlen(file_id, t_id, &n_t)) != NC_NOERR)
+            || ((ierr = nc_inq_varid(file_id, t_axis_variable.c_str(), &t_id)) != NC_NOERR)
+            || ((ierr = nc_inq_vartype(file_id, t_id, &t_t)) != NC_NOERR))))
+        {
+            this->clear_cached_metadata();
+            TECA_ERROR(
+                << "Failed to query time axis variable \"" << t_axis_variable
+                << "\" in file \"" << file << "\"" << endl
+                << nc_strerror(ierr))
+            return teca_metadata();
+        }
+
+        // enumerate mesh arrays and their attributes
+        if (((ierr = nc_inq_nvars(file_id, &n_vars)) != NC_NOERR))
+        {
+            this->clear_cached_metadata();
+            TECA_ERROR(
+                << "Failed to get the number of variables in file \""
+                << file << "\"" << endl
+                << nc_strerror(ierr))
+            return teca_metadata();
+        }
+
+        teca_metadata atrs;
+        vector<string> vars;
+        vector<string> time_vars; // anything that has the time dimension as it's only dim
+        for (int i = 0; i < n_vars; ++i)
+        {
+            char var_name[NC_MAX_NAME + 1] = {'\0'};
+            nc_type var_type = 0;
+            int n_dims = 0;
+            int dim_id[NC_MAX_VAR_DIMS] = {0};
+            int n_atts = 0;
+
+            if ((ierr = nc_inq_var(file_id, i, var_name,
+                    &var_type, &n_dims, dim_id, &n_atts)) != NC_NOERR)
             {
-                nc_close(file_id);
+                this->clear_cached_metadata();
                 TECA_ERROR(
-                    << "Failed to query time in the " << i << "th file, "
+                    << "Failed to query " << i << "th variable, "
                     << file << endl << nc_strerror(ierr))
                 return teca_metadata();
             }
 
+            // skip scalars
+            if (n_dims == 0)
+                continue;
+
+            vector<size_t> dims;
+            vector<string> dim_names;
+            for (int ii = 0; ii < n_dims; ++ii)
+            {
+                char dim_name[NC_MAX_NAME + 1] = {'\0'};
+                size_t dim = 0;
+                if ((ierr = nc_inq_dim(file_id, dim_id[ii], dim_name, &dim)) != NC_NOERR)
+                {
+                    this->clear_cached_metadata();
+                    TECA_ERROR(
+                        << "Failed to query " << ii << "th dimension of variable, "
+                        << var_name << ", " << file << endl << nc_strerror(ierr))
+                    return teca_metadata();
+                }
+
+                dim_names.push_back(dim_name);
+                dims.push_back(dim);
+            }
+
+            vars.push_back(var_name);
+
+            if ((n_dims == 1) && (dim_names[0] == t_axis_variable))
+                time_vars.push_back(var_name);
+
+            teca_metadata atts;
+            atts.insert("id", i);
+            atts.insert("dims", dims);
+            atts.insert("dim_names", dim_names);
+            atts.insert("type", var_type);
+            atts.insert("centering", std::string("point"));
+
+            char *buffer = nullptr;
+            for (int ii = 0; ii < n_atts; ++ii)
+            {
+                char att_name[NC_MAX_NAME + 1] = {'\0'};
+                nc_type att_type = 0;
+                size_t att_len = 0;
+                if (((ierr = nc_inq_attname(file_id, i, ii, att_name)) != NC_NOERR)
+                    || ((ierr = nc_inq_att(file_id, i, att_name, &att_type, &att_len)) != NC_NOERR))
+                {
+                    this->clear_cached_metadata();
+                    TECA_ERROR(
+                        << "Failed to query " << ii << "th attribute of variable, "
+                        << var_name << ", " << file << endl << nc_strerror(ierr))
+                    return teca_metadata();
+                }
+                if (att_type == NC_CHAR)
+                {
+                    buffer = static_cast<char*>(realloc(buffer, att_len + 1));
+                    buffer[att_len] = '\0';
+                    nc_get_att_text(file_id, i, att_name, buffer);
+                    atts.insert(att_name, string(buffer));
+                }
+            }
+            free(buffer);
+
+            atrs.insert(var_name, atts);
+        }
+
+        this->metadata.insert("variables", vars);
+        this->metadata.insert("attributes", atrs);
+        this->metadata.insert("time variables", time_vars);
+
+        // read coordinate arrays
+        p_teca_variant_array x_axis;
+        NC_DISPATCH_FP(x_t,
+            size_t x_0 = 0;
+            p_teca_variant_array_impl<NC_T> x = teca_variant_array_impl<NC_T>::New(n_x);
+            if ((ierr = nc_get_vara(file_id, x_id, &x_0, &n_x, x->get())) != NC_NOERR)
+            {
+                this->clear_cached_metadata();
+                TECA_ERROR(
+                    << "Failed to read x axis, " << x_axis_variable << endl
+                    << file << endl << nc_strerror(ierr))
+                return teca_metadata();
+            }
+            x_axis = x;
+            )
+
+        p_teca_variant_array y_axis;
+        if (!y_axis_variable.empty())
+        {
+            NC_DISPATCH_FP(y_t,
+                size_t y_0 = 0;
+                p_teca_variant_array_impl<NC_T> y = teca_variant_array_impl<NC_T>::New(n_y);
+                if ((ierr = nc_get_vara(file_id, y_id, &y_0, &n_y, y->get())) != NC_NOERR)
+                {
+                    this->clear_cached_metadata();
+                    TECA_ERROR(
+                        << "Failed to read y axis, " << y_axis_variable << endl
+                        << file << endl << nc_strerror(ierr))
+                    return teca_metadata();
+                }
+                y_axis = y;
+                )
+        }
+        else
+        {
+            NC_DISPATCH_FP(x_t,
+                p_teca_variant_array_impl<NC_T> y = teca_variant_array_impl<NC_T>::New(1);
+                y->set(0, NC_T());
+                y_axis = y;
+                )
+        }
+
+        p_teca_variant_array z_axis;
+        if (!z_axis_variable.empty())
+        {
+            NC_DISPATCH_FP(z_t,
+                size_t z_0 = 0;
+                p_teca_variant_array_impl<NC_T> z = teca_variant_array_impl<NC_T>::New(n_z);
+                if ((ierr = nc_get_vara(file_id, z_id, &z_0, &n_z, z->get())) != NC_NOERR)
+                {
+                    this->clear_cached_metadata();
+                    TECA_ERROR(
+                        << "Failed to read z axis, " << z_axis_variable << endl
+                        << file << endl << nc_strerror(ierr))
+                    return teca_metadata();
+                }
+                z_axis = z;
+                )
+        }
+        else
+        {
+            NC_DISPATCH_FP(x_t,
+                p_teca_variant_array_impl<NC_T> z = teca_variant_array_impl<NC_T>::New(1);
+                z->set(0, NC_T());
+                z_axis = z;
+                )
+        }
+
+        // collect time steps from this and the rest of the files
+        vector<unsigned long> step_count;
+        unsigned long number_of_time_steps = 0;
+
+        p_teca_variant_array t_axis;
+        if (!t_axis_variable.empty())
+        {
             number_of_time_steps += n_t;
             step_count.push_back(n_t);
 
             NC_DISPATCH_FP(t_t,
                 size_t t_0 = 0;
-                p_teca_variant_array_impl<NC_T> t
-                    = std::dynamic_pointer_cast<teca_variant_array_impl<NC_T>>(t_axis);
-                if (!t)
+                p_teca_variant_array_impl<NC_T> t = teca_variant_array_impl<NC_T>::New(n_t);
+                if ((ierr = nc_get_vara(file_id, t_id, &t_0, &n_t, t->get())) != NC_NOERR)
                 {
-                    nc_close(file_id);
-                    TECA_ERROR(
-                        << t_axis_variable << " has in compatible type in the "
-                        << i << "th file, " << file)
-                    return teca_metadata();
-                }
-                size_t n = t->size();
-                t->resize(n + n_t);
-                if ((ierr = nc_get_vara(file_id, t_id, &t_0, &n_t, t->get()+n)) != NC_NOERR)
-                {
-                    nc_close(file_id);
+                    this->clear_cached_metadata();
                     TECA_ERROR(
                         << "Failed to read t axis, " << t_axis_variable << endl
                         << file << endl << nc_strerror(ierr))
                     return teca_metadata();
                 }
+                t_axis = t;
                 )
 
-            nc_close(file_id);
+            size_t n_files = files.size();
+            for (size_t i = 1; i < n_files; ++i)
+            {
+                const string &file = path + PATH_SEP + files[i];
+                if ((ierr = nc_open(file.c_str(), NC_NOWRITE, &file_id)) != NC_NOERR)
+                {
+                    this->clear_cached_metadata();
+                    TECA_ERROR("Failed to open " << file << endl << nc_strerror(ierr))
+                    return teca_metadata();
+                }
+
+                // cache the file handle
+                this->handles[files[i]] = new teca_cf_reader::netcdf_handle(file_id);
+
+                if (((ierr = nc_inq_dimid(file_id, t_axis_variable.c_str(), &t_id)) != NC_NOERR)
+                    || ((ierr = nc_inq_dimlen(file_id, t_id, &n_t)) != NC_NOERR)
+                    || ((ierr = nc_inq_varid(file_id, t_axis_variable.c_str(), &t_id)) != NC_NOERR)
+                    || ((ierr = nc_inq_vartype(file_id, t_id, &t_t)) != NC_NOERR))
+                {
+                    this->clear_cached_metadata();
+                    TECA_ERROR(
+                        << "Failed to query time in the " << i << "th file, "
+                        << file << endl << nc_strerror(ierr))
+                    return teca_metadata();
+                }
+
+                number_of_time_steps += n_t;
+                step_count.push_back(n_t);
+
+                NC_DISPATCH_FP(t_t,
+                    size_t t_0 = 0;
+                    p_teca_variant_array_impl<NC_T> t
+                        = std::dynamic_pointer_cast<teca_variant_array_impl<NC_T>>(t_axis);
+                    if (!t)
+                    {
+                        this->clear_cached_metadata();
+                        TECA_ERROR(
+                            << t_axis_variable << " has in compatible type in the "
+                            << i << "th file, " << file)
+                        return teca_metadata();
+                    }
+                    size_t n = t->size();
+                    t->resize(n + n_t);
+                    if ((ierr = nc_get_vara(file_id, t_id, &t_0, &n_t, t->get()+n)) != NC_NOERR)
+                    {
+                        this->clear_cached_metadata();
+                        TECA_ERROR(
+                            << "Failed to read t axis, " << t_axis_variable << endl
+                            << file << endl << nc_strerror(ierr))
+                        return teca_metadata();
+                    }
+                    )
+            }
         }
+        else
+        {
+            number_of_time_steps = 1;
+            step_count.push_back(1);
+
+            NC_DISPATCH_FP(x_t,
+                p_teca_variant_array_impl<NC_T> t = teca_variant_array_impl<NC_T>::New(1);
+                t->set(0, NC_T());
+                t_axis = t;
+                )
+        }
+
+        teca_metadata coords;
+        coords.insert("x_variable", x_axis_variable);
+        coords.insert("y_variable", (z_axis_variable.empty() ? "y" : z_axis_variable));
+        coords.insert("z_variable", (z_axis_variable.empty() ? "z" : z_axis_variable));
+        coords.insert("t_variable", (z_axis_variable.empty() ? "t" : z_axis_variable));
+        coords.insert("x", x_axis);
+        coords.insert("y", y_axis);
+        coords.insert("z", z_axis);
+        coords.insert("t", t_axis);
+
+        vector<size_t> whole_extent(6, 0);
+        whole_extent[1] = n_x - 1;
+        whole_extent[3] = n_y - 1;
+        whole_extent[5] = n_z - 1;
+        this->metadata.insert("whole_extent", whole_extent);
+        this->metadata.insert("coordinates", coords);
+        this->metadata.insert("files", files);
+        this->metadata.insert("root", path);
+        this->metadata.insert("step_count", step_count);
+        this->metadata.insert("number_of_time_steps", number_of_time_steps);
+
+#if defined(TECA_HAS_MPI)
+        if (is_init)
+        {
+            // broadcast the metadata to other ranks
+            this->metadata.to_stream(bstr);
+            bstr_size = bstr.size();
+
+            // TODO -- use teca specific communicator
+            if ((MPI_Bcast(&bstr_size, 1,
+                    MPI_UNSIGNED_LONG_LONG, root_rank, MPI_COMM_WORLD))
+                || (MPI_Bcast(bstr.get_data(), bstr_size,
+                    MPI_CHAR, root_rank, MPI_COMM_WORLD)))
+            {
+                this->clear_cached_metadata();
+                TECA_ERROR("Failed to broadcast metatdata")
+                return teca_metadata();
+            }
+        }
+#endif
     }
+#if defined(TECA_HAS_MPI)
     else
     {
-        nc_close(file_id);
+        // all other ranks receive the metadata from the root
+        if (MPI_Bcast(&bstr_size, 1,
+            MPI_UNSIGNED_LONG_LONG, root_rank, MPI_COMM_WORLD))
+        {
+            this->clear_cached_metadata();
+            TECA_ERROR("Failed to broadcast metatdata")
+            return teca_metadata();
+        }
 
-        number_of_time_steps = 1;
-        step_count.push_back(1);
+        bstr.resize(bstr_size);
 
-        NC_DISPATCH_FP(x_t,
-            p_teca_variant_array_impl<NC_T> t = teca_variant_array_impl<NC_T>::New(1);
-            t->set(0, NC_T());
-            t_axis = t;
-            )
+        if (MPI_Bcast(bstr.get_data(), bstr_size,
+                 MPI_CHAR, root_rank, MPI_COMM_WORLD))
+        {
+            this->clear_cached_metadata();
+            TECA_ERROR("Failed to broadcast metatdata")
+            return teca_metadata();
+        }
+
+        this->metadata.from_stream(bstr);
+
+        // initialize the file map
+        vector<string> files;
+        this->metadata.get("files", files);
+        this->initialize_handles(files);
     }
+#endif
 
-    teca_metadata coords;
-    coords.insert("x_variable", x_axis_variable);
-    coords.insert("y_variable", (z_axis_variable.empty() ? "y" : z_axis_variable));
-    coords.insert("z_variable", (z_axis_variable.empty() ? "z" : z_axis_variable));
-    coords.insert("t_variable", (z_axis_variable.empty() ? "t" : z_axis_variable));
-    coords.insert("x", x_axis);
-    coords.insert("y", y_axis);
-    coords.insert("z", z_axis);
-    coords.insert("t", t_axis);
-
-    vector<size_t> whole_extent(6, 0);
-    whole_extent[1] = n_x - 1;
-    whole_extent[3] = n_y - 1;
-    whole_extent[5] = n_z - 1;
-    this->md.insert("whole_extent", whole_extent);
-    this->md.insert("coordinates", coords);
-    this->md.insert("files", files);
-    this->md.insert("step_count", step_count);
-    this->md.insert("number_of_time_steps", number_of_time_steps);
-
-    return this->md;
+    return this->metadata;
 }
 
 // --------------------------------------------------------------------------
@@ -422,7 +691,7 @@ const_p_teca_dataset teca_cf_reader::execute(
 
     // get coordinates
     teca_metadata coords;
-    if (this->md.get("coordinates", coords))
+    if (this->metadata.get("coordinates", coords))
     {
         TECA_ERROR("metadata is missing \"coordinates\"")
         return nullptr;
@@ -442,7 +711,7 @@ const_p_teca_dataset teca_cf_reader::execute(
 
 
     unsigned long whole_extent[6] = {0};
-    if (this->md.get("whole_extent", whole_extent, 6))
+    if (this->metadata.get("whole_extent", whole_extent, 6))
     {
         TECA_ERROR("metadata is missing \"whole_extent\"")
         return nullptr;
@@ -452,7 +721,8 @@ const_p_teca_dataset teca_cf_reader::execute(
     if (request.get("extent", extent, 6))
         memcpy(extent, whole_extent, 6*sizeof(unsigned long));
 
-
+    // requesting arrays is optional, but it's an error
+    // to request an array that isn't present.
     vector<string> arrays;
     request.get("arrays", arrays);
 
@@ -469,7 +739,7 @@ const_p_teca_dataset teca_cf_reader::execute(
 
     // locate file with this time step
     vector<unsigned long> step_count;
-    if (this->md.get("step_count", step_count))
+    if (this->metadata.get("step_count", step_count))
     {
         TECA_ERROR("metadata is missing \"step_count\"")
         return nullptr;
@@ -483,17 +753,21 @@ const_p_teca_dataset teca_cf_reader::execute(
     {}
     unsigned long offs = time_step - count;
 
+    string path;
     string file;
-    if (this->md.get("files", idx, file))
+    if (this->metadata.get("root", path)
+        || this->metadata.get("files", idx, file))
     {
         TECA_ERROR("Failed to locate file for time step " << time_step)
         return nullptr;
     }
 
-    teca_metadata atrs;
-    if (this->md.get("attributes", atrs))
+    // get the file handle for this step
+    int ierr = 0;
+    int file_id = 0;
+    if (this->get_handle_threadsafe(path, file, file_id))
     {
-        TECA_ERROR("metadata missing \"attributes\"")
+        TECA_ERROR("Failed to get handle for " << time_step)
         return nullptr;
     }
 
@@ -508,6 +782,13 @@ const_p_teca_dataset teca_cf_reader::execute(
     mesh->set_extent(extent);
 
     // get the time offset
+    teca_metadata atrs;
+    if (this->metadata.get("attributes", atrs))
+    {
+        TECA_ERROR("metadata missing \"attributes\"")
+        return nullptr;
+    }
+
     teca_metadata time_atts;
     std::string calendar;
     std::string units;
@@ -517,15 +798,6 @@ const_p_teca_dataset teca_cf_reader::execute(
     {
         mesh->set_calendar(calendar);
         mesh->set_time_units(units);
-    }
-
-    // open the file that contains this step
-    int ierr = 0;
-    int file_id = 0;
-    if ((ierr = nc_open(file.c_str(), NC_NOWRITE, &file_id)) != NC_NOERR)
-    {
-        TECA_ERROR("Failed to open " << file << endl << nc_strerror(ierr))
-        return nullptr;
     }
 
     // figure out the mapping between our extent and netcdf
@@ -564,7 +836,6 @@ const_p_teca_dataset teca_cf_reader::execute(
         counts.push_back(count);
         mesh_size *= count;
     }
-
 
     // read requested arrays
     size_t n_arrays = arrays.size();
@@ -626,7 +897,7 @@ const_p_teca_dataset teca_cf_reader::execute(
 
     // read time vars
     vector<string> time_vars;
-    this->md.get("time variables", time_vars);
+    this->metadata.get("time variables", time_vars);
     size_t n_time_vars = time_vars.size();
     for (size_t i = 0; i < n_time_vars; ++i)
     {
@@ -660,8 +931,6 @@ const_p_teca_dataset teca_cf_reader::execute(
             )
         mesh->get_information_arrays()->append(time_vars[i], array);
     }
-
-    nc_close(file_id);
 
     return mesh;
 }

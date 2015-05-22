@@ -1,6 +1,5 @@
 project(teca_io)
 
-
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
     $<TARGET_PROPERTY:teca_core,INTERFACE_INCLUDE_DIRECTORIES>
@@ -14,6 +13,11 @@ set(teca_io_srcs
 
 if (WIN32)
     list(APPEND teca_io_srcs win_windirent.cxx)
+endif()
+
+if (TECA_HAS_MPI)
+    include_directories(${MPI_C_INCLUDE_PATH})
+    add_definitions(-DTECA_HAS_MPI)
 endif()
 
 find_package(NetCDF)
@@ -45,6 +49,10 @@ endif()
 
 if (VTK_FOUND)
     target_link_libraries(teca_io ${VTK_LIBRARIES})
+endif()
+
+if (TECA_HAS_MPI)
+    target_link_libraries(teca_io ${MPI_CXX_LIBRARIES})
 endif()
 
 target_include_directories(teca_io

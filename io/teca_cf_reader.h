@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <string>
+#include <mutex>
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_cf_reader)
 
@@ -49,7 +50,7 @@ class teca_cf_reader : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_cf_reader)
-    ~teca_cf_reader() = default;
+    ~teca_cf_reader();
 
     TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_cf_reader)
 
@@ -70,6 +71,18 @@ public:
 protected:
     teca_cf_reader();
 
+    // helpers for dealing with cached file handles.
+    // root rank opens all files during metadata parsing,
+    // others ranks only open assigned files. in both
+    // cases threads on each rank should share file
+    // handles
+    void clear_cached_metadata();
+    void clear_handles();
+    void initialize_handles(const std::vector<std::string> &files);
+
+    int get_handle_threadsafe( const std::string &path,
+        const std::string &file, int &handle);
+
 private:
     teca_metadata get_output_metadata(
         unsigned int port,
@@ -80,13 +93,23 @@ private:
         const std::vector<const_p_teca_dataset> &input_data,
         const teca_metadata &request) override;
 
+    virtual void set_modified() override;
+
 private:
     std::string files_regex;
     std::string x_axis_variable;
     std::string y_axis_variable;
     std::string z_axis_variable;
     std::string t_axis_variable;
-    teca_metadata md;
+
+    // internals
+    teca_metadata metadata;
+
+    class netcdf_handle;
+    using handle_map_t = std::map<std::string, netcdf_handle*>;
+
+    handle_map_t handles;
+    std::mutex handles_mutex;
 };
 
 #endif
