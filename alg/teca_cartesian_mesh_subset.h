@@ -8,7 +8,6 @@
 
 #include <string>
 #include <vector>
-#include <mutex>
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_cartesian_mesh_subset)
 
@@ -66,7 +65,6 @@ private:
     bool cover_bounds;
 
     // internals
-    std::mutex extent_mutex;
     std::vector<unsigned long> extent;
 };
 

@@ -92,8 +92,7 @@ teca_metadata teca_cartesian_mesh_subset::get_output_metadata(
             return teca_metadata();
         }
 
-        {std::lock_guard<std::mutex> lock(this->extent_mutex);
-        this->extent = ext;}
+        this->extent = ext;
 
         teca_metadata out_md(input_md[0]);
         out_md.insert("whole_extent", ext);
@@ -115,8 +114,7 @@ std::vector<teca_metadata> teca_cartesian_mesh_subset::get_upstream_request(
 
     vector<teca_metadata> up_reqs(1, request);
 
-    {std::lock_guard<std::mutex> lock(this->extent_mutex);
-    up_reqs[0].insert("extent", this->extent);}
+    up_reqs[0].insert("extent", this->extent);
 
     return up_reqs;
 }
