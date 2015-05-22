@@ -19,7 +19,7 @@ set(teca_core_srcs
 find_package(MPI)
 if (MPI_C_FOUND)
     include_directories(${MPI_C_INCLUDE_PATH})
-    add_definitions(-DTECA_MPI)
+    add_definitions(-DTECA_HAS_MPI)
     set(TECA_HAS_MPI ON CACHE BOOL "MPI support")
 endif()
 

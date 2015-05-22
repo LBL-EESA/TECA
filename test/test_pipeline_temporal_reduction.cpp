@@ -8,7 +8,7 @@
 #include <algorithm>
 using namespace std;
 
-#if defined(TECA_MPI)
+#if defined(TECA_HAS_MPI)
 #include <mpi.h>
 #endif
 
@@ -16,7 +16,7 @@ int main(int argc, char **argv)
 {
     int rank = 0;
     int n_ranks = 1;
-#if defined(TECA_MPI)
+#if defined(TECA_HAS_MPI)
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
@@ -81,7 +81,7 @@ int main(int argc, char **argv)
 
     // TODO comapre output and return pass fail code
 
-#if defined(TECA_MPI)
+#if defined(TECA_HAS_MPI)
     MPI_Finalize();
 #endif
     return 0;

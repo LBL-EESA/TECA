@@ -16,8 +16,16 @@ set(teca_alg_srcs
     teca_temporal_average.cxx
     )
 
+if (TECA_HAS_MPI)
+    include_directories(${MPI_C_INCLUDE_PATH})
+    add_definitions(-DTECA_HAS_MPI)
+endif()
+
 add_library(teca_alg ${teca_alg_srcs})
 target_link_libraries(teca_alg teca_io teca_data teca_core)
+if (TECA_HAS_MPI)
+    target_link_libraries(teca_alg ${MPI_CXX_LIBRARIES})
+endif()
 
 target_include_directories(teca_alg
     INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}

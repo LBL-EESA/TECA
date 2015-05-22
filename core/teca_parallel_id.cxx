@@ -7,14 +7,14 @@
 using std::ostringstream;
 using std::ostream;
 
-#if defined(TECA_MPI)
+#if defined(TECA_HAS_MPI)
 #include <mpi.h>
 #endif
 
 ostream &operator<<(ostream &os, const teca_parallel_id &)
 {
     int rank = 0;
-#if defined(TECA_MPI)
+#if defined(TECA_HAS_MPI)
     int is_init = 0;
     MPI_Initialized(&is_init);
     if (is_init)

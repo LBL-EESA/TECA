@@ -7,18 +7,27 @@
 #include <iostream>
 using namespace std;
 
-// example use
-// ./test/test_cf_reader ~/work/teca/data/'cam5_1_amip_run2.cam2.h2.1991-10-.*' tmp 0 -1 PS
+#if defined(TECA_HAS_MPI)
+#include <mpi.h>
+#endif
 
 int main(int argc, char **argv)
 {
+    int rank = 0;
+#if defined(TECA_HAS_MPI)
+    MPI_Init(&argc, &argv);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+#endif
     if (argc < 3)
     {
-        cerr << endl << "Usage error:" << endl
-            << "test_cf_reader [input regex] [output base] [first step = 0] "
-            << "[last step = -1] [x axis = lon] [y axis = lat] [z axis =] [t axis = time] "
-            << "[array 0 =] ... [array n =]"
-            << endl << endl;
+        if (rank == 0)
+        {
+            cerr << endl << "Usage error:" << endl
+                << "test_cf_reader [input regex] [output base] [first step = 0] "
+                << "[last step = -1] [x axis = lon] [y axis = lat] [z axis =] [t axis = time] "
+                << "[array 0 =] ... [array n =]"
+                << endl << endl;
+        }
         return -1;
     }
 
@@ -72,5 +81,8 @@ int main(int argc, char **argv)
     // run the pipeline
     w->update();
 
+#if defined(TECA_HAS_MPI)
+    MPI_Finalize();
+#endif
     return 0;
 }

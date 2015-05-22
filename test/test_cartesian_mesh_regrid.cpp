@@ -9,22 +9,31 @@
 #include <iostream>
 using namespace std;
 
-// example use
-// ./test/test_cf_reader ~/work/teca/data/'cam5_1_amip_run2.cam2.h2.1991-10-.*' tmp 0 -1 PS
+#if defined(TECA_HAS_MPI)
+#include <mpi.h>
+#endif
 
 int main(int argc, char **argv)
 {
+    int rank = 0;
+#if defined(TECA_HAS_MPI)
+    MPI_Init(&argc, &argv);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+#endif
     if (argc < 24)
     {
-        cerr << endl
-            << "Usage:" << endl
-            << "test_cf_reader "
-               "[target regex] [target x axis] [target y axis] [target z axis] [target t axis] "
-               "[n target arrays] [target array 1] ... [target array n] "
-               "[source regex] [source x axis] [source y axis] [source z axis] [source t axis] "
-               "[n source arrays] [source array 1] ... [source array n] "
-               "[output base] [first step] [last step] [target bounds]" << endl
-             << endl;
+        if (rank == 0)
+        {
+            cerr << endl
+                << "Usage:" << endl
+                << "test_cf_reader "
+                   "[target regex] [target x axis] [target y axis] [target z axis] [target t axis] "
+                   "[n target arrays] [target array 1] ... [target array n] "
+                   "[source regex] [source x axis] [source y axis] [source z axis] [source t axis] "
+                   "[n source arrays] [source array 1] ... [source array n] "
+                   "[output base] [first step] [last step] [target bounds]" << endl
+                 << endl;
+        }
         return -1;
     }
 
@@ -99,5 +108,8 @@ int main(int argc, char **argv)
     // run the pipeline
     w->update();
 
+#if defined(TECA_HAS_MPI)
+    MPI_Finalize();
+#endif
     return 0;
 }

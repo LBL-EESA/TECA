@@ -11,6 +11,11 @@ include_directories(
     $<TARGET_PROPERTY:teca_test_array,INTERFACE_INCLUDE_DIRECTORIES>
     )
 
+if (TECA_HAS_MPI)
+    include_directories(${MPI_C_INCLUDE_PATH})
+    add_definitions(-DTECA_HAS_MPI)
+endif()
+
 # core tests
 add_executable(
     test_pipeline_time_average
@@ -38,7 +43,7 @@ target_link_libraries(
     test_pipeline_temporal_reduction
     teca_core teca_test_array
     )
-if (MPI_CXX_FOUND)
+if (TECA_HAS_MPI)
     target_link_libraries(
         test_pipeline_temporal_reduction
         ${MPI_CXX_LIBRARIES}
@@ -72,8 +77,6 @@ if (TECA_HAS_NETCDF)
             test_cartesian_mesh_regrid
             teca_core teca_data teca_io teca_alg
             )
-
-
     endif()
     add_executable(
         test_ar_detect
