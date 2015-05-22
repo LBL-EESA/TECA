@@ -1,7 +1,7 @@
 #include "teca_temporal_reduction.h"
 #include "teca_binary_stream.h"
 
-#if defined(TECA_MPI)
+#if defined(TECA_HAS_MPI)
 #include <mpi.h>
 #endif
 
@@ -12,7 +12,7 @@ using std::endl;
 // TODO
 // handle large messages, ie work around int in MPI api
 namespace {
-#if defined(TECA_MPI)
+#if defined(TECA_HAS_MPI)
 // helper for sending binary data over MPI
 int send(MPI_Comm comm, int dest, teca_binary_stream &s)
 {
@@ -23,16 +23,19 @@ int send(MPI_Comm comm, int dest, teca_binary_stream &s)
         return -1;
     }
 
-    if (MPI_Send(
-            s.get_data(),
-            n,
-            MPI_UNSIGNED_CHAR,
-            dest,
-            3211,
-            MPI_COMM_WORLD))
+    if (n)
     {
-        TECA_ERROR("failed to send message")
-        return -2;
+        if (MPI_Send(
+                s.get_data(),
+                n,
+                MPI_UNSIGNED_CHAR,
+                dest,
+                3211,
+                MPI_COMM_WORLD))
+        {
+            TECA_ERROR("failed to send message")
+            return -2;
+        }
     }
 
     return 0;
@@ -51,10 +54,13 @@ int recv(MPI_Comm comm, int src, teca_binary_stream &s)
 
     s.resize(n);
 
-    if (MPI_Recv(s.get_data(), n, MPI_UNSIGNED_CHAR, src, 3211, comm, &stat))
+    if (n)
     {
-        TECA_ERROR("failed to receive")
-        return -2;
+        if (MPI_Recv(s.get_data(), n, MPI_UNSIGNED_CHAR, src, 3211, comm, &stat))
+        {
+            TECA_ERROR("failed to receive")
+            return -2;
+        }
     }
 
     return 0;
@@ -98,7 +104,7 @@ std::vector<teca_metadata> teca_temporal_reduction::get_upstream_request(
     // to process.
     size_t rank = 0;
     size_t n_ranks = 1;
-#if defined(TECA_MPI)
+#if defined(TECA_HAS_MPI)
     int is_init = 0;
     MPI_Initialized(&is_init);
     if (is_init)
@@ -190,7 +196,7 @@ const_p_teca_dataset teca_temporal_reduction::reduce_local(
 const_p_teca_dataset teca_temporal_reduction::reduce_remote(
     const_p_teca_dataset local_data) // pass by value is intentional
 {
-#if defined(TECA_MPI)
+#if defined(TECA_HAS_MPI)
     int is_init = 0;
     MPI_Initialized(&is_init);
     if (is_init)
@@ -223,8 +229,14 @@ const_p_teca_dataset teca_temporal_reduction::reduce_remote(
                 TECA_ERROR("failed to recv from left")
                 return p_teca_dataset();
             }
-            p_teca_dataset left_data = local_data->new_instance();
-            left_data->from_stream(bstr);
+
+            p_teca_dataset left_data;
+            if (local_data && bstr)
+            {
+                left_data = local_data->new_instance();
+                left_data->from_stream(bstr);
+            }
+
             local_data = this->reduce(local_data, left_data);
 
             bstr.resize(0);
@@ -238,8 +250,14 @@ const_p_teca_dataset teca_temporal_reduction::reduce_remote(
                 TECA_ERROR("failed to recv from right")
                 return p_teca_dataset();
             }
-            p_teca_dataset right_data = local_data->new_instance();
-            right_data->from_stream(bstr);
+
+            p_teca_dataset right_data;
+            if (local_data && bstr)
+            {
+                right_data = local_data->new_instance();
+                right_data->from_stream(bstr);
+            }
+
             local_data = this->reduce(local_data, right_data);
 
             bstr.resize(0);
@@ -248,7 +266,8 @@ const_p_teca_dataset teca_temporal_reduction::reduce_remote(
         // send up
         if (rank)
         {
-            local_data->to_stream(bstr);
+            if (local_data)
+                local_data->to_stream(bstr);
 
             if (::send(MPI_COMM_WORLD, up_id-1, bstr))
                 TECA_ERROR("failed to send up")
@@ -268,16 +287,11 @@ const_p_teca_dataset teca_temporal_reduction::execute(
     const std::vector<const_p_teca_dataset> &input_data,
     const teca_metadata &request)
 {
-    // TODO -- do those need to be forward into overrides?
     (void)port;
     (void)request;
 
-    size_t n_in = input_data.size();
-    if (n_in == 0)
-    {
-        TECA_ERROR("empty input")
-        return p_teca_dataset();
-    }
-
+    // noet: it is not an error to have no input data.
+    // this can occur if there are fewer time steps
+    // to process than there are MPI ranks.
     return this->reduce_remote(this->reduce_local(input_data));
 }
