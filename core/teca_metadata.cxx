@@ -199,7 +199,7 @@ void teca_metadata::from_stream(teca_binary_stream &s)
     unsigned int n_props;
     s.unpack(n_props);
 
-    for (unsigned int i = 0; i <= n_props; ++i)
+    for (unsigned int i = 0; i < n_props; ++i)
     {
         string key;
         s.unpack(key);
