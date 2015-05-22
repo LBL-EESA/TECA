@@ -25,6 +25,10 @@ public:
     teca_binary_stream(teca_binary_stream &&s) TECA_NOEXCEPT;
     const teca_binary_stream &operator=(teca_binary_stream &&other) TECA_NOEXCEPT;
 
+    // evaluate to true when the stream is not empty.
+    operator bool()
+    { return m_size != 0; }
+
     // Release all resources, set to a uninitialized
     // state.
     void clear() TECA_NOEXCEPT;
@@ -52,7 +56,7 @@ public:
 
     // Insert/Extract to/from the stream.
     template <typename T> void pack(T *val);
-    template <typename T> void pack(T val);
+    template <typename T> void pack(const T &val);
     template <typename T> void unpack(T &val);
     template <typename T> void pack(const T *val, size_t n);
     template <typename T> void unpack(T *val, size_t n);
@@ -60,10 +64,12 @@ public:
     // specializations
     void pack(const std::string &str);
     void unpack(std::string &str);
+
+    void pack(const std::vector<std::string> &v);
+    void unpack(std::vector<std::string> &v);
+
     template<typename T> void pack(const std::vector<T> &v);
     template<typename T> void unpack(std::vector<T> &v);
-    /*void pack(std::map<std::string, int> &m);
-    void unpack(std::map<std::string, int> &m);*/
 
 private:
     size_t m_size;
@@ -81,7 +87,7 @@ void teca_binary_stream::pack(T *val)
 
 //-----------------------------------------------------------------------------
 template <typename T>
-void teca_binary_stream::pack(T val)
+void teca_binary_stream::pack(const T &val)
 {
     this->grow(sizeof(T));
     *((T *)m_data_p) = val;
@@ -138,6 +144,27 @@ void teca_binary_stream::unpack(std::string &str)
 }
 
 //-----------------------------------------------------------------------------
+inline
+void teca_binary_stream::pack(const std::vector<std::string> &v)
+{
+    size_t vlen = v.size();
+    this->pack(vlen);
+    for (size_t i = 0; i < vlen; ++i)
+        this->pack(v[i]);
+}
+
+//-----------------------------------------------------------------------------
+inline
+void teca_binary_stream::unpack(std::vector<std::string> &v)
+{
+    size_t vlen;
+    this->unpack(vlen);
+    v.resize(vlen);
+    for (size_t i = 0; i < vlen; ++i)
+        this->unpack(v[i]);
+}
+
+//-----------------------------------------------------------------------------
 template<typename T>
 void teca_binary_stream::pack(const std::vector<T> &v)
 {
@@ -155,42 +182,5 @@ void teca_binary_stream::unpack(std::vector<T> &v)
     v.resize(vlen);
     this->unpack(&v[0], vlen);
 }
-
-/*
-//-----------------------------------------------------------------------------
-inline
-void teca_binary_stream::pack(std::map<std::string, int> &m)
-{
-    size_t mlen = m.size();
-    this->pack(mlen);
-
-    std::map<std::string, int>::iterator it = m.begin();
-    std::map<std::string, int>::iterator end = m.end();
-    for (; it != end; ++it)
-    {
-        this->pack(it->first);
-        this->pack(it->second);
-    }
-}
-
-//-----------------------------------------------------------------------------
-inline
-void teca_binary_stream::unpack(std::map<std::string, int> &m)
-{
-    size_t mlen = 0;
-    this->unpack(mlen);
-
-    for (size_t i = 0; i < mlen; ++i)
-    {
-        std::string key;
-        this->unpack(key);
-
-        int val;
-        this->unpack(val);
-
-        m[key] = val;
-    }
-}
-*/
 
 #endif
