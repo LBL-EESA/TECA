@@ -11,11 +11,15 @@ using std::string;
 using std::cerr;
 using std::endl;
 
+#if defined(TECA_HAS_MPI)
+#include <mpi.h>
+#endif
+
 #define TECA_TIME_STEP_EXECUTIVE_DEBUG
 
 // --------------------------------------------------------------------------
 teca_time_step_executive::teca_time_step_executive()
-    : process_all(true), first_step(0), last_step(-1), stride(1)
+    : first_step(0), last_step(-1), stride(1)
 {
 }
 
@@ -67,48 +71,77 @@ int teca_time_step_executive::initialize(const teca_metadata &md)
 {
     this->requests.clear();
 
-    unsigned long number_of_steps;
-    if (md.get("number_of_time_steps", number_of_steps))
+    // locate available times
+    long n_times = 1;
+    if (md.get("number_of_time_steps", n_times))
     {
-        TECA_ERROR("metadata missing \"number_of_time_steps\"")
+        TECA_ERROR("metadata is missing \"number_of_time_steps\"")
         return -1;
     }
 
-    unsigned long last_step
-        = (this->last_step >= 0 ? this->last_step : number_of_steps - 1);
+    // apply restriction
+    long last
+        = this->last_step >= 0 ? this->last_step : n_times - 1;
 
-    if ((this->first_step >= static_cast<long>(number_of_steps))
-        || (this->first_step > static_cast<long>(last_step))
-        || (last_step >= number_of_steps))
+    long first
+        = ((this->first_step >= 0) && (this->first_step <= last))
+            ? this->first_step : 0;
+
+    n_times = last - first + 1;
+
+    // partition time across MPI ranks. each rank
+    // will end up with a unique block of times
+    // to process.
+    size_t rank = 0;
+    size_t n_ranks = 1;
+#if defined(TECA_HAS_MPI)
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
     {
-        TECA_ERROR(
-            << "Inavlid time step range " << this->first_step
-            << ", " << last_step << ". " << number_of_steps
-            << " time steps are available.")
-        return -1;
+        int tmp = 0;
+        MPI_Comm_size(MPI_COMM_WORLD, &tmp);
+        n_ranks = tmp;
+        MPI_Comm_rank(MPI_COMM_WORLD, &tmp);
+        rank = tmp;
+    }
+#endif
+    size_t n_big_blocks = n_times%n_ranks;
+    size_t block_size = 1;
+    size_t block_start = 0;
+    if (rank < n_big_blocks)
+    {
+        block_size = n_times/n_ranks + 1;
+        block_start = block_size*rank;
+    }
+    else
+    {
+        block_size = n_times/n_ranks;
+        block_start = block_size*rank + n_big_blocks;
     }
 
-    vector<unsigned long> whole_extent(6, 0l);
-    md.get("whole_extent", whole_extent);
-
-    unsigned long step = this->first_step;
-    do
+    // consrtuct base request
+    teca_metadata base_req;
+    if (this->extent.empty())
     {
-        teca_metadata req;
-        req.insert("time_step", step);
-        if (this->extent.empty())
-        {
-            req.insert("extent", whole_extent);
-        }
-        else
-        {
-            req.insert("extent", this->extent);
-        }
-        req.insert("arrays", this->arrays);
-        this->requests.push_back(req);
-        step += this->stride;
+        vector<unsigned long> whole_extent(6, 0l);
+        md.get("whole_extent", whole_extent);
+        base_req.insert("extent", whole_extent);
     }
-    while ((step <= last_step) && this->process_all);
+    else
+        base_req.insert("extent", this->extent);
+    base_req.insert("arrays", this->arrays);
+
+    // apply the base request to local times.
+    for (size_t i = 0; i < block_size; ++i)
+    {
+        size_t step = i + block_start + first;
+        if ((step % this->stride) == 0)
+        {
+            this->requests.push_back(base_req);
+            this->requests.back().insert("time_step", step);
+        }
+    }
 
 #if defined(TECA_TIME_STEP_EXECUTIVE_DEBUG)
     cerr << teca_parallel_id()

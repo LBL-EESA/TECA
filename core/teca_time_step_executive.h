@@ -22,10 +22,6 @@ public:
     virtual int initialize(const teca_metadata &md);
     virtual teca_metadata get_next_request();
 
-    // if not set then only the first timestep is
-    // processed. default set.
-    void set_process_all(bool v);
-
     // set the time step to process
     void set_step(long s);
 
@@ -55,7 +51,6 @@ protected:
 
 private:
     std::vector<teca_metadata> requests;
-    bool process_all;
     long first_step;
     long last_step;
     long stride;
