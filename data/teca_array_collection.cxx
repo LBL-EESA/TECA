@@ -150,7 +150,10 @@ void teca_array_collection::to_stream(teca_binary_stream &s) const
     s.pack(na);
     s.pack(m_names);
     for (unsigned int i = 0; i < na; ++i)
+    {
+        s.pack(m_arrays[i]->type_code());
         m_arrays[i]->to_stream(s);
+    }
 }
 
 // --------------------------------------------------------------------------
@@ -159,6 +162,15 @@ void teca_array_collection::from_stream(teca_binary_stream &s)
     unsigned int na;
     s.unpack(na);
     s.unpack(m_names);
+
+    m_arrays.resize(na);
+
     for (unsigned int i = 0; i < na; ++i)
+    {
+        unsigned int type_code;
+        s.unpack(type_code);
+
+        m_arrays[i] = teca_variant_array_factory::New(type_code);
         m_arrays[i]->from_stream(s);
+    }
 }
