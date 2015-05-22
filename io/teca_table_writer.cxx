@@ -40,6 +40,11 @@ const_p_teca_dataset teca_table_writer::execute(
 {
     (void) port;
 
+    // handle the case that no data is sent. it is not
+    // an error.
+    if (!input_data[0])
+        return nullptr;
+
     // get the input
     const_p_teca_table table
         = std::dynamic_pointer_cast<const teca_table>(input_data[0]);
