@@ -11,7 +11,7 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_cartesian_mesh_regrid)
 
-/// transfer data between meshes defined on the same coordinate system
+/// transfer data between overlapping meshes of potentially different resolution
 /**
 an algorithm that transfers data between cartesian meshes
 defined in the same world coordinate system but potentially
@@ -19,10 +19,8 @@ different resolutions. nearest or linear interpolation are
 supported. the first input is the target mesh. the second input
 is the source mesh. the arrays to move from source to target
 can be selected using add_array api or in the request
-key regrid_source_arrays. arrays may be optionally renamed
-as they are moved from one mesh to another. Target names
-are specified  using add_array api or requets key
-regrid_target_arrays.
+key regrid_source_arrays. this is a spatial regriding operation
+for temporal regriding see teca_mesh_temporal_regrid.
 */
 class teca_cartesian_mesh_regrid : public teca_algorithm
 {
@@ -38,15 +36,6 @@ public:
     // mesh(input 2) and moved onto the target mesh
     // (input 1) with the same name.
     void add_array(const std::string &array);
-
-    // set names of arrays to move. any arrays
-    // named in source_array will be requested
-    // from the source mesh(input 2) and moved
-    // onto the target mesh and renamed to
-    // target_array.
-    void add_array(
-        const std::string &source_array,
-        const std::string &target_array);
 
     // set the interpolation mode used in transfering
     // data between meshes of differing resolution.
@@ -80,7 +69,6 @@ private:
 
 private:
     std::vector<std::string> source_arrays;
-    std::vector<std::string> target_arrays;
     int interpolation_mode;
 };
 

@@ -128,23 +128,13 @@ teca_cartesian_mesh_regrid::~teca_cartesian_mesh_regrid()
 void teca_cartesian_mesh_regrid::clear_arrays()
 {
     this->source_arrays.clear();
-    this->target_arrays.clear();
     this->set_modified();
 }
 
 // --------------------------------------------------------------------------
 void teca_cartesian_mesh_regrid::add_array(const std::string &array)
 {
-    this->add_array(array, "");
-}
-
-// --------------------------------------------------------------------------
-void teca_cartesian_mesh_regrid::add_array(
-    const std::string &source_array,
-    const std::string &target_array)
-{
-    this->source_arrays.push_back(source_array);
-    this->target_arrays.push_back(target_array);
+    this->source_arrays.push_back(array);
     this->set_modified();
 }
 
@@ -159,12 +149,64 @@ teca_metadata teca_cartesian_mesh_regrid::get_output_metadata(
 #endif
     (void)port;
 
-    // copy metadata from the target input then
-    // append variable metadata from the source input
+    // start with a copy of metadata from the target
     teca_metadata output_md(input_md[0]);
-    output_md.append("variables", input_md[1].get("variables"));
-    output_md.append("attributes", input_md[1].get("attributes"));
-    output_md.append("time_vars", input_md[1].get("time_vars"));
+
+    // get target metadata
+    vector<string> target_vars;
+    input_md[0].get("variables", target_vars);
+
+    vector<string> target_time_vars;
+    input_md[0].get("time variables", target_time_vars);
+
+    teca_metadata target_atts;
+    input_md[0].get("attributes", target_atts);
+
+    // get source metadata
+    vector<string> source_vars;
+    input_md[0].get("variables", source_vars);
+
+    vector<string> source_time_vars;
+    input_md[0].get("time variables", source_time_vars);
+
+    teca_metadata source_atts;
+    input_md[0].get("attributes", source_atts);
+
+    // merge metadata from source and target
+    // varibales and time_vars should be unique lists.
+    // attributes are indexed by variable names
+    // in the case of collisions, the target variable
+    // is kept, the source variable is ignored
+    size_t n_source_vars = source_vars.size();
+    for (size_t i = 0; i < n_source_vars; ++i)
+    {
+        const string &source = source_vars[i];
+
+        // check that there's not a variable of that same name in target
+        vector<string>::iterator first = target_vars.begin();
+        vector<string>::iterator last = target_vars.end();
+        if (find(first, last, source) == last)
+        {
+            // not present in target, ok to add it
+            target_vars.push_back(source);
+
+            teca_metadata atts;
+            source_atts.get(source, atts);
+            target_atts.insert(source, atts);
+
+            // check if it's a time var as well
+            first = source_time_vars.begin();
+            last = source_time_vars.end();
+            if (find(first, last, source) != last)
+                target_time_vars.push_back(source);
+        }
+
+    }
+
+    // update with merged lists
+    output_md.insert("variables", target_vars);
+    output_md.insert("time variables", target_time_vars);
+    output_md.insert("attributes", target_atts);
 
     return output_md;
 }
@@ -184,7 +226,26 @@ std::vector<teca_metadata> teca_cartesian_mesh_regrid::get_upstream_request(
 
     // clear our keys
     target_req.remove("regrid_source_arrays");
-    target_req.remove("regrid_target_arrays");
+
+    // remove reqeust for any arrays that should come from
+    // the source
+    vector<string> req_target_arrays;
+    request.get("arrays", req_target_arrays);
+    size_t n_target_arrays = this->source_arrays.size();
+    for (size_t i = 0; i < n_target_arrays; ++i)
+    {
+        vector<string>::iterator it;
+        vector<string>::iterator first = req_target_arrays.begin();
+        vector<string>::iterator last = req_target_arrays.end();
+        if ((it = find(first, last, this->source_arrays[i])) != last)
+        {
+            // erase
+            *it = req_target_arrays.back();
+            req_target_arrays.pop_back();
+        }
+    }
+    target_req.insert("arrays", req_target_arrays);
+
 
     // compose the source request
     // merge in named arrays
@@ -193,8 +254,6 @@ std::vector<teca_metadata> teca_cartesian_mesh_regrid::get_upstream_request(
 
     std::copy(this->source_arrays.begin(),
         this->source_arrays.end(), std::back_inserter(arrays));
-
-    // TODO -- check that each array has attribute centering=point
 
     // get the target extent and coordinates
     vector<unsigned long> target_extent(6, 0l);
@@ -246,11 +305,6 @@ std::vector<teca_metadata> teca_cartesian_mesh_regrid::get_upstream_request(
     source_req.insert("arrays", arrays);
     source_req.insert("extent", source_extent);
 
-    // TODO -- how should time be handled? we could
-    // interpolate data from source input to the time value
-    // requested. but this should be handled upstream
-    // in a dedicated filter.
-
     // send the requests up
     up_reqs[0] = target_req;
     up_reqs[1] = source_req;
@@ -300,18 +354,6 @@ const_p_teca_dataset teca_cartesian_mesh_regrid::execute(
     request.get("regrid_source_source_arrays", source_arrays);
     std::copy(this->source_arrays.begin(),
         this->source_arrays.end(), std::back_inserter(source_arrays));
-
-    vector<string> target_arrays;
-    request.get("regrid_source_target_arrays", target_arrays);
-    std::copy(this->target_arrays.begin(),
-        this->target_arrays.end(), std::back_inserter(target_arrays));
-
-    // verify we have both source and target array names
-    if (source_arrays.size() != target_arrays.size())
-    {
-        TECA_ERROR("source and target array names mismatch")
-        return nullptr;
-    }
 
     // move the arrays
     const_p_teca_variant_array target_xc = target->get_x_coordinates();
@@ -393,10 +435,7 @@ const_p_teca_dataset teca_cartesian_mesh_regrid::execute(
                         }
                     }
 
-                    const string &name
-                        = target_arrays[i].size() ? target_arrays[i] : source_arrays[i];
-
-                    target_ac->set(name, target_a);
+                    target_ac->set(source_arrays[i], target_a);
                     )
                 }
                 )
