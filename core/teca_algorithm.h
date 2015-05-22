@@ -83,7 +83,7 @@ protected:
     // set the modified flag on the given output port's cache.
     // should be called when user modifies properties on the
     // object that require the output to be regenerated.
-    void set_modified();
+    virtual void set_modified();
     void set_modified(unsigned int port);
 
 protected:
