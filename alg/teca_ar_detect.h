@@ -61,6 +61,20 @@ public:
     TECA_ALGORITHM_PROPERTY(double, river_width)
     TECA_ALGORITHM_PROPERTY(double, river_length)
 
+    // set/get the land-sea mask variable. this array
+    // will be used to identify land from ocean using
+    // land_threshold properties.
+    TECA_ALGORITHM_PROPERTY(std::string, land_sea_mask_variable)
+
+    // set/get the land classification range [low high). defaults
+    // are [1.0 DOUBLE_MAX)
+    TECA_ALGORITHM_PROPERTY(double, land_threshold_low)
+    TECA_ALGORITHM_PROPERTY(double, land_threshold_high)
+
+    // send humand readable representation to the
+    // stream
+    virtual void to_stream(std::ostream &os) const override;
+
 protected:
     teca_ar_detect();
 
@@ -90,6 +104,7 @@ private:
 
 private:
     std::string water_vapor_variable;
+    std::string land_sea_mask_variable;
     double low_water_vapor_threshold;
     double high_water_vapor_threshold;
     double search_lat_low;
@@ -105,6 +120,8 @@ private:
     double percent_in_mesh;
     double river_width;
     double river_length;
+    double land_threshold_low;
+    double land_threshold_high;
 };
 
 #endif

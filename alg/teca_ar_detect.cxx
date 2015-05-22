@@ -4,9 +4,12 @@
 #include "teca_variant_array.h"
 #include "teca_table.h"
 #include "teca_calendar.h"
+#include "teca_cartesian_mesh_util.h"
 
 #include <iostream>
 #include <sstream>
+#include <limits>
+#include <algorithm>
 
 using std::ostream;
 using std::vector;
@@ -24,6 +27,7 @@ int write_mesh(
     const const_p_teca_variant_array &vapor,
     const const_p_teca_variant_array &thres,
     const const_p_teca_variant_array &ccomp,
+    const const_p_teca_variant_array &lsmask,
     const std::string &base_name);
 #endif
 
@@ -31,14 +35,16 @@ int write_mesh(
 struct atmospheric_river
 {
     atmospheric_river() :
-        pe(false), length(0.0), width(0.0),
+        pe(false), length(0.0),
+        min_width(0.0), max_width(0.0),
         end_top_lat(0.0), end_top_lon(0.0),
         end_bot_lat(0.0), end_bot_lon(0.0)
     {}
 
     bool pe;
     double length;
-    double width;
+    double min_width;
+    double max_width;
     double end_top_lat;
     double end_top_lon;
     double end_bot_lat;
@@ -49,7 +55,7 @@ ostream &operator<<(ostream &os, const atmospheric_river &ar)
 {
     os << " type=" << (ar.pe ? "PE" : "AR")
         << " length=" << ar.length
-        << " width=" << ar.width
+        << " width=" << ar.min_width << ", " << ar.max_width
         << " bounds=" << ar.end_bot_lon << ", " << ar.end_bot_lat << ", "
         << ar.end_top_lon << ", " << ar.end_top_lat;
     return os;
@@ -60,10 +66,11 @@ unsigned sauf(const unsigned nrow, const unsigned ncol, unsigned int *image);
 bool ar_detect(
     const_p_teca_variant_array lat,
     const_p_teca_variant_array lon,
+    const_p_teca_variant_array land_sea_mask,
     const_p_teca_unsigned_int_array con_comp,
     unsigned long n_comp,
-    double river_start_lat_low,
-    double river_start_lon_low,
+    double river_start_lat,
+    double river_start_lon,
     double river_end_lat_low,
     double river_end_lon_low,
     double river_end_lat_high,
@@ -71,6 +78,8 @@ bool ar_detect(
     double percent_in_mesh,
     double river_width,
     double river_length,
+    double land_threshold_low,
+    double land_threshold_high,
     atmospheric_river &ar);
 
 // set locations in the output where the input array
@@ -84,46 +93,6 @@ void threshold(
         output[i] = ((input[i] >= low) && (input[i] <= high)) ? 1 : 0;
 }
 
-// binary search that will locate index bounding the value
-// above or below such that data[i] <= val or val <= data[i+1]
-// depending on the value of lower. return 0 if the value is
-// found.
-template <typename T>
-int bounding_index(T *data, size_t l, size_t r, T val, bool lower, unsigned long &id)
-{
-    unsigned long m_0 = (r + l)/2;
-    unsigned long m_1 = m_0 + 1;
-
-    if (m_0 == r)
-    {
-        // not found
-        return -1;
-    }
-    else
-    if ((val >= data[m_0]) && (val <= data[m_1]))
-    {
-        // found the value!
-        if (lower)
-            id = m_0;
-        else
-            id = m_1;
-        return 0;
-    }
-    else
-    if (val < data[m_0])
-    {
-        // split range to the left
-        return bounding_index(data, l, m_0, val, lower, id);
-    }
-    else
-    {
-        // split the range to the right
-        return bounding_index(data, m_1, r, val, lower, id);
-    }
-
-    // not found
-    return -1;
-}
 
 
 
@@ -138,6 +107,7 @@ int bounding_index(T *data, size_t l, size_t r, T val, bool lower, unsigned long
 // --------------------------------------------------------------------------
 teca_ar_detect::teca_ar_detect() :
     water_vapor_variable("prw"),
+    land_sea_mask_variable(""),
     low_water_vapor_threshold(20),
     high_water_vapor_threshold(75),
     search_lat_low(19.0),
@@ -152,7 +122,9 @@ teca_ar_detect::teca_ar_detect() :
     river_end_lon_high(238.0),
     percent_in_mesh(5.0),
     river_width(1250.0),
-    river_length(2000.0)
+    river_length(2000.0),
+    land_threshold_low(1.0),
+    land_threshold_high(std::numeric_limits<double>::max())
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -189,38 +161,31 @@ int teca_ar_detect::get_active_extent(
         teca_variant_array_impl,
         lat.get(),
 
-        TT *a = dynamic_cast<TT*>(lat.get());
-        if (bounding_index(a->get(), 0, a->size() - 1,
-                static_cast<NT>(this->search_lat_low),
-                false, extent[2])
-            || bounding_index(a->get(), 0, a->size() - 1,
-                static_cast<NT>(this->search_lat_high),
-                true, extent[3]))
-        {
-            TECA_ERROR(
-                << "invalid lat cutoff range "
-                << this->search_lat_low << ", " << this->search_lat_high)
-            return -1;
-        }
+        unsigned long high_j = lat->size() - 1;
+        NT *p_lat = std::dynamic_pointer_cast<TT>(lat)->get();
 
-        a = dynamic_cast<TT*>(lon.get());
-        if (bounding_index(a->get(), 0, a->size() - 1,
-                static_cast<NT>(this->search_lon_low),
-                false, extent[0])
-            || bounding_index(a->get(), 0, a->size() - 1,
-                static_cast<NT>(this->search_lon_high),
-                true, extent[1]))
+        unsigned long high_i = lon->size() - 1;
+        NT *p_lon = std::dynamic_pointer_cast<TT>(lon)->get();
+
+        if (index_of(p_lon, 0, high_i, static_cast<NT>(this->search_lon_low), false, extent[0])
+            || index_of(p_lon, 0, high_i, static_cast<NT>(this->search_lon_high), true, extent[1])
+            || index_of(p_lat, 0, high_j, static_cast<NT>(this->search_lat_low), false, extent[2])
+            || index_of(p_lat, 0, high_j, static_cast<NT>(this->search_lat_high), true, extent[3]))
         {
             TECA_ERROR(
-                << "invalid lon_cutoff range "
-                << this->search_lon_low << ", " << this->search_lon_high)
+                << "search space ["
+                << this->search_lon_low << ", " << this->search_lon_high << ", "
+                << this->search_lat_low << ", " << this->search_lat_high
+                << "] is not contained in the current dataset bounds ["
+                << p_lon[0] << ", " << p_lon[high_i] << ", "
+                << p_lat[0] << ", " << p_lat[high_j] << "]")
             return -1;
         }
+        return 0;
         )
 
-    extent[4] = extent[5] = 0l;
-
-    return 0;
+    TECA_ERROR("invalid coordinate array type")
+    return -1;
 }
 
 // --------------------------------------------------------------------------
@@ -277,6 +242,8 @@ std::vector<teca_metadata> teca_ar_detect::get_upstream_request(
     vector<string> arrays;
     request.get("arrays", arrays);
     arrays.push_back(this->water_vapor_variable);
+    if (!this->land_sea_mask_variable.empty())
+        arrays.push_back(this->land_sea_mask_variable);
 
     teca_metadata up_req(request);
     up_req.insert("arrays", arrays);
@@ -293,20 +260,9 @@ const_p_teca_dataset teca_ar_detect::execute(
     const teca_metadata &request)
 {
 #if TECA_DEBUG > 1
-    cerr << teca_parallel_id() << "teca_ar_detect::execute"
-        << " water_vapor_variable=" << this->water_vapor_variable
-        << " low_water_vapor_threshold=" << this->low_water_vapor_threshold
-        << " high_water_vapor_threshold=" << this->high_water_vapor_threshold
-        << " river_start_lon_low=" << this->river_start_lon_low
-        << " river_start_lat_low=" << this->river_start_lat_low
-        << " river_end_lon_low=" << this->river_end_lon_low
-        << " river_end_lat_low=" << this->river_end_lat_low
-        << " river_end_lon_high=" << this->river_end_lon_high
-        << " river_end_lat_high=" << this->river_end_lat_high
-        << " percent_in_mesh=" << this->percent_in_mesh
-        << " river_width=" << this->river_width
-        << " river_length=" << this->river_length
-        << endl;
+    cerr << teca_parallel_id() << "teca_ar_detect::execute";
+    this->to_stream(cerr);
+    cerr << endl;
 #endif
     (void)port;
     (void)request;
@@ -328,6 +284,18 @@ const_p_teca_dataset teca_ar_detect::execute(
     {
         TECA_ERROR("invalid mesh. missing lat lon coordinates")
         return nullptr;
+    }
+
+    // get land sea mask
+    const_p_teca_variant_array land_sea_mask;
+    if (this->land_sea_mask_variable.empty() ||
+        !(land_sea_mask = mesh->get_point_arrays()->get(this->land_sea_mask_variable)))
+    {
+        // input doesn't have it, generate a stand in such
+        // that land fall criteria will evaluate true
+        size_t n = lat->size()*lon->size();
+        p_teca_double_array lsm = teca_double_array::New(n, this->land_threshold_low);
+        land_sea_mask = lsm;
     }
 
     // get time step
@@ -407,9 +375,10 @@ const_p_teca_dataset teca_ar_detect::execute(
     event->declare_columns(
         "year", int(), "month", int(), "day", int(),
         "time_step", long(), "length", double(),
-        "width", double(), "end_top_lat", double(),
-        "end_top_lon", double(), "end_bot_lat", double(),
-        "end_bot_lon", double(), "type", std::string());
+        "min width", double(), "max width", double(),
+        "end_top_lat", double(), "end_top_lon", double(),
+        "end_bot_lat", double(), "end_bot_lon", double(),
+        "type", std::string());
 
     TEMPLATE_DISPATCH(
         const teca_variant_array_impl,
@@ -435,25 +404,26 @@ const_p_teca_dataset teca_ar_detect::execute(
         int num_comp = sauf(num_rows, num_cols, p_con_comp);
 
 #if TECA_DEBUG > 0
-        write_mesh(mesh, water_vapor, thresh, con_comp, "ar_mesh");
+        write_mesh(mesh, water_vapor, thresh, con_comp, land_sea_mask, "ar_mesh");
 #endif
 
         // detect ar
         atmospheric_river ar;
         if (num_comp
-            && ar_detect(lat, lon, con_comp, num_comp,
+            && ar_detect(lat, lon, land_sea_mask, con_comp, num_comp,
             this->river_start_lat_low, this->river_start_lon_low,
             this->river_end_lat_low, this->river_end_lon_low,
             this->river_end_lat_high, this->river_end_lon_high,
             this->percent_in_mesh, this->river_width,
-            this->river_length, ar))
+            this->river_length, this->land_threshold_low,
+            this->land_threshold_high, ar))
         {
 #if TECA_DEBUG > 0
             cerr << teca_parallel_id() << " event detected " << time_step
                 << " " << curr_y << "/" << curr_m << "/" << curr_d << endl;
 #endif
             event << curr_y << curr_m << curr_d << time_step
-                << ar.length << ar.width
+                << ar.length << ar.min_width << ar.max_width
                 << ar.end_top_lat << ar.end_top_lon
                 << ar.end_bot_lat << ar.end_bot_lon
                 << std::string(ar.pe ? "PE" : "AR");
@@ -463,8 +433,25 @@ const_p_teca_dataset teca_ar_detect::execute(
     return event;
 }
 
-
-
+// --------------------------------------------------------------------------
+void teca_ar_detect::to_stream(ostream &os) const
+{
+    os << " water_vapor_variable=" << this->water_vapor_variable
+        << " land_sea_mask_variable=" << this->land_sea_mask_variable
+        << " low_water_vapor_threshold=" << this->low_water_vapor_threshold
+        << " high_water_vapor_threshold=" << this->high_water_vapor_threshold
+        << " river_start_lon_low=" << this->river_start_lon_low
+        << " river_start_lat_low=" << this->river_start_lat_low
+        << " river_end_lon_low=" << this->river_end_lon_low
+        << " river_end_lat_low=" << this->river_end_lat_low
+        << " river_end_lon_high=" << this->river_end_lon_high
+        << " river_end_lat_high=" << this->river_end_lat_high
+        << " percent_in_mesh=" << this->percent_in_mesh
+        << " river_width=" << this->river_width
+        << " river_length=" << this->river_length
+        << " land_threshodl_low=" << this->land_threshold_low
+        << " land_threshodl_high=" << this->land_threshold_high;
+}
 
 
 // Code borrowed from John Wu's sauf.cpp
@@ -837,7 +824,9 @@ T avg_width(
 {
 /*
     // TODO -- need bounds checking when doing things like
-    // p_lat[boundary_r[0] + 1]
+    // p_lat[boundary_r[0] + 1]. also because it's potentially
+    // a stretched cartesian mesh need to compute area of
+    // individual cells
 
     // length of cell in lat direction
     T lat_val[2] = {p_lat[boundary_r[0]], p_lat[boundary_r[0] + 1]};
@@ -850,6 +839,7 @@ T avg_width(
     T dlon = geodesic_distance(lat_val[0], lon_val[0], lat_val[1], lon_val[1]);
 */
     (void)boundary_c;
+    // compute area of the first cell in the input mesh
     // length of cell in lat direction
     T lat_val[2] = {p_lat[0], p_lat[1]};
     T lon_val[2] = {p_lon[0], p_lon[0]};
@@ -972,7 +962,8 @@ T medial_length(
     return total_dist;
 }
 
-
+/*
+// Suren's function
 // helper return true if the geometric conditions
 // on an ar are satisfied. also stores the length
 // and width of the river.
@@ -993,7 +984,227 @@ bool river_geometric_criteria(
 
     return (ar.length >= river_length) && (ar.width <= river_width);
 }
+*/
 
+// Junmin's function for height of a triangle
+template<typename T>
+T triangle_height(T a, T b, T c)
+{
+    // Heron's formula
+    T s = (a + b + c)/T(2);
+    T A = sqrt(s*(s - a)*(s - b)*(s - c));
+
+    // ?
+    if (A < T(0))
+        return std::min(b, c);
+
+    // A = 1/2 b h
+    return T(2)*A/a;
+}
+
+// Junmin's function
+template <typename T>
+bool river_geometric_criteria(
+    const vector<int> &boundary_r,
+    const vector<int> &boundary_c,
+    const T *p_lat,
+    const T *p_lon,
+    double river_length,
+    double river_width,
+    atmospheric_river &ar)
+{
+    vector<int> distinct_rows;
+    vector<int> leftmost_col;
+    vector<int> rightmost_col;
+
+    int row_track = -1;
+    size_t count = boundary_r.size();
+    for (size_t i = 0; i < count; ++i)
+    {
+        if (row_track != boundary_r[i])
+        {
+            row_track = boundary_r[i];
+
+            distinct_rows.push_back(boundary_r[i]);
+            leftmost_col.push_back(boundary_c[i]);
+            rightmost_col.push_back(boundary_c[i]);
+        }
+        else
+            rightmost_col.back() = boundary_c[i];
+    }
+
+    // river metrics
+    T length_from_top = T();
+    T min_width = std::numeric_limits<T>::max();
+    T max_width = std::numeric_limits<T>::lowest();
+
+    for (long i = distinct_rows.size() - 2; i >= 0; --i)
+    {
+        // TODO -- describe the following
+        T AB = geodesic_distance(
+            p_lat[distinct_rows[i]], p_lon[leftmost_col[i]],
+            p_lat[distinct_rows[i]], p_lon[rightmost_col[i]]);
+
+        T AC = geodesic_distance(
+            p_lat[distinct_rows[i]], p_lon[leftmost_col[i]],
+            p_lat[distinct_rows[i+1]], p_lon[rightmost_col[i]]);
+
+        T BC = geodesic_distance(
+            p_lat[distinct_rows[i]], p_lon[rightmost_col[i]],
+            p_lat[distinct_rows[i+1]], p_lon[leftmost_col[i+1]]);
+
+        T CD = geodesic_distance(
+            p_lat[distinct_rows[i+1]], p_lon[leftmost_col[i+1]],
+            p_lat[distinct_rows[i+1]], p_lon[rightmost_col[i+1]]);
+
+        T BD = geodesic_distance(
+            p_lat[distinct_rows[i]], p_lon[rightmost_col[i]],
+            p_lat[distinct_rows[i+1]], p_lon[rightmost_col[i+1]]);
+
+        T height_from_b = triangle_height(AC, AB, BC);
+        T height_from_c = triangle_height(BD, BC, CD);
+
+        T curr_min = std::min(height_from_b, height_from_c);
+
+        // test width criteria
+        if (curr_min > river_width)
+        {
+            // TODO -- first time through the loop length == 0. is it intentional
+            // to discard the detection or should length calc take place before this test?
+            // note: first time through loop none of the event details have been recoreded
+            if (length_from_top <= river_length)
+            {
+                 // too short to be a river
+                return false;
+            }
+            else
+            {
+                 // part of a connected region is AR
+                ar.min_width = static_cast<double>(min_width);
+                ar.max_width = static_cast<double>(max_width);
+                ar.length = static_cast<double>(length_from_top);
+                return true;
+            }
+        }
+
+        // update width
+        min_width = std::min(min_width, curr_min);
+        max_width = std::max(max_width, curr_min);
+
+        // update length
+        T mid_bot_lat;
+        T mid_bot_lon;
+        geodesic_midpoint(
+            p_lat[distinct_rows[i]], p_lon[leftmost_col[i]],
+            p_lat[distinct_rows[i]], p_lon[rightmost_col[i]],
+            mid_bot_lat, mid_bot_lon);
+
+        T mid_top_lat;
+        T mid_top_lon;
+        geodesic_midpoint(
+            p_lat[distinct_rows[i+1]], p_lon[leftmost_col[i+1]],
+            p_lat[distinct_rows[i+1]], p_lon[rightmost_col[i+1]],
+            mid_top_lat, mid_top_lon);
+
+        length_from_top += geodesic_distance(
+            mid_bot_lat, mid_bot_lon, mid_top_lat, mid_top_lon);
+    }
+
+    // check the length criteria.
+    // TODO question: if we are here the widtrh critera was not met
+    // so the following detection is based solely on the length.
+    if (length_from_top > river_length)
+    {
+        // AR
+        ar.min_width = static_cast<double>(min_width);
+        ar.max_width = static_cast<double>(max_width);
+        ar.length = static_cast<double>(length_from_top);
+        return true;
+    }
+
+    return false;
+}
+
+
+
+// Junmin's function
+// note: if land sea mask is not available land must all be true
+//
+template<typename T>
+bool river_end_criteria(
+    const vector<int> &boundary_r,
+    const vector<int> &boundary_c,
+    const T *p_lat,
+    const T *p_lon,
+    T river_end_lat_low,
+    T river_end_lon_low,
+    T river_end_lat_high,
+    T river_end_lon_high,
+    const vector<bool> &land,
+    atmospheric_river &ar)
+{
+    // locate component points within shoreline
+    // box
+    bool first_crossing = false;
+    bool event_detected = false;
+
+    T top_lat = T();
+    T top_lon = T();
+    T bot_lat = T();
+    T bot_lon = T();
+
+    std::vector<int> right_bound_col_idx;
+    size_t count = boundary_c.size();
+    for (size_t i = 0; i < count; ++i)
+    {
+        T lat = p_lat[boundary_r[i]];
+        T lon = p_lon[boundary_c[i]];
+
+        if ((lat >= river_end_lat_low) && (lat <= river_end_lat_high)
+            && (lon >= river_end_lon_low) && (lon <= river_end_lon_high))
+        {
+            if (!event_detected)
+                event_detected = land[i];
+
+            if (!first_crossing)
+            {
+                first_crossing = true;
+                top_lat = lat;
+                top_lon = lon;
+            }
+            bot_lat = lat;
+            bot_lon = lon;
+        }
+    }
+
+    ar.end_top_lat = top_lat;
+    ar.end_top_lon = top_lon;
+    ar.end_bot_lat = bot_lat;
+    ar.end_bot_lon = bot_lon;
+
+    return event_detected;
+}
+
+// Junmin's function
+template<typename T>
+void classify_event(
+    const vector<int> &boundary_r,
+    const vector<int> &boundary_c,
+    const T *p_lat,
+    const T *p_lon,
+    T start_lat,
+    T start_lon,
+    atmospheric_river &ar)
+{
+    // classification determined by first detected point in event
+    // is closer to left or to bottom
+    T lat = p_lat[boundary_r[0]];
+    T lon = p_lon[boundary_c[0]];
+
+    ar.pe = false;
+    if ((lat - start_lat) < (lon - start_lon))
+        ar.pe = true; // PE
+}
 
 /*
 * The main function that checks whether an AR event exists in
@@ -1003,6 +1214,7 @@ bool river_geometric_criteria(
 bool ar_detect(
     const_p_teca_variant_array lat,
     const_p_teca_variant_array lon,
+    const_p_teca_variant_array land_sea_mask,
     const_p_teca_unsigned_int_array con_comp,
     unsigned long n_comp,
     double river_start_lat,
@@ -1014,68 +1226,106 @@ bool ar_detect(
     double percent_in_mesh,
     double river_width,
     double river_length,
+    double land_threshold_low,
+    double land_threshold_high,
     atmospheric_river &ar)
 {
-    TEMPLATE_DISPATCH_FP(
+    NESTED_TEMPLATE_DISPATCH_FP(
         const teca_variant_array_impl,
         lat.get(),
+        1,
 
-        const NT *p_lat = dynamic_cast<TT*>(lat.get())->get();
-        const NT *p_lon = dynamic_cast<TT*>(lon.get())->get();
+        NESTED_TEMPLATE_DISPATCH(
+            const teca_variant_array_impl,
+            land_sea_mask.get(),
+            2,
 
-        NT start_lat = static_cast<NT>(river_start_lat);
-        NT start_lon = static_cast<NT>(river_start_lon);
-        NT end_lat_low = static_cast<NT>(river_end_lat_low);
-        NT end_lon_low = static_cast<NT>(river_end_lon_low);
-        NT end_lat_high = static_cast<NT>(river_end_lat_high);
-        NT end_lon_high = static_cast<NT>(river_end_lon_high);
+            const NT1 *p_lat = dynamic_cast<TT1*>(lat.get())->get();
+            const NT1 *p_lon = dynamic_cast<TT1*>(lon.get())->get();
 
-        unsigned long num_rows = lat->size();
-        unsigned long num_cols = lon->size();
+            const NT2 *p_land_sea_mask
+                = dynamic_cast<TT2*>(land_sea_mask.get())->get();
 
-        // # in PE is % of points in regious mesh
-        unsigned long num_rc = num_rows*num_cols;
-        unsigned long thr_count = num_rc*percent_in_mesh/100.0;
+            NT1 start_lat = static_cast<NT1>(river_start_lat);
+            NT1 start_lon = static_cast<NT1>(river_start_lon);
+            NT1 end_lat_low = static_cast<NT1>(river_end_lat_low);
+            NT1 end_lon_low = static_cast<NT1>(river_end_lon_low);
+            NT1 end_lat_high = static_cast<NT1>(river_end_lat_high);
+            NT1 end_lon_high = static_cast<NT1>(river_end_lon_high);
 
-        unsigned int *p_labels = con_comp->get();
-        for (unsigned int i = 1; i <= n_comp; ++i)
-        {
-            // for all discrete connected component labels
-            // verify if there exists an AR
-            vector<int> boundary_r;
-            vector<int> boundary_c;
+            unsigned long num_rows = lat->size();
+            unsigned long num_cols = lon->size();
 
-            // get all the points of this connected component
-            for (unsigned long r = 0, q = 0; r < num_rows; ++r)
+            // # in PE is % of points in regious mesh
+            unsigned long num_rc = num_rows*num_cols;
+            unsigned long thr_count = num_rc*percent_in_mesh/100.0;
+
+            unsigned int *p_labels = con_comp->get();
+            for (unsigned int i = 1; i <= n_comp; ++i)
             {
-                for (unsigned long c = 0; c < num_cols; ++c, ++q)
+                // for all discrete connected component labels
+                // verify if there exists an AR
+                vector<int> boundary_r;
+                vector<int> boundary_c;
+                vector<bool> land;
+
+                for (unsigned long r = 0, q = 0; r < num_rows; ++r)
                 {
-                    if (p_labels[q] == i)
+                    for (unsigned long c = 0; c < num_cols; ++c, ++q)
                     {
-                        boundary_r.push_back(r);
-                        boundary_c.push_back(c);
+                        if (p_labels[q] == i)
+                        {
+                            // gather points of this connected component
+                            boundary_r.push_back(r);
+                            boundary_c.push_back(c);
+
+                            // classify them as land or not land
+                            land.push_back(
+                                (p_land_sea_mask[q] >= land_threshold_low)
+                                && (p_land_sea_mask[q] < land_threshold_high));
+                        }
                     }
                 }
-            }
 
-            // check for ar criteria
-            unsigned long count = boundary_r.size();
-            if ((count > thr_count)
-                && river_start_criteria(
-                    boundary_r, boundary_c, p_lat, p_lon,
-                    start_lat, start_lon, ar)
-                && river_end_criteria(
-                    boundary_r, boundary_c, p_lat, p_lon,
-                    end_lat_low, end_lon_low,
-                    end_lat_high, end_lon_high,
-                    ar)
-                && river_geometric_criteria(
-                    boundary_r, boundary_c, p_lat, p_lon,
-                    river_length, river_width, ar))
-            {
-                return true;
+                // check for ar criteria
+                /*unsigned long count = boundary_r.size();
+                if ((count > thr_count)
+                    && river_end_criteria(
+                        boundary_r, boundary_c, p_lat, p_lon,
+                        end_lat_low, end_lon_low,
+                        end_lat_high, end_lon_high,
+                        land, ar)
+                    && river_geometric_criteria(
+                        boundary_r, boundary_c, p_lat, p_lon,
+                        river_length, river_width, ar))*/
+                bool num_cond = false;
+                bool start_cond = false;
+                bool end_cond = false;
+                bool geom_cond = false;
+                unsigned long count = boundary_r.size();
+                if (count)
+                {
+                num_cond = (count > thr_count);
+                end_cond = river_end_criteria(
+                        boundary_r, boundary_c, p_lat, p_lon,
+                        end_lat_low, end_lon_low,
+                        end_lat_high, end_lon_high,
+                        land, ar);
+                geom_cond = river_geometric_criteria(
+                        boundary_r, boundary_c, p_lat, p_lon,
+                        river_length, river_width, ar);
+                }
+                cerr << i << " count=" << count << " num_cond=" << num_cond << " start_cond=" << start_cond << " end_cond=" << end_cond << " geom_cond=" << geom_cond << endl;
+
+                if (num_cond && end_cond && geom_cond)
+                {
+                    classify_event(
+                        boundary_r, boundary_c, p_lat, p_lon,
+                        start_lat, start_lon, ar);
+                    return true;
+                }
             }
-        }
+            )
         )
     return false;
 }
@@ -1087,6 +1337,7 @@ int write_mesh(
     const const_p_teca_variant_array &vapor,
     const const_p_teca_variant_array &thresh,
     const const_p_teca_variant_array &ccomp,
+    const const_p_teca_variant_array &lsmask,
     const std::string &base_name)
 {
     p_teca_cartesian_mesh m = teca_cartesian_mesh::New();
@@ -1096,6 +1347,7 @@ int write_mesh(
     pac->append("vapor", std::const_pointer_cast<teca_variant_array>(vapor));
     pac->append("thresh", std::const_pointer_cast<teca_variant_array>(thresh));
     pac->append("ccomp", std::const_pointer_cast<teca_variant_array>(ccomp));
+    pac->append("lsmask", std::const_pointer_cast<teca_variant_array>(lsmask));
 
     p_teca_programmable_source s = teca_programmable_source::New();
     s->set_execute_function(
