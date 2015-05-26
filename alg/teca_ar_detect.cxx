@@ -305,7 +305,7 @@ const_p_teca_dataset teca_ar_detect::execute(
     // get units
     std::string units;
     mesh->get_time_units(units);
-    if ((units.find("days since") == string::npos) || (units.size() != 21))
+    if ((units.find("days since") == string::npos) || (units.size() < 21))
     {
         TECA_ERROR("invalid time units" << endl << units)
         return nullptr;
