@@ -165,13 +165,13 @@ void teca_cf_reader::initialize_handles(const vector<string> &files)
 }
 
 // --------------------------------------------------------------------------
-int teca_cf_reader::get_handle_threadsafe(
+int teca_cf_reader::get_handle(
     const string &path,
     const string &file,
     int &file_id)
 {
     // lock the mutex
-    std::lock_guard<std::mutex> lock(this->handles_mutex);
+    std::lock_guard<std::mutex> lock(this->netcdf_mutex);
 
     // get the current handle
     handle_map_t::iterator it = this->handles.find(file);
@@ -765,7 +765,7 @@ const_p_teca_dataset teca_cf_reader::execute(
     // get the file handle for this step
     int ierr = 0;
     int file_id = 0;
-    if (this->get_handle_threadsafe(path, file, file_id))
+    if (this->get_handle(path, file, file_id))
     {
         TECA_ERROR("Failed to get handle for " << time_step)
         return nullptr;
@@ -882,6 +882,7 @@ const_p_teca_dataset teca_cf_reader::execute(
         // read
         p_teca_variant_array array;
         NC_DISPATCH(type,
+            std::lock_guard<std::mutex> lock(this->netcdf_mutex);
             p_teca_variant_array_impl<NC_T> a = teca_variant_array_impl<NC_T>::New(mesh_size);
             if ((ierr = nc_get_vara(file_id,  id, &starts[0], &counts[0], a->get())) != NC_NOERR)
             {
@@ -919,6 +920,7 @@ const_p_teca_dataset teca_cf_reader::execute(
         p_teca_variant_array array;
         size_t one = 1;
         NC_DISPATCH(type,
+            std::lock_guard<std::mutex> lock(this->netcdf_mutex);
             p_teca_variant_array_impl<NC_T> a = teca_variant_array_impl<NC_T>::New(1);
             if ((ierr = nc_get_vara(file_id,  id, &starts[0], &one, a->get())) != NC_NOERR)
             {

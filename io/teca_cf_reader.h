@@ -80,7 +80,7 @@ protected:
     void clear_handles();
     void initialize_handles(const std::vector<std::string> &files);
 
-    int get_handle_threadsafe( const std::string &path,
+    int get_handle(const std::string &path,
         const std::string &file, int &handle);
 
 private:
@@ -109,7 +109,7 @@ private:
     using handle_map_t = std::map<std::string, netcdf_handle*>;
 
     handle_map_t handles;
-    std::mutex handles_mutex;
+    std::mutex netcdf_mutex;
 };
 
 #endif

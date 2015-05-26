@@ -86,7 +86,7 @@ int main(int argc, char **argv)
     tr->set_input_connection(ard->get_output_port());
     tr->set_first_step(first_step);
     tr->set_last_step(last_step);
-    tr->set_thread_pool_size(1);
+    tr->set_thread_pool_size(4);
 
     // writer
     p_teca_table_writer tw = teca_table_writer::New();
