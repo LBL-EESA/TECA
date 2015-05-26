@@ -713,7 +713,8 @@ const_p_teca_dataset teca_cf_reader::execute(
     unsigned long whole_extent[6] = {0};
     if (this->metadata.get("whole_extent", whole_extent, 6))
     {
-        TECA_ERROR("metadata is missing \"whole_extent\"")
+        TECA_ERROR("time_step=" << time_step
+            << " metadata is missing \"whole_extent\"")
         return nullptr;
     }
 
@@ -741,16 +742,19 @@ const_p_teca_dataset teca_cf_reader::execute(
     vector<unsigned long> step_count;
     if (this->metadata.get("step_count", step_count))
     {
-        TECA_ERROR("metadata is missing \"step_count\"")
+        TECA_ERROR("time_step=" << time_step
+            << "metadata is missing \"step_count\"")
         return nullptr;
     }
 
     unsigned long idx = 0;
     unsigned long count = 0;
     for (unsigned int i = 1;
-        (i < step_count.size()) && ((count + step_count[i]) <= time_step);
-        count += step_count[i], ++idx, ++i)
-    {}
+        (i < step_count.size()) && ((count + step_count[i-1]) <= time_step);
+        ++idx, ++i)
+    {
+        count += step_count[i-1];
+    }
     unsigned long offs = time_step - count;
 
     string path;
@@ -758,7 +762,8 @@ const_p_teca_dataset teca_cf_reader::execute(
     if (this->metadata.get("root", path)
         || this->metadata.get("files", idx, file))
     {
-        TECA_ERROR("Failed to locate file for time step " << time_step)
+        TECA_ERROR("time_step=" << time_step
+            << " Failed to locate file for time step " << time_step)
         return nullptr;
     }
 
@@ -767,7 +772,7 @@ const_p_teca_dataset teca_cf_reader::execute(
     int file_id = 0;
     if (this->get_handle(path, file, file_id))
     {
-        TECA_ERROR("Failed to get handle for " << time_step)
+        TECA_ERROR("time_step=" << time_step << " Failed to get handle")
         return nullptr;
     }
 
@@ -785,7 +790,8 @@ const_p_teca_dataset teca_cf_reader::execute(
     teca_metadata atrs;
     if (this->metadata.get("attributes", atrs))
     {
-        TECA_ERROR("metadata missing \"attributes\"")
+        TECA_ERROR("time_step=" << time_step
+            << " metadata missing \"attributes\"")
         return nullptr;
     }
 
@@ -873,8 +879,8 @@ const_p_teca_dataset teca_cf_reader::execute(
         }
         if (!mesh_var)
         {
-            TECA_ERROR(
-                << "dimension mismatch. \"" << arrays[i]
+            TECA_ERROR("time_step=" << time_step
+                << " dimension mismatch. \"" << arrays[i]
                 << "\" is not a mesh variable")
             continue;
         }
@@ -886,8 +892,8 @@ const_p_teca_dataset teca_cf_reader::execute(
             p_teca_variant_array_impl<NC_T> a = teca_variant_array_impl<NC_T>::New(mesh_size);
             if ((ierr = nc_get_vara(file_id,  id, &starts[0], &counts[0], a->get())) != NC_NOERR)
             {
-                TECA_ERROR(
-                    << "Failed to read \"" << arrays[i] << "\" "
+                TECA_ERROR("time_step=" << time_step
+                    << " Failed to read variable \"" << arrays[i] << "\" "
                     << file << endl << nc_strerror(ierr))
                 continue;
             }
@@ -911,7 +917,8 @@ const_p_teca_dataset teca_cf_reader::execute(
             || atts.get("type", 0, type)
             || atts.get("id", 0, id))
         {
-            TECA_ERROR("metadata issue can't read \"" << time_vars[i] << "\"")
+            TECA_ERROR("time_step=" << time_step
+                << "metadata issue can't read \"" << time_vars[i] << "\"")
             continue;
         }
 
@@ -924,8 +931,8 @@ const_p_teca_dataset teca_cf_reader::execute(
             p_teca_variant_array_impl<NC_T> a = teca_variant_array_impl<NC_T>::New(1);
             if ((ierr = nc_get_vara(file_id,  id, &starts[0], &one, a->get())) != NC_NOERR)
             {
-                TECA_ERROR(
-                    << "Failed to read \"" << time_vars[i] << "\" "
+                TECA_ERROR("time_step=" << time_step
+                    << " Failed to read \"" << time_vars[i] << "\" "
                     << file << endl << nc_strerror(ierr))
                 continue;
             }
