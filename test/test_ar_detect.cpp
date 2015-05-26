@@ -22,14 +22,15 @@ int main(int argc, char **argv)
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 #endif
-    if (argc < 9)
+    if (argc < 10)
     {
         if (rank == 0)
         {
             cerr << endl << "Usage error:" << endl
                 << "test_cf_reader [input dataset regex] [water vapor var] "
                    "[mask dataset regex] [mask var] "
-                   "[output base] [filter width] [first step] [last step]" << endl
+                   "[output base] [filter width] [first step] [last step] "
+                   "[number of threads]" << endl
                 << endl;
         }
         return -1;
@@ -44,6 +45,7 @@ int main(int argc, char **argv)
     int filter_width = atoi(argv[6]);
     long first_step = atol(argv[7]);
     long last_step = atol(argv[8]);
+    int n_threads = atoi(argv[9]);
 
     // dataset reader
     p_teca_cf_reader d_cfr = teca_cf_reader::New();
@@ -86,7 +88,7 @@ int main(int argc, char **argv)
     tr->set_input_connection(ard->get_output_port());
     tr->set_first_step(first_step);
     tr->set_last_step(last_step);
-    tr->set_thread_pool_size(4);
+    tr->set_thread_pool_size(n_threads);
 
     // writer
     p_teca_table_writer tw = teca_table_writer::New();

@@ -18,7 +18,7 @@ using std::ostringstream;
 using std::cerr;
 using std::endl;
 
-#define TECA_DEBUG 1
+#define TECA_DEBUG 0
 #if TECA_DEBUG > 0
 #include "teca_vtk_cartesian_mesh_writer.h"
 #include "teca_programmable_source.h"
@@ -656,14 +656,14 @@ unsigned sauf(const unsigned nrow, const unsigned ncol, unsigned *image)
 // criteria. retrun true if so.
 template<typename T>
 bool river_start_criteria_lat(
-    const vector<int> &boundary_r,
+    const vector<int> &con_comp_r,
     const T *p_lat,
     T river_start_lat)
 {
-    unsigned long n = boundary_r.size();
+    unsigned long n = con_comp_r.size();
     for (unsigned long q = 0; q < n; ++q)
     {
-        if (p_lat[boundary_r[q]] >= river_start_lat)
+        if (p_lat[con_comp_r[q]] >= river_start_lat)
             return true;
     }
     return false;
@@ -673,14 +673,14 @@ bool river_start_criteria_lat(
 // criteria. retrun true if so.
 template<typename T>
 bool river_start_criteria_lon(
-    const vector<int> &boundary_c,
+    const vector<int> &con_comp_c,
     const T *p_lon,
     T river_start_lon)
 {
-    unsigned long n = boundary_c.size();
+    unsigned long n = con_comp_c.size();
     for (unsigned long q = 0; q < n; ++q)
     {
-        if (p_lon[boundary_c[q]] >= river_start_lon)
+        if (p_lon[con_comp_c[q]] >= river_start_lon)
             return true;
     }
     return false;
@@ -691,8 +691,8 @@ bool river_start_criteria_lon(
 // in the bottom boundary.
 template<typename T>
 bool river_start_criteria(
-    const vector<int> &boundary_r,
-    const vector<int> &boundary_c,
+    const vector<int> &con_comp_r,
+    const vector<int> &con_comp_c,
     const T *p_lat,
     const T *p_lon,
     T start_lat,
@@ -700,8 +700,8 @@ bool river_start_criteria(
     atmospheric_river &ar)
 {
     return
-         ((ar.pe = river_start_criteria_lat(boundary_r, p_lat, start_lat))
-         || river_start_criteria_lon(boundary_c, p_lon, start_lon));
+         ((ar.pe = river_start_criteria_lat(con_comp_r, p_lat, start_lat))
+         || river_start_criteria_lon(con_comp_c, p_lon, start_lon));
 }
 
 // do any of the detected points meet the river end
@@ -710,8 +710,8 @@ bool river_start_criteria(
 // true.
 template<typename T>
 bool river_end_criteria(
-    const vector<int> &boundary_r,
-    const vector<int> &boundary_c,
+    const vector<int> &con_comp_r,
+    const vector<int> &con_comp_c,
     const T *p_lat,
     const T *p_lon,
     T river_end_lat_low,
@@ -724,11 +724,11 @@ bool river_end_criteria(
 
     vector<int> end_col_idx;
 
-    unsigned int count = boundary_r.size();
+    unsigned int count = con_comp_r.size();
     for (unsigned int i = 0; i < count; ++i)
     {
         // approximate land mask boundaries for the western coast of the US,
-        T lon_val = p_lon[boundary_c[i]];
+        T lon_val = p_lon[con_comp_c[i]];
         if ((lon_val >= river_end_lon_low) && (lon_val <= river_end_lon_high))
             end_col_idx.push_back(i);
     }
@@ -744,10 +744,10 @@ bool river_end_criteria(
     for (unsigned int i = 0; i < end_col_count; ++i)
     {
         // approximate land mask boundaries for the western coast of the US,
-        T lat_val = p_lat[boundary_r[end_col_idx[i]]];
+        T lat_val = p_lat[con_comp_r[end_col_idx[i]]];
         if ((lat_val >= river_end_lat_low) && (lat_val <= river_end_lat_high))
         {
-            T lon_val = p_lon[boundary_c[end_col_idx[i]]];
+            T lon_val = p_lon[con_comp_c[end_col_idx[i]]];
             end_criteria = true;
             if (!top_touch)
             {
@@ -816,29 +816,29 @@ T geodesic_distance(T lat1, T lon1, T lat2, T lon2)
 */
 template <typename T>
 T avg_width(
-    const vector<int> &boundary_r,
-    const vector<int> &boundary_c,
+    const vector<int> &con_comp_r,
+    const vector<int> &con_comp_c,
     T ar_len,
     const T *p_lat,
     const T *p_lon)
 {
 /*
     // TODO -- need bounds checking when doing things like
-    // p_lat[boundary_r[0] + 1]. also because it's potentially
+    // p_lat[con_comp_r[0] + 1]. also because it's potentially
     // a stretched cartesian mesh need to compute area of
     // individual cells
 
     // length of cell in lat direction
-    T lat_val[2] = {p_lat[boundary_r[0]], p_lat[boundary_r[0] + 1]};
-    T lon_val[2] = {p_lon[boundary_c[0]], p_lon[boundary_c[0]]};
+    T lat_val[2] = {p_lat[con_comp_r[0]], p_lat[con_comp_r[0] + 1]};
+    T lon_val[2] = {p_lon[con_comp_c[0]], p_lon[con_comp_c[0]]};
     T dlat = geodesic_distance(lat_val[0], lon_val[0], lat_val[1], lon_val[1]);
 
     // length of cell in lon direction
     lat_val[1] = lat_val[0];
-    lon_val[1] = p_lon[boundary_c[0] + 1];
+    lon_val[1] = p_lon[con_comp_c[0] + 1];
     T dlon = geodesic_distance(lat_val[0], lon_val[0], lat_val[1], lon_val[1]);
 */
-    (void)boundary_c;
+    (void)con_comp_c;
     // compute area of the first cell in the input mesh
     // length of cell in lat direction
     T lat_val[2] = {p_lat[0], p_lat[1]};
@@ -852,7 +852,7 @@ T avg_width(
 
     // area
     T pixel_area = dlat*dlon;
-    T total_area = pixel_area*boundary_r.size();
+    T total_area = pixel_area*con_comp_r.size();
 
     // avg width
     T avg_width = total_area/ar_len;
@@ -892,8 +892,8 @@ void geodesic_midpoint(T lat1, T lon1, T lat2, T lon2, T &mid_lat, T &mid_lon)
 */
 template<typename T>
 T medial_length(
-    const vector<int> &boundary_r,
-    const vector<int> &boundary_c,
+    const vector<int> &con_comp_r,
+    const vector<int> &con_comp_c,
     const T *p_lat,
     const T *p_lon)
 {
@@ -903,21 +903,21 @@ T medial_length(
 
     long row_track = -1;
 
-    unsigned long count = boundary_r.size();
+    unsigned long count = con_comp_r.size();
     for (unsigned long i = 0; i < count; ++i)
     {
-        if (row_track != boundary_r[i])
+        if (row_track != con_comp_r[i])
         {
-            jb_r1.push_back(boundary_r[i]);
-            jb_c1.push_back(boundary_c[i]);
+            jb_r1.push_back(con_comp_r[i]);
+            jb_c1.push_back(con_comp_c[i]);
 
-            jb_c2.push_back(boundary_c[i]);
+            jb_c2.push_back(con_comp_c[i]);
 
-            row_track = boundary_r[i];
+            row_track = con_comp_r[i];
         }
         else
         {
-            jb_c2.back() = boundary_c[i];
+            jb_c2.back() = con_comp_c[i];
         }
     }
 
@@ -969,17 +969,17 @@ T medial_length(
 // and width of the river.
 template <typename T>
 bool river_geometric_criteria(
-    const vector<int> &boundary_r,
-    const vector<int> &boundary_c,
+    const vector<int> &con_comp_r,
+    const vector<int> &con_comp_c,
     const T *p_lat,
     const T *p_lon,
     double river_length,
     double river_width,
     atmospheric_river &ar)
 {
-    ar.length = medial_length(boundary_r, boundary_c, p_lat, p_lon);
+    ar.length = medial_length(con_comp_r, con_comp_c, p_lat, p_lon);
 
-    ar.width = avg_width(boundary_r, boundary_c,
+    ar.width = avg_width(con_comp_r, con_comp_c,
         static_cast<T>(ar.length), p_lat, p_lon);
 
     return (ar.length >= river_length) && (ar.width <= river_width);
@@ -988,25 +988,25 @@ bool river_geometric_criteria(
 
 // Junmin's function for height of a triangle
 template<typename T>
-T triangle_height(T a, T b, T c)
+T triangle_height(T base, T s1, T s2)
 {
-    // Heron's formula
-    T s = (a + b + c)/T(2);
-    T A = sqrt(s*(s - a)*(s - b)*(s - c));
-
-    // ?
-    if (A < T(0))
-        return std::min(b, c);
-
-    // A = 1/2 b h
-    return T(2)*A/a;
+    // area from Heron's fomula
+    T p = (base + s1 + s2)/T(2);
+    T area = p*(p - base)*(p - s1)*(p - s2);
+    // detect impossible triangle
+    if (area < T())
+        return std::min(s1, s2);
+    // height from A = 1/2 b h
+    return T(2)*sqrt(area)/base;
 }
 
-// Junmin's function
+// TDataProcessor::check_geodesic_width_top_down
+// Junmin's function for detecting river based on
+// it's geometric properties
 template <typename T>
 bool river_geometric_criteria(
-    const vector<int> &boundary_r,
-    const vector<int> &boundary_c,
+    const vector<int> &con_comp_r,
+    const vector<int> &con_comp_c,
     const T *p_lat,
     const T *p_lon,
     double river_length,
@@ -1018,19 +1018,21 @@ bool river_geometric_criteria(
     vector<int> rightmost_col;
 
     int row_track = -1;
-    size_t count = boundary_r.size();
+    size_t count = con_comp_r.size();
     for (size_t i = 0; i < count; ++i)
     {
-        if (row_track != boundary_r[i])
+        if (row_track != con_comp_r[i])
         {
-            row_track = boundary_r[i];
+            row_track = con_comp_r[i];
 
-            distinct_rows.push_back(boundary_r[i]);
-            leftmost_col.push_back(boundary_c[i]);
-            rightmost_col.push_back(boundary_c[i]);
+            distinct_rows.push_back(con_comp_r[i]);
+            leftmost_col.push_back(con_comp_c[i]);
+            rightmost_col.push_back(con_comp_c[i]);
         }
         else
-            rightmost_col.back() = boundary_c[i];
+        {
+            rightmost_col.back() = con_comp_c[i];
+        }
     }
 
     // river metrics
@@ -1040,23 +1042,32 @@ bool river_geometric_criteria(
 
     for (long i = distinct_rows.size() - 2; i >= 0; --i)
     {
-        // TODO -- describe the following
+        // for each row w respect to row above it. triangulate
+        // a quadrilateral composed of left and right most points
+        // in this and the above rows. ccw ordering from lower
+        // left corner is A,B,D,C.
+
+        // low left-right distance
         T AB = geodesic_distance(
             p_lat[distinct_rows[i]], p_lon[leftmost_col[i]],
             p_lat[distinct_rows[i]], p_lon[rightmost_col[i]]);
 
+        // left side bottom-top distance
         T AC = geodesic_distance(
             p_lat[distinct_rows[i]], p_lon[leftmost_col[i]],
-            p_lat[distinct_rows[i+1]], p_lon[rightmost_col[i]]);
+            p_lat[distinct_rows[i+1]], p_lon[leftmost_col[i]]);
 
+        // distance from top left to bottom right, across
         T BC = geodesic_distance(
             p_lat[distinct_rows[i]], p_lon[rightmost_col[i]],
             p_lat[distinct_rows[i+1]], p_lon[leftmost_col[i+1]]);
 
+        // high left-right distance
         T CD = geodesic_distance(
             p_lat[distinct_rows[i+1]], p_lon[leftmost_col[i+1]],
             p_lat[distinct_rows[i+1]], p_lon[rightmost_col[i+1]]);
 
+        // right side bottom-top distance
         T BD = geodesic_distance(
             p_lat[distinct_rows[i]], p_lon[rightmost_col[i]],
             p_lat[distinct_rows[i+1]], p_lon[rightmost_col[i+1]]);
@@ -1111,8 +1122,8 @@ bool river_geometric_criteria(
     }
 
     // check the length criteria.
-    // TODO question: if we are here the widtrh critera was not met
-    // so the following detection is based solely on the length.
+    // TODO: if we are here the widtrh critera was not met
+    // so the following detection is based solely on the length?
     if (length_from_top > river_length)
     {
         // AR
@@ -1127,20 +1138,20 @@ bool river_geometric_criteria(
 
 
 
-// Junmin's function
-// note: if land sea mask is not available land must all be true
-//
+// Junmin's function checkRightBoundary
+// note: if land sea mask is not available land array
+// must all be true.
 template<typename T>
 bool river_end_criteria(
-    const vector<int> &boundary_r,
-    const vector<int> &boundary_c,
+    const vector<int> &con_comp_r,
+    const vector<int> &con_comp_c,
+    const vector<bool> &land,
     const T *p_lat,
     const T *p_lon,
     T river_end_lat_low,
     T river_end_lon_low,
     T river_end_lat_high,
     T river_end_lon_high,
-    const vector<bool> &land,
     atmospheric_river &ar)
 {
     // locate component points within shoreline
@@ -1154,11 +1165,11 @@ bool river_end_criteria(
     T bot_lon = T();
 
     std::vector<int> right_bound_col_idx;
-    size_t count = boundary_c.size();
+    size_t count = con_comp_c.size();
     for (size_t i = 0; i < count; ++i)
     {
-        T lat = p_lat[boundary_r[i]];
-        T lon = p_lon[boundary_c[i]];
+        T lat = p_lat[con_comp_r[i]];
+        T lon = p_lon[con_comp_c[i]];
 
         if ((lat >= river_end_lat_low) && (lat <= river_end_lat_high)
             && (lon >= river_end_lon_low) && (lon <= river_end_lon_high))
@@ -1188,8 +1199,8 @@ bool river_end_criteria(
 // Junmin's function
 template<typename T>
 void classify_event(
-    const vector<int> &boundary_r,
-    const vector<int> &boundary_c,
+    const vector<int> &con_comp_r,
+    const vector<int> &con_comp_c,
     const T *p_lat,
     const T *p_lon,
     T start_lat,
@@ -1198,8 +1209,8 @@ void classify_event(
 {
     // classification determined by first detected point in event
     // is closer to left or to bottom
-    T lat = p_lat[boundary_r[0]];
-    T lon = p_lon[boundary_c[0]];
+    T lat = p_lat[con_comp_r[0]];
+    T lon = p_lon[con_comp_c[0]];
 
     ar.pe = false;
     if ((lat - start_lat) < (lon - start_lon))
@@ -1265,8 +1276,8 @@ bool ar_detect(
             {
                 // for all discrete connected component labels
                 // verify if there exists an AR
-                vector<int> boundary_r;
-                vector<int> boundary_c;
+                vector<int> con_comp_r;
+                vector<int> con_comp_c;
                 vector<bool> land;
 
                 for (unsigned long r = 0, q = 0; r < num_rows; ++r)
@@ -1276,10 +1287,10 @@ bool ar_detect(
                         if (p_labels[q] == i)
                         {
                             // gather points of this connected component
-                            boundary_r.push_back(r);
-                            boundary_c.push_back(c);
+                            con_comp_r.push_back(r);
+                            con_comp_c.push_back(c);
 
-                            // classify them as land or not land
+                            // identify them as land or not
                             land.push_back(
                                 (p_land_sea_mask[q] >= land_threshold_low)
                                 && (p_land_sea_mask[q] < land_threshold_high));
@@ -1288,39 +1299,21 @@ bool ar_detect(
                 }
 
                 // check for ar criteria
-                /*unsigned long count = boundary_r.size();
+                unsigned long count = con_comp_r.size();
                 if ((count > thr_count)
                     && river_end_criteria(
-                        boundary_r, boundary_c, p_lat, p_lon,
+                        con_comp_r, con_comp_c, land,
+                        p_lat, p_lon,
                         end_lat_low, end_lon_low,
                         end_lat_high, end_lon_high,
-                        land, ar)
+                        ar)
                     && river_geometric_criteria(
-                        boundary_r, boundary_c, p_lat, p_lon,
-                        river_length, river_width, ar))*/
-                bool num_cond = false;
-                bool start_cond = false;
-                bool end_cond = false;
-                bool geom_cond = false;
-                unsigned long count = boundary_r.size();
-                if (count)
+                        con_comp_r, con_comp_c, p_lat, p_lon,
+                        river_length, river_width, ar))
                 {
-                num_cond = (count > thr_count);
-                end_cond = river_end_criteria(
-                        boundary_r, boundary_c, p_lat, p_lon,
-                        end_lat_low, end_lon_low,
-                        end_lat_high, end_lon_high,
-                        land, ar);
-                geom_cond = river_geometric_criteria(
-                        boundary_r, boundary_c, p_lat, p_lon,
-                        river_length, river_width, ar);
-                }
-                cerr << i << " count=" << count << " num_cond=" << num_cond << " start_cond=" << start_cond << " end_cond=" << end_cond << " geom_cond=" << geom_cond << endl;
-
-                if (num_cond && end_cond && geom_cond)
-                {
+                    // determine if PE or AR
                     classify_event(
-                        boundary_r, boundary_c, p_lat, p_lon,
+                        con_comp_r, con_comp_c, p_lat, p_lon,
                         start_lat, start_lon, ar);
                     return true;
                 }
