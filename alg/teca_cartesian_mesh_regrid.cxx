@@ -125,14 +125,14 @@ teca_cartesian_mesh_regrid::~teca_cartesian_mesh_regrid()
 {}
 
 // --------------------------------------------------------------------------
-void teca_cartesian_mesh_regrid::clear_arrays()
+void teca_cartesian_mesh_regrid::clear_source_arrays()
 {
     this->source_arrays.clear();
     this->set_modified();
 }
 
 // --------------------------------------------------------------------------
-void teca_cartesian_mesh_regrid::add_array(const std::string &array)
+void teca_cartesian_mesh_regrid::add_source_array(const std::string &array)
 {
     this->source_arrays.push_back(array);
     this->set_modified();

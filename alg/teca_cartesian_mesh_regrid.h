@@ -28,14 +28,19 @@ public:
     TECA_ALGORITHM_STATIC_NEW(teca_cartesian_mesh_regrid)
     ~teca_cartesian_mesh_regrid();
 
-    // clear the list of arrays to move
-    void clear_arrays();
+    // set the list of arrays to move from the source
+    // to the target
+    TECA_ALGORITHM_PROPERTY(std::vector<std::string>, source_arrays)
+
+    // clear the list of arrays to move from the source
+    // to the target
+    void clear_source_arrays();
 
     // set names of arrays to move. any arrays
     // named here will be requested from the source
     // mesh(input 2) and moved onto the target mesh
     // (input 1) with the same name.
-    void add_array(const std::string &array);
+    void add_source_array(const std::string &array);
 
     // set the interpolation mode used in transfering
     // data between meshes of differing resolution.

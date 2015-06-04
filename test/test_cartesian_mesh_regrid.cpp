@@ -82,9 +82,7 @@ int main(int argc, char **argv)
     p_teca_cartesian_mesh_regrid rg = teca_cartesian_mesh_regrid::New();
     rg->set_input_connection(0, tr->get_output_port());
     rg->set_input_connection(1, sr->get_output_port());
-
-    for (int i = 0; i < n_source_arrays; ++i)
-        rg->add_array(source_arrays[i]);
+    rg->set_source_arrays(source_arrays);
 
     // create the subseter
     p_teca_cartesian_mesh_subset ss = teca_cartesian_mesh_subset::New();
