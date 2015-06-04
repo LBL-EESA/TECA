@@ -22,7 +22,8 @@ using std::cerr;
 using std::endl;
 
 // --------------------------------------------------------------------------
-teca_table_writer::teca_table_writer() : binary_mode(false)
+teca_table_writer::teca_table_writer()
+    : file_name("table_%t%.%e%"), binary_mode(false)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -57,29 +58,48 @@ const_p_teca_dataset teca_table_writer::execute(
 
     if (!table->empty())
     {
-        ostringstream file_name;
-        file_name << this->base_file_name;;
+        string out_file = this->file_name;
 
-        // if there is a time step, use it in the file name
-        unsigned long time_step;
-        if (!request.get("time_step", time_step))
-            file_name << "_" << time_step;
+        // replace time step
+        size_t t_pos = out_file.find("%t%");
+        if (t_pos != string::npos)
+        {
+            unsigned long time_step = 0l;
+            request.get("time_step", time_step);
 
+            ostringstream oss;
+            oss << time_step;
+
+            out_file.replace(t_pos, 3, oss.str());
+        }
+
+        // replace extension
+        size_t ext_pos = out_file.find("%e%");
+        if (ext_pos != string::npos)
+        {
+            string ext;
+            if (this->binary_mode)
+                ext = "bin";
+            else
+                ext = "csv";
+
+            out_file.replace(ext_pos, 3, ext);
+        }
+
+        // write the data
         if (this->binary_mode)
         {
-            file_name << ".bin";
-            if (this->write_bin(table, file_name.str()))
+            if (this->write_bin(table, out_file))
             {
-                TECA_ERROR("Failed to write binary file \"" << file_name.str() << "\"")
+                TECA_ERROR("Failed to write binary file \"" << out_file << "\"")
                 return nullptr;
             }
         }
         else
         {
-            file_name << ".csv";
-            if (this->write_csv(table, file_name.str()))
+            if (this->write_csv(table, out_file))
             {
-                TECA_ERROR("Failed to write csv file \"" << file_name.str() << "\"")
+                TECA_ERROR("Failed to write csv file \"" << out_file << "\"")
                 return nullptr;
             }
         }

@@ -20,10 +20,10 @@ public:
     TECA_ALGORITHM_STATIC_NEW(teca_table_writer)
     ~teca_table_writer();
 
-    // set base filename. if the time step is found
-    // then it is appended. the extension will be appeneded,
-    // bin when binary mode is enabled, csv otherwise.
-    TECA_ALGORITHM_PROPERTY(std::string, base_file_name)
+    // set the output filename. for time series the substring
+    // %t% is replaced with the current time step. the substring
+    // %e% is replaced with .bin in binary mode and .csv otherwise
+    TECA_ALGORITHM_PROPERTY(std::string, file_name)
 
     // enable binary mode. default off. when not in
     // binary mode a csv format is used.
@@ -43,7 +43,7 @@ private:
         const teca_metadata &request) override;
 
 private:
-    std::string base_file_name;
+    std::string file_name;
     bool binary_mode;
 };
 
