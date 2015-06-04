@@ -7,7 +7,13 @@
 
 #include <algorithm>
 #include <iostream>
+#include <string>
 
+#if defined(TECA_HAS_BOOST)
+#include <boost/program_options.hpp>
+#endif
+
+using std::string;
 using std::vector;
 using std::cerr;
 using std::endl;
@@ -25,6 +31,32 @@ teca_temporal_average::teca_temporal_average()
 // --------------------------------------------------------------------------
 teca_temporal_average::~teca_temporal_average()
 {}
+
+#if defined(TECA_HAS_BOOST)
+
+// --------------------------------------------------------------------------
+void teca_temporal_average::get_properties_description(
+    const string &prefix, options_description &global_opts)
+{
+    options_description opts("Options for " + prefix + "(teca_temporal_average)");
+
+    opts.add_options()
+        TECA_POPTS_GET(unsigned int, prefix, filter_width, "number of steps to average over")
+        TECA_POPTS_GET(int, prefix, filter_type, "use backward(0), forward(1) or centered(2) stencil")
+        ;
+
+    global_opts.add(opts);
+}
+
+// --------------------------------------------------------------------------
+void teca_temporal_average::set_properties(
+    const string &prefix, variables_map &opts)
+{
+    TECA_POPTS_SET(opts, unsigned int, prefix, filter_width)
+    TECA_POPTS_SET(opts, int, prefix, filter_type)
+}
+
+#endif
 
 // --------------------------------------------------------------------------
 std::vector<teca_metadata> teca_temporal_average::get_upstream_request(

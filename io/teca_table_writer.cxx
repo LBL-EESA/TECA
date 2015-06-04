@@ -13,6 +13,9 @@
 #include <unistd.h>
 #include <string.h>
 
+#if defined(TECA_HAS_BOOST)
+#include <boost/program_options.hpp>
+#endif
 
 using std::vector;
 using std::string;
@@ -32,6 +35,29 @@ teca_table_writer::teca_table_writer()
 // --------------------------------------------------------------------------
 teca_table_writer::~teca_table_writer()
 {}
+
+#if defined(TECA_HAS_BOOST)
+// --------------------------------------------------------------------------
+void teca_table_writer::get_properties_description(
+    const string &prefix, options_description &global_opts)
+{
+    options_description opts("Options for " + prefix + "(teca_table_writer)");
+
+    opts.add_options()
+        TECA_POPTS_GET(string, prefix, file_name, "path/name of file to write")
+        TECA_POPTS_GET(bool, prefix, binary_mode, "write binary")
+        ;
+
+    global_opts.add(opts);
+}
+
+// --------------------------------------------------------------------------
+void teca_table_writer::set_properties(const string &prefix, variables_map &opts)
+{
+    TECA_POPTS_SET(opts, string, prefix, file_name)
+    TECA_POPTS_SET(opts, bool, prefix, binary_mode)
+}
+#endif
 
 // --------------------------------------------------------------------------
 const_p_teca_dataset teca_table_writer::execute(

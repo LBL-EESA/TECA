@@ -28,6 +28,11 @@ public:
     TECA_ALGORITHM_STATIC_NEW(teca_cartesian_mesh_regrid)
     ~teca_cartesian_mesh_regrid();
 
+    // report/initialize to/from Boost program options
+    // objects.
+    TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
+    TECA_SET_ALGORITHM_PROPERTIES()
+
     // set the list of arrays to move from the source
     // to the target
     TECA_ALGORITHM_PROPERTY(std::vector<std::string>, source_arrays)

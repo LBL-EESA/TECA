@@ -19,6 +19,11 @@ public:
     TECA_ALGORITHM_STATIC_NEW(teca_vtk_cartesian_mesh_writer)
     ~teca_vtk_cartesian_mesh_writer();
 
+    // report/initialize to/from Boost program options
+    // objects.
+    TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
+    TECA_SET_ALGORITHM_PROPERTIES()
+
     // set the base file name. both time step and
     // extension are appended.
     TECA_ALGORITHM_PROPERTY(std::string, base_file_name)

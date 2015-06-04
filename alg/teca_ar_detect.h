@@ -11,19 +11,26 @@
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_ar_detect)
 
 /**
-an example implementation of a teca_algorithm
+Suren and Junmin's atmospheric river detector.
 
-meta data keys:
-
-    consumes:
-
-    requests:
+The algorithm searches for atmospheric rivers that
+end on the California coast in water vapor data over
+a specific subset of the input data. A river is detected
+based on it's length, width, and percent area of the
+search space. The algorithm can optionally use a
+land-sea mask to increase accuracy of the California
+coast. Without the land-sea mask a box is used.
 */
 class teca_ar_detect : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_ar_detect)
     ~teca_ar_detect();
+
+    // report/initialize to/from Boost program options
+    // objects.
+    TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
+    TECA_SET_ALGORITHM_PROPERTIES()
 
     // set/get the name of the integrated water vapor variable
     TECA_ALGORITHM_PROPERTY(std::string, water_vapor_variable)

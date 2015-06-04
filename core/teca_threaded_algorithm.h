@@ -20,6 +20,11 @@ public:
     TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_threaded_algorithm)
     virtual ~teca_threaded_algorithm() TECA_NOEXCEPT;
 
+    // report/initialize to/from Boost program options
+    // objects.
+    TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
+    TECA_SET_ALGORITHM_PROPERTIES()
+
     // set/get the number of threads in the pool. setting
     // to less than 1 results in 1 - the number of cores.
     // the default is 1.

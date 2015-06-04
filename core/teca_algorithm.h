@@ -6,12 +6,13 @@
 #include "teca_algorithm_fwd.h"
 #include "teca_algorithm_executive_fwd.h"
 class teca_algorithm_internals;
-class teca_algorithm_thread_pool;
 
 // for types used in the api
 #include "teca_compiler.h"
 #include "teca_metadata.h"
 #include "teca_algorithm_output_port.h"
+#include "teca_program_options.h"
+
 #include <vector>
 #include <utility>
 #include <iosfwd>
@@ -25,6 +26,18 @@ public:
     static p_teca_algorithm New();
     virtual ~teca_algorithm() TECA_NOEXCEPT;
     TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_algorithm)
+
+#if defined(TECA_HAS_BOOST)
+    // initialize the given options description
+    // with algorithm's properties
+    virtual void get_properties_description(const std::string &, options_description &)
+    {}
+
+    // initialize the algorithm from the given options
+    // variable map.
+    virtual void set_properties(const std::string &, variables_map &)
+    {}
+#endif
 
     // get an output port from the algorithm. to be used
     // during pipeline building

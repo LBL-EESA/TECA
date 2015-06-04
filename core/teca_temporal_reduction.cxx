@@ -5,6 +5,11 @@
 #include <mpi.h>
 #endif
 
+#if defined(TECA_HAS_BOOST)
+#include <boost/program_options.hpp>
+#endif
+
+using std::string;
 using std::vector;
 using std::cerr;
 using std::endl;
@@ -72,6 +77,34 @@ int recv(MPI_Comm comm, int src, teca_binary_stream &s)
 teca_temporal_reduction::teca_temporal_reduction()
     : first_step(0), last_step(-1)
 {}
+
+#if defined(TECA_HAS_BOOST)
+// --------------------------------------------------------------------------
+void teca_temporal_reduction::get_properties_description(
+    const string &prefix, options_description &global_opts)
+{
+    this->teca_threaded_algorithm::get_properties_description(prefix, global_opts);
+
+    options_description opts("Options for " + prefix + "(teca_temporal_reduction)");
+
+    opts.add_options()
+        TECA_POPTS_GET(long, prefix, first_step, "first time step to process")
+        TECA_POPTS_GET(long, prefix, last_step, "last time step to process")
+        ;
+
+    global_opts.add(opts);
+}
+
+// --------------------------------------------------------------------------
+void teca_temporal_reduction::set_properties(
+    const string &prefix, variables_map &opts)
+{
+    this->teca_threaded_algorithm::set_properties(prefix, opts);
+
+    TECA_POPTS_SET(opts, long, prefix, first_step)
+    TECA_POPTS_SET(opts, long, prefix, last_step)
+}
+#endif
 
 // --------------------------------------------------------------------------
 std::vector<teca_metadata> teca_temporal_reduction::get_upstream_request(

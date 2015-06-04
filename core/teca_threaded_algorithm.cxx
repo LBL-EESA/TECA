@@ -3,12 +3,19 @@
 #include "teca_threadsafe_queue.h"
 
 #include <memory>
+#include <string>
 #include <vector>
 #include <thread>
 #include <atomic>
 #include <mutex>
 #include <future>
+#include <cstdlib>
 
+#if defined(TECA_HAS_BOOST)
+#include <boost/program_options.hpp>
+#endif
+
+using std::string;
 using std::vector;
 using std::thread;
 using std::lock_guard;
@@ -19,7 +26,6 @@ using std::packaged_task;
 using std::ref;
 using std::cref;
 using std::dynamic_pointer_cast;
-
 
 // function that executes the data request and returns the
 // requested dataset
@@ -216,6 +222,33 @@ teca_threaded_algorithm::~teca_threaded_algorithm() TECA_NOEXCEPT
 {
     delete this->internals;
 }
+
+#if defined(TECA_HAS_BOOST)
+// --------------------------------------------------------------------------
+void teca_threaded_algorithm::get_properties_description(
+    const string &prefix, options_description &global_opts)
+{
+    options_description opts("Options for " + prefix + "(teca_threaded_algorithm)");
+
+    opts.add_options()
+        TECA_POPTS_GET(int, prefix, thread_pool_size, "number of threads in pool")
+        ;
+
+    global_opts.add(opts);
+}
+
+// --------------------------------------------------------------------------
+void teca_threaded_algorithm::set_properties(
+    const string &prefix, variables_map &opts)
+{
+    string opt_name = prefix + "thread_pool_size";
+    if (opts.count(opt_name))
+    {
+        int n = opts[opt_name].as<int>();
+        this->internals->thread_pool_resize(n);
+    }
+}
+#endif
 
 // --------------------------------------------------------------------------
 void teca_threaded_algorithm::set_thread_pool_size(int n)

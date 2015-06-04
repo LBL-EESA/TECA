@@ -27,6 +27,11 @@ public:
     TECA_ALGORITHM_STATIC_NEW(teca_cartesian_mesh_subset)
     ~teca_cartesian_mesh_subset();
 
+    // report/initialize to/from Boost program options
+    // objects.
+    TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
+    TECA_SET_ALGORITHM_PROPERTIES()
+
     // define the bounding box of the subset
     // this algorithm converts this into an
     // extent into the upstream dataset.

@@ -54,6 +54,11 @@ public:
 
     TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_cf_reader)
 
+    // report/initialize to/from Boost program options
+    // objects.
+    TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
+    TECA_SET_ALGORITHM_PROPERTIES()
+
     // describe the set of files comprising the dataset. This
     // should contain the full path and regex describing the
     // file name pattern

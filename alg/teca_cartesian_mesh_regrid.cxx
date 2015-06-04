@@ -9,6 +9,10 @@
 #include <algorithm>
 #include <iostream>
 
+#if defined(TECA_HAS_BOOST)
+#include <boost/program_options.hpp>
+#endif
+
 using std::string;
 using std::vector;
 using std::cerr;
@@ -123,6 +127,32 @@ teca_cartesian_mesh_regrid::teca_cartesian_mesh_regrid()
 // --------------------------------------------------------------------------
 teca_cartesian_mesh_regrid::~teca_cartesian_mesh_regrid()
 {}
+
+#if defined(TECA_HAS_BOOST)
+
+// --------------------------------------------------------------------------
+void teca_cartesian_mesh_regrid::get_properties_description(
+    const string &prefix, options_description &global_opts)
+{
+    options_description opts("Options for " + prefix + "(teca_cartesian_mesh_regrid)");
+
+    opts.add_options()
+        TECA_POPTS_GET(vector<string>, prefix, source_arrays, "list of arrays to move from source to target mesh")
+        TECA_POPTS_GET(int, prefix, interpolation_mode, "linear or nearest interpolation")
+        ;
+
+    global_opts.add(opts);
+}
+
+// --------------------------------------------------------------------------
+void teca_cartesian_mesh_regrid::set_properties(
+    const string &prefix, variables_map &opts)
+{
+    TECA_POPTS_SET(opts, vector<string>, prefix, source_arrays)
+    TECA_POPTS_SET(opts, int, prefix, interpolation_mode)
+}
+
+#endif
 
 // --------------------------------------------------------------------------
 void teca_cartesian_mesh_regrid::clear_source_arrays()

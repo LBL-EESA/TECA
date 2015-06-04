@@ -27,6 +27,11 @@ public:
     TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_temporal_reduction)
     virtual ~teca_temporal_reduction(){}
 
+    // report/initialize to/from Boost program options
+    // objects.
+    TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
+    TECA_SET_ALGORITHM_PROPERTIES()
+
     // set the range of time steps to process.
     // setting first_step=0 and last_step=-1 results
     // in processing all available steps. this is

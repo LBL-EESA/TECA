@@ -9,6 +9,10 @@
 #include <algorithm>
 #include <iostream>
 
+#if defined(TECA_HAS_BOOST)
+#include <boost/program_options.hpp>
+#endif
+
 using std::string;
 using std::vector;
 using std::cerr;
@@ -27,6 +31,30 @@ teca_cartesian_mesh_subset::teca_cartesian_mesh_subset()
 // --------------------------------------------------------------------------
 teca_cartesian_mesh_subset::~teca_cartesian_mesh_subset()
 {}
+
+#if defined(TECA_HAS_BOOST)
+// --------------------------------------------------------------------------
+void teca_cartesian_mesh_subset::get_properties_description(
+    const string &prefix, options_description &global_opts)
+{
+    options_description opts("Options for " + prefix + "(teca_cartesian_mesh_subset)");
+
+    opts.add_options()
+        TECA_POPTS_GET(vector<double>, prefix, bounds, "bounding box given by x0,x1,y0,y1,z0,z1")
+        TECA_POPTS_GET(bool, prefix, cover_bounds, "(T)use smallest subset covering or (F)largest subset contained by bounds")
+        ;
+
+    global_opts.add(opts);
+}
+
+// --------------------------------------------------------------------------
+void teca_cartesian_mesh_subset::set_properties(
+    const string &prefix, variables_map &opts)
+{
+    TECA_POPTS_SET(opts, vector<double>, prefix, bounds)
+    TECA_POPTS_SET(opts, bool, prefix, cover_bounds)
+}
+#endif
 
 // --------------------------------------------------------------------------
 teca_metadata teca_cartesian_mesh_subset::get_output_metadata(

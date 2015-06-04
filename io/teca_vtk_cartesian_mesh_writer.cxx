@@ -23,6 +23,10 @@
 #include <iostream>
 #include <sstream>
 
+#if defined(TECA_HAS_BOOST)
+#include <boost/program_options.hpp>
+#endif
+
 using std::vector;
 using std::string;
 using std::ostringstream;
@@ -60,6 +64,28 @@ teca_vtk_cartesian_mesh_writer::teca_vtk_cartesian_mesh_writer()
 // --------------------------------------------------------------------------
 teca_vtk_cartesian_mesh_writer::~teca_vtk_cartesian_mesh_writer()
 {}
+
+#if defined(TECA_HAS_BOOST)
+// --------------------------------------------------------------------------
+void teca_vtk_cartesian_mesh_writer::get_properties_description(
+    const string &prefix, options_description &global_opts)
+{
+    options_description opts("Options for " + prefix + "(teca_vtk_cartesian_mesh_writer)");
+
+    opts.add_options()
+        TECA_POPTS_GET(string, prefix, base_file_name, "base path/name to write series to")
+        ;
+
+    global_opts.add(opts);
+}
+
+// --------------------------------------------------------------------------
+void teca_vtk_cartesian_mesh_writer::set_properties(
+    const string &prefix, variables_map &opts)
+{
+    TECA_POPTS_SET(opts, string, prefix, base_file_name)
+}
+#endif
 
 // --------------------------------------------------------------------------
 const_p_teca_dataset teca_vtk_cartesian_mesh_writer::execute(

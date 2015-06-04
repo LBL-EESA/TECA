@@ -20,6 +20,10 @@ using teca_file_util::locate_files;
 #include <mpi.h>
 #endif
 
+#if defined(TECA_HAS_BOOST)
+#include <boost/program_options.hpp>
+#endif
+
 // macro to help with netcdf data types
 #define NC_DISPATCH_FP(tc_, code_)                          \
     switch (tc_)                                            \
@@ -125,6 +129,37 @@ teca_cf_reader::~teca_cf_reader()
 {
     this->clear_handles();
 }
+
+#if defined(TECA_HAS_BOOST)
+// --------------------------------------------------------------------------
+void teca_cf_reader::get_properties_description(
+    const string &prefix, options_description &global_opts)
+{
+    options_description opts("Options for " + prefix + "(teca_cf_reader)");
+
+    opts.add_options()
+        TECA_POPTS_GET(string, prefix, files_regex, "a regular expression that matches the set of files comprising the dataset")
+        TECA_POPTS_GET(string, prefix, file_name, "a single path/file name to read")
+        TECA_POPTS_GET(string, prefix, x_axis_variable, "name of variable that has x axis coordinates")
+        TECA_POPTS_GET(string, prefix, y_axis_variable, "name of variable that has y axis coordinates")
+        TECA_POPTS_GET(string, prefix, z_axis_variable, "name of variable that has z axis coordinates")
+        TECA_POPTS_GET(string, prefix, t_axis_variable, "name of variable that has t axis coordinates")
+        ;
+
+    global_opts.add(opts);
+}
+
+// --------------------------------------------------------------------------
+void teca_cf_reader::set_properties(const string &prefix, variables_map &opts)
+{
+    TECA_POPTS_SET(opts, string, prefix, files_regex)
+    TECA_POPTS_SET(opts, string, prefix, file_name)
+    TECA_POPTS_SET(opts, string, prefix, x_axis_variable)
+    TECA_POPTS_SET(opts, string, prefix, y_axis_variable)
+    TECA_POPTS_SET(opts, string, prefix, z_axis_variable)
+    TECA_POPTS_SET(opts, string, prefix, t_axis_variable)
+}
+#endif
 
 // --------------------------------------------------------------------------
 void teca_cf_reader::set_modified()

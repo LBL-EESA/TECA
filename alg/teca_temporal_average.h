@@ -22,6 +22,11 @@ public:
     TECA_ALGORITHM_STATIC_NEW(teca_temporal_average)
     ~teca_temporal_average();
 
+    // report/initialize to/from Boost program options
+    // objects.
+    TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
+    TECA_SET_ALGORITHM_PROPERTIES()
+
     // set the number of steps to average. should be odd.
     TECA_ALGORITHM_PROPERTY(unsigned int, filter_width)
 

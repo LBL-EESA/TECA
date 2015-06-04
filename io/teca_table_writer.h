@@ -25,6 +25,12 @@ public:
     // %e% is replaced with .bin in binary mode and .csv otherwise
     TECA_ALGORITHM_PROPERTY(std::string, file_name)
 
+    // report/initialize to/from Boost program options
+    // objects.
+    TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
+    TECA_SET_ALGORITHM_PROPERTIES()
+
+
     // enable binary mode. default off. when not in
     // binary mode a csv format is used.
     TECA_ALGORITHM_PROPERTY(bool, binary_mode)
