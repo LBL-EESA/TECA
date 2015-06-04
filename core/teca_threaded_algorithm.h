@@ -20,9 +20,10 @@ public:
     TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_threaded_algorithm)
     virtual ~teca_threaded_algorithm() TECA_NOEXCEPT;
 
-    // set/get the number of threads in the pool. default
-    // is to use 1 - the number of cores.
-    void set_thread_pool_size(unsigned int n_threads);
+    // set/get the number of threads in the pool. setting
+    // to less than 1 results in 1 - the number of cores.
+    // the default is 1.
+    void set_thread_pool_size(int n_threads);
     unsigned int get_thread_pool_size() const TECA_NOEXCEPT;
 
 protected:

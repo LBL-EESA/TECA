@@ -168,7 +168,7 @@ public:
     teca_threaded_algorithm_internals()
         : thread_pool(new teca_thread_pool(1)) {}
 
-    void thread_pool_resize(unsigned int n);
+    void thread_pool_resize(int n);
 
     unsigned int get_thread_pool_size() const TECA_NOEXCEPT
     { return this->thread_pool->size(); }
@@ -178,10 +178,15 @@ public:
 };
 
 // --------------------------------------------------------------------------
-void teca_threaded_algorithm_internals::thread_pool_resize(unsigned int n)
+void teca_threaded_algorithm_internals::thread_pool_resize(int n)
 {
-    if (this->thread_pool->size() != n)
-        this->thread_pool = std::make_shared<teca_thread_pool>(n);
+    if (this->thread_pool->size() != static_cast<unsigned int>(n))
+    {
+        if (n < 1)
+            this->thread_pool = std::make_shared<teca_thread_pool>();
+        else
+            this->thread_pool = std::make_shared<teca_thread_pool>(n);
+    }
 }
 
 
@@ -197,7 +202,14 @@ void teca_threaded_algorithm_internals::thread_pool_resize(unsigned int n)
 // --------------------------------------------------------------------------
 teca_threaded_algorithm::teca_threaded_algorithm()
     : internals(new teca_threaded_algorithm_internals)
-{}
+{
+    char *str;
+    if ((str = getenv("TECA_THREAD_POOL_SIZE")))
+    {
+        unsigned int n = std::strtoul(str, nullptr, 0);
+        this->internals->thread_pool_resize(n);
+    }
+}
 
 // --------------------------------------------------------------------------
 teca_threaded_algorithm::~teca_threaded_algorithm() TECA_NOEXCEPT
@@ -206,7 +218,7 @@ teca_threaded_algorithm::~teca_threaded_algorithm() TECA_NOEXCEPT
 }
 
 // --------------------------------------------------------------------------
-void teca_threaded_algorithm::set_thread_pool_size(unsigned int n)
+void teca_threaded_algorithm::set_thread_pool_size(int n)
 {
     this->internals->thread_pool_resize(n);
 }
