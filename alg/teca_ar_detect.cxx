@@ -19,7 +19,7 @@ using std::cerr;
 using std::endl;
 
 #define TECA_DEBUG 0
-#if TECA_DEBUG > 0
+#if TECA_DEBUG > 0 && defined(TECA_HAS_VTK)
 #include "teca_vtk_cartesian_mesh_writer.h"
 #include "teca_programmable_source.h"
 int write_mesh(
@@ -396,14 +396,14 @@ const_p_teca_dataset teca_ar_detect::execute(
             static_cast<NT>(this->low_water_vapor_threshold),
             static_cast<NT>(this->high_water_vapor_threshold));
 
-#if TECA_DEBUG > 0
+#if TECA_DEBUG > 0 && defined(TECA_HAS_VTK)
         p_teca_variant_array thresh = con_comp->new_copy();
 #endif
 
         // label
         int num_comp = sauf(num_rows, num_cols, p_con_comp);
 
-#if TECA_DEBUG > 0
+#if TECA_DEBUG > 0 && defined(TECA_HAS_VTK)
         write_mesh(mesh, water_vapor, thresh, con_comp, land_sea_mask, "ar_mesh");
 #endif
 
@@ -1323,7 +1323,7 @@ bool ar_detect(
     return false;
 }
 
-#if TECA_DEBUG > 0
+#if TECA_DEBUG > 0 && defined(TECA_HAS_VTK)
 // helper to dump a dataset for debugging
 int write_mesh(
     const const_p_teca_cartesian_mesh &mesh,
