@@ -59,6 +59,10 @@ public:
     // file name pattern
     TECA_ALGORITHM_PROPERTY(std::string, files_regex)
 
+    // a file name to open. if this is set the files_regex
+    // is ignored.
+    TECA_ALGORITHM_PROPERTY(std::string, file_name)
+
     // set the variable to use for the coordinate axes.
     // the defaults are: x => lon, y => lat, z = "",
     // t => "time". leaving z empty will result in a 2D
@@ -97,6 +101,7 @@ private:
 
 private:
     std::string files_regex;
+    std::string file_name;
     std::string x_axis_variable;
     std::string y_axis_variable;
     std::string z_axis_variable;

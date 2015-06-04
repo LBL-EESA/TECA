@@ -249,17 +249,29 @@ teca_metadata teca_cf_reader::get_output_metadata(
     {
         vector<string> files;
 
-        string regex = strip_path_from_filename(this->files_regex);
-        string path = strip_filename_from_path(this->files_regex);
+        string path;
 
-        if (teca_file_util::locate_files(path, regex, files))
+        if (!this->file_name.empty())
         {
-            TECA_ERROR(
-                << "Failed to locate any files" << endl
-                << this->files_regex << endl
-                << path << endl
-                << regex)
-            return teca_metadata();
+            // use file name
+            path = strip_filename_from_path(this->file_name);
+            files.push_back(this->file_name);
+        }
+        else
+        {
+            // use regex
+            string regex = strip_path_from_filename(this->files_regex);
+            path = strip_filename_from_path(this->files_regex);
+
+            if (teca_file_util::locate_files(path, regex, files))
+            {
+                TECA_ERROR(
+                    << "Failed to locate any files" << endl
+                    << this->files_regex << endl
+                    << path << endl
+                    << regex)
+                return teca_metadata();
+            }
         }
 
         int ierr = 0;
