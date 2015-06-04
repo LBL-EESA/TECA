@@ -71,6 +71,12 @@ public:
     void set_executive(p_teca_algorithm_executive exec);
     p_teca_algorithm_executive get_executive();
 
+    // serialize the configuration to a stream. this should
+    // store the public user modifiable properties so that
+    // runtime configuration may be saved and restored..
+    virtual void to_stream(std::ostream &os) const;
+    virtual void from_stream(std::istream &is);
+
 protected:
     teca_algorithm();
 
@@ -139,12 +145,6 @@ protected:
     teca_metadata get_cache_key(
         unsigned int port,
         const teca_metadata &request) const;
-
-    // serialize the configuration to a stream. this should
-    // store the public user modifiable properties so that
-    // runtime configuration may be saved and restored..
-    virtual void to_stream(std::ostream &os) const;
-    virtual void from_stream(std::istream &is);
 
 protected:
 // this section contains methods that control the
