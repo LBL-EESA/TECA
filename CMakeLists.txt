@@ -33,11 +33,46 @@ else()
     message(STATUS "Check for c++ regex support -- works")
 endif()
 
+# locate dependencies
+find_package(MPI)
+if (MPI_C_FOUND)
+    message(STATUS "MPI features -- enabled")
+    set(TECA_HAS_MPI ON CACHE INTERNAL "MPI features")
+else()
+    message(STATUS "MPI features -- not found.")
+endif()
+
+find_package(NetCDF)
+if (NETCDF_FOUND)
+    message(STATUS "NetCDF features -- enabled")
+    set(TECA_HAS_NETCDF ON CACHE INTERNAL "NetCDF features")
+else()
+    message(STATUS "NetCDF features -- not found. set NETCDF_DIR to enable.")
+endif()
+
+find_package(VTK QUIET)
+if (VTK_FOUND)
+    message(STATUS "VTK features -- enabled")
+    set(TECA_HAS_VTK ON CACHE INTERNAL "VTK features")
+else()
+    message(STATUS "VTK features -- not found. set VTK_DIR to enable.")
+endif()
+
+find_package(Boost QUIET COMPONENTS program_options)
+if (Boost_FOUND)
+    message(STATUS "Boost features -- enabled")
+    set(TECA_HAS_BOOST ON CACHE INTERNAL "Boost features")
+else()
+    message(STATUS "Boost fetaures -- not found. set BOOST_ROOT to enable.")
+endif()
+
+# build library components and applications
 add_subdirectory(core)
 add_subdirectory(data)
 add_subdirectory(io)
 add_subdirectory(alg)
 
+# enable regression tests
 set(BUILD_TESTING OFF CACHE BOOL "Enable tests")
 if (BUILD_TESTING)
     add_subdirectory(test)

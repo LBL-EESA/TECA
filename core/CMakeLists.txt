@@ -16,18 +16,23 @@ set(teca_core_srcs
     teca_variant_array.cxx
     )
 
-find_package(MPI)
-if (MPI_C_FOUND)
-    include_directories(${MPI_C_INCLUDE_PATH})
+set(teca_core_link)
+
+if (TECA_HAS_MPI)
     add_definitions(-DTECA_HAS_MPI)
-    set(TECA_HAS_MPI ON CACHE BOOL "MPI support")
+    include_directories(${MPI_C_INCLUDE_PATH})
+    list(APPEND teca_core_link ${MPI_CXX_LIBRARIES})
+endif()
+
+if (TECA_HAS_BOOST)
+    add_definitions(-DTECA_HAS_BOOST)
+    include_directories(${Boost_INCLUDE_PATH})
+    list(APPEND teca_core_link ${Boost_LIBRARIES})
 endif()
 
 add_library(teca_core ${teca_core_srcs})
 
-if (MPI_CXX_FOUND)
-    target_link_libraries(teca_core ${MPI_CXX_LIBRARIES})
-endif()
+target_link_libraries(teca_core ${teca_core_link})
 
 target_include_directories(teca_core
     INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}
