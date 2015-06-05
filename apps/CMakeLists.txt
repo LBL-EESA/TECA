@@ -19,7 +19,7 @@ endif()
 
 if (TECA_HAS_BOOST)
     add_definitions(-DTECA_HAS_BOOST)
-    include_directories(${Boost_INCLUDE_PATH})
+    include_directories(${Boost_INCLUDE_DIR})
     list(APPEND teca_app_link ${Boost_LIBRARIES})
 endif()
 
