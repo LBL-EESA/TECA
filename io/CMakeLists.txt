@@ -1,4 +1,5 @@
 project(teca_io)
+cmake_policy(SET CMP0022 NEW)
 
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -49,5 +50,24 @@ add_library(teca_io ${teca_io_srcs})
 target_link_libraries(teca_io teca_core teca_data ${teca_io_link})
 
 target_include_directories(teca_io
-    INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}
+    INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:include>
+    )
+
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    DESTINATION include
+    FILES_MATCHING PATTERN "*.h")
+
+install(TARGETS teca_io
+    EXPORT teca_io
+    INCLUDES DESTINATION include
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    )
+
+install(EXPORT teca_io
+    DESTINATION lib
+    FILE teca_io.cmake
+    EXPORT_LINK_INTERFACE_LIBRARIES
     )

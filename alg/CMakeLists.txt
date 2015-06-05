@@ -1,4 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
+cmake_policy(SET CMP0022 NEW)
+
 project(teca_alg)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}
@@ -38,5 +40,24 @@ add_library(teca_alg ${teca_alg_srcs})
 target_link_libraries(teca_alg teca_io teca_data teca_core ${teca_alg_link})
 
 target_include_directories(teca_alg
-    INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}
+    INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:include>
+    )
+
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    DESTINATION include
+    FILES_MATCHING PATTERN "*.h")
+
+install(TARGETS teca_alg
+    EXPORT teca_alg
+    INCLUDES DESTINATION include
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    )
+
+install(EXPORT teca_alg
+    DESTINATION lib
+    FILE teca_alg.cmake
+    EXPORT_LINK_INTERFACE_LIBRARIES
     )

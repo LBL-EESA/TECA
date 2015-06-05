@@ -1,5 +1,7 @@
 project(teca_test)
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/test)
+
 add_subdirectory(test_array)
 
 include_directories(
