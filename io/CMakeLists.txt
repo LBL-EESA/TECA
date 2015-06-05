@@ -17,6 +17,10 @@ endif()
 
 set(teca_io_link)
 
+if (TECA_HAS_REGEX)
+    add_definitions(-DTECA_HAS_REGEX)
+endif()
+
 if (TECA_HAS_MPI)
     include_directories(${MPI_C_INCLUDE_PATH})
     add_definitions(-DTECA_HAS_MPI)

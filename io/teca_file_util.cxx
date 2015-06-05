@@ -7,9 +7,13 @@
 #include <string>
 #include <vector>
 #include <algorithm>
-#include <regex>
 #include <cstring>
 #include <errno.h>
+
+#if defined(TECA_HAS_REGEX)
+#include <regex>
+#endif
+
 #include "teca_common.h"
 
 #ifndef WIN32
@@ -33,6 +37,10 @@ namespace teca_file_util {
 // **************************************************************************
 const char *regex_strerr(int code)
 {
+#if !defined(TECA_HAS_REGEX)
+    (void)code;
+    return "c++11 regex support is disabled in this build of TECA";
+#else
     switch (code)
     {
     case std::regex_constants::error_collate:
@@ -68,12 +76,21 @@ const char *regex_strerr(int code)
                " expression could match the specified character sequence.";
     }
     return "unkown regex error";
+#endif
 }
 
 // **************************************************************************
 std::regex filter_regex;
 int set_filter_regex(const std::string &re)
 {
+#if !defined(TECA_HAS_REGEX)
+    (void)re;
+    TECA_ERROR(
+        << "Failed to compile regular expression" << std::endl
+        << re << std::endl
+        << regex_strerr(e.code()))
+    return -1;
+#else
     try
     {
        teca_file_util::filter_regex = std::regex(re);
@@ -87,15 +104,21 @@ int set_filter_regex(const std::string &re)
         return -1;
     }
     return 0;
+#endif
 }
 
 // **************************************************************************
 int scandir_filter(const struct dirent *de)
 {
+#if !defined(TECA_HAS_REGEX)
+    (void)de;
+    return 0;
+#else
     std::cmatch matches;
     if (std::regex_search(de->d_name, matches, teca_file_util::filter_regex))
         return 1;
     return 0;
+#endif
 }
 
 // **************************************************************************

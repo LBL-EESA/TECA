@@ -28,9 +28,10 @@ try_run(CXX11_REGEX_WORKS CXX11_REGEX_COMPILES
     CMAKE_FLAGS ${CMAKE_CXX_FLAGS}
     COMPILE_DEFINITIONS "-DCXX11_REGEX_TEST")
 if (NOT (CXX11_REGEX_COMPILES AND CXX11_REGEX_WORKS))
-    message(FATAL_ERROR "Error: c++11 regex is not supported by this compiler.")
+    message(STATUS "Check for c++ regex support -- not found. Use a c++11 compiler to enable.")
 else()
-    message(STATUS "Check for c++ regex support -- works")
+    message(STATUS "Check for c++ regex support -- enabled")
+    set(TECA_HAS_REGEX ON CACHE INTERNAL "Regex features")
 endif()
 
 # locate dependencies
