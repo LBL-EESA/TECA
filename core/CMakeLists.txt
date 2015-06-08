@@ -23,7 +23,7 @@ set(teca_core_link)
 if (TECA_HAS_MPI)
     add_definitions(-DTECA_HAS_MPI)
     include_directories(${MPI_C_INCLUDE_PATH})
-    list(APPEND teca_core_link ${MPI_CXX_LIBRARIES})
+    list(APPEND teca_core_link ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
 endif()
 
 if (TECA_HAS_BOOST)

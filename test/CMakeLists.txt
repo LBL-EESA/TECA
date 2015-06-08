@@ -48,7 +48,7 @@ target_link_libraries(
 if (TECA_HAS_MPI)
     target_link_libraries(
         test_pipeline_temporal_reduction
-        ${MPI_CXX_LIBRARIES}
+        ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES}
         )
 endif()
 
