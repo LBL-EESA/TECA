@@ -290,7 +290,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
         {
             // use file name
             path = strip_filename_from_path(this->file_name);
-            files.push_back(this->file_name);
+            files.push_back(strip_path_from_filename(this->file_name));
         }
         else
         {
