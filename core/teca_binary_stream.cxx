@@ -29,12 +29,12 @@ const teca_binary_stream &teca_binary_stream::operator=(
     if (&other == this)
         return *this;
 
-    this->clear();
+    //this->clear();
     this->resize(other.m_size);
+
     m_data_p = other.m_data_p;
 
-    for (size_t i = 0; i < other.m_size; ++i)
-        m_data[i] = other.m_data[i];
+    memcpy(m_data, other.m_data, other.m_size);
 
     return *this;
 }

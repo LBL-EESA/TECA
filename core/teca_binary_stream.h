@@ -5,6 +5,7 @@
 #include "teca_compiler.h"
 
 #include <cstdlib>
+#include <cstring>
 #include <string>
 #include <map>
 #include <vector>
@@ -109,16 +110,18 @@ void teca_binary_stream::pack(const T *val, size_t n)
     size_t n_bytes = n*sizeof(T);
     this->grow(n_bytes);
 
-    for (size_t i = 0; i < n; ++i, m_data_p += sizeof(T))
-        *((T *)m_data_p) = val[i];
+    size_t nn = n*sizeof(T);
+    memcpy(m_data_p, val, nn);
+    m_data_p += nn;
 }
 
 //-----------------------------------------------------------------------------
 template <typename T>
 void teca_binary_stream::unpack(T *val, size_t n)
 {
-    for (size_t i = 0; i < n; ++i, m_data_p += sizeof(T))
-        val[i] = *((T *)m_data_p);
+    size_t nn = n*sizeof(T);
+    memcpy(val, m_data_p, nn);
+    m_data_p += nn;
 }
 
 //-----------------------------------------------------------------------------
@@ -159,6 +162,7 @@ void teca_binary_stream::unpack(std::vector<std::string> &v)
 {
     size_t vlen;
     this->unpack(vlen);
+
     v.resize(vlen);
     for (size_t i = 0; i < vlen; ++i)
         this->unpack(v[i]);
@@ -170,7 +174,7 @@ void teca_binary_stream::pack(const std::vector<T> &v)
 {
     const size_t vlen = v.size();
     this->pack(vlen);
-    this->pack(&v[0], vlen);
+    this->pack(v.data(), vlen);
 }
 
 //-----------------------------------------------------------------------------
@@ -179,8 +183,9 @@ void teca_binary_stream::unpack(std::vector<T> &v)
 {
     size_t vlen;
     this->unpack(vlen);
+
     v.resize(vlen);
-    this->unpack(&v[0], vlen);
+    this->unpack(v.data(), vlen);
 }
 
 #endif
