@@ -17,8 +17,12 @@ using namespace std;
 
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
-
 using boost::program_options::value;
+#endif
+
+#define TECA_TIME
+#if defined TECA_TIME
+#include <sys/time.h>
 #endif
 
 int main(int argc, char **argv)
@@ -27,6 +31,15 @@ int main(int argc, char **argv)
 #if defined(TECA_HAS_MPI)
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+#endif
+#if defined(TECA_TIME)
+    double tstart;
+    if (rank == 0)
+    {
+        struct timeval stv;
+        gettimeofday(&stv, nullptr);
+        tstart = stv.tv_sec + stv.tv_usec/1.0e6;
+    }
 #endif
 
     // create pipeline objects here so that they
@@ -276,6 +289,19 @@ int main(int argc, char **argv)
     // run the pipeline
     results_writer->update();
 
+#if defined(TECA_TIME)
+    MPI_Barrier(MPI_COMM_WORLD);
+    if (rank == 0)
+    {
+        struct timeval etv;
+        gettimeofday(&etv, nullptr);
+        double tend = etv.tv_sec + etv.tv_usec/1.0e6;
+        teca_metadata md = water_vapor_reader->update_metadata(0);
+        unsigned long n_time_steps;
+        md.get("number_of_time_steps", n_time_steps);
+        cerr << "teca_ar_detect " << n_time_steps << " " << tstart << " " << tend << " " << tend - tstart << endl;
+    }
+#endif
 #if defined(TECA_HAS_MPI)
     MPI_Finalize();
 #endif
