@@ -69,7 +69,7 @@ CCOMP=`which gcc`
 cmake \
   -DCMAKE_CXX_COMPILER=$CXXCOMP \
   -DCMAKE_C_COMPILER=$CCOMP \
-  -DCMAKE_BUILD_TYPE=Debug \
+  -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO="$ATP/libAtpSigHandler.$LIB_EXT $ATP/libAtpSigHCommData.a -Wl,--undefined=_ATP_Data_Globals -Wl,--undefined=__atpHandlerInstall" \
   -DCMAKE_EXE_LINKER_FLAGS_DEBUG="$ATP/libAtpSigHandler.$LIB_EXT $ATP/libAtpSigHCommData.a -Wl,--undefined=_ATP_Data_Globals -Wl,--undefined=__atpHandlerInstall" \
   -DMPI_CXX_COMPILER=$CXXCOMP \
