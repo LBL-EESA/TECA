@@ -87,9 +87,9 @@ int index_of(const const_p_teca_cartesian_mesh &mesh, T x, T y, T z,
         const teca_variant_array_impl,
         xc.get(),
 
-        NT *p_xc = std::dynamic_pointer_cast<TT>(xc)->get();
-        NT *p_yc = std::dynamic_pointer_cast<TT>(yc)->get();
-        NT *p_zc = std::dynamic_pointer_cast<TT>(zc)->get();
+        const NT *p_xc = std::dynamic_pointer_cast<TT>(xc)->get();
+        const NT *p_yc = std::dynamic_pointer_cast<TT>(yc)->get();
+        const NT *p_zc = std::dynamic_pointer_cast<TT>(zc)->get();
 
         unsigned long nx = xc->size();
         unsigned long ny = yc->size();

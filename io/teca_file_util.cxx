@@ -80,7 +80,9 @@ const char *regex_strerr(int code)
 }
 
 // **************************************************************************
+#if defined(TECA_HAS_REGEX)
 std::regex filter_regex;
+#endif
 int set_filter_regex(const std::string &re)
 {
 #if !defined(TECA_HAS_REGEX)
@@ -88,7 +90,7 @@ int set_filter_regex(const std::string &re)
     TECA_ERROR(
         << "Failed to compile regular expression" << std::endl
         << re << std::endl
-        << regex_strerr(e.code()))
+        << "This compiler does not have regex support.")
     return -1;
 #else
     try
