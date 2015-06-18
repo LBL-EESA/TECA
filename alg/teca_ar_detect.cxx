@@ -10,6 +10,7 @@
 #include <sstream>
 #include <limits>
 #include <algorithm>
+#include <cmath>
 
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
