@@ -5,16 +5,9 @@
 #include "teca_algorithm.h"
 #include "teca_dataset_fwd.h"
 #include "teca_metadata.h"
+#include "teca_programmable_source_fwd.h"
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_programmable_source)
-
-// helper that allows us to use std::function
-// as a TECA_ALGORITHM_PROPERTY
-template<typename T>
-bool operator!=(const std::function<T> &lhs, const std::function<T> &rhs)
-{
-    return &rhs != &lhs;
-}
 
 /// serves up a user provided dataset
 /**
@@ -35,7 +28,7 @@ public:
     // a metedata object describing the data that could
     // be produced during the execution stage. the default
     // function returns an empty metadata object.
-    TECA_ALGORITHM_PROPERTY(
+    TECA_PROGRAMMABLE_SOURCE_PROPERTY(
         std::function<teca_metadata()>,
         report_function)
 
@@ -43,7 +36,7 @@ public:
     // of pipeline execution. the function must return
     // a dataset containing the requested data. the default
     // function returns a nullptr.
-    TECA_ALGORITHM_PROPERTY(
+    TECA_PROGRAMMABLE_SOURCE_PROPERTY(
         std::function<const_p_teca_dataset(const teca_metadata &)>,
         execute_function)
 
