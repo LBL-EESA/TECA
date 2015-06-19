@@ -170,6 +170,27 @@ int locate_files(
 }
 
 // **************************************************************************
+void replace_timestep(std::string &file_name, unsigned long time_step)
+{
+    size_t t_pos = file_name.find("%t%");
+    if (t_pos != std::string::npos)
+    {
+        std::ostringstream oss;
+        oss << time_step;
+
+        file_name.replace(t_pos, 3, oss.str());
+    }
+}
+
+// **************************************************************************
+void replace_extension(std::string &file_name, const std::string &ext)
+{
+    size_t ext_pos = file_name.find("%e%");
+    if (ext_pos != std::string::npos)
+        file_name.replace(ext_pos, 3, ext);
+}
+
+// **************************************************************************
 void to_lower(std::string &in)
 {
     size_t n = in.size();

@@ -3,6 +3,7 @@
 #include "teca_cartesian_mesh.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_file_util.h"
 
 #include "vtkFloatArray.h"
 #include "vtkDoubleArray.h"
@@ -73,7 +74,7 @@ void teca_vtk_cartesian_mesh_writer::get_properties_description(
     options_description opts("Options for " + prefix + "(teca_vtk_cartesian_mesh_writer)");
 
     opts.add_options()
-        TECA_POPTS_GET(string, prefix, base_file_name, "base path/name to write series to")
+        TECA_POPTS_GET(string, prefix,file_name, "path/name to write series to")
         ;
 
     global_opts.add(opts);
@@ -83,7 +84,7 @@ void teca_vtk_cartesian_mesh_writer::get_properties_description(
 void teca_vtk_cartesian_mesh_writer::set_properties(
     const string &prefix, variables_map &opts)
 {
-    TECA_POPTS_SET(opts, string, prefix, base_file_name)
+    TECA_POPTS_SET(opts, string, prefix, file_name)
 }
 #endif
 
@@ -178,11 +179,11 @@ const_p_teca_dataset teca_vtk_cartesian_mesh_writer::execute(
             )
     }
 
-    ostringstream file_name;
-    file_name << this->base_file_name <<  "_" << time_step << ".vtr";
+    string out_file = this->file_name;
+    teca_file_util::replace_timestep(out_file, time_step);
 
     vtkXMLRectilinearGridWriter *w = vtkXMLRectilinearGridWriter::New();
-    w->SetFileName(file_name.str().c_str());
+    w->SetFileName(out_file.c_str());
     w->SetInputData(rg);
     w->Write();
 

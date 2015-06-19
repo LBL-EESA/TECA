@@ -2,6 +2,7 @@
 
 #include "teca_table.h"
 #include "teca_metadata.h"
+#include "teca_file_util.h"
 
 #include <iostream>
 #include <sstream>
@@ -87,30 +88,17 @@ const_p_teca_dataset teca_table_writer::execute(
         string out_file = this->file_name;
 
         // replace time step
-        size_t t_pos = out_file.find("%t%");
-        if (t_pos != string::npos)
-        {
-            unsigned long time_step = 0l;
-            request.get("time_step", time_step);
-
-            ostringstream oss;
-            oss << time_step;
-
-            out_file.replace(t_pos, 3, oss.str());
-        }
+        unsigned long time_step = 0l;
+        request.get("time_step", time_step);
+        teca_file_util::replace_timestep(out_file, time_step);
 
         // replace extension
-        size_t ext_pos = out_file.find("%e%");
-        if (ext_pos != string::npos)
-        {
-            string ext;
-            if (this->binary_mode)
-                ext = "bin";
-            else
-                ext = "csv";
-
-            out_file.replace(ext_pos, 3, ext);
-        }
+        string ext;
+        if (this->binary_mode)
+            ext = "bin";
+        else
+            ext = "csv";
+        teca_file_util::replace_extension(out_file, ext);
 
         // write the data
         if (this->binary_mode)

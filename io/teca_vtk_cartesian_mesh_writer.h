@@ -26,7 +26,7 @@ public:
 
     // set the base file name. both time step and
     // extension are appended.
-    TECA_ALGORITHM_PROPERTY(std::string, base_file_name)
+    TECA_ALGORITHM_PROPERTY(std::string, file_name)
 
 protected:
     teca_vtk_cartesian_mesh_writer();
@@ -38,7 +38,7 @@ private:
         const teca_metadata &request) override;
 
 private:
-    std::string base_file_name;
+    std::string file_name;
 };
 
 #endif

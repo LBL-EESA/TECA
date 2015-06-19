@@ -31,7 +31,7 @@ int main(int argc, char **argv)
                    "[n target arrays] [target array 1] ... [target array n] "
                    "[source regex] [source x axis] [source y axis] [source z axis] [source t axis] "
                    "[n source arrays] [source array 1] ... [source array n] "
-                   "[output base] [first step] [last step] [target bounds]" << endl
+                   "[output file] [first step] [last step] [target bounds]" << endl
                  << endl;
         }
         return -1;
@@ -55,7 +55,7 @@ int main(int argc, char **argv)
     int n_source_arrays = atoi(argv[++arg]);
     vector<string> source_arrays(argv+arg+1, argv+arg+1+n_source_arrays);
     arg += n_source_arrays;
-    string out_base = argv[++arg];
+    string out_file = argv[++arg];
     unsigned long first_step = atol(argv[++arg]);
     unsigned long last_step = atol(argv[++arg]);
     vector<double> target_bounds(6, 0l);
@@ -91,7 +91,7 @@ int main(int argc, char **argv)
 
     // create the vtk writer connected to the cf reader
     p_teca_vtk_cartesian_mesh_writer w = teca_vtk_cartesian_mesh_writer::New();
-    w->set_base_file_name(out_base);
+    w->set_file_name(out_file);
     w->set_input_connection(ss->get_output_port());
 
     // set the executive on the writer to stream time steps

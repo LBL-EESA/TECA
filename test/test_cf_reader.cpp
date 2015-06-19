@@ -11,6 +11,14 @@ using namespace std;
 #include <mpi.h>
 #endif
 
+int parse_command_line(
+    int argc,
+    char **argv,
+    int rank,
+    const p_teca_cf_reader &cf_reader,
+    const p_teca_vtk_cartesian_mesh_writer &vtk_writer,
+    const p_teca_time_step_executive exec);
+
 int main(int argc, char **argv)
 {
     int rank = 0;
@@ -18,12 +26,45 @@ int main(int argc, char **argv)
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 #endif
+
+    // create the pipeline objects
+    p_teca_cf_reader cf_reader = teca_cf_reader::New();
+    p_teca_vtk_cartesian_mesh_writer vtk_writer = teca_vtk_cartesian_mesh_writer::New();
+    p_teca_time_step_executive exec = teca_time_step_executive::New();
+
+    // initialize them from command line options
+    if (parse_command_line(argc, argv, rank, cf_reader, vtk_writer, exec))
+        return -1;
+
+    // build the pipeline
+    vtk_writer->set_input_connection(cf_reader->get_output_port());
+    vtk_writer->set_executive(exec);
+
+    // run the pipeline
+    vtk_writer->update();
+
+#if defined(TECA_HAS_MPI)
+    MPI_Finalize();
+#endif
+    return 0;
+}
+
+
+// --------------------------------------------------------------------------
+int parse_command_line(
+    int argc,
+    char **argv,
+    int rank,
+    const p_teca_cf_reader &cf_reader,
+    const p_teca_vtk_cartesian_mesh_writer &vtk_writer,
+    const p_teca_time_step_executive exec)
+{
     if (argc < 3)
     {
         if (rank == 0)
         {
             cerr << endl << "Usage error:" << endl
-                << "test_cf_reader [input regex] [output base] [first step = 0] "
+                << "test_cf_reader [input regex] [output] [first step = 0] "
                 << "[last step = -1] [x axis = lon] [y axis = lat] [z axis =] [t axis = time] "
                 << "[array 0 =] ... [array n =]"
                 << endl << endl;
@@ -33,7 +74,7 @@ int main(int argc, char **argv)
 
     // parse command line
     string regex = argv[1];
-    string base = argv[2];
+    string output = argv[2];
     long first_step = 0;
     if (argc > 3)
         first_step = atoi(argv[3]);
@@ -56,33 +97,18 @@ int main(int argc, char **argv)
     for (int i = 9; i < argc; ++i)
         arrays.push_back(argv[i]);
 
-    // create the cf reader
-    p_teca_cf_reader r = teca_cf_reader::New();
-    r->set_x_axis_variable(x_ax);
-    r->set_y_axis_variable(y_ax);
-    r->set_z_axis_variable(z_ax);
-    r->set_t_axis_variable(t_ax);
-    r->set_files_regex(regex);
+    // pass the command line options
+    cf_reader->set_x_axis_variable(x_ax);
+    cf_reader->set_y_axis_variable(y_ax);
+    cf_reader->set_z_axis_variable(z_ax);
+    cf_reader->set_t_axis_variable(t_ax);
+    cf_reader->set_files_regex(regex);
 
-    // create the vtk writer connected to the cf reader
-    p_teca_vtk_cartesian_mesh_writer w = teca_vtk_cartesian_mesh_writer::New();
-    w->set_base_file_name(base);
-    w->set_input_connection(r->get_output_port());
+    vtk_writer->set_file_name(output);
 
-    // set the executive on the writer to stream time steps
-    p_teca_time_step_executive exec = teca_time_step_executive::New();
-    // optional
     exec->set_first_step(first_step);
     exec->set_last_step(last_step);
     exec->set_arrays(arrays);
 
-    w->set_executive(exec);
-
-    // run the pipeline
-    w->update();
-
-#if defined(TECA_HAS_MPI)
-    MPI_Finalize();
-#endif
     return 0;
 }

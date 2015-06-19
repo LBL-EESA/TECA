@@ -16,14 +16,14 @@ int main(int argc, char **argv)
     if (argc < 7)
     {
         cerr << endl << "Usage error:" << endl
-            << "test_cf_reader [input regex] [output base] [first step] [last step] [filter width] [array] [array] ..." << endl
+            << "test_cf_reader [input regex] [output] [first step] [last step] [filter width] [array] [array] ..." << endl
             << endl;
         return -1;
     }
 
     // parse command line
     string regex = argv[1];
-    string base = argv[2];
+    string output = argv[2];
     long first_step = atoi(argv[3]);
     long last_step = atoi(argv[4]);
     int filter_width = atoi(argv[5]);
@@ -43,7 +43,7 @@ int main(int argc, char **argv)
 
     // create the vtk writer connected to the cf reader
     p_teca_vtk_cartesian_mesh_writer w = teca_vtk_cartesian_mesh_writer::New();
-    w->set_base_file_name(base);
+    w->set_file_name(output);
     w->set_input_connection(a->get_output_port());
 
     // set the executive on the writer to stream time steps

@@ -16,6 +16,9 @@
 namespace teca_file_util
 {
 
+// TODO -- document these functions
+void replace_timestep(std::string &file_name, unsigned long time_step);
+void replace_extension(std::string &file_name, const std::string &ext);
 void to_lower(std::string &in);
 int file_exists(const char *path);
 std::string strip_filename_from_path(const std::string &filename);
