@@ -96,10 +96,14 @@ export CC and CXX environment variables.
 
 ### CMake ###
 TECA builds are configured with CMake. Version 2.8.12 or newere is required.
-Installing a binary is recomended.
+Installing via your system's package manager is recommended.
+
+### MPI ###
+MPI is required for distributed parallel operation. It's recommended to use
+the package management system on your OS to install MPI.
 
 ### NetCDF ###
-A standard make make install suffices. It is fine to disable NetCDF 4 features. Replace
+A standard make, make install suffices. It is fine to disable NetCDF 4 features. Replace
 gcc and g++ with your compiler, for example clang and clang++ on Apple.
 ```bash
 export CC=`which gcc`
@@ -111,13 +115,9 @@ cd netcdf-4.3.3.1
 make -j2 && make -j4 install
 ```
 
-### MPI ###
-MPI is required for distributed parallel operation. It's recommended to use
-the package management system on your OS to install MPI.
-
 ### Boost ###
 When possible use the package manager to install Boost. However note that the
-compiler and stdlib version used to build Boost needs to match exactly the
+compiler and stdlib version used to build Boost **needs to match exactly** the
 compiler and stdlib used to build TECA. This may necessitate a stand alone
 Boost install.
 
