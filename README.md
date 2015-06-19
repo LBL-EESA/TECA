@@ -1,4 +1,3 @@
-
 Requirements
 ============
 Building TECA requires a C++11 compiler. On Unix like systems this is GCC
@@ -88,20 +87,6 @@ cmake \
 make -j 8 && make -j 8 install
 ```
 
-Finally and example of a development build:
-```bash
-cmake \
-    -DCMAKE_CXX_COMPILER=`which clang++` \
-    -DCMAKE_C_COMPILER=`which clang` \
-    -DCMAKE_BUILD_TYPE=Debug \
-    -DCMAKE_CXX_FLAGS_DEBUG="-g -Wall -Wextra -fsanitize=address -fno-omit-frame-pointer -std=c++11" \
-    -DBUILD_TESTING=ON \
-    -DNETCDF_DIR=/work/apps/netcdf/4.3.3.1/ \
-    -DVTK_DIR=/home/bloring/work/vtk-nv-build/ \
-    $*
-
-make -j8 && make -j8 install
-```
 ## Compiling Dependencies ##
 Dependencies can be installed from a package manager where convenient. However,
 note that particularly with Boost, compiler and stdlib used to build Boost must
