@@ -1,3 +1,4 @@
+#include "teca_config.h"
 #include "teca_parallel_id.h"
 
 #include <ostream>

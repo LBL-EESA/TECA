@@ -1,3 +1,4 @@
+#include "teca_config.h"
 #include "teca_time_step_executive.h"
 
 #include "teca_common.h"

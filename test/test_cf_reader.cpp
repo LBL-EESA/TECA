@@ -1,3 +1,4 @@
+#include "teca_config.h"
 #include "teca_cf_reader.h"
 #include "teca_vtk_cartesian_mesh_writer.h"
 #include "teca_time_step_executive.h"

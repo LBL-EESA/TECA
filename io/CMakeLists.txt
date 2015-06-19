@@ -18,13 +18,8 @@ endif()
 
 set(teca_io_link)
 
-if (TECA_HAS_REGEX)
-    add_definitions(-DTECA_HAS_REGEX)
-endif()
-
 if (TECA_HAS_MPI)
     include_directories(${MPI_C_INCLUDE_PATH})
-    add_definitions(-DTECA_HAS_MPI)
     list(APPEND teca_io_link ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
 endif()
 
@@ -42,7 +37,6 @@ endif()
 
 if (TECA_HAS_BOOST)
     include_directories(${Boost_INCLUDE_DIR})
-    add_definitions(-DTECA_HAS_BOOST)
     list(APPEND teca_io_link ${Boost_LIBRARIES})
 endif()
 

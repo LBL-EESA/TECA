@@ -13,10 +13,18 @@ include_directories(
     $<TARGET_PROPERTY:teca_test_array,INTERFACE_INCLUDE_DIRECTORIES>
     )
 
+set(teca_test_link)
+
 if (TECA_HAS_MPI)
     include_directories(${MPI_C_INCLUDE_PATH})
-    add_definitions(-DTECA_HAS_MPI)
+    list(APPEND teca_test_link ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
 endif()
+
+if (TECA_HAS_BOOST)
+    include_directories(${Boost_INCLUDE_DIR})
+    list(APPEND teca_test_link ${Boost_LIBRARIES})
+endif()
+
 
 # core tests
 add_executable(
@@ -55,13 +63,11 @@ endif()
 # io tests
 if (TECA_HAS_NETCDF)
     if (TECA_HAS_VTK)
-        add_executable(
-            test_cf_reader
-            test_cf_reader.cpp
-            )
+        add_executable(test_cf_reader test_cf_reader.cpp)
         target_link_libraries(
             test_cf_reader
             teca_core teca_data teca_io
+            ${teca_test_link}
             )
         add_executable(
             test_temporal_average
@@ -70,6 +76,7 @@ if (TECA_HAS_NETCDF)
         target_link_libraries(
             test_temporal_average
             teca_core teca_data teca_io teca_alg
+            ${teca_test_link}
             )
         add_executable(
             test_cartesian_mesh_regrid
@@ -78,6 +85,7 @@ if (TECA_HAS_NETCDF)
         target_link_libraries(
             test_cartesian_mesh_regrid
             teca_core teca_data teca_io teca_alg
+            ${teca_test_link}
             )
     endif()
 endif()

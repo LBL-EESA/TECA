@@ -1,6 +1,8 @@
 #ifndef teca_algorithm_h
 #define teca_algorithm_h
 
+#include "teca_config.h"
+
 // forward delcaration of ref counted types
 #include "teca_dataset_fwd.h"
 #include "teca_algorithm_fwd.h"

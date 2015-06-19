@@ -1,3 +1,6 @@
+#include "teca_config.h"
+#include "teca_common.h"
+
 #include <cstring>
 #include <cstdlib>
 #include <cstdio>
@@ -13,8 +16,6 @@
 #if defined(TECA_HAS_REGEX)
 #include <regex>
 #endif
-
-#include "teca_common.h"
 
 #ifndef WIN32
   #include <dirent.h>

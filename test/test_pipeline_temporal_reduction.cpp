@@ -1,3 +1,4 @@
+#include "teca_config.h"
 #include "array_source.h"
 #include "array_temporal_stats.h"
 #include "array_writer.h"

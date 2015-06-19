@@ -1,6 +1,8 @@
 #ifndef teca_program_options_h
 #define teca_program_options_h
 
+#include "teca_config.h"
+
 #if defined(TECA_HAS_BOOST)
 namespace boost
 {

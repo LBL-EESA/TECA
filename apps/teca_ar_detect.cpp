@@ -1,3 +1,4 @@
+#include "teca_config.h"
 #include "teca_cf_reader.h"
 #include "teca_temporal_average.h"
 #include "teca_cartesian_mesh_regrid.h"
