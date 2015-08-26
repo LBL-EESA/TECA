@@ -151,4 +151,25 @@ make -j4 && make -j4 install
 ```
 
 #Running#
+##General##
 See --help and --full_help command line arguments for the application in question.
+##Edison##
+make a qsub file and submit a job. Here is an example:
+```bash
+#!/bin/bash -l
+#PBS -q premium
+#PBS -l mppwidth=2400
+#PBS -l walltime=01:00:00
+#PBS -N teca_tmq
+#PBS -j oe
+
+TECA_HOME=/usr/common/graphics/teca/1.0
+
+cd $PBS_O_WORKDIR
+aprun -n 200 -N 2 -S 1 \
+    ${TECA_HOME}/bin/teca_ar_detect \
+        --water_vapor_file_regex TMQ_cam5_1_amip_run2'.*nc' \
+        --water_vapor_var TMQ \
+        --n_threads 12 \
+        --results_file tmq_ar.csv
+```
