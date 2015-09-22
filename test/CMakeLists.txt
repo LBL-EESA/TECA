@@ -3,6 +3,7 @@ project(teca_test)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/test)
 
 add_subdirectory(test_array)
+add_subdirectory(test_amr)
 
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
