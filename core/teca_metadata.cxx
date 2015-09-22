@@ -234,6 +234,11 @@ void teca_metadata::to_stream(ostream &os) const
             const TT *val = static_cast<const TT*>(it->second.get());
             val->to_stream(os);
             )
+        TEMPLATE_DISPATCH_CASE(
+            teca_variant_array_impl, p_teca_variant_array, it->second.get(),
+            const TT *val = static_cast<const TT*>(it->second.get());
+            val->to_stream(os);
+            )
         TEMPLATE_DISPATCH(teca_variant_array_impl, it->second.get(),
             const TT *val = static_cast<const TT*>(it->second.get());
             val->to_stream(os);
