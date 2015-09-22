@@ -63,7 +63,7 @@ public:
     virtual p_teca_variant_array new_copy(size_t start, size_t end) const = 0;
 
     // return true if values are equal
-    bool operator==(const teca_variant_array &other)
+    bool operator==(const teca_variant_array &other) const
     { return this->equal(other); }
 
     // get methods. could throw std::bad_cast if the
@@ -138,8 +138,8 @@ public:
     { this->swap(*other.get()); }
 
     // compare the two objects for equality
-    virtual bool equal(const teca_variant_array &other) = 0;
-    bool equal(const const_p_teca_variant_array &other)
+    virtual bool equal(const teca_variant_array &other) const = 0;
+    bool equal(const const_p_teca_variant_array &other) const
     { return this->equal(*other.get()); }
 
     // serrialize to/from stream
@@ -234,21 +234,23 @@ struct pack_array
     std::is_same<T, std::string>::value>
 {};
 
+// tag for arrays of pointers of other objects
+template<typename T>
+struct pack_object_ptr
+    : std::integral_constant<bool,
+    (std::is_pointer<T>::value ||
+    std::is_same<T, p_teca_variant_array>::value) &&
+    !pack_array<T>::value>
+{};
+
 // tag for arrays of other objects
 template<typename T>
 struct pack_object
     : std::integral_constant<bool,
+    !pack_array<T>::value &&
     !std::is_pointer<T>::value &&
-    !pack_array<T>::value>
+    !pack_object_ptr<T>::value>
 {};
-
-template<typename T>
-struct pack_object_ptr
-    : std::integral_constant<bool,
-    std::is_pointer<T>::value &&
-    !pack_array<T>::value>
-{};
-
 
 
 
@@ -356,7 +358,7 @@ public:
     virtual void swap(teca_variant_array &other) override;
 
     // virtual equavalince test
-    virtual bool equal(const teca_variant_array &other) override;
+    virtual bool equal(const teca_variant_array &other) const override;
 
     // serialize to/from stream
     virtual void to_stream(teca_binary_stream &s) const override
@@ -419,6 +421,16 @@ private:
     void from_binary(teca_binary_stream &s,
         typename std::enable_if<pack_object<U>::value, U>::type* = 0);
 
+    // tag dispatch array of poniter to other objects
+    template <typename U = T>
+    void to_binary(teca_binary_stream &s,
+        typename std::enable_if<pack_object_ptr<U>::value, U>::type* = 0)
+        const;
+
+    template <typename U = T>
+    void from_binary(teca_binary_stream &s,
+        typename std::enable_if<pack_object_ptr<U>::value, U>::type* = 0);
+
     // ostream
     template <typename U = T>
     void to_ascii(std::ostream &s,
@@ -438,6 +450,16 @@ private:
     template <typename U = T>
     void from_ascii(std::ostream &s,
         typename std::enable_if<pack_object<U>::value, U>::type* = 0);
+
+    // tag dispatch array of pointer to other objects
+    template <typename U = T>
+    void to_ascii(std::ostream &s,
+        typename std::enable_if<pack_object_ptr<U>::value, U>::type* = 0)
+        const;
+
+    template <typename U = T>
+    void from_ascii(std::ostream &s,
+        typename std::enable_if<pack_object_ptr<U>::value, U>::type* = 0);
 
     // for serializaztion
     virtual unsigned int type_code() const TECA_NOEXCEPT override;
@@ -969,7 +991,7 @@ void teca_variant_array_impl<T>::swap(teca_variant_array &other)
 
 // --------------------------------------------------------------------------
 template<typename T>
-bool teca_variant_array_impl<T>::equal(const teca_variant_array &other)
+bool teca_variant_array_impl<T>::equal(const teca_variant_array &other) const
 {
     using TT = teca_variant_array_impl<T>;
     const TT *other_t = dynamic_cast<const TT*>(&other);
@@ -1026,6 +1048,33 @@ void teca_variant_array_impl<T>::from_binary(
     this->resize(n);
     for (unsigned long long i=0; i<n; ++i)
        this->m_data[i].from_stream(s);
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
+    template <typename U>
+void teca_variant_array_impl<T>::to_binary(
+    teca_binary_stream &s,
+    typename std::enable_if<pack_object_ptr<U>::value, U>::type*) const
+{
+    unsigned long long n = this->size();
+    s.pack(n);
+    for (unsigned long long i=0; i<n; ++i)
+       this->m_data[i]->to_stream(s);
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
+    template <typename U>
+void teca_variant_array_impl<T>::from_binary(
+    teca_binary_stream &s,
+    typename std::enable_if<pack_object_ptr<U>::value, U>::type*)
+{
+    unsigned long long n;
+    s.unpack(n);
+    this->resize(n);
+    for (unsigned long long i=0; i<n; ++i)
+       this->m_data[i]->from_stream(s);
 }
 
 #define STR_DELIM(_a, _b) \
@@ -1093,6 +1142,38 @@ void teca_variant_array_impl<T>::from_ascii(
     // TODO
 }
 
+// --------------------------------------------------------------------------
+template<typename T>
+    template <typename U>
+void teca_variant_array_impl<T>::to_ascii(
+    std::ostream &s,
+    typename std::enable_if<pack_object_ptr<U>::value, U>::type*) const
+{
+    size_t n = this->m_data.size();
+    if (n)
+    {
+        s << "{";
+        this->m_data[0]->to_stream(s);
+        s << "}";
+        for (size_t i = 1; i < n; ++i)
+        {
+            s << ", {";
+            this->m_data[i]->to_stream(s);
+            s << "}";
+        }
+    }
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
+    template <typename U>
+void teca_variant_array_impl<T>::from_ascii(
+    std::ostream &,
+    typename std::enable_if<pack_object_ptr<U>::value, U>::type*)
+{
+    // TODO
+}
+
 template <typename T>
 struct teca_variant_array_code
 {}; // intentionally empty
@@ -1136,6 +1217,7 @@ TECA_VARIANT_ARRAY_TT_SPEC(float, 11)
 TECA_VARIANT_ARRAY_TT_SPEC(double, 12)
 TECA_VARIANT_ARRAY_TT_SPEC(std::string, 13)
 TECA_VARIANT_ARRAY_TT_SPEC(teca_metadata, 14)
+TECA_VARIANT_ARRAY_TT_SPEC(p_teca_variant_array, 15)
 
 struct teca_variant_array_factory
 {
@@ -1157,6 +1239,7 @@ struct teca_variant_array_factory
         TECA_VARIANT_ARRAY_FACTORY_NEW(12)
         TECA_VARIANT_ARRAY_FACTORY_NEW(13)
         TECA_VARIANT_ARRAY_FACTORY_NEW(14)
+        TECA_VARIANT_ARRAY_FACTORY_NEW(15)
         default:
             TECA_ERROR(
                 << "Failed to create from "
