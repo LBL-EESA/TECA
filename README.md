@@ -16,7 +16,7 @@ not present.
 #Compiling TECA#
 A c++11 compiler is required. The location of various dependencies should be passed
 in during configuration if they are in non-standard locations. It's is critical
-that compiler and stdlib versions match across dependencies, espeically Boost.
+that compiler and C++ library versions match across dependencies, especially Boost.
 
 ## Compiling on a Workstation ##
 This is an example of compiling on a work station, with Boost, MPI, NetCDF and
