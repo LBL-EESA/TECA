@@ -1,0 +1,91 @@
+\documentclass[a4paper,10pt,DIV=12]{scrreprt}
+%\documentclass[a4paper,10pt]{report}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\hypersetup{
+linktoc = all, %linktocpage = true,
+colorlinks = true,
+linkbordercolor = {white},
+linkcolor = {black}}
+
+% Title Page
+\titlehead{%
+  \makebox[0pt][l]{\smash{%
+    \parbox[t][\dimexpr\textheight-\ht\strutbox\relax][b]{\textwidth}{%
+      \includegraphics[height=0.9in]{lbl_logo.png}\hfill\includegraphics[height=0.9in]{cascade_logo.png}%
+  }}}}
+\title{%\hrule width \hsize height 1pt \vspace{3mm} %
+The TECA, Toolkit for Extreme Climate Analaysis, User's Guide \\ \vspace{3mm} %
+\hrule width \hsize height 1pt \vspace{0.51mm} %
+\hrule width \hsize height 1pt}
+\subtitle{Lawrence Berkeley National Lab}
+\addtocontents{toc}{\protect\hypertarget{toc}{}}
+
+%\author{Burlen Loring, et al.}
+\author{}
+
+
+\begin{document}
+\maketitle
+
+% \begin{abstract}
+% \end{abstract}
+
+\tableofcontents
+
+\chapter{Installing and Running TECA}
+\section{Download}
+\subsection{Binaries}
+\subsection{Sources}
+\section{Build and Installation}
+\subsection{Prerequisites}
+\paragraph{CMake}
+\paragraph{Supported Compilers}
+\paragraph{NetCDF}
+\paragraph{Boost}
+\paragraph{VTK}
+\subsection{Windows}
+\subsection{Linux}
+\subsection{Apple}
+\subsection{Cray}
+\section{Running the Pre-packaged Applications}
+\subsection{AR Detector}
+\subsection{TC Detector}
+\subsection{ETC Detector}
+\section{Algorithm Library}
+\subsection{Input and Data Readers}
+\subsection{Detectors}
+\subsection{Analsyis}
+\subsection{Re-meshing}
+\subsection{Output and Data Writers}
+\section{Python Scripting}
+\hyperlink{toc}{\footnotesize \bf [back to contents]}
+
+\chapter{TECA Framework Design and Architecture}
+\section{The Pipeline Pattern and the Algorithm Abstraction}
+\section{Information and Data Flow in the Pipeline}
+\section{Algorithm Abstraction}
+\section{Metadata-structures}
+\section{Data-structures}
+\subsection{Mesh Based Data}
+\subsection{Tabular Data}
+\hyperlink{toc}{\footnotesize \bf [back to contents]}
+
+\section{Examples}
+\hyperlink{toc}{\footnotesize \bf [back to contents]}
+
+\chapter{Contributing Code to TECA}
+\hyperlink{toc}{\footnotesize \bf [back to contents]}
+\section{Github Workflow}
+\section{Coding Standard}
+\section{Regression Testing}
+\section{Writing an Algorithm}
+\section{Algorithm Template}
+\section{Adding a Dataset}
+\section{Porting an Existing Algorithm}
+
+\chapter{Publications}
+\hyperlink{toc}{\footnotesize \bf [back to contents]}
+
+\end{document}
