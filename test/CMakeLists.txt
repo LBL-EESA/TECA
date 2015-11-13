@@ -17,12 +17,12 @@ include_directories(
 set(teca_test_link)
 
 if (TECA_HAS_MPI)
-    include_directories(${MPI_C_INCLUDE_PATH})
+    include_directories(SYSTEM ${MPI_C_INCLUDE_PATH})
     list(APPEND teca_test_link ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
 endif()
 
 if (TECA_HAS_BOOST)
-    include_directories(${Boost_INCLUDE_DIR})
+    include_directories(SYSTEM ${Boost_INCLUDE_DIR})
     list(APPEND teca_test_link ${Boost_LIBRARIES})
 endif()
 

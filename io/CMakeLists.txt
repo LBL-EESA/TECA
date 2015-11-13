@@ -19,13 +19,13 @@ endif()
 set(teca_io_link)
 
 if (TECA_HAS_MPI)
-    include_directories(${MPI_C_INCLUDE_PATH})
+    include_directories(SYSTEM ${MPI_C_INCLUDE_PATH})
     list(APPEND teca_io_link ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
 endif()
 
 if (TECA_HAS_NETCDF)
     list(APPEND teca_io_srcs teca_cf_reader.cxx)
-    include_directories(${NETCDF_INCLUDE_DIRS})
+    include_directories(SYSTEM ${NETCDF_INCLUDE_DIRS})
     list(APPEND teca_io_link ${NETCDF_LIBRARIES})
 endif()
 
@@ -36,7 +36,7 @@ if (TECA_HAS_VTK)
 endif()
 
 if (TECA_HAS_BOOST)
-    include_directories(${Boost_INCLUDE_DIR})
+    include_directories(SYSTEM ${Boost_INCLUDE_DIR})
     list(APPEND teca_io_link ${Boost_LIBRARIES})
 endif()
 
