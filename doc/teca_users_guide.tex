@@ -55,6 +55,7 @@ The TECA, Toolkit for Extreme Climate Analaysis, User's Guide \\ \vspace{3mm} %
 \subsection{Sources}
 \section{Build and Installation}
 \subsection{TECA}
+\paragraph{Supported Compilers}
 Building TECA requires a C++11 compiler. On Unix like systems this is GCC
 4.9(or newer), or LLVM 3.5(or newer). Windows MS Visual Studio C++ currently
 does not fully support C++11. The following dependencies are optional, however functionality will be reduced if they are not present.
@@ -88,8 +89,6 @@ cmake \
 
 make -j8 && make -j8 install
 \end{code}
-
-
 
 \paragraph{Compiling TECA on a Cray}
 The following shows how TECA is compiled on NERSCs Cray XC30 Edison with Boost,
@@ -151,8 +150,6 @@ match that used with TECA. When using cmake on systems with multiple compilers
 one must consistently specify CMAKE\_CXX\_COMPILER and CMAKE\_C\_COMPILER and/or
 export CC and CXX environment variables.
 
-\paragraph{Supported Compilers}
-
 \paragraph{CMake}
 TECA builds are configured with CMake. Version 2.8.12 or newere is required.
 Installing via your system's package manager is recommended.
@@ -165,7 +162,7 @@ the package management system on your OS to install MPI.
 A standard make, make install suffices. It is fine to disable NetCDF 4 features. Replace
 gcc and g++ with your compiler, for example clang and clang++ on Apple.
 
-\begin{verbatim}
+\begin{code}
 export CC=`which gcc`
 export CXX=`which g++`
 wget ftp://ftp.unidata.ucar.edu/pub/netcdf/netcdf-4.3.3.1.tar.gz
@@ -173,7 +170,7 @@ tar xzfv netcdf-4.3.3.1.tar.gz
 cd netcdf-4.3.3.1
 ./configure --disable-netcdf-4 --prefix=/work/apps/netcdf/4.3.3.1
 make -j2 && make -j4 install
-\end{verbatim}
+\end{code}
 
 \paragraph{Boost}
 When possible use the package manager to install Boost. However note that the
@@ -183,24 +180,27 @@ Boost install.
 
 On Linux if the compiler yo are using is in the PATH then a simple install
 suffices.
-
-\begin{verbatim}
-curl -L  "http://downloads.sourceforge.net/project/boost/boost/1.58.0/boost_1_58_0.tar.gz?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Fboost%2Ffiles%2Fboost%2F1.58.0%2F&ts=1434648565&use_mirror=tcpdiag" -o boost.tar.gz
+%boost_link="http://downloads.sourceforge.net/project/boost/boost/1.58.0/boost_1_58_0.tar.gz?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Fboost%2Ffiles%2Fboost%2F1.58.0%2F&ts=1434648565&use_mirror=tcpdiag"
+\begin{code}
+#!/bin/bash
+curl -L <HTTP LINK TO BOOST PACKAGE> -o boost.tar.gz
 tar xzfv boost.tar.gz
 cd boost_1_58_0/
 ./bootstrap.sh --prefix=/Users/bloring/apps/
-./b2 -j4 install
-\end{verbatim}
+./b2 -j4 cxxflags=''-std=c++11'' install
+\end{code}
 
 However, on Apple, when using clang you must specify toolset and flags when
 building Boost:
 
-\begin{verbatim}
+\begin{code}
+#!/bin/bash
 ./b2 -j4 toolset=clang cxxflags="-stdlib=libc++" linkflags="-stdlib=libc++" install
-\end{verbatim}
+\end{code}
 
 \paragraph{VTK}
-\begin{verbatim}
+\begin{code}
+#!/bin/bash
 git clone git://VTK.org/VTK.git
 mkdir vtk_build
 cd vtk_build
@@ -210,7 +210,7 @@ cmake \
   -DCMAKE_INSTALL_PREFIX=/work/apps/VTK/next \
   ../VTK
 make -j4 && make -j4 install
-\end{verbatim}
+\end{code}
 
 \section{Running the Pre-packaged Applications}
 See --help and --full\_help command line arguments for the application in question.
