@@ -15,6 +15,7 @@ and detectors.
 #include "teca_ar_detect.h"
 #include "teca_cartesian_mesh_subset.h"
 #include "teca_cartesian_mesh_regrid.h"
+#include "teca_connected_components.h"
 #include "teca_l2_norm.h"
 #include "teca_mask.h"
 #include "teca_programmable_algorithm.h"
@@ -55,6 +56,14 @@ and detectors.
 %shared_ptr(teca_cartesian_mesh_regrid)
 %ignore teca_cartesian_mesh_regrid::operator=;
 %include "teca_cartesian_mesh_regrid.h"
+
+/***************************************************************************
+ connected_components
+ ***************************************************************************/
+%ignore teca_connected_components::shared_from_this;
+%shared_ptr(teca_connected_components)
+%ignore teca_connected_components::operator=;
+%include "teca_connected_components.h"
 
 /***************************************************************************
  l2_norm
