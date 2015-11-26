@@ -14,7 +14,7 @@ include_directories(
     $<TARGET_PROPERTY:teca_test_array,INTERFACE_INCLUDE_DIRECTORIES>
     )
 
-set(teca_test_link)
+set(teca_test_link pthread)
 
 if (TECA_HAS_MPI)
     include_directories(SYSTEM ${MPI_C_INCLUDE_PATH})
@@ -35,6 +35,7 @@ add_executable(
 target_link_libraries(
     test_pipeline_time_average
     teca_core teca_test_array
+    ${teca_test_link}
     )
 
 add_executable(
@@ -44,6 +45,7 @@ add_executable(
 target_link_libraries(
     test_pipeline_branches
     teca_core teca_test_array
+    ${teca_test_link}
     )
 
 add_executable(
@@ -53,13 +55,8 @@ add_executable(
 target_link_libraries(
     test_pipeline_temporal_reduction
     teca_core teca_test_array
+    ${teca_test_link}
     )
-if (TECA_HAS_MPI)
-    target_link_libraries(
-        test_pipeline_temporal_reduction
-        ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES}
-        )
-endif()
 
 # io tests
 if (TECA_HAS_NETCDF)
@@ -98,4 +95,5 @@ add_executable(
 target_link_libraries(
     test_table_writer
     teca_core teca_data teca_io teca_alg
+    ${teca_test_link}
     )

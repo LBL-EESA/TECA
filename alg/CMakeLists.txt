@@ -20,7 +20,7 @@ set(teca_alg_srcs
     teca_vorticity.cxx
     )
 
-set(teca_alg_link)
+set(teca_alg_link pthread)
 
 if (TECA_HAS_MPI)
     include_directories(SYSTEM ${MPI_C_INCLUDE_PATH})
