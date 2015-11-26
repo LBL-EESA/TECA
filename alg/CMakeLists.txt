@@ -13,6 +13,7 @@ set(teca_alg_srcs
     teca_ar_detect.cxx
     teca_cartesian_mesh_subset.cxx
     teca_cartesian_mesh_regrid.cxx
+    teca_l2_norm.cxx
     teca_programmable_source.cxx
     teca_table_reduce.cxx
     teca_temporal_average.cxx
