@@ -55,7 +55,7 @@ public:
     { return m_impl->info_arrays; }
 
     // return true if the dataset is empty.
-    virtual bool empty() const TECA_NOEXCEPT override;
+    virtual bool empty() const noexcept override;
 
     // copy metadata. always a deep copy.
     virtual void copy_metadata(const const_p_teca_dataset &) override;

@@ -10,7 +10,7 @@ using std::ostream;
 using std::endl;
 
 // --------------------------------------------------------------------------
-teca_metadata::teca_metadata() TECA_NOEXCEPT
+teca_metadata::teca_metadata() noexcept
 {
     this->id = this->get_next_id();
 }
@@ -22,12 +22,12 @@ teca_metadata::teca_metadata(const teca_metadata &other)
 }
 
 // --------------------------------------------------------------------------
-teca_metadata::teca_metadata(teca_metadata &&other) TECA_NOEXCEPT
+teca_metadata::teca_metadata(teca_metadata &&other) noexcept
     : id(other.id), props(std::move(other.props))
 {}
 
 // --------------------------------------------------------------------------
-teca_metadata::~teca_metadata() TECA_NOEXCEPT
+teca_metadata::~teca_metadata() noexcept
 {
     this->clear();
 }
@@ -53,7 +53,7 @@ teca_metadata &teca_metadata::operator=(const teca_metadata &other)
 }
 
 // --------------------------------------------------------------------------
-teca_metadata &teca_metadata::operator=(teca_metadata &&other) TECA_NOEXCEPT
+teca_metadata &teca_metadata::operator=(teca_metadata &&other) noexcept
 {
     if (&other == this)
         return *this;
@@ -121,7 +121,7 @@ const_p_teca_variant_array teca_metadata::get(const std::string &name) const
 // --------------------------------------------------------------------------
 int teca_metadata::size(
     const std::string &name,
-    unsigned int &n) const TECA_NOEXCEPT
+    unsigned int &n) const noexcept
 {
     prop_map_t::const_iterator it = this->props.find(name);
 
@@ -146,7 +146,7 @@ void teca_metadata::resize(const std::string &name, unsigned int n)
 }
 
 // --------------------------------------------------------------------------
-int teca_metadata::remove(const std::string &name) TECA_NOEXCEPT
+int teca_metadata::remove(const std::string &name) noexcept
 {
     prop_map_t::iterator it = this->props.find(name);
 
@@ -159,19 +159,19 @@ int teca_metadata::remove(const std::string &name) TECA_NOEXCEPT
 }
 
 // --------------------------------------------------------------------------
-int teca_metadata::has(const std::string &name) const TECA_NOEXCEPT
+int teca_metadata::has(const std::string &name) const noexcept
 {
     return this->props.count(name);
 }
 
 // --------------------------------------------------------------------------
-int teca_metadata::empty() const TECA_NOEXCEPT
+int teca_metadata::empty() const noexcept
 {
     return this->props.empty();
 }
 
 // --------------------------------------------------------------------------
-unsigned long long teca_metadata::get_next_id() const TECA_NOEXCEPT
+unsigned long long teca_metadata::get_next_id() const noexcept
 {
     static unsigned long long id = 0;
     return id++;
@@ -248,13 +248,13 @@ void teca_metadata::to_stream(ostream &os) const
 }
 
 // --------------------------------------------------------------------------
-bool operator<(const teca_metadata &lhs, const teca_metadata &rhs) TECA_NOEXCEPT
+bool operator<(const teca_metadata &lhs, const teca_metadata &rhs) noexcept
 {
     return lhs.id < rhs.id;
 }
 
 // --------------------------------------------------------------------------
-bool operator==(const teca_metadata &lhs, const teca_metadata &rhs) TECA_NOEXCEPT
+bool operator==(const teca_metadata &lhs, const teca_metadata &rhs) noexcept
 {
     teca_metadata::prop_map_t::const_iterator rit = rhs.props.begin();
     teca_metadata::prop_map_t::const_iterator rend = rhs.props.end();

@@ -2,7 +2,6 @@
 #define teca_dataset_h
 
 #include "teca_dataset_fwd.h"
-#include "teca_compiler.h"
 #include <iosfwd>
 class teca_binary_stream;
 
@@ -12,7 +11,7 @@ interface for teca datasets.
 class teca_dataset : public std::enable_shared_from_this<teca_dataset>
 {
 public:
-    virtual ~teca_dataset() TECA_NOEXCEPT = default;
+    virtual ~teca_dataset() noexcept = default;
 
     // copy assign. this is a shallow copy
     void operator=(const p_teca_dataset &other)
@@ -24,11 +23,11 @@ public:
 
     // covert to bool. true if the dataset is not empty.
     // otherwise false.
-    explicit operator bool() const TECA_NOEXCEPT
+    explicit operator bool() const noexcept
     { return !this->empty(); }
 
     // return true if the dataset is empty.
-    virtual bool empty() const TECA_NOEXCEPT
+    virtual bool empty() const noexcept
     { return true; }
 
     // virtual constructor. return a new dataset of the same type.

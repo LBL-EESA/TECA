@@ -64,7 +64,7 @@ public:
     // will be used.
     teca_thread_pool();
     teca_thread_pool(unsigned int n);
-    ~teca_thread_pool() TECA_NOEXCEPT;
+    ~teca_thread_pool() noexcept;
     TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_thread_pool)
 
     // add a data request task to the queue, returns a future
@@ -80,7 +80,7 @@ public:
     void pop_datasets(vector<const_p_teca_dataset> &data);
 
     // get the number of threads
-    unsigned int size() const TECA_NOEXCEPT
+    unsigned int size() const noexcept
     { return m_threads.size(); }
 
 private:
@@ -129,7 +129,7 @@ void teca_thread_pool::create_threads(unsigned int n_threads)
 }
 
 // --------------------------------------------------------------------------
-teca_thread_pool::~teca_thread_pool() TECA_NOEXCEPT
+teca_thread_pool::~teca_thread_pool() noexcept
 {
     m_live = false;
     std::for_each(
@@ -176,7 +176,7 @@ public:
 
     void thread_pool_resize(int n);
 
-    unsigned int get_thread_pool_size() const TECA_NOEXCEPT
+    unsigned int get_thread_pool_size() const noexcept
     { return this->thread_pool->size(); }
 
 public:
@@ -218,7 +218,7 @@ teca_threaded_algorithm::teca_threaded_algorithm()
 }
 
 // --------------------------------------------------------------------------
-teca_threaded_algorithm::~teca_threaded_algorithm() TECA_NOEXCEPT
+teca_threaded_algorithm::~teca_threaded_algorithm() noexcept
 {
     delete this->internals;
 }
@@ -257,7 +257,7 @@ void teca_threaded_algorithm::set_thread_pool_size(int n)
 }
 
 // --------------------------------------------------------------------------
-unsigned int teca_threaded_algorithm::get_thread_pool_size() const TECA_NOEXCEPT
+unsigned int teca_threaded_algorithm::get_thread_pool_size() const noexcept
 {
     return this->internals->get_thread_pool_size();
 }

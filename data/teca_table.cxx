@@ -31,19 +31,19 @@ void teca_table::clear()
 }
 
 // --------------------------------------------------------------------------
-bool teca_table::empty() const TECA_NOEXCEPT
+bool teca_table::empty() const noexcept
 {
     return this->impl->size() == 0;
 }
 
 // --------------------------------------------------------------------------
-unsigned int teca_table::get_number_of_columns() const TECA_NOEXCEPT
+unsigned int teca_table::get_number_of_columns() const noexcept
 {
     return this->impl->size();
 }
 
 // --------------------------------------------------------------------------
-unsigned long teca_table::get_number_of_rows() const TECA_NOEXCEPT
+unsigned long teca_table::get_number_of_rows() const noexcept
 {
     if (this->impl->size())
         return this->impl->get(0)->size();

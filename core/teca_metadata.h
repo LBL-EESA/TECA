@@ -6,7 +6,6 @@
 #include <string>
 #include <vector>
 #include "teca_variant_array.h"
-#include "teca_compiler.h"
 
 // a generic container for meta data in the form
 // of name=value pairs. value arrays are supported.
@@ -15,19 +14,19 @@
 class teca_metadata
 {
 public:
-    teca_metadata() TECA_NOEXCEPT;
-    ~teca_metadata() TECA_NOEXCEPT;
+    teca_metadata() noexcept;
+    ~teca_metadata() noexcept;
 
     teca_metadata(const teca_metadata &other);
     teca_metadata &operator=(const teca_metadata &other);
 
-    teca_metadata(teca_metadata &&other) TECA_NOEXCEPT;
-    teca_metadata &operator=(teca_metadata &&other) TECA_NOEXCEPT;
+    teca_metadata(teca_metadata &&other) noexcept;
+    teca_metadata &operator=(teca_metadata &&other) noexcept;
 
     // get the length of the named property. return 0 if successful
     int size(
         const std::string &name,
-        unsigned int &size) const TECA_NOEXCEPT;
+        unsigned int &size) const noexcept;
 
     // resize the named property
     void resize(const std::string &name, unsigned int n);
@@ -132,20 +131,20 @@ public:
 
 
     // remove. return 0 if successful
-    int remove(const std::string &name) TECA_NOEXCEPT;
+    int remove(const std::string &name) noexcept;
 
     // remove all
     void clear();
 
     // returns true if there is a property with the given
     // name already in the container.
-    int has(const std::string &name) const TECA_NOEXCEPT;
+    int has(const std::string &name) const noexcept;
 
     // return true if empty
-    int empty() const TECA_NOEXCEPT;
+    int empty() const noexcept;
 
     // return true if not empty
-    explicit operator bool() const TECA_NOEXCEPT
+    explicit operator bool() const noexcept
     { return !empty(); }
 
     // serialize to/from binary
@@ -157,29 +156,29 @@ public:
     void from_stream(std::ostream &) {}
 
 private:
-    unsigned long long get_next_id() const TECA_NOEXCEPT;
+    unsigned long long get_next_id() const noexcept;
 
 private:
     unsigned long long id;
     using prop_map_t = std::map<std::string, p_teca_variant_array>;
     prop_map_t props;
 
-    friend bool operator<(const teca_metadata &, const teca_metadata &) TECA_NOEXCEPT;
-    friend bool operator==(const teca_metadata &, const teca_metadata &) TECA_NOEXCEPT;
+    friend bool operator<(const teca_metadata &, const teca_metadata &) noexcept;
+    friend bool operator==(const teca_metadata &, const teca_metadata &) noexcept;
     friend teca_metadata operator&(const teca_metadata &, const teca_metadata &);
 };
 
 // comparison function so that metadata can be
 // used as a key in std::map.
-bool operator<(const teca_metadata &lhs, const teca_metadata &rhs) TECA_NOEXCEPT;
+bool operator<(const teca_metadata &lhs, const teca_metadata &rhs) noexcept;
 
 // compare meta data objects. two objects are considered
 // equal if both have the same set of keys and all of the values
 // are equal
-bool operator==(const teca_metadata &lhs, const teca_metadata &rhs) TECA_NOEXCEPT;
+bool operator==(const teca_metadata &lhs, const teca_metadata &rhs) noexcept;
 
 inline
-bool operator!=(const teca_metadata &lhs, const teca_metadata &rhs) TECA_NOEXCEPT
+bool operator!=(const teca_metadata &lhs, const teca_metadata &rhs) noexcept
 { return !(lhs == rhs); }
 
 // intersect two metadata objects. return a new object with

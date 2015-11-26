@@ -42,8 +42,8 @@ public:
     void declare_column(nT &&col_name, cT col_type);
 
     // get the number of rows/columns
-    unsigned int get_number_of_columns() const TECA_NOEXCEPT;
-    unsigned long get_number_of_rows() const TECA_NOEXCEPT;
+    unsigned int get_number_of_columns() const noexcept;
+    unsigned long get_number_of_rows() const noexcept;
 
     // get a specific column. return a nullptr if
     // the column doesn't exist.
@@ -67,11 +67,11 @@ public:
 
     // covert to bool. true if the dataset is not empty.
     // otherwise false.
-    explicit operator bool() const TECA_NOEXCEPT
+    explicit operator bool() const noexcept
     { return !this->empty(); }
 
     // return true if the dataset is empty.
-    virtual bool empty() const TECA_NOEXCEPT override;
+    virtual bool empty() const noexcept override;
 
     // serialize the dataset to/from the given stream
     // for I/O or communication

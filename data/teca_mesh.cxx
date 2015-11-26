@@ -114,7 +114,7 @@ void teca_mesh::to_stream(std::ostream &) const
 }
 
 // --------------------------------------------------------------------------
-bool teca_mesh::empty() const TECA_NOEXCEPT
+bool teca_mesh::empty() const noexcept
 {
     return
         !( m_impl->point_arrays->size()

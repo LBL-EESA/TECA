@@ -1,7 +1,6 @@
 #ifndef teca_array_collection_h
 #define teca_array_collection_h
 
-#include "teca_compiler.h"
 #include "teca_array_collection_fwd.h"
 #include "teca_variant_array.h"
 #include <map>
@@ -48,7 +47,7 @@ public:
     int remove(const std::string &name);
 
     // number of
-    unsigned int size() const TECA_NOEXCEPT
+    unsigned int size() const noexcept
     { return m_arrays.size(); }
 
     // access by id

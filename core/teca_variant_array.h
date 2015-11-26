@@ -11,7 +11,6 @@
 #include <utility>
 
 #include "teca_common.h"
-#include "teca_compiler.h"
 #include "teca_binary_stream.h"
 #include "teca_variant_array_fwd.h"
 
@@ -37,8 +36,8 @@ class teca_variant_array : public std::enable_shared_from_this<teca_variant_arra
 {
 public:
     // construct
-    teca_variant_array() TECA_NOEXCEPT = default;
-    virtual ~teca_variant_array() TECA_NOEXCEPT = default;
+    teca_variant_array() noexcept = default;
+    virtual ~teca_variant_array() noexcept = default;
 
     // copy/move construct. can't copy/move construct from a base
     // pointer. these require a downcast.
@@ -105,7 +104,7 @@ public:
     { this->append_dispatch(vals); }
 
     // get the number of elements in the array
-    virtual unsigned long size() const TECA_NOEXCEPT = 0;
+    virtual unsigned long size() const noexcept = 0;
 
     // resize. allocates new storage and copies in existing values
     virtual void resize(unsigned long i) = 0;
@@ -115,7 +114,7 @@ public:
     virtual void reserve(unsigned long i) = 0;
 
     // free all the internal data
-    virtual void clear() TECA_NOEXCEPT = 0;
+    virtual void clear() noexcept = 0;
 
     // copy the contents from the other array.
     // an excpetion is thrown when no conversion
@@ -150,7 +149,7 @@ public:
     virtual void from_stream(std::ostream &s) = 0;
 
     // used for serialization
-    virtual unsigned int type_code() const TECA_NOEXCEPT = 0;
+    virtual unsigned int type_code() const noexcept = 0;
 
 private:
     // dispatch methods, each set/get above has a pair
@@ -264,7 +263,7 @@ public:
     TECA_VARIANT_ARRAY_STATIC_NEW(teca_variant_array_impl, T)
 
     // destruct
-    virtual ~teca_variant_array_impl() TECA_NOEXCEPT;
+    virtual ~teca_variant_array_impl() noexcept;
 
     // virtual constructor
     virtual p_teca_variant_array new_copy() const override;
@@ -332,7 +331,7 @@ public:
     void append(const U &val);
 
     // get the current size of the data
-    virtual unsigned long size() const TECA_NOEXCEPT override;
+    virtual unsigned long size() const noexcept override;
 
     // resize the data
     virtual void resize(unsigned long n) override;
@@ -342,7 +341,7 @@ public:
     virtual void reserve(unsigned long n) override;
 
     // clear the data
-    virtual void clear() TECA_NOEXCEPT override;
+    virtual void clear() noexcept override;
 
     // copy. This method is not virtual so that
     // string can be handled as a special case in
@@ -375,7 +374,7 @@ public:
 
 protected:
     // construct
-    teca_variant_array_impl() TECA_NOEXCEPT {}
+    teca_variant_array_impl() noexcept {}
 
     // construct with preallocated size
     teca_variant_array_impl(unsigned long n)
@@ -462,7 +461,7 @@ private:
         typename std::enable_if<pack_object_ptr<U>::value, U>::type* = 0);
 
     // for serializaztion
-    virtual unsigned int type_code() const TECA_NOEXCEPT override;
+    virtual unsigned int type_code() const noexcept override;
 private:
     std::vector<T> m_data;
 
@@ -781,7 +780,7 @@ void teca_variant_array::append_dispatch(const T &val,
 
 // --------------------------------------------------------------------------
 template<typename T>
-teca_variant_array_impl<T>::~teca_variant_array_impl() TECA_NOEXCEPT
+teca_variant_array_impl<T>::~teca_variant_array_impl() noexcept
 {
     this->clear();
 }
@@ -917,7 +916,7 @@ void teca_variant_array_impl<T>::append(const U &val)
 
 // --------------------------------------------------------------------------
 template<typename T>
-unsigned long teca_variant_array_impl<T>::size() const TECA_NOEXCEPT
+unsigned long teca_variant_array_impl<T>::size() const noexcept
 { return m_data.size(); }
 
 // --------------------------------------------------------------------------
@@ -943,7 +942,7 @@ void teca_variant_array_impl<T>::reserve(unsigned long n)
 
 // --------------------------------------------------------------------------
 template<typename T>
-void teca_variant_array_impl<T>::clear() TECA_NOEXCEPT
+void teca_variant_array_impl<T>::clear() noexcept
 {
     m_data.clear();
 }
@@ -1186,7 +1185,7 @@ struct teca_variant_array_new
 template <>                                         \
 struct teca_variant_array_code<T>                   \
 {                                                   \
-    static unsigned int get() TECA_NOEXCEPT         \
+    static unsigned int get() noexcept         \
     { return v; }                                   \
 };                                                  \
 template <>                                         \
@@ -1251,7 +1250,7 @@ struct teca_variant_array_factory
 
 // --------------------------------------------------------------------------
 template<typename T>
-unsigned int teca_variant_array_impl<T>::type_code() const TECA_NOEXCEPT
+unsigned int teca_variant_array_impl<T>::type_code() const noexcept
 {
     return teca_variant_array_code<T>::get();
 }
