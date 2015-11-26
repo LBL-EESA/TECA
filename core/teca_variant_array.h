@@ -110,7 +110,7 @@ public:
     // resize. allocates new storage and copies in existing values
     virtual void resize(unsigned long i) = 0;
 
-    // reservce. reserves the requested ammount of space with out
+    // reserve. reserves the requested ammount of space with out
     // constructing elements
     virtual void reserve(unsigned long i) = 0;
 
@@ -336,7 +336,7 @@ public:
 
     // resize the data
     virtual void resize(unsigned long n) override;
-    void resize(unsigned long n, T &val);
+    void resize(unsigned long n, const T &val);
 
     // reserve space
     virtual void reserve(unsigned long n) override;
@@ -929,7 +929,7 @@ void teca_variant_array_impl<T>::resize(unsigned long n)
 
 // --------------------------------------------------------------------------
 template<typename T>
-void teca_variant_array_impl<T>::resize(unsigned long n, T &val)
+void teca_variant_array_impl<T>::resize(unsigned long n, const T &val)
 {
     m_data.resize(n, val);
 }
