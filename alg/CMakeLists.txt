@@ -17,6 +17,7 @@ set(teca_alg_srcs
     teca_programmable_source.cxx
     teca_table_reduce.cxx
     teca_temporal_average.cxx
+    teca_vorticity.cxx
     )
 
 set(teca_alg_link)
