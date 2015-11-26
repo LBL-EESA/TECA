@@ -63,7 +63,7 @@ teca_metadata teca_cartesian_mesh_subset::get_output_metadata(
 {
 #ifdef TECA_DEBUG
     cerr << teca_parallel_id()
-        << "teca_cf_reader::get_output_metadata" << endl;
+        << "teca_cartesian_mesh_subset::get_output_metadata" << endl;
 #endif
     (void)port;
 
