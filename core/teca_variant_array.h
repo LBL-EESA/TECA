@@ -223,7 +223,6 @@ private:
 
 
 
-
 // tag for contiguous arrays, and objects that have
 // overrides in teca_binary_stream
 template<typename T>
@@ -1185,7 +1184,7 @@ struct teca_variant_array_new
 template <>                                         \
 struct teca_variant_array_code<T>                   \
 {                                                   \
-    static unsigned int get() noexcept         \
+    static unsigned int get() noexcept              \
     { return v; }                                   \
 };                                                  \
 template <>                                         \
