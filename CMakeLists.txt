@@ -67,6 +67,48 @@ else()
     message(STATUS "Boost fetaures -- not found. set BOOST_ROOT to enable.")
 endif()
 
+set(TECA_PYTHON_BINDING ON CACHE BOOL "Python binding")
+if (TECA_PYTHON_BINDING)
+    message(STATUS "Python binding -- enabled")
+    find_package(PythonInterp REQUIRED)
+    find_package(PythonLibs REQUIRED)
+    find_package(Numpy REQUIRED)
+    find_program(swig_cmd swig)
+    if (NOT swig_cmd)
+        message(WARNING "swig was not found, you won't be able to modify .i files")
+    endif()
+    function(wrap_swig input output)
+        if (swig_cmd)
+            add_custom_command(OUTPUT ${output}
+                COMMAND ${swig_cmd} -c++ -python
+                    -I${CMAKE_CURRENT_SOURCE_DIR}/../core
+                    -I${CMAKE_CURRENT_SOURCE_DIR}/../data
+                    -I${CMAKE_CURRENT_SOURCE_DIR}/../io
+                    -I${CMAKE_CURRENT_SOURCE_DIR}/../alg
+                    -o ${output}
+                    ${CMAKE_CURRENT_SOURCE_DIR}/${input}
+                DEPENDS ${input}
+                COMMENT "wrapping ${input}...")
+        endif()
+    endfunction()
+    function(teca_python_module mname)
+        set(extra_includes ${ARGV1})
+        include_directories(SYSTEM
+            ${PYTHON_INCLUDE_PATH} ${NUMPY_INCLUDE_DIR})
+        wrap_swig(py_${mname}.i py_${mname}.cxx ${extra_includes})
+        PYTHON_ADD_MODULE(_py_${mname}
+            ${CMAKE_CURRENT_BINARY_DIR}/py_${mname}.cxx)
+        target_link_libraries(_py_${mname} ${PYTHON_LIBRARIES} ${mname})
+        add_custom_command(TARGET _py_${mname} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+                py_${mname}.py ${CMAKE_CURRENT_BINARY_DIR}/../lib)
+        install(TARGETS _py_${mname} LIBRARY DESTINATION lib)
+        install(FILES py_${mname}.py DESTINATION lib)
+    endfunction()
+else()
+    message(STATUS "Python binding -- disabled")
+endif()
+
 # generaste global configuration
 configure_file(teca_config.h.in teca_config.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
