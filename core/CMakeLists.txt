@@ -56,3 +56,7 @@ install(EXPORT teca_core
     FILE teca_core.cmake
     EXPORT_LINK_INTERFACE_LIBRARIES
     )
+
+if (TECA_PYTHON_BINDING)
+    teca_python_module(teca_core)
+endif()
