@@ -80,7 +80,7 @@ if (TECA_PYTHON_BINDING)
     function(wrap_swig input output)
         if (swig_cmd)
             add_custom_command(OUTPUT ${output}
-                COMMAND ${swig_cmd} -c++ -python
+                COMMAND ${swig_cmd} -c++ -python -w341
                     -I${CMAKE_CURRENT_SOURCE_DIR}/../core
                     -I${CMAKE_CURRENT_SOURCE_DIR}/../data
                     -I${CMAKE_CURRENT_SOURCE_DIR}/../io
