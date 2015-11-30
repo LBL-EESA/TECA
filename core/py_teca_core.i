@@ -1,7 +1,9 @@
 %define MDOC
 "TECA core module
 
-TODO -- documentation
+The core module contains the pipeline and executive
+as well as metadata object, variant array and abstract
+datasets.
 "
 %enddef
 
