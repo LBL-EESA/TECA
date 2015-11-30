@@ -19,7 +19,9 @@ datasets.
 #include <Python.h>
 #include "teca_metadata.h"
 #include "teca_variant_array.h"
-#include "py_teca_core.h"
+#include "teca_py_object.h"
+#include "teca_py_sequence.h"
+#include "teca_py_array.h"
 %}
 
 %init %{
@@ -34,28 +36,27 @@ import_array();
 %ignore operator&(const teca_metadata &, const teca_metadata &);
 %ignore operator==(const teca_metadata &, const teca_metadata &);
 %ignore operator!=(const teca_metadata &, const teca_metadata &);
-%ignore teca_metadata::to_stream;
-%ignore teca_metadata::from_stream;
 %ignore teca_metadata::insert;
-%ignore teca_metadata::set;
-%ignore teca_metadata::get;
+%ignore teca_metadata::set; /* use __setitem__ instead */
+%ignore teca_metadata::get; /* use __getitem__ instead */
 %ignore teca_metadata::resize;
+%ignore teca_metadata::to_stream; /* TODO */
+%ignore teca_metadata::from_stream; /* TODO */
 %include "teca_metadata.h"
 %extend teca_metadata
 {
-    PyObject *__str__()
-    {
-        std::ostringstream oss;
-        self->to_stream(oss);
-        return PyString_FromString(oss.str().c_str());
-    }
+    PY_TECA_STR
 
+    /* pythonic insert: md['name'] = value */
     void __setitem__(const std::string &name, PyObject *value)
     {
+        /* the order matters here because strings are sequences
+           and we dont want to treat them that way. */
         p_teca_variant_array varr;
-        if ((varr = new_from_object(value))
-            || (varr = new_from_array(value))
-            || (varr = new_from_sequence(value)))
+        if ((varr = teca_py_object::new_copy(value))
+            || (varr = teca_py_array::new_copy(value))
+            || (varr = teca_py_sequence::new_copy(value)))
+            /* TODO copy in teca_metadata */
         {
             self->insert(name, varr);
             return;
@@ -64,6 +65,7 @@ import_array();
             "failed to insert %s", name.c_str());
     }
 
+    /* pythonic lookup: md['name'] */
     PyObject *__getitem__(const std::string &name)
     {
         p_teca_variant_array varr = self->get(name);
@@ -75,13 +77,13 @@ import_array();
                 size_t n_elem = varrt->size();
                 if (n_elem == 1)
                 {
-                    return cpp_py_object_tt<NT>::new_object(varrt->get(0));
+                    return teca_py_object::py_tt<NT>::new_object(varrt->get(0));
                 }
                 else
                 if (n_elem > 1)
                 {
                     return
-                    reinterpret_cast<PyObject*>(new_from_variant_array(varrt));
+                    reinterpret_cast<PyObject*>(teca_py_array::new_copy(varrt));
                 }
                 )
             else TEMPLATE_DISPATCH_CASE(const teca_variant_array_impl,
@@ -90,7 +92,7 @@ import_array();
                 size_t n_elem = varrt->size();
                 if (n_elem == 1)
                 {
-                    return cpp_py_object_tt<NT>::new_object(varrt->get(0));
+                    return teca_py_object::py_tt<NT>::new_object(varrt->get(0));
                 }
                 else
                 if (n_elem > 1)
@@ -99,7 +101,7 @@ import_array();
                     for (size_t i = 0; i < n_elem; ++i)
                     {
                         PyList_SET_ITEM(list, i,
-                            cpp_py_object_tt<NT>::new_object(varrt->get(i)));
+                            teca_py_object::py_tt<NT>::new_object(varrt->get(i)));
                     }
                     return list;
                 }
