@@ -21,24 +21,25 @@ CPP_T -- corresponding C++ type
 template <int numpy_code> struct cpp_tt
 {};
 
-#define cpp_tt_declare(CODE, CPP_T) \
-template <> struct cpp_tt<CODE>     \
-{                                   \
-    typedef CPP_T type;             \
+#define teca_py_array_cpp_tt_declare(CODE, CPP_T)   \
+template <> struct cpp_tt<CODE>                     \
+{                                                   \
+    typedef CPP_T type;                             \
 };
-cpp_tt_declare(NPY_BYTE, char)
-cpp_tt_declare(NPY_INT32, int)
-cpp_tt_declare(NPY_INT64, long long)
-cpp_tt_declare(NPY_UBYTE, unsigned char)
-cpp_tt_declare(NPY_UINT32, unsigned int)
-cpp_tt_declare(NPY_UINT64, unsigned long long)
-cpp_tt_declare(NPY_FLOAT, float)
-cpp_tt_declare(NPY_DOUBLE, double)
+teca_py_array_cpp_tt_declare(NPY_BYTE, char)
+teca_py_array_cpp_tt_declare(NPY_INT32, int)
+teca_py_array_cpp_tt_declare(NPY_INT64, long long)
+teca_py_array_cpp_tt_declare(NPY_UBYTE, unsigned char)
+teca_py_array_cpp_tt_declare(NPY_UINT32, unsigned int)
+teca_py_array_cpp_tt_declare(NPY_UINT64, unsigned long long)
+teca_py_array_cpp_tt_declare(NPY_FLOAT, float)
+teca_py_array_cpp_tt_declare(NPY_DOUBLE, double)
 
 
-/// numpy_tt -- traits class for working with PyArrayObject's
+/// numpy_tt - traits class for working with PyArrayObject's
 /**
-numpy_tt::code -- get the numpy enum given a C++ type.
+::code - get the numpy type enum given a C++ type.
+::is_type - return true if the PyArrayObject has the given type
 
 CODE -- numpy type enumeration
 CPP_T -- corresponding C++ type
@@ -46,188 +47,184 @@ CPP_T -- corresponding C++ type
 template <typename cpp_t> struct numpy_tt
 {};
 
-#define numpy_tt_declare(CODE, CPP_T)   \
-template <> struct numpy_tt<CPP_T>      \
-{                                       \
-    enum { code = CODE };               \
+#define teca_py_array_numpy_tt_declare(CODE, CPP_T) \
+template <> struct numpy_tt<CPP_T>                  \
+{                                                   \
+    enum { code = CODE };                           \
+    static bool is_type(PyArrayObject *arr)         \
+    { return PyArray_TYPE(arr) == CODE; }           \
 };
-numpy_tt_declare(NPY_BYTE, char)
-numpy_tt_declare(NPY_INT16, short)
-numpy_tt_declare(NPY_INT32, int)
-numpy_tt_declare(NPY_LONG, long)
-numpy_tt_declare(NPY_INT64, long long)
-numpy_tt_declare(NPY_UBYTE, unsigned char)
-numpy_tt_declare(NPY_UINT16, unsigned short)
-numpy_tt_declare(NPY_UINT32, unsigned int)
-numpy_tt_declare(NPY_ULONG, unsigned long)
-numpy_tt_declare(NPY_UINT64, unsigned long long)
-numpy_tt_declare(NPY_FLOAT, float)
-numpy_tt_declare(NPY_DOUBLE, double)
+teca_py_array_numpy_tt_declare(NPY_BYTE, char)
+teca_py_array_numpy_tt_declare(NPY_INT16, short)
+teca_py_array_numpy_tt_declare(NPY_INT32, int)
+teca_py_array_numpy_tt_declare(NPY_LONG, long)
+teca_py_array_numpy_tt_declare(NPY_INT64, long long)
+teca_py_array_numpy_tt_declare(NPY_UBYTE, unsigned char)
+teca_py_array_numpy_tt_declare(NPY_UINT16, unsigned short)
+teca_py_array_numpy_tt_declare(NPY_UINT32, unsigned int)
+teca_py_array_numpy_tt_declare(NPY_ULONG, unsigned long)
+teca_py_array_numpy_tt_declare(NPY_UINT64, unsigned long long)
+teca_py_array_numpy_tt_declare(NPY_FLOAT, float)
+teca_py_array_numpy_tt_declare(NPY_DOUBLE, double)
+
+
+// CPP_T - array type to match
+// OBJ - PyArrayObject* instance
+// CODE - code to execute on match
+#define TECA_PY_ARRAY_DISPATCH_CASE(CPP_T, OBJ, CODE)   \
+    if (teca_py_array::numpy_tt<CPP_T>::is_type(OBJ))   \
+    {                                                   \
+        using AT = CPP_T;                               \
+        CODE                                            \
+    }
+
+#define TECA_PY_ARRAY_DISPATCH(OBJ, CODE)                       \
+    TECA_PY_ARRAY_DISPATCH_CASE(float, OBJ, CODE)               \
+    TECA_PY_ARRAY_DISPATCH_CASE(double, OBJ, CODE)              \
+    TECA_PY_ARRAY_DISPATCH_CASE(int, OBJ, CODE)                 \
+    TECA_PY_ARRAY_DISPATCH_CASE(unsigned int, OBJ, CODE)        \
+    TECA_PY_ARRAY_DISPATCH_CASE(long, OBJ, CODE)                \
+    TECA_PY_ARRAY_DISPATCH_CASE(unsigned long, OBJ, CODE)       \
+    TECA_PY_ARRAY_DISPATCH_CASE(long long, OBJ, CODE)           \
+    TECA_PY_ARRAY_DISPATCH_CASE(unsigned long long, OBJ, CODE)  \
+    TECA_PY_ARRAY_DISPATCH_CASE(char, OBJ, CODE)                \
+    TECA_PY_ARRAY_DISPATCH_CASE(unsigned char, OBJ, CODE)
 
 // ****************************************************************************
-template <typename cpp_t>
-bool is_type(PyArrayObject *arr)
+bool append(teca_variant_array *varr, PyObject *obj)
 {
-    return PyArray_TYPE(arr) == numpy_tt<cpp_t>::code;
-}
+    // not an array
+    if (!PyArray_Check(obj))
+        return false;
 
-// ****************************************************************************
-template <typename cpp_t>
-bool append_t(p_teca_variant_array_impl<cpp_t> &varr, PyArrayObject *arr)
-{
+    PyArrayObject *arr = reinterpret_cast<PyArrayObject*>(obj);
+
+    // nothing to do.
     size_t n_elem = PyArray_SIZE(arr);
-    varr->resize(n_elem);
+    if (!n_elem)
+        return true;
 
-    PyObject *it = PyArray_IterNew(reinterpret_cast<PyObject*>(arr));
-    for (size_t i = 0; i < n_elem; ++i)
-    {
-        varr->append(*static_cast<cpp_t*>(PyArray_ITER_DATA(it)));
-        PyArray_ITER_NEXT(it);
-    }
-    Py_DECREF(it);
+    // append
+    TEMPLATE_DISPATCH(teca_variant_array_impl, varr,
+        TT *varrt = static_cast<TT*>(varr);
 
-    return true;
-}
-
-// ****************************************************************************
-template <typename cpp_t>
-int append(p_teca_variant_array_impl<cpp_t> &varr, PyObject *obj)
-{
-    if (PyArray_Check(obj))
-    {
-        PyArrayObject *arr = reinterpret_cast<PyArrayObject*>(obj);
-        if ((is_type<int>(arr) && append_t<int>(varr, arr))
-            || (is_type<float>(arr) && append_t<float>(varr, arr))
-            || (is_type<double>(arr) && append_t<double>(varr, arr))
-            || (is_type<char>(arr) && append_t<char>(varr, arr))
-            || (is_type<long>(arr) && append_t<long>(varr, arr))
-            || (is_type<long long>(arr) && append_t<long long>(varr, arr))
-            || (is_type<unsigned char>(arr) && append_t<unsigned char>(varr, arr))
-            || (is_type<unsigned int>(arr) && append_t<unsigned int>(varr, arr))
-            || (is_type<unsigned long>(arr) && append_t<unsigned long>(varr, arr))
-            || (is_type<unsigned long long>(arr) && append_t<unsigned long long>(varr, arr)))
-        {
-            // data was transfered!
+        TECA_PY_ARRAY_DISPATCH(arr,
+            PyObject *it = PyArray_IterNew(obj);
+            for (size_t i = 0; i < n_elem; ++i)
+            {
+                varrt->append(*static_cast<AT*>(PyArray_ITER_DATA(it)));
+                PyArray_ITER_NEXT(it);
+            }
+            Py_DECREF(it);
             return true;
-        }
-    }
-    // failed. probably user passed an unknown type
+            )
+        )
+
+    // unknown type
     return false;
 }
 
 // ****************************************************************************
-template <typename cpp_t>
-bool copy_t(p_teca_variant_array_impl<cpp_t> &varr, PyArrayObject *arr)
+bool copy(teca_variant_array *varr, PyObject *obj)
 {
+    // not an array
+    if (!PyArray_Check(obj))
+        return false;
+
+    PyArrayObject *arr = reinterpret_cast<PyArrayObject*>(obj);
+
+    // nothing to do.
     size_t n_elem = PyArray_SIZE(arr);
-    varr->resize(n_elem);
+    if (!n_elem)
+        return true;
 
-    PyObject *it = PyArray_IterNew(reinterpret_cast<PyObject*>(arr));
-    for (size_t i = 0; i < n_elem; ++i)
-    {
-        varr->get(i) = *static_cast<cpp_t*>(PyArray_ITER_DATA(it));
-        PyArray_ITER_NEXT(it);
-    }
-    Py_DECREF(it);
+    // copy
+    TEMPLATE_DISPATCH(teca_variant_array_impl, varr,
 
-    return true;
-}
+        TT *varrt = static_cast<TT*>(varr);
+        varrt->resize(n_elem);
 
-// ****************************************************************************
-template <typename cpp_t>
-int copy(p_teca_variant_array_impl<cpp_t> &varr, PyObject *obj)
-{
-    if (PyArray_Check(obj))
-    {
-        PyArrayObject *arr = reinterpret_cast<PyArrayObject*>(obj);
-        if ((is_type<int>(arr) && copy_t<int>(varr, arr))
-            || (is_type<float>(arr) && copy_t<float>(varr, arr))
-            || (is_type<double>(arr) && copy_t<double>(varr, arr))
-            || (is_type<char>(arr) && copy_t<char>(varr, arr))
-            || (is_type<long>(arr) && copy_t<long>(varr, arr))
-            || (is_type<long long>(arr) && copy_t<long long>(varr, arr))
-            || (is_type<unsigned char>(arr) && copy_t<unsigned char>(varr, arr))
-            || (is_type<unsigned int>(arr) && copy_t<unsigned int>(varr, arr))
-            || (is_type<unsigned long>(arr) && copy_t<unsigned long>(varr, arr))
-            || (is_type<unsigned long long>(arr) && copy_t<unsigned long long>(varr, arr)))
-        {
-            // copy was made!
+        TECA_PY_ARRAY_DISPATCH(arr,
+            PyObject *it = PyArray_IterNew(obj);
+            for (size_t i = 0; i < n_elem; ++i)
+            {
+                varrt->set(i, *static_cast<AT*>(PyArray_ITER_DATA(it)));
+                PyArray_ITER_NEXT(it);
+            }
+            Py_DECREF(it);
             return true;
-        }
-    }
-    // failed. probably user passed an unknown type
+            )
+        )
+
+    // unknown type
     return false;
 }
 
 // ****************************************************************************
-template <typename cpp_t>
-p_teca_variant_array new_copy_t(PyArrayObject *arr)
+p_teca_variant_array new_variant_array(PyObject *obj)
 {
-    size_t n_elem = PyArray_SIZE(arr);
+    // not an array
+    if (!PyArray_Check(obj))
+        return false;
 
-    p_teca_variant_array_impl<cpp_t> varr
-        = teca_variant_array_impl<cpp_t>::New(n_elem);
+    PyArrayObject *arr = reinterpret_cast<PyArrayObject*>(obj);
 
-    PyObject *it = PyArray_IterNew(reinterpret_cast<PyObject*>(arr));
-    for (size_t i = 0; i < n_elem; ++i)
-    {
-        varr->get(i) = *static_cast<cpp_t*>(PyArray_ITER_DATA(it));
-        PyArray_ITER_NEXT(it);
-    }
-    Py_DECREF(it);
+    // allocate and copy
+    TECA_PY_ARRAY_DISPATCH(arr,
+        size_t n_elem = PyArray_SIZE(arr);
 
-    return varr;
-}
+        p_teca_variant_array_impl<AT> varr
+             = teca_variant_array_impl<AT>::New(n_elem);
 
-// ****************************************************************************
-p_teca_variant_array new_copy(PyObject *obj)
-{
-    if (PyArray_Check(obj))
-    {
-        PyArrayObject *arr = reinterpret_cast<PyArrayObject*>(obj);
-        p_teca_variant_array varr;
-        if ((is_type<int>(arr) && (varr = new_copy_t<int>(arr)))
-            || (is_type<float>(arr) && (varr = new_copy_t<float>(arr)))
-            || (is_type<double>(arr) && (varr = new_copy_t<double>(arr)))
-            || (is_type<char>(arr) && (varr = new_copy_t<char>(arr)))
-            || (is_type<long>(arr) && (varr = new_copy_t<long>(arr)))
-            || (is_type<long long>(arr) && (varr = new_copy_t<long long>(arr)))
-            || (is_type<unsigned char>(arr) && (varr = new_copy_t<unsigned char>(arr)))
-            || (is_type<unsigned int>(arr) && (varr = new_copy_t<unsigned int>(arr)))
-            || (is_type<unsigned long>(arr) && (varr = new_copy_t<unsigned long>(arr)))
-            || (is_type<unsigned long long>(arr) && (varr = new_copy_t<unsigned long long>(arr))))
+        PyObject *it = PyArray_IterNew(obj);
+        for (size_t i = 0; i < n_elem; ++i)
         {
-            return varr;
+            varr->set(i, *static_cast<AT*>(PyArray_ITER_DATA(it)));
+            PyArray_ITER_NEXT(it);
         }
-    }
+        Py_DECREF(it);
+
+        return varr;
+        )
+
+    // unknown type
     return nullptr;
 }
 
 // ****************************************************************************
-template<typename cpp_t>
-PyArrayObject *new_copy(teca_variant_array_impl<cpp_t> *varr)
+template <typename NT>
+PyArrayObject *new_object(teca_variant_array_impl<NT> *varrt)
 {
     // allocate a buffer
-    npy_intp n_elem = varr->size();
-    size_t n_bytes = n_elem*sizeof(cpp_t);
-    cpp_t *mem = static_cast<cpp_t*>(malloc(n_bytes));
+    npy_intp n_elem = varrt->size();
+    size_t n_bytes = n_elem*sizeof(NT);
+    NT *mem = static_cast<NT*>(malloc(n_bytes));
     if (!mem)
     {
-        TECA_ERROR("malloc failed to allocate " << n_bytes << " bytes")
-        abort();
-        return NULL;
+        PyErr_Format(PyExc_RuntimeError,
+            "failed to allocate %lu bytes", n_bytes);
+        return nullptr;
     }
 
     // copy the data
-    memcpy(mem, varr->get(), n_bytes);
+    memcpy(mem, varrt->get(), n_bytes);
 
-    // transfer the buffer to a new numpy object
-    npy_intp dim[1] = {n_elem};
+    // put the buffer in to a new numpy object
     PyArrayObject *arr = reinterpret_cast<PyArrayObject*>(
-        PyArray_SimpleNewFromData(1, dim, numpy_tt<cpp_t>::code, mem));
+        PyArray_SimpleNewFromData(1, &n_elem, numpy_tt<NT>::code, mem));
     PyArray_ENABLEFLAGS(arr, NPY_ARRAY_OWNDATA);
 
     return arr;
+}
+
+// ****************************************************************************
+PyArrayObject *new_object(teca_variant_array *varr)
+{
+    TEMPLATE_DISPATCH(teca_variant_array_impl, varr,
+        TT *varrt = static_cast<TT*>(varr);
+        return new_object(varrt);
+        )
+    return nullptr;
 }
 };
 

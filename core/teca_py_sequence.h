@@ -6,157 +6,183 @@
 #include "teca_py_object.h"
 #include <Python.h>
 
+// this macro is used to build up dispatchers
+// PYT - type tag idnetifying the PyObject
+// SEQ - PySequence* instance
+// CODE - code to execute on match
+// ST - typedef coresponding to matching tag
+#define TECA_PY_SEQUENCE_DISPATCH_CASE(PYT, SEQ, CODE)  \
+    if (teca_py_sequence::is_type<PYT>(SEQ))            \
+    {                                                   \
+        using ST = PYT;                                 \
+        CODE                                            \
+    }
+
+// the macro dispatches for all the Python types
+#define TECA_PY_SEQUENCE_DISPATCH(SEQ, CODE)                \
+    TECA_PY_SEQUENCE_DISPATCH_CASE(bool, SEQ, CODE)         \
+    else TECA_PY_SEQUENCE_DISPATCH_CASE(int, SEQ, CODE)     \
+    else TECA_PY_SEQUENCE_DISPATCH_CASE(float, SEQ, CODE)   \
+    else TECA_PY_SEQUENCE_DISPATCH_CASE(char*, SEQ, CODE)   \
+    else TECA_PY_SEQUENCE_DISPATCH_CASE(long, SEQ, CODE)
+
+// this one just the numeric types
+#define TECA_PY_SEQUENCE_DISPATCH_NUM(SEQ, CODE)            \
+    TECA_PY_SEQUENCE_DISPATCH_CASE(int, SEQ, CODE)          \
+    else TECA_PY_SEQUENCE_DISPATCH_CASE(float, SEQ, CODE)   \
+    else TECA_PY_SEQUENCE_DISPATCH_CASE(long, SEQ, CODE)
+
+// this one just strings
+#define TECA_PY_SEQUENCE_DISPATCH_STR(SEQ, CODE)    \
+    TECA_PY_SEQUENCE_DISPATCH_CASE(char*, SEQ, CODE)
+
+
 namespace teca_py_sequence
 {
 // ****************************************************************************
 template <typename py_t>
 bool is_type(PyObject *seq)
 {
-    using py_object_tt = teca_py_object::cpp_tt<py_t>;
+    // nothing to do
+    long n_items = PySequence_Size(seq);
+    if (n_items < 1)
+        return false;
 
-    int n_items = static_cast<int>(PySequence_Size(seq));
-    if (n_items)
+    // all items must have same type and it must match
+    // the requested type
+    for (long i = 0; i < n_items; ++i)
     {
-        // all items in the sequence need to have the same type
-        for (int i = 0; i < n_items; ++i)
+        if (!teca_py_object::cpp_tt<py_t>::is_type(PySequence_GetItem(seq, i)))
         {
-            if (!py_object_tt::is_type(PySequence_GetItem(seq, i)))
-                return false;
+            if (i)
+            {
+                TECA_ERROR("Sequences with mixed types are not supported. "
+                    " Failed at element " <<  i)
+            }
+            return false;
         }
+    }
+
+    // sequence type matches
+    return true;
+}
+
+// ****************************************************************************
+bool append(teca_variant_array *va, PyObject *seq)
+{
+    // not a sequence
+    if (!PySequence_Check(seq) || PyString_Check(seq))
+        return false;
+
+    // nothing to do
+    long n_items = PySequence_Size(seq);
+    if (!n_items)
         return true;
-    }
-    // need at least one item to determine the sequence's type.
+
+    // append number objects
+    TEMPLATE_DISPATCH(teca_variant_array_impl, va,
+        TT *vat = static_cast<TT*>(va);
+        TECA_PY_SEQUENCE_DISPATCH_NUM(seq,
+            for (long i = 0; i < n_items; ++i)
+            {
+                vat->append(teca_py_object::cpp_tt<ST>::value(
+                    PySequence_GetItem(seq, i)));
+            }
+            return true;
+            )
+        )
+    // append strings
+    else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
+        std::string, va,
+        TT *vat = static_cast<TT*>(va);
+        TECA_PY_SEQUENCE_DISPATCH_STR(seq,
+            for (long i = 0; i < n_items; ++i)
+            {
+                vat->append(teca_py_object::cpp_tt<ST>::value(
+                    PySequence_GetItem(seq, i)));
+            }
+            return true;
+            )
+        )
+
+    // unknown type
     return false;
 }
 
 // ****************************************************************************
-template <typename py_t>
-bool append_t(
-    p_teca_variant_array_impl<typename teca_py_object::cpp_tt<py_t>::type> &va,
-    PyObject *seq)
+bool copy(teca_variant_array *va, PyObject *seq)
 {
-    using py_object_tt = teca_py_object::cpp_tt<py_t>;
+    // not a sequence
+    if (!PySequence_Check(seq) || PyString_Check(seq))
+        return false;
 
-    int n_items = static_cast<int>(PySequence_Size(seq));
-    va->resize(n_items);
+    // nothing to do
+    long n_items = PySequence_Size(seq);
+    if (!n_items)
+        return true;
 
-    for (int i = 0; i < n_items; ++i)
-        va->append(py_object_tt::value(PySequence_GetItem(seq, i)));
-
-    return true;
-}
-
-// ****************************************************************************
-template <typename py_t>
-bool append(
-    p_teca_variant_array_impl<typename teca_py_object::cpp_tt<py_t>::type> &va,
-    PyObject *seq)
-{
-    if (PySequence_Check(seq))
-    {
-        // nothing to do and not an error.
-        if (!PySequence_Size(seq))
+    // copy numeric types
+    TEMPLATE_DISPATCH(teca_variant_array_impl, va,
+        TT *vat = static_cast<TT*>(va);
+        TECA_PY_SEQUENCE_DISPATCH_NUM(seq,
+            vat->resize(n_items);
+            for (long i = 0; i < n_items; ++i)
+            {
+                vat->set(i, teca_py_object::cpp_tt<ST>::value(
+                    PySequence_GetItem(seq, i)));
+            }
             return true;
+            )
+        )
 
-        if ((is_type<int>(seq) && append_t<int>(va, seq))
-          || (is_type<float>(seq) && append_t<float>(va, seq))
-          || (is_type<long>(seq) && append_t<long>(va, seq))
-          || (is_type<char*>(seq) && append_t<char*>(va, seq))
-          || (is_type<bool>(seq) && append_t<bool>(va, seq)))
-        {
-            // made the copy
+    // copy strings
+    else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
+        std::string, va,
+        TT *vat = static_cast<TT*>(va);
+        TECA_PY_SEQUENCE_DISPATCH_STR(seq,
+            vat->resize(n_items);
+            for (long i = 0; i < n_items; ++i)
+            {
+                vat->set(i, teca_py_object::cpp_tt<ST>::value(
+                    PySequence_GetItem(seq, i)));
+            }
             return true;
-        }
-        // failed. probably user is passing in an
-        // unsupported type or a container with mixed types.
-        TECA_ERROR("Failed to transfer the sequence. "
-            "Sequences must have homogenious type.")
-    }
+            )
+        )
+
+    // unknown type
     return false;
 }
 
 // ****************************************************************************
-template <typename py_t>
-bool copy_t(
-    p_teca_variant_array_impl<typename teca_py_object::cpp_tt<py_t>::type> &va,
-    PyObject *seq)
+p_teca_variant_array new_variant_array(PyObject *seq)
 {
-    using py_object_tt = teca_py_object::cpp_tt<py_t>;
+    // not a sequence
+    if (!PySequence_Check(seq) || PyString_Check(seq))
+        return nullptr;
 
-    int n_items = static_cast<int>(PySequence_Size(seq));
-    va->resize(n_items);
+    // nothing to do
+    long n_items = PySequence_Size(seq);
+    if (!n_items)
+        return nullptr;
 
-    for (int i = 0; i < n_items; ++i)
-        va->get(i) = py_object_tt::value(PySequence_GetItem(seq, i));
+    // copy into a new array
+    TECA_PY_SEQUENCE_DISPATCH(seq,
+        long n_items = PySequence_Size(seq);
 
-    return true;
-}
+        p_teca_variant_array_impl<typename teca_py_object::cpp_tt<ST>::type> vat
+            = teca_variant_array_impl<typename teca_py_object::cpp_tt<ST>::type>::New(n_items);
 
-// ****************************************************************************
-template <typename py_t>
-bool copy(
-    p_teca_variant_array_impl<typename teca_py_object::cpp_tt<py_t>::type> &va,
-    PyObject *seq)
-{
-    if (PySequence_Check(seq))
-    {
-        // nothing to do and not an error.
-        if (!PySequence_Size(seq))
-            return true;
-
-        if ((is_type<int>(seq) && copy_t<int>(va, seq))
-          || (is_type<float>(seq) && copy_t<float>(va, seq))
-          || (is_type<long>(seq) && copy_t<long>(va, seq))
-          || (is_type<char*>(seq) && copy_t<char*>(va, seq))
-          || (is_type<bool>(seq) && copy_t<bool>(va, seq)))
+        for (long i = 0; i < n_items; ++i)
         {
-            // made the copy
-            return true;
+            vat->set(i, teca_py_object::cpp_tt<ST>::value(
+                PySequence_GetItem(seq, i)));
         }
-        // failed. probably user is passing in an
-        // unsupported type or a container with mixed types.
-        TECA_ERROR("Failed to transfer the sequence. "
-            "Sequence must have homogenious type.")
-    }
-    return false;
-}
 
-// ****************************************************************************
-template <typename py_t>
-p_teca_variant_array new_copy_t(PyObject *seq)
-{
-    using py_object_tt = teca_py_object::cpp_tt<py_t>;
+        return vat;
+        )
 
-    int n_items = static_cast<int>(PySequence_Size(seq));
-
-    p_teca_variant_array_impl<typename py_object_tt::type> va
-        = teca_variant_array_impl<typename py_object_tt::type>::New(n_items);
-
-    for (int i = 0; i < n_items; ++i)
-        va->get(i) = py_object_tt::value(PySequence_GetItem(seq, i));
-
-    return va;
-}
-
-// ****************************************************************************
-p_teca_variant_array new_copy(PyObject *seq)
-{
-    if (PySequence_Check(seq))
-    {
-        p_teca_variant_array va;
-        if ((is_type<int>(seq) && (va = new_copy_t<int>(seq)))
-          || (is_type<float>(seq) && (va = new_copy_t<float>(seq)))
-          || (is_type<long>(seq) && (va = new_copy_t<long>(seq)))
-          || (is_type<char*>(seq) && (va = new_copy_t<char*>(seq)))
-          || (is_type<bool>(seq) && (va = new_copy_t<bool>(seq))))
-        {
-            return va;
-        }
-        // failed to make the copy. probably user is passing in an
-        // unsupported type or a container with mixed types.
-        TECA_ERROR("Failed to transfer the sequence. "
-            "Sequences must be non-empty and have homogenious type.")
-    }
+    // unknown type
     return nullptr;
 }
 };
