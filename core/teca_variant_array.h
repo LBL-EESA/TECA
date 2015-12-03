@@ -472,7 +472,9 @@ private:
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
 #pragma GCC diagnostic ignored "-Wunused-local-typedefs"
 
-// tt<nt> - derived type
+// tt - derived container
+// nt - contained type
+// tt<nt> - complete derived type
 // p - base class pointer
 // body - code to execute
 #define TEMPLATE_DISPATCH_CASE(tt, nt, p, body) \
@@ -483,7 +485,9 @@ private:
         body                                    \
     }
 
-// tt<nt> - derived type
+// tt - derived container
+// nt - contained type
+// tt<nt> - complete derived type
 // p - base class pointer
 // i - id suffix
 // body - code to execute
@@ -495,7 +499,9 @@ private:
         body                                                \
     }
 
-// tt<nt> - derived type
+// tt - container
+// nt - class type
+// tt<nt> - complete derived type
 // p1 - base class pointer
 // p2 - const base class pointer
 // body - code to execute if p1 and p2's type match
@@ -513,8 +519,8 @@ private:
 
 // macro for helping downcast to POD types
 // don't add classes to this.
-// t - templated derived type
-// p - pointer
+// t - derived container type
+// p - pointer to base class
 // body - code to execute on match
 #define TEMPLATE_DISPATCH(t, p, body)                           \
     TEMPLATE_DISPATCH_CASE(t, float, p, body)                   \
@@ -541,7 +547,7 @@ private:
 // macro for helping downcast to POD types
 // don't add classes to this.
 // t - templated derived type
-// p - pointer
+// p - base class pointer
 // i - id for nesting
 // body - code to execute on match
 #define NESTED_TEMPLATE_DISPATCH(t, p, i, body)                           \
