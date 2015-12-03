@@ -58,5 +58,5 @@ install(EXPORT teca_core
     )
 
 if (TECA_PYTHON_BINDING)
-    teca_python_module(teca_core)
+    teca_python_module(core)
 endif()
