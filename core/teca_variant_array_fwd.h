@@ -1,8 +1,11 @@
 #ifndef teca_variant_array_fwd_h
 #define teca_variant_array_fwd_h
 
+#ifdef SWIG
+class teca_variant_array;
+template <typename T> class teca_variant_array_impl;
+#else
 #include <string>
-
 #include "teca_shared_object.h"
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_variant_array)
@@ -42,6 +45,7 @@ using const_p_teca_long_long_array = std::shared_ptr<teca_variant_array_impl<lon
 using teca_unsigned_long_long_array = teca_variant_array_impl<unsigned long long>;
 using p_teca_unsigned_long_long_array = std::shared_ptr<teca_variant_array_impl<unsigned long long>>;
 using const_p_teca_unsigned_long_long_array = std::shared_ptr<teca_variant_array_impl<unsigned long long>>;
+#endif
 
 // this is a convenience macro to be used to declare a static
 // New method that will be used to construct new objects in
@@ -49,27 +53,27 @@ using const_p_teca_unsigned_long_long_array = std::shared_ptr<teca_variant_array
 // with std C++11 shared pointer
 #define TECA_VARIANT_ARRAY_STATIC_NEW(T, t)                             \
                                                                         \
-static p_##T<t> New()                                                   \
+static std::shared_ptr<T<t>> New()                                      \
 {                                                                       \
-    return p_##T<t>(new T<t>);                                          \
+    return std::shared_ptr<T<t>>(new T<t>);                             \
 }                                                                       \
                                                                         \
-static p_##T<t> New(size_t n)                                           \
+static std::shared_ptr<T<t>> New(size_t n)                              \
 {                                                                       \
-    return p_##T<t>(new T<t>(n));                                       \
+    return std::shared_ptr<T<t>>(new T<t>(n));                          \
 }                                                                       \
                                                                         \
-static p_##T<t> New(size_t n, const t &v)                               \
+static std::shared_ptr<T<t>> New(size_t n, const t &v)                  \
 {                                                                       \
-    return p_##T<t>(new T<t>(n, v));                                    \
+    return std::shared_ptr<T<t>>(new T<t>(n, v));                       \
 }                                                                       \
                                                                         \
-static p_##T<t> New(const t *vals, size_t n)                            \
+static std::shared_ptr<T<t>> New(const t *vals, size_t n)               \
 {                                                                       \
-    return p_##T<t>(new T<t>(vals, n));                                 \
+    return std::shared_ptr<T<t>>(new T<t>(vals, n));                    \
 }                                                                       \
                                                                         \
-using enable_shared_from_this<teca_variant_array>::shared_from_this;    \
+using teca_variant_array::shared_from_this;                             \
                                                                         \
 std::shared_ptr<T> shared_from_this()                                   \
 {                                                                       \
@@ -80,5 +84,4 @@ std::shared_ptr<T const> shared_from_this() const                       \
 {                                                                       \
     return std::static_pointer_cast<T const>(shared_from_this());       \
 }
-
 #endif
