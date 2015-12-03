@@ -1,0 +1,71 @@
+from py_teca_core import *
+import numpy as np
+import sys
+
+def out(s):
+    sys.stderr.write(s)
+
+def start_sec(s):
+    out('checking '+s+'...\n')
+
+def end_sec(s):
+    out('checking '+s+'...ok\n\n')
+
+arrs = []
+
+
+start_sec('constructor')
+arrs.append(teca_double_array.New())
+arrs.append(teca_float_array.New())
+arrs.append(teca_char_array.New())
+arrs.append(teca_int_array.New())
+arrs.append(teca_long_long_array.New())
+end_sec('constructor')
+
+start_sec('set')
+for arr in arrs:
+    out('%s\n'%(str(type(arr))))
+    arr.resize(20)
+    for i in xrange(10):
+        arr[i] = int(i)
+    for i in xrange(10):
+        arr[i+10] = float(10 - i)
+end_sec('set')
+
+start_sec('append')
+for arr in arrs:
+    out('%s\n'%(str(type(arr))))
+    arr.append(42)
+    arr.append(3.14)
+    arr.append([70, 80, 90])
+    arr.append(np.array([3,2,1], dtype=np.float64))
+end_sec('append')
+
+start_sec('get')
+for arr in arrs:
+    out('%s\n'%(str(type(arr))))
+    for i in xrange(20):
+        out('%g '%(arr[i]))
+    out('\n')
+end_sec('get')
+
+start_sec('as_array')
+for arr in arrs:
+    out('%s\n'%(str(type(arr))))
+    out('%s\n'%(str(arr.as_array())))
+end_sec('as_array')
+
+start_sec('str')
+for arr in arrs:
+    out('%s\n'%(str(type(arr))))
+    out('%s\n'%(str(arr)))
+end_sec('str')
+
+start_sec('destructor')
+for arr in arrs:
+    out('%s\n'%(str(type(arr))))
+    del arr
+end_sec('destructor')
+
+
+

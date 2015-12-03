@@ -6,13 +6,12 @@ as well as metadata object, variant array and abstract
 datasets.
 "
 %enddef
-
-%module (docstring=MDOC) py_teca_core
+%module (docstring=MDOC) teca_py_core
 
 %{
 #define SWIG_FILE_WITH_INIT
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#define PY_ARRAY_UNIQUE_SYMBOL  PyArray_API_py_teca_core
+#define PY_ARRAY_UNIQUE_SYMBOL  PyArray_API_teca_py_core
 #include <numpy/arrayobject.h>
 #include <sstream>
 #include <vector>
@@ -28,6 +27,103 @@ datasets.
 import_array();
 %}
 
+%include "teca_py_common.i"
+%include "teca_py_shared_ptr.i"
+
+%ignore teca_variant_array::shared_from_this;
+%ignore std::enable_shared_from_this<teca_variant_array>;
+%shared_ptr(std::enable_shared_from_this<teca_variant_array>)
+%shared_ptr(teca_variant_array)
+%shared_ptr(teca_variant_array_impl<double>)
+%shared_ptr(teca_variant_array_impl<float>)
+%shared_ptr(teca_variant_array_impl<char>)
+%shared_ptr(teca_variant_array_impl<int>)
+%shared_ptr(teca_variant_array_impl<long long>)
+%shared_ptr(teca_variant_array_impl<unsigned char>)
+%shared_ptr(teca_variant_array_impl<unsigned int>)
+%shared_ptr(teca_variant_array_impl<unsigned long long>)
+%shared_ptr(teca_variant_array_impl<std::string>)
+class teca_variant_array;
+%template(teca_variant_array_base) std::enable_shared_from_this<teca_variant_array>;
+%include "teca_common.h"
+%include "teca_shared_object.h"
+%include "teca_variant_array_fwd.h"
+%ignore teca_variant_array::operator=;
+%ignore teca_variant_array_factory;
+%ignore teca_variant_array::append(const teca_variant_array &other);
+%ignore teca_variant_array::append(const const_p_teca_variant_array &other);
+%ignore copy(const teca_variant_array &other);
+%include "teca_variant_array.h"
+%template(teca_double_array) teca_variant_array_impl<double>;
+%template(teca_float_array) teca_variant_array_impl<float>;
+%template(teca_int_array) teca_variant_array_impl<char>;
+%template(teca_char_array) teca_variant_array_impl<int>;
+%template(teca_long_long_array) teca_variant_array_impl<long long>;
+%template(teca_unsigned_int_array) teca_variant_array_impl<unsigned char>;
+%template(teca_unsigned_char_array) teca_variant_array_impl<unsigned int>;
+%template(teca_unsigned_long_long_array) teca_variant_array_impl<unsigned long long>;
+
+
+/***************************************************************************/
+%extend teca_variant_array
+{
+    PY_TECA_STR()
+
+    void __setitem__(unsigned long i, PyObject *value)
+    {
+        if (teca_py_object::set(self, i, value))
+            return;
+
+        PyErr_Format(PyExc_TypeError,
+            "failed to set value at index %lu", i);
+    }
+
+    PyObject *__getitem__(unsigned long i)
+    {
+        TEMPLATE_DISPATCH(teca_variant_array_impl, self,
+            TT *varrt = static_cast<TT*>(self);
+            return teca_py_object::py_tt<NT>::new_object(varrt->get(i));
+            )
+        else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
+            std::string, self,
+            TT *varrt = static_cast<TT*>(self);
+            return teca_py_object::py_tt<NT>::new_object(varrt->get(i));
+            )
+
+        PyErr_Format(PyExc_TypeError,
+            "failed to set value at index %lu", i);
+        return nullptr;
+    }
+
+    PyObject *as_array()
+    {
+        return reinterpret_cast<PyObject*>(
+            teca_py_array::new_object(self));
+    }
+
+    void append(PyObject *obj)
+    {
+        if (teca_py_object::append(self, obj)
+            || teca_py_array::append(self, obj)
+            || teca_py_sequence::append(self, obj))
+            return;
+
+        PyErr_Format(PyExc_TypeError,
+            "Failed to convert value");
+    }
+
+    void copy(PyObject *obj)
+    {
+        if (teca_py_object::copy(self, obj)
+            || teca_py_array::copy(self, obj)
+            || teca_py_sequence::copy(self, obj))
+            return;
+
+        PyErr_Format(PyExc_TypeError,
+            "Failed to convert value");
+    }
+}
+
 /***************************************************************************/
 %include "std_string.i"
 %ignore teca_metadata::teca_metadata(teca_metadata &&);
@@ -40,133 +136,94 @@ import_array();
 %ignore teca_metadata::set; /* use __setitem__ instead */
 %ignore teca_metadata::get; /* use __getitem__ instead */
 %ignore teca_metadata::resize;
-%ignore teca_metadata::to_stream; /* TODO */
-%ignore teca_metadata::from_stream; /* TODO */
 %include "teca_metadata.h"
 %extend teca_metadata
 {
-    PY_TECA_STR
+    PY_TECA_STR()
 
     /* pythonic insert: md['name'] = value */
     void __setitem__(const std::string &name, PyObject *value)
     {
-        /* the order matters here because strings are sequences
-           and we dont want to treat them that way. */
         p_teca_variant_array varr;
-        if ((varr = teca_py_object::new_copy(value))
-            || (varr = teca_py_array::new_copy(value))
-            || (varr = teca_py_sequence::new_copy(value)))
-            /* TODO copy in teca_metadata */
+        if ((varr = teca_py_object::new_variant_array(value))
+            || (varr = teca_py_array::new_variant_array(value))
+            || (varr = teca_py_sequence::new_variant_array(value)))
         {
             self->insert(name, varr);
             return;
         }
-        PyErr_Format(PyExc_RuntimeError,
-            "failed to insert %s", name.c_str());
+
+        PyErr_Format(PyExc_TypeError,
+            "Failed to convert value for key \"%s\"", name.c_str());
     }
 
     /* pythonic lookup: md['name'] */
     PyObject *__getitem__(const std::string &name)
     {
         p_teca_variant_array varr = self->get(name);
-        if (varr)
+        if (!varr)
+        {
+            PyErr_Format(PyExc_KeyError,
+                "key \"%s\" not found", name.c_str());
+            return nullptr;
+        }
+
+        size_t n_elem = varr->size();
+        if (n_elem == 1)
         {
             TEMPLATE_DISPATCH(teca_variant_array_impl,
                 varr.get(),
                 TT *varrt = static_cast<TT*>(varr.get());
-                size_t n_elem = varrt->size();
-                if (n_elem == 1)
-                {
-                    return teca_py_object::py_tt<NT>::new_object(varrt->get(0));
-                }
-                else
-                if (n_elem > 1)
-                {
-                    return
-                    reinterpret_cast<PyObject*>(teca_py_array::new_copy(varrt));
-                }
+                return teca_py_object::py_tt<NT>::new_object(varrt->get(0));
                 )
             else TEMPLATE_DISPATCH_CASE(const teca_variant_array_impl,
                 std::string, varr.get(),
                 TT *varrt = static_cast<TT*>(varr.get());
-                size_t n_elem = varrt->size();
-                if (n_elem == 1)
-                {
-                    return teca_py_object::py_tt<NT>::new_object(varrt->get(0));
-                }
-                else
-                if (n_elem > 1)
-                {
-                    PyObject *list = PyList_New(n_elem);
-                    for (size_t i = 0; i < n_elem; ++i)
-                    {
-                        PyList_SET_ITEM(list, i,
-                            teca_py_object::py_tt<NT>::new_object(varrt->get(i)));
-                    }
-                    return list;
-                }
+                return teca_py_object::py_tt<NT>::new_object(varrt->get(0));
                 )
             else TEMPLATE_DISPATCH_CASE(const teca_variant_array_impl,
                 teca_metadata, varr.get(),
                 TT *varrt = static_cast<TT*>(varr.get());
-                size_t n_elem = varrt->size();
-                if (n_elem == 1)
-                {
-                    teca_metadata *md = new teca_metadata(varrt->get(0));
-                    return SWIG_NewPointerObj(SWIG_as_voidptr(md),
-                         SWIGTYPE_p_teca_metadata, SWIG_POINTER_NEW|0);
-                }
-                else
-                if (n_elem > 1)
-                {
-                    PyObject *list = PyList_New(n_elem);
-                    for (size_t i = 0; i < n_elem; ++i)
-                    {
-                        teca_metadata *md = new teca_metadata(varrt->get(i));
-                        PyList_SET_ITEM(list, i,
-                            SWIG_NewPointerObj(SWIG_as_voidptr(md),
-                                SWIGTYPE_p_teca_metadata, SWIG_POINTER_NEW|0));
-                    }
-                    return list;
-                }
+                teca_metadata *md = new teca_metadata(varrt->get(0));
+                return SWIG_NewPointerObj(SWIG_as_voidptr(md),
+                     SWIGTYPE_p_teca_metadata, SWIG_POINTER_NEW|0);
                 )
         }
-        return PyErr_Format(PyExc_KeyError,
-            "key \"%s\" not found", name.c_str());
+        else if (n_elem > 1)
+        {
+            TEMPLATE_DISPATCH(teca_variant_array_impl,
+                varr.get(),
+                TT *varrt = static_cast<TT*>(varr.get());
+                return reinterpret_cast<PyObject*>(
+                    teca_py_array::new_object(varrt));
+                )
+            else TEMPLATE_DISPATCH_CASE(const teca_variant_array_impl,
+                std::string, varr.get(),
+                TT *varrt = static_cast<TT*>(varr.get());
+                PyObject *list = PyList_New(n_elem);
+                for (size_t i = 0; i < n_elem; ++i)
+                {
+                    PyList_SET_ITEM(list, i,
+                        teca_py_object::py_tt<NT>::new_object(varrt->get(i)));
+                }
+                return list;
+                )
+            else TEMPLATE_DISPATCH_CASE(const teca_variant_array_impl,
+                teca_metadata, varr.get(),
+                TT *varrt = static_cast<TT*>(varr.get());
+                PyObject *list = PyList_New(n_elem);
+                for (size_t i = 0; i < n_elem; ++i)
+                {
+                    teca_metadata *md = new teca_metadata(varrt->get(i));
+                    PyList_SET_ITEM(list, i,
+                        SWIG_NewPointerObj(SWIG_as_voidptr(md),
+                            SWIGTYPE_p_teca_metadata, SWIG_POINTER_NEW|0));
+                }
+                return list;
+                )
+        }
+
+        return PyErr_Format(PyExc_TypeError,
+            "Failed to convert value for key \"%s\"", name.c_str());
     }
 }
-
-
-/*
- * teca_variant_array
- *
-%include <std_shared_ptr.i>
-%shared_ptr(teca_variant_array)
-%shared_ptr(teca_variant_array_impl<char>)
-%shared_ptr(teca_variant_array_impl<int>)
-%shared_ptr(teca_variant_array_impl<long long>)
-%shared_ptr(teca_variant_array_impl<float>)
-%shared_ptr(teca_variant_array_impl<double>)
-%inline{
-typedef std::shared_ptr<teca_variant_array> p_teca_variant_array;
-}
-%include "teca_common.h"
-%include "teca_shared_object.h"
-%include "teca_variant_array_fwd.h"
-%ignore teca_variant_array::operator=;
-%include "teca_variant_array.h"
-%template(teca_variant_array_char) teca_variant_array_impl<char>;
-%template(teca_variant_array_int) teca_variant_array_impl<int>;
-%template(teca_variant_array_int64) teca_variant_array_impl<long long>;
-%template(teca_variant_array_float) teca_variant_array_impl<float>;
-%template(teca_variant_array_double) teca_variant_array_impl<double>;
-%extend teca_variant_array
-{
-    const char *__str__()
-    {
-        static std::ostringstream oss;
-        oss.str("");
-        self->to_stream(oss);
-        return oss.str().c_str();
-    }
-}*/
