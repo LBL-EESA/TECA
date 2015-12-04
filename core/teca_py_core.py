@@ -102,6 +102,1320 @@ except AttributeError:
 
 _teca_py_core.SHARED_PTR_DISOWN_swigconstant(_teca_py_core)
 SHARED_PTR_DISOWN = _teca_py_core.SHARED_PTR_DISOWN
+class SwigPyIterator(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, SwigPyIterator, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, SwigPyIterator, name)
+
+    def __init__(self, *args, **kwargs):
+        raise AttributeError("No constructor defined - class is abstract")
+    __repr__ = _swig_repr
+    __swig_destroy__ = _teca_py_core.delete_SwigPyIterator
+    __del__ = lambda self: None
+
+    def value(self):
+        return _teca_py_core.SwigPyIterator_value(self)
+
+    def incr(self, n=1):
+        return _teca_py_core.SwigPyIterator_incr(self, n)
+
+    def decr(self, n=1):
+        return _teca_py_core.SwigPyIterator_decr(self, n)
+
+    def distance(self, x):
+        return _teca_py_core.SwigPyIterator_distance(self, x)
+
+    def equal(self, x):
+        return _teca_py_core.SwigPyIterator_equal(self, x)
+
+    def copy(self):
+        return _teca_py_core.SwigPyIterator_copy(self)
+
+    def next(self):
+        return _teca_py_core.SwigPyIterator_next(self)
+
+    def __next__(self):
+        return _teca_py_core.SwigPyIterator___next__(self)
+
+    def previous(self):
+        return _teca_py_core.SwigPyIterator_previous(self)
+
+    def advance(self, n):
+        return _teca_py_core.SwigPyIterator_advance(self, n)
+
+    def __eq__(self, x):
+        return _teca_py_core.SwigPyIterator___eq__(self, x)
+
+    def __ne__(self, x):
+        return _teca_py_core.SwigPyIterator___ne__(self, x)
+
+    def __iadd__(self, n):
+        return _teca_py_core.SwigPyIterator___iadd__(self, n)
+
+    def __isub__(self, n):
+        return _teca_py_core.SwigPyIterator___isub__(self, n)
+
+    def __add__(self, n):
+        return _teca_py_core.SwigPyIterator___add__(self, n)
+
+    def __sub__(self, *args):
+        return _teca_py_core.SwigPyIterator___sub__(self, *args)
+    def __iter__(self):
+        return self
+SwigPyIterator_swigregister = _teca_py_core.SwigPyIterator_swigregister
+SwigPyIterator_swigregister(SwigPyIterator)
+
+class std_vector_char(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, std_vector_char, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, std_vector_char, name)
+    __repr__ = _swig_repr
+
+    def iterator(self):
+        return _teca_py_core.std_vector_char_iterator(self)
+    def __iter__(self):
+        return self.iterator()
+
+    def __nonzero__(self):
+        return _teca_py_core.std_vector_char___nonzero__(self)
+
+    def __bool__(self):
+        return _teca_py_core.std_vector_char___bool__(self)
+
+    def __len__(self):
+        return _teca_py_core.std_vector_char___len__(self)
+
+    def pop(self):
+        return _teca_py_core.std_vector_char_pop(self)
+
+    def __getslice__(self, i, j):
+        return _teca_py_core.std_vector_char___getslice__(self, i, j)
+
+    def __setslice__(self, *args):
+        return _teca_py_core.std_vector_char___setslice__(self, *args)
+
+    def __delslice__(self, i, j):
+        return _teca_py_core.std_vector_char___delslice__(self, i, j)
+
+    def __delitem__(self, *args):
+        return _teca_py_core.std_vector_char___delitem__(self, *args)
+
+    def __getitem__(self, *args):
+        return _teca_py_core.std_vector_char___getitem__(self, *args)
+
+    def __setitem__(self, *args):
+        return _teca_py_core.std_vector_char___setitem__(self, *args)
+
+    def append(self, x):
+        return _teca_py_core.std_vector_char_append(self, x)
+
+    def empty(self):
+        return _teca_py_core.std_vector_char_empty(self)
+
+    def size(self):
+        return _teca_py_core.std_vector_char_size(self)
+
+    def clear(self):
+        return _teca_py_core.std_vector_char_clear(self)
+
+    def swap(self, v):
+        return _teca_py_core.std_vector_char_swap(self, v)
+
+    def get_allocator(self):
+        return _teca_py_core.std_vector_char_get_allocator(self)
+
+    def begin(self):
+        return _teca_py_core.std_vector_char_begin(self)
+
+    def end(self):
+        return _teca_py_core.std_vector_char_end(self)
+
+    def rbegin(self):
+        return _teca_py_core.std_vector_char_rbegin(self)
+
+    def rend(self):
+        return _teca_py_core.std_vector_char_rend(self)
+
+    def pop_back(self):
+        return _teca_py_core.std_vector_char_pop_back(self)
+
+    def erase(self, *args):
+        return _teca_py_core.std_vector_char_erase(self, *args)
+
+    def __init__(self, *args):
+        this = _teca_py_core.new_std_vector_char(*args)
+        try:
+            self.this.append(this)
+        except:
+            self.this = this
+
+    def push_back(self, x):
+        return _teca_py_core.std_vector_char_push_back(self, x)
+
+    def front(self):
+        return _teca_py_core.std_vector_char_front(self)
+
+    def back(self):
+        return _teca_py_core.std_vector_char_back(self)
+
+    def assign(self, n, x):
+        return _teca_py_core.std_vector_char_assign(self, n, x)
+
+    def resize(self, *args):
+        return _teca_py_core.std_vector_char_resize(self, *args)
+
+    def insert(self, *args):
+        return _teca_py_core.std_vector_char_insert(self, *args)
+
+    def reserve(self, n):
+        return _teca_py_core.std_vector_char_reserve(self, n)
+
+    def capacity(self):
+        return _teca_py_core.std_vector_char_capacity(self)
+    __swig_destroy__ = _teca_py_core.delete_std_vector_char
+    __del__ = lambda self: None
+std_vector_char_swigregister = _teca_py_core.std_vector_char_swigregister
+std_vector_char_swigregister(std_vector_char)
+
+class std_vector_uchar(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, std_vector_uchar, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, std_vector_uchar, name)
+    __repr__ = _swig_repr
+
+    def iterator(self):
+        return _teca_py_core.std_vector_uchar_iterator(self)
+    def __iter__(self):
+        return self.iterator()
+
+    def __nonzero__(self):
+        return _teca_py_core.std_vector_uchar___nonzero__(self)
+
+    def __bool__(self):
+        return _teca_py_core.std_vector_uchar___bool__(self)
+
+    def __len__(self):
+        return _teca_py_core.std_vector_uchar___len__(self)
+
+    def pop(self):
+        return _teca_py_core.std_vector_uchar_pop(self)
+
+    def __getslice__(self, i, j):
+        return _teca_py_core.std_vector_uchar___getslice__(self, i, j)
+
+    def __setslice__(self, *args):
+        return _teca_py_core.std_vector_uchar___setslice__(self, *args)
+
+    def __delslice__(self, i, j):
+        return _teca_py_core.std_vector_uchar___delslice__(self, i, j)
+
+    def __delitem__(self, *args):
+        return _teca_py_core.std_vector_uchar___delitem__(self, *args)
+
+    def __getitem__(self, *args):
+        return _teca_py_core.std_vector_uchar___getitem__(self, *args)
+
+    def __setitem__(self, *args):
+        return _teca_py_core.std_vector_uchar___setitem__(self, *args)
+
+    def append(self, x):
+        return _teca_py_core.std_vector_uchar_append(self, x)
+
+    def empty(self):
+        return _teca_py_core.std_vector_uchar_empty(self)
+
+    def size(self):
+        return _teca_py_core.std_vector_uchar_size(self)
+
+    def clear(self):
+        return _teca_py_core.std_vector_uchar_clear(self)
+
+    def swap(self, v):
+        return _teca_py_core.std_vector_uchar_swap(self, v)
+
+    def get_allocator(self):
+        return _teca_py_core.std_vector_uchar_get_allocator(self)
+
+    def begin(self):
+        return _teca_py_core.std_vector_uchar_begin(self)
+
+    def end(self):
+        return _teca_py_core.std_vector_uchar_end(self)
+
+    def rbegin(self):
+        return _teca_py_core.std_vector_uchar_rbegin(self)
+
+    def rend(self):
+        return _teca_py_core.std_vector_uchar_rend(self)
+
+    def pop_back(self):
+        return _teca_py_core.std_vector_uchar_pop_back(self)
+
+    def erase(self, *args):
+        return _teca_py_core.std_vector_uchar_erase(self, *args)
+
+    def __init__(self, *args):
+        this = _teca_py_core.new_std_vector_uchar(*args)
+        try:
+            self.this.append(this)
+        except:
+            self.this = this
+
+    def push_back(self, x):
+        return _teca_py_core.std_vector_uchar_push_back(self, x)
+
+    def front(self):
+        return _teca_py_core.std_vector_uchar_front(self)
+
+    def back(self):
+        return _teca_py_core.std_vector_uchar_back(self)
+
+    def assign(self, n, x):
+        return _teca_py_core.std_vector_uchar_assign(self, n, x)
+
+    def resize(self, *args):
+        return _teca_py_core.std_vector_uchar_resize(self, *args)
+
+    def insert(self, *args):
+        return _teca_py_core.std_vector_uchar_insert(self, *args)
+
+    def reserve(self, n):
+        return _teca_py_core.std_vector_uchar_reserve(self, n)
+
+    def capacity(self):
+        return _teca_py_core.std_vector_uchar_capacity(self)
+    __swig_destroy__ = _teca_py_core.delete_std_vector_uchar
+    __del__ = lambda self: None
+std_vector_uchar_swigregister = _teca_py_core.std_vector_uchar_swigregister
+std_vector_uchar_swigregister(std_vector_uchar)
+
+class std_vector_int(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, std_vector_int, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, std_vector_int, name)
+    __repr__ = _swig_repr
+
+    def iterator(self):
+        return _teca_py_core.std_vector_int_iterator(self)
+    def __iter__(self):
+        return self.iterator()
+
+    def __nonzero__(self):
+        return _teca_py_core.std_vector_int___nonzero__(self)
+
+    def __bool__(self):
+        return _teca_py_core.std_vector_int___bool__(self)
+
+    def __len__(self):
+        return _teca_py_core.std_vector_int___len__(self)
+
+    def pop(self):
+        return _teca_py_core.std_vector_int_pop(self)
+
+    def __getslice__(self, i, j):
+        return _teca_py_core.std_vector_int___getslice__(self, i, j)
+
+    def __setslice__(self, *args):
+        return _teca_py_core.std_vector_int___setslice__(self, *args)
+
+    def __delslice__(self, i, j):
+        return _teca_py_core.std_vector_int___delslice__(self, i, j)
+
+    def __delitem__(self, *args):
+        return _teca_py_core.std_vector_int___delitem__(self, *args)
+
+    def __getitem__(self, *args):
+        return _teca_py_core.std_vector_int___getitem__(self, *args)
+
+    def __setitem__(self, *args):
+        return _teca_py_core.std_vector_int___setitem__(self, *args)
+
+    def append(self, x):
+        return _teca_py_core.std_vector_int_append(self, x)
+
+    def empty(self):
+        return _teca_py_core.std_vector_int_empty(self)
+
+    def size(self):
+        return _teca_py_core.std_vector_int_size(self)
+
+    def clear(self):
+        return _teca_py_core.std_vector_int_clear(self)
+
+    def swap(self, v):
+        return _teca_py_core.std_vector_int_swap(self, v)
+
+    def get_allocator(self):
+        return _teca_py_core.std_vector_int_get_allocator(self)
+
+    def begin(self):
+        return _teca_py_core.std_vector_int_begin(self)
+
+    def end(self):
+        return _teca_py_core.std_vector_int_end(self)
+
+    def rbegin(self):
+        return _teca_py_core.std_vector_int_rbegin(self)
+
+    def rend(self):
+        return _teca_py_core.std_vector_int_rend(self)
+
+    def pop_back(self):
+        return _teca_py_core.std_vector_int_pop_back(self)
+
+    def erase(self, *args):
+        return _teca_py_core.std_vector_int_erase(self, *args)
+
+    def __init__(self, *args):
+        this = _teca_py_core.new_std_vector_int(*args)
+        try:
+            self.this.append(this)
+        except:
+            self.this = this
+
+    def push_back(self, x):
+        return _teca_py_core.std_vector_int_push_back(self, x)
+
+    def front(self):
+        return _teca_py_core.std_vector_int_front(self)
+
+    def back(self):
+        return _teca_py_core.std_vector_int_back(self)
+
+    def assign(self, n, x):
+        return _teca_py_core.std_vector_int_assign(self, n, x)
+
+    def resize(self, *args):
+        return _teca_py_core.std_vector_int_resize(self, *args)
+
+    def insert(self, *args):
+        return _teca_py_core.std_vector_int_insert(self, *args)
+
+    def reserve(self, n):
+        return _teca_py_core.std_vector_int_reserve(self, n)
+
+    def capacity(self):
+        return _teca_py_core.std_vector_int_capacity(self)
+    __swig_destroy__ = _teca_py_core.delete_std_vector_int
+    __del__ = lambda self: None
+std_vector_int_swigregister = _teca_py_core.std_vector_int_swigregister
+std_vector_int_swigregister(std_vector_int)
+
+class std_vector_uint(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, std_vector_uint, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, std_vector_uint, name)
+    __repr__ = _swig_repr
+
+    def iterator(self):
+        return _teca_py_core.std_vector_uint_iterator(self)
+    def __iter__(self):
+        return self.iterator()
+
+    def __nonzero__(self):
+        return _teca_py_core.std_vector_uint___nonzero__(self)
+
+    def __bool__(self):
+        return _teca_py_core.std_vector_uint___bool__(self)
+
+    def __len__(self):
+        return _teca_py_core.std_vector_uint___len__(self)
+
+    def pop(self):
+        return _teca_py_core.std_vector_uint_pop(self)
+
+    def __getslice__(self, i, j):
+        return _teca_py_core.std_vector_uint___getslice__(self, i, j)
+
+    def __setslice__(self, *args):
+        return _teca_py_core.std_vector_uint___setslice__(self, *args)
+
+    def __delslice__(self, i, j):
+        return _teca_py_core.std_vector_uint___delslice__(self, i, j)
+
+    def __delitem__(self, *args):
+        return _teca_py_core.std_vector_uint___delitem__(self, *args)
+
+    def __getitem__(self, *args):
+        return _teca_py_core.std_vector_uint___getitem__(self, *args)
+
+    def __setitem__(self, *args):
+        return _teca_py_core.std_vector_uint___setitem__(self, *args)
+
+    def append(self, x):
+        return _teca_py_core.std_vector_uint_append(self, x)
+
+    def empty(self):
+        return _teca_py_core.std_vector_uint_empty(self)
+
+    def size(self):
+        return _teca_py_core.std_vector_uint_size(self)
+
+    def clear(self):
+        return _teca_py_core.std_vector_uint_clear(self)
+
+    def swap(self, v):
+        return _teca_py_core.std_vector_uint_swap(self, v)
+
+    def get_allocator(self):
+        return _teca_py_core.std_vector_uint_get_allocator(self)
+
+    def begin(self):
+        return _teca_py_core.std_vector_uint_begin(self)
+
+    def end(self):
+        return _teca_py_core.std_vector_uint_end(self)
+
+    def rbegin(self):
+        return _teca_py_core.std_vector_uint_rbegin(self)
+
+    def rend(self):
+        return _teca_py_core.std_vector_uint_rend(self)
+
+    def pop_back(self):
+        return _teca_py_core.std_vector_uint_pop_back(self)
+
+    def erase(self, *args):
+        return _teca_py_core.std_vector_uint_erase(self, *args)
+
+    def __init__(self, *args):
+        this = _teca_py_core.new_std_vector_uint(*args)
+        try:
+            self.this.append(this)
+        except:
+            self.this = this
+
+    def push_back(self, x):
+        return _teca_py_core.std_vector_uint_push_back(self, x)
+
+    def front(self):
+        return _teca_py_core.std_vector_uint_front(self)
+
+    def back(self):
+        return _teca_py_core.std_vector_uint_back(self)
+
+    def assign(self, n, x):
+        return _teca_py_core.std_vector_uint_assign(self, n, x)
+
+    def resize(self, *args):
+        return _teca_py_core.std_vector_uint_resize(self, *args)
+
+    def insert(self, *args):
+        return _teca_py_core.std_vector_uint_insert(self, *args)
+
+    def reserve(self, n):
+        return _teca_py_core.std_vector_uint_reserve(self, n)
+
+    def capacity(self):
+        return _teca_py_core.std_vector_uint_capacity(self)
+    __swig_destroy__ = _teca_py_core.delete_std_vector_uint
+    __del__ = lambda self: None
+std_vector_uint_swigregister = _teca_py_core.std_vector_uint_swigregister
+std_vector_uint_swigregister(std_vector_uint)
+
+class std_vector_long_long(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, std_vector_long_long, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, std_vector_long_long, name)
+    __repr__ = _swig_repr
+
+    def iterator(self):
+        return _teca_py_core.std_vector_long_long_iterator(self)
+    def __iter__(self):
+        return self.iterator()
+
+    def __nonzero__(self):
+        return _teca_py_core.std_vector_long_long___nonzero__(self)
+
+    def __bool__(self):
+        return _teca_py_core.std_vector_long_long___bool__(self)
+
+    def __len__(self):
+        return _teca_py_core.std_vector_long_long___len__(self)
+
+    def pop(self):
+        return _teca_py_core.std_vector_long_long_pop(self)
+
+    def __getslice__(self, i, j):
+        return _teca_py_core.std_vector_long_long___getslice__(self, i, j)
+
+    def __setslice__(self, *args):
+        return _teca_py_core.std_vector_long_long___setslice__(self, *args)
+
+    def __delslice__(self, i, j):
+        return _teca_py_core.std_vector_long_long___delslice__(self, i, j)
+
+    def __delitem__(self, *args):
+        return _teca_py_core.std_vector_long_long___delitem__(self, *args)
+
+    def __getitem__(self, *args):
+        return _teca_py_core.std_vector_long_long___getitem__(self, *args)
+
+    def __setitem__(self, *args):
+        return _teca_py_core.std_vector_long_long___setitem__(self, *args)
+
+    def append(self, x):
+        return _teca_py_core.std_vector_long_long_append(self, x)
+
+    def empty(self):
+        return _teca_py_core.std_vector_long_long_empty(self)
+
+    def size(self):
+        return _teca_py_core.std_vector_long_long_size(self)
+
+    def clear(self):
+        return _teca_py_core.std_vector_long_long_clear(self)
+
+    def swap(self, v):
+        return _teca_py_core.std_vector_long_long_swap(self, v)
+
+    def get_allocator(self):
+        return _teca_py_core.std_vector_long_long_get_allocator(self)
+
+    def begin(self):
+        return _teca_py_core.std_vector_long_long_begin(self)
+
+    def end(self):
+        return _teca_py_core.std_vector_long_long_end(self)
+
+    def rbegin(self):
+        return _teca_py_core.std_vector_long_long_rbegin(self)
+
+    def rend(self):
+        return _teca_py_core.std_vector_long_long_rend(self)
+
+    def pop_back(self):
+        return _teca_py_core.std_vector_long_long_pop_back(self)
+
+    def erase(self, *args):
+        return _teca_py_core.std_vector_long_long_erase(self, *args)
+
+    def __init__(self, *args):
+        this = _teca_py_core.new_std_vector_long_long(*args)
+        try:
+            self.this.append(this)
+        except:
+            self.this = this
+
+    def push_back(self, x):
+        return _teca_py_core.std_vector_long_long_push_back(self, x)
+
+    def front(self):
+        return _teca_py_core.std_vector_long_long_front(self)
+
+    def back(self):
+        return _teca_py_core.std_vector_long_long_back(self)
+
+    def assign(self, n, x):
+        return _teca_py_core.std_vector_long_long_assign(self, n, x)
+
+    def resize(self, *args):
+        return _teca_py_core.std_vector_long_long_resize(self, *args)
+
+    def insert(self, *args):
+        return _teca_py_core.std_vector_long_long_insert(self, *args)
+
+    def reserve(self, n):
+        return _teca_py_core.std_vector_long_long_reserve(self, n)
+
+    def capacity(self):
+        return _teca_py_core.std_vector_long_long_capacity(self)
+    __swig_destroy__ = _teca_py_core.delete_std_vector_long_long
+    __del__ = lambda self: None
+std_vector_long_long_swigregister = _teca_py_core.std_vector_long_long_swigregister
+std_vector_long_long_swigregister(std_vector_long_long)
+
+class std_vector_ulong_long(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, std_vector_ulong_long, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, std_vector_ulong_long, name)
+    __repr__ = _swig_repr
+
+    def iterator(self):
+        return _teca_py_core.std_vector_ulong_long_iterator(self)
+    def __iter__(self):
+        return self.iterator()
+
+    def __nonzero__(self):
+        return _teca_py_core.std_vector_ulong_long___nonzero__(self)
+
+    def __bool__(self):
+        return _teca_py_core.std_vector_ulong_long___bool__(self)
+
+    def __len__(self):
+        return _teca_py_core.std_vector_ulong_long___len__(self)
+
+    def pop(self):
+        return _teca_py_core.std_vector_ulong_long_pop(self)
+
+    def __getslice__(self, i, j):
+        return _teca_py_core.std_vector_ulong_long___getslice__(self, i, j)
+
+    def __setslice__(self, *args):
+        return _teca_py_core.std_vector_ulong_long___setslice__(self, *args)
+
+    def __delslice__(self, i, j):
+        return _teca_py_core.std_vector_ulong_long___delslice__(self, i, j)
+
+    def __delitem__(self, *args):
+        return _teca_py_core.std_vector_ulong_long___delitem__(self, *args)
+
+    def __getitem__(self, *args):
+        return _teca_py_core.std_vector_ulong_long___getitem__(self, *args)
+
+    def __setitem__(self, *args):
+        return _teca_py_core.std_vector_ulong_long___setitem__(self, *args)
+
+    def append(self, x):
+        return _teca_py_core.std_vector_ulong_long_append(self, x)
+
+    def empty(self):
+        return _teca_py_core.std_vector_ulong_long_empty(self)
+
+    def size(self):
+        return _teca_py_core.std_vector_ulong_long_size(self)
+
+    def clear(self):
+        return _teca_py_core.std_vector_ulong_long_clear(self)
+
+    def swap(self, v):
+        return _teca_py_core.std_vector_ulong_long_swap(self, v)
+
+    def get_allocator(self):
+        return _teca_py_core.std_vector_ulong_long_get_allocator(self)
+
+    def begin(self):
+        return _teca_py_core.std_vector_ulong_long_begin(self)
+
+    def end(self):
+        return _teca_py_core.std_vector_ulong_long_end(self)
+
+    def rbegin(self):
+        return _teca_py_core.std_vector_ulong_long_rbegin(self)
+
+    def rend(self):
+        return _teca_py_core.std_vector_ulong_long_rend(self)
+
+    def pop_back(self):
+        return _teca_py_core.std_vector_ulong_long_pop_back(self)
+
+    def erase(self, *args):
+        return _teca_py_core.std_vector_ulong_long_erase(self, *args)
+
+    def __init__(self, *args):
+        this = _teca_py_core.new_std_vector_ulong_long(*args)
+        try:
+            self.this.append(this)
+        except:
+            self.this = this
+
+    def push_back(self, x):
+        return _teca_py_core.std_vector_ulong_long_push_back(self, x)
+
+    def front(self):
+        return _teca_py_core.std_vector_ulong_long_front(self)
+
+    def back(self):
+        return _teca_py_core.std_vector_ulong_long_back(self)
+
+    def assign(self, n, x):
+        return _teca_py_core.std_vector_ulong_long_assign(self, n, x)
+
+    def resize(self, *args):
+        return _teca_py_core.std_vector_ulong_long_resize(self, *args)
+
+    def insert(self, *args):
+        return _teca_py_core.std_vector_ulong_long_insert(self, *args)
+
+    def reserve(self, n):
+        return _teca_py_core.std_vector_ulong_long_reserve(self, n)
+
+    def capacity(self):
+        return _teca_py_core.std_vector_ulong_long_capacity(self)
+    __swig_destroy__ = _teca_py_core.delete_std_vector_ulong_long
+    __del__ = lambda self: None
+std_vector_ulong_long_swigregister = _teca_py_core.std_vector_ulong_long_swigregister
+std_vector_ulong_long_swigregister(std_vector_ulong_long)
+
+class std_vector_float(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, std_vector_float, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, std_vector_float, name)
+    __repr__ = _swig_repr
+
+    def iterator(self):
+        return _teca_py_core.std_vector_float_iterator(self)
+    def __iter__(self):
+        return self.iterator()
+
+    def __nonzero__(self):
+        return _teca_py_core.std_vector_float___nonzero__(self)
+
+    def __bool__(self):
+        return _teca_py_core.std_vector_float___bool__(self)
+
+    def __len__(self):
+        return _teca_py_core.std_vector_float___len__(self)
+
+    def pop(self):
+        return _teca_py_core.std_vector_float_pop(self)
+
+    def __getslice__(self, i, j):
+        return _teca_py_core.std_vector_float___getslice__(self, i, j)
+
+    def __setslice__(self, *args):
+        return _teca_py_core.std_vector_float___setslice__(self, *args)
+
+    def __delslice__(self, i, j):
+        return _teca_py_core.std_vector_float___delslice__(self, i, j)
+
+    def __delitem__(self, *args):
+        return _teca_py_core.std_vector_float___delitem__(self, *args)
+
+    def __getitem__(self, *args):
+        return _teca_py_core.std_vector_float___getitem__(self, *args)
+
+    def __setitem__(self, *args):
+        return _teca_py_core.std_vector_float___setitem__(self, *args)
+
+    def append(self, x):
+        return _teca_py_core.std_vector_float_append(self, x)
+
+    def empty(self):
+        return _teca_py_core.std_vector_float_empty(self)
+
+    def size(self):
+        return _teca_py_core.std_vector_float_size(self)
+
+    def clear(self):
+        return _teca_py_core.std_vector_float_clear(self)
+
+    def swap(self, v):
+        return _teca_py_core.std_vector_float_swap(self, v)
+
+    def get_allocator(self):
+        return _teca_py_core.std_vector_float_get_allocator(self)
+
+    def begin(self):
+        return _teca_py_core.std_vector_float_begin(self)
+
+    def end(self):
+        return _teca_py_core.std_vector_float_end(self)
+
+    def rbegin(self):
+        return _teca_py_core.std_vector_float_rbegin(self)
+
+    def rend(self):
+        return _teca_py_core.std_vector_float_rend(self)
+
+    def pop_back(self):
+        return _teca_py_core.std_vector_float_pop_back(self)
+
+    def erase(self, *args):
+        return _teca_py_core.std_vector_float_erase(self, *args)
+
+    def __init__(self, *args):
+        this = _teca_py_core.new_std_vector_float(*args)
+        try:
+            self.this.append(this)
+        except:
+            self.this = this
+
+    def push_back(self, x):
+        return _teca_py_core.std_vector_float_push_back(self, x)
+
+    def front(self):
+        return _teca_py_core.std_vector_float_front(self)
+
+    def back(self):
+        return _teca_py_core.std_vector_float_back(self)
+
+    def assign(self, n, x):
+        return _teca_py_core.std_vector_float_assign(self, n, x)
+
+    def resize(self, *args):
+        return _teca_py_core.std_vector_float_resize(self, *args)
+
+    def insert(self, *args):
+        return _teca_py_core.std_vector_float_insert(self, *args)
+
+    def reserve(self, n):
+        return _teca_py_core.std_vector_float_reserve(self, n)
+
+    def capacity(self):
+        return _teca_py_core.std_vector_float_capacity(self)
+    __swig_destroy__ = _teca_py_core.delete_std_vector_float
+    __del__ = lambda self: None
+std_vector_float_swigregister = _teca_py_core.std_vector_float_swigregister
+std_vector_float_swigregister(std_vector_float)
+
+class std_vector_double(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, std_vector_double, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, std_vector_double, name)
+    __repr__ = _swig_repr
+
+    def iterator(self):
+        return _teca_py_core.std_vector_double_iterator(self)
+    def __iter__(self):
+        return self.iterator()
+
+    def __nonzero__(self):
+        return _teca_py_core.std_vector_double___nonzero__(self)
+
+    def __bool__(self):
+        return _teca_py_core.std_vector_double___bool__(self)
+
+    def __len__(self):
+        return _teca_py_core.std_vector_double___len__(self)
+
+    def pop(self):
+        return _teca_py_core.std_vector_double_pop(self)
+
+    def __getslice__(self, i, j):
+        return _teca_py_core.std_vector_double___getslice__(self, i, j)
+
+    def __setslice__(self, *args):
+        return _teca_py_core.std_vector_double___setslice__(self, *args)
+
+    def __delslice__(self, i, j):
+        return _teca_py_core.std_vector_double___delslice__(self, i, j)
+
+    def __delitem__(self, *args):
+        return _teca_py_core.std_vector_double___delitem__(self, *args)
+
+    def __getitem__(self, *args):
+        return _teca_py_core.std_vector_double___getitem__(self, *args)
+
+    def __setitem__(self, *args):
+        return _teca_py_core.std_vector_double___setitem__(self, *args)
+
+    def append(self, x):
+        return _teca_py_core.std_vector_double_append(self, x)
+
+    def empty(self):
+        return _teca_py_core.std_vector_double_empty(self)
+
+    def size(self):
+        return _teca_py_core.std_vector_double_size(self)
+
+    def clear(self):
+        return _teca_py_core.std_vector_double_clear(self)
+
+    def swap(self, v):
+        return _teca_py_core.std_vector_double_swap(self, v)
+
+    def get_allocator(self):
+        return _teca_py_core.std_vector_double_get_allocator(self)
+
+    def begin(self):
+        return _teca_py_core.std_vector_double_begin(self)
+
+    def end(self):
+        return _teca_py_core.std_vector_double_end(self)
+
+    def rbegin(self):
+        return _teca_py_core.std_vector_double_rbegin(self)
+
+    def rend(self):
+        return _teca_py_core.std_vector_double_rend(self)
+
+    def pop_back(self):
+        return _teca_py_core.std_vector_double_pop_back(self)
+
+    def erase(self, *args):
+        return _teca_py_core.std_vector_double_erase(self, *args)
+
+    def __init__(self, *args):
+        this = _teca_py_core.new_std_vector_double(*args)
+        try:
+            self.this.append(this)
+        except:
+            self.this = this
+
+    def push_back(self, x):
+        return _teca_py_core.std_vector_double_push_back(self, x)
+
+    def front(self):
+        return _teca_py_core.std_vector_double_front(self)
+
+    def back(self):
+        return _teca_py_core.std_vector_double_back(self)
+
+    def assign(self, n, x):
+        return _teca_py_core.std_vector_double_assign(self, n, x)
+
+    def resize(self, *args):
+        return _teca_py_core.std_vector_double_resize(self, *args)
+
+    def insert(self, *args):
+        return _teca_py_core.std_vector_double_insert(self, *args)
+
+    def reserve(self, n):
+        return _teca_py_core.std_vector_double_reserve(self, n)
+
+    def capacity(self):
+        return _teca_py_core.std_vector_double_capacity(self)
+    __swig_destroy__ = _teca_py_core.delete_std_vector_double
+    __del__ = lambda self: None
+std_vector_double_swigregister = _teca_py_core.std_vector_double_swigregister
+std_vector_double_swigregister(std_vector_double)
+
+class std_vector_string(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, std_vector_string, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, std_vector_string, name)
+    __repr__ = _swig_repr
+
+    def iterator(self):
+        return _teca_py_core.std_vector_string_iterator(self)
+    def __iter__(self):
+        return self.iterator()
+
+    def __nonzero__(self):
+        return _teca_py_core.std_vector_string___nonzero__(self)
+
+    def __bool__(self):
+        return _teca_py_core.std_vector_string___bool__(self)
+
+    def __len__(self):
+        return _teca_py_core.std_vector_string___len__(self)
+
+    def pop(self):
+        return _teca_py_core.std_vector_string_pop(self)
+
+    def __getslice__(self, i, j):
+        return _teca_py_core.std_vector_string___getslice__(self, i, j)
+
+    def __setslice__(self, *args):
+        return _teca_py_core.std_vector_string___setslice__(self, *args)
+
+    def __delslice__(self, i, j):
+        return _teca_py_core.std_vector_string___delslice__(self, i, j)
+
+    def __delitem__(self, *args):
+        return _teca_py_core.std_vector_string___delitem__(self, *args)
+
+    def __getitem__(self, *args):
+        return _teca_py_core.std_vector_string___getitem__(self, *args)
+
+    def __setitem__(self, *args):
+        return _teca_py_core.std_vector_string___setitem__(self, *args)
+
+    def append(self, x):
+        return _teca_py_core.std_vector_string_append(self, x)
+
+    def empty(self):
+        return _teca_py_core.std_vector_string_empty(self)
+
+    def size(self):
+        return _teca_py_core.std_vector_string_size(self)
+
+    def clear(self):
+        return _teca_py_core.std_vector_string_clear(self)
+
+    def swap(self, v):
+        return _teca_py_core.std_vector_string_swap(self, v)
+
+    def get_allocator(self):
+        return _teca_py_core.std_vector_string_get_allocator(self)
+
+    def begin(self):
+        return _teca_py_core.std_vector_string_begin(self)
+
+    def end(self):
+        return _teca_py_core.std_vector_string_end(self)
+
+    def rbegin(self):
+        return _teca_py_core.std_vector_string_rbegin(self)
+
+    def rend(self):
+        return _teca_py_core.std_vector_string_rend(self)
+
+    def pop_back(self):
+        return _teca_py_core.std_vector_string_pop_back(self)
+
+    def erase(self, *args):
+        return _teca_py_core.std_vector_string_erase(self, *args)
+
+    def __init__(self, *args):
+        this = _teca_py_core.new_std_vector_string(*args)
+        try:
+            self.this.append(this)
+        except:
+            self.this = this
+
+    def push_back(self, x):
+        return _teca_py_core.std_vector_string_push_back(self, x)
+
+    def front(self):
+        return _teca_py_core.std_vector_string_front(self)
+
+    def back(self):
+        return _teca_py_core.std_vector_string_back(self)
+
+    def assign(self, n, x):
+        return _teca_py_core.std_vector_string_assign(self, n, x)
+
+    def resize(self, *args):
+        return _teca_py_core.std_vector_string_resize(self, *args)
+
+    def insert(self, *args):
+        return _teca_py_core.std_vector_string_insert(self, *args)
+
+    def reserve(self, n):
+        return _teca_py_core.std_vector_string_reserve(self, n)
+
+    def capacity(self):
+        return _teca_py_core.std_vector_string_capacity(self)
+    __swig_destroy__ = _teca_py_core.delete_std_vector_string
+    __del__ = lambda self: None
+std_vector_string_swigregister = _teca_py_core.std_vector_string_swigregister
+std_vector_string_swigregister(std_vector_string)
+
+class teca_metadata(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, teca_metadata, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, teca_metadata, name)
+    __repr__ = _swig_repr
+    __swig_destroy__ = _teca_py_core.delete_teca_metadata
+    __del__ = lambda self: None
+
+    def __init__(self, *args):
+        this = _teca_py_core.new_teca_metadata(*args)
+        try:
+            self.this.append(this)
+        except:
+            self.this = this
+
+    def size(self, name, size):
+        return _teca_py_core.teca_metadata_size(self, name, size)
+
+    def resize(self, name, n):
+        return _teca_py_core.teca_metadata_resize(self, name, n)
+
+    def remove(self, name):
+        return _teca_py_core.teca_metadata_remove(self, name)
+
+    def clear(self):
+        return _teca_py_core.teca_metadata_clear(self)
+
+    def has(self, name):
+        return _teca_py_core.teca_metadata_has(self, name)
+
+    def empty(self):
+        return _teca_py_core.teca_metadata_empty(self)
+
+    def __nonzero__(self):
+        return _teca_py_core.teca_metadata___nonzero__(self)
+    __bool__ = __nonzero__
+
+
+
+    def to_stream(self, *args):
+        return _teca_py_core.teca_metadata_to_stream(self, *args)
+
+    def from_stream(self, *args):
+        return _teca_py_core.teca_metadata_from_stream(self, *args)
+
+    def __str__(self):
+        return _teca_py_core.teca_metadata___str__(self)
+
+    def __setitem__(self, name, value):
+        return _teca_py_core.teca_metadata___setitem__(self, name, value)
+
+    def __getitem__(self, name):
+        return _teca_py_core.teca_metadata___getitem__(self, name)
+teca_metadata_swigregister = _teca_py_core.teca_metadata_swigregister
+teca_metadata_swigregister(teca_metadata)
+
+class teca_algorithm_executive(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, teca_algorithm_executive, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, teca_algorithm_executive, name)
+
+    def __init__(self, *args, **kwargs):
+        raise AttributeError("No constructor defined")
+    __repr__ = _swig_repr
+    __swig_getmethods__["New"] = lambda x: _teca_py_core.teca_algorithm_executive_New
+    if _newclass:
+        New = staticmethod(_teca_py_core.teca_algorithm_executive_New)
+    __swig_destroy__ = _teca_py_core.delete_teca_algorithm_executive
+    __del__ = lambda self: None
+
+    def initialize(self, md):
+        return _teca_py_core.teca_algorithm_executive_initialize(self, md)
+
+    def get_next_request(self):
+        return _teca_py_core.teca_algorithm_executive_get_next_request(self)
+teca_algorithm_executive_swigregister = _teca_py_core.teca_algorithm_executive_swigregister
+teca_algorithm_executive_swigregister(teca_algorithm_executive)
+
+def teca_algorithm_executive_New():
+    return _teca_py_core.teca_algorithm_executive_New()
+teca_algorithm_executive_New = _teca_py_core.teca_algorithm_executive_New
+
+class teca_time_step_executive(teca_algorithm_executive):
+    __swig_setmethods__ = {}
+    for _s in [teca_algorithm_executive]:
+        __swig_setmethods__.update(getattr(_s, '__swig_setmethods__', {}))
+    __setattr__ = lambda self, name, value: _swig_setattr(self, teca_time_step_executive, name, value)
+    __swig_getmethods__ = {}
+    for _s in [teca_algorithm_executive]:
+        __swig_getmethods__.update(getattr(_s, '__swig_getmethods__', {}))
+    __getattr__ = lambda self, name: _swig_getattr(self, teca_time_step_executive, name)
+
+    def __init__(self, *args, **kwargs):
+        raise AttributeError("No constructor defined")
+    __repr__ = _swig_repr
+    __swig_getmethods__["New"] = lambda x: _teca_py_core.teca_time_step_executive_New
+    if _newclass:
+        New = staticmethod(_teca_py_core.teca_time_step_executive_New)
+
+    def initialize(self, md):
+        return _teca_py_core.teca_time_step_executive_initialize(self, md)
+
+    def get_next_request(self):
+        return _teca_py_core.teca_time_step_executive_get_next_request(self)
+
+    def set_step(self, s):
+        return _teca_py_core.teca_time_step_executive_set_step(self, s)
+
+    def set_first_step(self, s):
+        return _teca_py_core.teca_time_step_executive_set_first_step(self, s)
+
+    def set_last_step(self, s):
+        return _teca_py_core.teca_time_step_executive_set_last_step(self, s)
+
+    def set_stride(self, s):
+        return _teca_py_core.teca_time_step_executive_set_stride(self, s)
+
+    def set_extent(self, *args):
+        return _teca_py_core.teca_time_step_executive_set_extent(self, *args)
+
+    def set_arrays(self, arrays):
+        return _teca_py_core.teca_time_step_executive_set_arrays(self, arrays)
+    __swig_destroy__ = _teca_py_core.delete_teca_time_step_executive
+    __del__ = lambda self: None
+teca_time_step_executive_swigregister = _teca_py_core.teca_time_step_executive_swigregister
+teca_time_step_executive_swigregister(teca_time_step_executive)
+
+def teca_time_step_executive_New():
+    return _teca_py_core.teca_time_step_executive_New()
+teca_time_step_executive_New = _teca_py_core.teca_time_step_executive_New
+
+class teca_output_port_type(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, teca_output_port_type, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, teca_output_port_type, name)
+    __repr__ = _swig_repr
+
+    def __init__(self, *args):
+        this = _teca_py_core.new_teca_output_port_type(*args)
+        try:
+            self.this.append(this)
+        except:
+            self.this = this
+    __swig_setmethods__["first"] = _teca_py_core.teca_output_port_type_first_set
+    __swig_getmethods__["first"] = _teca_py_core.teca_output_port_type_first_get
+    if _newclass:
+        first = _swig_property(_teca_py_core.teca_output_port_type_first_get, _teca_py_core.teca_output_port_type_first_set)
+    __swig_setmethods__["second"] = _teca_py_core.teca_output_port_type_second_set
+    __swig_getmethods__["second"] = _teca_py_core.teca_output_port_type_second_get
+    if _newclass:
+        second = _swig_property(_teca_py_core.teca_output_port_type_second_get, _teca_py_core.teca_output_port_type_second_set)
+    def __len__(self):
+        return 2
+    def __repr__(self):
+        return str((self.first, self.second))
+    def __getitem__(self, index): 
+        if not (index % 2):
+            return self.first
+        else:
+            return self.second
+    def __setitem__(self, index, val):
+        if not (index % 2):
+            self.first = val
+        else:
+            self.second = val
+    __swig_destroy__ = _teca_py_core.delete_teca_output_port_type
+    __del__ = lambda self: None
+teca_output_port_type_swigregister = _teca_py_core.teca_output_port_type_swigregister
+teca_output_port_type_swigregister(teca_output_port_type)
+
+class teca_algorithm(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, teca_algorithm, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, teca_algorithm, name)
+
+    def __init__(self, *args, **kwargs):
+        raise AttributeError("No constructor defined")
+    __repr__ = _swig_repr
+    __swig_getmethods__["New"] = lambda x: _teca_py_core.teca_algorithm_New
+    if _newclass:
+        New = staticmethod(_teca_py_core.teca_algorithm_New)
+    __swig_destroy__ = _teca_py_core.delete_teca_algorithm
+    __del__ = lambda self: None
+
+    def get_output_port(self, port=0):
+        return _teca_py_core.teca_algorithm_get_output_port(self, port)
+
+    def set_input_connection(self, *args):
+        return _teca_py_core.teca_algorithm_set_input_connection(self, *args)
+
+    def remove_input_connection(self, id):
+        return _teca_py_core.teca_algorithm_remove_input_connection(self, id)
+
+    def clear_input_connections(self):
+        return _teca_py_core.teca_algorithm_clear_input_connections(self)
+
+    def get_output_data(self, port=0):
+        return _teca_py_core.teca_algorithm_get_output_data(self, port)
+
+    def pop_cache(self, port=0, top=0):
+        return _teca_py_core.teca_algorithm_pop_cache(self, port, top)
+
+    def set_cache_size(self, n):
+        return _teca_py_core.teca_algorithm_set_cache_size(self, n)
+
+    def update(self, *args):
+        return _teca_py_core.teca_algorithm_update(self, *args)
+
+    def update_metadata(self, port):
+        return _teca_py_core.teca_algorithm_update_metadata(self, port)
+
+    def set_executive(self, arg2):
+        return _teca_py_core.teca_algorithm_set_executive(self, arg2)
+
+    def get_executive(self):
+        return _teca_py_core.teca_algorithm_get_executive(self)
+
+    def to_stream(self, os):
+        return _teca_py_core.teca_algorithm_to_stream(self, os)
+
+    def from_stream(self, arg2):
+        return _teca_py_core.teca_algorithm_from_stream(self, arg2)
+teca_algorithm_swigregister = _teca_py_core.teca_algorithm_swigregister
+teca_algorithm_swigregister(teca_algorithm)
+
+def teca_algorithm_New():
+    return _teca_py_core.teca_algorithm_New()
+teca_algorithm_New = _teca_py_core.teca_algorithm_New
+
 class teca_variant_array(_object):
     __swig_setmethods__ = {}
     __setattr__ = lambda self, name, value: _swig_setattr(self, teca_variant_array, name, value)
@@ -665,60 +1979,6 @@ teca_unsigned_long_long_array_swigregister(teca_unsigned_long_long_array)
 def teca_unsigned_long_long_array_New(*args):
     return _teca_py_core.teca_unsigned_long_long_array_New(*args)
 teca_unsigned_long_long_array_New = _teca_py_core.teca_unsigned_long_long_array_New
-
-class teca_metadata(_object):
-    __swig_setmethods__ = {}
-    __setattr__ = lambda self, name, value: _swig_setattr(self, teca_metadata, name, value)
-    __swig_getmethods__ = {}
-    __getattr__ = lambda self, name: _swig_getattr(self, teca_metadata, name)
-    __repr__ = _swig_repr
-    __swig_destroy__ = _teca_py_core.delete_teca_metadata
-    __del__ = lambda self: None
-
-    def __init__(self, *args):
-        this = _teca_py_core.new_teca_metadata(*args)
-        try:
-            self.this.append(this)
-        except:
-            self.this = this
-
-    def size(self, name, size):
-        return _teca_py_core.teca_metadata_size(self, name, size)
-
-    def remove(self, name):
-        return _teca_py_core.teca_metadata_remove(self, name)
-
-    def clear(self):
-        return _teca_py_core.teca_metadata_clear(self)
-
-    def has(self, name):
-        return _teca_py_core.teca_metadata_has(self, name)
-
-    def empty(self):
-        return _teca_py_core.teca_metadata_empty(self)
-
-    def __nonzero__(self):
-        return _teca_py_core.teca_metadata___nonzero__(self)
-    __bool__ = __nonzero__
-
-
-
-    def to_stream(self, *args):
-        return _teca_py_core.teca_metadata_to_stream(self, *args)
-
-    def from_stream(self, *args):
-        return _teca_py_core.teca_metadata_from_stream(self, *args)
-
-    def __str__(self):
-        return _teca_py_core.teca_metadata___str__(self)
-
-    def __setitem__(self, name, value):
-        return _teca_py_core.teca_metadata___setitem__(self, name, value)
-
-    def __getitem__(self, name):
-        return _teca_py_core.teca_metadata___getitem__(self, name)
-teca_metadata_swigregister = _teca_py_core.teca_metadata_swigregister
-teca_metadata_swigregister(teca_metadata)
 
 # This file is compatible with both classic and new-style classes.
 

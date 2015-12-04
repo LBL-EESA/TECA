@@ -1,4 +1,4 @@
-%define MDOC
+%define TECA_PY_CORE_DOC
 "TECA core module
 
 The core module contains the pipeline and executive
@@ -6,7 +6,7 @@ as well as metadata object, variant array and abstract
 datasets.
 "
 %enddef
-%module (docstring=MDOC) teca_py_core
+%module (docstring=TECA_PY_CORE_DOC) teca_py_core
 
 %{
 #define SWIG_FILE_WITH_INIT
@@ -16,8 +16,13 @@ datasets.
 #include <sstream>
 #include <vector>
 #include <Python.h>
+
+#include "teca_algorithm_executive.h"
+#include "teca_time_step_executive.h"
 #include "teca_metadata.h"
+#include "teca_algorithm.h"
 #include "teca_variant_array.h"
+
 #include "teca_py_object.h"
 #include "teca_py_sequence.h"
 #include "teca_py_array.h"
@@ -29,103 +34,25 @@ import_array();
 
 %include "teca_py_common.i"
 %include "teca_py_shared_ptr.i"
+%include <std_string.i>
+%include <std_vector.i>
+%include <std_pair.i>
 
-%ignore teca_variant_array::shared_from_this;
-%ignore std::enable_shared_from_this<teca_variant_array>;
-%shared_ptr(std::enable_shared_from_this<teca_variant_array>)
-%shared_ptr(teca_variant_array)
-%shared_ptr(teca_variant_array_impl<double>)
-%shared_ptr(teca_variant_array_impl<float>)
-%shared_ptr(teca_variant_array_impl<char>)
-%shared_ptr(teca_variant_array_impl<int>)
-%shared_ptr(teca_variant_array_impl<long long>)
-%shared_ptr(teca_variant_array_impl<unsigned char>)
-%shared_ptr(teca_variant_array_impl<unsigned int>)
-%shared_ptr(teca_variant_array_impl<unsigned long long>)
-%shared_ptr(teca_variant_array_impl<std::string>)
-class teca_variant_array;
-%template(teca_variant_array_base) std::enable_shared_from_this<teca_variant_array>;
-%include "teca_common.h"
-%include "teca_shared_object.h"
-%include "teca_variant_array_fwd.h"
-%ignore teca_variant_array::operator=;
-%ignore teca_variant_array_factory;
-%ignore teca_variant_array::append(const teca_variant_array &other);
-%ignore teca_variant_array::append(const const_p_teca_variant_array &other);
-%ignore copy(const teca_variant_array &other);
-%include "teca_variant_array.h"
-%template(teca_double_array) teca_variant_array_impl<double>;
-%template(teca_float_array) teca_variant_array_impl<float>;
-%template(teca_int_array) teca_variant_array_impl<char>;
-%template(teca_char_array) teca_variant_array_impl<int>;
-%template(teca_long_long_array) teca_variant_array_impl<long long>;
-%template(teca_unsigned_int_array) teca_variant_array_impl<unsigned char>;
-%template(teca_unsigned_char_array) teca_variant_array_impl<unsigned int>;
-%template(teca_unsigned_long_long_array) teca_variant_array_impl<unsigned long long>;
+%template(std_vector_char) std::vector<char>;
+%template(std_vector_uchar) std::vector<unsigned char>;
+%template(std_vector_int) std::vector<int>;
+%template(std_vector_uint) std::vector<unsigned int>;
+%template(std_vector_long_long) std::vector<long long>;
+%template(std_vector_ulong_long) std::vector<unsigned long long>;
+%template(std_vector_float) std::vector<float>;
+%template(std_vector_double) std::vector<double>;
+%template(std_vector_string) std::vector<std::string>;
 
 
-/***************************************************************************/
-%extend teca_variant_array
-{
-    PY_TECA_STR()
 
-    void __setitem__(unsigned long i, PyObject *value)
-    {
-        if (teca_py_object::set(self, i, value))
-            return;
-
-        PyErr_Format(PyExc_TypeError,
-            "failed to set value at index %lu", i);
-    }
-
-    PyObject *__getitem__(unsigned long i)
-    {
-        TEMPLATE_DISPATCH(teca_variant_array_impl, self,
-            TT *varrt = static_cast<TT*>(self);
-            return teca_py_object::py_tt<NT>::new_object(varrt->get(i));
-            )
-        else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
-            std::string, self,
-            TT *varrt = static_cast<TT*>(self);
-            return teca_py_object::py_tt<NT>::new_object(varrt->get(i));
-            )
-
-        PyErr_Format(PyExc_TypeError,
-            "failed to set value at index %lu", i);
-        return nullptr;
-    }
-
-    PyObject *as_array()
-    {
-        return reinterpret_cast<PyObject*>(
-            teca_py_array::new_object(self));
-    }
-
-    void append(PyObject *obj)
-    {
-        if (teca_py_object::append(self, obj)
-            || teca_py_array::append(self, obj)
-            || teca_py_sequence::append(self, obj))
-            return;
-
-        PyErr_Format(PyExc_TypeError,
-            "Failed to convert value");
-    }
-
-    void copy(PyObject *obj)
-    {
-        if (teca_py_object::copy(self, obj)
-            || teca_py_array::copy(self, obj)
-            || teca_py_sequence::copy(self, obj))
-            return;
-
-        PyErr_Format(PyExc_TypeError,
-            "Failed to convert value");
-    }
-}
-
-/***************************************************************************/
-%include "std_string.i"
+/***************************************************************************
+ metadata
+ ***************************************************************************/
 %ignore teca_metadata::teca_metadata(teca_metadata &&);
 %ignore teca_metadata::operator=;
 %ignore operator<(const teca_metadata &, const teca_metadata &);
@@ -135,7 +62,6 @@ class teca_variant_array;
 %ignore teca_metadata::insert;
 %ignore teca_metadata::set; /* use __setitem__ instead */
 %ignore teca_metadata::get; /* use __getitem__ instead */
-%ignore teca_metadata::resize;
 %include "teca_metadata.h"
 %extend teca_metadata
 {
@@ -225,5 +151,139 @@ class teca_variant_array;
 
         return PyErr_Format(PyExc_TypeError,
             "Failed to convert value for key \"%s\"", name.c_str());
+    }
+}
+
+/***************************************************************************
+ algorithm_executive
+ ***************************************************************************/
+%ignore teca_algorithm_executive::shared_from_this;
+%ignore std::enable_shared_from_this<teca_algorithm_executive>;
+%shared_ptr(std::enable_shared_from_this<teca_algorithm_executive>)
+%shared_ptr(teca_algorithm_executive)
+class teca_algorithm_executive;
+%template(teca_algorithm_executive_base) std::enable_shared_from_this<teca_algorithm_executive>;
+%ignore teca_algorithm_executive::operator=;
+%include "teca_common.h"
+%include "teca_shared_object.h"
+%include "teca_algorithm_executive_fwd.h"
+%include "teca_algorithm_executive.h"
+
+/***************************************************************************
+ time_step_executive
+ ***************************************************************************/
+%ignore teca_time_step_executive::shared_from_this;
+%shared_ptr(teca_time_step_executive)
+%ignore teca_time_step_executive::operator=;
+%include "teca_time_step_executive.h"
+
+/***************************************************************************
+ algorithm
+ ***************************************************************************/
+%ignore teca_algorithm::shared_from_this;
+%ignore std::enable_shared_from_this<teca_algorithm>;
+%shared_ptr(std::enable_shared_from_this<teca_algorithm>)
+%shared_ptr(teca_algorithm)
+class teca_algorithm;
+%template(teca_algorithm_base) std::enable_shared_from_this<teca_algorithm>;
+typedef std::pair<std::shared_ptr<teca_algorithm>, unsigned int> teca_algorithm_output_port;
+%template(teca_output_port_type) std::pair<std::shared_ptr<teca_algorithm>, unsigned int>;
+%include "teca_common.h"
+%include "teca_shared_object.h"
+%include "teca_algorithm_fwd.h"
+%include "teca_program_options.h"
+%include "teca_algorithm.h"
+
+/***************************************************************************
+ variant_array
+ ***************************************************************************/
+%ignore teca_variant_array::shared_from_this;
+%ignore std::enable_shared_from_this<teca_variant_array>;
+%shared_ptr(std::enable_shared_from_this<teca_variant_array>)
+%shared_ptr(teca_variant_array)
+%shared_ptr(teca_variant_array_impl<double>)
+%shared_ptr(teca_variant_array_impl<float>)
+%shared_ptr(teca_variant_array_impl<char>)
+%shared_ptr(teca_variant_array_impl<int>)
+%shared_ptr(teca_variant_array_impl<long long>)
+%shared_ptr(teca_variant_array_impl<unsigned char>)
+%shared_ptr(teca_variant_array_impl<unsigned int>)
+%shared_ptr(teca_variant_array_impl<unsigned long long>)
+%shared_ptr(teca_variant_array_impl<std::string>)
+class teca_variant_array;
+%template(teca_variant_array_base) std::enable_shared_from_this<teca_variant_array>;
+%include "teca_common.h"
+%include "teca_shared_object.h"
+%include "teca_variant_array_fwd.h"
+%ignore teca_variant_array::operator=;
+%ignore teca_variant_array_factory;
+%ignore teca_variant_array::append(const teca_variant_array &other);
+%ignore teca_variant_array::append(const const_p_teca_variant_array &other);
+%ignore copy(const teca_variant_array &other);
+%include "teca_variant_array.h"
+%template(teca_double_array) teca_variant_array_impl<double>;
+%template(teca_float_array) teca_variant_array_impl<float>;
+%template(teca_int_array) teca_variant_array_impl<char>;
+%template(teca_char_array) teca_variant_array_impl<int>;
+%template(teca_long_long_array) teca_variant_array_impl<long long>;
+%template(teca_unsigned_int_array) teca_variant_array_impl<unsigned char>;
+%template(teca_unsigned_char_array) teca_variant_array_impl<unsigned int>;
+%template(teca_unsigned_long_long_array) teca_variant_array_impl<unsigned long long>;
+%extend teca_variant_array
+{
+    PY_TECA_STR()
+
+    void __setitem__(unsigned long i, PyObject *value)
+    {
+        if (teca_py_object::set(self, i, value))
+            return;
+
+        PyErr_Format(PyExc_TypeError,
+            "failed to set value at index %lu", i);
+    }
+
+    PyObject *__getitem__(unsigned long i)
+    {
+        TEMPLATE_DISPATCH(teca_variant_array_impl, self,
+            TT *varrt = static_cast<TT*>(self);
+            return teca_py_object::py_tt<NT>::new_object(varrt->get(i));
+            )
+        else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
+            std::string, self,
+            TT *varrt = static_cast<TT*>(self);
+            return teca_py_object::py_tt<NT>::new_object(varrt->get(i));
+            )
+
+        PyErr_Format(PyExc_TypeError,
+            "failed to set value at index %lu", i);
+        return nullptr;
+    }
+
+    PyObject *as_array()
+    {
+        return reinterpret_cast<PyObject*>(
+            teca_py_array::new_object(self));
+    }
+
+    void append(PyObject *obj)
+    {
+        if (teca_py_object::append(self, obj)
+            || teca_py_array::append(self, obj)
+            || teca_py_sequence::append(self, obj))
+            return;
+
+        PyErr_Format(PyExc_TypeError,
+            "Failed to convert value");
+    }
+
+    void copy(PyObject *obj)
+    {
+        if (teca_py_object::copy(self, obj)
+            || teca_py_array::copy(self, obj)
+            || teca_py_sequence::copy(self, obj))
+            return;
+
+        PyErr_Format(PyExc_TypeError,
+            "Failed to convert value");
     }
 }
