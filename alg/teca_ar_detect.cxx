@@ -26,7 +26,7 @@ using std::endl;
 #define TECA_DEBUG 0
 #if TECA_DEBUG > 0 && defined(TECA_HAS_VTK)
 #include "teca_vtk_cartesian_mesh_writer.h"
-#include "teca_programmable_source.h"
+#include "teca_programmable_algorithm.h"
 int write_mesh(
     const const_p_teca_cartesian_mesh &mesh,
     const const_p_teca_variant_array &vapor,
@@ -1407,10 +1407,11 @@ int write_mesh(
     pac->append("ccomp", std::const_pointer_cast<teca_variant_array>(ccomp));
     pac->append("lsmask", std::const_pointer_cast<teca_variant_array>(lsmask));
 
-    p_teca_programmable_source s = teca_programmable_source::New();
+    p_teca_programmable_algorithm s = teca_programmable_algorithm::New();
+    s->set_number_of_output_ports(1);
     s->set_execute_function(
-        [m] (const teca_metadata &) -> const_p_teca_dataset
-        { return m; }
+        [m] (unsigned int, const std::vector<teca_metadata> &,
+            const teca_metadata &) -> const_p_teca_dataset { return m; }
         );
 
     p_teca_vtk_cartesian_mesh_writer w

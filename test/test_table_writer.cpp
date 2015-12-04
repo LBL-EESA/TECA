@@ -1,6 +1,6 @@
 #include "teca_table.h"
 #include "teca_metadata.h"
-#include "teca_programmable_source.h"
+#include "teca_programmable_algorithm.h"
 #include "teca_table_writer.h"
 #include "teca_time_step_executive.h"
 
@@ -9,7 +9,8 @@ using namespace std;
 
 struct report
 {
-    teca_metadata operator()()
+    teca_metadata operator()
+        (unsigned int, const std::vector<teca_metadata> &)
     {
         teca_metadata md;
         md.insert("number_of_time_steps", long(4));
@@ -19,7 +20,9 @@ struct report
 
 struct execute
 {
-    const_p_teca_dataset operator()(const teca_metadata &req)
+    const_p_teca_dataset operator()
+        (unsigned int, const std::vector<const_p_teca_dataset> &,
+        const teca_metadata &req)
     {
         long step;
         if (req.get("time_step", step))
@@ -46,11 +49,10 @@ struct execute
     }
 };
 
-
-
 int main(int, char **)
 {
-    p_teca_programmable_source s = teca_programmable_source::New();
+    p_teca_programmable_algorithm s = teca_programmable_algorithm::New();
+    s->set_number_of_output_ports(1);
     s->set_report_function(report());
     s->set_execute_function(execute());
 

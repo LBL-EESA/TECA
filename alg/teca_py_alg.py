@@ -2046,6 +2046,56 @@ def teca_unsigned_long_long_array_New(*args):
     return _teca_py_alg.teca_unsigned_long_long_array_New(*args)
 teca_unsigned_long_long_array_New = _teca_py_alg.teca_unsigned_long_long_array_New
 
+class teca_dataset(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, teca_dataset, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, teca_dataset, name)
+
+    def __init__(self, *args, **kwargs):
+        raise AttributeError("No constructor defined - class is abstract")
+    __repr__ = _swig_repr
+    __swig_destroy__ = _teca_py_alg.delete_teca_dataset
+    __del__ = lambda self: None
+
+    def __nonzero__(self):
+        return _teca_py_alg.teca_dataset___nonzero__(self)
+    __bool__ = __nonzero__
+
+
+
+    def empty(self):
+        return _teca_py_alg.teca_dataset_empty(self)
+
+    def new_instance(self):
+        return _teca_py_alg.teca_dataset_new_instance(self)
+
+    def new_copy(self):
+        return _teca_py_alg.teca_dataset_new_copy(self)
+
+    def copy(self, other):
+        return _teca_py_alg.teca_dataset_copy(self, other)
+
+    def shallow_copy(self, other):
+        return _teca_py_alg.teca_dataset_shallow_copy(self, other)
+
+    def copy_metadata(self, other):
+        return _teca_py_alg.teca_dataset_copy_metadata(self, other)
+
+    def swap(self, other):
+        return _teca_py_alg.teca_dataset_swap(self, other)
+
+    def to_stream(self, *args):
+        return _teca_py_alg.teca_dataset_to_stream(self, *args)
+
+    def from_stream(self, *args):
+        return _teca_py_alg.teca_dataset_from_stream(self, *args)
+
+    def __str__(self):
+        return _teca_py_alg.teca_dataset___str__(self)
+teca_dataset_swigregister = _teca_py_alg.teca_dataset_swigregister
+teca_dataset_swigregister(teca_dataset)
+
 class teca_ar_detect(teca_algorithm):
     __swig_setmethods__ = {}
     for _s in [teca_algorithm]:
@@ -2426,6 +2476,37 @@ teca_vorticity_swigregister(teca_vorticity)
 def teca_vorticity_New():
     return _teca_py_alg.teca_vorticity_New()
 teca_vorticity_New = _teca_py_alg.teca_vorticity_New
+
+class teca_programmable_algorithm(teca_algorithm):
+    __swig_setmethods__ = {}
+    for _s in [teca_algorithm]:
+        __swig_setmethods__.update(getattr(_s, '__swig_setmethods__', {}))
+    __setattr__ = lambda self, name, value: _swig_setattr(self, teca_programmable_algorithm, name, value)
+    __swig_getmethods__ = {}
+    for _s in [teca_algorithm]:
+        __swig_getmethods__.update(getattr(_s, '__swig_getmethods__', {}))
+    __getattr__ = lambda self, name: _swig_getattr(self, teca_programmable_algorithm, name)
+
+    def __init__(self, *args, **kwargs):
+        raise AttributeError("No constructor defined")
+    __repr__ = _swig_repr
+    __swig_getmethods__["New"] = lambda x: _teca_py_alg.teca_programmable_algorithm_New
+    if _newclass:
+        New = staticmethod(_teca_py_alg.teca_programmable_algorithm_New)
+    __swig_destroy__ = _teca_py_alg.delete_teca_programmable_algorithm
+    __del__ = lambda self: None
+
+    def set_number_of_input_connections(self, n):
+        return _teca_py_alg.teca_programmable_algorithm_set_number_of_input_connections(self, n)
+
+    def set_number_of_output_ports(self, n):
+        return _teca_py_alg.teca_programmable_algorithm_set_number_of_output_ports(self, n)
+teca_programmable_algorithm_swigregister = _teca_py_alg.teca_programmable_algorithm_swigregister
+teca_programmable_algorithm_swigregister(teca_programmable_algorithm)
+
+def teca_programmable_algorithm_New():
+    return _teca_py_alg.teca_programmable_algorithm_New()
+teca_programmable_algorithm_New = _teca_py_alg.teca_programmable_algorithm_New
 
 # This file is compatible with both classic and new-style classes.
 

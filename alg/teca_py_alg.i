@@ -15,7 +15,7 @@ and detectors.
 #include "teca_cartesian_mesh_subset.h"
 #include "teca_cartesian_mesh_regrid.h"
 #include "teca_l2_norm.h"
-#include "teca_programmable_source.h"
+#include "teca_programmable_algorithm.h"
 #include "teca_table_reduce.h"
 #include "teca_temporal_average.h"
 #include "teca_vorticity.h"
@@ -83,3 +83,18 @@ and detectors.
 %shared_ptr(teca_vorticity)
 %ignore teca_vorticity::operator=;
 %include "teca_vorticity.h"
+
+/***************************************************************************
+ programmable_algorithm
+ ***************************************************************************/
+%ignore teca_programmable_algorithm::shared_from_this;
+%shared_ptr(teca_programmable_algorithm)
+%ignore teca_programmable_algorithm::operator=;
+%ignore teca_programmable_algorithm::set_report_function;
+%ignore teca_programmable_algorithm::get_report_function;
+%ignore teca_programmable_algorithm::set_request_function;
+%ignore teca_programmable_algorithm::get_request_function;
+%ignore teca_programmable_algorithm::set_execute_function;
+%ignore teca_programmable_algorithm::get_execute_function;
+%include "teca_programmable_algorithm_fwd.h"
+%include "teca_programmable_algorithm.h"

@@ -14,7 +14,7 @@ set(teca_alg_srcs
     teca_cartesian_mesh_subset.cxx
     teca_cartesian_mesh_regrid.cxx
     teca_l2_norm.cxx
-    teca_programmable_source.cxx
+    teca_programmable_algorithm.cxx
     teca_table_reduce.cxx
     teca_temporal_average.cxx
     teca_vorticity.cxx
