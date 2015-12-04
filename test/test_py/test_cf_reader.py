@@ -14,10 +14,6 @@ exe.set_last_step(-1)
 exe.set_arrays(['U850', 'V850'])
 
 wri = teca_vtk_cartesian_mesh_writer.New()
-
-print type(exe)
-print type(wri.get_executive())
-
 wri.set_input_connection(cfr.get_output_port())
 wri.set_executive(exe)
 wri.set_file_name('amip_run2_%t%.vtk')
