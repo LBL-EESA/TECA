@@ -57,3 +57,7 @@ install(EXPORT teca_alg
     FILE teca_alg.cmake
     EXPORT_LINK_INTERFACE_LIBRARIES
     )
+
+if (TECA_PYTHON_BINDING)
+    teca_python_module(alg)
+endif()
