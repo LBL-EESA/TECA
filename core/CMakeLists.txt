@@ -58,6 +58,5 @@ install(EXPORT teca_core
     )
 
 if (TECA_PYTHON_BINDING)
-    set(py_core_deps teca_metadata.h teca_variant_array.h)
-    teca_python_module(core ${py_core_deps})
+    teca_python_module(core)
 endif()
