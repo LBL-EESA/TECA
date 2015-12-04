@@ -24,8 +24,8 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // set the base file name. both time step and
-    // extension are appended.
+    // set the output filename. for time series the substring
+    // %t% is replaced with the current time step.
     TECA_ALGORITHM_PROPERTY(std::string, file_name)
 
 protected:
