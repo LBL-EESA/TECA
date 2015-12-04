@@ -3,7 +3,7 @@
 
 #include "teca_config.h"
 
-#if defined(TECA_HAS_BOOST)
+#if defined(TECA_HAS_BOOST) && !defined(SWIG)
 namespace boost
 {
     namespace program_options
