@@ -1,16 +1,13 @@
 #ifndef teca_variant_array_fwd_h
 #define teca_variant_array_fwd_h
 
-#ifdef SWIG
-class teca_variant_array;
-template <typename T> class teca_variant_array_impl;
-#else
 #include <string>
 #include "teca_shared_object.h"
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_variant_array)
 TECA_SHARED_OBJECT_TEMPLATE_FORWARD_DECL(teca_variant_array_impl)
 
+#ifndef SWIG
 // convenience defs for POD types
 using teca_string_array = teca_variant_array_impl<std::string>;
 using p_teca_string_array = std::shared_ptr<teca_variant_array_impl<std::string>>;
