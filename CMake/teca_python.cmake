@@ -5,6 +5,8 @@ function(wrap_swig input output)
         add_custom_command(
             OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${output}
             COMMAND ${swig_cmd} -c++ -python -w341 -DSWIG_TYPE_TABLE=teca_py
+                -I${CMAKE_CURRENT_BINARY_DIR}
+                -I${CMAKE_CURRENT_BINARY_DIR}/..
                 -I${CMAKE_CURRENT_SOURCE_DIR}/../core
                 -I${CMAKE_CURRENT_SOURCE_DIR}/../data
                 -I${CMAKE_CURRENT_SOURCE_DIR}/../io
