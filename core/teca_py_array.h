@@ -165,7 +165,7 @@ p_teca_variant_array new_variant_array(PyObject *obj)
 {
     // not an array
     if (!PyArray_Check(obj))
-        return false;
+        return nullptr;
 
     PyArrayObject *arr = reinterpret_cast<PyArrayObject*>(obj);
 
