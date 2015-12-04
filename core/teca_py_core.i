@@ -67,7 +67,7 @@ import_array();
 %include "teca_metadata.h"
 %extend teca_metadata
 {
-    PY_TECA_STR()
+    TECA_PY_STR()
 
     /* pythonic insert: md['name'] = value */
     void __setitem__(const std::string &name, PyObject *value)
@@ -249,7 +249,7 @@ class teca_variant_array;
 %template(teca_unsigned_long_long_array) teca_variant_array_impl<unsigned long long>;
 %extend teca_variant_array
 {
-    PY_TECA_STR()
+    TECA_PY_STR()
 
     void __setitem__(unsigned long i, PyObject *value)
     {

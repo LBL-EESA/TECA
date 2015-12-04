@@ -1,5 +1,5 @@
 /***************************************************************************/
-%define PY_TECA_STR()
+%define TECA_PY_STR()
     PyObject *__str__()
     {
         std::ostringstream oss;

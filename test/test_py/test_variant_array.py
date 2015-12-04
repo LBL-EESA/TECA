@@ -1,4 +1,4 @@
-from py_teca_core import *
+from teca_py_core import *
 import numpy as np
 import sys
 
@@ -66,6 +66,3 @@ for arr in arrs:
     out('%s\n'%(str(type(arr))))
     del arr
 end_sec('destructor')
-
-
-
