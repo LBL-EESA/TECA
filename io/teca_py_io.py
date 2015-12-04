@@ -1420,6 +1420,67 @@ def teca_algorithm_New():
     return _teca_py_io.teca_algorithm_New()
 teca_algorithm_New = _teca_py_io.teca_algorithm_New
 
+class teca_threaded_algorithm(teca_algorithm):
+    __swig_setmethods__ = {}
+    for _s in [teca_algorithm]:
+        __swig_setmethods__.update(getattr(_s, '__swig_setmethods__', {}))
+    __setattr__ = lambda self, name, value: _swig_setattr(self, teca_threaded_algorithm, name, value)
+    __swig_getmethods__ = {}
+    for _s in [teca_algorithm]:
+        __swig_getmethods__.update(getattr(_s, '__swig_getmethods__', {}))
+    __getattr__ = lambda self, name: _swig_getattr(self, teca_threaded_algorithm, name)
+
+    def __init__(self, *args, **kwargs):
+        raise AttributeError("No constructor defined")
+    __repr__ = _swig_repr
+    __swig_getmethods__["New"] = lambda x: _teca_py_io.teca_threaded_algorithm_New
+    if _newclass:
+        New = staticmethod(_teca_py_io.teca_threaded_algorithm_New)
+    __swig_destroy__ = _teca_py_io.delete_teca_threaded_algorithm
+    __del__ = lambda self: None
+
+    def set_thread_pool_size(self, n_threads):
+        return _teca_py_io.teca_threaded_algorithm_set_thread_pool_size(self, n_threads)
+
+    def get_thread_pool_size(self):
+        return _teca_py_io.teca_threaded_algorithm_get_thread_pool_size(self)
+teca_threaded_algorithm_swigregister = _teca_py_io.teca_threaded_algorithm_swigregister
+teca_threaded_algorithm_swigregister(teca_threaded_algorithm)
+
+def teca_threaded_algorithm_New():
+    return _teca_py_io.teca_threaded_algorithm_New()
+teca_threaded_algorithm_New = _teca_py_io.teca_threaded_algorithm_New
+
+class teca_temporal_reduction(teca_threaded_algorithm):
+    __swig_setmethods__ = {}
+    for _s in [teca_threaded_algorithm]:
+        __swig_setmethods__.update(getattr(_s, '__swig_setmethods__', {}))
+    __setattr__ = lambda self, name, value: _swig_setattr(self, teca_temporal_reduction, name, value)
+    __swig_getmethods__ = {}
+    for _s in [teca_threaded_algorithm]:
+        __swig_getmethods__.update(getattr(_s, '__swig_getmethods__', {}))
+    __getattr__ = lambda self, name: _swig_getattr(self, teca_temporal_reduction, name)
+
+    def __init__(self, *args, **kwargs):
+        raise AttributeError("No constructor defined - class is abstract")
+    __repr__ = _swig_repr
+    __swig_destroy__ = _teca_py_io.delete_teca_temporal_reduction
+    __del__ = lambda self: None
+
+    def set_first_step(self, v):
+        return _teca_py_io.teca_temporal_reduction_set_first_step(self, v)
+
+    def get_first_step(self, *args):
+        return _teca_py_io.teca_temporal_reduction_get_first_step(self, *args)
+
+    def set_last_step(self, v):
+        return _teca_py_io.teca_temporal_reduction_set_last_step(self, v)
+
+    def get_last_step(self, *args):
+        return _teca_py_io.teca_temporal_reduction_get_last_step(self, *args)
+teca_temporal_reduction_swigregister = _teca_py_io.teca_temporal_reduction_swigregister
+teca_temporal_reduction_swigregister(teca_temporal_reduction)
+
 class teca_variant_array(_object):
     __swig_setmethods__ = {}
     __setattr__ = lambda self, name, value: _swig_setattr(self, teca_variant_array, name, value)

@@ -21,6 +21,8 @@ datasets.
 #include "teca_time_step_executive.h"
 #include "teca_metadata.h"
 #include "teca_algorithm.h"
+#include "teca_threaded_algorithm.h"
+#include "teca_temporal_reduction.h"
 #include "teca_variant_array.h"
 
 #include "teca_py_object.h"
@@ -193,6 +195,22 @@ typedef std::pair<std::shared_ptr<teca_algorithm>, unsigned int> teca_algorithm_
 %include "teca_algorithm_fwd.h"
 %include "teca_program_options.h"
 %include "teca_algorithm.h"
+
+/***************************************************************************
+ threaded_algorithm
+ ***************************************************************************/
+%ignore teca_threaded_algorithm::shared_from_this;
+%shared_ptr(teca_threaded_algorithm)
+%ignore teca_threaded_algorithm::operator=;
+%include "teca_threaded_algorithm.h"
+
+/***************************************************************************
+ temporal_reduction
+ ***************************************************************************/
+%ignore teca_temporal_reduction::shared_from_this;
+%shared_ptr(teca_temporal_reduction)
+%ignore teca_temporal_reduction::operator=;
+%include "teca_temporal_reduction.h"
 
 /***************************************************************************
  variant_array
