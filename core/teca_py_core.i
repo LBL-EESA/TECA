@@ -305,3 +305,20 @@ class teca_variant_array;
             "Failed to convert value");
     }
 }
+
+/***************************************************************************
+ dataset
+ ***************************************************************************/
+%ignore teca_dataset::shared_from_this;
+%ignore std::enable_shared_from_this<teca_dataset>;
+%shared_ptr(std::enable_shared_from_this<teca_dataset>)
+%shared_ptr(teca_dataset)
+class teca_dataset;
+%template(teca_dataset_base) std::enable_shared_from_this<teca_dataset>;
+%ignore teca_dataset::operator=;
+%include "teca_dataset_fwd.h"
+%include "teca_dataset.h"
+%extend teca_dataset
+{
+    TECA_PY_STR()
+}

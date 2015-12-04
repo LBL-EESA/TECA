@@ -2045,6 +2045,56 @@ def teca_unsigned_long_long_array_New(*args):
     return _teca_py_io.teca_unsigned_long_long_array_New(*args)
 teca_unsigned_long_long_array_New = _teca_py_io.teca_unsigned_long_long_array_New
 
+class teca_dataset(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, teca_dataset, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, teca_dataset, name)
+
+    def __init__(self, *args, **kwargs):
+        raise AttributeError("No constructor defined - class is abstract")
+    __repr__ = _swig_repr
+    __swig_destroy__ = _teca_py_io.delete_teca_dataset
+    __del__ = lambda self: None
+
+    def __nonzero__(self):
+        return _teca_py_io.teca_dataset___nonzero__(self)
+    __bool__ = __nonzero__
+
+
+
+    def empty(self):
+        return _teca_py_io.teca_dataset_empty(self)
+
+    def new_instance(self):
+        return _teca_py_io.teca_dataset_new_instance(self)
+
+    def new_copy(self):
+        return _teca_py_io.teca_dataset_new_copy(self)
+
+    def copy(self, other):
+        return _teca_py_io.teca_dataset_copy(self, other)
+
+    def shallow_copy(self, other):
+        return _teca_py_io.teca_dataset_shallow_copy(self, other)
+
+    def copy_metadata(self, other):
+        return _teca_py_io.teca_dataset_copy_metadata(self, other)
+
+    def swap(self, other):
+        return _teca_py_io.teca_dataset_swap(self, other)
+
+    def to_stream(self, *args):
+        return _teca_py_io.teca_dataset_to_stream(self, *args)
+
+    def from_stream(self, *args):
+        return _teca_py_io.teca_dataset_from_stream(self, *args)
+
+    def __str__(self):
+        return _teca_py_io.teca_dataset___str__(self)
+teca_dataset_swigregister = _teca_py_io.teca_dataset_swigregister
+teca_dataset_swigregister(teca_dataset)
+
 class teca_cf_reader(teca_algorithm):
     __swig_setmethods__ = {}
     for _s in [teca_algorithm]:

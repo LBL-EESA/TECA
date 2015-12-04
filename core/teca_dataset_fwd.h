@@ -18,7 +18,7 @@ static p_##T New()                                                  \
     return p_##T(new T);                                            \
 }                                                                   \
                                                                     \
-using enable_shared_from_this<teca_dataset>::shared_from_this;      \
+using teca_dataset::shared_from_this;                               \
                                                                     \
 std::shared_ptr<T> shared_from_this()                               \
 {                                                                   \
