@@ -5,6 +5,7 @@ The io module contains readers and writers.
 "
 %enddef
 %module (docstring=TECA_PY_IO_DOC) teca_py_io
+%feature("autodoc", "3");
 
 %{
 #include <Python.h>

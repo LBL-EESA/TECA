@@ -8,6 +8,7 @@ Cartesian meshes, AMR datasets, and tables.
 %enddef
 
 %module (docstring=MDOC) teca_py_data
+%feature("autodoc", "3");
 
 %{
 #include <memory>

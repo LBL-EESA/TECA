@@ -7,6 +7,7 @@ datasets.
 "
 %enddef
 %module (docstring=TECA_PY_CORE_DOC) teca_py_core
+%feature("autodoc", "3");
 
 %{
 #define SWIG_FILE_WITH_INIT

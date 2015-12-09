@@ -6,6 +6,7 @@ and detectors.
 "
 %enddef
 %module (docstring=TECA_PY_ALG_DOC) teca_py_alg
+%feature("autodoc", "3");
 
 %{
 #include <Python.h>
