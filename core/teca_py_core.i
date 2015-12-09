@@ -225,9 +225,8 @@ TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned long long, unsigned_long_long)
             else TEMPLATE_DISPATCH_CASE(const teca_variant_array_impl,
                 teca_metadata, varr.get(),
                 TT *varrt = static_cast<TT*>(varr.get());
-                teca_metadata *md = new teca_metadata(varrt->get(0));
-                return SWIG_NewPointerObj(SWIG_as_voidptr(md),
-                     SWIGTYPE_p_teca_metadata, SWIG_POINTER_NEW|0);
+                return SWIG_NewPointerObj(new teca_metadata(varrt->get(0)),
+                     SWIGTYPE_p_teca_metadata, SWIG_POINTER_OWN);
                 )
         }
         else if (n_elem > 1)
@@ -255,10 +254,9 @@ TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned long long, unsigned_long_long)
                 PyObject *list = PyList_New(n_elem);
                 for (size_t i = 0; i < n_elem; ++i)
                 {
-                    teca_metadata *md = new teca_metadata(varrt->get(i));
                     PyList_SET_ITEM(list, i,
-                        SWIG_NewPointerObj(SWIG_as_voidptr(md),
-                            SWIGTYPE_p_teca_metadata, SWIG_POINTER_NEW|0));
+                        SWIG_NewPointerObj(new teca_metadata(varrt->get(i)),
+                            SWIGTYPE_p_teca_metadata, SWIG_POINTER_OWN));
                 }
                 return list;
                 )
