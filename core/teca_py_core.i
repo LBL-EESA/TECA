@@ -36,19 +36,10 @@ import_array();
 
 %include "teca_py_common.i"
 %include "teca_py_shared_ptr.i"
+%include "teca_py_vector.i"
 %include <std_string.i>
 %include <std_vector.i>
 %include <std_pair.i>
-
-%template(std_vector_char) std::vector<char>;
-%template(std_vector_uchar) std::vector<unsigned char>;
-%template(std_vector_int) std::vector<int>;
-%template(std_vector_uint) std::vector<unsigned int>;
-%template(std_vector_long_long) std::vector<long long>;
-%template(std_vector_ulong_long) std::vector<unsigned long long>;
-%template(std_vector_float) std::vector<float>;
-%template(std_vector_double) std::vector<double>;
-%template(std_vector_string) std::vector<std::string>;
 
 
 /***************************************************************************
