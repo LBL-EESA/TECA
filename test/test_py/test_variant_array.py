@@ -11,10 +11,9 @@ def start_sec(s):
 def end_sec(s):
     out('checking '+s+'...ok\n\n')
 
-arrs = []
-
 
 start_sec('constructor')
+arrs = []
 arrs.append(teca_double_array.New())
 arrs.append(teca_float_array.New())
 arrs.append(teca_char_array.New())
@@ -54,6 +53,15 @@ for arr in arrs:
     out('%s\n'%(str(type(arr))))
     out('%s\n'%(str(arr.as_array())))
 end_sec('as_array')
+
+start_sec('Python object constructor')
+for arr in arrs:
+    out('%s'%(str(type(arr))))
+    a = arr.as_array()
+    b = teca_variant_array.New(a)
+    out(' -> %s -> %s\n'%(str(type(a)), str(type(b))))
+    out('    %s\n'%(str(arr)))
+end_sec('Python object constructor')
 
 start_sec('str')
 for arr in arrs:

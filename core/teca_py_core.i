@@ -79,6 +79,22 @@ class teca_variant_array;
 %template(teca_unsigned_long_long_array) teca_variant_array_impl<unsigned long long>;
 %extend teca_variant_array
 {
+    static
+    p_teca_variant_array New(PyObject *obj)
+    {
+        p_teca_variant_array varr;
+        if ((varr = teca_py_object::new_variant_array(obj))
+            || (varr = teca_py_array::new_variant_array(obj))
+            || (varr = teca_py_sequence::new_variant_array(obj))
+            || (varr = teca_py_iterator::new_variant_array(obj)))
+        {
+            return varr;
+        }
+
+        PyErr_Format(PyExc_TypeError, "Failed to convert value");
+        return nullptr;
+    }
+
     TECA_PY_STR()
 
     void __setitem__(unsigned long i, PyObject *value)
