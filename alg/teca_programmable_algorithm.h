@@ -2,22 +2,24 @@
 #define teca_programmable_algorithm_h
 
 #include "teca_algorithm.h"
-#include "teca_dataset_fwd.h"
 #include "teca_metadata.h"
+#include "teca_dataset_fwd.h"
 #include "teca_programmable_algorithm_fwd.h"
 
 /// an algorithm implemented with  user provided callbacks
 /**
 The user can provide a callback for each of the three phases
 of pipeline execution. The number of input and output ports
-can also be set.
+can also be set for finters (1 or more inputs, 1 or more outputs)
+sources, (no  inputs, 1 or more outputs), or sinks (1 or more
+inputs, no outputs).
 
 1) report phase. the report callback returns metadata
     describing data that can be produced. The report callback
     is optional. It's only needed if the algorithm will produce
     new data or transform metadata.
 
-    the report function must be callable with signature:
+    the report callback must be callable with signature:
     teca_metadata(unsigned int)
 
 2) request phase. the request callback generates a vector
@@ -26,7 +28,7 @@ can also be set.
     It's only needed if the algorithm needs data from the
     upstream or transform metadata.
 
-    the request function must be callable with the signature:
+    the request callback must be callable with the signature:
     std::vector<teca_metadata>(
         unsigned int,
         const std::vector<teca_metadata> &,
@@ -38,7 +40,7 @@ can also be set.
     and writing data to/from disk, and so on. The execute
     callback is  optional.
 
-    the execute function must be callable with the signature:
+    the execute callback must be callable with the signature:
     const_p_teca_dataset(
         unsigned int, const std::vector<const_p_teca_dataset> &,
         const teca_metadata &)
@@ -47,10 +49,9 @@ see also:
 
 set_number_of_input_connections
 set_number_of_output_ports
-set_report_function
-set_request_function
-set_execute_function
-
+set_report_callback
+set_request_callback
+set_execute_callback
 */
 class teca_programmable_algorithm : public teca_algorithm
 {
@@ -62,8 +63,13 @@ public:
     using teca_algorithm::set_number_of_input_connections;
     using teca_algorithm::set_number_of_output_ports;
 
-    // set function that responds to reporting stage
-    // of pipeline execution. the report function must
+    // install the default implementation
+    void use_default_report_action();
+    void use_default_request_action();
+    void use_default_execute_action();
+
+    // set callback that responds to reporting stage
+    // of pipeline execution. the report callback must
     // be callable with signature:
     //
     //   teca_metadata (unsigned int,
@@ -71,10 +77,10 @@ public:
     //
     // the default implementation forwards downstream
     TECA_PROGRAMMABLE_ALGORITHM_PROPERTY(
-        report_function_t, report_function)
+        report_callback_t, report_callback)
 
-    // set the function that responds to the requesting
-    // stage of pipeline execution. the request function
+    // set the callback that responds to the requesting
+    // stage of pipeline execution. the request callback
     // must be callable with the signature:
     //
     //  std::vector<teca_metadata> (
@@ -84,16 +90,16 @@ public:
     //
     // the default implementation forwards upstream
     TECA_PROGRAMMABLE_ALGORITHM_PROPERTY(
-        request_function_t, request_function)
+        request_callback_t, request_callback)
 
-    // set the function that responds to the execution stage
-    // of pipeline execution. the execute function must be
+    // set the callback that responds to the execution stage
+    // of pipeline execution. the execute callback must be
     // callable with the signature:
     //  const_p_teca_dataset (
     //    unsigned int, const std::vector<const_p_teca_dataset> &,
     //    const teca_metadata &)
     TECA_PROGRAMMABLE_ALGORITHM_PROPERTY(
-        execute_function_t, execute_function)
+        execute_callback_t, execute_callback)
 
 protected:
     teca_programmable_algorithm();
@@ -114,9 +120,9 @@ private:
         const teca_metadata &request) override;
 
 private:
-    report_function_t report_function;
-    request_function_t request_function;
-    execute_function_t execute_function;
+    report_callback_t report_callback;
+    request_callback_t request_callback;
+    execute_callback_t execute_callback;
 };
 
 #endif

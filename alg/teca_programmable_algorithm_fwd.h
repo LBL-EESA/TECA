@@ -7,20 +7,20 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_programmable_algorithm)
 
 #ifdef SWIG
 typedef void* report_funciton_t;
-typedef void* request_function_t;
-typedef void* execute_function_t;
+typedef void* request_callback_t;
+typedef void* execute_callback_t;
 #else
-using report_function_t
+using report_callback_t
     = std::function<teca_metadata(
         unsigned int, const std::vector<teca_metadata>&)>;
 
-using request_function_t
+using request_callback_t
     = std::function<std::vector<teca_metadata>(
         unsigned int,
         const std::vector<teca_metadata> &,
         const teca_metadata &)>;
 
-using execute_function_t
+using execute_callback_t
     = std::function<const_p_teca_dataset(
         unsigned int, const std::vector<const_p_teca_dataset> &,
         const teca_metadata &)>;

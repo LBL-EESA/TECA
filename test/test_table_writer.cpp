@@ -53,8 +53,8 @@ int main(int, char **)
 {
     p_teca_programmable_algorithm s = teca_programmable_algorithm::New();
     s->set_number_of_output_ports(1);
-    s->set_report_function(report());
-    s->set_execute_function(execute());
+    s->set_report_callback(report());
+    s->set_execute_callback(execute());
 
     p_teca_table_writer w = teca_table_writer::New();
     w->set_input_connection(s->get_output_port());
