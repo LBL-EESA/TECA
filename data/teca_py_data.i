@@ -105,6 +105,10 @@ TECA_PY_DYNAMIC_CAST(teca_mesh, teca_dataset)
 %ignore teca_cartesian_mesh::shared_from_this;
 %shared_ptr(teca_cartesian_mesh)
 %ignore teca_cartesian_mesh::operator=;
+%ignore teca_cartesian_mesh::get_time(double *) const;
+%ignore teca_cartesian_mesh::set_calendar(std::string const *);
+%ignore teca_cartesian_mesh::set_time_units(std::string const *);
+%ignore teca_cartesian_mesh::get_time_step(unsigned long *) const;
 %include "teca_cartesian_mesh_fwd.h"
 %include "teca_cartesian_mesh.h"
 TECA_PY_DYNAMIC_CAST(teca_cartesian_mesh, teca_dataset)
