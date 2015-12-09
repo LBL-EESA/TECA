@@ -208,6 +208,73 @@ bool append(teca_variant_array *varr, PyObject *obj)
     return false;
 }
 
+// container that safely holds a PyObject*
+class teca_py_object_ptr
+{
+public:
+    teca_py_object_ptr() : m_obj(nullptr) {}
+
+    teca_py_object_ptr(PyObject *obj)
+        : m_obj(obj) { Py_XINCREF(m_obj); }
+
+     virtual ~teca_py_object_ptr() { Py_XDECREF(m_obj); }
+
+     teca_py_object_ptr(teca_py_object_ptr &&o)
+        : m_obj(o.m_obj) { o.m_obj = NULL; }
+
+     teca_py_object_ptr &operator=(teca_py_object_ptr &&o)
+     {
+         Py_XDECREF(m_obj);
+         m_obj = o.m_obj;
+         o.m_obj = NULL;
+         return *this;
+     }
+
+     teca_py_object_ptr(const teca_py_object_ptr &o)
+        : m_obj(o.m_obj) { Py_XINCREF(m_obj); }
+
+     teca_py_object_ptr &operator=(const teca_py_object_ptr &o)
+     {
+         Py_XINCREF(o.m_obj);
+         Py_XDECREF(m_obj);
+         m_obj = o.m_obj;
+         return *this;
+     }
+
+     explicit operator bool () const
+     { return m_obj != nullptr; }
+
+    PyObject *get_object(){ return m_obj; }
+
+    virtual void set_object(PyObject *obj)
+    {
+        Py_XINCREF(obj);
+        Py_XDECREF(m_obj);
+        m_obj = obj;
+    }
+
+private:
+    PyObject *m_obj;
+};
+
+class teca_py_callable : public teca_py_object_ptr
+{
+public:
+    teca_py_callable(PyObject *f) : teca_py_object_ptr()
+    {
+        this->teca_py_callable::set_object(f);
+    }
+
+    virtual void set_object(PyObject *f)
+    {
+        if (PyCallable_Check(f))
+            this->teca_py_object_ptr::set_object(f);
+        else
+            PyErr_Format(PyExc_TypeError,
+                "object is not callable");
+    }
+};
+
 };
 
 #endif
