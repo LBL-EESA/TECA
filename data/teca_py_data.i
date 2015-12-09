@@ -40,6 +40,7 @@ Cartesian meshes, AMR datasets, and tables.
 %ignore teca_mesh::operator=;
 %include "teca_mesh_fwd.h"
 %include "teca_mesh.h"
+TECA_PY_DYNAMIC_CAST(teca_mesh, teca_dataset)
 
 /***************************************************************************
  cartesian_mesh
@@ -49,6 +50,7 @@ Cartesian meshes, AMR datasets, and tables.
 %ignore teca_cartesian_mesh::operator=;
 %include "teca_cartesian_mesh_fwd.h"
 %include "teca_cartesian_mesh.h"
+TECA_PY_DYNAMIC_CAST(teca_cartesian_mesh, teca_dataset)
 
 /***************************************************************************
  table
@@ -58,3 +60,4 @@ Cartesian meshes, AMR datasets, and tables.
 %ignore teca_table::operator=;
 %include "teca_table_fwd.h"
 %include "teca_table.h"
+TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)

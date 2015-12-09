@@ -51,7 +51,6 @@ import_array();
 %template(std_vector_string) std::vector<std::string>;
 
 
-
 /***************************************************************************
  metadata
  ***************************************************************************/
@@ -305,6 +304,14 @@ class teca_variant_array;
             "Failed to convert value");
     }
 }
+TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(double, double)
+TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(float, float)
+TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(char, char)
+TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(int, int)
+TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(long long, long_long)
+TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned char, unsigned_char)
+TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned int, unsigned_int)
+TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned long long, unsigned_long_long)
 
 /***************************************************************************
  dataset
