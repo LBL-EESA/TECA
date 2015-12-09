@@ -20,14 +20,16 @@ and detectors.
 #include "teca_table_reduce.h"
 #include "teca_temporal_average.h"
 #include "teca_vorticity.h"
+#include "teca_py_object.h"
+#include "teca_py_algorithm.h"
 %}
 
 %include "teca_config.h"
 %include "teca_py_common.i"
 %include "teca_py_shared_ptr.i"
 %include "teca_py_core.i"
+%include "teca_py_data.i"
 %include <std_string.i>
-
 
 /***************************************************************************
  ar_detect
@@ -90,12 +92,30 @@ and detectors.
  ***************************************************************************/
 %ignore teca_programmable_algorithm::shared_from_this;
 %shared_ptr(teca_programmable_algorithm)
+%extend teca_programmable_algorithm
+{
+
+    void set_report_callback(PyObject *f)
+    {
+        self->set_report_callback(teca_py_algorithm::report_callback(f));
+    }
+
+    void set_request_callback(PyObject *f)
+    {
+        self->set_request_callback(teca_py_algorithm::request_callback(f));
+    }
+
+    void set_execute_callback(PyObject *f)
+    {
+        self->set_execute_callback(teca_py_algorithm::execute_callback(f));
+    }
+}
 %ignore teca_programmable_algorithm::operator=;
-%ignore teca_programmable_algorithm::set_report_function;
-%ignore teca_programmable_algorithm::get_report_function;
-%ignore teca_programmable_algorithm::set_request_function;
-%ignore teca_programmable_algorithm::get_request_function;
-%ignore teca_programmable_algorithm::set_execute_function;
-%ignore teca_programmable_algorithm::get_execute_function;
+%ignore teca_programmable_algorithm::set_report_callback;
+%ignore teca_programmable_algorithm::get_report_callback;
+%ignore teca_programmable_algorithm::set_request_callback;
+%ignore teca_programmable_algorithm::get_request_callback;
+%ignore teca_programmable_algorithm::set_execute_callback;
+%ignore teca_programmable_algorithm::get_execute_callback;
 %include "teca_programmable_algorithm_fwd.h"
 %include "teca_programmable_algorithm.h"
