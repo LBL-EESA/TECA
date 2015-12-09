@@ -3,6 +3,7 @@
 /home/bloring/work/teca/teca_arch/alg/../core/teca_py_common.i
 /home/bloring/work/teca/teca_arch/alg/../core/teca_py_shared_ptr.i
 /home/bloring/work/teca/teca_arch/alg/../core/teca_py_core.i
+/home/bloring/work/teca/teca_arch/alg/../core/teca_py_vector.i
 /home/bloring/work/teca/teca_arch/alg/../core/teca_common.h
 /home/bloring/work/teca/teca_arch/alg/../core/teca_shared_object.h
 /home/bloring/work/teca/teca_arch/alg/../core/teca_variant_array_fwd.h
