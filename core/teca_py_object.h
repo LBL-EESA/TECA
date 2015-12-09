@@ -7,6 +7,7 @@
 
 namespace teca_py_object
 {
+
 /// teca_py_object::cpp_tt, A traits class for working with PyObject's
 /**
 if know the Python type tag then this class gives you:
@@ -27,7 +28,7 @@ PY_T -- C-name of python type
 CPP_T -- underlying type needed to store it on the C++ side
 PY_CHECK -- function that verifies the PyObject is this type
 PY_AS_CPP -- function that converts to the C++ type */
-#define teca_py_object_cpp_tt_declare(PY_T, CPP_T, PY_CHECK, PY_AS_CPP)  \
+#define teca_py_object_cpp_tt_declare(PY_T, CPP_T, PY_CHECK, PY_AS_CPP) \
 template <> struct cpp_tt<PY_T>                                         \
 {                                                                       \
     typedef CPP_T type;                                                 \
@@ -64,7 +65,7 @@ template <typename type> struct py_tt
 /**
 CPP_T -- underlying type needed to store it on the C++ side
 CPP_AS_PY -- function that converts from the C++ type */
-#define teca_py_object_py_tt_declare(CPP_T, PY_T, CPP_AS_PY) \
+#define teca_py_object_py_tt_declare(CPP_T, PY_T, CPP_AS_PY)\
 template <> struct py_tt<CPP_T>                             \
 {                                                           \
     typedef PY_T tag;                                       \
@@ -98,8 +99,6 @@ template <> struct py_tt<std::string>
 // CODE -- code block to execute on match
 // OT -- a typedef to the match type available in
 //       the code block
-// TODO: bool must appear before int becuase python
-//       bool is an int. maybe we can do without bool??
 #define TECA_PY_OBJECT_DISPATCH_CASE(CPP_T, PY_OBJ, CODE)   \
     if (teca_py_object::cpp_tt<CPP_T>::is_type(PY_OBJ))     \
     {                                                       \
@@ -113,7 +112,7 @@ template <> struct py_tt<std::string>
     else TECA_PY_OBJECT_DISPATCH_CASE(char*, PY_OBJ, CODE)  \
     else TECA_PY_OBJECT_DISPATCH_CASE(long, PY_OBJ, CODE)
 
-// without string and bool
+// without string
 #define TECA_PY_OBJECT_DISPATCH_NUM(PY_OBJ, CODE)           \
     TECA_PY_OBJECT_DISPATCH_CASE(int, PY_OBJ, CODE)         \
     else TECA_PY_OBJECT_DISPATCH_CASE(float, PY_OBJ, CODE)  \
