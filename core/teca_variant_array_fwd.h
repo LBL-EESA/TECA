@@ -9,6 +9,7 @@ TECA_SHARED_OBJECT_TEMPLATE_FORWARD_DECL(teca_variant_array_impl)
 
 #ifndef SWIG
 // convenience defs for POD types
+// these should not be used in API, use teca_variant_array instead
 using teca_string_array = teca_variant_array_impl<std::string>;
 using p_teca_string_array = std::shared_ptr<teca_variant_array_impl<std::string>>;
 using const_p_teca_string_array = std::shared_ptr<teca_variant_array_impl<std::string>>;
