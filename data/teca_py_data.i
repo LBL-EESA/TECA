@@ -10,6 +10,7 @@ Cartesian meshes, AMR datasets, and tables.
 %module (docstring=MDOC) teca_py_data
 
 %{
+#include <memory>
 #include <sstream>
 #include "teca_array_collection.h"
 #include "teca_cartesian_mesh.h"
@@ -31,6 +32,61 @@ Cartesian meshes, AMR datasets, and tables.
 %ignore teca_array_collection::operator=;
 %include "teca_array_collection_fwd.h"
 %include "teca_array_collection.h"
+%extend teca_array_collection
+{
+    /* lists the names of the arrays in the collection */
+    PyObject *__str__()
+    {
+        std::ostringstream oss;
+        oss << "{";
+        size_t n_arrays = self->size();
+        if (n_arrays)
+        {
+            oss << self->get_name(0);
+            for (size_t i = 1; i < n_arrays; ++i)
+                oss << ", " <<  self->get_name(i);
+        }
+        oss << "}";
+        return PyString_FromString(oss.str().c_str());
+    }
+
+    /* add or replace an array using syntax: col['name'] = array */
+    void __setitem__(const std::string &name, PyObject *array)
+    {
+        p_teca_variant_array varr;
+        if ((varr = teca_py_array::new_variant_array(array))
+            || (varr = teca_py_sequence::new_variant_array(array))
+            || (varr = teca_py_iterator::new_variant_array(array)))
+        {
+            self->set(name, varr);
+            return;
+        }
+        PyErr_Format(PyExc_TypeError,
+            "Failed to convert array for key \"%s\"", name.c_str());
+    }
+
+    /* return an array using the syntax: col['name'] */
+    PyObject *__getitem__(const std::string &name)
+    {
+        p_teca_variant_array varr = self->get(name);
+        if (!varr)
+        {
+            PyErr_Format(PyExc_KeyError,
+                "key \"%s\" not found", name.c_str());
+            return nullptr;
+        }
+
+        TEMPLATE_DISPATCH(teca_variant_array_impl,
+            varr.get(),
+            TT *varrt = static_cast<TT*>(varr.get());
+            return reinterpret_cast<PyObject*>(
+                teca_py_array::new_object(varrt));
+            )
+
+        return PyErr_Format(PyExc_TypeError,
+            "Failed to convert array for key \"%s\"", name.c_str());
+    }
+}
 
 /***************************************************************************
  mesh
