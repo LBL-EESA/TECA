@@ -352,6 +352,7 @@ typedef std::pair<std::shared_ptr<teca_algorithm>, unsigned int> teca_algorithm_
 %ignore teca_threaded_algorithm::shared_from_this;
 %shared_ptr(teca_threaded_algorithm)
 %ignore teca_threaded_algorithm::operator=;
+%include "teca_threaded_algorithm_fwd.h"
 %include "teca_threaded_algorithm.h"
 
 /***************************************************************************
@@ -360,4 +361,5 @@ typedef std::pair<std::shared_ptr<teca_algorithm>, unsigned int> teca_algorithm_
 %ignore teca_temporal_reduction::shared_from_this;
 %shared_ptr(teca_temporal_reduction)
 %ignore teca_temporal_reduction::operator=;
+%include "teca_temporal_reduction_fwd.h"
 %include "teca_temporal_reduction.h"
