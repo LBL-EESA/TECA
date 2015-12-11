@@ -27,8 +27,8 @@ public:
 
     // set the arrays that contain the vector components
     // to compute vorticity from
-    TECA_ALGORITHM_PROPERTY(std::string, vector_x_variable)
-    TECA_ALGORITHM_PROPERTY(std::string, vector_y_variable)
+    TECA_ALGORITHM_PROPERTY(std::string, component_0_variable)
+    TECA_ALGORITHM_PROPERTY(std::string, component_1_variable)
 
     // set the name of the array to store the result in.
     // the default is "vorticity"
@@ -53,8 +53,8 @@ private:
         const teca_metadata &request) override;
 
 private:
-    std::string vector_x_variable;
-    std::string vector_y_variable;
+    std::string component_0_variable;
+    std::string component_1_variable;
     std::string vorticity_variable;
 };
 

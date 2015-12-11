@@ -76,7 +76,7 @@ void vorticity(num_t *w, const pt_t *lat, const pt_t *lon,
 
 // --------------------------------------------------------------------------
 teca_vorticity::teca_vorticity() :
-    vector_x_variable(), vector_y_variable(),
+    component_0_variable(), component_1_variable(),
     vorticity_variable("vorticity")
 {
     this->set_number_of_input_connections(1);
@@ -95,8 +95,8 @@ void teca_vorticity::get_properties_description(
     options_description opts("Options for " + prefix + "(teca_vorticity)");
 
     opts.add_options()
-        TECA_POPTS_GET(std::string, prefix, vector_x_variable, "array containg x-component of the vector")
-        TECA_POPTS_GET(std::string, prefix, vector_y_variable, "array containg y-component of the vector")
+        TECA_POPTS_GET(std::string, prefix, component_0_variable, "array containg x-component of the vector")
+        TECA_POPTS_GET(std::string, prefix, component_1_variable, "array containg y-component of the vector")
         TECA_POPTS_GET(std::string, prefix, vorticity_variable, "array to store the computed vorticity in")
         ;
 
@@ -107,8 +107,8 @@ void teca_vorticity::get_properties_description(
 void teca_vorticity::set_properties(
     const string &prefix, variables_map &opts)
 {
-    TECA_POPTS_SET(opts, std::string, prefix, vector_x_variable)
-    TECA_POPTS_SET(opts, std::string, prefix, vector_y_variable)
+    TECA_POPTS_SET(opts, std::string, prefix, component_0_variable)
+    TECA_POPTS_SET(opts, std::string, prefix, component_1_variable)
     TECA_POPTS_SET(opts, std::string, prefix, vorticity_variable)
 }
 #endif
@@ -141,7 +141,7 @@ std::vector<teca_metadata> teca_vorticity::get_upstream_request(
     vector<teca_metadata> up_reqs;
 
     // do some error checking.
-    if (this->vector_x_variable.empty() || this->vector_y_variable.empty())
+    if (this->component_0_variable.empty() || this->component_1_variable.empty())
     {
         TECA_ERROR("the vector component arrays were not specified")
         return up_reqs;
@@ -155,8 +155,8 @@ std::vector<teca_metadata> teca_vorticity::get_upstream_request(
     teca_metadata req(request);
     std::vector<std::string> arrays;
     req.get("arrays", arrays);
-    arrays.push_back(this->vector_x_variable);
-    arrays.push_back(this->vector_y_variable);
+    arrays.push_back(this->component_0_variable);
+    arrays.push_back(this->component_1_variable);
     req.insert("arrays", arrays);
 
     up_reqs.push_back(req);
@@ -188,22 +188,22 @@ const_p_teca_dataset teca_vorticity::execute(
 
     // get the input vector component arrays
     const_p_teca_variant_array vx
-        = in_mesh->get_point_arrays()->get(this->vector_x_variable);
+        = in_mesh->get_point_arrays()->get(this->component_0_variable);
 
     if (!vx)
     {
         TECA_ERROR("x-component array \""
-            << this->vector_x_variable << "\" not found.")
+            << this->component_0_variable << "\" not found.")
         return nullptr;
     }
 
     const_p_teca_variant_array vy
-        = in_mesh->get_point_arrays()->get(this->vector_y_variable);
+        = in_mesh->get_point_arrays()->get(this->component_1_variable);
 
     if (!vy)
     {
         TECA_ERROR("y-component array \""
-            << this->vector_y_variable << "\" not found.")
+            << this->component_1_variable << "\" not found.")
         return nullptr;
     }
 
