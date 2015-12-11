@@ -13,7 +13,7 @@ function(depend_swig input output)
                 -I${CMAKE_CURRENT_SOURCE_DIR}/../alg
                 ${input_file} | sed -e 's/\\s\\+/ /g' -e '1d' -e 's/\\s\\+\\|\\\\//g' > ${output_file}
             MAIN_DEPENDENCY ${input_file}
-            COMMENT "SWIG : generating dependency file for ${input}...")
+            COMMENT "Generating dependency file for ${input}...")
     endif()
 endfunction()
 function(wrap_swig input output depend)
@@ -35,7 +35,7 @@ function(wrap_swig input output depend)
                 -o ${output_file} ${input_file}
             MAIN_DEPENDENCY ${input_file}
             DEPENDS ${depend_file} ${depends}
-            COMMENT "SWIG : generating python bindings for ${input}...")
+            COMMENT "Generating python bindings for ${input}...")
     endif()
 endfunction()
 function(teca_python_module mname)

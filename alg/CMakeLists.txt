@@ -58,6 +58,6 @@ install(EXPORT teca_alg
     EXPORT_LINK_INTERFACE_LIBRARIES
     )
 
-if (TECA_PYTHON_BINDING)
+if (TECA_HAS_PYTHON)
     teca_python_module(alg)
 endif()

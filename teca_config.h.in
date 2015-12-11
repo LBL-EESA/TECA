@@ -6,5 +6,6 @@
 #cmakedefine TECA_HAS_MPI
 #cmakedefine TECA_HAS_BOOST
 #cmakedefine TECA_HAS_VTK
+#cmakedefine TECA_HAS_PYTHON
 
 #endif

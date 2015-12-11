@@ -66,6 +66,6 @@ install(EXPORT teca_io
     EXPORT_LINK_INTERFACE_LIBRARIES
     )
 
-if (TECA_PYTHON_BINDING)
+if (TECA_HAS_PYTHON)
     teca_python_module(io)
 endif()
