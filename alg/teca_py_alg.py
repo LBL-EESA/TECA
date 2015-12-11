@@ -10298,50 +10298,50 @@ class teca_vorticity(teca_algorithm):
     __swig_destroy__ = _teca_py_alg.delete_teca_vorticity
     __del__ = lambda self: None
 
-    def set_vector_x_variable(self, v):
+    def set_component_0_variable(self, v):
         """
-        set_vector_x_variable(teca_vorticity self, std::string const & v)
+        set_component_0_variable(teca_vorticity self, std::string const & v)
 
         Parameters:
             v: std::string const &
 
         """
-        return _teca_py_alg.teca_vorticity_set_vector_x_variable(self, v)
+        return _teca_py_alg.teca_vorticity_set_component_0_variable(self, v)
 
 
-    def get_vector_x_variable(self, *args):
+    def get_component_0_variable(self, *args):
         """
-        get_vector_x_variable(teca_vorticity self) -> std::string const
-        get_vector_x_variable(teca_vorticity self) -> std::string &
+        get_component_0_variable(teca_vorticity self) -> std::string const
+        get_component_0_variable(teca_vorticity self) -> std::string &
 
         Parameters:
             self: teca_vorticity *
 
         """
-        return _teca_py_alg.teca_vorticity_get_vector_x_variable(self, *args)
+        return _teca_py_alg.teca_vorticity_get_component_0_variable(self, *args)
 
 
-    def set_vector_y_variable(self, v):
+    def set_component_1_variable(self, v):
         """
-        set_vector_y_variable(teca_vorticity self, std::string const & v)
+        set_component_1_variable(teca_vorticity self, std::string const & v)
 
         Parameters:
             v: std::string const &
 
         """
-        return _teca_py_alg.teca_vorticity_set_vector_y_variable(self, v)
+        return _teca_py_alg.teca_vorticity_set_component_1_variable(self, v)
 
 
-    def get_vector_y_variable(self, *args):
+    def get_component_1_variable(self, *args):
         """
-        get_vector_y_variable(teca_vorticity self) -> std::string const
-        get_vector_y_variable(teca_vorticity self) -> std::string &
+        get_component_1_variable(teca_vorticity self) -> std::string const
+        get_component_1_variable(teca_vorticity self) -> std::string &
 
         Parameters:
             self: teca_vorticity *
 
         """
-        return _teca_py_alg.teca_vorticity_get_vector_y_variable(self, *args)
+        return _teca_py_alg.teca_vorticity_get_component_1_variable(self, *args)
 
 
     def set_vorticity_variable(self, v):

@@ -17,7 +17,9 @@
 /home/bloring/work/teca/teca_arch/data/../core/teca_algorithm_fwd.h
 /home/bloring/work/teca/teca_arch/data/../core/teca_program_options.h
 /home/bloring/work/teca/teca_arch/data/../core/teca_algorithm.h
+/home/bloring/work/teca/teca_arch/data/../core/teca_threaded_algorithm_fwd.h
 /home/bloring/work/teca/teca_arch/data/../core/teca_threaded_algorithm.h
+/home/bloring/work/teca/teca_arch/data/../core/teca_temporal_reduction_fwd.h
 /home/bloring/work/teca/teca_arch/data/../core/teca_temporal_reduction.h
 /home/bloring/work/teca/teca_arch/data/teca_array_collection_fwd.h
 /home/bloring/work/teca/teca_arch/data/teca_array_collection.h
