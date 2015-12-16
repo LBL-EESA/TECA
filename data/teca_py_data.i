@@ -32,6 +32,7 @@ Cartesian meshes, AMR datasets, and tables.
 %ignore teca_array_collection::shared_from_this;
 %shared_ptr(teca_array_collection)
 %ignore teca_array_collection::operator=;
+%ignore teca_array_collection::operator[];
 %include "teca_array_collection_fwd.h"
 %include "teca_array_collection.h"
 %extend teca_array_collection

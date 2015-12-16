@@ -103,7 +103,27 @@ int teca_array_collection::remove(unsigned int id)
 }
 
 // ----------------------------------------------------------------------------
-const_p_teca_variant_array teca_array_collection::get(const std::string name) const
+bool teca_array_collection::has(const std::string &name) const
+{
+    name_array_map_t::const_iterator loc = m_name_array_map.find(name);
+    if (loc == m_name_array_map.cend())
+        return false;
+    return true;
+}
+
+// ----------------------------------------------------------------------------
+p_teca_variant_array teca_array_collection::get(const std::string &name)
+{
+    name_array_map_t::const_iterator loc = m_name_array_map.find(name);
+    if (loc == m_name_array_map.cend())
+        return nullptr;
+
+    unsigned int id = loc->second;
+    return m_arrays[id];
+}
+
+// ----------------------------------------------------------------------------
+const_p_teca_variant_array teca_array_collection::get(const std::string &name) const
 {
     name_array_map_t::const_iterator loc = m_name_array_map.find(name);
     if (loc == m_name_array_map.cend())
