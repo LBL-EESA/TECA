@@ -25468,7 +25468,7 @@ fail:
 }
 
 
-SWIGINTERN PyObject *_wrap_teca_variant_array_new_instance(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+SWIGINTERN PyObject *_wrap_teca_variant_array_new_instance__SWIG_0(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   teca_variant_array *arg1 = (teca_variant_array *) 0 ;
   void *argp1 = 0 ;
@@ -25502,6 +25502,96 @@ SWIGINTERN PyObject *_wrap_teca_variant_array_new_instance(PyObject *SWIGUNUSEDP
   return resultobj;
 fail:
   return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_teca_variant_array_new_instance__SWIG_1(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  teca_variant_array *arg1 = (teca_variant_array *) 0 ;
+  size_t arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  std::shared_ptr< teca_variant_array const > tempshared1 ;
+  std::shared_ptr< teca_variant_array const > *smartarg1 = 0 ;
+  size_t val2 ;
+  int ecode2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  p_teca_variant_array result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:teca_variant_array_new_instance",&obj0,&obj1)) SWIG_fail;
+  {
+    int newmem = 0;
+    res1 = SWIG_ConvertPtrAndOwn(obj0, &argp1, SWIGTYPE_p_std__shared_ptrT_teca_variant_array_t, 0 |  0 , &newmem);
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "teca_variant_array_new_instance" "', argument " "1"" of type '" "teca_variant_array const *""'"); 
+    }
+    if (newmem & SWIG_CAST_NEW_MEMORY) {
+      tempshared1 = *reinterpret_cast< std::shared_ptr< const teca_variant_array > * >(argp1);
+      delete reinterpret_cast< std::shared_ptr< const teca_variant_array > * >(argp1);
+      arg1 = const_cast< teca_variant_array * >(tempshared1.get());
+    } else {
+      smartarg1 = reinterpret_cast< std::shared_ptr< const teca_variant_array > * >(argp1);
+      arg1 = const_cast< teca_variant_array * >((smartarg1 ? smartarg1->get() : 0));
+    }
+  }
+  ecode2 = SWIG_AsVal_size_t(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "teca_variant_array_new_instance" "', argument " "2"" of type '" "size_t""'");
+  } 
+  arg2 = static_cast< size_t >(val2);
+  result = ((teca_variant_array const *)arg1)->new_instance(arg2);
+  {
+    std::shared_ptr<  teca_variant_array > *smartresult = result ? new std::shared_ptr<  teca_variant_array >(result) : 0;
+    resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(smartresult), SWIGTYPE_p_std__shared_ptrT_teca_variant_array_t, SWIG_POINTER_OWN);
+  }
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_teca_variant_array_new_instance(PyObject *self, PyObject *args) {
+  int argc;
+  PyObject *argv[3] = {
+    0
+  };
+  int ii;
+  
+  if (!PyTuple_Check(args)) SWIG_fail;
+  argc = args ? (int)PyObject_Length(args) : 0;
+  for (ii = 0; (ii < 2) && (ii < argc); ii++) {
+    argv[ii] = PyTuple_GET_ITEM(args,ii);
+  }
+  if (argc == 1) {
+    int _v;
+    int res = SWIG_ConvertPtr(argv[0], 0, SWIGTYPE_p_std__shared_ptrT_teca_variant_array_t, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      return _wrap_teca_variant_array_new_instance__SWIG_0(self, args);
+    }
+  }
+  if (argc == 2) {
+    int _v;
+    int res = SWIG_ConvertPtr(argv[0], 0, SWIGTYPE_p_std__shared_ptrT_teca_variant_array_t, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      {
+        int res = SWIG_AsVal_size_t(argv[1], NULL);
+        _v = SWIG_CheckState(res);
+      }
+      if (_v) {
+        return _wrap_teca_variant_array_new_instance__SWIG_1(self, args);
+      }
+    }
+  }
+  
+fail:
+  SWIG_SetErrorMsg(PyExc_NotImplementedError,"Wrong number or type of arguments for overloaded function 'teca_variant_array_new_instance'.\n"
+    "  Possible C/C++ prototypes are:\n"
+    "    teca_variant_array::new_instance() const\n"
+    "    teca_variant_array::new_instance(size_t) const\n");
+  return 0;
 }
 
 
@@ -27177,7 +27267,7 @@ fail:
 }
 
 
-SWIGINTERN PyObject *_wrap_teca_double_array_new_instance(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+SWIGINTERN PyObject *_wrap_teca_double_array_new_instance__SWIG_0(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   teca_variant_array_impl< double > *arg1 = (teca_variant_array_impl< double > *) 0 ;
   void *argp1 = 0 ;
@@ -27211,6 +27301,96 @@ SWIGINTERN PyObject *_wrap_teca_double_array_new_instance(PyObject *SWIGUNUSEDPA
   return resultobj;
 fail:
   return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_teca_double_array_new_instance__SWIG_1(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  teca_variant_array_impl< double > *arg1 = (teca_variant_array_impl< double > *) 0 ;
+  size_t arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  std::shared_ptr< teca_variant_array_impl< double > const > tempshared1 ;
+  std::shared_ptr< teca_variant_array_impl< double > const > *smartarg1 = 0 ;
+  size_t val2 ;
+  int ecode2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  p_teca_variant_array result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:teca_double_array_new_instance",&obj0,&obj1)) SWIG_fail;
+  {
+    int newmem = 0;
+    res1 = SWIG_ConvertPtrAndOwn(obj0, &argp1, SWIGTYPE_p_std__shared_ptrT_teca_variant_array_implT_double_t_t, 0 |  0 , &newmem);
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "teca_double_array_new_instance" "', argument " "1"" of type '" "teca_variant_array_impl< double > const *""'"); 
+    }
+    if (newmem & SWIG_CAST_NEW_MEMORY) {
+      tempshared1 = *reinterpret_cast< std::shared_ptr< const teca_variant_array_impl<double> > * >(argp1);
+      delete reinterpret_cast< std::shared_ptr< const teca_variant_array_impl<double> > * >(argp1);
+      arg1 = const_cast< teca_variant_array_impl< double > * >(tempshared1.get());
+    } else {
+      smartarg1 = reinterpret_cast< std::shared_ptr< const teca_variant_array_impl<double> > * >(argp1);
+      arg1 = const_cast< teca_variant_array_impl< double > * >((smartarg1 ? smartarg1->get() : 0));
+    }
+  }
+  ecode2 = SWIG_AsVal_size_t(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "teca_double_array_new_instance" "', argument " "2"" of type '" "size_t""'");
+  } 
+  arg2 = static_cast< size_t >(val2);
+  result = ((teca_variant_array_impl< double > const *)arg1)->new_instance(arg2);
+  {
+    std::shared_ptr<  teca_variant_array > *smartresult = result ? new std::shared_ptr<  teca_variant_array >(result) : 0;
+    resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(smartresult), SWIGTYPE_p_std__shared_ptrT_teca_variant_array_t, SWIG_POINTER_OWN);
+  }
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_teca_double_array_new_instance(PyObject *self, PyObject *args) {
+  int argc;
+  PyObject *argv[3] = {
+    0
+  };
+  int ii;
+  
+  if (!PyTuple_Check(args)) SWIG_fail;
+  argc = args ? (int)PyObject_Length(args) : 0;
+  for (ii = 0; (ii < 2) && (ii < argc); ii++) {
+    argv[ii] = PyTuple_GET_ITEM(args,ii);
+  }
+  if (argc == 1) {
+    int _v;
+    int res = SWIG_ConvertPtr(argv[0], 0, SWIGTYPE_p_std__shared_ptrT_teca_variant_array_implT_double_t_t, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      return _wrap_teca_double_array_new_instance__SWIG_0(self, args);
+    }
+  }
+  if (argc == 2) {
+    int _v;
+    int res = SWIG_ConvertPtr(argv[0], 0, SWIGTYPE_p_std__shared_ptrT_teca_variant_array_implT_double_t_t, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      {
+        int res = SWIG_AsVal_size_t(argv[1], NULL);
+        _v = SWIG_CheckState(res);
+      }
+      if (_v) {
+        return _wrap_teca_double_array_new_instance__SWIG_1(self, args);
+      }
+    }
+  }
+  
+fail:
+  SWIG_SetErrorMsg(PyExc_NotImplementedError,"Wrong number or type of arguments for overloaded function 'teca_double_array_new_instance'.\n"
+    "  Possible C/C++ prototypes are:\n"
+    "    teca_variant_array_impl< double >::new_instance() const\n"
+    "    teca_variant_array_impl< double >::new_instance(size_t) const\n");
+  return 0;
 }
 
 
@@ -28472,7 +28652,7 @@ fail:
 }
 
 
-SWIGINTERN PyObject *_wrap_teca_float_array_new_instance(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+SWIGINTERN PyObject *_wrap_teca_float_array_new_instance__SWIG_0(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   teca_variant_array_impl< float > *arg1 = (teca_variant_array_impl< float > *) 0 ;
   void *argp1 = 0 ;
@@ -28506,6 +28686,96 @@ SWIGINTERN PyObject *_wrap_teca_float_array_new_instance(PyObject *SWIGUNUSEDPAR
   return resultobj;
 fail:
   return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_teca_float_array_new_instance__SWIG_1(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  teca_variant_array_impl< float > *arg1 = (teca_variant_array_impl< float > *) 0 ;
+  size_t arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  std::shared_ptr< teca_variant_array_impl< float > const > tempshared1 ;
+  std::shared_ptr< teca_variant_array_impl< float > const > *smartarg1 = 0 ;
+  size_t val2 ;
+  int ecode2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  p_teca_variant_array result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:teca_float_array_new_instance",&obj0,&obj1)) SWIG_fail;
+  {
+    int newmem = 0;
+    res1 = SWIG_ConvertPtrAndOwn(obj0, &argp1, SWIGTYPE_p_std__shared_ptrT_teca_variant_array_implT_float_t_t, 0 |  0 , &newmem);
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "teca_float_array_new_instance" "', argument " "1"" of type '" "teca_variant_array_impl< float > const *""'"); 
+    }
+    if (newmem & SWIG_CAST_NEW_MEMORY) {
+      tempshared1 = *reinterpret_cast< std::shared_ptr< const teca_variant_array_impl<float> > * >(argp1);
+      delete reinterpret_cast< std::shared_ptr< const teca_variant_array_impl<float> > * >(argp1);
+      arg1 = const_cast< teca_variant_array_impl< float > * >(tempshared1.get());
+    } else {
+      smartarg1 = reinterpret_cast< std::shared_ptr< const teca_variant_array_impl<float> > * >(argp1);
+      arg1 = const_cast< teca_variant_array_impl< float > * >((smartarg1 ? smartarg1->get() : 0));
+    }
+  }
+  ecode2 = SWIG_AsVal_size_t(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "teca_float_array_new_instance" "', argument " "2"" of type '" "size_t""'");
+  } 
+  arg2 = static_cast< size_t >(val2);
+  result = ((teca_variant_array_impl< float > const *)arg1)->new_instance(arg2);
+  {
+    std::shared_ptr<  teca_variant_array > *smartresult = result ? new std::shared_ptr<  teca_variant_array >(result) : 0;
+    resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(smartresult), SWIGTYPE_p_std__shared_ptrT_teca_variant_array_t, SWIG_POINTER_OWN);
+  }
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_teca_float_array_new_instance(PyObject *self, PyObject *args) {
+  int argc;
+  PyObject *argv[3] = {
+    0
+  };
+  int ii;
+  
+  if (!PyTuple_Check(args)) SWIG_fail;
+  argc = args ? (int)PyObject_Length(args) : 0;
+  for (ii = 0; (ii < 2) && (ii < argc); ii++) {
+    argv[ii] = PyTuple_GET_ITEM(args,ii);
+  }
+  if (argc == 1) {
+    int _v;
+    int res = SWIG_ConvertPtr(argv[0], 0, SWIGTYPE_p_std__shared_ptrT_teca_variant_array_implT_float_t_t, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      return _wrap_teca_float_array_new_instance__SWIG_0(self, args);
+    }
+  }
+  if (argc == 2) {
+    int _v;
+    int res = SWIG_ConvertPtr(argv[0], 0, SWIGTYPE_p_std__shared_ptrT_teca_variant_array_implT_float_t_t, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      {
+        int res = SWIG_AsVal_size_t(argv[1], NULL);
+        _v = SWIG_CheckState(res);
+      }
+      if (_v) {
+        return _wrap_teca_float_array_new_instance__SWIG_1(self, args);
+      }
+    }
+  }
+  
+fail:
+  SWIG_SetErrorMsg(PyExc_NotImplementedError,"Wrong number or type of arguments for overloaded function 'teca_float_array_new_instance'.\n"
+    "  Possible C/C++ prototypes are:\n"
+    "    teca_variant_array_impl< float >::new_instance() const\n"
+    "    teca_variant_array_impl< float >::new_instance(size_t) const\n");
+  return 0;
 }
 
 
@@ -29769,7 +30039,7 @@ fail:
 }
 
 
-SWIGINTERN PyObject *_wrap_teca_int_array_new_instance(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+SWIGINTERN PyObject *_wrap_teca_int_array_new_instance__SWIG_0(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   teca_variant_array_impl< char > *arg1 = (teca_variant_array_impl< char > *) 0 ;
   void *argp1 = 0 ;
@@ -29803,6 +30073,96 @@ SWIGINTERN PyObject *_wrap_teca_int_array_new_instance(PyObject *SWIGUNUSEDPARM(
   return resultobj;
 fail:
   return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_teca_int_array_new_instance__SWIG_1(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  teca_variant_array_impl< char > *arg1 = (teca_variant_array_impl< char > *) 0 ;
+  size_t arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  std::shared_ptr< teca_variant_array_impl< char > const > tempshared1 ;
+  std::shared_ptr< teca_variant_array_impl< char > const > *smartarg1 = 0 ;
+  size_t val2 ;
+  int ecode2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  p_teca_variant_array result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:teca_int_array_new_instance",&obj0,&obj1)) SWIG_fail;
+  {
+    int newmem = 0;
+    res1 = SWIG_ConvertPtrAndOwn(obj0, &argp1, SWIGTYPE_p_std__shared_ptrT_teca_variant_array_implT_char_t_t, 0 |  0 , &newmem);
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "teca_int_array_new_instance" "', argument " "1"" of type '" "teca_variant_array_impl< char > const *""'"); 
+    }
+    if (newmem & SWIG_CAST_NEW_MEMORY) {
+      tempshared1 = *reinterpret_cast< std::shared_ptr< const teca_variant_array_impl<char> > * >(argp1);
+      delete reinterpret_cast< std::shared_ptr< const teca_variant_array_impl<char> > * >(argp1);
+      arg1 = const_cast< teca_variant_array_impl< char > * >(tempshared1.get());
+    } else {
+      smartarg1 = reinterpret_cast< std::shared_ptr< const teca_variant_array_impl<char> > * >(argp1);
+      arg1 = const_cast< teca_variant_array_impl< char > * >((smartarg1 ? smartarg1->get() : 0));
+    }
+  }
+  ecode2 = SWIG_AsVal_size_t(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "teca_int_array_new_instance" "', argument " "2"" of type '" "size_t""'");
+  } 
+  arg2 = static_cast< size_t >(val2);
+  result = ((teca_variant_array_impl< char > const *)arg1)->new_instance(arg2);
+  {
+    std::shared_ptr<  teca_variant_array > *smartresult = result ? new std::shared_ptr<  teca_variant_array >(result) : 0;
+    resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(smartresult), SWIGTYPE_p_std__shared_ptrT_teca_variant_array_t, SWIG_POINTER_OWN);
+  }
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_teca_int_array_new_instance(PyObject *self, PyObject *args) {
+  int argc;
+  PyObject *argv[3] = {
+    0
+  };
+  int ii;
+  
+  if (!PyTuple_Check(args)) SWIG_fail;
+  argc = args ? (int)PyObject_Length(args) : 0;
+  for (ii = 0; (ii < 2) && (ii < argc); ii++) {
+    argv[ii] = PyTuple_GET_ITEM(args,ii);
+  }
+  if (argc == 1) {
+    int _v;
+    int res = SWIG_ConvertPtr(argv[0], 0, SWIGTYPE_p_std__shared_ptrT_teca_variant_array_implT_char_t_t, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      return _wrap_teca_int_array_new_instance__SWIG_0(self, args);
+    }
+  }
+  if (argc == 2) {
+    int _v;
+    int res = SWIG_ConvertPtr(argv[0], 0, SWIGTYPE_p_std__shared_ptrT_teca_variant_array_implT_char_t_t, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      {
+        int res = SWIG_AsVal_size_t(argv[1], NULL);
+        _v = SWIG_CheckState(res);
+      }
+      if (_v) {
+        return _wrap_teca_int_array_new_instance__SWIG_1(self, args);
+      }
+    }
+  }
+  
+fail:
+  SWIG_SetErrorMsg(PyExc_NotImplementedError,"Wrong number or type of arguments for overloaded function 'teca_int_array_new_instance'.\n"
+    "  Possible C/C++ prototypes are:\n"
+    "    teca_variant_array_impl< char >::new_instance() const\n"
+    "    teca_variant_array_impl< char >::new_instance(size_t) const\n");
+  return 0;
 }
 
 
@@ -31064,7 +31424,7 @@ fail:
 }
 
 
-SWIGINTERN PyObject *_wrap_teca_char_array_new_instance(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+SWIGINTERN PyObject *_wrap_teca_char_array_new_instance__SWIG_0(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   teca_variant_array_impl< int > *arg1 = (teca_variant_array_impl< int > *) 0 ;
   void *argp1 = 0 ;
@@ -31098,6 +31458,96 @@ SWIGINTERN PyObject *_wrap_teca_char_array_new_instance(PyObject *SWIGUNUSEDPARM
   return resultobj;
 fail:
   return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_teca_char_array_new_instance__SWIG_1(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  teca_variant_array_impl< int > *arg1 = (teca_variant_array_impl< int > *) 0 ;
+  size_t arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  std::shared_ptr< teca_variant_array_impl< int > const > tempshared1 ;
+  std::shared_ptr< teca_variant_array_impl< int > const > *smartarg1 = 0 ;
+  size_t val2 ;
+  int ecode2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  p_teca_variant_array result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:teca_char_array_new_instance",&obj0,&obj1)) SWIG_fail;
+  {
+    int newmem = 0;
+    res1 = SWIG_ConvertPtrAndOwn(obj0, &argp1, SWIGTYPE_p_std__shared_ptrT_teca_variant_array_implT_int_t_t, 0 |  0 , &newmem);
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "teca_char_array_new_instance" "', argument " "1"" of type '" "teca_variant_array_impl< int > const *""'"); 
+    }
+    if (newmem & SWIG_CAST_NEW_MEMORY) {
+      tempshared1 = *reinterpret_cast< std::shared_ptr< const teca_variant_array_impl<int> > * >(argp1);
+      delete reinterpret_cast< std::shared_ptr< const teca_variant_array_impl<int> > * >(argp1);
+      arg1 = const_cast< teca_variant_array_impl< int > * >(tempshared1.get());
+    } else {
+      smartarg1 = reinterpret_cast< std::shared_ptr< const teca_variant_array_impl<int> > * >(argp1);
+      arg1 = const_cast< teca_variant_array_impl< int > * >((smartarg1 ? smartarg1->get() : 0));
+    }
+  }
+  ecode2 = SWIG_AsVal_size_t(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "teca_char_array_new_instance" "', argument " "2"" of type '" "size_t""'");
+  } 
+  arg2 = static_cast< size_t >(val2);
+  result = ((teca_variant_array_impl< int > const *)arg1)->new_instance(arg2);
+  {
+    std::shared_ptr<  teca_variant_array > *smartresult = result ? new std::shared_ptr<  teca_variant_array >(result) : 0;
+    resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(smartresult), SWIGTYPE_p_std__shared_ptrT_teca_variant_array_t, SWIG_POINTER_OWN);
+  }
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_teca_char_array_new_instance(PyObject *self, PyObject *args) {
+  int argc;
+  PyObject *argv[3] = {
+    0
+  };
+  int ii;
+  
+  if (!PyTuple_Check(args)) SWIG_fail;
+  argc = args ? (int)PyObject_Length(args) : 0;
+  for (ii = 0; (ii < 2) && (ii < argc); ii++) {
+    argv[ii] = PyTuple_GET_ITEM(args,ii);
+  }
+  if (argc == 1) {
+    int _v;
+    int res = SWIG_ConvertPtr(argv[0], 0, SWIGTYPE_p_std__shared_ptrT_teca_variant_array_implT_int_t_t, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      return _wrap_teca_char_array_new_instance__SWIG_0(self, args);
+    }
+  }
+  if (argc == 2) {
+    int _v;
+    int res = SWIG_ConvertPtr(argv[0], 0, SWIGTYPE_p_std__shared_ptrT_teca_variant_array_implT_int_t_t, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      {
+        int res = SWIG_AsVal_size_t(argv[1], NULL);
+        _v = SWIG_CheckState(res);
+      }
+      if (_v) {
+        return _wrap_teca_char_array_new_instance__SWIG_1(self, args);
+      }
+    }
+  }
+  
+fail:
+  SWIG_SetErrorMsg(PyExc_NotImplementedError,"Wrong number or type of arguments for overloaded function 'teca_char_array_new_instance'.\n"
+    "  Possible C/C++ prototypes are:\n"
+    "    teca_variant_array_impl< int >::new_instance() const\n"
+    "    teca_variant_array_impl< int >::new_instance(size_t) const\n");
+  return 0;
 }
 
 
@@ -32359,7 +32809,7 @@ fail:
 }
 
 
-SWIGINTERN PyObject *_wrap_teca_long_long_array_new_instance(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+SWIGINTERN PyObject *_wrap_teca_long_long_array_new_instance__SWIG_0(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   teca_variant_array_impl< long long > *arg1 = (teca_variant_array_impl< long long > *) 0 ;
   void *argp1 = 0 ;
@@ -32393,6 +32843,96 @@ SWIGINTERN PyObject *_wrap_teca_long_long_array_new_instance(PyObject *SWIGUNUSE
   return resultobj;
 fail:
   return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_teca_long_long_array_new_instance__SWIG_1(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  teca_variant_array_impl< long long > *arg1 = (teca_variant_array_impl< long long > *) 0 ;
+  size_t arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  std::shared_ptr< teca_variant_array_impl< long long > const > tempshared1 ;
+  std::shared_ptr< teca_variant_array_impl< long long > const > *smartarg1 = 0 ;
+  size_t val2 ;
+  int ecode2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  p_teca_variant_array result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:teca_long_long_array_new_instance",&obj0,&obj1)) SWIG_fail;
+  {
+    int newmem = 0;
+    res1 = SWIG_ConvertPtrAndOwn(obj0, &argp1, SWIGTYPE_p_std__shared_ptrT_teca_variant_array_implT_long_long_t_t, 0 |  0 , &newmem);
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "teca_long_long_array_new_instance" "', argument " "1"" of type '" "teca_variant_array_impl< long long > const *""'"); 
+    }
+    if (newmem & SWIG_CAST_NEW_MEMORY) {
+      tempshared1 = *reinterpret_cast< std::shared_ptr< const teca_variant_array_impl<long long> > * >(argp1);
+      delete reinterpret_cast< std::shared_ptr< const teca_variant_array_impl<long long> > * >(argp1);
+      arg1 = const_cast< teca_variant_array_impl< long long > * >(tempshared1.get());
+    } else {
+      smartarg1 = reinterpret_cast< std::shared_ptr< const teca_variant_array_impl<long long> > * >(argp1);
+      arg1 = const_cast< teca_variant_array_impl< long long > * >((smartarg1 ? smartarg1->get() : 0));
+    }
+  }
+  ecode2 = SWIG_AsVal_size_t(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "teca_long_long_array_new_instance" "', argument " "2"" of type '" "size_t""'");
+  } 
+  arg2 = static_cast< size_t >(val2);
+  result = ((teca_variant_array_impl< long long > const *)arg1)->new_instance(arg2);
+  {
+    std::shared_ptr<  teca_variant_array > *smartresult = result ? new std::shared_ptr<  teca_variant_array >(result) : 0;
+    resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(smartresult), SWIGTYPE_p_std__shared_ptrT_teca_variant_array_t, SWIG_POINTER_OWN);
+  }
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_teca_long_long_array_new_instance(PyObject *self, PyObject *args) {
+  int argc;
+  PyObject *argv[3] = {
+    0
+  };
+  int ii;
+  
+  if (!PyTuple_Check(args)) SWIG_fail;
+  argc = args ? (int)PyObject_Length(args) : 0;
+  for (ii = 0; (ii < 2) && (ii < argc); ii++) {
+    argv[ii] = PyTuple_GET_ITEM(args,ii);
+  }
+  if (argc == 1) {
+    int _v;
+    int res = SWIG_ConvertPtr(argv[0], 0, SWIGTYPE_p_std__shared_ptrT_teca_variant_array_implT_long_long_t_t, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      return _wrap_teca_long_long_array_new_instance__SWIG_0(self, args);
+    }
+  }
+  if (argc == 2) {
+    int _v;
+    int res = SWIG_ConvertPtr(argv[0], 0, SWIGTYPE_p_std__shared_ptrT_teca_variant_array_implT_long_long_t_t, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      {
+        int res = SWIG_AsVal_size_t(argv[1], NULL);
+        _v = SWIG_CheckState(res);
+      }
+      if (_v) {
+        return _wrap_teca_long_long_array_new_instance__SWIG_1(self, args);
+      }
+    }
+  }
+  
+fail:
+  SWIG_SetErrorMsg(PyExc_NotImplementedError,"Wrong number or type of arguments for overloaded function 'teca_long_long_array_new_instance'.\n"
+    "  Possible C/C++ prototypes are:\n"
+    "    teca_variant_array_impl< long long >::new_instance() const\n"
+    "    teca_variant_array_impl< long long >::new_instance(size_t) const\n");
+  return 0;
 }
 
 
@@ -33654,7 +34194,7 @@ fail:
 }
 
 
-SWIGINTERN PyObject *_wrap_teca_unsigned_int_array_new_instance(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+SWIGINTERN PyObject *_wrap_teca_unsigned_int_array_new_instance__SWIG_0(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   teca_variant_array_impl< unsigned char > *arg1 = (teca_variant_array_impl< unsigned char > *) 0 ;
   void *argp1 = 0 ;
@@ -33688,6 +34228,96 @@ SWIGINTERN PyObject *_wrap_teca_unsigned_int_array_new_instance(PyObject *SWIGUN
   return resultobj;
 fail:
   return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_teca_unsigned_int_array_new_instance__SWIG_1(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  teca_variant_array_impl< unsigned char > *arg1 = (teca_variant_array_impl< unsigned char > *) 0 ;
+  size_t arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  std::shared_ptr< teca_variant_array_impl< unsigned char > const > tempshared1 ;
+  std::shared_ptr< teca_variant_array_impl< unsigned char > const > *smartarg1 = 0 ;
+  size_t val2 ;
+  int ecode2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  p_teca_variant_array result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:teca_unsigned_int_array_new_instance",&obj0,&obj1)) SWIG_fail;
+  {
+    int newmem = 0;
+    res1 = SWIG_ConvertPtrAndOwn(obj0, &argp1, SWIGTYPE_p_std__shared_ptrT_teca_variant_array_implT_unsigned_char_t_t, 0 |  0 , &newmem);
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "teca_unsigned_int_array_new_instance" "', argument " "1"" of type '" "teca_variant_array_impl< unsigned char > const *""'"); 
+    }
+    if (newmem & SWIG_CAST_NEW_MEMORY) {
+      tempshared1 = *reinterpret_cast< std::shared_ptr< const teca_variant_array_impl<unsigned char> > * >(argp1);
+      delete reinterpret_cast< std::shared_ptr< const teca_variant_array_impl<unsigned char> > * >(argp1);
+      arg1 = const_cast< teca_variant_array_impl< unsigned char > * >(tempshared1.get());
+    } else {
+      smartarg1 = reinterpret_cast< std::shared_ptr< const teca_variant_array_impl<unsigned char> > * >(argp1);
+      arg1 = const_cast< teca_variant_array_impl< unsigned char > * >((smartarg1 ? smartarg1->get() : 0));
+    }
+  }
+  ecode2 = SWIG_AsVal_size_t(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "teca_unsigned_int_array_new_instance" "', argument " "2"" of type '" "size_t""'");
+  } 
+  arg2 = static_cast< size_t >(val2);
+  result = ((teca_variant_array_impl< unsigned char > const *)arg1)->new_instance(arg2);
+  {
+    std::shared_ptr<  teca_variant_array > *smartresult = result ? new std::shared_ptr<  teca_variant_array >(result) : 0;
+    resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(smartresult), SWIGTYPE_p_std__shared_ptrT_teca_variant_array_t, SWIG_POINTER_OWN);
+  }
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_teca_unsigned_int_array_new_instance(PyObject *self, PyObject *args) {
+  int argc;
+  PyObject *argv[3] = {
+    0
+  };
+  int ii;
+  
+  if (!PyTuple_Check(args)) SWIG_fail;
+  argc = args ? (int)PyObject_Length(args) : 0;
+  for (ii = 0; (ii < 2) && (ii < argc); ii++) {
+    argv[ii] = PyTuple_GET_ITEM(args,ii);
+  }
+  if (argc == 1) {
+    int _v;
+    int res = SWIG_ConvertPtr(argv[0], 0, SWIGTYPE_p_std__shared_ptrT_teca_variant_array_implT_unsigned_char_t_t, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      return _wrap_teca_unsigned_int_array_new_instance__SWIG_0(self, args);
+    }
+  }
+  if (argc == 2) {
+    int _v;
+    int res = SWIG_ConvertPtr(argv[0], 0, SWIGTYPE_p_std__shared_ptrT_teca_variant_array_implT_unsigned_char_t_t, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      {
+        int res = SWIG_AsVal_size_t(argv[1], NULL);
+        _v = SWIG_CheckState(res);
+      }
+      if (_v) {
+        return _wrap_teca_unsigned_int_array_new_instance__SWIG_1(self, args);
+      }
+    }
+  }
+  
+fail:
+  SWIG_SetErrorMsg(PyExc_NotImplementedError,"Wrong number or type of arguments for overloaded function 'teca_unsigned_int_array_new_instance'.\n"
+    "  Possible C/C++ prototypes are:\n"
+    "    teca_variant_array_impl< unsigned char >::new_instance() const\n"
+    "    teca_variant_array_impl< unsigned char >::new_instance(size_t) const\n");
+  return 0;
 }
 
 
@@ -34949,7 +35579,7 @@ fail:
 }
 
 
-SWIGINTERN PyObject *_wrap_teca_unsigned_char_array_new_instance(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+SWIGINTERN PyObject *_wrap_teca_unsigned_char_array_new_instance__SWIG_0(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   teca_variant_array_impl< unsigned int > *arg1 = (teca_variant_array_impl< unsigned int > *) 0 ;
   void *argp1 = 0 ;
@@ -34983,6 +35613,96 @@ SWIGINTERN PyObject *_wrap_teca_unsigned_char_array_new_instance(PyObject *SWIGU
   return resultobj;
 fail:
   return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_teca_unsigned_char_array_new_instance__SWIG_1(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  teca_variant_array_impl< unsigned int > *arg1 = (teca_variant_array_impl< unsigned int > *) 0 ;
+  size_t arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  std::shared_ptr< teca_variant_array_impl< unsigned int > const > tempshared1 ;
+  std::shared_ptr< teca_variant_array_impl< unsigned int > const > *smartarg1 = 0 ;
+  size_t val2 ;
+  int ecode2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  p_teca_variant_array result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:teca_unsigned_char_array_new_instance",&obj0,&obj1)) SWIG_fail;
+  {
+    int newmem = 0;
+    res1 = SWIG_ConvertPtrAndOwn(obj0, &argp1, SWIGTYPE_p_std__shared_ptrT_teca_variant_array_implT_unsigned_int_t_t, 0 |  0 , &newmem);
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "teca_unsigned_char_array_new_instance" "', argument " "1"" of type '" "teca_variant_array_impl< unsigned int > const *""'"); 
+    }
+    if (newmem & SWIG_CAST_NEW_MEMORY) {
+      tempshared1 = *reinterpret_cast< std::shared_ptr< const teca_variant_array_impl<unsigned int> > * >(argp1);
+      delete reinterpret_cast< std::shared_ptr< const teca_variant_array_impl<unsigned int> > * >(argp1);
+      arg1 = const_cast< teca_variant_array_impl< unsigned int > * >(tempshared1.get());
+    } else {
+      smartarg1 = reinterpret_cast< std::shared_ptr< const teca_variant_array_impl<unsigned int> > * >(argp1);
+      arg1 = const_cast< teca_variant_array_impl< unsigned int > * >((smartarg1 ? smartarg1->get() : 0));
+    }
+  }
+  ecode2 = SWIG_AsVal_size_t(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "teca_unsigned_char_array_new_instance" "', argument " "2"" of type '" "size_t""'");
+  } 
+  arg2 = static_cast< size_t >(val2);
+  result = ((teca_variant_array_impl< unsigned int > const *)arg1)->new_instance(arg2);
+  {
+    std::shared_ptr<  teca_variant_array > *smartresult = result ? new std::shared_ptr<  teca_variant_array >(result) : 0;
+    resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(smartresult), SWIGTYPE_p_std__shared_ptrT_teca_variant_array_t, SWIG_POINTER_OWN);
+  }
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_teca_unsigned_char_array_new_instance(PyObject *self, PyObject *args) {
+  int argc;
+  PyObject *argv[3] = {
+    0
+  };
+  int ii;
+  
+  if (!PyTuple_Check(args)) SWIG_fail;
+  argc = args ? (int)PyObject_Length(args) : 0;
+  for (ii = 0; (ii < 2) && (ii < argc); ii++) {
+    argv[ii] = PyTuple_GET_ITEM(args,ii);
+  }
+  if (argc == 1) {
+    int _v;
+    int res = SWIG_ConvertPtr(argv[0], 0, SWIGTYPE_p_std__shared_ptrT_teca_variant_array_implT_unsigned_int_t_t, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      return _wrap_teca_unsigned_char_array_new_instance__SWIG_0(self, args);
+    }
+  }
+  if (argc == 2) {
+    int _v;
+    int res = SWIG_ConvertPtr(argv[0], 0, SWIGTYPE_p_std__shared_ptrT_teca_variant_array_implT_unsigned_int_t_t, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      {
+        int res = SWIG_AsVal_size_t(argv[1], NULL);
+        _v = SWIG_CheckState(res);
+      }
+      if (_v) {
+        return _wrap_teca_unsigned_char_array_new_instance__SWIG_1(self, args);
+      }
+    }
+  }
+  
+fail:
+  SWIG_SetErrorMsg(PyExc_NotImplementedError,"Wrong number or type of arguments for overloaded function 'teca_unsigned_char_array_new_instance'.\n"
+    "  Possible C/C++ prototypes are:\n"
+    "    teca_variant_array_impl< unsigned int >::new_instance() const\n"
+    "    teca_variant_array_impl< unsigned int >::new_instance(size_t) const\n");
+  return 0;
 }
 
 
@@ -36244,7 +36964,7 @@ fail:
 }
 
 
-SWIGINTERN PyObject *_wrap_teca_unsigned_long_long_array_new_instance(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+SWIGINTERN PyObject *_wrap_teca_unsigned_long_long_array_new_instance__SWIG_0(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   teca_variant_array_impl< unsigned long long > *arg1 = (teca_variant_array_impl< unsigned long long > *) 0 ;
   void *argp1 = 0 ;
@@ -36278,6 +36998,96 @@ SWIGINTERN PyObject *_wrap_teca_unsigned_long_long_array_new_instance(PyObject *
   return resultobj;
 fail:
   return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_teca_unsigned_long_long_array_new_instance__SWIG_1(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  teca_variant_array_impl< unsigned long long > *arg1 = (teca_variant_array_impl< unsigned long long > *) 0 ;
+  size_t arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  std::shared_ptr< teca_variant_array_impl< unsigned long long > const > tempshared1 ;
+  std::shared_ptr< teca_variant_array_impl< unsigned long long > const > *smartarg1 = 0 ;
+  size_t val2 ;
+  int ecode2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  p_teca_variant_array result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:teca_unsigned_long_long_array_new_instance",&obj0,&obj1)) SWIG_fail;
+  {
+    int newmem = 0;
+    res1 = SWIG_ConvertPtrAndOwn(obj0, &argp1, SWIGTYPE_p_std__shared_ptrT_teca_variant_array_implT_unsigned_long_long_t_t, 0 |  0 , &newmem);
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "teca_unsigned_long_long_array_new_instance" "', argument " "1"" of type '" "teca_variant_array_impl< unsigned long long > const *""'"); 
+    }
+    if (newmem & SWIG_CAST_NEW_MEMORY) {
+      tempshared1 = *reinterpret_cast< std::shared_ptr< const teca_variant_array_impl<unsigned long long> > * >(argp1);
+      delete reinterpret_cast< std::shared_ptr< const teca_variant_array_impl<unsigned long long> > * >(argp1);
+      arg1 = const_cast< teca_variant_array_impl< unsigned long long > * >(tempshared1.get());
+    } else {
+      smartarg1 = reinterpret_cast< std::shared_ptr< const teca_variant_array_impl<unsigned long long> > * >(argp1);
+      arg1 = const_cast< teca_variant_array_impl< unsigned long long > * >((smartarg1 ? smartarg1->get() : 0));
+    }
+  }
+  ecode2 = SWIG_AsVal_size_t(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "teca_unsigned_long_long_array_new_instance" "', argument " "2"" of type '" "size_t""'");
+  } 
+  arg2 = static_cast< size_t >(val2);
+  result = ((teca_variant_array_impl< unsigned long long > const *)arg1)->new_instance(arg2);
+  {
+    std::shared_ptr<  teca_variant_array > *smartresult = result ? new std::shared_ptr<  teca_variant_array >(result) : 0;
+    resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(smartresult), SWIGTYPE_p_std__shared_ptrT_teca_variant_array_t, SWIG_POINTER_OWN);
+  }
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_teca_unsigned_long_long_array_new_instance(PyObject *self, PyObject *args) {
+  int argc;
+  PyObject *argv[3] = {
+    0
+  };
+  int ii;
+  
+  if (!PyTuple_Check(args)) SWIG_fail;
+  argc = args ? (int)PyObject_Length(args) : 0;
+  for (ii = 0; (ii < 2) && (ii < argc); ii++) {
+    argv[ii] = PyTuple_GET_ITEM(args,ii);
+  }
+  if (argc == 1) {
+    int _v;
+    int res = SWIG_ConvertPtr(argv[0], 0, SWIGTYPE_p_std__shared_ptrT_teca_variant_array_implT_unsigned_long_long_t_t, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      return _wrap_teca_unsigned_long_long_array_new_instance__SWIG_0(self, args);
+    }
+  }
+  if (argc == 2) {
+    int _v;
+    int res = SWIG_ConvertPtr(argv[0], 0, SWIGTYPE_p_std__shared_ptrT_teca_variant_array_implT_unsigned_long_long_t_t, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      {
+        int res = SWIG_AsVal_size_t(argv[1], NULL);
+        _v = SWIG_CheckState(res);
+      }
+      if (_v) {
+        return _wrap_teca_unsigned_long_long_array_new_instance__SWIG_1(self, args);
+      }
+    }
+  }
+  
+fail:
+  SWIG_SetErrorMsg(PyExc_NotImplementedError,"Wrong number or type of arguments for overloaded function 'teca_unsigned_long_long_array_new_instance'.\n"
+    "  Possible C/C++ prototypes are:\n"
+    "    teca_variant_array_impl< unsigned long long >::new_instance() const\n"
+    "    teca_variant_array_impl< unsigned long long >::new_instance(size_t) const\n");
+  return 0;
 }
 
 
@@ -46197,14 +47007,65 @@ fail:
 }
 
 
+SWIGINTERN PyObject *_wrap_teca_array_collection_has(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  teca_array_collection *arg1 = (teca_array_collection *) 0 ;
+  std::string *arg2 = 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  std::shared_ptr< teca_array_collection const > tempshared1 ;
+  std::shared_ptr< teca_array_collection const > *smartarg1 = 0 ;
+  int res2 = SWIG_OLDOBJ ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  bool result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:teca_array_collection_has",&obj0,&obj1)) SWIG_fail;
+  {
+    int newmem = 0;
+    res1 = SWIG_ConvertPtrAndOwn(obj0, &argp1, SWIGTYPE_p_std__shared_ptrT_teca_array_collection_t, 0 |  0 , &newmem);
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "teca_array_collection_has" "', argument " "1"" of type '" "teca_array_collection const *""'"); 
+    }
+    if (newmem & SWIG_CAST_NEW_MEMORY) {
+      tempshared1 = *reinterpret_cast< std::shared_ptr< const teca_array_collection > * >(argp1);
+      delete reinterpret_cast< std::shared_ptr< const teca_array_collection > * >(argp1);
+      arg1 = const_cast< teca_array_collection * >(tempshared1.get());
+    } else {
+      smartarg1 = reinterpret_cast< std::shared_ptr< const teca_array_collection > * >(argp1);
+      arg1 = const_cast< teca_array_collection * >((smartarg1 ? smartarg1->get() : 0));
+    }
+  }
+  {
+    std::string *ptr = (std::string *)0;
+    res2 = SWIG_AsPtr_std_string(obj1, &ptr);
+    if (!SWIG_IsOK(res2)) {
+      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "teca_array_collection_has" "', argument " "2"" of type '" "std::string const &""'"); 
+    }
+    if (!ptr) {
+      SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "teca_array_collection_has" "', argument " "2"" of type '" "std::string const &""'"); 
+    }
+    arg2 = ptr;
+  }
+  result = (bool)((teca_array_collection const *)arg1)->has((std::string const &)*arg2);
+  resultobj = SWIG_From_bool(static_cast< bool >(result));
+  if (SWIG_IsNewObj(res2)) delete arg2;
+  return resultobj;
+fail:
+  if (SWIG_IsNewObj(res2)) delete arg2;
+  return NULL;
+}
+
+
 SWIGINTERN PyObject *_wrap_teca_array_collection_get__SWIG_2(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   teca_array_collection *arg1 = (teca_array_collection *) 0 ;
-  std::string arg2 ;
+  std::string *arg2 = 0 ;
   void *argp1 = 0 ;
   int res1 = 0 ;
   std::shared_ptr< teca_array_collection > tempshared1 ;
   std::shared_ptr< teca_array_collection > *smartarg1 = 0 ;
+  int res2 = SWIG_OLDOBJ ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
   p_teca_variant_array result;
@@ -46227,20 +47088,24 @@ SWIGINTERN PyObject *_wrap_teca_array_collection_get__SWIG_2(PyObject *SWIGUNUSE
   }
   {
     std::string *ptr = (std::string *)0;
-    int res = SWIG_AsPtr_std_string(obj1, &ptr);
-    if (!SWIG_IsOK(res) || !ptr) {
-      SWIG_exception_fail(SWIG_ArgError((ptr ? res : SWIG_TypeError)), "in method '" "teca_array_collection_get" "', argument " "2"" of type '" "std::string const""'"); 
+    res2 = SWIG_AsPtr_std_string(obj1, &ptr);
+    if (!SWIG_IsOK(res2)) {
+      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "teca_array_collection_get" "', argument " "2"" of type '" "std::string const &""'"); 
     }
-    arg2 = *ptr;
-    if (SWIG_IsNewObj(res)) delete ptr;
+    if (!ptr) {
+      SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "teca_array_collection_get" "', argument " "2"" of type '" "std::string const &""'"); 
+    }
+    arg2 = ptr;
   }
-  result = (arg1)->get(arg2);
+  result = (arg1)->get((std::string const &)*arg2);
   {
     std::shared_ptr<  teca_variant_array > *smartresult = result ? new std::shared_ptr<  teca_variant_array >(result) : 0;
     resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(smartresult), SWIGTYPE_p_std__shared_ptrT_teca_variant_array_t, SWIG_POINTER_OWN);
   }
+  if (SWIG_IsNewObj(res2)) delete arg2;
   return resultobj;
 fail:
+  if (SWIG_IsNewObj(res2)) delete arg2;
   return NULL;
 }
 
@@ -46248,11 +47113,12 @@ fail:
 SWIGINTERN PyObject *_wrap_teca_array_collection_get__SWIG_3(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   teca_array_collection *arg1 = (teca_array_collection *) 0 ;
-  std::string arg2 ;
+  std::string *arg2 = 0 ;
   void *argp1 = 0 ;
   int res1 = 0 ;
   std::shared_ptr< teca_array_collection const > tempshared1 ;
   std::shared_ptr< teca_array_collection const > *smartarg1 = 0 ;
+  int res2 = SWIG_OLDOBJ ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
   const_p_teca_variant_array result;
@@ -46275,20 +47141,24 @@ SWIGINTERN PyObject *_wrap_teca_array_collection_get__SWIG_3(PyObject *SWIGUNUSE
   }
   {
     std::string *ptr = (std::string *)0;
-    int res = SWIG_AsPtr_std_string(obj1, &ptr);
-    if (!SWIG_IsOK(res) || !ptr) {
-      SWIG_exception_fail(SWIG_ArgError((ptr ? res : SWIG_TypeError)), "in method '" "teca_array_collection_get" "', argument " "2"" of type '" "std::string const""'"); 
+    res2 = SWIG_AsPtr_std_string(obj1, &ptr);
+    if (!SWIG_IsOK(res2)) {
+      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "teca_array_collection_get" "', argument " "2"" of type '" "std::string const &""'"); 
     }
-    arg2 = *ptr;
-    if (SWIG_IsNewObj(res)) delete ptr;
+    if (!ptr) {
+      SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "teca_array_collection_get" "', argument " "2"" of type '" "std::string const &""'"); 
+    }
+    arg2 = ptr;
   }
-  result = ((teca_array_collection const *)arg1)->get(arg2);
+  result = ((teca_array_collection const *)arg1)->get((std::string const &)*arg2);
   {
     std::shared_ptr< const teca_variant_array > *smartresult = result ? new std::shared_ptr< const teca_variant_array >(result) : 0;
     resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(smartresult), SWIGTYPE_p_std__shared_ptrT_teca_variant_array_t, SWIG_POINTER_OWN);
   }
+  if (SWIG_IsNewObj(res2)) delete arg2;
   return resultobj;
 fail:
+  if (SWIG_IsNewObj(res2)) delete arg2;
   return NULL;
 }
 
@@ -46363,8 +47233,8 @@ fail:
     "  Possible C/C++ prototypes are:\n"
     "    teca_array_collection::get(unsigned int)\n"
     "    teca_array_collection::get(unsigned int) const\n"
-    "    teca_array_collection::get(std::string const)\n"
-    "    teca_array_collection::get(std::string const) const\n");
+    "    teca_array_collection::get(std::string const &)\n"
+    "    teca_array_collection::get(std::string const &) const\n");
   return 0;
 }
 
@@ -55741,10 +56611,12 @@ static PyMethodDef SwigMethods[] = {
 		"\n"
 		""},
 	 { (char *)"teca_variant_array_new_instance", _wrap_teca_variant_array_new_instance, METH_VARARGS, (char *)"\n"
-		"teca_variant_array_new_instance(teca_variant_array self) -> p_teca_variant_array\n"
+		"new_instance() -> p_teca_variant_array\n"
+		"teca_variant_array_new_instance(teca_variant_array self, size_t n) -> p_teca_variant_array\n"
 		"\n"
 		"Parameters:\n"
 		"    self: teca_variant_array const *\n"
+		"    n: size_t\n"
 		"\n"
 		""},
 	 { (char *)"teca_variant_array_new_copy", _wrap_teca_variant_array_new_copy, METH_VARARGS, (char *)"\n"
@@ -55952,10 +56824,12 @@ static PyMethodDef SwigMethods[] = {
 		"\n"
 		""},
 	 { (char *)"teca_double_array_new_instance", _wrap_teca_double_array_new_instance, METH_VARARGS, (char *)"\n"
-		"teca_double_array_new_instance(teca_double_array self) -> p_teca_variant_array\n"
+		"new_instance() -> p_teca_variant_array\n"
+		"teca_double_array_new_instance(teca_double_array self, size_t n) -> p_teca_variant_array\n"
 		"\n"
 		"Parameters:\n"
 		"    self: teca_variant_array_impl< double > const *\n"
+		"    n: size_t\n"
 		"\n"
 		""},
 	 { (char *)"new_teca_double_array", _wrap_new_teca_double_array, METH_VARARGS, (char *)"\n"
@@ -56100,10 +56974,12 @@ static PyMethodDef SwigMethods[] = {
 		"\n"
 		""},
 	 { (char *)"teca_float_array_new_instance", _wrap_teca_float_array_new_instance, METH_VARARGS, (char *)"\n"
-		"teca_float_array_new_instance(teca_float_array self) -> p_teca_variant_array\n"
+		"new_instance() -> p_teca_variant_array\n"
+		"teca_float_array_new_instance(teca_float_array self, size_t n) -> p_teca_variant_array\n"
 		"\n"
 		"Parameters:\n"
 		"    self: teca_variant_array_impl< float > const *\n"
+		"    n: size_t\n"
 		"\n"
 		""},
 	 { (char *)"new_teca_float_array", _wrap_new_teca_float_array, METH_VARARGS, (char *)"\n"
@@ -56248,10 +57124,12 @@ static PyMethodDef SwigMethods[] = {
 		"\n"
 		""},
 	 { (char *)"teca_int_array_new_instance", _wrap_teca_int_array_new_instance, METH_VARARGS, (char *)"\n"
-		"teca_int_array_new_instance(teca_int_array self) -> p_teca_variant_array\n"
+		"new_instance() -> p_teca_variant_array\n"
+		"teca_int_array_new_instance(teca_int_array self, size_t n) -> p_teca_variant_array\n"
 		"\n"
 		"Parameters:\n"
 		"    self: teca_variant_array_impl< char > const *\n"
+		"    n: size_t\n"
 		"\n"
 		""},
 	 { (char *)"new_teca_int_array", _wrap_new_teca_int_array, METH_VARARGS, (char *)"\n"
@@ -56396,10 +57274,12 @@ static PyMethodDef SwigMethods[] = {
 		"\n"
 		""},
 	 { (char *)"teca_char_array_new_instance", _wrap_teca_char_array_new_instance, METH_VARARGS, (char *)"\n"
-		"teca_char_array_new_instance(teca_char_array self) -> p_teca_variant_array\n"
+		"new_instance() -> p_teca_variant_array\n"
+		"teca_char_array_new_instance(teca_char_array self, size_t n) -> p_teca_variant_array\n"
 		"\n"
 		"Parameters:\n"
 		"    self: teca_variant_array_impl< int > const *\n"
+		"    n: size_t\n"
 		"\n"
 		""},
 	 { (char *)"new_teca_char_array", _wrap_new_teca_char_array, METH_VARARGS, (char *)"\n"
@@ -56544,10 +57424,12 @@ static PyMethodDef SwigMethods[] = {
 		"\n"
 		""},
 	 { (char *)"teca_long_long_array_new_instance", _wrap_teca_long_long_array_new_instance, METH_VARARGS, (char *)"\n"
-		"teca_long_long_array_new_instance(teca_long_long_array self) -> p_teca_variant_array\n"
+		"new_instance() -> p_teca_variant_array\n"
+		"teca_long_long_array_new_instance(teca_long_long_array self, size_t n) -> p_teca_variant_array\n"
 		"\n"
 		"Parameters:\n"
 		"    self: teca_variant_array_impl< long long > const *\n"
+		"    n: size_t\n"
 		"\n"
 		""},
 	 { (char *)"new_teca_long_long_array", _wrap_new_teca_long_long_array, METH_VARARGS, (char *)"\n"
@@ -56692,10 +57574,12 @@ static PyMethodDef SwigMethods[] = {
 		"\n"
 		""},
 	 { (char *)"teca_unsigned_int_array_new_instance", _wrap_teca_unsigned_int_array_new_instance, METH_VARARGS, (char *)"\n"
-		"teca_unsigned_int_array_new_instance(teca_unsigned_int_array self) -> p_teca_variant_array\n"
+		"new_instance() -> p_teca_variant_array\n"
+		"teca_unsigned_int_array_new_instance(teca_unsigned_int_array self, size_t n) -> p_teca_variant_array\n"
 		"\n"
 		"Parameters:\n"
 		"    self: teca_variant_array_impl< unsigned char > const *\n"
+		"    n: size_t\n"
 		"\n"
 		""},
 	 { (char *)"new_teca_unsigned_int_array", _wrap_new_teca_unsigned_int_array, METH_VARARGS, (char *)"\n"
@@ -56840,10 +57724,12 @@ static PyMethodDef SwigMethods[] = {
 		"\n"
 		""},
 	 { (char *)"teca_unsigned_char_array_new_instance", _wrap_teca_unsigned_char_array_new_instance, METH_VARARGS, (char *)"\n"
-		"teca_unsigned_char_array_new_instance(teca_unsigned_char_array self) -> p_teca_variant_array\n"
+		"new_instance() -> p_teca_variant_array\n"
+		"teca_unsigned_char_array_new_instance(teca_unsigned_char_array self, size_t n) -> p_teca_variant_array\n"
 		"\n"
 		"Parameters:\n"
 		"    self: teca_variant_array_impl< unsigned int > const *\n"
+		"    n: size_t\n"
 		"\n"
 		""},
 	 { (char *)"new_teca_unsigned_char_array", _wrap_new_teca_unsigned_char_array, METH_VARARGS, (char *)"\n"
@@ -56988,10 +57874,12 @@ static PyMethodDef SwigMethods[] = {
 		"\n"
 		""},
 	 { (char *)"teca_unsigned_long_long_array_new_instance", _wrap_teca_unsigned_long_long_array_new_instance, METH_VARARGS, (char *)"\n"
-		"teca_unsigned_long_long_array_new_instance(teca_unsigned_long_long_array self) -> p_teca_variant_array\n"
+		"new_instance() -> p_teca_variant_array\n"
+		"teca_unsigned_long_long_array_new_instance(teca_unsigned_long_long_array self, size_t n) -> p_teca_variant_array\n"
 		"\n"
 		"Parameters:\n"
 		"    self: teca_variant_array_impl< unsigned long long > const *\n"
+		"    n: size_t\n"
 		"\n"
 		""},
 	 { (char *)"new_teca_unsigned_long_long_array", _wrap_new_teca_unsigned_long_long_array, METH_VARARGS, (char *)"\n"
@@ -58491,6 +59379,14 @@ static PyMethodDef SwigMethods[] = {
 		"    self: teca_array_collection const *\n"
 		"\n"
 		""},
+	 { (char *)"teca_array_collection_has", _wrap_teca_array_collection_has, METH_VARARGS, (char *)"\n"
+		"teca_array_collection_has(teca_array_collection self, std::string const & name) -> bool\n"
+		"\n"
+		"Parameters:\n"
+		"    self: teca_array_collection const *\n"
+		"    name: std::string const &\n"
+		"\n"
+		""},
 	 { (char *)"teca_array_collection_get", _wrap_teca_array_collection_get, METH_VARARGS, (char *)"\n"
 		"get(unsigned int i) -> p_teca_variant_array\n"
 		"\n"
@@ -58502,16 +59398,16 @@ static PyMethodDef SwigMethods[] = {
 		"Parameters:\n"
 		"    i: unsigned int\n"
 		"\n"
-		"get(std::string const name) -> p_teca_variant_array\n"
+		"get(std::string const & name) -> p_teca_variant_array\n"
 		"\n"
 		"Parameters:\n"
-		"    name: std::string const\n"
+		"    name: std::string const &\n"
 		"\n"
-		"teca_array_collection_get(teca_array_collection self, std::string const name) -> const_p_teca_variant_array\n"
+		"teca_array_collection_get(teca_array_collection self, std::string const & name) -> const_p_teca_variant_array\n"
 		"\n"
 		"Parameters:\n"
 		"    self: teca_array_collection const *\n"
-		"    name: std::string const\n"
+		"    name: std::string const &\n"
 		"\n"
 		""},
 	 { (char *)"teca_array_collection_get_name", _wrap_teca_array_collection_get_name, METH_VARARGS, (char *)"\n"
