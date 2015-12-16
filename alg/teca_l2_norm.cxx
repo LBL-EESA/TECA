@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <iostream>
 #include <string>
+#include <set>
+#include <cmath>
 
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
@@ -15,6 +17,7 @@
 
 using std::string;
 using std::vector;
+using std::set;
 using std::cerr;
 using std::endl;
 
@@ -23,9 +26,9 @@ using std::endl;
 namespace {
 
 template <typename num_t>
-void sum_square(num_t *ss, const num_t *c, unsigned long n)
+void sum_square(num_t * __restrict__ ss,
+    const num_t * __restrict__ c, unsigned long n)
 {
-    // TODO -- verify that this is being vectorized
     for (unsigned long i = 0; i < n; ++i)
     {
         num_t ci = c[i];
@@ -34,13 +37,12 @@ void sum_square(num_t *ss, const num_t *c, unsigned long n)
 }
 
 template <typename num_t>
-void square_root(num_t *rt, const num_t *c, unsigned long n)
+void square_root(num_t * __restrict__ rt,
+    const num_t * __restrict__ c, unsigned long n)
 {
-    // TODO -- verify that this is vectorized, it might not be
-    // because of aliasing
     for (unsigned long i = 0; i < n; ++i)
     {
-        rt[i] = sqrt(c[i]);
+        rt[i] = std::sqrt(c[i]);
     }
 }
 
@@ -89,6 +91,59 @@ void teca_l2_norm::set_properties(
 #endif
 
 // --------------------------------------------------------------------------
+std::string teca_l2_norm::get_component_0_variable(const teca_metadata &request)
+{
+    std::string comp_0_var = this->component_0_variable;
+
+    if (comp_0_var.empty() &&
+        request.has("teca_l2_norm::component_0_variable"))
+            request.get("teca_l2_norm::component_0_variable", comp_0_var);
+
+    return comp_0_var;
+}
+
+// --------------------------------------------------------------------------
+std::string teca_l2_norm::get_component_1_variable(
+    const teca_metadata &request)
+{
+    std::string comp_1_var = this->component_1_variable;
+
+    if (comp_1_var.empty() &&
+        request.has("teca_l2_norm::component_1_variable"))
+            request.get("teca_l2_norm::component_1_variable", comp_1_var);
+
+    return comp_1_var;
+}
+
+// --------------------------------------------------------------------------
+std::string teca_l2_norm::get_component_2_variable(const teca_metadata &request)
+{
+    std::string comp_2_var = this->component_2_variable;
+
+    if (comp_2_var.empty() &&
+        request.has("teca_l2_norm::component_2_variable"))
+            request.get("teca_l2_norm::component_2_variable", comp_2_var);
+
+    return comp_2_var;
+}
+
+// --------------------------------------------------------------------------
+std::string teca_l2_norm::get_l2_norm_variable(const teca_metadata &request)
+{
+    std::string norm_var = this->l2_norm_variable;
+
+    if (norm_var.empty())
+    {
+        if (request.has("teca_l2_norm::l2_norm_variable"))
+            request.get("teca_l2_norm::l2_norm_variable", norm_var);
+        else
+            norm_var = "l2_norm";
+    }
+
+    return norm_var;
+}
+
+// --------------------------------------------------------------------------
 teca_metadata teca_l2_norm::get_output_metadata(
     unsigned int port,
     const std::vector<teca_metadata> &input_md)
@@ -101,10 +156,16 @@ teca_metadata teca_l2_norm::get_output_metadata(
 
     // add in the array we will generate
     teca_metadata out_md(input_md[0]);
-    out_md.append("variables", this->l2_norm_variable);
+
+    std::string norm_var = this->l2_norm_variable;
+    if (norm_var.empty())
+        norm_var = "l2_norm";
+
+    out_md.append("variables", norm_var);
 
     return out_md;
 }
+
 // --------------------------------------------------------------------------
 std::vector<teca_metadata> teca_l2_norm::get_upstream_request(
     unsigned int port,
@@ -116,27 +177,36 @@ std::vector<teca_metadata> teca_l2_norm::get_upstream_request(
 
     vector<teca_metadata> up_reqs;
 
-    // do some error checking.
-    if (this->component_0_variable.empty())
+    // get the names of the arrays we need to request
+    std::string comp_0_var = this->get_component_0_variable(request);
+    if (comp_0_var.empty())
     {
-        TECA_ERROR("at least one component array is needed")
+        TECA_ERROR("component 0 array was not specified")
         return up_reqs;
     }
+
+    // optional arrays to request
+    std::string comp_1_var = this->get_component_1_variable(request);
+    std::string comp_2_var = this->get_component_2_variable(request);
 
     // copy the incoming request to preserve the downstream
     // requirements and add the arrays we need
     teca_metadata req(request);
 
-    std::vector<std::string> arrays;
-    req.get("arrays", arrays);
+    std::set<std::string> arrays;
+    if (req.has("arrays"))
+        req.get("arrays", arrays);
 
-    arrays.push_back(this->component_0_variable);
+    arrays.insert(comp_0_var);
 
-    if (!this->component_1_variable.empty())
-        arrays.push_back(this->component_1_variable);
+    if (!comp_1_var.empty())
+        arrays.insert(comp_1_var);
 
-    if (!this->component_2_variable.empty())
-        arrays.push_back(this->component_2_variable);
+    if (!comp_2_var.empty())
+        arrays.insert(comp_2_var);
+
+    // intercept request for our output
+    arrays.erase(this->get_l2_norm_variable(request));
 
     req.insert("arrays", arrays);
     up_reqs.push_back(req);
@@ -154,7 +224,6 @@ const_p_teca_dataset teca_l2_norm::execute(
     cerr << teca_parallel_id() << "teca_l2_norm::execute" << endl;
 #endif
     (void)port;
-    (void)request;
 
     // get the input mesh
     const_p_teca_cartesian_mesh in_mesh
@@ -166,20 +235,45 @@ const_p_teca_dataset teca_l2_norm::execute(
         return nullptr;
     }
 
-    // get the input component arrays
-    const_p_teca_variant_array c0
-        = in_mesh->get_point_arrays()->get(this->component_0_variable);
-
-    const_p_teca_variant_array c1 = nullptr;
-    if (!this->component_1_variable.empty())
+    // get the name of the first component
+    std::string comp_0_var = this->get_component_0_variable(request);
+    if (comp_0_var.empty())
     {
-        c1 = in_mesh->get_point_arrays()->get(this->component_1_variable);
+        TECA_ERROR("component 0 array was not specified")
+        return nullptr;
+    }
+
+    // optional component array names
+    std::string comp_1_var = this->get_component_1_variable(request);
+    std::string comp_2_var = this->get_component_2_variable(request);
+
+    // get the first component array
+    const_p_teca_variant_array c0
+        = in_mesh->get_point_arrays()->get(comp_0_var);
+    if (!c0)
+    {
+        TECA_ERROR("component 0 array \"" << comp_0_var
+            << "\" not present.")
+        return nullptr;
+    }
+
+    // get the optional component arrays
+    const_p_teca_variant_array c1 = nullptr;
+    if (!comp_1_var.empty() &&
+        !(c1 = in_mesh->get_point_arrays()->get(comp_1_var)))
+    {
+        TECA_ERROR("component 1 array \"" << comp_1_var
+            << "\" requested but not present.")
+        return nullptr;
     }
 
     const_p_teca_variant_array c2 = nullptr;
-    if (!this->component_2_variable.empty())
+    if (!comp_2_var.empty() &&
+        !(c2 = in_mesh->get_point_arrays()->get(comp_2_var)))
     {
-        c2 = in_mesh->get_point_arrays()->get(this->component_2_variable);
+        TECA_ERROR("component 1 array \"" << comp_2_var
+            << "\" requested but not present.")
+        return nullptr;
     }
 
     // allocate the output array
@@ -192,31 +286,30 @@ const_p_teca_dataset teca_l2_norm::execute(
         teca_variant_array_impl,
         l2_norm.get(),
 
-        const NT *pc0 = dynamic_cast<const TT*>(c0.get())->get();
-        NT *pl2 = dynamic_cast<TT*>(l2_norm.get())->get();
+        NT *tmp = static_cast<NT*>(malloc(sizeof(NT)*n));
+        memset(tmp, 0, sizeof(NT)*n);
 
-        sum_square(pl2, pc0, n);
+        ::sum_square(tmp, dynamic_cast<const TT*>(c0.get())->get(), n);
 
         if (c1)
-        {
-            const NT *pc1 = dynamic_cast<const TT*>(c1.get())->get();
-            sum_square(pl2, pc1, n);
-        }
+            ::sum_square(tmp, dynamic_cast<const TT*>(c1.get())->get(), n);
 
         if (c2)
-        {
-            const NT *pc2 = dynamic_cast<const TT*>(c2.get())->get();
-            sum_square(pl2, pc2, n);
-        }
+            ::sum_square(tmp, dynamic_cast<const TT*>(c2.get())->get(), n);
 
-        square_root(pl2, pl2, n);
+        ::square_root(dynamic_cast<TT*>(l2_norm.get())->get(), tmp, n);
+
+        free(tmp);
         )
 
     // create the output mesh, pass everything through, and
     // add the l2 norm array
     p_teca_cartesian_mesh out_mesh = teca_cartesian_mesh::New();
+
     out_mesh->shallow_copy(std::const_pointer_cast<teca_cartesian_mesh>(in_mesh));
-    out_mesh->get_point_arrays()->append(this->l2_norm_variable, l2_norm);
+
+    out_mesh->get_point_arrays()->append(
+        this->get_l2_norm_variable(request), l2_norm);
 
     return out_mesh;
 }
