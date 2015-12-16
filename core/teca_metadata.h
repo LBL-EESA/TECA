@@ -4,7 +4,9 @@
 #include <iosfwd>
 #include <map>
 #include <string>
+#include <initializer_list>
 #include <vector>
+#include <set>
 #include "teca_variant_array.h"
 
 // a generic container for meta data in the form
@@ -49,10 +51,18 @@ public:
     template<typename T>
     void insert(const std::string &name, const T *val, unsigned int n);
 
+    // insert a set. if the property doesn't exist
+    // it is created. if it does it is replaced.
+    template<typename T>
+    void insert(const std::string &name, const std::set<T> &val);
+
     // insert a vector. if the property doesn't exist
     // it is created. if it does it is replaced.
     template<typename T>
     void insert(const std::string &name, const std::vector<T> &val);
+
+    template<typename T>
+    void insert(const std::string &name, std::initializer_list<T> val);
 
     // insert a vector of vectors. if the property doesn't exist
     // it is created. if it does it is replaced.
@@ -96,6 +106,15 @@ public:
     template<typename T>
     int set(const std::string &name, const std::vector<T> &val);
 
+    template<typename T>
+    int set(const std::string &name, std::initializer_list<T> val);
+
+    // set a set. replaces the current value and does
+    // nothing if the property doesn't exist. return 0
+    // on success.
+    template<typename T>
+    int set(const std::string &name, const std::set<T> &val);
+
     // set a variant array directly. replaces the current value and does
     // nothing if the property doesn't exist. return 0
     // on success.
@@ -123,6 +142,11 @@ public:
     // return 0 if successful
     template<typename T>
     int get(const std::string &name, std::vector<T> &val) const;
+
+    // copy prop values from the named prop into the passed in set.
+    // return 0 if successful
+    template<typename T>
+    int get(const std::string &name, std::set<T> &val) const;
 
     // get the variant array, or nullptr if the
     // property doesn't exist
@@ -246,13 +270,37 @@ void teca_metadata::insert(
 // --------------------------------------------------------------------------
 template<typename T>
 void teca_metadata::insert(
+    const std::string &name, const std::set<T> &vals)
+{
+    size_t n = vals.size();
+
+    std::vector<T> tmp(vals.begin(), vals.end());
+
+    p_teca_variant_array prop_val
+        = teca_variant_array_impl<T>::New(tmp.data(), n);
+
+    this->props[name] = prop_val;
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
+void teca_metadata::insert(
+    const std::string &name,
+    std::initializer_list<T> vals)
+{
+    this->insert(name, std::vector<T>(vals));
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
+void teca_metadata::insert(
     const std::string &name,
     const std::vector<T> &vals)
 {
     size_t n = vals.size();
 
     p_teca_variant_array prop_val
-        = teca_variant_array_impl<T>::New(&vals[0], n);
+        = teca_variant_array_impl<T>::New(vals.data(), n);
 
     this->props[name] = prop_val;
 }
@@ -271,7 +319,7 @@ void teca_metadata::insert(
     for (size_t i = 0; i < n; ++i)
     {
         p_teca_variant_array prop_val
-            = teca_variant_array_impl<T>::New(&(vals.at(i).at(0)), vals.at(i).size());
+            = teca_variant_array_impl<T>::New((vals.at(i).data()), vals.at(i).size());
         prop_vals->append(prop_val);
     }
 
@@ -340,6 +388,36 @@ int teca_metadata::set(
 
 // --------------------------------------------------------------------------
 template<typename T>
+int teca_metadata::set(
+    const std::string &name,
+    std::initializer_list<T> vals)
+{
+    return this->set(name, std::vector<T>(vals));
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
+int teca_metadata::set(
+    const std::string &name,
+    const std::set<T> &vals)
+{
+    prop_map_t::iterator it = this->props.find(name);
+    if (it == this->props.end())
+    {
+        TECA_ERROR(
+            << "attempt to access non-existant property \""
+            << name << "\" ignored!")
+        return -1;
+    }
+
+    std::vector<T> tmp(vals.begin(), vals.end());
+    it->second->set(tmp);
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
 int teca_metadata::get(const std::string &name, unsigned int i, T &val) const
 {
     prop_map_t::const_iterator it = this->props.find(name);
@@ -366,6 +444,21 @@ int teca_metadata::get(
     it->second->get(vals);
 
     return 0;
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
+int teca_metadata::get(
+    const std::string &name,
+    std::set<T> &vals) const
+{
+    std::vector<T> tmp;
+    if (!this->get(name, tmp))
+    {
+        vals = std::set<T>(tmp.begin(), tmp.end());
+        return 0;
+    }
+    return -1;
 }
 
 // --------------------------------------------------------------------------
