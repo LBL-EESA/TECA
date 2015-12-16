@@ -17,7 +17,9 @@
 /home/bloring/work/teca/teca_arch/alg/../core/teca_algorithm_fwd.h
 /home/bloring/work/teca/teca_arch/alg/../core/teca_program_options.h
 /home/bloring/work/teca/teca_arch/alg/../core/teca_algorithm.h
+/home/bloring/work/teca/teca_arch/alg/../core/teca_threaded_algorithm_fwd.h
 /home/bloring/work/teca/teca_arch/alg/../core/teca_threaded_algorithm.h
+/home/bloring/work/teca/teca_arch/alg/../core/teca_temporal_reduction_fwd.h
 /home/bloring/work/teca/teca_arch/alg/../core/teca_temporal_reduction.h
 /home/bloring/work/teca/teca_arch/alg/../data/teca_py_data.i
 /home/bloring/work/teca/teca_arch/alg/../data/teca_array_collection_fwd.h
@@ -31,7 +33,9 @@
 /home/bloring/work/teca/teca_arch/alg/teca_ar_detect.h
 /home/bloring/work/teca/teca_arch/alg/teca_cartesian_mesh_subset.h
 /home/bloring/work/teca/teca_arch/alg/teca_cartesian_mesh_regrid.h
+/home/bloring/work/teca/teca_arch/alg/teca_connected_components.h
 /home/bloring/work/teca/teca_arch/alg/teca_l2_norm.h
+/home/bloring/work/teca/teca_arch/alg/teca_mask.h
 /home/bloring/work/teca/teca_arch/alg/teca_table_reduce.h
 /home/bloring/work/teca/teca_arch/alg/teca_temporal_average.h
 /home/bloring/work/teca/teca_arch/alg/teca_vorticity.h

@@ -4227,15 +4227,16 @@ class teca_variant_array(_object):
     __swig_destroy__ = _teca_py_io.delete_teca_variant_array
     __del__ = lambda self: None
 
-    def new_instance(self):
+    def new_instance(self, *args):
         """
         new_instance(teca_variant_array self) -> p_teca_variant_array
+        new_instance(teca_variant_array self, size_t n) -> p_teca_variant_array
 
         Parameters:
-            self: teca_variant_array const *
+            n: size_t
 
         """
-        return _teca_py_io.teca_variant_array_new_instance(self)
+        return _teca_py_io.teca_variant_array_new_instance(self, *args)
 
 
     def new_copy(self, *args):
@@ -4533,15 +4534,16 @@ class teca_double_array(teca_variant_array):
         return _teca_py_io.teca_double_array_new_copy(self, *args)
 
 
-    def new_instance(self):
+    def new_instance(self, *args):
         """
         new_instance(teca_double_array self) -> p_teca_variant_array
+        new_instance(teca_double_array self, size_t n) -> p_teca_variant_array
 
         Parameters:
-            self: teca_variant_array_impl< double > const *
+            n: size_t
 
         """
-        return _teca_py_io.teca_double_array_new_instance(self)
+        return _teca_py_io.teca_double_array_new_instance(self, *args)
 
 
     def __init__(self, other):
@@ -4763,15 +4765,16 @@ class teca_float_array(teca_variant_array):
         return _teca_py_io.teca_float_array_new_copy(self, *args)
 
 
-    def new_instance(self):
+    def new_instance(self, *args):
         """
         new_instance(teca_float_array self) -> p_teca_variant_array
+        new_instance(teca_float_array self, size_t n) -> p_teca_variant_array
 
         Parameters:
-            self: teca_variant_array_impl< float > const *
+            n: size_t
 
         """
-        return _teca_py_io.teca_float_array_new_instance(self)
+        return _teca_py_io.teca_float_array_new_instance(self, *args)
 
 
     def __init__(self, other):
@@ -4993,15 +4996,16 @@ class teca_int_array(teca_variant_array):
         return _teca_py_io.teca_int_array_new_copy(self, *args)
 
 
-    def new_instance(self):
+    def new_instance(self, *args):
         """
         new_instance(teca_int_array self) -> p_teca_variant_array
+        new_instance(teca_int_array self, size_t n) -> p_teca_variant_array
 
         Parameters:
-            self: teca_variant_array_impl< char > const *
+            n: size_t
 
         """
-        return _teca_py_io.teca_int_array_new_instance(self)
+        return _teca_py_io.teca_int_array_new_instance(self, *args)
 
 
     def __init__(self, other):
@@ -5223,15 +5227,16 @@ class teca_char_array(teca_variant_array):
         return _teca_py_io.teca_char_array_new_copy(self, *args)
 
 
-    def new_instance(self):
+    def new_instance(self, *args):
         """
         new_instance(teca_char_array self) -> p_teca_variant_array
+        new_instance(teca_char_array self, size_t n) -> p_teca_variant_array
 
         Parameters:
-            self: teca_variant_array_impl< int > const *
+            n: size_t
 
         """
-        return _teca_py_io.teca_char_array_new_instance(self)
+        return _teca_py_io.teca_char_array_new_instance(self, *args)
 
 
     def __init__(self, other):
@@ -5453,15 +5458,16 @@ class teca_long_long_array(teca_variant_array):
         return _teca_py_io.teca_long_long_array_new_copy(self, *args)
 
 
-    def new_instance(self):
+    def new_instance(self, *args):
         """
         new_instance(teca_long_long_array self) -> p_teca_variant_array
+        new_instance(teca_long_long_array self, size_t n) -> p_teca_variant_array
 
         Parameters:
-            self: teca_variant_array_impl< long long > const *
+            n: size_t
 
         """
-        return _teca_py_io.teca_long_long_array_new_instance(self)
+        return _teca_py_io.teca_long_long_array_new_instance(self, *args)
 
 
     def __init__(self, other):
@@ -5683,15 +5689,16 @@ class teca_unsigned_int_array(teca_variant_array):
         return _teca_py_io.teca_unsigned_int_array_new_copy(self, *args)
 
 
-    def new_instance(self):
+    def new_instance(self, *args):
         """
         new_instance(teca_unsigned_int_array self) -> p_teca_variant_array
+        new_instance(teca_unsigned_int_array self, size_t n) -> p_teca_variant_array
 
         Parameters:
-            self: teca_variant_array_impl< unsigned char > const *
+            n: size_t
 
         """
-        return _teca_py_io.teca_unsigned_int_array_new_instance(self)
+        return _teca_py_io.teca_unsigned_int_array_new_instance(self, *args)
 
 
     def __init__(self, other):
@@ -5913,15 +5920,16 @@ class teca_unsigned_char_array(teca_variant_array):
         return _teca_py_io.teca_unsigned_char_array_new_copy(self, *args)
 
 
-    def new_instance(self):
+    def new_instance(self, *args):
         """
         new_instance(teca_unsigned_char_array self) -> p_teca_variant_array
+        new_instance(teca_unsigned_char_array self, size_t n) -> p_teca_variant_array
 
         Parameters:
-            self: teca_variant_array_impl< unsigned int > const *
+            n: size_t
 
         """
-        return _teca_py_io.teca_unsigned_char_array_new_instance(self)
+        return _teca_py_io.teca_unsigned_char_array_new_instance(self, *args)
 
 
     def __init__(self, other):
@@ -6143,15 +6151,16 @@ class teca_unsigned_long_long_array(teca_variant_array):
         return _teca_py_io.teca_unsigned_long_long_array_new_copy(self, *args)
 
 
-    def new_instance(self):
+    def new_instance(self, *args):
         """
         new_instance(teca_unsigned_long_long_array self) -> p_teca_variant_array
+        new_instance(teca_unsigned_long_long_array self, size_t n) -> p_teca_variant_array
 
         Parameters:
-            self: teca_variant_array_impl< unsigned long long > const *
+            n: size_t
 
         """
-        return _teca_py_io.teca_unsigned_long_long_array_new_instance(self)
+        return _teca_py_io.teca_unsigned_long_long_array_new_instance(self, *args)
 
 
     def __init__(self, other):
