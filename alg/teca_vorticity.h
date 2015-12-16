@@ -37,6 +37,10 @@ public:
 protected:
     teca_vorticity();
 
+    std::string get_component_0_variable(const teca_metadata &request);
+    std::string get_component_1_variable(const teca_metadata &request);
+    std::string get_vorticity_variable(const teca_metadata &request);
+
 private:
     teca_metadata get_output_metadata(
         unsigned int port,
