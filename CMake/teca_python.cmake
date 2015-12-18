@@ -1,7 +1,8 @@
 function(depend_swig input output)
     if (swig_cmd)
         set(input_file ${CMAKE_CURRENT_SOURCE_DIR}/${input})
-        set(output_file ${CMAKE_CURRENT_SOURCE_DIR}/${output})
+        set(output_file ${CMAKE_CURRENT_BINARY_DIR}/${output})
+        # custom command to update the dependency file
         add_custom_command(
             OUTPUT ${output_file}
             COMMAND ${swig_cmd} -c++ -python -MM
@@ -14,13 +15,28 @@ function(depend_swig input output)
                 ${input_file} | sed -e 's/\\s\\+/ /g' -e '1d' -e 's/\\s\\+\\|\\\\//g' > ${output_file}
             MAIN_DEPENDENCY ${input_file}
             COMMENT "Generating dependency file for ${input}...")
+        # bootstrap the dependency list
+        if (NOT EXISTS ${output_file})
+            message(STATUS "Generating initial dependency list for ${input}")
+            execute_process(
+                COMMAND ${swig_cmd} -c++ -python -MM
+                    -I${CMAKE_CURRENT_BINARY_DIR}
+                    -I${CMAKE_CURRENT_BINARY_DIR}/..
+                    -I${CMAKE_CURRENT_SOURCE_DIR}/../core
+                    -I${CMAKE_CURRENT_SOURCE_DIR}/../data
+                    -I${CMAKE_CURRENT_SOURCE_DIR}/../io
+                    -I${CMAKE_CURRENT_SOURCE_DIR}/../alg
+                    ${input_file}
+               COMMAND sed -e "s/\\s\\+/ /g" -e 1d -e s/\\s\\+\\|\\\\//g -e /teca_config.h/d
+               OUTPUT_FILE ${output_file})
+        endif()
     endif()
 endfunction()
 function(wrap_swig input output depend)
     if (swig_cmd)
         set(input_file ${CMAKE_CURRENT_SOURCE_DIR}/${input})
         set(output_file ${CMAKE_CURRENT_SOURCE_DIR}/${output})
-        set(depend_file ${CMAKE_CURRENT_SOURCE_DIR}/${depend})
+        set(depend_file ${CMAKE_CURRENT_BINARY_DIR}/${depend})
         file(STRINGS ${depend_file} depends)
         add_custom_command(
             OUTPUT ${output_file}
