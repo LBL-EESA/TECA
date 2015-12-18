@@ -57,11 +57,19 @@ public:
     const_p_teca_variant_array get(unsigned int i) const
     { return m_arrays[i]; }
 
-    // access by name
-    p_teca_variant_array get(const std::string name)
-    { return m_arrays[m_name_array_map[name]]; }
+    // test for array
+    bool has(const std::string &name) const;
 
-    const_p_teca_variant_array get(const std::string name) const;
+    // access by name
+    p_teca_variant_array get(const std::string &name);
+    const_p_teca_variant_array get(const std::string &name) const;
+
+    p_teca_variant_array operator[](const std::string &name)
+    { return this->get(name); }
+
+    const_p_teca_variant_array operator[](const std::string &name) const
+    { return this->get(name); }
+
 
     // access names
     std::string &get_name(unsigned int i)

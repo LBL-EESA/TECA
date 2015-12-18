@@ -4228,15 +4228,16 @@ class teca_variant_array(_object):
     __swig_destroy__ = _teca_py_alg.delete_teca_variant_array
     __del__ = lambda self: None
 
-    def new_instance(self):
+    def new_instance(self, *args):
         """
         new_instance(teca_variant_array self) -> p_teca_variant_array
+        new_instance(teca_variant_array self, size_t n) -> p_teca_variant_array
 
         Parameters:
-            self: teca_variant_array const *
+            n: size_t
 
         """
-        return _teca_py_alg.teca_variant_array_new_instance(self)
+        return _teca_py_alg.teca_variant_array_new_instance(self, *args)
 
 
     def new_copy(self, *args):
@@ -4534,15 +4535,16 @@ class teca_double_array(teca_variant_array):
         return _teca_py_alg.teca_double_array_new_copy(self, *args)
 
 
-    def new_instance(self):
+    def new_instance(self, *args):
         """
         new_instance(teca_double_array self) -> p_teca_variant_array
+        new_instance(teca_double_array self, size_t n) -> p_teca_variant_array
 
         Parameters:
-            self: teca_variant_array_impl< double > const *
+            n: size_t
 
         """
-        return _teca_py_alg.teca_double_array_new_instance(self)
+        return _teca_py_alg.teca_double_array_new_instance(self, *args)
 
 
     def __init__(self, other):
@@ -4764,15 +4766,16 @@ class teca_float_array(teca_variant_array):
         return _teca_py_alg.teca_float_array_new_copy(self, *args)
 
 
-    def new_instance(self):
+    def new_instance(self, *args):
         """
         new_instance(teca_float_array self) -> p_teca_variant_array
+        new_instance(teca_float_array self, size_t n) -> p_teca_variant_array
 
         Parameters:
-            self: teca_variant_array_impl< float > const *
+            n: size_t
 
         """
-        return _teca_py_alg.teca_float_array_new_instance(self)
+        return _teca_py_alg.teca_float_array_new_instance(self, *args)
 
 
     def __init__(self, other):
@@ -4994,15 +4997,16 @@ class teca_int_array(teca_variant_array):
         return _teca_py_alg.teca_int_array_new_copy(self, *args)
 
 
-    def new_instance(self):
+    def new_instance(self, *args):
         """
         new_instance(teca_int_array self) -> p_teca_variant_array
+        new_instance(teca_int_array self, size_t n) -> p_teca_variant_array
 
         Parameters:
-            self: teca_variant_array_impl< char > const *
+            n: size_t
 
         """
-        return _teca_py_alg.teca_int_array_new_instance(self)
+        return _teca_py_alg.teca_int_array_new_instance(self, *args)
 
 
     def __init__(self, other):
@@ -5224,15 +5228,16 @@ class teca_char_array(teca_variant_array):
         return _teca_py_alg.teca_char_array_new_copy(self, *args)
 
 
-    def new_instance(self):
+    def new_instance(self, *args):
         """
         new_instance(teca_char_array self) -> p_teca_variant_array
+        new_instance(teca_char_array self, size_t n) -> p_teca_variant_array
 
         Parameters:
-            self: teca_variant_array_impl< int > const *
+            n: size_t
 
         """
-        return _teca_py_alg.teca_char_array_new_instance(self)
+        return _teca_py_alg.teca_char_array_new_instance(self, *args)
 
 
     def __init__(self, other):
@@ -5454,15 +5459,16 @@ class teca_long_long_array(teca_variant_array):
         return _teca_py_alg.teca_long_long_array_new_copy(self, *args)
 
 
-    def new_instance(self):
+    def new_instance(self, *args):
         """
         new_instance(teca_long_long_array self) -> p_teca_variant_array
+        new_instance(teca_long_long_array self, size_t n) -> p_teca_variant_array
 
         Parameters:
-            self: teca_variant_array_impl< long long > const *
+            n: size_t
 
         """
-        return _teca_py_alg.teca_long_long_array_new_instance(self)
+        return _teca_py_alg.teca_long_long_array_new_instance(self, *args)
 
 
     def __init__(self, other):
@@ -5684,15 +5690,16 @@ class teca_unsigned_int_array(teca_variant_array):
         return _teca_py_alg.teca_unsigned_int_array_new_copy(self, *args)
 
 
-    def new_instance(self):
+    def new_instance(self, *args):
         """
         new_instance(teca_unsigned_int_array self) -> p_teca_variant_array
+        new_instance(teca_unsigned_int_array self, size_t n) -> p_teca_variant_array
 
         Parameters:
-            self: teca_variant_array_impl< unsigned char > const *
+            n: size_t
 
         """
-        return _teca_py_alg.teca_unsigned_int_array_new_instance(self)
+        return _teca_py_alg.teca_unsigned_int_array_new_instance(self, *args)
 
 
     def __init__(self, other):
@@ -5914,15 +5921,16 @@ class teca_unsigned_char_array(teca_variant_array):
         return _teca_py_alg.teca_unsigned_char_array_new_copy(self, *args)
 
 
-    def new_instance(self):
+    def new_instance(self, *args):
         """
         new_instance(teca_unsigned_char_array self) -> p_teca_variant_array
+        new_instance(teca_unsigned_char_array self, size_t n) -> p_teca_variant_array
 
         Parameters:
-            self: teca_variant_array_impl< unsigned int > const *
+            n: size_t
 
         """
-        return _teca_py_alg.teca_unsigned_char_array_new_instance(self)
+        return _teca_py_alg.teca_unsigned_char_array_new_instance(self, *args)
 
 
     def __init__(self, other):
@@ -6144,15 +6152,16 @@ class teca_unsigned_long_long_array(teca_variant_array):
         return _teca_py_alg.teca_unsigned_long_long_array_new_copy(self, *args)
 
 
-    def new_instance(self):
+    def new_instance(self, *args):
         """
         new_instance(teca_unsigned_long_long_array self) -> p_teca_variant_array
+        new_instance(teca_unsigned_long_long_array self, size_t n) -> p_teca_variant_array
 
         Parameters:
-            self: teca_variant_array_impl< unsigned long long > const *
+            n: size_t
 
         """
-        return _teca_py_alg.teca_unsigned_long_long_array_new_instance(self)
+        return _teca_py_alg.teca_unsigned_long_long_array_new_instance(self, *args)
 
 
     def __init__(self, other):
@@ -8328,6 +8337,17 @@ class teca_array_collection(_object):
         return _teca_py_alg.teca_array_collection_size(self)
 
 
+    def has(self, name):
+        """
+        has(teca_array_collection self, std::string const & name) -> bool
+
+        Parameters:
+            name: std::string const &
+
+        """
+        return _teca_py_alg.teca_array_collection_has(self, name)
+
+
     def get(self, *args):
         """
         get(teca_array_collection self, unsigned int i) -> p_teca_variant_array
@@ -8340,15 +8360,15 @@ class teca_array_collection(_object):
         Parameters:
             i: unsigned int
 
-        get(teca_array_collection self, std::string const name) -> p_teca_variant_array
+        get(teca_array_collection self, std::string const & name) -> p_teca_variant_array
 
         Parameters:
-            name: std::string const
+            name: std::string const &
 
-        get(teca_array_collection self, std::string const name) -> const_p_teca_variant_array
+        get(teca_array_collection self, std::string const & name) -> const_p_teca_variant_array
 
         Parameters:
-            name: std::string const
+            name: std::string const &
 
         """
         return _teca_py_alg.teca_array_collection_get(self, *args)
@@ -10039,6 +10059,129 @@ def teca_cartesian_mesh_regrid_New():
     """teca_cartesian_mesh_regrid_New() -> p_teca_cartesian_mesh_regrid"""
     return _teca_py_alg.teca_cartesian_mesh_regrid_New()
 
+class teca_connected_components(teca_algorithm):
+    """Proxy of C++ teca_connected_components class"""
+    __swig_setmethods__ = {}
+    for _s in [teca_algorithm]:
+        __swig_setmethods__.update(getattr(_s, '__swig_setmethods__', {}))
+    __setattr__ = lambda self, name, value: _swig_setattr(self, teca_connected_components, name, value)
+    __swig_getmethods__ = {}
+    for _s in [teca_algorithm]:
+        __swig_getmethods__.update(getattr(_s, '__swig_getmethods__', {}))
+    __getattr__ = lambda self, name: _swig_getattr(self, teca_connected_components, name)
+
+    def __init__(self, *args, **kwargs):
+        raise AttributeError("No constructor defined")
+    __repr__ = _swig_repr
+
+    def New():
+        """New() -> p_teca_connected_components"""
+        return _teca_py_alg.teca_connected_components_New()
+
+    if _newclass:
+        New = staticmethod(New)
+    __swig_getmethods__["New"] = lambda x: New
+    __swig_destroy__ = _teca_py_alg.delete_teca_connected_components
+    __del__ = lambda self: None
+
+    def set_label_variable(self, v):
+        """
+        set_label_variable(teca_connected_components self, std::string const & v)
+
+        Parameters:
+            v: std::string const &
+
+        """
+        return _teca_py_alg.teca_connected_components_set_label_variable(self, v)
+
+
+    def get_label_variable(self, *args):
+        """
+        get_label_variable(teca_connected_components self) -> std::string const
+        get_label_variable(teca_connected_components self) -> std::string &
+
+        Parameters:
+            self: teca_connected_components *
+
+        """
+        return _teca_py_alg.teca_connected_components_get_label_variable(self, *args)
+
+
+    def set_threshold_variable(self, v):
+        """
+        set_threshold_variable(teca_connected_components self, std::string const & v)
+
+        Parameters:
+            v: std::string const &
+
+        """
+        return _teca_py_alg.teca_connected_components_set_threshold_variable(self, v)
+
+
+    def get_threshold_variable(self, *args):
+        """
+        get_threshold_variable(teca_connected_components self) -> std::string const
+        get_threshold_variable(teca_connected_components self) -> std::string &
+
+        Parameters:
+            self: teca_connected_components *
+
+        """
+        return _teca_py_alg.teca_connected_components_get_threshold_variable(self, *args)
+
+
+    def set_low_threshold_value(self, v):
+        """
+        set_low_threshold_value(teca_connected_components self, double const & v)
+
+        Parameters:
+            v: double const &
+
+        """
+        return _teca_py_alg.teca_connected_components_set_low_threshold_value(self, v)
+
+
+    def get_low_threshold_value(self, *args):
+        """
+        get_low_threshold_value(teca_connected_components self) -> double const
+        get_low_threshold_value(teca_connected_components self) -> double &
+
+        Parameters:
+            self: teca_connected_components *
+
+        """
+        return _teca_py_alg.teca_connected_components_get_low_threshold_value(self, *args)
+
+
+    def set_high_threshold_value(self, v):
+        """
+        set_high_threshold_value(teca_connected_components self, double const & v)
+
+        Parameters:
+            v: double const &
+
+        """
+        return _teca_py_alg.teca_connected_components_set_high_threshold_value(self, v)
+
+
+    def get_high_threshold_value(self, *args):
+        """
+        get_high_threshold_value(teca_connected_components self) -> double const
+        get_high_threshold_value(teca_connected_components self) -> double &
+
+        Parameters:
+            self: teca_connected_components *
+
+        """
+        return _teca_py_alg.teca_connected_components_get_high_threshold_value(self, *args)
+
+teca_connected_components_swigregister = _teca_py_alg.teca_connected_components_swigregister
+teca_connected_components_swigregister(teca_connected_components)
+
+def teca_connected_components_New():
+    """teca_connected_components_New() -> p_teca_connected_components"""
+    return _teca_py_alg.teca_connected_components_New()
+
 class teca_l2_norm(teca_algorithm):
     """Proxy of C++ teca_l2_norm class"""
     __swig_setmethods__ = {}
@@ -10161,6 +10304,167 @@ teca_l2_norm_swigregister(teca_l2_norm)
 def teca_l2_norm_New():
     """teca_l2_norm_New() -> p_teca_l2_norm"""
     return _teca_py_alg.teca_l2_norm_New()
+
+class teca_mask(teca_algorithm):
+    """Proxy of C++ teca_mask class"""
+    __swig_setmethods__ = {}
+    for _s in [teca_algorithm]:
+        __swig_setmethods__.update(getattr(_s, '__swig_setmethods__', {}))
+    __setattr__ = lambda self, name, value: _swig_setattr(self, teca_mask, name, value)
+    __swig_getmethods__ = {}
+    for _s in [teca_algorithm]:
+        __swig_getmethods__.update(getattr(_s, '__swig_getmethods__', {}))
+    __getattr__ = lambda self, name: _swig_getattr(self, teca_mask, name)
+
+    def __init__(self, *args, **kwargs):
+        raise AttributeError("No constructor defined")
+    __repr__ = _swig_repr
+
+    def New():
+        """New() -> p_teca_mask"""
+        return _teca_py_alg.teca_mask_New()
+
+    if _newclass:
+        New = staticmethod(New)
+    __swig_getmethods__["New"] = lambda x: New
+    __swig_destroy__ = _teca_py_alg.delete_teca_mask
+    __del__ = lambda self: None
+
+    def get_number_ofmask_variables(self):
+        """
+        get_number_ofmask_variables(teca_mask self) -> size_t
+
+        Parameters:
+            self: teca_mask *
+
+        """
+        return _teca_py_alg.teca_mask_get_number_ofmask_variables(self)
+
+
+    def append_mask_variable(self, v):
+        """
+        append_mask_variable(teca_mask self, std::string const & v)
+
+        Parameters:
+            v: std::string const &
+
+        """
+        return _teca_py_alg.teca_mask_append_mask_variable(self, v)
+
+
+    def set_mask_variable(self, i, v):
+        """
+        set_mask_variable(teca_mask self, size_t i, std::string const & v)
+
+        Parameters:
+            i: size_t
+            v: std::string const &
+
+        """
+        return _teca_py_alg.teca_mask_set_mask_variable(self, i, v)
+
+
+    def get_mask_variable(self, *args):
+        """
+        get_mask_variable(teca_mask self, size_t i) -> std::string const
+
+        Parameters:
+            i: size_t
+
+        get_mask_variable(teca_mask self, size_t i) -> std::string &
+
+        Parameters:
+            i: size_t
+
+        """
+        return _teca_py_alg.teca_mask_get_mask_variable(self, *args)
+
+
+    def clear_mask_variable(self):
+        """
+        clear_mask_variable(teca_mask self)
+
+        Parameters:
+            self: teca_mask *
+
+        """
+        return _teca_py_alg.teca_mask_clear_mask_variable(self)
+
+
+    def set_low_threshold_value(self, v):
+        """
+        set_low_threshold_value(teca_mask self, double const & v)
+
+        Parameters:
+            v: double const &
+
+        """
+        return _teca_py_alg.teca_mask_set_low_threshold_value(self, v)
+
+
+    def get_low_threshold_value(self, *args):
+        """
+        get_low_threshold_value(teca_mask self) -> double const
+        get_low_threshold_value(teca_mask self) -> double &
+
+        Parameters:
+            self: teca_mask *
+
+        """
+        return _teca_py_alg.teca_mask_get_low_threshold_value(self, *args)
+
+
+    def set_high_threshold_value(self, v):
+        """
+        set_high_threshold_value(teca_mask self, double const & v)
+
+        Parameters:
+            v: double const &
+
+        """
+        return _teca_py_alg.teca_mask_set_high_threshold_value(self, v)
+
+
+    def get_high_threshold_value(self, *args):
+        """
+        get_high_threshold_value(teca_mask self) -> double const
+        get_high_threshold_value(teca_mask self) -> double &
+
+        Parameters:
+            self: teca_mask *
+
+        """
+        return _teca_py_alg.teca_mask_get_high_threshold_value(self, *args)
+
+
+    def set_mask_value(self, v):
+        """
+        set_mask_value(teca_mask self, double const & v)
+
+        Parameters:
+            v: double const &
+
+        """
+        return _teca_py_alg.teca_mask_set_mask_value(self, v)
+
+
+    def get_mask_value(self, *args):
+        """
+        get_mask_value(teca_mask self) -> double const
+        get_mask_value(teca_mask self) -> double &
+
+        Parameters:
+            self: teca_mask *
+
+        """
+        return _teca_py_alg.teca_mask_get_mask_value(self, *args)
+
+teca_mask_swigregister = _teca_py_alg.teca_mask_swigregister
+teca_mask_swigregister(teca_mask)
+
+def teca_mask_New():
+    """teca_mask_New() -> p_teca_mask"""
+    return _teca_py_alg.teca_mask_New()
 
 class teca_table_reduce(teca_temporal_reduction):
     """Proxy of C++ teca_table_reduce class"""

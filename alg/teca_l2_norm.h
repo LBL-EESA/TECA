@@ -38,6 +38,11 @@ public:
 protected:
     teca_l2_norm();
 
+    std::string get_component_0_variable(const teca_metadata &request);
+    std::string get_component_1_variable(const teca_metadata &request);
+    std::string get_component_2_variable(const teca_metadata &request);
+    std::string get_l2_norm_variable(const teca_metadata &request);
+
 private:
     teca_metadata get_output_metadata(
         unsigned int port,

@@ -55,6 +55,7 @@ public:
     // virtual constructor. return a new'ly allocated
     // empty object of the same type.
     virtual p_teca_variant_array new_instance() const = 0;
+    virtual p_teca_variant_array new_instance(size_t n) const = 0;
 
     // virtual copy construct. return a new'ly allocated object,
     // initialized copy from this. caller must delete.
@@ -268,6 +269,7 @@ public:
     virtual p_teca_variant_array new_copy() const override;
     virtual p_teca_variant_array new_copy(size_t start, size_t end) const override;
     virtual p_teca_variant_array new_instance() const override;
+    virtual p_teca_variant_array new_instance(size_t n) const override;
 
     // copy
     const teca_variant_array_impl<T> &
@@ -812,6 +814,13 @@ template<typename T>
 p_teca_variant_array teca_variant_array_impl<T>::new_instance() const
 {
     return p_teca_variant_array(new teca_variant_array_impl<T>());
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
+p_teca_variant_array teca_variant_array_impl<T>::new_instance(size_t n) const
+{
+    return p_teca_variant_array(new teca_variant_array_impl<T>(n));
 }
 
 // --------------------------------------------------------------------------
