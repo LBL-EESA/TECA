@@ -18,10 +18,19 @@ A c++11 compiler is required. The location of various dependencies should be pas
 in during configuration if they are in non-standard locations. It's is critical
 that compiler and C++ library versions match across dependencies, especially Boost.
 
+## Getting the Source Code ##
+Clone  the sources from the Bitbucket repository
+```bash
+git clone https://bitbucket.org/lbl-cascade/teca.git
+```
+
 ## Compiling on a Workstation ##
 This is an example of compiling on a work station, with Boost, MPI, NetCDF and
 VTK features enabled:
+
+config-clang.sh
 ```bash
+#!/bin/bash
 cmake \
     -DCMAKE_CXX_COMPILER=`which clang++` \
     -DCMAKE_C_COMPILER=`which clang` \
@@ -33,6 +42,14 @@ cmake \
 
 make -j8 && make -j8 install
 
+```
+
+TECA uses an out-of-source build. Make a "bin" directory inside the source tree, cd into it, and call the above script:
+```bash
+cd teca
+mkdir bin
+cd bin
+../config-clang.sh ../
 ```
 
 ## Compiling on a Cray ##
