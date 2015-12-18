@@ -370,7 +370,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
         if (!z_axis_variable.empty()
             && (((ierr = nc_inq_dimid(file_id, z_axis_variable.c_str(), &z_id)) != NC_NOERR)
-            || ((ierr = nc_inq_dimlen(file_id, z_id, &n_x)) != NC_NOERR)
+            || ((ierr = nc_inq_dimlen(file_id, z_id, &n_z)) != NC_NOERR)
             || ((ierr = nc_inq_varid(file_id, z_axis_variable.c_str(), &z_id)) != NC_NOERR)
             || ((ierr = nc_inq_vartype(file_id, z_id, &z_t)) != NC_NOERR)))
         {
