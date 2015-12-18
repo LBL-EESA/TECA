@@ -16,6 +16,7 @@ and detectors.
 #include "teca_cartesian_mesh_subset.h"
 #include "teca_cartesian_mesh_regrid.h"
 #include "teca_l2_norm.h"
+#include "teca_mask.h"
 #include "teca_programmable_algorithm.h"
 #include "teca_table_reduce.h"
 #include "teca_temporal_average.h"
@@ -62,6 +63,14 @@ and detectors.
 %shared_ptr(teca_l2_norm)
 %ignore teca_l2_norm::operator=;
 %include "teca_l2_norm.h"
+
+/***************************************************************************
+ mask
+ ***************************************************************************/
+%ignore teca_mask::shared_from_this;
+%shared_ptr(teca_mask)
+%ignore teca_mask::operator=;
+%include "teca_mask.h"
 
 /***************************************************************************
  table_reduce
