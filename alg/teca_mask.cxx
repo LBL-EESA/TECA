@@ -10,6 +10,7 @@
 #include <iostream>
 #include <deque>
 #include <set>
+#include <cmath>
 
 using std::deque;
 using std::vector;
