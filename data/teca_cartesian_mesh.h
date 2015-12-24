@@ -76,7 +76,7 @@ public:
 
     // stream to/from human readable representation
     virtual void to_stream(std::ostream &) const override;
-    virtual void from_stream(std::istream &) {}
+    virtual void from_stream(std::istream &) override {}
 
 protected:
     teca_cartesian_mesh();
