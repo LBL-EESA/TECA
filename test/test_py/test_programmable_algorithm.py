@@ -4,6 +4,13 @@ from teca_py_alg import *
 import numpy as np
 import sys
 
+if not len(sys.argv) == 3:
+    sys.stderr.write('test_programmable_algorithm.py [dataset regex] [out file name]\n')
+    sys.exit(-1)
+
+data_regex = sys.argv[1]
+out_file = sys.argv[2]
+
 class wind_speed:
     @staticmethod
     def report(port, md_in):
@@ -30,7 +37,7 @@ class wind_speed:
         return out_mesh
 
 cfr = teca_cf_reader.New()
-cfr.set_files_regex('/home/bloring/work/teca/data/cam5_1_amip_run2\.cam2\.h2\.*')
+cfr.set_files_regex(data_regex)
 cfr.set_x_axis_variable('lon')
 cfr.set_y_axis_variable('lat')
 cfr.set_t_axis_variable('time')
@@ -50,6 +57,6 @@ exe.set_last_step(0)
 wri = teca_vtk_cartesian_mesh_writer.New()
 wri.set_input_connection(alg.get_output_port())
 wri.set_executive(exe)
-wri.set_file_name('amip_run2_%t%.vtk')
+wri.set_file_name(out_file)
 
 wri.update()
