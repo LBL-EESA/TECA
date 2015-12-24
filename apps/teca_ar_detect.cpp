@@ -291,7 +291,9 @@ int main(int argc, char **argv)
     results_writer->update();
 
 #if defined(TECA_TIME)
+#if defined(TECA_HAS_MPI)
     MPI_Barrier(MPI_COMM_WORLD);
+#endif
     if (rank == 0)
     {
         struct timeval etv;
