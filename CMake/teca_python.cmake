@@ -12,7 +12,7 @@ function(depend_swig input output)
                 -I${CMAKE_CURRENT_SOURCE_DIR}/../data
                 -I${CMAKE_CURRENT_SOURCE_DIR}/../io
                 -I${CMAKE_CURRENT_SOURCE_DIR}/../alg
-                ${input_file} | sed -e 's/\\s\\+/ /g' -e '1d' -e 's/\\s\\+\\|\\\\//g' > ${output_file}
+                ${input_file} | sed -e 's/[[:space:]\\]\\{1,\\}//g' -e '1,2d' -e '/teca_config\\.h/d' > ${output_file}
             MAIN_DEPENDENCY ${input_file}
             COMMENT "Generating dependency file for ${input}...")
         # bootstrap the dependency list
@@ -27,7 +27,7 @@ function(depend_swig input output)
                     -I${CMAKE_CURRENT_SOURCE_DIR}/../io
                     -I${CMAKE_CURRENT_SOURCE_DIR}/../alg
                     ${input_file}
-               COMMAND sed -e "s/\\s\\+/ /g" -e 1d -e s/\\s\\+\\|\\\\//g -e /teca_config.h/d
+               COMMAND sed -e s/[[:space:]\\]\\{1,\\}//g -e 1,2d -e /teca_config\\.h/d
                OUTPUT_FILE ${output_file})
         endif()
     endif()
