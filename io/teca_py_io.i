@@ -26,10 +26,12 @@ The io module contains readers and writers.
 /***************************************************************************
  cf_reader
  ***************************************************************************/
+#ifdef TECA_HAS_NETCDF
 %ignore teca_cf_reader::shared_from_this;
 %shared_ptr(teca_cf_reader)
 %ignore teca_cf_reader::operator=;
 %include "teca_cf_reader.h"
+#endif
 
 /***************************************************************************
  table_writer
