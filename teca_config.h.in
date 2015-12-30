@@ -7,5 +7,6 @@
 #cmakedefine TECA_HAS_BOOST
 #cmakedefine TECA_HAS_VTK
 #cmakedefine TECA_HAS_PYTHON
+#cmakedefine TECA_VERSION_DESCR "@TECA_VERSION_DESCR@"
 
 #endif

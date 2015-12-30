@@ -108,7 +108,16 @@ else()
 endif()
 set(TECA_HAS_PYTHON ${tmp} CACHE BOOL "Python binding")
 
-# generaste global configuration
+# get the build version descriptor
+set(TECA_VERSION_DESCR "unknown")
+find_package(Git)
+if (GIT_FOUND)
+    execute_process(COMMAND ${GIT_EXECUTABLE} describe --tags
+        OUTPUT_VARIABLE TECA_VERSION_DESCR OUTPUT_STRIP_TRAILING_WHITESPACE)
+    message(STATUS "TECA version ${TECA_VERSION_DESCR}")
+endif()
+
+# generate global configuration
 configure_file(teca_config.h.in teca_config.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
