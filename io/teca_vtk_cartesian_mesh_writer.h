@@ -12,6 +12,9 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_vtk_cartesian_mesh_writer)
 
 /**
 an algorithm that writes cartesian meshes in VTK format.
+when VTK is found then the files are written using the
+XML formats. otherwise legacy format is used. Can be
+written as raw binary (default) or as ascii.
 */
 class teca_vtk_cartesian_mesh_writer : public teca_algorithm
 {
@@ -28,6 +31,9 @@ public:
     // %t% is replaced with the current time step.
     TECA_ALGORITHM_PROPERTY(std::string, file_name)
 
+    // set the output type. can be binary or ascii.
+    TECA_ALGORITHM_PROPERTY(int, binary)
+
 protected:
     teca_vtk_cartesian_mesh_writer();
 
@@ -39,6 +45,7 @@ private:
 
 private:
     std::string file_name;
+    int binary;
 };
 
 #endif

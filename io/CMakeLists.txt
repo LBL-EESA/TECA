@@ -31,7 +31,9 @@ endif()
 
 if (TECA_HAS_VTK)
     include(${VTK_USE_FILE})
-    list(APPEND teca_io_srcs teca_vtk_cartesian_mesh_writer.cxx)
+endif()
+list(APPEND teca_io_srcs teca_vtk_cartesian_mesh_writer.cxx)
+if (TECA_HAS_VTK)
     list(APPEND teca_io_link ${VTK_LIBRARIES})
 endif()
 
