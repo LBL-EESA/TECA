@@ -5,10 +5,14 @@
 #include "teca_parallel_id.h"
 #include <iostream>
 
-#define TECA_ERROR(msg)                                             \
-    std::cerr << teca_parallel_id()                                 \
-        << " ERROR " << __FILE__ << ":" << __LINE__ << std::endl    \
-        << TECA_VERSION_DESCR << std::endl                          \
-        << "" msg << std::endl;
+#define TECA_ERROR(msg)                                 \
+    std::cerr                                           \
+        << "\033[1;31mERROR:\033[0m "                   \
+        << teca_parallel_id()                           \
+        << " [" << __FILE__ << ":" << __LINE__          \
+        << " " << TECA_VERSION_DESCR                    \
+        << "]" << std::endl                             \
+        << "\033[1;31mERROR:\033[0m "                   \
+        << "\033[1;37m" msg << "\033[0m" << std::endl;
 
 #endif
