@@ -98,6 +98,9 @@ except AttributeError:
 
 
 
+_teca_py_io.TECA_VERSION_DESCR_swigconstant(_teca_py_io)
+TECA_VERSION_DESCR = _teca_py_io.TECA_VERSION_DESCR
+
 _teca_py_io.SHARED_PTR_DISOWN_swigconstant(_teca_py_io)
 SHARED_PTR_DISOWN = _teca_py_io.SHARED_PTR_DISOWN
 class SwigPyIterator(_object):
@@ -8536,6 +8539,29 @@ class teca_vtk_cartesian_mesh_writer(teca_algorithm):
 
         """
         return _teca_py_io.teca_vtk_cartesian_mesh_writer_get_file_name(self, *args)
+
+
+    def set_binary(self, v):
+        """
+        set_binary(teca_vtk_cartesian_mesh_writer self, int const & v)
+
+        Parameters:
+            v: int const &
+
+        """
+        return _teca_py_io.teca_vtk_cartesian_mesh_writer_set_binary(self, v)
+
+
+    def get_binary(self, *args):
+        """
+        get_binary(teca_vtk_cartesian_mesh_writer self) -> int const
+        get_binary(teca_vtk_cartesian_mesh_writer self) -> int &
+
+        Parameters:
+            self: teca_vtk_cartesian_mesh_writer *
+
+        """
+        return _teca_py_io.teca_vtk_cartesian_mesh_writer_get_binary(self, *args)
 
 teca_vtk_cartesian_mesh_writer_swigregister = _teca_py_io.teca_vtk_cartesian_mesh_writer_swigregister
 teca_vtk_cartesian_mesh_writer_swigregister(teca_vtk_cartesian_mesh_writer)

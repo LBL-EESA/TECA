@@ -100,6 +100,9 @@ except AttributeError:
 
 
 
+_teca_py_data.TECA_VERSION_DESCR_swigconstant(_teca_py_data)
+TECA_VERSION_DESCR = _teca_py_data.TECA_VERSION_DESCR
+
 _teca_py_data.SHARED_PTR_DISOWN_swigconstant(_teca_py_data)
 SHARED_PTR_DISOWN = _teca_py_data.SHARED_PTR_DISOWN
 class SwigPyIterator(_object):

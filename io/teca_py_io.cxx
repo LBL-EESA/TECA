@@ -3190,6 +3190,51 @@ namespace swig {
 #include "teca_vtk_cartesian_mesh_writer.h"
 
 
+SWIGINTERN swig_type_info*
+SWIG_pchar_descriptor(void)
+{
+  static int init = 0;
+  static swig_type_info* info = 0;
+  if (!init) {
+    info = SWIG_TypeQuery("_p_char");
+    init = 1;
+  }
+  return info;
+}
+
+
+SWIGINTERNINLINE PyObject *
+SWIG_FromCharPtrAndSize(const char* carray, size_t size)
+{
+  if (carray) {
+    if (size > INT_MAX) {
+      swig_type_info* pchar_descriptor = SWIG_pchar_descriptor();
+      return pchar_descriptor ? 
+	SWIG_InternalNewPointerObj(const_cast< char * >(carray), pchar_descriptor, 0) : SWIG_Py_Void();
+    } else {
+#if PY_VERSION_HEX >= 0x03000000
+#if PY_VERSION_HEX >= 0x03010000
+      return PyUnicode_DecodeUTF8(carray, static_cast< int >(size), "surrogateescape");
+#else
+      return PyUnicode_FromStringAndSize(carray, static_cast< int >(size));
+#endif
+#else
+      return PyString_FromStringAndSize(carray, static_cast< int >(size));
+#endif
+    }
+  } else {
+    return SWIG_Py_Void();
+  }
+}
+
+
+SWIGINTERNINLINE PyObject * 
+SWIG_FromCharPtr(const char *cptr)
+{ 
+  return SWIG_FromCharPtrAndSize(cptr, (cptr ? strlen(cptr) : 0));
+}
+
+
 SWIGINTERNINLINE PyObject*
   SWIG_From_int  (int value)
 {
@@ -4601,19 +4646,6 @@ namespace swig
 }
 
 
-SWIGINTERN swig_type_info*
-SWIG_pchar_descriptor(void)
-{
-  static int init = 0;
-  static swig_type_info* info = 0;
-  if (!init) {
-    info = SWIG_TypeQuery("_p_char");
-    init = 1;
-  }
-  return info;
-}
-
-
 SWIGINTERN int
 SWIG_AsCharPtrAndSize(PyObject *obj, char** cptr, size_t* psize, int *alloc)
 {
@@ -4741,31 +4773,6 @@ SWIG_AsVal_char (PyObject * obj, char *val)
     }
   }
   return res;
-}
-
-
-SWIGINTERNINLINE PyObject *
-SWIG_FromCharPtrAndSize(const char* carray, size_t size)
-{
-  if (carray) {
-    if (size > INT_MAX) {
-      swig_type_info* pchar_descriptor = SWIG_pchar_descriptor();
-      return pchar_descriptor ? 
-	SWIG_InternalNewPointerObj(const_cast< char * >(carray), pchar_descriptor, 0) : SWIG_Py_Void();
-    } else {
-#if PY_VERSION_HEX >= 0x03000000
-#if PY_VERSION_HEX >= 0x03010000
-      return PyUnicode_DecodeUTF8(carray, static_cast< int >(size), "surrogateescape");
-#else
-      return PyUnicode_FromStringAndSize(carray, static_cast< int >(size));
-#endif
-#else
-      return PyString_FromStringAndSize(carray, static_cast< int >(size));
-#endif
-    }
-  } else {
-    return SWIG_Py_Void();
-  }
 }
 
 
@@ -6311,13 +6318,6 @@ struct SWIG_null_deleter {
 
 
 
-SWIGINTERNINLINE PyObject * 
-SWIG_FromCharPtr(const char *cptr)
-{ 
-  return SWIG_FromCharPtrAndSize(cptr, (cptr ? strlen(cptr) : 0));
-}
-
-
 std::shared_ptr<teca_variant_array_impl<double>>
 as_teca_double_array(p_teca_variant_array in_inst)
 {
@@ -7159,6 +7159,17 @@ SWIG_AsVal_bool (PyObject *obj, bool *val)
 #ifdef __cplusplus
 extern "C" {
 #endif
+SWIGINTERN PyObject *TECA_VERSION_DESCR_swigconstant(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *module;
+  PyObject *d;
+  if (!PyArg_ParseTuple(args,(char*)"O:swigconstant", &module)) return NULL;
+  d = PyModule_GetDict(module);
+  if (!d) return NULL;
+  SWIG_Python_SetConstant(d, "TECA_VERSION_DESCR",SWIG_FromCharPtr("v1.9-246-g60bc9ef"));
+  return SWIG_Py_Void();
+}
+
+
 SWIGINTERN PyObject *SHARED_PTR_DISOWN_swigconstant(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *module;
   PyObject *d;
@@ -47757,6 +47768,156 @@ fail:
 }
 
 
+SWIGINTERN PyObject *_wrap_teca_vtk_cartesian_mesh_writer_set_binary(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  teca_vtk_cartesian_mesh_writer *arg1 = (teca_vtk_cartesian_mesh_writer *) 0 ;
+  int *arg2 = 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  std::shared_ptr< teca_vtk_cartesian_mesh_writer > tempshared1 ;
+  std::shared_ptr< teca_vtk_cartesian_mesh_writer > *smartarg1 = 0 ;
+  int temp2 ;
+  int val2 ;
+  int ecode2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:teca_vtk_cartesian_mesh_writer_set_binary",&obj0,&obj1)) SWIG_fail;
+  {
+    int newmem = 0;
+    res1 = SWIG_ConvertPtrAndOwn(obj0, &argp1, SWIGTYPE_p_std__shared_ptrT_teca_vtk_cartesian_mesh_writer_t, 0 |  0 , &newmem);
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "teca_vtk_cartesian_mesh_writer_set_binary" "', argument " "1"" of type '" "teca_vtk_cartesian_mesh_writer *""'"); 
+    }
+    if (newmem & SWIG_CAST_NEW_MEMORY) {
+      tempshared1 = *reinterpret_cast< std::shared_ptr<  teca_vtk_cartesian_mesh_writer > * >(argp1);
+      delete reinterpret_cast< std::shared_ptr<  teca_vtk_cartesian_mesh_writer > * >(argp1);
+      arg1 = const_cast< teca_vtk_cartesian_mesh_writer * >(tempshared1.get());
+    } else {
+      smartarg1 = reinterpret_cast< std::shared_ptr<  teca_vtk_cartesian_mesh_writer > * >(argp1);
+      arg1 = const_cast< teca_vtk_cartesian_mesh_writer * >((smartarg1 ? smartarg1->get() : 0));
+    }
+  }
+  ecode2 = SWIG_AsVal_int(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "teca_vtk_cartesian_mesh_writer_set_binary" "', argument " "2"" of type '" "int""'");
+  } 
+  temp2 = static_cast< int >(val2);
+  arg2 = &temp2;
+  (arg1)->set_binary((int const &)*arg2);
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_teca_vtk_cartesian_mesh_writer_get_binary__SWIG_0(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  teca_vtk_cartesian_mesh_writer *arg1 = (teca_vtk_cartesian_mesh_writer *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  std::shared_ptr< teca_vtk_cartesian_mesh_writer const > tempshared1 ;
+  std::shared_ptr< teca_vtk_cartesian_mesh_writer const > *smartarg1 = 0 ;
+  PyObject * obj0 = 0 ;
+  int *result = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:teca_vtk_cartesian_mesh_writer_get_binary",&obj0)) SWIG_fail;
+  {
+    int newmem = 0;
+    res1 = SWIG_ConvertPtrAndOwn(obj0, &argp1, SWIGTYPE_p_std__shared_ptrT_teca_vtk_cartesian_mesh_writer_t, 0 |  0 , &newmem);
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "teca_vtk_cartesian_mesh_writer_get_binary" "', argument " "1"" of type '" "teca_vtk_cartesian_mesh_writer const *""'"); 
+    }
+    if (newmem & SWIG_CAST_NEW_MEMORY) {
+      tempshared1 = *reinterpret_cast< std::shared_ptr< const teca_vtk_cartesian_mesh_writer > * >(argp1);
+      delete reinterpret_cast< std::shared_ptr< const teca_vtk_cartesian_mesh_writer > * >(argp1);
+      arg1 = const_cast< teca_vtk_cartesian_mesh_writer * >(tempshared1.get());
+    } else {
+      smartarg1 = reinterpret_cast< std::shared_ptr< const teca_vtk_cartesian_mesh_writer > * >(argp1);
+      arg1 = const_cast< teca_vtk_cartesian_mesh_writer * >((smartarg1 ? smartarg1->get() : 0));
+    }
+  }
+  result = (int *) &((teca_vtk_cartesian_mesh_writer const *)arg1)->get_binary();
+  resultobj = SWIG_From_int(static_cast< int >(*result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_teca_vtk_cartesian_mesh_writer_get_binary__SWIG_1(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  teca_vtk_cartesian_mesh_writer *arg1 = (teca_vtk_cartesian_mesh_writer *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  std::shared_ptr< teca_vtk_cartesian_mesh_writer > tempshared1 ;
+  std::shared_ptr< teca_vtk_cartesian_mesh_writer > *smartarg1 = 0 ;
+  PyObject * obj0 = 0 ;
+  int *result = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:teca_vtk_cartesian_mesh_writer_get_binary",&obj0)) SWIG_fail;
+  {
+    int newmem = 0;
+    res1 = SWIG_ConvertPtrAndOwn(obj0, &argp1, SWIGTYPE_p_std__shared_ptrT_teca_vtk_cartesian_mesh_writer_t, 0 |  0 , &newmem);
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "teca_vtk_cartesian_mesh_writer_get_binary" "', argument " "1"" of type '" "teca_vtk_cartesian_mesh_writer *""'"); 
+    }
+    if (newmem & SWIG_CAST_NEW_MEMORY) {
+      tempshared1 = *reinterpret_cast< std::shared_ptr<  teca_vtk_cartesian_mesh_writer > * >(argp1);
+      delete reinterpret_cast< std::shared_ptr<  teca_vtk_cartesian_mesh_writer > * >(argp1);
+      arg1 = const_cast< teca_vtk_cartesian_mesh_writer * >(tempshared1.get());
+    } else {
+      smartarg1 = reinterpret_cast< std::shared_ptr<  teca_vtk_cartesian_mesh_writer > * >(argp1);
+      arg1 = const_cast< teca_vtk_cartesian_mesh_writer * >((smartarg1 ? smartarg1->get() : 0));
+    }
+  }
+  result = (int *) &(arg1)->get_binary();
+  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_int, 0 |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_teca_vtk_cartesian_mesh_writer_get_binary(PyObject *self, PyObject *args) {
+  int argc;
+  PyObject *argv[2] = {
+    0
+  };
+  int ii;
+  
+  if (!PyTuple_Check(args)) SWIG_fail;
+  argc = args ? (int)PyObject_Length(args) : 0;
+  for (ii = 0; (ii < 1) && (ii < argc); ii++) {
+    argv[ii] = PyTuple_GET_ITEM(args,ii);
+  }
+  if (argc == 1) {
+    int _v;
+    int res = SWIG_ConvertPtr(argv[0], 0, SWIGTYPE_p_std__shared_ptrT_teca_vtk_cartesian_mesh_writer_t, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      return _wrap_teca_vtk_cartesian_mesh_writer_get_binary__SWIG_1(self, args);
+    }
+  }
+  if (argc == 1) {
+    int _v;
+    int res = SWIG_ConvertPtr(argv[0], 0, SWIGTYPE_p_std__shared_ptrT_teca_vtk_cartesian_mesh_writer_t, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      return _wrap_teca_vtk_cartesian_mesh_writer_get_binary__SWIG_0(self, args);
+    }
+  }
+  
+fail:
+  SWIG_SetErrorMsg(PyExc_NotImplementedError,"Wrong number or type of arguments for overloaded function 'teca_vtk_cartesian_mesh_writer_get_binary'.\n"
+    "  Possible C/C++ prototypes are:\n"
+    "    teca_vtk_cartesian_mesh_writer::get_binary() const\n"
+    "    teca_vtk_cartesian_mesh_writer::get_binary()\n");
+  return 0;
+}
+
+
 SWIGINTERN PyObject *teca_vtk_cartesian_mesh_writer_swigregister(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *obj;
   if (!PyArg_ParseTuple(args,(char*)"O:swigregister", &obj)) return NULL;
@@ -47766,6 +47927,7 @@ SWIGINTERN PyObject *teca_vtk_cartesian_mesh_writer_swigregister(PyObject *SWIGU
 
 static PyMethodDef SwigMethods[] = {
 	 { (char *)"SWIG_PyInstanceMethod_New", (PyCFunction)SWIG_PyInstanceMethod_New, METH_O, NULL},
+	 { (char *)"TECA_VERSION_DESCR_swigconstant", TECA_VERSION_DESCR_swigconstant, METH_VARARGS, NULL},
 	 { (char *)"SHARED_PTR_DISOWN_swigconstant", SHARED_PTR_DISOWN_swigconstant, METH_VARARGS, NULL},
 	 { (char *)"delete_SwigPyIterator", _wrap_delete_SwigPyIterator, METH_VARARGS, (char *)"\n"
 		"delete_SwigPyIterator(SwigPyIterator self)\n"
@@ -53594,6 +53756,22 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"teca_vtk_cartesian_mesh_writer_get_file_name", _wrap_teca_vtk_cartesian_mesh_writer_get_file_name, METH_VARARGS, (char *)"\n"
 		"get_file_name() -> std::string const\n"
 		"teca_vtk_cartesian_mesh_writer_get_file_name(teca_vtk_cartesian_mesh_writer self) -> std::string &\n"
+		"\n"
+		"Parameters:\n"
+		"    self: teca_vtk_cartesian_mesh_writer *\n"
+		"\n"
+		""},
+	 { (char *)"teca_vtk_cartesian_mesh_writer_set_binary", _wrap_teca_vtk_cartesian_mesh_writer_set_binary, METH_VARARGS, (char *)"\n"
+		"teca_vtk_cartesian_mesh_writer_set_binary(teca_vtk_cartesian_mesh_writer self, int const & v)\n"
+		"\n"
+		"Parameters:\n"
+		"    self: teca_vtk_cartesian_mesh_writer *\n"
+		"    v: int const &\n"
+		"\n"
+		""},
+	 { (char *)"teca_vtk_cartesian_mesh_writer_get_binary", _wrap_teca_vtk_cartesian_mesh_writer_get_binary, METH_VARARGS, (char *)"\n"
+		"get_binary() -> int const\n"
+		"teca_vtk_cartesian_mesh_writer_get_binary(teca_vtk_cartesian_mesh_writer self) -> int &\n"
 		"\n"
 		"Parameters:\n"
 		"    self: teca_vtk_cartesian_mesh_writer *\n"
