@@ -146,7 +146,7 @@ int teca_time_step_executive::initialize(const teca_metadata &md)
 
 #if defined(TECA_TIME_STEP_EXECUTIVE_DEBUG)
     cerr << teca_parallel_id()
-        << "teca_time_step_executive::initialize first="
+        << " teca_time_step_executive::initialize first="
         << this->first_step << " last=" << last_step << " stride="
         << this->stride << endl;
 #endif
@@ -171,7 +171,7 @@ teca_metadata teca_time_step_executive::get_next_request()
         req.get("time_step", time_step);
 
         cerr << teca_parallel_id()
-            << "teca_time_step_executive::get_next_request time_step="
+            << " teca_time_step_executive::get_next_request time_step="
             << time_step << " extent=" << ext[0] << ", " << ext[1] << ", "
             << ext[2] << ", " << ext[3] << ", " << ext[4] << ", " << ext[5]
             << endl;

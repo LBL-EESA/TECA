@@ -85,6 +85,15 @@ if (TECA_HAS_NETCDF)
             teca_core teca_data teca_io teca_alg
             ${teca_test_link}
             )
+        add_executable(
+            test_connected_components
+            test_connected_components.cpp
+            )
+        target_link_libraries(
+            test_connected_components
+            teca_core teca_data teca_io teca_alg
+            ${teca_test_link}
+            )
     endif()
 endif()
 

@@ -35,55 +35,100 @@ else()
 endif()
 
 # locate dependencies
+# configure for MPI
+set(tmp OFF)
 find_package(MPI)
-if (MPI_C_FOUND)
+if (MPI_C_FOUND  AND ((DEFINED TECA_HAS_MPI AND TECA_HAS_MPI)
+    OR (NOT DEFINED TECA_HAS_MPI)))
     message(STATUS "MPI features -- enabled")
-    set(TECA_HAS_MPI ON CACHE BOOL "MPI features")
+    set(tmp ON)
 else()
     message(STATUS "MPI features -- not found.")
 endif()
+set(TECA_HAS_MPI ${tmp} CACHE BOOL "MPI features")
 
+# configure for NetCDF
+set(tmp OFF)
 find_package(NetCDF)
-if (NETCDF_FOUND)
+if (NETCDF_FOUND AND ((DEFINED TECA_HAS_NETCDF AND TECA_HAS_NETCDF)
+    OR (NOT DEFINED TECA_HAS_NETCDF)))
     message(STATUS "NetCDF features -- enabled")
-    set(TECA_HAS_NETCDF ON CACHE BOOL "NetCDF features")
+    set(tmp ON)
 else()
     message(STATUS "NetCDF features -- not found. set NETCDF_DIR to enable.")
+    message(WARNING "NetCDF is required for CF-2 I/O")
 endif()
+set(TECA_HAS_NETCDF ${tmp} CACHE BOOL "NetCDF features")
 
+# configure for VTK
+set(tmp OFF)
 find_package(VTK QUIET)
-if (VTK_FOUND)
+if (VTK_FOUND AND ((DEFINED TECA_HAS_VTK AND TECA_HAS_VTK) OR (NOT DEFINED TECA_HAS_VTK)))
     message(STATUS "VTK features -- enabled")
-    set(TECA_HAS_VTK ON CACHE BOOL "VTK features")
+    set(tmp ON)
 else()
     message(STATUS "VTK features -- not found. set VTK_DIR to enable.")
 endif()
+set(TECA_HAS_VTK ${tmp} CACHE BOOL "VTK features")
 
+#configure for Boost
+set(tmp OFF)
 find_package(Boost QUIET COMPONENTS program_options)
-if (Boost_FOUND)
+if (Boost_FOUND AND ((DEFINED TECA_HAS_BOOST AND TECA_HAS_BOOST) OR (NOT DEFINED TECA_HAS_BOOST)))
     message(STATUS "Boost features -- enabled")
-    set(TECA_HAS_BOOST ON CACHE BOOL "Boost features")
+    set(tmp ON)
 else()
     message(STATUS "Boost fetaures -- not found. set BOOST_ROOT to enable.")
+    message(WARNING "Boost is required for command line applications")
 endif()
+set(TECA_HAS_BOOST ${tmp} CACHE BOOL "Boost features")
 
+# configure for Python
+set(tmp OFF)
 find_package(PythonInterp)
+if(APPLE AND PYTHONINTERP_FOUND)
+    find_program(PYTHON_CONFIG_EXECUTABLE python-config)
+    if (NOT PYTHON_CONFIG_EXECUTABLE)
+        message(SEND_ERROR "python-config executable is required.")
+    endif()
+    execute_process(COMMAND ${PYTHON_CONFIG_EXECUTABLE} --prefix
+        OUTPUT_VARIABLE python_prefix OUTPUT_STRIP_TRAILING_WHITESPACE)
+    set(PYTHON_INCLUDE_DIR ${python_prefix}/include/python2.7)
+    set(PYTHON_LIBRARY ${python_prefix}/lib/libpython2.7${CMAKE_SHARED_LIBRARY_SUFFIX})
+endif()
 find_package(PythonLibs)
 find_package(Numpy)
 find_program(swig_cmd swig)
-if (PYTHONINTERP_FOUND AND PYTHONLIBS_FOUND AND NUMPY_FOUND)
+if ((PYTHONINTERP_FOUND AND PYTHONLIBS_FOUND AND NUMPY_FOUND AND swig_cmd)
+    AND ((DEFINED TECA_HAS_PYTHON AND TECA_HAS_PYTHON)
+    OR (NOT DEFINED TECA_HAS_PYTHON)))
     message(STATUS "Python features -- enabled")
-    set(TECA_HAS_PYTHON ON CACHE BOOL "Python binding")
-    if (NOT swig_cmd)
-        message(WARNING "SWIG was not found! The development environment"
-            " requires SWIG. You won't be able to modify source files")
-    endif()
+    set(tmp ON)
     include(CMake/teca_python.cmake)
 else()
     message(STATUS "Python features -- disabled")
 endif()
+set(TECA_HAS_PYTHON ${tmp} CACHE BOOL "Python binding")
 
-# generaste global configuration
+# configure library type
+set(CMAKE_MACOSX_RPATH 1)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libraries")
+if (TECA_HAS_PYTHON)
+    # SWIG RTTI system requires libs when multiple modules
+    # have cross dependencies
+    set(BUILD_SHARED_LIBS ON FORCE)
+endif()
+
+# get the build version descriptor
+set(TECA_VERSION_DESCR "unknown")
+find_package(Git)
+if (GIT_FOUND)
+    execute_process(COMMAND ${GIT_EXECUTABLE} describe --tags
+        OUTPUT_VARIABLE TECA_VERSION_DESCR OUTPUT_STRIP_TRAILING_WHITESPACE)
+    message(STATUS "TECA version ${TECA_VERSION_DESCR}")
+endif()
+
+# generate global configuration
 configure_file(teca_config.h.in teca_config.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 

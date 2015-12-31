@@ -26,10 +26,12 @@ The io module contains readers and writers.
 /***************************************************************************
  cf_reader
  ***************************************************************************/
+#ifdef TECA_HAS_NETCDF
 %ignore teca_cf_reader::shared_from_this;
 %shared_ptr(teca_cf_reader)
 %ignore teca_cf_reader::operator=;
 %include "teca_cf_reader.h"
+#endif
 
 /***************************************************************************
  table_writer
@@ -42,9 +44,7 @@ The io module contains readers and writers.
 /***************************************************************************
  vtk_cartesian_mesh_writer
  ***************************************************************************/
-#ifdef TECA_HAS_VTK
 %ignore teca_vtk_cartesian_mesh_writer::shared_from_this;
 %shared_ptr(teca_vtk_cartesian_mesh_writer)
 %ignore teca_vtk_cartesian_mesh_writer::operator=;
 %include "teca_vtk_cartesian_mesh_writer.h"
-#endif

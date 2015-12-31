@@ -96,7 +96,7 @@ int set_filter_regex(const std::string &re)
 #else
     try
     {
-       teca_file_util::filter_regex = std::regex(re);
+       teca_file_util::filter_regex = std::regex(re, std::regex::grep);
     }
     catch (std::regex_error &e)
     {
