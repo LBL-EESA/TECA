@@ -110,6 +110,15 @@ else()
 endif()
 set(TECA_HAS_PYTHON ${tmp} CACHE BOOL "Python binding")
 
+# configure library type
+set(CMAKE_MACOSX_RPATH 1)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libraries")
+if (TECA_HAS_PYTHON)
+    # SWIG RTTI system requires libs when multiple modules
+    # have cross dependencies
+    set(BUILD_SHARED_LIBS ON FORCE)
+endif()
+
 # get the build version descriptor
 set(TECA_VERSION_DESCR "unknown")
 find_package(Git)
