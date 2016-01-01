@@ -55,33 +55,68 @@ using std::endl;
 // helper for naming and/or selecting
 // the corresponding vtk type
 template <typename T> struct vtk_tt {};
-#define VTK_TT_SPEC(_ctype, _vtype)     \
-template <>                             \
-struct vtk_tt <_ctype>                  \
-{                                       \
-    using type = _vtype;                \
-                                        \
-    static constexpr const char *str()  \
-    { return #_ctype; }                 \
+#define VTK_TT_SPEC(_ctype, _vtype, _fmt)   \
+template <>                                 \
+struct vtk_tt <_ctype>                      \
+{                                           \
+    using type = _vtype;                    \
+                                            \
+    static constexpr const char *str()      \
+    { return #_ctype; }                     \
+                                            \
+    static constexpr const char *fmt()      \
+    { return _fmt; }                        \
 };
-VTK_TT_SPEC(float, vtkFloatArray)
-VTK_TT_SPEC(double, vtkDoubleArray)
-VTK_TT_SPEC(char, vtkCharArray)
-VTK_TT_SPEC(unsigned char, vtkUnsignedCharArray)
-VTK_TT_SPEC(short, vtkShortArray)
-VTK_TT_SPEC(unsigned short, vtkUnsignedShortArray)
-VTK_TT_SPEC(int, vtkIntArray)
-VTK_TT_SPEC(unsigned int, vtkUnsignedIntArray)
-VTK_TT_SPEC(long, vtkLongArray)
-VTK_TT_SPEC(unsigned long, vtkUnsignedLongArray)
-VTK_TT_SPEC(long long, vtkLongLongArray)
-VTK_TT_SPEC(unsigned long long, vtkUnsignedLongLongArray)
+VTK_TT_SPEC(float, vtkFloatArray, "%g")
+VTK_TT_SPEC(double, vtkDoubleArray, "%g")
+VTK_TT_SPEC(char, vtkCharArray, "%hhi")
+VTK_TT_SPEC(unsigned char, vtkUnsignedCharArray, "%hhu")
+VTK_TT_SPEC(short, vtkShortArray, "%hi")
+VTK_TT_SPEC(unsigned short, vtkUnsignedShortArray, "%hu")
+VTK_TT_SPEC(int, vtkIntArray, "%i")
+VTK_TT_SPEC(unsigned int, vtkUnsignedIntArray, "%u")
+VTK_TT_SPEC(long, vtkLongArray, "%li")
+VTK_TT_SPEC(unsigned long, vtkUnsignedLongArray, "%lu")
+VTK_TT_SPEC(long long, vtkLongLongArray, "%lli")
+VTK_TT_SPEC(unsigned long long, vtkUnsignedLongLongArray, "%llu")
 
 #if !defined(TECA_HAS_VTK)
+namespace {
+
+void write_vtk_array_data(FILE *ofile,
+    const const_p_teca_variant_array &a, int binary)
+{
+    if (a)
+    {
+        size_t na = a->size();
+        TEMPLATE_DISPATCH(const teca_variant_array_impl,
+            a.get(),
+            const NT *pa = dynamic_cast<TT*>(a.get())->get();
+            if (binary)
+            {
+                fwrite(pa, sizeof(NT), na, ofile);
+            }
+            else
+            {
+                char fmt_delim[32];
+                snprintf(fmt_delim, 32, " %s", vtk_tt<NT>::fmt());
+                fprintf(ofile, vtk_tt<NT>::fmt(), pa[0]);
+                for (size_t i = 1; i < na; ++i)
+                    fprintf(ofile, fmt_delim, pa[i]);
+            }
+            )
+        fprintf(ofile, "\n");
+    }
+    else
+    {
+        fprintf(ofile, "0\n");
+    }
+}
+
 // **************************************************************************
 int write_vtk_legacy_header(FILE *ofile,
     const const_p_teca_variant_array &x, const const_p_teca_variant_array &y,
-    const const_p_teca_variant_array &z, bool bin=true,
+    const const_p_teca_variant_array &z, bool binary,
     const std::string &comment = "")
 {
     if (!x && !y &&!z)
@@ -90,8 +125,7 @@ int write_vtk_legacy_header(FILE *ofile,
         return -1;
     }
 
-    std::ostringstream oss;
-    oss << "# vtk DataFile Version 2.0" << std::endl;
+    fprintf(ofile, "# vtk DataFile Version 2.0\n");
 
     if (comment.empty())
     {
@@ -101,12 +135,13 @@ int write_vtk_legacy_header(FILE *ofile,
 
         char date_str[128] = {'\0'};
         strftime(date_str, 128, "%F %T", timeinfo);
-        oss << "writen by TECA cartesian mesh writer "
-            << TECA_VERSION_DESCR << " " << date_str << endl;
+
+        fprintf(ofile, "TECA vtk_cartesian_mesh_writer "
+            TECA_VERSION_DESCR " %s\n", date_str);
     }
     else
     {
-        oss << comment;
+        fprintf(ofile, "%s\n", comment.c_str());
     }
 
     size_t nx = (x ? x->size() : 1);
@@ -119,82 +154,24 @@ int write_vtk_legacy_header(FILE *ofile,
         coord_type_str = vtk_tt<NT>::str();
         )
 
-    oss << (bin ? "BINARY" : "ASCII") << std::endl
-        << "DATASET RECTILINEAR_GRID" << std::endl
-        << "DIMENSIONS " << nx << " " << ny << " " << nz << std::endl
-        << "X_COORDINATES " << nx << coord_type_str << std::endl;
+    fprintf(ofile, "%s\n"
+        "DATASET RECTILINEAR_GRID\n"
+        "DIMENSIONS %zu %zu %zu\n"
+        "X_COORDINATES %zu %s\n",
+        (binary ? "BINARY" : "ASCII"),
+        nx, ny, nz, nx, coord_type_str);
 
-    fwrite(oss.str().c_str(), 1, oss.tellp(), ofile);
-    oss.str("");
+    write_vtk_array_data(ofile, x, binary);
 
-    teca_binary_stream tmp;
-    if (x)
-    {
-        if (bin)
-        {
-            x->to_stream(tmp);
-            fwrite(tmp.get_data(), 1, tmp.size(), ofile);
-        }
-        else
-        {
-            x->to_stream(oss);
-        }
-    }
-    else
-    {
-        oss << "0";
-    }
+    fprintf(ofile, "\nY_COORDINATES %zu %s\n",
+        ny, coord_type_str);
 
-    oss << std::endl << "Y_COORDINATES " << ny
-        << coord_type_str << std::endl;
+    write_vtk_array_data(ofile, y, binary);
 
-    fwrite(oss.str().c_str(), 1, oss.tellp(), ofile);
-    oss.str("");
+    fprintf(ofile, "\nZ_COORDINATES %zu %s\n",
+        nz, coord_type_str);
 
-    if (y)
-    {
-        if (bin)
-        {
-            tmp.resize(0);
-            y->to_stream(tmp);
-            fwrite(tmp.get_data(), 1, tmp.size(), ofile);
-        }
-        else
-        {
-            y->to_stream(oss);
-        }
-    }
-    else
-    {
-        oss << "0";
-    }
-
-    oss << std::endl << "Z_COORDINATES " << nz
-        << coord_type_str << std::endl;
-
-    fwrite(oss.str().c_str(), 1, oss.tellp(), ofile);
-    oss.str("");
-
-    if (z)
-    {
-        if (bin)
-        {
-            tmp.resize(0);
-            z->to_stream(tmp);
-            fwrite(tmp.get_data(), 1, tmp.size(), ofile);
-        }
-        else
-        {
-            z->to_stream(oss);
-        }
-    }
-    else
-    {
-        oss << "0";
-    }
-
-    oss << std::endl;
-    fwrite(oss.str().c_str(), 1, oss.tellp(), ofile);
+    write_vtk_array_data(ofile, z, binary);
 
     return 0;
 }
@@ -203,81 +180,59 @@ int write_vtk_legacy_header(FILE *ofile,
 enum center_t { cell, point, face, edge };
 
 int write_vtk_legacy_attribute(FILE *ofile,
-    const const_p_teca_array_collection &data, center_t cen, bool bin = true)
+    const const_p_teca_array_collection &data, center_t cen, bool binary)
 {
     size_t n_arrays = data->size();
 
     if (!n_arrays)
         return 0;
 
-    std::ostringstream oss;
-    oss << std::endl;
+    const char *att_type_str;
     switch (cen)
     {
-    case center_t::cell: oss << "CELL"; break;
-    case center_t::point: oss << "POINT"; break;
-    default: oss << "FIELD"; break;
+    case center_t::cell: att_type_str = "CELL"; break;
+    case center_t::point: att_type_str = "POINT"; break;
+    default: att_type_str = "FIELD"; break;
     }
-    oss << "_DATA " << data->get(0)->size() << std::endl;
 
-    fwrite(oss.str().c_str(), 1, oss.tellp(), ofile);
-    oss.str("");
+    fprintf(ofile, "%s_DATA %zu\n", att_type_str,
+        data->get(0)->size());
 
-    teca_binary_stream tmp;
     for (size_t i = 0; i < n_arrays; ++i)
     {
         const_p_teca_variant_array array = data->get(i);
-
-        oss << "SCALARS ";
-
         std::string array_name = data->get_name(i);
+
+        fprintf(ofile, "SCALARS");
         if (array_name.empty())
-            oss << "array_" << i;
+            fprintf(ofile, " array_%zu ", i);
         else
-            oss << array_name;
+            fprintf(ofile, " %s ", array_name.c_str());
 
         TEMPLATE_DISPATCH(const teca_variant_array_impl,
-            array.get(),
-            oss << " " << vtk_tt<NT>::str();
-            )
+            array.get(), fprintf(ofile, vtk_tt<NT>::str());)
         else
         {
             TECA_ERROR("unsupported type encountered")
             return -1;
         }
 
-        oss << " 1" << std::endl
-            << "LOOKUP_TABLE default" << std::endl;
+        fprintf(ofile, " 1\n"
+            "LOOKUP_TABLE default\n");
 
-        fwrite(oss.str().c_str(), 1, oss.tellp(), ofile);
-        oss.str("");
+        write_vtk_array_data(ofile, array, binary);
 
-        if (bin)
-        {
-            array->to_stream(tmp);
-            fwrite(tmp.get_data(), 1, tmp.size(), ofile);
-            fwrite("\n", 1, 1, ofile);
-
-            tmp.resize(0);
-        }
-        else
-        {
-            array->to_stream(oss);
-        }
-
-        oss << std::endl;
-
-        fwrite(oss.str().c_str(), 1, oss.tellp(), ofile);
-        oss.str("");
+        fprintf(ofile, "\n");
     }
 
     return 0;
 }
+};
 #endif
 
 // --------------------------------------------------------------------------
 teca_vtk_cartesian_mesh_writer::teca_vtk_cartesian_mesh_writer()
-    : file_name(""), binary(1)
+    : file_name(""), binary(0)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -415,8 +370,11 @@ const_p_teca_dataset teca_vtk_cartesian_mesh_writer::execute(
     teca_file_util::replace_timestep(out_file, time_step);
 
     vtkXMLRectilinearGridWriter *w = vtkXMLRectilinearGridWriter::New();
-    w->SetDataModeToAppended();     // infact this is how you get
-    w->SetEncodeAppendedDataOff();  // a binary file
+    if (binary)
+    {
+        w->SetDataModeToAppended();
+        w->SetEncodeAppendedDataOff();
+    }
     w->SetFileName(out_file.c_str());
     w->SetInputData(rg);
     w->Write();
