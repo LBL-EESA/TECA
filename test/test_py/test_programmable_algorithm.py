@@ -4,36 +4,43 @@ from teca_py_alg import *
 import numpy as np
 import sys
 
-if not len(sys.argv) == 3:
-    sys.stderr.write('test_programmable_algorithm.py [dataset regex] [out file name]\n')
+if not len(sys.argv) == 7:
+    sys.stderr.write('test_programmable_algorithm.py [dataset regex] ' \
+        '[u_var] [v_var] [first step] [last step] [out file name]\n')
     sys.exit(-1)
 
 data_regex = sys.argv[1]
-out_file = sys.argv[2]
+u_var = sys.argv[2]
+v_var = sys.argv[3]
+first_step = int(sys.argv[4])
+last_step = int(sys.argv[5])
+out_file = sys.argv[6]
 
 class wind_speed:
     @staticmethod
     def report(port, md_in):
         md = md_in[0]
-        md.append('variables', 'wind_speed_850')
+        md.append('variables', 'wind_speed')
         return md
 
     @staticmethod
     def request(port, md_in, req_in):
+        global u_var, v_var
         req = teca_metadata(req_in)
-        req['arrays'] = ['U850', 'V850']
+        req['arrays'] = [u_var, v_var]
         return [req]
 
     @staticmethod
     def execute(port, data_in, req):
+        global u_var, v_var
         in_mesh = as_teca_cartesian_mesh(data_in[0])
         out_mesh = teca_cartesian_mesh.New()
         out_mesh.shallow_copy(in_mesh)
         arrays = out_mesh.get_point_arrays()
-        u = arrays['U850']
-        v = arrays['V850']
+        u = arrays[u_var]
+        v = arrays[v_var]
         w = np.sqrt(u*u + v*v)
-        arrays['wind_speed_850'] = w
+        arrays['wind_speed'] = w
         return out_mesh
 
 cfr = teca_cf_reader.New()
@@ -51,8 +58,8 @@ alg.set_execute_callback(wind_speed.execute)
 alg.set_input_connection(cfr.get_output_port())
 
 exe = teca_time_step_executive.New()
-exe.set_first_step(0)
-exe.set_last_step(0)
+exe.set_first_step(first_step)
+exe.set_last_step(last_step)
 
 wri = teca_vtk_cartesian_mesh_writer.New()
 wri.set_input_connection(alg.get_output_port())

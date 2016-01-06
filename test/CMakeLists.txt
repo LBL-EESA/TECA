@@ -4,6 +4,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/test)
 
 add_subdirectory(test_array)
 add_subdirectory(test_amr)
+if (TECA_HAS_PYTHON)
+    add_subdirectory(test_py)
+endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}
     $<TARGET_PROPERTY:teca_core,INTERFACE_INCLUDE_DIRECTORIES>
