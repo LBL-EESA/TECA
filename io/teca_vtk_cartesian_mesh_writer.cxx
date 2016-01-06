@@ -210,7 +210,7 @@ int write_vtk_legacy_attribute(FILE *ofile,
             fprintf(ofile, " %s ", array_name.c_str());
 
         TEMPLATE_DISPATCH(const teca_variant_array_impl,
-            array.get(), fprintf(ofile, vtk_tt<NT>::str());)
+            array.get(), fprintf(ofile, "%s", vtk_tt<NT>::str());)
         else
         {
             TECA_ERROR("unsupported type encountered")
