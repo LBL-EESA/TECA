@@ -140,7 +140,9 @@ add_subdirectory(alg)
 add_subdirectory(apps)
 
 # enable regression tests
+set(TECA_DATA_ROOT "" CACHE STRING "Path to test datasets")
 set(BUILD_TESTING OFF CACHE BOOL "Enable tests")
 if (BUILD_TESTING)
+    enable_testing()
     add_subdirectory(test)
 endif()
