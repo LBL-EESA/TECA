@@ -120,13 +120,17 @@ if (TECA_HAS_PYTHON)
 endif()
 
 # get the build version descriptor
-set(TECA_VERSION_DESCR "unknown")
+set(tmp)
 find_package(Git)
 if (GIT_FOUND)
     execute_process(COMMAND ${GIT_EXECUTABLE} describe --tags
-        OUTPUT_VARIABLE TECA_VERSION_DESCR OUTPUT_STRIP_TRAILING_WHITESPACE)
-    message(STATUS "TECA version ${TECA_VERSION_DESCR}")
+        OUTPUT_VARIABLE tmp OUTPUT_STRIP_TRAILING_WHITESPACE)
 endif()
+if (NOT tmp)
+    set(tmp "0.0.0")
+endif()
+set(TECA_VERSION_DESCR ${tmp} CACHE STRING "TECA version descriptor")
+message(STATUS "TECA version ${TECA_VERSION_DESCR}")
 
 # generate global configuration
 configure_file(teca_config.h.in teca_config.h)
