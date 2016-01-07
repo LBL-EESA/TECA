@@ -373,7 +373,7 @@ const_p_teca_dataset teca_vtk_cartesian_mesh_writer::execute(
     if (binary)
     {
         w->SetDataModeToAppended();
-        w->SetEncodeAppendedDataOff();
+        w->SetEncodeAppendedData(0);
     }
     w->SetFileName(out_file.c_str());
     w->SetInputData(rg);
