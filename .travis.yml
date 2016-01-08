@@ -1,27 +1,21 @@
 # This configuration file is used by Travis CI to build/test TECA.
-
 language: c++
+sudo: required
 
 os:
   - linux
   - osx
-
-sudo: required
 
 dist: trusty # Ubuntu 14.04.
 
 compiler:
   - gcc
 
-install: ./.install-$TRAVIS_OS_NAME-deps.sh
+install: ./test/travis_ci/install_$TRAVIS_OS_NAME.sh
 
 env:
   - BUILD_TYPE=Debug
   - BUILD_TYPE=Release
 
-script: 
-  - mkdir build
-  - cd build 
-  - cmake .. -DCMAKE_CXX_COMPILER=`which $CXX` -DCMAKE_C_COMPILER=`which $CC` -DCMAKE_BUILD_TYPE=$BUILD_TYPE 
-  - make -j4
+script: ./test/travis_ci/script_$TRAVIS_OS_NAME.sh
 
