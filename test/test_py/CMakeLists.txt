@@ -2,7 +2,7 @@ if (TECA_DATA_ROOT)
     add_test(NAME py_test_cf_reader
         COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_cf_reader.py
         "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
-        7 11 "py_test_cf_reader_%t%.vtk" U850 V850
+        1 2 "py_test_cf_reader_%t%.vtk" U850 V850
         WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
     add_test(NAME py_test_connected_components
@@ -14,7 +14,7 @@ if (TECA_DATA_ROOT)
     add_test(NAME py_test_programmable_algorithm
         COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_programmable_algorithm.py
         "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-01-10800\\.nc"
-        U850 V850 0 4 "py_test_programmable_algorithm_%t%.vtk"
+        U850 V850 0 3 "py_test_programmable_algorithm_%t%.vtk"
         WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 endif()
 

@@ -144,7 +144,8 @@ add_subdirectory(alg)
 add_subdirectory(apps)
 
 # enable regression tests
-set(TECA_DATA_ROOT "" CACHE STRING "Path to test datasets")
+set(TECA_DATA_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/test/datasets"
+    CACHE STRING "Path to test datasets")
 set(BUILD_TESTING OFF CACHE BOOL "Enable tests")
 if (BUILD_TESTING)
     enable_testing()

@@ -52,7 +52,7 @@ if (TECA_HAS_NETCDF)
         add_test(NAME test_cf_reader
             COMMAND test_cf_reader
             "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-[0-9][0-9]-10800\\.nc"
-            "test_cf_reader_%t%.vtk" 7 11 lon lat "" time U850 V850
+            "test_cf_reader_%t%.vtk" 1 2 lon lat "" time U850 V850
             WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
     endif()
 
@@ -63,7 +63,7 @@ if (TECA_HAS_NETCDF)
         add_test(NAME test_temporal_average
             COMMAND test_temporal_average
             "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-01-10800\\.nc"
-            test_temporal_average_%t%.vtk 0 1 3 U850
+            test_temporal_average_%t%.vtk 0 -1 3 U850
             WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
     endif()
 
@@ -85,7 +85,7 @@ if (TECA_HAS_NETCDF)
         add_test(NAME test_connected_components
             COMMAND test_connected_components
             "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-01-10800\\.nc"
-            lon lat "" time U850 V850 4 4 15 "test_connected_components_%t%.vtk"
+            lon lat "" time U850 V850 1 2 15 "test_connected_components_%t%.vtk"
             WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
     endif()
 endif()
