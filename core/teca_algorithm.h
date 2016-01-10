@@ -82,14 +82,14 @@ public:
     virtual teca_metadata update_metadata(unsigned int port);
 
     // set the executive
-    void set_executive(p_teca_algorithm_executive exec);
+    void set_executive(p_teca_algorithm_executive exe);
     p_teca_algorithm_executive get_executive();
 
     // serialize the configuration to a stream. this should
     // store the public user modifiable properties so that
     // runtime configuration may be saved and restored..
-    virtual void to_stream(std::ostream &os) const;
-    virtual void from_stream(std::istream &is);
+    virtual void to_stream(std::ostream &s) const;
+    virtual void from_stream(std::istream &s);
 
 protected:
     teca_algorithm();
