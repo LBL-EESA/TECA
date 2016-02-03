@@ -18,14 +18,10 @@ class teca_table : public teca_dataset
 {
 public:
     TECA_DATASET_STATIC_NEW(teca_table)
+    TECA_DATASET_NEW_INSTANCE()
+    TECA_DATASET_NEW_COPY()
+
     virtual ~teca_table() = default;
-
-    // virtual constructor. return a new dataset of the same type.
-    virtual p_teca_dataset new_instance() const override;
-
-    // virtual copy constructor. return a deep copy of this
-    // dataset in a new instance.
-    virtual p_teca_dataset new_copy() const override;
 
     // remove all column definitions and data
     void clear();

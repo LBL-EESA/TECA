@@ -11,19 +11,6 @@ teca_table::teca_table()
 {}
 
 // --------------------------------------------------------------------------
-p_teca_dataset teca_table::new_instance() const
-{
-    return p_teca_dataset(new teca_table);
-}
-
-// --------------------------------------------------------------------------
-p_teca_dataset teca_table::new_copy() const
-{
-    p_teca_table t(new teca_table(*this));
-    return t;
-}
-
-// --------------------------------------------------------------------------
 void teca_table::clear()
 {
     this->impl->clear();
