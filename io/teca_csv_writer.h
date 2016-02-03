@@ -1,5 +1,5 @@
-#ifndef teca_table_writer_h
-#define teca_table_writer_h
+#ifndef teca_csv_writer_h
+#define teca_csv_writer_h
 
 #include "teca_shared_object.h"
 #include "teca_algorithm.h"
@@ -9,16 +9,16 @@
 #include <vector>
 #include <string>
 
-TECA_SHARED_OBJECT_FORWARD_DECL(teca_table_writer)
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_csv_writer)
 
 /**
 an algorithm that writes cartesian meshes in VTK format.
 */
-class teca_table_writer : public teca_algorithm
+class teca_csv_writer : public teca_algorithm
 {
 public:
-    TECA_ALGORITHM_STATIC_NEW(teca_table_writer)
-    ~teca_table_writer();
+    TECA_ALGORITHM_STATIC_NEW(teca_csv_writer)
+    ~teca_csv_writer();
 
     // set the output filename. for time series the substring
     // %t% is replaced with the current time step. the substring
@@ -36,7 +36,7 @@ public:
     TECA_ALGORITHM_PROPERTY(bool, binary_mode)
 
 protected:
-    teca_table_writer();
+    teca_csv_writer();
 
     int write_csv(const_p_teca_table table, const std::string &file_name);
     int write_bin(const_p_teca_table table, const std::string &file_name);

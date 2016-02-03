@@ -1,7 +1,7 @@
 #include "teca_table.h"
 #include "teca_metadata.h"
 #include "teca_programmable_algorithm.h"
-#include "teca_table_writer.h"
+#include "teca_csv_writer.h"
 #include "teca_time_step_executive.h"
 
 #include <iostream>
@@ -57,7 +57,7 @@ int main(int, char **)
     s->set_report_callback(report());
     s->set_execute_callback(execute());
 
-    p_teca_table_writer w = teca_table_writer::New();
+    p_teca_csv_writer w = teca_csv_writer::New();
     w->set_input_connection(s->get_output_port());
     w->set_executive(teca_time_step_executive::New());
     w->set_file_name("table_writer_test_%t%.%e%");

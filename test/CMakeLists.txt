@@ -112,7 +112,7 @@ if (TECA_HAS_NETCDF)
     endif()
 endif()
 
-teca_add_test(test_table_writer
-    SOURCES test_table_writer.cpp
+teca_add_test(test_csv_writer
+    SOURCES test_csv_writer.cpp
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
-    COMMAND test_table_writer)
+    COMMAND test_csv_writer)
