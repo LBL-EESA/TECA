@@ -49,6 +49,10 @@ public:
     const_p_teca_variant_array get_column(unsigned int i) const;
     const_p_teca_variant_array get_column(const std::string &col_name) const;
 
+    // get the name of the column, see also get_number_of_columns
+    std::string get_column_name(unsigned int i) const
+    { return this->impl->get_name(i); }
+
     // default initialize n rows of data
     void resize(unsigned long n);
 
