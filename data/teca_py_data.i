@@ -19,6 +19,7 @@ Cartesian meshes, AMR datasets, and tables.
 #include "teca_mesh.h"
 #include "teca_table.h"
 #include "teca_py_object.h"
+#include "teca_table_collection.h"
 %}
 
 %include "teca_config.h"
@@ -349,5 +350,38 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
             teca_table_declare_column(self, name, type);
         }
     }
+}
 
+/***************************************************************************
+ table_collection
+ ***************************************************************************/
+%ignore teca_table_collection::shared_from_this;
+%shared_ptr(teca_table_collection)
+%ignore teca_table_collection::operator=;
+%ignore teca_table_collection::operator[];
+%include "teca_table_collection_fwd.h"
+%include "teca_table_collection.h"
+%extend teca_table_collection
+{
+    TECA_PY_STR()
+
+    /* add or replace a table using syntax: col['name'] = table */
+    void __setitem__(const std::string &name, p_teca_table table)
+    {
+        self->set(name, table);
+    }
+
+    /* return an array using the syntax: col['name'] */
+    p_teca_table __getitem__(const std::string &name)
+    {
+        p_teca_table table = self->get(name);
+        if (!table)
+        {
+            PyErr_Format(PyExc_KeyError,
+                "key \"%s\" not found", name.c_str());
+            return nullptr;
+        }
+
+        return table;
+    }
 }

@@ -11,6 +11,7 @@ set(teca_data_srcs
     teca_cartesian_mesh.cxx
     teca_mesh.cxx
     teca_table.cxx
+    teca_table_collection.cxx
     teca_uniform_cartesian_mesh.cxx
     )
 
