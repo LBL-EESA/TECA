@@ -1,6 +1,7 @@
 #include "teca_csv_writer.h"
 
 #include "teca_table.h"
+#include "teca_workbook.h"
 #include "teca_metadata.h"
 #include "teca_file_util.h"
 
@@ -73,53 +74,91 @@ const_p_teca_dataset teca_csv_writer::execute(
     if (!input_data[0])
         return nullptr;
 
-    // get the input
+    string out_file = this->file_name;
+
+    // replace time step
+    unsigned long time_step = 0l;
+    request.get("time_step", time_step);
+    teca_file_util::replace_timestep(out_file, time_step);
+
+    // replace extension
+    string ext;
+    if (this->binary_mode)
+        ext = "bin";
+    else
+        ext = "csv";
+    teca_file_util::replace_extension(out_file, ext);
+
+    // handle workbooks
+    const_p_teca_workbook workbook
+        = std::dynamic_pointer_cast<const teca_workbook>(input_data[0]);
+
+    if (workbook)
+    {
+        unsigned int n = workbook->get_number_of_tables();
+        for (unsigned int i = 0; i < n; ++i)
+        {
+            std::string out_file_i = out_file;
+            std::string name = workbook->get_table_name(i);
+            teca_file_util::replace_identifier(out_file_i, name);
+
+            if (this->write_table(out_file_i, workbook->get_table(i)))
+            {
+                TECA_ERROR("Failed to write table " << i << " \"" << name << "\"")
+                return nullptr;
+            }
+        }
+
+        return nullptr;
+    }
+
+    // handle tables
     const_p_teca_table table
         = std::dynamic_pointer_cast<const teca_table>(input_data[0]);
 
     if (!table)
     {
-        TECA_ERROR("input dataset is not a teca_table")
+        TECA_ERROR("input dataset is not a teca_table nor a teca_workbook")
         return nullptr;
     }
 
-    if (!table->empty())
+    if (this->write_table(out_file, table))
     {
-        string out_file = this->file_name;
-
-        // replace time step
-        unsigned long time_step = 0l;
-        request.get("time_step", time_step);
-        teca_file_util::replace_timestep(out_file, time_step);
-
-        // replace extension
-        string ext;
-        if (this->binary_mode)
-            ext = "bin";
-        else
-            ext = "csv";
-        teca_file_util::replace_extension(out_file, ext);
-
-        // write the data
-        if (this->binary_mode)
-        {
-            if (this->write_bin(table, out_file))
-            {
-                TECA_ERROR("Failed to write binary file \"" << out_file << "\"")
-                return nullptr;
-            }
-        }
-        else
-        {
-            if (this->write_csv(table, out_file))
-            {
-                TECA_ERROR("Failed to write csv file \"" << out_file << "\"")
-                return nullptr;
-            }
-        }
+        TECA_ERROR("Failed to write table")
+        return nullptr;
     }
 
-    return nullptr;
+   return nullptr;
+}
+
+
+// --------------------------------------------------------------------------
+int teca_csv_writer::write_table(
+    const std::string &file_name,
+    const const_p_teca_table &table)
+{
+    if (!table || table->empty())
+        return 0;
+
+   // write the data
+   if (this->binary_mode)
+   {
+       if (this->write_bin(table, file_name))
+       {
+           TECA_ERROR("Failed to write binary file \"" << file_name << "\"")
+           return -1;
+       }
+   }
+   else
+   {
+       if (this->write_csv(table, file_name))
+       {
+           TECA_ERROR("Failed to write csv file \"" << file_name << "\"")
+           return -1;
+       }
+   }
+
+   return 0;
 }
 
 // --------------------------------------------------------------------------

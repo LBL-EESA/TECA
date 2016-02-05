@@ -11,8 +11,11 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_csv_writer)
 
+/// teca_csv_writer - writes datasets in CSV format.
 /**
-an algorithm that writes cartesian meshes in VTK format.
+an algorithm that writes tabular data in a CSV (comma separated value)
+format that is easily ingested by most spreadsheet apps. Each page of
+a workbook is written to a file.
 */
 class teca_csv_writer : public teca_algorithm
 {
@@ -23,6 +26,7 @@ public:
     // set the output filename. for time series the substring
     // %t% is replaced with the current time step. the substring
     // %e% is replaced with .bin in binary mode and .csv otherwise
+    // %s% is replaced with the table name (workbooks only).
     TECA_ALGORITHM_PROPERTY(std::string, file_name)
 
     // report/initialize to/from Boost program options
@@ -30,13 +34,15 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-
     // enable binary mode. default off. when not in
     // binary mode a csv format is used.
     TECA_ALGORITHM_PROPERTY(bool, binary_mode)
 
 protected:
     teca_csv_writer();
+
+    int write_table(const std::string &file_name,
+        const const_p_teca_table &table);
 
     int write_csv(const_p_teca_table table, const std::string &file_name);
     int write_bin(const_p_teca_table table, const std::string &file_name);
