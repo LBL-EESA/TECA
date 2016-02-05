@@ -194,3 +194,21 @@ void teca_array_collection::from_stream(teca_binary_stream &s)
         m_arrays[i]->from_stream(s);
     }
 }
+
+// --------------------------------------------------------------------------
+void teca_array_collection::to_stream(std::ostream &s) const
+{
+    s << "{";
+    size_t n_arrays = this->size();
+    if (n_arrays)
+    {
+        s << this->get_name(0);
+        for (size_t i = 1; i < n_arrays; ++i)
+        {
+            s << ", " <<  this->get_name(i) << " = {";
+            this->get(i)->to_stream(s);
+            s << "}";
+        }
+    }
+    s << "}";
+}

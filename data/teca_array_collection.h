@@ -70,7 +70,6 @@ public:
     const_p_teca_variant_array operator[](const std::string &name) const
     { return this->get(name); }
 
-
     // access names
     std::string &get_name(unsigned int i)
     { return m_names[i]; }
@@ -89,6 +88,9 @@ public:
     // for I/O or communication
     void to_stream(teca_binary_stream &s) const;
     void from_stream(teca_binary_stream &s);
+
+    // stream to/from human readable representation
+    void to_stream(std::ostream &) const;
 
 protected:
     teca_array_collection() = default;

@@ -25,7 +25,6 @@ Cartesian meshes, AMR datasets, and tables.
 %include "teca_py_core.i"
 %include <std_string.i>
 
-
 /***************************************************************************
  array_collection
  ***************************************************************************/
@@ -37,21 +36,7 @@ Cartesian meshes, AMR datasets, and tables.
 %include "teca_array_collection.h"
 %extend teca_array_collection
 {
-    /* lists the names of the arrays in the collection */
-    PyObject *__str__()
-    {
-        std::ostringstream oss;
-        oss << "{";
-        size_t n_arrays = self->size();
-        if (n_arrays)
-        {
-            oss << self->get_name(0);
-            for (size_t i = 1; i < n_arrays; ++i)
-                oss << ", " <<  self->get_name(i);
-        }
-        oss << "}";
-        return PyString_FromString(oss.str().c_str());
-    }
+    TECA_PY_STR()
 
     /* add or replace an array using syntax: col['name'] = array */
     void __setitem__(const std::string &name, PyObject *array)
@@ -100,6 +85,10 @@ Cartesian meshes, AMR datasets, and tables.
 %include "teca_mesh_fwd.h"
 %include "teca_mesh.h"
 TECA_PY_DYNAMIC_CAST(teca_mesh, teca_dataset)
+%extend teca_mesh
+{
+    TECA_PY_STR()
+}
 
 /***************************************************************************
  cartesian_mesh
@@ -114,6 +103,10 @@ TECA_PY_DYNAMIC_CAST(teca_mesh, teca_dataset)
 %include "teca_cartesian_mesh_fwd.h"
 %include "teca_cartesian_mesh.h"
 TECA_PY_DYNAMIC_CAST(teca_cartesian_mesh, teca_dataset)
+%extend teca_cartesian_mesh
+{
+    TECA_PY_STR()
+}
 
 /***************************************************************************
  table
