@@ -85,9 +85,9 @@ void teca_table::to_stream(std::ostream &s) const
     unsigned int n_cols = this->impl->size();
     if (n_cols)
     {
-        s << this->impl->get_name(0);
+        s << "\"" << this->impl->get_name(0) << "\"";
         for (unsigned int i = 1; i < n_cols; ++i)
-            s << ", " << this->impl->get_name(i);
+            s << ", \"" << this->impl->get_name(i) << "\"";
         s << std::endl;
     }
     unsigned long long n_rows = this->get_number_of_rows();
@@ -108,7 +108,7 @@ void teca_table::to_stream(std::ostream &s) const
                 TT *a = dynamic_cast<TT*>(this->impl->get(0).get());
                 NT v = NT();
                 a->get(j, v);
-                s << ", \"" << v << "\"";
+                s << "\"" << v << "\"";
                 )
             for (unsigned int i = 1; i < n_cols; ++i)
             {
