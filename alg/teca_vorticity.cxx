@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <iostream>
 #include <string>
+#include <cmath>
 
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
@@ -17,6 +18,7 @@ using std::string;
 using std::vector;
 using std::cerr;
 using std::endl;
+using std::cos;
 
 //#define TECA_DEBUG
 

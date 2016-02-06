@@ -20,3 +20,7 @@ pip install --user numpy
 curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
 sudo apt-get install git-lfs
 sudo rm /usr/local/bin/git-lfs
+
+# install data files.
+git clone https://github.com/LBL-EESA/TECA_data.git
+pushd TECA_data && git lfs pull && popd
