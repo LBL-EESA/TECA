@@ -35,18 +35,20 @@ template <typename num_t, typename pt_t>
 void vorticity(num_t *w, const pt_t *lat, const pt_t *lon,
     const num_t *comp_0, const num_t *comp_1, unsigned long nx, unsigned long ny)
 {
-    // compute dx from degrees longitude
-    num_t *dx = static_cast<num_t*>(malloc(nx*sizeof(num_t)));
+    // TODO -- this only works for uniform grids
+    // compute dx as a function of latitude
+    num_t *dx = static_cast<num_t*>(malloc(ny*sizeof(num_t)));
     num_t dlon = (lon[1]- lon[0])*deg_to_rad<num_t>();
-    for (unsigned long i = 0; i < nx; ++i)
-        dx[i] = earth_radius<num_t>() * cos(lat[i]*deg_to_rad<num_t>()) * dlon;
+    for (unsigned long j = 0; j < ny; ++j)
+        dx[j] = earth_radius<num_t>() * cos(lat[j]*deg_to_rad<num_t>()) * dlon;
 
-    // compute dy from degrees latitude
+    // compute dy
     unsigned long max_j = ny - 1;
     num_t *dy = static_cast<num_t*>(malloc(ny*sizeof(num_t)));
     for (unsigned long i = 1; i < max_j; ++i)
         dy[i] = num_t(0.5)*earth_radius<num_t>()*deg_to_rad<num_t>()
             *(lat[i-1] - lat[i+1]);
+
     dy[0] = dy[1];
     dy[max_j] = dy[max_j - 1];
 
@@ -63,7 +65,7 @@ void vorticity(num_t *w, const pt_t *lat, const pt_t *lon,
         unsigned long jj1 = jj + nx;
         for (unsigned long i = 1; i < max_i; ++i)
         {
-            w[jj+i] = num_t(0.5)*((comp_1[jj+i+1] - comp_1[jj+i-1])/dx[i]
+            w[jj+i] = num_t(0.5)*((comp_1[jj+i+1] - comp_1[jj+i-1])/dx[j]
                 - (comp_0[jj0+i] - comp_0[jj1+i])/dy[j]);
         }
     }

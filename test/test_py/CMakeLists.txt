@@ -19,6 +19,12 @@ teca_add_test(py_test_programmable_algorithm
     U850 V850 0 0 "py_test_programmable_algorithm_%t%.vtk"
     REQ_TECA_DATA)
 
+teca_add_test(py_test_vector_ops
+    COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_vector_ops.py
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-01-10800\\.nc"
+    0 0 py_test_vector_ops_%t%.vtk U850 V850
+    REQ_TECA_DATA)
+
 teca_add_test(py_test_array_collection
     COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_array_collection.py)
 
