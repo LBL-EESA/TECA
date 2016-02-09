@@ -29,7 +29,7 @@ endfunction()
 add_subdirectory(test_array)
 add_subdirectory(test_amr)
 if (TECA_HAS_PYTHON)
-    add_subdirectory(test_py)
+    add_subdirectory(python)
 endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}
