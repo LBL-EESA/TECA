@@ -1,27 +1,27 @@
-#ifndef teca_workbook_h
-#define teca_workbook_h
+#ifndef teca_database_h
+#define teca_database_h
 
 #include "teca_dataset.h"
 #include "teca_table_fwd.h"
-#include "teca_workbook_fwd.h"
+#include "teca_database_fwd.h"
 #include "teca_table_collection.h"
 #include <iosfwd>
 class teca_binary_stream;
 
-/// teca_workbook - A collection of named tables
+/// teca_database - A collection of named tables
 /**
 A dataset consisting of a collection of named tables. This
 is a thin wrapper around the teca_table_collection implementing
 the teca_dataset API.
 */
-class teca_workbook : public teca_dataset
+class teca_database : public teca_dataset
 {
 public:
-    TECA_DATASET_STATIC_NEW(teca_workbook)
+    TECA_DATASET_STATIC_NEW(teca_database)
     TECA_DATASET_NEW_INSTANCE()
     TECA_DATASET_NEW_COPY()
 
-    ~teca_workbook();
+    ~teca_database();
 
     // append table
     int append_table(p_teca_table table)
@@ -100,7 +100,7 @@ public:
     void from_stream(std::istream &) {}
 
 protected:
-    teca_workbook();
+    teca_database();
 
 private:
     p_teca_table_collection tables;

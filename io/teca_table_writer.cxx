@@ -1,7 +1,7 @@
 #include "teca_table_writer.h"
 
 #include "teca_table.h"
-#include "teca_workbook.h"
+#include "teca_database.h"
 #include "teca_metadata.h"
 #include "teca_file_util.h"
 
@@ -89,20 +89,20 @@ const_p_teca_dataset teca_table_writer::execute(
         ext = "csv";
     teca_file_util::replace_extension(out_file, ext);
 
-    // handle workbooks
-    const_p_teca_workbook workbook
-        = std::dynamic_pointer_cast<const teca_workbook>(input_data[0]);
+    // handle databases
+    const_p_teca_database database
+        = std::dynamic_pointer_cast<const teca_database>(input_data[0]);
 
-    if (workbook)
+    if (database)
     {
-        unsigned int n = workbook->get_number_of_tables();
+        unsigned int n = database->get_number_of_tables();
         for (unsigned int i = 0; i < n; ++i)
         {
             std::string out_file_i = out_file;
-            std::string name = workbook->get_table_name(i);
+            std::string name = database->get_table_name(i);
             teca_file_util::replace_identifier(out_file_i, name);
 
-            if (this->write_table(out_file_i, workbook->get_table(i)))
+            if (this->write_table(out_file_i, database->get_table(i)))
             {
                 TECA_ERROR("Failed to write table " << i << " \"" << name << "\"")
                 return nullptr;
@@ -118,7 +118,7 @@ const_p_teca_dataset teca_table_writer::execute(
 
     if (!table)
     {
-        TECA_ERROR("input dataset is not a teca_table nor a teca_workbook")
+        TECA_ERROR("input dataset is not a teca_table nor a teca_database")
         return nullptr;
     }
 

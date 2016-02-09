@@ -20,7 +20,8 @@ Cartesian meshes, AMR datasets, and tables.
 #include "teca_table.h"
 #include "teca_py_object.h"
 #include "teca_table_collection.h"
-#include "teca_workbook.h"
+#include "teca_database.h"
+#include "teca_py_object.h"
 %}
 
 %include "teca_config.h"
@@ -388,16 +389,16 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
 }
 
 /***************************************************************************
- workbook
+ database
  ***************************************************************************/
-%ignore teca_workbook::shared_from_this;
-%shared_ptr(teca_workbook)
-%ignore teca_workbook::operator=;
-%ignore teca_workbook::get_table_name(unsigned int);
-%include "teca_workbook_fwd.h"
-%include "teca_workbook.h"
-TECA_PY_DYNAMIC_CAST(teca_workbook, teca_dataset)
-%extend teca_workbook
+%ignore teca_database::shared_from_this;
+%shared_ptr(teca_database)
+%ignore teca_database::operator=;
+%ignore teca_database::get_table_name(unsigned int);
+%include "teca_database_fwd.h"
+%include "teca_database.h"
+TECA_PY_DYNAMIC_CAST(teca_database, teca_dataset)
+%extend teca_database
 {
     TECA_PY_STR()
 }

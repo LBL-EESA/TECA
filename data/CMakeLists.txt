@@ -13,7 +13,7 @@ set(teca_data_srcs
     teca_table.cxx
     teca_table_collection.cxx
     teca_uniform_cartesian_mesh.cxx
-    teca_workbook.cxx
+    teca_database.cxx
     )
 
 add_library(teca_data ${teca_data_srcs})

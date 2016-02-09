@@ -1,19 +1,19 @@
-#include "teca_workbook.h"
+#include "teca_database.h"
 #include "teca_table_collection.h"
 #include <sstream>
 
 // --------------------------------------------------------------------------
-teca_workbook::teca_workbook()
+teca_database::teca_database()
 {
     this->tables = teca_table_collection::New();
 }
 
 // --------------------------------------------------------------------------
-teca_workbook::~teca_workbook()
+teca_database::~teca_database()
 {}
 
 // --------------------------------------------------------------------------
-void teca_workbook::declare_tables(unsigned int n)
+void teca_database::declare_tables(unsigned int n)
 {
     for (unsigned int i = 0; i < n; ++i)
     {
@@ -24,20 +24,20 @@ void teca_workbook::declare_tables(unsigned int n)
 }
 
 // --------------------------------------------------------------------------
-bool teca_workbook::empty() const noexcept
+bool teca_database::empty() const noexcept
 {
     return !this->tables || !this->tables->size();
 }
 
 // --------------------------------------------------------------------------
-void teca_workbook::copy(const const_p_teca_dataset &o)
+void teca_database::copy(const const_p_teca_dataset &o)
 {
-    const_p_teca_workbook other
-        = std::dynamic_pointer_cast<const teca_workbook>(o);
+    const_p_teca_database other
+        = std::dynamic_pointer_cast<const teca_database>(o);
 
     if (!other)
     {
-        TECA_ERROR("Copy failed. Source must be a workbook")
+        TECA_ERROR("Copy failed. Source must be a database")
         return;
     }
 
@@ -45,14 +45,14 @@ void teca_workbook::copy(const const_p_teca_dataset &o)
 }
 
 // --------------------------------------------------------------------------
-void teca_workbook::shallow_copy(const p_teca_dataset &o)
+void teca_database::shallow_copy(const p_teca_dataset &o)
 {
-    p_teca_workbook other
-        = std::dynamic_pointer_cast<teca_workbook>(o);
+    p_teca_database other
+        = std::dynamic_pointer_cast<teca_database>(o);
 
     if (!other)
     {
-        TECA_ERROR("Copy failed. Source must be a workbook")
+        TECA_ERROR("Copy failed. Source must be a database")
         return;
     }
 
@@ -60,14 +60,14 @@ void teca_workbook::shallow_copy(const p_teca_dataset &o)
 }
 
 // --------------------------------------------------------------------------
-void teca_workbook::copy_metadata(const const_p_teca_dataset &o)
+void teca_database::copy_metadata(const const_p_teca_dataset &o)
 {
-    const_p_teca_workbook other
-        = std::dynamic_pointer_cast<const teca_workbook>(o);
+    const_p_teca_database other
+        = std::dynamic_pointer_cast<const teca_database>(o);
 
     if (!other)
     {
-        TECA_ERROR("Copy failed. Source must be a workbook")
+        TECA_ERROR("Copy failed. Source must be a database")
         return;
     }
 
@@ -81,14 +81,14 @@ void teca_workbook::copy_metadata(const const_p_teca_dataset &o)
 }
 
 // --------------------------------------------------------------------------
-void teca_workbook::swap(p_teca_dataset &o)
+void teca_database::swap(p_teca_dataset &o)
 {
-    p_teca_workbook other
-        = std::dynamic_pointer_cast<teca_workbook>(o);
+    p_teca_database other
+        = std::dynamic_pointer_cast<teca_database>(o);
 
     if (!other)
     {
-        TECA_ERROR("Copy failed. Source must be a workbook")
+        TECA_ERROR("Copy failed. Source must be a database")
         return;
     }
 
@@ -98,19 +98,19 @@ void teca_workbook::swap(p_teca_dataset &o)
 }
 
 // --------------------------------------------------------------------------
-void teca_workbook::to_stream(teca_binary_stream &s) const
+void teca_database::to_stream(teca_binary_stream &s) const
 {
     this->tables->to_stream(s);
 }
 
 // --------------------------------------------------------------------------
-void teca_workbook::from_stream(teca_binary_stream &s)
+void teca_database::from_stream(teca_binary_stream &s)
 {
     this->tables->from_stream(s);
 }
 
 // --------------------------------------------------------------------------
-void teca_workbook::to_stream(std::ostream &s) const
+void teca_database::to_stream(std::ostream &s) const
 {
     this->tables->to_stream(s);
 }

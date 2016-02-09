@@ -34,5 +34,5 @@ teca_add_test(py_test_metadata
 teca_add_test(py_test_variant_array
     COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_variant_array.py)
 
-teca_add_test(py_test_workbook
-    COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_workbook.py)
+teca_add_test(py_test_database
+    COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_database.py)

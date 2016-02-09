@@ -40,13 +40,13 @@ t2.set_column('summary', ['a','b','c','d','e','f'])
 sys.stderr.write('dumping table contents...\n')
 sys.stderr.write('%s\n'%(str(t2)))
 
-sys.stderr.write('packaging tables into a workbook...\n')
-wbk = teca_workbook.New()
-wbk.append_table('summary', t2)
-wbk.append_table('details', t1)
+sys.stderr.write('packaging tables into a database...\n')
+db = teca_database.New()
+db.append_table('summary', t2)
+db.append_table('details', t1)
 
-sys.stderr.write('dumping the workbook...\n')
-sys.stderr.write('%s\n'%(str(wbk)))
+sys.stderr.write('dumping the database...\n')
+sys.stderr.write('%s\n'%(str(db)))
 
 
 sys.stderr.write('writing table to disk...\n')
@@ -64,16 +64,16 @@ tab_wri.set_file_name('table_%t%.%e%')
 tab_wri.update()
 
 
-sys.stderr.write('writing workbook to disk...\n')
-def serve_workbook(port, data, req):
-    global wbk
-    return wbk
+sys.stderr.write('writing database to disk...\n')
+def serve_database(port, data, req):
+    global db
+    return db
 
-wbk_serv = teca_programmable_algorithm.New()
-wbk_serv.set_number_of_input_connections(0)
-wbk_serv.set_execute_callback(serve_workbook)
+db_serv = teca_programmable_algorithm.New()
+db_serv.set_number_of_input_connections(0)
+db_serv.set_execute_callback(serve_database)
 
-wbk_wri = teca_table_writer.New()
-wbk_wri.set_input_connection(wbk_serv.get_output_port())
-wbk_wri.set_file_name('workbook_%s%_%t%.%e%')
-wbk_wri.update()
+db_wri = teca_table_writer.New()
+db_wri.set_input_connection(db_serv.get_output_port())
+db_wri.set_file_name('database_%s%_%t%.%e%')
+db_wri.update()
