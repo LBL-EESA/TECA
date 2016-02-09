@@ -2,30 +2,6 @@ project(teca_test)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/test)
 
-# teca_add_test(name
-#   SOURCES file_1 file_2 ...
-#   LIBS lib_1 lib_2 ...
-#   COMMAND cmd arg_1 arg_2 ...)
-function (teca_add_test T_NAME)
-    set(opt_args REQ_TECA_DATA)
-    set(val_args)
-    set(array_args SOURCES LIBS COMMAND)
-    cmake_parse_arguments(T
-        "${opt_args}" "${val_args}" "${array_args}" ${ARGN})
-    if (T_SOURCES)
-        add_executable(${T_NAME} ${T_SOURCES})
-    endif()
-    if (T_LIBS)
-        target_link_libraries(${T_NAME} ${T_LIBS})
-    endif()
-    if ((REQ_TECA_DATA AND TECA_DATA_ROOT) OR NOT REQ_TECA_DATA)
-        add_test(NAME ${T_NAME} COMMAND ${T_COMMAND}
-            WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-        set_tests_properties(${T_NAME}
-            PROPERTIES FAIL_REGULAR_EXPRESSION "ERROR")
-    endif()
-endfunction()
-
 add_subdirectory(test_array)
 add_subdirectory(test_amr)
 if (TECA_HAS_PYTHON)
@@ -81,16 +57,6 @@ if (TECA_HAS_NETCDF)
             PROPERTIES FAIL_REGULAR_EXPRESSION "ERROR")
     endif()
 
-    if (TECA_DATA_ROOT)
-      teca_add_test(test_temporal_average
-          SOURCES test_temporal_average.cpp
-          LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
-          COMMAND test_temporal_average
-          "${TECA_DATA_ROOT}/cam5_1_amip_run2.cam2.h2.1991-10-01-10800.nc"
-          test_temporal_average_%t%.vtk 0 -1 3 U850
-          REQ_TECA_DATA)
-    endif()
-
     # TODO -- locate test data for this test
     add_executable(test_cartesian_mesh_regrid
         test_cartesian_mesh_regrid.cpp)
@@ -111,6 +77,15 @@ if (TECA_HAS_NETCDF)
             PROPERTIES FAIL_REGULAR_EXPRESSION "ERROR")
     endif()
 endif()
+
+teca_add_test(test_temporal_average
+    SOURCES test_temporal_average.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_temporal_average
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2.cam2.h2.1991-10-01-10800.nc"
+    test_temporal_average_%t%.vtk 0 -1 3 U850
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
 
 teca_add_test(test_table_writer
     SOURCES test_table_writer.cpp
