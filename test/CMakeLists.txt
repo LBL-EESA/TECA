@@ -81,13 +81,15 @@ if (TECA_HAS_NETCDF)
             PROPERTIES FAIL_REGULAR_EXPRESSION "ERROR")
     endif()
 
-    teca_add_test(test_temporal_average
-        SOURCES test_temporal_average.cpp
-        LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
-        COMMAND test_temporal_average
-        "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-01-10800\\.nc"
-        test_temporal_average_%t%.vtk 0 -1 3 U850
-        REQ_TECA_DATA)
+    if (TECA_DATA_ROOT)
+      teca_add_test(test_temporal_average
+          SOURCES test_temporal_average.cpp
+          LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+          COMMAND test_temporal_average
+          "${TECA_DATA_ROOT}/cam5_1_amip_run2.cam2.h2.1991-10-01-10800.nc"
+          test_temporal_average_%t%.vtk 0 -1 3 U850
+          REQ_TECA_DATA)
+    endif()
 
     # TODO -- locate test data for this test
     add_executable(test_cartesian_mesh_regrid

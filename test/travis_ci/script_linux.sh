@@ -5,8 +5,6 @@ set -v
 export PYTHONPATH=${TRAVIS_BUILD_DIR}/build/lib
 export LD_LIBRARY_PATH=${TRAVIS_BUILD_DIR}/build/lib
 
-git lfs pull
-
 mkdir build
 cd build
 
@@ -16,6 +14,7 @@ cmake \
     -DCMAKE_CXX_FLAGS="-Wall -Wextra" \
     -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
     -DBUILD_TESTING=ON \
+    -DTECA_DATA_ROOT=${TRAVIS_BUILD_DIR}/TECA_data \
     ..
 
 make -j4

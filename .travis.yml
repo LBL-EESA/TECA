@@ -19,3 +19,5 @@ env:
 
 script: ./test/travis_ci/script_$TRAVIS_OS_NAME.sh
 
+after_failure: 
+  - cat build/Testing/Temporary/LastTest.log
