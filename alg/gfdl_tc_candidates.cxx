@@ -25,6 +25,9 @@ DECLARE_APPEND_CANDIDATE(float, f, double, d)
 DECLARE_APPEND_CANDIDATE(double, d, float, f)
 DECLARE_APPEND_CANDIDATE(double, d, double, d)
 
+void teca_tc_status(const char *msg)
+{ TECA_STATUS(<< msg) }
+
 void teca_tc_warning(const char *msg)
 { TECA_WARNING(<< msg) }
 

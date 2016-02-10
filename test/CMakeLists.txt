@@ -181,3 +181,12 @@ teca_add_test(test_tc_candidates_mpi_threads
     U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
     FEATURES (${TECA_HAS_NETCDF} AND ${TECA_HAS_MPI})
     REQ_TECA_DATA)
+
+teca_add_test(test_tc_trajectory
+    EXEC_NAME test_tc_trajectory
+    SOURCES test_tc_trajectory.cpp teca_test_util.cxx
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_tc_trajectory
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2_candidates_2005_09.bin"
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2_tracks_2005_09.bin" 1600 17 2
+    REQ_TECA_DATA)

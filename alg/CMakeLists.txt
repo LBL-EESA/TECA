@@ -25,6 +25,7 @@ set(teca_alg_cxx_srcs
     teca_table_sort.cxx
     teca_table_to_stream.cxx
     teca_tc_candidates.cxx
+    teca_tc_trajectory.cxx
     teca_temporal_average.cxx
     teca_vorticity.cxx
     teca_dataset_diff.cxx
