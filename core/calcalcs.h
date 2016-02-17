@@ -19,12 +19,13 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#ifndef calcalcs_h
+#define calcalcs_h
 
 #define CALCALCS_VERSION_NUMBER	1.0
+
+namespace calcalcs
+{
 
 struct cccalendar {
 	int	sig;
@@ -192,7 +193,7 @@ int ccs_get_xition_date( const char *country_code, int *year, int *month, int *d
 /*--------------------------------------------------------------------------
  * calcalcs_err_str: return a static char * to an error string, given the error nmmber
  */
-char *ccs_err_str( int errno );
+char *ccs_err_str(int ccs_errno);
 
 #define CALCALCS_ERR_NO_YEAR_ZERO		-10
 #define CALCALCS_ERR_DATE_NOT_IN_CALENDAR	-11
@@ -204,19 +205,23 @@ char *ccs_err_str( int errno );
 #define CALCALCS_ERR_INVALID_CALENDAR		-17
 
 
-/*
+/* TODO -- calendar object based on the below (maybe a singleton)
+ * to eliminate static variable and thread safety issues.
+ *
  * code below is from utCalendar2_cal
  * we're including it here so that all the calendaring utility
  * is in one h,c source
  */
+
 #define UT_ENOINIT -10
 #define UT_EINVALID -11
 
-int utCalendar2_cal( double val, ut_unit *dataunits, int *year, int *month, int *day, int *hour,
-	int *minute, double *second, const char *calendar_name );
-int utInvCalendar2_cal( int year, int month, int day, int hour, int minute, double second,
-        ut_unit *user_unit, double *value, const char *calendar_name );
+int date(double val, const char *dataunits, int *year, int *month,
+    int *day, int *hour, int *minute, double *second, const char *calendar_name );
 
-#ifdef __cplusplus
-}
+int cooridnate(int year, int month, int day, int hour, int minute,
+    double second, const char *user_unit, double *value, const char *calendar_name );
+
+};
+
 #endif
