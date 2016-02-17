@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8.12)
 
-project(teca)
+project(teca C CXX Fortran)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -34,7 +34,7 @@ else()
             set(tmp "${tmp} -march=native -mtune=native")
         endif()
         set(CMAKE_CXX_FLAGS "${tmp}"
-            CACHE STRING "TECA Release build defaults"
+            CACHE STRING "TECA build defaults"
             FORCE)
     endif()
     if (NOT CMAKE_Fortran_FLAGS)
@@ -43,7 +43,7 @@ else()
             set(tmp "${tmp} -march=native -mtune=native")
         endif()
         set(CMAKE_Fortran_FLAGS "${tmp}"
-            CACHE STRING "TECA Release build defaults"
+            CACHE STRING "TECA build defaults"
             FORCE)
     endif()
 endif()

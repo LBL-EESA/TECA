@@ -74,3 +74,36 @@ teca_add_test(py_test_programmable_map_reduce_mpi_thread
     py_test_programmable_map_reduce.bin 0 -1 2 TMQ T200 T500
     FEATURES (${TECA_HAS_NETCDF} AND ${TECA_HAS_MPI} AND ${MPI4PY_FOUND})
     REQ_TECA_DATA)
+
+
+teca_add_test(py_test_tc_detect_serial
+    COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_detect.py
+    "${TECA_DATA_ROOT}/test_tc_detect_1990_07_0[12]\\.nc"
+    "${TECA_DATA_ROOT}/test_tc_detect_20.bin" 0 3 1
+    U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(py_test_tc_detect_mpi
+    COMMAND mpiexec -np 4 python ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_detect.py
+    "${TECA_DATA_ROOT}/test_tc_detect_1990_07_0[12]\\.nc"
+    "${TECA_DATA_ROOT}/test_tc_detect_20.bin" 0 3 1
+    U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
+    FEATURES (${TECA_HAS_NETCDF} AND ${TECA_HAS_MPI})
+    REQ_TECA_DATA)
+
+teca_add_test(py_test_tc_detect_threads
+    COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_detect.py
+    "${TECA_DATA_ROOT}/test_tc_detect_1990_07_0[12]\\.nc"
+    "${TECA_DATA_ROOT}/test_tc_detect_20.bin" 0 3 4
+    U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
+    FEATURES (${TECA_HAS_NETCDF} AND ${TECA_HAS_MPI})
+    REQ_TECA_DATA)
+
+teca_add_test(py_test_tc_detect_mpi_threads
+    COMMAND mpiexec -np 2 python ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_detect.py
+    "${TECA_DATA_ROOT}/test_tc_detect_1990_07_0[12]\\.nc"
+    "${TECA_DATA_ROOT}/test_tc_detect_20.bin" 0 3 2
+    U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
+    FEATURES (${TECA_HAS_NETCDF} AND ${TECA_HAS_MPI})
+    REQ_TECA_DATA)
