@@ -8,6 +8,7 @@
 #cmakedefine TECA_HAS_VTK
 #cmakedefine TECA_HAS_PYTHON
 #cmakedefine TECA_HAS_LIBXLSXWRITER
+#cmakedefine TECA_HAS_UDUNITS
 #cmakedefine TECA_VERSION_DESCR "@TECA_VERSION_DESCR@"
 
 #endif

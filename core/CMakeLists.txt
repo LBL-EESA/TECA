@@ -30,6 +30,14 @@ if (TECA_HAS_BOOST)
     list(APPEND teca_core_link ${Boost_LIBRARIES})
 endif()
 
+if (TECA_HAS_UDUNITS)
+    include_directories(SYSTEM ${UDUNITS_INCLUDE_DIR})
+    list(APPEND teca_core_link ${UDUNITS_LIBRARY})
+    list(APPEND teca_core_srcs calcalcs.cxx)
+endif()
+
+list(APPEND teca_core_link pthread)
+
 add_library(teca_core ${teca_core_srcs})
 
 target_link_libraries(teca_core ${teca_core_link})

@@ -85,6 +85,18 @@ else()
 endif()
 set(TECA_HAS_LIBXLSXWRITER ${tmp} CACHE BOOL "libxlsxwriter features")
 
+# configure for UDUnits
+set(tmp OFF)
+find_package(UDUnits)
+if (UDUNITS_FOUND AND ((DEFINED TECA_HAS_UDUNITS AND TECA_HAS_UDUNITS)
+    OR (NOT DEFINED TECA_HAS_UDUNITS)))
+    message(STATUS "UDUnits features -- enabled")
+    set(tmp ON)
+else()
+    message(STATUS "UDUnits features -- not found. set UDUNITS_DIR to enable.")
+endif()
+set(TECA_HAS_UDUNITS ${tmp} CACHE BOOL "UDUnits features")
+
 # configure for VTK
 set(tmp OFF)
 find_package(VTK QUIET)

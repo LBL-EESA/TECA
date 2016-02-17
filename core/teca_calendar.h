@@ -10,7 +10,7 @@
 // y -- 4 digit year
 // m -- 2 digit month
 // d -- 2 digit day
-// returns a date number fgor the given date that can be used
+// returns a date number for the given date that can be used
 // in computations
 long gregorian_number(long y, long m, long d);
 
