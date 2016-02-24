@@ -2,11 +2,13 @@
 
 #include "teca_table.h"
 #include "teca_cartesian_mesh.h"
+#include "teca_array_collection.h"
 #include "teca_metadata.h"
 #include "teca_file_util.h"
 
 #include <iostream>
 #include <sstream>
+#include <stdarg.h>
 #include <cmath>
 
 #include <sys/types.h>
@@ -68,6 +70,7 @@ const_p_teca_dataset teca_dataset_diff::execute(
     const teca_metadata &request)
 {
     (void) port;
+    (void) request;
 
     // We need exactly two non-NULL inputs to compute a difference.
     if (!input_data[0])
@@ -85,20 +88,19 @@ const_p_teca_dataset teca_dataset_diff::execute(
     // If one dataset is empty but not the other, the datasets differ.
     if (input_data[0]->empty() && !input_data[1]->empty())
     {
-        std::cout << "Datasets differ (1 is empty, 2 is not)." << std::endl;
+        datasets_differ("dataset 1 is empty, 2 is not.");
         return nullptr;
     }
 
     if (!input_data[0]->empty() && input_data[1]->empty())
     {
-        std::cout << "Datasets differ (2 is empty, 1 is not)." << std::endl;
+        datasets_differ("dataset 2 is empty, 1 is not.");
         return nullptr;
     }
 
     // If the datasets are both empty, they are "equal." :-/
     if (input_data[0]->empty() && input_data[1]->empty())
     {
-        std::cout << "Datasets are equal." << std::endl;
         return nullptr;
     }
 
@@ -150,69 +152,96 @@ int teca_dataset_diff::compare_tables(
     // If the tables are different sizes, the datasets differ.
     if (table1->get_number_of_columns() != table2->get_number_of_columns())
     {
-        std::cout << "Datasets differ (table 1 has " 
-                  << table1->get_number_of_columns() 
-                  << " columns while table 2 has "
-                  << table2->get_number_of_columns()
-                  << ")." << std::endl;
+        datasets_differ("table 1 has %d columns while table 2 has %d columns.", 
+                        table1->get_number_of_columns(), table2->get_number_of_columns());
         return 0;
     }
     if (table1->get_number_of_rows() != table2->get_number_of_rows())
     {
-        std::cout << "Datasets differ (table 1 has " 
-                  << table1->get_number_of_rows() 
-                  << " rows while table 2 has "
-                  << table2->get_number_of_rows()
-                  << ")." << std::endl;
+        datasets_differ("table 1 has %d rows while table 2 has %d rows.", 
+                        table1->get_number_of_rows(), table2->get_number_of_rows());
         return 0;
     }
 
     // At this point, we know that the tables are both non-empty and the same size, 
     // so we simply compare them one element at a time.
-    // FIXME: For now, we use the max norm and compare it to our tolerance.
-    double max_abs = 0.0;
-    unsigned int max_abs_diff_col = 0;
-    unsigned long max_abs_diff_row = 0;
     unsigned int ncols = table1->get_number_of_columns();
-    unsigned long nrows = table1->get_number_of_rows();
     for (unsigned int col = 0; col < ncols; ++col)
     {
-      const_p_teca_variant_array col1 = table1->get_column(col);
-      const_p_teca_variant_array col2 = table2->get_column(col);
+        const_p_teca_variant_array col1 = table1->get_column(col);
+        const_p_teca_variant_array col2 = table2->get_column(col);
+        std::stringstream col_str;
+        col_str << "Column " << col << std::ends;
+        this->push_frame(col_str.str());
+        int status = compare_arrays(col1, col2);
+        this->pop_frame();
+        if (status != 0)
+          return status;
+    }
+ 
+    return 0;
+}
 
-      for (unsigned long row = 0; row < nrows; ++row)
-      {
+// --------------------------------------------------------------------------
+int teca_dataset_diff::compare_arrays(
+    const_p_teca_variant_array array1, 
+    const_p_teca_variant_array array2)
+{
+    // Arrays of different sizes are different.
+    if (array1->size() != array2->size())
+    {
+        datasets_differ("arrays have different sizes.");
+        return 0;
+    }
+    
+    for (unsigned long i = 0; i < array1->size(); ++i)
+    {
         double v1, v2;
-        col1->get(row, v1);
-        col1->get(row, v2);
+        array1->get(i, v1);
+        array2->get(i, v2);
         double abs_diff = std::abs(v1 - v2);
-        if (abs_diff > max_abs)
+        if (abs_diff > this->tolerance)
         {
-          max_abs = abs_diff;
-          max_abs_diff_col = col;
-          max_abs_diff_row = row;
-          if (max_abs > this->tolerance)
-            break;
+            datasets_differ("Absolute difference %g exceeds tolerance %g in element %d",
+                            abs_diff, this->tolerance, i);
+            return 0;
         }
+    }
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+int teca_dataset_diff::compare_array_collections(
+    const_p_teca_array_collection arrays1,
+    const_p_teca_array_collection arrays2)
+{
+    // Array collections of different sizes are different.
+    if (arrays1->size() != arrays2->size())
+    {
+      datasets_differ("array collections have different sizes.");
+      return 0;
+    }
+
+    // Array collections with different names are different.
+    for (unsigned int i = 0; i < arrays1->size(); ++i)
+    {
+      if (arrays1->get_name(i) != arrays2->get_name(i))
+      {
+        datasets_differ("array collections have different names.");
+        return 0;
       }
     }
-
-    if (max_abs > this->tolerance)
+ 
+    // Now diff the contents.
+    for (unsigned int i = 0; i < arrays1->size(); ++i)
     {
-      std::cout << "Datasets differ. Max absolute difference " 
-                << max_abs 
-                << " exceeds tolerance "
-                << this->tolerance 
-                << " at row "
-                << max_abs_diff_row 
-                << ", column " 
-                << max_abs_diff_col
-                << "."
-                << std::endl;
-    }
-    else
-    {
-      std::cout << "Datasets are the same." << std::endl;
+      const_p_teca_variant_array a1 = arrays1->get(i);
+      const_p_teca_variant_array a2 = arrays2->get(i);
+      this->push_frame(arrays1->get_name(i));
+      int status = this->compare_arrays(a1, a2);
+      this->pop_frame();
+      if (status != 0)
+        return status;
     }
     return 0;
 }
@@ -224,9 +253,102 @@ int teca_dataset_diff::compare_cartesian_meshes(
 {
     // If the meshes are different sizes, the datasets differ.
 
-    // If the collections of arrays are different, the datasets differ.
+    // If the arrays are different in shape or in content, the datasets differ.
+    int status;
+    const_p_teca_array_collection arrays1, arrays2;
+
+    // Point arrays.
+    arrays1 = mesh1->get_point_arrays();
+    arrays2 = mesh2->get_point_arrays();
+    this->push_frame("Point arrays");
+    status = this->compare_array_collections(arrays1, arrays2);
+    this->pop_frame();
+    if (status != 0)
+      return status;
  
-    // If the elementwise differences exceed the tolerance, the datasets differ.
+    // cell-centered arrays.
+    arrays1 = mesh1->get_cell_arrays();
+    arrays2 = mesh2->get_cell_arrays();
+    this->push_frame("Cell arrays");
+    status = this->compare_array_collections(arrays1, arrays2);
+    this->pop_frame();
+    if (status != 0)
+      return status;
+
+    // Edge-centered arrays.
+    arrays1 = mesh1->get_edge_arrays();
+    arrays2 = mesh2->get_edge_arrays();
+    this->push_frame("Edge arrays");
+    status = this->compare_array_collections(arrays1, arrays2);
+    this->pop_frame();
+    if (status != 0)
+      return status;
+ 
+    // Face-centered arrays.
+    arrays1 = mesh1->get_face_arrays();
+    arrays2 = mesh2->get_face_arrays();
+    this->push_frame("Face arrays");
+    status = this->compare_array_collections(arrays1, arrays2);
+    this->pop_frame();
+    if (status != 0)
+      return status;
+ 
+    // Non-geometric arrays.
+    arrays1 = mesh1->get_information_arrays();
+    arrays2 = mesh2->get_information_arrays();
+    this->push_frame("Informational arrays");
+    status = this->compare_array_collections(arrays1, arrays2);
+    this->pop_frame();
+    if (status != 0)
+      return status;
+
+    // Coordinate arrays.
+    this->push_frame("X coordinates");
+    status = this->compare_arrays(mesh1->get_x_coordinates(),
+                                  mesh2->get_x_coordinates());
+    this->pop_frame();
+    if (status != 0)
+      return status;
+
+    this->push_frame("Y coordinates");
+    status = this->compare_arrays(mesh1->get_y_coordinates(),
+                                  mesh2->get_y_coordinates());
+    this->pop_frame();
+    if (status != 0)
+      return status;
+
+    this->push_frame("Z coordinates");
+    status = this->compare_arrays(mesh1->get_z_coordinates(),
+                                  mesh2->get_z_coordinates());
+    this->pop_frame();
+    if (status != 0)
+      return status;
+ 
     return 0;
+}
+
+void teca_dataset_diff::datasets_differ(const char* info, ...)
+{
+    // Assemble the informational message.
+    char m[8192+1];
+    va_list argp;
+    va_start(argp, info);
+    vsnprintf(m, 8192, info, argp);
+    va_end(argp);
+
+    // Send it to stderr with contextual information.
+    for (size_t i = 0; i < this->stack.size(); ++i)
+        std::cerr << this->stack[i] << ": ";
+    std::cerr << m << std::endl;
+}
+
+void teca_dataset_diff::push_frame(const std::string& frame)
+{
+  this->stack.push_back(frame);
+}
+
+void teca_dataset_diff::pop_frame()
+{
+  this->stack.pop_back();
 }
 

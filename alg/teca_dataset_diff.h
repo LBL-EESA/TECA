@@ -6,6 +6,7 @@
 #include "teca_metadata.h"
 #include "teca_table_fwd.h"
 #include "teca_cartesian_mesh_fwd.h"
+#include "teca_array_collection_fwd.h"
 
 #include <vector>
 #include <string>
@@ -32,8 +33,23 @@ public:
 protected:
     teca_dataset_diff();
 
+    // Comparison methods.
     int compare_tables(const_p_teca_table table1, const_p_teca_table table2);
     int compare_cartesian_meshes(const_p_teca_cartesian_mesh mesh1, const_p_teca_cartesian_mesh mesh2);
+    int compare_array_collections(const_p_teca_array_collection arrays1, const_p_teca_array_collection arrays2);
+    int compare_arrays(const_p_teca_variant_array array1, const_p_teca_variant_array array2);
+
+    // Reporting methods.
+
+    // Call this with contextual information when datasets differ. You can use 
+    // printf formatting.
+    void datasets_differ(const char* info, ...);
+
+    // Push a frame onto our context stack.
+    void push_frame(const std::string& frame);
+
+    // Pop a frame off our context stack.
+    void pop_frame();
 
 private:
 
@@ -43,7 +59,12 @@ private:
         const teca_metadata &request) override;
 
 private:
+
+    // Tolerance for equality of field values.
     double tolerance;
+
+    // Context stack for reporting.
+    std::vector<std::string> stack;
 };
 
 #endif
