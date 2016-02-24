@@ -119,6 +119,8 @@ TECA_PY_DYNAMIC_CAST(teca_cartesian_mesh, teca_dataset)
 %ignore teca_table::shared_from_this;
 %shared_ptr(teca_table)
 %ignore teca_table::operator=;
+%ignore teca_table::set_calendar(std::string const *);
+%ignore teca_table::set_time_units(std::string const *);
 %include "teca_table_fwd.h"
 %include "teca_table.h"
 TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
