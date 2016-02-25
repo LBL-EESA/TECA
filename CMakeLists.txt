@@ -60,6 +60,18 @@ else()
 endif()
 set(TECA_HAS_NETCDF ${tmp} CACHE BOOL "NetCDF features")
 
+# configure for libxlsxwriter
+set(tmp OFF)
+find_package(LibXLSXWriter)
+if (LIBXLSXWRITER_FOUND AND ((DEFINED TECA_HAS_LIBXLSXWRITER AND TECA_HAS_LIBXLSXWRITER)
+    OR (NOT DEFINED TECA_HAS_LIBXLSXWRITER)))
+    message(STATUS "libxlsxwriter features -- enabled")
+    set(tmp ON)
+else()
+    message(STATUS "libxlsxwriter features -- not found. set LIBXLSXWRITER_DIR to enable.")
+endif()
+set(TECA_HAS_LIBXLSXWRITER ${tmp} CACHE BOOL "libxlsxwriter features")
+
 # configure for VTK
 set(tmp OFF)
 find_package(VTK QUIET)

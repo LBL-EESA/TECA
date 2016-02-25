@@ -42,6 +42,11 @@ if (TECA_HAS_BOOST)
     list(APPEND teca_io_link ${Boost_LIBRARIES})
 endif()
 
+if (TECA_HAS_LIBXLSXWRITER)
+    include_directories(SYSTEM ${LIBXLSXWRITER_INCLUDE_DIR})
+    list(APPEND teca_io_link ${LIBXLSXWRITER_LIBRARY})
+endif()
+
 add_library(teca_io ${teca_io_srcs})
 target_link_libraries(teca_io teca_core teca_data ${teca_io_link})
 

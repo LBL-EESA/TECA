@@ -34,21 +34,18 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // enable binary mode. default off. when not in
-    // binary mode a csv format is used.
-    TECA_ALGORITHM_PROPERTY(bool, binary_mode)
+    // Select the output file format. 0 : csv, 1 : bin, 2 : xlsx.
+    // the default is csv.
+    enum {csv, bin, xlsx};
+    TECA_ALGORITHM_PROPERTY(int, output_format)
+    void set_output_format_csv(){ this->set_output_format(csv); }
+    void set_output_format_bin(){ this->set_output_format(bin); }
+    void set_output_format_xlsx(){ this->set_output_format(xlsx); }
 
 protected:
     teca_table_writer();
 
-    int write_table(const std::string &file_name,
-        const const_p_teca_table &table);
-
-    int write_csv(const_p_teca_table table, const std::string &file_name);
-    int write_bin(const_p_teca_table table, const std::string &file_name);
-
 private:
-
     const_p_teca_dataset execute(
         unsigned int port,
         const std::vector<const_p_teca_dataset> &input_data,
@@ -56,7 +53,7 @@ private:
 
 private:
     std::string file_name;
-    bool binary_mode;
+    int output_format;
 };
 
 #endif
