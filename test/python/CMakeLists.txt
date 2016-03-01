@@ -14,6 +14,13 @@ if (TECA_DATA_ROOT AND TECA_HAS_NETCDF)
         WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 endif()
 
+teca_add_test(py_test_derived_quantity
+    COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_derived_quantity.py
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
+    U850 V850 0 0 "py_test_derived_quantity_%t%.vtk"
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
 teca_add_test(py_test_programmable_algorithm
     COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_programmable_algorithm.py
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"

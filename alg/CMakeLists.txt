@@ -14,6 +14,7 @@ set(teca_alg_srcs
     teca_cartesian_mesh_subset.cxx
     teca_cartesian_mesh_regrid.cxx
     teca_connected_components.cxx
+    teca_derived_quantity.cxx
     teca_l2_norm.cxx
     teca_mask.cxx
     teca_programmable_algorithm.cxx
