@@ -30,6 +30,16 @@ struct execute
 
         // Inspect the table.
         const_p_teca_table t = dynamic_pointer_cast<const teca_table>(tables[0]);
+        if (t == nullptr)
+        {
+            cerr << "FAIL: input is not a table." << endl;
+            return nullptr;
+        }
+        if (t->empty())
+        {
+            cerr << "FAIL: input is an empty table." << endl;
+            return nullptr;
+        }
 
         const_p_teca_variant_array step = t->get_column("step");
         if (step == nullptr)
@@ -58,7 +68,7 @@ struct execute
 
         // Check the data.
         int num_rows = 5;
-        int steps[] = {0, 0, 0, 0, 1};
+        int steps[] = {0, 0, 0, 0, 0};
         const char* names[] = {"James", "Jessie", "Frank", "Mike", "Tom"};
         int ages[] = {0, 2, 3, 1, 4};
         double skills[] = {0.0, 0.2, 3.1415, 0.1, 0.4};
@@ -70,7 +80,7 @@ struct execute
           step->get(row, s);
           if (s != steps[row])
           {
-              cerr << "FAIL: input table has incorrect step number " << s << " in row " << row << " (should be " << steps[row] << "." << endl;
+              cerr << "FAIL: input table has incorrect step number " << s << " in row " << row << " (should be " << steps[row] << ")." << endl;
               return nullptr;
           }
 
@@ -79,7 +89,7 @@ struct execute
           name->get(row, n);
           if (n != names[row])
           {
-              cerr << "FAIL: input table has incorrect name " << n << " in row " << row << " (should be " << names[row] << "." << endl;
+              cerr << "FAIL: input table has incorrect name " << n << " in row " << row << " (should be " << names[row] << ")." << endl;
               return nullptr;
           }
 
@@ -88,16 +98,16 @@ struct execute
           age->get(row, a);
           if (a != ages[row])
           {
-              cerr << "FAIL: input table has incorrect age " << a << " in row " << row << " (should be " << ages[row] << "." << endl;
+              cerr << "FAIL: input table has incorrect age " << a << " in row " << row << " (should be " << ages[row] << ")." << endl;
               return nullptr;
           }
 
           // Skill.
-          int sk;
-          age->get(row, sk);
+          double sk;
+          skill->get(row, sk);
           if (abs(sk - skills[row]) > fuzz)
           {
-              cerr << "FAIL: input table has incorrect skill " << sk << " in row " << row << " (should be " << skills[row] << "." << endl;
+              cerr << "FAIL: input table has incorrect skill " << sk << " in row " << row << " (should be " << skills[row] << ")." << endl;
               return nullptr;
           }
         }
@@ -113,7 +123,6 @@ int main(int argc, char **argv)
 
     p_teca_table_reader r = teca_table_reader::New();
     r->set_file_name("table_writer_test_0.bin");
-    r->set_executive(teca_algorithm_executive::New());
 
     p_teca_programmable_algorithm s = teca_programmable_algorithm::New();
     s->set_number_of_input_connections(1);

@@ -60,7 +60,7 @@ const_p_teca_dataset teca_table_reader::execute(
     long end = ftell(fd);
     fseek(fd, 0, SEEK_SET);
     bs.resize(static_cast<size_t>(end - start));
-    fread(bs.get_data(), sizeof(unsigned char), bs.size(), fd);
+    fread(bs.get_data(), sizeof(unsigned char), end - start, fd);
     fclose(fd);
 
     // Read table data from the stream.
