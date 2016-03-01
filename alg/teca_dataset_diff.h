@@ -14,7 +14,9 @@
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_dataset_diff)
 
 /**
-an algorithm that writes cartesian meshes in VTK format.
+An algorithm that compares two datasets: the first dataset is a baseline to which 
+the second is compared--only those data in the baseline are examined for 
+comparison in the second dataset.
 */
 class teca_dataset_diff : public teca_algorithm
 {
