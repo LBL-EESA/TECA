@@ -57,12 +57,26 @@ int main(int, char **)
     s->set_report_callback(report());
     s->set_execute_callback(execute());
 
-    p_teca_table_writer w = teca_table_writer::New();
-    w->set_input_connection(s->get_output_port());
-    w->set_executive(teca_time_step_executive::New());
-    w->set_file_name("table_writer_test_%t%.%e%");
+    // Write some .csv files.
+    {
+      p_teca_table_writer w = teca_table_writer::New();
+      w->set_input_connection(s->get_output_port());
+      w->set_executive(teca_time_step_executive::New());
+      w->set_file_name("table_writer_test_%t%.%e%");
 
-    w->update();
+      w->update();
+    }
+
+    // Write some binary files.
+    {
+      p_teca_table_writer w = teca_table_writer::New();
+      w->set_input_connection(s->get_output_port());
+      w->set_executive(teca_time_step_executive::New());
+      w->set_file_name("table_writer_test_%t%.%e%");
+      w->set_binary_mode(true);
+
+      w->update();
+    }
 
     return 0;
 }
