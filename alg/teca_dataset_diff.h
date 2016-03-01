@@ -37,8 +37,8 @@ protected:
 
     // Comparison methods.
     int compare_tables(const_p_teca_table table1, const_p_teca_table table2);
-    int compare_cartesian_meshes(const_p_teca_cartesian_mesh mesh1, const_p_teca_cartesian_mesh mesh2);
-    int compare_array_collections(const_p_teca_array_collection arrays1, const_p_teca_array_collection arrays2);
+    int compare_cartesian_meshes(const_p_teca_cartesian_mesh reference_mesh, const_p_teca_cartesian_mesh data_mesh);
+    int compare_array_collections(const_p_teca_array_collection reference_arrays, const_p_teca_array_collection data_arrays);
     int compare_arrays(const_p_teca_variant_array array1, const_p_teca_variant_array array2);
 
     // Reporting methods.

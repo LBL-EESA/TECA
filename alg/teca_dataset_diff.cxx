@@ -154,13 +154,13 @@ int teca_dataset_diff::compare_tables(
     {
         datasets_differ("table 1 has %d columns while table 2 has %d columns.", 
                         table1->get_number_of_columns(), table2->get_number_of_columns());
-        return 0;
+        return 1;
     }
     if (table1->get_number_of_rows() != table2->get_number_of_rows())
     {
         datasets_differ("table 1 has %d rows while table 2 has %d rows.", 
                         table1->get_number_of_rows(), table2->get_number_of_rows());
-        return 0;
+        return 1;
     }
 
     // At this point, we know that the tables are both non-empty and the same size, 
@@ -191,7 +191,7 @@ int teca_dataset_diff::compare_arrays(
     if (array1->size() != array2->size())
     {
         datasets_differ("arrays have different sizes.");
-        return 0;
+        return 1;
     }
     
     for (unsigned long i = 0; i < array1->size(); ++i)
@@ -204,7 +204,7 @@ int teca_dataset_diff::compare_arrays(
         {
             datasets_differ("Absolute difference %g exceeds tolerance %g in element %d",
                             abs_diff, this->tolerance, i);
-            return 0;
+            return 1;
         }
     }
     return 0;
@@ -212,32 +212,27 @@ int teca_dataset_diff::compare_arrays(
 
 // --------------------------------------------------------------------------
 int teca_dataset_diff::compare_array_collections(
-    const_p_teca_array_collection arrays1,
-    const_p_teca_array_collection arrays2)
+    const_p_teca_array_collection reference_arrays,
+    const_p_teca_array_collection data_arrays)
 {
-    // Array collections of different sizes are different.
-    if (arrays1->size() != arrays2->size())
+    // The data arrays should contain all the data in the reference arrays.
+    for (unsigned int i = 0; i < reference_arrays->size(); ++i)
     {
-      datasets_differ("array collections have different sizes.");
-      return 0;
-    }
-
-    // Array collections with different names are different.
-    for (unsigned int i = 0; i < arrays1->size(); ++i)
-    {
-      if (arrays1->get_name(i) != arrays2->get_name(i))
+      if (!data_arrays->has(reference_arrays->get_name(i)))
       {
-        datasets_differ("array collections have different names.");
-        return 0;
+        datasets_differ("data array collection does not have %s, found in reference array collection.",
+                        reference_arrays->get_name(i).c_str());
+        return 1;
       }
     }
  
     // Now diff the contents.
-    for (unsigned int i = 0; i < arrays1->size(); ++i)
+    for (unsigned int i = 0; i < reference_arrays->size(); ++i)
     {
-      const_p_teca_variant_array a1 = arrays1->get(i);
-      const_p_teca_variant_array a2 = arrays2->get(i);
-      this->push_frame(arrays1->get_name(i));
+      const_p_teca_variant_array a1 = reference_arrays->get(i);
+      string name = reference_arrays->get_name(i);
+      const_p_teca_variant_array a2 = data_arrays->get(name);
+      this->push_frame(name);
       int status = this->compare_arrays(a1, a2);
       this->pop_frame();
       if (status != 0)
@@ -248,18 +243,39 @@ int teca_dataset_diff::compare_array_collections(
 
 // --------------------------------------------------------------------------
 int teca_dataset_diff::compare_cartesian_meshes(
-    const_p_teca_cartesian_mesh mesh1,
-    const_p_teca_cartesian_mesh mesh2)
+    const_p_teca_cartesian_mesh reference_mesh,
+    const_p_teca_cartesian_mesh data_mesh)
 {
     // If the meshes are different sizes, the datasets differ.
+    if (reference_mesh->get_x_coordinates()->size() != data_mesh->get_x_coordinates()->size())
+    {
+      datasets_differ("data mesh has %d points in x, whereas reference mesh has %d.",
+                      static_cast<int>(reference_mesh->get_x_coordinates()->size()), 
+                      static_cast<int>(data_mesh->get_x_coordinates()->size()));
+      return 1;
+    }
+    if (reference_mesh->get_y_coordinates()->size() != data_mesh->get_y_coordinates()->size())
+    {
+      datasets_differ("data mesh has %d points in y, whereas reference mesh has %d.",
+                      static_cast<int>(reference_mesh->get_y_coordinates()->size()), 
+                      static_cast<int>(data_mesh->get_y_coordinates()->size()));
+      return 1;
+    }
+    if (reference_mesh->get_z_coordinates()->size() != data_mesh->get_z_coordinates()->size())
+    {
+      datasets_differ("data mesh has %d points in z, whereas reference mesh has %d.",
+                      static_cast<int>(reference_mesh->get_z_coordinates()->size()), 
+                      static_cast<int>(data_mesh->get_z_coordinates()->size()));
+      return 1;
+    }
 
     // If the arrays are different in shape or in content, the datasets differ.
     int status;
     const_p_teca_array_collection arrays1, arrays2;
 
     // Point arrays.
-    arrays1 = mesh1->get_point_arrays();
-    arrays2 = mesh2->get_point_arrays();
+    arrays1 = reference_mesh->get_point_arrays();
+    arrays2 = data_mesh->get_point_arrays();
     this->push_frame("Point arrays");
     status = this->compare_array_collections(arrays1, arrays2);
     this->pop_frame();
@@ -267,8 +283,8 @@ int teca_dataset_diff::compare_cartesian_meshes(
       return status;
  
     // cell-centered arrays.
-    arrays1 = mesh1->get_cell_arrays();
-    arrays2 = mesh2->get_cell_arrays();
+    arrays1 = reference_mesh->get_cell_arrays();
+    arrays2 = data_mesh->get_cell_arrays();
     this->push_frame("Cell arrays");
     status = this->compare_array_collections(arrays1, arrays2);
     this->pop_frame();
@@ -276,8 +292,8 @@ int teca_dataset_diff::compare_cartesian_meshes(
       return status;
 
     // Edge-centered arrays.
-    arrays1 = mesh1->get_edge_arrays();
-    arrays2 = mesh2->get_edge_arrays();
+    arrays1 = reference_mesh->get_edge_arrays();
+    arrays2 = data_mesh->get_edge_arrays();
     this->push_frame("Edge arrays");
     status = this->compare_array_collections(arrays1, arrays2);
     this->pop_frame();
@@ -285,8 +301,8 @@ int teca_dataset_diff::compare_cartesian_meshes(
       return status;
  
     // Face-centered arrays.
-    arrays1 = mesh1->get_face_arrays();
-    arrays2 = mesh2->get_face_arrays();
+    arrays1 = reference_mesh->get_face_arrays();
+    arrays2 = data_mesh->get_face_arrays();
     this->push_frame("Face arrays");
     status = this->compare_array_collections(arrays1, arrays2);
     this->pop_frame();
@@ -294,8 +310,8 @@ int teca_dataset_diff::compare_cartesian_meshes(
       return status;
  
     // Non-geometric arrays.
-    arrays1 = mesh1->get_information_arrays();
-    arrays2 = mesh2->get_information_arrays();
+    arrays1 = reference_mesh->get_information_arrays();
+    arrays2 = data_mesh->get_information_arrays();
     this->push_frame("Informational arrays");
     status = this->compare_array_collections(arrays1, arrays2);
     this->pop_frame();
@@ -304,22 +320,22 @@ int teca_dataset_diff::compare_cartesian_meshes(
 
     // Coordinate arrays.
     this->push_frame("X coordinates");
-    status = this->compare_arrays(mesh1->get_x_coordinates(),
-                                  mesh2->get_x_coordinates());
+    status = this->compare_arrays(reference_mesh->get_x_coordinates(),
+                                  data_mesh->get_x_coordinates());
     this->pop_frame();
     if (status != 0)
       return status;
 
     this->push_frame("Y coordinates");
-    status = this->compare_arrays(mesh1->get_y_coordinates(),
-                                  mesh2->get_y_coordinates());
+    status = this->compare_arrays(reference_mesh->get_y_coordinates(),
+                                  data_mesh->get_y_coordinates());
     this->pop_frame();
     if (status != 0)
       return status;
 
     this->push_frame("Z coordinates");
-    status = this->compare_arrays(mesh1->get_z_coordinates(),
-                                  mesh2->get_z_coordinates());
+    status = this->compare_arrays(reference_mesh->get_z_coordinates(),
+                                  data_mesh->get_z_coordinates());
     this->pop_frame();
     if (status != 0)
       return status;
