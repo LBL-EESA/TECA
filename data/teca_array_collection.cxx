@@ -192,5 +192,6 @@ void teca_array_collection::from_stream(teca_binary_stream &s)
 
         m_arrays[i] = teca_variant_array_factory::New(type_code);
         m_arrays[i]->from_stream(s);
+        m_name_array_map.emplace(std::forward<std::string>(m_names[i]), i);
     }
 }
