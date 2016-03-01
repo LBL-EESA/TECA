@@ -29,7 +29,7 @@ function (teca_add_test T_NAME)
             add_test(NAME ${T_NAME} COMMAND ${T_COMMAND}
                 WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
             set_tests_properties(${T_NAME}
-                PROPERTIES FAIL_REGULAR_EXPRESSION "ERROR")
+                PROPERTIES FAIL_REGULAR_EXPRESSION "ERROR;FAIL")
         endif()
     endif()
 endfunction()

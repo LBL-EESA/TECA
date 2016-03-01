@@ -88,6 +88,11 @@ teca_add_test(test_temporal_average
     REQ_TECA_DATA)
 
 teca_add_test(test_table_writer
-    SOURCES test_table_writer.cpp
+    SOURCES test_table_writer.cpp test_util.cxx
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_table_writer)
+
+teca_add_test(test_table_reader
+    SOURCES test_table_reader.cpp test_util.cxx
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_table_reader)
