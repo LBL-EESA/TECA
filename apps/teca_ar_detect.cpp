@@ -4,7 +4,7 @@
 #include "teca_cartesian_mesh_regrid.h"
 #include "teca_ar_detect.h"
 #include "teca_table_reduce.h"
-#include "teca_csv_writer.h"
+#include "teca_table_writer.h"
 #include "teca_time_step_executive.h"
 
 #include <vector>
@@ -51,7 +51,7 @@ int main(int argc, char **argv)
     p_teca_cartesian_mesh_regrid land_sea_mask_regrid = teca_cartesian_mesh_regrid::New();
     p_teca_ar_detect ar_detect = teca_ar_detect::New();
     p_teca_table_reduce map_reduce = teca_table_reduce::New();
-    p_teca_csv_writer results_writer = teca_csv_writer::New();
+    p_teca_table_writer results_writer = teca_table_writer::New();
 
     // optional pipeline components
     bool use_time_average = false;

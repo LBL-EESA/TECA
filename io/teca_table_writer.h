@@ -1,5 +1,5 @@
-#ifndef teca_csv_writer_h
-#define teca_csv_writer_h
+#ifndef teca_table_writer_h
+#define teca_table_writer_h
 
 #include "teca_shared_object.h"
 #include "teca_algorithm.h"
@@ -9,19 +9,19 @@
 #include <vector>
 #include <string>
 
-TECA_SHARED_OBJECT_FORWARD_DECL(teca_csv_writer)
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_table_writer)
 
-/// teca_csv_writer - writes datasets in CSV format.
+/// teca_table_writer - writes tabular datasets in CSV format.
 /**
 an algorithm that writes tabular data in a CSV (comma separated value)
 format that is easily ingested by most spreadsheet apps. Each page of
-a workbook is written to a file.
+a database is written to a file.
 */
-class teca_csv_writer : public teca_algorithm
+class teca_table_writer : public teca_algorithm
 {
 public:
-    TECA_ALGORITHM_STATIC_NEW(teca_csv_writer)
-    ~teca_csv_writer();
+    TECA_ALGORITHM_STATIC_NEW(teca_table_writer)
+    ~teca_table_writer();
 
     // set the output filename. for time series the substring
     // %t% is replaced with the current time step. the substring
@@ -39,7 +39,7 @@ public:
     TECA_ALGORITHM_PROPERTY(bool, binary_mode)
 
 protected:
-    teca_csv_writer();
+    teca_table_writer();
 
     int write_table(const std::string &file_name,
         const const_p_teca_table &table);

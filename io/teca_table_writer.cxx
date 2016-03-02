@@ -1,4 +1,4 @@
-#include "teca_csv_writer.h"
+#include "teca_table_writer.h"
 
 #include "teca_table.h"
 #include "teca_workbook.h"
@@ -27,7 +27,7 @@ using std::cerr;
 using std::endl;
 
 // --------------------------------------------------------------------------
-teca_csv_writer::teca_csv_writer()
+teca_table_writer::teca_table_writer()
     : file_name("table_%t%.%e%"), binary_mode(false)
 {
     this->set_number_of_input_connections(1);
@@ -35,15 +35,15 @@ teca_csv_writer::teca_csv_writer()
 }
 
 // --------------------------------------------------------------------------
-teca_csv_writer::~teca_csv_writer()
+teca_table_writer::~teca_table_writer()
 {}
 
 #if defined(TECA_HAS_BOOST)
 // --------------------------------------------------------------------------
-void teca_csv_writer::get_properties_description(
+void teca_table_writer::get_properties_description(
     const string &prefix, options_description &global_opts)
 {
-    options_description opts("Options for " + prefix + "(teca_csv_writer)");
+    options_description opts("Options for " + prefix + "(teca_table_writer)");
 
     opts.add_options()
         TECA_POPTS_GET(string, prefix, file_name, "path/name of file to write")
@@ -54,7 +54,7 @@ void teca_csv_writer::get_properties_description(
 }
 
 // --------------------------------------------------------------------------
-void teca_csv_writer::set_properties(const string &prefix, variables_map &opts)
+void teca_table_writer::set_properties(const string &prefix, variables_map &opts)
 {
     TECA_POPTS_SET(opts, string, prefix, file_name)
     TECA_POPTS_SET(opts, bool, prefix, binary_mode)
@@ -62,7 +62,7 @@ void teca_csv_writer::set_properties(const string &prefix, variables_map &opts)
 #endif
 
 // --------------------------------------------------------------------------
-const_p_teca_dataset teca_csv_writer::execute(
+const_p_teca_dataset teca_table_writer::execute(
     unsigned int port,
     const std::vector<const_p_teca_dataset> &input_data,
     const teca_metadata &request)
@@ -133,7 +133,7 @@ const_p_teca_dataset teca_csv_writer::execute(
 
 
 // --------------------------------------------------------------------------
-int teca_csv_writer::write_table(
+int teca_table_writer::write_table(
     const std::string &file_name,
     const const_p_teca_table &table)
 {
@@ -162,7 +162,7 @@ int teca_csv_writer::write_table(
 }
 
 // --------------------------------------------------------------------------
-int teca_csv_writer::write_csv(
+int teca_table_writer::write_csv(
     const_p_teca_table table,
     const std::string &file_name)
 {
@@ -179,7 +179,7 @@ int teca_csv_writer::write_csv(
 }
 
 // --------------------------------------------------------------------------
-int teca_csv_writer::write_bin(
+int teca_table_writer::write_bin(
     const_p_teca_table table,
     const std::string &file_name)
 {
