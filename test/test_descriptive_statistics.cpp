@@ -6,6 +6,7 @@
 #include "teca_table_reader.h"
 #include "teca_table_reduce.h"
 #include "teca_table_sort.h"
+#include "teca_table_calendar.h"
 #include "teca_table_writer.h"
 #include "teca_test_util.h"
 
@@ -88,6 +89,9 @@ int main(int argc, char **argv)
     sort->set_input_connection(map_reduce->get_output_port());
     sort->set_index_column("step");
 
+    p_teca_table_calendar cal = teca_table_calendar::New();
+    cal->set_input_connection(sort->get_output_port());
+
     if (have_baseline)
     {
         // run the test
@@ -96,7 +100,7 @@ int main(int argc, char **argv)
 
         p_teca_dataset_diff diff = teca_dataset_diff::New();
         diff->set_input_connection(0, table_reader->get_output_port());
-        diff->set_input_connection(1, sort->get_output_port());
+        diff->set_input_connection(1, cal->get_output_port());
         diff->update();
     }
     else
@@ -105,7 +109,7 @@ int main(int argc, char **argv)
         if (rank == 0)
             cerr << "generating baseline image " << baseline << endl;
         p_teca_table_writer table_writer = teca_table_writer::New();
-        table_writer->set_input_connection(sort->get_output_port());
+        table_writer->set_input_connection(cal->get_output_port());
         table_writer->set_file_name(baseline.c_str());
         table_writer->set_output_format_bin();
         table_writer->update();

@@ -10,6 +10,7 @@
 #include "teca_l2_norm.h"
 #include "teca_mask.h"
 #include "teca_programmable_algorithm.h"
+#include "teca_table_calendar.h"
 #include "teca_table_sort.h"
 #include "teca_table_reduce.h"
 #include "teca_table_to_stream.h"
@@ -171,3 +172,11 @@
 %shared_ptr(teca_table_sort)
 %ignore teca_table_sort::operator=;
 %include "teca_table_sort.h"
+
+/***************************************************************************
+ table_calendar
+ ***************************************************************************/
+%ignore teca_table_calendar::shared_from_this;
+%shared_ptr(teca_table_calendar)
+%ignore teca_table_calendar::operator=;
+%include "teca_table_calendar.h"

@@ -36,6 +36,8 @@ def get_execute(rank, var_names):
         mesh = as_teca_cartesian_mesh(data_in[0])
 
         table = teca_table.New()
+        table.copy_metadata(mesh)
+
         table.declare_columns(['step','time'], ['ul','d'])
         table << mesh.get_time_step() << mesh.get_time()
 
@@ -71,8 +73,16 @@ mr.set_first_step(first_step)
 mr.set_last_step(last_step)
 mr.set_thread_pool_size(n_threads)
 
+sort = teca_table_sort.New()
+sort.set_input_connection(mr.get_output_port())
+sort.set_index_column('time')
+
+cal = teca_table_calendar.New()
+cal.set_input_connection(sort.get_output_port())
+
 tw = teca_table_writer.New()
-tw.set_input_connection(mr.get_output_port())
+tw.set_input_connection(cal.get_output_port())
+tw.set_output_format_csv()
 tw.set_file_name(out_file)
 
 tw.update()
