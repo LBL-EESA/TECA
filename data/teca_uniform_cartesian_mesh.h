@@ -9,6 +9,9 @@ class teca_uniform_cartesian_mesh : public teca_mesh
 {
 public:
     TECA_DATASET_STATIC_NEW(teca_uniform_cartesian_mesh)
+    TECA_DATASET_NEW_INSTANCE()
+    TECA_DATASET_NEW_COPY()
+
     virtual ~teca_uniform_cartesian_mesh() = default;
 
     // set/get metadata
@@ -18,14 +21,6 @@ public:
     TECA_DATASET_METADATA(origin, double, 3, m_impl->metadata)
     TECA_DATASET_METADATA(extent, unsigned long, 6, m_impl->metadata)
     TECA_DATASET_METADATA(local_extent, unsigned long, 6, m_impl->metadata)
-
-    // virtual constructor. return a new dataset of the same type.
-    virtual p_teca_dataset new_instance() const override
-    { return teca_uniform_cartesian_mesh::New(); }
-
-    // virtual copy constructor. return a deep copy of this
-    // dataset in a new instance.
-    virtual p_teca_dataset new_copy() const override;
 
     // copy data and metadata. shallow copy uses reference
     // counting, while copy duplicates the data.

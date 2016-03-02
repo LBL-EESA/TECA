@@ -192,6 +192,14 @@ void replace_extension(std::string &file_name, const std::string &ext)
 }
 
 // **************************************************************************
+void replace_identifier(std::string &file_name, const std::string &id)
+{
+    size_t ext_pos = file_name.find("%s%");
+    if (ext_pos != std::string::npos)
+        file_name.replace(ext_pos, 3, id);
+}
+
+// **************************************************************************
 void to_lower(std::string &in)
 {
     size_t n = in.size();

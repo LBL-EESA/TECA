@@ -5,14 +5,6 @@ teca_uniform_cartesian_mesh::teca_uniform_cartesian_mesh()
 {}
 
 // --------------------------------------------------------------------------
-p_teca_dataset teca_uniform_cartesian_mesh::new_copy() const
-{
-    p_teca_uniform_cartesian_mesh m = teca_uniform_cartesian_mesh::New();
-    m->copy(this->shared_from_this());
-    return m;
-}
-
-// --------------------------------------------------------------------------
 void teca_uniform_cartesian_mesh::copy(const const_p_teca_dataset &dataset)
 {
     const_p_teca_uniform_cartesian_mesh other

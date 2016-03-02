@@ -30,6 +30,22 @@ std::shared_ptr<T const> shared_from_this() const                   \
     return std::static_pointer_cast<T const>(shared_from_this());   \
 }
 
+// convenience macro implementing new_instance method
+#define TECA_DATASET_NEW_INSTANCE()             \
+p_teca_dataset new_instance() const override    \
+{                                               \
+    return this->New();                         \
+}
+
+// convenience macro implementing new_copy method
+#define TECA_DATASET_NEW_COPY()                     \
+virtual p_teca_dataset new_copy() const override    \
+{                                                   \
+    p_teca_dataset o = this->new_instance();        \
+    o->copy(this->shared_from_this());              \
+    return o;                                       \
+}
+
 // convenience macro for adding properties to dataset
 // objects
 #define TECA_DATASET_PROPERTY(T, name)  \

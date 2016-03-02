@@ -16,6 +16,7 @@ and detectors.
 #include "teca_cartesian_mesh_subset.h"
 #include "teca_cartesian_mesh_regrid.h"
 #include "teca_connected_components.h"
+#include "teca_derived_quantity.h"
 #include "teca_l2_norm.h"
 #include "teca_mask.h"
 #include "teca_programmable_algorithm.h"
@@ -112,7 +113,6 @@ and detectors.
 %shared_ptr(teca_programmable_algorithm)
 %extend teca_programmable_algorithm
 {
-
     void set_report_callback(PyObject *f)
     {
         self->set_report_callback(teca_py_algorithm::report_callback(f));
@@ -137,3 +137,20 @@ and detectors.
 %ignore teca_programmable_algorithm::get_execute_callback;
 %include "teca_programmable_algorithm_fwd.h"
 %include "teca_programmable_algorithm.h"
+
+/***************************************************************************
+ derived_quantity
+ ***************************************************************************/
+%ignore teca_derived_quantity::shared_from_this;
+%shared_ptr(teca_derived_quantity)
+%extend teca_derived_quantity
+{
+    void set_execute_callback(PyObject *f)
+    {
+        self->set_execute_callback(teca_py_algorithm::execute_callback(f));
+    }
+}
+%ignore teca_derived_quantity::operator=;
+%ignore teca_derived_quantity::set_execute_callback;
+%ignore teca_derived_quantity::get_execute_callback;
+%include "teca_derived_quantity.h"

@@ -18,14 +18,14 @@ class teca_table : public teca_dataset
 {
 public:
     TECA_DATASET_STATIC_NEW(teca_table)
+    TECA_DATASET_NEW_INSTANCE()
+    TECA_DATASET_NEW_COPY()
+
     virtual ~teca_table() = default;
 
-    // virtual constructor. return a new dataset of the same type.
-    virtual p_teca_dataset new_instance() const override;
-
-    // virtual copy constructor. return a deep copy of this
-    // dataset in a new instance.
-    virtual p_teca_dataset new_copy() const override;
+    // set/get metadata
+    TECA_DATASET_METADATA(calendar, std::string, 1, m_impl->metadata)
+    TECA_DATASET_METADATA(time_units, std::string, 1, m_impl->metadata)
 
     // remove all column definitions and data
     void clear();
@@ -52,6 +52,10 @@ public:
 
     const_p_teca_variant_array get_column(unsigned int i) const;
     const_p_teca_variant_array get_column(const std::string &col_name) const;
+
+    // get the name of the column, see also get_number_of_columns
+    std::string get_column_name(unsigned int i) const
+    { return m_impl->columns->get_name(i); }
 
     // default initialize n rows of data
     void resize(unsigned long n);
@@ -105,8 +109,15 @@ protected:
     void append(){}
 
 private:
-    p_teca_array_collection impl;
-    unsigned int active_column;
+    struct impl_t
+    {
+        impl_t();
+        //
+        teca_metadata metadata;
+        p_teca_array_collection columns;
+        unsigned int active_column;
+    };
+    std::shared_ptr<impl_t> m_impl;
 };
 
 
@@ -117,21 +128,21 @@ private:
 inline
 p_teca_variant_array teca_table::get_column(unsigned int i)
 {
-    return this->impl->get(i);
+    return m_impl->columns->get(i);
 }
 
 // --------------------------------------------------------------------------
 inline
 const_p_teca_variant_array teca_table::get_column(unsigned int i) const
 {
-    return this->impl->get(i);
+    return m_impl->columns->get(i);
 }
 
 // --------------------------------------------------------------------------
 template<typename nT, typename cT, typename... oT>
 void teca_table::declare_columns(nT &&col_name, cT col_type, oT &&... args)
 {
-    this->impl->declare(std::forward<nT>(col_name), col_type);
+    m_impl->columns->declare(std::forward<nT>(col_name), col_type);
     this->declare_columns(args...);
 }
 
@@ -139,15 +150,15 @@ void teca_table::declare_columns(nT &&col_name, cT col_type, oT &&... args)
 template<typename nT, typename cT>
 void teca_table::declare_column(nT &&col_name, cT col_type)
 {
-    this->impl->declare(std::forward<nT>(col_name), col_type);
+    m_impl->columns->declare(std::forward<nT>(col_name), col_type);
 }
 
 // --------------------------------------------------------------------------
 template<typename cT, typename... oT>
 void teca_table::append(cT &&val, oT &&... args)
 {
-   unsigned int col = this->active_column++%this->get_number_of_columns();
-   this->impl->get(col)->append(std::forward<cT>(val));
+   unsigned int col = m_impl->active_column++%this->get_number_of_columns();
+   m_impl->columns->get(col)->append(std::forward<cT>(val));
    this->append(args...);
 }
 

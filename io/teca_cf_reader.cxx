@@ -115,6 +115,20 @@ private:
     int m_handle;
 };
 
+// to deal with fortran fixed length strings
+// which are not properly nulll terminated
+static void crtrim(char *s, long n)
+{
+    if (!s || (n == 0)) return;
+    char c = s[--n];
+    while ((n > 0) && ((c == ' ') || (c == '\n') ||
+        (c == '\t') || (c == '\r')))
+    {
+        s[n] = '\0';
+        c = s[--n];
+    }
+}
+
 // --------------------------------------------------------------------------
 teca_cf_reader::teca_cf_reader() :
     files_regex(""),
@@ -483,6 +497,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     buffer = static_cast<char*>(realloc(buffer, att_len + 1));
                     buffer[att_len] = '\0';
                     nc_get_att_text(file_id, i, att_name, buffer);
+                    crtrim(buffer, att_len);
                     atts.insert(att_name, string(buffer));
                 }
             }
