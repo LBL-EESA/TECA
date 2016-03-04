@@ -54,7 +54,7 @@ if (TECA_HAS_NETCDF)
             "test_cf_reader_%t%.vtk" 1 2 lon lat "" time U850 V850
             WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
         set_tests_properties(test_cf_reader
-            PROPERTIES FAIL_REGULAR_EXPRESSION "ERROR")
+            PROPERTIES FAIL_REGULAR_EXPRESSION "ERROR;FAIL")
     endif()
 
     # TODO -- locate test data for this test
@@ -74,7 +74,7 @@ if (TECA_HAS_NETCDF)
             lon lat "" time U850 V850 0 0 15 "test_connected_components_%t%.vtk"
             WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
         set_tests_properties(test_connected_components
-            PROPERTIES FAIL_REGULAR_EXPRESSION "ERROR")
+            PROPERTIES FAIL_REGULAR_EXPRESSION "ERROR;FAIL")
     endif()
 endif()
 
@@ -96,3 +96,8 @@ teca_add_test(test_table_reader
     SOURCES test_table_reader.cpp test_util.cxx
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_table_reader)
+
+teca_add_test(test_dataset_diff
+    SOURCES test_dataset_diff.cpp test_util.cxx
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_dataset_diff)

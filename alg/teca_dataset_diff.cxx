@@ -402,7 +402,7 @@ void teca_dataset_diff::datasets_differ(const char* info, ...)
 
     // Send it to stderr with contextual information.
     for (size_t i = 0; i < this->stack.size(); ++i)
-        std::cerr << this->stack[i] << ": ";
+        std::cerr << this->stack[i] << "FAIL: ";
     std::cerr << m << std::endl;
 }
 
