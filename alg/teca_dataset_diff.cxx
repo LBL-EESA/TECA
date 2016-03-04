@@ -46,20 +46,12 @@ void teca_dataset_diff::get_properties_description(
     const string &prefix, options_description &global_opts)
 {
     options_description opts("Options for " + prefix + "(teca_dataset_diff)");
-
-    opts.add_options()
-        TECA_POPTS_GET(string, prefix, file_name, "path/name of file to write")
-        TECA_POPTS_GET(bool, prefix, binary_mode, "write binary")
-        ;
-
     global_opts.add(opts);
 }
 
 // --------------------------------------------------------------------------
 void teca_dataset_diff::set_properties(const string &prefix, variables_map &opts)
 {
-    TECA_POPTS_SET(opts, string, prefix, file_name)
-    TECA_POPTS_SET(opts, bool, prefix, binary_mode)
 }
 #endif
 
