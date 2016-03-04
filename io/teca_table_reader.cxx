@@ -54,7 +54,7 @@ const_p_teca_dataset teca_table_reader::execute(
 
     // Open the file and dump its contents into a binary stream.
     teca_binary_stream bs;
-    FILE* fd = fopen(file_name.c_str(), "r");
+    FILE* fd = fopen(file_name.c_str(), "rb");
     long start = ftell(fd);
     fseek(fd, 0, SEEK_END);
     long end = ftell(fd);
