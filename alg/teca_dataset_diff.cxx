@@ -157,7 +157,7 @@ int teca_dataset_diff::compare_tables(
         const_p_teca_variant_array col1 = table1->get_column(col);
         const_p_teca_variant_array col2 = table2->get_column(col);
         std::stringstream col_str;
-        col_str << "Column " << col << std::ends;
+        col_str << "Column " << col << " (" << table1->get_column_name(col) << ")" << std::ends;
         this->push_frame(col_str.str());
         int status = compare_arrays(col1, col2);
         this->pop_frame();
@@ -179,27 +179,66 @@ int teca_dataset_diff::compare_arrays(
         datasets_differ("arrays have different sizes.");
         return 1;
     }
-    
+   
     for (unsigned long i = 0; i < array1->size(); ++i)
     {
-        // If these values can be converted to floating point numbers, 
-        // compute their difference. Otherwise skip them.
-        double v1, v2;
-        try
-        {
-          array1->get(i, v1);
-          array2->get(i, v2);
-          double abs_diff = std::abs(v1 - v2);
-          if (abs_diff > this->tolerance)
-          {
-              datasets_differ("Absolute difference %g exceeds tolerance %g in element %d",
-                              abs_diff, this->tolerance, i);
-              return 1;
-          }
-        }
-        catch (std::bad_cast& e)
-        {
-        }
+        TEMPLATE_DISPATCH_CLASS(const teca_variant_array_impl, double,
+                                array1.get(), array2.get(), 
+                                double v1 = p1_tt->get(i);
+                                double v2 = p2_tt->get(i);
+                                double abs_diff = std::abs(v1 - v2);
+                                if (abs_diff > this->tolerance)
+                                {
+                                    datasets_differ("Absolute difference %g exceeds tolerance %g in element %d",
+                                                    abs_diff, this->tolerance, i);
+                                    return 1;
+                                }
+                                )
+        TEMPLATE_DISPATCH_CLASS(const teca_variant_array_impl, float,
+                                array1.get(), array2.get(), 
+                                float v1 = p1_tt->get(i);
+                                float v2 = p2_tt->get(i);
+                                float abs_diff = std::abs(v1 - v2);
+                                if (abs_diff > this->tolerance)
+                                {
+                                    datasets_differ("Absolute difference %g exceeds tolerance %g in element %d",
+                                                    abs_diff, this->tolerance, i);
+                                    return 1;
+                                }
+                                )
+        TEMPLATE_DISPATCH_CLASS(const teca_variant_array_impl, long,
+                                array1.get(), array2.get(), 
+                                long v1 = p1_tt->get(i);
+                                long v2 = p2_tt->get(i);
+                                if (v1 != v2)
+                                {
+                                    datasets_differ("%d != %d in element %d",
+                                                    v1, v2, i);
+                                    return 1;
+                                }
+                                )
+        TEMPLATE_DISPATCH_CLASS(const teca_variant_array_impl, int,
+                                array1.get(), array2.get(), 
+                                int v1 = p1_tt->get(i);
+                                int v2 = p2_tt->get(i);
+                                if (v1 != v2)
+                                {
+                                    datasets_differ("%d != %d in element %d",
+                                                    v1, v2, i);
+                                    return 1;
+                                }
+                                )
+        TEMPLATE_DISPATCH_CLASS(const teca_variant_array_impl, string,
+                                array1.get(), array2.get(),
+                                string s1 = p1_tt->get(i);
+                                string s2 = p2_tt->get(i);
+                                if (s1 != s2)
+                                {
+                                     datasets_differ("'%s' != '%s' in element %d",
+                                                     s1.c_str(), s2.c_str(), i);
+                                     return 1;
+                                }
+                                )
     }
     return 0;
 }
