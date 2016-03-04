@@ -127,18 +127,12 @@ const_p_teca_dataset teca_dataset_diff::execute(
     if (table1)
     {
       if (this->compare_tables(table1, table2))
-      {
-          TECA_ERROR("Failed to compare tables.");
           return nullptr;
-      }
     }
     else 
     {
       if (this->compare_cartesian_meshes(mesh1, mesh1))
-      {
-          TECA_ERROR("Failed to compare cartesian meshes.");
           return nullptr;
-      }
     }
     
     return nullptr;
@@ -196,15 +190,23 @@ int teca_dataset_diff::compare_arrays(
     
     for (unsigned long i = 0; i < array1->size(); ++i)
     {
+        // If these values can be converted to floating point numbers, 
+        // compute their difference. Otherwise skip them.
         double v1, v2;
-        array1->get(i, v1);
-        array2->get(i, v2);
-        double abs_diff = std::abs(v1 - v2);
-        if (abs_diff > this->tolerance)
+        try
         {
-            datasets_differ("Absolute difference %g exceeds tolerance %g in element %d",
-                            abs_diff, this->tolerance, i);
-            return 1;
+          array1->get(i, v1);
+          array2->get(i, v2);
+          double abs_diff = std::abs(v1 - v2);
+          if (abs_diff > this->tolerance)
+          {
+              datasets_differ("Absolute difference %g exceeds tolerance %g in element %d",
+                              abs_diff, this->tolerance, i);
+              return 1;
+          }
+        }
+        catch (std::bad_cast& e)
+        {
         }
     }
     return 0;
@@ -354,7 +356,7 @@ void teca_dataset_diff::datasets_differ(const char* info, ...)
 
     // Send it to stderr with contextual information.
     for (size_t i = 0; i < this->stack.size(); ++i)
-        std::cerr << this->stack[i] << ": ";
+        std::cerr << this->stack[i] << "FAIL: ";
     std::cerr << m << std::endl;
 }
 

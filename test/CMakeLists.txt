@@ -98,3 +98,9 @@ teca_add_test(test_table_reader
     COMMAND test_table_reader)
 
 set_tests_properties(test_table_reader PROPERTIES FAIL_REGULAR_EXPRESSION FAIL)
+
+teca_add_test(test_dataset_diff
+    SOURCES test_dataset_diff.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_dataset_diff)
+
