@@ -170,77 +170,82 @@ int teca_dataset_diff::compare_tables(
 
 // --------------------------------------------------------------------------
 int teca_dataset_diff::compare_arrays(
-    const_p_teca_variant_array array1, 
+    const_p_teca_variant_array array1,
     const_p_teca_variant_array array2)
 {
     // Arrays of different sizes are different.
-    if (array1->size() != array2->size())
+    size_t n_elem = array1->size();
+    if (n_elem != array2->size())
     {
         datasets_differ("arrays have different sizes.");
         return 1;
     }
-   
-    for (unsigned long i = 0; i < array1->size(); ++i)
-    {
-        TEMPLATE_DISPATCH_CLASS(const teca_variant_array_impl, double,
-                                array1.get(), array2.get(), 
-                                double v1 = p1_tt->get(i);
-                                double v2 = p2_tt->get(i);
-                                double abs_diff = std::abs(v1 - v2);
-                                if (abs_diff > this->tolerance)
-                                {
-                                    datasets_differ("Absolute difference %g exceeds tolerance %g in element %d",
-                                                    abs_diff, this->tolerance, i);
-                                    return 1;
-                                }
-                                )
-        TEMPLATE_DISPATCH_CLASS(const teca_variant_array_impl, float,
-                                array1.get(), array2.get(), 
-                                float v1 = p1_tt->get(i);
-                                float v2 = p2_tt->get(i);
-                                float abs_diff = std::abs(v1 - v2);
-                                if (abs_diff > this->tolerance)
-                                {
-                                    datasets_differ("Absolute difference %g exceeds tolerance %g in element %d",
-                                                    abs_diff, this->tolerance, i);
-                                    return 1;
-                                }
-                                )
-        TEMPLATE_DISPATCH_CLASS(const teca_variant_array_impl, long,
-                                array1.get(), array2.get(), 
-                                long v1 = p1_tt->get(i);
-                                long v2 = p2_tt->get(i);
-                                if (v1 != v2)
-                                {
-                                    datasets_differ("%d != %d in element %d",
-                                                    v1, v2, i);
-                                    return 1;
-                                }
-                                )
-        TEMPLATE_DISPATCH_CLASS(const teca_variant_array_impl, int,
-                                array1.get(), array2.get(), 
-                                int v1 = p1_tt->get(i);
-                                int v2 = p2_tt->get(i);
-                                if (v1 != v2)
-                                {
-                                    datasets_differ("%d != %d in element %d",
-                                                    v1, v2, i);
-                                    return 1;
-                                }
-                                )
-        TEMPLATE_DISPATCH_CLASS(const teca_variant_array_impl, string,
-                                array1.get(), array2.get(),
-                                string s1 = p1_tt->get(i);
-                                string s2 = p2_tt->get(i);
-                                if (s1 != s2)
-                                {
-                                     datasets_differ("'%s' != '%s' in element %d",
-                                                     s1.c_str(), s2.c_str(), i);
-                                     return 1;
-                                }
-                                )
-    }
-    return 0;
+
+    // handle POD arrays
+    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+        array1.get(),
+
+        // we know the type of array 1 now,
+        // check the type of array 2
+        const TT *a2 = dynamic_cast<const TT*>(array2.get());
+        if (!a2)
+        {
+            datasets_differ("arrays have different element types.");
+            return 1;
+        }
+
+        // compare elements
+        const NT *pa1 = static_cast<const TT*>(array1.get())->get();
+        const NT *pa2 = a2->get();
+
+        for (size_t i = 0; i < n_elem; ++i)
+        {
+            // we don't care too much about perfromance here so
+            // use double precision for the comparison.
+            double v1 = static_cast<double>(pa1[i]);
+            double v2 = static_cast<double>(pa2[i]);
+
+            double abs_diff = std::abs(v1 - v2);
+            if (abs_diff > this->tolerance)
+            {
+                datasets_differ("Absolute difference %g "
+                    "exceeds tolerance %g in element %d",
+                    abs_diff, this->tolerance, i);
+                return 1;
+            }
+        }
+
+        // we are here, arrays are the same
+        return 0;
+        )
+    // handle arrays of strings
+    TEMPLATE_DISPATCH_CLASS(
+        const teca_variant_array_impl, std::string,
+        array1.get(), array2.get(),
+
+        const TT *a1 = static_cast<const TT*>(array1.get());
+        const TT *a2 = static_cast<const TT*>(array2.get());
+
+        for (size_t i = 0; i < n_elem; ++i)
+        {
+            // compare elements
+            const std::string &v1 = a1->get(i);
+            const std::string &v2 = a2->get(i);
+            if (v1 != v2)
+            {
+                datasets_differ("string element %lu not equal", i);
+                return 1;
+            }
+        }
+
+        // we are here, arrays are the same
+        return 0;
+        )
+
+    // we are here, array 1 type is not handled
+    datasets_differ("diff for the element type of "
+        "array1 is not implemented.");
+    return 1;
 }
 
 // --------------------------------------------------------------------------
@@ -258,7 +263,7 @@ int teca_dataset_diff::compare_array_collections(
         return 1;
       }
     }
- 
+
     // Now diff the contents.
     for (unsigned int i = 0; i < reference_arrays->size(); ++i)
     {
