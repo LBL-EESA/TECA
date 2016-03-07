@@ -79,7 +79,7 @@ if (TECA_HAS_NETCDF)
 endif()
 
 teca_add_test(test_temporal_average
-    SOURCES test_temporal_average.cpp
+    SOURCES test_temporal_average.cpp create_test_table.cxx
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_temporal_average
     "${TECA_DATA_ROOT}/cam5_1_amip_run2.cam2.h2.1991-10-01-10800.nc"
@@ -88,6 +88,19 @@ teca_add_test(test_temporal_average
     REQ_TECA_DATA)
 
 teca_add_test(test_table_writer
-    SOURCES test_table_writer.cpp
+    SOURCES test_table_writer.cpp create_test_table.cxx
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_table_writer)
+
+teca_add_test(test_table_reader
+    SOURCES test_table_reader.cpp create_test_table.cxx
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_table_reader)
+
+set_tests_properties(test_table_reader PROPERTIES FAIL_REGULAR_EXPRESSION FAIL)
+
+teca_add_test(test_dataset_diff
+    SOURCES test_dataset_diff.cpp create_test_table.cxx
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_dataset_diff)
+

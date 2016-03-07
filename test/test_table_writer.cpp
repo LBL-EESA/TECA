@@ -3,6 +3,7 @@
 #include "teca_programmable_algorithm.h"
 #include "teca_table_writer.h"
 #include "teca_time_step_executive.h"
+#include "create_test_table.h"
 
 #include <iostream>
 using namespace std;
@@ -31,21 +32,7 @@ struct execute
             return nullptr;
         }
 
-        p_teca_table t = teca_table::New();
-
-        t->declare_columns(
-            "step", long(), "name", std::string(),
-            "age", int(), "skill", double());
-
-        t->reserve(64);
-
-        t->append(step, std::string("James"), 0, 0.0);
-        t << step << std::string("Jessie") << 2 << 0.2
-          << step << std::string("Frank") << 3 << 3.1415;
-        t->append(step, std::string("Mike"), 1, 0.1);
-        t << step << std::string("Tom") << 4 << 0.4;
-
-        return t;
+        return create_test_table(step);
     }
 };
 
@@ -57,12 +44,26 @@ int main(int, char **)
     s->set_report_callback(report());
     s->set_execute_callback(execute());
 
-    p_teca_table_writer w = teca_table_writer::New();
-    w->set_input_connection(s->get_output_port());
-    w->set_executive(teca_time_step_executive::New());
-    w->set_file_name("table_writer_test_%t%.%e%");
+    // Write some .csv files.
+    {
+      p_teca_table_writer w = teca_table_writer::New();
+      w->set_input_connection(s->get_output_port());
+      w->set_executive(teca_time_step_executive::New());
+      w->set_file_name("table_writer_test_%t%.%e%");
 
-    w->update();
+      w->update();
+    }
+
+    // Write some binary files.
+    {
+      p_teca_table_writer w = teca_table_writer::New();
+      w->set_input_connection(s->get_output_port());
+      w->set_executive(teca_time_step_executive::New());
+      w->set_file_name("table_writer_test_%t%.%e%");
+      w->set_output_format(teca_table_writer::bin);
+
+      w->update();
+    }
 
     return 0;
 }
