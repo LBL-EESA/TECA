@@ -3,6 +3,7 @@
 #include "teca_programmable_algorithm.h"
 #include "teca_table_writer.h"
 #include "teca_time_step_executive.h"
+#include "create_test_table.h"
 
 #include <iostream>
 using namespace std;
@@ -31,21 +32,7 @@ struct execute
             return nullptr;
         }
 
-        p_teca_table t = teca_table::New();
-
-        t->declare_columns(
-            "step", long(), "name", std::string(),
-            "age", int(), "skill", double());
-
-        t->reserve(64);
-
-        t->append(step, std::string("James"), 0, 0.0);
-        t << step << std::string("Jessie") << 2 << 0.2
-          << step << std::string("Frank") << 3 << 3.1415;
-        t->append(step, std::string("Mike"), 1, 0.1);
-        t << step << std::string("Tom") << 4 << 0.4;
-
-        return t;
+        return create_test_table(step);
     }
 };
 

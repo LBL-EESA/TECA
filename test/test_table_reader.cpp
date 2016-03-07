@@ -1,8 +1,9 @@
 #include "teca_config.h"
 #include "teca_programmable_algorithm.h"
+#include "teca_table_writer.h"
 #include "teca_table_reader.h"
 #include "teca_table.h"
-#include "teca_time_step_executive.h"
+#include "create_test_table.h"
 
 #include <vector>
 #include <string>
@@ -10,10 +11,18 @@
 #include <cmath>
 using namespace std;
 
-// This test should be paired with test_table_writer.cpp, which writes the 
-// file that this reader reads.
+struct execute_create_test_table
+{
+    const_p_teca_dataset operator()
+        (unsigned int, const std::vector<const_p_teca_dataset> &,
+        const teca_metadata &req)
+    {
+        (void)req;
+        return create_test_table(0);
+    }
+};
 
-struct execute
+struct execute_check_test_table
 {
     const_p_teca_dataset operator()
         (unsigned int, const vector<const_p_teca_dataset> & tables,
@@ -116,19 +125,38 @@ struct execute
     }
 };
 
+void write_test_table(const string& file_name)
+{
+    p_teca_programmable_algorithm s = teca_programmable_algorithm::New();
+    s->set_number_of_input_connections(0);
+    s->set_number_of_output_ports(1);
+    s->set_execute_callback(execute_create_test_table());
+
+    p_teca_table_writer w = teca_table_writer::New();
+    w->set_input_connection(s->get_output_port());
+    w->set_file_name(file_name);
+    w->set_output_format(teca_table_writer::bin);
+
+    w->update();
+}
+
 int main(int argc, char **argv)
 {
     (void)argc;
     (void)argv;
 
+    // Write a test table.
+    write_test_table("table_reader_test.bin");
+
+    // Set up a pipeline to read it back in and inspect it.
     p_teca_table_reader r = teca_table_reader::New();
-    r->set_file_name("table_writer_test_0.bin");
+    r->set_file_name("table_reader_test.bin");
 
     p_teca_programmable_algorithm s = teca_programmable_algorithm::New();
     s->set_number_of_input_connections(1);
     s->set_number_of_output_ports(1);
     s->set_input_connection(r->get_output_port());
-    s->set_execute_callback(execute());
+    s->set_execute_callback(execute_check_test_table());
 
     s->update();
 
