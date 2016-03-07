@@ -65,8 +65,13 @@ const_p_teca_dataset teca_table_reader::execute(
     long end = ftell(fd);
     fseek(fd, 0, SEEK_SET);
     bs.resize(static_cast<size_t>(end - start));
-    fread(bs.get_data(), sizeof(unsigned char), end - start, fd);
+    size_t bytes_read = fread(bs.get_data(), sizeof(unsigned char), end - start, fd);
     fclose(fd);
+    if (bytes_read != static_cast<size_t>(end - start))
+    {
+      TECA_ERROR("Read " << bytes_read << " from " << file_name << " (expected " << end - start << ")" << endl)
+      return nullptr;
+    }
 
     // Read table data from the stream.
     p_teca_table table = teca_table::New();
