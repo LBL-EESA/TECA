@@ -11,30 +11,30 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_dataset)
 // this is a convenience macro to be used to
 // declare New and enable seamless operation
 // with std C++11 shared pointer
-#define TECA_DATASET_STATIC_NEW(T)                                  \
-                                                                    \
-static p_##T New()                                                  \
-{                                                                   \
-    return p_##T(new T);                                            \
-}                                                                   \
-                                                                    \
-using teca_dataset::shared_from_this;                               \
-                                                                    \
-std::shared_ptr<T> shared_from_this()                               \
-{                                                                   \
-    return std::static_pointer_cast<T>(shared_from_this());         \
-}                                                                   \
-                                                                    \
-std::shared_ptr<T const> shared_from_this() const                   \
-{                                                                   \
-    return std::static_pointer_cast<T const>(shared_from_this());   \
+#define TECA_DATASET_STATIC_NEW(T)                  \
+                                                    \
+static p_##T New()                                  \
+{                                                   \
+    return p_##T(new T);                            \
+}                                                   \
+                                                    \
+std::shared_ptr<T> shared_from_this()               \
+{                                                   \
+    return std::static_pointer_cast<T>(             \
+        teca_dataset::shared_from_this());          \
+}                                                   \
+                                                    \
+std::shared_ptr<T const> shared_from_this() const   \
+{                                                   \
+    return std::static_pointer_cast<T const>(       \
+        teca_dataset::shared_from_this());          \
 }
 
 // convenience macro implementing new_instance method
-#define TECA_DATASET_NEW_INSTANCE()             \
-p_teca_dataset new_instance() const override    \
-{                                               \
-    return this->New();                         \
+#define TECA_DATASET_NEW_INSTANCE()                 \
+virtual p_teca_dataset new_instance() const override\
+{                                                   \
+    return this->New();                             \
 }
 
 // convenience macro implementing new_copy method
