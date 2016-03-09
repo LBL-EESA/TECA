@@ -146,7 +146,8 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
     TECA_DATASET_PY_PROPERTY(std::string, calendar)
     TECA_DATASET_PY_PROPERTY(std::string, time_units)
 
-    /* update the value at r,c */
+    /* update the value at r,c. r is a row index and c an
+    either be a column index or name */
     void __setitem__(PyObject *idx, PyObject *obj)
     {
         if (!PySequence_Check(idx) || (PySequence_Size(idx) != 2))
@@ -200,7 +201,8 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
             "Failed to convert value at %ld,%ld", r, c);
     }
 
-    /* look up the value at r,c */
+    /* look up the value at r,c. r is a row index and c an
+    either be a column index or name */
     PyObject *__getitem__(PyObject *idx)
     {
         if (!PySequence_Check(idx) || (PySequence_Size(idx) != 2))
@@ -371,6 +373,68 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
 
             teca_table_declare_column(self, name, type);
         }
+    }
+
+    /* append sequence,array, or object in column order */
+    void append(PyObject *obj)
+    {
+        // arrays
+        if (PyArray_Check(obj))
+        {
+            PyArrayObject *arr = reinterpret_cast<PyArrayObject*>(obj);
+            size_t n_elem = PyArray_SIZE(arr);
+            TECA_PY_ARRAY_DISPATCH(arr,
+                PyObject *it = PyArray_IterNew(obj);
+                for (size_t i = 0; i < n_elem; ++i)
+                {
+                    self->append(*static_cast<AT*>(PyArray_ITER_DATA(it)));
+                    PyArray_ITER_NEXT(it);
+                }
+                Py_DECREF(it);
+                return;
+                )
+            PyErr_Format(PyExc_TypeError, "failed to append array");
+            return;
+        }
+
+        // sequences
+        if (PySequence_Check(obj) && !PyString_Check(obj))
+        {
+            long n_items = PySequence_Size(obj);
+            for (long i = 0; i < n_items; ++i)
+            {
+                PyObject *obj_i = PySequence_GetItem(obj, i);
+                TECA_PY_OBJECT_DISPATCH_NUM(obj_i,
+                    self->append(teca_py_object::cpp_tt<OT>::value(obj_i));
+                    continue;
+                    )
+                TECA_PY_OBJECT_DISPATCH_STR(obj_i,
+                    self->append(teca_py_object::cpp_tt<OT>::value(obj_i));
+                    continue;
+                    )
+                PyErr_Format(PyExc_TypeError,
+                    "failed to append sequence element %ld ", i);
+            }
+            return;
+        }
+
+        // objects
+        TECA_PY_OBJECT_DISPATCH_NUM(obj,
+            self->append(teca_py_object::cpp_tt<OT>::value(obj));
+            return;
+            )
+        TECA_PY_OBJECT_DISPATCH_STR(obj,
+            self->append(teca_py_object::cpp_tt<OT>::value(obj));
+            return;
+            )
+        PyErr_Format(PyExc_TypeError, "failed to append object");
+    }
+
+    /* stream insertion operator */
+    p_teca_table __lshift__(PyObject *obj)
+    {
+        teca_table_append(self, obj);
+        return self->shared_from_this();
     }
 }
 
