@@ -9,9 +9,9 @@ from teca import *
 import numpy as np
 import sys
 
-if len(sys.argv) < 6:
+if len(sys.argv) < 7:
     sys.stderr.write('test_map_reduce.py [dataset regex] ' \
-        '[out file name] [first step] [last step] ' \
+        '[out file name] [first step] [last step] [n threads]' \
         '[array 1] .. [ array n]\n')
     sys.exit(-1)
 
@@ -19,7 +19,8 @@ data_regex = sys.argv[1]
 out_file = sys.argv[2]
 first_step = int(sys.argv[3])
 last_step = int(sys.argv[4])
-var_names = sys.argv[5:]
+n_threads = int(sys.argv[5])
+var_names = sys.argv[6:]
 
 class descriptive_stats:
     @staticmethod
@@ -69,6 +70,7 @@ mr = teca_table_reduce.New()
 mr.set_input_connection(stats.get_output_port())
 mr.set_first_step(first_step)
 mr.set_last_step(last_step)
+mr.set_thread_pool_size(n_threads)
 
 tw = teca_table_writer.New()
 tw.set_input_connection(mr.get_output_port())

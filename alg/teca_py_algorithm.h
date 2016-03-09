@@ -58,11 +58,15 @@ public:
     teca_metadata operator()
         (unsigned int port, const std::vector<teca_metadata> &input_md)
     {
+        PyGILState_STATE gstate;
+        gstate = PyGILState_Ensure();
+
         PyObject *f = m_callback.get_object();
         if (!f)
         {
             PyErr_Format(PyExc_TypeError,
                 "report_callback callback not set");
+            PyGILState_Release(gstate);
             return teca_metadata();
         }
 
@@ -83,6 +87,7 @@ public:
         if (!(ret = PyObject_CallObject(f, args)) || PyErr_Occurred())
         {
             TECA_PY_CALLBACK_ERROR(report, f)
+            PyGILState_Release(gstate);
             return teca_metadata();
         }
 
@@ -95,9 +100,11 @@ public:
         {
             PyErr_Format(PyExc_TypeError,
                 "invalid return type from report callback");
+            PyGILState_Release(gstate);
             return teca_metadata();
         }
 
+        PyGILState_Release(gstate);
         return *md;
     }
 
@@ -126,11 +133,15 @@ public:
         (unsigned int port, const std::vector<teca_metadata> &input_md,
         const teca_metadata &request)
     {
+        PyGILState_STATE gstate;
+        gstate = PyGILState_Ensure();
+
         PyObject *f = m_callback.get_object();
         if (!f)
         {
             PyErr_Format(PyExc_TypeError,
                 "request callback not set");
+            PyGILState_Release(gstate);
             return std::vector<teca_metadata>();
         }
 
@@ -156,6 +167,7 @@ public:
         if (!(ret = PyObject_CallObject(f, args)) || PyErr_Occurred())
         {
             TECA_PY_CALLBACK_ERROR(request, f)
+            PyGILState_Release(gstate);
             return std::vector<teca_metadata>();
         }
 
@@ -167,6 +179,7 @@ public:
             PyErr_Format(PyExc_TypeError,
                 "Invalid return type from request callback. "
                 "Expecting a list of teca_metadata objects.");
+            PyGILState_Release(gstate);
             return std::vector<teca_metadata>();
         }
 
@@ -182,10 +195,13 @@ public:
             {
                 PyErr_Format(PyExc_TypeError,
                     "invalid return type from request callback");
+                PyGILState_Release(gstate);
                 return std::vector<teca_metadata>();
             }
             reqs[i] = *md;
         }
+
+        PyGILState_Release(gstate);
 
         return reqs;
     }
@@ -228,11 +244,15 @@ public:
         const std::vector<const_p_teca_dataset> &in_data,
         const teca_metadata &request)
     {
+        PyGILState_STATE gstate;
+        gstate = PyGILState_Ensure();
+
         PyObject *f = m_callback.get_object();
         if (!f)
         {
             PyErr_Format(PyExc_TypeError,
                 "execute_callback callback not set");
+            PyGILState_Release(gstate);
             return nullptr;
         }
 
@@ -259,6 +279,7 @@ public:
         if (!(ret = PyObject_CallObject(f, args)) || PyErr_Occurred())
         {
             TECA_PY_CALLBACK_ERROR(execute, f)
+            PyGILState_Release(gstate);
             return nullptr;
         }
 
@@ -274,6 +295,7 @@ public:
         {
             PyErr_Format(PyExc_TypeError,
                 "invalid return type from execute_callback");
+            PyGILState_Release(gstate);
             return nullptr;
         }
 
@@ -282,6 +304,7 @@ public:
         if (i_own)
             delete tmp_data;
 
+        PyGILState_Release(gstate);
         return out_data;
     }
 
