@@ -5,7 +5,7 @@
 #include "teca_dataset_diff.h"
 #include "teca_time_step_executive.h"
 #include "teca_table.h"
-#include "test_util.h"
+#include "teca_test_util.h"
 
 #include <vector>
 #include <string>
@@ -44,7 +44,7 @@ struct execute_create_test_table
             return nullptr;
         }
 
-        return test_util::create_test_table(step);
+        return teca_test_util::create_test_table(step);
     }
 };
 

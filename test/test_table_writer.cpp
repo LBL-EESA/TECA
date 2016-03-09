@@ -3,7 +3,7 @@
 #include "teca_programmable_algorithm.h"
 #include "teca_table_writer.h"
 #include "teca_time_step_executive.h"
-#include "test_util.h"
+#include "teca_test_util.h"
 
 #include <iostream>
 using namespace std;
@@ -32,7 +32,7 @@ struct execute
             return nullptr;
         }
 
-        return test_util::create_test_table(step);
+        return teca_test_util::create_test_table(step);
     }
 };
 

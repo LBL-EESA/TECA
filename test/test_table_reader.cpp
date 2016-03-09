@@ -4,7 +4,7 @@
 #include "teca_table_reader.h"
 #include "teca_table.h"
 #include "teca_dataset_diff.h"
-#include "test_util.h"
+#include "teca_test_util.h"
 
 #include <vector>
 #include <string>
@@ -16,13 +16,13 @@ struct execute_create_test_table
 {
     int table_id;
 
-    execute_create_test_table() : table_id(test_util::base_table) {}
+    execute_create_test_table() : table_id(teca_test_util::base_table) {}
     execute_create_test_table(int tid) : table_id(tid) {}
 
     const_p_teca_dataset operator()
         (unsigned int, const std::vector<const_p_teca_dataset> &,
         const teca_metadata &)
-    { return test_util::create_test_table(0, table_id); }
+    { return teca_test_util::create_test_table(0, table_id); }
 };
 
 int main(int, char **)
