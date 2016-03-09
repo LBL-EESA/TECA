@@ -13,8 +13,12 @@ using std::cerr;
 #include <boost/program_options.hpp>
 #endif
 
+#if defined(TECA_HAS_MPI)
+#include <mpi.h>
+#endif
+
 // --------------------------------------------------------------------------
-teca_table_reader::teca_table_reader() 
+teca_table_reader::teca_table_reader()
 {}
 
 // --------------------------------------------------------------------------
@@ -52,13 +56,24 @@ const_p_teca_dataset teca_table_reader::execute(
     (void)input_data;
     (void)request;
 
+    // in parallel only rank 0 will read the data
+#if defined(TECA_HAS_MPI)
+    int rank = 0;
+    int init = 0;
+    MPI_Initialized(&init);
+    if (init)
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    if (rank != 0)
+        return nullptr;
+#endif
+
     // Open the file and dump its contents into a binary stream.
     teca_binary_stream bs;
     FILE* fd = fopen(file_name.c_str(), "rb");
     if (fd == NULL)
     {
-      TECA_ERROR("Failed to open " << file_name << endl)
-      return nullptr;
+        TECA_ERROR("Failed to open " << file_name << endl)
+        return nullptr;
     }
     long start = ftell(fd);
     fseek(fd, 0, SEEK_END);
