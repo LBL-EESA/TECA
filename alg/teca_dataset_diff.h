@@ -13,8 +13,18 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_dataset_diff)
 
+/// compute the element wise difference between to datasets
 /**
-an algorithm that writes cartesian meshes in VTK format.
+a two input algorithm that compares datasets by examining each
+element of their contained arrays. a threshold is used to detect
+when an element is different. a report containing the string FAIL
+is issued to stderr stream when a difference is detected. this
+algorithm is the core of TECA's regression test suite.
+
+by convention the first input produces the reference dataset,
+and the second input produces the dataset to validate. this is
+primarilly to support map-reduce implementation where after
+the reduction only rank 0 has data.
 */
 class teca_dataset_diff : public teca_algorithm
 {
@@ -35,13 +45,21 @@ protected:
 
     // Comparison methods.
     int compare_tables(const_p_teca_table table1, const_p_teca_table table2);
-    int compare_cartesian_meshes(const_p_teca_cartesian_mesh reference_mesh, const_p_teca_cartesian_mesh data_mesh);
-    int compare_array_collections(const_p_teca_array_collection reference_arrays, const_p_teca_array_collection data_arrays);
-    int compare_arrays(const_p_teca_variant_array array1, const_p_teca_variant_array array2);
+
+    int compare_cartesian_meshes(
+        const_p_teca_cartesian_mesh reference_mesh,
+        const_p_teca_cartesian_mesh data_mesh);
+
+    int compare_array_collections(
+        const_p_teca_array_collection reference_arrays,
+        const_p_teca_array_collection data_arrays);
+
+    int compare_arrays(
+        const_p_teca_variant_array array1, const_p_teca_variant_array array2);
 
     // Reporting methods.
 
-    // Call this with contextual information when datasets differ. You can use 
+    // Call this with contextual information when datasets differ. You can use
     // printf formatting.
     void datasets_differ(const char* info, ...);
 
@@ -52,14 +70,12 @@ protected:
     void pop_frame();
 
 private:
-
     const_p_teca_dataset execute(
         unsigned int port,
         const std::vector<const_p_teca_dataset> &input_data,
         const teca_metadata &request) override;
 
 private:
-
     // Tolerance for equality of field values.
     double tolerance;
 

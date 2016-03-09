@@ -68,6 +68,13 @@ const_p_teca_dataset teca_dataset_diff::execute(
     (void) port;
     (void) request;
 
+    // after map-reduce phase of a parallel run, only rank 0
+    // will have data. we can assume that if the first input,
+    // which by convention is the reference dataset, is empty
+    // then the second one should be as well.
+    if (!input_data[0] && !input_data[1])
+        return nullptr;
+
     // We need exactly two non-NULL inputs to compute a difference.
     if (!input_data[0])
     {
