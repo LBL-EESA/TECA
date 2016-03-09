@@ -30,6 +30,16 @@ Cartesian meshes, AMR datasets, and tables.
 %include "teca_py_core.i"
 %include <std_string.i>
 
+/***************************************************************************/
+%define TECA_DATASET_PY_PROPERTY(_type, _name)
+    _type get_ ## _name()
+    {
+        _type val;
+        self->get_ ## _name(val);
+        return val;
+    }
+%enddef
+
 /***************************************************************************
  array_collection
  ***************************************************************************/
@@ -102,15 +112,20 @@ TECA_PY_DYNAMIC_CAST(teca_mesh, teca_dataset)
 %shared_ptr(teca_cartesian_mesh)
 %ignore teca_cartesian_mesh::operator=;
 %ignore teca_cartesian_mesh::get_time(double *) const;
+%ignore teca_cartesian_mesh::get_time_step(unsigned long *) const;
 %ignore teca_cartesian_mesh::set_calendar(std::string const *);
 %ignore teca_cartesian_mesh::set_time_units(std::string const *);
-%ignore teca_cartesian_mesh::get_time_step(unsigned long *) const;
 %include "teca_cartesian_mesh_fwd.h"
 %include "teca_cartesian_mesh.h"
 TECA_PY_DYNAMIC_CAST(teca_cartesian_mesh, teca_dataset)
 %extend teca_cartesian_mesh
 {
     TECA_PY_STR()
+
+    TECA_DATASET_PY_PROPERTY(double, time)
+    TECA_DATASET_PY_PROPERTY(unsigned long, time_step)
+    TECA_DATASET_PY_PROPERTY(std::string, calendar)
+    TECA_DATASET_PY_PROPERTY(std::string, time_units)
 }
 
 /***************************************************************************
@@ -127,6 +142,9 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
 %extend teca_table
 {
     TECA_PY_STR()
+
+    TECA_DATASET_PY_PROPERTY(std::string, calendar)
+    TECA_DATASET_PY_PROPERTY(std::string, time_units)
 
     /* update the value at r,c */
     void __setitem__(PyObject *idx, PyObject *obj)
