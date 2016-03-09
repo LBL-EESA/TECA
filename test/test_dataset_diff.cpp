@@ -16,7 +16,9 @@ using namespace std;
 struct report
 {
     long num_tables;
-    explicit report(long num_tables): num_tables(num_tables) {}
+
+    report() : num_tables(0) {}
+    explicit report(long n) : num_tables(n) {}
 
     teca_metadata operator()
         (unsigned int, const std::vector<teca_metadata> &)
@@ -76,6 +78,7 @@ int main(int argc, char **argv)
       // datasets should be identical.
       p_teca_table_reader r1 = teca_table_reader::New();
       r1->set_file_name("dataset_diff_test_0.bin");
+
       p_teca_table_reader r2 = teca_table_reader::New();
       r2->set_file_name("dataset_diff_test_0.bin");
 
@@ -87,8 +90,8 @@ int main(int argc, char **argv)
       diff->update();
     }
 
-    // The following is a test of the dataset_diff algorithms ability to 
-    // correctly identify two different datasets. Our error reporting 
+    // The following is a test of the dataset_diff algorithms ability to
+    // correctly identify two different datasets. Our error reporting
     // needs to get a little more sophisticated before we take this on,
     // however, so this is getting commented out for the moment. -JNJ
     //{
@@ -109,5 +112,3 @@ int main(int argc, char **argv)
 
     return 0;
 }
-
-
