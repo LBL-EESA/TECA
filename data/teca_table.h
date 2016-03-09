@@ -63,9 +63,9 @@ public:
     // reserve memory for future rows
     void reserve(unsigned long n);
 
-    // append the collection of data comprising a row. there
-    // must be a value provided for each column. see also
-    // operator<< for sequential stream like append.
+    // append the collection of data in succession to
+    // each column. see also operator<< for sequential
+    // stream insertion like append.
     template<typename cT, typename... oT>
     void append(cT &&val, oT &&... args);
 
