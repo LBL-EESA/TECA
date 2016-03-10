@@ -135,7 +135,7 @@ const_p_teca_dataset teca_dataset_diff::execute(
           return nullptr;
       }
     }
-    else 
+    else
     {
       if (this->compare_cartesian_meshes(mesh1, mesh1))
       {
@@ -143,7 +143,7 @@ const_p_teca_dataset teca_dataset_diff::execute(
           return nullptr;
       }
     }
-    
+
     return nullptr;
 }
 
@@ -155,18 +155,18 @@ int teca_dataset_diff::compare_tables(
     // If the tables are different sizes, the datasets differ.
     if (table1->get_number_of_columns() != table2->get_number_of_columns())
     {
-        datasets_differ("table 1 has %d columns while table 2 has %d columns.", 
+        datasets_differ("table 1 has %d columns while table 2 has %d columns.",
                         table1->get_number_of_columns(), table2->get_number_of_columns());
         return 1;
     }
     if (table1->get_number_of_rows() != table2->get_number_of_rows())
     {
-        datasets_differ("table 1 has %d rows while table 2 has %d rows.", 
+        datasets_differ("table 1 has %d rows while table 2 has %d rows.",
                         table1->get_number_of_rows(), table2->get_number_of_rows());
         return 1;
     }
 
-    // At this point, we know that the tables are both non-empty and the same size, 
+    // At this point, we know that the tables are both non-empty and the same size,
     // so we simply compare them one element at a time.
     unsigned int ncols = table1->get_number_of_columns();
     for (unsigned int col = 0; col < ncols; ++col)
@@ -179,9 +179,9 @@ int teca_dataset_diff::compare_tables(
         int status = compare_arrays(col1, col2);
         this->pop_frame();
         if (status != 0)
-          return status;
+            return status;
     }
- 
+
     return 0;
 }
 
@@ -225,9 +225,9 @@ int teca_dataset_diff::compare_arrays(
             double abs_diff = std::abs(v1 - v2);
             if (abs_diff > this->tolerance)
             {
-                datasets_differ("Absolute difference %g "
-                    "exceeds tolerance %g in element %d",
-                    abs_diff, this->tolerance, i);
+                datasets_differ("Absolute difference %g exceeds tolerance %g in "
+                    "element %d. ref value \"%g\" is not equal to test value \"%g\"",
+                    abs_diff, this->tolerance, i, v1, v2);
                 return 1;
             }
         }
@@ -305,21 +305,21 @@ int teca_dataset_diff::compare_cartesian_meshes(
     if (reference_mesh->get_x_coordinates()->size() != data_mesh->get_x_coordinates()->size())
     {
       datasets_differ("data mesh has %d points in x, whereas reference mesh has %d.",
-                      static_cast<int>(reference_mesh->get_x_coordinates()->size()), 
+                      static_cast<int>(reference_mesh->get_x_coordinates()->size()),
                       static_cast<int>(data_mesh->get_x_coordinates()->size()));
       return 1;
     }
     if (reference_mesh->get_y_coordinates()->size() != data_mesh->get_y_coordinates()->size())
     {
       datasets_differ("data mesh has %d points in y, whereas reference mesh has %d.",
-                      static_cast<int>(reference_mesh->get_y_coordinates()->size()), 
+                      static_cast<int>(reference_mesh->get_y_coordinates()->size()),
                       static_cast<int>(data_mesh->get_y_coordinates()->size()));
       return 1;
     }
     if (reference_mesh->get_z_coordinates()->size() != data_mesh->get_z_coordinates()->size())
     {
       datasets_differ("data mesh has %d points in z, whereas reference mesh has %d.",
-                      static_cast<int>(reference_mesh->get_z_coordinates()->size()), 
+                      static_cast<int>(reference_mesh->get_z_coordinates()->size()),
                       static_cast<int>(data_mesh->get_z_coordinates()->size()));
       return 1;
     }
@@ -336,7 +336,7 @@ int teca_dataset_diff::compare_cartesian_meshes(
     this->pop_frame();
     if (status != 0)
       return status;
- 
+
     // cell-centered arrays.
     arrays1 = reference_mesh->get_cell_arrays();
     arrays2 = data_mesh->get_cell_arrays();
@@ -354,7 +354,7 @@ int teca_dataset_diff::compare_cartesian_meshes(
     this->pop_frame();
     if (status != 0)
       return status;
- 
+
     // Face-centered arrays.
     arrays1 = reference_mesh->get_face_arrays();
     arrays2 = data_mesh->get_face_arrays();
@@ -363,7 +363,7 @@ int teca_dataset_diff::compare_cartesian_meshes(
     this->pop_frame();
     if (status != 0)
       return status;
- 
+
     // Non-geometric arrays.
     arrays1 = reference_mesh->get_information_arrays();
     arrays2 = data_mesh->get_information_arrays();
@@ -394,7 +394,7 @@ int teca_dataset_diff::compare_cartesian_meshes(
     this->pop_frame();
     if (status != 0)
       return status;
- 
+
     return 0;
 }
 
