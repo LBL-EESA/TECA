@@ -21,6 +21,7 @@ and detectors.
 #include "teca_mask.h"
 #include "teca_programmable_algorithm.h"
 #include "teca_table_reduce.h"
+#include "teca_table_to_stream.h"
 #include "teca_temporal_average.h"
 #include "teca_vorticity.h"
 #include "teca_py_object.h"
@@ -89,6 +90,15 @@ and detectors.
 %shared_ptr(teca_table_reduce)
 %ignore teca_table_reduce::operator=;
 %include "teca_table_reduce.h"
+
+/***************************************************************************
+ table_to_stream
+ ***************************************************************************/
+%ignore teca_table_to_stream::shared_from_this;
+%shared_ptr(teca_table_to_stream)
+%ignore teca_table_to_stream::operator=;
+%ignore teca_table_to_stream::set_stream(std::ostream *);
+%include "teca_table_to_stream.h"
 
 /***************************************************************************
  temporal_average
