@@ -1,4 +1,4 @@
-from teca_py_data import *
+from teca import *
 import numpy as np
 import sys
 

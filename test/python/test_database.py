@@ -1,8 +1,6 @@
 import sys
 import numpy as np
-from teca_py_data import *
-from teca_py_io import *
-from teca_py_alg import *
+from teca import *
 
 t1 = teca_table.New()
 t1.declare_columns(['event','day','strength','magnitude'], ['i','s','f','d'])

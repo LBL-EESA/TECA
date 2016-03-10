@@ -1,6 +1,4 @@
-from teca_py_core import *
-from teca_py_io import *
-from teca_py_alg import *
+from teca import *
 import sys
 
 argc = len(sys.argv)
