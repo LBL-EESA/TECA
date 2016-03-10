@@ -19,6 +19,10 @@
 #include <boost/program_options.hpp>
 #endif
 
+#if defined(TECA_HAS_MPI)
+#include <mpi.h>
+#endif
+
 #if defined(TECA_HAS_LIBXLSXWRITER)
 #include <xlsxwriter.h>
 #endif
@@ -30,9 +34,8 @@ using std::ofstream;
 using std::cerr;
 using std::endl;
 
-
-namespace {
-
+namespace internal
+{
 // ********************************************************************************
 int write_csv(const_p_teca_table table, const std::string &file_name)
 {
@@ -170,10 +173,22 @@ const_p_teca_dataset teca_table_writer::execute(
 {
     (void) port;
 
-    // handle the case that no data is sent. it is not
-    // an error.
+    // in parallel only rank 0 is required to have data
+    int rank = 0;
+#if defined(TECA_HAS_MPI)
+    int init = 0;
+    MPI_Initialized(&init);
+    if (init)
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+#endif
     if (!input_data[0])
+    {
+        if (rank == 0)
+        {
+            TECA_ERROR("empty input")
+        }
         return nullptr;
+    }
 
     string out_file = this->file_name;
 
@@ -238,8 +253,8 @@ const_p_teca_dataset teca_table_writer::execute(
                 std::string out_file_i = out_file;
                 teca_file_util::replace_identifier(out_file_i, name);
                 const_p_teca_table table = database->get_table(i);
-                if (((this->output_format == csv) && ::write_csv(table, out_file_i))
-                  || ((this->output_format == bin) && ::write_bin(table, out_file_i)))
+                if (((this->output_format == csv) && internal::write_csv(table, out_file_i))
+                  || ((this->output_format == bin) && internal::write_bin(table, out_file_i)))
                 {
                     TECA_ERROR("Failed to write table " << i << " \"" << name << "\"")
                     return nullptr;
@@ -270,7 +285,7 @@ const_p_teca_dataset teca_table_writer::execute(
                 lxw_worksheet *worksheet =
                     workbook_add_worksheet(workbook, name.c_str());
 
-                if (::write_xlsx(database->get_table(i), worksheet))
+                if (internal::write_xlsx(database->get_table(i), worksheet))
                 {
                     TECA_ERROR("Failed to write table " << i << " \"" << name << "\"")
                     return nullptr;
@@ -288,5 +303,8 @@ const_p_teca_dataset teca_table_writer::execute(
             TECA_ERROR("invalid output format")
     }
 
-   return nullptr;
+    // pass the output through
+    p_teca_dataset output = input_data[0]->new_instance();
+    output->shallow_copy(std::const_pointer_cast<teca_dataset>(input_data[0]));
+    return output;
 }
