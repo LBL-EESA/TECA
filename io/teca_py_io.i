@@ -12,6 +12,7 @@ The io module contains readers and writers.
 #include "teca_config.h"
 #include "teca_algorithm.h"
 #include "teca_cf_reader.h"
+#include "teca_table_reader.h"
 #include "teca_table_writer.h"
 #include "teca_vtk_cartesian_mesh_writer.h"
 %}
@@ -32,6 +33,14 @@ The io module contains readers and writers.
 %ignore teca_cf_reader::operator=;
 %include "teca_cf_reader.h"
 #endif
+
+/***************************************************************************
+ table_reader
+ ***************************************************************************/
+%ignore teca_table_reader::shared_from_this;
+%shared_ptr(teca_table_reader)
+%ignore teca_table_reader::operator=;
+%include "teca_table_reader.h"
 
 /***************************************************************************
  table_writer
