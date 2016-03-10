@@ -101,3 +101,10 @@ teca_add_test(test_dataset_diff
     SOURCES test_dataset_diff.cpp teca_test_util.cxx
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_dataset_diff)
+
+teca_add_test(test_table_sort
+    SOURCES test_table_sort.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_table_sort "${TECA_DATA_ROOT}/cam5_temperature_stats.bin"
+    "${TECA_DATA_ROOT}/test_table_sort.bin" step
+    REQ_TECA_DATA)
