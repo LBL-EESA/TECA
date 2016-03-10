@@ -4,7 +4,7 @@
 brew update
 brew tap Homebrew/homebrew-science
 brew install gcc openmpi hdf5 netcdf python swig git-lfs
-pip install numpy
+pip install numpy mpi4py
 # TODO
 # brew install boost --c++11
 

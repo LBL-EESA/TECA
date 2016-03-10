@@ -14,7 +14,7 @@ sudo apt-get install -qq -y cmake gcc-5 g++-5 gfortran swig3.0 \
     libopenmpi-dev openmpi-bin libhdf5-openmpi-dev libnetcdf-dev \
     libboost-program-options-dev python-dev
 
-pip install --user numpy
+pip install --user numpy mpi4py
 
 # install git-lfs
 curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
