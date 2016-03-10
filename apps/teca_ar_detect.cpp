@@ -34,7 +34,7 @@ int main(int argc, char **argv)
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 #endif
 #if defined(TECA_TIME)
-    double tstart;
+    double tstart = 0.0;
     if (rank == 0)
     {
         struct timeval stv;
