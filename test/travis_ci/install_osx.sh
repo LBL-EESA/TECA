@@ -3,7 +3,7 @@
 # install deps
 brew update
 brew tap Homebrew/homebrew-science
-brew install gcc openmpi hdf5 netcdf python swig git-lfs
+brew install gcc openmpi hdf5 netcdf python swig svn
 pip install numpy mpi4py
 # TODO
 # brew install boost --c++11
@@ -12,5 +12,4 @@ pip install numpy mpi4py
 export PATH=/usr/local/bin:$PATH
 
 # install data files.
-git clone https://github.com/LBL-EESA/TECA_data.git
-pushd TECA_data && git lfs pull && popd
+svn co svn://missmarple.lbl.gov/work3/teca/TECA_data
