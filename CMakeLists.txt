@@ -97,7 +97,12 @@ set(TECA_HAS_BOOST ${tmp} CACHE BOOL "Boost features")
 
 # configure for Python
 set(tmp OFF)
-find_package(PythonInterp)
+if(DEFINED PYTHON_EXECUTABLE AND EXISTS ${PYTHON_EXECUTABLE})
+  message(STATUS "Using supplied Python interpreter: ${PYTHON_EXECUTABLE}")
+  set(PYTHONINTERP_FOUND)
+else()
+  find_package(PythonInterp)
+endif()
 if(PYTHONINTERP_FOUND)
     find_program(PYTHON_CONFIG_EXECUTABLE python-config)
     if (NOT PYTHON_CONFIG_EXECUTABLE)
