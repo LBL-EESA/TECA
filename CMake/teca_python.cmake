@@ -59,7 +59,7 @@ function(teca_python_module mname)
             ${CMAKE_CURRENT_BINARY_DIR}/teca_py_${mname}.py
             ${CMAKE_CURRENT_BINARY_DIR}/../lib)
     install(TARGETS _teca_py_${mname} LIBRARY DESTINATION lib)
-    install(FILES teca_py_${mname}.py DESTINATION lib)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/teca_py_${mname}.py DESTINATION lib)
 endfunction()
 configure_file(teca.py ${CMAKE_CURRENT_BINARY_DIR}/lib/teca.py COPYONLY)
 install(FILES teca.py DESTINATION lib)
