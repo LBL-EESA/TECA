@@ -14,8 +14,16 @@ compiler:
 install: ./test/travis_ci/install_$TRAVIS_OS_NAME.sh
 
 env:
-  - BUILD_TYPE=Debug
+  - BUILD_TYPE=Debug 
+  - BUILD_TYPE=Debug EXTRA_CXX_FLAGS=-fsanitize=address
 #  - BUILD_TYPE=Release
+
+# Currently the Macs at Travis-CI are super old and rickety, and their 
+# compilers can't do AddressSanitizer, so we skip that build there.
+matrix:
+  exclude:
+  - os: osx
+    env: BUILD_TYPE=Debug EXTRA_CXX_FLAGS=-fsanitize=address
 
 script: ./test/travis_ci/script_$TRAVIS_OS_NAME.sh
 
