@@ -47,7 +47,7 @@ linkcolor = {black}}
       \includegraphics[height=0.9in]{images/lbl_logo.png}\hfill\includegraphics[height=0.9in]{images/cascade_logo.png}%
   }}}}
 \title{%\hrule width \hsize height 1pt \vspace{3mm} %
-The TECA, Toolkit for Extreme Climate Analaysis, User's Guide \\ \vspace{3mm} %
+The TECA, Toolkit for Extreme Climate Analysis, User's Guide \\ \vspace{3mm} %
 \hrule width \hsize height 1pt \vspace{0.51mm} %
 \hrule width \hsize height 1pt}
 \subtitle{Lawrence Berkeley National Lab}
@@ -65,20 +65,21 @@ The TECA, Toolkit for Extreme Climate Analaysis, User's Guide \\ \vspace{3mm} %
 
 \tableofcontents
 
-\chapter{Compiling, Installing, and Running TECA}
+\chapter{Installation}
 \section{Install the Binary Distribution}
+TODO. Jeff has setup the superbuild that we will use to make binaries. The location
+from which to download them has not yet been determined. Nor has details like do we use
+brew on apple and apt on ubuntu etc.
 
 \section{Build and Install from Sources}
 \label{sec:build}
-Building TECA requires a C++11 compiler and CMake. On Unix like systems
-GCC 4.9(or newer), or LLVM 3.5(or newer) are capable of compiling TECA.
+TECA is written in C++11. on Unix like systems
+GCC 4.9 or newer, or LLVM 3.5 or newer are required. CMake is needed for configuring the build.
 Additionally, TECA relies on a number of third party libraries for various
 features and functionality. The dependencies are all optional in the sense
-that the build will proceed if they are missing, however core functionality
-may be missing. We highly recommend building TECA with NetCDF, UDUNITS,
-MPI, Boost, and Python.
-
-
+that the build will proceed if they are missing. However, core functionality
+may be missing if dependencies are not available. We highly recommend building
+TECA with NetCDF, UDUNITS, MPI, Boost, and Python.
 
 \subsection{Installing Dependencies}
 \subsubsection{List of Dependencies}
@@ -89,11 +90,10 @@ The full list of dependencies are:
  \item[NetCDF 4:] Required for CF-2.0 file I/O
  \item[UDUNITS 2:] Required for calendaring
  \item[MPI 3:] Required for MPI parallel operation
- \item [Python, SWIG 3, NumPy:] required for Python bindings
- \item [mpi4py:] Required for parallel Python programming
- \item[Boost:] Required for command line c++ applications
- \item [libxlsxwriter:] Required for binary MS Excel workbook output
- \item [VTK 6:] Required for mesh based file output
+ \item[Python, SWIG 3, NumPy:] required for Python bindings
+ \item[mpi4py:] Required for parallel Python programming
+ \item[Boost:] Required for command line C++ applications
+ \item[libxlsxwriter:] Required for binary MS Excel workbook output
 \end{description}
 \end{minipage}\vspace{2mm}
 
@@ -116,9 +116,8 @@ pip install --user numpy mpi4py
 \end{minted}
 \end{minipage}\vspace{2mm}
 
-\noindent More recent releases will not need to use PPA repos to obtain up to date packages.
-Other distros, such as Fedora, have a similar install procedure albeit with different
-package names. 
+\noindent Note that on more recent releases of Ubuntu one will not need to use PPA repos to obtain up to date packages.
+Other Linux distros, such as Fedora, have a similar install procedure albeit with different package names. 
 
 \subsubsection{Apple Mac OSX Yosemite}
 On Apple Mac OSX using homebrew to install the dependencies is recommended.
@@ -129,23 +128,57 @@ On Apple Mac OSX using homebrew to install the dependencies is recommended.
 brew update
 brew tap Homebrew/homebrew-science
 brew install gcc openmpi hdf5 netcdf python swig git-lfs
-brew install boost --c++11
+brew install boost --C++11
 pip install numpy mpi4py
 \end{minted}
 \end{minipage}\vspace{2mm}
 
 \noindent We highly recommend taking a look a the output of \textbf{brew doctor} and
-fixing all reported issues before attempting a TECA build. We've found that significant
+fixing all reported issues before attempting a TECA build. Significant
 complications can arise where user's have mixed installation methods, such as mixing
 installs from macports, homebrew, or manual installs. Multiple Python installations
 can also be problematic. During configuration TECA reports the Python version detected,
 one should verify that this is correct and if not set the paths manually.
-% 
-% \subsubsection{Cray XC 40}
-% If the dependencies are not already available you'll need to install them from source,
-% a task which is beyond the scope of this document.
 
-\subsection{Obtaining the TECA Sources}
+\subsection{Compiling from Sources}
+TECA provides a superbuild for compiling all of the dependencies from source. First clone
+the superbuild.
+
+\vspace{2mm}\hspace{0.2in}\begin{minipage}{0.8\textwidth}
+\begin{minted}[fontsize=\small]{bash}
+#!/bin/bash
+git clone https://github.com/LBL-EESA/TECA_3rdparty.git
+\end{minted}
+\end{minipage}\vspace{2mm}
+
+Then make a build directory, choose an install prefix, choose a platform, and configure
+and make.
+
+\vspace{2mm}\hspace{0.2in}\begin{minipage}{0.8\textwidth}
+\begin{minted}[fontsize=\small]{bash}
+#!/bin/bash
+mkdir build && cd build
+cmake .. -DTECA_HAS_MPI=ON \
+           -DCMAKE_INSTALL_PREFIX=<prefix> \
+           -DTECA_PLATFORM=<generic|sandybridge>
+make -j4  && make -j4 install
+\end{minted}
+\end{minipage}\vspace{2mm}
+
+\noindent To use the libraries created one must first configure the environment so
+that they take precedence over any conflicting libraries already installed.
+
+\vspace{2mm}\hspace{0.2in}\begin{minipage}{0.8\textwidth}
+\begin{minted}[fontsize=\small]{bash}
+#!/bin/bash
+$ . <prefix>/bin/teca_env.sh
+\end{minted}
+\end{minipage}\vspace{2mm}
+
+\noindent Note, that this must be done every time before using TECA or the libraries
+to prevent conflicts with existing installs of any of the dependencies.
+
+\subsection{Obtaining the Sources}
 To obtain the sources clone our github repository.
 
 \vspace{2mm}\hspace{0.2in}\begin{minipage}{0.8\textwidth}
@@ -165,16 +198,14 @@ svn co svn://missmarple.lbl.gov/work3/teca/TECA_data
 \noindent Before compiling you'll need to install the dependencies. See the following sections
 for operating system specific instructions.
 
-\subsection{Compiling TECA}
-The following sections show operating specific examples of compiling TECA. In these examples
-it is assumed that you have previously installed third party dependencies, cloned the TECA source
-code, and data. The full path to the TECA sources on your system is
-given by \$\{TECA\_SOURCE\_DIR\} while the full path to the test data is given by
-\$\{TECA\_DATA\_DIR\}. Please update these accordingly.\\
+\subsection{Compiling}
+Once dependencies are installed a TECA build can be configured and compiled. The following sections show operating specific examples of compiling TECA. 
+TECA\_SOURCE\_DIR should be replaced with the path to the TECA sources,
+TECA\_DATA\_DIR replaced with the path to the test data, and TECA\_INSTALL\_DIR replaced with the path to the install location. \\
 
+\noindent Note that on all operating systems TECA requires an out of source build. The first step is
+to create a build directory and cd into it.
 
-\noindent TECA requires an out of source build. The first step is to create a build directory and
-cd into it.
 \vspace{2mm}\hspace{0.2in}\begin{minipage}{0.8\textwidth}
 \begin{minted}[fontsize=\small]{bash}
 #!/bin/bash
@@ -187,33 +218,34 @@ cd ${TECA_SOURCE_DIR}/build
 \vspace{2mm}\hspace{0.2in}\begin{minipage}{0.8\textwidth}
 \begin{minted}[fontsize=\small]{bash}
 #!/bin/bash
-# configure
 cmake \
     -DCMAKE_C_COMPILER=`which gcc-5` \
     -DCMAKE_CXX_COMPILER=`which g++-5` \
     -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=${TECA_INSTALL_DIR} \
     -DBUILD_TESTING=ON \
     -DTECA_DATA_ROOT=${TECA_DATA_DIR} \
     ${TECA_SOURCE_DIR}
-# compile
-make -j4
+
+make -j4 && make -j4 install
 \end{minted}
 \end{minipage}\vspace{2mm}
+
+\noindent Note that we explicitly set gcc 5 compilers, as the default compilers on Ubuntu 14.04 
+are missing some C++11 features. On newer releases and other distros this is likely unnecessary.
 
 \subsubsection{Apple Mac OSX Yosemite}
 \vspace{2mm}\hspace{0.2in}\begin{minipage}{0.8\textwidth}
 \begin{minted}[fontsize=\small]{bash}
 #!/bin/bash
-# configure
 cmake \
-    -DCMAKE_C_COMPILER=`which $CC` \
-    -DCMAKE_CXX_COMPILER=`which $CXX` \
     -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=${TECA_INSTALL_DIR} \
     -DBUILD_TESTING=ON \
     -DTECA_DATA_ROOT=${TECA_DATA_DIR} \
     ${TECA_SOURCE_DIR}
-# compile
-make -j4
+
+make -j4 && make -j4 install
 \end{minted}
 \end{minipage}\vspace{2mm}
 % \subsubsection{Cray XC 40}
@@ -225,13 +257,17 @@ make -j4
 % \end{minipage}\vspace{2mm}
 
 \subsection{Configuring the Environment}
-In order to use TECA's Python modules one must set the library and Python paths.
+Depending on your configuration PATH and LD\_LIBRARY\_PATH (or DYLD\_LIBRARY\_PATH on Apple)
+may need to include your TECA\_INSTALL\_DIR. Additionally, 
+use of TECA's Python modules require setting PYTHONPATH.
+
 \subsubsection{Ununtu 14.04}
 \vspace{2mm}\hspace{0.2in}\begin{minipage}{0.8\textwidth}
 \begin{minted}[fontsize=\small]{bash}
 #!/bin/bash
-export PYTHONPATH=${TECA_SOURCE_DIR}/build/lib
-export LD_LIBRARY_PATH=${TECA_SOURCE_DIR}/build/lib
+export PATH=${TECA_INSTALL_DIR}/bin
+export PYTHONPATH=${TECA_INSTALL_DIR}/lib
+export LD_LIBRARY_PATH=${TECA_INSTALL_DIR}/lib
 \end{minted}
 \end{minipage}\vspace{2mm}
 
@@ -239,15 +275,16 @@ export LD_LIBRARY_PATH=${TECA_SOURCE_DIR}/build/lib
 \vspace{2mm}\hspace{0.2in}\begin{minipage}{0.8\textwidth}
 \begin{minted}[fontsize=\small]{bash}
 #!/bin/bash
-export PYTHONPATH=${TECA_SOURCE_DIR}/build/lib
-export LD_LIBRARY_PATH=${TECA_SOURCE_DIR}/build/lib
-export DYLD_LIBRARY_PATH=${TECA_SOURCE_DIR}/build/lib
+export PATH=${TECA_INSTALL_DIR}/bin
+export PYTHONPATH=${TECA_INSTALL_DIR}/lib
+export LD_LIBRARY_PATH=${TECA_INSTALL_DIR}/lib
+export DYLD_LIBRARY_PATH=${TECA_INSTALL_DIR}/lib
 \end{minted}
 \end{minipage}\vspace{2mm}
 
 \subsection{Validating the Build}
-TECA comes with an extensive regression test suite. We recommend that you validate
-your build by running the regression tests.
+TECA comes with an extensive regression test suite which can be used to validate
+your build. The tests can be executed from the build directory with the ctest command.
 
 \vspace{2mm}\hspace{0.2in}\begin{minipage}{0.8\textwidth}
 \begin{minted}[fontsize=\small]{bash}
@@ -259,9 +296,9 @@ ctest --output-on-failure
 % \subsection{TECA}
 % \label{sec:build}
 % \paragraph{Supported Compilers}
-% Building TECA requires a C++11 compiler. On Unix like systems this is GCC
-% 4.9(or newer), or LLVM 3.5(or newer). Windows MS Visual Studio C++ currently
-% does not fully support C++11. The following dependencies are optional, however
+% Building TECA requires a C++1111 compiler. On Unix like systems this is GCC
+% 4.9(or newer), or LLVM 3.5(or newer). Windows MS Visual Studio C++11 currently
+% does not fully support C++1111. The following dependencies are optional, however
 % functionality will be reduced if they are not present.
 % 
 % \begin{itemize}
@@ -274,7 +311,7 @@ ctest --output-on-failure
 % 
 % The location of various dependencies should be passed
 % in during configuration if they are in non-standard locations. It's is critical
-% that compiler and C++ library versions match across dependencies, especially Boost.
+% that compiler and C++11 library versions match across dependencies, especially Boost.
 % 
 % \paragraph{Compiling TECA on a Workstation}
 % This is an example of compiling on a work station, with Boost, MPI, NetCDF and
@@ -325,7 +362,7 @@ ctest --output-on-failure
 % tar xzfv boost.tar.gz
 % cd boost_1_58_0/
 % ./bootstrap.sh --prefix=/Users/bloring/apps/
-% ./b2 -j4 cxxflags=''-std=c++11'' install
+% ./b2 -j4 cxxflags=''-std=C++11'' install
 % \end{code}
 % 
 % However, on Apple, when using clang you must specify toolset and flags when
@@ -333,7 +370,7 @@ ctest --output-on-failure
 % 
 % \begin{code}
 % #!/bin/bash
-% ./b2 -j4 toolset=clang cxxflags="-stdlib=libc++" linkflags="-stdlib=libc++" install
+% ./b2 -j4 toolset=clang cxxflags="-stdlib=libC++" linkflags="-stdlib=libC++" install
 % \end{code}
 % 
 % \paragraph{Python}
@@ -397,94 +434,81 @@ ctest --output-on-failure
 % \section{Analsyis}
 % \section{Re-meshing}
 % \section{Output and Data Writers}
-\chapter{TECA and Python}
-In an effort to facillitate its use, TECA includes Python bindings. Python bindings are enabled during the build. See section \ref{sec:build} for more information on how to compile with Python support enabled. There are a couple of ways in which we envision the TECA Python bindings to be used
+\chapter{Python}
+TECA includes a diverse collection of I/O and analysis algorithms specific to climate science and extreme event detection. It's pipeline design allows these component algorithms to be quickly coupled together to construct complex data processing and analysis pipelines with minimal effort. TECA is written primarily in C++11 in order to deliver the highest possible performance and scalability. However, for non-computer scientists c+11 development can be intimidating, error prone, and time consuming. TECA's Python bindings offer a more approachable path for custom application and algorithm development.
 
-\noindent\begin{minipage}{0.85\textwidth}
-\vspace{2mm}
-\begin{itemize}
- \item As glue for building analysis pipelines from the diverse set pre-existing algorithms that come with TECA. See section \ref{sec:py_glue}.
- \item For the development of new algorithms written entirely in Python. See section \ref{sec:py_devel}.
-\end{itemize}
-\vspace{2mm}
-\end{minipage}
+Python can be viewed as glue for connecting optimized C++11 components. Using Python as glue gives one all of the convenience and flexibility of Python scripting with all of the performance of the native C++11 code. TECA also includes a path for fully Python based algorithm development where the programmer provides Python callables that implement the desired analysis. In this scenario the use of technologies such as NumPy provide reasonable performance while allowing the programmer to focus on the algorithm itself rather than the technical details of C++11 development.
 
-\noindent In the case of the former the Python bindings add minimal overhead and as such will have minimal impact on overall performance\footnote{However, note that special packaging techniques must be employed to get good scaling of Python based apps at very large core counts.}. In the case of the latter Python can provide acceptable performance levels in many situations while enabling rapid prototyping of new algorithms. Of course where performance and scalability are a key concern, the recommended approach is to develop new algorithms in C++. TECA's build system will automatically generate Python bindings for the C++ algorithm.
+\begin{figure}[h]
+ \centering
+ \includegraphics[height=2.5in]{./images/parallel_exec.png}
+ % serial_exec.png: 0x0 pixel, 300dpi, 0.00x0.00 cm, bb=
+ \caption{\small  execution path through a simple 4 stage pipeline on any given process in an MPI parallel run. Time progresses from a1 to c4 through the three execution phases report (a), request (b), and execute (c). The sequence of thread parallel execution is shown inside gray boxes, each path represents the processing of a single request.}
+ \label{fig:parallel_exec}
+\end{figure}
 
-\begin{listing}[p]
+\section{Pipeline Construction, Configuration and Execution}
+\label{sec:py_glue}
+Building pipelines in TECA is as simple as creating and connecting TECA algorithms together in the desired order. Data will flow and be processed sequentially from the top of the pipeline to the bottom, and in parallel where parallel algorithms are used. All algorithms are created by their static New() method. The connections between algorithms are made by calling one algorithm's set\_input\_connection() method with the return of another algorithm's get\_output\_port() method. Arbitrarily branchy pipelines are supported. The only limitation on pipeline complexity is that cycles are not allowed. Each algorithm represents a stage in the pipeline and has a set of properties that configure its run time behavior. Properties are accessed by set\_<prop name>\(\) and get\_<prop name>\(\) methods. Once a pipeline is created and configured it can be run by calling update() on its last algorithm.
+
+\begin{listing}[h]
 \begin{center}
-\hrule\vspace{1mm}
+\vspace{1mm}
 \begin{minipage}{0.8\textwidth}
-\inputminted[fontsize=\footnotesize, linenos]{python}{source/python_as_glue.py}
-\caption{{\bf Python as glue.} Source code listing from a simple tropical cyclone detector written in Python. Here we are simply connecting, configuring, and executing a pipeline comprised of wrapped C++ classes which do all of the I/O and heavy calculations. Up to some large number of cores the performance of a Python based app like this is similar to that of its C++ counter part. }
+\inputminted[fontsize=\footnotesize, linenos]{python}{source/stats.py}
+\caption{\small Command line application written in Python. The application constructs, configures, and executes a 4 stage pipeline that computes basic descriptive statistics over the entire lat-lon mesh for a set of variables passed on the command line. The statistic computations have been written in Python, and are shown in listing \ref{code:py_devel}. When run in parallel, the map-reduce pattern is applied over the time steps in the input dataset. A graphical representation of the pipeline is shown in figure \ref{fig:parallel_exec}.}
 \label{code:py_glue}
 \end{minipage}
-\hrule
 \end{center}
 \end{listing}
-\section{Python as Glue}
-\label{sec:py_glue}
-TECA includes a diverse collection of I/O and analysis algorithms specific to climate science and extreme event detection. It's pipeline design allows these component algorithms to be quickly coupled together to construct complex data processing and analysis pipelines with minimal effort. When we say ``Python as glue'' we mean that one writes a Python script that constructs, configures and executes a TECA pipeline. In this context, although the algorithm's are connected and configured with Python code, and their execution is triggered by Python code, the algorithms themselves are written in C++ and thus deliver the highest level of performance. Using Python as glue gives one all of the flexibility of Python scripting with all of the performance of the native C++ code. In this section we discusses some aspects of building and running Python TECA applicaitons. An example of a parallel tropical cyclone detection application written in Python, which we will refer to in the following discussion, is shown in listing \ref{code:py_glue}. 
 
-\paragraph{Pipeline construction}
-The two aspects of TECA pipeline construction are creating TECA algorithms and connecting them together. TECA's algorithms are always created using their New() method. This is true of all TECA algorithms. Line 8 of listing \ref{code:py_glue} shows a NetCDF CF-2 reader being created. \mint{python}|cfr = teca_cf_reader.New()| To connect two TECA algorithms one always takes the output from the upstream algorithm and connects it to the input of the downstream algorithm. During execution the upstream algorithm runs first. This is accoomplished by calling the downstream algorithm's set\_input\_connection() method with the return of the upstream algorithm's get\_output\_port() method. An example is shown on line 19 of listing \ref{code:py_glue}. Here the upstream algorithm is the NetCDF CF-2 reader and the downstream algorithm is the L2-norm operator. \mint{python}|l2n.set_input_connection(cfr.get_output_port())| In summary, building pipelines in TECA is as simple as creating the desired algorithms using the algorithm's New() method, and connecting them to gether using the algorithms' set\_input\_connection() and get\_output\_port methods().
+For example, listing \ref{code:py_glue} shows a command line application written in Python. The application computes a set of descriptive statistics over a list of arrays for each time step in the dataset. The results at each time step are stored in a row of a table. teca\_table\_reduce is a map-reduce implementation that processes time steps in parallel and reduces the the tables produced at each time step into a single result. One use potential use of this code would be to compute a time series of average global temperature. The application loads modules and initializes MPI (lines 1-6), parses the command line options (lines 8-19),  constructs and configures the pipeline (lines 24-40), and finally executes the pipeline (line 42). The pipeline constructed is shown in figure \ref{fig:parallel_exec} next to a time line of the pipeline's parallel execution on an arbitrary MPI process. 
 
-\paragraph{Algorithm configuration}
-Each TECA algorithm have a collection of properties that allow for run time configuration. Each property has a set\_ and get\_ method. Lines 9-12 in listing \ref{code:py_glue} show how the NetCDF CF-2.0 reader is configured.
-\begin{minted}{python}
-cfr.set_files_regex('cam5_1_amip_run2\.cam2\.h2\.*')
-cfr.set_x_axis_variable('lon')
-cfr.set_y_axis_variable('lat')
-cfr.set_t_axis_variable('time')
-\end{minted}
-Properties belong to the individual algorithm. The available properties can be querried in the Python shell using introspection, in the C++ haeder files, or in the online Doxygen documentation.
+% \paragraph{Execution and Parallelism}
+% Once a pipeline has been built and configured it is executed by calling update() on one of the algorithms. Typically, update is called on the last algorithm in the pipeline. Line 51 in listing \ref{code:py_glue} executes the example pipeline. \mint{python}|twr.upadte()| TECA's pipeline model uses ``requests'' to pull only the data that is needed through the pipeline on demand. Requests enable streaming of data and can be acted upon in parallel. Also requests are used as a key in the pipeline's internal cache. Thus requests play a very important role in TECA's execution model. Simple data processing algorithms should not include request generation logic. Instead copy, modify, and forward the incoming request. This ensures that details of the request are not lost as it travels upstream. 
 
-\paragraph{Execution and Parallelism}
-Once a pipeline has been built and configured it is executed by calling update() on one of the algorithms. Typically, update is called on the last algorithm in the pipeline. Line 51 in listing \ref{code:py_glue} executes the example pipeline. \mint{python}|twr.upadte()| TECA's pipeline model uses ``requests'' to pull only the data that is needed through the pipeline on demand. Requests enable streaming of data and can be acted upon in parallel. Also requests are used as a key in the pipeline's internal cache. Thus requests play a very important role in TECA's execution model. Simple data processing algorithms should not include request generation logic. Instead copy, modify, and forward the incoming request. This ensures that details of the request are not lost as it travels upstream. Algorithms that partition work amongst processes and threads need to implement request generation logic. For instance teca\_temporal\_reduction and the classes derived from it. teca\_temporal\_reduction is an abstract class that implements parallel map-reduce over time steps. The abstract class teca\_temporal\_reduction generates a request per time step and parallelizes request execution using MPI and threads. The generated requests are first partitioned to MPI processes and within MPI processes a threadpool processes the local requests. teca\_temporal\_reduction handles all of the inter-process communication needed to complete the reduction. It's parent class teca\_threaded\_algorithm manages the thread pool and putting requests into its work queue and getting data back out. Classes derived from teca\_temporal\_reduction provide the data type specific code. For example, teca\_table\_reduce implements map-reduce over tabular data. There are a few things to keep in mind when using one of TECA's map-reduce classes. To make your program parallel simply initialize MPI. \mint{python}|from mpi4py import MPI| Everything above the map-reduce class is executed in parallel. Everything below is executed in serial on MPI rank 0. Finally one need not worry about source of requests when using TECA's map-reduce this is handled internally.
+% Algorithms that partition work amongst processes and threads need to implement request generation logic. For instance teca\_temporal\_reduction and the classes derived from it. teca\_temporal\_reduction is an abstract class that implements parallel map-reduce over time steps. The abstract class teca\_temporal\_reduction generates a request per time step and parallelizes request execution using MPI and threads. The generated requests are first partitioned to MPI processes and within MPI processes a threadpool processes the local requests. teca\_temporal\_reduction handles all of the inter-process communication needed to complete the reduction. It's parent class teca\_threaded\_algorithm manages the thread pool and putting requests into its work queue and getting data back out. Classes derived from teca\_temporal\_reduction provide the data type specific code. For example, teca\_table\_reduce implements map-reduce over tabular data. There are a few things to keep in mind when using one of TECA's map-reduce classes. To make your program parallel simply initialize MPI. \mint{python}|from mpi4py import MPI| Everything above the map-reduce class is executed in parallel. Everything below is executed in serial on MPI rank 0. Finally one need not worry about source of requests when using TECA's map-reduce this is handled internally.
+% 
+% When not using one of TECA's map-reduce implementations one must explicitly proivide a request generator to the algorithm upon which update() is called. In TECA request generater is call an \emph{executive}. The most common use case is to generate a request per time step. This is the purpose of the teca\_time\_step\_executive. It's use is demonstrated in listing \ref{code:py_devel} lines 43-45. Keep in mind that the teca\_time\_step\_executive is not MPI or thread aware, and should not be used for parallel programs.
+% \begin{minted}{python}
+% exe = teca_time_step_executive.New()
+% exe.set_first_step(0)
+% exe.set_last_step(-1)
+% \end{minted}
+% and before the pipeline is executed the executive is installed \mint{python}|wri.set_executive(exe)|
 
-When not using one of TECA's map-reduce implementations one must explicitly proivide a request generator to the algorithm upon which update() is called. In TECA request generater is call an \emph{executive}. The most common use case is to generate a request per time step. This is the purpose of the teca\_time\_step\_executive. It's use is demonstrated in listing \ref{code:py_devel} lines 43-45. Keep in mind that the teca\_time\_step\_executive is not MPI or thread aware, and should not be used for parallel programs.
-\begin{minted}{python}
-exe = teca_time_step_executive.New()
-exe.set_first_step(0)
-exe.set_last_step(-1)
-\end{minted}
-and before the pipeline is executed the executive is installed \mint{python}|wri.set_executive(exe)|
 
-\begin{listing}[p]
+\section{Algorithm Development}
+\label{sec:py_devel}
+While TECA is is written in C++11, it can be extended at run time using Python. However, before we explain how this is done one must know a little about the three phases of execution and what is expected to happen during each.
+
+%\paragraph{Pipeline Execution Model}
+The heart of TECA's pipeline implementation is the teca\_algorithm. This is an abstract class that contains all of the control and execution logic. All pipelines in TECA are built by connecting concrete implementations of teca\_algorithm together to form execution networks. TECA's pipeline model is based on a report-request scheme that minimizes I/O and computation. The role of reports are to make known to down stream consumers what data is available. Requests then are used to pull only the data that is needed through the pipeline. Requests enable subsetting and streaming of data and can be acted upon in parallel and are used as keys in the pipeline's internal cache. The pipeline has 3 phases of execution, report phase, the request phase, and finally the execute phase.
+
+\paragraph{Report Phase} The report phase kicks off a pipeline's execution and is initiated when the user calls update() or update\_metadata() on a teca\_algorithm. In the report phase, starting at the top of the pipeline working sequentially down, each algorithm examines the incoming report and generates outgoing report about what it will produce. Implementing the report phase can be as simple as adding an array name to the list of arrays or as complex as building metadata describing a dataset on disk. The report phase should always be light and fast. In cases where it is not, cache the report for re-use. Where metadata generation would create a scalability issue, for instance parsing data on disk, the report should be generated on rank 0 and broadcast to the other ranks.
+
+\paragraph{Request Phase} The request phase begins when report the report phase reaches the bottom of the pipeline. In the request phase, starting at the bottom of the pipeline working sequentially up, each algorithm examines the incoming request, and the report of what's available on its inputs, and from this information generates a request for the data it will need during its execution phase. Implementing the request phase can be as simple as adding a list of arrays required to compute a derived quantity or as complex as requesting data from multiple time steps for a temporal computation. The returned requests are propagated up after mapping them round robin onto the algorithm's inputs. Thus, it's possible to request data from each of the algorithm's inputs and to make multiple requests per execution. Note that when a threaded algorithm is in the pipeline, requests are dispatched by the thread pool and request phase code must be thread safe.
+
+\paragraph{Execute} The execute phase begins when requests reach the top of the pipeline. In the execute phase, starting at the top of the pipeline and working sequentially down, each algorithm handles the incoming request, typically by taking some action or generating data. The datasets passed into the execute phase should never be modified. When a threaded algorithm is in the pipeline, execute code must be thread safe.
+
+In the TECA pipeline the report and request execution phases handle communication in between various stages of the pipeline. The medium for these exchanges of information is the teca\_metadata object, an associative containers mapping strings(keys) to arrays(values). For the stages of a pipeline to communicate all that is required is that they agree on a key naming convention. This is both the strength and weakness of this approach. On the one hand, it's trivial to extend by adding keys and arbitrarily complex information may be exchanged. On the other hand, key naming conventions can't be easily enforced leaving it up to developers to ensure that algorithms play nicely together. In practice the majority of the metadata conventions are defined by the reader. All algorithms sitting down stream must be aware of and adopt the reader's metadata convention. For most use cases the reader will be TECA's NetCDF CF 2.0 reader, teca\_cf\_reader. The convention adopted by the CF reader are documented in its header file and in section \ref{sec:cf_reader}.
+
+\noindent In C++11 polymorphism is used to provide customized behavior for each of the three pipeline phases. In Python we use the teca\_programmable\_algorithm, an adapter class that calls user provided callback functions at the appropriate times during each phase of pipeline execution. Hence writing a TECA algorithm purely in Python amounts to providing three appropriate callbacks.
+
+\begin{listing}[t]
 \begin{center}
-\hrule\vspace{1mm}
+\vspace{1mm}
 \begin{minipage}{0.8\textwidth}
-\inputminted[bgcolor=White, fontsize=\footnotesize, linenos]{python}{source/python_for_devel.py}
-\caption{{\bf Python for development.} Python source listing from a simple data processing operator written in Python.}
+\inputminted[bgcolor=White, fontsize=\footnotesize, linenos]{python}{source/stats_callbacks.py}
+\caption{\small Callbacks implementing the calculation of descriptive statistics over a set of variables laid out on a Cartesian lat-lon mesh. The request callback requests the variables, the execute callback makes the computations and constructs a table to store them in.}
 \label{code:py_devel}
 \end{minipage}
-\hrule
 \end{center}
 \end{listing}
 
-\section{Python for Algorithm Development}
-\label{sec:py_devel}
-TECA is is written in C++ primarilly to deliver the highest available level of performance in an HPC setting. However, C++ can make prototyping and testing new algorithms cumbersome and poses a obstacle for non-experts. For these reasons we have augmented TECA with the capability to write algorithms that work seamlesly in TECA's pipeline infrastructure entirely in Python. While we have exposed TECA's data structures via NumPy to deliver the best possible performance in native Python, algorithms written in Python are expected, even when the best NumPy practices are employed, to be an order of magnitude slower than optimized C++ code. Hence, this capability is intended primarilly for rapid prototyping and testing during new algorithm development. Once algorithms are finalized we recommend porting them to C++ where performance is a concern.
-
-\paragraph{Pipeline Execution Model}
-TECA implements a pipeline execution model. The pipeline design pattern has a number of advantageous qualities including, fostering modularity and code reuse, easy extensibility, enabling efficiency optimizations, and it is easy to use. The heart of TECA's pipeline implementation is the teca\_algorithm. This is an abstract class that contains all of the control and execution logic. All pipelines in TECA are built by connecting concrete implementations of teca\_algorithm together to form execution networks.
-
-TECA's pipeline model has 3 phases of execution
-
-\noindent\begin{minipage}{0.85\textwidth}
-\vspace{2mm}
-\begin{description}
-\item[Report.] The report phase kicks off a pipeline's execution and is initiated when the user calls update() or update\_metadata() on a teca\_algorithm. In the report phase, starting at the top of the pipeline working sequentially down, each algorithm examines the incoming report and generates outgoing report about what it will produce. This can be as simple as adding an array name to the list of arrays or as complex as building meatadata describing a dataset on disk. Reporting always occurs in the process's main thread. Where metadata generation would create a scalability issue, for instance parsing data on disk, the report should be generated on rank 0 and broadcast to the other ranks.
-\item [Request.] The request phase begins when report the report phase reaches the bottom of the pipeline. In the request phase, starting at the bottom of the pipeline working sequentially up, each algorithm examines the incoming request, and report of what's available, and from this information generates an outgoing request for the data it will need during the execution phase. This can be as simple as adding a list of arrays required to compute a derived quantity or as complex as requesting multiple datasets for a temporal computation. The returned requests are propagated up after mapping them round robin onto the algorithm's inputs. Thus, it's possible for each of an algorithm's inputs to make multiple requests per pipeline execution. When a threaded algorithm is in the pipleine, requests are dispatched by the thread pool and request phase code must be thread safe. This is usally not an issue but something to aware of if caching or persistence between the request and execution phase is desired.
-\item [Execute.] The execute phase begins when requests reach the top of the pipeline. In the execute phase, starting at the top of the pipeline and working sequentially down, each algorithm handles the incoming request, typically by taking some action or generating data. The datasets passed into the execute phase should never be modified. When a threaded algorithm is in the pipleine, execute code must be thread safe.
-\end{description}
-\vspace{2mm}
-\end{minipage}
-
-\noindent In C++ polymorphism is used to provide customized behavior for each of the three pipeline phases. In Python we use an adapter class that calls user provided callback functions at the appropriate times during each phase of pipeline execution. Hence writing a TECA algorithm purely in Python ammounts to providing three appropriate callbacks.
-
 \paragraph{The Report Callback}
-The report callback will report the universe of what you \emph{could} produce.
+The report callback will report the universe of what the algorithm could produce.
+
 \begin{minted}{python}
 def report_callback(o_port, reports_in) -> report_out
 \end{minted}
@@ -498,10 +522,11 @@ def report_callback(o_port, reports_in) -> report_out
 \vspace{2mm}
 \end{minipage}
 
-\noindent Your default strategy should be to pass through the incoming report appending to it as needed. This allows upstream data producers to advertise their capabilities.
+\noindent Report stage should be fast and light. Typically the incoming report is passed through with metadata describing new data that could be produced appended as needed. This allows upstream data producers to advertise their capabilities.
 
 \paragraph{The Request Callback}
-\noindent The request callback will request the data you actually need to fulfill the request being made of you.
+\noindent The request callback generates an up stream request requesting the minimum amount of data actually needed to fulfill the incoming request
+.
 \begin{minted}{python}
 def request(o_port, reports_in, request_in) -> requests_out
 \end{minted}
@@ -511,14 +536,16 @@ def request(o_port, reports_in, request_in) -> requests_out
  \item[o\_port] integer. the output port number to report for. can be ignored for single output algorithms.
  \item[reports\_in] teca\_metadata list. reports describing available data from the next upstream algorithm, one per input connection.
  \item[request\_in] teca\_metadata. the request being made of you.
- \item[report\_out] teca\_metadata list. requests describing data that you need tp fulfill the request made of you.
+ \item[report\_out] teca\_metadata list. requests describing data that you need to fulfill the request made of you.
 \end{description}
 \vspace{2mm}
 \end{minipage}
 
-\noindent Your dafault strategy should be to pass through the incoming request appending to it as needed. This allows down stream data consumers to request data that is produced upstream from you.
+\noindent Typically the incoming request is passed through appending the necessary metadata as needed. This allows down stream data consumers to request data that is produced upstream.
+
 \paragraph{The Execute Callback}
-\noindent The execute callback is where you generate the requested data or perform the requested action.
+\noindent The execute callback is where the computations or I/O necessary to produce the requested data are handled.
+
 \begin{minted}{python}
 def execute(o_port, data_in, request_in) -> data_out
 \end{minted}
@@ -533,26 +560,48 @@ def execute(o_port, data_in, request_in) -> data_out
 \vspace{2mm}
 \end{minipage}
 
-\noindent One common strategy is to pass the incoming data through, appending to it as needed. This allows down stream data consumers to receive data that is produced upstream from you. Because TECA caches data it is important that incoming data is not modified.
+\noindent A simple strategy for generating derived quantities having the same data layout, for example on a Cartesian mesh or in a table, is to pass the incoming data through appending the new arrays. This allows down stream data consumers to receive data that is produced upstream. Because TECA caches data it is important that incoming data is not modified, this convention enables shallow copy of large data which saves memory.
 
-\paragraph{Working with Requests and Reports} In the TECA pipeline the report and request execution phases handle communication in between various stages of the pipeline. The medium for these exchanges of information is the teca\_metadata object. Simply put TECA metadata objects are associative containers mapping strings(keys) to arrays(values). Internally a type-erasure is used so that any type of data may stored, including nesting of metadata objects to create hierarchical structures. This approach is about as simple and flexible as it gets. For two stages of a pipeline to communicate all that is required is that they agree on a key naming convention. This is both the strength and weakness of this approach. On the one hand, it's trivial to extend by adding keys and arbitrarily complex infomration may be exchanged. On the other hand, key naming conventions can't be easily enforced leaving it up to developers to ensure that algorithms play nicely together. In practice the critical metadata conventions are defined by the reader. All algorithms sitting down stream must be aware of and adopt the reader's metadata convention. For most use cases the reader will be TECA's NetCDF CF 2.0 reader, teca\_cf\_reader. The convention adopted by the CF reader are documented in its header file and in section \ref{sec:cf_reader}.
+Lines 27-30 of listing \ref{code:py_glue} illustrate the use of teca\_programmable\_algorithm. In this example the callbacks implementing the computation of descriptive statistics over a set of variables laid out on a Cartesian lat-lon mesh are in a separate file, stats\_callbacks.py (listing \ref{code:py_devel}) imported on line 6 and passed into the programmable algorithm on lines 29 and 30. Note, that we did not need to provide a report callback as the default implementation, which simply passes the report through was all that was needed. In both our request and execute callbacks we used a closure to pass list of variables from the command line into the function. Our request callback (lines 6-9 of listing \ref{code:py_devel}) simply adds the list of variables we need into the incoming request which it then forwards up stream. The execute callback (lines 14-35) gets the input dataset (line 17), creates the output table adding columns and values of time and time step (lines 19-21), then for each variable we add columns to the table for each computation (line 25), get the array from the input dataset (line 29), compute statistics and add them to the table (lines 31-33), and returns the table containing the results (line 35). This data can then be processed by the next stage in the pipeline.
 
-The Python API for teca\_metadata models the standard Python dictionary and as is customary for Python type conversions are handled seamlessly. Metadata objects are one of the few cases in TECA where stack based allocation is used. Here's how one would construct a new metadata object\mint{python}|md = teca_metadata()| or if a copy is desired one may use the copy constructor. \mint{python}|md2 = teca_metadata(md1)| To replace or add values we use it just like a Python dictionary.
+\subsection{Working with TECA's Data Structures}
+\paragraph{Arrays}
+TODO: illustrate use of teca\_variant\_array, and role numpy plays
+
+\paragraph{Metadata}
+TOOD: illustrate use of teca\_metadata
+
+The Python API for teca\_metadata models the standard Python dictionary. Metadata objects are one of the few cases in TECA where stack based allocation and deep copying are always used.
 \begin{minted}{python}
+md = teca_metadata()
 md['name'] = 'Land Mask'
-md['id'] =  1
 md['bounds'] = [-90, 90, 0, 360]
+
+md2 = teca_metadata(md)
+md2['bounds'] =  [-20, 20, 0, 360]
 \end{minted}
 
+\paragraph{Array Collections}
+TODO: illustrate teca\_array\_collection, tabular and mesh based datasets are implemented in terms of collections of arrays
+
+\paragraph{Tables}
+TODO: illustrate use of teca\_table
+
+\paragraph{Cartesian Meshes}
+TODO: illustrate use of teca\_cartesian\_mesh
+
+\subsection{NetCDF CF Reader Metadata}
+\label{sec:cf_reader}
+TODO: document metadata conventions employed by the reader
 
 
-\paragraph{NetCDF CF-2.0 Reader, Conventions and Metadata} \label{sec:cf_reader}
-TODO
+% \paragraph{NetCDF CF-2.0 Reader, Conventions and Metadata} \label{sec:cf_reader}
+% TODO
+% 
+% \paragraph{Efficiently Accessing Array Based Data}
+% TODO
 
-\paragraph{Efficiently Accessing Array Based Data}
-TODO
-
-\hyperlink{toc}{\footnotesize \bf [contents]}
+% \hyperlink{toc}{\footnotesize \bf [contents]}
 
 % \chapter{TECA Framework Design and Architecture}
 % \section{The Pipeline Pattern and the Algorithm Abstraction}
