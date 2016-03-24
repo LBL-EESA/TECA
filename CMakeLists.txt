@@ -7,6 +7,8 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMake")
 
+option(TECA_USE_ASAN "Build with address sanitizer" OFF)
+
 # add the requisite flags to enable c++11 features
 # on various platforms
 if (MSVC)
@@ -32,6 +34,13 @@ if (NOT (CXX11_REGEX_COMPILES AND CXX11_REGEX_WORKS))
 else()
     message(STATUS "Check for c++ regex support -- enabled")
     set(TECA_HAS_REGEX ON CACHE BOOL "Regex features")
+endif()
+
+# address sanitizer support
+if (TECA_USE_ASAN)
+  # seems to work for recent versions of both Clang and GCC
+  message(STATUS "Building with AddressSanitizer to check for memory errors")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
 endif()
 
 # locate dependencies
