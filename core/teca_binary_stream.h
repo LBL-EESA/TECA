@@ -36,18 +36,19 @@ public:
     // Alolocate n_bytes for the stream.
     void resize(size_t n_bytes);
 
-    // Add n_bytes to the stream.
+    // ensures space for n_bytes more to the stream.
     void grow(size_t n_bytes);
 
     // Get a pointer to the stream internal representation.
     unsigned char *get_data() noexcept
     { return m_data; }
 
-    // Get the size of the m_data in the stream.
+    // Get the size of the valid data in the stream.
+    // note: the internal buffer may be larger.
     size_t size() const noexcept
     { return m_data_p - m_data; }
 
-    // Set the stream position to the head of the strem
+    // Set the stream position to the head of the stream
     void rewind() noexcept
     { m_data_p = m_data; }
 
@@ -70,6 +71,12 @@ public:
 
     template<typename T> void pack(const std::vector<T> &v);
     template<typename T> void unpack(std::vector<T> &v);
+
+private:
+    // re-allocation size
+    static
+    constexpr unsigned int get_block_size()
+    { return 512; }
 
 private:
     size_t m_size;
