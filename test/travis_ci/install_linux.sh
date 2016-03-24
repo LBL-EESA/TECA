@@ -11,7 +11,7 @@ sudo apt-get update -qq
 # install deps
 # use PIP for Python packages
 sudo apt-get install -qq -y cmake gcc-5 g++-5 gfortran swig3.0 \
-    libopenmpi-dev openmpi-bin libhdf5-openmpi-dev libnetcdf-dev \
+    libmpich-dev mpich libhdf5-mpich-dev libnetcdf-dev \
     libboost-program-options-dev python-dev subversion
 
 pip install --user numpy mpi4py
