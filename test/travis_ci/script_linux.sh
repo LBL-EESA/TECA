@@ -15,6 +15,7 @@ cmake \
     -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
     -DBUILD_TESTING=ON \
     -DTECA_DATA_ROOT=${TRAVIS_BUILD_DIR}/TECA_data \
+    -DTECA_USE_ASAN=ON \
     ..
 
 make -j4

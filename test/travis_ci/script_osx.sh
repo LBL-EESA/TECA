@@ -16,6 +16,7 @@ cmake \
     -DCMAKE_CXX_FLAGS="-Wall -Wextra" \
     -DBUILD_TESTING=ON \
     -DTECA_DATA_ROOT=${TRAVIS_BUILD_DIR}/TECA_data \
+    -DTECA_USE_ASAN=ON \
     ..
 
 make -j4
