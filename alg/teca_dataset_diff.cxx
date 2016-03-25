@@ -30,7 +30,7 @@ using std::endl;
 
 // --------------------------------------------------------------------------
 teca_dataset_diff::teca_dataset_diff()
-    : tolerance(1e-12)
+    : tolerance(1e-6)
 {
     this->set_number_of_input_connections(2);
     this->set_number_of_output_ports(1);
@@ -47,7 +47,7 @@ void teca_dataset_diff::get_properties_description(
 {
     options_description opts("Options for " + prefix + "(teca_dataset_diff)");
     opts.add_options()
-        TECA_POPTS_GET(double, prefix, tolerance, "absolute test tolerance")
+        TECA_POPTS_GET(double, prefix, tolerance, "relative test tolerance")
         ;
     global_opts.add(opts);
 }
@@ -217,17 +217,23 @@ int teca_dataset_diff::compare_arrays(
 
         for (size_t i = 0; i < n_elem; ++i)
         {
-            // we don't care too much about perfromance here so
+            // we don't care too much about performance here so
             // use double precision for the comparison.
-            double v1 = static_cast<double>(pa1[i]);
-            double v2 = static_cast<double>(pa2[i]);
+            double ref_val = static_cast<double>(pa1[i]);  // reference
+            double comp_val = static_cast<double>(pa2[i]); // computed
 
-            double abs_diff = std::abs(v1 - v2);
-            if (abs_diff > this->tolerance)
+            // Compute the relative difference.
+            double rel_diff = 0.0;
+            if (ref_val != 0.0) 
+              rel_diff = std::abs(comp_val - ref_val) / std::abs(ref_val);
+            else if (comp_val != 0.0)
+              rel_diff = std::abs(comp_val - ref_val) / std::abs(comp_val);
+
+            if (rel_diff > this->tolerance)
             {
-                datasets_differ("Absolute difference %g exceeds tolerance %g in "
+                datasets_differ("Relative difference %g exceeds tolerance %g in "
                     "element %d. ref value \"%g\" is not equal to test value \"%g\"",
-                    abs_diff, this->tolerance, i, v1, v2);
+                    rel_diff, this->tolerance, i, ref_val, comp_val);
                 return 1;
             }
         }

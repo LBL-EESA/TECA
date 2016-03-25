@@ -37,7 +37,12 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // Tolerance below which two floating-point quantities are considered equal.
+    // Relative tolerance below which two floating-point quantities are 
+    // considered equal. The relative difference for a computed quantity A and 
+    // a reference quantity B is
+    // rel_diff = |A - B| / B, B != 0
+    //          = |A - B| / A, B == 0, A != 0
+    //            0            otherwise
     TECA_ALGORITHM_PROPERTY(double, tolerance)
 
 protected:
