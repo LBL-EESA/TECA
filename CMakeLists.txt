@@ -182,7 +182,11 @@ if (NOT TECA_DATA_ROOT)
 endif()
 set(BUILD_TESTING OFF CACHE BOOL "Enable tests")
 if (BUILD_TESTING)
-    enable_testing()
+    include(CTest)
+    configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/CTestCustom.cmake.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/CTestCustom.cmake"
+        @ONLY)
     include(CMake/teca_test.cmake)
     add_subdirectory(test)
 endif()
