@@ -107,15 +107,19 @@ bool append(teca_variant_array *varr, PyObject *obj)
     // append
     TEMPLATE_DISPATCH(teca_variant_array_impl, varr,
         TT *varrt = static_cast<TT*>(varr);
+        varrt->reserve(n_elem);
 
         TECA_PY_ARRAY_DISPATCH(arr,
-            PyObject *it = PyArray_IterNew(obj);
-            for (size_t i = 0; i < n_elem; ++i)
+            NpyIter *it = NpyIter_New(arr, NPY_ITER_READONLY,
+                    NPY_KEEPORDER, NPY_NO_CASTING, nullptr);
+            NpyIter_IterNextFunc *next = NpyIter_GetIterNext(it, nullptr);
+            AT **ptrptr = reinterpret_cast<AT**>(NpyIter_GetDataPtrArray(it));
+            do
             {
-                varrt->append(*static_cast<AT*>(PyArray_ITER_DATA(it)));
-                PyArray_ITER_NEXT(it);
+                varrt->append(**ptrptr);
             }
-            Py_DECREF(it);
+            while (next(it));
+            NpyIter_Deallocate(it);
             return true;
             )
         )
@@ -142,16 +146,20 @@ bool copy(teca_variant_array *varr, PyObject *obj)
     TEMPLATE_DISPATCH(teca_variant_array_impl, varr,
 
         TT *varrt = static_cast<TT*>(varr);
-        varrt->resize(n_elem);
+        varrt->resize(0);
+        varrt->reserve(n_elem);
 
         TECA_PY_ARRAY_DISPATCH(arr,
-            PyObject *it = PyArray_IterNew(obj);
-            for (size_t i = 0; i < n_elem; ++i)
+            NpyIter *it = NpyIter_New(arr, NPY_ITER_READONLY,
+                    NPY_KEEPORDER, NPY_NO_CASTING, nullptr);
+            NpyIter_IterNextFunc *next = NpyIter_GetIterNext(it, nullptr);
+            AT **ptrptr = reinterpret_cast<AT**>(NpyIter_GetDataPtrArray(it));
+            do
             {
-                varrt->set(i, *static_cast<AT*>(PyArray_ITER_DATA(it)));
-                PyArray_ITER_NEXT(it);
+                varrt->append(**ptrptr);
             }
-            Py_DECREF(it);
+            while (next(it));
+            NpyIter_Deallocate(it);
             return true;
             )
         )
@@ -173,18 +181,22 @@ p_teca_variant_array new_variant_array(PyObject *obj)
     TECA_PY_ARRAY_DISPATCH(arr,
         size_t n_elem = PyArray_SIZE(arr);
 
-        p_teca_variant_array_impl<AT> varr
-             = teca_variant_array_impl<AT>::New(n_elem);
+        p_teca_variant_array_impl<AT> varrt
+             = teca_variant_array_impl<AT>::New();
+        varrt->reserve(n_elem);
 
-        PyObject *it = PyArray_IterNew(obj);
-        for (size_t i = 0; i < n_elem; ++i)
+        NpyIter *it = NpyIter_New(arr, NPY_ITER_READONLY,
+                NPY_KEEPORDER, NPY_NO_CASTING, nullptr);
+        NpyIter_IterNextFunc *next = NpyIter_GetIterNext(it, nullptr);
+        AT **ptrptr = reinterpret_cast<AT**>(NpyIter_GetDataPtrArray(it));
+        do
         {
-            varr->set(i, *static_cast<AT*>(PyArray_ITER_DATA(it)));
-            PyArray_ITER_NEXT(it);
+            varrt->append(**ptrptr);
         }
-        Py_DECREF(it);
+        while (next(it));
+        NpyIter_Deallocate(it);
 
-        return varr;
+        return varrt;
         )
 
     // unknown type
