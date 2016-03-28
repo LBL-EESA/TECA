@@ -7,16 +7,29 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMake")
 
+# if we forgot to set the build type default to release
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release"
+      CACHE STRING "One of: Debug Release RelWithDebInfo MinSizeRel"
+      FORCE)
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY
+        STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+endif()
+message(STATUS "Configuring a ${CMAKE_BUILD_TYPE} build")
+
 # add the requisite flags to enable c++11 features
 # on various platforms
 if (MSVC)
     # TODO require vs2013
     # enable exceptions
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc"
+            CACHE STRING "" FORCE)
 else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=c++11 -Wall -Wextra")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=c++11 -Wall -Wextra"
+        CACHE STRING "" FORCE)
     if ((APPLE) AND ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang"))
-         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++"
+            CACHE STRING "" FORCE)
     endif()
 endif()
 
@@ -142,7 +155,8 @@ endif()
 set(tmp)
 find_package(Git)
 if (GIT_FOUND)
-    execute_process(COMMAND ${GIT_EXECUTABLE} describe --tags
+    execute_process(COMMAND ${GIT_EXECUTABLE}
+        --git-dir=${CMAKE_CURRENT_SOURCE_DIR}/.git describe --tags
         OUTPUT_VARIABLE tmp OUTPUT_STRIP_TRAILING_WHITESPACE)
 endif()
 if (NOT tmp)
