@@ -196,6 +196,8 @@ void teca_metadata::to_stream(teca_binary_stream &s) const
 // --------------------------------------------------------------------------
 void teca_metadata::from_stream(teca_binary_stream &s)
 {
+    this->clear();
+
     unsigned int n_props;
     s.unpack(n_props);
 
