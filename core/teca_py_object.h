@@ -208,7 +208,7 @@ bool append(teca_variant_array *varr, PyObject *obj)
     return false;
 }
 
-// container that safely holds a PyObject*
+// container that keeps a reference to a PyObject
 class teca_py_object_ptr
 {
 public:
@@ -220,13 +220,13 @@ public:
      virtual ~teca_py_object_ptr() { Py_XDECREF(m_obj); }
 
      teca_py_object_ptr(teca_py_object_ptr &&o)
-        : m_obj(o.m_obj) { o.m_obj = NULL; }
+        : m_obj(o.m_obj) { o.m_obj = nullptr; }
 
      teca_py_object_ptr &operator=(teca_py_object_ptr &&o)
      {
-         Py_XDECREF(m_obj);
+         PyObject *tmp = m_obj;
          m_obj = o.m_obj;
-         o.m_obj = NULL;
+         o.m_obj = tmp;
          return *this;
      }
 
@@ -260,9 +260,30 @@ private:
 class teca_py_callable : public teca_py_object_ptr
 {
 public:
+    teca_py_callable() : teca_py_object_ptr() {}
+
+    virtual ~teca_py_callable()
+    { this->teca_py_object_ptr::set_object(nullptr); }
+
     teca_py_callable(PyObject *f) : teca_py_object_ptr()
+    { this->teca_py_callable::set_object(f); }
+
+    teca_py_callable(const teca_py_callable &&o)
+        : teca_py_object_ptr(std::move(o)) {}
+
+    teca_py_callable &operator=(const teca_py_callable &&o)
     {
-        this->teca_py_callable::set_object(f);
+        this->teca_py_object_ptr::operator=(std::move(o));
+        return *this;
+    }
+
+    teca_py_callable(const teca_py_callable &o)
+        : teca_py_object_ptr(o) {}
+
+    teca_py_callable &operator=(const teca_py_callable &o)
+    {
+        this->teca_py_object_ptr::operator=(o);
+        return *this;
     }
 
     virtual void set_object(PyObject *f)
