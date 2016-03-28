@@ -22,17 +22,15 @@ last_step = int(sys.argv[4])
 n_threads = int(sys.argv[5])
 var_names = sys.argv[6:]
 
-class descriptive_stats:
-    @staticmethod
+def get_request(var_names):
     def request(port, md_in, req_in):
-        global var_names
         req = teca_metadata(req_in)
         req['arrays'] = var_names
         return [req]
+    return request
 
-    @staticmethod
+def get_execute(rank, var_names):
     def execute(port, data_in, req):
-        global var_names, rank
         sys.stderr.write('descriptive_stats::execute MPI %d\n'%(rank))
 
         mesh = as_teca_cartesian_mesh(data_in[0])
@@ -54,6 +52,7 @@ class descriptive_stats:
                 << map(float, np.percentile(var, [25.,50.,75.]))
 
         return table
+    return execute
 
 if (rank == 0):
     sys.stderr.write('Testing on %d MPI processes\n'%(n_ranks))
@@ -62,8 +61,8 @@ cfr = teca_cf_reader.New()
 cfr.set_files_regex(data_regex)
 
 stats = teca_programmable_algorithm.New()
-stats.set_request_callback(descriptive_stats.request)
-stats.set_execute_callback(descriptive_stats.execute)
+stats.set_request_callback(get_request(var_names))
+stats.set_execute_callback(get_execute(rank, var_names))
 stats.set_input_connection(cfr.get_output_port())
 
 mr = teca_table_reduce.New()
