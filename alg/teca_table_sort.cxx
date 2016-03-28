@@ -157,5 +157,7 @@ const_p_teca_dataset teca_table_sort::execute(
             )
     }
 
+    free(index);
+
     return out_table;
 }
