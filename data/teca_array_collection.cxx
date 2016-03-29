@@ -199,17 +199,20 @@ void teca_array_collection::from_stream(teca_binary_stream &s)
 // --------------------------------------------------------------------------
 void teca_array_collection::to_stream(std::ostream &s) const
 {
-    s << "{";
+    s << "{" << std::endl;
     size_t n_arrays = this->size();
     if (n_arrays)
     {
-        s << this->get_name(0);
+        s << this->get_name(0) << " = {";
+        this->get(0)->to_stream(s);
+        s << "}" << std::endl;
+
         for (size_t i = 1; i < n_arrays; ++i)
         {
             s << ", " <<  this->get_name(i) << " = {";
             this->get(i)->to_stream(s);
-            s << "}";
+            s << "}" << std::endl;
         }
     }
-    s << "}";
+    s << "}" << std::endl;
 }

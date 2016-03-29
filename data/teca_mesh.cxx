@@ -108,9 +108,11 @@ void teca_mesh::from_stream(teca_binary_stream &s)
 }
 
 // --------------------------------------------------------------------------
-void teca_mesh::to_stream(std::ostream &) const
+void teca_mesh::to_stream(std::ostream &s) const
 {
-    // TODO
+    s << "point arrays = ";
+    m_impl->point_arrays->to_stream(s);
+    s << std::endl;
 }
 
 // --------------------------------------------------------------------------

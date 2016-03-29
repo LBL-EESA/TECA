@@ -142,3 +142,13 @@ teca_add_test(test_descriptive_statistics_mpi_threads
     "${TECA_DATA_ROOT}/test_descriptive_statistics.bin" 0 -1 2 TMQ T200 T500
     FEATURES (${TECA_HAS_NETCDF} AND ${TECA_HAS_MPI})
     REQ_TECA_DATA)
+
+teca_add_test(test_binary_stream
+    SOURCES test_binary_stream.cpp
+    LIBS teca_core teca_data teca_alg ${teca_test_link}
+    COMMAND test_binary_stream)
+
+teca_add_test(test_binary_stream_mpi
+    SOURCES test_binary_stream.cpp
+    LIBS teca_core teca_data teca_alg ${teca_test_link}
+    COMMAND mpiexec -np 2 test_binary_stream)

@@ -30,13 +30,8 @@ int send(MPI_Comm comm, int dest, teca_binary_stream &s)
 
     if (n)
     {
-        if (MPI_Send(
-                s.get_data(),
-                n,
-                MPI_UNSIGNED_CHAR,
-                dest,
-                3211,
-                MPI_COMM_WORLD))
+        if (MPI_Send(s.get_data(), n, MPI_UNSIGNED_CHAR,
+                dest, 3211, MPI_COMM_WORLD))
         {
             TECA_ERROR("failed to send message")
             return -2;
@@ -53,7 +48,7 @@ int recv(MPI_Comm comm, int src, teca_binary_stream &s)
     MPI_Status stat;
     if (MPI_Recv(&n, 1, MPI_UNSIGNED_LONG_LONG, src, 3210, comm, &stat))
     {
-        TECA_ERROR("failed to receive")
+        TECA_ERROR("failed to receive message size")
         return -2;
     }
 
@@ -63,7 +58,7 @@ int recv(MPI_Comm comm, int src, teca_binary_stream &s)
     {
         if (MPI_Recv(s.get_data(), n, MPI_UNSIGNED_CHAR, src, 3211, comm, &stat))
         {
-            TECA_ERROR("failed to receive")
+            TECA_ERROR("failed to receive message")
             return -2;
         }
     }

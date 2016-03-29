@@ -280,15 +280,12 @@ teca_metadata teca_cf_reader::get_output_metadata(
     MPI_Initialized(&is_init);
     if (is_init)
     {
-        int tmp = 0;
-        MPI_Comm_size(MPI_COMM_WORLD, &tmp);
-        n_ranks = tmp;
-        MPI_Comm_rank(MPI_COMM_WORLD, &tmp);
-        rank = tmp;
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
     }
 
     teca_binary_stream bstr;
-    unsigned long long bstr_size;
+    unsigned long bstr_size;
 #endif
 
     // only rank 0 will parse the dataset. once
@@ -297,7 +294,6 @@ teca_metadata teca_cf_reader::get_output_metadata(
     if (rank == root_rank)
     {
         vector<string> files;
-
         string path;
 
         if (!this->file_name.empty())
@@ -697,13 +693,13 @@ teca_metadata teca_cf_reader::get_output_metadata(
             bstr_size = bstr.size();
 
             // TODO -- use teca specific communicator
-            if ((MPI_Bcast(&bstr_size, 1,
-                    MPI_UNSIGNED_LONG_LONG, root_rank, MPI_COMM_WORLD))
-                || (MPI_Bcast(bstr.get_data(), bstr_size,
-                    MPI_CHAR, root_rank, MPI_COMM_WORLD)))
+            if (MPI_Bcast(&bstr_size, 1, MPI_UNSIGNED_LONG,
+                root_rank, MPI_COMM_WORLD) ||
+                MPI_Bcast(bstr.get_data(), bstr_size,
+                    MPI_BYTE, root_rank, MPI_COMM_WORLD))
             {
                 this->clear_cached_metadata();
-                TECA_ERROR("Failed to broadcast metatdata")
+                TECA_ERROR("Failed to broadcast metadata")
                 return teca_metadata();
             }
         }
@@ -711,26 +707,28 @@ teca_metadata teca_cf_reader::get_output_metadata(
     }
 #if defined(TECA_HAS_MPI)
     else
+    if (is_init)
     {
         // all other ranks receive the metadata from the root
-        if (MPI_Bcast(&bstr_size, 1,
-            MPI_UNSIGNED_LONG_LONG, root_rank, MPI_COMM_WORLD))
+        if (MPI_Bcast(&bstr_size, 1, MPI_UNSIGNED_LONG,
+            root_rank, MPI_COMM_WORLD))
         {
             this->clear_cached_metadata();
-            TECA_ERROR("Failed to broadcast metatdata")
+            TECA_ERROR("Failed to broadcast metadata")
             return teca_metadata();
         }
 
         bstr.resize(bstr_size);
 
         if (MPI_Bcast(bstr.get_data(), bstr_size,
-                 MPI_CHAR, root_rank, MPI_COMM_WORLD))
+                 MPI_BYTE, root_rank, MPI_COMM_WORLD))
         {
             this->clear_cached_metadata();
-            TECA_ERROR("Failed to broadcast metatdata")
+            TECA_ERROR("Failed to broadcast metadata")
             return teca_metadata();
         }
 
+        bstr.rewind();
         this->metadata.from_stream(bstr);
 
         // initialize the file map
@@ -749,6 +747,10 @@ const_p_teca_dataset teca_cf_reader::execute(
     const std::vector<const_p_teca_dataset> &input_data,
     const teca_metadata &request)
 {
+#ifdef TECA_DEBUG
+    cerr << teca_parallel_id()
+        << "teca_cf_reader::execute" << endl;
+#endif
     (void)input_data;
 
     // get coordinates

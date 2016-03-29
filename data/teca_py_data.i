@@ -382,15 +382,17 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
         if (PyArray_Check(obj))
         {
             PyArrayObject *arr = reinterpret_cast<PyArrayObject*>(obj);
-            size_t n_elem = PyArray_SIZE(arr);
             TECA_PY_ARRAY_DISPATCH(arr,
-                PyObject *it = PyArray_IterNew(obj);
-                for (size_t i = 0; i < n_elem; ++i)
+                NpyIter *it = NpyIter_New(arr, NPY_ITER_READONLY,
+                        NPY_KEEPORDER, NPY_NO_CASTING, nullptr);
+                NpyIter_IterNextFunc *next = NpyIter_GetIterNext(it, nullptr);
+                AT **ptrptr = reinterpret_cast<AT**>(NpyIter_GetDataPtrArray(it));
+                do
                 {
-                    self->append(*static_cast<AT*>(PyArray_ITER_DATA(it)));
-                    PyArray_ITER_NEXT(it);
+                    self->append(**ptrptr);
                 }
-                Py_DECREF(it);
+                while (next(it));
+                NpyIter_Deallocate(it);
                 return;
                 )
             PyErr_Format(PyExc_TypeError, "failed to append array");

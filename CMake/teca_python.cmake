@@ -35,7 +35,7 @@ function(wrap_swig input output depend)
     file(STRINGS ${depend_file} depends)
     add_custom_command(
         OUTPUT ${output_file}
-        COMMAND ${swig_cmd} -c++ -python -w341,325
+        COMMAND ${swig_cmd} -c++ -python -threads -w341,325
             -DSWIG_TYPE_TABLE=teca_py
             -I${CMAKE_CURRENT_BINARY_DIR}
             -I${CMAKE_CURRENT_BINARY_DIR}/..
