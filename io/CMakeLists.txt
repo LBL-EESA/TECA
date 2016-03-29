@@ -73,7 +73,3 @@ install(EXPORT teca_io
     FILE teca_io.cmake
     EXPORT_LINK_INTERFACE_LIBRARIES
     )
-
-if (TECA_HAS_PYTHON)
-    teca_python_module(io)
-endif()

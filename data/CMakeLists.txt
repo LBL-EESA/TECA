@@ -41,7 +41,3 @@ install(EXPORT teca_data
     FILE teca_data.cmake
     EXPORT_LINK_INTERFACE_LIBRARIES
     )
-
-if (TECA_HAS_PYTHON)
-    teca_python_module(data)
-endif()

@@ -1,15 +1,4 @@
-%define TECA_PY_ALG_DOC
-"TECA alg module
-
-The io module contains data processing, analysis, remeshing,
-and detectors.
-"
-%enddef
-%module (docstring=TECA_PY_ALG_DOC) teca_py_alg
-%feature("autodoc", "3");
-
 %{
-#include <Python.h>
 #include "teca_config.h"
 #include "teca_algorithm.h"
 #include "teca_ar_detect.h"

@@ -1,22 +1,5 @@
-%define TECA_PY_CORE_DOC
-"TECA core module
-
-The core module contains the pipeline and executive
-as well as metadata object, variant array and abstract
-datasets.
-"
-%enddef
-%module (docstring=TECA_PY_CORE_DOC) teca_py_core
-%feature("autodoc", "3");
-
 %{
-#define SWIG_FILE_WITH_INIT
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#define PY_ARRAY_UNIQUE_SYMBOL  PyArray_API_teca_py_core
-#include <numpy/arrayobject.h>
-#include <sstream>
 #include <vector>
-#include <Python.h>
 
 #include "teca_algorithm_executive.h"
 #include "teca_time_step_executive.h"
@@ -31,17 +14,6 @@ datasets.
 #include "teca_py_array.h"
 #include "teca_py_iterator.h"
 %}
-
-%init %{
-import_array();
-%}
-
-%include "teca_py_common.i"
-%include "teca_py_shared_ptr.i"
-%include "teca_py_vector.i"
-%include <std_pair.i>
-%include <std_string.i>
-
 
 /***************************************************************************
  variant_array
