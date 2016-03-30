@@ -1,6 +1,7 @@
 #include "teca_table.h"
 
 #include "teca_binary_stream.h"
+#include "teca_mesh.h"
 
 using std::vector;
 using std::map;
@@ -176,13 +177,22 @@ void teca_table::shallow_copy(const p_teca_dataset &dataset)
 // --------------------------------------------------------------------------
 void teca_table::copy_metadata(const const_p_teca_dataset &dataset)
 {
-    const_p_teca_table other
-        = std::dynamic_pointer_cast<const teca_table>(dataset);
+    const_p_teca_table other_table;
+    if ((other_table = std::dynamic_pointer_cast<const teca_table>(dataset)))
+    {
+        m_impl->metadata = other_table->m_impl->metadata;
+        return;
+    }
 
-    if (!other)
-        throw std::bad_cast();
+    const_p_teca_mesh other_mesh;
+    if ((other_mesh = std::dynamic_pointer_cast<const teca_mesh>(dataset)))
+    {
+        m_impl->metadata = other_mesh->get_metadata();
+        return;
+    }
 
-    m_impl->metadata = other->m_impl->metadata;
+    // this is a developer error, only copy from the supported types.
+    throw std::bad_cast();
 }
 
 // --------------------------------------------------------------------------
