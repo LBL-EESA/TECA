@@ -10,6 +10,7 @@
 #include "teca_l2_norm.h"
 #include "teca_mask.h"
 #include "teca_programmable_algorithm.h"
+#include "teca_table_sort.h"
 #include "teca_table_reduce.h"
 #include "teca_table_to_stream.h"
 #include "teca_temporal_average.h"
@@ -162,3 +163,11 @@
 %shared_ptr(teca_descriptive_statistics)
 %ignore teca_descriptive_statistics::operator=;
 %include "teca_descriptive_statistics.h"
+
+/***************************************************************************
+ table_sort
+ ***************************************************************************/
+%ignore teca_table_sort::shared_from_this;
+%shared_ptr(teca_table_sort)
+%ignore teca_table_sort::operator=;
+%include "teca_table_sort.h"
