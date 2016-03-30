@@ -153,6 +153,7 @@ void teca_table::copy(const const_p_teca_dataset &dataset)
         return;
 
     this->clear();
+
     m_impl->metadata = other->m_impl->metadata;
     m_impl->columns->copy(other->m_impl->columns);
 }
@@ -167,6 +168,7 @@ void teca_table::shallow_copy(const p_teca_dataset &dataset)
         throw std::bad_cast();
 
     this->clear();
+
     m_impl->metadata = other->m_impl->metadata;
     m_impl->columns->shallow_copy(other->m_impl->columns);
 }
@@ -180,12 +182,14 @@ void teca_table::copy_metadata(const const_p_teca_dataset &dataset)
     if (!other)
         throw std::bad_cast();
 
-    this->clear();
-
     m_impl->metadata = other->m_impl->metadata;
+}
 
+// --------------------------------------------------------------------------
+void teca_table::copy_structure(const const_p_teca_table &other)
+{
     unsigned int n_cols = other->get_number_of_columns();
-    for (unsigned int i=0; i<n_cols; ++i)
+    for (unsigned int i = 0; i<n_cols; ++i)
     {
         m_impl->columns->append(
             other->m_impl->columns->get_name(i),
@@ -210,7 +214,7 @@ void teca_table::swap(p_teca_dataset &dataset)
 }
 
 // --------------------------------------------------------------------------
-void teca_table::concatenate(const const_p_teca_table &other)
+void teca_table::concatenate_rows(const const_p_teca_table &other)
 {
     if (!other)
         return;
@@ -224,4 +228,21 @@ void teca_table::concatenate(const const_p_teca_table &other)
 
     for (size_t i = 0; i < n_cols; ++i)
         this->get_column(i)->append(*(other->get_column(i).get()));
+}
+
+// --------------------------------------------------------------------------
+void teca_table::concatenate_cols(const const_p_teca_table &other, bool deep)
+{
+    if (!other)
+        return;
+
+    unsigned int n_cols = other->get_number_of_columns();
+    for (unsigned int i=0; i<n_cols; ++i)
+    {
+        m_impl->columns->append(
+            other->m_impl->columns->get_name(i),
+            deep ? other->m_impl->columns->get(i)->new_copy()
+                : std::const_pointer_cast<teca_variant_array>(
+                    other->m_impl->columns->get(i)));
+    }
 }

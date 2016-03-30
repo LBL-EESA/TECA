@@ -93,12 +93,20 @@ public:
     // copy metadata. always a deep copy.
     virtual void copy_metadata(const const_p_teca_dataset &other) override;
 
+    // copy the column layout and types
+    void copy_structure(const const_p_teca_table &other);
+
     // swap internals of the two objects
     virtual void swap(p_teca_dataset &other) override;
 
-    // append the passed in table. must have identical
-    // column layout.
-    void concatenate(const const_p_teca_table &other);
+    // append rows from the passed in table which must have identical
+    // columns.
+    void concatenate_rows(const const_p_teca_table &other);
+
+    // append columns from the passed in table which must have same
+    // number of rows. if deep flag is true a full copy of the data
+    // is made, else a shallow copy is made.
+    void concatenate_cols(const const_p_teca_table &other, bool deep=false);
 
 protected:
     teca_table();

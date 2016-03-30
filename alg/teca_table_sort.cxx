@@ -142,6 +142,7 @@ const_p_teca_dataset teca_table_sort::execute(
     // transfer data and reorder
     p_teca_table out_table = teca_table::New();
     out_table->copy_metadata(in_table);
+    out_table->copy_structure(in_table);
     unsigned int n_cols = out_table->get_number_of_columns();
     for (unsigned int j = 0; j < n_cols; ++j)
     {
