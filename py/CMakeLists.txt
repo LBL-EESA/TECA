@@ -1,0 +1,37 @@
+cmake_minimum_required(VERSION 2.8)
+cmake_policy(SET CMP0022 NEW)
+
+project(teca_py)
+
+if (TECA_HAS_PYTHON)
+    include(CMake/teca_python.cmake)
+
+    depend_swig(teca_py.i teca_py.dep)
+    wrap_swig(teca_py.i teca_py.cxx teca_py.dep)
+
+    include_directories(SYSTEM ${PYTHON_INCLUDE_PATH} ${NUMPY_INCLUDE_DIR})
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}
+            ${CMAKE_CURRENT_BINARY_DIR}
+            ${CMAKE_CURRENT_BINARY_DIR}/..
+            ${CMAKE_CURRENT_SOURCE_DIR}/../core
+            ${CMAKE_CURRENT_SOURCE_DIR}/../data
+            ${CMAKE_CURRENT_SOURCE_DIR}/../io
+            ${CMAKE_CURRENT_SOURCE_DIR}/../alg)
+
+    PYTHON_ADD_MODULE(_teca_py ${CMAKE_CURRENT_BINARY_DIR}/teca_py.cxx)
+
+    target_link_libraries(_teca_py ${PYTHON_LIBRARIES}
+        teca_core teca_data teca_alg teca_io)
+
+    add_custom_command(TARGET _teca_py POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_CURRENT_BINARY_DIR}/teca_py.py
+            ${CMAKE_CURRENT_BINARY_DIR}/../lib)
+
+    configure_file(teca.py ${CMAKE_CURRENT_BINARY_DIR}/../lib/teca.py
+        COPYONLY)
+
+    install(TARGETS _teca_py LIBRARY DESTINATION lib)
+    install(FILES teca.py ${CMAKE_CURRENT_BINARY_DIR}/teca_py.py
+        DESTINATION lib)
+endif()

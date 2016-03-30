@@ -1,28 +1,10 @@
-%define TECA_PY_IO_DOC
-"TECA io module
-
-The io module contains readers and writers.
-"
-%enddef
-%module (docstring=TECA_PY_IO_DOC) teca_py_io
-%feature("autodoc", "3");
-
 %{
-#include <Python.h>
-#include "teca_config.h"
 #include "teca_algorithm.h"
 #include "teca_cf_reader.h"
 #include "teca_table_reader.h"
 #include "teca_table_writer.h"
 #include "teca_vtk_cartesian_mesh_writer.h"
 %}
-
-%include "teca_config.h"
-%include "teca_py_common.i"
-%include "teca_py_shared_ptr.i"
-%include "teca_py_core.i"
-%include <std_string.i>
-
 
 /***************************************************************************
  cf_reader

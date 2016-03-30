@@ -48,18 +48,3 @@ function(wrap_swig input output depend)
         DEPENDS ${depend_file} ${depends}
         COMMENT "Generating python bindings for ${input}...")
 endfunction()
-function(teca_python_module mname)
-    depend_swig(teca_py_${mname}.i teca_py_${mname}.dep)
-    wrap_swig(teca_py_${mname}.i teca_py_${mname}.cxx teca_py_${mname}.dep)
-    include_directories(SYSTEM ${PYTHON_INCLUDE_PATH} ${NUMPY_INCLUDE_DIR})
-    PYTHON_ADD_MODULE(_teca_py_${mname} ${CMAKE_CURRENT_BINARY_DIR}/teca_py_${mname}.cxx)
-    target_link_libraries(_teca_py_${mname} ${PYTHON_LIBRARIES} teca_${mname})
-    add_custom_command(TARGET _teca_py_${mname} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_CURRENT_BINARY_DIR}/teca_py_${mname}.py
-            ${CMAKE_CURRENT_BINARY_DIR}/../lib)
-    install(TARGETS _teca_py_${mname} LIBRARY DESTINATION lib)
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/teca_py_${mname}.py DESTINATION lib)
-endfunction()
-configure_file(teca.py ${CMAKE_CURRENT_BINARY_DIR}/lib/teca.py COPYONLY)
-install(FILES teca.py DESTINATION lib)

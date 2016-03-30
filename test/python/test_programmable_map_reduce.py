@@ -55,7 +55,7 @@ def get_execute(rank, var_names):
     return execute
 
 if (rank == 0):
-    sys.stderr.write('Testing on %d MPI processes\n'%(n_ranks))
+    sys.stderr.write('Testing on %d MPI processes %d threads\n'%(n_ranks, n_threads))
 
 cfr = teca_cf_reader.New()
 cfr.set_files_regex(data_regex)

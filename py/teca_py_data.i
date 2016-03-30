@@ -1,15 +1,3 @@
-%define MDOC
-"TECA data module
-
-This module provides high-level data structures that
-are produced and consumed by teca_algorithms such as
-Cartesian meshes, AMR datasets, and tables.
-"
-%enddef
-
-%module (docstring=MDOC) teca_py_data
-%feature("autodoc", "3");
-
 %{
 #include <memory>
 #include <sstream>
@@ -23,12 +11,6 @@ Cartesian meshes, AMR datasets, and tables.
 #include "teca_database.h"
 #include "teca_py_object.h"
 %}
-
-%include "teca_config.h"
-%include "teca_py_common.i"
-%include "teca_py_shared_ptr.i"
-%include "teca_py_core.i"
-%include <std_string.i>
 
 /***************************************************************************/
 %define TECA_DATASET_PY_PROPERTY(_type, _name)
