@@ -33,7 +33,8 @@ sudo apt-get update -qq
 # install deps
 sudo apt-get install -qq -y cmake gcc-5 g++-5 gfortran swig3.0 \
     libopenmpi-dev openmpi-bin libhdf5-openmpi-dev libnetcdf-dev \
-    libboost-program-options-dev python-dev
+    libboost-program-options-dev python-dev libudunits2-0 \
+    libudunits2-dev
 # use PIP for Python packages
 pip install --user numpy mpi4py
 ```
@@ -75,7 +76,7 @@ code, and data. The full path to the TECA sources on your system should  be
 given by `${TECA_SOURCE_DIR}` while the full path to the test data is given by
 `${TECA_DATA_DIR}`. Please update these paths accordingly.
 
-\noindent TECA requires an out of source build. The first step is to create a build directory and
+TECA requires an out of source build. The first step is to create a build directory and
 cd into it.
 ```bash
 mkdir ${TECA_SOURCE_DIR}/build
@@ -87,6 +88,7 @@ cd ${TECA_SOURCE_DIR}/build
 cmake \
     -DCMAKE_C_COMPILER=`which gcc-5` \
     -DCMAKE_CXX_COMPILER=`which g++-5` \
+    -Dswig_cmd=`which swig3.0` \
     -DCMAKE_BUILD_TYPE=Release \
     -DBUILD_TESTING=ON \
     -DTECA_DATA_ROOT=${TECA_DATA_DIR} \
@@ -94,6 +96,10 @@ cmake \
 # compile
 make -j4
 ```
+
+Here compilers and swig are explicitly set to prevent the older and not fully C++11
+compliant versions present on Ubuntu 14.04 from being used. On newer releases and other distros
+this is not neccessary.
 
 #### Apple Mac OSX Yosemite
 ```bash

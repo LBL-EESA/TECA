@@ -110,7 +110,8 @@ sudo apt-get update -qq
 # install deps
 sudo apt-get install -qq -y cmake gcc-5 g++-5 gfortran swig3.0 \
     libopenmpi-dev openmpi-bin libhdf5-openmpi-dev libnetcdf-dev \
-    libboost-program-options-dev python-dev
+    libboost-program-options-dev python-dev libudunits2-0 \
+    libudunits2-dev
 # use PIP for Python packages
 pip install --user numpy mpi4py
 \end{minted}
@@ -127,7 +128,7 @@ On Apple Mac OSX using homebrew to install the dependencies is recommended.
 #!/bin/bash
 brew update
 brew tap Homebrew/homebrew-science
-brew install gcc openmpi hdf5 netcdf python swig git-lfs
+brew install gcc openmpi hdf5 netcdf python swig udunits
 brew install boost --C++11
 pip install numpy mpi4py
 \end{minted}
@@ -199,7 +200,7 @@ svn co svn://missmarple.lbl.gov/work3/teca/TECA_data
 for operating system specific instructions.
 
 \subsection{Compiling}
-Once dependencies are installed a TECA build can be configured and compiled. The following sections show operating specific examples of compiling TECA. 
+Once dependencies are installed a TECA build can be configured and compiled. The following sections show operating specific examples of compiling TECA.
 TECA\_SOURCE\_DIR should be replaced with the path to the TECA sources,
 TECA\_DATA\_DIR replaced with the path to the test data, and TECA\_INSTALL\_DIR replaced with the path to the install location. \\
 
@@ -221,6 +222,7 @@ cd ${TECA_SOURCE_DIR}/build
 cmake \
     -DCMAKE_C_COMPILER=`which gcc-5` \
     -DCMAKE_CXX_COMPILER=`which g++-5` \
+    -Dswig_cmd=`which swig3.0` \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=${TECA_INSTALL_DIR} \
     -DBUILD_TESTING=ON \
@@ -231,8 +233,9 @@ make -j4 && make -j4 install
 \end{minted}
 \end{minipage}\vspace{2mm}
 
-\noindent Note that we explicitly set gcc 5 compilers, as the default compilers on Ubuntu 14.04 
-are missing some C++11 features. On newer releases and other distros this is likely unnecessary.
+\noindent Here compilers and swig are explicitly set to prevent the older and not fully C++11
+compliant versions present on Ubuntu 14.04 from being used. On newer releases and other distros
+this is not necessary.
 
 \subsubsection{Apple Mac OSX Yosemite}
 \vspace{2mm}\hspace{0.2in}\begin{minipage}{0.8\textwidth}
