@@ -31,47 +31,100 @@ template <typename num_t>
 constexpr num_t earth_radius() { return num_t(6371.0e3); }
 
 // compute vorticicty
+// this is based on TECA 1's calculation, and hence
+// assumes fixed mesh spacing. here we add periodic bc in lon
+// and apply unit stride vector optimization strategy to loops
 template <typename num_t, typename pt_t>
-void vorticity(num_t *w, const pt_t *lat, const pt_t *lon,
-    const num_t *comp_0, const num_t *comp_1, unsigned long nx, unsigned long ny)
+void vorticity(num_t *w, const pt_t *lon, const pt_t *lat,
+    const num_t *u, const num_t *v, unsigned long n_lon,
+    unsigned long n_lat, bool periodic_lon=true)
 {
-    // TODO -- this only works for uniform grids
-    // compute dx as a function of latitude
-    num_t *dx = static_cast<num_t*>(malloc(ny*sizeof(num_t)));
-    num_t dlon = (lon[1]- lon[0])*deg_to_rad<num_t>();
-    for (unsigned long j = 0; j < ny; ++j)
-        dx[j] = earth_radius<num_t>() * cos(lat[j]*deg_to_rad<num_t>()) * dlon;
+    size_t n_bytes = n_lat*sizeof(num_t);
+    num_t *delta_u = static_cast<num_t*>(malloc(n_bytes));
 
-    // compute dy
-    unsigned long max_j = ny - 1;
-    num_t *dy = static_cast<num_t*>(malloc(ny*sizeof(num_t)));
-    for (unsigned long i = 1; i < max_j; ++i)
-        dy[i] = num_t(0.5)*earth_radius<num_t>()*deg_to_rad<num_t>()
-            *(lat[i-1] - lat[i+1]);
+    // delta lon as a function of latitude
+    num_t d_lon = (lon[1] - lon[0]) * deg_to_rad<num_t>() * earth_radius<num_t>();
+    for (unsigned long j = 0; j < n_lat; ++j)
+        delta_u[j] = d_lon * cos(lat[j] * deg_to_rad<num_t>());
 
-    dy[0] = dy[1];
-    dy[max_j] = dy[max_j - 1];
+    // delta lat
+    num_t delta_v = (lat[1] - lat[0]) * deg_to_rad<num_t>() * earth_radius<num_t>();
+    num_t dv = num_t(2)*delta_v;
 
-    // compute vorticity
-    unsigned long nxy = nx*ny;
-    memset(w, 0, nxy*sizeof(num_t));
-    unsigned long max_i = nx - 1;
+    unsigned long max_i = n_lon - 1;
+    unsigned long max_j = n_lat - 1;
+
+    // vorticity
     for (unsigned long j = 1; j < max_j; ++j)
     {
-        // TODO -- rewrite this in terms of unit stride passes
-        // so that the compiler will auto-vectorize it
-        unsigned long jj = j*nx;
-        unsigned long jj0 = jj - nx;
-        unsigned long jj1 = jj + nx;
+        unsigned long jj = j*n_lon;
+        const num_t *uu_2 = u + jj + n_lon;
+        const num_t *uu_0 = u + jj - n_lon;
+        const num_t *vv_2 = v + jj + 1;
+        const num_t *vv_0 = v + jj - 1;
+        num_t *ww = w + jj;
+        num_t du = num_t(2)*delta_u[j];
+
         for (unsigned long i = 1; i < max_i; ++i)
         {
-            w[jj+i] = num_t(0.5)*((comp_1[jj+i+1] - comp_1[jj+i-1])/dx[j]
-                - (comp_0[jj0+i] - comp_0[jj1+i])/dy[j]);
+            ww[i] = (vv_2[i] - vv_0[i]) / du -
+                    (uu_2[i] - uu_0[i]) / dv ;
         }
     }
 
-    free(dx);
-    free(dy);
+    if (periodic_lon)
+    {
+        // periodic in longitude
+        for (unsigned long j = 1; j < max_j; ++j)
+        {
+            unsigned long jj = j*n_lon;
+            const num_t *uu_2 = u + jj + n_lon;
+            const num_t *uu_0 = u + jj - n_lon;
+            const num_t *vv_2 = v + jj + 1;
+            const num_t *vv_0 = v + jj + max_i;
+            num_t *ww = w + jj;
+            num_t du = num_t(2)*delta_u[j];
+
+            ww[0] = (vv_2[0] - vv_0[0]) / du -
+                    (uu_2[0] - uu_0[0]) / dv ;
+        }
+
+        for (unsigned long j = 1; j < max_j; ++j)
+        {
+            unsigned long jj = j*n_lon;
+            const num_t *uu_2 = u + jj + max_i + n_lon;
+            const num_t *uu_0 = u + jj + max_i - n_lon;
+            const num_t *vv_2 = v + jj;
+            const num_t *vv_0 = v + jj + max_i - 1;
+            num_t *ww = w + jj + max_i;
+            num_t du = num_t(2)*delta_u[j];
+
+            ww[0] = (vv_2[0] - vv_0[0]) / du -
+                    (uu_2[0] - uu_0[0]) / dv ;
+        }
+    }
+    else
+    {
+        // zero it out
+        for (unsigned long j = 1; j < max_j; ++j)
+            w[j*n_lon] = num_t();
+
+        for (unsigned long j = 1; j < max_j; ++j)
+            w[j*n_lon + max_i] = num_t();
+    }
+
+    // extend values into lat boundaries
+    num_t *dest = w;
+    num_t *src = w + n_lon;
+    for (unsigned long i = 0; i < n_lon; ++i)
+        dest[i] = src[i+n_lon];
+
+    dest = w + max_j*n_lon;
+    src = dest - n_lon;
+    for (unsigned long i = 0; i < n_lon; ++i)
+        dest[i] = src[i];
+
+    free(delta_u);
 
     return;
 }
@@ -314,7 +367,7 @@ const_p_teca_dataset teca_vorticity::execute(
             const NT2 *p_comp_1 = dynamic_cast<const TT2*>(comp_1.get())->get();
             NT2 *p_vort = dynamic_cast<TT2*>(vort.get())->get();
 
-            ::vorticity(p_vort, p_lat, p_lon,
+            ::vorticity(p_vort, p_lon, p_lat,
                 p_comp_0, p_comp_1, lon->size(), lat->size());
             )
         )
