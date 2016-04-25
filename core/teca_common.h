@@ -15,4 +15,13 @@
         << "\033[1;31mERROR:\033[0m "                   \
         << "\033[1;37m" msg << "\033[0m" << std::endl;
 
+#define TECA_WARNING(msg)                               \
+    std::cerr                                           \
+        << "\033[1;33mWARNING:\033[0m "                 \
+        << teca_parallel_id()                           \
+        << " [" << __FILE__ << ":" << __LINE__          \
+        << " " << TECA_VERSION_DESCR                    \
+        << "]" << std::endl                             \
+        << "\033[1;33mWARNING:\033[0m "                 \
+        << "\033[1;37m" msg << "\033[0m" << std::endl;
 #endif
