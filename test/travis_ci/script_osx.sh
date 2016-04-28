@@ -13,7 +13,6 @@ cmake \
     -DCMAKE_C_COMPILER=`which $CC` \
     -DCMAKE_CXX_COMPILER=`which $CXX` \
     -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
-    -DCMAKE_CXX_FLAGS="-Wall -Wextra" \
     -DBUILD_TESTING=ON \
     -DTECA_DATA_ROOT=${TRAVIS_BUILD_DIR}/TECA_data \
     ..

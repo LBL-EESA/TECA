@@ -18,18 +18,33 @@ endif()
 message(STATUS "Configuring a ${CMAKE_BUILD_TYPE} build")
 
 # add the requisite flags to enable c++11 features
-# on various platforms
+# on various platforms.
 if (MSVC)
-    # TODO require vs2013
+    # TODO require vs2015
     # enable exceptions
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc"
             CACHE STRING "" FORCE)
 else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=c++11 -Wall -Wextra"
-        CACHE STRING "" FORCE)
-    if ((APPLE) AND ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang"))
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++"
-            CACHE STRING "" FORCE)
+    if (NOT CMAKE_CXX_FLAGS)
+        set(tmp "-fPIC -std=c++11 -Wall -Wextra")
+        if ((APPLE) AND ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang"))
+            set(tmp "${tmp} -stdlib=libc++")
+        endif()
+        if ("${CMAKE_BUILD_TYPE}" MATCHES "Release")
+            set(tmp "${tmp} -march=native -mtune=native")
+        endif()
+        set(CMAKE_CXX_FLAGS "${tmp}"
+            CACHE STRING "TECA Release build defaults"
+            FORCE)
+    endif()
+    if (NOT CMAKE_Fortran_FLAGS)
+        set(tmp "-Wall -Wextra")
+        if (CMAKE_BUILD_TYPE STREQUAL "Release")
+            set(tmp "${tmp} -march=native -mtune=native")
+        endif()
+        set(CMAKE_Fortran_FLAGS "${tmp}"
+            CACHE STRING "TECA Release build defaults"
+            FORCE)
     endif()
 endif()
 

@@ -11,7 +11,6 @@ cd build
 cmake \
     -DCMAKE_C_COMPILER=`which gcc-5` \
     -DCMAKE_CXX_COMPILER=`which g++-5` \
-    -DCMAKE_CXX_FLAGS="-Wall -Wextra" \
     -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
     -DBUILD_TESTING=ON \
     -DTECA_DATA_ROOT=${TRAVIS_BUILD_DIR}/TECA_data \
