@@ -27,7 +27,7 @@ int main(int argc, char **argv)
         {
             cerr << endl
                 << "Usage:" << endl
-                << "test_cf_reader "
+                << "test_cartesian_mesh_regrid "
                    "[target regex] [target x axis] [target y axis] [target z axis] [target t axis] "
                    "[n target arrays] [target array 1] ... [target array n] "
                    "[source regex] [source x axis] [source y axis] [source z axis] [source t axis] "
@@ -62,6 +62,17 @@ int main(int argc, char **argv)
     vector<double> target_bounds(6, 0l);
     for (int i = 0; i < 6; ++i)
        target_bounds[i] = atol(argv[++arg]);
+
+    // work around cmake not passing "" through
+    target_x_ax = target_x_ax == "." ? "" : target_x_ax;
+    target_y_ax = target_y_ax == "." ? "" : target_y_ax;
+    target_z_ax = target_z_ax == "." ? "" : target_z_ax;
+    target_t_ax = target_t_ax == "." ? "" : target_t_ax;
+
+    source_x_ax = source_x_ax == "." ? "" : source_x_ax;
+    source_y_ax = source_y_ax == "." ? "" : source_y_ax;
+    source_z_ax = source_z_ax == "." ? "" : source_z_ax;
+    source_t_ax = source_t_ax == "." ? "" : source_t_ax;
 
     // create the target dataset reader
     p_teca_cf_reader tr = teca_cf_reader::New();
