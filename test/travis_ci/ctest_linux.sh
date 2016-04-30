@@ -10,4 +10,4 @@ export PYTHONPATH=${TRAVIS_BUILD_DIR}/build/lib
 export LD_LIBRARY_PATH=${TRAVIS_BUILD_DIR}/build/lib
 mkdir build
 cmake --version
-ctest -S ${DASHROOT}/test/travis_ci/ctest_linux.cmake -V
+ctest -S ${DASHROOT}/test/travis_ci/ctest_linux.cmake -E py_'.*'_mpi -V
