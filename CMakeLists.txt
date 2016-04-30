@@ -206,9 +206,6 @@ add_subdirectory(py)
 add_subdirectory(apps)
 
 # enable regression tests
-if (NOT TECA_DATA_ROOT)
-  set(TECA_DATA_ROOT $ENV{TECA_DATA_ROOT} CACHE STRING "TECA data directory")
-endif()
 set(BUILD_TESTING OFF CACHE BOOL "Enable tests")
 if (BUILD_TESTING)
     include(CTest)
@@ -217,5 +214,18 @@ if (BUILD_TESTING)
         "${CMAKE_CURRENT_BINARY_DIR}/CTestCustom.cmake"
         @ONLY)
     include(CMake/teca_test.cmake)
+    set(TECA_DATA_ROOT "../../TECA_data" CACHE PATH
+        "Path to TECA test data directory")
+    if (TECA_DATA_ROOT AND (NOT EXISTS "${TECA_DATA_ROOT}"))
+        message(STATUS "Test data -- not available")
+    else()
+        message(STATUS "Test data -- available")
+    endif()
+    set(TECA_TEST_CORES 4 CACHE STRING
+        "Number of cores for use in parallel tests")
+    math(EXPR HALF_CORES "${TECA_TEST_CORES}/2")
+    if (HALF_CORES LESS 1)
+        message(FATAL_ERROR "Parallel test require at lest 2 cores")
+    endif()
     add_subdirectory(test)
 endif()
