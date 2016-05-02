@@ -9,7 +9,8 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
     $<TARGET_PROPERTY:teca_io,INTERFACE_INCLUDE_DIRECTORIES>
     )
 
-set(teca_alg_srcs
+set(teca_alg_cxx_srcs
+    gfdl_tc_candidates.cxx
     teca_ar_detect.cxx
     teca_cartesian_mesh_subset.cxx
     teca_cartesian_mesh_regrid.cxx
@@ -23,10 +24,34 @@ set(teca_alg_srcs
     teca_table_reduce.cxx
     teca_table_sort.cxx
     teca_table_to_stream.cxx
+    teca_tc_candidates.cxx
     teca_temporal_average.cxx
     teca_vorticity.cxx
     teca_dataset_diff.cxx
     )
+
+set(teca_alg_f90_srcs)
+
+set(teca_alg_f90_generics
+    gfdl_tc_candidates
+    gfdl_spline
+    )
+
+set(iso_c_types c_float c_double)
+foreach(generic_src ${teca_alg_f90_generics})
+    foreach(c_type_var ${iso_c_types})
+        string(SUBSTRING ${c_type_var} 2 1 var_name)
+        foreach(c_type_coord ${iso_c_types})
+            string(SUBSTRING ${c_type_coord} 2 1 coord_name)
+            set(type_name "c${coord_name}_v${var_name}")
+            configure_file(${generic_src}.f90.in ${generic_src}_${type_name}.f90 @ONLY)
+            list(APPEND teca_alg_f90_srcs ${generic_src}_${type_name}.f90)
+        endforeach()
+    endforeach()
+endforeach()
+
+include(FortranCInterface)
+FortranCInterface_VERIFY()
 
 set(teca_alg_link pthread)
 
@@ -40,7 +65,7 @@ if (TECA_HAS_BOOST)
     list(APPEND teca_alg_link ${Boost_LIBRARIES})
 endif()
 
-add_library(teca_alg ${teca_alg_srcs})
+add_library(teca_alg ${teca_alg_cxx_srcs} ${teca_alg_f90_srcs})
 target_link_libraries(teca_alg teca_io teca_data teca_core ${teca_alg_link})
 
 target_include_directories(teca_alg

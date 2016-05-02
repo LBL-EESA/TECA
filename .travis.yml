@@ -17,7 +17,7 @@ env:
   - BUILD_TYPE=Debug
 #  - BUILD_TYPE=Release
 
-script: ./test/travis_ci/script_$TRAVIS_OS_NAME.sh
+script: ./test/travis_ci/ctest_$TRAVIS_OS_NAME.sh
 
-after_failure: 
+after_failure:
   - cat build/Testing/Temporary/LastTest.log

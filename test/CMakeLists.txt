@@ -42,41 +42,33 @@ teca_add_test(test_pipeline_temporal_reduction
     LIBS teca_core teca_test_array ${teca_test_link}
     COMMAND test_pipeline_temporal_reduction)
 
-if (TECA_HAS_NETCDF)
-    # TODO -- cmake_parse_arguments eats ""
-    add_executable(test_cf_reader test_cf_reader.cpp)
-    target_link_libraries(test_cf_reader
-        teca_core teca_data teca_io ${teca_test_link})
-    if (TECA_DATA_ROOT)
-        add_test(NAME test_cf_reader
-            COMMAND test_cf_reader
-            "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-[0-9][0-9]-10800\\.nc"
-            "test_cf_reader_%t%.vtk" 1 2 lon lat "" time U850 V850
-            WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-        set_tests_properties(test_cf_reader
-            PROPERTIES FAIL_REGULAR_EXPRESSION "ERROR;FAIL")
-    endif()
+teca_add_test(test_cf_reader
+    SOURCES test_cf_reader.cpp
+    LIBS teca_core teca_data teca_io ${teca_test_link}
+    COMMAND test_cf_reader
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-[0-9][0-9]-10800\\.nc"
+    "test_cf_reader_%t%.vtk" 1 2 lon lat "." time U850 V850
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
 
-    # TODO -- locate test data for this test
-    add_executable(test_cartesian_mesh_regrid
-        test_cartesian_mesh_regrid.cpp)
-    target_link_libraries(test_cartesian_mesh_regrid
-        teca_core teca_data teca_io teca_alg ${teca_test_link})
+teca_add_test(test_connected_components
+    SOURCES test_connected_components.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_connected_components
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
+    lon lat "." time U850 V850 0 0 15 "test_connected_components_%t%.vtk"
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
 
-    # TODO -- cmake_parse_arguments eats ""
-    add_executable(test_connected_components test_connected_components.cpp)
-    target_link_libraries(test_connected_components
-        teca_core teca_data teca_io teca_alg ${teca_test_link})
-    if (TECA_DATA_ROOT)
-        add_test(NAME test_connected_components
-            COMMAND test_connected_components
-            "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
-            lon lat "" time U850 V850 0 0 15 "test_connected_components_%t%.vtk"
-            WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-        set_tests_properties(test_connected_components
-            PROPERTIES FAIL_REGULAR_EXPRESSION "ERROR;FAIL")
-    endif()
-endif()
+teca_add_test(test_cartesian_mesh_regrid
+    SOURCES test_cartesian_mesh_regrid.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_cartesian_mesh_regrid
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-01-10800\\.nc"
+    lon lat "." time 1 PSL "${TECA_DATA_ROOT}/landsea\\.nc" lon lat "." "." 1 LSMASK
+    test_cartesian_mesh_regrid.vtk 0 0 1 359 -89 89 0 0
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
 
 teca_add_test(test_temporal_average
     SOURCES test_temporal_average.cpp
@@ -129,7 +121,7 @@ teca_add_test(test_descriptive_statistics_threads
 
 teca_add_test(test_descriptive_statistics_mpi
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
-    COMMAND mpiexec -np 4 test_descriptive_statistics
+    COMMAND mpiexec -np ${TECA_TEST_CORES} test_descriptive_statistics
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-[0-9][0-9]-10800\\.nc"
     "${TECA_DATA_ROOT}/test_descriptive_statistics.bin" 0 -1 1 TMQ T200 T500
     FEATURES (${TECA_HAS_NETCDF} AND ${TECA_HAS_MPI})
@@ -137,9 +129,9 @@ teca_add_test(test_descriptive_statistics_mpi
 
 teca_add_test(test_descriptive_statistics_mpi_threads
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
-    COMMAND mpiexec -np 2 test_descriptive_statistics
+    COMMAND mpiexec -np ${HALF_CORES} test_descriptive_statistics
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-[0-9][0-9]-10800\\.nc"
-    "${TECA_DATA_ROOT}/test_descriptive_statistics.bin" 0 -1 2 TMQ T200 T500
+    "${TECA_DATA_ROOT}/test_descriptive_statistics.bin" 0 -1 ${HALF_CORES} TMQ T200 T500
     FEATURES (${TECA_HAS_NETCDF} AND ${TECA_HAS_MPI})
     REQ_TECA_DATA)
 
@@ -152,3 +144,38 @@ teca_add_test(test_binary_stream_mpi
     SOURCES test_binary_stream.cpp
     LIBS teca_core teca_data teca_alg ${teca_test_link}
     COMMAND mpiexec -np 2 test_binary_stream)
+
+teca_add_test(test_tc_detect_serial
+    COMMAND test_tc_detect
+    "${TECA_DATA_ROOT}/test_tc_detect_1990_07_0[12]\\.nc"
+    "${TECA_DATA_ROOT}/test_tc_detect_20.bin" 0 3 1
+    U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_tc_detect_mpi
+    COMMAND mpiexec -np ${TECA_TEST_CORES} test_tc_detect
+    "${TECA_DATA_ROOT}/test_tc_detect_1990_07_0[12]\\.nc"
+    "${TECA_DATA_ROOT}/test_tc_detect_20.bin" 0 3 1
+    U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
+    FEATURES (${TECA_HAS_NETCDF} AND ${TECA_HAS_MPI})
+    REQ_TECA_DATA)
+
+teca_add_test(test_tc_detect_threads
+    EXEC_NAME test_tc_detect
+    SOURCES test_tc_detect.cpp teca_test_util.cxx
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_tc_detect
+    "${TECA_DATA_ROOT}/test_tc_detect_1990_07_0[12]\\.nc"
+    "${TECA_DATA_ROOT}/test_tc_detect_20.bin" 0 3 4
+    U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
+    FEATURES (${TECA_HAS_NETCDF} AND ${TECA_HAS_MPI})
+    REQ_TECA_DATA)
+
+teca_add_test(test_tc_detect_mpi_threads
+    COMMAND mpiexec -np ${HALF_CORES} test_tc_detect
+    "${TECA_DATA_ROOT}/test_tc_detect_1990_07_0[12]\\.nc"
+    "${TECA_DATA_ROOT}/test_tc_detect_20.bin" 0 3 ${HALF_CORES}
+    U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
+    FEATURES (${TECA_HAS_NETCDF} AND ${TECA_HAS_MPI})
+    REQ_TECA_DATA)

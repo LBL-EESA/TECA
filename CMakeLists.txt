@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8.12)
 
-project(teca)
+project(teca C CXX Fortran)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -18,18 +18,33 @@ endif()
 message(STATUS "Configuring a ${CMAKE_BUILD_TYPE} build")
 
 # add the requisite flags to enable c++11 features
-# on various platforms
+# on various platforms.
 if (MSVC)
-    # TODO require vs2013
+    # TODO require vs2015
     # enable exceptions
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc"
             CACHE STRING "" FORCE)
 else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=c++11 -Wall -Wextra"
-        CACHE STRING "" FORCE)
-    if ((APPLE) AND ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang"))
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++"
-            CACHE STRING "" FORCE)
+    if (NOT CMAKE_CXX_FLAGS)
+        set(tmp "-fPIC -std=c++11 -Wall -Wextra")
+        if ((APPLE) AND ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang"))
+            set(tmp "${tmp} -stdlib=libc++")
+        endif()
+        if ("${CMAKE_BUILD_TYPE}" MATCHES "Release")
+            set(tmp "${tmp} -march=native -mtune=native")
+        endif()
+        set(CMAKE_CXX_FLAGS "${tmp}"
+            CACHE STRING "TECA build defaults"
+            FORCE)
+    endif()
+    if (NOT CMAKE_Fortran_FLAGS)
+        set(tmp "-Wall -Wextra")
+        if (CMAKE_BUILD_TYPE STREQUAL "Release")
+            set(tmp "${tmp} -march=native -mtune=native")
+        endif()
+        set(CMAKE_Fortran_FLAGS "${tmp}"
+            CACHE STRING "TECA build defaults"
+            FORCE)
     endif()
 endif()
 
@@ -191,9 +206,6 @@ add_subdirectory(py)
 add_subdirectory(apps)
 
 # enable regression tests
-if (NOT TECA_DATA_ROOT)
-  set(TECA_DATA_ROOT $ENV{TECA_DATA_ROOT} CACHE STRING "TECA data directory")
-endif()
 set(BUILD_TESTING OFF CACHE BOOL "Enable tests")
 if (BUILD_TESTING)
     include(CTest)
@@ -202,5 +214,18 @@ if (BUILD_TESTING)
         "${CMAKE_CURRENT_BINARY_DIR}/CTestCustom.cmake"
         @ONLY)
     include(CMake/teca_test.cmake)
+    set(TECA_DATA_ROOT "../../TECA_data" CACHE PATH
+        "Path to TECA test data directory")
+    if (TECA_DATA_ROOT AND (NOT EXISTS "${TECA_DATA_ROOT}"))
+        message(STATUS "Test data -- not available")
+    else()
+        message(STATUS "Test data -- available")
+    endif()
+    set(TECA_TEST_CORES 4 CACHE STRING
+        "Number of cores for use in parallel tests")
+    math(EXPR HALF_CORES "${TECA_TEST_CORES}/2")
+    if (HALF_CORES LESS 1)
+        message(FATAL_ERROR "Parallel test require at lest 2 cores")
+    endif()
     add_subdirectory(test)
 endif()

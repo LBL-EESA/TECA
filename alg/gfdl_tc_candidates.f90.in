@@ -1,0 +1,462 @@
+module tstorms_@type_name@_module
+use iso_fortran_env, only : error_unit
+use iso_c_binding
+implicit none
+
+interface
+subroutine teca_tc_append_candidate_@type_name@( &
+  n_candidate, idex, jdex, spsl_lon, spsl_lat, swind_max, &
+  svort_max, spsl_min, stwc_is, sthick_is, stwc_max, &
+  sthick_max, atable) bind(C)
+  use iso_c_binding
+  implicit none
+  integer(c_int), intent(in) :: n_candidate, stwc_is, sthick_is
+  integer(c_long), intent(in) ::  idex, jdex
+  real(@c_type_coord@), intent(in) :: spsl_lon, spsl_lat
+  real(@c_type_var@), intent(in) :: swind_max, &
+         svort_max, spsl_min, stwc_max, sthick_max
+  type(c_ptr), intent(in) :: atable
+end subroutine
+
+subroutine teca_tc_warning(msg) bind(C)
+  use iso_c_binding
+  implicit none
+  character(c_char) :: msg(*)
+end subroutine
+
+subroutine teca_tc_error(msg) bind(C)
+  use iso_c_binding
+  implicit none
+  character(c_char) :: msg(*)
+end subroutine
+end interface
+
+contains
+!-----------------------------------------------------------------------
+subroutine gpad2_@type_name@(Gxx, xx)
+  implicit none
+  real(@c_type_var@), intent(in), dimension(:,:) :: Gxx
+  real(@c_type_var@), intent(out), dimension(:,:) :: xx
+  integer :: ix, jx, j, j0, j1
+  integer :: nx, nx2, nxp1
+
+  ix = size(Gxx, 1)
+  jx = size(Gxx, 2)
+
+  nx2 = size(xx, 1) - size(Gxx, 1)
+  nx = nx2 / 2
+  nxp1 = nx + 1
+
+  xx(nxp1:ix+nx,nxp1:jx+nx) = Gxx(:,:)
+
+  ! periodic bc
+  xx(1:nx, nxp1:jx+nx) = xx(ix+1:ix+nx, nxp1:jx+nx)
+  xx(ix+nxp1:ix+nx2, nxp1:jx+nx) = xx(nxp1:nx2, nxp1:jx+nx)
+
+  ! mirror bc
+  !xx(1:ix+nx2, nx:1:-1) = xx(1:ix+nx2,nxp1:nx2)
+  !xx(1:ix+nx2, jx+nx2:jx+nxp1:-1) = xx(1:ix+nx2, jx:jx+nx)
+
+  ! use last valid row for bc
+  do j = 1,nx
+    xx(1:ix+nx2, j) = xx(1:ix+nx2, nxp1)
+  enddo
+  j0 = jx+nxp1
+  j1 = jx+nx2
+  do j = j0,j1
+     xx(1:ix+nx2, j) = xx(1:ix+nx2, jx)
+  enddo
+
+end subroutine gpad2_@type_name@
+
+!-----------------------------------------------------------------------
+subroutine gpad1_@type_name@(Gxx, xx)
+  implicit none
+  real(@c_type_coord@), intent(in), dimension(:) :: Gxx
+  real(@c_type_coord@), intent(out), dimension(:) :: xx
+  real(@c_type_coord@) :: dx
+  integer :: i, ix, ip
+  integer :: nx, nx2, nxp1
+
+  nx2 = size(xx, 1) - size(Gxx, 1)
+  nx = nx2 / 2
+  nxp1 = nx + 1
+
+  ix = size(Gxx)
+  ip = size(xx) + 1
+
+  xx(nxp1:ix+nx) = Gxx(:)
+
+  dx = xx(nx+2) - xx(nx+1)
+
+  do i = 1,nx
+     xx(i) = xx(nxp1) - (nxp1 - i) * dx
+     xx(ip-i) = xx(ip-nxp1) + (nxp1 - i) * dx
+  end do
+
+end subroutine gpad1_@type_name@
+
+!-------------------------------------------------------------------
+! --- LOCATE TROPICAL STORMS
+!-------------------------------------------------------------------
+! --- INPUT ARGUMENTS
+!     min_vort - vorticity threshold (3.5E-5)
+!     crit_twc - temperature threshold (0.5)
+!     min_thick - thickness threshold (50.0)
+!     psl_min_vort_max_dist - distance from storm center for warm core and thickness in deg (2.0)
+!     lat_bound_n - search space high (90.0)
+!     lat_bound_s - search space low (-90.0)
+!     Gwind  - surface wind speed
+!     Gvort  - vorticity  at 850 mb
+!     Gtbar  - mean temperature between 200mb and 500mb for warm core layer
+!     Gpsl   - sea level pressure
+!     Gthick - thickness of 200 mb to 1000 mb layer
+!     Grlon  - longitudes
+!     Grlat  - latitudes
+!     Gnlat  - lat dimension
+!     Gnlon  - lon dimension
+!     n_candidate - returns the n_candidate of events detected
+!     tc_table - teca table object to hold the events
+!-------------------------------------------------------------------
+! --- OUTPUT - file "cyclones"
+!-------------------------------------------------------------------
+! --- record # 1
+!     num0   - day
+!     imon0  - month
+!     iyear  - year
+!     n_candidate - n_candidate of cyclones found
+! --- records # 2...n_candidate+1
+!     idex, jdex - (i,j) index of cyclone
+!     svort_max  - max vorticity
+!     swind_max  - max wind
+!      spsl_min  - min sea level pressure
+!     svort_lon, svort_lat - longitude & latitude of max vorticity
+!      spsl_lon, spsl_lat - longitude & latitude of min slp
+!      stwc_lon, stwc_lat - longitude & latitude of warm core
+!    sthick_lon, sthick_lat - longitude & latitude of max thickness
+!-------------------------------------------------------------------
+integer(c_int) function gfdl_tc_candidates_@type_name@( &
+        max_core_radius, min_vort, vort_win_size, &
+        max_psl_dy, max_psl_dr, max_twc_dy, max_twc_dr, &
+        max_thick_dy, max_thick_dr, &
+        Gwind, Gvort, Gtbar, Gpsl, Gthick, Grlat, &
+        Grlon, Gnlat, Gnlon, frprm_itmax, time_step, &
+        n_candidate, tc_table) result(ret_val) bind(C)
+
+  use spline_@type_name@_module, only : splie2_@type_name@, &
+        splie3_@type_name@, frprm_@type_name@, shape_@type_name@
+
+  implicit none
+
+  real(@c_type_var@), intent(in) :: max_core_radius
+  real(@c_type_var@), intent(in) :: min_vort, vort_win_size
+  real(@c_type_var@), intent(in) :: max_psl_dy, max_psl_dr
+  real(@c_type_var@), intent(in) :: max_twc_dy, max_twc_dr
+  real(@c_type_var@), intent(in) :: max_thick_dy, max_thick_dr
+  real(@c_type_var@), intent(in), &
+    dimension(Gnlon, Gnlat) :: Gwind, Gvort, Gtbar, Gpsl, Gthick
+  real(@c_type_coord@), intent(in), dimension(Gnlon) :: Grlon
+  real(@c_type_coord@), intent(in), dimension(Gnlat) :: Grlat
+  integer(c_long), intent(in) :: Gnlat, Gnlon, time_step
+  integer(c_int), intent(in) :: frprm_itmax
+  integer(c_int), intent(out) :: n_candidate
+  type(c_ptr), intent(inout) :: tc_table
+
+  integer(c_int) :: nx, nx2, nxp1
+
+  real(@c_type_var@), parameter :: ftol = 0.01
+
+  real(@c_type_coord@), allocatable, dimension(:) :: rlon
+  real(@c_type_coord@), allocatable, dimension(:) :: rlat
+
+  real(@c_type_var@), allocatable, dimension(:,:) :: &
+      vort, wind, psl, psl_dx, psl_dy, tbar, tbar_dx, tbar_dy, &
+      thick, thick_dx, thick_dy
+
+  real(@c_type_var@) ::  wind_max, psl_min, twc_max, thick_max
+  real(@c_type_coord@) :: lon_vort, lon_psl, lon_twc, lon_thick
+  real(@c_type_coord@) :: lat_vort, lat_psl, lat_twc, lat_thick
+  logical :: exist_twc, exist_thick
+
+  integer(c_int) :: sthick_is, stwc_is
+
+  real(@c_type_coord@), dimension(2)  :: p
+  real(@c_type_coord@) :: xx, yy, rr
+  real(@c_type_var@) :: fret
+
+  integer :: can_id
+  integer :: ierr_pos, ierr_mag
+  integer(c_long) :: i, im, ip, ix, ixp3, ixp6
+  integer(c_long) :: j, jm, jp, jx, jxp3, jxp6
+  integer, dimension(2) :: can_ij
+  character(len=512, kind=c_char):: w_msg
+
+  !write(error_unit, *)'gfdl_tc_candidates_@type_name@, ', &
+  !  'max_core_radius = ', max_core_radius, ',', 'min_vort = ', min_vort, ',', &
+  !  'vort_win_size = ', vort_win_size, ',', 'max_psl_dy = ', max_psl_dy, ',', &
+  !  'max_psl_dr = ', max_psl_dr, ',', 'max_twc_dy = ', max_twc_dy, ',', &
+  !  'max_twc_dr = ', max_twc_dr, ',', 'max_thick_dy = ', max_thick_dy, ',', &
+  !  'max_thick_dr = ', max_thick_dr
+
+  can_id = 0
+  n_candidate = int(time_step)*10000
+
+  ! estimate the search window size
+  nx = int((vort_win_size/(Grlat(2) - Grlat(1)) - 1.0)/2.0)
+
+  if (nx .lt. 1) then
+    write(error_unit,*)'ERROR: Invalid search window requested.', vort_win_size
+    ret_val = -1
+    return
+  endif
+
+  nx2 = 2*nx
+  nxp1 = nx + 1
+
+  ix = Gnlon
+  jx = Gnlat
+  ixp3 = ix + nx
+  jxp3 = jx + nx
+  ixp6 = ix + nx2
+  jxp6 = jx + nx2
+
+  allocate(rlon(ixp6))
+  allocate(rlat(jxp6))
+  allocate(vort(ixp6, jxp6))
+  allocate(wind(ixp6, jxp6))
+  allocate(psl(ixp6, jxp6))
+  allocate(psl_dx(ixp6, jxp6))
+  allocate(psl_dy(ixp6, jxp6))
+  allocate(tbar(ixp6, jxp6))
+  allocate(tbar_dx(ixp6, jxp6))
+  allocate(tbar_dy(ixp6, jxp6))
+  allocate(thick(ixp6, jxp6))
+  allocate(thick_dx(ixp6, jxp6))
+  allocate(thick_dy(ixp6, jxp6))
+
+  ! setup ghost zones
+  call gpad2_@type_name@(Gwind, wind)
+  call gpad2_@type_name@(Gvort, vort)
+  call gpad2_@type_name@(Gtbar, tbar)
+  call gpad2_@type_name@(Gpsl, psl)
+  call gpad2_@type_name@(Gthick, thick)
+  call gpad1_@type_name@(Grlon, rlon)
+  call gpad1_@type_name@(Grlat, rlat)
+
+  ! change sign of vorticity in southern hemisphere
+  j = 0
+  do while ((j .lt. jx) .and. (rlat(j+1) .lt. 0.0))
+      j = j + 1
+  enddo
+  if (j .gt. 0) &
+     vort(:,1:j) = -1.0*vort(:,1:j)
+
+  ! because we use a minimizer to locate maxima in
+  ! both thickness and core temp
+  tbar(:,:) = -1.0*tbar(:,:)
+  thick(:,:) = -1.0*thick(:,:)
+
+  ! initialize splines
+  call splie2_@type_name@(rlat, psl, psl_dy)
+  call splie3_@type_name@(rlon, psl, psl_dx)
+
+  call splie2_@type_name@(rlat, tbar, tbar_dy)
+  call splie3_@type_name@(rlon, tbar, tbar_dx)
+
+  call splie2_@type_name@(rlat, thick, thick_dy)
+  call splie3_@type_name@(rlon, thick, thick_dx)
+
+  ! loop over grid & look for storms
+  do j = nxp1,jxp3
+    do i = nxp1,ixp3
+
+      im = i - nx
+      ip = i + nx
+      jm = j - nx
+      jp = j + nx
+
+      ! --- step 1: check for vorticity max
+      can_ij = maxloc(vort(im:ip,jm:jp))
+      if ((can_ij(1) .ne. nxp1) .or. (can_ij(2) .ne. nxp1) &
+        .or. (vort(i,j) .lt. min_vort)) &
+        cycle
+
+      can_id = can_id + 1
+
+      lon_vort = rlon(i)
+      lat_vort = rlat(j)
+
+      ! --- step 2: locate local sea level pressure min
+      p(1) = lon_vort
+      p(2) = lat_vort
+
+      ierr_pos = 0
+
+      call frprm_@type_name@(rlon, rlat, psl, psl_dy, &
+        psl_dx, p, ftol, frprm_itmax, psl_min, ierr_pos)
+
+      if (ierr_pos .ne. 0) then
+        write(w_msg, '(3(A,I0),2(A,F6.2),2(A,I0),A)') &
+          'Failed to locate psl minima. can_id=', can_id, &
+          ', i=', im, ', j=',jm, ', lon=', Grlon(im), &
+          ', lat=', Grlat(jm), ', step=', time_step, &
+          ', nit=', frprm_itmax, c_null_char
+        call teca_tc_warning(w_msg)
+        cycle
+      endif
+
+      if (psl_min .lt. 500e2) then
+        write(w_msg, '(3(A,I0),2(A,F6.2),(A,I0),(A,E16.9),A)') &
+          'Abnormally low pressure value. can_id=', can_id, ', i=', im, &
+          ', j=', jm, ', lon=', Grlon(im), ', lat=', Grlat(jm), &
+          ', step=', time_step, ', psl=', psl_min, c_null_char
+        call teca_tc_warning(w_msg)
+        cycle
+      endif
+
+      lon_psl = p(1)
+      lat_psl = p(2)
+
+      ! is pressure min close to vorticity max?
+      xx = lon_psl - lon_vort
+      yy = lat_psl - lat_vort
+      rr = sqrt(xx*xx + yy*yy)
+
+      if (rr >= max_core_radius) then
+        !write(error_unit, '((A,I0),5(A,F6.2))') &
+        !  'pressure min too far. can_id=', can_id, &
+        !  ', v_lon=', lon_vort, ', v_lat=', lat_vort, &
+        !  ', p_lon=', lon_psl, ', p_lat=', lat_psl, ', r=', rr
+        cycle
+      endif
+
+      ! is pressure delta
+      ierr_mag = 0
+
+      call shape_@type_name@(rlon, rlat, psl, psl_dy, &
+        psl_dx, p, ierr_mag, max_psl_dy, max_psl_dr)
+
+      if (ierr_mag .ne. 0) then
+        !write(error_unit, *)'missed pressure gradient',can_id
+        cycle
+      endif
+
+      ! --- we have strom a candidate
+      n_candidate = n_candidate + 1
+
+      ! --- step 3: check for presence of a warm core
+      exist_twc = .false.
+      ierr_pos = 0
+
+      call frprm_@type_name@(rlon, rlat, tbar, &
+           tbar_dy, tbar_dx, p, ftol, frprm_itmax, fret, &
+           ierr_pos)
+
+      if (ierr_pos .eq. 0) then
+
+        twc_max = -fret
+
+        lon_twc = p(1)
+        lat_twc = p(2)
+
+        xx = lon_twc - lon_psl
+        yy = lat_twc - lat_psl
+        rr = sqrt(xx**2 + yy**2)
+
+        if (rr < max_core_radius) then
+          ierr_mag = 0
+
+          call shape_@type_name@(rlon, rlat, tbar, tbar_dy, &
+            tbar_dx, p, ierr_mag, max_twc_dy, max_twc_dr)
+
+          exist_twc = (ierr_mag .eq. 0)
+        endif
+      else
+        write(w_msg, '(3(A,I0),2(A,F6.2),2(A,I0),A)') &
+          'Failed to locate twc maxima. can_id=', can_id, &
+          ', i=', im, ', j=',jm, ', lon=', Grlon(im), &
+          ', lat=', Grlat(jm), ', step=', time_step, &
+          ', nit=', frprm_itmax, c_null_char
+        call teca_tc_warning(w_msg)
+        twc_max = 0.0
+        lon_twc = 0.0
+        lat_twc = 0.0
+      endif
+
+      ! --- step 4: check for thickness max
+      ierr_pos = 0
+      exist_thick = .false.
+
+      call frprm_@type_name@(rlon, rlat, thick, thick_dy, &
+        thick_dx, p, ftol, frprm_itmax, fret, ierr_pos)
+
+      if(ierr_pos .eq. 0) then
+
+        thick_max = -fret
+
+        lon_thick = p(1)
+        lat_thick = p(2)
+
+        xx = lon_thick - lon_psl
+        yy = lat_thick - lat_psl
+        rr = sqrt(xx*xx + yy*yy)
+
+        if(rr < max_core_radius) then
+          ierr_mag = 0
+
+          call shape_@type_name@(rlon, rlat, thick, thick_dy, &
+            thick_dx, p, ierr_mag, max_thick_dy, max_thick_dr)
+
+          exist_thick = (ierr_mag .eq. 0)
+        endif
+      else
+        write(w_msg, '(3(A,I0),2(A,F6.2),2(A,I0),A)') &
+          'Failed to locate thick maxima. can_id=', can_id, &
+          ', i=', im, ', j=',jm, ', lon=', Grlon(im), &
+          ', lat=', Grlat(jm), ', step=', time_step, &
+          ', nit=', frprm_itmax, c_null_char
+        call teca_tc_warning(w_msg)
+        thick_max = 0.0
+        lon_thick = 0.0
+        lat_thick = 0.0
+      endif
+
+      ! save candidate info
+      stwc_is = merge(1, 0, exist_twc)
+      sthick_is = merge(1, 0, exist_thick)
+
+      wind_max = maxval(wind(im:ip,jm:jp))
+
+      call teca_tc_append_candidate_@type_name@( &
+        n_candidate, im, jm, lon_psl, lat_psl, wind_max, vort(i,j), &
+        psl_min, stwc_is, sthick_is, twc_max, thick_max, tc_table)
+
+    end do
+  end do
+
+  deallocate(rlon)
+  deallocate(rlat)
+  deallocate(vort)
+  deallocate(wind)
+  deallocate(psl)
+  deallocate(psl_dx)
+  deallocate(psl_dy)
+  deallocate(tbar)
+  deallocate(tbar_dx)
+  deallocate(tbar_dy)
+  deallocate(thick)
+  deallocate(thick_dx)
+  deallocate(thick_dy)
+
+  ret_val = 0
+  return
+end function gfdl_tc_candidates_@type_name@
+
+function average(var) result(res)
+  implicit none
+  real(@c_type_var@), dimension(:,:), intent(in) :: var
+  real(@c_type_var@) :: res
+  res = sum(var)/size(var)
+end function average
+
+end module tstorms_@type_name@_module

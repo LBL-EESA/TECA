@@ -90,10 +90,10 @@ int parse_command_line(
         y_ax = argv[6];
     string z_ax = "";
     if (argc > 7)
-        z_ax = argv[7];
+        z_ax = argv[7][0] == '.' ? "" : argv[7];
     string t_ax = "";
     if (argc > 8)
-        t_ax = argv[8];
+        t_ax = argv[8][0] == '.' ? "" : argv[8];
     vector<string> arrays;
     for (int i = 9; i < argc; ++i)
         arrays.push_back(argv[i]);

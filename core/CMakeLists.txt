@@ -39,7 +39,6 @@ endif()
 list(APPEND teca_core_link pthread)
 
 add_library(teca_core ${teca_core_srcs})
-
 target_link_libraries(teca_core ${teca_core_link})
 
 target_include_directories(teca_core

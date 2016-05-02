@@ -24,8 +24,8 @@ int main(int argc, char **argv)
     string dataset_regex = argv[1];
     string x_var = argv[2];
     string y_var = argv[3];
-    string z_var = argv[4];
-    string t_var = argv[5];
+    string z_var = argv[4][0] == '.' ? "" : argv[4];
+    string t_var = argv[5][0] == '.' ? "" : argv[5];
     string u_var = argv[6];
     string v_var = argv[7];
     int first_step = atoi(argv[8]);

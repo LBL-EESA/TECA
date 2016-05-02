@@ -24,7 +24,14 @@ int main(int argc, char **argv)
     int rank = 0;
     int nranks = 1;
 #if defined(TECA_HAS_MPI)
-    MPI_Init(&argc, &argv);
+    int mpi_thread_required = MPI_THREAD_SERIALIZED;
+    int mpi_thread_provided = 0;
+    MPI_Init_thread(&argc, &argv, mpi_thread_required, &mpi_thread_provided);
+    if (mpi_thread_provided < mpi_thread_required)
+    {
+        cerr << "ERROR: MPI does not support threads" << endl;
+        return -1;
+    }
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &nranks);
 #endif
@@ -113,7 +120,6 @@ int main(int argc, char **argv)
         table_writer->set_file_name(baseline.c_str());
         table_writer->set_output_format_bin();
         table_writer->update();
-        return -1;
     }
 
 #if defined(TECA_HAS_MPI)

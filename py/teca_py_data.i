@@ -71,6 +71,12 @@
         return PyErr_Format(PyExc_TypeError,
             "Failed to convert array for key \"%s\"", name.c_str());
     }
+
+    /* handle conversion to variant arrays */
+    void append(const std::string &name, PyObject *array)
+    {
+       teca_array_collection___setitem__(self, name, array);
+    }
 }
 
 /***************************************************************************

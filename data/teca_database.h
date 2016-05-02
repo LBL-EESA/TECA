@@ -97,7 +97,7 @@ public:
 
     // stream to/from human readable representation
     void to_stream(std::ostream &) const override;
-    void from_stream(std::istream &) {}
+    void from_stream(std::istream &) override {}
 
 protected:
     teca_database();
