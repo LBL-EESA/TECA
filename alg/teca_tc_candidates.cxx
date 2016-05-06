@@ -384,7 +384,6 @@ const_p_teca_dataset teca_tc_candidates::execute(
     }
 
     // identify candidates
-    int n_candidates = 0;
     p_teca_table candidates = teca_table::New();
 
     NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
@@ -397,11 +396,11 @@ const_p_teca_dataset teca_tc_candidates::execute(
             surface_wind_speed.get(), _VAR,
 
             // configure the candidate table
-            candidates->declare_columns("storm_id", int(), "i", long(), "j", long(),
-                "lon", NT_COORD(), "lat", NT_COORD(), "surface_wind_max", NT_VAR(),
-                "850mb_vorticity_max", NT_VAR(), "sea_level_pressure_min", NT_VAR(),
+            candidates->declare_columns("storm_id", int(),
+                "lon", NT_COORD(), "lat", NT_COORD(), "surface_wind", NT_VAR(),
+                "850mb_vorticity", NT_VAR(), "sea_level_pressure", NT_VAR(),
                 "have_core_temp", int(), "have_thickness", int(),
-                "core_tmep_max", NT_VAR(), "thickness_max", NT_VAR());
+                "core_temp", NT_VAR(), "thickness", NT_VAR());
 
             const NT_VAR *v = dynamic_cast<const TT_VAR*>(surface_wind_speed.get())->get();
             const NT_VAR *w = dynamic_cast<const TT_VAR*>(vorticity_850mb.get())->get();
@@ -410,13 +409,13 @@ const_p_teca_dataset teca_tc_candidates::execute(
             const NT_VAR *th = dynamic_cast<const TT_VAR*>(thickness.get())->get();
 
             // invoke the detector
-            if (::gfdl_tc_candidates(this->max_core_radius,
+            if (teca_gfdl::tc_candidates(this->max_core_radius,
                 this->min_vorticity_850mb, this->vorticity_850mb_window,
                 this->max_pressure_delta, this->max_pressure_radius,
                 this->max_core_temperature_delta, this->max_core_temperature_radius,
                 this->max_thickness_delta, this->max_thickness_radius, v, w,
                 T, P, th, lat, lon, nlat, nlon, this->minimizer_iterations,
-                time_step, n_candidates, candidates.get()))
+                time_step, candidates.get()))
             {
                 TECA_ERROR("GFDL TC detector encountered an error")
                 return nullptr;
@@ -431,7 +430,8 @@ const_p_teca_dataset teca_tc_candidates::execute(
 
     // add time stamp
     out_table->declare_columns("step", long(), "time", double());
-    for (int i = 0; i < n_candidates; ++i)
+    unsigned long n_candidates = candidates->get_number_of_rows();
+    for (unsigned long i = 0; i < n_candidates; ++i)
         out_table << time_step << time_offset;
 
     // add the candidates

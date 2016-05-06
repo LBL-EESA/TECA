@@ -5,16 +5,15 @@ implicit none
 
 interface
 subroutine teca_tc_append_candidate_@type_name@( &
-  n_candidate, idex, jdex, spsl_lon, spsl_lat, swind_max, &
-  svort_max, spsl_min, stwc_is, sthick_is, stwc_max, &
-  sthick_max, atable) bind(C)
+  storm_id, lon, lat, wind_max, vort_max, psl_min, &
+  twc_is, thick_is, twc_max, thick_max, atable) &
+  bind(C)
   use iso_c_binding
   implicit none
-  integer(c_int), intent(in) :: n_candidate, stwc_is, sthick_is
-  integer(c_long), intent(in) ::  idex, jdex
-  real(@c_type_coord@), intent(in) :: spsl_lon, spsl_lat
-  real(@c_type_var@), intent(in) :: swind_max, &
-         svort_max, spsl_min, stwc_max, sthick_max
+  integer(c_int), intent(in) :: storm_id, twc_is, thick_is
+  real(@c_type_coord@), intent(in) :: lon, lat
+  real(@c_type_var@), intent(in) :: wind_max, &
+         vort_max, psl_min, twc_max, thick_max
   type(c_ptr), intent(in) :: atable
 end subroutine
 
@@ -115,7 +114,7 @@ end subroutine gpad1_@type_name@
 !     Grlat  - latitudes
 !     Gnlat  - lat dimension
 !     Gnlon  - lon dimension
-!     n_candidate - returns the n_candidate of events detected
+!     storm_id - returns the storm_id of events detected
 !     tc_table - teca table object to hold the events
 !-------------------------------------------------------------------
 ! --- OUTPUT - file "cyclones"
@@ -124,14 +123,14 @@ end subroutine gpad1_@type_name@
 !     num0   - day
 !     imon0  - month
 !     iyear  - year
-!     n_candidate - n_candidate of cyclones found
-! --- records # 2...n_candidate+1
+!     storm_id - storm_id of cyclones found
+! --- records # 2...storm_id+1
 !     idex, jdex - (i,j) index of cyclone
 !     svort_max  - max vorticity
 !     swind_max  - max wind
-!      spsl_min  - min sea level pressure
+!      min  - min sea level pressure
 !     svort_lon, svort_lat - longitude & latitude of max vorticity
-!      spsl_lon, spsl_lat - longitude & latitude of min slp
+!      lon, lat - longitude & latitude of min slp
 !      stwc_lon, stwc_lat - longitude & latitude of warm core
 !    sthick_lon, sthick_lat - longitude & latitude of max thickness
 !-------------------------------------------------------------------
@@ -141,7 +140,7 @@ integer(c_int) function gfdl_tc_candidates_@type_name@( &
         max_thick_dy, max_thick_dr, &
         Gwind, Gvort, Gtbar, Gpsl, Gthick, Grlat, &
         Grlon, Gnlat, Gnlon, frprm_itmax, time_step, &
-        n_candidate, tc_table) result(ret_val) bind(C)
+        tc_table) result(ret_val) bind(C)
 
   use spline_@type_name@_module, only : splie2_@type_name@, &
         splie3_@type_name@, frprm_@type_name@, shape_@type_name@
@@ -159,10 +158,7 @@ integer(c_int) function gfdl_tc_candidates_@type_name@( &
   real(@c_type_coord@), intent(in), dimension(Gnlat) :: Grlat
   integer(c_long), intent(in) :: Gnlat, Gnlon, time_step
   integer(c_int), intent(in) :: frprm_itmax
-  integer(c_int), intent(out) :: n_candidate
   type(c_ptr), intent(inout) :: tc_table
-
-  integer(c_int) :: nx, nx2, nxp1
 
   real(@c_type_var@), parameter :: ftol = 0.01
 
@@ -178,14 +174,13 @@ integer(c_int) function gfdl_tc_candidates_@type_name@( &
   real(@c_type_coord@) :: lat_vort, lat_psl, lat_twc, lat_thick
   logical :: exist_twc, exist_thick
 
-  integer(c_int) :: sthick_is, stwc_is
-
   real(@c_type_coord@), dimension(2)  :: p
   real(@c_type_coord@) :: xx, yy, rr
   real(@c_type_var@) :: fret
 
-  integer :: can_id
-  integer :: ierr_pos, ierr_mag
+  integer(c_int) :: have_thick, have_twc
+  integer :: can_id, storm_id, ierr_pos, ierr_mag
+  integer(c_long) :: nx, nx2, nxp1
   integer(c_long) :: i, im, ip, ix, ixp3, ixp6
   integer(c_long) :: j, jm, jp, jx, jxp3, jxp6
   integer, dimension(2) :: can_ij
@@ -199,7 +194,7 @@ integer(c_int) function gfdl_tc_candidates_@type_name@( &
   !  'max_thick_dr = ', max_thick_dr
 
   can_id = 0
-  n_candidate = int(time_step)*10000
+  storm_id = int(time_step)*10000
 
   ! estimate the search window size
   nx = int((vort_win_size/(Grlat(2) - Grlat(1)) - 1.0)/2.0)
@@ -342,7 +337,7 @@ integer(c_int) function gfdl_tc_candidates_@type_name@( &
       endif
 
       ! --- we have strom a candidate
-      n_candidate = n_candidate + 1
+      storm_id = storm_id + 1
 
       ! --- step 3: check for presence of a warm core
       exist_twc = .false.
@@ -422,14 +417,15 @@ integer(c_int) function gfdl_tc_candidates_@type_name@( &
       endif
 
       ! save candidate info
-      stwc_is = merge(1, 0, exist_twc)
-      sthick_is = merge(1, 0, exist_thick)
+      have_twc = merge(1, 0, exist_twc)
+      have_thick = merge(1, 0, exist_thick)
 
       wind_max = maxval(wind(im:ip,jm:jp))
 
       call teca_tc_append_candidate_@type_name@( &
-        n_candidate, im, jm, lon_psl, lat_psl, wind_max, vort(i,j), &
-        psl_min, stwc_is, sthick_is, twc_max, thick_max, tc_table)
+        storm_id, lon_psl, lat_psl, wind_max, vort(i,j), &
+        psl_min, have_twc, have_thick, twc_max, thick_max, &
+        tc_table)
 
     end do
   end do
