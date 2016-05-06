@@ -31,38 +31,10 @@ min_wind_speed (17 m/s)
     850 mb wind sped must be above this value.
     wcrit
 
-min_peak_wind_speed (17 m/s)
-    wind must exceed this value at least once in the storm
-    wcritm
-
-min_duration (2 days)
+min_wind_duration (2 days)
     criteria must be satisfied for this many days to be
     a candidate
     nwcrit
-
-min_850mb_voriticity (3.5e-5)
-    minimum 850 mb vorticty
-    vcrit
-
-core_temperature_delta (0.5 deg C)
-    twc_crit
-
-min_thickness (50 m)
-    thick_crit
-
-low_search_alttitude (-40 deg)
-    slat
-
-high_search_latitude (40 deg)
-    nlat
-
-use_splines (0)
-    use spline fitting
-    do_spline
-
-use_thickness (0)
-    use thickness criteria
-    do_thickness
 */
 class teca_tc_trajectory : public teca_algorithm
 {
@@ -79,15 +51,7 @@ public:
     // to compute norm from
     TECA_ALGORITHM_PROPERTY(double, max_daily_distance)
     TECA_ALGORITHM_PROPERTY(double, min_wind_speed)
-    TECA_ALGORITHM_PROPERTY(double, min_peak_wind_speed)
-    TECA_ALGORITHM_PROPERTY(double, min_vorticity)
-    TECA_ALGORITHM_PROPERTY(double, core_temperature_delta)
-    TECA_ALGORITHM_PROPERTY(double, min_thickness)
-    TECA_ALGORITHM_PROPERTY(double, min_duration)
-    TECA_ALGORITHM_PROPERTY(double, low_search_latitude)
-    TECA_ALGORITHM_PROPERTY(double, high_search_latitude)
-    TECA_ALGORITHM_PROPERTY(int, use_splines)
-    TECA_ALGORITHM_PROPERTY(int, use_thickness)
+    TECA_ALGORITHM_PROPERTY(double, min_wind_duration)
 
 protected:
     teca_tc_trajectory();
@@ -110,15 +74,7 @@ private:
 private:
     double max_daily_distance;
     double min_wind_speed;
-    double min_peak_wind_speed;
-    double min_vorticity;
-    double core_temperature_delta;
-    double min_thickness;
-    double min_duration;
-    double low_search_latitude;
-    double high_search_latitude;
-    int use_splines;
-    int use_thickness;
+    double min_wind_duration;
 };
 
 #endif

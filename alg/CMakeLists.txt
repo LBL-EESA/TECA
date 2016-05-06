@@ -11,6 +11,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
 
 set(teca_alg_cxx_srcs
     gfdl_tc_candidates.cxx
+    gfdl_tc_trajectory.cxx
     teca_ar_detect.cxx
     teca_cartesian_mesh_subset.cxx
     teca_cartesian_mesh_regrid.cxx
@@ -32,12 +33,12 @@ set(teca_alg_cxx_srcs
     )
 
 set(teca_alg_f90_srcs
-    gfdl_trajectory.f90
     )
 
 set(teca_alg_f90_generics
-    gfdl_tc_candidates
     gfdl_spline
+    gfdl_tc_candidates
+    gfdl_tc_trajectory
     )
 
 set(iso_c_types c_float c_double)
