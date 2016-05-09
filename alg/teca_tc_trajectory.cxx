@@ -6,7 +6,7 @@
 #include "teca_variant_array.h"
 #include "teca_metadata.h"
 
-#include "gfdl_trajectory.h"
+#include "gfdl_tc_trajectory.h"
 
 #include <algorithm>
 #include <iostream>
@@ -16,6 +16,10 @@
 
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
+#endif
+
+#if defined(TECA_HAS_MPI)
+#include <mpi.h>
 #endif
 
 using std::string;
@@ -30,7 +34,7 @@ using std::endl;
 teca_tc_trajectory::teca_tc_trajectory() :
     max_daily_distance(900.0),
     min_wind_speed(17.0),
-    min_wind_duration(2.0),
+    min_wind_duration(2.0)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -143,34 +147,34 @@ const_p_teca_dataset teca_tc_trajectory::execute(
         candidates->get_column("time").get())->get();
 
     const int *p_storm_id =
-        dynamic_cast<const teca_variant_impl<int>*>(
+        dynamic_cast<const teca_variant_array_impl<int>*>(
         candidates->get_column("storm_id").get())->get();
 
     const_p_teca_variant_array lon = candidates->get_column("lon");
     const_p_teca_variant_array lat = candidates->get_column("lat");
 
     const_p_teca_variant_array wind_max =
-        candidates->get_column("surface_wind_max");
+        candidates->get_column("surface_wind");
 
     const_p_teca_variant_array vort_max =
-        candidates->get_column("850mb_vorticty_max");
+        candidates->get_column("850mb_vorticty");
 
     const_p_teca_variant_array psl_min =
-        candidates->get_column("seal_level_pressure_min");
+        candidates->get_column("seal_level_pressure");
 
     const int *p_have_twc =
-        dynamic_cast<const teca_variant_impl<int>*>(
+        dynamic_cast<const teca_variant_array_impl<int>*>(
         candidates->get_column("have_core_temp").get())->get();
 
     const int *p_have_thick =
-        dynamic_cast<const teca_variant_impl<int>*>(
+        dynamic_cast<const teca_variant_array_impl<int>*>(
         candidates->get_column("have_thickness").get())->get();
 
     const_p_teca_variant_array twc_max =
-        candidates->get_column("core_temp_max");
+        candidates->get_column("core_temp");
 
     const_p_teca_variant_array thick_max =
-        candidates->get_column("thickness_max");
+        candidates->get_column("thickness");
 
     // create the table to hold storm tracks
     p_teca_table storm_tracks = teca_table::New();
@@ -178,19 +182,22 @@ const_p_teca_dataset teca_tc_trajectory::execute(
     NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
         lon.get(), _COORD,
 
-        const NT_COORD *p_lon = static_cast<const TT_COORD*>(x.get())->get();
-        const NT_COORD *p_lat = static_cast<const TT_COORD*>(y.get())->get();
+        const NT_COORD *p_lon =
+            static_cast<const TT_COORD*>(lon.get())->get();
+
+        const NT_COORD *p_lat =
+            static_cast<const TT_COORD*>(lat.get())->get();
 
         NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
             wind_max.get(), _VAR,
 
             // configure the output
-            strom_tracks->declare_columns("track_id", int(), "step", long(),
-                "storm_id", int(), "lon", NT_COORD(), "lat", NT_COORD(),
-                "surface_wind_max", NT_VAR(), "850mb_vorticity_max", NT_VAR(),
-                "sea_level_pressure_min", NT_VAR(), "have_core_temp", int(),
-                "have_thickness", int(), "core_temp_max", NT_VAR(),
-                "thickness_max", NT_VAR());
+            storm_tracks->declare_columns("track_id", int(),
+                "storm_id", int(), "step", long(), "time", double(),
+                "lon", NT_COORD(), "lat", NT_COORD(), "surface_wind", NT_VAR(),
+                "850mb_vorticity", NT_VAR(), "sea_level_pressure", NT_VAR(),
+                "have_core_temp", int(), "have_thickness", int(),
+                "core_temp", NT_VAR(), "thickness", NT_VAR());
 
             const NT_VAR *p_wind_max =
                 dynamic_cast<const TT_VAR*>(wind_max.get())->get();
@@ -212,7 +219,7 @@ const_p_teca_dataset teca_tc_trajectory::execute(
                 this->min_wind_speed, this->min_wind_duration, p_step, p_time,
                 p_storm_id, p_lon, p_lat, p_wind_max, p_vort_max, p_psl_min,
                 p_have_twc, p_have_thick, p_twc_max, p_thick_max,
-                candidates->get_number_of_rows(), strom_tracks))
+                candidates->get_number_of_rows(), storm_tracks))
             {
                 TECA_ERROR("GFDL TC trajectory analysis encountered an error")
                 return nullptr;

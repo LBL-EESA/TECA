@@ -1,16 +1,17 @@
-module gfdl_tc_trajectory
+module trajectory_@type_name@
 use iso_c_binding
 use iso_fortran_env, ONLY : error_unit
+use trajectory_util
 implicit none
 
 interface
 !-----------------------------------------------------------------------------
-subroutine teca_append_track_@type_name@(table, track_id, &
-  step, time, storm_id, lon, lat, psl, wind, vort, &
-  have_twc, have_thick, twc, thick_mess) bind(C)
+subroutine teca_append_tc_track_@type_name@(table, track_id, storm_id, &
+  step, time, lon, lat, psl, wind, vort, have_twc, have_thick, twc, thick) &
+  bind(C)
   use iso_c_binding
   implicit none
-  type(c_ptr), intent(inout) :: table
+  type(c_ptr), intent(in) :: table
   integer(c_long), intent(in) :: step
   real(c_double), intent(in) :: time
   real(@c_type_coord@), intent(in) :: lon, lat
@@ -19,43 +20,7 @@ subroutine teca_append_track_@type_name@(table, track_id, &
 end subroutine
 end interface
 
-!-----------------------------------------------------------------------------
-subroutine get_step_offsets(step_ids, n_rows, &
-  n_steps, step_counts, step_offsets)
-  implicit none
-  integer(c_int), intent(in), dimension(n_rows) :: step_ids
-  integer(c_long), intent(in) :: n_rows
-  integer(c_long), intent(out) :: n_steps
-  integer(c_long), intent(out), dimension(:) :: &
-    step_counts, step_offsets
-  integer(c_long) :: q, i, n_m1
-
-  ! count unique number of steps
-  n_steps = 1
-  n_m1 = n_rows - 1
-  do i = 1,n_m1
-    if (step_ids(i) .ne. step_ids(i+1)) &
-      n_steps = n_steps + 1
-  enddo
-
-  ! compute num storms in each step
-  q = 1
-  do i = 1,n_steps
-    do while ((step_ids(q) .ne. step_ids(q+1)) &
-      .and. (q .le. n_rows))
-      q = q + 1
-    enddo
-    step_counts(i) = q
-    q = q + 1
-  enddo
-
-  ! compute offset to first storm at each step
-  step_offsets(1) = 1
-  do i = 2,n_steps
-    step_offset(i) = step_offset(i-1) + step_count(i-1)
-  enddo
-end subroutine
-
+contains
 !-----------------------------------------------------------------------------
 ! defaults
 !  r_crit  = 900.0
@@ -69,7 +34,7 @@ end subroutine
 !  nlat =  40. !miz
 !  slat = -40. !miz
 integer(c_int) function gfdl_tc_trajectory_@type_name@( &
-  r_crit, wind_crit, n_wind_crit, step, time, storm_id, &
+  r_crit, wind_crit, n_wind_crit, time_step, time, storm_id, &
   deg_lon, deg_lat, wind_max, vort_max, psl, have_twc, &
   have_thick, twc_max, thick_max, n_rows, track_table) &
   result(ret_val) bind(C)
@@ -78,33 +43,35 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
   implicit none
 
   type(c_ptr), intent(in) :: track_table
-  real(@c_coord_type@), intent(in) :: r_crit
+  real(@c_type_coord@), intent(in) :: r_crit
 
-  real(@c_var_type@), intent(in) :: wind_crit, wind_max_crit, &
-    vort_crit, n_wind_crit
+  real(@c_type_var@), intent(in) :: wind_crit, n_wind_crit
 
   integer(c_long), intent(in) :: n_rows
 
-  real(@c_coord_type@), intent(in), dimension(n_rows) :: &
+  real(@c_type_coord@), intent(in), dimension(n_rows) :: &
     deg_lon, deg_lat
 
   real(c_double), intent(in), dimension(n_rows) :: time
-  integer(c_long), intent(in), dimension(n_rows) :: step
+  integer(c_long), intent(in), dimension(n_rows) :: time_step
 
-  real(@c_var_type@), intent(in), dimension(n_rows) :: &
+  real(@c_type_var@), intent(in), dimension(n_rows) :: &
     wind_max, vort_max, psl, twc_max, thick_max
 
   integer(c_int), intent(in), dimension(n_rows) :: &
     storm_id, have_twc, have_thick
 
-  real(@c_coord_type) :: deg_lon_0, deg_lat_0, &
-    deg_lon_i, deg_lat_i, dx, dy, dr, dt
+  real(@c_type_coord@) :: rad_lon_0, rad_lat_0, &
+    rad_lon_i, rad_lat_i, dt, drdt
+    ! dx, dy, dr,
 
   logical :: cross_equator
 
   integer(c_long) :: step, storm, n_steps, n_steps_m1, &
-    offset, next_step, track_len, curr_step, curr_storm, &
-    n_cand, n_bon, n_wind, n_wind_max, q
+    next_step, next_storm, track_len, curr_step, curr_storm, &
+    n_cand, n_bon, n_wind, q, idx_0, idx_i, n_thick, n_twc
+
+  integer(c_int) :: track_id
 
   integer(c_long), dimension(1) :: imin
 
@@ -115,12 +82,11 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
     track_step, track_storm, cand_step, cand_storm, &
     bon_step, bon_storm
 
-  real(@c_coord_type@), dimension(n_rows) :: rtot, rad_lon, rad_lat
+  real(@c_type_coord@), dimension(n_rows) :: rtot, rad_lon, rad_lat
 
-  logical, dimension(n_rows) :: available, exist_wind, &
-        exist_vort, exist_twc, exist_thick, exist_maxw
+  logical, dimension(n_rows) :: available, exist_wind, exist_twc, exist_thick
 
-  real(@c_coord_type@), parameter :: &
+  real(@c_type_coord@), parameter :: &
     EARTH_RADIUS = 6371.0, DEG_TO_RAD = 3.14159265358979/180.0
 
   ret_val = -1
@@ -134,15 +100,13 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
   available(:) = .true.
 
   ! --- STEP 2: EVALUATION OF TRAJECTORIES
-  call get_step_offsets(step, n_rows, &
+  call get_step_offsets(time_step, n_rows, &
     n_steps, step_offsets, step_counts)
 
   n_steps_m1 = n_steps - 1
   do step = 1,n_steps_m1
 
     next_step = step + 1
-
-    offset = step_offsets(step)
 
     ! for each candidate
     do storm = 1,step_counts(step)
@@ -151,7 +115,8 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
       track_step(1) = step
       track_storm(1) = storm
 
-      idx_0 = offset+storm
+      idx_0 = step_offsets(step) + storm
+
       if (available(idx_0) .and. exist_wind(idx_0)) then
 
         curr_step = step
@@ -216,7 +181,7 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
           end do
 
           dt = time(next_step) - time(step)
-          if ((track_len .gt. 1) .and. ((n_wind*dt) .ge. n_wind_crit) then
+          if ((track_len .gt. 1) .and. ((n_wind*dt) .ge. n_wind_crit)) then
             ! track meets the wind duration criteria
 
             do q = 1,track_len
@@ -224,11 +189,10 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
 
               ! output trajectory info
               call teca_append_tc_track_@type_name@( &
-                track_table, track_id, step(idx_0), time(idx_0), &
-                storm_id(idx_0), deg_lon(idx_0), deg_lat(idx_0), &
-                psl(idx_0), wind_max(idx_0), vort_max(idx_0), &
-                have_twc(idx_0), have_thick(idx_0), twc_max(idx_0), &
-                thick_max(idx_0))
+                track_table, track_id, storm_id(idx_0), time_step(idx_0), &
+                time(idx_0), deg_lon(idx_0), deg_lat(idx_0), psl(idx_0), &
+                wind_max(idx_0), vort_max(idx_0), have_twc(idx_0), &
+                have_thick(idx_0), twc_max(idx_0), thick_max(idx_0))
 
               ! mark candidate as used
               available(idx_0) = .false.
@@ -255,7 +219,6 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
 
         ! more than one candidate storm
         if (n_cand .gt. 1) then
-
           idx_0 = step_offsets(curr_step) + curr_storm
 
           rad_lon_0 = rad_lon(idx_0)
@@ -264,7 +227,6 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
           n_bon = 0
 
           do q = 1,n_cand
-
             idx_i = step_offsets(cand_step(q)) + cand_storm(q)
 
             rad_lon_i = rad_lon(idx_i)
@@ -333,7 +295,7 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
             rad_lat_0 = rad_lat(idx_0)
 
             do q = 1,n_cand
-              idx_i = step_offsets(cand_step(q)) + cand_strom(q)
+              idx_i = step_offsets(cand_step(q)) + cand_storm(q)
 
               rad_lon_i = rad_lon(idx_i)
               rad_lat_i = rad_lat(idx_i)

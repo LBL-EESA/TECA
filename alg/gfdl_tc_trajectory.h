@@ -6,8 +6,8 @@
 #define DECLARE_GFDL_TC_TRAJECTORY(_c_type, _c_name, _v_type, _v_name) \
 \
 extern "C" \
-int gfdl_tc_trajectory_c ## _c_name ## _v ## _v_name( \
-    _c_type *r_crit, _v_type *wind_crit, long *n_wind_crit, \
+int gfdl_tc_trajectory_c ## _c_name ## _v ## _v_name ( \
+    _c_type *r_crit, _v_type *wind_crit, _v_type *n_wind_crit, \
     const long *step, const double *time, const int *storm_id, \
     const _c_type *rlon, const _c_type *rlat, const _v_type *wind_max, \
     const _v_type *vort_max, const _v_type *psl, const int *have_twc, \
@@ -15,7 +15,7 @@ int gfdl_tc_trajectory_c ## _c_name ## _v ## _v_name( \
     const _v_type *thick_max, long *n_rows, void *track_table); \
 \
 namespace teca_gfdl { \
-int tc_trajectory(_c_type r_crit, _v_type wind_crit, long n_wind_crit, \
+int tc_trajectory(_c_type r_crit, _v_type wind_crit, _v_type n_wind_crit, \
     const long *step, const double *time, const int *storm_id, \
     const _c_type *rlon, const _c_type *rlat, const _v_type *wind_max, \
     const _v_type *vort_max, const _v_type *psl, const int *have_twc, \
