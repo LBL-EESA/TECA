@@ -16,17 +16,44 @@
 namespace teca_file_util
 {
 
-// TODO -- document these functions
+// replace %t% with the given value
 void replace_timestep(std::string &file_name, unsigned long time_step);
+
+// replace %e% with the given string
 void replace_extension(std::string &file_name, const std::string &ext);
+
+// replace %s% with the given string
 void replace_identifier(std::string &file_name, const std::string &id);
+
+// return string converted to lower case
 void to_lower(std::string &in);
+
+// return 0 if the file does not exist
 int file_exists(const char *path);
-std::string strip_filename_from_path(const std::string &filename);
-std::string strip_extension_from_filename(const std::string &filename);
-std::string strip_path_from_filename(const std::string &filename);
+
+// Returns the path not including the file name and not
+// including the final PATH_SEP. If PATH_SEP isn't found
+// then ".PATH_SEP" is returned.
+std::string path(const std::string &filename);
+
+// Returns the file name not including the extension (ie what ever is after
+// the last ".". If there is no "." then the filename is returned unmodified.
+std::string base_filename(const std::string &filename);
+
+// Returns the file name from the given path. If PATH_SEP isn't found
+// then the filename is returned unmodified.
+std::string filename(const std::string &filename);
+
+// Returns the extension from the given filename.
+std::string extension(const std::string &filename);
+
+// rad the line of the ascii file into a vector
 size_t load_lines(const char *filename, std::vector<std::string> &lines);
+
+// read the file into a string
 size_t load_text(const std::string &filename, std::string &text);
+
+// write the string to the named file
 int write_text(std::string &filename, std::string &text);
 
 int search_and_replace(

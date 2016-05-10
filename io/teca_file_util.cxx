@@ -214,9 +214,7 @@ int file_exists(const char *path)
     struct stat s;
     int i_err = stat(path, &s);
     if (i_err == 0)
-    {
         return 1;
-    }
     #else
     (void)path;
     #endif
@@ -239,12 +237,8 @@ int present(const char *path, const char *filename, const char *ext)
   return 1;
 }
 
-
-// Returns the path not including the file name and not
-// including the final PATH_SEP. If PATH_SEP isn't found
-// then ".PATH_SEP" is returned.
 // ***************************************************************************
-std::string strip_filename_from_path(const std::string &filename)
+std::string path(const std::string &filename)
 {
     size_t p;
     p = filename.find_last_of(PATH_SEP);
@@ -254,10 +248,8 @@ std::string strip_filename_from_path(const std::string &filename)
     return filename.substr(0,p);
 }
 
-// Returns the file name not including the extension (ie what ever is after
-// the last ".". If there is no "." then the filename is retnurned unmodified.
 // ***************************************************************************
-std::string strip_extension_from_filename(const std::string &filename)
+std::string base_filename(const std::string &filename)
 {
     size_t p;
     p = filename.rfind(".");
@@ -267,19 +259,27 @@ std::string strip_extension_from_filename(const std::string &filename)
     return filename.substr(0, p);
 }
 
-// Returns the file name from the given path. If PATH_SEP isn't found
-// then the filename is returned unmodified.
 // ***************************************************************************
-std::string strip_path_from_filename(const std::string &filename)
+std::string filename(const std::string &filenm)
 {
     size_t p;
-    p = filename.find_last_of(PATH_SEP);
+    p = filenm.find_last_of(PATH_SEP);
     if (p == std::string::npos)
-        return filename;
+        return filenm;
 
-    return filename.substr(p+1,std::string::npos);
+    return filenm.substr(p+1,std::string::npos);
 }
 
+// ***************************************************************************
+std::string extension(const std::string &filename)
+{
+    size_t p;
+    p = filename.rfind(".");
+    if (p == std::string::npos)
+        return "";
+
+    return filename.substr(p+1);
+}
 
 // **************************************************************************
 size_t load_lines(const char *filename, std::vector<std::string> &lines)
