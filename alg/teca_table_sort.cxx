@@ -36,7 +36,7 @@ public:
     less() : m_data(nullptr) {}
     less(const num_t *data) : m_data(data) {}
 
-    bool operator()(const size_t &l, size_t &r)
+    bool operator()(const size_t &l, const size_t &r)
     {
         return m_data[l] < m_data[r];
     }
