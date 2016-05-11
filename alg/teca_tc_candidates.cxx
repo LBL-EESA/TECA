@@ -15,6 +15,7 @@
 #include <cmath>
 #include <vector>
 #include <set>
+#include <chrono>
 
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
@@ -28,6 +29,7 @@ using std::string;
 using std::ostringstream;
 using std::cerr;
 using std::endl;
+using seconds_t = std::chrono::duration<double, std::chrono::seconds::period>;
 
 // --------------------------------------------------------------------------
 teca_tc_candidates::teca_tc_candidates() :
@@ -386,6 +388,8 @@ const_p_teca_dataset teca_tc_candidates::execute(
     // identify candidates
     p_teca_table candidates = teca_table::New();
 
+    std::chrono::high_resolution_clock::time_point t0, t1;
+
     NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
         x.get(), _COORD,
 
@@ -408,6 +412,7 @@ const_p_teca_dataset teca_tc_candidates::execute(
             const NT_VAR *T = dynamic_cast<const TT_VAR*>(core_temperature.get())->get();
             const NT_VAR *th = dynamic_cast<const TT_VAR*>(thickness.get())->get();
 
+            t0 = std::chrono::high_resolution_clock::now();
             // invoke the detector
             if (teca_gfdl::tc_candidates(this->max_core_radius,
                 this->min_vorticity_850mb, this->vorticity_850mb_window,
@@ -420,6 +425,7 @@ const_p_teca_dataset teca_tc_candidates::execute(
                 TECA_ERROR("GFDL TC detector encountered an error")
                 return nullptr;
             }
+            t1 = std::chrono::high_resolution_clock::now();
             )
         )
 
@@ -441,6 +447,9 @@ const_p_teca_dataset teca_tc_candidates::execute(
     out_table->to_stream(cerr);
     cerr << std::endl;
 #endif
+    seconds_t dt(t1 - t0);
+    TECA_STATUS("teca_tc_candidates step=" << time_step
+        << " t=" << time_offset << ", dt=" << dt.count() << " sec")
 
     return out_table;
 }
