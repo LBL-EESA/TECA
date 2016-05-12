@@ -105,10 +105,7 @@ int teca_array_collection::remove(unsigned int id)
 // ----------------------------------------------------------------------------
 bool teca_array_collection::has(const std::string &name) const
 {
-    name_array_map_t::const_iterator loc = m_name_array_map.find(name);
-    if (loc == m_name_array_map.cend())
-        return false;
-    return true;
+    return m_name_array_map.count(name) > 0;
 }
 
 // ----------------------------------------------------------------------------
