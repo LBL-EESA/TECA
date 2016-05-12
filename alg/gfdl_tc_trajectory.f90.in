@@ -1,8 +1,14 @@
-module trajectory_@type_name@
+module gfdl_tc_trajectory_@type_name@_mod
 use iso_c_binding
 use iso_fortran_env, ONLY : error_unit
 use trajectory_util
 implicit none
+
+private
+public :: gfdl_tc_trajectory_@type_name@
+
+real(@c_type_coord@), parameter :: &
+  EARTH_RADIUS = 6371.0, DEG_TO_RAD = 3.14159265358979/180.0
 
 interface
 !-----------------------------------------------------------------------------
@@ -22,6 +28,30 @@ end interface
 
 contains
 !-----------------------------------------------------------------------------
+pure function distance_@type_name@( &
+  r_lon_0, r_lat_0, r_lon_i, r_lat_i) result(dr) bind(C)
+  implicit none
+  real(@c_type_coord@), intent(in) :: &
+    r_lon_0, r_lat_0, r_lon_i, r_lat_i
+  real(@c_type_coord@) :: dr, dx, dy
+
+  ! GFDL 2007
+  dx = (r_lon_i - r_lon_0)*cos(r_lat_0)
+  dy = (r_lat_i - r_lat_0)
+  dr = EARTH_RADIUS*sqrt(dx*dx + dy*dy)
+
+  ! GFDL 2015
+  !dr = EARTH_RADIUS*acos(sin(r_lat_0)*sin(r_lat_i) &
+  !  + cos(r_lat_0)*cos(r_lat_i)*cos(r_lon_i - r_lon_0))
+
+  ! haversine formula
+  !dx = r_lon_i - r_lon_0
+  !dy = r_lat_i - r_lat_0
+  !dr = EARTH_RADIUS*2.0*asin(min(1,sqrt(sin(dy/2.0)**2.0 &
+  !  + cos(r_lat_0)*cos(r_lat_i)*sin(dx/2.0)**2.0)))
+end function
+
+!-----------------------------------------------------------------------------
 ! defaults
 !  r_crit  = 900.0
 !  wind_crit  = 17.0
@@ -35,7 +65,7 @@ contains
 !  slat = -40. !miz
 integer(c_int) function gfdl_tc_trajectory_@type_name@( &
   r_crit, wind_crit, n_wind_crit, time_step, time, storm_id, &
-  deg_lon, deg_lat, wind_max, vort_max, psl, have_twc, &
+  d_lon, d_lat, wind_max, vort_max, psl, have_twc, &
   have_thick, twc_max, thick_max, n_rows, track_table) &
   result(ret_val) bind(C)
   use iso_c_binding
@@ -50,7 +80,7 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
   integer(c_long), intent(in) :: n_rows
 
   real(@c_type_coord@), intent(in), dimension(n_rows) :: &
-    deg_lon, deg_lat
+    d_lon, d_lat
 
   real(c_double), intent(in), dimension(n_rows) :: time
   integer(c_long), intent(in), dimension(n_rows) :: time_step
@@ -61,9 +91,8 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
   integer(c_int), intent(in), dimension(n_rows) :: &
     storm_id, have_twc, have_thick
 
-  real(@c_type_coord@) :: rad_lon_0, rad_lat_0, &
-    rad_lon_i, rad_lat_i, dt, drdt
-    ! dx, dy, dr,
+  real(@c_type_coord@) :: r_lon_0, r_lat_0, r_lon_i, r_lat_i
+  real(c_double) :: dt, drdt
 
   logical :: cross_equator
 
@@ -82,12 +111,10 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
     track_step, track_storm, cand_step, cand_storm, &
     bon_step, bon_storm
 
-  real(@c_type_coord@), dimension(n_rows) :: rtot, rad_lon, rad_lat
+  real(@c_type_coord@), dimension(n_rows) :: rtot, r_lon, r_lat
 
   logical, dimension(n_rows) :: available, exist_wind, exist_twc, exist_thick
 
-  real(@c_type_coord@), parameter :: &
-    EARTH_RADIUS = 6371.0, DEG_TO_RAD = 3.14159265358979/180.0
 
   ret_val = -1
 
@@ -95,8 +122,8 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
   exist_wind(:) = (wind_max(:) .ge. wind_crit)
   exist_twc(:) = (have_twc(:) .ne. 0)
   exist_thick(:) = (have_thick(:) .ne. 0)
-  rad_lon(:) = DEG_TO_RAD*deg_lon(:)
-  rad_lat(:) = DEG_TO_RAD*deg_lat(:)
+  r_lon(:) = DEG_TO_RAD*d_lon(:)
+  r_lat(:) = DEG_TO_RAD*d_lat(:)
   available(:) = .true.
 
   ! --- STEP 2: EVALUATION OF TRAJECTORIES
@@ -129,8 +156,8 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
         if (next_step .le. n_steps) then
           ! --- check for candidates on following day
           idx_0 = step_offsets(curr_step)+curr_storm
-          rad_lon_0 = rad_lon(idx_0)
-          rad_lat_0 = rad_lat(idx_0)
+          r_lon_0 = r_lon(idx_0)
+          r_lat_0 = r_lat(idx_0)
 
           dt = time(next_step) - time(step)
 
@@ -141,13 +168,13 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
             idx_i = step_offsets(next_step)+next_storm
 
             if (available(idx_i)) then
-              rad_lon_i = rad_lon(idx_i)
-              rad_lat_i = rad_lat(idx_i)
+              r_lon_i = r_lon(idx_i)
+              r_lat_i = r_lat(idx_i)
 
-              drdt = EARTH_RADIUS*acos(sin(rad_lat_0)*sin(rad_lat_i) &
-                + cos(rad_lat_0)*cos(rad_lat_i)*cos(rad_lon_i - rad_lon_0))/dt
+              drdt = distance_@type_name@( &
+                r_lon_0, r_lat_0, r_lon_i, r_lat_i)/dt
 
-              cross_equator = (rad_lat_i*rad_lat_0 .le. 0.0)
+              cross_equator = (r_lat_i*r_lat_0 .le. 0.0)
 
               if ((drdt .le. r_crit) .and. (.not. cross_equator)) then
                 n_cand = n_cand + 1
@@ -190,7 +217,7 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
               ! output trajectory info
               call teca_append_tc_track_@type_name@( &
                 track_table, track_id, storm_id(idx_0), time_step(idx_0), &
-                time(idx_0), deg_lon(idx_0), deg_lat(idx_0), psl(idx_0), &
+                time(idx_0), d_lon(idx_0), d_lat(idx_0), psl(idx_0), &
                 wind_max(idx_0), vort_max(idx_0), have_twc(idx_0), &
                 have_thick(idx_0), twc_max(idx_0), thick_max(idx_0))
 
@@ -221,23 +248,23 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
         if (n_cand .gt. 1) then
           idx_0 = step_offsets(curr_step) + curr_storm
 
-          rad_lon_0 = rad_lon(idx_0)
-          rad_lat_0 = abs(rad_lat(idx_0))
+          r_lon_0 = r_lon(idx_0)
+          r_lat_0 = abs(r_lat(idx_0))
 
           n_bon = 0
 
           do q = 1,n_cand
             idx_i = step_offsets(cand_step(q)) + cand_storm(q)
 
-            rad_lon_i = rad_lon(idx_i)
-            rad_lat_i = abs(rad_lat(idx_i))
+            r_lon_i = r_lon(idx_i)
+            r_lat_i = abs(r_lat(idx_i))
 
             ! TODO -- is this the periodic bc in lon dir??
             ! mod to deal with 0 lon (from gfdl 2015)
-            !if ((sin(rad_lon_i) <= sin(rad_lon_0)) &
+            !if ((sin(r_lon_i) <= sin(r_lon_0)) &
             ! here is teca 1 condition
-            if ((rad_lon_i <= rad_lon_0) &
-              .and. (rad_lat_i >= rad_lat_0)) then
+            if ((r_lon_i <= r_lon_0) &
+              .and. (r_lat_i >= r_lat_0)) then
               n_bon = n_bon + 1
               bon_step(n_bon) = cand_step(q)
               bon_storm(n_bon) = cand_storm(q)
@@ -261,17 +288,17 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
           if (n_bon .gt. 1) then
             ! take the closest
             idx_0 = step_offsets(curr_step) + curr_storm
-            rad_lon_0 = rad_lon(idx_0)
-            rad_lat_0 = rad_lat(idx_0)
+            r_lon_0 = r_lon(idx_0)
+            r_lat_0 = r_lat(idx_0)
 
             do q = 1,n_bon
               idx_i = step_offsets(bon_step(q)) + bon_storm(q)
 
-              rad_lon_i = rad_lon(idx_i)
-              rad_lat_i = rad_lat(idx_i)
+              r_lon_i = r_lon(idx_i)
+              r_lat_i = r_lat(idx_i)
 
-              rtot(q) = EARTH_RADIUS*acos(sin(rad_lat_i)*sin(rad_lat_0) &
-                + cos(rad_lat_i)*cos(rad_lat_0)*cos(rad_lon_i - rad_lon_0))
+              rtot(q) = distance_@type_name@( &
+                r_lon_0, r_lat_0, r_lon_i, r_lat_i)
             end do
             imin = minloc(rtot(1:n_bon))
 
@@ -291,17 +318,17 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
             ! take the closest
             idx_0 = step_offsets(curr_step) + curr_storm
 
-            rad_lon_0 = rad_lon(idx_0)
-            rad_lat_0 = rad_lat(idx_0)
+            r_lon_0 = r_lon(idx_0)
+            r_lat_0 = r_lat(idx_0)
 
             do q = 1,n_cand
               idx_i = step_offsets(cand_step(q)) + cand_storm(q)
 
-              rad_lon_i = rad_lon(idx_i)
-              rad_lat_i = rad_lat(idx_i)
+              r_lon_i = r_lon(idx_i)
+              r_lat_i = r_lat(idx_i)
 
-              rtot(q) = EARTH_RADIUS*acos(sin(rad_lat_i)*sin(rad_lat_0) &
-                + cos(rad_lat_i)*cos(rad_lat_0)*cos(rad_lon_i - rad_lon_0))
+              rtot(q) = distance_@type_name@( &
+                r_lon_0, r_lat_0, r_lon_i, r_lat_i)
             end do
             imin = minloc(rtot(1:n_cand))
 
