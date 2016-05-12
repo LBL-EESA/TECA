@@ -6,6 +6,7 @@
 #include "teca_cartesian_mesh_regrid.h"
 #include "teca_connected_components.h"
 #include "teca_derived_quantity.h"
+#include "teca_derived_quantity_numerics.h"
 #include "teca_descriptive_statistics.h"
 #include "teca_l2_norm.h"
 #include "teca_mask.h"
@@ -157,6 +158,7 @@
 %ignore teca_derived_quantity::set_execute_callback;
 %ignore teca_derived_quantity::get_execute_callback;
 %include "teca_derived_quantity.h"
+%include "teca_derived_quantity_numerics.h"
 
 /***************************************************************************
  descriptive_statistics

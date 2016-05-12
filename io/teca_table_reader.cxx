@@ -67,7 +67,7 @@ const_p_teca_dataset teca_table_reader::execute(
         return nullptr;
 #endif
 
-    // Open the file and dump its contents into a binary stream.
+    // open the file
     teca_binary_stream bs;
     FILE* fd = fopen(file_name.c_str(), "rb");
     if (fd == NULL)
@@ -75,22 +75,48 @@ const_p_teca_dataset teca_table_reader::execute(
         TECA_ERROR("Failed to open " << file_name << endl)
         return nullptr;
     }
+
+    // get its length, we'll read it in one go and need to create
+    // a bufffer for it's contents
     long start = ftell(fd);
     fseek(fd, 0, SEEK_END);
     long end = ftell(fd);
     fseek(fd, 0, SEEK_SET);
-    long nbytes = end - start;
-    bs.resize(static_cast<size_t>(nbytes));
-    long bytes_read = fread(bs.get_data(), sizeof(unsigned char), nbytes, fd);
-    fclose(fd);
-    if (bytes_read != nbytes)
+    long nbytes = end - start - 10;
+
+    // check if this is really ours
+    char id[11] = {'\0'};
+    if (fread(id, 1, 10, fd) != 10)
     {
-        TECA_ERROR("Read " << bytes_read << " from " << file_name
-            << " (expected " << nbytes << ")" << endl)
+        const char *estr = (ferror(fd) ? strerror(errno) : "");
+        fclose(fd);
+        TECA_ERROR("Failed to read \"" << file_name << "\". " << estr)
         return nullptr;
     }
 
-    // Read table data from the stream.
+    if (strncmp(id, "teca_table", 10))
+    {
+        fclose(fd);
+        TECA_ERROR("Not a teca_table. \"" << file_name << "\"")
+        return nullptr;
+    }
+
+    // create the buffer
+    bs.resize(static_cast<size_t>(nbytes));
+
+    // read the stream
+    long bytes_read = fread(bs.get_data(), sizeof(unsigned char), nbytes, fd);
+    if (bytes_read != nbytes)
+    {
+        const char *estr = (ferror(fd) ? strerror(errno) : "");
+        fclose(fd);
+        TECA_ERROR("Failed to read \"" << file_name << "\". Read only "
+            << bytes_read << " of the requested " << nbytes << ". " << estr)
+        return nullptr;
+    }
+    fclose(fd);
+
+    // deserialize the binary rep
     p_teca_table table = teca_table::New();
     table->from_stream(bs);
     return table;

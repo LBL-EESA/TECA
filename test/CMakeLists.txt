@@ -121,7 +121,7 @@ teca_add_test(test_descriptive_statistics_threads
 
 teca_add_test(test_descriptive_statistics_mpi
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
-    COMMAND mpiexec -np ${TECA_TEST_CORES} test_descriptive_statistics
+    COMMAND ${MPIEXEC} -n ${TECA_TEST_CORES} test_descriptive_statistics
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-[0-9][0-9]-10800\\.nc"
     "${TECA_DATA_ROOT}/test_descriptive_statistics.bin" 0 -1 1 TMQ T200 T500
     FEATURES (${TECA_HAS_NETCDF} AND ${TECA_HAS_MPI})
@@ -129,7 +129,7 @@ teca_add_test(test_descriptive_statistics_mpi
 
 teca_add_test(test_descriptive_statistics_mpi_threads
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
-    COMMAND mpiexec -np ${HALF_CORES} test_descriptive_statistics
+    COMMAND ${MPIEXEC} -n ${HALF_CORES} test_descriptive_statistics
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-[0-9][0-9]-10800\\.nc"
     "${TECA_DATA_ROOT}/test_descriptive_statistics.bin" 0 -1 ${HALF_CORES} TMQ T200 T500
     FEATURES (${TECA_HAS_NETCDF} AND ${TECA_HAS_MPI})
@@ -143,39 +143,39 @@ teca_add_test(test_binary_stream
 teca_add_test(test_binary_stream_mpi
     SOURCES test_binary_stream.cpp
     LIBS teca_core teca_data teca_alg ${teca_test_link}
-    COMMAND mpiexec -np 2 test_binary_stream)
+    COMMAND ${MPIEXEC} -n 2 test_binary_stream)
 
-teca_add_test(test_tc_detect_serial
-    COMMAND test_tc_detect
-    "${TECA_DATA_ROOT}/test_tc_detect_1990_07_0[12]\\.nc"
-    "${TECA_DATA_ROOT}/test_tc_detect_20.bin" 0 3 1
+teca_add_test(test_tc_candidates_serial
+    COMMAND test_tc_candidates
+    "${TECA_DATA_ROOT}/test_tc_candidates_1990_07_0[12]\\.nc"
+    "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 1
     U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
-teca_add_test(test_tc_detect_mpi
-    COMMAND mpiexec -np ${TECA_TEST_CORES} test_tc_detect
-    "${TECA_DATA_ROOT}/test_tc_detect_1990_07_0[12]\\.nc"
-    "${TECA_DATA_ROOT}/test_tc_detect_20.bin" 0 3 1
+teca_add_test(test_tc_candidates_mpi
+    COMMAND ${MPIEXEC} -n ${TECA_TEST_CORES} test_tc_candidates
+    "${TECA_DATA_ROOT}/test_tc_candidates_1990_07_0[12]\\.nc"
+    "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 1
     U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
     FEATURES (${TECA_HAS_NETCDF} AND ${TECA_HAS_MPI})
     REQ_TECA_DATA)
 
-teca_add_test(test_tc_detect_threads
-    EXEC_NAME test_tc_detect
-    SOURCES test_tc_detect.cpp teca_test_util.cxx
+teca_add_test(test_tc_candidates_threads
+    EXEC_NAME test_tc_candidates
+    SOURCES test_tc_candidates.cpp teca_test_util.cxx
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
-    COMMAND test_tc_detect
-    "${TECA_DATA_ROOT}/test_tc_detect_1990_07_0[12]\\.nc"
-    "${TECA_DATA_ROOT}/test_tc_detect_20.bin" 0 3 4
+    COMMAND test_tc_candidates
+    "${TECA_DATA_ROOT}/test_tc_candidates_1990_07_0[12]\\.nc"
+    "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 4
     U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
     FEATURES (${TECA_HAS_NETCDF} AND ${TECA_HAS_MPI})
     REQ_TECA_DATA)
 
-teca_add_test(test_tc_detect_mpi_threads
-    COMMAND mpiexec -np ${HALF_CORES} test_tc_detect
-    "${TECA_DATA_ROOT}/test_tc_detect_1990_07_0[12]\\.nc"
-    "${TECA_DATA_ROOT}/test_tc_detect_20.bin" 0 3 ${HALF_CORES}
+teca_add_test(test_tc_candidates_mpi_threads
+    COMMAND ${MPIEXEC} -n ${HALF_CORES} test_tc_candidates
+    "${TECA_DATA_ROOT}/test_tc_candidates_1990_07_0[12]\\.nc"
+    "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 ${HALF_CORES}
     U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
     FEATURES (${TECA_HAS_NETCDF} AND ${TECA_HAS_MPI})
     REQ_TECA_DATA)

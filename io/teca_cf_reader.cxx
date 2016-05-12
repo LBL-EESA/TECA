@@ -12,10 +12,6 @@ using std::string;
 using std::endl;
 using std::cerr;
 
-using teca_file_util::strip_path_from_filename;
-using teca_file_util::strip_filename_from_path;
-using teca_file_util::locate_files;
-
 #if defined(TECA_HAS_MPI)
 #include <mpi.h>
 #endif
@@ -299,14 +295,14 @@ teca_metadata teca_cf_reader::get_output_metadata(
         if (!this->file_name.empty())
         {
             // use file name
-            path = strip_filename_from_path(this->file_name);
-            files.push_back(strip_path_from_filename(this->file_name));
+            path = teca_file_util::path(this->file_name);
+            files.push_back(teca_file_util::filename(this->file_name));
         }
         else
         {
             // use regex
-            string regex = strip_path_from_filename(this->files_regex);
-            path = strip_filename_from_path(this->files_regex);
+            string regex = teca_file_util::filename(this->files_regex);
+            path = teca_file_util::path(this->files_regex);
 
             if (teca_file_util::locate_files(path, regex, files))
             {

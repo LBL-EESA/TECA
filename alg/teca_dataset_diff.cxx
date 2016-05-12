@@ -103,24 +103,29 @@ const_p_teca_dataset teca_dataset_diff::execute(
 
     // If the datasets are both empty, they are "equal." :-/
     if (input_data[0]->empty() && input_data[1]->empty())
-    {
         return nullptr;
-    }
 
     // get the inputs. They can be tables or cartesian meshes.
-    const_p_teca_table table1 = std::dynamic_pointer_cast<const teca_table>(input_data[0]);
-    const_p_teca_table table2 = std::dynamic_pointer_cast<const teca_table>(input_data[1]);
-    const_p_teca_cartesian_mesh mesh1 = std::dynamic_pointer_cast<const teca_cartesian_mesh>(input_data[0]);
-    const_p_teca_cartesian_mesh mesh2 = std::dynamic_pointer_cast<const teca_cartesian_mesh>(input_data[1]);
+    const_p_teca_table table1 =
+        std::dynamic_pointer_cast<const teca_table>(input_data[0]);
+
+    const_p_teca_table table2 =
+         std::dynamic_pointer_cast<const teca_table>(input_data[1]);
+
+    const_p_teca_cartesian_mesh mesh1 =
+        std::dynamic_pointer_cast<const teca_cartesian_mesh>(input_data[0]);
+
+    const_p_teca_cartesian_mesh mesh2 =
+        std::dynamic_pointer_cast<const teca_cartesian_mesh>(input_data[1]);
 
     // No mixed types!
     if (((table1 && !table2) || (!table1 && table2)) ||
         ((mesh1 && !mesh2) || (!mesh1 && mesh2)))
-
     {
         TECA_ERROR("input datasets must have matching types.");
         return nullptr;
     }
+
     if (!table1 && !mesh1)
     {
         TECA_ERROR("input datasets must be teca_tables or teca_cartesian_meshes.")
@@ -129,19 +134,19 @@ const_p_teca_dataset teca_dataset_diff::execute(
 
     if (table1)
     {
-      if (this->compare_tables(table1, table2))
-      {
-          TECA_ERROR("Failed to compare tables.");
-          return nullptr;
-      }
+        if (this->compare_tables(table1, table2))
+        {
+            TECA_ERROR("Failed to compare tables.");
+            return nullptr;
+        }
     }
     else
     {
-      if (this->compare_cartesian_meshes(mesh1, mesh1))
-      {
-          TECA_ERROR("Failed to compare cartesian meshes.");
-          return nullptr;
-      }
+        if (this->compare_cartesian_meshes(mesh1, mesh1))
+        {
+            TECA_ERROR("Failed to compare cartesian meshes.");
+            return nullptr;
+        }
     }
 
     return nullptr;
@@ -156,13 +161,14 @@ int teca_dataset_diff::compare_tables(
     if (table1->get_number_of_columns() != table2->get_number_of_columns())
     {
         datasets_differ("table 1 has %d columns while table 2 has %d columns.",
-                        table1->get_number_of_columns(), table2->get_number_of_columns());
+            table1->get_number_of_columns(), table2->get_number_of_columns());
         return 1;
     }
+
     if (table1->get_number_of_rows() != table2->get_number_of_rows())
     {
         datasets_differ("table 1 has %d rows while table 2 has %d rows.",
-                        table1->get_number_of_rows(), table2->get_number_of_rows());
+            table1->get_number_of_rows(), table2->get_number_of_rows());
         return 1;
     }
 
@@ -174,7 +180,8 @@ int teca_dataset_diff::compare_tables(
         const_p_teca_variant_array col1 = table1->get_column(col);
         const_p_teca_variant_array col2 = table2->get_column(col);
         std::stringstream col_str;
-        col_str << "Column " << col << " (" << table1->get_column_name(col) << ")" << std::ends;
+        col_str << "In column " << col << " \""
+            << table1->get_column_name(col) << "\"" << std::ends;
         this->push_frame(col_str.str());
         int status = compare_arrays(col1, col2);
         this->pop_frame();
@@ -224,14 +231,14 @@ int teca_dataset_diff::compare_arrays(
 
             // Compute the relative difference.
             double rel_diff = 0.0;
-            if (ref_val != 0.0) 
-              rel_diff = std::abs(comp_val - ref_val) / std::abs(ref_val);
+            if (ref_val != 0.0)
+                rel_diff = std::abs(comp_val - ref_val) / std::abs(ref_val);
             else if (comp_val != 0.0)
-              rel_diff = std::abs(comp_val - ref_val) / std::abs(comp_val);
+                rel_diff = std::abs(comp_val - ref_val) / std::abs(comp_val);
 
             if (rel_diff > this->tolerance)
             {
-                datasets_differ("Relative difference %g exceeds tolerance %g in "
+                datasets_differ("relative difference %g exceeds tolerance %g in "
                     "element %d. ref value \"%g\" is not equal to test value \"%g\"",
                     rel_diff, this->tolerance, i, ref_val, comp_val);
                 return 1;
@@ -279,25 +286,26 @@ int teca_dataset_diff::compare_array_collections(
     // The data arrays should contain all the data in the reference arrays.
     for (unsigned int i = 0; i < reference_arrays->size(); ++i)
     {
-      if (!data_arrays->has(reference_arrays->get_name(i)))
-      {
-        datasets_differ("data array collection does not have %s, found in reference array collection.",
-                        reference_arrays->get_name(i).c_str());
-        return 1;
-      }
+        if (!data_arrays->has(reference_arrays->get_name(i)))
+        {
+            datasets_differ("data array collection does not have %s, "
+                "found in reference array collection.",
+                reference_arrays->get_name(i).c_str());
+            return 1;
+         }
     }
 
     // Now diff the contents.
     for (unsigned int i = 0; i < reference_arrays->size(); ++i)
     {
-      const_p_teca_variant_array a1 = reference_arrays->get(i);
-      string name = reference_arrays->get_name(i);
-      const_p_teca_variant_array a2 = data_arrays->get(name);
-      this->push_frame(name);
-      int status = this->compare_arrays(a1, a2);
-      this->pop_frame();
-      if (status != 0)
-        return status;
+        const_p_teca_variant_array a1 = reference_arrays->get(i);
+        string name = reference_arrays->get_name(i);
+        const_p_teca_variant_array a2 = data_arrays->get(name);
+        this->push_frame(name);
+        int status = this->compare_arrays(a1, a2);
+        this->pop_frame();
+        if (status != 0)
+            return status;
     }
     return 0;
 }
@@ -308,26 +316,29 @@ int teca_dataset_diff::compare_cartesian_meshes(
     const_p_teca_cartesian_mesh data_mesh)
 {
     // If the meshes are different sizes, the datasets differ.
-    if (reference_mesh->get_x_coordinates()->size() != data_mesh->get_x_coordinates()->size())
+    if (reference_mesh->get_x_coordinates()->size()
+        != data_mesh->get_x_coordinates()->size())
     {
-      datasets_differ("data mesh has %d points in x, whereas reference mesh has %d.",
-                      static_cast<int>(reference_mesh->get_x_coordinates()->size()),
-                      static_cast<int>(data_mesh->get_x_coordinates()->size()));
-      return 1;
+        datasets_differ("data mesh has %d points in x, whereas reference mesh has %d.",
+            static_cast<int>(reference_mesh->get_x_coordinates()->size()),
+            static_cast<int>(data_mesh->get_x_coordinates()->size()));
+        return 1;
     }
-    if (reference_mesh->get_y_coordinates()->size() != data_mesh->get_y_coordinates()->size())
+    if (reference_mesh->get_y_coordinates()->size()
+        != data_mesh->get_y_coordinates()->size())
     {
-      datasets_differ("data mesh has %d points in y, whereas reference mesh has %d.",
-                      static_cast<int>(reference_mesh->get_y_coordinates()->size()),
-                      static_cast<int>(data_mesh->get_y_coordinates()->size()));
-      return 1;
+        datasets_differ("data mesh has %d points in y, whereas reference mesh has %d.",
+            static_cast<int>(reference_mesh->get_y_coordinates()->size()),
+            static_cast<int>(data_mesh->get_y_coordinates()->size()));
+        return 1;
     }
-    if (reference_mesh->get_z_coordinates()->size() != data_mesh->get_z_coordinates()->size())
+    if (reference_mesh->get_z_coordinates()->size()
+        != data_mesh->get_z_coordinates()->size())
     {
-      datasets_differ("data mesh has %d points in z, whereas reference mesh has %d.",
-                      static_cast<int>(reference_mesh->get_z_coordinates()->size()),
-                      static_cast<int>(data_mesh->get_z_coordinates()->size()));
-      return 1;
+        datasets_differ("data mesh has %d points in z, whereas reference mesh has %d.",
+            static_cast<int>(reference_mesh->get_z_coordinates()->size()),
+            static_cast<int>(data_mesh->get_z_coordinates()->size()));
+        return 1;
     }
 
     // If the arrays are different in shape or in content, the datasets differ.
@@ -341,7 +352,7 @@ int teca_dataset_diff::compare_cartesian_meshes(
     status = this->compare_array_collections(arrays1, arrays2);
     this->pop_frame();
     if (status != 0)
-      return status;
+        return status;
 
     // cell-centered arrays.
     arrays1 = reference_mesh->get_cell_arrays();
@@ -350,7 +361,7 @@ int teca_dataset_diff::compare_cartesian_meshes(
     status = this->compare_array_collections(arrays1, arrays2);
     this->pop_frame();
     if (status != 0)
-      return status;
+        return status;
 
     // Edge-centered arrays.
     arrays1 = reference_mesh->get_edge_arrays();
@@ -368,7 +379,7 @@ int teca_dataset_diff::compare_cartesian_meshes(
     status = this->compare_array_collections(arrays1, arrays2);
     this->pop_frame();
     if (status != 0)
-      return status;
+        return status;
 
     // Non-geometric arrays.
     arrays1 = reference_mesh->get_information_arrays();
@@ -377,7 +388,7 @@ int teca_dataset_diff::compare_cartesian_meshes(
     status = this->compare_array_collections(arrays1, arrays2);
     this->pop_frame();
     if (status != 0)
-      return status;
+        return status;
 
     // Coordinate arrays.
     this->push_frame("X coordinates");
@@ -392,14 +403,14 @@ int teca_dataset_diff::compare_cartesian_meshes(
                                   data_mesh->get_y_coordinates());
     this->pop_frame();
     if (status != 0)
-      return status;
+        return status;
 
     this->push_frame("Z coordinates");
     status = this->compare_arrays(reference_mesh->get_z_coordinates(),
                                   data_mesh->get_z_coordinates());
     this->pop_frame();
     if (status != 0)
-      return status;
+        return status;
 
     return 0;
 }
@@ -414,9 +425,11 @@ void teca_dataset_diff::datasets_differ(const char* info, ...)
     va_end(argp);
 
     // Send it to stderr with contextual information.
+    std::ostringstream oss;
     for (size_t i = 0; i < this->stack.size(); ++i)
-        std::cerr << this->stack[i] << "FAIL: ";
-    std::cerr << m << std::endl;
+        oss << this->stack[i] << " ";
+    oss << m;
+    TECA_ERROR(<< oss.str())
 }
 
 void teca_dataset_diff::push_frame(const std::string& frame)

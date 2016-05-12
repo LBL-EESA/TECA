@@ -3,6 +3,7 @@
 #include "teca_l2_norm.h"
 #include "teca_vorticity.h"
 #include "teca_derived_quantity.h"
+#include "teca_derived_quantity_numerics.h"
 #include "teca_tc_candidates.h"
 #include "teca_mesh.h"
 #include "teca_array_collection.h"
@@ -21,121 +22,13 @@
 #include <vector>
 #include <string>
 #include <iostream>
+
 using namespace std;
+using namespace teca_derived_quantity_numerics;
 
 #if defined(TECA_HAS_MPI)
 #include <mpi.h>
 #endif
-
-// compute the point-wise average of two variables v0 and v1.
-// for every i
-//
-// avg[i] = (v0[i] + v1[i])/2
-//
-struct point_wise_average
-{
-    point_wise_average(const string &v0, const string &v1, const string &avg)
-        : m_v0(v0), m_v1(v1), m_avg(avg) {}
-
-    point_wise_average() = delete;
-    ~point_wise_average() = default;
-
-    const_p_teca_dataset operator()(unsigned int,
-        const std::vector<const_p_teca_dataset> &in_data, const teca_metadata &)
-    {
-        const_p_teca_mesh in_mesh;
-        const_p_teca_variant_array v0, v1;
-
-        if (!(in_mesh = std::dynamic_pointer_cast<const teca_mesh>(in_data[0])) ||
-            !(v0 = in_mesh->get_point_arrays()->get(m_v0)) ||
-            !(v1 = in_mesh->get_point_arrays()->get(m_v1)))
-        {
-            TECA_ERROR("invalid inputs. mesh=" << in_mesh
-                << ", " << m_v0 << "=" << v0 << ", " << m_v1 << "=" << v1)
-            return nullptr;
-        }
-
-        unsigned long n_pts = v0->size();
-        p_teca_variant_array avg = v0->new_instance();
-        avg->resize(n_pts);
-
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            avg.get(),
-            const NT *p_v0 = static_cast<const TT*>(v0.get())->get();
-            const NT *p_v1 = dynamic_cast<const TT*>(v1.get())->get();
-            NT *p_avg = static_cast<TT*>(avg.get())->get();
-            for (unsigned long i = 0; i < n_pts; ++i)
-                p_avg[i] = (p_v0[i] + p_v1[i])/NT(2);
-            )
-
-        p_teca_mesh out_mesh = std::static_pointer_cast<teca_mesh>(
-            in_mesh->new_instance());
-
-        out_mesh->shallow_copy(std::const_pointer_cast<teca_mesh>(in_mesh));
-        out_mesh->get_point_arrays()->append(m_avg, avg);
-
-        return out_mesh;
-    }
-
-    string m_v0;
-    string m_v1;
-    string m_avg;
-};
-
-// compute the point-wise average of two variables v0 and v1.
-// for every i
-//
-// diff[i] = v1[i] - v0[i]
-//
-struct point_wise_difference
-{
-    point_wise_difference(const string &v0, const string &v1, const string &diff)
-        : m_v0(v0), m_v1(v1), m_diff(diff) {}
-
-    point_wise_difference() = delete;
-    ~point_wise_difference() = default;
-
-    const_p_teca_dataset operator()(unsigned int,
-        const std::vector<const_p_teca_dataset> &in_data, const teca_metadata &)
-    {
-        const_p_teca_mesh in_mesh;
-        const_p_teca_variant_array v0, v1;
-
-        if (!(in_mesh = std::dynamic_pointer_cast<const teca_mesh>(in_data[0])) ||
-            !(v0 = in_mesh->get_point_arrays()->get(m_v0)) ||
-            !(v1 = in_mesh->get_point_arrays()->get(m_v1)))
-        {
-            TECA_ERROR("invalid inputs. mesh=" << in_mesh
-                << ", " << m_v0 << "=" << v0 << ", " << m_v1 << "=" << v1)
-            return nullptr;
-        }
-
-        unsigned long n_pts = v0->size();
-        p_teca_variant_array diff = v0->new_instance();
-        diff->resize(n_pts);
-
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            diff.get(),
-            const NT *p_v0 = static_cast<const TT*>(v0.get())->get();
-            const NT *p_v1 = dynamic_cast<const TT*>(v1.get())->get();
-            NT *p_diff = static_cast<TT*>(diff.get())->get();
-            for (unsigned long i = 0; i < n_pts; ++i)
-                p_diff[i] = p_v1[i] - p_v0[i];
-            )
-
-        p_teca_mesh out_mesh = std::static_pointer_cast<teca_mesh>(
-            in_mesh->new_instance());
-
-        out_mesh->shallow_copy(std::const_pointer_cast<teca_mesh>(in_mesh));
-        out_mesh->get_point_arrays()->append(m_diff, diff);
-
-        return out_mesh;
-    }
-
-    string m_v0;
-    string m_v1;
-    string m_diff;
-};
 
 // --------------------------------------------------------------------------
 int main(int argc, char **argv)
@@ -156,6 +49,7 @@ int main(int argc, char **argv)
     string regex;
     string baseline;
     int have_baseline = 0;
+    int write_binary = 0;
     long first_step = 0;
     long last_step = -1;
     unsigned int n_threads = 1;
@@ -188,6 +82,7 @@ int main(int argc, char **argv)
         baseline = argv[2];
         if (teca_file_util::file_exists(baseline.c_str()))
             have_baseline = 1;
+        write_binary = teca_file_util::extension(baseline) == "bin";
         first_step = atoi(argv[3]);
         last_step = atoi(argv[4]);
         n_threads = atoi(argv[5]);
@@ -207,6 +102,7 @@ int main(int argc, char **argv)
     teca_test_util::bcast(regex);
     teca_test_util::bcast(baseline);
     teca_test_util::bcast(have_baseline);
+    teca_test_util::bcast(write_binary);
     teca_test_util::bcast(first_step);
     teca_test_util::bcast(last_step);
     teca_test_util::bcast(n_threads);
@@ -314,9 +210,10 @@ int main(int argc, char **argv)
         p_teca_table_writer table_writer = teca_table_writer::New();
         table_writer->set_input_connection(cal->get_output_port());
         table_writer->set_file_name(baseline.c_str());
-        //table_writer->set_output_format_csv();
-        table_writer->set_output_format_bin();
-
+        if (write_binary)
+            table_writer->set_output_format_bin();
+        else
+            table_writer->set_output_format_csv();
         table_writer->update();
     }
 
