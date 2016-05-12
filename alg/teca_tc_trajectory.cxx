@@ -137,6 +137,22 @@ const_p_teca_dataset teca_tc_trajectory::execute(
         return nullptr;
     }
 
+    // validate the input table
+    const char *req_cols[] = {
+        "step", "time", "storm_id", "lon", "lat", "surface_wind",
+        "850mb_vorticity", "sea_level_pressure", "have_core_temp",
+        "have_thickness", "core_temp", "thickness"};
+
+    size_t n_req_cols = sizeof(req_cols)/sizeof(char*);
+    for (size_t i = 0; i < n_req_cols; ++i)
+    {
+        if (!candidates->has_column(req_cols[i]))
+        {
+            TECA_ERROR("Candidate table missing \"" << req_cols[i] << "\"")
+            return nullptr;
+        }
+    }
+
     // get the candidate storm properties
     const long *p_step =
         dynamic_cast<const teca_variant_array_impl<long>*>(
@@ -157,10 +173,10 @@ const_p_teca_dataset teca_tc_trajectory::execute(
         candidates->get_column("surface_wind");
 
     const_p_teca_variant_array vort_max =
-        candidates->get_column("850mb_vorticty");
+        candidates->get_column("850mb_vorticity");
 
     const_p_teca_variant_array psl_min =
-        candidates->get_column("seal_level_pressure");
+        candidates->get_column("sea_level_pressure");
 
     const int *p_have_twc =
         dynamic_cast<const teca_variant_array_impl<int>*>(
@@ -178,6 +194,7 @@ const_p_teca_dataset teca_tc_trajectory::execute(
 
     // create the table to hold storm tracks
     p_teca_table storm_tracks = teca_table::New();
+    storm_tracks->copy_metadata(candidates);
 
     NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
         lon.get(), _COORD,
