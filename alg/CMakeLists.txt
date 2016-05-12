@@ -33,7 +33,7 @@ set(teca_alg_cxx_srcs
     )
 
 set(teca_alg_f90_srcs
-    gfdl_trajectory_util.f90
+    gfdl_tc_trajectory_util.f90
     )
 
 set(teca_alg_f90_generics
