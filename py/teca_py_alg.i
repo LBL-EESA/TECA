@@ -5,6 +5,7 @@
 #include "teca_cartesian_mesh_subset.h"
 #include "teca_cartesian_mesh_regrid.h"
 #include "teca_connected_components.h"
+#include "teca_dataset_diff.h"
 #include "teca_derived_quantity.h"
 #include "teca_derived_quantity_numerics.h"
 #include "teca_descriptive_statistics.h"
@@ -192,3 +193,10 @@
 %ignore teca_tc_candidates::operator=;
 %include "teca_tc_candidates.h"
 
+/***************************************************************************
+ dataset_diff
+ ***************************************************************************/
+%ignore teca_dataset_diff::shared_from_this;
+%shared_ptr(teca_dataset_diff)
+%ignore teca_dataset_diff::operator=;
+%include "teca_dataset_diff.h"

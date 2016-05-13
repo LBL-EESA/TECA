@@ -8,6 +8,7 @@ except:
 from teca import *
 import numpy as np
 import sys
+import os
 
 # compute the point-wise average of two variables v0 and v1.
 # for every i
@@ -156,11 +157,19 @@ sort.set_index_column('storm_id')
 cal = teca_table_calendar.New()
 cal.set_input_connection(sort.get_output_port())
 
-# write the data
-table_writer = teca_table_writer.New();
-table_writer.set_input_connection(cal.get_output_port());
-table_writer.set_file_name(baseline);
-#table_writer.set_output_format_csv();
-table_writer.set_output_format_bin();
+if os.path.exists(baseline):
+  table_reader = teca_table_reader.New()
+  table_reader.set_file_name(baseline)
+  diff = teca_dataset_diff.New()
+  diff.set_input_connection(0, table_reader.get_output_port())
+  diff.set_input_connection(1, cal.get_output_port())
+  diff.update()
+else:
+  # write the data
+  table_writer = teca_table_writer.New()
+  table_writer.set_input_connection(cal.get_output_port())
+  table_writer.set_file_name(baseline)
+  #table_writer.set_output_format_csv()
+  table_writer.set_output_format_bin()
 
-table_writer.update();
+  table_writer.update();
