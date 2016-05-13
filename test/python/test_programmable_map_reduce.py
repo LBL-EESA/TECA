@@ -8,6 +8,7 @@ except:
 from teca import *
 import numpy as np
 import sys
+import os
 
 if len(sys.argv) < 7:
     sys.stderr.write('test_map_reduce.py [dataset regex] ' \
@@ -80,9 +81,19 @@ sort.set_index_column('time')
 cal = teca_table_calendar.New()
 cal.set_input_connection(sort.get_output_port())
 
-tw = teca_table_writer.New()
-tw.set_input_connection(cal.get_output_port())
-tw.set_output_format_csv()
-tw.set_file_name(out_file)
+if os.path.exists(out_file):
+  tr = teca_table_reader.New()
+  tr.set_file_name(out_file)
 
-tw.update()
+  diff = teca_dataset_diff.New()
+  diff.set_input_connection(0, tr.get_output_port())
+  diff.set_input_connection(1, cal.get_output_port())
+  diff.update()
+else:
+  #write data
+  tw = teca_table_writer.New()
+  tw.set_input_connection(cal.get_output_port())
+  tw.set_output_format_csv()
+  tw.set_file_name(out_file)
+
+  tw.update()
