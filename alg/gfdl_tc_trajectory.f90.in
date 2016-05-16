@@ -132,6 +132,7 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
 
   n_steps_m1 = n_steps - 1
   do step = 1,n_steps_m1
+    write(error_unit, '(A5,I0,$)')'step=',step
 
     next_step = step + 1
 
@@ -347,6 +348,7 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
         end if
       end if
     end do
+    write(error_unit, '(A1)')'done!'
   end do
 
   ! TODO -- these would go in downstream algorithms
