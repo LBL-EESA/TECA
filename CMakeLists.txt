@@ -123,6 +123,17 @@ else()
 endif()
 set(TECA_HAS_VTK ${tmp} CACHE BOOL "VTK features")
 
+# configure for ParaView
+set(tmp OFF)
+find_package(ParaView QUIET)
+if (ParaView_FOUND AND ((DEFINED TECA_HAS_ParaView AND TECA_HAS_ParaView) OR (NOT DEFINED TECA_HAS_ParaView)))
+    message(STATUS "ParaView features -- enabled")
+    set(tmp ON)
+else()
+    message(STATUS "ParaView features -- not found. set ParaView_DIR to enable.")
+endif()
+set(TECA_HAS_ParaView ${tmp} CACHE BOOL "ParaView features")
+
 #configure for Boost
 set(tmp OFF)
 find_package(Boost QUIET COMPONENTS program_options)
@@ -204,6 +215,7 @@ add_subdirectory(io)
 add_subdirectory(alg)
 add_subdirectory(py)
 add_subdirectory(apps)
+add_subdirectory(paraview)
 
 # enable regression tests
 set(BUILD_TESTING OFF CACHE BOOL "Enable tests")
