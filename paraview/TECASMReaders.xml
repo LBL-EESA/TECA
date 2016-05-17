@@ -1,0 +1,57 @@
+<ServerManagerConfiguration>
+  <ProxyGroup name="sources">
+    <SourceProxy
+      name="TECATableReader"
+      class="vtkTECATableReader"
+      label="TECA Table">
+
+      <StringVectorProperty
+        name="FileName"
+        animateable="0"
+        command="SetFileName"
+        number_of_elements="1" >
+        <FileListDomain name="files" />
+      </StringVectorProperty>
+
+      <DoubleVectorProperty
+        name="TimestepValues"
+        information_only="1">
+        <TimeStepsInformationHelper/>
+      </DoubleVectorProperty>
+
+      <StringVectorProperty
+        name="X Coordinate"
+        command="SetXCoordinate"
+        number_of_elements="1"
+        default_values="lon">
+      </StringVectorProperty>
+
+      <StringVectorProperty
+        name="Y Coordinate"
+        command="SetYCoordinate"
+        number_of_elements="1"
+        default_values="lat">
+      </StringVectorProperty>
+
+      <StringVectorProperty
+        name="Z Coordinate"
+        command="SetZCoordinate"
+        number_of_elements="1"
+        default_values=".">
+      </StringVectorProperty>
+
+      <StringVectorProperty
+        name="Time Coordinate"
+        command="SetTimeCoordinate"
+        number_of_elements="1"
+        default_values="time">
+      </StringVectorProperty>
+
+      <Hints>
+        <ReaderFactory
+          extensions="bin"
+          file_description="tables in TECA binary format" />
+     </Hints>
+    </SourceProxy>
+  </ProxyGroup>
+</ServerManagerConfiguration>

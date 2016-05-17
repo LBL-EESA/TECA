@@ -53,6 +53,10 @@ public:
     const_p_teca_variant_array get_column(unsigned int i) const;
     const_p_teca_variant_array get_column(const std::string &col_name) const;
 
+    // test for the existance of a specific column
+    bool has_column(const std::string &col_name) const
+    { return m_impl->columns->has(col_name); }
+
     // get the name of the column, see also get_number_of_columns
     std::string get_column_name(unsigned int i) const
     { return m_impl->columns->get_name(i); }
