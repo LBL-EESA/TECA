@@ -244,5 +244,7 @@ const_p_teca_dataset teca_tc_trajectory::execute(
             )
         )
 
+    storm_tracks->to_stream(cerr);
+
     return storm_tracks;
 }

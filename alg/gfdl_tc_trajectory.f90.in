@@ -92,7 +92,7 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
     storm_id, have_twc, have_thick
 
   real(@c_type_coord@) :: r_lon_0, r_lat_0, r_lon_i, r_lat_i
-  real(c_double) :: dt, drdt
+  real(c_double) :: dt, drdt, t_0
 
   logical :: cross_equator
 
@@ -132,7 +132,7 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
 
   n_steps_m1 = n_steps - 1
   do step = 1,n_steps_m1
-    write(error_unit, '(A5,I0,$)')'step=',step
+    write(error_unit, '(A,I0,A,$)')'step=',step,'...'
 
     next_step = step + 1
 
@@ -144,6 +144,8 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
       track_storm(1) = storm
 
       idx_0 = step_offsets(step) + storm
+
+      t_0 = time(idx_0)
 
       if (available(idx_0) .and. exist_wind(idx_0)) then
 
@@ -160,7 +162,7 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
           r_lon_0 = r_lon(idx_0)
           r_lat_0 = r_lat(idx_0)
 
-          dt = time(next_step) - time(step)
+          dt = time(idx_0) - t_0
 
           ! build track candidate list. candidates must be
           ! close in space and time and not cross the equator
@@ -190,7 +192,6 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
         if (n_cand .eq. 0) then
           ! check sustained winds along the trajectory
           n_wind = 0
-          !n_wind_max = 0
           n_twc = 0
           n_thick = 0
           do q = 1,track_len
@@ -205,10 +206,9 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
 
             if (exist_thick(idx_0)) &
               n_thick = n_thick + 1
-
           end do
 
-          dt = time(next_step) - time(step)
+          dt = time(idx_0) - t_0
           if ((track_len .gt. 1) .and. ((n_wind*dt) .ge. n_wind_crit)) then
             ! track meets the wind duration criteria
 
@@ -348,7 +348,7 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
         end if
       end if
     end do
-    write(error_unit, '(A1)')'done!'
+    write(error_unit, '(A)')'done!'
   end do
 
   ! TODO -- these would go in downstream algorithms

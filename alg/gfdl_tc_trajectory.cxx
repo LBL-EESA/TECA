@@ -8,6 +8,7 @@ void teca_append_tc_track_c ## _c_name ## _v ## _v_name ( \
     _v_type *wind_max, _v_type *vort_max, int *have_twc, \
     int *have_thick, _v_type *twc_max, _v_type *thick_max) \
 { \
+    std::cerr << "added storm " << storm_id << " to track " << track_id << std::endl; \
     teca_table *p_table = static_cast<teca_table*>(vp_table); \
     p_table->append(*track_id, *storm_id, *step, *time, \
     *lon, *lat, *psl, *wind_max, *vort_max, *have_twc, \
