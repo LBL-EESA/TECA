@@ -1,0 +1,133 @@
+module teca_vector_@type_name@_mod
+use iso_c_binding
+use iso_fortran_env, ONLY : error_unit
+implicit none
+
+! a dynamically managed data structure with a contiguous
+! memory layout. constant time random read/write access
+! with worst case linear time resize.
+type teca_vector_@type_name@
+  @c_type@, pointer, dimension(:) :: m_data
+  integer(c_long) :: m_size
+  integer(c_long) :: m_at
+end type
+
+contains
+!-----------------------------------------------------------------------------
+subroutine teca_vector_@type_name@_init(this, base_size)
+  use iso_c_binding
+  implicit none
+  type(teca_vector_@type_name@), intent(inout) :: this
+  integer(c_long), intent(in) :: base_size
+  @c_type@, pointer, dimension(:) :: tmp
+  integer(c_long) :: i
+  allocate(tmp(base_size))
+  this%m_data => tmp
+  this%m_size = base_size
+  this%m_at = 1
+  do i = 1,base_size
+    this%m_data(i) = -1
+  enddo
+end subroutine
+
+!-----------------------------------------------------------------------------
+subroutine teca_vector_@type_name@_clear(this)
+  use iso_c_binding
+  implicit none
+  type(teca_vector_@type_name@), intent(inout) :: this
+  if (this%m_size .eq. 0) return
+  deallocate(this%m_data)
+  nullify(this%m_data)
+  this%m_size = 0
+  this%m_at = 1
+end subroutine
+
+!-----------------------------------------------------------------------------
+subroutine teca_vector_@type_name@_resize(this, new_size)
+  use iso_c_binding
+  implicit none
+  type(teca_vector_@type_name@), intent(inout) :: this
+  integer(c_long), intent(in) :: new_size
+  @c_type@, pointer, dimension(:) :: tmp
+  integer(c_long) :: i
+  if (new_size .lt. 1) then
+    ! for resize to 0 deallocate
+    call teca_vector_@type_name@_clear(this)
+    return
+  else if (new_size .le. this%m_size) then
+    ! do nothing if the new size is smaller than the current
+    return
+  else
+    ! allocate a bigger buffer and copy the contents
+    allocate(tmp(new_size))
+    do i = 1,this%m_at
+     tmp(i) = this%m_data(i)
+    enddo
+    deallocate(this%m_data)
+    this%m_data => tmp
+    this%m_size = new_size
+  endif
+end subroutine
+
+!-----------------------------------------------------------------------------
+subroutine teca_vector_@type_name@_push_back(this, val)
+  use iso_c_binding
+  implicit none
+  type(teca_vector_@type_name@), intent(inout) :: this
+  @c_type@, intent(in) :: val
+  if (this%m_size .eq. 0) then
+    call teca_vector_@type_name@_init(this, 16_8)
+  else if (this%m_at .gt. this%m_size) then
+    call teca_vector_@type_name@_resize(this, 2*this%m_size)
+  endif
+  this%m_data(this%m_at) = val
+  this%m_at = this%m_at + 1
+end subroutine
+
+!-----------------------------------------------------------------------------
+pure function teca_vector_@type_name@_back(this) result(back)
+  use iso_c_binding
+  implicit none
+  type(teca_vector_@type_name@), intent(in) :: this
+  @c_type@ :: back
+  back = this%m_data(this%m_at-1)
+end function
+
+!-----------------------------------------------------------------------------
+subroutine teca_vector_@type_name@_pop_back(this)
+  use iso_c_binding
+  implicit none
+  type(teca_vector_@type_name@), intent(inout) :: this
+  if (this%m_at .gt. 1) &
+    this%m_at = this%m_at - 1
+end subroutine
+
+!-----------------------------------------------------------------------------
+pure function teca_vector_@type_name@_size(this) result(n_used)
+  use iso_c_binding
+  implicit none
+  type(teca_vector_@type_name@), intent(in) :: this
+  integer(c_long) :: n_used
+  n_used = this%m_at-1
+end function
+
+!-----------------------------------------------------------------------------
+subroutine teca_vector_@type_name@_write(this, id, uni)
+  use iso_c_binding
+  implicit none
+  type(teca_vector_@type_name@), intent(in) :: this
+  character(*), intent(in) :: id
+  integer, intent(in) :: uni
+  integer(c_long) :: i, n
+  n = this%m_at - 1
+  write(uni,'(A,A2,$)')trim(id),'={'
+  if (n .ge. 1) then
+    write(uni,'(E12.4,$)')real(this%m_data(1))
+  endif
+  do i = 2,n
+    write(uni,'(A2,E12.4,$)')', ',real(this%m_data(i))
+  enddo
+  write(uni,'(A1)')'}'
+end subroutine
+
+end module

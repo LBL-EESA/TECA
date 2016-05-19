@@ -1,4 +1,4 @@
-module gfdl_tc_trajectory_util
+module teca_tc_trajectory_util_mod
 use iso_c_binding
 use iso_fortran_env, ONLY : error_unit
 implicit none
@@ -33,7 +33,19 @@ subroutine get_step_offsets(step_ids, n_rows, &
       q = q + 1
     enddo
     q = q + 1
-    step_offsets(i) = q
   enddo
+
+  ! compute the offset to the first storm in each step
+  step_offsets(1) = 1
+  do i = 2,n_steps
+    step_offsets(i) = step_offsets(i-1) + step_counts(i-1)
+  enddo
+
+  write(error_unit,*)'n_steps=',n_steps
+  do i = 1,n_steps
+    write(error_unit,*)'step=',i,'step_counts=',step_counts(i), &
+      'step_offsets=',step_offsets(i),step_ids(step_offsets(i))
+  enddo
+
 end subroutine
 end module

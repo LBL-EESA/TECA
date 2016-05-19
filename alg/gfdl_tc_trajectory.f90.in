@@ -1,7 +1,8 @@
 module gfdl_tc_trajectory_@type_name@_mod
 use iso_c_binding
 use iso_fortran_env, ONLY : error_unit
-use trajectory_util
+use teca_tc_trajectory_util_mod
+use teca_vector_long_mod
 implicit none
 
 private
@@ -26,7 +27,10 @@ subroutine teca_append_tc_track_@type_name@(table, track_id, storm_id, &
 end subroutine
 end interface
 
+
 contains
+
+
 !-----------------------------------------------------------------------------
 pure function distance_@type_name@( &
   r_lon_0, r_lat_0, r_lon_i, r_lat_i) result(dr) bind(C)
@@ -51,6 +55,8 @@ pure function distance_@type_name@( &
   !  + cos(r_lat_0)*cos(r_lat_i)*sin(dx/2.0)**2.0)))
 end function
 
+
+
 !-----------------------------------------------------------------------------
 ! defaults
 !  r_crit  = 900.0
@@ -64,6 +70,200 @@ end function
 !  nlat =  40. !miz
 !  slat = -40. !miz
 integer(c_int) function gfdl_tc_trajectory_@type_name@( &
+  r_crit, wind_crit, n_wind_crit, time_step, time, storm_uid, &
+  d_lon, d_lat, wind_max, vort_max, psl, have_twc, &
+  have_thick, twc_max, thick_max, n_rows, track_table) &
+  result(ret_val) bind(C)
+  use iso_c_binding
+  use iso_fortran_env, only : error_unit
+  implicit none
+
+  type(c_ptr), intent(in) :: track_table
+  real(@c_type_coord@), intent(in) :: r_crit
+
+  real(@c_type_var@), intent(in) :: wind_crit, n_wind_crit
+
+  integer(c_long), intent(in) :: n_rows
+
+  real(@c_type_coord@), intent(in), dimension(n_rows) :: &
+    d_lon, d_lat
+
+  real(c_double), intent(in), dimension(n_rows) :: time
+  integer(c_long), intent(in), dimension(n_rows) :: time_step
+
+  real(@c_type_var@), intent(in), dimension(n_rows) :: &
+    wind_max, vort_max, psl, twc_max, thick_max
+
+  integer(c_int), intent(in), dimension(n_rows) :: &
+    storm_uid, have_twc, have_thick
+
+  real(@c_type_coord@) :: r_lon_0, r_lat_0, r_lon_i, r_lat_i
+  real(c_double) :: dt, drdt, t_0, t_i
+
+  logical :: cross_equator
+
+  integer(c_long) :: step, storm, n_steps, n_steps_m1, &
+    next_step, next_storm, track_len, curr_step, curr_storm, &
+    n_cand, n_bon, n_wind, q, idx_0, idx_i, n_thick, n_twc
+
+  integer(c_int) :: track_id
+
+  integer(c_long), dimension(1) :: imin
+
+  integer(c_long),dimension(n_rows) :: step_offsets, &
+    step_counts
+
+  integer(c_long), dimension(n_rows) :: &
+    track_step, track_storm, cand_step, cand_storm, &
+    bon_step, bon_storm
+
+  real(@c_type_coord@), dimension(n_rows) :: rtot, r_lon, r_lat
+
+  logical, dimension(n_rows) :: available, exist_wind, exist_twc, exist_thick
+
+  type(teca_vector_long) :: track_starts, new_track
+  integer(c_long) :: track_start, track_tip, closest_storm_id, &
+    active_step, i, j, n_storms, storm_id, max_track_len
+  logical :: success
+  real(@c_type_coord@) :: lon_0, lat_0, lon_i, lat_i, storm_dist, closest_storm_dist
+
+  ret_val = -1
+
+  track_id = 0
+
+  ! Generate masks from critical values
+  exist_wind(:) = (wind_max(:) .ge. wind_crit)
+  exist_twc(:) = (have_twc(:) .ne. 0)
+  exist_thick(:) = (have_thick(:) .ne. 0)
+  r_lon(:) = DEG_TO_RAD*d_lon(:)
+  r_lat(:) = DEG_TO_RAD*d_lat(:)
+  available(:) = .true.
+
+  ! build offset to time step table
+  call get_step_offsets(time_step, n_rows, &
+    n_steps, step_counts, step_offsets)
+
+  ! build the track start queue.
+  ! consider all tracks eminating from all storms.
+  ! as tracks form these are marked as used
+  call teca_vector_long_init(track_starts, n_rows)
+  do i = n_rows,1,-1
+    call teca_vector_long_push_back(track_starts, i)
+  enddo
+
+  do while (teca_vector_long_size(track_starts) .gt. 0)
+    ! for each potential track start
+    track_start = teca_vector_long_back(track_starts)
+    call teca_vector_long_pop_back(track_starts)
+    if (available(track_start)) then
+      ! this storm is not part of another track is now considered
+      ! whether or not it works out it is no longer available for
+      ! use in other tracks
+      available(track_start) = .false.
+
+      ! start the new track
+      max_track_len =  n_steps - time_step(track_start)
+      call teca_vector_long_init(new_track, max_track_len)
+      call teca_vector_long_push_back(new_track, track_start)
+
+      ! now walk forward in time examining each storm in the
+      ! next time step.active step is next one forward in time
+      active_step = time_step(track_start) + 2
+      do j = active_step, n_steps
+
+        ! get position of the end of the track
+        track_tip = teca_vector_long_back(new_track)
+
+        lon_0 = r_lon(track_tip)
+        lat_0 = r_lat(track_tip)
+
+        ! find the closest storm
+        closest_storm_id = 0
+        closest_storm_dist = r_crit
+        success = .false.
+
+        n_storms = step_counts(j) - 1
+        do i = 0,n_storms
+          ! check the storms distance. check them all since
+          ! we need the closest
+          storm_id = step_offsets(j) + i
+
+          ! skip storms that are already part of other tracks
+          if (.not. available(storm_id)) &
+            cycle
+
+          lon_i = r_lon(storm_id)
+          lat_i = r_lat(storm_id)
+
+          ! compute the distance to the track tip
+          storm_dist = distance_@type_name@(lon_0, lat_0, lon_i, lat_i)
+
+          if (storm_dist .le. closest_storm_dist) then
+            ! found one that's at least as close as
+            closest_storm_id = storm_id
+            closest_storm_dist = storm_dist
+            success = .true.
+          end if
+        end do
+
+        if (success) then
+          ! we were able to extend this track
+          call teca_vector_long_push_back(new_track, closest_storm_id)
+          available(closest_storm_id) = .false.
+        else
+          ! track ends here
+          exit
+        end if
+      enddo
+
+      ! one track has been completed
+      track_len = teca_vector_long_size(new_track)
+      if (track_len .gt. 1) then
+        ! output trajectory info
+        call teca_vector_long_write(new_track, 'track', error_unit)
+
+        do i = 1,track_len
+          ! output trajectory info
+          storm_id = new_track%m_data(i)
+
+          call teca_append_tc_track_@type_name@( &
+            track_table, track_id, storm_uid(storm_id), time_step(storm_id), &
+            time(storm_id), d_lon(storm_id), d_lat(storm_id), psl(storm_id), &
+            wind_max(storm_id), vort_max(storm_id), have_twc(storm_id), &
+            have_thick(storm_id), twc_max(storm_id), thick_max(storm_id))
+        end do
+
+        track_id = track_id + 1
+      endif
+
+      ! free up memory for this track
+      call teca_vector_long_clear(new_track)
+    endif
+  enddo
+
+  ! free up memory
+  call teca_vector_long_clear(track_starts)
+
+  ret_val = 0
+  return
+end function
+
+
+
+
+!-----------------------------------------------------------------------------
+! defaults
+!  r_crit  = 900.0
+!  wind_crit  = 17.0
+!  wind_max_crit = 17.0
+!  vort_crit  = 3.5e-5  !miz
+!  twc_crit   =  0.5 !miz
+!  thick_crit =  50. !miz
+!  n_wind_crit  =   2
+!  do_filt = .true.
+!  nlat =  40. !miz
+!  slat = -40. !miz
+integer(c_int) function gfdl_tc_trajectory_@type_name@_1( &
   r_crit, wind_crit, n_wind_crit, time_step, time, storm_id, &
   d_lon, d_lat, wind_max, vort_max, psl, have_twc, &
   have_thick, twc_max, thick_max, n_rows, track_table) &
@@ -92,7 +292,7 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
     storm_id, have_twc, have_thick
 
   real(@c_type_coord@) :: r_lon_0, r_lat_0, r_lon_i, r_lat_i
-  real(c_double) :: dt, drdt, t_0
+  real(c_double) :: dt, drdt, t_0, t_i
 
   logical :: cross_equator
 
@@ -132,9 +332,10 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
 
   n_steps_m1 = n_steps - 1
   do step = 1,n_steps_m1
-    write(error_unit, '(A,I0,A,$)')'step=',step,'...'
+    write(error_unit,*)'processing step=',step,'with',step_counts(step),'storms'
 
     next_step = step + 1
+    write(error_unit,*)'compare to next_step=',next_step,'with',step_counts(next_step),'storms'
 
     ! for each candidate
     do storm = 1,step_counts(step)
@@ -154,21 +355,24 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
 
         ! look forward in time at all steps for track candidates
 10      continue
+
         n_cand = 0
 
         if (next_step .le. n_steps) then
           ! --- check for candidates on following day
-          idx_0 = step_offsets(curr_step)+curr_storm
+          idx_0 = step_offsets(curr_step) + curr_storm
           r_lon_0 = r_lon(idx_0)
           r_lat_0 = r_lat(idx_0)
-
-          dt = time(idx_0) - t_0
+          t_i = time(idx_0)
+          dt = t_i - t_0
 
           ! build track candidate list. candidates must be
           ! close in space and time and not cross the equator
           do next_storm = 1,step_counts(next_step)
 
-            idx_i = step_offsets(next_step)+next_storm
+            idx_i = step_offsets(next_step) + next_storm
+
+            write(error_unit,*)'compare it to',next_step,next_storm,idx_i
 
             if (available(idx_i)) then
               r_lon_i = r_lon(idx_i)

@@ -33,8 +33,25 @@ set(teca_alg_cxx_srcs
     )
 
 set(teca_alg_f90_srcs
-    gfdl_tc_trajectory_util.f90
+    teca_tc_trajectory_util.f90
     )
+
+set(teca_alg_f90_generics
+    teca_vector
+    )
+
+set(f_types integer integer real real)
+set(iso_c_types int long float double)
+foreach(generic_src ${teca_alg_f90_generics})
+    foreach(iso_c_type ${iso_c_types})
+        list(GET f_types 0 f_type)
+        list(REMOVE_AT f_types 0)
+        set(c_type "${f_type}(c_${iso_c_type})")
+        set(type_name ${iso_c_type})
+        configure_file(${generic_src}.f90.in ${generic_src}_${type_name}.f90 @ONLY)
+        list(APPEND teca_alg_f90_srcs ${generic_src}_${type_name}.f90)
+    endforeach()
+endforeach()
 
 set(teca_alg_f90_generics
     gfdl_spline
@@ -54,6 +71,7 @@ foreach(generic_src ${teca_alg_f90_generics})
         endforeach()
     endforeach()
 endforeach()
+
 
 include(FortranCInterface)
 FortranCInterface_VERIFY()
