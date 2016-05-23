@@ -1,21 +1,21 @@
-// .NAME vtkTECATableReader --
+// .NAME vtkTECATCCandidateTableReader --
 // .SECTION Description
 //
 // .SECTION See Also
 
-#ifndef vtkTECATableReader_h
-#define vtkTECATableReader_h
+#ifndef vtkTECATCCandidateTableReader_h
+#define vtkTECATCCandidateTableReader_h
 
 #include "vtkPolyDataAlgorithm.h"
 #include <map>
 #include <utility>
 #include <teca_table.h> // for table
 
-class vtkTECATableReader : public vtkPolyDataAlgorithm
+class vtkTECATCCandidateTableReader : public vtkPolyDataAlgorithm
 {
 public:
-  static vtkTECATableReader *New();
-  vtkTypeMacro(vtkTECATableReader,vtkPolyDataAlgorithm);
+  static vtkTECATCCandidateTableReader *New();
+  vtkTypeMacro(vtkTECATCCandidateTableReader,vtkPolyDataAlgorithm);
   virtual void PrintSelf(ostream& os, vtkIndent indent);
 
   vtkSetStringMacro(FileName);
@@ -39,8 +39,8 @@ public:
   vtkGetStringMacro(TimeCoordinate);
 
 protected:
-  vtkTECATableReader();
-  ~vtkTECATableReader();
+  vtkTECATCCandidateTableReader();
+  ~vtkTECATCCandidateTableReader();
 
   virtual int RequestInformation(
     vtkInformation *req, vtkInformationVector **inInfos,
@@ -64,8 +64,8 @@ private:
   std::map<double, std::pair<size_t, size_t>> TimeRows;
 
 private:
-  vtkTECATableReader(const vtkTECATableReader &); // Not implemented
-  void operator=(const vtkTECATableReader &); // Not implemented
+  vtkTECATCCandidateTableReader(const vtkTECATCCandidateTableReader &); // Not implemented
+  void operator=(const vtkTECATCCandidateTableReader &); // Not implemented
 };
 
 #endif
