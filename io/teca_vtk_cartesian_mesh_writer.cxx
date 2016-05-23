@@ -6,7 +6,7 @@
 #include "teca_file_util.h"
 #include "teca_config.h"
 
-#if defined(TECA_HAS_VTK)
+#if defined(TECA_HAS_VTK) || defined(TECA_HAS_PARAVIEW)
 #include "vtkFloatArray.h"
 #include "vtkDoubleArray.h"
 #include "vtkCharArray.h"
@@ -36,6 +36,12 @@ using vtkUnsignedLongArray = void*;
 using vtkLongLongArray = void*;
 using vtkUnsignedLongLongArray = void*;
 #endif
+#if defined(TECA_HAS_PARAVIEW)
+#include "vtkSmartPointer.h"
+#include "vtkPVXMLElement.h"
+#include "vtkPVXMLParser.h"
+#endif
+
 
 #include <iostream>
 #include <sstream>
@@ -80,7 +86,7 @@ VTK_TT_SPEC(unsigned long, vtkUnsignedLongArray, "%lu")
 VTK_TT_SPEC(long long, vtkLongLongArray, "%lli")
 VTK_TT_SPEC(unsigned long long, vtkUnsignedLongLongArray, "%llu")
 
-#if !defined(TECA_HAS_VTK)
+#if !defined(TECA_HAS_VTK) && !defined(TECA_HAS_PARAVIEW)
 namespace {
 
 void write_vtk_array_data(FILE *ofile,
@@ -296,9 +302,17 @@ const_p_teca_dataset teca_vtk_cartesian_mesh_writer::execute(
         return nullptr;
     }
 
+    double time = 0.0;
+    if (mesh->get_time(time) &&
+        request.get("time", time))
+    {
+        TECA_ERROR("request missing \"time\"")
+        return nullptr;
+    }
+
     // if we have VTK then use their XML file formats
     // otherwise fallback to our legacy writer
-#if defined(TECA_HAS_VTK)
+#if defined(TECA_HAS_VTK) || defined(TECA_HAS_PARAVIEW)
     vector<unsigned long> extent(6, 0);
     if (mesh->get_extent(extent) && request.get("extent", extent))
     {
@@ -381,6 +395,72 @@ const_p_teca_dataset teca_vtk_cartesian_mesh_writer::execute(
 
     w->Delete();
     rg->Delete();
+
+#if defined(TECA_HAS_PARAVIEW)
+    // write a pvd file to capture time coordinate
+    std::string pvd_file_name;
+    size_t pos;
+    if ((pos = this->file_name.find("%t%")) == std::string::npos)
+        pos = this->file_name.rfind(".");
+    pvd_file_name = this->file_name.substr(0, pos);
+    pvd_file_name.append(".pvd");
+
+    vtkPVXMLParser *parser = vtkPVXMLParser::New();
+    if (teca_file_util::file_exists(pvd_file_name.c_str()))
+    {
+        // read the file
+        parser->SetFileName(pvd_file_name.c_str());
+        if (!parser->Parse())
+        {
+            TECA_ERROR("failed to parse \"" << pvd_file_name << "\"")
+            return nullptr;
+        }
+
+        // insert a node for this time step to the tree
+        vtkSmartPointer<vtkPVXMLElement> elem
+            = vtkSmartPointer<vtkPVXMLElement>::New();
+
+        elem->SetName("DataSet");
+        elem->AddAttribute("timestep", time);
+        elem->AddAttribute("group", 0);
+        elem->AddAttribute("part", 0);
+        elem->AddAttribute("file", out_file.c_str());
+
+        vtkPVXMLElement *root = parser->GetRootElement();
+        vtkPVXMLElement *coll = root->FindNestedElementByName("Collection");
+        coll->AddNestedElement(elem);
+        elem->Delete();
+
+        // write the file back out
+        ofstream pvd_file(pvd_file_name, std::ios_base::out|std::ios_base::trunc);
+        if (!pvd_file.good())
+        {
+            TECA_ERROR("Failed to open \"" << pvd_file_name << "\"")
+            return nullptr;
+        }
+        root->PrintXML(pvd_file, vtkIndent());
+        pvd_file.close();
+    }
+    else
+    {
+        // write an initial file
+        ofstream pvd_file(pvd_file_name, std::ios_base::out|std::ios_base::trunc);
+        if (!pvd_file.good())
+        {
+            TECA_ERROR("Failed to open \"" << pvd_file_name << "\"")
+            return nullptr;
+        }
+        pvd_file << "<?xml version=\"1.0\"?>\n"
+               "<VTKFile type=\"Collection\" version=\"0.1\"\n"
+               "byte_order=\"LittleEndian\" compressor=\"\">\n"
+               "<Collection>\n"
+               "<DataSet timestep=\"" << time << "\" group=\"\" part=\"0\" "
+               "file=\"" << out_file << "\"/>\n"
+               "</Collection>\n"
+               "</VTKFile>" << endl;
+        pvd_file.close();
+    }
+#endif
 #else
     // built without VTK. write as legacy file
     std::string out_file = this->file_name;
