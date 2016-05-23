@@ -112,17 +112,6 @@ else()
 endif()
 set(TECA_HAS_UDUNITS ${tmp} CACHE BOOL "UDUnits features")
 
-# configure for VTK
-set(tmp OFF)
-find_package(VTK QUIET)
-if (VTK_FOUND AND ((DEFINED TECA_HAS_VTK AND TECA_HAS_VTK) OR (NOT DEFINED TECA_HAS_VTK)))
-    message(STATUS "VTK features -- enabled")
-    set(tmp ON)
-else()
-    message(STATUS "VTK features -- not found. set VTK_DIR to enable.")
-endif()
-set(TECA_HAS_VTK ${tmp} CACHE BOOL "VTK features")
-
 # configure for ParaView
 set(tmp OFF)
 find_package(ParaView QUIET)
@@ -133,6 +122,19 @@ else()
     message(STATUS "ParaView features -- not found. set ParaView_DIR to enable.")
 endif()
 set(TECA_HAS_PARAVIEW ${tmp} CACHE BOOL "ParaView features")
+
+# configure for VTK
+set(tmp OFF)
+if (NOT TECA_HAS_PARAVIEW)
+    find_package(VTK QUIET)
+    if (VTK_FOUND AND ((DEFINED TECA_HAS_VTK AND TECA_HAS_VTK) OR (NOT DEFINED TECA_HAS_VTK)))
+        message(STATUS "VTK features -- enabled")
+        set(tmp ON)
+    else()
+        message(STATUS "VTK features -- not found. set VTK_DIR to enable.")
+    endif()
+endif()
+set(TECA_HAS_VTK ${tmp} CACHE BOOL "VTK features")
 
 #configure for Boost
 set(tmp OFF)

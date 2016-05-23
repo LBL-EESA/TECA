@@ -32,9 +32,11 @@ endif()
 
 if (TECA_HAS_VTK)
     include(${VTK_USE_FILE})
+elseif (TECA_HAS_PARAVIEW)
+    include(${PARAVIEW_USE_FILE})
 endif()
 list(APPEND teca_io_srcs teca_vtk_cartesian_mesh_writer.cxx)
-if (TECA_HAS_VTK)
+if (TECA_HAS_VTK OR TECA_HAS_PARAVIEW)
     list(APPEND teca_io_link ${VTK_LIBRARIES})
 endif()
 
