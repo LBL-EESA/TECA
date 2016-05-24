@@ -1,0 +1,30 @@
+module teca_distance_func_@c_type@_mod
+use iso_c_binding
+use iso_fortran_env, ONLY : error_unit
+
+contains
+!-----------------------------------------------------------------------------
+pure function distance_@c_type@(r_lon_0, r_lat_0, r_lon_i, r_lat_i) &
+  result(dr) bind(C)
+  implicit none
+  @iso_c_type@, intent(in) :: &
+    r_lon_0, r_lat_0, r_lon_i, r_lat_i
+  @iso_c_type@ :: dr, dx, dy
+  @iso_c_type@, parameter :: EARTH_RADIUS = 6371.0
+
+  ! GFDL 2007
+  dx = (r_lon_i - r_lon_0)*cos(r_lat_0)
+  dy = (r_lat_i - r_lat_0)
+  dr = EARTH_RADIUS*sqrt(dx*dx + dy*dy)
+
+  ! GFDL 2015
+  !dr = EARTH_RADIUS*acos(sin(r_lat_0)*sin(r_lat_i) &
+  !  + cos(r_lat_0)*cos(r_lat_i)*cos(r_lon_i - r_lon_0))
+
+  ! haversine formula
+  !dx = r_lon_i - r_lon_0
+  !dy = r_lat_i - r_lat_0
+  !dr = EARTH_RADIUS*2.0*asin(min(1,sqrt(sin(dy/2.0)**2.0 &
+  !  + cos(r_lat_0)*cos(r_lat_i)*sin(dx/2.0)**2.0)))
+end function
+end module
