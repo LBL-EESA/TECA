@@ -1,4 +1,4 @@
-#include "vtkTECATableReader.h"
+#include "vtkTECATCCandidateTableReader.h"
 
 #include "vtkObjectFactory.h"
 #include "vtkInformation.h"
@@ -49,10 +49,10 @@ DECLARE_VTK_TT(unsigned long, UnsignedLong);
 DECLARE_VTK_TT(unsigned long long, UnsignedLongLong);
 
 //-----------------------------------------------------------------------------
-vtkStandardNewMacro(vtkTECATableReader);
+vtkStandardNewMacro(vtkTECATCCandidateTableReader);
 
 //-----------------------------------------------------------------------------
-vtkTECATableReader::vtkTECATableReader() :
+vtkTECATCCandidateTableReader::vtkTECATCCandidateTableReader() :
   FileName(nullptr), XCoordinate(nullptr), YCoordinate(nullptr),
   ZCoordinate(nullptr), TimeCoordinate(nullptr)
 {
@@ -67,7 +67,7 @@ vtkTECATableReader::vtkTECATableReader() :
 }
 
 //-----------------------------------------------------------------------------
-vtkTECATableReader::~vtkTECATableReader()
+vtkTECATCCandidateTableReader::~vtkTECATCCandidateTableReader()
 {
   this->SetFileName(nullptr);
   this->SetXCoordinate(nullptr);
@@ -77,7 +77,7 @@ vtkTECATableReader::~vtkTECATableReader()
 }
 
 //-----------------------------------------------------------------------------
-int vtkTECATableReader::CanReadFile(const char *file_name)
+int vtkTECATCCandidateTableReader::CanReadFile(const char *file_name)
 {
   // open the file
   teca_binary_stream bs;
@@ -102,7 +102,7 @@ int vtkTECATableReader::CanReadFile(const char *file_name)
 }
 
 //-----------------------------------------------------------------------------
-int vtkTECATableReader::RequestInformation(
+int vtkTECATCCandidateTableReader::RequestInformation(
   vtkInformation *req, vtkInformationVector **inInfos,
   vtkInformationVector* outInfos)
 {
@@ -227,7 +227,7 @@ int vtkTECATableReader::RequestInformation(
 }
 
 //-----------------------------------------------------------------------------
-int vtkTECATableReader::RequestData(
+int vtkTECATCCandidateTableReader::RequestData(
         vtkInformation *req, vtkInformationVector **inInfo,
         vtkInformationVector *outInfos)
 {
@@ -396,7 +396,7 @@ constexpr const char *safestr(const char *ptr)
 { return ptr?ptr:"nullptr"; }
 
 //-----------------------------------------------------------------------------
-void vtkTECATableReader::PrintSelf(ostream& os, vtkIndent indent)
+void vtkTECATCCandidateTableReader::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os,indent);
 
