@@ -1,18 +1,18 @@
-module tstorms_@type_name@_module
+module tstorms_@decorator@_module
 use iso_fortran_env, only : error_unit
 use iso_c_binding
 implicit none
 
 interface
-subroutine teca_tc_append_candidate_@type_name@( &
+subroutine teca_tc_append_candidate_@decorator@( &
   storm_id, lon, lat, wind_max, vort_max, psl_min, &
   twc_is, thick_is, twc_max, thick_max, atable) &
   bind(C)
   use iso_c_binding
   implicit none
   integer(c_int), intent(in) :: storm_id, twc_is, thick_is
-  real(@c_type_coord@), intent(in) :: lon, lat
-  real(@c_type_var@), intent(in) :: wind_max, &
+  @iso_c_type_coord@, intent(in) :: lon, lat
+  @iso_c_type_var@, intent(in) :: wind_max, &
          vort_max, psl_min, twc_max, thick_max
   type(c_ptr), intent(in) :: atable
 end subroutine
@@ -32,10 +32,10 @@ end interface
 
 contains
 !-----------------------------------------------------------------------
-subroutine gpad2_@type_name@(Gxx, xx)
+subroutine gpad2_@decorator@(Gxx, xx)
   implicit none
-  real(@c_type_var@), intent(in), dimension(:,:) :: Gxx
-  real(@c_type_var@), intent(out), dimension(:,:) :: xx
+  @iso_c_type_var@, intent(in), dimension(:,:) :: Gxx
+  @iso_c_type_var@, intent(out), dimension(:,:) :: xx
   integer :: ix, jx, j, j0, j1
   integer :: nx, nx2, nxp1
 
@@ -66,14 +66,14 @@ subroutine gpad2_@type_name@(Gxx, xx)
      xx(1:ix+nx2, j) = xx(1:ix+nx2, jx)
   enddo
 
-end subroutine gpad2_@type_name@
+end subroutine gpad2_@decorator@
 
 !-----------------------------------------------------------------------
-subroutine gpad1_@type_name@(Gxx, xx)
+subroutine gpad1_@decorator@(Gxx, xx)
   implicit none
-  real(@c_type_coord@), intent(in), dimension(:) :: Gxx
-  real(@c_type_coord@), intent(out), dimension(:) :: xx
-  real(@c_type_coord@) :: dx
+  @iso_c_type_coord@, intent(in), dimension(:) :: Gxx
+  @iso_c_type_coord@, intent(out), dimension(:) :: xx
+  @iso_c_type_coord@ :: dx
   integer :: i, ix, ip
   integer :: nx, nx2, nxp1
 
@@ -93,7 +93,7 @@ subroutine gpad1_@type_name@(Gxx, xx)
      xx(ip-i) = xx(ip-nxp1) + (nxp1 - i) * dx
   end do
 
-end subroutine gpad1_@type_name@
+end subroutine gpad1_@decorator@
 
 !-------------------------------------------------------------------
 ! --- LOCATE TROPICAL STORMS
@@ -134,7 +134,7 @@ end subroutine gpad1_@type_name@
 !      stwc_lon, stwc_lat - longitude & latitude of warm core
 !    sthick_lon, sthick_lat - longitude & latitude of max thickness
 !-------------------------------------------------------------------
-integer(c_int) function gfdl_tc_candidates_@type_name@( &
+integer(c_int) function gfdl_tc_candidates_@decorator@( &
         max_core_radius, min_vort, vort_win_size, &
         max_psl_dy, max_psl_dr, max_twc_dy, max_twc_dr, &
         max_thick_dy, max_thick_dr, &
@@ -142,41 +142,41 @@ integer(c_int) function gfdl_tc_candidates_@type_name@( &
         Grlon, Gnlat, Gnlon, frprm_itmax, time_step, &
         tc_table) result(ret_val) bind(C)
 
-  use spline_@type_name@_module, only : splie2_@type_name@, &
-        splie3_@type_name@, frprm_@type_name@, shape_@type_name@
+  use spline_@decorator@_module, only : splie2_@decorator@, &
+        splie3_@decorator@, frprm_@decorator@, shape_@decorator@
 
   implicit none
 
-  real(@c_type_var@), intent(in) :: max_core_radius
-  real(@c_type_var@), intent(in) :: min_vort, vort_win_size
-  real(@c_type_var@), intent(in) :: max_psl_dy, max_psl_dr
-  real(@c_type_var@), intent(in) :: max_twc_dy, max_twc_dr
-  real(@c_type_var@), intent(in) :: max_thick_dy, max_thick_dr
-  real(@c_type_var@), intent(in), &
+  @iso_c_type_var@, intent(in) :: max_core_radius
+  @iso_c_type_var@, intent(in) :: min_vort, vort_win_size
+  @iso_c_type_var@, intent(in) :: max_psl_dy, max_psl_dr
+  @iso_c_type_var@, intent(in) :: max_twc_dy, max_twc_dr
+  @iso_c_type_var@, intent(in) :: max_thick_dy, max_thick_dr
+  @iso_c_type_var@, intent(in), &
     dimension(Gnlon, Gnlat) :: Gwind, Gvort, Gtbar, Gpsl, Gthick
-  real(@c_type_coord@), intent(in), dimension(Gnlon) :: Grlon
-  real(@c_type_coord@), intent(in), dimension(Gnlat) :: Grlat
+  @iso_c_type_coord@, intent(in), dimension(Gnlon) :: Grlon
+  @iso_c_type_coord@, intent(in), dimension(Gnlat) :: Grlat
   integer(c_long), intent(in) :: Gnlat, Gnlon, time_step
   integer(c_int), intent(in) :: frprm_itmax
   type(c_ptr), intent(inout) :: tc_table
 
-  real(@c_type_var@), parameter :: ftol = 0.01
+  @iso_c_type_var@, parameter :: ftol = 0.01
 
-  real(@c_type_coord@), allocatable, dimension(:) :: rlon
-  real(@c_type_coord@), allocatable, dimension(:) :: rlat
+  @iso_c_type_coord@, allocatable, dimension(:) :: rlon
+  @iso_c_type_coord@, allocatable, dimension(:) :: rlat
 
-  real(@c_type_var@), allocatable, dimension(:,:) :: &
+  @iso_c_type_var@, allocatable, dimension(:,:) :: &
       vort, wind, psl, psl_dx, psl_dy, tbar, tbar_dx, tbar_dy, &
       thick, thick_dx, thick_dy
 
-  real(@c_type_var@) ::  wind_max, psl_min, twc_max, thick_max
-  real(@c_type_coord@) :: lon_vort, lon_psl, lon_twc, lon_thick
-  real(@c_type_coord@) :: lat_vort, lat_psl, lat_twc, lat_thick
+  @iso_c_type_var@ ::  wind_max, psl_min, twc_max, thick_max
+  @iso_c_type_coord@ :: lon_vort, lon_psl, lon_twc, lon_thick
+  @iso_c_type_coord@ :: lat_vort, lat_psl, lat_twc, lat_thick
   logical :: exist_twc, exist_thick
 
-  real(@c_type_coord@), dimension(2)  :: p
-  real(@c_type_coord@) :: xx, yy, rr
-  real(@c_type_var@) :: fret
+  @iso_c_type_coord@, dimension(2)  :: p
+  @iso_c_type_coord@ :: xx, yy, rr
+  @iso_c_type_var@ :: fret
 
   integer(c_int) :: have_thick, have_twc
   integer :: can_id, storm_id, ierr_pos, ierr_mag
@@ -186,7 +186,7 @@ integer(c_int) function gfdl_tc_candidates_@type_name@( &
   integer, dimension(2) :: can_ij
   character(len=512, kind=c_char):: w_msg
 
-  !write(error_unit, *)'gfdl_tc_candidates_@type_name@, ', &
+  !write(error_unit, *)'gfdl_tc_candidates_@decorator@, ', &
   !  'max_core_radius = ', max_core_radius, ',', 'min_vort = ', min_vort, ',', &
   !  'vort_win_size = ', vort_win_size, ',', 'max_psl_dy = ', max_psl_dy, ',', &
   !  'max_psl_dr = ', max_psl_dr, ',', 'max_twc_dy = ', max_twc_dy, ',', &
@@ -230,13 +230,13 @@ integer(c_int) function gfdl_tc_candidates_@type_name@( &
   allocate(thick_dy(ixp6, jxp6))
 
   ! setup ghost zones
-  call gpad2_@type_name@(Gwind, wind)
-  call gpad2_@type_name@(Gvort, vort)
-  call gpad2_@type_name@(Gtbar, tbar)
-  call gpad2_@type_name@(Gpsl, psl)
-  call gpad2_@type_name@(Gthick, thick)
-  call gpad1_@type_name@(Grlon, rlon)
-  call gpad1_@type_name@(Grlat, rlat)
+  call gpad2_@decorator@(Gwind, wind)
+  call gpad2_@decorator@(Gvort, vort)
+  call gpad2_@decorator@(Gtbar, tbar)
+  call gpad2_@decorator@(Gpsl, psl)
+  call gpad2_@decorator@(Gthick, thick)
+  call gpad1_@decorator@(Grlon, rlon)
+  call gpad1_@decorator@(Grlat, rlat)
 
   ! change sign of vorticity in southern hemisphere
   j = 0
@@ -252,14 +252,14 @@ integer(c_int) function gfdl_tc_candidates_@type_name@( &
   thick(:,:) = -1.0*thick(:,:)
 
   ! initialize splines
-  call splie2_@type_name@(rlat, psl, psl_dy)
-  call splie3_@type_name@(rlon, psl, psl_dx)
+  call splie2_@decorator@(rlat, psl, psl_dy)
+  call splie3_@decorator@(rlon, psl, psl_dx)
 
-  call splie2_@type_name@(rlat, tbar, tbar_dy)
-  call splie3_@type_name@(rlon, tbar, tbar_dx)
+  call splie2_@decorator@(rlat, tbar, tbar_dy)
+  call splie3_@decorator@(rlon, tbar, tbar_dx)
 
-  call splie2_@type_name@(rlat, thick, thick_dy)
-  call splie3_@type_name@(rlon, thick, thick_dx)
+  call splie2_@decorator@(rlat, thick, thick_dy)
+  call splie3_@decorator@(rlon, thick, thick_dx)
 
   ! loop over grid & look for storms
   do j = nxp1,jxp3
@@ -287,7 +287,7 @@ integer(c_int) function gfdl_tc_candidates_@type_name@( &
 
       ierr_pos = 0
 
-      call frprm_@type_name@(rlon, rlat, psl, psl_dy, &
+      call frprm_@decorator@(rlon, rlat, psl, psl_dy, &
         psl_dx, p, ftol, frprm_itmax, psl_min, ierr_pos)
 
       if (ierr_pos .ne. 0) then
@@ -328,7 +328,7 @@ integer(c_int) function gfdl_tc_candidates_@type_name@( &
       ! is pressure delta
       ierr_mag = 0
 
-      call shape_@type_name@(rlon, rlat, psl, psl_dy, &
+      call shape_@decorator@(rlon, rlat, psl, psl_dy, &
         psl_dx, p, ierr_mag, max_psl_dy, max_psl_dr)
 
       if (ierr_mag .ne. 0) then
@@ -343,7 +343,7 @@ integer(c_int) function gfdl_tc_candidates_@type_name@( &
       exist_twc = .false.
       ierr_pos = 0
 
-      call frprm_@type_name@(rlon, rlat, tbar, &
+      call frprm_@decorator@(rlon, rlat, tbar, &
            tbar_dy, tbar_dx, p, ftol, frprm_itmax, fret, &
            ierr_pos)
 
@@ -361,7 +361,7 @@ integer(c_int) function gfdl_tc_candidates_@type_name@( &
         if (rr < max_core_radius) then
           ierr_mag = 0
 
-          call shape_@type_name@(rlon, rlat, tbar, tbar_dy, &
+          call shape_@decorator@(rlon, rlat, tbar, tbar_dy, &
             tbar_dx, p, ierr_mag, max_twc_dy, max_twc_dr)
 
           exist_twc = (ierr_mag .eq. 0)
@@ -382,7 +382,7 @@ integer(c_int) function gfdl_tc_candidates_@type_name@( &
       ierr_pos = 0
       exist_thick = .false.
 
-      call frprm_@type_name@(rlon, rlat, thick, thick_dy, &
+      call frprm_@decorator@(rlon, rlat, thick, thick_dy, &
         thick_dx, p, ftol, frprm_itmax, fret, ierr_pos)
 
       if(ierr_pos .eq. 0) then
@@ -399,7 +399,7 @@ integer(c_int) function gfdl_tc_candidates_@type_name@( &
         if(rr < max_core_radius) then
           ierr_mag = 0
 
-          call shape_@type_name@(rlon, rlat, thick, thick_dy, &
+          call shape_@decorator@(rlon, rlat, thick, thick_dy, &
             thick_dx, p, ierr_mag, max_thick_dy, max_thick_dr)
 
           exist_thick = (ierr_mag .eq. 0)
@@ -422,7 +422,7 @@ integer(c_int) function gfdl_tc_candidates_@type_name@( &
 
       wind_max = maxval(wind(im:ip,jm:jp))
 
-      call teca_tc_append_candidate_@type_name@( &
+      call teca_tc_append_candidate_@decorator@( &
         storm_id, lon_psl, lat_psl, wind_max, vort(i,j), &
         psl_min, have_twc, have_thick, twc_max, thick_max, &
         tc_table)
@@ -446,13 +446,13 @@ integer(c_int) function gfdl_tc_candidates_@type_name@( &
 
   ret_val = 0
   return
-end function gfdl_tc_candidates_@type_name@
+end function gfdl_tc_candidates_@decorator@
 
 function average(var) result(res)
   implicit none
-  real(@c_type_var@), dimension(:,:), intent(in) :: var
-  real(@c_type_var@) :: res
+  @iso_c_type_var@, dimension(:,:), intent(in) :: var
+  @iso_c_type_var@ :: res
   res = sum(var)/size(var)
 end function average
 
-end module tstorms_@type_name@_module
+end module tstorms_@decorator@_module
