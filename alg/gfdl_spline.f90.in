@@ -1,4 +1,4 @@
-module spline_@type_name@_module
+module spline_@decorator@_module
 use iso_c_binding
 use iso_fortran_env, only : error_unit
 implicit none
@@ -25,27 +25,27 @@ contains
 ! one-dimensional natural cubic splines of the rows and returns
 ! the second-derivatives in the array Y2A.
 !-----------------------------------------------------------------------
-subroutine splie2_@type_name@(x2a, ya, y2a)
+subroutine splie2_@decorator@(x2a, ya, y2a)
   implicit none
 
-  real(@c_type_coord@), intent(in), dimension(:) :: x2a
-  real(@c_type_var@), intent(in), dimension(:,:) :: ya
-  real(@c_type_var@), intent(out), dimension(:,:) :: y2a
+  @iso_c_type_coord@, intent(in), dimension(:) :: x2a
+  @iso_c_type_var@, intent(in), dimension(:,:) :: ya
+  @iso_c_type_var@, intent(out), dimension(:,:) :: y2a
 
-  real(@c_type_var@), dimension(size(ya,2)) :: ytmp, y2tmp
+  @iso_c_type_var@, dimension(size(ya,2)) :: ytmp, y2tmp
   integer :: m, j
 
-  real(@c_type_var@), parameter :: ypval = 1.e30
+  @iso_c_type_var@, parameter :: ypval = 1.e30
 
   m = size(ya, 1)
 
   do j = 1,m
     ytmp(:) = ya(j,:)
-    call spline_@type_name@(x2a, ytmp, ypval, ypval, y2tmp)
+    call spline_@decorator@(x2a, ytmp, ypval, ypval, y2tmp)
     y2a(j,:) = y2tmp(:)
   end do
 
-end subroutine splie2_@type_name@
+end subroutine splie2_@decorator@
 
 !-----------------------------------------------------------------------
 ! Given an M by N tabulated function YA and tabulated independant
@@ -53,27 +53,27 @@ end subroutine splie2_@type_name@
 ! one-dimensional natural cubic splines of the rows and returns
 ! the second-derivatives in the array Y2A.
 !-----------------------------------------------------------------------
-subroutine splie3_@type_name@(x1a, ya, y2a)
+subroutine splie3_@decorator@(x1a, ya, y2a)
   implicit none
 
-  real(@c_type_coord@), intent(in), dimension(:) :: x1a
-  real(@c_type_var@), intent(in), dimension(:,:) :: ya
-  real(@c_type_var@), intent(out), dimension(:,:) :: y2a
+  @iso_c_type_coord@, intent(in), dimension(:) :: x1a
+  @iso_c_type_var@, intent(in), dimension(:,:) :: ya
+  @iso_c_type_var@, intent(out), dimension(:,:) :: y2a
 
-  real(@c_type_var@), dimension(size(ya,1)) :: ytmp, y2tmp
+  @iso_c_type_var@, dimension(size(ya,1)) :: ytmp, y2tmp
   integer :: n, k
 
-  real(@c_type_var@), parameter :: ypval = 1.e30
+  @iso_c_type_var@, parameter :: ypval = 1.e30
 
   n = size(ya, 2)
 
   do k = 1,n
     ytmp(:) = ya(:,k)
-    call spline_@type_name@(x1a, ytmp, ypval, ypval, y2tmp)
+    call spline_@decorator@(x1a, ytmp, ypval, ypval, y2tmp)
     y2a(:,k) = y2tmp(:)
   end do
 
-end subroutine splie3_@type_name@
+end subroutine splie3_@decorator@
 
 !-----------------------------------------------------------------------
 ! Given arrays X and Y of lenght N containing a tabulated function,i.e.
@@ -86,20 +86,20 @@ end subroutine splie3_@type_name@
 ! is signalled to set the corresponding boundary  condition
 ! for a natural spline, wuth zero derivative on that boundary.
 !-----------------------------------------------------------------------
-subroutine spline_@type_name@(x, y, yp1, ypn, y2)
+subroutine spline_@decorator@(x, y, yp1, ypn, y2)
   implicit none
 
-  real(@c_type_var@), intent(in) :: yp1, ypn
-  real(@c_type_coord@), intent(in), dimension(:) :: x
-  real(@c_type_var@), intent(in), dimension(:) :: y
-  real(@c_type_var@), intent(out), dimension(:) :: y2
+  @iso_c_type_var@, intent(in) :: yp1, ypn
+  @iso_c_type_coord@, intent(in), dimension(:) :: x
+  @iso_c_type_var@, intent(in), dimension(:) :: y
+  @iso_c_type_var@, intent(out), dimension(:) :: y2
 
-  !real(@c_type_coord@), dimension(size(x)) :: u, sig, p
-  real(@c_type_var@), dimension(size(x)) :: u, sig, p
-  real(@c_type_var@) :: qn, un
+  !@iso_c_type_coord@, dimension(size(x)) :: u, sig, p
+  @iso_c_type_var@, dimension(size(x)) :: u, sig, p
+  @iso_c_type_var@ :: qn, un
   integer :: n, i
 
-  real(@c_type_var@), parameter :: yptest = 0.99e30
+  @iso_c_type_var@, parameter :: yptest = 0.99e30
 
   n = size(x)
 
@@ -137,7 +137,7 @@ subroutine spline_@type_name@(x, y, yp1, ypn, y2)
     y2(i) = y2(i) * y2(i+1) + u(i)
   end do
 
-end subroutine spline_@type_name@
+end subroutine spline_@decorator@
 
 !-----------------------------------------------------------------------
 ! Given the arrays XA and YA of length N, which tabulate a function
@@ -145,16 +145,16 @@ end subroutine spline_@type_name@
 ! from spline above, and given a value of X, this routine
 ! returns a cubic-spline interpolated value Y.
 !-----------------------------------------------------------------------
-subroutine splint_@type_name@(xa, ya, y2a, x, y, dy)
+subroutine splint_@decorator@(xa, ya, y2a, x, y, dy)
   implicit none
 
-  real(@c_type_coord@), intent(in) :: x
-  real(@c_type_coord@), intent(in), dimension(:) :: xa
-  real(@c_type_var@), intent(in), dimension(:) :: ya, y2a
-  real(@c_type_var@), intent(out) :: y, dy
+  @iso_c_type_coord@, intent(in) :: x
+  @iso_c_type_coord@, intent(in), dimension(:) :: xa
+  @iso_c_type_var@, intent(in), dimension(:) :: ya, y2a
+  @iso_c_type_var@, intent(out) :: y, dy
 
   integer :: n, k, klo, khi
-  real(@c_type_coord@) :: h, a, b
+  @iso_c_type_coord@ :: h, a, b
   character(len=256, kind=c_char) :: e_msg
 
   n = size(xa)
@@ -175,7 +175,7 @@ subroutine splint_@type_name@(xa, ya, y2a, x, y, dy)
   h = xa(khi) - xa(klo)
 
   if (h < 1e-10) then
-    write(e_msg, '(A,A$)')'splint_@type_name@ bad xa input',c_null_char
+    write(e_msg, '(A,A$)')'splint_@decorator@ bad xa input',c_null_char
     call teca_tc_error(e_msg)
   endif
 
@@ -192,77 +192,77 @@ subroutine splint_@type_name@(xa, ya, y2a, x, y, dy)
 
   !ddy = a * y2a(klo) + b * y2a(khi)
 
-end subroutine splint_@type_name@
+end subroutine splint_@decorator@
 
 !-----------------------------------------------------------------------
-! Given X1A, X2A, YA, M, N as described in splie2_@type_name@ and Y2A as produced
+! Given X1A, X2A, YA, M, N as described in splie2_@decorator@ and Y2A as produced
 ! by that routine; and given a desired interpolating point X1, X2;
 ! this routine returns an interpolated function value Y by bicubic
 ! spline interpolation
 !-----------------------------------------------------------------------
-subroutine splin2_@type_name@(x1a, x2a, ya, y2a, x1, x2, y, dy)
+subroutine splin2_@decorator@(x1a, x2a, ya, y2a, x1, x2, y, dy)
   implicit none
 
-  real(@c_type_coord@), intent(in) :: x1, x2
-  real(@c_type_coord@), intent(in), dimension(:) :: x1a, x2a
-  real(@c_type_var@), intent(in), dimension(:,:) :: ya, y2a
-  real(@c_type_var@), intent(out) :: y, dy
+  @iso_c_type_coord@, intent(in) :: x1, x2
+  @iso_c_type_coord@, intent(in), dimension(:) :: x1a, x2a
+  @iso_c_type_var@, intent(in), dimension(:,:) :: ya, y2a
+  @iso_c_type_var@, intent(out) :: y, dy
 
-  real(@c_type_var@), dimension(size(ya,2)) :: ytmp, y2tmp
-  real(@c_type_var@), dimension(size(ya,1)) :: yytmp, yy2tmp
+  @iso_c_type_var@, dimension(size(ya,2)) :: ytmp, y2tmp
+  @iso_c_type_var@, dimension(size(ya,1)) :: yytmp, yy2tmp
 
-  real(@c_type_var@) :: y1
+  @iso_c_type_var@ :: y1
   integer :: m, j
 
-  real(@c_type_var@), parameter :: ypval = 1.e30
+  @iso_c_type_var@, parameter :: ypval = 1.e30
 
   m = size(ya, 1)
 
   do j = 1,m
     ytmp(:) = ya(j,:)
     y2tmp(:) = y2a(j,:)
-    call splint_@type_name@(x2a, ytmp, y2tmp, x2, yytmp(j), y1)
+    call splint_@decorator@(x2a, ytmp, y2tmp, x2, yytmp(j), y1)
   end do
 
-  call spline_@type_name@(x1a, yytmp, ypval, ypval, yy2tmp)
-  call splint_@type_name@(x1a, yytmp, yy2tmp, x1, y, dy)
+  call spline_@decorator@(x1a, yytmp, ypval, ypval, yy2tmp)
+  call splint_@decorator@(x1a, yytmp, yy2tmp, x1, y, dy)
 
-end subroutine splin2_@type_name@
+end subroutine splin2_@decorator@
 
 !-----------------------------------------------------------------------
-! Given X1A, X2A, YA, M, N as described in splie2_@type_name@ and Y2A as produced
+! Given X1A, X2A, YA, M, N as described in splie2_@decorator@ and Y2A as produced
 ! by that routine; and given a desired interpolating point X1, X2;
 ! this routine returns an interpolated function value Y by bicubic
 ! spline interpolation
 !-----------------------------------------------------------------------
-subroutine splin3_@type_name@(x1a, x2a, ya, y2a, x1, x2, y, dy)
+subroutine splin3_@decorator@(x1a, x2a, ya, y2a, x1, x2, y, dy)
   implicit none
 
-  real(@c_type_coord@), intent(in) :: x1, x2
-  real(@c_type_coord@), intent(in), dimension(:) :: x1a, x2a
-  real(@c_type_var@), intent(in), dimension(:,:) :: ya, y2a
-  real(@c_type_var@), intent(out) :: y, dy
+  @iso_c_type_coord@, intent(in) :: x1, x2
+  @iso_c_type_coord@, intent(in), dimension(:) :: x1a, x2a
+  @iso_c_type_var@, intent(in), dimension(:,:) :: ya, y2a
+  @iso_c_type_var@, intent(out) :: y, dy
 
-  real(@c_type_var@), dimension(size(ya,1)) :: ytmp, y2tmp
-  real(@c_type_var@), dimension(size(ya,2)) :: yytmp, yy2tmp
+  @iso_c_type_var@, dimension(size(ya,1)) :: ytmp, y2tmp
+  @iso_c_type_var@, dimension(size(ya,2)) :: yytmp, yy2tmp
 
-  real(@c_type_var@) :: y1
+  @iso_c_type_var@ :: y1
   integer :: n, k
 
-  real(@c_type_var@), parameter :: ypval = 1.e30
+  @iso_c_type_var@, parameter :: ypval = 1.e30
 
   n = size(ya, 2)
 
   do k = 1,n
     ytmp(:) =  ya(:,k)
     y2tmp(:) = y2a(:,k)
-    call splint_@type_name@(x1a, ytmp, y2tmp, x1, yytmp(k), y1)
+    call splint_@decorator@(x1a, ytmp, y2tmp, x1, yytmp(k), y1)
   end do
 
-  call spline_@type_name@(x2a, yytmp, ypval, ypval, yy2tmp)
-  call splint_@type_name@(x2a, yytmp, yy2tmp, x2, y, dy)
+  call spline_@decorator@(x2a, yytmp, ypval, ypval, yy2tmp)
+  call splint_@decorator@(x2a, yytmp, yy2tmp, x2, y, dy)
 
-end subroutine splin3_@type_name@
+end subroutine splin3_@decorator@
 
 !-----------------------------------------------------------------------
 ! Given a starting point P that is a vector of length N, Fletcher-Reeves
@@ -271,37 +271,37 @@ end subroutine splin3_@type_name@
 ! on the function value is input as FTOL. Returned quantities are P
 ! (the location of the minimum), ITER (the number of iterations
 ! that were performed), and FRET(the minimum value of the function).
-! The routine linmim_@type_name@ is called to perform line minimizations.
+! The routine linmim_@decorator@ is called to perform line minimizations.
 ! Maximum anticipated value of N; maximum allowed number of iterations;
 ! small number to rectify special case of converging to exactly zero
 ! function value
 !-----------------------------------------------------------------------
-subroutine frprm_@type_name@(&
+subroutine frprm_@decorator@(&
   x1a, x2a, ya, y2a, y3a, p, ftol, itmax, fret, ierror)
 
   implicit none
 
-  real(@c_type_var@), parameter :: eps = 1.0E-10
+  @iso_c_type_var@, parameter :: eps = 1.0E-10
 
-  real(@c_type_var@), intent(in) :: ftol
-  real(@c_type_coord@), intent(in), dimension(:) :: x1a, x2a
-  real(@c_type_var@), intent(in), dimension(:,:) :: ya, y2a, y3a
-  real(@c_type_coord@), intent(inout), dimension(2) :: p
-  real(@c_type_var@), intent(out) :: fret
+  @iso_c_type_var@, intent(in) :: ftol
+  @iso_c_type_coord@, intent(in), dimension(:) :: x1a, x2a
+  @iso_c_type_var@, intent(in), dimension(:,:) :: ya, y2a, y3a
+  @iso_c_type_coord@, intent(inout), dimension(2) :: p
+  @iso_c_type_var@, intent(out) :: fret
   integer, intent(in) :: itmax
   integer, intent(inout) :: ierror
 
-  real(@c_type_coord@), dimension(2) :: g, h, xi
+  @iso_c_type_coord@, dimension(2) :: g, h, xi
 
   integer :: its, ier
-  real(@c_type_var@) :: p1, px, py, fp
-  real(@c_type_coord@) :: pp1, pp2, s0, gg, dgg, gam
+  @iso_c_type_var@ :: p1, px, py, fp
+  @iso_c_type_coord@ :: pp1, pp2, s0, gg, dgg, gam
   character(len=256, kind=c_char) :: w_msg
 
   ierror = 1
 
-  call splin2_@type_name@(x1a, x2a, ya, y2a, p(1), p(2), p1, px)
-  call splin3_@type_name@(x1a, x2a, ya, y3a, p(1), p(2), p1, py)
+  call splin2_@decorator@(x1a, x2a, ya, y2a, p(1), p(2), p1, px)
+  call splin3_@decorator@(x1a, x2a, ya, y3a, p(1), p(2), p1, py)
 
   fp = p1
   xi(1) = px
@@ -317,7 +317,7 @@ subroutine frprm_@type_name@(&
     xi = xi / s0
 
     ier = 1
-    call linmim_@type_name@(p, xi, fret, x1a, x2a, ya, y2a, ier)
+    call linmim_@decorator@(p, xi, fret, x1a, x2a, ya, y2a, ier)
 
     if (ier == 1) then
       ierror = 1
@@ -342,8 +342,8 @@ subroutine frprm_@type_name@(&
     ! TODO -- can we implement early termination here
     ! based on storm radius ??
 
-    call splin2_@type_name@(x1a, x2a, ya, y2a, pp1, pp2, p1, px)
-    call splin3_@type_name@(x1a, x2a, ya, y3a, pp1, pp2, p1, py)
+    call splin2_@decorator@(x1a, x2a, ya, y2a, pp1, pp2, p1, px)
+    call splin3_@decorator@(x1a, x2a, ya, y3a, pp1, pp2, p1, py)
 
     xi(1) = px
     xi(2) = py
@@ -370,27 +370,27 @@ subroutine frprm_@type_name@(&
 
   ierror = 1
   write(w_msg, '(A,I0,A)') &
-    'frprm_@type_name@: maximum iterations exceeded. it=',itmax,c_null_char
+    'frprm_@decorator@: maximum iterations exceeded. it=',itmax,c_null_char
   call teca_tc_warning(w_msg)
 
-end subroutine frprm_@type_name@
+end subroutine frprm_@decorator@
 
 !-----------------------------------------------------------------------
-subroutine linmim_@type_name@(p, xi, fret, x1a, x2a, ya, y2a, ier)
+subroutine linmim_@decorator@(p, xi, fret, x1a, x2a, ya, y2a, ier)
   implicit none
 
-  real(@c_type_coord@), parameter :: tol = 1.0E-4
+  @iso_c_type_coord@, parameter :: tol = 1.0E-4
 
-  real(@c_type_coord@), intent(in), dimension(:) :: x1a, x2a
-  real(@c_type_var@), intent(in), dimension(:,:) :: ya, y2a
-  real(@c_type_coord@), intent(inout), dimension(2) :: p, xi
-  real(@c_type_var@), intent(out) :: fret
+  @iso_c_type_coord@, intent(in), dimension(:) :: x1a, x2a
+  @iso_c_type_var@, intent(in), dimension(:,:) :: ya, y2a
+  @iso_c_type_coord@, intent(inout), dimension(2) :: p, xi
+  @iso_c_type_var@, intent(out) :: fret
   integer, intent(out) :: ier
 
-  real(@c_type_var@) :: fa, fx, fb
-  real(@c_type_coord@) :: ax, xx, bx, xmin
-  real(@c_type_coord@), dimension(2) :: pcom
-  real(@c_type_coord@), dimension(2) :: xicom
+  @iso_c_type_var@ :: fa, fx, fb
+  @iso_c_type_coord@ :: ax, xx, bx, xmin
+  @iso_c_type_coord@, dimension(2) :: pcom
+  @iso_c_type_coord@, dimension(2) :: xicom
 
   pcom = p
   xicom = xi
@@ -398,12 +398,12 @@ subroutine linmim_@type_name@(p, xi, fret, x1a, x2a, ya, y2a, ier)
   ax = 0.0
   xx = 1.0
 
-  call mnbrak_@type_name@(ax, xx, bx, fa, fx, fb, &
+  call mnbrak_@decorator@(ax, xx, bx, fa, fx, fb, &
     x1a, x2a, ya, y2a, pcom, xicom)
 
   ier = 0
 
-  call brent_@type_name@(ax, xx, bx, tol, fret, xmin, &
+  call brent_@decorator@(ax, xx, bx, tol, fret, xmin, &
     x1a, x2a, ya, y2a, ier, pcom, xicom)
 
   if (xmin <= 1.E-5) xmin = 0.0
@@ -411,25 +411,25 @@ subroutine linmim_@type_name@(p, xi, fret, x1a, x2a, ya, y2a, ier)
   xi = xmin * xi
   p = p + xi
 
-end subroutine linmim_@type_name@
+end subroutine linmim_@decorator@
 
 !-----------------------------------------------------------------------
-subroutine linmin1_@type_name@(p, xi, fret, x1a, x2a, ya, y2a, ier, &
+subroutine linmin1_@decorator@(p, xi, fret, x1a, x2a, ya, y2a, ier, &
     max_dy, max_dr)
   implicit none
-  real(@c_type_var@), intent(in) :: max_dy, max_dr
-  real(@c_type_coord@), intent(in), dimension(:) :: x1a, x2a, xi
-  real(@c_type_var@), intent(in), dimension(:,:) :: ya, y2a
+  @iso_c_type_var@, intent(in) :: max_dy, max_dr
+  @iso_c_type_coord@, intent(in), dimension(:) :: x1a, x2a, xi
+  @iso_c_type_var@, intent(in), dimension(:,:) :: ya, y2a
 
-  real(@c_type_coord@), intent(inout), dimension(2) :: p
+  @iso_c_type_coord@, intent(inout), dimension(2) :: p
 
-  real(@c_type_var@), intent(out) :: fret
+  @iso_c_type_var@, intent(out) :: fret
   integer, intent(out) :: ier
 
-  real(@c_type_coord@), dimension(size(p)) :: xt
-  real(@c_type_coord@) :: x20, y20, x, d
-  real(@c_type_var@) :: y, py, y0, y1
-  real(@c_type_coord@), dimension(2) :: pcom, xicom
+  @iso_c_type_coord@, dimension(size(p)) :: xt
+  @iso_c_type_coord@ :: x20, y20, x, d
+  @iso_c_type_var@ :: y, py, y0, y1
+  @iso_c_type_coord@, dimension(2) :: pcom, xicom
 
   x20 = P(1)
   y20 = p(2)
@@ -441,7 +441,7 @@ subroutine linmin1_@type_name@(p, xi, fret, x1a, x2a, ya, y2a, ier, &
   x = 1.0
   d = 0.0
 
-  call splin2_@type_name@(x1a, x2a, ya, y2a, p(1), p(2), y, py)
+  call splin2_@decorator@(x1a, x2a, ya, y2a, p(1), p(2), y, py)
 
   y0 = y
 
@@ -465,7 +465,7 @@ subroutine linmin1_@type_name@(p, xi, fret, x1a, x2a, ya, y2a, ier, &
       return
     endif
 
-    call splin2_@type_name@(x1a, x2a, ya, y2a, xt(1), xt(2), y1, py)
+    call splin2_@decorator@(x1a, x2a, ya, y2a, xt(1), xt(2), y1, py)
 
     ! change in y from initial value is too great
     if ((y0 - y1) >= max_dy) return
@@ -486,19 +486,19 @@ subroutine linmin1_@type_name@(p, xi, fret, x1a, x2a, ya, y2a, ier, &
 
   enddo
 
-end subroutine linmin1_@type_name@
+end subroutine linmin1_@decorator@
 
 !-----------------------------------------------------------------------
-subroutine f1d1m_@type_name@(y, x, x1a, x2a, ya, y2a, pcom, xicom)
+subroutine f1d1m_@decorator@(y, x, x1a, x2a, ya, y2a, pcom, xicom)
   implicit none
-  real(@c_type_coord@), intent(in) :: x
-  real(@c_type_coord@), intent(in), dimension(:) :: x1a, x2a
-  real(@c_type_var@), intent(in), dimension(:,:) :: ya, y2a
-  real(@c_type_coord@), intent(in), dimension(2) :: pcom, xicom
-  real(@c_type_var@), intent(out) :: y
+  @iso_c_type_coord@, intent(in) :: x
+  @iso_c_type_coord@, intent(in), dimension(:) :: x1a, x2a
+  @iso_c_type_var@, intent(in), dimension(:,:) :: ya, y2a
+  @iso_c_type_coord@, intent(in), dimension(2) :: pcom, xicom
+  @iso_c_type_var@, intent(out) :: y
 
-  real(@c_type_coord@), dimension(2) :: xt
-  real(@c_type_var@) :: py
+  @iso_c_type_coord@, dimension(2) :: xt
+  @iso_c_type_var@ :: py
 
   xt = pcom + x * xicom
 
@@ -511,32 +511,32 @@ subroutine f1d1m_@type_name@(y, x, x1a, x2a, ya, y2a, pcom, xicom)
     merge(-xt(2) + 180.0, xt(2), xt(2) >= 90.0), &
     xt(2) <= -90.0)
 
-  call splin2_@type_name@(x1a, x2a, ya, y2a, xt(1), xt(2), y, py)
+  call splin2_@decorator@(x1a, x2a, ya, y2a, xt(1), xt(2), y, py)
 
-end subroutine f1d1m_@type_name@
+end subroutine f1d1m_@decorator@
 
 
 !-----------------------------------------------------------------------
-subroutine mnbrak_@type_name@(&
+subroutine mnbrak_@decorator@(&
   ax, bx, cx, fa, fb, fc,  x1a, x2a, ya, y2a, pcom, xicom)
   implicit none
 
-  real(@c_type_coord@), parameter :: gold = 1.618034
-  real(@c_type_coord@), parameter :: glimit = 100.0
-  real(@c_type_coord@), parameter :: small_num = 1.0E-20
+  @iso_c_type_coord@, parameter :: gold = 1.618034
+  @iso_c_type_coord@, parameter :: glimit = 100.0
+  @iso_c_type_coord@, parameter :: small_num = 1.0E-20
 
-  real(@c_type_coord@), intent(inout) :: ax, bx, cx
-  real(@c_type_var@), intent(out) :: fa, fb, fc
-  real(@c_type_coord@), intent(in), dimension(:) :: x1a, x2a
-  real(@c_type_var@), intent(in), dimension(:,:) :: ya, y2a
-  real(@c_type_coord@), intent(in), dimension(2) :: pcom, xicom
+  @iso_c_type_coord@, intent(inout) :: ax, bx, cx
+  @iso_c_type_var@, intent(out) :: fa, fb, fc
+  @iso_c_type_coord@, intent(in), dimension(:) :: x1a, x2a
+  @iso_c_type_var@, intent(in), dimension(:,:) :: ya, y2a
+  @iso_c_type_coord@, intent(in), dimension(2) :: pcom, xicom
 
-  real(@c_type_var@) :: fu, v_dum
-  real(@c_type_coord@) :: q, r, u, ulim, c_dum
-  real(@c_type_coord@) :: uxt, uxb
+  @iso_c_type_var@ :: fu, v_dum
+  @iso_c_type_coord@ :: q, r, u, ulim, c_dum
+  @iso_c_type_coord@ :: uxt, uxb
 
-  call f1d1m_@type_name@(fa, ax, x1a, x2a, ya, y2a, pcom, xicom)
-  call f1d1m_@type_name@(fb, bx, x1a, x2a, ya, y2a, pcom, xicom)
+  call f1d1m_@decorator@(fa, ax, x1a, x2a, ya, y2a, pcom, xicom)
+  call f1d1m_@decorator@(fb, bx, x1a, x2a, ya, y2a, pcom, xicom)
 
   if (fb > fa) then
     c_dum = ax
@@ -549,7 +549,7 @@ subroutine mnbrak_@type_name@(&
   endif
 
   cx = bx + gold * (bx - ax)
-  call f1d1m_@type_name@(fc, cx, x1a, x2a, ya, y2a, pcom, xicom)
+  call f1d1m_@decorator@(fc, cx, x1a, x2a, ya, y2a, pcom, xicom)
 
   do while(fb >= fc)
     r = (bx - ax) * (fb - fc)
@@ -565,7 +565,7 @@ subroutine mnbrak_@type_name@(&
     ulim = bx + glimit * (cx - bx)
 
     if (((bx - u) * (u - cx)) > 0.0) then
-       call f1d1m_@type_name@(fu, u, x1a, x2a, ya, y2a, pcom, xicom)
+       call f1d1m_@decorator@(fu, u, x1a, x2a, ya, y2a, pcom, xicom)
       if (fu < fc) then
         ax = bx
         fa = fb
@@ -578,23 +578,23 @@ subroutine mnbrak_@type_name@(&
         return
       endif
       u = cx + gold * (cx - bx)
-      call f1d1m_@type_name@(fu, u, x1a, x2a, ya, y2a , pcom, xicom)
+      call f1d1m_@decorator@(fu, u, x1a, x2a, ya, y2a , pcom, xicom)
     else if (((cx - u) * (u - ulim)) > 0.0) then
-      call f1d1m_@type_name@(fu, u, x1a, x2a, ya, y2a, pcom, xicom)
+      call f1d1m_@decorator@(fu, u, x1a, x2a, ya, y2a, pcom, xicom)
       if (fu < fc) then
         bx = cx
         cx = u
         u  = cx + gold * (cx - bx)
         fb = fc
         fc = fu
-        call f1d1m_@type_name@(fu, u, x1a, x2a, ya, y2a, pcom, xicom)
+        call f1d1m_@decorator@(fu, u, x1a, x2a, ya, y2a, pcom, xicom)
       endif
     else if (((u - ulim) * (ulim - cx)) >= 0.0) then
       u = ulim
-      call f1d1m_@type_name@(fu, u, x1a, x2a, ya, y2a, pcom, xicom)
+      call f1d1m_@decorator@(fu, u, x1a, x2a, ya, y2a, pcom, xicom)
     else
       u = cx + gold * (cx - bx)
-      call f1d1m_@type_name@(fu, u, x1a, x2a, ya, y2a, pcom, xicom)
+      call f1d1m_@decorator@(fu, u, x1a, x2a, ya, y2a, pcom, xicom)
     endif
 
     ax = bx
@@ -605,31 +605,31 @@ subroutine mnbrak_@type_name@(&
     fc = fu
   enddo
 
-end subroutine mnbrak_@type_name@
+end subroutine mnbrak_@decorator@
 
 
 !-----------------------------------------------------------------------
-subroutine brent_@type_name@(&
+subroutine brent_@decorator@(&
   ax, bx, cx, tol, fret, xmin, x1a, x2a, ya, y2a, ier, pcom, xicom)
 
   implicit none
 
-  real(@c_type_coord@), parameter :: cgold = 0.3819660
-  real(@c_type_coord@), parameter :: zeps  = 1.0E-10
+  @iso_c_type_coord@, parameter :: cgold = 0.3819660
+  @iso_c_type_coord@, parameter :: zeps  = 1.0E-10
   integer, parameter :: itmax = 100
 
-  real(@c_type_coord@), intent(in) :: ax, bx, cx, tol
-  real(@c_type_coord@), intent(in), dimension(:) :: x1a, x2a
-  real(@c_type_var@), intent(in), dimension(:,:) :: ya, y2a
+  @iso_c_type_coord@, intent(in) :: ax, bx, cx, tol
+  @iso_c_type_coord@, intent(in), dimension(:) :: x1a, x2a
+  @iso_c_type_var@, intent(in), dimension(:,:) :: ya, y2a
   integer, intent(inout) :: ier
-  real(@c_type_var@), intent(out) :: fret
-  real(@c_type_coord@), intent(out) :: xmin
-  real(@c_type_coord@), intent(in), dimension(2) :: pcom, xicom
+  @iso_c_type_var@, intent(out) :: fret
+  @iso_c_type_coord@, intent(out) :: xmin
+  @iso_c_type_coord@, intent(in), dimension(2) :: pcom, xicom
 
   integer :: iter
-  real(@c_type_coord@) :: v, w, e, d, u, a, b, tol1, tol2, x, xm
-  real(@c_type_var@) :: fx, fv, fw, fu
-  real(@c_type_var@) :: r, q, p, etemp
+  @iso_c_type_coord@ :: v, w, e, d, u, a, b, tol1, tol2, x, xm
+  @iso_c_type_var@ :: fx, fv, fw, fu
+  @iso_c_type_var@ :: r, q, p, etemp
   character(len=256, kind=c_char) :: w_msg
 
   a = min(ax, cx)
@@ -639,7 +639,7 @@ subroutine brent_@type_name@(&
   x = v
   d = 0.
   e = 0.
-  call f1d1m_@type_name@(fx, x, x1a, x2a, ya, y2a, pcom, xicom)
+  call f1d1m_@decorator@(fx, x, x1a, x2a, ya, y2a, pcom, xicom)
   fv = fx
   fw = fx
 
@@ -692,7 +692,7 @@ subroutine brent_@type_name@(&
       u = x + sign(tol1, d)
     endif
 
-    call f1d1m_@type_name@(fu, u, x1a, x2a, ya, y2a, pcom, xicom)
+    call f1d1m_@decorator@(fu, u, x1a, x2a, ya, y2a, pcom, xicom)
 
     if (fu <= fx) then
       if (u >= x) then
@@ -727,14 +727,14 @@ subroutine brent_@type_name@(&
 
   ier = 1
   write(w_msg, '(A,I0,A)') &
-    'brent_@type_name@ exceed maximum iterations. it=', itmax,c_null_char
+    'brent_@decorator@ exceed maximum iterations. it=', itmax,c_null_char
   call teca_tc_warning(w_msg)
 
 3 continue
   xmin = x
   fret = fx
 
-end subroutine brent_@type_name@
+end subroutine brent_@decorator@
 
 !-----------------------------------------------------------------------
 ! Given a starting point P that is a vector of length N, Fletcher-Reeves
@@ -743,30 +743,30 @@ end subroutine brent_@type_name@
 ! on the function value is input as FTOL. Returned quantities are P
 ! (the location of the minimum), ITER (the number of iterations
 ! that were performed), and FRET(the minimum value of the function).
-! The routine linmin1_@type_name@ is called to perform line minimizations.
+! The routine linmin1_@decorator@ is called to perform line minimizations.
 ! Maximum anticipated value of N; maximum allowed number of iterations;
 ! small number to rectify special case of converging to exactly zero
 ! function value.
 !-----------------------------------------------------------------------
-subroutine shape_@type_name@(x1a, x2a, &
+subroutine shape_@decorator@(x1a, x2a, &
   ya, y2a, y3a, p, ierror2, max_dy, max_dr)
 
   implicit none
 
-  real(@c_type_coord@), intent(in), dimension(:) :: x1a, x2a, p
-  real(@c_type_var@), intent(in), dimension(:,:) :: ya, y2a, y3a
-  real(@c_type_var@), intent(in) :: max_dy, max_dr
+  @iso_c_type_coord@, intent(in), dimension(:) :: x1a, x2a, p
+  @iso_c_type_var@, intent(in), dimension(:,:) :: ya, y2a, y3a
+  @iso_c_type_var@, intent(in) :: max_dy, max_dr
   integer, intent(inout) :: ierror2
 
-  real(@c_type_coord@), dimension(size(p)) :: q, xi
-  real(@c_type_var@), dimension(size(ya,1),size(ya,2)) :: ta, t2a, t3a
+  @iso_c_type_coord@, dimension(size(p)) :: q, xi
+  @iso_c_type_var@, dimension(size(ya,1),size(ya,2)) :: ta, t2a, t3a
 
   integer :: i, ier
-  real(@c_type_coord@) :: dr
-  real(@c_type_var@) :: fret1
+  @iso_c_type_coord@ :: dr
+  @iso_c_type_var@ :: fret1
 
-  real(@c_type_coord@), dimension(8) :: xi1 = (/ 0., 0., 1., -1., 1., 1., -1., -1. /)
-  real(@c_type_coord@), dimension(8) :: xi2 = (/ 1., -1., 0., 0., -1., 1., 1., -1. /)
+  @iso_c_type_coord@, dimension(8) :: xi1 = (/ 0., 0., 1., -1., 1., 1., -1., -1. /)
+  @iso_c_type_coord@, dimension(8) :: xi2 = (/ 1., -1., 0., 0., -1., 1., 1., -1. /)
 
   ta(:,:) = -ya(:,:)
   t2a(:,:) = -y2a(:,:)
@@ -783,7 +783,7 @@ subroutine shape_@type_name@(x1a, x2a, &
 
     ier = 1
 
-    call linmin1_@type_name@(q, xi, fret1, &
+    call linmin1_@decorator@(q, xi, fret1, &
         x1a, x2a, ta, t2a, ier, max_dy, max_dr)
 
     if (ier == 1) return
@@ -797,6 +797,6 @@ subroutine shape_@type_name@(x1a, x2a, &
   ierror2 = 0
   return
 
-end subroutine shape_@type_name@
+end subroutine shape_@decorator@
 
-end module spline_@type_name@_module
+end module spline_@decorator@_module
