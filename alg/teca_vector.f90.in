@@ -1,4 +1,4 @@
-module teca_vector_@type_name@_mod
+module teca_vector_@c_type@_mod
 use iso_c_binding
 use iso_fortran_env, ONLY : error_unit
 implicit none
@@ -6,20 +6,20 @@ implicit none
 ! a dynamically managed data structure with a contiguous
 ! memory layout. constant time random read/write access
 ! with worst case linear time resize.
-type teca_vector_@type_name@
-  @c_type@, pointer, dimension(:) :: m_data
+type teca_vector_@c_type@
+  @iso_c_type@, pointer, dimension(:) :: m_data
   integer(c_long) :: m_size
   integer(c_long) :: m_at
 end type
 
 contains
 !-----------------------------------------------------------------------------
-subroutine teca_vector_@type_name@_init(this, base_size)
+subroutine teca_vector_@c_type@_init(this, base_size)
   use iso_c_binding
   implicit none
-  type(teca_vector_@type_name@), intent(inout) :: this
+  type(teca_vector_@c_type@), intent(inout) :: this
   integer(c_long), intent(in) :: base_size
-  @c_type@, pointer, dimension(:) :: tmp
+  @iso_c_type@, pointer, dimension(:) :: tmp
   integer(c_long) :: i
   allocate(tmp(base_size))
   this%m_data => tmp
@@ -31,10 +31,10 @@ subroutine teca_vector_@type_name@_init(this, base_size)
 end subroutine
 
 !-----------------------------------------------------------------------------
-subroutine teca_vector_@type_name@_clear(this)
+subroutine teca_vector_@c_type@_clear(this)
   use iso_c_binding
   implicit none
-  type(teca_vector_@type_name@), intent(inout) :: this
+  type(teca_vector_@c_type@), intent(inout) :: this
   if (this%m_size .eq. 0) return
   deallocate(this%m_data)
   nullify(this%m_data)
@@ -43,16 +43,16 @@ subroutine teca_vector_@type_name@_clear(this)
 end subroutine
 
 !-----------------------------------------------------------------------------
-subroutine teca_vector_@type_name@_resize(this, new_size)
+subroutine teca_vector_@c_type@_resize(this, new_size)
   use iso_c_binding
   implicit none
-  type(teca_vector_@type_name@), intent(inout) :: this
+  type(teca_vector_@c_type@), intent(inout) :: this
   integer(c_long), intent(in) :: new_size
-  @c_type@, pointer, dimension(:) :: tmp
+  @iso_c_type@, pointer, dimension(:) :: tmp
   integer(c_long) :: i
   if (new_size .lt. 1) then
     ! for resize to 0 deallocate
-    call teca_vector_@type_name@_clear(this)
+    call teca_vector_@c_type@_clear(this)
     return
   else if (new_size .le. this%m_size) then
     ! do nothing if the new size is smaller than the current
@@ -70,52 +70,52 @@ subroutine teca_vector_@type_name@_resize(this, new_size)
 end subroutine
 
 !-----------------------------------------------------------------------------
-subroutine teca_vector_@type_name@_push_back(this, val)
+subroutine teca_vector_@c_type@_push_back(this, val)
   use iso_c_binding
   implicit none
-  type(teca_vector_@type_name@), intent(inout) :: this
-  @c_type@, intent(in) :: val
+  type(teca_vector_@c_type@), intent(inout) :: this
+  @iso_c_type@, intent(in) :: val
   if (this%m_size .eq. 0) then
-    call teca_vector_@type_name@_init(this, 16_8)
+    call teca_vector_@c_type@_init(this, 16_8)
   else if (this%m_at .gt. this%m_size) then
-    call teca_vector_@type_name@_resize(this, 2*this%m_size)
+    call teca_vector_@c_type@_resize(this, 2*this%m_size)
   endif
   this%m_data(this%m_at) = val
   this%m_at = this%m_at + 1
 end subroutine
 
 !-----------------------------------------------------------------------------
-pure function teca_vector_@type_name@_back(this) result(back)
+pure function teca_vector_@c_type@_back(this) result(back)
   use iso_c_binding
   implicit none
-  type(teca_vector_@type_name@), intent(in) :: this
-  @c_type@ :: back
+  type(teca_vector_@c_type@), intent(in) :: this
+  @iso_c_type@ :: back
   back = this%m_data(this%m_at-1)
 end function
 
 !-----------------------------------------------------------------------------
-subroutine teca_vector_@type_name@_pop_back(this)
+subroutine teca_vector_@c_type@_pop_back(this)
   use iso_c_binding
   implicit none
-  type(teca_vector_@type_name@), intent(inout) :: this
+  type(teca_vector_@c_type@), intent(inout) :: this
   if (this%m_at .gt. 1) &
     this%m_at = this%m_at - 1
 end subroutine
 
 !-----------------------------------------------------------------------------
-pure function teca_vector_@type_name@_size(this) result(n_used)
+pure function teca_vector_@c_type@_size(this) result(n_used)
   use iso_c_binding
   implicit none
-  type(teca_vector_@type_name@), intent(in) :: this
+  type(teca_vector_@c_type@), intent(in) :: this
   integer(c_long) :: n_used
   n_used = this%m_at-1
 end function
 
 !-----------------------------------------------------------------------------
-subroutine teca_vector_@type_name@_write(this, id, uni)
+subroutine teca_vector_@c_type@_write(this, id, uni)
   use iso_c_binding
   implicit none
-  type(teca_vector_@type_name@), intent(in) :: this
+  type(teca_vector_@c_type@), intent(in) :: this
   character(*), intent(in) :: id
   integer, intent(in) :: uni
   integer(c_long) :: i, n

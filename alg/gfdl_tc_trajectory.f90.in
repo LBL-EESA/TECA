@@ -1,19 +1,20 @@
-module gfdl_tc_trajectory_@type_name@_mod
+module gfdl_tc_trajectory_@decorator@_mod
 use iso_c_binding
 use iso_fortran_env, ONLY : error_unit
 use teca_tc_trajectory_util_mod
 use teca_vector_long_mod
+use teca_distance_func_@c_type_coord@_mod
 implicit none
 
 private
-public :: gfdl_tc_trajectory_@type_name@
+public :: gfdl_tc_trajectory_@decorator@
 
-real(@c_type_coord@), parameter :: &
+@iso_c_type_coord@, parameter :: &
   EARTH_RADIUS = 6371.0, DEG_TO_RAD = 3.14159265358979/180.0
 
 interface
 !-----------------------------------------------------------------------------
-subroutine teca_append_tc_track_@type_name@(table, track_id, storm_id, &
+subroutine teca_append_tc_track_@decorator@(table, track_id, storm_id, &
   step, time, lon, lat, psl, wind, vort, have_twc, have_thick, twc, thick) &
   bind(C)
   use iso_c_binding
@@ -21,42 +22,14 @@ subroutine teca_append_tc_track_@type_name@(table, track_id, storm_id, &
   type(c_ptr), intent(in) :: table
   integer(c_long), intent(in) :: step
   real(c_double), intent(in) :: time
-  real(@c_type_coord@), intent(in) :: lon, lat
+  @iso_c_type_coord@, intent(in) :: lon, lat
   integer(c_int), intent(in) :: track_id, storm_id, have_twc, have_thick
-  real(@c_type_var@), intent(in) :: psl, wind, vort, twc, thick
+  @iso_c_type_var@, intent(in) :: psl, wind, vort, twc, thick
 end subroutine
 end interface
 
 
 contains
-
-
-!-----------------------------------------------------------------------------
-pure function distance_@type_name@( &
-  r_lon_0, r_lat_0, r_lon_i, r_lat_i) result(dr) bind(C)
-  implicit none
-  real(@c_type_coord@), intent(in) :: &
-    r_lon_0, r_lat_0, r_lon_i, r_lat_i
-  real(@c_type_coord@) :: dr, dx, dy
-
-  ! GFDL 2007
-  dx = (r_lon_i - r_lon_0)*cos(r_lat_0)
-  dy = (r_lat_i - r_lat_0)
-  dr = EARTH_RADIUS*sqrt(dx*dx + dy*dy)
-
-  ! GFDL 2015
-  !dr = EARTH_RADIUS*acos(sin(r_lat_0)*sin(r_lat_i) &
-  !  + cos(r_lat_0)*cos(r_lat_i)*cos(r_lon_i - r_lon_0))
-
-  ! haversine formula
-  !dx = r_lon_i - r_lon_0
-  !dy = r_lat_i - r_lat_0
-  !dr = EARTH_RADIUS*2.0*asin(min(1,sqrt(sin(dy/2.0)**2.0 &
-  !  + cos(r_lat_0)*cos(r_lat_i)*sin(dx/2.0)**2.0)))
-end function
-
-
-
 !-----------------------------------------------------------------------------
 ! defaults
 !  r_crit  = 900.0
@@ -69,7 +42,7 @@ end function
 !  do_filt = .true.
 !  nlat =  40. !miz
 !  slat = -40. !miz
-integer(c_int) function gfdl_tc_trajectory_@type_name@( &
+integer(c_int) function gfdl_tc_trajectory_@decorator@( &
   r_crit, wind_crit, n_wind_crit, time_step, time, storm_uid, &
   d_lon, d_lat, wind_max, vort_max, psl, have_twc, &
   have_thick, twc_max, thick_max, n_rows, track_table) &
@@ -77,64 +50,37 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
   use iso_c_binding
   use iso_fortran_env, only : error_unit
   implicit none
-
   type(c_ptr), intent(in) :: track_table
-  real(@c_type_coord@), intent(in) :: r_crit
-
-  real(@c_type_var@), intent(in) :: wind_crit, n_wind_crit
-
+  @iso_c_type_coord@, intent(in) :: r_crit
+  @iso_c_type_var@, intent(in) :: wind_crit, n_wind_crit
   integer(c_long), intent(in) :: n_rows
-
-  real(@c_type_coord@), intent(in), dimension(n_rows) :: &
+  @iso_c_type_coord@, intent(in), dimension(n_rows) :: &
     d_lon, d_lat
-
   real(c_double), intent(in), dimension(n_rows) :: time
   integer(c_long), intent(in), dimension(n_rows) :: time_step
-
-  real(@c_type_var@), intent(in), dimension(n_rows) :: &
+  @iso_c_type_var@, intent(in), dimension(n_rows) :: &
     wind_max, vort_max, psl, twc_max, thick_max
-
   integer(c_int), intent(in), dimension(n_rows) :: &
     storm_uid, have_twc, have_thick
 
-  real(@c_type_coord@) :: r_lon_0, r_lat_0, r_lon_i, r_lat_i
-  real(c_double) :: dt, drdt, t_0, t_i
-
-  logical :: cross_equator
-
-  integer(c_long) :: step, storm, n_steps, n_steps_m1, &
-    next_step, next_storm, track_len, curr_step, curr_storm, &
-    n_cand, n_bon, n_wind, q, idx_0, idx_i, n_thick, n_twc
-
+  real(c_double) :: dt, t_0, t_i
+  integer(c_long) :: n_steps, track_len
   integer(c_int) :: track_id
-
-  integer(c_long), dimension(1) :: imin
-
-  integer(c_long),dimension(n_rows) :: step_offsets, &
-    step_counts
-
-  integer(c_long), dimension(n_rows) :: &
-    track_step, track_storm, cand_step, cand_storm, &
-    bon_step, bon_storm
-
-  real(@c_type_coord@), dimension(n_rows) :: rtot, r_lon, r_lat
-
-  logical, dimension(n_rows) :: available, exist_wind, exist_twc, exist_thick
-
+  integer(c_long), dimension(n_rows) :: step_offsets, step_counts
+  @iso_c_type_coord@, dimension(n_rows) :: r_lon, r_lat
+  logical, dimension(n_rows) :: available
   type(teca_vector_long) :: track_starts, new_track
   integer(c_long) :: track_start, track_tip, closest_storm_id, &
     active_step, i, j, n_storms, storm_id, max_track_len
   logical :: success
-  real(@c_type_coord@) :: lon_0, lat_0, lon_i, lat_i, storm_dist, closest_storm_dist
+  @iso_c_type_coord@ :: lon_0, lat_0, lon_i, lat_i, storm_dist, &
+    closest_storm_dist
+  real(c_double) :: duration, wind_duration
 
   ret_val = -1
-
   track_id = 0
 
   ! Generate masks from critical values
-  exist_wind(:) = (wind_max(:) .ge. wind_crit)
-  exist_twc(:) = (have_twc(:) .ne. 0)
-  exist_thick(:) = (have_thick(:) .ne. 0)
   r_lon(:) = DEG_TO_RAD*d_lon(:)
   r_lat(:) = DEG_TO_RAD*d_lat(:)
   available(:) = .true.
@@ -166,6 +112,9 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
       call teca_vector_long_init(new_track, max_track_len)
       call teca_vector_long_push_back(new_track, track_start)
 
+      duration = 0.0
+      wind_duration = 0.0
+
       ! now walk forward in time examining each storm in the
       ! next time step.active step is next one forward in time
       active_step = time_step(track_start) + 2
@@ -177,9 +126,22 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
         lon_0 = r_lon(track_tip)
         lat_0 = r_lat(track_tip)
 
+        t_0 = time(track_tip)
+        t_i = time(step_offsets(j))
+        dt = t_i - t_0
+
+        ! record duration.
+        duration = duration + dt
+
+        ! apply storm criteria
+        if ((wind_max(track_tip) .ge. wind_crit) &
+          .and. (have_twc(track_tip) .ne. 0) .and. (have_thick(track_tip) .ne. 0)) &
+          wind_duration = wind_duration + dt
+
         ! find the closest storm
+        ! note that r_crit is specified in km per day
         closest_storm_id = 0
-        closest_storm_dist = r_crit
+        closest_storm_dist = r_crit*dt
         success = .false.
 
         n_storms = step_counts(j) - 1
@@ -196,7 +158,7 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
           lat_i = r_lat(storm_id)
 
           ! compute the distance to the track tip
-          storm_dist = distance_@type_name@(lon_0, lat_0, lon_i, lat_i)
+          storm_dist = distance_@c_type_coord@(lon_0, lat_0, lon_i, lat_i)
 
           if (storm_dist .le. closest_storm_dist) then
             ! found one that's at least as close as
@@ -218,7 +180,7 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
 
       ! one track has been completed
       track_len = teca_vector_long_size(new_track)
-      if (track_len .gt. 1) then
+      if ((track_len .gt. 1) .and. (wind_duration .gt. n_wind_crit)) then
         ! output trajectory info
         call teca_vector_long_write(new_track, 'track', error_unit)
 
@@ -226,7 +188,7 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
           ! output trajectory info
           storm_id = new_track%m_data(i)
 
-          call teca_append_tc_track_@type_name@( &
+          call teca_append_tc_track_@decorator@( &
             track_table, track_id, storm_uid(storm_id), time_step(storm_id), &
             time(storm_id), d_lon(storm_id), d_lat(storm_id), psl(storm_id), &
             wind_max(storm_id), vort_max(storm_id), have_twc(storm_id), &
@@ -248,9 +210,6 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@( &
   return
 end function
 
-
-
-
 !-----------------------------------------------------------------------------
 ! defaults
 !  r_crit  = 900.0
@@ -263,7 +222,7 @@ end function
 !  do_filt = .true.
 !  nlat =  40. !miz
 !  slat = -40. !miz
-integer(c_int) function gfdl_tc_trajectory_@type_name@_1( &
+integer(c_int) function gfdl_tc_trajectory_@decorator@_1( &
   r_crit, wind_crit, n_wind_crit, time_step, time, storm_id, &
   d_lon, d_lat, wind_max, vort_max, psl, have_twc, &
   have_thick, twc_max, thick_max, n_rows, track_table) &
@@ -273,25 +232,25 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@_1( &
   implicit none
 
   type(c_ptr), intent(in) :: track_table
-  real(@c_type_coord@), intent(in) :: r_crit
+  @iso_c_type_coord@, intent(in) :: r_crit
 
-  real(@c_type_var@), intent(in) :: wind_crit, n_wind_crit
+  @iso_c_type_var@, intent(in) :: wind_crit, n_wind_crit
 
   integer(c_long), intent(in) :: n_rows
 
-  real(@c_type_coord@), intent(in), dimension(n_rows) :: &
+  @iso_c_type_coord@, intent(in), dimension(n_rows) :: &
     d_lon, d_lat
 
   real(c_double), intent(in), dimension(n_rows) :: time
   integer(c_long), intent(in), dimension(n_rows) :: time_step
 
-  real(@c_type_var@), intent(in), dimension(n_rows) :: &
+  @iso_c_type_var@, intent(in), dimension(n_rows) :: &
     wind_max, vort_max, psl, twc_max, thick_max
 
   integer(c_int), intent(in), dimension(n_rows) :: &
     storm_id, have_twc, have_thick
 
-  real(@c_type_coord@) :: r_lon_0, r_lat_0, r_lon_i, r_lat_i
+  @iso_c_type_coord@ :: r_lon_0, r_lat_0, r_lon_i, r_lat_i
   real(c_double) :: dt, drdt, t_0, t_i
 
   logical :: cross_equator
@@ -311,12 +270,13 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@_1( &
     track_step, track_storm, cand_step, cand_storm, &
     bon_step, bon_storm
 
-  real(@c_type_coord@), dimension(n_rows) :: rtot, r_lon, r_lat
+  @iso_c_type_coord@, dimension(n_rows) :: rtot, r_lon, r_lat
 
   logical, dimension(n_rows) :: available, exist_wind, exist_twc, exist_thick
 
-
   ret_val = -1
+  ! TODO -- there are some indexing bugs in this function
+  ! relating to c-to-fortran indexing
 
   ! --- STEP 1: Generate masks from critical values
   exist_wind(:) = (wind_max(:) .ge. wind_crit)
@@ -328,7 +288,7 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@_1( &
 
   ! --- STEP 2: EVALUATION OF TRAJECTORIES
   call get_step_offsets(time_step, n_rows, &
-    n_steps, step_offsets, step_counts)
+    n_steps, step_counts, step_offsets)
 
   n_steps_m1 = n_steps - 1
   do step = 1,n_steps_m1
@@ -378,7 +338,7 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@_1( &
               r_lon_i = r_lon(idx_i)
               r_lat_i = r_lat(idx_i)
 
-              drdt = distance_@type_name@( &
+              drdt = distance_@c_type_coord@( &
                 r_lon_0, r_lat_0, r_lon_i, r_lat_i)/dt
 
               cross_equator = (r_lat_i*r_lat_0 .le. 0.0)
@@ -420,7 +380,7 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@_1( &
               idx_0 = step_offsets(track_step(q)) + track_storm(q)
 
               ! output trajectory info
-              call teca_append_tc_track_@type_name@( &
+              call teca_append_tc_track_@decorator@( &
                 track_table, track_id, storm_id(idx_0), time_step(idx_0), &
                 time(idx_0), d_lon(idx_0), d_lat(idx_0), psl(idx_0), &
                 wind_max(idx_0), vort_max(idx_0), have_twc(idx_0), &
@@ -502,7 +462,7 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@_1( &
               r_lon_i = r_lon(idx_i)
               r_lat_i = r_lat(idx_i)
 
-              rtot(q) = distance_@type_name@( &
+              rtot(q) = distance_@c_type_coord@( &
                 r_lon_0, r_lat_0, r_lon_i, r_lat_i)
             end do
             imin = minloc(rtot(1:n_bon))
@@ -532,7 +492,7 @@ integer(c_int) function gfdl_tc_trajectory_@type_name@_1( &
               r_lon_i = r_lon(idx_i)
               r_lat_i = r_lat(idx_i)
 
-              rtot(q) = distance_@type_name@( &
+              rtot(q) = distance_@c_type_coord@( &
                 r_lon_0, r_lat_0, r_lon_i, r_lat_i)
             end do
             imin = minloc(rtot(1:n_cand))
