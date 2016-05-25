@@ -25,6 +25,7 @@ set(teca_alg_cxx_srcs
     teca_table_sort.cxx
     teca_table_to_stream.cxx
     teca_tc_candidates.cxx
+    teca_tc_trajectory.cxx
     teca_temporal_average.cxx
     teca_vorticity.cxx
     teca_dataset_diff.cxx
@@ -33,19 +34,22 @@ set(teca_alg_cxx_srcs
 set(teca_alg_f90_srcs)
 
 set(teca_alg_f90_generics
-    gfdl_tc_candidates
     gfdl_spline
+    gfdl_tc_candidates
     )
 
-set(iso_c_types c_float c_double)
+set(f_type real)
+set(c_types float double)
 foreach(generic_src ${teca_alg_f90_generics})
-    foreach(c_type_var ${iso_c_types})
-        string(SUBSTRING ${c_type_var} 2 1 var_name)
-        foreach(c_type_coord ${iso_c_types})
-            string(SUBSTRING ${c_type_coord} 2 1 coord_name)
-            set(type_name "c${coord_name}_v${var_name}")
-            configure_file(${generic_src}.f90.in ${generic_src}_${type_name}.f90 @ONLY)
-            list(APPEND teca_alg_f90_srcs ${generic_src}_${type_name}.f90)
+    foreach(c_type_var ${c_types})
+        set(iso_c_type_var "${f_type}(c_${c_type_var})")
+        string(SUBSTRING ${c_type_var} 0 1 var_name)
+        foreach(c_type_coord ${c_types})
+            string(SUBSTRING ${c_type_coord} 0 1 coord_name)
+            set(decorator "c${coord_name}_v${var_name}")
+            set(iso_c_type_coord "${f_type}(c_${c_type_coord})")
+            configure_file(${generic_src}.f90.in ${generic_src}_${decorator}.f90 @ONLY)
+            list(APPEND teca_alg_f90_srcs ${generic_src}_${decorator}.f90)
         endforeach()
     endforeach()
 endforeach()

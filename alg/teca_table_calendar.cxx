@@ -83,8 +83,7 @@ void teca_table_calendar::set_properties(
 
 // --------------------------------------------------------------------------
 const_p_teca_dataset teca_table_calendar::execute(
-    unsigned int port,
-    const std::vector<const_p_teca_dataset> &input_data,
+    unsigned int port, const std::vector<const_p_teca_dataset> &input_data,
     const teca_metadata &request)
 {
 #ifdef TECA_DEBUG
@@ -146,6 +145,8 @@ const_p_teca_dataset teca_table_calendar::execute(
 
     // allocate the output table, add the requested columns
     p_teca_table out_table = teca_table::New();
+    out_table->copy_metadata(in_table);
+
     unsigned long n_rows = time->size();
 
     p_teca_variant_array_impl<int> year;
