@@ -18,6 +18,7 @@
 #include "teca_test_util.h"
 #include "teca_time_step_executive.h"
 #include "teca_vtk_cartesian_mesh_writer.h"
+#include "teca_mpi_manager.h"
 
 #include <vector>
 #include <string>
@@ -26,25 +27,13 @@
 using namespace std;
 using namespace teca_derived_quantity_numerics;
 
-#if defined(TECA_HAS_MPI)
-#include <mpi.h>
-#endif
 
 // --------------------------------------------------------------------------
 int main(int argc, char **argv)
 {
-    int rank = 0;
-#if defined(TECA_HAS_MPI)
-    int mpi_thread_required = MPI_THREAD_SERIALIZED;
-    int mpi_thread_provided = 0;
-    MPI_Init_thread(&argc, &argv, mpi_thread_required, &mpi_thread_provided);
-    if (mpi_thread_provided < mpi_thread_required)
-    {
-        cerr << "ERROR: MPI does not support threads" << endl;
-        return -1;
-    }
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-#endif
+    teca_mpi_manager mpi_man(argc, argv);
+    int rank = mpi_man.get_comm_rank();
+
     // parse command line
     string regex;
     string baseline;
@@ -210,8 +199,5 @@ int main(int argc, char **argv)
         table_writer->update();
     }
 
-#if defined(TECA_HAS_MPI)
-    MPI_Finalize();
-#endif
     return 0;
 }

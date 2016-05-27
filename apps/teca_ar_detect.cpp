@@ -6,6 +6,7 @@
 #include "teca_table_reduce.h"
 #include "teca_table_writer.h"
 #include "teca_time_step_executive.h"
+#include "teca_mpi_manager.h"
 
 #include <vector>
 #include <string>
@@ -28,11 +29,8 @@ using boost::program_options::value;
 
 int main(int argc, char **argv)
 {
-    int rank = 0;
-#if defined(TECA_HAS_MPI)
-    MPI_Init(&argc, &argv);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-#endif
+    teca_mpi_manager mpi_man(argc, argv);
+    int rank = mpi_man.get_comm_rank();
 #if defined(TECA_TIME)
     double tstart = 0.0;
     if (rank == 0)
@@ -304,9 +302,6 @@ int main(int argc, char **argv)
         md.get("number_of_time_steps", n_time_steps);
         cerr << "teca_ar_detect " << n_time_steps << " " << tstart << " " << tend << " " << tend - tstart << endl;
     }
-#endif
-#if defined(TECA_HAS_MPI)
-    MPI_Finalize();
 #endif
     return 0;
 }

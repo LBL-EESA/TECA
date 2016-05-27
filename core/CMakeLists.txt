@@ -11,6 +11,7 @@ set(teca_core_srcs
     teca_binary_stream.cxx
     teca_calendar.cxx
     teca_metadata.cxx
+    teca_mpi_manager.cxx
     teca_parallel_id.cxx
     teca_temporal_reduction.cxx
     teca_threaded_algorithm.cxx
