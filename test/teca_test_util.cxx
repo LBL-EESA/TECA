@@ -53,6 +53,7 @@ const_p_teca_table create_test_table(long step, int tid)
 // **************************************************************************
 int bcast(std::string &str)
 {
+#if defined(TECA_HAS_MPI)
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     long str_size = str.size();
@@ -75,6 +76,9 @@ int bcast(std::string &str)
         str = buf;
         free(buf);
     }
+#else
+    (void)str;
+#endif
     return 0;
 }
 };

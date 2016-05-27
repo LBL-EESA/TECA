@@ -34,13 +34,20 @@ declare_mpi_tt(long, MPI_LONG)
 declare_mpi_tt(unsigned long, MPI_UNSIGNED_LONG)
 declare_mpi_tt(float, MPI_FLOAT)
 declare_mpi_tt(double, MPI_DOUBLE)
+#endif
 
 // **************************************************************************
 template <typename num_t>
 int bcast(num_t *buffer, size_t size)
 {
+#if defined(TECA_HAS_MPI)
     return MPI_Bcast(buffer, size, mpi_tt<num_t>::type_code(),
          0, MPI_COMM_WORLD);
+#else
+    (void)buffer;
+    (void)size;
+    return 0;
+#endif
 }
 
 // **************************************************************************
@@ -57,6 +64,7 @@ int bcast(std::string &str);
 template <typename vec_t>
 int bcast(std::vector<vec_t> &vec)
 {
+#if defined(TECA_HAS_MPI)
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     long vec_size = vec.size();
@@ -69,11 +77,11 @@ int bcast(std::vector<vec_t> &vec)
         if (teca_test_util::bcast(vec[i]))
             return -1;
     }
+#else
+    (void)vec;
+#endif
     return 0;
 }
 
-#endif
-
 }
-
 #endif
