@@ -36,7 +36,6 @@ int main(int, char **)
     p_teca_table_writer w = teca_table_writer::New();
     w->set_input_connection(s->get_output_port());
     w->set_file_name("table_reader_test.bin");
-    w->set_output_format(teca_table_writer::bin);
 
     w->update();
 

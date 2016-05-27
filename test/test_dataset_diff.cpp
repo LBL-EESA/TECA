@@ -48,7 +48,7 @@ struct execute_create_test_table
     }
 };
 
-void write_test_tables(const string& format, long num_tables)
+void write_test_tables(const string& file_name, long num_tables)
 {
     p_teca_programmable_algorithm s = teca_programmable_algorithm::New();
     s->set_number_of_input_connections(0);
@@ -59,8 +59,8 @@ void write_test_tables(const string& format, long num_tables)
     p_teca_table_writer w = teca_table_writer::New();
     w->set_input_connection(s->get_output_port());
     w->set_executive(teca_time_step_executive::New());
-    w->set_file_name(format);
-    w->set_output_format(teca_table_writer::bin);
+    w->set_file_name(file_name);
+    w->set_output_format_bin();
 
     w->update();
 }
