@@ -16,18 +16,25 @@ if (TECA_HAS_MPI)
     list(APPEND teca_app_link ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
 endif()
 
-if (TECA_HAS_BOOST)
+if (TECA_HAS_BOOST AND TECA_HAS_NETCDF)
     include_directories(SYSTEM ${Boost_INCLUDE_DIR})
     list(APPEND teca_app_link ${Boost_LIBRARIES})
-endif()
 
-if (TECA_HAS_NETCDF)
     add_executable(teca_ar_detect teca_ar_detect.cpp)
     target_link_libraries(teca_ar_detect
         teca_core teca_data teca_io teca_alg
         ${teca_app_link}
         )
     install(TARGETS teca_ar_detect
+        RUNTIME DESTINATION bin
+        )
+
+    add_executable(teca_tc_detect teca_tc_detect.cpp)
+    target_link_libraries(teca_tc_detect
+        teca_core teca_data teca_io teca_alg
+        ${teca_app_link}
+        )
+    install(TARGETS teca_tc_detect
         RUNTIME DESTINATION bin
         )
 endif()
