@@ -105,6 +105,11 @@ T &get_##NAME(size_t i)                     \
     return this->NAME##s[i];                \
 }                                           \
                                             \
+void get_##NAME##s(std::vector<T> &v) const \
+{                                           \
+    v = this->NAME##s;                      \
+}                                           \
+                                            \
 void clear_##NAME()                         \
 {                                           \
     this->NAME##s.clear();                  \
