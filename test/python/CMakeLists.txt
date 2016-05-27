@@ -50,14 +50,14 @@ teca_add_test(py_test_database
 teca_add_test(py_test_programmable_map_reduce_serial
     COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_programmable_map_reduce.py
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
-    py_test_programmable_map_reduce.bin 0 -1 1 TMQ T200 T500
+    "${TECA_DATA_ROOT}/py_test_programmable_map_reduce.bin" 0 -1 1 TMQ T200 T500
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_programmable_map_reduce_thread
     COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_programmable_map_reduce.py
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
-    py_test_programmable_map_reduce.bin 0 -1 4 TMQ T200 T500
+    "${TECA_DATA_ROOT}/py_test_programmable_map_reduce.bin" 0 -1 4 TMQ T200 T500
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
@@ -65,7 +65,7 @@ teca_add_test(py_test_programmable_map_reduce_mpi
     COMMAND mpiexec -np ${TECA_TEST_CORES} python
     ${CMAKE_CURRENT_SOURCE_DIR}/test_programmable_map_reduce.py
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
-    py_test_programmable_map_reduce.bin 0 -1 1 TMQ T200 T500
+    "${TECA_DATA_ROOT}/py_test_programmable_map_reduce.bin" 0 -1 1 TMQ T200 T500
     FEATURES (${TECA_HAS_NETCDF} AND ${TECA_HAS_MPI} AND ${MPI4PY_FOUND})
     REQ_TECA_DATA)
 
@@ -73,7 +73,8 @@ teca_add_test(py_test_programmable_map_reduce_mpi_thread
     COMMAND mpiexec -np ${HALF_CORES} python
     ${CMAKE_CURRENT_SOURCE_DIR}/test_programmable_map_reduce.py
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
-    py_test_programmable_map_reduce.bin 0 -1 ${HALF_CORES} TMQ T200 T500
+    "${TECA_DATA_ROOT}/py_test_programmable_map_reduce.bin" 0 -1 ${HALF_CORES}
+    TMQ T200 T500
     FEATURES (${TECA_HAS_NETCDF} AND ${TECA_HAS_MPI} AND ${MPI4PY_FOUND})
     REQ_TECA_DATA)
 
