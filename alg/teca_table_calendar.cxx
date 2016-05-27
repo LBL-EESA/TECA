@@ -46,19 +46,30 @@ teca_table_calendar::~teca_table_calendar()
 void teca_table_calendar::get_properties_description(
     const string &prefix, options_description &global_opts)
 {
-    options_description opts("Options for " + prefix + "(teca_table_calendar)");
+    options_description opts("Options for "
+        + (prefix.empty()?"teca_table_calendar":prefix));
 
     opts.add_options()
-        TECA_POPTS_GET(std::string, prefix, units, "CF-2 base date and units")
-        TECA_POPTS_GET(std::string, prefix, calendar, "CF-2 calendar")
-        TECA_POPTS_GET(std::string, prefix, time_column, "name of the column containing CF-2 time variable")
-        TECA_POPTS_GET(std::string, prefix, year_column, "name of the year column ")
-        TECA_POPTS_GET(std::string, prefix, month_column, "name of the month column ")
-        TECA_POPTS_GET(std::string, prefix, day_column, "name of the day column ")
-        TECA_POPTS_GET(std::string, prefix, hour_column, "name of the hours column ")
-        TECA_POPTS_GET(std::string, prefix, minute_column, "name of the minutes column ")
-        TECA_POPTS_GET(std::string, prefix, second_column, "name of the seconds column ")
-        TECA_POPTS_GET(std::string, prefix, output_column_prefix, "prepended to all output column names")
+        TECA_POPTS_GET(std::string, prefix, units,
+            "CF-2 base date and units. eg \"days since January 1 1971\"")
+        TECA_POPTS_GET(std::string, prefix, calendar,
+            "CF-2 calendar type. one of: Gregorian, Julian, no_leap, or 360_day")
+        TECA_POPTS_GET(std::string, prefix, time_column,
+            "name of the column containing CF-2 time variable")
+        TECA_POPTS_GET(std::string, prefix, year_column,
+            "name of the column to store the computed year ")
+        TECA_POPTS_GET(std::string, prefix, month_column,
+            "name of the column to store the computed month ")
+        TECA_POPTS_GET(std::string, prefix, day_column,
+            "name of the column to store the computed day ")
+        TECA_POPTS_GET(std::string, prefix, hour_column,
+            "name of the column to store the computed hours ")
+        TECA_POPTS_GET(std::string, prefix, minute_column,
+            "name of the column to store the computed minutes ")
+        TECA_POPTS_GET(std::string, prefix, second_column,
+            "name of the column to store the computed seconds ")
+        TECA_POPTS_GET(std::string, prefix, output_column_prefix,
+            "prepended to all output column names")
         ;
 
     global_opts.add(opts);

@@ -45,10 +45,13 @@ teca_dataset_diff::~teca_dataset_diff()
 void teca_dataset_diff::get_properties_description(
     const string &prefix, options_description &global_opts)
 {
-    options_description opts("Options for " + prefix + "(teca_dataset_diff)");
+    options_description opts("Options for "
+        + (prefix.empty()?"teca_dataset_diff":prefix));
+
     opts.add_options()
         TECA_POPTS_GET(double, prefix, tolerance, "relative test tolerance")
         ;
+
     global_opts.add(opts);
 }
 

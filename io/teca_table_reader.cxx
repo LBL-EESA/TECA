@@ -31,7 +31,8 @@ teca_table_reader::~teca_table_reader()
 void teca_table_reader::get_properties_description(
     const string &prefix, options_description &global_opts)
 {
-    options_description opts("Options for " + prefix + "(teca_table_reader)");
+    options_description opts("Options for "
+        + (prefix.empty()?"teca_table_reader":prefix));
 
     opts.add_options()
         TECA_POPTS_GET(string, prefix, file_name, "a file name to read")

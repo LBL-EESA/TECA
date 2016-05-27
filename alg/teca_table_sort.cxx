@@ -62,11 +62,15 @@ teca_table_sort::~teca_table_sort()
 void teca_table_sort::get_properties_description(
     const string &prefix, options_description &global_opts)
 {
-    options_description opts("Options for " + prefix + "(teca_table_sort)");
+    options_description opts("Options for "
+        + (prefix.empty()?"teca_table_sort":prefix));
 
     opts.add_options()
-        TECA_POPTS_GET(std::string, prefix, index_column, "column to sort the table by")
-        TECA_POPTS_GET(int, prefix, index_column_id, "column number to sort the table by")
+        TECA_POPTS_GET(std::string, prefix, index_column,
+            "name of the column to sort the table by")
+        TECA_POPTS_GET(int, prefix, index_column_id,
+            "column number to sort the table by. can be used in "
+            "place of an index_column name")
         ;
 
     global_opts.add(opts);

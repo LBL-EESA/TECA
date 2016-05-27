@@ -100,15 +100,6 @@ void threshold(
 
 
 
-
-
-
-
-
-
-
-
-
 // --------------------------------------------------------------------------
 teca_ar_detect::teca_ar_detect() :
     water_vapor_variable("prw"),
@@ -145,28 +136,48 @@ teca_ar_detect::~teca_ar_detect()
 void teca_ar_detect::get_properties_description(
     const string &prefix, options_description &opts)
 {
-    options_description ard_opts("Options for " + prefix + "(teca_ar_detect)");
+    options_description ard_opts("Options for "
+        + (prefix.empty()?"teca_ar_detect":prefix));
 
     ard_opts.add_options()
-        TECA_POPTS_GET(string, prefix, water_vapor_variable, "name of variable containing water vapor values")
-        TECA_POPTS_GET(double, prefix, low_water_vapor_threshold, "low water vapor threshold")
-        TECA_POPTS_GET(double, prefix, high_water_vapor_threshold, "high water vapor threshold")
-        TECA_POPTS_GET(double, prefix, search_lat_low, "search space low latitude")
-        TECA_POPTS_GET(double, prefix, search_lon_low, "search space low longitude")
-        TECA_POPTS_GET(double, prefix, search_lat_high, "search space high latitude")
-        TECA_POPTS_GET(double, prefix, search_lon_high, "search space high longitude")
-        TECA_POPTS_GET(double, prefix, river_start_lat_low, "latitude used to classify as AR or PE")
-        TECA_POPTS_GET(double, prefix, river_start_lon_low, "longitude used to classify as AR or PE")
-        TECA_POPTS_GET(double, prefix, river_end_lat_low, "CA coastal region low latitude")
-        TECA_POPTS_GET(double, prefix, river_end_lon_low, "CA coastal region low longitude")
-        TECA_POPTS_GET(double, prefix, river_end_lat_high, "CA coastal region high latitude")
-        TECA_POPTS_GET(double, prefix, river_end_lon_high, "CA coastal region high longitude")
-        TECA_POPTS_GET(double, prefix, percent_in_mesh, "size of river in relation to search space area")
-        TECA_POPTS_GET(double, prefix, river_width, "river width")
-        TECA_POPTS_GET(double, prefix, river_length, "river length")
-        TECA_POPTS_GET(string, prefix, land_sea_mask_variable, "name of variable containing land-sea mask values")
-        TECA_POPTS_GET(double, prefix, land_threshold_low, "low land value")
-        TECA_POPTS_GET(double, prefix, land_threshold_high, "high land value")
+        TECA_POPTS_GET(string, prefix, water_vapor_variable,
+            "name of variable containing water vapor values")
+        TECA_POPTS_GET(double, prefix, low_water_vapor_threshold,
+            "low water vapor threshold")
+        TECA_POPTS_GET(double, prefix, high_water_vapor_threshold,
+            "high water vapor threshold")
+        TECA_POPTS_GET(double, prefix, search_lat_low,
+            "search space low latitude")
+        TECA_POPTS_GET(double, prefix, search_lon_low,
+            "search space low longitude")
+        TECA_POPTS_GET(double, prefix, search_lat_high,
+            "search space high latitude")
+        TECA_POPTS_GET(double, prefix, search_lon_high,
+            "search space high longitude")
+        TECA_POPTS_GET(double, prefix, river_start_lat_low,
+            "latitude used to classify as AR or PE")
+        TECA_POPTS_GET(double, prefix, river_start_lon_low,
+            "longitude used to classify as AR or PE")
+        TECA_POPTS_GET(double, prefix, river_end_lat_low,
+            "CA coastal region low latitude")
+        TECA_POPTS_GET(double, prefix, river_end_lon_low,
+            "CA coastal region low longitude")
+        TECA_POPTS_GET(double, prefix, river_end_lat_high,
+            "CA coastal region high latitude")
+        TECA_POPTS_GET(double, prefix, river_end_lon_high,
+            "CA coastal region high longitude")
+        TECA_POPTS_GET(double, prefix, percent_in_mesh,
+            "size of river in relation to search space area")
+        TECA_POPTS_GET(double, prefix, river_width,
+            "minimum river width")
+        TECA_POPTS_GET(double, prefix, river_length,
+            "minimum river length")
+        TECA_POPTS_GET(string, prefix, land_sea_mask_variable,
+            "name of variable containing land-sea mask values")
+        TECA_POPTS_GET(double, prefix, land_threshold_low,
+            "low land value")
+        TECA_POPTS_GET(double, prefix, land_threshold_high,
+            "high land value")
         ;
 
     opts.add(ard_opts);

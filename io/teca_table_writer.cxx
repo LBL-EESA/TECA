@@ -159,11 +159,15 @@ teca_table_writer::~teca_table_writer()
 void teca_table_writer::get_properties_description(
     const string &prefix, options_description &global_opts)
 {
-    options_description opts("Options for " + prefix + "(teca_table_writer)");
+    options_description opts("Options for "
+        + (prefix.empty()?"teca_table_writer":prefix));
 
     opts.add_options()
-        TECA_POPTS_GET(string, prefix, file_name, "path/name of file to write")
-        TECA_POPTS_GET(int, prefix, output_format, "output file format, 0 : csv, 1 : bin, 2 : xlsx")
+        TECA_POPTS_GET(string, prefix, file_name,
+            "path/name of file to write")
+        TECA_POPTS_GET(int, prefix, output_format,
+            "output file format enum, 0:csv, 1:bin, 2:xlsx, 3:auto."
+            "if auto is used, format is deduced from file_name")
         ;
 
     global_opts.add(opts);

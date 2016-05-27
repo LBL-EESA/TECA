@@ -253,13 +253,12 @@ teca_vtk_cartesian_mesh_writer::~teca_vtk_cartesian_mesh_writer()
 void teca_vtk_cartesian_mesh_writer::get_properties_description(
     const string &prefix, options_description &global_opts)
 {
-    options_description opts("Options for " + prefix
-        + "(teca_vtk_cartesian_mesh_writer)");
+    options_description opts("Options for "
+        + (prefix.empty()?"teca_vtk_cartesian_mesh_writer":prefix));
 
     opts.add_options()
         TECA_POPTS_GET(string, prefix,file_name,
             "path/name to write series to")
-
         TECA_POPTS_GET(int, prefix,binary,
             "if set write raw binary (ie smaller, faster)")
         ;

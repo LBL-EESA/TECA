@@ -134,11 +134,14 @@ teca_cartesian_mesh_regrid::~teca_cartesian_mesh_regrid()
 void teca_cartesian_mesh_regrid::get_properties_description(
     const string &prefix, options_description &global_opts)
 {
-    options_description opts("Options for " + prefix + "(teca_cartesian_mesh_regrid)");
+    options_description opts("Options for "
+        + (prefix.empty()?"teca_cartesian_mesh_regrid":prefix));
 
     opts.add_options()
-        TECA_POPTS_GET(vector<string>, prefix, source_arrays, "list of arrays to move from source to target mesh")
-        TECA_POPTS_GET(int, prefix, interpolation_mode, "linear or nearest interpolation")
+        TECA_POPTS_GET(vector<string>, prefix, source_arrays,
+            "list of arrays to move from source to target mesh")
+        TECA_POPTS_GET(int, prefix, interpolation_mode,
+            "linear or nearest interpolation")
         ;
 
     global_opts.add(opts);

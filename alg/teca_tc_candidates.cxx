@@ -61,26 +61,46 @@ teca_tc_candidates::~teca_tc_candidates()
 void teca_tc_candidates::get_properties_description(
     const string &prefix, options_description &opts)
 {
-    options_description ard_opts("Options for " + prefix + "(teca_tc_candidates)");
+    options_description ard_opts("Options for "
+        + (prefix.empty()?"teca_tc_candidates":prefix));
 
     ard_opts.add_options()
-        TECA_POPTS_GET(string, prefix, surface_wind_speed_variable, "name of wind speed variable")
-        TECA_POPTS_GET(string, prefix, vorticity_850mb_variable, "name of 850 mb vorticity variable")
-        TECA_POPTS_GET(string, prefix, sea_level_pressure_variable, "name of sea level pressure variable")
-        TECA_POPTS_GET(string, prefix, core_temperature_variable, "name of core temperature variable")
-        TECA_POPTS_GET(double, prefix, max_core_radius, "maximum allowable distance between local pressure min and local vorticity max in deg")
-        TECA_POPTS_GET(double, prefix, min_vorticity_850mb, "min 850 mb vorticity")
-        TECA_POPTS_GET(double, prefix, vorticity_850mb_window, "size of the 850mb vorticty maxima search window")
-        TECA_POPTS_GET(double, prefix, max_pressure_delta, "TODO")
-        TECA_POPTS_GET(double, prefix, max_pressure_radius, "TODO")
-        TECA_POPTS_GET(double, prefix, max_core_temperature_delta, "TODO")
-        TECA_POPTS_GET(double, prefix, max_core_temperature_radius, "TODO")
-        TECA_POPTS_GET(double, prefix, max_thickness_delta, "TODO")
-        TECA_POPTS_GET(double, prefix, max_thickness_radius, "TODO")
-        TECA_POPTS_GET(double, prefix, search_lat_low, "lowest latitude in degrees to search for stroms")
-        TECA_POPTS_GET(double, prefix, search_lat_high, "highest latitude in degrees to search for storms")
-        TECA_POPTS_GET(double, prefix, search_lon_low, "lowest longitude in degrees to search for stroms")
-        TECA_POPTS_GET(double, prefix, search_lon_high, "highest longitude in degrees to search for storms")
+        TECA_POPTS_GET(string, prefix, surface_wind_speed_variable,
+            "name of wind speed variable")
+        TECA_POPTS_GET(string, prefix, vorticity_850mb_variable,
+            "name of 850 mb vorticity variable")
+        TECA_POPTS_GET(string, prefix, sea_level_pressure_variable,
+            "name of sea level pressure variable")
+        TECA_POPTS_GET(string, prefix, core_temperature_variable,
+            "name of core temperature variable")
+        TECA_POPTS_GET(double, prefix, max_core_radius,
+            "maximum number of degrees latitude separation between "
+            "vorticity max and pressure min defining a storm (2.0)")
+        TECA_POPTS_GET(double, prefix, min_vorticity_850mb,
+            "minimum vorticty to be considered a tropical storm (1.6e-4)")
+        TECA_POPTS_GET(double, prefix, vorticity_850mb_window,
+            "size of the search window in degrees. storms core must have a "
+            "local vorticity max centered on this window (7.74446)")
+        TECA_POPTS_GET(double, prefix, max_pressure_delta,
+            "maximum pressure change within specified radius (400.0)")
+        TECA_POPTS_GET(double, prefix, max_pressure_radius,
+            "radius in degrees over which max pressure change is computed (5.0)")
+        TECA_POPTS_GET(double, prefix, max_core_temperature_delta,
+            "maximum core temperature change over the specified radius (0.8)")
+        TECA_POPTS_GET(double, prefix, max_core_temperature_radius,
+            "radius in degrees over which max core temperature change is computed (5.0)")
+        TECA_POPTS_GET(double, prefix, max_thickness_delta,
+            "maximum thickness change over the specified radius (50.0)")
+        TECA_POPTS_GET(double, prefix, max_thickness_radius,
+            "radius in degrees over with max thickness change is comuted (4.0)")
+        TECA_POPTS_GET(double, prefix, search_lat_low,
+            "lowest latitude in degrees to search for storms (-80.0)")
+        TECA_POPTS_GET(double, prefix, search_lat_high,
+            "highest latitude in degrees to search for storms (80.0)")
+        TECA_POPTS_GET(double, prefix, search_lon_low,
+            "lowest longitude in degrees to search for stroms (1)")
+        TECA_POPTS_GET(double, prefix, search_lon_high,
+            "highest longitude in degrees to search for storms (0)")
         ;
 
     opts.add(ard_opts);

@@ -67,13 +67,18 @@ teca_l2_norm::~teca_l2_norm()
 void teca_l2_norm::get_properties_description(
     const string &prefix, options_description &global_opts)
 {
-    options_description opts("Options for " + prefix + "(teca_l2_norm)");
+    options_description opts("Options for "
+        + (prefix.empty()?"teca_l2_norm":prefix));
 
     opts.add_options()
-        TECA_POPTS_GET(std::string, prefix, component_0_variable, "array containg the first component")
-        TECA_POPTS_GET(std::string, prefix, component_1_variable, "array containg the second component")
-        TECA_POPTS_GET(std::string, prefix, component_2_variable, "array containg the third component")
-        TECA_POPTS_GET(std::string, prefix, l2_norm_variable, "array to store the computed norm in")
+        TECA_POPTS_GET(std::string, prefix, component_0_variable,
+            "array containg the first component")
+        TECA_POPTS_GET(std::string, prefix, component_1_variable,
+            "array containg the second component")
+        TECA_POPTS_GET(std::string, prefix, component_2_variable,
+            "array containg the third component")
+        TECA_POPTS_GET(std::string, prefix, l2_norm_variable,
+            "array to store the computed norm in")
         ;
 
     global_opts.add(opts);

@@ -259,7 +259,8 @@ teca_tc_trajectory::~teca_tc_trajectory()
 void teca_tc_trajectory::get_properties_description(
     const string &prefix, options_description &global_opts)
 {
-    options_description opts("Options for " + prefix + "(teca_tc_trajectory)");
+    options_description opts("Options for "
+        + (prefix.empty()?"teca_tc_trajectory":prefix));
 
     opts.add_options()
         TECA_POPTS_GET(double, prefix, max_daily_distance,

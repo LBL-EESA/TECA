@@ -37,13 +37,15 @@ using variables_map
 // program options
 
 #define TECA_POPTS_GET(_type, _prefix, _name, _desc)    \
-     ((_prefix + #_name).c_str(), boost::program_options::value<_type>(), _desc)
+     (((_prefix.empty()?"":_prefix+"::") + #_name).c_str(),\
+         boost::program_options::value<_type>(), _desc)
 
-#define TECA_POPTS_SET(_opts, _type, _prefix, _name)            \
-    {string opt_name = _prefix + #_name;                        \
-    if (_opts.count(opt_name))                                  \
-    {                                                           \
-        this->set_##_name(_opts[opt_name].as<_type>());         \
+#define TECA_POPTS_SET(_opts, _type, _prefix, _name)    \
+    {string opt_name =                                  \
+        (_prefix.empty()?"":_prefix+"::") + #_name;     \
+    if (_opts.count(opt_name))                          \
+    {                                                   \
+        this->set_##_name(_opts[opt_name].as<_type>()); \
     }}
 
 #else

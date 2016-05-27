@@ -149,12 +149,16 @@ teca_vorticity::~teca_vorticity()
 void teca_vorticity::get_properties_description(
     const string &prefix, options_description &global_opts)
 {
-    options_description opts("Options for " + prefix + "(teca_vorticity)");
+    options_description opts("Options for "
+        + (prefix.empty()?"teca_vorticity":prefix));
 
     opts.add_options()
-        TECA_POPTS_GET(std::string, prefix, component_0_variable, "array containg lon-component of the vector")
-        TECA_POPTS_GET(std::string, prefix, component_1_variable, "array containg lat-component of the vector")
-        TECA_POPTS_GET(std::string, prefix, vorticity_variable, "array to store the computed vorticity in")
+        TECA_POPTS_GET(std::string, prefix, component_0_variable,
+            "array containg lon component of the vector")
+        TECA_POPTS_GET(std::string, prefix, component_1_variable,
+            "array containg lat component of the vector")
+        TECA_POPTS_GET(std::string, prefix, vorticity_variable,
+            "array to store the computed vorticity in")
         ;
 
     global_opts.add(opts);

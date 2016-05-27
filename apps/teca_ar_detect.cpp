@@ -105,13 +105,13 @@ int main(int argc, char **argv)
         "* denotes an optional stage.\n\n"
         "Advanced command line options"
         );
-    water_vapor_reader->get_properties_description("water_vapor_reader::", advanced_opt_defs);
-    water_vapor_average->get_properties_description("water_vapor_average::", advanced_opt_defs);
-    land_sea_mask_reader->get_properties_description("land_sea_mask_reader::", advanced_opt_defs);
-    land_sea_mask_regrid->get_properties_description("land_sea_mask_regrid::", advanced_opt_defs);
-    ar_detect->get_properties_description("ar_detect::", advanced_opt_defs);
-    map_reduce->get_properties_description("map_reduce::", advanced_opt_defs);
-    results_writer->get_properties_description("results_writer::", advanced_opt_defs);
+    water_vapor_reader->get_properties_description("water_vapor_reader", advanced_opt_defs);
+    water_vapor_average->get_properties_description("water_vapor_average", advanced_opt_defs);
+    land_sea_mask_reader->get_properties_description("land_sea_mask_reader", advanced_opt_defs);
+    land_sea_mask_regrid->get_properties_description("land_sea_mask_regrid", advanced_opt_defs);
+    ar_detect->get_properties_description("ar_detect", advanced_opt_defs);
+    map_reduce->get_properties_description("map_reduce", advanced_opt_defs);
+    results_writer->get_properties_description("results_writer", advanced_opt_defs);
 
     options_description all_opt_defs;
     all_opt_defs.add(basic_opt_defs).add(advanced_opt_defs);
@@ -170,13 +170,13 @@ int main(int argc, char **argv)
     // pass command line arguments into the pipeline objects
     // advanced options are processed first, thus basic options
     // override them
-    water_vapor_reader->set_properties("water_vapor_reader::", opt_vals);
-    water_vapor_average->set_properties("water_vapor_average::", opt_vals);
-    land_sea_mask_reader->set_properties("land_sea_mask_reader::", opt_vals);
-    land_sea_mask_regrid->set_properties("land_sea_mask_regrid::", opt_vals);
-    ar_detect->set_properties("ar_detect::", opt_vals);
-    map_reduce->set_properties("map_reduce::", opt_vals);
-    results_writer->set_properties("results_writer::", opt_vals);
+    water_vapor_reader->set_properties("water_vapor_reader", opt_vals);
+    water_vapor_average->set_properties("water_vapor_average", opt_vals);
+    land_sea_mask_reader->set_properties("land_sea_mask_reader", opt_vals);
+    land_sea_mask_regrid->set_properties("land_sea_mask_regrid", opt_vals);
+    ar_detect->set_properties("ar_detect", opt_vals);
+    map_reduce->set_properties("map_reduce", opt_vals);
+    results_writer->set_properties("results_writer", opt_vals);
 
     // process the basic options
     if (opt_vals.count("water_vapor_file"))
