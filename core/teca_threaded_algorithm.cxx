@@ -228,10 +228,12 @@ teca_threaded_algorithm::~teca_threaded_algorithm() noexcept
 void teca_threaded_algorithm::get_properties_description(
     const string &prefix, options_description &global_opts)
 {
-    options_description opts("Options for " + prefix + "(teca_threaded_algorithm)");
+    options_description opts("Options for "
+        + (prefix.empty()?"teca_threaded_algorithm":prefix));
 
     opts.add_options()
-        TECA_POPTS_GET(int, prefix, thread_pool_size, "number of threads in pool")
+        TECA_POPTS_GET(int, prefix, thread_pool_size,
+            "number of threads in pool")
         ;
 
     global_opts.add(opts);

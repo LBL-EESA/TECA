@@ -58,7 +58,7 @@ tab_serv.set_execute_callback(serve_table)
 
 tab_wri = teca_table_writer.New()
 tab_wri.set_input_connection(tab_serv.get_output_port())
-tab_wri.set_file_name('table_%t%.%e%')
+tab_wri.set_file_name('table_%t%.bin')
 tab_wri.update()
 
 
@@ -73,5 +73,5 @@ db_serv.set_execute_callback(serve_database)
 
 db_wri = teca_table_writer.New()
 db_wri.set_input_connection(db_serv.get_output_port())
-db_wri.set_file_name('database_%s%_%t%.%e%')
+db_wri.set_file_name('database_%s%_%t%.bin')
 db_wri.update()

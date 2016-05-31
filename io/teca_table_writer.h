@@ -36,11 +36,12 @@ public:
 
     // Select the output file format. 0 : csv, 1 : bin, 2 : xlsx.
     // the default is csv.
-    enum {csv, bin, xlsx};
+    enum {format_csv, format_bin, format_xlsx, format_auto};
     TECA_ALGORITHM_PROPERTY(int, output_format)
-    void set_output_format_csv(){ this->set_output_format(csv); }
-    void set_output_format_bin(){ this->set_output_format(bin); }
-    void set_output_format_xlsx(){ this->set_output_format(xlsx); }
+    void set_output_format_csv(){ this->set_output_format(format_csv); }
+    void set_output_format_bin(){ this->set_output_format(format_bin); }
+    void set_output_format_xlsx(){ this->set_output_format(format_xlsx); }
+    void set_output_format_auto(){ this->set_output_format(format_auto); }
 
 protected:
     teca_table_writer();

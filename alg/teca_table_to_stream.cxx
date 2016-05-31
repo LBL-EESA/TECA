@@ -43,12 +43,16 @@ teca_table_to_stream::~teca_table_to_stream()
 void teca_table_to_stream::get_properties_description(
     const string &prefix, options_description &global_opts)
 {
-    options_description opts("Options for " + prefix + "(teca_table_to_stream)");
+    options_description opts("Options for "
+        + (prefix.empty()?"teca_table_to_stream":prefix));
 
     opts.add_options()
-        TECA_POPTS_GET(std::string, prefix, header, "text to precede table output")
-        TECA_POPTS_GET(std::string, prefix, footer, "text to follow table output")
-        TECA_POPTS_GET(std::string, prefix, stream, "name of stream to send output to. stderr, stdout")
+        TECA_POPTS_GET(std::string, prefix, header,
+            "text to precede table output")
+        TECA_POPTS_GET(std::string, prefix, footer,
+            "text to follow table output")
+        TECA_POPTS_GET(std::string, prefix, stream,
+            "name of stream to send output to. stderr, stdout")
         ;
     global_opts.add(opts);
 }

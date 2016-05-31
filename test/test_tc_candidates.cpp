@@ -18,6 +18,7 @@
 #include "teca_test_util.h"
 #include "teca_time_step_executive.h"
 #include "teca_vtk_cartesian_mesh_writer.h"
+#include "teca_mpi_manager.h"
 
 #include <vector>
 #include <string>
@@ -26,30 +27,17 @@
 using namespace std;
 using namespace teca_derived_quantity_numerics;
 
-#if defined(TECA_HAS_MPI)
-#include <mpi.h>
-#endif
 
 // --------------------------------------------------------------------------
 int main(int argc, char **argv)
 {
-    int rank = 0;
-#if defined(TECA_HAS_MPI)
-    int mpi_thread_required = MPI_THREAD_SERIALIZED;
-    int mpi_thread_provided = 0;
-    MPI_Init_thread(&argc, &argv, mpi_thread_required, &mpi_thread_provided);
-    if (mpi_thread_provided < mpi_thread_required)
-    {
-        cerr << "ERROR: MPI does not support threads" << endl;
-        return -1;
-    }
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-#endif
+    teca_mpi_manager mpi_man(argc, argv);
+    int rank = mpi_man.get_comm_rank();
+
     // parse command line
     string regex;
     string baseline;
     int have_baseline = 0;
-    int write_binary = 0;
     long first_step = 0;
     long last_step = -1;
     unsigned int n_threads = 1;
@@ -82,7 +70,6 @@ int main(int argc, char **argv)
         baseline = argv[2];
         if (teca_file_util::file_exists(baseline.c_str()))
             have_baseline = 1;
-        write_binary = teca_file_util::extension(baseline) == "bin";
         first_step = atoi(argv[3]);
         last_step = atoi(argv[4]);
         n_threads = atoi(argv[5]);
@@ -102,7 +89,6 @@ int main(int argc, char **argv)
     teca_test_util::bcast(regex);
     teca_test_util::bcast(baseline);
     teca_test_util::bcast(have_baseline);
-    teca_test_util::bcast(write_binary);
     teca_test_util::bcast(first_step);
     teca_test_util::bcast(last_step);
     teca_test_util::bcast(n_threads);
@@ -210,15 +196,8 @@ int main(int argc, char **argv)
         p_teca_table_writer table_writer = teca_table_writer::New();
         table_writer->set_input_connection(cal->get_output_port());
         table_writer->set_file_name(baseline.c_str());
-        if (write_binary)
-            table_writer->set_output_format_bin();
-        else
-            table_writer->set_output_format_csv();
         table_writer->update();
     }
 
-#if defined(TECA_HAS_MPI)
-    MPI_Finalize();
-#endif
     return 0;
 }

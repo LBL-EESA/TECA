@@ -22,7 +22,6 @@ int main(int argc, char **argv)
     string candidates;
     string baseline;
     int have_baseline = 0;
-    int write_binary = 0;
     double max_daily_distance;
     double min_wind_speed;
     double min_wind_duration;
@@ -41,7 +40,6 @@ int main(int argc, char **argv)
     baseline = argv[2];
     if (teca_file_util::file_exists(baseline.c_str()))
         have_baseline = 1;
-    write_binary = teca_file_util::extension(baseline) == "bin";
     max_daily_distance = atof(argv[3]);
     min_wind_speed = atof(argv[4]);
     min_wind_duration = atof(argv[5]);
@@ -79,11 +77,6 @@ int main(int argc, char **argv)
         p_teca_table_writer base = teca_table_writer::New();
         base->set_input_connection(cal->get_output_port());
         base->set_file_name(baseline.c_str());
-        if (write_binary)
-            base->set_output_format_bin();
-        else
-            base->set_output_format_csv();
-
         base->update();
     }
 

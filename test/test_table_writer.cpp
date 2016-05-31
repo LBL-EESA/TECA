@@ -49,7 +49,7 @@ int main(int, char **)
       p_teca_table_writer w = teca_table_writer::New();
       w->set_input_connection(s->get_output_port());
       w->set_executive(teca_time_step_executive::New());
-      w->set_file_name("table_writer_test_%t%.%e%");
+      w->set_file_name("table_writer_test_%t%.csv");
 
       w->update();
     }
@@ -59,8 +59,7 @@ int main(int, char **)
       p_teca_table_writer w = teca_table_writer::New();
       w->set_input_connection(s->get_output_port());
       w->set_executive(teca_time_step_executive::New());
-      w->set_file_name("table_writer_test_%t%.%e%");
-      w->set_output_format(teca_table_writer::bin);
+      w->set_file_name("table_writer_test_%t%.bin");
 
       w->update();
     }

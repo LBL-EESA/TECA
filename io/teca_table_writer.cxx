@@ -144,7 +144,7 @@ int write_xlsx(const_p_teca_table table, lxw_worksheet *worksheet)
 
 // --------------------------------------------------------------------------
 teca_table_writer::teca_table_writer()
-    : file_name("table_%t%.%e%"), output_format(csv)
+    : file_name("table_%t%.bin"), output_format(format_auto)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -159,11 +159,15 @@ teca_table_writer::~teca_table_writer()
 void teca_table_writer::get_properties_description(
     const string &prefix, options_description &global_opts)
 {
-    options_description opts("Options for " + prefix + "(teca_table_writer)");
+    options_description opts("Options for "
+        + (prefix.empty()?"teca_table_writer":prefix));
 
     opts.add_options()
-        TECA_POPTS_GET(string, prefix, file_name, "path/name of file to write")
-        TECA_POPTS_GET(int, prefix, output_format, "output file format, 0 : csv, 1 : bin, 2 : xlsx")
+        TECA_POPTS_GET(string, prefix, file_name,
+            "path/name of file to write")
+        TECA_POPTS_GET(int, prefix, output_format,
+            "output file format enum, 0:csv, 1:bin, 2:xlsx, 3:auto."
+            "if auto is used, format is deduced from file_name")
         ;
 
     global_opts.add(opts);
@@ -210,23 +214,51 @@ const_p_teca_dataset teca_table_writer::execute(
     teca_file_util::replace_timestep(out_file, time_step);
 
     // replace extension
-    string ext;
-    switch (this->output_format)
+    int fmt = this->output_format;
+    if (fmt == format_auto)
     {
-        case bin:
-            ext = "bin";
-            break;
-        case csv:
-            ext = "csv";
-            break;
-        case xlsx:
-            ext = "xlsx";
-            break;
-        default:
-            TECA_ERROR("invalid output format")
-            return nullptr;
+        if (out_file.rfind(".xlsx") != std::string::npos)
+        {
+            fmt = format_xlsx;
+        }
+        else if (out_file.rfind(".csv") != std::string::npos)
+        {
+            fmt = format_csv;
+        }
+        else if (out_file.rfind(".bin") != std::string::npos)
+        {
+            fmt = format_bin;
+        }
+        else
+        {
+            if (rank == 0)
+            {
+                TECA_WARNING("Failed to determine extension from file name \""
+                    << out_file << "\". Using bin format.")
+            }
+            fmt = format_bin;
+        }
     }
-    teca_file_util::replace_extension(out_file, ext);
+    else
+    {
+        const char *ext;
+        switch (fmt)
+        {
+            case format_bin:
+                ext = "bin";
+                break;
+            case format_csv:
+                ext = "csv";
+                break;
+            case format_xlsx:
+                ext = "xlsx";
+                break;
+            default:
+                TECA_ERROR("Invalid output format")
+                return nullptr;
+        }
+        teca_file_util::replace_extension(out_file, ext);
+    }
 
     // convert table to database
     const_p_teca_table table
@@ -253,10 +285,10 @@ const_p_teca_dataset teca_table_writer::execute(
     }
 
     // write based on format
-    switch (this->output_format)
+    switch (fmt)
     {
-        case csv:
-        case bin:
+        case format_csv:
+        case format_bin:
             {
             unsigned int n = database->get_number_of_tables();
             for (unsigned int i = 0; i < n; ++i)
@@ -265,8 +297,8 @@ const_p_teca_dataset teca_table_writer::execute(
                 std::string out_file_i = out_file;
                 teca_file_util::replace_identifier(out_file_i, name);
                 const_p_teca_table table = database->get_table(i);
-                if (((this->output_format == csv) && internal::write_csv(table, out_file_i))
-                  || ((this->output_format == bin) && internal::write_bin(table, out_file_i)))
+                if (((fmt == format_csv) && internal::write_csv(table, out_file_i))
+                  || ((fmt == format_bin) && internal::write_bin(table, out_file_i)))
                 {
                     TECA_ERROR("Failed to write table " << i << " \"" << name << "\"")
                     return nullptr;
@@ -274,7 +306,7 @@ const_p_teca_dataset teca_table_writer::execute(
             }
             }
             break;
-        case xlsx:
+        case format_xlsx:
             {
 #if defined(TECA_HAS_LIBXLSXWRITER)
             // open the workbook

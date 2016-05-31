@@ -80,7 +80,8 @@ void teca_temporal_reduction::get_properties_description(
 {
     this->teca_threaded_algorithm::get_properties_description(prefix, global_opts);
 
-    options_description opts("Options for " + prefix + "(teca_temporal_reduction)");
+    options_description opts("Options for "
+        + (prefix.empty()?"teca_temporal_reduction":prefix));
 
     opts.add_options()
         TECA_POPTS_GET(long, prefix, first_step, "first time step to process")

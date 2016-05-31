@@ -4,23 +4,18 @@
 #include "teca_cartesian_mesh_regrid.h"
 #include "teca_vtk_cartesian_mesh_writer.h"
 #include "teca_time_step_executive.h"
+#include "teca_mpi_manager.h"
 
 #include <vector>
 #include <string>
 #include <iostream>
 using namespace std;
 
-#if defined(TECA_HAS_MPI)
-#include <mpi.h>
-#endif
-
 int main(int argc, char **argv)
 {
-    int rank = 0;
-#if defined(TECA_HAS_MPI)
-    MPI_Init(&argc, &argv);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-#endif
+    teca_mpi_manager mpi_man(argc, argv);
+    int rank = mpi_man.get_comm_rank();
+
     if (argc < 24)
     {
         if (rank == 0)
@@ -118,8 +113,5 @@ int main(int argc, char **argv)
     // run the pipeline
     w->update();
 
-#if defined(TECA_HAS_MPI)
-    MPI_Finalize();
-#endif
     return 0;
 }

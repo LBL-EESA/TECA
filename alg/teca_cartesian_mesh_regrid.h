@@ -52,11 +52,10 @@ public:
     // in nearest mode value at the nearest grid point
     // is used, in linear mode bi/tri linear interpolation
     // is used.
-    enum {
-        nearest,
-        linear
-    };
+    enum {nearest=0, linear=1};
     TECA_ALGORITHM_PROPERTY(int, interpolation_mode)
+    void set_interpolation_mode_nearest(){ interpolation_mode = nearest; }
+    void set_interpolation_mode_linear(){ interpolation_mode = linear; }
 
 protected:
     teca_cartesian_mesh_regrid();

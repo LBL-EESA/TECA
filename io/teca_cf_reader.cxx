@@ -145,15 +145,24 @@ teca_cf_reader::~teca_cf_reader()
 void teca_cf_reader::get_properties_description(
     const string &prefix, options_description &global_opts)
 {
-    options_description opts("Options for " + prefix + "(teca_cf_reader)");
+    options_description opts("Options for "
+        + (prefix.empty()?"teca_cf_reader":prefix));
 
     opts.add_options()
-        TECA_POPTS_GET(string, prefix, files_regex, "a regular expression that matches the set of files comprising the dataset")
-        TECA_POPTS_GET(string, prefix, file_name, "a single path/file name to read")
-        TECA_POPTS_GET(string, prefix, x_axis_variable, "name of variable that has x axis coordinates")
-        TECA_POPTS_GET(string, prefix, y_axis_variable, "name of variable that has y axis coordinates")
-        TECA_POPTS_GET(string, prefix, z_axis_variable, "name of variable that has z axis coordinates")
-        TECA_POPTS_GET(string, prefix, t_axis_variable, "name of variable that has t axis coordinates")
+        TECA_POPTS_GET(string, prefix, files_regex,
+            "a regular expression that matches the set of files "
+            "comprising the dataset")
+        TECA_POPTS_GET(string, prefix, file_name,
+            "a single path/file name to read. may be used in place "
+            "of files_regex")
+        TECA_POPTS_GET(string, prefix, x_axis_variable,
+            "name of variable that has x axis coordinates (lon)")
+        TECA_POPTS_GET(string, prefix, y_axis_variable,
+            "name of variable that has y axis coordinates (lat)")
+        TECA_POPTS_GET(string, prefix, z_axis_variable,
+            "name of variable that has z axis coordinates ()")
+        TECA_POPTS_GET(string, prefix, t_axis_variable,
+            "name of variable that has t axis coordinates (time)")
         ;
 
     global_opts.add(opts);

@@ -5,6 +5,7 @@
 #include "teca_table.h"
 #include "teca_programmable_algorithm.h"
 #include "teca_dataset_diff.h"
+#include "teca_mpi_manager.h"
 
 #include <iostream>
 #include <string>
@@ -74,13 +75,9 @@ private:
 
 int main(int argc, char **argv)
 {
-    int rank = 0;
-    int n_ranks = 1;
-#if defined(TECA_HAS_MPI)
-    MPI_Init(&argc, &argv);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
-#endif
+    teca_mpi_manager mpi_man(argc, argv);
+    int rank = mpi_man.get_comm_rank();
+    int n_ranks = mpi_man.get_comm_size();
     int root = n_ranks - 1;
 
     teca_binary_stream_driver driver;
@@ -120,9 +117,6 @@ int main(int argc, char **argv)
     s2.rewind();
     driver.validate(s2);
 
-#if defined(TECA_HAS_MPI)
-    MPI_Finalize();
-#endif
     return 0;
 }
 
