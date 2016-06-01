@@ -79,7 +79,7 @@ public:
     virtual int update(unsigned int port);
 
     // get meta data considering this instance up.
-    virtual teca_metadata update_metadata(unsigned int port);
+    virtual teca_metadata update_metadata(unsigned int port = 0);
 
     // set the executive
     void set_executive(p_teca_algorithm_executive exe);
