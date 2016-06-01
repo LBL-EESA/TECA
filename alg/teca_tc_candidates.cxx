@@ -5,7 +5,7 @@
 #include "teca_table.h"
 #include "teca_database.h"
 #include "teca_calendar.h"
-#include "teca_cartesian_mesh_util.h"
+#include "teca_coordinate_util.h"
 #include "gfdl_tc_candidates.h"
 
 #include <iostream>
@@ -166,8 +166,8 @@ int teca_tc_candidates::get_active_extent(
             lon.get(),
             NT *p_lon = std::dynamic_pointer_cast<TT>(lon)->get();
 
-            if (index_of(p_lon, 0, high_i, static_cast<NT>(this->search_lon_low), false, extent[0])
-                || index_of(p_lon, 0, high_i, static_cast<NT>(this->search_lon_high), true, extent[1]))
+            if (teca_coordinate_util::index_of(p_lon, 0, high_i, static_cast<NT>(this->search_lon_low), false, extent[0])
+                || teca_coordinate_util::index_of(p_lon, 0, high_i, static_cast<NT>(this->search_lon_high), true, extent[1]))
             {
                 TECA_ERROR(
                     << "requested longitude ["
@@ -198,8 +198,8 @@ int teca_tc_candidates::get_active_extent(
             lat.get(),
             NT *p_lat = std::dynamic_pointer_cast<TT>(lat)->get();
 
-            if (index_of(p_lat, 0, high_j, static_cast<NT>(this->search_lat_low), false, extent[2])
-                || index_of(p_lat, 0, high_j, static_cast<NT>(this->search_lat_high), true, extent[3]))
+            if (teca_coordinate_util::index_of(p_lat, 0, high_j, static_cast<NT>(this->search_lat_low), false, extent[2])
+                || teca_coordinate_util::index_of(p_lat, 0, high_j, static_cast<NT>(this->search_lat_high), true, extent[3]))
             {
                 TECA_ERROR(
                     << "requested latitude ["

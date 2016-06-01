@@ -4,7 +4,7 @@
 #include "teca_variant_array.h"
 #include "teca_table.h"
 #include "teca_calendar.h"
-#include "teca_cartesian_mesh_util.h"
+#include "teca_coordinate_util.h"
 
 #include <iostream>
 #include <sstream>
@@ -243,10 +243,10 @@ int teca_ar_detect::get_active_extent(
         unsigned long high_i = lon->size() - 1;
         NT *p_lon = std::dynamic_pointer_cast<TT>(lon)->get();
 
-        if (index_of(p_lon, 0, high_i, static_cast<NT>(this->search_lon_low), false, extent[0])
-            || index_of(p_lon, 0, high_i, static_cast<NT>(this->search_lon_high), true, extent[1])
-            || index_of(p_lat, 0, high_j, static_cast<NT>(this->search_lat_low), false, extent[2])
-            || index_of(p_lat, 0, high_j, static_cast<NT>(this->search_lat_high), true, extent[3]))
+        if (teca_coordinate_util::index_of(p_lon, 0, high_i, static_cast<NT>(this->search_lon_low), false, extent[0])
+            || teca_coordinate_util::index_of(p_lon, 0, high_i, static_cast<NT>(this->search_lon_high), true, extent[1])
+            || teca_coordinate_util::index_of(p_lat, 0, high_j, static_cast<NT>(this->search_lat_low), false, extent[2])
+            || teca_coordinate_util::index_of(p_lat, 0, high_j, static_cast<NT>(this->search_lat_high), true, extent[3]))
         {
             TECA_ERROR(
                 << "search space ["
