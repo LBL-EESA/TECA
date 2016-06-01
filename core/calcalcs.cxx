@@ -1630,8 +1630,8 @@ static int n_unkcal=0; */
 /*========================================================================================
  * Turns the passed value into a Y/M/D date
  */
-int date(double val, const char *unit_str, int *year, int *month,
-    int *day, int *hour, int *minute, double *second, const char *calendar_name)
+int date(double val, int *year, int *month, int *day, int *hour,
+    int *minute, double *second, const char *unit_str, const char *calendar_name)
 {
     int jdnew, ndinc, ierr, iorig, iround;
     double fdays, extra_seconds, tot_extra_seconds;
@@ -1710,7 +1710,7 @@ int date(double val, const char *unit_str, int *year, int *month,
         prev_units = dataunits;
 
         strncpy(prev_calendar, cal2use->name, 1024);
-        }
+    }
 #if defined(CALCALCS_THREAD)
     calcalcs_mutex.unlock();
 #endif
@@ -1780,7 +1780,7 @@ int date(double val, const char *unit_str, int *year, int *month,
  * Turn the passed Y/M/D date into a value in the user's units
  */
 int coordinate(int year, int month, int day, int hour, int minute,
-    double second, const char *unit_str, double *value, const char *calendar_name)
+    double second, const char *unit_str, const char *calendar_name, double *value)
 {
     int    jday, ierr, diff_in_days;
     double    fdiff_in_days, val_days, val_partdays, fdiff_in_partdays, fpartday;

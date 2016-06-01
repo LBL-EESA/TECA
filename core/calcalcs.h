@@ -216,11 +216,11 @@ char *ccs_err_str(int ccs_errno);
 #define UT_ENOINIT -10
 #define UT_EINVALID -11
 
-int date(double val, const char *dataunits, int *year, int *month,
-    int *day, int *hour, int *minute, double *second, const char *calendar_name );
+int date(double val, int *year, int *month, int *day, int *hour,
+    int *minute, double *second, const char *dataunits, const char *calendar_name );
 
-int cooridnate(int year, int month, int day, int hour, int minute,
-    double second, const char *user_unit, double *value, const char *calendar_name );
+int coordinate(int year, int month, int day, int hour, int minute,
+    double second, const char *user_unit, const char *calendar_name, double *value );
 
 };
 
