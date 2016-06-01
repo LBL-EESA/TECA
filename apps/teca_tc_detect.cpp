@@ -6,19 +6,17 @@
 #include "teca_derived_quantity_numerics.h"
 #include "teca_tc_candidates.h"
 #include "teca_tc_trajectory.h"
-#include "teca_mesh.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
-#include "teca_dataset_diff.h"
-#include "teca_file_util.h"
+#include "teca_metadata.h"
 #include "teca_table_reader.h"
 #include "teca_table_reduce.h"
 #include "teca_table_sort.h"
 #include "teca_table_calendar.h"
 #include "teca_table_writer.h"
-#include "teca_time_step_executive.h"
-#include "teca_vtk_cartesian_mesh_writer.h"
 #include "teca_mpi_manager.h"
+#include "teca_coordinate_util.h"
+#include "calcalcs.h"
 
 #include <vector>
 #include <string>
@@ -83,6 +81,8 @@ int main(int argc, char **argv)
         ("tracks_file", value<string>(), "file path to write storm tracks to")
         ("first_step", value<long>(), "first time step to process")
         ("last_step", value<long>(), "last time step to process")
+        ("start_date", value<string>(), "first time to proces in YYYY-MM-DD hh:mm:ss format")
+        ("end_date", value<string>(), "first time to proces in YYYY-MM-DD hh:mm:ss format")
         ("n_threads", value<int>(), "thread pool size. default is 1. -1 for all")
         ("help", "display the basic options help")
         ("advanced_help", "display the advanced options help")
@@ -403,7 +403,6 @@ int main(int argc, char **argv)
         return -1;
     }
 
-
     // now that command line opts have been parsed we can create
     // the programmable algorithms' functors
     core_temp->get_dependent_variables(dep_var);
@@ -435,6 +434,75 @@ int main(int argc, char **argv)
     candidates->set_vorticity_850mb_variable(vort_850mb->get_vorticity_variable());
     candidates->set_core_temperature_variable(core_temp->get_derived_variable());
     candidates->set_thickness_variable(thickness->get_derived_variable());
+
+    // look for requested time step range, start
+    bool parse_start_date = opt_vals.count("start_date");
+    bool parse_end_date = opt_vals.count("end_date");
+    if (parse_start_date || parse_end_date)
+    {
+        // run the reporting phase of the pipeline
+        teca_metadata md = sim_reader->update_metadata();
+
+        teca_metadata atrs;
+        if (md.get("attributes", atrs))
+        {
+            TECA_ERROR("metadata mising attributes")
+            return -1;
+        }
+
+        teca_metadata time_atts;
+        std::string calendar;
+        std::string units;
+        if (atrs.get("time", time_atts)
+           || time_atts.get("calendar", calendar)
+           || time_atts.get("units", units))
+        {
+            TECA_ERROR("failed to determine the calendaring parameters")
+            return -1;
+        }
+
+        teca_metadata coords;
+        p_teca_double_array time;
+        if (md.get("coordinates", coords) ||
+            !(time = std::dynamic_pointer_cast<teca_double_array>(
+                coords.get("t"))))
+        {
+            TECA_ERROR("failed to determine time coordinate")
+            return -1;
+        }
+
+        // convert date string to step, start date
+        if (parse_start_date)
+        {
+            unsigned long first_step = 0;
+            std::string start_date = opt_vals["start_date"].as<string>();
+            if (teca_coordinate_util::time_step_of(time, true, calendar,
+                 units, start_date, first_step))
+            {
+                TECA_ERROR("Failed to lcoate time step for start date \""
+                    <<  start_date << "\"")
+                return -1;
+            }
+            map_reduce->set_first_step(first_step);
+            cerr << "first step = " << first_step << endl;
+        }
+
+        // and end date
+        if (parse_end_date)
+        {
+            unsigned long last_step = 0;
+            std::string end_date = opt_vals["end_date"].as<string>();
+            if (teca_coordinate_util::time_step_of(time, false, calendar,
+                 units, end_date, last_step))
+            {
+                TECA_ERROR("Failed to lcoate time step for end date \""
+                    <<  end_date << "\"")
+                return -1;
+            }
+            map_reduce->set_last_step(last_step);
+            cerr << "last step = " << last_step << endl;
+        }
+    }
 
     // run the pipeline
     track_writer->update();
