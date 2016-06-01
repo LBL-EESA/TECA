@@ -39,7 +39,8 @@ int main(int argc, char **argv)
     teca_mpi_manager mpi_man(argc, argv);
 
     std::chrono::high_resolution_clock::time_point t0, t1;
-    t0 = std::chrono::high_resolution_clock::now();
+    if (mpi_man.get_comm_rank() == 0)
+        t0 = std::chrono::high_resolution_clock::now();
 
     // initialize command line options description
     // set up some common options to simplify use for most
@@ -507,9 +508,12 @@ int main(int argc, char **argv)
     // run the pipeline
     track_writer->update();
 
-    t1 = std::chrono::high_resolution_clock::now();
-    seconds_t dt(t1 - t0);
-    TECA_STATUS("teca_tc_detect run_time=" << dt.count() << " sec")
+    if (mpi_man.get_comm_rank() == 0)
+    {
+        t1 = std::chrono::high_resolution_clock::now();
+        seconds_t dt(t1 - t0);
+        TECA_STATUS("teca_tc_detect run_time=" << dt.count() << " sec")
+    }
 
     return 0;
 }
