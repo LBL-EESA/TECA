@@ -3,17 +3,17 @@
 #   SOURCES  -- optional, source files to comile
 #   LIBS -- optional, libraries to link to the compiled test
 #   COMMAND -- required, test command
-#   FEATURES -- optional, boolean condition decribing featuire dependencies
+#   FEATURES -- optional, boolean condition decribing feature dependencies
 #   REQ_TECA_DATA -- flag whose presence indicates the test needs the data repo
 #   )
 function (teca_add_test T_NAME)
     set(opt_args REQ_TECA_DATA)
-    set(val_args EXEC_NAME)
-    set(array_args SOURCES LIBS COMMAND FEATURES)
+    set(val_args EXEC_NAME FEATURES)
+    set(array_args SOURCES LIBS COMMAND)
     cmake_parse_arguments(T
         "${opt_args}" "${val_args}" "${array_args}" ${ARGN})
     set(TEST_ENABLED OFF)
-    if (${T_FEATURES})
+    if (T_FEATURES)
         set(TEST_ENABLED ON)
     endif()
     if (NOT T_FEATURES)

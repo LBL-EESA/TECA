@@ -4,7 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_metadata.h"
-#include "teca_cartesian_mesh_util.h"
+#include "teca_coordinate_util.h"
 
 #include <algorithm>
 #include <iostream>
@@ -94,7 +94,7 @@ teca_metadata teca_cartesian_mesh_subset::get_output_metadata(
         const NT *p_y = static_cast<TT*>(y.get())->get();
         const NT *p_z = static_cast<TT*>(z.get())->get();
 
-        if (bounds_to_extent(
+        if (teca_coordinate_util::bounds_to_extent(
             static_cast<NT>(this->bounds[0]), static_cast<NT>(this->bounds[1]),
             static_cast<NT>(this->bounds[2]), static_cast<NT>(this->bounds[3]),
             static_cast<NT>(this->bounds[4]), static_cast<NT>(this->bounds[5]),

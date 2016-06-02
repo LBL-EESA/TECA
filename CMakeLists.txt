@@ -207,6 +207,8 @@ set(TECA_VERSION_DESCR ${tmp} CACHE STRING "TECA version descriptor")
 message(STATUS "TECA version ${TECA_VERSION_DESCR}")
 
 # generate global configuration
+include(CMake/teca_test.cmake)
+include(CMake/teca_app.cmake)
 configure_file(teca_config.h.in teca_config.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
@@ -227,7 +229,6 @@ if (BUILD_TESTING)
         "${CMAKE_CURRENT_SOURCE_DIR}/CTestCustom.cmake.in"
         "${CMAKE_CURRENT_BINARY_DIR}/CTestCustom.cmake"
         @ONLY)
-    include(CMake/teca_test.cmake)
     set(TECA_DATA_ROOT "../../TECA_data" CACHE PATH
         "Path to TECA test data directory")
     if (TECA_DATA_ROOT AND (NOT EXISTS "${TECA_DATA_ROOT}"))

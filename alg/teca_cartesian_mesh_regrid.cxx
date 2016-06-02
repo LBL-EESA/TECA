@@ -4,7 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_metadata.h"
-#include "teca_cartesian_mesh_util.h"
+#include "teca_coordinate_util.h"
 
 #include <algorithm>
 #include <iostream>
@@ -51,7 +51,7 @@ int convert_extent(
             const NT2 *p_source_y = std::dynamic_pointer_cast<TT2>(source_y)->get();
             const NT2 *p_source_z = std::dynamic_pointer_cast<TT2>(source_z)->get();
 
-            return bounds_to_extent(
+            return teca_coordinate_util::bounds_to_extent(
                 static_cast<NT2>(p_target_x[target_ext[0]]),
                 static_cast<NT2>(p_target_x[target_ext[1]]),
                 static_cast<NT2>(p_target_y[target_ext[2]]),
@@ -93,9 +93,9 @@ int interpolate_nearest(
     unsigned long j = 0;
     unsigned long k = 0;
 
-    if ((ihi && index_of(p_x, 0, ihi, cx, true, i))
-        || (jhi && index_of(p_y, 0, jhi, cy, true, j))
-        || (khi && index_of(p_z, 0, khi, cz, true, k)))
+    if ((ihi && teca_coordinate_util::index_of(p_x, 0, ihi, cx, true, i))
+        || (jhi && teca_coordinate_util::index_of(p_y, 0, jhi, cy, true, j))
+        || (khi && teca_coordinate_util::index_of(p_z, 0, khi, cz, true, k)))
     {
         // cx,cy,cz is outside the coordinate axes
         return -1;

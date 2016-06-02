@@ -6,6 +6,8 @@
 
 #include <vector>
 
+namespace teca_coordinate_util
+{
 // binary search that will locate index bounding the value
 // above or below such that data[i] <= val or val <= data[i+1]
 // depending on the value of lower. return 0 if the value is
@@ -35,12 +37,12 @@ int index_of(const T *data, size_t l, size_t r, T val, bool lower, unsigned long
     if (val < data[m_0])
     {
         // split range to the left
-        return index_of(data, l, m_0, val, lower, id);
+        return teca_coordinate_util::index_of(data, l, m_0, val, lower, id);
     }
     else
     {
         // split the range to the right
-        return index_of(data, m_1, r, val, lower, id);
+        return teca_coordinate_util::index_of(data, m_1, r, val, lower, id);
     }
 
     // not found
@@ -61,12 +63,12 @@ int bounds_to_extent(
     bool cover_bbox, std::vector<unsigned long> &extent)
 {
     extent.resize(6, 0l);
-    if ((high_i && (index_of(p_x, 0, high_i, low_x, cover_bbox, extent[0])
-        || index_of(p_x, 0, high_i, high_x, !cover_bbox, extent[1])))
-        || (high_j && (index_of(p_y, 0, high_j, low_y, cover_bbox, extent[2])
-        || index_of(p_y, 0, high_j, high_y, !cover_bbox, extent[3])))
-        || (high_k && (index_of(p_z, 0, high_k, low_z, cover_bbox, extent[4])
-        || index_of(p_z, 0, high_k, high_z, !cover_bbox, extent[5]))))
+    if ((high_i && (teca_coordinate_util::index_of(p_x, 0, high_i, low_x, cover_bbox, extent[0])
+        || teca_coordinate_util::index_of(p_x, 0, high_i, high_x, !cover_bbox, extent[1])))
+        || (high_j && (teca_coordinate_util::index_of(p_y, 0, high_j, low_y, cover_bbox, extent[2])
+        || teca_coordinate_util::index_of(p_y, 0, high_j, high_y, !cover_bbox, extent[3])))
+        || (high_k && (teca_coordinate_util::index_of(p_z, 0, high_k, low_z, cover_bbox, extent[4])
+        || teca_coordinate_util::index_of(p_z, 0, high_k, high_z, !cover_bbox, extent[5]))))
     {
         return -1;
     }
@@ -95,9 +97,9 @@ int index_of(const const_p_teca_cartesian_mesh &mesh, T x, T y, T z,
         unsigned long ny = yc->size();
         unsigned long nz = zc->size();
 
-        if (index_of(p_xc, 0, nx-1, x, true, i)
-            || index_of(p_yc, 0, ny-1, y, true, j)
-            || index_of(p_zc, 0, nz-1, z, true, k))
+        if (teca_coordinate_util::index_of(p_xc, 0, nx-1, x, true, i)
+            || teca_coordinate_util::index_of(p_yc, 0, ny-1, y, true, j)
+            || teca_coordinate_util::index_of(p_zc, 0, nz-1, z, true, k))
         {
             // out of bounds
             return -1;
@@ -110,5 +112,13 @@ int index_of(const const_p_teca_cartesian_mesh &mesh, T x, T y, T z,
     // coords are not a floating point type
     return -1;
 }
+
+// given a human readable date string in YYYY-MM-DD hh:mm:ss format
+// amd a list of floating point offset times inthe specified calendar
+// and units find the closest time step. return 0 if successful
+int time_step_of(p_teca_double_array time, bool lower,
+    const std::string &calendar, const std::string &units,
+    const std::string &date, unsigned long &step);
+};
 
 #endif
