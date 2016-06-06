@@ -34,6 +34,8 @@ int main(int argc, char **argv)
         ("start_date", value<string>(), "first time to proces in Y-M-D h:m:s format")
         ("end_date", value<string>(), "first time to proces in Y-M-D h:m:s format")
         ("help", "display the basic options help")
+        ("advanced_help", "display the advanced options help")
+        ("full_help", "display all options help")
         ;
 
     // add all options from each pipeline stage for more advanced use
@@ -106,7 +108,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    // pas comand line arguments into the pipeline objects
+    // pass comand line arguments into the pipeline objects
     // advanced options are procesed first, so that the basic
     // options will override them
     sim_reader->set_properties("sim_reader", opt_vals);
