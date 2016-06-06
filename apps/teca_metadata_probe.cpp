@@ -42,11 +42,9 @@ int main(int argc, char **argv)
     options_description advanced_opt_defs(
         "Advanced usage:\n\n"
         "The following list contains the full set options giving one full\n"
-        "control over all runtime modifiable parameters. All properties for each\n"
-        "stage in the AR detection pipeline may be accesed. To acces a given\n"
-        "stage's options qualify it with the stage's name. For instance\n"
-        "use \"--stage_name::option_name value\". The basic options (see" "--help)\n"
-        "map to these, and will override them if both are specified.\n\n"
+        "control over all runtime modifiable parameters. The basic options\n"
+        "(see" "--help) map to these, and will override them if both are\n"
+        "specified.\n\n"
         "Advanced comand line options", 120, -1
         );
 
