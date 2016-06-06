@@ -243,7 +243,7 @@ void teca_threaded_algorithm::get_properties_description(
 void teca_threaded_algorithm::set_properties(
     const string &prefix, variables_map &opts)
 {
-    string opt_name = prefix + "thread_pool_size";
+    string opt_name = (prefix.empty()?"":prefix+"::") + "thread_pool_size";
     if (opts.count(opt_name))
     {
         int n = opts[opt_name].as<int>();
