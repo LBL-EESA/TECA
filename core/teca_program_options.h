@@ -34,14 +34,18 @@ using variables_map
         variables_map &opts) override;              \
 
 // helpers for implementation dealing with Boost
-// program options
-
-#define TECA_POPTS_GET(_type, _prefix, _name, _desc)    \
-     (((_prefix.empty()?"":_prefix+"::") + #_name).c_str(),\
+// program options. NOTE: because the above declarations
+// are intented to be included in class header files
+// we are intentionally not including <string> and
+// <boost/program_options.hpp>. These need to be
+// included in your cxx files.
+//
+#define TECA_POPTS_GET(_type, _prefix, _name, _desc)        \
+     (((_prefix.empty()?"":_prefix+"::") + #_name).c_str(), \
          boost::program_options::value<_type>(), _desc)
 
 #define TECA_POPTS_SET(_opts, _type, _prefix, _name)    \
-    {string opt_name =                                  \
+    {std::string opt_name =                             \
         (_prefix.empty()?"":_prefix+"::") + #_name;     \
     if (_opts.count(opt_name))                          \
     {                                                   \
@@ -49,10 +53,7 @@ using variables_map
     }}
 
 #else
-
 #define TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
 #define TECA_SET_ALGORITHM_PROPERTIES()
-
 #endif
-
 #endif
