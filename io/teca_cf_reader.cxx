@@ -10,9 +10,9 @@
 #include <thread>
 #include <atomic>
 #include <mutex>
-#include <future>
 #include <map>
 #include <utility>
+#include <memory>
 
 using std::endl;
 using std::cerr;
@@ -155,13 +155,16 @@ public:
     void initialize_handles(const std::vector<std::string> &files);
 
     int get_handle(const std::string &path,
-        const std::string &file, int &handle);
+        const std::string &file, int &file_id,
+        std::mutex *&file_mutex);
 
 public:
-    teca_metadata metadata;
+    using p_mutex_t = std::unique_ptr<std::mutex>;
+    using handle_map_elem_t = std::pair<p_mutex_t, netcdf_handle*>;
+    using handle_map_t = std::map<std::string, handle_map_elem_t>;
 
-    std::mutex netcdf_mutex;
-    using handle_map_t = std::map<std::string, netcdf_handle*>;
+    teca_metadata metadata;
+    std::mutex handle_mutex;
     handle_map_t handles;
 };
 
@@ -172,8 +175,9 @@ void teca_cf_reader_internals::clear_handles()
     handle_map_t::iterator last = this->handles.end();
     for (; it != last; ++it)
     {
-        delete it->second;
-        it->second = nullptr;
+        delete it->second.second;
+        it->second.second = nullptr;
+        it->second.first = nullptr;
     }
     this->handles.clear();
 }
@@ -185,15 +189,16 @@ void teca_cf_reader_internals::initialize_handles(
     this->clear_handles();
     size_t n_files = files.size();
     for (size_t i = 0; i < n_files; ++i)
-        this->handles[files[i]] = nullptr;
+        this->handles[files[i]] = std::make_pair(
+            std::unique_ptr<std::mutex>(new std::mutex), nullptr);
 }
 
 // --------------------------------------------------------------------------
 int teca_cf_reader_internals::get_handle(const std::string &path,
-    const std::string &file, int &file_id)
+    const std::string &file, int &file_id, std::mutex *&file_mutex)
 {
     // lock the mutex
-    std::lock_guard<std::mutex> lock(this->netcdf_mutex);
+    std::lock_guard<std::mutex> lock(this->handle_mutex);
 
     // get the current handle
     handle_map_t::iterator it = this->handles.find(file);
@@ -207,9 +212,10 @@ int teca_cf_reader_internals::get_handle(const std::string &path,
     }
 
     // return the cached value
-    if (it->second)
+    file_mutex = it->second.first.get();
+    if (it->second.second)
     {
-        file_id = it->second->get();
+        file_id = it->second.second->get();
         return 0;
     }
 
@@ -218,12 +224,12 @@ int teca_cf_reader_internals::get_handle(const std::string &path,
     int ierr = 0;
     if ((ierr = nc_open(file_path.c_str(), NC_NOWRITE, &file_id)) != NC_NOERR)
     {
-        TECA_ERROR("Failed to open " << file << endl << nc_strerror(ierr))
+        TECA_ERROR("Failed to open " << file << ". " << nc_strerror(ierr))
         return -1;
     }
 
     // cache the handle
-    it->second = new netcdf_handle(file_id);
+    it->second.second = new netcdf_handle(file_id);
 
     return 0;
 }
@@ -250,7 +256,8 @@ public:
         // mesh based data
         int ierr = 0;
         int file_id = 0;
-        if (m_reader_internals->get_handle(m_path, m_file, file_id))
+        std::mutex *file_mutex = nullptr;
+        if (m_reader_internals->get_handle(m_path, m_file, file_id, file_mutex))
         {
             TECA_ERROR("Failed to get handle to read variable \"" << m_variable
                 << "\" from \"" << m_file << "\"")
@@ -472,7 +479,8 @@ teca_metadata teca_cf_reader::get_output_metadata(
         this->internals->initialize_handles(files);
 
         // cache the file handle
-        this->internals->handles[files[0]] = new netcdf_handle(file_id);
+        this->internals->handles[files[0]] = std::make_pair(
+            std::unique_ptr<std::mutex>(new std::mutex), nullptr);
 
         // query mesh axes
         if (((ierr = nc_inq_dimid(file_id, x_axis_variable.c_str(), &x_id)) != NC_NOERR)
@@ -912,7 +920,8 @@ const_p_teca_dataset teca_cf_reader::execute(
     // get the file handle for this step
     int ierr = 0;
     int file_id = 0;
-    if (this->internals->get_handle(path, file, file_id))
+    std::mutex *file_mutex = nullptr;
+    if (this->internals->get_handle(path, file, file_id, file_mutex))
     {
         TECA_ERROR("time_step=" << time_step << " Failed to get handle")
         return nullptr;
@@ -1030,8 +1039,7 @@ const_p_teca_dataset teca_cf_reader::execute(
         // read
         p_teca_variant_array array;
         NC_DISPATCH(type,
-            // TODO -- this lock is too coarse
-            std::lock_guard<std::mutex> lock(this->internals->netcdf_mutex);
+            std::lock_guard<std::mutex> lock(*file_mutex);
             p_teca_variant_array_impl<NC_T> a = teca_variant_array_impl<NC_T>::New(mesh_size);
             if ((ierr = nc_get_vara(file_id,  id, &starts[0], &counts[0], a->get())) != NC_NOERR)
             {
@@ -1070,7 +1078,7 @@ const_p_teca_dataset teca_cf_reader::execute(
         p_teca_variant_array array;
         size_t one = 1;
         NC_DISPATCH(type,
-            std::lock_guard<std::mutex> lock(this->internals->netcdf_mutex);
+            std::lock_guard<std::mutex> lock(*file_mutex);
             p_teca_variant_array_impl<NC_T> a = teca_variant_array_impl<NC_T>::New(1);
             if ((ierr = nc_get_vara(file_id,  id, &starts[0], &one, a->get())) != NC_NOERR)
             {
