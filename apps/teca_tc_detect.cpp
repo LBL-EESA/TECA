@@ -483,7 +483,6 @@ int main(int argc, char **argv)
                 return -1;
             }
             map_reduce->set_first_step(first_step);
-            cerr << "first step = " << first_step << endl;
         }
 
         // and end date
@@ -499,7 +498,6 @@ int main(int argc, char **argv)
                 return -1;
             }
             map_reduce->set_last_step(last_step);
-            cerr << "last step = " << last_step << endl;
         }
     }
 
