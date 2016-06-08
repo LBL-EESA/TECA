@@ -11,6 +11,9 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_cf_reader)
 
+class teca_cf_reader_internals;
+using p_teca_cf_reader_internals = std::shared_ptr<teca_cf_reader_internals>;
+
 /// a reader for data stored in NetCDF CF format
 /**
 a reader for data stored in NetCDF CF format
@@ -77,20 +80,14 @@ public:
     TECA_ALGORITHM_PROPERTY(std::string, z_axis_variable)
     TECA_ALGORITHM_PROPERTY(std::string, t_axis_variable)
 
+    // set/get the number of threads in the pool. setting
+    // to less than 1 results in 1 - the number of cores.
+    // the default is 1.
+    TECA_ALGORITHM_PROPERTY(int, thread_pool_size)
+
 protected:
     teca_cf_reader();
-
-    // helpers for dealing with cached file handles.
-    // root rank opens all files during metadata parsing,
-    // others ranks only open assigned files. in both
-    // cases threads on each rank should share file
-    // handles
     void clear_cached_metadata();
-    void clear_handles();
-    void initialize_handles(const std::vector<std::string> &files);
-
-    int get_handle(const std::string &path,
-        const std::string &file, int &handle);
 
 private:
     teca_metadata get_output_metadata(
@@ -111,15 +108,8 @@ private:
     std::string y_axis_variable;
     std::string z_axis_variable;
     std::string t_axis_variable;
-
-    // internals
-    teca_metadata metadata;
-
-    class netcdf_handle;
-    using handle_map_t = std::map<std::string, netcdf_handle*>;
-
-    handle_map_t handles;
-    std::mutex netcdf_mutex;
+    int thread_pool_size;
+    p_teca_cf_reader_internals internals;
 };
 
 #endif

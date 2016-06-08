@@ -34,17 +34,17 @@ int main(int argc, char **argv)
         ("start_date", value<string>(), "first time to proces in Y-M-D h:m:s format")
         ("end_date", value<string>(), "first time to proces in Y-M-D h:m:s format")
         ("help", "display the basic options help")
+        ("advanced_help", "display the advanced options help")
+        ("full_help", "display all options help")
         ;
 
     // add all options from each pipeline stage for more advanced use
     options_description advanced_opt_defs(
         "Advanced usage:\n\n"
         "The following list contains the full set options giving one full\n"
-        "control over all runtime modifiable parameters. All properties for each\n"
-        "stage in the AR detection pipeline may be accesed. To acces a given\n"
-        "stage's options qualify it with the stage's name. For instance\n"
-        "use \"--stage_name::option_name value\". The basic options (see" "--help)\n"
-        "map to these, and will override them if both are specified.\n\n"
+        "control over all runtime modifiable parameters. The basic options\n"
+        "(see" "--help) map to these, and will override them if both are\n"
+        "specified.\n\n"
         "Advanced comand line options", 120, -1
         );
 
@@ -106,7 +106,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    // pas comand line arguments into the pipeline objects
+    // pass comand line arguments into the pipeline objects
     // advanced options are procesed first, so that the basic
     // options will override them
     sim_reader->set_properties("sim_reader", opt_vals);

@@ -50,8 +50,8 @@ int main(int argc, char **argv)
     string T_200mb;
     string z_1000mb;
     string z_200mb;
-    double low_lat;
-    double high_lat;
+    double low_lat = 0;
+    double high_lat = -1;
 
     if (rank == 0)
     {
