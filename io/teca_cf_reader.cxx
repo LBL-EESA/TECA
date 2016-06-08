@@ -151,6 +151,7 @@ public:
     // others ranks only open assigned files. in both
     // cases threads on each rank should share file
     // handles
+    void close_handles();
     void clear_handles();
     void initialize_handles(const std::vector<std::string> &files);
 
@@ -167,6 +168,18 @@ public:
     std::mutex handle_mutex;
     handle_map_t handles;
 };
+
+// --------------------------------------------------------------------------
+void teca_cf_reader_internals::close_handles()
+{
+    handle_map_t::iterator it = this->handles.begin();
+    handle_map_t::iterator last = this->handles.end();
+    for (; it != last; ++it)
+    {
+        delete it->second.second;
+        it->second.second = nullptr;
+    }
+}
 
 // --------------------------------------------------------------------------
 void teca_cf_reader_internals::clear_handles()
@@ -710,7 +723,8 @@ teca_metadata teca_cf_reader::get_output_metadata(
             size_t n_files = files.size();
             for (size_t i = 0; i < n_files; ++i)
             {
-                read_variable reader(this->internals, path, files[i], i, this->t_axis_variable);
+                read_variable reader(this->internals, path,
+                    files[i], i, this->t_axis_variable);
                 read_variable_task_t task(reader);
                 thread_pool.push_task(task);
             }
@@ -719,11 +733,11 @@ teca_metadata teca_cf_reader::get_output_metadata(
             std::vector<read_variable_data_t> tmp;
             tmp.reserve(n_files);
             thread_pool.wait_data(tmp);
-            std::map<unsigned long, p_teca_variant_array>
-                time_arrays(tmp.begin(), tmp.end());
 
             // unpack the results. map is used to ensure the correct
             // file to time association.
+            std::map<unsigned long, p_teca_variant_array>
+                time_arrays(tmp.begin(), tmp.end());
             t_axis = time_arrays[0];
             if (!t_axis)
             {
@@ -738,6 +752,11 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 t_axis->append(*tmp.get());
                 step_count.push_back(tmp->size());
             }
+
+            // close the files, as this could use a
+            // significant amount of resources if there are
+            // many files in the dataset.
+            this->internals->close_handles();
         }
         else
         {
