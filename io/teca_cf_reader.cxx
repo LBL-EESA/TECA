@@ -332,7 +332,7 @@ teca_cf_reader::teca_cf_reader() :
     y_axis_variable("lat"),
     z_axis_variable(""),
     t_axis_variable("time"),
-    thread_pool_size(1),
+    thread_pool_size(-1),
     internals(new teca_cf_reader_internals)
 {}
 
@@ -366,7 +366,7 @@ void teca_cf_reader::get_properties_description(
         TECA_POPTS_GET(std::string, prefix, t_axis_variable,
             "name of variable that has t axis coordinates (time)")
         TECA_POPTS_GET(int, prefix, thread_pool_size,
-            "set the number of I/O threads (1)")
+            "set the number of I/O threads (-1)")
         ;
 
     global_opts.add(opts);
