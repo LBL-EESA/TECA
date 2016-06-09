@@ -22,9 +22,6 @@
 #include <mpi.h>
 #endif
 
-using std::string;
-using std::vector;
-using std::set;
 using std::cerr;
 using std::endl;
 
@@ -262,7 +259,7 @@ teca_tc_trajectory::~teca_tc_trajectory()
 #if defined(TECA_HAS_BOOST)
 // --------------------------------------------------------------------------
 void teca_tc_trajectory::get_properties_description(
-    const string &prefix, options_description &global_opts)
+    const std::string &prefix, options_description &global_opts)
 {
     options_description opts("Options for "
         + (prefix.empty()?"teca_tc_trajectory":prefix));
@@ -282,7 +279,7 @@ void teca_tc_trajectory::get_properties_description(
 
 // --------------------------------------------------------------------------
 void teca_tc_trajectory::set_properties(
-    const string &prefix, variables_map &opts)
+    const std::string &prefix, variables_map &opts)
 {
     TECA_POPTS_SET(opts, double, prefix, max_daily_distance)
     TECA_POPTS_SET(opts, double, prefix, min_wind_speed)
@@ -292,8 +289,7 @@ void teca_tc_trajectory::set_properties(
 
 // --------------------------------------------------------------------------
 teca_metadata teca_tc_trajectory::get_output_metadata(
-    unsigned int port,
-    const std::vector<teca_metadata> &input_md)
+    unsigned int port, const std::vector<teca_metadata> &input_md)
 {
 #ifdef TECA_DEBUG
     cerr << teca_parallel_id()
@@ -306,8 +302,7 @@ teca_metadata teca_tc_trajectory::get_output_metadata(
 
 // --------------------------------------------------------------------------
 std::vector<teca_metadata> teca_tc_trajectory::get_upstream_request(
-    unsigned int port,
-    const std::vector<teca_metadata> &input_md,
+    unsigned int port, const std::vector<teca_metadata> &input_md,
     const teca_metadata &request)
 {
 #ifdef TECA_DEBUG
@@ -317,7 +312,7 @@ std::vector<teca_metadata> teca_tc_trajectory::get_upstream_request(
     (void)port;
     (void)input_md;
 
-    vector<teca_metadata> up_reqs;
+    std::vector<teca_metadata> up_reqs;
 
     teca_metadata req(request);
     up_reqs.push_back(req);
