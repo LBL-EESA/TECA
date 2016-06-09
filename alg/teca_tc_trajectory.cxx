@@ -32,18 +32,23 @@ using std::endl;
 
 namespace internal
 {
-void get_step_offsets(const long *step_ids, unsigned long n_rows,
-  unsigned long &n_steps, std::vector<unsigned long> &step_counts,
-  std::vector<unsigned long> &step_offsets)
+void get_step_offsets(const long *time_steps, unsigned long n_rows,
+    unsigned long &n_steps, std::vector<unsigned long> &step_counts,
+    std::vector<unsigned long> &step_offsets,
+    std::vector<unsigned long> &step_ids)
 {
-    // count unique number of steps
+    // count unique number of steps and compute an array index
+    // from each time step.
     n_steps = 1;
+    step_ids.resize(n_rows);
     unsigned long n_m1 = n_rows - 1;
     for (unsigned long i = 0; i < n_m1; ++i)
     {
-        if (step_ids[i] != step_ids[i+1])
+        step_ids[i] = n_steps - 1;
+        if (time_steps[i] != time_steps[i+1])
             ++n_steps;
     }
+    step_ids[n_m1] = n_steps - 1;
 
     // compute num storms in each step
     step_counts.resize(n_steps);
@@ -51,7 +56,7 @@ void get_step_offsets(const long *step_ids, unsigned long n_rows,
     for (unsigned long i = 0; i < n_steps; ++i)
     {
         step_counts[i] = 1;
-        while ((q < n_m1) && (step_ids[q] == step_ids[q+1]))
+        while ((q < n_m1) && (time_steps[q] == time_steps[q+1]))
         {
           ++step_counts[i];
           ++q;
@@ -76,7 +81,6 @@ int teca_tc_trajectory(
     unsigned long n_rows, p_teca_table track_table)
 {
     const coord_t DEG_TO_RAD = M_PI/180.0;
-
     unsigned long track_id = 0;
 
     // convert from dsegrees to radians
@@ -97,9 +101,10 @@ int teca_tc_trajectory(
     unsigned long n_steps;
     std::vector<unsigned long> step_counts;
     std::vector<unsigned long> step_offsets;
+    std::vector<unsigned long> step_ids;
 
     internal::get_step_offsets(time_step, n_rows,
-        n_steps, step_counts, step_offsets);
+        n_steps, step_counts, step_offsets, step_ids);
 
     // build the track start queue.
     // consider all tracks eminating from all storms.
@@ -123,7 +128,7 @@ int teca_tc_trajectory(
             available[track_start] = false;
 
             // start the new track
-            unsigned long max_track_len = n_steps - time_step[track_start];
+            unsigned long max_track_len = n_steps - step_ids[track_start];
 
             std::vector<unsigned long> new_track;
             new_track.reserve(max_track_len);
@@ -134,7 +139,7 @@ int teca_tc_trajectory(
 
             // now walk forward in time examining each storm in the
             // next time step.active step is next one forward in time
-            unsigned long active_step = time_step[track_start] + 1;
+            unsigned long active_step = step_ids[track_start] + 1;
             for (unsigned long j = active_step; j < n_steps; ++j)
             {
                 // get position of the end of the track
