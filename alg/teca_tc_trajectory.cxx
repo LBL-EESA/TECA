@@ -13,6 +13,7 @@
 #include <string>
 #include <set>
 #include <cmath>
+#include <chrono>
 
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
@@ -24,6 +25,7 @@
 
 using std::cerr;
 using std::endl;
+using seconds_t = std::chrono::duration<double, std::chrono::seconds::period>;
 
 //#define TECA_DEBUG
 
@@ -420,6 +422,9 @@ const_p_teca_dataset teca_tc_trajectory::execute(
         return nullptr;
     }
 
+    unsigned long n_rows = candidates->get_number_of_rows();
+    std::chrono::high_resolution_clock::time_point t0, t1;
+
     NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
         lon.get(), _COORD,
 
@@ -457,18 +462,24 @@ const_p_teca_dataset teca_tc_trajectory::execute(
                 dynamic_cast<const TT_VAR*>(thick_max.get())->get();
 
             // invoke the track finder
+            t0 = std::chrono::high_resolution_clock::now();
             if (internal::teca_tc_trajectory(
                 static_cast<NT_VAR>(this->max_daily_distance),
                 static_cast<NT_VAR>(this->min_wind_speed), this->min_wind_duration,
                 p_step, p_time, p_storm_id, p_lon, p_lat, p_wind_max, p_vort_max,
                 p_psl_min, p_have_twc, p_have_thick, p_twc_max, p_thick_max,
-                candidates->get_number_of_rows(), storm_tracks))
+                n_rows, storm_tracks))
             {
                 TECA_ERROR("GFDL TC trajectory analysis encountered an error")
                 return nullptr;
             }
+            t1 = std::chrono::high_resolution_clock::now();
             )
         )
+
+    seconds_t dt(t1 - t0);
+    TECA_STATUS("teca_tc_trajectory n_candidates=" << n_rows << ", n_tracks="
+        << storm_tracks->get_number_of_rows() << ", dt=" << dt.count() << " sec")
 
     return storm_tracks;
 }
