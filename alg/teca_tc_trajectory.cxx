@@ -13,6 +13,7 @@
 #include <string>
 #include <set>
 #include <cmath>
+#include <chrono>
 
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
@@ -22,28 +23,31 @@
 #include <mpi.h>
 #endif
 
-using std::string;
-using std::vector;
-using std::set;
 using std::cerr;
 using std::endl;
+using seconds_t = std::chrono::duration<double, std::chrono::seconds::period>;
 
 //#define TECA_DEBUG
 
 namespace internal
 {
-void get_step_offsets(const long *step_ids, unsigned long n_rows,
-  unsigned long &n_steps, std::vector<unsigned long> &step_counts,
-  std::vector<unsigned long> &step_offsets)
+void get_step_offsets(const long *time_steps, unsigned long n_rows,
+    unsigned long &n_steps, std::vector<unsigned long> &step_counts,
+    std::vector<unsigned long> &step_offsets,
+    std::vector<unsigned long> &step_ids)
 {
-    // count unique number of steps
+    // count unique number of steps and compute an array index
+    // from each time step.
     n_steps = 1;
+    step_ids.resize(n_rows);
     unsigned long n_m1 = n_rows - 1;
     for (unsigned long i = 0; i < n_m1; ++i)
     {
-        if (step_ids[i] != step_ids[i+1])
+        step_ids[i] = n_steps - 1;
+        if (time_steps[i] != time_steps[i+1])
             ++n_steps;
     }
+    step_ids[n_m1] = n_steps - 1;
 
     // compute num storms in each step
     step_counts.resize(n_steps);
@@ -51,7 +55,7 @@ void get_step_offsets(const long *step_ids, unsigned long n_rows,
     for (unsigned long i = 0; i < n_steps; ++i)
     {
         step_counts[i] = 1;
-        while ((q < n_m1) && (step_ids[q] == step_ids[q+1]))
+        while ((q < n_m1) && (time_steps[q] == time_steps[q+1]))
         {
           ++step_counts[i];
           ++q;
@@ -76,7 +80,6 @@ int teca_tc_trajectory(
     unsigned long n_rows, p_teca_table track_table)
 {
     const coord_t DEG_TO_RAD = M_PI/180.0;
-
     unsigned long track_id = 0;
 
     // convert from dsegrees to radians
@@ -97,9 +100,10 @@ int teca_tc_trajectory(
     unsigned long n_steps;
     std::vector<unsigned long> step_counts;
     std::vector<unsigned long> step_offsets;
+    std::vector<unsigned long> step_ids;
 
     internal::get_step_offsets(time_step, n_rows,
-        n_steps, step_counts, step_offsets);
+        n_steps, step_counts, step_offsets, step_ids);
 
     // build the track start queue.
     // consider all tracks eminating from all storms.
@@ -123,7 +127,7 @@ int teca_tc_trajectory(
             available[track_start] = false;
 
             // start the new track
-            unsigned long max_track_len = n_steps - time_step[track_start];
+            unsigned long max_track_len = n_steps - step_ids[track_start];
 
             std::vector<unsigned long> new_track;
             new_track.reserve(max_track_len);
@@ -134,7 +138,7 @@ int teca_tc_trajectory(
 
             // now walk forward in time examining each storm in the
             // next time step.active step is next one forward in time
-            unsigned long active_step = time_step[track_start] + 1;
+            unsigned long active_step = step_ids[track_start] + 1;
             for (unsigned long j = active_step; j < n_steps; ++j)
             {
                 // get position of the end of the track
@@ -257,7 +261,7 @@ teca_tc_trajectory::~teca_tc_trajectory()
 #if defined(TECA_HAS_BOOST)
 // --------------------------------------------------------------------------
 void teca_tc_trajectory::get_properties_description(
-    const string &prefix, options_description &global_opts)
+    const std::string &prefix, options_description &global_opts)
 {
     options_description opts("Options for "
         + (prefix.empty()?"teca_tc_trajectory":prefix));
@@ -277,7 +281,7 @@ void teca_tc_trajectory::get_properties_description(
 
 // --------------------------------------------------------------------------
 void teca_tc_trajectory::set_properties(
-    const string &prefix, variables_map &opts)
+    const std::string &prefix, variables_map &opts)
 {
     TECA_POPTS_SET(opts, double, prefix, max_daily_distance)
     TECA_POPTS_SET(opts, double, prefix, min_wind_speed)
@@ -287,8 +291,7 @@ void teca_tc_trajectory::set_properties(
 
 // --------------------------------------------------------------------------
 teca_metadata teca_tc_trajectory::get_output_metadata(
-    unsigned int port,
-    const std::vector<teca_metadata> &input_md)
+    unsigned int port, const std::vector<teca_metadata> &input_md)
 {
 #ifdef TECA_DEBUG
     cerr << teca_parallel_id()
@@ -301,8 +304,7 @@ teca_metadata teca_tc_trajectory::get_output_metadata(
 
 // --------------------------------------------------------------------------
 std::vector<teca_metadata> teca_tc_trajectory::get_upstream_request(
-    unsigned int port,
-    const std::vector<teca_metadata> &input_md,
+    unsigned int port, const std::vector<teca_metadata> &input_md,
     const teca_metadata &request)
 {
 #ifdef TECA_DEBUG
@@ -312,7 +314,7 @@ std::vector<teca_metadata> teca_tc_trajectory::get_upstream_request(
     (void)port;
     (void)input_md;
 
-    vector<teca_metadata> up_reqs;
+    std::vector<teca_metadata> up_reqs;
 
     teca_metadata req(request);
     up_reqs.push_back(req);
@@ -420,6 +422,9 @@ const_p_teca_dataset teca_tc_trajectory::execute(
         return nullptr;
     }
 
+    unsigned long n_rows = candidates->get_number_of_rows();
+    std::chrono::high_resolution_clock::time_point t0, t1;
+
     NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
         lon.get(), _COORD,
 
@@ -457,18 +462,24 @@ const_p_teca_dataset teca_tc_trajectory::execute(
                 dynamic_cast<const TT_VAR*>(thick_max.get())->get();
 
             // invoke the track finder
+            t0 = std::chrono::high_resolution_clock::now();
             if (internal::teca_tc_trajectory(
                 static_cast<NT_VAR>(this->max_daily_distance),
                 static_cast<NT_VAR>(this->min_wind_speed), this->min_wind_duration,
                 p_step, p_time, p_storm_id, p_lon, p_lat, p_wind_max, p_vort_max,
                 p_psl_min, p_have_twc, p_have_thick, p_twc_max, p_thick_max,
-                candidates->get_number_of_rows(), storm_tracks))
+                n_rows, storm_tracks))
             {
                 TECA_ERROR("GFDL TC trajectory analysis encountered an error")
                 return nullptr;
             }
+            t1 = std::chrono::high_resolution_clock::now();
             )
         )
+
+    seconds_t dt(t1 - t0);
+    TECA_STATUS("teca_tc_trajectory n_candidates=" << n_rows << ", n_tracks="
+        << storm_tracks->get_number_of_rows() << ", dt=" << dt.count() << " sec")
 
     return storm_tracks;
 }

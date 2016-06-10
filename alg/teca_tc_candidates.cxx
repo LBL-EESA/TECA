@@ -23,10 +23,6 @@
 
 //#define TECA_DEBUG 2
 
-using std::ostream;
-using std::vector;
-using std::string;
-using std::ostringstream;
 using std::cerr;
 using std::endl;
 using seconds_t = std::chrono::duration<double, std::chrono::seconds::period>;
@@ -59,19 +55,19 @@ teca_tc_candidates::~teca_tc_candidates()
 #if defined(TECA_HAS_BOOST)
 // --------------------------------------------------------------------------
 void teca_tc_candidates::get_properties_description(
-    const string &prefix, options_description &opts)
+    const std::string &prefix, options_description &opts)
 {
     options_description ard_opts("Options for "
         + (prefix.empty()?"teca_tc_candidates":prefix));
 
     ard_opts.add_options()
-        TECA_POPTS_GET(string, prefix, surface_wind_speed_variable,
+        TECA_POPTS_GET(std::string, prefix, surface_wind_speed_variable,
             "name of wind speed variable")
-        TECA_POPTS_GET(string, prefix, vorticity_850mb_variable,
+        TECA_POPTS_GET(std::string, prefix, vorticity_850mb_variable,
             "name of 850 mb vorticity variable")
-        TECA_POPTS_GET(string, prefix, sea_level_pressure_variable,
+        TECA_POPTS_GET(std::string, prefix, sea_level_pressure_variable,
             "name of sea level pressure variable")
-        TECA_POPTS_GET(string, prefix, core_temperature_variable,
+        TECA_POPTS_GET(std::string, prefix, core_temperature_variable,
             "name of core temperature variable")
         TECA_POPTS_GET(double, prefix, max_core_radius,
             "maximum number of degrees latitude separation between "
@@ -108,12 +104,12 @@ void teca_tc_candidates::get_properties_description(
 
 // --------------------------------------------------------------------------
 void teca_tc_candidates::set_properties(
-    const string &prefix, variables_map &opts)
+    const std::string &prefix, variables_map &opts)
 {
-    TECA_POPTS_SET(opts, string, prefix, surface_wind_speed_variable)
-    TECA_POPTS_SET(opts, string, prefix, vorticity_850mb_variable)
-    TECA_POPTS_SET(opts, string, prefix, sea_level_pressure_variable)
-    TECA_POPTS_SET(opts, string, prefix, core_temperature_variable)
+    TECA_POPTS_SET(opts, std::string, prefix, surface_wind_speed_variable)
+    TECA_POPTS_SET(opts, std::string, prefix, vorticity_850mb_variable)
+    TECA_POPTS_SET(opts, std::string, prefix, sea_level_pressure_variable)
+    TECA_POPTS_SET(opts, std::string, prefix, core_temperature_variable)
     TECA_POPTS_SET(opts, double, prefix, max_core_radius)
     TECA_POPTS_SET(opts, double, prefix, min_vorticity_850mb)
     TECA_POPTS_SET(opts, double, prefix, vorticity_850mb_window)
@@ -232,7 +228,7 @@ std::vector<teca_metadata> teca_tc_candidates::get_upstream_request(
 #endif
     (void)port;
 
-    vector<teca_metadata> up_reqs;
+    std::vector<teca_metadata> up_reqs;
     teca_metadata md = input_md[0];
 
     // locate the extents of the user supplied region of
@@ -252,7 +248,7 @@ std::vector<teca_metadata> teca_tc_candidates::get_upstream_request(
         return up_reqs;
     }
 
-    vector<unsigned long> extent(6, 0l);
+    std::vector<unsigned long> extent(6, 0l);
     if (this->get_active_extent(lat, lon, extent))
     {
         TECA_ERROR("failed to determine the active extent")
@@ -270,7 +266,7 @@ std::vector<teca_metadata> teca_tc_candidates::get_upstream_request(
 #endif
 
     // build the request
-    std::set<string> arrays;
+    std::set<std::string> arrays;
     request.get("arrays", arrays);
     arrays.insert(this->surface_wind_speed_variable);
     arrays.insert(this->vorticity_850mb_variable);
@@ -340,7 +336,7 @@ const_p_teca_dataset teca_tc_candidates::execute(
     mesh->get_calendar(calendar);
 
     // get extent of data passed in
-    vector<unsigned long> extent;
+    std::vector<unsigned long> extent;
     mesh->get_extent(extent);
 
     long nlat = extent[3] - extent[2] + 1;

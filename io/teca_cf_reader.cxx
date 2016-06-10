@@ -159,6 +159,8 @@ public:
         const std::string &file, int &file_id,
         std::mutex *&file_mutex);
 
+    int close_handle(const std::string &path);
+
 public:
     using p_mutex_t = std::unique_ptr<std::mutex>;
     using handle_map_elem_t = std::pair<p_mutex_t, netcdf_handle*>;
@@ -207,6 +209,30 @@ void teca_cf_reader_internals::initialize_handles(
 }
 
 // --------------------------------------------------------------------------
+int teca_cf_reader_internals::close_handle(const std::string &file)
+{
+    // lock the mutex
+    std::lock_guard<std::mutex> lock(this->handle_mutex);
+
+    // get the current handle
+    handle_map_t::iterator it = this->handles.find(file);
+
+#if defined(TECA_DEBUG)
+    if (it == this->handles.end())
+    {
+        // map should already be initialized. if this occurs
+        // there's a bug in the reader class
+        TECA_ERROR("File \"" << file << "\" is not in the handle cache")
+        return -1;
+    }
+#endif
+
+    delete it->second.second;
+    it->second.second = nullptr;
+    return 0;
+}
+
+// --------------------------------------------------------------------------
 int teca_cf_reader_internals::get_handle(const std::string &path,
     const std::string &file, int &file_id, std::mutex *&file_mutex)
 {
@@ -216,6 +242,7 @@ int teca_cf_reader_internals::get_handle(const std::string &path,
     // get the current handle
     handle_map_t::iterator it = this->handles.find(file);
 
+#if defined(TECA_DEBUG)
     if (it == this->handles.end())
     {
         // map should already be initialized. if this occurs
@@ -223,6 +250,7 @@ int teca_cf_reader_internals::get_handle(const std::string &path,
         TECA_ERROR("File \"" << file << "\" is not in the handle cache")
         return -1;
     }
+#endif
 
     // return the cached value
     file_mutex = it->second.first.get();
@@ -264,6 +292,8 @@ public:
 
     std::pair<unsigned long, p_teca_variant_array> operator()()
     {
+        p_teca_variant_array var;
+
         // get a handle to the file. managed by the reader
         // since it will reuse the handle when it needs to read
         // mesh based data
@@ -287,6 +317,7 @@ public:
             || ((ierr = nc_inq_varid(file_id, m_variable.c_str(), &var_id)) != NC_NOERR)
             || ((ierr = nc_inq_vartype(file_id, var_id, &var_type)) != NC_NOERR))
         {
+            m_reader_internals->close_handle(m_file);
             TECA_ERROR("Failed to read metadata for variable \"" << m_variable
                 << "\" from \"" << m_file << "\". " << nc_strerror(ierr))
             return std::make_pair(m_id, nullptr);
@@ -299,15 +330,18 @@ public:
             var->resize(var_size);
             if ((ierr = nc_get_vara(file_id, var_id, &start, &var_size, var->get())) != NC_NOERR)
             {
+                m_reader_internals->close_handle(m_file);
                 TECA_ERROR("Failed to read variable \"" << m_variable  << "\" from \""
                     << m_file << "\". " << nc_strerror(ierr))
                 return std::make_pair(m_id, nullptr);
             }
             // success!
+            m_reader_internals->close_handle(m_file);
             return std::make_pair(m_id, var);
             )
 
         // unsupported type
+        m_reader_internals->close_handle(m_file);
         TECA_ERROR("Failed to read variable \"" << m_variable
             << "\" from \"" << m_file << "\". Unsupported data type")
         return std::make_pair(m_id, nullptr);
@@ -752,11 +786,6 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 t_axis->append(*tmp.get());
                 step_count.push_back(tmp->size());
             }
-
-            // close the files, as this could use a
-            // significant amount of resources if there are
-            // many files in the dataset.
-            this->internals->close_handles();
         }
         else
         {
