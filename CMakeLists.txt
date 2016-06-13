@@ -217,7 +217,7 @@ add_subdirectory(core)
 add_subdirectory(data)
 add_subdirectory(io)
 add_subdirectory(alg)
-add_subdirectory(py)
+add_subdirectory(python)
 add_subdirectory(apps)
 add_subdirectory(paraview)
 
