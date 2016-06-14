@@ -4,7 +4,9 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_coordinate_util.h"
+#if defined(TECA_HAS_UDUNITS)
 #include "calcalcs.h"
+#endif
 
 #include <vector>
 #include <string>
@@ -191,24 +193,30 @@ int main(int argc, char **argv)
     // human readable first time available
     int Y = 0, M = 0, D = 0, h = 0, m = 0;
     double s = 0;
+#if defined(TECA_HAS_UDUNITS)
     if (calcalcs::date(time->get(i0), &Y, &M, &D, &h, &m, &s,
         units.c_str(), calendar.c_str()))
     {
         TECA_ERROR("failed to detmine the first available time in the file")
         return -1;
     }
+#else
+    TECA_ERROR("UDUnits is required for human readable dates")
+#endif
     std::ostringstream oss;
     oss << Y << "-" << M << "-" << D << " " << h << ":" << m << ":" << s;
     std::string time_0(oss.str());
 
     // human readbale last time available
     Y = 0, M = 0, D = 0, h = 0, m = 0, s = 0;
+#if defined(TECA_HAS_UDUNITS)
     if (calcalcs::date(time->get(i1), &Y, &M, &D, &h, &m, &s,
         units.c_str(), calendar.c_str()))
     {
         TECA_ERROR("failed to detmine the last available time in the file")
         return -1;
     }
+#endif
     oss.str("");
     oss << Y << "-" << M << "-" << D << " " << h << ":" << m << ":" << s;
     std::string time_n(oss.str());

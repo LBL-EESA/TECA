@@ -1,7 +1,9 @@
 #include "teca_coordinate_util.h"
 
 #include "teca_common.h"
+#if defined(TECA_HAS_UDUNITS)
 #include "calcalcs.h"
+#endif
 
 #include <string>
 #include <cstdio>
@@ -12,6 +14,7 @@ int time_step_of(p_teca_double_array time, bool lower,
     const std::string &calendar, const std::string &units,
     const std::string &date, unsigned long &step)
 {
+#if defined(TECA_HAS_UDUNITS)
     double s = 0;
     int Y = 0, M = 0, D = 0, h = 0, m = 0;
     int n_conv = sscanf(date.c_str(),
@@ -43,5 +46,15 @@ int time_step_of(p_teca_double_array time, bool lower,
     }
 
     return 0;
+#else
+    (void)time;
+    (void)lower;
+    (void)calendar;
+    (void)units;
+    (void)date;
+    step = 0;
+    TECA_ERROR("The UDUnits package is required for this operation")
+    return -1;
+#endif
 }
 };
