@@ -16,16 +16,16 @@ static p_##T New()                                                  \
     return p_##T(new T);                                            \
 }                                                                   \
                                                                     \
-using teca_algorithm_executive::shared_from_this;                   \
-                                                                    \
 std::shared_ptr<T> shared_from_this()                               \
 {                                                                   \
-    return std::static_pointer_cast<T>(shared_from_this());         \
+    return std::static_pointer_cast<T>(                             \
+        teca_algorithm_executive::shared_from_this());              \
 }                                                                   \
                                                                     \
 std::shared_ptr<T const> shared_from_this() const                   \
 {                                                                   \
-    return std::static_pointer_cast<T const>(shared_from_this());   \
+    return std::static_pointer_cast<T const>(                       \
+        teca_algorithm_executive::shared_from_this());              \
 }
 
 #endif
