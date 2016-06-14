@@ -7,6 +7,8 @@
 %define TECA_PY_STR()
     PyObject *__str__()
     {
+        teca_py_gil_state gil;
+
         std::ostringstream oss;
         self->to_stream(oss);
         return PyString_FromString(oss.str().c_str());

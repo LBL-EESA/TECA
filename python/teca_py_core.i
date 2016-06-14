@@ -13,6 +13,7 @@
 #include "teca_py_sequence.h"
 #include "teca_py_array.h"
 #include "teca_py_iterator.h"
+#include "teca_py_gil_state.h"
 %}
 
 /***************************************************************************
@@ -55,14 +56,14 @@ class teca_variant_array;
     static
     p_teca_variant_array New(PyObject *obj)
     {
+        teca_py_gil_state gil;
+
         p_teca_variant_array varr;
         if ((varr = teca_py_object::new_variant_array(obj))
             || (varr = teca_py_array::new_variant_array(obj))
             || (varr = teca_py_sequence::new_variant_array(obj))
             || (varr = teca_py_iterator::new_variant_array(obj)))
-        {
             return varr;
-        }
 
         PyErr_Format(PyExc_TypeError, "Failed to convert value");
         return nullptr;
@@ -72,6 +73,8 @@ class teca_variant_array;
 
     void __setitem__(unsigned long i, PyObject *value)
     {
+        teca_py_gil_state gil;
+
         if (teca_py_object::set(self, i, value))
             return;
 
@@ -81,6 +84,8 @@ class teca_variant_array;
 
     PyObject *__getitem__(unsigned long i)
     {
+        teca_py_gil_state gil;
+
         TEMPLATE_DISPATCH(teca_variant_array_impl, self,
             TT *varrt = static_cast<TT*>(self);
             return teca_py_object::py_tt<NT>::new_object(varrt->get(i));
@@ -98,12 +103,16 @@ class teca_variant_array;
 
     PyObject *as_array()
     {
+        teca_py_gil_state gil;
+
         return reinterpret_cast<PyObject*>(
             teca_py_array::new_object(self));
     }
 
     void append(PyObject *obj)
     {
+        teca_py_gil_state gil;
+
         if (teca_py_object::append(self, obj)
             || teca_py_array::append(self, obj)
             || teca_py_sequence::append(self, obj))
@@ -115,6 +124,8 @@ class teca_variant_array;
 
     void copy(PyObject *obj)
     {
+        teca_py_gil_state gil;
+
         if (teca_py_object::copy(self, obj)
             || teca_py_array::copy(self, obj)
             || teca_py_sequence::copy(self, obj))
@@ -153,6 +164,8 @@ TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned long long, unsigned_long_long)
     /* md['name'] = value */
     void __setitem__(const std::string &name, PyObject *value)
     {
+        teca_py_gil_state gil;
+
         p_teca_variant_array varr;
         if ((varr = teca_py_object::new_variant_array(value))
             || (varr = teca_py_array::new_variant_array(value))
@@ -169,6 +182,8 @@ TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned long long, unsigned_long_long)
     /* return md['name'] */
     PyObject *__getitem__(const std::string &name)
     {
+        teca_py_gil_state gil;
+
         p_teca_variant_array varr = self->get(name);
         if (!varr)
         {
@@ -240,6 +255,8 @@ TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned long long, unsigned_long_long)
 
     void append(const std::string &name, PyObject *obj)
     {
+        teca_py_gil_state gil;
+
         teca_variant_array *varr = self->get(name).get();
         if (!varr)
         {

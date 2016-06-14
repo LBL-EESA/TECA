@@ -38,6 +38,8 @@
     /* add or replace an array using syntax: col['name'] = array */
     void __setitem__(const std::string &name, PyObject *array)
     {
+        teca_py_gil_state gil;
+
         p_teca_variant_array varr;
         if ((varr = teca_py_array::new_variant_array(array))
             || (varr = teca_py_sequence::new_variant_array(array))
@@ -53,6 +55,8 @@
     /* return an array using the syntax: col['name'] */
     PyObject *__getitem__(const std::string &name)
     {
+        teca_py_gil_state gil;
+
         p_teca_variant_array varr = self->get(name);
         if (!varr)
         {
@@ -138,6 +142,8 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
     either be a column index or name */
     void __setitem__(PyObject *idx, PyObject *obj)
     {
+        teca_py_gil_state gil;
+
         if (!PySequence_Check(idx) || (PySequence_Size(idx) != 2))
         {
             PyErr_Format(PyExc_KeyError,
@@ -171,7 +177,6 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
                 return;
                 )
             )
-
         TECA_PY_OBJECT_DISPATCH_STR(obj,
             teca_py_object::cpp_tt<OT>::type val
                 = teca_py_object::cpp_tt<OT>::value(obj);
@@ -193,6 +198,8 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
     either be a column index or name */
     PyObject *__getitem__(PyObject *idx)
     {
+        teca_py_gil_state gil;
+
         if (!PySequence_Check(idx) || (PySequence_Size(idx) != 2))
         {
             PyErr_Format(PyExc_KeyError,
@@ -240,6 +247,8 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
     /* replace existing column in a single shot */
     void set_column(PyObject *id, PyObject *array)
     {
+        teca_py_gil_state gil;
+
         p_teca_variant_array col;
 
         if (PyInt_Check(id))
@@ -316,6 +325,8 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
     /* declare a set of columns */
     void declare_columns(PyObject *names, PyObject *types)
     {
+        teca_py_gil_state gil;
+
         if (!PyList_Check(names))
         {
             PyErr_Format(PyExc_TypeError,
@@ -366,6 +377,8 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
     /* append sequence,array, or object in column order */
     void append(PyObject *obj)
     {
+        teca_py_gil_state gil;
+
         // arrays
         if (PyArray_Check(obj))
         {
