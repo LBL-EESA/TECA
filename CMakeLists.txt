@@ -229,8 +229,8 @@ if (BUILD_TESTING)
         "${CMAKE_CURRENT_SOURCE_DIR}/CTestCustom.cmake.in"
         "${CMAKE_CURRENT_BINARY_DIR}/CTestCustom.cmake"
         @ONLY)
-    set(TECA_DATA_ROOT "../../TECA_data" CACHE PATH
-        "Path to TECA test data directory")
+    set(TECA_DATA_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../TECA_data"
+        CACHE PATH "Path to TECA test data directory")
     if (TECA_DATA_ROOT AND (NOT EXISTS "${TECA_DATA_ROOT}"))
         message(STATUS "Test data -- not available")
     else()
