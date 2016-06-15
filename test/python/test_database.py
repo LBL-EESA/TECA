@@ -2,6 +2,8 @@ import sys
 import numpy as np
 from teca import *
 
+set_stack_trace_on_error()
+
 t1 = teca_table.New()
 t1.declare_columns(['event','day','strength','magnitude'], ['i','s','f','d'])
 t1.declare_column('flag', 'ull')

@@ -1,6 +1,8 @@
 from teca import *
 import sys
 
+set_stack_trace_on_error()
+
 argc = len(sys.argv)
 if not argc >= 7:
     sys.stderr.write('test_cf_reader.py [dataset regex] ' \

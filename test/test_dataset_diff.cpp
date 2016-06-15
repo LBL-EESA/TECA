@@ -6,6 +6,7 @@
 #include "teca_time_step_executive.h"
 #include "teca_table.h"
 #include "teca_test_util.h"
+#include "teca_system_interface.h"
 
 #include <vector>
 #include <string>
@@ -69,6 +70,8 @@ int main(int argc, char **argv)
 {
     (void)argc;
     (void)argv;
+
+    teca_system_interface::set_stack_trace_on_error();
 
     // Write 2 test files.
     write_test_tables("dataset_diff_test_%t%.%e%", 2);

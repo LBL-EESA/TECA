@@ -36,6 +36,7 @@ The io module contains readers and writers.
 %include "teca_py_data.i"
 %include "teca_py_alg.i"
 %include "teca_py_io.i"
+%include "teca_py_system.i"
 
 %init %{
 PyEval_InitThreads();

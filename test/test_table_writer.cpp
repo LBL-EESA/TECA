@@ -4,6 +4,7 @@
 #include "teca_table_writer.h"
 #include "teca_time_step_executive.h"
 #include "teca_test_util.h"
+#include "teca_system_interface.h"
 
 #include <iostream>
 using namespace std;
@@ -38,6 +39,8 @@ struct execute
 
 int main(int, char **)
 {
+    teca_system_interface::set_stack_trace_on_error();
+
     p_teca_programmable_algorithm s = teca_programmable_algorithm::New();
     s->set_number_of_input_connections(0);
     s->set_number_of_output_ports(1);

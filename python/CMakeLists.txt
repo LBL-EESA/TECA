@@ -16,12 +16,14 @@ if (TECA_HAS_PYTHON)
             ${CMAKE_CURRENT_SOURCE_DIR}/../core
             ${CMAKE_CURRENT_SOURCE_DIR}/../data
             ${CMAKE_CURRENT_SOURCE_DIR}/../io
-            ${CMAKE_CURRENT_SOURCE_DIR}/../alg)
+            ${CMAKE_CURRENT_SOURCE_DIR}/../alg
+            ${CMAKE_CURRENT_SOURCE_DIR}/../system
+            )
 
     PYTHON_ADD_MODULE(_teca_py ${CMAKE_CURRENT_BINARY_DIR}/teca_py.cxx)
 
     target_link_libraries(_teca_py ${PYTHON_LIBRARIES}
-        teca_core teca_data teca_alg teca_io)
+        teca_core teca_data teca_alg teca_io teca_system)
 
     add_custom_command(TARGET _teca_py POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy

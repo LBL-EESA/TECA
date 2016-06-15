@@ -10,6 +10,8 @@ import numpy as np
 import sys
 import os
 
+set_stack_trace_on_error()
+
 if len(sys.argv) < 7:
     sys.stderr.write('test_map_reduce.py [dataset regex] ' \
         '[out file name] [first step] [last step] [n threads]' \

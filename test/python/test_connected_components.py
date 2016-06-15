@@ -1,6 +1,8 @@
 from teca import *
 import sys
 
+set_stack_trace_on_error()
+
 if not len(sys.argv) == 9:
     sys.stderr.write('test_conn_comp.py [dataset regex] [z_var] ' \
         '[u_var] [v_var] [threshold] [first step] [last step] [out file]\n')
