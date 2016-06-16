@@ -21,6 +21,7 @@
 #include "teca_vorticity.h"
 #include "teca_py_object.h"
 #include "teca_py_algorithm.h"
+#include "teca_py_gil_state.h"
 %}
 
 %include "teca_config.h"
@@ -118,6 +119,10 @@
 %shared_ptr(teca_programmable_algorithm)
 %extend teca_programmable_algorithm
 {
+    // note: it s not worth acquiring the GIL while setting the callbacks
+    // as these are intended to be used only from the main thread during
+    // initialization
+
     void set_report_callback(PyObject *f)
     {
         self->set_report_callback(teca_py_algorithm::report_callback(f));
@@ -150,6 +155,8 @@
 %shared_ptr(teca_derived_quantity)
 %extend teca_derived_quantity
 {
+    // see notes in teca_programmable_algorithm
+
     void set_execute_callback(PyObject *f)
     {
         self->set_execute_callback(teca_py_algorithm::execute_callback(f));
