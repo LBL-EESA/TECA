@@ -13,9 +13,10 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
     $<TARGET_PROPERTY:teca_data,INTERFACE_INCLUDE_DIRECTORIES>
     $<TARGET_PROPERTY:teca_alg,INTERFACE_INCLUDE_DIRECTORIES>
     $<TARGET_PROPERTY:teca_io,INTERFACE_INCLUDE_DIRECTORIES>
+    $<TARGET_PROPERTY:teca_system,INTERFACE_INCLUDE_DIRECTORIES>
     $<TARGET_PROPERTY:teca_test_array,INTERFACE_INCLUDE_DIRECTORIES>)
 
-set(teca_test_link pthread)
+set(teca_test_link pthread teca_system)
 
 if (TECA_HAS_MPI)
     include_directories(SYSTEM ${MPI_C_INCLUDE_PATH})
@@ -41,6 +42,11 @@ teca_add_test(test_pipeline_temporal_reduction
     SOURCES test_pipeline_temporal_reduction.cpp
     LIBS teca_core teca_test_array ${teca_test_link}
     COMMAND test_pipeline_temporal_reduction)
+
+teca_add_test(test_stack_trace_signal_handler
+    SOURCES test_stack_trace_signal_handler.cpp
+    LIBS ${teca_test_link}
+    COMMAND test_stack_trace_signal_handler 8 0)
 
 teca_add_test(test_cf_reader
     SOURCES test_cf_reader.cpp

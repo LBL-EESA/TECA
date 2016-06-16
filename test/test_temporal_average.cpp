@@ -2,6 +2,7 @@
 #include "teca_temporal_average.h"
 #include "teca_vtk_cartesian_mesh_writer.h"
 #include "teca_time_step_executive.h"
+#include "teca_system_interface.h"
 
 #include <vector>
 #include <string>
@@ -13,6 +14,8 @@ using namespace std;
 
 int main(int argc, char **argv)
 {
+    teca_system_interface::set_stack_trace_on_error();
+
     if (argc < 7)
     {
         cerr << endl << "Usage error:" << endl

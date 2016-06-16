@@ -5,6 +5,7 @@
 #include "teca_table_writer.h"
 #include "teca_dataset_diff.h"
 #include "teca_file_util.h"
+#include "teca_system_interface.h"
 
 #include <vector>
 #include <string>
@@ -13,6 +14,8 @@ using namespace std;
 
 int main(int argc, char **argv)
 {
+    teca_system_interface::set_stack_trace_on_error();
+
     // parse command line
     if (argc < 4)
     {

@@ -5,6 +5,7 @@
 #include "teca_table.h"
 #include "teca_dataset_diff.h"
 #include "teca_test_util.h"
+#include "teca_system_interface.h"
 
 #include <vector>
 #include <string>
@@ -27,6 +28,8 @@ struct execute_create_test_table
 
 int main(int, char **)
 {
+    teca_system_interface::set_stack_trace_on_error();
+
     // Write a test table.
     p_teca_programmable_algorithm s = teca_programmable_algorithm::New();
     s->set_number_of_input_connections(0);

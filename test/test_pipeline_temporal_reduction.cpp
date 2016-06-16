@@ -4,6 +4,7 @@
 #include "array_writer.h"
 #include "array_executive.h"
 #include "teca_mpi_manager.h"
+#include "teca_system_interface.h"
 
 #include <iostream>
 #include <iomanip>
@@ -16,6 +17,8 @@ int main(int argc, char **argv)
     teca_mpi_manager mpi_man(argc, argv);
     int rank = mpi_man.get_comm_rank();
     int n_ranks = mpi_man.get_comm_size();
+
+    teca_system_interface::set_stack_trace_on_error();
 
     if ((rank == 0) && (argc != 1) && (argc != 4))
     {

@@ -2,6 +2,8 @@ from teca import *
 import numpy as np
 import sys
 
+set_stack_trace_on_error()
+
 if not len(sys.argv) == 7:
     sys.stderr.write('test_programmable_algorithm.py [dataset regex] ' \
         '[u_var] [v_var] [first step] [last step] [out file name]\n')

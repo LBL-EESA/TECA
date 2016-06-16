@@ -217,7 +217,8 @@ add_subdirectory(core)
 add_subdirectory(data)
 add_subdirectory(io)
 add_subdirectory(alg)
-add_subdirectory(py)
+add_subdirectory(python)
+add_subdirectory(system)
 add_subdirectory(apps)
 add_subdirectory(paraview)
 
@@ -229,8 +230,8 @@ if (BUILD_TESTING)
         "${CMAKE_CURRENT_SOURCE_DIR}/CTestCustom.cmake.in"
         "${CMAKE_CURRENT_BINARY_DIR}/CTestCustom.cmake"
         @ONLY)
-    set(TECA_DATA_ROOT "../../TECA_data" CACHE PATH
-        "Path to TECA test data directory")
+    set(TECA_DATA_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../TECA_data"
+        CACHE PATH "Path to TECA test data directory")
     if (TECA_DATA_ROOT AND (NOT EXISTS "${TECA_DATA_ROOT}"))
         message(STATUS "Test data -- not available")
     else()

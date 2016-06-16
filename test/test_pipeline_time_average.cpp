@@ -2,12 +2,15 @@
 #include "array_time_average.h"
 #include "array_writer.h"
 #include "array_executive.h"
+#include "teca_system_interface.h"
 
 #include <iostream>
 using namespace std;
 
 int main(int, char **)
 {
+    teca_system_interface::set_stack_trace_on_error();
+
     // create a pipeline
     cerr << "creating the pipeline..." << endl
       << endl

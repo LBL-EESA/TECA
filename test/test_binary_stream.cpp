@@ -6,6 +6,7 @@
 #include "teca_programmable_algorithm.h"
 #include "teca_dataset_diff.h"
 #include "teca_mpi_manager.h"
+#include "teca_system_interface.h"
 
 #include <iostream>
 #include <string>
@@ -79,6 +80,8 @@ int main(int argc, char **argv)
     int rank = mpi_man.get_comm_rank();
     int n_ranks = mpi_man.get_comm_size();
     int root = n_ranks - 1;
+
+    teca_system_interface::set_stack_trace_on_error();
 
     teca_binary_stream_driver driver;
     teca_binary_stream s1, s2;

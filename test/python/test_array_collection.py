@@ -2,6 +2,8 @@ from teca import *
 import numpy as np
 import sys
 
+set_stack_trace_on_error()
+
 def start_sec(s):
     sys.stderr.write('checking '+s+'...\n')
 
