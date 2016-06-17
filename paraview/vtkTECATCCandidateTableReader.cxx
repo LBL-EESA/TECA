@@ -18,6 +18,7 @@
 #include "vtkUnsignedIntArray.h"
 #include "vtkUnsignedLongArray.h"
 #include "vtkUnsignedLongLongArray.h"
+#include "vtkStringArray.h"
 
 #include "vtkPointData.h"
 #include "vtkPolyData.h"
@@ -387,6 +388,25 @@ int vtkTECATCCandidateTableReader::RequestData(
       da->Delete();
       )
     }
+
+  // add calendaring information
+  std::string calendar;
+  this->Table->get_calendar(calendar);
+  vtkStringArray *sarr = vtkStringArray::New();
+  sarr->SetName("calendar");
+  sarr->SetNumberOfTuples(1);
+  sarr->SetValue(0, calendar);
+  output->GetFieldData()->AddArray(sarr);
+  sarr->Delete();
+
+  std::string timeUnits;
+  this->Table->get_time_units(timeUnits);
+  sarr = vtkStringArray::New();
+  sarr->SetName("time_units");
+  sarr->SetNumberOfTuples(1);
+  sarr->SetValue(0, timeUnits);
+  output->GetFieldData()->AddArray(sarr);
+  sarr->Delete();
 
   return 1;
 }

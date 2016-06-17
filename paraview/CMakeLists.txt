@@ -10,18 +10,28 @@ if (TECA_HAS_PARAVIEW)
 
     set(plugin_srcs
         vtkTECATCCandidateTableReader.cxx
-        vtkTECATCTrackTableReader.cxx)
+        vtkTECATCTrackTableReader.cxx
+        )
 
-    set(plugin_link teca_data teca_core)
+    set(plugin_xml
+        TECASMReaders.xml)
+
+    if (TECA_HAS_UDUNITS)
+        list(APPEND plugin_srcs vtkTECATimeAnnotation.cxx)
+        list(APPEND plugin_xml TECASMFilters.xml)
+    endif()
+
+    set(plugin_link teca_data teca_core teca_io teca_alg)
 
     include(${PARAVIEW_USE_FILE})
 
     ADD_PARAVIEW_PLUGIN(
         TECAParaViewPlugin "${TECA_VERSION_DESCR}"
-        SERVER_MANAGER_XML TECASMReaders.xml
+        SERVER_MANAGER_XML ${plugin_xml}
         SERVER_MANAGER_SOURCES ${plugin_srcs}
         REQUIRED_ON_SERVER)
 
     target_link_libraries(TECAParaViewPlugin
         PRIVATE ${plugin_link})
+
 endif()
