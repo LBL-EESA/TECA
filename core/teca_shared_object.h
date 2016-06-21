@@ -29,6 +29,6 @@
     using p_##_cls = std::shared_ptr<_cls<T>>;          \
                                                         \
     template<typename T>                                \
-    using const_p_##_cls = std::shared_ptr<_cls<const T>>;
+    using const_p_##_cls = std::shared_ptr<const _cls<T>>;
 #endif
 #endif
