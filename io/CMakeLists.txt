@@ -11,6 +11,7 @@ set(teca_io_srcs
     teca_file_util.cxx
     teca_table_reader.cxx
     teca_table_writer.cxx
+    teca_vtk_util.cxx
     )
 
 if (WIN32)

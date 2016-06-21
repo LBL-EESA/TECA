@@ -1,40 +1,16 @@
 #include "teca_vtk_cartesian_mesh_writer.h"
 
+#include "teca_config.h"
 #include "teca_cartesian_mesh.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_file_util.h"
-#include "teca_config.h"
+#include "teca_vtk_util.h"
+
 
 #if defined(TECA_HAS_VTK) || defined(TECA_HAS_PARAVIEW)
-#include "vtkFloatArray.h"
-#include "vtkDoubleArray.h"
-#include "vtkCharArray.h"
-#include "vtkUnsignedCharArray.h"
-#include "vtkShortArray.h"
-#include "vtkUnsignedShortArray.h"
-#include "vtkIntArray.h"
-#include "vtkUnsignedIntArray.h"
-#include "vtkLongArray.h"
-#include "vtkUnsignedLongArray.h"
-#include "vtkLongLongArray.h"
-#include "vtkUnsignedLongLongArray.h"
-#include "vtkPointData.h"
 #include "vtkRectilinearGrid.h"
 #include "vtkXMLRectilinearGridWriter.h"
-#else
-using vtkFloatArray = void*;
-using vtkDoubleArray = void*;
-using vtkCharArray = void*;
-using vtkUnsignedCharArray = void*;
-using vtkShortArray = void*;
-using vtkUnsignedShortArray = void*;
-using vtkIntArray = void*;
-using vtkUnsignedIntArray = void*;
-using vtkLongArray = void*;
-using vtkUnsignedLongArray = void*;
-using vtkLongLongArray = void*;
-using vtkUnsignedLongLongArray = void*;
 #endif
 #if defined(TECA_HAS_PARAVIEW)
 #include "vtkSmartPointer.h"
@@ -42,49 +18,15 @@ using vtkUnsignedLongLongArray = void*;
 #include "vtkPVXMLParser.h"
 #endif
 
-
 #include <iostream>
 #include <sstream>
 #include <cstring>
 #include <cerrno>
+#include <string>
 
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
 #endif
-
-using std::vector;
-using std::string;
-using std::ostringstream;
-using std::cerr;
-using std::endl;
-
-// helper for naming and/or selecting
-// the corresponding vtk type
-template <typename T> struct vtk_tt {};
-#define VTK_TT_SPEC(_ctype, _vtype, _fmt)   \
-template <>                                 \
-struct vtk_tt <_ctype>                      \
-{                                           \
-    using type = _vtype;                    \
-                                            \
-    static constexpr const char *str()      \
-    { return #_ctype; }                     \
-                                            \
-    static constexpr const char *fmt()      \
-    { return _fmt; }                        \
-};
-VTK_TT_SPEC(float, vtkFloatArray, "%g")
-VTK_TT_SPEC(double, vtkDoubleArray, "%g")
-VTK_TT_SPEC(char, vtkCharArray, "%hhi")
-VTK_TT_SPEC(unsigned char, vtkUnsignedCharArray, "%hhu")
-VTK_TT_SPEC(short, vtkShortArray, "%hi")
-VTK_TT_SPEC(unsigned short, vtkUnsignedShortArray, "%hu")
-VTK_TT_SPEC(int, vtkIntArray, "%i")
-VTK_TT_SPEC(unsigned int, vtkUnsignedIntArray, "%u")
-VTK_TT_SPEC(long, vtkLongArray, "%li")
-VTK_TT_SPEC(unsigned long, vtkUnsignedLongArray, "%lu")
-VTK_TT_SPEC(long long, vtkLongLongArray, "%lli")
-VTK_TT_SPEC(unsigned long long, vtkUnsignedLongLongArray, "%llu")
 
 #if !defined(TECA_HAS_VTK) && !defined(TECA_HAS_PARAVIEW)
 namespace {
@@ -105,8 +47,8 @@ void write_vtk_array_data(FILE *ofile,
             else
             {
                 char fmt_delim[32];
-                snprintf(fmt_delim, 32, " %s", vtk_tt<NT>::fmt());
-                fprintf(ofile, vtk_tt<NT>::fmt(), pa[0]);
+                snprintf(fmt_delim, 32, " %s", teca_vtk_util::vtk_tt<NT>::fmt());
+                fprintf(ofile, teca_vtk_util::vtk_tt<NT>::fmt(), pa[0]);
                 for (size_t i = 1; i < na; ++i)
                     fprintf(ofile, fmt_delim, pa[i]);
             }
@@ -157,7 +99,7 @@ int write_vtk_legacy_header(FILE *ofile,
     const char *coord_type_str = nullptr;
     TEMPLATE_DISPATCH(const teca_variant_array_impl,
         (x ? x.get() : (y ? y.get() : (z ? z.get() : nullptr))),
-        coord_type_str = vtk_tt<NT>::str();
+        coord_type_str = teca_vtk_util::vtk_tt<NT>::str();
         )
 
     fprintf(ofile, "%s\n"
@@ -216,7 +158,9 @@ int write_vtk_legacy_attribute(FILE *ofile,
             fprintf(ofile, " %s ", array_name.c_str());
 
         TEMPLATE_DISPATCH(const teca_variant_array_impl,
-            array.get(), fprintf(ofile, "%s", vtk_tt<NT>::str());)
+            array.get(), fprintf(ofile, "%s",
+            teca_vtk_util::vtk_tt<NT>::str());
+            )
         else
         {
             TECA_ERROR("unsupported type encountered")
@@ -251,13 +195,13 @@ teca_vtk_cartesian_mesh_writer::~teca_vtk_cartesian_mesh_writer()
 #if defined(TECA_HAS_BOOST)
 // --------------------------------------------------------------------------
 void teca_vtk_cartesian_mesh_writer::get_properties_description(
-    const string &prefix, options_description &global_opts)
+    const std::string &prefix, options_description &global_opts)
 {
     options_description opts("Options for "
         + (prefix.empty()?"teca_vtk_cartesian_mesh_writer":prefix));
 
     opts.add_options()
-        TECA_POPTS_GET(string, prefix,file_name,
+        TECA_POPTS_GET(std::string, prefix,file_name,
             "path/name to write series to")
         TECA_POPTS_GET(int, prefix,binary,
             "if set write raw binary (ie smaller, faster)")
@@ -268,9 +212,9 @@ void teca_vtk_cartesian_mesh_writer::get_properties_description(
 
 // --------------------------------------------------------------------------
 void teca_vtk_cartesian_mesh_writer::set_properties(
-    const string &prefix, variables_map &opts)
+    const std::string &prefix, variables_map &opts)
 {
-    TECA_POPTS_SET(opts, string, prefix, file_name)
+    TECA_POPTS_SET(opts, std::string, prefix, file_name)
     TECA_POPTS_SET(opts, int, prefix, binary)
 }
 #endif
@@ -312,74 +256,15 @@ const_p_teca_dataset teca_vtk_cartesian_mesh_writer::execute(
     // if we have VTK then use their XML file formats
     // otherwise fallback to our legacy writer
 #if defined(TECA_HAS_VTK) || defined(TECA_HAS_PARAVIEW)
-    vector<unsigned long> extent(6, 0);
-    if (mesh->get_extent(extent) && request.get("extent", extent))
+    vtkRectilinearGrid *rg = vtkRectilinearGrid::New();
+
+    if (teca_vtk_util::deep_copy(rg, mesh))
     {
-        TECA_ERROR("request missing \"extent\"")
+        TECA_ERROR("Failed to copy to vtkRectilinearGrid")
         return nullptr;
     }
 
-    vtkRectilinearGrid *rg = vtkRectilinearGrid::New();
-    rg->SetExtent(
-        extent[0], extent[1],
-        extent[2], extent[3],
-        extent[4], extent[5]);
-
-    // transfer coordinates
-    const_p_teca_variant_array x = mesh->get_x_coordinates();
-    TEMPLATE_DISPATCH(const teca_variant_array_impl, x.get(),
-        const TT *xx = static_cast<const TT*>(x.get());
-        vtk_tt<NT>::type *a = vtk_tt<NT>::type::New();
-        a->SetNumberOfTuples(xx->size());
-        NT *p_a = a->GetPointer(0);
-        memcpy(p_a, xx->get(), sizeof(NT)*xx->size());
-        rg->SetXCoordinates(a);
-        a->Delete();
-        );
-
-    const_p_teca_variant_array y = mesh->get_y_coordinates();
-    TEMPLATE_DISPATCH(const teca_variant_array_impl, y.get(),
-        const TT *yy = static_cast<const TT*>(y.get());
-         vtk_tt<NT>::type *a = vtk_tt<NT>::type::New();
-        a->SetNumberOfTuples(yy->size());
-        NT *p_a = a->GetPointer(0);
-        memcpy(p_a, yy->get(), sizeof(NT)*yy->size());
-        rg->SetYCoordinates(a);
-        a->Delete();
-        )
-
-    const_p_teca_variant_array z = mesh->get_z_coordinates();
-    TEMPLATE_DISPATCH( const teca_variant_array_impl, z.get(),
-        const TT *zz = static_cast<const TT*>(z.get());
-        vtk_tt<NT>::type *a = vtk_tt<NT>::type::New();
-        a->SetNumberOfTuples(zz->size());
-        NT *p_a = a->GetPointer(0);
-        memcpy(p_a, zz->get(), sizeof(NT)*zz->size());
-        rg->SetZCoordinates(a);
-        a->Delete();
-        )
-
-    // transform point data
-    const_p_teca_array_collection pd = mesh->get_point_arrays();
-    unsigned int n_arrays = pd->size();
-    for (unsigned int i = 0; i< n_arrays; ++i)
-    {
-        const_p_teca_variant_array a = pd->get(i);
-        string name = pd->get_name(i);
-
-        TEMPLATE_DISPATCH(const teca_variant_array_impl, a.get(),
-            const TT *aa = static_cast<const TT*>(a.get());
-            vtk_tt<NT>::type *b = vtk_tt<NT>::type::New();
-            b->SetNumberOfTuples(aa->size());
-            b->SetName(name.c_str());
-            NT *p_b = b->GetPointer(0);
-            memcpy(p_b, aa->get(), sizeof(NT)*aa->size());
-            rg->GetPointData()->AddArray(b);
-            b->Delete();
-            )
-    }
-
-    string out_file = this->file_name;
+    std::string out_file = this->file_name;
     teca_file_util::replace_timestep(out_file, time_step);
 
     vtkXMLRectilinearGridWriter *w = vtkXMLRectilinearGridWriter::New();
@@ -456,7 +341,7 @@ const_p_teca_dataset teca_vtk_cartesian_mesh_writer::execute(
                "<DataSet timestep=\"" << time << "\" group=\"\" part=\"0\" "
                "file=\"" << out_file << "\"/>\n"
                "</Collection>\n"
-               "</VTKFile>" << endl;
+               "</VTKFile>" << std::endl;
         pvd_file.close();
     }
 #endif
