@@ -1,0 +1,67 @@
+<ServerManagerConfiguration>
+<ProxyGroup name="filters">
+    <!-- ==================================================================== -->
+    <SourceProxy class="vtkTECATimeAnnotation" label="TECA Time Annotation"
+                 name="TECATimeAnnotation">
+      <Documentation long_help="Shows input data time as text annnotation in the view."
+        short_help="Show data time as text.">
+        The Annotate Time filter can be used to show the data
+        time in a text annotation.
+      </Documentation>
+      <InputProperty command="SetInputConnection" name="Input">
+        <ProxyGroupDomain name="groups">
+          <Group name="sources" />
+          <Group name="filters" />
+        </ProxyGroupDomain>
+        <Documentation>
+          This property specifies the input dataset for which to
+          display the time.
+        </Documentation>
+      </InputProperty>
+
+      <IntVectorProperty
+        name="Year" command="SetIncludeYear" number_of_elements="1" default_values="1">
+        <BooleanDomain name="bool" />
+      </IntVectorProperty>
+
+      <IntVectorProperty
+        name="Month" command="SetIncludeMonth" number_of_elements="1" default_values="1">
+        <BooleanDomain name="bool" />
+      </IntVectorProperty>
+
+      <IntVectorProperty
+        name="Day" command="SetIncludeDay" number_of_elements="1" default_values="1">
+        <BooleanDomain name="bool" />
+      </IntVectorProperty>
+
+      <IntVectorProperty
+        name="Hour" command="SetIncludeHour" number_of_elements="1" default_values="1">
+        <BooleanDomain name="bool" />
+      </IntVectorProperty>
+
+      <IntVectorProperty
+        name="Minute" command="SetIncludeMinute" number_of_elements="1" default_values="1">
+        <BooleanDomain name="bool" />
+      </IntVectorProperty>
+
+      <IntVectorProperty
+        name="Second" command="SetIncludeSecond" number_of_elements="1" default_values="1">
+        <BooleanDomain name="bool" />
+      </IntVectorProperty>
+
+      <StringVectorProperty
+        name="Date Separator" command="SetDateSeparator" number_of_elements="1" default_values="-">
+      </StringVectorProperty>
+
+      <StringVectorProperty
+        name="Time Separator" command="SetTimeSeparator" number_of_elements="1" default_values=":">
+      </StringVectorProperty>
+
+      <Hints>
+        <Visibility replace_input="0" />
+        <OutputPort index="0" name="Output-0" type="text" />
+        <ShowInMenu category="TECA" />
+      </Hints>
+    </SourceProxy>
+</ProxyGroup>
+</ServerManagerConfiguration>
