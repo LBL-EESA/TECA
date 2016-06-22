@@ -11,7 +11,7 @@ if (TECA_HAS_PARAVIEW)
     set(plugin_srcs
         vtkTECATCCandidateTableReader.cxx
         vtkTECATCTrackTableReader.cxx
-        )
+        vtkTECACF2Reader.cxx)
 
     set(plugin_xml
         TECASMReaders.xml)
