@@ -437,6 +437,58 @@ ctest --output-on-failure
 % \section{Analsyis}
 % \section{Re-meshing}
 % \section{Output and Data Writers}
+\chapter{Tropical Cylone Detector}
+\section{NERSC}
+Once on Edison load the TECA module
+\begin{minted}{bash}
+module load teca
+\end{minted}
+note that there are multiple versions installed, just use the latest and greatest as they become available.
+
+Processing an entire dataset is straight forward once you know how many cores you want to run on. You will launch teca\_tc\_detect, the tropical cyclone application, from a SLURM batch script. A batch script is provided below. The most common options are:
+\begin{description}
+\item[--help] prints documentation for the most common options. MPI programs, such as teca\_tc\_detect aren't allowed to run on the login noes at NERSC. For this reason to use \textit{--help} you'll need to obtain a compute node via \textit{salloc} first.
+\item[--full\_help] prints documentation for all options. See \textit{--help} notes.
+\item[--input\_regex]this is how you tell TECA what files are in the dataset. We use the grep style regex, which must be quoted with single ticks to protect it from the shell. Regex meta characters present in the file name must be escaped with a \textbackslash. An example of an input regex which includes all .nc files is: '.*\textbackslash.nc\$'. If instead one wanted to grab only files from 2004-2005 then '.*\textbackslash.200[45].*\textbackslash.nc\$' would do the trick. For the best performance, specify the smallest set of files needed to achieve the desired result. Each of the files will be opened in order to scan the time axis.
+\item[--start\_date], an optional way to further specify the time range to process. The accepted format is a CF style human readable date spec such as YYYY-MM-DD hh:mm:ss. Because of the space in between day and hour spec quotes must be used. For example "2005-01-01 00:00:00". Specifying a start date is optional,  if none is given then all of the time steps in all of the files specified in the \textit{--input\_regex} are processed.
+\item[--end\_date] see \textit{--start\_date}. this is has a similar purpose in restricting the range of time steps processed.
+\item[--candidate\_file], a file name specifying where to write the storm candidates to. If not specified result will be written to candidates.bin in the current working directory. One sets the output format via the extension. Supported formats include csv, xlsx, and bin.
+\item[--track\_file], a file name specifying where to write the detected storm tracks. If not specified the tracks are written to a file named tracks.bin in the current working directory. See \textit{--candidate\_file} for information about the supported formats.
+\end{description}
+
+TECA can process any size dataset on any number of compute cores. However, the fastest results are attained when there is 1 time step per core. In order to set this up one must determine how many time steps there are and write the SLURM batch script accordingly. The teca\_metadata\_probe command line application can be used for this purpose. When executed with the same \textit{--input\_regex} and optionally the \textit{--start\_date} and or \textit{--end\_date} options that will be used in the cyclone detection run it will print out the information needed to configure a 1 to 1 (time steps to cores) run. The metadata probe is a serial application and can be run on the login nodes.
+
+\begin{minted}{bash}
+teca_metadata_probe --input_regex '.*\.199[0-9].*\.nc$'
+
+# A total of 29200 steps available in 3650 files. Using the noleap calendar.
+# Times are specified in units of days since 1979-01-01 00:00:00. The available
+# times range from 1990-1-1 3:0:0 (4015.12) to 2000-1-1 0:0:0 (7665).
+\end{minted}
+
+With the number of time steps in hand one can set up the SLURM batch script for the run. The following batch script, named \textit{1990s.sh}, processes the entire decade of the 1990's. The teca\_metadata\_probe was used to determine that there are 29200 time steps. The srun command is used to launch the cyclone detector on 29200 cores.
+\begin{minted}{bash}
+#!/bin/bash -l
+
+#SBATCH -p regular
+#SBATCH -N 1217
+#SBATCH -t 00:30:00
+
+data_dir=/scratch2/scratchdirs/prabhat/TCHero/data
+files_regex=cam5_1_amip_run2'\.cam2\.h2\.199[0-9].*.nc$'
+
+srun -n 29200 teca_tc_detect                    \
+    --input_regex ${data_dir}/${files_regex}    \
+    --candidate_file candidates_1990s.bin       \
+    --track_file tracks_1990s.xlsx
+\end{minted}
+Finally, the batch script must be submitted to the batch system requesting the appropriate number of nodes. In this case the command is:
+\begin{minted}{bash}
+$sbatch ./1990s.sh
+\end{minted}
+
+For the $\frac{1}{4}$ degree resolution dataset when processing latitudes between -90 to 90 the detctor runs in approx 15min. Detector run time could be reduced by subsetting in latitude (see \textit{--lowest\_lat}, \textit{--highest\_lat} options). Note that as the number of files in the dataset increases the metadata phase takes more time. You can use teca\_metadata\_probe to get a sense of how much more and extend the run time accordingly.
+
 \chapter{Python}
 TECA includes a diverse collection of I/O and analysis algorithms specific to climate science and extreme event detection. It's pipeline design allows these component algorithms to be quickly coupled together to construct complex data processing and analysis pipelines with minimal effort. TECA is written primarily in C++11 in order to deliver the highest possible performance and scalability. However, for non-computer scientists c+11 development can be intimidating, error prone, and time consuming. TECA's Python bindings offer a more approachable path for custom application and algorithm development.
 
