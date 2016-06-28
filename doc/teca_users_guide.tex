@@ -88,6 +88,7 @@ The full list of dependencies are:
 \vspace{2mm}\hspace{0.2in}\begin{minipage}{0.8\textwidth}
 \begin{description}
  \item[NetCDF 4:] Required for CF-2.0 file I/O
+ \item[HDF5:] Required by NetCDF 4
  \item[UDUNITS 2:] Required for calendaring
  \item[MPI 3:] Required for MPI parallel operation
  \item[Python, SWIG 3, NumPy:] required for Python bindings
@@ -97,53 +98,60 @@ The full list of dependencies are:
 \end{description}
 \end{minipage}\vspace{2mm}
 
-\subsubsection{Ubuntu 14.04}
-The following shows how to install dependencies on Ubuntu 14.04:
+At present time, the HDF5 library must be built with in thread-safe mode, 
+which in pre-1.10 releases requires the use of an ``unsupported" configuration.
+This means that it is necessary to build the HDF5 and NetCDF libraries from 
+source instead of using binary packages. While this can be done while using 
+binary packages for other dependencies, we recommend you use the \verb TECA_3rdparty 
+package, which builds TECA and all of its dependencies from source.
 
-\vspace{2mm}\hspace{0.2in}\begin{minipage}{0.8\textwidth}
-\begin{minted}[fontsize=\small]{bash}
-#!/bin/bash
-# setup repo with recent package versions
-sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-sudo add-apt-repository -y ppa:teward/swig3.0
-sudo apt-get update -qq
-# install deps
-sudo apt-get install -qq -y cmake gcc-5 g++-5 gfortran swig3.0 \
-    libopenmpi-dev openmpi-bin libhdf5-openmpi-dev libnetcdf-dev \
-    libboost-program-options-dev python-dev libudunits2-0 \
-    libudunits2-dev
-# use PIP for Python packages
-pip install --user numpy mpi4py
-\end{minted}
-\end{minipage}\vspace{2mm}
+%\subsubsection{Ubuntu 14.04}
+%The following shows how to install dependencies on Ubuntu 14.04:
+%
+%\vspace{2mm}\hspace{0.2in}\begin{minipage}{0.8\textwidth}
+%\begin{minted}[fontsize=\small]{bash}
+%#!/bin/bash
+%# setup repo with recent package versions
+%sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+%sudo add-apt-repository -y ppa:teward/swig3.0
+%sudo apt-get update -qq
+%# install deps
+%sudo apt-get install -qq -y cmake gcc-5 g++-5 gfortran swig3.0 \
+%    libopenmpi-dev openmpi-bin libhdf5-openmpi-dev libnetcdf-dev \
+%    libboost-program-options-dev python-dev libudunits2-0 \
+%    libudunits2-dev
+%# use PIP for Python packages
+%pip install --user numpy mpi4py
+%\end{minted}
+%\end{minipage}\vspace{2mm}
+%
+%\noindent Note that on more recent releases of Ubuntu one will not need to use PPA repos to obtain up to date packages.
+%Other Linux distros, such as Fedora, have a similar install procedure albeit with different package names. 
+%
+%\subsubsection{Apple Mac OSX Yosemite}
+%On Apple Mac OSX using homebrew to install the dependencies is recommended.
+%
+%\vspace{2mm}\hspace{0.2in}\begin{minipage}{0.8\textwidth}
+%\begin{minted}[fontsize=\small]{bash}
+%#!/bin/bash
+%brew update
+%brew tap Homebrew/homebrew-science
+%brew install gcc openmpi hdf5 netcdf python swig udunits
+%brew install boost --C++11
+%pip install numpy mpi4py
+%\end{minted}
+%\end{minipage}\vspace{2mm}
+%
+%\noindent We highly recommend taking a look a the output of \textbf{brew doctor} and
+%fixing all reported issues before attempting a TECA build. Significant
+%complications can arise where user's have mixed installation methods, such as mixing
+%installs from macports, homebrew, or manual installs. Multiple Python installations
+%can also be problematic. During configuration TECA reports the Python version detected,
+%one should verify that this is correct and if not set the paths manually.
 
-\noindent Note that on more recent releases of Ubuntu one will not need to use PPA repos to obtain up to date packages.
-Other Linux distros, such as Fedora, have a similar install procedure albeit with different package names. 
-
-\subsubsection{Apple Mac OSX Yosemite}
-On Apple Mac OSX using homebrew to install the dependencies is recommended.
-
-\vspace{2mm}\hspace{0.2in}\begin{minipage}{0.8\textwidth}
-\begin{minted}[fontsize=\small]{bash}
-#!/bin/bash
-brew update
-brew tap Homebrew/homebrew-science
-brew install gcc openmpi hdf5 netcdf python swig udunits
-brew install boost --C++11
-pip install numpy mpi4py
-\end{minted}
-\end{minipage}\vspace{2mm}
-
-\noindent We highly recommend taking a look a the output of \textbf{brew doctor} and
-fixing all reported issues before attempting a TECA build. Significant
-complications can arise where user's have mixed installation methods, such as mixing
-installs from macports, homebrew, or manual installs. Multiple Python installations
-can also be problematic. During configuration TECA reports the Python version detected,
-one should verify that this is correct and if not set the paths manually.
-
-\subsection{Compiling from Sources}
-TECA provides a superbuild for compiling all of the dependencies from source. First clone
-the superbuild.
+\subsection{Compiling from Source}
+The \verb TECA_3rdparty package provides a mechanism for compiling all of the 
+dependencies from source. To use it, you will need to clone the repository.
 
 \vspace{2mm}\hspace{0.2in}\begin{minipage}{0.8\textwidth}
 \begin{minted}[fontsize=\small]{bash}
