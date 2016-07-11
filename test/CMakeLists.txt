@@ -177,7 +177,7 @@ teca_add_test(test_tc_candidates_threads
     "${TECA_DATA_ROOT}/test_tc_candidates_1990_07_0[12]\\.nc"
     "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 ${TECA_TEST_CORES}
     U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
-    FEATURES (${TECA_HAS_NETCDF} AND ${TECA_HAS_MPI})
+    FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(test_tc_candidates_mpi_threads
@@ -195,4 +195,35 @@ teca_add_test(test_tc_trajectory
     COMMAND test_tc_trajectory
     "${TECA_DATA_ROOT}/cam5_1_amip_run2_candidates_2005_09.bin"
     "${TECA_DATA_ROOT}/cam5_1_amip_run2_tracks_2005_09.bin" 1600 17 2
+    REQ_TECA_DATA)
+
+teca_add_test(test_ar_detect_serial
+    COMMAND test_ar_detect
+    "${TECA_DATA_ROOT}/prw.*\\.nc" "${TECA_DATA_ROOT}/landsea.nc"
+    test_ar_detect.bin 0 -1 1 prw LSMASK
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_ar_detect_mpi
+    COMMAND ${MPIEXEC} -n ${TECA_TEST_CORES} test_ar_detect
+    "${TECA_DATA_ROOT}/prw.*\\.nc" "${TECA_DATA_ROOT}/landsea.nc"
+    test_ar_detect.bin 0 -1 1 prw LSMASK
+    FEATURES (${TECA_HAS_NETCDF} AND ${TECA_HAS_MPI})
+    REQ_TECA_DATA)
+
+teca_add_test(test_ar_detect_threads
+    EXEC_NAME test_ar_detect
+    SOURCES test_ar_detect.cpp teca_test_util.cxx
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_ar_detect
+    "${TECA_DATA_ROOT}/prw.*\\.nc" "${TECA_DATA_ROOT}/landsea.nc"
+    test_ar_detect.bin 0 -1 1 prw LSMASK
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_ar_detect_mpi_threads
+    COMMAND ${MPIEXEC} -n ${HALF_CORES} test_ar_detect
+    "${TECA_DATA_ROOT}/prw.*\\.nc" "${TECA_DATA_ROOT}/landsea.nc"
+    test_ar_detect.bin 0 -1 1 prw LSMASK
+    FEATURES (${TECA_HAS_NETCDF} AND ${TECA_HAS_MPI})
     REQ_TECA_DATA)
