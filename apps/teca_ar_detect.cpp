@@ -3,6 +3,8 @@
 #include "teca_temporal_average.h"
 #include "teca_cartesian_mesh_regrid.h"
 #include "teca_ar_detect.h"
+#include "teca_table_sort.h"
+#include "teca_table_calendar.h"
 #include "teca_table_reduce.h"
 #include "teca_table_writer.h"
 #include "teca_time_step_executive.h"
@@ -11,7 +13,12 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <chrono>
+
 using namespace std;
+
+using seconds_t =
+    std::chrono::duration<double, std::chrono::seconds::period>;
 
 #if defined(TECA_HAS_MPI)
 #include <mpi.h>
@@ -31,15 +38,10 @@ int main(int argc, char **argv)
 {
     teca_mpi_manager mpi_man(argc, argv);
     int rank = mpi_man.get_comm_rank();
-#if defined(TECA_TIME)
-    double tstart = 0.0;
-    if (rank == 0)
-    {
-        struct timeval stv;
-        gettimeofday(&stv, nullptr);
-        tstart = stv.tv_sec + stv.tv_usec/1.0e6;
-    }
-#endif
+
+    std::chrono::high_resolution_clock::time_point t0, t1;
+    if (mpi_man.get_comm_rank() == 0)
+        t0 = std::chrono::high_resolution_clock::now();
 
     // create pipeline objects here so that they
     // can be initialized from the command line
@@ -195,7 +197,7 @@ int main(int argc, char **argv)
     if (opt_vals.count("land_sea_mask_var"))
     {
         string var = opt_vals["land_sea_mask_var"].as<string>();
-        land_sea_mask_reader->set_file_name(var);
+        ar_detect->set_land_sea_mask_variable(var);
         land_sea_mask_regrid->add_source_array(var);
     }
 
@@ -280,26 +282,26 @@ int main(int argc, char **argv)
     // add map reduce stage
     map_reduce->set_input_connection(ar_detect->get_output_port());
 
+    // sort and compute dates
+    p_teca_table_sort sort = teca_table_sort::New();
+    sort->set_input_connection(map_reduce->get_output_port());
+    sort->set_index_column("time_step");
+
+    p_teca_table_calendar calendar = teca_table_calendar::New();
+    calendar->set_input_connection(sort->get_output_port());
+
     // writer
-    results_writer->set_input_connection(map_reduce->get_output_port());
+    results_writer->set_input_connection(calendar->get_output_port());
 
     // run the pipeline
     results_writer->update();
 
-#if defined(TECA_TIME)
-#if defined(TECA_HAS_MPI)
-    MPI_Barrier(MPI_COMM_WORLD);
-#endif
-    if (rank == 0)
+    if (mpi_man.get_comm_rank() == 0)
     {
-        struct timeval etv;
-        gettimeofday(&etv, nullptr);
-        double tend = etv.tv_sec + etv.tv_usec/1.0e6;
-        teca_metadata md = water_vapor_reader->update_metadata(0);
-        unsigned long n_time_steps;
-        md.get("number_of_time_steps", n_time_steps);
-        cerr << "teca_ar_detect " << n_time_steps << " " << tstart << " " << tend << " " << tend - tstart << endl;
+        t1 = std::chrono::high_resolution_clock::now();
+        seconds_t dt(t1 - t0);
+        TECA_STATUS("teca_ar_detect run_time=" << dt.count() << " sec")
     }
-#endif
+
     return 0;
 }

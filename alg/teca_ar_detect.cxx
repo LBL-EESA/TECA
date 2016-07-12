@@ -16,15 +16,11 @@
 #include <boost/program_options.hpp>
 #endif
 
-using std::ostream;
-using std::vector;
-using std::string;
-using std::ostringstream;
 using std::cerr;
 using std::endl;
 
 #define TECA_DEBUG 0
-#if TECA_DEBUG > 0 && (defined(TECA_HAS_VTK) || defined(TECA_HAS_PARAVIEW))
+#if TECA_DEBUG > 0
 #include "teca_vtk_cartesian_mesh_writer.h"
 #include "teca_programmable_algorithm.h"
 int write_mesh(
@@ -56,7 +52,7 @@ struct atmospheric_river
     double end_bot_lon;
 };
 
-ostream &operator<<(ostream &os, const atmospheric_river &ar)
+std::ostream &operator<<(std::ostream &os, const atmospheric_river &ar)
 {
     os << " type=" << (ar.pe ? "PE" : "AR")
         << " length=" << ar.length
@@ -131,16 +127,15 @@ teca_ar_detect::~teca_ar_detect()
 {}
 
 #if defined(TECA_HAS_BOOST)
-
 // --------------------------------------------------------------------------
 void teca_ar_detect::get_properties_description(
-    const string &prefix, options_description &opts)
+    const std::string &prefix, options_description &opts)
 {
     options_description ard_opts("Options for "
         + (prefix.empty()?"teca_ar_detect":prefix));
 
     ard_opts.add_options()
-        TECA_POPTS_GET(string, prefix, water_vapor_variable,
+        TECA_POPTS_GET(std::string, prefix, water_vapor_variable,
             "name of variable containing water vapor values")
         TECA_POPTS_GET(double, prefix, low_water_vapor_threshold,
             "low water vapor threshold")
@@ -172,7 +167,7 @@ void teca_ar_detect::get_properties_description(
             "minimum river width")
         TECA_POPTS_GET(double, prefix, river_length,
             "minimum river length")
-        TECA_POPTS_GET(string, prefix, land_sea_mask_variable,
+        TECA_POPTS_GET(std::string, prefix, land_sea_mask_variable,
             "name of variable containing land-sea mask values")
         TECA_POPTS_GET(double, prefix, land_threshold_low,
             "low land value")
@@ -185,9 +180,9 @@ void teca_ar_detect::get_properties_description(
 
 // --------------------------------------------------------------------------
 void teca_ar_detect::set_properties(
-    const string &prefix, variables_map &opts)
+    const std::string &prefix, variables_map &opts)
 {
-    TECA_POPTS_SET(opts, string, prefix, water_vapor_variable)
+    TECA_POPTS_SET(opts, std::string, prefix, water_vapor_variable)
     TECA_POPTS_SET(opts, double, prefix, low_water_vapor_threshold)
     TECA_POPTS_SET(opts, double, prefix, high_water_vapor_threshold)
     TECA_POPTS_SET(opts, double, prefix, search_lat_low)
@@ -203,7 +198,7 @@ void teca_ar_detect::set_properties(
     TECA_POPTS_SET(opts, double, prefix, percent_in_mesh)
     TECA_POPTS_SET(opts, double, prefix, river_width)
     TECA_POPTS_SET(opts, double, prefix, river_length)
-    TECA_POPTS_SET(opts, string, prefix, land_sea_mask_variable)
+    TECA_POPTS_SET(opts, std::string, prefix, land_sea_mask_variable)
     TECA_POPTS_SET(opts, double, prefix, land_threshold_low)
     TECA_POPTS_SET(opts, double, prefix, land_threshold_high)
 }
@@ -276,7 +271,7 @@ std::vector<teca_metadata> teca_ar_detect::get_upstream_request(
 #endif
     (void)port;
 
-    vector<teca_metadata> up_reqs;
+    std::vector<teca_metadata> up_reqs;
 
     teca_metadata md = input_md[0];
 
@@ -297,7 +292,7 @@ std::vector<teca_metadata> teca_ar_detect::get_upstream_request(
         return up_reqs;
     }
 
-    vector<unsigned long> extent(6, 0l);
+    std::vector<unsigned long> extent(6, 0l);
     if (this->get_active_extent(lat, lon, extent))
     {
         TECA_ERROR("failed to determine the active extent")
@@ -315,7 +310,7 @@ std::vector<teca_metadata> teca_ar_detect::get_upstream_request(
 #endif
 
     // build the request
-    vector<string> arrays;
+    std::vector<std::string> arrays;
     request.get("arrays", arrays);
     arrays.push_back(this->water_vapor_variable);
     if (!this->land_sea_mask_variable.empty())
@@ -374,67 +369,15 @@ const_p_teca_dataset teca_ar_detect::execute(
         land_sea_mask = lsm;
     }
 
-    // get time step
-    unsigned long time_step;
-    mesh->get_time_step(time_step);
-
-    // get units
-    std::string units;
-    mesh->get_time_units(units);
-    if ((units.find("days since") == string::npos) || (units.size() < 21))
-    {
-        TECA_ERROR("invalid time units" << endl << units)
-        return nullptr;
-    }
-
-    // base/origin date
-    long base_y = atoi(units.c_str() + 11);
-    long base_m = atoi(units.c_str() + 16);
-    long base_d = atoi(units.c_str() + 19);
-
-    // get calendar
-    std::string calendar;
-    mesh->get_calendar(calendar);
-
-    // compute the current date
-    long curr_y = 0;
-    long curr_m = 0;
-    long curr_d = 0;
-
-    if ((calendar == "standard") || (calendar == "gregorian"))
-    {
-        // assume units format is "days since YYYY-MM-DD"
-        if (!valid_gregorian_date(base_y, base_m, base_d))
-        {
-            TECA_ERROR("CF time:units convert to an invalid date" << endl
-                << units << " -> " << base_y << "-" << base_m << "-" << base_d)
-            return nullptr;
-        }
-        long base_g = gregorian_number(base_y, base_m, base_d);
-
-        // get offset of the current timestep
-        double curr_g = 0.0;
-        mesh->get_time(curr_g);
-
-        // make date calc
-        date_from_gregorian_number(
-            static_cast<long>(curr_g) + base_g, curr_y, curr_m, curr_d);
-    }
-
-#if TECA_DEBUG > 1
-    cerr << teca_parallel_id()
-        << " " << time_step << " "
-        << curr_y << "/" << curr_m << "/" << curr_d << endl;
-#endif
-
-    // get water vapor data
-    vector<unsigned long> extent;
+    // get the mesh extents
+    std::vector<unsigned long> extent;
     mesh->get_extent(extent);
 
     unsigned long num_rows = extent[3] - extent[2] + 1;
     unsigned long num_cols = extent[1] - extent[0] + 1;
     unsigned long num_rc = num_rows*num_cols;
 
+    // get water vapor data
     const_p_teca_variant_array water_vapor
         = mesh->get_point_arrays()->get(this->water_vapor_variable);
 
@@ -449,12 +392,29 @@ const_p_teca_dataset teca_ar_detect::execute(
     p_teca_table event = teca_table::New();
 
     event->declare_columns(
-        "year", int(), "month", int(), "day", int(),
-        "time_step", long(), "length", double(),
-        "min width", double(), "max width", double(),
-        "end_top_lat", double(), "end_top_lon", double(),
-        "end_bot_lat", double(), "end_bot_lon", double(),
-        "type", std::string());
+        "time", double(), "time_step", long(),
+        "length", double(), "min width", double(),
+        "max width", double(), "end_top_lat", double(),
+        "end_top_lon", double(), "end_bot_lat", double(),
+        "end_bot_lon", double(), "type", std::string());
+
+    // get calendar
+    std::string calendar;
+    mesh->get_calendar(calendar);
+    event->set_calendar(calendar);
+
+    // get units
+    std::string units;
+    mesh->get_time_units(units);
+    event->set_time_units(units);
+
+    // get time step
+    unsigned long time_step;
+    mesh->get_time_step(time_step);
+
+    // get offset of the current timestep
+    double time = 0.0;
+    mesh->get_time(time);
 
     TEMPLATE_DISPATCH(
         const teca_variant_array_impl,
@@ -472,33 +432,33 @@ const_p_teca_dataset teca_ar_detect::execute(
             static_cast<NT>(this->low_water_vapor_threshold),
             static_cast<NT>(this->high_water_vapor_threshold));
 
-#if TECA_DEBUG > 0 && (defined(TECA_HAS_VTK) || defined(TECA_HAS_PARAVIEW))
+#if TECA_DEBUG > 0
         p_teca_variant_array thresh = con_comp->new_copy();
 #endif
 
         // label
         int num_comp = sauf(num_rows, num_cols, p_con_comp);
 
-#if TECA_DEBUG > 0 && (defined(TECA_HAS_VTK) || defined(TECA_HAS_PARAVIEW))
-        write_mesh(mesh, water_vapor, thresh, con_comp, land_sea_mask, "ar_mesh");
+#if TECA_DEBUG > 0
+        write_mesh(mesh, water_vapor, thresh, con_comp,
+            land_sea_mask, "ar_mesh_%t%.%e%");
 #endif
 
         // detect ar
         atmospheric_river ar;
-        if (num_comp
-            && ar_detect(lat, lon, land_sea_mask, con_comp, num_comp,
-            this->river_start_lat_low, this->river_start_lon_low,
-            this->river_end_lat_low, this->river_end_lon_low,
-            this->river_end_lat_high, this->river_end_lon_high,
-            this->percent_in_mesh, this->river_width,
-            this->river_length, this->land_threshold_low,
-            this->land_threshold_high, ar))
+        if (num_comp &&
+            ar_detect(lat, lon, land_sea_mask, con_comp, num_comp,
+                this->river_start_lat_low, this->river_start_lon_low,
+                this->river_end_lat_low, this->river_end_lon_low,
+                this->river_end_lat_high, this->river_end_lon_high,
+                this->percent_in_mesh, this->river_width,
+                this->river_length, this->land_threshold_low,
+                this->land_threshold_high, ar))
         {
 #if TECA_DEBUG > 0
-            cerr << teca_parallel_id() << " event detected " << time_step
-                << " " << curr_y << "/" << curr_m << "/" << curr_d << endl;
+            cerr << teca_parallel_id() << " event detected " << time_step << endl;
 #endif
-            event << curr_y << curr_m << curr_d << time_step
+            event << time << time_step
                 << ar.length << ar.min_width << ar.max_width
                 << ar.end_top_lat << ar.end_top_lon
                 << ar.end_bot_lat << ar.end_bot_lon
@@ -510,7 +470,7 @@ const_p_teca_dataset teca_ar_detect::execute(
 }
 
 // --------------------------------------------------------------------------
-void teca_ar_detect::to_stream(ostream &os) const
+void teca_ar_detect::to_stream(std::ostream &os) const
 {
     os << " water_vapor_variable=" << this->water_vapor_variable
         << " land_sea_mask_variable=" << this->land_sea_mask_variable
@@ -732,7 +692,7 @@ unsigned sauf(const unsigned nrow, const unsigned ncol, unsigned *image)
 // criteria. retrun true if so.
 template<typename T>
 bool river_start_criteria_lat(
-    const vector<int> &con_comp_r,
+    const std::vector<int> &con_comp_r,
     const T *p_lat,
     T river_start_lat)
 {
@@ -749,7 +709,7 @@ bool river_start_criteria_lat(
 // criteria. retrun true if so.
 template<typename T>
 bool river_start_criteria_lon(
-    const vector<int> &con_comp_c,
+    const std::vector<int> &con_comp_c,
     const T *p_lon,
     T river_start_lon)
 {
@@ -767,8 +727,8 @@ bool river_start_criteria_lon(
 // in the bottom boundary.
 template<typename T>
 bool river_start_criteria(
-    const vector<int> &con_comp_r,
-    const vector<int> &con_comp_c,
+    const std::vector<int> &con_comp_r,
+    const std::vector<int> &con_comp_c,
     const T *p_lat,
     const T *p_lon,
     T start_lat,
@@ -786,8 +746,8 @@ bool river_start_criteria(
 // true.
 template<typename T>
 bool river_end_criteria(
-    const vector<int> &con_comp_r,
-    const vector<int> &con_comp_c,
+    const std::vector<int> &con_comp_r,
+    const std::vector<int> &con_comp_c,
     const T *p_lat,
     const T *p_lon,
     T river_end_lat_low,
@@ -798,7 +758,7 @@ bool river_end_criteria(
 {
     bool end_criteria = false;
 
-    vector<int> end_col_idx;
+    std::vector<int> end_col_idx;
 
     unsigned int count = con_comp_r.size();
     for (unsigned int i = 0; i < count; ++i)
@@ -892,8 +852,8 @@ T geodesic_distance(T lat1, T lon1, T lat2, T lon2)
 */
 template <typename T>
 T avg_width(
-    const vector<int> &con_comp_r,
-    const vector<int> &con_comp_c,
+    const std::vector<int> &con_comp_r,
+    const std::vector<int> &con_comp_c,
     T ar_len,
     const T *p_lat,
     const T *p_lon)
@@ -968,14 +928,14 @@ void geodesic_midpoint(T lat1, T lon1, T lat2, T lon2, T &mid_lat, T &mid_lon)
 */
 template<typename T>
 T medial_length(
-    const vector<int> &con_comp_r,
-    const vector<int> &con_comp_c,
+    const std::vector<int> &con_comp_r,
+    const std::vector<int> &con_comp_c,
     const T *p_lat,
     const T *p_lon)
 {
-    vector<int> jb_r1;
-    vector<int> jb_c1;
-    vector<int> jb_c2;
+    std::vector<int> jb_r1;
+    std::vector<int> jb_c1;
+    std::vector<int> jb_c2;
 
     long row_track = -1;
 
@@ -1045,8 +1005,8 @@ T medial_length(
 // and width of the river.
 template <typename T>
 bool river_geometric_criteria(
-    const vector<int> &con_comp_r,
-    const vector<int> &con_comp_c,
+    const std::vector<int> &con_comp_r,
+    const std::vector<int> &con_comp_c,
     const T *p_lat,
     const T *p_lon,
     double river_length,
@@ -1081,17 +1041,17 @@ T triangle_height(T base, T s1, T s2)
 // it's geometric properties
 template <typename T>
 bool river_geometric_criteria(
-    const vector<int> &con_comp_r,
-    const vector<int> &con_comp_c,
+    const std::vector<int> &con_comp_r,
+    const std::vector<int> &con_comp_c,
     const T *p_lat,
     const T *p_lon,
     double river_length,
     double river_width,
     atmospheric_river &ar)
 {
-    vector<int> distinct_rows;
-    vector<int> leftmost_col;
-    vector<int> rightmost_col;
+    std::vector<int> distinct_rows;
+    std::vector<int> leftmost_col;
+    std::vector<int> rightmost_col;
 
     int row_track = -1;
     size_t count = con_comp_r.size();
@@ -1219,9 +1179,9 @@ bool river_geometric_criteria(
 // must all be true.
 template<typename T>
 bool river_end_criteria(
-    const vector<int> &con_comp_r,
-    const vector<int> &con_comp_c,
-    const vector<bool> &land,
+    const std::vector<int> &con_comp_r,
+    const std::vector<int> &con_comp_c,
+    const std::vector<bool> &land,
     const T *p_lat,
     const T *p_lon,
     T river_end_lat_low,
@@ -1275,8 +1235,8 @@ bool river_end_criteria(
 // Junmin's function
 template<typename T>
 void classify_event(
-    const vector<int> &con_comp_r,
-    const vector<int> &con_comp_c,
+    const std::vector<int> &con_comp_r,
+    const std::vector<int> &con_comp_c,
     const T *p_lat,
     const T *p_lon,
     T start_lat,
@@ -1352,9 +1312,9 @@ bool ar_detect(
             {
                 // for all discrete connected component labels
                 // verify if there exists an AR
-                vector<int> con_comp_r;
-                vector<int> con_comp_c;
-                vector<bool> land;
+                std::vector<int> con_comp_r;
+                std::vector<int> con_comp_c;
+                std::vector<bool> land;
 
                 for (unsigned long r = 0, q = 0; r < num_rows; ++r)
                 {
@@ -1399,7 +1359,7 @@ bool ar_detect(
     return false;
 }
 
-#if TECA_DEBUG > 0 && (defined(TECA_HAS_VTK) || defined(TECA_HAS_PARAVIEW))
+#if TECA_DEBUG > 0
 // helper to dump a dataset for debugging
 int write_mesh(
     const const_p_teca_cartesian_mesh &mesh,
@@ -1407,7 +1367,7 @@ int write_mesh(
     const const_p_teca_variant_array &thresh,
     const const_p_teca_variant_array &ccomp,
     const const_p_teca_variant_array &lsmask,
-    const std::string &base_name)
+    const std::string &file_name)
 {
     p_teca_cartesian_mesh m = teca_cartesian_mesh::New();
     m->copy_metadata(mesh);
@@ -1419,42 +1379,20 @@ int write_mesh(
     pac->append("lsmask", std::const_pointer_cast<teca_variant_array>(lsmask));
 
     p_teca_programmable_algorithm s = teca_programmable_algorithm::New();
+    s->set_number_of_input_connections(0);
     s->set_number_of_output_ports(1);
-    s->set_execute_function(
-        [m] (unsigned int, const std::vector<teca_metadata> &,
-            const teca_metadata &) -> const_p_teca_dataset { return m; }
+    s->set_execute_callback(
+        [m] (unsigned int, const std::vector<const_p_teca_dataset> &,
+        const teca_metadata &) -> const_p_teca_dataset { return m; }
         );
 
     p_teca_vtk_cartesian_mesh_writer w
         = teca_vtk_cartesian_mesh_writer::New();
 
-    w->set_base_file_name(base_name);
+    w->set_file_name(file_name);
     w->set_input_connection(s->get_output_port());
     w->update();
 
     return 0;
 }
 #endif
-
-/* some of the datasets have date array with calcs already made!
-    // get date
-    // TODO -- handle date in a unform manner
-    long YYYY = 0;
-    long MM = 0;
-    long DD = 0;
-    const_p_teca_variant_array date
-        = mesh->get_information_arrays()->get("date");
-
-    if (date)
-    {
-        TEMPLATE_DISPATCH(
-            const teca_variant_array_impl,
-            date.get(),
-
-            NT d = dynamic_cast<TT*>(date.get())->get()[0];
-            YYYY = static_cast<long>(d)/10000l;
-            MM = (static_cast<long>(d) - YYYY*10000l)/100l;
-            DD = static_cast<long>(d) - YYYY*10000l - MM*100l;
-            )
-    }
-*/
