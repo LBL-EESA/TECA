@@ -49,6 +49,59 @@ int index_of(const T *data, size_t l, size_t r, T val, bool lower, unsigned long
     return -1;
 }
 
+template <typename T>
+bool equal(T a, T b, T tol)
+{
+    T diff = std::abs(a - b);
+    a = std::abs(a);
+    b = std::abs(b);
+    b = (b > a) ? b : a;
+    if (diff <= (b*tol))
+        return true;
+    return false;
+}
+
+// binary search that will locate index of the given value.
+// return 0 if the value is found.
+template <typename T>
+int index_of(const T *data, size_t l, size_t r, T val, unsigned long &id)
+{
+    unsigned long m_0 = (r + l)/2;
+    unsigned long m_1 = m_0 + 1;
+
+    if (m_0 == r)
+    {
+        // not found
+        return -1;
+    }
+    else
+    if (equal(val, data[m_0], T(8)*std::numeric_limits<T>::epsilon()))
+	{
+        id = m_0;
+        return 0;
+    }
+    else
+    if (equal(val, data[m_1], T(8)*std::numeric_limits<T>::epsilon()))
+	{
+        id = m_1;
+        return 0;
+    }
+    else
+    if (val < data[m_0])
+    {
+        // split range to the left
+        return teca_coordinate_util::index_of(data, l, m_0, val, id);
+    }
+    else
+    {
+        // split the range to the right
+        return teca_coordinate_util::index_of(data, m_1, r, val, id);
+    }
+
+    // not found
+    return -1;
+}
+
 // return the extent corresponding to the
 // supplied bounding box. when cover_bbox is true the
 // bounds of the returned extent covers the supplied

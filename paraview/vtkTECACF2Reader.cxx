@@ -39,6 +39,8 @@
 #include <cmath>
 #include <sstream>
 
+namespace internal
+{
 // helper class that interfaces to TECA's pipeline
 // and extracts and converts the dataset.
 struct teca_vtk_dataset_bridge
@@ -74,7 +76,7 @@ struct teca_vtk_dataset_bridge
 
         unsigned long time_step = 0;
         if (teca_coordinate_util::index_of(times.data(), 0,
-            times.size()-1, m_time, true, time_step))
+            times.size()-1, m_time, time_step))
         {
             TECA_ERROR("failed to locate the time step for " << m_time)
             return std::vector<teca_metadata>(1);
@@ -116,7 +118,7 @@ struct teca_vtk_dataset_bridge
     std::vector<std::string> m_active_arrays;
     vtkRectilinearGrid *m_output;
 };
-
+};
 
 //-----------------------------------------------------------------------------
 vtkStandardNewMacro(vtkTECACF2Reader);
@@ -457,7 +459,7 @@ int vtkTECACF2Reader::RequestData(
   outInfo->Set(vtkDataObject::DATA_TIME_STEP(), time);
 
   // hook up the TECA pipeline
-  teca_vtk_dataset_bridge bridge(ext, time, active_arrays, output);
+  internal::teca_vtk_dataset_bridge bridge(ext, time, active_arrays, output);
 
   p_teca_programmable_algorithm alg = teca_programmable_algorithm::New();
   alg->set_request_callback(bridge);
