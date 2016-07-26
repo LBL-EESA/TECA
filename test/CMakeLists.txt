@@ -197,6 +197,14 @@ teca_add_test(test_tc_trajectory
     "${TECA_DATA_ROOT}/cam5_1_amip_run2_tracks_2005_09.bin" 1600 17 2
     REQ_TECA_DATA)
 
+teca_add_test(test_tc_classify
+    SOURCES test_tc_classify.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_tc_classify
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2_tracks_2005_09.bin"
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2_classify_2005_09.bin"
+    REQ_TECA_DATA)
+
 teca_add_test(test_ar_detect_serial
     COMMAND test_ar_detect
     "${TECA_DATA_ROOT}/prw.*\\.nc" "${TECA_DATA_ROOT}/landsea.nc"
