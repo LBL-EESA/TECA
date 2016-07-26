@@ -17,6 +17,7 @@
 #include "teca_table_reduce.h"
 #include "teca_table_to_stream.h"
 #include "teca_tc_candidates.h"
+#include "teca_tc_trajectory.h"
 #include "teca_temporal_average.h"
 #include "teca_vorticity.h"
 #include "teca_py_object.h"
@@ -199,6 +200,14 @@
 %shared_ptr(teca_tc_candidates)
 %ignore teca_tc_candidates::operator=;
 %include "teca_tc_candidates.h"
+
+/***************************************************************************
+ tc_trajectory
+ ***************************************************************************/
+%ignore teca_tc_trajectory::shared_from_this;
+%shared_ptr(teca_tc_trajectory)
+%ignore teca_tc_trajectory::operator=;
+%include "teca_tc_trajectory.h"
 
 /***************************************************************************
  dataset_diff
