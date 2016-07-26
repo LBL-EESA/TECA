@@ -220,8 +220,8 @@ int teca_tc_trajectory(
 
                     track_table << track_id << storm_uid[storm_id]
                         << time_step[storm_id] << time[storm_id] << d_lon[storm_id]
-                        << d_lat[storm_id] << duration << wind_duration << psl[storm_id]
-                        << wind_max[storm_id] << vort_max[storm_id] << have_twc[storm_id]
+                        << d_lat[storm_id] << duration << wind_duration << wind_max[storm_id]
+                        << vort_max[storm_id] << psl[storm_id] << have_twc[storm_id]
                         << have_thick[storm_id] << twc_max[storm_id] << thick_max[storm_id];
                 }
 
