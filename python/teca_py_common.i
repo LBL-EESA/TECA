@@ -24,6 +24,7 @@ p_##to_t as_##to_t(p_##from_t in_inst)
     p_##to_t o_inst = std::dynamic_pointer_cast<to_t>(in_inst);
     if (!o_inst)
     {
+        teca_py_gil_state gil;
         PyErr_Format(PyExc_TypeError,
             "Failed to convert from \"%s\" to \"%s\"", #from_t, #to_t);
     }
@@ -35,6 +36,7 @@ const_p_##to_t as_const_##to_t(const_p_##from_t inst)
     const_p_##to_t o_inst = std::dynamic_pointer_cast<const to_t>(inst);
     if (!o_inst)
     {
+        teca_py_gil_state gil;
         PyErr_Format(PyExc_TypeError,
             "Failed to convert from \"%s\" to \"%s\"", #from_t, #to_t);
     }
@@ -58,6 +60,7 @@ as_teca_##to_t_name##_array(p_teca_variant_array in_inst)
 
     if (!o_inst)
     {
+        teca_py_gil_state gil;
         PyErr_Format(PyExc_TypeError,
             "Failed to convert teca_variant_array  to teca_" #to_t_name "_array");
     }
@@ -73,6 +76,7 @@ as_const_teca_##to_t_name##_array(const_p_teca_variant_array in_inst)
 
     if (!o_inst)
     {
+        teca_py_gil_state gil;
         PyErr_Format(PyExc_TypeError,
             "Failed to convert const_teca_variant_array  to const_teca_" #to_t_name "_array");
     }
