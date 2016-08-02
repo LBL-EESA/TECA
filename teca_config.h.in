@@ -7,6 +7,7 @@
 #cmakedefine TECA_HAS_BOOST
 #cmakedefine TECA_HAS_VTK
 #cmakedefine TECA_HAS_PARAVIEW
+#cmakedefine TECA_HAS_CGAL
 #cmakedefine TECA_HAS_PYTHON
 #cmakedefine TECA_HAS_LIBXLSXWRITER
 #cmakedefine TECA_HAS_UDUNITS

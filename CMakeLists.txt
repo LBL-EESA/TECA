@@ -136,6 +136,17 @@ if (NOT TECA_HAS_PARAVIEW)
 endif()
 set(TECA_HAS_VTK ${tmp} CACHE BOOL "VTK features")
 
+# configure for CGAL
+set(tmp OFF)
+find_package(CGAL)
+if (CGAL_FOUND AND ((DEFINED TECA_HAS_CGAL AND TECA_HAS_CGAL) OR (NOT DEFINED TECA_HAS_CGAL)))
+    message(STATUS "CGAL features -- enabled")
+    set(tmp ON)
+else()
+    message(STATUS "CGAL features -- not found. set CGAL_DIR to enable.")
+endif()
+set(TECA_HAS_CGAL ${tmp} CACHE BOOL "CGAL features")
+
 #configure for Boost
 set(tmp OFF)
 find_package(Boost QUIET COMPONENTS program_options)
