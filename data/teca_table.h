@@ -61,6 +61,20 @@ public:
     std::string get_column_name(unsigned int i) const
     { return m_impl->columns->get_name(i); }
 
+    // add a column
+    int append_column(p_teca_variant_array array)
+    { return m_impl->columns->append(array); }
+
+    int append_column(const std::string &name, p_teca_variant_array array)
+    { return m_impl->columns->append(name, array); }
+
+    // remove a column
+    int remove_column(unsigned int i)
+    { return m_impl->columns->remove(i); }
+
+    int remove_column(const std::string &name)
+    { return m_impl->columns->remove(name); }
+
     // default initialize n rows of data
     void resize(unsigned long n);
 
