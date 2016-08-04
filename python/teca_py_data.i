@@ -22,6 +22,20 @@
     }
 %enddef
 
+/***************************************************************************/
+%define TECA_DATASET_PY_VECTOR_PROPERTY(_type, _name)
+    PyObject *get_ ## _name()
+    {
+        std::vector<_type> vals;
+        self->get_ ## _name(vals);
+        size_t nvals = vals.size();
+        PyObject *list = PyList_New(nvals);
+        for (size_t i = 0; i < nvals; ++i)
+            PyList_SetItem(list, i, teca_py_object::py_tt<_type>::new_object(vals[i]));
+        return list;
+    }
+%enddef
+
 /***************************************************************************
  array_collection
  ***************************************************************************/
@@ -105,8 +119,13 @@ TECA_PY_DYNAMIC_CAST(teca_mesh, teca_dataset)
 %ignore teca_cartesian_mesh::operator=;
 %ignore teca_cartesian_mesh::get_time(double *) const;
 %ignore teca_cartesian_mesh::get_time_step(unsigned long *) const;
+%ignore teca_cartesian_mesh::get_extent(unsigned long *) const;
+%ignore teca_cartesian_mesh::get_extent(std::vector<unsigned long>&) const;
+%ignore teca_cartesian_mesh::get_whole_extent(unsigned long *) const;
+%ignore teca_cartesian_mesh::get_whole_extent(std::vector<unsigned long>&) const;
 %ignore teca_cartesian_mesh::set_calendar(std::string const *);
 %ignore teca_cartesian_mesh::set_time_units(std::string const *);
+
 %include "teca_cartesian_mesh_fwd.h"
 %include "teca_cartesian_mesh.h"
 TECA_PY_DYNAMIC_CAST(teca_cartesian_mesh, teca_dataset)
@@ -118,6 +137,8 @@ TECA_PY_DYNAMIC_CAST(teca_cartesian_mesh, teca_dataset)
     TECA_DATASET_PY_PROPERTY(unsigned long, time_step)
     TECA_DATASET_PY_PROPERTY(std::string, calendar)
     TECA_DATASET_PY_PROPERTY(std::string, time_units)
+    TECA_DATASET_PY_VECTOR_PROPERTY(unsigned long, extent)
+    TECA_DATASET_PY_VECTOR_PROPERTY(unsigned long, whole_extent)
 }
 
 /***************************************************************************
