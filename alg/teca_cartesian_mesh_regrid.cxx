@@ -20,72 +20,13 @@ using std::endl;
 
 //#define TECA_DEBUG
 
-// convert an extent from the target coordinate system
-// into an extent in the source coordinate system
-// get the extent in the source
-int convert_extent(
-    const vector<unsigned long> &target_ext,
-    const const_p_teca_variant_array &target_x,
-    const const_p_teca_variant_array &target_y,
-    const const_p_teca_variant_array &target_z,
-    const const_p_teca_variant_array &source_x,
-    const const_p_teca_variant_array &source_y,
-    const const_p_teca_variant_array &source_z,
-    vector<unsigned long> &source_ext)
-{
-    NESTED_TEMPLATE_DISPATCH_FP(
-        const teca_variant_array_impl,
-        target_x.get(),
-        1,
-
-        const NT1 *p_target_x = std::dynamic_pointer_cast<TT1>(target_x)->get();
-        const NT1 *p_target_y = std::dynamic_pointer_cast<TT1>(target_y)->get();
-        const NT1 *p_target_z = std::dynamic_pointer_cast<TT1>(target_z)->get();
-
-        NESTED_TEMPLATE_DISPATCH_FP(
-            const teca_variant_array_impl,
-            source_x.get(),
-            2,
-
-            const NT2 *p_source_x = std::dynamic_pointer_cast<TT2>(source_x)->get();
-            const NT2 *p_source_y = std::dynamic_pointer_cast<TT2>(source_y)->get();
-            const NT2 *p_source_z = std::dynamic_pointer_cast<TT2>(source_z)->get();
-
-            return teca_coordinate_util::bounds_to_extent(
-                static_cast<NT2>(p_target_x[target_ext[0]]),
-                static_cast<NT2>(p_target_x[target_ext[1]]),
-                static_cast<NT2>(p_target_y[target_ext[2]]),
-                static_cast<NT2>(p_target_y[target_ext[3]]),
-                static_cast<NT2>(p_target_z[target_ext[4]]),
-                static_cast<NT2>(p_target_z[target_ext[5]]),
-                p_source_x, p_source_y, p_source_z,
-                source_x->size() - 1,
-                source_y->size() - 1,
-                source_z->size() - 1,
-                true, source_ext);
-            )
-        )
-
-    // unsupported coordinate type
-    return -1;
-}
-
 // 0 order (nearest neighbor) interpolation
 // for nodal data on stretched cartesian mesh.
 template<typename CT, typename DT>
-int interpolate_nearest(
-    CT cx,
-    CT cy,
-    CT cz,
-    const CT *p_x,
-    const CT *p_y,
-    const CT *p_z,
-    const DT *p_data,
-    unsigned long ihi,
-    unsigned long jhi,
-    unsigned long khi,
-    unsigned long nx,
-    unsigned long nxy,
+int interpolate_nearest(CT cx, CT cy, CT cz,
+    const CT *p_x, const CT *p_y, const CT *p_z,
+    const DT *p_data, unsigned long ihi, unsigned long jhi,
+    unsigned long khi, unsigned long nx, unsigned long nxy,
     DT &val)
 {
     // get i,j of node less than cx,cy
@@ -246,8 +187,7 @@ teca_metadata teca_cartesian_mesh_regrid::get_output_metadata(
 
 // --------------------------------------------------------------------------
 std::vector<teca_metadata> teca_cartesian_mesh_regrid::get_upstream_request(
-    unsigned int port,
-    const std::vector<teca_metadata> &input_md,
+    unsigned int port, const std::vector<teca_metadata> &input_md,
     const teca_metadata &request)
 {
     (void)port;
@@ -289,9 +229,6 @@ std::vector<teca_metadata> teca_cartesian_mesh_regrid::get_upstream_request(
         this->source_arrays.end(), std::back_inserter(arrays));
 
     // get the target extent and coordinates
-    vector<unsigned long> target_extent(6, 0l);
-    request.get("extent", target_extent);
-
     teca_metadata target_coords;
     p_teca_variant_array target_x;
     p_teca_variant_array target_y;
@@ -306,37 +243,42 @@ std::vector<teca_metadata> teca_cartesian_mesh_regrid::get_upstream_request(
         return up_reqs;
     }
 
-    // get the source extent and coordinates
-    teca_metadata source_coords;
-    p_teca_variant_array source_x;
-    p_teca_variant_array source_y;
-    p_teca_variant_array source_z;
-
-    if (input_md[1].get("coordinates", source_coords)
-        || !(source_x = source_coords.get("x"))
-        || !(source_y = source_coords.get("y"))
-        || !(source_z = source_coords.get("z")))
+    // get the actual bounds of what we will be served
+    // with this will be a region covering the requested
+    // bounds. we need to insure that source data covers
+    // this region, not just the requested bounds.
+    double request_bounds[6] = {0.0};
+    unsigned long target_extent[6] = {0l};
+    if (request.get("bounds", request_bounds, 6))
     {
-        TECA_ERROR("failed to locate source mesh coordinates")
-        return up_reqs;
+        if (request.get("extent", target_extent, 6))
+        {
+            TECA_ERROR("neither \"bounds\" nor \"extent\" has been requested")
+            return up_reqs;
+        }
+    }
+    else
+    {
+        if (teca_coordinate_util::bounds_to_extent(request_bounds,
+            target_x, target_y, target_z, target_extent))
+        {
+            TECA_ERROR("invalid bounds requested.")
+            return up_reqs;
+        }
     }
 
-    // map the target extent to the source mesh
-    vector<unsigned long> source_extent(6, 0l);
-    if (convert_extent(
-        target_extent,
-        target_x, target_y, target_z,
-        source_x, source_y, source_z,
-        source_extent))
-    {
-        TECA_ERROR("failed to convert from target to source extent")
-        return up_reqs;
-    }
+    double target_bounds[6] = {0.0};
+    target_x->get(target_extent[0], target_bounds[0]);
+    target_x->get(target_extent[1], target_bounds[1]);
+    target_y->get(target_extent[2], target_bounds[2]);
+    target_y->get(target_extent[3], target_bounds[3]);
+    target_z->get(target_extent[4], target_bounds[4]);
+    target_z->get(target_extent[5], target_bounds[5]);
 
-    // build the request
+    // build the source request
     teca_metadata source_req(target_req);
     source_req.insert("arrays", arrays);
-    source_req.insert("extent", source_extent);
+    source_req.insert("bounds", target_bounds, 6);
 
     // send the requests up
     up_reqs[0] = target_req;

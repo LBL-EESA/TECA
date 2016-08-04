@@ -2,6 +2,7 @@
 #include "teca_file_util.h"
 #include "teca_cartesian_mesh.h"
 #include "teca_thread_pool.h"
+#include "teca_coordinate_util.h"
 
 #include <netcdf.h>
 #include <iostream>
@@ -875,6 +876,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
     return this->internals->metadata;
 }
 
+
 // --------------------------------------------------------------------------
 const_p_teca_dataset teca_cf_reader::execute(
     unsigned int,
@@ -917,8 +919,27 @@ const_p_teca_dataset teca_cf_reader::execute(
     }
 
     unsigned long extent[6] = {0};
-    if (request.get("extent", extent, 6))
-        memcpy(extent, whole_extent, 6*sizeof(unsigned long));
+    double bounds[6] = {0.0};
+    if (request.get("bounds", bounds, 6))
+    {
+        // bounds key not present, check for extent key
+        // if not present use whole_extent
+        if (request.get("extent", extent, 6))
+        {
+            memcpy(extent, whole_extent, 6*sizeof(unsigned long));
+        }
+    }
+    else
+    {
+        // bounds key was present, convert the bounds to an
+        // an extent that covers them.
+        if (teca_coordinate_util::bounds_to_extent(
+            bounds, in_x, in_y, in_z, extent))
+        {
+            TECA_ERROR("invalid bounds requested.")
+            return nullptr;
+        }
+    }
 
     // requesting arrays is optional, but it's an error
     // to request an array that isn't present.
