@@ -53,7 +53,7 @@ teca_add_test(test_cf_reader
     LIBS teca_core teca_data teca_io ${teca_test_link}
     COMMAND test_cf_reader
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-[0-9][0-9]-10800\\.nc"
-    "test_cf_reader_%t%.vtk" 1 2 lon lat "." time U850 V850
+    "test_cf_reader_%t%.%e%" 1 2 lon lat "." time U850 V850
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
@@ -62,7 +62,7 @@ teca_add_test(test_connected_components
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_connected_components
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
-    lon lat "." time U850 V850 0 0 15 "test_connected_components_%t%.vtk"
+    lon lat "." time U850 V850 0 0 15 "test_connected_components_%t%.%e%"
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
@@ -72,7 +72,7 @@ teca_add_test(test_cartesian_mesh_regrid
     COMMAND test_cartesian_mesh_regrid
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-01-10800\\.nc"
     lon lat "." time 1 PSL "${TECA_DATA_ROOT}/landsea\\.nc" lon lat "." "." 1 LSMASK
-    test_cartesian_mesh_regrid.vtk 0 0 1 359 -89 89 0 0
+    test_cartesian_mesh_regrid.%e% 0 0 1 359 -89 89 0 0
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
@@ -81,7 +81,7 @@ teca_add_test(test_temporal_average
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_temporal_average
     "${TECA_DATA_ROOT}/cam5_1_amip_run2.cam2.h2.1991-10-01-10800.nc"
-    test_temporal_average_%t%.vtk 0 -1 3 U850
+    test_temporal_average_%t%.%e% 0 -1 3 U850
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 

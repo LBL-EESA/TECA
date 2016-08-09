@@ -128,6 +128,14 @@ int bounds_to_extent(
     return 0;
 }
 
+// convert bounds to extents
+// return non-zero if the requested bounds are not in
+// the given coordinate arrays. coordinate arrays must
+// not be empty.
+int bounds_to_extent(const double *bounds,
+    const_p_teca_variant_array x, const_p_teca_variant_array y,
+    const_p_teca_variant_array z, unsigned long *extent);
+
 // get the i,j,k cell index of point x,y,z in the given mesh.
 // return 0 if successful.
 template<typename T>

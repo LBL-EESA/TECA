@@ -221,45 +221,6 @@ teca_metadata teca_ar_detect::get_output_metadata(
 }
 
 // --------------------------------------------------------------------------
-int teca_ar_detect::get_active_extent(
-    p_teca_variant_array lat,
-    p_teca_variant_array lon,
-    std::vector<unsigned long> &extent) const
-{
-    extent.resize(6, 0l);
-
-    TEMPLATE_DISPATCH_FP(
-        teca_variant_array_impl,
-        lat.get(),
-
-        unsigned long high_j = lat->size() - 1;
-        NT *p_lat = std::dynamic_pointer_cast<TT>(lat)->get();
-
-        unsigned long high_i = lon->size() - 1;
-        NT *p_lon = std::dynamic_pointer_cast<TT>(lon)->get();
-
-        if (teca_coordinate_util::index_of(p_lon, 0, high_i, static_cast<NT>(this->search_lon_low), false, extent[0])
-            || teca_coordinate_util::index_of(p_lon, 0, high_i, static_cast<NT>(this->search_lon_high), true, extent[1])
-            || teca_coordinate_util::index_of(p_lat, 0, high_j, static_cast<NT>(this->search_lat_low), false, extent[2])
-            || teca_coordinate_util::index_of(p_lat, 0, high_j, static_cast<NT>(this->search_lat_high), true, extent[3]))
-        {
-            TECA_ERROR(
-                << "search space ["
-                << this->search_lon_low << ", " << this->search_lon_high << ", "
-                << this->search_lat_low << ", " << this->search_lat_high
-                << "] is not contained in the current dataset bounds ["
-                << p_lon[0] << ", " << p_lon[high_i] << ", "
-                << p_lat[0] << ", " << p_lat[high_j] << "]")
-            return -1;
-        }
-        return 0;
-        )
-
-    TECA_ERROR("invalid coordinate array type")
-    return -1;
-}
-
-// --------------------------------------------------------------------------
 std::vector<teca_metadata> teca_ar_detect::get_upstream_request(
     unsigned int port,
     const std::vector<teca_metadata> &input_md,
@@ -292,22 +253,9 @@ std::vector<teca_metadata> teca_ar_detect::get_upstream_request(
         return up_reqs;
     }
 
-    std::vector<unsigned long> extent(6, 0l);
-    if (this->get_active_extent(lat, lon, extent))
-    {
-        TECA_ERROR("failed to determine the active extent")
-        return up_reqs;
-    }
-
-#if TECA_DEBUG > 1
-    cerr << teca_parallel_id() << "active_bound = "
-        << this->search_lon_low<< ", " << this->search_lon_high
-        << ", " << this->search_lat_low << ", " << this->search_lat_high
-        << endl;
-    cerr << teca_parallel_id() << "active_extent = "
-        << extent[0] << ", " << extent[1] << ", " << extent[2] << ", "
-        << extent[3] << ", " << extent[4] << ", " << extent[5] << endl;
-#endif
+    std::vector<double> bounds = {this->search_lon_low,
+        this->search_lon_high, this->search_lat_low,
+        this->search_lat_high, 0.0, 0.0};
 
     // build the request
     std::vector<std::string> arrays;
@@ -318,7 +266,7 @@ std::vector<teca_metadata> teca_ar_detect::get_upstream_request(
 
     teca_metadata up_req(request);
     up_req.insert("arrays", arrays);
-    up_req.insert("extent", extent);
+    up_req.insert("bounds", bounds);
 
     up_reqs.push_back(up_req);
     return up_reqs;

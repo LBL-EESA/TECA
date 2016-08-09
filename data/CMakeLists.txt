@@ -9,6 +9,7 @@ include_directories(
 set(teca_data_srcs
     teca_array_collection.cxx
     teca_cartesian_mesh.cxx
+    teca_coordinate_util.cxx
     teca_mesh.cxx
     teca_table.cxx
     teca_table_collection.cxx

@@ -118,8 +118,7 @@ public:
     // set a variant array directly. replaces the current value and does
     // nothing if the property doesn't exist. return 0
     // on success.
-    int set(
-        const std::string &name,
+    int set(const std::string &name,
         p_teca_variant_array prop_val);
 
     // get prop value. return 0 if successful
@@ -134,8 +133,7 @@ public:
     // get n prop values to an array. see also get_size.
     // return 0 if successful
     template<typename T>
-    int get(
-        const std::string &name,
+    int get(const std::string &name,
         T *val, unsigned int n) const;
 
     // copy prop values from the named prop into the passed in vector.
@@ -152,7 +150,6 @@ public:
     // property doesn't exist
     p_teca_variant_array get(const std::string &name);
     const_p_teca_variant_array get(const std::string &name) const;
-
 
     // remove. return 0 if successful
     int remove(const std::string &name) noexcept;
