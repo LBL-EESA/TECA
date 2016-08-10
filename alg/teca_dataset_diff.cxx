@@ -94,13 +94,13 @@ const_p_teca_dataset teca_dataset_diff::execute(
     // If one dataset is empty but not the other, the datasets differ.
     if (input_data[0]->empty() && !input_data[1]->empty())
     {
-        datasets_differ("dataset 1 is empty, 2 is not.");
+        TECA_ERROR("dataset 1 is empty, 2 is not.")
         return nullptr;
     }
 
     if (!input_data[0]->empty() && input_data[1]->empty())
     {
-        datasets_differ("dataset 2 is empty, 1 is not.");
+        TECA_ERROR("dataset 2 is empty, 1 is not.")
         return nullptr;
     }
 
@@ -163,15 +163,17 @@ int teca_dataset_diff::compare_tables(
     // If the tables are different sizes, the datasets differ.
     if (table1->get_number_of_columns() != table2->get_number_of_columns())
     {
-        datasets_differ("table 1 has %d columns while table 2 has %d columns.",
-            table1->get_number_of_columns(), table2->get_number_of_columns());
+        TECA_ERROR("table 1 has " << table1->get_number_of_columns()
+            << " columns while table 2 has " << table2->get_number_of_columns()
+            << " columns.")
         return 1;
     }
 
     if (table1->get_number_of_rows() != table2->get_number_of_rows())
     {
-        datasets_differ("table 1 has %d rows while table 2 has %d rows.",
-            table1->get_number_of_rows(), table2->get_number_of_rows());
+        TECA_ERROR("table 1 has " << table1->get_number_of_rows()
+            << " rows while table 2 has " << table2->get_number_of_rows()
+            << " rows.")
         return 1;
     }
 
@@ -204,7 +206,8 @@ int teca_dataset_diff::compare_arrays(
     size_t n_elem = array1->size();
     if (n_elem != array2->size())
     {
-        datasets_differ("arrays have different sizes.");
+        TECA_ERROR("arrays have different sizes "
+            << n_elem << " and " << array2->size())
         return 1;
     }
 
@@ -217,7 +220,7 @@ int teca_dataset_diff::compare_arrays(
         const TT *a2 = dynamic_cast<const TT*>(array2.get());
         if (!a2)
         {
-            datasets_differ("arrays have different element types.");
+            TECA_ERROR("arrays have different element types.")
             return 1;
         }
 
@@ -241,9 +244,9 @@ int teca_dataset_diff::compare_arrays(
 
             if (rel_diff > this->tolerance)
             {
-                datasets_differ("relative difference %g exceeds tolerance %g in "
-                    "element %d. ref value \"%g\" is not equal to test value \"%g\"",
-                    rel_diff, this->tolerance, i, ref_val, comp_val);
+                TECA_ERROR("relative difference " << rel_diff << " exceeds tolerance "
+                    << this->tolerance << " in element " << i << ". ref value \""
+                    << ref_val << "\" is not equal to test value \"" << comp_val << "\"")
                 return 1;
             }
         }
@@ -266,7 +269,8 @@ int teca_dataset_diff::compare_arrays(
             const std::string &v2 = a2->get(i);
             if (v1 != v2)
             {
-                datasets_differ("string element %lu not equal", i);
+                TECA_ERROR("string element " << i << " not equal. ref value \"" << v1
+                    << "\" is not equal to test value \"" << v2 << "\"")
                 return 1;
             }
         }
@@ -276,8 +280,8 @@ int teca_dataset_diff::compare_arrays(
         )
 
     // we are here, array 1 type is not handled
-    datasets_differ("diff for the element type of "
-        "array1 is not implemented.");
+    TECA_ERROR("diff for the element type of "
+        "array1 is not implemented.")
     return 1;
 }
 
@@ -291,9 +295,9 @@ int teca_dataset_diff::compare_array_collections(
     {
         if (!data_arrays->has(reference_arrays->get_name(i)))
         {
-            datasets_differ("data array collection does not have %s, "
-                "found in reference array collection.",
-                reference_arrays->get_name(i).c_str());
+            TECA_ERROR("data array collection does not have array \""
+                 << reference_arrays->get_name(i)
+                 << "\" from the reference array collection.")
             return 1;
          }
     }
@@ -322,25 +326,25 @@ int teca_dataset_diff::compare_cartesian_meshes(
     if (reference_mesh->get_x_coordinates()->size()
         != data_mesh->get_x_coordinates()->size())
     {
-        datasets_differ("data mesh has %d points in x, whereas reference mesh has %d.",
-            static_cast<int>(reference_mesh->get_x_coordinates()->size()),
-            static_cast<int>(data_mesh->get_x_coordinates()->size()));
+        TECA_ERROR("data mesh has " << data_mesh->get_x_coordinates()->size()
+            << " points in x, whereas reference mesh has "
+            << reference_mesh->get_x_coordinates()->size() << ".")
         return 1;
     }
     if (reference_mesh->get_y_coordinates()->size()
         != data_mesh->get_y_coordinates()->size())
     {
-        datasets_differ("data mesh has %d points in y, whereas reference mesh has %d.",
-            static_cast<int>(reference_mesh->get_y_coordinates()->size()),
-            static_cast<int>(data_mesh->get_y_coordinates()->size()));
+        TECA_ERROR("data mesh has " << data_mesh->get_y_coordinates()->size()
+            << " points in y, whereas reference mesh has "
+            << reference_mesh->get_y_coordinates()->size() << ".")
         return 1;
     }
     if (reference_mesh->get_z_coordinates()->size()
         != data_mesh->get_z_coordinates()->size())
     {
-        datasets_differ("data mesh has %d points in z, whereas reference mesh has %d.",
-            static_cast<int>(reference_mesh->get_z_coordinates()->size()),
-            static_cast<int>(data_mesh->get_z_coordinates()->size()));
+        TECA_ERROR("data mesh has " << data_mesh->get_z_coordinates()->size()
+            << " points in z, whereas reference mesh has "
+            << reference_mesh->get_z_coordinates()->size() << ".")
         return 1;
     }
 
@@ -416,23 +420,6 @@ int teca_dataset_diff::compare_cartesian_meshes(
         return status;
 
     return 0;
-}
-
-void teca_dataset_diff::datasets_differ(const char* info, ...)
-{
-    // Assemble the informational message.
-    char m[8192+1];
-    va_list argp;
-    va_start(argp, info);
-    vsnprintf(m, 8192, info, argp);
-    va_end(argp);
-
-    // Send it to stderr with contextual information.
-    std::ostringstream oss;
-    for (size_t i = 0; i < this->stack.size(); ++i)
-        oss << this->stack[i] << " ";
-    oss << m;
-    TECA_ERROR(<< oss.str())
 }
 
 void teca_dataset_diff::push_frame(const std::string& frame)
