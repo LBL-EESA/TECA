@@ -185,6 +185,35 @@ p_teca_variant_array new_variant_array(PyObject *seq)
     // unknown type
     return nullptr;
 }
+
+// ****************************************************************************
+template<typename NT>
+PyObject *new_object(const teca_variant_array_impl<NT> *va)
+{
+    unsigned long n_elem = va->size();
+    PyObject *list = PyList_New(n_elem);
+    const NT *pva = va->get();
+    for (unsigned long i = 0; i < n_elem; ++i)
+        PyList_SetItem(list, i, teca_py_object::py_tt<NT>::new_object(pva[i]));
+    return list;
+}
+
+// ****************************************************************************
+PyObject *new_object(const_p_teca_variant_array va)
+{
+    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+        va.get(),
+        return teca_py_sequence::new_object(static_cast<const TT*>(va.get()));
+        )
+    else TEMPLATE_DISPATCH_CASE(const teca_variant_array_impl,
+        std::string, va.get(),
+        return teca_py_sequence::new_object(static_cast<const TT*>(va.get()));
+        )
+
+    PyErr_Format(PyExc_TypeError,
+        "Failed to convert teca_variant_array to PyList");
+    return nullptr;
+}
 };
 
 #endif
