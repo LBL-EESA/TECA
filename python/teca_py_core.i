@@ -335,6 +335,72 @@ typedef std::pair<std::shared_ptr<teca_algorithm>, unsigned int> teca_algorithm_
 %include "teca_program_options.h"
 %include "teca_algorithm.h"
 
+/***************************************************************************/
+%define TECA_PY_ALGORITHM_PROPERTY(_type, _name)
+    void set_## _name(PyObject *obj)
+    {
+        teca_py_gil_state gil;
+
+        TECA_PY_OBJECT_DISPATCH_NUM(obj,
+            self->set_ ## _name(teca_py_object::cpp_tt<
+                teca_py_object::py_tt<_type>::tag>::value(obj));
+            return;
+            )
+
+        PyErr_Format(PyExc_TypeError,
+            "Failed to set property \"%s\"", #_name);
+    }
+
+    PyObject *get_## _name()
+    {
+        teca_py_gil_state gil;
+
+        _type val;
+        self->get_ ## _name(val);
+
+        return teca_py_object::py_tt<_type>::new_object(val);
+    }
+%enddef
+
+/***************************************************************************/
+%define TECA_PY_ALGORITHM_VECTOR_PROPERTY(_type, _name)
+    PyObject *get_## _name ##s()
+    {
+        teca_py_gil_state gil;
+
+        p_teca_variant_array_impl<_type> varr =
+             teca_variant_array_impl<_type>::New();
+
+        self->get_## _name ##s(varr);
+
+        PyObject *list = teca_py_sequence::new_object(varr);
+        if (!list)
+        {
+            PyErr_Format(PyExc_TypeError,
+                "Failed to get property \"%s\"", # _name);
+        }
+
+        return list;
+    }
+
+    void set_## _name ##s(PyObject *array)
+    {
+        teca_py_gil_state gil;
+
+        p_teca_variant_array varr;
+        if ((varr = teca_py_array::new_variant_array(array))
+            || (varr = teca_py_sequence::new_variant_array(array))
+            || (varr = teca_py_iterator::new_variant_array(array)))
+        {
+            self->set_## _name ##s(varr);
+            return;
+        }
+
+        PyErr_Format(PyExc_TypeError,
+            "Failed to set property \"%s\"", # _name);
+    }
+%enddef
+
 /***************************************************************************
  threaded_algorithm
  ***************************************************************************/

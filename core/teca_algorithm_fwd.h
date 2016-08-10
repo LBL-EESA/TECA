@@ -2,6 +2,7 @@
 #define teca_algorithm_fwd_h
 
 #include "teca_shared_object.h"
+#include <initializer_list>
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_algorithm)
 
@@ -65,54 +66,76 @@ T &get_##NAME()                          \
 // convenience macro to declare standard set_X/get_X methods
 // where X is the name of a class member. will manage the
 // algorithm's modified state for the user.
-#define TECA_ALGORITHM_VECTOR_PROPERTY(T, NAME) \
-                                            \
-size_t get_number_of_##NAME##s ()           \
-{                                           \
-    return this->NAME##s.size();            \
-}                                           \
-                                            \
-void append_##NAME(const T &v)              \
-{                                           \
-    this->NAME##s.push_back(v);             \
-}                                           \
-                                            \
-void set_##NAME(size_t i, const T &v)       \
-{                                           \
-    if (this->NAME##s[i] != v)              \
-    {                                       \
-        this->NAME##s[i] = v;               \
-        this->set_modified();               \
-    }                                       \
-}                                           \
-                                            \
-void set_##NAME##s(const std::vector<T> &v) \
-{                                           \
-    if (this->NAME##s != v)                 \
-    {                                       \
-        this->NAME##s = v;                  \
-        this->set_modified();               \
-    }                                       \
-}                                           \
-                                            \
-const T &get_##NAME(size_t i) const         \
-{                                           \
-    return this->NAME##s[i];                \
-}                                           \
-                                            \
-T &get_##NAME(size_t i)                     \
-{                                           \
-    return this->NAME##s[i];                \
-}                                           \
-                                            \
-void get_##NAME##s(std::vector<T> &v) const \
-{                                           \
-    v = this->NAME##s;                      \
-}                                           \
-                                            \
-void clear_##NAME()                         \
-{                                           \
-    this->NAME##s.clear();                  \
+#define TECA_ALGORITHM_VECTOR_PROPERTY(T, NAME)         \
+                                                        \
+size_t get_number_of_##NAME##s ()                       \
+{                                                       \
+    return this->NAME##s.size();                        \
+}                                                       \
+                                                        \
+void append_##NAME(const T &v)                          \
+{                                                       \
+    this->NAME##s.push_back(v);                         \
+    this->set_modified();                               \
+}                                                       \
+                                                        \
+void set_##NAME(size_t i, const T &v)                   \
+{                                                       \
+    if (this->NAME##s[i] != v)                          \
+    {                                                   \
+        this->NAME##s[i] = v;                           \
+        this->set_modified();                           \
+    }                                                   \
+}                                                       \
+                                                        \
+void set_##NAME##s(const std::vector<T> &v)             \
+{                                                       \
+    if (this->NAME##s != v)                             \
+    {                                                   \
+        this->NAME##s = v;                              \
+        this->set_modified();                           \
+    }                                                   \
+}                                                       \
+                                                        \
+void set_##NAME##s(const std::initializer_list<T> &&l)  \
+{                                                       \
+    std::vector<T> v(l);                                \
+    if (this->NAME##s != v)                             \
+    {                                                   \
+        this->NAME##s = v;                              \
+        this->set_modified();                           \
+    }                                                   \
+}                                                       \
+                                                        \
+void set_##NAME##s(const const_p_teca_variant_array &v) \
+{                                                       \
+    v->get(this->NAME##s);                              \
+    this->set_modified();                               \
+}                                                       \
+                                                        \
+const T &get_##NAME(size_t i) const                     \
+{                                                       \
+    return this->NAME##s[i];                            \
+}                                                       \
+                                                        \
+T &get_##NAME(size_t i)                                 \
+{                                                       \
+    return this->NAME##s[i];                            \
+}                                                       \
+                                                        \
+void get_##NAME##s(std::vector<T> &v) const             \
+{                                                       \
+    v = this->NAME##s;                                  \
+}                                                       \
+                                                        \
+void get_##NAME##s(const p_teca_variant_array &v) const \
+{                                                       \
+    v->set(this->NAME##s);                              \
+}                                                       \
+                                                        \
+void clear_##NAME()                                     \
+{                                                       \
+    this->NAME##s.clear();                              \
 }
 
 #endif
