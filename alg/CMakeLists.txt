@@ -76,6 +76,12 @@ if (TECA_HAS_BOOST)
     list(APPEND teca_alg_link ${Boost_LIBRARIES})
 endif()
 
+if (TECA_HAS_CGAL)
+    list(APPEND teca_alg_cxx_srcs teca_ar_detect.cxx)
+    list(APPEND teca_alg_link ${CGAL_LIBRARIES}
+        ${CGAL_LIBRARIES_DIR}/libCGAL_CORE.dylib  ${CGAL_3RD_PARTY_LIBRARIES})
+endif()
+
 add_library(teca_alg ${teca_alg_cxx_srcs} ${teca_alg_f90_srcs})
 target_link_libraries(teca_alg teca_io teca_data teca_core ${teca_alg_link})
 
