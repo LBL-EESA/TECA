@@ -23,7 +23,18 @@ using std::endl;
 
 //#define TECA_DEBUG
 
-namespace {
+namespace internal
+{
+template <typename num_t>
+void square(num_t * __restrict__ s,
+    const num_t * __restrict__ c, unsigned long n)
+{
+    for (unsigned long i = 0; i < n; ++i)
+    {
+        num_t ci = c[i];
+        s[i] = ci*ci;
+    }
+}
 
 template <typename num_t>
 void sum_square(num_t * __restrict__ ss,
@@ -45,7 +56,6 @@ void square_root(num_t * __restrict__ rt,
         rt[i] = std::sqrt(c[i]);
     }
 }
-
 };
 
 
@@ -292,17 +302,15 @@ const_p_teca_dataset teca_l2_norm::execute(
         l2_norm.get(),
 
         NT *tmp = static_cast<NT*>(malloc(sizeof(NT)*n));
-        memset(tmp, 0, sizeof(NT)*n);
-
-        ::sum_square(tmp, dynamic_cast<const TT*>(c0.get())->get(), n);
+        internal::square(tmp, static_cast<const TT*>(c0.get())->get(), n);
 
         if (c1)
-            ::sum_square(tmp, dynamic_cast<const TT*>(c1.get())->get(), n);
+            internal::sum_square(tmp, dynamic_cast<const TT*>(c1.get())->get(), n);
 
         if (c2)
-            ::sum_square(tmp, dynamic_cast<const TT*>(c2.get())->get(), n);
+            internal::sum_square(tmp, dynamic_cast<const TT*>(c2.get())->get(), n);
 
-        ::square_root(dynamic_cast<TT*>(l2_norm.get())->get(), tmp, n);
+        internal::square_root(static_cast<TT*>(l2_norm.get())->get(), tmp, n);
 
         free(tmp);
         )
