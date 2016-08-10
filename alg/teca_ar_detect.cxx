@@ -11,6 +11,7 @@
 #include <limits>
 #include <algorithm>
 #include <cmath>
+#include <fstream>
 
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
@@ -19,7 +20,7 @@
 using std::cerr;
 using std::endl;
 
-#define TECA_DEBUG 0
+#define TECA_DEBUG 1
 #if TECA_DEBUG > 0
 #include "teca_vtk_cartesian_mesh_writer.h"
 #include "teca_programmable_algorithm.h"
@@ -31,6 +32,39 @@ int write_mesh(
     const const_p_teca_variant_array &lsmask,
     const std::string &base_name);
 #endif
+
+/*************** MYCODE *****************/
+
+//CGAL lib.
+//#include <CGAL/Point_2.h>
+//#include <CGAL/Vector_2.h>
+
+//typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
+//typedef CGAL::Delaunay_triangulation_2<K>  Triangulation;
+//typedef Triangulation::Edge_iterator  Edge_iterator;
+//typedef Triangulation::Point          Point;
+
+//Structure that stores data points with labels for CGAL lib.
+struct Coordinate
+{
+    unsigned long x, y;
+    unsigned int label;
+    
+    Coordinate(unsigned long param_x, unsigned long param_y, unsigned int param_label) : x(param_x), y(param_y), label(param_label) {}
+};
+
+template <typename T>
+void compute_skeleton_of_ar(const_p_teca_variant_array land_sea_mask, unsigned int *p_con_comp, unsigned long num_rc, const T *input, T low, unsigned long num_rows, unsigned long num_cols);
+
+void compute_voronoi_diagram(std::vector<Coordinate> input);
+
+#include <math.h>
+#include <opencv2/opencv.hpp>
+
+template <typename T>
+void initialise_graph(const T *input, unsigned long num_rc, unsigned long num_rows, unsigned long num_cols);
+
+/*************** MYCODE *****************/
 
 // a description of the atmospheric river
 struct atmospheric_river
@@ -92,16 +126,26 @@ void threshold(
 {
     for (size_t i = 0; i < n_vals; ++i)
         output[i] = ((input[i] >= low) && (input[i] <= high)) ? 1 : 0;
+    /*
+    for (size_t i = 0; i < n_vals; ++i)
+    {
+        if(input[i] >= low)
+            output[i] = 1;
+        else
+            output[i] = 0;
+    }
+    */
 }
-
 
 
 // --------------------------------------------------------------------------
 teca_ar_detect::teca_ar_detect() :
     water_vapor_variable("prw"),
     land_sea_mask_variable(""),
+    //low_water_vapor_threshold(20),
     low_water_vapor_threshold(20),
     high_water_vapor_threshold(75),
+    //high_water_vapor_threshold(75),
     search_lat_low(19.0),
     search_lon_low(180.0),
     search_lat_high(56.0),
@@ -386,6 +430,15 @@ const_p_teca_dataset teca_ar_detect::execute(
 
         // label
         int num_comp = sauf(num_rows, num_cols, p_con_comp);
+                      
+                      
+        /*************** MYCODE *****************/
+                      
+#if TECA_DEBUG > 0
+        compute_skeleton_of_ar(land_sea_mask, p_con_comp, num_rc, p_wv, static_cast<NT>(this->low_water_vapor_threshold), num_rows, num_cols);
+#endif
+        /*************** MYCODE *****************/
+                      
 
 #if TECA_DEBUG > 0
         write_mesh(mesh, water_vapor, thresh, con_comp,
@@ -1278,6 +1331,7 @@ bool ar_detect(
                             land.push_back(
                                 (p_land_sea_mask[q] >= land_threshold_low)
                                 && (p_land_sea_mask[q] < land_threshold_high));
+                            
                         }
                     }
                 }
@@ -1302,8 +1356,11 @@ bool ar_detect(
                     return true;
                 }
             }
+                                 
+                                 
             )
         )
+    
     return false;
 }
 
@@ -1343,4 +1400,501 @@ int write_mesh(
 
     return 0;
 }
+
 #endif
+
+//Class data represents vertices in a graph.
+class Node
+{
+    public:
+        cv::Point pixel;
+        double value;
+        int parent = -1, component = -1; // default value for a non-existing node
+    
+        Node (double v, cv::Point p) { value = v, pixel = p; }
+};
+
+//Class data represents edges in a graph.
+class Edge
+{
+    public:
+        float weight;
+        int end0X, end0Y, end1X, end1Y; // indices in Matrix[][]
+    
+        Edge (float w, int e0X, int e0Y, int e1X, int e1Y) { weight = w; end0X = e0X; end0Y = e0Y; end1X = e1X; end1Y = e1Y; }
+};
+
+//Build graph on IWV 2d grid.
+template <typename T>
+void initialise_graph(const T *input, unsigned long num_rc, unsigned long num_rows, unsigned long num_cols)
+{
+    std::vector<Edge> edges;
+    //std::vector<Node> nodes;
+    
+    //Horizontal edges
+    for(unsigned long i = 0; i < num_rc; i+=num_cols)
+    {
+        for(unsigned long j = i; j < num_cols; j++)
+        {
+            edges.push_back(Edge( min(input[j], input[j+1]), i, j, i, j+1));
+            edges.push_back(Edge( min(input[j], input[j-1]), i, j, i, j-1));
+        }
+    }
+    
+    //Vertical edges
+    for(unsigned long i = 0; i < num_rc; i+=num_cols)
+    {
+        /*
+        for(unsigned long j = i; j < num_cols; j++)
+        {
+            edges.push_back(Edge( min(input[j], input[j+1]), i, j, i, j+1));
+            edges.push_back(Edge( min(input[j], input[j-1]), i, j, i, j-1));
+        }
+        */
+    }
+}
+
+//Computing skeleton.
+template <typename T>
+void compute_skeleton_of_ar(const_p_teca_variant_array land_sea_mask,
+                            unsigned int *p_con_comp,
+                            unsigned long num_rc,
+                            const T *input, T low, unsigned long num_rows, unsigned long num_cols)
+{
+    std::cout << "COMPUTING SKELETON" << endl;
+
+    NESTED_TEMPLATE_DISPATCH_FP
+    (
+     const teca_variant_array_impl,
+     land_sea_mask.get(),
+     1,
+     
+     //Get landseamask values.
+     const NT1 *p_land_sea_mask = dynamic_cast<TT1*>(land_sea_mask.get())->get();
+     
+     std::vector<Coordinate> input_for_voronoi_dgm;
+     
+     //Find coordinates of points needed for Voronoi diagram.
+     for(unsigned long i = 0; i < num_rc; i+=num_cols)
+     {
+         for(unsigned long j = i; j < num_cols; j++)
+         {
+             //Check if pixel is outsied of segmentation and land sea mask.
+             if(input[j] >= low || p_land_sea_mask[j] == 1)
+                 continue;
+             
+             //Check right neighbour of given pixel.
+             if(j + 1 < num_cols)
+             {
+                 if(input[j + 1] >= low)
+                 {
+                     input_for_voronoi_dgm.push_back(Coordinate(i,j,p_con_comp[j]));
+                     break;
+                 }
+             }
+             
+             //Check left neighbour of given pixel.
+             if(j - 1 >= i)
+             {
+                 if(input[j - 1] >= low)
+                 {
+                     input_for_voronoi_dgm.push_back(Coordinate(i,j,p_con_comp[j]));
+                     break;
+                 }
+             }
+         }
+     }
+     
+     std::cout << "Nb of points for triangulation: " << input_for_voronoi_dgm.size() << endl;
+     
+     //Compute Voronoi diagram based on CGAL library.
+     compute_voronoi_diagram(input_for_voronoi_dgm);
+     
+    )
+}
+
+//Computing Voronoi diagram based on Delanuay triangulation.
+void compute_voronoi_diagram(std::vector<Coordinate> input)
+{
+    std::cout << "COMPUTING VORONOI DIAGRAM" << endl;
+    
+    /*
+     
+     Point p1(1.0, -1.0), p2(4.0, 3.0), p3;
+    
+     Vector v1(-1, 10);
+     Vector v2(p2-p1);
+     
+     v1 = v1 + v2;
+    
+     p3 = p2 + v1 * 2;
+    
+     std::cout << "Vector v2 has coordinates: (" << v2.x() <<", "<<v2.y() <<")" << endl;
+     std::cout << "Point p3 has coordinates: (" << p3.x() <<", "<<p3.y() <<")" << endl;
+     
+    */
+    
+    /*
+     
+     //consider some points
+     std::vector<Point_2> points;
+     points.push_back(Point_2(0,0));
+     points.push_back(Point_2(1,1));
+     points.push_back(Point_2(0,1));
+     
+     Delaunay_triangulation_2 dt2;
+     
+     //insert points into the triangulation
+     dt2.insert(points.begin(),points.end());
+     
+     int ns = 0;
+     int nr = 0;
+     
+     Edge_iterator eit = dt2.edges_begin();
+     
+     for( ; eit != dt2.edges_end(); ++eit) {
+        CGAL::Object o = dt2.dual(eit);
+     
+        if (CGAL::object_cast<K::Segment_2>(&o)) {++ns;}
+        else if (CGAL::object_cast<K::Ray_2>(&o)) {++nr;}
+     }
+     
+     std::cout << "The Voronoi diagram has " << ns << " finite edges " << " and " << nr << " rays" << std::endl;
+     
+    */
+
+}
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+ //Printout of selected data points.
+ for(unsigned long z=0; z < input_for_voronoi_diagram.size(); z++)
+ {
+ //printf("HERE");
+ unsigned long tmp = input_for_voronoi_diagram[z];
+ 
+ for(unsigned long x=0; x < tmp; x++)
+ {
+ //printf("%d", 0);
+ }
+ //printf("%d", 1);
+ //printf("Rows: \n");
+ }
+ */
+
+
+/*
+ NESTED_TEMPLATE_DISPATCH_FP
+ (
+ const teca_variant_array_impl,
+ land_sea_mask.get(),
+ 1,
+ 
+ //Get landseamask values.
+ const NT1 *p_land_sea_mask = dynamic_cast<TT1*>(land_sea_mask.get())->get();
+ 
+ std::vector<Coordinate> input_for_voronoi_diagram;
+ //std::vector<unsigned long> input_for_voronoi_diagram;
+ //std::vector<unsigned long> labels_for_input;
+ 
+ //Find coordinates of points needed for Voronoi diagram.
+ for(unsigned long i = 0; i < num_rc; i+=num_cols)
+ {
+ for(unsigned long j = i; j < num_cols; j++)
+ {
+ //Check if pixel is outsied of segmentation and land sea mask.
+ if(input[j] >= low || p_land_sea_mask[j] == 1)
+ continue;
+ 
+ //Check right neighbour of given pixel.
+ if(j + 1 < num_cols)
+ {
+ if(input[j + 1] >= low)
+ {
+ input_for_voronoi_diagram.push_back(Coordinate(i,j,p_con_comp[j]));
+ //labels_for_input.push_back(p_con_comp[j]);
+ break;
+ }
+ }
+ 
+ //Check left neighbour of given pixel.
+ if(j - 1 >= i)
+ {
+ if(input[j - 1] >= low)
+ {
+ input_for_voronoi_diagram.push_back(Coordinate(i,j,p_con_comp[j]));
+ //input_for_voronoi_diagram.push_back(j);
+ //labels_for_input.push_back(p_con_comp[j]);
+ break;
+ }
+ }
+ }
+ }
+ 
+ printf("Nb of points for triangulation: %lu \n", input_for_voronoi_diagram.size());
+ 
+ //Compute Voronoi diagram based on CGAL library.
+ compute_voronoi_diagram();
+ 
+ )
+ */
+
+
+/*
+ for(unsigned long i = 0; i < num_rc; i++)
+ {
+ if(input[i] >= low || p_land_sea_mask[i] == 1)
+ continue;
+ 
+ if(i + 1 < num_rc && i - 1 >= 0)
+ {
+ if(input[i + 1] >= low  || input[i - 1] >= low)
+ {
+ input_for_voronoi_diagram.push_back(i);
+ labels_for_input.push_back(p_con_comp[i]);
+ break;
+ }
+ }
+ }
+ */
+
+
+
+/*
+ printf("LAND SEA MASK\n");
+ 
+ for (unsigned long r = 0; r < num_rc; r++)
+ {
+ printf("%ul", p_land_sea_mask[r]);
+ }
+ printf("\n");
+ 
+ 
+ printf("SEGMENTATION\n");
+ 
+ for (size_t i = 0; i < num_rc; i++)
+ {
+ //std::cout << p_con_comp[i];
+ 
+ printf("%u", p_con_comp[i]);
+ }
+ */
+
+
+
+
+
+
+    //NESTED_TEMPLATE_DISPATCH
+    //(
+        //const teca_variant_array_impl,
+        //land_sea_mask.get(),
+        //1,
+     
+        //std::cout << "HERE " << num_rc << endl;
+        //cerr << "LANDSEAMASK  " << endl;
+     
+        //const NT1 *p_land_sea_mask = dynamic_cast<TT1*>(land_sea_mask.get())->get();
+    
+        //for (unsigned long r = 0; r < num_rc; r++)
+        //{
+            //std::cout << "LANDSEAMASK  " << p_land_sea_mask[r] << endl;
+         
+            //if(p_land_sea_mask[r] == 3)
+            //cerr << "LANDSEAMASK  " << p_land_sea_mask[r] << endl;
+         
+        //}
+     
+     /*
+      #if TECA_DEBUG > 0
+      cerr << teca_parallel_id() << " event detected " << time_step << endl;
+      #endif
+      
+      // get land sea mask
+      const_p_teca_variant_array land_sea_mask;
+      
+      if (this->land_sea_mask_variable.empty() ||
+      
+      !(land_sea_mask = mesh->get_point_arrays()->get(this->land_sea_mask_variable)))
+      {
+        // input doesn't have it, generate a stand in such
+        // that land fall criteria will evaluate true
+        
+        size_t n = lat->size()*lon->size();
+        
+        p_teca_double_array lsm = teca_double_array::New(n, this->land_threshold_low);
+        
+        land_sea_mask = lsm;
+      }
+      
+      TEMPLATE_DISPATCH(
+      const teca_variant_array_impl,
+      water_vapor.get(),
+      
+      const NT *p_wv = dynamic_cast<TT*>(water_vapor.get())->get();
+      
+      // threshold
+      p_teca_unsigned_int_array con_comp
+      = teca_unsigned_int_array::New(num_rc, 0);
+      
+      unsigned int *p_con_comp = con_comp->get();
+      
+      threshold(p_wv, p_con_comp, num_rc,
+      static_cast<NT>(this->low_water_vapor_threshold),
+      static_cast<NT>(this->high_water_vapor_threshold));
+
+      
+      */
+     
+     //TECA_ERROR("message " << p_land_sea_mask[0])
+     
+     //int num_rows = lat->size();
+     //int num_cols = lon->size();
+     
+     //std::cout << num_rows << " / " << num_cols << endl;
+     
+     //for (unsigned long r = 0, q = 0; r < num_rows; ++r)
+     //{
+     //std::cout << p_land_sea_mask[q];
+     //}
+     
+     //std::cout << endl << sizeof((*p_land_sea_mask)) << " / " << num_rows << " / " << num_cols << endl;
+     
+     /*
+     //SAVE TO FILE
+     std::ofstream myfile;
+     
+     myfile.open ("landsea_testing.txt");
+     
+     for (unsigned long r = 0, q = 0; r < num_rows; ++r)
+     {
+         myfile << p_land_sea_mask[q];
+         std::cout << p_land_sea_mask[q];
+     }
+     
+     myfile.close();
+     
+     */
+     
+     /*
+      for (size_t i = 0; i < num_rows*num_cols; ++i)
+      {
+      std::cout << *(p_con_comp + i);
+      }
+      
+      std::cout << endl << endl;
+      */
+     
+     /*
+      for(int i = ((num_rows*num_cols)-1); i >=0; i-=num_cols)
+      {
+      for(int j = i; j >= ((num_rows*num_cols) - num_cols); j--)
+      {
+      std::cout << *(p_con_comp + j);
+      }
+      }
+      */
+     
+     //std::cout << endl << endl;
+     
+     //)
