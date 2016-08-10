@@ -348,8 +348,7 @@ const_p_teca_dataset teca_tc_candidates::execute(
 
     if (!surface_wind_speed)
     {
-        TECA_ERROR(
-            << "Dataset missing wind speed variable \""
+        TECA_ERROR("Dataset missing wind speed variable \""
             << this->surface_wind_speed_variable << "\"")
         return nullptr;
     }
@@ -360,8 +359,7 @@ const_p_teca_dataset teca_tc_candidates::execute(
 
     if (!vorticity_850mb)
     {
-        TECA_ERROR(
-            << "Dataset missing vorticity_850mb variable \""
+        TECA_ERROR("Dataset missing vorticity_850mb variable \""
             << this->vorticity_850mb_variable << "\"")
         return nullptr;
     }
@@ -372,8 +370,7 @@ const_p_teca_dataset teca_tc_candidates::execute(
 
     if (!core_temperature)
     {
-        TECA_ERROR(
-            << "Dataset missing core_temperature variable \""
+        TECA_ERROR("Dataset missing core_temperature variable \""
             << this->core_temperature_variable << "\"")
         return nullptr;
     }
@@ -384,19 +381,16 @@ const_p_teca_dataset teca_tc_candidates::execute(
 
     if (!sea_level_pressure)
     {
-        TECA_ERROR(
-            << "Dataset missing sea_level_pressure variable \""
+        TECA_ERROR("Dataset missing sea_level_pressure variable \""
             << this->sea_level_pressure_variable << "\"")
         return nullptr;
     }
 
     // get thickness array
     const_p_teca_variant_array thickness;
-    if (
-        !(thickness = mesh->get_point_arrays()->get(this->thickness_variable)))
+    if (!(thickness = mesh->get_point_arrays()->get(this->thickness_variable)))
     {
-        TECA_ERROR(
-            << "Dataset missing thickness variable \""
+        TECA_ERROR("Dataset missing thickness variable \""
             << this->thickness_variable << "\"")
         return nullptr;
     }
