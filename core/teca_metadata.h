@@ -71,8 +71,7 @@ public:
 
     // insert a variant array directly. if the property doesn't exist
     // it is created. if it does it is replaced.
-    void insert(
-        const std::string &name,
+    void insert(const std::string &name,
         p_teca_variant_array prop_val);
 
     // append a value to the named property. reports
@@ -118,8 +117,7 @@ public:
     // set a variant array directly. replaces the current value and does
     // nothing if the property doesn't exist. return 0
     // on success.
-    int set(
-        const std::string &name,
+    int set(const std::string &name,
         p_teca_variant_array prop_val);
 
     // get prop value. return 0 if successful
