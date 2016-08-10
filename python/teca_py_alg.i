@@ -9,6 +9,7 @@
 #include "teca_derived_quantity.h"
 #include "teca_derived_quantity_numerics.h"
 #include "teca_descriptive_statistics.h"
+#include "teca_event_filter.h"
 #include "teca_l2_norm.h"
 #include "teca_mask.h"
 #include "teca_programmable_algorithm.h"
@@ -216,3 +217,21 @@
 %shared_ptr(teca_dataset_diff)
 %ignore teca_dataset_diff::operator=;
 %include "teca_dataset_diff.h"
+
+/***************************************************************************
+ event_filter
+ ***************************************************************************/
+%ignore teca_event_filter::shared_from_this;
+%shared_ptr(teca_event_filter)
+%ignore teca_event_filter::operator=;
+%include "teca_event_filter.h"
+%extend teca_event_filter
+{
+    TECA_PY_ALGORITHM_VECTOR_PROPERTY(unsigned long, region_size)
+    TECA_PY_ALGORITHM_VECTOR_PROPERTY(unsigned long, region_start);
+    TECA_PY_ALGORITHM_VECTOR_PROPERTY(double, region_x_coordinate);
+    TECA_PY_ALGORITHM_VECTOR_PROPERTY(double, region_y_coordinate);
+    TECA_PY_ALGORITHM_VECTOR_PROPERTY(int, region_id);
+    TECA_PY_ALGORITHM_VECTOR_PROPERTY(std::string, region_name);
+    TECA_PY_ALGORITHM_VECTOR_PROPERTY(std::string, region_long_name);
+}

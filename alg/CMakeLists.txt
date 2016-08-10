@@ -18,6 +18,7 @@ set(teca_alg_cxx_srcs
     teca_coordinate_util.cxx
     teca_derived_quantity.cxx
     teca_descriptive_statistics.cxx
+    teca_event_filter.cxx
     teca_l2_norm.cxx
     teca_mask.cxx
     teca_programmable_algorithm.cxx

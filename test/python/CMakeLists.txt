@@ -112,3 +112,9 @@ teca_add_test(py_test_tc_candidates_mpi_threads
     U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
     FEATURES (${TECA_HAS_NETCDF} AND ${TECA_HAS_MPI})
     REQ_TECA_DATA)
+
+teca_add_test(py_test_event_filter
+    COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_event_filter.py
+    "${TECA_DATA_ROOT}/test_tc_candidates_20.bin"
+    "${TECA_DATA_ROOT}/test_event_filter.bin"
+    REQ_TECA_DATA)
