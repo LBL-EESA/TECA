@@ -7,7 +7,6 @@
 
 namespace teca_py_object
 {
-
 /// teca_py_object::cpp_tt, A traits class for working with PyObject's
 /**
 if know the Python type tag then this class gives you:
@@ -87,7 +86,7 @@ teca_py_object_py_tt_declare(double, float, PyFloat_FromDouble)
 // strings are a special case
 template <> struct py_tt<std::string>
 {
-    typedef char* type;
+    typedef char* tag;
     static PyObject *new_object(const std::string &s)
     { return PyString_FromString(s.c_str()); }
 };
@@ -121,7 +120,6 @@ template <> struct py_tt<std::string>
 // just string
 #define TECA_PY_OBJECT_DISPATCH_STR(PY_OBJ, CODE)           \
     TECA_PY_OBJECT_DISPATCH_CASE(char*, PY_OBJ, CODE)
-
 
 // ****************************************************************************
 p_teca_variant_array new_variant_array(PyObject *obj)
@@ -167,9 +165,7 @@ bool copy(teca_variant_array *varr, PyObject *obj)
 bool set(teca_variant_array *varr, unsigned long i, PyObject *obj)
 {
     TEMPLATE_DISPATCH(teca_variant_array_impl, varr,
-
         TT *varrt = static_cast<TT*>(varr);
-
         TECA_PY_OBJECT_DISPATCH_NUM(obj,
             varrt->set(i, cpp_tt<OT>::value(obj));
             return true;
@@ -182,7 +178,7 @@ bool set(teca_variant_array *varr, unsigned long i, PyObject *obj)
             varrt->set(i, cpp_tt<OT>::value(obj));
             return true;
             )
-         )
+        )
 
     return false;
 }
