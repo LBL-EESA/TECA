@@ -295,6 +295,72 @@ class teca_dataset;
 }
 %template(std_vector_dataset) std::vector<std::shared_ptr<teca_dataset>>;
 
+/***************************************************************************/
+%define TECA_PY_DATASET_METADATA(_type, _name)
+    void set_## _name(PyObject *obj)
+    {
+        teca_py_gil_state gil;
+
+        TECA_PY_OBJECT_DISPATCH_NUM(obj,
+            self->set_ ## _name(teca_py_object::cpp_tt<
+                teca_py_object::py_tt<_type>::tag>::value(obj));
+            return;
+            )
+
+        PyErr_Format(PyExc_TypeError,
+            "Failed to set property \"%s\"", #_name);
+    }
+
+    PyObject *get_## _name()
+    {
+        teca_py_gil_state gil;
+
+        _type val;
+        self->get_ ## _name(val);
+
+        return teca_py_object::py_tt<_type>::new_object(val);
+    }
+%enddef
+
+/***************************************************************************/
+%define TECA_PY_DATASET_VECTOR_METADATA(_type, _name)
+    PyObject *get_## _name()
+    {
+        teca_py_gil_state gil;
+
+        p_teca_variant_array_impl<_type> varr =
+             teca_variant_array_impl<_type>::New();
+
+        self->get_## _name(varr);
+
+        PyObject *list = teca_py_sequence::new_object(varr);
+        if (!list)
+        {
+            PyErr_Format(PyExc_TypeError,
+                "Failed to get property \"%s\"", # _name);
+        }
+
+        return list;
+    }
+
+    void set_## _name(PyObject *array)
+    {
+        teca_py_gil_state gil;
+
+        p_teca_variant_array varr;
+        if ((varr = teca_py_array::new_variant_array(array))
+            || (varr = teca_py_sequence::new_variant_array(array))
+            || (varr = teca_py_iterator::new_variant_array(array)))
+        {
+            self->set_## _name(varr);
+            return;
+        }
+
+        PyErr_Format(PyExc_TypeError,
+            "Failed to set property \"%s\"", # _name);
+    }
+%enddef
+
 /***************************************************************************
  algorithm_executive
  ***************************************************************************/
