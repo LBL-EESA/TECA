@@ -12,30 +12,6 @@
 #include "teca_py_object.h"
 %}
 
-/***************************************************************************/
-%define TECA_DATASET_PY_PROPERTY(_type, _name)
-    _type get_ ## _name()
-    {
-        _type val;
-        self->get_ ## _name(val);
-        return val;
-    }
-%enddef
-
-/***************************************************************************/
-%define TECA_DATASET_PY_VECTOR_PROPERTY(_type, _name)
-    PyObject *get_ ## _name()
-    {
-        std::vector<_type> vals;
-        self->get_ ## _name(vals);
-        size_t nvals = vals.size();
-        PyObject *list = PyList_New(nvals);
-        for (size_t i = 0; i < nvals; ++i)
-            PyList_SetItem(list, i, teca_py_object::py_tt<_type>::new_object(vals[i]));
-        return list;
-    }
-%enddef
-
 /***************************************************************************
  array_collection
  ***************************************************************************/
@@ -119,13 +95,8 @@ TECA_PY_DYNAMIC_CAST(teca_mesh, teca_dataset)
 %ignore teca_cartesian_mesh::operator=;
 %ignore teca_cartesian_mesh::get_time(double *) const;
 %ignore teca_cartesian_mesh::get_time_step(unsigned long *) const;
-%ignore teca_cartesian_mesh::get_extent(unsigned long *) const;
-%ignore teca_cartesian_mesh::get_extent(std::vector<unsigned long>&) const;
-%ignore teca_cartesian_mesh::get_whole_extent(unsigned long *) const;
-%ignore teca_cartesian_mesh::get_whole_extent(std::vector<unsigned long>&) const;
 %ignore teca_cartesian_mesh::set_calendar(std::string const *);
 %ignore teca_cartesian_mesh::set_time_units(std::string const *);
-
 %include "teca_cartesian_mesh_fwd.h"
 %include "teca_cartesian_mesh.h"
 TECA_PY_DYNAMIC_CAST(teca_cartesian_mesh, teca_dataset)
@@ -133,12 +104,12 @@ TECA_PY_DYNAMIC_CAST(teca_cartesian_mesh, teca_dataset)
 {
     TECA_PY_STR()
 
-    TECA_DATASET_PY_PROPERTY(double, time)
-    TECA_DATASET_PY_PROPERTY(unsigned long, time_step)
-    TECA_DATASET_PY_PROPERTY(std::string, calendar)
-    TECA_DATASET_PY_PROPERTY(std::string, time_units)
-    TECA_DATASET_PY_VECTOR_PROPERTY(unsigned long, extent)
-    TECA_DATASET_PY_VECTOR_PROPERTY(unsigned long, whole_extent)
+    TECA_PY_DATASET_METADATA(double, time)
+    TECA_PY_DATASET_METADATA(unsigned long, time_step)
+    TECA_PY_DATASET_METADATA(std::string, calendar)
+    TECA_PY_DATASET_METADATA(std::string, time_units)
+    TECA_PY_DATASET_VECTOR_METADATA(unsigned long, extent)
+    TECA_PY_DATASET_VECTOR_METADATA(unsigned long, whole_extent)
 }
 
 /***************************************************************************
@@ -156,8 +127,8 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
 {
     TECA_PY_STR()
 
-    TECA_DATASET_PY_PROPERTY(std::string, calendar)
-    TECA_DATASET_PY_PROPERTY(std::string, time_units)
+    TECA_PY_DATASET_METADATA(std::string, calendar)
+    TECA_PY_DATASET_METADATA(std::string, time_units)
 
     /* update the value at r,c. r is a row index and c an
     either be a column index or name */

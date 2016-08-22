@@ -119,7 +119,7 @@ int main(int argc, char **argv)
     p_teca_l2_norm surf_wind = teca_l2_norm::New();
     surf_wind->set_input_connection(sim_reader->get_output_port());
     surf_wind->set_component_0_variable("UBOT");
-    surf_wind->set_component_0_variable("VBOT");
+    surf_wind->set_component_1_variable("VBOT");
     surf_wind->set_l2_norm_variable("surface_wind");
     surf_wind->get_properties_description("surface_wind_speed", advanced_opt_defs);
 

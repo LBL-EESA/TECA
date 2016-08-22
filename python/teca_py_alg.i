@@ -9,6 +9,7 @@
 #include "teca_derived_quantity.h"
 #include "teca_derived_quantity_numerics.h"
 #include "teca_descriptive_statistics.h"
+#include "teca_event_filter.h"
 #include "teca_l2_norm.h"
 #include "teca_mask.h"
 #include "teca_programmable_algorithm.h"
@@ -17,6 +18,7 @@
 #include "teca_table_reduce.h"
 #include "teca_table_to_stream.h"
 #include "teca_tc_candidates.h"
+#include "teca_tc_trajectory.h"
 #include "teca_temporal_average.h"
 #include "teca_vorticity.h"
 #include "teca_py_object.h"
@@ -201,9 +203,35 @@
 %include "teca_tc_candidates.h"
 
 /***************************************************************************
+ tc_trajectory
+ ***************************************************************************/
+%ignore teca_tc_trajectory::shared_from_this;
+%shared_ptr(teca_tc_trajectory)
+%ignore teca_tc_trajectory::operator=;
+%include "teca_tc_trajectory.h"
+
+/***************************************************************************
  dataset_diff
  ***************************************************************************/
 %ignore teca_dataset_diff::shared_from_this;
 %shared_ptr(teca_dataset_diff)
 %ignore teca_dataset_diff::operator=;
 %include "teca_dataset_diff.h"
+
+/***************************************************************************
+ event_filter
+ ***************************************************************************/
+%ignore teca_event_filter::shared_from_this;
+%shared_ptr(teca_event_filter)
+%ignore teca_event_filter::operator=;
+%include "teca_event_filter.h"
+%extend teca_event_filter
+{
+    TECA_PY_ALGORITHM_VECTOR_PROPERTY(unsigned long, region_size)
+    TECA_PY_ALGORITHM_VECTOR_PROPERTY(unsigned long, region_start);
+    TECA_PY_ALGORITHM_VECTOR_PROPERTY(double, region_x_coordinate);
+    TECA_PY_ALGORITHM_VECTOR_PROPERTY(double, region_y_coordinate);
+    TECA_PY_ALGORITHM_VECTOR_PROPERTY(int, region_id);
+    TECA_PY_ALGORITHM_VECTOR_PROPERTY(std::string, region_name);
+    TECA_PY_ALGORITHM_VECTOR_PROPERTY(std::string, region_long_name);
+}
