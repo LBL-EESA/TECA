@@ -1,5 +1,5 @@
 #ifndef teca_geometry_h
-#define teca_geomteyr_h
+#define teca_geometry_h
 
 namespace teca_geometry
 {
