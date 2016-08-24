@@ -165,7 +165,7 @@ int teca_tc_trajectory(
                 coord_t closest_storm_dist = r_crit*static_cast<coord_t>(dt);
                 bool success = false;
 
-                unsigned long n_storms = step_counts[j] - 1;
+                unsigned long n_storms = step_counts[j];
                 for (unsigned int i = 0; i < n_storms; ++i)
                 {
                     // check the storms distance. check them all since
