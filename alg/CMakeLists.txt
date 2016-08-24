@@ -33,6 +33,10 @@ set(teca_alg_cxx_srcs
     teca_dataset_diff.cxx
     )
 
+teca_py_install(lib
+    teca_tc_stats.py
+    )
+
 set(teca_alg_f90_srcs)
 
 set(teca_alg_f90_generics

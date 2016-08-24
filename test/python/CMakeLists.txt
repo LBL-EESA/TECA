@@ -118,3 +118,9 @@ teca_add_test(py_test_event_filter
     "${TECA_DATA_ROOT}/test_tc_candidates_20.bin"
     "${TECA_DATA_ROOT}/test_event_filter.bin"
     REQ_TECA_DATA)
+
+teca_add_test(py_test_tc_stats
+    COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_stats.py
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2_classify_2005_09.bin"
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2_stats_2005_09.bin"
+    REQ_TECA_DATA)

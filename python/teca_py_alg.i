@@ -244,3 +244,10 @@
     TECA_PY_ALGORITHM_VECTOR_PROPERTY(std::string, region_name);
     TECA_PY_ALGORITHM_VECTOR_PROPERTY(std::string, region_long_name);
 }
+
+/***************************************************************************
+ tc stats
+ ***************************************************************************/
+%pythoncode %{
+from teca_tc_stats import *
+%}
