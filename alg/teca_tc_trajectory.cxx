@@ -208,11 +208,9 @@ int teca_tc_trajectory(
             // one track has been completed
             unsigned long track_len = new_track.size();
 
-            if ((track_len > 1) && (wind_duration > n_wind_crit))
+            if (wind_duration >= n_wind_crit)
             {
                 // output trajectory info
-                //call teca_vector_long_write(new_track, 'track', error_unit)
-
                 for (unsigned long i = 0; i < track_len; ++i)
                 {
                     // output trajectory info
