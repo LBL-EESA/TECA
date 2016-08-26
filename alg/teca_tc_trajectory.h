@@ -22,19 +22,16 @@ are stored in a table.
 
 the trajectory computation makes use of the following paramteters:
 
-max_daily_distance (900 km)
+max_daily_distance (1600 km)
     event must be within this distance on the
     following day to be considered as part of the trajectory.
-    rcrit
 
 min_wind_speed (17 m/s)
     850 mb wind sped must be above this value.
-    wcrit
 
 min_wind_duration (2 days)
     criteria must be satisfied for this many days to be
     a candidate
-    nwcrit
 */
 class teca_tc_trajectory : public teca_algorithm
 {

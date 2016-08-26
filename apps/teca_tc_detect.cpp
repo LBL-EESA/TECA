@@ -55,7 +55,6 @@ int main(int argc, char **argv)
         ("input_file", value<string>(), "file path to the simulation to search for tropical cyclones")
         ("input_regex", value<string>(), "regex matching simulation files to search for tropical cylones")
         ("candidate_file", value<string>(), "file path to write the storm candidates to (candidates.bin)")
-        ("track_file", value<string>(), "file path to write the storm candidates to (tracks.bin)")
         ("850mb_wind_u", value<string>(), "name of variable with 850 mb wind x-component (U850)")
         ("850mb_wind_v", value<string>(), "name of variable with 850 mb wind x-component (V850)")
         ("surface_wind_u", value<string>(), "name of variable with surface wind x-component (UBOT)")
@@ -79,7 +78,7 @@ int main(int argc, char **argv)
         ("max_daily_distance", value<double>(), "max distance in km that a storm can travel in one day (1600)")
         ("min_wind_speed", value<double>(), "minimum peak wind speed to be considered a tropical storm (17.0)")
         ("min_wind_duration", value<double>(), "number of, not necessarily consecutive, days min wind speed sustained (2.0)")
-        ("tracks_file", value<string>(), "file path to write storm tracks to")
+        ("track_file", value<string>(), "file path to write storm tracks to")
         ("first_step", value<long>(), "first time step to process")
         ("last_step", value<long>(), "last time step to process")
         ("start_date", value<string>(), "first time to proces in YYYY-MM-DD hh:mm:ss format")
@@ -271,14 +270,6 @@ int main(int argc, char **argv)
         sim_reader->set_files_regex(
             opt_vals["input_regex"].as<string>());
 
-    if (opt_vals.count("candidate_file"))
-        candidate_writer->set_file_name(
-            opt_vals["candidate_file"].as<string>());
-
-    if (opt_vals.count("track_file"))
-        track_writer->set_file_name(
-            opt_vals["track_file"].as<string>());
-
     if (opt_vals.count("850mb_wind_u"))
         vort_850mb->set_component_0_variable(
             opt_vals["850mb_wind_u"].as<string>());
@@ -360,6 +351,15 @@ int main(int argc, char **argv)
         candidates->set_search_lat_high(
             opt_vals["highest_lat"].as<double>());
 
+    if (opt_vals.count("first_step"))
+        map_reduce->set_first_step(opt_vals["first_step"].as<long>());
+
+    if (opt_vals.count("last_step"))
+        map_reduce->set_last_step(opt_vals["last_step"].as<long>());
+
+    if (opt_vals.count("n_threads"))
+        map_reduce->set_thread_pool_size(opt_vals["n_threads"].as<int>());
+
     if (opt_vals.count("max_daily_distance"))
         tracks->set_max_daily_distance(
             opt_vals["max_daily_distance"].as<double>());
@@ -372,22 +372,14 @@ int main(int argc, char **argv)
         tracks->set_min_wind_duration(
             opt_vals["min_wind_duration"].as<double>());
 
-    if (opt_vals.count("candidates_file"))
+    if (opt_vals.count("candidate_file"))
         candidate_writer->set_file_name(
-            opt_vals["candidates_file"].as<string>());
+            opt_vals["candidate_file"].as<string>());
 
-    if (opt_vals.count("tracks_file"))
+    if (opt_vals.count("track_file"))
         track_writer->set_file_name(
-            opt_vals["tracks_file"].as<string>());
+            opt_vals["track_file"].as<string>());
 
-    if (opt_vals.count("first_step"))
-        map_reduce->set_first_step(opt_vals["first_step"].as<long>());
-
-    if (opt_vals.count("last_step"))
-        map_reduce->set_last_step(opt_vals["last_step"].as<long>());
-
-    if (opt_vals.count("n_threads"))
-        map_reduce->set_thread_pool_size(opt_vals["n_threads"].as<int>());
 
     // some minimal check for missing options
     if (sim_reader->get_file_name().empty()
