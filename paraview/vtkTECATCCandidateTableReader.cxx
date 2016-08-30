@@ -30,6 +30,10 @@
 #include <cmath>
 #include <sstream>
 
+#include <teca_table_reader.h>
+#include <teca_table_sort.h>
+#include <teca_programmable_algorithm.h>
+
 template<typename tt> struct vtk_tt;
 #define DECLARE_VTK_TT(_c_type, _vtk_type) \
 template <> \
@@ -48,6 +52,33 @@ DECLARE_VTK_TT(unsigned short, UnsignedShort);
 DECLARE_VTK_TT(unsigned int, UnsignedInt);
 DECLARE_VTK_TT(unsigned long, UnsignedLong);
 DECLARE_VTK_TT(unsigned long long, UnsignedLongLong);
+
+namespace internal
+{
+// helper class that interfaces to TECA's pipeline
+// and extracts the dataset.
+struct teca_pipeline_bridge
+{
+    teca_pipeline_bridge() = delete;
+
+    teca_pipeline_bridge(const_p_teca_table *output)
+        : m_output(output) {}
+
+    const_p_teca_dataset operator()(unsigned int,
+        const std::vector<const_p_teca_dataset> &input_data,
+        const teca_metadata &)
+    {
+        if (!(*m_output = std::dynamic_pointer_cast
+            <const teca_table>(input_data[0])))
+        {
+            TECA_ERROR("empty input")
+        }
+        return *m_output;
+    }
+
+    const_p_teca_table *m_output;
+};
+};
 
 //-----------------------------------------------------------------------------
 vtkStandardNewMacro(vtkTECATCCandidateTableReader);
@@ -116,68 +147,36 @@ int vtkTECATCCandidateTableReader::RequestInformation(
     return 1;
     }
 
-  // for now just read the whole thing here
-  // open the file
-  teca_binary_stream bs;
-  FILE* fd = fopen(this->FileName, "rb");
-  if (fd == NULL)
+  if (!this->TimeCoordinate)
     {
-    vtkErrorMacro("Failed to open " << this->FileName << endl)
+    vtkErrorMacro("Must set the time coordinate. Use '.' for non-time varying case.")
     return 1;
     }
 
-  // get its length, we'll read it in one go and need to create
-  // a bufffer for it's contents
-  long start = ftell(fd);
-  fseek(fd, 0, SEEK_END);
-  long end = ftell(fd);
-  fseek(fd, 0, SEEK_SET);
-  long nbytes = end - start - 10;
+  // read and sort the data along the time axis using TECA
+  internal::teca_pipeline_bridge br(&this->Table);
 
-  // check if this is really ours
-  char id[11] = {'\0'  };
-  if (fread(id, 1, 10, fd) != 10)
+  p_teca_table_reader tr = teca_table_reader::New();
+  tr->set_file_name(this->FileName);
+
+  p_teca_programmable_algorithm pa = teca_programmable_algorithm::New();
+  if (this->TimeCoordinate[0] != '.')
     {
-    const char *estr = (ferror(fd) ? strerror(errno) : "");
-    fclose(fd);
-    vtkErrorMacro("Failed to read \"" << this->FileName << "\". " << estr)
-    return 1;
+    p_teca_table_sort ts = teca_table_sort::New();
+    ts->set_input_connection(tr->get_output_port());
+    ts->set_index_column(this->TimeCoordinate);
+    pa->set_input_connection(ts->get_output_port());
     }
-
-  if (strncmp(id, "teca_table", 10))
+  else
     {
-    fclose(fd);
-    vtkErrorMacro("Not a teca_table. \"" << this->FileName << "\"")
-    return 1;
+    pa->set_input_connection(tr->get_output_port());
     }
+  pa->set_execute_callback(br);
 
-  // create the buffer
-  bs.resize(static_cast<size_t>(nbytes));
-
-  // read the stream
-  long bytes_read = fread(bs.get_data(), sizeof(unsigned char), nbytes, fd);
-  if (bytes_read != nbytes)
-    {
-    const char *estr = (ferror(fd) ? strerror(errno) : "");
-    fclose(fd);
-    vtkErrorMacro("Failed to read \"" << this->FileName << "\". Read only "
-      << bytes_read << " of the requested " << nbytes << ". " << estr)
-    return 1;
-    }
-  fclose(fd);
-
-  // deserialize the binary rep
-  this->Table = teca_table::New();
-  this->Table->from_stream(bs);
+  pa->update();
 
   // get the time values
   std::vector<double> unique_times;
-  if (!this->TimeCoordinate)
-    {
-    vtkErrorMacro("Must set the time coordinate")
-    return 1;
-    }
-
   if (this->TimeCoordinate[0] != '.')
     {
     if (!this->Table->has_column(this->TimeCoordinate))
@@ -270,7 +269,8 @@ int vtkTECATCCandidateTableReader::RequestData(
 
   if (it == this->TimeRows.end())
     {
-    vtkErrorMacro("Invalid time " << time << " requested")
+    // not an error
+    // vtkErrorMacro("Invalid time " << time << " requested")
     return 1;
     }
 
@@ -327,7 +327,7 @@ int vtkTECATCCandidateTableReader::RequestData(
       // TODO -- this could be made to be a zero-copy transfer when
       // Utkarsh merges the new zero copy api.
       // TODO -- implement a spherical coordinate transform
-      p_teca_variant_array axis = this->Table->get_column(axesNames[i]);
+      const_p_teca_variant_array axis = this->Table->get_column(axesNames[i]);
       axis->get(first, last, tmp.data());
 
       for (size_t i = 0; i < nPts; ++i)
@@ -372,16 +372,16 @@ int vtkTECATCCandidateTableReader::RequestData(
   // TODO -- make this zero copy, this can be done now
   for (unsigned int i = 0; i < nCols; ++i)
     {
-    p_teca_variant_array ar = this->Table->get_column(i);
+    const_p_teca_variant_array ar = this->Table->get_column(i);
 
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
+    TEMPLATE_DISPATCH(const teca_variant_array_impl,
       ar.get(),
 
       vtk_tt<NT>::VTK_TT *da = vtk_tt<NT>::VTK_TT::New();
       da->SetName(this->Table->get_column_name(i).c_str());
       da->SetNumberOfTuples(nPts);
 
-      TT *tar = dynamic_cast<TT*>(ar.get());
+      const TT *tar = dynamic_cast<const TT*>(ar.get());
       tar->get(first, last, da->GetPointer(0));
 
       output->GetPointData()->AddArray(da);

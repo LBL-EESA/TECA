@@ -60,7 +60,7 @@ private:
   char *ZCoordinate;
   char *TimeCoordinate;
 
-  p_teca_table Table;
+  const_p_teca_table Table;
   std::map<double, std::pair<size_t, size_t>> TimeRows;
 
 private:
