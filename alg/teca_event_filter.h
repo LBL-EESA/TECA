@@ -35,15 +35,24 @@ public:
     // filtering.
     TECA_ALGORITHM_PROPERTY(std::string, time_column)
 
-    // set the name of the columns to use as coordinates
-    // defaults are empty which disables space based filtering
-    TECA_ALGORITHM_PROPERTY(std::string, x_coordinate_column)
-    TECA_ALGORITHM_PROPERTY(std::string, y_coordinate_column)
-
     // include events that occur in between the start and
     // end times. the defaults are -/+ infinity.
     TECA_ALGORITHM_PROPERTY(double, start_time)
     TECA_ALGORITHM_PROPERTY(double, end_time)
+
+    // set the name of the column containing the time step
+    // data. default is empty which disables step based
+    // filtering.
+    TECA_ALGORITHM_PROPERTY(std::string, step_column)
+
+    // include event modulo the given interval. eg. 1 includes
+    // all, 2 includes every other, 3 every third, and so on.
+    TECA_ALGORITHM_PROPERTY(long, step_interval)
+
+    // set the name of the columns to use as coordinates
+    // defaults are empty which disables space based filtering
+    TECA_ALGORITHM_PROPERTY(std::string, x_coordinate_column)
+    TECA_ALGORITHM_PROPERTY(std::string, y_coordinate_column)
 
     // the following group of properties define a set of
     // polygons describing arbitrary regions to count
@@ -66,11 +75,12 @@ private:
 
 private:
     std::string time_column;
+    std::string step_column;
     std::string x_coordinate_column;
     std::string y_coordinate_column;
-
     double start_time;
     double end_time;
+    long step_interval;
     std::vector<unsigned long> region_sizes;
     std::vector<unsigned long> region_starts;
     std::vector<double> region_x_coordinates;
