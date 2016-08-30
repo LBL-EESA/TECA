@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from teca import *
 import sys
 import argparse
