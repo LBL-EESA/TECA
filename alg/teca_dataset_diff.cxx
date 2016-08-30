@@ -160,27 +160,41 @@ int teca_dataset_diff::compare_tables(
     const_p_teca_table table1,
     const_p_teca_table table2)
 {
+    unsigned int ncols1 = table1->get_number_of_columns();
+    unsigned int ncols2 = table2->get_number_of_columns();
+
     // If the tables are different sizes, the datasets differ.
-    if (table1->get_number_of_columns() != table2->get_number_of_columns())
+    if (ncols1 != ncols2)
     {
-        TECA_ERROR("table 1 has " << table1->get_number_of_columns()
-            << " columns while table 2 has " << table2->get_number_of_columns()
-            << " columns.")
+        const_p_teca_table bigger = ncols1 > ncols2 ? table1 : table2;
+        const_p_teca_table smaller = ncols1 <= ncols2 ? table1 : table2;
+        unsigned int ncols = ncols1 > ncols2 ? ncols1 : ncols2;
+
+        ostringstream oss;
+        for (unsigned int i = 0; i < ncols; ++i)
+        {
+            std::string colname = bigger->get_column_name(i);
+            if (!smaller->has_column(colname))
+                oss << (oss.tellp()?", \"":"\"") << colname << "\"";
+        }
+
+        TECA_ERROR("The baseline table has " << ncols1
+            << " columns while test table has " << ncols2
+            << " columns. Columns " << oss.str() << " are missing")
         return 1;
     }
 
     if (table1->get_number_of_rows() != table2->get_number_of_rows())
     {
-        TECA_ERROR("table 1 has " << table1->get_number_of_rows()
-            << " rows while table 2 has " << table2->get_number_of_rows()
+        TECA_ERROR("The baseline table has " << table1->get_number_of_rows()
+            << " rows while test table has " << table2->get_number_of_rows()
             << " rows.")
         return 1;
     }
 
     // At this point, we know that the tables are both non-empty and the same size,
     // so we simply compare them one element at a time.
-    unsigned int ncols = table1->get_number_of_columns();
-    for (unsigned int col = 0; col < ncols; ++col)
+    for (unsigned int col = 0; col < ncols1; ++col)
     {
         const_p_teca_variant_array col1 = table1->get_column(col);
         const_p_teca_variant_array col2 = table2->get_column(col);
