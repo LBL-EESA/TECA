@@ -71,10 +71,22 @@ class teca_variant_array;
 
     TECA_PY_STR()
 
+    unsigned long __len__()
+    { return self->size(); }
+
     void __setitem__(unsigned long i, PyObject *value)
     {
         teca_py_gil_state gil;
 
+#ifndef NDEBUG
+        if (i >= self->size())
+        {
+            PyErr_Format(PyExc_IndexError,
+                "index %lu is out of bounds in teca_variant_array "
+                " with size %lu", i, self->size());
+            return;
+        }
+#endif
         if (teca_py_object::set(self, i, value))
             return;
 
@@ -85,6 +97,14 @@ class teca_variant_array;
     PyObject *__getitem__(unsigned long i)
     {
         teca_py_gil_state gil;
+
+        if (i >= self->size())
+        {
+            PyErr_Format(PyExc_IndexError,
+                "index %lu is out of bounds in teca_variant_array "
+                " with size %lu", i, self->size());
+            return nullptr;
+        }
 
         TEMPLATE_DISPATCH(teca_variant_array_impl, self,
             TT *varrt = static_cast<TT*>(self);
@@ -97,7 +117,7 @@ class teca_variant_array;
             )
 
         PyErr_Format(PyExc_TypeError,
-            "failed to set value at index %lu", i);
+            "failed to get value at index %lu", i);
         return nullptr;
     }
 

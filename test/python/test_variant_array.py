@@ -71,6 +71,14 @@ for arr in arrs:
     out('%s\n'%(str(arr)))
 end_sec('str')
 
+start_sec('iter')
+for arr in arrs:
+    out('%s\n  '%(str(type(arr))))
+    for v in arr:
+        out('%s '%(v))
+    out('\n')
+end_sec('iter')
+
 start_sec('destructor')
 for arr in arrs:
     out('%s\n'%(str(type(arr))))
