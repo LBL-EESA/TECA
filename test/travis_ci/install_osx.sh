@@ -8,7 +8,7 @@ brew update
 brew tap Homebrew/homebrew-science
 brew install gcc openmpi hdf5 netcdf python swig svn udunits
 # brew install boost --c++11
-pip install numpy mpi4py
+pip install numpy mpi4py matplotlib
 
 # install cmake manually because brew version too old
 wget https://cmake.org/files/v3.5/cmake-3.5.2-Darwin-x86_64.tar.gz
