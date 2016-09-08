@@ -33,6 +33,7 @@ teca_add_app(teca_metadata_probe LIBS ${teca_app_link}
     FEATURES (TECA_HAS_BOOST AND TECA_HAS_NETCDF AND TECA_HAS_UDUNITS))
 
 teca_py_install_apps(
+    teca_convert_table.py
     teca_event_filter.py
     teca_tc_stats.py
     )
