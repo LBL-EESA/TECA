@@ -34,6 +34,7 @@ teca_add_app(teca_metadata_probe LIBS ${teca_app_link}
 
 teca_py_install_apps(
     teca_convert_table.py
+    teca_dataset_metadata.py
     teca_event_filter.py
     teca_tc_stats.py
     )
