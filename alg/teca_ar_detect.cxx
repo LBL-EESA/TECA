@@ -62,39 +62,80 @@ typedef Delaunay::Face_handle FHN;
 struct Coordinate
 {
     unsigned long x, y;
-    unsigned int label;
+    //unsigned int label;
 
-    Coordinate(unsigned long param_x, unsigned long param_y, unsigned int param_label) : x(param_x), y(param_y), label(param_label) {}
+    Coordinate(unsigned long param_x, unsigned long param_y) : x(param_x), y(param_y) {}
 };
 
-void dfs(int y, int current_label, unsigned long num_cols, unsigned int *label, unsigned int *m);
-
-//Find components.
-int find_components(unsigned long num_rows, unsigned long num_cols, unsigned int *m, unsigned int *label);
-
 //Find neigbours based on ghost zones.
-template <typename T>
-void find_neighbours(unsigned int *lext, unsigned int *oext, unsigned int *igrid, unsigned int *ogrid, unsigned int nx, unsigned int nxx, const T *p_land_sea_mask);
+template <typename T, typename T1>
+    void find_neighbours(unsigned int *lext, unsigned int *oext,
+                         unsigned int *igrid, unsigned int *ogrid,
+                         unsigned int nx, unsigned int nxx,
+                         const T *p_land_sea_mask, std::vector<Point_2>& selected_data_points,
+                         std::vector<unsigned long>& labels_of_selected_dp,
+                         const T1 *p_lon, const T1 *p_lat);
 
 template <typename T, typename T1>
-void find_segmentation(const T *input, unsigned int *p_con_comp_skel, T low, unsigned long num_rc, unsigned long num_cols, const T1 *p_land_sea_mask);
+    void find_segmentation(const T *input, unsigned int *p_con_comp_skel,
+                           T low, unsigned long num_rc, unsigned long num_cols,
+                           const T1 *p_land_sea_mask);
 
 //Functions for skeletonization algorithm.
 template <typename T>
-void compute_skeleton_of_ar(const_p_teca_variant_array land_sea_mask, unsigned int *p_con_comp, unsigned long num_rc, const T *input, T low, unsigned long num_rows, unsigned long num_cols, const_p_teca_variant_array lat, const_p_teca_variant_array lon);
-
-std::pair<FH,FH> Faces (DE const& e);
+    void compute_skeleton_of_ar(const_p_teca_variant_array land_sea_mask, unsigned int *p_con_comp,
+                                unsigned long num_rc, const T *input, T low, unsigned long num_rows,
+                                unsigned long num_cols, const_p_teca_variant_array lat,
+                                const_p_teca_variant_array lon);
 
 std::pair<FHN,FHN> FacesN (DEDGE const& e);
 
-void compute_voronoi_diagram(std::vector<Point_2> selected_data_points, std::vector<unsigned long> labels_of_selected_dp);
+bool check_constraints(const Point_2& p0, const Point_2& p1);
+
+void compute_voronoi_diagram(std::vector<Point_2> selected_data_points,
+                             std::vector<unsigned long> labels_of_selected_dp);
+
+float compute_width(std::vector<float>& vec);
+
+float compute_distance(Point_2 const& p0, Point_2 const& p1);
+
+void print_array(unsigned int *p_con_comp_skel, unsigned long num_rc,
+                 unsigned long num_rows, unsigned long num_cols);
 
 //Save to VTK file format.
-void save_to_vtk_file(std::vector<Point_2> circumcenters_coordinates);
+void save_to_vtk_file(std::vector<Point_2> circumcenters_coordinates, bool cflag);
+
+//Class that represents vertices in a graph.
+class Node
+{
+public:
+    Point pixel;
+    double value;
+    int parent = -1, component = -1; // default value for a non-existing node
+    
+    Node (double v, Point p) { value = v, pixel = p; }
+};
+
+//Class that represents edges in a graph.
+class Edge
+{
+public:
+    float weight;
+    // Indices in a given vector
+    int end0X, end0Y;
+    
+    Edge (float w, int e0X, int e0Y) { weight = w; end0X = e0X; end0Y = e0Y; }
+};
+
+template <typename T>
+    void build_graph(std::vector<Node>& nodes, std::vector<Edge>const& edges,
+                     unsigned long num_rows, unsigned long num_cols,
+                     const T *input);
 
 //Functions for finding threshold parameter.
 template <typename T>
-void initialise_graph(const T *input, unsigned long num_rc, unsigned long num_rows, unsigned long num_cols);
+    void union_find_alg(const T *input, unsigned long num_rc,
+                           unsigned long num_rows, unsigned long num_cols);
 
 /*************** MYCODE *****************/
 
@@ -158,26 +199,14 @@ void threshold(
 {
     for (size_t i = 0; i < n_vals; ++i)
         output[i] = ((input[i] >= low) && (input[i] <= high)) ? 1 : 0;
-    /*
-    for (size_t i = 0; i < n_vals; ++i)
-    {
-        if(input[i] >= low)
-            output[i] = 1;
-        else
-            output[i] = 0;
-    }
-    */
 }
-
 
 // --------------------------------------------------------------------------
 teca_ar_detect::teca_ar_detect() :
     water_vapor_variable("prw"),
     land_sea_mask_variable(""),
-    //low_water_vapor_threshold(20),
     low_water_vapor_threshold(20),
     high_water_vapor_threshold(75),
-    //high_water_vapor_threshold(75),
     search_lat_low(19.0),
     search_lon_low(180.0),
     search_lat_high(56.0),
@@ -467,9 +496,12 @@ const_p_teca_dataset teca_ar_detect::execute(
 
 #if TECA_DEBUG > 0
 
-        //initialise_graph(p_wv, num_rc, num_rows, num_cols); //It works properly!
-
-        compute_skeleton_of_ar(land_sea_mask, p_con_comp, num_rc, p_wv, static_cast<NT>(this->low_water_vapor_threshold), num_rows, num_cols, lat, lon);
+        //union_find_alg(p_wv, num_rc, num_rows, num_cols); //It works properly!
+                      
+        compute_skeleton_of_ar(land_sea_mask, p_con_comp,
+                               num_rc, p_wv, static_cast<NT>(this->low_water_vapor_threshold),
+                               num_rows, num_cols,
+                               lat, lon);
 
 #endif
         /*************** MYCODE *****************/
@@ -1437,104 +1469,93 @@ int write_mesh(
 
 #endif
 
-//Class that represents vertices in a graph.
-class Node
-{
-    public:
-        Point_2 pixel;
-        double value;
-        int parent = -1, component = -1; // default value for a non-existing node
-
-        Node (double v, Point_2 p) { value = v, pixel = p; }
-};
-
-//Class that represents edges in a graph.
-class Edge
-{
-    public:
-        float weight;
-        // Indices in a given vector
-        int end0X, end0Y;
-
-        Edge (float w, int e0X, int e0Y) { weight = w; end0X = e0X; end0Y = e0Y; }
-};
-
 //Build graph on IWV 2d grid.
 template <typename T>
-void initialise_graph(const T *input, unsigned long num_rc, unsigned long num_rows, unsigned long num_cols)
+void union_find_alg(const T *input, unsigned long num_rc, unsigned long num_rows, unsigned long num_cols)
 {
     std::vector<Edge> edges;
+    std::vector<Node> nodes;
+    
+    build_graph(nodes, edges, num_rows, num_cols, input);
 
-    //Horizontal edges
-    for(unsigned long i = 0; i < num_rc; i+=num_cols)
-    {
-        for(unsigned long j = i, x = 0; j < num_cols+i; j++, x++)
-        {
-            if(j + 1 <= (num_cols+i)-1) edges.push_back( Edge(std::min(input[j], input[j + 1]), i + x, j + 1) ); //left OK
-
-            if(j - 1 >= i) edges.push_back( Edge(std::min(input[j], input[j - 1]), i + x, j - 1) ); //right OK
-        }
-    }
-
-    unsigned long nb_vert_edg = edges.size();
-    std::cerr << "Nb of horizontal edges based on 2D grid: " << edges.size() << endl;
-
-    //Vertical edges
-    for(unsigned long i = 0; i < num_rc; i+=num_cols)
-    {
-        for(unsigned long j = i, x = 0; j < num_cols+i; j++, x++)
-        {
-            if(j + num_cols < num_rc - num_cols) edges.push_back( Edge(std::min(input[j], input[j + num_cols]), i + x, j + num_cols) ); //under OK
-
-            if(j - num_cols >= i) edges.push_back( Edge(std::min(input[j], input[j - num_cols]), i + x, j - num_cols) ); //above OK
-        }
-    }
-
-    std::cerr << "Nb of vertical edges based on 2D grid: " << edges.size() - nb_vert_edg << endl;
-}
-
-//Depth-First-Search.
-void dfs(int y, int current_label, unsigned long num_cols, unsigned int *label, unsigned int *m)
-{
-    int dx[] = {1, -1, (int)num_cols, -(int)num_cols}; //Four directions.
-
-    if (y < 0 || y == (int)num_cols) return; //Out of bounds.
-
-    if (label[y] != 0 || m[y] != 1) return; //Already labeled or not marked with 1 in m.
-
-    //Mark the current cell.
-    label[y] = current_label;
-
-    //Recursively mark the neighbors.
-    for(int i = 0; i < 4; i++)
-    {
-        dfs(y + dx[i], current_label, num_cols, label, m);
-    }
-}
-
-//Find components.
-//The find_components function goes through all the cells of the grid and starts a component labeling if it finds an unlabeled cell (marked with 1).
-int find_components(unsigned long num_rows, unsigned long num_cols, unsigned int *m, unsigned int *label)
-{
-    int component = 0;
-    for(unsigned long i = 0; i < num_rows*num_cols; i+=num_cols)
-    {
-        for(unsigned long j = i; j < num_cols+i; j++)
-        {
-            if(label[j] == 0 && m[j] == 1)
-            {
-                std::cerr << j << endl;
-                dfs(j, ++component, num_cols, label, m);
-            }
-        }
-    }
-    return component;
+    std::cerr << "Nb of edges based on 2D grid: " << edges.size() << endl;
 }
 
 template <typename T>
+void build_graph(std::vector<Node>& nodes, std::vector<Edge>& edges, unsigned long num_rows, unsigned long num_cols, const T *input)
+{
+    //Size of ghost zone.
+    int ng = 1;
+    
+    //Initialize array for function that uses ghost zone.
+    unsigned long iext[4] = {0};
+    iext[0] = 0;
+    iext[1] = num_cols - 1;
+    iext[2] = 0;
+    iext[3] = num_rows - 1;
+    
+    unsigned long nx = iext[1] - iext[0] + 1;
+    unsigned long ny = iext[3] - iext[2] + 1;
+    
+    unsigned long lext[4] = {0};
+    lext[0] = iext[0] + ng;
+    lext[1] = iext[1] - ng;
+    lext[2] = iext[2] + ng;
+    lext[3] = iext[3] - ng;
+    
+    unsigned long oext[4] = {0};
+    oext[0] = 0;
+    oext[1] = nx - 2*ng - 1;
+    oext[2] = 0;
+    oext[3] = ny - 2*ng - 1;
+    
+    for(unsigned int j = lext[2], jj = oext[2]; j <= lext[3]; ++j, ++jj)
+    {
+        for(unsigned int i = lext[0], ii = oext[0]; i <= lext[1]; ++i, ++ii)
+        {
+            int q = j * nx + i;
+            
+            //Add horizontal edges.
+            edges.push_back( Edge(std::min(input[q], input[q + 1]), q, q + 1) );
+            edges.push_back( Edge(std::min(input[q], input[q - 1]), q, q - 1) );
+            
+            //Add vertical edges.
+            edges.push_back( Edge(std::min(input[q], input[q + nx]), q, q + nx) );
+            edges.push_back( Edge(std::min(input[q], input[q - nx]), q, q - nx) );
+        }
+    }
+}
+
+//Rule for sorting points based on their coordinates.
+bool xComparator(const Point_2& a, const Point_2& b)
+{
+    if(a.y() < b.y())
+        return true;
+    if(a.y() > b.y())
+        return false;
+    return a.x()<b.x();
+}
+
+//Print array for debugging purposes.
+void print_array(unsigned int *p_con_comp_skel, unsigned long num_rc, unsigned long num_rows, unsigned long num_cols)
+{
+    for(unsigned long i = 0; i < num_rc; i+=num_cols)
+    {
+        for(unsigned long j = i; j < i + num_cols; j++)
+        {
+            std::cerr << p_con_comp_skel[j] << " ";
+        }
+        std::cerr << endl;
+    }
+    std::cerr << endl;
+}
+
+//Finding neighbours and boundary points.
+template <typename T, typename T1>
     void find_neighbours(unsigned long *lext, unsigned int *igrid,
-        unsigned long *oext, unsigned int *ogrid, unsigned int nx,
-        unsigned int nxx, const T *p_land_sea_mask)
+                         unsigned long *oext, unsigned int *ogrid, unsigned int nx,
+                         unsigned int nxx, const T *p_land_sea_mask, std::vector<Point_2>& selected_data_points,
+                         std::vector<unsigned long>& labels_of_selected_dp, const T1 *p_lon, const T1 *p_lat)
     {
         for(unsigned int j = lext[2], jj = oext[2]; j <= lext[3]; ++j, ++jj)
         {
@@ -1543,7 +1564,6 @@ template <typename T>
                 int q = j * nx + i;
                 int qq = jj * nxx + ii;
 
-                //if(igrid[q] > 0 || p_land_sea_mask[q] == 1)
                 if(igrid[q] > 0 || p_land_sea_mask[q] > 0)
                 {
                     continue;
@@ -1566,8 +1586,26 @@ template <typename T>
                 }
             }
         }
+        
+        //Find boundary points.
+        for (unsigned long j = lext[2], jj = oext[2]; j <= lext[3]; ++j, ++jj)
+        {
+            for (unsigned long i = lext[0], ii = oext[0]; i <= lext[1]; ++i, ++ii)
+            {
+                unsigned long qq = jj * nxx + ii;
+                
+                if (ogrid[qq] > 0)
+                {
+                    Point_2 p1 = Point_2(p_lon[i] , p_lat[j]);
+                    
+                    selected_data_points.push_back(p1);
+                    labels_of_selected_dp.push_back(ogrid[qq]);
+                }
+            }
+        }
     }
 
+//Finding segmentation based on IWV values and land-sea mask.
 template <typename T, typename T1>
     void find_segmentation(const T *input, unsigned int *p_con_comp_skel, T low, unsigned long num_rc, unsigned long num_cols, const T1 *p_land_sea_mask)
 {
@@ -1584,11 +1622,7 @@ template <typename T, typename T1>
     }
 }
 
-// TODO --rm this
-using std::cerr;
-using std::endl;
-
-//Computing skeleton based on Voronoi diagram.
+//Computing skeleton based on Delanuay triangulation.
 template <typename T>
 void compute_skeleton_of_ar(const_p_teca_variant_array land_sea_mask,
                             unsigned int *p_con_comp,
@@ -1612,7 +1646,7 @@ void compute_skeleton_of_ar(const_p_teca_variant_array land_sea_mask,
 
             const NT2 *p_land_sea_mask = dynamic_cast<TT2*>(land_sea_mask.get())->get();
 
-            //Vectors for data points and labels for Delanuay triangulation.
+            //Vectors for boundary points and labels for Delanuay triang.
             std::vector<Point_2> selected_data_points;
             std::vector<unsigned long> labels_of_selected_dp;
 
@@ -1620,29 +1654,20 @@ void compute_skeleton_of_ar(const_p_teca_variant_array land_sea_mask,
             p_teca_unsigned_int_array con_comp_skel = teca_unsigned_int_array::New(num_rc, 0);
             unsigned int *p_con_comp_skel = con_comp_skel->get();
 
-            //Segmentation of data.
+            //Segmentation of data based on water vapour and land-sea mask.
             find_segmentation(input, p_con_comp_skel, low, num_rc, num_cols, p_land_sea_mask);
            
             //Compute labels for data points using SAUF.
             int num_comp = sauf(num_rows, num_cols, p_con_comp_skel);
-                                 
-            //Print content of array.
-            for(unsigned long i = 0; i < num_rc; i+=num_cols)
-            {
-               for(unsigned long j = i; j < i + num_cols; j++)
-               {
-                   std::cerr << p_con_comp_skel[j] << " ";
-               }
-               std::cerr << endl;
-            }
-               std::cerr << endl;
-                                 
             std::cerr << "\n### Nb of connected components = " << num_comp << endl;
+            
+            //Print content of array.
+            //print_array(p_con_comp_skel, num_rc, num_rows, num_cols);
                                  
             //Size of ghost zone.
             int ng = 1;
 
-            //Initialize array for function that uses ghost zone.
+            //Initialize arrays for function that uses ghost zone.
             unsigned long iext[4] = {0};
             iext[0] = 0;
             iext[1] = num_cols - 1;
@@ -1667,48 +1692,18 @@ void compute_skeleton_of_ar(const_p_teca_variant_array land_sea_mask,
             oext[2] = 0;
             oext[3] = ny - 2*ng - 1;
                                  
-            //Output array p_ogrid.
             p_teca_unsigned_int_array p_ogrid_array = teca_unsigned_int_array::New(nxx * nyy, 0);
             unsigned int *p_ogrid = p_ogrid_array->get();
 
-            find_neighbours(lext, p_con_comp_skel, oext, p_ogrid, nx, nxx, p_land_sea_mask);
-                        
-            cerr << "#nlon = " << lon->size() << endl;
-            cerr << "#nlat = " << lat->size() << endl;
-
-            cerr << "#lext " << lext[0] << " " << lext[1] << " " << lext[2] << " " << lext[3] << " " << endl;
-            cerr << "#nxx " << nxx << endl;
+            //Find boundary points of segmentation.
+            find_neighbours(lext, p_con_comp_skel, oext, p_ogrid, nx, nxx, p_land_sea_mask, selected_data_points, labels_of_selected_dp, p_lon, p_lat);
                                  
-            //Print output array.
-            for (unsigned long j = lext[2], jj = oext[2]; j <= lext[3]; ++j, ++jj)
-            {
-                for (unsigned long i = lext[0], ii = oext[0]; i <= lext[1]; ++i, ++ii)
-                {
-                    unsigned long qq = jj * nxx + ii;
-
-                    if (p_ogrid[qq] > 0)
-                    {
-                        Point_2 p1 = Point_2(p_lon[i] , p_lat[j]);
-
-                        selected_data_points.push_back(p1);
-                        labels_of_selected_dp.push_back(p_ogrid[qq]);
-                    }
-                }
-            }
-                                 
-            //Compute Voronoi diagram based on CGAL library.
+            //Compute Voronoi points based on CGAL library.
             compute_voronoi_diagram(selected_data_points, labels_of_selected_dp);
     ))
 }
 
-std::pair<FH,FH> Faces (DE const& e)
-{
-    //If we have an edge e, then e.first and e.first.neighbor( e.second ) are the two incident facets.
-    FH f1 = e.first;
-    FH f2 = e.first->neighbor( e.second );
-    return std::make_pair (f1, f2);
-}
-
+//Finding a pair of neighbouring triangles (faces).
 std::pair<FHN,FHN> FacesN (DEDGE const& e)
 {
     //If we have an edge e, then e.first and e.first.neighbor( e.second ) are the two incident facets.
@@ -1717,68 +1712,120 @@ std::pair<FHN,FHN> FacesN (DEDGE const& e)
     return std::make_pair (f1, f2);
 }
 
+//Checking if skeleton points are outside of the patch.
+//We use fixed size values of the patch!!!
+bool check_constraints(const Point_2& p0, const Point_2& p1)
+{
+    if(p0.x() < 0 || p0.y() < 0 || p1.x() < 0 || p1.y() < 0)
+    {
+        return false;
+    }
+    else if(p0.x() < 180 || p0.x() > 250 || p0.y() < 19 || p0.y() > 56)
+    {
+        return false;
+    }
+    else if(p1.x() < 180 || p1.x() > 250 || p1.y() < 19 || p1.y() > 56)
+    {
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+
+//Computing distance between two points.
+float compute_distance(Point_2 const& p0, Point_2 const& p1)
+{
+    float dx;
+    float dy;
+    float dist;
+    
+    dx = p0.x() - p1.x();
+    dy = p1.y() - p1.y();
+    
+    dist = sqrt(dx*dx - dy*dy);
+    
+    return dist;
+}
+
+//Median width.
+float compute_width(std::vector<float>& vec)
+{
+    std::sort(vec.begin(), vec.end());
+    
+    if(vec.size() % 2 == 0)
+        return (vec[vec.size()/2 - 1] + vec[vec.size()/2]) / 2;
+    else
+        return vec[vec.size()/2];
+}
+
 //Computing Voronoi diagram based on Delanuay triangulation.
 void compute_voronoi_diagram(std::vector<Point_2> selected_data_points, std::vector<unsigned long> labels_of_selected_dp)
 {
+    //Flag that is responsible for checking if:
+    //true - save skeleton coordinatesl;
+    //false save coordinates of Delanuay triangulation.
+    bool cflag = true;
+    
+    //Create list of indices for boundary points.
     std::vector<unsigned long> list_of_indices;
-    
     for(unsigned long int j = 0; j < labels_of_selected_dp.size(); j++)
-    {
         list_of_indices.push_back(j);
-    }
     
+    //Merge boundary points with created indices.
     Delaunay dt2;
     dt2.insert(boost::make_zip_iterator(boost::make_tuple( selected_data_points.begin(), list_of_indices.begin() )), boost::make_zip_iterator(boost::make_tuple( selected_data_points.end(), list_of_indices.end() )));
-
     CGAL_assertion(dt2.number_of_vertices() == selected_data_points.size());
 
-    Delaunay::Finite_edges_iterator eit;
-
+    //Coordinates of skeleton points.
     std::vector<Point_2> circumcenters_coordinates;
-
-    bool cflag = true;
+    
+    //Vector of calculated widths.
+    std::vector<float> ar_widths;
     
     if(cflag)
     {
+        Delaunay::Finite_edges_iterator eit;
         for (eit = dt2.finite_edges_begin(); eit != dt2.finite_edges_end(); ++eit)
         {
+            //Skip edge if it is infinite.
             CGAL::Object o = dt2.dual(eit);
-        
             if (CGAL::object_cast<K::Ray_2>(&o)) continue;
         
+            //Take the edge.
             DEDGE e = *eit;
-
+            
+            //Find indices of vertices of selected edge.
             int i1= e.first->vertex( (e.second+1)%3 )->info();
             int i2= e.first->vertex( (e.second+2)%3 )->info();
-
-            //std::cerr << "\n### Indices of endpoints from extracted edge: " << i1 << " ; " << i2 << endl;
-            //std::cerr << "Labels: " << labels_of_selected_dp[i1] << " , " << labels_of_selected_dp[i2] << endl;
         
+            //Check if labels are different.
             if(labels_of_selected_dp[i1] != labels_of_selected_dp[i2])
             {
+                //Find neigbouring triangles.
                 std::pair<FHN,FHN> faces = FacesN(e);
-
-                FHN face0 = faces.first;
-
-                //K::Triangle_2 Triangle0 (face0->vertex(0)->point(), face0->vertex(1)->point(), face0->vertex(2)->point());
-                //Point_2 point0 = circumcenter(Triangle0.vertex(0), Triangle0.vertex(1), Triangle0.vertex(2));
-                //Point_2 point0 = centroid(Triangle0.vertex(0), Triangle0.vertex(1), Triangle0.vertex(2));
                 
+                //First face.
+                FHN face0 = faces.first;
                 Point_2 point0 = dt2.dual(face0);
 
+                //Second face.
                 FHN face1 = faces.second;
-
-                //K::Triangle_2 Triangle1 (face1->vertex(0)->point(), face1->vertex(1)->point(), face1->vertex(2)->point());
-                //Point_2 point1 = circumcenter(Triangle1.vertex(0), Triangle1.vertex(1), Triangle1.vertex(2));
-                //Point_2 point1 = centroid(Triangle1.vertex(0), Triangle1.vertex(1), Triangle1.vertex(2));
-                
                 Point_2 point1 = dt2.dual(face1);
-
-                //Print coordinates of skeleton points.
-                std::cerr << point0 << " ; " << point1 << "\n";
                 
-                circumcenters_coordinates.push_back(point0);
-                circumcenters_coordinates.push_back(point1);
+                //Check if points are inside patch.
+                if(check_constraints(point0, point1))
+                {
+                    //Print coordinates of skeleton points.
+                    //std::cerr << point0 << " ; " << point1 << "\n";
+                    
+                    float ar_width = compute_distance(point0, point1);
+                    ar_widths.push_back(ar_width);
+                    
+                    circumcenters_coordinates.push_back(point0);
+                    circumcenters_coordinates.push_back(point1);
+                }
             }
         }
     }
@@ -1797,34 +1844,84 @@ void compute_voronoi_diagram(std::vector<Point_2> selected_data_points, std::vec
             circumcenters_coordinates.push_back(point2);
         }
     }
+   
+    if(!circumcenters_coordinates.empty())
+    {
+        //Save to file.
+        save_to_vtk_file(circumcenters_coordinates, cflag);
+        
+        std::sort(circumcenters_coordinates.begin(), circumcenters_coordinates.end(), xComparator);
+        Point_2 p_0 = circumcenters_coordinates.front();
+        Point_2 p_1 = circumcenters_coordinates.back();
+        
+        float ar_length = compute_distance(p_0, p_1);
+        std::cerr << "\nAR length: " << ar_length << endl;
+    }
     
-    save_to_vtk_file(circumcenters_coordinates);
+    if(!ar_widths.empty())
+    {
+        float ar_width_median = compute_width(ar_widths);
+        std::cerr << "\nAR width: " << ar_width_median << endl;
+    }
 }
 
-bool xComparator(const Point_2& a, const Point_2& b) {
-
-    if(a.y() < b.y())
-        return true;
-    if(a.y() > b.y())
-        return false;
-    return a.x()<b.x();
-}
-
-void save_to_vtk_file(std::vector<Point_2> circumcenters_coordinates)
+void save_to_vtk_file(std::vector<Point_2> circumcenters_coordinates, bool cflag)
 {
-    bool cflag = false;
-    
     if(cflag)
     {
+        std::sort(circumcenters_coordinates.begin(), circumcenters_coordinates.end(), xComparator);
+        
         std::ofstream ofs;
-        ofs.open ("325_dgm_bis_new.vtk", std::ofstream::out | std::ofstream::app);
+        ofs.open ("skel_coord.vtk", std::ofstream::out | std::ofstream::app);
         
         ofs << "# vtk DataFile Version 4.0" << endl;
         ofs << "vtk output" << endl;
         ofs << "ASCII" << endl;
         ofs << "DATASET UNSTRUCTURED_GRID" << endl;
         ofs << "POINTS " << circumcenters_coordinates.size() << " " << "float" << endl;
-
+        
+        ofs << std::setprecision(2) << std::fixed;
+        
+        for(unsigned long p = 0; p < circumcenters_coordinates.size(); p+=2)
+        {
+            ofs << (float)circumcenters_coordinates[p].x() << " " << (float)circumcenters_coordinates[p].y() << " " << 0 << " "
+            << (float)circumcenters_coordinates[p + 1].x() << " " << (float)circumcenters_coordinates[p + 1].y() << " " << 0 << " " << endl;
+        }
+        
+        int nb_points = 2;
+        
+        ofs << "CELLS " << circumcenters_coordinates.size()/2 << " " << circumcenters_coordinates.size()/2 * (nb_points + 1) << endl;
+        
+        for(unsigned long c = 0; c < circumcenters_coordinates.size(); c+=2)
+        {
+            ofs << 2 << " " << c << " " << c + 1 << endl;
+        }
+        
+        ofs << endl;
+        
+        ofs << "CELL_TYPES" << " " << circumcenters_coordinates.size()/2 << endl;
+        
+        //Set cell type as a number.
+        const int cell_type = 3;
+        
+        for(unsigned long ct = 0; ct < circumcenters_coordinates.size()/2; ct++)
+        {
+            ofs << cell_type << endl;
+        }
+        
+        ofs.close();
+    }
+    else
+    {
+        std::ofstream ofs;
+        ofs.open ("del_dgm_coord.vtk", std::ofstream::out | std::ofstream::app);
+        
+        ofs << "# vtk DataFile Version 4.0" << endl;
+        ofs << "vtk output" << endl;
+        ofs << "ASCII" << endl;
+        ofs << "DATASET UNSTRUCTURED_GRID" << endl;
+        ofs << "POINTS " << circumcenters_coordinates.size() << " " << "float" << endl;
+        
         ofs << std::setprecision(2) << std::fixed;
         
         for(unsigned long p = 0; p < circumcenters_coordinates.size(); p+=3)
@@ -1833,7 +1930,7 @@ void save_to_vtk_file(std::vector<Point_2> circumcenters_coordinates)
             << (float)circumcenters_coordinates[p + 1].x() << " " << (float)circumcenters_coordinates[p + 1].y() << " " << 0 << " "
             << (float)circumcenters_coordinates[p + 2].x() << " " << (float)circumcenters_coordinates[p + 2].y() << " " << 0 << " " << endl;
         }
-
+        
         int nb_points = 3;
         
         ofs << "CELLS " << circumcenters_coordinates.size()/nb_points << " " << circumcenters_coordinates.size()/nb_points * (nb_points + 1) << endl;
@@ -1857,49 +1954,6 @@ void save_to_vtk_file(std::vector<Point_2> circumcenters_coordinates)
         
         ofs.close();
     }
-    else
-    {
-        //std::sort(circumcenters_coordinates.begin(), circumcenters_coordinates.end(), xComparator);
-
-        std::ofstream ofs;
-        ofs.open ("325_skeleton_bis_new_test.vtk", std::ofstream::out | std::ofstream::app);
-
-        ofs << "# vtk DataFile Version 4.0" << endl;
-        ofs << "vtk output" << endl;
-        ofs << "ASCII" << endl;
-        ofs << "DATASET UNSTRUCTURED_GRID" << endl;
-        ofs << "POINTS " << circumcenters_coordinates.size() << " " << "float" << endl;
-
-        ofs << std::setprecision(2) << std::fixed;
-
-        for(unsigned long p = 0; p < circumcenters_coordinates.size(); p+=2)
-        {
-            ofs << (float)circumcenters_coordinates[p].x() << " " << (float)circumcenters_coordinates[p].y() << " " << 0 << " "
-                << (float)circumcenters_coordinates[p + 1].x() << " " << (float)circumcenters_coordinates[p + 1].y() << " " << 0 << " " << endl;
-        }
-
-        int nb_points = 2;
-
-        ofs << "CELLS " << circumcenters_coordinates.size()/2 << " " << circumcenters_coordinates.size()/2 * (nb_points + 1) << endl;
-
-        for(unsigned long c = 0; c < circumcenters_coordinates.size(); c+=2)
-        {
-            ofs << 2 << " " << c << " " << c + 1 << endl;
-        }
-
-        ofs << endl;
-
-        ofs << "CELL_TYPES" << " " << circumcenters_coordinates.size()/2 << endl;
-
-        //Set cell type as a number.
-        const int cell_type = 3;
-
-        for(unsigned long ct = 0; ct < circumcenters_coordinates.size()/2; ct++)
-        {
-            ofs << cell_type << endl;
-        }
-
-        ofs.close();
-    }
 }
+
 
