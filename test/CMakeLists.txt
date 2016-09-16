@@ -235,3 +235,36 @@ teca_add_test(test_ar_detect_mpi_threads
     test_ar_detect.bin 0 -1 1 prw LSMASK
     FEATURES (${TECA_HAS_NETCDF} AND ${TECA_HAS_MPI})
     REQ_TECA_DATA)
+
+teca_add_test(test_table_reader_distribute_serial
+    COMMAND test_table_reader_distribute
+    "${TECA_DATA_ROOT}/test_tc_candidates_20.bin"
+    "${TECA_DATA_ROOT}/test_table_reader_distribute_20.bin"
+    "step" 0 -1 1
+    REQ_TECA_DATA)
+
+teca_add_test(test_table_reader_distribute_mpi
+    COMMAND ${MPIEXEC} -n ${TECA_TEST_CORES} test_table_reader_distribute
+    "${TECA_DATA_ROOT}/test_tc_candidates_20.bin"
+    "${TECA_DATA_ROOT}/test_table_reader_distribute_20.bin"
+    "step" 0 -1 1
+    FEATURES ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(test_table_reader_distribute_threads
+    EXEC_NAME test_table_reader_distribute
+    SOURCES test_table_reader_distribute.cpp teca_test_util.cxx
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_table_reader_distribute
+    "${TECA_DATA_ROOT}/test_tc_candidates_20.bin"
+    "${TECA_DATA_ROOT}/test_table_reader_distribute_20.bin"
+    "step" 0 -1 ${TECA_TEST_CORES}
+    REQ_TECA_DATA)
+
+teca_add_test(test_table_reader_distribute_mpi_threads
+    COMMAND ${MPIEXEC} -n ${HALF_CORES} test_table_reader_distribute
+    "${TECA_DATA_ROOT}/test_tc_candidates_20.bin"
+    "${TECA_DATA_ROOT}/test_table_reader_distribute_20.bin"
+    "step" 0 -1 ${HALF_CORES}
+    FEATURES ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
