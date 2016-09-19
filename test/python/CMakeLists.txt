@@ -124,3 +124,19 @@ teca_add_test(py_test_tc_stats
     "${TECA_DATA_ROOT}/cam5_1_amip_run2_classify_2005_09.bin"
     "${TECA_DATA_ROOT}/cam5_1_amip_run2_stats_2005_09.bin"
     REQ_TECA_DATA)
+
+teca_add_test(py_test_tc_trajectory_scalars_serial
+    COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_trajectory_scalars.py
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2_tracks_2005_09.bin"
+    "${TECA_DATA_ROOT}/earthmap4k.png"
+    "${TECA_DATA_ROOT}/py_test_tc_trajectory_scalars.bin" 0 -1
+    REQ_TECA_DATA)
+
+teca_add_test(py_test_tc_trajectory_scalars_mpi
+    COMMAND mpiexec -np ${TECA_TEST_CORES} python
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_trajectory_scalars.py
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2_tracks_2005_09.bin"
+    "${TECA_DATA_ROOT}/earthmap4k.png"
+    "${TECA_DATA_ROOT}/py_test_tc_trajectory_scalars.bin" 0 -1
+    FEATURES (${TECA_HAS_MPI} AND ${MPI4PY_FOUND})
+    REQ_TECA_DATA)
