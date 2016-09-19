@@ -94,6 +94,10 @@ int teca_tc_trajectory(var_t r_crit, var_t wind_crit, double n_wind_crit,
             new_track.reserve(max_track_len);
             new_track.push_back(track_start);
 
+            std::vector<coord_t> storm_speed;
+            storm_speed.reserve(max_track_len);
+            storm_speed.push_back(coord_t());
+
             double duration = 0.0;
             double wind_duration = 0.0;
 
@@ -170,6 +174,9 @@ int teca_tc_trajectory(var_t r_crit, var_t wind_crit, double n_wind_crit,
                     // we were able to extend this track
                     new_track.push_back(closest_storm_id);
                     available[closest_storm_id] = false;
+
+                    coord_t v1 = closest_storm_dist/dt;
+                    storm_speed.push_back(v1);
                 }
                 else
                 {
@@ -193,7 +200,8 @@ int teca_tc_trajectory(var_t r_crit, var_t wind_crit, double n_wind_crit,
                         << time_step[storm_id] << time[storm_id] << d_lon[storm_id]
                         << d_lat[storm_id] << duration << wind_duration << wind_max[storm_id]
                         << vort_max[storm_id] << psl[storm_id] << have_twc[storm_id]
-                        << have_thick[storm_id] << twc_max[storm_id] << thick_max[storm_id];
+                        << have_thick[storm_id] << twc_max[storm_id] << thick_max[storm_id]
+                        << storm_speed[i];
                 }
 
                 ++track_id;
@@ -418,7 +426,8 @@ const_p_teca_dataset teca_tc_trajectory::execute(
                 "wind_duration", double(), "surface_wind", NT_VAR(),
                 "850mb_vorticity", NT_VAR(), "sea_level_pressure", NT_VAR(),
                 "have_core_temp", int(), "have_thickness", int(),
-                "core_temp", NT_VAR(), "thickness", NT_VAR());
+                "core_temp", NT_VAR(), "thickness", NT_VAR(),
+                "storm_speed", NT_COORD());
 
             const NT_VAR *p_wind_max =
                 dynamic_cast<const TT_VAR*>(wind_max.get())->get();
