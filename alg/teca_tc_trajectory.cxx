@@ -6,6 +6,7 @@
 #include "teca_variant_array.h"
 #include "teca_metadata.h"
 
+#include "teca_coordinate_util.h"
 #include "teca_distance_function.h"
 
 #include <algorithm>
@@ -31,45 +32,6 @@ using seconds_t = std::chrono::duration<double, std::chrono::seconds::period>;
 
 namespace internal
 {
-void get_step_offsets(const long *time_steps, unsigned long n_rows,
-    unsigned long &n_steps, std::vector<unsigned long> &step_counts,
-    std::vector<unsigned long> &step_offsets,
-    std::vector<unsigned long> &step_ids)
-{
-    // count unique number of steps and compute an array index
-    // from each time step.
-    n_steps = 1;
-    step_ids.resize(n_rows);
-    unsigned long n_m1 = n_rows - 1;
-    for (unsigned long i = 0; i < n_m1; ++i)
-    {
-        step_ids[i] = n_steps - 1;
-        if (time_steps[i] != time_steps[i+1])
-            ++n_steps;
-    }
-    step_ids[n_m1] = n_steps - 1;
-
-    // compute num storms in each step
-    step_counts.resize(n_steps);
-    unsigned long q = 0;
-    for (unsigned long i = 0; i < n_steps; ++i)
-    {
-        step_counts[i] = 1;
-        while ((q < n_m1) && (time_steps[q] == time_steps[q+1]))
-        {
-          ++step_counts[i];
-          ++q;
-        }
-        ++q;
-    }
-
-    // compute the offset to the first storm in each step
-    step_offsets.resize(n_steps);
-    step_offsets[0] = 0;
-    for (unsigned long i = 1; i < n_steps; ++i)
-        step_offsets[i] = step_offsets[i-1] + step_counts[i-1];
-}
-
 template<typename coord_t, typename var_t>
 int teca_tc_trajectory(
     var_t r_crit, var_t wind_crit, double n_wind_crit,
@@ -102,8 +64,8 @@ int teca_tc_trajectory(
     std::vector<unsigned long> step_offsets;
     std::vector<unsigned long> step_ids;
 
-    internal::get_step_offsets(time_step, n_rows,
-        n_steps, step_counts, step_offsets, step_ids);
+    teca_coordinate_util::get_table_offsets(time_step,
+        n_rows, n_steps, step_counts, step_offsets, step_ids);
 
     // build the track start queue.
     // consider all tracks eminating from all storms.

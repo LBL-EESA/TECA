@@ -180,6 +180,52 @@ int index_of(const const_p_teca_cartesian_mesh &mesh, T x, T y, T z,
 int time_step_of(p_teca_double_array time, bool lower,
     const std::string &calendar, const std::string &units,
     const std::string &date, unsigned long &step);
-};
 
+// build random access data structures for an indexed table.
+// the index column gives each entity a unique id. the index is
+// used to identify rows that belong in the entity. it is assumed
+// that an entity ocupies consecutive rows. the returns are:
+// n_entities, the number of entities found; counts, the number of
+// rows used by each entity; offsets, the starting row of each
+// entity; ids, a new set of ids for the entities starting from 0
+template <typename int_t>
+void get_table_offsets(const int_t *index, unsigned long n_rows,
+    unsigned long &n_entities, std::vector<unsigned long> &counts,
+    std::vector<unsigned long> &offsets, std::vector<unsigned long> &ids)
+{
+    // count unique number of steps and compute an array index
+    // from each time step.
+    n_entities = 1;
+    ids.resize(n_rows);
+    unsigned long n_m1 = n_rows - 1;
+    for (unsigned long i = 0; i < n_m1; ++i)
+    {
+        ids[i] = n_entities - 1;
+        if (index[i] != index[i+1])
+            ++n_entities;
+    }
+    ids[n_m1] = n_entities - 1;
+
+    // compute num storms in each step
+    counts.resize(n_entities);
+    unsigned long q = 0;
+    for (unsigned long i = 0; i < n_entities; ++i)
+    {
+        counts[i] = 1;
+        while ((q < n_m1) && (index[q] == index[q+1]))
+        {
+          ++counts[i];
+          ++q;
+        }
+        ++q;
+    }
+
+    // compute the offset to the first storm in each step
+    offsets.resize(n_entities);
+    offsets[0] = 0;
+    for (unsigned long i = 1; i < n_entities; ++i)
+        offsets[i] = offsets[i-1] + counts[i-1];
+}
+
+};
 #endif
