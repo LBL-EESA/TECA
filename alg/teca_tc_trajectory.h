@@ -50,6 +50,11 @@ public:
     TECA_ALGORITHM_PROPERTY(double, min_wind_speed)
     TECA_ALGORITHM_PROPERTY(double, min_wind_duration)
 
+    // number of time steps between candidate data
+    // this is used to detect missing candidate data
+    // and abort those tracks. default 1
+    TECA_ALGORITHM_PROPERTY(unsigned long, step_interval)
+
 protected:
     teca_tc_trajectory();
 
@@ -72,6 +77,7 @@ private:
     double max_daily_distance;
     double min_wind_speed;
     double min_wind_duration;
+    unsigned long step_interval;
 };
 
 #endif
