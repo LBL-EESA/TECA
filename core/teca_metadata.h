@@ -145,6 +145,10 @@ public:
     template<typename T>
     int get(const std::string &name, std::set<T> &val) const;
 
+    // copy prop values from the named prop into the passed in
+    // array. return 0 if successful
+    int get(const std::string &name, p_teca_variant_array val) const;
+
     // get the variant array, or nullptr if the
     // property doesn't exist
     p_teca_variant_array get(const std::string &name);
