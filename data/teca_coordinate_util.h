@@ -5,50 +5,10 @@
 #include "teca_variant_array.h"
 
 #include <vector>
+#include <cmath>
 
 namespace teca_coordinate_util
 {
-// binary search that will locate index bounding the value
-// above or below such that data[i] <= val or val <= data[i+1]
-// depending on the value of lower. return 0 if the value is
-// found.
-template <typename T>
-int index_of(const T *data, size_t l, size_t r, T val, bool lower, unsigned long &id)
-{
-    unsigned long m_0 = (r + l)/2;
-    unsigned long m_1 = m_0 + 1;
-
-    if (m_0 == r)
-    {
-        // not found
-        return -1;
-    }
-    else
-    if ((val >= data[m_0]) && (val <= data[m_1]))
-    {
-        // found the value!
-        if (lower)
-            id = m_0;
-        else
-            id = m_1;
-        return 0;
-    }
-    else
-    if (val < data[m_0])
-    {
-        // split range to the left
-        return teca_coordinate_util::index_of(data, l, m_0, val, lower, id);
-    }
-    else
-    {
-        // split the range to the right
-        return teca_coordinate_util::index_of(data, m_1, r, val, lower, id);
-    }
-
-    // not found
-    return -1;
-}
-
 template <typename T>
 bool equal(T a, T b, T tol)
 {
@@ -59,6 +19,92 @@ bool equal(T a, T b, T tol)
     if (diff <= (b*tol))
         return true;
     return false;
+}
+
+// comparators implementing bracket for ascending and
+// descending input arrays
+template<typename data_t>
+struct leq
+{ static bool eval(const data_t &l, const data_t &r) { return l <= r; } };
+
+template<typename data_t>
+struct geq
+{ static bool eval(const data_t &l, const data_t &r) { return l >= r; } };
+
+template<typename data_t>
+struct lt
+{ static bool eval(const data_t &l, const data_t &r) { return l < r; } };
+
+template<typename data_t>
+struct gt
+{ static bool eval(const data_t &l, const data_t &r) { return l > r; } };
+
+template<typename data_t>
+struct ascend_bracket
+{
+    using comp0_t = geq<data_t>;
+    using comp1_t = leq<data_t>;
+};
+
+template<typename data_t>
+struct descend_bracket
+{
+    using comp0_t = leq<data_t>;
+    using comp1_t = geq<data_t>;
+};
+
+// binary search that will locate index bounding the value
+// above or below such that data[i] <= val or val <= data[i+1]
+// depending on the value of lower. return 0 if the value is
+// found. the comp0 and comp1 template parameters let us
+// operate on both ascending and descending input. defaults
+// are set for ascending inputs.
+template <typename data_t, typename bracket_t = ascend_bracket<data_t>>
+int index_of(const data_t *data, unsigned long l, unsigned long r,
+    data_t val, bool lower, unsigned long &id)
+{
+    unsigned long m_0 = (r + l)/2;
+    unsigned long m_1 = m_0 + 1;
+
+    if (m_0 == r)
+    {
+        // not found
+        return -1;
+    }
+    else
+    if (bracket_t::comp0_t::eval(val, data[m_0]) &&
+         bracket_t::comp1_t::eval(val, data[m_1]))
+    {
+        data_t eps8 = data_t(8)*std::numeric_limits<data_t>::epsilon();
+        // found a bracket around the value
+        if (equal(val, data[m_0], eps8))
+            id = m_0;
+        else
+        if (equal(val, data[m_1], eps8))
+            id = m_1;
+        else
+        if (lower)
+            id = m_0;
+        else
+            id = m_1;
+        return 0;
+    }
+    else
+    if (val < data[m_0])
+    {
+        // split range to the left
+        return teca_coordinate_util::index_of<data_t, bracket_t>(
+            data, l, m_0, val, lower, id);
+    }
+    else
+    {
+        // split the range to the right
+        return teca_coordinate_util::index_of<data_t, bracket_t>(
+            data, m_1, r, val, lower, id);
+    }
+
+    // not found
+    return -1;
 }
 
 // binary search that will locate index of the given value.
@@ -100,32 +146,6 @@ int index_of(const T *data, size_t l, size_t r, T val, unsigned long &id)
 
     // not found
     return -1;
-}
-
-// return the extent corresponding to the
-// supplied bounding box. when cover_bbox is true the
-// bounds of the returned extent covers the supplied
-// bounding box. when cover_bbox is false the returned
-// extent is the largest extent contained by the bounding
-// box. return 0 if successful.
-template <typename T>
-int bounds_to_extent(
-    T low_x,  T high_x, T low_y, T high_y, T low_z, T high_z,
-    const T *p_x, const T *p_y, const T *p_z,
-    unsigned long high_i, unsigned long high_j, unsigned long high_k,
-    bool cover_bbox, std::vector<unsigned long> &extent)
-{
-    extent.resize(6, 0l);
-    if ((high_i && (teca_coordinate_util::index_of(p_x, 0, high_i, low_x, cover_bbox, extent[0])
-        || teca_coordinate_util::index_of(p_x, 0, high_i, high_x, !cover_bbox, extent[1])))
-        || (high_j && (teca_coordinate_util::index_of(p_y, 0, high_j, low_y, cover_bbox, extent[2])
-        || teca_coordinate_util::index_of(p_y, 0, high_j, high_y, !cover_bbox, extent[3])))
-        || (high_k && (teca_coordinate_util::index_of(p_z, 0, high_k, low_z, cover_bbox, extent[4])
-        || teca_coordinate_util::index_of(p_z, 0, high_k, high_z, !cover_bbox, extent[5]))))
-    {
-        return -1;
-    }
-    return 0;
 }
 
 // convert bounds to extents
