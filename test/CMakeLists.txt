@@ -208,14 +208,14 @@ teca_add_test(test_tc_classify
 teca_add_test(test_ar_detect_serial
     COMMAND test_ar_detect
     "${TECA_DATA_ROOT}/prw.*\\.nc" "${TECA_DATA_ROOT}/landsea.nc"
-    test_ar_detect.bin 0 -1 1 prw LSMASK
+    "${TECA_DATA_ROOT}/test_ar_detect.bin" 0 -1 1 prw LSMASK
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(test_ar_detect_mpi
     COMMAND ${MPIEXEC} -n ${TECA_TEST_CORES} test_ar_detect
     "${TECA_DATA_ROOT}/prw.*\\.nc" "${TECA_DATA_ROOT}/landsea.nc"
-    test_ar_detect.bin 0 -1 1 prw LSMASK
+    "${TECA_DATA_ROOT}/test_ar_detect.bin" 0 -1 1 prw LSMASK
     FEATURES (${TECA_HAS_NETCDF} AND ${TECA_HAS_MPI})
     REQ_TECA_DATA)
 
@@ -225,14 +225,14 @@ teca_add_test(test_ar_detect_threads
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_ar_detect
     "${TECA_DATA_ROOT}/prw.*\\.nc" "${TECA_DATA_ROOT}/landsea.nc"
-    test_ar_detect.bin 0 -1 1 prw LSMASK
+    "${TECA_DATA_ROOT}/test_ar_detect.bin" 0 -1 1 prw LSMASK
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(test_ar_detect_mpi_threads
     COMMAND ${MPIEXEC} -n ${HALF_CORES} test_ar_detect
     "${TECA_DATA_ROOT}/prw.*\\.nc" "${TECA_DATA_ROOT}/landsea.nc"
-    test_ar_detect.bin 0 -1 1 prw LSMASK
+    "${TECA_DATA_ROOT}/test_ar_detect.bin" 0 -1 1 prw LSMASK
     FEATURES (${TECA_HAS_NETCDF} AND ${TECA_HAS_MPI})
     REQ_TECA_DATA)
 
