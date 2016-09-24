@@ -86,14 +86,14 @@ template <typename T>
     void compute_skeleton_of_ar(const_p_teca_variant_array land_sea_mask, unsigned int *p_con_comp,
                                 unsigned long num_rc, const T *input, T low, unsigned long num_rows,
                                 unsigned long num_cols, const_p_teca_variant_array lat,
-                                const_p_teca_variant_array lon);
+                                const_p_teca_variant_array lon, unsigned long time_step);
 
 std::pair<FHN,FHN> FacesN (DEDGE const& e);
 
 bool check_constraints(const Point_2& p0, const Point_2& p1);
 
 void compute_voronoi_diagram(std::vector<Point_2> selected_data_points,
-                             std::vector<unsigned long> labels_of_selected_dp);
+                             std::vector<unsigned long> labels_of_selected_dp, unsigned long time_step);
 
 float compute_width(std::vector<float>& vec);
 
@@ -103,39 +103,75 @@ void print_array(unsigned int *p_con_comp_skel, unsigned long num_rc,
                  unsigned long num_rows, unsigned long num_cols);
 
 //Save to VTK file format.
-void save_to_vtk_file(std::vector<Point_2> circumcenters_coordinates, bool cflag);
+void save_to_vtk_file(std::vector<Point_2> circumcenters_coordinates, bool cflag, unsigned long time_step);
 
 //Class that represents vertices in a graph.
 class Node
 {
-public:
-    Point pixel;
-    double value;
-    int parent = -1, component = -1; // default value for a non-existing node
+    public:
+        Point pixel;
+        float value;
+        int parent = -1, component = -1; // default value for a non-existing node
     
-    Node (double v, Point p) { value = v, pixel = p; }
+        Node (float v, Point p) { value = v, pixel = p; }
 };
 
 //Class that represents edges in a graph.
 class Edge
 {
-public:
-    float weight;
-    // Indices in a given vector
-    int end0X, end0Y;
+    public:
+        float weight;
+        // Indices in a given vector
+        int endpoint0, endpoint1;
     
-    Edge (float w, int e0X, int e0Y) { weight = w; end0X = e0X; end0Y = e0Y; }
+        Edge (float w, int e0X, int e0Y) { weight = w; endpoint0 = e0X; endpoint1 = e0Y; }
 };
 
-template <typename T>
+template <typename T, typename T1>
     void build_graph(std::vector<Node>& nodes, std::vector<Edge>const& edges,
                      unsigned long num_rows, unsigned long num_cols,
-                     const T *input);
+                     const T *input, const T1 *p_lon, const T1 *p_lat);
+
+bool sort_edges(Edge const& e0, Edge const& e1);
+
+class Component
+{
+    public:
+        int index;
+        int nb_nodes;
+        int max_value;
+        int sum_nodes;
+        std::vector<int> inodes;
+
+        Component(Node node)
+        {
+            index = node.component;
+            nb_nodes = 1;
+            max_value = node.value;
+            sum_nodes = sum_nodes + node.value;
+        }
+    
+        //Mergre two old components into a new component.
+        Component(int i, float value, Component &c0, Component &c1)
+        {
+            index = i;
+            max_value = std::max(c0.max_value, c1.max_value);
+            nb_nodes = c0.nb_nodes + c1.nb_nodes;
+            sum_nodes = c0.sum_nodes + c1.sum_nodes;
+        }
+};
+
+void add_node(int inode, Node const& node, Component &comp);
+
+int find_root(std::vector<Node>& nodes, int n0);
+
+void finding_components(std::vector<Node> nodes, std::vector<Edge> edges, std::vector<Component>& components);
 
 //Functions for finding threshold parameter.
 template <typename T>
     void union_find_alg(const T *input, unsigned long num_rc,
-                           unsigned long num_rows, unsigned long num_cols);
+                        unsigned long num_rows, unsigned long num_cols, const_p_teca_variant_array lat,
+                        const_p_teca_variant_array lon);
 
 /*************** MYCODE *****************/
 
@@ -496,12 +532,13 @@ const_p_teca_dataset teca_ar_detect::execute(
 
 #if TECA_DEBUG > 0
 
-        //union_find_alg(p_wv, num_rc, num_rows, num_cols); //It works properly!
+        //union_find_alg(p_wv, num_rc, num_rows, num_cols, lat, lon); //It works properly!
                       
-        compute_skeleton_of_ar(land_sea_mask, p_con_comp,
+         compute_skeleton_of_ar(land_sea_mask, p_con_comp,
                                num_rc, p_wv, static_cast<NT>(this->low_water_vapor_threshold),
                                num_rows, num_cols,
-                               lat, lon);
+                               lat, lon, time_step);
+         
 
 #endif
         /*************** MYCODE *****************/
@@ -1469,59 +1506,250 @@ int write_mesh(
 
 #endif
 
-//Build graph on IWV 2d grid.
-template <typename T>
-void union_find_alg(const T *input, unsigned long num_rc, unsigned long num_rows, unsigned long num_cols)
+void add_node(int inode, Node const& node, Component &comp)
 {
-    std::vector<Edge> edges;
-    std::vector<Node> nodes;
-    
-    build_graph(nodes, edges, num_rows, num_cols, input);
-
-    std::cerr << "Nb of edges based on 2D grid: " << edges.size() << endl;
+    comp.nb_nodes++;
+    comp.sum_nodes = comp.sum_nodes + node.value;
+    comp.inodes.push_back(inode);
 }
 
-template <typename T>
-void build_graph(std::vector<Node>& nodes, std::vector<Edge>& edges, unsigned long num_rows, unsigned long num_cols, const T *input)
+int find_root(std::vector<Node>& nodes, int n0)
 {
-    //Size of ghost zone.
-    int ng = 1;
+    //std::cerr << "find_root " << nodes[n0].parent << n0 << endl;
     
-    //Initialize array for function that uses ghost zone.
-    unsigned long iext[4] = {0};
-    iext[0] = 0;
-    iext[1] = num_cols - 1;
-    iext[2] = 0;
-    iext[3] = num_rows - 1;
-    
-    unsigned long nx = iext[1] - iext[0] + 1;
-    unsigned long ny = iext[3] - iext[2] + 1;
-    
-    unsigned long lext[4] = {0};
-    lext[0] = iext[0] + ng;
-    lext[1] = iext[1] - ng;
-    lext[2] = iext[2] + ng;
-    lext[3] = iext[3] - ng;
-    
-    unsigned long oext[4] = {0};
-    oext[0] = 0;
-    oext[1] = nx - 2*ng - 1;
-    oext[2] = 0;
-    oext[3] = ny - 2*ng - 1;
-    
-    for(unsigned int j = lext[2], jj = oext[2]; j <= lext[3]; ++j, ++jj)
+    //If node is new.
+    if(nodes[n0].parent == -1)
     {
-        for(unsigned int i = lext[0], ii = oext[0]; i <= lext[1]; ++i, ++ii)
+        return -1;
+    }
+    
+    //If n0 is the root.
+    if(nodes[n0].parent != n0)
+    {
+        return find_root(nodes, nodes[n0].parent);
+    }
+    else
+    {
+        return nodes[n0].parent;
+    }
+}
+
+bool sort_volumes(Component const& c0, Component const& c1)
+{
+    if(c0.nb_nodes > c1.nb_nodes)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+bool sort_volumes_values(Component const& c0, Component const& c1)
+{
+    if(c0.sum_nodes > c1.sum_nodes)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+void finding_components(std::vector<Node> nodes, std::vector<Edge> edges, std::vector<Component>& components)
+{
+    int val, n0, n1;
+    int r0, r1;
+    int num_nodes;
+    int c0, c1;
+    
+    int nb_edges = edges.size();
+    
+    for(int e = 0; e < nb_edges; e++)
+    {
+        val = edges[e].weight;
+        n0 = edges[e].endpoint0;
+        n1 = edges[e].endpoint1;
+        
+        //Swap if n0 is smaller than n1.
+        if(nodes[n0].value > nodes[n1].value)
         {
-            int q = j * nx + i;
+            std::swap(n0, n1);
+        }
+
+        r1 = find_root(nodes, n1);
+        //std::cerr << "Root " << r1 << endl;
+        
+        //If it equals -1, both nodes are new (there is no higher node).
+        if(r1 == -1)
+        {
+            num_nodes++;
             
-            //Add horizontal edges.
-            edges.push_back( Edge(std::min(input[q], input[q + 1]), q, q + 1) );
-            edges.push_back( Edge(std::min(input[q], input[q - 1]), q, q - 1) );
+            //Now n1 is a root of itself.
+            r1 = n1;
+            nodes[n1].parent = n1;
+            nodes[n1].component = (int)components.size();
             
-            //Add vertical edges.
-            edges.push_back( Edge(std::min(input[q], input[q + nx]), q, q + nx) );
-            edges.push_back( Edge(std::min(input[q], input[q - nx]), q, q - nx) );
+            //Create new component.
+            Component comp(nodes[n1]); //Max value at birth.
+            comp.inodes.push_back(n1);
+            components.push_back(comp);
+        }
+        
+        r0 = find_root(nodes, n0);
+        
+        c1 = nodes[r1].component;
+        
+        //If second node is also new. It has lower value and it will joint the component of the highest node.
+        if(r0 == -1)
+        {
+            num_nodes++;
+            
+            //The higher node is now the parent.
+            nodes[n0].parent = r1;
+            
+            //Join lower node wit higher node.
+            add_node(n0, nodes[n0], components[c1]);
+            
+            //Add other node to set.
+            continue;
+        }
+        
+        c0 = nodes[r0].component;
+        
+        //If edge is inside one component.
+        if(c0 == c1) continue;
+        else
+        {
+            //Join two components
+            Component comp(int(components.size()), val, components[c0], components[c1]);
+            nodes[r0].parent = r1;
+            nodes[r1].component = comp.index;
+            components.push_back(comp);
+            
+        }
+        
+        std::sort( components.begin(), components.end(), sort_volumes );
+        
+        std::cerr << "### Volume (nb of nodes) 1st largest component: " << components[0].nb_nodes << "\n" << "### Volume (nb of nodes) 2nd largest component: " << components[1].nb_nodes << endl;
+        //(1st volume - 2nd volume) / 1st volume
+        std::cerr << "### The ratio (1st volume - 2nd volume) / 1st volume): " << (float)(components[0].nb_nodes - components[1].nb_nodes)/components[0].nb_nodes << endl;
+        std::cerr << "### Max value for 1st largest component: " << components[0].max_value << "\n" << "### Max value for 2st largest component: " << components[1].max_value << endl;
+        std::cerr << endl;
+        
+        std::sort( components.begin(), components.end(), sort_volumes_values );
+
+        std::cerr << "### Volume (sum of values) 1st largest component: " << components[0].sum_nodes << "\n" << "### Volume (sum of values) 2nd largest component: " << components[1].sum_nodes << endl;
+        std::cerr << "### The ratio (1st volume - 2nd volume) / 1st volume): " << (float)(components[0].sum_nodes - components[1].sum_nodes)/components[0].sum_nodes << endl;
+        std::cerr << "### Max value for 1st largest component: " << components[0].max_value << "\n" << "### Max value for 2st largest component: " << components[1].max_value << endl;
+        std::cerr << endl;
+    }
+    
+    //std::cerr << "### Nb of components: " << components.size() << " " << "### Nb of nodes that created new components plus nb of nodes joined: " << num_nodes << endl;
+}
+
+bool sort_edges(Edge const& e0, Edge const& e1)
+{
+    if(e0.weight > e1.weight)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+//Build graph on IWV 2d grid.
+template <typename T>
+    void union_find_alg(const T *input, unsigned long num_rc, unsigned long num_rows,
+                    unsigned long num_cols, const_p_teca_variant_array lat,
+                    const_p_teca_variant_array lon)
+{
+    TEMPLATE_DISPATCH_FP(
+        const teca_variant_array_impl,
+        lat.get(),
+                         
+            const NT *p_lat = dynamic_cast<TT*>(lat.get())->get();
+            const NT *p_lon = dynamic_cast<TT*>(lon.get())->get();
+                                 
+            std::vector<Edge> edges;
+            std::vector<Node> nodes;
+                         
+            build_graph(nodes, edges, num_rows, num_cols, input, p_lon, p_lat);
+            
+            /*
+            for (std::vector<Edge>::iterator it = edges.begin(), end = edges.end(); it != end; ++it)
+            {
+                std::cerr << (*it).weight << endl;
+            }
+            */
+                         
+            std::sort( edges.begin(), edges.end(), sort_edges );
+                         
+            std::cerr << "Nb of nodes based on 2D grid: " << nodes.size() << endl;
+            std::cerr << "Nb of edges based on 2D grid: " << edges.size() << endl;
+                         
+            std::vector<Component> components;
+            std::vector<Node> output_nodes;
+            output_nodes = nodes;
+                         
+            finding_components(output_nodes, edges, components);
+    )
+}
+
+template <typename T, typename T1>
+    void build_graph(std::vector<Node>& nodes, std::vector<Edge>& edges,
+                 unsigned long num_rows, unsigned long num_cols, const T *input,
+                 const T1 *p_lon, const T1 *p_lat)
+{
+    long rows = num_rows;
+    long cols = num_cols;
+    
+    for (long j = 0; j < rows; j++)
+    {
+        for (long i = 0; i < cols; i++)
+        {
+            long q = j * num_cols + i;
+            nodes.push_back( Node(input[q], Point(p_lon[i] , p_lat[j])) ); //Adding value for a pixel (IWV value) and real position in a grid (lon and lat).
+        }
+    }
+    
+    std::cerr << cols << " " << rows << endl;
+    
+    for (long j = 0; j < rows; j++)
+    {
+        long left_bound = j * cols;
+        long right_bound = (j * cols) + cols;
+        
+        long upper_bound = 0;
+        long lower_bound = rows * cols;
+        
+        for (long i = 0; i < cols; i++)
+        {
+            long q = j * cols + i;
+            
+            if(q - 1 > left_bound)
+            {
+                edges.push_back( Edge(std::min(input[q], input[q - 1]), q, q - 1) ); //left
+            }
+            
+            if(q + 1 < right_bound)
+            {
+                edges.push_back( Edge(std::min(input[q], input[q + 1]), q, q + 1) ); //right
+            }
+            
+            if(q - cols > upper_bound)
+            {
+                edges.push_back( Edge(std::min(input[q], input[q - cols]), q, q - cols) ); //top
+            }
+            
+            if(q + cols < lower_bound)
+            {
+                edges.push_back( Edge(std::min(input[q], input[q + cols]), q, q + cols) ); //down
+            }
         }
     }
 }
@@ -1629,7 +1857,7 @@ void compute_skeleton_of_ar(const_p_teca_variant_array land_sea_mask,
                             unsigned long num_rc,
                             const T *input, T low,
                             unsigned long num_rows,
-                            unsigned long num_cols, const_p_teca_variant_array lat, const_p_teca_variant_array lon)
+                            unsigned long num_cols, const_p_teca_variant_array lat, const_p_teca_variant_array lon, unsigned long time_step)
 {
     NESTED_TEMPLATE_DISPATCH_FP(
         const teca_variant_array_impl,
@@ -1699,7 +1927,7 @@ void compute_skeleton_of_ar(const_p_teca_variant_array land_sea_mask,
             find_neighbours(lext, p_con_comp_skel, oext, p_ogrid, nx, nxx, p_land_sea_mask, selected_data_points, labels_of_selected_dp, p_lon, p_lat);
                                  
             //Compute Voronoi points based on CGAL library.
-            compute_voronoi_diagram(selected_data_points, labels_of_selected_dp);
+            compute_voronoi_diagram(selected_data_points, labels_of_selected_dp, time_step);
     ))
 }
 
@@ -1761,7 +1989,7 @@ float compute_width(std::vector<float>& vec)
 }
 
 //Computing Voronoi diagram based on Delanuay triangulation.
-void compute_voronoi_diagram(std::vector<Point_2> selected_data_points, std::vector<unsigned long> labels_of_selected_dp)
+void compute_voronoi_diagram(std::vector<Point_2> selected_data_points, std::vector<unsigned long> labels_of_selected_dp, unsigned long time_step)
 {
     //Flag that is responsible for checking if:
     //true - save skeleton coordinatesl;
@@ -1848,7 +2076,7 @@ void compute_voronoi_diagram(std::vector<Point_2> selected_data_points, std::vec
     if(!circumcenters_coordinates.empty())
     {
         //Save to file.
-        save_to_vtk_file(circumcenters_coordinates, cflag);
+        save_to_vtk_file(circumcenters_coordinates, cflag, time_step);
         
         std::sort(circumcenters_coordinates.begin(), circumcenters_coordinates.end(), xComparator);
         Point_2 p_0 = circumcenters_coordinates.front();
@@ -1865,14 +2093,19 @@ void compute_voronoi_diagram(std::vector<Point_2> selected_data_points, std::vec
     }
 }
 
-void save_to_vtk_file(std::vector<Point_2> circumcenters_coordinates, bool cflag)
+void save_to_vtk_file(std::vector<Point_2> circumcenters_coordinates, bool cflag, unsigned long time_step)
 {
+    std::string file_name = "ar_skel_";
+    file_name += std::to_string(time_step);
+    file_name.append(".vtk");
+    
     if(cflag)
     {
-        std::sort(circumcenters_coordinates.begin(), circumcenters_coordinates.end(), xComparator);
+        //std::sort(circumcenters_coordinates.begin(), circumcenters_coordinates.end(), xComparator);
         
         std::ofstream ofs;
-        ofs.open ("skel_coord.vtk", std::ofstream::out | std::ofstream::app);
+        //ofs.open ("skel_coord.vtk", std::ofstream::out | std::ofstream::app);
+        ofs.open (file_name, std::ofstream::out | std::ofstream::app);
         
         ofs << "# vtk DataFile Version 4.0" << endl;
         ofs << "vtk output" << endl;
@@ -1956,4 +2189,238 @@ void save_to_vtk_file(std::vector<Point_2> circumcenters_coordinates, bool cflag
     }
 }
 
+/*
+ if(nodes[n0].parent == -1)
+ return -1;
+ else
+ return find_root(nodes, nodes[n0].parent);
+ */
+/*
+ while(nodes[n0].parent != n0)
+ {
+ n0 = nodes[n0].parent;
+ }
+ 
+ return n0;
+ */
+
+/*
+ FIND-SET(x)
+ If (x != P[x]) p[x] = FIND-SET(P[X])
+ Return P[X]
+ 
+ func find( var element )
+ while ( element is not the root ) element = element's parent
+ return element
+ end func
+ 
+ //finding root of an element.
+ int root(int Arr[ ],int i)
+ {
+ while(Arr[ i ] != i) //chase parent of current element until it reaches root.
+ {
+ i = Arr[ i ];
+ }
+ return i;
+ }
+ 
+ // Finds the representative of the set that
+ // i is an element of
+ public int find(int i)
+ {
+ // If i is the parent of itself
+ if (parent[i] == i)
+ {
+ // Then i is the representative of
+ // this set
+ return i;
+ }
+ else
+ {
+ // Else if i is not the parent of
+ // itself, then i is not the
+ // representative of his set. So we
+ // recursively call Find on its parent
+ return find(parent[i]);
+ }
+ }
+ */
+
+/*
+ if(nodes[n0].parent == n0)
+ return -1;
+ else
+ return nodes[n0].parent;
+ */
+
+/*
+ if(nodes[n0].parent == -1)
+ return -1;
+ else
+ return find_root(nodes, nodes[n0].parent);
+ */
+/*
+ while(nodes[n0].parent != n0)
+ {
+ n0 = nodes[n0].parent;
+ }
+ 
+ return n0;
+ */
+
+/*
+ FIND-SET(x)
+ If (x != P[x]) p[x] = FIND-SET(P[X])
+ Return P[X]
+ 
+ func find( var element )
+ while ( element is not the root ) element = element's parent
+ return element
+ end func
+ 
+ //finding root of an element.
+ int root(int Arr[ ],int i)
+ {
+ while(Arr[ i ] != i) //chase parent of current element until it reaches root.
+ {
+ i = Arr[ i ];
+ }
+ return i;
+ }
+ 
+ // Finds the representative of the set that
+ // i is an element of
+ public int find(int i)
+ {
+ // If i is the parent of itself
+ if (parent[i] == i)
+ {
+ // Then i is the representative of
+ // this set
+ return i;
+ }
+ else
+ {
+ // Else if i is not the parent of
+ // itself, then i is not the
+ // representative of his set. So we
+ // recursively call Find on its parent
+ return find(parent[i]);
+ }
+ }
+ */
+
+/*
+ if(nodes[n0].parent == n0)
+ return -1;
+ else
+ return nodes[n0].parent;
+ */
+
+
+/*
+ //Size of ghost zone.
+ int ng = 1;
+ 
+ //Initialize array for function that uses ghost zone.
+ unsigned long iext[4] = {0};
+ iext[0] = 0;
+ iext[1] = num_cols - 1;
+ iext[2] = 0;
+ iext[3] = num_rows - 1;
+ 
+ unsigned long nx = iext[1] - iext[0] + 1;
+ unsigned long ny = iext[3] - iext[2] + 1;
+ 
+ unsigned long lext[4] = {0};
+ lext[0] = iext[0] + ng;
+ lext[1] = iext[1] - ng;
+ lext[2] = iext[2] + ng;
+ lext[3] = iext[3] - ng;
+ 
+ unsigned long nxx = lext[1] - lext[0] + 1;
+ 
+ unsigned long oext[4] = {0};
+ oext[0] = 0;
+ oext[1] = nx - 2*ng - 1;
+ oext[2] = 0;
+ oext[3] = ny - 2*ng - 1;
+ */
+
+/*
+ //Creating nodes.
+ for(unsigned int j = lext[2], jj = oext[2]; j <= lext[3]; ++j, ++jj)
+ {
+ for(unsigned int i = lext[0], ii = oext[0]; i <= lext[1]; ++i, ++ii)
+ {
+ int q = j * nx + i;
+ nodes.push_back( Node(input[q], Point(p_lon[i] , p_lat[j])) ); //Adding value for a pixel (IWV value) and real position in a grid (lon and lat).
+ 
+ int qq = jj * nxx + ii;
+ 
+ if(qq - 1 > 0)
+ edges.push_back( Edge(std::min(input[q], input[q - 1]), qq, qq - 1) );
+ 
+ if(qq + 1 < )
+ edges.push_back( Edge(std::min(input[q], input[q + 1]), qq, qq + 1) );
+ }
+ }
+ */
+
+/*
+ //Creating edges.
+ for(unsigned int j = lext[2], jj = oext[2]; j <= lext[3]; ++j, ++jj)
+ {
+ for(unsigned int i = lext[0], ii = oext[0]; i <= lext[1]; ++i, ++ii)
+ {
+ int q = j * nx + i;
+ int qq = jj * nxx + ii;
+ 
+ //if(q + 1)
+ //{
+ edges.push_back( Edge(std::min(input[q], input[q - 1]), qq, qq - 1) );
+ std::cerr << qq << " " << qq + 1 << endl;
+ //}
+ 
+ edges.push_back( Edge(std::min(input[q], input[q - 1]), qq, qq - 1) );
+ std::cerr << qq << " " << qq - 1 << endl;
+ 
+ }
+ }
+ */
+/*
+ else if(igrid[q + 1] > 0)
+ {
+ ogrid[qq] = igrid[q + 1];
+ }
+ else if(igrid[q - 1] > 0)
+ {
+ ogrid[qq] = igrid[q - 1];
+ }
+ else if(igrid[q + nx] > 0)
+ {
+ ogrid[qq] = igrid[q + nx];
+ }
+ else if(igrid[q - nx] > 0)
+ {
+ ogrid[qq] = igrid[q - nx];
+ }
+ 
+ //Find boundary points.
+ for (unsigned long j = lext[2], jj = oext[2]; j <= lext[3]; ++j, ++jj)
+ {
+ for (unsigned long i = lext[0], ii = oext[0]; i <= lext[1]; ++i, ++ii)
+ {
+ unsigned long qq = jj * nxx + ii;
+ 
+ if (ogrid[qq] > 0)
+ {
+ Point_2 p1 = Point_2(p_lon[i] , p_lat[j]);
+ 
+ selected_data_points.push_back(p1);
+ labels_of_selected_dp.push_back(ogrid[qq]);
+ }
+ }
+ }
+ */
 
