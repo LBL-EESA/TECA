@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <cmath>
 #include <fstream>
+#include <iomanip>
 
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
@@ -112,7 +113,7 @@ class Node
         Point pixel;
         float value;
         int parent = -1, component = -1; // default value for a non-existing node
-    
+
         Node (float v, Point p) { value = v, pixel = p; }
 };
 
@@ -123,7 +124,7 @@ class Edge
         float weight;
         // Indices in a given vector
         int endpoint0, endpoint1;
-    
+
         Edge (float w, int e0X, int e0Y) { weight = w; endpoint0 = e0X; endpoint1 = e0Y; }
 };
 
@@ -150,7 +151,7 @@ class Component
             max_value = node.value;
             sum_nodes = sum_nodes + node.value;
         }
-    
+
         //Mergre two old components into a new component.
         Component(int i, float value, Component &c0, Component &c1)
         {
@@ -532,13 +533,13 @@ const_p_teca_dataset teca_ar_detect::execute(
 
 #if TECA_DEBUG > 0
 
-        //union_find_alg(p_wv, num_rc, num_rows, num_cols, lat, lon); //It works properly!
-                      
+         //union_find_alg(p_wv, num_rc, num_rows, num_cols, lat, lon); //It works properly!
+
          compute_skeleton_of_ar(land_sea_mask, p_con_comp,
                                num_rc, p_wv, static_cast<NT>(this->low_water_vapor_threshold),
                                num_rows, num_cols,
                                lat, lon, time_step);
-         
+
 
 #endif
         /*************** MYCODE *****************/
@@ -1516,13 +1517,13 @@ void add_node(int inode, Node const& node, Component &comp)
 int find_root(std::vector<Node>& nodes, int n0)
 {
     //std::cerr << "find_root " << nodes[n0].parent << n0 << endl;
-    
+
     //If node is new.
     if(nodes[n0].parent == -1)
     {
         return -1;
     }
-    
+
     //If n0 is the root.
     if(nodes[n0].parent != n0)
     {
@@ -1564,15 +1565,15 @@ void finding_components(std::vector<Node> nodes, std::vector<Edge> edges, std::v
     int r0, r1;
     int num_nodes;
     int c0, c1;
-    
+
     int nb_edges = edges.size();
-    
+
     for(int e = 0; e < nb_edges; e++)
     {
         val = edges[e].weight;
         n0 = edges[e].endpoint0;
         n1 = edges[e].endpoint1;
-        
+
         //Swap if n0 is smaller than n1.
         if(nodes[n0].value > nodes[n1].value)
         {
@@ -1581,44 +1582,44 @@ void finding_components(std::vector<Node> nodes, std::vector<Edge> edges, std::v
 
         r1 = find_root(nodes, n1);
         //std::cerr << "Root " << r1 << endl;
-        
+
         //If it equals -1, both nodes are new (there is no higher node).
         if(r1 == -1)
         {
             num_nodes++;
-            
+
             //Now n1 is a root of itself.
             r1 = n1;
             nodes[n1].parent = n1;
             nodes[n1].component = (int)components.size();
-            
+
             //Create new component.
             Component comp(nodes[n1]); //Max value at birth.
             comp.inodes.push_back(n1);
             components.push_back(comp);
         }
-        
+
         r0 = find_root(nodes, n0);
-        
+
         c1 = nodes[r1].component;
-        
+
         //If second node is also new. It has lower value and it will joint the component of the highest node.
         if(r0 == -1)
         {
             num_nodes++;
-            
+
             //The higher node is now the parent.
             nodes[n0].parent = r1;
-            
+
             //Join lower node wit higher node.
             add_node(n0, nodes[n0], components[c1]);
-            
+
             //Add other node to set.
             continue;
         }
-        
+
         c0 = nodes[r0].component;
-        
+
         //If edge is inside one component.
         if(c0 == c1) continue;
         else
@@ -1628,17 +1629,17 @@ void finding_components(std::vector<Node> nodes, std::vector<Edge> edges, std::v
             nodes[r0].parent = r1;
             nodes[r1].component = comp.index;
             components.push_back(comp);
-            
+
         }
-        
+
         std::sort( components.begin(), components.end(), sort_volumes );
-        
+
         std::cerr << "### Volume (nb of nodes) 1st largest component: " << components[0].nb_nodes << "\n" << "### Volume (nb of nodes) 2nd largest component: " << components[1].nb_nodes << endl;
         //(1st volume - 2nd volume) / 1st volume
         std::cerr << "### The ratio (1st volume - 2nd volume) / 1st volume): " << (float)(components[0].nb_nodes - components[1].nb_nodes)/components[0].nb_nodes << endl;
         std::cerr << "### Max value for 1st largest component: " << components[0].max_value << "\n" << "### Max value for 2st largest component: " << components[1].max_value << endl;
         std::cerr << endl;
-        
+
         std::sort( components.begin(), components.end(), sort_volumes_values );
 
         std::cerr << "### Volume (sum of values) 1st largest component: " << components[0].sum_nodes << "\n" << "### Volume (sum of values) 2nd largest component: " << components[1].sum_nodes << endl;
@@ -1646,7 +1647,7 @@ void finding_components(std::vector<Node> nodes, std::vector<Edge> edges, std::v
         std::cerr << "### Max value for 1st largest component: " << components[0].max_value << "\n" << "### Max value for 2st largest component: " << components[1].max_value << endl;
         std::cerr << endl;
     }
-    
+
     //std::cerr << "### Nb of components: " << components.size() << " " << "### Nb of nodes that created new components plus nb of nodes joined: " << num_nodes << endl;
 }
 
@@ -1671,31 +1672,31 @@ template <typename T>
     TEMPLATE_DISPATCH_FP(
         const teca_variant_array_impl,
         lat.get(),
-                         
+
             const NT *p_lat = dynamic_cast<TT*>(lat.get())->get();
             const NT *p_lon = dynamic_cast<TT*>(lon.get())->get();
-                                 
+
             std::vector<Edge> edges;
             std::vector<Node> nodes;
-                         
+
             build_graph(nodes, edges, num_rows, num_cols, input, p_lon, p_lat);
-            
+
             /*
             for (std::vector<Edge>::iterator it = edges.begin(), end = edges.end(); it != end; ++it)
             {
                 std::cerr << (*it).weight << endl;
             }
             */
-                         
+
             std::sort( edges.begin(), edges.end(), sort_edges );
-                         
+
             std::cerr << "Nb of nodes based on 2D grid: " << nodes.size() << endl;
             std::cerr << "Nb of edges based on 2D grid: " << edges.size() << endl;
-                         
+
             std::vector<Component> components;
             std::vector<Node> output_nodes;
             output_nodes = nodes;
-                         
+
             finding_components(output_nodes, edges, components);
     )
 }
@@ -1707,7 +1708,7 @@ template <typename T, typename T1>
 {
     long rows = num_rows;
     long cols = num_cols;
-    
+
     for (long j = 0; j < rows; j++)
     {
         for (long i = 0; i < cols; i++)
@@ -1716,36 +1717,36 @@ template <typename T, typename T1>
             nodes.push_back( Node(input[q], Point(p_lon[i] , p_lat[j])) ); //Adding value for a pixel (IWV value) and real position in a grid (lon and lat).
         }
     }
-    
+
     std::cerr << cols << " " << rows << endl;
-    
+
     for (long j = 0; j < rows; j++)
     {
         long left_bound = j * cols;
         long right_bound = (j * cols) + cols;
-        
+
         long upper_bound = 0;
         long lower_bound = rows * cols;
-        
+
         for (long i = 0; i < cols; i++)
         {
             long q = j * cols + i;
-            
+
             if(q - 1 > left_bound)
             {
                 edges.push_back( Edge(std::min(input[q], input[q - 1]), q, q - 1) ); //left
             }
-            
+
             if(q + 1 < right_bound)
             {
                 edges.push_back( Edge(std::min(input[q], input[q + 1]), q, q + 1) ); //right
             }
-            
+
             if(q - cols > upper_bound)
             {
                 edges.push_back( Edge(std::min(input[q], input[q - cols]), q, q - cols) ); //top
             }
-            
+
             if(q + cols < lower_bound)
             {
                 edges.push_back( Edge(std::min(input[q], input[q + cols]), q, q + cols) ); //down
@@ -1814,18 +1815,18 @@ template <typename T, typename T1>
                 }
             }
         }
-        
+
         //Find boundary points.
         for (unsigned long j = lext[2], jj = oext[2]; j <= lext[3]; ++j, ++jj)
         {
             for (unsigned long i = lext[0], ii = oext[0]; i <= lext[1]; ++i, ++ii)
             {
                 unsigned long qq = jj * nxx + ii;
-                
+
                 if (ogrid[qq] > 0)
                 {
                     Point_2 p1 = Point_2(p_lon[i] , p_lat[j]);
-                    
+
                     selected_data_points.push_back(p1);
                     labels_of_selected_dp.push_back(ogrid[qq]);
                 }
@@ -1884,14 +1885,14 @@ void compute_skeleton_of_ar(const_p_teca_variant_array land_sea_mask,
 
             //Segmentation of data based on water vapour and land-sea mask.
             find_segmentation(input, p_con_comp_skel, low, num_rc, num_cols, p_land_sea_mask);
-           
+
             //Compute labels for data points using SAUF.
             int num_comp = sauf(num_rows, num_cols, p_con_comp_skel);
             std::cerr << "\n### Nb of connected components = " << num_comp << endl;
-            
+
             //Print content of array.
-            //print_array(p_con_comp_skel, num_rc, num_rows, num_cols);
-                                 
+            print_array(p_con_comp_skel, num_rc, num_rows, num_cols);
+
             //Size of ghost zone.
             int ng = 1;
 
@@ -1919,13 +1920,13 @@ void compute_skeleton_of_ar(const_p_teca_variant_array land_sea_mask,
             oext[1] = nx - 2*ng - 1;
             oext[2] = 0;
             oext[3] = ny - 2*ng - 1;
-                                 
+
             p_teca_unsigned_int_array p_ogrid_array = teca_unsigned_int_array::New(nxx * nyy, 0);
             unsigned int *p_ogrid = p_ogrid_array->get();
 
             //Find boundary points of segmentation.
             find_neighbours(lext, p_con_comp_skel, oext, p_ogrid, nx, nxx, p_land_sea_mask, selected_data_points, labels_of_selected_dp, p_lon, p_lat);
-                                 
+
             //Compute Voronoi points based on CGAL library.
             compute_voronoi_diagram(selected_data_points, labels_of_selected_dp, time_step);
     ))
@@ -1968,12 +1969,12 @@ float compute_distance(Point_2 const& p0, Point_2 const& p1)
     float dx;
     float dy;
     float dist;
-    
+
     dx = p0.x() - p1.x();
     dy = p1.y() - p1.y();
-    
+
     dist = sqrt(dx*dx - dy*dy);
-    
+
     return dist;
 }
 
@@ -1981,7 +1982,7 @@ float compute_distance(Point_2 const& p0, Point_2 const& p1)
 float compute_width(std::vector<float>& vec)
 {
     std::sort(vec.begin(), vec.end());
-    
+
     if(vec.size() % 2 == 0)
         return (vec[vec.size()/2 - 1] + vec[vec.size()/2]) / 2;
     else
@@ -1995,12 +1996,12 @@ void compute_voronoi_diagram(std::vector<Point_2> selected_data_points, std::vec
     //true - save skeleton coordinatesl;
     //false save coordinates of Delanuay triangulation.
     bool cflag = true;
-    
+
     //Create list of indices for boundary points.
     std::vector<unsigned long> list_of_indices;
     for(unsigned long int j = 0; j < labels_of_selected_dp.size(); j++)
         list_of_indices.push_back(j);
-    
+
     //Merge boundary points with created indices.
     Delaunay dt2;
     dt2.insert(boost::make_zip_iterator(boost::make_tuple( selected_data_points.begin(), list_of_indices.begin() )), boost::make_zip_iterator(boost::make_tuple( selected_data_points.end(), list_of_indices.end() )));
@@ -2008,10 +2009,10 @@ void compute_voronoi_diagram(std::vector<Point_2> selected_data_points, std::vec
 
     //Coordinates of skeleton points.
     std::vector<Point_2> circumcenters_coordinates;
-    
+
     //Vector of calculated widths.
     std::vector<float> ar_widths;
-    
+
     if(cflag)
     {
         Delaunay::Finite_edges_iterator eit;
@@ -2020,20 +2021,20 @@ void compute_voronoi_diagram(std::vector<Point_2> selected_data_points, std::vec
             //Skip edge if it is infinite.
             CGAL::Object o = dt2.dual(eit);
             if (CGAL::object_cast<K::Ray_2>(&o)) continue;
-        
+
             //Take the edge.
             DEDGE e = *eit;
-            
+
             //Find indices of vertices of selected edge.
             int i1= e.first->vertex( (e.second+1)%3 )->info();
             int i2= e.first->vertex( (e.second+2)%3 )->info();
-        
+
             //Check if labels are different.
             if(labels_of_selected_dp[i1] != labels_of_selected_dp[i2])
             {
                 //Find neigbouring triangles.
                 std::pair<FHN,FHN> faces = FacesN(e);
-                
+
                 //First face.
                 FHN face0 = faces.first;
                 Point_2 point0 = dt2.dual(face0);
@@ -2041,16 +2042,16 @@ void compute_voronoi_diagram(std::vector<Point_2> selected_data_points, std::vec
                 //Second face.
                 FHN face1 = faces.second;
                 Point_2 point1 = dt2.dual(face1);
-                
+
                 //Check if points are inside patch.
                 if(check_constraints(point0, point1))
                 {
                     //Print coordinates of skeleton points.
                     //std::cerr << point0 << " ; " << point1 << "\n";
-                    
+
                     float ar_width = compute_distance(point0, point1);
                     ar_widths.push_back(ar_width);
-                    
+
                     circumcenters_coordinates.push_back(point0);
                     circumcenters_coordinates.push_back(point1);
                 }
@@ -2065,126 +2066,131 @@ void compute_voronoi_diagram(std::vector<Point_2> selected_data_points, std::vec
             Point_2 point0 = Point_2(fi->vertex(0)->point().hx(), fi->vertex(0)->point().hy());
             Point_2 point1 = Point_2(fi->vertex(1)->point().hx(), fi->vertex(1)->point().hy());
             Point_2 point2 = Point_2(fi->vertex(2)->point().hx(), fi->vertex(2)->point().hy());
-        
+
             //Save vertices of triangle.
             circumcenters_coordinates.push_back(point0);
             circumcenters_coordinates.push_back(point1);
             circumcenters_coordinates.push_back(point2);
         }
     }
-   
-    if(!circumcenters_coordinates.empty())
-    {
+
+    //if(!circumcenters_coordinates.empty())
+    //{
         //Save to file.
         save_to_vtk_file(circumcenters_coordinates, cflag, time_step);
-        
-        std::sort(circumcenters_coordinates.begin(), circumcenters_coordinates.end(), xComparator);
-        Point_2 p_0 = circumcenters_coordinates.front();
-        Point_2 p_1 = circumcenters_coordinates.back();
-        
-        float ar_length = compute_distance(p_0, p_1);
+
+        float ar_length = 0.0f;
+        if (circumcenters_coordinates.size())
+        {
+            std::sort(circumcenters_coordinates.begin(), circumcenters_coordinates.end(), xComparator);
+            Point_2 p_0 = circumcenters_coordinates.front();
+            Point_2 p_1 = circumcenters_coordinates.back();
+
+            ar_length = compute_distance(p_0, p_1);
+        }
         std::cerr << "\nAR length: " << ar_length << endl;
-    }
-    
+    //}
+
     if(!ar_widths.empty())
     {
         float ar_width_median = compute_width(ar_widths);
-        std::cerr << "\nAR width: " << ar_width_median << endl;
+        //std::cerr << "\nAR width: " << ar_width_median << endl;
     }
 }
 
 void save_to_vtk_file(std::vector<Point_2> circumcenters_coordinates, bool cflag, unsigned long time_step)
 {
-    std::string file_name = "ar_skel_";
-    file_name += std::to_string(time_step);
-    file_name.append(".vtk");
-    
+    std::ostringstream oss;
+    oss << "ar_skel_" << std::setw(6) << std::setfill('0') << time_step << ".vtk";
+
+    std::string file_name = oss.str();
+
     if(cflag)
     {
         //std::sort(circumcenters_coordinates.begin(), circumcenters_coordinates.end(), xComparator);
-        
+
         std::ofstream ofs;
         //ofs.open ("skel_coord.vtk", std::ofstream::out | std::ofstream::app);
-        ofs.open (file_name, std::ofstream::out | std::ofstream::app);
-        
+        ofs.open (file_name, std::ofstream::out | std::ofstream::trunc);
+
         ofs << "# vtk DataFile Version 4.0" << endl;
         ofs << "vtk output" << endl;
         ofs << "ASCII" << endl;
         ofs << "DATASET UNSTRUCTURED_GRID" << endl;
         ofs << "POINTS " << circumcenters_coordinates.size() << " " << "float" << endl;
-        
+
         ofs << std::setprecision(2) << std::fixed;
-        
+
         for(unsigned long p = 0; p < circumcenters_coordinates.size(); p+=2)
         {
             ofs << (float)circumcenters_coordinates[p].x() << " " << (float)circumcenters_coordinates[p].y() << " " << 0 << " "
             << (float)circumcenters_coordinates[p + 1].x() << " " << (float)circumcenters_coordinates[p + 1].y() << " " << 0 << " " << endl;
         }
-        
+
         int nb_points = 2;
-        
+
         ofs << "CELLS " << circumcenters_coordinates.size()/2 << " " << circumcenters_coordinates.size()/2 * (nb_points + 1) << endl;
-        
+
         for(unsigned long c = 0; c < circumcenters_coordinates.size(); c+=2)
         {
             ofs << 2 << " " << c << " " << c + 1 << endl;
         }
-        
+
         ofs << endl;
-        
+
         ofs << "CELL_TYPES" << " " << circumcenters_coordinates.size()/2 << endl;
-        
+
         //Set cell type as a number.
         const int cell_type = 3;
-        
+
         for(unsigned long ct = 0; ct < circumcenters_coordinates.size()/2; ct++)
         {
             ofs << cell_type << endl;
         }
-        
+
         ofs.close();
     }
     else
     {
         std::ofstream ofs;
         ofs.open ("del_dgm_coord.vtk", std::ofstream::out | std::ofstream::app);
-        
+
         ofs << "# vtk DataFile Version 4.0" << endl;
         ofs << "vtk output" << endl;
         ofs << "ASCII" << endl;
         ofs << "DATASET UNSTRUCTURED_GRID" << endl;
         ofs << "POINTS " << circumcenters_coordinates.size() << " " << "float" << endl;
-        
+
         ofs << std::setprecision(2) << std::fixed;
-        
+
         for(unsigned long p = 0; p < circumcenters_coordinates.size(); p+=3)
         {
             ofs << (float)circumcenters_coordinates[p].x() << " " << (float)circumcenters_coordinates[p].y() << " " << 0 << " "
             << (float)circumcenters_coordinates[p + 1].x() << " " << (float)circumcenters_coordinates[p + 1].y() << " " << 0 << " "
             << (float)circumcenters_coordinates[p + 2].x() << " " << (float)circumcenters_coordinates[p + 2].y() << " " << 0 << " " << endl;
         }
-        
+
         int nb_points = 3;
-        
+
         ofs << "CELLS " << circumcenters_coordinates.size()/nb_points << " " << circumcenters_coordinates.size()/nb_points * (nb_points + 1) << endl;
-        
+
         for(unsigned long c = 0; c < circumcenters_coordinates.size(); c+=3)
         {
             ofs << nb_points << " " << c << " " << c + 1 << " " << c + 2 << endl;
         }
-        
+
         ofs << endl;
-        
+
         ofs << "CELL_TYPES" << " " << circumcenters_coordinates.size()/nb_points << endl;
-        
+
         //Set cell type as a number.
         const int cell_type = 5;
-        
+
         for(unsigned long ct = 0; ct < circumcenters_coordinates.size()/nb_points; ct++)
         {
             ofs << cell_type << endl;
         }
-        
+
         ofs.close();
     }
 }
@@ -2200,7 +2206,7 @@ void save_to_vtk_file(std::vector<Point_2> circumcenters_coordinates, bool cflag
  {
  n0 = nodes[n0].parent;
  }
- 
+
  return n0;
  */
 
@@ -2208,12 +2214,12 @@ void save_to_vtk_file(std::vector<Point_2> circumcenters_coordinates, bool cflag
  FIND-SET(x)
  If (x != P[x]) p[x] = FIND-SET(P[X])
  Return P[X]
- 
+
  func find( var element )
  while ( element is not the root ) element = element's parent
  return element
  end func
- 
+
  //finding root of an element.
  int root(int Arr[ ],int i)
  {
@@ -2223,7 +2229,7 @@ void save_to_vtk_file(std::vector<Point_2> circumcenters_coordinates, bool cflag
  }
  return i;
  }
- 
+
  // Finds the representative of the set that
  // i is an element of
  public int find(int i)
@@ -2264,7 +2270,7 @@ void save_to_vtk_file(std::vector<Point_2> circumcenters_coordinates, bool cflag
  {
  n0 = nodes[n0].parent;
  }
- 
+
  return n0;
  */
 
@@ -2272,12 +2278,12 @@ void save_to_vtk_file(std::vector<Point_2> circumcenters_coordinates, bool cflag
  FIND-SET(x)
  If (x != P[x]) p[x] = FIND-SET(P[X])
  Return P[X]
- 
+
  func find( var element )
  while ( element is not the root ) element = element's parent
  return element
  end func
- 
+
  //finding root of an element.
  int root(int Arr[ ],int i)
  {
@@ -2287,7 +2293,7 @@ void save_to_vtk_file(std::vector<Point_2> circumcenters_coordinates, bool cflag
  }
  return i;
  }
- 
+
  // Finds the representative of the set that
  // i is an element of
  public int find(int i)
@@ -2321,25 +2327,25 @@ void save_to_vtk_file(std::vector<Point_2> circumcenters_coordinates, bool cflag
 /*
  //Size of ghost zone.
  int ng = 1;
- 
+
  //Initialize array for function that uses ghost zone.
  unsigned long iext[4] = {0};
  iext[0] = 0;
  iext[1] = num_cols - 1;
  iext[2] = 0;
  iext[3] = num_rows - 1;
- 
+
  unsigned long nx = iext[1] - iext[0] + 1;
  unsigned long ny = iext[3] - iext[2] + 1;
- 
+
  unsigned long lext[4] = {0};
  lext[0] = iext[0] + ng;
  lext[1] = iext[1] - ng;
  lext[2] = iext[2] + ng;
  lext[3] = iext[3] - ng;
- 
+
  unsigned long nxx = lext[1] - lext[0] + 1;
- 
+
  unsigned long oext[4] = {0};
  oext[0] = 0;
  oext[1] = nx - 2*ng - 1;
@@ -2355,12 +2361,12 @@ void save_to_vtk_file(std::vector<Point_2> circumcenters_coordinates, bool cflag
  {
  int q = j * nx + i;
  nodes.push_back( Node(input[q], Point(p_lon[i] , p_lat[j])) ); //Adding value for a pixel (IWV value) and real position in a grid (lon and lat).
- 
+
  int qq = jj * nxx + ii;
- 
+
  if(qq - 1 > 0)
  edges.push_back( Edge(std::min(input[q], input[q - 1]), qq, qq - 1) );
- 
+
  if(qq + 1 < )
  edges.push_back( Edge(std::min(input[q], input[q + 1]), qq, qq + 1) );
  }
@@ -2375,16 +2381,16 @@ void save_to_vtk_file(std::vector<Point_2> circumcenters_coordinates, bool cflag
  {
  int q = j * nx + i;
  int qq = jj * nxx + ii;
- 
+
  //if(q + 1)
  //{
  edges.push_back( Edge(std::min(input[q], input[q - 1]), qq, qq - 1) );
  std::cerr << qq << " " << qq + 1 << endl;
  //}
- 
+
  edges.push_back( Edge(std::min(input[q], input[q - 1]), qq, qq - 1) );
  std::cerr << qq << " " << qq - 1 << endl;
- 
+
  }
  }
  */
@@ -2405,18 +2411,18 @@ void save_to_vtk_file(std::vector<Point_2> circumcenters_coordinates, bool cflag
  {
  ogrid[qq] = igrid[q - nx];
  }
- 
+
  //Find boundary points.
  for (unsigned long j = lext[2], jj = oext[2]; j <= lext[3]; ++j, ++jj)
  {
  for (unsigned long i = lext[0], ii = oext[0]; i <= lext[1]; ++i, ++ii)
  {
  unsigned long qq = jj * nxx + ii;
- 
+
  if (ogrid[qq] > 0)
  {
  Point_2 p1 = Point_2(p_lon[i] , p_lat[j]);
- 
+
  selected_data_points.push_back(p1);
  labels_of_selected_dp.push_back(ogrid[qq]);
  }
