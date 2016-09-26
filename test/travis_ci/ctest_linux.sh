@@ -8,6 +8,7 @@ export SHA=`git log --pretty=format:'%h' -n 1`
 export PATH=.:${PATH}
 export PYTHONPATH=${TRAVIS_BUILD_DIR}/build/lib
 export LD_LIBRARY_PATH=${TRAVIS_BUILD_DIR}/build/lib
+export MPLBACKEND=Agg
 mkdir build
 cmake --version
 ctest -S ${DASHROOT}/test/travis_ci/ctest_linux.cmake -E py_'.*'_mpi -V

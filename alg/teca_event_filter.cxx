@@ -26,9 +26,9 @@ using std::endl;
 
 // --------------------------------------------------------------------------
 teca_event_filter::teca_event_filter() :
-    time_column(""), x_coordinate_column(""), y_coordinate_column(""),
-    start_time(std::numeric_limits<double>::lowest()),
-    end_time(std::numeric_limits<double>::max())
+    time_column(""), step_column(""), x_coordinate_column(""),
+    y_coordinate_column(""), start_time(std::numeric_limits<double>::lowest()),
+    end_time(std::numeric_limits<double>::max()), step_interval(1)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -48,15 +48,22 @@ void teca_event_filter::get_properties_description(
 
     opts.add_options()
         TECA_POPTS_GET(std::string, prefix, time_column,
-            "name of the column containing time stamps. default \"time\"")
+            "name of the column containing time axis. default "
+            "\"\" disbales the filter")
+        TECA_POPTS_GET(std::string, prefix, step_column,
+            "name of the column containing time steps. default "
+            "\"\" disables the filter")
         TECA_POPTS_GET(std::string, prefix, x_coordinate_column,
-            "name of the column containing x cooridnates. default \"lon\"")
+            "name of the column containing x cooridnates. default "
+            "\"\" disables the filter")
         TECA_POPTS_GET(std::string, prefix, y_coordinate_column,
-            "name of the column containing y cooridnates. default \"lat\"")
+            "name of the column containing y cooridnates. default "
+            "\"\" disables the filter")
         TECA_POPTS_GET(double, prefix, start_time,
             "include all events after the start time. default is -infinty")
         TECA_POPTS_GET(double, prefix, end_time,
             "include all events before the end time. default is +inifinity")
+        TECA_POPTS_GET(long, prefix, step_interval, "output in time at this interval")
         TECA_POPTS_MULTI_GET(std::vector<unsigned long>,
             prefix, region_sizes, "the number of points in each region")
         TECA_POPTS_MULTI_GET(std::vector<double>,
@@ -155,6 +162,37 @@ const_p_teca_dataset teca_event_filter::execute(
                     valid_time.insert(i);
             }
             )
+        if (valid_time.empty())
+        {
+            TECA_WARNING("No rows satisfy the time filter")
+        }
+    }
+
+    // apply the interval filter
+    const_p_teca_variant_array step;
+    std::set<unsigned long> valid_step;
+    if (!this->step_column.empty())
+    {
+        step = in_table->get_column(this->step_column);
+        if (!step)
+        {
+            TECA_ERROR("step column \"" << this->step_column
+                << "\" is not in the table")
+            return nullptr;
+        }
+        TEMPLATE_DISPATCH_I(const teca_variant_array_impl,
+            step.get(),
+            const NT *pstep = static_cast<const TT*>(step.get())->get();
+            for (unsigned long i = 0; i < n_rows; ++i)
+            {
+                if (!(pstep[i] % this->step_interval))
+                    valid_step.insert(i);
+            }
+            )
+        if (valid_step.empty())
+        {
+            TECA_WARNING("No rows satisfy the step interval filter")
+        }
     }
 
     // get the number of regions to filter by
@@ -248,16 +286,26 @@ const_p_teca_dataset teca_event_filter::execute(
                 }
             }
             )
+            if (valid_pos.empty())
+            {
+                TECA_WARNING("No rows satisfy the spatial filter")
+            }
     }
 
-    // identify rows that meet both criteria
+    // identify rows that meet all criteria
     std::vector<unsigned long> valid_rows;
     for (unsigned long i = 0; i < n_rows; ++i)
     {
         bool have_time = valid_time.count(i);
+        bool have_step = valid_step.count(i);
         bool have_pos = valid_pos.count(i);
-        if ((t && n_regions && have_time && have_pos) ||
-            (t && !n_regions && have_time) || (!t && n_regions && have_pos))
+        if ((t && step && n_regions && have_time && have_step && have_pos) ||
+            (t && !step && n_regions && have_time && have_pos) ||
+            (t && step && !n_regions && have_time && have_step) ||
+            (t && !step && !n_regions && have_time) ||
+            (!t && step && n_regions && have_step && have_pos) ||
+            (!t && !step && n_regions && have_pos) ||
+            (!t && step && !n_regions && have_step))
             valid_rows.push_back(i);
     }
 

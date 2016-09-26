@@ -209,6 +209,7 @@ message(STATUS "TECA version ${TECA_VERSION_DESCR}")
 # generate global configuration
 include(CMake/teca_test.cmake)
 include(CMake/teca_app.cmake)
+include(CMake/teca_python.cmake)
 configure_file(teca_config.h.in teca_config.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 

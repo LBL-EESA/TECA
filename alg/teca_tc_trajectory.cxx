@@ -6,6 +6,7 @@
 #include "teca_variant_array.h"
 #include "teca_metadata.h"
 
+#include "teca_coordinate_util.h"
 #include "teca_distance_function.h"
 
 #include <algorithm>
@@ -31,53 +32,13 @@ using seconds_t = std::chrono::duration<double, std::chrono::seconds::period>;
 
 namespace internal
 {
-void get_step_offsets(const long *time_steps, unsigned long n_rows,
-    unsigned long &n_steps, std::vector<unsigned long> &step_counts,
-    std::vector<unsigned long> &step_offsets,
-    std::vector<unsigned long> &step_ids)
-{
-    // count unique number of steps and compute an array index
-    // from each time step.
-    n_steps = 1;
-    step_ids.resize(n_rows);
-    unsigned long n_m1 = n_rows - 1;
-    for (unsigned long i = 0; i < n_m1; ++i)
-    {
-        step_ids[i] = n_steps - 1;
-        if (time_steps[i] != time_steps[i+1])
-            ++n_steps;
-    }
-    step_ids[n_m1] = n_steps - 1;
-
-    // compute num storms in each step
-    step_counts.resize(n_steps);
-    unsigned long q = 0;
-    for (unsigned long i = 0; i < n_steps; ++i)
-    {
-        step_counts[i] = 1;
-        while ((q < n_m1) && (time_steps[q] == time_steps[q+1]))
-        {
-          ++step_counts[i];
-          ++q;
-        }
-        ++q;
-    }
-
-    // compute the offset to the first storm in each step
-    step_offsets.resize(n_steps);
-    step_offsets[0] = 0;
-    for (unsigned long i = 1; i < n_steps; ++i)
-        step_offsets[i] = step_offsets[i-1] + step_counts[i-1];
-}
-
 template<typename coord_t, typename var_t>
-int teca_tc_trajectory(
-    var_t r_crit, var_t wind_crit, double n_wind_crit,
-    const long *time_step, const double *time, const int *storm_uid,
-    const coord_t *d_lon, const coord_t *d_lat, const var_t *wind_max,
-    const var_t *vort_max, const var_t *psl, const int *have_twc,
-    const int *have_thick, const var_t *twc_max, const var_t *thick_max,
-    unsigned long n_rows, p_teca_table track_table)
+int teca_tc_trajectory(var_t r_crit, var_t wind_crit, double n_wind_crit,
+    unsigned long step_interval, const long *time_step, const double *time,
+    const int *storm_uid, const coord_t *d_lon, const coord_t *d_lat,
+    const var_t *wind_max, const var_t *vort_max, const var_t *psl,
+    const int *have_twc, const int *have_thick, const var_t *twc_max,
+    const var_t *thick_max, unsigned long n_rows, p_teca_table track_table)
 {
     const coord_t DEG_TO_RAD = M_PI/180.0;
     unsigned long track_id = 0;
@@ -102,8 +63,8 @@ int teca_tc_trajectory(
     std::vector<unsigned long> step_offsets;
     std::vector<unsigned long> step_ids;
 
-    internal::get_step_offsets(time_step, n_rows,
-        n_steps, step_counts, step_offsets, step_ids);
+    teca_coordinate_util::get_table_offsets(time_step,
+        n_rows, n_steps, step_counts, step_offsets, step_ids);
 
     // build the track start queue.
     // consider all tracks eminating from all storms.
@@ -133,6 +94,10 @@ int teca_tc_trajectory(
             new_track.reserve(max_track_len);
             new_track.push_back(track_start);
 
+            std::vector<coord_t> storm_speed;
+            storm_speed.reserve(max_track_len);
+            storm_speed.push_back(coord_t());
+
             double duration = 0.0;
             double wind_duration = 0.0;
 
@@ -143,16 +108,28 @@ int teca_tc_trajectory(
             {
                 // get position of the end of the track
                 unsigned long track_tip = new_track.back();
+                unsigned long jj = step_offsets[j];
 
                 coord_t lon_0 = r_lon[track_tip];
                 coord_t lat_0 = r_lat[track_tip];
 
                 double t_0 = time[track_tip];
-                double t_i = time[step_offsets[j]];
+                double t_i = time[jj];
                 double dt = t_i - t_0;
 
                 // record duration.
                 duration += dt;
+
+                // limit search to adjacent time steps. non-adjacent candidates
+                // can occur when a corrupted file is fed into the candidates stage.
+                unsigned long ds = time_step[jj] - time_step[track_tip];
+                if (ds != step_interval)
+                {
+                    TECA_WARNING("At index " << j << " missing " << ds << " steps("
+                        << dt << " days) of candidate data between steps "
+                        << time_step[track_tip] << " and " << time_step[jj])
+                    break;
+                }
 
                 // apply storm duration criteria
                 if ((wind_max[track_tip] >= wind_crit) &&
@@ -197,6 +174,9 @@ int teca_tc_trajectory(
                     // we were able to extend this track
                     new_track.push_back(closest_storm_id);
                     available[closest_storm_id] = false;
+
+                    coord_t v1 = closest_storm_dist/dt;
+                    storm_speed.push_back(v1);
                 }
                 else
                 {
@@ -220,7 +200,8 @@ int teca_tc_trajectory(
                         << time_step[storm_id] << time[storm_id] << d_lon[storm_id]
                         << d_lat[storm_id] << duration << wind_duration << wind_max[storm_id]
                         << vort_max[storm_id] << psl[storm_id] << have_twc[storm_id]
-                        << have_thick[storm_id] << twc_max[storm_id] << thick_max[storm_id];
+                        << have_thick[storm_id] << twc_max[storm_id] << thick_max[storm_id]
+                        << storm_speed[i];
                 }
 
                 ++track_id;
@@ -246,7 +227,8 @@ int teca_tc_trajectory(
 teca_tc_trajectory::teca_tc_trajectory() :
     max_daily_distance(1600.0),
     min_wind_speed(17.0),
-    min_wind_duration(2.0)
+    min_wind_duration(2.0),
+    step_interval(1)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -272,6 +254,8 @@ void teca_tc_trajectory::get_properties_description(
         TECA_POPTS_GET(double, prefix, min_wind_duration,
             "minimum number of, not necessarily consecutive, days thickness, "
             "core temp, and wind speed criteria must be satisfied (2.0 days)")
+        TECA_POPTS_GET(unsigned long, prefix, step_interval,
+            "number of time steps between valid candidate data. (1 step)")
         ;
 
     global_opts.add(opts);
@@ -284,6 +268,7 @@ void teca_tc_trajectory::set_properties(
     TECA_POPTS_SET(opts, double, prefix, max_daily_distance)
     TECA_POPTS_SET(opts, double, prefix, min_wind_speed)
     TECA_POPTS_SET(opts, double, prefix, min_wind_duration)
+    TECA_POPTS_SET(opts, unsigned long, prefix, step_interval)
 }
 #endif
 
@@ -322,8 +307,7 @@ std::vector<teca_metadata> teca_tc_trajectory::get_upstream_request(
 
 // --------------------------------------------------------------------------
 const_p_teca_dataset teca_tc_trajectory::execute(
-    unsigned int port,
-    const std::vector<const_p_teca_dataset> &input_data,
+    unsigned int port, const std::vector<const_p_teca_dataset> &input_data,
     const teca_metadata &request)
 {
 #ifdef TECA_DEBUG
@@ -442,7 +426,8 @@ const_p_teca_dataset teca_tc_trajectory::execute(
                 "wind_duration", double(), "surface_wind", NT_VAR(),
                 "850mb_vorticity", NT_VAR(), "sea_level_pressure", NT_VAR(),
                 "have_core_temp", int(), "have_thickness", int(),
-                "core_temp", NT_VAR(), "thickness", NT_VAR());
+                "core_temp", NT_VAR(), "thickness", NT_VAR(),
+                "storm_speed", NT_COORD());
 
             const NT_VAR *p_wind_max =
                 dynamic_cast<const TT_VAR*>(wind_max.get())->get();
@@ -464,9 +449,9 @@ const_p_teca_dataset teca_tc_trajectory::execute(
             if (internal::teca_tc_trajectory(
                 static_cast<NT_VAR>(this->max_daily_distance),
                 static_cast<NT_VAR>(this->min_wind_speed), this->min_wind_duration,
-                p_step, p_time, p_storm_id, p_lon, p_lat, p_wind_max, p_vort_max,
-                p_psl_min, p_have_twc, p_have_thick, p_twc_max, p_thick_max,
-                n_rows, storm_tracks))
+                this->step_interval, p_step, p_time, p_storm_id, p_lon, p_lat,
+                p_wind_max, p_vort_max, p_psl_min, p_have_twc, p_have_thick,
+                p_twc_max, p_thick_max, n_rows, storm_tracks))
             {
                 TECA_ERROR("GFDL TC trajectory analysis encountered an error")
                 return nullptr;

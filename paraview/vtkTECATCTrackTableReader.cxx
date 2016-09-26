@@ -418,13 +418,17 @@ int vtkTECATCTrackTableReader::RequestData(
     if (!((time >= t0) && (time <= t1)))
       continue;
 
-
     // determine the current end of the track
-    size_t q = first - 1;
-    double tq;
-    do track_times->get(++q, tq);
-    while ((q < last) && (tq < time));
-    last = q;
+    for (size_t q = first; q <= last; ++q)
+    {
+        double tq;
+        track_times->get(q, tq);
+        if (tq > time)
+        {
+            last = q - 1;
+            break;
+        }
+    }
 
     // append track geometry
     size_t nPts = last - first + 1;

@@ -118,13 +118,13 @@ void label(unsigned long *ext, const num_t *segments, num_t *labels)
     memset(labels, 0, nxy*nz*sizeof(num_t));
 
     // visit each element to see if it is a seed
-    for (unsigned long k = ext[4]; k <= ext[5]; ++k)
+    for (unsigned long k = 0; k < nz; ++k)
     {
         unsigned long kk = k*nxy;
-        for (unsigned long j = ext[2]; j <= ext[3]; ++j)
+        for (unsigned long j = 0; j < ny; ++j)
         {
             unsigned long jj = j*nx;
-            for (unsigned long i = ext[0]; i <= ext[1]; ++i)
+            for (unsigned long i = 0; i < nx; ++i)
             {
                 unsigned long q = kk + jj + i;
 

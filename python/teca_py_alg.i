@@ -19,6 +19,7 @@
 #include "teca_table_to_stream.h"
 #include "teca_tc_candidates.h"
 #include "teca_tc_trajectory.h"
+#include "teca_tc_classify.h"
 #include "teca_temporal_average.h"
 #include "teca_vorticity.h"
 #include "teca_py_object.h"
@@ -211,6 +212,14 @@
 %include "teca_tc_trajectory.h"
 
 /***************************************************************************
+ tc_classify
+ ***************************************************************************/
+%ignore teca_tc_classify::shared_from_this;
+%shared_ptr(teca_tc_classify)
+%ignore teca_tc_classify::operator=;
+%include "teca_tc_classify.h"
+
+/***************************************************************************
  dataset_diff
  ***************************************************************************/
 %ignore teca_dataset_diff::shared_from_this;
@@ -235,3 +244,17 @@
     TECA_PY_ALGORITHM_VECTOR_PROPERTY(std::string, region_name);
     TECA_PY_ALGORITHM_VECTOR_PROPERTY(std::string, region_long_name);
 }
+
+/***************************************************************************
+ tc_stats
+ ***************************************************************************/
+%pythoncode %{
+from teca_tc_stats import *
+%}
+
+/***************************************************************************
+ tc_trajectory_scalars
+ ***************************************************************************/
+%pythoncode %{
+from teca_tc_trajectory_scalars import *
+%}

@@ -80,59 +80,21 @@ teca_metadata teca_cartesian_mesh_subset::get_output_metadata(
         || !(x = coords.get("x")) || !(y = coords.get("y"))
         || !(z = coords.get("z")))
     {
-        TECA_ERROR("metadata has invalid coordinates")
+        TECA_ERROR("Input metadata has invalid coordinates")
         return teca_metadata();
     }
 
-    vector<unsigned long> ext(6, 0l);
+    this->extent.resize(6, 0UL);
+    if (teca_coordinate_util::bounds_to_extent(
+        this->bounds.data(), x, y, z, this->extent.data()))
+    {
+        TECA_ERROR("Failed to convert bounds to extent")
+        return teca_metadata();
+    }
 
-    TEMPLATE_DISPATCH_FP(
-        const teca_variant_array_impl,
-        x.get(),
-
-        const NT *p_x = static_cast<TT*>(x.get())->get();
-        const NT *p_y = static_cast<TT*>(y.get())->get();
-        const NT *p_z = static_cast<TT*>(z.get())->get();
-
-        if (teca_coordinate_util::bounds_to_extent(
-            static_cast<NT>(this->bounds[0]), static_cast<NT>(this->bounds[1]),
-            static_cast<NT>(this->bounds[2]), static_cast<NT>(this->bounds[3]),
-            static_cast<NT>(this->bounds[4]), static_cast<NT>(this->bounds[5]),
-            p_x, p_y, p_z, x->size()-1, y->size()-1, z->size()-1,
-            cover_bounds, ext))
-        {
-            vector<double> actual(6, 0.0);
-
-            x->get(0, actual[0]);
-            x->get(x->size()-1, actual[1]);
-
-            y->get(0, actual[2]);
-            y->get(y->size()-1, actual[3]);
-
-            z->get(0, actual[4]);
-            z->get(z->size()-1, actual[5]);
-
-            TECA_ERROR("requested bounds ["
-                << this->bounds[0] << ", " << this->bounds[1] << ", "
-                << this->bounds[2] << ", " << this->bounds[3] << ", "
-                << this->bounds[4] << ", " << this->bounds[5]
-                << "]  does not fall in the valid range ["
-                << actual[0] << ", " << actual[1] << ", "
-                << actual[2] << ", " << actual[3] << ", "
-                << actual[4] << ", " << actual[5] << "]")
-
-            return teca_metadata();
-        }
-
-        this->extent = ext;
-
-        teca_metadata out_md(input_md[0]);
-        out_md.insert("whole_extent", ext);
-        return out_md;
-        )
-
-    TECA_ERROR("get_output_metadata failed")
-    return teca_metadata();
+    teca_metadata out_md(input_md[0]);
+    out_md.insert("whole_extent", this->extent);
+    return out_md;
 }
 
 // --------------------------------------------------------------------------
