@@ -166,13 +166,13 @@ void add_node(int inode, Node const& node, Component &comp);
 
 int find_root(std::vector<Node>& nodes, int n0);
 
-void finding_components(std::vector<Node> nodes, std::vector<Edge> edges, std::vector<Component>& components);
+void finding_components(std::vector<Node> nodes, std::vector<Edge> edges, std::vector<Component>& components, unsigned long time_step);
 
 //Functions for finding threshold parameter.
 template <typename T>
     void union_find_alg(const T *input, unsigned long num_rc,
                         unsigned long num_rows, unsigned long num_cols, const_p_teca_variant_array lat,
-                        const_p_teca_variant_array lon);
+                        const_p_teca_variant_array lon, unsigned long time_step);
 
 /*************** MYCODE *****************/
 
@@ -533,13 +533,13 @@ const_p_teca_dataset teca_ar_detect::execute(
 
 #if TECA_DEBUG > 0
 
-         //union_find_alg(p_wv, num_rc, num_rows, num_cols, lat, lon); //It works properly!
+        union_find_alg(p_wv, num_rc, num_rows, num_cols, lat, lon, time_step); //It works properly!
 
-         compute_skeleton_of_ar(land_sea_mask, p_con_comp,
+        /*compute_skeleton_of_ar(land_sea_mask, p_con_comp,
                                num_rc, p_wv, static_cast<NT>(this->low_water_vapor_threshold),
                                num_rows, num_cols,
                                lat, lon, time_step);
-
+         */
 
 #endif
         /*************** MYCODE *****************/
@@ -1559,21 +1559,214 @@ bool sort_volumes_values(Component const& c0, Component const& c1)
     }
 }
 
-void finding_components(std::vector<Node> nodes, std::vector<Edge> edges, std::vector<Component>& components)
+class Ratio
 {
+public:
+    float r_ratio;
+    int r_threshold_value;
+    
+    Ratio(float ratio, int threshold_value)
+    {
+        r_ratio = ratio;
+        r_threshold_value = threshold_value;
+    }
+};
+
+class Volume
+{
+public:
+    int v_nb_nodes;
+    int v_threshold_value;
+    
+    Volume(int nb_nodes, int threshold_value)
+    {
+        v_nb_nodes = nb_nodes;
+        v_threshold_value = threshold_value;
+    }
+};
+
+bool sort_increasing_order(Ratio const& c0, Ratio const& c1)
+{
+    if(c0.r_threshold_value < c1.r_threshold_value)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+void save_to_file(std::vector<Ratio> ratios, unsigned long time_step)
+{
+    //sort in decreasing order
+    std::sort( ratios.begin(), ratios.end(), sort_increasing_order );
+    
+    std::ostringstream oss;
+    oss << "ar_ratios_" << std::setw(6) << std::setfill('0') << time_step << ".txt";
+
+    std::string file_name = oss.str();
+    
+    std::ofstream ofs;
+    ofs.open (file_name, std::ofstream::out | std::ofstream::trunc);
+    
+    for (std::vector<Ratio>::iterator it = ratios.begin(), end = ratios.end(); it != end; ++it)
+    {
+        ofs << (*it).r_threshold_value << "," << (*it).r_ratio << endl;
+        //ofs << (*it).r_ratio << "," << (*it).r_max_value << endl;
+    }
+    
+    ofs.close();
+}
+
+void save_to_file_vol(std::vector<Volume> volumes, unsigned long time_step)
+{
+    std::ostringstream oss;
+    oss << "ar_volumes_" << std::setw(6) << std::setfill('0') << time_step << ".txt";
+    
+    std::string file_name = oss.str();
+    
+    std::ofstream ofs;
+    ofs.open (file_name, std::ofstream::out | std::ofstream::trunc);
+    
+    for (std::vector<Volume>::iterator it = volumes.begin(), end = volumes.end(); it != end; ++it)
+    {
+        ofs << (*it).v_threshold_value << "," << (*it).v_nb_nodes << endl;
+        //ofs << (*it).r_ratio << "," << (*it).r_max_value << endl;
+    }
+    
+    ofs.close();
+}
+
+void track_size_of_components(std::vector<Component> components, std::vector<Volume>& volumes, std::vector<Ratio>& ratios, int val)
+{
+    if(components.size() > 0)
+    {
+        //Tracking volume
+        std::vector<Component> components_tmp1;
+        components_tmp1 = components;
+        
+        std::sort( components_tmp1.begin(), components_tmp1.end(), sort_volumes );
+        
+        //we want to track all of components not only the biggest one !!!
+        int vol = components_tmp1[0].nb_nodes;
+        
+        if(volumes.size() > 0)
+        {
+            Volume vtmp = volumes.back();
+            
+            if(vtmp.v_threshold_value != val)
+            {
+                volumes.push_back( Volume(vol, val) );
+            }
+            else
+            {
+                //If ratio is greater than exisiting ratio for given threshold.
+                if(vol > vtmp.v_nb_nodes)
+                {
+                    volumes.pop_back();
+                    volumes.push_back( Volume(vol, val) );
+                }
+            }
+        }
+        else
+            //Add ratio.
+            volumes.push_back( Volume(vol, val) );
+        
+        //Add volume.
+        //volumes.push_back( Volume(vol, val) );
+        
+        //Tracking ratio
+        if(components.size() > 1)
+        {
+            std::vector<Component> components_tmp0;
+            components_tmp0 = components;
+            
+            std::sort( components_tmp0.begin(), components_tmp0.end(), sort_volumes );
+            
+            //(1st volume - 2nd volume) / 1st volume
+            float ratio = (float)(components_tmp0[0].nb_nodes - components_tmp0[1].nb_nodes)/components_tmp0[0].nb_nodes;
+            
+            if(ratios.size() > 0)
+            {
+                Ratio rtmp = ratios.back();
+                
+                if(rtmp.r_threshold_value != val)
+                {
+                    ratios.push_back( Ratio(ratio, val) );
+                }
+                else
+                {
+                    //If ratio is greater than exisiting ratio for given threshold.
+                    if(ratio > rtmp.r_ratio)
+                    {
+                        ratios.pop_back();
+                        ratios.push_back( Ratio(ratio, val) );
+                    }
+                }
+            }
+            else
+                //Add ratio.
+                ratios.push_back( Ratio(ratio, val) );
+        }
+    }
+}
+
+void finding_components(std::vector<Node> nodes, std::vector<Edge> edges, std::vector<Component>& components, unsigned long time_step)
+{
+    std::vector<Ratio> ratios;
+    std::vector<Volume> volumes;
+    
     int val, n0, n1;
     int r0, r1;
     int num_nodes;
     int c0, c1;
 
     int nb_edges = edges.size();
+    
+    int last_max_component_size = 0, last_threshold_value = 0;
 
     for(int e = 0; e < nb_edges; e++)
     {
         val = edges[e].weight;
         n0 = edges[e].endpoint0;
         n1 = edges[e].endpoint1;
-
+        
+        /*
+        if(components.size() > 0)
+        {
+            if(components.size() > 1)
+            {
+                std::vector<Component> components_tmp0;
+                components_tmp0 = components;
+                
+                std::sort( components_tmp0.begin(), components_tmp0.end(), sort_volumes );
+            
+                //(1st volume - 2nd volume) / 1st volume
+                float ratio = (float)(components_tmp0[0].nb_nodes - components_tmp0[1].nb_nodes)/components_tmp0[0].nb_nodes;
+                
+                //Add ratio.
+                ratios.push_back( Ratio(ratio, val) );
+            }
+            
+            std::vector<Component> components_tmp1;
+            components_tmp1 = components;
+            
+            std::sort( components_tmp1.begin(), components_tmp1.end(), sort_volumes );
+            
+            //we want to track all of components not only the biggest one !!!
+            int vol = components_tmp1[0].nb_nodes;
+            
+            //if(val >= last_threshold_value)
+            //{
+            //    last_threshold_value = val;
+            //}
+            //last_max_component_size = vol;
+            //Add volume.
+            volumes.push_back( Volume(vol, val) );
+        }
+        */
+        
         //Swap if n0 is smaller than n1.
         if(nodes[n0].value > nodes[n1].value)
         {
@@ -1614,6 +1807,8 @@ void finding_components(std::vector<Node> nodes, std::vector<Edge> edges, std::v
             //Join lower node wit higher node.
             add_node(n0, nodes[n0], components[c1]);
 
+            track_size_of_components(components, volumes, ratios, val);
+            
             //Add other node to set.
             continue;
         }
@@ -1621,7 +1816,11 @@ void finding_components(std::vector<Node> nodes, std::vector<Edge> edges, std::v
         c0 = nodes[r0].component;
 
         //If edge is inside one component.
-        if(c0 == c1) continue;
+        if(c0 == c1)
+        {
+            track_size_of_components(components, volumes, ratios, val);
+            continue;
+        }
         else
         {
             //Join two components
@@ -1629,26 +1828,51 @@ void finding_components(std::vector<Node> nodes, std::vector<Edge> edges, std::v
             nodes[r0].parent = r1;
             nodes[r1].component = comp.index;
             components.push_back(comp);
-
+            
+            track_size_of_components(components, volumes, ratios, val);
         }
 
-        std::sort( components.begin(), components.end(), sort_volumes );
+        //Make copy of vector of components.
+        /*
+        std::vector<Component> components_tmp1;
+        components_tmp1 = components;
+        
+        std::vector<Component> components_tmp0;
+        components_tmp0 = components;
+        
+        std::sort( components_tmp0.begin(), components_tmp0.end(), sort_volumes );
 
-        std::cerr << "### Volume (nb of nodes) 1st largest component: " << components[0].nb_nodes << "\n" << "### Volume (nb of nodes) 2nd largest component: " << components[1].nb_nodes << endl;
+        std::cerr << "### Volume (nb of nodes) 1st largest component: " << components_tmp0[0].nb_nodes << "\n" << "### Volume (nb of nodes) 2nd largest component: " << components_tmp0[1].nb_nodes << endl;
+        
         //(1st volume - 2nd volume) / 1st volume
-        std::cerr << "### The ratio (1st volume - 2nd volume) / 1st volume): " << (float)(components[0].nb_nodes - components[1].nb_nodes)/components[0].nb_nodes << endl;
-        std::cerr << "### Max value for 1st largest component: " << components[0].max_value << "\n" << "### Max value for 2st largest component: " << components[1].max_value << endl;
+        float ratio = (float)(components_tmp0[0].nb_nodes - components_tmp0[1].nb_nodes)/components_tmp0[0].nb_nodes;
+        
+        std::cerr << "### The ratio (1st volume - 2nd volume) / 1st volume): " << ratio << endl;
+        
+        int threshold_value = (int)components_tmp0[0].max_value;
+        
+        std::cerr << "### Max value for 1st largest component: " << components_tmp0[0].max_value << "\n" << "### Max value for 2st largest component: " << components_tmp0[1].max_value << endl;
+        
+        //Save ratio.
+        ratios.push_back( Ratio(ratio, val) );
+        */
+        /*
+        std::cerr << "### The ratio (1st volume - 2nd volume) / 1st volume): " << ratio << endl;
+        std::cerr << "### Max value for 1st largest component: " << components_tmp0[0].max_value << "\n" << "### Max value for 2st largest component: " << components_tmp0[1].max_value << endl;
         std::cerr << endl;
 
-        std::sort( components.begin(), components.end(), sort_volumes_values );
+        std::sort( components_tmp1.begin(), components_tmp1.end(), sort_volumes_values );
 
-        std::cerr << "### Volume (sum of values) 1st largest component: " << components[0].sum_nodes << "\n" << "### Volume (sum of values) 2nd largest component: " << components[1].sum_nodes << endl;
-        std::cerr << "### The ratio (1st volume - 2nd volume) / 1st volume): " << (float)(components[0].sum_nodes - components[1].sum_nodes)/components[0].sum_nodes << endl;
-        std::cerr << "### Max value for 1st largest component: " << components[0].max_value << "\n" << "### Max value for 2st largest component: " << components[1].max_value << endl;
+        std::cerr << "### Volume (sum of values) 1st largest component: " << components_tmp1[0].sum_nodes << "\n" << "### Volume (sum of values) 2nd largest component: " << components_tmp1[1].sum_nodes << endl;
+        std::cerr << "### The ratio (1st volume - 2nd volume) / 1st volume): " << (float)(components_tmp1[0].sum_nodes - components_tmp1[1].sum_nodes)/components_tmp1[0].sum_nodes << endl;
+        std::cerr << "### Max value for 1st largest component: " << components_tmp1[0].max_value << "\n" << "### Max value for 2st largest component: " << components_tmp1[1].max_value << endl;
         std::cerr << endl;
+        */
     }
 
-    //std::cerr << "### Nb of components: " << components.size() << " " << "### Nb of nodes that created new components plus nb of nodes joined: " << num_nodes << endl;
+    save_to_file(ratios, time_step);
+    
+    save_to_file_vol(volumes, time_step);
 }
 
 bool sort_edges(Edge const& e0, Edge const& e1)
@@ -1667,7 +1891,7 @@ bool sort_edges(Edge const& e0, Edge const& e1)
 template <typename T>
     void union_find_alg(const T *input, unsigned long num_rc, unsigned long num_rows,
                     unsigned long num_cols, const_p_teca_variant_array lat,
-                    const_p_teca_variant_array lon)
+                    const_p_teca_variant_array lon, unsigned long time_step)
 {
     TEMPLATE_DISPATCH_FP(
         const teca_variant_array_impl,
@@ -1697,7 +1921,7 @@ template <typename T>
             std::vector<Node> output_nodes;
             output_nodes = nodes;
 
-            finding_components(output_nodes, edges, components);
+            finding_components(output_nodes, edges, components, time_step);
     )
 }
 
@@ -1963,6 +2187,32 @@ bool check_constraints(const Point_2& p0, const Point_2& p1)
     }
 }
 
+void save_width_to_file(std::vector<float> ar_widths, unsigned long time_step)
+{
+    std::ostringstream oss;
+    oss << "ar_width_" << std::setw(6) << std::setfill('0') << time_step << ".txt";
+    
+    std::string file_name = oss.str();
+    
+    std::ofstream ofs;
+    ofs.open (file_name, std::ofstream::out | std::ofstream::trunc);
+    
+    //save one value per line
+    /*
+     23.2
+     34.3
+     24.2
+     ...
+     23.2
+     */
+    for (std::vector<float>::iterator it = ar_widths.begin(), end = ar_widths.end(); it != end; ++it)
+    {
+        ofs << (*it) << endl;
+    }
+    
+    ofs.close();
+}
+
 //Computing distance between two points.
 float compute_distance(Point_2 const& p0, Point_2 const& p1)
 {
@@ -2091,9 +2341,14 @@ void compute_voronoi_diagram(std::vector<Point_2> selected_data_points, std::vec
         std::cerr << "\nAR length: " << ar_length << endl;
     //}
 
+    float ar_width_median = 0.0f;
+
     if(!ar_widths.empty())
     {
-        float ar_width_median = compute_width(ar_widths);
+        //save width
+        save_width_to_file(ar_widths, time_step);
+
+        ar_width_median = compute_width(ar_widths);
         //std::cerr << "\nAR width: " << ar_width_median << endl;
     }
 }
