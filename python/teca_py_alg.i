@@ -2,6 +2,7 @@
 #include "teca_config.h"
 #include "teca_algorithm.h"
 #include "teca_ar_detect.h"
+#include "teca_binary_segmentation.h"
 #include "teca_cartesian_mesh_subset.h"
 #include "teca_cartesian_mesh_regrid.h"
 #include "teca_connected_components.h"
@@ -258,3 +259,11 @@ from teca_tc_stats import *
 %pythoncode %{
 from teca_tc_trajectory_scalars import *
 %}
+
+/***************************************************************************
+ binary_segmentation
+ ***************************************************************************/
+%ignore teca_binary_segmentation::shared_from_this;
+%shared_ptr(teca_binary_segmentation)
+%ignore teca_binary_segmentation::operator=;
+%include "teca_binary_segmentation.h"
