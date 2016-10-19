@@ -23,6 +23,7 @@ set(teca_alg_cxx_srcs
     teca_l2_norm.cxx
     teca_mask.cxx
     teca_programmable_algorithm.cxx
+    teca_programmable_reduce.cxx
     teca_table_calendar.cxx
     teca_table_reduce.cxx
     teca_table_sort.cxx
