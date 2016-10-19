@@ -1,6 +1,7 @@
 %{
 #include "teca_config.h"
 #include "teca_algorithm.h"
+#include "teca_apply_binary_mask.h"
 #include "teca_ar_detect.h"
 #include "teca_binary_segmentation.h"
 #include "teca_cartesian_mesh_subset.h"
@@ -267,3 +268,11 @@ from teca_tc_trajectory_scalars import *
 %shared_ptr(teca_binary_segmentation)
 %ignore teca_binary_segmentation::operator=;
 %include "teca_binary_segmentation.h"
+
+/***************************************************************************
+ apply_binary_mask
+ ***************************************************************************/
+%ignore teca_apply_binary_mask::shared_from_this;
+%shared_ptr(teca_apply_binary_mask)
+%ignore teca_apply_binary_mask::operator=;
+%include "teca_apply_binary_mask.h"
