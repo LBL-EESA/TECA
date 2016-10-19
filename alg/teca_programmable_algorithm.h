@@ -76,7 +76,7 @@ public:
     //      const std::vector<teca_metadata> &)
     //
     // the default implementation forwards downstream
-    TECA_PROGRAMMABLE_ALGORITHM_PROPERTY(
+    TECA_ALGORITHM_CALLBACK_PROPERTY(
         report_callback_t, report_callback)
 
     // set the callback that responds to the requesting
@@ -89,7 +89,7 @@ public:
     //    const teca_metadata &)
     //
     // the default implementation forwards upstream
-    TECA_PROGRAMMABLE_ALGORITHM_PROPERTY(
+    TECA_ALGORITHM_CALLBACK_PROPERTY(
         request_callback_t, request_callback)
 
     // set the callback that responds to the execution stage
@@ -98,7 +98,7 @@ public:
     //  const_p_teca_dataset (
     //    unsigned int, const std::vector<const_p_teca_dataset> &,
     //    const teca_metadata &)
-    TECA_PROGRAMMABLE_ALGORITHM_PROPERTY(
+    TECA_ALGORITHM_CALLBACK_PROPERTY(
         execute_callback_t, execute_callback)
 
 protected:
