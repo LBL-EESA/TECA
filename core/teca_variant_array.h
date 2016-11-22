@@ -66,6 +66,9 @@ public:
     bool operator==(const teca_variant_array &other) const
     { return this->equal(other); }
 
+    // initialize contents with the native type initializer
+    virtual void initialize() = 0;
+
     // get methods. could throw std::bad_cast if the
     // internal type is not castable to the return type.
     template<typename T>
@@ -270,6 +273,9 @@ public:
     virtual p_teca_variant_array new_copy(size_t start, size_t end) const override;
     virtual p_teca_variant_array new_instance() const override;
     virtual p_teca_variant_array new_instance(size_t n) const override;
+
+    // intialize with T()
+    virtual void initialize() override;
 
     // copy
     const teca_variant_array_impl<T> &
@@ -867,6 +873,13 @@ const teca_variant_array_impl<T> &teca_variant_array_impl<T>::operator=(
 {
     m_data = std::move(other.m_data);
     return *this;
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
+void teca_variant_array_impl<T>::initialize()
+{
+    m_data.assign(m_data.size(), T());
 }
 
 // --------------------------------------------------------------------------
