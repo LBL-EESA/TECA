@@ -25,6 +25,9 @@ public:
     teca_metadata(teca_metadata &&other) noexcept;
     teca_metadata &operator=(teca_metadata &&other) noexcept;
 
+    // get the number of name value pairs stored in the container
+    unsigned int size() const { return props.size(); }
+
     // get the length of the named property. return 0 if successful
     int size(const std::string &name,
         unsigned int &size) const noexcept;
