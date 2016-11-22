@@ -1077,9 +1077,9 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
 
     // create output dataset
     p_teca_cartesian_mesh mesh = teca_cartesian_mesh::New();
-    mesh->set_x_coordinates(out_x);
-    mesh->set_y_coordinates(out_y);
-    mesh->set_z_coordinates(out_z);
+    mesh->set_x_coordinates(x_axis_variable, out_x);
+    mesh->set_y_coordinates(y_axis_variable, out_y);
+    mesh->set_z_coordinates(z_axis_variable, out_z);
     mesh->set_time(t);
     mesh->set_time_step(time_step);
     mesh->set_whole_extent(whole_extent);

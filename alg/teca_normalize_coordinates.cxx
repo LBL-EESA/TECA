@@ -426,16 +426,28 @@ const_p_teca_dataset teca_normalize_coordinates::execute(unsigned int port,
     const_p_teca_variant_array in_y = in_mesh->get_y_coordinates();
     const_p_teca_variant_array in_z = in_mesh->get_z_coordinates();
 
-    // transform the to =ascending order if needed
+    // transform the axes to ascending order if needed
     p_teca_variant_array out_x, out_y, out_z;
     if ((out_x = this->internals->normalize_axis(in_x)))
-        out_mesh->set_x_coordinates(out_x);
+    {
+        std::string var;
+        in_mesh->get_x_coordinate_variable(var);
+        out_mesh->set_x_coordinates(var, out_x);
+    }
 
     if ((out_y = this->internals->normalize_axis(in_y)))
-        out_mesh->set_y_coordinates(out_y);
+    {
+        std::string var;
+        in_mesh->get_y_coordinate_variable(var);
+        out_mesh->set_y_coordinates(var, out_y);
+    }
 
     if ((out_z = this->internals->normalize_axis(in_z)))
-        out_mesh->set_z_coordinates(out_z);
+    {
+        std::string var;
+        in_mesh->get_z_coordinate_variable(var);
+        out_mesh->set_z_coordinates(var, out_z);
+    }
 
     // apply the same set of transforms to the data
     if (out_x || out_y || out_z)

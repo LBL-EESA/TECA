@@ -287,9 +287,14 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
     // create output dataset
     p_teca_cartesian_mesh mesh = teca_cartesian_mesh::New();
 
-    mesh->set_x_coordinates(out_x);
-    mesh->set_y_coordinates(out_y);
-    mesh->set_z_coordinates(out_z);
+    std::string x_variable = this->x_axis_variable.empty() ? "x" : this->x_axis_variable;
+    std::string y_variable = this->y_axis_variable.empty() ? "y" : this->y_axis_variable;
+    std::string z_variable = this->z_axis_variable.empty() ? "z" : this->z_axis_variable;
+    std::string t_variable = this->t_axis_variable.empty() ? "t" : this->t_axis_variable;
+
+    mesh->set_x_coordinates(x_variable, out_x);
+    mesh->set_y_coordinates(y_variable, out_y);
+    mesh->set_z_coordinates(z_variable, out_z);
 
     // set metadata
     mesh->set_whole_extent(md_whole_extent);

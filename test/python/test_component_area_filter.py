@@ -59,9 +59,9 @@ wext = [0, nx - 1, 0, ny - 1, 0, 0]
 post_fix = "_area_filtered"
 
 mesh = teca_cartesian_mesh.New()
-mesh.set_x_coordinates(x)
-mesh.set_y_coordinates(y)
-mesh.set_z_coordinates(z)
+mesh.set_x_coordinates("lon", x)
+mesh.set_y_coordinates("lat", y)
+mesh.set_z_coordinates("z", z)
 mesh.set_whole_extent(wext)
 mesh.set_extent(wext)
 mesh.set_time(1.0)
