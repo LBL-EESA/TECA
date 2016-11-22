@@ -1107,10 +1107,14 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
         mesh->set_time_units(units);
     }
 
+
     // add the pipeline keys
     teca_metadata &md = mesh->get_metadata();
     md.set("index_request_key", std::string("time_step"));
     md.set("time_step", time_step);
+
+    // pass the variable attributes
+    mesh->set_array_attributes(atrs);
 
     // figure out the mapping between our extent and netcdf
     // representation
