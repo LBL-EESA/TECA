@@ -3,6 +3,7 @@
 #include "teca_cartesian_mesh.h"
 #include "teca_thread_pool.h"
 #include "teca_coordinate_util.h"
+#include "teca_netcdf_util.h"
 
 #include <netcdf.h>
 #include <iostream>
@@ -30,141 +31,6 @@ using std::cerr;
 #if defined(TECA_HAS_OPENSSL)
 #include <openssl/sha.h>
 #endif
-
-// macro to help with netcdf data types
-#define NC_DISPATCH_FP(tc_, code_)                          \
-    switch (tc_)                                            \
-    {                                                       \
-    NC_DISPATCH_CASE(NC_FLOAT, float, code_)                \
-    NC_DISPATCH_CASE(NC_DOUBLE, double, code_)              \
-    default:                                                \
-        TECA_ERROR("netcdf type code_ " << tc_              \
-            << " is not a floating point type")             \
-    }
-#define NC_DISPATCH(tc_, code_)                             \
-    switch (tc_)                                            \
-    {                                                       \
-    NC_DISPATCH_CASE(NC_BYTE, char, code_)                  \
-    NC_DISPATCH_CASE(NC_UBYTE, unsigned char, code_)        \
-    NC_DISPATCH_CASE(NC_CHAR, char, code_)                  \
-    NC_DISPATCH_CASE(NC_SHORT, short int, code_)            \
-    NC_DISPATCH_CASE(NC_USHORT, unsigned short int, code_)  \
-    NC_DISPATCH_CASE(NC_INT, int, code_)                    \
-    NC_DISPATCH_CASE(NC_UINT, unsigned int, code_)          \
-    NC_DISPATCH_CASE(NC_INT64, long long, code_)            \
-    NC_DISPATCH_CASE(NC_UINT64, unsigned long long, code_)  \
-    NC_DISPATCH_CASE(NC_FLOAT, float, code_)                \
-    NC_DISPATCH_CASE(NC_DOUBLE, double, code_)              \
-    default:                                                \
-        TECA_ERROR("netcdf type code_ " << tc_              \
-            << " is not supported")                         \
-    }
-#define NC_DISPATCH_CASE(cc_, tt_, code_)   \
-    case cc_:                               \
-    {                                       \
-        using NC_T = tt_;                   \
-        code_                               \
-        break;                              \
-    }
-
-#if !defined(HDF5_THREAD_SAFE)
-// NetCDF 3 is not threadsafe. The HDF5 C-API can be compiled to be threadsafe,
-// but it is usually not. NetCDF uses HDF5-HL API to access HDF5, but HDF5-HL
-// API is not threadsafe without the --enable-unsupported flag. For all those
-// reasons it's best for the time being to protect all NetCDF I/O.
-static std::mutex g_netcdf_mutex;
-#endif
-
-// to deal with fortran fixed length strings
-// which are not properly nulll terminated
-static void crtrim(char *s, long n)
-{
-    if (!s || (n == 0)) return;
-    char c = s[--n];
-    while ((n > 0) && ((c == ' ') || (c == '\n') ||
-        (c == '\t') || (c == '\r')))
-    {
-        s[n] = '\0';
-        c = s[--n];
-    }
-}
-
-// RAII for managing netcdf files
-class netcdf_handle
-{
-public:
-    netcdf_handle() : m_handle(0)
-    {}
-
-    // initialize with a handle returned from
-    // nc_open/nc_create etc
-    netcdf_handle(int h) : m_handle(h)
-    {}
-
-    // close the file during destruction
-    ~netcdf_handle()
-    { this->close(); }
-
-    // this is a move only class, and should
-    // only be initialized with an valid handle
-    netcdf_handle(const netcdf_handle &) = delete;
-    void operator=(const netcdf_handle &) = delete;
-
-    // move construction takes ownership
-    // from the other object
-    netcdf_handle(netcdf_handle &&other)
-    {
-        m_handle = other.m_handle;
-        other.m_handle = 0;
-    }
-
-    // move assignment takes ownership
-    // from the other object
-    void operator=(netcdf_handle &&other)
-    {
-        this->close();
-        m_handle = other.m_handle;
-        other.m_handle = 0;
-    }
-
-    // open the file
-    int open(const std::string &file_path)
-    {
-        if (m_handle)
-        {
-            TECA_ERROR("Handle in use, close before re-opening")
-            return -1;
-        }
-
-        int ierr = 0;
-        std::lock_guard<std::mutex> lock(g_netcdf_mutex);
-        if ((ierr = nc_open(file_path.c_str(), NC_NOWRITE, &m_handle)) != NC_NOERR)
-        {
-            TECA_ERROR("Failed to open " << file_path << ". " << nc_strerror(ierr))
-            return -1;
-        }
-
-        return 0;
-    }
-
-    // close the file
-    void close()
-    {
-        if (m_handle)
-        {
-            std::lock_guard<std::mutex> lock(g_netcdf_mutex);
-            nc_close(m_handle);
-            m_handle = 0;
-        }
-    }
-
-    // returns a reference to the handle
-    int &get()
-    { return m_handle; }
-
-private:
-    int m_handle;
-};
 
 // data and task types
 using read_variable_data_t = std::pair<unsigned long, p_teca_variant_array>;
@@ -248,8 +114,8 @@ public:
         // mesh based data
         std::string file_path = m_path + PATH_SEP + m_file;
 
-        netcdf_handle fh;
-        if (fh.open(file_path))
+        teca_netcdf_util::netcdf_handle fh;
+        if (fh.open(file_path, NC_NOWRITE))
         {
             TECA_ERROR("Failed to open read variable \"" << m_variable
                 << "\" from \"" << m_file << "\"")
@@ -512,7 +378,6 @@ teca_metadata teca_cf_reader::get_output_metadata(
         if (!this->internals->metadata)
         {
             int ierr = 0;
-            int file_id = 0;
             std::string file = path + PATH_SEP + files[0];
 
             // get mesh coordinates and dimensions
@@ -536,19 +401,20 @@ teca_metadata teca_cf_reader::get_output_metadata(
             std::vector<std::string> time_vars; // anything that has the time dimension as it's only dim
 
 #if !defined(HDF5_THREAD_SAFE)
-            {std::lock_guard<std::mutex> lock(g_netcdf_mutex);
+            {std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-            if ((ierr = nc_open(file.c_str(), NC_NOWRITE, &file_id)) != NC_NOERR)
+            teca_netcdf_util::netcdf_handle fh;
+            if (fh.open(file.c_str(), NC_NOWRITE))
             {
                 TECA_ERROR("Failed to open " << file << endl << nc_strerror(ierr))
                 return teca_metadata();
             }
 
             // query mesh axes
-            if (((ierr = nc_inq_dimid(file_id, x_axis_variable.c_str(), &x_id)) != NC_NOERR)
-                || ((ierr = nc_inq_dimlen(file_id, x_id, &n_x)) != NC_NOERR)
-                || ((ierr = nc_inq_varid(file_id, x_axis_variable.c_str(), &x_id)) != NC_NOERR)
-                || ((ierr = nc_inq_vartype(file_id, x_id, &x_t)) != NC_NOERR))
+            if (((ierr = nc_inq_dimid(fh.get(), x_axis_variable.c_str(), &x_id)) != NC_NOERR)
+                || ((ierr = nc_inq_dimlen(fh.get(), x_id, &n_x)) != NC_NOERR)
+                || ((ierr = nc_inq_varid(fh.get(), x_axis_variable.c_str(), &x_id)) != NC_NOERR)
+                || ((ierr = nc_inq_vartype(fh.get(), x_id, &x_t)) != NC_NOERR))
             {
                 this->clear_cached_metadata();
                 TECA_ERROR(
@@ -559,10 +425,10 @@ teca_metadata teca_cf_reader::get_output_metadata(
             }
 
             if (!y_axis_variable.empty()
-                && (((ierr = nc_inq_dimid(file_id, y_axis_variable.c_str(), &y_id)) != NC_NOERR)
-                || ((ierr = nc_inq_dimlen(file_id, y_id, &n_y)) != NC_NOERR)
-                || ((ierr = nc_inq_varid(file_id, y_axis_variable.c_str(), &y_id)) != NC_NOERR)
-                || ((ierr = nc_inq_vartype(file_id, y_id, &y_t)) != NC_NOERR)))
+                && (((ierr = nc_inq_dimid(fh.get(), y_axis_variable.c_str(), &y_id)) != NC_NOERR)
+                || ((ierr = nc_inq_dimlen(fh.get(), y_id, &n_y)) != NC_NOERR)
+                || ((ierr = nc_inq_varid(fh.get(), y_axis_variable.c_str(), &y_id)) != NC_NOERR)
+                || ((ierr = nc_inq_vartype(fh.get(), y_id, &y_t)) != NC_NOERR)))
             {
                 this->clear_cached_metadata();
                 TECA_ERROR(
@@ -573,10 +439,10 @@ teca_metadata teca_cf_reader::get_output_metadata(
             }
 
             if (!z_axis_variable.empty()
-                && (((ierr = nc_inq_dimid(file_id, z_axis_variable.c_str(), &z_id)) != NC_NOERR)
-                || ((ierr = nc_inq_dimlen(file_id, z_id, &n_z)) != NC_NOERR)
-                || ((ierr = nc_inq_varid(file_id, z_axis_variable.c_str(), &z_id)) != NC_NOERR)
-                || ((ierr = nc_inq_vartype(file_id, z_id, &z_t)) != NC_NOERR)))
+                && (((ierr = nc_inq_dimid(fh.get(), z_axis_variable.c_str(), &z_id)) != NC_NOERR)
+                || ((ierr = nc_inq_dimlen(fh.get(), z_id, &n_z)) != NC_NOERR)
+                || ((ierr = nc_inq_varid(fh.get(), z_axis_variable.c_str(), &z_id)) != NC_NOERR)
+                || ((ierr = nc_inq_vartype(fh.get(), z_id, &z_t)) != NC_NOERR)))
             {
                 this->clear_cached_metadata();
                 TECA_ERROR(
@@ -587,7 +453,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
             }
 
             // enumerate mesh arrays and their attributes
-            if (((ierr = nc_inq_nvars(file_id, &n_vars)) != NC_NOERR))
+            if (((ierr = nc_inq_nvars(fh.get(), &n_vars)) != NC_NOERR))
             {
                 this->clear_cached_metadata();
                 TECA_ERROR(
@@ -605,7 +471,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 int dim_id[NC_MAX_VAR_DIMS] = {0};
                 int n_atts = 0;
 
-                if ((ierr = nc_inq_var(file_id, i, var_name,
+                if ((ierr = nc_inq_var(fh.get(), i, var_name,
                         &var_type, &n_dims, dim_id, &n_atts)) != NC_NOERR)
                 {
                     this->clear_cached_metadata();
@@ -625,7 +491,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 {
                     char dim_name[NC_MAX_NAME + 1] = {'\0'};
                     size_t dim = 0;
-                    if ((ierr = nc_inq_dim(file_id, dim_id[ii], dim_name, &dim)) != NC_NOERR)
+                    if ((ierr = nc_inq_dim(fh.get(), dim_id[ii], dim_name, &dim)) != NC_NOERR)
                     {
                         this->clear_cached_metadata();
                         TECA_ERROR(
@@ -650,40 +516,40 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 atts.set("type", var_type);
                 atts.set("centering", std::string("point"));
 
+                void *att_buffer = nullptr;
                 for (int ii = 0; ii < n_atts; ++ii)
                 {
                     char att_name[NC_MAX_NAME + 1] = {'\0'};
                     nc_type att_type = 0;
                     size_t att_len = 0;
-                    if (((ierr = nc_inq_attname(file_id, i, ii, att_name)) != NC_NOERR)
-                        || ((ierr = nc_inq_att(file_id, i, att_name, &att_type, &att_len)) != NC_NOERR))
+                    if (((ierr = nc_inq_attname(fh.get(), i, ii, att_name)) != NC_NOERR)
+                        || ((ierr = nc_inq_att(fh.get(), i, att_name, &att_type, &att_len)) != NC_NOERR))
                     {
                         this->clear_cached_metadata();
-                        TECA_ERROR(
-                            << "Failed to query " << ii << "th attribute of variable, "
+                        TECA_ERROR("Failed to query " << ii << "th attribute of variable, "
                             << var_name << ", " << file << endl << nc_strerror(ierr))
+                        free(att_buffer);
                         return teca_metadata();
                     }
 
                     if (att_type == NC_CHAR)
                     {
-                        char *buffer = static_cast<char*>(malloc(att_len + 1));
-                        buffer[att_len] = '\0';
-                        nc_get_att_text(file_id, i, att_name, buffer);
-                        crtrim(buffer, att_len);
-                        atts.set(att_name, std::string(buffer));
-                        free(buffer);
+                        char *tmp = static_cast<char*>(realloc(att_buffer, att_len + 1));
+                        tmp[att_len] = '\0';
+                        nc_get_att_text(fh.get(), i, att_name, tmp);
+                        teca_netcdf_util::crtrim(tmp, att_len);
+                        atts.set(att_name, std::string(tmp));
                     }
                     else
                     {
                         NC_DISPATCH(att_type,
-                          NC_T *buffer = static_cast<NC_T*>(malloc(att_len));
-                          nc_get_att(file_id, i, att_name, buffer);
-                          atts.set(att_name, buffer, att_len);
-                          free(buffer);
+                          NC_T *tmp = static_cast<NC_T*>(realloc(att_buffer, att_len));
+                          nc_get_att(fh.get(), i, att_name, tmp);
+                          atts.set(att_name, tmp, att_len);
                           )
                     }
                 }
+                free(att_buffer);
 
                 atrs.set(var_name, atts);
             }
@@ -692,7 +558,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
             NC_DISPATCH_FP(x_t,
                 size_t x_0 = 0;
                 p_teca_variant_array_impl<NC_T> x = teca_variant_array_impl<NC_T>::New(n_x);
-                if ((ierr = nc_get_vara(file_id, x_id, &x_0, &n_x, x->get())) != NC_NOERR)
+                if ((ierr = nc_get_vara(fh.get(), x_id, &x_0, &n_x, x->get())) != NC_NOERR)
                 {
                     this->clear_cached_metadata();
                     TECA_ERROR(
@@ -708,7 +574,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 NC_DISPATCH_FP(y_t,
                     size_t y_0 = 0;
                     p_teca_variant_array_impl<NC_T> y = teca_variant_array_impl<NC_T>::New(n_y);
-                    if ((ierr = nc_get_vara(file_id, y_id, &y_0, &n_y, y->get())) != NC_NOERR)
+                    if ((ierr = nc_get_vara(fh.get(), y_id, &y_0, &n_y, y->get())) != NC_NOERR)
                     {
                         this->clear_cached_metadata();
                         TECA_ERROR(
@@ -733,7 +599,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 NC_DISPATCH_FP(z_t,
                     size_t z_0 = 0;
                     p_teca_variant_array_impl<NC_T> z = teca_variant_array_impl<NC_T>::New(n_z);
-                    if ((ierr = nc_get_vara(file_id, z_id, &z_0, &n_z, z->get())) != NC_NOERR)
+                    if ((ierr = nc_get_vara(fh.get(), z_id, &z_0, &n_z, z->get())) != NC_NOERR)
                     {
                         this->clear_cached_metadata();
                         TECA_ERROR(
@@ -828,7 +694,9 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
                 atrs.set("time", time_atts);
 
-                p_teca_variant_array_impl<double> t = teca_variant_array_impl<double>::New(this->t_values.data(), n_t_vals);
+                p_teca_variant_array_impl<double> t =
+                    teca_variant_array_impl<double>::New(this->t_values.data(), n_t_vals);
+
                 step_count.resize(n_t_vals, 1);
 
                 t_axis = t;
@@ -1067,8 +935,8 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
     // get the file handle for this step
     int ierr = 0;
     std::string file_path = path + PATH_SEP + file;
-    netcdf_handle fh;
-    if (fh.open(file_path))
+    teca_netcdf_util::netcdf_handle fh;
+    if (fh.open(file_path, NC_NOWRITE))
     {
         TECA_ERROR("time_step=" << time_step << " Failed to open \"" << file << "\"")
         return nullptr;
