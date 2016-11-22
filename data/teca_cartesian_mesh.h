@@ -15,10 +15,6 @@ public:
     virtual ~teca_cartesian_mesh() = default;
 
     // set/get metadata
-    TECA_DATASET_METADATA(time, double, 1)
-    TECA_DATASET_METADATA(calendar, std::string, 1)
-    TECA_DATASET_METADATA(time_units, std::string, 1)
-    TECA_DATASET_METADATA(time_step, unsigned long, 1)
     TECA_DATASET_METADATA(whole_extent, unsigned long, 6)
     TECA_DATASET_METADATA(extent, unsigned long, 6)
     TECA_DATASET_METADATA(periodic_in_x, int, 1)

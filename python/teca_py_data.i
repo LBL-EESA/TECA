@@ -80,12 +80,23 @@
 %ignore teca_mesh::shared_from_this;
 %shared_ptr(teca_mesh)
 %ignore teca_mesh::operator=;
+%ignore teca_mesh::get_time(double *) const;
+%ignore teca_mesh::get_time_step(unsigned long *) const;
+%ignore teca_mesh::set_calendar(std::string const *);
+%ignore teca_mesh::set_time_units(std::string const *);
+%ignore teca_mesh::set_array_attributes(teca_metadata const *);
+%ignore teca_mesh::get_array_attributes(teca_metadata *) const;
 %include "teca_mesh_fwd.h"
 %include "teca_mesh.h"
 TECA_PY_DYNAMIC_CAST(teca_mesh, teca_dataset)
 %extend teca_mesh
 {
     TECA_PY_STR()
+
+    TECA_PY_DATASET_METADATA(double, time)
+    TECA_PY_DATASET_METADATA(unsigned long, time_step)
+    TECA_PY_DATASET_METADATA(std::string, calendar)
+    TECA_PY_DATASET_METADATA(std::string, time_units)
 }
 
 /***************************************************************************
@@ -94,10 +105,6 @@ TECA_PY_DYNAMIC_CAST(teca_mesh, teca_dataset)
 %ignore teca_cartesian_mesh::shared_from_this;
 %shared_ptr(teca_cartesian_mesh)
 %ignore teca_cartesian_mesh::operator=;
-%ignore teca_cartesian_mesh::get_time(double *) const;
-%ignore teca_cartesian_mesh::get_time_step(unsigned long *) const;
-%ignore teca_cartesian_mesh::set_calendar(std::string const *);
-%ignore teca_cartesian_mesh::set_time_units(std::string const *);
 %ignore teca_cartesian_mesh::get_periodic_in_x(int *) const;
 %ignore teca_cartesian_mesh::get_periodic_in_y(int *) const;
 %ignore teca_cartesian_mesh::get_periodic_in_z(int *) const;
@@ -108,10 +115,6 @@ TECA_PY_DYNAMIC_CAST(teca_cartesian_mesh, teca_dataset)
 {
     TECA_PY_STR()
 
-    TECA_PY_DATASET_METADATA(double, time)
-    TECA_PY_DATASET_METADATA(unsigned long, time_step)
-    TECA_PY_DATASET_METADATA(std::string, calendar)
-    TECA_PY_DATASET_METADATA(std::string, time_units)
     TECA_PY_DATASET_VECTOR_METADATA(unsigned long, extent)
     TECA_PY_DATASET_VECTOR_METADATA(unsigned long, whole_extent)
 }
