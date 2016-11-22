@@ -12,6 +12,12 @@ class teca_mesh : public teca_dataset
 public:
     ~teca_mesh() = default;
 
+    // set/get temporal metadata
+    TECA_DATASET_METADATA(time, double, 1)
+    TECA_DATASET_METADATA(calendar, std::string, 1)
+    TECA_DATASET_METADATA(time_units, std::string, 1)
+    TECA_DATASET_METADATA(time_step, unsigned long, 1)
+
     // get point centered data
     p_teca_array_collection get_point_arrays()
     { return m_impl->point_arrays; }
