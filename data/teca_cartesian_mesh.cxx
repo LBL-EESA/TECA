@@ -74,6 +74,30 @@ void teca_cartesian_mesh::swap(p_teca_dataset &dataset)
 }
 
 // --------------------------------------------------------------------------
+void teca_cartesian_mesh::set_x_coordinates(const std::string &var,
+    const p_teca_variant_array &array)
+{
+    this->set_x_coordinate_variable(var);
+    m_coordinate_arrays->set("x", array);
+}
+
+// --------------------------------------------------------------------------
+void teca_cartesian_mesh::set_y_coordinates(const std::string &var,
+    const p_teca_variant_array &array)
+{
+    this->set_y_coordinate_variable(var);
+    m_coordinate_arrays->set("y", array);
+}
+
+// --------------------------------------------------------------------------
+void teca_cartesian_mesh::set_z_coordinates(const std::string &var,
+    const p_teca_variant_array &array)
+{
+    this->set_z_coordinate_variable(var);
+    m_coordinate_arrays->set("z", array);
+}
+
+// --------------------------------------------------------------------------
 void teca_cartesian_mesh::to_stream(teca_binary_stream &s) const
 {
     this->teca_mesh::to_stream(s);

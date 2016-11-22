@@ -6,7 +6,6 @@
 #include "teca_cartesian_mesh.h"
 #include "teca_mesh.h"
 #include "teca_table.h"
-#include "teca_py_object.h"
 #include "teca_table_collection.h"
 #include "teca_database.h"
 #include "teca_py_object.h"
@@ -118,6 +117,10 @@ TECA_PY_DYNAMIC_CAST(teca_mesh, teca_dataset)
 %ignore teca_cartesian_mesh::get_periodic_in_x(int *) const;
 %ignore teca_cartesian_mesh::get_periodic_in_y(int *) const;
 %ignore teca_cartesian_mesh::get_periodic_in_z(int *) const;
+%ignore teca_cartesian_mesh::set_x_coordinate_variable(std::string const *);
+%ignore teca_cartesian_mesh::set_y_coordinate_variable(std::string const *);
+%ignore teca_cartesian_mesh::set_z_coordinate_variable(std::string const *);
+%ignore teca_cartesian_mesh::set_t_coordinate_variable(std::string const *);
 %include "teca_cartesian_mesh_fwd.h"
 %include "teca_cartesian_mesh.h"
 TECA_PY_DYNAMIC_CAST(teca_cartesian_mesh, teca_dataset)
@@ -127,6 +130,15 @@ TECA_PY_DYNAMIC_CAST(teca_cartesian_mesh, teca_dataset)
 
     TECA_PY_DATASET_VECTOR_METADATA(unsigned long, extent)
     TECA_PY_DATASET_VECTOR_METADATA(unsigned long, whole_extent)
+
+    TECA_PY_DATASET_METADATA(int, periodic_in_x)
+    TECA_PY_DATASET_METADATA(int, periodic_in_y)
+    TECA_PY_DATASET_METADATA(int, periodic_in_z)
+
+    TECA_PY_DATASET_METADATA(std::string, x_coordinate_variable)
+    TECA_PY_DATASET_METADATA(std::string, y_coordinate_variable)
+    TECA_PY_DATASET_METADATA(std::string, z_coordinate_variable)
+    TECA_PY_DATASET_METADATA(std::string, t_coordinate_variable)
 }
 
 /***************************************************************************

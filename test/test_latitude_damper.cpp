@@ -70,9 +70,9 @@ int main(int argc, char **argv)
     unsigned long wext[] = {0, nx - 1, 0, ny - 1, 0, 0};
 
     p_teca_cartesian_mesh mesh = teca_cartesian_mesh::New();
-    mesh->set_x_coordinates(x);
-    mesh->set_y_coordinates(y);
-    mesh->set_z_coordinates(z);
+    mesh->set_x_coordinates("x", x);
+    mesh->set_y_coordinates("y", y);
+    mesh->set_z_coordinates("z", z);
     mesh->set_whole_extent(wext);
     mesh->set_extent(wext);
     mesh->set_time(1.0);
