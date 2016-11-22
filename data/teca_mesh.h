@@ -18,6 +18,9 @@ public:
     TECA_DATASET_METADATA(time_units, std::string, 1)
     TECA_DATASET_METADATA(time_step, unsigned long, 1)
 
+    // set/get array attribute metadata
+    TECA_DATASET_METADATA(array_attributes, teca_metadata, 1)
+
     // get point centered data
     p_teca_array_collection get_point_arrays()
     { return m_impl->point_arrays; }

@@ -97,6 +97,16 @@ TECA_PY_DYNAMIC_CAST(teca_mesh, teca_dataset)
     TECA_PY_DATASET_METADATA(unsigned long, time_step)
     TECA_PY_DATASET_METADATA(std::string, calendar)
     TECA_PY_DATASET_METADATA(std::string, time_units)
+
+    teca_metadata get_array_attributes()
+    {
+        teca_py_gil_state gil;
+
+        teca_metadata atts;
+        self->get_array_attributes(atts);
+
+        return atts;
+    }
 }
 
 /***************************************************************************

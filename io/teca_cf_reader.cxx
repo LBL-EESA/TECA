@@ -664,7 +664,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                             << var_name << ", " << file << endl << nc_strerror(ierr))
                         return teca_metadata();
                     }
-                    
+
                     if (att_type == NC_CHAR)
                     {
                         char *buffer = static_cast<char*>(malloc(att_len + 1));
@@ -1028,6 +1028,7 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
     // to request an array that isn't present.
     std::vector<std::string> arrays;
     request.get("arrays", arrays);
+    size_t n_arrays = arrays.size();
 
     // slice axes on the requested extent
     p_teca_variant_array out_x = in_x->new_copy(extent[0], extent[1]);
@@ -1087,7 +1088,7 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
     mesh->set_periodic_in_y(this->periodic_in_y);
     mesh->set_periodic_in_z(this->periodic_in_z);
 
-    // get the time offset
+    // get the array attributes
     teca_metadata atrs;
     if (this->internals->metadata.get("attributes", atrs))
     {
@@ -1096,6 +1097,7 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
         return nullptr;
     }
 
+    // pass time axis attributes
     teca_metadata time_atts;
     std::string calendar;
     std::string units;
@@ -1111,6 +1113,23 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
     teca_metadata &md = mesh->get_metadata();
     md.set("index_request_key", std::string("time_step"));
     md.set("time_step", time_step);
+
+    // pass the attributes for the arrays read
+    teca_metadata out_atrs;
+    for (unsigned int i = 0; i < n_arrays; ++i)
+        out_atrs.set(arrays[i], atrs.get(arrays[i]));
+
+    // pass coordinate axes attributes
+    if (atrs.has(x_axis_variable))
+        out_atrs.set(x_axis_variable, atrs.get(x_axis_variable));
+    if (atrs.has(y_axis_variable))
+        out_atrs.set(y_axis_variable, atrs.get(y_axis_variable));
+    if (atrs.has(z_axis_variable))
+        out_atrs.set(z_axis_variable, atrs.get(z_axis_variable));
+    if (!time_atts.empty())
+        out_atrs.set("time", time_atts);
+
+    mesh->get_metadata().set("attributes", out_atrs);
 
     // figure out the mapping between our extent and netcdf
     // representation
@@ -1150,7 +1169,6 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
     }
 
     // read requested arrays
-    size_t n_arrays = arrays.size();
     for (size_t i = 0; i < n_arrays; ++i)
     {
         // get metadata
