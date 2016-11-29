@@ -6,6 +6,9 @@ TECA(Toolkit for Extreme Climate Analysis) is a collection of climate analysis a
 # Getting Started
 For more information please see the [TECA User's Guide](doc/teca_users_guide.pdf).
 
+# Download Sources
+The latest release is available at the [TECA github repository](https://github.com/LBL-EESA/TECA/releases).
+
 #Copyright Notice#
 TECA, Copyright (c) 2015, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Dept. of Energy).  All rights reserved.
 
