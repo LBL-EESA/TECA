@@ -27,7 +27,8 @@ teca_add_app(teca_ar_detect LIBS ${teca_app_link}
 teca_add_app(teca_tc_detect LIBS ${teca_app_link}
     FEATURES (TECA_HAS_BOOST AND TECA_HAS_NETCDF AND TECA_HAS_UDUNITS))
 
-teca_add_app(teca_tc_trajectory LIBS ${teca_app_link} FEATURES TECA_HAS_BOOST)
+teca_add_app(teca_tc_trajectory LIBS ${teca_app_link}
+    FEATURES (TECA_HAS_BOOST AND TECA_HAS_UDUNITS))
 
 teca_add_app(teca_metadata_probe LIBS ${teca_app_link}
     FEATURES (TECA_HAS_BOOST AND TECA_HAS_NETCDF AND TECA_HAS_UDUNITS))

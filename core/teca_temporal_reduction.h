@@ -49,8 +49,7 @@ protected:
 
     // override that implements the reduction. given two datasets
     // a left and right, reduce into a single dataset and return.
-    virtual p_teca_dataset reduce(
-        const const_p_teca_dataset &left,
+    virtual p_teca_dataset reduce(const const_p_teca_dataset &left,
         const const_p_teca_dataset &right) = 0;
 
     // override that allows derived classes to generate upstream
@@ -58,18 +57,14 @@ protected:
     // classes implement this method instead of get_upstream_request,
     // which here is already implemented to handle the application
     // of requests over all timesteps.
-    virtual
-    std::vector<teca_metadata> initialize_upstream_request(
-        unsigned int port,
-        const std::vector<teca_metadata> &input_md,
+    virtual std::vector<teca_metadata> initialize_upstream_request(
+        unsigned int port, const std::vector<teca_metadata> &input_md,
         const teca_metadata &request) = 0;
 
     // override that allows derived classes to report what they can
     // produce. this will be called from get_output_metadata which
     // will strip out time and partition time across MPI ranks.
-    virtual
-    teca_metadata initialize_output_metadata(
-        unsigned int port,
+    virtual teca_metadata initialize_output_metadata(unsigned int port,
         const std::vector<teca_metadata> &input_md) = 0;
 
 
@@ -81,8 +76,7 @@ protected:
     // call initialize_upstream_request and apply the results to
     // all time steps.
     std::vector<teca_metadata> get_upstream_request(
-        unsigned int port,
-        const std::vector<teca_metadata> &input_md,
+        unsigned int port, const std::vector<teca_metadata> &input_md,
         const teca_metadata &request) override;
 
     // uses MPI communication to collect remote data for
@@ -90,15 +84,13 @@ protected:
     // each pair of datasets until the datasets across
     // all threads and ranks are reduced into a single
     // dataset, which is returned.
-    const_p_teca_dataset execute(
-        unsigned int port,
+    const_p_teca_dataset execute(unsigned int port,
         const std::vector<const_p_teca_dataset> &input_data,
         const teca_metadata &request) override;
 
     // consumes time metadata, partitions time's across
     // MPI ranks.
-    teca_metadata get_output_metadata(
-        unsigned int port,
+    teca_metadata get_output_metadata(unsigned int port,
         const std::vector<teca_metadata> &input_md) override;
 
 private:

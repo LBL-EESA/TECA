@@ -11,7 +11,9 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
 
 set(teca_alg_cxx_srcs
     gfdl_tc_candidates.cxx
+    teca_apply_binary_mask.cxx
     teca_ar_detect.cxx
+    teca_binary_segmentation.cxx
     teca_cartesian_mesh_subset.cxx
     teca_cartesian_mesh_regrid.cxx
     teca_connected_components.cxx
@@ -21,6 +23,7 @@ set(teca_alg_cxx_srcs
     teca_l2_norm.cxx
     teca_mask.cxx
     teca_programmable_algorithm.cxx
+    teca_programmable_reduce.cxx
     teca_table_calendar.cxx
     teca_table_reduce.cxx
     teca_table_sort.cxx

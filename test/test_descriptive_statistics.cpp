@@ -4,13 +4,14 @@
 #include "teca_descriptive_statistics.h"
 #include "teca_file_util.h"
 #include "teca_table_reader.h"
-#include "teca_table_reduce.h"
+#include "teca_programmable_reduce.h"
 #include "teca_table_sort.h"
 #include "teca_table_calendar.h"
 #include "teca_table_writer.h"
 #include "teca_test_util.h"
 #include "teca_mpi_manager.h"
 #include "teca_system_interface.h"
+#include "teca_table.h"
 
 #include <vector>
 #include <string>
@@ -20,6 +21,42 @@ using namespace std;
 #if defined(TECA_HAS_MPI)
 #include <mpi.h>
 #endif
+
+struct reduce_callback
+{
+    p_teca_dataset operator()(const const_p_teca_dataset &in_data_0,
+        const const_p_teca_dataset &in_data_1)
+    {
+        const_p_teca_table table_0 =
+            std::dynamic_pointer_cast<const teca_table>(in_data_0);
+
+        const_p_teca_table table_1 =
+            std::dynamic_pointer_cast<const teca_table>(in_data_1);
+
+        p_teca_table table_2 = nullptr;
+
+        if (table_0 && table_1)
+        {
+            table_2 = std::dynamic_pointer_cast
+                <teca_table>(table_0->new_copy());
+
+            table_2->concatenate_rows(table_1);
+        }
+        else if (table_0)
+        {
+            table_2 = std::dynamic_pointer_cast
+                <teca_table>(table_0->new_copy());
+        }
+        else if (table_1)
+        {
+            table_2 = std::dynamic_pointer_cast
+                <teca_table>(table_1->new_copy());
+        }
+
+        return table_2;
+    }
+};
+
 
 int main(int argc, char **argv)
 {
@@ -79,11 +116,12 @@ int main(int argc, char **argv)
     stats->set_input_connection(cf_reader->get_output_port());
     stats->set_dependent_variables(arrays);
 
-    p_teca_table_reduce map_reduce = teca_table_reduce::New();
+    p_teca_programmable_reduce map_reduce = teca_programmable_reduce::New();
     map_reduce->set_input_connection(stats->get_output_port());
     map_reduce->set_first_step(first_step);
     map_reduce->set_last_step(last_step);
     map_reduce->set_thread_pool_size(n_threads);
+    map_reduce->set_reduce_callback(reduce_callback());
 
     p_teca_table_sort sort = teca_table_sort::New();
     sort->set_input_connection(map_reduce->get_output_port());

@@ -22,6 +22,9 @@
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
 #endif
+#if defined(TECA_HAS_MPI)
+#include <mpi.h>
+#endif
 
 namespace internals {
 
@@ -212,8 +215,7 @@ void teca_vtk_cartesian_mesh_writer::set_properties(
 
 // --------------------------------------------------------------------------
 const_p_teca_dataset teca_vtk_cartesian_mesh_writer::execute(
-    unsigned int port,
-    const std::vector<const_p_teca_dataset> &input_data,
+    unsigned int port, const std::vector<const_p_teca_dataset> &input_data,
     const teca_metadata &request)
 {
     (void)port;
@@ -222,9 +224,20 @@ const_p_teca_dataset teca_vtk_cartesian_mesh_writer::execute(
         = std::dynamic_pointer_cast<const teca_cartesian_mesh>(
             input_data[0]);
 
+    // only rank 0 is required to have data
+    int rank = 0;
+#if defined(TECA_HAS_MPI)
+    int init = 0;
+    MPI_Initialized(&init);
+    if (init)
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+#endif
     if (!mesh)
     {
-        TECA_ERROR("empty input")
+        if (rank == 0)
+        {
+            TECA_ERROR("empty input")
+        }
         return nullptr;
     }
 

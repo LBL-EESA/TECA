@@ -16,30 +16,30 @@
 %enddef
 
 /***************************************************************************/
-/* for each type define a functions that wrap std::dynamic_pointer_cast */
+/* for each dataset type define a functions that wrap std::dynamic_pointer_cast */
 %define TECA_PY_DYNAMIC_CAST(to_t, from_t)
 %inline %{
 p_##to_t as_##to_t(p_##from_t in_inst)
 {
     p_##to_t o_inst = std::dynamic_pointer_cast<to_t>(in_inst);
-    if (!o_inst)
+    /*if (!o_inst)
     {
         teca_py_gil_state gil;
         PyErr_Format(PyExc_TypeError,
             "Failed to convert from \"%s\" to \"%s\"", #from_t, #to_t);
-    }
+    }*/
     return o_inst;
 }
 
 const_p_##to_t as_const_##to_t(const_p_##from_t inst)
 {
     const_p_##to_t o_inst = std::dynamic_pointer_cast<const to_t>(inst);
-    if (!o_inst)
+    /*if (!o_inst)
     {
         teca_py_gil_state gil;
         PyErr_Format(PyExc_TypeError,
             "Failed to convert from \"%s\" to \"%s\"", #from_t, #to_t);
-    }
+    }*/
     return o_inst;
 }
 %}

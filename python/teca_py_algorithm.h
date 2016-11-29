@@ -30,17 +30,14 @@
 namespace teca_py_algorithm
 {
 /// wrapper for report_callback phase callback
-/** Manages a python callback for use during
-the report_callback phase of pipeline execution. In
-addition to holding the callback it handles
-translation of the input and output arguments.
+/** Manages a python callback for use during the report_callback phase of
+pipeline execution. In addition to holding the callback it handles translation
+of the input and output arguments.
 
-the python function must accept the following
-arguments:
+the python function must accept the following arguments:
 
    port - an integer set to the active port number
-   input_md - a list of metadata objects one per
-       input connection
+   input_md - a list of metadata objects one per input connection
 
 it must return: a teca_metadata object.
 */
@@ -56,8 +53,8 @@ public:
     explicit operator bool() const
     { return static_cast<bool>(m_callback); }
 
-    teca_metadata operator()
-        (unsigned int port, const std::vector<teca_metadata> &input_md)
+    teca_metadata operator()(unsigned int port,
+        const std::vector<teca_metadata> &input_md)
     {
         teca_py_gil_state gil;
 
@@ -109,10 +106,10 @@ private:
 };
 
 /// wrapper for request phase callback
-/** Manages a python callback for use during
- the request phase of pipeline execution. In
- addition to holding the callback it handles
- translation of the input and output arguments. */
+/** Manages a python callback for use during the request phase of pipeline
+execution. In addition to holding the callback it handles translation of the
+input and output arguments.
+*/
 class request_callback
 {
 public:
@@ -125,8 +122,8 @@ public:
     explicit operator bool() const
     { return static_cast<bool>(m_callback); }
 
-    std::vector<teca_metadata> operator()
-        (unsigned int port, const std::vector<teca_metadata> &input_md,
+    std::vector<teca_metadata> operator()(unsigned int port,
+        const std::vector<teca_metadata> &input_md,
         const teca_metadata &request)
     {
         teca_py_gil_state gil;
@@ -200,21 +197,18 @@ private:
 };
 
 /// wrapper for execute_callback phase callback
-/** Manages a python callback for use during
-the execute_callback phase of pipeline execution. In
-addition to holding the callback it handles
-translation of the input and output arguments.
+/** Manages a python callback for use during the execute_callback phase of
+pipeline execution. In addition to holding the callback it handles translation
+of the input and output arguments.
 
-the python function must accept the following
-arguments:
+the python function must accept the following arguments:
 
    port - an integer set to the active port number
-   input_data - a list of datasets objects one per
-       input connection, per upstream request
-   request - a metadata object containing the
-        request
+   input_data - a list of datasets objects one per input connection,
+        per upstream request
+   request - a metadata object containing the request
 
-it must return: a teca_metadata object.
+it must return: a teca_dataset object.
 */
 class execute_callback
 {
@@ -228,8 +222,7 @@ public:
     explicit operator bool() const
     { return static_cast<bool>(m_callback); }
 
-    const_p_teca_dataset operator()
-        (unsigned int port,
+    const_p_teca_dataset operator()(unsigned int port,
         const std::vector<const_p_teca_dataset> &in_data,
         const teca_metadata &request)
     {
@@ -281,6 +274,85 @@ public:
         {
             PyErr_Format(PyExc_TypeError,
                 "invalid return type from execute_callback");
+            return nullptr;
+        }
+
+        p_teca_dataset out_data(*tmp_data);
+
+        if (i_own)
+            delete tmp_data;
+
+        return out_data;
+    }
+
+private:
+    teca_py_object::teca_py_callable m_callback;
+};
+
+/// wrapper for reduce_callback of the programmable reduction
+/** Manages a python callback for use during a programmable reduction addition
+to holding the callback it handles translation of the input and output arguments.
+
+the python function must accept the two datasets to reduce and
+return the reduced data
+*/
+class reduce_callback
+{
+public:
+    reduce_callback(PyObject *f)
+        : m_callback(f) {}
+
+    void set_callback(PyObject *f)
+    { m_callback.set_object(f); }
+
+    explicit operator bool() const
+    { return static_cast<bool>(m_callback); }
+
+    p_teca_dataset operator()(const const_p_teca_dataset &input_0,
+        const const_p_teca_dataset &input_1)
+    {
+        teca_py_gil_state gil;
+
+        PyObject *f = m_callback.get_object();
+        if (!f)
+        {
+            PyErr_Format(PyExc_TypeError,
+                "reduce_callback callback not set");
+            return nullptr;
+        }
+
+        // package input datasets
+        PyObject *py_input_0 = SWIG_NewPointerObj(
+                SWIG_as_voidptr(new const_p_teca_dataset(input_0)),
+                SWIGTYPE_p_std__shared_ptrT_teca_dataset_t,
+                SWIG_POINTER_OWN);
+
+        PyObject *py_input_1 = SWIG_NewPointerObj(
+                SWIG_as_voidptr(new const_p_teca_dataset(input_1)),
+                SWIGTYPE_p_std__shared_ptrT_teca_dataset_t,
+                SWIG_POINTER_OWN);
+
+        // call the callback
+        PyObject *args = Py_BuildValue("NN", py_input_0, py_input_1);
+
+        PyObject *ret = nullptr;
+        if (!(ret = PyObject_CallObject(f, args)) || PyErr_Occurred())
+        {
+            TECA_PY_CALLBACK_ERROR(reduce, f)
+            return nullptr;
+        }
+
+        Py_DECREF(args);
+
+        // convert the return
+        int i_own = 0;
+        p_teca_dataset *tmp_data = nullptr;
+        if (!SWIG_IsOK(SWIG_ConvertPtrAndOwn(ret,
+            reinterpret_cast<void**>(&tmp_data),
+            SWIGTYPE_p_std__shared_ptrT_teca_dataset_t, 0, &i_own))
+            || !tmp_data)
+        {
+            // this is not necessarilly an error
             return nullptr;
         }
 

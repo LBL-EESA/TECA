@@ -1,7 +1,9 @@
 %{
 #include "teca_config.h"
 #include "teca_algorithm.h"
+#include "teca_apply_binary_mask.h"
 #include "teca_ar_detect.h"
+#include "teca_binary_segmentation.h"
 #include "teca_cartesian_mesh_subset.h"
 #include "teca_cartesian_mesh_regrid.h"
 #include "teca_connected_components.h"
@@ -13,6 +15,7 @@
 #include "teca_l2_norm.h"
 #include "teca_mask.h"
 #include "teca_programmable_algorithm.h"
+#include "teca_programmable_reduce.h"
 #include "teca_table_calendar.h"
 #include "teca_table_sort.h"
 #include "teca_table_reduce.h"
@@ -122,7 +125,7 @@
 %shared_ptr(teca_programmable_algorithm)
 %extend teca_programmable_algorithm
 {
-    // note: it s not worth acquiring the GIL while setting the callbacks
+    // note: its not worth acquiring the GIL while setting the callbacks
     // as these are intended to be used only from the main thread during
     // initialization
 
@@ -150,6 +153,42 @@
 %ignore teca_programmable_algorithm::get_execute_callback;
 %include "teca_programmable_algorithm_fwd.h"
 %include "teca_programmable_algorithm.h"
+
+/***************************************************************************
+ programmable_reduce
+ ***************************************************************************/
+%ignore teca_programmable_reduce::shared_from_this;
+%shared_ptr(teca_programmable_reduce)
+%extend teca_programmable_reduce
+{
+    // note: its not worth acquiring the GIL while setting the callbacks
+    // as these are intended to be used only from the main thread during
+    // initialization
+
+    void set_report_callback(PyObject *f)
+    {
+        self->set_report_callback(teca_py_algorithm::report_callback(f));
+    }
+
+    void set_request_callback(PyObject *f)
+    {
+        self->set_request_callback(teca_py_algorithm::request_callback(f));
+    }
+
+    void set_reduce_callback(PyObject *f)
+    {
+        self->set_reduce_callback(teca_py_algorithm::reduce_callback(f));
+    }
+}
+%ignore teca_programmable_reduce::operator=;
+%ignore teca_programmable_reduce::set_report_callback;
+%ignore teca_programmable_reduce::get_report_callback;
+%ignore teca_programmable_reduce::set_request_callback;
+%ignore teca_programmable_reduce::get_request_callback;
+%ignore teca_programmable_reduce::set_reduce_callback;
+%ignore teca_programmable_reduce::get_reduce_callback;
+%include "teca_programmable_reduce_fwd.h"
+%include "teca_programmable_reduce.h"
 
 /***************************************************************************
  derived_quantity
@@ -258,3 +297,19 @@ from teca_tc_stats import *
 %pythoncode %{
 from teca_tc_trajectory_scalars import *
 %}
+
+/***************************************************************************
+ binary_segmentation
+ ***************************************************************************/
+%ignore teca_binary_segmentation::shared_from_this;
+%shared_ptr(teca_binary_segmentation)
+%ignore teca_binary_segmentation::operator=;
+%include "teca_binary_segmentation.h"
+
+/***************************************************************************
+ apply_binary_mask
+ ***************************************************************************/
+%ignore teca_apply_binary_mask::shared_from_this;
+%shared_ptr(teca_apply_binary_mask)
+%ignore teca_apply_binary_mask::operator=;
+%include "teca_apply_binary_mask.h"
