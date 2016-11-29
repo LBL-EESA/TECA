@@ -95,9 +95,12 @@ public:
     // set the callback that responds to the execution stage
     // of pipeline execution. the execute callback must be
     // callable with the signature:
+    //
     //  const_p_teca_dataset (
     //    unsigned int, const std::vector<const_p_teca_dataset> &,
     //    const teca_metadata &)
+    //
+    // the default implementation returns a nullptr
     TECA_ALGORITHM_CALLBACK_PROPERTY(
         execute_callback_t, execute_callback)
 
