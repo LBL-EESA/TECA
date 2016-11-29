@@ -3,6 +3,9 @@
 \usepackage{color}
 \usepackage[utf8]{inputenc}
 \usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{wrapfig}
 \usepackage{verbatim}
 \usepackage{hyperref}
 \usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
@@ -467,15 +470,21 @@ ctest --output-on-failure
 % \section{Analsyis}
 % \section{Re-meshing}
 % \section{Output and Data Writers}
-\chapter{Tropical Cylone Detector}
-\section{NERSC}
-Once on Edison load the TECA module
-\begin{minted}{bash}
-module load teca
-\end{minted}
-note that there are multiple versions installed, just use the latest and greatest as they become available.
+\chapter{TECA Applications}
+\begin{figure}[t]
+ \centering
+ %$\includegraphics[width=6.0in]{./images/candidates_and_tracks.png}
+ \includegraphics[width=0.9\textwidth]{./images/tracks_1824.png}
+ % candidates_and_tracks.png: 0x0 pixel, 300dpi, 0.00x0.00 cm, bb=
+ \caption{Cyclone tracks plotted with 850 mb wind speed and integrated moisture.}
+ \label{fig:candidates_and_tracks}
+\end{figure}
 
-Processing an entire dataset is straight forward once you know how many cores you want to run on. You will launch teca\_tc\_detect, the tropical cyclone application, from a SLURM batch script. A batch script is provided below. The most common options are:
+\section{Tropical Cyclone Detector}
+The cyclone detector is an MPI+threads parallel map-reduce based application that identifies tropical cyclone tracks in NetCDF-CF2 climate data. The application is comprised of a number of stages that are run in succession producing tables containing cyclone tracks. The tracks then can be visualized or further analyzed using the TECA TC statistics application, TECA's Python bindings, or the TECA ParaView plugin.
+
+\subsection{Command Line Arguments}
+The most common command line options are:
 \begin{description}
 \item[--help] prints documentation for the most common options. MPI programs, such as teca\_tc\_detect aren't allowed to run on the login noes at NERSC. For this reason to use \textit{--help} you'll need to obtain a compute node via \textit{salloc} first.
 \item[--full\_help] prints documentation for all options. See \textit{--help} notes.
@@ -485,6 +494,15 @@ Processing an entire dataset is straight forward once you know how many cores yo
 \item[--candidate\_file], a file name specifying where to write the storm candidates to. If not specified result will be written to candidates.bin in the current working directory. One sets the output format via the extension. Supported formats include csv, xlsx, and bin.
 \item[--track\_file], a file name specifying where to write the detected storm tracks. If not specified the tracks are written to a file named tracks.bin in the current working directory. See \textit{--candidate\_file} for information about the supported formats.
 \end{description}
+
+\subsection{Example}
+Once on Edison load the TECA module
+\begin{minted}{bash}
+module load teca
+\end{minted}
+note that there are multiple versions installed, just use the latest and greatest as they become available.
+
+Processing an entire dataset is straight forward once you know how many cores you want to run on. You will launch teca\_tc\_detect, the tropical cyclone application, from a SLURM batch script. A batch script is provided below.
 
 TECA can process any size dataset on any number of compute cores. However, the fastest results are attained when there is 1 time step per core. In order to set this up one must determine how many time steps there are and write the SLURM batch script accordingly. The teca\_metadata\_probe command line application can be used for this purpose. When executed with the same \textit{--input\_regex} and optionally the \textit{--start\_date} and or \textit{--end\_date} options that will be used in the cyclone detection run it will print out the information needed to configure a 1 to 1 (time steps to cores) run. The metadata probe is a serial application and can be run on the login nodes.
 
@@ -510,14 +528,179 @@ files_regex=cam5_1_amip_run2'\.cam2\.h2\.199[0-9].*.nc$'
 srun -n 29200 teca_tc_detect                    \
     --input_regex ${data_dir}/${files_regex}    \
     --candidate_file candidates_1990s.bin       \
-    --track_file tracks_1990s.xlsx
+    --track_file tracks_1990s.bin
 \end{minted}
 Finally, the batch script must be submitted to the batch system requesting the appropriate number of nodes. In this case the command is:
 \begin{minted}{bash}
 $sbatch ./1990s.sh
 \end{minted}
 
-For the $\frac{1}{4}$ degree resolution dataset when processing latitudes between -90 to 90 the detctor runs in approx 15min. Detector run time could be reduced by subsetting in latitude (see \textit{--lowest\_lat}, \textit{--highest\_lat} options). Note that as the number of files in the dataset increases the metadata phase takes more time. You can use teca\_metadata\_probe to get a sense of how much more and extend the run time accordingly.
+For the $\frac{1}{4}$ degree resolution dataset when processing latitudes between -90 to 90 the detector runs in approx 15 min. Detector run time could be reduced by subsetting in latitude (see \textit{--lowest\_lat}, \textit{--highest\_lat} options). Note that as the number of files in the dataset increases the metadata phase takes more time. You can use teca\_metadata\_probe to get a sense of how much more and extend the run time accordingly.
+
+\section{Tropical Cyclone Trajectories}
+\begin{figure}
+    \centering
+    \begin{subfigure}[b]{0.20\textwidth}
+      \centering
+      \includegraphics[height=1.75in]{./images/1990s_cam5_amip1_hero_stats/stats_1990s_3hr_distribution_1.png}
+      \caption{Parameter Dist.}
+      \label{fig:dist}
+    \end{subfigure}
+%     \hspace{0.08in}
+    \begin{subfigure}[b]{0.245\textwidth}
+      \centering
+      \includegraphics[height=1.750in]{./images/1990s_cam5_amip1_hero_stats/stats_1990s_3hr_annual_saphire_simpson_distribution_1.png}
+      % stats_1990s_3hr_annual_saphire_simpson_distribution_1.png: 0x0 pixel, 300dpi, 0.00x0.00 cm, bb=
+      \caption{Categorical Dist.}
+      \label{fig:ass}
+    \end{subfigure}
+%     \hspace{0.08in}
+    \begin{subfigure}[b]{0.245\textwidth}
+      \centering
+      \includegraphics[height=1.750in]{./images/1990s_cam5_amip1_hero_stats/stats_1990s_3hr_monthly_breakdown_1.png}
+      % stats_1990s_3hr_monthly_breakdown_1.png: 0x0 pixel, 300dpi, 0.00x0.00 cm, bb=
+      \caption{Monthly Breakdown}
+      \label{fig:mon}
+    \end{subfigure}
+%     \hspace{0.08in}
+    \begin{subfigure}[b]{0.245\textwidth}
+      \centering
+      \includegraphics[height=1.80in]{./images/1990s_cam5_amip1_hero_stats/stats_1990s_3hr_regional_break_down_1.png}
+      % stats_1990s_3hr_regional_break_down_1.png: 0x0 pixel, 300dpi, 0.00x0.00 cm, bb=
+      \caption{Regional Breakdown}
+      \label{fig:reg}
+     \end{subfigure}
+    \vspace{0.08in}
+%     \hspace{0.08in}
+    \begin{subfigure}[b]{0.3\textwidth}
+      \centering
+      \includegraphics[height=1.750in]{./images/1990s_cam5_amip1_hero_stats/stats_1990s_3hr_regional_trend_1.png}
+      % stats_1990s_3hr_regional_trend_1.png: 0x0 pixel, 300dpi, 0.00x0.00 cm, bb=
+      \caption{Regional Trend}
+      \label{fig:trend}
+    \end{subfigure}
+    \hspace{0.08in}
+    \begin{subfigure}[b]{0.6\textwidth}
+    \centering
+        %\includegraphics[height=2.3in]{./images/1990s_cam5_amip1_hero_stats/stats_1990s_3hr_distribution_1.png}
+         \includegraphics[height=1.75in]{./images/basin_poly_validation.png}
+        \caption{Basin Definitions and Cyclogenesis Plot}
+        \label{fig:dist}
+    \end{subfigure}
+    \hspace{0.08in}
+    \caption{Analyses produced by the stats stage}\label{fig:stats_stage}
+\end{figure}
+
+The trajectory stage runs after the map-reduce candidate detection stage and generates cyclone storm tracks. The TC detector described above invokes the trajectory stage automatically, however it can also be run independently on the candidate stage output. The trajectory stage can be run from the login nodes.
+
+\subsection{Command Line Arguments}
+\noindent The most commonly used command line arguments to the trajectory stage are:
+\begin{description}
+\item[--help] prints documentation for the most common options.
+\item[--full\_help] prints documentation for all options. See \textit{--help} notes.
+\item[--candidate\_file], a file name specifying where to read the storm candidates from. 
+\item[--track\_file], a file name specifying where to write the detected storm tracks. If not specified the tracks are written to a file named tracks.bin in the current working directory. One sets the output format via the extension. Supported formats include csv, xlsx, and bin.
+\end{description}
+
+\subsection{Example}
+\noindent An example of running the trajectory stage is:
+\begin{minted}{bash}
+teca_tc_trajectory \
+    --candidate_file candidates_1990s.bin       \
+    --track_file tracks_1990s.bin
+\end{minted}
+the file \textit{tracks\_1990s.bin} will contain the list of storm tracks.
+
+\section{Tropical Cyclone Statistics}
+
+The statistics stage can be used to compute a variety of statistics on detected cyclones. It generates a number of plots and tables and it can be ran on the login nodes. The most common options are the input file and output prefix. 
+
+\subsection{Command Line Arguments}
+The command line arguments to the stats stage are:
+\begin{description}
+\item[tracks\_file] A required positional argument pointing to the file containing TC storm tracks.
+\item[output\_prefix] Required positional argument declaring the prefix that is prepended to all output files.
+\item[--help] prints documentation for the command line options.
+\item[-d, --dpi] Sets the resolution of the output images.
+\item[-i, --interactive] Causes the figures to open immediately in a pop-up window.
+\item[-a, --ind\_axes] Normalize y axes in the subplots allowing for easier inter-plot comparison.
+\end{description}
+
+\subsection{Analysis}
+\noindent The following analysis are performed by the stats stage:
+\begin{description}
+\item[Classification Table] Produces a table containing cyclogenisis information, Saphir-Simpson category, and the min/max of a number of detection parameters.
+\item[Categorical Distribution] Produces a histogram containing counts of each class of storm on the Saphir-Simpson scale. See figure \ref{fig:ass}.
+\item[Categorical Monthly Breakdown] Produces histogram for each year that shows the breakdown by month and Saphir-Simpson category. See figure \ref{fig:mon}.
+\item[Categorical Regional Breakdown] Produces a histogram for each year that shows breakdown by region and Saphir-Simpson category. See figure \ref{fig:reg}.
+\item[Categorical Regional Trend] Produces a histogram for each geographic region that shows trend of storm count and Saphir-Simpson category over time. See figure \ref{fig:trend}
+\item[Parameter Distributions] Produces box and whisker plots for each year for a number of detector parameters. See figure \ref{fig:dist}.
+\end{description}
+
+\subsection{Example}
+\noindent An example of running the stats stage is:
+\begin{minted}{bash}
+teca_tc_stats tracks_1990s.bin stats/stats_1990s
+\end{minted}
+
+\section{TC Trajectory Scalars}
+\begin{wrapfigure}{r}{0.4\textwidth}
+ \centering
+ \includegraphics[width=2.0in]{./images/traj_scalars_1990s_3hr_mdd_4800_000478.png}
+ % traj_scalars_1990s_3hr_mdd_4800_000478.png: 0x0 pixel, 300dpi, 0.00x0.00 cm, bb=
+ \caption{The trajectory scalars application plots cyclone properties over time.}
+ \label{fig:traj_scalar}
+ \vspace{-110pt}
+\end{wrapfigure}
+The trajectory scalars application can be used to plot detection parameters for each storm in time. The application can be run in parallel.
+
+\subsection{Command Line Arguments}
+\begin{description}
+\item[tracks\_file] A required positional argument pointing to the file containing TC storm tracks.
+\item[output\_prefix] A required positional argument declaring the prefix that is prepended to all output files.
+\item[-h, --help] prints documentation for the command line options.
+\item[-d, --dpi] Sets the resolution of the output images.
+\item[-i, --interactive] Causes the figures to open immediately in a pop-up window.
+\item[--first\_track] Id of the first track to process
+\item[--last\_track] Id of the last track to process
+\item[--texture] An image containing a map of the Earth to plot the tracks on.
+\end{description}
+
+\subsection{Example}
+\begin{minted}{bash}
+mpiexec -np 10 ./bin/teca_tc_trajectory_scalars   \
+    --texture ../../TECA_data/earthmap4k.png      \
+    tracks_1990s_3hr_mdd_4800.bin                 \
+    traj_scalars_1990s_3hr_mdd_4800
+\end{minted}
+
+\section{Event Filter}
+The event filter application lets one remove rows from an input table that do not fall within specified geographic and/or temporal bounds. This gives one the capability to zoom into a specific storm, time period, or geographic region for detailed analysis.
+
+\subsection{Command Line Arguments}
+\begin{description}
+\item[in\_file] A required positional argument pointing to the input file.
+\item[out\_file] A required positional argument pointing where the output should be written.
+\item[-h, --help] prints documentation for the command line options.
+\item[--time\_column] name of column containing time axis
+\item[--start\_time] filter out events occurring before this time
+\item[--end\_time] filter out events occurring after this time
+\item[--step\_column] name of column containing time steps
+\item[--step\_interval] filter out time steps modulo this interval
+\item[--x\_coordinate\_column] name of column containing event x coordinates
+\item[--y\_coordinate\_column] name of column containing event y coordinates
+\item[--region\_x\_coords] x coordinates defining region to filter
+\item[--region\_y\_coords] y coordinates defining region to filter
+\item[--region\_sizes] sizes of each of the regions
+\end{description}
+
+\subsection{Example}
+\begin{minted}{bash}
+teca_event_filter --start_time=1750 --end_time=1850                       \
+    --region_x_coords 260 320 320 260 --region_y_coords 10 10 50 50       \
+    --region_sizes 4 --x_coordinate_column lon --y_coordinate_column lat  \
+    candidates_1990s_3hr.bin filtered.bin
+\end{minted}
 
 \chapter{Python}
 TECA includes a diverse collection of I/O and analysis algorithms specific to climate science and extreme event detection. It's pipeline design allows these component algorithms to be quickly coupled together to construct complex data processing and analysis pipelines with minimal effort. TECA is written primarily in C++11 in order to deliver the highest possible performance and scalability. However, for non-computer scientists c+11 development can be intimidating, error prone, and time consuming. TECA's Python bindings offer a more approachable path for custom application and algorithm development.
