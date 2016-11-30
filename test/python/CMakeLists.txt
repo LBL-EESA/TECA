@@ -62,7 +62,7 @@ teca_add_test(py_test_programmable_map_reduce_thread
     REQ_TECA_DATA)
 
 teca_add_test(py_test_programmable_map_reduce_mpi
-    COMMAND mpiexec -np ${TECA_TEST_CORES} python
+    COMMAND ${MPIEXEC} -n ${TECA_TEST_CORES} python
     ${CMAKE_CURRENT_SOURCE_DIR}/test_programmable_map_reduce.py
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
     "${TECA_DATA_ROOT}/py_test_programmable_map_reduce.bin" 0 -1 1 TMQ T200 T500
@@ -70,7 +70,7 @@ teca_add_test(py_test_programmable_map_reduce_mpi
     REQ_TECA_DATA)
 
 teca_add_test(py_test_programmable_map_reduce_mpi_thread
-    COMMAND mpiexec -np ${HALF_CORES} python
+    COMMAND ${MPIEXEC} -n ${HALF_CORES} python
     ${CMAKE_CURRENT_SOURCE_DIR}/test_programmable_map_reduce.py
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
     "${TECA_DATA_ROOT}/py_test_programmable_map_reduce.bin" 0 -1 ${HALF_CORES}
@@ -88,7 +88,7 @@ teca_add_test(py_test_tc_candidates_serial
     REQ_TECA_DATA)
 
 teca_add_test(py_test_tc_candidates_mpi
-    COMMAND mpiexec -np ${TECA_TEST_CORES} python
+    COMMAND ${MPIEXEC} -n ${TECA_TEST_CORES} python
     ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_candidates.py
     "${TECA_DATA_ROOT}/test_tc_candidates_1990_07_0[12]\\.nc"
     "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 1
@@ -105,7 +105,7 @@ teca_add_test(py_test_tc_candidates_threads
     REQ_TECA_DATA)
 
 teca_add_test(py_test_tc_candidates_mpi_threads
-    COMMAND mpiexec -np ${HALF_CORES} python
+    COMMAND ${MPIEXEC} -n ${HALF_CORES} python
     ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_candidates.py
     "${TECA_DATA_ROOT}/test_tc_candidates_1990_07_0[12]\\.nc"
     "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 ${HALF_CORES}
@@ -133,7 +133,7 @@ teca_add_test(py_test_tc_trajectory_scalars_serial
     REQ_TECA_DATA)
 
 teca_add_test(py_test_tc_trajectory_scalars_mpi
-    COMMAND mpiexec -np ${TECA_TEST_CORES} python
+    COMMAND ${MPIEXEC} -n ${TECA_TEST_CORES} python
     ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_trajectory_scalars.py
     "${TECA_DATA_ROOT}/cam5_1_amip_run2_tracks_2005_09.bin"
     "${TECA_DATA_ROOT}/earthmap4k.png"
