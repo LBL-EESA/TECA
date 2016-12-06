@@ -48,7 +48,7 @@ endif()
 
 if (TECA_HAS_LIBXLSXWRITER)
     include_directories(SYSTEM ${LIBXLSXWRITER_INCLUDE_DIR})
-    list(APPEND teca_io_link ${LIBXLSXWRITER_LIBRARY})
+    list(APPEND teca_io_link ${LIBXLSXWRITER_LIBRARIES})
 endif()
 
 add_library(teca_io ${teca_io_srcs})
