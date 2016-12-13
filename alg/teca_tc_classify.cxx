@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include <string>
+#include <sstream>
 
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
