@@ -410,11 +410,18 @@ const_p_teca_dataset teca_tc_classify::execute(
         )
 
     // rank the track on Saphir-Simpson scale
-    // record the max wind speed
+    // record the max wind speed, and position of it
     p_teca_int_array category = teca_int_array::New(n_tracks);
     int *pcategory = category->get();
 
-    p_teca_variant_array max_surface_wind = surface_wind->new_instance(n_tracks);
+    p_teca_variant_array max_surface_wind
+        = surface_wind->new_instance(n_tracks);
+
+    p_teca_unsigned_long_array max_surface_wind_id
+        = teca_unsigned_long_array::New(n_tracks);
+
+    unsigned long *pmax_surface_wind_id
+        = max_surface_wind_id->get();
 
     TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
         max_surface_wind.get(),
@@ -431,21 +438,71 @@ const_p_teca_dataset teca_tc_classify::execute(
             unsigned long npts = track_starts[i+1] - track_start;
 
             NT max_val = std::numeric_limits<NT>::lowest();
+            unsigned long max_id = 0;
 
             for (size_t j = 0; j < npts; ++j)
             {
-                NT val = psurface_wind[track_start + j];
-                max_val = val > max_val ? val : max_val;
+                unsigned long id = track_start + j;
+                NT val = psurface_wind[id];
+                bool max_changed = val > max_val;
+                max_val = max_changed ? val : max_val;
+                max_id = max_changed ? id : max_id;
             }
 
             pcategory[i] = internal::classify_saphir_simpson(max_val);
             pmax_surface_wind[i] = max_val;
+            pmax_surface_wind_id[i] = max_id;
+        }
+        )
+
+    // location of the max surface wind
+    p_teca_variant_array max_surface_wind_x = x->new_instance(n_tracks);
+    p_teca_variant_array max_surface_wind_y = x->new_instance(n_tracks);
+    TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+        start_x.get(),
+
+        const NT *px = static_cast<const TT*>(x.get())->get();
+        const NT *py = static_cast<const TT*>(y.get())->get();
+
+        NT *pmax_surface_wind_x
+            = static_cast<TT*>(max_surface_wind_x.get())->get();
+
+        NT *pmax_surface_wind_y
+            = static_cast<TT*>(max_surface_wind_y.get())->get();
+
+        for (size_t i = 0; i < n_tracks; ++i)
+        {
+            unsigned long q = pmax_surface_wind_id[i];
+            pmax_surface_wind_x[i] = px[q];
+            pmax_surface_wind_y[i] = py[q];
+        }
+        )
+
+    // time of max surface wind
+    p_teca_variant_array max_surface_wind_t = time->new_instance(n_tracks);
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
+        max_surface_wind_t.get(),
+        const NT *ptime = static_cast<const TT*>(time.get())->get();
+
+        NT *pmax_surface_wind_t
+            = static_cast<TT*>(max_surface_wind_t.get())->get();
+
+        for (size_t i = 0; i < n_tracks; ++i)
+        {
+            unsigned long q = pmax_surface_wind_id[i];
+            pmax_surface_wind_t[i] = ptime[q];
         }
         )
 
     // record the min sea level pressure
     p_teca_variant_array min_sea_level_pressure =
         sea_level_pressure->new_instance(n_tracks);
+
+    p_teca_unsigned_long_array min_sea_level_pressure_id
+        = teca_unsigned_long_array::New(n_tracks);
+
+    unsigned long *pmin_sea_level_pressure_id
+        = min_sea_level_pressure_id->get();
 
     TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
         min_sea_level_pressure.get(),
@@ -461,14 +518,58 @@ const_p_teca_dataset teca_tc_classify::execute(
             unsigned long npts = track_starts[i+1] - track_start;
 
             NT min_val = std::numeric_limits<NT>::max();
+            unsigned long min_id = 0;
 
             for (size_t j = 0; j < npts; ++j)
             {
-                NT val = psea_level_pressure[track_start + j];
-                min_val = val < min_val ? val : min_val;
+                unsigned long q = track_start + j;
+                NT val = psea_level_pressure[q];
+                bool min_changed = val < min_val;
+                min_val = min_changed ? val : min_val;
+                min_id = min_changed ? q : min_id;
             }
 
             pmin_sea_level_pressure[i] = min_val;
+            pmin_sea_level_pressure_id[i] = min_id;
+        }
+        )
+
+    // location of the min sea level pressure
+    p_teca_variant_array min_sea_level_pressure_x = x->new_instance(n_tracks);
+    p_teca_variant_array min_sea_level_pressure_y = x->new_instance(n_tracks);
+    TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+        start_x.get(),
+
+        const NT *px = static_cast<const TT*>(x.get())->get();
+        const NT *py = static_cast<const TT*>(y.get())->get();
+
+        NT *pmin_sea_level_pressure_x
+            = static_cast<TT*>(min_sea_level_pressure_x.get())->get();
+
+        NT *pmin_sea_level_pressure_y
+            = static_cast<TT*>(min_sea_level_pressure_y.get())->get();
+
+        for (size_t i = 0; i < n_tracks; ++i)
+        {
+            unsigned long q = pmin_sea_level_pressure_id[i];
+            pmin_sea_level_pressure_x[i] = px[q];
+            pmin_sea_level_pressure_y[i] = py[q];
+        }
+        )
+
+    // time of min sea level pressure
+    p_teca_variant_array min_sea_level_pressure_t = time->new_instance(n_tracks);
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
+        min_sea_level_pressure_t.get(),
+        const NT *ptime = static_cast<const TT*>(time.get())->get();
+
+        NT *pmin_sea_level_pressure_t
+            = static_cast<TT*>(min_sea_level_pressure_t.get())->get();
+
+        for (size_t i = 0; i < n_tracks; ++i)
+        {
+            unsigned long q = pmin_sea_level_pressure_id[i];
+            pmin_sea_level_pressure_t[i] = ptime[q];
         }
         )
 
@@ -580,7 +681,13 @@ const_p_teca_dataset teca_tc_classify::execute(
     out_table->append_column("length", length);
     out_table->append_column("category", category);
     out_table->append_column("max_surface_wind", max_surface_wind);
+    out_table->append_column("max_surface_wind_x", max_surface_wind_x);
+    out_table->append_column("max_surface_wind_y", max_surface_wind_y);
+    out_table->append_column("max_surface_wind_t", max_surface_wind_t);
     out_table->append_column("min_sea_level_pressure", min_sea_level_pressure);
+    out_table->append_column("min_sea_level_pressure_x", min_sea_level_pressure_x);
+    out_table->append_column("min_sea_level_pressure_y", min_sea_level_pressure_y);
+    out_table->append_column("min_sea_level_pressure_t", min_sea_level_pressure_t);
     out_table->append_column("region_id", region_id);
     out_table->append_column("region_name", region_name);
     out_table->append_column("region_long_name", region_long_name);
