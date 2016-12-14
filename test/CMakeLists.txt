@@ -306,3 +306,10 @@ teca_add_test(test_table_remove_rows_cat_4
     "${TECA_DATA_ROOT}/tracks_1990s_3hr_mdd_4800_cat_4.bin"
     "!((surface_wind*3.6d>=209.0d)&&(surface_wind*3.6d<249.0d))"
     REQ_TECA_DATA)
+
+teca_add_test(test_table_region_mask
+    SOURCES test_table_region_mask.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_table_region_mask "${TECA_DATA_ROOT}/tracks_1990s_3hr_mdd_4800.bin"
+    "${TECA_DATA_ROOT}/test_table_region_mask.bin" "N Atlantic"
+    REQ_TECA_DATA)
