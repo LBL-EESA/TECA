@@ -13,7 +13,8 @@ class teca_tc_trajectory_scalars:
 
     def __init__(self):
         self.basename = 'tc_track'
-        self.texture = ''
+        self.tex_file = ''
+        self.tex = None
         self.dpi = 100
         self.interactive = False
 
@@ -32,11 +33,11 @@ class teca_tc_trajectory_scalars:
         """
         self.basename = basename
 
-    def set_texture(self, texture):
+    def set_texture(self, file_name):
         """
         All output files are prefixed by the textrure. default 'tc_track'
         """
-        self.texture = texture
+        self.tex_file = file_name
 
     def set_dpi(self, dpi):
         """
@@ -131,7 +132,8 @@ class teca_tc_trajectory_scalars:
             nutracks = len(utrack)
 
             # load background image
-            tex = plt_img.imread(state.texture) if state.texture else None
+            if (state.tex is None) and state.tex_file:
+                state.tex = plt_img.imread(state.tex_file)
 
             for i in utrack:
                 #sys.stderr.write('processing track %d\n'%(i))
@@ -192,13 +194,13 @@ class teca_tc_trajectory_scalars:
                 # plot the scalars
                 plt.subplot(421)
                 # prepare the texture
-                if tex is not None:
+                if state.tex is not None:
                     ext = [np.min(lon_i), np.max(lon_i), np.min(lat_i), np.max(lat_i)]
-                    i0 = int(tex.shape[1]/360.0*ext[0])
-                    i1 = int(tex.shape[1]/360.0*ext[1])
-                    j0 = int(-((ext[3] + 90.0)/180.0 - 1.0)*tex.shape[0])
-                    j1 = int(-((ext[2] + 90.0)/180.0 - 1.0)*tex.shape[0])
-                    plt.imshow(tex[j0:j1, i0:i1], extent=ext, aspect='auto')
+                    i0 = int(state.tex.shape[1]/360.0*ext[0])
+                    i1 = int(state.tex.shape[1]/360.0*ext[1])
+                    j0 = int(-((ext[3] + 90.0)/180.0 - 1.0)*state.tex.shape[0])
+                    j1 = int(-((ext[2] + 90.0)/180.0 - 1.0)*state.tex.shape[0])
+                    plt.imshow(state.tex[j0:j1, i0:i1], extent=ext, aspect='auto')
                     plt.plot(lon_i, lat_i, '-', linewidth=2, color='#ffff00')
                     plt.plot(lon_i[0], lat_i[0], 'x', markersize=7, markeredgewidth=2, color='#ffff00')
                 else:
@@ -282,6 +284,8 @@ class teca_tc_trajectory_scalars:
                 plt.subplots_adjust(wspace=0.3, hspace=0.45, top=0.9)
 
                 plt.savefig('%s_%06d.png'%(state.basename, i), dpi=state.dpi)
+                if (not state.interactive):
+                    plt.close(fig)
 
             if (state.interactive):
                 plt.show()
