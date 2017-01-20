@@ -22,7 +22,7 @@ using std::endl;
 
 // --------------------------------------------------------------------------
 teca_cartesian_mesh_subset::teca_cartesian_mesh_subset()
-    : bounds({0l,0l,0l,0l,0l,0l}), cover_bounds(false)
+    : bounds({0.0,0.0,0.0,0.0,0.0,0.0}), cover_bounds(false)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -99,8 +99,7 @@ teca_metadata teca_cartesian_mesh_subset::get_output_metadata(
 
 // --------------------------------------------------------------------------
 std::vector<teca_metadata> teca_cartesian_mesh_subset::get_upstream_request(
-    unsigned int port,
-    const std::vector<teca_metadata> &input_md,
+    unsigned int port, const std::vector<teca_metadata> &input_md,
     const teca_metadata &request)
 {
     (void)port;
@@ -115,8 +114,7 @@ std::vector<teca_metadata> teca_cartesian_mesh_subset::get_upstream_request(
 
 // --------------------------------------------------------------------------
 const_p_teca_dataset teca_cartesian_mesh_subset::execute(
-    unsigned int port,
-    const std::vector<const_p_teca_dataset> &input_data,
+    unsigned int port, const std::vector<const_p_teca_dataset> &input_data,
     const teca_metadata &request)
 {
 #ifdef TECA_DEBUG
@@ -127,7 +125,8 @@ const_p_teca_dataset teca_cartesian_mesh_subset::execute(
     (void)request;
 
     p_teca_cartesian_mesh in_target
-        = std::dynamic_pointer_cast<teca_cartesian_mesh>(std::const_pointer_cast<teca_dataset>(input_data[0]));
+        = std::dynamic_pointer_cast<teca_cartesian_mesh>(
+            std::const_pointer_cast<teca_dataset>(input_data[0]));
 
     if (!in_target)
     {
