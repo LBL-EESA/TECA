@@ -878,8 +878,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
 
 // --------------------------------------------------------------------------
-const_p_teca_dataset teca_cf_reader::execute(
-    unsigned int,
+const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
     const std::vector<const_p_teca_dataset> &input_data,
     const teca_metadata &request)
 {
@@ -887,6 +886,7 @@ const_p_teca_dataset teca_cf_reader::execute(
     cerr << teca_parallel_id()
         << "teca_cf_reader::execute" << endl;
 #endif
+    (void)port;
     (void)input_data;
 
     // get coordinates
@@ -907,8 +907,31 @@ const_p_teca_dataset teca_cf_reader::execute(
 
     // get request
     unsigned long time_step = 0;
-    request.get("time_step", time_step);
+    double t = 0.0;
+    if (!request.get("time", t))
+    {
+        // translate time to a time step
+        TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+            in_t.get(),
 
+            NT *pin_t = dynamic_cast<TT*>(in_t.get())->get();
+
+            if (teca_coordinate_util::index_of(pin_t, 0,
+                in_t->size()-1, static_cast<NT>(t), time_step))
+            {
+                TECA_ERROR("requested time " << t << " not found")
+                return nullptr;
+            }
+            )
+    }
+    else
+    {
+        // TODO -- there is currently no error checking here to
+        // support case where only 1 time step is present in a file.
+        request.get("time_step", time_step);
+        if ((in_t) && (time_step < in_t->size()))
+            in_t->get(time_step, t);
+    }
 
     unsigned long whole_extent[6] = {0};
     if (this->internals->metadata.get("whole_extent", whole_extent, 6))
@@ -950,12 +973,6 @@ const_p_teca_dataset teca_cf_reader::execute(
     p_teca_variant_array out_x = in_x->new_copy(extent[0], extent[1]);
     p_teca_variant_array out_y = in_y->new_copy(extent[2], extent[3]);
     p_teca_variant_array out_z = in_z->new_copy(extent[4], extent[5]);
-
-    // TODO -- requesting out of bounds time step should be an error
-    // need to ignore for now because we don't have a temporal regrid
-    double t = 0.0;
-    if (in_t && (time_step < in_t->size()))
-        in_t->get(time_step, t);
 
     // locate file with this time step
     std::vector<unsigned long> step_count;
