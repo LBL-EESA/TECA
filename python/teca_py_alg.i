@@ -16,6 +16,7 @@
 #include "teca_mask.h"
 #include "teca_programmable_algorithm.h"
 #include "teca_programmable_reduce.h"
+#include "teca_saffir_simpson.h"
 #include "teca_table_calendar.h"
 #include "teca_table_sort.h"
 #include "teca_table_reduce.h"
@@ -313,3 +314,29 @@ from teca_tc_trajectory_scalars import *
 %shared_ptr(teca_apply_binary_mask)
 %ignore teca_apply_binary_mask::operator=;
 %include "teca_apply_binary_mask.h"
+
+/***************************************************************************
+ Saffir-Simpson utility namespace
+ ***************************************************************************/
+%inline %{
+struct teca_tc_saffir_simpson
+{
+    static int classify_mps(double w)
+    { return teca_saffir_simpson::classify_mps(w); }
+
+    static double get_lower_bound_mps(int c)
+    { return teca_saffir_simpson::get_lower_bound_mps<double>(c); }
+
+    static double get_upper_bound_mps(int c)
+    { return teca_saffir_simpson::get_upper_bound_mps<double>(c); }
+
+    static int classify_kmph(double w)
+    { return teca_saffir_simpson::classify_kmph(w); }
+
+    static double get_lower_bound_kmph(int c)
+    { return teca_saffir_simpson::get_lower_bound_kmph<double>(c); }
+
+    static double get_upper_bound_kmph(int c)
+    { return teca_saffir_simpson::get_upper_bound_kmph<double>(c); }
+};
+%}

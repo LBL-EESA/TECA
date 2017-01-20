@@ -5,6 +5,7 @@
 #include "teca_variant_array.h"
 #include "teca_metadata.h"
 #include "teca_distance_function.h"
+#include "teca_saffir_simpson.h"
 #include "teca_geometry.h"
 
 #include <iostream>
@@ -86,39 +87,6 @@ double reg_lat[] = {
     // N Atlantic (red_0)
     90, 0, 0, 90, 90};
 
-// Saffir-Simpson scale prescribes the following limits:
-// CAT wind km/h
-// -1:   0- 62  :  Tropical depression
-//  0:  63-117  :  Tropical storm
-//  1: 119-153
-//  2: 154-177
-//  3: 178-209
-//  4: 210-249
-//  5:    >250
-template<typename n_t>
-int classify_saphir_simpson(n_t w)
-{
-    // 1 m/s -> 3.6 Km/h
-    n_t w_kmph = n_t(3.6)*w;
-    if (w_kmph <= n_t(62.0))
-        return -1;
-    else
-    if (w_kmph <= n_t(117.0))
-        return 0;
-    else
-    if (w_kmph <= n_t(153.0))
-        return 1;
-    else
-    if (w_kmph <= n_t(177.0))
-        return 2;
-    else
-    if (w_kmph <= n_t(209.0))
-        return 3;
-    else
-    if (w_kmph <= n_t(249.0))
-        return 4;
-    return 5;
-}
 };
 
 // --------------------------------------------------------------------------
@@ -449,7 +417,7 @@ const_p_teca_dataset teca_tc_classify::execute(
                 max_id = max_changed ? id : max_id;
             }
 
-            pcategory[i] = internal::classify_saphir_simpson(max_val);
+            pcategory[i] = teca_saffir_simpson::classify_mps(max_val);
             pmax_surface_wind[i] = max_val;
             pmax_surface_wind_id[i] = max_id;
         }
