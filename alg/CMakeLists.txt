@@ -20,6 +20,7 @@ set(teca_alg_cxx_srcs
     teca_geography.cxx
     teca_l2_norm.cxx
     teca_mask.cxx
+    teca_parser.cxx
     teca_programmable_algorithm.cxx
     teca_programmable_reduce.cxx
     teca_table_calendar.cxx

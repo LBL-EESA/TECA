@@ -268,3 +268,8 @@ teca_add_test(test_table_reader_distribute_mpi_threads
     "step" 0 -1 ${HALF_CORES}
     FEATURES ${TECA_HAS_MPI}
     REQ_TECA_DATA)
+
+teca_add_test(test_parser
+    SOURCES test_parser.cpp
+    LIBS teca_core teca_alg ${teca_test_link}
+    COMMAND test_parser)
