@@ -7,6 +7,7 @@
 #include "teca_distance_function.h"
 #include "teca_saffir_simpson.h"
 #include "teca_geometry.h"
+#include "teca_geography.h"
 
 #include <iostream>
 #include <string>
@@ -25,70 +26,6 @@
 using std::cerr;
 using std::endl;
 
-namespace internal
-{
-// data describing the default geographic regions
-// storms are sorted by
-int reg_ids[] = {0, 1, 2, 3, 4, 5, 6, 7, 7, 4};
-unsigned long reg_sizes[] = {5, 5, 6, 6, 14, 14, 7, 5, 7, 5};
-unsigned long reg_starts[] = {0, 5, 10, 16, 22, 36, 50, 57, 62, 69};
-
-const char *reg_names[] = {"SI", "SWP",
-    "NWP", "NI", "NA", "NEP", "SEP", "SA"};
-
-const char *reg_long_names[] = {"S Indian", "SW Pacific", "NW Pacific",
-    "N Indian", "N Atlantic", "NE Pacific", "SE Pacific", "S Atlantic"};
-
-// since we want to allow for an arbitrary
-// set of polys, we can't hard code up a search
-// optimization structure. but we can order them
-// from most likeley+smallest to least likely+largest
-double reg_lon[] = {
-    // 0 S Indian (green)
-    136, 136, 20, 20, 136,
-    // 1 SW Pacific (pink)
-    136, 216, 216, 136, 136,
-    // 2 NW Pacific (orange)
-    104, 180, 180, 98.75, 98.75, 104,
-    // 3 N Indian (purple)
-    20, 104, 98.75, 98.75, 20, 20,
-    // 4 N Atlantic (red_360)
-    282, 284, 284, 278, 268, 263, 237, 237, 224, 200, 200, 360.1, 360.1, 282,
-    // 5 NE Pacific (yellow)
-    200, 180, 180, 282, 284, 284, 278, 268, 263, 237, 237, 224, 200, 200,
-    // 6 SE Pacific (cyan)
-    216, 216, 289, 289, 298, 298, 216,
-    // 7 S Atlantic (blue_0)
-    -0.1, 20, 20, -0.1, -0.1,
-    // 7 S Atlantic (blue_360)
-    298, 298, 289, 289, 360.1, 360.1, 298,
-    // 4 N Atlantic (red_0)
-    20, 20, -0.1, -0.1, 20};
-
-double reg_lat[] = {
-    // S Indian (green)
-    0, -90, -90, 0, 0,
-    // SW Pacific (pink)
-    -90, -90, 0, 0, -90,
-    // NW Pacific (orange)
-    0, 0, 90, 90, 9, 0,
-    // N Indian (purple)
-    0, 0, 9, 90, 90, 0,
-    // N Atlantic (red_360)
-    0, 3, 8.5, 8.5, 17, 17, 43, 50, 62, 62, 90, 90, 0, 0,
-    // NE Pacific (yellow)
-    90, 90, 0, 0, 3, 8.5, 8.5, 17, 17, 43, 50, 62, 62, 90,
-    // SE Pacific (cyan)
-    0, -90, -90, -52, -19.5, 0, 0,
-    // S Atlantic (blue_0)
-    0, 0, -90, -90, 0,
-    // S Atlantic (blue_360)
-    0, -19.5, -52, -90, -90, 0, 0,
-    // N Atlantic (red_0)
-    90, 0, 0, 90, 90};
-
-};
-
 // --------------------------------------------------------------------------
 teca_tc_classify::teca_tc_classify() :
     track_id_column("track_id"), time_column("time"), x_coordinate_column("lon"),
@@ -98,19 +35,10 @@ teca_tc_classify::teca_tc_classify() :
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
 
-    // initialize the default regions
-    size_t n_regs = sizeof(internal::reg_sizes)/sizeof(unsigned long);
-    this->region_sizes.assign(internal::reg_sizes, internal::reg_sizes+n_regs);
-    this->region_starts.assign(internal::reg_starts, internal::reg_starts+n_regs);
-    this->region_ids.assign(internal::reg_ids, internal::reg_ids+n_regs);
-
-    size_t n_pts = sizeof(internal::reg_lon)/sizeof(double);
-    this->region_x_coordinates.assign(internal::reg_lon, internal::reg_lon+n_pts);
-    this->region_y_coordinates.assign(internal::reg_lat, internal::reg_lat+n_pts);
-
-    size_t n_names = sizeof(internal::reg_names)/sizeof(char*);
-    this->region_names.assign(internal::reg_names, internal::reg_names+n_names);
-    this->region_long_names.assign(internal::reg_long_names,internal::reg_long_names+n_names);
+    teca_geography::get_cyclone_basins(this->region_sizes,
+        this->region_starts, this->region_x_coordinates,
+        this->region_y_coordinates, this->region_ids,
+        this->region_names, this->region_long_names);
 }
 
 // --------------------------------------------------------------------------

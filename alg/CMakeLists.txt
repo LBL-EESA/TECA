@@ -20,6 +20,7 @@ set(teca_alg_cxx_srcs
     teca_derived_quantity.cxx
     teca_descriptive_statistics.cxx
     teca_event_filter.cxx
+    teca_geography.cxx
     teca_l2_norm.cxx
     teca_mask.cxx
     teca_programmable_algorithm.cxx
