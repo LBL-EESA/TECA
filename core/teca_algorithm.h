@@ -42,17 +42,19 @@ public:
 
     // get an output port from the algorithm. to be used
     // during pipeline building
+    virtual
     teca_algorithm_output_port get_output_port(unsigned int port = 0);
 
     // set an input to this algorithm
     void set_input_connection(const teca_algorithm_output_port &port)
     { this->set_input_connection(0, port); }
 
-    void set_input_connection(
-        unsigned int id,
+    virtual
+    void set_input_connection(unsigned int id,
         const teca_algorithm_output_port &port);
 
     // remove input connections
+    virtual
     void remove_input_connection(unsigned int id);
 
     // remove all input connections
@@ -119,8 +121,7 @@ protected:
     // the second argument contains a list of the metadata
     // describing data on all of the inputs.
     virtual
-    teca_metadata get_output_metadata(
-        unsigned int port,
+    teca_metadata get_output_metadata(unsigned int port,
         const std::vector<teca_metadata> &input_md);
 
     // implementations must override this method and
@@ -131,8 +132,7 @@ protected:
     // then the list should contain a null request.
     virtual
     std::vector<teca_metadata> get_upstream_request(
-        unsigned int port,
-        const std::vector<teca_metadata> &input_md,
+        unsigned int port, const std::vector<teca_metadata> &input_md,
         const teca_metadata &request);
 
     // implementations must override this method and
@@ -145,8 +145,7 @@ protected:
     // The implementation is free to handle the request
     // as it sees fit.
     virtual
-    const_p_teca_dataset execute(
-        unsigned int port,
+    const_p_teca_dataset execute(unsigned int port,
         const std::vector<const_p_teca_dataset> &input_data,
         const teca_metadata &request);
 
@@ -156,8 +155,7 @@ protected:
     // gives implementor the chance to filter the passed in
     // request.
     virtual
-    teca_metadata get_cache_key(
-        unsigned int port,
+    teca_metadata get_cache_key(unsigned int port,
         const teca_metadata &request) const;
 
 protected:
@@ -195,16 +193,13 @@ protected:
 
     // search the given port's cache for the dataset associated
     // with the given request. see also get_cache_key. (threadsafe)
-    const_p_teca_dataset get_output_data(
-        unsigned int port,
+    const_p_teca_dataset get_output_data(unsigned int port,
         const teca_metadata &request);
 
     // add or update the given request , dataset pair in the cache.
     // see also get_cache_key. (threadsafe)
-    int cache_output_data(
-        unsigned int port,
-        const teca_metadata &request,
-        const_p_teca_dataset &data);
+    int cache_output_data(unsigned int port,
+        const teca_metadata &request, const_p_teca_dataset &data);
 
     // clear the cache on the given output port
     void clear_cache(unsigned int port);
