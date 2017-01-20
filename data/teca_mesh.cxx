@@ -26,9 +26,9 @@ void teca_mesh::copy(const const_p_teca_dataset &dataset)
     if (this == other.get())
         return;
 
-    m_impl = std::make_shared<teca_mesh::impl_t>();
+    this->teca_dataset::copy(dataset);
 
-    m_impl->metadata = other->m_impl->metadata;
+    m_impl = std::make_shared<teca_mesh::impl_t>();
     m_impl->point_arrays->copy(other->m_impl->point_arrays);
     m_impl->cell_arrays->copy(other->m_impl->cell_arrays);
     m_impl->edge_arrays->copy(other->m_impl->edge_arrays);
@@ -48,9 +48,9 @@ void teca_mesh::shallow_copy(const p_teca_dataset &dataset)
     if (this == other.get())
         return;
 
-    m_impl = std::make_shared<teca_mesh::impl_t>();
+    this->teca_dataset::shallow_copy(dataset);
 
-    m_impl->metadata = other->m_impl->metadata;
+    m_impl = std::make_shared<teca_mesh::impl_t>();
     m_impl->point_arrays->shallow_copy(other->m_impl->point_arrays);
     m_impl->cell_arrays->shallow_copy(other->m_impl->cell_arrays);
     m_impl->edge_arrays->shallow_copy(other->m_impl->edge_arrays);
@@ -70,25 +70,15 @@ void teca_mesh::swap(p_teca_dataset &dataset)
     if (this == other.get())
         return;
 
+    this->teca_dataset::swap(dataset);
+
     std::swap(m_impl, other->m_impl);
-}
-
-// --------------------------------------------------------------------------
-void teca_mesh::copy_metadata(const const_p_teca_dataset &dataset)
-{
-    const_p_teca_mesh other
-        = std::dynamic_pointer_cast<const teca_mesh>(dataset);
-
-    if (!other)
-        throw std::bad_cast();
-
-    m_impl->metadata = other->m_impl->metadata;
 }
 
 // --------------------------------------------------------------------------
 void teca_mesh::to_stream(teca_binary_stream &s) const
 {
-    m_impl->metadata.to_stream(s);
+    this->teca_dataset::to_stream(s);
     m_impl->point_arrays->to_stream(s);
     m_impl->cell_arrays->to_stream(s);
     m_impl->edge_arrays->to_stream(s);
@@ -99,7 +89,7 @@ void teca_mesh::to_stream(teca_binary_stream &s) const
 // --------------------------------------------------------------------------
 void teca_mesh::from_stream(teca_binary_stream &s)
 {
-    m_impl->metadata.from_stream(s);
+    this->teca_dataset::from_stream(s);
     m_impl->point_arrays->from_stream(s);
     m_impl->cell_arrays->from_stream(s);
     m_impl->edge_arrays->from_stream(s);
@@ -110,6 +100,8 @@ void teca_mesh::from_stream(teca_binary_stream &s)
 // --------------------------------------------------------------------------
 void teca_mesh::to_stream(std::ostream &s) const
 {
+    this->teca_dataset::to_stream(s);
+
     s << "point arrays = ";
     m_impl->point_arrays->to_stream(s);
     s << std::endl;

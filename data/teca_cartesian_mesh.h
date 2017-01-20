@@ -15,12 +15,12 @@ public:
     virtual ~teca_cartesian_mesh() = default;
 
     // set/get metadata
-    TECA_DATASET_METADATA(time, double, 1, m_impl->metadata)
-    TECA_DATASET_METADATA(calendar, std::string, 1, m_impl->metadata)
-    TECA_DATASET_METADATA(time_units, std::string, 1, m_impl->metadata)
-    TECA_DATASET_METADATA(time_step, unsigned long, 1, m_impl->metadata)
-    TECA_DATASET_METADATA(whole_extent, unsigned long, 6, m_impl->metadata)
-    TECA_DATASET_METADATA(extent, unsigned long, 6, m_impl->metadata)
+    TECA_DATASET_METADATA(time, double, 1)
+    TECA_DATASET_METADATA(calendar, std::string, 1)
+    TECA_DATASET_METADATA(time_units, std::string, 1)
+    TECA_DATASET_METADATA(time_step, unsigned long, 1)
+    TECA_DATASET_METADATA(whole_extent, unsigned long, 6)
+    TECA_DATASET_METADATA(extent, unsigned long, 6)
 
     // get x coordinate array
     p_teca_variant_array get_x_coordinates()
@@ -55,23 +55,22 @@ public:
 
     // copy data and metadata. shallow copy uses reference
     // counting, while copy duplicates the data.
-    virtual void copy(const const_p_teca_dataset &) override;
-    virtual void shallow_copy(const p_teca_dataset &) override;
+    void copy(const const_p_teca_dataset &) override;
+    void shallow_copy(const p_teca_dataset &) override;
 
     // copy metadata. always a deep copy.
-    virtual void copy_metadata(const const_p_teca_dataset &) override;
+    void copy_metadata(const const_p_teca_dataset &other) override;
 
     // swap internals of the two objects
-    virtual void swap(p_teca_dataset &) override;
+    void swap(p_teca_dataset &) override;
 
     // serialize the dataset to/from the given stream
     // for I/O or communication
-    virtual void to_stream(teca_binary_stream &) const override;
-    virtual void from_stream(teca_binary_stream &) override;
+    void to_stream(teca_binary_stream &) const override;
+    void from_stream(teca_binary_stream &) override;
 
     // stream to/from human readable representation
-    virtual void to_stream(std::ostream &) const override;
-    virtual void from_stream(std::istream &) override {}
+    void to_stream(std::ostream &) const override;
 
 protected:
     teca_cartesian_mesh();

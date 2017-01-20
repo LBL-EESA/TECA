@@ -35,18 +35,6 @@ void teca_uniform_cartesian_mesh::shallow_copy(const p_teca_dataset &dataset)
 }
 
 // --------------------------------------------------------------------------
-void teca_uniform_cartesian_mesh::copy_metadata(const const_p_teca_dataset &dataset)
-{
-    const_p_teca_uniform_cartesian_mesh other
-        = std::dynamic_pointer_cast<const teca_uniform_cartesian_mesh>(dataset);
-
-    if (!other)
-        throw std::bad_cast();
-
-    this->teca_mesh::copy_metadata(dataset);
-}
-
-// --------------------------------------------------------------------------
 void teca_uniform_cartesian_mesh::swap(p_teca_dataset &dataset)
 {
     p_teca_uniform_cartesian_mesh other

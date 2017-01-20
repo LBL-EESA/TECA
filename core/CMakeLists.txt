@@ -10,6 +10,7 @@ set(teca_core_srcs
     teca_algorithm_executive.cxx
     teca_binary_stream.cxx
     teca_calendar.cxx
+    teca_dataset.cxx
     teca_metadata.cxx
     teca_mpi_manager.cxx
     teca_parallel_id.cxx
