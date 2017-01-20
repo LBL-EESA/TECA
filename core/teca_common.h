@@ -5,6 +5,7 @@
 #include "teca_parallel_id.h"
 #include <iostream>
 #include <unistd.h>
+#include <cstdio>
 
 // detect if we are writing to a tty, if not then
 // we should not use ansi color codes
@@ -22,14 +23,16 @@ inline int have_tty()
 #define ANSI_WHITE "\033[1;37m"
 #define ANSI_OFF "\033[0m"
 
+#define BEGIN_HL(_color) (have_tty()?_color:"")
+#define END_HL (have_tty()?ANSI_OFF:"")
+
 #define TECA_MESSAGE(_head, _head_color, _msg)                          \
 std::cerr                                                               \
-    << (have_tty()?_head_color:"") << _head << (have_tty()?ANSI_OFF:"") \
+    << BEGIN_HL(_head_color) << _head << END_HL                         \
     << " " << teca_parallel_id() << " [" << __FILE__ << ":" << __LINE__ \
     << " " << TECA_VERSION_DESCR << "]" << std::endl                    \
-    << (have_tty()?_head_color:"") << _head << (have_tty()?ANSI_OFF:"") \
-    << " "  << (have_tty()?ANSI_WHITE:"") << "" _msg                    \
-    << (have_tty()?ANSI_OFF:"") << std::endl;
+    << BEGIN_HL(_head_color) << _head << END_HL << " "                  \
+    << BEGIN_HL(ANSI_WHITE) << "" _msg << END_HL << std::endl;
 
 #define TECA_ERROR(_msg) TECA_MESSAGE("ERROR:", ANSI_RED, _msg)
 #define TECA_WARNING(_msg) TECA_MESSAGE("WARNING:", ANSI_YELLOW, _msg)
