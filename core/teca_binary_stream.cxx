@@ -1,5 +1,9 @@
 #include "teca_binary_stream.h"
 
+#if defined(TECA_HAS_MPI)
+#include <mpi.h>
+#endif
+
 //-----------------------------------------------------------------------------
 
 teca_binary_stream::teca_binary_stream()
@@ -107,4 +111,32 @@ void teca_binary_stream::swap(teca_binary_stream &other) noexcept
     std::swap(m_data, other.m_data);
     std::swap(m_data_p, other.m_data_p);
     std::swap(m_size, other.m_size);
+}
+
+//-----------------------------------------------------------------------------
+int teca_binary_stream::broadcast(int root_rank)
+{
+    int init = 0;
+    int rank = 0;
+#if defined(TECA_HAS_MPI)
+    MPI_Initialized(&init);
+    if (init)
+    {
+        unsigned long nbytes = 0;
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        if (rank == root_rank)
+        {
+            nbytes = this->size();
+            MPI_Bcast(&nbytes, 1, MPI_UNSIGNED_LONG, root_rank, MPI_COMM_WORLD);
+            MPI_Bcast(this->get_data(), nbytes, MPI_BYTE, root_rank, MPI_COMM_WORLD);
+        }
+        else
+        {
+            MPI_Bcast(&nbytes, 1, MPI_UNSIGNED_LONG, root_rank, MPI_COMM_WORLD);
+            this->resize(nbytes);
+            MPI_Bcast(this->get_data(), nbytes, MPI_BYTE, root_rank, MPI_COMM_WORLD);
+        }
+    }
+#endif
+    return 0;
 }

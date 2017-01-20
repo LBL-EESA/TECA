@@ -72,6 +72,9 @@ public:
     template<typename T> void pack(const std::vector<T> &v);
     template<typename T> void unpack(std::vector<T> &v);
 
+    // broadcast the stream from the root process to all other processes
+    int broadcast(int root_rank=0);
+
 private:
     // re-allocation size
     static
