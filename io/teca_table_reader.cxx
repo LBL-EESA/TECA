@@ -173,6 +173,10 @@ void teca_table_reader::get_properties_description(
             "name of the column containing index values (\"\")")
         TECA_POPTS_GET(int, prefix, generate_original_ids,
             "add original row ids into the output. default off.")
+        TECA_POPTS_MULTI_GET(std::vector<std::string>, prefix, metadata_column_names,
+             "names of the columns to copy directly into metadata")
+        TECA_POPTS_MULTI_GET(std::vector<std::string>, prefix, metadata_column_keys,
+             "names of the metadata keys to create from the named columns")
         ;
 
     global_opts.add(opts);
@@ -184,8 +188,19 @@ void teca_table_reader::set_properties(const string &prefix, variables_map &opts
     TECA_POPTS_SET(opts, string, prefix, file_name)
     TECA_POPTS_SET(opts, string, prefix, index_column)
     TECA_POPTS_SET(opts, int, prefix, generate_original_ids)
+    TECA_POPTS_SET(opts, std::vector<std::string>, prefix, metadata_column_names)
+    TECA_POPTS_SET(opts, std::vector<std::string>, prefix, metadata_column_keys)
 }
 #endif
+
+// --------------------------------------------------------------------------
+void teca_table_reader::set_modified()
+{
+    // clear cached metadata before forwarding on to
+    // the base class.
+    this->clear_cached_metadata();
+    teca_algorithm::set_modified();
+}
 
 // --------------------------------------------------------------------------
 void teca_table_reader::clear_cached_metadata()
@@ -254,6 +269,23 @@ teca_metadata teca_table_reader::get_output_metadata(unsigned int port,
     // is needed to run in parallel over time steps.
     teca_metadata md;
     md.insert("number_of_time_steps", this->internals->number_of_steps);
+
+    // optionally pass columns directly into metadata
+    size_t n_metadata_columns = this->metadata_column_names.size();
+    if (n_metadata_columns)
+    {
+        for (size_t i = 0; i < n_metadata_columns; ++i)
+        {
+            std::string md_col_name = this->metadata_column_names[i];
+            p_teca_variant_array md_col = this->internals->table->get_column(md_col_name);
+            if (!md_col)
+            {
+                TECA_ERROR("metadata column \"" << md_col_name << "\" not found")
+                continue;
+            }
+            md.insert(this->metadata_column_keys[i], md_col);
+        }
+    }
 
     // cache it
     this->internals->metadata = md;
