@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 2.8)
-cmake_policy(SET CMP0022 NEW)
 project(teca_system)
 
 include(CMake/teca_system_platform_test.cmake)

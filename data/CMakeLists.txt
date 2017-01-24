@@ -1,5 +1,4 @@
 project(teca_data)
-cmake_policy(SET CMP0022 NEW)
 
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
