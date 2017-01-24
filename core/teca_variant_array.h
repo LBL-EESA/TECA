@@ -519,31 +519,12 @@ private:
     }                                                   \
     }
 
-// macro for helping downcast to POD types
-// don't add classes to this.
-// t - derived container type
-// p - pointer to base class
-// body - code to execute on match
-#define TEMPLATE_DISPATCH(t, p, body)                           \
-    TEMPLATE_DISPATCH_CASE(t, float, p, body)                   \
-    else TEMPLATE_DISPATCH_CASE(t, double, p, body)             \
-    else TEMPLATE_DISPATCH_CASE(t, long long, p, body)          \
-    else TEMPLATE_DISPATCH_CASE(t, unsigned long long, p, body) \
-    else TEMPLATE_DISPATCH_CASE(t, long, p, body)               \
-    else TEMPLATE_DISPATCH_CASE(t, int, p, body)                \
-    else TEMPLATE_DISPATCH_CASE(t, unsigned int, p, body)       \
-    else TEMPLATE_DISPATCH_CASE(t, unsigned long, p, body)      \
-    else TEMPLATE_DISPATCH_CASE(t, short int, p, body)          \
-    else TEMPLATE_DISPATCH_CASE(t, short unsigned int, p, body) \
-    else TEMPLATE_DISPATCH_CASE(t, char, p, body)               \
-    else TEMPLATE_DISPATCH_CASE(t, unsigned char, p, body)
-
 // variant that limits dispatch to floating point types
 // for use in numerical compuatation where integer types
 // are not supported (ie, math operations from std library)
 #define TEMPLATE_DISPATCH_FP(t, p, body)        \
     TEMPLATE_DISPATCH_CASE(t, float, p, body)   \
-    TEMPLATE_DISPATCH_CASE(t, double, p, body)
+    else TEMPLATE_DISPATCH_CASE(t, double, p, body)
 
 // variant that limits dispatch to integer types
 // for use in numerical compuatation where floating point types
@@ -560,17 +541,27 @@ private:
     else TEMPLATE_DISPATCH_CASE(t, char, p, body)               \
     else TEMPLATE_DISPATCH_CASE(t, unsigned char, p, body)
 
-
 // macro for helping downcast to POD types
 // don't add classes to this.
-// t - templated derived type
-// p - base class pointer
-// i - id for nesting
+// t - derived container type
+// p - pointer to base class
 // body - code to execute on match
-#define NESTED_TEMPLATE_DISPATCH(t, p, i, body)                           \
-    NESTED_TEMPLATE_DISPATCH_CASE(t, float, p, i, body)                   \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, double, p, i, body)             \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, long long, p, i, body)          \
+#define TEMPLATE_DISPATCH(t, p, body)       \
+    TEMPLATE_DISPATCH_FP(t, p, body)        \
+    else TEMPLATE_DISPATCH_I(t, p, body)
+
+// variant that limits dispatch to floating point types
+// for use in numerical compuatation where integer types
+// are not supported (ie, math operations from std library)
+#define NESTED_TEMPLATE_DISPATCH_FP(t, p, i, body)              \
+    NESTED_TEMPLATE_DISPATCH_CASE(t, float, p, i, body)         \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, double, p, i, body)
+
+// variant that limits dispatch to integer types
+// for use in numerical compuatation where integer types
+// are not supported (ie, math operations from std library)
+#define NESTED_TEMPLATE_DISPATCH_I(t, p, i, body)      \
+    NESTED_TEMPLATE_DISPATCH_CASE(t, long long, p, i, body)               \
     else NESTED_TEMPLATE_DISPATCH_CASE(t, unsigned long long, p, i, body) \
     else NESTED_TEMPLATE_DISPATCH_CASE(t, long, p, i, body)               \
     else NESTED_TEMPLATE_DISPATCH_CASE(t, int, p, i, body)                \
@@ -581,12 +572,16 @@ private:
     else NESTED_TEMPLATE_DISPATCH_CASE(t, char, p, i, body)               \
     else NESTED_TEMPLATE_DISPATCH_CASE(t, unsigned char, p, i, body)
 
-// variant that limits dispatch to floating point types
-// for use in numerical compuatation where integer types
-// are not supported (ie, math operations from std library)
-#define NESTED_TEMPLATE_DISPATCH_FP(t, p, i, body)      \
-    NESTED_TEMPLATE_DISPATCH_CASE(t, float, p, i, body) \
-    NESTED_TEMPLATE_DISPATCH_CASE(t, double, p, i, body)
+// macro for helping downcast to POD types
+// don't add classes to this.
+// t - templated derived type
+// p - base class pointer
+// i - id for nesting
+// body - code to execute on match
+#define NESTED_TEMPLATE_DISPATCH(t, p, i, body)     \
+    NESTED_TEMPLATE_DISPATCH_FP(t, p, i, body)      \
+    else NESTED_TEMPLATE_DISPATCH_I(t, p, i, body)
+
 
 // --------------------------------------------------------------------------
 template<typename T>
