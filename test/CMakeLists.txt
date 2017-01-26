@@ -283,3 +283,11 @@ teca_add_test(test_variant_array_operator
     SOURCES test_variant_array_operator.cpp
     LIBS teca_core teca_alg ${teca_test_link}
     COMMAND test_variant_array_operator)
+
+teca_add_test(test_evaluate_expression_table
+    SOURCES test_evaluate_expression_table.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_evaluate_expression_table "${TECA_DATA_ROOT}/tracks_1990s_3hr_mdd_4800.bin"
+    "${TECA_DATA_ROOT}/test_evaluate_expression_table.bin"
+    "!((track_id==191)&&((surface_wind*3.6d>=209.0d)&&(surface_wind*3.6d<249.0d)))"
+    REQ_TECA_DATA)

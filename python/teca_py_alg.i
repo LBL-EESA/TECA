@@ -12,6 +12,7 @@
 #include "teca_derived_quantity_numerics.h"
 #include "teca_descriptive_statistics.h"
 #include "teca_event_filter.h"
+#include "teca_evaluate_expression.h"
 #include "teca_l2_norm.h"
 #include "teca_mask.h"
 #include "teca_programmable_algorithm.h"
@@ -340,3 +341,11 @@ struct teca_tc_saffir_simpson
     { return teca_saffir_simpson::get_upper_bound_kmph<double>(c); }
 };
 %}
+
+/***************************************************************************
+ evaluate_expression
+ ***************************************************************************/
+%ignore teca_evaluate_expression::shared_from_this;
+%shared_ptr(teca_evaluate_expression)
+%ignore teca_evaluate_expression::operator=;
+%include "teca_evaluate_expression.h"
