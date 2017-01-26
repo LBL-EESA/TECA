@@ -26,6 +26,7 @@ set(teca_alg_cxx_srcs
     teca_programmable_reduce.cxx
     teca_table_calendar.cxx
     teca_table_reduce.cxx
+    teca_table_remove_rows.cxx
     teca_table_sort.cxx
     teca_table_to_stream.cxx
     teca_tc_candidates.cxx

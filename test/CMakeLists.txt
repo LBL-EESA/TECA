@@ -291,3 +291,18 @@ teca_add_test(test_evaluate_expression_table
     "${TECA_DATA_ROOT}/test_evaluate_expression_table.bin"
     "!((track_id==191)&&((surface_wind*3.6d>=209.0d)&&(surface_wind*3.6d<249.0d)))"
     REQ_TECA_DATA)
+
+teca_add_test(test_table_remove_rows_track_id
+    EXEC_NAME test_table_remove_rows
+    SOURCES test_table_remove_rows.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_table_remove_rows "${TECA_DATA_ROOT}/tracks_1990s_3hr_mdd_4800.bin"
+    "${TECA_DATA_ROOT}/tracks_1990s_3hr_mdd_4800_median_in_cat.bin"
+    "(track_id==488)||(track_id==186)||(track_id==578)||(track_id==4)||(track_id==523)||(track_id==191)"
+    REQ_TECA_DATA)
+
+teca_add_test(test_table_remove_rows_cat_4
+    COMMAND test_table_remove_rows "${TECA_DATA_ROOT}/tracks_1990s_3hr_mdd_4800.bin"
+    "${TECA_DATA_ROOT}/tracks_1990s_3hr_mdd_4800_cat_4.bin"
+    "!((surface_wind*3.6d>=209.0d)&&(surface_wind*3.6d<249.0d))"
+    REQ_TECA_DATA)

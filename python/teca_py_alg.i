@@ -21,6 +21,7 @@
 #include "teca_table_calendar.h"
 #include "teca_table_sort.h"
 #include "teca_table_reduce.h"
+#include "teca_table_remove_rows.h"
 #include "teca_table_to_stream.h"
 #include "teca_tc_candidates.h"
 #include "teca_tc_trajectory.h"
@@ -349,3 +350,11 @@ struct teca_tc_saffir_simpson
 %shared_ptr(teca_evaluate_expression)
 %ignore teca_evaluate_expression::operator=;
 %include "teca_evaluate_expression.h"
+
+/***************************************************************************
+ table_remove_rows
+ ***************************************************************************/
+%ignore teca_table_remove_rows::shared_from_this;
+%shared_ptr(teca_table_remove_rows)
+%ignore teca_table_remove_rows::operator=;
+%include "teca_table_remove_rows.h"
