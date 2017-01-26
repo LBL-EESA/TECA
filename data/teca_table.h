@@ -75,6 +75,13 @@ public:
     int remove_column(const std::string &name)
     { return m_impl->columns->remove(name); }
 
+    // get container holding columns
+    p_teca_array_collection get_columns()
+    { return m_impl->columns; }
+
+    const_p_teca_array_collection get_columns() const
+    { return m_impl->columns; }
+
     // default initialize n rows of data
     void resize(unsigned long n);
 
