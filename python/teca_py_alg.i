@@ -24,8 +24,9 @@
 #include "teca_table_remove_rows.h"
 #include "teca_table_to_stream.h"
 #include "teca_tc_candidates.h"
-#include "teca_tc_trajectory.h"
 #include "teca_tc_classify.h"
+#include "teca_tc_trajectory.h"
+#include "teca_tc_wind_radii.h"
 #include "teca_temporal_average.h"
 #include "teca_vorticity.h"
 #include "teca_py_object.h"
@@ -355,3 +356,11 @@ struct teca_tc_saffir_simpson
 %shared_ptr(teca_table_remove_rows)
 %ignore teca_table_remove_rows::operator=;
 %include "teca_table_remove_rows.h"
+
+/***************************************************************************
+ tc_wind_radii
+ ***************************************************************************/
+%ignore teca_tc_wind_radii::shared_from_this;
+%shared_ptr(teca_tc_wind_radii)
+%ignore teca_tc_wind_radii::operator=;
+%include "teca_tc_wind_radii.h"
