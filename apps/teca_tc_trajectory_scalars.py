@@ -34,6 +34,12 @@ parser.add_argument('--last_track', type=int,
 parser.add_argument('--texture', type=str,
     default='', help='path to background image for track plots')
 
+parser.add_argument('--axes_scaled', action='store_false',
+    help="distort aspect ratio in geographic plots to fit window")
+
+parser.add_argument('--plot_peak_radius', action='store_true',
+    help="include the peak radius in the plots")
+
 args = parser.parse_args()
 
 # configure matplotlib
@@ -55,6 +61,8 @@ scalars.set_basename(args.output_prefix)
 scalars.set_texture(args.texture)
 scalars.set_dpi(args.dpi)
 scalars.set_interactive(args.interact)
+scalars.set_axes_equal(args.axes_scaled)
+scalars.set_plot_peak_radius(args.plot_peak_radius)
 
 mapper = teca_table_reduce.New()
 mapper.set_input_connection(scalars.get_output_port())
