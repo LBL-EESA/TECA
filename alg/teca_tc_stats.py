@@ -220,8 +220,9 @@ class teca_tc_stats:
 
             # now plot the organized data in various ways
             n_cols = 3
-            n_left = (n_year + 1)%n_cols
-            n_rows = (n_year + 1)/n_cols + (1 if n_left else 0)
+            n_plots = n_year + 1
+            n_left = n_plots%n_cols
+            n_rows = n_plots/n_cols + (1 if n_left else 0)
             wid = 2.5*n_cols
             ht = 2.0*n_rows
 
@@ -264,7 +265,7 @@ class teca_tc_stats:
                     ax.set_ylim([0, max_y*1.05])
                 if (q%n_cols == 0):
                     plt.ylabel('Count', fontweight='normal', fontsize=10)
-                if (q >= n_rows*(n_cols - 1) - n_left):
+                if (q >= (n_year - n_cols)):
                     plt.xlabel('Category', fontweight='normal', fontsize=10)
                 plt.title('%d'%(yy), fontweight='bold', fontsize=11)
                 plt.grid(True)
@@ -325,7 +326,7 @@ class teca_tc_stats:
                     ax.set_ylim([0, max_y+1])
                 if (q%n_cols == 0):
                     plt.ylabel('Count', fontweight='normal', fontsize=10)
-                if (q >= n_rows*(n_cols - 1) - n_left):
+                if (q >= (n_year - n_cols)):
                     plt.xlabel('Month', fontweight='normal', fontsize=10)
                 plt.title('%d'%(yy), fontweight='bold', fontsize=11)
                 plt.grid(True)
@@ -391,7 +392,7 @@ class teca_tc_stats:
                     ax.set_ylim([0, max_y+1])
                 if (q%n_cols == 0):
                     plt.ylabel('Count', fontweight='normal', fontsize=10)
-                if (q >= n_rows*(n_cols - 1) - n_left):
+                if (q >= (n_year - n_cols)):
                     plt.xlabel('Region', fontweight='normal', fontsize=10)
                 plt.title('%d'%(yy), fontweight='bold', fontsize=11)
                 plt.grid(True)
@@ -463,8 +464,9 @@ class teca_tc_stats:
             for t in tmp:
                 ynms.append('%02d'%t)
 
-            n_left = n_reg%n_cols
-            n_rows = n_reg/n_cols + (1 if n_left else 0)
+            n_plots = n_reg + 1
+            n_left = n_plots%n_cols
+            n_rows = n_plots/n_cols + (1 if n_left else 0)
             wid = 2.5*n_cols
             ht = 2.0*n_rows
             reg_t_fig.set_size_inches(wid, ht)
@@ -523,7 +525,7 @@ class teca_tc_stats:
                     ax.set_ylim([0, max_y+1])
                 if (q%n_cols == 0):
                     plt.ylabel('Count', fontweight='normal', fontsize=10)
-                if (q >= n_reg-n_cols):
+                if (q >= (n_reg - n_cols)):
                     plt.xlabel('Year', fontweight='normal', fontsize=10)
                 plt.title('%s'%(rnms[q]), fontweight='bold', fontsize=11)
                 plt.grid(True)
