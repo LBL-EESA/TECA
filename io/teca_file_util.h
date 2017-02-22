@@ -7,6 +7,8 @@
 #include <fstream>
 #include <sstream>
 
+class teca_binary_stream;
+
 #ifndef WIN32
   #define PATH_SEP "/"
 #else
@@ -15,6 +17,19 @@
 
 namespace teca_file_util
 {
+// read the file into a stream. read will fail if header
+// is not found. return zero upon success. The verbose flag
+// indicates whether or not an error is reported if opening
+// the file fails. All other errors are always reported.
+int read_stream(const char *file_name, const char *header,
+    teca_binary_stream &stream, bool verbose=true);
+
+// write the stream to the file. the header is prepended to the
+// file. return zero upon success. The verbose flag indicates
+// whether or not an error is reported if creating the file
+// fails. All other errors are reported.
+int write_stream(const char *file_name, const char *header,
+    const teca_binary_stream &stream, bool verbose=true);
 
 // replace %t% with the given value
 void replace_timestep(std::string &file_name, unsigned long time_step);
@@ -30,6 +45,9 @@ void to_lower(std::string &in);
 
 // return 0 if the file does not exist
 int file_exists(const char *path);
+
+// return 0 if the file/directory is not writeable
+int file_writable(const char *path);
 
 // Returns the path not including the file name and not
 // including the final PATH_SEP. If PATH_SEP isn't found

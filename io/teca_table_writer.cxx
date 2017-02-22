@@ -3,6 +3,7 @@
 #include "teca_table.h"
 #include "teca_database.h"
 #include "teca_metadata.h"
+#include "teca_binary_stream.h"
 #include "teca_file_util.h"
 
 #include <iostream>
@@ -58,45 +59,9 @@ int write_bin(const_p_teca_table table, const std::string &file_name)
     teca_binary_stream bs;
     table->to_stream(bs);
 
-    // open up a file
-    int fd = creat(file_name.c_str(), S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
-    if (fd == -1)
+    if (teca_file_util::write_stream(file_name.c_str(), "teca_table", bs))
     {
-        const char *estr = strerror(errno);
-        TECA_ERROR("Failed to creat \"" << file_name << "\". " << estr)
-        return -1;
-    }
-
-    // this will let the reader verify that we have a teca binary table
-    const char *id = "teca_table";
-    if (write(fd, id, 10) != 10)
-    {
-        const char *estr = strerror(errno);
-        TECA_ERROR("Failed to write \"" << file_name << "\". " << estr)
-        return -1;
-    }
-
-    // now write the table
-    ssize_t n_wrote = 0;
-    ssize_t n_to_write = bs.size();
-    while (n_to_write > 0)
-    {
-        ssize_t n = write(fd, bs.get_data() + n_wrote, n_to_write);
-        if (n == -1)
-        {
-            const char *estr = strerror(errno);
-            TECA_ERROR("Failed to write \"" << file_name << "\". " << estr)
-            return -1;
-        }
-        n_wrote += n;
-        n_to_write -= n;
-    }
-
-    // and close the file out
-    if (close(fd))
-    {
-        const char *estr = strerror(errno);
-        TECA_ERROR("Failed to close \"" << file_name << "\". " << estr)
+        TECA_ERROR("Failed to write \"" << file_name << "\"")
         return -1;
     }
 

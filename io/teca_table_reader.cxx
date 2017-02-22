@@ -1,6 +1,8 @@
 #include "teca_table_reader.h"
 #include "teca_table.h"
+#include "teca_binary_stream.h"
 #include "teca_coordinate_util.h"
+#include "teca_file_util.h"
 
 #include <algorithm>
 #include <cstring>
@@ -54,9 +56,10 @@ p_teca_table
 teca_table_reader::teca_table_reader_internals::read_table(
     const std::string &file_name, bool distribute)
 {
-    teca_binary_stream bs;
-
-#if defined(TECA_HAS_MPI)
+    teca_binary_stream stream;
+#if !defined(TECA_HAS_MPI)
+    (void)distribute;
+#else
     int init = 0;
     int rank = 0;
     MPI_Initialized(&init);
@@ -71,68 +74,22 @@ teca_table_reader::teca_table_reader_internals::read_table(
     if (rank == root_rank)
     {
 #endif
-        // open the file
-        FILE* fd = fopen(file_name.c_str(), "rb");
-        if (fd == NULL)
+        if (teca_file_util::read_stream(file_name.c_str(),
+            "teca_table", stream))
         {
-            const char *estr = strerror(errno);
-            TECA_ERROR("Failed to open " << file_name << ". " << estr)
+            TECA_ERROR("Failed to read teca_table from \""
+                << file_name << "\"")
             return nullptr;
+
         }
-
-        // get its length, we'll read it in one go and need to create
-        // a bufffer for it's contents
-        long start = ftell(fd);
-        fseek(fd, 0, SEEK_END);
-        long end = ftell(fd);
-        fseek(fd, 0, SEEK_SET);
-        long nbytes = end - start - 10;
-
-        // check if this is really ours
-        char id[11] = {'\0'};
-        if (fread(id, 1, 10, fd) != 10)
-        {
-            const char *estr = (ferror(fd) ? strerror(errno) : "");
-            fclose(fd);
-            TECA_ERROR("Failed to read \"" << file_name << "\". " << estr)
-            return nullptr;
-        }
-
-        if (strncmp(id, "teca_table", 10))
-        {
-            fclose(fd);
-            TECA_ERROR("Not a teca_table. \"" << file_name << "\"")
-            return nullptr;
-        }
-
-        // create the buffer
-        bs.resize(static_cast<size_t>(nbytes));
-
-        // read the stream
-        long bytes_read = fread(bs.get_data(), sizeof(unsigned char), nbytes, fd);
-        if (bytes_read != nbytes)
-        {
-            const char *estr = (ferror(fd) ? strerror(errno) : "");
-            fclose(fd);
-            TECA_ERROR("Failed to read \"" << file_name << "\". Read only "
-                << bytes_read << " of the requested " << nbytes << ". " << estr)
-            return nullptr;
-        }
-        fclose(fd);
 #if defined(TECA_HAS_MPI)
         if (init && distribute)
-        {
-            MPI_Bcast(&nbytes, 1, MPI_LONG, root_rank, MPI_COMM_WORLD);
-            MPI_Bcast(bs.get_data(), nbytes, MPI_BYTE, root_rank, MPI_COMM_WORLD);
-        }
+            stream.broadcast();
     }
     else
     if (init && distribute)
     {
-        long nbytes = 0;
-        MPI_Bcast(&nbytes, 1, MPI_LONG, root_rank, MPI_COMM_WORLD);
-        bs.resize(static_cast<size_t>(nbytes));
-        MPI_Bcast(bs.get_data(), nbytes, MPI_BYTE, root_rank, MPI_COMM_WORLD);
+        stream.broadcast();
     }
     else
     {
@@ -141,7 +98,7 @@ teca_table_reader::teca_table_reader_internals::read_table(
 #endif
     // deserialize the binary rep
     p_teca_table table = teca_table::New();
-    table->from_stream(bs);
+    table->from_stream(stream);
     return table;
 }
 
