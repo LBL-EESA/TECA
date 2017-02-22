@@ -90,34 +90,14 @@ int main(int argc, char **argv)
     {
         // put some data in there
         driver.fill(s1);
-
-#if defined(TECA_DEBUG)
-        cerr << "stream size " << s1.size() << " bytes" << endl;
-#endif
-
         // copy
         s2 = s1;
+    }
 
-        // send it out
-#if defined(TECA_HAS_MPI)
-        unsigned long ns = s2.size();
-        MPI_Bcast(&ns, 1, MPI_UNSIGNED_LONG, root, MPI_COMM_WORLD);
-        MPI_Bcast(s2.get_data(), ns, MPI_BYTE, root, MPI_COMM_WORLD);
-#endif
-    }
-    else
-    {
-        // receive
-#if defined(TECA_HAS_MPI)
-        unsigned long ns;
-        MPI_Bcast(&ns, 1, MPI_UNSIGNED_LONG, root, MPI_COMM_WORLD);
-        s2.resize(ns);
-        MPI_Bcast(s2.get_data(), ns, MPI_BYTE, root, MPI_COMM_WORLD);
-#endif
-    }
+    // broadcast to all ranks
+    s2.broadcast(root);
 
     // validate the result
-    s2.rewind();
     driver.validate(s2);
 
     return 0;
