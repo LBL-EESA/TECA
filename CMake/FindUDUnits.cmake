@@ -10,18 +10,42 @@ if (UDUNITS_INCLUDE_DIR AND UDUNITS_LIBRARY)
   set (UDUNITS_FIND_QUIETLY TRUE)
 endif ()
 
-set(USE_DEFAULT_PATHS "NO_DEFAULT_PATH")
-if(UDUNITS_USE_DEFAULT_PATHS)
-  set(USE_DEFAULT_PATHS "")
+# find the library
+# first look where the user told us
+if (UDUNITS_DIR)
+  find_library (UDUNITS_LIBRARY NAMES udunits2
+    PATHS "${UDUNITS_DIR}/lib" "${UDUNITS_DIR}/lib64"
+    NO_DEFAULT_PATH)
 endif()
 
-find_path (UDUNITS_INCLUDE_DIR udunits2.h
-  HINTS "${UDUNITS_DIR}/include")
-mark_as_advanced (UDUNITS_INCLUDE_DIR)
-
+# next look in LD_LIBRARY_PATH for libraries
 find_library (UDUNITS_LIBRARY NAMES udunits2
-  HINTS "${UDUNITS_DIR}/lib")
+  PATHS ENV LD_LIBRARY_PATH NO_DEFAULT_PATH)
+
+# finally CMake can look
+find_library (UDUNITS_LIBRARY NAMES udunits2)
+
 mark_as_advanced (UDUNITS_LIBRARY)
+
+# find the header
+# first look where the user told us
+if (UDUNITS_DIR)
+  find_path (UDUNITS_INCLUDE_DIR udunits2.h
+    PATHS "${UDUNITS_DIR}/include" NO_DEFAULT_PATH)
+endif()
+
+# then look relative to library dir
+get_filename_component(UDUNITS_LIBRARY_DIR
+  ${UDUNITS_LIBRARY} DIRECTORY)
+
+find_path (UDUNITS_INCLUDE_DIR udunits2.h
+  PATHS "${UDUNITS_LIBRARY_DIR}/../include"
+  NO_DEFAULT_PATH)
+
+# finally CMake can look
+find_path (UDUNITS_INCLUDE_DIR udunits2.h)
+
+mark_as_advanced (UDUNITS_INCLUDE_DIR)
 
 # handle the QUIETLY and REQUIRED arguments and set UDUNITS_FOUND to TRUE if
 # all listed variables are TRUE

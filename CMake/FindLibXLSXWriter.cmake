@@ -15,13 +15,49 @@ if(LIBXLSXWRITER_USE_DEFAULT_PATHS)
   set(USE_DEFAULT_PATHS "")
 endif()
 
-find_path(LIBXLSXWRITER_INCLUDE_DIR xlsxwriter.h
-  HINTS "${LIBXLSXWRITER_DIR}/include")
-mark_as_advanced(LIBXLSXWRITER_INCLUDE_DIR)
+# find the library
+# first look where the user told us
+if (LIBXLSXWRITER_DIR)
+  find_library (LIBXLSXWRITER_LIBRARY NAMES xlsxwriter
+    PATHS "${LIBXLSXWRITER_DIR}/lib" "${LIBXLSXWRITER_DIR}/lib64"
+    NO_DEFAULT_PATH)
+  find_library (ZLIB_LIBRARY NAMES z zlib
+    PATHS "${LIBXLSXWRITER_DIR}/lib" "${LIBXLSXWRITER_DIR}/lib64"
+    NO_DEFAULT_PATH)
+endif()
 
-find_library(LIBXLSXWRITER_LIBRARY NAMES xlsxwriter
-  HINTS "${LIBXLSXWRITER_DIR}/lib")
-mark_as_advanced(LIBXLSXWRITER_LIBRARY)
+# next look in LD_LIBRARY_PATH for libraries
+find_library (LIBXLSXWRITER_LIBRARY NAMES xlsxwriter
+  PATHS ENV LD_LIBRARY_PATH NO_DEFAULT_PATH)
+find_library (ZLIB_LIBRARY NAMES z zlib
+  PATHS ENV LD_LIBRARY_PATH NO_DEFAULT_PATH)
+
+# finally CMake can look
+find_library (LIBXLSXWRITER_LIBRARY NAMES xlsxwriter)
+
+mark_as_advanced (LIBXLSXWRITER_LIBRARY)
+
+# find the header
+# first look where the user told us
+if (LIBXLSXWRITER_DIR)
+  find_path (LIBXLSXWRITER_INCLUDE_DIR xlsxwriter.h
+    PATHS "${LIBXLSXWRITER_DIR}/include" NO_DEFAULT_PATH)
+  find_path (ZLIB_INCLUDE_DIR zlib.h
+    PATHS "${LIBXLSXWRITER_DIR}/include" NO_DEFAULT_PATH)
+endif()
+
+# then look relative to library dir
+get_filename_component(LIBXLSXWRITER_LIBRARY_DIR
+  ${LIBXLSXWRITER_LIBRARY} DIRECTORY)
+
+find_path (LIBXLSXWRITER_INCLUDE_DIR xlsxwriter.h
+  PATHS "${LIBXLSXWRITER_LIBRARY_DIR}/../include"
+  NO_DEFAULT_PATH)
+
+# finally CMake can look
+find_path (LIBXLSXWRITER_INCLUDE_DIR xlsxwriter.h)
+
+mark_as_advanced (LIBXLSXWRITER_INCLUDE_DIR)
 
 find_package(ZLIB REQUIRED)
 
