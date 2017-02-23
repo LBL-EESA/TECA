@@ -64,7 +64,7 @@ int write_vtk_legacy_header(FILE *ofile,
     const const_p_teca_variant_array &z, bool binary,
     const std::string &comment = "")
 {
-    if (!x && !y &&!z)
+    if (!x && !y && !z)
     {
         TECA_ERROR("data must be at least 1 dimensional")
         return -1;
