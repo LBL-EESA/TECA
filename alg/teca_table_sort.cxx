@@ -47,7 +47,8 @@ private:
 
 
 // --------------------------------------------------------------------------
-teca_table_sort::teca_table_sort() : index_column(""), index_column_id(0)
+teca_table_sort::teca_table_sort() :
+    index_column(""), index_column_id(0), stable_sort(0)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -71,6 +72,8 @@ void teca_table_sort::get_properties_description(
         TECA_POPTS_GET(int, prefix, index_column_id,
             "column number to sort the table by. can be used in "
             "place of an index_column name")
+        TECA_POPTS_GET(int, prefix, stable_sort,
+            "if set a stable sort will be used")
         ;
 
     global_opts.add(opts);
@@ -82,6 +85,7 @@ void teca_table_sort::set_properties(
 {
     TECA_POPTS_SET(opts, std::string, prefix, index_column)
     TECA_POPTS_SET(opts, int, prefix, index_column_id)
+    TECA_POPTS_SET(opts, int, prefix, stable_sort)
 }
 #endif
 
@@ -140,7 +144,10 @@ const_p_teca_dataset teca_table_sort::execute(
     TEMPLATE_DISPATCH(const teca_variant_array_impl,
         index_col.get(),
         const NT *col = static_cast<TT*>(index_col.get())->get();
-        std::sort(index, index+n_rows, internal::less<NT>(col));
+        if (this->stable_sort)
+            std::stable_sort(index, index+n_rows, internal::less<NT>(col));
+        else
+            std::sort(index, index+n_rows, internal::less<NT>(col));
         )
 
     // transfer data and reorder
