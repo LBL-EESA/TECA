@@ -40,5 +40,6 @@ teca_py_install_apps(
     teca_dataset_metadata.py
     teca_event_filter.py
     teca_tc_stats.py
+    teca_tc_wind_radii_stats.py
     teca_tc_trajectory_scalars.py
     )

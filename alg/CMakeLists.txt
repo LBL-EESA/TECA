@@ -43,6 +43,7 @@ set(teca_alg_cxx_srcs
 
 teca_py_install(lib
     teca_tc_stats.py
+    teca_tc_wind_radii_stats.py
     teca_tc_trajectory_scalars.py
     )
 
