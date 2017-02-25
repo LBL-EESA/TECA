@@ -8,6 +8,8 @@
 #include "teca_cartesian_mesh_regrid.h"
 #include "teca_connected_components.h"
 #include "teca_dataset_diff.h"
+#include "teca_dataset_capture.h"
+#include "teca_dataset_source.h"
 #include "teca_derived_quantity.h"
 #include "teca_derived_quantity_numerics.h"
 #include "teca_descriptive_statistics.h"
@@ -364,3 +366,19 @@ struct teca_tc_saffir_simpson
 %shared_ptr(teca_tc_wind_radii)
 %ignore teca_tc_wind_radii::operator=;
 %include "teca_tc_wind_radii.h"
+
+/***************************************************************************
+ dataset_source
+ ***************************************************************************/
+%ignore teca_dataset_source::shared_from_this;
+%shared_ptr(teca_dataset_source)
+%ignore teca_dataset_source::operator=;
+%include "teca_dataset_source.h"
+
+/***************************************************************************
+ dataset_capture
+ ***************************************************************************/
+%ignore teca_dataset_capture::shared_from_this;
+%shared_ptr(teca_dataset_capture)
+%ignore teca_dataset_capture::operator=;
+%include "teca_dataset_capture.h"
