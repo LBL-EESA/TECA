@@ -116,6 +116,7 @@ class teca_tc_stats:
             wind = in_table.get_column('max_surface_wind').as_array()
             press = in_table.get_column('min_sea_level_pressure').as_array()
             start_y = in_table.get_column('start_y').as_array()
+            ACE = in_table.get_column('ACE').as_array()
 
             # organize the data by year month etc...
             annual_cat = []
@@ -124,6 +125,7 @@ class teca_tc_stats:
             annual_press = []
             annual_dur = []
             annual_len = []
+            annual_ACE = []
             by_month = []
             by_region = []
             totals = []
@@ -144,6 +146,7 @@ class teca_tc_stats:
                 annual_press.append(press[ids])
                 annual_dur.append(duration[ids])
                 annual_len.append(length[ids])
+                annual_ACE.append(ACE[ids])
 
                 # global totals
                 tmp = [annual_count[-1]]
@@ -418,36 +421,44 @@ class teca_tc_stats:
             wid = n_year*0.65
             dist_fig.set_size_inches(wid, 9.0)
 
-            ax = plt.subplot(4,1,1)
+            ax = plt.subplot(5,1,1)
             plt.boxplot(annual_wind, labels=uyear)
             plt.xlabel('Year')
             plt.ylabel('ms^-1')
             plt.title('Cyclone Max Surface Wind', fontweight='bold')
             ax.get_yaxis().set_label_coords(-0.1,0.5)
 
-            ax = plt.subplot(4,1,2)
+            ax = plt.subplot(5,1,2)
             plt.boxplot(annual_press, labels=uyear)
             plt.xlabel('Year')
             plt.ylabel('Pa')
             plt.title('Cyclone Min Sea Level Pressure', fontweight='bold')
             ax.get_yaxis().set_label_coords(-0.1,0.5)
 
-            ax = plt.subplot(4,1,3)
+            ax = plt.subplot(5,1,3)
             plt.boxplot(annual_dur, labels=uyear)
             plt.xlabel('Year')
             plt.ylabel('%s'%(time_units.split()[0]))
             plt.title('Track Duration', fontweight='bold')
             ax.get_yaxis().set_label_coords(-0.1,0.5)
 
-            ax = plt.subplot(4,1,4)
+            ax = plt.subplot(5,1,4)
             plt.boxplot(annual_len, labels=uyear)
             plt.xlabel('Year')
             plt.ylabel('km')
             plt.title('Track Length', fontweight='bold')
             ax.get_yaxis().set_label_coords(-0.1,0.5)
 
+            ax = plt.subplot(5,1,5)
+            #plt.axhline(82,color='k',linestyle='--',alpha=0.25)
+            plt.boxplot(annual_ACE, labels=uyear)
+            plt.xlabel('Year')
+            plt.ylabel('10^4 kn^2')
+            plt.title('ACE', fontweight='bold')
+            ax.get_yaxis().set_label_coords(-0.1,0.5)
+
             plt.suptitle('Distributions', fontweight='bold')
-            plt.subplots_adjust(hspace=0.6, top=0.92)
+            plt.subplots_adjust(hspace=0.72, top=0.93)
 
             plt.savefig('%s_distribution_%d.png'%( \
                 state.basename, page_no), dpi=state.dpi)

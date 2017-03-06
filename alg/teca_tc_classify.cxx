@@ -133,18 +133,25 @@ const_p_teca_dataset teca_tc_classify::execute(
         }
         return nullptr;
     }
-    // get calendar and unit system
-    std::string units;
-    if ((in_table->get_time_units(units)) && units.empty())
-    {
-        TECA_ERROR("Units are missing")
-        return nullptr;
-    }
 
+    // get calendar and unit system
     std::string calendar;
     if ((in_table->get_calendar(calendar)) && calendar.empty())
     {
         TECA_ERROR("Calendar is missing")
+        return nullptr;
+    }
+
+    std::string time_units;
+    if ((in_table->get_time_units(time_units)) && time_units.empty())
+    {
+        TECA_ERROR("time units are missing")
+        return nullptr;
+    }
+
+    if (time_units.find("days since") == std::string::npos)
+    {
+        TECA_ERROR("Conversion for \"" << time_units << "\" not implemented")
         return nullptr;
     }
 
@@ -469,6 +476,62 @@ const_p_teca_dataset teca_tc_classify::execute(
         }
         )
 
+    // ACE (accumulated cyclonigc energy)
+    // The ACE of a season is calculated by summing the squares of the
+    // estimated maximum sustained velocity of every active tropical storm
+    // (wind speed 35 knots (65 km/h) or higher), at six-hour intervals. Since
+    // the calculation is sensitive to the starting point of the six-hour
+    // intervals, the convention is to use 0000, 0600, 1200, and 1800 UTC. If
+    // any storms of a season happen to cross years, the storm's ACE counts for
+    // the previous year.[2] The numbers are usually divided by 10,000 to make
+    // them more manageable. The unit of ACE is 10^4 kn^2, and for use as an
+    // index the unit is assumed. Thus:
+    // {\displaystyle {\text{ACE}}=10^{-4}\sum v_{\max }^{2}}
+    // {\text{ACE}}=10^{{-4}}\sum v_{\max }^{2} where vmax is estimated
+    // sustained wind speed in knots.
+    p_teca_variant_array ACE = surface_wind->new_instance(n_tracks);
+
+    NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
+        time.get(), _T,
+
+        const NT_T *ptime = static_cast<TT_T*>(time.get())->get();
+
+        NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+            ACE.get(), _W,
+
+            NT_W *pACE = static_cast<TT_W*>(ACE.get())->get();
+
+            const NT_W *psurface_wind =
+                static_cast<const TT_W*>(surface_wind.get())->get();
+
+            for (size_t i = 0; i < n_tracks; ++i)
+            {
+                unsigned long track_start = track_starts[i];
+                unsigned long npts = track_starts[i+1] - track_start - 1;
+
+                pACE[i] = NT_W();
+
+                // for now skip the first and last track point
+                // could handle these as a special case if needed
+                for (size_t j = 1; j < npts; ++j)
+                {
+                    unsigned long id = track_start + j;
+                    NT_W dt = ptime[id+1] - ptime[id-1];
+                    NT_W w = psurface_wind[id];
+                    pACE[i] += w < teca_saffir_simpson::get_lower_bound_mps<NT_W>(0)
+                        ? NT_W() : w*w*dt;
+                }
+
+                // correct the units
+                // wind speed conversion : 1 m/s = 1.943844 kn
+                // time unit conversions: 24 hours per day, 6 hours per time unit,
+                // and we sample time in days at t +/- 1/2 => dt*24/2/6 => dt*2
+                // by convention scale by 10^-4
+                pACE[i] *= NT_W(2.0)*NT_W(3.778529496)*NT_W(1.0e-4);
+            }
+            )
+        )
+
     // cyclogenisis, determine region of origin
     size_t n_regions = this->region_sizes.size();
 
@@ -576,6 +639,7 @@ const_p_teca_dataset teca_tc_classify::execute(
     out_table->append_column("duration", duration);
     out_table->append_column("length", length);
     out_table->append_column("category", category);
+    out_table->append_column("ACE", ACE);
     out_table->append_column("max_surface_wind", max_surface_wind);
     out_table->append_column("max_surface_wind_x", max_surface_wind_x);
     out_table->append_column("max_surface_wind_y", max_surface_wind_y);
