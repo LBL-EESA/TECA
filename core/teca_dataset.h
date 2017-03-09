@@ -4,6 +4,7 @@
 #include "teca_dataset_fwd.h"
 #include <iosfwd>
 class teca_binary_stream;
+class teca_metadata;
 
 /**
 interface for teca datasets.
@@ -11,15 +12,7 @@ interface for teca datasets.
 class teca_dataset : public std::enable_shared_from_this<teca_dataset>
 {
 public:
-    virtual ~teca_dataset() noexcept = default;
-
-    // copy assign. this is a shallow copy
-    void operator=(const p_teca_dataset &other)
-    { this->shallow_copy(other); }
-
-    // move assignment
-    void operator=(p_teca_dataset &&other)
-    { this->swap(other); }
+    virtual ~teca_dataset();
 
     // covert to bool. true if the dataset is not empty.
     // otherwise false.
@@ -39,26 +32,39 @@ public:
 
     // copy data and metadata. shallow copy uses reference
     // counting, while copy duplicates the data.
-    virtual void copy(const const_p_teca_dataset &other) = 0;
-    virtual void shallow_copy(const p_teca_dataset &other) = 0;
+    virtual void copy(const const_p_teca_dataset &other);
+    virtual void shallow_copy(const p_teca_dataset &other);
 
     // copy metadata. always a deep copy.
-    virtual void copy_metadata(const const_p_teca_dataset &other) = 0;
+    virtual void copy_metadata(const const_p_teca_dataset &other);
 
     // swap internals of the two objects
-    virtual void swap(p_teca_dataset &other) = 0;
+    virtual void swap(p_teca_dataset &other);
+
+    // access metadata
+    virtual teca_metadata &get_metadata() noexcept;
+    virtual const teca_metadata &get_metadata() const noexcept;
+    virtual void set_metadata(const teca_metadata &md);
 
     // serialize the dataset to/from the given stream
     // for I/O or communication
-    virtual void to_stream(teca_binary_stream &) const = 0;
-    virtual void from_stream(teca_binary_stream &) = 0;
+    virtual void to_stream(teca_binary_stream &) const;
+    virtual void from_stream(teca_binary_stream &);
 
     // stream to/from human readable representation
-    virtual void to_stream(std::ostream &) const = 0;
-    virtual void from_stream(std::istream &) {}
+    virtual void to_stream(std::ostream &) const;
+    virtual void from_stream(std::istream &);
 
 protected:
-    teca_dataset() = default;
+    teca_dataset();
+
+    teca_dataset(const teca_dataset &) = delete;
+    teca_dataset(const teca_dataset &&) = delete;
+
+    void operator=(const p_teca_dataset &other) = delete;
+    void operator=(p_teca_dataset &&other) = delete;
+
+    teca_metadata *metadata;
 };
 
 #endif

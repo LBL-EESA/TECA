@@ -1,5 +1,4 @@
 project(teca_io)
-cmake_policy(SET CMP0022 NEW)
 
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -29,6 +28,10 @@ if (TECA_HAS_NETCDF)
     list(APPEND teca_io_srcs teca_cf_reader.cxx)
     include_directories(SYSTEM ${NETCDF_INCLUDE_DIRS})
     list(APPEND teca_io_link ${NETCDF_LIBRARIES})
+    if (TECA_HAS_OPENSSL)
+        include_directories(SYSTEM ${OPENSSL_INCLUDE_DIR})
+        list(APPEND teca_io_link ${OPENSSL_LIBRARIES})
+    endif()
 endif()
 
 if (TECA_HAS_VTK)

@@ -53,7 +53,7 @@ public:
 
     // the following group of properties define a set of
     // polygons describing arbitrary regions to count
-    // storms by.
+    // storms by. note: must explicitly include end point.
     TECA_ALGORITHM_VECTOR_PROPERTY(unsigned long, region_size)
     TECA_ALGORITHM_VECTOR_PROPERTY(unsigned long, region_start);
     TECA_ALGORITHM_VECTOR_PROPERTY(double, region_x_coordinate);

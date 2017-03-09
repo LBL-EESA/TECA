@@ -1,6 +1,3 @@
-cmake_minimum_required(VERSION 2.8)
-cmake_policy(SET CMP0022 NEW)
-
 project(teca_core)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
@@ -10,6 +7,7 @@ set(teca_core_srcs
     teca_algorithm_executive.cxx
     teca_binary_stream.cxx
     teca_calendar.cxx
+    teca_dataset.cxx
     teca_metadata.cxx
     teca_mpi_manager.cxx
     teca_parallel_id.cxx

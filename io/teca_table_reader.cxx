@@ -1,6 +1,8 @@
 #include "teca_table_reader.h"
 #include "teca_table.h"
+#include "teca_binary_stream.h"
 #include "teca_coordinate_util.h"
+#include "teca_file_util.h"
 
 #include <algorithm>
 #include <cstring>
@@ -54,9 +56,10 @@ p_teca_table
 teca_table_reader::teca_table_reader_internals::read_table(
     const std::string &file_name, bool distribute)
 {
-    teca_binary_stream bs;
-
-#if defined(TECA_HAS_MPI)
+    teca_binary_stream stream;
+#if !defined(TECA_HAS_MPI)
+    (void)distribute;
+#else
     int init = 0;
     int rank = 0;
     MPI_Initialized(&init);
@@ -71,68 +74,22 @@ teca_table_reader::teca_table_reader_internals::read_table(
     if (rank == root_rank)
     {
 #endif
-        // open the file
-        FILE* fd = fopen(file_name.c_str(), "rb");
-        if (fd == NULL)
+        if (teca_file_util::read_stream(file_name.c_str(),
+            "teca_table", stream))
         {
-            const char *estr = strerror(errno);
-            TECA_ERROR("Failed to open " << file_name << ". " << estr)
+            TECA_ERROR("Failed to read teca_table from \""
+                << file_name << "\"")
             return nullptr;
+
         }
-
-        // get its length, we'll read it in one go and need to create
-        // a bufffer for it's contents
-        long start = ftell(fd);
-        fseek(fd, 0, SEEK_END);
-        long end = ftell(fd);
-        fseek(fd, 0, SEEK_SET);
-        long nbytes = end - start - 10;
-
-        // check if this is really ours
-        char id[11] = {'\0'};
-        if (fread(id, 1, 10, fd) != 10)
-        {
-            const char *estr = (ferror(fd) ? strerror(errno) : "");
-            fclose(fd);
-            TECA_ERROR("Failed to read \"" << file_name << "\". " << estr)
-            return nullptr;
-        }
-
-        if (strncmp(id, "teca_table", 10))
-        {
-            fclose(fd);
-            TECA_ERROR("Not a teca_table. \"" << file_name << "\"")
-            return nullptr;
-        }
-
-        // create the buffer
-        bs.resize(static_cast<size_t>(nbytes));
-
-        // read the stream
-        long bytes_read = fread(bs.get_data(), sizeof(unsigned char), nbytes, fd);
-        if (bytes_read != nbytes)
-        {
-            const char *estr = (ferror(fd) ? strerror(errno) : "");
-            fclose(fd);
-            TECA_ERROR("Failed to read \"" << file_name << "\". Read only "
-                << bytes_read << " of the requested " << nbytes << ". " << estr)
-            return nullptr;
-        }
-        fclose(fd);
 #if defined(TECA_HAS_MPI)
         if (init && distribute)
-        {
-            MPI_Bcast(&nbytes, 1, MPI_LONG, root_rank, MPI_COMM_WORLD);
-            MPI_Bcast(bs.get_data(), nbytes, MPI_BYTE, root_rank, MPI_COMM_WORLD);
-        }
+            stream.broadcast();
     }
     else
     if (init && distribute)
     {
-        long nbytes = 0;
-        MPI_Bcast(&nbytes, 1, MPI_LONG, root_rank, MPI_COMM_WORLD);
-        bs.resize(static_cast<size_t>(nbytes));
-        MPI_Bcast(bs.get_data(), nbytes, MPI_BYTE, root_rank, MPI_COMM_WORLD);
+        stream.broadcast();
     }
     else
     {
@@ -141,7 +98,7 @@ teca_table_reader::teca_table_reader_internals::read_table(
 #endif
     // deserialize the binary rep
     p_teca_table table = teca_table::New();
-    table->from_stream(bs);
+    table->from_stream(stream);
     return table;
 }
 
@@ -173,6 +130,10 @@ void teca_table_reader::get_properties_description(
             "name of the column containing index values (\"\")")
         TECA_POPTS_GET(int, prefix, generate_original_ids,
             "add original row ids into the output. default off.")
+        TECA_POPTS_MULTI_GET(std::vector<std::string>, prefix, metadata_column_names,
+             "names of the columns to copy directly into metadata")
+        TECA_POPTS_MULTI_GET(std::vector<std::string>, prefix, metadata_column_keys,
+             "names of the metadata keys to create from the named columns")
         ;
 
     global_opts.add(opts);
@@ -184,8 +145,19 @@ void teca_table_reader::set_properties(const string &prefix, variables_map &opts
     TECA_POPTS_SET(opts, string, prefix, file_name)
     TECA_POPTS_SET(opts, string, prefix, index_column)
     TECA_POPTS_SET(opts, int, prefix, generate_original_ids)
+    TECA_POPTS_SET(opts, std::vector<std::string>, prefix, metadata_column_names)
+    TECA_POPTS_SET(opts, std::vector<std::string>, prefix, metadata_column_keys)
 }
 #endif
+
+// --------------------------------------------------------------------------
+void teca_table_reader::set_modified()
+{
+    // clear cached metadata before forwarding on to
+    // the base class.
+    this->clear_cached_metadata();
+    teca_algorithm::set_modified();
+}
 
 // --------------------------------------------------------------------------
 void teca_table_reader::clear_cached_metadata()
@@ -254,6 +226,23 @@ teca_metadata teca_table_reader::get_output_metadata(unsigned int port,
     // is needed to run in parallel over time steps.
     teca_metadata md;
     md.insert("number_of_time_steps", this->internals->number_of_steps);
+
+    // optionally pass columns directly into metadata
+    size_t n_metadata_columns = this->metadata_column_names.size();
+    if (n_metadata_columns)
+    {
+        for (size_t i = 0; i < n_metadata_columns; ++i)
+        {
+            std::string md_col_name = this->metadata_column_names[i];
+            p_teca_variant_array md_col = this->internals->table->get_column(md_col_name);
+            if (!md_col)
+            {
+                TECA_ERROR("metadata column \"" << md_col_name << "\" not found")
+                continue;
+            }
+            md.insert(this->metadata_column_keys[i], md_col);
+        }
+    }
 
     // cache it
     this->internals->metadata = md;

@@ -133,7 +133,7 @@ void get_##NAME##s(const p_teca_variant_array &v) const \
     v->set(this->NAME##s);                              \
 }                                                       \
                                                         \
-void clear_##NAME()                                     \
+void clear_##NAME##s()                                  \
 {                                                       \
     this->NAME##s.clear();                              \
 }

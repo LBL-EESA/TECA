@@ -10,7 +10,7 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_table_sort)
 
-/// an algorithm that sorts a table inascending order
+/// an algorithm that sorts a table in ascending order
 class teca_table_sort : public teca_algorithm
 {
 public:
@@ -26,6 +26,12 @@ public:
     TECA_ALGORITHM_PROPERTY(std::string, index_column)
     TECA_ALGORITHM_PROPERTY(int, index_column_id)
 
+    // enable/disable stable sorting. default 0
+    TECA_ALGORITHM_PROPERTY(int, stable_sort)
+
+    void enable_stable_sort(){ set_stable_sort(1); }
+    void disable_stable_sort(){ set_stable_sort(0); }
+
 protected:
     teca_table_sort();
 
@@ -38,6 +44,7 @@ private:
 private:
     std::string index_column;
     int index_column_id;
+    int stable_sort;
 };
 
 #endif

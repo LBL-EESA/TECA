@@ -22,15 +22,15 @@ public:
     TECA_DATASET_PROPERTY(std::string, name)
 
     // return true if the dataset is empty.
-    virtual bool empty() const noexcept override
+    bool empty() const noexcept override
     { return this->data.empty(); }
 
     // return a new dataset of the same type
-    virtual p_teca_dataset new_instance() const override
+    p_teca_dataset new_instance() const override
     { return p_teca_dataset(new array()); }
 
     // return a new copy constructed array
-    virtual p_teca_dataset new_copy() const override;
+    p_teca_dataset new_copy() const override;
 
     size_t size() const
     { return this->data.size(); }
@@ -53,17 +53,17 @@ public:
     void append(double d)
     { this->data.push_back(d); }
 
-    virtual void copy(const const_p_teca_dataset &) override;
-    virtual void shallow_copy(const p_teca_dataset &) override;
-    virtual void copy_metadata(const const_p_teca_dataset &) override;
-    virtual void swap(p_teca_dataset &) override;
+    void copy(const const_p_teca_dataset &) override;
+    void shallow_copy(const p_teca_dataset &) override;
+    void copy_metadata(const const_p_teca_dataset &) override;
+    void swap(p_teca_dataset &) override;
 
     // serialize the dataset to/from the given stream
     // for I/O or communication
-    virtual void to_stream(teca_binary_stream &s) const override;
-    virtual void from_stream(teca_binary_stream &s) override;
+    void to_stream(teca_binary_stream &s) const override;
+    void from_stream(teca_binary_stream &s) override;
 
-    virtual void to_stream(std::ostream &s) const override;
+    void to_stream(std::ostream &s) const override;
 
 protected:
     array() : extent({0,0}) {}

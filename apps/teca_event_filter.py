@@ -44,37 +44,62 @@ parser.add_argument('--region_sizes', nargs='+', type=int,
 args = parser.parse_args()
 
 # build and configure the pipeline
-r = teca_table_reader.New()
-r.set_file_name(args.in_file)
+tr = teca_table_reader.New()
+tr.set_file_name(args.in_file)
 
-f = teca_event_filter.New()
-f.set_input_connection(r.get_output_port())
+# tip of the pipeline is held in a temp
+ptip = tr
+expr = ''
 
 if (args.time_column):
-    f.set_time_column(args.time_column)
-    f.set_start_time(args.start_time)
-    f.set_end_time(args.end_time)
+    ee = teca_evaluate_expression.New()
+    ee.set_input_connection(ptip.get_output_port())
+    ee.set_expression('(%s >= %g) && (%s <= %g)'%( \
+        args.time_column, args.start_time, \
+        args.time_column, args.end_time))
+    ee.set_result_variable('in_time')
+    ptip = ee
+    expr = 'in_time'
 
 if (args.step_column):
-    f.set_step_column(args.step_column)
-    f.set_step_interval(args.step_interval)
+    ee = teca_evaluate_expression.New()
+    ee.set_input_connection(ptip.get_output_port())
+    ee.set_expression('%s %% %d'%( \
+        args.step_column, args.step_interval))
+    ptip = ee
+    expr = expr + ' && in_step' if expr else 'in_step'
 
 if (args.x_coordinate_column):
     try:
-        f.set_x_coordinate_column(args.x_coordinate_column)
-        f.set_y_coordinate_column(args.y_coordinate_column)
-        f.set_region_x_coordinates(args.region_x_coords)
-        f.set_region_y_coordinates(args.region_y_coords)
-        f.set_region_sizes(args.region_sizes)
+        rm = teca_table_region_mask.New()
+        rm.set_input_connection(ptip.get_output_port())
+        rm.set_x_coordinate_column(args.x_coordinate_column)
+        rm.set_y_coordinate_column(args.y_coordinate_column)
+        rm.set_region_x_coordinates(args.region_x_coords)
+        rm.set_region_y_coordinates(args.region_y_coords)
+        rm.set_region_sizes(args.region_sizes)
+        rm.set_result_column('in_region')
+        ptip = rm
+        expr = expr + ' && in_region' if expr else 'in_region'
     except Exception as e:
-        sys.stderr.write('ERROR: %s\nFor spatial filtering you must specify ' \
+        sys.stderr.write('ERROR: %s\nFor spatial filtering you must specify' \
             ' all of:\n  x_coordinate_column\n  y_coordinate_column\n' \
             '  region_x_coords\n  region_y_coords\n  region_size\n'%(str(e)))
         sys.exit(-1)
 
-w = teca_table_writer.New()
-w.set_input_connection(f.get_output_port())
-w.set_file_name(args.out_file)
+if not expr:
+    sys.stderr.write('ERROR: must specify one of:\n' \
+        '  --time_column\n  --step_column\n  --x_coordinate_column\n')
+    sys.exit(-1)
+
+rr = teca_table_remove_rows.New()
+rr.set_input_connection(ptip.get_output_port())
+rr.set_remove_dependent_variables(1)
+rr.set_mask_expression('!(%s)'%(expr))
+
+tw = teca_table_writer.New()
+tw.set_input_connection(rr.get_output_port())
+tw.set_file_name(args.out_file)
 
 # run it
-w.update()
+tw.update()

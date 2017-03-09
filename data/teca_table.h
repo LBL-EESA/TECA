@@ -24,8 +24,8 @@ public:
     virtual ~teca_table() = default;
 
     // set/get metadata
-    TECA_DATASET_METADATA(calendar, std::string, 1, m_impl->metadata)
-    TECA_DATASET_METADATA(time_units, std::string, 1, m_impl->metadata)
+    TECA_DATASET_METADATA(calendar, std::string, 1)
+    TECA_DATASET_METADATA(time_units, std::string, 1)
 
     // remove all column definitions and data
     void clear();
@@ -75,6 +75,13 @@ public:
     int remove_column(const std::string &name)
     { return m_impl->columns->remove(name); }
 
+    // get container holding columns
+    p_teca_array_collection get_columns()
+    { return m_impl->columns; }
+
+    const_p_teca_array_collection get_columns() const
+    { return m_impl->columns; }
+
     // default initialize n rows of data
     void resize(unsigned long n);
 
@@ -93,29 +100,31 @@ public:
     { return !this->empty(); }
 
     // return true if the dataset is empty.
-    virtual bool empty() const noexcept override;
+    bool empty() const noexcept override;
 
     // serialize the dataset to/from the given stream
     // for I/O or communication
-    virtual void to_stream(teca_binary_stream &) const override;
-    virtual void from_stream(teca_binary_stream &) override;
+    void to_stream(teca_binary_stream &) const override;
+    void from_stream(teca_binary_stream &) override;
 
     // stream to/from human readable representation
-    virtual void to_stream(std::ostream &) const override;
+    void to_stream(std::ostream &) const override;
 
     // copy data and metadata. shallow copy uses reference
     // counting, while copy duplicates the data.
-    virtual void copy(const const_p_teca_dataset &other) override;
-    virtual void shallow_copy(const p_teca_dataset &other) override;
+    void copy(const const_p_teca_dataset &other) override;
 
-    // copy metadata. always a deep copy.
-    virtual void copy_metadata(const const_p_teca_dataset &other) override;
+    // deep copy a subset of row values.
+    void copy(const const_p_teca_table &other,
+        unsigned long first_row, unsigned long last_row);
+
+    void shallow_copy(const p_teca_dataset &other) override;
 
     // copy the column layout and types
     void copy_structure(const const_p_teca_table &other);
 
     // swap internals of the two objects
-    virtual void swap(p_teca_dataset &other) override;
+    void swap(p_teca_dataset &other) override;
 
     // append rows from the passed in table which must have identical
     // columns.
@@ -139,7 +148,6 @@ private:
     {
         impl_t();
         //
-        teca_metadata metadata;
         p_teca_array_collection columns;
         unsigned int active_column;
     };

@@ -5,7 +5,9 @@
 #include "teca_variant_array.h"
 #include "teca_metadata.h"
 #include "teca_distance_function.h"
+#include "teca_saffir_simpson.h"
 #include "teca_geometry.h"
+#include "teca_geography.h"
 
 #include <iostream>
 #include <string>
@@ -24,103 +26,6 @@
 using std::cerr;
 using std::endl;
 
-namespace internal
-{
-// data describing the default geographic regions
-// storms are sorted by
-int reg_ids[] = {0, 1, 2, 3, 4, 5, 6, 7, 7, 4};
-unsigned long reg_sizes[] = {5, 5, 6, 6, 14, 14, 7, 5, 7, 5};
-unsigned long reg_starts[] = {0, 5, 10, 16, 22, 36, 50, 57, 62, 69};
-
-const char *reg_names[] = {"SI", "SWP",
-    "NWP", "NI", "NA", "NEP", "SEP", "SA"};
-
-const char *reg_long_names[] = {"S Indian", "SW Pacific", "NW Pacific",
-    "N Indian", "N Atlantic", "NE Pacific", "SE Pacific", "S Atlantic"};
-
-// since we want to allow for an arbitrary
-// set of polys, we can't hard code up a search
-// optimization structure. but we can order them
-// from most likeley+smallest to least likely+largest
-double reg_lon[] = {
-    // 0 S Indian (green)
-    136, 136, 20, 20, 136,
-    // 1 SW Pacific (pink)
-    136, 216, 216, 136, 136,
-    // 2 NW Pacific (orange)
-    104, 180, 180, 98.75, 98.75, 104,
-    // 3 N Indian (purple)
-    20, 104, 98.75, 98.75, 20, 20,
-    // 4 N Atlantic (red_360)
-    282, 284, 284, 278, 268, 263, 237, 237, 224, 200, 200, 360.1, 360.1, 282,
-    // 5 NE Pacific (yellow)
-    200, 180, 180, 282, 284, 284, 278, 268, 263, 237, 237, 224, 200, 200,
-    // 6 SE Pacific (cyan)
-    216, 216, 289, 289, 298, 298, 216,
-    // 7 S Atlantic (blue_0)
-    -0.1, 20, 20, -0.1, -0.1,
-    // 7 S Atlantic (blue_360)
-    298, 298, 289, 289, 360.1, 360.1, 298,
-    // 4 N Atlantic (red_0)
-    20, 20, -0.1, -0.1, 20};
-
-double reg_lat[] = {
-    // S Indian (green)
-    0, -90, -90, 0, 0,
-    // SW Pacific (pink)
-    -90, -90, 0, 0, -90,
-    // NW Pacific (orange)
-    0, 0, 90, 90, 9, 0,
-    // N Indian (purple)
-    0, 0, 9, 90, 90, 0,
-    // N Atlantic (red_360)
-    0, 3, 8.5, 8.5, 17, 17, 43, 50, 62, 62, 90, 90, 0, 0,
-    // NE Pacific (yellow)
-    90, 90, 0, 0, 3, 8.5, 8.5, 17, 17, 43, 50, 62, 62, 90,
-    // SE Pacific (cyan)
-    0, -90, -90, -52, -19.5, 0, 0,
-    // S Atlantic (blue_0)
-    0, 0, -90, -90, 0,
-    // S Atlantic (blue_360)
-    0, -19.5, -52, -90, -90, 0, 0,
-    // N Atlantic (red_0)
-    90, 0, 0, 90, 90};
-
-// Saffir-Simpson scale prescribes the following limits:
-// CAT wind km/h
-// -1:   0- 62  :  Tropical depression
-//  0:  63-117  :  Tropical storm
-//  1: 119-153
-//  2: 154-177
-//  3: 178-209
-//  4: 210-249
-//  5:    >250
-template<typename n_t>
-int classify_saphir_simpson(n_t w)
-{
-    // 1 m/s -> 3.6 Km/h
-    n_t w_kmph = n_t(3.6)*w;
-    if (w_kmph <= n_t(62.0))
-        return -1;
-    else
-    if (w_kmph <= n_t(117.0))
-        return 0;
-    else
-    if (w_kmph <= n_t(153.0))
-        return 1;
-    else
-    if (w_kmph <= n_t(177.0))
-        return 2;
-    else
-    if (w_kmph <= n_t(209.0))
-        return 3;
-    else
-    if (w_kmph <= n_t(249.0))
-        return 4;
-    return 5;
-}
-};
-
 // --------------------------------------------------------------------------
 teca_tc_classify::teca_tc_classify() :
     track_id_column("track_id"), time_column("time"), x_coordinate_column("lon"),
@@ -130,19 +35,10 @@ teca_tc_classify::teca_tc_classify() :
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
 
-    // initialize the default regions
-    size_t n_regs = sizeof(internal::reg_sizes)/sizeof(unsigned long);
-    this->region_sizes.assign(internal::reg_sizes, internal::reg_sizes+n_regs);
-    this->region_starts.assign(internal::reg_starts, internal::reg_starts+n_regs);
-    this->region_ids.assign(internal::reg_ids, internal::reg_ids+n_regs);
-
-    size_t n_pts = sizeof(internal::reg_lon)/sizeof(double);
-    this->region_x_coordinates.assign(internal::reg_lon, internal::reg_lon+n_pts);
-    this->region_y_coordinates.assign(internal::reg_lat, internal::reg_lat+n_pts);
-
-    size_t n_names = sizeof(internal::reg_names)/sizeof(char*);
-    this->region_names.assign(internal::reg_names, internal::reg_names+n_names);
-    this->region_long_names.assign(internal::reg_long_names,internal::reg_long_names+n_names);
+    teca_geography::get_cyclone_basins(this->region_sizes,
+        this->region_starts, this->region_x_coordinates,
+        this->region_y_coordinates, this->region_ids,
+        this->region_names, this->region_long_names);
 }
 
 // --------------------------------------------------------------------------
@@ -237,18 +133,25 @@ const_p_teca_dataset teca_tc_classify::execute(
         }
         return nullptr;
     }
-    // get calendar and unit system
-    std::string units;
-    if ((in_table->get_time_units(units)) && units.empty())
-    {
-        TECA_ERROR("Units are missing")
-        return nullptr;
-    }
 
+    // get calendar and unit system
     std::string calendar;
     if ((in_table->get_calendar(calendar)) && calendar.empty())
     {
         TECA_ERROR("Calendar is missing")
+        return nullptr;
+    }
+
+    std::string time_units;
+    if ((in_table->get_time_units(time_units)) && time_units.empty())
+    {
+        TECA_ERROR("time units are missing")
+        return nullptr;
+    }
+
+    if (time_units.find("days since") == std::string::npos)
+    {
+        TECA_ERROR("Conversion for \"" << time_units << "\" not implemented")
         return nullptr;
     }
 
@@ -410,11 +313,18 @@ const_p_teca_dataset teca_tc_classify::execute(
         )
 
     // rank the track on Saphir-Simpson scale
-    // record the max wind speed
+    // record the max wind speed, and position of it
     p_teca_int_array category = teca_int_array::New(n_tracks);
     int *pcategory = category->get();
 
-    p_teca_variant_array max_surface_wind = surface_wind->new_instance(n_tracks);
+    p_teca_variant_array max_surface_wind
+        = surface_wind->new_instance(n_tracks);
+
+    p_teca_unsigned_long_array max_surface_wind_id
+        = teca_unsigned_long_array::New(n_tracks);
+
+    unsigned long *pmax_surface_wind_id
+        = max_surface_wind_id->get();
 
     TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
         max_surface_wind.get(),
@@ -431,21 +341,71 @@ const_p_teca_dataset teca_tc_classify::execute(
             unsigned long npts = track_starts[i+1] - track_start;
 
             NT max_val = std::numeric_limits<NT>::lowest();
+            unsigned long max_id = 0;
 
             for (size_t j = 0; j < npts; ++j)
             {
-                NT val = psurface_wind[track_start + j];
-                max_val = val > max_val ? val : max_val;
+                unsigned long id = track_start + j;
+                NT val = psurface_wind[id];
+                bool max_changed = val > max_val;
+                max_val = max_changed ? val : max_val;
+                max_id = max_changed ? id : max_id;
             }
 
-            pcategory[i] = internal::classify_saphir_simpson(max_val);
+            pcategory[i] = teca_saffir_simpson::classify_mps(max_val);
             pmax_surface_wind[i] = max_val;
+            pmax_surface_wind_id[i] = max_id;
+        }
+        )
+
+    // location of the max surface wind
+    p_teca_variant_array max_surface_wind_x = x->new_instance(n_tracks);
+    p_teca_variant_array max_surface_wind_y = x->new_instance(n_tracks);
+    TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+        start_x.get(),
+
+        const NT *px = static_cast<const TT*>(x.get())->get();
+        const NT *py = static_cast<const TT*>(y.get())->get();
+
+        NT *pmax_surface_wind_x
+            = static_cast<TT*>(max_surface_wind_x.get())->get();
+
+        NT *pmax_surface_wind_y
+            = static_cast<TT*>(max_surface_wind_y.get())->get();
+
+        for (size_t i = 0; i < n_tracks; ++i)
+        {
+            unsigned long q = pmax_surface_wind_id[i];
+            pmax_surface_wind_x[i] = px[q];
+            pmax_surface_wind_y[i] = py[q];
+        }
+        )
+
+    // time of max surface wind
+    p_teca_variant_array max_surface_wind_t = time->new_instance(n_tracks);
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
+        max_surface_wind_t.get(),
+        const NT *ptime = static_cast<const TT*>(time.get())->get();
+
+        NT *pmax_surface_wind_t
+            = static_cast<TT*>(max_surface_wind_t.get())->get();
+
+        for (size_t i = 0; i < n_tracks; ++i)
+        {
+            unsigned long q = pmax_surface_wind_id[i];
+            pmax_surface_wind_t[i] = ptime[q];
         }
         )
 
     // record the min sea level pressure
     p_teca_variant_array min_sea_level_pressure =
         sea_level_pressure->new_instance(n_tracks);
+
+    p_teca_unsigned_long_array min_sea_level_pressure_id
+        = teca_unsigned_long_array::New(n_tracks);
+
+    unsigned long *pmin_sea_level_pressure_id
+        = min_sea_level_pressure_id->get();
 
     TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
         min_sea_level_pressure.get(),
@@ -461,15 +421,115 @@ const_p_teca_dataset teca_tc_classify::execute(
             unsigned long npts = track_starts[i+1] - track_start;
 
             NT min_val = std::numeric_limits<NT>::max();
+            unsigned long min_id = 0;
 
             for (size_t j = 0; j < npts; ++j)
             {
-                NT val = psea_level_pressure[track_start + j];
-                min_val = val < min_val ? val : min_val;
+                unsigned long q = track_start + j;
+                NT val = psea_level_pressure[q];
+                bool min_changed = val < min_val;
+                min_val = min_changed ? val : min_val;
+                min_id = min_changed ? q : min_id;
             }
 
             pmin_sea_level_pressure[i] = min_val;
+            pmin_sea_level_pressure_id[i] = min_id;
         }
+        )
+
+    // location of the min sea level pressure
+    p_teca_variant_array min_sea_level_pressure_x = x->new_instance(n_tracks);
+    p_teca_variant_array min_sea_level_pressure_y = x->new_instance(n_tracks);
+    TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+        start_x.get(),
+
+        const NT *px = static_cast<const TT*>(x.get())->get();
+        const NT *py = static_cast<const TT*>(y.get())->get();
+
+        NT *pmin_sea_level_pressure_x
+            = static_cast<TT*>(min_sea_level_pressure_x.get())->get();
+
+        NT *pmin_sea_level_pressure_y
+            = static_cast<TT*>(min_sea_level_pressure_y.get())->get();
+
+        for (size_t i = 0; i < n_tracks; ++i)
+        {
+            unsigned long q = pmin_sea_level_pressure_id[i];
+            pmin_sea_level_pressure_x[i] = px[q];
+            pmin_sea_level_pressure_y[i] = py[q];
+        }
+        )
+
+    // time of min sea level pressure
+    p_teca_variant_array min_sea_level_pressure_t = time->new_instance(n_tracks);
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
+        min_sea_level_pressure_t.get(),
+        const NT *ptime = static_cast<const TT*>(time.get())->get();
+
+        NT *pmin_sea_level_pressure_t
+            = static_cast<TT*>(min_sea_level_pressure_t.get())->get();
+
+        for (size_t i = 0; i < n_tracks; ++i)
+        {
+            unsigned long q = pmin_sea_level_pressure_id[i];
+            pmin_sea_level_pressure_t[i] = ptime[q];
+        }
+        )
+
+    // ACE (accumulated cyclonigc energy)
+    // The ACE of a season is calculated by summing the squares of the
+    // estimated maximum sustained velocity of every active tropical storm
+    // (wind speed 35 knots (65 km/h) or higher), at six-hour intervals. Since
+    // the calculation is sensitive to the starting point of the six-hour
+    // intervals, the convention is to use 0000, 0600, 1200, and 1800 UTC. If
+    // any storms of a season happen to cross years, the storm's ACE counts for
+    // the previous year.[2] The numbers are usually divided by 10,000 to make
+    // them more manageable. The unit of ACE is 10^4 kn^2, and for use as an
+    // index the unit is assumed. Thus:
+    // {\displaystyle {\text{ACE}}=10^{-4}\sum v_{\max }^{2}}
+    // {\text{ACE}}=10^{{-4}}\sum v_{\max }^{2} where vmax is estimated
+    // sustained wind speed in knots.
+    p_teca_variant_array ACE = surface_wind->new_instance(n_tracks);
+
+    NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
+        time.get(), _T,
+
+        const NT_T *ptime = static_cast<TT_T*>(time.get())->get();
+
+        NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+            ACE.get(), _W,
+
+            NT_W *pACE = static_cast<TT_W*>(ACE.get())->get();
+
+            const NT_W *psurface_wind =
+                static_cast<const TT_W*>(surface_wind.get())->get();
+
+            for (size_t i = 0; i < n_tracks; ++i)
+            {
+                unsigned long track_start = track_starts[i];
+                unsigned long npts = track_starts[i+1] - track_start - 1;
+
+                pACE[i] = NT_W();
+
+                // for now skip the first and last track point
+                // could handle these as a special case if needed
+                for (size_t j = 1; j < npts; ++j)
+                {
+                    unsigned long id = track_start + j;
+                    NT_W dt = ptime[id+1] - ptime[id-1];
+                    NT_W w = psurface_wind[id];
+                    pACE[i] += w < teca_saffir_simpson::get_lower_bound_mps<NT_W>(0)
+                        ? NT_W() : w*w*dt;
+                }
+
+                // correct the units
+                // wind speed conversion : 1 m/s = 1.943844 kn
+                // time unit conversions: 24 hours per day, 6 hours per time unit,
+                // and we sample time in days at t +/- 1/2 => dt*24/2/6 => dt*2
+                // by convention scale by 10^-4
+                pACE[i] *= NT_W(2.0)*NT_W(3.778529496)*NT_W(1.0e-4);
+            }
+            )
         )
 
     // cyclogenisis, determine region of origin
@@ -579,8 +639,15 @@ const_p_teca_dataset teca_tc_classify::execute(
     out_table->append_column("duration", duration);
     out_table->append_column("length", length);
     out_table->append_column("category", category);
+    out_table->append_column("ACE", ACE);
     out_table->append_column("max_surface_wind", max_surface_wind);
+    out_table->append_column("max_surface_wind_x", max_surface_wind_x);
+    out_table->append_column("max_surface_wind_y", max_surface_wind_y);
+    out_table->append_column("max_surface_wind_t", max_surface_wind_t);
     out_table->append_column("min_sea_level_pressure", min_sea_level_pressure);
+    out_table->append_column("min_sea_level_pressure_x", min_sea_level_pressure_x);
+    out_table->append_column("min_sea_level_pressure_y", min_sea_level_pressure_y);
+    out_table->append_column("min_sea_level_pressure_t", min_sea_level_pressure_t);
     out_table->append_column("region_id", region_id);
     out_table->append_column("region_name", region_name);
     out_table->append_column("region_long_name", region_long_name);

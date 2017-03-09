@@ -10,14 +10,7 @@
 class teca_mesh : public teca_dataset
 {
 public:
-    virtual ~teca_mesh() = default;
-
-    // get metadata
-    teca_metadata &get_metadata()
-    { return m_impl->metadata; }
-
-    const teca_metadata &get_metadata() const
-    { return m_impl->metadata; }
+    ~teca_mesh() = default;
 
     // get point centered data
     p_teca_array_collection get_point_arrays()
@@ -55,27 +48,24 @@ public:
     { return m_impl->info_arrays; }
 
     // return true if the dataset is empty.
-    virtual bool empty() const noexcept override;
-
-    // copy metadata. always a deep copy.
-    virtual void copy_metadata(const const_p_teca_dataset &) override;
+    bool empty() const noexcept override;
 
     // copy data and metadata. shallow copy uses reference
     // counting, while copy duplicates the data.
-    virtual void copy(const const_p_teca_dataset &) override;
-    virtual void shallow_copy(const p_teca_dataset &) override;
+    void copy(const const_p_teca_dataset &) override;
+    void shallow_copy(const p_teca_dataset &) override;
 
     // swap internals of the two objects
-    virtual void swap(p_teca_dataset &) override;
+    void swap(p_teca_dataset &) override;
 
     // serialize the dataset to/from the given stream
     // for I/O or communication
-    virtual void to_stream(teca_binary_stream &) const override;
-    virtual void from_stream(teca_binary_stream &) override;
+    void to_stream(teca_binary_stream &) const override;
+    void from_stream(teca_binary_stream &) override;
 
     // stream to/from human readable representation
-    virtual void to_stream(std::ostream &) const override;
-    virtual void from_stream(std::istream &) override {}
+    void to_stream(std::ostream &) const override;
+    void from_stream(std::istream &) override {}
 
 protected:
     teca_mesh();
@@ -85,7 +75,6 @@ public:
     {
         impl_t();
         //
-        teca_metadata metadata;
         p_teca_array_collection point_arrays;
         p_teca_array_collection cell_arrays;
         p_teca_array_collection edge_arrays;

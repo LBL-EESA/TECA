@@ -1,5 +1,8 @@
 #include "teca_cartesian_mesh.h"
 
+#include <iostream>
+using std::endl;
+
 // --------------------------------------------------------------------------
 teca_cartesian_mesh::teca_cartesian_mesh()
     : m_coordinate_arrays(teca_array_collection::New())
@@ -40,15 +43,18 @@ void teca_cartesian_mesh::shallow_copy(const p_teca_dataset &dataset)
 // --------------------------------------------------------------------------
 void teca_cartesian_mesh::copy_metadata(const const_p_teca_dataset &dataset)
 {
-    this->teca_mesh::copy_metadata(dataset);
-
     const_p_teca_cartesian_mesh other
         = std::dynamic_pointer_cast<const teca_cartesian_mesh>(dataset);
 
     if (!other)
         throw std::bad_cast();
 
-    m_coordinate_arrays = other->m_coordinate_arrays;
+    if (this == other.get())
+        return;
+
+    this->teca_mesh::copy_metadata(dataset);
+
+    m_coordinate_arrays->copy(other->m_coordinate_arrays);
 }
 
 // --------------------------------------------------------------------------
@@ -85,5 +91,7 @@ void teca_cartesian_mesh::from_stream(teca_binary_stream &s)
 void teca_cartesian_mesh::to_stream(std::ostream &s) const
 {
     this->teca_mesh::to_stream(s);
-    //m_coordinate_arrays->to_stream(s);
+    s << "coordinate arrays = {";
+    m_coordinate_arrays->to_stream(s);
+    s << "}" << endl;
 }

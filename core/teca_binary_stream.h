@@ -34,23 +34,35 @@ public:
     void clear() noexcept;
 
     // Alolocate n_bytes for the stream.
-    void resize(size_t n_bytes);
+    void resize(unsigned long n_bytes);
 
     // ensures space for n_bytes more to the stream.
-    void grow(size_t n_bytes);
+    void grow(unsigned long n_bytes);
 
     // Get a pointer to the stream internal representation.
     unsigned char *get_data() noexcept
     { return m_data; }
 
+    const unsigned char *get_data() const noexcept
+    { return m_data; }
+
     // Get the size of the valid data in the stream.
     // note: the internal buffer may be larger.
-    size_t size() const noexcept
-    { return m_data_p - m_data; }
+    unsigned long size() const noexcept
+    { return m_write_p - m_data; }
 
-    // Set the stream position to the head of the stream
-    void rewind() noexcept
-    { m_data_p = m_data; }
+    // Get the sise of the internal buffer allocated
+    // for the stream.
+    unsigned long capacity() const noexcept
+    { return m_size; }
+
+    // set the stream position to n bytes from the head
+    // of the stream
+    void set_read_pos(unsigned long n) noexcept
+    { m_read_p = m_data + n; }
+
+    void set_write_pos(unsigned long n) noexcept
+    { m_write_p = m_data + n; }
 
     // swap the two objects
     void swap(teca_binary_stream &other) noexcept;
@@ -59,8 +71,8 @@ public:
     template <typename T> void pack(T *val);
     template <typename T> void pack(const T &val);
     template <typename T> void unpack(T &val);
-    template <typename T> void pack(const T *val, size_t n);
-    template <typename T> void unpack(T *val, size_t n);
+    template <typename T> void pack(const T *val, unsigned long n);
+    template <typename T> void unpack(T *val, unsigned long n);
 
     // specializations
     void pack(const std::string &str);
@@ -72,6 +84,9 @@ public:
     template<typename T> void pack(const std::vector<T> &v);
     template<typename T> void unpack(std::vector<T> &v);
 
+    // broadcast the stream from the root process to all other processes
+    int broadcast(int root_rank=0);
+
 private:
     // re-allocation size
     static
@@ -79,9 +94,10 @@ private:
     { return 512; }
 
 private:
-    size_t m_size;
+    unsigned long m_size;
     unsigned char *m_data;
-    unsigned char *m_data_p;
+    unsigned char *m_read_p;
+    unsigned char *m_write_p;
 };
 
 //-----------------------------------------------------------------------------
@@ -97,44 +113,44 @@ template <typename T>
 void teca_binary_stream::pack(const T &val)
 {
     this->grow(sizeof(T));
-    *((T *)m_data_p) = val;
-    m_data_p += sizeof(T);
+    *((T *)m_write_p) = val;
+    m_write_p += sizeof(T);
 }
 
 //-----------------------------------------------------------------------------
 template <typename T>
 void teca_binary_stream::unpack(T &val)
 {
-    val = *((T *)m_data_p);
-    m_data_p += sizeof(T);
+    val = *((T *)m_read_p);
+    m_read_p += sizeof(T);
 }
 
 //-----------------------------------------------------------------------------
 template <typename T>
-void teca_binary_stream::pack(const T *val, size_t n)
+void teca_binary_stream::pack(const T *val, unsigned long n)
 {
-    size_t n_bytes = n*sizeof(T);
+    unsigned long n_bytes = n*sizeof(T);
     this->grow(n_bytes);
 
-    size_t nn = n*sizeof(T);
-    memcpy(m_data_p, val, nn);
-    m_data_p += nn;
+    unsigned long nn = n*sizeof(T);
+    memcpy(m_write_p, val, nn);
+    m_write_p += nn;
 }
 
 //-----------------------------------------------------------------------------
 template <typename T>
-void teca_binary_stream::unpack(T *val, size_t n)
+void teca_binary_stream::unpack(T *val, unsigned long n)
 {
-    size_t nn = n*sizeof(T);
-    memcpy(val, m_data_p, nn);
-    m_data_p += nn;
+    unsigned long nn = n*sizeof(T);
+    memcpy(val, m_read_p, nn);
+    m_read_p += nn;
 }
 
 //-----------------------------------------------------------------------------
 inline
 void teca_binary_stream::pack(const std::string &str)
 {
-    size_t slen = str.size();
+    unsigned long slen = str.size();
     this->pack(slen);
     this->pack(str.c_str(), slen);
 }
@@ -143,22 +159,22 @@ void teca_binary_stream::pack(const std::string &str)
 inline
 void teca_binary_stream::unpack(std::string &str)
 {
-    size_t slen = 0;
+    unsigned long slen = 0;
     this->unpack(slen);
 
     str.resize(slen);
-    str.assign(reinterpret_cast<char*>(m_data_p), slen);
+    str.assign(reinterpret_cast<char*>(m_read_p), slen);
 
-    m_data_p += slen;
+    m_read_p += slen;
 }
 
 //-----------------------------------------------------------------------------
 inline
 void teca_binary_stream::pack(const std::vector<std::string> &v)
 {
-    size_t vlen = v.size();
+    unsigned long vlen = v.size();
     this->pack(vlen);
-    for (size_t i = 0; i < vlen; ++i)
+    for (unsigned long i = 0; i < vlen; ++i)
         this->pack(v[i]);
 }
 
@@ -166,11 +182,11 @@ void teca_binary_stream::pack(const std::vector<std::string> &v)
 inline
 void teca_binary_stream::unpack(std::vector<std::string> &v)
 {
-    size_t vlen;
+    unsigned long vlen;
     this->unpack(vlen);
 
     v.resize(vlen);
-    for (size_t i = 0; i < vlen; ++i)
+    for (unsigned long i = 0; i < vlen; ++i)
         this->unpack(v[i]);
 }
 
@@ -178,7 +194,7 @@ void teca_binary_stream::unpack(std::vector<std::string> &v)
 template<typename T>
 void teca_binary_stream::pack(const std::vector<T> &v)
 {
-    const size_t vlen = v.size();
+    const unsigned long vlen = v.size();
     this->pack(vlen);
     this->pack(v.data(), vlen);
 }
@@ -187,7 +203,7 @@ void teca_binary_stream::pack(const std::vector<T> &v)
 template<typename T>
 void teca_binary_stream::unpack(std::vector<T> &v)
 {
-    size_t vlen;
+    unsigned long vlen;
     this->unpack(vlen);
 
     v.resize(vlen);

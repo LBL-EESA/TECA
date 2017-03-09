@@ -116,6 +116,7 @@ class teca_tc_stats:
             wind = in_table.get_column('max_surface_wind').as_array()
             press = in_table.get_column('min_sea_level_pressure').as_array()
             start_y = in_table.get_column('start_y').as_array()
+            ACE = in_table.get_column('ACE').as_array()
 
             # organize the data by year month etc...
             annual_cat = []
@@ -124,6 +125,7 @@ class teca_tc_stats:
             annual_press = []
             annual_dur = []
             annual_len = []
+            annual_ACE = []
             by_month = []
             by_region = []
             totals = []
@@ -144,6 +146,7 @@ class teca_tc_stats:
                 annual_press.append(press[ids])
                 annual_dur.append(duration[ids])
                 annual_len.append(length[ids])
+                annual_ACE.append(ACE[ids])
 
                 # global totals
                 tmp = [annual_count[-1]]
@@ -220,8 +223,9 @@ class teca_tc_stats:
 
             # now plot the organized data in various ways
             n_cols = 3
-            n_left = (n_year + 1)%n_cols
-            n_rows = (n_year + 1)/n_cols + (1 if n_left else 0)
+            n_plots = n_year + 1
+            n_left = n_plots%n_cols
+            n_rows = n_plots/n_cols + (1 if n_left else 0)
             wid = 2.5*n_cols
             ht = 2.0*n_rows
 
@@ -264,7 +268,7 @@ class teca_tc_stats:
                     ax.set_ylim([0, max_y*1.05])
                 if (q%n_cols == 0):
                     plt.ylabel('Count', fontweight='normal', fontsize=10)
-                if (q >= n_rows*(n_cols - 1) - n_left):
+                if (q >= (n_year - n_cols)):
                     plt.xlabel('Category', fontweight='normal', fontsize=10)
                 plt.title('%d'%(yy), fontweight='bold', fontsize=11)
                 plt.grid(True)
@@ -322,10 +326,10 @@ class teca_tc_stats:
 
                 plt.xticks(np.arange(1,13,1))
                 if state.rel_axes:
-                    ax.set_ylim([0, max_y+1])
+                    ax.set_ylim([0, 1.05*max_y])
                 if (q%n_cols == 0):
                     plt.ylabel('Count', fontweight='normal', fontsize=10)
-                if (q >= n_rows*(n_cols - 1) - n_left):
+                if (q >= (n_year - n_cols)):
                     plt.xlabel('Month', fontweight='normal', fontsize=10)
                 plt.title('%d'%(yy), fontweight='bold', fontsize=11)
                 plt.grid(True)
@@ -388,10 +392,10 @@ class teca_tc_stats:
 
                 plt.xticks(np.arange(0,n_reg,1), rotation='vertical')
                 if state.rel_axes:
-                    ax.set_ylim([0, max_y+1])
+                    ax.set_ylim([0, 1.05*max_y])
                 if (q%n_cols == 0):
                     plt.ylabel('Count', fontweight='normal', fontsize=10)
-                if (q >= n_rows*(n_cols - 1) - n_left):
+                if (q >= (n_year - n_cols)):
                     plt.xlabel('Region', fontweight='normal', fontsize=10)
                 plt.title('%d'%(yy), fontweight='bold', fontsize=11)
                 plt.grid(True)
@@ -406,7 +410,7 @@ class teca_tc_stats:
             plt.axis('off')
 
             plt.suptitle('Regional Breakdown', fontweight='bold')
-            plt.subplots_adjust(hspace=0.6, top=0.92)
+            plt.subplots_adjust(wspace=0.3, hspace=0.6, top=0.92)
 
             plt.savefig('%s_regional_break_down_%d.png'%( \
                 state.basename, page_no), dpi=state.dpi)
@@ -417,36 +421,44 @@ class teca_tc_stats:
             wid = n_year*0.65
             dist_fig.set_size_inches(wid, 9.0)
 
-            ax = plt.subplot(4,1,1)
+            ax = plt.subplot(5,1,1)
             plt.boxplot(annual_wind, labels=uyear)
             plt.xlabel('Year')
             plt.ylabel('ms^-1')
-            plt.title('Cyclone Max Surface Wind', fontweight='bold')
+            plt.title('Peak Instantaneous Wind', fontweight='bold')
             ax.get_yaxis().set_label_coords(-0.1,0.5)
 
-            ax = plt.subplot(4,1,2)
+            ax = plt.subplot(5,1,2)
             plt.boxplot(annual_press, labels=uyear)
             plt.xlabel('Year')
             plt.ylabel('Pa')
-            plt.title('Cyclone Min Sea Level Pressure', fontweight='bold')
+            plt.title('Min Instantaneous Pressure', fontweight='bold')
             ax.get_yaxis().set_label_coords(-0.1,0.5)
 
-            ax = plt.subplot(4,1,3)
+            ax = plt.subplot(5,1,3)
             plt.boxplot(annual_dur, labels=uyear)
             plt.xlabel('Year')
             plt.ylabel('%s'%(time_units.split()[0]))
             plt.title('Track Duration', fontweight='bold')
             ax.get_yaxis().set_label_coords(-0.1,0.5)
 
-            ax = plt.subplot(4,1,4)
+            ax = plt.subplot(5,1,4)
             plt.boxplot(annual_len, labels=uyear)
             plt.xlabel('Year')
             plt.ylabel('km')
             plt.title('Track Length', fontweight='bold')
             ax.get_yaxis().set_label_coords(-0.1,0.5)
 
+            ax = plt.subplot(5,1,5)
+            #plt.axhline(82,color='k',linestyle='--',alpha=0.25)
+            plt.boxplot(annual_ACE, labels=uyear)
+            plt.xlabel('Year')
+            plt.ylabel('10^4 kn^2')
+            plt.title('ACE', fontweight='bold')
+            ax.get_yaxis().set_label_coords(-0.1,0.5)
+
             plt.suptitle('Distributions', fontweight='bold')
-            plt.subplots_adjust(hspace=0.6, top=0.92)
+            plt.subplots_adjust(hspace=0.72, top=0.93)
 
             plt.savefig('%s_distribution_%d.png'%( \
                 state.basename, page_no), dpi=state.dpi)
@@ -463,8 +475,9 @@ class teca_tc_stats:
             for t in tmp:
                 ynms.append('%02d'%t)
 
-            n_left = n_reg%n_cols
-            n_rows = n_reg/n_cols + (1 if n_left else 0)
+            n_plots = n_reg + 1
+            n_left = n_plots%n_cols
+            n_rows = n_plots/n_cols + (1 if n_left else 0)
             wid = 2.5*n_cols
             ht = 2.0*n_rows
             reg_t_fig.set_size_inches(wid, ht)
@@ -480,13 +493,17 @@ class teca_tc_stats:
                 reg_by_t.append(reg)
                 p += 1
 
-            max_y = -1
+            max_y_reg = -1
+            max_y_hem = -1
             q = 0
             while q < n_reg:
                 dat = reg_by_t[q]
                 p = 0
                 while p < n_year:
-                    max_y = max(max_y, sum(dat[p]))
+                    if q < n_reg-3:
+                        max_y_reg = max(max_y_reg, sum(dat[p]))
+                    elif q < n_reg-1:
+                        max_y_hem = max(max_y_hem, sum(dat[p]))
                     p += 1
                 q += 1
 
@@ -519,11 +536,11 @@ class teca_tc_stats:
                     c += 1
 
                 plt.xticks(np.arange(0,n_year,1), rotation='vertical')
-                if state.rel_axes:
-                    ax.set_ylim([0, max_y+1])
+                if state.rel_axes and q < n_reg - 1:
+                    ax.set_ylim([0, 1.05*(max_y_reg if q < n_reg - 3 else max_y_hem)])
                 if (q%n_cols == 0):
                     plt.ylabel('Count', fontweight='normal', fontsize=10)
-                if (q >= n_reg-n_cols):
+                if (q >= (n_reg - n_cols)):
                     plt.xlabel('Year', fontweight='normal', fontsize=10)
                 plt.title('%s'%(rnms[q]), fontweight='bold', fontsize=11)
                 plt.grid(True)
@@ -531,7 +548,7 @@ class teca_tc_stats:
                 q += 1
 
             plt.suptitle('Regional Trend', fontweight='bold')
-            plt.subplots_adjust(hspace=0.6, top=0.92)
+            plt.subplots_adjust(wspace=0.3, hspace=0.6, top=0.92)
 
             # add the color map legend
             plt.subplot(n_rows, n_cols, q+1)

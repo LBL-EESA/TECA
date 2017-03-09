@@ -8,21 +8,27 @@
 #include "teca_cartesian_mesh_regrid.h"
 #include "teca_connected_components.h"
 #include "teca_dataset_diff.h"
+#include "teca_dataset_capture.h"
+#include "teca_dataset_source.h"
 #include "teca_derived_quantity.h"
 #include "teca_derived_quantity_numerics.h"
 #include "teca_descriptive_statistics.h"
-#include "teca_event_filter.h"
+#include "teca_evaluate_expression.h"
+#include "teca_table_region_mask.h"
 #include "teca_l2_norm.h"
 #include "teca_mask.h"
 #include "teca_programmable_algorithm.h"
 #include "teca_programmable_reduce.h"
+#include "teca_saffir_simpson.h"
 #include "teca_table_calendar.h"
 #include "teca_table_sort.h"
 #include "teca_table_reduce.h"
+#include "teca_table_remove_rows.h"
 #include "teca_table_to_stream.h"
 #include "teca_tc_candidates.h"
-#include "teca_tc_trajectory.h"
 #include "teca_tc_classify.h"
+#include "teca_tc_trajectory.h"
+#include "teca_tc_wind_radii.h"
 #include "teca_temporal_average.h"
 #include "teca_vorticity.h"
 #include "teca_py_object.h"
@@ -267,21 +273,18 @@
 %include "teca_dataset_diff.h"
 
 /***************************************************************************
- event_filter
+ table_region_mask
  ***************************************************************************/
-%ignore teca_event_filter::shared_from_this;
-%shared_ptr(teca_event_filter)
-%ignore teca_event_filter::operator=;
-%include "teca_event_filter.h"
-%extend teca_event_filter
+%ignore teca_table_region_mask::shared_from_this;
+%shared_ptr(teca_table_region_mask)
+%ignore teca_table_region_mask::operator=;
+%include "teca_table_region_mask.h"
+%extend teca_table_region_mask
 {
     TECA_PY_ALGORITHM_VECTOR_PROPERTY(unsigned long, region_size)
     TECA_PY_ALGORITHM_VECTOR_PROPERTY(unsigned long, region_start);
     TECA_PY_ALGORITHM_VECTOR_PROPERTY(double, region_x_coordinate);
     TECA_PY_ALGORITHM_VECTOR_PROPERTY(double, region_y_coordinate);
-    TECA_PY_ALGORITHM_VECTOR_PROPERTY(int, region_id);
-    TECA_PY_ALGORITHM_VECTOR_PROPERTY(std::string, region_name);
-    TECA_PY_ALGORITHM_VECTOR_PROPERTY(std::string, region_long_name);
 }
 
 /***************************************************************************
@@ -299,6 +302,13 @@ from teca_tc_trajectory_scalars import *
 %}
 
 /***************************************************************************
+ tc_wind_radii_stats
+ ***************************************************************************/
+%pythoncode %{
+from teca_tc_wind_radii_stats import *
+%}
+
+/***************************************************************************
  binary_segmentation
  ***************************************************************************/
 %ignore teca_binary_segmentation::shared_from_this;
@@ -313,3 +323,69 @@ from teca_tc_trajectory_scalars import *
 %shared_ptr(teca_apply_binary_mask)
 %ignore teca_apply_binary_mask::operator=;
 %include "teca_apply_binary_mask.h"
+
+/***************************************************************************
+ Saffir-Simpson utility namespace
+ ***************************************************************************/
+%inline %{
+struct teca_tc_saffir_simpson
+{
+    static int classify_mps(double w)
+    { return teca_saffir_simpson::classify_mps(w); }
+
+    static double get_lower_bound_mps(int c)
+    { return teca_saffir_simpson::get_lower_bound_mps<double>(c); }
+
+    static double get_upper_bound_mps(int c)
+    { return teca_saffir_simpson::get_upper_bound_mps<double>(c); }
+
+    static int classify_kmph(double w)
+    { return teca_saffir_simpson::classify_kmph(w); }
+
+    static double get_lower_bound_kmph(int c)
+    { return teca_saffir_simpson::get_lower_bound_kmph<double>(c); }
+
+    static double get_upper_bound_kmph(int c)
+    { return teca_saffir_simpson::get_upper_bound_kmph<double>(c); }
+};
+%}
+
+/***************************************************************************
+ evaluate_expression
+ ***************************************************************************/
+%ignore teca_evaluate_expression::shared_from_this;
+%shared_ptr(teca_evaluate_expression)
+%ignore teca_evaluate_expression::operator=;
+%include "teca_evaluate_expression.h"
+
+/***************************************************************************
+ table_remove_rows
+ ***************************************************************************/
+%ignore teca_table_remove_rows::shared_from_this;
+%shared_ptr(teca_table_remove_rows)
+%ignore teca_table_remove_rows::operator=;
+%include "teca_table_remove_rows.h"
+
+/***************************************************************************
+ tc_wind_radii
+ ***************************************************************************/
+%ignore teca_tc_wind_radii::shared_from_this;
+%shared_ptr(teca_tc_wind_radii)
+%ignore teca_tc_wind_radii::operator=;
+%include "teca_tc_wind_radii.h"
+
+/***************************************************************************
+ dataset_source
+ ***************************************************************************/
+%ignore teca_dataset_source::shared_from_this;
+%shared_ptr(teca_dataset_source)
+%ignore teca_dataset_source::operator=;
+%include "teca_dataset_source.h"
+
+/***************************************************************************
+ dataset_capture
+ ***************************************************************************/
+%ignore teca_dataset_capture::shared_from_this;
+%shared_ptr(teca_dataset_capture)
+%ignore teca_dataset_capture::operator=;
+%include "teca_dataset_capture.h"

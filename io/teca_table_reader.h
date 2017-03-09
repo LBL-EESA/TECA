@@ -54,6 +54,26 @@ public:
     // of the source dataset. By default this is off.
     TECA_ALGORITHM_PROPERTY(int, generate_original_ids)
 
+    // name of columns to copy directly into metadata
+    TECA_ALGORITHM_VECTOR_PROPERTY(std::string, metadata_column_name)
+
+    // keys that identify metadata columns
+    TECA_ALGORITHM_VECTOR_PROPERTY(std::string, metadata_column_key)
+
+    // add a metadata column with the given key
+    void add_metadata_column(const std::string &column, const std::string &key)
+    {
+        this->append_metadata_column_name(column);
+        this->append_metadata_column_key(key);
+    }
+
+    // removes all metadata columns
+    void clear_metadata_columns()
+    {
+        this->clear_metadata_column_names();
+        this->clear_metadata_column_keys();
+    }
+
 protected:
     teca_table_reader();
 
@@ -64,13 +84,16 @@ private:
     const_p_teca_dataset execute(unsigned int port,
         const std::vector<const_p_teca_dataset> &input_data,
         const teca_metadata &request) override;
-    p_teca_table read_table(const std::string &file_name) const;
+
+    void set_modified() override;
     void clear_cached_metadata();
 
 private:
     std::string file_name;
     std::string index_column;
     int generate_original_ids;
+    std::vector<std::string> metadata_column_names;
+    std::vector<std::string> metadata_column_keys;
 
     struct teca_table_reader_internals;
     teca_table_reader_internals *internals;

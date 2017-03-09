@@ -268,3 +268,81 @@ teca_add_test(test_table_reader_distribute_mpi_threads
     "step" 0 -1 ${HALF_CORES}
     FEATURES ${TECA_HAS_MPI}
     REQ_TECA_DATA)
+
+teca_add_test(test_tc_wind_radii_serial
+    EXEC_NAME test_tc_wind_radii
+    SOURCES test_tc_wind_radii.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_tc_wind_radii "${TECA_DATA_ROOT}/tracks_1990s_3hr_mdd_4800.bin"
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2_1990s/.*\\.nc$" "${TECA_DATA_ROOT}/test_tc_wind_radii.bin"
+    "!(((track_id==4)&&(surface_wind*3.6d>=177.0d))||((track_id==191)&&(surface_wind*3.6d>=249.0d))||((track_id==523)&&(3.6d*surface_wind>=209.0d)))"
+    "32" "1" "1" "0" "-1"
+    REQ_TECA_DATA)
+
+teca_add_test(test_tc_wind_radii_mpi
+    COMMAND ${MPIEXEC} -n ${TECA_TEST_CORES} test_tc_wind_radii "${TECA_DATA_ROOT}/tracks_1990s_3hr_mdd_4800.bin"
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2_1990s/.*\\.nc$" "${TECA_DATA_ROOT}/test_tc_wind_radii.bin"
+    "!(((track_id==4)&&(surface_wind*3.6d>=177.0d))||((track_id==191)&&(surface_wind*3.6d>=249.0d))||((track_id==523)&&(3.6d*surface_wind>=209.0d)))"
+    "32" "1" "1" "0" "-1"
+    FEATURES ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(test_tc_wind_radii_mpi_threads
+    COMMAND ${MPIEXEC} -n ${HALF_CORES} test_tc_wind_radii "${TECA_DATA_ROOT}/tracks_1990s_3hr_mdd_4800.bin"
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2_1990s/.*\\.nc$" "${TECA_DATA_ROOT}/test_tc_wind_radii.bin"
+    "!(((track_id==4)&&(surface_wind*3.6d>=177.0d))||((track_id==191)&&(surface_wind*3.6d>=249.0d))||((track_id==523)&&(3.6d*surface_wind>=209.0d)))"
+    "32" "1" ${HALF_CORES} "0" "-1"
+    FEATURES ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(test_tc_wind_radii_threads
+    COMMAND test_tc_wind_radii "${TECA_DATA_ROOT}/tracks_1990s_3hr_mdd_4800.bin"
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2_1990s/.*\\.nc$" "${TECA_DATA_ROOT}/test_tc_wind_radii.bin"
+    "!(((track_id==4)&&(surface_wind*3.6d>=177.0d))||((track_id==191)&&(surface_wind*3.6d>=249.0d))||((track_id==523)&&(3.6d*surface_wind>=209.0d)))"
+    "32" "1" ${TECA_TEST_CORES} "0" "-1"
+
+    REQ_TECA_DATA)
+teca_add_test(test_type_select
+    SOURCES test_type_select.cpp
+    LIBS teca_core teca_alg ${teca_test_link}
+    COMMAND test_type_select)
+
+teca_add_test(test_parser
+    SOURCES test_parser.cpp
+    LIBS teca_core teca_alg ${teca_test_link}
+    COMMAND test_parser)
+
+teca_add_test(test_variant_array_operator
+    SOURCES test_variant_array_operator.cpp
+    LIBS teca_core teca_alg ${teca_test_link}
+    COMMAND test_variant_array_operator)
+
+teca_add_test(test_evaluate_expression_table
+    SOURCES test_evaluate_expression_table.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_evaluate_expression_table "${TECA_DATA_ROOT}/tracks_1990s_3hr_mdd_4800.bin"
+    "${TECA_DATA_ROOT}/test_evaluate_expression_table.bin"
+    "!((track_id==191)&&((surface_wind*3.6d>=209.0d)&&(surface_wind*3.6d<249.0d)))"
+    REQ_TECA_DATA)
+
+teca_add_test(test_table_remove_rows_track_id
+    EXEC_NAME test_table_remove_rows
+    SOURCES test_table_remove_rows.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_table_remove_rows "${TECA_DATA_ROOT}/tracks_1990s_3hr_mdd_4800.bin"
+    "${TECA_DATA_ROOT}/tracks_1990s_3hr_mdd_4800_median_in_cat.bin"
+    "(track_id==488)||(track_id==186)||(track_id==578)||(track_id==4)||(track_id==523)||(track_id==191)"
+    REQ_TECA_DATA)
+
+teca_add_test(test_table_remove_rows_cat_4
+    COMMAND test_table_remove_rows "${TECA_DATA_ROOT}/tracks_1990s_3hr_mdd_4800.bin"
+    "${TECA_DATA_ROOT}/tracks_1990s_3hr_mdd_4800_cat_4.bin"
+    "!((surface_wind*3.6d>=209.0d)&&(surface_wind*3.6d<249.0d))"
+    REQ_TECA_DATA)
+
+teca_add_test(test_table_region_mask
+    SOURCES test_table_region_mask.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_table_region_mask "${TECA_DATA_ROOT}/tracks_1990s_3hr_mdd_4800.bin"
+    "${TECA_DATA_ROOT}/test_table_region_mask.bin" "N Atlantic"
+    REQ_TECA_DATA)

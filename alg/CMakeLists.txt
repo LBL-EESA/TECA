@@ -1,6 +1,3 @@
-cmake_minimum_required(VERSION 2.8)
-cmake_policy(SET CMP0022 NEW)
-
 project(teca_alg)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}
@@ -17,27 +14,36 @@ set(teca_alg_cxx_srcs
     teca_cartesian_mesh_subset.cxx
     teca_cartesian_mesh_regrid.cxx
     teca_connected_components.cxx
+    teca_dataset_capture.cxx
+    teca_dataset_source.cxx
     teca_derived_quantity.cxx
     teca_descriptive_statistics.cxx
-    teca_event_filter.cxx
+    teca_evaluate_expression.cxx
+    teca_geography.cxx
     teca_l2_norm.cxx
     teca_mask.cxx
+    teca_parser.cxx
     teca_programmable_algorithm.cxx
     teca_programmable_reduce.cxx
     teca_table_calendar.cxx
     teca_table_reduce.cxx
+    teca_table_region_mask.cxx
+    teca_table_remove_rows.cxx
     teca_table_sort.cxx
     teca_table_to_stream.cxx
     teca_tc_candidates.cxx
     teca_tc_classify.cxx
+    teca_tc_wind_radii.cxx
     teca_tc_trajectory.cxx
     teca_temporal_average.cxx
+    teca_variant_array_operand.cxx
     teca_vorticity.cxx
     teca_dataset_diff.cxx
     )
 
 teca_py_install(lib
     teca_tc_stats.py
+    teca_tc_wind_radii_stats.py
     teca_tc_trajectory_scalars.py
     )
 

@@ -1,4 +1,5 @@
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.0)
+cmake_policy(SET CMP0028 NEW)
 
 project(teca C CXX Fortran)
 
@@ -147,6 +148,17 @@ else()
     message(WARNING "Boost is required for command line applications")
 endif()
 set(TECA_HAS_BOOST ${tmp} CACHE BOOL "Boost features")
+
+#configure for OpenSSL
+set(tmp OFF)
+find_package(OpenSSL QUIET)
+if (OpenSSL_FOUND AND ((DEFINED TECA_HAS_OPENSSL AND TECA_HAS_OPENSSL) OR (NOT DEFINED TECA_HAS_OPENSSL)))
+    message(STATUS "OpenSSL features -- enabled")
+    set(tmp ON)
+else()
+    message(STATUS "OpenSSL fetaures -- not found. set OPENSSL_ROOT_DIR to enable.")
+endif()
+set(TECA_HAS_OPENSSL ${tmp} CACHE BOOL "OpenSSL features")
 
 # configure for Python
 set(tmp OFF)

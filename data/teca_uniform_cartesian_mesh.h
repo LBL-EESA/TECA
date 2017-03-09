@@ -15,23 +15,20 @@ public:
     virtual ~teca_uniform_cartesian_mesh() = default;
 
     // set/get metadata
-    TECA_DATASET_METADATA(time, double, 1, m_impl->metadata)
-    TECA_DATASET_METADATA(time_step, unsigned long, 1, m_impl->metadata)
-    TECA_DATASET_METADATA(spacing, double, 3, m_impl->metadata)
-    TECA_DATASET_METADATA(origin, double, 3, m_impl->metadata)
-    TECA_DATASET_METADATA(extent, unsigned long, 6, m_impl->metadata)
-    TECA_DATASET_METADATA(local_extent, unsigned long, 6, m_impl->metadata)
+    TECA_DATASET_METADATA(time, double, 1)
+    TECA_DATASET_METADATA(time_step, unsigned long, 1)
+    TECA_DATASET_METADATA(spacing, double, 3)
+    TECA_DATASET_METADATA(origin, double, 3)
+    TECA_DATASET_METADATA(extent, unsigned long, 6)
+    TECA_DATASET_METADATA(local_extent, unsigned long, 6)
 
     // copy data and metadata. shallow copy uses reference
     // counting, while copy duplicates the data.
-    virtual void copy(const const_p_teca_dataset &) override;
-    virtual void shallow_copy(const p_teca_dataset &) override;
-
-    // copy metadata. always a deep copy.
-    virtual void copy_metadata(const const_p_teca_dataset &) override;
+    void copy(const const_p_teca_dataset &) override;
+    void shallow_copy(const p_teca_dataset &) override;
 
     // swap internals of the two objects
-    virtual void swap(p_teca_dataset &) override;
+    void swap(p_teca_dataset &) override;
 
 protected:
     teca_uniform_cartesian_mesh();
