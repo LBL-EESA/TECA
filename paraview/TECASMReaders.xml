@@ -26,10 +26,6 @@
         number_of_elements="1" default_values="lat">
       </StringVectorProperty>
 
-      <StringVectorProperty name="Z Coordinate" command="SetZCoordinate"
-        number_of_elements="1" default_values=".">
-      </StringVectorProperty>
-
       <StringVectorProperty name="Time Coordinate" command="SetTimeCoordinate"
         number_of_elements="1" default_values="time">
       </StringVectorProperty>
@@ -52,7 +48,7 @@
      </Hints>
     </SourceProxy>
 
-    <SourceProxy name="TECATCCandidateTableReader" class="vtkTECATCCandidateTableReader"
+    <SourceProxy name="TECATCCandidateReader" class="vtkTECATCCandidateReader"
       label="TECA TC Candidates">
 
       <StringVectorProperty name="FileName" animateable="0" command="SetFileName" number_of_elements="1" >
