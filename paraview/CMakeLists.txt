@@ -9,7 +9,8 @@ if (TECA_HAS_PARAVIEW)
         vtkTECACF2Reader.cxx
         vtkTECATableReader.cxx
         vtkTECATCCandidateReader.cxx
-        vtkTECATCTrackReader.cxx)
+        vtkTECATCTrackReader.cxx
+        vtkTECATCWindRadiiReader.cxx)
 
     set(plugin_xml
         TECASMReaders.xml)
