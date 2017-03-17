@@ -611,8 +611,52 @@ teca_tc_trajectory \
 \end{minted}
 the file \textit{tracks\_1990s.bin} will contain the list of storm tracks.
 
-\section{Tropical Cyclone Statistics}
+\section{TC Wind Radii}
+The wind radii application can be used to compute wind radii from track data in parallel. For each point on each track a radial profile is computed over a number of angular intervals. The radial profiles are used to compute distance from the storm center to the first downward crossing of given wind speeds. The default wind speeds are the3 Saffir-Simpson transitions. Additionally distance to the peak wind speed and peak wind speed are recorded.  A new table is produced containing the data. The TC trajectory scalars application, TC stats application and ParaView plugin can be used to further analyze the data.
 
+\subsection{Command Line Arguments}
+The most commonly used command liine arguments are:
+\begin{description}
+\item[--track\_file] file path to read the cyclone from (tracks.bin)
+\item[--wind\_files] regex matching simulation files containing wind fields ()
+\item[--track\_file\_out] file path to write cyclone tracks with size (tracks\_size.bin)
+\item[--wind\_u\_var] name of variable with wind x-component (UBOT)
+\item[--wind\_v\_var] name of variable with wind y-component (VBOT)
+\item[--track\_mask] expression to filter tracks by ()
+\item[--n\_theta] number of points in the wind profile in the theta direction (32)
+\item[--n\_r] number cells in the wind profile in radial direction (32)
+\item[--profile\_type] radial wind profile type. max or avg (avg)
+\item[--search\_radius] size of search window in deg lat (6)
+\end{description}
+see --help and --full\_help for more information.
+
+\subsection{Example}
+The following examples shows computation of wind radii for a decades worth of tracks using 128 cores on NERSC Cori.
+\begin{minted}{bash}
+module load teca
+sbatch wind_radii_1990s.sh
+\end{minted}
+where the contents of \textit{wind\_radii\_1990s.sh} are as follows
+\begin{minted}{bash}
+#!/bin/bash -l
+#SBATCH -p debug
+#SBATCH -N 4
+#SBATCH -t 00:30:00
+#SBATCH -C haswell
+
+data_dir=/global/cscratch1/sd/mwehner/cylones_ensemble/cam5_1_amip_run2/ncfiles
+files_regex=${data_dir}/cam5_1_amip_run2'\.cam2\.h2\.199[0-9].*\.nc$'
+track_file=tracks_1990s_3hr_mdd_4800.bin
+track_file_out=wind_radii_1990s_3hr_mdd_4800_co.bin
+
+srun -n 4 --ntasks-per-node=1 \
+    teca_tc_wind_radii --n_threads 32 --first_track 0 \
+    --last_track -1 --wind_files ${files_regex} --track_file ${track_file} \
+    --track_file_out ${track_file_out}
+\end{minted}
+
+
+\section{Tropical Cyclone Statistics}
 The statistics stage can be used to compute a variety of statistics on detected cyclones. It generates a number of plots and tables and it can be ran on the login nodes. The most common options are the input file and output prefix. 
 
 \subsection{Command Line Arguments}
@@ -644,9 +688,9 @@ teca_tc_stats tracks_1990s.bin stats/stats_1990s
 \end{minted}
 
 \section{TC Trajectory Scalars}
-\begin{wrapfigure}{r}{0.4\textwidth}
+\begin{wrapfigure}{r}{0.5\textwidth}
  \centering
- \includegraphics[width=2.0in]{./images/traj_scalars_1990s_3hr_mdd_4800_000478.png}
+ \includegraphics[width=3in]{./images/track_scalars_1990s_3hr_mdd_4800_000280.png}
  % traj_scalars_1990s_3hr_mdd_4800_000478.png: 0x0 pixel, 300dpi, 0.00x0.00 cm, bb=
  \caption{The trajectory scalars application plots cyclone properties over time.}
  \label{fig:traj_scalar}
@@ -672,6 +716,32 @@ mpiexec -np 10 ./bin/teca_tc_trajectory_scalars   \
     --texture ../../TECA_data/earthmap4k.png      \
     tracks_1990s_3hr_mdd_4800.bin                 \
     traj_scalars_1990s_3hr_mdd_4800
+\end{minted}
+
+\section{TC Wind Radii Stats}
+\begin{wrapfigure}{r}{0.5\textwidth}
+ \centering
+ \includegraphics[width=3in]{./images/wind_radii_stats.png}
+ \caption{The wind radii stats application plots distribution of wind radii.}
+ \label{fig:traj_scalar}
+ \vspace{-110pt}
+\end{wrapfigure}
+The wind radii stats application can be used to generate summary statistics describing the wind radii distributions.
+
+\subsection{Command Line Arguments}
+\begin{description}
+\item[tracks\_file] A required positional argument pointing to the file containing TC storm tracks.
+\item[output\_prefix] Required positional argument declaring the prefix that is prepended to all output files.
+\item[--help] prints documentation for the command line options.
+\item[-d, --dpi] Sets the resolution of the output images.
+\item[-i, --interactive] Causes the figures to open immediately in a pop-up window.
+\item[--wind\_column] Name of the column to load instantaneous max wind speeds from.
+\end{description}
+
+\subsection{Example}
+\begin{minted}{bash}
+teca_tc_wind_radii_stats \
+    wind_radii_1990s_3hr_mdd_4800_ed.bin wind_radii_stats_ed/
 \end{minted}
 
 \section{Event Filter}
