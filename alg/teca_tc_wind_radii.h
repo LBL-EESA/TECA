@@ -36,22 +36,22 @@ public:
     // set the name of the column that defines the track ids
     // if set the specified column is coppied into the output
     // metadata and accessed with the key event_id
-    TECA_ALGORITHM_PROPERTY(std::string, storm_id_column)
+    TECA_ALGORITHM_PROPERTY(std::string, track_id_column)
 
     // set the name of the columns that define the event position
     // if  set the columns are coppied into the output metadata
-    // and accessed with the keys storm_x_coordinate, storm_y_coordinate
-    TECA_ALGORITHM_PROPERTY(std::string, storm_x_coordinate_column)
-    TECA_ALGORITHM_PROPERTY(std::string, storm_y_coordinate_column)
+    // and accessed with the keys track_x_coordinate, track_y_coordinate
+    TECA_ALGORITHM_PROPERTY(std::string, track_x_coordinate_column)
+    TECA_ALGORITHM_PROPERTY(std::string, track_y_coordinate_column)
 
     // set the name of the column containing peak instantanious
     // surface wind speed
-    TECA_ALGORITHM_PROPERTY(std::string, storm_wind_speed_column)
+    TECA_ALGORITHM_PROPERTY(std::string, track_wind_speed_column)
 
     // set the name of the column that defines the event time
     // if set the specified column is coppied into the output
     // metadata and accessed with the key event_time
-    TECA_ALGORITHM_PROPERTY(std::string, storm_time_column)
+    TECA_ALGORITHM_PROPERTY(std::string, track_time_column)
 
     // set the name of the wind variable components
     TECA_ALGORITHM_PROPERTY(std::string, wind_u_variable)
@@ -61,14 +61,17 @@ public:
     // field
     TECA_ALGORITHM_PROPERTY(double, search_radius)
 
-    // set the radius in degrees of latitude beyond which to
-    // terminate the search for peak wind speed. if the peak
-    // lies beyond this distance search is terminated and a
-    // warning is displayed.
+    // inside the core all points are sampled to avoid sampling
+    // issues. if this is set <= 0, a value is computed
+    // based on the mesh spacing.
     TECA_ALGORITHM_PROPERTY(double, core_radius)
 
-    // number of bins to discetize by in the radial direction
-    TECA_ALGORITHM_PROPERTY(int, number_of_radial_bins)
+    // number of bins to discetize by in the radial direction. if
+    // this is set <= 0, a value is computed based on the mesh spacing.
+    TECA_ALGORITHM_PROPERTY(unsigned int, r_resolution)
+
+    // number of bins to discetize by in the theta direction. (8)
+    TECA_ALGORITHM_PROPERTY(unsigned int, theta_resolution)
 
     // set the wind speeds (in m/s) to find the radius of. the
     // defualt values are the transition speeds of the Saffir-Simpson
@@ -108,11 +111,11 @@ private:
 
 private:
     // for the metadata input
-    std::string storm_id_column;
-    std::string storm_x_coordinate_column;
-    std::string storm_y_coordinate_column;
-    std::string storm_wind_speed_column;
-    std::string storm_time_column;
+    std::string track_id_column;
+    std::string track_x_coordinate_column;
+    std::string track_y_coordinate_column;
+    std::string track_wind_speed_column;
+    std::string track_time_column;
 
     // for netcdf cf data input
     std::string wind_u_variable;
@@ -121,7 +124,8 @@ private:
     std::vector<double> critical_wind_speeds;
     double search_radius;
     double core_radius;
-    int number_of_radial_bins;
+    unsigned int r_resolution;
+    unsigned int theta_resolution;
     int profile_type;
 
     class internals_t;

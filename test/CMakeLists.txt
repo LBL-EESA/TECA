@@ -278,14 +278,14 @@ teca_add_test(test_tc_wind_radii_serial
     COMMAND test_tc_wind_radii "${TECA_DATA_ROOT}/tracks_1990s_3hr_mdd_4800.bin"
     "${TECA_DATA_ROOT}/cam5_1_amip_run2_1990s/.*\\.nc$" "${TECA_DATA_ROOT}/test_tc_wind_radii.bin"
     "!(((track_id==4)&&(surface_wind*3.6d>=177.0d))||((track_id==191)&&(surface_wind*3.6d>=249.0d))||((track_id==523)&&(3.6d*surface_wind>=209.0d)))"
-    "32" "1" "1" "0" "-1"
+    "32" "32" "1" "1" "0" "-1"
     REQ_TECA_DATA)
 
 teca_add_test(test_tc_wind_radii_mpi
     COMMAND ${MPIEXEC} -n ${TECA_TEST_CORES} test_tc_wind_radii "${TECA_DATA_ROOT}/tracks_1990s_3hr_mdd_4800.bin"
     "${TECA_DATA_ROOT}/cam5_1_amip_run2_1990s/.*\\.nc$" "${TECA_DATA_ROOT}/test_tc_wind_radii.bin"
     "!(((track_id==4)&&(surface_wind*3.6d>=177.0d))||((track_id==191)&&(surface_wind*3.6d>=249.0d))||((track_id==523)&&(3.6d*surface_wind>=209.0d)))"
-    "32" "1" "1" "0" "-1"
+    "32" "32" "1" "1" "0" "-1"
     FEATURES ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
@@ -293,7 +293,7 @@ teca_add_test(test_tc_wind_radii_mpi_threads
     COMMAND ${MPIEXEC} -n ${HALF_CORES} test_tc_wind_radii "${TECA_DATA_ROOT}/tracks_1990s_3hr_mdd_4800.bin"
     "${TECA_DATA_ROOT}/cam5_1_amip_run2_1990s/.*\\.nc$" "${TECA_DATA_ROOT}/test_tc_wind_radii.bin"
     "!(((track_id==4)&&(surface_wind*3.6d>=177.0d))||((track_id==191)&&(surface_wind*3.6d>=249.0d))||((track_id==523)&&(3.6d*surface_wind>=209.0d)))"
-    "32" "1" ${HALF_CORES} "0" "-1"
+    "32" "32" "1" ${HALF_CORES} "0" "-1"
     FEATURES ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
@@ -301,7 +301,7 @@ teca_add_test(test_tc_wind_radii_threads
     COMMAND test_tc_wind_radii "${TECA_DATA_ROOT}/tracks_1990s_3hr_mdd_4800.bin"
     "${TECA_DATA_ROOT}/cam5_1_amip_run2_1990s/.*\\.nc$" "${TECA_DATA_ROOT}/test_tc_wind_radii.bin"
     "!(((track_id==4)&&(surface_wind*3.6d>=177.0d))||((track_id==191)&&(surface_wind*3.6d>=249.0d))||((track_id==523)&&(3.6d*surface_wind>=209.0d)))"
-    "32" "1" ${TECA_TEST_CORES} "0" "-1"
+    "32" "32" "1" ${TECA_TEST_CORES} "0" "-1"
     REQ_TECA_DATA)
 
 teca_add_test(test_type_select

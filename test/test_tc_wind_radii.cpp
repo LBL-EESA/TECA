@@ -28,14 +28,14 @@ int main(int argc, char **argv)
     teca_system_interface::set_stack_trace_on_error();
 
     // parse command line
-    if (argc != 10)
+    if (argc != 12)
     {
         if (rank == 0)
         {
             cerr << endl << "Usage error:" << endl
                 << "test_tc_wind_radii [storm table] [mesh data regex] [test baseline] "
-                   "[mask expression] [num bins] [profile type] [num threads] [first step] "
-                   "[last step]"
+                   "[mask expression] [r_max] [n_r] [n_theta] [profile type] [num threads] "
+                   "[first step] [last step]"
                 << endl << endl;
         }
         return -1;
@@ -45,11 +45,13 @@ int main(int argc, char **argv)
     std::string mesh_data_regex = argv[2];
     std::string baseline_table = argv[3];
     std::string mask_expression = argv[4];
-    int n_bins = atoi(argv[5]);
-    int profile_type = atoi(argv[6]);
-    int n_threads = atoi(argv[7]);
-    int first_step =  atoi(argv[8]);
-    int last_step = atoi(argv[9]);
+    double r_max = atof(argv[5]);
+    int n_r = atoi(argv[6]);
+    int n_theta = atoi(argv[7]);
+    int profile_type = atoi(argv[8]);
+    int n_threads = atoi(argv[9]);
+    int first_step =  atoi(argv[10]);
+    int last_step = atoi(argv[11]);
 
     // create the pipeline
     p_teca_table_reader storm_reader = teca_table_reader::New();
@@ -65,7 +67,9 @@ int main(int argc, char **argv)
     p_teca_tc_wind_radii wind_radii = teca_tc_wind_radii::New();
     wind_radii->set_input_connection(0, eval_expr->get_output_port());
     wind_radii->set_input_connection(1, mesh_data_reader->get_output_port());
-    wind_radii->set_number_of_radial_bins(n_bins);
+    wind_radii->set_search_radius(r_max);
+    wind_radii->set_r_resolution(n_r);
+    wind_radii->set_theta_resolution(n_theta);
     wind_radii->set_profile_type(profile_type);
 
     p_teca_table_reduce map_reduce = teca_table_reduce::New();
