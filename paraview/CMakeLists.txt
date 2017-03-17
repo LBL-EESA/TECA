@@ -6,10 +6,10 @@ if (TECA_HAS_PARAVIEW)
         $<TARGET_PROPERTY:teca_data,INTERFACE_INCLUDE_DIRECTORIES>)
 
     set(plugin_srcs
-        vtkTECATCTrackTableReader.cxx
         vtkTECACF2Reader.cxx
         vtkTECATableReader.cxx
-        vtkTECATCCandidateReader.cxx)
+        vtkTECATCCandidateReader.cxx
+        vtkTECATCTrackReader.cxx)
 
     set(plugin_xml
         TECASMReaders.xml)

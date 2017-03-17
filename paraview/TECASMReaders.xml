@@ -67,10 +67,6 @@
         number_of_elements="1" default_values="lat">
       </StringVectorProperty>
 
-      <StringVectorProperty name="Z Coordinate" command="SetZCoordinate"
-        number_of_elements="1" default_values=".">
-      </StringVectorProperty>
-
       <StringVectorProperty name="Time Coordinate" command="SetTimeCoordinate"
         number_of_elements="1" default_values="time">
       </StringVectorProperty>
@@ -80,7 +76,7 @@
      </Hints>
     </SourceProxy>
 
-    <SourceProxy name="TECATCTrackTableReader" class="vtkTECATCTrackTableReader"
+    <SourceProxy name="TECATCTrackReader" class="vtkTECATCTrackReader"
       label="TECA TC Tracks">
 
       <StringVectorProperty
@@ -100,9 +96,6 @@
         number_of_elements="1" default_values="lat">
       </StringVectorProperty>
 
-      <StringVectorProperty name="Z Coordinate" command="SetZCoordinate"
-        number_of_elements="1" default_values=".">
-      </StringVectorProperty>
 
       <StringVectorProperty name="Time Coordinate" command="SetTimeCoordinate"
         number_of_elements="1" default_values="time">
