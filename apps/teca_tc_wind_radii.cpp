@@ -219,6 +219,9 @@ int main(int argc, char **argv)
     if (opt_vals.count("n_r"))
         wind_radii->set_r_resolution(opt_vals["n_r"].as<int>());
 
+    if (opt_vals.count("n_theta"))
+        wind_radii->set_theta_resolution(opt_vals["n_theta"].as<int>());
+
     if (opt_vals.count("profile_type"))
     {
         std::string profile_type = opt_vals["profile_type"].as<std::string>();

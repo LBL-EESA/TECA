@@ -776,7 +776,7 @@ teca_tc_wind_radii::teca_tc_wind_radii() : track_id_column("track_id"),
         teca_saffir_simpson::get_upper_bound_mps<double>(3),
         teca_saffir_simpson::get_upper_bound_mps<double>(4)}),
     search_radius(6.0), core_radius(0), r_resolution(0),
-    theta_resolution(0), profile_type(PROFILE_AVERAGE)
+    theta_resolution(1), profile_type(PROFILE_AVERAGE)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
