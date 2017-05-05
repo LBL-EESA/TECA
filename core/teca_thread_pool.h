@@ -10,10 +10,21 @@
 #include <atomic>
 #include <mutex>
 #include <future>
+#include <algorithm>
 #if defined(_GNU_SOURCE)
 #include <pthread.h>
 #include <sched.h>
+#include <deque>
+#if defined(TECA_HAS_MPI)
+#include <mpi.h>
 #endif
+#endif
+
+namespace internal
+{
+int thread_parameters(int base_core_id, int n_req, bool local,
+    bool bind, bool verbose, std::deque<int> &affinity);
+}
 
 template <typename task_t, typename data_t>
 class teca_thread_pool;
@@ -27,11 +38,23 @@ template <typename task_t, typename data_t>
 class teca_thread_pool
 {
 public:
-    // construct/destruct the thread pool. If the size of the
-    // pool is unspecified the number of cores - 1 threads
-    // will be used.
-    teca_thread_pool(bool bind);
-    teca_thread_pool(int n, bool bind);
+    teca_thread_pool() = delete;
+
+    // construct/destruct the thread pool.
+    // arguments:
+    //   n        number of threads to create for the pool. -1 will
+    //            create 1 thread per physical CPU core. If local is false
+    //            all MPI ranks running on the same node are taken into
+    //            account, resulting in 1 thread per core node wide.
+    //
+    //   local    consider other MPI ranks on the node. This introduces
+    //            MPI collective operations, so all ranks in comm world
+    //            must call it.
+    //
+    //   bind     bind each thread to a specific core.
+    //
+    //   verbose  print a report of the thread to core bindings
+    teca_thread_pool(int n, bool local, bool bind, bool verbose);
     ~teca_thread_pool() noexcept;
 
     // get rid of copy and asignment
@@ -53,7 +76,7 @@ public:
 
 private:
     // create n threads for the pool
-    void create_threads(int n_threads, bool bind = true);
+    void create_threads(int n_threads, bool local, bool bind, bool verbose);
 
 private:
     std::atomic<bool> m_live;
@@ -63,36 +86,41 @@ private:
         m_futures;
 
     std::vector<std::thread> m_threads;
-    unsigned int m_number_of_cores;
 };
 
 // --------------------------------------------------------------------------
 template <typename task_t, typename data_t>
-teca_thread_pool<task_t, data_t>::teca_thread_pool(bool bind) :
-    m_live(true), m_number_of_cores(std::thread::hardware_concurrency())
+teca_thread_pool<task_t, data_t>::teca_thread_pool(int n, bool local,
+    bool bind, bool verbose) : m_live(true)
 {
-    this->create_threads(-1, bind);
+    this->create_threads(n, local, bind, verbose);
 }
 
 // --------------------------------------------------------------------------
 template <typename task_t, typename data_t>
-teca_thread_pool<task_t, data_t>::teca_thread_pool(int n, bool bind)
-    : m_live(true), m_number_of_cores(std::thread::hardware_concurrency())
+void teca_thread_pool<task_t, data_t>::create_threads(int n, bool local,
+    bool bind, bool verbose)
 {
-    this->create_threads(n, bind);
-}
-
-// --------------------------------------------------------------------------
-template <typename task_t, typename data_t>
-void teca_thread_pool<task_t, data_t>::create_threads(int n, bool bind)
-{
-#if defined(_GNU_SOURCE)
-    int my_core_id = sched_getcpu();
-#else
+#if !defined(_GNU_SOURCE)
     (void)bind;
+    (void)verbose;
+    (void)local;
+    if (n < 1)
+    {
+        TECA_WARNING("Cannot autmatically detect threading parameters "
+            "on this platform. The default is 1 thread per process.")
+        n = 1;
+    }
+    int n_threads = n;
+#else
+    int base_core_id = sched_getcpu();
+    std::deque<int> core_ids;
+    int n_threads = internal::thread_parameters
+        (base_core_id, n, local, bind, verbose, core_ids);
 #endif
-    unsigned int n_threads = n < 1 ? m_number_of_cores-1 : n;
-    for (unsigned int i = 0; i < n_threads; ++i)
+
+    // allocate the threads
+    for (int i = 0; i < n_threads; ++i)
     {
         m_threads.push_back(std::thread([this]()
         {
@@ -107,13 +135,11 @@ void teca_thread_pool<task_t, data_t>::create_threads(int n, bool bind)
             }
         }));
 #if defined(_GNU_SOURCE)
-        // binds to cores round robin, starting from the active core.
-        // this is done to ensure when MPI is in play all threads don't
-        // get tied to the same cores, and to keep as many threads on the
-        // same die as we can.
+        // bind each to a hyperthread
         if (bind)
         {
-            unsigned int core_id = (my_core_id + i) % m_number_of_cores;
+            int core_id = core_ids.front();
+            core_ids.pop_front();
 
             cpu_set_t core_mask;
             CPU_ZERO(&core_mask);
@@ -122,7 +148,7 @@ void teca_thread_pool<task_t, data_t>::create_threads(int n, bool bind)
             if (pthread_setaffinity_np(m_threads[i].native_handle(),
                 sizeof(cpu_set_t), &core_mask))
             {
-                TECA_ERROR("Failed to set thread affinity. ")
+                TECA_WARNING("Failed to set thread affinity.")
             }
         }
 #endif
