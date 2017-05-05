@@ -469,7 +469,7 @@ int vtkTECATCWindRadiiReader::RequestData(vtkInformation *req,
 
         unsigned int pos = 0;
         unsigned int n_new_pts = 0;
-        constexpr unsigned int arc_resolution = 8;
+        constexpr unsigned int arc_resolution = 32;
 
         // generate geometry
         // wind radii
