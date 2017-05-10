@@ -148,6 +148,7 @@ map_reduce = teca_table_reduce.New()
 map_reduce.set_input_connection(cand.get_output_port())
 map_reduce.set_first_step(first_step)
 map_reduce.set_last_step(last_step)
+map_reduce.set_verbose(1)
 map_reduce.set_thread_pool_size(n_threads)
 
 # sort results in time
