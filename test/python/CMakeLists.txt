@@ -51,14 +51,14 @@ teca_add_test(py_test_programmable_map_reduce_serial
     COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_programmable_map_reduce.py
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
     "${TECA_DATA_ROOT}/py_test_programmable_map_reduce.bin" 0 -1 1 TMQ T200 T500
-    FEATURES ${TECA_HAS_NETCDF}
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_programmable_map_reduce_thread
     COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_programmable_map_reduce.py
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
     "${TECA_DATA_ROOT}/py_test_programmable_map_reduce.bin" 0 -1 4 TMQ T200 T500
-    FEATURES ${TECA_HAS_NETCDF}
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_programmable_map_reduce_mpi
@@ -66,7 +66,7 @@ teca_add_test(py_test_programmable_map_reduce_mpi
     ${CMAKE_CURRENT_SOURCE_DIR}/test_programmable_map_reduce.py
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
     "${TECA_DATA_ROOT}/py_test_programmable_map_reduce.bin" 0 -1 1 TMQ T200 T500
-    FEATURES (${TECA_HAS_NETCDF} AND ${TECA_HAS_MPI} AND ${MPI4PY_FOUND})
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4PY_FOUND}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_programmable_map_reduce_mpi_thread
@@ -75,16 +75,15 @@ teca_add_test(py_test_programmable_map_reduce_mpi_thread
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
     "${TECA_DATA_ROOT}/py_test_programmable_map_reduce.bin" 0 -1 ${HALF_CORES}
     TMQ T200 T500
-    FEATURES (${TECA_HAS_NETCDF} AND ${TECA_HAS_MPI} AND ${MPI4PY_FOUND})
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4PY_FOUND}
     REQ_TECA_DATA)
-
 
 teca_add_test(py_test_tc_candidates_serial
     COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_candidates.py
     "${TECA_DATA_ROOT}/test_tc_candidates_1990_07_0[12]\\.nc"
     "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 1
     U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
-    FEATURES ${TECA_HAS_NETCDF}
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_tc_candidates_mpi
@@ -93,7 +92,7 @@ teca_add_test(py_test_tc_candidates_mpi
     "${TECA_DATA_ROOT}/test_tc_candidates_1990_07_0[12]\\.nc"
     "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 1
     U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
-    FEATURES (${TECA_HAS_NETCDF} AND ${TECA_HAS_MPI})
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_tc_candidates_threads
@@ -101,7 +100,7 @@ teca_add_test(py_test_tc_candidates_threads
     "${TECA_DATA_ROOT}/test_tc_candidates_1990_07_0[12]\\.nc"
     "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 ${TECA_TEST_CORES}
     U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
-    FEATURES (${TECA_HAS_NETCDF} AND ${TECA_HAS_MPI})
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_tc_candidates_mpi_threads
@@ -110,7 +109,7 @@ teca_add_test(py_test_tc_candidates_mpi_threads
     "${TECA_DATA_ROOT}/test_tc_candidates_1990_07_0[12]\\.nc"
     "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 ${HALF_CORES}
     U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
-    FEATURES (${TECA_HAS_NETCDF} AND ${TECA_HAS_MPI})
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_event_filter
@@ -123,6 +122,7 @@ teca_add_test(py_test_tc_stats
     COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_stats.py
     "${TECA_DATA_ROOT}/cam5_1_amip_run2_classify_2005_09.bin"
     "${TECA_DATA_ROOT}/cam5_1_amip_run2_stats_2005_09.bin"
+    FEATURES ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_tc_trajectory_scalars_serial
@@ -130,6 +130,7 @@ teca_add_test(py_test_tc_trajectory_scalars_serial
     "${TECA_DATA_ROOT}/cam5_1_amip_run2_tracks_2005_09.bin"
     "${TECA_DATA_ROOT}/earthmap4k.png"
     "${TECA_DATA_ROOT}/py_test_tc_trajectory_scalars.bin" 0 -1
+    FEATURES ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_tc_trajectory_scalars_mpi
@@ -138,5 +139,5 @@ teca_add_test(py_test_tc_trajectory_scalars_mpi
     "${TECA_DATA_ROOT}/cam5_1_amip_run2_tracks_2005_09.bin"
     "${TECA_DATA_ROOT}/earthmap4k.png"
     "${TECA_DATA_ROOT}/py_test_tc_trajectory_scalars.bin" 0 -1
-    FEATURES (${TECA_HAS_MPI} AND ${MPI4PY_FOUND})
+    FEATURES ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4PY_FOUND}
     REQ_TECA_DATA)
