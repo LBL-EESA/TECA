@@ -346,3 +346,10 @@ teca_add_test(test_table_region_mask
     COMMAND test_table_region_mask "${TECA_DATA_ROOT}/tracks_1990s_3hr_mdd_4800.bin"
     "${TECA_DATA_ROOT}/test_table_region_mask.bin" "N Atlantic"
     REQ_TECA_DATA)
+
+teca_add_test(test_event_filter
+    SOURCES test_event_filter.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_event_filter "${TECA_DATA_ROOT}/test_tc_candidates_20.bin"
+    "${TECA_DATA_ROOT}/test_event_filter.bin"
+    REQ_TECA_DATA)
