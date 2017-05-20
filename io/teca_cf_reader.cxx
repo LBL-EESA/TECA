@@ -498,7 +498,6 @@ teca_metadata teca_cf_reader::get_output_metadata(
     if (this->internals->metadata)
         return this->internals->metadata;
 
-    // TODO -- use teca specific communicator
     int rank = 0;
     int n_ranks = 1;
 #if defined(TECA_HAS_MPI)
@@ -835,7 +834,9 @@ teca_metadata teca_cf_reader::get_output_metadata(
             // when procesing large numbers of files these issues kill
             // serial performance. hence we are reading time dimension
             // in parallel.
-            read_variable_queue_t thread_pool(this->thread_pool_size, true);
+            read_variable_queue_t thread_pool(this->thread_pool_size,
+                true, true, false);
+
             std::vector<unsigned long> step_count;
             p_teca_variant_array t_axis;
             if (!t_axis_variable.empty())

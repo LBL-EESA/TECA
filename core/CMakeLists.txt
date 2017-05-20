@@ -13,6 +13,7 @@ set(teca_core_srcs
     teca_parallel_id.cxx
     teca_temporal_reduction.cxx
     teca_threaded_algorithm.cxx
+    teca_thread_pool.cxx
     teca_time_step_executive.cxx
     teca_variant_array.cxx
     )

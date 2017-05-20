@@ -103,6 +103,7 @@ int main(int argc, char **argv)
     map_reduce->set_input_connection(ar_detect->get_output_port());
     map_reduce->set_first_step(first_step);
     map_reduce->set_last_step(last_step);
+    map_reduce->set_verbose(1);
     map_reduce->set_thread_pool_size(n_threads);
 
     p_teca_table_sort sort = teca_table_sort::New();

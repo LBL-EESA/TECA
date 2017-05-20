@@ -44,6 +44,7 @@ mapper = teca_table_reduce.New()
 mapper.set_input_connection(scalars.get_output_port())
 mapper.set_first_step(first_step)
 mapper.set_last_step(last_step)
+mapper.set_verbose(1)
 mapper.set_thread_pool_size(1)
 
 sort = teca_table_sort.New()

@@ -25,10 +25,18 @@ public:
     TECA_SET_ALGORITHM_PROPERTIES()
 
     // set/get the number of threads in the pool. setting
-    // to less than 1 results in 1 - the number of cores.
-    // the default is 1.
+    // to -1 results in a thread per core factoring in all MPI
+    // ranks running on the node. the default is -1.
     void set_thread_pool_size(int n_threads);
     unsigned int get_thread_pool_size() const noexcept;
+
+    // set/get the verbosity level.
+    TECA_ALGORITHM_PROPERTY(int, verbose);
+
+    // set/get thread affinity mode. When 0 threads are not bound
+    // CPU cores, allowing for migration among all cores. This will
+    // likely degrade performance. Default is 1.
+    TECA_ALGORITHM_PROPERTY(int, bind_threads);
 
 protected:
     teca_threaded_algorithm();
@@ -36,12 +44,12 @@ protected:
     // driver function that manages execution of the given
     // requst on the named port. each upstream request issued
     // will be executed by the thread pool.
-    virtual
-    const_p_teca_dataset request_data(
-        teca_algorithm_output_port &port,
+    const_p_teca_dataset request_data(teca_algorithm_output_port &port,
         const teca_metadata &request) override;
 
 private:
+    int verbose;
+    int bind_threads;
     teca_threaded_algorithm_internals *internals;
 };
 

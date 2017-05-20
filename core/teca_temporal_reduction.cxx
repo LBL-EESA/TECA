@@ -1,6 +1,8 @@
 #include "teca_temporal_reduction.h"
 #include "teca_binary_stream.h"
 
+#include <sstream>
+
 #if defined(TECA_HAS_MPI)
 #include <mpi.h>
 #endif
@@ -9,14 +11,9 @@
 #include <boost/program_options.hpp>
 #endif
 
-using std::string;
-using std::vector;
-using std::cerr;
-using std::endl;
-
 // TODO
 // handle large messages, ie work around int in MPI api
-namespace {
+namespace internal {
 #if defined(TECA_HAS_MPI)
 // helper for sending binary data over MPI
 int send(MPI_Comm comm, int dest, teca_binary_stream &s)
@@ -66,6 +63,54 @@ int recv(MPI_Comm comm, int src, teca_binary_stream &s)
     return 0;
 }
 #endif
+
+// --------------------------------------------------------------------------
+void block_decompose(unsigned long n_indices, unsigned long n_ranks,
+    unsigned long rank, unsigned long &block_size, unsigned long &block_start,
+    bool verbose)
+{
+    unsigned long n_big_blocks = n_indices%n_ranks;
+    if (rank < n_big_blocks)
+    {
+        block_size = n_indices/n_ranks + 1;
+        block_start = block_size*rank;
+    }
+    else
+    {
+        block_size = n_indices/n_ranks;
+        block_start = block_size*rank + n_big_blocks;
+    }
+    if (verbose)
+    {
+        std::vector<unsigned long> decomp = {block_start, block_size};
+        if (rank == 0)
+        {
+            decomp.resize(2*n_ranks);
+#if defined(TECA_HAS_MPI)
+            MPI_Gather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, decomp.data(),
+                2, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
+        }
+        else
+        {
+            MPI_Gather(decomp.data(), 2, MPI_UNSIGNED_LONG, nullptr,
+                0, MPI_DATATYPE_NULL, 0, MPI_COMM_WORLD);
+#endif
+        }
+        if (rank == 0)
+        {
+            std::ostringstream oss;
+            for (unsigned long i = 0; i < n_ranks; ++i)
+            {
+                unsigned long ii = 2*i;
+                oss << i << " : " << decomp[ii] << " - " << decomp[ii] + decomp[ii+1] -1
+                    << (i < n_ranks-1 ? "\n" : "");
+            }
+            TECA_STATUS("map index decomposition:"
+                << std::endl << oss.str())
+        }
+    }
+}
+
 };
 
 // --------------------------------------------------------------------------
@@ -75,8 +120,8 @@ teca_temporal_reduction::teca_temporal_reduction()
 
 #if defined(TECA_HAS_BOOST)
 // --------------------------------------------------------------------------
-void teca_temporal_reduction::get_properties_description(
-    const string &prefix, options_description &global_opts)
+void teca_temporal_reduction::get_properties_description(const std::string &prefix,
+    options_description &global_opts)
 {
     this->teca_threaded_algorithm::get_properties_description(prefix, global_opts);
 
@@ -84,16 +129,17 @@ void teca_temporal_reduction::get_properties_description(
         + (prefix.empty()?"teca_temporal_reduction":prefix));
 
     opts.add_options()
-        TECA_POPTS_GET(long, prefix, first_step, "first time step to process")
-        TECA_POPTS_GET(long, prefix, last_step, "last time step to process")
+        TECA_POPTS_GET(long, prefix, first_step, "first time step to process (0)")
+        TECA_POPTS_GET(long, prefix, last_step, "last time step to process. "
+            "If set to -1 all steps are processed. (-1)")
         ;
 
     global_opts.add(opts);
 }
 
 // --------------------------------------------------------------------------
-void teca_temporal_reduction::set_properties(
-    const string &prefix, variables_map &opts)
+void teca_temporal_reduction::set_properties(const std::string &prefix,
+    variables_map &opts)
 {
     this->teca_threaded_algorithm::set_properties(prefix, opts);
 
@@ -104,11 +150,10 @@ void teca_temporal_reduction::set_properties(
 
 // --------------------------------------------------------------------------
 std::vector<teca_metadata> teca_temporal_reduction::get_upstream_request(
-    unsigned int port,
-    const std::vector<teca_metadata> &input_md,
+    unsigned int port, const std::vector<teca_metadata> &input_md,
     const teca_metadata &request)
 {
-    vector<teca_metadata> up_req;
+    std::vector<teca_metadata> up_req;
 
     // locate available times
     long n_times;
@@ -119,12 +164,10 @@ std::vector<teca_metadata> teca_temporal_reduction::get_upstream_request(
     }
 
     // apply restriction
-    long last
-        = this->last_step >= 0 ? this->last_step : n_times - 1;
+    long last = this->last_step >= 0 ? this->last_step : n_times - 1;
 
-    long first
-        = ((this->first_step >= 0) && (this->first_step <= last))
-            ? this->first_step : 0;
+    long first = ((this->first_step >= 0) && (this->first_step <= last))
+        ? this->first_step : 0;
 
     n_times = last - first + 1;
 
@@ -145,22 +188,14 @@ std::vector<teca_metadata> teca_temporal_reduction::get_upstream_request(
         rank = tmp;
     }
 #endif
-    size_t n_big_blocks = n_times%n_ranks;
-    size_t block_size = 1;
-    size_t block_start = 0;
-    if (rank < n_big_blocks)
-    {
-        block_size = n_times/n_ranks + 1;
-        block_start = block_size*rank;
-    }
-    else
-    {
-        block_size = n_times/n_ranks;
-        block_start = block_size*rank + n_big_blocks;
-    }
+    unsigned long block_size = 1;
+    unsigned long block_start = 0;
+
+    internal::block_decompose(n_times, n_ranks, rank, block_size,
+        block_start, this->get_verbose());
 
     // get the filters basic request
-    vector<teca_metadata> base_req
+    std::vector<teca_metadata> base_req
         = this->initialize_upstream_request(port, input_md, request);
 
     // apply the base request to local times.
@@ -253,7 +288,7 @@ const_p_teca_dataset teca_temporal_reduction::reduce_remote(
         // recv from left
         if (left_id <= n_ranks)
         {
-            if (::recv(MPI_COMM_WORLD, left_id-1, bstr))
+            if (internal::recv(MPI_COMM_WORLD, left_id-1, bstr))
             {
                 TECA_ERROR("failed to recv from left")
                 return p_teca_dataset();
@@ -274,7 +309,7 @@ const_p_teca_dataset teca_temporal_reduction::reduce_remote(
         // recv from right
         if (right_id <= n_ranks)
         {
-            if (::recv(MPI_COMM_WORLD, right_id-1,  bstr))
+            if (internal::recv(MPI_COMM_WORLD, right_id-1,  bstr))
             {
                 TECA_ERROR("failed to recv from right")
                 return p_teca_dataset();
@@ -298,7 +333,7 @@ const_p_teca_dataset teca_temporal_reduction::reduce_remote(
             if (local_data)
                 local_data->to_stream(bstr);
 
-            if (::send(MPI_COMM_WORLD, up_id-1, bstr))
+            if (internal::send(MPI_COMM_WORLD, up_id-1, bstr))
                 TECA_ERROR("failed to send up")
 
             // all but root returns an empty dataset

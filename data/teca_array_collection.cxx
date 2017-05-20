@@ -23,8 +23,7 @@ int teca_array_collection::append(p_teca_variant_array array)
 }
 
 // ----------------------------------------------------------------------------
-int teca_array_collection::append(
-    const std::string &name,
+int teca_array_collection::append(const std::string &name,
     p_teca_variant_array array)
 {
     name_array_map_t::iterator loc = m_name_array_map.find(name);
@@ -60,8 +59,7 @@ int teca_array_collection::set(unsigned int i, p_teca_variant_array array)
 }
 
 // ----------------------------------------------------------------------------
-int teca_array_collection::set(
-    const std::string &name,
+int teca_array_collection::set(const std::string &name,
     p_teca_variant_array array)
 {
     std::pair<name_array_map_t::iterator, bool> ret
@@ -88,6 +86,15 @@ int teca_array_collection::remove(const std::string &name)
     {
         unsigned int id = loc->second;
         m_name_array_map.erase(loc);
+        // update the map
+        name_array_map_t::iterator it = m_name_array_map.begin();
+        name_array_map_t::iterator end = m_name_array_map.end();
+        for (; it != end; ++it)
+        {
+            if (it->second > id)
+                it->second -= 1;
+        }
+        // remove name and array
         m_names.erase(m_names.begin()+id);
         m_arrays.erase(m_arrays.begin()+id);
         return 0;
@@ -98,8 +105,9 @@ int teca_array_collection::remove(const std::string &name)
 // ----------------------------------------------------------------------------
 int teca_array_collection::remove(unsigned int id)
 {
-    m_arrays.erase(m_arrays.begin()+id);
-    return 0;
+    if (id < m_names.size())
+        return this->remove(m_names[id]);
+    return -1;
 }
 
 // ----------------------------------------------------------------------------

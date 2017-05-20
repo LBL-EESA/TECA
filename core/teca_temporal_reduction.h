@@ -39,14 +39,10 @@ public:
     TECA_ALGORITHM_PROPERTY(long, first_step)
     TECA_ALGORITHM_PROPERTY(long, last_step)
 
-    // TODO -- api for setting MPI communicator
-
 protected:
     teca_temporal_reduction();
 
 protected:
-// overrides that derived classes need to implement.
-
     // override that implements the reduction. given two datasets
     // a left and right, reduce into a single dataset and return.
     virtual p_teca_dataset reduce(const const_p_teca_dataset &left,

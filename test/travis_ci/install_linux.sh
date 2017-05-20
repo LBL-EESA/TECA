@@ -12,9 +12,8 @@ sudo apt-get update -qq
 # install deps
 # use PIP for Python packages
 sudo apt-get install -qq -y gcc-5 g++-5 gfortran-5 swig3.0 \
-    libopenmpi-dev openmpi-bin libhdf5-openmpi-dev libnetcdf-dev \
-    libboost-program-options-dev python-dev subversion libudunits2-0 \
-    libudunits2-dev
+    libmpich-dev libhdf5-dev libnetcdf-dev libboost-program-options-dev \
+    python-dev subversion libudunits2-0 libudunits2-dev
 
 pip install --user numpy mpi4py matplotlib
 

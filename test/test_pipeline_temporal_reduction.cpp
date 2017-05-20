@@ -64,6 +64,7 @@ int main(int argc, char **argv)
     src->set_array_size(array_size);
 
     p_array_temporal_stats stats = array_temporal_stats::New();
+    stats->set_verbose(1);
     stats->set_thread_pool_size(n_threads);
     stats->set_array_name("array_1");
 
