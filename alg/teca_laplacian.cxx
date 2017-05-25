@@ -192,7 +192,7 @@ void laplacian(num_t *w, const pt_t *lon, const pt_t *lat,
 
 // --------------------------------------------------------------------------
 teca_laplacian::teca_laplacian() :
-    component_0_variable(), component_1_variable(),
+    component_0_variable(), 
     laplacian_variable("laplacian")
 {
     this->set_number_of_input_connections(1);
@@ -213,9 +213,7 @@ void teca_laplacian::get_properties_description(
 
     opts.add_options()
         TECA_POPTS_GET(std::string, prefix, component_0_variable,
-            "array containg lon component of the vector")
-        TECA_POPTS_GET(std::string, prefix, component_1_variable,
-            "array containg lat component of the vector")
+            "array containing the input variable")
         TECA_POPTS_GET(std::string, prefix, laplacian_variable,
             "array to store the computed laplacian in")
         ;
@@ -228,7 +226,6 @@ void teca_laplacian::set_properties(
     const string &prefix, variables_map &opts)
 {
     TECA_POPTS_SET(opts, std::string, prefix, component_0_variable)
-    TECA_POPTS_SET(opts, std::string, prefix, component_1_variable)
     TECA_POPTS_SET(opts, std::string, prefix, laplacian_variable)
 }
 #endif
@@ -244,19 +241,6 @@ std::string teca_laplacian::get_component_0_variable(
             request.get("teca_laplacian::component_0_variable", comp_0_var);
 
     return comp_0_var;
-}
-
-// --------------------------------------------------------------------------
-std::string teca_laplacian::get_component_1_variable(
-    const teca_metadata &request)
-{
-    std::string comp_1_var = this->component_1_variable;
-
-    if (comp_1_var.empty() &&
-        request.has("teca_laplacian::component_1_variable"))
-            request.get("teca_laplacian::component_1_variable", comp_1_var);
-
-    return comp_1_var;
 }
 
 // --------------------------------------------------------------------------
@@ -313,13 +297,6 @@ std::vector<teca_metadata> teca_laplacian::get_upstream_request(
         return up_reqs;
     }
 
-    std::string comp_1_var = this->get_component_1_variable(request);
-    if (comp_1_var.empty())
-    {
-        TECA_ERROR("component 0 array was not specified")
-        return up_reqs;
-    }
-
     // copy the incoming request to preserve the downstream
     // requirements and add the arrays we need
     teca_metadata req(request);
@@ -329,7 +306,6 @@ std::vector<teca_metadata> teca_laplacian::get_upstream_request(
         req.get("arrays", arrays);
 
     arrays.insert(this->component_0_variable);
-    arrays.insert(this->component_1_variable);
 
     // capture the array we produce
     arrays.erase(this->get_laplacian_variable(request));
@@ -379,24 +355,6 @@ const_p_teca_dataset teca_laplacian::execute(
     if (!comp_0)
     {
         TECA_ERROR("requested array \"" << comp_0_var << "\" not present.")
-        return nullptr;
-    }
-
-    // get component 1 array
-    std::string comp_1_var = this->get_component_1_variable(request);
-
-    if (comp_1_var.empty())
-    {
-        TECA_ERROR("component_1_variable was not specified")
-        return nullptr;
-    }
-
-    const_p_teca_variant_array comp_1
-        = in_mesh->get_point_arrays()->get(comp_1_var);
-
-    if (!comp_1)
-    {
-        TECA_ERROR("requested array \"" << comp_1_var << "\" not present.")
         return nullptr;
     }
 
