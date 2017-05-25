@@ -3,6 +3,7 @@
 
 #include "teca_shared_object.h"
 #include <initializer_list>
+#include <functional>
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_algorithm)
 
