@@ -16,6 +16,7 @@
 #include "teca_evaluate_expression.h"
 #include "teca_table_region_mask.h"
 #include "teca_l2_norm.h"
+#include "teca_laplacian.h"
 #include "teca_mask.h"
 #include "teca_programmable_algorithm.h"
 #include "teca_programmable_reduce.h"
@@ -82,6 +83,15 @@
 %shared_ptr(teca_l2_norm)
 %ignore teca_l2_norm::operator=;
 %include "teca_l2_norm.h"
+
+/***************************************************************************
+ laplacian
+ ***************************************************************************/
+%ignore teca_laplacian::shared_from_this;
+%shared_ptr(teca_laplacian)
+%ignore teca_laplacian::operator=;
+%include "teca_laplacian.h"
+
 
 /***************************************************************************
  mask
