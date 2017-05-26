@@ -38,7 +38,7 @@ void laplacian(num_t *w, const pt_t *lon, const pt_t *lat,
     unsigned long n_lat, bool periodic_lon=true)
 {
     size_t n_bytes = n_lat*sizeof(num_t);
-    num_t *delta_u_sq = static_cast<num_t*>(malloc(n_bytes));
+    num_t *delta_lon_sq = static_cast<num_t*>(malloc(n_bytes));
 
     // delta lon squared as a function of latitude
     num_t d_lon = (lon[1] - lon[0]) * deg_to_rad<num_t>() * earth_radius<num_t>();
@@ -46,14 +46,15 @@ void laplacian(num_t *w, const pt_t *lon, const pt_t *lat,
     num_t *tan_lat = static_cast<num_t*>(malloc(n_bytes)); 
     for (unsigned long j = 0; j < n_lat; ++j)
     {
-        delta_u_sq[j] = pow(d_lon * cos(lat[j] * deg_to_rad<num_t>()),2);
+        delta_lon_sq[j] = pow(d_lon * cos(lat[j] * deg_to_rad<num_t>()),2);
     	tan_lat[j] = tan(lat[j] * deg_to_rad<num_t>());
     }
 
     // delta lat squared
     num_t delta_v = (lat[1] - lat[0]) * deg_to_rad<num_t>() * earth_radius<num_t>();
-    num_t dv = num_t(2)*delta_v;
-    num_t dv_sq = delta_v*delta_v;
+    num_t dlat = num_t(2)*delta_v;
+    num_t dlat_sq = delta_v*delta_v;
+    dlat *= earth_radius<num_t>(); // scale dlat by R for the tan term
 
     unsigned long max_i = n_lon - 1;
     unsigned long max_j = n_lat - 1;
@@ -67,15 +68,14 @@ void laplacian(num_t *w, const pt_t *lon, const pt_t *lat,
 	 * The following f_* variables describe the field
 	 * f in a grid oriented fashion:
 	 *
-	 *	f_jmim	f_jim	f_jpim
+	 *	f_ipjm	f_ipj	f_ipjp
 	 *
-	 *	f_jmi	f_ji	f_jpi
+	 *	f_ijm	f_ji	f_ijp
 	 *
-	 *	f_jmip	f_jip	f_jpip
+	 *	f_imjm	f_imj	f_imjp
 	 * 
-	 * The 'i' direction represents longitude, the
-	 * 'j' direciton represents latitude. (Note, this
-	 * was inadvertantly sketched out transposed.)
+	 * The 'j' direction represents longitude, the
+	 * 'i' direciton represents latitude. 
 	 *
 	 * Note: The laplacian represented here uses the chain
 	 * rule to separate the (1/cos(lat)*d(cos(lat)*df/dlat)/dlat 
@@ -84,25 +84,25 @@ void laplacian(num_t *w, const pt_t *lon, const pt_t *lat,
 	 */
 	// Set array pointer locations so that index 'i' refers to the
 	// shifted location in all variables
-        const num_t *f_ij = f + jj;         // i,j
-        const num_t *f_jpi = f + jj + n_lon; // i,   j+1
-        const num_t *f_jmi = f + jj - n_lon; // i,   j-1
-        const num_t *f_jip = f + jj + 1;    // i+1, j  
-        const num_t *f_jim = f + jj - 1;    // i-1, j  
+        const num_t *f_ij = f + jj;          // i,j
+        const num_t *f_ipj = f + jj + n_lon; // i+1, j
+        const num_t *f_imj = f + jj - n_lon; // i-1, j
+        const num_t *f_ijp = f + jj + 1;     // i,   j + 1
+        const num_t *f_ijm = f + jj - 1;     // i,   j - 1
 	
 	// set the pointer index for the output field w
 	// ... this is index i,j
         num_t *ww = w + jj;
 	// create a dummy variable for u**2 
-        num_t du_sq = delta_u_sq[j];
+        num_t dlon_sq = delta_lon_sq[j];
 
         for (unsigned long i = 1; i < max_i; ++i)
         {
 	    // calculate the laplacian in spherical coordinates, assuming
 	    // constant radius R.
-            ww[i] = (f_jim[i] - num_t(2)*f_ij[i] + f_jip[i])/dv_sq - 
-		    tan_lat[j]*(f_jip[i]-f_jim[i])/dv + 
-                    (f_jmi[i] - num_t(2)*f_ij[i] + f_jpi[i])/du_sq;
+            ww[i] = (f_imj[i] - num_t(2)*f_ij[i] + f_ipj[i])/dlat_sq - 
+		    tan_lat[j]*(f_ipj[i]-f_imj[i])/dlat + 
+                    (f_ijm[i] - num_t(2)*f_ij[i] + f_ijp[i])/dlon_sq;
         }
     }
 
@@ -116,22 +116,22 @@ void laplacian(num_t *w, const pt_t *lon, const pt_t *lat,
 	    // Set array pointer locations so that index 'i' refers to the
 	    // shifted location in all variables
             const num_t *f_ij = f + jj;          // i,j
-            const num_t *f_jpi = f + jj + n_lon;  // i,   j+1
-            const num_t *f_jmi = f + jj - n_lon;  // i,   j-1
-            const num_t *f_jip = f + jj + 1;     // i+1, j  
-            const num_t *f_jim = f + jj - max_i; // i-1, j   (wrap to right)
+            const num_t *f_ipj = f + jj + n_lon; // i+1, j
+            const num_t *f_imj = f + jj - n_lon; // i-1, j
+            const num_t *f_ijp = f + jj + 1;     // i,   j + 1
+            const num_t *f_ijm = f + jj - max_i; // i,   j - 1
 
 	    // set the pointer index for the output field w
 	    // ... this is index i,j
             num_t *ww = w + jj;
 	    // create a dummy variable for u**2 
-            num_t du_sq = delta_u_sq[j];
+            num_t dlon_sq = delta_lon_sq[j];
 
 	    // calculate the laplacian in spherical coordinates, assuming
 	    // constant radius R.
-            ww[0] = (f_jim[0] - num_t(2)*f_ij[0] + f_jip[0])/dv_sq - 
-		    tan_lat[j]*(f_jip[0]-f_jim[0])/dv + 
-                    (f_jmi[0] - num_t(2)*f_ij[0] + f_jpi[0])/du_sq;
+            ww[0] = (f_imj[0] - num_t(2)*f_ij[0] + f_ipj[0])/dlat_sq - 
+		    tan_lat[j]*(f_ipj[0]-f_imj[0])/dlat + 
+                    (f_ijm[0] - num_t(2)*f_ij[0] + f_ijp[0])/dlon_sq;
         }
 
         // periodic in longitude; rightmost boundary
@@ -142,23 +142,23 @@ void laplacian(num_t *w, const pt_t *lon, const pt_t *lat,
 
 	    // Set array pointer locations so that index 'i' refers to the
 	    // shifted location in all variables
-            const num_t *f_ij = f + jj + max_i;         // i,j
-            const num_t *f_jpi = f + jj + max_i + n_lon; // i,   j+1
-            const num_t *f_jmi = f + jj + max_i - n_lon; // i,   j-1
-            const num_t *f_jip = f + jj;                // i+1, j (wrap to left)
-            const num_t *f_jim = f + jj - max_i;        // i-1, j   
+            const num_t *f_ij = f + jj + max_i;          // i,j
+            const num_t *f_ipj = f + jj + max_i + n_lon; // i+1, j
+            const num_t *f_imj = f + jj + max_i - n_lon; // i-1, j
+            const num_t *f_ijp = f + jj;                 // i,   j + 1
+            const num_t *f_ijm = f + jj - max_i;         // i,   j - 1
 
 	    // set the pointer index for the output field w
 	    // ... this is index i,j
             num_t *ww = w + jj + max_i;
 	    // create a dummy variable for u**2 
-            num_t du_sq = delta_u_sq[j];
+            num_t dlon_sq = delta_lon_sq[j];
 
 	    // calculate the laplacian in spherical coordinates, assuming
 	    // constant radius R.
-            ww[0] = (f_jim[0] - num_t(2)*f_ij[0] + f_jip[0])/dv_sq - 
-		    tan_lat[j]*(f_jip[0]-f_jim[0])/dv + 
-                    (f_jmi[0] - num_t(2)*f_ij[0] + f_jpi[0])/du_sq;
+            ww[0] = (f_imj[0] - num_t(2)*f_ij[0] + f_ipj[0])/dlat_sq - 
+		    tan_lat[j]*(f_ipj[0]-f_imj[0])/dlat + 
+                    (f_ijm[0] - num_t(2)*f_ij[0] + f_ijp[0])/dlon_sq;
         }
     }
     else
@@ -182,7 +182,7 @@ void laplacian(num_t *w, const pt_t *lon, const pt_t *lat,
     for (unsigned long i = 0; i < n_lon; ++i)
         dest[i] = src[i];
 
-    free(delta_u_sq);
+    free(delta_lon_sq);
     free(tan_lat);
 
     return;
