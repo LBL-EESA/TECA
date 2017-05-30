@@ -19,6 +19,7 @@ using std::vector;
 using std::cerr;
 using std::endl;
 using std::cos;
+using std::tan;
 
 //#define TECA_DEBUG
 
