@@ -162,6 +162,18 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
         if (r >= col->size())
             col->resize(r+1);
 
+        // numpy scalars
+        TECA_PY_ARRAY_SCALAR_DISPATCH(obj,
+            ST val = teca_py_array::numpy_scalar_tt<ST>::value(obj);
+            TEMPLATE_DISPATCH(teca_variant_array_impl,
+                col.get(),
+                TT *arr = static_cast<TT*>(col.get());
+                arr->set(r, val);
+                return;
+                )
+            )
+
+        // python objects
         TECA_PY_OBJECT_DISPATCH_NUM(obj,
             teca_py_object::cpp_tt<OT>::type val
                 = teca_py_object::cpp_tt<OT>::value(obj);
@@ -377,7 +389,19 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
     {
         teca_py_gil_state gil;
 
-        // arrays
+        // numpy scalars
+        if (PyArray_CheckScalar(obj))
+        {
+            TECA_PY_ARRAY_SCALAR_DISPATCH(obj,
+                self->append(teca_py_array::numpy_scalar_tt<ST>::value(obj));
+                return;
+                )
+            PyErr_Format(PyExc_TypeError,
+                "failed to append array. Unsupported numpy scalar type");
+            return;
+        }
+
+        // numpy ndarrays
         if (PyArray_Check(obj))
         {
             PyArrayObject *arr = reinterpret_cast<PyArrayObject*>(obj);
@@ -394,7 +418,8 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
                 NpyIter_Deallocate(it);
                 return;
                 )
-            PyErr_Format(PyExc_TypeError, "failed to append array");
+            PyErr_Format(PyExc_TypeError,
+                "failed to append array. Unsupported numpy type.");
             return;
         }
 
@@ -428,6 +453,8 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
             self->append(teca_py_object::cpp_tt<OT>::value(obj));
             return;
             )
+
+        TECA_ERROR("failed to append object")
         PyErr_Format(PyExc_TypeError, "failed to append object");
     }
 

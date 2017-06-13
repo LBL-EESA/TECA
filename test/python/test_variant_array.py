@@ -13,6 +13,9 @@ def start_sec(s):
 def end_sec(s):
     out('checking '+s+'...ok\n\n')
 
+nptypes = [np.float32, np.float64, np.int8, np.int16, \
+    np.int32, np.int64, np.uint8, np.uint16, np.uint32, \
+    np.uint64, np.long, np.byte]
 
 start_sec('constructor')
 arrs = []
@@ -26,11 +29,17 @@ end_sec('constructor')
 start_sec('set')
 for arr in arrs:
     out('%s\n'%(str(type(arr))))
-    arr.resize(20)
+    arr.resize(20 + len(nptypes))
+    q = 0
     for i in range(10):
-        arr[i] = int(i)
+        arr[q] = int(i)
+        q += 1
     for i in range(10):
-        arr[i+10] = float(10 - i)
+        arr[q] = float(10 - i)
+        q += 1
+    for t in nptypes:
+        arr[q] = t(q)
+        q += 1
 end_sec('set')
 
 start_sec('append')
@@ -39,7 +48,14 @@ for arr in arrs:
     arr.append(42)
     arr.append(3.14)
     arr.append([70, 80, 90])
-    arr.append(np.array([3,2,1], dtype=np.float64))
+    q = 0
+    for t in nptypes:
+        arr.append(t(q))
+        q += 1
+    for t in nptypes:
+        v = np.ones(3, dtype=t)*q
+        arr.append(v)
+        q += 1
 end_sec('append')
 
 start_sec('get')

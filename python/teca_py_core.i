@@ -176,7 +176,8 @@ class teca_variant_array;
             return;
         }
 #endif
-        if (teca_py_object::set(self, i, value))
+        if (teca_py_array::set(self, i, value) ||
+            teca_py_object::set(self, i, value))
             return;
 
         PyErr_Format(PyExc_TypeError,

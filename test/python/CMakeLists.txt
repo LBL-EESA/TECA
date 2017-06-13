@@ -52,6 +52,11 @@ teca_add_test(py_test_metadata
 teca_add_test(py_test_variant_array
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_variant_array.py)
 
+teca_add_test(py_test_table
+    COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_table.py
+    "${TECA_DATA_ROOT}/py_test_table.bin"
+    REQ_TECA_DATA)
+
 teca_add_test(py_test_database
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_database.py)
 
