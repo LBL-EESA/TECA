@@ -66,6 +66,18 @@ for arr in arrs:
     out('\n')
 end_sec('get')
 
+start_sec('bounds check')
+for arr in arrs:
+    try:
+        arr.set(3000, 1.0)
+    except:
+        out('%s .. caught set out of bounds!\n'%(str(type(arr))))
+    try:
+        arr.get(3000)
+    except:
+        out('%s .. caught get out of bounds!\n'%(str(type(arr))))
+end_sec('bounds check')
+
 start_sec('as_array')
 for arr in arrs:
     out('%s\n'%(str(type(arr))))

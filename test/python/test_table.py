@@ -33,6 +33,16 @@ tab[1,1] = np.float64(-tab[1,1])
 tab[2,2] = -tab[2,2]
 tab[3,3] = -tab[3,3]
 
+# test exceptions
+try:
+    tab[4,4]
+except:
+    sys.stderr.write('caught out of bounds __getitem__\n')
+try:
+    tab[4,4] = 0.0
+except:
+    sys.stderr.write('caught out of bounds __setitem__\n')
+
 source = teca_dataset_source.New()
 source.set_dataset(tab)
 
