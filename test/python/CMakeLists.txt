@@ -138,6 +138,13 @@ teca_add_test(py_test_tc_stats
     FEATURES ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
+teca_add_test(py_test_tc_activity
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_activity.py
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2_classify_2005_09.bin"
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2_activity_2005_09.bin"
+    FEATURES ${TECA_HAS_UDUNITS}
+    REQ_TECA_DATA)
+
 teca_add_test(py_test_tc_trajectory_scalars_serial
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_trajectory_scalars.py
     "${TECA_DATA_ROOT}/cam5_1_amip_run2_tracks_2005_09.bin"

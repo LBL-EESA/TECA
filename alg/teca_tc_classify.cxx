@@ -532,6 +532,51 @@ const_p_teca_dataset teca_tc_classify::execute(
             )
         )
 
+    // PDI (power dissipation index)
+    // PDI = \sum v_{max}^{3} \delta t
+    // see: Environmental Factors Affecting Tropical Cyclone Power Dissipation
+    // KERRY EMANUEL, 15 NOVEMBER 2007, JOURNAL OF CLIMATE
+    p_teca_variant_array PDI = surface_wind->new_instance(n_tracks);
+
+    NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
+        time.get(), _T,
+
+        const NT_T *ptime = static_cast<TT_T*>(time.get())->get();
+
+        NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+            PDI.get(), _W,
+
+            NT_W *pPDI = static_cast<TT_W*>(PDI.get())->get();
+
+            const NT_W *psurface_wind =
+                static_cast<const TT_W*>(surface_wind.get())->get();
+
+            for (size_t i = 0; i < n_tracks; ++i)
+            {
+                unsigned long track_start = track_starts[i];
+                unsigned long npts = track_starts[i+1] - track_start - 1;
+
+                pPDI[i] = NT_W();
+
+                // for now skip the first and last track point
+                // could handle these as a special case if needed
+                for (size_t j = 1; j < npts; ++j)
+                {
+                    unsigned long id = track_start + j;
+                    NT_W dt = ptime[id+1] - ptime[id-1];
+                    NT_W w = psurface_wind[id];
+                    pPDI[i] += w < teca_saffir_simpson::get_lower_bound_mps<NT_W>(0)
+                        ? NT_W() : w*w*w*dt;
+                }
+
+                // correct the units
+                // time unit conversions: 24*3600 seconds per day
+                // and we sample time in days at t +/- 1 => dt*24*3600/2
+                pPDI[i] *= NT_W(43200);
+            }
+            )
+        )
+
     // cyclogenisis, determine region of origin
     size_t n_regions = this->region_sizes.size();
 
@@ -640,6 +685,7 @@ const_p_teca_dataset teca_tc_classify::execute(
     out_table->append_column("length", length);
     out_table->append_column("category", category);
     out_table->append_column("ACE", ACE);
+    out_table->append_column("PDI", PDI);
     out_table->append_column("max_surface_wind", max_surface_wind);
     out_table->append_column("max_surface_wind_x", max_surface_wind_x);
     out_table->append_column("max_surface_wind_y", max_surface_wind_y);
