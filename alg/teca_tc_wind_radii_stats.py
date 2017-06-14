@@ -187,7 +187,7 @@ class teca_tc_wind_radii_stats:
 
 
             plt.suptitle('Wind Radii %s/%d/%d - %s/%d/%d'%(month[0],day[0],year[0], \
-                month[-1],day[-1],year[1]), fontweight='bold', fontsize=12)
+                month[-1],day[-1],year[-1]), fontweight='bold', fontsize=12)
             plt.subplots_adjust(hspace=0.35, wspace=0.35, top=0.90)
 
             plt.savefig(state.output_prefix + 'wind_radii_stats.png')
@@ -232,7 +232,7 @@ class teca_tc_wind_radii_stats:
             fig.colorbar(im, cax=cbar_ax)
 
             plt.suptitle('Wind Radii %s/%d/%d - %s/%d/%d'%(month[0],day[0],year[0], \
-                month[-1],day[-1],year[1]), fontweight='bold', fontsize=12)
+                month[-1],day[-1],year[-1]), fontweight='bold', fontsize=12)
             plt.subplots_adjust(hspace=0.3, wspace=0.3,  top=0.85)
 
             plt.savefig(state.output_prefix + 'peak_radius_stats.png')
