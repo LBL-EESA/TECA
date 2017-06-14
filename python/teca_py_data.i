@@ -27,9 +27,11 @@
     TECA_PY_STR()
 
     /* add or replace an array using syntax: col['name'] = array */
-    void __setitem__(const std::string &name, PyObject *array)
+    PyObject *__setitem__(const std::string &name, PyObject *array)
     {
         teca_py_gil_state gil;
+
+        Py_INCREF(Py_None);
 
         p_teca_variant_array varr;
         if ((varr = teca_py_array::new_variant_array(array))
@@ -37,10 +39,14 @@
             || (varr = teca_py_iterator::new_variant_array(array)))
         {
             self->set(name, varr);
-            return;
+            return Py_None;
         }
-        PyErr_Format(PyExc_TypeError,
-            "Failed to convert array for key \"%s\"", name.c_str());
+
+        TECA_PY_ERROR(0, PyExc_TypeError,
+            "Failed to convert array for key \"" <<  name << "\"")
+
+        Py_DECREF(Py_None);
+        return nullptr;
     }
 
     /* return an array using the syntax: col['name'] */
@@ -51,8 +57,8 @@
         p_teca_variant_array varr = self->get(name);
         if (!varr)
         {
-            PyErr_Format(PyExc_KeyError,
-                "key \"%s\" not found", name.c_str());
+            TECA_PY_ERROR(0, PyExc_KeyError,
+                "key \"" << name << "\" not found")
             return nullptr;
         }
 
@@ -63,8 +69,10 @@
                 teca_py_array::new_object(varrt));
             )
 
-        return PyErr_Format(PyExc_TypeError,
-            "Failed to convert array for key \"%s\"", name.c_str());
+        TECA_PY_ERROR(0, PyExc_TypeError,
+            "Failed to convert array for key \"" << name << "\"")
+
+        return nullptr;
     }
 
     /* handle conversion to variant arrays */
@@ -136,31 +144,35 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
 
     /* update the value at r,c. r is a row index and c an
     either be a column index or name */
-    void __setitem__(PyObject *idx, PyObject *obj)
+    PyObject *__setitem__(PyObject *idx, PyObject *obj)
     {
         teca_py_gil_state gil;
 
         if (!PySequence_Check(idx) || (PySequence_Size(idx) != 2))
         {
-            PyErr_Format(PyExc_KeyError,
+            TECA_PY_ERROR(0, PyExc_KeyError,
                 "Requires a 2 element sequence specifying "
-                "desired row and column indices");
-            return;
+                "desired row and column indices")
+            return nullptr;
         }
 
         unsigned long r = PyInt_AsLong(PySequence_GetItem(idx, 0));
         unsigned long c = PyInt_AsLong(PySequence_GetItem(idx, 1));
 
-        p_teca_variant_array col = self->get_column(c);
-        if (!col)
+        if (c >= self->get_number_of_columns())
         {
-            PyErr_Format(PyExc_IndexError,
-                "Column %lu is out of bounds", c);
-            return;
+            TECA_PY_ERROR(0, PyExc_IndexError,
+                "Column " << c << " is out of bounds")
+            return nullptr;
         }
 
+        p_teca_variant_array col = self->get_column(c);
+
+        // handle insertions
         if (r >= col->size())
             col->resize(r+1);
+
+        Py_INCREF(Py_None);
 
         // numpy scalars
         TECA_PY_ARRAY_SCALAR_DISPATCH(obj,
@@ -169,10 +181,9 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
                 col.get(),
                 TT *arr = static_cast<TT*>(col.get());
                 arr->set(r, val);
-                return;
+                return Py_None;
                 )
             )
-
         // python objects
         TECA_PY_OBJECT_DISPATCH_NUM(obj,
             teca_py_object::cpp_tt<OT>::type val
@@ -182,7 +193,7 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
                 col.get(),
                 TT *arr = static_cast<TT*>(col.get());
                 arr->set(r, val);
-                return;
+                return Py_None;
                 )
             )
         TECA_PY_OBJECT_DISPATCH_STR(obj,
@@ -194,12 +205,15 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
                 col.get(),
                 TT *arr = static_cast<TT*>(col.get());
                 arr->set(r, val);
-                return;
+                return Py_None;
                 )
             )
 
-        PyErr_Format(PyExc_TypeError,
-            "Failed to convert value at %ld,%ld", r, c);
+        TECA_PY_ERROR(0, PyExc_TypeError,
+            "Failed to convert value at " <<  r << ", " << c)
+
+        Py_DECREF(Py_None);
+        return nullptr;
     }
 
     /* look up the value at r,c. r is a row index and c an
@@ -210,29 +224,31 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
 
         if (!PySequence_Check(idx) || (PySequence_Size(idx) != 2))
         {
-            PyErr_Format(PyExc_KeyError,
+            TECA_PY_ERROR(0, PyExc_KeyError,
                 "Requires a 2 element sequence specifying "
-                "desired row and column indices");
+                "desired row and column indices")
             return nullptr;
         }
 
         unsigned long r = PyInt_AsLong(PySequence_GetItem(idx, 0));
         unsigned long c = PyInt_AsLong(PySequence_GetItem(idx, 1));
 
-        p_teca_variant_array col = self->get_column(c);
-        if (!col)
+        if (c >= self->get_number_of_columns())
         {
-            PyErr_Format(PyExc_IndexError,
-                "Column %lu is out of bounds", c);
+            TECA_PY_ERROR(0, PyExc_IndexError,
+                "Column " << c << " is out of bounds")
             return nullptr;
         }
 
+        p_teca_variant_array col = self->get_column(c);
+
         if (r >= col->size())
         {
-            PyErr_Format(PyExc_IndexError,
-                "Row %lu is out of bounds", r);
+            TECA_PY_ERROR(0, PyExc_IndexError,
+                "Row " << r << " is out of bounds")
             return nullptr;
         }
+
 
         TEMPLATE_DISPATCH(teca_variant_array_impl,
             col.get(),
@@ -248,28 +264,49 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
                 teca_py_object::py_tt<NT>::new_object(arr->get(r)));
             )
 
-        return PyErr_Format(PyExc_TypeError,
-            "Failed to convert value at %lu, %lu", r, c);
+        TECA_PY_ERROR(0, PyExc_TypeError,
+            "Failed to convert value at " << r << ", " << c)
+
+        return nullptr;
     }
 
     /* replace existing column in a single shot */
-    void set_column(PyObject *id, PyObject *array)
+    PyObject *set_column(PyObject *id, PyObject *array)
     {
         teca_py_gil_state gil;
 
         p_teca_variant_array col;
 
         if (PyInt_Check(id))
-            col = self->get_column(PyInt_AsLong(id));
-        else
-        if (PyStringCheck(id))
-            col = self->get_column(PyStringToCString(id));
+        {
+            long idx = PyInt_AsLong(id);
+            if (idx >= self->get_number_of_columns())
+            {
+                TECA_PY_ERROR(0, PyExc_IndexError,
+                    "Column " << idx << " is out of bounds")
+                return nullptr;
+            }
+            col = self->get_column(idx);
+        }
+        else if (PyStringCheck(id))
+        {
+            const char *col_name = PyStringToCString(id);
+            col = self->get_column(col_name);
+            if (!col)
+            {
+                TECA_PY_ERROR(0, PyExc_IndexError,
+                    "No such column \"" << col_name << "\"")
+                return nullptr;
+            }
+        }
 
         if (!col)
         {
-            PyErr_Format(PyExc_KeyError, "Invalid column id.");
-            return;
+            TECA_PY_ERROR(0, PyExc_TypeError, "Invalid column id type.")
+            return nullptr;
         }
+
+        Py_INCREF(Py_None);
 
         p_teca_variant_array varr;
         if ((varr = teca_py_array::new_variant_array(array))
@@ -277,14 +314,17 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
             || (varr = teca_py_iterator::new_variant_array(array)))
         {
             col->copy(varr);
-            return;
+            return Py_None;
         }
 
-        PyErr_Format(PyExc_TypeError, "Failed to convert array");
+        TECA_PY_ERROR(0, PyExc_TypeError, "Failed to convert array")
+
+        Py_DECREF(Py_None);
+        return nullptr;
     }
 
     /* declare a column */
-    void declare_column(const char *name, const char *type)
+    PyObject *declare_column(const char *name, const char *type)
     {
         teca_py_gil_state gil;
 
@@ -327,28 +367,36 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
         if (!strcmp(type, "s"))
             self->declare_column(name, std::string());
         else
-            PyErr_Format(PyExc_RuntimeError,
-                "Bad type code \"%s\" for column \"%s\". Must be one of: "
-                "c,uc,i,ui,l,ul,ll,ull,f,d,s", type, name);
+        {
+            TECA_PY_ERROR(0, PyExc_RuntimeError,
+                "Bad type code \"" << type << "\" for column \""
+                 << name << "\". Must be one of: c,uc,i,ui,l,ul,"
+                 "ll,ull,f,d,s")
+
+            return nullptr;
+        }
+
+        Py_INCREF(Py_None);
+        return Py_None;
     }
 
     /* declare a set of columns */
-    void declare_columns(PyObject *names, PyObject *types)
+    PyObject *declare_columns(PyObject *names, PyObject *types)
     {
         teca_py_gil_state gil;
 
         if (!PyList_Check(names))
         {
-            PyErr_Format(PyExc_TypeError,
-                "names argument must be a list.");
-            return;
+            TECA_PY_ERROR(0, PyExc_TypeError,
+                "names argument must be a list.")
+            return nullptr;
         }
 
         if (!PyList_Check(types))
         {
-            PyErr_Format(PyExc_TypeError,
-                "types argument must be a list.");
-            return;
+            TECA_PY_ERROR(0, PyExc_TypeError,
+                "types argument must be a list.")
+            return nullptr;
         }
 
         Py_ssize_t n_names = PyList_Size(names);
@@ -356,9 +404,9 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
 
         if (n_names != n_types)
         {
-            PyErr_Format(PyExc_RuntimeError,
-                "names and types arguments must have same length.");
-            return;
+            TECA_PY_ERROR(0, PyExc_RuntimeError,
+                "names and types arguments must have same length.")
+            return nullptr;
         }
 
         for (Py_ssize_t i = 0; i < n_names; ++i)
@@ -366,39 +414,55 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
             const char *name = PyStringToCString(PyList_GetItem(names, i));
             if (!name)
             {
-                PyErr_Format(PyExc_TypeError,
-                    "item at index %ld in names is not a string.", i);
-                return;
+                TECA_PY_ERROR(0, PyExc_TypeError,
+                    "item at index " << i << " in names is not a string.")
+                return nullptr;
             }
 
             const char *type = PyStringToCString(PyList_GetItem(types, i));
             if (!type)
             {
-                PyErr_Format(PyExc_TypeError,
-                    "item at index %ld in types is not a string.", i);
-                return;
+                TECA_PY_ERROR(0, PyExc_TypeError,
+                    "item at index " << i << " in types is not a string.")
+                return nullptr;
 
             }
 
-            teca_table_declare_column(self, name, type);
+            PyObject *rv = teca_table_declare_column(self, name, type);
+            if (rv)
+            {
+                Py_DECREF(rv);
+            }
+            else
+            {
+                return nullptr;
+            }
         }
+
+        Py_INCREF(Py_None);
+        return Py_None;
     }
 
     /* append sequence,array, or object in column order */
-    void append(PyObject *obj)
+    PyObject *append(PyObject *obj)
     {
         teca_py_gil_state gil;
+
+        Py_INCREF(Py_None);
 
         // numpy scalars
         if (PyArray_CheckScalar(obj))
         {
             TECA_PY_ARRAY_SCALAR_DISPATCH(obj,
                 self->append(teca_py_array::numpy_scalar_tt<ST>::value(obj));
-                return;
+                return Py_None;
                 )
-            PyErr_Format(PyExc_TypeError,
-                "failed to append array. Unsupported numpy scalar type");
-            return;
+
+            TECA_PY_ERROR(0, PyExc_TypeError,
+                "failed to append array. Unsupported type.")
+
+            Py_DECREF(Py_None);
+            return nullptr;
         }
 
         // numpy ndarrays
@@ -416,11 +480,14 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
                 }
                 while (next(it));
                 NpyIter_Deallocate(it);
-                return;
+                return Py_None;
                 )
-            PyErr_Format(PyExc_TypeError,
-                "failed to append array. Unsupported numpy type.");
-            return;
+
+            TECA_PY_ERROR(0, PyExc_TypeError,
+                "failed to append array. Unsupported type.")
+
+            Py_DECREF(Py_None);
+            return nullptr;
         }
 
         // sequences
@@ -434,28 +501,35 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
                     self->append(teca_py_object::cpp_tt<OT>::value(obj_i));
                     continue;
                     )
+
                 TECA_PY_OBJECT_DISPATCH_STR(obj_i,
                     self->append(teca_py_object::cpp_tt<OT>::value(obj_i));
                     continue;
                     )
-                PyErr_Format(PyExc_TypeError,
-                    "failed to append sequence element %ld ", i);
+
+                TECA_PY_ERROR(0, PyExc_TypeError,
+                    "failed to append sequence element " << i)
+
+                Py_DECREF(Py_None);
+                return nullptr;
             }
-            return;
+            return Py_None;
         }
 
         // objects
         TECA_PY_OBJECT_DISPATCH_NUM(obj,
             self->append(teca_py_object::cpp_tt<OT>::value(obj));
-            return;
+            return Py_None;
             )
         TECA_PY_OBJECT_DISPATCH_STR(obj,
             self->append(teca_py_object::cpp_tt<OT>::value(obj));
-            return;
+            return Py_None;
             )
 
-        TECA_ERROR("failed to append object")
-        PyErr_Format(PyExc_TypeError, "failed to append object");
+        TECA_PY_ERROR(0, PyExc_TypeError, "failed to append object")
+
+        Py_DECREF(Py_None);
+        return nullptr;
     }
 
     /* stream insertion operator */
@@ -493,8 +567,8 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
         p_teca_table table = self->get(name);
         if (!table)
         {
-            PyErr_Format(PyExc_KeyError,
-                "key \"%s\" not found", name.c_str());
+            TECA_PY_ERROR(1, PyExc_KeyError,
+                "key \"" << name << "\" not found")
             return nullptr;
         }
 

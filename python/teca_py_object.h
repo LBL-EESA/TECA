@@ -243,11 +243,13 @@ public:
 
     PyObject *get_object(){ return m_obj; }
 
-    virtual void set_object(PyObject *obj)
+    virtual PyObject *set_object(PyObject *obj)
     {
         Py_XINCREF(obj);
         Py_XDECREF(m_obj);
         m_obj = obj;
+        Py_INCREF(Py_None);
+        return Py_None;
     }
 
 private:
@@ -283,13 +285,13 @@ public:
         return *this;
     }
 
-    virtual void set_object(PyObject *f)
+    virtual PyObject *set_object(PyObject *f)
     {
         if (PyCallable_Check(f))
-            this->teca_py_object_ptr::set_object(f);
-        else
-            PyErr_Format(PyExc_TypeError,
-                "object is not callable");
+            return this->teca_py_object_ptr::set_object(f);
+
+        TECA_PY_ERROR(0, PyExc_TypeError, "object is not callable")
+        return nullptr;
     }
 };
 

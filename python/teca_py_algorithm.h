@@ -63,8 +63,8 @@ public:
         PyObject *f = m_callback.get_object();
         if (!f)
         {
-            PyErr_Format(PyExc_TypeError,
-                "report_callback callback not set");
+            TECA_PY_ERROR(1, PyExc_TypeError,
+                "report_callback callback not set")
             return teca_metadata();
         }
 
@@ -95,8 +95,8 @@ public:
         if (!SWIG_IsOK(SWIG_ConvertPtr(ret, reinterpret_cast<void**>(&md),
             SWIGTYPE_p_teca_metadata, 0)) || !md)
         {
-            PyErr_Format(PyExc_TypeError,
-                "invalid return type from report callback");
+            TECA_PY_ERROR(1, PyExc_TypeError,
+                "invalid return type from report callback")
             return teca_metadata();
         }
 
@@ -118,8 +118,8 @@ public:
     request_callback(PyObject *f)
         : m_callback(f) {}
 
-    void set_callback(PyObject *f)
-    { m_callback.set_object(f); }
+    PyObject *set_callback(PyObject *f)
+    { return m_callback.set_object(f); }
 
     explicit operator bool() const
     { return static_cast<bool>(m_callback); }
@@ -133,8 +133,7 @@ public:
         PyObject *f = m_callback.get_object();
         if (!f)
         {
-            PyErr_Format(PyExc_TypeError,
-                "request callback not set");
+            TECA_PY_ERROR(1, PyExc_TypeError, "request callback not set")
             return std::vector<teca_metadata>();
         }
 
@@ -168,9 +167,9 @@ public:
         // convert the return
         if (!PySequence_Check(ret))
         {
-            PyErr_Format(PyExc_TypeError,
+            TECA_PY_ERROR(1, PyExc_TypeError,
                 "Invalid return type from request callback. "
-                "Expecting a list of teca_metadata objects.");
+                "Expecting a list of teca_metadata objects.")
             return std::vector<teca_metadata>();
         }
 
@@ -184,8 +183,8 @@ public:
                 reinterpret_cast<void**>(&md), SWIGTYPE_p_teca_metadata, 0))
                 || !md)
             {
-                PyErr_Format(PyExc_TypeError,
-                    "invalid return type from request callback");
+                TECA_PY_ERROR(1, PyExc_TypeError,
+                    "invalid return type from request callback")
                 return std::vector<teca_metadata>();
             }
             reqs[i] = *md;
@@ -218,8 +217,8 @@ public:
     execute_callback(PyObject *f)
         : m_callback(f) {}
 
-    void set_callback(PyObject *f)
-    { m_callback.set_object(f); }
+    PyObject *set_callback(PyObject *f)
+    { return m_callback.set_object(f); }
 
     explicit operator bool() const
     { return static_cast<bool>(m_callback); }
@@ -233,8 +232,8 @@ public:
         PyObject *f = m_callback.get_object();
         if (!f)
         {
-            PyErr_Format(PyExc_TypeError,
-                "execute_callback callback not set");
+            TECA_PY_ERROR(1, PyExc_TypeError,
+                "execute_callback callback not set")
             return nullptr;
         }
 
@@ -274,8 +273,8 @@ public:
             SWIGTYPE_p_std__shared_ptrT_teca_dataset_t, 0, &i_own))
             || !tmp_data)
         {
-            PyErr_Format(PyExc_TypeError,
-                "invalid return type from execute_callback");
+            TECA_PY_ERROR(1, PyExc_TypeError,
+                "invalid return type from execute_callback")
             return nullptr;
         }
 
@@ -304,8 +303,8 @@ public:
     reduce_callback(PyObject *f)
         : m_callback(f) {}
 
-    void set_callback(PyObject *f)
-    { m_callback.set_object(f); }
+    PyObject *set_callback(PyObject *f)
+    { return m_callback.set_object(f); }
 
     explicit operator bool() const
     { return static_cast<bool>(m_callback); }
@@ -318,8 +317,8 @@ public:
         PyObject *f = m_callback.get_object();
         if (!f)
         {
-            PyErr_Format(PyExc_TypeError,
-                "reduce_callback callback not set");
+            TECA_PY_ERROR(1, PyExc_TypeError,
+                "reduce_callback callback not set")
             return nullptr;
         }
 

@@ -211,8 +211,8 @@ PyObject *new_object(const_p_teca_variant_array va)
         return teca_py_sequence::new_object(static_cast<const TT*>(va.get()));
         )
 
-    PyErr_Format(PyExc_TypeError,
-        "Failed to convert teca_variant_array to PyList");
+    TECA_PY_ERROR(0, PyExc_TypeError,
+        "Failed to convert teca_variant_array to PyList")
     return nullptr;
 }
 };

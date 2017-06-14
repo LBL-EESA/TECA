@@ -1,8 +1,23 @@
 %{
-#include <sstream>
+#include "teca_common.h"
 #include "teca_py_string.h"
-%}
 
+#include <string>
+#include <sstream>
+
+#ifndef TECA_PY_ERROR_H
+#define TECA_PY_ERROR_H
+#define TECA_PY_ERROR(_force, _type, _xmsg)                     \
+{                                                               \
+    std::ostringstream oss;                                     \
+    oss << std::endl;                                           \
+    TECA_MESSAGE(oss, "ERROR:", ANSI_RED, _xmsg)                \
+    PyErr_Format(_type, oss.str().c_str());                     \
+    if (_force)                                                 \
+      PyRun_SimpleString("pass");                               \
+}
+#endif
+%}
 
 /***************************************************************************/
 %define TECA_PY_STR()
@@ -17,30 +32,20 @@
 %enddef
 
 /***************************************************************************/
-/* for each dataset type define a functions that wrap std::dynamic_pointer_cast */
+/* for each dataset type define functions that wrap
+   std::dynamic_pointer_cast. if the cast fails the returned object
+   evaluates to None in Python. No error should be thrown here. */
 %define TECA_PY_DYNAMIC_CAST(to_t, from_t)
 %inline %{
 p_##to_t as_##to_t(p_##from_t in_inst)
 {
     p_##to_t o_inst = std::dynamic_pointer_cast<to_t>(in_inst);
-    /*if (!o_inst)
-    {
-        teca_py_gil_state gil;
-        PyErr_Format(PyExc_TypeError,
-            "Failed to convert from \"%s\" to \"%s\"", #from_t, #to_t);
-    }*/
     return o_inst;
 }
 
 const_p_##to_t as_const_##to_t(const_p_##from_t inst)
 {
     const_p_##to_t o_inst = std::dynamic_pointer_cast<const to_t>(inst);
-    /*if (!o_inst)
-    {
-        teca_py_gil_state gil;
-        PyErr_Format(PyExc_TypeError,
-            "Failed to convert from \"%s\" to \"%s\"", #from_t, #to_t);
-    }*/
     return o_inst;
 }
 %}
@@ -49,8 +54,11 @@ const_p_##to_t as_const_##to_t(const_p_##from_t inst)
 /***************************************************************************/
 /* for each type define functions that wrap std::dynamic_pointer_cast
 
-    p_teca_X_array as_teca_X_array(p_teca_variant_array)
-    const_p_teca_X_array as_const_teca_X_array(const_p_teca_variant_array) */
+   p_teca_X_array as_teca_X_array(p_teca_variant_array)
+   const_p_teca_X_array as_const_teca_X_array(const_p_teca_variant_array)
+
+   if the cast fails the returned object evaluates to None in Python.
+   No error should be thrown here. */
 %define TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(to_t, to_t_name)
 %inline %{
 std::shared_ptr<teca_variant_array_impl<to_t>>
@@ -58,14 +66,6 @@ as_teca_##to_t_name##_array(p_teca_variant_array in_inst)
 {
     std::shared_ptr<teca_variant_array_impl<to_t>> o_inst
         = std::dynamic_pointer_cast<teca_variant_array_impl<to_t>>(in_inst);
-
-    if (!o_inst)
-    {
-        teca_py_gil_state gil;
-        PyErr_Format(PyExc_TypeError,
-            "Failed to convert teca_variant_array  to teca_" #to_t_name "_array");
-    }
-
     return o_inst;
 }
 
@@ -74,14 +74,6 @@ as_const_teca_##to_t_name##_array(const_p_teca_variant_array in_inst)
 {
     std::shared_ptr<const teca_variant_array_impl<to_t>> o_inst
         = std::dynamic_pointer_cast<const teca_variant_array_impl<to_t>>(in_inst);
-
-    if (!o_inst)
-    {
-        teca_py_gil_state gil;
-        PyErr_Format(PyExc_TypeError,
-            "Failed to convert const_teca_variant_array  to const_teca_" #to_t_name "_array");
-    }
-
     return o_inst;
 }
 %}

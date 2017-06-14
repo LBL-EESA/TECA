@@ -300,8 +300,8 @@ PyArrayObject *new_object(teca_variant_array_impl<NT> *varrt)
     NT *mem = static_cast<NT*>(malloc(n_bytes));
     if (!mem)
     {
-        PyErr_Format(PyExc_RuntimeError,
-            "failed to allocate %lu bytes", n_bytes);
+        TECA_PY_ERROR(0, PyExc_RuntimeError,
+            "failed to allocate " << n_bytes << " bytes")
         return nullptr;
     }
 
