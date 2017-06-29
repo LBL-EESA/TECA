@@ -25,7 +25,7 @@ struct report
         (unsigned int, const std::vector<teca_metadata> &)
     {
         teca_metadata md;
-        md.insert("number_of_time_steps", num_tables);
+        md.set("number_of_time_steps", num_tables);
         return md;
     }
 };

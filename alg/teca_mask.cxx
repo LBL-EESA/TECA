@@ -98,7 +98,7 @@ std::vector<teca_metadata> teca_mask::get_upstream_request(
         req.get("arrays", arrays);
     arrays.insert(mask_vars.begin(), mask_vars.end());
 
-    req.insert("arrays", arrays);
+    req.set("arrays", arrays);
 
     // send up
     up_reqs.push_back(req);

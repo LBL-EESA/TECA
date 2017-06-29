@@ -78,7 +78,7 @@ teca_metadata array_add::get_output_metadata(
     // filters only see what this filter generates.
     ostringstream oss;
     oss << active_array_1 << "_plus_" << active_array_2;
-    output_md.insert("array_names", oss.str());
+    output_md.set("array_names", oss.str());
 
     return output_md;
 }
@@ -108,11 +108,11 @@ std::vector<teca_metadata> array_add::get_upstream_request(
     }
 
     teca_metadata up_req_1(request);
-    up_req_1.insert("array_name", active_array_1);
+    up_req_1.set("array_name", active_array_1);
     up_reqs[0] = up_req_1;
 
     teca_metadata up_req_2(request);
-    up_req_2.insert("array_name", active_array_2);
+    up_req_2.set("array_name", active_array_2);
     up_reqs[1] = up_req_2;
 
     return up_reqs;

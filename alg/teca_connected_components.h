@@ -42,17 +42,14 @@ protected:
     std::string get_threshold_variable(const teca_metadata &request);
 
 private:
-    teca_metadata get_output_metadata(
-        unsigned int port,
+    teca_metadata get_output_metadata(unsigned int port,
         const std::vector<teca_metadata> &input_md) override;
 
     std::vector<teca_metadata> get_upstream_request(
-        unsigned int port,
-        const std::vector<teca_metadata> &input_md,
+        unsigned int port, const std::vector<teca_metadata> &input_md,
         const teca_metadata &request) override;
 
-    const_p_teca_dataset execute(
-        unsigned int port,
+    const_p_teca_dataset execute( unsigned int port,
         const std::vector<const_p_teca_dataset> &input_data,
         const teca_metadata &request) override;
 

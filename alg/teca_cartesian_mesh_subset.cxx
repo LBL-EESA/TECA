@@ -93,7 +93,7 @@ teca_metadata teca_cartesian_mesh_subset::get_output_metadata(
     }
 
     teca_metadata out_md(input_md[0]);
-    out_md.insert("whole_extent", this->extent);
+    out_md.set("whole_extent", this->extent);
     return out_md;
 }
 
@@ -107,7 +107,7 @@ std::vector<teca_metadata> teca_cartesian_mesh_subset::get_upstream_request(
 
     vector<teca_metadata> up_reqs(1, request);
 
-    up_reqs[0].insert("extent", this->extent);
+    up_reqs[0].set("extent", this->extent);
 
     return up_reqs;
 }

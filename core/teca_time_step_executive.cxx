@@ -127,10 +127,10 @@ int teca_time_step_executive::initialize(const teca_metadata &md)
     {
         vector<unsigned long> whole_extent(6, 0l);
         md.get("whole_extent", whole_extent);
-        base_req.insert("extent", whole_extent);
+        base_req.set("extent", whole_extent);
     }
     else
-        base_req.insert("extent", this->extent);
+        base_req.set("extent", this->extent);
     base_req.insert("arrays", this->arrays);
 
     // apply the base request to local times.
@@ -140,7 +140,7 @@ int teca_time_step_executive::initialize(const teca_metadata &md)
         if ((step % this->stride) == 0)
         {
             this->requests.push_back(base_req);
-            this->requests.back().insert("time_step", step);
+            this->requests.back().set("time_step", step);
         }
     }
 

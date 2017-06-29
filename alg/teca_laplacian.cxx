@@ -306,13 +306,13 @@ std::vector<teca_metadata> teca_laplacian::get_upstream_request(
     if (req.has("arrays"))
         req.get("arrays", arrays);
 
-    arrays.insert(this->component_0_variable);
+    arrays.insert(this->scalar_variable);
 
     // capture the array we produce
     arrays.erase(this->get_laplacian_variable(request));
 
     // update the request
-    req.insert("arrays", arrays);
+    req.set("arrays", arrays);
 
     // send it up
     up_reqs.push_back(req);

@@ -250,7 +250,7 @@ std::vector<teca_metadata> teca_connected_components::get_upstream_request(
     std::string label_var = this->get_label_variable(request);
     arrays.erase(label_var);
 
-    req.insert("arrays", arrays);
+    req.set("arrays", arrays);
 
     // send up
     up_reqs.push_back(req);
