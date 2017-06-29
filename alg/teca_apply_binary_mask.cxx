@@ -59,9 +59,8 @@ std::vector<teca_metadata> teca_apply_binary_mask::get_upstream_request(
         req.get("arrays", arrays);
     arrays.insert(this->mask_variable);
     if (!this->mask_arrays.empty())
-        arrays.insert(this->mask_arrays.begin(),
-            this->mask_arrays.end());
-    req.insert("arrays", arrays);
+        arrays.insert(this->mask_arrays.begin(), this->mask_arrays.end());
+    req.set("arrays", arrays);
 
     // send up
     up_reqs.push_back(req);

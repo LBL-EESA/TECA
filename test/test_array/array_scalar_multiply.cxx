@@ -67,7 +67,7 @@ teca_metadata array_scalar_multiply::get_output_metadata(
     // otherwise pass through and rely on down stream
     // requests to select the array to process
     if (this->array_name.size())
-        output_md.insert("array_names", this->array_name);
+        output_md.set("array_names", this->array_name);
 
     return output_md;
 }
@@ -96,7 +96,7 @@ std::vector<teca_metadata> array_scalar_multiply::get_upstream_request(
     }
 
     teca_metadata up_req(request);
-    up_req.insert("array_name", active_array);
+    up_req.set("array_name", active_array);
 
     up_reqs.push_back(up_req);
     return up_reqs;

@@ -74,9 +74,9 @@ struct report_test_tables
         (unsigned int, const std::vector<teca_metadata> &)
     {
         teca_metadata md;
-        md.insert("index_initializer_key", std::string("number_of_tables"));
-        md.insert("index_request_key", std::string("table_id"));
-        md.insert("number_of_tables", this->num_test_tables);
+        md.set("index_initializer_key", std::string("number_of_tables"));
+        md.set("index_request_key", std::string("table_id"));
+        md.set("number_of_tables", this->num_test_tables);
         return md;
     }
 
@@ -98,8 +98,8 @@ struct generate_test_tables
 
         p_teca_dataset ods = teca_test_util::create_test_table(table_id);
 
-        ods->get_metadata().insert("index_request_key", std::string("table_id"));
-        ods->get_metadata().insert("table_id", table_id);
+        ods->get_metadata().set("index_request_key", std::string("table_id"));
+        ods->get_metadata().set("table_id", table_id);
 
         return ods;
     }

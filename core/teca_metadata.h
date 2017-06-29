@@ -41,44 +41,37 @@ public:
     template<typename T>
     void declare(const std::string &name, unsigned int n);
 
-    // insert a scalar value. if the property doesn't exist
-    // it is created. if it does it is replaced.
+    // insert or update a scalar value. if the property doesn't exist
+    // it is created. if it does its value is updated
     template<typename T>
-    void insert(const std::string &name, const T &val);
+    int set(const std::string &name, const T &val);
 
-    // insert an array of length n. if the property doesn't exist
-    // it is created. if it does it is replaced.
+    // insert or update an array of length n.
     template<typename T>
-    void insert(const std::string &name, const T *val, unsigned int n);
+    int set(const std::string &name, const T *val, unsigned int n);
 
-    // insert a set. if the property doesn't exist
-    // it is created. if it does it is replaced.
+    // insert or update a set.
     template<typename T>
-    void insert(const std::string &name, const std::set<T> &val);
+    int set(const std::string &name, const std::set<T> &val);
 
-    // insert a vector. if the property doesn't exist
-    // it is created. if it does it is replaced.
+    // insert or update a vector.
     template<typename T>
-    void insert(const std::string &name, const std::vector<T> &val);
+    int set(const std::string &name, const std::vector<T> &val);
 
     template<typename T>
-    void insert(const std::string &name, std::initializer_list<T> val);
+    int set(const std::string &name, std::initializer_list<T> val);
 
-    // insert a vector of vectors. if the property doesn't exist
-    // it is created. if it does it is replaced.
+    // insert or update a vector of vectors.
     template<typename T>
-    void insert(const std::string &name, const std::vector<std::vector<T>> &val);
+    int set(const std::string &name, const std::vector<std::vector<T>> &val);
 
     // insert a variant array directly. if the property doesn't exist
     // it is created. if it does it is replaced.
-    void insert(const std::string &name,
-        p_teca_variant_array prop_val);
+    int set(const std::string &name, const p_teca_variant_array &prop_val);
 
-    // insert a variant array directly. if the property doesn't exist
-    // it is created. if it does it is replaced.
     template<typename T>
-    void insert(const std::string &name,
-        p_teca_variant_array_impl<T> prop_val);
+    void set(const std::string &name,
+        const p_teca_variant_array_impl<T> &prop_val);
 
     // append a value to the named property. reports
     // an error and does nothing if the property doesn't
@@ -86,45 +79,35 @@ public:
     template<typename T>
     int append(const std::string &name, const T &val);
 
-    // set a scalar. replaces the current value and does
-    // nothing if the property doesn't exist. return 0
-    // on success.
+    // update a scalar. Fails if the property isn't already in the collection.
     template<typename T>
-    int set(const std::string &name, const T &val)
-    { return this->set<T>(name, 0, val); }
+    int update(const std::string &name, const T &val)
+    { return this->update<T>(name, 0, val); }
 
-    // set the ith value from a scalar. replaces the current value and does
-    // nothing if the property doesn't exist. return 0
-    // on success.
+    // update the ith value from a scalar. Fails if the property isn't
+    // already in the collection.
     template<typename T>
-    int set(const std::string &name, unsigned int i, const T &val);
+    int update(const std::string &name, unsigned int i, const T &val);
 
-    // set an array of length n. replaces the current value and does
-    // nothing if the property doesn't exist. return 0
-    // on success.
+    // update an array of length n. Fails if the property isn't already
+    // in the collection.
     template<typename T>
-    int set(const std::string &name, const T *val, unsigned int n);
+    int update(const std::string &name, const T *val, unsigned int n);
 
-    // set a vector. replaces the current value and does
-    // nothing if the property doesn't exist. return 0
-    // on success.
+    // update a vector. Fails if the property isn't already in the collection.
     template<typename T>
-    int set(const std::string &name, const std::vector<T> &val);
+    int update(const std::string &name, const std::vector<T> &val);
 
     template<typename T>
-    int set(const std::string &name, std::initializer_list<T> val);
+    int update(const std::string &name, std::initializer_list<T> val);
 
-    // set a set. replaces the current value and does
-    // nothing if the property doesn't exist. return 0
-    // on success.
+    // update a set. Fails if the property isn't already in the collection.
     template<typename T>
-    int set(const std::string &name, const std::set<T> &val);
+    int update(const std::string &name, const std::set<T> &val);
 
-    // set a variant array directly. replaces the current value and does
-    // nothing if the property doesn't exist. return 0
-    // on success.
-    int set(const std::string &name,
-        p_teca_variant_array prop_val);
+    // update a variant array directly.
+    // property exists.
+    int update(const std::string &name, p_teca_variant_array prop_val);
 
     // get prop value. return 0 if successful
     template<typename T>
@@ -252,31 +235,28 @@ int teca_metadata::append(const std::string &name, const T &val)
 
 // --------------------------------------------------------------------------
 template<typename T>
-void teca_metadata::insert(const std::string &name, const T &val)
+int teca_metadata::set(const std::string &name, const T &val)
 {
     p_teca_variant_array prop_val
         = teca_variant_array_impl<T>::New(&val, 1);
 
-    this->props[name] = prop_val;
+    return this->set(name, prop_val);
 }
 
 // --------------------------------------------------------------------------
 template<typename T>
-void teca_metadata::insert(
-    const std::string &name,
-    const T *vals,
+int teca_metadata::set(const std::string &name, const T *vals,
     unsigned int n_vals)
 {
     p_teca_variant_array prop_val
         = teca_variant_array_impl<T>::New(vals, n_vals);
 
-    this->props[name] = prop_val;
+    return this->set(name, prop_val);
 }
 
 // --------------------------------------------------------------------------
 template<typename T>
-void teca_metadata::insert(
-    const std::string &name, const std::set<T> &vals)
+int teca_metadata::set(const std::string &name, const std::set<T> &vals)
 {
     size_t n = vals.size();
 
@@ -285,22 +265,20 @@ void teca_metadata::insert(
     p_teca_variant_array prop_val
         = teca_variant_array_impl<T>::New(tmp.data(), n);
 
-    this->props[name] = prop_val;
+    return this->set(name, prop_val);
 }
 
 // --------------------------------------------------------------------------
 template<typename T>
-void teca_metadata::insert(
-    const std::string &name,
+int teca_metadata::set(const std::string &name,
     std::initializer_list<T> vals)
 {
-    this->insert(name, std::vector<T>(vals));
+    return this->set(name, std::vector<T>(vals));
 }
 
 // --------------------------------------------------------------------------
 template<typename T>
-void teca_metadata::insert(
-    const std::string &name,
+int teca_metadata::set(const std::string &name,
     const std::vector<T> &vals)
 {
     size_t n = vals.size();
@@ -308,13 +286,12 @@ void teca_metadata::insert(
     p_teca_variant_array prop_val
         = teca_variant_array_impl<T>::New(vals.data(), n);
 
-    this->props[name] = prop_val;
+    return this->set(name, prop_val);
 }
 
 // --------------------------------------------------------------------------
 template<typename T>
-void teca_metadata::insert(
-    const std::string &name,
+int teca_metadata::set(const std::string &name,
     const std::vector<std::vector<T>> &vals)
 {
     size_t n = vals.size();
@@ -329,21 +306,21 @@ void teca_metadata::insert(
         prop_vals->append(prop_val);
     }
 
-    this->props[name] = prop_vals;
+    return this->set(name, prop_vals);
 }
 
 // --------------------------------------------------------------------------
 template<typename T>
-void teca_metadata::insert(
+void teca_metadata::set(
     const std::string &name,
-    p_teca_variant_array_impl<T> prop_val)
+    const p_teca_variant_array_impl<T> &prop_val)
 {
     this->props[name] = prop_val;
 }
 
 // --------------------------------------------------------------------------
 template<typename T>
-int teca_metadata::set(const std::string &name, unsigned int i, const T &val)
+int teca_metadata::update(const std::string &name, unsigned int i, const T &val)
 {
     prop_map_t::iterator it = this->props.find(name);
     if (it == this->props.end())
@@ -361,10 +338,8 @@ int teca_metadata::set(const std::string &name, unsigned int i, const T &val)
 
 // --------------------------------------------------------------------------
 template<typename T>
-int teca_metadata::set(
-    const std::string &name,
-    const T *vals,
-    unsigned int n_vals)
+int teca_metadata::update(const std::string &name,
+    const T *vals, unsigned int n_vals)
 {
     prop_map_t::iterator it = this->props.find(name);
     if (it == this->props.end())
@@ -382,9 +357,7 @@ int teca_metadata::set(
 
 // --------------------------------------------------------------------------
 template<typename T>
-int teca_metadata::set(
-    const std::string &name,
-    const std::vector<T> &vals)
+int teca_metadata::update(const std::string &name, const std::vector<T> &vals)
 {
     prop_map_t::iterator it = this->props.find(name);
     if (it == this->props.end())
@@ -402,18 +375,14 @@ int teca_metadata::set(
 
 // --------------------------------------------------------------------------
 template<typename T>
-int teca_metadata::set(
-    const std::string &name,
-    std::initializer_list<T> vals)
+int teca_metadata::update(const std::string &name, std::initializer_list<T> vals)
 {
-    return this->set(name, std::vector<T>(vals));
+    return this->update(name, std::vector<T>(vals));
 }
 
 // --------------------------------------------------------------------------
 template<typename T>
-int teca_metadata::set(
-    const std::string &name,
-    const std::set<T> &vals)
+int teca_metadata::update(const std::string &name, const std::set<T> &vals)
 {
     prop_map_t::iterator it = this->props.find(name);
     if (it == this->props.end())
@@ -446,9 +415,7 @@ int teca_metadata::get(const std::string &name, unsigned int i, T &val) const
 
 // --------------------------------------------------------------------------
 template<typename T>
-int teca_metadata::get(
-    const std::string &name,
-    std::vector<T> &vals) const
+int teca_metadata::get(const std::string &name, std::vector<T> &vals) const
 {
     prop_map_t::const_iterator it = this->props.find(name);
 
@@ -462,9 +429,7 @@ int teca_metadata::get(
 
 // --------------------------------------------------------------------------
 template<typename T>
-int teca_metadata::get(
-    const std::string &name,
-    std::set<T> &vals) const
+int teca_metadata::get(const std::string &name, std::set<T> &vals) const
 {
     std::vector<T> tmp;
     if (!this->get(name, tmp))

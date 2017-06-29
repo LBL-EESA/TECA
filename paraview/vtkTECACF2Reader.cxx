@@ -83,9 +83,9 @@ struct teca_vtk_dataset_bridge
         }
 
         teca_metadata up_req;
-        up_req.insert("time_step", time_step);
-        up_req.insert("arrays", m_active_arrays);
-        up_req.insert("extent", m_ext);
+        up_req.set("time_step", time_step);
+        up_req.set("arrays", m_active_arrays);
+        up_req.set("extent", m_ext);
 
         return std::vector<teca_metadata>(1, up_req);
     }

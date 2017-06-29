@@ -265,8 +265,8 @@ std::vector<teca_metadata> teca_ar_detect::get_upstream_request(
         arrays.push_back(this->land_sea_mask_variable);
 
     teca_metadata up_req(request);
-    up_req.insert("arrays", arrays);
-    up_req.insert("bounds", bounds);
+    up_req.set("arrays", arrays);
+    up_req.set("bounds", bounds);
 
     up_reqs.push_back(up_req);
     return up_reqs;

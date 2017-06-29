@@ -226,8 +226,8 @@ std::vector<teca_metadata> teca_index_reduce::get_upstream_request(
         for (unsigned long j = 0; j < n_reqs; ++j)
         {
             teca_metadata tmp(base_req[j]);
-            tmp.insert(request_key, index);
-            tmp.insert("index_request_key", request_key);
+            tmp.set(request_key, index);
+            tmp.set("index_request_key", request_key);
             up_req.emplace_back(std::move(tmp));
         }
     }
@@ -249,9 +249,9 @@ teca_metadata teca_index_reduce::get_output_metadata(
     // representative piece, and reduces it in a single pass to a single output
     // if other behavior is needed implementations will have to override this
     // method
-    output_md.insert("index_initializer_key", std::string("number_of_passes"));
-    output_md.insert("index_request_key", std::string("pass_number"));
-    output_md.insert("number_of_passes", 1l);
+    output_md.set("index_initializer_key", std::string("number_of_passes"));
+    output_md.set("index_request_key", std::string("pass_number"));
+    output_md.set("number_of_passes", 1l);
 
     return output_md;
 }
@@ -400,8 +400,8 @@ const_p_teca_dataset teca_index_reduce::execute(
     output_ds->shallow_copy(std::const_pointer_cast<teca_dataset>(tmp));
 
     // set up pipeline executive control keys.
-    output_ds->get_metadata().insert("index_request_key", std::string("pass_number"));
-    output_ds->get_metadata().insert("pass_number", 0l);
+    output_ds->get_metadata().set("index_request_key", std::string("pass_number"));
+    output_ds->get_metadata().set("pass_number", 0l);
 
     return output_ds;
 }

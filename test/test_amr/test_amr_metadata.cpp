@@ -16,16 +16,16 @@ int main(int, char **)
 
     // now store the global params
     teca_metadata amr_mesh;
-    amr_mesh.insert("spacing", dx, 3);
-    amr_mesh.insert("origin", x0, 3);
-    amr_mesh.insert("num_ghosts", ng, 3);
-    amr_mesh.insert("whole_extent", pdom, 6);
-    amr_mesh.insert("num_levels", 2);
+    amr_mesh.set("spacing", dx, 3);
+    amr_mesh.set("origin", x0, 3);
+    amr_mesh.set("num_ghosts", ng, 3);
+    amr_mesh.set("whole_extent", pdom, 6);
+    amr_mesh.set("num_levels", 2);
 
     vector<string> arrays;
     arrays.push_back("prw");
     arrays.push_back("temp");
-    amr_mesh.insert("arrays", arrays);
+    amr_mesh.set("arrays", arrays);
 
 
     // here is where you read level description from disk
@@ -43,16 +43,16 @@ int main(int, char **)
     teca_metadata levels;
 
     teca_metadata level0;
-    level0.insert("ref_ratio", 1);
-    level0.insert("extents", lev0);
-    levels.insert("level_0", level0);
+    level0.set("ref_ratio", 1);
+    level0.set("extents", lev0);
+    levels.set("level_0", level0);
 
     teca_metadata level1;
-    level1.insert("ref_ratio", 2);
-    level1.insert("extents", lev1);
-    levels.insert("level_1", level1);
+    level1.set("ref_ratio", 2);
+    level1.set("extents", lev1);
+    levels.set("level_1", level1);
 
-    amr_mesh.insert("levels", levels);
+    amr_mesh.set("levels", levels);
 
     // done! let's see what we have...
     cerr << "amr_mesh = " << endl;

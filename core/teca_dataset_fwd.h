@@ -75,7 +75,7 @@ TECA_DATASET_METADATA_ ## len (T, key)
 #define TECA_DATASET_METADATA_1(T, key)             \
 void set_##key(const T & val_1)                     \
 {                                                   \
-    this->get_metadata().insert<T>(#key, val_1);    \
+    this->get_metadata().set<T>(#key, val_1);       \
 }                                                   \
                                                     \
 int get_##key(T &val_1) const                       \
@@ -84,10 +84,10 @@ int get_##key(T &val_1) const                       \
         #key, val_1);                               \
 }
 
-#define TECA_DATASET_METADATA_2(T, key)     \
+#define TECA_DATASET_METADATA_2(T, key)             \
 void set_##key(const T & val_1, const T & val_2)    \
 {                                                   \
-    this->get_metadata().insert<T>(                 \
+    this->get_metadata().set<T>(                    \
         #key, {val_1, val_2});                      \
 }                                                   \
                                                     \
@@ -101,11 +101,11 @@ int get_##key(T &val_1, T &val_2) const             \
     return 0;                                       \
 }
 
-#define TECA_DATASET_METADATA_3(T, key)     \
+#define TECA_DATASET_METADATA_3(T, key)             \
 void set_##key(const T & val_1, const T & val_2,    \
     const T & val_3)                                \
 {                                                   \
-    this->get_metadata().insert<T>(#key,            \
+    this->get_metadata().set<T>(#key,               \
         {val_1, val_2, val_3});                     \
 }                                                   \
                                                     \
@@ -124,7 +124,7 @@ int get_##key(T &val_1, T &val_2, T &val_3) const   \
 void set_##key(const T & val_1, const T & val_2,    \
     const T & val_3, const T & val_4)               \
 {                                                   \
-    this->get_metadata().insert<T>(#key,            \
+    this->get_metadata().set<T>(#key,               \
          {val_1, val_2, val_3, val_4});             \
 }
 
@@ -133,7 +133,7 @@ void set_##key(const T & val_1, const T & val_2,    \
     const T & val_3, const T & val_4,               \
     const T & val_5, const T & val_6)               \
 {                                                   \
-    this->get_metadata().insert<T>(#key,            \
+    this->get_metadata().set<T>(#key,               \
         {val_1, val_2, val_3,                       \
         val_4, val_5, val_6});                      \
 }
@@ -144,7 +144,7 @@ void set_##key(const T & val_1, const T & val_2,    \
     const T & val_5, const T & val_6,               \
     const T & val_7, const T & val_8)               \
 {                                                   \
-    this->get_metadata().insert<T>(#key,            \
+    this->get_metadata().set<T>(#key,               \
         {val_1, val_2, val_3, val_4, val_5,         \
          val_6, val_7, val_8});                     \
 }
@@ -156,7 +156,7 @@ void set_##key(const std::vector<T> &vals)              \
     {                                                   \
         TECA_ERROR(#key " requires " #len " values")    \
     }                                                   \
-    this->get_metadata().insert<T>(#key, vals);         \
+    this->get_metadata().set<T>(#key, vals);            \
 }                                                       \
                                                         \
 int get_##key(std::vector<T> &vals) const               \
@@ -170,7 +170,7 @@ void set_##key(const p_teca_variant_array &vals)        \
     {                                                   \
         TECA_ERROR(#key " requires " #len " values")    \
     }                                                   \
-    this->get_metadata().insert(#key, vals);            \
+    this->get_metadata().set(#key, vals);               \
 }                                                       \
                                                         \
 int get_##key(p_teca_variant_array vals) const          \
@@ -185,13 +185,13 @@ void set_##key(const std::initializer_list<T> &l)       \
     {                                                   \
         TECA_ERROR(#key " requires " #len " values")    \
     }                                                   \
-    this->get_metadata().insert<T>(#key, vals);         \
+    this->get_metadata().set<T>(#key, vals);            \
 }                                                       \
 
 #define TECA_DATASET_METADATA_A(T, key, len)            \
 void set_##key(const T *vals)                           \
 {                                                       \
-    this->get_metadata().insert<T>(#key, vals, len);    \
+    this->get_metadata().set<T>(#key, vals, len);       \
 }                                                       \
                                                         \
 int get_##key(T *vals) const                            \

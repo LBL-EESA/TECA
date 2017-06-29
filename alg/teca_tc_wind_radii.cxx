@@ -773,13 +773,13 @@ teca_metadata teca_tc_wind_radii::teca_tc_wind_radii::get_output_metadata(
     // how it can request a specific storm
     this->internals->metadata.clear();
 
-    this->internals->metadata.insert(
+    this->internals->metadata.set(
         "number_of_storms", this->internals->number_of_storms);
 
-    this->internals->metadata.insert(
+    this->internals->metadata.set(
         "index_initializer_key", std::string("number_of_storms"));
 
-    this->internals->metadata.insert(
+    this->internals->metadata.set(
         "index_request_key", std::string("storm_id"));
 
     return this->internals->metadata;
@@ -835,7 +835,7 @@ std::vector<teca_metadata> teca_tc_wind_radii::get_upstream_request(
          ({this->wind_u_variable, this->wind_v_variable});
 
     teca_metadata base_req;
-    base_req.insert("arrays", arrays);
+    base_req.set("arrays", arrays);
 
     std::vector<teca_metadata> up_reqs(n_ids, base_req);
 
@@ -876,7 +876,7 @@ std::vector<teca_metadata> teca_tc_wind_radii::get_upstream_request(
 
             // request the needed subset
             std::vector<double> bounds({x0, x1, y0, y1, 0.0, 0.0});
-            up_reqs[i].insert("bounds", bounds);
+            up_reqs[i].set("bounds", bounds);
         }
         )
 
@@ -893,7 +893,7 @@ std::vector<teca_metadata> teca_tc_wind_radii::get_upstream_request(
         times.get(),
         const NT *pt = static_cast<TT*>(times.get())->get();
         for (unsigned long i = 0; i < n_ids; ++i)
-            up_reqs[i].insert("time", pt[i+id_ofs]);
+            up_reqs[i].set("time", pt[i+id_ofs]);
         )
 
 #ifdef TECA_DEBUG
@@ -1104,7 +1104,7 @@ const_p_teca_dataset teca_tc_wind_radii::execute(unsigned int port,
     output->append_column("peak_wind_speed", peak_wind);
 
     // add the critical wind speed values to the metadata
-    output->get_metadata().insert(
+    output->get_metadata().set(
         "critical_wind_speeds", this->critical_wind_speeds);
 
     return output;

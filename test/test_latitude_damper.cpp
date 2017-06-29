@@ -80,12 +80,12 @@ int main(int argc, char **argv)
     mesh->get_point_arrays()->append("ones_grid", ones_grid);
 
     teca_metadata md;
-    md.insert("whole_extent", wext, 6);
-    md.insert("time_steps", std::vector<unsigned long>({0}));
-    md.insert("variables", std::vector<std::string>({"ones_grid"}));
-    md.insert("number_of_time_steps", 1);
-    md.insert("index_initializer_key", std::string("number_of_time_steps"));
-    md.insert("index_request_key", std::string("time_step"));
+    md.set("whole_extent", wext, 6);
+    md.set("time_steps", std::vector<unsigned long>({0}));
+    md.set("variables", std::vector<std::string>({"ones_grid"}));
+    md.set("number_of_time_steps", 1);
+    md.set("index_initializer_key", std::string("number_of_time_steps"));
+    md.set("index_request_key", std::string("time_step"));
 
     // build the pipeline
     p_teca_dataset_source source = teca_dataset_source::New();
