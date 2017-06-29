@@ -5,6 +5,7 @@
 
 #include <string>
 #include <iostream>
+#include <sstream>
 #include <utility>
 
 using std::vector;
@@ -59,6 +60,18 @@ void teca_time_step_executive::set_extent(unsigned long *ext)
 void teca_time_step_executive::set_extent(const std::vector<unsigned long> &ext)
 {
     this->extent = ext;
+}
+
+// --------------------------------------------------------------------------
+void teca_time_step_executive::set_bounds(double *bds)
+{
+    this->set_bounds({bds[0], bds[1], bds[2], bds[3], bds[4], bds[4]});
+}
+
+// --------------------------------------------------------------------------
+void teca_time_step_executive::set_bounds(const std::vector<double> &bds)
+{
+    this->bounds = bds;
 }
 
 // --------------------------------------------------------------------------
@@ -123,15 +136,20 @@ int teca_time_step_executive::initialize(const teca_metadata &md)
 
     // consrtuct base request
     teca_metadata base_req;
-    if (this->extent.empty())
+    if (this->bounds.empty())
     {
-        vector<unsigned long> whole_extent(6, 0l);
-        md.get("whole_extent", whole_extent);
-        base_req.set("extent", whole_extent);
+        if (this->extent.empty())
+        {
+            vector<unsigned long> whole_extent(6, 0l);
+            md.get("whole_extent", whole_extent);
+            base_req.set("extent", whole_extent);
+        }
+        else
+            base_req.set("extent", this->extent);
     }
     else
-        base_req.set("extent", this->extent);
-    base_req.insert("arrays", this->arrays);
+        base_req.set("bounds", this->bounds);
+    base_req.set("arrays", this->arrays);
 
     // apply the base request to local times.
     for (size_t i = 0; i < block_size; ++i)
@@ -164,17 +182,33 @@ teca_metadata teca_time_step_executive::get_next_request()
         this->requests.pop_back();
 
 #if defined(TECA_TIME_STEP_EXECUTIVE_DEBUG)
-        vector<unsigned long> ext;
-        req.get("extent", ext);
+        std::vector<unsigned long> ext;
+        if (req.has("extent"))
+            req.get("extent", ext);
+
+        std::vector<double> bds;
+        if (req.has("bounds"))
+            req.get("bounds", bds);
 
         unsigned long time_step;
         req.get("time_step", time_step);
 
-        cerr << teca_parallel_id()
+        std::ostringstream oss;
+        oss << teca_parallel_id()
             << " teca_time_step_executive::get_next_request time_step="
-            << time_step << " extent=" << ext[0] << ", " << ext[1] << ", "
-            << ext[2] << ", " << ext[3] << ", " << ext[4] << ", " << ext[5]
-            << endl;
+            << time_step;
+
+        if (bds.empty())
+        {
+            if (!ext.empty())
+                oss << " extent=" << ext[0] << ", " << ext[1] << ", "
+                    << ext[2] << ", " << ext[3] << ", " << ext[4] << ", " << ext[5];
+        }
+        else
+            oss << " bounds=" << bds[0] << ", " << bds[1] << ", "
+                << bds[2] << ", " << bds[3] << ", " << bds[4] << ", " << bds[5];
+
+        cerr << oss.str() << endl;
 #endif
     }
 
