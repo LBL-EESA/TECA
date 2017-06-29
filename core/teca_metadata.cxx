@@ -70,28 +70,24 @@ void teca_metadata::clear()
 }
 
 // --------------------------------------------------------------------------
-void teca_metadata::insert(
-    const std::string &name,
-    p_teca_variant_array prop_val)
+int teca_metadata::set(const std::string &name, p_teca_variant_array prop_val)
 {
     this->props[name] = prop_val;
+    return 0;
 }
 
 // --------------------------------------------------------------------------
-int teca_metadata::set(
-    const std::string &name,
-    p_teca_variant_array prop_val)
+int teca_metadata::update(const std::string &name, p_teca_variant_array prop_val)
 {
-    pair<prop_map_t::iterator, bool> ret
-        = this->props.insert(make_pair(name, prop_val));
-
-    if (!ret.second)
+    prop_map_t::iterator it = this->props.find(name);
+    if (it == this->props.end())
     {
-        TECA_ERROR(
-            << "attempt to access non-existant property \""
+        TECA_ERROR("attempt to access non-existant property \""
             << name << "\" ignored!")
         return -1;
     }
+
+    it->second = prop_val;
 
     return 0;
 }
@@ -119,8 +115,7 @@ const_p_teca_variant_array teca_metadata::get(const std::string &name) const
 }
 
 // --------------------------------------------------------------------------
-int teca_metadata::get(
-    const std::string &name, p_teca_variant_array vals) const
+int teca_metadata::get(const std::string &name, p_teca_variant_array vals) const
 {
     prop_map_t::const_iterator it = this->props.find(name);
 
@@ -133,9 +128,7 @@ int teca_metadata::get(
 }
 
 // --------------------------------------------------------------------------
-int teca_metadata::size(
-    const std::string &name,
-    unsigned int &n) const noexcept
+int teca_metadata::size(const std::string &name, unsigned int &n) const noexcept
 {
     prop_map_t::const_iterator it = this->props.find(name);
 

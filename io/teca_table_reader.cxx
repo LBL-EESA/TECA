@@ -227,9 +227,9 @@ teca_metadata teca_table_reader::get_output_metadata(unsigned int port,
     // note an object could be a storm track or simply a cell in
     // the table
     teca_metadata md;
-    md.insert("index_initializer_key", std::string("number_of_objects"));
-    md.insert("index_request_key", std::string("object_id"));
-    md.insert("number_of_objects", this->internals->number_of_indices);
+    md.set("index_initializer_key", std::string("number_of_objects"));
+    md.set("index_request_key", std::string("object_id"));
+    md.set("number_of_objects", this->internals->number_of_indices);
 
     // optionally pass columns directly into metadata
     size_t n_metadata_columns = this->metadata_column_names.size();
@@ -244,7 +244,7 @@ teca_metadata teca_table_reader::get_output_metadata(unsigned int port,
                 TECA_ERROR("metadata column \"" << md_col_name << "\" not found")
                 continue;
             }
-            md.insert(this->metadata_column_keys[i], md_col);
+            md.set(this->metadata_column_keys[i], md_col);
         }
     }
 

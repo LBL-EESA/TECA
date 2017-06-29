@@ -229,7 +229,7 @@ std::vector<teca_metadata> teca_index_reduce::get_upstream_request(
         for (unsigned long j = 0; j < n_reqs; ++j)
         {
             up_req.push_back(base_req[j]);
-            up_req.back().insert(request_key, index);
+            up_req.back().set(request_key, index);
         }
     }
 

@@ -626,11 +626,11 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     time_vars.push_back(var_name);
 
                 teca_metadata atts;
-                atts.insert("id", i);
-                atts.insert("dims", dims);
-                atts.insert("dim_names", dim_names);
-                atts.insert("type", var_type);
-                atts.insert("centering", std::string("point"));
+                atts.set("id", i);
+                atts.set("dims", dims);
+                atts.set("dim_names", dim_names);
+                atts.set("type", var_type);
+                atts.set("centering", std::string("point"));
 
                 for (int ii = 0; ii < n_atts; ++ii)
                 {
@@ -652,7 +652,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                         buffer[att_len] = '\0';
                         nc_get_att_text(file_id, i, att_name, buffer);
                         crtrim(buffer, att_len);
-                        atts.insert(att_name, std::string(buffer));
+                        atts.set(att_name, std::string(buffer));
                         free(buffer);
                     }
                     else
@@ -660,18 +660,18 @@ teca_metadata teca_cf_reader::get_output_metadata(
                         NC_DISPATCH(att_type,
                           NC_T *buffer = static_cast<NC_T*>(malloc(att_len));
                           nc_get_att(file_id, i, att_name, buffer);
-                          atts.insert(att_name, buffer, att_len);
+                          atts.set(att_name, buffer, att_len);
                           free(buffer);
                           )
                     }
                 }
 
-                atrs.insert(var_name, atts);
+                atrs.set(var_name, atts);
             }
 
-            this->internals->metadata.insert("variables", vars);
-            this->internals->metadata.insert("attributes", atrs);
-            this->internals->metadata.insert("time variables", time_vars);
+            this->internals->metadata.set("variables", vars);
+            this->internals->metadata.set("attributes", atrs);
+            this->internals->metadata.set("time variables", time_vars);
 
             // read spatial coordinate arrays
             NC_DISPATCH_FP(x_t,
@@ -809,35 +809,34 @@ teca_metadata teca_cf_reader::get_output_metadata(
             }
 
             teca_metadata coords;
-            coords.insert("x_variable", x_axis_variable);
-            coords.insert("y_variable", (y_axis_variable.empty() ? "y" : y_axis_variable));
-            coords.insert("z_variable", (z_axis_variable.empty() ? "z" : z_axis_variable));
-            coords.insert("t_variable", (t_axis_variable.empty() ? "t" : t_axis_variable));
-            coords.insert("x", x_axis);
-            coords.insert("y", y_axis);
-            coords.insert("z", z_axis);
-            coords.insert("t", t_axis);
-            coords.insert("periodic_in_x", this->periodic_in_x);
-            coords.insert("periodic_in_y", this->periodic_in_y);
-            coords.insert("periodic_in_z", this->periodic_in_z);
-
+            coords.set("x_variable", x_axis_variable);
+            coords.set("y_variable", (y_axis_variable.empty() ? "y" : y_axis_variable));
+            coords.set("z_variable", (z_axis_variable.empty() ? "z" : z_axis_variable));
+            coords.set("t_variable", (t_axis_variable.empty() ? "t" : t_axis_variable));
+            coords.set("x", x_axis);
+            coords.set("y", y_axis);
+            coords.set("z", z_axis);
+            coords.set("t", t_axis);
+            coords.set("periodic_in_x", this->periodic_in_x);
+            coords.set("periodic_in_y", this->periodic_in_y);
+            coords.set("periodic_in_z", this->periodic_in_z);
 
             std::vector<size_t> whole_extent(6, 0);
             whole_extent[1] = n_x - 1;
             whole_extent[3] = n_y - 1;
             whole_extent[5] = n_z - 1;
-            this->internals->metadata.insert("whole_extent", whole_extent);
-            this->internals->metadata.insert("coordinates", coords);
-            this->internals->metadata.insert("files", files);
-            this->internals->metadata.insert("root", path);
-            this->internals->metadata.insert("step_count", step_count);
-            this->internals->metadata.insert("number_of_time_steps", t_axis->size());
+            this->internals->metadata.set("whole_extent", whole_extent);
+            this->internals->metadata.set("coordinates", coords);
+            this->internals->metadata.set("files", files);
+            this->internals->metadata.set("root", path);
+            this->internals->metadata.set("step_count", step_count);
+            this->internals->metadata.set("number_of_time_steps", t_axis->size());
 
             // inform the executive how many and how to request time steps
-            this->internals->metadata.insert(
+            this->internals->metadata.set(
                 "index_initializer_key", std::string("number_of_time_steps"));
 
-            this->internals->metadata.insert(
+            this->internals->metadata.set(
                 "index_request_key", std::string("time_step"));
 
             this->internals->metadata.to_stream(stream);

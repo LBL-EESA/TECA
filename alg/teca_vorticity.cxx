@@ -276,7 +276,7 @@ std::vector<teca_metadata> teca_vorticity::get_upstream_request(
     arrays.erase(this->get_vorticity_variable(request));
 
     // update the request
-    req.insert("arrays", arrays);
+    req.set("arrays", arrays);
 
     // send it up
     up_reqs.push_back(req);

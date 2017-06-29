@@ -587,23 +587,23 @@ void teca_binary_stream_driver::fill(teca_binary_stream &s)
 #endif
 
                 teca_metadata md;
-                md.insert("name", string("metadata"));
-                md.insert("value", 3.14);
+                md.set("name", string("metadata"));
+                md.set("value", 3.14);
 
                 teca_metadata md1;
-                md1.insert("id", 1);
+                md1.set("id", 1);
 
                 vector<int> ext1({0, 1, 2, 3, 4, 5});
-                md1.insert("extent", ext1);
+                md1.set("extent", ext1);
 
                 teca_metadata md2;
-                md2.insert("id", 2);
+                md2.set("id", 2);
 
                 vector<int> ext2({5, 4, 3, 2, 1, 0});
-                md2.insert("extent", ext2);
+                md2.set("extent", ext2);
 
-                md1.insert("nest 2", md2);
-                md.insert("nest 1", md1);
+                md1.set("nest 2", md2);
+                md.set("nest 1", md1);
 
                 md.to_stream(s);
 #ifdef TECA_DEBUG
@@ -1124,23 +1124,23 @@ void teca_binary_stream_driver::validate(teca_binary_stream &s)
 #endif
 
                 teca_metadata md0;
-                md0.insert("name", string("metadata"));
-                md0.insert("value", 3.14);
+                md0.set("name", string("metadata"));
+                md0.set("value", 3.14);
 
                 teca_metadata md1;
-                md1.insert("id", 1);
+                md1.set("id", 1);
 
                 vector<int> ext1({0, 1, 2, 3, 4, 5});
-                md1.insert("extent", ext1);
+                md1.set("extent", ext1);
 
                 teca_metadata md2;
-                md2.insert("id", 2);
+                md2.set("id", 2);
 
                 vector<int> ext2({5, 4, 3, 2, 1, 0});
-                md2.insert("extent", ext2);
+                md2.set("extent", ext2);
 
-                md1.insert("nest 2", md2);
-                md0.insert("nest 1", md1);
+                md1.set("nest 2", md2);
+                md0.set("nest 1", md1);
 
                 if (!(md  == md0))
                     TECA_ERROR("tables are different")

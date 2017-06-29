@@ -313,7 +313,7 @@ std::vector<teca_metadata> teca_connected_components::get_upstream_request(
     std::string component_var = this->get_component_variable(request);
     arrays.erase(component_var);
 
-    req.insert("arrays", arrays);
+    req.set("arrays", arrays);
 
     // send up
     up_reqs.push_back(req);

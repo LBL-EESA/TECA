@@ -173,7 +173,6 @@ TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned long long, unsigned_long_long)
 %ignore operator&(const teca_metadata &, const teca_metadata &);
 %ignore operator==(const teca_metadata &, const teca_metadata &);
 %ignore operator!=(const teca_metadata &, const teca_metadata &);
-%ignore teca_metadata::insert;
 %ignore teca_metadata::set; /* use __setitem__ instead */
 %ignore teca_metadata::get; /* use __getitem__ instead */
 %include "teca_metadata.h"
@@ -192,7 +191,7 @@ TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned long long, unsigned_long_long)
             || (varr = teca_py_sequence::new_variant_array(value))
             || (varr = teca_py_iterator::new_variant_array(value)))
         {
-            self->insert(name, varr);
+            self->set(name, varr);
             return;
         }
         PyErr_Format(PyExc_TypeError,

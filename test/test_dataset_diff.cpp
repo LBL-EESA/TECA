@@ -25,9 +25,9 @@ struct report
         (unsigned int, const std::vector<teca_metadata> &)
     {
         teca_metadata md;
-        md.insert("index_initializer_key", std::string("number_of_tables"));
-        md.insert("index_request_key", std::string("table_id"));
-        md.insert("number_of_tables", num_tables);
+        md.set("index_initializer_key", std::string("number_of_tables"));
+        md.set("index_request_key", std::string("table_id"));
+        md.set("number_of_tables", num_tables);
         return md;
     }
 };

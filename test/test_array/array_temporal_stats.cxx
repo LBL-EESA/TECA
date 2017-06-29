@@ -83,7 +83,7 @@ std::vector<teca_metadata> array_temporal_stats::initialize_upstream_request(
     (void) input_md;
 
     std::vector<teca_metadata> up_reqs(1, request);
-    up_reqs[0].insert("array_name", this->array_name);
+    up_reqs[0].set("array_name", this->array_name);
 
     return up_reqs;
 }
@@ -100,7 +100,7 @@ teca_metadata array_temporal_stats::initialize_output_metadata(
     (void) port;
 
     teca_metadata output_md(input_md[0]);
-    output_md.insert("array_names", this->array_name + "_stats");
+    output_md.set("array_names", this->array_name + "_stats");
 
     return output_md;
 }

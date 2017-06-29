@@ -133,7 +133,7 @@ teca_derived_quantity::get_upstream_request(
     for (size_t i = 0; i < n; ++i)
         arrays.insert(dep_vars[i]);
 
-    req.insert("arrays", arrays);
+    req.set("arrays", arrays);
     up_reqs.push_back(req);
 
     return up_reqs;

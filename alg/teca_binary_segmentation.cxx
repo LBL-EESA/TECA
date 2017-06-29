@@ -207,7 +207,7 @@ std::vector<teca_metadata> teca_binary_segmentation::get_upstream_request(
     this->get_segmentation_variable(segmentation_var);
     arrays.erase(segmentation_var);
 
-    req.insert("arrays", arrays);
+    req.set("arrays", arrays);
 
     // send up
     up_reqs.push_back(req);

@@ -6,7 +6,7 @@ int teca_algorithm_executive::initialize(const teca_metadata &)
     // make a non-empty request. any key that's not used will
     // work here, prepending __ to add some extra safety in this
     // regard.
-    m_md.insert("__request_empty", 0);
+    m_md.set("__request_empty", 0);
     return 0;
 }
 

@@ -223,7 +223,7 @@ std::vector<teca_metadata> teca_l2_norm::get_upstream_request(
     // intercept request for our output
     arrays.erase(this->get_l2_norm_variable(request));
 
-    req.insert("arrays", arrays);
+    req.set("arrays", arrays);
     up_reqs.push_back(req);
 
     return up_reqs;
