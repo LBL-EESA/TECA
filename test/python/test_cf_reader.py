@@ -26,13 +26,16 @@ cfr.set_x_axis_variable('lon')
 cfr.set_y_axis_variable('lat')
 cfr.set_t_axis_variable('time')
 
+coords = teca_normalize_coordinates.New()
+coords.set_input_connection(cfr.get_output_port())
+
 exe = teca_time_step_executive.New()
 exe.set_first_step(first_step)
 exe.set_last_step(last_step)
 exe.set_arrays(arrays)
 
 wri = teca_vtk_cartesian_mesh_writer.New()
-wri.set_input_connection(cfr.get_output_port())
+wri.set_input_connection(coords.get_output_port())
 wri.set_executive(exe)
 wri.set_file_name(out_file)
 

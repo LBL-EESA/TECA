@@ -1,5 +1,6 @@
 #include "teca_config.h"
 #include "teca_cf_reader.h"
+#include "teca_normalize_coordinates.h"
 #include "teca_temporal_average.h"
 #include "teca_cartesian_mesh_regrid.h"
 #include "teca_ar_detect.h"
@@ -85,13 +86,19 @@ int main(int argc, char **argv)
     p_teca_cf_reader vapor_reader = teca_cf_reader::New();
     vapor_reader->set_files_regex(vapor_files);
 
+    p_teca_normalize_coordinates vapor_coords = teca_normalize_coordinates::New();
+    vapor_coords->set_input_connection(vapor_reader->get_output_port());
+
     p_teca_cf_reader mask_reader = teca_cf_reader::New();
     mask_reader->set_t_axis_variable("");
     mask_reader->set_file_name(mask_file);
 
+    p_teca_normalize_coordinates mask_coords = teca_normalize_coordinates::New();
+    mask_coords->set_input_connection(mask_reader->get_output_port());
+
     p_teca_cartesian_mesh_regrid mask_regrid = teca_cartesian_mesh_regrid::New();
-    mask_regrid->set_input_connection(0, vapor_reader->get_output_port());
-    mask_regrid->set_input_connection(1, mask_reader->get_output_port());
+    mask_regrid->set_input_connection(0, vapor_coords->get_output_port());
+    mask_regrid->set_input_connection(1, mask_coords->get_output_port());
     mask_regrid->add_source_array(mask_var);
 
     p_teca_ar_detect ar_detect = teca_ar_detect::New();

@@ -27,12 +27,15 @@ cfr.set_y_axis_variable(y_var)
 cfr.set_z_axis_variable(z_var)
 cfr.set_t_axis_variable(t_var)
 
+coords = teca_normalize_coordinates.New()
+coords.set_input_connection(cfr.get_output_port())
+
 mask = teca_mask.New()
 mask.set_low_threshold_value(1e4)
 mask.set_mask_value(0)
 mask.append_mask_variable(u_var)
 mask.append_mask_variable(v_var)
-mask.set_input_connection(cfr.get_output_port())
+mask.set_input_connection(coords.get_output_port())
 
 l2n = teca_l2_norm.New()
 l2n.set_component_0_variable(u_var)

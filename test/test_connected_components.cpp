@@ -1,4 +1,5 @@
 #include "teca_cf_reader.h"
+#include "teca_normalize_coordinates.h"
 #include "teca_mask.h"
 #include "teca_l2_norm.h"
 #include "teca_connected_components.h"
@@ -43,12 +44,15 @@ int main(int argc, char **argv)
     cfr->set_z_axis_variable(z_var);
     cfr->set_t_axis_variable(t_var);
 
+    p_teca_normalize_coordinates coords = teca_normalize_coordinates::New();
+    coords->set_input_connection(cfr->get_output_port());
+
     p_teca_mask mask = teca_mask::New();
     mask->set_low_threshold_value(1e4);
     mask->set_mask_value(0);
     mask->append_mask_variable(u_var);
     mask->append_mask_variable(v_var);
-    mask->set_input_connection(cfr->get_output_port());
+    mask->set_input_connection(coords->get_output_port());
 
     p_teca_l2_norm l2n = teca_l2_norm::New();
     l2n->set_component_0_variable(u_var);

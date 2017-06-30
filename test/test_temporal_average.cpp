@@ -1,4 +1,5 @@
 #include "teca_cf_reader.h"
+#include "teca_normalize_coordinates.h"
 #include "teca_temporal_average.h"
 #include "teca_vtk_cartesian_mesh_writer.h"
 #include "teca_time_step_executive.h"
@@ -39,10 +40,13 @@ int main(int argc, char **argv)
     p_teca_cf_reader r = teca_cf_reader::New();
     r->set_files_regex(regex);
 
+    p_teca_normalize_coordinates c = teca_normalize_coordinates::New();
+    c->set_input_connection(r->get_output_port());
+
     p_teca_temporal_average a = teca_temporal_average::New();
     a->set_filter_width(filter_width);
     a->set_filter_type(teca_temporal_average::backward);
-    a->set_input_connection(r->get_output_port());
+    a->set_input_connection(c->get_output_port());
 
     // create the vtk writer connected to the cf reader
     p_teca_vtk_cartesian_mesh_writer w = teca_vtk_cartesian_mesh_writer::New();

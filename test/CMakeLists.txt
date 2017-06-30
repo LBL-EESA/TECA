@@ -48,12 +48,21 @@ teca_add_test(test_stack_trace_signal_handler
     LIBS ${teca_test_link}
     COMMAND test_stack_trace_signal_handler 8 0)
 
-teca_add_test(test_cf_reader
+teca_add_test(test_cf_reader_cam5
+    EXEC_NAME test_cf_reader
     SOURCES test_cf_reader.cpp
-    LIBS teca_core teca_data teca_io ${teca_test_link}
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_cf_reader
-    "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-[0-9][0-9]-10800\\.nc"
-    "test_cf_reader_%t%.%e%" 1 2 lon lat "." time U850 V850
+    -i "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-[0-9][0-9]-10800\\.nc"
+    -o "test_cf_reader_%t%.%e%" -s 1,2 -x lon -y lat -t time U850 V850
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_reader_cfsr
+    COMMAND test_cf_reader
+    -i "${TECA_DATA_ROOT}/NCEP_CFSR_0\\.5_1979\\.nc"
+    -o "test_cf_reader_%t%.%e%" -s 1,2 -x longitude -y latitude
+    -b 65,110,10,55,0,0 elevation
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 

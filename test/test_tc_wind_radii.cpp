@@ -3,6 +3,7 @@
 #include "teca_table_remove_rows.h"
 #include "teca_table_sort.h"
 #include "teca_cf_reader.h"
+#include "teca_normalize_coordinates.h"
 #include "teca_tc_wind_radii.h"
 #include "teca_table_reduce.h"
 #include "teca_table_to_stream.h"
@@ -62,9 +63,12 @@ int main(int argc, char **argv)
     p_teca_cf_reader mesh_data_reader = teca_cf_reader::New();
     mesh_data_reader->set_files_regex(mesh_data_regex);
 
+    p_teca_normalize_coordinates mesh_coords = teca_normalize_coordinates::New();
+    mesh_coords->set_input_connection(mesh_data_reader->get_output_port());
+
     p_teca_tc_wind_radii wind_radii = teca_tc_wind_radii::New();
     wind_radii->set_input_connection(0, eval_expr->get_output_port());
-    wind_radii->set_input_connection(1, mesh_data_reader->get_output_port());
+    wind_radii->set_input_connection(1, mesh_coords->get_output_port());
     wind_radii->set_number_of_radial_bins(n_bins);
     wind_radii->set_profile_type(profile_type);
 

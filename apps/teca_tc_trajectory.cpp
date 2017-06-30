@@ -1,5 +1,6 @@
 #include "teca_config.h"
 #include "teca_cf_reader.h"
+#include "teca_normalize_coordinates.h"
 #include "teca_l2_norm.h"
 #include "teca_vorticity.h"
 #include "teca_derived_quantity.h"
@@ -82,8 +83,11 @@ int main(int argc, char **argv)
     p_teca_table_reader candidate_reader = teca_table_reader::New();
     candidate_reader->get_properties_description("candidate_reader", advanced_opt_defs);
 
+    p_teca_normalize_coordinates candidate_coords = teca_normalize_coordinates::New();
+    candidate_coords->set_input_connection(candidate_reader->get_output_port());
+
     p_teca_table_sort sort = teca_table_sort::New();
-    sort->set_input_connection(candidate_reader->get_output_port());
+    sort->set_input_connection(candidate_coords->get_output_port());
     sort->set_index_column("storm_id");
     sort->get_properties_description("sort", advanced_opt_defs);
 

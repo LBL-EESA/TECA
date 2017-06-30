@@ -1,5 +1,6 @@
 #include "teca_config.h"
 #include "teca_cf_reader.h"
+#include "teca_normalize_coordinates.h"
 #include "teca_l2_norm.h"
 #include "teca_vorticity.h"
 #include "teca_derived_quantity.h"
@@ -111,9 +112,12 @@ int main(int argc, char **argv)
     p_teca_cf_reader cf_reader = teca_cf_reader::New();
     cf_reader->set_files_regex(regex);
 
+    p_teca_normalize_coordinates coords = teca_normalize_coordinates::New();
+    coords->set_input_connection(cf_reader->get_output_port());
+
     // surface wind speed
     p_teca_l2_norm surf_wind = teca_l2_norm::New();
-    surf_wind->set_input_connection(cf_reader->get_output_port());
+    surf_wind->set_input_connection(coords->get_output_port());
     surf_wind->set_component_0_variable(ux_surf);
     surf_wind->set_component_1_variable(uy_surf);
     surf_wind->set_l2_norm_variable("surface_wind");

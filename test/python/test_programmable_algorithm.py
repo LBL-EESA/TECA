@@ -49,13 +49,16 @@ cfr.set_x_axis_variable('lon')
 cfr.set_y_axis_variable('lat')
 cfr.set_t_axis_variable('time')
 
+coords = teca_normalize_coordinates.New()
+coords.set_input_connection(cfr.get_output_port())
+
 alg = teca_programmable_algorithm.New()
 alg.set_number_of_input_connections(1)
 alg.set_number_of_output_ports(1)
 alg.set_report_callback(wind_speed.report)
 alg.set_request_callback(wind_speed.request)
 alg.set_execute_callback(wind_speed.execute)
-alg.set_input_connection(cfr.get_output_port())
+alg.set_input_connection(coords.get_output_port())
 
 exe = teca_time_step_executive.New()
 exe.set_first_step(first_step)

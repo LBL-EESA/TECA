@@ -36,12 +36,15 @@ cfr.set_x_axis_variable('lon')
 cfr.set_y_axis_variable('lat')
 cfr.set_t_axis_variable('time')
 
+coords = teca_normalize_coordinates.New()
+coords.set_input_connection(cfr.get_output_port())
+
 alg = teca_derived_quantity.New()
 alg.append_dependent_variable(u_var)
 alg.append_dependent_variable(v_var)
 alg.set_derived_variable('wind_speed')
 alg.set_execute_callback(wind_speed.execute)
-alg.set_input_connection(cfr.get_output_port())
+alg.set_input_connection(coords.get_output_port())
 
 exe = teca_time_step_executive.New()
 exe.set_first_step(first_step)

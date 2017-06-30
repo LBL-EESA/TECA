@@ -76,8 +76,11 @@ n_threads = 1 if argc < 6 else int(sys.argv[5])
 cfr = teca_cf_reader.New()
 cfr.set_files_regex(data_regex)
 
+coords = teca_normalize_coordinates.New()
+coords.set_input_connection(cfr.get_output_port());
+
 mdf = teca_dataset_metadata.New()
-mdf.set_input_connection(cfr.get_output_port())
+mdf.set_input_connection(coords.get_output_port())
 
 mr = teca_table_reduce.New()
 mr.set_input_connection(mdf.get_output_port())

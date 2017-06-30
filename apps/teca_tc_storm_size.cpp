@@ -3,6 +3,7 @@
 #include "teca_table_remove_rows.h"
 #include "teca_table_sort.h"
 #include "teca_cf_reader.h"
+#include "teca_normalize_coordinates.h"
 #include "teca_tc_storm_size.h"
 #include "teca_table_reduce.h"
 #include "teca_table_to_stream.h"
@@ -97,10 +98,12 @@ int main(int argc, char **argv)
     p_teca_cf_reader wind_reader = teca_cf_reader::New();
     wind_reader->get_properties_description("wind_reader", advanced_opt_defs);
 
+    p_teca_normalize_coordinates wind_coords = teca_normalize_coordinates::New();
+    wind_coords->set_input_connection(wind_reader->get_output_port());
+
     p_teca_tc_storm_size storm_size = teca_tc_storm_size::New();
     storm_size->get_properties_description("storm_size", advanced_opt_defs);
-    storm_size->set_input_connection(1, wind_reader->get_output_port());
-
+    storm_size->set_input_connection(1, wind_coords->get_output_port());
 
     p_teca_table_reduce map_reduce = teca_table_reduce::New();
     map_reduce->get_properties_description("map_reduce", advanced_opt_defs);

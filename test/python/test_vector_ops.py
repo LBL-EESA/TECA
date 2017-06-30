@@ -26,12 +26,15 @@ cfr.set_x_axis_variable('lon')
 cfr.set_y_axis_variable('lat')
 cfr.set_t_axis_variable('time')
 
+coords = teca_normalize_coordinates.New()
+coords.set_input_connection(cfr.get_output_port())
+
 l2 = teca_l2_norm.New()
 l2.set_component_0_variable(comp_0)
 l2.set_component_1_variable(comp_1)
 l2.set_component_2_variable(comp_2)
 l2.set_l2_norm_variable("norm")
-l2.set_input_connection(cfr.get_output_port())
+l2.set_input_connection(coords.get_output_port())
 
 vort = teca_vorticity.New()
 vort.set_component_0_variable(comp_0)
