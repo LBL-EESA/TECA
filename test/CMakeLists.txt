@@ -364,3 +364,30 @@ teca_add_test(test_event_filter
     COMMAND test_event_filter "${TECA_DATA_ROOT}/test_tc_candidates_20.bin"
     "${TECA_DATA_ROOT}/test_event_filter.bin"
     REQ_TECA_DATA)
+
+teca_add_test(test_wang_etc_candidates_mpi
+    COMMAND ${MPIEXEC} -n ${TECA_TEST_CORES} test_wang_etc_candidates
+    "${TECA_DATA_ROOT}/test_wang_etc_candidates_1990_07_0[12]\\.nc"
+    "${TECA_DATA_ROOT}/test_wang_etc_candidates_20.bin" 0 3 1
+    U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(test_wang_etc_candidates_threads
+    EXEC_NAME test_wang_etc_candidates
+    SOURCES test_wang_etc_candidates.cpp teca_test_util.cxx
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_wang_etc_candidates
+    "${TECA_DATA_ROOT}/test_wang_etc_candidates_1990_07_0[12]\\.nc"
+    "${TECA_DATA_ROOT}/test_wang_etc_candidates_20.bin" 0 3 ${TECA_TEST_CORES}
+    U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
+    REQ_TECA_DATA)
+
+teca_add_test(test_wang_etc_candidates_mpi_threads
+    COMMAND ${MPIEXEC} -n ${HALF_CORES} test_wang_etc_candidates
+    "${TECA_DATA_ROOT}/test_wang_etc_candidates_1990_07_0[12]\\.nc"
+    "${TECA_DATA_ROOT}/test_wang_etc_candidates_20.bin" 0 3 ${HALF_CORES}
+    U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI}
+    REQ_TECA_DATA)

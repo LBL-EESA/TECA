@@ -15,6 +15,7 @@ set(teca_alg_cxx_srcs
     teca_cartesian_mesh_regrid.cxx
     teca_connected_components.cxx
     teca_dataset_capture.cxx
+    teca_dataset_diff.cxx
     teca_dataset_source.cxx
     teca_derived_quantity.cxx
     teca_descriptive_statistics.cxx
@@ -40,7 +41,7 @@ set(teca_alg_cxx_srcs
     teca_temporal_average.cxx
     teca_variant_array_operand.cxx
     teca_vorticity.cxx
-    teca_dataset_diff.cxx
+    teca_wang_etc_candidates.cxx
     )
 
 teca_py_install(lib
