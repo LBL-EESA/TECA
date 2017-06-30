@@ -1,5 +1,6 @@
 #include "teca_config.h"
 #include "teca_cf_reader.h"
+#include "teca_normalize_coordinates.h"
 #include "teca_cartesian_mesh_subset.h"
 #include "teca_cartesian_mesh_regrid.h"
 #include "teca_vtk_cartesian_mesh_writer.h"
@@ -80,6 +81,9 @@ int main(int argc, char **argv)
     tr->set_t_axis_variable(target_t_ax);
     tr->set_files_regex(target_regex);
 
+    p_teca_normalize_coordinates tc = teca_normalize_coordinates::New();
+    tc->set_input_connection(tr->get_output_port());
+
     // create the source dataset reader
     p_teca_cf_reader sr = teca_cf_reader::New();
     sr->set_x_axis_variable(source_x_ax);
@@ -88,10 +92,13 @@ int main(int argc, char **argv)
     sr->set_t_axis_variable(source_t_ax);
     sr->set_files_regex(source_regex);
 
+    p_teca_normalize_coordinates sc = teca_normalize_coordinates::New();
+    sc->set_input_connection(sr->get_output_port());
+
     // create the regrider
     p_teca_cartesian_mesh_regrid rg = teca_cartesian_mesh_regrid::New();
-    rg->set_input_connection(0, tr->get_output_port());
-    rg->set_input_connection(1, sr->get_output_port());
+    rg->set_input_connection(0, tc->get_output_port());
+    rg->set_input_connection(1, sc->get_output_port());
     rg->set_source_arrays(source_arrays);
 
     // create the subseter

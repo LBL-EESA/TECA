@@ -86,10 +86,13 @@ if (rank == 0):
 cfr = teca_cf_reader.New()
 cfr.set_files_regex(data_regex)
 
+coords = teca_normalize_coordinates.New()
+coords.set_input_connection(cfr.get_output_port())
+
 stats = teca_programmable_algorithm.New()
 stats.set_request_callback(get_request_callback(var_names))
 stats.set_execute_callback(get_execute_callback(rank, var_names))
-stats.set_input_connection(cfr.get_output_port())
+stats.set_input_connection(coords.get_output_port())
 
 mr = teca_programmable_reduce.New()
 mr.set_input_connection(stats.get_output_port())

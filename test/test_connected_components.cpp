@@ -1,4 +1,5 @@
 #include "teca_cf_reader.h"
+#include "teca_normalize_coordinates.h"
 #include "teca_mask.h"
 #include "teca_l2_norm.h"
 #include "teca_binary_segmentation.h"
@@ -59,8 +60,11 @@ int main(int argc, char **argv)
     cfr->set_t_axis_variable(t_var);
     cfr->set_periodic_in_x(1);
 
+    p_teca_normalize_coordinates coords = teca_normalize_coordinates::New();
+    coords->set_input_connection(cfr->get_output_port());
+
     p_teca_mask mask = teca_mask::New();
-    mask->set_input_connection(cfr->get_output_port());
+    mask->set_input_connection(coords->get_output_port());
     mask->set_low_threshold_value(1e4);
     mask->set_mask_value(0);
     mask->append_mask_variable(u_var);
