@@ -1,5 +1,6 @@
 #include "teca_config.h"
 #include "teca_cf_reader.h"
+#include "teca_normalize_coordinates.h"
 #include "teca_dataset_diff.h"
 #include "teca_descriptive_statistics.h"
 #include "teca_file_util.h"
@@ -129,8 +130,11 @@ int main(int argc, char **argv)
         cf_reader->set_files_regex(files[0]);
     }
 
+    p_teca_normalize_coordinates coords = teca_normalize_coordinates::New();
+    coords->set_input_connection(cf_reader->get_output_port());
+
     p_teca_descriptive_statistics stats = teca_descriptive_statistics::New();
-    stats->set_input_connection(cf_reader->get_output_port());
+    stats->set_input_connection(coords->get_output_port());
     stats->set_dependent_variables(arrays);
 
     p_teca_programmable_reduce map_reduce = teca_programmable_reduce::New();

@@ -27,6 +27,7 @@ set(teca_alg_cxx_srcs
     teca_latitude_damper.cxx
     teca_laplacian.cxx
     teca_mask.cxx
+    teca_normalize_coordinates.cxx
     teca_parser.cxx
     teca_programmable_algorithm.cxx
     teca_programmable_reduce.cxx

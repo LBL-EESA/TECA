@@ -23,6 +23,7 @@
 #include "teca_l2_norm.h"
 #include "teca_laplacian.h"
 #include "teca_mask.h"
+#include "teca_normalize_coordinates.h"
 #include "teca_programmable_algorithm.h"
 #include "teca_programmable_reduce.h"
 #include "teca_saffir_simpson.h"
@@ -440,3 +441,11 @@ struct teca_tc_saffir_simpson
 %shared_ptr(teca_component_area_filter)
 %ignore teca_component_area_filter::operator=;
 %include "teca_component_area_filter.h"
+
+/***************************************************************************
+ normalize_coordinates
+ ***************************************************************************/
+%ignore teca_normalize_coordinates::shared_from_this;
+%shared_ptr(teca_normalize_coordinates)
+%ignore teca_normalize_coordinates::operator=;
+%include "teca_normalize_coordinates.h"

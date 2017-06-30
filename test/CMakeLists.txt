@@ -49,19 +49,28 @@ teca_add_test(test_mpi_error_handler
     COMMAND test_mpi_error_handler
     WILL_FAIL)
 
-teca_add_test(test_cf_reader
+teca_add_test(test_cf_reader_cam5
+    EXEC_NAME test_cf_reader
     SOURCES test_cf_reader.cpp
-    LIBS teca_core teca_data teca_io ${teca_test_link}
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_cf_reader
-    "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-[0-9][0-9]-10800\\.nc"
-    "test_cf_reader_%t%.%e%" 1 2 lon lat "." time U850 V850
+    -i "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-[0-9][0-9]-10800\\.nc"
+    -o "test_cf_reader_%t%.%e%" -s 1,2 -x lon -y lat -t time U850 V850
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_reader_cfsr
+    COMMAND test_cf_reader
+    -i "${TECA_DATA_ROOT}/NCEP_CFSR_0\\.5_1979\\.nc"
+    -o "test_cf_reader_%t%.%e%" -s 1,2 -x longitude -y latitude
+    -b 65,110,10,55,0,0 elevation
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(test_cf_reader_time_int
     COMMAND test_cf_reader
-    "${TECA_DATA_ROOT}/e5\.oper\.an\.vinteg\.162_072_viwvn.*\.nc"
-    "test_cf_reader_time_int_%t%.%e%" 0 -1 longitude latitude "." time VIWVN
+    -i "${TECA_DATA_ROOT}/e5\.oper\.an\.vinteg\.162_072_viwvn.*\.nc"
+    -o "test_cf_reader_time_int_%t%.%e%" -s 0,-1 -x longitude -y latitude -t time VIWVN
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
@@ -78,10 +87,15 @@ teca_add_test(test_connected_components
 teca_add_test(test_2d_component_area
     SOURCES test_2d_component_area.cpp
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
-    COMMAND test_2d_component_area 720 360 8 8 0 "test_2d_component_area_%t%.%e%")
+    COMMAND test_2d_component_area 720 360 0 8 8 0
+    "test_2d_component_area_%t%.%e%")
 
 teca_add_test(test_2d_component_area_contiguous_labels
-    COMMAND test_2d_component_area 720 360 8 8 1
+    COMMAND test_2d_component_area 720 360 0 8 8 1
+    "test_2d_component_area_contiguous_labels_%t%.%e%")
+
+teca_add_test(test_2d_component_area_negative_area
+    COMMAND test_2d_component_area 720 360 1 8 8 1
     "test_2d_component_area_contiguous_labels_%t%.%e%")
 
 teca_add_test(test_component_area_filter
@@ -398,4 +412,87 @@ teca_add_test(test_bayesian_ar_detect_mpi_threads
     "${TECA_DATA_ROOT}/prw_hus_day_MRI.*\\.nc$"
     "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" prw ${HALF_CORES} 0 4
     FEATURES ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(test_normalize_coordinates_pass_through
+    EXEC_NAME test_normalize_coordinates
+    SOURCES test_normalize_coordinates.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_normalize_coordinates 90 45 7 0 0 0 0 360 -90 90 0 10
+    "${TECA_DATA_ROOT}/test_normalize_coordinates.bin"
+    REQ_TECA_DATA)
+
+teca_add_test(test_normalize_coordinates_flip_x
+    COMMAND test_normalize_coordinates 90 45 7 1 0 0 0 360 -90 90 0 10
+    "${TECA_DATA_ROOT}/test_normalize_coordinates.bin"
+    REQ_TECA_DATA)
+
+teca_add_test(test_normalize_coordinates_flip_y
+    COMMAND test_normalize_coordinates 90 45 7 0 1 0 0 360 -90 90 0 10
+    "${TECA_DATA_ROOT}/test_normalize_coordinates.bin"
+    REQ_TECA_DATA)
+
+teca_add_test(test_normalize_coordinates_flip_z
+    COMMAND test_normalize_coordinates 90 45 7 0 0 1 0 360 -90 90 0 10
+    "${TECA_DATA_ROOT}/test_normalize_coordinates.bin"
+    REQ_TECA_DATA)
+
+teca_add_test(test_normalize_coordinates_flip_xy
+    COMMAND test_normalize_coordinates 90 45 7 1 1 0 0 360 -90 90 0 10
+    "${TECA_DATA_ROOT}/test_normalize_coordinates.bin"
+    REQ_TECA_DATA)
+
+teca_add_test(test_normalize_coordinates_flip_xz
+    COMMAND test_normalize_coordinates 90 45 7 1 0 1 0 360 -90 90 0 10
+    "${TECA_DATA_ROOT}/test_normalize_coordinates.bin"
+    REQ_TECA_DATA)
+
+teca_add_test(test_normalize_coordinates_flip_yz
+    COMMAND test_normalize_coordinates 90 45 7 0 1 1 0 360 -90 90 0 10
+    "${TECA_DATA_ROOT}/test_normalize_coordinates.bin"
+    REQ_TECA_DATA)
+
+teca_add_test(test_normalize_coordinates_flip_xyz
+    COMMAND test_normalize_coordinates 90 45 7 1 1 1 0 360 -90 90 0 10
+    "${TECA_DATA_ROOT}/test_normalize_coordinates.bin"
+    REQ_TECA_DATA)
+
+teca_add_test(test_normalize_coordinates_pass_through_subset
+    COMMAND test_normalize_coordinates 90 45 7 0 0 0 40 190 -30 45 3 7
+    "${TECA_DATA_ROOT}/test_normalize_coordinates_subset.bin"
+    REQ_TECA_DATA)
+
+teca_add_test(test_normalize_coordinates_flip_x_subset
+    COMMAND test_normalize_coordinates 90 45 7 1 0 0 40 190 -30 45 3 7
+    "${TECA_DATA_ROOT}/test_normalize_coordinates_subset.bin"
+    REQ_TECA_DATA)
+
+teca_add_test(test_normalize_coordinates_flip_y_subset
+    COMMAND test_normalize_coordinates 90 45 7 0 1 0 40 190 -30 45 3 7
+    "${TECA_DATA_ROOT}/test_normalize_coordinates_subset.bin"
+    REQ_TECA_DATA)
+
+teca_add_test(test_normalize_coordinates_flip_z_subset
+    COMMAND test_normalize_coordinates 90 45 7 0 0 1 40 190 -30 45 3 7
+    "${TECA_DATA_ROOT}/test_normalize_coordinates_subset.bin"
+    REQ_TECA_DATA)
+
+teca_add_test(test_normalize_coordinates_flip_xy_subset
+    COMMAND test_normalize_coordinates 90 45 7 1 1 0 40 190 -30 45 3 7
+    "${TECA_DATA_ROOT}/test_normalize_coordinates_subset.bin"
+    REQ_TECA_DATA)
+
+teca_add_test(test_normalize_coordinates_flip_xz_subset
+    COMMAND test_normalize_coordinates 90 45 7 1 0 1 40 190 -30 45 3 7
+    "${TECA_DATA_ROOT}/test_normalize_coordinates_subset.bin"
+    REQ_TECA_DATA)
+
+teca_add_test(test_normalize_coordinates_flip_yz_subset
+    COMMAND test_normalize_coordinates 90 45 7 0 1 1 40 190 -30 45 3 7
+    "${TECA_DATA_ROOT}/test_normalize_coordinates_subset.bin"
+    REQ_TECA_DATA)
+
+teca_add_test(test_normalize_coordinates_flip_xyz_subset
+    COMMAND test_normalize_coordinates 90 45 7 1 1 1 40 190 -30 45 3 7
+    "${TECA_DATA_ROOT}/test_normalize_coordinates_subset.bin"
     REQ_TECA_DATA)
