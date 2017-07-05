@@ -284,13 +284,13 @@ teca_metadata teca_normalize_coordinates::get_output_metadata(
     }
 
     p_teca_variant_array out_x, out_y, out_z;
-    if (out_x = this->internals->normalize_axis(in_x))
+    if ((out_x = this->internals->normalize_axis(in_x)))
         coords.set("x", out_x);
 
-    if (out_y = this->internals->normalize_axis(in_y))
+    if ((out_y = this->internals->normalize_axis(in_y)))
         coords.set("y", out_y);
 
-    if (out_z = this->internals->normalize_axis(in_z))
+    if ((out_z = this->internals->normalize_axis(in_z)))
         coords.set("z", out_z);
 
     if (out_x || out_y || out_z)
@@ -422,52 +422,24 @@ const_p_teca_dataset teca_normalize_coordinates::execute(unsigned int port,
 
     // normalize them
     p_teca_variant_array out_x, out_y, out_z;
-    if (out_x = this->internals->normalize_axis(in_x))
+    if ((out_x = this->internals->normalize_axis(in_x)))
         out_mesh->set_x_coordinates(out_x);
 
-    if (out_y = this->internals->normalize_axis(in_y))
+    if ((out_y = this->internals->normalize_axis(in_y)))
         out_mesh->set_y_coordinates(out_y);
 
-    if (out_z = this->internals->normalize_axis(in_z))
+    if ((out_z = this->internals->normalize_axis(in_z)))
         out_mesh->set_z_coordinates(out_z);
 
-    // coordinates were not nomralized, nothing to do
-    if (!out_x && !out_y && !out_z)
-        return out_mesh;
-
     // fix the data
-    unsigned long extent[6];
-    in_mesh->get_extent(extent);
-
-    this->internals->normalize_variables(out_x.get(),
-        out_y.get(), out_z.get(), extent, out_mesh->get_point_arrays());
-
-    // fix the extent
-    /* unsigned long whole_extent[6];
-    in_mesh->get_whole_extent(whole_extent);
-
-    if (out_x)
+    if (out_x || out_y || out_z)
     {
-        unsigned long wnx = whole_extent[1] - whole_extent[0];
-        extent[0] = wnx - extent[0];
-        extent[1] = wnx - extent[1];
-    }
+        unsigned long extent[6];
+        in_mesh->get_extent(extent);
 
-    if (out_y)
-    {
-        unsigned long wny = whole_extent[3] - whole_extent[2];
-        extent[2] = wny - extent[2];
-        extent[3] = wny - extent[3];
+        this->internals->normalize_variables(out_x.get(),
+            out_y.get(), out_z.get(), extent, out_mesh->get_point_arrays());
     }
-
-    if (out_y)
-    {
-        unsigned long wnz = whole_extent[5] - whole_extent[4];
-        extent[4] = wnz - extent[4];
-        extent[5] = wnz - extent[5];
-    }
-
-    out_mesh->set_extent(extent);*/
 
     return out_mesh;
 }
