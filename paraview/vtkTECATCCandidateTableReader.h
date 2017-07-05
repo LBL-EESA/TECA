@@ -16,15 +16,12 @@ class vtkTECATCCandidateTableReader : public vtkPolyDataAlgorithm
 public:
   static vtkTECATCCandidateTableReader *New();
   vtkTypeMacro(vtkTECATCCandidateTableReader,vtkPolyDataAlgorithm);
-  virtual void PrintSelf(ostream& os, vtkIndent indent);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   vtkSetStringMacro(FileName);
   vtkGetStringMacro(FileName);
 
   int CanReadFile(const char *file);
-
-  int GetNumberOfTimeSteps();
-  void GetTimeSteps(double *times);
 
   vtkSetStringMacro(XCoordinate);
   vtkGetStringMacro(XCoordinate);
@@ -42,16 +39,13 @@ protected:
   vtkTECATCCandidateTableReader();
   ~vtkTECATCCandidateTableReader();
 
-  virtual int RequestInformation(
-    vtkInformation *req, vtkInformationVector **inInfos,
-    vtkInformationVector *outInfos);
+  int RequestInformation(vtkInformation *req, vtkInformationVector **inInfos,
+    vtkInformationVector *outInfos) override;
 
-  virtual int RequestData(
-    vtkInformation *req, vtkInformationVector **inInfos,
-    vtkInformationVector *outInfos);
+  int RequestData(vtkInformation *req, vtkInformationVector **inInfos,
+    vtkInformationVector *outInfos) override;
 
-  int GetTimeStepId(vtkInformation *inInfo,
-    vtkInformation *outInfo);
+  int GetTimeStepId(vtkInformation *inInfo, vtkInformation *outInfo);
 
 private:
   char *FileName;

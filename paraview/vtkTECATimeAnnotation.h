@@ -13,7 +13,7 @@ class VTK_EXPORT vtkTECATimeAnnotation : public vtkTableAlgorithm
 public:
   static vtkTECATimeAnnotation* New();
   vtkTypeMacro(vtkTECATimeAnnotation, vtkTableAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   vtkSetMacro(IncludeYear, int)
   vtkGetMacro(IncludeYear, int)
@@ -43,11 +43,11 @@ protected:
   vtkTECATimeAnnotation();
   ~vtkTECATimeAnnotation();
 
-  int RequestData(vtkInformation* req,
-     vtkInformationVector** inVec, vtkInformationVector* outVec);
+  int RequestData(vtkInformation* req, vtkInformationVector** inVec,
+    vtkInformationVector* outVec) override;
 
-  int FillInputPortInformation(int port, vtkInformation* info);
-  int FillOutputPortInformation(int port, vtkInformation* info);
+  int FillInputPortInformation(int port, vtkInformation* info) override;
+  int FillOutputPortInformation(int port, vtkInformation* info) override;
 
 private:
   int IncludeYear;
