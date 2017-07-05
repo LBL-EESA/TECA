@@ -8,7 +8,6 @@
 
 #include "vtkRectilinearGridAlgorithm.h"
 
-#include "teca_algorithm_fwd.h"
 #include "teca_metadata.h"
 #include "teca_cf_reader.h"
 
@@ -20,12 +19,9 @@ class vtkTECACF2Reader : public vtkRectilinearGridAlgorithm
 public:
   static vtkTECACF2Reader *New();
   vtkTypeMacro(vtkTECACF2Reader,vtkRectilinearGridAlgorithm);
-  virtual void PrintSelf(ostream& os, vtkIndent indent);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   int CanReadFile(const char *file);
-
-  int GetNumberOfTimeSteps();
-  void GetTimeSteps(double *times);
 
   void SetFileName(const char *file);
   vtkGetStringMacro(FileName);
@@ -57,16 +53,13 @@ protected:
   vtkTECACF2Reader();
   ~vtkTECACF2Reader();
 
-  virtual int RequestInformation(
-    vtkInformation *req, vtkInformationVector **inInfos,
-    vtkInformationVector *outInfos);
+  int RequestInformation(vtkInformation *req, vtkInformationVector **inInfos,
+    vtkInformationVector *outInfos) override;
 
-  virtual int RequestData(
-    vtkInformation *req, vtkInformationVector **inInfos,
-    vtkInformationVector *outInfos);
+  int RequestData(vtkInformation *req, vtkInformationVector **inInfos,
+    vtkInformationVector *outInfos) override;
 
-  int GetTimeStepId(vtkInformation *inInfo,
-    vtkInformation *outInfo);
+  int GetTimeStepId(vtkInformation *inInfo, vtkInformation *outInfo);
 
   vtkSetStringMacro(BaseDir);
   vtkGetStringMacro(BaseDir);

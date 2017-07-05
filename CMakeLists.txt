@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 cmake_policy(SET CMP0028 NEW)
+cmake_policy(SET CMP0053 NEW)
 
 project(teca C CXX Fortran)
 
