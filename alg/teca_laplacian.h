@@ -12,7 +12,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_laplacian)
 
 /// an algorithm that computes laplacian
 /**
-Compute laplacian from a vector field.
+Compute laplacian from a scalar field.
 */
 class teca_laplacian : public teca_algorithm
 {
@@ -27,38 +27,32 @@ public:
 
     // set the arrays that contain the vector components
     // to compute laplacian from
-    TECA_ALGORITHM_PROPERTY(std::string, component_0_variable)
-    TECA_ALGORITHM_PROPERTY(std::string, component_1_variable)
+    TECA_ALGORITHM_PROPERTY(std::string, scalar_variable)
 
     // set the name of the array to store the result in.
-    // the default is "laplacian"
+    // the default is <scalar_variable>_laplacian
     TECA_ALGORITHM_PROPERTY(std::string, laplacian_variable)
 
 protected:
     teca_laplacian();
 
-    std::string get_component_0_variable(const teca_metadata &request);
-    std::string get_component_1_variable(const teca_metadata &request);
+    std::string get_scalar_variable(const teca_metadata &request);
     std::string get_laplacian_variable(const teca_metadata &request);
 
 private:
-    teca_metadata get_output_metadata(
-        unsigned int port,
+    teca_metadata get_output_metadata(unsigned int port,
         const std::vector<teca_metadata> &input_md) override;
 
     std::vector<teca_metadata> get_upstream_request(
-        unsigned int port,
-        const std::vector<teca_metadata> &input_md,
+        unsigned int port, const std::vector<teca_metadata> &input_md,
         const teca_metadata &request) override;
 
-    const_p_teca_dataset execute(
-        unsigned int port,
+    const_p_teca_dataset execute(unsigned int port,
         const std::vector<const_p_teca_dataset> &input_data,
         const teca_metadata &request) override;
 
 private:
-    std::string component_0_variable;
-    std::string component_1_variable;
+    std::string scalar_variable;
     std::string laplacian_variable;
 };
 

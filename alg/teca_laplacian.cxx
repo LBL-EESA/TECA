@@ -44,11 +44,11 @@ void laplacian(num_t *w, const pt_t *lon, const pt_t *lat,
     // delta lon squared as a function of latitude
     num_t d_lon = (lon[1] - lon[0]) * deg_to_rad<num_t>() * earth_radius<num_t>();
     // tan(lat)
-    num_t *tan_lat = static_cast<num_t*>(malloc(n_bytes)); 
+    num_t *tan_lat = static_cast<num_t*>(malloc(n_bytes));
     for (unsigned long j = 0; j < n_lat; ++j)
     {
         delta_lon_sq[j] = pow(d_lon * cos(lat[j] * deg_to_rad<num_t>()),2);
-    	tan_lat[j] = tan(lat[j] * deg_to_rad<num_t>());
+        tan_lat[j] = tan(lat[j] * deg_to_rad<num_t>());
     }
 
     // delta lat squared
@@ -63,46 +63,46 @@ void laplacian(num_t *w, const pt_t *lon, const pt_t *lat,
     // laplacian
     for (unsigned long j = 1; j < max_j; ++j)
     {
-	// set the current row in the u/v/w arrays
+        // set the current row in the u/v/w arrays
         unsigned long jj = j*n_lon;
-	/* 
-	 * The following f_* variables describe the field
-	 * f in a grid oriented fashion:
-	 *
-	 *	f_ipjm	f_ipj	f_ipjp
-	 *
-	 *	f_ijm	f_ji	f_ijp
-	 *
-	 *	f_imjm	f_imj	f_imjp
-	 * 
-	 * The 'j' direction represents longitude, the
-	 * 'i' direciton represents latitude. 
-	 *
-	 * Note: The laplacian represented here uses the chain
-	 * rule to separate the (1/cos(lat)*d(cos(lat)*df/dlat)/dlat 
-	 * term into two terms.
-	 *
-	 */
-	// Set array pointer locations so that index 'i' refers to the
-	// shifted location in all variables
+        /*
+         * The following f_* variables describe the field
+         * f in a grid oriented fashion:
+         *
+         *    f_ipjm    f_ipj    f_ipjp
+         *
+         *    f_ijm    f_ji    f_ijp
+         *
+         *    f_imjm    f_imj    f_imjp
+         *
+         * The 'j' direction represents longitude, the
+         * 'i' direciton represents latitude.
+         *
+         * Note: The laplacian represented here uses the chain
+         * rule to separate the (1/cos(lat)*d(cos(lat)*df/dlat)/dlat
+         * term into two terms.
+         *
+         */
+        // Set array pointer locations so that index 'i' refers to the
+        // shifted location in all variables
         const num_t *f_ij = f + jj;          // i,j
         const num_t *f_ipj = f + jj + n_lon; // i+1, j
         const num_t *f_imj = f + jj - n_lon; // i-1, j
         const num_t *f_ijp = f + jj + 1;     // i,   j + 1
         const num_t *f_ijm = f + jj - 1;     // i,   j - 1
-	
-	// set the pointer index for the output field w
-	// ... this is index i,j
+
+        // set the pointer index for the output field w
+        // ... this is index i,j
         num_t *ww = w + jj;
-	// create a dummy variable for u**2 
+        // create a dummy variable for u**2
         num_t dlon_sq = delta_lon_sq[j];
 
         for (unsigned long i = 1; i < max_i; ++i)
         {
-	    // calculate the laplacian in spherical coordinates, assuming
-	    // constant radius R.
-            ww[i] = (f_imj[i] - num_t(2)*f_ij[i] + f_ipj[i])/dlat_sq - 
-		    tan_lat[j]*(f_ipj[i]-f_imj[i])/dlat + 
+            // calculate the laplacian in spherical coordinates, assuming
+            // constant radius R.
+            ww[i] = (f_imj[i] - num_t(2)*f_ij[i] + f_ipj[i])/dlat_sq -
+            tan_lat[j]*(f_ipj[i]-f_imj[i])/dlat +
                     (f_ijm[i] - num_t(2)*f_ij[i] + f_ijp[i])/dlon_sq;
         }
     }
@@ -112,53 +112,53 @@ void laplacian(num_t *w, const pt_t *lon, const pt_t *lat,
         // periodic in longitude; leftmost boundary
         for (unsigned long j = 1; j < max_j; ++j)
         {
-	    // set the current row in the u/v/w arrays
+            // set the current row in the u/v/w arrays
             unsigned long jj = j*n_lon;
-	    // Set array pointer locations so that index 'i' refers to the
-	    // shifted location in all variables
+            // Set array pointer locations so that index 'i' refers to the
+            // shifted location in all variables
             const num_t *f_ij = f + jj;          // i,j
             const num_t *f_ipj = f + jj + n_lon; // i+1, j
             const num_t *f_imj = f + jj - n_lon; // i-1, j
             const num_t *f_ijp = f + jj + 1;     // i,   j + 1
             const num_t *f_ijm = f + jj - max_i; // i,   j - 1
 
-	    // set the pointer index for the output field w
-	    // ... this is index i,j
+            // set the pointer index for the output field w
+            // ... this is index i,j
             num_t *ww = w + jj;
-	    // create a dummy variable for u**2 
+            // create a dummy variable for u**2
             num_t dlon_sq = delta_lon_sq[j];
 
-	    // calculate the laplacian in spherical coordinates, assuming
-	    // constant radius R.
-            ww[0] = (f_imj[0] - num_t(2)*f_ij[0] + f_ipj[0])/dlat_sq - 
-		    tan_lat[j]*(f_ipj[0]-f_imj[0])/dlat + 
+            // calculate the laplacian in spherical coordinates, assuming
+            // constant radius R.
+            ww[0] = (f_imj[0] - num_t(2)*f_ij[0] + f_ipj[0])/dlat_sq -
+            tan_lat[j]*(f_ipj[0]-f_imj[0])/dlat +
                     (f_ijm[0] - num_t(2)*f_ij[0] + f_ijp[0])/dlon_sq;
         }
 
         // periodic in longitude; rightmost boundary
         for (unsigned long j = 1; j < max_j; ++j)
         {
-	    // set the current row in the u/v/w arrays
+            // set the current row in the u/v/w arrays
             unsigned long jj = j*n_lon;
 
-	    // Set array pointer locations so that index 'i' refers to the
-	    // shifted location in all variables
+            // Set array pointer locations so that index 'i' refers to the
+            // shifted location in all variables
             const num_t *f_ij = f + jj + max_i;          // i,j
             const num_t *f_ipj = f + jj + max_i + n_lon; // i+1, j
             const num_t *f_imj = f + jj + max_i - n_lon; // i-1, j
             const num_t *f_ijp = f + jj;                 // i,   j + 1
             const num_t *f_ijm = f + jj - max_i;         // i,   j - 1
 
-	    // set the pointer index for the output field w
-	    // ... this is index i,j
+            // set the pointer index for the output field w
+            // ... this is index i,j
             num_t *ww = w + jj + max_i;
-	    // create a dummy variable for u**2 
+            // create a dummy variable for u**2
             num_t dlon_sq = delta_lon_sq[j];
 
-	    // calculate the laplacian in spherical coordinates, assuming
-	    // constant radius R.
-            ww[0] = (f_imj[0] - num_t(2)*f_ij[0] + f_ipj[0])/dlat_sq - 
-		    tan_lat[j]*(f_ipj[0]-f_imj[0])/dlat + 
+            // calculate the laplacian in spherical coordinates, assuming
+            // constant radius R.
+            ww[0] = (f_imj[0] - num_t(2)*f_ij[0] + f_ipj[0])/dlat_sq -
+                tan_lat[j]*(f_ipj[0]-f_imj[0])/dlat +
                     (f_ijm[0] - num_t(2)*f_ij[0] + f_ijp[0])/dlon_sq;
         }
     }
@@ -192,9 +192,7 @@ void laplacian(num_t *w, const pt_t *lon, const pt_t *lat,
 
 
 // --------------------------------------------------------------------------
-teca_laplacian::teca_laplacian() :
-    component_0_variable(), 
-    laplacian_variable("laplacian")
+teca_laplacian::teca_laplacian() : scalar_variable(), laplacian_variable()
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -206,14 +204,14 @@ teca_laplacian::~teca_laplacian()
 
 #if defined(TECA_HAS_BOOST)
 // --------------------------------------------------------------------------
-void teca_laplacian::get_properties_description(
-    const string &prefix, options_description &global_opts)
+void teca_laplacian::get_properties_description(const string &prefix,
+    options_description &global_opts)
 {
     options_description opts("Options for "
         + (prefix.empty()?"teca_laplacian":prefix));
 
     opts.add_options()
-        TECA_POPTS_GET(std::string, prefix, component_0_variable,
+        TECA_POPTS_GET(std::string, prefix, scalar_variable,
             "array containing the input variable")
         TECA_POPTS_GET(std::string, prefix, laplacian_variable,
             "array to store the computed laplacian in")
@@ -223,47 +221,52 @@ void teca_laplacian::get_properties_description(
 }
 
 // --------------------------------------------------------------------------
-void teca_laplacian::set_properties(
-    const string &prefix, variables_map &opts)
+void teca_laplacian::set_properties(const string &prefix, variables_map &opts)
 {
-    TECA_POPTS_SET(opts, std::string, prefix, component_0_variable)
+    TECA_POPTS_SET(opts, std::string, prefix, scalar_variable)
     TECA_POPTS_SET(opts, std::string, prefix, laplacian_variable)
 }
 #endif
 
 // --------------------------------------------------------------------------
-std::string teca_laplacian::get_component_0_variable(
-    const teca_metadata &request)
+std::string teca_laplacian::get_scalar_variable(const teca_metadata &request)
 {
-    std::string comp_0_var = this->component_0_variable;
+    std::string scalar_var = this->scalar_variable;
 
-    if (comp_0_var.empty() &&
-        request.has("teca_laplacian::component_0_variable"))
-            request.get("teca_laplacian::component_0_variable", comp_0_var);
+    if (scalar_var.empty() &&
+        request.has("teca_laplacian::scalar_variable"))
+            request.get("teca_laplacian::scalar_variable", scalar_var);
 
-    return comp_0_var;
+    return scalar_var;
 }
 
 // --------------------------------------------------------------------------
-std::string teca_laplacian::get_laplacian_variable(
-    const teca_metadata &request)
+std::string teca_laplacian::get_laplacian_variable(const teca_metadata &request)
 {
     std::string lapl_var = this->laplacian_variable;
 
     if (lapl_var.empty())
     {
         if (request.has("teca_laplacian::laplacian_variable"))
+        {
             request.get("teca_laplacian::laplacian_variable", lapl_var);
+        }
         else
-            lapl_var = "laplacian";
+        {
+            std::string scalar_var = this->get_scalar_variable(request);
+
+            std::ostringstream oss;
+            oss << scalar_var << "_laplacian";
+
+            lapl_var = oss.str();
+        }
     }
 
     return lapl_var;
 }
 
 // --------------------------------------------------------------------------
-teca_metadata teca_laplacian::get_output_metadata(
-    unsigned int port,
+teca_metadata teca_laplacian::get_output_metadata(unsigned int port,
     const std::vector<teca_metadata> &input_md)
 {
 #ifdef TECA_DEBUG
@@ -281,8 +284,7 @@ teca_metadata teca_laplacian::get_output_metadata(
 
 // --------------------------------------------------------------------------
 std::vector<teca_metadata> teca_laplacian::get_upstream_request(
-    unsigned int port,
-    const std::vector<teca_metadata> &input_md,
+    unsigned int port, const std::vector<teca_metadata> &input_md,
     const teca_metadata &request)
 {
     (void)port;
@@ -291,10 +293,10 @@ std::vector<teca_metadata> teca_laplacian::get_upstream_request(
     vector<teca_metadata> up_reqs;
 
     // get the name of the arrays we need to request
-    std::string comp_0_var = this->get_component_0_variable(request);
-    if (comp_0_var.empty())
+    std::string scalar_var = this->get_scalar_variable(request);
+    if (scalar_var.empty())
     {
-        TECA_ERROR("component 0 array was not specified")
+        TECA_ERROR("scalar array was not specified")
         return up_reqs;
     }
 
@@ -320,14 +322,12 @@ std::vector<teca_metadata> teca_laplacian::get_upstream_request(
 }
 
 // --------------------------------------------------------------------------
-const_p_teca_dataset teca_laplacian::execute(
-    unsigned int port,
+const_p_teca_dataset teca_laplacian::execute(unsigned int port,
     const std::vector<const_p_teca_dataset> &input_data,
     const teca_metadata &request)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_laplacian::execute" << endl;
+    cerr << teca_parallel_id() << "teca_laplacian::execute" << endl;
 #endif
     (void)port;
 
@@ -341,21 +341,21 @@ const_p_teca_dataset teca_laplacian::execute(
         return nullptr;
     }
 
-    // get component 0 array
-    std::string comp_0_var = this->get_component_0_variable(request);
+    // get scalar array
+    std::string scalar_var = this->get_scalar_variable(request);
 
-    if (comp_0_var.empty())
+    if (scalar_var.empty())
     {
-        TECA_ERROR("component_0_variable was not specified")
+        TECA_ERROR("scalar_variable was not specified")
         return nullptr;
     }
 
-    const_p_teca_variant_array comp_0
-        = in_mesh->get_point_arrays()->get(comp_0_var);
+    const_p_teca_variant_array scalar
+        = in_mesh->get_point_arrays()->get(scalar_var);
 
-    if (!comp_0)
+    if (!scalar)
     {
-        TECA_ERROR("requested array \"" << comp_0_var << "\" not present.")
+        TECA_ERROR("requested array \"" << scalar_var << "\" not present.")
         return nullptr;
     }
 
@@ -370,8 +370,8 @@ const_p_teca_dataset teca_laplacian::execute(
     }
 
     // allocate the output array
-    p_teca_variant_array lapl = comp_0->new_instance();
-    lapl->resize(comp_0->size());
+    p_teca_variant_array lapl = scalar->new_instance();
+    lapl->resize(scalar->size());
 
     // compute laplacian
     NESTED_TEMPLATE_DISPATCH_FP(
@@ -385,11 +385,11 @@ const_p_teca_dataset teca_laplacian::execute(
             teca_variant_array_impl,
             lapl.get(), 2,
 
-            const NT2 *p_comp_0 = dynamic_cast<const TT2*>(comp_0.get())->get();
+            const NT2 *p_scalar = dynamic_cast<const TT2*>(scalar.get())->get();
             NT2 *p_lapl = dynamic_cast<TT2*>(lapl.get())->get();
 
             ::laplacian(p_lapl, p_lon, p_lat,
-                p_comp_0, lon->size(), lat->size());
+                p_scalar, lon->size(), lat->size());
             )
         )
 
