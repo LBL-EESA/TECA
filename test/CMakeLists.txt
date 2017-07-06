@@ -365,6 +365,14 @@ teca_add_test(test_event_filter
     "${TECA_DATA_ROOT}/test_event_filter.bin"
     REQ_TECA_DATA)
 
+teca_add_test(test_wang_etc_candidates_serial
+    COMMAND test_wang_etc_candidates
+    "${TECA_DATA_ROOT}/test_wang_etc_candidates_1990_07_0[12]\\.nc"
+    "${TECA_DATA_ROOT}/test_wang_etc_candidates_20.bin" 0 3 1
+    U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
+    REQ_TECA_DATA)
+
 teca_add_test(test_wang_etc_candidates_mpi
     COMMAND ${MPIEXEC} -n ${TECA_TEST_CORES} test_wang_etc_candidates
     "${TECA_DATA_ROOT}/test_wang_etc_candidates_1990_07_0[12]\\.nc"
