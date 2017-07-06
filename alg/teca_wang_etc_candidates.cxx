@@ -259,6 +259,7 @@ int find_candidates(unsigned long time_step, const coord_t *lon,
     unsigned long eq = 0;
     while ((eq < n_lat) && (lat[eq] < coord_t()))
         eq += 1;
+    eq *= n_lon;
 
     for (unsigned long j = 0; j < eq; ++j)
         vorticity_gh[j] *= -1;
@@ -428,9 +429,7 @@ int teca_wang_etc_candidates::get_active_extent(p_teca_variant_array lat,
     }
     else
     {
-        TEMPLATE_DISPATCH_FP(
-            teca_variant_array_impl,
-            lon.get(),
+        TEMPLATE_DISPATCH_FP(teca_variant_array_impl, lon.get(),
             NT *p_lon = std::dynamic_pointer_cast<TT>(lon)->get();
 
             if (teca_coordinate_util::index_of(p_lon, 0, high_i,
@@ -462,9 +461,7 @@ int teca_wang_etc_candidates::get_active_extent(p_teca_variant_array lat,
     }
     else
     {
-        TEMPLATE_DISPATCH_FP(
-            teca_variant_array_impl,
-            lat.get(),
+        TEMPLATE_DISPATCH_FP(teca_variant_array_impl, lat.get(),
             NT *p_lat = std::dynamic_pointer_cast<TT>(lat)->get();
 
             if (teca_coordinate_util::index_of(p_lat, 0, high_j,
