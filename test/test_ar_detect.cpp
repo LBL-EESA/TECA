@@ -98,7 +98,7 @@ int main(int argc, char **argv)
     p_teca_cartesian_mesh_regrid mask_regrid = teca_cartesian_mesh_regrid::New();
     mask_regrid->set_input_connection(0, vapor_coords->get_output_port());
     mask_regrid->set_input_connection(1, mask_coords->get_output_port());
-    mask_regrid->add_source_array(mask_var);
+    mask_regrid->append_array(mask_var);
 
     p_teca_ar_detect ar_detect = teca_ar_detect::New();
     ar_detect->set_input_connection(mask_regrid->get_output_port());

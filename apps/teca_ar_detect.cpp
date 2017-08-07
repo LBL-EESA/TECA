@@ -201,7 +201,7 @@ int main(int argc, char **argv)
     {
         string var = opt_vals["land_sea_mask_var"].as<string>();
         ar_detect->set_land_sea_mask_variable(var);
-        land_sea_mask_regrid->add_source_array(var);
+        land_sea_mask_regrid->append_array(var);
     }
 
     if (opt_vals.count("first_step"))
@@ -241,7 +241,7 @@ int main(int argc, char **argv)
     if (use_land_sea_mask
         && ((land_sea_mask_reader->get_file_name().empty()
         && land_sea_mask_reader->get_files_regex().empty())
-        || land_sea_mask_regrid->get_source_arrays().empty()))
+        || land_sea_mask_regrid->get_number_of_arrays()))
     {
         cerr << endl
             << "Error: missing file name, regex, or variable name "
