@@ -8,6 +8,7 @@ include_directories(
 
 set(teca_io_srcs
     teca_file_util.cxx
+    teca_cartesian_mesh_reader.cxx
     teca_vtk_cartesian_mesh_writer.cxx
     teca_table_reader.cxx
     teca_table_writer.cxx
