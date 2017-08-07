@@ -888,9 +888,9 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
             teca_metadata coords;
             coords.set("x_variable", x_axis_variable);
-            coords.set("y_variable", (z_axis_variable.empty() ? "y" : z_axis_variable));
+            coords.set("y_variable", (y_axis_variable.empty() ? "y" : y_axis_variable));
             coords.set("z_variable", (z_axis_variable.empty() ? "z" : z_axis_variable));
-            coords.set("t_variable", (z_axis_variable.empty() ? "t" : z_axis_variable));
+            coords.set("t_variable", (t_axis_variable.empty() ? "t" : t_axis_variable));
             coords.set("x", x_axis);
             coords.set("y", y_axis);
             coords.set("z", z_axis);
