@@ -16,8 +16,13 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_cartesian_mesh_regrid)
 an algorithm that transfers data between cartesian meshes
 defined in the same world coordinate system but potentially
 different resolutions. nearest or linear interpolation are
-supported. the first input is the target mesh. the second input
-is the source mesh. the arrays to move from source to target
+supported.
+
+By default the first input is the target mesh. the second input
+is the source mesh. This can be changed by setting the target_input
+property.
+
+the arrays to move from source to target
 can be selected using add_array api or in the request
 key regrid_source_arrays. this is a spatial regriding operation
 for temporal regriding see teca_mesh_temporal_regrid.
@@ -35,17 +40,11 @@ public:
 
     // set the list of arrays to move from the source
     // to the target
-    TECA_ALGORITHM_PROPERTY(std::vector<std::string>, source_arrays)
+    TECA_ALGORITHM_VECTOR_PROPERTY(std::string, array)
 
-    // clear the list of arrays to move from the source
-    // to the target
-    void clear_source_arrays();
-
-    // set names of arrays to move. any arrays
-    // named here will be requested from the source
-    // mesh(input 2) and moved onto the target mesh
-    // (input 1) with the same name.
-    void add_source_array(const std::string &array);
+    // set the input connection from which metadata such as arrays
+    // and time steps are taken from.
+    TECA_ALGORITHM_PROPERTY(int, target_input)
 
     // set the interpolation mode used in transfering
     // data between meshes of differing resolution.
@@ -61,23 +60,20 @@ protected:
     teca_cartesian_mesh_regrid();
 
 private:
-
-    teca_metadata get_output_metadata(
-        unsigned int port,
+    teca_metadata get_output_metadata(unsigned int port,
         const std::vector<teca_metadata> &input_md) override;
 
     std::vector<teca_metadata> get_upstream_request(
-        unsigned int port,
-        const std::vector<teca_metadata> &input_md,
+        unsigned int port, const std::vector<teca_metadata> &input_md,
         const teca_metadata &request) override;
 
-    const_p_teca_dataset execute(
-        unsigned int port,
+    const_p_teca_dataset execute(unsigned int port,
         const std::vector<const_p_teca_dataset> &input_data,
         const teca_metadata &request) override;
 
 private:
-    std::vector<std::string> source_arrays;
+    std::vector<std::string> arrays;
+    int target_input;
     int interpolation_mode;
 };
 

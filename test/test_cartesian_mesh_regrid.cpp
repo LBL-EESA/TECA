@@ -4,6 +4,9 @@
 #include "teca_cartesian_mesh_subset.h"
 #include "teca_cartesian_mesh_regrid.h"
 #include "teca_vtk_cartesian_mesh_writer.h"
+#include "teca_cartesian_mesh_reader.h"
+#include "teca_dataset_diff.h"
+#include "teca_file_util.h"
 #include "teca_time_step_executive.h"
 #include "teca_mpi_manager.h"
 #include "teca_system_interface.h"
@@ -99,29 +102,51 @@ int main(int argc, char **argv)
     p_teca_cartesian_mesh_regrid rg = teca_cartesian_mesh_regrid::New();
     rg->set_input_connection(0, tc->get_output_port());
     rg->set_input_connection(1, sc->get_output_port());
-    rg->set_source_arrays(source_arrays);
+    rg->set_arrays(source_arrays);
 
     // create the subseter
     p_teca_cartesian_mesh_subset ss = teca_cartesian_mesh_subset::New();
     ss->set_input_connection(rg->get_output_port());
     ss->set_bounds(target_bounds);
 
-    // create the vtk writer connected to the cf reader
-    p_teca_vtk_cartesian_mesh_writer w = teca_vtk_cartesian_mesh_writer::New();
-    w->set_file_name(out_file);
-    w->set_input_connection(ss->get_output_port());
-
     // set the executive on the writer to stream time steps
     p_teca_time_step_executive exec = teca_time_step_executive::New();
+
     // optional
     exec->set_first_step(first_step);
     exec->set_last_step(last_step);
     exec->set_arrays(target_arrays);
 
-    w->set_executive(exec);
 
-    // run the pipeline
-    w->update();
+    if (teca_file_util::file_exists(out_file.c_str()))
+    {
+        // run the test
+        p_teca_cartesian_mesh_reader baseline_reader = teca_cartesian_mesh_reader::New();
+        baseline_reader->set_file_name(out_file);
+
+        p_teca_dataset_diff diff = teca_dataset_diff::New();
+        diff->set_input_connection(0, baseline_reader->get_output_port());
+        diff->set_input_connection(1, ss->get_output_port());
+        diff->set_executive(exec);
+
+        diff->update();
+    }
+    else
+    {
+        // make a baseline
+        cerr << "generating baseline image " << out_file << endl;
+
+        p_teca_vtk_cartesian_mesh_writer baseline_writer = teca_vtk_cartesian_mesh_writer::New();
+        baseline_writer->set_input_connection(ss->get_output_port());
+        baseline_writer->set_file_name(out_file);
+
+        baseline_writer->set_executive(exec);
+
+        // run the pipeline
+        baseline_writer->update();
+
+        return -1;
+    }
 
     return 0;
 }
