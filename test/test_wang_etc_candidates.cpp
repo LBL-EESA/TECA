@@ -110,7 +110,7 @@ int main(int argc, char **argv)
     p_teca_cartesian_mesh_regrid regrid = teca_cartesian_mesh_regrid::New();
     regrid->set_input_connection(0, sim_coords->get_output_port());
     regrid->set_input_connection(1, elev_coords->get_output_port());
-    regrid->add_source_array(elevation_var);
+    regrid->append_array(elevation_var);
 
     // laplacian as proxy for vorticity
     p_teca_laplacian laplace = teca_laplacian::New();
