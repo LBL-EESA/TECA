@@ -109,7 +109,7 @@ teca_add_test(test_cartesian_mesh_regrid
     COMMAND test_cartesian_mesh_regrid
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-01-10800\\.nc"
     lon lat "." time 1 PSL "${TECA_DATA_ROOT}/landsea\\.nc" lon lat "." "." 1 LSMASK
-    test_cartesian_mesh_regrid.%e% 0 0 1 359 -89 89 0 0
+    "${TECA_DATA_ROOT}/test_cartesian_mesh_regrid.bin" 0 0 1 359 -89 89 0 0
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
