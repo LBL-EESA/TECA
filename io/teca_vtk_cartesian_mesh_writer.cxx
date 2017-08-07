@@ -172,11 +172,173 @@ int write_vtk_legacy_attribute(FILE *ofile,
 
     return 0;
 }
+
+// write VTK XML
+// ********************************************************************************
+int write_vtr(const_p_teca_cartesian_mesh mesh, const std::string &file_name,
+    long time_step, double time, int binary)
+{
+#if defined(TECA_HAS_VTK) || defined(TECA_HAS_PARAVIEW)
+    vtkRectilinearGrid *rg = vtkRectilinearGrid::New();
+
+    if (teca_vtk_util::deep_copy(rg, mesh))
+    {
+        TECA_ERROR("Failed to copy to vtkRectilinearGrid")
+        return -1;
+    }
+
+    std::string out_file = file_name;
+    teca_file_util::replace_timestep(out_file, time_step);
+    teca_file_util::replace_extension(out_file, "vtr");
+
+    vtkXMLRectilinearGridWriter *w = vtkXMLRectilinearGridWriter::New();
+    if (binary)
+    {
+        w->SetDataModeToAppended();
+        w->SetEncodeAppendedData(0);
+    }
+    w->SetFileName(out_file.c_str());
+    w->SetInputData(rg);
+    w->Write();
+
+    w->Delete();
+    rg->Delete();
+
+    // write a pvd file to capture time coordinate
+    std::string pvd_file_name;
+    size_t pos;
+    if (!(((pos = file_name.find("_%t%")) != std::string::npos) ||
+       ((pos = file_name.find("%t%")) != std::string::npos)))
+        pos = file_name.rfind(".");
+
+    pvd_file_name = file_name.substr(0, pos);
+    pvd_file_name.append(".pvd");
+
+    if (teca_file_util::file_exists(pvd_file_name.c_str()))
+    {
+        // add dataset to the file
+        ofstream pvd_file(pvd_file_name,
+            std::ios_base::in|std::ios_base::out|std::ios_base::ate);
+
+        if (!pvd_file.good())
+        {
+            TECA_ERROR("Failed to open \"" << pvd_file_name << "\"")
+            return -1;
+        }
+
+        long eof = pvd_file.tellp();
+        pvd_file.seekp(eof - 25);
+
+        pvd_file << "<DataSet timestep=\"" << time << "\" group=\"\" part=\"0\" "
+            "file=\"" << out_file << "\"/>\n"
+            "</Collection>\n"
+            "</VTKFile>" << std::endl;
+
+        pvd_file.close();
+    }
+    else
+    {
+        // write the initial file
+        ofstream pvd_file(pvd_file_name, std::ios_base::out|std::ios_base::trunc);
+        if (!pvd_file.good())
+        {
+            TECA_ERROR("Failed to open \"" << pvd_file_name << "\"")
+            return -1;
+        }
+
+        pvd_file << "<?xml version=\"1.0\"?>\n"
+               "<VTKFile type=\"Collection\" version=\"0.1\"\n"
+               "byte_order=\"LittleEndian\" compressor=\"\">\n"
+               "<Collection>\n"
+               "<DataSet timestep=\"" << time << "\" group=\"\" part=\"0\" "
+               "file=\"" << out_file << "\"/>\n"
+               "</Collection>\n"
+               "</VTKFile>" << std::endl;
+
+        pvd_file.close();
+    }
+
+    return 0;
+#else
+    return -1;
+#endif
+}
+
+// write VTK legacy format
+// ********************************************************************************
+int write_vtk(const_p_teca_cartesian_mesh mesh, const std::string &file_name,
+    long time_step, int binary)
+{
+    // built without VTK. write as legacy file
+    std::string out_file = file_name;
+    teca_file_util::replace_timestep(out_file, time_step);
+    teca_file_util::replace_extension(out_file, "vtk");
+
+    const char *mode = binary ? "wb" : "w";
+
+    FILE *ofile = fopen(out_file.c_str(), mode);
+    if (!ofile)
+    {
+        const char *err_desc = strerror(errno);
+        TECA_ERROR("Failed to open \"" << out_file << "\""
+             << std::endl << err_desc)
+        return -1;
+    }
+
+    if (internals::write_vtk_legacy_header(ofile,
+        mesh->get_x_coordinates(), mesh->get_y_coordinates(),
+        mesh->get_z_coordinates(), binary))
+    {
+        TECA_ERROR("failed to write the header")
+        return -1;
+    }
+
+    if (internals::write_vtk_legacy_attribute(ofile,
+        mesh->get_point_arrays(), internals::center_t::point,
+        binary))
+    {
+        TECA_ERROR("failed to write point arrays")
+        return -1;
+    }
+
+    if (internals::write_vtk_legacy_attribute(ofile,
+        mesh->get_cell_arrays(), internals::center_t::cell,
+        binary))
+    {
+        TECA_ERROR("failed to write point arrays")
+        return -1;
+    }
+
+    return 0;
+}
+
+// ********************************************************************************
+int write_bin(const_p_teca_cartesian_mesh mesh, const std::string &file_name,
+    long time_step)
+{
+    std::string out_file = file_name;
+    teca_file_util::replace_timestep(out_file, time_step);
+    teca_file_util::replace_extension(out_file, "bin");
+
+    // serialize the table to a binary representation
+    teca_binary_stream bs;
+    mesh->to_stream(bs);
+
+    if (teca_file_util::write_stream(out_file.c_str(), "teca_cartesian_mesh", bs))
+    {
+        TECA_ERROR("Failed to write \"" << out_file << "\"")
+        return -1;
+    }
+
+    return 0;
+}
+
+
 };
 
 // --------------------------------------------------------------------------
 teca_vtk_cartesian_mesh_writer::teca_vtk_cartesian_mesh_writer()
-    : file_name(""), binary(0)
+    : file_name(""), binary(1), output_format(format_auto)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -195,10 +357,13 @@ void teca_vtk_cartesian_mesh_writer::get_properties_description(
         + (prefix.empty()?"teca_vtk_cartesian_mesh_writer":prefix));
 
     opts.add_options()
-        TECA_POPTS_GET(std::string, prefix,file_name,
-            "path/name to write series to")
+        TECA_POPTS_GET(std::string, prefix, file_name,
+            "path/name to write series to. supports e,t substitutions")
         TECA_POPTS_GET(int, prefix,binary,
-            "if set write raw binary (ie smaller, faster)")
+            "if set write VTK binary formats")
+        TECA_POPTS_GET(int, prefix, output_format,
+            "output file format enum, 0:bin, 1:vtk, 2:vtr, 3:auto."
+            "if auto is used, format is deduced from file_name")
         ;
 
     global_opts.add(opts);
@@ -209,6 +374,7 @@ void teca_vtk_cartesian_mesh_writer::set_properties(
     const std::string &prefix, variables_map &opts)
 {
     TECA_POPTS_SET(opts, std::string, prefix, file_name)
+    TECA_POPTS_SET(opts, int, prefix, output_format)
     TECA_POPTS_SET(opts, int, prefix, binary)
 }
 #endif
@@ -257,128 +423,56 @@ const_p_teca_dataset teca_vtk_cartesian_mesh_writer::execute(
         return nullptr;
     }
 
-    // if we have VTK then use their XML file formats
-    // otherwise fallback to our legacy writer
-#if defined(TECA_HAS_VTK) || defined(TECA_HAS_PARAVIEW)
-    vtkRectilinearGrid *rg = vtkRectilinearGrid::New();
-
-    if (teca_vtk_util::deep_copy(rg, mesh))
-    {
-        TECA_ERROR("Failed to copy to vtkRectilinearGrid")
-        return nullptr;
-    }
-
+    // format output file name
     std::string out_file = this->file_name;
-    teca_file_util::replace_timestep(out_file, time_step);
-    teca_file_util::replace_extension(out_file, "vtr");
 
-    vtkXMLRectilinearGridWriter *w = vtkXMLRectilinearGridWriter::New();
-    if (binary)
+    // replace extension
+    int fmt = this->output_format;
+    if (fmt == format_auto)
     {
-        w->SetDataModeToAppended();
-        w->SetEncodeAppendedData(0);
-    }
-    w->SetFileName(out_file.c_str());
-    w->SetInputData(rg);
-    w->Write();
-
-    w->Delete();
-    rg->Delete();
-
-    // write a pvd file to capture time coordinate
-    std::string pvd_file_name;
-    size_t pos;
-    if (!(((pos = this->file_name.find("_%t%")) != std::string::npos) ||
-       ((pos = this->file_name.find("%t%")) != std::string::npos)))
-        pos = this->file_name.rfind(".");
-
-    pvd_file_name = this->file_name.substr(0, pos);
-    pvd_file_name.append(".pvd");
-
-    if (teca_file_util::file_exists(pvd_file_name.c_str()))
-    {
-        // add dataset to the file
-        ofstream pvd_file(pvd_file_name,
-            std::ios_base::in|std::ios_base::out|std::ios_base::ate);
-
-        if (!pvd_file.good())
+        if (out_file.rfind(".vtr") != std::string::npos)
         {
-            TECA_ERROR("Failed to open \"" << pvd_file_name << "\"")
+#if !defined(TECA_HAS_VTK) || !defined(TECA_HAS_PARAVIEW)
+            TECA_ERROR("writing to vtr format requires VTK or ParaView")
             return nullptr;
-        }
-
-        long eof = pvd_file.tellp();
-        pvd_file.seekp(eof - 25);
-
-        pvd_file << "<DataSet timestep=\"" << time << "\" group=\"\" part=\"0\" "
-            "file=\"" << out_file << "\"/>\n"
-            "</Collection>\n"
-            "</VTKFile>" << std::endl;
-
-        pvd_file.close();
-    }
-    else
-    {
-        // write the initial file
-        ofstream pvd_file(pvd_file_name, std::ios_base::out|std::ios_base::trunc);
-        if (!pvd_file.good())
-        {
-            TECA_ERROR("Failed to open \"" << pvd_file_name << "\"")
-            return nullptr;
-        }
-
-        pvd_file << "<?xml version=\"1.0\"?>\n"
-               "<VTKFile type=\"Collection\" version=\"0.1\"\n"
-               "byte_order=\"LittleEndian\" compressor=\"\">\n"
-               "<Collection>\n"
-               "<DataSet timestep=\"" << time << "\" group=\"\" part=\"0\" "
-               "file=\"" << out_file << "\"/>\n"
-               "</Collection>\n"
-               "</VTKFile>" << std::endl;
-
-        pvd_file.close();
-    }
 #else
-    // built without VTK. write as legacy file
-    std::string out_file = this->file_name;
-    teca_file_util::replace_timestep(out_file, time_step);
-    teca_file_util::replace_extension(out_file, "vtk");
-
-    const char *mode = this->binary ? "wb" : "w";
-
-    FILE *ofile = fopen(out_file.c_str(), mode);
-    if (!ofile)
-    {
-        const char *err_desc = strerror(errno);
-        TECA_ERROR("Failed to open \"" << out_file << "\""
-             << std::endl << err_desc)
-        return nullptr;
-    }
-
-    if (internals::write_vtk_legacy_header(ofile,
-        mesh->get_x_coordinates(), mesh->get_y_coordinates(),
-        mesh->get_z_coordinates(), this->binary))
-    {
-        TECA_ERROR("failed to write the header")
-        return nullptr;
-    }
-
-    if (internals::write_vtk_legacy_attribute(ofile,
-        mesh->get_point_arrays(), internals::center_t::point,
-        this->binary))
-    {
-        TECA_ERROR("failed to write point arrays")
-        return nullptr;
-    }
-
-    if (internals::write_vtk_legacy_attribute(ofile,
-        mesh->get_cell_arrays(), internals::center_t::cell,
-        this->binary))
-    {
-        TECA_ERROR("failed to write point arrays")
-        return nullptr;
-    }
+            fmt = format_vtr;
 #endif
+        }
+        else if (out_file.rfind(".vtk") != std::string::npos)
+        {
+            fmt = format_vtk;
+        }
+        else if (out_file.rfind(".bin") != std::string::npos)
+        {
+            fmt = format_bin;
+        }
+        else
+        {
+            if (rank == 0)
+            {
+                TECA_WARNING("Failed to determine extension from file name \""
+                    << out_file << "\". Using bin format.")
+            }
+            fmt = format_bin;
+        }
+    }
+
+    switch (fmt)
+    {
+        case format_bin:
+            internals::write_bin(mesh, this->file_name, time_step);
+            break;
+        case format_vtk:
+            internals::write_vtk(mesh, this->file_name, time_step, this->binary);
+            break;
+        case format_vtr:
+            internals::write_vtr(mesh, this->file_name, time_step, time, this->binary);
+            break;
+        default:
+            TECA_ERROR("Invalid output format")
+            return nullptr;
+    }
 
     return mesh;
 }
