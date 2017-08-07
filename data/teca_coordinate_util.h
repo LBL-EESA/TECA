@@ -259,5 +259,118 @@ void get_table_offsets(const int_t *index, unsigned long n_rows,
         offsets[i] = offsets[i-1] + counts[i-1];
 }
 
+// 0 order (nearest neighbor) interpolation
+// for nodal data on stretched cartesian mesh.
+template<typename CT, typename DT>
+int interpolate_nearest(CT cx, CT cy, CT cz,
+    const CT *p_x, const CT *p_y, const CT *p_z,
+    const DT *p_data, unsigned long ihi, unsigned long jhi,
+    unsigned long khi, unsigned long nx, unsigned long nxy,
+    DT &val)
+{
+    // get i,j of node less than cx,cy
+    unsigned long i = 0;
+    unsigned long j = 0;
+    unsigned long k = 0;
+
+    if ((ihi && teca_coordinate_util::index_of(p_x, 0, ihi, cx, true, i))
+        || (jhi && teca_coordinate_util::index_of(p_y, 0, jhi, cy, true, j))
+        || (khi && teca_coordinate_util::index_of(p_z, 0, khi, cz, true, k)))
+    {
+        // cx,cy,cz is outside the coordinate axes
+        return -1;
+    }
+
+    // get i,j of node greater than cx,cy
+    unsigned long ii = std::min(i + 1, ihi);
+    unsigned long jj = std::min(j + 1, jhi);
+    unsigned long kk = std::min(k + 1, khi);
+
+    // get index of nearest node
+    unsigned long p = (cx - p_x[i]) <= (p_x[ii] - cx) ? i : ii;
+    unsigned long q = (cy - p_y[j]) <= (p_y[jj] - cy) ? j : jj;
+    unsigned long r = (cz - p_z[k]) <= (p_z[kk] - cz) ? k : kk;
+
+    // assign value from nearest node
+    val = p_data[p + nx*q + nxy*r];
+    return 0;
+}
+
+// 1 order (linear) interpolation
+// for nodal data on stretched cartesian mesh.
+template<typename CT, typename DT>
+int interpolate_linear(CT cx, CT cy, CT cz,
+    const CT *p_x, const CT *p_y, const CT *p_z,
+    const DT *p_data, unsigned long ihi, unsigned long jhi,
+    unsigned long khi, unsigned long nx, unsigned long nxy,
+    DT &val)
+{
+    // get i,j of node less than cx,cy
+    unsigned long i = 0;
+    unsigned long j = 0;
+    unsigned long k = 0;
+
+    if ((ihi && teca_coordinate_util::index_of(p_x, 0, ihi, cx, true, i))
+        || (jhi && teca_coordinate_util::index_of(p_y, 0, jhi, cy, true, j))
+        || (khi && teca_coordinate_util::index_of(p_z, 0, khi, cz, true, k)))
+    {
+        // cx,cy,cz is outside the coordinate axes
+        return -1;
+    }
+
+    // get i,j of node greater than cx,cy
+    unsigned long ii = std::min(i + 1, ihi);
+    unsigned long jj = std::min(j + 1, jhi);
+    unsigned long kk = std::min(k + 1, khi);
+
+    // compute weights
+    CT wx = (cx - p_x[i])/(p_x[ii] - p_x[i]);
+    CT wy = (cy - p_y[i])/(p_y[ii] - p_y[i]);
+    CT wz = (cz - p_z[i])/(p_z[ii] - p_z[i]);
+
+    CT vx = CT(1) - wx;
+    CT vy = CT(1) - wy;
+    CT vz = CT(1) - wz;
+
+    // interpolate
+    val = vx*vy*vz*p_data[ i +  j*nx +  k*nxy]
+        + wx*vy*vz*p_data[ii +  j*nx +  k*nxy]
+        + wx*wy*vz*p_data[ii + jj*nx +  k*nxy]
+        + vx*wy*vz*p_data[ i + jj*nx +  k*nxy]
+        + vx*vy*wz*p_data[ i +  j*nx + kk*nxy]
+        + wx*vy*wz*p_data[ii +  j*nx + kk*nxy]
+        + wx*wy*wz*p_data[ii + jj*nx + kk*nxy]
+        + vx*wy*wz*p_data[ i + jj*nx + kk*nxy];
+
+    return 0;
+}
+
+// functor templated on order of accuracy for above Cartesian mesh interpolants
+template<int> struct interpolate_t;
+
+template<> struct interpolate_t<0>
+{
+    template<typename CT, typename DT>
+    int operator()(CT tx, CT ty, CT tz, const CT *sx, const CT *sy,
+        const CT *sz, const DT *sa, unsigned long ihi, unsigned long jhi,
+        unsigned long khi, unsigned long nx, unsigned long nxy, DT &ta)
+    {
+        return teca_coordinate_util::interpolate_nearest(tx,ty,tz,
+             sx,sy,sz,sa, ihi,jhi,khi, nx,nxy, ta);
+    }
+};
+
+template<> struct interpolate_t<1>
+{
+    template<typename CT, typename DT>
+    int operator()(CT tx, CT ty, CT tz, const CT *sx, const CT *sy,
+        const CT *sz, const DT *sa, unsigned long ihi, unsigned long jhi,
+        unsigned long khi, unsigned long nx,unsigned long nxy, DT &ta)
+    {
+        return teca_coordinate_util::interpolate_linear(tx,ty,tz,
+             sx,sy,sz,sa, ihi,jhi,khi, nx,nxy, ta);
+    }
+};
+
 };
 #endif
