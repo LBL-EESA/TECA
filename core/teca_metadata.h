@@ -65,6 +65,10 @@ public:
     int set(const std::string &name, const std::vector<std::vector<T>> &val);
 
     // insert or update a variant array directly.
+    template<typename T>
+    int set(const std::string &name, const p_teca_variant_array_impl<T> &val)
+    { return this->set(name, val); }
+
     int set(const std::string &name, p_teca_variant_array prop_val);
 
     // append a value to the named property. reports
