@@ -26,8 +26,7 @@ public:
     teca_metadata &operator=(teca_metadata &&other) noexcept;
 
     // get the length of the named property. return 0 if successful
-    int size(
-        const std::string &name,
+    int size(const std::string &name,
         unsigned int &size) const noexcept;
 
     // resize the named property
@@ -398,6 +397,13 @@ int teca_metadata::get(const std::string &name, unsigned int i, T &val) const
     if (it == this->props.end())
         return -1;
 
+    if (it->second->size() <= i)
+    {
+        TECA_ERROR("Requested element " << i << " in property \""
+            << name << "\" of length " << it->second->size())
+        return -1;
+    }
+
     it->second->get(i, val);
 
     return 0;
@@ -432,14 +438,20 @@ int teca_metadata::get(const std::string &name, std::set<T> &vals) const
 
 // --------------------------------------------------------------------------
 template<typename T>
-int teca_metadata::get(
-    const std::string &name,
+int teca_metadata::get(const std::string &name,
     T *vals, unsigned int n) const
 {
     prop_map_t::const_iterator it = this->props.find(name);
 
     if (it == this->props.end())
         return -1;
+
+    if (it->second->size() < n)
+    {
+        TECA_ERROR("Requested " << n << " values in property \""
+            << name << "\" of length " << it->second->size())
+        return -1;
+    }
 
     it->second->get(0, n-1, vals);
 
