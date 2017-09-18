@@ -9,7 +9,6 @@
 #include "teca_py_object.h"
 #include "teca_table_collection.h"
 #include "teca_database.h"
-#include "teca_py_object.h"
 %}
 
 /***************************************************************************
@@ -270,6 +269,8 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
     /* declare a column */
     void declare_column(const char *name, const char *type)
     {
+        teca_py_gil_state gil;
+
         using u_char_t = unsigned char;
         using u_int_t = unsigned int;
         using u_long_t = unsigned long;
@@ -455,6 +456,8 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
     /* return an array using the syntax: col['name'] */
     p_teca_table __getitem__(const std::string &name)
     {
+        teca_py_gil_state gil;
+
         p_teca_table table = self->get(name);
         if (!table)
         {

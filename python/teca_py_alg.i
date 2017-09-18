@@ -131,22 +131,24 @@
 %shared_ptr(teca_programmable_algorithm)
 %extend teca_programmable_algorithm
 {
-    // note: its not worth acquiring the GIL while setting the callbacks
-    // as these are intended to be used only from the main thread during
-    // initialization
-
     void set_report_callback(PyObject *f)
     {
+        teca_py_gil_state gil;
+
         self->set_report_callback(teca_py_algorithm::report_callback(f));
     }
 
     void set_request_callback(PyObject *f)
     {
+        teca_py_gil_state gil;
+
         self->set_request_callback(teca_py_algorithm::request_callback(f));
     }
 
     void set_execute_callback(PyObject *f)
     {
+        teca_py_gil_state gil;
+
         self->set_execute_callback(teca_py_algorithm::execute_callback(f));
     }
 }
@@ -167,22 +169,24 @@
 %shared_ptr(teca_programmable_reduce)
 %extend teca_programmable_reduce
 {
-    // note: its not worth acquiring the GIL while setting the callbacks
-    // as these are intended to be used only from the main thread during
-    // initialization
-
     void set_report_callback(PyObject *f)
     {
+        teca_py_gil_state gil;
+
         self->set_report_callback(teca_py_algorithm::report_callback(f));
     }
 
     void set_request_callback(PyObject *f)
     {
+        teca_py_gil_state gil;
+
         self->set_request_callback(teca_py_algorithm::request_callback(f));
     }
 
     void set_reduce_callback(PyObject *f)
     {
+        teca_py_gil_state gil;
+
         self->set_reduce_callback(teca_py_algorithm::reduce_callback(f));
     }
 }
@@ -203,10 +207,10 @@
 %shared_ptr(teca_derived_quantity)
 %extend teca_derived_quantity
 {
-    // see notes in teca_programmable_algorithm
-
     void set_execute_callback(PyObject *f)
     {
+        teca_py_gil_state gil;
+
         self->set_execute_callback(teca_py_algorithm::execute_callback(f));
     }
 }
