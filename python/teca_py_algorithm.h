@@ -146,7 +146,7 @@ public:
                 SWIGTYPE_p_teca_metadata, SWIG_POINTER_OWN));
         }
 
-        //wrap the request
+        // wrap the request
         PyObject *py_req = SWIG_NewPointerObj(
             SWIG_as_voidptr(new teca_metadata(request)),
             SWIGTYPE_p_teca_metadata, SWIG_POINTER_OWN);
@@ -250,7 +250,7 @@ public:
         // wrap the request
         PyObject *py_req = SWIG_NewPointerObj(
             SWIG_as_voidptr(new teca_metadata(request)),
-            SWIGTYPE_p_teca_metadata, SWIG_POINTER_NEW);
+            SWIGTYPE_p_teca_metadata, SWIG_POINTER_OWN);
 
         // call the callback
         PyObject *args = Py_BuildValue("INN", port, py_data, py_req);
