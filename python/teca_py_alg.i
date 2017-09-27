@@ -426,3 +426,10 @@ from teca_ar_rutz import *
 %pythoncode %{
 from teca_ar_sellers import *
 %}
+
+/***************************************************************************
+ ar_shields_kiehl
+ ***************************************************************************/
+%pythoncode %{
+from teca_ar_shields_kiehl import *
+%}
