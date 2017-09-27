@@ -419,3 +419,10 @@ struct teca_tc_saffir_simpson
 %pythoncode %{
 from teca_ar_rutz import *
 %}
+
+/***************************************************************************
+ ar_sellers
+ ***************************************************************************/
+%pythoncode %{
+from teca_ar_sellers import *
+%}
