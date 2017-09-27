@@ -412,3 +412,10 @@ struct teca_tc_saffir_simpson
 %shared_ptr(teca_normalize_coordinates)
 %ignore teca_normalize_coordinates::operator=;
 %include "teca_normalize_coordinates.h"
+
+/***************************************************************************
+ ar_rutz
+ ***************************************************************************/
+%pythoncode %{
+from teca_ar_rutz import *
+%}
