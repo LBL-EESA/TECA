@@ -1,18 +1,41 @@
 #!/usr/bin/env python
 from teca import *
 import sys
+import argparse
 
-if (len(sys.argv) != 3):
-    sys.stderr.write('usage:\nteca_convert_table.py [input] [output]\n\n')
-    sys.stderr.write('converts a table from one format to another.\n' \
-        'The format is specified in the file name.\n\n')
-    sys.exit(-1)
+# parse the command line
+parser = argparse.ArgumentParser()
+parser.add_argument('in_file', type=str,
+    help='path to table to read')
 
-r = teca_table_reader.New()
-r.set_file_name(sys.argv[1])
+parser.add_argument('out_file', type=str,
+    help='path to write result')
 
-w = teca_table_writer.New()
-w.set_input_connection(r.get_output_port())
-w.set_file_name(sys.argv[2])
+parser.add_argument('--select', type=str, required=False,
+    help='a logical expression on table columns. '      \
+         'Row where this evaluates to true are passed ' \
+         'to the output')
 
-w.update()
+args = parser.parse_args()
+
+# read the table
+reader = teca_table_reader.New()
+reader.set_file_name(args.in_file)
+
+# optionally remove unselected rows
+tip = reader
+if args.select:
+    # negate the selection, since the following removes rows
+    expr = '!(' + args.select + ')'
+    select = teca_table_remove_rows.New()
+    select.set_input_connection(reader.get_output_port())
+    select.set_mask_expression(expr)
+    tip = select
+
+# write the table back out
+writer = teca_table_writer.New()
+writer.set_input_connection(tip.get_output_port())
+writer.set_file_name(args.out_file)
+
+# execute the pipeline
+writer.update()
