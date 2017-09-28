@@ -22,14 +22,20 @@ args = parser.parse_args()
 # CF2 reader
 reader = teca_cf_reader.New()
 reader.set_files_regex(args.files_regex)
+reader.set_x_axis_variable('lon')
+reader.set_y_axis_variable('lat')
+reader.set_z_axis_variable('lev')
+reader.set_t_axis_variable('')
 
 # add AR detector here
 detector = teca_ar_sellers.New()
 detector.set_input_connection(reader.get_output_port())
+detector.set_arrays(['u','v','QV'])
+detector.set_bounds([-180.0, 180.0, -90.0, 90.0, 950.0, 950.0])
 
 # map reduce
 mapper = teca_table_reduce.New()
-mapper.set_input_connection(st.get_output_port())
+mapper.set_input_connection(detector.get_output_port())
 mapper.set_thread_pool_size(1)
 
 # write the table back out
