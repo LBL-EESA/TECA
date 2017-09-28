@@ -22,6 +22,10 @@ args = parser.parse_args()
 # CF2 reader
 reader = teca_cf_reader.New()
 reader.set_files_regex(args.files_regex)
+reader.set_x_axis_variable('lon')
+reader.set_y_axis_variable('lat')
+reader.set_t_axis_variable('time')
+
 
 # add AR detector here
 detector = teca_ar_rutz.New()
