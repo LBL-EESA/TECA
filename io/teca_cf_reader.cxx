@@ -877,11 +877,19 @@ teca_metadata teca_cf_reader::get_output_metadata(
             }
             else
             {
-                step_count.push_back(1);
-
+                // make a dummy time axis, this enables parallelization over file sets
+                // that do not have time dimension. However, there is no guarantee on the
+                // order of the dummy axis to the lexical ordering of the files and there
+                // will be no calendaring information. As a result many time aware algorithms
+                // will not work.
+                size_t n_files = files.size();
                 NC_DISPATCH_FP(x_t,
-                    p_teca_variant_array_impl<NC_T> t = teca_variant_array_impl<NC_T>::New(1);
-                    t->set(0, NC_T());
+                    p_teca_variant_array_impl<NC_T> t = teca_variant_array_impl<NC_T>::New(n_files);
+                    for (size_t i = 0; i < n_files; ++i)
+                    {
+                        t->set(i, NC_T(i));
+                        step_count.push_back(1);
+                    }
                     t_axis = t;
                     )
             }
