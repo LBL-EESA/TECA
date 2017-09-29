@@ -887,7 +887,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     p_teca_variant_array_impl<NC_T> t = teca_variant_array_impl<NC_T>::New(n_files);
                     for (size_t i = 0; i < n_files; ++i)
                     {
-                        t->set(i, NC_T());
+                        t->set(i, NC_T(i));
                         step_count.push_back(1);
                     }
                     t_axis = t;
