@@ -25,7 +25,7 @@ reader.set_files_regex(args.files_regex)
 reader.set_x_axis_variable('lon')
 reader.set_y_axis_variable('lat')
 reader.set_z_axis_variable('lev')
-reader.set_t_axis_variable('')
+reader.set_t_axis_variable('time')
 
 # add AR detector here
 detector = teca_ar_sellers.New()
