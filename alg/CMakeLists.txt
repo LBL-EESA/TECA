@@ -49,6 +49,7 @@ teca_py_install(lib
     teca_ar_rutz.py
     teca_ar_sellers.py
     teca_ar_shields_kiehl.py
+    teca_ivt.py
     teca_tc_stats.py
     teca_tc_wind_radii_stats.py
     teca_tc_trajectory_scalars.py

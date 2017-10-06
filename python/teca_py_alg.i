@@ -433,3 +433,12 @@ from teca_ar_sellers import *
 %pythoncode %{
 from teca_ar_shields_kiehl import *
 %}
+
+/***************************************************************************
+ IVT calculator
+ ***************************************************************************/
+%pythoncode %{
+from teca_ivt import *
+%}
+
+
