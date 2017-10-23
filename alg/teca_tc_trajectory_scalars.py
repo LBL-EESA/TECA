@@ -124,6 +124,8 @@ class teca_tc_trajectory_scalars:
             red_cmap = ['#ffd2a3','#ffa749','#ff7c04', \
                 '#ea4f00','#c92500','#a80300']
 
+            km_per_deg_lat = 111
+
             time_units = in_table.get_time_units()
 
             time = in_table.get_column('time').as_array()
@@ -398,11 +400,12 @@ class teca_tc_trajectory_scalars:
                     plt.subplot2grid((5,4),(4,0),colspan=2)
                     q = len(wind_rad_i) - 1
                     while q >= 0:
-                        plt.fill_between(tt, 0, wind_rad_i[q], color=red_cmap[q], alpha=0.9, zorder=q+3)
-                        plt.plot(tt, 3.6*wind_rad_i[q], '-', linewidth=2, color=red_cmap[q], zorder=q+3)
+                        wr_i_q = km_per_deg_lat*wind_rad_i[q]
+                        plt.fill_between(tt, 0, wr_i_q, color=red_cmap[q], alpha=0.9, zorder=q+3)
+                        plt.plot(tt, wr_i_q, '-', linewidth=2, color=red_cmap[q], zorder=q+3)
                         q -= 1
                     if (state.plot_peak_radius):
-                        plt.plot(tt, 3.6*peak_rad_i, 'k--', linewidth=1, zorder=10)
+                        plt.plot(tt, km_per_deg_lat*peak_rad_i, 'k--', linewidth=1, zorder=10)
                     plt.plot(tt, np.zeros(len(tt)), 'w-', linewidth=2, zorder=10)
                     plt.grid(True)
                     plt.xlabel('time (days)')
