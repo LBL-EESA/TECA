@@ -8,6 +8,7 @@
 #include "teca_threaded_algorithm.h"
 #include "teca_index_reduce.h"
 #include "teca_variant_array.h"
+#include "teca_binary_stream.h"
 
 #include "teca_py_object.h"
 #include "teca_py_sequence.h"
@@ -15,6 +16,76 @@
 #include "teca_py_iterator.h"
 #include "teca_py_gil_state.h"
 %}
+
+/***************************************************************************
+ binary_stream
+ ***************************************************************************/
+%ignore teca_binary_stream::teca_binary_stream(teca_binary_stream &&);
+%ignore teca_binary_stream::operator=;
+%ignore teca_binary_stream::get_data;
+%rename teca_binary_stream::get_data_py get_data;
+%include "teca_binary_stream.h"
+%extend teca_binary_stream
+{
+    PyObject *get_data_py()
+    {
+        teca_py_gil_state gil;
+
+        // allocate a buffer
+        npy_intp n_bytes = self->size();
+        char *mem = static_cast<char*>(malloc(n_bytes));
+        if (!mem)
+        {
+            PyErr_Format(PyExc_RuntimeError,
+                "failed to allocate %lu bytes", n_bytes);
+            return nullptr;
+        }
+
+        // copy the data
+        memcpy(mem, self->get_data(), n_bytes);
+
+        // put the buffer in to a new numpy object
+        PyArrayObject *arr = reinterpret_cast<PyArrayObject*>(
+            PyArray_SimpleNewFromData(1, &n_bytes, NPY_BYTE, mem));
+        PyArray_ENABLEFLAGS(arr, NPY_ARRAY_OWNDATA);
+
+        return reinterpret_cast<PyObject*>(arr);
+    }
+
+    PyObject *set_data(PyObject *obj)
+    {
+        // not an array
+        if (!PyArray_Check(obj))
+        {
+            PyErr_Format(PyExc_RuntimeError,
+                "Object is not a numpy array");
+            return nullptr;
+        }
+
+        PyArrayObject *arr = reinterpret_cast<PyArrayObject*>(obj);
+
+        if (PyArray_TYPE(arr) != NPY_BYTE)
+        {
+            PyErr_Format(PyExc_RuntimeError,
+                "Array is not NPY_BYTE");
+            return nullptr;
+        }
+
+        NpyIter *it = NpyIter_New(arr, NPY_ITER_READONLY,
+                NPY_KEEPORDER, NPY_NO_CASTING, nullptr);
+        NpyIter_IterNextFunc *next = NpyIter_GetIterNext(it, nullptr);
+        char **ptrptr = reinterpret_cast<char**>(NpyIter_GetDataPtrArray(it));
+        do
+        {
+            self->pack(**ptrptr);
+        }
+        while (next(it));
+        NpyIter_Deallocate(it);
+
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
+}
 
 /***************************************************************************
  variant_array
