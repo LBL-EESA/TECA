@@ -1,5 +1,5 @@
-#ifndef teca_cartesian_mesh_util_h
-#define teca_cartesian_mesh_util_h
+#ifndef teca_coordinate_util_h
+#define teca_coordinate_util_h
 
 #include "teca_cartesian_mesh.h"
 #include "teca_variant_array.h"

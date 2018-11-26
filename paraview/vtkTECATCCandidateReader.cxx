@@ -1,4 +1,4 @@
-#include "vtkTECATCCandidateTableReader.h"
+#include "vtkTECATCCandidateReader.h"
 
 #include "vtkObjectFactory.h"
 #include "vtkInformation.h"
@@ -30,10 +30,6 @@
 #include <cmath>
 #include <sstream>
 
-#include <teca_table_reader.h>
-#include <teca_table_sort.h>
-#include <teca_programmable_algorithm.h>
-
 template<typename tt> struct vtk_tt;
 #define DECLARE_VTK_TT(_c_type, _vtk_type) \
 template <> \
@@ -53,186 +49,44 @@ DECLARE_VTK_TT(unsigned int, UnsignedInt);
 DECLARE_VTK_TT(unsigned long, UnsignedLong);
 DECLARE_VTK_TT(unsigned long long, UnsignedLongLong);
 
-namespace internal
-{
-// helper class that interfaces to TECA's pipeline
-// and extracts the dataset.
-struct teca_pipeline_bridge
-{
-    teca_pipeline_bridge() = delete;
-
-    teca_pipeline_bridge(const_p_teca_table *output)
-        : m_output(output) {}
-
-    const_p_teca_dataset operator()(unsigned int,
-        const std::vector<const_p_teca_dataset> &input_data,
-        const teca_metadata &)
-    {
-        if (!(*m_output = std::dynamic_pointer_cast
-            <const teca_table>(input_data[0])))
-        {
-            TECA_ERROR("empty input")
-        }
-        return *m_output;
-    }
-
-    const_p_teca_table *m_output;
-};
-};
+//-----------------------------------------------------------------------------
+vtkStandardNewMacro(vtkTECATCCandidateReader);
 
 //-----------------------------------------------------------------------------
-vtkStandardNewMacro(vtkTECATCCandidateTableReader);
-
-//-----------------------------------------------------------------------------
-vtkTECATCCandidateTableReader::vtkTECATCCandidateTableReader() :
-  FileName(nullptr), XCoordinate(nullptr), YCoordinate(nullptr),
-  ZCoordinate(nullptr), TimeCoordinate(nullptr)
+vtkTECATCCandidateReader::vtkTECATCCandidateReader() : XCoordinate(nullptr),
+  YCoordinate(nullptr), ZCoordinate(nullptr)
 {
-  // Initialize pipeline.
   this->SetNumberOfInputPorts(0);
   this->SetNumberOfOutputPorts(1);
 
   this->SetXCoordinate("lon");
   this->SetYCoordinate("lat");
   this->SetZCoordinate(".");
-  this->SetTimeCoordinate("time");
+
+  this->SetSortTimeCoordinate(1);
 }
 
 //-----------------------------------------------------------------------------
-vtkTECATCCandidateTableReader::~vtkTECATCCandidateTableReader()
+vtkTECATCCandidateReader::~vtkTECATCCandidateReader()
 {
-  this->SetFileName(nullptr);
   this->SetXCoordinate(nullptr);
   this->SetYCoordinate(nullptr);
   this->SetZCoordinate(nullptr);
-  this->SetTimeCoordinate(nullptr);
 }
 
 //-----------------------------------------------------------------------------
-int vtkTECATCCandidateTableReader::CanReadFile(const char *file_name)
-{
-  // open the file
-  teca_binary_stream bs;
-  FILE* fd = fopen(file_name, "rb");
-  if (!fd)
-    {
-    vtkErrorMacro("Failed to open " << file_name << endl)
-    return 0;
-    }
-
-  // check if this is really ours
-  int canRead = 0;
-  char id[11] = {'\0'};
-  if ((fread(id, 1, 10, fd) == 10)
-    && !strncmp(id, "teca_table", 10))
-    {
-    canRead = 1;
-    }
-
-  fclose(fd);
-  return canRead;
-}
-
-//-----------------------------------------------------------------------------
-int vtkTECATCCandidateTableReader::RequestInformation(
-  vtkInformation *req, vtkInformationVector **inInfos,
-  vtkInformationVector* outInfos)
-{
-  (void)req;
-  (void)inInfos;
-
-  if (!this->FileName)
-    {
-    vtkErrorMacro("FileName has not been set.")
-    return 1;
-    }
-
-  if (!this->TimeCoordinate)
-    {
-    vtkErrorMacro("Must set the time coordinate. Use '.' for non-time varying case.")
-    return 1;
-    }
-
-  // read and sort the data along the time axis using TECA
-  internal::teca_pipeline_bridge br(&this->Table);
-
-  p_teca_table_reader tr = teca_table_reader::New();
-  tr->set_file_name(this->FileName);
-
-  p_teca_programmable_algorithm pa = teca_programmable_algorithm::New();
-  if (this->TimeCoordinate[0] != '.')
-    {
-    p_teca_table_sort ts = teca_table_sort::New();
-    ts->set_input_connection(tr->get_output_port());
-    ts->set_index_column(this->TimeCoordinate);
-    pa->set_input_connection(ts->get_output_port());
-    }
-  else
-    {
-    pa->set_input_connection(tr->get_output_port());
-    }
-  pa->set_execute_callback(br);
-
-  pa->update();
-
-  // get the time values
-  std::vector<double> unique_times;
-  if (this->TimeCoordinate[0] != '.')
-    {
-    if (!this->Table->has_column(this->TimeCoordinate))
-      {
-      vtkErrorMacro("Time coordinate \""
-        << this->TimeCoordinate << "\" is invalid")
-      return 1;
-      }
-
-    std::vector<double> times;
-    this->Table->get_column(this->TimeCoordinate)->get(times);
-
-    // give paraview a unique list, and store range of
-    // indices into the table for each time step
-    unique_times.reserve(times.size());
-    unique_times.push_back(times[0]);
-    size_t nm1 = times.size() - 1;
-    this->TimeRows[times[0]].first = 0;
-    this->TimeRows[times[nm1]].second = nm1;
-    for (size_t i = 0; i < nm1; ++i)
-      {
-      if (std::fabs(times[i] - times[i+1]) > 1.e-6)
-        {
-        unique_times.push_back(times[i+1]);
-        this->TimeRows[times[i]].second = i;
-        this->TimeRows[times[i+1]].first = i+1;
-        }
-      }
-    }
-  else
-    {
-    unique_times = {0.0};
-    this->TimeRows.insert(std::make_pair(0.0, std::make_pair(0,0)));
-    }
-
-  // pass into pipeline.
-  vtkInformation *outInfo = outInfos->GetInformationObject(0);
-
-  size_t n_unique = unique_times.size();
-
-  outInfo->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),
-    unique_times.data(), static_cast<int>(n_unique));
-
-  double timeRange[2] = {unique_times[0], unique_times[n_unique - 1]};
-  outInfo->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(), timeRange, 2);
-
-  return 1;
-}
-
-//-----------------------------------------------------------------------------
-int vtkTECATCCandidateTableReader::RequestData(
-        vtkInformation *req, vtkInformationVector **inInfo,
-        vtkInformationVector *outInfos)
+int vtkTECATCCandidateReader::RequestData(vtkInformation *req,
+  vtkInformationVector **inInfo, vtkInformationVector *outInfos)
 {
   (void)req;
   (void)inInfo;
+
+  // table shoule have been read by now
+  if (!this->Table)
+    {
+    vtkErrorMacro("Failed to read the table")
+    return 1;
+    }
 
   vtkInformation *outInfo = outInfos->GetInformationObject(0);
 
@@ -260,9 +114,7 @@ int vtkTECATCCandidateTableReader::RequestData(
   double time = 0.0;
 
   if (outInfo->Has(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))
-    {
     time = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP());
-    }
 
   std::map<double, std::pair<size_t, size_t>>::iterator it =
      this->TimeRows.find(time);
@@ -276,7 +128,6 @@ int vtkTECATCCandidateTableReader::RequestData(
 
   vtkInformation *dataInfo = output->GetInformation();
   dataInfo->Set(vtkDataObject::DATA_TIME_STEP(), time);
-
   outInfo->Set(vtkDataObject::DATA_TIME_STEP(), time);
 
   first = it->second.first;
@@ -324,8 +175,6 @@ int vtkTECATCCandidateTableReader::RequestData(
         }
 
       // copyt it over into a VTK data structure
-      // TODO -- this could be made to be a zero-copy transfer when
-      // Utkarsh merges the new zero copy api.
       // TODO -- implement a spherical coordinate transform
       const_p_teca_variant_array axis = this->Table->get_column(axesNames[i]);
       axis->get(first, last, tmp.data());
@@ -369,7 +218,6 @@ int vtkTECATCCandidateTableReader::RequestData(
 
   // copy all of the columns in
   // TODO -- enable user selection of specific columns
-  // TODO -- make this zero copy, this can be done now
   for (unsigned int i = 0; i < nCols; ++i)
     {
     const_p_teca_variant_array ar = this->Table->get_column(i);
@@ -416,7 +264,7 @@ constexpr const char *safestr(const char *ptr)
 { return ptr?ptr:"nullptr"; }
 
 //-----------------------------------------------------------------------------
-void vtkTECATCCandidateTableReader::PrintSelf(ostream& os, vtkIndent indent)
+void vtkTECATCCandidateReader::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os,indent);
 

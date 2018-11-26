@@ -53,7 +53,8 @@ int main(int argc, char **argv)
         ("wind_u_var", value<std::string>(), "name of variable with wind x-component (UBOT)")
         ("wind_v_var", value<std::string>(), "name of variable with wind y-component (VBOT)")
         ("track_mask", value<std::string>(), "expression to filter tracks by ()")
-        ("number_of_bins", value<int>(), "number of bins in the radial wind decomposition (32)")
+        ("n_theta", value<int>(), "number of points in the wind profile in the theta direction (32)")
+        ("n_r", value<int>(), "number cells in the wind profile in radial direction (32)")
         ("profile_type", value<std::string>(), "radial wind profile type. max or avg (avg)")
         ("search_radius", value<double>(), "size of search window in deg lat (6)")
         ("first_track", value<long>(), "first track to process")
@@ -215,8 +216,11 @@ int main(int argc, char **argv)
     if (opt_vals.count("wind_v_var"))
         wind_radii->set_wind_v_variable(opt_vals["wind_v_var"].as<std::string>());
 
-    if (opt_vals.count("n_radial_bins"))
-        wind_radii->set_number_of_radial_bins(opt_vals["n_radial_bins"].as<int>());
+    if (opt_vals.count("n_r"))
+        wind_radii->set_r_resolution(opt_vals["n_r"].as<int>());
+
+    if (opt_vals.count("n_theta"))
+        wind_radii->set_theta_resolution(opt_vals["n_theta"].as<int>());
 
     if (opt_vals.count("profile_type"))
     {

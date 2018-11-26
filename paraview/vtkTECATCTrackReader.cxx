@@ -1,4 +1,4 @@
-#include "vtkTECATCTrackTableReader.h"
+#include "vtkTECATCTrackReader.h"
 
 #include "vtkObjectFactory.h"
 #include "vtkInformation.h"
@@ -50,127 +50,41 @@ DECLARE_VTK_TT(unsigned long, UnsignedLong);
 DECLARE_VTK_TT(unsigned long long, UnsignedLongLong);
 
 //-----------------------------------------------------------------------------
-vtkStandardNewMacro(vtkTECATCTrackTableReader);
+vtkStandardNewMacro(vtkTECATCTrackReader);
 
 //-----------------------------------------------------------------------------
-vtkTECATCTrackTableReader::vtkTECATCTrackTableReader() :
-  FileName(nullptr), XCoordinate(nullptr), YCoordinate(nullptr),
-  ZCoordinate(nullptr), TimeCoordinate(nullptr), TrackCoordinate(nullptr)
+vtkTECATCTrackReader::vtkTECATCTrackReader() : XCoordinate(nullptr),
+  YCoordinate(nullptr), TrackCoordinate(nullptr)
 {
-  // Initialize pipeline.
   this->SetNumberOfInputPorts(0);
   this->SetNumberOfOutputPorts(1);
 
   this->SetXCoordinate("lon");
   this->SetYCoordinate("lat");
-  this->SetZCoordinate(".");
-  this->SetTimeCoordinate("time");
   this->SetTrackCoordinate("track_id");
 }
 
 //-----------------------------------------------------------------------------
-vtkTECATCTrackTableReader::~vtkTECATCTrackTableReader()
+vtkTECATCTrackReader::~vtkTECATCTrackReader()
 {
-  this->SetFileName(nullptr);
   this->SetXCoordinate(nullptr);
   this->SetYCoordinate(nullptr);
-  this->SetZCoordinate(nullptr);
-  this->SetTimeCoordinate(nullptr);
   this->SetTrackCoordinate(nullptr);
 }
 
 //-----------------------------------------------------------------------------
-int vtkTECATCTrackTableReader::CanReadFile(const char *file_name)
+int vtkTECATCTrackReader::RequestInformation(vtkInformation *req,
+  vtkInformationVector **inInfos, vtkInformationVector* outInfos)
 {
-  // open the file
-  teca_binary_stream bs;
-  FILE* fd = fopen(file_name, "rb");
-  if (!fd)
+  // table should be read by now
+  if (!this->Table)
     {
-    vtkErrorMacro("Failed to open " << file_name << endl)
-    return 0;
-    }
-
-  // check if this is really ours
-  int canRead = 0;
-  char id[11] = {'\0'};
-  if ((fread(id, 1, 10, fd) == 10)
-    && !strncmp(id, "teca_table", 10))
-    {
-    canRead = 1;
-    }
-
-  fclose(fd);
-  return canRead;
-}
-
-//-----------------------------------------------------------------------------
-int vtkTECATCTrackTableReader::RequestInformation(
-  vtkInformation *req, vtkInformationVector **inInfos,
-  vtkInformationVector* outInfos)
-{
-  (void)req;
-  (void)inInfos;
-
-  if (!this->FileName)
-    {
-    vtkErrorMacro("FileName has not been set.")
+    vtkErrorMacro("Failed to read the table")
     return 1;
     }
 
-  // for now just read the whole thing here
-  // open the file
-  teca_binary_stream bs;
-  FILE* fd = fopen(this->FileName, "rb");
-  if (fd == NULL)
-    {
-    vtkErrorMacro("Failed to open " << this->FileName << endl)
-    return 1;
-    }
-
-  // get its length, we'll read it in one go and need to create
-  // a bufffer for it's contents
-  long start = ftell(fd);
-  fseek(fd, 0, SEEK_END);
-  long end = ftell(fd);
-  fseek(fd, 0, SEEK_SET);
-  long nbytes = end - start - 10;
-
-  // check if this is really ours
-  char id[11] = {'\0'  };
-  if (fread(id, 1, 10, fd) != 10)
-    {
-    const char *estr = (ferror(fd) ? strerror(errno) : "");
-    fclose(fd);
-    vtkErrorMacro("Failed to read \"" << this->FileName << "\". " << estr)
-    return 1;
-    }
-
-  if (strncmp(id, "teca_table", 10))
-    {
-    fclose(fd);
-    vtkErrorMacro("Not a teca_table. \"" << this->FileName << "\"")
-    return 1;
-    }
-
-  // create the buffer
-  bs.resize(static_cast<size_t>(nbytes));
-
-  // read the stream
-  long bytes_read = fread(bs.get_data(), sizeof(unsigned char), nbytes, fd);
-  if (bytes_read != nbytes)
-    {
-    const char *estr = (ferror(fd) ? strerror(errno) : "");
-    fclose(fd);
-    vtkErrorMacro("Failed to read \"" << this->FileName << "\". Read only "
-      << bytes_read << " of the requested " << nbytes << ". " << estr)
-    return 1;
-    }
-  fclose(fd);
-
-  // deserialize the binary rep
-  this->Table = teca_table::New();
-  this->Table->from_stream(bs);
+  // base class handles some common operations, such as reporting time
+  this->vtkTECATableReader::RequestInformation(req, inInfos, outInfos);
 
   // extract the tracks
   if (!this->TrackCoordinate)
@@ -187,75 +101,39 @@ int vtkTECATCTrackTableReader::RequestInformation(
     }
 
   // get first and last indices of each track
-  std::vector<long> tracks;
-  this->Table->get_column(this->TrackCoordinate)->get(tracks);
+  std::vector<unsigned long> track_ids;
+  this->Table->get_column(this->TrackCoordinate)->get(track_ids);
 
-  size_t nm1 = tracks.size() - 1;
+  unsigned long nm1 = track_ids.size() - 1;
 
-  this->TrackRows.resize(tracks[nm1]+1);
+  this->TrackRows[track_ids[0]].first = 0;
+  this->TrackRows[track_ids[nm1]].second = nm1;
 
-  this->TrackRows[tracks[0]].first = 0;
-  this->TrackRows[tracks[nm1]].second = nm1;
-
-  for (size_t i = 0; i < nm1; ++i)
+  for (unsigned long i = 0; i < nm1; ++i)
     {
-    if (tracks[i] != tracks[i+1])
+    if (track_ids[i] != track_ids[i+1])
       {
-      this->TrackRows[tracks[i]].second = i;
-      this->TrackRows[tracks[i+1]].first = i+1;
+      this->TrackRows[track_ids[i]].second = i;
+      this->TrackRows[track_ids[i+1]].first = i+1;
       }
     }
-
-  // get the time values
-  std::vector<double> unique_times;
-  if (!this->TimeCoordinate)
-    {
-    vtkErrorMacro("Must set the time coordinate")
-    return 1;
-    }
-
-  if (this->TimeCoordinate[0] != '.')
-    {
-    if (!this->Table->has_column(this->TimeCoordinate))
-      {
-      vtkErrorMacro("Time coordinate \""
-        << this->TimeCoordinate << "\" is invalid")
-      return 1;
-      }
-
-    std::vector<double> tmp_vec;
-    this->Table->get_column(this->TimeCoordinate)->get(tmp_vec);
-
-    // make the list unique and sorted
-    std::set<double> tmp_set(tmp_vec.begin(), tmp_vec.end());
-    unique_times.assign(tmp_set.begin(), tmp_set.end());
-    }
-  else
-    {
-    unique_times = {0.0};
-    }
-
-  // pass into pipeline.
-  vtkInformation *outInfo = outInfos->GetInformationObject(0);
-
-  size_t n_unique = unique_times.size();
-
-  outInfo->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(),
-    unique_times.data(), static_cast<int>(n_unique));
-
-  double timeRange[2] = {unique_times[0], unique_times[n_unique - 1]};
-  outInfo->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(), timeRange, 2);
 
   return 1;
 }
 
 //-----------------------------------------------------------------------------
-int vtkTECATCTrackTableReader::RequestData(
-        vtkInformation *req, vtkInformationVector **inInfo,
-        vtkInformationVector *outInfos)
+int vtkTECATCTrackReader::RequestData(vtkInformation *req,
+  vtkInformationVector **inInfo, vtkInformationVector *outInfos)
 {
   (void)req;
   (void)inInfo;
+
+  // table should have been read by now
+  if (!this->Table)
+    {
+    vtkErrorMacro("Failed to read the table")
+    return 1;
+    }
 
   vtkInformation *outInfo = outInfos->GetInformationObject(0);
 
@@ -279,21 +157,16 @@ int vtkTECATCTrackTableReader::RequestData(
 
   // determine the requested time range
   double time = 0.0;
-
   if (outInfo->Has(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()))
-    {
     time = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP());
-    }
-
 
   // set time on the output
   vtkInformation *dataInfo = output->GetInformation();
   dataInfo->Set(vtkDataObject::DATA_TIME_STEP(), time);
-
   outInfo->Set(vtkDataObject::DATA_TIME_STEP(), time);
 
-
-  p_teca_variant_array track_times = this->Table->get_column(this->TimeCoordinate);
+  const_p_teca_variant_array track_times =
+    this->Table->get_column(this->TimeCoordinate);
   if (!track_times)
     {
     vtkErrorMacro("Time coordinate \"" << this->TimeCoordinate << "\" not in table")
@@ -303,9 +176,9 @@ int vtkTECATCTrackTableReader::RequestData(
   // for simplicity we're just gonna dump all the points in the table.
   // the cells we define below will pick out the ones that are actually
   // in use
-  size_t nPts = this->Table->get_number_of_rows();
-  size_t first = 0;
-  size_t last = nPts - 1;
+  unsigned long nPts = this->Table->get_number_of_rows();
+  unsigned long first = 0;
+  unsigned long last = nPts - 1;
 
   // get coordinate arrays
   vtkDoubleArray *pts = vtkDoubleArray::New();
@@ -319,8 +192,7 @@ int vtkTECATCTrackTableReader::RequestData(
   std::vector<double> tmp;
   tmp.resize(nPts);
 
-  const char *axesNames[] =
-    {this->XCoordinate, this->YCoordinate, this->ZCoordinate};
+  const char *axesNames[] = {this->XCoordinate, this->YCoordinate, "."};
 
   for (long i = 0; i < 3; ++i, ++ppts)
     {
@@ -347,31 +219,27 @@ int vtkTECATCTrackTableReader::RequestData(
         return 1;
         }
 
-      // copyt it over into a VTK data structure
-      // TODO -- this could be made to be a zero-copy transfer when
-      // Utkarsh merges the new zero copy api.
-      // TODO -- implement a spherical coordinate transform
-      p_teca_variant_array axis = this->Table->get_column(axesNames[i]);
+      // copy it over into a VTK data structure
+      const_p_teca_variant_array axis = this->Table->get_column(axesNames[i]);
       axis->get(first, last, tmp.data());
 
-      for (size_t i = 0; i < nPts; ++i)
+      for (unsigned long i = 0; i < nPts; ++i)
         ppts[3*i] = tmp[i];
       }
     else
       {
       // fill this column with zeros
-      for (size_t i = 0; i < nPts; ++i)
+      for (unsigned long i = 0; i < nPts; ++i)
         ppts[3*i] = 0.0;
       }
     }
 
-  // TODO -- this could be zero copy
   // copy all of the columns in
   for (unsigned int i = 0; i < nCols; ++i)
     {
-    p_teca_variant_array ar = this->Table->get_column(i);
+    const_p_teca_variant_array ar = this->Table->get_column(i);
 
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
+    TEMPLATE_DISPATCH(const teca_variant_array_impl,
       ar.get(),
 
       vtk_tt<NT>::VTK_TT *da = vtk_tt<NT>::VTK_TT::New();
@@ -395,19 +263,21 @@ int vtkTECATCTrackTableReader::RequestData(
   output->SetPoints(points);
   points->Delete();
 
-  size_t nLines = 0;
+  unsigned long nLines = 0;
   vtkIdTypeArray *lines = vtkIdTypeArray::New();
 
-  size_t nVerts = 0;
+  unsigned long nVerts = 0;
   vtkIdTypeArray *verts = vtkIdTypeArray::New();
 
   // for each track, determine if the track exists at this time point.
   // if it does then add it to the output
-  size_t nTracks = this->TrackRows.size();
-  for (size_t i = 0; i < nTracks; ++i)
+  TrackRowMapT::iterator it = this->TrackRows.begin();
+  TrackRowMapT::iterator end = this->TrackRows.end();
+
+  for (; it != end; ++it)
     {
-    first = this->TrackRows[i].first;
-    last = this->TrackRows[i].second;
+    first = it->second.first;
+    last = it->second.second;
 
     // time range spanned by the track
     double t0, t1;
@@ -419,7 +289,7 @@ int vtkTECATCTrackTableReader::RequestData(
       continue;
 
     // determine the current end of the track
-    for (size_t q = first; q <= last; ++q)
+    for (unsigned long q = first; q <= last; ++q)
     {
         double tq;
         track_times->get(q, tq);
@@ -431,25 +301,25 @@ int vtkTECATCTrackTableReader::RequestData(
     }
 
     // append track geometry
-    size_t nPts = last - first + 1;
+    unsigned long nPts = last - first + 1;
     if (nPts > 1)
       {
       // add a line segment connecting the points
       ++nLines;
 
-      size_t insLoc = lines->GetNumberOfTuples();
+      unsigned long insLoc = lines->GetNumberOfTuples();
       vtkIdType *pCells = lines->WritePointer(insLoc, nPts+1);
 
       pCells[0] = nPts;
 
-      for (size_t i = 0; i < nPts; ++i)
+      for (unsigned long i = 0; i < nPts; ++i)
         pCells[i+1] = first + i;
       }
     else
       {
       // add a point
       ++nVerts;
-      size_t insLoc = verts->GetNumberOfTuples();
+      unsigned long insLoc = verts->GetNumberOfTuples();
       vtkIdType *pCells = verts->WritePointer(insLoc, nPts+1);
       pCells[0] = 1;
       pCells[1] = first;
@@ -498,14 +368,11 @@ constexpr const char *safestr(const char *ptr)
 { return ptr?ptr:"nullptr"; }
 
 //-----------------------------------------------------------------------------
-void vtkTECATCTrackTableReader::PrintSelf(ostream& os, vtkIndent indent)
+void vtkTECATCTrackReader::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os,indent);
 
-  os << indent << "FileName = " << safestr(this->FileName) << endl
-    << indent << "XCoordinate = " << safestr(this->XCoordinate) << endl
+  os << indent << "XCoordinate = " << safestr(this->XCoordinate) << endl
     << indent << "YCoordinate = " << safestr(this->YCoordinate) << endl
-    << indent << "ZCoordinate = " << safestr(this->ZCoordinate) << endl
-    << indent << "TimeCoordinate = " << safestr(this->TimeCoordinate) << endl
     << indent << "TrackCoordinate = " << safestr(this->TrackCoordinate) << endl;
 }
