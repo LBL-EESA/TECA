@@ -67,6 +67,14 @@ using std::cerr;
         break;                              \
     }
 
+#if !defined(HDF5_THREAD_SAFE)
+// NetCDF 3 is not threadsafe. The HDF5 C-API can be compiled to be threadsafe,
+// but it is usually not. NetCDF uses HDF5-HL API to access HDF5, but HDF5-HL
+// API is not threadsafe without the --enable-unsupported flag. For all those
+// reasons it's best for the time being to protect all NetCDF I/O.
+static std::mutex g_netcdf_mutex;
+#endif
+
 // to deal with fortran fixed length strings
 // which are not properly nulll terminated
 static void crtrim(char *s, long n)
@@ -85,6 +93,9 @@ static void crtrim(char *s, long n)
 class netcdf_handle
 {
 public:
+    netcdf_handle() : m_handle(0)
+    {}
+
     // initialize with a handle returned from
     // nc_open/nc_create etc
     netcdf_handle(int h) : m_handle(h)
@@ -96,7 +107,6 @@ public:
 
     // this is a move only class, and should
     // only be initialized with an valid handle
-    netcdf_handle() = delete;
     netcdf_handle(const netcdf_handle &) = delete;
     void operator=(const netcdf_handle &) = delete;
 
@@ -117,17 +127,37 @@ public:
         other.m_handle = 0;
     }
 
+    // open the file
+    int open(const std::string &file_path)
+    {
+        if (m_handle)
+        {
+            TECA_ERROR("Handle in use, close before re-opening")
+            return -1;
+        }
+
+        int ierr = 0;
+        std::lock_guard<std::mutex> lock(g_netcdf_mutex);
+        if ((ierr = nc_open(file_path.c_str(), NC_NOWRITE, &m_handle)) != NC_NOERR)
+        {
+            TECA_ERROR("Failed to open " << file_path << ". " << nc_strerror(ierr))
+            return -1;
+        }
+
+        return 0;
+    }
+
     // close the file
     void close()
     {
         if (m_handle)
         {
+            std::lock_guard<std::mutex> lock(g_netcdf_mutex);
             nc_close(m_handle);
             m_handle = 0;
         }
     }
 
-    // dereference a pointer to the object
     // returns a reference to the handle
     int &get()
     { return m_handle; }
@@ -152,21 +182,6 @@ public:
     teca_cf_reader_internals()
     {}
 
-    // helpers for dealing with cached file handles.
-    // root rank opens all files during metadata parsing,
-    // others ranks only open assigned files. in both
-    // cases threads on each rank should share file
-    // handles
-    void close_handles();
-    void clear_handles();
-    void initialize_handles(const std::vector<std::string> &files);
-
-    int get_handle(const std::string &path,
-        const std::string &file, int &file_id,
-        std::mutex *&file_mutex);
-
-    int close_handle(const std::string &path);
-
 #if defined(TECA_HAS_OPENSSL)
     // create a key used to identify metadata
     std::string create_metadata_cache_key(const std::string &path,
@@ -174,118 +189,8 @@ public:
 #endif
 
 public:
-    using p_mutex_t = std::unique_ptr<std::mutex>;
-    using handle_map_elem_t = std::pair<p_mutex_t, netcdf_handle*>;
-    using handle_map_t = std::map<std::string, handle_map_elem_t>;
-
     teca_metadata metadata;
-    std::mutex handle_mutex;
-    handle_map_t handles;
 };
-
-// --------------------------------------------------------------------------
-void teca_cf_reader_internals::close_handles()
-{
-    handle_map_t::iterator it = this->handles.begin();
-    handle_map_t::iterator last = this->handles.end();
-    for (; it != last; ++it)
-    {
-        delete it->second.second;
-        it->second.second = nullptr;
-    }
-}
-
-// --------------------------------------------------------------------------
-void teca_cf_reader_internals::clear_handles()
-{
-    handle_map_t::iterator it = this->handles.begin();
-    handle_map_t::iterator last = this->handles.end();
-    for (; it != last; ++it)
-    {
-        delete it->second.second;
-        it->second.second = nullptr;
-        it->second.first = nullptr;
-    }
-    this->handles.clear();
-}
-
-// --------------------------------------------------------------------------
-void teca_cf_reader_internals::initialize_handles(
-    const std::vector<std::string> &files)
-{
-    this->clear_handles();
-    size_t n_files = files.size();
-    for (size_t i = 0; i < n_files; ++i)
-        this->handles[files[i]] = std::make_pair(
-            std::unique_ptr<std::mutex>(new std::mutex), nullptr);
-}
-
-// --------------------------------------------------------------------------
-int teca_cf_reader_internals::close_handle(const std::string &file)
-{
-    // lock the mutex
-    std::lock_guard<std::mutex> lock(this->handle_mutex);
-
-    // get the current handle
-    handle_map_t::iterator it = this->handles.find(file);
-
-#if defined(TECA_DEBUG)
-    if (it == this->handles.end())
-    {
-        // map should already be initialized. if this occurs
-        // there's a bug in the reader class
-        TECA_ERROR("File \"" << file << "\" is not in the handle cache")
-        return -1;
-    }
-#endif
-
-    delete it->second.second;
-    it->second.second = nullptr;
-    return 0;
-}
-
-// --------------------------------------------------------------------------
-int teca_cf_reader_internals::get_handle(const std::string &path,
-    const std::string &file, int &file_id, std::mutex *&file_mutex)
-{
-    // lock the mutex
-    std::lock_guard<std::mutex> lock(this->handle_mutex);
-
-    // get the current handle
-    handle_map_t::iterator it = this->handles.find(file);
-
-#if defined(TECA_DEBUG)
-    if (it == this->handles.end())
-    {
-        // map should already be initialized. if this occurs
-        // there's a bug in the reader class
-        TECA_ERROR("File \"" << file << "\" is not in the handle cache")
-        return -1;
-    }
-#endif
-
-    // return the cached value
-    file_mutex = it->second.first.get();
-    if (it->second.second)
-    {
-        file_id = it->second.second->get();
-        return 0;
-    }
-
-    // open the file
-    std::string file_path = path + PATH_SEP + file;
-    int ierr = 0;
-    if ((ierr = nc_open(file_path.c_str(), NC_NOWRITE, &file_id)) != NC_NOERR)
-    {
-        TECA_ERROR("Failed to open " << file << ". " << nc_strerror(ierr))
-        return -1;
-    }
-
-    // cache the handle
-    it->second.second = new netcdf_handle(file_id);
-
-    return 0;
-}
 
 #if defined(TECA_HAS_OPENSSL)
 // --------------------------------------------------------------------------
@@ -329,10 +234,9 @@ std::string teca_cf_reader_internals::create_metadata_cache_key(
 class read_variable
 {
 public:
-    read_variable(p_teca_cf_reader_internals reader_internals,
-        const std::string &path, const std::string &file, unsigned long id,
-        const std::string &variable) : m_reader_internals(reader_internals),
-        m_path(path), m_file(file), m_variable(variable), m_id(id)
+    read_variable(const std::string &path, const std::string &file,
+        unsigned long id, const std::string &variable) : m_path(path),
+        m_file(file), m_variable(variable), m_id(id)
     {}
 
     std::pair<unsigned long, p_teca_variant_array> operator()()
@@ -342,27 +246,28 @@ public:
         // get a handle to the file. managed by the reader
         // since it will reuse the handle when it needs to read
         // mesh based data
-        int ierr = 0;
-        int file_id = 0;
-        std::mutex *file_mutex = nullptr;
-        if (m_reader_internals->get_handle(m_path, m_file, file_id, file_mutex))
+        std::string file_path = m_path + PATH_SEP + m_file;
+
+        netcdf_handle fh;
+        if (fh.open(file_path))
         {
-            TECA_ERROR("Failed to get handle to read variable \"" << m_variable
+            TECA_ERROR("Failed to open read variable \"" << m_variable
                 << "\" from \"" << m_file << "\"")
             return std::make_pair(m_id, nullptr);
         }
 
         // query variable attributes
+        int file_id = fh.get();
         int var_id = 0;
         size_t var_size = 0;
         nc_type var_type = 0;
 
+        int ierr = 0;
         if (((ierr = nc_inq_dimid(file_id, m_variable.c_str(), &var_id)) != NC_NOERR)
             || ((ierr = nc_inq_dimlen(file_id, var_id, &var_size)) != NC_NOERR)
             || ((ierr = nc_inq_varid(file_id, m_variable.c_str(), &var_id)) != NC_NOERR)
             || ((ierr = nc_inq_vartype(file_id, var_id, &var_type)) != NC_NOERR))
         {
-            m_reader_internals->close_handle(m_file);
             TECA_ERROR("Failed to read metadata for variable \"" << m_variable
                 << "\" from \"" << m_file << "\". " << nc_strerror(ierr))
             return std::make_pair(m_id, nullptr);
@@ -375,25 +280,21 @@ public:
             var->resize(var_size);
             if ((ierr = nc_get_vara(file_id, var_id, &start, &var_size, var->get())) != NC_NOERR)
             {
-                m_reader_internals->close_handle(m_file);
                 TECA_ERROR("Failed to read variable \"" << m_variable  << "\" from \""
                     << m_file << "\". " << nc_strerror(ierr))
                 return std::make_pair(m_id, nullptr);
             }
             // success!
-            m_reader_internals->close_handle(m_file);
             return std::make_pair(m_id, var);
             )
 
         // unsupported type
-        m_reader_internals->close_handle(m_file);
         TECA_ERROR("Failed to read variable \"" << m_variable
             << "\" from \"" << m_file << "\". Unsupported data type")
         return std::make_pair(m_id, nullptr);
     }
 
 private:
-    p_teca_cf_reader_internals m_reader_internals;
     std::string m_path;
     std::string m_file;
     std::string m_variable;
@@ -417,9 +318,7 @@ teca_cf_reader::teca_cf_reader() :
 
 // --------------------------------------------------------------------------
 teca_cf_reader::~teca_cf_reader()
-{
-    this->internals->clear_handles();
-}
+{}
 
 #if defined(TECA_HAS_BOOST)
 // --------------------------------------------------------------------------
@@ -478,7 +377,6 @@ void teca_cf_reader::set_modified()
 void teca_cf_reader::clear_cached_metadata()
 {
     this->internals->metadata.clear();
-    this->internals->clear_handles();
 }
 
 // --------------------------------------------------------------------------
@@ -574,8 +472,6 @@ teca_metadata teca_cf_reader::get_output_metadata(
                         << metadata_cache_file << "\"")
                     // recover metadata
                     this->internals->metadata.from_stream(stream);
-                    // initialize the file map
-                    this->internals->initialize_handles(files);
                     // stop
                     break;
                 }
@@ -601,19 +497,19 @@ teca_metadata teca_cf_reader::get_output_metadata(
             nc_type y_t = 0;
             nc_type z_t = 0;
             int n_vars = 0;
+            p_teca_variant_array x_axis;
+            p_teca_variant_array y_axis;
+            p_teca_variant_array z_axis;
+            p_teca_variant_array t_axis;
 
+#if !defined(HDF5_THREAD_SAFE)
+            {std::lock_guard<std::mutex> lock(g_netcdf_mutex);
+#endif
             if ((ierr = nc_open(file.c_str(), NC_NOWRITE, &file_id)) != NC_NOERR)
             {
                 TECA_ERROR("Failed to open " << file << endl << nc_strerror(ierr))
                 return teca_metadata();
             }
-
-            // initialize the file map
-            this->internals->initialize_handles(files);
-
-            // cache the file handle
-            this->internals->handles[files[0]] = std::make_pair(
-                std::unique_ptr<std::mutex>(new std::mutex), nullptr);
 
             // query mesh axes
             if (((ierr = nc_inq_dimid(file_id, x_axis_variable.c_str(), &x_id)) != NC_NOERR)
@@ -766,7 +662,6 @@ teca_metadata teca_cf_reader::get_output_metadata(
             this->internals->metadata.insert("time variables", time_vars);
 
             // read spatial coordinate arrays
-            p_teca_variant_array x_axis;
             NC_DISPATCH_FP(x_t,
                 size_t x_0 = 0;
                 p_teca_variant_array_impl<NC_T> x = teca_variant_array_impl<NC_T>::New(n_x);
@@ -781,7 +676,6 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 x_axis = x;
                 )
 
-            p_teca_variant_array y_axis;
             if (!y_axis_variable.empty())
             {
                 NC_DISPATCH_FP(y_t,
@@ -807,7 +701,6 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     )
             }
 
-            p_teca_variant_array z_axis;
             if (!z_axis_variable.empty())
             {
                 NC_DISPATCH_FP(z_t,
@@ -832,6 +725,9 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     z_axis = z;
                     )
             }
+#if !defined(HDF5_THREAD_SAFE)
+            }
+#endif
 
             // collect time steps from this and the rest of the files.
             // there are a couple of  performance issues on Lustre.
@@ -846,15 +742,13 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 true, true, false);
 
             std::vector<unsigned long> step_count;
-            p_teca_variant_array t_axis;
             if (!t_axis_variable.empty())
             {
                 // assign the reads to threads
                 size_t n_files = files.size();
                 for (size_t i = 0; i < n_files; ++i)
                 {
-                    read_variable reader(this->internals, path,
-                        files[i], i, this->t_axis_variable);
+                    read_variable reader(path, files[i], i, this->t_axis_variable);
                     read_variable_task_t task(reader);
                     thread_pool.push_task(task);
                 }
@@ -967,7 +861,6 @@ teca_metadata teca_cf_reader::get_output_metadata(
         // initialize the file map
         std::vector<std::string> files;
         this->internals->metadata.get("files", files);
-        this->internals->initialize_handles(files);
     }
 #endif
 
@@ -1102,13 +995,14 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
 
     // get the file handle for this step
     int ierr = 0;
-    int file_id = 0;
-    std::mutex *file_mutex = nullptr;
-    if (this->internals->get_handle(path, file, file_id, file_mutex))
+    std::string file_path = path + PATH_SEP + file;
+    netcdf_handle fh;
+    if (fh.open(file_path))
     {
-        TECA_ERROR("time_step=" << time_step << " Failed to get handle")
+        TECA_ERROR("time_step=" << time_step << " Failed to open \"" << file << "\"")
         return nullptr;
     }
+    int file_id = fh.get();
 
     // create output dataset
     p_teca_cartesian_mesh mesh = teca_cartesian_mesh::New();
@@ -1222,7 +1116,6 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
         // read
         p_teca_variant_array array;
         NC_DISPATCH(type,
-            std::lock_guard<std::mutex> lock(*file_mutex);
             p_teca_variant_array_impl<NC_T> a = teca_variant_array_impl<NC_T>::New(mesh_size);
             if ((ierr = nc_get_vara(file_id,  id, &starts[0], &counts[0], a->get())) != NC_NOERR)
             {
@@ -1261,7 +1154,6 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
         p_teca_variant_array array;
         size_t one = 1;
         NC_DISPATCH(type,
-            std::lock_guard<std::mutex> lock(*file_mutex);
             p_teca_variant_array_impl<NC_T> a = teca_variant_array_impl<NC_T>::New(1);
             if ((ierr = nc_get_vara(file_id,  id, &starts[0], &one, a->get())) != NC_NOERR)
             {
