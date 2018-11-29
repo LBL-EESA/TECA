@@ -143,7 +143,7 @@ int main(int argc, char **argv)
             if (opt_vals.count("advanced_help"))
             {
                 cerr << endl
-                    << "usage: teca_tc_detect [options]" << endl
+                    << "usage: teca_tc_wind_radii [options]" << endl
                     << endl
                     << advanced_opt_defs << endl
                     << endl;
@@ -152,7 +152,7 @@ int main(int argc, char **argv)
             if (opt_vals.count("full_help"))
             {
                 cerr << endl
-                    << "usage: teca_tc_detect [options]" << endl
+                    << "usage: teca_tc_wind_radii [options]" << endl
                     << endl
                     << all_opt_defs << endl
                     << endl;
