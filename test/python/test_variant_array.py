@@ -27,9 +27,9 @@ start_sec('set')
 for arr in arrs:
     out('%s\n'%(str(type(arr))))
     arr.resize(20)
-    for i in xrange(10):
+    for i in range(10):
         arr[i] = int(i)
-    for i in xrange(10):
+    for i in range(10):
         arr[i+10] = float(10 - i)
 end_sec('set')
 
@@ -45,7 +45,7 @@ end_sec('append')
 start_sec('get')
 for arr in arrs:
     out('%s\n'%(str(type(arr))))
-    for i in xrange(20):
+    for i in range(20):
         out('%g '%(arr[i]))
     out('\n')
 end_sec('get')
