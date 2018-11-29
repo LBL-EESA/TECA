@@ -4,6 +4,7 @@
 #include "teca_common.h"
 #include "teca_variant_array.h"
 #include "teca_py_object.h"
+#include "teca_py_string.h"
 #include <Python.h>
 
 // this macro is used to build up dispatchers
@@ -71,7 +72,7 @@ bool is_type(PyObject *seq)
 bool append(teca_variant_array *va, PyObject *seq)
 {
     // not a sequence
-    if (!PySequence_Check(seq) || PyString_Check(seq))
+    if (!PySequence_Check(seq) || PyStringCheck(seq))
         return false;
 
     // nothing to do
@@ -113,7 +114,7 @@ bool append(teca_variant_array *va, PyObject *seq)
 bool copy(teca_variant_array *va, PyObject *seq)
 {
     // not a sequence
-    if (!PySequence_Check(seq) || PyString_Check(seq))
+    if (!PySequence_Check(seq) || PyStringCheck(seq))
         return false;
 
     // nothing to do
@@ -158,7 +159,7 @@ bool copy(teca_variant_array *va, PyObject *seq)
 p_teca_variant_array new_variant_array(PyObject *seq)
 {
     // not a sequence
-    if (!PySequence_Check(seq) || PyString_Check(seq))
+    if (!PySequence_Check(seq) || PyStringCheck(seq))
         return nullptr;
 
     // nothing to do
