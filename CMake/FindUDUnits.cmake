@@ -42,6 +42,10 @@ find_path (UDUNITS_INCLUDE_DIR udunits2.h
   PATHS "${UDUNITS_LIBRARY_DIR}/../include"
   NO_DEFAULT_PATH)
 
+# look in system location
+find_path (UDUNITS_INCLUDE_DIR udunits2.h
+  PATHS "/usr/include/udunits2" NO_DEFAULT_PATH)
+
 # finally CMake can look
 find_path (UDUNITS_INCLUDE_DIR udunits2.h)
 
