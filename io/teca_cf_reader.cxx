@@ -744,7 +744,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                         buffer[att_len] = '\0';
                         nc_get_att_text(file_id, i, att_name, buffer);
                         crtrim(buffer, att_len);
-                        atts.set(att_name, std::string(buffer));
+                        atts.insert(att_name, std::string(buffer));
                         free(buffer);
                     }
                     else
@@ -752,7 +752,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                         NC_DISPATCH(att_type,
                           NC_T *buffer = static_cast<NC_T*>(malloc(att_len));
                           nc_get_att(file_id, i, att_name, buffer);
-                          atts.set(att_name, buffer, att_len);
+                          atts.insert(att_name, buffer, att_len);
                           free(buffer);
                           )
                     }
