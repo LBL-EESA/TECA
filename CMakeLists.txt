@@ -4,9 +4,21 @@ cmake_policy(SET CMP0053 NEW)
 
 project(teca C CXX Fortran)
 
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+# set build/install sub dirs for various components
+if (NOT LIB_PREFIX)
+  set(LIB_PREFIX lib)
+endif()
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${LIB_PREFIX})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${LIB_PREFIX})
+if (NOT BIN_PREFIX)
+  set(BIN_PREFIX bin)
+endif()
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${BIN_PREFIX})
+if (NOT INCLUDE_PREFIX)
+  set(INCLUDE_PREFIX include)
+endif()
+
+# bring our cmake codes into scope
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMake")
 
 # if we forgot to set the build type default to release

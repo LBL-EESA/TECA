@@ -25,12 +25,12 @@ if (TECA_HAS_PYTHON)
     add_custom_command(TARGET _teca_py POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
             ${CMAKE_CURRENT_BINARY_DIR}/teca_py.py
-            ${CMAKE_CURRENT_BINARY_DIR}/../lib)
+            ${CMAKE_CURRENT_BINARY_DIR}/../${LIB_PREFIX})
 
-    configure_file(teca.py ${CMAKE_CURRENT_BINARY_DIR}/../lib/teca.py
+    configure_file(teca.py ${CMAKE_CURRENT_BINARY_DIR}/../${LIB_PREFIX}/teca.py
         COPYONLY)
 
-    install(TARGETS _teca_py LIBRARY DESTINATION lib)
+    install(TARGETS _teca_py LIBRARY DESTINATION ${LIB_PREFIX})
     install(FILES teca.py ${CMAKE_CURRENT_BINARY_DIR}/teca_py.py
-        DESTINATION lib)
+        DESTINATION ${LIB_PREFIX})
 endif()

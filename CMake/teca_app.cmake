@@ -19,6 +19,6 @@ function (teca_add_app app_name)
                 teca_core teca_data teca_io teca_alg
                 ${APP_LIBS})
         endif()
-        install(TARGETS ${app_name} RUNTIME DESTINATION bin)
+        install(TARGETS ${app_name} RUNTIME DESTINATION ${BIN_PREFIX})
     endif()
 endfunction()
