@@ -44,22 +44,22 @@ target_link_libraries(teca_core ${teca_core_link})
 target_include_directories(teca_core
     INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-    $<INSTALL_INTERFACE:include>
+    $<INSTALL_INTERFACE:${INCLUDE_PREFIX}>
     )
 
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    DESTINATION include
+    DESTINATION ${INCLUDE_PREFIX}
     FILES_MATCHING PATTERN "*.h")
 
 install(TARGETS teca_core
     EXPORT teca_core
-    INCLUDES DESTINATION include
-    ARCHIVE DESTINATION lib
-    LIBRARY DESTINATION lib
+    INCLUDES DESTINATION ${INCLUDE_PREFIX}
+    ARCHIVE DESTINATION ${LIB_PREFIX}
+    LIBRARY DESTINATION ${LIB_PREFIX}
     )
 
 install(EXPORT teca_core
-    DESTINATION lib
+    DESTINATION ${LIB_PREFIX}
     FILE teca_core.cmake
     EXPORT_LINK_INTERFACE_LIBRARIES
     )

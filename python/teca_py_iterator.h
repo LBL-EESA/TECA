@@ -4,6 +4,7 @@
 #include "teca_common.h"
 #include "teca_variant_array.h"
 #include "teca_py_object.h"
+#include "teca_py_string.h"
 #include <Python.h>
 
 // this macro is used to build up dispatchers
@@ -44,7 +45,7 @@ namespace teca_py_iterator
 bool is_iterable(PyObject *obj)
 {
     PyObject *iter = nullptr;
-    if (PyString_Check(obj)|| !(iter = PyObject_GetIter(obj)))
+    if (PyStringCheck(obj) || !(iter = PyObject_GetIter(obj)))
     {
         PyErr_Clear();
         return false;

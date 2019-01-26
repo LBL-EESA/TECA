@@ -1,0 +1,14 @@
+include *.*
+recursive-include CMake *.*
+recursive-include system *.*
+recursive-include core *.*
+recursive-include data *.*
+recursive-include alg *.*
+recursive-include io *.*
+recursive-include apps *.*
+recursive-include python *.*
+recursive-include paraview *.*
+recursive-include test *.*
+recursive-include doc *.*
+global-exclude *.pdf
+global-exclude *.sw?

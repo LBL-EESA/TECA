@@ -5,9 +5,11 @@
 #include "teca_dataset.h"
 #include "teca_py_object.h"
 #include "teca_py_gil_state.h"
+#include "teca_py_string.h"
 
 #include <Python.h>
 #include <vector>
+
 
 // we are going to be overly verbose in an effort to help
 // the user debug their code. package this up for use in all
@@ -15,7 +17,7 @@
 #define TECA_PY_CALLBACK_ERROR(_phase, _cb_obj)             \
     {                                                       \
     PyObject *cb_str = PyObject_Str(_cb_obj);               \
-    const char *cb_c_str = PyString_AsString(cb_str);       \
+    const char *cb_c_str = PyStringToCString(cb_str);       \
                                                             \
     TECA_ERROR("An exception ocurred when invoking the "    \
     "user supplied Python callback \"" << cb_c_str << "\""  \

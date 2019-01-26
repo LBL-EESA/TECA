@@ -1,5 +1,6 @@
 %{
 #include <sstream>
+#include "teca_py_string.h"
 %}
 
 
@@ -11,7 +12,7 @@
 
         std::ostringstream oss;
         self->to_stream(oss);
-        return PyString_FromString(oss.str().c_str());
+        return CStringToPyString(oss.str().c_str());
     }
 %enddef
 
