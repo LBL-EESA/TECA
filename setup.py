@@ -92,7 +92,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(name='teca',
-    version='2.1.3',
+    version='2.2.0rc1',
     author='Burlen Loring',
     author_email='bloring@lbl.gov',
     description='The Toolkit for Extreme Climate Analysis',
