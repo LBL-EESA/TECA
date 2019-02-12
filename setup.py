@@ -12,7 +12,7 @@ from distutils.version import LooseVersion
 # when compiled outside of the git repo we must set the version
 # manually. Also note that these must be unique per upload to PyPi
 # so be sure to use an 'rcX' for testing
-teca_version = "2.2.0rc2"
+teca_version = "2.2.1"
 
 class CMakeExtension(Extension):
     def __init__(self, name, sourcedir=''):
@@ -45,7 +45,7 @@ class CMakeBuild(build_ext):
                       '-DLIB_PREFIX=.', '-DREQUIRE_PYTHON=TRUE',
                       '-DREQUIRE_MPI=TRUE', '-DREQUIRE_UDUNITS=TRUE',
                       '-DREQUIRE_NETCDF=TRUE', '-DREQUIRE_BOOST=TRUE',
-                      '-DTECA_PYTHON_VESION=%d'%(sys.version_info.major),
+                      '-DTECA_PYTHON_VERSION=%d'%(sys.version_info.major),
                       '-DTECA_VERSION=%s(PyPi)'%(teca_version)]
 
         # set some command line arguments for cmake
