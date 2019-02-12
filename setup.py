@@ -45,6 +45,7 @@ class CMakeBuild(build_ext):
                       '-DLIB_PREFIX=.', '-DREQUIRE_PYTHON=TRUE',
                       '-DREQUIRE_MPI=TRUE', '-DREQUIRE_UDUNITS=TRUE',
                       '-DREQUIRE_NETCDF=TRUE', '-DREQUIRE_BOOST=TRUE',
+                      '-DTECA_PYTHON_VESION=%d'%(sys.version_info.major),
                       '-DTECA_VERSION=%s(PyPi)'%(teca_version)]
 
         # set some command line arguments for cmake
@@ -110,10 +111,6 @@ setup(name='teca',
     ext_modules=[CMakeExtension('teca')],
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
-    install_requires=[
-        "mpi4py",
-        "numpy",
-        "matplotlib",
-        ],
+    install_requires=["mpi4py", "numpy", "matplotlib",],
     )
 
