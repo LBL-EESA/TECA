@@ -2,7 +2,6 @@
 #include "teca_config.h"
 #include "teca_algorithm.h"
 #include "teca_apply_binary_mask.h"
-#include "teca_ar_detect.h"
 #include "teca_binary_segmentation.h"
 #include "teca_cartesian_mesh_subset.h"
 #include "teca_cartesian_mesh_regrid.h"
@@ -43,14 +42,6 @@
 %include "teca_py_core.i"
 %include "teca_py_data.i"
 %include <std_string.i>
-
-/***************************************************************************
- ar_detect
- ***************************************************************************/
-%ignore teca_ar_detect::shared_from_this;
-%shared_ptr(teca_ar_detect)
-%ignore teca_ar_detect::operator=;
-%include "teca_ar_detect.h"
 
 /***************************************************************************
  cartesian_mesh_subset

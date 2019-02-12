@@ -9,6 +9,10 @@ from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 from distutils.version import LooseVersion
 
+# when compiled outside of the git repo we must set the version
+# manually. Also note that these must be unique per upload to PyPi
+# so be sure to use an 'rcX' for testing
+teca_version = "2.2.1"
 
 class CMakeExtension(Extension):
     def __init__(self, name, sourcedir=''):
@@ -38,12 +42,11 @@ class CMakeBuild(build_ext):
         # specifically we need to put the build where setuptools can find it
         # and also error out when dependencies are not found
         cmake_args = ['-DCMAKE_INSTALL_PREFIX=' + extdir,
-                      '-DLIB_PREFIX=.',
-                      '-DREQUIRE_PYTHON=TRUE',
-                      '-DREQUIRE_MPI=TRUE',
-                      '-DREQUIRE_UDUNITS=TRUE',
-                      '-DREQUIRE_NETCDF=TRUE',
-                      '-DREQUIRE_BOOST=TRUE',]
+                      '-DLIB_PREFIX=.', '-DREQUIRE_PYTHON=TRUE',
+                      '-DREQUIRE_MPI=TRUE', '-DREQUIRE_UDUNITS=TRUE',
+                      '-DREQUIRE_NETCDF=TRUE', '-DREQUIRE_BOOST=TRUE',
+                      '-DTECA_PYTHON_VERSION=%d'%(sys.version_info.major),
+                      '-DTECA_VERSION=%s(PyPi)'%(teca_version)]
 
         # set some command line arguments for cmake
         cfg = 'Debug' if self.debug else 'Release'
@@ -92,7 +95,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(name='teca',
-    version='2.2.0rc1',
+    version=teca_version,
     author='Burlen Loring',
     author_email='bloring@lbl.gov',
     description='The Toolkit for Extreme Climate Analysis',
@@ -108,10 +111,6 @@ setup(name='teca',
     ext_modules=[CMakeExtension('teca')],
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
-    install_requires=[
-        "mpi4py",
-        "numpy",
-        "matplotlib",
-        ],
+    install_requires=["mpi4py", "numpy", "matplotlib",],
     )
 

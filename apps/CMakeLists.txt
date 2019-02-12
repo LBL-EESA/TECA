@@ -20,9 +20,6 @@ if (TECA_HAS_BOOST)
     list(APPEND teca_app_link ${Boost_LIBRARIES})
 endif()
 
-teca_add_app(teca_ar_detect LIBS ${teca_app_link}
-    FEATURES (TECA_HAS_BOOST AND TECA_HAS_NETCDF))
-
 teca_add_app(teca_tc_detect LIBS ${teca_app_link}
     FEATURES (TECA_HAS_BOOST AND TECA_HAS_NETCDF AND TECA_HAS_UDUNITS))
 
