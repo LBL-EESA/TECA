@@ -207,37 +207,6 @@ teca_add_test(test_tc_classify
     "${TECA_DATA_ROOT}/cam5_1_amip_run2_classify_2005_09.bin"
     REQ_TECA_DATA)
 
-teca_add_test(test_ar_detect_serial
-    COMMAND test_ar_detect
-    "${TECA_DATA_ROOT}/prw.*\\.nc" "${TECA_DATA_ROOT}/landsea.nc"
-    "${TECA_DATA_ROOT}/test_ar_detect.bin" 0 -1 1 prw LSMASK
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
-    REQ_TECA_DATA)
-
-teca_add_test(test_ar_detect_mpi
-    COMMAND ${MPIEXEC} -n ${TECA_TEST_CORES} test_ar_detect
-    "${TECA_DATA_ROOT}/prw.*\\.nc" "${TECA_DATA_ROOT}/landsea.nc"
-    "${TECA_DATA_ROOT}/test_ar_detect.bin" 0 -1 1 prw LSMASK
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI}
-    REQ_TECA_DATA)
-
-teca_add_test(test_ar_detect_threads
-    EXEC_NAME test_ar_detect
-    SOURCES test_ar_detect.cpp teca_test_util.cxx
-    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
-    COMMAND test_ar_detect
-    "${TECA_DATA_ROOT}/prw.*\\.nc" "${TECA_DATA_ROOT}/landsea.nc"
-    "${TECA_DATA_ROOT}/test_ar_detect.bin" 0 -1 1 prw LSMASK
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
-    REQ_TECA_DATA)
-
-teca_add_test(test_ar_detect_mpi_threads
-    COMMAND ${MPIEXEC} -n ${HALF_CORES} test_ar_detect
-    "${TECA_DATA_ROOT}/prw.*\\.nc" "${TECA_DATA_ROOT}/landsea.nc"
-    "${TECA_DATA_ROOT}/test_ar_detect.bin" 0 -1 1 prw LSMASK
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI}
-    REQ_TECA_DATA)
-
 teca_add_test(test_table_reader_distribute_serial
     COMMAND test_table_reader_distribute
     "${TECA_DATA_ROOT}/test_tc_candidates_20.bin"
