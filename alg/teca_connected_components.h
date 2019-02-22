@@ -13,10 +13,13 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_connected_components)
 /// an algorithm that computes connected component labeling
 /**
 an algorithm that computes connected component labeling
-for 1D, 2D, and 3D data. The labels are computed form a
+for 1D, 2D, and 3D data. The labels are computed from a
 binary segmentation which is computed using threshold
 operation where values in a range (low, high] are in the
 segmentation.
+
+the label ids are added to the output dataset metadata in
+an array named: teca_connected_components::label_id
 */
 class teca_connected_components : public teca_algorithm
 {

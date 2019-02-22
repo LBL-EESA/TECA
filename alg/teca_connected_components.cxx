@@ -106,7 +106,7 @@ with dimensions described by the given exent(ext), compute
 the labeling.
 */
 template <typename num_t>
-void label(unsigned long *ext, const num_t *segments, num_t *labels)
+void label(unsigned long *ext, const num_t *segments, num_t *labels, num_t &max_label)
 {
     unsigned long nx = ext[1] - ext[0] + 1;
     unsigned long ny = ext[3] - ext[2] + 1;
@@ -138,6 +138,8 @@ void label(unsigned long *ext, const num_t *segments, num_t *labels)
             }
         }
     }
+
+    max_label = current_label;
 }
 };
 
@@ -321,6 +323,8 @@ const_p_teca_dataset teca_connected_components::execute(
     size_t n_elem = input_array->size();
     p_teca_short_array labels = teca_short_array::New(n_elem);
 
+    short max_label = 0;
+
     TEMPLATE_DISPATCH(const teca_variant_array_impl,
         input_array.get(),
         const NT *p_in = static_cast<TT*>(input_array.get())->get();
@@ -330,7 +334,7 @@ const_p_teca_dataset teca_connected_components::execute(
         ::threshold(p_seg, p_in, n_elem,
             static_cast<NT>(low), static_cast<NT>(high));
 
-        ::label(extent, p_seg, p_labels);
+        ::label(extent, p_seg, p_labels, max_label);
 
         free(p_seg);
         )
@@ -338,6 +342,15 @@ const_p_teca_dataset teca_connected_components::execute(
     // put labels in output
     std::string label_var = this->get_label_variable(request);
     out_mesh->get_point_arrays()->set(label_var, labels);
+
+    // put the label ids in the metadata
+    short num_labels = max_label + 1;
+    p_teca_short_array label_id = teca_short_array::New(num_labels);
+    for (short i = 0; i < num_labels; ++i)
+        label_id->set(i, i);
+
+    out_mesh->get_metadata().insert(
+        "teca_connected_components::label_id", label_id);
 
     return out_mesh;
 }
