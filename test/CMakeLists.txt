@@ -63,6 +63,7 @@ teca_add_test(test_connected_components
     COMMAND test_connected_components
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
     lon lat "." time U850 V850 0 0 15 "test_connected_components_%t%.%e%"
+    "${TECA_DATA_ROOT}/test_connected_components.bin"
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
