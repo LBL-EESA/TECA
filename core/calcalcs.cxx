@@ -1679,7 +1679,7 @@ int date(double val, int *year, int *month, int *day, int *hour,
             fprintf(stderr, "Error, bad units %s\n", unit_str);
             return UT_EINVALID;
         }
-        strncpy(prev_unit_str, unit_str, 1024);
+        strncpy(prev_unit_str, unit_str, 1023);
 
         /* Get origin day of the data units */
         get_origin(dataunits, &y0, &mon0, &d0, &h0, &min0, &s0);    /* Note: static vars */
@@ -1709,7 +1709,7 @@ int date(double val, int *year, int *month, int *day, int *hour,
 
         prev_units = dataunits;
 
-        strncpy(prev_calendar, cal2use->name, 1024);
+        strncpy(prev_calendar, cal2use->name, 1023);
     }
 #if defined(CALCALCS_THREAD)
     calcalcs_mutex.unlock();
@@ -1818,7 +1818,7 @@ int coordinate(int year, int month, int day, int hour, int minute,
             fprintf(stderr, "Error, unknown calendar %s\n", calendar_name);
             return UT_EINVALID;
         }
-        strncpy(prev_calendar, cal2use->name, 1024);
+        strncpy(prev_calendar, cal2use->name, 1023);
 
         /* create units object from the string, and update the cached string */
         ut_unit *user_unit = ut_parse(u_system, unit_str, UT_ASCII);
@@ -1827,7 +1827,7 @@ int coordinate(int year, int month, int day, int hour, int minute,
             fprintf(stderr, "Error, bad units %s\n", unit_str);
             return UT_EINVALID;
         }
-        strncpy(prev_unit_str, unit_str, 1024);
+        strncpy(prev_unit_str, unit_str, 1023);
 
         /* Get origin day of the data units */
         get_origin(user_unit, &y0, &mon0, &d0, &h0, &min0, &s0);
