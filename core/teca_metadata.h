@@ -74,6 +74,12 @@ public:
     void insert(const std::string &name,
         p_teca_variant_array prop_val);
 
+    // insert a variant array directly. if the property doesn't exist
+    // it is created. if it does it is replaced.
+    template<typename T>
+    void insert(const std::string &name,
+        p_teca_variant_array_impl<T> prop_val);
+
     // append a value to the named property. reports
     // an error and does nothing if the property doesn't
     // exist. return 0 on success.
@@ -326,6 +332,14 @@ void teca_metadata::insert(
     this->props[name] = prop_vals;
 }
 
+// --------------------------------------------------------------------------
+template<typename T>
+void teca_metadata::insert(
+    const std::string &name,
+    p_teca_variant_array_impl<T> prop_val)
+{
+    this->props[name] = prop_val;
+}
 
 // --------------------------------------------------------------------------
 template<typename T>

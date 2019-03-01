@@ -63,8 +63,18 @@ teca_add_test(test_connected_components
     COMMAND test_connected_components
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
     lon lat "." time U850 V850 0 0 15 "test_connected_components_%t%.%e%"
+    "${TECA_DATA_ROOT}/test_connected_components.bin"
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
+
+teca_add_test(test_2d_component_area
+    SOURCES test_2d_component_area.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_2d_component_area 720 360 8 8 0 "test_2d_component_area_%t%.%e%")
+
+teca_add_test(test_2d_component_area_contiguous_labels
+    COMMAND test_2d_component_area 720 360 8 8 1
+    "test_2d_component_area_contiguous_labels_%t%.%e%")
 
 teca_add_test(test_cartesian_mesh_regrid
     SOURCES test_cartesian_mesh_regrid.cpp

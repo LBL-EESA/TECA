@@ -13,6 +13,7 @@ set(teca_alg_cxx_srcs
     teca_cartesian_mesh_subset.cxx
     teca_cartesian_mesh_regrid.cxx
     teca_connected_components.cxx
+    teca_2d_component_area.cxx
     teca_dataset_capture.cxx
     teca_dataset_source.cxx
     teca_derived_quantity.cxx
