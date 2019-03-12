@@ -86,6 +86,13 @@ teca_add_test(test_cartesian_mesh_regrid
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
+teca_add_test(test_damper
+    SOURCES test_damper.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_damper 361 181 10 "test_damper_%t%.%e%"
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
 teca_add_test(test_temporal_average
     SOURCES test_temporal_average.cpp
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
