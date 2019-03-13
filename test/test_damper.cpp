@@ -12,13 +12,18 @@
 #include "teca_variant_array.h"
 #include "teca_dataset_source.h"
 
-
+#define _USE_MATH_DEFINES
+#include <cmath>
 #include <iostream>
 #include <string>
 
 using namespace std;
 
-using prop_map_t = std::map<std::string, p_teca_variant_array>;
+
+bool isequal(double a, double b, double epsilon)
+{
+    return fabs(a - b) < epsilon;
+}
 
 int main(int argc, char **argv)
 {
@@ -112,15 +117,37 @@ int main(int argc, char **argv)
 
     wri->update();
 
+    
     const_p_teca_dataset ds = damp_o->get_dataset();
+    const_p_teca_cartesian_mesh cds = std::dynamic_pointer_cast<const teca_cartesian_mesh>(ds);
+    const_p_teca_variant_array va = cds->get_point_arrays()->get("ones_grid_damped");
+    
+    using TT = teca_variant_array_impl<double>;
+    using NT = double;
 
-    //const_p_teca_cartesian_mesh cds = std::dynamic_pointer_cast<const teca_cartesian_mesh>(ds);
+    const NT *p_damped_array = static_cast<const TT*>(va.get())->get();
+    int hwhm_index = -1;
 
-    //const_p_teca_variant_array va = cds->get_point_arrays()->get("ones_grid_damped");
-    //cerr << "test_damper -- damped output:" << endl;
-    //va->to_stream(cerr);
-    //cerr << endl;
+    for (unsigned long j = 0; j < ny; ++j)
+    {
+        if (isequal(py[j], hwhm, 1e-7))
+        {
+            hwhm_index = (int) (j * nx);
+            break;
+        }
+    }
 
+    cerr << "hwhm_index: " << hwhm_index << endl;
+    if (hwhm_index > 0 && 
+        isequal(p_damped_array[hwhm_index], 0.5, 1e-7))
+    {
+        cerr << "p_damped_array[hwhm_index]: " << p_damped_array[hwhm_index] << endl;
+    }
+    else
+    {
+        TECA_ERROR("Damping failed!")
+        return -1;
+    }
 
     return 0;
 }
