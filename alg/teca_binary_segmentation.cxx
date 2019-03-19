@@ -200,10 +200,6 @@ const_p_teca_dataset teca_binary_segmentation::execute(
         && request.has("teca_binary_segmentation::high_threshold_value"))
         request.get("teca_binary_segmentation::high_threshold_value", high);
 
-    // get mesh dimension
-    unsigned long extent[6];
-    out_mesh->get_extent(extent);
-
     // do segmentation and segmentation
     size_t n_elem = input_array->size();
     p_teca_unsigned_int_array segmentation =
