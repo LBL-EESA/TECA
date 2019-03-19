@@ -14,7 +14,6 @@ set(teca_alg_cxx_srcs
     teca_cartesian_mesh_regrid.cxx
     teca_connected_components.cxx
     teca_2d_component_area.cxx
-    teca_damper.cxx
     teca_dataset_capture.cxx
     teca_dataset_source.cxx
     teca_derived_quantity.cxx
@@ -22,6 +21,7 @@ set(teca_alg_cxx_srcs
     teca_evaluate_expression.cxx
     teca_geography.cxx
     teca_l2_norm.cxx
+    teca_latitude_damper.cxx
     teca_laplacian.cxx
     teca_mask.cxx
     teca_parser.cxx

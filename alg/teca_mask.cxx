@@ -112,15 +112,14 @@ const_p_teca_dataset teca_mask::execute(
     const teca_metadata &request)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_mask::execute" << endl;
+    cerr << teca_parallel_id() << "teca_mask::execute" << endl;
 #endif
     (void)port;
 
     // get the input
     const_p_teca_mesh in_mesh =
-        std::dynamic_pointer_cast<const teca_mesh>(
-            input_data[0]);
+        std::dynamic_pointer_cast<const teca_mesh>(input_data[0]);
+
     if (!in_mesh)
     {
         TECA_ERROR("empty input, or not a mesh")

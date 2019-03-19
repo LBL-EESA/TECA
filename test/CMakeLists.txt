@@ -86,10 +86,10 @@ teca_add_test(test_cartesian_mesh_regrid
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
-teca_add_test(test_damper
-    SOURCES test_damper.cpp
+teca_add_test(test_latitude_damper
+    SOURCES test_latitude_damper.cpp
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
-    COMMAND test_damper 361 181 10 "test_damper_%t%.%e%"
+    COMMAND test_latitude_damper 361 181 10 "test_latitude_damper_%t%.%e%"
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 

@@ -1,5 +1,5 @@
 #include "teca_cf_reader.h"
-#include "teca_damper.h"
+#include "teca_latitude_damper.h"
 #include "teca_l2_norm.h"
 #include "teca_connected_components.h"
 #include "teca_vtk_cartesian_mesh_writer.h"
@@ -29,16 +29,15 @@ int main(int argc, char **argv)
 {
     teca_system_interface::set_stack_trace_on_error();
 
-    // ======================================================
     if (argc != 5)
     {
-        cerr << "test_damper [nx] [ny] [hwhm] [out file]" << endl;
+        cerr << "test_latitude_damper [nx] [ny] [hwhm] [out file]" << endl;
         return -1;
     }
 
     unsigned long nx = atoi(argv[1]);
     unsigned long ny = atoi(argv[2]);
-    double hwhm = double(atoi(argv[3]));
+    double hwhm = atof(argv[3]);
     string out_file = argv[4];
 
     // allocate a mesh
@@ -71,10 +70,6 @@ int main(int argc, char **argv)
         p_ones_grid[i] = 1;
     }
 
-    // Calculating sigma = hwhm/sqrt(2*ln(2))
-    double sigma = hwhm / 1.17741;
-    //cerr << "sigma: " << sigma << endl;
-
     unsigned long wext[] = {0, nx - 1, 0, ny - 1, 0, 0};
 
     p_teca_cartesian_mesh mesh = teca_cartesian_mesh::New();
@@ -98,10 +93,11 @@ int main(int argc, char **argv)
     source->set_metadata(md);
     source->set_dataset(mesh);
 
-    p_teca_damper damped_comp = teca_damper::New();
-    damped_comp->set_filter_lat_width_value(sigma);
-    damped_comp->append_damper_variable("ones_grid");
+    p_teca_latitude_damper damped_comp = teca_latitude_damper::New();
     damped_comp->set_input_connection(source->get_output_port());
+    damped_comp->set_half_width_at_half_max(hwhm);
+    damped_comp->set_center(0.0);
+    damped_comp->append_damped_variable("ones_grid");
 
     p_teca_dataset_capture damp_o = teca_dataset_capture::New();
     damp_o->set_input_connection(damped_comp->get_output_port());
@@ -117,35 +113,38 @@ int main(int argc, char **argv)
 
     wri->update();
 
-    
     const_p_teca_dataset ds = damp_o->get_dataset();
     const_p_teca_cartesian_mesh cds = std::dynamic_pointer_cast<const teca_cartesian_mesh>(ds);
     const_p_teca_variant_array va = cds->get_point_arrays()->get("ones_grid_damped");
-    
+
     using TT = teca_variant_array_impl<double>;
     using NT = double;
 
     const NT *p_damped_array = static_cast<const TT*>(va.get())->get();
-    int hwhm_index = -1;
 
-    for (unsigned long j = 0; j < ny; ++j)
+    // find lat index where scalar should be half
+    long hwhm_index = -1;
+    for (long j = 0; j < long(ny); ++j)
     {
         if (isequal(py[j], hwhm, 1e-7))
         {
-            hwhm_index = (int) (j * nx);
+            hwhm_index = j;
             break;
         }
     }
 
-    cerr << "hwhm_index: " << hwhm_index << endl;
-    if (hwhm_index > 0 && 
-        isequal(p_damped_array[hwhm_index], 0.5, 1e-7))
+    // validate the search
+    if ((hwhm_index < 0) || (hwhm_index > long(ny)))
     {
-        cerr << "p_damped_array[hwhm_index]: " << p_damped_array[hwhm_index] << endl;
+        TECA_ERROR("Failed to find hwhm index")
+        return -1;
     }
-    else
+
+    // check that it is half there
+    NT test_val = p_damped_array[hwhm_index*nx];
+    if (!isequal(test_val, 0.5, 1e-7))
     {
-        TECA_ERROR("Damping failed!")
+        TECA_ERROR("Value " << test_val << " at index " << hwhm_index << " is not 0.5")
         return -1;
     }
 
