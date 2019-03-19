@@ -98,8 +98,8 @@ int main(int argc, char **argv)
     const_p_teca_dataset ds = cao->get_dataset();
     teca_metadata mdo = ds->get_metadata();
 
-    p_teca_variant_array comp_label = mdo.get("teca_2d_component_area::label_id");
-    p_teca_variant_array comp_area = mdo.get("teca_2d_component_area::area");
+    p_teca_variant_array comp_label = mdo.get("label_id");
+    p_teca_variant_array comp_area = mdo.get("area");
 
     p_teca_table test_data = teca_table::New();
     test_data->append_column("comp_label", comp_label);

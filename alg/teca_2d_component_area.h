@@ -26,8 +26,8 @@ the input dataset is passed through and the results of the
 calculations are stored in the output dataset metadata in arrays
 named:
 
-  teca_2d_component_area::label_id
-  teca_2d_component_area::area
+  label_id
+  area
 
 */
 class teca_2d_component_area : public teca_algorithm
