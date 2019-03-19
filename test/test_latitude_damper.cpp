@@ -98,6 +98,7 @@ int main(int argc, char **argv)
     damped_comp->set_half_width_at_half_max(hwhm);
     damped_comp->set_center(0.0);
     damped_comp->append_damped_variable("ones_grid");
+    damped_comp->set_variable_post_fix("_damped");
 
     p_teca_dataset_capture damp_o = teca_dataset_capture::New();
     damp_o->set_input_connection(damped_comp->get_output_port());
@@ -120,7 +121,7 @@ int main(int argc, char **argv)
     using TT = teca_variant_array_impl<double>;
     using NT = double;
 
-    const NT *p_damped_array = static_cast<const TT*>(va.get())->get();
+    const NT *p_damped_array = dynamic_cast<const TT*>(va.get())->get();
 
     // find lat index where scalar should be half
     long hwhm_index = -1;
