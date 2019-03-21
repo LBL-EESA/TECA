@@ -7,7 +7,6 @@
 #include "teca_cartesian_mesh_regrid.h"
 #include "teca_connected_components.h"
 #include "teca_2d_component_area.h"
-#include "teca_component_area_filter.h"
 #include "teca_latitude_damper.h"
 #include "teca_dataset_diff.h"
 #include "teca_dataset_capture.h"
@@ -413,11 +412,3 @@ struct teca_tc_saffir_simpson
 %shared_ptr(teca_latitude_damper)
 %ignore teca_latitude_damper::operator=;
 %include "teca_latitude_damper.h"
-
-/***************************************************************************
- component_area_filter
- ***************************************************************************/
-%ignore teca_component_area_filter::shared_from_this;
-%shared_ptr(teca_component_area_filter)
-%ignore teca_component_area_filter::operator=;
-%include "teca_component_area_filter.h"
