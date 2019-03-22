@@ -118,8 +118,8 @@ int main(int argc, char **argv)
 
     p_teca_programmable_reduce map_reduce = teca_programmable_reduce::New();
     map_reduce->set_input_connection(stats->get_output_port());
-    map_reduce->set_first_step(first_step);
-    map_reduce->set_last_step(last_step);
+    map_reduce->set_start_index(first_step);
+    map_reduce->set_end_index(last_step);
     map_reduce->set_thread_pool_size(n_threads);
     map_reduce->set_reduce_callback(reduce_callback());
 

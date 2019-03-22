@@ -6,8 +6,6 @@
 
 using std::cerr;
 using std::endl;
-using std::vector;
-using std::string;
 
 
 // --------------------------------------------------------------------------
@@ -83,7 +81,7 @@ std::vector<teca_metadata> array_temporal_stats::initialize_upstream_request(
     (void) port;
     (void) input_md;
 
-    vector<teca_metadata> up_reqs(1, request);
+    std::vector<teca_metadata> up_reqs(1, request);
     up_reqs[0].insert("array_name", this->array_name);
 
     return up_reqs;

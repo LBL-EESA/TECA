@@ -28,8 +28,8 @@ int main(int argc, char **argv)
     std::string baseline;
     int have_baseline = 0;
     std::string index;
-    long first_step = 0;
-    long last_step = -1;
+    long start_index = 0;
+    long end_index = -1;
     unsigned int n_threads = 1;
 
     if (rank == 0)
@@ -49,8 +49,8 @@ int main(int argc, char **argv)
         if (teca_file_util::file_exists(baseline.c_str()))
             have_baseline = 1;
         index = argv[3];
-        first_step = atoi(argv[4]);
-        last_step = atoi(argv[5]);
+        start_index = atoi(argv[4]);
+        end_index = atoi(argv[5]);
         n_threads = atoi(argv[6]);
     }
 
@@ -58,8 +58,8 @@ int main(int argc, char **argv)
     teca_test_util::bcast(baseline);
     teca_test_util::bcast(have_baseline);
     teca_test_util::bcast(index);
-    teca_test_util::bcast(first_step);
-    teca_test_util::bcast(last_step);
+    teca_test_util::bcast(start_index);
+    teca_test_util::bcast(end_index);
     teca_test_util::bcast(n_threads);
 
     // create the pipeline objects
@@ -71,8 +71,8 @@ int main(int argc, char **argv)
     // map-reduce
     p_teca_table_reduce map_reduce = teca_table_reduce::New();
     map_reduce->set_input_connection(reader->get_output_port());
-    map_reduce->set_first_step(first_step);
-    map_reduce->set_last_step(last_step);
+    map_reduce->set_start_index(start_index);
+    map_reduce->set_end_index(end_index);
     map_reduce->set_verbose(1);
     map_reduce->set_thread_pool_size(n_threads);
 

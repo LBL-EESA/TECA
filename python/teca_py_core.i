@@ -2,11 +2,11 @@
 #include <vector>
 
 #include "teca_algorithm_executive.h"
-#include "teca_time_step_executive.h"
+#include "teca_index_executive.h"
 #include "teca_metadata.h"
 #include "teca_algorithm.h"
 #include "teca_threaded_algorithm.h"
-#include "teca_temporal_reduction.h"
+#include "teca_index_reduce.h"
 #include "teca_variant_array.h"
 
 #include "teca_py_object.h"
@@ -397,12 +397,12 @@ class teca_algorithm_executive;
 %include "teca_algorithm_executive.h"
 
 /***************************************************************************
- time_step_executive
+ index_executive
  ***************************************************************************/
-%ignore teca_time_step_executive::shared_from_this;
-%shared_ptr(teca_time_step_executive)
-%ignore teca_time_step_executive::operator=;
-%include "teca_time_step_executive.h"
+%ignore teca_index_executive::shared_from_this;
+%shared_ptr(teca_index_executive)
+%ignore teca_index_executive::operator=;
+%include "teca_index_executive.h"
 
 /***************************************************************************
  algorithm
@@ -497,10 +497,10 @@ typedef std::pair<std::shared_ptr<teca_algorithm>, unsigned int> teca_algorithm_
 %include "teca_threaded_algorithm.h"
 
 /***************************************************************************
- temporal_reduction
+ index_reduce
  ***************************************************************************/
-%ignore teca_temporal_reduction::shared_from_this;
-%shared_ptr(teca_temporal_reduction)
-%ignore teca_temporal_reduction::operator=;
-%include "teca_temporal_reduction_fwd.h"
-%include "teca_temporal_reduction.h"
+%ignore teca_index_reduce::shared_from_this;
+%shared_ptr(teca_index_reduce)
+%ignore teca_index_reduce::operator=;
+%include "teca_index_reduce_fwd.h"
+%include "teca_index_reduce.h"

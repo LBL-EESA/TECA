@@ -17,7 +17,7 @@ u_var = sys.argv[3]
 v_var = sys.argv[4]
 threshold = float(sys.argv[5])
 first_step = int(sys.argv[6])
-last_step = int(sys.argv[7])
+end_index = int(sys.argv[7])
 out_file = sys.argv[8]
 
 cfr = teca_cf_reader.New()
@@ -46,9 +46,9 @@ cc.set_low_threshold_value(threshold)
 cc.set_label_variable('con_comps')
 cc.set_input_connection(l2n.get_output_port())
 
-exe = teca_time_step_executive.New()
-exe.set_first_step(first_step)
-exe.set_last_step(last_step)
+exe = teca_index_executive.New()
+exe.set_start_index(first_step)
+exe.set_end_index(end_index)
 
 wri = teca_vtk_cartesian_mesh_writer.New()
 wri.set_input_connection(cc.get_output_port())

@@ -1,7 +1,7 @@
 #include "teca_cf_reader.h"
 #include "teca_temporal_average.h"
 #include "teca_vtk_cartesian_mesh_writer.h"
-#include "teca_time_step_executive.h"
+#include "teca_index_executive.h"
 #include "teca_system_interface.h"
 
 #include <vector>
@@ -50,9 +50,9 @@ int main(int argc, char **argv)
     w->set_input_connection(a->get_output_port());
 
     // set the executive on the writer to stream time steps
-    p_teca_time_step_executive exec = teca_time_step_executive::New();
-    exec->set_first_step(first_step);
-    exec->set_last_step(last_step);
+    p_teca_index_executive exec = teca_index_executive::New();
+    exec->set_start_index(first_step);
+    exec->set_end_index(last_step);
     exec->set_arrays(arrays);
 
     w->set_executive(exec);

@@ -20,8 +20,8 @@ if len(sys.argv) < 7:
 
 data_regex = sys.argv[1]
 out_file = sys.argv[2]
-first_step = int(sys.argv[3])
-last_step = int(sys.argv[4])
+start_index = int(sys.argv[3])
+end_index = int(sys.argv[4])
 n_threads = int(sys.argv[5])
 var_names = sys.argv[6:]
 
@@ -93,8 +93,8 @@ stats.set_input_connection(cfr.get_output_port())
 
 mr = teca_programmable_reduce.New()
 mr.set_input_connection(stats.get_output_port())
-mr.set_first_step(first_step)
-mr.set_last_step(last_step)
+mr.set_start_index(start_index)
+mr.set_end_index(end_index)
 mr.set_thread_pool_size(n_threads)
 mr.set_reduce_callback(get_reduce_callback(rank))
 

@@ -4,7 +4,7 @@
 #include "teca_shared_object.h"
 #include "teca_dataset_fwd.h"
 #include "teca_metadata.h"
-#include "teca_temporal_reduction.h"
+#include "teca_index_reduce.h"
 
 #include <string>
 #include <vector>
@@ -17,7 +17,7 @@ a reduction on tabular data over time steps.
 tabular data from each time step is collected and
 concatenated into a big table.
 */
-class teca_table_reduce : public teca_temporal_reduction
+class teca_table_reduce : public teca_index_reduce
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_table_reduce)

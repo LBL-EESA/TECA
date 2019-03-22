@@ -12,7 +12,7 @@ if not argc >= 5:
 
 data_regex = sys.argv[1]
 first_step = int(sys.argv[2])
-last_step = int(sys.argv[3])
+end_index = int(sys.argv[3])
 out_file = sys.argv[4]
 arrays = []
 i = 5
@@ -26,9 +26,9 @@ cfr.set_x_axis_variable('lon')
 cfr.set_y_axis_variable('lat')
 cfr.set_t_axis_variable('time')
 
-exe = teca_time_step_executive.New()
-exe.set_first_step(first_step)
-exe.set_last_step(last_step)
+exe = teca_index_executive.New()
+exe.set_start_index(first_step)
+exe.set_end_index(end_index)
 exe.set_arrays(arrays)
 
 wri = teca_vtk_cartesian_mesh_writer.New()

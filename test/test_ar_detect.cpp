@@ -9,7 +9,6 @@
 #include "teca_table_reader.h"
 #include "teca_table_writer.h"
 #include "teca_dataset_diff.h"
-#include "teca_time_step_executive.h"
 #include "teca_file_util.h"
 #include "teca_test_util.h"
 #include "teca_mpi_manager.h"
@@ -101,8 +100,8 @@ int main(int argc, char **argv)
 
     p_teca_table_reduce map_reduce = teca_table_reduce::New();
     map_reduce->set_input_connection(ar_detect->get_output_port());
-    map_reduce->set_first_step(first_step);
-    map_reduce->set_last_step(last_step);
+    map_reduce->set_start_index(first_step);
+    map_reduce->set_end_index(last_step);
     map_reduce->set_verbose(1);
     map_reduce->set_thread_pool_size(n_threads);
 

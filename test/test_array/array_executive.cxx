@@ -15,6 +15,29 @@ int array_executive::initialize(const teca_metadata &md)
 {
     this->requests.clear();
 
+    // figure out the keys
+    std::string initializer_key;
+    if (md.get("index_initializer_key", initializer_key))
+    {
+        TECA_ERROR("No index initializer key has been specified")
+        return -1;
+    }
+
+    std::string request_key;
+    if (md.get("index_request_key", request_key))
+    {
+        TECA_ERROR("No index request key has been specified")
+        return -1;
+    }
+
+    // locate available indices
+    long n_indices = 1;
+    if (md.get(initializer_key, n_indices))
+    {
+        TECA_ERROR("metadata is missing the initializer key")
+        return -1;
+    }
+
     vector<string> array_names;
     if (md.get("array_names", array_names))
     {
