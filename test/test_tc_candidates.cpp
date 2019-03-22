@@ -16,7 +16,6 @@
 #include "teca_table_calendar.h"
 #include "teca_table_writer.h"
 #include "teca_test_util.h"
-#include "teca_time_step_executive.h"
 #include "teca_vtk_cartesian_mesh_writer.h"
 #include "teca_mpi_manager.h"
 #include "teca_system_interface.h"
@@ -41,8 +40,8 @@ int main(int argc, char **argv)
     string regex;
     string baseline;
     int have_baseline = 0;
-    long first_step = 0;
-    long last_step = -1;
+    long start_index = 0;
+    long end_index = -1;
     unsigned int n_threads = 1;
     string ux_850mb;
     string uy_850mb;
@@ -73,8 +72,8 @@ int main(int argc, char **argv)
         baseline = argv[2];
         if (teca_file_util::file_exists(baseline.c_str()))
             have_baseline = 1;
-        first_step = atoi(argv[3]);
-        last_step = atoi(argv[4]);
+        start_index = atoi(argv[3]);
+        end_index = atoi(argv[4]);
         n_threads = atoi(argv[5]);
         ux_850mb = argv[6];
         uy_850mb = argv[7];
@@ -92,8 +91,8 @@ int main(int argc, char **argv)
     teca_test_util::bcast(regex);
     teca_test_util::bcast(baseline);
     teca_test_util::bcast(have_baseline);
-    teca_test_util::bcast(first_step);
-    teca_test_util::bcast(last_step);
+    teca_test_util::bcast(start_index);
+    teca_test_util::bcast(end_index);
     teca_test_util::bcast(n_threads);
     teca_test_util::bcast(ux_850mb);
     teca_test_util::bcast(uy_850mb);
@@ -166,8 +165,8 @@ int main(int argc, char **argv)
     // map-reduce
     p_teca_table_reduce map_reduce = teca_table_reduce::New();
     map_reduce->set_input_connection(cand->get_output_port());
-    map_reduce->set_first_step(first_step);
-    map_reduce->set_last_step(last_step);
+    map_reduce->set_start_index(start_index);
+    map_reduce->set_end_index(end_index);
     map_reduce->set_verbose(1);
     map_reduce->set_thread_pool_size(n_threads);
 

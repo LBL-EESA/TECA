@@ -809,9 +809,9 @@ For example, listing \ref{code:py_glue} shows a command line application written
 %
 % When not using one of TECA's map-reduce implementations one must explicitly proivide a request generator to the algorithm upon which update() is called. In TECA request generater is call an \emph{executive}. The most common use case is to generate a request per time step. This is the purpose of the teca\_time\_step\_executive. It's use is demonstrated in listing \ref{code:py_devel} lines 43-45. Keep in mind that the teca\_time\_step\_executive is not MPI or thread aware, and should not be used for parallel programs.
 % \begin{minted}{python}
-% exe = teca_time_step_executive.New()
-% exe.set_first_step(0)
-% exe.set_last_step(-1)
+% exe = teca_index_executive.New()
+% exe.set_start_index(0)
+% exe.set_end_index(-1)
 % \end{minted}
 % and before the pipeline is executed the executive is installed \mint{python}|wri.set_executive(exe)|
 

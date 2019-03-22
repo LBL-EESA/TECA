@@ -352,10 +352,10 @@ int main(int argc, char **argv)
             opt_vals["highest_lat"].as<double>());
 
     if (opt_vals.count("first_step"))
-        map_reduce->set_first_step(opt_vals["first_step"].as<long>());
+        map_reduce->set_start_index(opt_vals["first_step"].as<long>());
 
     if (opt_vals.count("last_step"))
-        map_reduce->set_last_step(opt_vals["last_step"].as<long>());
+        map_reduce->set_end_index(opt_vals["last_step"].as<long>());
 
     if (opt_vals.count("n_threads"))
         map_reduce->set_thread_pool_size(opt_vals["n_threads"].as<int>());
@@ -474,7 +474,7 @@ int main(int argc, char **argv)
                     <<  start_date << "\"")
                 return -1;
             }
-            map_reduce->set_first_step(first_step);
+            map_reduce->set_start_index(first_step);
         }
 
         // and end date
@@ -489,7 +489,7 @@ int main(int argc, char **argv)
                     <<  end_date << "\"")
                 return -1;
             }
-            map_reduce->set_last_step(last_step);
+            map_reduce->set_end_index(last_step);
         }
     }
 

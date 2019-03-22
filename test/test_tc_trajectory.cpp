@@ -7,7 +7,6 @@
 #include "teca_table_reader.h"
 #include "teca_table_writer.h"
 #include "teca_test_util.h"
-#include "teca_time_step_executive.h"
 #include "teca_system_interface.h"
 
 #include <vector>

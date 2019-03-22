@@ -1,31 +1,43 @@
-#ifndef teca_temporal_reduction_h
-#define teca_temporal_reduction_h
+#ifndef teca_index_reduce_h
+#define teca_index_reduce_h
 
 #include "teca_dataset_fwd.h"
-#include "teca_temporal_reduction_fwd.h"
+#include "teca_index_reduce_fwd.h"
 
 #include "teca_threaded_algorithm.h"
 #include "teca_metadata.h"
 
 #include <vector>
 
-// base class for MPI+threads temporal reduction over
-// time. the available time steps  are partitioned
-// across MPI ranks and threads. one can restrict
-// operation to a range of time steps by setting
-// first and last steps to process.
+// base class for MPI + threads map reduce reduction over an index. the available
+// indices  are partitioned across MPI ranks and threads. one can restrict
+// operation to a range of time steps by setting first and last indeces to
+// process.
 //
 // meta data keys:
+//
 //      requires:
-//          number_of_time_steps - the number of time steps available
+//
+//      index_initializer_key -- holds the name of the key that tells how
+//                               many indices are available. the named key
+//                               must also be present and should conatin the
+//                               number of indices available
+//
+//      index_request_key -- holds the name of the key used to request
+//                           a specific index. request are generated with this
+//                           name set to a specific index to be processed some
+//                           upstream algorithm is expected to produce the data
+//                           associated with the given index
 //
 //      consumes:
-//          time_step
-class teca_temporal_reduction : public teca_threaded_algorithm
+//
+//      the key named by index_request_key
+//
+class teca_index_reduce : public teca_threaded_algorithm
 {
 public:
-    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_temporal_reduction)
-    virtual ~teca_temporal_reduction(){}
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_index_reduce)
+    virtual ~teca_index_reduce(){}
 
     // report/initialize to/from Boost program options
     // objects.
@@ -36,11 +48,15 @@ public:
     // setting first_step=0 and last_step=-1 results
     // in processing all available steps. this is
     // the default.
-    TECA_ALGORITHM_PROPERTY(long, first_step)
-    TECA_ALGORITHM_PROPERTY(long, last_step)
+    TECA_ALGORITHM_PROPERTY(long, start_index)
+    TECA_ALGORITHM_PROPERTY(long, end_index)
+
+    // enable/disable MPI parallelization. With MPI disabled
+    // reductions are locally parallelized over threads
+    TECA_ALGORITHM_PROPERTY(int, enable_mpi)
 
 protected:
-    teca_temporal_reduction();
+    teca_index_reduce();
 
 protected:
     // override that implements the reduction. given two datasets
@@ -98,8 +114,9 @@ private:
     const_p_teca_dataset reduce_remote(const_p_teca_dataset local_data);
 
 private:
-    long first_step;
-    long last_step;
+    long start_index;
+    long end_index;
+    int enable_mpi;
 };
 
 #endif

@@ -38,10 +38,10 @@ teca_add_test(test_pipeline_branches
     LIBS teca_core teca_test_array ${teca_test_link}
     COMMAND test_pipeline_branches)
 
-teca_add_test(test_pipeline_temporal_reduction
-    SOURCES test_pipeline_temporal_reduction.cpp
+teca_add_test(test_pipeline_index_reduce
+    SOURCES test_pipeline_index_reduce.cpp
     LIBS teca_core teca_test_array ${teca_test_link}
-    COMMAND test_pipeline_temporal_reduction)
+    COMMAND test_pipeline_index_reduce)
 
 teca_add_test(test_stack_trace_signal_handler
     SOURCES test_stack_trace_signal_handler.cpp

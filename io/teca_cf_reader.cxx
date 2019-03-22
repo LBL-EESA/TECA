@@ -817,6 +817,13 @@ teca_metadata teca_cf_reader::get_output_metadata(
             this->internals->metadata.insert("step_count", step_count);
             this->internals->metadata.insert("number_of_time_steps", t_axis->size());
 
+            // inform the executive how many and how to request time steps
+            this->internals->metadata.insert(
+                "index_initializer_key", std::string("number_of_time_steps"));
+
+            this->internals->metadata.insert(
+                "index_request_key", std::string("time_step"));
+
             this->internals->metadata.to_stream(stream);
 
 #if defined(TECA_HAS_OPENSSL)

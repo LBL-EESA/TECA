@@ -12,7 +12,7 @@ if not argc >= 7:
 
 data_regex = sys.argv[1]
 first_step = int(sys.argv[2])
-last_step = int(sys.argv[3])
+end_index = int(sys.argv[3])
 out_file = sys.argv[4]
 comp_0 = sys.argv[5]
 comp_1 = sys.argv[6]
@@ -39,9 +39,9 @@ vort.set_component_1_variable(comp_1)
 vort.set_vorticity_variable("vort")
 vort.set_input_connection(l2.get_output_port())
 
-exe = teca_time_step_executive.New()
-exe.set_first_step(first_step)
-exe.set_last_step(last_step)
+exe = teca_index_executive.New()
+exe.set_start_index(first_step)
+exe.set_end_index(end_index)
 
 wri = teca_vtk_cartesian_mesh_writer.New()
 wri.set_input_connection(vort.get_output_port())

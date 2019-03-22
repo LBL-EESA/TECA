@@ -8,13 +8,13 @@ set(teca_core_srcs
     teca_binary_stream.cxx
     teca_calendar.cxx
     teca_dataset.cxx
+    teca_index_executive.cxx
+    teca_index_reduce.cxx
     teca_metadata.cxx
     teca_mpi_manager.cxx
     teca_parallel_id.cxx
-    teca_temporal_reduction.cxx
     teca_threaded_algorithm.cxx
     teca_thread_pool.cxx
-    teca_time_step_executive.cxx
     teca_variant_array.cxx
     )
 

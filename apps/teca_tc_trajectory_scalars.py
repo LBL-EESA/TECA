@@ -66,8 +66,8 @@ scalars.set_plot_peak_radius(args.plot_peak_radius)
 
 mapper = teca_table_reduce.New()
 mapper.set_input_connection(scalars.get_output_port())
-mapper.set_first_step(args.first_track)
-mapper.set_last_step(args.last_track)
+mapper.set_start_index(args.first_track)
+mapper.set_end_index(args.last_track)
 mapper.set_thread_pool_size(1)
 
 # execute

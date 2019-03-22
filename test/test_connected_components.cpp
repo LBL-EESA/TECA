@@ -12,7 +12,7 @@
 #include "teca_table_reader.h"
 #include "teca_table_writer.h"
 #include "teca_vtk_cartesian_mesh_writer.h"
-#include "teca_time_step_executive.h"
+#include "teca_index_executive.h"
 #include "teca_file_util.h"
 #include "teca_system_interface.h"
 
@@ -43,7 +43,7 @@ int main(int argc, char **argv)
     string u_var = argv[6];
     string v_var = argv[7];
     int first_step = atoi(argv[8]);
-    int last_step = atoi(argv[9]);
+    int end_index = atoi(argv[9]);
     double threshold = atof(argv[10]);
     string out_file = argv[11];
     string  baseline = argv[12];
@@ -89,9 +89,9 @@ int main(int argc, char **argv)
     p_teca_dataset_capture cao = teca_dataset_capture::New();
     cao->set_input_connection(ca->get_output_port());
 
-    p_teca_time_step_executive exe = teca_time_step_executive::New();
-    exe->set_first_step(first_step);
-    exe->set_last_step(last_step);
+    p_teca_index_executive exe = teca_index_executive::New();
+    exe->set_start_index(first_step);
+    exe->set_end_index(end_index);
 
     p_teca_vtk_cartesian_mesh_writer wri = teca_vtk_cartesian_mesh_writer::New();
     wri->set_input_connection(cao->get_output_port());

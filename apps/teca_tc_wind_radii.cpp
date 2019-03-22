@@ -8,7 +8,6 @@
 #include "teca_table_to_stream.h"
 #include "teca_table_writer.h"
 #include "teca_dataset_diff.h"
-#include "teca_time_step_executive.h"
 #include "teca_file_util.h"
 #include "teca_mpi_manager.h"
 
@@ -240,10 +239,10 @@ int main(int argc, char **argv)
         wind_radii->set_search_radius(opt_vals["search_radius"].as<double>());
 
     if (opt_vals.count("first_track"))
-        map_reduce->set_first_step(opt_vals["first_track"].as<long>());
+        map_reduce->set_start_index(opt_vals["first_track"].as<long>());
 
     if (opt_vals.count("last_track"))
-        map_reduce->set_last_step(opt_vals["last_track"].as<long>());
+        map_reduce->set_end_index(opt_vals["last_track"].as<long>());
 
     if (opt_vals.count("n_threads"))
         map_reduce->set_thread_pool_size(opt_vals["n_threads"].as<int>());

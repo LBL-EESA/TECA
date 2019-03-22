@@ -68,8 +68,8 @@ if (len(sys.argv) != 17):
 # parse command line
 regex = sys.argv[1];
 baseline = sys.argv[2];
-first_step = int(sys.argv[3]);
-last_step = int(sys.argv[4]);
+start_index = int(sys.argv[3]);
+end_index = int(sys.argv[4]);
 n_threads = int(sys.argv[5]);
 ux_850mb = sys.argv[6];
 uy_850mb = sys.argv[7];
@@ -146,8 +146,8 @@ cand.set_search_lat_high(high_lat)
 # map-reduce
 map_reduce = teca_table_reduce.New()
 map_reduce.set_input_connection(cand.get_output_port())
-map_reduce.set_first_step(first_step)
-map_reduce.set_last_step(last_step)
+map_reduce.set_start_index(start_index)
+map_reduce.set_end_index(end_index)
 map_reduce.set_verbose(1)
 map_reduce.set_thread_pool_size(n_threads)
 

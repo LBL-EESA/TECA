@@ -4,7 +4,7 @@
 #include "teca_shared_object.h"
 #include "array_fwd.h"
 
-#include "teca_temporal_reduction.h"
+#include "teca_index_reduce.h"
 #include "teca_metadata.h"
 
 #include <string>
@@ -15,7 +15,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(array_temporal_stats)
 /** example demonstarting a temporal reduction. min, average
  and max are computed over time steps for the named array.
 */
-class array_temporal_stats : public teca_temporal_reduction
+class array_temporal_stats : public teca_index_reduce
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(array_temporal_stats)
