@@ -15,19 +15,19 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_2d_component_area)
 Given a set of labels on a Cartesian mesh, the algorithm computes
 the area of each region. Regions are identified by assigning a
 unique integer value to each mesh point that belongs in the
-region. The label_variable property names the variable containing
+region. The component_variable property names the variable containing
 the region labels.
 
 if the region labels start at 0 and are contiguous then an
-optimization can be used. Set contiguous_label_ids property
+optimization can be used. Set contiguous_component_ids property
 to enable the optimization.
 
 the input dataset is passed through and the results of the
-calculations are stored in the output dataset metadata in arrays
-named:
+calculations are stored in the output dataset metadata in
+keys named:
 
-  label_id
-  area
+  component_ids
+  component_area
 
 */
 class teca_2d_component_area : public teca_algorithm
@@ -42,17 +42,17 @@ public:
     TECA_SET_ALGORITHM_PROPERTIES()
 
     // set the name of the input array
-    TECA_ALGORITHM_PROPERTY(std::string, label_variable)
+    TECA_ALGORITHM_PROPERTY(std::string, component_variable)
 
     // set this only if you know for certain that label ids
     // are contiguous and start at 0. this enables use of a
     // faster implementation.
-    TECA_ALGORITHM_PROPERTY(int, contiguous_label_ids)
+    TECA_ALGORITHM_PROPERTY(int, contiguous_component_ids)
 
 protected:
     teca_2d_component_area();
 
-    std::string get_label_variable(const teca_metadata &request);
+    std::string get_component_variable(const teca_metadata &request);
 
 private:
     teca_metadata get_output_metadata(
@@ -70,8 +70,8 @@ private:
         const teca_metadata &request) override;
 
 private:
-    std::string label_variable;
-    int contiguous_label_ids;
+    std::string component_variable;
+    int contiguous_component_ids;
 };
 
 #endif

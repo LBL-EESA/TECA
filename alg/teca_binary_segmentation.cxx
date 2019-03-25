@@ -156,9 +156,9 @@ teca_metadata teca_binary_segmentation::get_output_metadata(
     if (segmentation_var.empty())
     {
         if (this->threshold_variable.empty())
-            segmentation_var = "segmentation";
+            segmentation_var = "_segmentation";
         else
-            segmentation_var = this->threshold_variable + "segmentation";
+            segmentation_var = this->threshold_variable + "_segmentation";
     }
 
     teca_metadata md = input_md[0];

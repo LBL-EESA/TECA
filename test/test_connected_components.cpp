@@ -1,6 +1,7 @@
 #include "teca_cf_reader.h"
 #include "teca_mask.h"
 #include "teca_l2_norm.h"
+#include "teca_binary_segmentation.h"
 #include "teca_connected_components.h"
 #include "teca_2d_component_area.h"
 #include "teca_dataset_capture.h"
@@ -58,27 +59,32 @@ int main(int argc, char **argv)
     cfr->set_t_axis_variable(t_var);
 
     p_teca_mask mask = teca_mask::New();
+    mask->set_input_connection(cfr->get_output_port());
     mask->set_low_threshold_value(1e4);
     mask->set_mask_value(0);
     mask->append_mask_variable(u_var);
     mask->append_mask_variable(v_var);
-    mask->set_input_connection(cfr->get_output_port());
 
     p_teca_l2_norm l2n = teca_l2_norm::New();
+    l2n->set_input_connection(mask->get_output_port());
     l2n->set_component_0_variable(u_var);
     l2n->set_component_1_variable(v_var);
     l2n->set_l2_norm_variable("wind_speed");
-    l2n->set_input_connection(mask->get_output_port());
+
+    p_teca_binary_segmentation bs = teca_binary_segmentation::New();
+    bs->set_input_connection(l2n->get_output_port());
+    bs->set_threshold_variable("wind_speed");
+    bs->set_low_threshold_value(threshold);
+    bs->set_segmentation_variable("wind_speed_seg");
 
     p_teca_connected_components cc = teca_connected_components::New();
-    cc->set_threshold_variable("wind_speed");
-    cc->set_low_threshold_value(threshold);
-    cc->set_label_variable("con_comps");
-    cc->set_input_connection(l2n->get_output_port());
+    cc->set_input_connection(bs->get_output_port());
+    cc->set_segmentation_variable("wind_speed_seg");
+    cc->set_component_variable("con_comps");
 
     p_teca_2d_component_area ca = teca_2d_component_area::New();
-    ca->set_label_variable("con_comps");
     ca->set_input_connection(cc->get_output_port());
+    ca->set_component_variable("con_comps");
 
     p_teca_dataset_capture cao = teca_dataset_capture::New();
     cao->set_input_connection(ca->get_output_port());
@@ -98,8 +104,8 @@ int main(int argc, char **argv)
     const_p_teca_dataset ds = cao->get_dataset();
     teca_metadata mdo = ds->get_metadata();
 
-    p_teca_variant_array comp_label = mdo.get("label_id");
-    p_teca_variant_array comp_area = mdo.get("area");
+    p_teca_variant_array comp_label = mdo.get("component_ids");
+    p_teca_variant_array comp_area = mdo.get("component_area");
 
     p_teca_table test_data = teca_table::New();
     test_data->append_column("comp_label", comp_label);

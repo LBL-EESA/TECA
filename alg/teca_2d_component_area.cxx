@@ -19,16 +19,16 @@
 
 namespace {
 
-template <typename label_t>
-label_t get_max_label_id(unsigned long n, const label_t *labels)
+template <typename component_t>
+component_t get_max_component_id(unsigned long n, const component_t *labels)
 {
-    label_t max_label_id = std::numeric_limits<label_t>::lowest();
+    component_t max_component_id = std::numeric_limits<component_t>::lowest();
     for (unsigned long i = 0; i < n; ++i)
     {
-        label_t label = labels[i];
-        max_label_id = label > max_label_id ? label : max_label_id;
+        component_t label = labels[i];
+        max_component_id = label > max_component_id ? label : max_component_id;
     }
-    return max_label_id;
+    return max_component_id;
 }
 
 // visit each node in the mesh, the node is treated as a cell in
@@ -49,9 +49,9 @@ label_t get_max_label_id(unsigned long n, const label_t *labels)
 //   rad_lat = deg_lat * pi/180
 //   sin(rad_lat) = cos(pi/2 - rad_lat)
 //
-template<typename coord_t, typename label_t, typename container_t>
+template<typename coord_t, typename component_t, typename container_t>
 void component_area(unsigned long nlon, unsigned long nlat,
-    const coord_t *deg_lon, const coord_t *deg_lat, const label_t *labels,
+    const coord_t *deg_lon, const coord_t *deg_lat, const component_t *labels,
     container_t &area)
 {
     // This calculation is sensative to floating point precision and
@@ -109,7 +109,7 @@ void component_area(unsigned long nlon, unsigned long nlat,
 
 // --------------------------------------------------------------------------
 teca_2d_component_area::teca_2d_component_area() :
-    label_variable(""), contiguous_label_ids(0)
+    component_variable(""), contiguous_component_ids(0)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -128,9 +128,9 @@ void teca_2d_component_area::get_properties_description(
         + (prefix.empty()?"teca_2d_component_area":prefix));
 
     opts.add_options()
-        TECA_POPTS_GET(std::string, prefix, label_variable,
+        TECA_POPTS_GET(std::string, prefix, component_variable,
             "name of the varibale containing region labels")
-        TECA_POPTS_GET(int, prefix, contiguous_label_ids,
+        TECA_POPTS_GET(int, prefix, contiguous_component_ids,
             "when the region label ids start at 0 and are consecutive "
             "this flag enables use of an optimization (0)")
         ;
@@ -142,24 +142,24 @@ void teca_2d_component_area::get_properties_description(
 void teca_2d_component_area::set_properties(const std::string &prefix,
     variables_map &opts)
 {
-    TECA_POPTS_SET(opts, std::string, prefix, label_variable)
-    TECA_POPTS_SET(opts, int, prefix, contiguous_label_ids)
+    TECA_POPTS_SET(opts, std::string, prefix, component_variable)
+    TECA_POPTS_SET(opts, int, prefix, contiguous_component_ids)
 }
 #endif
 
 // --------------------------------------------------------------------------
-std::string teca_2d_component_area::get_label_variable(
+std::string teca_2d_component_area::get_component_variable(
     const teca_metadata &request)
 {
-    std::string label_var = this->label_variable;
-    if (label_var.empty())
+    std::string component_var = this->component_variable;
+    if (component_var.empty())
     {
-        if (request.has("teca_2d_component_area::label_variable"))
-            request.get("teca_2d_component_area::label_variable", label_var);
+        if (request.has("teca_2d_component_area::component_variable"))
+            request.get("teca_2d_component_area::component_variable", component_var);
         else
-            label_var = "labels";
+            component_var = "labels";
     }
-    return label_var;
+    return component_var;
 }
 
 // --------------------------------------------------------------------------
@@ -193,8 +193,8 @@ std::vector<teca_metadata> teca_2d_component_area::get_upstream_request(
     std::vector<teca_metadata> up_reqs;
 
     // get the name of the array to request
-    std::string label_var = this->get_label_variable(request);
-    if (label_var.empty())
+    std::string component_var = this->get_component_variable(request);
+    if (component_var.empty())
     {
         TECA_ERROR("A label variable was not specified")
         return up_reqs;
@@ -206,7 +206,7 @@ std::vector<teca_metadata> teca_2d_component_area::get_upstream_request(
     std::set<std::string> arrays;
     if (req.has("arrays"))
         req.get("arrays", arrays);
-    arrays.insert(label_var);
+    arrays.insert(component_var);
 
     req.insert("arrays", arrays);
 
@@ -245,18 +245,18 @@ const_p_teca_dataset teca_2d_component_area::execute(
         std::const_pointer_cast<teca_cartesian_mesh>(in_mesh));
 
     // get the input array
-    std::string label_var = this->get_label_variable(request);
-    if (label_var.empty())
+    std::string component_var = this->get_component_variable(request);
+    if (component_var.empty())
     {
         TECA_ERROR("A label variable was not specified")
         return nullptr;
     }
 
-    const_p_teca_variant_array label_array
-        = out_mesh->get_point_arrays()->get(label_var);
-    if (!label_array)
+    const_p_teca_variant_array component_array
+        = out_mesh->get_point_arrays()->get(component_var);
+    if (!component_array)
     {
-        TECA_ERROR("label variable \"" << label_var
+        TECA_ERROR("label variable \"" << component_var
             << "\" is not in the input")
         return nullptr;
     }
@@ -298,36 +298,36 @@ const_p_teca_dataset teca_2d_component_area::execute(
         const NT_COORD *p_yc = static_cast<TT_COORD*>(yc.get())->get();
 
         NESTED_TEMPLATE_DISPATCH_I(const teca_variant_array_impl,
-            label_array.get(),
+            component_array.get(),
             _LABEL,
 
-            const NT_LABEL *p_labels = static_cast<TT_LABEL*>(label_array.get())->get();
+            const NT_LABEL *p_labels = static_cast<TT_LABEL*>(component_array.get())->get();
 
-            bool has_label_id = in_metadata.has("teca_connected_components::label_id");
-            if (this->contiguous_label_ids || has_label_id)
+            bool has_component_id = in_metadata.has("component_ids");
+            if (this->contiguous_component_ids || has_component_id)
             {
                 // use a contiguous buffer to hold the result, only for
                 // contiguous lables that start at 0
-                p_teca_variant_array label_id;
-                if (has_label_id)
+                p_teca_variant_array component_id;
+                if (has_component_id)
                 {
-                    label_id = in_metadata.get("teca_connected_components::label_id");
+                    component_id = in_metadata.get("component_ids");
                 }
                 else
                 {
-                    short max_label_id = ::get_max_label_id(nxy, p_labels);
-                    short n_labels = max_label_id + 1;
+                    short max_component_id = ::get_max_component_id(nxy, p_labels);
+                    short n_labels = max_component_id + 1;
                     p_teca_short_array tmp = teca_short_array::New(n_labels);
                     for (short i = 0; i < n_labels; ++i)
                         tmp->set(i, i);
-                    label_id = tmp;
+                    component_id = tmp;
                 }
-                std::vector<calc_t> area(label_id->size());
-                ::component_area(nx,ny, p_xc,p_yc, p_labels, area);
+                std::vector<calc_t> component_area(component_id->size());
+                ::component_area(nx,ny, p_xc,p_yc, p_labels, component_area);
 
                 // transfer the result to the output
-                out_metadata.insert("label_id", label_id);
-                out_metadata.insert("area", area);
+                out_metadata.insert("component_ids", component_id);
+                out_metadata.insert("component_area", component_area);
             }
             else
             {
@@ -339,22 +339,22 @@ const_p_teca_dataset teca_2d_component_area::execute(
                 // transfer the result to the output
                 unsigned int n_labels = result.size();
 
-                p_teca_variant_array_impl<NT_LABEL> label_id =
+                p_teca_variant_array_impl<NT_LABEL> component_id =
                     teca_variant_array_impl<NT_LABEL>::New(n_labels);
 
-                p_teca_variant_array_impl<calc_t> area =
+                p_teca_variant_array_impl<calc_t> component_area =
                     teca_variant_array_impl<calc_t>::New(n_labels);
 
                 //std::map<NT_LABEL,NT_COORD>::iterator it = result.begin();
                 auto it = result.begin();
                 for (unsigned int i = 0; i < n_labels; ++i,++it)
                 {
-                    label_id->set(i, it->first);
-                    area->set(i, it->second);
+                    component_id->set(i, it->first);
+                    component_area->set(i, it->second);
                 }
 
-                out_metadata.insert("label_id", label_id);
-                out_metadata.insert("area", area);
+                out_metadata.insert("component_ids", component_id);
+                out_metadata.insert("component_area", component_area);
             }
             )
         )
