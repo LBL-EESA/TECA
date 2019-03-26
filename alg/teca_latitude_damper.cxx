@@ -1,15 +1,11 @@
 #include "teca_latitude_damper.h"
 
-#include "teca_mesh.h"
-#include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_metadata.h"
 #include "teca_cartesian_mesh.h"
 
-#include <algorithm>
 #include <iostream>
 #include <set>
-#include <cmath>
 #include <complex.h>
 
 using std::cerr;

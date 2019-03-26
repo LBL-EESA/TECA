@@ -1,7 +1,4 @@
-#include "teca_cf_reader.h"
 #include "teca_latitude_damper.h"
-#include "teca_l2_norm.h"
-#include "teca_connected_components.h"
 #include "teca_vtk_cartesian_mesh_writer.h"
 #include "teca_time_step_executive.h"
 #include "teca_system_interface.h"

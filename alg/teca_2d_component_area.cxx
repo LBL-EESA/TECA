@@ -326,8 +326,8 @@ const_p_teca_dataset teca_2d_component_area::execute(
                 ::component_area(nx,ny, p_xc,p_yc, p_labels, area);
 
                 // transfer the result to the output
-                out_metadata.insert("teca_2d_component_area::label_id", label_id);
-                out_metadata.insert("teca_2d_component_area::area", area);
+                out_metadata.insert("label_id", label_id);
+                out_metadata.insert("area", area);
             }
             else
             {
@@ -353,8 +353,8 @@ const_p_teca_dataset teca_2d_component_area::execute(
                     area->set(i, it->second);
                 }
 
-                out_metadata.insert("teca_2d_component_area::label_id", label_id);
-                out_metadata.insert("teca_2d_component_area::area", area);
+                out_metadata.insert("label_id", label_id);
+                out_metadata.insert("area", area);
             }
             )
         )
