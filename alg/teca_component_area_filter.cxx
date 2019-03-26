@@ -21,8 +21,8 @@ void get_filtered_labels(
 {
     for (size_t i = 0; i < n; ++i)
     {
-        if (areas[i] < low_threshold_value
-            || areas[i] > high_threshold_value)
+        if ((areas[i] < low_threshold_value) ||
+            (areas[i] > high_threshold_value))
             filter_map[unique_labels[i]] = replace_value;
         else
             filter_map[unique_labels[i]] = unique_labels[i];
@@ -45,8 +45,8 @@ void apply_filter(
 
 // --------------------------------------------------------------------------
 teca_component_area_filter::teca_component_area_filter() :
-    labels_variable(""), unique_labels_variable("label_id"), 
-    areas_variable("area"), filtered_label_id(0),
+    component_variable(""), component_ids_key("label_id"),
+    component_area_key("area"), mask_value(0),
     low_threshold_value(std::numeric_limits<double>::lowest()),
     high_threshold_value(std::numeric_limits<double>::max()),
     variable_post_fix("")
@@ -68,24 +68,26 @@ void teca_component_area_filter::get_properties_description(
         + (prefix.empty()?"teca_component_area_filter":prefix));
 
     opts.add_options()
-        TECA_POPTS_GET(std::string, prefix, labels_variable,
-            "name of the varibale containing region labels")
-        TECA_POPTS_GET(std::string, prefix, unique_labels_variable,
-            "name of the varibale containing unique region labels")
-        TECA_POPTS_GET(std::string, prefix, areas_variable,
-            "name of the varibale containing the areas of the region labels")
-        TECA_POPTS_GET(int, prefix, filtered_label_id,
-            "when the region label ids get filtered, it will be replaced "
-            "by this label value")
+        TECA_POPTS_GET(std::string, prefix, component_variable,
+            "name of the varibale containing connected component labeling")
+        TECA_POPTS_GET(std::string, prefix, component_ids_key,
+            "name of the key that contains the list of component ids "
+            "\"component_ids\")")
+        TECA_POPTS_GET(std::string, prefix, component_area_key,
+            "name of the key that contains the list of component areas "
+            "(\"component_area\")")
+        TECA_POPTS_GET(int, prefix, mask_value,
+            "components with area outside of the range will be replaced "
+            "by this label value (0)")
         TECA_POPTS_GET(double, prefix, low_threshold_value,
-            "set the value of the low threshold value for each area to "
-            "be compared to and see if smaller than")
+            "set the lower end of the range of areas to pass through. "
+            "components smaller than this are masked out. (-inf)")
         TECA_POPTS_GET(double, prefix, high_threshold_value,
-            "set the value of the high threshold value for each area to "
-            "be compared to and see if bigger than")
+            "set the higher end of the range of areas to pass through. "
+            "components larger than this are masked out. (+inf)")
         TECA_POPTS_GET(std::string, prefix, variable_post_fix,
-            "set the post-fix that will be attached to the variable "
-            "that will be saved in the output")
+            "set a string that will be appended to variable names and "
+            "metadata keys in the filter's output (\"\")")
         ;
 
     global_opts.add(opts);
@@ -95,10 +97,10 @@ void teca_component_area_filter::get_properties_description(
 void teca_component_area_filter::set_properties(const std::string &prefix,
     variables_map &opts)
 {
-    TECA_POPTS_SET(opts, std::string, prefix, labels_variable)
-    TECA_POPTS_SET(opts, std::string, prefix, unique_labels_variable)
-    TECA_POPTS_SET(opts, std::string, prefix, areas_variable)
-    TECA_POPTS_SET(opts, int, prefix, filtered_label_id)
+    TECA_POPTS_SET(opts, std::string, prefix, component_variable)
+    TECA_POPTS_SET(opts, std::string, prefix, component_ids_key)
+    TECA_POPTS_SET(opts, std::string, prefix, component_area_key)
+    TECA_POPTS_SET(opts, int, prefix, mask_value)
     TECA_POPTS_SET(opts, double, prefix, low_threshold_value)
     TECA_POPTS_SET(opts, double, prefix, high_threshold_value)
     TECA_POPTS_SET(opts, std::string, prefix, variable_post_fix)
@@ -109,51 +111,17 @@ void teca_component_area_filter::set_properties(const std::string &prefix,
 std::string teca_component_area_filter::get_labels_variable(
     const teca_metadata &request)
 {
-    std::string labels_var = this->labels_variable;
+    std::string labels_var = this->component_variable;
     if (labels_var.empty())
     {
-        if (request.has("teca_component_area_filter::labels_variable"))
-            request.get("teca_component_area_filter::labels_variable", labels_var);
+        if (request.has("teca_component_area_filter::component_variable"))
+            request.get("teca_component_area_filter::component_variable", labels_var);
         else if (request.has("teca_2d_component_area::label_variable"))
             request.get("teca_2d_component_area::label_variable", labels_var);
         else
             labels_var = "labels";
     }
     return labels_var;
-}
-
-// --------------------------------------------------------------------------
-std::string teca_component_area_filter::get_unique_labels_variable(
-    const teca_metadata &request)
-{
-    std::string unique_labels_var = this->unique_labels_variable;
-    if (unique_labels_var.empty())
-    {
-        if (request.has("teca_component_area_filter::unique_labels_var"))
-            request.get("teca_component_area_filter::unique_labels_var", unique_labels_var);
-        else if (request.has("teca_2d_component_area::label_id"))
-            request.get("teca_2d_component_area::label_id", unique_labels_var);
-        else
-            unique_labels_var = "unique_labels";
-    }
-    return unique_labels_var;
-}
-
-// --------------------------------------------------------------------------
-std::string teca_component_area_filter::get_areas_variable(
-    const teca_metadata &request)
-{
-    std::string areas_var = this->areas_variable;
-    if (areas_var.empty())
-    {
-        if (request.has("teca_component_area_filter::areas"))
-            request.get("teca_component_area_filter::areas", areas_var);
-        else if (request.has("teca_2d_component_area::area"))
-            request.get("teca_2d_component_area::area", areas_var);
-        else
-            areas_var = "areas";
-    }
-    return areas_var;
 }
 
 // --------------------------------------------------------------------------
@@ -168,6 +136,10 @@ teca_metadata teca_component_area_filter::get_output_metadata(
     (void) port;
 
     teca_metadata md = input_md[0];
+
+    // TODO -- add the name of the output array, this is only
+    // needed if the post fix is set
+
     return md;
 }
 
@@ -201,6 +173,9 @@ std::vector<teca_metadata> teca_component_area_filter::get_upstream_request(
     if (req.has("arrays"))
         req.get("arrays", arrays);
     arrays.insert(labels_var);
+
+    // TODO -- remove the arrays we produce. this is only needed
+    // if the post-fix is set.
 
     req.insert("arrays", arrays);
 
@@ -248,24 +223,11 @@ const_p_teca_dataset teca_component_area_filter::execute(
 
     const_p_teca_variant_array labels_array
         = out_mesh->get_point_arrays()->get(labels_var);
+
     if (!labels_array)
     {
         TECA_ERROR("labels variable \"" << labels_var
             << "\" is not in the input")
-        return nullptr;
-    }
-
-    std::string unique_labels_var = this->get_unique_labels_variable(request);
-    if (unique_labels_var.empty())
-    {
-        TECA_ERROR("label_id variable was not specified")
-        return nullptr;
-    }
-
-    std::string areas_var = this->get_areas_variable(request);
-    if (areas_var.empty())
-    {
-        TECA_ERROR("area variable was not specified")
         return nullptr;
     }
 
@@ -286,8 +248,8 @@ const_p_teca_dataset teca_component_area_filter::execute(
         const_cast<teca_metadata&>(in_mesh->get_metadata());
     teca_metadata &out_metadata = out_mesh->get_metadata();
 
-    const_p_teca_variant_array label_id_array = in_metadata.get(unique_labels_var);
-    const_p_teca_variant_array area_array = in_metadata.get(areas_var);
+    const_p_teca_variant_array label_id_array = in_metadata.get(this->component_ids_key);
+    const_p_teca_variant_array area_array = in_metadata.get(this->component_area_key);
 
     size_t n_elem = labels_array->size();
     p_teca_variant_array filtered_labels_array = labels_array->new_instance(n_elem);
@@ -302,7 +264,7 @@ const_p_teca_dataset teca_component_area_filter::execute(
 
         NT_LABEL *p_labels = static_cast<TT_LABEL*>(filtered_labels_array.get())->get();
 
-        NT_LABEL replace_val = this->filtered_label_id;
+        NT_LABEL replace_val = this->mask_value;
 
         NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
             area_array.get(),
@@ -330,7 +292,6 @@ const_p_teca_dataset teca_component_area_filter::execute(
                     area.push_back(p_areas[i]);
                 }
             }
-            
 
             std::string labels_var_post_fix = labels_var + this->variable_post_fix;
             out_mesh->get_point_arrays()->set(labels_var_post_fix, filtered_labels_array);

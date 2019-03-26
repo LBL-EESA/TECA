@@ -10,11 +10,31 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_component_area_filter)
 
-/// an algorithm that filters labels (components) based on
-/// the area of labeled regions. It replaces the filtered
-/// out labels with a user chosen id, saved in variable
-/// "filtered_label_id".
+/// An algorithm that applies a mask based on connected component area
+/**
+The filter removes the connected components outside the range by the
+'low_threshold_value' and 'high_threshold_value' properties. These default to
+-inf and +inf, hence by default no components are masked. The mask value may be
+set by the 'mask_value' property which defaults to '0'.
 
+The filter expects an integer field containing connected component labels.
+This field is named by the 'component_variable' property. Additionally a list
+of label ids and coresponding areas is expected in the dataset metadata. The
+properties 'component_ids_key' and 'component_area_key' identify the latter
+metadata. These default to the names used by the 'teca_2d_component_area'
+algotihm, 'component_ids' and 'component_area'.
+
+Applying the 'teca_connected_component' algorithm followed by the
+'teca_2d_component_area' algorithm is the easiest way to get valid inputs for
+the 'component_area_filter'.
+
+The filtered coomponent ids are put in the output dataset along with the
+updated lists of valid component ids and component area metadata keys. By
+default the filtered data replaces the input data in the output. However, the
+input data can be retained by setting the 'variable_post_fix' property, a
+string that will be appended to the names of the filtered component array and
+metadata keys.
+*/
 class teca_component_area_filter : public teca_algorithm
 {
 public:
@@ -26,18 +46,21 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // set the name of the input array
-    TECA_ALGORITHM_PROPERTY(std::string, labels_variable)
+    // set the name of the input array containing connected
+    // component labels
+    TECA_ALGORITHM_PROPERTY(std::string, component_variable)
 
-    // set the name of the unique labels array
-    TECA_ALGORITHM_PROPERTY(std::string, unique_labels_variable)
+    // set the name of the dataset metadata key holding connected component
+    // label ids
+    TECA_ALGORITHM_PROPERTY(std::string, component_ids_key)
 
-    // set the name of the labels areas array
-    TECA_ALGORITHM_PROPERTY(std::string, areas_variable)
+    // set the name of the dataset metadata key holding connected component
+    // areas
+    TECA_ALGORITHM_PROPERTY(std::string, component_area_key)
 
     // set this to be the default label id for the filtered
     // out component areas. The default will be '0'
-    TECA_ALGORITHM_PROPERTY(int, filtered_label_id)
+    TECA_ALGORITHM_PROPERTY(long, mask_value)
 
     // set the range identifying values to area filter.
     // The defaults are (-infinity, infinity].
@@ -54,8 +77,6 @@ protected:
     teca_component_area_filter();
 
     std::string get_labels_variable(const teca_metadata &request);
-    std::string get_unique_labels_variable(const teca_metadata &request);
-    std::string get_areas_variable(const teca_metadata &request);
 
 private:
     teca_metadata get_output_metadata(
@@ -73,10 +94,10 @@ private:
         const teca_metadata &request) override;
 
 private:
-    std::string labels_variable;
-    std::string unique_labels_variable;
-    std::string areas_variable;
-    int filtered_label_id;
+    std::string component_variable;
+    std::string component_ids_key;
+    std::string component_area_key;
+    long mask_value;
     double low_threshold_value;
     double high_threshold_value;
     std::string variable_post_fix;

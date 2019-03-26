@@ -114,17 +114,17 @@ int main(int argc, char **argv)
     source->set_dataset(mesh);
 
     p_teca_2d_component_area ca = teca_2d_component_area::New();
-    ca->set_label_variable("labels");
-    ca->set_contiguous_label_ids(consecutive_labels);
     ca->set_input_connection(source->get_output_port());
+    ca->set_component_variable("labels");
+    ca->set_contiguous_component_ids(consecutive_labels);
 
     p_teca_component_area_filter caf = teca_component_area_filter::New();
-    caf->set_labels_variable("labels");
-    caf->set_unique_labels_variable("label_id");
-    caf->set_areas_variable("area");
+    caf->set_input_connection(ca->get_output_port());
+    caf->set_component_variable("labels");
+    caf->set_component_ids_key("component_ids");
+    caf->set_component_area_key("component_area");
     caf->set_low_threshold_value(low_threshold_value);
     caf->set_variable_post_fix(post_fix);
-    caf->set_input_connection(ca->get_output_port());
 
     p_teca_dataset_capture cao = teca_dataset_capture::New();
     cao->set_input_connection(caf->get_output_port());
