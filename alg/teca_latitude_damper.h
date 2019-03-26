@@ -31,7 +31,10 @@ public:
     TECA_ALGORITHM_STATIC_NEW(teca_latitude_damper)
     ~teca_latitude_damper();
 
-    // TODO -- hanlde command line arguments
+    // report/initialize to/from Boost program options
+    // objects.
+    TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
+    TECA_SET_ALGORITHM_PROPERTIES()
 
     // set the center of the Gaussian in units of degress latitude.
     // default is 0.0 deg lat
@@ -65,6 +68,10 @@ protected:
     int get_damped_variables(std::vector<std::string> &vars);
 
 private:
+    teca_metadata get_output_metadata(
+        unsigned int port,
+        const std::vector<teca_metadata> &input_md) override;
+
     std::vector<teca_metadata> get_upstream_request(
         unsigned int port, const std::vector<teca_metadata> &input_md,
         const teca_metadata &request) override;

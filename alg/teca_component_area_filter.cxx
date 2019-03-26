@@ -181,7 +181,7 @@ std::vector<teca_metadata> teca_component_area_filter::get_upstream_request(
     std::string var_post_fix = this->variable_post_fix;
     if (!var_post_fix.empty())
     {
-        teca_metadata_util::remove_post_fix(arrays, this->variable_post_fix);
+        teca_metadata_util::remove_post_fix(arrays, var_post_fix);
     }
 
     req.insert("arrays", arrays);

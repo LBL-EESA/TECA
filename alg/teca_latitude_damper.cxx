@@ -3,9 +3,15 @@
 #include "teca_variant_array.h"
 #include "teca_metadata.h"
 #include "teca_cartesian_mesh.h"
+#include "teca_metadata_util.h"
 
 #include <iostream>
 #include <set>
+
+#if defined(TECA_HAS_BOOST)
+#include <boost/program_options.hpp>
+#endif
+
 #include <complex.h>
 
 using std::cerr;
@@ -61,6 +67,41 @@ teca_latitude_damper::teca_latitude_damper() :
 teca_latitude_damper::~teca_latitude_damper()
 {}
 
+#if defined(TECA_HAS_BOOST)
+// --------------------------------------------------------------------------
+void teca_latitude_damper::get_properties_description(
+    const std::string &prefix, options_description &global_opts)
+{
+    options_description opts("Options for "
+        + (prefix.empty()?"teca_latitude_damper":prefix));
+    
+    opts.add_options()
+        TECA_POPTS_GET(double, prefix, center,
+            "set the center (mu) for the gaussian filter")
+        TECA_POPTS_GET(double, prefix, half_width_at_half_max,
+            "set the value of the half width at half maximum (HWHM) "
+            "to calculate sigma from: sigma = HWHM/std::sqrt(2.0*std::log(2.0))")
+        TECA_POPTS_GET(std::vector<std::string>, prefix, damped_variables,
+            "set the variables that will be damped by the inverted "
+            "gaussian filter")
+        TECA_POPTS_GET(std::string, prefix, variable_post_fix,
+            "set the post-fix that will be attached to the variables "
+            "that will be saved in the output")
+        ;
+    
+    global_opts.add(opts);
+}
+// --------------------------------------------------------------------------
+void teca_latitude_damper::set_properties(const std::string &prefix,
+    variables_map &opts)
+{
+    TECA_POPTS_SET(opts, double, prefix, center)
+    TECA_POPTS_SET(opts, double, prefix, half_width_at_half_max)
+    TECA_POPTS_SET(opts, std::vector<std::string>, prefix, damped_variables)
+    TECA_POPTS_SET(opts, std::string, prefix, variable_post_fix)
+}
+#endif
+
 // --------------------------------------------------------------------------
 int teca_latitude_damper::get_sigma(const teca_metadata &request, double &sigma)
 {
@@ -111,9 +152,34 @@ int teca_latitude_damper::get_damped_variables(std::vector<std::string> &vars)
     return 0;
 }
 
-// TODO -- implement get_output_metadata. this should report the names
-// of the arrays that will be generated, ie. damped_vars + post-fix
-// if the post fix is set
+// --------------------------------------------------------------------------
+teca_metadata teca_latitude_damper::get_output_metadata(
+    unsigned int port,
+    const std::vector<teca_metadata> &input_md)
+{
+#ifdef TECA_DEBUG
+    cerr << teca_parallel_id()
+        << "teca_latitude_damper::get_output_metadata" << endl;
+#endif
+    (void)port;
+
+    // add in the array we will generate
+    teca_metadata out_md(input_md[0]);
+
+    std::string var_post_fix = this->variable_post_fix;
+    if (!var_post_fix.empty())
+    {
+        std::vector<std::string> &damped_vars = this->damped_variables;
+
+        size_t n_arrays = damped_vars.size();
+        for (size_t i = 0; i < n_arrays; ++i)
+        {
+            out_md.append("variables", damped_vars[i] + var_post_fix);
+        }
+    }
+
+    return out_md;
+}
 
 // --------------------------------------------------------------------------
 std::vector<teca_metadata> teca_latitude_damper::get_upstream_request(
@@ -139,11 +205,6 @@ std::vector<teca_metadata> teca_latitude_damper::get_upstream_request(
         return up_reqs;
     }
 
-    // TODO -- for arrays paassed in the pipeline clean off
-    // the postfix. for ex a down stream could request "foo_damped" then
-    // we'd need to request "foo". also remove "foo_damped" from the
-    // request
-
     // pass the incoming request upstream, and
     // add in what we need
     std::set<std::string> arrays;
@@ -151,6 +212,16 @@ std::vector<teca_metadata> teca_latitude_damper::get_upstream_request(
         req.get("arrays", arrays);
 
     arrays.insert(damped_vars.begin(), damped_vars.end());
+
+    // Cleaning off the postfix for arrays passed in the pipeline. 
+    // For ex a down stream could request "foo_damped" then we'd
+    // need to request "foo". also remove "foo_damped" from the
+    // request.
+    std::string var_post_fix = this->variable_post_fix;
+    if (!var_post_fix.empty())
+    {
+        teca_metadata_util::remove_post_fix(arrays, var_post_fix);
+    }
 
     req.insert("arrays", arrays);
 
