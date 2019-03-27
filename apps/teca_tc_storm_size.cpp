@@ -8,7 +8,7 @@
 #include "teca_table_to_stream.h"
 #include "teca_table_writer.h"
 #include "teca_dataset_diff.h"
-#include "teca_time_step_executive.h"
+#include "teca_index_executive.h"
 #include "teca_file_util.h"
 #include "teca_mpi_manager.h"
 
@@ -100,7 +100,6 @@ int main(int argc, char **argv)
     p_teca_tc_storm_size storm_size = teca_tc_storm_size::New();
     storm_size->get_properties_description("storm_size", advanced_opt_defs);
     storm_size->set_input_connection(1, wind_reader->get_output_port());
-
 
     p_teca_table_reduce map_reduce = teca_table_reduce::New();
     map_reduce->get_properties_description("map_reduce", advanced_opt_defs);
@@ -240,10 +239,10 @@ int main(int argc, char **argv)
         storm_size->set_search_radius(opt_vals["search_radius"].as<double>());
 
     if (opt_vals.count("first_track"))
-        map_reduce->set_first_step(opt_vals["first_track"].as<long>());
+        map_reduce->set_start_index(opt_vals["first_track"].as<long>());
 
     if (opt_vals.count("last_track"))
-        map_reduce->set_last_step(opt_vals["last_track"].as<long>());
+        map_reduce->set_end_index(opt_vals["last_track"].as<long>());
 
     if (opt_vals.count("n_threads"))
         map_reduce->set_thread_pool_size(opt_vals["n_threads"].as<int>());

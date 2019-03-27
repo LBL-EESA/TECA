@@ -81,8 +81,8 @@ mdf.set_input_connection(cfr.get_output_port())
 
 mr = teca_table_reduce.New()
 mr.set_input_connection(mdf.get_output_port())
-mr.set_first_step(first_step)
-mr.set_last_step(last_step)
+mr.set_start_index(first_step)
+mr.set_end_index(last_step)
 mr.set_thread_pool_size(n_threads)
 
 sort = teca_table_sort.New()

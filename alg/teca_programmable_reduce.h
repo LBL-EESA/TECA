@@ -3,7 +3,7 @@
 
 #include "teca_programmable_reduce_fwd.h"
 #include "teca_programmable_algorithm_fwd.h"
-#include "teca_temporal_reduction.h"
+#include "teca_index_reduce.h"
 #include "teca_dataset_fwd.h"
 #include "teca_metadata.h"
 
@@ -15,10 +15,10 @@
 callbacks implement a reduction on teca_datasets over time steps.
 user provides reduce callable that takes 2 datasets and produces
 a thrid reduced dataset. callbacks should be threadsafe as this is
-a parallel operation. see teca_temporal_reduction for details of
+a parallel operation. see teca_index_reduce for details of
 parallelization.
 */
-class teca_programmable_reduce : public teca_temporal_reduction
+class teca_programmable_reduce : public teca_index_reduce
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_programmable_reduce)

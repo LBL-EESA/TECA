@@ -768,11 +768,18 @@ teca_metadata teca_tc_wind_radii::teca_tc_wind_radii::get_output_metadata(
         return teca_metadata();
     }
 
-    // report about the number of steps, this is all that
-    // is needed to run in parallel over time steps.
+    // report about the number of storms to the executive and tell
+    // how it can request a specific storm
     this->internals->metadata.clear();
+
     this->internals->metadata.insert(
-        "number_of_time_steps", this->internals->number_of_storms);
+        "number_of_storms", this->internals->number_of_storms);
+
+    this->internals->metadata.insert(
+        "index_initializer_key", std::string("number_of_storms"));
+
+    this->internals->metadata.insert(
+        "index_request_key", std::string("storm_id"));
 
     return this->internals->metadata;
 }
@@ -804,7 +811,7 @@ std::vector<teca_metadata> teca_tc_wind_radii::get_upstream_request(
 
     // get id of storm id being requested
     unsigned long map_id = 0;
-    request.get("time_step", map_id);
+    request.get("storm_id", map_id);
 
     // get the storm track data, location and time
     unsigned long id_ofs = this->internals->storm_offsets[map_id];
@@ -891,7 +898,7 @@ std::vector<teca_metadata> teca_tc_wind_radii::get_upstream_request(
 #ifdef TECA_DEBUG
    for (unsigned long i = 0; i < n_ids; ++i)
    {
-       cerr << "req " << i << " = ";
+       cerr << "map_id=" << map_id << " req " << i << " = ";
        up_reqs[i].to_stream(cerr);
        cerr << endl;
    }
@@ -915,13 +922,17 @@ const_p_teca_dataset teca_tc_wind_radii::execute(unsigned int port,
 
     // get id of storm id being requested
     unsigned long storm_id = 0;
-    request.get("time_step", storm_id);
+    if (request.get("storm_id", storm_id))
+    {
+        TECA_ERROR("Failed to get the storm id")
+        return nullptr;
+    }
 
     // for random access into the specific track
     unsigned long ofs = this->internals->storm_offsets[storm_id];
     unsigned long npts = this->internals->storm_counts[storm_id];
 
-    // get strom track positions
+    // get storm track positions
     const_p_teca_variant_array storm_x =
         this->internals->storm_table->get_column(this->storm_x_coordinate_column);
 
@@ -1075,7 +1086,7 @@ const_p_teca_dataset teca_tc_wind_radii::execute(unsigned int port,
         }
         )
 
-    // pass the strom track through
+    // pass the storm track through
     p_teca_table output = teca_table::New();
     output->copy(this->internals->storm_table, ofs, npts+ofs-1);
 

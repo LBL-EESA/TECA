@@ -54,9 +54,9 @@ wri.set_input_connection(alg.get_output_port())
 wri.set_file_name('amip_run2_%t%.vtk')
 
 # configure the executive. this will generate a request for each time step.
-exe = teca_time_step_executive.New()
-exe.set_first_step(0)
-exe.set_last_step(-1)
+exe = teca_index_executive.New()
+exe.set_start_index(0)
+exe.set_end_index(-1)
 wri.set_executive(exe)
 
 # execute the pipeline

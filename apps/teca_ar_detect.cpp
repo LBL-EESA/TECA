@@ -7,7 +7,7 @@
 #include "teca_table_calendar.h"
 #include "teca_table_reduce.h"
 #include "teca_table_writer.h"
-#include "teca_time_step_executive.h"
+#include "teca_index_executive.h"
 #include "teca_mpi_manager.h"
 
 #include <vector>
@@ -202,10 +202,10 @@ int main(int argc, char **argv)
     }
 
     if (opt_vals.count("first_step"))
-        map_reduce->set_first_step(opt_vals["first_step"].as<long>());
+        map_reduce->set_start_index(opt_vals["first_step"].as<long>());
 
     if (opt_vals.count("last_step"))
-        map_reduce->set_last_step(opt_vals["last_step"].as<long>());
+        map_reduce->set_end_index(opt_vals["last_step"].as<long>());
 
     if (opt_vals.count("n_threads"))
         map_reduce->set_thread_pool_size(opt_vals["n_threads"].as<int>());

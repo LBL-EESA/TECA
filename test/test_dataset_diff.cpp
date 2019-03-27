@@ -3,7 +3,7 @@
 #include "teca_table_reader.h"
 #include "teca_table_writer.h"
 #include "teca_dataset_diff.h"
-#include "teca_time_step_executive.h"
+#include "teca_index_executive.h"
 #include "teca_table.h"
 #include "teca_test_util.h"
 #include "teca_system_interface.h"
@@ -25,12 +25,14 @@ struct report
         (unsigned int, const std::vector<teca_metadata> &)
     {
         teca_metadata md;
-        md.insert("number_of_time_steps", num_tables);
+        md.insert("index_initializer_key", std::string("number_of_tables"));
+        md.insert("index_request_key", std::string("table_id"));
+        md.insert("number_of_tables", num_tables);
         return md;
     }
 };
 
-// This test should be executed after test_table_writer.cpp, which writes the 
+// This test should be executed after test_table_writer.cpp, which writes the
 // files needed to test the dataset differ.
 struct execute_create_test_table
 {
@@ -38,14 +40,14 @@ struct execute_create_test_table
         (unsigned int, const std::vector<const_p_teca_dataset> &,
         const teca_metadata &req)
     {
-        long step;
-        if (req.get("time_step", step))
+        long table_id = 0;
+        if (req.get("table_id", table_id))
         {
-            cerr << "request is missing \"time_step\"" << endl;
+            TECA_ERROR("request is missing \"table_id\"")
             return nullptr;
         }
 
-        return teca_test_util::create_test_table(step);
+        return teca_test_util::create_test_table(table_id);
     }
 };
 
@@ -59,7 +61,7 @@ void write_test_tables(const string& file_name, long num_tables)
 
     p_teca_table_writer w = teca_table_writer::New();
     w->set_input_connection(s->get_output_port());
-    w->set_executive(teca_time_step_executive::New());
+    w->set_executive(teca_index_executive::New());
     w->set_file_name(file_name);
     w->set_output_format_bin();
 
@@ -93,10 +95,12 @@ int main(int argc, char **argv)
       diff->update();
     }
 
+    // TODO -- disabled because the word ERROR in the test output causes the test
+    // to fail, but in this case we expect it to fail, and that would actually
+    // be success. Our cmake/ctest code does not yet handle that type of test
     // The following is a test of the dataset_diff algorithms ability to
-    // correctly identify two different datasets. Our error reporting
-    // needs to get a little more sophisticated before we take this on,
-    // however, so this is getting commented out for the moment. -JNJ
+    // correctly identify two different datasets.
+    //
     //{
     //    // Set up a pair of readers that read different files. The resulting
     //    // datasets should be different.

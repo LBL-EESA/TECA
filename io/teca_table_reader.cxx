@@ -25,7 +25,7 @@ using std::cerr;
 struct teca_table_reader::teca_table_reader_internals
 {
     teca_table_reader_internals()
-        : number_of_steps(0) {}
+        : number_of_indices(0) {}
 
     void clear();
 
@@ -34,21 +34,21 @@ struct teca_table_reader::teca_table_reader_internals
 
     p_teca_table table;
     teca_metadata metadata;
-    unsigned long number_of_steps;
-    std::vector<unsigned long> step_counts;
-    std::vector<unsigned long> step_offsets;
-    std::vector<unsigned long> step_ids;
+    unsigned long number_of_indices;
+    std::vector<unsigned long> index_counts;
+    std::vector<unsigned long> index_offsets;
+    std::vector<unsigned long> index_ids;
 };
 
 // --------------------------------------------------------------------------
 void teca_table_reader::teca_table_reader_internals::clear()
 {
     this->table = nullptr;
-    this->number_of_steps = 0;
+    this->number_of_indices = 0;
     this->metadata.clear();
-    this->step_counts.clear();
-    this->step_offsets.clear();
-    this->step_ids.clear();
+    this->index_counts.clear();
+    this->index_offsets.clear();
+    this->index_ids.clear();
 }
 
 // --------------------------------------------------------------------------
@@ -210,22 +210,26 @@ teca_metadata teca_table_reader::get_output_metadata(unsigned int port,
 
         teca_coordinate_util::get_table_offsets(pindex,
             this->internals->table->get_number_of_rows(),
-            this->internals->number_of_steps, this->internals->step_counts,
-            this->internals->step_offsets, this->internals->step_ids);
+            this->internals->number_of_indices, this->internals->index_counts,
+            this->internals->index_offsets, this->internals->index_ids);
         )
 
-    // must have at least one time step
-    if (this->internals->number_of_steps < 1)
+    // must have at least one index
+    if (this->internals->number_of_indices < 1)
     {
         this->clear_cached_metadata();
         TECA_ERROR("Invalid index \"" << this->index_column << "\"")
         return teca_metadata();
     }
 
-    // report about the number of steps, this is all that
-    // is needed to run in parallel over time steps.
+    // provide the names of keys used by the executive, and
+    // fill the initializer in with the number of objects available
+    // note an object could be a storm track or simply a cell in
+    // the table
     teca_metadata md;
-    md.insert("number_of_time_steps", this->internals->number_of_steps);
+    md.insert("index_initializer_key", std::string("number_of_objects"));
+    md.insert("index_request_key", std::string("object_id"));
+    md.insert("number_of_objects", this->internals->number_of_indices);
 
     // optionally pass columns directly into metadata
     size_t n_metadata_columns = this->metadata_column_names.size();
@@ -279,17 +283,17 @@ const_p_teca_dataset teca_table_reader::execute(unsigned int port,
     if (!distribute)
         return this->internals->table;
 
-    // subset the table, pull out only rows for the requested step
-    unsigned long step = 0;
-    request.get("time_step", step);
+    // subset the table, pull out only rows for the requested index
+    unsigned long index = 0;
+    request.get("object_id", index);
 
     p_teca_table out_table = teca_table::New();
     out_table->copy_structure(this->internals->table);
     out_table->copy_metadata(this->internals->table);
 
     int ncols = out_table->get_number_of_columns();
-    unsigned long nrows = this->internals->step_counts[step];
-    unsigned long first_row = this->internals->step_offsets[step];
+    unsigned long nrows = this->internals->index_counts[index];
+    unsigned long first_row = this->internals->index_offsets[index];
 
     for (int j = 0; j < ncols; ++j)
     {

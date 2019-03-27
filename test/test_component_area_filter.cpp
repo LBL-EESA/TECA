@@ -2,7 +2,7 @@
 #include "teca_component_area_filter.h"
 #include "teca_dataset_capture.h"
 #include "teca_vtk_cartesian_mesh_writer.h"
-#include "teca_time_step_executive.h"
+#include "teca_index_executive.h"
 #include "teca_system_interface.h"
 #include "teca_metadata.h"
 #include "teca_dataset.h"
@@ -104,9 +104,10 @@ int main(int argc, char **argv)
 
     teca_metadata md;
     md.insert("whole_extent", wext, 6);
-    md.insert("time_steps", std::vector<unsigned long>({0}));
     md.insert("variables", std::vector<std::string>({"cc"}));
     md.insert("number_of_time_steps", 1);
+    md.insert("index_initializer_key", std::string("number_of_time_steps"));
+    md.insert("index_request_key", std::string("time_step"));
 
     // build the pipeline
     p_teca_dataset_source source = teca_dataset_source::New();
@@ -129,9 +130,9 @@ int main(int argc, char **argv)
     p_teca_dataset_capture cao = teca_dataset_capture::New();
     cao->set_input_connection(caf->get_output_port());
 
-    p_teca_time_step_executive exe = teca_time_step_executive::New();
-    exe->set_first_step(0);
-    exe->set_last_step(0);
+    p_teca_index_executive exe = teca_index_executive::New();
+    exe->set_start_index(0);
+    exe->set_end_index(0);
 
     p_teca_vtk_cartesian_mesh_writer wri = teca_vtk_cartesian_mesh_writer::New();
     wri->set_input_connection(cao->get_output_port());

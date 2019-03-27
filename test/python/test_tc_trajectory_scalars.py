@@ -22,8 +22,8 @@ if len(sys.argv) != 6:
 tracks_file = sys.argv[1]
 tex = sys.argv[2]
 out_file = sys.argv[3]
-first_step = int(sys.argv[4])
-last_step = int(sys.argv[5])
+start_index = int(sys.argv[4])
+end_index = int(sys.argv[5])
 
 # construct the pipeline
 reader = teca_table_reader.New()
@@ -42,8 +42,8 @@ scalars.set_basename('test_trajectory_scalars')
 
 mapper = teca_table_reduce.New()
 mapper.set_input_connection(scalars.get_output_port())
-mapper.set_first_step(first_step)
-mapper.set_last_step(last_step)
+mapper.set_start_index(start_index)
+mapper.set_end_index(end_index)
 mapper.set_verbose(1)
 mapper.set_thread_pool_size(1)
 

@@ -39,8 +39,8 @@ tcd.set_input_connection(vor.get_output_port())
 # rank 0, # with 1 thread
 mapr = teca_table_reduce.New()
 mapr.set_thread_pool_size(2)
-mapr.set_first_step(0)
-mapr.set_last_step(-1)
+mapr.set_start_index(0)
+mapr.set_end_index(-1)
 mapr.set_input_connection(tcd.get_output_port())
 
 # save the detected stroms

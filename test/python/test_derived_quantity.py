@@ -13,7 +13,7 @@ data_regex = sys.argv[1]
 u_var = sys.argv[2]
 v_var = sys.argv[3]
 first_step = int(sys.argv[4])
-last_step = int(sys.argv[5])
+end_index = int(sys.argv[5])
 out_file = sys.argv[6]
 
 class wind_speed:
@@ -43,9 +43,9 @@ alg.set_derived_variable('wind_speed')
 alg.set_execute_callback(wind_speed.execute)
 alg.set_input_connection(cfr.get_output_port())
 
-exe = teca_time_step_executive.New()
-exe.set_first_step(first_step)
-exe.set_last_step(last_step)
+exe = teca_index_executive.New()
+exe.set_start_index(first_step)
+exe.set_end_index(end_index)
 
 wri = teca_vtk_cartesian_mesh_writer.New()
 wri.set_input_connection(alg.get_output_port())

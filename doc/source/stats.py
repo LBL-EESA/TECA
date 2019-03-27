@@ -31,8 +31,8 @@ alg.set_execute_callback(stats_callbacks.get_execute_callback(rank, var_names))
 
 mr = teca_table_reduce.New()
 mr.set_input_connection(alg.get_output_port())
-mr.set_first_step(first_step)
-mr.set_last_step(last_step)
+mr.set_start_index(first_step)
+mr.set_end_index(last_step)
 mr.set_thread_pool_size(n_threads)
 
 tw = teca_table_writer.New()
