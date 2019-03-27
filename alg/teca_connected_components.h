@@ -10,16 +10,15 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_connected_components)
 
-/// an algorithm that computes connected component labeling
+/// an algorithm that computes connected component componenting
 /**
-an algorithm that computes connected component labeling
-for 1D, 2D, and 3D data. The labels are computed from a
-binary segmentation which is computed using threshold
-operation where values in a range (low, high] are in the
-segmentation.
+an algorithm that computes connected component labeling for 1D, 2D, and 3D
+data. The components are computed from a binary segmentation provided on the
+input.
 
-the label ids are added to the output dataset metadata in
-an array named: teca_connected_components::label_id
+the segmentation is labeled and stored in a variable named by the
+segmentation_variable property. the component ids are added to the output
+dataset metadata in an key named 'component_ids'
 */
 class teca_connected_components : public teca_algorithm
 {
@@ -28,21 +27,16 @@ public:
     ~teca_connected_components();
 
     // set the name of the output array
-    TECA_ALGORITHM_PROPERTY(std::string, label_variable)
+    TECA_ALGORITHM_PROPERTY(std::string, component_variable)
 
     // set the array to threshold
-    TECA_ALGORITHM_PROPERTY(std::string, threshold_variable)
-
-    // Set the threshold range. The defaults are
-    // (-infinity, infinity].
-    TECA_ALGORITHM_PROPERTY(double, low_threshold_value)
-    TECA_ALGORITHM_PROPERTY(double, high_threshold_value)
+    TECA_ALGORITHM_PROPERTY(std::string, segmentation_variable)
 
 protected:
     teca_connected_components();
 
-    std::string get_label_variable(const teca_metadata &request);
-    std::string get_threshold_variable(const teca_metadata &request);
+    std::string get_component_variable(const teca_metadata &request);
+    std::string get_segmentation_variable(const teca_metadata &request);
 
 private:
     teca_metadata get_output_metadata(
@@ -60,10 +54,8 @@ private:
         const teca_metadata &request) override;
 
 private:
-    std::string label_variable;
-    std::string threshold_variable;
-    double low_threshold_value;
-    double high_threshold_value;
+    std::string component_variable;
+    std::string segmentation_variable;
 };
 
 #endif

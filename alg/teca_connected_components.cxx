@@ -9,27 +9,12 @@
 #include <algorithm>
 #include <iostream>
 #include <deque>
-#include <set>
 
-using std::deque;
-using std::vector;
-using std::set;
 using std::cerr;
 using std::endl;
 
 //#define TECA_DEBUG
 namespace {
-
-// set locations in the output where the input array
-// has values within the low high range.
-template <typename in_t, typename out_t>
-void threshold(
-    out_t *output, const in_t *input,
-    size_t n_vals, in_t low, in_t high)
-{
-    for (size_t i = 0; i < n_vals; ++i)
-        output[i] = ((input[i] >= low) && (input[i] <= high)) ? 1 : 0;
-}
 
 /// hold i,j,k index triplet
 struct id3
@@ -43,20 +28,20 @@ struct id3
     unsigned long k;
 };
 
-/// 2D/3D connected component labeler
+/// 2D/3D connected component componenter
 /**
-given seed(i0,j0,k0) that's in a component to label, the
-current label(current_label), a binary segmentation(segments),
-and a set of labels(labels) of dimensions nx,ny,nz,nxy,
-walk the segmentation from the seed labeling it as we go.
+given seed(i0,j0,k0) that's in a component to component, the
+current component(current_component), a binary segmentation(segments),
+and a set of components(components) of dimensions nx,ny,nz,nxy,
+walk the segmentation from the seed componenting it as we go.
 when this function returns this component is completely
-labeled. this is the 1 pass algorithm.
+componented. this is the 1 pass algorithm.
 */
-template <typename num_t>
-void label(unsigned long i0, unsigned long j0, unsigned long k0,
-    num_t current_label, unsigned long nx, unsigned long ny,
-    unsigned long nz, unsigned long nxy, const num_t *segments,
-    num_t *labels)
+template <typename segment_t, typename component_t>
+void component(unsigned long i0, unsigned long j0, unsigned long k0,
+    component_t current_component, unsigned long nx, unsigned long ny,
+    unsigned long nz, unsigned long nxy, const segment_t *segments,
+    component_t *components)
 {
     std::deque<id3> work_queue;
     work_queue.push_back(id3(i0,j0,k0));
@@ -88,9 +73,9 @@ void label(unsigned long i0, unsigned long j0, unsigned long k0,
                     unsigned long qq = ijk.i + q;
                     unsigned long w = qq + jj + kk;
 
-                    if (segments[w] && !labels[w])
+                    if (segments[w] && !components[w])
                     {
-                        labels[w] = current_label;
+                        components[w] = current_component;
                         work_queue.push_back(id3(qq,rr,ss));
                     }
                 }
@@ -99,23 +84,23 @@ void label(unsigned long i0, unsigned long j0, unsigned long k0,
     }
 }
 
-/// 2D/3D connected component label driver
+/// 2D/3D connected component component driver
 /**
-given a binary segmentation(segments) and buffer(labels), both
+given a binary segmentation(segments) and buffer(components), both
 with dimensions described by the given exent(ext), compute
-the labeling.
+the componenting.
 */
-template <typename num_t>
-void label(unsigned long *ext, const num_t *segments, num_t *labels, num_t &max_label)
+template <typename segment_t, typename component_t>
+void component(unsigned long *ext, const segment_t *segments, component_t *components, component_t &max_component)
 {
     unsigned long nx = ext[1] - ext[0] + 1;
     unsigned long ny = ext[3] - ext[2] + 1;
     unsigned long nz = ext[5] - ext[4] + 1;
     unsigned long nxy = nx*ny;
 
-    // initialize the labels
-    num_t current_label = 0;
-    memset(labels, 0, nxy*nz*sizeof(num_t));
+    // initialize the components
+    component_t current_component = 0;
+    memset(components, 0, nxy*nz*sizeof(component_t));
 
     // visit each element to see if it is a seed
     for (unsigned long k = 0; k < nz; ++k)
@@ -128,28 +113,25 @@ void label(unsigned long *ext, const num_t *segments, num_t *labels, num_t &max_
             {
                 unsigned long q = kk + jj + i;
 
-                // found seed, label it
-                if (segments[q] && !labels[q])
+                // found seed, component it
+                if (segments[q] && !components[q])
                 {
-                    labels[q] = ++current_label;
-                    label(i,j,k, current_label,
-                        nx,ny,nz,nxy, segments, labels);
+                    components[q] = ++current_component;
+                    component(i,j,k, current_component,
+                        nx,ny,nz,nxy, segments, components);
                 }
             }
         }
     }
 
-    max_label = current_label;
+    max_component = current_component;
 }
 };
 
 
-
 // --------------------------------------------------------------------------
 teca_connected_components::teca_connected_components() :
-    label_variable(""), threshold_variable(""),
-    low_threshold_value(std::numeric_limits<double>::lowest()),
-    high_threshold_value(std::numeric_limits<double>::max())
+    component_variable(""), segmentation_variable("")
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -160,35 +142,35 @@ teca_connected_components::~teca_connected_components()
 {}
 
 // --------------------------------------------------------------------------
-std::string teca_connected_components::get_label_variable(
+std::string teca_connected_components::get_component_variable(
     const teca_metadata &request)
 {
-    std::string label_var = this->label_variable;
-    if (label_var.empty())
+    std::string component_var = this->component_variable;
+    if (component_var.empty())
     {
-        if (request.has("teca_connected_components::label_variable"))
-            request.get("teca_connected_components::label_variable", label_var);
-        else if (this->threshold_variable.empty())
-            label_var = "labels";
+        if (request.has("component_variable"))
+            request.get("component_variable", component_var);
+        else if (this->segmentation_variable.empty())
+            component_var = "components";
         else
-            label_var = this->threshold_variable + "labels";
+            component_var = this->segmentation_variable + "_components";
     }
-    return label_var;
+    return component_var;
 }
 
 
 // --------------------------------------------------------------------------
-std::string teca_connected_components::get_threshold_variable(
+std::string teca_connected_components::get_segmentation_variable(
     const teca_metadata &request)
 {
-    std::string threshold_var = this->threshold_variable;
+    std::string segmentation_var = this->segmentation_variable;
 
-    if (threshold_var.empty() &&
-        request.has("teca_connected_components::threshold_variable"))
-            request.get("teca_connected_components::threshold_variable",
-                threshold_var);
+    if (segmentation_var.empty() &&
+        request.has("segmentation_variable"))
+            request.get("segmentation_variable",
+                segmentation_var);
 
-    return threshold_var;
+    return segmentation_var;
 }
 
 // --------------------------------------------------------------------------
@@ -203,17 +185,17 @@ teca_metadata teca_connected_components::get_output_metadata(
     (void) port;
 
 
-    std::string label_var = this->label_variable;
-    if (label_var.empty())
+    std::string component_var = this->component_variable;
+    if (component_var.empty())
     {
-        if (this->threshold_variable.empty())
-            label_var = "labels";
+        if (this->segmentation_variable.empty())
+            component_var = "components";
         else
-            label_var = this->threshold_variable + "labels";
+            component_var = this->segmentation_variable + "_components";
     }
 
     teca_metadata md = input_md[0];
-    md.append("variables", label_var);
+    md.append("variables", component_var);
     return md;
 }
 
@@ -230,13 +212,13 @@ std::vector<teca_metadata> teca_connected_components::get_upstream_request(
     (void) port;
     (void) input_md;
 
-    vector<teca_metadata> up_reqs;
+    std::vector<teca_metadata> up_reqs;
 
     // get the name of the array to request
-    std::string threshold_var = this->get_threshold_variable(request);
-    if (threshold_var.empty())
+    std::string segmentation_var = this->get_segmentation_variable(request);
+    if (segmentation_var.empty())
     {
-        TECA_ERROR("A threshold variable was not specified")
+        TECA_ERROR("A segmentation variable was not specified")
         return up_reqs;
     }
 
@@ -246,11 +228,11 @@ std::vector<teca_metadata> teca_connected_components::get_upstream_request(
     std::set<std::string> arrays;
     if (req.has("arrays"))
         req.get("arrays", arrays);
-    arrays.insert(threshold_var);
+    arrays.insert(segmentation_var);
 
     // remove fromt the request what we generate
-    std::string label_var = this->get_label_variable(request);
-    arrays.erase(label_var);
+    std::string component_var = this->get_component_variable(request);
+    arrays.erase(component_var);
 
     req.insert("arrays", arrays);
 
@@ -288,69 +270,50 @@ const_p_teca_dataset teca_connected_components::execute(
         std::const_pointer_cast<teca_cartesian_mesh>(in_mesh));
 
     // get the input array
-    std::string threshold_var = this->get_threshold_variable(request);
-    if (threshold_var.empty())
+    std::string segmentation_var = this->get_segmentation_variable(request);
+    if (segmentation_var.empty())
     {
-        TECA_ERROR("A threshold variable was not specified")
+        TECA_ERROR("A segmentation variable was not specified")
         return nullptr;
     }
 
     const_p_teca_variant_array input_array
-        = out_mesh->get_point_arrays()->get(threshold_var);
+        = out_mesh->get_point_arrays()->get(segmentation_var);
     if (!input_array)
     {
-        TECA_ERROR("threshold variable \"" << threshold_var
+        TECA_ERROR("The segmentation variable \"" << segmentation_var
             << "\" is not in the input")
         return nullptr;
     }
-
-    // get threshold values
-    double low = this->low_threshold_value;
-    if (low == std::numeric_limits<double>::lowest()
-        && request.has("teca_connected_components::low_threshold_value"))
-        request.get("teca_connected_components::low_threshold_value", low);
-
-    double high = this->high_threshold_value;
-    if (high == std::numeric_limits<double>::max()
-        && request.has("teca_connected_components::high_threshold_value"))
-        request.get("teca_connected_components::high_threshold_value", high);
 
     // get mesh dimension
     unsigned long extent[6];
     out_mesh->get_extent(extent);
 
-    // do segmentation and label
+    // do segmentation and component
     size_t n_elem = input_array->size();
-    p_teca_short_array labels = teca_short_array::New(n_elem);
-
-    short max_label = 0;
+    p_teca_short_array components = teca_short_array::New(n_elem);
+    short *p_components = components->get();
+    short max_component = 0;
 
     TEMPLATE_DISPATCH(const teca_variant_array_impl,
         input_array.get(),
         const NT *p_in = static_cast<TT*>(input_array.get())->get();
-        short *p_seg = static_cast<short*>(malloc(sizeof(short)*n_elem));
-        short *p_labels = labels->get();
-
-        ::threshold(p_seg, p_in, n_elem,
-            static_cast<NT>(low), static_cast<NT>(high));
-
-        ::label(extent, p_seg, p_labels, max_label);
-
-        free(p_seg);
+        ::component(extent, p_in, p_components, max_component);
         )
 
-    // put labels in output
-    std::string label_var = this->get_label_variable(request);
-    out_mesh->get_point_arrays()->set(label_var, labels);
+    // put components in output
+    std::string component_var = this->get_component_variable(request);
+    out_mesh->get_point_arrays()->set(component_var, components);
 
-    // put the label ids in the metadata
-    short num_labels = max_label + 1;
-    p_teca_short_array label_id = teca_short_array::New(num_labels);
-    for (short i = 0; i < num_labels; ++i)
-        label_id->set(i, i);
+    // put the component ids in the metadata
+    short num_components = max_component + 1;
+    p_teca_short_array component_id = teca_short_array::New(num_components);
+    for (short i = 0; i < num_components; ++i)
+        component_id->set(i, i);
 
     out_mesh->get_metadata().insert(
-        "teca_connected_components::label_id", label_id);
+        "component_ids", component_id);
 
     return out_mesh;
 }

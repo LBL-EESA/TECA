@@ -116,8 +116,8 @@ int main(int argc, char **argv)
     source->set_dataset(mesh);
 
     p_teca_2d_component_area ca = teca_2d_component_area::New();
-    ca->set_label_variable("labels");
-    ca->set_contiguous_label_ids(consecutive_labels);
+    ca->set_component_variable("labels");
+    ca->set_contiguous_component_ids(consecutive_labels);
     ca->set_input_connection(source->get_output_port());
 
     p_teca_dataset_capture cao = teca_dataset_capture::New();
@@ -138,10 +138,10 @@ int main(int argc, char **argv)
     teca_metadata mdo = ds->get_metadata();
 
     std::vector<int> label_id;
-    mdo.get("label_id", label_id);
+    mdo.get("component_ids", label_id);
 
     std::vector<double> area;
-    mdo.get("area", area);
+    mdo.get("component_area", area);
 
     cerr << "component area" << endl;
     double total_area = 0.f;

@@ -346,3 +346,10 @@ teca_add_test(test_event_filter
     COMMAND test_event_filter "${TECA_DATA_ROOT}/test_tc_candidates_20.bin"
     "${TECA_DATA_ROOT}/test_event_filter.bin"
     REQ_TECA_DATA)
+
+teca_add_test(test_binary_segmentation
+    SOURCES test_binary_segmentation.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_binary_segmentation "${TECA_DATA_ROOT}/prw_hus_day_MRI.*\\.nc$"
+    prw 50 75 "prw_segmentation_50-75_%t%.%e%"
+    REQ_TECA_DATA)

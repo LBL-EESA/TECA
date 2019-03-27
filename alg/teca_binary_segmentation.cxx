@@ -8,33 +8,97 @@
 
 #include <algorithm>
 #include <iostream>
-#include <deque>
 #include <set>
-
-using std::deque;
-using std::vector;
-using std::set;
-using std::cerr;
-using std::endl;
+#include <iomanip>
 
 //#define TECA_DEBUG
 namespace {
+
 // set locations in the output where the input array
 // has values within the low high range.
 template <typename in_t, typename out_t>
-void threshold(out_t *output, const in_t *input,
+void value_threshold(out_t *output, const in_t *input,
     size_t n_vals, in_t low, in_t high)
 {
     for (size_t i = 0; i < n_vals; ++i)
         output[i] = ((input[i] >= low) && (input[i] <= high)) ? 1 : 0;
 }
+
+// predicate for indirect sort
+template <typename data_t, typename index_t>
+struct indirect_comp
+{
+    indirect_comp() : p_data(nullptr) {}
+    indirect_comp(const data_t *pd) : p_data(pd) {}
+
+    bool operator()(const index_t &a, const index_t &b)
+    {
+        return p_data[a] < p_data[b];
+    }
+
+    const data_t *p_data;
+};
+
+
+// Given a vector V of length N, the q-th percentile of V is the value q/100 of
+// the way from the minimum to the maximum in a sorted copy of V.
+
+// set locations in the output where the input array
+// has values within the low high range.
+template <typename in_t, typename out_t>
+void percentile_threshold(out_t *output, const in_t *input,
+    unsigned long n_vals, float q_low, float q_high)
+{
+    // allocate indices and initialize
+    using index_t = unsigned long;
+    index_t *ids = (index_t*)malloc(n_vals*sizeof(index_t));
+    for (index_t i = 0; i < n_vals; ++i)
+        ids[i] = i;
+
+    // cut points are locations of values bounding desired percentiles in the
+    // sorted data
+    index_t n_vals_m1 = n_vals - 1;
+
+    // low percentile is bound from below by value at low_cut
+    double tmp = n_vals_m1 * (q_low/100.f);
+    index_t low_cut = index_t(tmp);
+    double t_low = tmp - low_cut;
+
+    // high percentile is bound from above by value at high_cut+1
+    tmp = n_vals_m1 * (q_high/100.f);
+    index_t high_cut = index_t(tmp);
+    double t_high = tmp - high_cut;
+    //high_cut = std::min(high_cut+1, n_vals);
+
+    // sort the input data up to the high cut
+    indirect_comp<in_t,index_t>  comp(input);
+    std::partial_sort(ids, ids+std::min(high_cut+2, n_vals), ids+n_vals, comp);
+
+    // interpolate to get the percentiles
+    double y0 = input[ids[low_cut]];
+    double y1 = input[ids[low_cut+1]];
+    double low_percentile = (y1 - y0)*t_low + y0;
+
+    y0 = input[ids[high_cut]];
+    y1 = input[ids[high_cut+1]];
+    double high_percentile = (y1 - y0)*t_high + y0;
+
+    /*std::cerr << q_low << "th percentile is " <<  std::setprecision(10) << low_percentile << std::endl
+        << q_high << "th percentile is " <<  std::setprecision(9) << high_percentile << std::endl;*/
+
+    // apply thresholds
+    for (size_t i = 0; i < n_vals; ++i)
+        output[i] = ((input[i] >= low_percentile) && (input[i] <= high_percentile)) ? 1 : 0;
+}
+
 };
 
 // --------------------------------------------------------------------------
 teca_binary_segmentation::teca_binary_segmentation() :
     segmentation_variable(""), threshold_variable(""),
     low_threshold_value(std::numeric_limits<double>::lowest()),
-    high_threshold_value(std::numeric_limits<double>::max())
+    high_threshold_value(std::numeric_limits<double>::max()),
+    threshold_mode(BY_VALUE)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -92,9 +156,9 @@ teca_metadata teca_binary_segmentation::get_output_metadata(
     if (segmentation_var.empty())
     {
         if (this->threshold_variable.empty())
-            segmentation_var = "segmentation";
+            segmentation_var = "_segmentation";
         else
-            segmentation_var = this->threshold_variable + "segmentation";
+            segmentation_var = this->threshold_variable + "_segmentation";
     }
 
     teca_metadata md = input_md[0];
@@ -115,7 +179,7 @@ std::vector<teca_metadata> teca_binary_segmentation::get_upstream_request(
     (void) port;
     (void) input_md;
 
-    vector<teca_metadata> up_reqs;
+    std::vector<teca_metadata> up_reqs;
 
     // get the name of the array to request
     std::string threshold_var = this->get_threshold_variable(request);
@@ -200,18 +264,48 @@ const_p_teca_dataset teca_binary_segmentation::execute(
         && request.has("teca_binary_segmentation::high_threshold_value"))
         request.get("teca_binary_segmentation::high_threshold_value", high);
 
-    // do segmentation and segmentation
+    // validate the threshold values
+    if (this->threshold_mode == BY_PERCENTILE)
+    {
+        if (low == std::numeric_limits<double>::lowest())
+            low = 0.0;
+
+        if (high == std::numeric_limits<double>::max())
+            high = 100.0;
+
+        if ((low < 0.0) || (high > 100.0))
+        {
+            TECA_ERROR("The threshold values are " << low << ", " << high << ". "
+              "In percentile mode the threshold values must be between 0 and 100")
+            return nullptr;
+        }
+    }
+
+    // do segmentation
     size_t n_elem = input_array->size();
-    p_teca_unsigned_int_array segmentation =
-        teca_unsigned_int_array::New(n_elem);
+    p_teca_unsigned_char_array segmentation =
+        teca_unsigned_char_array::New(n_elem);
 
     TEMPLATE_DISPATCH(const teca_variant_array_impl,
         input_array.get(),
         const NT *p_in = static_cast<TT*>(input_array.get())->get();
-        unsigned int *p_seg = segmentation->get();
+        unsigned char *p_seg = segmentation->get();
 
-        ::threshold(p_seg, p_in, n_elem,
-            static_cast<NT>(low), static_cast<NT>(high));
+        if (this->threshold_mode == BY_VALUE)
+        {
+            ::value_threshold(p_seg, p_in, n_elem,
+               static_cast<NT>(low), static_cast<NT>(high));
+        }
+        else if  (this->threshold_mode == BY_PERCENTILE)
+        {
+            ::percentile_threshold(p_seg, p_in, n_elem,
+                static_cast<NT>(low), static_cast<NT>(high));
+        }
+        else
+        {
+            TECA_ERROR("Invalid threshold mode")
+            return nullptr;
+        }
         )
 
     // put segmentation in output
