@@ -2,7 +2,7 @@
 #include "teca_cf_reader.h"
 #include "teca_binary_segmentation.h"
 #include "teca_vtk_cartesian_mesh_writer.h"
-#include "teca_time_step_executive.h"
+#include "teca_index_executive.h"
 #include "teca_file_util.h"
 #include "teca_test_util.h"
 #include "teca_system_interface.h"
@@ -41,9 +41,9 @@ int main(int argc, char **argv)
     seg->set_threshold_by_percentile();
     seg->set_input_connection(cfr->get_output_port());
 
-    p_teca_time_step_executive exe = teca_time_step_executive::New();
-    exe->set_first_step(0);
-    exe->set_last_step(0);
+    p_teca_index_executive exe = teca_index_executive::New();
+    exe->set_start_index(0);
+    exe->set_end_index(0);
 
     p_teca_vtk_cartesian_mesh_writer wri = teca_vtk_cartesian_mesh_writer::New();
     wri->set_input_connection(seg->get_output_port());
