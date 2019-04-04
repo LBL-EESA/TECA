@@ -15,6 +15,7 @@ set(teca_alg_cxx_srcs
     teca_connected_components.cxx
     teca_2d_component_area.cxx
     teca_component_area_filter.cxx
+    teca_component_statistics.cxx
     teca_dataset_capture.cxx
     teca_dataset_source.cxx
     teca_derived_quantity.cxx
