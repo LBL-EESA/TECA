@@ -13,7 +13,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_component_area_filter)
 /// An algorithm that applies a mask based on connected component area
 /**
 The filter removes the connected components outside the range by the
-'low_threshold_value' and 'high_threshold_value' properties. These default to
+'low_area_threshold' and 'high_area_threshold' properties. These default to
 -inf and +inf, hence by default no components are masked. The mask value may be
 set by the 'mask_value' property which defaults to '0'.
 
@@ -50,6 +50,10 @@ public:
     // component labels
     TECA_ALGORITHM_PROPERTY(std::string, component_variable)
 
+    // set the name of the dataset metadata key holding the number of
+    // components left after the filter is applied
+    TECA_ALGORITHM_PROPERTY(std::string, number_of_components_key)
+
     // set the name of the dataset metadata key holding connected component
     // label ids
     TECA_ALGORITHM_PROPERTY(std::string, component_ids_key)
@@ -64,8 +68,8 @@ public:
 
     // set the range identifying values to area filter.
     // The defaults are (-infinity, infinity].
-    TECA_ALGORITHM_PROPERTY(double, low_threshold_value)
-    TECA_ALGORITHM_PROPERTY(double, high_threshold_value)
+    TECA_ALGORITHM_PROPERTY(double, low_area_threshold)
+    TECA_ALGORITHM_PROPERTY(double, high_area_threshold)
 
     // a string to be appended to the name of the output variable.
     // setting this to an empty string will result in the damped array
@@ -76,7 +80,7 @@ public:
 protected:
     teca_component_area_filter();
 
-    std::string get_labels_variable(const teca_metadata &request);
+    std::string get_labels_variable();
 
 private:
     teca_metadata get_output_metadata(
@@ -95,11 +99,12 @@ private:
 
 private:
     std::string component_variable;
+    std::string number_of_components_key;
     std::string component_ids_key;
     std::string component_area_key;
     long mask_value;
-    double low_threshold_value;
-    double high_threshold_value;
+    double low_area_threshold;
+    double high_area_threshold;
     std::string variable_post_fix;
 };
 

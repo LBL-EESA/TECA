@@ -124,7 +124,7 @@ int main(int argc, char **argv)
     caf->set_component_variable("labels");
     caf->set_component_ids_key("component_ids");
     caf->set_component_area_key("component_area");
-    caf->set_low_threshold_value(low_threshold_value);
+    caf->set_low_area_threshold(low_threshold_value);
     caf->set_variable_post_fix(post_fix);
 
     p_teca_dataset_capture cao = teca_dataset_capture::New();
