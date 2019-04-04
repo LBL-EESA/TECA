@@ -62,8 +62,7 @@ protected:
     // helper to get the list of variables to apply the filter on
     // if the user provided none, then the request is probed. a
     // return of 0 indicates success
-    int get_damped_variables(const teca_metadata &request,
-        std::vector<std::string> &vars);
+    int get_damped_variables(std::vector<std::string> &vars);
 
 private:
     std::vector<teca_metadata> get_upstream_request(
