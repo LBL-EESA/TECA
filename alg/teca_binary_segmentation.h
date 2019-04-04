@@ -14,7 +14,8 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_binary_segmentation)
 /**
 an algorithm that computes a binary segmentation for 1D, 2D, and 3D data. The
 segmentation is computed using threshold operation where values in a range
-(low, high] are assigned 1 else 0.
+(low, high] are in the segmentation (assigned 1). Values outside the range
+are outside of the segmentation (assigned 0).
 
 The algorithm has 2 modes, BY_VALUE and BY_PERCENTILE. In the BY_VALUE mode,
 the test for inclusion is applied on the raw data. In the BY_PERCENTILE mode
@@ -49,8 +50,8 @@ public:
 protected:
     teca_binary_segmentation();
 
-    std::string get_segmentation_variable(const teca_metadata &request);
-    std::string get_threshold_variable(const teca_metadata &request);
+    int get_segmentation_variable(std::string &segmentation_var);
+    int get_threshold_variable(std::string &threshold_var);
 
 private:
     teca_metadata get_output_metadata(unsigned int port,

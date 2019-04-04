@@ -68,7 +68,6 @@ void percentile_threshold(out_t *output, const in_t *input,
     tmp = n_vals_m1 * (q_high/100.f);
     index_t high_cut = index_t(tmp);
     double t_high = tmp - high_cut;
-    //high_cut = std::min(high_cut+1, n_vals);
 
     // sort the input data up to the high cut
     indirect_comp<in_t,index_t>  comp(input);
@@ -79,8 +78,9 @@ void percentile_threshold(out_t *output, const in_t *input,
     double y1 = input[ids[low_cut+1]];
     double low_percentile = (y1 - y0)*t_low + y0;
 
+    index_t high_cut_p1 = std::min(high_cut+1, n_vals_m1);
     y0 = input[ids[high_cut]];
-    y1 = input[ids[high_cut+1]];
+    y1 = input[ids[high_cut_p1]];
     double high_percentile = (y1 - y0)*t_high + y0;
 
     /*std::cerr << q_low << "th percentile is " <<  std::setprecision(10) << low_percentile << std::endl
@@ -89,6 +89,8 @@ void percentile_threshold(out_t *output, const in_t *input,
     // apply thresholds
     for (size_t i = 0; i < n_vals; ++i)
         output[i] = ((input[i] >= low_percentile) && (input[i] <= high_percentile)) ? 1 : 0;
+
+    free(ids);
 }
 
 };
@@ -109,35 +111,38 @@ teca_binary_segmentation::~teca_binary_segmentation()
 {}
 
 // --------------------------------------------------------------------------
-std::string teca_binary_segmentation::get_segmentation_variable(
-    const teca_metadata &request)
+int teca_binary_segmentation::get_segmentation_variable(
+    std::string &segmentation_var)
 {
-    std::string segmentation_var = this->segmentation_variable;
-    if (segmentation_var.empty())
+    if (this->segmentation_variable.empty())
     {
-        if (request.has("teca_binary_segmentation::segmentation_variable"))
-            request.get("teca_binary_segmentation::segmentation_variable", segmentation_var);
-        else if (this->threshold_variable.empty())
-            segmentation_var = "segments";
-        else
-            segmentation_var = this->threshold_variable + "segments";
+        std::string threshold_var;
+        if (this->get_threshold_variable(threshold_var))
+            return -1;
+
+        segmentation_var = threshold_var + "_segments";
     }
-    return segmentation_var;
+    else
+    {
+        segmentation_var = this->segmentation_variable;
+    }
+
+    return 0;
 }
 
 
 // --------------------------------------------------------------------------
-std::string teca_binary_segmentation::get_threshold_variable(
-    const teca_metadata &request)
+int teca_binary_segmentation::get_threshold_variable(
+    std::string &threshold_var)
 {
-    std::string threshold_var = this->threshold_variable;
+    if (this->threshold_variable.empty())
+    {
+        TECA_ERROR("Threshold variable is not set")
+        return -1;
+    }
 
-    if (threshold_var.empty() &&
-        request.has("teca_binary_segmentation::threshold_variable"))
-            request.get("teca_binary_segmentation::threshold_variable",
-                threshold_var);
-
-    return threshold_var;
+    threshold_var = this->threshold_variable;
+    return 0;
 }
 
 // --------------------------------------------------------------------------
@@ -182,8 +187,8 @@ std::vector<teca_metadata> teca_binary_segmentation::get_upstream_request(
     std::vector<teca_metadata> up_reqs;
 
     // get the name of the array to request
-    std::string threshold_var = this->get_threshold_variable(request);
-    if (threshold_var.empty())
+    std::string threshold_var;
+    if (this->get_threshold_variable(threshold_var))
     {
         TECA_ERROR("A threshold variable was not specified")
         return up_reqs;
@@ -198,7 +203,8 @@ std::vector<teca_metadata> teca_binary_segmentation::get_upstream_request(
     arrays.insert(threshold_var);
 
     // remove fromt the request what we generate
-    std::string segmentation_var = this->get_segmentation_variable(request);
+    std::string segmentation_var;
+    this->get_segmentation_variable(segmentation_var);
     arrays.erase(segmentation_var);
 
     req.insert("arrays", arrays);
@@ -237,8 +243,8 @@ const_p_teca_dataset teca_binary_segmentation::execute(
         std::const_pointer_cast<teca_cartesian_mesh>(in_mesh));
 
     // get the input array
-    std::string threshold_var = this->get_threshold_variable(request);
-    if (threshold_var.empty())
+    std::string threshold_var;
+    if (this->get_threshold_variable(threshold_var))
     {
         TECA_ERROR("A threshold variable was not specified")
         return nullptr;
@@ -256,13 +262,13 @@ const_p_teca_dataset teca_binary_segmentation::execute(
     // get threshold values
     double low = this->low_threshold_value;
     if (low == std::numeric_limits<double>::lowest()
-        && request.has("teca_binary_segmentation::low_threshold_value"))
-        request.get("teca_binary_segmentation::low_threshold_value", low);
+        && request.has("low_threshold_value"))
+        request.get("low_threshold_value", low);
 
     double high = this->high_threshold_value;
     if (high == std::numeric_limits<double>::max()
-        && request.has("teca_binary_segmentation::high_threshold_value"))
-        request.get("teca_binary_segmentation::high_threshold_value", high);
+        && request.has("high_threshold_value"))
+        request.get("high_threshold_value", high);
 
     // validate the threshold values
     if (this->threshold_mode == BY_PERCENTILE)
@@ -309,7 +315,8 @@ const_p_teca_dataset teca_binary_segmentation::execute(
         )
 
     // put segmentation in output
-    std::string segmentation_var = this->get_segmentation_variable(request);
+    std::string segmentation_var;
+    this->get_segmentation_variable(segmentation_var);
     out_mesh->get_point_arrays()->set(segmentation_var, segmentation);
 
     return out_mesh;
