@@ -52,11 +52,20 @@ void teca_programmable_algorithm::use_default_request_action()
 void teca_programmable_algorithm::use_default_execute_action()
 {
     this->set_execute_callback(
-        [] (unsigned int, const std::vector<const_p_teca_dataset> &,
+        [] (unsigned int, const std::vector<const_p_teca_dataset> &input_data,
             const teca_metadata &) -> const_p_teca_dataset
         {
-            // default implementation does nothing
-            return p_teca_dataset();
+            // default implementation makes a shallow copy of the first
+            // input dataset
+            if (input_data.size() < 1)
+                return p_teca_dataset();
+
+            p_teca_dataset output_data = input_data[0]->new_instance();
+
+            output_data->shallow_copy(
+                std::const_pointer_cast<teca_dataset>(input_data[0]));
+
+            return output_data;
         });
 }
 
