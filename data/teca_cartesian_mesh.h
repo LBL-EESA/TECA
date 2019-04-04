@@ -21,6 +21,9 @@ public:
     TECA_DATASET_METADATA(time_step, unsigned long, 1)
     TECA_DATASET_METADATA(whole_extent, unsigned long, 6)
     TECA_DATASET_METADATA(extent, unsigned long, 6)
+    TECA_DATASET_METADATA(periodic_in_x, int, 1)
+    TECA_DATASET_METADATA(periodic_in_y, int, 1)
+    TECA_DATASET_METADATA(periodic_in_z, int, 1)
 
     // get x coordinate array
     p_teca_variant_array get_x_coordinates()
