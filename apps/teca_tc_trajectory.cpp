@@ -10,7 +10,6 @@
 #include "teca_variant_array.h"
 #include "teca_metadata.h"
 #include "teca_table_reader.h"
-#include "teca_table_reduce.h"
 #include "teca_table_sort.h"
 #include "teca_table_calendar.h"
 #include "teca_table_writer.h"
