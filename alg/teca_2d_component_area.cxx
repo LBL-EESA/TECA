@@ -148,18 +148,13 @@ void teca_2d_component_area::set_properties(const std::string &prefix,
 #endif
 
 // --------------------------------------------------------------------------
-std::string teca_2d_component_area::get_component_variable(
-    const teca_metadata &request)
+int teca_2d_component_area::get_component_variable(std::string &component_var)
 {
-    std::string component_var = this->component_variable;
-    if (component_var.empty())
-    {
-        if (request.has("teca_2d_component_area::component_variable"))
-            request.get("teca_2d_component_area::component_variable", component_var);
-        else
-            component_var = "labels";
-    }
-    return component_var;
+    if (this->component_variable.empty())
+        return -1;
+
+    component_var = this->component_variable;
+    return 0;
 }
 
 // --------------------------------------------------------------------------
@@ -193,10 +188,10 @@ std::vector<teca_metadata> teca_2d_component_area::get_upstream_request(
     std::vector<teca_metadata> up_reqs;
 
     // get the name of the array to request
-    std::string component_var = this->get_component_variable(request);
-    if (component_var.empty())
+    std::string component_var;
+    if (this->get_component_variable(component_var))
     {
-        TECA_ERROR("A label variable was not specified")
+        TECA_ERROR("component_variable was not specified")
         return up_reqs;
     }
 
@@ -227,6 +222,7 @@ const_p_teca_dataset teca_2d_component_area::execute(
         << "teca_2d_component_area::execute" << endl;
 #endif
     (void)port;
+    (void)request;
 
     // get the input
     const_p_teca_cartesian_mesh in_mesh =
@@ -245,10 +241,10 @@ const_p_teca_dataset teca_2d_component_area::execute(
         std::const_pointer_cast<teca_cartesian_mesh>(in_mesh));
 
     // get the input array
-    std::string component_var = this->get_component_variable(request);
-    if (component_var.empty())
+    std::string component_var;
+    if (this->get_component_variable(component_var))
     {
-        TECA_ERROR("A label variable was not specified")
+        TECA_ERROR("component_variable was not specified")
         return nullptr;
     }
 
@@ -303,6 +299,8 @@ const_p_teca_dataset teca_2d_component_area::execute(
 
             const NT_LABEL *p_labels = static_cast<TT_LABEL*>(component_array.get())->get();
 
+            unsigned int n_labels = 0;
+
             bool has_component_id = in_metadata.has("component_ids");
             if (this->contiguous_component_ids || has_component_id)
             {
@@ -311,21 +309,23 @@ const_p_teca_dataset teca_2d_component_area::execute(
                 p_teca_variant_array component_id;
                 if (has_component_id)
                 {
+                    in_metadata.get("number_of_components", int(0), n_labels);
                     component_id = in_metadata.get("component_ids");
                 }
                 else
                 {
                     short max_component_id = ::get_max_component_id(nxy, p_labels);
-                    short n_labels = max_component_id + 1;
+                    n_labels = max_component_id + 1;
                     p_teca_short_array tmp = teca_short_array::New(n_labels);
-                    for (short i = 0; i < n_labels; ++i)
-                        tmp->set(i, i);
+                    for (unsigned int i = 0; i < n_labels; ++i)
+                        tmp->set(i, short(i));
                     component_id = tmp;
                 }
-                std::vector<calc_t> component_area(component_id->size());
+                std::vector<calc_t> component_area(n_labels);
                 ::component_area(nx,ny, p_xc,p_yc, p_labels, component_area);
 
                 // transfer the result to the output
+                out_metadata.insert("number_of_components", n_labels);
                 out_metadata.insert("component_ids", component_id);
                 out_metadata.insert("component_area", component_area);
             }
@@ -337,7 +337,7 @@ const_p_teca_dataset teca_2d_component_area::execute(
                 ::component_area(nx,ny, p_xc,p_yc, p_labels, result);
 
                 // transfer the result to the output
-                unsigned int n_labels = result.size();
+                n_labels = result.size();
 
                 p_teca_variant_array_impl<NT_LABEL> component_id =
                     teca_variant_array_impl<NT_LABEL>::New(n_labels);
@@ -353,6 +353,7 @@ const_p_teca_dataset teca_2d_component_area::execute(
                     component_area->set(i, it->second);
                 }
 
+                out_metadata.insert("number_of_components", n_labels);
                 out_metadata.insert("component_ids", component_id);
                 out_metadata.insert("component_area", component_area);
             }
