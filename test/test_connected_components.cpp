@@ -57,6 +57,7 @@ int main(int argc, char **argv)
     cfr->set_y_axis_variable(y_var);
     cfr->set_z_axis_variable(z_var);
     cfr->set_t_axis_variable(t_var);
+    cfr->set_periodic_in_x(1);
 
     p_teca_mask mask = teca_mask::New();
     mask->set_input_connection(cfr->get_output_port());

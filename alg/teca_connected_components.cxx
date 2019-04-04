@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <iostream>
 #include <deque>
+#include <cmath>
 
 using std::cerr;
 using std::endl;
@@ -28,17 +29,17 @@ struct id3
     unsigned long k;
 };
 
-/// 2D/3D connected component componenter
+/// 2D/3D connected component labeler
 /**
-given seed(i0,j0,k0) that's in a component to component, the
+given seed(i0,j0,k0) that's in a component to label, the
 current component(current_component), a binary segmentation(segments),
 and a set of components(components) of dimensions nx,ny,nz,nxy,
-walk the segmentation from the seed componenting it as we go.
+walk the segmentation from the seed labeling it as we go.
 when this function returns this component is completely
-componented. this is the 1 pass algorithm.
+labeled. this is the 1 pass algorithm.
 */
 template <typename segment_t, typename component_t>
-void component(unsigned long i0, unsigned long j0, unsigned long k0,
+void non_periodic_labeler(unsigned long i0, unsigned long j0, unsigned long k0,
     component_t current_component, unsigned long nx, unsigned long ny,
     unsigned long nz, unsigned long nxy, const segment_t *segments,
     component_t *components)
@@ -84,14 +85,91 @@ void component(unsigned long i0, unsigned long j0, unsigned long k0,
     }
 }
 
-/// 2D/3D connected component component driver
+/// 2D/3D connected component labeler, with periodic boundary in x
+/**
+given seed(i0,j0,k0) that's in a component to label, the
+current component(current_component), a binary segmentation(segments),
+and a set of components(components) of dimensions nx,ny,nz,nxy,
+walk the segmentation from the seed labeling it as we go.
+when this function returns this component is completely
+labeled. this is the 1 pass algorithm.
+
+notes:
+if we have a periodic bc then neighborhood includes cells -1 to 1, relative
+to the current index, else the neighborhood is constrained to 0 to 1, or
+-1 to 0.
+
+    long s0 = periodic_in_z ? -1 : ijk.k > 0 ? -1 : 0;
+    long s1 = periodic_in_z ? 1 : ijk.k < nz-1 ? 1 : 0;
+
+then when an index goes out of bounds because the neighborhood crosses the
+periodic bc
+
+    ss = (ss + nz) % nz;
+
+wraps it around
+*/
+template <typename segment_t, typename component_t>
+void periodic_labeler(unsigned long i0, unsigned long j0, unsigned long k0,
+    component_t current_component, unsigned long nx, unsigned long ny,
+    unsigned long nz, unsigned long nxy, int periodic_in_x, int periodic_in_y,
+    int periodic_in_z, const segment_t *segments,
+    component_t *components)
+{
+    std::deque<id3> work_queue;
+    work_queue.push_back(id3(i0,j0,k0));
+
+    while (work_queue.size())
+    {
+        id3 ijk = work_queue.back();
+        work_queue.pop_back();
+
+        long s0 = periodic_in_z ? -1 : ijk.k > 0 ? -1 : 0;
+        long s1 = periodic_in_z ? 1 : ijk.k < nz-1 ? 1 : 0;
+        for (long s = s0; s <= s1; ++s)
+        {
+            unsigned long ss = ijk.k + s;
+            ss = (ss + nz) % nz;
+            unsigned long kk = ss*nxy;
+
+            long r0 = periodic_in_y ? -1 : ijk.j > 0 ? -1 : 0;
+            long r1 = periodic_in_y ? 1 : ijk.j < ny-1 ? 1 : 0;
+            for (long r = r0; r <= r1; ++r)
+            {
+                unsigned long rr = ijk.j + r;
+                rr = (rr + ny) % ny;
+                unsigned long jj = rr*nx;
+
+                long q0 = periodic_in_x ? -1 : ijk.i > 0 ? -1 : 0;
+                long q1 = periodic_in_x ? 1 : ijk.i < nx-1 ? 1 : 0;
+                long q_inc = (r || s) ? 1 : 2;
+                for (long q = q0; q <= q1; q += q_inc)
+                {
+                    long qq = ijk.i + q;
+                    qq = (qq + nx) % nx;
+                    unsigned long w = qq + jj + kk;
+
+                    if (segments[w] && !components[w])
+                    {
+                        components[w] = current_component;
+                        work_queue.push_back(id3(qq,rr,ss));
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// 2D/3D connected component labeler driver
 /**
 given a binary segmentation(segments) and buffer(components), both
 with dimensions described by the given exent(ext), compute
 the componenting.
 */
 template <typename segment_t, typename component_t>
-void component(unsigned long *ext, const segment_t *segments, component_t *components, component_t &max_component)
+void label(unsigned long *ext, int periodic_in_x, int periodic_in_y,
+    int periodic_in_z, const segment_t *segments, component_t *components,
+    component_t &max_component)
 {
     unsigned long nx = ext[1] - ext[0] + 1;
     unsigned long ny = ext[3] - ext[2] + 1;
@@ -113,12 +191,13 @@ void component(unsigned long *ext, const segment_t *segments, component_t *compo
             {
                 unsigned long q = kk + jj + i;
 
-                // found seed, component it
+                // found seed, label it
                 if (segments[q] && !components[q])
                 {
                     components[q] = ++current_component;
-                    component(i,j,k, current_component,
-                        nx,ny,nz,nxy, segments, components);
+                    periodic_labeler(i,j,k, current_component,
+                        nx,ny,nz,nxy, periodic_in_x, periodic_in_y,
+                        periodic_in_z, segments, components);
                 }
             }
         }
@@ -126,6 +205,7 @@ void component(unsigned long *ext, const segment_t *segments, component_t *compo
 
     max_component = current_component;
 }
+
 };
 
 
@@ -183,7 +263,6 @@ teca_metadata teca_connected_components::get_output_metadata(
         << "teca_connected_components::get_output_metadata" << endl;
 #endif
     (void) port;
-
 
     std::string component_var = this->component_variable;
     if (component_var.empty())
@@ -290,6 +369,28 @@ const_p_teca_dataset teca_connected_components::execute(
     unsigned long extent[6];
     out_mesh->get_extent(extent);
 
+    unsigned long whole_extent[6];
+    out_mesh->get_whole_extent(whole_extent);
+
+    // check for periodic bc.
+    int periodic_in_x = 0;
+    out_mesh->get_periodic_in_x(periodic_in_x);
+    if (periodic_in_x &&
+        (extent[0] == whole_extent[0]) && (extent[1] == whole_extent[1]))
+        periodic_in_x = 1;
+
+    int periodic_in_y = 0;
+    out_mesh->get_periodic_in_y(periodic_in_y);
+    if (periodic_in_y &&
+        (extent[2] == whole_extent[2]) && (extent[3] == whole_extent[3]))
+        periodic_in_y = 1;
+
+    int periodic_in_z = 0;
+    out_mesh->get_periodic_in_z(periodic_in_z);
+    if (periodic_in_z &&
+        (extent[4] == whole_extent[4]) && (extent[5] == whole_extent[5]))
+        periodic_in_z = 1;
+
     // do segmentation and component
     size_t n_elem = input_array->size();
     p_teca_short_array components = teca_short_array::New(n_elem);
@@ -299,7 +400,8 @@ const_p_teca_dataset teca_connected_components::execute(
     TEMPLATE_DISPATCH(const teca_variant_array_impl,
         input_array.get(),
         const NT *p_in = static_cast<TT*>(input_array.get())->get();
-        ::component(extent, p_in, p_components, max_component);
+        ::label(extent, periodic_in_x, periodic_in_y,
+            periodic_in_z, p_in, p_components, max_component);
         )
 
     // put components in output
