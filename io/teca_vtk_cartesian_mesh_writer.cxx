@@ -380,5 +380,5 @@ const_p_teca_dataset teca_vtk_cartesian_mesh_writer::execute(
     }
 #endif
 
-    return p_teca_dataset();
+    return mesh;
 }
