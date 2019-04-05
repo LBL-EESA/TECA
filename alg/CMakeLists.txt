@@ -10,11 +10,13 @@ set(teca_alg_cxx_srcs
     gfdl_tc_candidates.cxx
     teca_apply_binary_mask.cxx
     teca_binary_segmentation.cxx
+    teca_bayesian_ar_detect.cxx
     teca_cartesian_mesh_subset.cxx
     teca_cartesian_mesh_regrid.cxx
     teca_connected_components.cxx
     teca_2d_component_area.cxx
     teca_component_area_filter.cxx
+    teca_component_statistics.cxx
     teca_dataset_capture.cxx
     teca_dataset_source.cxx
     teca_derived_quantity.cxx

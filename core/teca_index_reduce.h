@@ -51,10 +51,6 @@ public:
     TECA_ALGORITHM_PROPERTY(long, start_index)
     TECA_ALGORITHM_PROPERTY(long, end_index)
 
-    // enable/disable MPI parallelization. With MPI disabled
-    // reductions are locally parallelized over threads
-    TECA_ALGORITHM_PROPERTY(int, enable_mpi)
-
 protected:
     teca_index_reduce();
 
@@ -116,7 +112,6 @@ private:
 private:
     long start_index;
     long end_index;
-    int enable_mpi;
 };
 
 #endif

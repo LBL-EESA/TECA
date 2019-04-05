@@ -141,3 +141,26 @@ teca_add_test(py_test_tc_trajectory_scalars_mpi
     "${TECA_DATA_ROOT}/py_test_tc_trajectory_scalars.bin" 0 -1
     FEATURES ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4PY_FOUND}
     REQ_TECA_DATA)
+
+teca_add_test(py_test_bayesian_ar_detect_serial
+    COMMAND  ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_bayesian_ar_detect.py
+    "${TECA_DATA_ROOT}/bayesian_ar_parameters.bin" "${TECA_DATA_ROOT}/prw_hus_day_MRI.*\\.nc$"
+    "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" prw 1 0 4
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(py_test_bayesian_ar_detect_threads
+    COMMAND  ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_bayesian_ar_detect.py
+    "${TECA_DATA_ROOT}/bayesian_ar_parameters.bin" "${TECA_DATA_ROOT}/prw_hus_day_MRI.*\\.nc$"
+    "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" prw -1 0 4
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(py_test_bayesian_ar_detect_mpi_threads
+    COMMAND ${MPIEXEC} -n ${HALF_CORES} ${PYTHON_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_bayesian_ar_detect.py
+    "${TECA_DATA_ROOT}/bayesian_ar_parameters.bin"
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI.*\\.nc$"
+    "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" prw ${HALF_CORES} 0 4
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
+    REQ_TECA_DATA)

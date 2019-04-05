@@ -48,14 +48,12 @@ using p_teca_data_request_queue = std::shared_ptr<teca_data_request_queue>;
 class teca_threaded_algorithm_internals
 {
 public:
-    teca_threaded_algorithm_internals() :
-        thread_pool(new teca_data_request_queue(-1, false, true, false))
-     {}
+    teca_threaded_algorithm_internals() {}
 
     void thread_pool_resize(int n, bool local, bool bind, bool verbose);
 
     unsigned int get_thread_pool_size() const noexcept
-    { return this->thread_pool->size(); }
+    { return this->thread_pool ? this->thread_pool->size() : 0; }
 
 public:
     p_teca_data_request_queue thread_pool;
@@ -74,7 +72,7 @@ void teca_threaded_algorithm_internals::thread_pool_resize(int n, bool local,
 
 // --------------------------------------------------------------------------
 teca_threaded_algorithm::teca_threaded_algorithm() : verbose(0),
-    bind_threads(1), internals(new teca_threaded_algorithm_internals)
+    bind_threads(1), enable_mpi(1), internals(new teca_threaded_algorithm_internals)
 {
 }
 
@@ -95,6 +93,8 @@ void teca_threaded_algorithm::get_properties_description(
     opts.add_options()
         TECA_POPTS_GET(int, prefix, bind_threads,
             "bind software threads to hardware cores (1)")
+        TECA_POPTS_GET(int, prefix, enable_mpi,
+            "use MPI collectives to determine the optimal thread pool size (1)")
         TECA_POPTS_GET(int, prefix, verbose,
             "print a run time report of settings (0)")
         TECA_POPTS_GET(int, prefix, thread_pool_size,
@@ -109,6 +109,7 @@ void teca_threaded_algorithm::set_properties(const std::string &prefix,
     variables_map &opts)
 {
     TECA_POPTS_SET(opts, int, prefix, bind_threads)
+    TECA_POPTS_SET(opts, int, prefix, enable_mpi)
     TECA_POPTS_SET(opts, int, prefix, verbose)
 
     std::string opt_name = (prefix.empty()?"":prefix+"::") + "thread_pool_size";
@@ -120,7 +121,8 @@ void teca_threaded_algorithm::set_properties(const std::string &prefix,
 // --------------------------------------------------------------------------
 void teca_threaded_algorithm::set_thread_pool_size(int n)
 {
-    this->internals->thread_pool_resize(n, false, this->bind_threads, this->verbose);
+    this->internals->thread_pool_resize(n,
+        !this->enable_mpi, this->bind_threads, this->verbose);
 }
 
 // --------------------------------------------------------------------------
@@ -134,6 +136,15 @@ const_p_teca_dataset teca_threaded_algorithm::request_data(
     teca_algorithm_output_port &current,
     const teca_metadata &request)
 {
+    // check that we have a thread pool. it is left to a derived class
+    // to construct the thread pool with a call to set_thread_pool_size
+    // so that use of MPI can be tailored to the specific scenario
+    if (!this->get_thread_pool_size())
+    {
+        TECA_ERROR("no thread pool available, set_thread_pool_size")
+        return nullptr;
+    }
+
     // execute current algorithm to fulfill the request.
     // return the data
     p_teca_algorithm alg = get_algorithm(current);

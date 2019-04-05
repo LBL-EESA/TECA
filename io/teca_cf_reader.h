@@ -71,6 +71,11 @@ public:
     // is ignored.
     TECA_ALGORITHM_PROPERTY(std::string, file_name)
 
+    // set if the dataset has periodic boundary conditions
+    TECA_ALGORITHM_PROPERTY(int, periodic_in_x)
+    TECA_ALGORITHM_PROPERTY(int, periodic_in_y)
+    TECA_ALGORITHM_PROPERTY(int, periodic_in_z)
+
     // set the variable to use for the coordinate axes.
     // the defaults are: x => lon, y => lat, z = "",
     // t => "time". leaving z empty will result in a 2D
@@ -108,6 +113,9 @@ private:
     std::string y_axis_variable;
     std::string z_axis_variable;
     std::string t_axis_variable;
+    int periodic_in_x;
+    int periodic_in_y;
+    int periodic_in_z;
     int thread_pool_size;
     p_teca_cf_reader_internals internals;
 };

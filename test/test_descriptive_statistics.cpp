@@ -66,47 +66,37 @@ int main(int argc, char **argv)
 
     teca_system_interface::set_stack_trace_on_error();
 
-    // parse command line
-    string regex;
-    string baseline;
-    int have_baseline = 0;
-    long first_step = 0;
-    long last_step = -1;
-    unsigned int n_threads = 1;
-    vector<string> arrays;
-    if (rank == 0)
+    if (argc < 3)
     {
-        if (argc < 3)
-        {
-            cerr << endl << "Usage error:" << endl
-                << "test_map_descriptive_statistics [input regex] [test baseline] [first step = 0] "
-                << "[last step = -1] [num threads = 1] [array 0 =] ... [array n =]"
-                << endl << endl;
-            return -1;
-        }
-        regex = argv[1];
-        baseline = argv[2];
-        if (teca_file_util::file_exists(baseline.c_str()))
-            have_baseline = 1;
-        if (argc > 3)
-            first_step = atoi(argv[3]);
-        if (argc > 4)
-            last_step = atoi(argv[4]);
-        if (argc > 5)
-            n_threads = atoi(argv[5]);
-        for (int i = 6; i < argc; ++i)
-            arrays.push_back(argv[i]);
+        cerr << endl << "Usage error:" << endl
+            << "test_map_descriptive_statistics [input regex] [test baseline] [first step = 0] "
+            << "[last step = -1] [num threads = 1] [array 0 =] ... [array n =]"
+            << endl << endl;
+        return -1;
+    }
 
+    string regex = argv[1];
+    string baseline = argv[2];
+    int have_baseline = 0;
+    if ((rank == 0) && teca_file_util::file_exists(baseline.c_str()))
+        have_baseline = 1;
+    teca_test_util::bcast(have_baseline);
+    long first_step = 0;
+    if (argc > 3)
+        first_step = atoi(argv[3]);
+    long last_step = -1;
+    if (argc > 4)
+        last_step = atoi(argv[4]);
+    unsigned int n_threads = 1;
+    if (argc > 5)
+        n_threads = atoi(argv[5]);
+    vector<string> arrays;
+    for (int i = 6; i < argc; ++i)
+        arrays.push_back(argv[i]);
+
+    if (rank == 0)
         cerr << "Testing with " << nranks << " MPI ranks each with "
             << n_threads << " threads" << endl;
-    }
-    teca_test_util::bcast(regex);
-    teca_test_util::bcast(baseline);
-    teca_test_util::bcast(have_baseline);
-    teca_test_util::bcast(first_step);
-    teca_test_util::bcast(last_step);
-    teca_test_util::bcast(n_threads);
-    teca_test_util::bcast(arrays);
 
     // create the pipeline
     p_teca_cf_reader cf_reader = teca_cf_reader::New();

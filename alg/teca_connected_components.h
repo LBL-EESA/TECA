@@ -16,9 +16,11 @@ an algorithm that computes connected component labeling for 1D, 2D, and 3D
 data. The components are computed from a binary segmentation provided on the
 input.
 
-the segmentation is labeled and stored in a variable named by the
-segmentation_variable property. the component ids are added to the output
-dataset metadata in an key named 'component_ids'
+the input binary segmentation is labeled and stored in a variable named by the
+component_variable property. the component ids are added to the output
+dataset metadata in an key named 'component_ids', and the number of components
+is stored in a key named 'number_of_components'. These keys facilitate further
+processing as one need not scan the labeled data to get the list of label ids.
 */
 class teca_connected_components : public teca_algorithm
 {
@@ -26,11 +28,13 @@ public:
     TECA_ALGORITHM_STATIC_NEW(teca_connected_components)
     ~teca_connected_components();
 
-    // set the name of the output array
+    // set the input array containing a binary segmentation
+    // see teca_binary_segmentation
+    TECA_ALGORITHM_PROPERTY(std::string, segmentation_variable)
+
+    // set the name of the output array to store the component labels in
     TECA_ALGORITHM_PROPERTY(std::string, component_variable)
 
-    // set the array to threshold
-    TECA_ALGORITHM_PROPERTY(std::string, segmentation_variable)
 
 protected:
     teca_connected_components();

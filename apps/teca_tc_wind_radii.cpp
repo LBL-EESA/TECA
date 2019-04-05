@@ -246,6 +246,8 @@ int main(int argc, char **argv)
 
     if (opt_vals.count("n_threads"))
         map_reduce->set_thread_pool_size(opt_vals["n_threads"].as<int>());
+    else
+        map_reduce->set_thread_pool_size(-1);
 
     // run the pipeline
     track_writer->update();

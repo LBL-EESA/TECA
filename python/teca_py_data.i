@@ -98,6 +98,9 @@ TECA_PY_DYNAMIC_CAST(teca_mesh, teca_dataset)
 %ignore teca_cartesian_mesh::get_time_step(unsigned long *) const;
 %ignore teca_cartesian_mesh::set_calendar(std::string const *);
 %ignore teca_cartesian_mesh::set_time_units(std::string const *);
+%ignore teca_cartesian_mesh::get_periodic_in_x(int *) const;
+%ignore teca_cartesian_mesh::get_periodic_in_y(int *) const;
+%ignore teca_cartesian_mesh::get_periodic_in_z(int *) const;
 %include "teca_cartesian_mesh_fwd.h"
 %include "teca_cartesian_mesh.h"
 TECA_PY_DYNAMIC_CAST(teca_cartesian_mesh, teca_dataset)

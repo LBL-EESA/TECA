@@ -117,7 +117,7 @@ void block_decompose(unsigned long n_indices, unsigned long n_ranks,
 
 // --------------------------------------------------------------------------
 teca_index_reduce::teca_index_reduce()
-    : start_index(0), end_index(-1), enable_mpi(1)
+    : start_index(0), end_index(-1)
 {}
 
 #if defined(TECA_HAS_BOOST)
@@ -134,7 +134,6 @@ void teca_index_reduce::get_properties_description(const std::string &prefix,
         TECA_POPTS_GET(long, prefix, start_index, "first index to process (0)")
         TECA_POPTS_GET(long, prefix, end_index, "last index to process. "
             "If set to -1 all indices are processed. (-1)")
-        TECA_POPTS_GET(int, prefix, enable_mpi, "enable use of MPI (1)")
         ;
 
     global_opts.add(opts);
@@ -148,7 +147,6 @@ void teca_index_reduce::set_properties(const std::string &prefix,
 
     TECA_POPTS_SET(opts, long, prefix, start_index)
     TECA_POPTS_SET(opts, long, prefix, end_index)
-    TECA_POPTS_SET(opts, int, prefix, enable_mpi)
 }
 #endif
 
@@ -197,7 +195,7 @@ std::vector<teca_metadata> teca_index_reduce::get_upstream_request(
     // to process.
     unsigned long rank = 0;
     unsigned long n_ranks = 1;
-    if (this->enable_mpi)
+    if (this->get_enable_mpi())
     {
 #if defined(TECA_HAS_MPI)
         int is_init = 0;
@@ -391,7 +389,7 @@ const_p_teca_dataset teca_index_reduce::execute(
     // this can occur if there are fewer indices
     // to process than there are MPI ranks.
 
-    if (this->enable_mpi)
+    if (this->get_enable_mpi())
         return this->reduce_remote(this->reduce_local(input_data));
     return this->reduce_local(input_data);
 }

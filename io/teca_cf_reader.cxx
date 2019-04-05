@@ -312,6 +312,9 @@ teca_cf_reader::teca_cf_reader() :
     y_axis_variable("lat"),
     z_axis_variable(""),
     t_axis_variable("time"),
+    periodic_in_x(0),
+    periodic_in_y(0),
+    periodic_in_z(0),
     thread_pool_size(-1),
     internals(new teca_cf_reader_internals)
 {}
@@ -343,6 +346,12 @@ void teca_cf_reader::get_properties_description(
             "name of variable that has z axis coordinates ()")
         TECA_POPTS_GET(std::string, prefix, t_axis_variable,
             "name of variable that has t axis coordinates (time)")
+        TECA_POPTS_GET(int, prefix, periodic_in_x,
+            "the dataset has apriodic boundary in the x direction (0)")
+        TECA_POPTS_GET(int, prefix, periodic_in_y,
+            "the dataset has apriodic boundary in the y direction (0)")
+        TECA_POPTS_GET(int, prefix, periodic_in_z,
+            "the dataset has apriodic boundary in the z direction (0)")
         TECA_POPTS_GET(int, prefix, thread_pool_size,
             "set the number of I/O threads (-1)")
         ;
@@ -360,6 +369,9 @@ void teca_cf_reader::set_properties(const std::string &prefix,
     TECA_POPTS_SET(opts, std::string, prefix, y_axis_variable)
     TECA_POPTS_SET(opts, std::string, prefix, z_axis_variable)
     TECA_POPTS_SET(opts, std::string, prefix, t_axis_variable)
+    TECA_POPTS_SET(opts, int, prefix, periodic_in_x)
+    TECA_POPTS_SET(opts, int, prefix, periodic_in_y)
+    TECA_POPTS_SET(opts, int, prefix, periodic_in_z)
     TECA_POPTS_SET(opts, int, prefix, thread_pool_size)
 }
 #endif
@@ -798,13 +810,17 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
             teca_metadata coords;
             coords.insert("x_variable", x_axis_variable);
-            coords.insert("y_variable", (y_axis_variable.empty() ? "y" : z_axis_variable));
+            coords.insert("y_variable", (y_axis_variable.empty() ? "y" : y_axis_variable));
             coords.insert("z_variable", (z_axis_variable.empty() ? "z" : z_axis_variable));
-            coords.insert("t_variable", (t_axis_variable.empty() ? "t" : z_axis_variable));
+            coords.insert("t_variable", (t_axis_variable.empty() ? "t" : t_axis_variable));
             coords.insert("x", x_axis);
             coords.insert("y", y_axis);
             coords.insert("z", z_axis);
             coords.insert("t", t_axis);
+            coords.insert("periodic_in_x", this->periodic_in_x);
+            coords.insert("periodic_in_y", this->periodic_in_y);
+            coords.insert("periodic_in_z", this->periodic_in_z);
+
 
             std::vector<size_t> whole_extent(6, 0);
             whole_extent[1] = n_x - 1;
@@ -1020,6 +1036,9 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
     mesh->set_time_step(time_step);
     mesh->set_whole_extent(whole_extent);
     mesh->set_extent(extent);
+    mesh->set_periodic_in_x(this->periodic_in_x);
+    mesh->set_periodic_in_y(this->periodic_in_y);
+    mesh->set_periodic_in_z(this->periodic_in_z);
 
     // get the time offset
     teca_metadata atrs;

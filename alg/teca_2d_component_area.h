@@ -26,6 +26,7 @@ the input dataset is passed through and the results of the
 calculations are stored in the output dataset metadata in
 keys named:
 
+  number_of_components
   component_ids
   component_area
 
@@ -52,7 +53,7 @@ public:
 protected:
     teca_2d_component_area();
 
-    std::string get_component_variable(const teca_metadata &request);
+    int get_component_variable(std::string &component_var);
 
 private:
     teca_metadata get_output_metadata(

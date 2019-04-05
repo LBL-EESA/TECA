@@ -67,8 +67,8 @@ int teca_latitude_damper::get_sigma(const teca_metadata &request, double &sigma)
     double hwhm = 0.0;
     if (std::isnan(this->half_width_at_half_max))
     {
-        if (request.has("teca_latitude_damper::half_width_at_half_max"))
-            request.get("teca_latitude_damper::half_width_at_half_max", hwhm);
+        if (request.has("half_width_at_half_max"))
+            request.get("half_width_at_half_max", hwhm);
         else
             return -1;
     }
@@ -87,8 +87,8 @@ int teca_latitude_damper::get_mu(const teca_metadata &request, double &mu)
 {
     if (std::isnan(this->center))
     {
-        if (request.has("teca_latitude_damper::center"))
-            request.get("teca_latitude_damper::center", mu);
+        if (request.has("center"))
+            request.get("center", mu);
         else
             return -1;
     }
@@ -101,20 +101,12 @@ int teca_latitude_damper::get_mu(const teca_metadata &request, double &mu)
 }
 
 // --------------------------------------------------------------------------
-int  teca_latitude_damper::get_damped_variables(
-    const teca_metadata &request, std::vector<std::string> &vars)
+int teca_latitude_damper::get_damped_variables(std::vector<std::string> &vars)
 {
     if (this->damped_variables.empty())
-    {
-        if(request.has("teca_latitude_damper::damped_variables"))
-            request.get("teca_latitude_damper::damped_variables", vars);
-        else
-            return -1;
-    }
+        return -1;
     else
-    {
         vars = this->damped_variables;
-    }
 
     return 0;
 }
@@ -141,7 +133,7 @@ std::vector<teca_metadata> teca_latitude_damper::get_upstream_request(
 
     // get the name of the array to request
     std::vector<std::string> damped_vars;
-    if (this->get_damped_variables(request, damped_vars))
+    if (this->get_damped_variables(damped_vars))
     {
         TECA_ERROR("No variables to damp specified")
         return up_reqs;
@@ -198,7 +190,7 @@ const_p_teca_dataset teca_latitude_damper::execute(
 
     // get the input array names
     std::vector<std::string> damped_vars;
-    if (this->get_damped_variables(request, damped_vars))
+    if (this->get_damped_variables(damped_vars))
     {
         TECA_ERROR("No variable specified to damp")
         return nullptr;

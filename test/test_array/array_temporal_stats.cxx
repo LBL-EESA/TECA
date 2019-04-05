@@ -13,6 +13,7 @@ array_temporal_stats::array_temporal_stats()
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
+    this->set_thread_pool_size(-1);
 }
 
 // --------------------------------------------------------------------------

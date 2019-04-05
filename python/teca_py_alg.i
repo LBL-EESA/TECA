@@ -1,12 +1,14 @@
 %{
 #include "teca_config.h"
+#include "teca_2d_component_area.h"
 #include "teca_algorithm.h"
 #include "teca_apply_binary_mask.h"
+#include "teca_bayesian_ar_detect.h"
 #include "teca_binary_segmentation.h"
 #include "teca_cartesian_mesh_subset.h"
 #include "teca_cartesian_mesh_regrid.h"
 #include "teca_connected_components.h"
-#include "teca_2d_component_area.h"
+#include "teca_component_statistics.h"
 #include "teca_latitude_damper.h"
 #include "teca_dataset_diff.h"
 #include "teca_dataset_capture.h"
@@ -406,9 +408,25 @@ struct teca_tc_saffir_simpson
 %include "teca_2d_component_area.h"
 
 /***************************************************************************
- damper
+ latitude_damper
  ***************************************************************************/
 %ignore teca_latitude_damper::shared_from_this;
 %shared_ptr(teca_latitude_damper)
 %ignore teca_latitude_damper::operator=;
 %include "teca_latitude_damper.h"
+
+/***************************************************************************
+ bayesian_ar_detect
+ ***************************************************************************/
+%ignore teca_bayesian_ar_detect::shared_from_this;
+%shared_ptr(teca_bayesian_ar_detect)
+%ignore teca_bayesian_ar_detect::operator=;
+%include "teca_bayesian_ar_detect.h"
+
+/***************************************************************************
+ component_statistics
+ ***************************************************************************/
+%ignore teca_component_statistics::shared_from_this;
+%shared_ptr(teca_component_statistics)
+%ignore teca_component_statistics::operator=;
+%include "teca_component_statistics.h"
