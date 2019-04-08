@@ -282,7 +282,8 @@ const_p_teca_dataset teca_component_area_filter::execute(
             std::vector<NT_AREA> component_area;
             for (size_t i = 0; i < n_component_ids; ++i)
             {
-                if (filter_map[p_unique_labels[i]] == p_unique_labels[i]){
+                if (filter_map[p_unique_labels[i]] == p_unique_labels[i])
+                {
                     component_ids.push_back(p_unique_labels[i]);
                     component_area.push_back(p_areas[i]);
                 }
@@ -291,10 +292,9 @@ const_p_teca_dataset teca_component_area_filter::execute(
             std::string labels_var_post_fix = labels_var + this->variable_post_fix;
             out_mesh->get_point_arrays()->set(labels_var_post_fix, filtered_labels_array);
 
-            out_metadata.insert(this->number_of_components_key + this->variable_post_fix, n_component_ids);
+            out_metadata.insert(this->number_of_components_key + this->variable_post_fix, component_ids.size());
             out_metadata.insert(this->component_ids_key + this->variable_post_fix, component_ids);
             out_metadata.insert(this->component_area_key + this->variable_post_fix, component_area);
-
             )
         )
 
