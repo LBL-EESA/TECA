@@ -3,6 +3,7 @@
 #include "teca_variant_array.h"
 #include "teca_metadata.h"
 #include "teca_cartesian_mesh.h"
+#include "teca_metadata_util.h"
 
 #include <iostream>
 #include <set>
@@ -131,12 +132,17 @@ teca_metadata teca_component_area_filter::get_output_metadata(
 #endif
     (void) port;
 
-    teca_metadata md = input_md[0];
+    // add in the array we will generate
+    teca_metadata out_md(input_md[0]);
 
-    // TODO -- add the name of the output array, this is only
-    // needed if the post fix is set
+    std::string var_post_fix = this->variable_post_fix;
+    if (!var_post_fix.empty())
+    {
+        std::string component_var = this->component_variable;
+        out_md.append("variables", component_var + var_post_fix);
+    }
 
-    return md;
+    return out_md;
 }
 
 // --------------------------------------------------------------------------
@@ -170,8 +176,13 @@ std::vector<teca_metadata> teca_component_area_filter::get_upstream_request(
         req.get("arrays", arrays);
     arrays.insert(labels_var);
 
-    // TODO -- remove the arrays we produce. this is only needed
-    // if the post-fix is set.
+    // remove the arrays we produce if the post-fix is set,
+    // and replace it with the actual requested array.
+    std::string var_post_fix = this->variable_post_fix;
+    if (!var_post_fix.empty())
+    {
+        teca_metadata_util::remove_post_fix(arrays, this->variable_post_fix);
+    }
 
     req.insert("arrays", arrays);
 

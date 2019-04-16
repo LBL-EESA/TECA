@@ -9,6 +9,7 @@
 #include "teca_cartesian_mesh_regrid.h"
 #include "teca_connected_components.h"
 #include "teca_component_statistics.h"
+#include "teca_2d_component_area.h"
 #include "teca_component_area_filter.h"
 #include "teca_latitude_damper.h"
 #include "teca_dataset_diff.h"
