@@ -146,50 +146,51 @@ int main(int argc, char **argv)
     const_p_teca_cartesian_mesh cds = std::dynamic_pointer_cast<const teca_cartesian_mesh>(ds);
     const_p_teca_variant_array va = cds->get_point_arrays()->get("labels" + post_fix);
 
+    teca_metadata mdo = ds->get_metadata();
+
+    std::vector<int> filtered_label_id;
+
+    std::vector<int> label_id;
+    mdo.get("label_id", label_id);
+
+    std::vector<double> area;
+    mdo.get("area", area);
+
+    std::vector<int> label_id_filtered;
+    mdo.get("label_id" + post_fix, label_id_filtered);
+
+    std::vector<double> area_filtered;
+    mdo.get("area" + post_fix, area_filtered);
+
+    cerr << "component areas" << endl;
+    int n_labels = label_id.size();
+    for (int i = 0; i < n_labels; ++i)
+    {
+        cerr << "label " << label_id[i] << " = " << area[i] << endl;
+        if (area[i] < low_threshold_value)
+        {
+            filtered_label_id.push_back(label_id[i]);
+        }
+    }
+    cerr << endl;
+
+    cerr << "component areas filtered with low thershold area = " << low_threshold_value;
+    cerr << endl;
+    int n_labels_filtered = label_id_filtered.size();
+    for (int i = 0; i < n_labels_filtered; ++i)
+    {
+        cerr << "label " << label_id_filtered[i] << " = " << area_filtered[i] << endl;
+    }
+
+    size_t n_filtered = filtered_label_id.size();
+    size_t n_labels_total = va->size();
+
     NESTED_TEMPLATE_DISPATCH_I(const teca_variant_array_impl,
         va.get(),
         _LABEL,
 
         const NT_LABEL *p_labels_filtered = static_cast<TT_LABEL*>(va.get())->get();
-        teca_metadata mdo = ds->get_metadata();
 
-        std::vector<int> filtered_label_id;
-
-        std::vector<int> label_id;
-        mdo.get("label_id", label_id);
-
-        std::vector<double> area;
-        mdo.get("area", area);
-
-        std::vector<int> label_id_filtered;
-        mdo.get("label_id" + post_fix, label_id_filtered);
-
-        std::vector<double> area_filtered;
-        mdo.get("area" + post_fix, area_filtered);
-
-        cerr << "component areas" << endl;
-        int n_labels = label_id.size();
-        for (int i = 0; i < n_labels; ++i)
-        {
-            cerr << "label " << label_id[i] << " = " << area[i] << endl;
-            if (area[i] < low_threshold_value)
-            {
-                filtered_label_id.push_back(label_id[i]);
-            }
-        }
-        cerr << endl;
-
-        cerr << "component areas filtered with low thershold area = " << low_threshold_value;
-        cerr << endl;
-        int n_labels_filtered = label_id_filtered.size();
-        for (int i = 0; i < n_labels_filtered; ++i)
-        {
-            cerr << "label " << label_id_filtered[i] << " = " << area_filtered[i] << endl;
-        }
-
-
-        size_t n_filtered = filtered_label_id.size();
-        size_t n_labels_total = va->size();
         for (size_t i = 0; i < n_filtered; ++i)
         {
             NT_LABEL label = filtered_label_id[i];

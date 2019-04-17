@@ -14,6 +14,10 @@ if (TECA_DATA_ROOT AND TECA_HAS_NETCDF)
         WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 endif()
 
+teca_add_test(py_test_component_area_filter
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_component_area_filter.py
+    720 360 8 8 10000000 0 "py_test_component_area_filter_%t%.%e%")
+
 teca_add_test(py_test_derived_quantity
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_derived_quantity.py
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"

@@ -195,9 +195,9 @@ std::vector<teca_metadata> teca_index_reduce::get_upstream_request(
     // to process.
     unsigned long rank = 0;
     unsigned long n_ranks = 1;
+#if defined(TECA_HAS_MPI)
     if (this->get_enable_mpi())
     {
-#if defined(TECA_HAS_MPI)
         int is_init = 0;
         MPI_Initialized(&is_init);
         if (is_init)
