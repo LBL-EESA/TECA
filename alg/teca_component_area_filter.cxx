@@ -135,7 +135,7 @@ teca_metadata teca_component_area_filter::get_output_metadata(
     // add in the array we will generate
     teca_metadata out_md(input_md[0]);
 
-    std::string var_post_fix = this->variable_post_fix;
+    const std::string &var_post_fix = this->variable_post_fix;
     if (!var_post_fix.empty())
     {
         std::string component_var = this->component_variable;
@@ -178,7 +178,7 @@ std::vector<teca_metadata> teca_component_area_filter::get_upstream_request(
 
     // remove the arrays we produce if the post-fix is set,
     // and replace it with the actual requested array.
-    std::string var_post_fix = this->variable_post_fix;
+    const std::string &var_post_fix = this->variable_post_fix;
     if (!var_post_fix.empty())
     {
         teca_metadata_util::remove_post_fix(arrays, var_post_fix);
