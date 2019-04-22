@@ -137,15 +137,27 @@ teca_add_test(test_descriptive_statistics_serial
     EXEC_NAME test_descriptive_statistics
     SOURCES test_descriptive_statistics.cpp teca_test_util.cxx
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
-    COMMAND test_descriptive_statistics
+    COMMAND test_descriptive_statistics 0
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-[0-9][0-9]-10800\\.nc"
+    "${TECA_DATA_ROOT}/test_descriptive_statistics.bin" 0 -1 1 TMQ T200 T500
+    FEATURES ${TECA_HAS_UDUNITS} ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_descriptive_statistics_time_in
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_descriptive_statistics 4
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2.cam2.h2.1991-10-01-06Z.nc"
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2.cam2.h2.1991-10-01-18Z.nc"
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2.cam2.h2.1991-10-02-06Z.nc"
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2.cam2.h2.1991-10-02-18Z.nc"
+    4653.25 4653.75 4654.25 4654.75
     "${TECA_DATA_ROOT}/test_descriptive_statistics.bin" 0 -1 1 TMQ T200 T500
     FEATURES ${TECA_HAS_UDUNITS} ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(test_descriptive_statistics_threads
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
-    COMMAND test_descriptive_statistics
+    COMMAND test_descriptive_statistics 0
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-[0-9][0-9]-10800\\.nc"
     "${TECA_DATA_ROOT}/test_descriptive_statistics.bin" 0 -1 ${TECA_TEST_CORES}
     TMQ T200 T500
@@ -154,7 +166,7 @@ teca_add_test(test_descriptive_statistics_threads
 
 teca_add_test(test_descriptive_statistics_mpi
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
-    COMMAND ${MPIEXEC} -n ${TECA_TEST_CORES} test_descriptive_statistics
+    COMMAND ${MPIEXEC} -n ${TECA_TEST_CORES} test_descriptive_statistics 0
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-[0-9][0-9]-10800\\.nc"
     "${TECA_DATA_ROOT}/test_descriptive_statistics.bin" 0 -1 1 TMQ T200 T500
     FEATURES ${TECA_HAS_UDUNITS} ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
@@ -162,7 +174,7 @@ teca_add_test(test_descriptive_statistics_mpi
 
 teca_add_test(test_descriptive_statistics_mpi_threads
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
-    COMMAND ${MPIEXEC} -n ${HALF_CORES} test_descriptive_statistics
+    COMMAND ${MPIEXEC} -n ${HALF_CORES} test_descriptive_statistics 0
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-[0-9][0-9]-10800\\.nc"
     "${TECA_DATA_ROOT}/test_descriptive_statistics.bin" 0 -1 ${HALF_CORES}
     TMQ T200 T500

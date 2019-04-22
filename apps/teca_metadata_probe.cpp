@@ -116,7 +116,7 @@ int main(int argc, char **argv)
     // now pas in the basic options, these are procesed
     // last so that they will take precedence
     if (opt_vals.count("input_file"))
-        sim_reader->set_file_name(
+        sim_reader->append_file_name(
             opt_vals["input_file"].as<string>());
 
     if (opt_vals.count("input_regex"))
@@ -132,7 +132,7 @@ int main(int argc, char **argv)
         time_j = opt_vals["end_date"].as<string>();
 
     // some minimal check for mising options
-    if (sim_reader->get_file_name().empty()
+    if (sim_reader->get_number_of_file_names() == 0
         && sim_reader->get_files_regex().empty())
     {
         TECA_ERROR(

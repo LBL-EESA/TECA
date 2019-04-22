@@ -312,6 +312,8 @@ teca_cf_reader::teca_cf_reader() :
     y_axis_variable("lat"),
     z_axis_variable(""),
     t_axis_variable("time"),
+    t_calendar(""),
+    t_units(""),
     periodic_in_x(0),
     periodic_in_y(0),
     periodic_in_z(0),
@@ -332,12 +334,11 @@ void teca_cf_reader::get_properties_description(
         + (prefix.empty()?"teca_cf_reader":prefix));
 
     opts.add_options()
+        TECA_POPTS_GET(std::vector<std::string>, prefix, file_names,
+            "paths/file names to read")
         TECA_POPTS_GET(std::string, prefix, files_regex,
             "a regular expression that matches the set of files "
             "comprising the dataset")
-        TECA_POPTS_GET(std::string, prefix, file_name,
-            "a single path/file name to read. may be used in place "
-            "of files_regex")
         TECA_POPTS_GET(std::string, prefix, x_axis_variable,
             "name of variable that has x axis coordinates (lon)")
         TECA_POPTS_GET(std::string, prefix, y_axis_variable,
@@ -346,6 +347,13 @@ void teca_cf_reader::get_properties_description(
             "name of variable that has z axis coordinates ()")
         TECA_POPTS_GET(std::string, prefix, t_axis_variable,
             "name of variable that has t axis coordinates (time)")
+        TECA_POPTS_GET(std::string, prefix, t_calendar,
+            "name of variable that has the time calendar (calendar)")
+        TECA_POPTS_GET(std::string, prefix, t_units,
+            "name of variable that has the time unit (units)")
+        TECA_POPTS_GET(std::vector<double>, prefix, t_values,
+            "name of variable that has t axis values set by the"
+            "the user if the file doesn't have time variable set ()")
         TECA_POPTS_GET(int, prefix, periodic_in_x,
             "the dataset has apriodic boundary in the x direction (0)")
         TECA_POPTS_GET(int, prefix, periodic_in_y,
@@ -363,12 +371,15 @@ void teca_cf_reader::get_properties_description(
 void teca_cf_reader::set_properties(const std::string &prefix,
     variables_map &opts)
 {
+    TECA_POPTS_SET(opts, std::vector<std::string>, prefix, file_names)
     TECA_POPTS_SET(opts, std::string, prefix, files_regex)
-    TECA_POPTS_SET(opts, std::string, prefix, file_name)
     TECA_POPTS_SET(opts, std::string, prefix, x_axis_variable)
     TECA_POPTS_SET(opts, std::string, prefix, y_axis_variable)
     TECA_POPTS_SET(opts, std::string, prefix, z_axis_variable)
     TECA_POPTS_SET(opts, std::string, prefix, t_axis_variable)
+    TECA_POPTS_SET(opts, std::string, prefix, t_calendar)
+    TECA_POPTS_SET(opts, std::string, prefix, t_units)
+    TECA_POPTS_SET(opts, std::vector<double>, prefix, t_values)
     TECA_POPTS_SET(opts, int, prefix, periodic_in_x)
     TECA_POPTS_SET(opts, int, prefix, periodic_in_y)
     TECA_POPTS_SET(opts, int, prefix, periodic_in_z)
@@ -430,11 +441,16 @@ teca_metadata teca_cf_reader::get_output_metadata(
         std::vector<std::string> files;
         std::string path;
 
-        if (!this->file_name.empty())
+        if (!this->file_names.empty())
         {
             // use file name
-            path = teca_file_util::path(this->file_name);
-            files.push_back(teca_file_util::filename(this->file_name));
+            size_t file_names_size = this->file_names.size();
+            for (size_t i = 0; i < file_names_size; ++i)
+            {
+                std::string file_name = this->file_names[i];
+                path = teca_file_util::path(file_name);
+                files.push_back(teca_file_util::filename(file_name));
+            }
         }
         else
         {
@@ -515,6 +531,10 @@ teca_metadata teca_cf_reader::get_output_metadata(
             p_teca_variant_array z_axis;
             p_teca_variant_array t_axis;
 
+            teca_metadata atrs;
+            std::vector<std::string> vars;
+            std::vector<std::string> time_vars; // anything that has the time dimension as it's only dim
+
 #if !defined(HDF5_THREAD_SAFE)
             {std::lock_guard<std::mutex> lock(g_netcdf_mutex);
 #endif
@@ -577,9 +597,6 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 return teca_metadata();
             }
 
-            teca_metadata atrs;
-            std::vector<std::string> vars;
-            std::vector<std::string> time_vars; // anything that has the time dimension as it's only dim
             for (int i = 0; i < n_vars; ++i)
             {
                 char var_name[NC_MAX_NAME + 1] = {'\0'};
@@ -647,6 +664,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                             << var_name << ", " << file << endl << nc_strerror(ierr))
                         return teca_metadata();
                     }
+                    
                     if (att_type == NC_CHAR)
                     {
                         char *buffer = static_cast<char*>(malloc(att_len + 1));
@@ -669,10 +687,6 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
                 atrs.insert(var_name, atts);
             }
-
-            this->internals->metadata.insert("variables", vars);
-            this->internals->metadata.insert("attributes", atrs);
-            this->internals->metadata.insert("time variables", time_vars);
 
             // read spatial coordinate arrays
             NC_DISPATCH_FP(x_t,
@@ -790,6 +804,35 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     step_count.push_back(tmp->size());
                 }
             }
+            else if (!this->t_values.empty())
+            {
+                if (this->t_calendar.empty() || this->t_units.empty())
+                {
+                    TECA_ERROR("calendar and units has to be specified"
+                        " for the time variable")
+                    return teca_metadata();
+                }
+
+                // if time axis is provided manually by the user
+                size_t n_t_vals = this->t_values.size();
+                if (n_t_vals != files.size())
+                {
+                    TECA_ERROR("Number of files choosen doesn't match the"
+                        " number of time values provided")
+                    return teca_metadata();
+                }
+
+                teca_metadata time_atts;
+                time_atts.insert("calendar", this->t_calendar);
+                time_atts.insert("units", this->t_units);
+
+                atrs.insert("time", time_atts);
+
+                p_teca_variant_array_impl<double> t = teca_variant_array_impl<double>::New(this->t_values.data(), n_t_vals);
+                step_count.resize(n_t_vals, 1);
+
+                t_axis = t;
+            }
             else
             {
                 // make a dummy time axis, this enables parallelization over file sets
@@ -808,6 +851,10 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     t_axis = t;
                     )
             }
+
+            this->internals->metadata.insert("variables", vars);
+            this->internals->metadata.insert("attributes", atrs);
+            this->internals->metadata.insert("time variables", time_vars);
 
             teca_metadata coords;
             coords.insert("x_variable", x_axis_variable);
@@ -1125,6 +1172,7 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
         // check if it's a mesh variable
         bool mesh_var = false;
         size_t n_dims = dim_names->size();
+
         if (n_dims == mesh_dim_names.size())
         {
             mesh_var = true;

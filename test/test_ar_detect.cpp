@@ -65,7 +65,7 @@ int main(int argc, char **argv)
 
     p_teca_cf_reader mask_reader = teca_cf_reader::New();
     mask_reader->set_t_axis_variable("");
-    mask_reader->set_file_name(mask_file);
+    mask_reader->append_file_name(mask_file);
 
     p_teca_cartesian_mesh_regrid mask_regrid = teca_cartesian_mesh_regrid::New();
     mask_regrid->set_input_connection(0, vapor_reader->get_output_port());

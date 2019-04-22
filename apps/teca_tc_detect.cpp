@@ -263,7 +263,7 @@ int main(int argc, char **argv)
     // now pass in the basic options, these are processed
     // last so that they will take precedence
     if (opt_vals.count("input_file"))
-        sim_reader->set_file_name(
+        sim_reader->append_file_name(
             opt_vals["input_file"].as<string>());
 
     if (opt_vals.count("input_regex"))
@@ -384,7 +384,7 @@ int main(int argc, char **argv)
 
 
     // some minimal check for missing options
-    if (sim_reader->get_file_name().empty()
+    if (sim_reader->get_number_of_file_names() == 0
         && sim_reader->get_files_regex().empty())
     {
         if (mpi_man.get_comm_rank() == 0)
