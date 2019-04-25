@@ -33,6 +33,32 @@
 #include <mpi.h>
 #endif
 
+void property_reduce(std::string property_name,
+                     p_teca_dataset dataset_0,
+                     p_teca_dataset dataset_1,
+                     p_teca_cartesian_mesh mesh_out)
+{
+
+    std::vector<double> property_vector_0;
+    std::vector<double> property_vector_1;
+
+    std::string vector_property_name = property_name + "_vec";
+
+    // attempt to get the property vectors from both
+    dataset_0->get_metadata().get(property_name, property_vector_0);
+    dataset_1->get_metadata().get(property_name, property_vector_1);
+
+    // construct the full property vector by concatenating the two vectors
+    std::vector<double> property_vector(property_vector_0);
+    property_vector.insert(property_vector.end(), property_vector_1.begin(), property_vector_1.end());
+
+    // Add the combined vector of threshold values
+    mesh_out->get_metadata().insert(property_name, property_vector);
+}
+
+
+
+
 namespace {
 
 // drive the pipeline execution once for each parameter table row
@@ -339,6 +365,15 @@ public:
         else if (dataset_1)
             mesh_out->copy_metadata(dataset_1);
 
+        property_reduce("low_threshold_value", dataset_0, dataset_1, mesh_out);
+        property_reduce("high_threshold_value", dataset_0, dataset_1, mesh_out);
+        property_reduce("low_area_threshold_km", dataset_0, dataset_1, mesh_out);
+        property_reduce("high_area_threshold_km", dataset_0, dataset_1, mesh_out);
+        property_reduce("gaussian_filter_center_lat", dataset_0, dataset_1, mesh_out);
+        property_reduce("gaussian_filter_hwhm", dataset_0, dataset_1, mesh_out);
+        property_reduce("number_of_components", dataset_0, dataset_1, mesh_out);
+        property_reduce("component_area", dataset_0, dataset_1, mesh_out);
+
         mesh_out->get_point_arrays()->append(this->probability_array_name, prob_out);
 
         return mesh_out;
@@ -351,6 +386,7 @@ private:
 };
 
 }
+
 
 
 // PIMPL idiom hides internals
