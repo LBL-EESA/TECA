@@ -319,5 +319,8 @@ const_p_teca_dataset teca_binary_segmentation::execute(
     this->get_segmentation_variable(segmentation_var);
     out_mesh->get_point_arrays()->set(segmentation_var, segmentation);
 
+    out_mesh->get_metadata().insert("low_threshold_value", low);
+    out_mesh->get_metadata().insert("high_threshold_value", high);
+
     return out_mesh;
 }

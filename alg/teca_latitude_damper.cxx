@@ -329,6 +329,9 @@ const_p_teca_dataset teca_latitude_damper::execute(
         free(filter);
     )
 
+    out_mesh->get_metadata().insert("gaussian_filter_hwhm", sigma);
+    out_mesh->get_metadata().insert("gaussian_filter_center_lat", mu);
+
     return out_mesh;
 }
 

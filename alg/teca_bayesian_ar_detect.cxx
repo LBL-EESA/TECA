@@ -33,6 +33,52 @@
 #include <mpi.h>
 #endif
 
+/*
+   void property_reduce(std::string property_name,
+                        p_teca_dataset dataset_0,
+                        p_teca_dataset dataset_1,
+                        p_teca_cartesian_mesh mesh_out)
+
+    input:
+    ------
+
+      property_name : (std::string) the key of the metadata property in dataset_* on which to do the reduction
+
+      dataset_0     : (p_teca_dataset) the LHS dataset in the reduction
+
+      dataset_1     : (p_teca_dataset) the RHS dataset in the reduction
+
+      mesh_out      : (p_teca_cartesian_mesh) the output of the reduction
+
+    This routine appends the contents of dataset_0.get_metadata.get(property_name) onto that from dataset_0 and
+    overwrites the contents `property_name' in the metadata of mesh_out.
+
+ */
+void property_reduce(std::string property_name,
+                     p_teca_dataset dataset_0,
+                     p_teca_dataset dataset_1,
+                     p_teca_cartesian_mesh mesh_out)
+{
+
+    // declare the LHS and RHS property vectors
+    std::vector<double> property_vector_0;
+    std::vector<double> property_vector_1;
+
+    // get the property vectors from the metadata of the LHS and RHS datasets
+    dataset_0->get_metadata().get(property_name, property_vector_0);
+    dataset_1->get_metadata().get(property_name, property_vector_1);
+
+    // construct the output property vector by concatenating LHS and RHS vectors
+    std::vector<double> property_vector(property_vector_0);
+    property_vector.insert(property_vector.end(), property_vector_1.begin(), property_vector_1.end());
+
+    // Overwrite the concatenated property vector in the output dataset
+    mesh_out->get_metadata().insert(property_name, property_vector);
+}
+
+
+
+
 namespace {
 
 // drive the pipeline execution once for each parameter table row
@@ -339,6 +385,18 @@ public:
         else if (dataset_1)
             mesh_out->copy_metadata(dataset_1);
 
+        // Do property reduction on AR detector parameters and output that
+        // are stored in the metadata.  This operation overwrites the metadata
+        // in mesh_out with the combined metadata from the LHS and RHS datasets.
+        property_reduce("low_threshold_value", dataset_0, dataset_1, mesh_out);
+        property_reduce("high_threshold_value", dataset_0, dataset_1, mesh_out);
+        property_reduce("low_area_threshold_km", dataset_0, dataset_1, mesh_out);
+        property_reduce("high_area_threshold_km", dataset_0, dataset_1, mesh_out);
+        property_reduce("gaussian_filter_center_lat", dataset_0, dataset_1, mesh_out);
+        property_reduce("gaussian_filter_hwhm", dataset_0, dataset_1, mesh_out);
+        property_reduce("number_of_components", dataset_0, dataset_1, mesh_out);
+        property_reduce("component_area", dataset_0, dataset_1, mesh_out);
+
         mesh_out->get_point_arrays()->append(this->probability_array_name, prob_out);
 
         return mesh_out;
@@ -351,6 +409,7 @@ private:
 };
 
 }
+
 
 
 // PIMPL idiom hides internals
