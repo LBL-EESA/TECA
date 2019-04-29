@@ -274,7 +274,7 @@ public:
         }
 
         // allocate a buffer and read the variable.
-        NC_DISPATCH_FP(var_type,
+        NC_DISPATCH(var_type,
             size_t start = 0;
             p_teca_variant_array_impl<NC_T> var = teca_variant_array_impl<NC_T>::New();
             var->resize(var_size);
