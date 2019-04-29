@@ -94,7 +94,7 @@ void component_area(unsigned long nlon, unsigned long nlat,
         unsigned long jj = j*nlon;
         for (unsigned long i = 1; i < nlonm1; ++i)
         {
-            area[labels[jj + i]] += rho_sq_d_theta[i]*d_cos_phi_j;
+            area[labels[jj + i]] += std::abs(rho_sq_d_theta[i]*d_cos_phi_j);
         }
     }
 
