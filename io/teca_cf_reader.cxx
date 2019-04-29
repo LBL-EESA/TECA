@@ -32,6 +32,21 @@ using std::cerr;
 #endif
 
 // macro to help with netcdf data types
+#define NC_DISPATCH_NUM(tc_, code_)                          \
+    switch (tc_)                                            \
+    {                                                       \
+    NC_DISPATCH_CASE(NC_SHORT, short int, code_)            \
+    NC_DISPATCH_CASE(NC_USHORT, unsigned short int, code_)  \
+    NC_DISPATCH_CASE(NC_INT, int, code_)                    \
+    NC_DISPATCH_CASE(NC_UINT, unsigned int, code_)          \
+    NC_DISPATCH_CASE(NC_INT64, long long, code_)            \
+    NC_DISPATCH_CASE(NC_UINT64, unsigned long long, code_)  \
+    NC_DISPATCH_CASE(NC_FLOAT, float, code_)                \
+    NC_DISPATCH_CASE(NC_DOUBLE, double, code_)              \
+    default:                                                \
+        TECA_ERROR("netcdf type code_ " << tc_              \
+            << " is not a floating point type")             \
+    }
 #define NC_DISPATCH_FP(tc_, code_)                          \
     switch (tc_)                                            \
     {                                                       \
@@ -274,20 +289,24 @@ public:
         }
 
         // allocate a buffer and read the variable.
-        NC_DISPATCH_FP(var_type,
+        cerr << "Hi 1" << endl;
+        NC_DISPATCH_NUM(var_type,
             size_t start = 0;
             p_teca_variant_array_impl<NC_T> var = teca_variant_array_impl<NC_T>::New();
             var->resize(var_size);
+            //cerr << "Hi 1.1" << endl;
             if ((ierr = nc_get_vara(file_id, var_id, &start, &var_size, var->get())) != NC_NOERR)
             {
                 TECA_ERROR("Failed to read variable \"" << m_variable  << "\" from \""
                     << m_file << "\". " << nc_strerror(ierr))
                 return std::make_pair(m_id, nullptr);
             }
+            //cerr << "Hi 1.2" << endl;
             // success!
             return std::make_pair(m_id, var);
             )
 
+        cerr << "Hi 2" << endl;
         // unsupported type
         TECA_ERROR("Failed to read variable \"" << m_variable
             << "\" from \"" << m_file << "\". Unsupported data type")
@@ -764,11 +783,14 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     read_variable_task_t task(reader);
                     thread_pool.push_task(task);
                 }
+                cerr << "Hi 3" << endl;
 
                 // wait for the results
                 std::vector<read_variable_data_t> tmp;
                 tmp.reserve(n_files);
                 thread_pool.wait_data(tmp);
+
+                cerr << "Hi 4" << endl;
 
                 // unpack the results. map is used to ensure the correct
                 // file to time association.
@@ -788,6 +810,8 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     t_axis->append(*tmp.get());
                     step_count.push_back(tmp->size());
                 }
+
+                cerr << "Hi 5" << endl;
             }
             else
             {
