@@ -414,8 +414,9 @@ const_p_teca_dataset teca_connected_components::execute(
     for (short i = 0; i < num_components; ++i)
         component_id->set(i, i);
 
-    out_mesh->get_metadata().insert("component_ids", component_id);
-    out_mesh->get_metadata().insert("number_of_components", num_components);
+    teca_metadata &omd = out_mesh->get_metadata();
+    omd.set("component_ids", component_id);
+    omd.set("number_of_components", num_components);
 
     return out_mesh;
 }

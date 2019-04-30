@@ -74,8 +74,8 @@ teca_metadata array_source::get_output_metadata(
     output_md.set("array_names", this->array_names);
 
     // let the excutive know how to make requests
-    output_md.insert("index_initializer_key", std::string("number_of_time_steps"));
-    output_md.insert("index_request_key", std::string("time_step"));
+    output_md.set("index_initializer_key", std::string("number_of_time_steps"));
+    output_md.set("index_request_key", std::string("time_step"));
 
     return output_md;
 }

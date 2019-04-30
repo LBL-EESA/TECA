@@ -260,6 +260,11 @@ int write_vtr(const_p_teca_cartesian_mesh mesh, const std::string &file_name,
 
     return 0;
 #else
+    (void)mesh;
+    (void)file_name;
+    (void)time_step;
+    (void)time;
+    (void)binary;
     return -1;
 #endif
 }

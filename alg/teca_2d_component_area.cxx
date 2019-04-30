@@ -203,7 +203,7 @@ std::vector<teca_metadata> teca_2d_component_area::get_upstream_request(
         req.get("arrays", arrays);
     arrays.insert(component_var);
 
-    req.insert("arrays", arrays);
+    req.set("arrays", arrays);
 
     // send up
     up_reqs.push_back(req);
@@ -325,9 +325,9 @@ const_p_teca_dataset teca_2d_component_area::execute(
                 ::component_area(nx,ny, p_xc,p_yc, p_labels, component_area);
 
                 // transfer the result to the output
-                out_metadata.insert("number_of_components", n_labels);
-                out_metadata.insert("component_ids", component_id);
-                out_metadata.insert("component_area", component_area);
+                out_metadata.set("number_of_components", n_labels);
+                out_metadata.set("component_ids", component_id);
+                out_metadata.set("component_area", component_area);
             }
             else
             {
@@ -353,9 +353,9 @@ const_p_teca_dataset teca_2d_component_area::execute(
                     component_area->set(i, it->second);
                 }
 
-                out_metadata.insert("number_of_components", n_labels);
-                out_metadata.insert("component_ids", component_id);
-                out_metadata.insert("component_area", component_area);
+                out_metadata.set("number_of_components", n_labels);
+                out_metadata.set("component_ids", component_id);
+                out_metadata.set("component_area", component_area);
             }
             )
         )
