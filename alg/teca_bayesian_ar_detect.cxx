@@ -33,53 +33,10 @@
 #include <mpi.h>
 #endif
 
-/*
-   void property_reduce(std::string property_name,
-                        p_teca_dataset dataset_0,
-                        p_teca_dataset dataset_1,
-                        p_teca_cartesian_mesh mesh_out)
-
-    input:
-    ------
-
-      property_name : (std::string) the key of the metadata property in dataset_* on which to do the reduction
-
-      dataset_0     : (p_teca_dataset) the LHS dataset in the reduction
-
-      dataset_1     : (p_teca_dataset) the RHS dataset in the reduction
-
-      mesh_out      : (p_teca_cartesian_mesh) the output of the reduction
-
-    This routine appends the contents of dataset_0.get_metadata.get(property_name) onto that from dataset_0 and
-    overwrites the contents `property_name' in the metadata of mesh_out.
-
- */
-void property_reduce(std::string property_name,
-                     p_teca_dataset dataset_0,
-                     p_teca_dataset dataset_1,
-                     p_teca_cartesian_mesh mesh_out)
-{
-
-    // declare the LHS and RHS property vectors
-    std::vector<double> property_vector_0;
-    std::vector<double> property_vector_1;
-
-    // get the property vectors from the metadata of the LHS and RHS datasets
-    dataset_0->get_metadata().get(property_name, property_vector_0);
-    dataset_1->get_metadata().get(property_name, property_vector_1);
-
-    // construct the output property vector by concatenating LHS and RHS vectors
-    std::vector<double> property_vector(property_vector_0);
-    property_vector.insert(property_vector.end(), property_vector_1.begin(), property_vector_1.end());
-
-    // Overwrite the concatenated property vector in the output dataset
-    mesh_out->get_metadata().insert(property_name, property_vector);
-}
-
-
-
-
 namespace {
+
+
+
 
 // drive the pipeline execution once for each parameter table row
 // injects the parameter values into the upstream requests
@@ -111,9 +68,9 @@ public:
     // the request. upstream algorithms find and use the parameters.
     void initialize_index_executive(teca_metadata &md)
     {
-        md.insert("index_initializer_key", std::string("number_of_rows"));
-        md.insert("index_request_key", std::string("row_id"));
-        md.insert("number_of_rows", this->parameter_table_size);
+        md.set("index_initializer_key", std::string("number_of_rows"));
+        md.set("index_request_key", std::string("row_id"));
+        md.set("number_of_rows", this->parameter_table_size);
     }
 
     // get upstream request callback that pulls a row from the parameter
@@ -143,16 +100,16 @@ public:
         //
         double hwhm = 0.0;
         this->hwhm_latitude_column->get(row_id, hwhm);
-        up_req.insert("center", 0.0);
-        up_req.insert("half_width_at_half_max", hwhm);
+        up_req.set("center", 0.0);
+        up_req.set("half_width_at_half_max", hwhm);
 
         double percentile = 0.0;
         this->min_water_vapor_column->get(row_id, percentile);
-        up_req.insert("low_threshold_value", percentile);
+        up_req.set("low_threshold_value", percentile);
 
         double min_area = 0.0;
         this->min_component_area_column->get(row_id, min_area);
-        up_req.insert("low_area_threshold", min_area);
+        up_req.set("low_area_threshold", min_area);
 
         up_reqs.push_back(up_req);
 
@@ -178,235 +135,298 @@ public:
     ~parameter_table_reduction() = default;
 
     // completes the reduction by scaling by the number of parameter table rows
-    int finalize(p_teca_cartesian_mesh &out_mesh)
-    {
-        p_teca_variant_array ar_prob =
-            out_mesh->get_point_arrays()->get(this->probability_array_name);
-
-        if (!ar_prob)
-        {
-            TECA_ERROR("finalize failed, proability array \""
-                << this->probability_array_name << "\" not found")
-            return -1;
-        }
-
-        unsigned long n_vals = ar_prob->size();
-
-        TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-            ar_prob.get(),
-
-            NT num_params = this->parameter_table_size;
-
-            NT *p_ar_prob = std::static_pointer_cast<TT>(ar_prob)->get();
-
-            for (unsigned long i = 0; i < n_vals; ++i)
-                p_ar_prob[i] /= num_params;
-            )
-
-        return 0;
-    }
+    int finalize(p_teca_cartesian_mesh &out_mesh);
 
     // this reducion computes the probability from each parameter table run
     // if the inputs have the probability array this is used, if not the
     // array is computed from the filtered connected components. after the
     // reduction runs, the result will need to be normalized.
     p_teca_dataset operator()(const const_p_teca_dataset &left,
-        const const_p_teca_dataset &right)
-    {
-        // the inputs will not be modified. we are going to make shallow
-        // copy, and add an array
-        p_teca_dataset dataset_0 = std::const_pointer_cast<teca_dataset>(left);
-        p_teca_dataset dataset_1 = std::const_pointer_cast<teca_dataset>(right);
+        const const_p_teca_dataset &right);
 
-        p_teca_variant_array prob_out;
-
-        if (dataset_0 && dataset_1)
-        {
-            // both inputs have data to process
-            p_teca_cartesian_mesh mesh_0 = std::dynamic_pointer_cast<teca_cartesian_mesh>(dataset_0);
-            p_teca_variant_array wvcc_0 = mesh_0->get_point_arrays()->get(this->component_array_name);
-            p_teca_variant_array prob_0 = mesh_0->get_point_arrays()->get(this->probability_array_name);
-
-            p_teca_cartesian_mesh mesh_1 = std::dynamic_pointer_cast<teca_cartesian_mesh>(dataset_1);
-            p_teca_variant_array wvcc_1 = mesh_0->get_point_arrays()->get(this->component_array_name);
-            p_teca_variant_array prob_1 = mesh_1->get_point_arrays()->get(this->probability_array_name);
-
-            if (prob_0 && prob_1)
-            {
-                // both inputs already have probablilty computed, reduction takes
-                // their sum
-                unsigned long n_vals = prob_0->size();
-                prob_out = prob_0->new_copy();
-                TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-                    prob_out.get(),
-                    const NT *p_prob_1 = std::static_pointer_cast<TT>(prob_1)->get();
-                    NT *p_prob_out = std::static_pointer_cast<TT>(prob_out)->get();
-                    for (unsigned long i = 0; i < n_vals; ++i)
-                        p_prob_out[i] += p_prob_1[i];
-                    )
-            }
-            else if (prob_0 || prob_1)
-            {
-                // one of the inputs has probability computed. add the computed
-                // values from the other.
-                p_teca_variant_array wvcc;
-                p_teca_variant_array prob;
-
-                if (prob_0)
-                {
-                    prob = prob_0;
-                    wvcc = wvcc_1;
-                }
-                else
-                {
-                    prob = prob_1;
-                    wvcc = wvcc_0;
-                }
-
-                if (!wvcc)
-                {
-                    TECA_ERROR("pipeline error, component array \"" << this->component_array_name << "\" is not present")
-                    return nullptr;
-                }
-
-                unsigned long n_vals = prob->size();
-                prob_out = prob->new_copy();
-
-                NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
-                    wvcc.get(),
-                    _COMP,
-
-                    const NT_COMP *p_wvcc = std::static_pointer_cast<TT_COMP>(wvcc)->get();
-
-                    NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-                        prob_out.get(),
-                        _PROB,
-
-                        NT_PROB *p_prob_out = std::static_pointer_cast<TT_PROB>(prob_out)->get();
-
-                        for (unsigned long i = 0; i < n_vals; ++i)
-                            p_prob_out[i] += (p_wvcc[i] > 0 ? NT_PROB(1) : NT_PROB(0));
-                        )
-                    )
-            }
-            else
-            {
-                // neither input has probability computed, compute from the filtered
-                // connected components.
-                if (!wvcc_0 || !wvcc_1)
-                {
-                    TECA_ERROR("pipeline error, component array \"" << this->component_array_name << "\" is not present")
-                    return nullptr;
-                }
-
-                unsigned long n_vals = wvcc_0->size();
-
-                prob_out = teca_float_array::New();
-                prob_out->resize(n_vals);
-
-                NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
-                    wvcc_0.get(),
-                    _COMP,
-
-                    const NT_COMP *p_wvcc_0 = std::static_pointer_cast<TT_COMP>(wvcc_0)->get();
-                    const NT_COMP *p_wvcc_1 = std::static_pointer_cast<TT_COMP>(wvcc_1)->get();
-
-                    NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-                        prob_out.get(),
-                        _PROB,
-                        NT_PROB *p_prob_out = std::static_pointer_cast<TT_PROB>(prob_out)->get();
-                        for (unsigned long i = 0; i < n_vals; ++i)
-                            p_prob_out[i] = (p_wvcc_0[i] > 0 ? NT_PROB(1) : NT_PROB(0)) +
-                                 (p_wvcc_1[i] > 0 ? NT_PROB(1) : NT_PROB(0));
-                        )
-                    )
-            }
-        }
-        else if (dataset_0 || dataset_1)
-        {
-            // only one of the inputs has data to process.
-            p_teca_cartesian_mesh mesh = dataset_0 ?
-                std::dynamic_pointer_cast<teca_cartesian_mesh>(dataset_0) :
-                std::dynamic_pointer_cast<teca_cartesian_mesh>(dataset_1);
-
-            p_teca_variant_array prob = mesh->get_point_arrays()->get(this->probability_array_name);
-
-            if (prob)
-            {
-                // probability has already been comnputed, pass it through
-                prob_out = prob;
-            }
-            else
-            {
-                // compute the probability from the connected components
-                p_teca_variant_array wvcc = mesh->get_point_arrays()->get(this->component_array_name);
-                if (wvcc)
-                {
-                    TECA_ERROR("pipeline error, component array \"" << this->component_array_name << "\" is not present")
-                    return nullptr;
-                }
-
-                unsigned long n_vals = wvcc->size();
-
-                prob_out = teca_float_array::New();
-                prob_out->resize(n_vals);
-
-                NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
-                    wvcc.get(),
-                    _COMP,
-
-                    const NT_COMP *p_wvcc = std::static_pointer_cast<TT_COMP>(wvcc)->get();
-
-                    NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-                        prob_out.get(),
-                        _PROB,
-
-                        NT_PROB *p_prob_out = std::static_pointer_cast<TT_PROB>(prob_out)->get();
-
-                        for (unsigned long i = 0; i < n_vals; ++i)
-                            p_prob_out[i] = (p_wvcc[i] > 0 ? NT_PROB(1) : NT_PROB(0));
-                        )
-                    )
-            }
-        }
-        else
-        {
-            // neither input has valid dataset, this should not happen
-            TECA_ERROR("nothing to reduce, must have at least 1 dataset")
-            return nullptr;
-        }
-
-        // construct the output, set the probability array. this will be the
-        // only array, but all metadata is passed through.
-        p_teca_cartesian_mesh mesh_out = teca_cartesian_mesh::New();
-
-        if (dataset_0)
-            mesh_out->copy_metadata(dataset_0);
-        else if (dataset_1)
-            mesh_out->copy_metadata(dataset_1);
-
-        // Do property reduction on AR detector parameters and output that
-        // are stored in the metadata.  This operation overwrites the metadata
-        // in mesh_out with the combined metadata from the LHS and RHS datasets.
-        property_reduce("low_threshold_value", dataset_0, dataset_1, mesh_out);
-        property_reduce("high_threshold_value", dataset_0, dataset_1, mesh_out);
-        property_reduce("low_area_threshold_km", dataset_0, dataset_1, mesh_out);
-        property_reduce("high_area_threshold_km", dataset_0, dataset_1, mesh_out);
-        property_reduce("gaussian_filter_center_lat", dataset_0, dataset_1, mesh_out);
-        property_reduce("gaussian_filter_hwhm", dataset_0, dataset_1, mesh_out);
-        property_reduce("number_of_components", dataset_0, dataset_1, mesh_out);
-        property_reduce("component_area", dataset_0, dataset_1, mesh_out);
-
-        mesh_out->get_point_arrays()->append(this->probability_array_name, prob_out);
-
-        return mesh_out;
-    }
 
 private:
+    // concatenate keys from the input dataset's metadata into the output
+    // dataset's metadata
+    // 
+    //   key           : (std::string) name of the metadata key
+    //                   on which to do the reduction
+    // 
+    //   dataset_0     : (p_teca_dataset) the LHS dataset in the reduction
+    // 
+    //   dataset_1     : (p_teca_dataset) the RHS dataset in the reduction
+    // 
+    //   mesh_out      : (p_teca_cartesian_mesh) the output of the reduction
+    //  
+    // Neither of the datsets can be null. returns 0 upon success, will fail if
+    // either of the datasets' metadata is missing the key
+    int concatenate_metadata_key(const std::string &key,
+        const p_teca_dataset &dataset_in, const p_teca_dataset &dataset_out);
+
     unsigned long parameter_table_size;
     std::string component_array_name;   // input
     std::string probability_array_name; // output
 };
+
+// completes the reduction by scaling by the number of parameter table rows
+// --------------------------------------------------------------------------
+int parameter_table_reduction::finalize(p_teca_cartesian_mesh &out_mesh)
+{
+    p_teca_variant_array ar_prob =
+        out_mesh->get_point_arrays()->get(this->probability_array_name);
+
+    if (!ar_prob)
+    {
+        TECA_ERROR("finalize failed, proability array \""
+            << this->probability_array_name << "\" not found")
+        return -1;
+    }
+
+    unsigned long n_vals = ar_prob->size();
+
+    TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+        ar_prob.get(),
+
+        NT num_params = this->parameter_table_size;
+
+        NT *p_ar_prob = std::static_pointer_cast<TT>(ar_prob)->get();
+
+        for (unsigned long i = 0; i < n_vals; ++i)
+            p_ar_prob[i] /= num_params;
+        )
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+p_teca_dataset parameter_table_reduction::operator()(
+    const const_p_teca_dataset &left, const const_p_teca_dataset &right)
+{
+    // the inputs will not be modified. we are going to make shallow
+    // copy, and add an array
+    p_teca_dataset dataset_0 = std::const_pointer_cast<teca_dataset>(left);
+    p_teca_dataset dataset_1 = std::const_pointer_cast<teca_dataset>(right);
+
+    // construct the output
+    p_teca_cartesian_mesh mesh_out = teca_cartesian_mesh::New();
+
+    p_teca_variant_array prob_out;
+
+    if (dataset_0 && dataset_1)
+    {
+        // both inputs have data to process
+        p_teca_cartesian_mesh mesh_0 = std::dynamic_pointer_cast<teca_cartesian_mesh>(dataset_0);
+        p_teca_variant_array wvcc_0 = mesh_0->get_point_arrays()->get(this->component_array_name);
+        p_teca_variant_array prob_0 = mesh_0->get_point_arrays()->get(this->probability_array_name);
+
+        p_teca_cartesian_mesh mesh_1 = std::dynamic_pointer_cast<teca_cartesian_mesh>(dataset_1);
+        p_teca_variant_array wvcc_1 = mesh_0->get_point_arrays()->get(this->component_array_name);
+        p_teca_variant_array prob_1 = mesh_1->get_point_arrays()->get(this->probability_array_name);
+
+        if (prob_0 && prob_1)
+        {
+            // both inputs already have probablilty computed, reduction takes
+            // their sum
+            unsigned long n_vals = prob_0->size();
+            prob_out = prob_0->new_copy();
+            TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+                prob_out.get(),
+                const NT *p_prob_1 = std::static_pointer_cast<TT>(prob_1)->get();
+                NT *p_prob_out = std::static_pointer_cast<TT>(prob_out)->get();
+                for (unsigned long i = 0; i < n_vals; ++i)
+                    p_prob_out[i] += p_prob_1[i];
+                )
+        }
+        else if (prob_0 || prob_1)
+        {
+            // one of the inputs has probability computed. add the computed
+            // values from the other.
+            p_teca_variant_array wvcc;
+            p_teca_variant_array prob;
+
+            if (prob_0)
+            {
+                prob = prob_0;
+                wvcc = wvcc_1;
+            }
+            else
+            {
+                prob = prob_1;
+                wvcc = wvcc_0;
+            }
+
+            if (!wvcc)
+            {
+                TECA_ERROR("pipeline error, component array \""
+                    << this->component_array_name << "\" is not present")
+                return nullptr;
+            }
+
+            unsigned long n_vals = prob->size();
+            prob_out = prob->new_copy();
+
+            NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
+                wvcc.get(),
+                _COMP,
+
+                const NT_COMP *p_wvcc = std::static_pointer_cast<TT_COMP>(wvcc)->get();
+
+                NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+                    prob_out.get(),
+                    _PROB,
+
+                    NT_PROB *p_prob_out = std::static_pointer_cast<TT_PROB>(prob_out)->get();
+
+                    for (unsigned long i = 0; i < n_vals; ++i)
+                        p_prob_out[i] += (p_wvcc[i] > 0 ? NT_PROB(1) : NT_PROB(0));
+                    )
+                )
+        }
+        else
+        {
+            // neither input has probability computed, compute from the filtered
+            // connected components.
+            if (!wvcc_0 || !wvcc_1)
+            {
+                TECA_ERROR("pipeline error, component array \""
+                    << this->component_array_name << "\" is not present")
+                return nullptr;
+            }
+
+            unsigned long n_vals = wvcc_0->size();
+
+            prob_out = teca_float_array::New();
+            prob_out->resize(n_vals);
+
+            NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
+                wvcc_0.get(),
+                _COMP,
+
+                const NT_COMP *p_wvcc_0 = std::static_pointer_cast<TT_COMP>(wvcc_0)->get();
+                const NT_COMP *p_wvcc_1 = std::static_pointer_cast<TT_COMP>(wvcc_1)->get();
+
+                NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+                    prob_out.get(),
+                    _PROB,
+                    NT_PROB *p_prob_out = std::static_pointer_cast<TT_PROB>(prob_out)->get();
+                    for (unsigned long i = 0; i < n_vals; ++i)
+                        p_prob_out[i] = (p_wvcc_0[i] > 0 ? NT_PROB(1) : NT_PROB(0)) +
+                             (p_wvcc_1[i] > 0 ? NT_PROB(1) : NT_PROB(0));
+                    )
+                )
+        }
+
+        // copy metadata, concatenate certain keys that contain information needed
+        // later
+        mesh_out->copy_metadata(dataset_0);
+
+        if (this->concatenate_metadata_key("low_threshold_value", dataset_1, mesh_out) ||
+            this->concatenate_metadata_key("high_threshold_value", dataset_1, mesh_out) ||
+            this->concatenate_metadata_key("low_area_threshold_km", dataset_1, mesh_out) ||
+            this->concatenate_metadata_key("high_area_threshold_km", dataset_1, mesh_out) ||
+            this->concatenate_metadata_key("gaussian_filter_center_lat", dataset_1, mesh_out) ||
+            this->concatenate_metadata_key("gaussian_filter_hwhm", dataset_1, mesh_out) ||
+            this->concatenate_metadata_key("number_of_components", dataset_1, mesh_out) ||
+            this->concatenate_metadata_key("component_area", dataset_1, mesh_out))
+        {
+            TECA_ERROR("Failed to concatenate metadata keys")
+            return nullptr;
+        }
+
+    }
+    else if (dataset_0 || dataset_1)
+    {
+        // only one of the inputs has data to process.
+        p_teca_cartesian_mesh mesh = dataset_0 ?
+            std::dynamic_pointer_cast<teca_cartesian_mesh>(dataset_0) :
+            std::dynamic_pointer_cast<teca_cartesian_mesh>(dataset_1);
+
+        p_teca_variant_array prob = mesh->get_point_arrays()->get(this->probability_array_name);
+
+        if (prob)
+        {
+            // probability has already been comnputed, pass it through
+            prob_out = prob;
+        }
+        else
+        {
+            // compute the probability from the connected components
+            p_teca_variant_array wvcc = mesh->get_point_arrays()->get(this->component_array_name);
+            if (wvcc)
+            {
+                TECA_ERROR("pipeline error, component array \""
+                    << this->component_array_name << "\" is not present")
+                return nullptr;
+            }
+
+            unsigned long n_vals = wvcc->size();
+
+            prob_out = teca_float_array::New();
+            prob_out->resize(n_vals);
+
+            NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
+                wvcc.get(),
+                _COMP,
+
+                const NT_COMP *p_wvcc = std::static_pointer_cast<TT_COMP>(wvcc)->get();
+
+                NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+                    prob_out.get(),
+                    _PROB,
+
+                    NT_PROB *p_prob_out = std::static_pointer_cast<TT_PROB>(prob_out)->get();
+
+                    for (unsigned long i = 0; i < n_vals; ++i)
+                        p_prob_out[i] = (p_wvcc[i] > 0 ? NT_PROB(1) : NT_PROB(0));
+                    )
+                )
+        }
+
+        // pass through metadata
+        mesh_out->copy_metadata(mesh);
+    }
+    else
+    {
+        // neither input has valid dataset, this should not happen
+        TECA_ERROR("nothing to reduce, must have at least 1 dataset")
+        return nullptr;
+    }
+
+    // set the probability array. this will be the
+    // only array, but all metadata is passed through.
+    mesh_out->get_point_arrays()->append(this->probability_array_name, prob_out);
+
+    return mesh_out;
+}
+
+// --------------------------------------------------------------------------
+int parameter_table_reduction::concatenate_metadata_key(const std::string &key,
+    const p_teca_dataset &dataset_in, const p_teca_dataset &dataset_out)
+{
+    p_teca_variant_array vals_in =
+       dataset_in->get_metadata().get(key);
+
+    if (!vals_in)
+    {
+        TECA_ERROR("input dataset is missing the metadata key \""
+            << key << "\"")
+        return -1;
+    }
+
+    p_teca_variant_array vals_out =
+       dataset_out->get_metadata().get(key);
+
+    if (!vals_out)
+    {
+        TECA_ERROR("output dataset is missing the metadata key \""
+            << key << "\"")
+        return -1;
+    }
+
+    vals_out->append(vals_in);
+
+    return 0;
+}
 
 }
 
@@ -663,7 +683,7 @@ std::vector<teca_metadata> teca_bayesian_ar_detect::get_upstream_request(
     // remove what we produce
     arrays.erase("ar_probability");
 
-    req.insert("arrays", arrays);
+    req.set("arrays", arrays);
 
     // send up
     up_reqs.push_back(req);
