@@ -68,9 +68,9 @@ public:
     // the request. upstream algorithms find and use the parameters.
     void initialize_index_executive(teca_metadata &md)
     {
-        md.set("index_initializer_key", std::string("number_of_rows"));
-        md.set("index_request_key", std::string("row_id"));
-        md.set("number_of_rows", this->parameter_table_size);
+        md.insert("index_initializer_key", std::string("number_of_rows"));
+        md.insert("index_request_key", std::string("row_id"));
+        md.insert("number_of_rows", this->parameter_table_size);
     }
 
     // get upstream request callback that pulls a row from the parameter
@@ -100,16 +100,16 @@ public:
         //
         double hwhm = 0.0;
         this->hwhm_latitude_column->get(row_id, hwhm);
-        up_req.set("center", 0.0);
-        up_req.set("half_width_at_half_max", hwhm);
+        up_req.insert("center", 0.0);
+        up_req.insert("half_width_at_half_max", hwhm);
 
         double percentile = 0.0;
         this->min_water_vapor_column->get(row_id, percentile);
-        up_req.set("low_threshold_value", percentile);
+        up_req.insert("low_threshold_value", percentile);
 
         double min_area = 0.0;
         this->min_component_area_column->get(row_id, min_area);
-        up_req.set("low_area_threshold", min_area);
+        up_req.insert("low_area_threshold", min_area);
 
         up_reqs.push_back(up_req);
 
@@ -683,7 +683,7 @@ std::vector<teca_metadata> teca_bayesian_ar_detect::get_upstream_request(
     // remove what we produce
     arrays.erase("ar_probability");
 
-    req.set("arrays", arrays);
+    req.insert("arrays", arrays);
 
     // send up
     up_reqs.push_back(req);
