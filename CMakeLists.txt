@@ -76,6 +76,8 @@ else()
     set(TECA_HAS_REGEX ON CACHE BOOL "Regex features")
 endif()
 
+include(teca_interface_library)
+
 # locate dependencies
 # configure for MPI
 if (ENABLE_CRAY_MPICH)
@@ -94,6 +96,10 @@ if (MPI_C_FOUND  AND ((DEFINED TECA_HAS_MPI AND TECA_HAS_MPI)
     OR (NOT DEFINED TECA_HAS_MPI)))
     message(STATUS "MPI features -- enabled")
     set(tmp ON)
+    teca_interface_library(MPI SYSTEM
+        DEFINITIONS -DOMPI_SKIP_MPICXX=1 -DMPICH_SKIP_MPICXX=1
+        INCLUDES ${MPI_C_INCLUDE_PATH} ${MPI_C_INCLUDE_DIRS}
+        LIBRARIES ${MPI_C_LIBRARIES})
 elseif (REQUIRE_MPI)
     message(FATAL_ERROR "MPI features -- required but not found.")
 else()

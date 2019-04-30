@@ -16,6 +16,10 @@ set(teca_data_srcs
     teca_database.cxx
     )
 
+if (TECA_HAS_MPI)
+    include_directories(SYSTEM ${MPI_C_INCLUDE_PATH})
+endif()
+
 add_library(teca_data ${teca_data_srcs})
 target_link_libraries(teca_data teca_core)
 

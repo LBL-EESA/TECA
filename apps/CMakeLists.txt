@@ -10,11 +10,6 @@ include_directories(
 
 set(teca_app_link)
 
-if (TECA_HAS_MPI)
-    include_directories(SYSTEM ${MPI_C_INCLUDE_PATH})
-    list(APPEND teca_app_link ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
-endif()
-
 if (TECA_HAS_BOOST)
     include_directories(SYSTEM ${Boost_INCLUDE_DIR})
     list(APPEND teca_app_link ${Boost_LIBRARIES})

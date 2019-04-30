@@ -16,6 +16,10 @@ set(array_test_srcs
     array_writer.cxx
     )
 
+if (TECA_HAS_MPI)
+    include_directories(SYSTEM ${MPI_C_INCLUDE_PATH})
+endif()
+
 add_library(teca_test_array ${array_test_srcs})
 target_link_libraries(teca_test_array teca_core)
 
