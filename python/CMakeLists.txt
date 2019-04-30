@@ -19,6 +19,9 @@ if (TECA_HAS_PYTHON)
 
     PYTHON_ADD_MODULE(_teca_py ${CMAKE_CURRENT_BINARY_DIR}/teca_py.cxx)
 
+    # make the rpath relative so that moving the so file doesn't break the link
+    SET_TARGET_PROPERTIES(_teca_py PROPERTIES INSTALL_RPATH "\$ORIGIN/./")
+
     target_link_libraries(_teca_py ${PYTHON_LIBRARIES}
         teca_core teca_data teca_alg teca_io teca_system)
 
