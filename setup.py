@@ -87,7 +87,8 @@ class CMakeBuild(build_ext):
         # setuptools install
         f = open(os.path.join(extdir, 'teca.py'), 'w')
         f.write('import sys, os\n')
-        f.write('from teca import *\n')
+        f.write('sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),"lib"))\n')
+        f.write('from teca_py import *\n')
         f.close()
 
 
