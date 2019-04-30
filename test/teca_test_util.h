@@ -3,10 +3,7 @@
 
 #include "teca_config.h"
 #include "teca_table.h"
-
-#if defined(TECA_HAS_MPI)
-#include <mpi.h>
-#endif
+#include "teca_mpi.h"
 
 namespace teca_test_util
 {
@@ -38,12 +35,13 @@ declare_mpi_tt(double, MPI_DOUBLE)
 
 // **************************************************************************
 template <typename num_t>
-int bcast(num_t *buffer, size_t size)
+int bcast(MPI_Comm comm, num_t *buffer, size_t size)
 {
 #if defined(TECA_HAS_MPI)
     return MPI_Bcast(buffer, size, mpi_tt<num_t>::type_code(),
-         0, MPI_COMM_WORLD);
+         0, comm);
 #else
+    (void)comm;
     (void)buffer;
     (void)size;
     return 0;
@@ -52,29 +50,29 @@ int bcast(num_t *buffer, size_t size)
 
 // **************************************************************************
 template <typename num_t>
-int bcast(num_t &buffer)
+int bcast(MPI_Comm comm, num_t &buffer)
 {
-    return teca_test_util::bcast(&buffer, 1);
+    return teca_test_util::bcast(comm, &buffer, 1);
 }
 
 // **************************************************************************
-int bcast(std::string &str);
+int bcast(MPI_Comm comm, std::string &str);
 
 // **************************************************************************
 template <typename vec_t>
-int bcast(std::vector<vec_t> &vec)
+int bcast(MPI_Comm comm, std::vector<vec_t> &vec)
 {
 #if defined(TECA_HAS_MPI)
     int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_rank(comm, &rank);
     long vec_size = vec.size();
-    if (teca_test_util::bcast(vec_size))
+    if (teca_test_util::bcast(comm, vec_size))
         return -1;
     if (rank != 0)
         vec.resize(vec_size);
     for (long i = 0; i < vec_size; ++i)
     {
-        if (teca_test_util::bcast(vec[i]))
+        if (teca_test_util::bcast(comm, vec[i]))
             return -1;
     }
 #else

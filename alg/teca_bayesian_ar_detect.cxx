@@ -16,7 +16,7 @@
 #include "teca_programmable_algorithm.h"
 #include "teca_programmable_reduce.h"
 #include "teca_dataset_capture.h"
-
+#include "teca_mpi.h"
 
 #include <algorithm>
 #include <iostream>
@@ -27,10 +27,6 @@
 
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
-#endif
-
-#if defined(TECA_HAS_MPI)
-#include <mpi.h>
 #endif
 
 /*
@@ -559,10 +555,11 @@ teca_bayesian_ar_detect::teca_bayesian_ar_detect::get_output_metadata(
 
     int rank = 0;
 #if defined(TECA_HAS_MPI)
+    MPI_Comm comm = this->get_communicator();
     int is_init = 0;
     MPI_Initialized(&is_init);
     if (is_init)
-        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        MPI_Comm_rank(comm, &rank);
 #endif
     // validate the table
     if (rank == 0)
@@ -603,7 +600,7 @@ teca_bayesian_ar_detect::teca_bayesian_ar_detect::get_output_metadata(
         teca_binary_stream bs;
         if (this->internals->parameter_table && (rank == 0))
             this->internals->parameter_table->to_stream(bs);
-        bs.broadcast();
+        bs.broadcast(comm);
         if (bs && (rank != 0))
         {
            p_teca_table tmp = teca_table::New();
@@ -714,34 +711,41 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
     request_gen.initialize_index_executive(md);
 
     p_teca_dataset_source dss = teca_dataset_source::New();
+    dss->set_communicator(MPI_COMM_SELF);
     dss->set_dataset(in_mesh);
     dss->set_metadata(md);
 
     p_teca_latitude_damper damp = teca_latitude_damper::New();
+    damp->set_communicator(MPI_COMM_SELF);
     damp->set_input_connection(dss->get_output_port());
     damp->set_damped_variables({this->water_vapor_variable});
 
     p_teca_binary_segmentation seg = teca_binary_segmentation::New();
+    seg->set_communicator(MPI_COMM_SELF);
     seg->set_input_connection(damp->get_output_port());
     seg->set_threshold_variable(this->water_vapor_variable);
     seg->set_segmentation_variable("wv_seg");
     seg->set_threshold_by_percentile();
 
     p_teca_connected_components cc = teca_connected_components::New();
+    cc->set_communicator(MPI_COMM_SELF);
     cc->set_input_connection(seg->get_output_port());
     cc->set_segmentation_variable("wv_seg");
     cc->set_component_variable("wv_cc");
 
     p_teca_2d_component_area ca = teca_2d_component_area::New();
+    ca->set_communicator(MPI_COMM_SELF);
     ca->set_input_connection(cc->get_output_port());
     ca->set_component_variable("wv_cc");
     ca->set_contiguous_component_ids(1);
 
     p_teca_component_area_filter caf = teca_component_area_filter::New();
+    caf->set_communicator(MPI_COMM_SELF);
     caf->set_input_connection(ca->get_output_port());
     caf->set_component_variable("wv_cc");
 
     p_teca_programmable_algorithm pa = teca_programmable_algorithm::New();
+    pa->set_communicator(MPI_COMM_SELF);
     pa->set_number_of_input_connections(1);
     pa->set_number_of_output_ports(1);
     pa->set_input_connection(caf->get_output_port());
@@ -751,13 +755,14 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
         "wv_cc", "ar_probability");
 
     p_teca_programmable_reduce pr = teca_programmable_reduce::New();
+    pr->set_communicator(MPI_COMM_SELF);
     pr->set_input_connection(pa->get_output_port());
     pr->set_reduce_callback(reduce);
     pr->set_verbose(0);
-    pr->set_enable_mpi(0);
     pr->set_thread_pool_size(this->thread_pool_size);
 
     p_teca_dataset_capture dc = teca_dataset_capture::New();
+    dc->set_communicator(MPI_COMM_SELF);
     dc->set_input_connection(pr->get_output_port());
 
     // run the pipeline

@@ -46,39 +46,26 @@ int main(int argc, char **argv)
     string vapor_var;
     string mask_var;
 
-    if (rank == 0)
+    if (argc != 9)
     {
-        if (argc != 9)
-        {
-            cerr << endl << "Usage error:" << endl
-                << "test_ar_detect [input regex] [land mask file] [output] "
-                   "[first step] [last step] [n threads] [water vapor var] "
-                   "[mask var]" << endl << endl;
-            return -1;
-        }
-
-        // parse command line
-        vapor_files = argv[1];
-        mask_file = argv[2];
-        baseline = argv[3];
-        if (teca_file_util::file_exists(baseline.c_str()))
-            have_baseline = 1;
-        first_step = atoi(argv[4]);
-        last_step = atoi(argv[5]);
-        n_threads = atoi(argv[6]);
-        vapor_var = argv[7];
-        mask_var = argv[8];
+        cerr << endl << "Usage error:" << endl
+            << "test_ar_detect [input regex] [land mask file] [output] "
+               "[first step] [last step] [n threads] [water vapor var] "
+               "[mask var]" << endl << endl;
+        return -1;
     }
 
-    teca_test_util::bcast(vapor_files);
-    teca_test_util::bcast(mask_file);
-    teca_test_util::bcast(baseline);
-    teca_test_util::bcast(have_baseline);
-    teca_test_util::bcast(first_step);
-    teca_test_util::bcast(last_step);
-    teca_test_util::bcast(n_threads);
-    teca_test_util::bcast(vapor_var);
-    teca_test_util::bcast(mask_var);
+    // parse command line
+    vapor_files = argv[1];
+    mask_file = argv[2];
+    baseline = argv[3];
+    if (teca_file_util::file_exists(baseline.c_str()))
+        have_baseline = 1;
+    first_step = atoi(argv[4]);
+    last_step = atoi(argv[5]);
+    n_threads = atoi(argv[6]);
+    vapor_var = argv[7];
+    mask_var = argv[8];
 
     // build the pipeline
     p_teca_cf_reader vapor_reader = teca_cf_reader::New();

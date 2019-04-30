@@ -2,12 +2,14 @@
 #define teca_binary_stream_h
 
 #include "teca_common.h"
+#include "teca_mpi.h"
 
 #include <cstdlib>
 #include <cstring>
 #include <string>
 #include <map>
 #include <vector>
+
 
 // Serialize objects into a binary stream.
 class teca_binary_stream
@@ -85,7 +87,7 @@ public:
     template<typename T> void unpack(std::vector<T> &v);
 
     // broadcast the stream from the root process to all other processes
-    int broadcast(int root_rank=0);
+    int broadcast(MPI_Comm comm, int root_rank=0);
 
 private:
     // re-allocation size

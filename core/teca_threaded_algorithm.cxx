@@ -50,7 +50,8 @@ class teca_threaded_algorithm_internals
 public:
     teca_threaded_algorithm_internals() {}
 
-    void thread_pool_resize(int n, bool local, bool bind, bool verbose);
+    void thread_pool_resize(MPI_Comm comm,
+        int n, bool bind, bool verbose);
 
     unsigned int get_thread_pool_size() const noexcept
     { return this->thread_pool ? this->thread_pool->size() : 0; }
@@ -60,11 +61,11 @@ public:
 };
 
 // --------------------------------------------------------------------------
-void teca_threaded_algorithm_internals::thread_pool_resize(int n, bool local,
-    bool bind, bool verbose)
+void teca_threaded_algorithm_internals::thread_pool_resize(MPI_Comm comm,
+    int n, bool bind, bool verbose)
 {
-    this->thread_pool = std::make_shared<teca_data_request_queue>(n,
-        local, bind, verbose);
+    this->thread_pool = std::make_shared<teca_data_request_queue>(
+        comm, n, bind, verbose);
 }
 
 
@@ -72,7 +73,7 @@ void teca_threaded_algorithm_internals::thread_pool_resize(int n, bool local,
 
 // --------------------------------------------------------------------------
 teca_threaded_algorithm::teca_threaded_algorithm() : verbose(0),
-    bind_threads(1), enable_mpi(1), internals(new teca_threaded_algorithm_internals)
+    bind_threads(1), internals(new teca_threaded_algorithm_internals)
 {
 }
 
@@ -93,8 +94,6 @@ void teca_threaded_algorithm::get_properties_description(
     opts.add_options()
         TECA_POPTS_GET(int, prefix, bind_threads,
             "bind software threads to hardware cores (1)")
-        TECA_POPTS_GET(int, prefix, enable_mpi,
-            "use MPI collectives to determine the optimal thread pool size (1)")
         TECA_POPTS_GET(int, prefix, verbose,
             "print a run time report of settings (0)")
         TECA_POPTS_GET(int, prefix, thread_pool_size,
@@ -109,7 +108,6 @@ void teca_threaded_algorithm::set_properties(const std::string &prefix,
     variables_map &opts)
 {
     TECA_POPTS_SET(opts, int, prefix, bind_threads)
-    TECA_POPTS_SET(opts, int, prefix, enable_mpi)
     TECA_POPTS_SET(opts, int, prefix, verbose)
 
     std::string opt_name = (prefix.empty()?"":prefix+"::") + "thread_pool_size";
@@ -121,8 +119,8 @@ void teca_threaded_algorithm::set_properties(const std::string &prefix,
 // --------------------------------------------------------------------------
 void teca_threaded_algorithm::set_thread_pool_size(int n)
 {
-    this->internals->thread_pool_resize(n,
-        !this->enable_mpi, this->bind_threads, this->verbose);
+    this->internals->thread_pool_resize(this->get_communicator(),
+        n, this->bind_threads, this->verbose);
 }
 
 // --------------------------------------------------------------------------

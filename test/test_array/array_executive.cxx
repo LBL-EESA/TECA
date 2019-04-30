@@ -11,8 +11,10 @@ using std::cerr;
 using std::endl;
 
 // --------------------------------------------------------------------------
-int array_executive::initialize(const teca_metadata &md)
+int array_executive::initialize(MPI_Comm comm, const teca_metadata &md)
 {
+    (void)comm;
+
     this->requests.clear();
 
     // figure out the keys

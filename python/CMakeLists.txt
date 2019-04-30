@@ -6,7 +6,6 @@ if (TECA_HAS_PYTHON)
     depend_swig(teca_py.i teca_py.dep)
     wrap_swig(teca_py.i teca_py.cxx teca_py.dep)
 
-    include_directories(SYSTEM ${PYTHON_INCLUDE_PATH} ${NUMPY_INCLUDE_DIR})
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}
             ${CMAKE_CURRENT_BINARY_DIR}
             ${CMAKE_CURRENT_BINARY_DIR}/..
@@ -28,7 +27,7 @@ if (TECA_HAS_PYTHON)
         set_target_properties(_teca_py PROPERTIES INSTALL_RPATH "\$ORIGIN/./")
     endif()
 
-    target_link_libraries(_teca_py ${PYTHON_LIBRARIES}
+    target_link_libraries(_teca_py PYTHON
         teca_core teca_data teca_alg teca_io teca_system)
 
     add_custom_command(TARGET _teca_py POST_BUILD

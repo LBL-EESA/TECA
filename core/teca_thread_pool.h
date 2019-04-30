@@ -4,6 +4,7 @@
 #include "teca_common.h"
 #include "teca_algorithm_fwd.h"
 #include "teca_threadsafe_queue.h"
+#include "teca_mpi.h"
 
 #include <vector>
 #include <thread>
@@ -15,14 +16,11 @@
 #include <pthread.h>
 #include <sched.h>
 #include <deque>
-#if defined(TECA_HAS_MPI)
-#include <mpi.h>
-#endif
 #endif
 
 namespace internal
 {
-int thread_parameters(int base_core_id, int n_req, bool local,
+int thread_parameters(MPI_Comm comm, int base_core_id, int n_req,
     bool bind, bool verbose, std::deque<int> &affinity);
 }
 
@@ -42,19 +40,18 @@ public:
 
     // construct/destruct the thread pool.
     // arguments:
-    //   n        number of threads to create for the pool. -1 will
-    //            create 1 thread per physical CPU core. If local is false
-    //            all MPI ranks running on the same node are taken into
-    //            account, resulting in 1 thread per core node wide.
+    //   comm     communicator over which to map threads. Use MPI_COMM_SELF
+    //            for local mapping.
     //
-    //   local    consider other MPI ranks on the node. This introduces
-    //            MPI collective operations, so all ranks in comm world
-    //            must call it.
+    //   n        number of threads to create for the pool. -1 will
+    //            create 1 thread per physical CPU core.  all MPI ranks running
+    //            on the same node are taken into account, resulting in 1
+    //            thread per core node wide.
     //
     //   bind     bind each thread to a specific core.
     //
     //   verbose  print a report of the thread to core bindings
-    teca_thread_pool(int n, bool local, bool bind, bool verbose);
+    teca_thread_pool(MPI_Comm comm, int n, bool bind, bool verbose);
     ~teca_thread_pool() noexcept;
 
     // get rid of copy and asignment
@@ -76,7 +73,7 @@ public:
 
 private:
     // create n threads for the pool
-    void create_threads(int n_threads, bool local, bool bind, bool verbose);
+    void create_threads(MPI_Comm comm, int n_threads, bool bind, bool verbose);
 
 private:
     std::atomic<bool> m_live;
@@ -90,21 +87,21 @@ private:
 
 // --------------------------------------------------------------------------
 template <typename task_t, typename data_t>
-teca_thread_pool<task_t, data_t>::teca_thread_pool(int n, bool local,
+teca_thread_pool<task_t, data_t>::teca_thread_pool(MPI_Comm comm, int n,
     bool bind, bool verbose) : m_live(true)
 {
-    this->create_threads(n, local, bind, verbose);
+    this->create_threads(comm, n, bind, verbose);
 }
 
 // --------------------------------------------------------------------------
 template <typename task_t, typename data_t>
-void teca_thread_pool<task_t, data_t>::create_threads(int n, bool local,
+void teca_thread_pool<task_t, data_t>::create_threads(MPI_Comm comm, int n,
     bool bind, bool verbose)
 {
 #if !defined(_GNU_SOURCE)
     (void)bind;
     (void)verbose;
-    (void)local;
+    (void)comm;
     if (n < 1)
     {
         TECA_WARNING("Cannot autmatically detect threading parameters "
@@ -116,7 +113,7 @@ void teca_thread_pool<task_t, data_t>::create_threads(int n, bool local,
     int base_core_id = sched_getcpu();
     std::deque<int> core_ids;
     int n_threads = internal::thread_parameters
-        (base_core_id, n, local, bind, verbose, core_ids);
+        (comm, base_core_id, n, bind, verbose, core_ids);
 #endif
 
     // allocate the threads

@@ -65,7 +65,7 @@ mesh.set_z_coordinates(z)
 mesh.set_whole_extent(wext)
 mesh.set_extent(wext)
 mesh.set_time(1.0)
-mesh.set_time_step(0L)
+mesh.set_time_step(0)
 mesh.get_point_arrays().append("labels", cc)
 
 md = teca_metadata()

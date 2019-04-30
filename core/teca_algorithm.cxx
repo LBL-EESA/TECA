@@ -29,6 +29,9 @@ public:
     ~teca_algorithm_internals() noexcept;
     TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_algorithm_internals)
 
+    void set_communicator(MPI_Comm comm);
+    MPI_Comm get_communicator();
+
     // this setsup the output cache. calling
     // this will remove all cached data.
     void set_number_of_inputs(unsigned int n);
@@ -113,6 +116,9 @@ public:
 
     // executive
     p_teca_algorithm_executive exec;
+
+    // communicator for MPI communcations
+    MPI_Comm comm;
 };
 
 // --------------------------------------------------------------------------
@@ -121,14 +127,44 @@ teca_algorithm_internals::teca_algorithm_internals()
     name("teca_algorithm"),
     data_cache_size(1),
     modified(1),
-    exec(teca_algorithm_executive::New())
+    exec(teca_algorithm_executive::New()),
+    comm(MPI_COMM_WORLD)
 {
     this->set_number_of_outputs(1);
 }
 
 // --------------------------------------------------------------------------
 teca_algorithm_internals::~teca_algorithm_internals() noexcept
-{}
+{
+    // make sure we free up any user supplied communicators
+    this->set_communicator(MPI_COMM_NULL);
+}
+
+//----------------------------------------------------------------------------
+void teca_algorithm_internals::set_communicator(MPI_Comm a_comm)
+{
+#if defined(TECA_HAS_MPI)
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
+    {
+        // check if we currently have a valid communicator to free
+        if ((this->comm != MPI_COMM_NULL) && (this->comm != MPI_COMM_WORLD))
+            MPI_Comm_free(&this->comm);
+
+        // if the user is passing a valid communicator duplicate it giving this
+        // algorithm a unique communication space.
+        if (a_comm == MPI_COMM_NULL)
+            this->comm = MPI_COMM_NULL;
+        else
+            MPI_Comm_dup(a_comm, &this->comm);
+    }
+    else
+        this->comm = a_comm;
+#else
+    this->comm = a_comm;
+#endif
+}
 
 // --------------------------------------------------------------------------
 void teca_algorithm_internals::set_number_of_inputs(unsigned int n)
@@ -359,6 +395,18 @@ teca_algorithm::teca_algorithm() : internals(new teca_algorithm_internals)
 teca_algorithm::~teca_algorithm() noexcept
 {
     delete this->internals;
+}
+
+//----------------------------------------------------------------------------
+void teca_algorithm::set_communicator(MPI_Comm comm)
+{
+    this->internals->set_communicator(comm);
+}
+
+//----------------------------------------------------------------------------
+MPI_Comm teca_algorithm::get_communicator()
+{
+    return this->internals->comm;
 }
 
 // --------------------------------------------------------------------------
@@ -681,7 +729,7 @@ int teca_algorithm::update(unsigned int port_id)
 
     // initialize the executive
     p_teca_algorithm_executive exec = this->internals->get_executive();
-    if (exec->initialize(this->get_output_metadata(port)))
+    if (exec->initialize(this->get_communicator(), this->get_output_metadata(port)))
     {
         TECA_ERROR("failed to initialize the executive")
         return -1;

@@ -38,12 +38,6 @@ public:
     // likely degrade performance. Default is 1.
     TECA_ALGORITHM_PROPERTY(int, bind_threads);
 
-    // set/get MPI mode. when set threadpool makes use of MPI to
-    // determine its optimal size. this requires collective communication
-    // and thus is njot safe to do during execution from a thread.
-    // By default MPI is enabled, set this flag to 0 to disable it.
-    TECA_ALGORITHM_PROPERTY(int, enable_mpi);
-
 protected:
     teca_threaded_algorithm();
 
@@ -56,7 +50,6 @@ protected:
 private:
     int verbose;
     int bind_threads;
-    int enable_mpi;
     teca_threaded_algorithm_internals *internals;
 };
 

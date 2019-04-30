@@ -124,7 +124,7 @@ const_p_teca_dataset teca_table_region_mask::execute(
     int init = 0;
     MPI_Initialized(&init);
     if (init)
-        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        MPI_Comm_rank(this->get_communicator(), &rank);
 #endif
     if (!in_table)
     {

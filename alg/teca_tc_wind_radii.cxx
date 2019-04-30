@@ -670,10 +670,11 @@ teca_metadata teca_tc_wind_radii::teca_tc_wind_radii::get_output_metadata(
 
     int rank = 0;
 #if defined(TECA_HAS_MPI)
+    MPI_Comm comm = this->get_communicator();
     int is_init = 0;
     MPI_Initialized(&is_init);
     if (is_init)
-        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        MPI_Comm_rank(comm, &rank);
 #endif
     // validate the table
     if (rank == 0)
@@ -735,7 +736,7 @@ teca_metadata teca_tc_wind_radii::teca_tc_wind_radii::get_output_metadata(
         teca_binary_stream bs;
         if (this->internals->storm_table && (rank == 0))
             this->internals->storm_table->to_stream(bs);
-        bs.broadcast();
+        bs.broadcast(comm);
         if (bs && (rank != 0))
         {
            p_teca_table tmp = teca_table::New();

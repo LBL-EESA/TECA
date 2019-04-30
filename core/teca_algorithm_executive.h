@@ -3,6 +3,7 @@
 
 #include "teca_algorithm_executive_fwd.h"
 #include "teca_metadata.h"
+#include "teca_mpi.h"
 
 // base class and default implementation for executives. algorithm
 // executives can control pipeline execution by providing a series
@@ -31,7 +32,7 @@ public:
     // initialize requests from the given metadata object.
     // this is a place where work partitioning across MPI
     // ranks can occur
-    virtual int initialize(const teca_metadata &md);
+    virtual int initialize(MPI_Comm comm, const teca_metadata &md);
 
     // get the next request until all requests have been
     // processed. an empty request is returned.

@@ -4,6 +4,7 @@
 #include "teca_shared_object.h"
 #include "teca_algorithm_executive.h"
 #include "teca_metadata.h"
+#include "teca_mpi.h"
 
 #include <vector>
 
@@ -14,8 +15,8 @@ class array_executive : public teca_algorithm_executive
 public:
     TECA_ALGORITHM_EXECUTIVE_STATIC_NEW(array_executive)
 
-    virtual int initialize(const teca_metadata &md);
-    virtual teca_metadata get_next_request();
+    int initialize(MPI_Comm comm, const teca_metadata &md) override;
+    teca_metadata get_next_request() override;
 
 protected:
     array_executive(){}

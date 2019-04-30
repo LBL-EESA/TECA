@@ -2,6 +2,7 @@
 #define teca_algorithm_fwd_h
 
 #include "teca_shared_object.h"
+
 #include <initializer_list>
 #include <functional>
 

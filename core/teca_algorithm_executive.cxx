@@ -1,8 +1,9 @@
 #include "teca_algorithm_executive.h"
 
 // --------------------------------------------------------------------------
-int teca_algorithm_executive::initialize(const teca_metadata &)
+int teca_algorithm_executive::initialize(MPI_Comm comm, const teca_metadata &)
 {
+    (void)comm;
     // make a non-empty request. any key that's not used will
     // work here, prepending __ to add some extra safety in this
     // regard.

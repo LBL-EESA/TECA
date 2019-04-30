@@ -55,56 +55,35 @@ int main(int argc, char **argv)
     double low_lat = 0;
     double high_lat = -1;
 
-    if (rank == 0)
+    if (argc != 17)
     {
-        if (argc != 17)
-        {
-            cerr << endl << "Usage error:" << endl
-                << "test_tc_candidates [input regex] [output] [first step] [last step] [n threads] "
-                   "[850 mb wind x] [850 mb wind y] [surface wind x] [surface wind y] [surface pressure] "
-                   "[500 mb temp] [200 mb temp] [1000 mb z] [200 mb z] [low lat] [high lat]"
-                << endl << endl;
-            return -1;
-        }
-
-        // parse command line
-        regex = argv[1];
-        baseline = argv[2];
-        if (teca_file_util::file_exists(baseline.c_str()))
-            have_baseline = 1;
-        start_index = atoi(argv[3]);
-        end_index = atoi(argv[4]);
-        n_threads = atoi(argv[5]);
-        ux_850mb = argv[6];
-        uy_850mb = argv[7];
-        ux_surf = argv[8];
-        uy_surf = argv[9];
-        P_surf = argv[10];
-        T_500mb = argv[11];
-        T_200mb = argv[12];
-        z_1000mb = argv[13];
-        z_200mb = argv[14];
-        low_lat = atof(argv[15]);
-        high_lat = atof(argv[16]);
+        cerr << endl << "Usage error:" << endl
+            << "test_tc_candidates [input regex] [output] [first step] [last step] [n threads] "
+               "[850 mb wind x] [850 mb wind y] [surface wind x] [surface wind y] [surface pressure] "
+               "[500 mb temp] [200 mb temp] [1000 mb z] [200 mb z] [low lat] [high lat]"
+            << endl << endl;
+        return -1;
     }
 
-    teca_test_util::bcast(regex);
-    teca_test_util::bcast(baseline);
-    teca_test_util::bcast(have_baseline);
-    teca_test_util::bcast(start_index);
-    teca_test_util::bcast(end_index);
-    teca_test_util::bcast(n_threads);
-    teca_test_util::bcast(ux_850mb);
-    teca_test_util::bcast(uy_850mb);
-    teca_test_util::bcast(ux_surf);
-    teca_test_util::bcast(uy_surf);
-    teca_test_util::bcast(P_surf);
-    teca_test_util::bcast(T_500mb);
-    teca_test_util::bcast(T_200mb);
-    teca_test_util::bcast(z_1000mb);
-    teca_test_util::bcast(z_200mb);
-    teca_test_util::bcast(low_lat);
-    teca_test_util::bcast(high_lat);
+    // parse command line
+    regex = argv[1];
+    baseline = argv[2];
+    if (teca_file_util::file_exists(baseline.c_str()))
+        have_baseline = 1;
+    start_index = atoi(argv[3]);
+    end_index = atoi(argv[4]);
+    n_threads = atoi(argv[5]);
+    ux_850mb = argv[6];
+    uy_850mb = argv[7];
+    ux_surf = argv[8];
+    uy_surf = argv[9];
+    P_surf = argv[10];
+    T_500mb = argv[11];
+    T_200mb = argv[12];
+    z_1000mb = argv[13];
+    z_200mb = argv[14];
+    low_lat = atof(argv[15]);
+    high_lat = atof(argv[16]);
 
     // create the pipeline objects
     p_teca_cf_reader cf_reader = teca_cf_reader::New();

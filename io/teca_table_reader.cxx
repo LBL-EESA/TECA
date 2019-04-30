@@ -29,8 +29,8 @@ struct teca_table_reader::teca_table_reader_internals
 
     void clear();
 
-    static p_teca_table read_table(
-        const std::string &file_name, bool distribute);
+    static p_teca_table read_table(const std::string &file_name,
+        MPI_Comm comm, bool distribute);
 
     p_teca_table table;
     teca_metadata metadata;
@@ -54,17 +54,18 @@ void teca_table_reader::teca_table_reader_internals::clear()
 // --------------------------------------------------------------------------
 p_teca_table
 teca_table_reader::teca_table_reader_internals::read_table(
-    const std::string &file_name, bool distribute)
+    const std::string &file_name, MPI_Comm comm, bool distribute)
 {
     teca_binary_stream stream;
 #if !defined(TECA_HAS_MPI)
+    (void)comm;
     (void)distribute;
 #else
     int init = 0;
     int rank = 0;
     MPI_Initialized(&init);
     if (init)
-        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        MPI_Comm_rank(comm, &rank);
 
     // rank 0 will read the data, must be rank 0 for the
     // case where using as a serial reader, but running in
@@ -84,12 +85,12 @@ teca_table_reader::teca_table_reader_internals::read_table(
         }
 #if defined(TECA_HAS_MPI)
         if (init && distribute)
-            stream.broadcast();
+            stream.broadcast(comm);
     }
     else
     if (init && distribute)
     {
-        stream.broadcast();
+        stream.broadcast(comm);
     }
     else
     {
@@ -185,7 +186,7 @@ teca_metadata teca_table_reader::get_output_metadata(unsigned int port,
 
     this->internals->table =
         teca_table_reader::teca_table_reader_internals::read_table(
-            this->file_name, distribute);
+            this->file_name, this->get_communicator(), distribute);
 
     // when no index column is specified  act like a serial reader
     if (!this->internals->table || !distribute)
@@ -268,7 +269,7 @@ const_p_teca_dataset teca_table_reader::execute(unsigned int port,
     int init = 0;
     MPI_Initialized(&init);
     if (init)
-        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        MPI_Comm_rank(this->get_communicator(), &rank);
     if ((rank == 0) && !this->internals->table)
     {
         TECA_ERROR("Failed to read data")
