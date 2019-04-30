@@ -2,22 +2,20 @@
 language: c++
 sudo: required
 
-os:
-  - linux
-  - osx
+services:
+  - docker
 
-dist: trusty # Ubuntu 14.04.
+before_install:
+  - docker build -t cascade/teca_ubuntu_18_04 ./test/travis_ci/docker/ubuntu_18_04
+  - >
+    docker run -v $TRAVIS_BUILD_DIR:/travis_host cascade/teca_ubuntu_18_04 /bin/sh -c 
+    "cd TECA_build/; cmake -DBUILD_TESTING=ON -DTECA_DATA_ROOT=${WORKDIR}/TECA_data/ 
+    -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=/teca-deps/2.1.3/ 
+    -DBOOST_ROOT=/teca_deps/2.1.3/include/ -DNETCDF_DIR=/teca_deps/2.1.3/ 
+    -DTECA_PYTHON_VERSION=2 /travis_host; make -j8;ctest -I -V"
 
-compiler:
-  - gcc
 
-install: ./test/travis_ci/install_$TRAVIS_OS_NAME.sh
-
-env:
-  - BUILD_TYPE=Debug
-#  - BUILD_TYPE=Release
-
-script: ./test/travis_ci/ctest_$TRAVIS_OS_NAME.sh
+script: ctest -I -V
 
 after_failure:
   - cat build/Testing/Temporary/LastTest.log
