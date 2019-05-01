@@ -9,7 +9,7 @@ before_install:
   - docker pull aaelbashandy/travis_ci_teca:0.02
   - >
     docker run -v $TRAVIS_BUILD_DIR:/travis_host aaelbashandy/travis_ci_teca:0.02 /bin/sh -c 
-    "cd TECA_build/; svn co svn://missmarple.lbl.gov/work3/teca/TECA_data TECA_data; 
+    "svn co svn://missmarple.lbl.gov/work3/teca/TECA_data TECA_data; cd TECA_build/;
     cmake -DBUILD_TESTING=ON -DTECA_DATA_ROOT=${WORKDIR}/TECA_data/ 
     -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=${TECA_INSTALL_PREFIX} 
     -DBOOST_ROOT=${TECA_INSTALL_PREFIX}/include/ -DNETCDF_DIR=${TECA_INSTALL_PREFIX} 
