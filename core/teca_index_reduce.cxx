@@ -268,7 +268,7 @@ const_p_teca_dataset teca_index_reduce::reduce_local(
         return p_teca_dataset();
 
     if (n_in == 1)
-        return input_data[0];
+        return this->reduce(input_data[0], nullptr);
 
     while (n_in > 1)
     {
