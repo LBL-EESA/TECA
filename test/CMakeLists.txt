@@ -148,7 +148,7 @@ teca_add_test(test_descriptive_statistics_threads
 
 teca_add_test(test_descriptive_statistics_mpi
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
-    COMMAND ${MPIEXEC} -n ${TECA_TEST_CORES} test_descriptive_statistics
+    COMMAND ${MPIEXEC} -n ${TECA_TEST_CORES} --oversubscribe test_descriptive_statistics
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-[0-9][0-9]-10800\\.nc"
     "${TECA_DATA_ROOT}/test_descriptive_statistics.bin" 0 -1 1 TMQ T200 T500
     FEATURES ${TECA_HAS_UDUNITS} ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
