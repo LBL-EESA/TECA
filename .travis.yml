@@ -16,7 +16,7 @@ before_install:
     cmake -DBUILD_TESTING=ON -DTECA_DATA_ROOT=/project/TECA_data/ -DCMAKE_BUILD_TYPE=Debug
     -DCMAKE_INSTALL_PREFIX=/teca_deps/2.1.3 -DBOOST_ROOT=/teca_deps/2.1.3/include/
     -DNETCDF_DIR=/teca_deps/2.1.3 -DTECA_PYTHON_VERSION=2 /travis_host &&
-    make -j4 && ctest -I 19,19,1 -V"
+    make -j4 && ctest -I -V"
 
 
 script: ctest -I -V
