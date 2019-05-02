@@ -11,4 +11,4 @@ export LD_LIBRARY_PATH=${TRAVIS_BUILD_DIR}/build/lib
 export MPLBACKEND=Agg
 mkdir build
 cmake --version
-ctest -S ${DASHROOT}/test/travis_ci/ctest_linux.cmake -E py_'.*'_mpi -V
+ctest -S ${DASHROOT}/test/travis_ci/ctest_linux.cmake -V
