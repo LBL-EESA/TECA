@@ -110,10 +110,15 @@ teca_add_test(test_table_reader
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_table_reader)
 
-teca_add_test(test_dataset_diff
+teca_add_test(test_dataset_diff_same
+    EXEC_NAME test_dataset_diff
     SOURCES test_dataset_diff.cpp teca_test_util.cxx
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
-    COMMAND test_dataset_diff)
+    COMMAND test_dataset_diff 1)
+
+teca_add_test(test_dataset_diff_different
+    COMMAND test_dataset_diff 0
+    WILL_FAIL)
 
 teca_add_test(test_table_sort
     SOURCES test_table_sort.cpp
