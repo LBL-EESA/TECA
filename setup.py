@@ -37,6 +37,9 @@ class CMakeBuild(build_ext):
 
         # this is where setuptools will look for our files to install
         extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
+        # put verything in a directory below this for pip, if we don't do so
+        # pip puts it all right in site-packages making a big fat mess
+        extdir = os.path.join(extdir, 'teca')
 
         # set some flags for the cmake command line configuring this build
         # specifically we need to put the build where setuptools can find it
@@ -83,13 +86,13 @@ class CMakeBuild(build_ext):
             sys.stderr.write('\n')
             raise
 
-        # generate on the fly the top level python module that can be imported from the
-        # setuptools install
-        f = open(os.path.join(extdir, 'teca.py'), 'w')
+        # because we are putting everything in a subdirectory (see comment above re: pip)
+        # write the init file that actually does the loading sets up the paths correctly
+        f = open(os.path.join(extdir, '__init__.py'), 'w')
         f.write('import sys, os\n')
-        f.write('from teca import *\n')
+        f.write('sys.path.append(os.path.dirname(os.path.abspath(__file__)))\n')
+        f.write('from teca.teca_py import *\n')
         f.close()
-
 
 with open("README.md", "r") as fh:
     long_description = fh.read()

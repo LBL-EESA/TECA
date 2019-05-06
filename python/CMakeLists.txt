@@ -19,6 +19,15 @@ if (TECA_HAS_PYTHON)
 
     PYTHON_ADD_MODULE(_teca_py ${CMAKE_CURRENT_BINARY_DIR}/teca_py.cxx)
 
+    # include the directory containing _teca_py in the rpath
+    # this enables one not to have to set (DY)LD_LIBRARY_PATH
+    # prior to importing teca.
+    if (APPLE)
+        set_target_properties(_teca_py PROPERTIES INSTALL_RPATH "@loader_path/./")
+    elseif(UNIX)
+        set_target_properties(_teca_py PROPERTIES INSTALL_RPATH "\$ORIGIN/./")
+    endif()
+
     target_link_libraries(_teca_py ${PYTHON_LIBRARIES}
         teca_core teca_data teca_alg teca_io teca_system)
 
