@@ -80,11 +80,6 @@ FortranCInterface_VERIFY()
 
 set(teca_alg_link pthread)
 
-if (TECA_HAS_MPI)
-    include_directories(SYSTEM ${MPI_C_INCLUDE_PATH})
-    list(APPEND teca_alg_link ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
-endif()
-
 if (TECA_HAS_BOOST)
     include_directories(SYSTEM ${Boost_INCLUDE_DIR})
     list(APPEND teca_alg_link ${Boost_LIBRARIES})

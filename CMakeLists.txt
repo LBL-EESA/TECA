@@ -76,6 +76,8 @@ else()
     set(TECA_HAS_REGEX ON CACHE BOOL "Regex features")
 endif()
 
+include(teca_interface_library)
+
 # locate dependencies
 # configure for MPI
 if (ENABLE_CRAY_MPICH)
@@ -94,6 +96,10 @@ if (MPI_C_FOUND  AND ((DEFINED TECA_HAS_MPI AND TECA_HAS_MPI)
     OR (NOT DEFINED TECA_HAS_MPI)))
     message(STATUS "MPI features -- enabled")
     set(tmp ON)
+    teca_interface_library(MPI SYSTEM
+        DEFINITIONS -DOMPI_SKIP_MPICXX=1 -DMPICH_SKIP_MPICXX=1
+        INCLUDES ${MPI_C_INCLUDE_PATH} ${MPI_C_INCLUDE_DIRS}
+        LIBRARIES ${MPI_C_LIBRARIES})
 elseif (REQUIRE_MPI)
     message(FATAL_ERROR "MPI features -- required but not found.")
 else()
@@ -229,17 +235,22 @@ if(PYTHONINTERP_FOUND)
 endif()
 find_package(PythonLibs ${TECA_PYTHON_VERSION})
 find_package(Numpy)
+if (TECA_HAS_MPI)
+    find_package(MPI4Py)
+endif()
 find_program(swig_cmd NAMES swig swig3.0)
-find_package(Mpi4Py)
-if ((PYTHONINTERP_FOUND AND PYTHONLIBS_FOUND AND NUMPY_FOUND AND swig_cmd)
+if ((PYTHONINTERP_FOUND AND PYTHONLIBS_FOUND AND NUMPY_FOUND AND swig_cmd AND (TECA_HAS_MPI AND MPI4PY_FOUND))
     AND ((DEFINED TECA_HAS_PYTHON AND TECA_HAS_PYTHON)
     OR (NOT DEFINED TECA_HAS_PYTHON)))
     message(STATUS "Python ${TECA_PYTHON_VERSION} features -- enabled")
     set(tmp ON)
+    teca_interface_library(PYTHON SYSTEM
+        INCLUDES ${PYTHON_INCLUDE_PATH} ${MPI4PY_INCLUDE_DIR} ${NUMPY_INCLUDE_DIR}
+        LIBRARIES ${PYTHON_LIBRARIES})
 elseif (REQUIRE_PYTHON)
     message(FATAL_ERROR "Python ${TECA_PYTHON_VERSION} features -- required but not found")
 else()
-    message(STATUS "Python ${TECA_PYTHON_VERSION} features -- not found. Missing SWIG, numpy, and mpi4py")
+    message(STATUS "Python ${TECA_PYTHON_VERSION} features -- not found. Requires Python, SWIG, numpy, and mpi4py if compiling with MPI")
 endif()
 set(TECA_HAS_PYTHON ${tmp} CACHE BOOL "Python binding")
 

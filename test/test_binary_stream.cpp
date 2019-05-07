@@ -7,15 +7,13 @@
 #include "teca_dataset_diff.h"
 #include "teca_mpi_manager.h"
 #include "teca_system_interface.h"
+#include "teca_mpi.h"
 
 #include <iostream>
 #include <string>
 #include <vector>
 #include <cmath>
 
-#if defined(TECA_HAS_MPI)
-#include <mpi.h>
-#endif
 
 using namespace std;
 
@@ -95,7 +93,7 @@ int main(int argc, char **argv)
     }
 
     // broadcast to all ranks
-    s2.broadcast(root);
+    s2.broadcast(MPI_COMM_WORLD, root);
 
     // validate the result
     driver.validate(s2);

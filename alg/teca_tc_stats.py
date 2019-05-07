@@ -217,7 +217,7 @@ class teca_tc_stats:
                     << int(totals[q][3]) << int(totals[q][4]) \
                     << int(totals[q][5]) << int(totals[q][6])
                 q += 1
-            f = open('%s_summary.csv'%(state.basename),'wc')
+            f = open('%s_summary.csv'%(state.basename),'w')
             f.write(str(summary))
             f.close()
 
@@ -352,7 +352,7 @@ class teca_tc_stats:
             reg_fig = plt.figure()
             reg_fig.set_size_inches(wid, ht)
 
-            rcds = zip(*ureg)[1]
+            rcds = list(zip(*ureg))[1]
             rcds += ('NH', 'SH', 'G')
 
             max_y = 0
@@ -466,7 +466,7 @@ class teca_tc_stats:
             # plot region over time
             reg_t_fig = plt.figure()
 
-            rnms = zip(*ureg)[2]
+            rnms = list(zip(*ureg))[2]
             rnms += ('Northern', 'Southern', 'Global')
 
             tmp = np.array(uyear)

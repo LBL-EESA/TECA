@@ -32,35 +32,24 @@ int main(int argc, char **argv)
     long end_index = -1;
     unsigned int n_threads = 1;
 
-    if (rank == 0)
+    if (argc != 7)
     {
-        if (argc != 7)
-        {
-            cerr << endl << "Usage error:" << endl
-                << "test_table_reader_distribute [input] [output] "
-                   "[index column] [first step] [last step] [n threads]"
-                << endl << endl;
-            return -1;
-        }
-
-        // parse command line
-        input = argv[1];
-        baseline = argv[2];
-        if (teca_file_util::file_exists(baseline.c_str()))
-            have_baseline = 1;
-        index = argv[3];
-        start_index = atoi(argv[4]);
-        end_index = atoi(argv[5]);
-        n_threads = atoi(argv[6]);
+        cerr << endl << "Usage error:" << endl
+            << "test_table_reader_distribute [input] [output] "
+               "[index column] [first step] [last step] [n threads]"
+            << endl << endl;
+        return -1;
     }
 
-    teca_test_util::bcast(input);
-    teca_test_util::bcast(baseline);
-    teca_test_util::bcast(have_baseline);
-    teca_test_util::bcast(index);
-    teca_test_util::bcast(start_index);
-    teca_test_util::bcast(end_index);
-    teca_test_util::bcast(n_threads);
+    // parse command line
+    input = argv[1];
+    baseline = argv[2];
+    if (teca_file_util::file_exists(baseline.c_str()))
+        have_baseline = 1;
+    index = argv[3];
+    start_index = atoi(argv[4]);
+    end_index = atoi(argv[5]);
+    n_threads = atoi(argv[6]);
 
     // create the pipeline objects
     p_teca_table_reader reader = teca_table_reader::New();

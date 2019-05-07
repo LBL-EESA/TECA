@@ -54,7 +54,7 @@ def get_execute_callback(rank, var_names):
 
             table << float(np.min(var)) << float(np.average(var)) \
                 << float(np.max(var)) << float(np.std(var)) \
-                << map(float, np.percentile(var, [25.,50.,75.]))
+                << list(map(float, np.percentile(var, [25.,50.,75.])))
 
         return table
     return execute
@@ -117,8 +117,6 @@ else:
   #write data
   tw = teca_table_writer.New()
   tw.set_input_connection(cal.get_output_port())
-  #tw.set_output_format_csv()
-  tw.set_output_format_bin()
   tw.set_file_name(out_file)
 
   tw.update()

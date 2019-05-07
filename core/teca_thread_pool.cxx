@@ -6,9 +6,6 @@
 #include <cstdint>
 #include <sstream>
 #include <iomanip>
-#if defined(TECA_HAS_MPI)
-#include <mpi.h>
-#endif
 #endif
 
 namespace internal
@@ -126,20 +123,17 @@ int detect_cpu_topology(int &n_threads, int &n_threads_per_core)
 }
 
 // **************************************************************************
-int generate_report(bool local, int local_proc, int base_id,
+int generate_report(MPI_Comm comm, int local_proc, int base_id,
     const std::deque<int> &afin)
 {
 #if !defined(TECA_HAS_MPI)
-    (void)local;
+    (void)comm;
 #endif
     int rank = 0;
     int n_ranks = 1;
 #if defined(TECA_HAS_MPI)
-    if (!local)
-    {
-        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-        MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
-    }
+    MPI_Comm_rank(comm, &rank);
+    MPI_Comm_size(comm, &n_ranks);
 #endif
 
     // gather proc ids
@@ -149,16 +143,13 @@ int generate_report(bool local, int local_proc, int base_id,
         local_procs.resize(n_ranks);
         local_procs[0] = local_proc;
 #if defined(TECA_HAS_MPI)
-        if (!local)
-        {
-            MPI_Gather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, local_procs.data(),
-                1, MPI_INT, 0, MPI_COMM_WORLD);
-        }
+        MPI_Gather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, local_procs.data(),
+            1, MPI_INT, 0, comm);
     }
-    else if (!local)
+    else
     {
         MPI_Gather(&local_proc, 1, MPI_INT, nullptr,
-            0, MPI_DATATYPE_NULL, 0, MPI_COMM_WORLD);
+            0, MPI_DATATYPE_NULL, 0, comm);
 #endif
     }
 
@@ -169,16 +160,13 @@ int generate_report(bool local, int local_proc, int base_id,
         base_ids.resize(n_ranks);
         base_ids[0] = base_id;
 #if defined(TECA_HAS_MPI)
-        if (!local)
-        {
-            MPI_Gather(MPI_IN_PLACE, 1, MPI_INT, base_ids.data(),
-                1, MPI_INT, 0, MPI_COMM_WORLD);
-        }
+        MPI_Gather(MPI_IN_PLACE, 1, MPI_INT, base_ids.data(),
+            1, MPI_INT, 0, comm);
     }
-    else if (!local)
+    else
     {
         MPI_Gather(&base_id, 1, MPI_INT, nullptr,
-            0, MPI_DATATYPE_NULL, 0, MPI_COMM_WORLD);
+            0, MPI_DATATYPE_NULL, 0, comm);
 #endif
     }
 
@@ -191,19 +179,16 @@ int generate_report(bool local, int local_proc, int base_id,
         gethostname(hosts.data(), 64);
         hosts[63] = '\0';
 #if defined(TECA_HAS_MPI)
-        if (!local)
-        {
-            MPI_Gather(MPI_IN_PLACE, 64, MPI_BYTE, hosts.data(),
-                64, MPI_BYTE, 0, MPI_COMM_WORLD);
-        }
+        MPI_Gather(MPI_IN_PLACE, 64, MPI_BYTE, hosts.data(),
+            64, MPI_BYTE, 0, comm);
     }
-    else if (!local)
+    else
     {
         char host[64];
         gethostname(host, 64);
         host[63] = '\0';
         MPI_Gather(host, 64, MPI_BYTE, nullptr,
-            0, MPI_DATATYPE_NULL, 0, MPI_COMM_WORLD);
+            0, MPI_DATATYPE_NULL, 0, comm);
 #endif
     }
 
@@ -214,17 +199,14 @@ int generate_report(bool local, int local_proc, int base_id,
         recv_cnt.resize(n_ranks);
         recv_cnt[0] = afin.size();
 #if defined(TECA_HAS_MPI)
-        if (!local)
-        {
-            MPI_Gather(MPI_IN_PLACE, 1, MPI_INT, recv_cnt.data(),
-                1, MPI_INT, 0, MPI_COMM_WORLD);
-        }
+        MPI_Gather(MPI_IN_PLACE, 1, MPI_INT, recv_cnt.data(),
+            1, MPI_INT, 0, comm);
     }
-    else if (!local)
+    else
     {
         int cnt = afin.size();
         MPI_Gather(&cnt, 1, MPI_INT, nullptr,
-            0, MPI_DATATYPE_NULL, 0, MPI_COMM_WORLD);
+            0, MPI_DATATYPE_NULL, 0, comm);
 #endif
     }
 
@@ -243,17 +225,14 @@ int generate_report(bool local, int local_proc, int base_id,
         for (int i = 0; i < recv_cnt[0]; ++i)
             afins[i] = afin[i];
 #if defined(TECA_HAS_MPI)
-        if (!local)
-        {
-            MPI_Gatherv(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, afins.data(),
-                recv_cnt.data(), displ.data(), MPI_INT, 0, MPI_COMM_WORLD);
-        }
+        MPI_Gatherv(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, afins.data(),
+            recv_cnt.data(), displ.data(), MPI_INT, 0, comm);
     }
-    else if (!local)
+    else
     {
         afins.assign(afin.begin(), afin.end());
         MPI_Gatherv(afins.data(), afins.size(), MPI_INT, nullptr,
-            nullptr, nullptr, MPI_DATATYPE_NULL, 0, MPI_COMM_WORLD);
+            nullptr, nullptr, MPI_DATATYPE_NULL, 0, comm);
 #endif
     }
 
@@ -279,7 +258,7 @@ int generate_report(bool local, int local_proc, int base_id,
 }
 
 // **************************************************************************
-int thread_parameters(int base_core_id, int n_req, bool local,
+int thread_parameters(MPI_Comm comm, int base_core_id, int n_req,
     bool bind, bool verbose, std::deque<int> &affinity)
 {
     std::vector<int> base_core_ids;
@@ -290,31 +269,24 @@ int thread_parameters(int base_core_id, int n_req, bool local,
     int n_procs = 1;
     int proc_id = 0;
 
-    if (local)
-    {
-        base_core_ids.push_back(base_core_id);
-    }
-    else
-    {
 #if defined(TECA_HAS_MPI)
-        MPI_Comm comm;
-        MPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED,
-            0, MPI_INFO_NULL, &comm);
+    MPI_Comm node_comm;
+    MPI_Comm_split_type(comm, MPI_COMM_TYPE_SHARED,
+        0, MPI_INFO_NULL, &node_comm);
 
-        MPI_Comm_size(comm, &n_procs);
-        MPI_Comm_rank(comm, &proc_id);
+    MPI_Comm_size(node_comm, &n_procs);
+    MPI_Comm_rank(node_comm, &proc_id);
 
-        base_core_ids.resize(n_procs);
-        base_core_ids[proc_id] = base_core_id;
+    base_core_ids.resize(n_procs);
+    base_core_ids[proc_id] = base_core_id;
 
-        MPI_Allgather(MPI_IN_PLACE,0,MPI_DATATYPE_NULL,
-            base_core_ids.data(), 1, MPI_UNSIGNED, comm);
+    MPI_Allgather(MPI_IN_PLACE,0, MPI_DATATYPE_NULL,
+        base_core_ids.data(), 1, MPI_UNSIGNED, node_comm);
 
-        MPI_Comm_free(&comm);
+    MPI_Comm_free(&node_comm);
 #else
-        base_core_ids.push_back(base_core_id);
+    base_core_ids.push_back(base_core_id);
 #endif
-    }
 
     // get the number of cores on this cpu
     int threads_per_chip = 1;
@@ -438,7 +410,7 @@ int thread_parameters(int base_core_id, int n_req, bool local,
     free(thread_use);
 
     if (verbose)
-        generate_report(local, proc_id, base_core_id, affinity);
+        generate_report(comm, proc_id, base_core_id, affinity);
 
     return n_threads;
 }

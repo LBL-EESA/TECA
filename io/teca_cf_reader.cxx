@@ -410,13 +410,14 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
     int rank = 0;
     int n_ranks = 1;
+    MPI_Comm comm = this->get_communicator();
 #if defined(TECA_HAS_MPI)
     int is_init = 0;
     MPI_Initialized(&is_init);
     if (is_init)
     {
-        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-        MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
+        MPI_Comm_rank(comm, &rank);
+        MPI_Comm_size(comm, &n_ranks);
     }
 #endif
     teca_binary_stream stream;
@@ -750,8 +751,8 @@ teca_metadata teca_cf_reader::get_output_metadata(
             // when procesing large numbers of files these issues kill
             // serial performance. hence we are reading time dimension
             // in parallel.
-            read_variable_queue_t thread_pool(this->thread_pool_size,
-                true, true, false);
+            read_variable_queue_t thread_pool(this->get_communicator(),
+                this->thread_pool_size, true, false);
 
             std::vector<unsigned long> step_count;
             if (!t_axis_variable.empty())
@@ -869,7 +870,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
 #if defined(TECA_HAS_MPI)
         // broadcast the metadata to other ranks
         if (is_init)
-            stream.broadcast(root_rank);
+            stream.broadcast(comm, root_rank);
 #endif
     }
 #if defined(TECA_HAS_MPI)
@@ -877,7 +878,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
     if (is_init)
     {
         // all other ranks receive the metadata from the root
-        stream.broadcast(root_rank);
+        stream.broadcast(comm, root_rank);
 
         this->internals->metadata.from_stream(stream);
 

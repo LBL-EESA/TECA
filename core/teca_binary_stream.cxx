@@ -121,7 +121,7 @@ void teca_binary_stream::swap(teca_binary_stream &other) noexcept
 }
 
 //-----------------------------------------------------------------------------
-int teca_binary_stream::broadcast(int root_rank)
+int teca_binary_stream::broadcast(MPI_Comm comm, int root_rank)
 {
 #if defined(TECA_HAS_MPI)
     int init = 0;
@@ -130,23 +130,24 @@ int teca_binary_stream::broadcast(int root_rank)
     if (init)
     {
         unsigned long nbytes = 0;
-        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        MPI_Comm_rank(comm, &rank);
         if (rank == root_rank)
         {
             nbytes = this->size();
-            MPI_Bcast(&nbytes, 1, MPI_UNSIGNED_LONG, root_rank, MPI_COMM_WORLD);
-            MPI_Bcast(this->get_data(), nbytes, MPI_BYTE, root_rank, MPI_COMM_WORLD);
+            MPI_Bcast(&nbytes, 1, MPI_UNSIGNED_LONG, root_rank, comm);
+            MPI_Bcast(this->get_data(), nbytes, MPI_BYTE, root_rank, comm);
         }
         else
         {
-            MPI_Bcast(&nbytes, 1, MPI_UNSIGNED_LONG, root_rank, MPI_COMM_WORLD);
+            MPI_Bcast(&nbytes, 1, MPI_UNSIGNED_LONG, root_rank, comm);
             this->resize(nbytes);
-            MPI_Bcast(this->get_data(), nbytes, MPI_BYTE, root_rank, MPI_COMM_WORLD);
+            MPI_Bcast(this->get_data(), nbytes, MPI_BYTE, root_rank, comm);
             this->set_read_pos(0);
             this->set_write_pos(nbytes);
         }
     }
 #else
+    (void)comm;
     (void)root_rank;
 #endif
     return 0;

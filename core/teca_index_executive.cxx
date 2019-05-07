@@ -65,8 +65,11 @@ void teca_index_executive::set_arrays(const std::vector<std::string> &v)
 }
 
 // --------------------------------------------------------------------------
-int teca_index_executive::initialize(const teca_metadata &md)
+int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
 {
+#if !defined(TECA_HAS_MPI)
+    (void)comm;
+#endif
     this->requests.clear();
 
     // locate the keys that enable us to know how many
@@ -113,9 +116,9 @@ int teca_index_executive::initialize(const teca_metadata &md)
     if (is_init)
     {
         int tmp = 0;
-        MPI_Comm_size(MPI_COMM_WORLD, &tmp);
+        MPI_Comm_size(comm, &tmp);
         n_ranks = tmp;
-        MPI_Comm_rank(MPI_COMM_WORLD, &tmp);
+        MPI_Comm_rank(comm, &tmp);
         rank = tmp;
     }
 #endif

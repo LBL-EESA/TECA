@@ -80,7 +80,7 @@ int main(int argc, char **argv)
     int have_baseline = 0;
     if ((rank == 0) && teca_file_util::file_exists(baseline.c_str()))
         have_baseline = 1;
-    teca_test_util::bcast(have_baseline);
+    teca_test_util::bcast(MPI_COMM_WORLD, have_baseline);
     long first_step = 0;
     if (argc > 3)
         first_step = atoi(argv[3]);

@@ -22,8 +22,7 @@ set(teca_core_srcs
 set(teca_core_link)
 
 if (TECA_HAS_MPI)
-    include_directories(SYSTEM ${MPI_C_INCLUDE_PATH})
-    list(APPEND teca_core_link ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
+    list(APPEND teca_core_link MPI)
 endif()
 
 if (TECA_HAS_BOOST)
@@ -40,7 +39,7 @@ endif()
 list(APPEND teca_core_link pthread)
 
 add_library(teca_core ${teca_core_srcs})
-target_link_libraries(teca_core ${teca_core_link})
+target_link_libraries(teca_core PUBLIC ${teca_core_link})
 
 target_include_directories(teca_core
     INTERFACE

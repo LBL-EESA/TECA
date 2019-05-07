@@ -1,11 +1,8 @@
 #include "teca_index_reduce.h"
 #include "teca_binary_stream.h"
+#include "teca_mpi.h"
 
 #include <sstream>
-
-#if defined(TECA_HAS_MPI)
-#include <mpi.h>
-#endif
 
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
@@ -30,7 +27,7 @@ int send(MPI_Comm comm, int dest, teca_binary_stream &s)
     if (n)
     {
         if (MPI_Send(s.get_data(), n, MPI_UNSIGNED_CHAR,
-                dest, 3211, MPI_COMM_WORLD))
+                dest, 3211, comm))
         {
             TECA_ERROR("failed to send message")
             return -2;
@@ -67,7 +64,7 @@ int recv(MPI_Comm comm, int src, teca_binary_stream &s)
 #endif
 
 // --------------------------------------------------------------------------
-void block_decompose(unsigned long n_indices, unsigned long n_ranks,
+void block_decompose(MPI_Comm comm, unsigned long n_indices, unsigned long n_ranks,
     unsigned long rank, unsigned long &block_size, unsigned long &block_start,
     bool verbose)
 {
@@ -90,12 +87,12 @@ void block_decompose(unsigned long n_indices, unsigned long n_ranks,
             decomp.resize(2*n_ranks);
 #if defined(TECA_HAS_MPI)
             MPI_Gather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, decomp.data(),
-                2, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
+                2, MPI_UNSIGNED_LONG, 0, comm);
         }
         else
         {
             MPI_Gather(decomp.data(), 2, MPI_UNSIGNED_LONG, nullptr,
-                0, MPI_DATATYPE_NULL, 0, MPI_COMM_WORLD);
+                0, MPI_DATATYPE_NULL, 0, comm);
 #endif
         }
         if (rank == 0)
@@ -195,25 +192,23 @@ std::vector<teca_metadata> teca_index_reduce::get_upstream_request(
     // to process.
     unsigned long rank = 0;
     unsigned long n_ranks = 1;
+    MPI_Comm comm = this->get_communicator();
 #if defined(TECA_HAS_MPI)
-    if (this->get_enable_mpi())
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
     {
-        int is_init = 0;
-        MPI_Initialized(&is_init);
-        if (is_init)
-        {
-            int tmp = 0;
-            MPI_Comm_size(MPI_COMM_WORLD, &tmp);
-            n_ranks = tmp;
-            MPI_Comm_rank(MPI_COMM_WORLD, &tmp);
-            rank = tmp;
-        }
+        int tmp = 0;
+        MPI_Comm_size(comm, &tmp);
+        n_ranks = tmp;
+        MPI_Comm_rank(comm, &tmp);
+        rank = tmp;
     }
 #endif
     unsigned long block_size = 1;
     unsigned long block_start = 0;
 
-    internal::block_decompose(n_indeces, n_ranks, rank, block_size,
+    internal::block_decompose(comm, n_indeces, n_ranks, rank, block_size,
         block_start, this->get_verbose());
 
     // get the filters basic request
@@ -296,12 +291,14 @@ const_p_teca_dataset teca_index_reduce::reduce_remote(
     MPI_Initialized(&is_init);
     if (is_init)
     {
+        MPI_Comm comm = this->get_communicator();
+
         unsigned long rank = 0;
         unsigned long n_ranks = 1;
         int tmp = 0;
-        MPI_Comm_size(MPI_COMM_WORLD, &tmp);
+        MPI_Comm_size(comm, &tmp);
         n_ranks = tmp;
-        MPI_Comm_rank(MPI_COMM_WORLD, &tmp);
+        MPI_Comm_rank(comm, &tmp);
         rank = tmp;
 
         // special case 1 rank, nothing to do
@@ -319,7 +316,7 @@ const_p_teca_dataset teca_index_reduce::reduce_remote(
         // recv from left
         if (left_id <= n_ranks)
         {
-            if (internal::recv(MPI_COMM_WORLD, left_id-1, bstr))
+            if (internal::recv(comm, left_id-1, bstr))
             {
                 TECA_ERROR("failed to recv from left")
                 return p_teca_dataset();
@@ -340,7 +337,7 @@ const_p_teca_dataset teca_index_reduce::reduce_remote(
         // recv from right
         if (right_id <= n_ranks)
         {
-            if (internal::recv(MPI_COMM_WORLD, right_id-1,  bstr))
+            if (internal::recv(comm, right_id-1,  bstr))
             {
                 TECA_ERROR("failed to recv from right")
                 return p_teca_dataset();
@@ -364,7 +361,7 @@ const_p_teca_dataset teca_index_reduce::reduce_remote(
             if (local_data)
                 local_data->to_stream(bstr);
 
-            if (internal::send(MPI_COMM_WORLD, up_id-1, bstr))
+            if (internal::send(comm, up_id-1, bstr))
                 TECA_ERROR("failed to send up")
 
             // all but root returns an empty dataset
@@ -389,7 +386,5 @@ const_p_teca_dataset teca_index_reduce::execute(
     // this can occur if there are fewer indices
     // to process than there are MPI ranks.
 
-    if (this->get_enable_mpi())
-        return this->reduce_remote(this->reduce_local(input_data));
-    return this->reduce_local(input_data);
+    return this->reduce_remote(this->reduce_local(input_data));
 }

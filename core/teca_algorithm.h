@@ -13,6 +13,7 @@ class teca_algorithm_internals;
 #include "teca_metadata.h"
 #include "teca_algorithm_output_port.h"
 #include "teca_program_options.h"
+#include "teca_mpi.h"
 
 #include <vector>
 #include <utility>
@@ -27,6 +28,17 @@ public:
     static p_teca_algorithm New();
     virtual ~teca_algorithm() noexcept;
     TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_algorithm)
+
+    // set/get the communicator to use at this stage of the pipeline this has
+    // no influence on other stages. We duplicate the passed in communicator
+    // providing an isolated communication space for subsequent operations. By
+    // default the communicator is initialized to MPI_COMM_WORLD, here it is not
+    // duplicated. Thus to put an algorithm into a unique communication space
+    // one should explicitly set a communicator. When an algorithm should not
+    // use MPI, for instance when it is in a nested pipeline, one may set the
+    // communicator to MPI_COMM_SELF.
+    void set_communicator(MPI_Comm comm);
+    MPI_Comm get_communicator();
 
 #if defined(TECA_HAS_BOOST)
     // initialize the given options description

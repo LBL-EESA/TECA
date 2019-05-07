@@ -51,13 +51,13 @@ const_p_teca_table create_test_table(long step, int tid)
 }
 
 // **************************************************************************
-int bcast(std::string &str)
+int bcast(MPI_Comm comm, std::string &str)
 {
 #if defined(TECA_HAS_MPI)
     int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_rank(comm, &rank);
     long str_size = str.size();
-    if (teca_test_util::bcast(str_size))
+    if (teca_test_util::bcast(comm, str_size))
         return -1;
     char *buf;
     if (rank == 0)
@@ -69,7 +69,7 @@ int bcast(std::string &str)
         buf = static_cast<char*>(malloc(str_size+1));
         buf[str_size] = '\0';
     }
-    if (teca_test_util::bcast(buf, str_size))
+    if (teca_test_util::bcast(comm, buf, str_size))
         return -1;
     if (rank != 0)
     {
@@ -77,6 +77,7 @@ int bcast(std::string &str)
         free(buf);
     }
 #else
+    (void)comm;
     (void)str;
 #endif
     return 0;
