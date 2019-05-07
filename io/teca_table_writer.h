@@ -52,7 +52,11 @@ private:
         const std::vector<const_p_teca_dataset> &input_data,
         const teca_metadata &request) override;
 
+    teca_metadata get_output_metadata(unsigned int port,
+        const std::vector<teca_metadata> &input_md) override;
+
 private:
+    std::string index_request_key;
     std::string file_name;
     int output_format;
 };

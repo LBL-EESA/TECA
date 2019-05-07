@@ -5,9 +5,10 @@
 #   COMMAND -- required, test command
 #   FEATURES -- optional, boolean condition decribing feature dependencies
 #   REQ_TECA_DATA -- flag whose presence indicates the test needs the data repo
+#   WILL_FAIL -- flag whose presence indicates the test is expected to fail
 #   )
 function (teca_add_test T_NAME)
-    set(opt_args REQ_TECA_DATA)
+    set(opt_args REQ_TECA_DATA WILL_FAIL)
     set(val_args EXEC_NAME)
     set(array_args SOURCES LIBS COMMAND FEATURES)
     cmake_parse_arguments(T "${opt_args}" "${val_args}" "${array_args}" ${ARGN})
@@ -35,8 +36,13 @@ function (teca_add_test T_NAME)
         if ((T_REQ_TECA_DATA AND TECA_DATA_ROOT) OR NOT T_REQ_TECA_DATA)
             add_test(NAME ${T_NAME} COMMAND ${T_COMMAND}
                 WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-            set_tests_properties(${T_NAME}
-                PROPERTIES FAIL_REGULAR_EXPRESSION "ERROR;FAIL")
+            if (T_WILL_FAIL)
+                set_tests_properties(${T_NAME}
+                    PROPERTIES PASS_REGULAR_EXPRESSION "ERROR;FAIL")
+            else()
+                set_tests_properties(${T_NAME}
+                    PROPERTIES FAIL_REGULAR_EXPRESSION "ERROR;FAIL")
+            endif()
         endif()
     endif()
 endfunction()

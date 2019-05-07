@@ -11,6 +11,7 @@ import sys
 import os
 
 set_stack_trace_on_error()
+set_stack_trace_on_mpi_error()
 
 if (len(sys.argv) != 8):
     sys.stderr.write('\n\nUsage error:\n'\

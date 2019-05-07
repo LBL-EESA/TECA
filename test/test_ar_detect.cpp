@@ -14,19 +14,11 @@
 #include "teca_mpi_manager.h"
 #include "teca_system_interface.h"
 
+#include <sys/time.h>
 #include <vector>
 #include <string>
 #include <iostream>
 using namespace std;
-
-#if defined(TECA_HAS_MPI)
-#include <mpi.h>
-#endif
-
-#define TECA_TIME
-#if defined TECA_TIME
-#include <sys/time.h>
-#endif
 
 int main(int argc, char **argv)
 {
@@ -34,6 +26,7 @@ int main(int argc, char **argv)
     int rank = mpi_man.get_comm_rank();
 
     teca_system_interface::set_stack_trace_on_error();
+    teca_system_interface::set_stack_trace_on_mpi_error();
 
     // parse command line
     string vapor_files;

@@ -31,7 +31,7 @@ struct execute
         long table_id = 0;
         if (req.get("table_id", table_id))
         {
-            cerr << "request is missing \"table_id\"" << endl;
+            TECA_ERROR("request is missing \"table_id\"")
             return nullptr;
         }
 

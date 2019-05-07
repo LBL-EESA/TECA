@@ -1,6 +1,7 @@
 #ifndef teca_system_interface_h
 #define teca_system_interface_h
 
+#include "teca_mpi.h"
 #include <string>
 
 namespace teca_system_interface
@@ -9,6 +10,7 @@ namespace teca_system_interface
 when set print stack trace in response to common signals.
 */
 void set_stack_trace_on_error(int enable=1);
+void set_stack_trace_on_mpi_error(MPI_Comm comm=MPI_COMM_WORLD, int enable=1);
 
 /**
 return current program stack in a string demangle cxx symbols

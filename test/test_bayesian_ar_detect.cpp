@@ -30,6 +30,7 @@ int main(int argc, char **argv)
     int rank = mpi_man.get_comm_rank();
 
     teca_system_interface::set_stack_trace_on_error();
+    teca_system_interface::set_stack_trace_on_mpi_error();
 
     // parse command line
     if (argc != 8)

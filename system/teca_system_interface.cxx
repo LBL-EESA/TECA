@@ -1,4 +1,5 @@
 #include "teca_system_interface.h"
+#include "teca_config.h"
 #include "teca_common.h"
 
 #if defined(_WIN32)
@@ -130,9 +131,47 @@ typedef struct rlimit resource_limit_type;
 #include <string.h>
 #include <ctype.h> // int isdigit(int c);
 
+
 extern "C" { typedef void (*sig_action_t)(int,siginfo_t*,void*); }
+extern "C" { typedef void mpi_err_handler_t(MPI_Comm *, int *, ...); }
 
 namespace {
+
+void mpi_error_handler(MPI_Comm *comm, int *code, ...)
+{
+#if !defined(TECA_HAS_MPI)
+    (void)comm;
+    (void)code;
+#else
+    int rank = 0;
+    int n_ranks = 1;
+    int version_len = 0;
+    int err_str_len = 0;
+    char version[MPI_MAX_LIBRARY_VERSION_STRING] = {'\0'};
+    char err_str[MPI_MAX_ERROR_STRING] = {'\0'};
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
+    {
+        MPI_Comm_rank(*comm, &rank);
+        MPI_Comm_size(*comm, &n_ranks);
+    }
+    MPI_Get_library_version(version, &version_len);
+    MPI_Error_string(*code, err_str, &err_str_len);
+    std::ostringstream oss;
+    oss << std::endl
+        << "=========================================================" << std::endl
+        << "ERROR: Received MPI error code " << *code
+        << " on rank " << rank << " of " << n_ranks  << std::endl
+        << (version_len ? (const char*)version : "MPI version unknown") << std::endl
+        << (err_str_len ? (const char*)err_str : "MPI error code unknown") << std::endl
+        << std::endl << "Current program stack:" << std::endl
+        << teca_system_interface::get_program_stack(3, 0)
+        << "=========================================================" << std::endl;
+    std::cerr << oss.str() << std::endl;
+    //MPI_Abort(*comm, *code);
+#endif
+}
 
 // ****************************************************************************
 #if !defined(_WIN32) && !defined(__MINGW32__) && !defined(__CYGWIN__)
@@ -639,4 +678,28 @@ void set_stack_trace_on_error(int enable)
 #endif
 }
 
+// **************************************************************************
+void set_stack_trace_on_mpi_error(MPI_Comm comm, int enable)
+{
+#if !defined(TECA_HAS_MPI)
+    (void)comm;
+    (void)enable;
+#else
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
+    {
+        if (enable)
+        {
+            MPI_Errhandler err_handler;
+            MPI_Comm_create_errhandler(::mpi_error_handler, &err_handler);
+            MPI_Comm_set_errhandler(comm, err_handler);
+        }
+        else
+        {
+            MPI_Comm_set_errhandler(comm, MPI_ERRORS_ARE_FATAL);
+        }
+    }
+#endif
+}
 };
