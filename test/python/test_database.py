@@ -54,13 +54,23 @@ def serve_table(port, data, req):
     global t1
     return t1
 
+def rept(port, input_md):
+    out_md = teca_metadata()
+    out_md['index_initializer_key'] = 'num_tables'
+    out_md['num_tables'] = 1
+    out_md['index_request_key'] = 'table_id'
+    return out_md
+
+
 tab_serv = teca_programmable_algorithm.New()
 tab_serv.set_number_of_input_connections(0)
 tab_serv.set_execute_callback(serve_table)
+tab_serv.set_report_callback(rept)
 
 tab_wri = teca_table_writer.New()
 tab_wri.set_input_connection(tab_serv.get_output_port())
 tab_wri.set_file_name('table_%t%.bin')
+tab_wri.set_executive(teca_index_executive.New())
 tab_wri.update()
 
 
@@ -72,8 +82,10 @@ def serve_database(port, data, req):
 db_serv = teca_programmable_algorithm.New()
 db_serv.set_number_of_input_connections(0)
 db_serv.set_execute_callback(serve_database)
+db_serv.set_report_callback(rept)
 
 db_wri = teca_table_writer.New()
 db_wri.set_input_connection(db_serv.get_output_port())
 db_wri.set_file_name('database_%s%_%t%.bin')
+db_wri.set_executive(teca_index_executive.New())
 db_wri.update()

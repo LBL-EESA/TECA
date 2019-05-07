@@ -147,6 +147,30 @@ void teca_table_writer::set_properties(const string &prefix, variables_map &opts
 #endif
 
 // --------------------------------------------------------------------------
+teca_metadata teca_table_writer::get_output_metadata(
+    unsigned int port,
+    const std::vector<teca_metadata> &input_md)
+{
+#ifdef TECA_DEBUG
+    cerr << teca_parallel_id()
+        << "teca_table_writer::get_output_metadata" << endl;
+#endif
+    (void)port;
+
+    const teca_metadata &md = input_md[0];
+
+    if (this->index_request_key.empty())
+    {
+        if (md.get("index_request_key", this->index_request_key))
+        {
+            TECA_ERROR("Failed to identify the index key")
+            return teca_metadata();
+        }
+    }
+
+    return md;
+}
+// --------------------------------------------------------------------------
 const_p_teca_dataset teca_table_writer::execute(
     unsigned int port,
     const std::vector<const_p_teca_dataset> &input_data,
@@ -174,9 +198,9 @@ const_p_teca_dataset teca_table_writer::execute(
     string out_file = this->file_name;
 
     // replace time step
-    unsigned long time_step = 0l;
-    request.get("time_step", time_step);
-    teca_file_util::replace_timestep(out_file, time_step);
+    unsigned long index = 0l;
+    request.get(this->index_request_key, index);
+    teca_file_util::replace_timestep(out_file, index);
 
     // replace extension
     int fmt = this->output_format;
