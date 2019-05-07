@@ -13,6 +13,7 @@ import matplotlib as mpl
 mpl.use('Agg')
 
 set_stack_trace_on_error()
+set_stack_trace_on_mpi_error()
 
 if len(sys.argv) != 6:
     sys.stderr.write('test_trajectory_scalars.py [track file] ' \

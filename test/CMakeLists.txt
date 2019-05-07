@@ -43,6 +43,12 @@ teca_add_test(test_stack_trace_signal_handler
     LIBS ${teca_test_link}
     COMMAND test_stack_trace_signal_handler 8 0)
 
+teca_add_test(test_mpi_error_handler
+    SOURCES test_mpi_error_handler.cpp
+    LIBS ${teca_test_link}
+    COMMAND test_mpi_error_handler
+    WILL_FAIL)
+
 teca_add_test(test_cf_reader
     SOURCES test_cf_reader.cpp
     LIBS teca_core teca_data teca_io ${teca_test_link}

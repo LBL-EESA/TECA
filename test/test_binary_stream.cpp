@@ -80,6 +80,7 @@ int main(int argc, char **argv)
     int root = n_ranks - 1;
 
     teca_system_interface::set_stack_trace_on_error();
+    teca_system_interface::set_stack_trace_on_mpi_error();
 
     teca_binary_stream_driver driver;
     teca_binary_stream s1, s2;

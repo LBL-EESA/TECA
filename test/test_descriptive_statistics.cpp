@@ -12,15 +12,13 @@
 #include "teca_mpi_manager.h"
 #include "teca_system_interface.h"
 #include "teca_table.h"
+#include "teca_mpi.h"
 
 #include <vector>
 #include <string>
 #include <iostream>
 using namespace std;
 
-#if defined(TECA_HAS_MPI)
-#include <mpi.h>
-#endif
 
 struct reduce_callback
 {
@@ -65,6 +63,7 @@ int main(int argc, char **argv)
     int nranks = mpi_man.get_comm_size();
 
     teca_system_interface::set_stack_trace_on_error();
+    teca_system_interface::set_stack_trace_on_mpi_error();
 
     if (argc < 3)
     {

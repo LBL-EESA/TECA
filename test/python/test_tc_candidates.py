@@ -11,6 +11,7 @@ import sys
 import os
 
 set_stack_trace_on_error()
+set_stack_trace_on_mpi_error()
 
 # compute the point-wise average of two variables v0 and v1.
 # for every i

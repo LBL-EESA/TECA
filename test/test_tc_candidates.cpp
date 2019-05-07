@@ -19,6 +19,7 @@
 #include "teca_vtk_cartesian_mesh_writer.h"
 #include "teca_mpi_manager.h"
 #include "teca_system_interface.h"
+#include "teca_mpi.h"
 
 #include <vector>
 #include <string>
@@ -35,6 +36,7 @@ int main(int argc, char **argv)
     int rank = mpi_man.get_comm_rank();
 
     teca_system_interface::set_stack_trace_on_error();
+    teca_system_interface::set_stack_trace_on_mpi_error();
 
     // parse command line
     string regex;

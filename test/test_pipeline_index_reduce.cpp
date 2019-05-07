@@ -19,6 +19,7 @@ int main(int argc, char **argv)
     int n_ranks = mpi_man.get_comm_size();
 
     teca_system_interface::set_stack_trace_on_error();
+    teca_system_interface::set_stack_trace_on_mpi_error();
 
     if ((rank == 0) && (argc != 1) && (argc != 4))
     {

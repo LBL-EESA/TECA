@@ -3,6 +3,7 @@ try:
     rank = MPI.COMM_WORLD.Get_rank()
     n_ranks = MPI.COMM_WORLD.Get_size()
 except:
+    sys.stderr.write('import mpi4py failed. running in serial...\n')
     rank = 0
     n_ranks = 1
 from teca import *
@@ -11,6 +12,7 @@ import sys
 import os
 
 set_stack_trace_on_error()
+set_stack_trace_on_mpi_error()
 
 if len(sys.argv) < 7:
     sys.stderr.write('test_map_reduce.py [dataset regex] ' \
