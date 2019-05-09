@@ -132,8 +132,13 @@ int generate_report(MPI_Comm comm, int local_proc, int base_id,
     int rank = 0;
     int n_ranks = 1;
 #if defined(TECA_HAS_MPI)
-    MPI_Comm_rank(comm, &rank);
-    MPI_Comm_size(comm, &n_ranks);
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
+    {
+        MPI_Comm_rank(comm, &rank);
+        MPI_Comm_size(comm, &n_ranks);
+    }
 #endif
 
     // gather proc ids
@@ -143,8 +148,9 @@ int generate_report(MPI_Comm comm, int local_proc, int base_id,
         local_procs.resize(n_ranks);
         local_procs[0] = local_proc;
 #if defined(TECA_HAS_MPI)
-        MPI_Gather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, local_procs.data(),
-            1, MPI_INT, 0, comm);
+    if (is_init)
+        MPI_Gather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
+            local_procs.data(), 1, MPI_INT, 0, comm);
     }
     else
     {
@@ -160,8 +166,9 @@ int generate_report(MPI_Comm comm, int local_proc, int base_id,
         base_ids.resize(n_ranks);
         base_ids[0] = base_id;
 #if defined(TECA_HAS_MPI)
-        MPI_Gather(MPI_IN_PLACE, 1, MPI_INT, base_ids.data(),
-            1, MPI_INT, 0, comm);
+        if (is_init)
+            MPI_Gather(MPI_IN_PLACE, 1, MPI_INT,
+                base_ids.data(), 1, MPI_INT, 0, comm);
     }
     else
     {
@@ -179,8 +186,9 @@ int generate_report(MPI_Comm comm, int local_proc, int base_id,
         gethostname(hosts.data(), 64);
         hosts[63] = '\0';
 #if defined(TECA_HAS_MPI)
-        MPI_Gather(MPI_IN_PLACE, 64, MPI_BYTE, hosts.data(),
-            64, MPI_BYTE, 0, comm);
+        if (is_init)
+            MPI_Gather(MPI_IN_PLACE, 64, MPI_BYTE, hosts.data(),
+                64, MPI_BYTE, 0, comm);
     }
     else
     {
@@ -199,8 +207,9 @@ int generate_report(MPI_Comm comm, int local_proc, int base_id,
         recv_cnt.resize(n_ranks);
         recv_cnt[0] = afin.size();
 #if defined(TECA_HAS_MPI)
-        MPI_Gather(MPI_IN_PLACE, 1, MPI_INT, recv_cnt.data(),
-            1, MPI_INT, 0, comm);
+        if (is_init)
+            MPI_Gather(MPI_IN_PLACE, 1, MPI_INT, recv_cnt.data(),
+                1, MPI_INT, 0, comm);
     }
     else
     {
@@ -225,8 +234,9 @@ int generate_report(MPI_Comm comm, int local_proc, int base_id,
         for (int i = 0; i < recv_cnt[0]; ++i)
             afins[i] = afin[i];
 #if defined(TECA_HAS_MPI)
-        MPI_Gatherv(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, afins.data(),
-            recv_cnt.data(), displ.data(), MPI_INT, 0, comm);
+        if (is_init)
+            MPI_Gatherv(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, afins.data(),
+                recv_cnt.data(), displ.data(), MPI_INT, 0, comm);
     }
     else
     {
@@ -270,20 +280,29 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_req,
     int proc_id = 0;
 
 #if defined(TECA_HAS_MPI)
-    MPI_Comm node_comm;
-    MPI_Comm_split_type(comm, MPI_COMM_TYPE_SHARED,
-        0, MPI_INFO_NULL, &node_comm);
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
+    {
+        MPI_Comm node_comm;
+        MPI_Comm_split_type(comm, MPI_COMM_TYPE_SHARED,
+            0, MPI_INFO_NULL, &node_comm);
 
-    MPI_Comm_size(node_comm, &n_procs);
-    MPI_Comm_rank(node_comm, &proc_id);
+        MPI_Comm_size(node_comm, &n_procs);
+        MPI_Comm_rank(node_comm, &proc_id);
 
-    base_core_ids.resize(n_procs);
-    base_core_ids[proc_id] = base_core_id;
+        base_core_ids.resize(n_procs);
+        base_core_ids[proc_id] = base_core_id;
 
-    MPI_Allgather(MPI_IN_PLACE,0, MPI_DATATYPE_NULL,
-        base_core_ids.data(), 1, MPI_UNSIGNED, node_comm);
+        MPI_Allgather(MPI_IN_PLACE,0, MPI_DATATYPE_NULL,
+            base_core_ids.data(), 1, MPI_UNSIGNED, node_comm);
 
-    MPI_Comm_free(&node_comm);
+        MPI_Comm_free(&node_comm);
+    }
+    else
+    {
+        base_core_ids.push_back(base_core_id);
+    }
 #else
     base_core_ids.push_back(base_core_id);
 #endif
