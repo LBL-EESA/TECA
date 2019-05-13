@@ -9,6 +9,7 @@
 #include "teca_index_reduce.h"
 #include "teca_variant_array.h"
 #include "teca_binary_stream.h"
+#include "teca_parallel_id.h"
 
 #include "teca_py_object.h"
 #include "teca_py_sequence.h"
@@ -16,6 +17,22 @@
 #include "teca_py_iterator.h"
 #include "teca_py_gil_state.h"
 %}
+
+/***************************************************************************
+ parallel_id
+ ***************************************************************************/
+%ignore operator<<(std::ostream &, const teca_parallel_id&);
+%include "teca_parallel_id.h"
+%extend teca_parallel_id
+{
+    PyObject *__str__()
+    {
+        teca_py_gil_state gil;
+        std::ostringstream oss;
+        oss << teca_parallel_id();
+        return CStringToPyString(oss.str().c_str());
+    }
+}
 
 /***************************************************************************
  binary_stream
