@@ -241,11 +241,20 @@ const_p_teca_dataset teca_vtk_cartesian_mesh_writer::execute(
         return nullptr;
     }
 
-    unsigned long time_step = 0;
-    if (mesh->get_time_step(time_step) &&
-        request.get("time_step", time_step))
+    const teca_metadata &md = mesh->get_metadata();
+
+    std::string index_request_key;
+    if (md.get("index_request_key", index_request_key))
     {
-        TECA_ERROR("request missing \"time_step\"")
+        TECA_ERROR("Dataset metadata is missing the index_request_key key")
+        return nullptr;
+    }
+
+    unsigned long index = 0;
+    if (md.get(index_request_key, index))
+    {
+        TECA_ERROR("Dataset metadata is missing the \""
+            << index_request_key << "\" key")
         return nullptr;
     }
 
@@ -269,7 +278,7 @@ const_p_teca_dataset teca_vtk_cartesian_mesh_writer::execute(
     }
 
     std::string out_file = this->file_name;
-    teca_file_util::replace_timestep(out_file, time_step);
+    teca_file_util::replace_timestep(out_file, index);
     teca_file_util::replace_extension(out_file, "vtr");
 
     vtkXMLRectilinearGridWriter *w = vtkXMLRectilinearGridWriter::New();
@@ -341,7 +350,7 @@ const_p_teca_dataset teca_vtk_cartesian_mesh_writer::execute(
 #else
     // built without VTK. write as legacy file
     std::string out_file = this->file_name;
-    teca_file_util::replace_timestep(out_file, time_step);
+    teca_file_util::replace_timestep(out_file, index);
     teca_file_util::replace_extension(out_file, "vtk");
 
     const char *mode = this->binary ? "wb" : "w";

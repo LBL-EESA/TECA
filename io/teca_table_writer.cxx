@@ -5,6 +5,7 @@
 #include "teca_metadata.h"
 #include "teca_binary_stream.h"
 #include "teca_file_util.h"
+#include "teca_mpi.h"
 
 #include <iostream>
 #include <sstream>
@@ -20,18 +21,10 @@
 #include <boost/program_options.hpp>
 #endif
 
-#if defined(TECA_HAS_MPI)
-#include <mpi.h>
-#endif
-
 #if defined(TECA_HAS_LIBXLSXWRITER)
 #include <xlsxwriter.h>
 #endif
 
-using std::vector;
-using std::string;
-using std::ostringstream;
-using std::ofstream;
 using std::cerr;
 using std::endl;
 
@@ -40,7 +33,7 @@ namespace internal
 // ********************************************************************************
 int write_csv(const_p_teca_table table, const std::string &file_name)
 {
-    ofstream os(file_name.c_str());
+    std::ofstream os(file_name.c_str());
     if (!os.good())
     {
         TECA_ERROR("Failed to open \"" << file_name << "\" for writing")
@@ -122,13 +115,13 @@ teca_table_writer::~teca_table_writer()
 #if defined(TECA_HAS_BOOST)
 // --------------------------------------------------------------------------
 void teca_table_writer::get_properties_description(
-    const string &prefix, options_description &global_opts)
+    const std::string &prefix, options_description &global_opts)
 {
     options_description opts("Options for "
         + (prefix.empty()?"teca_table_writer":prefix));
 
     opts.add_options()
-        TECA_POPTS_GET(string, prefix, file_name,
+        TECA_POPTS_GET(std::string, prefix, file_name,
             "path/name of file to write")
         TECA_POPTS_GET(int, prefix, output_format,
             "output file format enum, 0:csv, 1:bin, 2:xlsx, 3:auto."
@@ -139,9 +132,9 @@ void teca_table_writer::get_properties_description(
 }
 
 // --------------------------------------------------------------------------
-void teca_table_writer::set_properties(const string &prefix, variables_map &opts)
+void teca_table_writer::set_properties(const std::string &prefix, variables_map &opts)
 {
-    TECA_POPTS_SET(opts, string, prefix, file_name)
+    TECA_POPTS_SET(opts, std::string, prefix, file_name)
     TECA_POPTS_SET(opts, bool, prefix, output_format)
 }
 #endif
@@ -177,6 +170,7 @@ const_p_teca_dataset teca_table_writer::execute(
     const teca_metadata &request)
 {
     (void) port;
+    (void) request;
 
     // in parallel only rank 0 is required to have data
     int rank = 0;
@@ -195,11 +189,26 @@ const_p_teca_dataset teca_table_writer::execute(
         return nullptr;
     }
 
-    string out_file = this->file_name;
+    // get the current index
+    const teca_metadata &md = input_data[0]->get_metadata();
+
+    std::string index_request_key;
+    if (md.get("index_request_key", index_request_key))
+    {
+        TECA_ERROR("Dataset metadata is missing the index_request_key key")
+        return nullptr;
+    }
+
+    unsigned long index = 0;
+    if (md.get(index_request_key, index))
+    {
+        TECA_ERROR("Dataset metadata is missing the \""
+            << index_request_key << "\" key")
+        return nullptr;
+    }
 
     // replace time step
-    unsigned long index = 0l;
-    request.get(this->index_request_key, index);
+    std::string out_file = this->file_name;
     teca_file_util::replace_timestep(out_file, index);
 
     // replace extension
