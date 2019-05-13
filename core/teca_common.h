@@ -17,10 +17,10 @@ inline int have_tty()
     return have;
 }
 
-#define ANSI_RED "\033[1;31m"
-#define ANSI_GREEN "\033[1;32m"
-#define ANSI_YELLOW "\033[1;33m"
-#define ANSI_WHITE "\033[1;37m"
+#define ANSI_RED "\033[1;31;40m"
+#define ANSI_GREEN "\033[1;32;40m"
+#define ANSI_YELLOW "\033[1;33;40m"
+#define ANSI_WHITE "\033[1;37;40m"
 #define ANSI_OFF "\033[0m"
 
 #define BEGIN_HL(_color) (have_tty()?_color:"")
