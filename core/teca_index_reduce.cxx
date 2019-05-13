@@ -150,7 +150,7 @@ void teca_index_reduce::set_properties(const std::string &prefix,
 // --------------------------------------------------------------------------
 std::vector<teca_metadata> teca_index_reduce::get_upstream_request(
     unsigned int port, const std::vector<teca_metadata> &input_md,
-    const teca_metadata &request)
+    const teca_metadata &)
 {
     std::vector<teca_metadata> up_req;
 
@@ -187,9 +187,8 @@ std::vector<teca_metadata> teca_index_reduce::get_upstream_request(
 
     n_indeces = last - first + 1;
 
-    // partition indices across MPI ranks. each rank
-    // will end up with a unique block of indices
-    // to process.
+    // partition indices across MPI ranks. each rank will end up with a unique
+    // block of indices to process.
     unsigned long rank = 0;
     unsigned long n_ranks = 1;
     MPI_Comm comm = this->get_communicator();
@@ -211,9 +210,12 @@ std::vector<teca_metadata> teca_index_reduce::get_upstream_request(
     internal::block_decompose(comm, n_indeces, n_ranks, rank, block_size,
         block_start, this->get_verbose());
 
-    // get the filters basic request
+    // get the filters basic request. do not pass the incoming request
+    // this isolates the pipeline below the reduction from the pipeline
+    // above it which will have different data structures and control keys
+
     std::vector<teca_metadata> base_req
-        = this->initialize_upstream_request(port, input_md, request);
+        = this->initialize_upstream_request(port, input_md, teca_metadata());
 
     // apply the base request to local indices.
     // requests are mapped onto inputs round robbin
@@ -223,8 +225,10 @@ std::vector<teca_metadata> teca_index_reduce::get_upstream_request(
         unsigned long n_reqs = base_req.size();
         for (unsigned long j = 0; j < n_reqs; ++j)
         {
-            up_req.push_back(base_req[j]);
-            up_req.back().insert(request_key, index);
+            teca_metadata tmp(base_req[j]);
+            tmp.insert(request_key, index);
+            tmp.insert("index_request_key", request_key);
+            up_req.emplace_back(std::move(tmp));
         }
     }
 
@@ -236,19 +240,18 @@ teca_metadata teca_index_reduce::get_output_metadata(
     unsigned int port,
     const std::vector<teca_metadata> &input_md)
 {
-    // figure out the request key
-    std::string request_key;
-    if (input_md[0].get("index_request_key", request_key))
-    {
-        TECA_ERROR("No index request key has been specified")
-        return teca_metadata();
-    }
-
-    // make a copy and remove the request key
+    // get output metadata from the implementation. by default a
+    // copy is made
     teca_metadata output_md
         = this->initialize_output_metadata(port, input_md);
 
-    output_md.remove(request_key);
+    // by default the reduction takes a massive dataet, with an index for each
+    // representative piece, and reduces it in a single pass to a single output
+    // if other behavior is needed implementations will have to override this
+    // method
+    output_md.insert("index_initializer_key", std::string("number_of_passes"));
+    output_md.insert("index_request_key", std::string("pass_number"));
+    output_md.insert("number_of_passes", 1l);
 
     return output_md;
 }
@@ -386,5 +389,19 @@ const_p_teca_dataset teca_index_reduce::execute(
     // this can occur if there are fewer indices
     // to process than there are MPI ranks.
 
-    return this->reduce_remote(this->reduce_local(input_data));
+    const_p_teca_dataset tmp =
+        this->reduce_remote(this->reduce_local(input_data));
+
+    if (!tmp)
+        return nullptr;
+
+    // make a shallow copy, metadata is always deep copied
+    p_teca_dataset output_ds = tmp->new_instance();
+    output_ds->shallow_copy(std::const_pointer_cast<teca_dataset>(tmp));
+
+    // set up pipeline executive control keys.
+    output_ds->get_metadata().insert("index_request_key", std::string("pass_number"));
+    output_ds->get_metadata().insert("pass_number", 0l);
+
+    return output_ds;
 }
