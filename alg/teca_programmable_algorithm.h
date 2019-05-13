@@ -10,7 +10,7 @@
 /**
 The user can provide a callback for each of the three phases
 of pipeline execution. The number of input and output ports
-can also be set for finters (1 or more inputs, 1 or more outputs)
+can also be set for filters (1 or more inputs, 1 or more outputs)
 sources, (no  inputs, 1 or more outputs), or sinks (1 or more
 inputs, no outputs).
 
