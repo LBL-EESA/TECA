@@ -751,7 +751,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
             // when procesing large numbers of files these issues kill
             // serial performance. hence we are reading time dimension
             // in parallel.
-            read_variable_queue_t thread_pool(this->get_communicator(),
+            read_variable_queue_t thread_pool(MPI_COMM_SELF,
                 this->thread_pool_size, true, false);
 
             std::vector<unsigned long> step_count;
