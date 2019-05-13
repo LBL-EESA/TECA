@@ -51,7 +51,7 @@ protected:
 
 private:
     int verbose;
-    teca_metadata m_md;
+    teca_metadata m_request;
 };
 
 #endif
