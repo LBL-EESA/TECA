@@ -15,7 +15,6 @@
 #include "teca_table_sort.h"
 #include "teca_table_calendar.h"
 #include "teca_table_writer.h"
-#include "teca_test_util.h"
 #include "teca_vtk_cartesian_mesh_writer.h"
 #include "teca_mpi_manager.h"
 #include "teca_system_interface.h"
@@ -170,6 +169,7 @@ int main(int argc, char **argv)
         p_teca_dataset_diff diff = teca_dataset_diff::New();
         diff->set_input_connection(0, table_reader->get_output_port());
         diff->set_input_connection(1, cal->get_output_port());
+
         diff->update();
     }
     else
@@ -180,6 +180,7 @@ int main(int argc, char **argv)
         p_teca_table_writer table_writer = teca_table_writer::New();
         table_writer->set_input_connection(cal->get_output_port());
         table_writer->set_file_name(baseline.c_str());
+
         table_writer->update();
     }
 

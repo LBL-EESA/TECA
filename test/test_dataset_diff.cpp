@@ -8,48 +8,8 @@
 #include "teca_test_util.h"
 #include "teca_system_interface.h"
 
-#include <vector>
-#include <string>
 #include <iostream>
-#include <cmath>
 using namespace std;
-
-struct report
-{
-    long num_tables;
-
-    report() : num_tables(0) {}
-    explicit report(long n) : num_tables(n) {}
-
-    teca_metadata operator()
-        (unsigned int, const std::vector<teca_metadata> &)
-    {
-        teca_metadata md;
-        md.insert("index_initializer_key", std::string("number_of_tables"));
-        md.insert("index_request_key", std::string("table_id"));
-        md.insert("number_of_tables", num_tables);
-        return md;
-    }
-};
-
-// This test should be executed after test_table_writer.cpp, which writes the
-// files needed to test the dataset differ.
-struct execute_create_test_table
-{
-    const_p_teca_dataset operator()
-        (unsigned int, const std::vector<const_p_teca_dataset> &,
-        const teca_metadata &req)
-    {
-        long table_id = 0;
-        if (req.get("table_id", table_id))
-        {
-            TECA_ERROR("request is missing \"table_id\"")
-            return nullptr;
-        }
-
-        return teca_test_util::create_test_table(table_id);
-    }
-};
 
 int main(int argc, char **argv)
 {
@@ -64,11 +24,7 @@ int main(int argc, char **argv)
     int compare_same = atoi(argv[1]);
 
     // write 2 test files.
-    p_teca_programmable_algorithm s = teca_programmable_algorithm::New();
-    s->set_number_of_input_connections(0);
-    s->set_number_of_output_ports(1);
-    s->set_report_callback(report(2));
-    s->set_execute_callback(execute_create_test_table());
+    p_teca_algorithm s = teca_test_util::test_table_server::New(2);
 
     p_teca_table_writer w = teca_table_writer::New();
     w->set_input_connection(s->get_output_port());

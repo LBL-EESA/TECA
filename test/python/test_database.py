@@ -22,6 +22,7 @@ t1.set_column('flag', np.array([0,1,0,1,0], dtype=np.int))
 
 sys.stderr.write('dumping table contents...\n')
 sys.stderr.write('%s\n'%(str(t1)))
+sys.stderr.write('Ok!\n')
 
 t1[2,1] = 'Sat'
 t1[3,1] = 'Sun'
@@ -32,6 +33,7 @@ c = 1
 while r < 5:
     sys.stderr.write('t1[%d,%d] = %s\n'%(r,c,str(t1[r,c])))
     r += 1
+sys.stderr.write('Ok!\n')
 
 t2 = teca_table.New()
 t2.declare_column('summary', 's')
@@ -39,53 +41,39 @@ t2.set_column('summary', ['a','b','c','d','e','f'])
 
 sys.stderr.write('dumping table contents...\n')
 sys.stderr.write('%s\n'%(str(t2)))
+sys.stderr.write('Ok!\n')
 
-sys.stderr.write('packaging tables into a database...\n')
+sys.stderr.write('packaging tables into a database...')
 db = teca_database.New()
 db.append_table('summary', t2)
 db.append_table('details', t1)
+sys.stderr.write('Ok!\n')
 
 sys.stderr.write('dumping the database...\n')
 sys.stderr.write('%s\n'%(str(db)))
+sys.stderr.write('Ok!\n')
 
 
-sys.stderr.write('writing table to disk...\n')
-def serve_table(port, data, req):
-    global t1
-    return t1
-
-def rept(port, input_md):
-    out_md = teca_metadata()
-    out_md['index_initializer_key'] = 'num_tables'
-    out_md['num_tables'] = 1
-    out_md['index_request_key'] = 'table_id'
-    return out_md
-
-
-tab_serv = teca_programmable_algorithm.New()
-tab_serv.set_number_of_input_connections(0)
-tab_serv.set_execute_callback(serve_table)
-tab_serv.set_report_callback(rept)
+sys.stderr.write('writing 2 tables to disk...')
+tab_serv = teca_dataset_source.New()
+tab_serv.append_dataset(t1)
+tab_serv.append_dataset(t2)
 
 tab_wri = teca_table_writer.New()
 tab_wri.set_input_connection(tab_serv.get_output_port())
 tab_wri.set_file_name('table_%t%.bin')
 tab_wri.set_executive(teca_index_executive.New())
 tab_wri.update()
+sys.stderr.write('Ok!\n')
 
 
-sys.stderr.write('writing database to disk...\n')
-def serve_database(port, data, req):
-    global db
-    return db
-
-db_serv = teca_programmable_algorithm.New()
-db_serv.set_number_of_input_connections(0)
-db_serv.set_execute_callback(serve_database)
-db_serv.set_report_callback(rept)
+sys.stderr.write('writing database containing 2 tables to disk...')
+db_serv = teca_dataset_source.New()
+db_serv.append_dataset(db)
 
 db_wri = teca_table_writer.New()
 db_wri.set_input_connection(db_serv.get_output_port())
 db_wri.set_file_name('database_%s%_%t%.bin')
 db_wri.set_executive(teca_index_executive.New())
 db_wri.update()
+sys.stderr.write('Ok!\n')

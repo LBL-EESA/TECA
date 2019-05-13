@@ -1,11 +1,27 @@
 #include "teca_test_util.h"
 #include "teca_common.h"
+#include "teca_programmable_algorithm.h"
+#include "teca_metadata.h"
+
+#include <string>
+#include <vector>
+
 
 namespace teca_test_util
 {
+// This creates a TECA table containing some basic test data that
+// is used by the TECA table reader/writer tests and the dataset_diff
+// test.
+enum {base_table,
+    break_string_col,
+    break_int_col,
+    break_float_col
+    };
+p_teca_table create_test_table(long step,
+    int tid=teca_test_util::base_table);
 
 // **************************************************************************
-const_p_teca_table create_test_table(long step, int tid)
+p_teca_table create_test_table(long step, int tid)
 {
     p_teca_table t = teca_table::New();
 
@@ -48,6 +64,56 @@ const_p_teca_table create_test_table(long step, int tid)
 
     TECA_ERROR("bad table id " << tid)
     return nullptr;
+}
+
+struct report_test_tables
+{
+    report_test_tables(long num = 4) : num_test_tables(num) {}
+
+    teca_metadata operator()
+        (unsigned int, const std::vector<teca_metadata> &)
+    {
+        teca_metadata md;
+        md.insert("index_initializer_key", std::string("number_of_tables"));
+        md.insert("index_request_key", std::string("table_id"));
+        md.insert("number_of_tables", this->num_test_tables);
+        return md;
+    }
+
+    long num_test_tables;
+};
+
+struct generate_test_tables
+{
+    const_p_teca_dataset operator()
+        (unsigned int, const std::vector<const_p_teca_dataset> &,
+        const teca_metadata &req)
+    {
+        long table_id = 0;
+        if (req.get("table_id", table_id))
+        {
+            TECA_ERROR("request is missing \"table_id\"")
+            return nullptr;
+        }
+
+        p_teca_dataset ods = teca_test_util::create_test_table(table_id);
+
+        ods->get_metadata().insert("index_request_key", std::string("table_id"));
+        ods->get_metadata().insert("table_id", table_id);
+
+        return ods;
+    }
+};
+
+// --------------------------------------------------------------------------
+p_teca_algorithm test_table_server::New(long num_tables)
+{
+    p_teca_programmable_algorithm s = teca_programmable_algorithm::New();
+    s->set_number_of_input_connections(0);
+    s->set_number_of_output_ports(1);
+    s->set_report_callback(report_test_tables(num_tables));
+    s->set_execute_callback(generate_test_tables());
+    return s;
 }
 
 // **************************************************************************

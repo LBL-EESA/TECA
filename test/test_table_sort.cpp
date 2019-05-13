@@ -45,6 +45,7 @@ int main(int argc, char **argv)
         p_teca_dataset_diff diff = teca_dataset_diff::New();
         diff->set_input_connection(0, baseline_table_reader->get_output_port());
         diff->set_input_connection(1, sort->get_output_port());
+
         diff->update();
     }
     else
@@ -59,6 +60,7 @@ int main(int argc, char **argv)
         table_writer->set_input_connection(post_sort->get_output_port());
         table_writer->set_file_name(baseline_table);
         table_writer->set_output_format_bin();
+
         table_writer->update();
         return -1;
     }
