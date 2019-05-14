@@ -27,6 +27,7 @@
 {
     PyObject *__str__()
     {
+        (void)self;
         teca_py_gil_state gil;
         std::ostringstream oss;
         oss << teca_parallel_id();

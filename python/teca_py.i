@@ -19,7 +19,6 @@ The io module contains readers and writers.
 %feature("autodoc", "3");
 
 %{
-/* core */
 #define SWIG_FILE_WITH_INIT
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #define PY_ARRAY_UNIQUE_SYMBOL  PyArray_API_teca_py
