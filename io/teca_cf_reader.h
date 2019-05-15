@@ -62,14 +62,14 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
+    // list of file names to open. if this is set the files_regex
+    // is ignored.
+    TECA_ALGORITHM_VECTOR_PROPERTY(std::string, file_name)
+
     // describe the set of files comprising the dataset. This
     // should contain the full path and regex describing the
     // file name pattern
     TECA_ALGORITHM_PROPERTY(std::string, files_regex)
-
-    // a file name to open. if this is set the files_regex
-    // is ignored.
-    TECA_ALGORITHM_PROPERTY(std::string, file_name)
 
     // set if the dataset has periodic boundary conditions
     TECA_ALGORITHM_PROPERTY(int, periodic_in_x)
@@ -84,6 +84,15 @@ public:
     TECA_ALGORITHM_PROPERTY(std::string, y_axis_variable)
     TECA_ALGORITHM_PROPERTY(std::string, z_axis_variable)
     TECA_ALGORITHM_PROPERTY(std::string, t_axis_variable)
+
+    // time calendar and time unit if the user wants to
+    // specify them 
+    TECA_ALGORITHM_PROPERTY(std::string, t_calendar)
+    TECA_ALGORITHM_PROPERTY(std::string, t_units)
+
+    // time values to use instead if time variable doesn't
+    // exist.
+    TECA_ALGORITHM_VECTOR_PROPERTY(double, t_value)
 
     // set/get the number of threads in the pool. setting
     // to less than 1 results in 1 - the number of cores.
@@ -107,12 +116,15 @@ private:
     virtual void set_modified() override;
 
 private:
+    std::vector<std::string> file_names;
     std::string files_regex;
-    std::string file_name;
     std::string x_axis_variable;
     std::string y_axis_variable;
     std::string z_axis_variable;
     std::string t_axis_variable;
+    std::string t_calendar;
+    std::string t_units;
+    std::vector<double> t_values;
     int periodic_in_x;
     int periodic_in_y;
     int periodic_in_z;

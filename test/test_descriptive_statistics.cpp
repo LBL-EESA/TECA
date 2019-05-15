@@ -74,23 +74,40 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    string regex = argv[1];
-    string baseline = argv[2];
+    int i = 1;
+    int files_num = atoi(argv[i++]);
+
+    vector<string> files;
+    vector<double> time_values;
+    for (; i <= (files_num + 1); ++i)
+        files.push_back(argv[i]);
+    
+    for (; i <= (2*files_num + 1); ++i)
+        time_values.push_back(atof(argv[i]));
+    
+    // regex is set
+    if (files.empty())
+        files.push_back(argv[i++]);
+
+    string baseline = argv[i++];
+
+    int j = i;
+
     int have_baseline = 0;
     if ((rank == 0) && teca_file_util::file_exists(baseline.c_str()))
         have_baseline = 1;
     teca_test_util::bcast(MPI_COMM_WORLD, have_baseline);
     long first_step = 0;
-    if (argc > 3)
-        first_step = atoi(argv[3]);
+    if (argc > j)
+        first_step = atoi(argv[i++]);
     long last_step = -1;
-    if (argc > 4)
-        last_step = atoi(argv[4]);
+    if (argc > j + 1)
+        last_step = atoi(argv[i++]);
     unsigned int n_threads = 1;
-    if (argc > 5)
-        n_threads = atoi(argv[5]);
+    if (argc > j + 2)
+        n_threads = atoi(argv[i++]);
     vector<string> arrays;
-    for (int i = 6; i < argc; ++i)
+    for (int i = j+3; i < argc; ++i)
         arrays.push_back(argv[i]);
 
     if (rank == 0)
@@ -99,7 +116,18 @@ int main(int argc, char **argv)
 
     // create the pipeline
     p_teca_cf_reader cf_reader = teca_cf_reader::New();
-    cf_reader->set_files_regex(regex);
+    if (files_num)
+    {
+        cf_reader->set_t_axis_variable("");
+        cf_reader->set_t_values(time_values);
+        cf_reader->set_t_calendar("noleap");
+        cf_reader->set_t_units("days since 1979-01-01");
+        cf_reader->set_file_names(files);
+    }
+    else
+    {
+        cf_reader->set_files_regex(files[0]);
+    }
 
     p_teca_descriptive_statistics stats = teca_descriptive_statistics::New();
     stats->set_input_connection(cf_reader->get_output_port());
