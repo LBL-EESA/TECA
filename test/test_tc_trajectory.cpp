@@ -6,7 +6,6 @@
 #include "teca_table_calendar.h"
 #include "teca_table_reader.h"
 #include "teca_table_writer.h"
-#include "teca_test_util.h"
 #include "teca_system_interface.h"
 
 #include <vector>
@@ -79,6 +78,7 @@ int main(int argc, char **argv)
         p_teca_table_writer base = teca_table_writer::New();
         base->set_input_connection(cal->get_output_port());
         base->set_file_name(baseline.c_str());
+
         base->update();
     }
 

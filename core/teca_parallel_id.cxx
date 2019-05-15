@@ -5,6 +5,7 @@
 #include <sstream>
 #include <thread>
 
+#include <iostream>
 using std::ostringstream;
 using std::ostream;
 

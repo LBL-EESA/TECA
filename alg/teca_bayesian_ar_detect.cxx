@@ -16,6 +16,7 @@
 #include "teca_programmable_algorithm.h"
 #include "teca_programmable_reduce.h"
 #include "teca_dataset_capture.h"
+#include "teca_index_executive.h"
 #include "teca_mpi.h"
 
 #include <algorithm>
@@ -122,6 +123,7 @@ public:
         // figure out which row of the parameter table is being requested
         if (!req.has("row_id"))
         {
+            req.to_stream(std::cerr);
             TECA_ERROR("Missing index key row_id")
             return up_reqs;
         }
@@ -261,7 +263,8 @@ public:
 
                 if (!wvcc)
                 {
-                    TECA_ERROR("pipeline error, component array \"" << this->component_array_name << "\" is not present")
+                    TECA_ERROR("pipeline error, component array \""
+                        << this->component_array_name << "\" is not present")
                     return nullptr;
                 }
 
@@ -291,7 +294,8 @@ public:
                 // connected components.
                 if (!wvcc_0 || !wvcc_1)
                 {
-                    TECA_ERROR("pipeline error, component array \"" << this->component_array_name << "\" is not present")
+                    TECA_ERROR("pipeline error, component array \""
+                        << this->component_array_name << "\" is not present")
                     return nullptr;
                 }
 
@@ -522,11 +526,10 @@ teca_bayesian_ar_detect::teca_bayesian_ar_detect::get_output_metadata(
 #endif
     (void)port;
 
-    // this algorithm processes Cartesian mesh based data. It will
-    // fetch a timestep and loop over a set of parameters accumulating
-    // the result. we
-    // report the variable that we compute, for each timestep
-    // from the parameter tables.
+    // this algorithm processes Cartesian mesh based data. It will fetch a
+    // timestep and loop over a set of parameters accumulating the result. we
+    // report the variable that we compute, for each timestep from the
+    // parameter tables.
     teca_metadata md(input_md[0]);
     md.set("variables", std::string("ar_probability"));
 
@@ -702,19 +705,36 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
     unsigned long parameter_table_size =
         this->internals->parameter_table->get_number_of_rows();
 
+    // the executive will loop over table rows, the top of the pipeline
+    // will ignore the incoming request which is for a specific table row
+    // and always pass the input mesh down stream
     ::parameter_table_request_generator request_gen(parameter_table_size,
             this->internals->parameter_table->get_column(this->hwhm_latitude_variable),
             this->internals->parameter_table->get_column(this->min_water_vapor_variable),
             this->internals->parameter_table->get_column(this->min_component_area_variable));
 
-    teca_metadata md;
-    request_gen.initialize_index_executive(md);
+    teca_metadata exec_md;
+    request_gen.initialize_index_executive(exec_md);
 
-    p_teca_dataset_source dss = teca_dataset_source::New();
+    // set up the pipeline source
+    p_teca_programmable_algorithm dss = teca_programmable_algorithm::New();
     dss->set_communicator(MPI_COMM_SELF);
-    dss->set_dataset(in_mesh);
-    dss->set_metadata(md);
+    dss->set_number_of_input_connections(0);
+    dss->set_number_of_output_ports(1);
+    dss->set_report_callback(
+        [&exec_md](unsigned int, const std::vector<teca_metadata>&) -> teca_metadata
+        {
+            return exec_md;
+        });
+    dss->set_execute_callback(
+        [& in_mesh] (unsigned int, const std::vector<const_p_teca_dataset> &,
+     const teca_metadata &) -> const_p_teca_dataset
+     {
+         return in_mesh;
+     });
 
+    // set up the filtering stages. these extract control parameters
+    // which are served up from the parameter table from the incoming request
     p_teca_latitude_damper damp = teca_latitude_damper::New();
     damp->set_communicator(MPI_COMM_SELF);
     damp->set_input_connection(dss->get_output_port());
@@ -744,6 +764,8 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
     caf->set_input_connection(ca->get_output_port());
     caf->set_component_variable("wv_cc");
 
+    // set up the request generator. 1 request per parameter table row is
+    // generated. the request is populated with values in columns of that row
     p_teca_programmable_algorithm pa = teca_programmable_algorithm::New();
     pa->set_communicator(MPI_COMM_SELF);
     pa->set_number_of_input_connections(1);
@@ -751,6 +773,8 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
     pa->set_input_connection(caf->get_output_port());
     pa->set_request_callback(request_gen);
 
+    // set up the reduction which computes the average over runs of all control
+    // parameter combinations provided in the parameter table
     ::parameter_table_reduction reduce(parameter_table_size,
         "wv_cc", "ar_probability");
 
@@ -761,9 +785,11 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
     pr->set_verbose(0);
     pr->set_thread_pool_size(this->thread_pool_size);
 
+    // extract the result
     p_teca_dataset_capture dc = teca_dataset_capture::New();
     dc->set_communicator(MPI_COMM_SELF);
     dc->set_input_connection(pr->get_output_port());
+    dc->set_executive(teca_index_executive::New());
 
     // run the pipeline
     dc->update();

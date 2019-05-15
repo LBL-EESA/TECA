@@ -2,7 +2,6 @@
 #include "teca_component_area_filter.h"
 #include "teca_dataset_capture.h"
 #include "teca_vtk_cartesian_mesh_writer.h"
-#include "teca_index_executive.h"
 #include "teca_system_interface.h"
 #include "teca_metadata.h"
 #include "teca_dataset.h"
@@ -130,13 +129,8 @@ int main(int argc, char **argv)
     p_teca_dataset_capture cao = teca_dataset_capture::New();
     cao->set_input_connection(caf->get_output_port());
 
-    p_teca_index_executive exe = teca_index_executive::New();
-    exe->set_start_index(0);
-    exe->set_end_index(0);
-
     p_teca_vtk_cartesian_mesh_writer wri = teca_vtk_cartesian_mesh_writer::New();
     wri->set_input_connection(cao->get_output_port());
-    wri->set_executive(exe);
     wri->set_file_name(out_file);
 
     wri->update();

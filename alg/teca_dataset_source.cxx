@@ -10,8 +10,6 @@
 
 using std::cerr;
 using std::endl;
-using std::string;
-using std::vector;
 
 // --------------------------------------------------------------------------
 teca_dataset_source::teca_dataset_source()
@@ -53,7 +51,17 @@ teca_metadata teca_dataset_source::get_output_metadata(unsigned int port,
     (void)port;
     (void)input_md;
 
-    return this->metadata;
+    // let the user hanlde pipeline mechanics
+    if (!this->metadata.empty())
+        return this->metadata;
+
+    // handle pipeline mechanics for them
+    teca_metadata omd;
+    omd.insert("index_initializer_key", std::string("num_datasets"));
+    omd.insert("num_datasets", this->datasets.size());
+    omd.insert("index_request_key", std::string("dataset_id"));
+
+    return omd;
 }
 
 // --------------------------------------------------------------------------
@@ -67,7 +75,42 @@ const_p_teca_dataset teca_dataset_source::execute(unsigned int port,
 #endif
     (void)port;
     (void)input_data;
-    (void)request;
 
-    return this->dataset;
+    std::string request_key;
+    if (this->metadata.empty())
+    {
+        request_key = "dataset_id";
+    }
+    else
+    {
+        if (this->metadata.get("index_request_key", request_key))
+        {
+            TECA_ERROR("The provided metadata is missing index_request_key")
+            return nullptr;
+        }
+    }
+
+    // figure out which dataset is being requested
+    unsigned long index = 0;
+    if (request.get(request_key, index))
+    {
+        TECA_ERROR("Request is missing index_request_key \"" << request_key << "\"")
+        return nullptr;
+    }
+
+    unsigned long num_datasets = this->datasets.size();
+    if (index >= num_datasets)
+    {
+        TECA_ERROR("No " << request_key << " index " << index << " in collection of "
+            << num_datasets << " source datasets")
+        return nullptr;
+    }
+
+    // serve it up
+    p_teca_dataset ds = this->datasets[index];
+
+    ds->get_metadata().insert("index_request_key", std::string(request_key));
+    ds->get_metadata().insert(request_key, index);
+
+    return ds;
 }

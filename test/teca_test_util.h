@@ -2,21 +2,26 @@
 #define teca_test_util_h
 
 #include "teca_config.h"
+#include "teca_algorithm.h"
 #include "teca_table.h"
 #include "teca_mpi.h"
 
+
+
 namespace teca_test_util
 {
-// This creates a TECA table containing some basic test data that
-// is used by the TECA table reader/writer tests and the dataset_diff
-// test.
-enum {base_table,
-    break_string_col,
-    break_int_col,
-    break_float_col
-    };
-const_p_teca_table create_test_table(long step,
-    int tid=teca_test_util::base_table);
+
+// creates a programmable algorithm used as a source in a number of tests
+class test_table_server
+{
+public:
+    static p_teca_algorithm New(long num_tables);
+
+protected:
+    test_table_server() = default;
+};
+
+
 
 #if defined(TECA_HAS_MPI)
 // communication helper functions

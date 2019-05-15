@@ -90,7 +90,7 @@ template <> struct py_tt<std::string>
 {
     typedef char* tag;
     static PyObject *new_object(const std::string &s)
-    { return PyUnicode_FromString(s.c_str()); }
+    { return CStringToPyString(s.c_str()); }
 };
 // TODO -- special case for teca_metadata
 

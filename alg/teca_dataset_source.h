@@ -6,6 +6,8 @@
 #include "teca_dataset_fwd.h"
 #include "teca_shared_object.h"
 
+#include <vector>
+
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_dataset_source)
 
 /**
@@ -25,7 +27,10 @@ public:
     TECA_SET_ALGORITHM_PROPERTIES()
 
     // set/get the dataset to insert into the pipeline
-    TECA_ALGORITHM_PROPERTY(p_teca_dataset, dataset)
+    TECA_ALGORITHM_VECTOR_PROPERTY(p_teca_dataset, dataset)
+
+    void set_dataset(const p_teca_dataset &ds)
+    { this->set_datasets({ds}); }
 
     // set/get the metadata to insert into the pipeline
     TECA_ALGORITHM_PROPERTY(teca_metadata, metadata)
@@ -42,7 +47,7 @@ private:
         const teca_metadata &request) override;
 
 private:
-    p_teca_dataset dataset;
+    std::vector<p_teca_dataset> datasets;
     teca_metadata metadata;
 };
 

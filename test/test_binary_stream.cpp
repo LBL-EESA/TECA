@@ -1081,9 +1081,16 @@ void teca_binary_stream_driver::validate(teca_binary_stream &s)
                 table->to_stream(cerr);
                 cerr << endl;
 #endif
+                teca_metadata md;
+                md.insert("index_initializer_key", std::string("n_req"));
+                md.insert("index_request_key", std::string("req"));
+                md.insert("n_req", 1l);
 
                 p_teca_programmable_algorithm base = teca_programmable_algorithm::New();
                 base->set_number_of_input_connections(0);
+                base->set_report_callback([&](unsigned int,
+                        const std::vector<teca_metadata> &) -> teca_metadata
+                        { return md; });
                 base->set_execute_callback([&](unsigned int,
                         const vector<const_p_teca_dataset> &,
                         const teca_metadata &) -> const_p_teca_dataset
@@ -1091,6 +1098,9 @@ void teca_binary_stream_driver::validate(teca_binary_stream &s)
 
                 p_teca_programmable_algorithm test = teca_programmable_algorithm::New();
                 test->set_number_of_input_connections(0);
+                test->set_report_callback([&](unsigned int,
+                        const std::vector<teca_metadata> &) -> teca_metadata
+                        { return md; });
                 test->set_execute_callback([&](unsigned int,
                         const vector<const_p_teca_dataset> &,
                         const teca_metadata &) -> const_p_teca_dataset
@@ -1099,6 +1109,7 @@ void teca_binary_stream_driver::validate(teca_binary_stream &s)
                 p_teca_dataset_diff diff = teca_dataset_diff::New();
                 diff->set_input_connection(0, base->get_output_port());
                 diff->set_input_connection(1, test->get_output_port());
+
                 diff->update();
             }
             break;

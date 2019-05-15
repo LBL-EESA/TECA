@@ -9,12 +9,6 @@
 using std::cerr;
 using std::endl;
 
-#if defined(TECA_HAS_MPI)
-#include <mpi.h>
-#endif
-
-#define TECA_TIME_STEP_EXECUTIVE_DEBUG
-
 // --------------------------------------------------------------------------
 teca_index_executive::teca_index_executive()
     : start_index(0), end_index(-1), stride(1)
@@ -87,7 +81,7 @@ int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
     }
 
     // locate available indices
-    long n_indices = 1;
+    long n_indices = 0;
     if (md.get(this->index_initializer_key, n_indices))
     {
         TECA_ERROR("metadata is missing the initializer key \""
@@ -159,14 +153,13 @@ int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
         }
     }
 
-#if defined(TECA_TIME_STEP_EXECUTIVE_DEBUG)
-    cerr << teca_parallel_id()
-        << " teca_index_executive::initialize index_initializer_key="
-        << this->index_initializer_key << " index_request_key="
-        << this->index_request_key << " first=" << this->start_index
-        << " last=" << this->end_index << " stride=" << this->stride
-        << endl;
-#endif
+    if (this->get_verbose())
+        cerr << teca_parallel_id()
+            << " teca_index_executive::initialize index_initializer_key="
+            << this->index_initializer_key << " index_request_key="
+            << this->index_request_key << " first=" << this->start_index
+            << " last=" << this->end_index << " stride=" << this->stride
+            << endl;
 
     return 0;
 }
@@ -180,19 +173,20 @@ teca_metadata teca_index_executive::get_next_request()
         req = this->requests.back();
         this->requests.pop_back();
 
-#if defined(TECA_TIME_STEP_EXECUTIVE_DEBUG)
-        std::vector<unsigned long> ext;
-        req.get("extent", ext);
+        if (this->get_verbose())
+        {
+            std::vector<unsigned long> ext;
+            req.get("extent", ext);
 
-        unsigned long index;
-        req.get(this->index_request_key, index);
+            unsigned long index;
+            req.get(this->index_request_key, index);
 
-        cerr << teca_parallel_id()
-            << " teca_index_executive::get_next_request "
-            << this->index_request_key << "=" << index
-            << " extent=" << ext[0] << ", " << ext[1] << ", " << ext[2]
-            << ", " << ext[3] << ", " << ext[4] << ", " << ext[5] << endl;
-#endif
+            cerr << teca_parallel_id()
+                << " teca_index_executive::get_next_request "
+                << this->index_request_key << "=" << index
+                << " extent=" << ext[0] << ", " << ext[1] << ", " << ext[2]
+                << ", " << ext[3] << ", " << ext[4] << ", " << ext[5] << endl;
+        }
     }
 
     return req;

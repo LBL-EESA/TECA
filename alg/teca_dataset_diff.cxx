@@ -21,12 +21,6 @@
 #include <boost/program_options.hpp>
 #endif
 
-using std::vector;
-using std::string;
-using std::ostringstream;
-using std::ofstream;
-using std::cerr;
-using std::endl;
 
 // --------------------------------------------------------------------------
 teca_dataset_diff::teca_dataset_diff()
@@ -43,7 +37,7 @@ teca_dataset_diff::~teca_dataset_diff()
 #if defined(TECA_HAS_BOOST)
 // --------------------------------------------------------------------------
 void teca_dataset_diff::get_properties_description(
-    const string &prefix, options_description &global_opts)
+    const std::string &prefix, options_description &global_opts)
 {
     options_description opts("Options for "
         + (prefix.empty()?"teca_dataset_diff":prefix));
@@ -56,11 +50,130 @@ void teca_dataset_diff::get_properties_description(
 }
 
 // --------------------------------------------------------------------------
-void teca_dataset_diff::set_properties(const string &prefix, variables_map &opts)
+void teca_dataset_diff::set_properties(const std::string &prefix, variables_map &opts)
 {
     TECA_POPTS_SET(opts, double, prefix, tolerance)
 }
 #endif
+
+// --------------------------------------------------------------------------
+teca_metadata teca_dataset_diff::get_output_metadata(
+    unsigned int port,
+    const std::vector<teca_metadata> &input_md)
+{
+    (void) port;
+
+    int rank = 0;
+#if defined(TECA_HAS_MPI)
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
+        MPI_Comm_rank(this->get_communicator(), &rank);
+#endif
+
+
+    // get input 0 initializer
+    std::string initializer_key;
+    if (input_md[0].get("index_initializer_key", initializer_key))
+    {
+        TECA_ERROR("Input 0 metadata is missing index_initializer_key")
+        return teca_metadata();
+    }
+
+    unsigned long n_indices_0 = 0;
+    if (input_md[0].get(initializer_key, n_indices_0))
+    {
+        TECA_ERROR("Input 0 metadata is missing its intializer \""
+            << initializer_key << "\"")
+        return teca_metadata();
+    }
+
+    // get input 1 initializer
+    if (input_md[1].get("index_initializer_key", initializer_key))
+    {
+        TECA_ERROR("Input 0 metadata is missing index_initializer_key")
+        return teca_metadata();
+    }
+
+    unsigned long n_indices_1 = 0;
+    if (input_md[1].get(initializer_key, n_indices_1))
+    {
+        TECA_ERROR("Input 1 metadata is missing its initializer  \""
+            << initializer_key << "\"")
+        return teca_metadata();
+    }
+
+    // both inputs should have the same size datasets
+    if ((rank == 0) && (n_indices_0 != n_indices_1))
+    {
+        TECA_ERROR("Input dataset size mismatch. Input 0 has "
+            << n_indices_0 << " datasets while input 1 has "
+            << n_indices_1 << " datasets")
+        return teca_metadata();
+    }
+
+    // prepare pieline executive metadata to run a test for each input dataset
+    teca_metadata omd;
+    omd.insert("index_initializer_key", std::string("number_of_tests"));
+    omd.insert("index_request_key", std::string("test_id"));
+    omd.insert("number_of_tests", n_indices_0);
+
+    return omd;
+}
+
+// --------------------------------------------------------------------------
+std::vector<teca_metadata> teca_dataset_diff::get_upstream_request(
+    unsigned int port,
+    const std::vector<teca_metadata> &input_md,
+    const teca_metadata &request)
+{
+    (void) port;
+
+    std::vector<teca_metadata> up_reqs;
+
+    // get the current index
+    unsigned long test_id = 0;
+    if (request.get("test_id", test_id))
+    {
+        TECA_ERROR("Request is missing the index_request_key test_id")
+        return up_reqs;
+    }
+
+    // get input 0 request key
+    std::string request_key;
+    if (input_md[0].get("index_request_key", request_key))
+    {
+        input_md[0].to_stream(std::cerr);
+
+        if (input_md[0].empty())
+            std::cerr << "empty md" << std::endl;
+
+        TECA_ERROR("Input 0 metadata is missing index_request_key")
+        return up_reqs;
+    }
+
+    // make the request for input 0
+    teca_metadata req_0;
+    req_0.insert("index_request_key", request_key);
+    req_0.insert(request_key, test_id);
+
+    // get input 1 request key
+    if (input_md[1].get("index_request_key", request_key))
+    {
+        TECA_ERROR("Input 1 metadata is missing index_request_key")
+        return up_reqs;
+    }
+
+    // make the request for input 1
+    teca_metadata req_1;
+    req_1.insert("index_request_key", request_key);
+    req_1.insert(request_key, test_id);
+
+    // send them upstream
+    up_reqs.push_back(req_0);
+    up_reqs.push_back(req_1);
+    return up_reqs;
+}
 
 // --------------------------------------------------------------------------
 const_p_teca_dataset teca_dataset_diff::execute(
@@ -170,7 +283,7 @@ int teca_dataset_diff::compare_tables(
         const_p_teca_table smaller = ncols1 <= ncols2 ? table1 : table2;
         unsigned int ncols = ncols1 > ncols2 ? ncols1 : ncols2;
 
-        ostringstream oss;
+        std::ostringstream oss;
         for (unsigned int i = 0; i < ncols; ++i)
         {
             std::string colname = bigger->get_column_name(i);
@@ -320,7 +433,7 @@ int teca_dataset_diff::compare_array_collections(
     for (unsigned int i = 0; i < reference_arrays->size(); ++i)
     {
         const_p_teca_variant_array a1 = reference_arrays->get(i);
-        string name = reference_arrays->get_name(i);
+        std::string name = reference_arrays->get_name(i);
         const_p_teca_variant_array a2 = data_arrays->get(name);
         this->push_frame(name);
         int status = this->compare_arrays(a1, a2);

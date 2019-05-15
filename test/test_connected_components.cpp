@@ -126,6 +126,7 @@ int main(int argc, char **argv)
         p_teca_dataset_diff diff = teca_dataset_diff::New();
         diff->set_input_connection(0, table_reader->get_output_port());
         diff->set_input_connection(1, dss->get_output_port());
+
         diff->update();
     }
     else
@@ -135,6 +136,7 @@ int main(int argc, char **argv)
         p_teca_table_writer table_writer = teca_table_writer::New();
         table_writer->set_input_connection(dss->get_output_port());
         table_writer->set_file_name(baseline.c_str());
+
         table_writer->update();
     }
 

@@ -32,14 +32,14 @@ public:
     TECA_ALGORITHM_STATIC_NEW(teca_dataset_diff)
     ~teca_dataset_diff();
 
-    // report/initialize to/from Boost program options
-    // objects.
+    // report/initialize to/from Boost program options objects.
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // Relative tolerance below which two floating-point quantities are 
-    // considered equal. The relative difference for a computed quantity A and 
+    // Relative tolerance below which two floating-point quantities are
+    // considered equal. The relative difference for a computed quantity A and
     // a reference quantity B is
+    //
     // rel_diff = |A - B| / B, B != 0
     //          = |A - B| / A, B == 0, A != 0
     //            0            otherwise
@@ -75,8 +75,14 @@ protected:
     void pop_frame();
 
 private:
-    const_p_teca_dataset execute(
-        unsigned int port,
+    teca_metadata get_output_metadata(unsigned int port,
+        const std::vector<teca_metadata> &input_md) override;
+
+    std::vector<teca_metadata> get_upstream_request(
+        unsigned int port, const std::vector<teca_metadata> &input_md,
+        const teca_metadata &request) override;
+
+    const_p_teca_dataset execute(unsigned int port,
         const std::vector<const_p_teca_dataset> &input_data,
         const teca_metadata &request) override;
 

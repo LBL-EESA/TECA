@@ -190,7 +190,13 @@ teca_metadata teca_table_reader::get_output_metadata(unsigned int port,
 
     // when no index column is specified  act like a serial reader
     if (!this->internals->table || !distribute)
-        return teca_metadata();
+    {
+        teca_metadata &md = this->internals->metadata;
+        md.insert("index_initializer_key", std::string("number_of_tables"));
+        md.insert("index_request_key", std::string("table_id"));
+        md.insert("number_of_tables", 1);
+        return md;
+    }
 
     // build the data structures for random access
     p_teca_variant_array index =
@@ -291,6 +297,10 @@ const_p_teca_dataset teca_table_reader::execute(unsigned int port,
     p_teca_table out_table = teca_table::New();
     out_table->copy_structure(this->internals->table);
     out_table->copy_metadata(this->internals->table);
+
+    teca_metadata &md = out_table->get_metadata();
+    md.insert("index_request_key", std::string("object_id"));
+    md.insert("object_id", index);
 
     int ncols = out_table->get_number_of_columns();
     unsigned long nrows = this->internals->index_counts[index];

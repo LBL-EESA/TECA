@@ -6,7 +6,6 @@
 #include "teca_dataset_diff.h"
 #include "teca_file_util.h"
 #include "teca_system_interface.h"
-
 #include <vector>
 #include <string>
 #include <iostream>
@@ -43,6 +42,7 @@ int main(int argc, char **argv)
         p_teca_dataset_diff diff = teca_dataset_diff::New();
         diff->set_input_connection(0, baseline_table_reader->get_output_port());
         diff->set_input_connection(1, classify->get_output_port());
+
         diff->update();
     }
     else
@@ -56,6 +56,7 @@ int main(int argc, char **argv)
         p_teca_table_writer table_writer = teca_table_writer::New();
         table_writer->set_input_connection(post_classify->get_output_port());
         table_writer->set_file_name(baseline_table);
+
         table_writer->update();
         return 0;
     }

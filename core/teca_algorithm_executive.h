@@ -38,15 +38,20 @@ public:
     // processed. an empty request is returned.
     virtual teca_metadata get_next_request();
 
+    // set/get verbosity level
+    void set_verbose(int a_verbose) { this->verbose = a_verbose; }
+    int get_verbose() const { return this->verbose; }
+
 protected:
-    teca_algorithm_executive() = default;
+    teca_algorithm_executive() : verbose(0) {}
     teca_algorithm_executive(const teca_algorithm_executive &) = default;
     teca_algorithm_executive(teca_algorithm_executive &&) = default;
     teca_algorithm_executive &operator=(const teca_algorithm_executive &) = default;
     teca_algorithm_executive &operator=(teca_algorithm_executive &&) = default;
 
 private:
-    teca_metadata m_md;
+    int verbose;
+    teca_metadata m_request;
 };
 
 #endif

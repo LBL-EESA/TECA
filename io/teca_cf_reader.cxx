@@ -468,7 +468,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
         for (int i = 0; i < 3; ++i)
         {
             std::string metadata_cache_file =
-                metadata_cache_path[i] + PATH_SEP + metadata_cache_key;
+                metadata_cache_path[i] + PATH_SEP + metadata_cache_key + ".md";
 
             if (teca_file_util::file_exists(metadata_cache_file.c_str()))
             {
@@ -751,7 +751,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
             // when procesing large numbers of files these issues kill
             // serial performance. hence we are reading time dimension
             // in parallel.
-            read_variable_queue_t thread_pool(this->get_communicator(),
+            read_variable_queue_t thread_pool(MPI_COMM_SELF,
                 this->thread_pool_size, true, false);
 
             std::vector<unsigned long> step_count;
@@ -849,7 +849,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
             for (int i = 0; i < 3; ++i)
             {
                 std::string metadata_cache_file =
-                    metadata_cache_path[i] + PATH_SEP + metadata_cache_key;
+                    metadata_cache_path[i] + PATH_SEP + metadata_cache_key + ".md";
 
                 if (!teca_file_util::write_stream(metadata_cache_file.c_str(),
                     "teca_cf_reader::metadata_cache_file", stream, false))
@@ -1060,6 +1060,11 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
         mesh->set_calendar(calendar);
         mesh->set_time_units(units);
     }
+
+    // add the pipeline keys
+    teca_metadata &md = mesh->get_metadata();
+    md.insert("index_request_key", std::string("time_step"));
+    md.insert("time_step", time_step);
 
     // figure out the mapping between our extent and netcdf
     // representation

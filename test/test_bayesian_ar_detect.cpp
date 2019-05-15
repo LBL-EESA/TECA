@@ -15,7 +15,6 @@
 #include "teca_table_sort.h"
 #include "teca_table_to_stream.h"
 #include "teca_vtk_cartesian_mesh_writer.h"
-#include "teca_index_executive.h"
 
 #include <vector>
 #include <string>
@@ -110,6 +109,7 @@ int main(int argc, char **argv)
         p_teca_dataset_diff diff = teca_dataset_diff::New();
         diff->set_input_connection(0, baseline_table_reader->get_output_port());
         diff->set_input_connection(1, sort->get_output_port());
+
         diff->update();
     }
     else

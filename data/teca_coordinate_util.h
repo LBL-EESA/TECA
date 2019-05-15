@@ -68,6 +68,12 @@ int index_of(const data_t *data, unsigned long l, unsigned long r,
 
     if (m_0 == r)
     {
+        data_t eps8 = data_t(8)*std::numeric_limits<data_t>::epsilon();
+        if (equal(val, data[m_0], eps8))
+        {
+            id = m_0;
+            return 0;
+        }
         // not found
         return -1;
     }
@@ -117,6 +123,12 @@ int index_of(const T *data, size_t l, size_t r, T val, unsigned long &id)
 
     if (m_0 == r)
     {
+        // need this test when len of data is 1
+        if (equal(val, data[m_0], T(8)*std::numeric_limits<T>::epsilon()))
+        {
+            id = m_0;
+            return 0;
+        }
         // not found
         return -1;
     }

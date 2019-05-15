@@ -172,3 +172,15 @@ teca_add_test(py_test_bayesian_ar_detect_mpi_threads
     "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" prw ${HALF_CORES} 0 4
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
+
+teca_add_test(py_test_binary_stream
+    COMMAND ${MPIEXEC} -n ${TECA_TEST_CORES} ${PYTHON_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_binary_stream.py
+    "${TECA_DATA_ROOT}/py_test_binary_stream.bin"
+    FEATURES ${TECA_HAS_MPI} ${MPI4PY_FOUND}
+    REQ_TECA_DATA)
+
+teca_add_test(py_test_nested_pipeline
+    COMMAND ${MPIEXEC} -n ${HALF_CORES} ${PYTHON_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_nested_pipeline.py 16 16 32 ${HALF_CORES}
+    FEATURES ${TECA_HAS_MPI} ${MPI4PY_FOUND})
