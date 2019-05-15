@@ -95,22 +95,10 @@ teca_metadata teca_dataset_diff::get_output_metadata(
         return teca_metadata();
     }
 
-    unsigned long n_indices_1 = 0;
-    if (input_md[1].get(initializer_key, n_indices_1))
-    {
-        TECA_ERROR("Input 1 metadata is missing its initializer  \""
-            << initializer_key << "\"")
-        return teca_metadata();
-    }
-
-    // both inputs should have the same size datasets
-    if ((rank == 0) && (n_indices_0 != n_indices_1))
-    {
-        TECA_ERROR("Input dataset size mismatch. Input 0 has "
-            << n_indices_0 << " datasets while input 1 has "
-            << n_indices_1 << " datasets")
-        return teca_metadata();
-    }
+    // if one were to run across all indices, both inputs would need to have
+    // the same number of them. it is not necessarily an error to have
+    // different numbers of indices because one could configure the executive
+    // to run over a mutual subset
 
     // prepare pieline executive metadata to run a test for each input dataset
     teca_metadata omd;
@@ -123,8 +111,7 @@ teca_metadata teca_dataset_diff::get_output_metadata(
 
 // --------------------------------------------------------------------------
 std::vector<teca_metadata> teca_dataset_diff::get_upstream_request(
-    unsigned int port,
-    const std::vector<teca_metadata> &input_md,
+    unsigned int port, const std::vector<teca_metadata> &input_md,
     const teca_metadata &request)
 {
     (void) port;
@@ -143,19 +130,15 @@ std::vector<teca_metadata> teca_dataset_diff::get_upstream_request(
     std::string request_key;
     if (input_md[0].get("index_request_key", request_key))
     {
-        input_md[0].to_stream(std::cerr);
-
-        if (input_md[0].empty())
-            std::cerr << "empty md" << std::endl;
-
         TECA_ERROR("Input 0 metadata is missing index_request_key")
         return up_reqs;
     }
 
     // make the request for input 0
-    teca_metadata req_0;
+    teca_metadata req_0(request);
     req_0.set("index_request_key", request_key);
     req_0.set(request_key, test_id);
+    req_0.remove("test_id");
 
     // get input 1 request key
     if (input_md[1].get("index_request_key", request_key))
@@ -165,9 +148,10 @@ std::vector<teca_metadata> teca_dataset_diff::get_upstream_request(
     }
 
     // make the request for input 1
-    teca_metadata req_1;
+    teca_metadata req_1(request);
     req_1.set("index_request_key", request_key);
     req_1.set(request_key, test_id);
+    req_1.remove("test_id");
 
     // send them upstream
     up_reqs.push_back(req_0);
@@ -258,7 +242,7 @@ const_p_teca_dataset teca_dataset_diff::execute(
     }
     else
     {
-        if (this->compare_cartesian_meshes(mesh1, mesh1))
+        if (this->compare_cartesian_meshes(mesh1, mesh2))
         {
             TECA_ERROR("Failed to compare cartesian meshes.");
             return nullptr;
@@ -294,7 +278,7 @@ int teca_dataset_diff::compare_tables(
         TECA_ERROR("The baseline table has " << ncols1
             << " columns while test table has " << ncols2
             << " columns. Columns " << oss.str() << " are missing")
-        return 1;
+        return -1;
     }
 
     if (table1->get_number_of_rows() != table2->get_number_of_rows())
@@ -302,7 +286,7 @@ int teca_dataset_diff::compare_tables(
         TECA_ERROR("The baseline table has " << table1->get_number_of_rows()
             << " rows while test table has " << table2->get_number_of_rows()
             << " rows.")
-        return 1;
+        return -1;
     }
 
     // At this point, we know that the tables are both non-empty and the same size,
@@ -311,14 +295,13 @@ int teca_dataset_diff::compare_tables(
     {
         const_p_teca_variant_array col1 = table1->get_column(col);
         const_p_teca_variant_array col2 = table2->get_column(col);
-        std::stringstream col_str;
-        col_str << "In column " << col << " \""
-            << table1->get_column_name(col) << "\"" << std::ends;
-        this->push_frame(col_str.str());
-        int status = compare_arrays(col1, col2);
-        this->pop_frame();
-        if (status != 0)
-            return status;
+        if (compare_arrays(col1, col2))
+        {
+            TECA_ERROR("difference in column " << col << " \""
+                << table1->get_column_name(col) << "\"")
+            return -1;
+
+        }
     }
 
     return 0;
@@ -335,7 +318,7 @@ int teca_dataset_diff::compare_arrays(
     {
         TECA_ERROR("arrays have different sizes "
             << n_elem << " and " << array2->size())
-        return 1;
+        return -1;
     }
 
     // handle POD arrays
@@ -348,7 +331,7 @@ int teca_dataset_diff::compare_arrays(
         if (!a2)
         {
             TECA_ERROR("arrays have different element types.")
-            return 1;
+            return -1;
         }
 
         // compare elements
@@ -374,7 +357,7 @@ int teca_dataset_diff::compare_arrays(
                 TECA_ERROR("relative difference " << rel_diff << " exceeds tolerance "
                     << this->tolerance << " in element " << i << ". ref value \""
                     << ref_val << "\" is not equal to test value \"" << comp_val << "\"")
-                return 1;
+                return -1;
             }
         }
 
@@ -398,7 +381,7 @@ int teca_dataset_diff::compare_arrays(
             {
                 TECA_ERROR("string element " << i << " not equal. ref value \"" << v1
                     << "\" is not equal to test value \"" << v2 << "\"")
-                return 1;
+                return -1;
             }
         }
 
@@ -409,7 +392,7 @@ int teca_dataset_diff::compare_arrays(
     // we are here, array 1 type is not handled
     TECA_ERROR("diff for the element type of "
         "array1 is not implemented.")
-    return 1;
+    return -1;
 }
 
 // --------------------------------------------------------------------------
@@ -425,7 +408,7 @@ int teca_dataset_diff::compare_array_collections(
             TECA_ERROR("data array collection does not have array \""
                  << reference_arrays->get_name(i)
                  << "\" from the reference array collection.")
-            return 1;
+            return -1;
          }
     }
 
@@ -435,11 +418,11 @@ int teca_dataset_diff::compare_array_collections(
         const_p_teca_variant_array a1 = reference_arrays->get(i);
         std::string name = reference_arrays->get_name(i);
         const_p_teca_variant_array a2 = data_arrays->get(name);
-        this->push_frame(name);
-        int status = this->compare_arrays(a1, a2);
-        this->pop_frame();
-        if (status != 0)
-            return status;
+        if (this->compare_arrays(a1, a2))
+        {
+            TECA_ERROR("difference in array " << i << " \"" << name << "\"")
+            return -1;
+        }
     }
     return 0;
 }
@@ -456,7 +439,7 @@ int teca_dataset_diff::compare_cartesian_meshes(
         TECA_ERROR("data mesh has " << data_mesh->get_x_coordinates()->size()
             << " points in x, whereas reference mesh has "
             << reference_mesh->get_x_coordinates()->size() << ".")
-        return 1;
+        return -1;
     }
     if (reference_mesh->get_y_coordinates()->size()
         != data_mesh->get_y_coordinates()->size())
@@ -464,7 +447,7 @@ int teca_dataset_diff::compare_cartesian_meshes(
         TECA_ERROR("data mesh has " << data_mesh->get_y_coordinates()->size()
             << " points in y, whereas reference mesh has "
             << reference_mesh->get_y_coordinates()->size() << ".")
-        return 1;
+        return -1;
     }
     if (reference_mesh->get_z_coordinates()->size()
         != data_mesh->get_z_coordinates()->size())
@@ -472,90 +455,78 @@ int teca_dataset_diff::compare_cartesian_meshes(
         TECA_ERROR("data mesh has " << data_mesh->get_z_coordinates()->size()
             << " points in z, whereas reference mesh has "
             << reference_mesh->get_z_coordinates()->size() << ".")
-        return 1;
+        return -1;
     }
 
     // If the arrays are different in shape or in content, the datasets differ.
-    int status;
     const_p_teca_array_collection arrays1, arrays2;
 
     // Point arrays.
     arrays1 = reference_mesh->get_point_arrays();
     arrays2 = data_mesh->get_point_arrays();
-    this->push_frame("Point arrays");
-    status = this->compare_array_collections(arrays1, arrays2);
-    this->pop_frame();
-    if (status != 0)
-        return status;
+    if (this->compare_array_collections(arrays1, arrays2))
+    {
+        TECA_ERROR("difference in point arrays")
+        return -1;
+    }
 
     // cell-centered arrays.
     arrays1 = reference_mesh->get_cell_arrays();
     arrays2 = data_mesh->get_cell_arrays();
-    this->push_frame("Cell arrays");
-    status = this->compare_array_collections(arrays1, arrays2);
-    this->pop_frame();
-    if (status != 0)
-        return status;
+    if (this->compare_array_collections(arrays1, arrays2))
+    {
+        TECA_ERROR("difference in cell arrays")
+        return -1;
+    }
 
     // Edge-centered arrays.
     arrays1 = reference_mesh->get_edge_arrays();
     arrays2 = data_mesh->get_edge_arrays();
-    this->push_frame("Edge arrays");
-    status = this->compare_array_collections(arrays1, arrays2);
-    this->pop_frame();
-    if (status != 0)
-      return status;
+    if (this->compare_array_collections(arrays1, arrays2))
+    {
+        TECA_ERROR("difference in edge arrays")
+        return -1;
+    }
 
     // Face-centered arrays.
     arrays1 = reference_mesh->get_face_arrays();
     arrays2 = data_mesh->get_face_arrays();
-    this->push_frame("Face arrays");
-    status = this->compare_array_collections(arrays1, arrays2);
-    this->pop_frame();
-    if (status != 0)
-        return status;
+    if (this->compare_array_collections(arrays1, arrays2))
+    {
+        TECA_ERROR("difference in face arrays")
+        return -1;
+    }
 
     // Non-geometric arrays.
     arrays1 = reference_mesh->get_information_arrays();
     arrays2 = data_mesh->get_information_arrays();
-    this->push_frame("Informational arrays");
-    status = this->compare_array_collections(arrays1, arrays2);
-    this->pop_frame();
-    if (status != 0)
-        return status;
+    if (this->compare_array_collections(arrays1, arrays2))
+    {
+        TECA_ERROR("differrnce in informational arrays")
+        return -1;
+    }
 
     // Coordinate arrays.
-    this->push_frame("X coordinates");
-    status = this->compare_arrays(reference_mesh->get_x_coordinates(),
-                                  data_mesh->get_x_coordinates());
-    this->pop_frame();
-    if (status != 0)
-      return status;
+    if (this->compare_arrays(reference_mesh->get_x_coordinates(),
+        data_mesh->get_x_coordinates()))
+    {
+        TECA_ERROR("difference in x coordinates")
+        return -1;
+    }
 
-    this->push_frame("Y coordinates");
-    status = this->compare_arrays(reference_mesh->get_y_coordinates(),
-                                  data_mesh->get_y_coordinates());
-    this->pop_frame();
-    if (status != 0)
-        return status;
+    if (this->compare_arrays(reference_mesh->get_y_coordinates(),
+        data_mesh->get_y_coordinates()))
+    {
+        TECA_ERROR("difference in y coordinates")
+        return -1;
+    }
 
-    this->push_frame("Z coordinates");
-    status = this->compare_arrays(reference_mesh->get_z_coordinates(),
-                                  data_mesh->get_z_coordinates());
-    this->pop_frame();
-    if (status != 0)
-        return status;
+    if (this->compare_arrays(reference_mesh->get_z_coordinates(),
+        data_mesh->get_z_coordinates()))
+    {
+        TECA_ERROR("difference in z coordinates")
+        return -1;
+    }
 
     return 0;
 }
-
-void teca_dataset_diff::push_frame(const std::string& frame)
-{
-  this->stack.push_back(frame);
-}
-
-void teca_dataset_diff::pop_frame()
-{
-  this->stack.pop_back();
-}
-
