@@ -58,6 +58,13 @@ teca_add_test(test_cf_reader
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
+teca_add_test(test_cf_reader_time_int
+    COMMAND test_cf_reader
+    "${TECA_DATA_ROOT}/e5\.oper\.an\.vinteg\.162_072_viwvn.*\.nc"
+    "test_cf_reader_time_int_%t%.%e%" 0 -1 longitude latitude "." time VIWVN
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
 teca_add_test(test_connected_components
     SOURCES test_connected_components.cpp
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
