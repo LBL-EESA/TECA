@@ -61,6 +61,11 @@ public:
     void set_extent(unsigned long *ext);
     void set_extent(const std::vector<unsigned long> &ext);
 
+    // set the bounds to process. If nothging is set then
+    // extent as provided by set_extent is used.
+    void set_bounds(double *bounds);
+    void set_bounds(const std::vector<double> &bounds);
+
     // set the list of arrays to process
     void set_arrays(const std::vector<std::string> &arrays);
 
@@ -75,6 +80,7 @@ private:
     long end_index;
     long stride;
     std::vector<unsigned long> extent;
+    std::vector<double> bounds;
     std::vector<std::string> arrays;
 };
 
