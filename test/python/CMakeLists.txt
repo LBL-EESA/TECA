@@ -5,6 +5,36 @@ teca_add_test(py_test_cf_reader
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
+teca_add_test(py_test_cf_writer_serial
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_cf_writer.py
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
+    0 -1 1 2 "py_test_cf_writer_%t%.nc" U850 V850
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(py_test_cf_writer_threads
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_cf_writer.py
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
+    0 -1 ${TECA_TEST_CORES} 2 "py_test_cf_writer_%t%.nc" U850 V850
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(py_test_cf_writer_mpi
+    COMMAND  ${MPIEXEC} -n ${TECA_TEST_CORES} ${PYTHON_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_cf_writer.py
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
+    0 -1 1 2 "py_test_cf_writer_%t%.nc" U850 V850
+    FEATURES ${TECA_HAS_MPI} ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(py_test_cf_writer_mpi_threads
+    COMMAND  ${MPIEXEC} -n ${HALF_CORES} ${PYTHON_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_cf_writer.py
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
+    0 -1 ${HALF_CORES} 1 "py_test_cf_writer_%t%.nc" U850 V850
+    FEATURES ${TECA_HAS_MPI} ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
 # TODO -- camke_parse_arguments eats ""
 if (TECA_DATA_ROOT AND TECA_HAS_NETCDF)
     add_test(NAME py_test_connected_components

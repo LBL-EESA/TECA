@@ -1,6 +1,7 @@
 %{
 #include "teca_algorithm.h"
 #include "teca_cf_reader.h"
+#include "teca_cf_writer.h"
 #include "teca_table_reader.h"
 #include "teca_table_writer.h"
 #include "teca_cartesian_mesh_writer.h"
@@ -14,6 +15,16 @@
 %shared_ptr(teca_cf_reader)
 %ignore teca_cf_reader::operator=;
 %include "teca_cf_reader.h"
+#endif
+
+/***************************************************************************
+ cf_writer
+ ***************************************************************************/
+#ifdef TECA_HAS_NETCDF
+%ignore teca_cf_writer::shared_from_this;
+%shared_ptr(teca_cf_writer)
+%ignore teca_cf_writer::operator=;
+%include "teca_cf_writer.h"
 #endif
 
 /***************************************************************************
