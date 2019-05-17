@@ -325,7 +325,7 @@ int teca_metadata::update(const std::string &name, unsigned int i, const T &val)
     if (it == this->props.end())
     {
         TECA_ERROR(
-            << "attempt to access non-existant property \""
+            << "attempt to access non-existent property \""
             << name << "\" ignored!")
         return -1;
     }
@@ -344,7 +344,7 @@ int teca_metadata::update(const std::string &name,
     if (it == this->props.end())
     {
         TECA_ERROR(
-            << "attempt to access non-existant property \""
+            << "attempt to access non-existent property \""
             << name << "\" ignored!")
         return -1;
     }
@@ -362,7 +362,7 @@ int teca_metadata::update(const std::string &name, const std::vector<T> &vals)
     if (it == this->props.end())
     {
         TECA_ERROR(
-            << "attempt to access non-existant property \""
+            << "attempt to access non-existent property \""
             << name << "\" ignored!")
         return -1;
     }
@@ -387,7 +387,7 @@ int teca_metadata::update(const std::string &name, const std::set<T> &vals)
     if (it == this->props.end())
     {
         TECA_ERROR(
-            << "attempt to access non-existant property \""
+            << "attempt to access non-existent property \""
             << name << "\" ignored!")
         return -1;
     }

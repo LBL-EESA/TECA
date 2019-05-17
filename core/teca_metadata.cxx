@@ -82,7 +82,7 @@ int teca_metadata::update(const std::string &name, p_teca_variant_array prop_val
     prop_map_t::iterator it = this->props.find(name);
     if (it == this->props.end())
     {
-        TECA_ERROR("attempt to access non-existant property \""
+        TECA_ERROR("attempt to access non-existent property \""
             << name << "\" ignored!")
         return -1;
     }
