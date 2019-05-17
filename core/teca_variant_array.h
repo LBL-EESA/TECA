@@ -269,13 +269,13 @@ public:
     virtual ~teca_variant_array_impl() noexcept;
 
     // virtual constructor
-    virtual p_teca_variant_array new_copy() const override;
-    virtual p_teca_variant_array new_copy(size_t start, size_t end) const override;
-    virtual p_teca_variant_array new_instance() const override;
-    virtual p_teca_variant_array new_instance(size_t n) const override;
+    p_teca_variant_array new_copy() const override;
+    p_teca_variant_array new_copy(size_t start, size_t end) const override;
+    p_teca_variant_array new_instance() const override;
+    p_teca_variant_array new_instance(size_t n) const override;
 
     // intialize with T()
-    virtual void initialize() override;
+    void initialize() override;
 
     // copy
     const teca_variant_array_impl<T> &
@@ -361,22 +361,22 @@ public:
     void append(const teca_variant_array &other);
 
     // virtual swap
-    virtual void swap(teca_variant_array &other) override;
+    void swap(teca_variant_array &other) override;
 
     // virtual equavalince test
-    virtual bool equal(const teca_variant_array &other) const override;
+    bool equal(const teca_variant_array &other) const override;
 
     // serialize to/from stream
-    virtual void to_stream(teca_binary_stream &s) const override
+    void to_stream(teca_binary_stream &s) const override
     { this->to_binary<T>(s); }
 
-    virtual void from_stream(teca_binary_stream &s) override
+    void from_stream(teca_binary_stream &s) override
     { this->from_binary<T>(s); }
 
-    virtual void to_stream(std::ostream &s) const override
+    void to_stream(std::ostream &s) const override
     { this->to_ascii<T>(s); }
 
-    virtual void from_stream(std::ostream &s) override
+    void from_stream(std::ostream &s) override
     { this->from_ascii<T>(s); }
 
 protected:
@@ -468,7 +468,7 @@ private:
         typename std::enable_if<pack_object_ptr<U>::value, U>::type* = 0);
 
     // for serializaztion
-    virtual unsigned int type_code() const noexcept override;
+    unsigned int type_code() const noexcept override;
 private:
     std::vector<T> m_data;
 
