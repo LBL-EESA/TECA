@@ -3,6 +3,7 @@
 #include "teca_common.h"
 
 #include <string>
+#include <sstream>
 #include <iostream>
 #include <utility>
 
@@ -50,6 +51,18 @@ void teca_index_executive::set_extent(unsigned long *ext)
 void teca_index_executive::set_extent(const std::vector<unsigned long> &ext)
 {
     this->extent = ext;
+}
+
+// --------------------------------------------------------------------------
+void teca_index_executive::set_bounds(double *bds)
+{
+    this->set_bounds({bds[0], bds[1], bds[2], bds[3], bds[4], bds[5]});
+}
+
+// --------------------------------------------------------------------------
+void teca_index_executive::set_bounds(const std::vector<double> &bds)
+{
+    this->bounds = bds;
 }
 
 // --------------------------------------------------------------------------
@@ -132,15 +145,20 @@ int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
 
     // consrtuct base request
     teca_metadata base_req;
-    if (this->extent.empty())
+    if (this->bounds.empty())
     {
-        std::vector<unsigned long> whole_extent(6, 0l);
-        md.get("whole_extent", whole_extent);
-        base_req.insert("extent", whole_extent);
+        if (this->extent.empty())
+        {
+            std::vector<unsigned long> whole_extent(6, 0l);
+            md.get("whole_extent", whole_extent);
+            base_req.set("extent", whole_extent);
+        }
+        else
+            base_req.set("extent", this->extent);
     }
     else
-        base_req.insert("extent", this->extent);
-    base_req.insert("arrays", this->arrays);
+        base_req.set("bounds", this->bounds);
+    base_req.set("arrays", this->arrays);
 
     // apply the base request to local indices.
     for (size_t i = 0; i < block_size; ++i)
@@ -149,10 +167,11 @@ int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
         if ((index % this->stride) == 0)
         {
             this->requests.push_back(base_req);
-            this->requests.back().insert(this->index_request_key, index);
+            this->requests.back().set(this->index_request_key, index);
         }
     }
 
+    // print some info about the set of requests
     if (this->get_verbose())
         cerr << teca_parallel_id()
             << " teca_index_executive::initialize index_initializer_key="
@@ -173,19 +192,37 @@ teca_metadata teca_index_executive::get_next_request()
         req = this->requests.back();
         this->requests.pop_back();
 
+        // print the details of the current request. this is a execution
+        // progress indicator of where the run is at
         if (this->get_verbose())
         {
             std::vector<unsigned long> ext;
             req.get("extent", ext);
 
+            std::vector<double> bds;
+            req.get("bounds", bds);
+
             unsigned long index;
             req.get(this->index_request_key, index);
 
-            cerr << teca_parallel_id()
-                << " teca_index_executive::get_next_request "
-                << this->index_request_key << "=" << index
-                << " extent=" << ext[0] << ", " << ext[1] << ", " << ext[2]
-                << ", " << ext[3] << ", " << ext[4] << ", " << ext[5] << endl;
+            std::ostringstream oss;
+            oss << teca_parallel_id()
+               << " teca_index_executive::get_next_request "
+               << this->index_request_key << "=" << index;
+
+            if (bds.empty())
+            {
+                if (!ext.empty())
+                    oss << " extent=" << ext[0] << ", " << ext[1] << ", "
+                        << ext[2] << ", " << ext[3] << ", " << ext[4] << ", " << ext[5];
+            }
+            else
+            {
+                oss << " bounds=" << bds[0] << ", " << bds[1] << ", "
+                    << bds[2] << ", " << bds[3] << ", " << bds[4] << ", " << bds[5];
+            }
+
+            cerr << oss.str() << endl;
         }
     }
 

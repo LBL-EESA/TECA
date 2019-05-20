@@ -184,7 +184,7 @@ std::vector<teca_metadata> teca_component_area_filter::get_upstream_request(
         teca_metadata_util::remove_post_fix(arrays, var_post_fix);
     }
 
-    req.insert("arrays", arrays);
+    req.set("arrays", arrays);
 
     // send up
     up_reqs.push_back(req);
@@ -305,13 +305,12 @@ const_p_teca_dataset teca_component_area_filter::execute(
             std::string labels_var_post_fix = labels_var + this->variable_post_fix;
             out_mesh->get_point_arrays()->set(labels_var_post_fix, filtered_labels_array);
 
-            out_metadata.insert(this->number_of_components_key + this->variable_post_fix, component_ids.size());
-            out_metadata.insert(this->component_ids_key + this->variable_post_fix, component_ids);
-            out_metadata.insert(this->component_area_key + this->variable_post_fix, component_area);
+            out_metadata.set(this->number_of_components_key + this->variable_post_fix, component_ids.size());
+            out_metadata.set(this->component_ids_key + this->variable_post_fix, component_ids);
+            out_metadata.set(this->component_area_key + this->variable_post_fix, component_area);
 
-            out_mesh->get_metadata().insert("low_area_threshold_km", low_val);
-            out_mesh->get_metadata().insert("high_area_threshold_km", high_val);
-
+            out_metadata.set("low_area_threshold_km", low_val);
+            out_metadata.set("high_area_threshold_km", high_val);
             )
         )
 

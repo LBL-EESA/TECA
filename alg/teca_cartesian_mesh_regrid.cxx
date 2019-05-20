@@ -166,7 +166,7 @@ teca_metadata teca_cartesian_mesh_regrid::get_output_metadata(
 
             teca_metadata atts;
             source_atts.get(source, atts);
-            target_atts.insert(source, atts);
+            target_atts.set(source, atts);
 
             // check if it's a time var as well
             first = source_time_vars.begin();
@@ -178,9 +178,9 @@ teca_metadata teca_cartesian_mesh_regrid::get_output_metadata(
     }
 
     // update with merged lists
-    output_md.insert("variables", target_vars);
-    output_md.insert("time variables", target_time_vars);
-    output_md.insert("attributes", target_atts);
+    output_md.set("variables", target_vars);
+    output_md.set("time variables", target_time_vars);
+    output_md.set("attributes", target_atts);
 
     return output_md;
 }
@@ -217,7 +217,7 @@ std::vector<teca_metadata> teca_cartesian_mesh_regrid::get_upstream_request(
             req_target_arrays.pop_back();
         }
     }
-    target_req.insert("arrays", req_target_arrays);
+    target_req.set("arrays", req_target_arrays);
 
 
     // compose the source request
@@ -277,8 +277,8 @@ std::vector<teca_metadata> teca_cartesian_mesh_regrid::get_upstream_request(
 
     // build the source request
     teca_metadata source_req(target_req);
-    source_req.insert("arrays", arrays);
-    source_req.insert("bounds", target_bounds, 6);
+    source_req.set("arrays", arrays);
+    source_req.set("bounds", target_bounds, 6);
 
     // send the requests up
     up_reqs[0] = target_req;

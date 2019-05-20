@@ -223,7 +223,7 @@ std::vector<teca_metadata> teca_latitude_damper::get_upstream_request(
         teca_metadata_util::remove_post_fix(arrays, var_post_fix);
     }
 
-    req.insert("arrays", arrays);
+    req.set("arrays", arrays);
 
     // send up
     up_reqs.push_back(req);
@@ -329,8 +329,9 @@ const_p_teca_dataset teca_latitude_damper::execute(
         free(filter);
     )
 
-    out_mesh->get_metadata().insert("gaussian_filter_hwhm", sigma);
-    out_mesh->get_metadata().insert("gaussian_filter_center_lat", mu);
+    teca_metadata &omd = out_mesh->get_metadata();
+    omd.set("gaussian_filter_hwhm", sigma);
+    omd.set("gaussian_filter_center_lat", mu);
 
     return out_mesh;
 }

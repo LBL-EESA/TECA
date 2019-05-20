@@ -114,9 +114,9 @@ teca_metadata teca_dataset_diff::get_output_metadata(
 
     // prepare pieline executive metadata to run a test for each input dataset
     teca_metadata omd;
-    omd.insert("index_initializer_key", std::string("number_of_tests"));
-    omd.insert("index_request_key", std::string("test_id"));
-    omd.insert("number_of_tests", n_indices_0);
+    omd.set("index_initializer_key", std::string("number_of_tests"));
+    omd.set("index_request_key", std::string("test_id"));
+    omd.set("number_of_tests", n_indices_0);
 
     return omd;
 }
@@ -154,8 +154,8 @@ std::vector<teca_metadata> teca_dataset_diff::get_upstream_request(
 
     // make the request for input 0
     teca_metadata req_0;
-    req_0.insert("index_request_key", request_key);
-    req_0.insert(request_key, test_id);
+    req_0.set("index_request_key", request_key);
+    req_0.set(request_key, test_id);
 
     // get input 1 request key
     if (input_md[1].get("index_request_key", request_key))
@@ -166,8 +166,8 @@ std::vector<teca_metadata> teca_dataset_diff::get_upstream_request(
 
     // make the request for input 1
     teca_metadata req_1;
-    req_1.insert("index_request_key", request_key);
-    req_1.insert(request_key, test_id);
+    req_1.set("index_request_key", request_key);
+    req_1.set(request_key, test_id);
 
     // send them upstream
     up_reqs.push_back(req_0);

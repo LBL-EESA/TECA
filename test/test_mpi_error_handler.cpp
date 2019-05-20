@@ -15,7 +15,7 @@ int main(int argc, char **argv)
     int rank = mpiman.get_comm_rank();
     int n_ranks = mpiman.get_comm_size();
 
-    // rank 0 tries to send to a non-existant rank
+    // rank 0 tries to send to a non-existent rank
     if (rank == 0)
     {
         int i = 0;

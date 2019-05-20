@@ -127,8 +127,7 @@ void teca_tc_candidates::set_properties(
 #endif
 
 // --------------------------------------------------------------------------
-teca_metadata teca_tc_candidates::get_output_metadata(
-    unsigned int port,
+teca_metadata teca_tc_candidates::get_output_metadata(unsigned int port,
     const std::vector<teca_metadata> &input_md)
 {
 #if TECA_DEBUG > 1
@@ -142,10 +141,8 @@ teca_metadata teca_tc_candidates::get_output_metadata(
 }
 
 // --------------------------------------------------------------------------
-int teca_tc_candidates::get_active_extent(
-    p_teca_variant_array lat,
-    p_teca_variant_array lon,
-    std::vector<unsigned long> &extent) const
+int teca_tc_candidates::get_active_extent(p_teca_variant_array lat,
+    p_teca_variant_array lon, std::vector<unsigned long> &extent) const
 {
     extent = {1, 0, 1, 0, 0, 0};
 
@@ -218,8 +215,7 @@ int teca_tc_candidates::get_active_extent(
 
 // --------------------------------------------------------------------------
 std::vector<teca_metadata> teca_tc_candidates::get_upstream_request(
-    unsigned int port,
-    const std::vector<teca_metadata> &input_md,
+    unsigned int port, const std::vector<teca_metadata> &input_md,
     const teca_metadata &request)
 {
 #if TECA_DEBUG > 1
@@ -275,16 +271,15 @@ std::vector<teca_metadata> teca_tc_candidates::get_upstream_request(
     arrays.insert(this->thickness_variable);
 
     teca_metadata up_req(request);
-    up_req.insert("arrays", arrays);
-    up_req.insert("extent", extent);
+    up_req.set("arrays", arrays);
+    up_req.set("extent", extent);
 
     up_reqs.push_back(up_req);
     return up_reqs;
 }
 
 // --------------------------------------------------------------------------
-const_p_teca_dataset teca_tc_candidates::execute(
-    unsigned int port,
+const_p_teca_dataset teca_tc_candidates::execute(unsigned int port,
     const std::vector<const_p_teca_dataset> &input_data,
     const teca_metadata &request)
 {

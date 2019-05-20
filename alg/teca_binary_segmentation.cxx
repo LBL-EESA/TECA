@@ -207,7 +207,7 @@ std::vector<teca_metadata> teca_binary_segmentation::get_upstream_request(
     this->get_segmentation_variable(segmentation_var);
     arrays.erase(segmentation_var);
 
-    req.insert("arrays", arrays);
+    req.set("arrays", arrays);
 
     // send up
     up_reqs.push_back(req);
@@ -319,8 +319,9 @@ const_p_teca_dataset teca_binary_segmentation::execute(
     this->get_segmentation_variable(segmentation_var);
     out_mesh->get_point_arrays()->set(segmentation_var, segmentation);
 
-    out_mesh->get_metadata().insert("low_threshold_value", low);
-    out_mesh->get_metadata().insert("high_threshold_value", high);
+    teca_metadata &out_metadata = out_mesh->get_metadata();
+    out_metadata.set("low_threshold_value", low);
+    out_metadata.set("high_threshold_value", high);
 
     return out_mesh;
 }

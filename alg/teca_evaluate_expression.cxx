@@ -138,7 +138,7 @@ std::vector<teca_metadata> teca_evaluate_expression::get_upstream_request(
     arrays.erase(this->result_variable);
 
     // update the request
-    req.insert("arrays", arrays);
+    req.set("arrays", arrays);
 
     // send it up
     up_reqs.push_back(req);

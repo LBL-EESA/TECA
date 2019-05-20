@@ -140,7 +140,7 @@ std::vector<teca_metadata> teca_temporal_average::get_upstream_request(
                 << "request time_step " << i << endl;
 #endif
             teca_metadata up_req(request);
-            up_req.insert("time_step", i);
+            up_req.set("time_step", i);
             up_reqs.push_back(up_req);
         }
     }

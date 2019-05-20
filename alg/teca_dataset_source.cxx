@@ -57,9 +57,9 @@ teca_metadata teca_dataset_source::get_output_metadata(unsigned int port,
 
     // handle pipeline mechanics for them
     teca_metadata omd;
-    omd.insert("index_initializer_key", std::string("num_datasets"));
-    omd.insert("num_datasets", this->datasets.size());
-    omd.insert("index_request_key", std::string("dataset_id"));
+    omd.set("index_initializer_key", std::string("num_datasets"));
+    omd.set("num_datasets", this->datasets.size());
+    omd.set("index_request_key", std::string("dataset_id"));
 
     return omd;
 }
@@ -109,8 +109,8 @@ const_p_teca_dataset teca_dataset_source::execute(unsigned int port,
     // serve it up
     p_teca_dataset ds = this->datasets[index];
 
-    ds->get_metadata().insert("index_request_key", std::string(request_key));
-    ds->get_metadata().insert(request_key, index);
+    ds->get_metadata().set("index_request_key", std::string(request_key));
+    ds->get_metadata().set(request_key, index);
 
     return ds;
 }
