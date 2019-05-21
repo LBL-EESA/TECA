@@ -1,7 +1,7 @@
 #include "teca_config.h"
 #include "teca_cf_reader.h"
 #include "teca_binary_segmentation.h"
-#include "teca_vtk_cartesian_mesh_writer.h"
+#include "teca_cartesian_mesh_writer.h"
 #include "teca_file_util.h"
 #include "teca_system_interface.h"
 
@@ -39,7 +39,7 @@ int main(int argc, char **argv)
     seg->set_threshold_by_percentile();
     seg->set_input_connection(cfr->get_output_port());
 
-    p_teca_vtk_cartesian_mesh_writer wri = teca_vtk_cartesian_mesh_writer::New();
+    p_teca_cartesian_mesh_writer wri = teca_cartesian_mesh_writer::New();
     wri->set_input_connection(seg->get_output_port());
     wri->set_file_name(out_file);
 

@@ -1,5 +1,5 @@
 #include "teca_latitude_damper.h"
-#include "teca_vtk_cartesian_mesh_writer.h"
+#include "teca_cartesian_mesh_writer.h"
 #include "teca_index_executive.h"
 #include "teca_system_interface.h"
 #include "teca_dataset_capture.h"
@@ -106,7 +106,7 @@ int main(int argc, char **argv)
     exe->set_start_index(0);
     exe->set_end_index(0);
 
-    p_teca_vtk_cartesian_mesh_writer wri = teca_vtk_cartesian_mesh_writer::New();
+    p_teca_cartesian_mesh_writer wri = teca_cartesian_mesh_writer::New();
     wri->set_input_connection(damp_o->get_output_port());
     wri->set_executive(exe);
     wri->set_file_name(out_file);

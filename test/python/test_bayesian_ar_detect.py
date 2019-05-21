@@ -61,7 +61,7 @@ ca = teca_2d_component_area.New()
 ca.set_input_connection(cc.get_output_port())
 ca.set_component_variable('ars')
 
-wri = teca_vtk_cartesian_mesh_writer.New()
+wri = teca_cartesian_mesh_writer.New()
 wri.set_input_connection(ca.get_output_port())
 wri.set_file_name('bayesian_ar_detect_%t%.%e%')
 

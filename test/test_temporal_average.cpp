@@ -1,7 +1,7 @@
 #include "teca_cf_reader.h"
 #include "teca_normalize_coordinates.h"
 #include "teca_temporal_average.h"
-#include "teca_vtk_cartesian_mesh_writer.h"
+#include "teca_cartesian_mesh_writer.h"
 #include "teca_index_executive.h"
 #include "teca_system_interface.h"
 
@@ -49,7 +49,7 @@ int main(int argc, char **argv)
     a->set_input_connection(c->get_output_port());
 
     // create the vtk writer connected to the cf reader
-    p_teca_vtk_cartesian_mesh_writer w = teca_vtk_cartesian_mesh_writer::New();
+    p_teca_cartesian_mesh_writer w = teca_cartesian_mesh_writer::New();
     w->set_file_name(output);
     w->set_input_connection(a->get_output_port());
 

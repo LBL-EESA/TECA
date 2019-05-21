@@ -99,7 +99,7 @@ exe = teca_index_executive.New()
 exe.set_start_index(0)
 exe.set_end_index(0)
 
-wri = teca_vtk_cartesian_mesh_writer.New()
+wri = teca_cartesian_mesh_writer.New()
 wri.set_input_connection(cao.get_output_port())
 wri.set_executive(exe)
 wri.set_file_name(out_file)

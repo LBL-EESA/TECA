@@ -16,7 +16,7 @@
 #include "teca_table_sort.h"
 #include "teca_table_calendar.h"
 #include "teca_table_writer.h"
-#include "teca_vtk_cartesian_mesh_writer.h"
+#include "teca_cartesian_mesh_writer.h"
 #include "teca_mpi_manager.h"
 #include "teca_system_interface.h"
 #include "teca_mpi.h"

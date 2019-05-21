@@ -1,4 +1,4 @@
-#include "teca_vtk_cartesian_mesh_writer.h"
+#include "teca_cartesian_mesh_writer.h"
 
 #include "teca_config.h"
 #include "teca_cartesian_mesh.h"
@@ -81,7 +81,7 @@ int write_vtk_legacy_header(FILE *ofile,
         char date_str[128] = {'\0'};
         strftime(date_str, 128, "%F %T", timeinfo);
 
-        fprintf(ofile, "TECA vtk_cartesian_mesh_writer "
+        fprintf(ofile, "TECA cartesian_mesh_writer "
             TECA_VERSION_DESCR " %s\n", date_str);
     }
     else
@@ -342,7 +342,7 @@ int write_bin(const_p_teca_cartesian_mesh mesh, const std::string &file_name,
 };
 
 // --------------------------------------------------------------------------
-teca_vtk_cartesian_mesh_writer::teca_vtk_cartesian_mesh_writer()
+teca_cartesian_mesh_writer::teca_cartesian_mesh_writer()
     : file_name(""), binary(1), output_format(format_auto)
 {
     this->set_number_of_input_connections(1);
@@ -350,16 +350,16 @@ teca_vtk_cartesian_mesh_writer::teca_vtk_cartesian_mesh_writer()
 }
 
 // --------------------------------------------------------------------------
-teca_vtk_cartesian_mesh_writer::~teca_vtk_cartesian_mesh_writer()
+teca_cartesian_mesh_writer::~teca_cartesian_mesh_writer()
 {}
 
 #if defined(TECA_HAS_BOOST)
 // --------------------------------------------------------------------------
-void teca_vtk_cartesian_mesh_writer::get_properties_description(
+void teca_cartesian_mesh_writer::get_properties_description(
     const std::string &prefix, options_description &global_opts)
 {
     options_description opts("Options for "
-        + (prefix.empty()?"teca_vtk_cartesian_mesh_writer":prefix));
+        + (prefix.empty()?"teca_cartesian_mesh_writer":prefix));
 
     opts.add_options()
         TECA_POPTS_GET(std::string, prefix, file_name,
@@ -375,7 +375,7 @@ void teca_vtk_cartesian_mesh_writer::get_properties_description(
 }
 
 // --------------------------------------------------------------------------
-void teca_vtk_cartesian_mesh_writer::set_properties(
+void teca_cartesian_mesh_writer::set_properties(
     const std::string &prefix, variables_map &opts)
 {
     TECA_POPTS_SET(opts, std::string, prefix, file_name)
@@ -385,7 +385,7 @@ void teca_vtk_cartesian_mesh_writer::set_properties(
 #endif
 
 // --------------------------------------------------------------------------
-const_p_teca_dataset teca_vtk_cartesian_mesh_writer::execute(
+const_p_teca_dataset teca_cartesian_mesh_writer::execute(
     unsigned int port, const std::vector<const_p_teca_dataset> &input_data,
     const teca_metadata &request)
 {

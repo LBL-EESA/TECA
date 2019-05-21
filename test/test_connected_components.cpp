@@ -12,7 +12,7 @@
 #include "teca_dataset_diff.h"
 #include "teca_table_reader.h"
 #include "teca_table_writer.h"
-#include "teca_vtk_cartesian_mesh_writer.h"
+#include "teca_cartesian_mesh_writer.h"
 #include "teca_index_executive.h"
 #include "teca_file_util.h"
 #include "teca_system_interface.h"
@@ -98,7 +98,7 @@ int main(int argc, char **argv)
     exe->set_start_index(first_step);
     exe->set_end_index(end_index);
 
-    p_teca_vtk_cartesian_mesh_writer wri = teca_vtk_cartesian_mesh_writer::New();
+    p_teca_cartesian_mesh_writer wri = teca_cartesian_mesh_writer::New();
     wri->set_input_connection(cao->get_output_port());
     wri->set_executive(exe);
     wri->set_file_name(out_file);

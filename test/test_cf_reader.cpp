@@ -2,7 +2,7 @@
 #include "teca_cf_reader.h"
 #include "teca_normalize_coordinates.h"
 #include "teca_normalize_coordinates.h"
-#include "teca_vtk_cartesian_mesh_writer.h"
+#include "teca_cartesian_mesh_writer.h"
 #include "teca_index_executive.h"
 #include "teca_mpi_manager.h"
 #include "teca_system_interface.h"
@@ -18,7 +18,7 @@ int parse_command_line(
     char **argv,
     int rank,
     const p_teca_cf_reader &cf_reader,
-    const p_teca_vtk_cartesian_mesh_writer &vtk_writer,
+    const p_teca_cartesian_mesh_writer &vtk_writer,
     const p_teca_index_executive exec);
 
 
@@ -32,7 +32,7 @@ int main(int argc, char **argv)
 
     // create the pipeline objects
     p_teca_cf_reader cf_reader = teca_cf_reader::New();
-    p_teca_vtk_cartesian_mesh_writer vtk_writer = teca_vtk_cartesian_mesh_writer::New();
+    p_teca_cartesian_mesh_writer vtk_writer = teca_cartesian_mesh_writer::New();
     p_teca_index_executive exec = teca_index_executive::New();
 
     // initialize them from command line options
@@ -56,7 +56,7 @@ int main(int argc, char **argv)
 // --------------------------------------------------------------------------
 int parse_command_line(int argc, char **argv, int rank,
     const p_teca_cf_reader &cf_reader,
-    const p_teca_vtk_cartesian_mesh_writer &vtk_writer,
+    const p_teca_cartesian_mesh_writer &vtk_writer,
     const p_teca_index_executive exec)
 {
     if (argc < 3)

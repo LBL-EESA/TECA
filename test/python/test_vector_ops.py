@@ -46,7 +46,7 @@ exe = teca_index_executive.New()
 exe.set_start_index(first_step)
 exe.set_end_index(end_index)
 
-wri = teca_vtk_cartesian_mesh_writer.New()
+wri = teca_cartesian_mesh_writer.New()
 wri.set_input_connection(vort.get_output_port())
 wri.set_executive(exe)
 wri.set_file_name(out_file)

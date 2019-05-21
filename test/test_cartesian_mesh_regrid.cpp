@@ -3,7 +3,7 @@
 #include "teca_normalize_coordinates.h"
 #include "teca_cartesian_mesh_subset.h"
 #include "teca_cartesian_mesh_regrid.h"
-#include "teca_vtk_cartesian_mesh_writer.h"
+#include "teca_cartesian_mesh_writer.h"
 #include "teca_index_executive.h"
 #include "teca_cartesian_mesh_reader.h"
 #include "teca_dataset_diff.h"
@@ -138,7 +138,7 @@ int main(int argc, char **argv)
         // make a baseline
         cerr << "generating baseline image " << out_file << endl;
 
-        p_teca_vtk_cartesian_mesh_writer baseline_writer = teca_vtk_cartesian_mesh_writer::New();
+        p_teca_cartesian_mesh_writer baseline_writer = teca_cartesian_mesh_writer::New();
         baseline_writer->set_input_connection(ss->get_output_port());
         baseline_writer->set_file_name(out_file);
 

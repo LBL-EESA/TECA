@@ -49,7 +49,7 @@ alg.set_execute_callback(wind_speed.execute)
 alg.set_input_connection(cfr.get_output_port())
 
 # add the writer
-wri = teca_vtk_cartesian_mesh_writer.New()
+wri = teca_cartesian_mesh_writer.New()
 wri.set_input_connection(alg.get_output_port())
 wri.set_file_name('amip_run2_%t%.vtk')
 
