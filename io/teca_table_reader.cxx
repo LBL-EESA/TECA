@@ -282,19 +282,32 @@ const_p_teca_dataset teca_table_reader::execute(unsigned int port,
         return nullptr;
     }
 #endif
-
-    bool distribute = !this->index_column.empty();
-
-    // not running in subsetting/parallel mode retrun
-    // the complete table, it is empty off rank 0
-    if (!distribute)
-        return this->internals->table;
-
-    // subset the table, pull out only rows for the requested index
+    // get the requested index
     unsigned long index = 0;
     request.get("object_id", index);
 
+
+    // not running in subsetting/parallel mode retrun
+    // the complete table, it is empty off rank 0
+    bool distribute = !this->index_column.empty();
+    if (!distribute)
+    {
+        // copy the data, add the executive control keys
+        if (this->internals->table)
+        {
+            p_teca_table out_table = teca_table::New();
+            out_table->shallow_copy(this->internals->table);
+            teca_metadata &md = out_table->get_metadata();
+            md.set("index_request_key", std::string("object_id"));
+            md.set("object_id", index);
+            return out_table;
+        }
+        return nullptr;
+    }
+
+    // subset the table, pull out only rows for the requested index
     p_teca_table out_table = teca_table::New();
+
     out_table->copy_structure(this->internals->table);
     out_table->copy_metadata(this->internals->table);
 
