@@ -37,7 +37,7 @@ template <> struct cpp_tt<PY_T>                                         \
     static type value(PyObject *obj) { return PY_AS_CPP(obj); }         \
 };
 teca_py_object_cpp_tt_declare(int, long, PyIntegerCheck, PyIntegerToCInt)
-teca_py_object_cpp_tt_declare(long, long, PyIntegerCheck, PyIntegerToCInt)
+teca_py_object_cpp_tt_declare(long, long, PyLongCheck, PyLongToCLong)
 teca_py_object_cpp_tt_declare(float, double, PyFloat_Check, PyFloat_AsDouble)
 teca_py_object_cpp_tt_declare(char*, std::string, PyStringCheck, PyStringToCString)
 teca_py_object_cpp_tt_declare(bool, int, PyBool_Check, PyIntegerToCInt)
