@@ -21,7 +21,7 @@ using std::endl;
 
 #define TECA_DEBUG 0
 #if TECA_DEBUG > 0
-#include "teca_vtk_cartesian_mesh_writer.h"
+#include "teca_cartesian_mesh_writer.h"
 #include "teca_programmable_algorithm.h"
 int write_mesh(
     const const_p_teca_cartesian_mesh &mesh,
@@ -1334,8 +1334,8 @@ int write_mesh(
         const teca_metadata &) -> const_p_teca_dataset { return m; }
         );
 
-    p_teca_vtk_cartesian_mesh_writer w
-        = teca_vtk_cartesian_mesh_writer::New();
+    p_teca_cartesian_mesh_writer w
+        = teca_cartesian_mesh_writer::New();
 
     w->set_file_name(file_name);
     w->set_input_connection(s->get_output_port());

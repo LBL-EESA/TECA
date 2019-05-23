@@ -1,5 +1,5 @@
-#ifndef teca_vtk_cartesian_mesh_writer_h
-#define teca_vtk_cartesian_mesh_writer_h
+#ifndef teca_cartesian_mesh_writer_h
+#define teca_cartesian_mesh_writer_h
 
 #include "teca_shared_object.h"
 #include "teca_algorithm.h"
@@ -8,7 +8,7 @@
 #include <vector>
 #include <string>
 
-TECA_SHARED_OBJECT_FORWARD_DECL(teca_vtk_cartesian_mesh_writer)
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_cartesian_mesh_writer)
 
 /**
 an algorithm that writes cartesian meshes in VTK format.
@@ -16,11 +16,11 @@ when VTK is found then the files are written using the
 XML formats. otherwise legacy format is used. Can be
 written as raw binary (default) or as ascii.
 */
-class teca_vtk_cartesian_mesh_writer : public teca_algorithm
+class teca_cartesian_mesh_writer : public teca_algorithm
 {
 public:
-    TECA_ALGORITHM_STATIC_NEW(teca_vtk_cartesian_mesh_writer)
-    ~teca_vtk_cartesian_mesh_writer();
+    TECA_ALGORITHM_STATIC_NEW(teca_cartesian_mesh_writer)
+    ~teca_cartesian_mesh_writer();
 
     // report/initialize to/from Boost program options
     // objects.
@@ -34,18 +34,27 @@ public:
     // set the output type. can be binary or ascii.
     TECA_ALGORITHM_PROPERTY(int, binary)
 
+    // Select the output file format. 0:bin, 1:vtr, 2:vtk, 3:auto
+    // the default is bin.
+    enum {format_bin, format_vtk, format_vtr, format_auto};
+    TECA_ALGORITHM_PROPERTY(int, output_format)
+    void set_output_format_bin(){ this->set_output_format(format_bin); }
+    void set_output_format_vtk(){ this->set_output_format(format_vtk); }
+    void set_output_format_vtr(){ this->set_output_format(format_vtr); }
+    void set_output_format_auto(){ this->set_output_format(format_auto); }
+
 protected:
-    teca_vtk_cartesian_mesh_writer();
+    teca_cartesian_mesh_writer();
 
 private:
-    const_p_teca_dataset execute(
-        unsigned int port,
+    const_p_teca_dataset execute(unsigned int port,
         const std::vector<const_p_teca_dataset> &input_data,
         const teca_metadata &request) override;
 
 private:
     std::string file_name;
     int binary;
+    int output_format;
 };
 
 #endif

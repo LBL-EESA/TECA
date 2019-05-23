@@ -8,6 +8,8 @@ include_directories(
 
 set(teca_io_srcs
     teca_file_util.cxx
+    teca_cartesian_mesh_reader.cxx
+    teca_cartesian_mesh_writer.cxx
     teca_table_reader.cxx
     teca_table_writer.cxx
     teca_vtk_util.cxx
@@ -34,7 +36,6 @@ if (TECA_HAS_VTK)
 elseif (TECA_HAS_PARAVIEW)
     include(${PARAVIEW_USE_FILE})
 endif()
-list(APPEND teca_io_srcs teca_vtk_cartesian_mesh_writer.cxx)
 if (TECA_HAS_VTK OR TECA_HAS_PARAVIEW)
     list(APPEND teca_io_link ${VTK_LIBRARIES})
 endif()

@@ -36,18 +36,21 @@ cfr.set_x_axis_variable('lon')
 cfr.set_y_axis_variable('lat')
 cfr.set_t_axis_variable('time')
 
+coords = teca_normalize_coordinates.New()
+coords.set_input_connection(cfr.get_output_port())
+
 alg = teca_derived_quantity.New()
 alg.append_dependent_variable(u_var)
 alg.append_dependent_variable(v_var)
 alg.set_derived_variable('wind_speed')
 alg.set_execute_callback(wind_speed.execute)
-alg.set_input_connection(cfr.get_output_port())
+alg.set_input_connection(coords.get_output_port())
 
 exe = teca_index_executive.New()
 exe.set_start_index(first_step)
 exe.set_end_index(end_index)
 
-wri = teca_vtk_cartesian_mesh_writer.New()
+wri = teca_cartesian_mesh_writer.New()
 wri.set_input_connection(alg.get_output_port())
 wri.set_executive(exe)
 wri.set_file_name(out_file)

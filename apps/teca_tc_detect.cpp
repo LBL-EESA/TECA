@@ -1,5 +1,6 @@
 #include "teca_config.h"
 #include "teca_cf_reader.h"
+#include "teca_normalize_coordinates.h"
 #include "teca_l2_norm.h"
 #include "teca_vorticity.h"
 #include "teca_derived_quantity.h"
@@ -115,8 +116,11 @@ int main(int argc, char **argv)
     p_teca_cf_reader sim_reader = teca_cf_reader::New();
     sim_reader->get_properties_description("sim_reader", advanced_opt_defs);
 
+    p_teca_normalize_coordinates sim_coords = teca_normalize_coordinates::New();
+    sim_coords->set_input_connection(sim_reader->get_output_port());
+
     p_teca_l2_norm surf_wind = teca_l2_norm::New();
-    surf_wind->set_input_connection(sim_reader->get_output_port());
+    surf_wind->set_input_connection(sim_coords->get_output_port());
     surf_wind->set_component_0_variable("UBOT");
     surf_wind->set_component_1_variable("VBOT");
     surf_wind->set_l2_norm_variable("surface_wind");

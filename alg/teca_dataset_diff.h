@@ -68,12 +68,6 @@ protected:
     // printf formatting.
     void datasets_differ(const char* info, ...);
 
-    // Push a frame onto our context stack.
-    void push_frame(const std::string& frame);
-
-    // Pop a frame off our context stack.
-    void pop_frame();
-
 private:
     teca_metadata get_output_metadata(unsigned int port,
         const std::vector<teca_metadata> &input_md) override;
@@ -89,9 +83,6 @@ private:
 private:
     // Tolerance for equality of field values.
     double tolerance;
-
-    // Context stack for reporting.
-    std::vector<std::string> stack;
 };
 
 #endif

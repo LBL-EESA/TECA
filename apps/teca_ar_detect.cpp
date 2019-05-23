@@ -1,5 +1,6 @@
 #include "teca_config.h"
 #include "teca_cf_reader.h"
+#include "teca_normalize_coordinates.h"
 #include "teca_temporal_average.h"
 #include "teca_cartesian_mesh_regrid.h"
 #include "teca_ar_detect.h"
@@ -46,8 +47,10 @@ int main(int argc, char **argv)
     // create pipeline objects here so that they
     // can be initialized from the command line
     p_teca_cf_reader water_vapor_reader = teca_cf_reader::New();
+    p_teca_normalize_coordinates water_vapor_coords = teca_normalize_coordinates::New();
     p_teca_temporal_average water_vapor_average = teca_temporal_average::New();
     p_teca_cf_reader land_sea_mask_reader = teca_cf_reader::New();
+    p_teca_normalize_coordinates  land_sea_mask_coords = teca_normalize_coordinates::New();
     p_teca_cartesian_mesh_regrid land_sea_mask_regrid = teca_cartesian_mesh_regrid::New();
     p_teca_ar_detect ar_detect = teca_ar_detect::New();
     p_teca_table_reduce map_reduce = teca_table_reduce::New();
@@ -198,7 +201,7 @@ int main(int argc, char **argv)
     {
         string var = opt_vals["land_sea_mask_var"].as<string>();
         ar_detect->set_land_sea_mask_variable(var);
-        land_sea_mask_regrid->add_source_array(var);
+        land_sea_mask_regrid->append_array(var);
     }
 
     if (opt_vals.count("first_step"))
@@ -238,7 +241,7 @@ int main(int argc, char **argv)
     if (use_land_sea_mask
         && ((land_sea_mask_reader->get_file_name().empty()
         && land_sea_mask_reader->get_files_regex().empty())
-        || land_sea_mask_regrid->get_source_arrays().empty()))
+        || land_sea_mask_regrid->get_number_of_arrays()))
     {
         cerr << endl
             << "Error: missing file name, regex, or variable name "
@@ -259,11 +262,12 @@ int main(int argc, char **argv)
 #endif
 
     // build the pipeline
-    p_teca_algorithm alg_0 = water_vapor_reader;
+    water_vapor_coords->set_input_connection(water_vapor_reader->get_output_port());
+    p_teca_algorithm alg_0 = water_vapor_coords;
     if (use_time_average)
     {
         // add optional stage for temporal average
-        water_vapor_average->set_input_connection(water_vapor_reader->get_output_port());
+        water_vapor_average->set_input_connection(water_vapor_coords->get_output_port());
         alg_0 = water_vapor_average;
     }
 
@@ -272,9 +276,10 @@ int main(int argc, char **argv)
     {
         // add optional land sea mask reader and regrid stages
         land_sea_mask_reader->set_t_axis_variable("");
+        land_sea_mask_coords->set_input_connection(land_sea_mask_reader->get_output_port());
 
         land_sea_mask_regrid->set_input_connection(0, alg_0->get_output_port());
-        land_sea_mask_regrid->set_input_connection(1, land_sea_mask_reader->get_output_port());
+        land_sea_mask_regrid->set_input_connection(1, land_sea_mask_coords->get_output_port());
         alg_1 = land_sea_mask_regrid;
     }
 

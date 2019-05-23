@@ -11,6 +11,7 @@ set(teca_alg_cxx_srcs
     teca_apply_binary_mask.cxx
     teca_binary_segmentation.cxx
     teca_bayesian_ar_detect.cxx
+    teca_cartesian_mesh_source.cxx
     teca_cartesian_mesh_subset.cxx
     teca_cartesian_mesh_regrid.cxx
     teca_connected_components.cxx
@@ -27,6 +28,7 @@ set(teca_alg_cxx_srcs
     teca_latitude_damper.cxx
     teca_laplacian.cxx
     teca_mask.cxx
+    teca_normalize_coordinates.cxx
     teca_parser.cxx
     teca_programmable_algorithm.cxx
     teca_programmable_reduce.cxx

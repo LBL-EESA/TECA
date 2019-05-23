@@ -3,7 +3,7 @@
 #include "teca_cf_reader.h"
 #include "teca_table_reader.h"
 #include "teca_table_writer.h"
-#include "teca_vtk_cartesian_mesh_writer.h"
+#include "teca_cartesian_mesh_writer.h"
 %}
 
 /***************************************************************************
@@ -33,9 +33,9 @@
 %include "teca_table_writer.h"
 
 /***************************************************************************
- vtk_cartesian_mesh_writer
+ cartesian_mesh_writer
  ***************************************************************************/
-%ignore teca_vtk_cartesian_mesh_writer::shared_from_this;
-%shared_ptr(teca_vtk_cartesian_mesh_writer)
-%ignore teca_vtk_cartesian_mesh_writer::operator=;
-%include "teca_vtk_cartesian_mesh_writer.h"
+%ignore teca_cartesian_mesh_writer::shared_from_this;
+%shared_ptr(teca_cartesian_mesh_writer)
+%ignore teca_cartesian_mesh_writer::operator=;
+%include "teca_cartesian_mesh_writer.h"

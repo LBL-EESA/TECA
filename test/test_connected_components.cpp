@@ -1,4 +1,5 @@
 #include "teca_cf_reader.h"
+#include "teca_normalize_coordinates.h"
 #include "teca_mask.h"
 #include "teca_l2_norm.h"
 #include "teca_binary_segmentation.h"
@@ -11,7 +12,7 @@
 #include "teca_dataset_diff.h"
 #include "teca_table_reader.h"
 #include "teca_table_writer.h"
-#include "teca_vtk_cartesian_mesh_writer.h"
+#include "teca_cartesian_mesh_writer.h"
 #include "teca_index_executive.h"
 #include "teca_file_util.h"
 #include "teca_system_interface.h"
@@ -59,8 +60,11 @@ int main(int argc, char **argv)
     cfr->set_t_axis_variable(t_var);
     cfr->set_periodic_in_x(1);
 
+    p_teca_normalize_coordinates coords = teca_normalize_coordinates::New();
+    coords->set_input_connection(cfr->get_output_port());
+
     p_teca_mask mask = teca_mask::New();
-    mask->set_input_connection(cfr->get_output_port());
+    mask->set_input_connection(coords->get_output_port());
     mask->set_low_threshold_value(1e4);
     mask->set_mask_value(0);
     mask->append_mask_variable(u_var);
@@ -94,7 +98,7 @@ int main(int argc, char **argv)
     exe->set_start_index(first_step);
     exe->set_end_index(end_index);
 
-    p_teca_vtk_cartesian_mesh_writer wri = teca_vtk_cartesian_mesh_writer::New();
+    p_teca_cartesian_mesh_writer wri = teca_cartesian_mesh_writer::New();
     wri->set_input_connection(cao->get_output_port());
     wri->set_executive(exe);
     wri->set_file_name(out_file);
