@@ -367,26 +367,28 @@ int teca_dataset_diff::compare_arrays(
     // handle arrays of strings
     TEMPLATE_DISPATCH_CLASS(
         const teca_variant_array_impl, std::string,
-        array1.get(), array2.get(),
-
-        const TT *a1 = static_cast<const TT*>(array1.get());
-        const TT *a2 = static_cast<const TT*>(array2.get());
-
-        for (size_t i = 0; i < n_elem; ++i)
+        array1.get(),
+        if (dynamic_cast<const TT*>(array2.get()))
         {
-            // compare elements
-            const std::string &v1 = a1->get(i);
-            const std::string &v2 = a2->get(i);
-            if (v1 != v2)
-            {
-                TECA_ERROR("string element " << i << " not equal. ref value \"" << v1
-                    << "\" is not equal to test value \"" << v2 << "\"")
-                return -1;
-            }
-        }
+            const TT *a1 = static_cast<const TT*>(array1.get());
+            const TT *a2 = static_cast<const TT*>(array2.get());
 
-        // we are here, arrays are the same
-        return 0;
+            for (size_t i = 0; i < n_elem; ++i)
+            {
+                // compare elements
+                const std::string &v1 = a1->get(i);
+                const std::string &v2 = a2->get(i);
+                if (v1 != v2)
+                {
+                    TECA_ERROR("string element " << i << " not equal. ref value \"" << v1
+                        << "\" is not equal to test value \"" << v2 << "\"")
+                    return -1;
+                }
+            }
+
+            // we are here, arrays are the same
+            return 0;
+        }
         )
 
     // we are here, array 1 type is not handled

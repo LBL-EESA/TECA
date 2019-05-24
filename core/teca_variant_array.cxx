@@ -6,14 +6,20 @@
 void teca_variant_array::copy(const teca_variant_array &other)
 {
     TEMPLATE_DISPATCH_CLASS(
-        teca_variant_array_impl, std::string, this, &other,
-        *p1_tt = *p2_tt;
-        return;
+        teca_variant_array_impl, std::string, this,
+        if (const TT *p2_tt = dynamic_cast<const TT*>(&other))
+        {
+            *p1_tt = *p2_tt;
+            return;
+        }
         )
     TEMPLATE_DISPATCH_CLASS(
-        teca_variant_array_impl, teca_metadata, this, &other,
-        *p1_tt = *p2_tt;
-        return;
+        teca_variant_array_impl, teca_metadata, this,
+        if (const TT *p2_tt = dynamic_cast<const TT*>(&other))
+        {
+            *p1_tt = *p2_tt;
+            return;
+        }
         )
     TEMPLATE_DISPATCH(teca_variant_array_impl, this,
         TT *this_t = static_cast<TT*>(this);
@@ -27,14 +33,20 @@ void teca_variant_array::copy(const teca_variant_array &other)
 void teca_variant_array::append(const teca_variant_array &other)
 {
     TEMPLATE_DISPATCH_CLASS(
-        teca_variant_array_impl, std::string, this, &other,
-        p1_tt->append(p2_tt->m_data);
-        return;
+        teca_variant_array_impl, std::string, this,
+        if (const TT *p2_tt = dynamic_cast<const TT*>(&other))
+        {
+            p1_tt->append(p2_tt->m_data);
+            return;
+        }
         )
     TEMPLATE_DISPATCH_CLASS(
-        teca_variant_array_impl, teca_metadata, this, &other,
-        p1_tt->append(p2_tt->m_data);
-        return;
+        teca_variant_array_impl, teca_metadata, this,
+        if (const TT *p2_tt = dynamic_cast<const TT*>(&other))
+        {
+            p1_tt->append(p2_tt->m_data);
+            return;
+        }
         )
     TEMPLATE_DISPATCH(teca_variant_array_impl, this,
         TT *this_t = static_cast<TT*>(this);

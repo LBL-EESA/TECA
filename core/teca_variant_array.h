@@ -513,13 +513,12 @@ private:
 // p1 - base class pointer
 // p2 - const base class pointer
 // body - code to execute if p1 and p2's type match
-#define TEMPLATE_DISPATCH_CLASS(tt, nt, p1, p2, body)   \
+#define TEMPLATE_DISPATCH_CLASS(tt, nt, p1, body)   \
     {                                                   \
     using TT = tt<nt>;                                  \
     using NT = nt;                                      \
     TT *p1_tt = dynamic_cast<TT*>(p1);                  \
-    const TT *p2_tt = dynamic_cast<const TT*>(p2);      \
-    if (p1_tt && p2_tt)                                 \
+    if (p1_tt)                                          \
     {                                                   \
         body                                            \
     }                                                   \
