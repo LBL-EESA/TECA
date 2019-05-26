@@ -144,12 +144,19 @@ public:
             size_t start = 0;
             p_teca_variant_array_impl<NC_T> var = teca_variant_array_impl<NC_T>::New();
             var->resize(var_size);
+#if !defined(HDF5_THREAD_SAFE)
+            {
+            std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
             if ((ierr = nc_get_vara(file_id, var_id, &start, &var_size, var->get())) != NC_NOERR)
             {
                 TECA_ERROR("Failed to read variable \"" << m_variable  << "\" from \""
                     << m_file << "\". " << nc_strerror(ierr))
                 return std::make_pair(m_id, nullptr);
             }
+#if !defined(HDF5_THREAD_SAFE)
+            }
+#endif
             // success!
             return std::make_pair(m_id, var);
             )
@@ -400,9 +407,6 @@ teca_metadata teca_cf_reader::get_output_metadata(
             std::vector<std::string> vars;
             std::vector<std::string> time_vars; // anything that has the time dimension as it's only dim
 
-#if !defined(HDF5_THREAD_SAFE)
-            {std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
-#endif
             teca_netcdf_util::netcdf_handle fh;
             if (fh.open(file.c_str(), NC_NOWRITE))
             {
@@ -618,9 +622,6 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     z_axis = z;
                     )
             }
-#if !defined(HDF5_THREAD_SAFE)
-            }
-#endif
 
             // collect time steps from this and the rest of the files.
             // there are a couple of  performance issues on Lustre.
@@ -1082,6 +1083,10 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
         p_teca_variant_array array;
         NC_DISPATCH(type,
             p_teca_variant_array_impl<NC_T> a = teca_variant_array_impl<NC_T>::New(mesh_size);
+#if !defined(HDF5_THREAD_SAFE)
+            {
+            std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
             if ((ierr = nc_get_vara(file_id,  id, &starts[0], &counts[0], a->get())) != NC_NOERR)
             {
                 TECA_ERROR("time_step=" << time_step
@@ -1089,6 +1094,9 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
                     << file << endl << nc_strerror(ierr))
                 continue;
             }
+#if !defined(HDF5_THREAD_SAFE)
+            }
+#endif
             array = a;
             )
         mesh->get_point_arrays()->append(arrays[i], array);
@@ -1120,6 +1128,10 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
         size_t one = 1;
         NC_DISPATCH(type,
             p_teca_variant_array_impl<NC_T> a = teca_variant_array_impl<NC_T>::New(1);
+#if !defined(HDF5_THREAD_SAFE)
+            {
+            std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
             if ((ierr = nc_get_vara(file_id,  id, &starts[0], &one, a->get())) != NC_NOERR)
             {
                 TECA_ERROR("time_step=" << time_step
@@ -1127,6 +1139,9 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
                     << file << endl << nc_strerror(ierr))
                 continue;
             }
+#if !defined(HDF5_THREAD_SAFE)
+            }
+#endif
             array = a;
             )
         mesh->get_information_arrays()->append(time_vars[i], array);
