@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python@TECA_PYTHON_VERSION@
 import sys
 from teca import *
 import argparse
