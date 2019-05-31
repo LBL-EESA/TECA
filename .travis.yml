@@ -13,6 +13,8 @@ env:
   global:
     - BUILD_TYPE=Debug
     - TECA_DIR=/travis_teca_dir
+    - TECA_PYTHON_VERSION=2
+    - TECA_DATA_REVISION=39
   matrix:
     - DOCKER_IMAGE=ubuntu IMAGE_VERSION=18.04 SCRIPT_DIR=ubuntu_18_04
     - DOCKER_IMAGE=fedora IMAGE_VERSION=28 SCRIPT_DIR=fedora_28
@@ -28,52 +30,52 @@ matrix:
       env: NO_DOCKER=TRUE
 
 before_install:
-  - >4
+  - >
     if [[ "$TRAVIS_OS_NAME" != "osx" ]];
     then
-        docker pull $DOCKER_IMAGE:$IMAGE_VERSION &&
-        docker run -t -v $TRAVIS_BUILD_DIR:$TECA_DIR -w $TECA_DIR
-        --name teca_${DOCKER_IMAGE}_${IMAGE_VERSION} -d $DOCKER_IMAGE:$IMAGE_VERSION;
+    docker pull $DOCKER_IMAGE:$IMAGE_VERSION &&
+    docker run -t -v $TRAVIS_BUILD_DIR:$TECA_DIR -w $TECA_DIR
+    --name teca_${DOCKER_IMAGE}_${IMAGE_VERSION} -d $DOCKER_IMAGE:$IMAGE_VERSION;
     fi
 
 install:
-  - >4
+  - >
     if [[ "$TRAVIS_OS_NAME" != "linux" ]];
     then
-        ./test/travis_ci/install_$TRAVIS_OS_NAME.sh;
-    fi
+    ./test/travis_ci/install_$TRAVIS_OS_NAME.sh;
     elif [[ "$TRAVIS_OS_NAME" != "osx" ]];
     then
-        docker exec teca_${DOCKER_IMAGE}_${IMAGE_VERSION} /bin/bash -c
-        "$TECA_DIR/test/travis_ci/docker/$SCRIPT_DIR/install_$DOCKER_IMAGE.sh";
+    docker exec teca_${DOCKER_IMAGE}_${IMAGE_VERSION} /bin/bash -c
+    "export TECA_PYTHON_VERSION=${TECA_PYTHON_VERSION} &&
+    export TECA_DATA_REVISION=${TECA_DATA_REVISION} &&
+    $TECA_DIR/test/travis_ci/docker/$SCRIPT_DIR/install_$DOCKER_IMAGE.sh";
     fi
 
 script:
-  - >4
+  - >
     if [[ "$TRAVIS_OS_NAME" != "linux" ]];
     then
-        ./test/travis_ci/ctest_$TRAVIS_OS_NAME.sh;
-    fi
+    ./test/travis_ci/ctest_$TRAVIS_OS_NAME.sh;
     elif [[ "$TRAVIS_OS_NAME" != "osx" ]];
     then
-        docker exec teca_${DOCKER_IMAGE}_${IMAGE_VERSION} /bin/bash -c
-        "export TRAVIS_BRANCH=$TRAVIS_BRANCH &&
-        export BUILD_TYPE=$BUILD_TYPE &&
-        export DOCKER_IMAGE=$DOCKER_IMAGE &&
-        export IMAGE_VERSION=$IMAGE_VERSION &&
-        $TECA_DIR/test/travis_ci/docker/ctest_linux.sh";
+    docker exec teca_${DOCKER_IMAGE}_${IMAGE_VERSION} /bin/bash -c
+    "export TRAVIS_BRANCH=${TRAVIS_BRANCH} &&
+    export TECA_PYTHON_VERSION=${TECA_PYTHON_VERSION} &&
+    export BUILD_TYPE=${BUILD_TYPE} &&
+    export DOCKER_IMAGE=${DOCKER_IMAGE} &&
+    export IMAGE_VERSION=${IMAGE_VERSION} &&
+    $TECA_DIR/test/travis_ci/docker/ctest_linux.sh";
     fi
 
 after_failure:
-  - >4
+  - >
     if [[ "$TRAVIS_OS_NAME" != "linux" ]];
     then
-        cat build/Testing/Temporary/LastTest.log;
-    fi
+    cat build/Testing/Temporary/LastTest.log;
     elif [[ "$TRAVIS_OS_NAME" != "osx" ]];
     then
-        docker exec teca_${DOCKER_IMAGE}_${IMAGE_VERSION} /bin/bash -c
-        "export TECA_TAG=\$(head -n 1 $TECA_DIR/build/Testing/TAG) &&
-        cat $TECA_DIR/build/Testing/Temporary/LastTest_\$TECA_TAG.log &&
-        cat $TECA_DIR/build/Testing/Temporary/LastTest_\$TECA_TAG.log";
+    docker exec teca_${DOCKER_IMAGE}_${IMAGE_VERSION} /bin/bash -c
+    "export TECA_TAG=\$(head -n 1 $TECA_DIR/build/Testing/TAG) &&
+    cat $TECA_DIR/build/Testing/Temporary/LastTest_\$TECA_TAG.log &&
+    cat $TECA_DIR/build/Testing/Temporary/LastTest_\$TECA_TAG.log";
     fi

@@ -15,4 +15,5 @@ wget https://cmake.org/files/v3.5/cmake-3.5.2-Darwin-x86_64.tar.gz
 tar -C /usr/local -x -z -f cmake-3.5.2-Darwin-x86_64.tar.gz --strip-components=3
 
 # install data files.
-svn co svn://missmarple.lbl.gov/work3/teca/TECA_data
+echo svn co svn://missmarple.lbl.gov/work3/teca/TECA_data@${TECA_DATA_REVISION}
+svn co svn://missmarple.lbl.gov/work3/teca/TECA_data@${TECA_DATA_REVISION}
