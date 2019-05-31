@@ -24,4 +24,4 @@ module load mpi
 pip install --user numpy mpi4py matplotlib
 
 # install data files.
-svn co svn://missmarple.lbl.gov/work3/teca/TECA_data TECA_data
+svn co svn://missmarple.lbl.gov/work3/teca/TECA_data@${TECA_DATA_REVISION} TECA_data

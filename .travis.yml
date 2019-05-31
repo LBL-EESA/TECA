@@ -13,6 +13,7 @@ env:
   global:
     - BUILD_TYPE=Debug
     - TECA_DIR=/travis_teca_dir
+    - TECA_DATA_REVISION=39
   matrix:
     - DOCKER_IMAGE=ubuntu IMAGE_VERSION=18.04 SCRIPT_DIR=ubuntu_18_04
     - DOCKER_IMAGE=fedora IMAGE_VERSION=28 SCRIPT_DIR=fedora_28
