@@ -26,20 +26,20 @@ consecutive_labels = int(sys.argv[6])
 out_file = sys.argv[7]
 
 if not consecutive_labels and (nxl*nyl > 64):
-	sys.stderr.write("Max 64 non-consecutive labels")
-	sys.exit(-1)
+    sys.stderr.write("Max 64 non-consecutive labels")
+    sys.exit(-1)
 
 nxy = nx*ny
 
 dx = 360./float(nx - 1)
 x = []
 for i in range(nx):
-	x.append(i*dx)
+    x.append(i*dx)
 
 dy = 180./float(ny - 1)
 y = []
 for i in range(ny):
-	y.append(-90. + i*dy)
+    y.append(-90. + i*dy)
 
 x = teca_variant_array.New(x)
 y = teca_variant_array.New(y)
@@ -48,11 +48,11 @@ t = teca_variant_array.New([1.])
 
 cc = []
 for j in range(ny):
-	yl = int((y[j] + float(90.)) / (float(180.) / nyl)) % nyl
-	for i in range(nx):
-		xl = int(x[i] / (float(360.) / nxl)) % nxl
-		lab = yl*nxl + xl
-		cc.append(lab if consecutive_labels else labels[lab])
+    yl = int((y[j] + float(90.)) / (float(180.) / nyl)) % nyl
+    for i in range(nx):
+        xl = int(x[i] / (float(360.) / nxl)) % nxl
+        lab = yl*nxl + xl
+        cc.append(lab if consecutive_labels else labels[lab])
 
 wext = [0, nx - 1, 0, ny - 1, 0, 0]
 
@@ -121,21 +121,15 @@ component_area = mdo["component_area"]
 component_ids_filtered = mdo["component_ids" + post_fix]
 component_area_filtered = mdo["component_area" + post_fix]
 
-print "component areas"
 for i in range(len(component_ids)):
-	print "label", component_ids[i], "=", component_area[i]
-	if component_area[i] < low_threshold_value:
-		filtered_label_id.append(component_ids[i])
-
-print "component areas filtered with low thershold area =", low_threshold_value
-for i in range(len(component_ids_filtered)):
-	print "label", component_ids_filtered[i], "=", component_area_filtered[i]
+    if component_area[i] < low_threshold_value:
+        filtered_label_id.append(component_ids[i])
 
 n_filtered = len(filtered_label_id)
 n_labels_total = len(filtered_labels_all)
 for i in range(n_filtered):
-	label = filtered_label_id[i]
-	for j in range(n_labels_total):
-		if label == filtered_labels_all[j]:
-			sys.stderr.write("\nArea filter failed!\n\n")
-			sys.exit(-1)
+    label = filtered_label_id[i]
+    for j in range(n_labels_total):
+        if label == filtered_labels_all[j]:
+            sys.stderr.write("\nArea filter failed!\n\n")
+            sys.exit(-1)
