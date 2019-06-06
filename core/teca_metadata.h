@@ -25,6 +25,9 @@ public:
     teca_metadata(teca_metadata &&other) noexcept;
     teca_metadata &operator=(teca_metadata &&other) noexcept;
 
+    // get the number of name value pairs stored in the container
+    unsigned int size() const { return props.size(); }
+
     // get the length of the named property. return 0 if successful
     int size(const std::string &name,
         unsigned int &size) const noexcept;
@@ -141,6 +144,10 @@ public:
     // property doesn't exist
     p_teca_variant_array get(const std::string &name);
     const_p_teca_variant_array get(const std::string &name) const;
+
+    // get the name of the ith name value pair
+    // return 0 if i is valid index.
+    int get_name(unsigned long i, std::string &name) const;
 
     // remove. return 0 if successful
     int remove(const std::string &name) noexcept;

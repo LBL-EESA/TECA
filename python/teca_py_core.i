@@ -416,7 +416,7 @@ class teca_dataset;
             )
 
         PyErr_Format(PyExc_TypeError,
-            "Failed to set property \"%s\"", #_name);
+            "Failed to set metadata \"%s\"", #_name);
     }
 
     PyObject *get_## _name()

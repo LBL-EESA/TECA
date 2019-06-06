@@ -66,6 +66,9 @@ public:
     bool operator==(const teca_variant_array &other) const
     { return this->equal(other); }
 
+    // initialize contents with the native type initializer
+    virtual void initialize() = 0;
+
     // get methods. could throw std::bad_cast if the
     // internal type is not castable to the return type.
     template<typename T>
@@ -266,10 +269,13 @@ public:
     virtual ~teca_variant_array_impl() noexcept;
 
     // virtual constructor
-    virtual p_teca_variant_array new_copy() const override;
-    virtual p_teca_variant_array new_copy(size_t start, size_t end) const override;
-    virtual p_teca_variant_array new_instance() const override;
-    virtual p_teca_variant_array new_instance(size_t n) const override;
+    p_teca_variant_array new_copy() const override;
+    p_teca_variant_array new_copy(size_t start, size_t end) const override;
+    p_teca_variant_array new_instance() const override;
+    p_teca_variant_array new_instance(size_t n) const override;
+
+    // intialize with T()
+    void initialize() override;
 
     // copy
     const teca_variant_array_impl<T> &
@@ -355,22 +361,22 @@ public:
     void append(const teca_variant_array &other);
 
     // virtual swap
-    virtual void swap(teca_variant_array &other) override;
+    void swap(teca_variant_array &other) override;
 
     // virtual equavalince test
-    virtual bool equal(const teca_variant_array &other) const override;
+    bool equal(const teca_variant_array &other) const override;
 
     // serialize to/from stream
-    virtual void to_stream(teca_binary_stream &s) const override
+    void to_stream(teca_binary_stream &s) const override
     { this->to_binary<T>(s); }
 
-    virtual void from_stream(teca_binary_stream &s) override
+    void from_stream(teca_binary_stream &s) override
     { this->from_binary<T>(s); }
 
-    virtual void to_stream(std::ostream &s) const override
+    void to_stream(std::ostream &s) const override
     { this->to_ascii<T>(s); }
 
-    virtual void from_stream(std::ostream &s) override
+    void from_stream(std::ostream &s) override
     { this->from_ascii<T>(s); }
 
 protected:
@@ -462,7 +468,7 @@ private:
         typename std::enable_if<pack_object_ptr<U>::value, U>::type* = 0);
 
     // for serializaztion
-    virtual unsigned int type_code() const noexcept override;
+    unsigned int type_code() const noexcept override;
 private:
     std::vector<T> m_data;
 
@@ -507,13 +513,12 @@ private:
 // p1 - base class pointer
 // p2 - const base class pointer
 // body - code to execute if p1 and p2's type match
-#define TEMPLATE_DISPATCH_CLASS(tt, nt, p1, p2, body)   \
+#define TEMPLATE_DISPATCH_CLASS(tt, nt, p1, body)   \
     {                                                   \
     using TT = tt<nt>;                                  \
     using NT = nt;                                      \
     TT *p1_tt = dynamic_cast<TT*>(p1);                  \
-    const TT *p2_tt = dynamic_cast<const TT*>(p2);      \
-    if (p1_tt && p2_tt)                                 \
+    if (p1_tt)                                          \
     {                                                   \
         body                                            \
     }                                                   \
@@ -867,6 +872,13 @@ const teca_variant_array_impl<T> &teca_variant_array_impl<T>::operator=(
 {
     m_data = std::move(other.m_data);
     return *this;
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
+void teca_variant_array_impl<T>::initialize()
+{
+    m_data.assign(m_data.size(), T());
 }
 
 // --------------------------------------------------------------------------

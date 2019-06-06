@@ -128,6 +128,21 @@ int teca_metadata::get(const std::string &name, p_teca_variant_array vals) const
 }
 
 // --------------------------------------------------------------------------
+int teca_metadata::get_name(unsigned long i, std::string &name) const
+{
+    if (i >= this->props.size())
+        return -1;
+
+    prop_map_t::const_iterator it = this->props.cbegin();
+    for (unsigned long q = 0; q < i; ++q)
+        ++it;
+
+    name = it->first;
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
 int teca_metadata::size(const std::string &name, unsigned int &n) const noexcept
 {
     prop_map_t::const_iterator it = this->props.find(name);
