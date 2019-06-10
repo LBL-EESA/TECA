@@ -9,4 +9,4 @@ export DYLD_LIBRARY_PATH=${TRAVIS_BUILD_DIR}/build/lib
 export MPLBACKEND=Agg
 export TMPDIR=/tmp
 mkdir build
-ctest -S ${DASHROOT}/test/travis_ci/ctest_osx.cmake -V
+ctest -S ${DASHROOT}/test/travis_ci/ctest_osx.cmake -V --timeout 180

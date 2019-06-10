@@ -14,4 +14,4 @@ export MPLBACKEND=Agg
 mkdir build
 cmake --version
 
-ctest -S ${DASHROOT}/test/travis_ci/docker/ctest_linux.cmake -V
+ctest -S ${DASHROOT}/test/travis_ci/docker/ctest_linux.cmake -V --timeout 180
