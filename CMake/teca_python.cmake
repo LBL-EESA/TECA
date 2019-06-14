@@ -29,7 +29,7 @@ function(teca_py_install_apps)
                 ${CMAKE_CURRENT_BINARY_DIR}/../${BIN_PREFIX}/${appname}.py
                 @ONLY)
             list(APPEND pyapps
-                ${CMAKE_CURRENT_BINARY_DIR}/../${BIN_PREFIX}/${appname})
+                ${CMAKE_CURRENT_BINARY_DIR}/../${BIN_PREFIX}/${appname}.py)
         endforeach()
         install(PROGRAMS ${pyapps} DESTINATION ${BIN_PREFIX})
         # TODO compile the sources
