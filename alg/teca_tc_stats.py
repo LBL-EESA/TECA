@@ -138,30 +138,30 @@ class teca_tc_stats:
             n_reg = len(ureg) + 3 # add 2 for n & s hemi, 1 for global
 
             for yy in uyear:
-                ids = np.where(year==yy)
+                yids = np.where(year==yy)
                 # break these down by year
-                annual_count.append(len(ids[0]))
-                annual_cat.append(category[ids])
-                annual_wind.append(wind[ids])
-                annual_press.append(press[ids])
-                annual_dur.append(duration[ids])
-                annual_len.append(length[ids])
-                annual_ACE.append(ACE[ids])
+                annual_count.append(len(yids[0]))
+                annual_cat.append(category[yids])
+                annual_wind.append(wind[yids])
+                annual_press.append(press[yids])
+                annual_dur.append(duration[yids])
+                annual_len.append(length[yids])
+                annual_ACE.append(ACE[yids])
 
                 # global totals
                 tmp = [annual_count[-1]]
                 for c in np.arange(0,6,1):
-                    cids = np.where(category[ids]==c)
+                    cids = np.where(category[yids]==c)
                     tmp.append(len(cids[0]))
                 totals.append(tmp)
 
                 # break down by year, month, and category
-                mm = month[ids]
+                mm = month[yids]
                 mnum = np.arange(1,13,1)
                 monthly = []
                 for m in mnum:
                     mids = np.where(mm==m)
-                    mcats = category[ids][mids]
+                    mcats = category[yids][mids]
                     cats = []
                     for c in np.arange(0,6,1):
                         cids = np.where(mcats==c)
@@ -169,12 +169,12 @@ class teca_tc_stats:
                     monthly.append(cats)
                 by_month.append(monthly)
                 # break down by year and region
-                rr = region_id[ids]
+                rr = region_id[yids]
                 max_reg = np.max(rr)
                 regional = []
                 for r,n,l in ureg:
                     rids = np.where(rr==r)
-                    rcats = category[ids][rids]
+                    rcats = category[yids][rids]
                     cats = []
                     for c in np.arange(0,6,1):
                         cids = np.where(rcats==c)
@@ -183,15 +183,15 @@ class teca_tc_stats:
                 by_region.append(regional)
                 # add north and south hemisphere regions
                 hemi = []
-                nhids = np.where(start_y[ids] >= 0.0)
-                cats = category[ids][nhids]
+                nhids = np.where(start_y[yids] >= 0.0)
+                cats = category[yids][nhids]
                 nhcats = []
                 for c in np.arange(0,6,1):
                     cids = np.where(cats==c)
                     nhcats.append(len(cids[0]))
                 by_region[-1].append(nhcats)
-                shids = np.where(start_y[ids] < 0.0)
-                cats = category[ids][shids]
+                shids = np.where(start_y[yids] < 0.0)
+                cats = category[yids][shids]
                 shcats = []
                 for c in np.arange(0,6,1):
                     cids = np.where(cats==c)
@@ -199,7 +199,7 @@ class teca_tc_stats:
                 by_region[-1].append(shcats)
                 # global break down
                 gcats = []
-                cats = category[ids]
+                cats = category[yids]
                 for c in np.arange(0,6,1):
                     cids = np.where(cats==c)
                     gcats.append(len(cids[0]))

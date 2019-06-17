@@ -82,6 +82,11 @@ teca_add_test(py_test_metadata
 teca_add_test(py_test_variant_array
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_variant_array.py)
 
+teca_add_test(py_test_table
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_table.py
+    "${TECA_DATA_ROOT}/py_test_table.bin"
+    REQ_TECA_DATA)
+
 teca_add_test(py_test_database
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_database.py)
 
@@ -160,6 +165,13 @@ teca_add_test(py_test_tc_stats
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_stats.py
     "${TECA_DATA_ROOT}/cam5_1_amip_run2_classify_2005_09.bin"
     "${TECA_DATA_ROOT}/cam5_1_amip_run2_stats_2005_09.bin"
+    FEATURES ${TECA_HAS_UDUNITS}
+    REQ_TECA_DATA)
+
+teca_add_test(py_test_tc_activity
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_activity.py
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2_classify_2005_09.bin"
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2_activity_2005_09.bin"
     FEATURES ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 

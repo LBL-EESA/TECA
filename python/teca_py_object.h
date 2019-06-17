@@ -37,7 +37,7 @@ template <> struct cpp_tt<PY_T>                                         \
     static type value(PyObject *obj) { return PY_AS_CPP(obj); }         \
 };
 teca_py_object_cpp_tt_declare(int, long, PyIntegerCheck, PyIntegerToCInt)
-teca_py_object_cpp_tt_declare(long, long, PyIntegerCheck, PyIntegerToCInt)
+teca_py_object_cpp_tt_declare(long, long, PyLongCheck, PyLongToCLong)
 teca_py_object_cpp_tt_declare(float, double, PyFloat_Check, PyFloat_AsDouble)
 teca_py_object_cpp_tt_declare(char*, std::string, PyStringCheck, PyStringToCString)
 teca_py_object_cpp_tt_declare(bool, int, PyBool_Check, PyIntegerToCInt)
@@ -243,11 +243,13 @@ public:
 
     PyObject *get_object(){ return m_obj; }
 
-    virtual void set_object(PyObject *obj)
+    virtual PyObject *set_object(PyObject *obj)
     {
         Py_XINCREF(obj);
         Py_XDECREF(m_obj);
         m_obj = obj;
+        Py_INCREF(Py_None);
+        return Py_None;
     }
 
 private:
@@ -283,13 +285,13 @@ public:
         return *this;
     }
 
-    virtual void set_object(PyObject *f)
+    virtual PyObject *set_object(PyObject *f)
     {
         if (PyCallable_Check(f))
-            this->teca_py_object_ptr::set_object(f);
-        else
-            PyErr_Format(PyExc_TypeError,
-                "object is not callable");
+            return this->teca_py_object_ptr::set_object(f);
+
+        TECA_PY_ERROR(PyExc_TypeError, "object is not callable")
+        return nullptr;
     }
 };
 

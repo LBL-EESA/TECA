@@ -15,7 +15,7 @@
 #include <cstdio>
 
 #define TECA_PARSER_ERROR(_descr, _expr, _pos)                          \
-    TECA_MESSAGE("ERROR:", ANSI_RED,                                    \
+    TECA_MESSAGE(std::cerr, "ERROR:", ANSI_RED,                         \
         << "" _descr                                                    \
         << "at position " << (_pos) << " in  \""                        \
         << std::string(_expr, _expr+(_pos)) << END_HL                   \

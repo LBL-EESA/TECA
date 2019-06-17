@@ -6,7 +6,9 @@
 #if TECA_PYTHON_VERSION == 2
 
 #define PyIntegerCheck PyInt_Check
+#define PyLongCheck PyLong_Check
 
+#define PyLongToCLong PyLong_AsLong
 #define CIntToPyInteger PyInt_FromLong
 #define CIntUToPyInteger PyInt_FromSize_t
 #define CIntLLToPyInteger PyLong_FromLongLong
@@ -20,7 +22,9 @@
 #elif TECA_PYTHON_VERSION == 3
 
 #define PyIntegerCheck PyLong_Check
+#define PyLongCheck PyLong_Check
 
+#define PyLongToCLong PyLong_AsLong
 #define PyIntegerToCInt PyLong_AsLong
 #define PyIntegerToCIntU PyLong_AsUnsignedLong
 #define PyIntegerToCIntLL PyLong_AsLongLong
