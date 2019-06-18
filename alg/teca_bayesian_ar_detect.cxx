@@ -17,6 +17,7 @@
 #include "teca_programmable_reduce.h"
 #include "teca_dataset_capture.h"
 #include "teca_index_executive.h"
+#include "teca_thread_pool.h"
 #include "teca_mpi.h"
 
 #include <algorithm>
@@ -423,6 +424,7 @@ struct teca_bayesian_ar_detect::internals_t
     teca_algorithm_output_port parameter_pipeline_port; // pipeline that serves up tracks
     const_p_teca_table parameter_table;                 // parameter table
     teca_metadata metadata;                             // cached metadata
+    p_teca_data_request_queue queue;                    // thread pool
 };
 
 // --------------------------------------------------------------------------
@@ -492,7 +494,10 @@ void teca_bayesian_ar_detect::set_properties(const std::string &prefix,
     TECA_POPTS_SET(opts, std::string, prefix, min_component_area_variable)
     TECA_POPTS_SET(opts, std::string, prefix, min_water_vapor_variable)
     TECA_POPTS_SET(opts, std::string, prefix, hwhm_latitude_variable)
-    TECA_POPTS_SET(opts, int, prefix, thread_pool_size)
+
+    std::string opt_name = (prefix.empty()?"":prefix+"::") + "thread_pool_size";
+    if (opts.count(opt_name))
+        this->set_thread_pool_size(opts[opt_name].as<int>());
 }
 #endif
 
@@ -513,6 +518,19 @@ void teca_bayesian_ar_detect::set_modified()
     // the base class.
     this->internals->clear();
     teca_algorithm::set_modified();
+}
+
+// --------------------------------------------------------------------------
+void teca_bayesian_ar_detect::set_thread_pool_size(int n)
+{
+    this->internals->queue = new_teca_data_request_queue(
+        this->get_communicator(), n, true, true);
+}
+
+// --------------------------------------------------------------------------
+unsigned int teca_bayesian_ar_detect::get_thread_pool_size() const noexcept
+{
+    return this->internals->queue->size();
 }
 
 // --------------------------------------------------------------------------
@@ -682,6 +700,14 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
     (void)port;
     (void)request;
 
+    // check the thread pool
+    if (!this->internals->queue)
+    {
+        TECA_ERROR("thread pool has not been created. Did you forget "
+            "to call set_thread_pool_size?")
+        return nullptr;
+    }
+
     // check the parameter table
     if (!this->internals->parameter_table)
     {
@@ -783,7 +809,7 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
     pr->set_input_connection(pa->get_output_port());
     pr->set_reduce_callback(reduce);
     pr->set_verbose(0);
-    pr->set_thread_pool_size(this->thread_pool_size);
+    pr->set_data_request_queue(this->internals->queue);
 
     // extract the result
     p_teca_dataset_capture dc = teca_dataset_capture::New();

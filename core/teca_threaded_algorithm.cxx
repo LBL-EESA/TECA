@@ -2,7 +2,6 @@
 #include "teca_metadata.h"
 #include "teca_thread_pool.h"
 
-
 #include <memory>
 #include <string>
 #include <vector>
@@ -15,6 +14,15 @@
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
 #endif
+
+
+// **************************************************************************
+p_teca_data_request_queue new_teca_data_request_queue(MPI_Comm comm,
+    int n, bool bind, bool verbose)
+{
+    return std::make_shared<teca_data_request_queue>(
+        comm, n, bind, verbose);
+}
 
 // function that executes the data request and returns the
 // requested dataset
@@ -36,13 +44,6 @@ public:
     teca_metadata m_up_req;
 };
 
-// task
-using teca_data_request_task = std::packaged_task<const_p_teca_dataset()>;
-
-using teca_data_request_queue =
-    teca_thread_pool<teca_data_request_task, const_p_teca_dataset>;
-
-using p_teca_data_request_queue = std::shared_ptr<teca_data_request_queue>;
 
 // internals for teca threaded algorithm
 class teca_threaded_algorithm_internals
@@ -64,10 +65,9 @@ public:
 void teca_threaded_algorithm_internals::thread_pool_resize(MPI_Comm comm,
     int n, bool bind, bool verbose)
 {
-    this->thread_pool = std::make_shared<teca_data_request_queue>(
+    this->thread_pool = new_teca_data_request_queue(
         comm, n, bind, verbose);
 }
-
 
 
 
@@ -127,6 +127,13 @@ void teca_threaded_algorithm::set_thread_pool_size(int n)
 unsigned int teca_threaded_algorithm::get_thread_pool_size() const noexcept
 {
     return this->internals->get_thread_pool_size();
+}
+
+// --------------------------------------------------------------------------
+void teca_threaded_algorithm::set_data_request_queue(
+    const p_teca_data_request_queue &queue)
+{
+    this->internals->thread_pool = queue;
 }
 
 // --------------------------------------------------------------------------

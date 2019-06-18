@@ -32,8 +32,11 @@ public:
     TECA_ALGORITHM_PROPERTY(std::string, min_component_area_variable)
     TECA_ALGORITHM_PROPERTY(std::string, hwhm_latitude_variable)
 
-    // set the number of threads to use internally
-    TECA_ALGORITHM_PROPERTY(int, thread_pool_size)
+    // set/get the number of threads in the pool. setting
+    // to -1 results in a thread per core factoring in all MPI
+    // ranks running on the node. the default is -1.
+    void set_thread_pool_size(int n_threads);
+    unsigned int get_thread_pool_size() const noexcept;
 
     // override the input connections because we are going to
     // take the first input and use it to generate metadata.
