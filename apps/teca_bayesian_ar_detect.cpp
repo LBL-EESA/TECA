@@ -85,7 +85,8 @@ int main(int argc, char **argv)
     p_teca_variant_array_impl<parameter_t> filter_lat_width = teca_variant_array_impl<parameter_t>::New(num_ar_detector_parameters);
     p_teca_variant_array_impl<parameter_t> min_area_kmsq = teca_variant_array_impl<parameter_t>::New(num_ar_detector_parameters);
     
-    for (unsigned long n = 0; n < num_ar_detector_parameters; n++){
+    for (unsigned long n = 0; n < num_ar_detector_parameters; ++n)
+    {
         min_water_vapor->get()[n] = quantile_array[n];
         filter_lat_width->get()[n] = filter_lat_width_array[n];
         min_area_kmsq->get()[n] = min_area_kmsq_array[n];
@@ -110,6 +111,7 @@ int main(int argc, char **argv)
     ar_detect->get_properties_description("ar_detect", advanced_opt_defs);
     ar_detect->set_input_connection(0, dss->get_output_port());
     ar_detect->set_input_connection(1, sim_coords->get_output_port());
+    ar_detect->set_thread_pool_size(-1);
 
     // Add an executive for the writer
     p_teca_index_executive exec = teca_index_executive::New();
@@ -178,6 +180,7 @@ int main(int argc, char **argv)
     // advanced options are processed first, so that the basic
     // options will override them
     cf_reader->set_properties("cf_reader", opt_vals);
+    ar_detect->set_properties("ar_detect", opt_vals);
     cf_writer->set_properties("cf_writer", opt_vals);
 
     // now pass in the basic options, these are processed
@@ -206,8 +209,6 @@ int main(int argc, char **argv)
 
     if (opt_vals.count("n_threads"))
         ar_detect->set_thread_pool_size(opt_vals["n_threads"].as<int>());
-    else
-        ar_detect->set_thread_pool_size(-1);
 
     // some minimal check for missing options
     if (cf_reader->get_number_of_file_names() == 0
@@ -299,26 +300,6 @@ int main(int argc, char **argv)
             exec->set_end_index(last_step);
         }
     }
-    
-    // set up the array request
-    vector<string> arrays;
-    arrays.push_back(std::string("ar_probability"));
-    exec->set_arrays(arrays);
-    exec->set_verbose(1);
-    
-    // set up metadata
-    teca_metadata cf_metadata;
-    teca_metadata ar_probability_metadata;
-    
-    // set metadata for the 'ar_probability' variable
-    ar_probability_metadata.set("long_name", std::string("posterior AR flag"));
-    ar_probability_metadata.set("units", std::string("probability"));
-    // load the metadata into the master array
-    cf_metadata.set("ar_probability", ar_probability_metadata);
-    
-    // override the incoming metadata for the executive
-    //cf_writer->get_metadata() = &cf_metadata;
-        
         
     // run the pipeline
     cf_writer->set_executive(exec);
