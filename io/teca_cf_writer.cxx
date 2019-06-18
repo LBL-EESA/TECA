@@ -179,24 +179,20 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
         }
     }
 
-    // write attributes
-    unsigned long n_arrays = array_attributes.size();
-    for (unsigned long i = 0; i < n_arrays; ++i)
+    // write attributes of the varibles in hand
+    std::map<std::string,int>::iterator it = var_ids.begin();
+    std::map<std::string,int>::iterator end = var_ids.end();
+    for (; it != end; ++it)
     {
-        std::string array_name;
         teca_metadata array_atts;
-        if (array_attributes.get_name(i, array_name) || array_attributes.get(array_name, array_atts))
+        std::string array_name = it->first;
+        if (array_attributes.get(array_name, array_atts))
         {
-            TECA_ERROR("failed to get array attributes " << i)
-            return -1;
+            // It's ok for a variable not to have attributes
+            //TECA_WARNING("No array attributes for \"" << array_name << "\"")
+            continue;
         }
 
-        std::map<std::string, int>::iterator it = var_ids.find(array_name);
-        if (it  == var_ids.end())
-        {
-            TECA_ERROR("No var id for \"" << array_name << "\"")
-            return -1;
-        }
         int var_id = it->second;
 
         unsigned long n_atts = array_atts.size();
@@ -205,7 +201,7 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
             std::string att_name;
             if (array_atts.get_name(j, att_name))
             {
-                TECA_ERROR("failed to get name of the " << i
+                TECA_ERROR("failed to get name of the " << j
                     << "th attribute for array \"" << array_name << "\"")
                 return -1;
             }
@@ -236,7 +232,7 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
                 continue;
                 )
 
-            // hanle POD types
+            // handle POD types
             TEMPLATE_DISPATCH(const teca_variant_array_impl,
                 att_values.get(),
 
