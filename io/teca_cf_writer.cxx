@@ -71,6 +71,7 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
     const_p_teca_variant_array coord_arrays[4];
     std::string coord_array_names[4];
     size_t dims[4] = {0, 0, 0, 0};
+    size_t unlimited_dim_actual_size = 0;
 
 
     // the cf reader always creates 4D data, but some other tools choke
@@ -85,6 +86,7 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
         coord_arrays[n_dims] = t;
         coord_array_names[n_dims] = t_variable.empty() ? "time" : t_variable;
         dims[n_dims] = use_unlimited_dim ? NC_UNLIMITED : t->size();
+        if ( dims[n_dims] == NC_UNLIMITED ) unlimited_dim_actual_size = t->size();
         ++n_dims;
     }
     if (z)
@@ -94,6 +96,7 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
             coord_arrays[n_dims] = z;
             coord_array_names[n_dims] = z_variable.empty() ? "z" : z_variable;
             dims[n_dims] = n_dims == 0 && use_unlimited_dim ? NC_UNLIMITED : z->size();
+            if ( dims[n_dims] == NC_UNLIMITED ) unlimited_dim_actual_size = z->size();
             ++n_dims;
         }
     }
@@ -104,6 +107,7 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
             coord_arrays[n_dims] = y;
             coord_array_names[n_dims] = y_variable.empty() ? "y" : y_variable;
             dims[n_dims] = n_dims == 0 && use_unlimited_dim ? NC_UNLIMITED : y->size();
+            if ( dims[n_dims] == NC_UNLIMITED ) unlimited_dim_actual_size = y->size();
             ++n_dims;
         }
     }
@@ -114,6 +118,7 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
             coord_arrays[n_dims] = x;
             coord_array_names[n_dims] = x_variable.empty() ? "x" : x_variable;
             dims[n_dims] = n_dims == 0 && use_unlimited_dim ? NC_UNLIMITED : x->size();
+            if ( dims[n_dims] == NC_UNLIMITED ) unlimited_dim_actual_size = x->size();
             ++n_dims;
         }
     }
@@ -267,7 +272,9 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
         int var_id = it->second;
 
         size_t start = 0;
-        size_t count = dims[i];
+        // set the count to be the dimension size (this needs to be an actual size, not
+        // NC_UNLIMITED, which results in coordinate arrays not being written)
+        size_t count = dims[i] == NC_UNLIMITED ? unlimited_dim_actual_size : dims[i];
 
         TEMPLATE_DISPATCH(const teca_variant_array_impl,
             coord_arrays[i].get(),
