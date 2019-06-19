@@ -5,7 +5,7 @@
 #include "teca_normalize_coordinates.h"
 #include "teca_metadata.h"
 #include "teca_bayesian_ar_detect.h"
-#include "teca_bayesian_ar_detector_parameters.h"
+#include "teca_bayesian_ar_detect_parameters.h"
 #include "teca_mpi_manager.h"
 #include "teca_coordinate_util.h"
 #include "teca_table.h"
@@ -79,43 +79,20 @@ int main(int argc, char **argv)
 
     p_teca_normalize_coordinates sim_coords = teca_normalize_coordinates::New();
     sim_coords->set_input_connection(cf_reader->get_output_port());
-    
-    /* Load detector parameters into a data table */
-    p_teca_variant_array_impl<parameter_t> min_water_vapor = teca_variant_array_impl<parameter_t>::New(num_ar_detector_parameters);
-    p_teca_variant_array_impl<parameter_t> filter_lat_width = teca_variant_array_impl<parameter_t>::New(num_ar_detector_parameters);
-    p_teca_variant_array_impl<parameter_t> min_area_kmsq = teca_variant_array_impl<parameter_t>::New(num_ar_detector_parameters);
-    
-    for (unsigned long n = 0; n < num_ar_detector_parameters; ++n)
-    {
-        min_water_vapor->get()[n] = quantile_array[n];
-        filter_lat_width->get()[n] = filter_lat_width_array[n];
-        min_area_kmsq->get()[n] = min_area_kmsq_array[n];
-    }
-
-    p_teca_table tab = teca_table::New();
-    tab->append_column("hwhm_latitude", filter_lat_width);
-    tab->append_column("min_water_vapor", min_water_vapor);
-    tab->append_column("min_component_area", min_area_kmsq);
-
-    teca_metadata table_md;
-    table_md.set("number_of_tables", 1);
-    table_md.set("index_initializer_key", std::string("number_of_tables"));
-    table_md.set("index_request_key", std::string("table_id"));
-
-    p_teca_dataset_source dss = teca_dataset_source::New();
-    dss->set_metadata(table_md);
-    dss->set_dataset(tab);
+   
+    // parameter source
+    p_teca_bayesian_ar_detect_parameters params =
+        teca_bayesian_ar_detect_parameters::New(); 
     
     // Construct the AR detector and attach the input file and parameters
     p_teca_bayesian_ar_detect ar_detect = teca_bayesian_ar_detect::New();
     ar_detect->get_properties_description("ar_detect", advanced_opt_defs);
-    ar_detect->set_input_connection(0, dss->get_output_port());
+    ar_detect->set_input_connection(0, params->get_output_port());
     ar_detect->set_input_connection(1, sim_coords->get_output_port());
     ar_detect->set_thread_pool_size(-1);
 
     // Add an executive for the writer
     p_teca_index_executive exec = teca_index_executive::New();
-    
         
     // Add the writer
     p_teca_cf_writer cf_writer = teca_cf_writer::New();
