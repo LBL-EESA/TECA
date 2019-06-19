@@ -3,11 +3,29 @@
 
 #include "teca_algorithm.h"
 #include "teca_threaded_algorithm_fwd.h"
+#include "teca_algorithm_output_port.h"
 #include "teca_dataset.h"
+
+template <typename task_t, typename data_t>
+class teca_thread_pool;
+
 class teca_metadata;
 class teca_threaded_algorithm_internals;
 
-#include "teca_algorithm_output_port.h"
+#include <thread>
+#include <future>
+
+// declare the thread pool type
+using teca_data_request_task = std::packaged_task<const_p_teca_dataset()>;
+
+class teca_data_request;
+using teca_data_request_queue =
+    teca_thread_pool<teca_data_request_task, const_p_teca_dataset>;
+
+using p_teca_data_request_queue = std::shared_ptr<teca_data_request_queue>;
+
+p_teca_data_request_queue new_teca_data_request_queue(MPI_Comm comm,
+    int n, bool bind, bool verbose);
 
 // this is the base class defining a threaded algorithm.
 // the stratgey employed is to parallelize over upstream
@@ -37,6 +55,9 @@ public:
     // CPU cores, allowing for migration among all cores. This will
     // likely degrade performance. Default is 1.
     TECA_ALGORITHM_PROPERTY(int, bind_threads);
+
+    // explicitly set the thread pool to submit requests to
+    void set_data_request_queue(const p_teca_data_request_queue &queue);
 
 protected:
     teca_threaded_algorithm();
