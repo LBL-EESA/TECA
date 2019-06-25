@@ -77,23 +77,26 @@ int main(int argc, char **argv)
     p_teca_cf_reader cf_reader = teca_cf_reader::New();
     cf_reader->get_properties_description("cf_reader", advanced_opt_defs);
 
-    p_teca_normalize_coordinates sim_coords = teca_normalize_coordinates::New();
-    sim_coords->set_input_connection(cf_reader->get_output_port());
-   
+    p_teca_normalize_coordinates norm_coords = teca_normalize_coordinates::New();
+    norm_coords->get_properties_description("norm_coords", advanced_opt_defs);
+    norm_coords->set_input_connection(cf_reader->get_output_port());
+
     // parameter source
-    p_teca_bayesian_ar_detect_parameters params =
-        teca_bayesian_ar_detect_parameters::New(); 
-    
+    p_teca_bayesian_ar_detect_parameters params
+        = teca_bayesian_ar_detect_parameters::New();
+
+    params->get_properties_description("parameter_table", advanced_opt_defs);
+
     // Construct the AR detector and attach the input file and parameters
     p_teca_bayesian_ar_detect ar_detect = teca_bayesian_ar_detect::New();
     ar_detect->get_properties_description("ar_detect", advanced_opt_defs);
     ar_detect->set_input_connection(0, params->get_output_port());
-    ar_detect->set_input_connection(1, sim_coords->get_output_port());
+    ar_detect->set_input_connection(1, norm_coords->get_output_port());
     ar_detect->set_thread_pool_size(-1);
 
     // Add an executive for the writer
     p_teca_index_executive exec = teca_index_executive::New();
-        
+
     // Add the writer
     p_teca_cf_writer cf_writer = teca_cf_writer::New();
     cf_writer->get_properties_description("cf_writer", advanced_opt_defs);
@@ -157,6 +160,8 @@ int main(int argc, char **argv)
     // advanced options are processed first, so that the basic
     // options will override them
     cf_reader->set_properties("cf_reader", opt_vals);
+    norm_coords->set_properties("norm_coords", opt_vals);
+    params->set_properties("parameter_table", opt_vals);
     ar_detect->set_properties("ar_detect", opt_vals);
     cf_writer->set_properties("cf_writer", opt_vals);
 
@@ -169,7 +174,7 @@ int main(int argc, char **argv)
     if (opt_vals.count("input_regex"))
         cf_reader->set_files_regex(
             opt_vals["input_regex"].as<string>());
-    
+
     if (opt_vals.count("output_file"))
         cf_writer->set_file_name(
             opt_vals["output_file"].as<string>());
@@ -199,7 +204,7 @@ int main(int argc, char **argv)
         }
         return -1;
     }
-    
+
     if (cf_writer->get_file_name().empty())
     {
         if (mpi_man.get_comm_rank() == 0)
@@ -208,7 +213,7 @@ int main(int argc, char **argv)
                 "missing file name pattern for netcdf writer. "
                 "See --help for a list of command line options.")
         }
-        return -1;       
+        return -1;
     }
 
     // look for requested time step range, start
@@ -277,7 +282,7 @@ int main(int argc, char **argv)
             exec->set_end_index(last_step);
         }
     }
-        
+
     // run the pipeline
     cf_writer->set_executive(exec);
     cf_writer->update();

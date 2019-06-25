@@ -22,6 +22,14 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
+    // control the number of rows coppied into the table.  The rows are
+    // copppied in sequential order starting from row zero. The default value
+    // of -1 is used to serve all rows. See also get_parameter_table_size.
+    TECA_ALGORITHM_PROPERTY(long, number_of_rows)
+
+    // return the number of rows in the internal parameter table.
+    unsigned long get_parameter_table_size();
+
 protected:
     teca_bayesian_ar_detect_parameters();
 
@@ -33,7 +41,11 @@ private:
         const std::vector<const_p_teca_dataset> &input_data,
         const teca_metadata &request) override;
 
+    void set_modified() override;
+
 private:
+    long number_of_rows;
+
     struct internals_t;
     internals_t *internals;
 };

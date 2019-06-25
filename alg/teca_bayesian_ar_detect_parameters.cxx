@@ -925,46 +925,65 @@ parameter_t min_area_kmsq_array[] = {
     };
 
 
+
 struct teca_bayesian_ar_detect_parameters::internals_t
 {
     internals_t();
 
+    void initialize_parameter_table(unsigned long number_of_rows);
+    void initialize_control_metadata();
+
+    unsigned long parameter_table_size;
     teca_metadata metadata;
-    p_teca_table parameters;
+    p_teca_table parameter_table;
 };
 
 // --------------------------------------------------------------------------
 teca_bayesian_ar_detect_parameters::internals_t::internals_t()
 {
+    this->parameter_table_size =
+        sizeof(quantile_array)/sizeof(parameter_t);
+}
+
+// --------------------------------------------------------------------------
+void
+teca_bayesian_ar_detect_parameters::internals_t::initialize_control_metadata()
+{
     // set up the pipeline executive control keys
     this->metadata.set("number_of_tables", 1);
     this->metadata.set("index_initializer_key", std::string("number_of_tables"));
     this->metadata.set("index_request_key", std::string("table_id"));
+}
 
+// --------------------------------------------------------------------------
+void
+teca_bayesian_ar_detect_parameters::internals_t::initialize_parameter_table(
+    unsigned long number_of_rows)
+{
     // put the arrays into the table
-    const size_t table_size = sizeof(quantile_array)/sizeof(parameter_t);
-
     p_teca_variant_array_impl<parameter_t> min_water_vapor =
-        teca_variant_array_impl<parameter_t>::New(quantile_array, table_size);
+        teca_variant_array_impl<parameter_t>::New(quantile_array, number_of_rows);
 
     p_teca_variant_array_impl<parameter_t> filter_lat_width =
-        teca_variant_array_impl<parameter_t>::New(filter_lat_width_array, table_size);
+        teca_variant_array_impl<parameter_t>::New(filter_lat_width_array, number_of_rows);
 
     p_teca_variant_array_impl<parameter_t> min_area_kmsq =
-        teca_variant_array_impl<parameter_t>::New(min_area_kmsq_array, table_size);
+        teca_variant_array_impl<parameter_t>::New(min_area_kmsq_array, number_of_rows);
 
-    this->parameters = teca_table::New();
-    this->parameters->append_column("hwhm_latitude", filter_lat_width);
-    this->parameters->append_column("min_water_vapor", min_water_vapor);
-    this->parameters->append_column("min_component_area", min_area_kmsq);
+    this->parameter_table = teca_table::New();
+    this->parameter_table->append_column("hwhm_latitude", filter_lat_width);
+    this->parameter_table->append_column("min_water_vapor", min_water_vapor);
+    this->parameter_table->append_column("min_component_area", min_area_kmsq);
 }
 
 // --------------------------------------------------------------------------
 teca_bayesian_ar_detect_parameters::teca_bayesian_ar_detect_parameters() :
-    internals(new internals_t)
+    number_of_rows(-1), internals(new internals_t)
 {
     this->set_number_of_input_connections(0);
     this->set_number_of_output_ports(1);
+
+    this->internals->initialize_control_metadata();
 }
 
 // --------------------------------------------------------------------------
@@ -978,18 +997,37 @@ teca_bayesian_ar_detect_parameters::~teca_bayesian_ar_detect_parameters()
 void teca_bayesian_ar_detect_parameters::get_properties_description(
     const std::string &prefix, options_description &global_opts)
 {
-    (void)prefix;
-    (void)global_opts;
+    options_description opts("Options for "
+        + (prefix.empty()?"teca_bayesian_ar_detect_parameters":prefix));
+
+    opts.add_options()
+        TECA_POPTS_GET(long, prefix, number_of_rows,
+            "the number of parameter table rows to serve (-1)")
+        ;
+
+    global_opts.add(opts);
 }
 
 // --------------------------------------------------------------------------
 void teca_bayesian_ar_detect_parameters::set_properties(const std::string &prefix,
     variables_map &opts)
 {
-    (void)prefix;
-    (void)opts;
+    TECA_POPTS_SET(opts, long, prefix, number_of_rows)
 }
 #endif
+
+// --------------------------------------------------------------------------
+unsigned long teca_bayesian_ar_detect_parameters::get_parameter_table_size()
+{
+    return this->internals->parameter_table_size;
+}
+
+// --------------------------------------------------------------------------
+void teca_bayesian_ar_detect_parameters::set_modified()
+{
+    this->internals->parameter_table = nullptr;
+    this->teca_algorithm::set_modified();
+}
 
 // --------------------------------------------------------------------------
 teca_metadata teca_bayesian_ar_detect_parameters::get_output_metadata(
@@ -1018,5 +1056,12 @@ const_p_teca_dataset teca_bayesian_ar_detect_parameters::execute(unsigned int po
     (void)input_data;
     (void)request;
 
-    return this->internals->parameters;
+    if (!this->internals->parameter_table)
+    {
+        this->internals->initialize_parameter_table(
+            this->number_of_rows > 0 ? this->number_of_rows :
+                 this->internals->parameter_table_size);
+    }
+
+    return this->internals->parameter_table;
 }
