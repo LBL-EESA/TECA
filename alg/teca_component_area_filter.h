@@ -79,6 +79,11 @@ public:
     // string ""
     TECA_ALGORITHM_PROPERTY(std::string, variable_post_fix)
 
+    // set this only if you know for certain that label ids
+    // are contiguous and start at 0. this enables use of a
+    // faster implementation.
+    TECA_ALGORITHM_PROPERTY(int, contiguous_component_ids)
+
 protected:
     teca_component_area_filter();
 
@@ -108,6 +113,7 @@ private:
     double low_area_threshold;
     double high_area_threshold;
     std::string variable_post_fix;
+    int contiguous_component_ids;
 };
 
 #endif

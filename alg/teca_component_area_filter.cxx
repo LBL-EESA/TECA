@@ -14,32 +14,42 @@
 
 namespace {
 
+// this constructs a map from input label id to the output label id, the list
+// of ids that survive and their respective areas. if the area of the label is
+// outside of the range it will be replaced in the output.
 template <typename label_t, typename area_t, typename container_t>
-void get_filtered_labels(
-    const label_t *unique_labels, const area_t *areas,
-    container_t &filter_map, label_t replace_value, size_t n,
-    double low_area_threshold, double high_area_threshold)
+void build_label_map(const label_t *comp_ids, const area_t *areas,
+    size_t n, double low_area_threshold, double high_area_threshold,
+    label_t mask_value, container_t &label_map,
+    std::vector<label_t> &ids_out, std::vector<area_t> &areas_out)
 {
     for (size_t i = 0; i < n; ++i)
     {
-        if ((areas[i] < low_area_threshold) ||
-            (areas[i] > high_area_threshold))
-            filter_map[unique_labels[i]] = replace_value;
+        if ((areas[i] < low_area_threshold) || (areas[i] > high_area_threshold))
+        {
+            // outside the range, mask this label
+            label_map[comp_ids[i]] = mask_value;
+        }
         else
-            filter_map[unique_labels[i]] = unique_labels[i];
+        {
+            // inside the range, pass it through
+            label_map[comp_ids[i]] = comp_ids[i];
+            ids_out.push_back(comp_ids[i]);
+            areas_out.push_back(areas[i]);
+        }
     }
 }
 
+// visit every point in the data, apply the map. The map is such that labels
+// ouside of the specified range are replaced
 template <typename label_t, typename container_t>
-void apply_filter(
-    label_t *labels, const label_t *labels_in,
-    container_t &filter_map, size_t n)
+void apply_label_map(label_t *labels, const label_t *labels_in,
+    container_t &label_map, size_t n)
 {
     for (unsigned long i = 0; i < n; ++i)
-    {
-        labels[i] = filter_map[labels_in[i]];
-    }
+        labels[i] = label_map[labels_in[i]];
 }
+
 }
 
 
@@ -50,7 +60,7 @@ teca_component_area_filter::teca_component_area_filter() :
     component_ids_key("component_ids"), component_area_key("component_area"),
     mask_value(0), low_area_threshold(std::numeric_limits<double>::lowest()),
     high_area_threshold(std::numeric_limits<double>::max()),
-    variable_post_fix("")
+    variable_post_fix(""), contiguous_component_ids(0)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -92,6 +102,9 @@ void teca_component_area_filter::get_properties_description(
         TECA_POPTS_GET(std::string, prefix, variable_post_fix,
             "set a string that will be appended to variable names and "
             "metadata keys in the filter's output (\"\")")
+        TECA_POPTS_GET(int, prefix, contiguous_component_ids,
+            "when the region label ids start at 0 and are consecutive "
+            "this flag enables use of an optimization (0)")
         ;
 
     global_opts.add(opts);
@@ -228,13 +241,37 @@ const_p_teca_dataset teca_component_area_filter::execute(
         return nullptr;
     }
 
-    const_p_teca_variant_array labels_array
+    const_p_teca_variant_array labels_in
         = out_mesh->get_point_arrays()->get(labels_var);
 
-    if (!labels_array)
+    if (!labels_in)
     {
         TECA_ERROR("labels variable \"" << labels_var
             << "\" is not in the input")
+        return nullptr;
+    }
+
+    // get the list of component ids, and their corresponding areas
+    teca_metadata &in_metadata =
+        const_cast<teca_metadata&>(in_mesh->get_metadata());
+
+    const_p_teca_variant_array ids_in
+        = in_metadata.get(this->component_ids_key);
+
+    if (!ids_in)
+    {
+        TECA_ERROR("Metadata missing component ids")
+        return nullptr;
+    }
+
+    size_t n_ids_in = ids_in->size();
+
+    const_p_teca_variant_array areas_in
+        = in_metadata.get(this->component_area_key);
+
+    if (!areas_in)
+    {
+        TECA_ERROR("Metadata missing component areas")
         return nullptr;
     }
 
@@ -249,66 +286,92 @@ const_p_teca_dataset teca_component_area_filter::execute(
         && request.has("high_area_threshold"))
         request.get("high_area_threshold", high_val);
 
+    // allocate the array to store the output with labels outside the requested
+    // range removed.
+    size_t n_elem = labels_in->size();
+    p_teca_variant_array labels_out = labels_in->new_instance(n_elem);
 
-    // get the input and output metadata
-    teca_metadata &in_metadata =
-        const_cast<teca_metadata&>(in_mesh->get_metadata());
+    // pass to the output
+    std::string labels_var_post_fix = labels_var + this->variable_post_fix;
+    out_mesh->get_point_arrays()->set(labels_var_post_fix, labels_out);
+
+    // get the output metadata to add results to after the filter is applied
     teca_metadata &out_metadata = out_mesh->get_metadata();
 
-    const_p_teca_variant_array component_ids_array = in_metadata.get(this->component_ids_key);
-    const_p_teca_variant_array area_array = in_metadata.get(this->component_area_key);
-
-    size_t n_elem = labels_array->size();
-    p_teca_variant_array filtered_labels_array = labels_array->new_instance(n_elem);
-
-    // calculate area of components
+    // apply the filter
     NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
-        filtered_labels_array.get(),
+        labels_out.get(),
         _LABEL,
 
-        const NT_LABEL *p_labels_in = static_cast<const TT_LABEL*>(labels_array.get())->get();
-        const NT_LABEL *p_unique_labels = static_cast<const TT_LABEL*>(component_ids_array.get())->get();
+        // pointer to input/output labels
+        const NT_LABEL *p_labels_in =
+            static_cast<const TT_LABEL*>(labels_in.get())->get();
 
-        NT_LABEL *p_labels = static_cast<TT_LABEL*>(filtered_labels_array.get())->get();
+        NT_LABEL *p_labels_out =
+            static_cast<TT_LABEL*>(labels_out.get())->get();
 
-        NT_LABEL replace_val = this->mask_value;
+        // pointer to input ids and a container to hold ids which remain
+        // after the filtering operation
+        const NT_LABEL *p_ids_in =
+            static_cast<const TT_LABEL*>(ids_in.get())->get();
+
+        std::vector<NT_LABEL> ids_out;
 
         NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
-            area_array.get(),
+            areas_in.get(),
             _AREA,
 
-            const NT_AREA *p_areas = static_cast<TT_AREA*>(area_array.get())->get();
+            // pointer to the areas in and a container to hold areas which
+            // remain after the filtering operation
+            const NT_AREA *p_areas = static_cast<TT_AREA*>(areas_in.get())->get();
 
-            decltype(std::map<NT_LABEL, NT_LABEL>()) filter_map;
+            std::vector<NT_AREA> areas_out;
 
-            size_t n_component_ids = component_ids_array->size();
-
-            ::get_filtered_labels(
-                    p_unique_labels, p_areas, filter_map, replace_val,
-                    n_component_ids, low_val, high_val);
-
-            ::apply_filter(p_labels, p_labels_in, filter_map, n_elem);
-
-            std::vector<NT_LABEL> component_ids;
-            std::vector<NT_AREA> component_area;
-            for (size_t i = 0; i < n_component_ids; ++i)
+            // if we labels with small values we can speed the calculation by
+            // using a contiguous buffer to hold the map. otherwise we need to
+            // use an associative container
+            if (this->contiguous_component_ids)
             {
-                if (filter_map[p_unique_labels[i]] == p_unique_labels[i])
-                {
-                    component_ids.push_back(p_unique_labels[i]);
-                    component_area.push_back(p_areas[i]);
-                }
+                // find the max label id, used to size the map buffer
+                NT_LABEL max_id = std::numeric_limits<NT_LABEL>::lowest();
+                for (unsigned int i = 0; i < n_ids_in; ++i)
+                    max_id = std::max(max_id, p_ids_in[i]);
+
+                // allocate the map
+                std::vector<NT_LABEL> label_map(max_id+1, NT_LABEL(this->mask_value));
+
+                // construct the map from input label to output label.
+                // removing a lable from the output ammounts to applying
+                // the mask value to the labels
+                ::build_label_map(p_ids_in, p_areas, n_ids_in,
+                        low_val, high_val, NT_LABEL(this->mask_value),
+                        label_map, ids_out, areas_out);
+
+                // use the map to mask out removed labels
+                ::apply_label_map(p_labels_out, p_labels_in, label_map, n_elem);
+            }
+            else
+            {
+                decltype(std::map<NT_LABEL, NT_LABEL>()) label_map;
+
+                // construct the map from input label to output label.
+                // removing a lable from the output ammounts to applying
+                // the mask value to the labels
+                ::build_label_map(p_ids_in, p_areas, n_ids_in,
+                        low_val, high_val, NT_LABEL(this->mask_value),
+                        label_map, ids_out, areas_out);
+
+                // use the map to mask out removed labels
+                ::apply_label_map(p_labels_out, p_labels_in, label_map, n_elem);
             }
 
-            n_component_ids = component_area.size();
+            // pass the updated set of component ids and their coresponding areas
+            // to the output
+            out_metadata.set(this->number_of_components_key + this->variable_post_fix, ids_out.size());
+            out_metadata.set(this->component_ids_key + this->variable_post_fix, ids_out);
+            out_metadata.set(this->component_area_key + this->variable_post_fix, areas_out);
 
-            std::string labels_var_post_fix = labels_var + this->variable_post_fix;
-            out_mesh->get_point_arrays()->set(labels_var_post_fix, filtered_labels_array);
-
-            out_metadata.set(this->number_of_components_key + this->variable_post_fix, component_ids.size());
-            out_metadata.set(this->component_ids_key + this->variable_post_fix, component_ids);
-            out_metadata.set(this->component_area_key + this->variable_post_fix, component_area);
-
+            // pass the threshold values used
             out_metadata.set("low_area_threshold_km", low_val);
             out_metadata.set("high_area_threshold_km", high_val);
             )

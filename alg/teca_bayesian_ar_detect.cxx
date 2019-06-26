@@ -550,7 +550,7 @@ teca_bayesian_ar_detect::teca_bayesian_ar_detect::get_output_metadata(
     // parameter tables.
     teca_metadata md(input_md[0]);
     md.set("variables", std::string("ar_probability"));
-    
+
     // if we already have the parameter table bail out here
     // else we will read and distribute it
     if (this->internals->parameter_table)
@@ -791,6 +791,7 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
     caf->set_communicator(MPI_COMM_SELF);
     caf->set_input_connection(ca->get_output_port());
     caf->set_component_variable("wv_cc");
+    caf->set_contiguous_component_ids(1);
 
     // set up the request generator. 1 request per parameter table row is
     // generated. the request is populated with values in columns of that row
