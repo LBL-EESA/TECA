@@ -69,9 +69,22 @@ void percentile_threshold(out_t *output, const in_t *input,
     index_t high_cut = index_t(tmp);
     double t_high = tmp - high_cut;
 
-    // sort the input data up to the high cut
+    // sort the ids. std::partial_sort apparently uses a heap sort, while
+    // std::sort uses a variant of quick sort called intro sort. Quick sort is
+    // known to be quite a bit faster than heap sort & my tests on the Bayesian
+    // AR detector use case indicate that it's about 44% faster to sort the
+    // entire array using std::sort.
     indirect_comp<in_t,index_t>  comp(input);
-    std::partial_sort(ids, ids+std::min(high_cut+2, n_vals), ids+n_vals, comp);
+    if (q_high < 75.0)
+    {
+        // sort the input data up to the high cut, using heap sort
+        std::partial_sort(ids, ids+std::min(high_cut+2, n_vals), ids+n_vals, comp);
+    }
+    else
+    {
+        // sort all of the data, using quick sort
+        std::sort(ids, ids+n_vals, comp);
+    }
 
     // interpolate to get the percentiles
     double y0 = input[ids[low_cut]];
