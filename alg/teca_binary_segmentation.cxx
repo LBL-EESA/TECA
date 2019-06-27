@@ -64,16 +64,6 @@ template <typename in_t, typename out_t>
 void percentile_threshold(out_t *output, const in_t *input,
     unsigned long n_vals, float q_low, float q_high)
 {
-    // we could save a ton of work if we flip the limits and sort the other way
-    bool sort_ascending = true;
-    if (q_low > 50.0f)
-    {
-        sort_ascending = false;
-        float tmp = 100.0f - q_low;
-        q_low = 100.0f - q_high;
-        q_high = tmp;
-    }
-
     // allocate indices and initialize
     using index_t = unsigned long;
     index_t *ids = (index_t*)malloc(n_vals*sizeof(index_t));
@@ -94,57 +84,35 @@ void percentile_threshold(out_t *output, const in_t *input,
     index_t high_cut = index_t(tmp);
     double t_high = tmp - high_cut;
 
-    // sort the ids. std::partial_sort apparently uses a heap sort, while
-    // std::sort uses a variant of quick sort called intro sort. Quick sort is
-    // known to be quite a bit faster than heap sort & my tests on the Bayesian
-    // AR detector use case indicate that it's about 44% faster to sort the
-    // entire array using std::sort.
-    if (q_high < 75.0f)
-    {
-        // sort the input data up to the high cut, using heap sort
-        if (sort_ascending)
-        {
-            indirect_lt<in_t,index_t>  comp(input);
-            std::partial_sort(ids, ids+std::min(high_cut+2, n_vals), ids+n_vals, comp);
-        }
-        else
-        {
-            indirect_gt<in_t,index_t>  comp(input);
-            std::partial_sort(ids, ids+std::min(high_cut+2, n_vals), ids+n_vals, comp);
-        }
-    }
-    else
-    {
-        // sort all of the data, using quick sort
-        indirect_lt<in_t,index_t>  comp(input);
-        std::sort(ids, ids+n_vals, comp);
-    }
+    // compute 4 indices needed for percentile calcultion
+    index_t low_cut_p1 = low_cut+1;
+    index_t high_cut_p1 = std::min(high_cut+1, n_vals_m1);
+    index_t *ids_pn_vals = ids+n_vals;
 
-    // interpolate to get the percentiles
+    // use an indirect comparison that leaves the input data unmodified
+    indirect_lt<in_t,index_t>  comp(input);
+
+    // find 2 indices needed for low percentile calc
+    std::nth_element(ids, ids+low_cut, ids_pn_vals, comp);
     double y0 = input[ids[low_cut]];
-    double y1 = input[ids[low_cut+1]];
+
+    std::nth_element(ids, ids+low_cut_p1, ids_pn_vals, comp);
+    double y1 = input[ids[low_cut_p1]];
+
+    // compute low percetile
     double low_percentile = (y1 - y0)*t_low + y0;
 
-    index_t high_cut_p1 = std::min(high_cut+1, n_vals_m1);
+    // find 2 indices needed for the high percentile calc
+    std::nth_element(ids, ids+high_cut, ids_pn_vals, comp);
     y0 = input[ids[high_cut]];
+
+    std::nth_element(ids, ids+high_cut_p1, ids_pn_vals, comp);
     y1 = input[ids[high_cut_p1]];
+
+    // compute high percentile
     double high_percentile = (y1 - y0)*t_high + y0;
 
-    if (!sort_ascending)
-    {
-        double tmp_percentile = low_percentile;
-        low_percentile = high_percentile;
-        high_percentile = tmp_percentile;
-    }
-
-    /*if (!sort_ascending)
-    {
-        float q_tmp = 100.0f - q_low;
-        q_low = 100.0f - q_high;
-        q_high = q_tmp;
-    }
-
-    std::cerr << q_low << "th percentile is " <<  std::setprecision(10) << low_percentile << std::endl
+    /*std::cerr << q_low << "th percentile is " <<  std::setprecision(10) << low_percentile << std::endl
         << q_high << "th percentile is " <<  std::setprecision(9) << high_percentile << std::endl;*/
 
     // apply thresholds
