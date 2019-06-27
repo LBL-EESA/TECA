@@ -26,10 +26,10 @@ void value_threshold(out_t *output, const in_t *input,
 
 // predicate for indirect sort
 template <typename data_t, typename index_t>
-struct indirect_comp
+struct indirect_lt
 {
-    indirect_comp() : p_data(nullptr) {}
-    indirect_comp(const data_t *pd) : p_data(pd) {}
+    indirect_lt() : p_data(nullptr) {}
+    indirect_lt(const data_t *pd) : p_data(pd) {}
 
     bool operator()(const index_t &a, const index_t &b)
     {
@@ -38,6 +38,21 @@ struct indirect_comp
 
     const data_t *p_data;
 };
+
+template <typename data_t, typename index_t>
+struct indirect_gt
+{
+    indirect_gt() : p_data(nullptr) {}
+    indirect_gt(const data_t *pd) : p_data(pd) {}
+
+    bool operator()(const index_t &a, const index_t &b)
+    {
+        return p_data[a] > p_data[b];
+    }
+
+    const data_t *p_data;
+};
+
 
 
 // Given a vector V of length N, the q-th percentile of V is the value q/100 of
@@ -49,6 +64,16 @@ template <typename in_t, typename out_t>
 void percentile_threshold(out_t *output, const in_t *input,
     unsigned long n_vals, float q_low, float q_high)
 {
+    // we could save a ton of work if we flip the limits and sort the other way
+    bool sort_ascending = true;
+    if (q_low > 50.0f)
+    {
+        sort_ascending = false;
+        float tmp = 100.0f - q_low;
+        q_low = 100.0f - q_high;
+        q_high = tmp;
+    }
+
     // allocate indices and initialize
     using index_t = unsigned long;
     index_t *ids = (index_t*)malloc(n_vals*sizeof(index_t));
@@ -74,15 +99,24 @@ void percentile_threshold(out_t *output, const in_t *input,
     // known to be quite a bit faster than heap sort & my tests on the Bayesian
     // AR detector use case indicate that it's about 44% faster to sort the
     // entire array using std::sort.
-    indirect_comp<in_t,index_t>  comp(input);
-    if (q_high < 75.0)
+    if (q_high < 75.0f)
     {
         // sort the input data up to the high cut, using heap sort
-        std::partial_sort(ids, ids+std::min(high_cut+2, n_vals), ids+n_vals, comp);
+        if (sort_ascending)
+        {
+            indirect_lt<in_t,index_t>  comp(input);
+            std::partial_sort(ids, ids+std::min(high_cut+2, n_vals), ids+n_vals, comp);
+        }
+        else
+        {
+            indirect_gt<in_t,index_t>  comp(input);
+            std::partial_sort(ids, ids+std::min(high_cut+2, n_vals), ids+n_vals, comp);
+        }
     }
     else
     {
         // sort all of the data, using quick sort
+        indirect_lt<in_t,index_t>  comp(input);
         std::sort(ids, ids+n_vals, comp);
     }
 
@@ -96,7 +130,21 @@ void percentile_threshold(out_t *output, const in_t *input,
     y1 = input[ids[high_cut_p1]];
     double high_percentile = (y1 - y0)*t_high + y0;
 
-    /*std::cerr << q_low << "th percentile is " <<  std::setprecision(10) << low_percentile << std::endl
+    if (!sort_ascending)
+    {
+        double tmp_percentile = low_percentile;
+        low_percentile = high_percentile;
+        high_percentile = tmp_percentile;
+    }
+
+    /*if (!sort_ascending)
+    {
+        float q_tmp = 100.0f - q_low;
+        q_low = 100.0f - q_high;
+        q_high = q_tmp;
+    }
+
+    std::cerr << q_low << "th percentile is " <<  std::setprecision(10) << low_percentile << std::endl
         << q_high << "th percentile is " <<  std::setprecision(9) << high_percentile << std::endl;*/
 
     // apply thresholds
