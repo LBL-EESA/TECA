@@ -5,11 +5,8 @@ TECA(Toolkit for Extreme Climate Analysis) is a collection of climate analysis a
 
 [![Build Status](https://travis-ci.com/LBL-EESA/TECA.svg?token=zV3LhFtYvjcvo67W2uji&branch=master)](https://travis-ci.com/LBL-EESA/TECA)
 
-# Download, Build, and Install
-TECA can be built and installed with all of its dependencies using the [TECA Superbuild](https://github.com/LBL-EESA/TECA_superbuild).
-
 # Documentation
-For more information please see the [TECA User's Guide](doc/teca_users_guide.pdf).
+For more information please see the [TECA User's Guide](https://teca.readthedocs.io/en/latest/).
 
 #Copyright Notice#
 TECA, Copyright (c) 2015, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Dept. of Energy).  All rights reserved.
