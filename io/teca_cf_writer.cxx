@@ -6,6 +6,7 @@
 #include "teca_variant_array.h"
 #include "teca_file_util.h"
 #include "teca_netcdf_util.h"
+#include "teca_coordinate_util.h"
 
 #include <iostream>
 #include <sstream>
@@ -330,9 +331,8 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
 
 // --------------------------------------------------------------------------
 teca_cf_writer::teca_cf_writer() :
-    file_name(""), steps_per_file(8), mode_flags(NC_CLOBBER|NC_NETCDF4),
-    use_unlimited_dim(1)
-
+    file_name(""), date_format("%F-%HZ"), steps_per_file(8),
+    mode_flags(NC_CLOBBER|NC_NETCDF4), use_unlimited_dim(1)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -353,6 +353,8 @@ void teca_cf_writer::get_properties_description(
     opts.add_options()
         TECA_POPTS_GET(std::string, prefix, file_name,
             "path/name to write series to")
+        TECA_POPTS_GET(std::string, prefix, date_format,
+            "strftime format string for date string in output filename (%F-%H)")
         TECA_POPTS_GET(unsigned int, prefix, steps_per_file,
             "set the number of time steps to write per file (8)")
         TECA_POPTS_GET(int, prefix, mode_flags,
@@ -370,6 +372,7 @@ void teca_cf_writer::set_properties(
     const std::string &prefix, variables_map &opts)
 {
     TECA_POPTS_SET(opts, std::string, prefix, file_name)
+    TECA_POPTS_SET(opts, std::string, prefix, date_format)
     TECA_POPTS_SET(opts, unsigned int, prefix, steps_per_file)
     TECA_POPTS_SET(opts, int, prefix, mode_flags)
     TECA_POPTS_SET(opts, int, prefix, use_unlimited_dim)
@@ -642,7 +645,38 @@ const_p_teca_dataset teca_cf_writer::execute(unsigned int port,
 
     // construct the file name
     std::string out_file = this->file_name;
-    teca_file_util::replace_timestep(out_file, file_id);
+    if (!this->date_format.empty())
+    {
+        // use the date string for the time information in the filename
+        // get the calendar and units information
+        std::string calendar;
+        std::string units;
+        in_mesh->get_calendar(calendar);
+        in_mesh->get_time_units(units);
+
+        if (calendar.empty() || units.empty())
+        {
+            // no calendar metadata, fallback to time step
+            TECA_WARNING("input dataset is missing calendaring metadata")
+            teca_file_util::replace_timestep(out_file, file_id);
+        }
+        else if (teca_file_util::replace_time(out_file, *pt,
+            calendar, units, this->date_format))
+        {
+            // conversion failed, fall back to time step
+            TECA_WARNING("failed to convert relative time value \"" << *pt
+                << "\" to with the calendar \"" << calendar << "\" units \""
+                << units << "\" and format \"" << this->date_format << "\".")
+            teca_file_util::replace_timestep(out_file, file_id);
+        }
+    }
+    else
+    {
+        // use the timestep for the time information in the filename
+        teca_file_util::replace_timestep(out_file, file_id);
+    }
+
+    // replace extension
     teca_file_util::replace_extension(out_file, "nc");
 
     // write the data

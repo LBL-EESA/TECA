@@ -213,6 +213,12 @@ int time_step_of(p_teca_double_array time, bool lower,
     const std::string &calendar, const std::string &units,
     const std::string &date, unsigned long &step);
 
+// given a time value (val), associated time units (units), and calendar
+// (calendar), return a human-readable rendering of the date (date) in a
+// strftime-format (format).  return 0 if successful.
+int time_to_string(double val, const std::string &calendar,
+    const std::string &units, const std::string &format, std::string &date);
+
 // build random access data structures for an indexed table.
 // the index column gives each entity a unique id. the index is
 // used to identify rows that belong in the entity. it is assumed

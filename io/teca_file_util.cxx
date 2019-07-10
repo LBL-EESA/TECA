@@ -1,6 +1,7 @@
 #include "teca_config.h"
 #include "teca_common.h"
 #include "teca_binary_stream.h"
+#include "teca_coordinate_util.h"
 
 #include <cstring>
 #include <cstdlib>
@@ -183,6 +184,26 @@ void replace_timestep(std::string &file_name, unsigned long time_step)
 
         file_name.replace(t_pos, 3, oss.str());
     }
+}
+
+// **************************************************************************
+int replace_time(std::string &file_name, double t,
+    const std::string &calendar, const std::string &units,
+    const std::string &format)
+{
+    std::string date_str;
+
+    if (teca_coordinate_util::time_to_string(t,
+        calendar, units, format, date_str))
+        return -1;
+
+    size_t t_pos = file_name.find("%t%");
+    if (t_pos != std::string::npos)
+    {
+        file_name.replace(t_pos, 3, date_str);
+    }
+
+    return 0;
 }
 
 // **************************************************************************

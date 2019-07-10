@@ -7,6 +7,9 @@
 
 #include <string>
 #include <cstdio>
+#include <ctime>
+#include <sstream>
+#include <iomanip>
 
 namespace teca_coordinate_util
 {
@@ -55,6 +58,49 @@ int time_step_of(p_teca_double_array time, bool lower,
     (void)units;
     (void)date;
     step = 0;
+    TECA_ERROR("The UDUnits package is required for this operation")
+    return -1;
+#endif
+}
+
+
+// **************************************************************************
+int time_to_string(double val, const std::string &calendar,
+  const std::string &units, const std::string &format, std::string &date)
+{
+#if defined(TECA_HAS_UDUNITS)
+    // use calcalcs to convert val to a set of year/month/day/etc.
+    struct tm timedata = {};
+    double seconds = 0.0;
+    if (calcalcs::date(val, &timedata.tm_year, &timedata.tm_mon,
+        &timedata.tm_mday, &timedata.tm_hour, &timedata.tm_min, &seconds,
+        units.c_str(), calendar.c_str()))
+    {
+        TECA_ERROR("failed to convert relative time value \"" << val
+            << "\" to with the calendar \"" << calendar
+            << "\" and units \"" << units << "\".")
+        return -1;
+    }
+
+    // fix some of the timedata info to conform to what strftime expects
+    timedata.tm_year -= 1900; // make the year relative to 1900
+    timedata.tm_mon -= 1; // make the months start at 0 instead of 1
+    timedata.tm_sec = (int) std::round(seconds);
+
+    // convert the time data to a string
+    char tmp[256];
+    if (strftime(tmp, sizeof(tmp), format.c_str(), &timedata) == 0)
+    {
+        TECA_ERROR("failed to convert the time as a string with \""
+            << format << "\"")
+        return -1;
+    }
+
+    date = tmp;
+
+    return 0;
+#else
+    (void)date;
     TECA_ERROR("The UDUnits package is required for this operation")
     return -1;
 #endif

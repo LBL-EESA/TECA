@@ -24,9 +24,15 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // set the output filename. for time series the substring
-    // %t% is replaced with the current time step.
+    // set the output filename. for time series the substring %t% is replaced
+    // with the current time step or date. See comments on date_format below
+    // for info about date formatting.
     TECA_ALGORITHM_PROPERTY(std::string, file_name)
+
+    // set the format for the date to write in the filename this requires the
+    // input dataset to have unit/calendar information if none are available,
+    // the time index is used instead. (%F-%H)
+    TECA_ALGORITHM_PROPERTY(std::string, date_format)
 
     // set how many time steps are written to each file. Note that upstream is
     // parallelized over files rather than time steps.  this has the affect of
@@ -36,7 +42,7 @@ public:
     // should make such calculations when planning large runs if optimal
     // performance is desired. time steps are gathered before the file is
     // written, thus available memory per MPI rank is the limiting factor in
-    // how many steps can be stored in a single file.
+    // how many steps can be stored in a single file (8).
     TECA_ALGORITHM_PROPERTY(unsigned int, steps_per_file)
 
     // sets the flags passed to NetCDF during file creation. (NC_CLOBBER)
@@ -65,6 +71,7 @@ private:
         const teca_metadata &request) override;
 private:
     std::string file_name;
+    std::string date_format;
     unsigned int steps_per_file;
     int mode_flags;
     int use_unlimited_dim;
