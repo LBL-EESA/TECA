@@ -34,6 +34,11 @@ int write_stream(const char *file_name, const char *header,
 // replace %t% with the given value
 void replace_timestep(std::string &file_name, unsigned long time_step);
 
+// replace %t% with the time t in calendar with units in the strftime format
+int replace_time(std::string &file_name, double t,
+    const std::string &calendar, const std::string &units,
+    const std::string &format);
+
 // replace %e% with the given string
 void replace_extension(std::string &file_name, const std::string &ext);
 
