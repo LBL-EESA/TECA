@@ -114,6 +114,6 @@ setup(name='teca',
     ext_modules=[CMakeExtension('teca')],
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
-    install_requires=["mpi4py", "numpy", "matplotlib",],
+    setup_requires=["mpi4py", "numpy", "matplotlib",],
     )
 
