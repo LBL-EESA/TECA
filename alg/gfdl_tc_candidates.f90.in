@@ -147,6 +147,7 @@ integer(c_int) function gfdl_tc_candidates_@decorator@( &
 
   implicit none
 
+  integer(c_long), intent(in) :: Gnlat, Gnlon, time_step
   @iso_c_type_var@, intent(in) :: max_core_radius
   @iso_c_type_var@, intent(in) :: min_vort, vort_win_size
   @iso_c_type_var@, intent(in) :: max_psl_dy, max_psl_dr
@@ -156,7 +157,6 @@ integer(c_int) function gfdl_tc_candidates_@decorator@( &
     dimension(Gnlon, Gnlat) :: Gwind, Gvort, Gtbar, Gpsl, Gthick
   @iso_c_type_coord@, intent(in), dimension(Gnlon) :: Grlon
   @iso_c_type_coord@, intent(in), dimension(Gnlat) :: Grlat
-  integer(c_long), intent(in) :: Gnlat, Gnlon, time_step
   integer(c_int), intent(in) :: frprm_itmax
   type(c_ptr), intent(inout) :: tc_table
 
