@@ -12,7 +12,7 @@ from distutils.version import LooseVersion
 # when compiled outside of the git repo we must set the version
 # manually. Also note that these must be unique per upload to PyPi
 # so be sure to use an 'rcX' for testing
-teca_version = "2.2.1"
+teca_version = "2.2.2"
 
 class CMakeExtension(Extension):
     def __init__(self, name, sourcedir=''):
