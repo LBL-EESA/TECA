@@ -1,6 +1,8 @@
 project(teca_core)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}
+    $<TARGET_PROPERTY:teca_timer,INTERFACE_INCLUDE_DIRECTORIES>
+)
 
 set(teca_core_srcs
     teca_algorithm.cxx
@@ -39,7 +41,7 @@ endif()
 list(APPEND teca_core_link pthread)
 
 add_library(teca_core ${teca_core_srcs})
-target_link_libraries(teca_core PUBLIC ${teca_core_link})
+target_link_libraries(teca_core PUBLIC teca_timer ${teca_core_link})
 
 target_include_directories(teca_core
     INTERFACE

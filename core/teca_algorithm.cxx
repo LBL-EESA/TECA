@@ -11,6 +11,8 @@
 #include <algorithm>
 #include <mutex>
 
+#include <teca_timer.h>
+
 using std::vector;
 using std::map;
 using std::string;
@@ -398,6 +400,12 @@ teca_algorithm::~teca_algorithm() noexcept
 }
 
 //----------------------------------------------------------------------------
+std::string teca_algorithm::get_class_name()
+{
+    return "teca_algorithm";
+}
+
+//----------------------------------------------------------------------------
 void teca_algorithm::set_communicator(MPI_Comm comm)
 {
     this->internals->set_communicator(comm);
@@ -624,7 +632,13 @@ teca_metadata teca_algorithm::get_output_metadata(
     // now that we have metadata for the algorithm's
     // inputs, call the override to do the actual work
     // of reporting output meta data
-    return alg->get_output_metadata(port, input_md);
+    std::string evt_name = alg->get_class_name() + "::get_output_metadata()";
+
+    teca_timer::mark_start_event(evt_name.c_str());
+    teca_metadata md_out = alg->get_output_metadata(port, input_md);
+    teca_timer::mark_end_event(evt_name.c_str());
+
+    return md_out;
 }
 
 // --------------------------------------------------------------------------
@@ -652,8 +666,12 @@ const_p_teca_dataset teca_algorithm::request_data(
         }
 
         // get requests for upstream data
+        std::string evt_name = alg->get_class_name() + "::get_upstream_request()";
+
+        teca_timer::mark_start_event(evt_name.c_str());
         vector<teca_metadata> up_reqs
             = alg->get_upstream_request(port, input_md, request);
+        teca_timer::mark_end_event(evt_name.c_str());
 
         // get the upstream data mapping the requests round-robbin
         // on to the inputs
@@ -672,7 +690,11 @@ const_p_teca_dataset teca_algorithm::request_data(
         }
 
         // execute override
+        evt_name = alg->get_class_name() + "::execute()";
+        
+        teca_timer::mark_start_event(evt_name.c_str());
         out_data = alg->execute(port, input_data, request);
+        teca_timer::mark_end_event(evt_name.c_str());
 
         // cache
         alg->cache_output_data(port, key, out_data);

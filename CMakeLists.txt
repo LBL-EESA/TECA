@@ -308,6 +308,7 @@ add_subdirectory(python)
 add_subdirectory(system)
 add_subdirectory(apps)
 add_subdirectory(paraview)
+add_subdirectory(teca_timer)
 
 # enable regression tests
 set(BUILD_TESTING OFF CACHE BOOL "Enable tests")

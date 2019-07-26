@@ -29,6 +29,8 @@ public:
     virtual ~teca_algorithm() noexcept;
     TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_algorithm)
 
+    virtual std::string get_class_name();
+
     // set/get the communicator to use at this stage of the pipeline this has
     // no influence on other stages. We duplicate the passed in communicator
     // providing an isolated communication space for subsequent operations. By
