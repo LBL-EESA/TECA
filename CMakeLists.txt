@@ -274,6 +274,14 @@ if (TECA_HAS_PYTHON)
     set(BUILD_SHARED_LIBS ON FORCE)
 endif()
 
+# enable/disable profiling interface
+set(TECA_ENABLE_PROFILER OFF CACHE STRING "Enable internal profiler")
+if (TECA_ENABLE_PROFILER)
+    message(STATUS "Profiling features -- enabled")
+else()
+    message(STATUS "Profiling features -- disabled")
+endif()
+
 # get the build version descriptor
 if (NOT DEFINED TECA_VERSION)
     set(tmp)
@@ -308,7 +316,6 @@ add_subdirectory(python)
 add_subdirectory(system)
 add_subdirectory(apps)
 add_subdirectory(paraview)
-add_subdirectory(teca_timer)
 
 # enable regression tests
 set(BUILD_TESTING OFF CACHE BOOL "Enable tests")

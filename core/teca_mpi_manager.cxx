@@ -6,7 +6,7 @@
 
 #if defined(TECA_HAS_MPI)
 #include <mpi.h>
-#include <teca_timer.h>
+#include <teca_profiler.h>
 
 //using namespace timer;
 #endif
@@ -24,12 +24,12 @@ teca_mpi_manager::teca_mpi_manager(int &argc, char **&argv)
         TECA_ERROR("This MPI does not support thread serialized");
         abort();
     }
-    teca_timer::set_communicator(MPI_COMM_WORLD);
+
+    teca_profiler::set_communicator(MPI_COMM_WORLD);
+    teca_profiler::initialize();
 
     MPI_Comm_rank(MPI_COMM_WORLD, &m_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &m_size);
-
-    teca_timer::initialize();
 #else
     (void)argc;
     (void)argv;
@@ -40,12 +40,11 @@ teca_mpi_manager::teca_mpi_manager(int &argc, char **&argv)
 teca_mpi_manager::~teca_mpi_manager()
 {
 #if defined(TECA_HAS_MPI)
+    teca_profiler::finalize();
+
     int ok = 0;
     MPI_Initialized(&ok);
     if (ok)
-    {
-        teca_timer::finalize();
         MPI_Finalize();
-    }
 #endif
 }

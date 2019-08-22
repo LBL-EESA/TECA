@@ -1,8 +1,6 @@
 project(teca_core)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}
-    $<TARGET_PROPERTY:teca_timer,INTERFACE_INCLUDE_DIRECTORIES>
-)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 set(teca_core_srcs
     teca_algorithm.cxx
@@ -12,12 +10,14 @@ set(teca_core_srcs
     teca_dataset.cxx
     teca_index_executive.cxx
     teca_index_reduce.cxx
+    teca_memory_profiler.cxx
     teca_metadata.cxx
     teca_metadata_util.cxx
     teca_mpi_manager.cxx
     teca_parallel_id.cxx
     teca_threaded_algorithm.cxx
     teca_thread_pool.cxx
+    teca_profiler.cxx
     teca_variant_array.cxx
     )
 
@@ -41,7 +41,7 @@ endif()
 list(APPEND teca_core_link pthread)
 
 add_library(teca_core ${teca_core_srcs})
-target_link_libraries(teca_core PUBLIC teca_timer ${teca_core_link})
+target_link_libraries(teca_core PUBLIC ${teca_core_link})
 
 target_include_directories(teca_core
     INTERFACE

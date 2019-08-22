@@ -31,9 +31,9 @@ std::shared_ptr<T const> shared_from_this() const   \
         teca_algorithm::shared_from_this());        \
 }                                                   \
                                                     \
-std::string get_class_name()                              \
+const char *get_class_name() const override         \
 {                                                   \
-    return #T;                                       \
+    return #T;                                      \
 }
 
 // this convenience macro removes copy and aassignment operators
