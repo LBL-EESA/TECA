@@ -29,6 +29,11 @@ std::shared_ptr<T const> shared_from_this() const   \
 {                                                   \
     return std::static_pointer_cast<T const>(       \
         teca_algorithm::shared_from_this());        \
+}                                                   \
+                                                    \
+const char *get_class_name() const override         \
+{                                                   \
+    return #T;                                      \
 }
 
 // this convenience macro removes copy and aassignment operators

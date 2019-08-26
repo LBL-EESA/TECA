@@ -10,6 +10,7 @@
 #include "teca_variant_array.h"
 #include "teca_binary_stream.h"
 #include "teca_parallel_id.h"
+#include "teca_profiler.h"
 
 #include "teca_py_object.h"
 #include "teca_py_sequence.h"
@@ -17,6 +18,11 @@
 #include "teca_py_iterator.h"
 #include "teca_py_gil_state.h"
 %}
+
+/***************************************************************************
+ profiler
+ ***************************************************************************/
+%include "teca_profiler.h"
 
 /***************************************************************************
  parallel_id

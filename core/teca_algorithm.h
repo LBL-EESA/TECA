@@ -25,9 +25,12 @@ class teca_algorithm : public std::enable_shared_from_this<teca_algorithm>
 {
 public:
     // construct/destruct
-    static p_teca_algorithm New();
     virtual ~teca_algorithm() noexcept;
+
     TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_algorithm)
+
+    // return the name of the class.
+    virtual const char *get_class_name() const = 0;
 
     // set/get the communicator to use at this stage of the pipeline this has
     // no influence on other stages. We duplicate the passed in communicator

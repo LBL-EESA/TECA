@@ -10,12 +10,14 @@ set(teca_core_srcs
     teca_dataset.cxx
     teca_index_executive.cxx
     teca_index_reduce.cxx
+    teca_memory_profiler.cxx
     teca_metadata.cxx
     teca_metadata_util.cxx
     teca_mpi_manager.cxx
     teca_parallel_id.cxx
     teca_threaded_algorithm.cxx
     teca_thread_pool.cxx
+    teca_profiler.cxx
     teca_variant_array.cxx
     )
 

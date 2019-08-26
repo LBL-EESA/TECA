@@ -16,6 +16,7 @@
 #include "teca_index_executive.h"
 #include "teca_file_util.h"
 #include "teca_system_interface.h"
+#include "teca_profiler.h"
 
 #include <iostream>
 #include <string>
@@ -24,6 +25,7 @@ using namespace std;
 
 int main(int argc, char **argv)
 {
+    teca_profiler::initialize();
     teca_system_interface::set_stack_trace_on_error();
 
     if (argc != 13)
@@ -144,5 +146,6 @@ int main(int argc, char **argv)
         table_writer->update();
     }
 
+    teca_profiler::finalize();
     return 0;
 }

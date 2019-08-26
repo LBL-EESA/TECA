@@ -2,6 +2,7 @@
 #include "teca_dataset.h"
 #include "teca_algorithm_executive.h"
 #include "teca_threadsafe_queue.h"
+#include "teca_profiler.h"
 
 #include <string>
 #include <vector>
@@ -380,13 +381,6 @@ void teca_algorithm_internals::from_stream(istream &is)
 
 
 
-
-// --------------------------------------------------------------------------
-p_teca_algorithm teca_algorithm::New()
-{
-    return p_teca_algorithm(new teca_algorithm);
-}
-
 // --------------------------------------------------------------------------
 teca_algorithm::teca_algorithm() : internals(new teca_algorithm_internals)
 {}
@@ -624,7 +618,12 @@ teca_metadata teca_algorithm::get_output_metadata(
     // now that we have metadata for the algorithm's
     // inputs, call the override to do the actual work
     // of reporting output meta data
-    return alg->get_output_metadata(port, input_md);
+    teca_metadata md_out;
+    TECA_PROFILE_PIPELINE(128, alg, "get_output_metadata", port,
+        md_out = alg->get_output_metadata(port, input_md);
+        )
+
+    return md_out;
 }
 
 // --------------------------------------------------------------------------
@@ -652,8 +651,10 @@ const_p_teca_dataset teca_algorithm::request_data(
         }
 
         // get requests for upstream data
-        vector<teca_metadata> up_reqs
-            = alg->get_upstream_request(port, input_md, request);
+        vector<teca_metadata> up_reqs;
+        TECA_PROFILE_PIPELINE(128, alg, "get_upstream_request", port,
+            up_reqs = alg->get_upstream_request(port, input_md, request);
+            )
 
         // get the upstream data mapping the requests round-robbin
         // on to the inputs
@@ -672,7 +673,9 @@ const_p_teca_dataset teca_algorithm::request_data(
         }
 
         // execute override
-        out_data = alg->execute(port, input_data, request);
+        TECA_PROFILE_PIPELINE(128, alg, "execute", port,
+            out_data = alg->execute(port, input_data, request);
+            )
 
         // cache
         alg->cache_output_data(port, key, out_data);
