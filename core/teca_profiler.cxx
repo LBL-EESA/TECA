@@ -60,13 +60,15 @@ struct event
 // timer controls and data
 static MPI_Comm comm = MPI_COMM_NULL;
 
-//  TODO -- enable/disbal;e by thread
 static bool logging_enabled = false;
 
 static std::string timer_log_file = "timer.csv";
 
-using event_log_type = std::unordered_map<std::thread::id, std::list<event>>;
+using event_log_type = std::list<event>;
+using thread_map_type = std::unordered_map<std::thread::id, event_log_type>;
+
 static event_log_type event_log;
+static thread_map_type active_events;
 static std::mutex event_log_mutex;
 
 // memory profiler
@@ -228,17 +230,11 @@ int teca_profiler::finalize()
 
         // not locking this as it's intended to be accessed only from the main
         // thread, and all other threads are required to be finished by now
-        impl::event_log_type::iterator tliter = impl::event_log.begin();
-        impl::event_log_type::iterator tlend = impl::event_log.end();
+        impl::event_log_type::iterator iter = impl::event_log.begin();
+        impl::event_log_type::iterator end = impl::event_log.end();
 
-        for (; tliter != tlend; ++tliter)
-        {
-            std::list<impl::event>::iterator iter = tliter->second.begin();
-            std::list<impl::event>::iterator end = tliter->second.end();
-
-            for (; iter != end; ++iter)
-                iter->to_stream(oss);
-        }
+        for (; iter != end; ++iter)
+            iter->to_stream(oss);
 
         // free up resources
         impl::event_log.clear();
@@ -325,7 +321,6 @@ bool teca_profiler::enabled()
 void teca_profiler::enable()
 {
 #if defined(TECA_ENABLE_PROFILER)
-    // TODO -- this should be per thread
     std::lock_guard<std::mutex> lock(impl::event_log_mutex);
     impl::logging_enabled = true;
 #endif
@@ -335,7 +330,6 @@ void teca_profiler::enable()
 void teca_profiler::disable()
 {
 #if defined(TECA_ENABLE_PROFILER)
-    // TODO -- this should be per thread
     std::lock_guard<std::mutex> lock(impl::event_log_mutex);
     impl::logging_enabled = false;
 #endif
@@ -351,10 +345,8 @@ int teca_profiler::start_event(const char* eventname)
         evt.name = eventname;
         evt.time[impl::event::START] = impl::get_system_time();
 
-        {
         std::lock_guard<std::mutex> lock(impl::event_log_mutex);
-        impl::event_log[evt.tid].push_back(evt);
-        }
+        impl::active_events[evt.tid].push_back(evt);
     }
 #else
     (void)eventname;
@@ -368,21 +360,23 @@ int teca_profiler::end_event(const char* eventname)
 #if defined(TECA_ENABLE_PROFILER)
     if (impl::logging_enabled)
     {
+        // get end time
+        double end_time = impl::get_system_time();
+
         // get this thread's event log
         std::thread::id tid = std::this_thread::get_id();
 
-        impl::event_log_mutex.lock();
-        impl::event_log_type::iterator iter = impl::event_log.find(tid);
-        if (iter == impl::event_log.end())
+        std::lock_guard<std::mutex> lock(impl::event_log_mutex);
+        impl::thread_map_type::iterator iter = impl::active_events.find(tid);
+        if (iter == impl::active_events.end())
         {
-            impl::event_log_mutex.unlock();
             TECA_ERROR("failed to end event \"" << eventname
                 << "\" thread  " << tid << " has no events")
             return -1;
         }
 
-        impl::event &evt = iter->second.back();
-        impl::event_log_mutex.unlock();
+        impl::event evt(std::move(iter->second.back()));
+        iter->second.pop_back();
 
 #ifdef NDEBUG
         (void)eventname;
@@ -394,8 +388,10 @@ int teca_profiler::end_event(const char* eventname)
             abort();
         }
 #endif
-        evt.time[impl::event::END] = impl::get_system_time();
-        evt.time[impl::event::DELTA] = evt.time[impl::event::END] - evt.time[impl::event::START];
+        evt.time[impl::event::END] = end_time;
+        evt.time[impl::event::DELTA] = end_time - evt.time[impl::event::START];
+
+        impl::event_log.emplace_back(std::move(evt));
     }
 #else
     (void)eventname;
