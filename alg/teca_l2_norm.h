@@ -18,6 +18,8 @@ class teca_l2_norm : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_l2_norm)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_l2_norm)
+    TECA_ALGORITHM_CLASS_NAME(teca_l2_norm)
     ~teca_l2_norm();
 
     // report/initialize to/from Boost program options

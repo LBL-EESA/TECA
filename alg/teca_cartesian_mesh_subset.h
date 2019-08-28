@@ -25,6 +25,8 @@ class teca_cartesian_mesh_subset : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_cartesian_mesh_subset)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_cartesian_mesh_subset)
+    TECA_ALGORITHM_CLASS_NAME(teca_cartesian_mesh_subset)
     ~teca_cartesian_mesh_subset();
 
     // report/initialize to/from Boost program options

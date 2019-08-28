@@ -20,6 +20,8 @@ class teca_temporal_average : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_temporal_average)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_temporal_average)
+    TECA_ALGORITHM_CLASS_NAME(teca_temporal_average)
     ~teca_temporal_average();
 
     // report/initialize to/from Boost program options

@@ -30,6 +30,8 @@ class teca_dataset_diff : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_dataset_diff)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_dataset_diff)
+    TECA_ALGORITHM_CLASS_NAME(teca_dataset_diff)
     ~teca_dataset_diff();
 
     // report/initialize to/from Boost program options objects.

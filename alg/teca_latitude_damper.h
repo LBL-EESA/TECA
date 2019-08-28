@@ -29,6 +29,8 @@ class teca_latitude_damper : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_latitude_damper)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_latitude_damper)
+    TECA_ALGORITHM_CLASS_NAME(teca_latitude_damper)
     ~teca_latitude_damper();
 
     // report/initialize to/from Boost program options

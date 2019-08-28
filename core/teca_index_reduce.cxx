@@ -1,6 +1,7 @@
 #include "teca_index_reduce.h"
 #include "teca_binary_stream.h"
 #include "teca_mpi.h"
+#include "teca_profiler.h"
 
 #include <sstream>
 
@@ -271,13 +272,17 @@ const_p_teca_dataset teca_index_reduce::reduce_local(
     while (n_in > 1)
     {
         if (n_in % 2)
-            input_data[0] = this->reduce(input_data[0], input_data[n_in-1]);
+            TECA_PROFILE_METHOD(128, this, "reduce",
+                input_data[0] = this->reduce(input_data[0], input_data[n_in-1]);
+                )
 
         unsigned long n = n_in/2;
         for (unsigned long i = 0; i < n; ++i)
         {
             unsigned long ii = 2*i;
-            input_data[i] = this->reduce(input_data[ii], input_data[ii+1]);
+            TECA_PROFILE_METHOD(128, this, "reduce",
+                input_data[i] = this->reduce(input_data[ii], input_data[ii+1]);
+                )
         }
 
         n_in = n;
@@ -332,7 +337,9 @@ const_p_teca_dataset teca_index_reduce::reduce_remote(
                 left_data->from_stream(bstr);
             }
 
-            local_data = this->reduce(local_data, left_data);
+            TECA_PROFILE_METHOD(128, this, "reduce",
+                local_data = this->reduce(local_data, left_data);
+                )
 
             bstr.resize(0);
         }
@@ -353,7 +360,9 @@ const_p_teca_dataset teca_index_reduce::reduce_remote(
                 right_data->from_stream(bstr);
             }
 
-            local_data = this->reduce(local_data, right_data);
+            TECA_PROFILE_METHOD(128, this, "reduce",
+                local_data = this->reduce(local_data, right_data);
+                )
 
             bstr.resize(0);
         }

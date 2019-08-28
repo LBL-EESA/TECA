@@ -15,6 +15,8 @@ class teca_component_statistics : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_component_statistics)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_component_statistics)
+    TECA_ALGORITHM_CLASS_NAME(teca_component_statistics)
     ~teca_component_statistics();
 
     // report/initialize to/from Boost program options

@@ -1327,6 +1327,7 @@ int write_mesh(
     pac->append("lsmask", std::const_pointer_cast<teca_variant_array>(lsmask));
 
     p_teca_programmable_algorithm s = teca_programmable_algorithm::New();
+    s->set_name("serve_mesh");
     s->set_number_of_input_connections(0);
     s->set_number_of_output_ports(1);
     s->set_execute_callback(

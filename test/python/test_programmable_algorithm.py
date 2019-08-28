@@ -53,6 +53,7 @@ coords = teca_normalize_coordinates.New()
 coords.set_input_connection(cfr.get_output_port())
 
 alg = teca_programmable_algorithm.New()
+alg.set_name('wind_speed')
 alg.set_number_of_input_connections(1)
 alg.set_number_of_output_ports(1)
 alg.set_report_callback(wind_speed.report)

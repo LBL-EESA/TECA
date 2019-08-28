@@ -22,7 +22,15 @@ class teca_programmable_reduce : public teca_index_reduce
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_programmable_reduce)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_programmable_reduce)
     ~teca_programmable_reduce(){}
+
+    // set the implementation name, this is used in logging to
+    // identify the specific instance of programmable redeuce
+    int set_name(const std::string &name);
+
+    const char *get_class_name() const override
+    { return this->class_name; }
 
     // set the callback that initializes the output metadata during
     // report phase of the pipeline. The callback must be a callable
@@ -72,6 +80,7 @@ private:
     reduce_callback_t reduce_callback;
     request_callback_t request_callback;
     report_callback_t report_callback;
+    char class_name[64];
 };
 
 #endif

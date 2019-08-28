@@ -1,6 +1,5 @@
 #include "teca_table.h"
 #include "teca_metadata.h"
-#include "teca_programmable_algorithm.h"
 #include "teca_table_writer.h"
 #include "teca_test_util.h"
 #include "teca_system_interface.h"

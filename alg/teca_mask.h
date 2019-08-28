@@ -19,6 +19,8 @@ class teca_mask : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_mask)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_mask)
+    TECA_ALGORITHM_CLASS_NAME(teca_mask)
     ~teca_mask();
 
     // set the names of the arrays to apply the mask to

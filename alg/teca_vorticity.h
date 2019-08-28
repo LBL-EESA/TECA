@@ -18,6 +18,8 @@ class teca_vorticity : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_vorticity)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_vorticity)
+    TECA_ALGORITHM_CLASS_NAME(teca_vorticity)
     ~teca_vorticity();
 
     // report/initialize to/from Boost program options

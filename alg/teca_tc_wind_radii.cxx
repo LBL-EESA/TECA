@@ -656,6 +656,7 @@ teca_metadata teca_tc_wind_radii::teca_tc_wind_radii::get_output_metadata(
     p_teca_programmable_algorithm capture_storm_data
         = teca_programmable_algorithm::New();
 
+    capture_storm_data->set_name("capture_storm_data");
     capture_storm_data->set_input_connection(this->internals->storm_pipeline_port);
 
     capture_storm_data->set_execute_callback(

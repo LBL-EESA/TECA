@@ -18,6 +18,8 @@ class array_writer : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(array_writer)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(array_writer)
+    TECA_ALGORITHM_CLASS_NAME(array_writer)
     ~array_writer();
 
 protected:

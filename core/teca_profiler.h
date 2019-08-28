@@ -81,7 +81,7 @@ class teca_time_event
 {
 public:
     // logs an event named
-    // <class_name>::<method> port=<port>
+    // <class_name>::<method> port=<p>
     teca_time_event(const char *class_name,
         const char *method, int port) : eventname(buffer)
     {
@@ -89,6 +89,18 @@ public:
             class_name, method, port);
         teca_profiler::start_event(eventname);
     }
+
+    // logs an event named
+    // <class_name>::<method>
+    teca_time_event(const char *class_name,
+        int n_threads, int n_reqs) : eventname(buffer)
+    {
+        snprintf(buffer, buffer_size,
+            "%s thread_pool process n_threads=%d n_reqs=%d",
+            class_name, n_threads, n_reqs);
+        teca_profiler::start_event(eventname);
+    }
+
 
     // logs an event named:
     // <class_name>::<method>
@@ -121,11 +133,34 @@ private:
          _meth, _port);                                         \
     _code                                                       \
 }
+
+#define TECA_PROFILE_METHOD(_n, _alg, _meth, _code)             \
+{                                                               \
+    teca_time_event<_n>                                         \
+        event(_alg->get_class_name(), "::" _meth);              \
+    _code                                                       \
+}
+
+#define TECA_PROFILE_THREAD_POOL(_n, _alg, _nt, _nr, _code)     \
+{                                                               \
+    teca_time_event<_n>                                         \
+        event(_alg->get_class_name(), _nt, _nr);                \
+    _code                                                       \
+}
 #else
 #define TECA_PROFILE_PIPELINE(_n, _alg, _meth, _port, _code)    \
 {                                                               \
     _code                                                       \
 }
-#endif
 
+#define TECA_PROFILE_METHOD(_n, _alg, _meth, _code)             \
+{                                                               \
+    _code                                                       \
+}
+
+#define TECA_PROFILE_THREAD_POOL(_n, _alg, _nt, _nr, _code)     \
+{                                                               \
+    _code                                                       \
+}
+#endif
 #endif

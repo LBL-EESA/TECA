@@ -27,6 +27,8 @@ class array_source : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(array_source)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(array_source)
+    TECA_ALGORITHM_CLASS_NAME(array_source)
     ~array_source();
 
     // set the number of arrays that coulod be generated.

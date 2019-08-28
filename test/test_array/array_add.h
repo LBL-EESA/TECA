@@ -18,6 +18,8 @@ class array_add : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(array_add)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(array_add)
+    TECA_ALGORITHM_CLASS_NAME(array_add)
     ~array_add();
 
     // sets the names of the two arrays to add

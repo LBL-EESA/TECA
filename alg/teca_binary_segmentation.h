@@ -26,6 +26,8 @@ class teca_binary_segmentation : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_binary_segmentation)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_binary_segmentation)
+    TECA_ALGORITHM_CLASS_NAME(teca_binary_segmentation)
     ~teca_binary_segmentation();
 
     // set the name of the output array to store the resulting segmentation in

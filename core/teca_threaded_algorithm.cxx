@@ -1,6 +1,7 @@
 #include "teca_threaded_algorithm.h"
 #include "teca_metadata.h"
 #include "teca_thread_pool.h"
+#include "teca_profiler.h"
 
 #include <memory>
 #include <string>
@@ -119,8 +120,10 @@ void teca_threaded_algorithm::set_properties(const std::string &prefix,
 // --------------------------------------------------------------------------
 void teca_threaded_algorithm::set_thread_pool_size(int n)
 {
-    this->internals->thread_pool_resize(this->get_communicator(),
-        n, this->bind_threads, this->verbose);
+    TECA_PROFILE_METHOD(128, this, "set_thread_pool_size",
+        this->internals->thread_pool_resize(this->get_communicator(),
+            n, this->bind_threads, this->verbose);
+        )
 }
 
 // --------------------------------------------------------------------------
@@ -170,34 +173,42 @@ const_p_teca_dataset teca_threaded_algorithm::request_data(
         }
 
         // get requests for upstream data
-        std::vector<teca_metadata> up_reqs
-            = alg->get_upstream_request(port, input_md, request);
+        std::vector<teca_metadata> up_reqs;
+        TECA_PROFILE_PIPELINE(128, alg, "get_upstream_request", port,
+            up_reqs = alg->get_upstream_request(port, input_md, request);
+            )
 
         // push data requests on to the thread pool's work
         // queue. mapping the requests round-robbin on to
         // the inputs
         size_t n_up_reqs = up_reqs.size();
-
-        for (unsigned int i = 0; i < n_up_reqs; ++i)
-        {
-            if (!up_reqs[i].empty())
-            {
-                teca_algorithm_output_port &up_port
-                    = alg->get_input_connection(i%n_inputs);
-
-                teca_data_request dreq(get_algorithm(up_port), up_port, up_reqs[i]);
-                teca_data_request_task task(dreq);
-
-                this->internals->thread_pool->push_task(task);
-            }
-        }
-
-        // get the requested data. will block until it's ready.
         std::vector<const_p_teca_dataset> input_data;
-        this->internals->thread_pool->wait_data(input_data);
+
+        TECA_PROFILE_THREAD_POOL(128, this,
+            this->internals->thread_pool->size(), n_up_reqs,
+
+            for (unsigned int i = 0; i < n_up_reqs; ++i)
+            {
+                if (!up_reqs[i].empty())
+                {
+                    teca_algorithm_output_port &up_port
+                        = alg->get_input_connection(i%n_inputs);
+
+                    teca_data_request dreq(get_algorithm(up_port), up_port, up_reqs[i]);
+                    teca_data_request_task task(dreq);
+
+                    this->internals->thread_pool->push_task(task);
+                }
+            }
+
+            // get the requested data. will block until it's ready.
+            this->internals->thread_pool->wait_data(input_data);
+            )
 
         // execute override
-        out_data = alg->execute(port, input_data, request);
+        TECA_PROFILE_PIPELINE(128, alg, "execute", port,
+            out_data = alg->execute(port, input_data, request);
+            )
 
         // cache the output
         alg->cache_output_data(port, key, out_data);

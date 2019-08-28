@@ -462,6 +462,7 @@ int vtkTECACF2Reader::RequestData(
   internal::teca_vtk_dataset_bridge bridge(ext, time, active_arrays, output);
 
   p_teca_programmable_algorithm alg = teca_programmable_algorithm::New();
+  alg->set_name("teca_vtk_dataset_bridge");
   alg->set_request_callback(bridge);
   alg->set_execute_callback(bridge);
   alg->set_input_connection(this->Reader->get_output_port());

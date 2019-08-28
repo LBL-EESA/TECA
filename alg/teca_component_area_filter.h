@@ -39,6 +39,8 @@ class teca_component_area_filter : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_component_area_filter)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_component_area_filter)
+    TECA_ALGORITHM_CLASS_NAME(teca_component_area_filter)
     ~teca_component_area_filter();
 
     // report/initialize to/from Boost program options

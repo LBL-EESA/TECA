@@ -15,11 +15,28 @@ teca_programmable_algorithm::teca_programmable_algorithm()
     this->use_default_report_action();
     this->use_default_request_action();
     this->use_default_execute_action();
+
+    strncpy(this->class_name, "teca_programmable_algorithm",
+        sizeof(this->class_name));
 }
 
 // --------------------------------------------------------------------------
 teca_programmable_algorithm::~teca_programmable_algorithm()
 {}
+
+// --------------------------------------------------------------------------
+int teca_programmable_algorithm::set_name(const std::string &name)
+{
+    if (snprintf(this->class_name, sizeof(this->class_name),
+        "teca_programmable_algorithm(%s)", name.c_str()) >=
+        static_cast<int>(sizeof(this->class_name)))
+    {
+        TECA_ERROR("name is too long for the current buffer size "
+            << sizeof(this->class_name))
+        return -1;
+    }
+    return 0;
+}
 
 // --------------------------------------------------------------------------
 void teca_programmable_algorithm::use_default_report_action()

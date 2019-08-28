@@ -57,7 +57,14 @@ class teca_programmable_algorithm : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_programmable_algorithm)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_programmable_algorithm)
     ~teca_programmable_algorithm();
+
+    // set/get the class name.
+    virtual int set_name(const std::string &name);
+
+    const char *get_class_name() const override
+    { return this->class_name; }
 
     // set the number of input and outputs
     using teca_algorithm::set_number_of_input_connections;
@@ -122,10 +129,11 @@ private:
         const std::vector<const_p_teca_dataset> &input_data,
         const teca_metadata &request) override;
 
-private:
+protected:
     report_callback_t report_callback;
     request_callback_t request_callback;
     execute_callback_t execute_callback;
+    char class_name[64];
 };
 
 #endif

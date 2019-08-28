@@ -19,6 +19,7 @@ class teca_tc_activity:
         self.color_map = None
 
         self.impl = teca_py.teca_programmable_algorithm.New()
+        self.impl.set_name('teca_tc_activity')
         self.impl.set_number_of_input_connections(1)
         self.impl.set_number_of_output_ports(1)
         self.impl.set_execute_callback(self.get_tc_activity_execute(self))

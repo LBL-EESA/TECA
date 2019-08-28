@@ -19,6 +19,8 @@ class teca_dataset_source : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_dataset_source)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_dataset_source)
+    TECA_ALGORITHM_CLASS_NAME(teca_dataset_source)
     ~teca_dataset_source();
 
     // report/initialize to/from Boost program options

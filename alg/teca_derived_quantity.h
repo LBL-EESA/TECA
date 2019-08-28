@@ -26,7 +26,10 @@ class teca_derived_quantity : public teca_programmable_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_derived_quantity)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_derived_quantity)
     ~teca_derived_quantity();
+
+    //using teca_programmable_algorithm::get_class_name;
 
     // report/initialize to/from Boost program options
     // objects.
@@ -42,7 +45,13 @@ public:
 
     // set/get the contextual name that differentiates this
     // instance from others in the same pipeline.
-    TECA_ALGORITHM_PROPERTY(std::string, operation_name)
+    void set_operation_name(const std::string &v);
+
+    const std::string &get_operation_name() const
+    { return this->operation_name; }
+
+    std::string &get_operation_name()
+    { return this->operation_name; }
 
     // set the callable that implements to derived quantity
     // computation
@@ -79,8 +88,11 @@ private:
     void get_dependent_variables(const teca_metadata &request,
         std::vector<std::string> &dep_vars);
 
+    // set the name used in log files.
+    int set_name(const std::string &name) override;
+
 private:
-    std::string operation_name;   
+    std::string operation_name;
     std::vector<std::string> dependent_variables;
     std::string derived_variable;
 };

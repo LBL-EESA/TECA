@@ -1,5 +1,4 @@
 #include "teca_config.h"
-#include "teca_programmable_algorithm.h"
 #include "teca_table_writer.h"
 #include "teca_table_reader.h"
 #include "teca_table.h"

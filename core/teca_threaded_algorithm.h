@@ -35,6 +35,7 @@ class teca_threaded_algorithm : public teca_algorithm
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_threaded_algorithm)
     TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_threaded_algorithm)
+    TECA_ALGORITHM_CLASS_NAME(teca_threaded_algorithm)
     virtual ~teca_threaded_algorithm() noexcept;
 
     // report/initialize to/from Boost program options

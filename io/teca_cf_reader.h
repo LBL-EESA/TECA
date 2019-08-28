@@ -53,9 +53,9 @@ class teca_cf_reader : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_cf_reader)
-    ~teca_cf_reader();
-
     TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_cf_reader)
+    TECA_ALGORITHM_CLASS_NAME(teca_cf_reader)
+    ~teca_cf_reader();
 
     // report/initialize to/from Boost program options
     // objects.

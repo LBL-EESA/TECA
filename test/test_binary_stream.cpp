@@ -1087,6 +1087,7 @@ void teca_binary_stream_driver::validate(teca_binary_stream &s)
                 md.set("n_req", 1l);
 
                 p_teca_programmable_algorithm base = teca_programmable_algorithm::New();
+                base->set_name("baseline_table");
                 base->set_number_of_input_connections(0);
                 base->set_report_callback([&](unsigned int,
                         const std::vector<teca_metadata> &) -> teca_metadata
@@ -1097,6 +1098,7 @@ void teca_binary_stream_driver::validate(teca_binary_stream &s)
                         { return table0; });
 
                 p_teca_programmable_algorithm test = teca_programmable_algorithm::New();
+                test->set_name("test_table");
                 test->set_number_of_input_connections(0);
                 test->set_report_callback([&](unsigned int,
                         const std::vector<teca_metadata> &) -> teca_metadata

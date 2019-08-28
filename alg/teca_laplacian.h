@@ -18,6 +18,8 @@ class teca_laplacian : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_laplacian)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_laplacian)
+    TECA_ALGORITHM_CLASS_NAME(teca_laplacian)
     ~teca_laplacian();
 
     // report/initialize to/from Boost program options

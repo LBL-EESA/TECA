@@ -49,6 +49,8 @@ class teca_tc_candidates : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_tc_candidates)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_tc_candidates)
+    TECA_ALGORITHM_CLASS_NAME(teca_tc_candidates)
     ~teca_tc_candidates();
 
     // report/initialize to/from Boost program options

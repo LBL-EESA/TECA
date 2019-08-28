@@ -19,6 +19,8 @@ class array_temporal_stats : public teca_index_reduce
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(array_temporal_stats)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(array_temporal_stats)
+    TECA_ALGORITHM_CLASS_NAME(array_temporal_stats)
     ~array_temporal_stats(){}
 
     // set the array to process
