@@ -68,6 +68,7 @@ while k < num_tabs:
     k += 1
 
 mapper = teca_programmable_reduce.New()
+mapper.set_name('table_writer')
 mapper.set_input_connection(source.get_output_port())
 mapper.set_verbose(1)
 mapper.set_thread_pool_size(num_threads)

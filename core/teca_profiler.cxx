@@ -52,6 +52,9 @@ struct event
     // of the summariezed set of events
     double time[3];
 
+    // how deep is the event stack
+    int depth;
+
     // the thread id that generated the event
     std::thread::id tid;
 };
@@ -76,7 +79,7 @@ static teca_memory_profiler mem_prof;
 #endif
 
 // --------------------------------------------------------------------------
-event::event() : time{0,0,0}, tid(std::this_thread::get_id())
+event::event() : time{0,0,0}, depth(0), tid(std::this_thread::get_id())
 {
 }
 
@@ -93,7 +96,7 @@ void event::to_stream(std::ostream &str) const
 
     str << rank << ", " << this->tid << ", \"" << this->name << "\", "
         << this->time[START] << ", " << this->time[END] << ", "
-        << this->time[DELTA] << std::endl;
+        << this->time[DELTA] << ", " << this->depth << std::endl;
 #else
     (void)str;
 #endif
@@ -210,6 +213,26 @@ int teca_profiler::finalize()
     {
         teca_profiler::end_event("profile_lifetime");
 
+#if !defined(NDEBUG)
+        impl::thread_map_type::iterator tmit = impl::active_events.begin();
+        impl::thread_map_type::iterator tmend = impl::active_events.end();
+        for (; tmit != tmend; ++tmit)
+        {
+            unsigned int n_left = tmit->second.size();
+            if (n_left > 0)
+            {
+                std::ostringstream oss;
+                impl::event_log_type::iterator it = tmit->second.begin();
+                impl::event_log_type::iterator end = tmit->second.end();
+                for (; it != end; ++it)
+                    it->to_stream(oss);
+                TECA_ERROR("Thread " << tmit->first << " has " << n_left
+                    << " unmatched active events. " << std::endl
+                    << oss.str())
+            }
+        }
+#endif
+
         // output timer log
         int rank = 0;
         int n_ranks = 1;
@@ -226,7 +249,7 @@ int teca_profiler::finalize()
         oss.setf(std::ios::scientific, std::ios::floatfield);
 
         if (rank == 0)
-            oss << "# rank, thread, name, start time, end time, delta" << std::endl;
+            oss << "# rank, thread, name, start time, end time, delta, depth" << std::endl;
 
         // not locking this as it's intended to be accessed only from the main
         // thread, and all other threads are required to be finished by now
@@ -390,6 +413,7 @@ int teca_profiler::end_event(const char* eventname)
 #endif
         evt.time[impl::event::END] = end_time;
         evt.time[impl::event::DELTA] = end_time - evt.time[impl::event::START];
+        evt.depth = iter->second.size();
 
         impl::event_log.emplace_back(std::move(evt));
     }
