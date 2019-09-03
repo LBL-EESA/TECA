@@ -791,6 +791,7 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
     caf->set_communicator(MPI_COMM_SELF);
     caf->set_input_connection(ca->get_output_port());
     caf->set_component_variable("wv_cc");
+    caf->set_contiguous_component_ids(1);
 
     // set up the request generator. 1 request per parameter table row is
     // generated. the request is populated with values in columns of that row
@@ -820,7 +821,7 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
     dc->set_communicator(MPI_COMM_SELF);
     dc->set_input_connection(pr->get_output_port());
     dc->set_executive(teca_index_executive::New());
-
+    
     // run the pipeline
     dc->update();
 
@@ -834,6 +835,20 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
         TECA_ERROR("Pipeline execution failed")
         return nullptr;
     }
-
+    
+    // extract a copy of the output attributes
+    teca_metadata attributes;
+    out_mesh->get_metadata().get("attributes", attributes);
+    
+    // insert the metadata for the ar_probability variable
+    teca_metadata ar_probability_metadata, ar_probability_atts;
+    ar_probability_atts.set("long_name", std::string("posterior AR flag"));
+    ar_probability_atts.set("units", std::string("probability"));
+    // add metadata for the ar_probability variable
+    attributes.set("ar_probability", ar_probability_atts);
+    
+    // overwrite the outgoing metadata with the new attributes variable
+    out_mesh->get_metadata().set("attributes", attributes);
+    
     return out_mesh;
 }

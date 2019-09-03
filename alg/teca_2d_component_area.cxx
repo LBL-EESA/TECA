@@ -314,11 +314,11 @@ const_p_teca_dataset teca_2d_component_area::execute(
                 }
                 else
                 {
-                    short max_component_id = ::get_max_component_id(nxy, p_labels);
+                    NT_LABEL max_component_id = ::get_max_component_id(nxy, p_labels);
                     n_labels = max_component_id + 1;
-                    p_teca_short_array tmp = teca_short_array::New(n_labels);
+                    p_teca_variant_array_impl<NT_LABEL> tmp = teca_variant_array_impl<NT_LABEL>::New(n_labels);
                     for (unsigned int i = 0; i < n_labels; ++i)
-                        tmp->set(i, short(i));
+                        tmp->set(i, NT_LABEL(i));
                     component_id = tmp;
                 }
                 std::vector<calc_t> component_area(n_labels);
