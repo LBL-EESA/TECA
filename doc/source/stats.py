@@ -25,6 +25,7 @@ cfr = teca_cf_reader.New()
 cfr.set_files_regex(data_regex)
 
 alg = teca_programmable_algorithm.New()
+alg.set_name('descriptive_stats')
 alg.set_input_connection(cfr.get_output_port())
 alg.set_request_callback(stats_callbacks.get_request_callback(rank, var_names))
 alg.set_execute_callback(stats_callbacks.get_execute_callback(rank, var_names))

@@ -109,6 +109,7 @@ struct generate_test_tables
 p_teca_algorithm test_table_server::New(long num_tables)
 {
     p_teca_programmable_algorithm s = teca_programmable_algorithm::New();
+    s->set_name("test_table_server");
     s->set_number_of_input_connections(0);
     s->set_number_of_output_ports(1);
     s->set_report_callback(report_test_tables(num_tables));

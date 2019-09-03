@@ -21,6 +21,7 @@ class teca_tc_trajectory_scalars:
         self.plot_peak_radius = False
 
         self.impl = teca_py.teca_programmable_algorithm.New()
+        self.impl.set_name('teca_tc_trajectory_scalars')
         self.impl.set_number_of_input_connections(1)
         self.impl.set_number_of_output_ports(1)
         self.impl.set_execute_callback(self.get_execute_callback(self))

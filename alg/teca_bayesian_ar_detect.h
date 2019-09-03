@@ -17,6 +17,8 @@ class teca_bayesian_ar_detect : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_bayesian_ar_detect)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_bayesian_ar_detect)
+    TECA_ALGORITHM_CLASS_NAME(teca_bayesian_ar_detect)
     ~teca_bayesian_ar_detect();
 
     // report/initialize to/from Boost program options

@@ -15,6 +15,23 @@ teca_programmable_reduce::teca_programmable_reduce() :
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
+
+    strncpy(this->class_name, "teca_programmable_reduce",
+        sizeof(this->class_name));
+}
+
+// --------------------------------------------------------------------------
+int teca_programmable_reduce::set_name(const std::string &name)
+{
+    if (snprintf(this->class_name, sizeof(this->class_name),
+        "teca_programmable_reduce(%s)", name.c_str()) >=
+        static_cast<int>(sizeof(this->class_name)))
+    {
+        TECA_ERROR("name is too long for the current buffer size "
+            << sizeof(this->class_name))
+        return -1;
+    }
+    return 0;
 }
 
 // --------------------------------------------------------------------------

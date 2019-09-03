@@ -31,6 +31,8 @@ class teca_evaluate_expression : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_evaluate_expression)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_evaluate_expression)
+    TECA_ALGORITHM_CLASS_NAME(teca_evaluate_expression)
     ~teca_evaluate_expression();
 
     // report/initialize to/from Boost program options

@@ -17,6 +17,8 @@ class teca_cf_writer : public teca_threaded_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_cf_writer)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_cf_writer)
+    TECA_ALGORITHM_CLASS_NAME(teca_cf_writer)
     ~teca_cf_writer();
 
     // report/initialize to/from Boost program options

@@ -20,6 +20,8 @@ class teca_normalize_coordinates : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_normalize_coordinates)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_normalize_coordinates)
+    TECA_ALGORITHM_CLASS_NAME(teca_normalize_coordinates)
     ~teca_normalize_coordinates();
 
     // report/initialize to/from Boost program options

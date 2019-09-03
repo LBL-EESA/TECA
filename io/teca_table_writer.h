@@ -21,6 +21,8 @@ class teca_table_writer : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_table_writer)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_table_writer)
+    TECA_ALGORITHM_CLASS_NAME(teca_table_writer)
     ~teca_table_writer();
 
     // set the output filename. for time series the substring

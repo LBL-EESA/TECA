@@ -43,6 +43,7 @@ cfr.set_t_axis_variable('time')
 
 # add our wind speed computation
 alg = teca_programmable_algorithm.New()
+alg.set_name('wind_speed')
 alg.set_report_callback(wind_speed.report)
 alg.set_request_callback(wind_speed.request)
 alg.set_execute_callback(wind_speed.execute)

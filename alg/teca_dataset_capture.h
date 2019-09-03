@@ -18,6 +18,8 @@ class teca_dataset_capture : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_dataset_capture)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_dataset_capture)
+    TECA_ALGORITHM_CLASS_NAME(teca_dataset_capture)
     ~teca_dataset_capture();
 
     // report/initialize to/from Boost program options

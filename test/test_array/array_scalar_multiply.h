@@ -26,6 +26,8 @@ class array_scalar_multiply : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(array_scalar_multiply)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(array_scalar_multiply)
+    TECA_ALGORITHM_CLASS_NAME(array_scalar_multiply)
     ~array_scalar_multiply();
 
     // set the scalar to multiply by

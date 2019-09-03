@@ -20,6 +20,8 @@ class teca_cartesian_mesh_writer : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_cartesian_mesh_writer)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_cartesian_mesh_writer)
+    TECA_ALGORITHM_CLASS_NAME(teca_cartesian_mesh_writer)
     ~teca_cartesian_mesh_writer();
 
     // report/initialize to/from Boost program options

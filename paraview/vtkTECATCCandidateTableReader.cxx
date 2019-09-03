@@ -160,6 +160,7 @@ int vtkTECATCCandidateTableReader::RequestInformation(
   tr->set_file_name(this->FileName);
 
   p_teca_programmable_algorithm pa = teca_programmable_algorithm::New();
+  pa->set_name("teca_pipeline_bridge");
   if (this->TimeCoordinate[0] != '.')
     {
     p_teca_table_sort ts = teca_table_sort::New();

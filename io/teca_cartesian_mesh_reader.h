@@ -30,9 +30,9 @@ class teca_cartesian_mesh_reader : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_cartesian_mesh_reader)
-    ~teca_cartesian_mesh_reader();
-
     TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_cartesian_mesh_reader)
+    TECA_ALGORITHM_CLASS_NAME(teca_cartesian_mesh_reader)
+    ~teca_cartesian_mesh_reader();
 
     // report/initialize to/from Boost program options
     // objects.

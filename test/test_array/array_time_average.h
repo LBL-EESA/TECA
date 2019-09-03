@@ -18,6 +18,8 @@ class array_time_average : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(array_time_average)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(array_time_average)
+    TECA_ALGORITHM_CLASS_NAME(array_time_average)
     ~array_time_average();
 
     // set the name of the array to average

@@ -92,11 +92,13 @@ coords = teca_normalize_coordinates.New()
 coords.set_input_connection(cfr.get_output_port())
 
 stats = teca_programmable_algorithm.New()
+stats.set_name('descriptive_stats')
 stats.set_request_callback(get_request_callback(var_names))
 stats.set_execute_callback(get_execute_callback(rank, var_names))
 stats.set_input_connection(coords.get_output_port())
 
 mr = teca_programmable_reduce.New()
+mr.set_name('table_reduce')
 mr.set_input_connection(stats.get_output_port())
 mr.set_start_index(start_index)
 mr.set_end_index(end_index)

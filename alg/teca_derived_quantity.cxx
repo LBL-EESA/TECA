@@ -50,6 +50,31 @@ void teca_derived_quantity::set_properties(
 #endif
 
 // --------------------------------------------------------------------------
+void teca_derived_quantity::set_operation_name(const std::string &v)
+{
+    if (this->operation_name != v)
+    {
+        this->set_name(v);
+        this->operation_name = v;
+        this->set_modified();
+    }
+}
+
+// --------------------------------------------------------------------------
+int teca_derived_quantity::set_name(const std::string &name)
+{
+    if (snprintf(this->class_name, sizeof(this->class_name),
+        "teca_derived_quantity(%s)", name.c_str()) >=
+        static_cast<int>(sizeof(this->class_name)))
+    {
+        TECA_ERROR("name is too long for the current buffer size "
+            << sizeof(this->class_name))
+        return -1;
+    }
+    return 0;
+}
+
+// --------------------------------------------------------------------------
 void teca_derived_quantity::get_dependent_variables(
     const teca_metadata &request, std::vector<std::string> &dep_vars)
 {

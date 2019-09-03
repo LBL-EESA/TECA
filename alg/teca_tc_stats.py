@@ -18,6 +18,7 @@ class teca_tc_stats:
         self.rel_axes = True
 
         self.impl = teca_py.teca_programmable_algorithm.New()
+        self.impl.set_name('teca_tc_stats')
         self.impl.set_number_of_input_connections(1)
         self.impl.set_number_of_output_ports(1)
         self.impl.set_execute_callback(self.get_tc_stats_execute(self))

@@ -35,6 +35,8 @@ class teca_2d_component_area : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_2d_component_area)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_2d_component_area)
+    TECA_ALGORITHM_CLASS_NAME(teca_2d_component_area)
     ~teca_2d_component_area();
 
     // report/initialize to/from Boost program options

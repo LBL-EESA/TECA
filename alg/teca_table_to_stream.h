@@ -17,6 +17,8 @@ class teca_table_to_stream : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_table_to_stream)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_table_to_stream)
+    TECA_ALGORITHM_CLASS_NAME(teca_table_to_stream)
     ~teca_table_to_stream();
 
     // report/initialize to/from Boost program options

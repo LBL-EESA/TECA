@@ -82,10 +82,10 @@ int main(int argc, char **argv)
     vector<double> time_values;
     for (; i <= (files_num + 1); ++i)
         files.push_back(argv[i]);
-    
+
     for (; i <= (2*files_num + 1); ++i)
         time_values.push_back(atof(argv[i]));
-    
+
     // regex is set
     if (files.empty())
         files.push_back(argv[i++]);
@@ -138,6 +138,7 @@ int main(int argc, char **argv)
     stats->set_dependent_variables(arrays);
 
     p_teca_programmable_reduce map_reduce = teca_programmable_reduce::New();
+    map_reduce->set_name("table_reduce");
     map_reduce->set_input_connection(stats->get_output_port());
     map_reduce->set_start_index(first_step);
     map_reduce->set_end_index(last_step);

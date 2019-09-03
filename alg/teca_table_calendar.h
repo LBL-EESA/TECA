@@ -29,6 +29,8 @@ class teca_table_calendar : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_table_calendar)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_table_calendar)
+    TECA_ALGORITHM_CLASS_NAME(teca_table_calendar)
     ~teca_table_calendar();
 
     // report/initialize to/from Boost program options

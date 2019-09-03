@@ -15,6 +15,8 @@ class teca_table_sort : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_table_sort)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_table_sort)
+    TECA_ALGORITHM_CLASS_NAME(teca_table_sort)
     ~teca_table_sort();
 
     // report/initialize to/from Boost program options

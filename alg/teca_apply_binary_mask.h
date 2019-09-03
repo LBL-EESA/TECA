@@ -20,6 +20,8 @@ class teca_apply_binary_mask : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_apply_binary_mask)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_apply_binary_mask)
+    TECA_ALGORITHM_CLASS_NAME(teca_apply_binary_mask)
     ~teca_apply_binary_mask();
 
     // set the name of the output array

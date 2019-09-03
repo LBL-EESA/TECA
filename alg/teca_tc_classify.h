@@ -23,6 +23,8 @@ class teca_tc_classify : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_tc_classify)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_tc_classify)
+    TECA_ALGORITHM_CLASS_NAME(teca_tc_classify)
     ~teca_tc_classify();
 
     // report/initialize to/from Boost program options

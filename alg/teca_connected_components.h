@@ -26,6 +26,8 @@ class teca_connected_components : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_connected_components)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_connected_components)
+    TECA_ALGORITHM_CLASS_NAME(teca_connected_components)
     ~teca_connected_components();
 
     // set the input array containing a binary segmentation

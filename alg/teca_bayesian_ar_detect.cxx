@@ -562,6 +562,7 @@ teca_bayesian_ar_detect::teca_bayesian_ar_detect::get_output_metadata(
     p_teca_programmable_algorithm capture_parameter_data
         = teca_programmable_algorithm::New();
 
+    capture_parameter_data->set_name("capture_parameter_data");
     capture_parameter_data->set_input_connection(this->internals->parameter_pipeline_port);
 
     capture_parameter_data->set_execute_callback(
@@ -744,6 +745,7 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
 
     // set up the pipeline source
     p_teca_programmable_algorithm dss = teca_programmable_algorithm::New();
+    dss->set_name("dataset_source");
     dss->set_communicator(MPI_COMM_SELF);
     dss->set_number_of_input_connections(0);
     dss->set_number_of_output_ports(1);
@@ -793,6 +795,7 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
     // set up the request generator. 1 request per parameter table row is
     // generated. the request is populated with values in columns of that row
     p_teca_programmable_algorithm pa = teca_programmable_algorithm::New();
+    pa->set_name("request_generator");
     pa->set_communicator(MPI_COMM_SELF);
     pa->set_number_of_input_connections(1);
     pa->set_number_of_output_ports(1);
@@ -805,6 +808,7 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
         "wv_cc", "ar_probability");
 
     p_teca_programmable_reduce pr = teca_programmable_reduce::New();
+    pr->set_name("parameter_table_reduce");
     pr->set_communicator(MPI_COMM_SELF);
     pr->set_input_connection(pa->get_output_port());
     pr->set_reduce_callback(reduce);
