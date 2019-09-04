@@ -493,20 +493,23 @@ teca_add_test(test_bayesian_ar_detect_serial
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_bayesian_ar_detect "${TECA_DATA_ROOT}/bayesian_ar_parameters.bin"
     "${TECA_DATA_ROOT}/prw_hus_day_MRI.*\\.nc$"
-    "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" prw 1 0 4
+    "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" prw
+    "bayesian_ar_detect_%t%.vtk" 1 0 4
     REQ_TECA_DATA)
 
 teca_add_test(test_bayesian_ar_detect_threads
     COMMAND test_bayesian_ar_detect "${TECA_DATA_ROOT}/bayesian_ar_parameters.bin"
     "${TECA_DATA_ROOT}/prw_hus_day_MRI.*\\.nc$"
-    "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" prw ${TECA_TEST_CORES} 0 4
+    "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" prw
+    "bayesian_ar_detect_%t%.vtk" ${TECA_TEST_CORES} 0 4
     REQ_TECA_DATA)
 
 teca_add_test(test_bayesian_ar_detect_mpi_threads
     COMMAND ${MPIEXEC} -n ${HALF_CORES} test_bayesian_ar_detect
     "${TECA_DATA_ROOT}/bayesian_ar_parameters.bin"
     "${TECA_DATA_ROOT}/prw_hus_day_MRI.*\\.nc$"
-    "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" prw ${HALF_CORES} 0 4
+    "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" prw
+    "bayesian_ar_detect_%t%.vtk" ${HALF_CORES} 0 4
     FEATURES ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 

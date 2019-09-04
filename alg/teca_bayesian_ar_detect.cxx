@@ -728,6 +728,31 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
         return nullptr;
     }
 
+    const teca_metadata &in_md = in_mesh->get_metadata();
+
+    std::string index_request_key;
+    if (in_md.get("index_request_key", index_request_key))
+    {
+        TECA_ERROR("Dataset metadata is missing the index_request_key key")
+        return nullptr;
+    }
+
+    unsigned long index = 0;
+    if (in_md.get(index_request_key, index))
+    {
+        TECA_ERROR("Dataset metadata is missing the \""
+            << index_request_key << "\" key")
+        return nullptr;
+    }
+
+    double time = 0.0;
+    if (in_mesh->get_time(time) &&
+        request.get("time", time))
+    {
+        TECA_ERROR("request missing \"time\"")
+        return nullptr;
+    }
+
     // build the parameter table reduction pipeline
     unsigned long parameter_table_size =
         this->internals->parameter_table->get_number_of_rows();
@@ -821,7 +846,7 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
     dc->set_communicator(MPI_COMM_SELF);
     dc->set_input_connection(pr->get_output_port());
     dc->set_executive(teca_index_executive::New());
-    
+
     // run the pipeline
     dc->update();
 
@@ -835,20 +860,27 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
         TECA_ERROR("Pipeline execution failed")
         return nullptr;
     }
-    
+
     // extract a copy of the output attributes
+    teca_metadata &out_md = out_mesh->get_metadata();
+
     teca_metadata attributes;
-    out_mesh->get_metadata().get("attributes", attributes);
-    
+    out_md.get("attributes", attributes);
+
     // insert the metadata for the ar_probability variable
     teca_metadata ar_probability_metadata, ar_probability_atts;
     ar_probability_atts.set("long_name", std::string("posterior AR flag"));
     ar_probability_atts.set("units", std::string("probability"));
     // add metadata for the ar_probability variable
     attributes.set("ar_probability", ar_probability_atts);
-    
+
     // overwrite the outgoing metadata with the new attributes variable
-    out_mesh->get_metadata().set("attributes", attributes);
-    
+    out_md.set("attributes", attributes);
+
+    // reset the pipeline control keys
+    out_md.set("index_request_key", index_request_key);
+    out_md.set(index_request_key, index);
+    out_md.set("time", time);
+
     return out_mesh;
 }
