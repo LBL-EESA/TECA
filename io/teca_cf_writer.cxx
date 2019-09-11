@@ -432,7 +432,8 @@ teca_metadata teca_cf_writer::get_output_metadata(unsigned int port,
     }
 
     // estimate the number of files we create for this run
-    long n_files = n_indices/this->steps_per_file;
+    long n_steps_left = n_indices % this->steps_per_file;
+    long n_files = n_indices / this->steps_per_file + (n_steps_left ? 1 : 0);
 
     // pass through input metadata
     teca_metadata md_out(md_in);
@@ -496,7 +497,8 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
     }
 
     // estimate the number of files
-    long n_large_files = n_indices_up % this->steps_per_file;
+    long n_steps_left = n_indices_up % this->steps_per_file;
+    long n_files = n_indices_up / this->steps_per_file;
 
     // get the file id requested of us, convert this into a set of
     // upstream indices
@@ -507,12 +509,9 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
         return up_reqs;
     }
 
-    long first_index = file_id < n_large_files ?
-        file_id*(this->steps_per_file + 1) :
-        file_id*this->steps_per_file + n_large_files;
-
-    long n_indices = this->steps_per_file +
-        (file_id < n_large_files ? 1 : 0);
+    long first_index = file_id*this->steps_per_file;
+    long n_indices = ((file_id == n_files) && n_steps_left ?
+        n_steps_left : this->steps_per_file);
 
     // construct the base request, pass through incoming request for bounds,
     // arrays, etc...  reset executive control keys

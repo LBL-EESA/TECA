@@ -64,7 +64,7 @@ int parse_command_line(int argc, char **argv, int rank,
         if (rank == 0)
         {
             cerr << endl << "Usage error:" << endl
-                << "test_cf_reader [-i input regex] [-o output] [-s first step,last step] "
+                << "test_cf_writer [-i input regex] [-o output] [-s first step,last step] "
                 << "[-x x axis variable] [-y y axis variable] [-z z axis variable] "
                 << "[-t t axis variable] [-b x0,x1,y0,y1,z0,z1] [-e i0,i1,j0,j1,k0,k1] "
                 << "[-c index count] [-n num threads] [array 0] ... [array n]"
