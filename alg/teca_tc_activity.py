@@ -213,7 +213,7 @@ class teca_tc_activity:
         # plot regions over time
         reg_t_fig = plt.figure()
 
-        rnms = zip(*ureg)[2]
+        rnms = list(zip(*ureg))[2]
         rnms += ('Southern','Northern','Global')
 
         n_plots = n_reg + 1
@@ -271,7 +271,7 @@ class teca_tc_activity:
         n_reg = len(ureg) + 3 # add 2 for n & s hemi, 1 for global
         n_year = len(uyear)
 
-        rnms = zip(*ureg)[2]
+        rnms = list(zip(*ureg))[2]
         rnms += ('Southern','Northern','Global')
 
         fill_col = [state.color_map(i) for i in np.linspace(0, 1, n_reg)]
