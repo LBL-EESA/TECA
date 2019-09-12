@@ -14,35 +14,18 @@
 #include <vector>
 #include <string>
 #include <iostream>
-#include <chrono>
 
 using namespace std;
-
-using seconds_t =
-    std::chrono::duration<double, std::chrono::seconds::period>;
-
-#if defined(TECA_HAS_MPI)
-#include <mpi.h>
-#endif
 
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
 using boost::program_options::value;
 #endif
 
-#define TECA_TIME
-#if defined TECA_TIME
-#include <sys/time.h>
-#endif
-
 int main(int argc, char **argv)
 {
     teca_mpi_manager mpi_man(argc, argv);
     int rank = mpi_man.get_comm_rank();
-
-    std::chrono::high_resolution_clock::time_point t0, t1;
-    if (mpi_man.get_comm_rank() == 0)
-        t0 = std::chrono::high_resolution_clock::now();
 
     // create pipeline objects here so that they
     // can be initialized from the command line
@@ -302,13 +285,6 @@ int main(int argc, char **argv)
 
     // run the pipeline
     results_writer->update();
-
-    if (mpi_man.get_comm_rank() == 0)
-    {
-        t1 = std::chrono::high_resolution_clock::now();
-        seconds_t dt(t1 - t0);
-        TECA_STATUS("teca_ar_detect run_time=" << dt.count() << " sec")
-    }
 
     return 0;
 }

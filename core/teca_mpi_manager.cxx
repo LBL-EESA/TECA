@@ -1,20 +1,25 @@
 #include "teca_mpi_manager.h"
 #include "teca_config.h"
 #include "teca_common.h"
+#include "teca_profiler.h"
 
 #include <cstdlib>
 
 #if defined(TECA_HAS_MPI)
 #include <mpi.h>
-#include <teca_profiler.h>
-
-//using namespace timer;
 #endif
+
+using seconds_t =
+    std::chrono::duration<double, std::chrono::seconds::period>;
 
 // --------------------------------------------------------------------------
 teca_mpi_manager::teca_mpi_manager(int &argc, char **&argv)
     : m_rank(0),  m_size(1)
 {
+    teca_profiler::enable(0x01);
+    teca_profiler::start_event("total_run_time");
+    teca_profiler::start_event("app_initialize");
+
 #if defined(TECA_HAS_MPI)
     int mpi_thread_required = MPI_THREAD_SERIALIZED;
     int mpi_thread_provided = 0;
@@ -25,11 +30,14 @@ teca_mpi_manager::teca_mpi_manager(int &argc, char **&argv)
         abort();
     }
 
+    teca_profiler::disable();
     teca_profiler::set_communicator(MPI_COMM_WORLD);
     teca_profiler::initialize();
 
     MPI_Comm_rank(MPI_COMM_WORLD, &m_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &m_size);
+
+    teca_profiler::end_event("app_initialize");
 #else
     (void)argc;
     (void)argv;
@@ -39,12 +47,19 @@ teca_mpi_manager::teca_mpi_manager(int &argc, char **&argv)
 // --------------------------------------------------------------------------
 teca_mpi_manager::~teca_mpi_manager()
 {
-#if defined(TECA_HAS_MPI)
+    teca_profiler::start_event("app_finalize");
     teca_profiler::finalize();
 
+#if defined(TECA_HAS_MPI)
     int ok = 0;
     MPI_Initialized(&ok);
     if (ok)
         MPI_Finalize();
 #endif
+
+    teca_profiler::end_event("app_finalize");
+    teca_profiler::end_event("total_run_time");
+
+    if (m_rank == 0)
+        teca_profiler::flush();
 }

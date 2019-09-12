@@ -15,15 +15,11 @@
 #include <vector>
 #include <string>
 #include <iostream>
-#include <chrono>
 
 #include <boost/program_options.hpp>
 
 using std::cerr;
 using std::endl;
-
-using seconds_t =
-    std::chrono::duration<double, std::chrono::seconds::period>;
 
 using boost::program_options::value;
 
@@ -32,10 +28,6 @@ int main(int argc, char **argv)
 {
     // initialize MPI
     teca_mpi_manager mpi_man(argc, argv);
-
-    std::chrono::high_resolution_clock::time_point t0, t1;
-    if (mpi_man.get_comm_rank() == 0)
-        t0 = std::chrono::high_resolution_clock::now();
 
     // initialize command line options description
     // set up some common options to simplify use for most
@@ -254,13 +246,6 @@ int main(int argc, char **argv)
 
     // run the pipeline
     track_writer->update();
-
-    if (mpi_man.get_comm_rank() == 0)
-    {
-        t1 = std::chrono::high_resolution_clock::now();
-        seconds_t dt(t1 - t0);
-        TECA_STATUS("teca_tc_wind_radii run_time=" << dt.count() << " sec")
-    }
 
     return 0;
 }
