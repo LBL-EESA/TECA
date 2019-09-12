@@ -44,7 +44,7 @@ public:
     // should make such calculations when planning large runs if optimal
     // performance is desired. time steps are gathered before the file is
     // written, thus available memory per MPI rank is the limiting factor in
-    // how many steps can be stored in a single file (8).
+    // how many steps can be stored in a single file (1).
     TECA_ALGORITHM_PROPERTY(unsigned int, steps_per_file)
 
     // sets the flags passed to NetCDF during file creation. (NC_CLOBBER)

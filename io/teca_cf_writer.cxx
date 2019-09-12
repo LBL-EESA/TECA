@@ -334,7 +334,7 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
 
 // --------------------------------------------------------------------------
 teca_cf_writer::teca_cf_writer() :
-    file_name(""), date_format("%F-%HZ"), steps_per_file(8),
+    file_name(""), date_format("%F-%HZ"), steps_per_file(1),
     mode_flags(NC_CLOBBER|NC_NETCDF4), use_unlimited_dim(1)
 {
     this->set_number_of_input_connections(1);
@@ -359,7 +359,7 @@ void teca_cf_writer::get_properties_description(
         TECA_POPTS_GET(std::string, prefix, date_format,
             "strftime format string for date string in output filename (%F-%H)")
         TECA_POPTS_GET(unsigned int, prefix, steps_per_file,
-            "set the number of time steps to write per file (8)")
+            "set the number of time steps to write per file (1)")
         TECA_POPTS_GET(int, prefix, mode_flags,
             "mode flags to pass to NetCDF when creating the file (NC_CLOBBER)")
         TECA_POPTS_GET(int, prefix, use_unlimited_dim,
