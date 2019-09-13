@@ -38,11 +38,14 @@ int main(int argc, char **argv)
         );
     basic_opt_defs.add_options()
         ("input_file", value<string>(), "file path to the simulation to search for atmospheric rivers")
-        ("output_file", value<string>()->default_value(std::string("bayesian_ar_detect_%t%.%e%")), "file pattern for output netcdf files (%t% is the time index and %e% is the netCDF suffix (nc))")
+        ("output_file", value<string>()->default_value(std::string("bayesian_ar_detect_%t%.nc")),
+            "file pattern for output netcdf files (%t% is the time index)")
         ("input_regex", value<string>(), "regex matching simulation files to search for atmospheric rivers")
-        ("ivt", value<string>()->default_value(std::string("IVT")), "name of variable with integrated vapor transport (IVT)")
+        ("ivt", value<string>()->default_value(std::string("IVT")),
+            "name of variable with integrated vapor transport (IVT)")
         ("first_step", value<long>(), "first time step to process")
         ("last_step", value<long>(), "last time step to process")
+        ("steps_per_file", value<long>(), "number of time steps per output filr")
         ("start_date", value<string>(), "first time to proces in YYYY-MM-DD hh:mm:ss format")
         ("end_date", value<string>(), "first time to proces in YYYY-MM-DD hh:mm:ss format")
         ("n_threads", value<int>(), "thread pool size. default is 1. -1 for all")
@@ -84,7 +87,6 @@ int main(int argc, char **argv)
     ar_detect->get_properties_description("ar_detect", advanced_opt_defs);
     ar_detect->set_input_connection(0, params->get_output_port());
     ar_detect->set_input_connection(1, norm_coords->get_output_port());
-    ar_detect->set_thread_pool_size(-1);
 
     // Add an executive for the writer
     p_teca_index_executive exec = teca_index_executive::New();
@@ -175,14 +177,20 @@ int main(int argc, char **argv)
         ar_detect->set_water_vapor_variable(
             opt_vals["ivt"].as<string>());
 
+    if (opt_vals.count("steps_per_file"))
+        cf_writer->set_steps_per_file(
+            opt_vals["steps_per_file"].as<long>());
+
     if (opt_vals.count("first_step"))
-        exec->set_start_index(opt_vals["first_step"].as<long>());
+        cf_writer->set_first_step(opt_vals["first_step"].as<long>());
 
     if (opt_vals.count("last_step"))
-        exec->set_end_index(opt_vals["last_step"].as<long>());
+        cf_writer->set_last_step(opt_vals["last_step"].as<long>());
 
     if (opt_vals.count("n_threads"))
         ar_detect->set_thread_pool_size(opt_vals["n_threads"].as<int>());
+    else
+        ar_detect->set_thread_pool_size(-1);
 
     // some minimal check for missing options
     if (cf_reader->get_number_of_file_names() == 0

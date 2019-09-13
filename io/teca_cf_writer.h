@@ -36,6 +36,10 @@ public:
     // the time index is used instead. (%F-%H)
     TECA_ALGORITHM_PROPERTY(std::string, date_format)
 
+    // set the range of time step to process.
+    TECA_ALGORITHM_PROPERTY(long, first_step)
+    TECA_ALGORITHM_PROPERTY(long, last_step)
+
     // set how many time steps are written to each file. Note that upstream is
     // parallelized over files rather than time steps.  this has the affect of
     // reducing the available oportunity for MPI parallelization by this
@@ -74,6 +78,8 @@ private:
 private:
     std::string file_name;
     std::string date_format;
+    long first_step;
+    long last_step;
     unsigned int steps_per_file;
     int mode_flags;
     int use_unlimited_dim;
