@@ -370,6 +370,9 @@ parser.add_argument('-m', '--mem_file', required=False, type=str, \
 parser.add_argument('-r', '--ranks', nargs='+', required=True, \
     type=int, help='path to a TECA profiler data file')
 
+parser.add_argument('-x', '--xlim', required=False, type=float, \
+    default=-1., help='set the high x axis limmit used in plots')
+
 parser.add_argument('-v', '--verbose', required=False, type=int, \
     default=0, help='verbosity level')
 
@@ -401,6 +404,10 @@ for r in args.ranks:
     dres.append(dre)
 
     plt.subplots_adjust(bottom=0.2)
+
+    if args.xlim > 0.:
+        x0,x1 = plt.xlim()
+        plt.xlim(x0, args.xlim)
 
     plt.savefig('rank_profile_data_%d.png'%(r), dpi=200)
 
