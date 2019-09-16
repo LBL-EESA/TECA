@@ -32,14 +32,14 @@ int main(int argc, char **argv)
     teca_system_interface::set_stack_trace_on_mpi_error();
 
     // parse command line
-    if (argc != 8)
+    if (argc != 9)
     {
         if (rank == 0)
         {
             cerr << endl << "Usage error:" << endl
                 << "test_bayesian_ar_detect [parameter table] [mesh data regex] "
-                   "[baseline table] [water vapor var] [num threads] [first step] "
-                   "[last step]" << endl << endl;
+                   "[baseline table] [water vapor var] [out file name] [num threads] "
+                   "[first step] [last step]" << endl << endl;
         }
         return -1;
     }
@@ -48,9 +48,10 @@ int main(int argc, char **argv)
     std::string mesh_data_regex = argv[2];
     std::string baseline_table = argv[3];
     std::string water_vapor_var = argv[4];
-    int n_threads = atoi(argv[5]);
-    int first_step =  atoi(argv[6]);
-    int last_step = atoi(argv[7]);
+    std::string out_file_name = argv[5];
+    int n_threads = atoi(argv[6]);
+    int first_step =  atoi(argv[7]);
+    int last_step = atoi(argv[8]);
 
     // create the pipeline
     p_teca_table_reader parameter_reader = teca_table_reader::New();
@@ -83,7 +84,7 @@ int main(int argc, char **argv)
 
     p_teca_cartesian_mesh_writer wri = teca_cartesian_mesh_writer::New();
     wri->set_input_connection(ca->get_output_port());
-    wri->set_file_name("bayesian_ar_detect_%t%.%e%");
+    wri->set_file_name(out_file_name);
 
     p_teca_component_statistics cs = teca_component_statistics::New();
     cs->set_input_connection(wri->get_output_port());

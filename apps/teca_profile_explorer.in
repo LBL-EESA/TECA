@@ -27,6 +27,10 @@ class profiler_data:
         self.n_ranks = None
         self.max_runtime = None
 
+        self.mem_rank = None
+        self.mem_time = None
+        self.mem_use = None
+
         self.verbose = True
 
     def subset(self, r):
@@ -34,6 +38,7 @@ class profiler_data:
 
         subset_data = profiler_data()
 
+        # subset the event profiler data
         ii = np.where(self.rank == r)[0]
 
         subset_data.rank = r
@@ -60,10 +65,19 @@ class profiler_data:
                 r, len(subset_data.event_name), subset_data.n_events,
                 subset_data.n_threads, str(subset_data.thread_id_u)))
 
+        # subset the memory profiler data
+        if self.mem_rank is None:
+            return subset_data
+
+        ii = np.where(self.mem_rank == r)[0]
+
+        subset_data.mem_time = self.mem_time[ii]
+        subset_data.mem_use = self.mem_use[ii]
+
         return subset_data
 
-    def initialize(self, file_name):
-        f = open(file_name,'r')
+    def initialize(self, prof_file_name, mem_file_name=None):
+        f = open(prof_file_name,'r')
         lines = f.readlines()
         f.close()
 
@@ -93,6 +107,29 @@ class profiler_data:
         self.end_t = np.array(end_t)
         self.delta_t = np.array(delta_t)
         self.depth = np.array(depth)
+
+        if mem_file_name is None:
+            return
+
+        f = open(mem_file_name,'r')
+        lines = f.readlines()
+        f.close()
+
+        mem_rank = []
+        mem_time = []
+        mem_use = []
+        for line in lines:
+            if line[0] == '#':
+                continue
+            fields = line.split(',')
+            mem_rank.append(int(fields[0]))
+            mem_time.append(float(fields[1]))
+            mem_use.append(float(fields[2]))
+
+        self.mem_rank = np.array(mem_rank)
+        self.mem_time = np.array(mem_time)
+        self.mem_use = np.array(mem_use)
+
 
     def get_num_threads(self, r=None):
         if r is None:
@@ -146,7 +183,7 @@ class dsiplay_rank_events:
             thread_ids_us.append(tup[0])
 
         # set plot spacing and rectangle height
-        dy = 1.0/(data.n_threads - 1)
+        dy = 1./(data.n_threads - 1)
         yc = []
         yl = []
         thread_map = {}
@@ -175,7 +212,7 @@ class dsiplay_rank_events:
         cmap_names = ['Purples', 'Blues', 'Greens', \
              'Oranges', 'Reds', 'Greys']
 
-        cmap_n = n_events/len(cmap_names) + 1
+        cmap_n = n_events // len(cmap_names) + 1
 
         cmap = []
         for cmap_name in cmap_names:
@@ -214,21 +251,15 @@ class dsiplay_rank_events:
                     data.rank, i, tid, eid, enm, str([et0, tid*dy, \
                     edt, dy])))
             else:
-                if int(i % (ne/78)) == 0:
+                if int(i % (ne // 78)) == 0:
                     sys.stderr.write('=')
+                    sys.stderr.flush()
 
-            cid = eid%cmap_n
-            cm = cmap[int(eid/cmap_n)]
+            cid = eid % cmap_n
+            cm = cmap[eid // cmap_n]
             fc = cm(cid)
 
-            if 'profile_lifetime' in enm:
-                fa = 0.5
-                ec = fc
-                ew = 2
-                #fc =
-                fill = True
-                pz = 1
-            elif ' thread_pool ' in enm:
+            if ' thread_pool ' in enm:
                 fa = 0.5
                 ec = fc
                 ew = 3
@@ -266,6 +297,22 @@ class dsiplay_rank_events:
             self.axes.add_collection(pc)
             self.collection[d] = pc
 
+        # add memory profiler data
+        if self.data.mem_use is not None:
+
+            # put data into the same coordinate system as events
+            self.data.mem_time -= t0
+
+            mmx = np.max(self.data.mem_use)
+            self.data.mem_use = self.data.mem_use/mmx * n_threads*dy
+
+            plt.plot(self.data.mem_time, self.data.mem_use, 'k--', linewidth=3)
+
+            plt.title('MPI rank %d event times, max RSS %0.1f MiB'%( \
+                data.rank, mmx/(2.**10)), fontweight='bold')
+        else:
+            plt.title('MPI rank %d event times'%(data.rank), fontweight='bold')
+
         pfx = 0.01
         pfy = 0.10
         t1 = data.max_runtime
@@ -274,9 +321,9 @@ class dsiplay_rank_events:
         plt.yticks(yc, yl)
         plt.ylabel('thread', fontweight='bold')
         plt.xlabel('seconds', fontweight='bold')
-        plt.title('rank %d event times'%(data.rank), fontweight='bold')
         self.axes.set_axisbelow(True)
         plt.grid(True)
+
 
 
     def connect(self):
@@ -314,11 +361,17 @@ class dsiplay_rank_events:
 
 parser = argparse.ArgumentParser(prog='teca_profile_explorer')
 
-parser.add_argument('-f', '--file', required=True, type=str, \
-    help='path to a TECA profiler data file')
+parser.add_argument('-e', '--event_file', required=True, type=str, \
+    help='path to a TECA profiler event data file')
+
+parser.add_argument('-m', '--mem_file', required=False, type=str, \
+    default=None, help='path to a TECA profiler memory data file')
 
 parser.add_argument('-r', '--ranks', nargs='+', required=True, \
     type=int, help='path to a TECA profiler data file')
+
+parser.add_argument('-x', '--xlim', required=False, type=float, \
+    default=-1., help='set the high x axis limmit used in plots')
 
 parser.add_argument('-v', '--verbose', required=False, type=int, \
     default=0, help='verbosity level')
@@ -328,7 +381,7 @@ args = parser.parse_args()
 
 data = profiler_data()
 data.verbose = args.verbose > 0
-data.initialize(args.file)
+data.initialize(args.event_file, args.mem_file)
 
 dres = []
 for r in args.ranks:
@@ -351,6 +404,10 @@ for r in args.ranks:
     dres.append(dre)
 
     plt.subplots_adjust(bottom=0.2)
+
+    if args.xlim > 0.:
+        x0,x1 = plt.xlim()
+        plt.xlim(x0, args.xlim)
 
     plt.savefig('rank_profile_data_%d.png'%(r), dpi=200)
 

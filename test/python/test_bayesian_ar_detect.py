@@ -13,11 +13,11 @@ import os
 set_stack_trace_on_error()
 set_stack_trace_on_mpi_error()
 
-if (len(sys.argv) != 8):
+if (len(sys.argv) != 9):
     sys.stderr.write('\n\nUsage error:\n'\
         'test_bayesian_ar_detect [parameter table] [mesh data regex] ' \
-        '[baseline table] [water vapor var] [num threads] [first step] ' \
-        '[last step]\n\n')
+        '[baseline table] [water vapor var] [out file] [num threads] ' \
+        '[first step] [last step]\n\n')
     sys.exit(-1)
 
 # parse command line
@@ -25,9 +25,10 @@ parameter_table = sys.argv[1]
 mesh_data_regex = sys.argv[2]
 baseline_table = sys.argv[3]
 water_vapor_var = sys.argv[4]
-n_threads = int(sys.argv[5])
-first_step =  int(sys.argv[6])
-last_step = int(sys.argv[7])
+out_file_name = sys.argv[5]
+n_threads = int(sys.argv[6])
+first_step =  int(sys.argv[7])
+last_step = int(sys.argv[8])
 
 if (rank == 0):
     sys.stderr.write('Testing on %d MPI processes %d threads\n'%(n_ranks, n_threads))
@@ -63,7 +64,7 @@ ca.set_component_variable('ars')
 
 wri = teca_cartesian_mesh_writer.New()
 wri.set_input_connection(ca.get_output_port())
-wri.set_file_name('bayesian_ar_detect_%t%.%e%')
+wri.set_file_name(out_file_name)
 
 cs = teca_component_statistics.New()
 cs.set_input_connection(wri.get_output_port())

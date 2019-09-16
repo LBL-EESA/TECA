@@ -334,8 +334,8 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
 
 // --------------------------------------------------------------------------
 teca_cf_writer::teca_cf_writer() :
-    file_name(""), date_format("%F-%HZ"), steps_per_file(8),
-    mode_flags(NC_CLOBBER|NC_NETCDF4), use_unlimited_dim(1)
+    file_name(""), date_format("%F-%HZ"), first_step(0), last_step(-1),
+    steps_per_file(1), mode_flags(NC_CLOBBER|NC_NETCDF4), use_unlimited_dim(1)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -358,8 +358,13 @@ void teca_cf_writer::get_properties_description(
             "path/name to write series to")
         TECA_POPTS_GET(std::string, prefix, date_format,
             "strftime format string for date string in output filename (%F-%H)")
+        TECA_POPTS_GET(long, prefix, first_step,
+            "set the first time step to process (0)")
+        TECA_POPTS_GET(long, prefix, last_step,
+            "set the last time step to process. A value less than 0 results "
+            "in all steps being processed.(-1)")
         TECA_POPTS_GET(unsigned int, prefix, steps_per_file,
-            "set the number of time steps to write per file (8)")
+            "set the number of time steps to write per file (1)")
         TECA_POPTS_GET(int, prefix, mode_flags,
             "mode flags to pass to NetCDF when creating the file (NC_CLOBBER)")
         TECA_POPTS_GET(int, prefix, use_unlimited_dim,
@@ -376,6 +381,8 @@ void teca_cf_writer::set_properties(
 {
     TECA_POPTS_SET(opts, std::string, prefix, file_name)
     TECA_POPTS_SET(opts, std::string, prefix, date_format)
+    TECA_POPTS_SET(opts, long, prefix, first_step)
+    TECA_POPTS_SET(opts, long, prefix, last_step)
     TECA_POPTS_SET(opts, unsigned int, prefix, steps_per_file)
     TECA_POPTS_SET(opts, int, prefix, mode_flags)
     TECA_POPTS_SET(opts, int, prefix, use_unlimited_dim)
@@ -431,8 +438,14 @@ teca_metadata teca_cf_writer::get_output_metadata(unsigned int port,
         return teca_metadata();
     }
 
+    // deal with subsetting of time steps
+    long idx_0 = this->first_step < 0 ? 0 : this->first_step;
+    long idx_1 = this->last_step < 1 ? n_indices - 1 : this->last_step;
+    n_indices = idx_1 - idx_0 + 1;
+
     // estimate the number of files we create for this run
-    long n_files = n_indices/this->steps_per_file;
+    long n_steps_left = n_indices % this->steps_per_file;
+    long n_files = n_indices / this->steps_per_file + (n_steps_left ? 1 : 0);
 
     // pass through input metadata
     teca_metadata md_out(md_in);
@@ -495,8 +508,14 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
         return up_reqs;
     }
 
+    // deal with subsetting of time steps
+    long idx_0 = this->first_step < 0 ? 0 : this->first_step;
+    long idx_1 = this->last_step < 1 ? n_indices_up - 1 : this->last_step;
+    n_indices_up = idx_1 - idx_0 + 1;
+
     // estimate the number of files
-    long n_large_files = n_indices_up % this->steps_per_file;
+    long n_steps_left = n_indices_up % this->steps_per_file;
+    long n_files = n_indices_up / this->steps_per_file;
 
     // get the file id requested of us, convert this into a set of
     // upstream indices
@@ -507,12 +526,9 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
         return up_reqs;
     }
 
-    long first_index = file_id < n_large_files ?
-        file_id*(this->steps_per_file + 1) :
-        file_id*this->steps_per_file + n_large_files;
-
-    long n_indices = this->steps_per_file +
-        (file_id < n_large_files ? 1 : 0);
+    long first_index = idx_0 + file_id*this->steps_per_file;
+    long n_indices = ((file_id == n_files) && n_steps_left ?
+        n_steps_left : this->steps_per_file);
 
     // construct the base request, pass through incoming request for bounds,
     // arrays, etc...  reset executive control keys

@@ -36,6 +36,10 @@ public:
     // the time index is used instead. (%F-%H)
     TECA_ALGORITHM_PROPERTY(std::string, date_format)
 
+    // set the range of time step to process.
+    TECA_ALGORITHM_PROPERTY(long, first_step)
+    TECA_ALGORITHM_PROPERTY(long, last_step)
+
     // set how many time steps are written to each file. Note that upstream is
     // parallelized over files rather than time steps.  this has the affect of
     // reducing the available oportunity for MPI parallelization by this
@@ -44,7 +48,7 @@ public:
     // should make such calculations when planning large runs if optimal
     // performance is desired. time steps are gathered before the file is
     // written, thus available memory per MPI rank is the limiting factor in
-    // how many steps can be stored in a single file (8).
+    // how many steps can be stored in a single file (1).
     TECA_ALGORITHM_PROPERTY(unsigned int, steps_per_file)
 
     // sets the flags passed to NetCDF during file creation. (NC_CLOBBER)
@@ -74,6 +78,8 @@ private:
 private:
     std::string file_name;
     std::string date_format;
+    long first_step;
+    long last_step;
     unsigned int steps_per_file;
     int mode_flags;
     int use_unlimited_dim;

@@ -2,8 +2,14 @@
 #define teca_profiler_h
 
 #include "teca_config.h"
+
 #include <string>
+#include <thread>
+#include <ostream>
+
+#if defined(TECA_HAS_MPI)
 #include <mpi.h>
+#endif
 
 // A class containing methods managing memory and time profiling
 // Each timed event logs rank, event name, start and end time, and
@@ -18,8 +24,10 @@ public:
     // If found in the environment the following variable override the
     // the current settings
     //
-    //     PROFILER_ENABLE          : integer turns on or off logging
-    //     PROFILER_LOG_FILE        : path to write timer log to
+    //     PROFILER_ENABLE       : bit mask turns on or off logging,
+    //                             0x01 -- event profiling enabled
+    //                             0x02 -- memory profiling enabled
+    //     PROFILER_LOG_FILE     : path to write timer log to
     //     MEMPROF_LOG_FILE      : path to write memory profiler log to
     //     MEMPROF_INTERVAL      : number of seconds between memory recordings
     //
@@ -29,6 +37,11 @@ public:
     // All processes in the communicator must call, and it must be called
     // prior to MPI_Finalize.
     static int finalize();
+
+    // this can occur after MPI_Finalize. It should only be called by rank 0.
+    // Any remaining events will be appeneded to the log file. This is necessary
+    // to time MPI_Initialize/Finalize and log associated I/O.
+    static int flush();
 
     // Sets the communicator for MPI calls. This must be called prior to
     // initialization.
@@ -52,7 +65,7 @@ public:
     // Enable/Disable logging. Overriden by PROFILER_ENABLE environment
     // variable. In the default format a CSV file is generated capturing each
     // ranks timer events. default value: disabled
-    static void enable();
+    static void enable(int arg = 0x03);
     static void disable();
 
     // return true if loggin is enabled.
@@ -70,6 +83,22 @@ public:
     // This marks the end of a event that must be logged.  The @arg eventname
     // must match when calling end_event() to mark the end of the event.
     static int end_event(const char *eventname);
+
+    // write contents of the string to the file.
+    static int write_c_stdio(const char *file_name, const char *mode,
+       const std::string &str);
+
+    // write contents of the string to the file in rank order
+    // the file is truncated first or created
+    static int write_mpi_io(MPI_Comm comm, const char *file_name,
+        const std::string &str);
+
+    // checks to see if all active events have been ended.
+    // will report errors if not
+    static int validate();
+
+    // setnd the current contents of the log to the stream
+    static int to_stream(std::ostream &os);
 };
 
 // teca_time_event -- A helper class that times it's life.
