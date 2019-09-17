@@ -1,6 +1,7 @@
 #include "teca_config.h"
 #include "teca_table_reader.h"
 #include "teca_cf_reader.h"
+#include "teca_cf_writer.h"
 #include "teca_table_writer.h"
 #include "teca_dataset_diff.h"
 #include "teca_file_util.h"
@@ -82,9 +83,10 @@ int main(int argc, char **argv)
     ca->set_input_connection(cc->get_output_port());
     ca->set_component_variable("ars");
 
-    p_teca_cartesian_mesh_writer wri = teca_cartesian_mesh_writer::New();
+    p_teca_cf_writer wri = teca_cf_writer::New();
     wri->set_input_connection(ca->get_output_port());
     wri->set_file_name(out_file_name);
+    wri->set_thread_pool_size(1);
 
     p_teca_component_statistics cs = teca_component_statistics::New();
     cs->set_input_connection(wri->get_output_port());
