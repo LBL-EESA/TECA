@@ -79,6 +79,7 @@ int parse_command_line(int argc, char **argv, int rank,
     string y_ax = "lat";
     string z_ax = "";
     string t_ax = "";
+    string t_template = "";
     long first_step = 0;
     long last_step = -1;
     std::vector<double> bounds;
@@ -117,6 +118,11 @@ int parse_command_line(int argc, char **argv, int rank,
             t_ax = argv[++i];
             ++j;
         }
+        else if (!strcmp("-n", argv[i]))
+        {
+            t_template = argv[++i];
+            ++j;
+        }
         else if (!strcmp("-s", argv[i]))
         {
             sscanf(argv[++i], "%li,%li",
@@ -151,6 +157,7 @@ int parse_command_line(int argc, char **argv, int rank,
     cf_reader->set_z_axis_variable(z_ax);
     cf_reader->set_t_axis_variable(t_ax);
     cf_reader->set_files_regex(regex);
+    cf_reader->set_filename_time_template(t_template);
 
     vtk_writer->set_file_name(output);
 

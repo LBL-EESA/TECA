@@ -4,11 +4,13 @@
 #include "teca_thread_pool.h"
 #include "teca_coordinate_util.h"
 #include "teca_netcdf_util.h"
+#include "calcalcs.h"
 
 #include <netcdf.h>
 #include <iostream>
 #include <algorithm>
 #include <cstring>
+#include <ctime>
 #include <thread>
 #include <atomic>
 #include <mutex>
@@ -187,6 +189,7 @@ teca_cf_reader::teca_cf_reader() :
     t_axis_variable("time"),
     t_calendar(""),
     t_units(""),
+    filename_time_template(""),
     periodic_in_x(0),
     periodic_in_y(0),
     periodic_in_z(0),
@@ -223,6 +226,8 @@ void teca_cf_reader::get_properties_description(
         TECA_POPTS_GET(std::string, prefix, t_calendar,
             "name of variable that has the time calendar (calendar)")
         TECA_POPTS_GET(std::string, prefix, t_units,
+            "a std::get_time template for decoding time from the input filename")
+        TECA_POPTS_GET(std::string, prefix, filename_time_template,
             "name of variable that has the time unit (units)")
         TECA_POPTS_GET(std::vector<double>, prefix, t_values,
             "name of variable that has t axis values set by the"
@@ -252,6 +257,7 @@ void teca_cf_reader::set_properties(const std::string &prefix,
     TECA_POPTS_SET(opts, std::string, prefix, t_axis_variable)
     TECA_POPTS_SET(opts, std::string, prefix, t_calendar)
     TECA_POPTS_SET(opts, std::string, prefix, t_units)
+    TECA_POPTS_SET(opts, std::string, prefix, filename_time_template)
     TECA_POPTS_SET(opts, std::vector<double>, prefix, t_values)
     TECA_POPTS_SET(opts, int, prefix, periodic_in_x)
     TECA_POPTS_SET(opts, int, prefix, periodic_in_y)
@@ -712,16 +718,123 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
                 t_axis = t;
             }
+            // infer the time from the filenames
+            else if (! this->filename_time_template.empty())
+            {
+                std::vector<double> t_values;
+
+                std::string t_units = this->t_units;
+                std::string t_calendar = this->t_calendar;
+
+                // assume that this is a standard calendar if none is provided
+                if (this->t_calendar.empty())
+                {
+                    t_calendar = "standard";
+                }
+
+                // loop over all files and infer dates from names
+                size_t n_files = files.size();
+                for (size_t i = 0; i < n_files; ++i)
+                {
+                    std::istringstream ss(files[i].c_str());
+                    std::tm current_tm;
+                    current_tm.tm_year = 0;
+                    current_tm.tm_mon = 0;
+                    current_tm.tm_mday = 0;
+                    current_tm.tm_hour = 0;
+                    current_tm.tm_min = 0;
+                    current_tm.tm_sec = 0;
+
+                    // attempt to convert the filename into a time
+                    ss >> std::get_time(&current_tm,
+                        this->filename_time_template.c_str());
+
+                    // check whether the conversion failed
+                    if(ss.fail())
+                    {
+                        TECA_ERROR("Failed to infer time from filename \"" <<
+                            files[i] << "\" using format \"" <<
+                            this->filename_time_template << "\"")
+                        return teca_metadata();
+                    }
+
+                    // set the time units based on the first file date if we
+                    // don't have time units
+                    if (t_units.empty() and i == 0)
+                    {
+                        std::string t_units_fmt =
+                            "days since %Y-%m-%d 00:00:00";
+
+                        // convert the time data to a string
+                        char tmp[256];
+                        if (strftime(tmp, sizeof(tmp), t_units_fmt.c_str(),
+                              &current_tm) == 0)
+                        {
+                            TECA_ERROR(
+                                "failed to convert the time as a string with \""
+                                << t_units_fmt << "\"")
+                            return teca_metadata();
+                        }
+                        // save the time units
+                        t_units = tmp;
+                    }
+#if defined(TECA_HAS_UDUNITS)
+                    // convert the time to a double using calcalcs
+                    int year = current_tm.tm_year + 1900;
+                    int mon = current_tm.tm_mon + 1;
+                    int day = current_tm.tm_mday;
+                    int hour = current_tm.tm_hour;
+                    int minute = current_tm.tm_min;
+                    double second = current_tm.tm_sec;
+                    double current_time = 0;
+                    if (calcalcs::coordinate(year, mon, day, hour, minute,
+                          second, t_units.c_str(), t_calendar.c_str(),
+                          &current_time))
+                    {
+                        TECA_ERROR(
+                            "conversion of date inferred from filename failed");
+                    }
+#else
+                    (void)date;
+                    TECA_ERROR(
+                        "The UDUnits package is required for this operation")
+                    return -1;
+#endif
+                    // add the current time to the list
+                    t_values.push_back(current_time);
+                }
+
+                // set the time metadata
+                teca_metadata time_atts;
+                time_atts.set("calendar", t_calendar);
+                time_atts.set("units", t_units);
+                atrs.set("time", time_atts);
+
+                // create a teca variant array from the times
+                size_t n_t_vals = t_values.size();
+                p_teca_variant_array_impl<double> t =
+                    teca_variant_array_impl<double>::New(t_values.data(),
+                            n_t_vals);
+
+                // set the number of time steps
+                step_count.resize(n_t_vals, 1);
+
+                // set the time axis
+                t_axis = t;
+            }
             else
             {
-                // make a dummy time axis, this enables parallelization over file sets
-                // that do not have time dimension. However, there is no guarantee on the
-                // order of the dummy axis to the lexical ordering of the files and there
-                // will be no calendaring information. As a result many time aware algorithms
-                // will not work.
+
+                // make a dummy time axis, this enables parallelization over
+                // file sets that do not have time dimension. However, there is
+                // no guarantee on the order of the dummy axis to the lexical
+                // ordering of the files and there will be no calendaring
+                // information. As a result many time aware algorithms will not
+                // work.
                 size_t n_files = files.size();
                 NC_DISPATCH_FP(x_t,
-                    p_teca_variant_array_impl<NC_T> t = teca_variant_array_impl<NC_T>::New(n_files);
+                    p_teca_variant_array_impl<NC_T> t =
+                        teca_variant_array_impl<NC_T>::New(n_files);
                     for (size_t i = 0; i < n_files; ++i)
                     {
                         t->set(i, NC_T(i));
@@ -736,9 +849,12 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
             teca_metadata coords;
             coords.set("x_variable", x_axis_variable);
-            coords.set("y_variable", (y_axis_variable.empty() ? "y" : y_axis_variable));
-            coords.set("z_variable", (z_axis_variable.empty() ? "z" : z_axis_variable));
-            coords.set("t_variable", (t_axis_variable.empty() ? "t" : t_axis_variable));
+            coords.set("y_variable",
+                    (y_axis_variable.empty() ? "y" : y_axis_variable));
+            coords.set("z_variable",
+                    (z_axis_variable.empty() ? "z" : z_axis_variable));
+            coords.set("t_variable",
+                    (t_axis_variable.empty() ? "t" : t_axis_variable));
             coords.set("x", x_axis);
             coords.set("y", y_axis);
             coords.set("z", z_axis);
@@ -756,7 +872,8 @@ teca_metadata teca_cf_reader::get_output_metadata(
             this->internals->metadata.set("files", files);
             this->internals->metadata.set("root", path);
             this->internals->metadata.set("step_count", step_count);
-            this->internals->metadata.set("number_of_time_steps", t_axis->size());
+            this->internals->metadata.set("number_of_time_steps",
+                    t_axis->size());
 
             // inform the executive how many and how to request time steps
             this->internals->metadata.set(

@@ -74,6 +74,14 @@ teca_add_test(test_cf_reader_era5
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
+teca_add_test(test_cf_reader_file_time
+    COMMAND test_cf_reader
+    -i "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_20170210_06\.nc"
+    -o "test_cf_reader_file_time_%t%.%e%" -s 0,-1 -x lon -y lat
+    -n "ARTMIP_MERRA_2D_%Y%m%d_%H.nc" IVT
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
 teca_add_test(test_cf_writer_cam5_serial
     EXEC_NAME test_cf_writer
     SOURCES test_cf_writer.cpp
