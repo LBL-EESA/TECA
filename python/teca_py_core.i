@@ -442,6 +442,7 @@ class teca_dataset;
 %ignore teca_dataset::operator=;
 %include "teca_dataset_fwd.h"
 %include "teca_dataset.h"
+TECA_PY_CONST_CAST(teca_dataset)
 %extend teca_dataset
 {
     TECA_PY_STR()

@@ -96,6 +96,7 @@
 %include "teca_mesh_fwd.h"
 %include "teca_mesh.h"
 TECA_PY_DYNAMIC_CAST(teca_mesh, teca_dataset)
+TECA_PY_CONST_CAST(teca_mesh)
 %extend teca_mesh
 {
     TECA_PY_STR()
@@ -132,6 +133,7 @@ TECA_PY_DYNAMIC_CAST(teca_mesh, teca_dataset)
 %include "teca_cartesian_mesh_fwd.h"
 %include "teca_cartesian_mesh.h"
 TECA_PY_DYNAMIC_CAST(teca_cartesian_mesh, teca_dataset)
+TECA_PY_CONST_CAST(teca_cartesian_mesh)
 %extend teca_cartesian_mesh
 {
     TECA_PY_STR()
@@ -160,6 +162,7 @@ TECA_PY_DYNAMIC_CAST(teca_cartesian_mesh, teca_dataset)
 %include "teca_table_fwd.h"
 %include "teca_table.h"
 TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
+TECA_PY_CONST_CAST(teca_table)
 %extend teca_table
 {
     TECA_PY_STR()
@@ -611,6 +614,7 @@ TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
 %include "teca_database_fwd.h"
 %include "teca_database.h"
 TECA_PY_DYNAMIC_CAST(teca_database, teca_dataset)
+TECA_PY_CONST_CAST(teca_database)
 %extend teca_database
 {
     TECA_PY_STR()

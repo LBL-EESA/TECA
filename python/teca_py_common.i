@@ -64,6 +64,20 @@ const_p_##to_t as_const_##to_t(const_p_##from_t inst)
 %enddef
 
 /***************************************************************************/
+/* for each dataset type define functions that wrap
+   std::const_pointer_cast. if the cast fails the returned object
+   evaluates to None in Python. No error should be thrown here. */
+%define TECA_PY_CONST_CAST(to_t)
+%inline %{
+p_##to_t as_non_const_##to_t(const_p_##to_t in_inst)
+{
+    p_##to_t o_inst = std::const_pointer_cast<to_t>(in_inst);
+    return o_inst;
+}
+%}
+%enddef
+
+/***************************************************************************/
 /* for each type define functions that wrap std::dynamic_pointer_cast
 
    p_teca_X_array as_teca_X_array(p_teca_variant_array)
