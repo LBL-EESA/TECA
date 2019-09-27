@@ -2,15 +2,11 @@ import sys
 import teca_py
 import numpy as np
 
-class teca_tc_trajectory_scalars:
+class teca_tc_trajectory_scalars(teca_py.teca_python_algorithm):
     """
     Computes summary statistics, histograms on sorted, classified,
     TC trajectory output.
     """
-    @staticmethod
-    def New():
-        return teca_tc_trajectory_scalars()
-
     def __init__(self):
         self.basename = 'tc_track'
         self.tex_file = ''
@@ -19,12 +15,6 @@ class teca_tc_trajectory_scalars:
         self.interactive = False
         self.axes_equal = True
         self.plot_peak_radius = False
-
-        self.impl = teca_py.teca_programmable_algorithm.New()
-        self.impl.set_name('teca_tc_trajectory_scalars')
-        self.impl.set_number_of_input_connections(1)
-        self.impl.set_number_of_output_ports(1)
-        self.impl.set_execute_callback(self.get_execute_callback(self))
 
     def __str__(self):
         return 'basename=%s, dpi=%d, interactive=%s, rel_axes=%s'%( \
@@ -68,29 +58,10 @@ class teca_tc_trajectory_scalars:
         """
         self.plot_peak_radius = plot_peak_radius
 
-    def set_input_connection(self, obj):
-        """
-        set the input
-        """
-        self.impl.set_input_connection(obj)
-
-    def get_output_port(self):
-        """
-        get the output
-        """
-        return self.impl.get_output_port()
-
-    def update(self):
-        """
-        execute the pipeline from this algorithm up.
-        """
-        self.impl.update()
-
-    @staticmethod
-    def get_execute_callback(state):
+    def get_execute_callback(self):
         """
         return a teca_algorithm::execute function. a closure
-        is used to gain state.
+        is used to gain self.
         """
         def execute(port, data_in, req):
             """
@@ -166,8 +137,8 @@ class teca_tc_trajectory_scalars:
             nutracks = len(utrack)
 
             # load background image
-            if (state.tex is None) and state.tex_file:
-                state.tex = plt_img.imread(state.tex_file)
+            if (self.tex is None) and self.tex_file:
+                self.tex = plt_img.imread(self.tex_file)
 
             for i in utrack:
                 #sys.stderr.write('processing track %d\n'%(i))
@@ -232,9 +203,9 @@ class teca_tc_trajectory_scalars:
 
                 plt.subplot2grid((5,4),(0,0),colspan=2,rowspan=2)
                 # prepare the texture
-                if state.tex is not None:
+                if self.tex is not None:
                     ext = [np.min(lon_i), np.max(lon_i), np.min(lat_i), np.max(lat_i)]
-                    if state.axes_equal:
+                    if self.axes_equal:
                         w = ext[1]-ext[0]
                         h = ext[3]-ext[2]
                         if w > h:
@@ -249,7 +220,7 @@ class teca_tc_trajectory_scalars:
                             ext[1] = c + h2
                     border_size = 0.15
                     wrimax = 0 if peak_rad_i is None else \
-                        max(0 if not state.plot_peak_radius else \
+                        max(0 if not self.plot_peak_radius else \
                             np.max(peak_rad_i), np.max(wind_rad_i[0]))
                     dlon = max(wrimax, (ext[1] - ext[0])*border_size)
                     dlat = max(wrimax, (ext[3] - ext[2])*border_size)
@@ -257,13 +228,13 @@ class teca_tc_trajectory_scalars:
                     ext[1] = min(ext[1] + dlon, 360.0)
                     ext[2] = max(ext[2] - dlat, -90.0)
                     ext[3] = min(ext[3] + dlat, 90.0)
-                    i0 = int(state.tex.shape[1]/360.0*ext[0])
-                    i1 = int(state.tex.shape[1]/360.0*ext[1])
-                    j0 = int(-((ext[3] + 90.0)/180.0 - 1.0)*state.tex.shape[0])
-                    j1 = int(-((ext[2] + 90.0)/180.0 - 1.0)*state.tex.shape[0])
-                    plt.imshow(state.tex[j0:j1, i0:i1], extent=ext, aspect='auto')
+                    i0 = int(self.tex.shape[1]/360.0*ext[0])
+                    i1 = int(self.tex.shape[1]/360.0*ext[1])
+                    j0 = int(-((ext[3] + 90.0)/180.0 - 1.0)*self.tex.shape[0])
+                    j1 = int(-((ext[2] + 90.0)/180.0 - 1.0)*self.tex.shape[0])
+                    plt.imshow(self.tex[j0:j1, i0:i1], extent=ext, aspect='auto')
 
-                edge_color = '#ffff00' if state.tex is not None else 'b'
+                edge_color = '#ffff00' if self.tex is not None else 'b'
 
                 # plot the storm size
                 if peak_rad_i is None:
@@ -297,12 +268,12 @@ class teca_tc_trajectory_scalars:
                     nwri = len(wind_rad_i)
                     q = nwri - 1
                     while q >= 0:
-                        state.plot_wind_rad(state, lon_i, lat_i, norm_x, norm_y, \
+                        self.plot_wind_rad(lon_i, lat_i, norm_x, norm_y, \
                             wind_rad_i[q], '-', edge_color if q==0 else red_cmap[q], \
                             2 if q==0 else 1, red_cmap[q], 0.98, q+4)
                         q -= 1
                     # plot the peak radius
-                    if (state.plot_peak_radius):
+                    if (self.plot_peak_radius):
                         # peak radius is only valid if one of the other wind radii
                         # exist, zero out other values
                         kk = wind_rad_i[0] > 1.0e-6
@@ -311,7 +282,7 @@ class teca_tc_trajectory_scalars:
                             kk = np.logical_or(kk, wind_rad_i[q] > 1.0e-6)
                             q += 1
                         peak_rad_i[np.logical_not(kk)] = 0.0
-                        state.plot_wind_rad(state, lon_i, lat_i, norm_x, norm_y, \
+                        self.plot_wind_rad(lon_i, lat_i, norm_x, norm_y, \
                             peak_rad_i, '--', (0,0,0,0.25), 1, 'none', 1.00, nwri+4)
                     # mark track
                     marks = wind_rad_i[0] <= 1.0e-6
@@ -405,7 +376,7 @@ class teca_tc_trajectory_scalars:
                         plt.fill_between(tt, 0, wr_i_q, color=red_cmap[q], alpha=0.9, zorder=q+3)
                         plt.plot(tt, wr_i_q, '-', linewidth=2, color=red_cmap[q], zorder=q+3)
                         q -= 1
-                    if (state.plot_peak_radius):
+                    if (self.plot_peak_radius):
                         plt.plot(tt, km_per_deg_lat*peak_rad_i, 'k--', linewidth=1, zorder=10)
                     plt.plot(tt, np.zeros(len(tt)), 'w-', linewidth=2, zorder=10)
                     plt.grid(True)
@@ -422,7 +393,7 @@ class teca_tc_trajectory_scalars:
                         red_cmap_pats.append( \
                             plt_mp.Patch(color=red_cmap[q], label='R%d'%(q)))
                         q += 1
-                    if (state.plot_peak_radius):
+                    if (self.plot_peak_radius):
                         red_cmap_pats.append(plt_mp.Patch(color='k', label='RP'))
                     l = plt.legend(handles=red_cmap_pats, loc=2, \
                             bbox_to_anchor=(-0.1, 1.0), borderaxespad=0.0, \
@@ -432,11 +403,11 @@ class teca_tc_trajectory_scalars:
                 plt.subplots_adjust(left=0.065, right=0.98, \
                     bottom=0.05, top=0.9, wspace=0.6, hspace=0.7)
 
-                plt.savefig('%s_%06d.png'%(state.basename, i), dpi=state.dpi)
-                if (not state.interactive):
+                plt.savefig('%s_%06d.png'%(self.basename, i), dpi=self.dpi)
+                if (not self.interactive):
                     plt.close(fig)
 
-            if (state.interactive):
+            if (self.interactive):
                 plt.show()
 
             out_table = teca_py.teca_table.New()
@@ -630,8 +601,7 @@ class teca_tc_trajectory_scalars:
                 alpha=face_alpha, zorder=z))
         return
 
-    @staticmethod
-    def plot_wind_rad(state, x, y, norm_x, norm_y, wind_rad, \
+    def plot_wind_rad(self, x, y, norm_x, norm_y, wind_rad, \
         edge_style, edge_color, edge_width, face_color, face_alpha, z):
         """slpit the track into continuous segements where wind rad is defined
            and render them on the current axes as close polygons/polylines"""
@@ -646,7 +616,7 @@ class teca_tc_trajectory_scalars:
                 # found end of poly, render it
                 p1 = qq+1 if qq == nqq else qq
                 if p1 - p0 > 1:
-                    state.render_poly(x[p0:p1], y[p0:p1], \
+                    self.render_poly(x[p0:p1], y[p0:p1], \
                         norm_x[p0:p1], norm_y[p0:p1], wind_rad[p0:p1], \
                         edge_style, edge_color, edge_width, face_color, \
                         face_alpha, z)

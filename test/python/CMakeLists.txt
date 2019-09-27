@@ -177,7 +177,7 @@ teca_add_test(py_test_tc_activity
 
 teca_add_test(py_test_tc_trajectory_scalars_serial
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_trajectory_scalars.py
-    "${TECA_DATA_ROOT}/cam5_1_amip_run2_tracks_2005_09.bin"
+    "${TECA_DATA_ROOT}/tracks_1990s_3hr_mdd_4800_median_in_cat_wr.bin"
     "${TECA_DATA_ROOT}/earthmap4k.png"
     "${TECA_DATA_ROOT}/py_test_tc_trajectory_scalars.bin" 0 -1
     FEATURES ${TECA_HAS_UDUNITS}
@@ -186,7 +186,7 @@ teca_add_test(py_test_tc_trajectory_scalars_serial
 teca_add_test(py_test_tc_trajectory_scalars_mpi
     COMMAND ${MPIEXEC} -n ${TECA_TEST_CORES} ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_trajectory_scalars.py
-    "${TECA_DATA_ROOT}/cam5_1_amip_run2_tracks_2005_09.bin"
+    "${TECA_DATA_ROOT}/tracks_1990s_3hr_mdd_4800_median_in_cat_wr.bin"
     "${TECA_DATA_ROOT}/earthmap4k.png"
     "${TECA_DATA_ROOT}/py_test_tc_trajectory_scalars.bin" 0 -1
     FEATURES ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4PY_FOUND}

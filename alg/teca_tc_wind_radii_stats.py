@@ -2,26 +2,16 @@ import sys
 import teca_py
 import numpy as np
 
-class teca_tc_wind_radii_stats:
+class teca_tc_wind_radii_stats(teca_py.teca_python_algorithm):
     """
     Computes statistics using track wind radii
     """
-    @staticmethod
-    def New():
-        return teca_tc_wind_radii_stats()
-
     def __init__(self):
         self.basename = 'stats'
         self.dpi = 100
         self.interactive = False
         self.wind_column = 'surface_wind'
         self.output_prefix = ''
-
-        self.impl = teca_py.teca_programmable_algorithm.New()
-        self.impl.set_name('teca_tc_wind_radii_stats')
-        self.impl.set_number_of_input_connections(1)
-        self.impl.set_number_of_output_ports(1)
-        self.impl.set_execute_callback(self.get_tc_wind_radii_stats_execute(self))
 
     def __str__(self):
         return 'basename=%s, dpi=%d, interactive=%s, rel_axes=%s'%( \
@@ -58,29 +48,10 @@ class teca_tc_wind_radii_stats:
         """
         self.output_prefix = output_prefix
 
-    def set_input_connection(self, obj):
-        """
-        set the input
-        """
-        self.impl.set_input_connection(obj)
-
-    def get_output_port(self):
-        """
-        get the output
-        """
-        return self.impl.get_output_port()
-
-    def update(self):
-        """
-        execute the pipeline from this algorithm up.
-        """
-        self.impl.update()
-
-    @staticmethod
-    def get_tc_wind_radii_stats_execute(state):
+    def get_execute_callback(self):
         """
         return a teca_algorithm::execute function. a closure
-        is used to gain state.
+        is used to gain self.
         """
         def execute(port, data_in, req):
             """
@@ -101,14 +72,13 @@ class teca_tc_wind_radii_stats:
             km_per_deg_lat = 111
             km_s_per_m_hr = 3.6
 
-            fig = plt.figure(figsize=(9.25,6.75),dpi=state.dpi)
+            fig = plt.figure(figsize=(9.25,6.75),dpi=self.dpi)
 
             # scatter
             plt.subplot('331')
-            plt.hold('True')
 
-            if not track_table.has_column(state.wind_column):
-                sys.stderr.write('ERROR: track table missing %s\n'%(state.wind_column))
+            if not track_table.has_column(self.wind_column):
+                sys.stderr.write('ERROR: track table missing %s\n'%(self.wind_column))
                 sys.exit(-1)
 
 
@@ -116,7 +86,7 @@ class teca_tc_wind_radii_stats:
             month = track_table.get_column('month').as_array()
             day = track_table.get_column('day').as_array()
 
-            ws = km_s_per_m_hr*track_table.get_column(state.wind_column).as_array()
+            ws = km_s_per_m_hr*track_table.get_column(self.wind_column).as_array()
 
             wr = []
             nwr = 0
@@ -140,7 +110,6 @@ class teca_tc_wind_radii_stats:
 
             # all
             plt.subplot('332')
-            plt.hold(True)
             i = 0
             while i < nwr:
                 wc = teca_py.teca_tc_saffir_simpson.get_upper_bound_kmph(i-1)
@@ -172,7 +141,10 @@ class teca_tc_wind_radii_stats:
                 plt.title('R%d (%0.1f km/hr)'%(i,wc), fontweight='bold', fontsize=11)
                 plt.grid(True)
                 ax = plt.gca()
-                ax.set_xlim([np.min(wrii), np.max(wrii)])
+                try:
+                    ax.set_xlim([np.min(wrii), np.max(wrii)])
+                except:
+                    pass
                 i += 1
 
             # legend
@@ -191,7 +163,7 @@ class teca_tc_wind_radii_stats:
                 month[-1],day[-1],year[-1]), fontweight='bold', fontsize=12)
             plt.subplots_adjust(hspace=0.35, wspace=0.35, top=0.90)
 
-            plt.savefig(state.output_prefix + 'wind_radii_stats.png')
+            plt.savefig(self.output_prefix + 'wind_radii_stats.png')
 
             fig = plt.figure(figsize=(7.5,4.0),dpi=100)
             # peak radius
@@ -218,7 +190,6 @@ class teca_tc_wind_radii_stats:
 
             # scatter
             plt.subplot('122')
-            plt.hold('True')
             ii = np.where(pr > 0.0)
             cnts,xe,ye,im = plt.hist2d(pr[ii], ws[ii], bins=24, norm=LogNorm(), zorder=2)
             plt.ylabel('Wind speed (km/hr)', fontweight='normal', fontsize=10)
@@ -236,9 +207,9 @@ class teca_tc_wind_radii_stats:
                 month[-1],day[-1],year[-1]), fontweight='bold', fontsize=12)
             plt.subplots_adjust(hspace=0.3, wspace=0.3,  top=0.85)
 
-            plt.savefig(state.output_prefix + 'peak_radius_stats.png')
+            plt.savefig(self.output_prefix + 'peak_radius_stats.png')
 
-            if state.interactive:
+            if self.interactive:
                 plt.show()
 
             # send data downstream
