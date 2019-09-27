@@ -192,6 +192,13 @@ teca_add_test(py_test_tc_trajectory_scalars_mpi
     FEATURES ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4PY_FOUND}
     REQ_TECA_DATA)
 
+teca_add_test(py_test_tc_wind_radii_stats
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_wind_radii_stats.py
+    "${TECA_DATA_ROOT}/tracks_1990s_3hr_mdd_4800_median_in_cat_wr.bin"
+    "${TECA_DATA_ROOT}/tracks_1990s_3hr_mdd_4800_median_in_cat_wr.bin"
+    FEATURES ${TECA_HAS_UDUNITS}
+    REQ_TECA_DATA)
+
 teca_add_test(py_test_bayesian_ar_detect_serial
     COMMAND  ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_bayesian_ar_detect.py
     "${TECA_DATA_ROOT}/bayesian_ar_parameters.bin" "${TECA_DATA_ROOT}/prw_hus_day_MRI.*\\.nc$"
