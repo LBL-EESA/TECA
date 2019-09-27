@@ -61,6 +61,10 @@ using const_p_teca_long_long_array = std::shared_ptr<const teca_variant_array_im
 using teca_unsigned_long_long_array = teca_variant_array_impl<unsigned long long>;
 using p_teca_unsigned_long_long_array = std::shared_ptr<teca_variant_array_impl<unsigned long long>>;
 using const_p_teca_unsigned_long_long_array = std::shared_ptr<const teca_variant_array_impl<unsigned long long>>;
+
+using teca_size_t_array = teca_variant_array_impl<size_t>;
+using p_teca_size_t_array = std::shared_ptr<teca_variant_array_impl<size_t>>;
+using const_p_teca_size_t_array = std::shared_ptr<const teca_variant_array_impl<size_t>>;
 #endif
 
 // this is a convenience macro to be used to declare a static
