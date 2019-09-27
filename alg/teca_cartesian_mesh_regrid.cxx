@@ -150,9 +150,6 @@ teca_metadata teca_cartesian_mesh_regrid::get_output_metadata(
     std::vector<std::string> target_vars;
     input_md[md_tgt].get("variables", target_vars);
 
-    std::vector<std::string> target_time_vars;
-    input_md[md_tgt].get("time variables", target_time_vars);
-
     teca_metadata target_atts;
     input_md[md_tgt].get("attributes", target_atts);
 
@@ -160,14 +157,11 @@ teca_metadata teca_cartesian_mesh_regrid::get_output_metadata(
     std::vector<std::string> source_vars;
     input_md[md_src].get("variables", source_vars);
 
-    std::vector<std::string> source_time_vars;
-    input_md[md_src].get("time variables", source_time_vars);
-
     teca_metadata source_atts;
     input_md[md_src].get("attributes", source_atts);
 
     // merge metadata from source and target
-    // variables and time variables should be unique lists.
+    // variables should be unique lists.
     // attributes are indexed by variable names
     // in the case of collisions, the target variable
     // is kept, the source variable is ignored
@@ -187,19 +181,12 @@ teca_metadata teca_cartesian_mesh_regrid::get_output_metadata(
             teca_metadata atts;
             source_atts.get(source, atts);
             target_atts.set(source, atts);
-
-            // check if it's a time var as well
-            first = source_time_vars.begin();
-            last = source_time_vars.end();
-            if (find(first, last, source) != last)
-                target_time_vars.push_back(source);
         }
 
     }
 
     // update with merged lists
     output_md.set("variables", target_vars);
-    output_md.set("time variables", target_time_vars);
     output_md.set("attributes", target_atts);
 
     return output_md;
