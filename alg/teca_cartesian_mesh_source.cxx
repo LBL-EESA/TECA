@@ -93,8 +93,9 @@ teca_cartesian_mesh_source::teca_cartesian_mesh_source() :
     coordinate_type_code(teca_variant_array_code<double>::get()),
     field_type_code(teca_variant_array_code<double>::get()),
     x_axis_variable("lon"), y_axis_variable("lat"), z_axis_variable("plev"),
-    t_axis_variable("time"), calendar("Gregorian"),
-    time_units("seconds since 2019-05-20 00:00"),
+    t_axis_variable("time"), x_axis_units("degrees_east"),
+    y_axis_units("degrees_north"), z_axis_units("pascals"),
+    calendar("Gregorian"), time_units("seconds since 1970-01-01 00:00:00"),
     whole_extents{0l, 359l, 0l, 179l, 0l, 0l, 0l, 0l},
     bounds{0., 360, -90., 90., 0., 0., 0., 0.},
     internals(new internals_t)
@@ -183,12 +184,37 @@ teca_metadata teca_cartesian_mesh_source::get_output_metadata(
         this->whole_extents.data(), this->bounds.data(), x_axis,
         y_axis, z_axis, t_axis);
 
+    std::string x_ax_var_name = (this->x_axis_variable.empty() ? "x" : this->x_axis_variable);
+    std::string y_ax_var_name = (this->y_axis_variable.empty() ? "y" : this->y_axis_variable);
+    std::string z_ax_var_name = (this->z_axis_variable.empty() ? "z" : this->z_axis_variable);
+    std::string t_ax_var_name = (this->t_axis_variable.empty() ? "t" : this->t_axis_variable);
+
+    // construct attributes
+    teca_metadata x_atts;
+    x_atts.set("units", (this->x_axis_units.empty() ? "meters" : this->x_axis_units));
+
+    teca_metadata y_atts;
+    y_atts.set("units", (this->y_axis_units.empty() ? "meters" : this->y_axis_units));
+
+    teca_metadata z_atts;
+    z_atts.set("units", (this->z_axis_units.empty() ? "meters" : this->z_axis_units));
+
+    teca_metadata t_atts;
+    t_atts.set("units", (this->time_units.empty() ?
+        "seconds since 1970-01-01 00:00:00" : this->time_units));
+
+    teca_metadata atts;
+    atts.set(x_ax_var_name, x_atts);
+    atts.set(y_ax_var_name, y_atts);
+    atts.set(z_ax_var_name, z_atts);
+    atts.set(t_ax_var_name, t_atts);
+
     // construct dataset metadata
     teca_metadata coords;
-    coords.set("x_variable", (this->x_axis_variable.empty() ? "x" : this->x_axis_variable));
-    coords.set("y_variable", (this->y_axis_variable.empty() ? "y" : this->y_axis_variable));
-    coords.set("z_variable", (this->z_axis_variable.empty() ? "z" : this->z_axis_variable));
-    coords.set("t_variable", (this->t_axis_variable.empty() ? "t" : this->t_axis_variable));
+    coords.set("x_variable", x_ax_var_name);
+    coords.set("y_variable", y_ax_var_name);
+    coords.set("z_variable", z_ax_var_name);
+    coords.set("t_variable", t_ax_var_name);
 
     coords.set("x", x_axis);
     coords.set("y", y_axis);
@@ -198,7 +224,15 @@ teca_metadata teca_cartesian_mesh_source::get_output_metadata(
     this->internals->metadata.set("whole_extent", this->whole_extents);
     this->internals->metadata.set("coordinates", coords);
 
-    this->internals->metadata.set("variables", std::vector<std::string>({"cc"}));
+    std::vector<std::string> vars;
+    std::vector<field_generator_t>::iterator it = this->field_generators.begin();
+    std::vector<field_generator_t>::iterator end = this->field_generators.end();
+    for (; it != end; ++it)
+        vars.push_back(it->name);
+
+    this->internals->metadata.set("variables", vars);
+    this->internals->metadata.set("attributes", atts);
+
     this->internals->metadata.set("number_of_time_steps", t_axis->size());
     this->internals->metadata.set("index_initializer_key", std::string("number_of_time_steps"));
     this->internals->metadata.set("index_request_key", std::string("time_step"));
@@ -303,7 +337,9 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
     mesh->set_time(t);
     mesh->set_calendar(this->calendar);
     mesh->set_time_units(this->time_units);
-    mesh->get_metadata().set("index_request_key", std::string("time_step"));
+
+    teca_metadata &mesh_md = mesh->get_metadata();
+    mesh_md.set("index_request_key", std::string("time_step"));
 
     // generate fields over the requested subset
     std::vector<field_generator_t>::iterator it = this->field_generators.begin();
@@ -313,6 +349,11 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
         p_teca_variant_array f_xyzt = it->generator(out_x, out_y, out_z, t);
         mesh->get_point_arrays()->append(it->name, f_xyzt);
     }
+
+    // pass the attributes
+    teca_metadata atts;
+    this->internals->metadata.get("attributes", atts);
+    mesh_md.set("attributes", atts);
 
     return mesh;
 }
