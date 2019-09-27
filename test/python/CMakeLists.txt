@@ -234,3 +234,9 @@ teca_add_test(py_test_nested_pipeline
     COMMAND ${MPIEXEC} -n ${HALF_CORES} ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_nested_pipeline.py 16 16 32 ${HALF_CORES}
     FEATURES ${TECA_HAS_MPI} ${MPI4PY_FOUND})
+
+teca_add_test(py_test_information_array_io
+    COMMAND ${PYTHON_EXECUTABLE}
+    "${CMAKE_CURRENT_SOURCE_DIR}/test_information_array_io.py" 1 3
+    "${TECA_DATA_ROOT}/test_information_array_io.bin"
+    FEATURES ${TECA_HAS_NETCDF})
