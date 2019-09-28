@@ -227,7 +227,7 @@ public:
             p_teca_variant_array prob_0 = mesh_0->get_point_arrays()->get(this->probability_array_name);
 
             p_teca_cartesian_mesh mesh_1 = std::dynamic_pointer_cast<teca_cartesian_mesh>(dataset_1);
-            p_teca_variant_array wvcc_1 = mesh_0->get_point_arrays()->get(this->component_array_name);
+            p_teca_variant_array wvcc_1 = mesh_1->get_point_arrays()->get(this->component_array_name);
             p_teca_variant_array prob_1 = mesh_1->get_point_arrays()->get(this->probability_array_name);
 
             if (prob_0 && prob_1)
