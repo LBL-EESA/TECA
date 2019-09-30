@@ -405,12 +405,24 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
             teca_metadata atrs;
             std::vector<std::string> vars;
-            std::vector<std::string> time_vars; // anything that has the time dimension as it's only dim
 
             teca_netcdf_util::netcdf_handle fh;
             if (fh.open(file.c_str(), NC_NOWRITE))
             {
                 TECA_ERROR("Failed to open " << file << endl << nc_strerror(ierr))
+                return teca_metadata();
+            }
+
+            if (((ierr = nc_inq_dimid(fh.get(), x_axis_variable.c_str(), &x_id)) != NC_NOERR)
+                || ((ierr = nc_inq_dimlen(fh.get(), x_id, &n_x)) != NC_NOERR)
+                || ((ierr = nc_inq_varid(fh.get(), x_axis_variable.c_str(), &x_id)) != NC_NOERR)
+                || ((ierr = nc_inq_vartype(fh.get(), x_id, &x_t)) != NC_NOERR))
+            {
+                this->clear_cached_metadata();
+                TECA_ERROR(
+                    << "Failed to query x axis variable \"" << x_axis_variable
+                    << "\" in file \"" << file << "\"" << endl
+                    << nc_strerror(ierr))
                 return teca_metadata();
             }
 
@@ -491,6 +503,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
                 std::vector<size_t> dims;
                 std::vector<std::string> dim_names;
+                std::string centering("point");
                 for (int ii = 0; ii < n_dims; ++ii)
                 {
                     char dim_name[NC_MAX_NAME + 1] = {'\0'};
@@ -510,15 +523,12 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
                 vars.push_back(var_name);
 
-                if ((n_dims == 1) && (dim_names[0] == t_axis_variable))
-                    time_vars.push_back(var_name);
-
                 teca_metadata atts;
                 atts.set("id", i);
                 atts.set("dims", dims);
                 atts.set("dim_names", dim_names);
                 atts.set("type", var_type);
-                atts.set("centering", std::string("point"));
+                atts.set("centering", centering);
 
                 void *att_buffer = nullptr;
                 for (int ii = 0; ii < n_atts; ++ii)
@@ -723,7 +733,6 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
             this->internals->metadata.set("variables", vars);
             this->internals->metadata.set("attributes", atrs);
-            this->internals->metadata.set("time variables", time_vars);
 
             teca_metadata coords;
             coords.set("x_variable", x_axis_variable);
@@ -1044,20 +1053,23 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
         teca_metadata atts;
         int type = 0;
         int id = 0;
+        p_teca_size_t_array dims;
         p_teca_string_array dim_names;
 
         if (atrs.get(arrays[i], atts)
             || atts.get("type", 0, type)
             || atts.get("id", 0, id)
+            || !(dims = std::dynamic_pointer_cast<teca_size_t_array>(atts.get("dims")))
             || !(dim_names = std::dynamic_pointer_cast<teca_string_array>(atts.get("dim_names"))))
         {
             TECA_ERROR("metadata issue can't read \"" << arrays[i] << "\"")
             continue;
         }
 
-        // check if it's a mesh variable
+        // check if it's a mesh variable, if it is not a mesh variable
+        // it is an information variable (ie non-spatiol)
         bool mesh_var = false;
-        size_t n_dims = dim_names->size();
+        unsigned int n_dims = dim_names->size();
 
         if (n_dims == mesh_dim_names.size())
         {
@@ -1071,80 +1083,82 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
                 }
             }
         }
-        if (!mesh_var)
+
+        // read requested variables
+        if (mesh_var)
         {
-            TECA_ERROR("time_step=" << time_step
-                << " dimension mismatch. \"" << arrays[i]
-                << "\" is not a mesh variable")
-            continue;
+            // read mesh based data
+            p_teca_variant_array array;
+            NC_DISPATCH(type,
+                p_teca_variant_array_impl<NC_T> a = teca_variant_array_impl<NC_T>::New(mesh_size);
+#if !defined(HDF5_THREAD_SAFE)
+                {
+                std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+                if ((ierr = nc_get_vara(file_id,  id, &starts[0], &counts[0], a->get())) != NC_NOERR)
+                {
+                    TECA_ERROR("time_step=" << time_step
+                        << " Failed to read variable \"" << arrays[i] << "\" "
+                        << file << endl << nc_strerror(ierr))
+                    continue;
+                }
+#if !defined(HDF5_THREAD_SAFE)
+                }
+#endif
+                array = a;
+                )
+            mesh->get_point_arrays()->append(arrays[i], array);
         }
-
-        // read
-        p_teca_variant_array array;
-        NC_DISPATCH(type,
-            p_teca_variant_array_impl<NC_T> a = teca_variant_array_impl<NC_T>::New(mesh_size);
-#if !defined(HDF5_THREAD_SAFE)
-            {
-            std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
-#endif
-            if ((ierr = nc_get_vara(file_id,  id, &starts[0], &counts[0], a->get())) != NC_NOERR)
-            {
-                TECA_ERROR("time_step=" << time_step
-                    << " Failed to read variable \"" << arrays[i] << "\" "
-                    << file << endl << nc_strerror(ierr))
-                continue;
-            }
-#if !defined(HDF5_THREAD_SAFE)
-            }
-#endif
-            array = a;
-            )
-        mesh->get_point_arrays()->append(arrays[i], array);
-    }
-
-    // read time vars
-    std::vector<std::string> time_vars;
-    this->internals->metadata.get("time variables", time_vars);
-    size_t n_time_vars = time_vars.size();
-    for (size_t i = 0; i < n_time_vars; ++i)
-    {
-        // get metadata
-        teca_metadata atts;
-        int type = 0;
-        int id = 0;
-
-        if (atrs.get(time_vars[i], atts)
-            || atts.get("type", 0, type)
-            || atts.get("id", 0, id))
+        else
         {
-            TECA_ERROR("time_step=" << time_step
-                << " metadata issue can't read \"" << time_vars[i] << "\"")
-            continue;
-        }
+            // read non-spatial data
+            // if the first dimension is time then select the requested time
+            // step. otherwise read the entire thing
+            std::vector<size_t> starts(n_dims);
+            std::vector<size_t> counts(n_dims);
+            size_t n_vals = 1;
+            if (dim_names->get(0) == this->t_axis_variable)
+            {
+                starts[0] = offs;
+                counts[0] = 1;
+            }
+            else
+            {
+                starts[0] = 0;
+                size_t dim_len = dims->get(0);
+                counts[0] = dim_len;
+                n_vals = dim_len;
+            }
+            for (unsigned int ii = 1; ii < n_dims; ++ii)
+            {
+                size_t dim_len = dims->get(ii);
+                counts[ii] = dim_len;
+                n_vals *= dim_len;
+            }
 
-        // read
-        int ierr = 0;
-        p_teca_variant_array array;
-        size_t one = 1;
-        NC_DISPATCH(type,
-            p_teca_variant_array_impl<NC_T> a = teca_variant_array_impl<NC_T>::New(1);
+            p_teca_variant_array array;
+
+            NC_DISPATCH(type,
+                p_teca_variant_array_impl<NC_T> a = teca_variant_array_impl<NC_T>::New(n_vals);
 #if !defined(HDF5_THREAD_SAFE)
-            {
-            std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+                {
+                std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-            if ((ierr = nc_get_vara(file_id,  id, &starts[0], &one, a->get())) != NC_NOERR)
-            {
-                TECA_ERROR("time_step=" << time_step
-                    << " Failed to read \"" << time_vars[i] << "\" "
-                    << file << endl << nc_strerror(ierr))
-                continue;
-            }
+                if ((ierr = nc_get_vara(file_id,  id, &starts[0], &counts[0], a->get())) != NC_NOERR)
+                {
+                    TECA_ERROR("time_step=" << time_step
+                        << " Failed to read \"" << arrays[i] << "\" "
+                        << file << endl << nc_strerror(ierr))
+                    continue;
+                }
 #if !defined(HDF5_THREAD_SAFE)
-            }
+                }
 #endif
-            array = a;
-            )
-        mesh->get_information_arrays()->append(time_vars[i], array);
+                array = a;
+                )
+
+            mesh->get_information_arrays()->append(arrays[i], array);
+        }
     }
 
     return mesh;

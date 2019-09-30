@@ -26,10 +26,10 @@ metadata keys:
     <var> -  a metadata object holding all NetCDF attributes for the variable named <var>
     time variables - a list of all variables with time as the only dimension
     coordinates - a metadata object holding names and arrays of the coordinate axes
-        x_variable - name of x axis variable
-        y_variable - name of y axis variable
-        z_variable - name of z axis variable
-        t_variable - name of t axis variable
+        x_axis_variable - name of x axis variable
+        y_axis_variable - name of y axis variable
+        z_axis_variable - name of z axis variable
+        t_axis_variable - name of t axis variable
         x - array of x coordinates
         y - array of y coordinates
         z - array of z coordinates

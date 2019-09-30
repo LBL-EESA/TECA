@@ -71,7 +71,6 @@ teca_metadata teca_dataset_diff::get_output_metadata(
         MPI_Comm_rank(this->get_communicator(), &rank);
 #endif
 
-
     // get input 0 initializer
     std::string initializer_key;
     if (input_md[0].get("index_initializer_key", initializer_key))
@@ -101,7 +100,7 @@ teca_metadata teca_dataset_diff::get_output_metadata(
     // to run over a mutual subset
 
     // prepare pieline executive metadata to run a test for each input dataset
-    teca_metadata omd;
+    teca_metadata omd(input_md[0]);
     omd.set("index_initializer_key", std::string("number_of_tests"));
     omd.set("index_request_key", std::string("test_id"));
     omd.set("number_of_tests", n_indices_0);

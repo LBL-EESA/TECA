@@ -32,7 +32,9 @@ public:
         const const_p_teca_variant_array &t, const std::string &x_variable,
         const std::string &y_variable, const std::string &z_variable,
         const std::string &t_variable, const teca_metadata &array_attributes,
-        const std::vector<const_p_teca_array_collection> &arrays);
+        const std::vector<const_p_teca_array_collection> &point_arrays,
+        const std::vector<const_p_teca_array_collection> &info_arrays);
+
 };
 
 // --------------------------------------------------------------------------
@@ -43,7 +45,8 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
     const std::string &x_variable, const std::string &y_variable,
     const std::string &z_variable, const std::string &t_variable,
     const teca_metadata &array_attributes,
-    const std::vector<const_p_teca_array_collection> &arrays)
+    const std::vector<const_p_teca_array_collection> &point_arrays,
+    const std::vector<const_p_teca_array_collection> &info_arrays)
 {
     (void) request_ids;
 
@@ -78,7 +81,7 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
     // on it, notably ParView. All dimensions of 1 are safe to skip, unless
     // we are writing a variable with 1 value.
     unsigned long skip_dim_of_1 = (x && x->size() > 1 ? 1 : 0) +
-        (y && y->size() > 1 ? 1 : 0) + (z  && z->size() > 1 ? 1 : 0);
+        (y && y->size() > 1 ? 1 : 0) + (z && z->size() > 1 ? 1 : 0);
 
     int n_dims = 0;
     if (t)
@@ -159,13 +162,13 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
     }
 
     // define variables for each point array
-    if (arrays.size())
+    if (point_arrays.size())
     {
-        unsigned int n_arrays = arrays[0]->size();
+        unsigned int n_arrays = point_arrays[0]->size();
         for (unsigned int i = 0; i < n_arrays; ++i)
         {
-            std::string name = arrays[0]->get_name(i);
-            const_p_teca_variant_array array = arrays[0]->get(i);
+            std::string name = point_arrays[0]->get_name(i);
+            const_p_teca_variant_array array = point_arrays[0]->get(i);
 
             TEMPLATE_DISPATCH(const teca_variant_array_impl,
                 array.get(),
@@ -175,6 +178,57 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
                 if ((ierr = nc_def_var(fh.get(), name.c_str(), type, n_dims, dim_ids, &var_id)) != NC_NOERR)
                 {
                     TECA_ERROR("failed to define variable for point array \"" << name << "\". "
+                        << nc_strerror(ierr))
+                    return -1;
+                }
+                // save the var id
+                var_ids[name] = var_id;
+                )
+        }
+    }
+
+    // add dimension and define information arrays
+    int n_info_dims = t ? 2 : 1;
+    if (info_arrays.size())
+    {
+        unsigned int n_arrays = info_arrays[0]->size();
+        for (unsigned int i = 0; i < n_arrays; ++i)
+        {
+            const_p_teca_variant_array array = info_arrays[0]->get(i);
+            std::string name = info_arrays[0]->get_name(i);
+
+            // define dimension
+            std::string dim_name = "dim_" + name;
+            int dim_id = -1;
+            if ((ierr = nc_def_dim(fh.get(), dim_name.c_str(), array->size(), &dim_id)) != NC_NOERR)
+            {
+                TECA_ERROR("failed to define dimensions for information array "
+                    <<  i << " \"" << name << "\" " << nc_strerror(ierr))
+                return -1;
+            }
+
+            // set up dim ids for definition
+            int info_dim_ids[2];
+            if (t)
+            {
+                info_dim_ids[0] = dim_ids[0];
+                info_dim_ids[1] = dim_id;
+            }
+            else
+            {
+                info_dim_ids[0] = dim_id;
+                info_dim_ids[1] = 0;
+            }
+
+            TEMPLATE_DISPATCH(const teca_variant_array_impl,
+                array.get(),
+                // define variable
+                int var_id = -1;
+                int type = teca_netcdf_util::netcdf_tt<NT>::type_code;
+                if ((ierr = nc_def_var(fh.get(), name.c_str(), type,
+                    n_info_dims, info_dim_ids, &var_id)) != NC_NOERR)
+                {
+                    TECA_ERROR("failed to define variable for information array \"" << name << "\". "
                         << nc_strerror(ierr))
                     return -1;
                 }
@@ -289,7 +343,7 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
     }
 
     // write point arrays
-    if (arrays.size())
+    if (point_arrays.size())
     {
         unsigned int n_steps = t->size();
         size_t starts[4] = {0, 0, 0, 0};
@@ -299,11 +353,50 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
 
         for (unsigned int q = 0; q < n_steps; ++q)
         {
-            unsigned int n_arrays = arrays[q]->size();
+            unsigned int n_arrays = point_arrays[q]->size();
             for (unsigned int i = 0; i < n_arrays; ++i)
             {
-                std::string array_name = arrays[q]->get_name(i);
-                const_p_teca_variant_array array = arrays[q]->get(i);
+                std::string array_name = point_arrays[q]->get_name(i);
+                const_p_teca_variant_array array = point_arrays[q]->get(i);
+
+                // look up the var id
+                std::map<std::string, int>::iterator it = var_ids.find(array_name);
+                if (it  == var_ids.end())
+                {
+                    TECA_ERROR("No var id for \"" << array_name << "\"")
+                    return -1;
+                }
+                int var_id = it->second;
+
+                TEMPLATE_DISPATCH(const teca_variant_array_impl,
+                    array.get(),
+                    const NT *pa = static_cast<TT*>(array.get())->get();
+                    if ((ierr = nc_put_vara(fh.get(), var_id, starts, counts, pa)) != NC_NOERR)
+                    {
+                        TECA_ERROR("failed to write array \"" << array_name << "\". "
+                            << nc_strerror(ierr))
+                        return -1;
+                    }
+                    )
+            }
+            starts[0] += 1;
+        }
+    }
+
+    // write the information arrays
+    if (info_arrays.size())
+    {
+        unsigned int n_steps = t->size();
+        size_t starts[2] = {0, 0};
+        for (unsigned int q = 0; q < n_steps; ++q)
+        {
+            unsigned int n_arrays = info_arrays[q]->size();
+            for (unsigned int i = 0; i < n_arrays; ++i)
+            {
+                std::string array_name = info_arrays[q]->get_name(i);
+                const_p_teca_variant_array array = info_arrays[q]->get(i);
+
+                size_t counts[2] = {1, array->size()};
 
                 // look up the var id
                 std::map<std::string, int>::iterator it = var_ids.find(array_name);
@@ -608,17 +701,30 @@ const_p_teca_dataset teca_cf_writer::execute(unsigned int port,
     in_mesh->get_z_coordinate_variable(z_variable);
     in_mesh->get_t_coordinate_variable(t_variable);
 
+
+    const teca_metadata &in_md = in_mesh->get_metadata();
+
     // get the attributes
     teca_metadata in_atts;
-    if (in_mesh->get_metadata().get("attributes", in_atts))
+    if (in_md.get("attributes", in_atts) && !t_variable.empty())
     {
-        TECA_ERROR("failed to get attribute metadata")
-        return nullptr;
+        // array attributes are not necessary to write the data
+        // if no attributes then try to pass calendaring information through
+        std::string calendar;
+        std::string time_units;
+        if (!in_md.get("calendar", calendar) &&
+            !in_md.get("time_units", time_units))
+        {
+            teca_metadata t_atts;
+            t_atts.set("calendar", calendar);
+            t_atts.set("time_units", time_units);
+            in_atts.set(t_variable, t_atts);
+        }
     }
 
     // get the executive control keys
     std::string request_key;
-    if (in_mesh->get_metadata().get("index_request_key", request_key))
+    if (in_md.get("index_request_key", request_key))
     {
         TECA_ERROR("Input metadata on mesh 0 is missing index_request_key")
         return nullptr;
@@ -630,7 +736,8 @@ const_p_teca_dataset teca_cf_writer::execute(unsigned int port,
 
     // collect the set of arrays to write
     std::vector<long> req_ids(n_in_indices);
-    std::vector<const_p_teca_array_collection> arrays(n_in_indices);
+    std::vector<const_p_teca_array_collection> point_arrays(n_in_indices);
+    std::vector<const_p_teca_array_collection> info_arrays(n_in_indices);
     for (long i = 0; i < n_in_indices; ++i)
     {
         // convert to cartesian mesh
@@ -651,10 +758,11 @@ const_p_teca_dataset teca_cf_writer::execute(unsigned int port,
         }
 
         // get the collection of arrays
-        arrays[i] = in_mesh->get_point_arrays();
+        point_arrays[i] = in_mesh->get_point_arrays();
+        info_arrays[i] = in_mesh->get_information_arrays();
 
         // get the request id
-        if (in_mesh->get_metadata().get(request_key, req_ids[i]))
+        if (in_md.get(request_key, req_ids[i]))
         {
             TECA_ERROR("failed to get the request index \""
                 << request_key << "\" from mesh " << i)
@@ -701,11 +809,23 @@ const_p_teca_dataset teca_cf_writer::execute(unsigned int port,
     // write the data
     if (teca_cf_writer_internals::write(out_file, this->mode_flags,
         this->use_unlimited_dim, req_ids, x, y, z, t, x_variable, y_variable,
-        z_variable, t_variable, in_atts, arrays))
+        z_variable, t_variable, in_atts, point_arrays, info_arrays))
     {
         TECA_ERROR("Failed to write \"" << out_file << "\"")
         return nullptr;
     }
 
-    return nullptr;
+    // if there is only 1 input datatset, pass the dataset through
+    // there are more than 1 return a nullptr. TODO -- how best to
+    // return multiple datasets? teca_database can do it, but downstream
+    // may not understand
+    p_teca_dataset out_mesh;
+    if (n_in_indices == 1)
+    {
+        out_mesh = in_mesh->new_instance();
+        out_mesh->shallow_copy(
+            std::const_pointer_cast<teca_cartesian_mesh>(in_mesh));
+    }
+
+    return out_mesh;
 }

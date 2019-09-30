@@ -31,33 +31,23 @@
 #include <boost/program_options.hpp>
 #endif
 
-/*
-   void property_reduce(std::string property_name,
-                        p_teca_dataset dataset_0,
-                        p_teca_dataset dataset_1,
-                        p_teca_cartesian_mesh mesh_out)
 
-    input:
-    ------
-
-      property_name : (std::string) the key of the metadata property in dataset_* on which to do the reduction
-
-      dataset_0     : (p_teca_dataset) the LHS dataset in the reduction
-
-      dataset_1     : (p_teca_dataset) the RHS dataset in the reduction
-
-      mesh_out      : (p_teca_cartesian_mesh) the output of the reduction
-
-    This routine appends the contents of dataset_0.get_metadata.get(property_name) onto that from dataset_0 and
-    overwrites the contents `property_name' in the metadata of mesh_out.
-
- */
+// This routine appends the contents of dataset_0.get_metadata.get(property_name)
+// onto that from dataset_0 and overwrites the contents `property_name' in the
+// metadata of mesh_out.
+//
+//   property_name : (std::string) the key of the metadata property in
+//                   dataset_* on which to do the reduction
+//
+//   dataset_0     : (p_teca_dataset) the LHS dataset in the reduction
+//
+//   dataset_1     : (p_teca_dataset) the RHS dataset in the reduction
+//
+//   mesh_out      : (p_teca_cartesian_mesh) the output of the reduction
 void property_reduce(std::string property_name,
-                     p_teca_dataset dataset_0,
-                     p_teca_dataset dataset_1,
-                     p_teca_cartesian_mesh mesh_out)
+    p_teca_dataset dataset_0, p_teca_dataset dataset_1,
+    p_teca_cartesian_mesh mesh_out)
 {
-
     // declare the LHS and RHS property vectors
     std::vector<double> property_vector_0;
     std::vector<double> property_vector_1;
@@ -68,7 +58,8 @@ void property_reduce(std::string property_name,
 
     // construct the output property vector by concatenating LHS and RHS vectors
     std::vector<double> property_vector(property_vector_0);
-    property_vector.insert(property_vector.end(), property_vector_1.begin(), property_vector_1.end());
+    property_vector.insert(property_vector.end(), property_vector_1.begin(),
+        property_vector_1.end());
 
     // Overwrite the concatenated property vector in the output dataset
     mesh_out->get_metadata().set(property_name, property_vector);
@@ -124,7 +115,6 @@ public:
         // figure out which row of the parameter table is being requested
         if (!req.has("row_id"))
         {
-            req.to_stream(std::cerr);
             TECA_ERROR("Missing index key row_id")
             return up_reqs;
         }
@@ -218,6 +208,8 @@ public:
         p_teca_dataset dataset_1 = std::const_pointer_cast<teca_dataset>(right);
 
         p_teca_variant_array prob_out;
+        p_teca_variant_array n_wvcc_out;
+        p_teca_variant_array pt_row_out;
 
         if (dataset_0 && dataset_1)
         {
@@ -225,10 +217,16 @@ public:
             p_teca_cartesian_mesh mesh_0 = std::dynamic_pointer_cast<teca_cartesian_mesh>(dataset_0);
             p_teca_variant_array wvcc_0 = mesh_0->get_point_arrays()->get(this->component_array_name);
             p_teca_variant_array prob_0 = mesh_0->get_point_arrays()->get(this->probability_array_name);
+            p_teca_variant_array n_wvcc_0 = mesh_0->get_information_arrays()->get("ar_count");
+            p_teca_variant_array pt_row_0 = mesh_0->get_information_arrays()->get("parameter_table_row");
+            const teca_metadata &md_0 = mesh_0->get_metadata();
 
             p_teca_cartesian_mesh mesh_1 = std::dynamic_pointer_cast<teca_cartesian_mesh>(dataset_1);
             p_teca_variant_array wvcc_1 = mesh_1->get_point_arrays()->get(this->component_array_name);
             p_teca_variant_array prob_1 = mesh_1->get_point_arrays()->get(this->probability_array_name);
+            p_teca_variant_array n_wvcc_1 = mesh_1->get_information_arrays()->get("ar_count");
+            p_teca_variant_array pt_row_1 = mesh_1->get_information_arrays()->get("parameter_table_row");
+            const teca_metadata &md_1 = mesh_1->get_metadata();
 
             if (prob_0 && prob_1)
             {
@@ -243,6 +241,13 @@ public:
                     for (unsigned long i = 0; i < n_vals; ++i)
                         p_prob_out[i] += p_prob_1[i];
                     )
+
+                // concatenate ar couunt and parameter table row
+                n_wvcc_out = n_wvcc_0->new_copy();
+                n_wvcc_out->append(*n_wvcc_1.get());
+
+                pt_row_out = pt_row_0->new_copy();
+                pt_row_out->append(*pt_row_1.get());
             }
             else if (prob_0 || prob_1)
             {
@@ -253,13 +258,57 @@ public:
 
                 if (prob_0)
                 {
+                    // dataset 0 has valid values, dataset 1 has new raw data
+                    // keep prob_0, append calc from wvcc_1
                     prob = prob_0;
                     wvcc = wvcc_1;
+
+                    // append ar count and param table row
+                    int val = 0;
+                    if (md_1.get("number_of_components", val))
+                    {
+                        TECA_ERROR("mesh 1 is missing number_of_components")
+                        return nullptr;
+                    }
+
+                    n_wvcc_out = n_wvcc_0->new_copy();
+                    n_wvcc_out->append(val);
+
+                    if (md_1.get("parameter_table_row", val))
+                    {
+                        TECA_ERROR("mesh 1 is missing parameter_table_row")
+                        return nullptr;
+                    }
+
+                    pt_row_out = pt_row_0->new_copy();
+                    pt_row_out->append(val);
                 }
                 else
                 {
+                    // dataset 1 has valid values, dataset 0 has new raw data
+                    // keep prob_1, append calc from wvcc_0
                     prob = prob_1;
                     wvcc = wvcc_0;
+
+                    // append ar count and param table row
+                    int val = 0;
+                    if (md_0.get("number_of_components", val))
+                    {
+                        TECA_ERROR("mesh 1 is missing number_of_components")
+                        return nullptr;
+                    }
+
+                    n_wvcc_out = n_wvcc_1->new_copy();
+                    n_wvcc_out->append(val);
+
+                    if (md_0.get("parameter_table_row", val))
+                    {
+                        TECA_ERROR("mesh 1 is missing parameter_table_row")
+                        return nullptr;
+                    }
+
+                    pt_row_out = pt_row_1->new_copy();
+                    pt_row_out->append(val);
                 }
 
                 if (!wvcc)
@@ -269,6 +318,7 @@ public:
                     return nullptr;
                 }
 
+                // do the calculation
                 unsigned long n_vals = prob->size();
                 prob_out = prob->new_copy();
 
@@ -321,6 +371,26 @@ public:
                                  (p_wvcc_1[i] > 0 ? NT_PROB(1) : NT_PROB(0));
                         )
                     )
+
+                // append ar count and param table row
+                int vals[2];
+                if (md_0.get("number_of_components", vals[0]) ||
+                    md_1.get("number_of_components", vals[1]))
+                {
+                    TECA_ERROR("number_of_components missing from mesh 0 and/or mesh 1")
+                    return nullptr;
+                }
+
+                n_wvcc_out = teca_int_array::New(vals, 2);
+
+                if (md_0.get("parameter_table_row", vals[0]) ||
+                    md_1.get("parameter_table_row", vals[1]))
+                {
+                    TECA_ERROR("paramteter_table_row missing from mesh 0 and/or mesh 1")
+                    return nullptr;
+                }
+
+                pt_row_out = teca_int_array::New(vals, 2);
             }
         }
         else if (dataset_0 || dataset_1)
@@ -330,20 +400,33 @@ public:
                 std::dynamic_pointer_cast<teca_cartesian_mesh>(dataset_0) :
                 std::dynamic_pointer_cast<teca_cartesian_mesh>(dataset_1);
 
-            p_teca_variant_array prob = mesh->get_point_arrays()->get(this->probability_array_name);
+            p_teca_variant_array prob =
+                mesh->get_point_arrays()->get(this->probability_array_name);
+
+            p_teca_variant_array n_wvcc =
+                mesh->get_information_arrays()->get("ar_count");
+
+            p_teca_variant_array pt_row =
+                mesh->get_information_arrays()->get("parameter_table_row");
+
+            const teca_metadata &md = mesh->get_metadata();
 
             if (prob)
             {
                 // probability has already been comnputed, pass it through
                 prob_out = prob;
+                n_wvcc_out = n_wvcc;
+                pt_row_out = pt_row;
             }
             else
             {
                 // compute the probability from the connected components
-                p_teca_variant_array wvcc = mesh->get_point_arrays()->get(this->component_array_name);
+                p_teca_variant_array wvcc =
+                    mesh->get_point_arrays()->get(this->component_array_name);
                 if (wvcc)
                 {
-                    TECA_ERROR("pipeline error, component array \"" << this->component_array_name << "\" is not present")
+                    TECA_ERROR("pipeline error, component array \""
+                        << this->component_array_name << "\" is not present")
                     return nullptr;
                 }
 
@@ -368,6 +451,23 @@ public:
                             p_prob_out[i] = (p_wvcc[i] > 0 ? NT_PROB(1) : NT_PROB(0));
                         )
                     )
+
+                // get ar counts and parameter table rows from metadata and
+                // pass into the infomration arrays
+                int val = 0;
+                if (md.get("number_of_components", val))
+                {
+                    TECA_ERROR("metadata missing number_of_components")
+                    return nullptr;
+                }
+                n_wvcc_out = teca_int_array::New(&val, 1);
+
+                if (md.get("parameter_table_row", val))
+                {
+                    TECA_ERROR("meatdata missing parameter_table_row")
+                    return nullptr;
+                }
+                pt_row_out = teca_int_array::New(&val,1);
             }
         }
         else
@@ -386,19 +486,26 @@ public:
         else if (dataset_1)
             mesh_out->copy_metadata(dataset_1);
 
+        // TODO -- this essentally copies the parameter table into the metadata
+        // instead could we access the parameter table directly. and use the
+        // information arrays ar_count, and parameter_table_row?
+
         // Do property reduction on AR detector parameters and output that
         // are stored in the metadata.  This operation overwrites the metadata
         // in mesh_out with the combined metadata from the LHS and RHS datasets.
-        property_reduce("low_threshold_value", dataset_0, dataset_1, mesh_out);
+        /*property_reduce("low_threshold_value", dataset_0, dataset_1, mesh_out);
         property_reduce("high_threshold_value", dataset_0, dataset_1, mesh_out);
         property_reduce("low_area_threshold_km", dataset_0, dataset_1, mesh_out);
         property_reduce("high_area_threshold_km", dataset_0, dataset_1, mesh_out);
         property_reduce("gaussian_filter_center_lat", dataset_0, dataset_1, mesh_out);
         property_reduce("gaussian_filter_hwhm", dataset_0, dataset_1, mesh_out);
         property_reduce("number_of_components", dataset_0, dataset_1, mesh_out);
-        property_reduce("component_area", dataset_0, dataset_1, mesh_out);
+        property_reduce("component_area", dataset_0, dataset_1, mesh_out);*/
 
         mesh_out->get_point_arrays()->append(this->probability_array_name, prob_out);
+
+        mesh_out->get_information_arrays()->append("ar_count", n_wvcc_out);
+        mesh_out->get_information_arrays()->append("parameter_table_row", pt_row_out);
 
         return mesh_out;
     }
@@ -781,9 +888,20 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
         });
     dss->set_execute_callback(
         [& in_mesh] (unsigned int, const std::vector<const_p_teca_dataset> &,
-     const teca_metadata &) -> const_p_teca_dataset
+     const teca_metadata &req) -> const_p_teca_dataset
      {
-         return in_mesh;
+         int row_id = 0;
+         if (req.get("row_id", row_id))
+         {
+             TECA_ERROR("failed to get parameter table row")
+             return nullptr;
+         }
+
+         p_teca_dataset out_mesh = in_mesh->new_instance();
+         out_mesh->shallow_copy(in_mesh);
+         out_mesh->get_metadata().set("parameter_table_row", row_id);
+
+         return out_mesh;
      });
 
     // set up the filtering stages. these extract control parameters

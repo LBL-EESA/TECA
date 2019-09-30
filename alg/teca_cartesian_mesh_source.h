@@ -65,10 +65,6 @@ public:
     // this should be the same on all ranks elements.
     TECA_ALGORITHM_VECTOR_PROPERTY(double, bound)
 
-    // number of time steps to generate
-    TECA_ALGORITHM_PROPERTY(std::string, calendar)
-    TECA_ALGORITHM_PROPERTY(std::string, time_units)
-
     // set the variable to use for the coordinate axes.
     // the defaults are: x => lon, y => lat, z = plev,
     // t => time
@@ -76,6 +72,16 @@ public:
     TECA_ALGORITHM_PROPERTY(std::string, y_axis_variable)
     TECA_ALGORITHM_PROPERTY(std::string, z_axis_variable)
     TECA_ALGORITHM_PROPERTY(std::string, t_axis_variable)
+
+    // set the units of spatial axes. The defaults are:
+    // degrees_east, degrees_north, and pressure_level
+    TECA_ALGORITHM_PROPERTY(std::string, x_axis_units)
+    TECA_ALGORITHM_PROPERTY(std::string, y_axis_units)
+    TECA_ALGORITHM_PROPERTY(std::string, z_axis_units)
+
+    // number of time steps to generate
+    TECA_ALGORITHM_PROPERTY(std::string, calendar)
+    TECA_ALGORITHM_PROPERTY(std::string, time_units)
 
     // set the named callbacks to generate fields on the mesh
     // A callback f must have the signature f(x,y,z,t).
@@ -108,6 +114,9 @@ private:
     std::string y_axis_variable;
     std::string z_axis_variable;
     std::string t_axis_variable;
+    std::string x_axis_units;
+    std::string y_axis_units;
+    std::string z_axis_units;
     std::string calendar;
     std::string time_units;
     std::vector<unsigned long> whole_extents;
