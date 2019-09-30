@@ -5,6 +5,7 @@
 #include "teca_apply_binary_mask.h"
 #include "teca_bayesian_ar_detect.h"
 #include "teca_binary_segmentation.h"
+#include "teca_cartesian_mesh_source.h"
 #include "teca_cartesian_mesh_subset.h"
 #include "teca_cartesian_mesh_regrid.h"
 #include "teca_connected_components.h"
@@ -300,6 +301,13 @@
 }
 
 /***************************************************************************
+ python_algorithm
+ ***************************************************************************/
+%pythoncode %{
+from teca_python_algorithm import *
+%}
+
+/***************************************************************************
  tc_activity
  ***************************************************************************/
 %pythoncode %{
@@ -456,3 +464,13 @@ struct teca_tc_saffir_simpson
 %shared_ptr(teca_normalize_coordinates)
 %ignore teca_normalize_coordinates::operator=;
 %include "teca_normalize_coordinates.h"
+
+/***************************************************************************
+ cartesian_mesh_source
+ ***************************************************************************/
+%ignore teca_cartesian_mesh_source::shared_from_this;
+%shared_ptr(teca_cartesian_mesh_source)
+%ignore teca_cartesian_mesh_source::operator=;
+%ignore operator==(const field_generator &l, const field_generator &r);
+%ignore operator!=(const field_generator &l, const field_generator &r);
+%include "teca_cartesian_mesh_source.h"

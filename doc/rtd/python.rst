@@ -59,12 +59,12 @@ For example, listing :numref:`py_glue_code` shows a command line application
 written in Python. The application computes a set of descriptive statistics
 over a list of arrays for each time step in the dataset. The results at each
 time step are stored in a row of a table. teca\_table\_reduce is a map-reduce
-implementation that processes time steps in parallel and reduces the the tables
+implementation that processes time steps in parallel and reduces the tables
 produced at each time step into a single result. One use potential use of this
 code would be to compute a time series of average global temperature. The
-application loads modules and initializes MPI (lines 1-6), parses the command
-line options (lines 8-19),  constructs and configures the pipeline (lines
-24-40), and finally executes the pipeline (line 42). The pipeline constructed
+application loads modules and initializes MPI (lines 1-4), parses the command
+line options (lines 6-17),  constructs and configures the pipeline (lines
+22-37), and finally executes the pipeline (line 39). The pipeline constructed
 is shown in figure :numref:`parallel_exec` next to a time line of the
 pipeline's parallel execution on an arbitrary MPI process.
 
@@ -144,7 +144,7 @@ are documented in its header file and in section \ref{sec:cf_reader}.
 
 In C++11 polymorphism is used to provide customized behavior for each
 of the three pipeline phases. In Python we use the
-teca\_programmable\_algorithm, an adapter class that calls user provided
+teca\_python\_algorithm, an adapter class that calls user provided
 callback functions at the appropriate times during each phase of pipeline
 execution. Hence writing a TECA algorithm purely in Python amounts to providing
 three appropriate callbacks.
@@ -239,23 +239,27 @@ consumers to receive data that is produced upstream. Because TECA caches data
 it is important that incoming data is not modified, this convention enables
 shallow copy of large data which saves memory.
 
-Lines 27-30 of listing :numref:`py_glue_code` illustrate the use of
-teca\_programmable\_algorithm. In this example the callbacks implementing the
-computation of descriptive statistics over a set of variables laid out on a
-Cartesian lat-lon mesh are in a separate file, stats\_callbacks.py (listing
-:numref:`py_devel_code`) imported on line 6 and passed into the programmable
-algorithm on lines 29 and 30. Note, that we did not need to provide a report
-callback as the default implementation, which simply passes the report through
-was all that was needed. In both our request and execute callbacks we used a
-closure to pass list of variables from the command line into the function. Our
-request callback (lines 6-9 of listing :numref:`py_devel_code`) simply adds the
-list of variables we need into the incoming request which it then forwards up
-stream. The execute callback (lines 14-35) gets the input dataset (line 17),
+Lines 25-27 of listing :numref:`py_glue_code` illustrate the use of
+teca\_python\_algorithm. In this example a class derived from
+teca\_python\_algorithm computes descriptive statistics over a set of variables
+laid out on a Cartesian lat-lon mesh. The derived class, descriptive_stats, is
+in a separate file, stats\_callbacks.py (listing :numref:`py_devel_code`)
+imported on line 4.
+
+Listing :numref:`py_devel_code` shows the class derived from
+teca\_python\_algorithm that is used in listing :numref:`py_glue_code`.  The
+class implements request and execute callbacks.  Note, that we did not need to
+provide a report callback as the default implementation, which passes the
+report through was all that was needed. In both our request and execute
+callbacks we used a closure to access class state from the callback. Our
+request callback (lines 15-21 of listing :numref:`py_devel_code`) simply adds
+the list of variables we need into the incoming request which it then forwards
+up stream. The execute callback (lines 23-45) gets the input dataset (line 27),
 creates the output table adding columns and values of time and time step (lines
-19-21), then for each variable we add columns to the table for each computation
-(line 25), get the array from the input dataset (line 29), compute statistics
-and add them to the table (lines 31-33), and returns the table containing the
-results (line 35). This data can then be processed by the next stage in the
+29-31), then for each variable we add columns to the table for each computation
+(line 35), get the array from the input dataset (line 39), compute statistics
+and add them to the table (lines 41-43), and returns the table containing the
+results (line 45). This data can then be processed by the next stage in the
 pipeline.
 
 .. _data_struct:

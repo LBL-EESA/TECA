@@ -2,26 +2,16 @@ import sys
 import teca_py
 import numpy as np
 
-class teca_tc_stats:
+class teca_tc_stats(teca_py.teca_python_algorithm):
     """
     Computes summary statistics, histograms on sorted, classified,
     TC trajectory output.
     """
-    @staticmethod
-    def New():
-        return teca_tc_stats()
-
     def __init__(self):
         self.basename = 'stats'
         self.dpi = 100
         self.interactive = False
         self.rel_axes = True
-
-        self.impl = teca_py.teca_programmable_algorithm.New()
-        self.impl.set_name('teca_tc_stats')
-        self.impl.set_number_of_input_connections(1)
-        self.impl.set_number_of_output_ports(1)
-        self.impl.set_execute_callback(self.get_tc_stats_execute(self))
 
     def __str__(self):
         return 'basename=%s, dpi=%d, interactive=%s, rel_axes=%s'%( \
@@ -54,29 +44,10 @@ class teca_tc_stats:
         """
         self.rel_axes = rel_axes
 
-    def set_input_connection(self, obj):
-        """
-        set the input
-        """
-        self.impl.set_input_connection(obj)
-
-    def get_output_port(self):
-        """
-        get the output
-        """
-        return self.impl.get_output_port()
-
-    def update(self):
-        """
-        execute the pipeline from this algorithm up.
-        """
-        self.impl.update()
-
-    @staticmethod
-    def get_tc_stats_execute(state):
+    def get_execute_callback(self):
         """
         return a teca_algorithm::execute function. a closure
-        is used to gain state.
+        is used to gain self.
         """
         def execute(port, data_in, req):
             """
@@ -218,7 +189,7 @@ class teca_tc_stats:
                     << int(totals[q][3]) << int(totals[q][4]) \
                     << int(totals[q][5]) << int(totals[q][6])
                 q += 1
-            f = open('%s_summary.csv'%(state.basename),'w')
+            f = open('%s_summary.csv'%(self.basename),'w')
             f.write(str(summary))
             f.close()
 
@@ -265,7 +236,7 @@ class teca_tc_stats:
                     pats[j].set_facecolor(red_cmap[j])
                     j += 1
                 plt.xticks(np.arange(0,6,1))
-                if state.rel_axes:
+                if self.rel_axes:
                     ax.set_ylim([0, max_y*1.05])
                 if (q%n_cols == 0):
                     plt.ylabel('Count', fontweight='normal', fontsize=10)
@@ -286,7 +257,7 @@ class teca_tc_stats:
             plt.subplots_adjust(hspace=0.4, top=0.92)
 
             plt.savefig('%s_annual_saphire_simpson_distribution_%d.png'%( \
-                state.basename, page_no), dpi=state.dpi)
+                self.basename, page_no), dpi=self.dpi)
 
             # break annual distributions down by month
             mos_fig = plt.figure()
@@ -326,7 +297,7 @@ class teca_tc_stats:
                     c += 1
 
                 plt.xticks(np.arange(1,13,1))
-                if state.rel_axes:
+                if self.rel_axes:
                     ax.set_ylim([0, 1.05*max_y])
                 if (q%n_cols == 0):
                     plt.ylabel('Count', fontweight='normal', fontsize=10)
@@ -347,7 +318,7 @@ class teca_tc_stats:
             plt.subplots_adjust(hspace=0.4, top=0.92)
 
             plt.savefig('%s_monthly_breakdown_%d.png'%( \
-                state.basename, page_no), dpi=state.dpi)
+                self.basename, page_no), dpi=self.dpi)
 
             # plot annual counts by region
             reg_fig = plt.figure()
@@ -392,7 +363,7 @@ class teca_tc_stats:
                     c += 1
 
                 plt.xticks(np.arange(0,n_reg,1), rotation='vertical')
-                if state.rel_axes:
+                if self.rel_axes:
                     ax.set_ylim([0, 1.05*max_y])
                 if (q%n_cols == 0):
                     plt.ylabel('Count', fontweight='normal', fontsize=10)
@@ -414,7 +385,7 @@ class teca_tc_stats:
             plt.subplots_adjust(wspace=0.3, hspace=0.6, top=0.92)
 
             plt.savefig('%s_regional_break_down_%d.png'%( \
-                state.basename, page_no), dpi=state.dpi)
+                self.basename, page_no), dpi=self.dpi)
 
             # plot annual distributions
             dist_fig = plt.figure()
@@ -462,7 +433,7 @@ class teca_tc_stats:
             plt.subplots_adjust(hspace=0.72, top=0.93)
 
             plt.savefig('%s_distribution_%d.png'%( \
-                state.basename, page_no), dpi=state.dpi)
+                self.basename, page_no), dpi=self.dpi)
 
             # plot region over time
             reg_t_fig = plt.figure()
@@ -537,7 +508,7 @@ class teca_tc_stats:
                     c += 1
 
                 plt.xticks(np.arange(0,n_year,1), rotation='vertical')
-                if state.rel_axes and q < n_reg - 1:
+                if self.rel_axes and q < n_reg - 1:
                     ax.set_ylim([0, 1.05*(max_y_reg if q < n_reg - 3 else max_y_hem)])
                 if (q%n_cols == 0):
                     plt.ylabel('Count', fontweight='normal', fontsize=10)
@@ -559,12 +530,12 @@ class teca_tc_stats:
             plt.axis('off')
 
             plt.savefig('%s_regional_trend_%d.png'%( \
-                state.basename, page_no), dpi=state.dpi)
+                self.basename, page_no), dpi=self.dpi)
 
-            if (state.interactive):
+            if (self.interactive):
                 plt.show()
 
-            # restore matplot lib global state
+            # restore matplotlib global state
             plt.rcParams['legend.frameon'] = legend_frame_on_orig
 
             # send data downstream

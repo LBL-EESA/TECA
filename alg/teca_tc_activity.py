@@ -2,27 +2,17 @@ import sys
 import teca_py
 import numpy as np
 
-class teca_tc_activity:
+class teca_tc_activity(teca_py.teca_python_algorithm):
     """
     Computes summary statistics, histograms on sorted, classified,
     TC trajectory output.
     """
-    @staticmethod
-    def New():
-        return teca_tc_activity()
-
     def __init__(self):
         self.basename = 'activity'
         self.dpi = 100
         self.interactive = False
         self.rel_axes = True
         self.color_map = None
-
-        self.impl = teca_py.teca_programmable_algorithm.New()
-        self.impl.set_name('teca_tc_activity')
-        self.impl.set_number_of_input_connections(1)
-        self.impl.set_number_of_output_ports(1)
-        self.impl.set_execute_callback(self.get_tc_activity_execute(self))
 
     def __str__(self):
         return 'basename=%s, dpi=%d, interactive=%s, rel_axes=%s'%( \
@@ -61,29 +51,10 @@ class teca_tc_activity:
         """
         self.color_map = color_map
 
-    def set_input_connection(self, obj):
-        """
-        set the input
-        """
-        self.impl.set_input_connection(obj)
-
-    def get_output_port(self):
-        """
-        get the output
-        """
-        return self.impl.get_output_port()
-
-    def update(self):
-        """
-        execute the pipeline from this algorithm up.
-        """
-        self.impl.update()
-
-    @staticmethod
-    def get_tc_activity_execute(state):
+    def get_execute_callback(self):
         """
         return a teca_algorithm::execute function. a closure
-        is used to gain state.
+        is used to gain self.
         """
         def execute(port, data_in, req):
             """
@@ -136,30 +107,29 @@ class teca_tc_activity:
             n_year = len(uyear)
             ureg = sorted(set(zip(region_id, region_name, region_long_name)))
 
-
-            teca_tc_activity.accum_by_year_and_region(uyear, \
+            self.accum_by_year_and_region(uyear, \
                 ureg, year, region_id, start_y, ACE, regional_ACE)
 
-            teca_tc_activity.accum_by_year_and_region(uyear, \
+            self.accum_by_year_and_region(uyear, \
                 ureg, year, region_id, start_y, PDI, regional_PDI)
 
             # now plot the organized data in various ways
-            if state.color_map is None:
-                state.color_map = plt.cm.jet
+            if self.color_map is None:
+                self.color_map = plt.cm.jet
 
-            teca_tc_activity.plot_individual(state, uyear, \
+            self.plot_individual(uyear, \
                  ureg, regional_ACE,'ACE', '$10^4 kn^2$')
 
-            teca_tc_activity.plot_individual(state, uyear, \
+            self.plot_individual(uyear, \
                 ureg, regional_PDI, 'PDI', '$m^3 s^{-2}$')
 
-            teca_tc_activity.plot_cumulative(state, uyear, \
+            self.plot_cumulative(uyear, \
                 ureg, regional_ACE, 'ACE', '$10^4 kn^2$')
 
-            teca_tc_activity.plot_cumulative(state, uyear, \
+            self.plot_cumulative(uyear, \
                 ureg, regional_PDI, 'PDI', '$m^3 s^{-2}$')
 
-            if (state.interactive):
+            if (self.interactive):
                 plt.show()
 
             # restore matplot lib global state
@@ -201,8 +171,7 @@ class teca_tc_activity:
             # global
             var_out.append(np.sum(yvar))
 
-    @staticmethod
-    def plot_individual(state, uyear, ureg, var, var_name, units):
+    def plot_individual(self, uyear, ureg, var, var_name, units):
         n_reg = len(ureg) + 3 # add 2 for n & s hemi, 1 for global
         n_year = len(uyear)
 
@@ -233,7 +202,7 @@ class teca_tc_activity:
                 max_y_hem = max(max_y_hem, np.max(var[q::n_reg]))
             q += 1
 
-        fill_col = [state.color_map(i) for i in np.linspace(0, 1, n_reg)]
+        fill_col = [self.color_map(i) for i in np.linspace(0, 1, n_reg)]
 
         q = 0
         while q < n_reg:
@@ -247,7 +216,7 @@ class teca_tc_activity:
             ax.set_xticks(uyear[:] if n_year < 10 else uyear[::2])
             ax.set_xlim([uyear[0], uyear[-1]])
 
-            if state.rel_axes and q < n_reg - 1:
+            if self.rel_axes and q < n_reg - 1:
                 ax.set_ylim([0, 1.05*(max_y_reg if q < n_reg - 3 else max_y_hem)])
             if (q%n_cols == 0):
                 plt.ylabel(units, fontweight='normal', fontsize=10)
@@ -262,11 +231,11 @@ class teca_tc_activity:
         plt.subplots_adjust(wspace=0.35, hspace=0.6, top=0.92)
 
         plt.savefig('%s_%s_individual_%d.png'%( \
-            state.basename, var_name, state.dpi), dpi=state.dpi)
+            self.basename, var_name, self.dpi), dpi=self.dpi)
 
         return
 
-    def plot_cumulative(state, uyear, ureg, var, var_name, units):
+    def plot_cumulative(self, uyear, ureg, var, var_name, units):
 
         n_reg = len(ureg) + 3 # add 2 for n & s hemi, 1 for global
         n_year = len(uyear)
@@ -274,7 +243,7 @@ class teca_tc_activity:
         rnms = list(zip(*ureg))[2]
         rnms += ('Southern','Northern','Global')
 
-        fill_col = [state.color_map(i) for i in np.linspace(0, 1, n_reg)]
+        fill_col = [self.color_map(i) for i in np.linspace(0, 1, n_reg)]
 
         # stacked plot by region
         nhsh_stack_fig = plt.figure()
@@ -308,7 +277,7 @@ class teca_tc_activity:
         plt.title('%s by Region'%(var_name), fontweight='bold')
 
         plt.savefig('%s_%s_regions_%d.png'%( \
-            state.basename, var_name, state.dpi), dpi=state.dpi)
+            self.basename, var_name, self.dpi), dpi=self.dpi)
 
         # stacked plot of northern, southern hemispheres
         nhsh_stack_fig = plt.figure()
@@ -342,7 +311,7 @@ class teca_tc_activity:
         plt.title('%s by Hemisphere'%(var_name), fontweight='bold')
 
         plt.savefig('%s_%s_hemispheres_%d.png'%( \
-            state.basename, var_name, state.dpi), dpi=state.dpi)
+            self.basename, var_name, self.dpi), dpi=self.dpi)
 
         return
 
