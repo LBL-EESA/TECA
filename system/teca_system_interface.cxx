@@ -137,12 +137,9 @@ extern "C" { typedef void mpi_err_handler_t(MPI_Comm *, int *, ...); }
 
 namespace {
 
+#if defined(TECA_HAS_MPI)
 void mpi_error_handler(MPI_Comm *comm, int *code, ...)
 {
-#if !defined(TECA_HAS_MPI)
-    (void)comm;
-    (void)code;
-#else
     int rank = 0;
     int n_ranks = 1;
     int version_len = 0;
@@ -170,8 +167,8 @@ void mpi_error_handler(MPI_Comm *comm, int *code, ...)
         << "=========================================================" << std::endl;
     std::cerr << oss.str() << std::endl;
     //MPI_Abort(*comm, *code);
-#endif
 }
+#endif
 
 // ****************************************************************************
 #if !defined(_WIN32) && !defined(__MINGW32__) && !defined(__CYGWIN__)

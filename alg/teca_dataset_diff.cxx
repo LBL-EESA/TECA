@@ -63,8 +63,9 @@ teca_metadata teca_dataset_diff::get_output_metadata(
 {
     (void) port;
 
-    int rank = 0;
 #if defined(TECA_HAS_MPI)
+    int rank = 0;
+
     int is_init = 0;
     MPI_Initialized(&is_init);
     if (is_init)

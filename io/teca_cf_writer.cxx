@@ -492,9 +492,10 @@ teca_metadata teca_cf_writer::get_output_metadata(unsigned int port,
 #endif
     (void)port;
 
+#if defined(TECA_HAS_MPI)
     int rank = 0;
     int n_ranks = 1;
-#if defined(TECA_HAS_MPI)
+
     int is_init = 0;
     MPI_Initialized(&is_init);
     if (is_init)
@@ -565,9 +566,10 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
 
     std::vector<teca_metadata> up_reqs;
 
+#if defined(TECA_HAS_MPI)
     int rank = 0;
     int n_ranks = 1;
-#if defined(TECA_HAS_MPI)
+
     int is_init = 0;
     MPI_Initialized(&is_init);
     if (is_init)
@@ -650,8 +652,9 @@ const_p_teca_dataset teca_cf_writer::execute(unsigned int port,
     (void)port;
 
     int rank = 0;
-    int n_ranks = 1;
 #if defined(TECA_HAS_MPI)
+    int n_ranks = 1;
+
     int is_init = 0;
     MPI_Initialized(&is_init);
     if (is_init)

@@ -331,6 +331,7 @@ int teca_memory_profiler::initialize()
 int teca_memory_profiler::finalize()
 {
     int rank = 0;
+#if defined(TECA_HAS_MPI)
     int n_ranks = 1;
 
     int ok = 0;
@@ -341,6 +342,7 @@ int teca_memory_profiler::finalize()
         MPI_Comm_rank(this->internals->comm, &rank);
         MPI_Comm_size(this->internals->comm, &n_ranks);
     }
+#endif
 
     pthread_mutex_lock(&this->internals->data_mutex);
 
@@ -375,6 +377,7 @@ int teca_memory_profiler::finalize()
     // compute the file offset
     long n_bytes = oss.str().size();
 
+#if defined(TECA_HAS_MPI)
     if (ok)
     {
         std::vector<long> gsizes(n_ranks);
@@ -407,6 +410,7 @@ int teca_memory_profiler::finalize()
         MPI_File_close(&fh);
     }
     else
+#endif
     {
         FILE *fh = fopen(this->internals->filename.c_str(), "w");
         if (!fh)

@@ -29,19 +29,21 @@ teca_mpi_manager::teca_mpi_manager(int &argc, char **&argv)
         TECA_ERROR("This MPI does not support thread serialized");
         abort();
     }
+#endif
 
     teca_profiler::disable();
     teca_profiler::set_communicator(MPI_COMM_WORLD);
     teca_profiler::initialize();
 
+#if defined(TECA_HAS_MPI)
     MPI_Comm_rank(MPI_COMM_WORLD, &m_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &m_size);
-
-    teca_profiler::end_event("app_initialize");
 #else
     (void)argc;
     (void)argv;
 #endif
+
+    teca_profiler::end_event("app_initialize");
 }
 
 // --------------------------------------------------------------------------
