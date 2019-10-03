@@ -20,10 +20,13 @@ struct field_generator
     field_generator_callback generator;
 };
 
+inline
 bool operator==(const field_generator &l, const field_generator &r)
 {
     return l.name == r.name;
 }
+
+inline
 bool operator!=(const field_generator &l, const field_generator &r)
 {
     return l.name != r.name;
