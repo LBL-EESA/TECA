@@ -1,5 +1,17 @@
 Development
 ===========
+Testing
+-------
+TECA comes with an extensive regression test suite which can be used to validate
+your build. The tests can be executed from the build directory with the ctest command.
+
+.. code-block:: bash
+
+   ctest --output-on-failure
+
+Note that `PYTHONPATH`, `LD_LIBRARY_PATH` and `DYLD_LIBRARY_PATH` will need to
+be set to include the build's lib directory and `PATH` will need to be set to
+include ".".
 
 Timing and Profiling
 --------------------
