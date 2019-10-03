@@ -45,7 +45,7 @@ function (teca_add_test T_NAME)
             endif()
             if (TECA_ENABLE_PROFILER)
                 set_property(TEST ${T_NAME} APPEND PROPERTY ENVIRONMENT
-                    "PROFILER_ENABLE=1;PROFILER_LOG_FILE=${T_NAME}_time.csv;"
+                    "PROFILER_ENABLE=3;PROFILER_LOG_FILE=${T_NAME}_time.csv;"
                     "MEMPROF_INTERVAL=0.5;MEMPROF_LOG_FILE=${T_NAME}_mem.csv")
             endif()
         endif()
