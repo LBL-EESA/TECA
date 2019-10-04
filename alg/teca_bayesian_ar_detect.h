@@ -34,6 +34,10 @@ public:
     TECA_ALGORITHM_PROPERTY(std::string, min_component_area_variable)
     TECA_ALGORITHM_PROPERTY(std::string, hwhm_latitude_variable)
 
+    // flag indicating verbose terminal output is desired.
+    // default is 0
+    TECA_ALGORITHM_PROPERTY(int, verbose)
+
     // set/get the number of threads in the pool. setting
     // to -1 results in a thread per core factoring in all MPI
     // ranks running on the node. the default is -1.
@@ -72,6 +76,7 @@ private:
     std::string min_water_vapor_variable;
     std::string hwhm_latitude_variable;
     int thread_pool_size;
+    int verbose;
 
     struct internals_t;
     internals_t *internals;

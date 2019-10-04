@@ -554,7 +554,7 @@ teca_bayesian_ar_detect::teca_bayesian_ar_detect() :
     min_component_area_variable("min_component_area"),
     min_water_vapor_variable("min_water_vapor"),
     hwhm_latitude_variable("hwhm_latitude"), thread_pool_size(1),
-    internals(new internals_t)
+    verbose(0), internals(new internals_t)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -588,6 +588,9 @@ void teca_bayesian_ar_detect::get_properties_description(
             "half width at half max latitude (\"hwhm_latitude\")")
         TECA_POPTS_GET(int, prefix, thread_pool_size,
             "number of threads to parallelize execution over (1)")
+        TECA_POPTS_GET(int, prefix, verbose,
+            "flag indicating diagnostic info should be displayed in "
+            "the terminal (0)")
         ;
 
     global_opts.add(opts);
@@ -601,10 +604,8 @@ void teca_bayesian_ar_detect::set_properties(const std::string &prefix,
     TECA_POPTS_SET(opts, std::string, prefix, min_component_area_variable)
     TECA_POPTS_SET(opts, std::string, prefix, min_water_vapor_variable)
     TECA_POPTS_SET(opts, std::string, prefix, hwhm_latitude_variable)
-
-    std::string opt_name = (prefix.empty()?"":prefix+"::") + "thread_pool_size";
-    if (opts.count(opt_name))
-        this->set_thread_pool_size(opts[opt_name].as<int>());
+    TECA_POPTS_SET(opts, int, prefix, thread_pool_size)
+    TECA_POPTS_SET(opts, int, prefix, verbose)
 }
 #endif
 
@@ -631,7 +632,7 @@ void teca_bayesian_ar_detect::set_modified()
 void teca_bayesian_ar_detect::set_thread_pool_size(int n)
 {
     this->internals->queue = new_teca_data_request_queue(
-        this->get_communicator(), n, true, true);
+        this->get_communicator(), n, true, this->get_verbose());
 }
 
 // --------------------------------------------------------------------------

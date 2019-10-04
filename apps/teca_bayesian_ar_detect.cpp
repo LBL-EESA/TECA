@@ -49,6 +49,7 @@ int main(int argc, char **argv)
         ("start_date", value<string>(), "first time to proces in YYYY-MM-DD hh:mm:ss format")
         ("end_date", value<string>(), "first time to proces in YYYY-MM-DD hh:mm:ss format")
         ("n_threads", value<int>(), "thread pool size. default is 1. -1 for all")
+        ("verbose", "enable extra terminal output")
         ("help", "display the basic options help")
         ("advanced_help", "display the advanced options help")
         ("full_help", "display entire help message")
@@ -95,6 +96,7 @@ int main(int argc, char **argv)
     p_teca_cf_writer cf_writer = teca_cf_writer::New();
     cf_writer->get_properties_description("cf_writer", advanced_opt_defs);
     cf_writer->set_input_connection(ar_detect->get_output_port());
+    cf_writer->set_verbose(0);
     cf_writer->set_thread_pool_size(1);
 
     // package basic and advanced options for display
@@ -187,10 +189,18 @@ int main(int argc, char **argv)
     if (opt_vals.count("last_step"))
         cf_writer->set_last_step(opt_vals["last_step"].as<long>());
 
+    if (opt_vals.count("verbose"))
+    {
+        ar_detect->set_verbose(1);
+        cf_writer->set_verbose(1);
+        exec->set_verbose(1);
+    }
+
     if (opt_vals.count("n_threads"))
         ar_detect->set_thread_pool_size(opt_vals["n_threads"].as<int>());
     else
         ar_detect->set_thread_pool_size(-1);
+
 
     // some minimal check for missing options
     if (cf_reader->get_number_of_file_names() == 0
@@ -284,6 +294,7 @@ int main(int argc, char **argv)
     }
 
     // run the pipeline
+
     cf_writer->set_executive(exec);
     cf_writer->update();
 
