@@ -195,10 +195,12 @@ class dsiplay_rank_events:
             i += 1
 
         # get unique events
+        tmp = list(data.event_name_u)
+        tmp.sort()
         i = 0
         event_map = {}
-        n_events = len(data.event_name_u)
-        for enm in data.event_name_u:
+        n_events = len(tmp)
+        for enm in tmp:
             if enm not in event_map.keys():
                 event_map[enm] = i
                 i += 1
@@ -212,7 +214,7 @@ class dsiplay_rank_events:
         cmap_names = ['Purples', 'Blues', 'Greens', \
              'Oranges', 'Reds', 'Greys']
 
-        cmap_n = n_events // len(cmap_names) + 1
+        cmap_n = int(n_events // len(cmap_names) + 1)
 
         cmap = []
         for cmap_name in cmap_names:
@@ -255,7 +257,7 @@ class dsiplay_rank_events:
                     sys.stderr.write('=')
                     sys.stderr.flush()
 
-            cid = eid % cmap_n
+            cid = int(eid % cmap_n)
             cm = cmap[eid // cmap_n]
             fc = cm(cid)
 

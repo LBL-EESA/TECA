@@ -100,6 +100,10 @@ int time_to_string(double val, const std::string &calendar,
 
     return 0;
 #else
+    (void)val;
+    (void)calendar;
+    (void)units;
+    (void)format;
     (void)date;
     TECA_ERROR("The UDUnits package is required for this operation")
     return -1;

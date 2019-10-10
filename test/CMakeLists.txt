@@ -47,6 +47,7 @@ teca_add_test(test_mpi_error_handler
     SOURCES test_mpi_error_handler.cpp
     LIBS ${teca_test_link}
     COMMAND test_mpi_error_handler
+    FEATURES ${TECA_HAS_MPI}
     WILL_FAIL)
 
 teca_add_test(test_cf_reader_cam5

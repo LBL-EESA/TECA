@@ -294,8 +294,10 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
     int rank = 0;
     int n_ranks = 1;
-    MPI_Comm comm = this->get_communicator();
+
 #if defined(TECA_HAS_MPI)
+    MPI_Comm comm = this->get_communicator();
+
     int is_init = 0;
     MPI_Initialized(&is_init);
     if (is_init)

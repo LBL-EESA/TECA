@@ -2,14 +2,12 @@
 #define teca_profiler_h
 
 #include "teca_config.h"
+#include "teca_mpi.h"
 
 #include <string>
 #include <thread>
 #include <ostream>
 
-#if defined(TECA_HAS_MPI)
-#include <mpi.h>
-#endif
 
 // A class containing methods managing memory and time profiling
 // Each timed event logs rank, event name, start and end time, and

@@ -69,6 +69,9 @@ void block_decompose(MPI_Comm comm, unsigned long n_indices, unsigned long n_ran
     unsigned long rank, unsigned long &block_size, unsigned long &block_start,
     bool verbose)
 {
+#if !defined(TECA_HAS_MPI)
+    (void)comm;
+#endif
     unsigned long n_big_blocks = n_indices%n_ranks;
     if (rank < n_big_blocks)
     {

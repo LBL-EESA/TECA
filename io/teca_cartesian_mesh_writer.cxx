@@ -187,7 +187,7 @@ int write_vtr(const_p_teca_cartesian_mesh mesh, const std::string &file_name,
         return -1;
     }
 
-    std::string out_file = this->file_name;
+    std::string out_file = file_name;
     teca_file_util::replace_timestep(out_file, index);
     teca_file_util::replace_extension(out_file, "vtr");
 

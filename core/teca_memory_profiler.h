@@ -1,8 +1,7 @@
 #ifndef teca_memory_profiler_h
 #define teca_memory_profiler_h
 
-#include <mpi.h>
-
+#include "teca_mpi.h"
 #include <string>
 
 extern "C" void *profile(void *argp);
