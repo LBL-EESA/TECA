@@ -23,6 +23,11 @@ if (TECA_HAS_BOOST)
     list(APPEND teca_test_link ${Boost_LIBRARIES})
 endif()
 
+teca_add_test(test_recursive_regex
+    SOURCES test_recursive_regex.cpp
+    LIBS teca_core teca_io ${teca_test_link}
+    COMMAND test_recursive_regex)
+
 teca_add_test(test_pipeline_time_average
     SOURCES test_pipeline_time_average.cpp
     LIBS teca_core teca_test_array ${teca_test_link}
