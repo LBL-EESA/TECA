@@ -11,6 +11,7 @@
 #include <atomic>
 #include <mutex>
 #include <future>
+#include <chrono>
 #include <algorithm>
 #if defined(_GNU_SOURCE)
 #include <pthread.h>
@@ -65,7 +66,19 @@ public:
     // datasets in the order that corresponding requests
     // were added to the queue.
     template <template <typename ... > class container_t, typename ... args>
-    void wait_data(container_t<data_t, args ...> &data);
+    void wait_all(container_t<data_t, args ...> &data);
+
+    // wait for some of the requests to execute. datasets will be retruned as
+    // they become ready. n_to_wait specifies how many datasets to gather but
+    // there are three cases when the number of datasets returned differs from
+    // n_to_wait.  when n_to_wait is larger than the number of tasks remaining,
+    // datasets from all of the remaining tasks is returned. when n_to_wait is
+    // smaller than the number of datasets ready, all of the currenttly ready
+    // data are returned. finally, when n_to_wait is < 1 the call blocks until
+    // all of the tasks complete and all of the data is returned.
+    template <template <typename ... > class container_t, typename ... args>
+    int wait_some(long n_to_wait, long long poll_interval,
+        container_t<data_t, args ...> &data);
 
     // get the number of threads
     unsigned int size() const noexcept
@@ -172,7 +185,57 @@ void teca_thread_pool<task_t, data_t>::push_task(task_t &task)
 // --------------------------------------------------------------------------
 template <typename task_t, typename data_t>
 template <template <typename ... > class container_t, typename ... args>
-void teca_thread_pool<task_t, data_t>::wait_data(container_t<data_t, args ...> &data)
+int teca_thread_pool<task_t, data_t>::wait_some(long n_to_wait,
+    long long poll_interval, container_t<data_t, args ...> &data)
+{
+    long n_tasks = m_futures.size();
+
+    // wait for all
+    if (n_to_wait < 1)
+    {
+        this->wait_all(data);
+        return 0;
+    }
+    // wait for at most the number of queued tasks
+    else if (n_to_wait > n_tasks)
+        n_to_wait = n_tasks;
+
+
+    // gather the requested number of datasets
+    while (1)
+    {
+        // scan the tasks once. capture any data that is ready
+        auto it = m_futures.begin();
+        while (it != m_futures.end())
+        {
+            std::future_status stat = it->wait_for(std::chrono::seconds::zero());
+            if (stat == std::future_status::ready)
+            {
+                data.push_back(it->get());
+                it = m_futures.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+
+        // if we have not accumulated the requested number of datasets
+        // wait for the user supplied duration before re-scanning
+        if (data.size() < static_cast<unsigned int>(n_to_wait))
+            std::this_thread::sleep_for(std::chrono::nanoseconds(poll_interval));
+        else
+            break;
+    }
+
+    // return the number of tasks remaining
+    return m_futures.size();
+}
+
+// --------------------------------------------------------------------------
+template <typename task_t, typename data_t>
+template <template <typename ... > class container_t, typename ... args>
+void teca_thread_pool<task_t, data_t>::wait_all(container_t<data_t, args ...> &data)
 {
     // wait on all pending requests and gather the generated
     // datasets

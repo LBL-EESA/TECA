@@ -75,7 +75,6 @@ protected:
     virtual teca_metadata initialize_output_metadata(unsigned int port,
         const std::vector<teca_metadata> &input_md) = 0;
 
-
 protected:
 // customized pipeline behavior and parallel code.
 // most derived classes won't need to override these.
@@ -94,7 +93,7 @@ protected:
     // dataset, which is returned.
     const_p_teca_dataset execute(unsigned int port,
         const std::vector<const_p_teca_dataset> &input_data,
-        const teca_metadata &request) override;
+        const teca_metadata &request, int streaming) override;
 
     // consumes time metadata, partitions time's across
     // MPI ranks.

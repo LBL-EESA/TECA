@@ -314,6 +314,24 @@ teca_add_test(test_descriptive_statistics_mpi_threads
     FEATURES ${TECA_HAS_UDUNITS} ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
+teca_add_test(test_streaming_reduce_threads
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_descriptive_statistics 0
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3.*\\.nc"
+    "${TECA_DATA_ROOT}/test_streaming_reduce.bin" 0 -1 ${TWICE_TEST_CORES}
+    prw
+    FEATURES ${TECA_HAS_UDUNITS} ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_streaming_reduce_mpi_threads
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} test_descriptive_statistics 0
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3.*\\.nc"
+    "${TECA_DATA_ROOT}/test_streaming_reduce.bin" 0 -1 ${TEST_CORES}
+    prw
+    FEATURES ${TECA_HAS_UDUNITS} ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
 teca_add_test(test_binary_stream
     SOURCES test_binary_stream.cpp
     LIBS teca_core teca_data teca_alg ${teca_test_link}

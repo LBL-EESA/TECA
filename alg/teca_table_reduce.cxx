@@ -48,14 +48,14 @@ teca_metadata teca_table_reduce::initialize_output_metadata(
 }
 
 // --------------------------------------------------------------------------
-p_teca_dataset teca_table_reduce::reduce(
-    const const_p_teca_dataset &left_ds,
+p_teca_dataset teca_table_reduce::reduce(const const_p_teca_dataset &left_ds,
     const const_p_teca_dataset &right_ds)
 {
 #ifdef TECA_DEBUG
     cerr << teca_parallel_id()
         << "teca_table_reduce::reduce" << endl;
 #endif
+
     const_p_teca_table left_table
         = std::dynamic_pointer_cast<const teca_table>(left_ds);
 
@@ -64,10 +64,7 @@ p_teca_dataset teca_table_reduce::reduce(
 
     p_teca_table output_table;
 
-    bool left = left_table && *left_table;
-    bool right = right_table && *right_table;
-
-    if (left && right)
+    if (left_table && right_table)
     {
         output_table
             = std::dynamic_pointer_cast<teca_table>(left_table->new_copy());
@@ -75,13 +72,13 @@ p_teca_dataset teca_table_reduce::reduce(
         output_table->concatenate_rows(right_table);
     }
     else
-    if (left)
+    if (left_table)
     {
         output_table
             = std::dynamic_pointer_cast<teca_table>(left_table->new_copy());
     }
     else
-    if (right)
+    if (right_table)
     {
         output_table
             = std::dynamic_pointer_cast<teca_table>(right_table->new_copy());

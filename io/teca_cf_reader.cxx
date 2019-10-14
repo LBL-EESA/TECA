@@ -776,7 +776,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 // wait for the results
                 std::vector<read_variable_data_t> tmp;
                 tmp.reserve(n_files);
-                thread_pool.wait_data(tmp);
+                thread_pool.wait_all(tmp);
 
                 // unpack the results. map is used to ensure the correct
                 // file to time association.

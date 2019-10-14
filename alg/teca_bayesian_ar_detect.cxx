@@ -31,6 +31,7 @@
 #include <boost/program_options.hpp>
 #endif
 
+namespace {
 
 // This routine appends the contents of dataset_0.get_metadata.get(property_name)
 // onto that from dataset_0 and overwrites the contents `property_name' in the
@@ -44,7 +45,7 @@
 //   dataset_1     : (p_teca_dataset) the RHS dataset in the reduction
 //
 //   mesh_out      : (p_teca_cartesian_mesh) the output of the reduction
-void property_reduce(std::string property_name,
+/*void property_reduce(std::string property_name,
     p_teca_dataset dataset_0, p_teca_dataset dataset_1,
     p_teca_cartesian_mesh mesh_out)
 {
@@ -63,12 +64,7 @@ void property_reduce(std::string property_name,
 
     // Overwrite the concatenated property vector in the output dataset
     mesh_out->get_metadata().set(property_name, property_vector);
-}
-
-
-
-
-namespace {
+}*/
 
 // drive the pipeline execution once for each parameter table row
 // injects the parameter values into the upstream requests
@@ -195,7 +191,7 @@ public:
         return 0;
     }
 
-    // this reducion computes the probability from each parameter table run
+    // this reduction computes the probability from each parameter table run
     // if the inputs have the probability array this is used, if not the
     // array is computed from the filtered connected components. after the
     // reduction runs, the result will need to be normalized.
@@ -413,7 +409,7 @@ public:
 
             if (prob)
             {
-                // probability has already been comnputed, pass it through
+                // probability has already been computed, pass it through
                 prob_out = prob;
                 n_wvcc_out = n_wvcc;
                 pt_row_out = pt_row;
@@ -485,22 +481,6 @@ public:
             mesh_out->copy_metadata(dataset_0);
         else if (dataset_1)
             mesh_out->copy_metadata(dataset_1);
-
-        // TODO -- this essentally copies the parameter table into the metadata
-        // instead could we access the parameter table directly. and use the
-        // information arrays ar_count, and parameter_table_row?
-
-        // Do property reduction on AR detector parameters and output that
-        // are stored in the metadata.  This operation overwrites the metadata
-        // in mesh_out with the combined metadata from the LHS and RHS datasets.
-        /*property_reduce("low_threshold_value", dataset_0, dataset_1, mesh_out);
-        property_reduce("high_threshold_value", dataset_0, dataset_1, mesh_out);
-        property_reduce("low_area_threshold_km", dataset_0, dataset_1, mesh_out);
-        property_reduce("high_area_threshold_km", dataset_0, dataset_1, mesh_out);
-        property_reduce("gaussian_filter_center_lat", dataset_0, dataset_1, mesh_out);
-        property_reduce("gaussian_filter_hwhm", dataset_0, dataset_1, mesh_out);
-        property_reduce("number_of_components", dataset_0, dataset_1, mesh_out);
-        property_reduce("component_area", dataset_0, dataset_1, mesh_out);*/
 
         mesh_out->get_point_arrays()->append(this->probability_array_name, prob_out);
 

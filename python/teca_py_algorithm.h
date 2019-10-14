@@ -291,11 +291,13 @@ private:
 };
 
 /// wrapper for reduce_callback of the programmable reduction
-/** Manages a python callback for use during a programmable reduction addition
-to holding the callback it handles translation of the input and output arguments.
+/**
+Manages a python callback for use during a programmable reduction. In addition
+to holding the callback it handles translation of the input and output
+arguments.
 
-the python function must accept the two datasets to reduce and
-return the reduced data
+the python function must accept the two datasets to reduce and return the
+reduced data
 */
 class reduce_callback
 {
@@ -323,18 +325,37 @@ public:
         }
 
         // package input datasets
-        PyObject *py_input_0 = SWIG_NewPointerObj(
+        PyObject *py_input_0 = nullptr;
+        if (input_0)
+        {
+            py_input_0 = SWIG_NewPointerObj(
                 SWIG_as_voidptr(new const_p_teca_dataset(input_0)),
                 SWIGTYPE_p_std__shared_ptrT_teca_dataset_t,
                 SWIG_POINTER_OWN);
+        }
+        else
+        {
+            py_input_0 = Py_None;
+            Py_INCREF(Py_None);
+        }
 
-        PyObject *py_input_1 = SWIG_NewPointerObj(
+        PyObject *py_input_1 = nullptr;
+        if (input_1)
+        {
+            py_input_1 = SWIG_NewPointerObj(
                 SWIG_as_voidptr(new const_p_teca_dataset(input_1)),
                 SWIGTYPE_p_std__shared_ptrT_teca_dataset_t,
                 SWIG_POINTER_OWN);
+        }
+        else
+        {
+            py_input_1 = Py_None;
+            Py_INCREF(Py_None);
+        }
 
         // call the callback
-        PyObject *args = Py_BuildValue("NN", py_input_0, py_input_1);
+        PyObject *args =
+            Py_BuildValue("NN", py_input_0, py_input_1);
 
         PyObject *ret = nullptr;
         if (!(ret = PyObject_CallObject(f, args)) || PyErr_Occurred())
