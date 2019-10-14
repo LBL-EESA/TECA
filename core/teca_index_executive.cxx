@@ -7,8 +7,6 @@
 #include <iostream>
 #include <utility>
 
-using std::cerr;
-using std::endl;
 
 // --------------------------------------------------------------------------
 teca_index_executive::teca_index_executive()
@@ -173,12 +171,17 @@ int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
 
     // print some info about the set of requests
     if (this->get_verbose())
-        cerr << teca_parallel_id()
+    {
+        std::ostringstream oss;
+        oss << teca_parallel_id()
             << " teca_index_executive::initialize index_initializer_key="
-            << this->index_initializer_key << " index_request_key="
-            << this->index_request_key << " first=" << this->start_index
-            << " last=" << this->end_index << " stride=" << this->stride
-            << endl;
+            << this->index_initializer_key << " " << this->index_initializer_key
+            << "=" << n_indices << " index_request_key=" << this->index_request_key
+            << " first=" << this->start_index << " last=" << this->end_index
+            << " stride=" << this->stride << " block_start=" << block_start + first
+            << " block_size=" << block_size;
+        std::cerr << oss.str() << std::endl;
+    }
 
     return 0;
 }
@@ -222,7 +225,7 @@ teca_metadata teca_index_executive::get_next_request()
                     << bds[2] << ", " << bds[3] << ", " << bds[4] << ", " << bds[5];
             }
 
-            cerr << oss.str() << endl;
+            std::cerr << oss.str() << std::endl;
         }
     }
 
