@@ -86,9 +86,12 @@ public:
     TECA_ALGORITHM_PROPERTY(std::string, t_axis_variable)
 
     // time calendar and time unit if the user wants to
-    // specify them 
+    // specify them
     TECA_ALGORITHM_PROPERTY(std::string, t_calendar)
     TECA_ALGORITHM_PROPERTY(std::string, t_units)
+
+    // a way to infer time from the filename if needed
+    TECA_ALGORITHM_PROPERTY(std::string, filename_time_template)
 
     // time values to use instead if time variable doesn't
     // exist.
@@ -124,6 +127,7 @@ private:
     std::string t_axis_variable;
     std::string t_calendar;
     std::string t_units;
+    std::string filename_time_template;
     std::vector<double> t_values;
     int periodic_in_x;
     int periodic_in_y;
