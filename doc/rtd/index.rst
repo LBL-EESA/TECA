@@ -7,7 +7,7 @@ detected events.  Written in C++, TECA uses MPI and threads, to delivers state
 of the art performance and scaling. It's Python bindings provide an easy way to
 script analyisis suitable to any need and to develop new diagnostics. Paired
 with NERSC's shifter solution Python based analytics using TECA can run at
-largest scale on DOE HPC systems. 
+largest scale on DOE HPC systems.
 
 .. _cyclone_tracks:
 .. figure:: ./images/tracks_crop_2.gif
@@ -21,3 +21,4 @@ largest scale on DOE HPC systems.
    installation
    applications
    python
+   developer
