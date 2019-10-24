@@ -73,7 +73,7 @@ protected:
 private:
     const_p_teca_dataset execute(unsigned int port,
         const std::vector<const_p_teca_dataset> &input_data,
-        const teca_metadata &request) override;
+        const teca_metadata &request, int streaming) override;
 
     teca_metadata get_output_metadata(unsigned int port,
         const std::vector<teca_metadata> &input_md) override;
@@ -90,6 +90,9 @@ private:
     int mode_flags;
     int use_unlimited_dim;
     int compression_level;
+
+    class internals_t;
+    internals_t *internals;
 };
 
 #endif

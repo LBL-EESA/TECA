@@ -13,59 +13,217 @@
 #include <cstring>
 #include <cerrno>
 #include <string>
+#include <unordered_map>
 
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
 #endif
 
 
-class teca_cf_writer_internals
+class teca_cf_writer::internals_t
 {
 public:
-    // creates and writes a NetCDF dataset from the passed in data.
-    // data is organized into a vector of array collections, one per
-    // time step.
-    static
-    int write(const std::string &file_name,
-        int mode, int use_unlimited_dim, int compression_level, 
-        const std::vector<long> &request_ids, const const_p_teca_variant_array &x,
-        const const_p_teca_variant_array &y, const const_p_teca_variant_array &z,
-        const const_p_teca_variant_array &t, const std::string &x_variable,
-        const std::string &y_variable, const std::string &z_variable,
-        const std::string &t_variable, const teca_metadata &array_attributes,
-        const std::vector<const_p_teca_array_collection> &point_arrays,
-        const std::vector<const_p_teca_array_collection> &info_arrays);
+    struct time_series_layout
+    {
+        time_series_layout() : file_id(0), first_index(0),
+            n_indices(0), n_written(0), n_dims(0),
+            dims{0} {}
 
+        // creates the NetCDF file.
+        int create(unsigned long file_id,
+            unsigned long first_index, unsigned long n_indices,
+            const std::string &file_name, const std::string &date_format,
+            const teca_metadata &md_in, int mode_flags, int use_unlimited_dim);
+
+        // defines the NetCDF file layout.
+        int define(const const_p_teca_variant_array &x,
+            const const_p_teca_variant_array &y, const const_p_teca_variant_array &z,
+            const std::string &x_variable, const std::string &y_variable,
+            const std::string &z_variable,
+            const std::vector<const_p_teca_array_collection> &point_arrays,
+            const std::vector<const_p_teca_array_collection> &info_arrays,
+            int compression_level, const teca_metadata &md_in);
+
+        // writes the colllection of arrays to the NetCDF file
+        // in the correct spot.
+        int write(const std::vector<long> &request_ids,
+            const std::vector<const_p_teca_array_collection> &point_arrays,
+            const std::vector<const_p_teca_array_collection> &info_arrays);
+
+        int close(){ return this->handle.close(); }
+
+        bool opened() { return bool(this->handle); }
+        bool defined() { return this->n_dims > 0; }
+
+        bool completed()
+        {
+            return this->n_written == this->n_indices;
+        }
+
+        // identifying the file
+        unsigned long file_id;
+        std::string file_name;
+        teca_netcdf_util::netcdf_handle handle;
+
+        // for indentifying the incoming dataset and determining its
+        // position in the file
+        unsigned long first_index;
+        unsigned long n_indices;
+        unsigned long n_written;
+
+        // for low level NetCDF book keeping
+        int mode_flags;
+        int use_unlimited_dim;
+        int n_dims;
+        size_t dims[4];
+        std::map<std::string, int> var_ids;
+        std::string t_variable;
+        p_teca_double_array t;
+    };
+
+    // the file table maps from a file_id to a specific layout manager
+    using file_table_t = std::unordered_map<unsigned long, time_series_layout>;
+    using file_table_iterator_t = file_table_t::iterator;
+    file_table_t file_table;
 };
 
 // --------------------------------------------------------------------------
-int teca_cf_writer_internals::write(const std::string &file_name, int mode,
-    int use_unlimited_dim, int compression_level,
-    const std::vector<long> &request_ids,
-    const const_p_teca_variant_array &x, const const_p_teca_variant_array &y,
-    const const_p_teca_variant_array &z, const const_p_teca_variant_array &t,
-    const std::string &x_variable, const std::string &y_variable,
-    const std::string &z_variable, const std::string &t_variable,
-    const teca_metadata &array_attributes,
-    const std::vector<const_p_teca_array_collection> &point_arrays,
-    const std::vector<const_p_teca_array_collection> &info_arrays)
+int teca_cf_writer::internals_t::time_series_layout::create(
+    unsigned long file_id, unsigned long first_index, unsigned long n_indices,
+    const std::string &file_name, const std::string &date_format,
+    const teca_metadata &md_in, int mode_flags, int use_unlimited_dim)
 {
-    (void) request_ids;
+    // initialize internals
+    this->file_id = file_id;
+    this->first_index = first_index;
+    this->n_indices = n_indices;
+    this->file_name = file_name;
+    this->mode_flags = mode_flags;
+    this->use_unlimited_dim = use_unlimited_dim;
+    this->n_dims = 0;
+    for (int i = 0; i < 4; ++i)
+        this->dims[i] = 0;
 
-    int ierr = NC_NOERR;
+    // get the time axis
+    teca_metadata coords;
+    if (md_in.get("coordinates", coords))
+    {
+        TECA_ERROR("failed to get coordinate metadata")
+        return -1;
+    }
+
+    coords.get("t_variable", this->t_variable);
+    p_teca_variant_array t = coords.get("t");
+
+    // construct the file name
+    if (!date_format.empty())
+    {
+        // get the calendaring metadata
+        bool have_calendar = false;
+        teca_metadata atts;
+        teca_metadata t_atts;
+        std::string calendar;
+        std::string units;
+        if (t && !this->t_variable.empty() &&
+            !md_in.get("attributes", atts) &&
+            !atts.get(this->t_variable, t_atts) &&
+            !t_atts.get("calendar", calendar) &&
+            !t_atts.get("units", units))
+            have_calendar = true;
+
+        // get the time at the first step written to the file
+        double t0 = -1.0;
+        if (t)
+            t->get(first_index, t0);
+
+        // use the date string for the time information in the filename
+        if (!have_calendar)
+        {
+            // no calendar metadata, fallback to file id
+            TECA_WARNING("Metadata is missing time axis and or calendaring "
+                "info. The file id will be used in file name instead.")
+            teca_file_util::replace_timestep(this->file_name, file_id);
+        }
+        else if (teca_file_util::replace_time(this->file_name, t0,
+            calendar, units, date_format))
+        {
+            // conversion failed, fall back to file id
+            TECA_WARNING("failed to convert relative time value \"" << t0
+                << "\" to with the calendar \"" << calendar << "\" units \""
+                << units << "\" and format \"" << date_format << "\".")
+            teca_file_util::replace_timestep(this->file_name, file_id);
+        }
+    }
+    else
+    {
+        // use the file id in the filename
+        teca_file_util::replace_timestep(this->file_name, file_id);
+    }
+
+    // replace extension
+    teca_file_util::replace_extension(this->file_name, "nc");
 
     // create the output file
-    teca_netcdf_util::netcdf_handle fh;
-    if (fh.create(file_name.c_str(), mode))
+    if (this->handle.create(this->file_name.c_str(), mode_flags))
     {
         TECA_ERROR("failed to create file \"" << file_name << "\"")
         return -1;
     }
 
+    // re-construct the time axis
+    if (t)
+    {
+        this->t = teca_double_array::New(n_indices);
+
+        t->get(first_index, first_index + n_indices - 1,
+            this->t->get());
+    }
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+int teca_cf_writer::internals_t::time_series_layout::define(
+    const const_p_teca_variant_array &x, const const_p_teca_variant_array &y,
+    const const_p_teca_variant_array &z, const std::string &x_variable,
+    const std::string &y_variable, const std::string &z_variable,
+    const std::vector<const_p_teca_array_collection> &point_arrays,
+    const std::vector<const_p_teca_array_collection> &info_arrays,
+    int compression_level, const teca_metadata &md_in)
+{
+    if (this->defined())
+        return 0;
+
+    if (!this->opened())
+    {
+        TECA_ERROR("Define failed. invalid file handle")
+        return -1;
+    }
+
+    // get the attributes
+    teca_metadata array_attributes;
+    if (md_in.get("attributes", array_attributes) && !this->t_variable.empty())
+    {
+        // array attributes are not necessary to write the data
+        // if no attributes then try to pass calendaring information through
+        std::string calendar;
+        std::string time_units;
+        if (!md_in.get("calendar", calendar) &&
+            !md_in.get("time_units", time_units))
+        {
+            teca_metadata t_atts;
+            t_atts.set("calendar", calendar);
+            t_atts.set("time_units", time_units);
+            array_attributes.set(this->t_variable, t_atts);
+        }
+    }
+
+    int ierr = NC_NOERR;
+
     // files are always written in 4D. at least one of the coordinates must
     // have data for the others construct a length one array containing zeros
     const_p_teca_variant_array coord_array
-        = x ? x : y ? y : z ? z : t ? t : nullptr;
+        = x ? x : y ? y : z ? z : this->t ? this->t : nullptr;
 
     if (!coord_array)
     {
@@ -75,9 +233,11 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
 
     const_p_teca_variant_array coord_arrays[4];
     std::string coord_array_names[4];
-    size_t dims[4] = {0, 0, 0, 0};
     size_t unlimited_dim_actual_size = 0;
 
+    this->n_dims = 0;
+    for (int i = 0; i < 4; ++i)
+        this->dims[i] = 0;
 
     // the cf reader always creates 4D data, but some other tools choke
     // on it, notably ParView. All dimensions of 1 are safe to skip, unless
@@ -85,63 +245,86 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
     unsigned long skip_dim_of_1 = (x && x->size() > 1 ? 1 : 0) +
         (y && y->size() > 1 ? 1 : 0) + (z && z->size() > 1 ? 1 : 0);
 
-    int n_dims = 0;
-    if (t)
+    if (this->t)
     {
-        coord_arrays[n_dims] = t;
-        coord_array_names[n_dims] = t_variable.empty() ? "time" : t_variable;
-        dims[n_dims] = use_unlimited_dim ? NC_UNLIMITED : t->size();
-        if ( dims[n_dims] == NC_UNLIMITED ) unlimited_dim_actual_size = t->size();
-        ++n_dims;
+        coord_arrays[this->n_dims] = this->t;
+        coord_array_names[this->n_dims] = this->t_variable.empty() ? "time" : this->t_variable;
+        this->dims[this->n_dims] = use_unlimited_dim ? NC_UNLIMITED : this->t->size();
+
+        if (this->dims[this->n_dims] == NC_UNLIMITED)
+            unlimited_dim_actual_size = this->t->size();
+
+        ++this->n_dims;
     }
     if (z)
     {
         if (!skip_dim_of_1 || z->size() > 1)
         {
-            coord_arrays[n_dims] = z;
-            coord_array_names[n_dims] = z_variable.empty() ? "z" : z_variable;
-            dims[n_dims] = n_dims == 0 && use_unlimited_dim ? NC_UNLIMITED : z->size();
-            if ( dims[n_dims] == NC_UNLIMITED ) unlimited_dim_actual_size = z->size();
-            ++n_dims;
+            coord_arrays[this->n_dims] = z;
+            coord_array_names[this->n_dims] = z_variable.empty() ? "z" : z_variable;
+            this->dims[this->n_dims] = this->n_dims == 0 &&
+                use_unlimited_dim ? NC_UNLIMITED : z->size();
+
+            if (this->dims[this->n_dims] == NC_UNLIMITED)
+                unlimited_dim_actual_size = z->size();
+
+            ++this->n_dims;
         }
     }
     if (y)
     {
         if (!skip_dim_of_1 || y->size() > 1)
         {
-            coord_arrays[n_dims] = y;
-            coord_array_names[n_dims] = y_variable.empty() ? "y" : y_variable;
-            dims[n_dims] = n_dims == 0 && use_unlimited_dim ? NC_UNLIMITED : y->size();
-            if ( dims[n_dims] == NC_UNLIMITED ) unlimited_dim_actual_size = y->size();
-            ++n_dims;
+            coord_arrays[this->n_dims] = y;
+            coord_array_names[this->n_dims] = y_variable.empty() ? "y" : y_variable;
+
+            this->dims[this->n_dims] = this->n_dims == 0 &&
+                use_unlimited_dim ? NC_UNLIMITED : y->size();
+
+            if (this->dims[this->n_dims] == NC_UNLIMITED)
+                unlimited_dim_actual_size = y->size();
+
+            ++this->n_dims;
         }
     }
     if (x)
     {
         if (!skip_dim_of_1 || x->size() > 1)
         {
-            coord_arrays[n_dims] = x;
-            coord_array_names[n_dims] = x_variable.empty() ? "x" : x_variable;
-            dims[n_dims] = n_dims == 0 && use_unlimited_dim ? NC_UNLIMITED : x->size();
-            if ( dims[n_dims] == NC_UNLIMITED ) unlimited_dim_actual_size = x->size();
-            ++n_dims;
+            coord_arrays[this->n_dims] = x;
+            coord_array_names[this->n_dims] = x_variable.empty() ? "x" : x_variable;
+
+            this->dims[this->n_dims] = this->n_dims == 0 &&
+                 use_unlimited_dim ? NC_UNLIMITED : x->size();
+
+            if (this->dims[this->n_dims] == NC_UNLIMITED)
+                unlimited_dim_actual_size = x->size();
+
+            ++this->n_dims;
         }
     }
 
-    // dictionary of names to ncids
+    // build the dictionary of names to ncids
     int dim_ids[4] = {-1};
-    std::map<std::string, int> var_ids;
-
-    for (int i = 0; i < n_dims; ++i)
+    for (int i = 0; i < this->n_dims; ++i)
     {
         // define dimension
         int dim_id = -1;
-        if ((ierr = nc_def_dim(fh.get(), coord_array_names[i].c_str(), dims[i], &dim_id)) != NC_NOERR)
+#if !defined(HDF5_THREAD_SAFE)
+        {
+        std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+        if ((ierr = nc_def_dim(this->handle.get(), coord_array_names[i].c_str(),
+            this->dims[i], &dim_id)) != NC_NOERR)
         {
             TECA_ERROR("failed to define dimensions for coordinate axis "
-                <<  i << " \"" << coord_array_names[i] << "\" " << nc_strerror(ierr))
+                <<  i << " \"" << coord_array_names[i] << "\" "
+                << nc_strerror(ierr))
             return -1;
         }
+#if !defined(HDF5_THREAD_SAFE)
+        }
+#endif
 
         // save the dim id
         dim_ids[i] = dim_id;
@@ -151,16 +334,25 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
         TEMPLATE_DISPATCH(const teca_variant_array_impl,
             coord_arrays[i].get(),
             int type = teca_netcdf_util::netcdf_tt<NT>::type_code;
-            if ((ierr = nc_def_var(fh.get(), coord_array_names[i].c_str(), type, 1, &dim_id, &var_id)) != NC_NOERR)
+#if !defined(HDF5_THREAD_SAFE)
+            {
+            std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+            if ((ierr = nc_def_var(this->handle.get(), coord_array_names[i].c_str(),
+                type, 1, &dim_id, &var_id)) != NC_NOERR)
             {
                 TECA_ERROR("failed to define variables for coordinate axis "
-                    <<  i << " \"" << coord_array_names[i] << "\" " << nc_strerror(ierr))
+                    <<  i << " \"" << coord_array_names[i] << "\" "
+                    << nc_strerror(ierr))
                 return -1;
             }
+#if !defined(HDF5_THREAD_SAFE)
+            }
+#endif
             )
 
         // save the var id
-        var_ids[coord_array_names[i]] = var_id;
+        this->var_ids[coord_array_names[i]] = var_id;
     }
 
     // define variables for each point array
@@ -177,33 +369,39 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
                 // define variable
                 int var_id = -1;
                 int type = teca_netcdf_util::netcdf_tt<NT>::type_code;
-                if ((ierr = nc_def_var(fh.get(), name.c_str(), type, n_dims, dim_ids, &var_id)) != NC_NOERR)
+#if !defined(HDF5_THREAD_SAFE)
                 {
-                    TECA_ERROR("failed to define variable for point array \"" << name << "\". "
-                        << nc_strerror(ierr))
+                std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+                if ((ierr = nc_def_var(this->handle.get(), name.c_str(), type,
+                    this->n_dims, dim_ids, &var_id)) != NC_NOERR)
+                {
+                    TECA_ERROR("failed to define variable for point array \""
+                        << name << "\". " << nc_strerror(ierr))
                     return -1;
                 }
+#if !defined(HDF5_THREAD_SAFE)
+                }
+#endif
                 // save the var id
-                var_ids[name] = var_id;
+                this->var_ids[name] = var_id;
                 )
 
-
             // turn on compression for point arrays
-            if (compression_level > 0 && compression_level < 10)
+            if ((compression_level > 0) &&
+                ((ierr = nc_def_var_deflate(this->handle.get(),
+                    this->var_ids[name], 0, 1, compression_level) != NC_NOERR)))
             {
-                if ((ierr = nc_def_var_deflate(fh.get(), var_ids[name], 0, 1, compression_level) != NC_NOERR))
-                {
-                    TECA_ERROR("failed to set compression level to " << compression_level
-                        << " for point array \"" << name << "\". "
-                        << nc_strerror(ierr))
-                    return -1;
-                }
+                TECA_ERROR("failed to set compression level to "
+                    << compression_level << " for point array \""
+                    << name << "\". " << nc_strerror(ierr))
+                return -1;
             }
         }
     }
 
     // add dimension and define information arrays
-    int n_info_dims = t ? 2 : 1;
+    int n_info_dims = this->t ? 2 : 1;
     if (info_arrays.size())
     {
         unsigned int n_arrays = info_arrays[0]->size();
@@ -215,16 +413,24 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
             // define dimension
             std::string dim_name = "dim_" + name;
             int dim_id = -1;
-            if ((ierr = nc_def_dim(fh.get(), dim_name.c_str(), array->size(), &dim_id)) != NC_NOERR)
+#if !defined(HDF5_THREAD_SAFE)
+            {
+            std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+            if ((ierr = nc_def_dim(this->handle.get(), dim_name.c_str(),
+                array->size(), &dim_id)) != NC_NOERR)
             {
                 TECA_ERROR("failed to define dimensions for information array "
                     <<  i << " \"" << name << "\" " << nc_strerror(ierr))
                 return -1;
             }
+#if !defined(HDF5_THREAD_SAFE)
+            }
+#endif
 
             // set up dim ids for definition
             int info_dim_ids[2];
-            if (t)
+            if (this->t)
             {
                 info_dim_ids[0] = dim_ids[0];
                 info_dim_ids[1] = dim_id;
@@ -240,22 +446,29 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
                 // define variable
                 int var_id = -1;
                 int type = teca_netcdf_util::netcdf_tt<NT>::type_code;
-                if ((ierr = nc_def_var(fh.get(), name.c_str(), type,
+#if !defined(HDF5_THREAD_SAFE)
+                {
+                std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+                if ((ierr = nc_def_var(this->handle.get(), name.c_str(), type,
                     n_info_dims, info_dim_ids, &var_id)) != NC_NOERR)
                 {
-                    TECA_ERROR("failed to define variable for information array \"" << name << "\". "
-                        << nc_strerror(ierr))
+                    TECA_ERROR("failed to define variable for information array \""
+                        << name << "\". " << nc_strerror(ierr))
                     return -1;
                 }
+#if !defined(HDF5_THREAD_SAFE)
+                }
+#endif
                 // save the var id
-                var_ids[name] = var_id;
+                this->var_ids[name] = var_id;
                 )
         }
     }
 
     // write attributes of the varibles in hand
-    std::map<std::string,int>::iterator it = var_ids.begin();
-    std::map<std::string,int>::iterator end = var_ids.end();
+    std::map<std::string,int>::iterator it = this->var_ids.begin();
+    std::map<std::string,int>::iterator end = this->var_ids.end();
     for (; it != end; ++it)
     {
         teca_metadata array_atts;
@@ -263,7 +476,6 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
         if (array_attributes.get(array_name, array_atts))
         {
             // It's ok for a variable not to have attributes
-            //TECA_WARNING("No array attributes for \"" << array_name << "\"")
             continue;
         }
 
@@ -284,8 +496,9 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
             // skip non-standard internal book keeping metadata this is
             // potentially OK to pass through but likely of no interest to
             // anyone else
-            if ((att_name == "id") || (att_name == "dims") || (att_name == "dim_names") ||
-                (att_name == "type") || (att_name == "centering"))
+            if ((att_name == "id") || (att_name == "dims") ||
+                (att_name == "dim_names") || (att_name == "type") ||
+                (att_name == "centering"))
                 continue;
 
             // get the attribute value
@@ -298,11 +511,18 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
                 if (att_values->size() > 1)
                     continue;
                 const std::string att_val = static_cast<const TT*>(att_values.get())->get(0);
-                if ((ierr = nc_put_att_text(fh.get(), var_id, att_name.c_str(), att_val.size()+1,
+#if !defined(HDF5_THREAD_SAFE)
+                {
+                std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+                if ((ierr = nc_put_att_text(this->handle.get(), var_id, att_name.c_str(), att_val.size()+1,
                     att_val.c_str())) != NC_NOERR)
                 {
                     TECA_ERROR("failed to put attribute \"" << att_name << "\"")
                 }
+#if !defined(HDF5_THREAD_SAFE)
+                }
+#endif
                 continue;
                 )
 
@@ -314,26 +534,47 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
                 const NT *pvals = static_cast<TT*>(att_values.get())->get();
                 unsigned long n_vals = att_values->size();
 
-                if ((ierr = nc_put_att(fh.get(), var_id, att_name.c_str(), type,
+#if !defined(HDF5_THREAD_SAFE)
+                {
+                std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+                if ((ierr = nc_put_att(this->handle.get(), var_id, att_name.c_str(), type,
                     n_vals, pvals)) != NC_NOERR)
                 {
                     TECA_ERROR("failed to put attribute \"" << att_name << "\" "
                         << nc_strerror(ierr))
                 }
+#if !defined(HDF5_THREAD_SAFE)
+                }
+#endif
                 )
         }
     }
 
+#if !defined(HDF5_THREAD_SAFE)
+    {
+    std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+    // prevent NetCDF from writing 2x.
+    int old_fill = 0;
+    if ((ierr = nc_set_fill(this->handle.get(), NC_NOFILL, &old_fill)) != NC_NOERR)
+    {
+        TECA_ERROR("Failed to disable fill mode on file " << this->file_id)
+    }
+
     // end metadata definition phase
-    ierr = nc_enddef(fh.get());
+    ierr = nc_enddef(this->handle.get());
+#if !defined(HDF5_THREAD_SAFE)
+    }
+#endif
 
     // write the coordinate arrays
-    for (int i = 0; i < n_dims; ++i)
+    for (int i = 0; i < this->n_dims; ++i)
     {
         // look up the var id
         std::string array_name = coord_array_names[i];
-        std::map<std::string, int>::iterator it = var_ids.find(array_name);
-        if (it  == var_ids.end())
+        std::map<std::string, int>::iterator it = this->var_ids.find(array_name);
+        if (it  == this->var_ids.end())
         {
             TECA_ERROR("No var id for \"" << array_name << "\"")
             return -1;
@@ -341,33 +582,71 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
         int var_id = it->second;
 
         size_t start = 0;
-        // set the count to be the dimension size (this needs to be an actual size, not
-        // NC_UNLIMITED, which results in coordinate arrays not being written)
-        size_t count = dims[i] == NC_UNLIMITED ? unlimited_dim_actual_size : dims[i];
+        // set the count to be the dimension size (this needs to be an actual
+        // size, not NC_UNLIMITED, which results in coordinate arrays not being
+        // written)
+        size_t count = this->dims[i] == NC_UNLIMITED ?
+            unlimited_dim_actual_size : this->dims[i];
 
         TEMPLATE_DISPATCH(const teca_variant_array_impl,
             coord_arrays[i].get(),
             const NT *pa = static_cast<TT*>(coord_arrays[i].get())->get();
-            if ((ierr = nc_put_vara(fh.get(), var_id, &start, &count, pa)) != NC_NOERR)
+#if !defined(HDF5_THREAD_SAFE)
+            {
+            std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+            if ((ierr = nc_put_vara(this->handle.get(), var_id, &start, &count, pa)) != NC_NOERR)
             {
                 TECA_ERROR("failed to write \"" << coord_array_names[i] << "\" axis. "
                     << nc_strerror(ierr))
                 return -1;
             }
+#if !defined(HDF5_THREAD_SAFE)
+            }
+#endif
             )
     }
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+int teca_cf_writer::internals_t::time_series_layout::write(
+    const std::vector<long> &request_ids,
+    const std::vector<const_p_teca_array_collection> &point_arrays,
+    const std::vector<const_p_teca_array_collection> &info_arrays)
+{
+    if (!this->opened())
+    {
+        TECA_ERROR("Write failed. invalid file handle")
+        return -1;
+    }
+
+    if (!this->defined())
+    {
+        TECA_ERROR("Write failed. file layout has not been defined")
+        return -1;
+    }
+
+    int ierr = NC_NOERR;
+
+    // get the number of chuncks of data to write
+    unsigned int n_ids = request_ids.size();
 
     // write point arrays
     if (point_arrays.size())
     {
-        unsigned int n_steps = t->size();
         size_t starts[4] = {0, 0, 0, 0};
         size_t counts[4] = {1, 0, 0, 0};
-        for (int i = 1; i < n_dims; ++i)
-            counts[i] = dims[i];
+        for (int i = 1; i < this->n_dims; ++i)
+            counts[i] = this->dims[i];
 
-        for (unsigned int q = 0; q < n_steps; ++q)
+        for (unsigned int q = 0; q < n_ids; ++q)
         {
+            // get this data's position in the file
+            unsigned long id = request_ids[q] - this->first_index;
+            starts[0] = id;
+
             unsigned int n_arrays = point_arrays[q]->size();
             for (unsigned int i = 0; i < n_arrays; ++i)
             {
@@ -375,8 +654,8 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
                 const_p_teca_variant_array array = point_arrays[q]->get(i);
 
                 // look up the var id
-                std::map<std::string, int>::iterator it = var_ids.find(array_name);
-                if (it  == var_ids.end())
+                std::map<std::string, int>::iterator it = this->var_ids.find(array_name);
+                if (it  == this->var_ids.end())
                 {
                     TECA_ERROR("No var id for \"" << array_name << "\"")
                     return -1;
@@ -386,25 +665,34 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
                 TEMPLATE_DISPATCH(const teca_variant_array_impl,
                     array.get(),
                     const NT *pa = static_cast<TT*>(array.get())->get();
-                    if ((ierr = nc_put_vara(fh.get(), var_id, starts, counts, pa)) != NC_NOERR)
+#if !defined(HDF5_THREAD_SAFE)
+                    {
+                    std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+                    if ((ierr = nc_put_vara(this->handle.get(), var_id, starts, counts, pa)) != NC_NOERR)
                     {
                         TECA_ERROR("failed to write array \"" << array_name << "\". "
                             << nc_strerror(ierr))
                         return -1;
                     }
+#if !defined(HDF5_THREAD_SAFE)
+                    }
+#endif
                     )
             }
-            starts[0] += 1;
         }
     }
 
     // write the information arrays
     if (info_arrays.size())
     {
-        unsigned int n_steps = t->size();
         size_t starts[2] = {0, 0};
-        for (unsigned int q = 0; q < n_steps; ++q)
+        for (unsigned int q = 0; q < n_ids; ++q)
         {
+            // get this data's position in the file
+            unsigned long id = request_ids[q] - this->first_index;
+            starts[0] = id;
+
             unsigned int n_arrays = info_arrays[q]->size();
             for (unsigned int i = 0; i < n_arrays; ++i)
             {
@@ -414,8 +702,8 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
                 size_t counts[2] = {1, array->size()};
 
                 // look up the var id
-                std::map<std::string, int>::iterator it = var_ids.find(array_name);
-                if (it  == var_ids.end())
+                std::map<std::string, int>::iterator it = this->var_ids.find(array_name);
+                if (it  == this->var_ids.end())
                 {
                     TECA_ERROR("No var id for \"" << array_name << "\"")
                     return -1;
@@ -425,17 +713,26 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
                 TEMPLATE_DISPATCH(const teca_variant_array_impl,
                     array.get(),
                     const NT *pa = static_cast<TT*>(array.get())->get();
-                    if ((ierr = nc_put_vara(fh.get(), var_id, starts, counts, pa)) != NC_NOERR)
+#if !defined(HDF5_THREAD_SAFE)
+                    {
+                    std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+                    if ((ierr = nc_put_vara(this->handle.get(), var_id, starts, counts, pa)) != NC_NOERR)
                     {
                         TECA_ERROR("failed to write array \"" << array_name << "\". "
                             << nc_strerror(ierr))
                         return -1;
                     }
+#if !defined(HDF5_THREAD_SAFE)
+                    }
+#endif
                     )
             }
-            starts[0] += 1;
         }
     }
+
+    // keep track of what's been done
+    this->n_written += request_ids.size();
 
     return 0;
 }
@@ -448,11 +745,15 @@ teca_cf_writer::teca_cf_writer() :
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
+    this->set_stream_size(1);
+    this->internals = new teca_cf_writer::internals_t;
 }
 
 // --------------------------------------------------------------------------
 teca_cf_writer::~teca_cf_writer()
-{}
+{
+    delete this->internals;
+}
 
 #if defined(TECA_HAS_BOOST)
 // --------------------------------------------------------------------------
@@ -654,17 +955,32 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
     // initialize the set of requests needed to write the requested file
     up_reqs.resize(n_indices, base_req);
 
-    // fix the index
+    // fix the indices
     for (long i = 0; i < n_indices; ++i)
         up_reqs[i].set(up_request_key, first_index + i);
+
+
+    // the upstream requests are all queued up. Before issuing them
+    // intialize file specific book keeping structure
+    teca_cf_writer::internals_t::time_series_layout layout;
+    if (layout.create(file_id, first_index, n_indices, this->file_name,
+        this->date_format, md_in, this->mode_flags, this->use_unlimited_dim))
+    {
+        TECA_ERROR("Failed to create the file for id " << file_id)
+        up_reqs.clear();
+        return up_reqs;
+    }
+    this->internals->file_table[file_id] = std::move(layout);
 
     return up_reqs;
 }
 
+
+
 // --------------------------------------------------------------------------
 const_p_teca_dataset teca_cf_writer::execute(unsigned int port,
     const std::vector<const_p_teca_dataset> &input_data,
-    const teca_metadata &request)
+    const teca_metadata &request, int streaming)
 {
 #ifdef TECA_DEBUG
     std::cerr << teca_parallel_id() << "teca_cf_writer::execute" << std::endl;
@@ -692,12 +1008,29 @@ const_p_teca_dataset teca_cf_writer::execute(unsigned int port,
     long file_id = 0;
     if (request.get("file_id", file_id))
     {
-        TECA_ERROR("failed to determiine requested file id")
+        TECA_ERROR("failed to determine requested file id")
+        return nullptr;
+    }
+
+    // get the handle associated with this file
+    teca_cf_writer::internals_t::file_table_iterator_t it =
+        this->internals->file_table.find(file_id);
+
+    if (it == this->internals->file_table.end())
+    {
+        TECA_ERROR("failed to locate a handle for file id " << file_id)
+        return nullptr;
+    }
+
+    teca_cf_writer::internals_t::time_series_layout &layout = it->second;
+    if (!layout.opened())
+    {
+        TECA_ERROR("handle for file id " << file_id << " is not open")
         return nullptr;
     }
 
     // get the number of datasets. these will be written to the file
-    long n_in_indices = input_data.size();
+    long n_indices = input_data.size();
 
     // set up the write. collect various data and metadata
     const_p_teca_cartesian_mesh in_mesh =
@@ -724,59 +1057,23 @@ const_p_teca_dataset teca_cf_writer::execute(unsigned int port,
     in_mesh->get_z_coordinate_variable(z_variable);
     in_mesh->get_t_coordinate_variable(t_variable);
 
-
-    const teca_metadata &in_md = in_mesh->get_metadata();
-
-    // get the attributes
-    teca_metadata in_atts;
-    if (in_md.get("attributes", in_atts) && !t_variable.empty())
-    {
-        // array attributes are not necessary to write the data
-        // if no attributes then try to pass calendaring information through
-        std::string calendar;
-        std::string time_units;
-        if (!in_md.get("calendar", calendar) &&
-            !in_md.get("time_units", time_units))
-        {
-            teca_metadata t_atts;
-            t_atts.set("calendar", calendar);
-            t_atts.set("time_units", time_units);
-            in_atts.set(t_variable, t_atts);
-        }
-    }
-
-    // get the executive control keys
-    std::string request_key;
-    if (in_md.get("index_request_key", request_key))
-    {
-        TECA_ERROR("Input metadata on mesh 0 is missing index_request_key")
-        return nullptr;
-    }
-
-    // re-construct the time axis
-    p_teca_double_array t = teca_double_array::New(n_in_indices);
-    double *pt = t->get();
-
     // collect the set of arrays to write
-    std::vector<long> req_ids(n_in_indices);
-    std::vector<const_p_teca_array_collection> point_arrays(n_in_indices);
-    std::vector<const_p_teca_array_collection> info_arrays(n_in_indices);
-    for (long i = 0; i < n_in_indices; ++i)
+    std::vector<long> req_ids(n_indices);
+    std::vector<const_p_teca_array_collection> point_arrays(n_indices);
+    std::vector<const_p_teca_array_collection> info_arrays(n_indices);
+    for (long i = 0; i < n_indices; ++i)
     {
         // convert to cartesian mesh
-        in_mesh = std::dynamic_pointer_cast<const teca_cartesian_mesh>(input_data[i]);
+        in_mesh = std::dynamic_pointer_cast
+            <const teca_cartesian_mesh>(input_data[i]);
 
         if (!in_mesh)
         {
+            // rank 0 should always have data, but after a reduction only rank
+            // 0 would have data
             if (rank == 0)
-                TECA_ERROR("input mesh " << i << " is empty input or not a cartesian mesh")
-            return nullptr;
-        }
-
-        // get the time
-        if (in_mesh->get_time(*(pt+i)))
-        {
-            TECA_ERROR("input mesh " << i << " is missing time metadata")
+                TECA_ERROR("input mesh " << i
+                    << " is empty input or not a cartesian mesh")
             return nullptr;
         }
 
@@ -784,67 +1081,41 @@ const_p_teca_dataset teca_cf_writer::execute(unsigned int port,
         point_arrays[i] = in_mesh->get_point_arrays();
         info_arrays[i] = in_mesh->get_information_arrays();
 
-        // get the request id
-        if (in_md.get(request_key, req_ids[i]))
+        if (in_mesh->get_request_index(req_ids[i]))
         {
-            TECA_ERROR("failed to get the request index \""
-                << request_key << "\" from mesh " << i)
+            TECA_ERROR("failed to get the request index from mesh " << i)
             return nullptr;
         }
     }
 
-    // construct the file name
-    std::string out_file = this->file_name;
-    if (out_file.empty())
+    // define the file layout the first time through
+    if (!layout.defined() && layout.define(x, y, z, x_variable,
+        y_variable, z_variable, point_arrays, info_arrays,
+        this->compression_level, input_data[0]->get_metadata()))
     {
-        TECA_ERROR("filename was not set for cf_writer")
+        TECA_ERROR("failed to define file " << file_id)
         return nullptr;
     }
 
-    if (!this->date_format.empty())
-    {
-        // use the date string for the time information in the filename
-        // get the calendar and units information
-        std::string calendar;
-        std::string units;
-        in_mesh->get_calendar(calendar);
-        in_mesh->get_time_units(units);
-
-        if (calendar.empty() || units.empty())
-        {
-            // no calendar metadata, fallback to time step
-            TECA_WARNING("input dataset is missing calendaring metadata")
-            teca_file_util::replace_timestep(out_file, file_id);
-        }
-        else if (teca_file_util::replace_time(out_file, *pt,
-            calendar, units, this->date_format))
-        {
-            // conversion failed, fall back to time step
-            TECA_WARNING("failed to convert relative time value \"" << *pt
-                << "\" to with the calendar \"" << calendar << "\" units \""
-                << units << "\" and format \"" << this->date_format << "\".")
-            teca_file_util::replace_timestep(out_file, file_id);
-        }
-    }
-    else
-    {
-        // use the timestep for the time information in the filename
-        teca_file_util::replace_timestep(out_file, file_id);
-    }
-
-    // replace extension
-    teca_file_util::replace_extension(out_file, "nc");
 
     // write the data
-    if (teca_cf_writer_internals::write(out_file, this->mode_flags,
-        this->use_unlimited_dim, this->compression_level,
-        req_ids, x, y, z, t, x_variable, y_variable, z_variable,
-        t_variable, in_atts, point_arrays, info_arrays))
+    if (layout.write(req_ids, point_arrays, info_arrays))
     {
-        TECA_ERROR("Failed to write \"" << out_file << "\"")
+        TECA_ERROR("Failed to write " << file_id)
         return nullptr;
     }
 
+    // close the file when all data has been written
+    if (!streaming)
+    {
+        if (!layout.completed())
+            TECA_ERROR("File " << file_id << " is incomplete")
+
+        layout.close();
+        this->internals->file_table.erase(it);
+    }
+
+    /*
     // if there is only 1 input datatset, pass the dataset through
     // there are more than 1 return a nullptr. TODO -- how best to
     // return multiple datasets? teca_database can do it, but downstream
@@ -856,6 +1127,7 @@ const_p_teca_dataset teca_cf_writer::execute(unsigned int port,
         out_mesh->shallow_copy(
             std::const_pointer_cast<teca_cartesian_mesh>(in_mesh));
     }
+    */
 
-    return out_mesh;
+    return nullptr;
 }
