@@ -562,6 +562,13 @@ teca_metadata teca_cf_reader::get_output_metadata(
                         teca_netcdf_util::crtrim(tmp, att_len);
                         atts.set(att_name, std::string(tmp));
                     }
+                    else if (att_type == NC_STRING)
+                    {
+                        char *strs[1] = {nullptr};
+                        nc_get_att_string(fh.get(), i, att_name, strs);
+                        atts.set(att_name, std::string(strs[0]));
+                        nc_free_string(1, strs);
+                    }
                     else
                     {
                         NC_DISPATCH(att_type,
