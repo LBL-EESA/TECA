@@ -318,13 +318,13 @@ const_p_teca_dataset teca_binary_segmentation::execute(
 
     // do segmentation
     size_t n_elem = input_array->size();
-    p_teca_unsigned_char_array segmentation =
-        teca_unsigned_char_array::New(n_elem);
+    p_teca_char_array segmentation =
+        teca_char_array::New(n_elem);
 
     TEMPLATE_DISPATCH(const teca_variant_array_impl,
         input_array.get(),
         const NT *p_in = static_cast<TT*>(input_array.get())->get();
-        unsigned char *p_seg = segmentation->get();
+        char *p_seg = segmentation->get();
 
         if (this->threshold_mode == BY_VALUE)
         {
@@ -351,6 +351,19 @@ const_p_teca_dataset teca_binary_segmentation::execute(
     teca_metadata &out_metadata = out_mesh->get_metadata();
     out_metadata.set("low_threshold_value", low);
     out_metadata.set("high_threshold_value", high);
+
+
+    // get a copy of the attributes
+    teca_metadata attributes;
+    out_metadata.get("attributes", attributes);
+
+    // insert attributes for the segmentation variable
+    // into the output metadata pointer
+    attributes.set(segmentation_var.c_str(),
+        this->get_segmentation_variable_atts());
+
+    // overwrite the outgoing metadata with the new attributes variable
+    out_metadata.set("attributes", attributes);
 
     return out_mesh;
 }

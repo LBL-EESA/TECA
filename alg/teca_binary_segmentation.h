@@ -40,6 +40,10 @@ public:
     TECA_ALGORITHM_PROPERTY(double, low_threshold_value)
     TECA_ALGORITHM_PROPERTY(double, high_threshold_value)
 
+
+    // set the metadata for the segmentation variable
+    TECA_ALGORITHM_PROPERTY(teca_metadata, segmentation_variable_atts)
+
     // Set the threshold mode. In BY_PERCENTILE mode low and high thresholds
     // define the percentiles (0 to 100) between which data is in the
     // segmentation. default is BY_VALUE.
@@ -73,6 +77,7 @@ private:
     double low_threshold_value;
     double high_threshold_value;
     int threshold_mode;
+    teca_metadata segmentation_variable_atts;
 };
 
 #endif

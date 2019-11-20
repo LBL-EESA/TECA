@@ -67,7 +67,8 @@ int parse_command_line(int argc, char **argv, int rank,
                 << "test_cf_writer [-i input regex] [-o output] [-s first step,last step] "
                 << "[-x x axis variable] [-y y axis variable] [-z z axis variable] "
                 << "[-t t axis variable] [-b x0,x1,y0,y1,z0,z1] [-e i0,i1,j0,j1,k0,k1] "
-                << "[-c index count] [-n num threads] [array 0] ... [array n]"
+                << "[-c index count] [-n num threads] [array 0] [ -d compression level] "
+                << "... [array n]"
                 << endl << endl;
         }
         return -1;
@@ -83,6 +84,7 @@ int parse_command_line(int argc, char **argv, int rank,
     long first_step = 0;
     long last_step = -1;
     long steps_per_file = 1;
+    int deflate_level = -1;
     std::vector<double> bounds;
     std::vector<unsigned long> extent;
 
@@ -151,6 +153,11 @@ int parse_command_line(int argc, char **argv, int rank,
             steps_per_file = atoi(argv[++i]);
             ++j;
         }
+        else if (!strcmp("-d", argv[i]))
+        {
+            deflate_level = atoi(argv[++i]);
+            ++j;
+        }
     }
 
     vector<string> arrays;
@@ -167,6 +174,7 @@ int parse_command_line(int argc, char **argv, int rank,
     cf_writer->set_file_name(output);
     cf_writer->set_thread_pool_size(n_threads);
     cf_writer->set_steps_per_file(steps_per_file);
+    cf_writer->set_compression_level(deflate_level);
 
     exec->set_start_index(first_step);
     exec->set_end_index(last_step);

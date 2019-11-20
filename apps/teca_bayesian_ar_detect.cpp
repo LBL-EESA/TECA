@@ -6,6 +6,7 @@
 #include "teca_metadata.h"
 #include "teca_bayesian_ar_detect.h"
 #include "teca_bayesian_ar_detect_parameters.h"
+#include "teca_binary_segmentation.h"
 #include "teca_mpi_manager.h"
 #include "teca_coordinate_util.h"
 #include "teca_table.h"
@@ -43,6 +44,8 @@ int main(int argc, char **argv)
         ("input_regex", value<string>(), "regex matching simulation files to search for atmospheric rivers")
         ("ivt", value<string>()->default_value(std::string("IVT")),
             "name of variable with integrated vapor transport (IVT)")
+        ("binary_ar_threshold", value<double>()->default_value(0.6666666667),
+            "probability threshold for segmenting ar_probability to produce ar_binary_tag")
         ("first_step", value<long>(), "first time step to process")
         ("last_step", value<long>(), "last time step to process")
         ("steps_per_file", value<long>(), "number of time steps per output filr")
@@ -91,13 +94,20 @@ int main(int argc, char **argv)
     ar_detect->set_input_connection(0, params->get_output_port());
     ar_detect->set_input_connection(1, norm_coords->get_output_port());
 
+    // segment the ar probability field
+    p_teca_binary_segmentation ar_tag = teca_binary_segmentation::New();
+    ar_tag->set_input_connection(0, ar_detect->get_output_port());
+    ar_tag->set_threshold_mode(ar_tag->BY_VALUE);
+    ar_tag->set_threshold_variable("ar_probability");
+    ar_tag->set_segmentation_variable("ar_binary_tag");
+
     // Add an executive for the writer
     p_teca_index_executive exec = teca_index_executive::New();
 
     // Add the writer
     p_teca_cf_writer cf_writer = teca_cf_writer::New();
     cf_writer->get_properties_description("cf_writer", advanced_opt_defs);
-    cf_writer->set_input_connection(ar_detect->get_output_port());
+    cf_writer->set_input_connection(ar_tag->get_output_port());
     cf_writer->set_verbose(0);
     cf_writer->set_thread_pool_size(1);
 
@@ -298,6 +308,21 @@ int main(int argc, char **argv)
             exec->set_end_index(last_step);
         }
     }
+
+
+    double ar_tag_threshold = opt_vals["binary_ar_threshold"].as<double>();
+    // set the threshold for calculating ar_binary_tag
+    ar_tag->set_low_threshold_value(ar_tag_threshold);
+    // add metadata for ar_binary_tag
+    teca_metadata seg_atts;
+    seg_atts.set("long_name",std::string("binary indicator of atmospheric river"));
+    seg_atts.set("description",std::string("binary indicator of atmospheric river"));
+    seg_atts.set("scheme",std::string("cascade_bard"));
+    seg_atts.set("version",std::string("1.0"));
+    seg_atts.set("note",
+        std::string("derived by thresholding ar_probability >= ") + 
+        std::to_string(ar_tag_threshold));
+    ar_tag->set_segmentation_variable_atts(seg_atts);
 
     // run the pipeline
 

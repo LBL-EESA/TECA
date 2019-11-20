@@ -26,7 +26,8 @@ public:
     // data is organized into a vector of array collections, one per
     // time step.
     static
-    int write(const std::string &file_name, int mode, int use_unlimited_dim,
+    int write(const std::string &file_name,
+        int mode, int use_unlimited_dim, int compression_level, 
         const std::vector<long> &request_ids, const const_p_teca_variant_array &x,
         const const_p_teca_variant_array &y, const const_p_teca_variant_array &z,
         const const_p_teca_variant_array &t, const std::string &x_variable,
@@ -39,7 +40,8 @@ public:
 
 // --------------------------------------------------------------------------
 int teca_cf_writer_internals::write(const std::string &file_name, int mode,
-    int use_unlimited_dim, const std::vector<long> &request_ids,
+    int use_unlimited_dim, int compression_level,
+    const std::vector<long> &request_ids,
     const const_p_teca_variant_array &x, const const_p_teca_variant_array &y,
     const const_p_teca_variant_array &z, const const_p_teca_variant_array &t,
     const std::string &x_variable, const std::string &y_variable,
@@ -184,6 +186,19 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
                 // save the var id
                 var_ids[name] = var_id;
                 )
+
+
+            // turn on compression for point arrays
+            if (compression_level > 0 && compression_level < 10)
+            {
+                if ((ierr = nc_def_var_deflate(fh.get(), var_ids[name], 0, 1, compression_level) != NC_NOERR))
+                {
+                    TECA_ERROR("failed to set compression level to " << compression_level
+                        << " for point array \"" << name << "\". "
+                        << nc_strerror(ierr))
+                    return -1;
+                }
+            }
         }
     }
 
@@ -428,7 +443,8 @@ int teca_cf_writer_internals::write(const std::string &file_name, int mode,
 // --------------------------------------------------------------------------
 teca_cf_writer::teca_cf_writer() :
     file_name(""), date_format("%F-%HZ"), first_step(0), last_step(-1),
-    steps_per_file(1), mode_flags(NC_CLOBBER|NC_NETCDF4), use_unlimited_dim(1)
+    steps_per_file(1), mode_flags(NC_CLOBBER|NC_NETCDF4), use_unlimited_dim(1),
+    compression_level(-1)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -463,6 +479,9 @@ void teca_cf_writer::get_properties_description(
         TECA_POPTS_GET(int, prefix, use_unlimited_dim,
             "if set the slowest varying dimension is specified to be "
             "NC_UNLIMITED. (1)")
+        TECA_POPTS_GET(int, prefix, compression_level,
+            "sets the zlib compression level used for each variable;"
+            "does nothing if the value is less than or equal to 0. (-1)")
         ;
 
     global_opts.add(opts);
@@ -479,6 +498,7 @@ void teca_cf_writer::set_properties(
     TECA_POPTS_SET(opts, unsigned int, prefix, steps_per_file)
     TECA_POPTS_SET(opts, int, prefix, mode_flags)
     TECA_POPTS_SET(opts, int, prefix, use_unlimited_dim)
+    TECA_POPTS_SET(opts, int, prefix, compression_level)
 }
 #endif
 
@@ -811,8 +831,9 @@ const_p_teca_dataset teca_cf_writer::execute(unsigned int port,
 
     // write the data
     if (teca_cf_writer_internals::write(out_file, this->mode_flags,
-        this->use_unlimited_dim, req_ids, x, y, z, t, x_variable, y_variable,
-        z_variable, t_variable, in_atts, point_arrays, info_arrays))
+        this->use_unlimited_dim, this->compression_level,
+        req_ids, x, y, z, t, x_variable, y_variable, z_variable,
+        t_variable, in_atts, point_arrays, info_arrays))
     {
         TECA_ERROR("Failed to write \"" << out_file << "\"")
         return nullptr;

@@ -61,6 +61,12 @@ public:
     // be better when using fixed dimensions. (1)
     TECA_ALGORITHM_PROPERTY(int, use_unlimited_dim)
 
+
+    // sets the compression level used for each variable
+    // compression is not used if the value is less than
+    // or equal to 0
+    TECA_ALGORITHM_PROPERTY(int, compression_level)
+
 protected:
     teca_cf_writer();
 
@@ -83,6 +89,7 @@ private:
     unsigned int steps_per_file;
     int mode_flags;
     int use_unlimited_dim;
+    int compression_level;
 };
 
 #endif
