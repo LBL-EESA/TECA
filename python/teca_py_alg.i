@@ -4,6 +4,7 @@
 #include "teca_algorithm.h"
 #include "teca_apply_binary_mask.h"
 #include "teca_bayesian_ar_detect.h"
+#include "teca_bayesian_ar_detect_parameters.h"
 #include "teca_binary_segmentation.h"
 #include "teca_cartesian_mesh_source.h"
 #include "teca_cartesian_mesh_subset.h"
@@ -440,6 +441,14 @@ struct teca_tc_saffir_simpson
 %shared_ptr(teca_bayesian_ar_detect)
 %ignore teca_bayesian_ar_detect::operator=;
 %include "teca_bayesian_ar_detect.h"
+
+/***************************************************************************
+ bayesian_ar_detect_parameters
+ ***************************************************************************/
+%ignore teca_bayesian_ar_detect_parameters::shared_from_this;
+%shared_ptr(teca_bayesian_ar_detect_parameters)
+%ignore teca_bayesian_ar_detect_parameters::operator=;
+%include "teca_bayesian_ar_detect_parameters.h"
 
 /***************************************************************************
  component_statistics
