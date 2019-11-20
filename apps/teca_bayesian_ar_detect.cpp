@@ -48,7 +48,9 @@ int main(int argc, char **argv)
         ("steps_per_file", value<long>(), "number of time steps per output filr")
         ("start_date", value<string>(), "first time to proces in YYYY-MM-DD hh:mm:ss format")
         ("end_date", value<string>(), "first time to proces in YYYY-MM-DD hh:mm:ss format")
-        ("n_threads", value<int>(), "thread pool size. default is 1. -1 for all")
+        ("n_threads", value<int>(), "thread pool size. default is -1. -1 for all")
+        ("periodic_in_x", value<int>()->default_value(1),
+            "Flags whether the x dimension (typically longitude) is periodic.")
         ("verbose", "enable extra terminal output")
         ("help", "display the basic options help")
         ("advanced_help", "display the advanced options help")
@@ -170,6 +172,10 @@ int main(int argc, char **argv)
     if (opt_vals.count("input_regex"))
         cf_reader->set_files_regex(
             opt_vals["input_regex"].as<string>());
+
+    if (opt_vals.count("periodic_in_x"))
+        cf_reader->set_periodic_in_x(
+            opt_vals["periodic_in_x"].as<int>());
 
     if (opt_vals.count("output_file"))
         cf_writer->set_file_name(
