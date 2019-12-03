@@ -8,8 +8,8 @@ dnf update -qq -y
 # use PIP for Python packages
 dnf install -qq -y environment-modules which git-all gcc-c++ gcc-gfortran \
     make cmake-3.11.0-1.fc28 swig mpich-devel hdf5-devel netcdf-devel boost-devel \
-    python-devel python-pip subversion udunits2 udunits2-devel \
-    zlib-devel openssl-devel wget
+    python-devel python-pip python3-devel python3-pip subversion udunits2 \
+    udunits2-devel zlib-devel openssl-devel wget
 
 git clone https://github.com/jmcnamara/libxlsxwriter.git
 cd libxlsxwriter

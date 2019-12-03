@@ -13,7 +13,7 @@ env:
   global:
     - BUILD_TYPE=Debug
     - TECA_DIR=/travis_teca_dir
-    - TECA_PYTHON_VERSION=2
+    - TECA_PYTHON_VERSION=3
     - TECA_DATA_REVISION=49
   matrix:
     - DOCKER_IMAGE=ubuntu IMAGE_VERSION=18.04 IMAGE_NAME=ubuntu_18_04
