@@ -131,6 +131,10 @@ public:
         nc_type var_type = 0;
 
         int ierr = 0;
+#if !defined(HDF5_THREAD_SAFE)
+        {
+        std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
         if (((ierr = nc_inq_dimid(file_id, m_variable.c_str(), &var_id)) != NC_NOERR)
             || ((ierr = nc_inq_dimlen(file_id, var_id, &var_size)) != NC_NOERR)
             || ((ierr = nc_inq_varid(file_id, m_variable.c_str(), &var_id)) != NC_NOERR)
@@ -140,6 +144,9 @@ public:
                 << "\" from \"" << m_file << "\". " << nc_strerror(ierr))
             return std::make_pair(m_id, nullptr);
         }
+#if !defined(HDF5_THREAD_SAFE)
+        }
+#endif
 
         // allocate a buffer and read the variable.
         NC_DISPATCH(var_type,
@@ -421,20 +428,11 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 return teca_metadata();
             }
 
-            if (((ierr = nc_inq_dimid(fh.get(), x_axis_variable.c_str(), &x_id)) != NC_NOERR)
-                || ((ierr = nc_inq_dimlen(fh.get(), x_id, &n_x)) != NC_NOERR)
-                || ((ierr = nc_inq_varid(fh.get(), x_axis_variable.c_str(), &x_id)) != NC_NOERR)
-                || ((ierr = nc_inq_vartype(fh.get(), x_id, &x_t)) != NC_NOERR))
-            {
-                this->clear_cached_metadata();
-                TECA_ERROR(
-                    << "Failed to query x axis variable \"" << x_axis_variable
-                    << "\" in file \"" << file << "\"" << endl
-                    << nc_strerror(ierr))
-                return teca_metadata();
-            }
-
             // query mesh axes
+#if !defined(HDF5_THREAD_SAFE)
+            {
+            std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
             if (((ierr = nc_inq_dimid(fh.get(), x_axis_variable.c_str(), &x_id)) != NC_NOERR)
                 || ((ierr = nc_inq_dimlen(fh.get(), x_id, &n_x)) != NC_NOERR)
                 || ((ierr = nc_inq_varid(fh.get(), x_axis_variable.c_str(), &x_id)) != NC_NOERR)
@@ -447,6 +445,11 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     << nc_strerror(ierr))
                 return teca_metadata();
             }
+#if !defined(HDF5_THREAD_SAFE)
+            }
+            {
+            std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
 
             if (!y_axis_variable.empty()
                 && (((ierr = nc_inq_dimid(fh.get(), y_axis_variable.c_str(), &y_id)) != NC_NOERR)
@@ -461,6 +464,11 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     << nc_strerror(ierr))
                 return teca_metadata();
             }
+#if !defined(HDF5_THREAD_SAFE)
+            }
+            {
+            std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
 
             if (!z_axis_variable.empty()
                 && (((ierr = nc_inq_dimid(fh.get(), z_axis_variable.c_str(), &z_id)) != NC_NOERR)
@@ -475,6 +483,11 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     << nc_strerror(ierr))
                 return teca_metadata();
             }
+#if !defined(HDF5_THREAD_SAFE)
+            }
+            {
+            std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
 
             // enumerate mesh arrays and their attributes
             if (((ierr = nc_inq_nvars(fh.get(), &n_vars)) != NC_NOERR))
@@ -486,6 +499,9 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     << nc_strerror(ierr))
                 return teca_metadata();
             }
+#if !defined(HDF5_THREAD_SAFE)
+            }
+#endif
 
             for (int i = 0; i < n_vars; ++i)
             {
@@ -495,6 +511,10 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 int dim_id[NC_MAX_VAR_DIMS] = {0};
                 int n_atts = 0;
 
+#if !defined(HDF5_THREAD_SAFE)
+                {
+                std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
                 if ((ierr = nc_inq_var(fh.get(), i, var_name,
                         &var_type, &n_dims, dim_id, &n_atts)) != NC_NOERR)
                 {
@@ -504,6 +524,9 @@ teca_metadata teca_cf_reader::get_output_metadata(
                         << file << endl << nc_strerror(ierr))
                     return teca_metadata();
                 }
+#if !defined(HDF5_THREAD_SAFE)
+                }
+#endif
 
                 // skip scalars
                 if (n_dims == 0)
@@ -516,6 +539,10 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 {
                     char dim_name[NC_MAX_NAME + 1] = {'\0'};
                     size_t dim = 0;
+#if !defined(HDF5_THREAD_SAFE)
+                    {
+                    std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
                     if ((ierr = nc_inq_dim(fh.get(), dim_id[ii], dim_name, &dim)) != NC_NOERR)
                     {
                         this->clear_cached_metadata();
@@ -524,7 +551,9 @@ teca_metadata teca_cf_reader::get_output_metadata(
                             << var_name << ", " << file << endl << nc_strerror(ierr))
                         return teca_metadata();
                     }
-
+#if !defined(HDF5_THREAD_SAFE)
+                    }
+#endif
                     dim_names.push_back(dim_name);
                     dims.push_back(dim);
                 }
@@ -544,6 +573,10 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     char att_name[NC_MAX_NAME + 1] = {'\0'};
                     nc_type att_type = 0;
                     size_t att_len = 0;
+#if !defined(HDF5_THREAD_SAFE)
+                    {
+                    std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
                     if (((ierr = nc_inq_attname(fh.get(), i, ii, att_name)) != NC_NOERR)
                         || ((ierr = nc_inq_att(fh.get(), i, att_name, &att_type, &att_len)) != NC_NOERR))
                     {
@@ -553,29 +586,59 @@ teca_metadata teca_cf_reader::get_output_metadata(
                         free(att_buffer);
                         return teca_metadata();
                     }
-
+#if !defined(HDF5_THREAD_SAFE)
+                    }
+#endif
                     if (att_type == NC_CHAR)
                     {
                         char *tmp = static_cast<char*>(realloc(att_buffer, att_len + 1));
                         tmp[att_len] = '\0';
+#if !defined(HDF5_THREAD_SAFE)
+                        {
+                        std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
                         nc_get_att_text(fh.get(), i, att_name, tmp);
+#if !defined(HDF5_THREAD_SAFE)
+                        }
+#endif
                         teca_netcdf_util::crtrim(tmp, att_len);
                         atts.set(att_name, std::string(tmp));
                     }
                     else if (att_type == NC_STRING)
                     {
                         char *strs[1] = {nullptr};
+#if !defined(HDF5_THREAD_SAFE)
+                        {
+                        std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
                         nc_get_att_string(fh.get(), i, att_name, strs);
+#if !defined(HDF5_THREAD_SAFE)
+                        }
+#endif
                         atts.set(att_name, std::string(strs[0]));
+#if !defined(HDF5_THREAD_SAFE)
+                        {
+                        std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
                         nc_free_string(1, strs);
+#if !defined(HDF5_THREAD_SAFE)
+                        }
+#endif
                     }
                     else
                     {
                         NC_DISPATCH(att_type,
-                          NC_T *tmp = static_cast<NC_T*>(realloc(att_buffer, att_len));
-                          nc_get_att(fh.get(), i, att_name, tmp);
-                          atts.set(att_name, tmp, att_len);
-                          )
+                            NC_T *tmp = static_cast<NC_T*>(realloc(att_buffer, att_len));
+#if !defined(HDF5_THREAD_SAFE)
+                            {
+                            std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+                            nc_get_att(fh.get(), i, att_name, tmp);
+#if !defined(HDF5_THREAD_SAFE)
+                            }
+#endif
+                            atts.set(att_name, tmp, att_len);
+                            )
                     }
                 }
                 free(att_buffer);
@@ -587,6 +650,10 @@ teca_metadata teca_cf_reader::get_output_metadata(
             NC_DISPATCH_FP(x_t,
                 size_t x_0 = 0;
                 p_teca_variant_array_impl<NC_T> x = teca_variant_array_impl<NC_T>::New(n_x);
+#if !defined(HDF5_THREAD_SAFE)
+                {
+                std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
                 if ((ierr = nc_get_vara(fh.get(), x_id, &x_0, &n_x, x->get())) != NC_NOERR)
                 {
                     this->clear_cached_metadata();
@@ -595,6 +662,9 @@ teca_metadata teca_cf_reader::get_output_metadata(
                         << file << endl << nc_strerror(ierr))
                     return teca_metadata();
                 }
+#if !defined(HDF5_THREAD_SAFE)
+                }
+#endif
                 x_axis = x;
                 )
 
@@ -603,6 +673,10 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 NC_DISPATCH_FP(y_t,
                     size_t y_0 = 0;
                     p_teca_variant_array_impl<NC_T> y = teca_variant_array_impl<NC_T>::New(n_y);
+#if !defined(HDF5_THREAD_SAFE)
+                    {
+                    std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
                     if ((ierr = nc_get_vara(fh.get(), y_id, &y_0, &n_y, y->get())) != NC_NOERR)
                     {
                         this->clear_cached_metadata();
@@ -611,6 +685,9 @@ teca_metadata teca_cf_reader::get_output_metadata(
                             << file << endl << nc_strerror(ierr))
                         return teca_metadata();
                     }
+#if !defined(HDF5_THREAD_SAFE)
+                    }
+#endif
                     y_axis = y;
                     )
             }
@@ -628,6 +705,10 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 NC_DISPATCH_FP(z_t,
                     size_t z_0 = 0;
                     p_teca_variant_array_impl<NC_T> z = teca_variant_array_impl<NC_T>::New(n_z);
+#if !defined(HDF5_THREAD_SAFE)
+                    {
+                    std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
                     if ((ierr = nc_get_vara(fh.get(), z_id, &z_0, &n_z, z->get())) != NC_NOERR)
                     {
                         this->clear_cached_metadata();
@@ -636,6 +717,9 @@ teca_metadata teca_cf_reader::get_output_metadata(
                             << file << endl << nc_strerror(ierr))
                         return teca_metadata();
                     }
+#if !defined(HDF5_THREAD_SAFE)
+                    }
+#endif
                     z_axis = z;
                     )
             }
