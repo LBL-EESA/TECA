@@ -2,24 +2,20 @@
 set -v
 
 # suck in package lists
-dnf update -qq -y
+apt-get update -qq
 
 # install deps
 # use PIP for Python packages
-dnf install -qq -y environment-modules which git-all gcc-c++ gcc-gfortran \
-    make cmake-3.11.0-1.fc28 swig mpich-devel hdf5-devel netcdf-devel boost-devel \
-    python-devel python-pip subversion udunits2 udunits2-devel \
-    zlib-devel openssl-devel wget
+apt-get install -qq -y git-core gcc g++ gfortran cmake swig \
+    libmpich-dev libhdf5-dev libnetcdf-dev libboost-program-options-dev \
+    python-dev python-pip python3-dev python3-pip subversion libudunits2-0 \
+    libudunits2-dev zlib1g-dev libssl-dev
 
-git clone https://github.com/jmcnamara/libxlsxwriter.git
+git clone http://github.com/burlen/libxlsxwriter.git
 cd libxlsxwriter
 make
 make install
 cd ..
-
-source /usr/share/Modules/init/bash
-
-module load mpi
 
 echo ${TRAVIS_BRANCH}
 echo ${BUILD_TYPE}

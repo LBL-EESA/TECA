@@ -1,13 +1,14 @@
 #!/bin/bash
 set -v
 export DASHROOT=`pwd`
-export CC=`which gcc-5`
-export CXX=`which g++-5`
-export FC=`which gfortran-5`
 export SHA=`git log --pretty=format:'%h' -n 1`
+if [[ "$DOCKER_IMAGE" == "fedora" ]]; then
+    source /usr/share/Modules/init/bash
+    module load mpi
+fi
 export PATH=.:${PATH}
-export PYTHONPATH=${TRAVIS_BUILD_DIR}/build/lib
-export LD_LIBRARY_PATH=${TRAVIS_BUILD_DIR}/build/lib
+export PYTHONPATH=${DASHROOT}/build/lib
+export LD_LIBRARY_PATH=${DASHROOT}/build/lib
 export MPLBACKEND=Agg
 mkdir build
 cmake --version

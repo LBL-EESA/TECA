@@ -1,5 +1,4 @@
 #!/bin/bash
-set -v
 export DASHROOT=`pwd`
 export SHA=`git log --pretty=format:'%h' -n 1`
 export PATH=.:/usr/local/bin:${PATH}
