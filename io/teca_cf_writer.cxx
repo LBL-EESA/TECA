@@ -795,6 +795,12 @@ const_p_teca_dataset teca_cf_writer::execute(unsigned int port,
 
     // construct the file name
     std::string out_file = this->file_name;
+    if (out_file.empty())
+    {
+        TECA_ERROR("filename was not set for cf_writer")
+        return nullptr;
+    }
+
     if (!this->date_format.empty())
     {
         // use the date string for the time information in the filename
