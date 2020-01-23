@@ -33,7 +33,7 @@ function (teca_add_test T_NAME)
                 target_link_libraries(${EXEC_NAME} ${T_LIBS})
             endif()
         endif()
-        if ((T_REQ_TECA_DATA AND TECA_DATA_ROOT) OR NOT T_REQ_TECA_DATA)
+        if ((T_REQ_TECA_DATA AND TECA_HAS_DATA) OR NOT T_REQ_TECA_DATA)
             add_test(NAME ${T_NAME} COMMAND ${T_COMMAND}
                 WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
             if (T_WILL_FAIL)

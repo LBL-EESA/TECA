@@ -240,3 +240,7 @@ teca_add_test(py_test_information_array_io
     "${CMAKE_CURRENT_SOURCE_DIR}/test_information_array_io.py" 1 3
     "${TECA_DATA_ROOT}/test_information_array_io.bin"
     FEATURES ${TECA_HAS_NETCDF})
+
+teca_add_test(py_test_config
+    COMMAND ${PYTHON_EXECUTABLE}
+    "${CMAKE_CURRENT_SOURCE_DIR}/test_config.py")

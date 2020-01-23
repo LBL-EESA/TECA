@@ -300,6 +300,18 @@ endif()
 set(TECA_VERSION_DESCR ${tmp} CACHE STRING "TECA version descriptor")
 message(STATUS "TECA version ${TECA_VERSION_DESCR}")
 
+# do we have access to a checkout of TECA_data?
+set(tmp OFF)
+set(TECA_DATA_ROOT "/path/to/TECA_data"
+    CACHE PATH "Path to TECA_data repository")
+if (EXISTS "${TECA_DATA_ROOT}")
+    set(tmp ON)
+    message(STATUS "TECA_data -- available")
+else()
+    message(STATUS "TECA_data -- not available")
+endif()
+set(TECA_HAS_DATA ${tmp} CACHE BOOL "TECA_data is present")
+
 # generate global configuration
 include(CMake/teca_test.cmake)
 include(CMake/teca_app.cmake)
@@ -325,13 +337,6 @@ if (BUILD_TESTING)
         "${CMAKE_CURRENT_SOURCE_DIR}/CTestCustom.cmake.in"
         "${CMAKE_CURRENT_BINARY_DIR}/CTestCustom.cmake"
         @ONLY)
-    set(TECA_DATA_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../TECA_data"
-        CACHE PATH "Path to TECA test data directory")
-    if (TECA_DATA_ROOT AND (NOT EXISTS "${TECA_DATA_ROOT}"))
-        message(STATUS "Test data -- not available")
-    else()
-        message(STATUS "Test data -- available")
-    endif()
     set(TECA_TEST_CORES 4 CACHE STRING
         "Number of cores for use in parallel tests")
     math(EXPR HALF_CORES "${TECA_TEST_CORES}/2")
