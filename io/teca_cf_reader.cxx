@@ -417,6 +417,8 @@ teca_metadata teca_cf_reader::get_output_metadata(
             p_teca_variant_array y_axis;
             p_teca_variant_array z_axis;
             p_teca_variant_array t_axis;
+            double bounds[6] = {0.0};
+            unsigned long whole_extent[6] = {0ul};
 
             teca_metadata atrs;
             std::vector<std::string> vars;
@@ -666,6 +668,9 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 }
 #endif
                 x_axis = x;
+                whole_extent[1] = n_x - 1;
+                bounds[0] = x->get(0);
+                bounds[1] = x->get(whole_extent[1]);
                 )
 
             if (!y_axis_variable.empty())
@@ -689,6 +694,9 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     }
 #endif
                     y_axis = y;
+                    whole_extent[3] = n_y - 1;
+                    bounds[2] = y->get(0);
+                    bounds[3] = y->get(whole_extent[3]);
                     )
             }
             else
@@ -721,6 +729,9 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     }
 #endif
                     z_axis = z;
+                    whole_extent[5] = n_z - 1;
+                    bounds[4] = z->get(0);
+                    bounds[5] = z->get(whole_extent[5]);
                     )
             }
             else
@@ -955,12 +966,8 @@ teca_metadata teca_cf_reader::get_output_metadata(
             coords.set("periodic_in_x", this->periodic_in_x);
             coords.set("periodic_in_y", this->periodic_in_y);
             coords.set("periodic_in_z", this->periodic_in_z);
-
-            std::vector<size_t> whole_extent(6, 0);
-            whole_extent[1] = n_x - 1;
-            whole_extent[3] = n_y - 1;
-            whole_extent[5] = n_z - 1;
             this->internals->metadata.set("whole_extent", whole_extent);
+            this->internals->metadata.set("bounds", bounds);
             this->internals->metadata.set("coordinates", coords);
             this->internals->metadata.set("files", files);
             this->internals->metadata.set("root", path);
@@ -1099,6 +1106,9 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
         {
             memcpy(extent, whole_extent, 6*sizeof(unsigned long));
         }
+        // get bounds of the extent being read
+        for (int i = 0; i < 6; ++i)
+            in_x->get(extent[i], bounds[i]);
     }
     else
     {
@@ -1172,6 +1182,7 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
     mesh->set_time_step(time_step);
     mesh->set_whole_extent(whole_extent);
     mesh->set_extent(extent);
+    mesh->set_bounds(bounds);
     mesh->set_periodic_in_x(this->periodic_in_x);
     mesh->set_periodic_in_y(this->periodic_in_y);
     mesh->set_periodic_in_z(this->periodic_in_z);
