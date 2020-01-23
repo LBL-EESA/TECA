@@ -126,15 +126,6 @@ void teca_component_area_filter::set_properties(const std::string &prefix,
 #endif
 
 // --------------------------------------------------------------------------
-std::string teca_component_area_filter::get_labels_variable()
-{
-    if (this->component_variable.empty())
-        return "component_ids";
-
-    return this->component_variable;
-}
-
-// --------------------------------------------------------------------------
 teca_metadata teca_component_area_filter::get_output_metadata(
     unsigned int port,
     const std::vector<teca_metadata> &input_md)
@@ -174,10 +165,9 @@ std::vector<teca_metadata> teca_component_area_filter::get_upstream_request(
     std::vector<teca_metadata> up_reqs;
 
     // get the name of the array to request
-    std::string labels_var = this->get_labels_variable();
-    if (labels_var.empty())
+    if (this->component_variable.empty())
     {
-        TECA_ERROR("labels variable was not specified")
+        TECA_ERROR("The component variable was not specified")
         return up_reqs;
     }
 
@@ -187,7 +177,7 @@ std::vector<teca_metadata> teca_component_area_filter::get_upstream_request(
     std::set<std::string> arrays;
     if (req.has("arrays"))
         req.get("arrays", arrays);
-    arrays.insert(labels_var);
+    arrays.insert(this->component_variable);
 
     // remove the arrays we produce if the post-fix is set,
     // and replace it with the actual requested array.
@@ -234,19 +224,18 @@ const_p_teca_dataset teca_component_area_filter::execute(
         std::const_pointer_cast<teca_cartesian_mesh>(in_mesh));
 
     // get the input array
-    std::string labels_var = this->get_labels_variable();
-    if (labels_var.empty())
+    if (this->component_variable.empty())
     {
-        TECA_ERROR("labels variable was not specified")
+        TECA_ERROR("The component variable was not specified")
         return nullptr;
     }
 
     const_p_teca_variant_array labels_in
-        = out_mesh->get_point_arrays()->get(labels_var);
+        = out_mesh->get_point_arrays()->get(this->component_variable);
 
     if (!labels_in)
     {
-        TECA_ERROR("labels variable \"" << labels_var
+        TECA_ERROR("labels variable \"" << this->component_variable
             << "\" is not in the input")
         return nullptr;
     }
@@ -292,7 +281,7 @@ const_p_teca_dataset teca_component_area_filter::execute(
     p_teca_variant_array labels_out = labels_in->new_instance(n_elem);
 
     // pass to the output
-    std::string labels_var_post_fix = labels_var + this->variable_post_fix;
+    std::string labels_var_post_fix = this->component_variable + this->variable_post_fix;
     out_mesh->get_point_arrays()->set(labels_var_post_fix, labels_out);
 
     // get the output metadata to add results to after the filter is applied
