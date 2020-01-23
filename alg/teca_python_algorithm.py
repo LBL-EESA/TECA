@@ -14,13 +14,19 @@ class teca_python_algorithm(object):
     def New(derived_class):
         """ factory method returns an instance of the derived type """
         dc = derived_class()
-        dc.initialize()
+        dc.initialize_implementation()
         return dc
 
-    def initialize(self, n_inputs=1, n_outputs=1):
+    def initialize_implementation(self):
         """
-        Initializes the instance and wires up the plumbing
+        Initializes the instance and wires up the plumbing.
         """
+        # call overridable methods to get number of inputs/outputs
+        n_inputs = self.get_number_of_input_connections()
+        n_outputs = self.get_number_of_output_ports()
+
+        # call overrides to get implementation for teca execution
+        # phase implementations
         self.impl = teca_py.teca_programmable_algorithm.New()
         self.impl.set_number_of_input_connections(n_inputs)
         self.impl.set_number_of_output_ports(n_outputs)
@@ -29,9 +35,29 @@ class teca_python_algorithm(object):
         self.impl.set_request_callback(self.get_request_callback())
         self.impl.set_execute_callback(self.get_execute_callback())
 
-    def __getattr__(self, *args):
+    def __getattr__(self, name):
         """ forward stuff to the programmable algorithm """
-        return self.impl.__getattribute__(*args)
+
+        # guard against confusing infinite recursion that
+        # occurs if impl is not present. one common way
+        # that this occurs is if the instance was not
+        # created with the New method
+        if name == 'impl':
+            raise RuntimeError('The teca_python_algorithm ' \
+                'was imporperly initialized. Did you use the ' \
+                'factory method, New(), to create this ' \
+                'instance of %s?'%(self.__class__.__name__))
+
+        # forward to the teca_programmable_algorithm
+        return self.impl.__getattribute__(name)
+
+    def get_number_of_input_connections(self):
+        """ Override to change number of inputs """
+        return 1
+
+    def get_number_of_output_ports(self):
+        """ Override to change number of outputs """
+        return 1
 
     def get_report_callback(self):
         """
@@ -39,7 +65,9 @@ class teca_python_algorithm(object):
 
             report_callback(port, md_in) -> teca_metadata
 
-        The default implementation passes the report down stream
+        The default implementation passes the report down stream.
+        Override this to customize the behavior of the report
+        phase of execution.
         """
         def report_callback(port, md_in):
              return teca_py.teca_metadata(md_in[0])
@@ -51,7 +79,9 @@ class teca_python_algorithm(object):
 
             request_callback(port, md_in, req_in) -> [teca_metadata]
 
-        The default implementation passes the request up
+        The default implementation passes the request up stream.
+        Override this to customize the behavior of the request
+        phase of execution.
         """
         def request_callback(port, md_in, req_in):
             return [teca_py.teca_metadata(req_in)]
@@ -63,7 +93,9 @@ class teca_python_algorithm(object):
 
             execute_callback(port, data_in, req_in) -> teca_dataset
 
-        The default implementation shallow copies the input
+        The default implementation shallow copies the input dataset.
+        Override this to customize the behavior of the execute
+        phase of execution.
         """
         def execute_callback(port, data_in, req_in):
             if len(data_in):
