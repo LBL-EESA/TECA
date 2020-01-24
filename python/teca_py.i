@@ -26,17 +26,13 @@ The io module contains readers and writers.
 #include <Python.h>
 %}
 
-%include <teca_config.h>
-#if defined(TECA_HAS_MPI)
-%include <mpi4py/mpi4py.i>
-%mpi4py_typemap(Comm, MPI_Comm);
-#endif
-
 %include <std_pair.i>
 %include <std_string.i>
-%include "teca_py_vector.i"
 %include "teca_py_common.i"
+%include "teca_py_config.i"
+%include "teca_py_vector.i"
 %include "teca_py_shared_ptr.i"
+%include "teca_py_mpi.i"
 %include "teca_py_core.i"
 %include "teca_py_data.i"
 %include "teca_py_alg.i"

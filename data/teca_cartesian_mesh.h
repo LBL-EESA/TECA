@@ -17,6 +17,7 @@ public:
     // set/get metadata
     TECA_DATASET_METADATA(whole_extent, unsigned long, 6)
     TECA_DATASET_METADATA(extent, unsigned long, 6)
+    TECA_DATASET_METADATA(bounds, double, 6)
     TECA_DATASET_METADATA(periodic_in_x, int, 1)
     TECA_DATASET_METADATA(periodic_in_y, int, 1)
     TECA_DATASET_METADATA(periodic_in_z, int, 1)

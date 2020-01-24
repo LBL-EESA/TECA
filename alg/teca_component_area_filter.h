@@ -12,10 +12,11 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_component_area_filter)
 
 /// An algorithm that applies a mask based on connected component area
 /**
-The filter removes the connected components outside the range by the
-'low_area_threshold' and 'high_area_threshold' properties. These default to
--inf and +inf, hence by default no components are masked. The mask value may be
-set by the 'mask_value' property which defaults to '0'.
+The filter masks the regions identified by an integer label that are outside
+the range bracketed by the 'low_area_threshold' and 'high_area_threshold'
+properties. These default to -inf and +inf, hence by default no regions are
+masked. The mask value may be set by the 'mask_value' property which defaults
+to '0'.
 
 The filter expects an integer field containing connected component labels.
 This field is named by the 'component_variable' property. Additionally a list
@@ -86,8 +87,6 @@ public:
 
 protected:
     teca_component_area_filter();
-
-    std::string get_labels_variable();
 
 private:
     teca_metadata get_output_metadata(

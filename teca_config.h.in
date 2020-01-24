@@ -17,4 +17,7 @@
 
 #cmakedefine TECA_ENABLE_PROFILER
 
+#cmakedefine TECA_HAS_DATA
+#cmakedefine TECA_DATA_ROOT "@TECA_DATA_ROOT@"
+
 #endif

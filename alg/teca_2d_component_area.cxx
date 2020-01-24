@@ -268,7 +268,10 @@ const_p_teca_dataset teca_2d_component_area::execute(
     unsigned long nz = extent[5] - extent[4] + 1;
     if (nz != 1)
     {
-        TECA_ERROR("This calculation requires 2D data")
+        TECA_ERROR("This calculation requires 2D data. The current dataset "
+            "extents are [" << extent[0] << ", " << extent[1] << ", "
+            << extent[2] << ", " << extent[3] << ", " << extent[4] << ", "
+            << extent[5] << "]")
         return nullptr;
     }
 

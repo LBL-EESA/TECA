@@ -52,6 +52,10 @@ public:
     template<typename T>
     int set(const std::string &name, const T *val, unsigned int n);
 
+    template<typename T, unsigned int N>
+    int set(const std::string &name, const T (&val)[N])
+    { return this->set(name, val, N); }
+
     // insert or update a set.
     template<typename T>
     int set(const std::string &name, const std::set<T> &val);
