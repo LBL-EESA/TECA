@@ -12,7 +12,7 @@ from distutils.version import LooseVersion
 # when compiled outside of the git repo we must set the version
 # manually. Also note that these must be unique per upload to PyPi
 # so be sure to use an 'rcX' for testing
-teca_version = "2.2.2"
+teca_version = "3.0.0"
 
 class CMakeExtension(Extension):
     def __init__(self, name, sourcedir=''):
@@ -63,7 +63,7 @@ class CMakeBuild(build_ext):
             raise RuntimeError('Windows is currrently unsupprted due to a lack of interest/funding')
         else:
             cmake_args += ['-DCMAKE_BUILD_TYPE=' + cfg]
-            build_args += ['--', '-j20']
+            build_args += ['--', '-j%d'%(nj)]
             install_args += ['--', '-j%d'%(nj), 'install']
 
         # make the build directory
