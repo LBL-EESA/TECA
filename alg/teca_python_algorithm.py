@@ -1,4 +1,3 @@
-import teca_py
 
 class teca_python_algorithm(object):
     """
@@ -27,6 +26,7 @@ class teca_python_algorithm(object):
 
         # call overrides to get implementation for teca execution
         # phase implementations
+        import teca_py
         self.impl = teca_py.teca_programmable_algorithm.New()
         self.impl.set_number_of_input_connections(n_inputs)
         self.impl.set_number_of_output_ports(n_outputs)
@@ -70,7 +70,8 @@ class teca_python_algorithm(object):
         phase of execution.
         """
         def report_callback(port, md_in):
-             return teca_py.teca_metadata(md_in[0])
+            import teca_py
+            return teca_py.teca_metadata(md_in[0])
         return report_callback
 
     def get_request_callback(self):
@@ -84,6 +85,7 @@ class teca_python_algorithm(object):
         phase of execution.
         """
         def request_callback(port, md_in, req_in):
+            import teca_py
             return [teca_py.teca_metadata(req_in)]
         return request_callback
 
@@ -98,6 +100,7 @@ class teca_python_algorithm(object):
         phase of execution.
         """
         def execute_callback(port, data_in, req_in):
+            import teca_py
             if len(data_in):
                 data_out = data_in[0].new_instance()
                 data_out.shallow_copy(teca_py.as_non_const_teca_dataset(data_out))
