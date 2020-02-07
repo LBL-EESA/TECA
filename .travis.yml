@@ -15,12 +15,12 @@ env:
     - TECA_DIR=/travis_teca_dir
     - TECA_PYTHON_VERSION=3
     - TECA_DATA_REVISION=49
-  matrix:
+  jobs:
     - DOCKER_IMAGE=ubuntu IMAGE_VERSION=18.04 IMAGE_NAME=ubuntu_18_04
     - DOCKER_IMAGE=fedora IMAGE_VERSION=28 IMAGE_NAME=fedora_28
     - NO_DOCKER=TRUE
 
-matrix:
+jobs:
   exclude:
     - os: osx
       env: DOCKER_IMAGE=ubuntu IMAGE_VERSION=18.04 IMAGE_NAME=ubuntu_18_04
