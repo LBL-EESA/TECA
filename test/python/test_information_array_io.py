@@ -29,47 +29,37 @@ class generate_info_arrays(teca_python_algorithm):
         if self.verbose:
             sys.stderr.write('generate_info_arrays::%s\n'%(msg))
 
-    def get_report_callback(self):
-        self.print_status('get_report_callback')
+    def report(self, port, md_in):
+        self.print_status('report(override)')
+        md_out = teca_metadata(md_in[0])
+        try:
+            arrays = md_out['arrays']
+        except:
+            arrays = []
+        md_out['arrays'] = arrays + ['time_info', 'step_info']
+        return md_out
 
-        def report_callback(port, md_in):
-            self.print_status('report_callback')
-            md_out = teca_metadata(md_in[0])
-            try:
-                arrays = md_out['arrays']
-            except:
-                arrays = []
-            md_out['arrays'] = arrays + ['time_info', 'step_info']
-            return md_out
+    def execute(self, port, data_in, req_in):
+        self.print_status('execute(override)')
 
-        return report_callback
+        mesh_in = as_const_teca_cartesian_mesh(data_in[0])
+        t = mesh_in.get_time()
+        s = mesh_in.get_time_step()
 
-    def get_execute_callback(self):
-        self.print_status('get_execute_callback')
+        mesh_out = teca_cartesian_mesh.New()
+        mesh_out.shallow_copy(mesh_in)
 
-        def execute_callback(port, data_in, req_in):
-            self.print_status('execute_callback')
+        t_inf = teca_variant_array.New(np.array([t, t, t, t]))
+        mesh_out.get_information_arrays().append('time_info', t_inf)
 
-            mesh_in = as_const_teca_cartesian_mesh(data_in[0])
-            t = mesh_in.get_time()
-            s = mesh_in.get_time_step()
+        s_inf = teca_variant_array.New(np.array([s,s]))
+        mesh_out.get_information_arrays().append('step_info', s_inf)
 
-            mesh_out = teca_cartesian_mesh.New()
-            mesh_out.shallow_copy(mesh_in)
+        if self.verbose:
+            sys.stderr.write('t=%g, time_info=%s\n'%(t, str(t_inf)))
+            sys.stderr.write('s=%d, step_info=%s\n'%(s, str(s_inf)))
 
-            t_inf = teca_variant_array.New(np.array([t, t, t, t]))
-            mesh_out.get_information_arrays().append('time_info', t_inf)
-
-            s_inf = teca_variant_array.New(np.array([s,s]))
-            mesh_out.get_information_arrays().append('step_info', s_inf)
-
-            if self.verbose:
-                sys.stderr.write('t=%g, time_info=%s\n'%(t, str(t_inf)))
-                sys.stderr.write('s=%d, step_info=%s\n'%(s, str(s_inf)))
-
-            return mesh_out
-
-        return execute_callback
+        return mesh_out
 
 
 class print_info_arrays(teca_python_algorithm):
@@ -84,26 +74,21 @@ class print_info_arrays(teca_python_algorithm):
         if self.verbose:
             sys.stderr.write('print_info_arrays::%s\n'%(msg))
 
-    def get_execute_callback(self):
-        self.print_status('get_execute_callback')
+    def execute(self, port, data_in, req_in):
+        self.print_status('execute(override)')
 
-        def execute_callback(port, data_in, req_in):
-            self.print_status('execute_callback')
+        mesh_in = as_const_teca_cartesian_mesh(data_in[0])
+        mesh_out = teca_cartesian_mesh.New()
+        mesh_out.shallow_copy(mesh_in)
 
-            mesh_in = as_const_teca_cartesian_mesh(data_in[0])
-            mesh_out = teca_cartesian_mesh.New()
-            mesh_out.shallow_copy(mesh_in)
+        if self.verbose:
+            sys.stderr.write('t=%g, time_info=%s\n'%(mesh_out.get_time(), \
+                str(mesh_out.get_information_arrays().get('time_info'))))
 
-            if self.verbose:
-                sys.stderr.write('t=%g, time_info=%s\n'%(mesh_out.get_time(), \
-                    str(mesh_out.get_information_arrays().get('time_info'))))
+            sys.stderr.write('s=%d, step_info=%s\n'%(mesh_out.get_time_step(), \
+                str(mesh_out.get_information_arrays().get('step_info'))))
 
-                sys.stderr.write('s=%d, step_info=%s\n'%(mesh_out.get_time_step(), \
-                    str(mesh_out.get_information_arrays().get('step_info'))))
-
-            return mesh_out
-
-        return execute_callback
+        return mesh_out
 
 
 

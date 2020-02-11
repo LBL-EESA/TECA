@@ -142,27 +142,59 @@ reader's metadata convention. For most use cases the reader will be TECA's
 NetCDF CF 2.0 reader, teca\_cf\_reader. The convention adopted by the CF reader
 are documented in its header file and in section \ref{sec:cf_reader}.
 
-In C++11 polymorphism is used to provide customized behavior for each
-of the three pipeline phases. In Python we use the
-teca\_python\_algorithm, an adapter class that calls user provided
-callback functions at the appropriate times during each phase of pipeline
-execution. Hence writing a TECA algorithm purely in Python amounts to providing
-three appropriate callbacks.
+In C++ and Python polymorphism is used to provide customized behavior for each
+of the three pipeline phases. In Python we use the teca\_python\_algorithm, an
+adapter class that connects the user provided overrides such that they are
+called at the appropriate times during each phase of pipeline execution. Hence
+writing a TECA algorithm purely in Python amounts to providing three
+appropriate overrides.
 
 .. _py_devel_code:
 
 .. literalinclude:: source/stats_callbacks.py
     :language: python
     :linenos:
-    :caption: Callbacks implementing the calculation of descriptive statistics over a set of variables laid out on a Cartesian lat-lon mesh. The request callback requests the variables, the execute callback makes the computations and constructs a table to store them in.
+    :caption: Overrides implementing the calculation of descriptive statistics over a set of variables laid out on a Cartesian lat-lon mesh. The request override requests the variables, the execute override makes the computations and constructs a table to store them in.
 
-The Report Callback
-+++++++++++++++++++
-The report callback will report the universe of what the algorithm could produce.
+
+Python Algorithm Template
++++++++++++++++++++++++++
+To extend TECA using Python one derives from teca_python_algorithm. A template
+follows:
 
 .. code-block:: python
 
-    def report_callback(o_port, reports_in) -> report_out
+    class YOUR_CLASS_NAME(teca_python_algorithm):
+
+        # YOUR INITIALIZATION CODE
+
+        # YOUR PROPERTY SETTING CODE
+
+        def report(self, o_port, reports_in):
+            # YOUR CODE REPORTING NEW DATA PRODUCED IN
+            # EXECUTE.
+
+        def request(self, o_port, reports_in, request_in):
+            # YOUR CODE REQUESTING SPECIFIC DATA NEEDED
+            # IN EXECUTE
+
+        def execute(self, o_port, data_in, request_in):
+            # YOUR CODE DO A CALCULATION, TRANSFORM DATA,
+            # OR MAKING A SIDE AFFECT
+
+One overrides one por more of the three methods: report, request, and execute.
+In addition one can add initialization and properties that control run time
+behavior. For instance a writer may use a file_name property to specify the
+locatgion on disk to put the data. Typically this would be accessed via a
+set_file_name method. The overrides are described in more detail below.
+
+The Report Override
++++++++++++++++++++
+The report override will report the universe of what the algorithm could produce.
+
+.. code-block:: python
+
+    def report(self, o_port, reports_in) -> report_out
 
 o\_port
      integer. the output port number to report for. can be ignored for single
@@ -181,14 +213,14 @@ is passed through with metadata describing new data that could be produced
 appended as needed. This allows upstream data producers to advertise their
 capabilities.
 
-The Request Callback
+The Request Override
 ++++++++++++++++++++
-The request callback generates an up stream request requesting the minimum
-amount of data actually needed to fulfill the incoming request
-.
+The request override generates an up stream request requesting the minimum
+amount of data actually needed to fulfill the incoming request.
+
 .. code-block:: python
 
-    def request(o_port, reports_in, request_in) -> requests_out
+    def request(self, o_port, reports_in, request_in) -> requests_out
 
 o\_port
      integer. the output port number to report for. can be ignored for single output algorithms.
@@ -208,14 +240,14 @@ Typically the incoming request is passed through appending the
 necessary metadata as needed. This allows down stream data consumers to request
 data that is produced upstream.
 
-The Execute Callback
+The Execute Override
 ++++++++++++++++++++
-The execute callback is where the computations or I/O necessary to produce the
+The execute override is where the computations or I/O necessary to produce the
 requested data are handled.
 
 .. code-block:: python
 
-    def execute(o_port, data_in, request_in) -> data_out
+    def execute(self, o_port, data_in, request_in) -> data_out
 
 o\_port
      integer. the output port number to report for. can be ignored for single
@@ -223,7 +255,7 @@ o\_port
 
 data\_in
      teca\_dataset list. a dataset for each request you made in the request
-     callback in the same order.
+     override in the same order.
 
 request\_in
      teca\_metadata. the request being made of you.
@@ -243,24 +275,22 @@ Lines 25-27 of listing :numref:`py_glue_code` illustrate the use of
 teca\_python\_algorithm. In this example a class derived from
 teca\_python\_algorithm computes descriptive statistics over a set of variables
 laid out on a Cartesian lat-lon mesh. The derived class, descriptive_stats, is
-in a separate file, stats\_callbacks.py (listing :numref:`py_devel_code`)
+in a separate file, stats\_overrides.py (listing :numref:`py_devel_code`)
 imported on line 4.
 
 Listing :numref:`py_devel_code` shows the class derived from
 teca\_python\_algorithm that is used in listing :numref:`py_glue_code`.  The
-class implements request and execute callbacks.  Note, that we did not need to
-provide a report callback as the default implementation, which passes the
-report through was all that was needed. In both our request and execute
-callbacks we used a closure to access class state from the callback. Our
-request callback (lines 15-21 of listing :numref:`py_devel_code`) simply adds
-the list of variables we need into the incoming request which it then forwards
-up stream. The execute callback (lines 23-45) gets the input dataset (line 27),
-creates the output table adding columns and values of time and time step (lines
-29-31), then for each variable we add columns to the table for each computation
-(line 35), get the array from the input dataset (line 39), compute statistics
-and add them to the table (lines 41-43), and returns the table containing the
-results (line 45). This data can then be processed by the next stage in the
-pipeline.
+class implements request and execute overrides.  Note, that we did not need to
+provide a report override as the default implementation, which passes the
+report through was all that was needed. Our request override (lines 15-21 of
+listing :numref:`py_devel_code`) simply adds the list of variables we need into
+the incoming request which it then forwards up stream. The execute override
+(lines 23-45) gets the input dataset (line 27), creates the output table adding
+columns and values of time and time step (lines 29-31), then for each variable
+we add columns to the table for each computation (line 35), get the array from
+the input dataset (line 39), compute statistics and add them to the table
+(lines 41-43), and returns the table containing the results (line 45). This
+data can then be processed by the next stage in the pipeline.
 
 .. _data_struct:
 
