@@ -16,16 +16,22 @@ env:
     - TECA_PYTHON_VERSION=3
     - TECA_DATA_REVISION=49
   jobs:
-    - DOCKER_IMAGE=ubuntu IMAGE_VERSION=18.04 IMAGE_NAME=ubuntu_18_04
-    - DOCKER_IMAGE=fedora IMAGE_VERSION=28 IMAGE_NAME=fedora_28
+    - DOCKER_IMAGE=ubuntu IMAGE_VERSION=18.04 IMAGE_NAME=ubuntu_18_04 SUPER_BUILD=FALSE
+    - DOCKER_IMAGE=ubuntu IMAGE_VERSION=18.04 IMAGE_NAME=ubuntu_18_04 SUPER_BUILD=TRUE
+    - DOCKER_IMAGE=fedora IMAGE_VERSION=28 IMAGE_NAME=fedora_28 SUPER_BUILD=FALSE
+    - DOCKER_IMAGE=fedora IMAGE_VERSION=28 IMAGE_NAME=fedora_28 SUPER_BUILD=TRUE
     - NO_DOCKER=TRUE
 
 jobs:
   exclude:
     - os: osx
-      env: DOCKER_IMAGE=ubuntu IMAGE_VERSION=18.04 IMAGE_NAME=ubuntu_18_04
+      env: DOCKER_IMAGE=ubuntu IMAGE_VERSION=18.04 IMAGE_NAME=ubuntu_18_04 SUPER_BUILD=FALSE
     - os: osx
-      env: DOCKER_IMAGE=fedora IMAGE_VERSION=28 IMAGE_NAME=fedora_28
+      env: DOCKER_IMAGE=ubuntu IMAGE_VERSION=18.04 IMAGE_NAME=ubuntu_18_04 SUPER_BUILD=TRUE
+    - os: osx
+      env: DOCKER_IMAGE=fedora IMAGE_VERSION=28 IMAGE_NAME=fedora_28 SUPER_BUILD=FALSE
+    - os: osx
+      env: DOCKER_IMAGE=fedora IMAGE_VERSION=28 IMAGE_NAME=fedora_28 SUPER_BUILD=TRUE
     - os: linux
       env: NO_DOCKER=TRUE
 
@@ -43,12 +49,19 @@ install:
     if [[ "${TRAVIS_OS_NAME}" == "osx" ]];
     then
     ./test/travis_ci/install_osx.sh;
-    elif [[ "$TRAVIS_OS_NAME" == "linux" ]];
+    elif [[ "$TRAVIS_OS_NAME" == "linux" ] && [ "$SUPER_BUILD" == "FALSE" ]];
     then
     docker exec teca_${DOCKER_IMAGE}_${IMAGE_VERSION} /bin/bash -c
     "export TECA_PYTHON_VERSION=${TECA_PYTHON_VERSION} &&
     export TECA_DATA_REVISION=${TECA_DATA_REVISION} &&
     ${TECA_DIR}/test/travis_ci/install_${IMAGE_NAME}.sh";
+    fi
+    elif [[ "$TRAVIS_OS_NAME" == "linux" ] && [ "$SUPER_BUILD" == "TRUE" ]];
+    then
+    docker exec teca_${DOCKER_IMAGE}_${IMAGE_VERSION} /bin/bash -c
+    "export TECA_PYTHON_VERSION=${TECA_PYTHON_VERSION} &&
+    export TECA_DATA_REVISION=${TECA_DATA_REVISION} &&
+    ${TECA_DIR}/test/travis_ci/install_${IMAGE_NAME}_superbuild.sh";
     fi
 
 script:
