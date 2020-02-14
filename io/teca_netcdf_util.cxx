@@ -71,7 +71,7 @@ int netcdf_handle::create(const std::string &file_path, int mode)
 }
 
 // --------------------------------------------------------------------------
-void netcdf_handle::close()
+int netcdf_handle::close()
 {
     if (m_handle)
     {
@@ -81,6 +81,7 @@ void netcdf_handle::close()
         nc_close(m_handle);
         m_handle = 0;
     }
+    return 0;
 }
 
 }

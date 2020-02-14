@@ -125,11 +125,15 @@ public:
     int create(const std::string &file_path, int mode);
 
     // close the file
-    void close();
+    int close();
 
     // returns a reference to the handle
     int &get()
     { return m_handle; }
+
+    // test if the handle is valid
+    operator bool() const
+    { return m_handle > 0; }
 
 private:
     int m_handle;
