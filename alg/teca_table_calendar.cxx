@@ -130,16 +130,14 @@ const_p_teca_dataset teca_table_calendar::execute(
 
     // get calendar and unit system
     std::string units = this->units;
-    if (units.empty() &&
-        ((in_table->get_time_units(units)) && units.empty()))
+    if (units.empty() && (in_table->get_time_units(units) || units.empty()))
     {
         TECA_ERROR("Units are missing")
         return nullptr;
     }
 
     std::string calendar = this->calendar;
-    if (calendar.empty() &&
-        ((in_table->get_calendar(calendar)) && calendar.empty()))
+    if (calendar.empty() && (in_table->get_calendar(calendar) || calendar.empty()))
     {
         TECA_ERROR("Calendar is missing")
         return nullptr;
