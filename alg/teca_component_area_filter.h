@@ -75,7 +75,7 @@ public:
     TECA_ALGORITHM_PROPERTY(double, high_area_threshold)
 
     // a string to be appended to the name of the output variable.
-    // setting this to an empty string will result in the damped array
+    // setting this to an empty string will result in the masked array
     // replacing the input array in the output. default is an empty
     // string ""
     TECA_ALGORITHM_PROPERTY(std::string, variable_post_fix)

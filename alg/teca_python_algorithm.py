@@ -1,17 +1,17 @@
 
 class teca_python_algorithm(object):
     """
-    The base class used for writing new algorithms in Python.
-    Contains plumbing that connects user provided callbacks
-    to an instance of teca_programmable_algorithm. Users are
-    expected to override one or more of get_report_callback,
-    get_request_callback, and/or get_execute_callback. These
-    methods return a callable with the correct signature, and
-    use a closure to access class state.
+    The base class used for writing new algorithms in Python.  Contains
+    plumbing that connects user provided overrides to an instance of
+    teca_programmable_algorithm. Users are expected to override one or more of
+    report, request, and/or execute.
     """
+
     @classmethod
     def New(derived_class):
-        """ factory method returns an instance of the derived type """
+        """
+        factory method returns an instance of the derived type
+        """
         dc = derived_class()
         dc.initialize_implementation()
         return dc
@@ -36,7 +36,9 @@ class teca_python_algorithm(object):
         self.impl.set_execute_callback(self.get_execute_callback())
 
     def __getattr__(self, name):
-        """ forward stuff to the programmable algorithm """
+        """
+        forward calls to the programmable algorithm
+        """
 
         # guard against confusing infinite recursion that
         # occurs if impl is not present. one common way
@@ -51,58 +53,73 @@ class teca_python_algorithm(object):
         # forward to the teca_programmable_algorithm
         return self.impl.__getattribute__(name)
 
-    def get_number_of_input_connections(self):
-        """ Override to change number of inputs """
-        return 1
-
-    def get_number_of_output_ports(self):
-        """ Override to change number of outputs """
-        return 1
-
     def get_report_callback(self):
         """
-        Returns a function with the signature
-
-            report_callback(port, md_in) -> teca_metadata
-
-        The default implementation passes the report down stream.
-        Override this to customize the behavior of the report
-        phase of execution.
+        returns a callback to be used by the programmable algorithm that
+        forwards calls to the class method.
         """
         def report_callback(port, md_in):
-            import teca_py
-            return teca_py.teca_metadata(md_in[0])
+            return self.report(port, md_in)
         return report_callback
 
     def get_request_callback(self):
         """
-        Returns a function with the signature
-
-            request_callback(port, md_in, req_in) -> [teca_metadata]
-
-        The default implementation passes the request up stream.
-        Override this to customize the behavior of the request
-        phase of execution.
+        returns a callback to be used by the programmable algorithm that
+        forwards calls to the class method.
         """
         def request_callback(port, md_in, req_in):
-            import teca_py
-            return [teca_py.teca_metadata(req_in)]
+            return self.request(port, md_in, req_in)
         return request_callback
 
     def get_execute_callback(self):
         """
-        Returns a function with the signature
-
-            execute_callback(port, data_in, req_in) -> teca_dataset
-
-        The default implementation shallow copies the input dataset.
-        Override this to customize the behavior of the execute
-        phase of execution.
+        returns a callback to be used by the programmable algorithm that
+        forwards calls to the class method.
         """
         def execute_callback(port, data_in, req_in):
-            import teca_py
-            if len(data_in):
-                data_out = data_in[0].new_instance()
-                data_out.shallow_copy(teca_py.as_non_const_teca_dataset(data_out))
-            return data_out
+            return self.execute(port, data_in, req_in)
         return execute_callback
+
+    def get_number_of_input_connections(self):
+        """
+        return the number of input connections this algorithm needs.
+        The default is 1, override to modify.
+        """
+        return 1
+
+    def get_number_of_output_ports(self):
+        """
+        return the number of output ports this algorithm provides.
+        The default is 1, override to modify.
+        """
+        return 1
+
+    def report(self, port, md_in):
+        """
+        return the metadata decribing the data available for consumption.
+        Override this to customize the behavior of the report phase of
+        execution. The default passes metadata on the first input through.
+        """
+        import teca_py
+        return teca_py.teca_metadata(md_in[0])
+
+    def request(self, port, md_in, req_in):
+        """
+        return the request for needed data for execution. Override this to
+        customize the behavior of the request phase of execution. The default
+        passes the request on the first input port through.
+        """
+        import teca_py
+        return [teca_py.teca_metadata(req_in)]
+
+    def execute(self, port, data_in, req_in):
+        """
+        return the processed data. Override this to customize the behavior of
+        the execute phase of execution. The default passes the dataset on the
+        first input port through.
+        """
+        import teca_py
+        if len(data_in):
+            data_out = data_in[0].new_instance()
+            data_out.shallow_copy(teca_py.as_non_const_teca_dataset(data_out))
+        return data_out
