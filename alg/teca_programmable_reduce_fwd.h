@@ -9,8 +9,12 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_programmable_reduce)
 
 #ifdef SWIG
 typedef void* reduce_callback_t;
+typedef void* finalize_callback_t;
 #else
 using reduce_callback_t = std::function<p_teca_dataset(
     const const_p_teca_dataset &, const const_p_teca_dataset &)>;
+
+using finalize_callback_t = std::function<p_teca_dataset(
+    const const_p_teca_dataset &)>;
 #endif
 #endif

@@ -60,6 +60,13 @@ protected:
     virtual p_teca_dataset reduce(const const_p_teca_dataset &left,
         const const_p_teca_dataset &right) = 0;
 
+    // override that is called when the reduction is complete.
+    // the default implementation passes data through.
+    virtual p_teca_dataset finalize(const const_p_teca_dataset &ds)
+    {
+        return std::const_pointer_cast<teca_dataset>(ds);
+    }
+
     // override that allows derived classes to generate upstream
     // requests that will be applied over all time steps. derived
     // classes implement this method instead of get_upstream_request,

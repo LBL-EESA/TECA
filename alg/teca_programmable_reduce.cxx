@@ -86,3 +86,18 @@ p_teca_dataset teca_programmable_reduce::reduce(
 
     return this->reduce_callback(left_ds, right_ds);
 }
+
+// --------------------------------------------------------------------------
+p_teca_dataset teca_programmable_reduce::finalize(
+    const const_p_teca_dataset &ds)
+{
+#ifdef TECA_DEBUG
+    cerr << teca_parallel_id()
+        << "teca_programmable_reduce::finalize" << endl;
+#endif
+
+    if (!this->finalize_callback)
+        return this->teca_index_reduce::finalize(ds);
+
+    return this->finalize_callback(ds);
+}

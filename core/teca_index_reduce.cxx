@@ -408,7 +408,7 @@ const_p_teca_dataset teca_index_reduce::execute(unsigned int port,
     if (streaming)
         return tmp;
 
-    tmp = this->reduce_remote(tmp);
+    tmp = this->finalize(this->reduce_remote(tmp));
     if (!tmp)
         return nullptr;
 

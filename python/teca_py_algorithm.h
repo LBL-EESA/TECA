@@ -374,7 +374,7 @@ public:
             SWIGTYPE_p_std__shared_ptrT_teca_dataset_t, 0, &i_own))
             || !tmp_data)
         {
-            // this is not necessarilly an error
+            // this is not necessarily an error
             return nullptr;
         }
 
@@ -390,6 +390,90 @@ private:
     teca_py_object::teca_py_callable m_callback;
 };
 
+/// wrapper for finalize_callback of the programmable reduction
+/**
+Manages a python callback for use during a programmable reduction. In addition
+to holding the callback it handles translation of the input and output
+arguments.
+
+the python function must accept the dataset to finalize and return the
+finalized data
+*/
+class finalize_callback
+{
+public:
+    finalize_callback(PyObject *f)
+        : m_callback(f) {}
+
+    PyObject *set_callback(PyObject *f)
+    { return m_callback.set_object(f); }
+
+    explicit operator bool() const
+    { return static_cast<bool>(m_callback); }
+
+    p_teca_dataset operator()(const const_p_teca_dataset &ds)
+    {
+        teca_py_gil_state gil;
+
+        PyObject *f = m_callback.get_object();
+        if (!f)
+        {
+            TECA_PY_ERROR_NOW(PyExc_TypeError,
+                "finalize_callback callback not set")
+            return nullptr;
+        }
+
+        // package input dataset
+        PyObject *py_ds = nullptr;
+        if (ds)
+        {
+            py_ds = SWIG_NewPointerObj(
+                SWIG_as_voidptr(new const_p_teca_dataset(ds)),
+                SWIGTYPE_p_std__shared_ptrT_teca_dataset_t,
+                SWIG_POINTER_OWN);
+        }
+        else
+        {
+            py_ds = Py_None;
+            Py_INCREF(Py_None);
+        }
+
+        // call the callback
+        PyObject *args =
+            Py_BuildValue("(N)", py_ds);
+
+        PyObject *ret = nullptr;
+        if (!(ret = PyObject_CallObject(f, args)) || PyErr_Occurred())
+        {
+            TECA_PY_CALLBACK_ERROR(reduce, f)
+            return nullptr;
+        }
+
+        Py_DECREF(args);
+
+        // convert the return
+        int i_own = 0;
+        p_teca_dataset *tmp_data = nullptr;
+        if (!SWIG_IsOK(SWIG_ConvertPtrAndOwn(ret,
+            reinterpret_cast<void**>(&tmp_data),
+            SWIGTYPE_p_std__shared_ptrT_teca_dataset_t, 0, &i_own))
+            || !tmp_data)
+        {
+            // this is not necessarily an error
+            return nullptr;
+        }
+
+        p_teca_dataset out_data(*tmp_data);
+
+        if (i_own)
+            delete tmp_data;
+
+        return out_data;
+    }
+
+private:
+    teca_py_object::teca_py_callable m_callback;
 };
+}
 
 #endif

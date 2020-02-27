@@ -162,18 +162,27 @@ public:
 
     ~parameter_table_reduction() = default;
 
+    // finalize callback
     // completes the reduction by scaling by the number of parameter table rows
-    int finalize(p_teca_cartesian_mesh &out_mesh)
+    p_teca_dataset operator()(const const_p_teca_dataset &ds)
     {
-        p_teca_variant_array ar_prob =
+        p_teca_cartesian_mesh out_mesh =
+            std::dynamic_pointer_cast<teca_cartesian_mesh>(ds->new_instance());
+
+        out_mesh->shallow_copy(std::const_pointer_cast<teca_dataset>(ds));
+
+
+        p_teca_variant_array ar_prob_in =
             out_mesh->get_point_arrays()->get(this->probability_array_name);
 
-        if (!ar_prob)
+        if (!ar_prob_in)
         {
             TECA_ERROR("finalize failed, proability array \""
                 << this->probability_array_name << "\" not found")
-            return -1;
+            return nullptr;
         }
+
+        p_teca_variant_array ar_prob = ar_prob_in->new_copy();
 
         unsigned long n_vals = ar_prob->size();
 
@@ -188,7 +197,10 @@ public:
                 p_ar_prob[i] /= num_params;
             )
 
-        return 0;
+        out_mesh->get_point_arrays()->set(
+            this->probability_array_name, ar_prob);
+
+        return out_mesh;
     }
 
     // this reduction computes the probability from each parameter table run
@@ -937,6 +949,7 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
     pr->set_communicator(MPI_COMM_SELF);
     pr->set_input_connection(pa->get_output_port());
     pr->set_reduce_callback(reduce);
+    pr->set_finalize_callback(reduce);
     pr->set_verbose(0);
     pr->set_data_request_queue(this->internals->queue);
 
@@ -954,7 +967,7 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
         std::dynamic_pointer_cast<teca_cartesian_mesh>(
             std::const_pointer_cast<teca_dataset>(dc->get_dataset()));
 
-    if (!out_mesh || reduce.finalize(out_mesh))
+    if (!out_mesh)
     {
         TECA_ERROR("Pipeline execution failed")
         return nullptr;
