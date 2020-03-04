@@ -351,6 +351,52 @@ int interpolate_linear(CT cx, CT cy, CT cz,
     return 0;
 }
 
+// expand a dimension like 'x', 'y' or 'z' coordinates. If the dimension
+// length is more than 2 entries then we are going to append values
+// spaced equally from the end values. Which side to expand is determined
+// by specifying either 'low' or 'high' arguments. If the dimension length
+// is less than 2 values, then we are going to expand it with unit spaced
+// values - 0, 1, 2, 3, etc.
+template <typename num_t>
+void expand_dimension(
+    num_t *output_dim, const num_t *input_dim,
+    unsigned long n_orig, unsigned long low, unsigned long high)
+{
+    if (n_orig >= 2)
+    {
+        num_t first_dim_val = input_dim[0];
+        num_t last_dim_val = input_dim[n_orig-1];
+
+        num_t diff_low = input_dim[1] - input_dim[0];
+        num_t diff_high = input_dim[n_orig-1] - input_dim[n_orig-2];
+
+        for (unsigned long i = 0; i < low; ++i)
+        {
+            output_dim[i] = first_dim_val - (low-i)*diff_low;
+        }
+
+        for (unsigned long i = 0; i < n_orig; ++i)
+        {
+            output_dim[low + i] = input_dim[i];
+        }
+
+        unsigned long ii = low + n_orig;
+        for (unsigned long i = 0; i < high; ++i)
+        {
+            output_dim[ii + i] = last_dim_val + (i+1)*diff_high;
+        }
+    }
+    else
+    {
+        unsigned long n_total = low + n_orig + high;
+
+        for (unsigned long i = 0; i < n_total; ++i)
+        {
+            output_dim[i] = (num_t) i;
+        }
+    }
+}
+
 // functor templated on order of accuracy for above Cartesian mesh interpolants
 template<int> struct interpolate_t;
 

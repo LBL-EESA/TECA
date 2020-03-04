@@ -25,6 +25,7 @@
 #include "teca_l2_norm.h"
 #include "teca_laplacian.h"
 #include "teca_mask.h"
+#include "teca_mesh_padding.h"
 #include "teca_normalize_coordinates.h"
 #include "teca_programmable_algorithm.h"
 #include "teca_programmable_reduce.h"
@@ -100,6 +101,14 @@
 %shared_ptr(teca_mask)
 %ignore teca_mask::operator=;
 %include "teca_mask.h"
+
+/***************************************************************************
+ mesh_padding
+ ***************************************************************************/
+%ignore teca_mesh_padding::shared_from_this;
+%shared_ptr(teca_mesh_padding)
+%ignore teca_mesh_padding::operator=;
+%include "teca_mesh_padding.h"
 
 /***************************************************************************
  table_reduce
