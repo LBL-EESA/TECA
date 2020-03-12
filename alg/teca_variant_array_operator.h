@@ -208,6 +208,7 @@ struct resolver
         TECA_ERROR("binary operation " << op << " is not implemented")
         return -1;
     }
+
     static int invoke(const char *op, p_teca_variant_array &r,
         const const_p_teca_variant_array &a1, const const_p_teca_variant_array &a2)
     {
@@ -246,7 +247,7 @@ struct resolver
         switch (*op)
         {
             case '!':
-                r = apply(a1, logical_not());
+                r = teca_variant_array_operator::apply(a1, logical_not());
                 return 0;
                 break;
         }
