@@ -611,3 +611,8 @@ teca_add_test(test_normalize_coordinates_flip_xyz_subset
     COMMAND test_normalize_coordinates 90 45 7 1 1 1 40 190 -30 45 3 7
     "${TECA_DATA_ROOT}/test_normalize_coordinates_subset.bin"
     REQ_TECA_DATA)
+
+teca_add_test(test_priority_queue
+    SOURCES test_priority_queue.cpp
+    LIBS teca_core teca_data ${teca_test_link}
+    COMMAND test_priority_queue 57 1)
