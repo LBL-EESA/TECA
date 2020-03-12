@@ -729,3 +729,8 @@ teca_add_test(test_unpack_data
     COMMAND test_unpack_data "${TECA_DATA_ROOT}/test_unpack_data.nc"
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
+
+teca_add_test(test_priority_queue
+    SOURCES test_priority_queue.cpp
+    LIBS teca_core teca_data ${teca_test_link}
+    COMMAND test_priority_queue 57 1)
