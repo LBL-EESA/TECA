@@ -254,7 +254,7 @@ void teca_priority_queue<key_t, lookup_t,
 {
     long log_end = std::log2(m_end);
     long n_rows = log_end + 1;
-    long q = 0;
+    unsigned long q = 0;
     for (long i = 0; i < n_rows; ++i)
     {
         if (q > m_end)
