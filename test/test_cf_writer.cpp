@@ -67,8 +67,8 @@ int parse_command_line(int argc, char **argv, int rank,
                 << "test_cf_writer [-i input regex] [-o output] [-s first step,last step] "
                 << "[-x x axis variable] [-y y axis variable] [-z z axis variable] "
                 << "[-t t axis variable] [-b x0,x1,y0,y1,z0,z1] [-e i0,i1,j0,j1,k0,k1] "
-                << "[-c index count] [-n num threads] [array 0] [ -d compression level] "
-                << "... [array n]"
+                << "[-c steps per file] [-n num threads] [ -d compression level] "
+                << "[array 0] ... [array n]"
                 << endl << endl;
         }
         return -1;
@@ -173,11 +173,12 @@ int parse_command_line(int argc, char **argv, int rank,
 
     cf_writer->set_file_name(output);
     cf_writer->set_thread_pool_size(n_threads);
+    cf_writer->set_first_step(first_step);
+    cf_writer->set_last_step(last_step);
     cf_writer->set_steps_per_file(steps_per_file);
     cf_writer->set_compression_level(deflate_level);
+    cf_writer->set_point_arrays(arrays);
 
-    exec->set_start_index(first_step);
-    exec->set_end_index(last_step);
     exec->set_extent(extent);
     exec->set_bounds(bounds);
     exec->set_arrays(arrays);

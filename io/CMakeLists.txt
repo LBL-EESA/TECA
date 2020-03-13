@@ -10,6 +10,8 @@ set(teca_io_srcs
     teca_file_util.cxx
     teca_cartesian_mesh_reader.cxx
     teca_cartesian_mesh_writer.cxx
+    teca_cf_layout_manager.cxx
+    teca_cf_time_step_mapper.cxx
     teca_table_reader.cxx
     teca_table_writer.cxx
     teca_vtk_util.cxx

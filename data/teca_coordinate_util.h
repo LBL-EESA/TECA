@@ -3,6 +3,7 @@
 
 #include "teca_cartesian_mesh.h"
 #include "teca_variant_array.h"
+#include "teca_metadata.h"
 
 #include <vector>
 #include <cmath>
@@ -167,6 +168,9 @@ int index_of(const T *data, size_t l, size_t r, T val, unsigned long &id)
 int bounds_to_extent(const double *bounds,
     const_p_teca_variant_array x, const_p_teca_variant_array y,
     const_p_teca_variant_array z, unsigned long *extent);
+
+int bounds_to_extent(const double *bounds, const teca_metadata &md,
+    unsigned long *extent);
 
 // get the i,j,k cell index of point x,y,z in the given mesh.
 // return 0 if successful.
