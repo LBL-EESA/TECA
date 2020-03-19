@@ -50,6 +50,8 @@ set(teca_alg_cxx_srcs
     )
 
 teca_py_install(${LIB_PREFIX}
+    teca_model_segmentation.py
+    teca_deeplabv3p_ar_detect.py
     teca_tc_stats.py
     teca_tc_activity.py
     teca_python_algorithm.py

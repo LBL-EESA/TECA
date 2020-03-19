@@ -33,6 +33,7 @@ teca_add_app(teca_bayesian_ar_detect LIBS ${teca_app_link}
 teca_py_install_apps(
     teca_convert_table.in
     teca_dataset_metadata.in
+    teca_pytorch_deeplabv3p_ar_detect.in
     teca_event_filter.in
     teca_profile_explorer.in
     teca_tc_stats.in
