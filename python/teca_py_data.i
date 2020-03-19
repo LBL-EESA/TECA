@@ -4,6 +4,7 @@
 #include "teca_variant_array.h"
 #include "teca_array_collection.h"
 #include "teca_cartesian_mesh.h"
+#include "teca_coordinate_util.h"
 #include "teca_mesh.h"
 #include "teca_table.h"
 #include "teca_table_collection.h"
@@ -619,3 +620,45 @@ TECA_PY_CONST_CAST(teca_database)
 {
     TECA_PY_STR()
 }
+
+/***************************************************************************
+ coordinate utilities
+ ***************************************************************************/
+%inline
+%{
+struct teca_coordinate
+{
+// given a human readable date string in YYYY-MM-DD hh:mm:ss format
+// amd a list of floating point offset times inthe specified calendar
+// and units find the closest time step. return 0 if successful
+static
+unsigned long time_step_of(p_teca_double_array time, bool lower,
+    const std::string &calendar, const std::string &units,
+    const std::string &date)
+{
+    unsigned long step = 0;
+    if (teca_coordinate_util::time_step_of(time, lower, calendar, units, date, step))
+    {
+        TECA_PY_ERROR_NOW(PyExc_RuntimeError, "Failed to get time step from string")
+    }
+    return step;
+}
+
+// given a time value (val), associated time units (units), and calendar
+// (calendar), return a human-readable rendering of the date (date) in a
+// strftime-format (format).  return 0 if successful.
+static
+std::string time_to_string(double val, const std::string &calendar,
+    const std::string &units, const std::string &format)
+{
+    std::string date;
+    if (teca_coordinate_util::time_to_string(val, calendar, units, format, date))
+    {
+        TECA_PY_ERROR_NOW(PyExc_RuntimeError, "Failed tp convert time to string")
+    }
+    return date;
+}
+};
+%}
+
+%include "teca_coordinate_util.h"
