@@ -6,7 +6,7 @@ export PATH=/usr/local/bin:$PATH
 # install deps. note than many are included as a part of brew-core
 # these days. hence this list isn't comprehensive
 brew update
-brew install openmpi swig svn udunits
+brew install mpich swig svn udunits
 # matplotlib currently doesn't have a formula
 # teca fails to locate mpi4py installed from brew
 pip3 install numpy mpi4py matplotlib
