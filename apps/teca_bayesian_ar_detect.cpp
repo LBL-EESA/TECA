@@ -290,7 +290,7 @@ int main(int argc, char **argv)
                     <<  start_date << "\"")
                 return -1;
             }
-            exec->set_start_index(first_step);
+            cf_writer->set_first_step(first_step);
         }
 
         // and end date
@@ -305,7 +305,7 @@ int main(int argc, char **argv)
                     <<  end_date << "\"")
                 return -1;
             }
-            exec->set_end_index(last_step);
+            cf_writer->set_last_step(last_step);
         }
     }
 
@@ -320,7 +320,7 @@ int main(int argc, char **argv)
     seg_atts.set("scheme",std::string("cascade_bard"));
     seg_atts.set("version",std::string("1.0"));
     seg_atts.set("note",
-        std::string("derived by thresholding ar_probability >= ") + 
+        std::string("derived by thresholding ar_probability >= ") +
         std::to_string(ar_tag_threshold));
     ar_tag->set_segmentation_variable_atts(seg_atts);
 

@@ -199,7 +199,7 @@ def main():
         )
 
     # some minimal check for missing options
-    if (cf_reader.get_number_of_file_names() == 0 and 
+    if (cf_reader.get_number_of_file_names() == 0 and
         not cf_reader.get_files_regex()):
         if rank == 0:
             raise ValueError(
@@ -215,6 +215,7 @@ def main():
             )
 
     if args.start_date or args.end_date:
+
         time_atts = atrs["time"]
         calendar = time_atts["calendar"]
         units = time_atts["units"]
@@ -227,14 +228,14 @@ def main():
             first_step = teca_coordinate.time_step_of(
                 time, True, calendar, units, args.start_date
             )
-            teca_exec.set_start_index(first_step)
+            cf_writer.set_first_step(first_step)
 
         # and end date
         if args.end_date:
             last_step = teca_coordinate.time_step_of(
                 time, False, calendar, units, args.end_date
             )
-            teca_exec.set_end_index(last_step)
+            cf_writer.set_last_step(last_step)
 
     # run the pipeline
     cf_writer.set_executive(teca_exec)
