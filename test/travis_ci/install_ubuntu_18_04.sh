@@ -27,4 +27,4 @@ echo ${TECA_DATA_REVISION}
 pip${TECA_PYTHON_VERSION} install numpy mpi4py matplotlib
 
 # install data files.
-svn co svn://missmarple.lbl.gov/work3/teca/TECA_data@${TECA_DATA_REVISION} TECA_data
+svn co svn://svn.code.sf.net/p/teca/TECA_data@${TECA_DATA_REVISION} TECA_data

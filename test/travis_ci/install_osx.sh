@@ -18,8 +18,8 @@ pip3 install numpy mpi4py matplotlib
 # travis will kill a build  if it does not get console output
 # for 10 min. The following snippet sends progress marks
 # to the console while svn runs.
-echo 'svn co svn://missmarple.lbl.gov/work3/teca/TECA_data@${TECA_DATA_REVISION} &'
-svn co svn://missmarple.lbl.gov/work3/teca/TECA_data@${TECA_DATA_REVISION} &
+echo 'svn co svn://svn.code.sf.net/p/teca/TECA_data@${TECA_DATA_REVISION} TECA_data &'
+svn svn co svn://svn.code.sf.net/p/teca/TECA_data@${TECA_DATA_REVISION} TECA_data &
 svn_pid=$!
 while [ -n "$(ps -p $svn_pid -o pid=)" ]
 do
