@@ -57,6 +57,7 @@ def main():
         diff = teca_dataset_diff.New()
         diff.set_input_connection(0, baseline_mesh_reader.get_output_port())
         diff.set_input_connection(1, deeplabv3p_ar_detect.get_output_port())
+        diff.set_tolerance(1e-4)
         diff.update()
     else:
         # make a baseline
