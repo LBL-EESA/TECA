@@ -9,7 +9,7 @@ brew update
 brew install mpich swig svn udunits
 # matplotlib currently doesn't have a formula
 # teca fails to locate mpi4py installed from brew
-pip3 install numpy mpi4py matplotlib
+pip3 install numpy mpi4py matplotlib torch
 
 # install data files.
 # On Apple svn is very very slow. On my mac book pro

@@ -93,7 +93,7 @@ if os.path.exists(baseline_table):
 else:
     # make a baseline
     if rank == 0:
-        cerr << 'generating baseline image ' << baseline_table << endl
+        sys.stdout.write('generating baseline image ' + baseline_table + '\n')
 
     tts = teca_table_to_stream.New()
     tts.set_input_connection(sort.get_output_port())

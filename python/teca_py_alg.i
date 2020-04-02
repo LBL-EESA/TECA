@@ -92,7 +92,6 @@
 %ignore teca_laplacian::operator=;
 %include "teca_laplacian.h"
 
-
 /***************************************************************************
  mask
  ***************************************************************************/
@@ -306,6 +305,17 @@
  ***************************************************************************/
 %pythoncode %{
 from teca_python_algorithm import *
+%}
+
+/***************************************************************************
+ model_segmentation & deeplabv3p_ar_detect
+ ***************************************************************************/
+%pythoncode %{
+try:
+    from teca_model_segmentation import *
+    from teca_deeplabv3p_ar_detect import teca_deeplabv3p_ar_detect
+except ImportError:
+    pass
 %}
 
 /***************************************************************************

@@ -48,7 +48,7 @@ int main(int argc, char **argv)
             "probability threshold for segmenting ar_probability to produce ar_binary_tag")
         ("first_step", value<long>(), "first time step to process")
         ("last_step", value<long>(), "last time step to process")
-        ("steps_per_file", value<long>(), "number of time steps per output filr")
+        ("steps_per_file", value<long>(), "number of time steps per output file")
         ("start_date", value<string>(), "first time to proces in YYYY-MM-DD hh:mm:ss format")
         ("end_date", value<string>(), "first time to proces in YYYY-MM-DD hh:mm:ss format")
         ("n_threads", value<int>(), "thread pool size. default is -1. -1 for all")
@@ -253,7 +253,7 @@ int main(int argc, char **argv)
         teca_metadata atrs;
         if (md.get("attributes", atrs))
         {
-            TECA_ERROR("metadata mising attributes")
+            TECA_ERROR("metadata missing attributes")
             return -1;
         }
 
@@ -286,11 +286,11 @@ int main(int argc, char **argv)
             if (teca_coordinate_util::time_step_of(time, true, calendar,
                  units, start_date, first_step))
             {
-                TECA_ERROR("Failed to lcoate time step for start date \""
+                TECA_ERROR("Failed to locate time step for start date \""
                     <<  start_date << "\"")
                 return -1;
             }
-            exec->set_start_index(first_step);
+            cf_writer->set_first_step(first_step);
         }
 
         // and end date
@@ -301,11 +301,11 @@ int main(int argc, char **argv)
             if (teca_coordinate_util::time_step_of(time, false, calendar,
                  units, end_date, last_step))
             {
-                TECA_ERROR("Failed to lcoate time step for end date \""
+                TECA_ERROR("Failed to locate time step for end date \""
                     <<  end_date << "\"")
                 return -1;
             }
-            exec->set_end_index(last_step);
+            cf_writer->set_last_step(last_step);
         }
     }
 
@@ -320,7 +320,7 @@ int main(int argc, char **argv)
     seg_atts.set("scheme",std::string("cascade_bard"));
     seg_atts.set("version",std::string("1.0"));
     seg_atts.set("note",
-        std::string("derived by thresholding ar_probability >= ") + 
+        std::string("derived by thresholding ar_probability >= ") +
         std::to_string(ar_tag_threshold));
     ar_tag->set_segmentation_variable_atts(seg_atts);
 
