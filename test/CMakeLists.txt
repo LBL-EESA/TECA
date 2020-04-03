@@ -419,6 +419,7 @@ teca_add_test(test_tc_wind_radii_serial
     "${TECA_DATA_ROOT}/cam5_1_amip_run2_1990s/.*\\.nc$" "${TECA_DATA_ROOT}/test_tc_wind_radii.bin"
     "!(((track_id==4)&&(surface_wind*3.6d>=177.0d))||((track_id==191)&&(surface_wind*3.6d>=249.0d))||((track_id==523)&&(3.6d*surface_wind>=209.0d)))"
     "32" "1" "1" "0" "-1"
+    FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(test_tc_wind_radii_mpi
@@ -426,7 +427,7 @@ teca_add_test(test_tc_wind_radii_mpi
     "${TECA_DATA_ROOT}/cam5_1_amip_run2_1990s/.*\\.nc$" "${TECA_DATA_ROOT}/test_tc_wind_radii.bin"
     "!(((track_id==4)&&(surface_wind*3.6d>=177.0d))||((track_id==191)&&(surface_wind*3.6d>=249.0d))||((track_id==523)&&(3.6d*surface_wind>=209.0d)))"
     "32" "1" "1" "0" "-1"
-    FEATURES ${TECA_HAS_MPI}
+    FEATURES ${TECA_HAS_MPI} ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(test_tc_wind_radii_mpi_threads
@@ -434,7 +435,7 @@ teca_add_test(test_tc_wind_radii_mpi_threads
     "${TECA_DATA_ROOT}/cam5_1_amip_run2_1990s/.*\\.nc$" "${TECA_DATA_ROOT}/test_tc_wind_radii.bin"
     "!(((track_id==4)&&(surface_wind*3.6d>=177.0d))||((track_id==191)&&(surface_wind*3.6d>=249.0d))||((track_id==523)&&(3.6d*surface_wind>=209.0d)))"
     "32" "1" ${HALF_CORES} "0" "-1"
-    FEATURES ${TECA_HAS_MPI}
+    FEATURES (${TECA_HAS_MPI} AND ${TECA_HAS_NETCDF})
     REQ_TECA_DATA)
 
 teca_add_test(test_tc_wind_radii_threads
@@ -442,6 +443,7 @@ teca_add_test(test_tc_wind_radii_threads
     "${TECA_DATA_ROOT}/cam5_1_amip_run2_1990s/.*\\.nc$" "${TECA_DATA_ROOT}/test_tc_wind_radii.bin"
     "!(((track_id==4)&&(surface_wind*3.6d>=177.0d))||((track_id==191)&&(surface_wind*3.6d>=249.0d))||((track_id==523)&&(3.6d*surface_wind>=209.0d)))"
     "32" "1" ${TECA_TEST_CORES} "0" "-1"
+    FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(test_type_select
@@ -501,6 +503,7 @@ teca_add_test(test_binary_segmentation
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_binary_segmentation "${TECA_DATA_ROOT}/prw_hus_day_MRI.*\\.nc$"
     prw 50 75 "prw_segmentation_50-75_%t%.%e%"
+    FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(test_bayesian_ar_detect_serial
@@ -511,6 +514,7 @@ teca_add_test(test_bayesian_ar_detect_serial
     "${TECA_DATA_ROOT}/prw_hus_day_MRI.*\\.nc$"
     "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" prw
     "bayesian_ar_detect_%t%.vtk" 1 0 4
+    FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(test_bayesian_ar_detect_threads
@@ -526,7 +530,7 @@ teca_add_test(test_bayesian_ar_detect_mpi_threads
     "${TECA_DATA_ROOT}/prw_hus_day_MRI.*\\.nc$"
     "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" prw
     "bayesian_ar_detect_%t%.vtk" ${HALF_CORES} 0 4
-    FEATURES ${TECA_HAS_MPI}
+    FEATURES (${TECA_HAS_MPI} AND ${TECA_HAS_NETCDF})
     REQ_TECA_DATA)
 
 teca_add_test(test_normalize_coordinates_pass_through
