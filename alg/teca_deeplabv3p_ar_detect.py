@@ -334,7 +334,8 @@ class teca_deeplabv3p_ar_detect(teca_py.teca_model_segmentation):
         self.mesh_nx = None
         self.padding_amount_y = None
         self.padding_amount_x = None
-        self.set_variable_name('IVT')
+        self.set_variable_name("IVT")
+        self.set_pred_name("ar_probability")
 
     def set_mesh_dims(self, mesh_ny, mesh_nx):
         self.mesh_ny = mesh_ny
