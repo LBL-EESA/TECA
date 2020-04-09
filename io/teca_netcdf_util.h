@@ -53,8 +53,9 @@
 namespace teca_netcdf_util
 {
 
-// traits class mapping to netcdf
+// traits class mapping to/from netcdf
 template<typename num_t> class netcdf_tt {};
+template<int nc_enum> class cpp_tt {};
 
 #define DECLARE_NETCDF_TT(cpp_t_, nc_c_) \
 template <> class netcdf_tt<cpp_t_>      \
@@ -72,6 +73,23 @@ DECLARE_NETCDF_TT(long long, NC_INT64)
 DECLARE_NETCDF_TT(unsigned long long, NC_UINT64)
 DECLARE_NETCDF_TT(float, NC_FLOAT)
 DECLARE_NETCDF_TT(double, NC_DOUBLE)
+
+#define DECLARE_CPP_TT(cpp_t_, nc_c_) \
+template <> class cpp_tt<nc_c_>       \
+{ public: using type = cpp_t_; };
+DECLARE_CPP_TT(char, NC_BYTE)
+DECLARE_CPP_TT(unsigned char, NC_UBYTE)
+//DECLARE_CPP_TT(char, NC_CHAR)
+DECLARE_CPP_TT(short int, NC_SHORT)
+DECLARE_CPP_TT(unsigned short int, NC_USHORT)
+DECLARE_CPP_TT(int, NC_INT)
+//DECLARE_CPP_TT(long, NC_LONG)
+//DECLARE_CPP_TT(unsigned long, NC_LONG)
+DECLARE_CPP_TT(unsigned int, NC_UINT)
+DECLARE_CPP_TT(long long, NC_INT64)
+DECLARE_CPP_TT(unsigned long long, NC_UINT64)
+DECLARE_CPP_TT(float, NC_FLOAT)
+DECLARE_CPP_TT(double, NC_DOUBLE)
 
 // to deal with fortran fixed length strings
 // which are not properly nulll terminated
