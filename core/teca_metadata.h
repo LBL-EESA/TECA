@@ -76,7 +76,7 @@ public:
     int set(const std::string &name, const p_teca_variant_array &prop_val);
 
     template<typename T>
-    void set(const std::string &name,
+    int set(const std::string &name,
         const p_teca_variant_array_impl<T> &prop_val);
 
     // append a value to the named property. reports
@@ -118,7 +118,7 @@ public:
     // get prop value. return 0 if successful
     template<typename T>
     int get(const std::string &name, T &val) const
-    { return this->get<T>(name, 0, val); }
+    { return this->get<T>(name, (unsigned int)(0), val); }
 
     // get ith prop value. return 0 if successful
     template<typename T>
@@ -321,11 +321,11 @@ int teca_metadata::set(const std::string &name,
 
 // --------------------------------------------------------------------------
 template<typename T>
-void teca_metadata::set(
-    const std::string &name,
+int teca_metadata::set(const std::string &name,
     const p_teca_variant_array_impl<T> &prop_val)
 {
     this->props[name] = prop_val;
+    return 0;
 }
 
 // --------------------------------------------------------------------------
