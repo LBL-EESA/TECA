@@ -93,12 +93,18 @@ std::string teca_cf_reader_internals::create_metadata_cache_key(
 }
 #endif
 
+
 // function that reads and returns a variable from the
 // named file. we're doing this so we can do thread
 // parallel I/O to hide some of the cost of opening files
 // on Lustre and to hide the cost of reading time coordinate
 // which is typically very expensive as NetCDF stores
 // unlimted dimensions non-contiguously
+//
+// note: Thu 09 Apr 2020 05:45:29 AM PDT
+// Threading these operations worked well in NetCDF 3, however
+// in NetCDF 4 backed by HDF5 necessary locking eliminates any
+// speed up.
 class read_variable
 {
 public:
@@ -508,7 +514,8 @@ teca_metadata teca_cf_reader::get_output_metadata(
             for (int i = 0; i < n_vars; ++i)
             {
                 char var_name[NC_MAX_NAME + 1] = {'\0'};
-                nc_type var_type = 0;
+                int var_type = 0;
+                nc_type var_nc_type = 0;
                 int n_dims = 0;
                 int dim_id[NC_MAX_VAR_DIMS] = {0};
                 int n_atts = 0;
@@ -518,7 +525,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
                 if ((ierr = nc_inq_var(fh.get(), i, var_name,
-                        &var_type, &n_dims, dim_id, &n_atts)) != NC_NOERR)
+                        &var_nc_type, &n_dims, dim_id, &n_atts)) != NC_NOERR)
                 {
                     this->clear_cached_metadata();
                     TECA_ERROR(
@@ -529,6 +536,10 @@ teca_metadata teca_cf_reader::get_output_metadata(
 #if !defined(HDF5_THREAD_SAFE)
                 }
 #endif
+                // convert from the netcdf type code
+                NC_DISPATCH(var_nc_type,
+                   var_type = teca_variant_array_code<NC_T>::get();
+                   )
 
                 // skip scalars
                 if (n_dims == 0)
@@ -563,10 +574,11 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 vars.push_back(var_name);
 
                 teca_metadata atts;
-                atts.set("id", i);
-                atts.set("dims", dims);
-                atts.set("dim_names", dim_names);
-                atts.set("type", var_type);
+                atts.set("cf_id", i);
+                atts.set("cf_dims", dims);
+                atts.set("cf_dim_names", dim_names);
+                atts.set("cf_type_code", var_nc_type);
+                atts.set("type_code", var_type);
                 atts.set("centering", centering);
 
                 void *att_buffer = nullptr;
@@ -1297,10 +1309,10 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
         p_teca_string_array dim_names;
 
         if (atrs.get(arrays[i], atts)
-            || atts.get("type", 0, type)
-            || atts.get("id", 0, id)
-            || !(dims = std::dynamic_pointer_cast<teca_size_t_array>(atts.get("dims")))
-            || !(dim_names = std::dynamic_pointer_cast<teca_string_array>(atts.get("dim_names"))))
+            || atts.get("cf_type_code", 0, type)
+            || atts.get("cf_id", 0, id)
+            || !(dims = std::dynamic_pointer_cast<teca_size_t_array>(atts.get("cf_dims")))
+            || !(dim_names = std::dynamic_pointer_cast<teca_string_array>(atts.get("cf_dim_names"))))
         {
             TECA_ERROR("metadata issue can't read \"" << arrays[i] << "\"")
             continue;
