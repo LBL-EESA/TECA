@@ -15,12 +15,12 @@ teca_add_test(py_test_cf_writer_serial
 teca_add_test(py_test_cf_writer_threads
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_cf_writer.py
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
-    0 -1 ${TECA_TEST_CORES} 2 "py_test_cf_writer_%t%.nc" U850 V850
+    0 -1 ${TEST_CORES} 2 "py_test_cf_writer_%t%.nc" U850 V850
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_cf_writer_mpi
-    COMMAND  ${MPIEXEC} -n ${TECA_TEST_CORES} ${PYTHON_EXECUTABLE}
+    COMMAND  ${MPIEXEC} -n ${TEST_CORES} ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_cf_writer.py
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
     0 -1 1 2 "py_test_cf_writer_%t%.nc" U850 V850
@@ -28,10 +28,10 @@ teca_add_test(py_test_cf_writer_mpi
     REQ_TECA_DATA)
 
 teca_add_test(py_test_cf_writer_mpi_threads
-    COMMAND  ${MPIEXEC} -n ${HALF_CORES} ${PYTHON_EXECUTABLE}
+    COMMAND  ${MPIEXEC} -n ${HALF_TEST_CORES} ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_cf_writer.py
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
-    0 -1 ${HALF_CORES} 1 "py_test_cf_writer_%t%.nc" U850 V850
+    0 -1 ${HALF_TEST_CORES} 1 "py_test_cf_writer_%t%.nc" U850 V850
     FEATURES ${TECA_HAS_MPI} ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
@@ -112,7 +112,7 @@ teca_add_test(py_test_programmable_map_reduce_thread
     REQ_TECA_DATA)
 
 teca_add_test(py_test_programmable_map_reduce_mpi
-    COMMAND ${MPIEXEC} -n ${TECA_TEST_CORES} ${PYTHON_EXECUTABLE}
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_programmable_map_reduce.py
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
     "${TECA_DATA_ROOT}/py_test_programmable_map_reduce.bin" 0 -1 1 TMQ T200 T500
@@ -120,10 +120,10 @@ teca_add_test(py_test_programmable_map_reduce_mpi
     REQ_TECA_DATA)
 
 teca_add_test(py_test_programmable_map_reduce_mpi_thread
-    COMMAND ${MPIEXEC} -n ${HALF_CORES} ${PYTHON_EXECUTABLE}
+    COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_programmable_map_reduce.py
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
-    "${TECA_DATA_ROOT}/py_test_programmable_map_reduce.bin" 0 -1 ${HALF_CORES}
+    "${TECA_DATA_ROOT}/py_test_programmable_map_reduce.bin" 0 -1 ${HALF_TEST_CORES}
     TMQ T200 T500
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4PY_FOUND}
     REQ_TECA_DATA)
@@ -137,7 +137,7 @@ teca_add_test(py_test_tc_candidates_serial
     REQ_TECA_DATA)
 
 teca_add_test(py_test_tc_candidates_mpi
-    COMMAND ${MPIEXEC} -n ${TECA_TEST_CORES} ${PYTHON_EXECUTABLE}
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_candidates.py
     "${TECA_DATA_ROOT}/test_tc_candidates_1990_07_0[12]\\.nc"
     "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 1
@@ -148,16 +148,16 @@ teca_add_test(py_test_tc_candidates_mpi
 teca_add_test(py_test_tc_candidates_threads
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_candidates.py
     "${TECA_DATA_ROOT}/test_tc_candidates_1990_07_0[12]\\.nc"
-    "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 ${TECA_TEST_CORES}
+    "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 ${TEST_CORES}
     U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_tc_candidates_mpi_threads
-    COMMAND ${MPIEXEC} -n ${HALF_CORES} ${PYTHON_EXECUTABLE}
+    COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_candidates.py
     "${TECA_DATA_ROOT}/test_tc_candidates_1990_07_0[12]\\.nc"
-    "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 ${HALF_CORES}
+    "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 ${HALF_TEST_CORES}
     U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
@@ -191,7 +191,7 @@ teca_add_test(py_test_tc_trajectory_scalars_serial
     REQ_TECA_DATA)
 
 teca_add_test(py_test_tc_trajectory_scalars_mpi
-    COMMAND ${MPIEXEC} -n ${TECA_TEST_CORES} ${PYTHON_EXECUTABLE}
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_trajectory_scalars.py
     "${TECA_DATA_ROOT}/tracks_1990s_3hr_mdd_4800_median_in_cat_wr.bin"
     "${TECA_DATA_ROOT}/earthmap4k.png"
@@ -221,12 +221,12 @@ teca_add_test(py_test_bayesian_ar_detect_threads
     REQ_TECA_DATA)
 
 teca_add_test(py_test_bayesian_ar_detect_mpi_threads
-    COMMAND ${MPIEXEC} -n ${HALF_CORES} ${PYTHON_EXECUTABLE}
+    COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_bayesian_ar_detect.py
     "${TECA_DATA_ROOT}/bayesian_ar_parameters.bin"
     "${TECA_DATA_ROOT}/prw_hus_day_MRI.*\\.nc$"
     "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" prw "bayesian_ar_detect_py_%t%.vtk"
-    ${HALF_CORES} 0 4
+    ${HALF_TEST_CORES} 0 4
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
@@ -240,24 +240,25 @@ teca_add_test(py_test_deeplabv3p_ar_detect
     REQ_TECA_DATA)
 
 teca_add_test(py_test_deeplabv3p_ar_detect_mpi_threads
-    COMMAND ${MPIEXEC} -n ${HALF_CORES} ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_deeplabv3p_ar_detect.py
-    "${TECA_DATA_ROOT}/cascade_deeplab_IVT.pt"
-    "${TECA_DATA_ROOT}/resnet101-5d3b4d8f-state_dict.pth"
-    "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D.*\.nc$"
-    "${TECA_DATA_ROOT}/test_deeplabv3p_ar_detect.bin" IVT ${HALF_CORES}
-    FEATURES ${TECA_HAS_NETCDF}
+    COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} ${PYTHON_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_deeplabv3p_ar_detect.py
+       "${TECA_DATA_ROOT}/cascade_deeplab_IVT.pt"
+        "${TECA_DATA_ROOT}/resnet101-5d3b4d8f-state_dict.pth"
+        "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D.*\.nc$"
+        "${TECA_DATA_ROOT}/test_deeplabv3p_ar_detect.bin" IVT ${HALF_TEST_CORES}
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI} ${MPI4Py_FOUND}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_binary_stream
-    COMMAND ${MPIEXEC} -n ${TECA_TEST_CORES} ${PYTHON_EXECUTABLE}
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_binary_stream.py
     "${TECA_DATA_ROOT}/py_test_binary_stream.bin"
     FEATURES ${TECA_HAS_MPI} ${MPI4PY_FOUND}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_nested_pipeline
-    COMMAND ${MPIEXEC} -n ${HALF_CORES} ${PYTHON_EXECUTABLE}
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_nested_pipeline.py 16 16 32 ${HALF_CORES}
+    COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} ${PYTHON_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_nested_pipeline.py 16 16 32 ${HALF_TEST_CORES}
     FEATURES ${TECA_HAS_MPI} ${MPI4PY_FOUND})
 
 teca_add_test(py_test_information_array_io

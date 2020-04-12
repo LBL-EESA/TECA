@@ -346,15 +346,33 @@ add_subdirectory(paraview)
 set(BUILD_TESTING OFF CACHE BOOL "Enable tests")
 if (BUILD_TESTING)
     include(CTest)
+    include(ProcessorCount)
     configure_file(
         "${CMAKE_CURRENT_SOURCE_DIR}/CTestCustom.cmake.in"
         "${CMAKE_CURRENT_BINARY_DIR}/CTestCustom.cmake"
         @ONLY)
-    set(TECA_TEST_CORES 4 CACHE STRING
-        "Number of cores for use in parallel tests")
-    math(EXPR HALF_CORES "${TECA_TEST_CORES}/2")
-    if (HALF_CORES LESS 1)
-        message(FATAL_ERROR "Parallel test require at lest 2 cores")
+
+    # figure out how many cores we can use for parallel tests
+    set(TECA_TEST_CORES 0 CACHE STRING
+        "Max number of cores for use in parallel tests")
+    if (TECA_TEST_CORES LESS 1)
+        ProcessorCount(LOGICAL_CORES)
+        if (LOGICAL_CORES EQUAL 0)
+            set(LOGICAL_CORES 4)
+        endif()
+    else()
+        math(EXPR LOGICAL_CORES "${TECA_TEST_CORES}*2")
     endif()
+    math(EXPR PHYSICAL_CORES "${LOGICAL_CORES}/2")
+    set(TEST_CORES ${PHYSICAL_CORES})
+    math(EXPR HALF_TEST_CORES "${TEST_CORES}/2")
+    set(TWICE_TEST_CORES ${LOGICAL_CORES})
+    if (HALF_TEST_CORES LESS 1)
+        message(WARNING "Parallel tests require at lest 2 phyisical cores")
+    endif()
+    message(STATUS "regression testing -- enabled (${TEST_CORES} cores).")
+
     add_subdirectory(test)
+else()
+    message(STATUS "regression testing -- disbaled")
 endif()
