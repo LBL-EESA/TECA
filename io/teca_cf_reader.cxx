@@ -903,17 +903,17 @@ teca_metadata teca_cf_reader::get_output_metadata(
                           second, t_units.c_str(), t_calendar.c_str(),
                           &current_time))
                     {
-                        TECA_ERROR(
-                            "conversion of date inferred from filename failed");
+                        TECA_ERROR("conversion of date inferred from "
+                            "filename failed");
+                        return teca_metadata();
                     }
-#else
-                    (void)date;
-                    TECA_ERROR(
-                        "The UDUnits package is required for this operation")
-                    return -1;
-#endif
                     // add the current time to the list
                     t_values.push_back(current_time);
+#else
+                    TECA_ERROR("The UDUnits package is required "
+                        "for this operation")
+                    return teca_metadata();
+#endif
                 }
 
                 // set the time metadata
