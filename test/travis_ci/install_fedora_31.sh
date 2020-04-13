@@ -7,9 +7,9 @@ dnf update -qq -y
 # install deps
 # use PIP for Python packages
 dnf install -qq -y environment-modules which git-all gcc-c++ gcc-gfortran \
-    make cmake-3.11.0-1.fc28 swig mpich-devel hdf5-mpich-devel \
-    netcdf-mpich-devel boost-devel python3-devel python3-pip subversion \
-    udunits2 udunits2-devel zlib-devel openssl-devel wget
+    make cmake swig mpich-devel hdf5-mpich-devel netcdf-mpich-devel \
+    boost-devel python3-devel python3-pip subversion udunits2 udunits2-devel \
+    zlib-devel openssl-devel wget
 
 source /usr/share/Modules/init/bash
 
