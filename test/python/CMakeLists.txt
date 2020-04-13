@@ -116,7 +116,7 @@ teca_add_test(py_test_programmable_map_reduce_mpi
     ${CMAKE_CURRENT_SOURCE_DIR}/test_programmable_map_reduce.py
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
     "${TECA_DATA_ROOT}/py_test_programmable_map_reduce.bin" 0 -1 1 TMQ T200 T500
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4PY_FOUND}
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4Py_FOUND}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_programmable_map_reduce_mpi_thread
@@ -125,7 +125,7 @@ teca_add_test(py_test_programmable_map_reduce_mpi_thread
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
     "${TECA_DATA_ROOT}/py_test_programmable_map_reduce.bin" 0 -1 ${HALF_TEST_CORES}
     TMQ T200 T500
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4PY_FOUND}
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4Py_FOUND}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_tc_candidates_serial
@@ -196,7 +196,7 @@ teca_add_test(py_test_tc_trajectory_scalars_mpi
     "${TECA_DATA_ROOT}/tracks_1990s_3hr_mdd_4800_median_in_cat_wr.bin"
     "${TECA_DATA_ROOT}/earthmap4k.png"
     "${TECA_DATA_ROOT}/py_test_tc_trajectory_scalars.bin" 0 -1
-    FEATURES ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4PY_FOUND}
+    FEATURES ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4Py_FOUND}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_tc_wind_radii_stats
@@ -253,13 +253,13 @@ teca_add_test(py_test_binary_stream
     COMMAND ${MPIEXEC} -n ${TEST_CORES} ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_binary_stream.py
     "${TECA_DATA_ROOT}/py_test_binary_stream.bin"
-    FEATURES ${TECA_HAS_MPI} ${MPI4PY_FOUND}
+    FEATURES ${TECA_HAS_MPI} ${MPI4Py_FOUND}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_nested_pipeline
     COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_nested_pipeline.py 16 16 32 ${HALF_TEST_CORES}
-    FEATURES ${TECA_HAS_MPI} ${MPI4PY_FOUND})
+    FEATURES ${TECA_HAS_MPI} ${MPI4Py_FOUND})
 
 teca_add_test(py_test_information_array_io
     COMMAND ${PYTHON_EXECUTABLE}

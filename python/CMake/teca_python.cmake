@@ -5,7 +5,7 @@ function(depend_swig input output)
     add_custom_command(
         OUTPUT ${output_file}
         COMMAND ${swig_cmd} -c++ -python -MM
-            -I${MPI4PY_INCLUDE_DIR}
+            -I${MPI4Py_INCLUDE_DIR}
             -I${CMAKE_CURRENT_BINARY_DIR}
             -I${CMAKE_CURRENT_BINARY_DIR}/..
             -I${CMAKE_CURRENT_SOURCE_DIR}/../core
@@ -20,7 +20,7 @@ function(depend_swig input output)
     message(STATUS "Generating initial dependency list for ${input}")
     execute_process(
         COMMAND ${swig_cmd} -c++ -python -MM
-            -I${MPI4PY_INCLUDE_DIR}
+            -I${MPI4Py_INCLUDE_DIR}
             -I${CMAKE_CURRENT_BINARY_DIR}
             -I${CMAKE_CURRENT_BINARY_DIR}/..
             -I${CMAKE_CURRENT_SOURCE_DIR}/../core
@@ -41,7 +41,7 @@ function(wrap_swig input output depend)
         OUTPUT ${output_file}
         COMMAND ${swig_cmd} -c++ -python -threads -w341,325
             -DSWIG_TYPE_TABLE=teca_py
-            -I${MPI4PY_INCLUDE_DIR}
+            -I${MPI4Py_INCLUDE_DIR}
             -I${CMAKE_CURRENT_BINARY_DIR}
             -I${CMAKE_CURRENT_BINARY_DIR}/..
             -I${CMAKE_CURRENT_SOURCE_DIR}/../core

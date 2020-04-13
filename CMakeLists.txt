@@ -246,7 +246,7 @@ if(PYTHONINTERP_FOUND)
     endif()
 endif()
 find_package(PythonLibs ${TECA_PYTHON_VERSION})
-find_package(Numpy)
+find_package(NumPy)
 if (TECA_HAS_MPI)
     find_package(MPI4Py)
 endif()
@@ -256,14 +256,14 @@ if (swig_cmd)
 else()
     message(FATAL_ERROR "Found SWIG: FALSE")
 endif()
-if (PYTHONINTERP_FOUND AND PYTHONLIBS_FOUND AND NUMPY_FOUND AND swig_cmd
-    AND ((TECA_HAS_MPI AND MPI4PY_FOUND) OR (NOT TECA_HAS_MPI))
+if (PYTHONINTERP_FOUND AND PYTHONLIBS_FOUND AND NumPy_FOUND AND swig_cmd
+    AND ((TECA_HAS_MPI AND MPI4Py_FOUND) OR (NOT TECA_HAS_MPI))
     AND ((DEFINED TECA_HAS_PYTHON AND TECA_HAS_PYTHON)
     OR (NOT DEFINED TECA_HAS_PYTHON)))
     message(STATUS "Python ${TECA_PYTHON_VERSION} features -- enabled")
     set(tmp ON)
     teca_interface_library(PYTHON SYSTEM
-        INCLUDES ${PYTHON_INCLUDE_PATH} ${MPI4PY_INCLUDE_DIR} ${NUMPY_INCLUDE_DIR}
+        INCLUDES ${PYTHON_INCLUDE_PATH} ${MPI4Py_INCLUDE_DIR} ${NumPy_INCLUDE_DIR}
         LIBRARIES ${PYTHON_LIBRARIES})
 elseif (REQUIRE_PYTHON)
     message(FATAL_ERROR "Python ${TECA_PYTHON_VERSION} features -- required but not found")
