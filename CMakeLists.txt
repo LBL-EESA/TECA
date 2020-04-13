@@ -320,6 +320,8 @@ set(TECA_DATA_ROOT "/path/to/TECA_data"
 if (EXISTS "${TECA_DATA_ROOT}")
     set(tmp ON)
     message(STATUS "TECA_data -- available")
+elseif (REQUIRE_TECA_DATA)
+    message(FATAL_ERROR "TECA_data -- required but not found")
 else()
     message(STATUS "TECA_data -- not available")
 endif()
