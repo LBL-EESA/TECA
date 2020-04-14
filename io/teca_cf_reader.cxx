@@ -755,6 +755,12 @@ teca_metadata teca_cf_reader::get_output_metadata(
             read_variable_queue_t thread_pool(MPI_COMM_SELF,
                 this->thread_pool_size, true, false);
 
+            // we rely t_axis_variable being empty to indicate either that
+            // there is no time axis, or that a time axis will be defined by
+            // other algorithm properties. This temporary is used for metadata
+            // consistency across those cases.
+            std::string t_axis_var = t_axis_variable;
+
             std::vector<unsigned long> step_count;
             if (!t_axis_variable.empty())
             {
@@ -762,7 +768,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 size_t n_files = files.size();
                 for (size_t i = 0; i < n_files; ++i)
                 {
-                    read_variable reader(path, files[i], i, this->t_axis_variable);
+                    read_variable reader(path, files[i], i, t_axis_variable);
                     read_variable_task_t task(reader);
                     thread_pool.push_task(task);
                 }
@@ -821,6 +827,8 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 step_count.resize(n_t_vals, 1);
 
                 t_axis = t;
+
+                t_axis_var = "time";
             }
             // infer the time from the filenames
             else if (! this->filename_time_template.empty())
@@ -946,6 +954,8 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     }
                     t_axis = t;
                     )
+
+                t_axis_var = "t";
             }
 
             this->internals->metadata.set("variables", vars);
@@ -953,12 +963,9 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
             teca_metadata coords;
             coords.set("x_variable", x_axis_variable);
-            coords.set("y_variable",
-                    (y_axis_variable.empty() ? "y" : y_axis_variable));
-            coords.set("z_variable",
-                    (z_axis_variable.empty() ? "z" : z_axis_variable));
-            coords.set("t_variable",
-                    (t_axis_variable.empty() ? "t" : t_axis_variable));
+            coords.set("y_variable", (y_axis_variable.empty() ? "y" : y_axis_variable));
+            coords.set("z_variable", (z_axis_variable.empty() ? "z" : z_axis_variable));
+            coords.set("t_variable", t_axis_var);
             coords.set("x", x_axis);
             coords.set("y", y_axis);
             coords.set("z", z_axis);
@@ -1059,6 +1066,18 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
         TECA_ERROR("metadata is missing coordinate arrays")
         return nullptr;
     }
+
+    // get names, need to be careful since some of these depend
+    // on run time information, ex user can specific a time axis
+    // via algorithm properties
+    std::string x_axis_var;
+    std::string y_axis_var;
+    std::string z_axis_var;
+    std::string t_axis_var;
+    coords.get("x_variable", x_axis_var);
+    coords.get("y_variable", y_axis_var);
+    coords.get("z_variable", z_axis_var);
+    coords.get("t_variable", t_axis_var);
 
     // get request
     unsigned long time_step = 0;
@@ -1175,9 +1194,9 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
 
     // create output dataset
     p_teca_cartesian_mesh mesh = teca_cartesian_mesh::New();
-    mesh->set_x_coordinates(x_axis_variable, out_x);
-    mesh->set_y_coordinates(y_axis_variable, out_y);
-    mesh->set_z_coordinates(z_axis_variable, out_z);
+    mesh->set_x_coordinates(x_axis_var, out_x);
+    mesh->set_y_coordinates(y_axis_var, out_y);
+    mesh->set_z_coordinates(z_axis_var, out_z);
     mesh->set_time(t);
     mesh->set_time_step(time_step);
     mesh->set_whole_extent(whole_extent);
@@ -1200,7 +1219,7 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
     teca_metadata time_atts;
     std::string calendar;
     std::string units;
-    if (!atrs.get("time", time_atts)
+    if (!atrs.get(t_axis_var, time_atts)
        && !time_atts.get("calendar", calendar)
        && !time_atts.get("units", units))
     {
@@ -1219,16 +1238,16 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
         out_atrs.set(arrays[i], atrs.get(arrays[i]));
 
     // pass coordinate axes attributes
-    if (atrs.has(x_axis_variable))
-        out_atrs.set(x_axis_variable, atrs.get(x_axis_variable));
-    if (atrs.has(y_axis_variable))
-        out_atrs.set(y_axis_variable, atrs.get(y_axis_variable));
-    if (atrs.has(z_axis_variable))
-        out_atrs.set(z_axis_variable, atrs.get(z_axis_variable));
+    if (atrs.has(x_axis_var))
+        out_atrs.set(x_axis_var, atrs.get(x_axis_var));
+    if (atrs.has(y_axis_var))
+        out_atrs.set(y_axis_var, atrs.get(y_axis_var));
+    if (atrs.has(z_axis_var))
+        out_atrs.set(z_axis_var, atrs.get(z_axis_var));
     if (!time_atts.empty())
-        out_atrs.set("time", time_atts);
+        out_atrs.set(t_axis_var, time_atts);
 
-    mesh->get_metadata().set("attributes", out_atrs);
+    md.set("attributes", out_atrs);
 
     // figure out the mapping between our extent and netcdf
     // representation
@@ -1338,7 +1357,7 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
             std::vector<size_t> starts(n_dims);
             std::vector<size_t> counts(n_dims);
             size_t n_vals = 1;
-            if (dim_names->get(0) == this->t_axis_variable)
+            if (!t_axis_variable.empty() && (dim_names->get(0) == t_axis_variable))
             {
                 starts[0] = offs;
                 counts[0] = 1;
@@ -1350,6 +1369,7 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
                 counts[0] = dim_len;
                 n_vals = dim_len;
             }
+
             for (unsigned int ii = 1; ii < n_dims; ++ii)
             {
                 size_t dim_len = dims->get(ii);
