@@ -2,12 +2,15 @@
 #define teca_netcdf_util_h
 
 #include "teca_config.h"
+#include "teca_mpi.h"
 
 #include <mutex>
 #include <string>
 
 #include <netcdf.h>
-
+#if defined(TECA_HAS_NETCDF_MPI)
+#include <netcdf_par.h>
+#endif
 
 // macro to help with netcdf data types
 #define NC_DISPATCH_FP(tc_, code_)                          \
@@ -118,11 +121,25 @@ public:
         other.m_handle = 0;
     }
 
-    // open the file
+    // open the file. this can be used from MPI parallel runs, but collective
+    // I/O is not possible when a file is opend this way. Returns 0 on success.
     int open(const std::string &file_path, int mode);
 
-    // create the file
+    // open the file. this can be used when collective I/O is desired. the
+    // passed in communcator specifies the subset of ranks that will access
+    // the file. Calling this when linked to a non-MPI enabled NetCDF install,
+    // from a parallel run will, result in an error. Returns 0 on success.
+    int open(MPI_Comm comm, const std::string &file_path, int mode);
+
+    // create the file. this can be used from MPI parallel runs, but collective
+    // I/O is not possible when a file is created this way. Returns 0 on success.
     int create(const std::string &file_path, int mode);
+
+    // create the file. this can be used when collective I/O is desired. the
+    // passed in communcator specifies the subset of ranks that will access
+    // the file. Calling this when linked to a non-MPI enabled NetCDF install,
+    // from a parallel run will, result in an error. Returns 0 on success.
+    int create(MPI_Comm comm, const std::string &file_path, int mode);
 
     // close the file
     int close();
