@@ -11,6 +11,10 @@ brew install mpich swig svn udunits openssl@1.1
 
 # matplotlib currently doesn't have a formula
 # teca fails to locate mpi4py installed from brew
+python3 -mvenv `pwd`/../tci
+set +x
+source `pwd`/../tci/bin/activate
+set -x
 pip3 install numpy mpi4py matplotlib torch
 
 # install data files.
