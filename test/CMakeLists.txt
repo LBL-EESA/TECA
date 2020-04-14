@@ -89,7 +89,7 @@ teca_add_test(test_cf_writer_cam5_serial
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_cf_writer
     -i "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-[0-9][0-9]-10800\\.nc"
-    -o "test_cf_writer_%t%.%e%" -s 0,-1 -x lon -y lat -t time -c 2 -n 1 U850 V850
+    -o "test_cf_writer_cam5_s_%t%.nc" -s 0,-1 -x lon -y lat -t time -c 2 -n 1 U850 V850
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
@@ -103,7 +103,7 @@ teca_add_test(test_cf_writer_cam5_compression
 teca_add_test(test_cf_writer_cfsr_serial
     COMMAND test_cf_writer
     -i "${TECA_DATA_ROOT}/NCEP_CFSR_0\\.5_1979\\.nc"
-    -o "test_cf_writer_%t%.%e%" -s 0,-1 -x longitude -y latitude
+    -o "test_cf_writer_NCEP_CFSR_s_%t%.nc" -s 0,-1 -x longitude -y latitude
     -b 65,110,10,55,0,0 -c 2 -n 1 elevation
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
@@ -111,21 +111,21 @@ teca_add_test(test_cf_writer_cfsr_serial
 teca_add_test(test_cf_writer_era5_serial
     COMMAND test_cf_writer
     -i "${TECA_DATA_ROOT}/e5\.oper\.an\.vinteg\.162_072_viwvn.*\.nc"
-    -o "test_cf_writer_era5_%t%.%e%" -s 0,-1 -x longitude -y latitude -t time -c 2 -n 1 VIWVN
+    -o "test_cf_writer_era5_s_%t%.nc" -s 0,-1 -x longitude -y latitude -t time -c 2 -n 1 VIWVN
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(test_cf_writer_cam5_threads
     COMMAND test_cf_writer
     -i "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-[0-9][0-9]-10800\\.nc"
-    -o "test_cf_writer_%t%.%e%" -s 0,-1 -x lon -y lat -t time -c 2 -n ${TECA_TEST_CORES} U850 V850
+    -o "test_cf_writer_cam5_t_%t%.nc" -s 0,-1 -x lon -y lat -t time -c 2 -n ${TECA_TEST_CORES} U850 V850
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(test_cf_writer_cfsr_threads
     COMMAND test_cf_writer
     -i "${TECA_DATA_ROOT}/NCEP_CFSR_0\\.5_1979\\.nc"
-    -o "test_cf_writer_%t%.%e%" -s 0,-1 -x longitude -y latitude
+    -o "test_cf_writer_NCEP_CFSR_t_%t%.nc" -s 0,-1 -x longitude -y latitude
     -b 65,110,10,55,0,0 -n ${TECA_TEST_CORES} -c 2 elevation
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
@@ -133,21 +133,21 @@ teca_add_test(test_cf_writer_cfsr_threads
 teca_add_test(test_cf_writer_era5_threads
     COMMAND test_cf_writer
     -i "${TECA_DATA_ROOT}/e5\.oper\.an\.vinteg\.162_072_viwvn.*\.nc"
-    -o "test_cf_writer_era5_%t%.%e%" -s 0,-1 -x longitude -y latitude -t time -c 2 -n ${TECA_TEST_CORES} VIWVN
+    -o "test_cf_writer_era5_t_%t%.nc" -s 0,-1 -x longitude -y latitude -t time -c 2 -n ${TECA_TEST_CORES} VIWVN
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(test_cf_writer_cam5_mpi
     COMMAND ${MPIEXEC} -n ${TECA_TEST_CORES} test_cf_writer
     -i "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-[0-9][0-9]-10800\\.nc"
-    -o "test_cf_writer_%t%.%e%" -s 0,-1 -x lon -y lat -t time -c 2 -n 1 U850 V850
+    -o "test_cf_writer_cam5_m_%t%.nc" -s 0,-1 -x lon -y lat -t time -c 2 -n 1 U850 V850
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
 teca_add_test(test_cf_writer_cfsr_mpi
     COMMAND ${MPIEXEC} -n ${TECA_TEST_CORES} test_cf_writer
     -i "${TECA_DATA_ROOT}/NCEP_CFSR_0\\.5_1979\\.nc"
-    -o "test_cf_writer_%t%.%e%" -s 0,-1 -x longitude -y latitude
+    -o "test_cf_writer_NCEP_CFSR_m_%t%.nc" -s 0,-1 -x longitude -y latitude
     -b 65,110,10,55,0,0 -c 2 -n 1 elevation
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
@@ -155,21 +155,21 @@ teca_add_test(test_cf_writer_cfsr_mpi
 teca_add_test(test_cf_writer_era5_mpi
     COMMAND ${MPIEXEC} -n ${TECA_TEST_CORES} test_cf_writer
     -i "${TECA_DATA_ROOT}/e5\.oper\.an\.vinteg\.162_072_viwvn.*\.nc"
-    -o "test_cf_writer_era5_%t%.%e%" -s 0,-1 -x longitude -y latitude -t time -c 2 -n 1 VIWVN
+    -o "test_cf_writer_era5_m_%t%.nc" -s 0,-1 -x longitude -y latitude -t time -c 2 -n 1 VIWVN
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(test_cf_writer_cam5_mpi_threads
     COMMAND ${MPIEXEC} -n ${HALF_CORES} test_cf_writer
     -i "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-[0-9][0-9]-10800\\.nc"
-    -o "test_cf_writer_%t%.%e%" -s 0,-1 -x lon -y lat -t time -c 1 -n ${HALF_CORES} U850 V850
+    -o "test_cf_writer_cam5_mt_%t%.nc" -s 0,-1 -x lon -y lat -t time -c 1 -n ${HALF_CORES} U850 V850
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
 teca_add_test(test_cf_writer_cfsr_mpi_threads
     COMMAND ${MPIEXEC} -n ${HALF_CORES} test_cf_writer
     -i "${TECA_DATA_ROOT}/NCEP_CFSR_0\\.5_1979\\.nc"
-    -o "test_cf_writer_%t%.%e%" -s 0,-1 -x longitude -y latitude
+    -o "test_cf_writer_NCEP_CFSR_mt_%t%.nc" -s 0,-1 -x longitude -y latitude
     -b 65,110,10,55,0,0 -c 1 -n ${HALF_CORES} elevation
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
@@ -177,7 +177,7 @@ teca_add_test(test_cf_writer_cfsr_mpi_threads
 teca_add_test(test_cf_writer_era5_mpi_threads
     COMMAND ${MPIEXEC} -n ${HALF_CORES} test_cf_writer
     -i "${TECA_DATA_ROOT}/e5\.oper\.an\.vinteg\.162_072_viwvn.*\.nc"
-    -o "test_cf_writer_era5_%t%.%e%" -s 0,-1 -x longitude -y latitude -t time -c 1 -n ${HALF_CORES} VIWVN
+    -o "test_cf_writer_era5_mt_%t%.nc" -s 0,-1 -x longitude -y latitude -t time -c 1 -n ${HALF_CORES} VIWVN
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
