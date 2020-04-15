@@ -32,133 +32,96 @@
 #  target_link_libraries (uses_everthing ${NETCDF_LIBRARIES})
 #  target_link_libraries (only_uses_f90 ${NETCDF_F90_LIBRARIES})
 
+
 #search starting from user editable cache var
 if (NETCDF_INCLUDE_DIR AND NETCDF_LIBRARY)
   # Already in cache, be silent
   set (NETCDF_FIND_QUIETLY TRUE)
-endif ()
-
-# find the library
-# first look where the user told us
-if (NETCDF_DIR)
-  find_library (NETCDF_LIBRARY NAMES netcdf
-    PATHS "${NETCDF_DIR}/lib" "${NETCDF_DIR}/lib64"
-    NO_DEFAULT_PATH)
 endif()
 
-# next look in LD_LIBRARY_PATH for libraries
-find_library (NETCDF_LIBRARY NAMES netcdf
-  PATHS ENV LD_LIBRARY_PATH NO_DEFAULT_PATH)
+# find the library
+# use package config, this works well on systems that make
+# use of modules to manage installs not in the standard
+# locations that cmake knows about
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(NC_TMP netcdf QUIET)
+if (NC_TMP_FOUND AND NC_TMP_LINK_LIBRARIES AND NC_TMP_LIBRARY_DIRS AND NC_TMP_INCLUDE_DIRS)
+    set(NETCDF_LIBRARY_DIR ${NC_TMP_LIBRARY_DIRS})
+    set(NETCDF_LIBRARY ${NC_TMP_LINK_LIBRARIES})
+    set(NETCDF_INCLUDE_DIR ${NC_TMP_INCLUDE_DIRS})
+else()
+    # package config failed, use cmake
+    # first look where the user told us
+    if (NETCDF_DIR)
+      find_library(NETCDF_LIBRARY NAMES netcdf
+        PATHS "${NETCDF_DIR}/lib" "${NETCDF_DIR}/lib64"
+        NO_DEFAULT_PATH)
+    endif()
 
-# finally CMake can look
-find_library (NETCDF_LIBRARY NAMES netcdf)
+    # next look in LD_LIBRARY_PATH for libraries
+    find_library(NETCDF_LIBRARY NAMES netcdf
+      PATHS ENV LD_LIBRARY_PATH NO_DEFAULT_PATH)
 
+    # finally CMake can look
+    find_library(NETCDF_LIBRARY NAMES netcdf)
+
+    message(STATUS ${NETCDF_LIBRARY})
+endif()
+
+# if we can find the library it is found now
+# record what we have
 mark_as_advanced (NETCDF_LIBRARY)
 set (NETCDF_C_LIBRARIES ${NETCDF_LIBRARY})
 
 # find the header
-# first look where the user told us
-if (NETCDF_DIR)
-  find_path (NETCDF_INCLUDE_DIR netcdf.h
-    PATHS "${NETCDF_DIR}/include" NO_DEFAULT_PATH)
+# package config failed, use cmake
+if (NOT NC_TMP_FOUND OR NOT NC_TMP_LINK_LIBRARIES OR NOT NC_TMP_LIBRARY_DIRS OR NOT NC_TMP_INCLUDE_DIRS)
+    # first look where the user told us
+    if (NETCDF_DIR)
+      find_path (NETCDF_INCLUDE_DIR netcdf.h
+        PATHS "${NETCDF_DIR}/include" NO_DEFAULT_PATH)
+    endif()
+
+    # then look relative to library dir
+    get_filename_component(NETCDF_LIBRARY_DIR
+      ${NETCDF_LIBRARY} DIRECTORY)
+
+    find_path (NETCDF_INCLUDE_DIR netcdf.h
+      PATHS "${NETCDF_LIBRARY_DIR}/../include"
+      NO_DEFAULT_PATH)
+
+    # CMake can look
+    find_path(NETCDF_INCLUDE_DIR netcdf.h)
 endif()
 
-# then look relative to library dir
-get_filename_component(NETCDF_LIBRARY_DIR
-  ${NETCDF_LIBRARY} DIRECTORY)
+# look for header file that indicates MPI support
+set(NETCDF_IS_PARALLEL FALSE)
+find_file(NETCDF_PAR_INCLUDE_DIR netcdf_par.h
+    PATHS ${NETCDF_INCLUDE_DIR} NO_DEFAULT_PATH)
+if (NETCDF_PAR_INCLUDE_DIR)
+    set(NETCDF_IS_PARALLEL TRUE)
+endif()
 
-find_path (NETCDF_INCLUDE_DIR netcdf.h
-  PATHS "${NETCDF_LIBRARY_DIR}/../include"
-  NO_DEFAULT_PATH)
-
-# finally CMake can look
-find_path (NETCDF_INCLUDE_DIR netcdf.h)
-
-mark_as_advanced (NETCDF_INCLUDE_DIR)
-set (NETCDF_C_INCLUDE_DIRS ${NETCDF_INCLUDE_DIR})
-
+# if we can find the headers they are found now
+# record what we have
+mark_as_advanced(NETCDF_INCLUDE_DIR)
+mark_as_advanced(NETCDF_IS_PARALLEL)
+mark_as_advanced(NETCDF_PAR_INCLUDE_DIR)
+set(NETCDF_C_INCLUDE_DIRS ${NETCDF_INCLUDE_DIR})
 
 #start finding requested language components
 set (NetCDF_libs "")
 set (NetCDF_includes "${NETCDF_INCLUDE_DIR}")
 
 get_filename_component (NetCDF_lib_dirs "${NETCDF_LIBRARY}" PATH)
-set (NETCDF_HAS_INTERFACES "YES") # will be set to NO if we're missing any interfaces
-
-macro (NetCDF_check_interface lang header libs)
-  if (NETCDF_${lang})
-    # find the library
-    # first look where the user told us
-    if (NETCDF_DIR)
-      find_library (NETCDF_${lang}_LIBRARY NAMES netcdf
-        PATHS "${NETCDF_DIR}/lib" "${NETCDF_DIR}/lib64"
-        NO_DEFAULT_PATH)
-    endif()
-
-    # next look in LD_LIBRARY_PATH for libraries
-    find_library (NETCDF_${lang}_LIBRARY NAMES netcdf
-      PATHS ENV LD_LIBRARY_PATH NO_DEFAULT_PATH)
-
-    # finally CMake can look
-    find_library (NETCDF_${lang}_LIBRARY NAMES netcdf)
-
-    # find the header
-    # first look where the user told us
-    if (NETCDF_DIR)
-      find_path (NETCDF_${lang}_INCLUDE_DIR netcdf.h
-        PATHS "${NETCDF_DIR}/include" NO_DEFAULT_PATH)
-    endif()
-
-    # then look relative to library dir
-    get_filename_component(NETCDF_${lang}_LIBRARY_DIR
-      ${NETCDF_${lang}_LIBRARY} DIRECTORY CACHE)
-
-    find_path (NETCDF_${lang}_INCLUDE_DIR netcdf.h
-      PATHS "${NETCDF_${lang}_LIBRARY_DIR}/../include"
-      NO_DEFAULT_PATH)
-
-    # finally CMake can look
-    find_path (NETCDF_${lang}_INCLUDE_DIR netcdf.h)
-
-    #export to internal varS that rest of project can use directly
-    mark_as_advanced (NETCDF_${lang}_INCLUDE_DIR NETCDF_${lang}_LIBRARY)
-
-    set (NETCDF_${lang}_LIBRARIES ${NETCDF_${lang}_LIBRARY})
-    set (NETCDF_${lang}_INCLUDE_DIRS ${NETCDF_${lang}_INCLUDE_DIR})
-
-    if (NETCDF_${lang}_INCLUDE_DIR AND NETCDF_${lang}_LIBRARY)
-      list (APPEND NetCDF_libs ${NETCDF_${lang}_LIBRARY})
-      list (APPEND NetCDF_includes ${NETCDF_${lang}_INCLUDE_DIR})
-    else ()
-      set (NETCDF_HAS_INTERFACES "NO")
-      message (STATUS "Failed to find NetCDF interface for ${lang}")
-    endif ()
-  endif ()
-endmacro (NetCDF_check_interface)
-
-list (FIND NetCDF_FIND_COMPONENTS "CXX" _nextcomp)
-if (_nextcomp GREATER -1)
-  set (NETCDF_CXX 1)
-endif ()
-list (FIND NetCDF_FIND_COMPONENTS "F77" _nextcomp)
-if (_nextcomp GREATER -1)
-  set (NETCDF_F77 1)
-endif ()
-list (FIND NetCDF_FIND_COMPONENTS "F90" _nextcomp)
-if (_nextcomp GREATER -1)
-  set (NETCDF_F90 1)
-endif ()
-NetCDF_check_interface (CXX netcdfcpp.h netcdf_c++)
-NetCDF_check_interface (F77 netcdf.inc  netcdff)
-NetCDF_check_interface (F90 netcdf.mod  netcdff)
 
 #export accumulated results to internal varS that rest of project can depend on
-list (APPEND NetCDF_libs "${NETCDF_C_LIBRARIES}")
-set (NETCDF_LIBRARIES ${NetCDF_libs})
-set (NETCDF_INCLUDE_DIRS ${NetCDF_includes})
+list(APPEND NetCDF_libs "${NETCDF_C_LIBRARIES}")
+set(NETCDF_LIBRARIES ${NetCDF_libs})
+set(NETCDF_INCLUDE_DIRS ${NetCDF_includes})
 
 # handle the QUIETLY and REQUIRED arguments and set NETCDF_FOUND to TRUE if
 # all listed variables are TRUE
 include (FindPackageHandleStandardArgs)
 find_package_handle_standard_args (NetCDF
-  DEFAULT_MSG NETCDF_LIBRARIES NETCDF_INCLUDE_DIRS NETCDF_HAS_INTERFACES)
+  DEFAULT_MSG NETCDF_LIBRARIES NETCDF_INCLUDE_DIRS)

@@ -14,10 +14,10 @@ env:
     - BUILD_TYPE=Debug
     - TECA_DIR=/travis_teca_dir
     - TECA_PYTHON_VERSION=3
-    - TECA_DATA_REVISION=53
+    - TECA_DATA_REVISION=54
   jobs:
     - DOCKER_IMAGE=ubuntu IMAGE_VERSION=18.04 IMAGE_NAME=ubuntu_18_04
-    - DOCKER_IMAGE=fedora IMAGE_VERSION=28 IMAGE_NAME=fedora_28
+    - DOCKER_IMAGE=fedora IMAGE_VERSION=31 IMAGE_NAME=fedora_31
     - NO_DOCKER=TRUE
 
 jobs:
@@ -25,7 +25,7 @@ jobs:
     - os: osx
       env: DOCKER_IMAGE=ubuntu IMAGE_VERSION=18.04 IMAGE_NAME=ubuntu_18_04
     - os: osx
-      env: DOCKER_IMAGE=fedora IMAGE_VERSION=28 IMAGE_NAME=fedora_28
+      env: DOCKER_IMAGE=fedora IMAGE_VERSION=31 IMAGE_NAME=fedora_31
     - os: linux
       env: NO_DOCKER=TRUE
 

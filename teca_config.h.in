@@ -3,6 +3,7 @@
 
 #cmakedefine TECA_HAS_REGEX
 #cmakedefine TECA_HAS_NETCDF
+#cmakedefine TECA_HAS_NETCDF_MPI
 #cmakedefine TECA_HAS_MPI
 #cmakedefine TECA_HAS_BOOST
 #cmakedefine TECA_HAS_VTK

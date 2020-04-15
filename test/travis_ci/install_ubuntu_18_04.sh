@@ -1,5 +1,5 @@
 #!/bin/bash
-set -v
+set -x
 
 # suck in package lists
 apt-get update -qq
@@ -24,7 +24,11 @@ echo ${IMAGE_VERSION}
 echo ${TECA_PYTHON_VERSION}
 echo ${TECA_DATA_REVISION}
 
-pip${TECA_PYTHON_VERSION} install numpy mpi4py matplotlib torch
+python3 -mvenv `pwd`/../tci
+set +x
+source `pwd`/../tci/bin/activate
+set -x
+pip3 install numpy mpi4py matplotlib torch
 
 # install data files.
 svn co svn://svn.code.sf.net/p/teca/TECA_data@${TECA_DATA_REVISION} TECA_data

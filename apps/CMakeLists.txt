@@ -16,27 +16,27 @@ if (TECA_HAS_BOOST)
 endif()
 
 teca_add_app(teca_tc_detect LIBS ${teca_app_link}
-    FEATURES (TECA_HAS_BOOST AND TECA_HAS_NETCDF AND TECA_HAS_UDUNITS))
+    FEATURES ${TECA_HAS_BOOST} ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS})
 
 teca_add_app(teca_tc_wind_radii LIBS ${teca_app_link}
-    FEATURES (TECA_HAS_BOOST AND TECA_HAS_NETCDF AND TECA_HAS_UDUNITS))
+    FEATURES ${TECA_HAS_BOOST} ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS})
 
 teca_add_app(teca_tc_trajectory LIBS ${teca_app_link}
-    FEATURES (TECA_HAS_BOOST AND TECA_HAS_UDUNITS))
+    FEATURES ${TECA_HAS_BOOST} ${TECA_HAS_UDUNITS})
 
 teca_add_app(teca_metadata_probe LIBS ${teca_app_link}
-    FEATURES (TECA_HAS_BOOST AND TECA_HAS_NETCDF AND TECA_HAS_UDUNITS))
-    
-teca_add_app(teca_bayesian_ar_detect LIBS ${teca_app_link}
-    FEATURES (TECA_HAS_BOOST AND TECA_HAS_NETCDF AND TECA_HAS_UDUNITS))
+    FEATURES ${TECA_HAS_BOOST} ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS})
 
-teca_py_install_apps(
-    teca_convert_table.in
-    teca_dataset_metadata.in
-    teca_pytorch_deeplabv3p_ar_detect.in
-    teca_event_filter.in
-    teca_profile_explorer.in
-    teca_tc_stats.in
-    teca_tc_wind_radii_stats.in
-    teca_tc_trajectory_scalars.in
-    )
+teca_add_python_app(teca_convert_table)
+
+teca_add_python_app(teca_dataset_metadata
+    FEATURES ${TECA_HAS_NETCDF})
+
+teca_add_python_app(teca_pytorch_deeplabv3p_ar_detect
+    FEATURES ${TECA_HAS_NETCDF})
+
+teca_add_python_app(teca_event_filter)
+teca_add_python_app(teca_profile_explorer)
+teca_add_python_app(teca_tc_stats)
+teca_add_python_app(teca_tc_wind_radii_stats)
+teca_add_python_app(teca_tc_trajectory_scalars)
