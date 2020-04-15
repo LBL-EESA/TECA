@@ -93,13 +93,6 @@ teca_add_test(test_cf_writer_cam5_serial
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
-teca_add_test(test_cf_writer_cam5_compression
-    COMMAND test_cf_writer
-    -i "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-[0-9][0-9]-10800\\.nc"
-    -o "test_cf_writer_%t%.%e%" -s 0,-1 -x lon -y lat -t time -c 2 -n 1 -d 4 U850 V850
-    FEATURES ${TECA_HAS_NETCDF}
-    REQ_TECA_DATA)
-
 teca_add_test(test_cf_writer_cfsr_serial
     COMMAND test_cf_writer
     -i "${TECA_DATA_ROOT}/NCEP_CFSR_0\\.5_1979\\.nc"
