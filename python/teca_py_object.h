@@ -41,6 +41,30 @@ teca_py_object_cpp_tt_declare(long, long, PyLongCheck, PyLongToCLong)
 teca_py_object_cpp_tt_declare(float, double, PyFloat_Check, PyFloat_AsDouble)
 teca_py_object_cpp_tt_declare(char*, std::string, PyStringCheck, PyStringToCString)
 teca_py_object_cpp_tt_declare(bool, int, PyBool_Check, PyIntegerToCInt)
+// teca_metadata
+template <> struct cpp_tt<teca_metadata>
+{
+    typedef teca_metadata type;
+
+    static bool is_type(PyObject *obj)
+    {
+        void *pv = nullptr;
+        int ierr = SWIG_ConvertPtr(obj, &pv, SWIGTYPE_p_teca_metadata, 0);
+        return SWIG_IsOK(ierr);
+    }
+
+    static type value(PyObject *obj)
+    {
+        void *pv = nullptr;
+        int ierr = SWIG_ConvertPtr(obj, &pv, SWIGTYPE_p_teca_metadata, 0);
+        if (!SWIG_IsOK(ierr))
+        {
+            TECA_PY_ERROR(PyExc_TypeError, "object is not a teca_metadata")
+            return teca_metadata();
+        }
+        return *reinterpret_cast<teca_metadata*>(pv);
+    }
+};
 
 /// py_tt, traits class for working with PyObject's
 /**
@@ -85,14 +109,25 @@ teca_py_object_py_tt_declare(unsigned long, int, CIntUToPyInteger)
 teca_py_object_py_tt_declare(unsigned long long, int, CIntULLToPyInteger)
 teca_py_object_py_tt_declare(float, float, PyFloat_FromDouble)
 teca_py_object_py_tt_declare(double, float, PyFloat_FromDouble)
-// strings are a special case
+// string
 template <> struct py_tt<std::string>
 {
     typedef char* tag;
     static PyObject *new_object(const std::string &s)
     { return CStringToPyString(s.c_str()); }
 };
-// TODO -- special case for teca_metadata
+// teca_metadata
+template <> struct py_tt<teca_metadata>
+{
+    typedef teca_metadata tag;
+
+    static PyObject *new_object(const teca_metadata &md)
+    {
+        return SWIG_NewPointerObj(new teca_metadata(md),
+             SWIGTYPE_p_teca_metadata, SWIG_POINTER_OWN);
+    }
+};
+
 
 // dispatch macro.
 // OBJ -- PyObject* instance
@@ -106,21 +141,26 @@ template <> struct py_tt<std::string>
         CODE                                                \
     }
 
-#define TECA_PY_OBJECT_DISPATCH(PY_OBJ, CODE)               \
-    TECA_PY_OBJECT_DISPATCH_CASE(int, PY_OBJ, CODE)         \
-    else TECA_PY_OBJECT_DISPATCH_CASE(float, PY_OBJ, CODE)  \
-    else TECA_PY_OBJECT_DISPATCH_CASE(char*, PY_OBJ, CODE)  \
-    else TECA_PY_OBJECT_DISPATCH_CASE(long, PY_OBJ, CODE)
+// all
+#define TECA_PY_OBJECT_DISPATCH(PY_OBJ, CODE)                       \
+    TECA_PY_OBJECT_DISPATCH_CASE(int, PY_OBJ, CODE)                 \
+    else TECA_PY_OBJECT_DISPATCH_CASE(float, PY_OBJ, CODE)          \
+    else TECA_PY_OBJECT_DISPATCH_CASE(char*, PY_OBJ, CODE)          \
+    else TECA_PY_OBJECT_DISPATCH_CASE(long, PY_OBJ, CODE)           \
+    else TECA_PY_OBJECT_DISPATCH_CASE(teca_metadata, PY_OBJ, CODE)
 
-// without string
+// just numeric/POD
 #define TECA_PY_OBJECT_DISPATCH_NUM(PY_OBJ, CODE)           \
     TECA_PY_OBJECT_DISPATCH_CASE(int, PY_OBJ, CODE)         \
     else TECA_PY_OBJECT_DISPATCH_CASE(float, PY_OBJ, CODE)  \
     else TECA_PY_OBJECT_DISPATCH_CASE(long, PY_OBJ, CODE)
 
-// just string
-#define TECA_PY_OBJECT_DISPATCH_STR(PY_OBJ, CODE)           \
+// just special cases
+#define TECA_PY_OBJECT_DISPATCH_STR(PY_OBJ, CODE)       \
     TECA_PY_OBJECT_DISPATCH_CASE(char*, PY_OBJ, CODE)
+
+#define TECA_PY_OBJECT_DISPATCH_MD(PY_OBJ, CODE)                \
+    TECA_PY_OBJECT_DISPATCH_CASE(teca_metadata, PY_OBJ, CODE)
 
 // ****************************************************************************
 p_teca_variant_array new_variant_array(PyObject *obj)
@@ -158,6 +198,15 @@ bool copy(teca_variant_array *varr, PyObject *obj)
             return true;
             )
         )
+    else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
+        teca_metadata, varr,
+        TT *varrt = static_cast<TT*>(varr);
+        TECA_PY_OBJECT_DISPATCH_MD(obj,
+            varrt->resize(1);
+            varrt->set(0, cpp_tt<OT>::value(obj));
+            return true;
+            )
+        )
 
     return false;
 }
@@ -180,6 +229,14 @@ bool set(teca_variant_array *varr, unsigned long i, PyObject *obj)
             return true;
             )
         )
+    else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
+        teca_metadata, varr,
+        TT *varrt = static_cast<TT*>(varr);
+        TECA_PY_OBJECT_DISPATCH_MD(obj,
+            varrt->set(i, cpp_tt<OT>::value(obj));
+            return true;
+            )
+        )
 
     return false;
 }
@@ -198,6 +255,14 @@ bool append(teca_variant_array *varr, PyObject *obj)
         std::string, varr,
         TT *varrt = static_cast<TT*>(varr);
         TECA_PY_OBJECT_DISPATCH_STR(obj,
+            varrt->append(static_cast<NT>(cpp_tt<OT>::value(obj)));
+            return true;
+            )
+         )
+    else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
+        teca_metadata, varr,
+        TT *varrt = static_cast<TT*>(varr);
+        TECA_PY_OBJECT_DISPATCH_MD(obj,
             varrt->append(static_cast<NT>(cpp_tt<OT>::value(obj)));
             return true;
             )

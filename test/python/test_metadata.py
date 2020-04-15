@@ -23,6 +23,9 @@ md['int'] = 1
 md['float'] = 1.0
 md['string'] = 'other string'
 md['bool'] = True
+nested = teca_metadata()
+nested['foo'] = 42
+md['nested'] = nested
 end_sec('set from object')
 
 start_sec('set from list')
@@ -48,6 +51,7 @@ md_keys = ['int', 'float', 'string', 'bool', 'int list', \
      'uint64 array', 'float32 array', 'float64 array']
 for md_key in md_keys:
     sys.stderr.write('%s = %s\n'%(md_key, str(md[md_key])))
+sys.stderr.write('%s = {%s}\n'%('nested', str(md['nested'])))
 end_sec('get')
 
 start_sec('empty')
