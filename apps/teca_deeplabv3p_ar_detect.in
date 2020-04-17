@@ -26,7 +26,7 @@ def main():
 
     parser.add_argument(
         '--output_file', type=str, required=False,
-        default=r'deeplabv3p_ar_detect_%%t%%.nc',
+        default=r'deeplabv3p_ar_detect_%t%.nc',
         help=r'file pattern for output netcdf files (%%t%% is the time index)'
     )
 
