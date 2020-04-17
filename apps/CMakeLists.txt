@@ -32,7 +32,7 @@ teca_add_python_app(teca_convert_table)
 teca_add_python_app(teca_dataset_metadata
     FEATURES ${TECA_HAS_NETCDF})
 
-teca_add_python_app(teca_pytorch_deeplabv3p_ar_detect
+teca_add_python_app(teca_deeplabv3p_ar_detect
     FEATURES ${TECA_HAS_NETCDF})
 
 teca_add_python_app(teca_event_filter)

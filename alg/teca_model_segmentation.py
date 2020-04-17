@@ -1,3 +1,4 @@
+import sys
 import teca_py
 import numpy as np
 import torch
@@ -56,7 +57,8 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
         set the variable name that will be inputed to the model
         """
         self.variable_name = str(name)
-        self.set_pred_name(self.variable_name + '_pred')
+        if self.pred_name is None:
+            self.set_pred_name(self.variable_name + '_pred')
 
     def set_pred_name(self, name):
         """

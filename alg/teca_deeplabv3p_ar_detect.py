@@ -334,7 +334,8 @@ class teca_deeplabv3p_ar_detect(teca_py.teca_model_segmentation):
         self.mesh_nx = None
         self.padding_amount_y = None
         self.padding_amount_x = None
-        self.set_variable_name('IVT')
+        self.set_variable_name("IVT")
+        self.set_pred_name("ar_probability")
 
     def set_mesh_dims(self, mesh_ny, mesh_nx):
         self.mesh_ny = mesh_ny
@@ -470,6 +471,19 @@ class teca_deeplabv3p_ar_detect(teca_py.teca_model_segmentation):
             ).get_execute_callback()
 
             out_mesh = super_execute(port, data_in, req)
+
+            out_mesh.get_point_arrays().remove(self.variable_name)
+
+            ar_probability_atts = teca_py.teca_metadata()
+            ar_probability_atts["long_name"] = "posterior AR flag"
+            ar_probability_atts["units"] = "probability"
+
+            out_md = out_mesh.get_metadata()
+            attributes = out_md["attributes"]
+            attributes["ar_probability"] = ar_probability_atts
+            out_md["attributes"] = attributes
+
+            out_mesh.set_metadata(out_md)
 
             return out_mesh
         return execute
