@@ -1,6 +1,11 @@
 #!/bin/bash
 set -x
 
+export DEBIAN_FRONTEND="noninteractive"
+
+# To address tzdata configuration resulted by installing cmake
+export TZ="America/Los_Angeles"
+
 # suck in package lists
 apt-get update -qq
 
@@ -8,7 +13,7 @@ apt-get update -qq
 # use PIP for Python packages
 apt-get install -qq -y git-core gcc g++ gfortran cmake swig \
     libmpich-dev libhdf5-dev libnetcdf-dev libboost-program-options-dev \
-    python-dev python-pip python3-dev python3-pip subversion libudunits2-0 \
+    python3-dev python3-pip subversion libudunits2-0 \
     libudunits2-dev zlib1g-dev libssl-dev
 
 git clone http://github.com/burlen/libxlsxwriter.git
