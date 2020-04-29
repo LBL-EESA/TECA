@@ -79,9 +79,8 @@ public:
     int set(const std::string &name,
         const p_teca_variant_array_impl<T> &prop_val);
 
-    // append a value to the named property. reports
-    // an error and does nothing if the property doesn't
-    // exist. return 0 on success.
+    // append a value to the named property. if the property doesn't
+    // exist it is created. return 0 on success.
     template<typename T>
     int append(const std::string &name, const T &val);
 
@@ -235,7 +234,7 @@ int teca_metadata::append(const std::string &name, const T &val)
     prop_map_t::iterator it = this->props.find(name);
     if (it == this->props.end())
     {
-        return -1;
+        return this->set(name, val);
     }
 
     it->second->append(val);
