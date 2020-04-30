@@ -2,6 +2,7 @@
 
 #include "teca_mesh.h"
 #include "teca_array_collection.h"
+#include "teca_array_attributes.h"
 #include "teca_variant_array.h"
 #include "teca_metadata.h"
 #include "teca_cartesian_mesh.h"
@@ -170,7 +171,6 @@ public:
             std::dynamic_pointer_cast<teca_cartesian_mesh>(ds->new_instance());
 
         out_mesh->shallow_copy(std::const_pointer_cast<teca_dataset>(ds));
-
 
         p_teca_variant_array ar_prob_in =
             out_mesh->get_point_arrays()->get(this->probability_array_name);
@@ -461,7 +461,7 @@ public:
                     )
 
                 // get ar counts and parameter table rows from metadata and
-                // pass into the infomration arrays
+                // pass into the information arrays
                 int val = 0;
                 if (md.get("number_of_components", val))
                 {
@@ -634,8 +634,7 @@ unsigned int teca_bayesian_ar_detect::get_thread_pool_size() const noexcept
 }
 
 // --------------------------------------------------------------------------
-teca_metadata
-teca_bayesian_ar_detect::teca_bayesian_ar_detect::get_output_metadata(
+teca_metadata teca_bayesian_ar_detect::get_output_metadata(
     unsigned int port, const std::vector<teca_metadata> &input_md)
 {
 #ifdef TECA_DEBUG
@@ -644,107 +643,140 @@ teca_bayesian_ar_detect::teca_bayesian_ar_detect::get_output_metadata(
 #endif
     (void)port;
 
+    // if don't already have the parameter table read and distribute it
+    if (!this->internals->parameter_table)
+    {
+        // execute the pipeline that retruns table of parameters
+        const_p_teca_dataset parameter_data;
+
+        p_teca_programmable_algorithm capture_parameter_data
+            = teca_programmable_algorithm::New();
+
+        capture_parameter_data->set_name("capture_parameter_data");
+        capture_parameter_data->set_input_connection(this->internals->parameter_pipeline_port);
+
+        capture_parameter_data->set_execute_callback(
+            [&parameter_data] (unsigned int, const std::vector<const_p_teca_dataset> &in_data,
+         const teca_metadata &) -> const_p_teca_dataset
+         {
+             parameter_data = in_data[0];
+             return nullptr;
+         });
+
+        capture_parameter_data->update();
+
+        int rank = 0;
+#if defined(TECA_HAS_MPI)
+        MPI_Comm comm = this->get_communicator();
+        int is_init = 0;
+        MPI_Initialized(&is_init);
+        if (is_init)
+            MPI_Comm_rank(comm, &rank);
+#endif
+        // validate the table
+        if (rank == 0)
+        {
+            // did the pipeline run successfully
+            const_p_teca_table parameter_table =
+                std::dynamic_pointer_cast<const teca_table>(parameter_data);
+
+            if (!parameter_table)
+            {
+                TECA_ERROR("metadata pipeline failure")
+            }
+            else if (!parameter_table->has_column(this->min_water_vapor_variable))
+            {
+                TECA_ERROR("metadata missing percentile column \""
+                    << this->min_water_vapor_variable << "\"")
+            }
+            else if (!parameter_table->get_column(this->min_component_area_variable))
+            {
+                TECA_ERROR("metadata missing area column \""
+                    << this->min_component_area_variable << "\"")
+            }
+            else if (!parameter_table->get_column(this->hwhm_latitude_variable))
+            {
+                TECA_ERROR("metadata missing hwhm column \""
+                    << this->hwhm_latitude_variable << "\"")
+            }
+            else
+            {
+                this->internals->parameter_table = parameter_table;
+            }
+        }
+
+        // distribute the table to all processes
+#if defined(TECA_HAS_MPI)
+        if (is_init)
+        {
+            teca_binary_stream bs;
+            if (this->internals->parameter_table && (rank == 0))
+                this->internals->parameter_table->to_stream(bs);
+            bs.broadcast(comm);
+            if (bs && (rank != 0))
+            {
+               p_teca_table tmp = teca_table::New();
+               tmp->from_stream(bs);
+               this->internals->parameter_table = tmp;
+            }
+        }
+#endif
+
+        // some already reported error ocurred, bail out here
+        if (!this->internals->parameter_table)
+            return teca_metadata();
+
+        // check that we have at least one set of parameters
+        unsigned long num_params =
+            this->internals->parameter_table->get_number_of_rows();
+
+        if (num_params < 1)
+        {
+            TECA_ERROR("Invalid parameter table, must have at least one row")
+            return teca_metadata();
+        }
+    }
+
     // this algorithm processes Cartesian mesh based data. It will fetch a
     // timestep and loop over a set of parameters accumulating the result. we
     // report the variable that we compute, for each timestep from the
     // parameter tables.
     teca_metadata md(input_md[0]);
-    md.set("variables", std::string("ar_probability"));
+    md.append("variables", std::string("ar_probability"));
 
-    // if we already have the parameter table bail out here
-    // else we will read and distribute it
-    if (this->internals->parameter_table)
-        return md;
+    // add attributes to enable CF I/O
+    teca_metadata atts;
+    md.get("attributes", atts);
+    teca_array_attributes prob_atts(
+        teca_variant_array_code<float>::get(),
+        teca_array_attributes::point_centering,
+        0, "unitless", "posterior AR flag",
+        "the posterior probability of the presence of an atmospheric river");
 
-    // execute the pipeline that retruns table of parameters
-    const_p_teca_dataset parameter_data;
+    atts.set("ar_probability", (teca_metadata)prob_atts);
 
-    p_teca_programmable_algorithm capture_parameter_data
-        = teca_programmable_algorithm::New();
-
-    capture_parameter_data->set_name("capture_parameter_data");
-    capture_parameter_data->set_input_connection(this->internals->parameter_pipeline_port);
-
-    capture_parameter_data->set_execute_callback(
-        [&parameter_data] (unsigned int, const std::vector<const_p_teca_dataset> &in_data,
-     const teca_metadata &) -> const_p_teca_dataset
-     {
-         parameter_data = in_data[0];
-         return nullptr;
-     });
-
-    capture_parameter_data->update();
-
-    int rank = 0;
-#if defined(TECA_HAS_MPI)
-    MPI_Comm comm = this->get_communicator();
-    int is_init = 0;
-    MPI_Initialized(&is_init);
-    if (is_init)
-        MPI_Comm_rank(comm, &rank);
-#endif
-    // validate the table
-    if (rank == 0)
-    {
-        // did the pipeline run successfully
-        const_p_teca_table parameter_table =
-            std::dynamic_pointer_cast<const teca_table>(parameter_data);
-
-        if (!parameter_table)
-        {
-            TECA_ERROR("metadata pipeline failure")
-        }
-        else if (!parameter_table->has_column(this->min_water_vapor_variable))
-        {
-            TECA_ERROR("metadata missing percentile column \""
-                << this->min_water_vapor_variable << "\"")
-        }
-        else if (!parameter_table->get_column(this->min_component_area_variable))
-        {
-            TECA_ERROR("metadata missing area column \""
-                << this->min_component_area_variable << "\"")
-        }
-        else if (!parameter_table->get_column(this->hwhm_latitude_variable))
-        {
-            TECA_ERROR("metadata missing hwhm column \""
-                << this->hwhm_latitude_variable << "\"")
-        }
-        else
-        {
-            this->internals->parameter_table = parameter_table;
-        }
-    }
-
-    // distribute the table to all processes
-#if defined(TECA_HAS_MPI)
-    if (is_init)
-    {
-        teca_binary_stream bs;
-        if (this->internals->parameter_table && (rank == 0))
-            this->internals->parameter_table->to_stream(bs);
-        bs.broadcast(comm);
-        if (bs && (rank != 0))
-        {
-           p_teca_table tmp = teca_table::New();
-           tmp->from_stream(bs);
-           this->internals->parameter_table = tmp;
-        }
-    }
-#endif
-
-    // some already reported error ocurred, bail out here
-    if (!this->internals->parameter_table)
-        return teca_metadata();
-
-    // check that we have at least one set of parameters
     unsigned long num_params =
         this->internals->parameter_table->get_number_of_rows();
 
-    if (num_params < 1)
-    {
-        TECA_ERROR("Invalid parameter table, must have at least one row")
-        return teca_metadata();
-    }
+    teca_array_attributes count_atts(
+        teca_variant_array_code<int>::get(),
+        teca_array_attributes::no_centering,
+        num_params, "detections", "number of AR detections",
+        "number of detections for the parameter table row at the same index in "
+        "parameter_table_row");
+
+    atts.set("ar_count", (teca_metadata)count_atts);
+
+    teca_array_attributes row_atts(
+        teca_variant_array_code<int>::get(),
+        teca_array_attributes::no_centering,
+        num_params, "row index", "parameter_table_row",
+        "the parameter table row corresponding to the value at the same index "
+        "in ar_count");
+
+    atts.set("parameter_table_row", (teca_metadata)row_atts);
+
+    md.set("attributes", atts);
 
     return md;
 }
@@ -781,6 +813,8 @@ std::vector<teca_metadata> teca_bayesian_ar_detect::get_upstream_request(
 
     // remove what we produce
     arrays.erase("ar_probability");
+    arrays.erase("ar_count");
+    arrays.erase("parameter_table_row");
 
     req.set("arrays", arrays);
 
@@ -973,23 +1007,8 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
         return nullptr;
     }
 
-    // extract a copy of the output attributes
-    teca_metadata &out_md = out_mesh->get_metadata();
-
-    teca_metadata attributes;
-    out_md.get("attributes", attributes);
-
-    // insert the metadata for the ar_probability variable
-    teca_metadata ar_probability_metadata, ar_probability_atts;
-    ar_probability_atts.set("long_name", std::string("posterior AR flag"));
-    ar_probability_atts.set("units", std::string("probability"));
-    // add metadata for the ar_probability variable
-    attributes.set("ar_probability", ar_probability_atts);
-
-    // overwrite the outgoing metadata with the new attributes variable
-    out_md.set("attributes", attributes);
-
     // reset the pipeline control keys
+    teca_metadata &out_md = out_mesh->get_metadata();
     out_md.set("index_request_key", index_request_key);
     out_md.set(index_request_key, index);
     out_md.set("time", time);

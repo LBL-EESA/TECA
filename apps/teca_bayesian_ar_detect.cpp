@@ -108,8 +108,10 @@ int main(int argc, char **argv)
     p_teca_cf_writer cf_writer = teca_cf_writer::New();
     cf_writer->get_properties_description("cf_writer", advanced_opt_defs);
     cf_writer->set_input_connection(ar_tag->get_output_port());
-    cf_writer->set_verbose(0);
+    cf_writer->set_information_arrays({"ar_count", "parameter_table_row"});
+    cf_writer->set_point_arrays({"ar_probability", "ar_binary_tag"});
     cf_writer->set_thread_pool_size(1);
+    cf_writer->set_verbose(0);
 
     // package basic and advanced options for display
     options_description all_opt_defs(-1, -1);
@@ -310,22 +312,22 @@ int main(int argc, char **argv)
     }
 
 
-    double ar_tag_threshold = opt_vals["binary_ar_threshold"].as<double>();
     // set the threshold for calculating ar_binary_tag
+    double ar_tag_threshold = opt_vals["binary_ar_threshold"].as<double>();
     ar_tag->set_low_threshold_value(ar_tag_threshold);
+
     // add metadata for ar_binary_tag
     teca_metadata seg_atts;
-    seg_atts.set("long_name",std::string("binary indicator of atmospheric river"));
-    seg_atts.set("description",std::string("binary indicator of atmospheric river"));
-    seg_atts.set("scheme",std::string("cascade_bard"));
-    seg_atts.set("version",std::string("1.0"));
+    seg_atts.set("long_name", std::string("binary indicator of atmospheric river"));
+    seg_atts.set("description", std::string("binary indicator of atmospheric river"));
+    seg_atts.set("scheme", std::string("cascade_bard"));
+    seg_atts.set("version", std::string("1.0"));
     seg_atts.set("note",
         std::string("derived by thresholding ar_probability >= ") +
         std::to_string(ar_tag_threshold));
-    ar_tag->set_segmentation_variable_atts(seg_atts);
+    ar_tag->set_segmentation_variable_attributes(seg_atts);
 
     // run the pipeline
-
     cf_writer->set_executive(exec);
     cf_writer->update();
 
