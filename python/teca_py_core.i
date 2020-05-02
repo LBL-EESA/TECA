@@ -139,15 +139,25 @@ class teca_variant_array;
 %ignore copy(const teca_variant_array &other);
 %ignore teca_variant_array::get;
 %ignore teca_variant_array::set;
+%ignore teca_variant_array::swap;
+%ignore teca_variant_array::equal;
 %include "teca_variant_array.h"
 %template(teca_double_array) teca_variant_array_impl<double>;
 %template(teca_float_array) teca_variant_array_impl<float>;
-%template(teca_int_array) teca_variant_array_impl<char>;
-%template(teca_char_array) teca_variant_array_impl<int>;
+%template(teca_int_array) teca_variant_array_impl<int>;
+%template(teca_char_array) teca_variant_array_impl<char>;
 %template(teca_long_long_array) teca_variant_array_impl<long long>;
-%template(teca_unsigned_int_array) teca_variant_array_impl<unsigned char>;
-%template(teca_unsigned_char_array) teca_variant_array_impl<unsigned int>;
+%template(teca_unsigned_int_array) teca_variant_array_impl<unsigned int>;
+%template(teca_unsigned_char_array) teca_variant_array_impl<unsigned char>;
 %template(teca_unsigned_long_long_array) teca_variant_array_impl<unsigned long long>;
+%template(teca_double_array_code) teca_variant_array_code<double>;
+%template(teca_float_array_code) teca_variant_array_code<float>;
+%template(teca_int_array_code) teca_variant_array_code<int>;
+%template(teca_char_array_code) teca_variant_array_code<char>;
+%template(teca_long_long_array_code) teca_variant_array_code<long long>;
+%template(teca_unsigned_int_array_code) teca_variant_array_code<unsigned int>;
+%template(teca_unsigned_char_array_code) teca_variant_array_code<unsigned char>;
+%template(teca_unsigned_long_long_array_code) teca_variant_array_code<unsigned long long>;
 %extend teca_variant_array
 {
     static
@@ -438,6 +448,7 @@ TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned long long, unsigned_long_long)
 class teca_dataset;
 %template(teca_dataset_base) std::enable_shared_from_this<teca_dataset>;
 %ignore teca_dataset::operator=;
+%ignore teca_dataset::set_index_request_key(std::string const *);
 %include "teca_dataset_fwd.h"
 %include "teca_dataset.h"
 TECA_PY_CONST_CAST(teca_dataset)
