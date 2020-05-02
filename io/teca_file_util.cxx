@@ -9,6 +9,7 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <iomanip>
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -174,13 +175,13 @@ int locate_files(
 }
 
 // **************************************************************************
-void replace_timestep(std::string &file_name, unsigned long time_step)
+void replace_timestep(std::string &file_name, unsigned long time_step, int width)
 {
     size_t t_pos = file_name.find("%t%");
     if (t_pos != std::string::npos)
     {
         std::ostringstream oss;
-        oss << time_step;
+        oss << std::setfill('0') << std::setw(width) << time_step;
 
         file_name.replace(t_pos, 3, oss.str());
     }

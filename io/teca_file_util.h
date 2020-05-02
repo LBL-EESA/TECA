@@ -32,7 +32,7 @@ int write_stream(const char *file_name, const char *header,
     const teca_binary_stream &stream, bool verbose=true);
 
 // replace %t% with the given value
-void replace_timestep(std::string &file_name, unsigned long time_step);
+void replace_timestep(std::string &file_name, unsigned long time_step, int width = 6);
 
 // replace %t% with the time t in calendar with units in the strftime format
 int replace_time(std::string &file_name, double t,
