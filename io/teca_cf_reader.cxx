@@ -1,4 +1,5 @@
 #include "teca_cf_reader.h"
+#include "teca_array_attributes.h"
 #include "teca_file_util.h"
 #include "teca_cartesian_mesh.h"
 #include "teca_thread_pool.h"
@@ -547,7 +548,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
                 std::vector<size_t> dims;
                 std::vector<std::string> dim_names;
-                std::string centering("point");
+                unsigned int centering = teca_array_attributes::point_centering;
                 for (int ii = 0; ii < n_dims; ++ii)
                 {
                     char dim_name[NC_MAX_NAME + 1] = {'\0'};
