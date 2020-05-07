@@ -4,10 +4,38 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update -y && \
     apt-get install -y git-core gcc g++ gfortran cmake swig \
-        libmpich-dev libhdf5-dev libnetcdf-dev libboost-program-options-dev \
+        libhdf5-dev libnetcdf-dev libboost-program-options-dev \
         python3-dev python3-pip subversion libudunits2-0 \
-        libudunits2-dev zlib1g-dev libssl-dev && \
+        libudunits2-dev zlib1g-dev libssl-dev wget && \
     apt-get clean && apt-get purge && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+ARG mpich=3.3
+ARG mpich_prefix=mpich-$mpich
+
+RUN \
+    wget https://www.mpich.org/static/downloads/$mpich/$mpich_prefix.tar.gz && \
+    tar xvzf $mpich_prefix.tar.gz                                           && \
+    cd $mpich_prefix                                                        && \
+    ./configure                                                             && \
+    make -j 4                                                               && \
+    make install                                                            && \
+    make clean                                                              && \
+    cd ..                                                                   && \
+    rm -rf $mpich_prefix
+
+ARG mpi4py=3.0.0
+ARG mpi4py_prefix=mpi4py-$mpi4py
+
+RUN \
+    wget https://bitbucket.org/mpi4py/mpi4py/downloads/$mpi4py_prefix.tar.gz && \
+    tar xvzf $mpi4py_prefix.tar.gz                                           && \
+    cd $mpi4py_prefix                                                        && \
+    python3 setup.py build                                                   && \
+    python3 setup.py install                                                 && \
+    cd ..                                                                    && \
+    rm -rf $mpi4py_prefix
+
+RUN /sbin/ldconfig
 
 #### CREATE WORKING DIRECTORY FOR USER ####
 ARG WORKDIR=/teca_app
