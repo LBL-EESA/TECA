@@ -36,6 +36,11 @@ def main():
     )
 
     parser.add_argument(
+        '--num_threads', type=int, default=-1,
+        help='number of threads used in torch for parallelizing CPU operations'
+    )
+
+    parser.add_argument(
         '--pytorch_deeplab_model', type=str, required=False,
         help='the pretrained deeplabv3plus model file'
     )
@@ -143,6 +148,11 @@ def main():
     if args.ivt:
         deeplabv3p_ar_detect.set_variable_name(
             args.ivt
+        )
+
+    if args.num_threads:
+        deeplabv3p_ar_detect.set_num_threads(
+            args.num_threads
         )
 
     if args.pytorch_deeplab_model and args.pytorch_resnet_model:
