@@ -27,6 +27,9 @@ teca_add_app(teca_tc_trajectory LIBS ${teca_app_link}
 teca_add_app(teca_metadata_probe LIBS ${teca_app_link}
     FEATURES ${TECA_HAS_BOOST} ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS})
 
+teca_add_app(teca_bayesian_ar_detect LIBS ${teca_app_link}
+    FEATURES ${TECA_HAS_BOOST} ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS})
+
 teca_add_python_app(teca_convert_table)
 
 teca_add_python_app(teca_dataset_metadata
