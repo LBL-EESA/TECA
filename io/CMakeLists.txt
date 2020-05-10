@@ -2,6 +2,7 @@ project(teca_io)
 
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
+    $<TARGET_PROPERTY:teca_system,INTERFACE_INCLUDE_DIRECTORIES>
     $<TARGET_PROPERTY:teca_core,INTERFACE_INCLUDE_DIRECTORIES>
     $<TARGET_PROPERTY:teca_data,INTERFACE_INCLUDE_DIRECTORIES>
     )
@@ -21,7 +22,7 @@ if (WIN32)
     list(APPEND teca_io_srcs win_windirent.cxx)
 endif()
 
-set(teca_io_link)
+set(teca_io_link teca_system)
 
 if (TECA_HAS_NETCDF)
     list(APPEND teca_io_srcs teca_netcdf_util.cxx teca_cf_reader.cxx teca_cf_writer.cxx)

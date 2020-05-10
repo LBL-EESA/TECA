@@ -1,5 +1,9 @@
 #include "teca_netcdf_util.h"
 #include "teca_common.h"
+#include "teca_system_interface.h"
+#include "teca_file_util.h"
+
+#include <cstring>
 
 static std::mutex g_netcdf_mutex;
 
@@ -110,6 +114,24 @@ int netcdf_handle::create(const std::string &file_path, int mode)
         return -1;
     }
 
+    // add some global metadata for provenance
+    if ((ierr = nc_put_att_text(m_handle, NC_GLOBAL, "TECA_VERSION_DESCR",
+        strlen(TECA_VERSION_DESCR), TECA_VERSION_DESCR)))
+    {
+        TECA_ERROR("Failed to set version attribute." << nc_strerror(ierr))
+        return -1;
+    }
+
+    std::string app_name =
+        teca_file_util::filename(teca_system_interface::get_program_name());
+
+    if (!app_name.empty() && (ierr = nc_put_att_text(m_handle, NC_GLOBAL,
+        "APP_NAME", app_name.size(), app_name.c_str())))
+    {
+        TECA_ERROR("Failed to set app name attribute." << nc_strerror(ierr))
+        return -1;
+    }
+
     return 0;
 }
 
@@ -150,6 +172,24 @@ int netcdf_handle::create(MPI_Comm comm, const std::string &file_path, int mode)
         comm, MPI_INFO_NULL, &m_handle)) != NC_NOERR)
     {
         TECA_ERROR("Failed to create \"" << file_path << "\". " << nc_strerror(ierr))
+        return -1;
+    }
+
+    // add some global metadata for provenance
+    if ((ierr = nc_put_att_text(m_handle, NC_GLOBAL, "TECA_version",
+        strlen(TECA_VERSION_DESCR), TECA_VERSION_DESCR)))
+    {
+        TECA_ERROR("Failed to set version attribute." << nc_strerror(ierr))
+        return -1;
+    }
+
+    std::string app_name =
+        teca_file_util::filename(teca_system_interface::get_program_name());
+
+    if (!app_name.empty() && (ierr = nc_put_att_text(m_handle, NC_GLOBAL,
+        "TECA_app_name", app_name.size(), app_name.c_str())))
+    {
+        TECA_ERROR("Failed to set app name attribute." << nc_strerror(ierr))
         return -1;
     }
 
