@@ -33,16 +33,15 @@ public:
     // set the name of the output array to store the resulting segmentation in
     TECA_ALGORITHM_PROPERTY(std::string, segmentation_variable)
 
+    // set extra metadata for the segmentation variable
+    TECA_ALGORITHM_PROPERTY(teca_metadata, segmentation_variable_attributes)
+
     // set the name of the input array to segment
     TECA_ALGORITHM_PROPERTY(std::string, threshold_variable)
 
     // Set the threshold range. The defaults are (-infinity, infinity].
     TECA_ALGORITHM_PROPERTY(double, low_threshold_value)
     TECA_ALGORITHM_PROPERTY(double, high_threshold_value)
-
-
-    // set the metadata for the segmentation variable
-    TECA_ALGORITHM_PROPERTY(teca_metadata, segmentation_variable_atts)
 
     // Set the threshold mode. In BY_PERCENTILE mode low and high thresholds
     // define the percentiles (0 to 100) between which data is in the
@@ -73,11 +72,11 @@ private:
 
 private:
     std::string segmentation_variable;
+    teca_metadata segmentation_variable_attributes;
     std::string threshold_variable;
     double low_threshold_value;
     double high_threshold_value;
     int threshold_mode;
-    teca_metadata segmentation_variable_atts;
 };
 
 #endif
