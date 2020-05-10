@@ -46,6 +46,7 @@ typedef int siginfo_t;
 
 #ifdef __FreeBSD__
 # include <sys/sysctl.h>
+# include <sys/types.h>
 # include <fenv.h>
 # include <sys/socket.h>
 # include <netdb.h>
@@ -59,6 +60,7 @@ typedef int siginfo_t;
 #if defined(__OpenBSD__) || defined(__NetBSD__)
 # include <sys/param.h>
 # include <sys/sysctl.h>
+# include <sys/types.h>
 #endif
 
 #if defined(TECA_SYS_HAS_MACHINE_CPU_H)
@@ -75,6 +77,7 @@ typedef int siginfo_t;
 # include <mach/host_info.h>
 # include <mach/mach.h>
 # include <mach/mach_types.h>
+# include <mach-o/dyld.h>
 # include <fenv.h>
 # include <sys/socket.h>
 # include <netdb.h>
@@ -89,6 +92,8 @@ typedef int siginfo_t;
 #endif
 
 #ifdef __linux
+# include <unistd.h>
+# include <limits.h>
 # include <fenv.h>
 # include <sys/socket.h>
 # include <netdb.h>
@@ -699,4 +704,34 @@ void set_stack_trace_on_mpi_error(MPI_Comm comm, int enable)
     }
 #endif
 }
+
+// ***************************************************************************
+std::string get_program_name()
+{
+    char name[1024];
+    name[0] = '\0';
+#if defined(__linux)
+    ssize_t len = readlink("/proc/self/exe", name, sizeof(name)-1);
+
+    if (len < 0)
+        return "";
+
+    name[len] = '\0';
+#elif defined(__APPLE__)
+    uint32_t len = sizeof(name);
+    if (_NSGetExecutablePath(name, &len) != 0)
+        return "";
+
+    // resolve symlinks
+    char *real_name = realpath(name, nullptr);
+    if (real_name)
+    {
+        strncpy(name, real_name, len);
+        free(real_name);
+    }
+#endif
+    return name;
+}
+
+
 };
