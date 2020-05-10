@@ -844,7 +844,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 t_axis_var = "time";
             }
             // infer the time from the filenames
-            else if (! this->filename_time_template.empty())
+            else if (!this->filename_time_template.empty())
             {
                 std::vector<double> t_values;
 
@@ -885,7 +885,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
                     // set the time units based on the first file date if we
                     // don't have time units
-                    if (t_units.empty() and i == 0)
+                    if ((i == 0) && t_units.empty())
                     {
                         std::string t_units_fmt =
                             "days since %Y-%m-%d 00:00:00";
@@ -913,8 +913,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     double second = current_tm.tm_sec;
                     double current_time = 0;
                     if (calcalcs::coordinate(year, mon, day, hour, minute,
-                          second, t_units.c_str(), t_calendar.c_str(),
-                          &current_time))
+                        second, t_units.c_str(), t_calendar.c_str(), &current_time))
                     {
                         TECA_ERROR("conversion of date inferred from "
                             "filename failed");
@@ -923,8 +922,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     // add the current time to the list
                     t_values.push_back(current_time);
 #else
-                    TECA_ERROR("The UDUnits package is required "
-                        "for this operation")
+                    TECA_ERROR("The UDUnits package is required for this operation")
                     return teca_metadata();
 #endif
                 }
@@ -946,6 +944,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
                 // set the time axis
                 t_axis = t;
+                t_axis_var = "time";
             }
             else
             {
@@ -968,7 +967,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     t_axis = t;
                     )
 
-                t_axis_var = "t";
+                t_axis_var = "time";
             }
 
             this->internals->metadata.set("variables", vars);
