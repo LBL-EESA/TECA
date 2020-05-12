@@ -21,6 +21,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <unistd.h>
 
 class generate_test_data;
 using p_generate_test_data = std::shared_ptr<generate_test_data>;
@@ -368,6 +369,7 @@ int main(int argc, char **argv)
     p_teca_cf_writer cfw = teca_cf_writer::New();
     cfw->set_input_connection(gd->get_output_port());
     cfw->set_verbose(1);
+    cfw->set_flush_files(1);
     cfw->set_file_name(out_file);
     cfw->set_information_arrays(gd->get_info_array_names());
     cfw->set_point_arrays(gd->get_point_array_names());
@@ -376,11 +378,11 @@ int main(int argc, char **argv)
     cfw->set_executive(wex);
     cfw->update();
 
-    //  wait for the above pipeline to finish
-#if defined(TECA_HAS_MPI)
+    // make sure the data makes it to disk
     MPI_Barrier(MPI_COMM_WORLD);
+#if __APPLE__
+    sleep(10);
 #endif
-
 
     // ##############
     // # Pipeline 2

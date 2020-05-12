@@ -1,4 +1,6 @@
 import sys, os
+from time import sleep
+import platform
 import numpy as np
 from teca import *
 from mpi4py import *
@@ -204,6 +206,7 @@ wex.set_verbose(vrb)
 cfw = teca_cf_writer.New()
 cfw.set_input_connection(gd.get_output_port())
 cfw.set_verbose(1)
+cfw.set_flush_files(1)
 cfw.set_file_name(out_file)
 cfw.set_information_arrays(gd.get_info_array_names())
 cfw.set_point_arrays(gd.get_point_array_names())
@@ -212,11 +215,13 @@ cfw.set_thread_pool_size(n_threads)
 cfw.set_executive(wex)
 cfw.update()
 
+MPI.COMM_WORLD.Barrier()
+if platform.system() == 'Darwin':
+    sleep(10)
 
 ##############
 # Pipeline 2
 ##############
-MPI.COMM_WORLD.barrier()
 rank = MPI.COMM_WORLD.Get_rank()
 if rank == 0:
     # read the data back in

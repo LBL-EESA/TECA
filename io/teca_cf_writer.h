@@ -109,6 +109,10 @@ public:
     // and hence currently not suppoorted.
     TECA_ALGORITHM_PROPERTY(int, compression_level)
 
+    // flush files before closing them, this may be necessary if accessing data
+    // immediately.
+    TECA_ALGORITHM_PROPERTY(int, flush_files);
+
     // specify the arrays to write. a data array is only written to disk if
     // it is included in this list. it is an error to not specify at least
     // one point centered array to write
@@ -129,6 +133,11 @@ private:
     std::vector<teca_metadata> get_upstream_request(unsigned int port,
         const std::vector<teca_metadata> &input_md,
         const teca_metadata &request) override;
+
+    // flush data to disk. this may be necessary if accessing data
+    // immediately.
+    int flush();
+
 private:
     std::string file_name;
     std::string date_format;
@@ -138,6 +147,7 @@ private:
     int mode_flags;
     int use_unlimited_dim;
     int compression_level;
+    int flush_files;
 
     std::vector<std::string> point_arrays;
     std::vector<std::string> information_arrays;

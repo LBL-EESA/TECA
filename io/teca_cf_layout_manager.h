@@ -63,6 +63,9 @@ public:
         return this->n_written == this->n_indices;
     }
 
+    // flush data to disk
+    int flush();
+
     // print a summary to the stream
     int to_stream(std::ostream &os);
 

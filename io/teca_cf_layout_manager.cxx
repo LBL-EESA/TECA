@@ -750,6 +750,12 @@ int teca_cf_layout_manager::write(long index,
 }
 
 // --------------------------------------------------------------------------
+int teca_cf_layout_manager::flush()
+{
+    return this->handle.flush();
+}
+
+// --------------------------------------------------------------------------
 int teca_cf_layout_manager::to_stream(std::ostream &os)
 {
     int frank = 0;

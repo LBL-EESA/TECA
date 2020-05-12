@@ -41,7 +41,7 @@ public:
 teca_cf_writer::teca_cf_writer() :
     file_name(""), date_format("%F-%HZ"), first_step(0), last_step(-1),
     steps_per_file(16), mode_flags(NC_CLOBBER|NC_NETCDF4), use_unlimited_dim(0),
-    compression_level(-1)
+    compression_level(-1), flush_files(0)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -83,6 +83,8 @@ void teca_cf_writer::get_properties_description(
         TECA_POPTS_GET(int, prefix, compression_level,
             "sets the zlib compression level used for each variable;"
             "does nothing if the value is less than or equal to 0. (-1)")
+        TECA_POPTS_GET(int, prefix, flush_files,
+            "if set files are flushed before they are closed. (0)")
         TECA_POPTS_MULTI_GET(std::vector<std::string>, prefix, point_arrays,
             "the list of point centered arrays to write (empty)")
         TECA_POPTS_MULTI_GET(std::vector<std::string>, prefix, information_arrays,
@@ -104,10 +106,32 @@ void teca_cf_writer::set_properties(
     TECA_POPTS_SET(opts, int, prefix, mode_flags)
     TECA_POPTS_SET(opts, int, prefix, use_unlimited_dim)
     TECA_POPTS_SET(opts, int, prefix, compression_level)
+    TECA_POPTS_SET(opts, int, prefix, flush_files)
     TECA_POPTS_SET(opts, std::vector<std::string>, prefix, point_arrays)
     TECA_POPTS_SET(opts, std::vector<std::string>, prefix, information_arrays)
 }
 #endif
+
+// --------------------------------------------------------------------------
+int teca_cf_writer::flush()
+{
+    // flush the set of files
+    if (this->internals->mapper->file_table_apply([&](MPI_Comm comm,
+        long file_id, const p_teca_cf_layout_manager &layout_mgr) -> int
+        {
+            (void)comm;
+            if (layout_mgr->flush())
+            {
+                TECA_ERROR("Failed to flush file " << file_id)
+                return -1;
+            }
+            return 0;
+        }))
+    {
+        return -1;
+    }
+    return 0;
+}
 
 // --------------------------------------------------------------------------
 teca_metadata teca_cf_writer::get_output_metadata(unsigned int port,
@@ -360,7 +384,8 @@ const_p_teca_dataset teca_cf_writer::execute(unsigned int port,
     // close the file when all data has been written
     if (!streaming)
     {
-        if (this->internals->mapper->finalize())
+        if ((this->flush_files && this->flush()) ||
+            this->internals->mapper->finalize())
         {
             TECA_ERROR("Failed to finalize I/O")
             return nullptr;

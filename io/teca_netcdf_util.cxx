@@ -198,6 +198,21 @@ int netcdf_handle::create(MPI_Comm comm, const std::string &file_path, int mode)
 }
 
 // --------------------------------------------------------------------------
+int netcdf_handle::flush()
+{
+#if !defined(HDF5_THREAD_SAFE)
+        std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+    int ierr = 0;
+    if ((ierr = nc_sync(m_handle)) != NC_NOERR)
+    {
+        TECA_ERROR("Failed to sync file. " << nc_strerror(ierr))
+        return -1;
+    }
+    return 0;
+}
+
+// --------------------------------------------------------------------------
 int netcdf_handle::close()
 {
     if (m_handle)

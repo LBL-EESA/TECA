@@ -162,6 +162,9 @@ public:
     // close the file
     int close();
 
+    // flush all data to disk
+    int flush();
+
     // returns a reference to the handle
     int &get()
     { return m_handle; }
