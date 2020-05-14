@@ -162,7 +162,13 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
 
             arrays = []
             if req.has('arrays'):
-                arrays = req['arrays']
+                if isinstance(req['arrays'], list):
+                    arrays.extend(req['arrays'])
+                else:
+                    arrays.append(req['arrays'])
+
+            if self.pred_name in arrays:
+                arrays.remove(self.pred_name)
 
             arrays.append(self.variable_name)
             req['arrays'] = arrays

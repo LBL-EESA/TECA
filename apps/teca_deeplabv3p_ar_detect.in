@@ -27,6 +27,10 @@ def main():
     parser.add_argument('--ivt', type=str, default='IVT',
         help='name of variable with integrated vapor transport (IVT)')
 
+    parser.add_argument('--binary_ar_threshold', type=float,
+        default=0.6666666667, help='probability threshold for segmenting'
+        'ar_probability to produce ar_binary_tag')
+
     parser.add_argument('--num_threads', type=int, default=-1,
         help='number of threads used in torch for parallelizing CPU operations')
 
@@ -86,12 +90,16 @@ def main():
     deeplabv3p_ar_detect = teca_deeplabv3p_ar_detect.New()
     deeplabv3p_ar_detect.set_input_connection(coords.get_output_port())
 
+    ar_tag = teca_binary_segmentation.New()
+    ar_tag.set_input_connection(deeplabv3p_ar_detect.get_output_port())
+    ar_tag.set_threshold_mode(ar_tag.BY_VALUE)
+    ar_tag.set_threshold_variable("ar_probability")
+    ar_tag.set_segmentation_variable("ar_binary_tag")
+
     teca_exec = teca_index_executive.New()
 
     cf_writer = teca_cf_writer.New()
-    cf_writer.set_input_connection(
-        deeplabv3p_ar_detect.get_output_port()
-    )
+    cf_writer.set_input_connection(ar_tag.get_output_port())
     cf_writer.set_thread_pool_size(1)
 
     if args.input_file:
@@ -210,6 +218,20 @@ def main():
                 time, False, calendar, units, args.end_date
                 )
             cf_writer.set_last_step(last_step)
+
+    ar_tag_threshold = args.binary_ar_threshold
+    # set the threshold for calculating ar_binary_tag
+    ar_tag.set_low_threshold_value(ar_tag_threshold)
+    # add metadata for ar_binary_tag
+    seg_atts = teca_metadata()
+    seg_atts["long_name"] = "binary indicator of atmospheric river"
+    seg_atts["description"] = "binary indicator of atmospheric river"
+    seg_atts["scheme"] = "cascade_bard"
+    seg_atts["version"] = "1.0"
+    seg_atts["note"] = "derived by thresholding ar_probability >= %f" \
+        % ar_tag_threshold
+
+    ar_tag.set_segmentation_variable_atts(seg_atts)
 
     # run the pipeline
     cf_writer.set_executive(teca_exec)
