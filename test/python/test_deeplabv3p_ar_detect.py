@@ -15,10 +15,10 @@ def main():
     set_stack_trace_on_error()
     set_stack_trace_on_mpi_error()
 
-    if (len(sys.argv) != 7):
+    if (len(sys.argv) != 6):
         sys.stderr.write(
             "\n\nUsage error:\n"
-            "test_deeplabv3p_ar_detect [deeplab model] [resnet model]"
+            "test_deeplabv3p_ar_detect [deeplab model]"
             "[mesh data regex] [baseline mesh]"
             "[water vapor var] [num threads]\n\n"
             )
@@ -26,11 +26,10 @@ def main():
 
     # parse command line
     deeplab_model = sys.argv[1]
-    resnet_model = sys.argv[2]
-    mesh_data_regex = sys.argv[3]
-    baseline_mesh = sys.argv[4]
-    water_vapor_var = sys.argv[5]
-    n_threads = int(sys.argv[6])
+    mesh_data_regex = sys.argv[2]
+    baseline_mesh = sys.argv[3]
+    water_vapor_var = sys.argv[4]
+    n_threads = int(sys.argv[5])
 
     cf_reader = teca_cf_reader.New()
     cf_reader.set_files_regex(mesh_data_regex)
@@ -44,10 +43,7 @@ def main():
     deeplabv3p_ar_detect.set_variable_name(water_vapor_var)
     deeplabv3p_ar_detect.set_num_threads(n_threads)
 
-    deeplabv3p_ar_detect.build_model(
-        deeplab_model,
-        resnet_model
-        )
+    deeplabv3p_ar_detect.build_model(deeplab_model)
 
     if os.path.exists(baseline_mesh):
         # run the test
