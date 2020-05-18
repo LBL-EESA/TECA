@@ -172,6 +172,8 @@ const_p_teca_variant_array get_mesh_variable(
 
 // --------------------------------------------------------------------------
 teca_vertical_integral::teca_vertical_integral()
+    // TODO: add variables for long_name, units, other metadata?
+    // these needs to be passed in
     hybrid_a_variable("a_bnds"),
     hybrid_b_variable("b_bnds"),
     sigma_variable("sigma_bnds"),
@@ -339,6 +341,7 @@ const_p_teca_dataset teca_vertical_integral::execute(
 
     // get the model top pressure
     // TODO: p_top is a scalar: is const_p_teca_variant array correct?
+    // probably need to put this in information array
     const_p_teca_variant_array p_top_array = 
       get_mesh_variable(this->p_top_variable,
                         "p_top_variable",
@@ -365,7 +368,7 @@ const_p_teca_dataset teca_vertical_integral::execute(
         _INARR,
 
         const NT_INARR * p_input_array 
-          = static_cast<TT_INARR*>(input_array->get())->get();
+          = dynamic_cast<TT_INARR*>(input_array->get())->get();
 
         // call the vertical integration routine
         // TODO: do some templating magic on the rest of the variables
@@ -383,6 +386,13 @@ const_p_teca_dataset teca_vertical_integral::execute(
 
     // TODO: figure out how to drop this->integration_variable
     // TODO: figure out how to drop the dimensionality of the data if needed
+    // this should work -- just need to modify the dimensions 
+    //  change extent, whole_extent, bounds, coordinates (set z to a 1-valued
+    //  teca_variant_array [maybe pressure, maybe 0])
+    //  see data/teca_cartesian_mesh.h
+    //    e.g., set_z_coordinates()
+    //    set new whole_extent, extent, bounds arrays in new teca_metadata
+    //    objects.
     out_mesh->shallow_copy(
         std::const_pointer_cast<teca_cartesian_mesh>(in_mesh));
 
