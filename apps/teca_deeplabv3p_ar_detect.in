@@ -14,91 +14,61 @@ except ImportError:
 def main():
     # parse the command line
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--input_file', type=str, required=False,
-        help='file path to the simulation to search for atmospheric rivers'
-    )
+    parser.add_argument('--input_file', type=str, required=False,
+        help='file path to the simulation to search for atmospheric rivers')
 
-    parser.add_argument(
-        '--input_regex', type=str, required=False,
-        help='regex matching simulation files to search for atmospheric rivers'
-    )
+    parser.add_argument('--input_regex', type=str, required=False,
+        help='regex matching simulation files to search for atmospheric rivers')
 
-    parser.add_argument(
-        '--output_file', type=str, required=False,
+    parser.add_argument('--output_file', type=str, required=False,
         default=r'deeplabv3p_ar_detect_%t%.nc',
-        help=r'file pattern for output netcdf files (%%t%% is the time index)'
-    )
+        help=r'file pattern for output netcdf files (%%t%% is the time index)')
 
-    parser.add_argument(
-        '--ivt', type=str, default='IVT',
-        help='name of variable with integrated vapor transport (IVT)'
-    )
+    parser.add_argument('--ivt', type=str, default='IVT',
+        help='name of variable with integrated vapor transport (IVT)')
 
-    parser.add_argument(
-        '--pytorch_deeplab_model', type=str, required=False,
-        help='the pretrained deeplabv3plus model file'
-    )
+    parser.add_argument('--binary_ar_threshold', type=float,
+        default=0.6666666667, help='probability threshold for segmenting'
+        'ar_probability to produce ar_binary_tag')
 
-    parser.add_argument(
-        '--pytorch_resnet_model', type=str, required=False,
-        help='the pretrained resnet model file'
-    )
+    parser.add_argument('--num_threads', type=int, default=-1,
+        help='number of threads used in torch for parallelizing CPU operations')
 
-    parser.add_argument(
-        '--t_axis_variable', type=str, required=False,
-        help='time dimension name'
-    )
+    parser.add_argument('--pytorch_deeplab_model', type=str, required=False,
+        help='the pretrained deeplabv3plus model file')
 
-    parser.add_argument(
-        '--t_calendar', type=str, required=False,
-        help='time calendar'
-    )
+    parser.add_argument('--t_axis_variable', type=str, required=False,
+        help='time dimension name')
 
-    parser.add_argument(
-        '--t_units', type=str, required=False,
-        help='time unit'
-    )
+    parser.add_argument('--t_calendar', type=str, required=False,
+        help='time calendar')
 
-    parser.add_argument(
-        '--filename_time_template', type=str, required=False,
-        help='filename time template'
-    )
+    parser.add_argument('--t_units', type=str, required=False,
+        help='time unit')
 
-    parser.add_argument(
-        '--compression_level', type=int, required=False,
-        help='the compression level used for each variable'
-    )
+    parser.add_argument('--filename_time_template', type=str, required=False,
+        help='filename time template')
 
-    parser.add_argument(
-        '--date_format', type=str, required=False,
-        help='the format for the date to write in the filename'
-    )
+    parser.add_argument('--compression_level', type=int, required=False,
+        help='the compression level used for each variable')
 
-    parser.add_argument(
-        '--first_step', type=int, required=False,
-        help='first time step to process'
-    )
+    parser.add_argument('--date_format', type=str, required=False,
+        help='the format for the date to write in the filename')
 
-    parser.add_argument(
-        '--last_step', type=int, required=False,
-        help='last time step to process'
-    )
+    parser.add_argument('--first_step', type=int, required=False,
+        help='first time step to process')
 
-    parser.add_argument(
-        '--steps_per_file', type=int, required=False,
-        help='number of time steps per output file'
-    )
+    parser.add_argument('--last_step', type=int, required=False,
+        help='last time step to process')
 
-    parser.add_argument(
-        '--start_date', type=str, required=False,
-        help='first time to proces in YYYY-MM-DD hh:mm:ss format'
-    )
+    parser.add_argument('--steps_per_file', type=int, required=False,
+        help='number of time steps per output file')
 
-    parser.add_argument(
-        '--end_date', type=str, required=False,
-        help='end time to proces in YYYY-MM-DD hh:mm:ss format'
-    )
+    parser.add_argument('--start_date', type=str, required=False,
+        help='first time to proces in YYYY-MM-DD hh:mm:ss format')
+
+    parser.add_argument('--end_date', type=str, required=False,
+        help='end time to proces in YYYY-MM-DD hh:mm:ss format')
 
     args = parser.parse_args()
 
@@ -107,7 +77,7 @@ def main():
             raise parser.error(
                     "missing file name or regex for simulation reader. "
                     "See --help for a list of command line options."
-            )
+                )
 
     cf_reader = teca_cf_reader.New()
 
@@ -117,86 +87,94 @@ def main():
     deeplabv3p_ar_detect = teca_deeplabv3p_ar_detect.New()
     deeplabv3p_ar_detect.set_input_connection(coords.get_output_port())
 
+    ar_tag = teca_binary_segmentation.New()
+    ar_tag.set_input_connection(deeplabv3p_ar_detect.get_output_port())
+    ar_tag.set_threshold_mode(ar_tag.BY_VALUE)
+    ar_tag.set_threshold_variable("ar_probability")
+    ar_tag.set_segmentation_variable("ar_binary_tag")
+
     teca_exec = teca_index_executive.New()
 
     cf_writer = teca_cf_writer.New()
-    cf_writer.set_input_connection(
-        deeplabv3p_ar_detect.get_output_port()
-    )
+    cf_writer.set_input_connection(ar_tag.get_output_port())
     cf_writer.set_thread_pool_size(1)
 
     if args.input_file:
         cf_reader.append_file_name(
             args.input_file
-        )
+            )
 
     if args.input_regex:
         cf_reader.set_files_regex(
             args.input_regex
-        )
+            )
 
     if args.output_file:
         cf_writer.set_file_name(
             args.output_file
-        )
+            )
 
     if args.ivt:
         deeplabv3p_ar_detect.set_variable_name(
             args.ivt
-        )
+            )
 
-    if args.pytorch_deeplab_model and args.pytorch_resnet_model:
+    if args.num_threads:
+        deeplabv3p_ar_detect.set_num_threads(
+            args.num_threads
+            )
+
+    if args.pytorch_deeplab_model:
         deeplabv3p_ar_detect.build_model(
-            args.pytorch_deeplab_model,
-            args.pytorch_resnet_model
-        )
+            args.pytorch_deeplab_model
+            )
     else:
         deeplabv3p_ar_detect.build_model()
 
     if args.t_axis_variable is not None:
         cf_reader.set_t_axis_variable(
             args.t_axis_variable
-        )
+            )
 
     if args.t_calendar:
         cf_reader.set_t_calendar(
             args.t_calendar
-        )
+            )
 
     if args.t_units:
         cf_reader.set_t_units(
             args.t_units
-        )
+            )
 
     if args.filename_time_template:
         cf_reader.set_filename_time_template(
             args.filename_time_template
-        )
+            )
 
     if args.compression_level:
         cf_writer.set_compression_level(
             args.compression_level
-        )
+            )
 
     if args.date_format:
         cf_writer.set_date_format(
             args.date_format
-        )
+            )
 
     if args.first_step:
         cf_writer.set_first_step(
             args.first_step
-        )
+            )
 
     if args.last_step:
         cf_writer.set_last_step(
             args.last_step
-        )
+            )
 
     if args.steps_per_file:
         cf_writer.set_steps_per_file(
             args.steps_per_file
-        )
+            )
 
     # some minimal check for missing options
     if (cf_reader.get_number_of_file_names() == 0 and
@@ -205,14 +183,14 @@ def main():
             raise ValueError(
                 "missing file name or regex for simulation reader. "
                 "See --help for a list of command line options."
-            )
+                )
 
     if not cf_writer.get_file_name():
         if rank == 0:
             raise ValueError(
                 "missing file name pattern for netcdf writer. "
                 "See --help for a list of command line options."
-            )
+                )
 
     if args.start_date or args.end_date:
 
@@ -227,15 +205,29 @@ def main():
         if args.start_date:
             first_step = teca_coordinate.time_step_of(
                 time, True, calendar, units, args.start_date
-            )
+                )
             cf_writer.set_first_step(first_step)
 
         # and end date
         if args.end_date:
             last_step = teca_coordinate.time_step_of(
                 time, False, calendar, units, args.end_date
-            )
+                )
             cf_writer.set_last_step(last_step)
+
+    ar_tag_threshold = args.binary_ar_threshold
+    # set the threshold for calculating ar_binary_tag
+    ar_tag.set_low_threshold_value(ar_tag_threshold)
+    # add metadata for ar_binary_tag
+    seg_atts = teca_metadata()
+    seg_atts["long_name"] = "binary indicator of atmospheric river"
+    seg_atts["description"] = "binary indicator of atmospheric river"
+    seg_atts["scheme"] = "cascade_bard"
+    seg_atts["version"] = "1.0"
+    seg_atts["note"] = "derived by thresholding ar_probability >= %f" \
+        % ar_tag_threshold
+
+    ar_tag.set_segmentation_variable_atts(seg_atts)
 
     # run the pipeline
     cf_writer.set_executive(teca_exec)

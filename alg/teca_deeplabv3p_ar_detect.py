@@ -50,8 +50,7 @@ class Bottleneck(nn.Module):
 
 
 class ResNet(nn.Module):
-    def __init__(self, nInputChannels, block, layers, os=16,
-                 pretrained=False, state_dict_resnet=None):
+    def __init__(self, nInputChannels, block, layers, os=16):
         self.inplanes = 64
         super(ResNet, self).__init__()
         if os == 16:
@@ -64,8 +63,6 @@ class ResNet(nn.Module):
             blocks = [1, 2, 1]
         else:
             raise NotImplementedError
-
-        self.state_dict_resnet = state_dict_resnet
 
         # Modules
         self.conv1 = nn.Conv2d(nInputChannels, 64, kernel_size=7,
@@ -84,9 +81,6 @@ class ResNet(nn.Module):
                                          stride=strides[3], rate=rates[3])
 
         self._init_weight()
-
-        if pretrained:
-            self._load_pretrained_model()
 
     def _make_layer(self, block, planes, blocks, stride=1, rate=1):
         downsample = None
@@ -152,16 +146,10 @@ class ResNet(nn.Module):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
 
-    def _load_pretrained_model(self):
-        self.load_state_dict(self.state_dict_resnet)
 
-
-def ResNet101(nInputChannels=3, os=16, pretrained=False,
-              state_dict_resnet=None):
+def ResNet101(nInputChannels=3, os=16):
     model = ResNet(
-        nInputChannels, Bottleneck, [3, 4, 23, 3], os,
-        pretrained=pretrained, state_dict_resnet=state_dict_resnet
-        )
+        nInputChannels, Bottleneck, [3, 4, 23, 3], os)
     return model
 
 
@@ -200,7 +188,7 @@ class ASPP_module(nn.Module):
 
 class DeepLabv3_plus(nn.Module):
     def __init__(self, nInputChannels=3, n_classes=21, os=16,
-                 pretrained=False, state_dict_resnet=None, _print=True):
+                 _print=True):
         if _print:
             sys.stdout.write("Constructing DeepLabv3+ model...\n")
             sys.stdout.write("Number of classes: {}\n".format(n_classes))
@@ -211,10 +199,7 @@ class DeepLabv3_plus(nn.Module):
         super(DeepLabv3_plus, self).__init__()
 
         # Atrous Conv
-        self.resnet_features = ResNet101(
-            nInputChannels, os, pretrained=pretrained,
-            state_dict_resnet=state_dict_resnet
-            )
+        self.resnet_features = ResNet101(nInputChannels, os)
 
         # ASPP
         if os == 16:
@@ -402,8 +387,7 @@ class teca_deeplabv3p_ar_detect(teca_py.teca_model_segmentation):
 
         return ouput_data.ravel()
 
-    def build_model(self, state_dict_deeplab_file=None,
-                    state_dict_resnet_file=None):
+    def build_model(self, state_dict_deeplab_file=None):
         """
         Load model from file system. If multi-threading is used rank 0
         loads the model file and broadcasts it to the other ranks
@@ -416,21 +400,11 @@ class teca_deeplabv3p_ar_detect(teca_py.teca_model_segmentation):
                 deeplab_sd_path
                 )
 
-        if not state_dict_resnet_file:
-            resnet_sd_path = \
-                "resnet101-5d3b4d8f-state_dict.pth"
-            state_dict_resnet_file = os.path.join(
-                teca_py.get_teca_data_root(),
-                resnet_sd_path
-                )
-
         comm = self.get_communicator()
 
         state_dict_deeplab = self.load_state_dict(state_dict_deeplab_file)
-        state_dict_resnet = self.load_state_dict(state_dict_resnet_file)
 
-        model = DeepLabv3_plus(n_classes=1, pretrained=True, _print=False,
-                               state_dict_resnet=state_dict_resnet)
+        model = DeepLabv3_plus(n_classes=1, _print=False)
         model.load_state_dict(state_dict_deeplab)
 
         self.set_model(model)
