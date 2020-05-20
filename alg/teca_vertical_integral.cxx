@@ -83,40 +83,40 @@ constexpr num_t neg_one_over_g() {return num_t(-1.0)/num_t(9.81); }
  *  
 / 
 */
-template <typename size_t, typename num_t>
-void vertical_integral(num_t * array,
-                       size_t nx,
-                       size_t ny,
-                       size_t nz,
-                       size_t csystem,
-                       num_t * a_or_sigma,
-                       num_t * b,
-                       num_t * ps,
+template <typename num_t>
+void vertical_integral(const num_t * array,
+                       unsigned long nx,
+                       unsigned long ny,
+                       unsigned long nz,
+                       int csystem,
+                       const num_t * a_or_sigma,
+                       const num_t * b,
+                       const num_t * ps,
                        num_t p_top,
                        num_t * array_int) {
 
 
   // loop over both horizontal dimensions
-  for (size_t i = 0; i < nx; i++){
-    for (size_t j = 0; j < ny; j++){
+  for (unsigned long i = 0; i < nx; i++){
+    for (unsigned long j = 0; j < ny; j++){
 
       // Determine the current index in ps
-      size_t n2d = j + ny * i;
+      unsigned long n2d = j + ny * i;
 
       // set the current integral value to zero
       num_t tmp_int = 0.0;
 
       // loop over the vertical dimension
-      for (size_t k = 0; k < nz; k++){
+      for (unsigned long k = 0; k < nz; k++){
 
         // Determine the current index in the 3D array
-        size_t n3d = k + nz*(j + ny * i);
+        unsigned long n3d = k + nz*(j + ny * i);
 
         num_t dp = num_t(0.0);
 
         // calculate the pressure differential for the sigma
         // coordinate system
-        if (csystem == size_t(1)){
+        if (csystem == 1){
           // calculate da and db
           num_t da = a_or_sigma[k+1] - a_or_sigma[k];
           num_t db = b[k+1] - b[k];
@@ -151,17 +151,15 @@ const_p_teca_variant_array get_mesh_variable(
 {
                                              
       // check that both variables are specified
-      if ( mesh_var.empty() )
-      {
-        TECA_ERROR( expected_var << " not specified")
+      if ( mesh_var.empty() ) {
+        TECA_ERROR("" << expected_var << " not specified")
         return nullptr;
       }
 
       // get the variable
       const_p_teca_variant_array out_array
         = in_mesh->get_point_arrays()->get(mesh_var);
-      if (!out_array)
-      {
+      if (!out_array) {
         TECA_ERROR("variable \"" << mesh_var << "\" is not in the input")
         return nullptr;
       }
@@ -171,9 +169,9 @@ const_p_teca_variant_array get_mesh_variable(
 
 
 // --------------------------------------------------------------------------
-teca_vertical_integral::teca_vertical_integral()
-    // TODO: add variables for long_name, units, other metadata?
-    // these needs to be passed in
+teca_vertical_integral::teca_vertical_integral() :
+    long_name("integrated_var"),
+    units("unknown"),
     hybrid_a_variable("a_bnds"),
     hybrid_b_variable("b_bnds"),
     sigma_variable("sigma_bnds"),
@@ -206,6 +204,10 @@ void teca_vertical_integral::get_properties_description(
             "list of arrays to compute statistics for")
         ;*/
     opts.add_options()
+        TECA_POPTS_GET(std::string, prefix, long_name,
+            "long name of the output variable (\"\")")
+        TECA_POPTS_GET(std::string, prefix, units,
+            "units of the output variable(\"\")")
         TECA_POPTS_GET(std::string, prefix, hybrid_a_variable,
             "name of a coordinate in the hybrid coordinate system(\"\")")
         TECA_POPTS_GET(std::string, prefix, hybrid_b_variable,
@@ -219,8 +221,8 @@ void teca_vertical_integral::get_properties_description(
         TECA_POPTS_GET(std::string, prefix, output_variable_name,
             "name for the integrated, output variable (\"\")")
         TECA_POPTS_GET(int, prefix, using_hybrid,
-            "flags whether the vertical coordinate is hybrid (1) or sigma (0) 
-            (\"\")")
+            "flags whether the vertical coordinate is hybrid (1) or "
+            "sigma (0) (\"\")")
         TECA_POPTS_GET(float, prefix, p_top_override_value,
             "name of the model top variable(\"\")")
         ;
@@ -235,6 +237,8 @@ void teca_vertical_integral::set_properties(
     (void) prefix;
     (void) opts;
 
+    TECA_POPTS_SET(opts, std::string, prefix, long_name)
+    TECA_POPTS_SET(opts, std::string, prefix, units)
     TECA_POPTS_SET(opts, std::string, prefix, hybrid_a_variable)
     TECA_POPTS_SET(opts, std::string, prefix, hybrid_b_variable)
     TECA_POPTS_SET(opts, std::string, prefix, sigma_variable)
@@ -289,7 +293,7 @@ const_p_teca_dataset teca_vertical_integral::execute(
 
     // get mesh dimension
     unsigned long extent[6];
-    out_mesh->get_extent(extent);
+    in_mesh->get_extent(extent);
 
     // set the dimension sizes
     unsigned long nx = extent[1] - extent[0] + 1;
@@ -322,7 +326,7 @@ const_p_teca_dataset teca_vertical_integral::execute(
                               "hybrid_b_variable",
                               in_mesh);
       if (!b_i) return nullptr;
-      
+    }  
     else
     {
       // get the sigma coordinate
@@ -358,25 +362,51 @@ const_p_teca_dataset teca_vertical_integral::execute(
 
     // allocate the output array
     p_teca_variant_array integrated_array = input_array->new_instance();
-    // TODO: figure out how to properly resize this to nz = 1
     integrated_array->resize(nx*ny);
 
 
     NESTED_TEMPLATE_DISPATCH_FP(
-        const teca_variant_array_impl,
-        input_array.get(),
+        teca_variant_array_impl,
+        integrated_array.get(),
         _INARR,
 
         const NT_INARR * p_input_array 
-          = dynamic_cast<TT_INARR*>(input_array->get())->get();
+          = dynamic_cast<const TT_INARR*>(input_array.get())->get();
+
+        const NT_INARR * p_a_or_sigma 
+          = dynamic_cast<const TT_INARR*>(a_or_sigma.get())->get();
+
+        const NT_INARR * p_b_i 
+          = dynamic_cast<const TT_INARR*>(b_i.get())->get();
+
+        const NT_INARR * p_p_s 
+          = dynamic_cast<const TT_INARR*>(p_s.get())->get();
+
+        const NT_INARR * p_p_top 
+          = dynamic_cast<const TT_INARR*>(p_top_array.get())->get();
+
+        NT_INARR * p_integrated_array 
+          = dynamic_cast<TT_INARR*>(integrated_array.get())->get();
 
         // call the vertical integration routine
-        // TODO: do some templating magic on the rest of the variables
-        // appending p_ to the front of each variable name
         vertical_integral(p_input_array, nx, ny, nz,
-                          (size_t) using_hybrid,
-                          p_a_or_sigma, p_b_i, p_p_s, p_p_top,
+                          using_hybrid, p_a_or_sigma, p_b_i, p_p_s, p_p_top[0],
                           p_integrated_array);
+        /*
+         * template <typename num_t>
+           void vertical_integral(num_t * array,
+                       unsigned long nx,
+                       unsigned long ny,
+                       unsigned long nz,
+                       int csystem,
+                       num_t * a_or_sigma,
+                       num_t * b,
+                       num_t * ps,
+                       num_t p_top,
+                       num_t * array_int) {
+
+
+         */
         )
 
 
@@ -385,16 +415,30 @@ const_p_teca_dataset teca_vertical_integral::execute(
     p_teca_cartesian_mesh out_mesh = teca_cartesian_mesh::New();
 
     // TODO: figure out how to drop this->integration_variable
-    // TODO: figure out how to drop the dimensionality of the data if needed
-    // this should work -- just need to modify the dimensions 
-    //  change extent, whole_extent, bounds, coordinates (set z to a 1-valued
-    //  teca_variant_array [maybe pressure, maybe 0])
-    //  see data/teca_cartesian_mesh.h
-    //    e.g., set_z_coordinates()
-    //    set new whole_extent, extent, bounds arrays in new teca_metadata
-    //    objects.
     out_mesh->shallow_copy(
         std::const_pointer_cast<teca_cartesian_mesh>(in_mesh));
+
+
+    // set mesh dimensions; use a scalar Z dimension
+    unsigned long out_extent[6];
+    unsigned long out_whole_extent[6];
+    double out_bounds[6];
+    out_mesh->get_extent(out_extent);
+    out_mesh->get_whole_extent(out_whole_extent);
+    out_mesh->get_bounds(out_bounds);
+    for (size_t n = 4; n < 6; n++){
+      out_extent[n] = 0;
+      out_whole_extent[n] = 0;
+      out_bounds[n] = 0;
+    }
+    out_mesh->set_extent(out_extent);
+    out_mesh->set_whole_extent(out_whole_extent);
+    out_mesh->set_bounds(out_bounds);
+
+    // set the z coordinate
+    p_teca_variant_array zo = in_mesh->get_z_coordinates()->new_instance();
+    zo->resize(1);
+    out_mesh->set_z_coordinates("z", zo);
 
     return out_mesh;
 }

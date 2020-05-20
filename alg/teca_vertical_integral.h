@@ -25,6 +25,8 @@ public:
     TECA_SET_ALGORITHM_PROPERTIES()
 
     // set the name of the the arrays involved in integration
+    TECA_ALGORITHM_PROPERTY(std::string, long_name)
+    TECA_ALGORITHM_PROPERTY(std::string, units)
     TECA_ALGORITHM_PROPERTY(std::string, hybrid_a_variable)
     TECA_ALGORITHM_PROPERTY(std::string, hybrid_b_variable)
     TECA_ALGORITHM_PROPERTY(std::string, sigma_variable)
@@ -41,6 +43,8 @@ protected:
 
 private:
 
+    std::string long_name;
+    std::string units;
     std::string hybrid_a_variable;
     std::string hybrid_b_variable;
     std::string sigma_variable;
