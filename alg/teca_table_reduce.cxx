@@ -64,7 +64,10 @@ p_teca_dataset teca_table_reduce::reduce(const const_p_teca_dataset &left_ds,
 
     p_teca_table output_table;
 
-    if (left_table && right_table)
+    bool have_left = left_table && *left_table;
+    bool have_right = right_table && *right_table;
+
+    if (have_left && have_right)
     {
         output_table
             = std::dynamic_pointer_cast<teca_table>(left_table->new_copy());
@@ -72,13 +75,13 @@ p_teca_dataset teca_table_reduce::reduce(const const_p_teca_dataset &left_ds,
         output_table->concatenate_rows(right_table);
     }
     else
-    if (left_table)
+    if (have_left)
     {
         output_table
             = std::dynamic_pointer_cast<teca_table>(left_table->new_copy());
     }
     else
-    if (right_table)
+    if (have_right)
     {
         output_table
             = std::dynamic_pointer_cast<teca_table>(right_table->new_copy());
