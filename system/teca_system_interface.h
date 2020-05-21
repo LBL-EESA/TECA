@@ -20,6 +20,9 @@ first_frame - frame number to start trace from
 whole_path -  set true to see full path in source file listing
 */
 std::string get_program_stack(int first_frame, int whole_path);
+
+
+std::string get_program_name();
 };
 
 #endif

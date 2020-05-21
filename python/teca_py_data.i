@@ -1,6 +1,7 @@
 %{
 #include <memory>
 #include <sstream>
+#include "teca_array_attributes.h"
 #include "teca_variant_array.h"
 #include "teca_array_collection.h"
 #include "teca_cartesian_mesh.h"
@@ -12,6 +13,26 @@
 #include "teca_py_object.h"
 #include "teca_py_string.h"
 %}
+
+/***************************************************************************
+ array_attributes
+ ***************************************************************************/
+%ignore teca_array_attributes::operator=;
+%rename(from_metadata) teca_array_attributes::from;
+%rename(to_metadata) teca_array_attributes::to;
+%rename(as_metadata) teca_array_attributes::operator teca_metadata() const;
+%include "teca_array_attributes.h"
+%extend teca_array_attributes
+{
+    TECA_PY_STR()
+
+    teca_metadata to_metadata()
+    {
+        teca_metadata md;
+        self->to(md);
+        return md;
+    }
+}
 
 /***************************************************************************
  array_collection

@@ -2,12 +2,15 @@
 #define teca_netcdf_util_h
 
 #include "teca_config.h"
+#include "teca_mpi.h"
 
 #include <mutex>
 #include <string>
 
 #include <netcdf.h>
-
+#if defined(TECA_HAS_NETCDF_MPI)
+#include <netcdf_par.h>
+#endif
 
 // macro to help with netcdf data types
 #define NC_DISPATCH_FP(tc_, code_)                          \
@@ -50,8 +53,9 @@
 namespace teca_netcdf_util
 {
 
-// traits class mapping to netcdf
+// traits class mapping to/from netcdf
 template<typename num_t> class netcdf_tt {};
+template<int nc_enum> class cpp_tt {};
 
 #define DECLARE_NETCDF_TT(cpp_t_, nc_c_) \
 template <> class netcdf_tt<cpp_t_>      \
@@ -69,6 +73,23 @@ DECLARE_NETCDF_TT(long long, NC_INT64)
 DECLARE_NETCDF_TT(unsigned long long, NC_UINT64)
 DECLARE_NETCDF_TT(float, NC_FLOAT)
 DECLARE_NETCDF_TT(double, NC_DOUBLE)
+
+#define DECLARE_CPP_TT(cpp_t_, nc_c_) \
+template <> class cpp_tt<nc_c_>       \
+{ public: using type = cpp_t_; };
+DECLARE_CPP_TT(char, NC_BYTE)
+DECLARE_CPP_TT(unsigned char, NC_UBYTE)
+//DECLARE_CPP_TT(char, NC_CHAR)
+DECLARE_CPP_TT(short int, NC_SHORT)
+DECLARE_CPP_TT(unsigned short int, NC_USHORT)
+DECLARE_CPP_TT(int, NC_INT)
+//DECLARE_CPP_TT(long, NC_LONG)
+//DECLARE_CPP_TT(unsigned long, NC_LONG)
+DECLARE_CPP_TT(unsigned int, NC_UINT)
+DECLARE_CPP_TT(long long, NC_INT64)
+DECLARE_CPP_TT(unsigned long long, NC_UINT64)
+DECLARE_CPP_TT(float, NC_FLOAT)
+DECLARE_CPP_TT(double, NC_DOUBLE)
 
 // to deal with fortran fixed length strings
 // which are not properly nulll terminated
@@ -118,18 +139,39 @@ public:
         other.m_handle = 0;
     }
 
-    // open the file
+    // open the file. this can be used from MPI parallel runs, but collective
+    // I/O is not possible when a file is opend this way. Returns 0 on success.
     int open(const std::string &file_path, int mode);
 
-    // create the file
+    // open the file. this can be used when collective I/O is desired. the
+    // passed in communcator specifies the subset of ranks that will access
+    // the file. Calling this when linked to a non-MPI enabled NetCDF install,
+    // from a parallel run will, result in an error. Returns 0 on success.
+    int open(MPI_Comm comm, const std::string &file_path, int mode);
+
+    // create the file. this can be used from MPI parallel runs, but collective
+    // I/O is not possible when a file is created this way. Returns 0 on success.
     int create(const std::string &file_path, int mode);
 
+    // create the file. this can be used when collective I/O is desired. the
+    // passed in communcator specifies the subset of ranks that will access
+    // the file. Calling this when linked to a non-MPI enabled NetCDF install,
+    // from a parallel run will, result in an error. Returns 0 on success.
+    int create(MPI_Comm comm, const std::string &file_path, int mode);
+
     // close the file
-    void close();
+    int close();
+
+    // flush all data to disk
+    int flush();
 
     // returns a reference to the handle
     int &get()
     { return m_handle; }
+
+    // test if the handle is valid
+    operator bool() const
+    { return m_handle > 0; }
 
 private:
     int m_handle;

@@ -90,7 +90,17 @@ public:
     TECA_ALGORITHM_PROPERTY(std::string, t_calendar)
     TECA_ALGORITHM_PROPERTY(std::string, t_units)
 
-    // a way to infer time from the filename if needed
+    // a way to infer time from the filename if the time axis is not
+    // stored in the file itself. strftime format codes are used.
+    // For example for the files:
+    //
+    //      my_file_20170516_00.nc
+    //      my_file_20170516_03.nc
+    //      ...
+    //
+    // the template would be
+    //
+    //      my_file_%Y%m%d_%H.nc
     TECA_ALGORITHM_PROPERTY(std::string, filename_time_template)
 
     // time values to use instead if time variable doesn't

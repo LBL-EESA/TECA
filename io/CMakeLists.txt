@@ -2,6 +2,7 @@ project(teca_io)
 
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
+    $<TARGET_PROPERTY:teca_system,INTERFACE_INCLUDE_DIRECTORIES>
     $<TARGET_PROPERTY:teca_core,INTERFACE_INCLUDE_DIRECTORIES>
     $<TARGET_PROPERTY:teca_data,INTERFACE_INCLUDE_DIRECTORIES>
     )
@@ -10,6 +11,8 @@ set(teca_io_srcs
     teca_file_util.cxx
     teca_cartesian_mesh_reader.cxx
     teca_cartesian_mesh_writer.cxx
+    teca_cf_layout_manager.cxx
+    teca_cf_time_step_mapper.cxx
     teca_table_reader.cxx
     teca_table_writer.cxx
     teca_vtk_util.cxx
@@ -19,7 +22,7 @@ if (WIN32)
     list(APPEND teca_io_srcs win_windirent.cxx)
 endif()
 
-set(teca_io_link)
+set(teca_io_link teca_system)
 
 if (TECA_HAS_NETCDF)
     list(APPEND teca_io_srcs teca_netcdf_util.cxx teca_cf_reader.cxx teca_cf_writer.cxx)

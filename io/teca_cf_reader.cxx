@@ -1,4 +1,5 @@
 #include "teca_cf_reader.h"
+#include "teca_array_attributes.h"
 #include "teca_file_util.h"
 #include "teca_cartesian_mesh.h"
 #include "teca_thread_pool.h"
@@ -93,12 +94,18 @@ std::string teca_cf_reader_internals::create_metadata_cache_key(
 }
 #endif
 
+
 // function that reads and returns a variable from the
 // named file. we're doing this so we can do thread
 // parallel I/O to hide some of the cost of opening files
 // on Lustre and to hide the cost of reading time coordinate
 // which is typically very expensive as NetCDF stores
 // unlimted dimensions non-contiguously
+//
+// note: Thu 09 Apr 2020 05:45:29 AM PDT
+// Threading these operations worked well in NetCDF 3, however
+// in NetCDF 4 backed by HDF5 necessary locking eliminates any
+// speed up.
 class read_variable
 {
 public:
@@ -508,7 +515,8 @@ teca_metadata teca_cf_reader::get_output_metadata(
             for (int i = 0; i < n_vars; ++i)
             {
                 char var_name[NC_MAX_NAME + 1] = {'\0'};
-                nc_type var_type = 0;
+                int var_type = 0;
+                nc_type var_nc_type = 0;
                 int n_dims = 0;
                 int dim_id[NC_MAX_VAR_DIMS] = {0};
                 int n_atts = 0;
@@ -518,7 +526,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
                 if ((ierr = nc_inq_var(fh.get(), i, var_name,
-                        &var_type, &n_dims, dim_id, &n_atts)) != NC_NOERR)
+                        &var_nc_type, &n_dims, dim_id, &n_atts)) != NC_NOERR)
                 {
                     this->clear_cached_metadata();
                     TECA_ERROR(
@@ -529,6 +537,10 @@ teca_metadata teca_cf_reader::get_output_metadata(
 #if !defined(HDF5_THREAD_SAFE)
                 }
 #endif
+                // convert from the netcdf type code
+                NC_DISPATCH(var_nc_type,
+                   var_type = teca_variant_array_code<NC_T>::get();
+                   )
 
                 // skip scalars
                 if (n_dims == 0)
@@ -536,7 +548,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
                 std::vector<size_t> dims;
                 std::vector<std::string> dim_names;
-                std::string centering("point");
+                unsigned int centering = teca_array_attributes::point_centering;
                 for (int ii = 0; ii < n_dims; ++ii)
                 {
                     char dim_name[NC_MAX_NAME + 1] = {'\0'};
@@ -563,10 +575,11 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 vars.push_back(var_name);
 
                 teca_metadata atts;
-                atts.set("id", i);
-                atts.set("dims", dims);
-                atts.set("dim_names", dim_names);
-                atts.set("type", var_type);
+                atts.set("cf_id", i);
+                atts.set("cf_dims", dims);
+                atts.set("cf_dim_names", dim_names);
+                atts.set("cf_type_code", var_nc_type);
+                atts.set("type_code", var_type);
                 atts.set("centering", centering);
 
                 void *att_buffer = nullptr;
@@ -776,7 +789,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 // wait for the results
                 std::vector<read_variable_data_t> tmp;
                 tmp.reserve(n_files);
-                thread_pool.wait_data(tmp);
+                thread_pool.wait_all(tmp);
 
                 // unpack the results. map is used to ensure the correct
                 // file to time association.
@@ -831,7 +844,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 t_axis_var = "time";
             }
             // infer the time from the filenames
-            else if (! this->filename_time_template.empty())
+            else if (!this->filename_time_template.empty())
             {
                 std::vector<double> t_values;
 
@@ -872,7 +885,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
                     // set the time units based on the first file date if we
                     // don't have time units
-                    if (t_units.empty() and i == 0)
+                    if ((i == 0) && t_units.empty())
                     {
                         std::string t_units_fmt =
                             "days since %Y-%m-%d 00:00:00";
@@ -900,8 +913,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     double second = current_tm.tm_sec;
                     double current_time = 0;
                     if (calcalcs::coordinate(year, mon, day, hour, minute,
-                          second, t_units.c_str(), t_calendar.c_str(),
-                          &current_time))
+                        second, t_units.c_str(), t_calendar.c_str(), &current_time))
                     {
                         TECA_ERROR("conversion of date inferred from "
                             "filename failed");
@@ -910,8 +922,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     // add the current time to the list
                     t_values.push_back(current_time);
 #else
-                    TECA_ERROR("The UDUnits package is required "
-                        "for this operation")
+                    TECA_ERROR("The UDUnits package is required for this operation")
                     return teca_metadata();
 #endif
                 }
@@ -933,6 +944,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
                 // set the time axis
                 t_axis = t;
+                t_axis_var = "time";
             }
             else
             {
@@ -955,7 +967,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     t_axis = t;
                     )
 
-                t_axis_var = "t";
+                t_axis_var = "time";
             }
 
             this->internals->metadata.set("variables", vars);
@@ -1297,10 +1309,10 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
         p_teca_string_array dim_names;
 
         if (atrs.get(arrays[i], atts)
-            || atts.get("type", 0, type)
-            || atts.get("id", 0, id)
-            || !(dims = std::dynamic_pointer_cast<teca_size_t_array>(atts.get("dims")))
-            || !(dim_names = std::dynamic_pointer_cast<teca_string_array>(atts.get("dim_names"))))
+            || atts.get("cf_type_code", 0, type)
+            || atts.get("cf_id", 0, id)
+            || !(dims = std::dynamic_pointer_cast<teca_size_t_array>(atts.get("cf_dims")))
+            || !(dim_names = std::dynamic_pointer_cast<teca_string_array>(atts.get("cf_dim_names"))))
         {
             TECA_ERROR("metadata issue can't read \"" << arrays[i] << "\"")
             continue;

@@ -329,17 +329,15 @@ class teca_deeplabv3p_ar_detect(teca_py.teca_model_segmentation):
     def set_padding_atts(self):
         target_shape = 128 * np.ceil(self.mesh_ny/128.0)
         target_shape_diff = target_shape - self.mesh_ny
-        self.padding_amount_y = (
-            int(np.ceil(target_shape_diff / 2.0)),
-            int(np.floor(target_shape_diff / 2.0))
-            )
+
+        self.padding_amount_y = (int(np.ceil(target_shape_diff / 2.0)),
+                                 int(np.floor(target_shape_diff / 2.0)))
 
         target_shape = 64 * np.ceil(self.mesh_nx/64.0)
         target_shape_diff = target_shape - self.mesh_nx
-        self.padding_amount_x = (
-            int(np.ceil(target_shape_diff / 2.0)),
-            int(np.floor(target_shape_diff / 2.0))
-            )
+
+        self.padding_amount_x = (int(np.ceil(target_shape_diff / 2.0)),
+                                 int(np.floor(target_shape_diff / 2.0)))
 
     def input_preprocess(self, input_data):
         """
@@ -349,22 +347,21 @@ class teca_deeplabv3p_ar_detect(teca_py.teca_model_segmentation):
         """
         self.set_padding_atts()
 
-        input_data = np.reshape(
-            self.var_array, [1, self.mesh_ny, self.mesh_nx]
-            )
-        input_data = np.pad(
-            input_data, ((0, 0), self.padding_amount_y, (0, 0)),
-            'constant', constant_values=0
-            )
-        input_data = np.pad(
-            input_data, ((0, 0), (0, 0), self.padding_amount_x),
-            'constant', constant_values=0
-            )
+        input_data = np.reshape(self.var_array,
+                                [1, self.mesh_ny, self.mesh_nx])
+
+        input_data = np.pad(input_data, ((0, 0), self.padding_amount_y,
+                            (0, 0)), 'constant', constant_values=0)
+
+        input_data = np.pad(input_data, ((0, 0), (0, 0),
+                            self.padding_amount_x), 'constant',
+                            constant_values=0)
+
         input_data = input_data.astype('float32')
 
-        transformed_input_data = np.zeros(
-            (1, 3, input_data.shape[1], input_data.shape[2])
-            ).astype('float32')
+        transformed_input_data = np.zeros((1, 3, input_data.shape[1],
+                                          input_data.shape[2]), dtype=np.float32)
+
         for i in range(3):
             transformed_input_data[0, i, ...] = input_data
 
@@ -408,56 +405,49 @@ class teca_deeplabv3p_ar_detect(teca_py.teca_model_segmentation):
         model.load_state_dict(state_dict_deeplab)
 
         self.set_model(model)
+        self.torch_inference_fn = torch.sigmoid
 
-    def get_execute_callback(self):
+    def report(self, port, md_in):
         """
-        return a teca_algorithm::execute function
+        return the metadata decribing the data available for consumption.
         """
-        def execute(port, data_in, req):
-            """
-            expects an array of an input variable to run through
-            the torch model and get the segmentation results as an
-            output.
-            """
-            in_mesh = teca_py.as_teca_cartesian_mesh(data_in[0])
+        md_out = super().report(port, md_in)
 
-            if in_mesh is None:
-                raise ValueError("ERROR: empty input, or not a mesh")
-            if self.model is None:
-                raise ValueError(
-                    "ERROR: pretrained model has not been specified"
-                    )
+        arp_atts = teca_py.teca_array_attributes(
+            teca_py.teca_float_array_code.get(),
+            teca_py.teca_array_attributes.point_centering,
+            0, 'unitless', 'posterior AR flag',
+            'the posterior probability of the presence of an atmospheric river')
 
-            md = in_mesh.get_metadata()
-            ext = md["extent"]
+        attributes = md_out["attributes"]
+        attributes["ar_probability"] = arp_atts.to_metadata()
+        md_out["attributes"] = attributes
 
-            nlat = int(ext[3]-ext[2]+1)
-            nlon = int(ext[1]-ext[0]+1)
-            self.set_mesh_dims(nlat, nlon)
+        return md_out
 
-            arrays = in_mesh.get_point_arrays()
-            self.var_array = arrays[self.variable_name]
+    def execute(self, port, data_in, req):
+        """
+        expects an array of an input variable to run through
+        the torch model and get the segmentation results as an
+        output.
+        """
+        in_mesh = teca_py.as_teca_cartesian_mesh(data_in[0])
 
-            self.torch_inference_fn = torch.sigmoid
+        if in_mesh is None:
+            raise ValueError("empty input, or not a mesh")
 
-            super_execute = super(
-                teca_deeplabv3p_ar_detect, self
-            ).get_execute_callback()
+        if self.model is None:
+            raise ValueError("pretrained model has not been specified")
 
-            out_mesh = super_execute(port, data_in, req)
+        md = in_mesh.get_metadata()
+        ext = md["extent"]
 
-            out_mesh.get_point_arrays().remove(self.variable_name)
+        nlat = int(ext[3]-ext[2]+1)
+        nlon = int(ext[1]-ext[0]+1)
+        self.set_mesh_dims(nlat, nlon)
 
-            ar_probability_atts = teca_py.teca_metadata()
-            ar_probability_atts["long_name"] = "posterior AR flag"
-            ar_probability_atts["units"] = "probability"
+        arrays = in_mesh.get_point_arrays()
+        self.var_array = arrays[self.variable_name]
 
-            out_md = out_mesh.get_metadata()
-            attributes = out_md["attributes"]
-            attributes["ar_probability"] = ar_probability_atts
-            out_md["attributes"] = attributes
-
-            out_mesh.set_metadata(out_md)
-
-            return out_mesh
-        return execute
+        out_mesh = super().execute(port, data_in, req)
+        return out_mesh

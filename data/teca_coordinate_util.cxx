@@ -111,6 +111,31 @@ int time_to_string(double val, const std::string &calendar,
 }
 
 // **************************************************************************
+int bounds_to_extent(const double *bounds, const teca_metadata &md,
+    unsigned long *extent)
+{
+    teca_metadata coords;
+    if (md.get("coordinates", coords))
+    {
+        TECA_ERROR("missing cooridnates")
+        return -1;
+    }
+
+    const_p_teca_variant_array x = coords.get("x");
+    const_p_teca_variant_array y = coords.get("y");
+    const_p_teca_variant_array z = coords.get("z");
+
+    if (!x || !y || !z)
+    {
+        TECA_ERROR("empty coordinate axes")
+        return -1;
+    }
+
+    return bounds_to_extent(bounds, x, y, z, extent);
+}
+
+
+// **************************************************************************
 int bounds_to_extent(const double *bounds,
     const_p_teca_variant_array x, const_p_teca_variant_array y,
     const_p_teca_variant_array z, unsigned long *extent)
