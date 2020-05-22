@@ -211,7 +211,7 @@ teca_metadata teca_binary_segmentation::get_output_metadata(
         << this->high_threshold_value;
 
     teca_array_attributes default_atts(
-        teca_variant_array_code<int>::get(),
+        teca_variant_array_code<char>::get(),
         teca_array_attributes::point_centering,
         0, "unitless", segmentation_var, oss.str());
 
