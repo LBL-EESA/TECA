@@ -1,4 +1,6 @@
+import os
 import sys
+import socket
 import teca_py
 import numpy as np
 import torch
@@ -24,12 +26,13 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
         self.device = 'cpu'
 
     def __str__(self):
-        ms_str = 'variable_name=%s, pred_name=%d\n\n' % (
+        ms_str = 'variable_name=%s, pred_name=%d\n' % (
                  self.variable_name, self.pred_name)
-
-        ms_str += 'model:\n%s\n\n' % (str(self.model))
-
-        ms_str += 'device:\n%s\n' % (str(self.device))
+        ms_str += 'model:%s\n' % (str(self.model))
+        ms_str += 'device:%s\n' % (str(self.device))
+        ms_str += 'torch num_threads:%d\n' % (self.get_num_threads())
+        ms_str += 'hostname:%s, pid=%s\n' % (
+                 str(socket.gethostname()), str(os.getpid()))
 
         return ms_str
 
@@ -101,11 +104,17 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
 
     def set_num_threads(self, n):
         """
-        torch: Sets the number of threads used for intraop parallelism on CPU
+        torch: Sets the number of threads used for intra-op parallelism on CPU
         """
         # n=-1: use default
         if n != -1:
             torch.set_num_threads(n)
+
+    def get_num_threads(self):
+        """
+        torch: Gets the number of threads available for intra-op parallelism on CPU
+        """
+        torch.get_num_threads()
 
     def set_torch_device(self, device="cpu"):
         """
