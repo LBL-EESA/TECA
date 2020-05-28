@@ -48,9 +48,11 @@ RUN pip3 install --upgrade pip
 
 RUN pip3 install numpy mpi4py matplotlib torch
 
-RUN git clone --single-branch --branch torch_get_num_threads https://github.com/LBL-EESA/TECA.git
+RUN svn co svn://svn.code.sf.net/p/teca/TECA_assets TECA_assets
+
+RUN git clone --single-branch --branch teca_assets_svn_support https://github.com/LBL-EESA/TECA.git
 RUN cd ${WORKDIR}/TECA && mkdir build && cd build && \
-    cmake ${WORKDIR}/TECA && make install
+    cmake -DTECA_ASSETS_ROOT=${WORKDIR}/TECA_assets/ ${WORKDIR}/TECA && make install
 
 ENV PYTHONPATH=${WORKDIR}/TECA/build/lib:${PYTHONPATH}
 ENV LD_LIBRARY_PATH=${WORKDIR}/TECA/build/lib:${LD_LIBRARY_PATH}
