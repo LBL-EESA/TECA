@@ -26,13 +26,14 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
         self.device = 'cpu'
 
     def __str__(self):
-        ms_str = 'variable_name=%s, pred_name=%d\n' % (
-                 self.variable_name, self.pred_name)
-        ms_str += 'model:%s\n' % (str(self.model))
-        ms_str += 'device:%s\n' % (str(self.device))
-        ms_str += 'torch num_threads:%d\n' % (self.get_num_threads())
-        ms_str += 'hostname:%s, pid=%s\n' % (
-                 str(socket.gethostname()), str(os.getpid()))
+        ms_str = 'variable_name=%s, pred_name=%s\n' % (
+                  self.variable_name, self.pred_name)
+        ms_str += 'model=%s\n' % (str(self.model))
+        ms_str += 'model_path=%s\n' % (self.model_path)
+        ms_str += 'device=%s\n' % (str(self.device))
+        ms_str += 'torch_num_threads=%d\n' % (self.get_num_threads())
+        ms_str += 'hostname=%s, pid=%s' % (
+                  socket.gethostname(), os.getpid())
 
         return ms_str
 
@@ -114,7 +115,7 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
         """
         torch: Gets the number of threads available for intra-op parallelism on CPU
         """
-        torch.get_num_threads()
+        return torch.get_num_threads()
 
     def set_torch_device(self, device="cpu"):
         """
