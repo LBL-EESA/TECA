@@ -55,4 +55,4 @@ stats.set_interactive(args.interact)
 stats.set_rel_axes(args.ind_axes)
 
 # execute
-act.update()
+stats.update()
