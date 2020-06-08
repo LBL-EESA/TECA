@@ -71,6 +71,11 @@ public:
     // file name pattern
     TECA_ALGORITHM_PROPERTY(std::string, files_regex)
 
+    // the directory where metadata should be cached. if this is not specified
+    // metadata is cached either with the data, in the CWD, or in the user's
+    // home dir, which ever location succeeds first.
+    TECA_ALGORITHM_PROPERTY(std::string, metadata_cache_dir)
+
     // set if the dataset has periodic boundary conditions
     TECA_ALGORITHM_PROPERTY(int, periodic_in_x)
     TECA_ALGORITHM_PROPERTY(int, periodic_in_y)
@@ -131,6 +136,7 @@ private:
 private:
     std::vector<std::string> file_names;
     std::string files_regex;
+    std::string metadata_cache_dir;
     std::string x_axis_variable;
     std::string y_axis_variable;
     std::string z_axis_variable;

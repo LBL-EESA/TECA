@@ -20,6 +20,9 @@ parser.add_argument('-i', '--interact', action='store_true',
 parser.add_argument('-a', '--ind_axes', action='store_false',
     help="normalize y-axis in grouped plots")
 
+parser.add_argument('-f', '--out-format', type=str,
+    default='bin', help='output in a csv or bin format (bin)')
+
 args = parser.parse_args()
 
 # construct the pipeline
@@ -35,7 +38,7 @@ calendar.set_time_column('start_time')
 
 writer = teca_table_writer.New()
 writer.set_input_connection(calendar.get_output_port())
-writer.set_file_name('%s_class_table.csv'%(args.output_prefix))
+writer.set_file_name('%s_class_table.%s'%(args.output_prefix, args.out_format))
 
 act = teca_tc_activity.New()
 act.set_input_connection(writer.get_output_port())
@@ -52,4 +55,4 @@ stats.set_interactive(args.interact)
 stats.set_rel_axes(args.ind_axes)
 
 # execute
-act.update()
+stats.update()

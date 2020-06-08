@@ -66,12 +66,18 @@ public:
 std::string teca_cf_reader_internals::create_metadata_cache_key(
     const std::string &path, const std::vector<std::string> &files)
 {
-    // create the hash using the file names and path
+    // create the hash using the version, file names, and path
     SHA_CTX ctx;
     SHA1_Init(&ctx);
 
+    // include the version since metadata could change between releases
+    SHA1_Update(&ctx, TECA_VERSION_DESCR, strlen(TECA_VERSION_DESCR));
+
+    // include path to the data
     SHA1_Update(&ctx, path.c_str(), path.size());
 
+    // include each file. different regex could identify different sets
+    // of files.
     unsigned long n = files.size();
     for (unsigned long i = 0; i < n; ++i)
     {
@@ -229,6 +235,8 @@ void teca_cf_reader::get_properties_description(
         TECA_POPTS_GET(std::string, prefix, files_regex,
             "a regular expression that matches the set of files "
             "comprising the dataset")
+        TECA_POPTS_GET(std::string, prefix, metadata_cache_dir,
+            "a directory where metadata caches can be stored ()")
         TECA_POPTS_GET(std::string, prefix, x_axis_variable,
             "name of variable that has x axis coordinates (lon)")
         TECA_POPTS_GET(std::string, prefix, y_axis_variable,
@@ -265,6 +273,7 @@ void teca_cf_reader::set_properties(const std::string &prefix,
 {
     TECA_POPTS_SET(opts, std::vector<std::string>, prefix, file_names)
     TECA_POPTS_SET(opts, std::string, prefix, files_regex)
+    TECA_POPTS_SET(opts, std::string, prefix, metadata_cache_dir)
     TECA_POPTS_SET(opts, std::string, prefix, x_axis_variable)
     TECA_POPTS_SET(opts, std::string, prefix, y_axis_variable)
     TECA_POPTS_SET(opts, std::string, prefix, z_axis_variable)
@@ -365,21 +374,22 @@ teca_metadata teca_cf_reader::get_output_metadata(
         }
 
 #if defined(TECA_HAS_OPENSSL)
-        // look for a metadata cache. we are caching it on disk
-        // as for large datasets on Lustre, scanning the time
-        // dimension is costly because of NetCDF CF convention
-        // that time is unlimitted and thus not layed out contiguously
-        // in the files.
+        // look for a metadata cache. we are caching it on disk as for large
+        // datasets on Lustre, scanning the time dimension is costly because of
+        // NetCDF CF convention that time is unlimitted and thus not layed out
+        // contiguously in the files.
         std::string metadata_cache_key =
             this->internals->create_metadata_cache_key(path, files);
 
-        std::string metadata_cache_path[3] =
-            {path, ".", (getenv("HOME") ? : ".")};
+        std::string metadata_cache_path[4] =
+            {(getenv("HOME") ? : "."), ".", path, metadata_cache_dir};
 
-        for (int i = 0; i < 3; ++i)
+        int n_metadata_cache_paths = metadata_cache_dir.empty() ? 2 : 3;
+
+        for (int i = n_metadata_cache_paths; i >= 0; --i)
         {
             std::string metadata_cache_file =
-                metadata_cache_path[i] + PATH_SEP + metadata_cache_key + ".md";
+                metadata_cache_path[i] + PATH_SEP + metadata_cache_key + ".tmd";
 
             if (teca_file_util::file_exists(metadata_cache_file.c_str()))
             {
@@ -1006,10 +1016,10 @@ teca_metadata teca_cf_reader::get_output_metadata(
 #if defined(TECA_HAS_OPENSSL)
             // cache metadata on disk
             bool cached_metadata = false;
-            for (int i = 0; i < 3; ++i)
+            for (int i = n_metadata_cache_paths; i >= 0; --i)
             {
                 std::string metadata_cache_file =
-                    metadata_cache_path[i] + PATH_SEP + metadata_cache_key + ".md";
+                    metadata_cache_path[i] + PATH_SEP + metadata_cache_key + ".tmd";
 
                 if (!teca_file_util::write_stream(metadata_cache_file.c_str(),
                     "teca_cf_reader::metadata_cache_file", stream, false))
