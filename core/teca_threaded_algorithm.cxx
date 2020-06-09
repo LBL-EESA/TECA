@@ -74,7 +74,8 @@ void teca_threaded_algorithm_internals::thread_pool_resize(MPI_Comm comm,
 
 // --------------------------------------------------------------------------
 teca_threaded_algorithm::teca_threaded_algorithm() : verbose(0),
-    bind_threads(1), internals(new teca_threaded_algorithm_internals)
+    bind_threads(1), stream_size(-1), poll_interval(1000000),
+    internals(new teca_threaded_algorithm_internals)
 {
 }
 
@@ -98,7 +99,14 @@ void teca_threaded_algorithm::get_properties_description(
         TECA_POPTS_GET(int, prefix, verbose,
             "print a run time report of settings (0)")
         TECA_POPTS_GET(int, prefix, thread_pool_size,
-            "number of threads in pool. When n == -1, 1 thread per core is created (-1)")
+            "number of threads in pool. When n == -1, 1 thread per core is "
+            "created (-1)")
+        TECA_POPTS_GET(int, prefix, stream_size,
+            "number of datasests to pass per execute call. -1 means wait "
+            "for all. (-1)")
+        TECA_POPTS_GET(long, prefix, poll_interval,
+            "number of nanoseconds to wait between scans of the thread pool "
+            "for completed tasks (1.0e6)")
         ;
 
     global_opts.add(opts);
@@ -155,7 +163,9 @@ const_p_teca_dataset teca_threaded_algorithm::request_data(
 
     // execute current algorithm to fulfill the request.
     // return the data
-    p_teca_algorithm alg = get_algorithm(current);
+    p_teca_threaded_algorithm alg =
+        std::dynamic_pointer_cast<teca_threaded_algorithm>(get_algorithm(current));
+
     unsigned int port = get_port(current);
 
     // check for cached data
@@ -182,7 +192,6 @@ const_p_teca_dataset teca_threaded_algorithm::request_data(
         // queue. mapping the requests round-robbin on to
         // the inputs
         size_t n_up_reqs = up_reqs.size();
-        std::vector<const_p_teca_dataset> input_data;
 
         TECA_PROFILE_THREAD_POOL(128, this,
             this->internals->thread_pool->size(), n_up_reqs,
@@ -201,18 +210,49 @@ const_p_teca_dataset teca_threaded_algorithm::request_data(
                 }
             }
 
-            // get the requested data. will block until it's ready.
-            this->internals->thread_pool->wait_data(input_data);
-            )
+            int n_tasks_remaining = 0;
+            do
+            {
+               // get the requested data. will block until it's ready.
+               std::vector<const_p_teca_dataset> input_data;
 
-        // execute override
-        TECA_PROFILE_PIPELINE(128, alg, "execute", port,
-            out_data = alg->execute(port, input_data, request);
-            )
+               n_tasks_remaining = this->internals->thread_pool->wait_some(
+                    this->stream_size, this->poll_interval, input_data);
+
+                // when streaming recycle last round's output, this is
+                // neccessary for reductions
+                if (out_data)
+                    input_data.push_back(out_data);
+
+                // execute override
+                TECA_PROFILE_PIPELINE(128, alg, "execute", port,
+                    out_data = alg->execute(port, input_data,
+                       request, n_tasks_remaining);
+                )
+            }
+            while (n_tasks_remaining);
+        )
 
         // cache the output
         alg->cache_output_data(port, key, out_data);
     }
 
     return out_data;
+}
+
+// --------------------------------------------------------------------------
+const_p_teca_dataset teca_threaded_algorithm::execute(unsigned int port,
+    const std::vector<const_p_teca_dataset> &input_data,
+    const teca_metadata &request, int streaming)
+{
+    (void)streaming;
+    return this->teca_algorithm::execute(port, input_data, request);
+}
+
+// --------------------------------------------------------------------------
+const_p_teca_dataset teca_threaded_algorithm::execute(unsigned int port,
+    const std::vector<const_p_teca_dataset> &input_data,
+    const teca_metadata &request)
+{
+    return this->execute(port, input_data, request, 0);
 }

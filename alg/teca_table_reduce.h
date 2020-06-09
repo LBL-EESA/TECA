@@ -29,17 +29,14 @@ protected:
     teca_table_reduce();
 
     // overrides
-    p_teca_dataset reduce(
-        const const_p_teca_dataset &left,
+    p_teca_dataset reduce(const const_p_teca_dataset &left,
         const const_p_teca_dataset &right) override;
 
     std::vector<teca_metadata> initialize_upstream_request(
-        unsigned int port,
-        const std::vector<teca_metadata> &input_md,
+        unsigned int port, const std::vector<teca_metadata> &input_md,
         const teca_metadata &request) override;
 
-    teca_metadata initialize_output_metadata(
-        unsigned int port,
+    teca_metadata initialize_output_metadata(unsigned int port,
         const std::vector<teca_metadata> &input_md) override;
 };
 

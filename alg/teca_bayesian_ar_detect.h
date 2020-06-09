@@ -10,8 +10,31 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_bayesian_ar_detect)
 
-/// 
+/// CASCADE BARD atmospheric river detector
 /**
+Given a point wise IVT (integrated vapor transport) field and a training
+parameter table computes the point wise probability of an atmospheric river
+using the CASCADE BARD algorithm.
+
+Required inputs:
+
+    1. IVT (integrated vapor transport) array on a Cartesian nesh.
+    2. a compatible parameter table. columns of which are : min IVT,
+       component area, HWHM lattitude
+
+The names of the input varibale and columns can be specified at run time
+through algorithm properties.
+
+Produces:
+
+    A Cartesian mesh with probability of an AR stored in the point centered
+    array named "ar_probability". The diagnostic quantites "ar_count" amd
+    "parameter_table_row" are stored in information arrays.
+
+For more information see:
+
+Detection of Atmospheric Rivers with Inline Uncertainty Quantification: TECA-BARD v1.0
+O'Brien, T. A et al. Geoscientific Model Development, 2020
 */
 class teca_bayesian_ar_detect : public teca_algorithm
 {

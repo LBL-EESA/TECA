@@ -83,13 +83,13 @@ int main(int argc, char **argv)
     ca->set_input_connection(cc->get_output_port());
     ca->set_component_variable("ars");
 
-    p_teca_cf_writer wri = teca_cf_writer::New();
+    /*p_teca_cf_writer wri = teca_cf_writer::New();
     wri->set_input_connection(ca->get_output_port());
     wri->set_file_name(out_file_name);
-    wri->set_thread_pool_size(1);
+    wri->set_thread_pool_size(1);*/
 
     p_teca_component_statistics cs = teca_component_statistics::New();
-    cs->set_input_connection(wri->get_output_port());
+    cs->set_input_connection(ca->get_output_port());
 
     p_teca_table_reduce map_reduce = teca_table_reduce::New();
     map_reduce->set_input_connection(cs->get_output_port());

@@ -286,8 +286,7 @@ const_p_teca_dataset teca_table_reader::execute(unsigned int port,
     unsigned long index = 0;
     request.get("object_id", index);
 
-
-    // not running in subsetting/parallel mode retrun
+    // not running in subsetting/parallel mode return
     // the complete table, it is empty off rank 0
     bool distribute = !this->index_column.empty();
     if (!distribute)

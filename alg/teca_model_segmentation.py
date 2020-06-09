@@ -1,4 +1,6 @@
+import os
 import sys
+import socket
 import teca_py
 import numpy as np
 import torch
@@ -24,12 +26,14 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
         self.device = 'cpu'
 
     def __str__(self):
-        ms_str = 'variable_name=%s, pred_name=%d\n\n' % (
-                 self.variable_name, self.pred_name)
-
-        ms_str += 'model:\n%s\n\n' % (str(self.model))
-
-        ms_str += 'device:\n%s\n' % (str(self.device))
+        ms_str = 'variable_name=%s, pred_name=%s\n' % (
+                  self.variable_name, self.pred_name)
+        ms_str += 'model=%s\n' % (str(self.model))
+        ms_str += 'model_path=%s\n' % (self.model_path)
+        ms_str += 'device=%s\n' % (str(self.device))
+        ms_str += 'torch_num_threads=%d\n' % (self.get_num_threads())
+        ms_str += 'hostname=%s, pid=%s' % (
+                  socket.gethostname(), os.getpid())
 
         return ms_str
 
@@ -43,11 +47,10 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
 
         sd = None
         if rank == 0:
-            sd = torch.load(
-                state_dict_file,
-                map_location=lambda storage,
-                loc: storage
-                )
+            sd = torch.load(state_dict_file,
+                            map_location=lambda storage,
+                            loc: storage)
+
         sd = comm.bcast(sd, root=0)
 
         return sd
@@ -102,11 +105,17 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
 
     def set_num_threads(self, n):
         """
-        torch: Sets the number of threads used for intraop parallelism on CPU
+        torch: Sets the number of threads used for intra-op parallelism on CPU
         """
         # n=-1: use default
         if n != -1:
             torch.set_num_threads(n)
+
+    def get_num_threads(self):
+        """
+        torch: Gets the number of threads available for intra-op parallelism on CPU
+        """
+        return torch.get_num_threads()
 
     def set_torch_device(self, device="cpu"):
         """
@@ -127,110 +136,91 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
         self.model = model
         self.model.eval()
 
-    def get_report_callback(self):
+    def report(self, port, rep_in):
+        rep = teca_py.teca_metadata(rep_in[0])
+
+        if rep.has('variables'):
+            rep.append('variables', self.pred_name)
+        else:
+            rep.set('variables', self.pred_name)
+
+        return rep
+
+    def request(self, port, md_in, req_in):
+        if not self.variable_name:
+            raise ValueError("No variable to request specifed")
+
+        req = teca_py.teca_metadata(req_in)
+
+        arrays = []
+        if req.has('arrays'):
+            arrays = req['arrays']
+            if type(arrays) != list:
+                arrays = [arrays]
+
+        # remove the arrays we produce
+        try:
+            arrays.remove(self.pred_name)
+        except:
+            pass
+
+        # add the arrays we need
+        arrays.append(self.variable_name)
+
+        req['arrays'] = arrays
+
+        return [req]
+
+    def execute(self, port, data_in, req):
         """
-        return a teca_algorithm::report function adding the output name
-        that will hold the output predictions of the used model.
+        expects an array of an input variable to run through
+        the torch model and get the segmentation results as an
+        output.
         """
-        def report(port, rep_in):
-            rep_temp = rep_in[0]
+        in_mesh = teca_py.as_teca_cartesian_mesh(data_in[0])
 
-            rep = teca_py.teca_metadata(rep_temp)
+        if in_mesh is None:
+            raise ValueError("ERROR: empty input, or not a mesh")
 
-            if not rep.has('variables'):
-                sys.stdout.write("variables key doesn't exist\n")
-                rep['variables'] = teca_py.teca_variant_array.New(np.array([]))
-
-            if self.pred_name:
-                rep.append("variables", self.pred_name)
-
-            return rep
-        return report
-
-    def get_request_callback(self):
-        """
-        return a teca_algorithm::request function adding the variable name
-        that the pretrained model will process.
-        """
-        def request(port, md_in, req_in):
-            if not self.variable_name:
-                raise ValueError(
-                    "ERROR: No variable to request specifed"
-                    )
-
-            req = teca_py.teca_metadata(req_in)
-
-            arrays = []
-            if req.has('arrays'):
-                if isinstance(req['arrays'], list):
-                    arrays.extend(req['arrays'])
-                else:
-                    arrays.append(req['arrays'])
-
-            if self.pred_name in arrays:
-                arrays.remove(self.pred_name)
-
-            arrays.append(self.variable_name)
-            req['arrays'] = arrays
-
-            return [req]
-        return request
-
-    def get_execute_callback(self):
-        """
-        return a teca_algorithm::execute function
-        """
-        def execute(port, data_in, req):
-            """
-            expects an array of an input variable to run through
-            the torch model and get the segmentation results as an
-            output.
-            """
-            in_mesh = teca_py.as_teca_cartesian_mesh(data_in[0])
-
-            if in_mesh is None:
-                raise ValueError("ERROR: empty input, or not a mesh")
-
-            if self.model is None:
-                raise ValueError(
-                    "ERROR: pretrained model has not been specified"
-                    )
-
-            if self.variable_name is None:
-                raise ValueError(
-                    "ERROR: data variable name has not been specified"
-                    )
-
-            if self.var_array is None:
-                raise ValueError(
-                    "ERROR: data variable array has not been set"
-                    )
-
-            if self.torch_inference_fn is None:
-                raise ValueError(
-                    "ERROR: final torch inference layer"
-                    "has not been set"
-                    )
-
-            self.var_array = self.input_preprocess(self.var_array)
-
-            self.var_array = torch.from_numpy(self.var_array).to(self.device)
-
-            with torch.no_grad():
-                self.pred_array = self.torch_inference_fn(
-                    self.model(self.var_array)
+        if self.model is None:
+            raise ValueError(
+                "ERROR: pretrained model has not been specified"
                 )
 
-            if self.pred_array is None:
-                raise Exception("ERROR: Model failed to get predictions")
+        if self.variable_name is None:
+            raise ValueError(
+                "ERROR: data variable name has not been specified"
+                )
 
-            self.pred_array = self.output_postprocess(self.pred_array)
+        if self.var_array is None:
+            raise ValueError(
+                "ERROR: data variable array has not been set"
+                )
 
-            out_mesh = teca_py.teca_cartesian_mesh.New()
-            out_mesh.shallow_copy(in_mesh)
+        if self.torch_inference_fn is None:
+            raise ValueError(
+                "ERROR: final torch inference layer"
+                "has not been set"
+                )
 
-            self.pred_array = teca_py.teca_variant_array.New(self.pred_array)
-            out_mesh.get_point_arrays().set(self.pred_name, self.pred_array)
+        self.var_array = self.input_preprocess(self.var_array)
 
-            return out_mesh
-        return execute
+        self.var_array = torch.from_numpy(self.var_array).to(self.device)
+
+        with torch.no_grad():
+            self.pred_array = self.torch_inference_fn(
+                self.model(self.var_array)
+            )
+
+        if self.pred_array is None:
+            raise Exception("ERROR: Model failed to get predictions")
+
+        self.pred_array = self.output_postprocess(self.pred_array)
+
+        out_mesh = teca_py.teca_cartesian_mesh.New()
+        out_mesh.shallow_copy(in_mesh)
+
+        self.pred_array = teca_py.teca_variant_array.New(self.pred_array)
+        out_mesh.get_point_arrays().set(self.pred_name, self.pred_array)
+
+        return out_mesh

@@ -90,7 +90,7 @@ int main(int argc, char **argv)
     wind_reader->get_properties_description("wind_reader", advanced_opt_defs);
 
     p_teca_normalize_coordinates wind_coords = teca_normalize_coordinates::New();
-    wind_coords->set_input_connection(wind_coords->get_output_port());
+    wind_coords->set_input_connection(wind_reader->get_output_port());
 
     p_teca_tc_wind_radii wind_radii = teca_tc_wind_radii::New();
     wind_radii->get_properties_description("wind_radii", advanced_opt_defs);

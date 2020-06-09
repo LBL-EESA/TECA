@@ -203,6 +203,9 @@ teca_metadata teca_cartesian_mesh_source::get_output_metadata(
     t_atts.set("units", (this->time_units.empty() ?
         "seconds since 1970-01-01 00:00:00" : this->time_units));
 
+    t_atts.set("calendar", (this->calendar.empty() ?
+        "standard" : this->calendar));
+
     teca_metadata atts;
     atts.set(x_ax_var_name, x_atts);
     atts.set(y_ax_var_name, y_atts);

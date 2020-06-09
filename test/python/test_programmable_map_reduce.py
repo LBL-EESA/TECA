@@ -82,6 +82,15 @@ def get_reduce_callback(rank):
         return data_out
     return reduce
 
+def get_finalize_callback(rank):
+    def finalize(data):
+        sys.stderr.write('[%d] finalize\n'%(rank))
+        if data is None:
+            return data
+        return data.new_copy()
+    return finalize
+
+
 if (rank == 0):
     sys.stderr.write('Testing on %d MPI processes %d threads\n'%(n_ranks, n_threads))
 
@@ -104,6 +113,7 @@ mr.set_start_index(start_index)
 mr.set_end_index(end_index)
 mr.set_thread_pool_size(n_threads)
 mr.set_reduce_callback(get_reduce_callback(rank))
+mr.set_finalize_callback(get_finalize_callback(rank))
 
 sort = teca_table_sort.New()
 sort.set_input_connection(mr.get_output_port())

@@ -148,16 +148,16 @@ int main(int argc, char **argv)
     stats->set_input_connection(coords->get_output_port());
     stats->set_dependent_variables(arrays);
 
-    p_teca_programmable_reduce map_reduce = teca_programmable_reduce::New();
-    map_reduce->set_name("table_reduce");
-    map_reduce->set_input_connection(stats->get_output_port());
-    map_reduce->set_start_index(first_step);
-    map_reduce->set_end_index(last_step);
-    map_reduce->set_thread_pool_size(n_threads);
-    map_reduce->set_reduce_callback(reduce_callback());
+    p_teca_programmable_reduce reduce = teca_programmable_reduce::New();
+    reduce->set_name("table_reduce");
+    reduce->set_input_connection(stats->get_output_port());
+    reduce->set_start_index(first_step);
+    reduce->set_end_index(last_step);
+    reduce->set_thread_pool_size(n_threads);
+    reduce->set_reduce_callback(reduce_callback());
 
     p_teca_table_sort sort = teca_table_sort::New();
-    sort->set_input_connection(map_reduce->get_output_port());
+    sort->set_input_connection(reduce->get_output_port());
     sort->set_index_column("step");
 
     p_teca_table_calendar cal = teca_table_calendar::New();

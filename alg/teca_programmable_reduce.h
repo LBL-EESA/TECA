@@ -62,12 +62,23 @@ public:
     // the default implementation returns a nullptr
     TECA_ALGORITHM_CALLBACK_PROPERTY(reduce_callback_t, reduce_callback)
 
+    // set the callback that finalizes the reduction.
+    // The callback must be a callable with the signature:
+    //
+    // p_teca_dataset reduce(const const_p_teca_dataset &ds);
+    //
+    // the default implementation passes the input dataset
+    // through
+    TECA_ALGORITHM_CALLBACK_PROPERTY(finalize_callback_t, finalize_callback)
+
 protected:
     teca_programmable_reduce();
 
     // overrides
     p_teca_dataset reduce(const const_p_teca_dataset &left,
         const const_p_teca_dataset &right) override;
+
+    p_teca_dataset finalize(const const_p_teca_dataset &input) override;
 
     std::vector<teca_metadata> initialize_upstream_request(
         unsigned int port, const std::vector<teca_metadata> &input_md,
@@ -78,6 +89,7 @@ protected:
 
 private:
     reduce_callback_t reduce_callback;
+    finalize_callback_t finalize_callback;
     request_callback_t request_callback;
     report_callback_t report_callback;
     char class_name[64];

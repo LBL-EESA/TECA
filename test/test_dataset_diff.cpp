@@ -42,14 +42,14 @@ int main(int argc, char **argv)
     if (compare_same)
     {
         // these datasets are the same, hence diff should pass
-        r1->set_file_name("dataset_diff_test_0.bin");
-        r2->set_file_name("dataset_diff_test_0.bin");
+        r1->set_file_name("dataset_diff_test_000000.bin");
+        r2->set_file_name("dataset_diff_test_000000.bin");
     }
     else
     {
         // these datasets are different, hence diff should fail
-        r1->set_file_name("dataset_diff_test_0.bin");
-        r2->set_file_name("dataset_diff_test_1.bin");
+        r1->set_file_name("dataset_diff_test_000000.bin");
+        r2->set_file_name("dataset_diff_test_000001.bin");
     }
 
     // diff the output of the readers

@@ -1210,12 +1210,13 @@ void teca_variant_array_impl<T>::from_ascii(
 }
 
 template <typename T>
-struct teca_variant_array_code
-{}; // intentionally empty
+struct teca_variant_array_code {};
 
 template <unsigned int I>
-struct teca_variant_array_new
-{}; // intentionally empty
+struct teca_variant_array_new {};
+
+template <unsigned int I>
+struct teca_variant_array_type {};
 
 #define TECA_VARIANT_ARRAY_TT_SPEC(T, v)            \
 template <>                                         \
@@ -1229,11 +1230,16 @@ struct teca_variant_array_new<v>                    \
 {                                                   \
     static p_teca_variant_array_impl<T> New()       \
     { return teca_variant_array_impl<T>::New(); }   \
+};                                                  \
+template <>                                         \
+struct teca_variant_array_type<v>                   \
+{                                                   \
+    using type = T;                                 \
 };
 
-#define TECA_VARIANT_ARRAY_FACTORY_NEW(_code)               \
-        case _code:                                         \
-            return teca_variant_array_new<_code>::New();
+#define TECA_VARIANT_ARRAY_FACTORY_NEW(_v)              \
+        case _v:                                        \
+            return teca_variant_array_new<_v>::New();
 
 #include "teca_metadata.h"
 class teca_metadata;
@@ -1283,6 +1289,40 @@ struct teca_variant_array_factory
     return nullptr;
     }
 };
+
+#define CODE_DISPATCH_CASE(_v, _c, _code)               \
+    if (_v == _c)                                       \
+    {                                                   \
+        using NT = teca_variant_array_type<_c>::type;   \
+        using TT = teca_variant_array_impl<NT>;         \
+        _code                                           \
+    }
+
+#define CODE_DISPATCH_I(_v, _code)          \
+    CODE_DISPATCH_CASE(_v, 1, _code)        \
+    else CODE_DISPATCH_CASE(_v, 2, _code)   \
+    else CODE_DISPATCH_CASE(_v, 3, _code)   \
+    else CODE_DISPATCH_CASE(_v, 4, _code)   \
+    else CODE_DISPATCH_CASE(_v, 5, _code)   \
+    else CODE_DISPATCH_CASE(_v, 6, _code)   \
+    else CODE_DISPATCH_CASE(_v, 7, _code)   \
+    else CODE_DISPATCH_CASE(_v, 8, _code)   \
+    else CODE_DISPATCH_CASE(_v, 9, _code)   \
+    else CODE_DISPATCH_CASE(_v, 10, _code)
+
+#define CODE_DISPATCH_FP(_v, _code)         \
+    CODE_DISPATCH_CASE(_v, 11, _code)       \
+    else CODE_DISPATCH_CASE(_v, 12, _code)
+
+#define CODE_DISPATCH_CLASS(_v, _code)      \
+    CODE_DISPATCH_CASE(_v, 13, _code)       \
+    else CODE_DISPATCH_CASE(_v, 14, _code)  \
+    else CODE_DISPATCH_CASE(_v, 15, _code)
+
+#define CODE_DISPATCH(_v, _code)            \
+    CODE_DISPATCH_I(_v, _code)              \
+    else CODE_DISPATCH_FP(_v, _code)
+
 
 // --------------------------------------------------------------------------
 template<typename T>

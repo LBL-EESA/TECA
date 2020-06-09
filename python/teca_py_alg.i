@@ -208,6 +208,13 @@
 
         self->set_reduce_callback(teca_py_algorithm::reduce_callback(f));
     }
+
+    void set_finalize_callback(PyObject *f)
+    {
+        teca_py_gil_state gil;
+
+        self->set_finalize_callback(teca_py_algorithm::finalize_callback(f));
+    }
 }
 %ignore teca_programmable_reduce::operator=;
 %ignore teca_programmable_reduce::set_report_callback;
@@ -216,6 +223,8 @@
 %ignore teca_programmable_reduce::get_request_callback;
 %ignore teca_programmable_reduce::set_reduce_callback;
 %ignore teca_programmable_reduce::get_reduce_callback;
+%ignore teca_programmable_reduce::set_finalize_callback;
+%ignore teca_programmable_reduce::get_finalize_callback;
 %include "teca_programmable_reduce_fwd.h"
 %include "teca_programmable_reduce.h"
 
