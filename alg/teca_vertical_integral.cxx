@@ -143,6 +143,22 @@ void vertical_integral(const num_t * array,
   } 
 }
 
+int request_var(
+    std::string mesh_var,
+    std::string expected_var,
+    std::set<std::string> * arrays)
+{
+    // check that both variables are specified
+    if ( mesh_var.empty() ) {
+      TECA_ERROR("" << expected_var << " not specified")
+      return 1;
+    }
+
+    // insert the request into the list
+    arrays->insert(mesh_var);
+
+    return 0;
+}
 
 const_p_teca_variant_array get_mesh_variable(
     std::string mesh_var,
@@ -161,6 +177,29 @@ const_p_teca_variant_array get_mesh_variable(
         = in_mesh->get_point_arrays()->get(mesh_var);
       if (!out_array) {
         TECA_ERROR("variable \"" << mesh_var << "\" is not in the input")
+        return nullptr;
+      }
+
+      return out_array;
+}
+
+const_p_teca_variant_array get_info_variable(
+    std::string info_var,
+    std::string expected_var,
+    const_p_teca_cartesian_mesh in_info)
+{
+                                             
+      // check that both variables are specified
+      if ( info_var.empty() ) {
+        TECA_ERROR("" << expected_var << " not specified")
+        return nullptr;
+      }
+
+      // get the variable
+      const_p_teca_variant_array out_array
+        = in_info->get_information_arrays()->get(info_var);
+      if (!out_array) {
+        TECA_ERROR("variable \"" << info_var << "\" is not in the input")
         return nullptr;
       }
 
@@ -264,7 +303,58 @@ teca_vertical_integral::get_upstream_request(
     (void)port;
     (void)input_md;
 
-    std::vector<teca_metadata> up_reqs(1, request);
+    // create the output request
+    std::vector<teca_metadata> up_reqs;
+
+    // copy the incoming request
+    teca_metadata req(request);
+
+    // create a list of requested arrays
+    std::set<std::string> arrays;
+    // pre-populate with existing requests, if available
+    if (req.has("arrays"))
+        req.get("arrays", arrays);
+
+    if (using_hybrid)
+    {
+      // get the a coordinate
+      if (request_var(this->hybrid_a_variable,
+                                     "hybrid_a_variable",
+                                     &arrays) != 0 ) return up_reqs;
+
+      // get the b coordinate
+      if (request_var(this->hybrid_b_variable,
+                              "hybrid_b_variable",
+                              &arrays) != 0 ) return up_reqs;
+    }  
+    else
+    {
+      // get the sigma coordinate
+      if (request_var(this->sigma_variable,
+                                     "sigma_variable",
+                                     &arrays) != 0 ) return up_reqs;
+    }
+
+    // get the surface pressure
+    if (request_var(this->surface_p_variable,
+                        "surface_p_variable",
+                        &arrays) != 0 ) return up_reqs;
+
+    // get the model top pressure
+    if (request_var(this->p_top_variable,
+                        "p_top_variable",
+                        &arrays) != 0 ) return up_reqs;
+
+    // get the input array
+    if (request_var(this->integration_variable,
+                        "integration_variable",
+                        &arrays) != 0 ) return up_reqs;
+
+    // overwrite the existing request with the augmented one
+    req.set("arrays", arrays);
+    // put the request into the outgoing metadata
+    up_reqs.push_back(req);
+
     return up_reqs;
 }
 
@@ -316,13 +406,13 @@ const_p_teca_dataset teca_vertical_integral::execute(
     if (using_hybrid)
     {
       // get the a coordinate
-      a_or_sigma = get_mesh_variable(this->hybrid_a_variable,
+      a_or_sigma = get_info_variable(this->hybrid_a_variable,
                                      "hybrid_a_variable",
                                      in_mesh);
       if (!a_or_sigma) return nullptr;
 
       // get the b coordinate
-      b_i = get_mesh_variable(this->hybrid_b_variable,
+      b_i = get_info_variable(this->hybrid_b_variable,
                               "hybrid_b_variable",
                               in_mesh);
       if (!b_i) return nullptr;
@@ -330,7 +420,7 @@ const_p_teca_dataset teca_vertical_integral::execute(
     else
     {
       // get the sigma coordinate
-      a_or_sigma = get_mesh_variable(this->sigma_variable,
+      a_or_sigma = get_info_variable(this->sigma_variable,
                                      "sigma_variable",
                                      in_mesh);
       if (!a_or_sigma) return nullptr;
@@ -338,7 +428,7 @@ const_p_teca_dataset teca_vertical_integral::execute(
 
     // get the surface pressure
     const_p_teca_variant_array p_s = 
-      get_mesh_variable(this->surface_p_variable,
+      get_info_variable(this->surface_p_variable,
                         "surface_p_variable",
                         in_mesh);
     if (!p_s) return nullptr;
