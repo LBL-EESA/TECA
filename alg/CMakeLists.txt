@@ -44,6 +44,7 @@ set(teca_alg_cxx_srcs
     teca_tc_wind_radii.cxx
     teca_tc_trajectory.cxx
     teca_temporal_average.cxx
+    teca_threaded_programmable_algorithm.cxx
     teca_variant_array_operand.cxx
     teca_vorticity.cxx
     teca_dataset_diff.cxx

@@ -39,6 +39,7 @@
 #include "teca_tc_trajectory.h"
 #include "teca_tc_wind_radii.h"
 #include "teca_temporal_average.h"
+#include "teca_threaded_programmable_algorithm.h"
 #include "teca_vorticity.h"
 #include "teca_py_object.h"
 #include "teca_py_algorithm.h"
@@ -170,6 +171,44 @@
 %ignore teca_programmable_algorithm::get_execute_callback;
 %include "teca_programmable_algorithm_fwd.h"
 %include "teca_programmable_algorithm.h"
+
+/***************************************************************************
+ threaded programmable_algorithm
+ ***************************************************************************/
+%ignore teca_threaded_programmable_algorithm::shared_from_this;
+%shared_ptr(teca_threaded_programmable_algorithm)
+%extend teca_threaded_programmable_algorithm
+{
+    void set_report_callback(PyObject *f)
+    {
+        teca_py_gil_state gil;
+
+        self->set_report_callback(teca_py_algorithm::report_callback(f));
+    }
+
+    void set_request_callback(PyObject *f)
+    {
+        teca_py_gil_state gil;
+
+        self->set_request_callback(teca_py_algorithm::request_callback(f));
+    }
+
+    void set_execute_callback(PyObject *f)
+    {
+        teca_py_gil_state gil;
+
+        self->set_execute_callback(teca_py_algorithm::threaded_execute_callback(f));
+    }
+}
+%ignore teca_threaded_programmable_algorithm::operator=;
+%ignore teca_threaded_programmable_algorithm::set_report_callback;
+%ignore teca_threaded_programmable_algorithm::get_report_callback;
+%ignore teca_threaded_programmable_algorithm::set_request_callback;
+%ignore teca_threaded_programmable_algorithm::get_request_callback;
+%ignore teca_threaded_programmable_algorithm::set_execute_callback;
+%ignore teca_threaded_programmable_algorithm::get_execute_callback;
+%include "teca_programmable_algorithm_fwd.h"
+%include "teca_threaded_programmable_algorithm.h"
 
 /***************************************************************************
  programmable_reduce
