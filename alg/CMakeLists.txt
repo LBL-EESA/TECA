@@ -59,6 +59,7 @@ teca_py_install(${LIB_PREFIX}
     teca_python_reduce.py
     teca_tc_wind_radii_stats.py
     teca_tc_trajectory_scalars.py
+    teca_threaded_python_algorithm.py
     )
 
 set(teca_alg_f90_srcs)
