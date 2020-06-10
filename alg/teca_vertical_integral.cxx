@@ -2,6 +2,7 @@
 
 #include "teca_cartesian_mesh.h"
 #include "teca_table.h"
+#include "teca_array_attributes.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_metadata.h"
@@ -290,6 +291,35 @@ void teca_vertical_integral::set_properties(
 }
 #endif
 
+teca_metadata teca_vertical_integral::get_output_metadata(
+    unsigned int port,
+    const std::vector<teca_metadata> & input_md)
+{
+    teca_metadata report_md(input_md[0]);
+
+    if (report_md.has("variables")){
+        report_md.append("variables", this->output_variable_name);
+    }
+    else{
+        report_md.set("variables", this->output_variable_name);
+    }
+
+    // add attributes to enable CF I/O
+    teca_metadata atts;
+    report_md.get("attributes", atts);
+    teca_array_attributes output_atts(
+        teca_variant_array_code<float>::get(),
+        teca_array_attributes::point_centering,
+        0, "unset", "unset",
+        "unset");
+
+    atts.set(this->output_variable_name, (teca_metadata)output_atts);
+
+    report_md.set("attributes", atts);
+
+    return report_md;
+}
+
 // --------------------------------------------------------------------------
 std::vector<teca_metadata>
 teca_vertical_integral::get_upstream_request(
@@ -319,36 +349,42 @@ teca_vertical_integral::get_upstream_request(
     {
       // get the a coordinate
       if (request_var(this->hybrid_a_variable,
-                                     "hybrid_a_variable",
+                                     std::string("hybrid_a_variable"),
                                      &arrays) != 0 ) return up_reqs;
 
       // get the b coordinate
       if (request_var(this->hybrid_b_variable,
-                              "hybrid_b_variable",
+                              std::string("hybrid_b_variable"),
                               &arrays) != 0 ) return up_reqs;
     }  
     else
     {
       // get the sigma coordinate
       if (request_var(this->sigma_variable,
-                                     "sigma_variable",
+                                     std::string("sigma_variable"),
                                      &arrays) != 0 ) return up_reqs;
     }
 
     // get the surface pressure
     if (request_var(this->surface_p_variable,
-                        "surface_p_variable",
+                        std::string("surface_p_variable"),
                         &arrays) != 0 ) return up_reqs;
 
-    // get the model top pressure
-    if (request_var(this->p_top_variable,
-                        "p_top_variable",
-                        &arrays) != 0 ) return up_reqs;
+    // only request p_top if it isn't being overriden
+    if (! this->p_top_override_value ){
+      // get the model top pressure
+      if (request_var(this->p_top_variable,
+                          std::string("p_top_variable"),
+                          &arrays) != 0 ) return up_reqs;
+    }
 
     // get the input array
     if (request_var(this->integration_variable,
-                        "integration_variable",
+                        std::string("integration_variable"),
                         &arrays) != 0 ) return up_reqs;
+
+    // intercept request for our output
+    arrays.erase(this->output_variable_name);
 
     // overwrite the existing request with the augmented one
     req.set("arrays", arrays);
@@ -357,7 +393,6 @@ teca_vertical_integral::get_upstream_request(
 
     return up_reqs;
 }
-
 
 // --------------------------------------------------------------------------
 const_p_teca_dataset teca_vertical_integral::execute(
@@ -407,13 +442,13 @@ const_p_teca_dataset teca_vertical_integral::execute(
     {
       // get the a coordinate
       a_or_sigma = get_info_variable(this->hybrid_a_variable,
-                                     "hybrid_a_variable",
+                                     std::string("hybrid_a_variable"),
                                      in_mesh);
       if (!a_or_sigma) return nullptr;
 
       // get the b coordinate
       b_i = get_info_variable(this->hybrid_b_variable,
-                              "hybrid_b_variable",
+                              std::string("hybrid_b_variable"),
                               in_mesh);
       if (!b_i) return nullptr;
     }  
@@ -421,7 +456,7 @@ const_p_teca_dataset teca_vertical_integral::execute(
     {
       // get the sigma coordinate
       a_or_sigma = get_info_variable(this->sigma_variable,
-                                     "sigma_variable",
+                                     std::string("sigma_variable"),
                                      in_mesh);
       if (!a_or_sigma) return nullptr;
     }
@@ -429,27 +464,36 @@ const_p_teca_dataset teca_vertical_integral::execute(
     // get the surface pressure
     const_p_teca_variant_array p_s = 
       get_info_variable(this->surface_p_variable,
-                        "surface_p_variable",
+                        std::string("surface_p_variable"),
                         in_mesh);
     if (!p_s) return nullptr;
 
-    // get the model top pressure
-    // TODO: p_top is a scalar: is const_p_teca_variant array correct?
-    // probably need to put this in information array
-    const_p_teca_variant_array p_top_array = 
-      get_mesh_variable(this->p_top_variable,
-                        "p_top_variable",
-                        in_mesh);
-    if (!p_top_array) return nullptr;
+    const_p_teca_variant_array p_top_array;
+    p_teca_variant_array p_top_override_tmp;
+    if (! this->p_top_override_value){
+      // get the model top pressure
+      // TODO: p_top is a scalar: is const_p_teca_variant array correct?
+      // probably need to put this in information array
+      p_top_array = get_mesh_variable(this->p_top_variable,
+          std::string("p_top_variable"),
+          in_mesh);
+      if (!p_top_array) return nullptr;
+    }
+    else{
+      p_top_override_tmp = teca_variant_array_impl<float>::New(1);
+      p_top_override_tmp->set(0, & this->p_top_override_value);
+      p_top_array = (const_p_teca_variant_array) p_top_override_tmp;
+    }
 
     // get the input array
     const_p_teca_variant_array input_array = 
       get_mesh_variable(this->integration_variable,
-                        "integration_variable",
+                        std::string("integration_variable"),
                         in_mesh);
     if (!input_array) return nullptr;
 
 
+    /*
     // allocate the output array
     p_teca_variant_array integrated_array = input_array->new_instance();
     integrated_array->resize(nx*ny);
@@ -472,7 +516,7 @@ const_p_teca_dataset teca_vertical_integral::execute(
         const NT_INARR * p_p_s 
           = dynamic_cast<const TT_INARR*>(p_s.get())->get();
 
-        const NT_INARR * p_p_top 
+        const NT_INARR *  p_p_top 
           = dynamic_cast<const TT_INARR*>(p_top_array.get())->get();
 
         NT_INARR * p_integrated_array 
@@ -482,22 +526,8 @@ const_p_teca_dataset teca_vertical_integral::execute(
         vertical_integral(p_input_array, nx, ny, nz,
                           using_hybrid, p_a_or_sigma, p_b_i, p_p_s, p_p_top[0],
                           p_integrated_array);
-        /*
-         * template <typename num_t>
-           void vertical_integral(num_t * array,
-                       unsigned long nx,
-                       unsigned long ny,
-                       unsigned long nz,
-                       int csystem,
-                       num_t * a_or_sigma,
-                       num_t * b,
-                       num_t * ps,
-                       num_t p_top,
-                       num_t * array_int) {
-
-
-         */
         )
+    */
 
 
     // create the output mesh, pass everything but the integration variable, 

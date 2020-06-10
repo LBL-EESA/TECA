@@ -65,6 +65,9 @@ private:
 
     void get_dependent_variables(const teca_metadata &request,
         std::vector<std::string> &dep_vars);
+
+    teca_metadata get_output_metadata(unsigned int port,
+        const std::vector<teca_metadata> &input_md) override;
 };
 
 #endif
