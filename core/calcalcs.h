@@ -97,7 +97,7 @@ int ccs_jday2date( calcalcs_cal *calendar, int jday, int *year, int *month, int 
 
 /*--------------------------------------------------------------------------
  * ccs_isleap: determine if the specified year is a leap year in
- * 	the specified calendar
+ * 	the specified calendar. return 0 if successful.
  */
 int ccs_isleap( calcalcs_cal *calendar, int year, int *leap );
 
@@ -127,8 +127,9 @@ int ccs_doy2date( calcalcs_cal *calendar, int year, int doy, int *month, int *da
  * Note that specifying "zero" days since, and giving different calendars as the original
  *      and new calendars, essentially converts dates between calendars.
  */
-int ccs_dayssince( calcalcs_cal *calendar_orig, int year_orig, int month_orig, int day_orig,
-                int ndays_since, calcalcs_cal *calendar_new, int *year_new, int *month_new, int *day_new );
+int ccs_dayssince( calcalcs_cal *calendar_orig, int year_orig, int month_orig,
+                   int day_orig, int ndays_since, calcalcs_cal *calendar_new,
+                   int *year_new, int *month_new, int *day_new );
 
 /*--------------------------------------------------------------------------
  * get/set_cal_xition_date: these routines set the transition date for a Standard
@@ -205,22 +206,54 @@ char *ccs_err_str(int ccs_errno);
 #define CALCALCS_ERR_INVALID_CALENDAR		-17
 
 
-/* TODO -- calendar object based on the below (maybe a singleton)
- * to eliminate static variable and thread safety issues.
- *
- * code below is from utCalendar2_cal
- * we're including it here so that all the calendaring utility
- * is in one h,c source
+/* The high level API is defined below. This API is thread safe and
+ * has implementations optimized for use with calendar and units strings.
  */
-
 #define UT_ENOINIT -10
 #define UT_EINVALID -11
 
-int date(double val, int *year, int *month, int *day, int *hour,
-    int *minute, double *second, const char *dataunits, const char *calendar_name );
+/*--------------------------------------------------------------------------
+ * high level thread safe initialize the library and select a calendar
+ * to use in subsequent calls.
+ * return 0 upon success
+ */
+int set_current_calendar( const char *calendar, const char *units );
 
-int coordinate(int year, int month, int day, int hour, int minute,
-    double second, const char *user_unit, const char *calendar_name, double *value );
+/*--------------------------------------------------------------------------
+ * is_leap_year: determine if the specified year is a leap year in
+ * 	the specified calendar. this wraps ccs_isleap such that initialization
+ * 	is automatically handled and optimizes for repeat calls. return 0 
+ * 	if successful.
+ */
+int is_leap_year( const char *calendar, const char *units,
+                  int year, int &leap );
+
+/*--------------------------------------------------------------------------
+ * days_in_month: returns the days per month for the given year/month.
+ * Note that during the month that transitions from a Julian to a
+ * Gregorian calendar, this might be a strange number of days. this
+ * wraps ccs_dpm such that initialization is automatically handled and
+ * optimizes for repeat calls. returns 0 on success.
+ */
+int days_in_month( const char *calendar, const char *units,
+                   int year, int month, int &dpm );
+
+/*--------------------------------------------------------------------------
+ * date : given a floating point offset in the given calendar return
+ * year, month, day, hour, minute, seconds. returns 0 upon success.
+ */
+int date( double val, int *year, int *month, int *day, int *hour,
+          int *minute, double *second, const char *dataunits,
+          const char *calendar_name );
+
+
+/*--------------------------------------------------------------------------
+ * given a year, month, day, hour, minute, second and calendar find
+ * the floating point offset. returns 0 upon success.
+ */
+int coordinate( int year, int month, int day, int hour, int minute,
+                double second, const char *user_unit, const char *calendar_name,
+                double *value );
 
 };
 

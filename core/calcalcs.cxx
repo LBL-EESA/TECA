@@ -1621,6 +1621,18 @@ static int ncals_known=0;
 static calcalcs_cal **known_cal;        /* ptr to array of calcals_cal ptrs */
 static char **known_cal_name;
 
+/* for some oiptimizations that skip initialization of
+ * calendar when the calendar is not changed in between
+ * invocations */
+static char current_calendar_name[1024] = {'\0'};
+static char current_unit_str[1024] = {'\0'};
+static calcalcs_cal *current_calendar = nullptr;
+static ut_unit *current_units = nullptr;
+static cv_converter *conv_user_units_to_days = nullptr;
+static cv_converter *conv_days_to_user_units = nullptr;
+static int y0=0, mon0=0, d0=0, h0=0, min0=0, jday0=0;
+static double s0=0.0, fpartday0=0.0, extra_seconds0=0.0;
+
 /* Stores previously emitted "unknown calendar" warnings
 static void unknown_cal_emit_warning( const char *calendar_name );
 #define UTC2_MAX_UNKCAL_WARNS     1000
@@ -1637,83 +1649,9 @@ int date(double val, int *year, int *month, int *day, int *hour,
     double fdays, extra_seconds, tot_extra_seconds;
     int ndays;
 
-    /* Following vars are saved between invocations and reused if the
-     * passed units are the same as last time.  */
-    static char prev_unit_str[1024] = {'\0'};
-    static char prev_calendar[1024] = {'\0'};
-
-    static ut_unit *prev_units = nullptr;
-    static cv_converter *conv_user_units_to_days = nullptr;
-    static calcalcs_cal *cal2use = nullptr;
-
-    static int y0, mon0, d0, h0, min0, jday0;
-    static double s0, extra_seconds0;
-
-#if defined(CALCALCS_THREAD)
-    calcalcs_mutex.lock();
-#endif
-    /* See if we are being passed the same units and calendar as last time.  If so,
-     * we can optimize by not recomputing all this junk
-     */
-    if (strncmp(prev_calendar, calendar_name, 1024)
-        || strncmp(prev_unit_str, unit_str, 1024))
-    {
-        // initialize
-        if ((!have_initted) && initialize())
-        {
-            fprintf(stderr, "Error, failed to initialized");
-            return -1;
-        }
-
-        /* Get the calendar we will be using, based on the passed name */
-        if (!(cal2use = getcal(calendar_name)))
-        {
-            fprintf(stderr, "Error, unknown calendar %s\n", calendar_name);
-            return UT_EINVALID;
-        }
-
-        /* create units object from the string, and update the cached string */
-        ut_unit *dataunits = ut_parse(u_system, unit_str, UT_ASCII);
-        if (!dataunits)
-        {
-            fprintf(stderr, "Error, bad units %s\n", unit_str);
-            return UT_EINVALID;
-        }
-        strncpy(prev_unit_str, unit_str, 1023);
-
-        /* Get origin day of the data units */
-        get_origin(dataunits, &y0, &mon0, &d0, &h0, &min0, &s0);    /* Note: static vars */
-
-        /* Number of seconds into the specified origin day */
-        extra_seconds0 = h0*3600.0 + min0*60.0 + s0;            /* Note: static vars */
-
-        /* Convert the origin day to Julian Day number in the specified calendar */
-        if( (ierr = ccs_date2jday( cal2use, y0, mon0, d0, &jday0 )) != 0 )
-        {
-            fprintf( stderr, "Error in utCalendar2: %s\n", ccs_err_str(ierr) );
-            return UT_EINVALID;
-        }
-
-        /* Get converter from user-specified units to "days" */
-        if (conv_user_units_to_days)
-            cv_free( conv_user_units_to_days );
-
-        conv_user_units_to_days =
-            get_user_to_day_converter(dataunits, y0, mon0, d0, h0, min0, s0);
-
-        /* Save these units so we can reuse our time-consuming
-         * calculations next time if they are the same units
-         */
-        if (prev_units)
-            ut_free(prev_units);
-
-        prev_units = dataunits;
-
-        strncpy(prev_calendar, cal2use->name, 1023);
-    }
-#if defined(CALCALCS_THREAD)
-    calcalcs_mutex.unlock();
-#endif
+    // initialize and select the calendar
+    if ((ierr = set_current_calendar(calendar_name, unit_str)))
+        return ierr;
 
     /* Convert user value of offset to floating point days */
     fdays = cv_convert_double( conv_user_units_to_days, val );
@@ -1737,7 +1675,7 @@ int date(double val, int *year, int *month, int *day, int *hour,
     }
 
     /* Convert to a date */
-    if ((ierr = ccs_jday2date( cal2use, jdnew, year, month, day )))
+    if ((ierr = ccs_jday2date( current_calendar, jdnew, year, month, day )))
     {
         fprintf(stderr, "Error in utCalendar2: %s\n", ccs_err_str(ierr));
         return UT_EINVALID;
@@ -1763,7 +1701,7 @@ int date(double val, int *year, int *month, int *day, int *hour,
                 *hour += 1.0;
                 if( *hour >= 24.0 ) {
                     *hour -= 24.0;
-                    if( (ierr = ccs_jday2date( cal2use, jdnew+1, year, month, day )) != 0 ) {
+                    if( (ierr = ccs_jday2date( current_calendar, jdnew+1, year, month, day )) != 0 ) {
                         fprintf( stderr, "Error in utCalendar2: %s\n", ccs_err_str(ierr) );
                         return( UT_EINVALID );
                         }
@@ -1782,87 +1720,18 @@ int date(double val, int *year, int *month, int *day, int *hour,
 int coordinate(int year, int month, int day, int hour, int minute,
     double second, const char *unit_str, const char *calendar_name, double *value)
 {
-    int    jday, ierr, diff_in_days;
-    double    fdiff_in_days, val_days, val_partdays, fdiff_in_partdays, fpartday;
+    int jday=0, ierr=0, diff_in_days=0;
 
-    /* Following vars are static and retained between invocations for efficiency */
+    double fdiff_in_days=0.0, val_days=0.0,
+           val_partdays=0.0, fdiff_in_partdays=0.0,
+           fpartday=0.0;
 
-    static char prev_unit_str[1024] = {'\0'};
-    static char prev_calendar[1024] = {'\0'};
-
-    static ut_unit *prev_units = nullptr;
-    static cv_converter *conv_days_to_user_units = nullptr;
-    static calcalcs_cal *cal2use = nullptr;
-
-    static int y0, mon0, d0, h0, min0, jday0;
-    static double s0, fpartday0;
-
-#if defined(CALCALCS_THREAD)
-    calcalcs_mutex.lock();
-#endif
-    /* See if we are being passed the same units and calendar as last time.  If so,
-     * we can optimize by not recomputing all this junk
-     */
-    if (strncmp(prev_calendar, calendar_name, 1024)
-        || strncmp(prev_unit_str, unit_str, 1024))
-    {
-        if ((!have_initted) && initialize())
-        {
-            fprintf(stderr, "Error, failed to initialized");
-            return -1;
-        }
-
-        /* Get the calendar we will be using, based on the passed name */
-        if (!(cal2use = getcal(calendar_name)))
-        {
-            fprintf(stderr, "Error, unknown calendar %s\n", calendar_name);
-            return UT_EINVALID;
-        }
-        strncpy(prev_calendar, cal2use->name, 1023);
-
-        /* create units object from the string, and update the cached string */
-        ut_unit *user_unit = ut_parse(u_system, unit_str, UT_ASCII);
-        if (!user_unit)
-        {
-            fprintf(stderr, "Error, bad units %s\n", unit_str);
-            return UT_EINVALID;
-        }
-        strncpy(prev_unit_str, unit_str, 1023);
-
-        /* Get origin day of the data units */
-        get_origin(user_unit, &y0, &mon0, &d0, &h0, &min0, &s0);
-
-        /* Convert the origin day to Julian Day number in the specified calendar */
-        if( (ierr = ccs_date2jday( cal2use, y0, mon0, d0, &jday0 )) != 0 )
-        {
-            fprintf(stderr, "Error in utCalendar2: %s\n", ccs_err_str(ierr));
-            return  UT_EINVALID;
-        }
-
-        /* Get the origin's HMS in fractional (floating point) part of a Julian day */
-        fpartday0 = (double)h0/24.0 + (double)min0/1440.0 + s0/86400.0;
-
-        /* Get converter for turning days into user's units */
-        if (conv_days_to_user_units)
-            cv_free(conv_days_to_user_units);
-
-        conv_days_to_user_units =
-            get_day_to_user_converter(user_unit, y0, mon0, d0, h0, min0, s0);
-
-        /* Save these units so we can reuse our time-consuming
-         * calculations next time if they are the same units */
-        if (prev_units)
-            ut_free(prev_units);
-
-        prev_units = user_unit;
-
-    }
-#if defined(CALCALCS_THREAD)
-    calcalcs_mutex.unlock();
-#endif
+    // initialize and select the calendar
+    if ((ierr = set_current_calendar(calendar_name, unit_str)))
+        return ierr;
 
     /* Turn passed date into a Julian day */
-    if((ierr = ccs_date2jday( cal2use, year, month, day, &jday )))
+    if((ierr = ccs_date2jday( current_calendar, year, month, day, &jday )))
     {
         fprintf( stderr, "Error in utInvCalendar2: %s\n", ccs_err_str(ierr));
         return UT_EINVALID;
@@ -1896,7 +1765,7 @@ static cv_converter *get_user_to_day_converter( ut_unit *uu, int y0, int mon0, i
 {
     char        daystr[1024];
     ut_unit     *udu_days;
-    cv_converter    *conv_user_units_to_days;
+    cv_converter    *conv = nullptr;
 
     sprintf( daystr, "days since %04d-%02d-%02d %02d:%02d:%f",
         y0, mon0, d0, h0, min0, s0 );
@@ -1907,15 +1776,15 @@ static cv_converter *get_user_to_day_converter( ut_unit *uu, int y0, int mon0, i
             daystr );
         exit(-1);
         }
-    conv_user_units_to_days = ut_get_converter( uu, udu_days );
-    if( conv_user_units_to_days == NULL ) {
+    conv = ut_get_converter( uu, udu_days );
+    if( conv == NULL ) {
         fprintf( stderr, "internal error in utCalendar2/conv_to_days: cannot convert from \"%s\" to user units\n",
              daystr );
         exit(-1);
         }
 
     ut_free( udu_days );
-    return( conv_user_units_to_days );
+    return( conv );
 }
 
 /*==============================================================================================
@@ -1925,7 +1794,7 @@ static cv_converter *get_day_to_user_converter( ut_unit *uu, int y0, int mon0, i
 {
     char        daystr[1024];
     ut_unit     *udu_days;
-    cv_converter    *conv_days_to_user_units;
+    cv_converter    *conv;
 
     sprintf( daystr, "days since %04d-%02d-%02d %02d:%02d:%f",
         y0, mon0, d0, h0, min0, s0 );
@@ -1936,15 +1805,15 @@ static cv_converter *get_day_to_user_converter( ut_unit *uu, int y0, int mon0, i
             daystr );
         exit(-1);
         }
-    conv_days_to_user_units = ut_get_converter( udu_days, uu );
-    if( conv_days_to_user_units == NULL ) {
+    conv = ut_get_converter( udu_days, uu );
+    if( conv == NULL ) {
         fprintf( stderr, "internal error in utCalendar2/conv_to_user_units: cannot convert from user units to \"%s\"\n",
              daystr );
         exit(-1);
         }
 
     free( udu_days );
-    return( conv_days_to_user_units );
+    return( conv );
 }
 
 /*==========================================================================================
@@ -2123,4 +1992,135 @@ static void unknown_cal_emit_warning( const char *calendar_name )
     strcpy( unknown_cal_emitted_warning_for[ n_unkcal ], calendar_name );
     n_unkcal++;
 }*/
+
+
+// ==========================================================================
+int set_current_calendar( const char *calendar_name, const char *unit_str )
+{
+#if defined(CALCALCS_THREAD)
+    {
+    const std::lock_guard<std::mutex> lock(calcalcs_mutex);
+#endif
+    int ierr = 0;
+
+    /* See if we are being passed the same units and calendar as last time.  If so,
+     * we can optimize by not recomputing all this junk
+     */
+    if (strncmp(current_calendar_name, calendar_name, 1024)
+        || strncmp(current_unit_str, unit_str, 1024))
+    {
+        // initialize
+        if ((!have_initted) && initialize())
+        {
+            fprintf(stderr, "Error, failed to initialized");
+            return -1;
+        }
+
+        /* Get the calendar we will be using, based on the passed name */
+        if (!(current_calendar = getcal(calendar_name)))
+        {
+            fprintf(stderr, "Error, unknown calendar %s\n", calendar_name);
+            return UT_EINVALID;
+        }
+
+        /* create units object from the string, and update the cached string */
+        ut_unit *dataunits = ut_parse(u_system, unit_str, UT_ASCII);
+        if (!dataunits)
+        {
+            fprintf(stderr, "Error, bad units %s\n", unit_str);
+            return UT_EINVALID;
+        }
+        strncpy(current_unit_str, unit_str, 1023);
+
+        /* Get origin day of the data units */
+        get_origin(dataunits, &y0, &mon0, &d0, &h0, &min0, &s0);    /* Note: static vars */
+
+        /* Number of seconds into the specified origin day */
+        extra_seconds0 = h0*3600.0 + min0*60.0 + s0;            /* Note: static vars */
+
+        /* Convert the origin day to Julian Day number in the specified calendar */
+        if( (ierr = ccs_date2jday( current_calendar, y0, mon0, d0, &jday0 )) != 0 )
+        {
+            fprintf( stderr, "Error in utCalendar2: %s\n", ccs_err_str(ierr) );
+            return UT_EINVALID;
+        }
+
+        /* Get the origin's HMS in fractional (floating point) part of a Julian day */
+        fpartday0 = (double)h0/24.0 + (double)min0/1440.0 + s0/86400.0;
+
+        /* Get converter from user-specified units to "days" */
+        if (conv_user_units_to_days)
+            cv_free( conv_user_units_to_days );
+
+        conv_user_units_to_days =
+            get_user_to_day_converter(dataunits, y0, mon0, d0, h0, min0, s0);
+
+        /* Get converter for turning days into user's units */
+        if (conv_days_to_user_units)
+            cv_free(conv_days_to_user_units);
+
+        conv_days_to_user_units =
+            get_day_to_user_converter(dataunits, y0, mon0, d0, h0, min0, s0);
+
+        /* Save these units so we can reuse our time-consuming
+         * calculations next time if they are the same units
+         */
+        if (current_units)
+            ut_free(current_units);
+
+        current_units = dataunits;
+
+        strncpy(current_calendar_name, current_calendar->name, 1023);
+    }
+#if defined(CALCALCS_THREAD)
+    }
+#endif
+    return 0;
+}
+
+// ==========================================================================
+int is_leap_year( const char *calendar_name, const char *unit_str,
+    int year, int &leap )
+{
+    // initialize and select the calendar
+    int ierr = 0;
+    if ((ierr = set_current_calendar(calendar_name, unit_str)))
+    {
+        fprintf(stderr, "Error: system initialization failed");
+        return ierr;
+    }
+
+    // calculate leap year
+    if ((ierr = ccs_isleap(current_calendar, year, &leap)))
+    {
+        fprintf(stderr, "Error, failed to initialized");
+        return ierr;
+    }
+
+    return 0;
+}
+
+// ==========================================================================
+int days_in_month( const char *calendar_name, const char *unit_str,
+    int year, int month, int &dpm )
+{
+    int ierr = 0;
+
+    // initialize and select the calendar
+    if ((ierr = set_current_calendar(calendar_name, unit_str)))
+    {
+        fprintf(stderr, "Error: system initialization failed");
+        return ierr;
+    }
+
+    // calculate days in the month
+    if ((ierr = ccs_dpm(current_calendar, year, month, &dpm)))
+    {
+        fprintf(stderr, "Error: failed to get days per month");
+        return ierr;
+    }
+
+    return 0;
+}
+
 };

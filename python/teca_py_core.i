@@ -1,6 +1,7 @@
 %{
 #include <vector>
 
+#include "calcalcs.h"
 #include "teca_algorithm_executive.h"
 #include "teca_index_executive.h"
 #include "teca_metadata.h"
@@ -683,3 +684,70 @@ typedef std::pair<std::shared_ptr<teca_algorithm>, unsigned int> teca_algorithm_
 %ignore teca_index_reduce::operator=;
 %include "teca_index_reduce_fwd.h"
 %include "teca_index_reduce.h"
+
+/***************************************************************************
+ calcalcs
+ ***************************************************************************/
+%inline
+%{
+struct calendar_util
+{
+// for the given offset in the specified units and caledar returns
+// year, month, day, hours, minutes, seconds
+static
+PyObject *date(double offset, const char *units, const char *calendar)
+{
+    int year = -1;
+    int month = -1;
+    int day = -1;
+    int hour = -1;
+    int minute = -1;
+    double second = -1.0;
+
+    if (calcalcs::date(offset, &year, &month, &day, &hour,
+        &minute, &second, units, calendar))
+    {
+        TECA_PY_ERROR_NOW(PyExc_RuntimeError, "Failed to convert time")
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
+
+    PyObject *ret = Py_BuildValue("(iiiiid)",
+        year, month, day, hour, minute, second);
+
+    return ret;
+}
+
+// determine if the specified year is a leap year in the specified calendar
+static
+PyObject *is_leap_year(const char *calendar, const char *units,
+    int year)
+{
+    int leap = 0;
+    if (calcalcs::is_leap_year(calendar, units, year, leap))
+    {
+        TECA_PY_ERROR_NOW(PyExc_RuntimeError,
+            "Failed to determine leap year status")
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
+    return PyBool_FromLong(leap);
+}
+
+// get the days in the month
+static
+PyObject *days_in_month( const char *calendar, const char *units,
+                   int year, int month)
+{
+    int dpm = 0;
+    if (calcalcs::days_in_month(calendar, units, year, month, dpm))
+    {
+        TECA_PY_ERROR_NOW(PyExc_RuntimeError,
+            "Failed to determine days in month")
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
+    return CIntToPyInteger(dpm);
+}
+};
+%}
