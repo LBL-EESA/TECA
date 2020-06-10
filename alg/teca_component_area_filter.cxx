@@ -131,8 +131,8 @@ teca_metadata teca_component_area_filter::get_output_metadata(
     const std::vector<teca_metadata> &input_md)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_component_area_filter::get_output_metadata" << endl;
+    std::cerr << teca_parallel_id()
+        << "teca_component_area_filter::get_output_metadata" << std::endl;
 #endif
     (void) port;
 
@@ -156,8 +156,8 @@ std::vector<teca_metadata> teca_component_area_filter::get_upstream_request(
     const teca_metadata &request)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_component_area_filter::get_upstream_request" << endl;
+    std::cerr << teca_parallel_id()
+        << "teca_component_area_filter::get_upstream_request" << std::endl;
 #endif
     (void) port;
     (void) input_md;
@@ -202,8 +202,8 @@ const_p_teca_dataset teca_component_area_filter::execute(
     const teca_metadata &request)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_component_area_filter::execute" << endl;
+    std::cerr << teca_parallel_id()
+        << "teca_component_area_filter::execute" << std::endl;
 #endif
     (void)port;
 

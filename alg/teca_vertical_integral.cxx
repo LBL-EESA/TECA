@@ -18,8 +18,6 @@
 #include <boost/program_options.hpp>
 #endif
 
-using std::cerr;
-using std::endl;
 
 // 1/gravity - s^2/m
 template <typename num_t>
@@ -124,6 +122,7 @@ void vertical_integral(const num_t * array,
 
           // calculate dp
           dp = p_top * da + ps[n2d] * db;
+
         }
         // calculate the pressure differential for the sigma
         // coordinate system
@@ -295,7 +294,54 @@ teca_metadata teca_vertical_integral::get_output_metadata(
     unsigned int port,
     const std::vector<teca_metadata> & input_md)
 {
+#ifdef TECA_DEBUG
+    std::cerr << teca_parallel_id()
+        << "teca_vertical_integral::get_output_metadata" << std::endl;
+#endif
+
     teca_metadata report_md(input_md[0]);
+
+    double bounds[6] = {0.0};
+    unsigned long whole_extent[6] = {0ul};
+    unsigned long extent[6] = {0ul};
+
+    // get the extents and bounds
+    report_md.get("whole_extent", whole_extent, 6);
+    report_md.get("extent", extent, 6);
+    report_md.get("bounds", bounds, 6);
+
+    // get the coordinates
+    teca_metadata coords;
+    report_md.get("coordinates", coords);
+
+    // set a new z coordinate with no value (this will cause cf_writer to skip)
+    //p_teca_variant_array new_z = teca_variant_array_impl<double>::New(1);
+    p_teca_variant_array new_z = coords.get("z")->new_instance();
+    new_z->resize(1);
+    new_z->set(0, 0.0);
+    coords.set("z", new_z);
+
+    // determine dimension sizes
+    unsigned long nx = whole_extent[1] - whole_extent[0] + 1;
+    unsigned long ny = whole_extent[3] - whole_extent[2] + 1;
+    unsigned long nz = whole_extent[5] - whole_extent[4] + 1;
+
+    // check that the variable has a z dimension
+    if (nz == 1)
+    {
+        TECA_ERROR("This calculation requires 3D data. The current dataset "
+            "whole_extents are [" << whole_extent[0] << ", " << whole_extent[1] << ", "
+            << whole_extent[2] << ", " << whole_extent[3] << ", " << whole_extent[4] << ", "
+            << whole_extent[5] << "]")
+        return report_md;
+    }
+
+    // force the output data to have no z dimension
+    for (size_t n = 4; n < 6; n++){
+      extent[n] = 0;
+      whole_extent[n] = 0;
+      bounds[n] = 0.0;
+    }
 
     if (report_md.has("variables")){
         report_md.append("variables", this->output_variable_name);
@@ -316,6 +362,11 @@ teca_metadata teca_vertical_integral::get_output_metadata(
     atts.set(this->output_variable_name, (teca_metadata)output_atts);
 
     report_md.set("attributes", atts);
+    // write the updated bounds/extent/coordinates
+    report_md.set("whole_extent", whole_extent);
+    report_md.set("extent", extent);
+    report_md.set("bounds", bounds);
+    report_md.set("coordinates", coords);
 
     return report_md;
 }
@@ -327,8 +378,8 @@ teca_vertical_integral::get_upstream_request(
     const teca_metadata &request)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_vertical_integral::get_upstream_request" << endl;
+    std::cerr << teca_parallel_id()
+        << "teca_vertical_integral::get_upstream_request" << std::endl;
 #endif
     (void)port;
     (void)input_md;
@@ -401,7 +452,7 @@ const_p_teca_dataset teca_vertical_integral::execute(
     const teca_metadata &request)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id() << "teca_vertical_integral::execute" << endl;
+    std::cerr << teca_parallel_id() << "teca_vertical_integral::execute" << std::endl;
 #endif
     (void)port;
     (void)request;
@@ -424,14 +475,12 @@ const_p_teca_dataset teca_vertical_integral::execute(
     unsigned long nx = extent[1] - extent[0] + 1;
     unsigned long ny = extent[3] - extent[2] + 1;
     unsigned long nz = extent[5] - extent[4] + 1;
-    if (nz == 1)
-    {
-        TECA_ERROR("This calculation requires 3D data. The current dataset "
-            "extents are [" << extent[0] << ", " << extent[1] << ", "
-            << extent[2] << ", " << extent[3] << ", " << extent[4] << ", "
-            << extent[5] << "]")
-        return nullptr;
-    }
+
+#ifdef TECA_DEBUG
+    std::cerr << teca_parallel_id() << 
+      "teca_vertical_integral::execute working on array of size [" <<
+      nx << ", " << ny << ", " << nz << "]" << std::endl;
+#endif
 
     int using_hybrid = this->using_hybrid;
 
@@ -480,11 +529,15 @@ const_p_teca_dataset teca_vertical_integral::execute(
       if (!p_top_array) return nullptr;
     }
     else{
-      p_top_override_tmp = teca_variant_array_impl<float>::New(1);
-      p_top_override_tmp->set(0, & this->p_top_override_value);
+      p_top_override_tmp = teca_variant_array_impl<double>::New(1);
+      p_top_override_tmp->set(0, this->p_top_override_value);
       p_top_array = (const_p_teca_variant_array) p_top_override_tmp;
     }
 
+#ifdef TECA_DEBUG
+      std::cerr << teca_parallel_id() << "teca_vertical_integral::execute:" 
+        << "reading the input variable" << std::endl;
+#endif
     // get the input array
     const_p_teca_variant_array input_array = 
       get_mesh_variable(this->integration_variable,
@@ -492,6 +545,10 @@ const_p_teca_dataset teca_vertical_integral::execute(
                         in_mesh);
     if (!input_array) return nullptr;
 
+#ifdef TECA_DEBUG
+    std::cerr << teca_parallel_id() << "teca_vertical_integral::execute:" 
+      << "allocating the integration array" << std::endl;
+#endif
 
     // allocate the output array
     p_teca_variant_array integrated_array = input_array->new_instance();
@@ -527,6 +584,10 @@ const_p_teca_dataset teca_vertical_integral::execute(
                           p_integrated_array);
         )
 
+#ifdef TECA_DEBUG
+    std::cerr << teca_parallel_id() << "teca_vertical_integral::execute:" 
+      << "creating the output mesh" << std::endl;
+#endif
 
     // create the output mesh, pass everything but the integration variable, 
     // and add the integrated array
@@ -542,11 +603,13 @@ const_p_teca_dataset teca_vertical_integral::execute(
     out_mesh->get_extent(out_extent);
     out_mesh->get_whole_extent(out_whole_extent);
     out_mesh->get_bounds(out_bounds);
+
     for (size_t n = 4; n < 6; n++){
       out_extent[n] = 0;
       out_whole_extent[n] = 0;
       out_bounds[n] = 0;
     }
+
     out_mesh->set_extent(out_extent);
     out_mesh->set_whole_extent(out_whole_extent);
     out_mesh->set_bounds(out_bounds);
@@ -556,7 +619,9 @@ const_p_teca_dataset teca_vertical_integral::execute(
     zo->resize(1);
     out_mesh->set_z_coordinates("z", zo);
 
-    // TODO: actually add the output variable to the mesh
+    //  add the output variable to the mesh
+    out_mesh->get_point_arrays()->append(
+        this->output_variable_name, integrated_array);
 
     return out_mesh;
 }
