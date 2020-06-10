@@ -163,8 +163,8 @@ teca_metadata teca_2d_component_area::get_output_metadata(
     const std::vector<teca_metadata> &input_md)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_2d_component_area::get_output_metadata" << endl;
+    std::cerr << teca_parallel_id()
+        << "teca_2d_component_area::get_output_metadata" << std::endl;
 #endif
     (void) port;
 
@@ -179,8 +179,8 @@ std::vector<teca_metadata> teca_2d_component_area::get_upstream_request(
     const teca_metadata &request)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_2d_component_area::get_upstream_request" << endl;
+    std::cerr << teca_parallel_id()
+        << "teca_2d_component_area::get_upstream_request" << std::endl;
 #endif
     (void) port;
     (void) input_md;
@@ -218,8 +218,8 @@ const_p_teca_dataset teca_2d_component_area::execute(
     const teca_metadata &request)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_2d_component_area::execute" << endl;
+    std::cerr << teca_parallel_id()
+        << "teca_2d_component_area::execute" << std::endl;
 #endif
     (void)port;
     (void)request;

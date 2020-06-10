@@ -114,8 +114,8 @@ void percentile_threshold(out_t *output, const in_t *input,
     // compute high percentile
     double high_percentile = (y1 - y0)*t_high + y0;
 
-    /*std::cerr << q_low << "th percentile is " <<  std::setprecision(10) << low_percentile << std::endl
-        << q_high << "th percentile is " <<  std::setprecision(9) << high_percentile << std::endl;*/
+    /*std::std::cerr << q_low << "th percentile is " <<  std::setprecision(10) << low_percentile << std::std::endl
+        << q_high << "th percentile is " <<  std::setprecision(9) << high_percentile << std::std::endl;*/
 
     // apply thresholds
     for (size_t i = 0; i < n_vals; ++i)
@@ -181,8 +181,8 @@ teca_metadata teca_binary_segmentation::get_output_metadata(
     const std::vector<teca_metadata> &input_md)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_binary_segmentation::get_output_metadata" << endl;
+    std::cerr << teca_parallel_id()
+        << "teca_binary_segmentation::get_output_metadata" << std::endl;
 #endif
     (void) port;
 
@@ -233,8 +233,8 @@ std::vector<teca_metadata> teca_binary_segmentation::get_upstream_request(
     const teca_metadata &request)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_binary_segmentation::get_upstream_request" << endl;
+    std::cerr << teca_parallel_id()
+        << "teca_binary_segmentation::get_upstream_request" << std::endl;
 #endif
     (void) port;
     (void) input_md;
@@ -276,8 +276,8 @@ const_p_teca_dataset teca_binary_segmentation::execute(
     const teca_metadata &request)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_binary_segmentation::execute" << endl;
+    std::cerr << teca_parallel_id()
+        << "teca_binary_segmentation::execute" << std::endl;
 #endif
     (void)port;
 

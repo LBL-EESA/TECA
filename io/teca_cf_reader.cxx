@@ -552,10 +552,6 @@ teca_metadata teca_cf_reader::get_output_metadata(
                    var_type = teca_variant_array_code<NC_T>::get();
                    )
 
-                // skip scalars
-                if (n_dims == 0)
-                    continue;
-
                 std::vector<size_t> dims;
                 std::vector<std::string> dim_names;
                 unsigned int centering = teca_array_attributes::point_centering;

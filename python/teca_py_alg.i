@@ -40,6 +40,7 @@
 #include "teca_tc_wind_radii.h"
 #include "teca_temporal_average.h"
 #include "teca_vorticity.h"
+#include "teca_vertical_integral.h"
 #include "teca_py_object.h"
 #include "teca_py_algorithm.h"
 #include "teca_py_gil_state.h"
@@ -132,6 +133,15 @@
 %shared_ptr(teca_vorticity)
 %ignore teca_vorticity::operator=;
 %include "teca_vorticity.h"
+
+/***************************************************************************
+ vertical integral
+ ***************************************************************************/
+%ignore teca_vertical_integral::shared_from_this;
+%shared_ptr(teca_vertical_integral)
+%ignore teca_vertical_integral::operator=;
+%include "teca_vertical_integral.h"
+
 
 /***************************************************************************
  programmable_algorithm
