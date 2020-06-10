@@ -15,7 +15,7 @@ namespace teca_coordinate_util
 {
 
 // **************************************************************************
-int time_step_of(p_teca_double_array time, bool lower,
+int time_step_of(p_teca_double_array time, bool lower, bool clamp,
     const std::string &calendar, const std::string &units,
     const std::string &date, unsigned long &step)
 {
@@ -43,7 +43,17 @@ int time_step_of(p_teca_double_array time, bool lower,
 
     step = 0;
     unsigned long last = time->size() - 1;
-    if (teca_coordinate_util::index_of(time->get(), 0, last, t, lower, step))
+    double *p_time = time->get();
+
+    if (clamp && (t <= p_time[0]))
+    {
+        step = 0;
+    }
+    else if (clamp && (t >= p_time[last]))
+    {
+        step = last;
+    }
+    else if (teca_coordinate_util::index_of(p_time, 0, last, t, lower, step))
     {
         TECA_ERROR("failed to locate the requested time " << t << " in ["
             << time->get(0) << ", " << time->get(last) << "]")
@@ -54,6 +64,7 @@ int time_step_of(p_teca_double_array time, bool lower,
 #else
     (void)time;
     (void)lower;
+    (void)clamp;
     (void)calendar;
     (void)units;
     (void)date;

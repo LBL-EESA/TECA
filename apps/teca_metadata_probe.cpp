@@ -225,7 +225,7 @@ int main(int argc, char **argv)
     if (!time_i.empty())
     {
         if (teca_coordinate_util::time_step_of(
-             time, true, calendar, units, time_i, i0))
+             time, true, true, calendar, units, time_i, i0))
         {
             TECA_ERROR("Failed to locate time step for start date \""
                 << time_i << "\"")
@@ -237,7 +237,7 @@ int main(int argc, char **argv)
     if (!time_j.empty())
     {
         if (teca_coordinate_util::time_step_of(
-             time, false, calendar, units, time_j, i1))
+             time, false, true, calendar, units, time_j, i1))
         {
             TECA_ERROR("Failed to locate time step for end date \""
                 << time_j << "\"")

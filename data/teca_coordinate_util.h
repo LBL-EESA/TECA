@@ -213,7 +213,10 @@ int index_of(const const_p_teca_cartesian_mesh &mesh, T x, T y, T z,
 // given a human readable date string in YYYY-MM-DD hh:mm:ss format
 // amd a list of floating point offset times inthe specified calendar
 // and units find the closest time step. return 0 if successful
-int time_step_of(p_teca_double_array time, bool lower,
+// see index_of for a description of lower, if clamp is true then
+// when the date falls outside of the time values either the first
+// or last time step is returned.
+int time_step_of(p_teca_double_array time, bool lower, bool clamp,
     const std::string &calendar, const std::string &units,
     const std::string &date, unsigned long &step);
 
