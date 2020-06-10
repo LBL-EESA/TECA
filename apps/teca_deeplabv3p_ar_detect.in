@@ -174,13 +174,13 @@ if args.start_date or args.end_date:
 
     # convert date string to step, start date
     if args.start_date:
-        first_step = teca_coordinate.time_step_of(time, True, calendar,
+        first_step = coordinate_util.time_step_of(time, True, calendar,
                                                   units, args.start_date)
         cf_writer.set_first_step(first_step)
 
     # and end date
     if args.end_date:
-        last_step = teca_coordinate.time_step_of(time, False, calendar,
+        last_step = coordinate_util.time_step_of(time, False, calendar,
                                                  units, args.end_date)
         cf_writer.set_last_step(last_step)
 

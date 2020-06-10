@@ -647,22 +647,35 @@ TECA_PY_CONST_CAST(teca_database)
  ***************************************************************************/
 %inline
 %{
-struct teca_coordinate
+struct coordinate_util
 {
 // given a human readable date string in YYYY-MM-DD hh:mm:ss format
-// amd a list of floating point offset times inthe specified calendar
+// amd a list of floating point offset times in the specified calendar
 // and units find the closest time step. return 0 if successful
 static
-unsigned long time_step_of(p_teca_double_array time, bool lower,
+unsigned long time_step_of(PyObject *time, bool lower,
     const std::string &calendar, const std::string &units,
     const std::string &date)
 {
-    unsigned long step = 0;
-    if (teca_coordinate_util::time_step_of(time, lower, calendar, units, date, step))
+    p_teca_variant_array varr;
+    if ((varr = teca_py_array::new_variant_array(time))
+        || (varr = teca_py_sequence::new_variant_array(time))
+        || (varr = teca_py_iterator::new_variant_array(time)))
     {
-        TECA_PY_ERROR_NOW(PyExc_RuntimeError, "Failed to get time step from string")
+        p_teca_double_array dvarr = std::dynamic_pointer_cast<teca_variant_array_impl<double>>(varr);
+        if (dvarr)
+        {
+            unsigned long step = 0;
+            if (teca_coordinate_util::time_step_of(dvarr, lower, calendar, units, date, step))
+            {
+                TECA_PY_ERROR_NOW(PyExc_RuntimeError, "Failed to get time step from string")
+            }
+            return step;
+        }
     }
-    return step;
+
+    TECA_PY_ERROR_NOW(PyExc_TypeError, "Time axis must be doubles for calendaring")
+    return 0;
 }
 
 // given a time value (val), associated time units (units), and calendar
@@ -675,11 +688,9 @@ std::string time_to_string(double val, const std::string &calendar,
     std::string date;
     if (teca_coordinate_util::time_to_string(val, calendar, units, format, date))
     {
-        TECA_PY_ERROR_NOW(PyExc_RuntimeError, "Failed tp convert time to string")
+        TECA_PY_ERROR_NOW(PyExc_RuntimeError, "Failed to convert time to string")
     }
     return date;
 }
 };
 %}
-
-%include "teca_coordinate_util.h"
