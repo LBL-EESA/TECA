@@ -555,3 +555,10 @@ struct teca_tc_saffir_simpson
 %ignore operator==(const field_generator &l, const field_generator &r);
 %ignore operator!=(const field_generator &l, const field_generator &r);
 %include "teca_cartesian_mesh_source.h"
+
+/***************************************************************************
+ temporal_reduction
+ ***************************************************************************/
+%pythoncode %{
+from teca_temporal_reduction import *
+%}
