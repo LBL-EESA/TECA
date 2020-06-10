@@ -493,7 +493,6 @@ const_p_teca_dataset teca_vertical_integral::execute(
     if (!input_array) return nullptr;
 
 
-    /*
     // allocate the output array
     p_teca_variant_array integrated_array = input_array->new_instance();
     integrated_array->resize(nx*ny);
@@ -527,17 +526,14 @@ const_p_teca_dataset teca_vertical_integral::execute(
                           using_hybrid, p_a_or_sigma, p_b_i, p_p_s, p_p_top[0],
                           p_integrated_array);
         )
-    */
 
 
     // create the output mesh, pass everything but the integration variable, 
     // and add the integrated array
     p_teca_cartesian_mesh out_mesh = teca_cartesian_mesh::New();
 
-    // TODO: figure out how to drop this->integration_variable
     out_mesh->shallow_copy(
         std::const_pointer_cast<teca_cartesian_mesh>(in_mesh));
-
 
     // set mesh dimensions; use a scalar Z dimension
     unsigned long out_extent[6];
@@ -559,6 +555,8 @@ const_p_teca_dataset teca_vertical_integral::execute(
     p_teca_variant_array zo = in_mesh->get_z_coordinates()->new_instance();
     zo->resize(1);
     out_mesh->set_z_coordinates("z", zo);
+
+    // TODO: actually add the output variable to the mesh
 
     return out_mesh;
 }
