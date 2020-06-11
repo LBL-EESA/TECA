@@ -122,7 +122,6 @@ void vertical_integral(const num_t * array,
 
           // calculate dp
           dp = p_top * da + ps[n2d] * db;
-
         }
         // calculate the pressure differential for the sigma
         // coordinate system
@@ -354,7 +353,7 @@ teca_metadata teca_vertical_integral::get_output_metadata(
     teca_metadata atts;
     report_md.get("attributes", atts);
     teca_array_attributes output_atts(
-        teca_variant_array_code<float>::get(),
+        teca_variant_array_code<double>::get(),
         teca_array_attributes::point_centering,
         0, "unset", "unset",
         "unset");
@@ -364,8 +363,8 @@ teca_metadata teca_vertical_integral::get_output_metadata(
     report_md.set("attributes", atts);
     // write the updated bounds/extent/coordinates
     report_md.set("whole_extent", whole_extent);
-    report_md.set("extent", extent);
-    report_md.set("bounds", bounds);
+    if (report_md.has("extent")) report_md.set("extent", extent);
+    if (report_md.has("bounds")) report_md.set("bounds", bounds);
     report_md.set("coordinates", coords);
 
     return report_md;
@@ -382,13 +381,15 @@ teca_vertical_integral::get_upstream_request(
         << "teca_vertical_integral::get_upstream_request" << std::endl;
 #endif
     (void)port;
-    (void)input_md;
 
     // create the output request
     std::vector<teca_metadata> up_reqs;
 
     // copy the incoming request
     teca_metadata req(request);
+
+    // copy the input metadata
+    teca_metadata md_in(input_md[0]);
 
     // create a list of requested arrays
     std::set<std::string> arrays;
@@ -436,6 +437,37 @@ teca_vertical_integral::get_upstream_request(
 
     // intercept request for our output
     arrays.erase(this->output_variable_name);
+
+    /*
+    double bounds[6] = {0.0};
+    unsigned long extent[6] = {0ul};
+
+    if (md_in.has("bounds")){
+      // pass through bounds if bounds are given
+      md_in.get("bounds", bounds, 6);
+      req.set("bounds", bounds);
+    }
+    else if (md_in.has("extent")){
+      // pass through extent if extent is given
+      md_in.get("extent", extent, 6);
+      req.set("extent", extent);
+    }
+    else {
+      // pass the whole extent as the extent if neither
+      // bounds nor extent are given
+      md_in.get("whole_extent", extent, 6);
+      req.set("extent", extent);
+    }
+    */
+
+
+    // TODO: this overrides the above code and removes bounds/extent;
+    // this disables the ability for a user to specify bounds/extent
+    // The above (commented) code needs to be debugged in order for 
+    // the bounds/extent pass-through to work properly though.
+    req.remove("bounds");
+    req.remove("extent");
+    req.remove("whole_extent");
 
     // overwrite the existing request with the augmented one
     req.set("arrays", arrays);
@@ -589,6 +621,7 @@ const_p_teca_dataset teca_vertical_integral::execute(
       << "creating the output mesh" << std::endl;
 #endif
 
+
     // create the output mesh, pass everything but the integration variable, 
     // and add the integrated array
     p_teca_cartesian_mesh out_mesh = teca_cartesian_mesh::New();
@@ -620,6 +653,7 @@ const_p_teca_dataset teca_vertical_integral::execute(
     out_mesh->set_z_coordinates("z", zo);
 
     //  add the output variable to the mesh
+    std::cerr << "Output variable name: " << this->output_variable_name << std::endl;
     out_mesh->get_point_arrays()->append(
         this->output_variable_name, integrated_array);
 
