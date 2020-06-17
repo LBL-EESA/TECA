@@ -35,13 +35,9 @@ teca_add_app(teca_cf_restripe LIBS ${teca_app_link}
     FEATURES ${TECA_HAS_BOOST} ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS})
 
 teca_add_python_app(teca_convert_table)
-
-teca_add_python_app(teca_dataset_metadata
-    FEATURES ${TECA_HAS_NETCDF})
-
-teca_add_python_app(teca_deeplabv3p_ar_detect
-    FEATURES ${TECA_HAS_NETCDF})
-
+teca_add_python_app(teca_dataset_metadata FEATURES ${TECA_HAS_NETCDF})
+teca_add_python_app(teca_deeplabv3p_ar_detect FEATURES ${TECA_HAS_NETCDF})
+teca_add_python_app(teca_temporal_reduction FEATURES ${TECA_HAS_NETCDF})
 teca_add_python_app(teca_event_filter)
 teca_add_python_app(teca_profile_explorer)
 teca_add_python_app(teca_tc_stats)
