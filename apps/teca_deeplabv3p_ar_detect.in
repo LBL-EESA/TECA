@@ -25,7 +25,7 @@ parser.add_argument('--output_file', type=str, required=False,
 parser.add_argument('--ivt', type=str, default='IVT',
     help='name of variable with integrated vapor transport (IVT)')
 
-parser.add_argument('--num_threads', type=int, default=-1,
+parser.add_argument('--n_threads', type=int, default=-1,
     help='number of threads used in torch for parallelizing CPU operations')
 
 parser.add_argument('--binary_ar_threshold', type=float,
@@ -116,7 +116,7 @@ if args.output_file:
 if args.ivt:
     deeplabv3p_ar_detect.set_variable_name(args.ivt)
 
-if args.num_threads:
+if args.n_threads:
     deeplabv3p_ar_detect.set_num_threads(args.num_threads)
 
 if args.pytorch_deeplab_model:
