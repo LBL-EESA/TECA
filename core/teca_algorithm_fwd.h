@@ -64,11 +64,6 @@ void set_##NAME(const T &v)              \
 const T &get_##NAME() const              \
 {                                        \
     return this->NAME;                   \
-}                                        \
-                                         \
-T &get_##NAME()                          \
-{                                        \
-    return this->NAME;                   \
 }
 
 // convenience macro to declare standard set_X/get_X methods
@@ -122,11 +117,6 @@ void set_##NAME##s(const const_p_teca_variant_array &v) \
 }                                                       \
                                                         \
 const T &get_##NAME(size_t i) const                     \
-{                                                       \
-    return this->NAME##s[i];                            \
-}                                                       \
-                                                        \
-T &get_##NAME(size_t i)                                 \
 {                                                       \
     return this->NAME##s[i];                            \
 }                                                       \
