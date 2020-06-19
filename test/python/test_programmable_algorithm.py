@@ -1,6 +1,7 @@
 from teca import *
 import numpy as np
 import sys
+import os
 
 set_stack_trace_on_error()
 
@@ -65,9 +66,21 @@ exe = teca_index_executive.New()
 exe.set_start_index(first_step)
 exe.set_end_index(end_index)
 
-wri = teca_cartesian_mesh_writer.New()
-wri.set_input_connection(alg.get_output_port())
-wri.set_executive(exe)
-wri.set_file_name(out_file)
+if os.path.exists(out_file):
+    rea = teca_cartesian_mesh_reader.New()
+    rea.set_file_name(out_file)
+    
+    diff = teca_dataset_diff.New()
+    diff.set_input_connection(0, rea.get_output_port())
+    diff.set_input_connection(1, alg.get_output_port())
+    diff.set_executive(exe)
 
-wri.update()
+    diff.update()
+else:
+    sys.stderr.write('generating baseline\n')
+    wri = teca_cartesian_mesh_writer.New()
+    wri.set_input_connection(alg.get_output_port())
+    wri.set_file_name(out_file)
+    wri.set_executive(exe)
+
+    wri.update()

@@ -56,14 +56,14 @@ teca_add_test(test_cf_reader_cam5
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_cf_reader
     -i "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-[0-9][0-9]-10800\\.nc"
-    -o "test_cf_reader_%t%.%e%" -s 1,2 -x lon -y lat -t time U850 V850
+    -o "${TECA_DATA_ROOT}/test_cf_reader_cam5.bin" -s 1,1 -x lon -y lat -t time U850 V850
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(test_cf_reader_cfsr
     COMMAND test_cf_reader
     -i "${TECA_DATA_ROOT}/NCEP_CFSR_0\\.5_1979\\.nc"
-    -o "test_cf_reader_%t%.%e%" -s 1,2 -x longitude -y latitude
+    -o "${TECA_DATA_ROOT}/test_cf_reader_cfsr.bin" -s 1,2 -x longitude -y latitude
     -b 65,110,10,55,0,0 elevation
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
@@ -71,14 +71,14 @@ teca_add_test(test_cf_reader_cfsr
 teca_add_test(test_cf_reader_era5
     COMMAND test_cf_reader
     -i "${TECA_DATA_ROOT}/e5\.oper\.an\.vinteg\.162_072_viwvn.*\.nc"
-    -o "test_cf_reader_era5_%t%.%e%" -s 0,-1 -x longitude -y latitude -t time VIWVN
+    -o "${TECA_DATA_ROOT}/test_cf_reader_era5.bin" -s 0,-1 -x longitude -y latitude -t time VIWVN
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(test_cf_reader_file_time
     COMMAND test_cf_reader
     -i "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_20170210_06\.nc"
-    -o "test_cf_reader_file_time_%t%.%e%" -s 0,-1 -x lon -y lat
+    -o "test_cf_reader_file_time.bin" -s 0,-1 -x lon -y lat
     -n "ARTMIP_MERRA_2D_%Y%m%d_%H.nc" IVT
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
@@ -235,7 +235,7 @@ teca_add_test(test_temporal_average
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_temporal_average
     "${TECA_DATA_ROOT}/cam5_1_amip_run2.cam2.h2.1991-10-01-10800.nc"
-    test_temporal_average_%t%.%e% 0 -1 3 U850
+    ${TECA_DATA_ROOT}/test_temporal_average.bin 0 -1 3 U850
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
@@ -500,7 +500,7 @@ teca_add_test(test_binary_segmentation
     SOURCES test_binary_segmentation.cpp
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_binary_segmentation "${TECA_DATA_ROOT}/prw_hus_day_MRI.*\\.nc$"
-    prw 50 75 "prw_segmentation_50-75_%t%.%e%"
+    prw 50 75 "${TECA_DATA_ROOT}/prw_segmentation_50-75.bin"
     REQ_TECA_DATA)
 
 teca_add_test(test_bayesian_ar_detect_serial

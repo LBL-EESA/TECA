@@ -395,6 +395,8 @@ const_p_teca_dataset teca_cartesian_mesh_writer::execute(
         = std::dynamic_pointer_cast<const teca_cartesian_mesh>(
             input_data[0]);
 
+    std::cerr << "teca_cartesian_mesh_writer::execute -- mesh: " << mesh << std::endl;
+
     // only rank 0 is required to have data
     int rank = 0;
 #if defined(TECA_HAS_MPI)
