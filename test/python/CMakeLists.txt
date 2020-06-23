@@ -246,15 +246,15 @@ teca_add_test(py_test_event_filter
 
 teca_add_test(py_test_tc_stats
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_stats.py
-    "${TECA_DATA_ROOT}/cam5_1_amip_run2_classify_2005_09.bin"
-    "${TECA_DATA_ROOT}/cam5_1_amip_run2_stats_2005_09.bin"
+    "${TECA_DATA_ROOT}/cam5-025deg-all-hist-est1-v3-r1_class_table.bin"
+    "${TECA_DATA_ROOT}/cam5-025deg-all-hist-est1-v3-r1_tc_stats.bin"
     FEATURES ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_tc_activity
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_activity.py
-    "${TECA_DATA_ROOT}/cam5_1_amip_run2_classify_2005_09.bin"
-    "${TECA_DATA_ROOT}/cam5_1_amip_run2_activity_2005_09.bin"
+    "${TECA_DATA_ROOT}/cam5-025deg-all-hist-est1-v3-r1_class_table.bin"
+    "${TECA_DATA_ROOT}/cam5-025deg-all-hist-est1-v3-r1_tc_activity.bin"
     FEATURES ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
@@ -277,8 +277,7 @@ teca_add_test(py_test_tc_trajectory_scalars_mpi
 
 teca_add_test(py_test_tc_wind_radii_stats
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_wind_radii_stats.py
-    "${TECA_DATA_ROOT}/tracks_1990s_3hr_mdd_4800_median_in_cat_wr.bin"
-    "${TECA_DATA_ROOT}/tracks_1990s_3hr_mdd_4800_median_in_cat_wr.bin"
+    "${TECA_DATA_ROOT}/cam5-025deg-all-hist-est1-v3-r1-tracks_size.bin"
     FEATURES ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
