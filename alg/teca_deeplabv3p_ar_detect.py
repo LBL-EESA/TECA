@@ -327,7 +327,7 @@ class teca_deeplabv3p_ar_detect(teca_py.teca_model_segmentation):
         self.mesh_nx = mesh_nx
 
     def set_padding_atts(self):
-        target_shape = 128 * np.ceil(self.mesh_ny/128.0)
+        target_shape = 128 * np.ceil(self.mesh_ny / 128.0)
         target_shape_diff = target_shape - self.mesh_ny
 
         self.padding_amount_y = (int(np.ceil(target_shape_diff / 2.0)),

@@ -1,0 +1,97 @@
+#!/usr/bin/env python@TECA_PYTHON_VERSION@
+try:
+    from mpi4py import *
+    rank = MPI.COMM_WORLD.Get_rank()
+    n_ranks = MPI.COMM_WORLD.Get_size()
+except ImportError:
+    rank = 0
+    n_ranks = 1
+from teca import *
+import argparse
+import numpy as np
+import sys
+import os
+
+set_stack_trace_on_error()
+set_stack_trace_on_mpi_error()
+
+# parse the command line
+parser = argparse.ArgumentParser(
+    description='Reduce the time axis of a NetcCDF CF2 dataset '
+                'using a predfined interval and reduction operator')
+
+parser.add_argument('--input_regex', type=str, required=True,
+                    help='regex matching the desired set of '
+                         'input NetCDF CF2 files')
+
+parser.add_argument('--arrays', nargs='+', required=True,
+                    help='list of arrays to process.')
+
+parser.add_argument('--output_file', type=str, required=True,
+                    help='file pattern for writing output netcdf '
+                         'files. %%t%% will be replaced by a date/time '
+                         'string or time step. See the teca_cf_writer '
+                         'for more information.')
+
+parser.add_argument('--interval', type=str, default='monthly',
+                    help='interval to reduce the time axis to. One of '
+                         'daily, or monthly (monthly)')
+
+parser.add_argument('--operator', type=str, default='average',
+                    help='reduction operator to use. One of minimum, '
+                         'maximum, or average (average)')
+
+parser.add_argument('--steps_per_file', type=int, default=12,
+                    help='number of time steps to write to each output '
+                         'file. (12)')
+
+parser.add_argument('--n_threads', type=int, default=2,
+                    help='Number of threads to use when stremaing the '
+                         'reduction (2)')
+
+parser.add_argument('--verbose', type=int, default=1,
+                    help='enable verbose mode. (1)')
+
+# prevent spew when running under mpi
+try:
+    args = parser.parse_args()
+except Exception:
+    if rank == 0: raise
+
+in_files = args.input_regex
+out_files = args.output_file
+steps_per_file = args.steps_per_file
+n_threads = args.n_threads
+interval = args.interval
+operator = args.operator
+arrays = args.arrays
+verbose = args.verbose
+
+if verbose and rank == 0:
+    sys.stderr.write('testing on %d ranks' % (n_ranks))
+    sys.stderr.write('n_threads=%d\n' % (n_threads))
+    sys.stderr.write('steps_per_file=%d\n' % (steps_per_file))
+    sys.stderr.write('interval=%s\n' % (interval))
+    sys.stderr.write('operator=%s\n' % (operator))
+    sys.stderr.write('arrays=%s\n' % (str(arrays)))
+
+cfr = teca_cf_reader.New()
+cfr.set_files_regex(in_files)
+
+mav = teca_temporal_reduction.New()
+mav.set_input_connection(cfr.get_output_port())
+mav.set_interval(interval)
+mav.set_operator(operator)
+mav.set_arrays(arrays)
+mav.set_verbose(verbose)
+mav.set_thread_pool_size(n_threads)
+mav.set_stream_size(2)
+
+cfw = teca_cf_writer.New()
+cfw.set_input_connection(mav.get_output_port())
+cfw.set_verbose(verbose)
+cfw.set_thread_pool_size(1)
+cfw.set_steps_per_file(steps_per_file)
+cfw.set_file_name(out_files)
+cfw.set_point_arrays(arrays)
+cfw.update()

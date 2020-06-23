@@ -44,6 +44,7 @@ set(teca_alg_cxx_srcs
     teca_tc_wind_radii.cxx
     teca_tc_trajectory.cxx
     teca_temporal_average.cxx
+    teca_threaded_programmable_algorithm.cxx
     teca_variant_array_operand.cxx
     teca_vorticity.cxx
     teca_dataset_diff.cxx
@@ -55,8 +56,11 @@ teca_py_install(${LIB_PREFIX}
     teca_tc_stats.py
     teca_tc_activity.py
     teca_python_algorithm.py
+    teca_python_reduce.py
     teca_tc_wind_radii_stats.py
     teca_tc_trajectory_scalars.py
+    teca_temporal_reduction.py
+    teca_threaded_python_algorithm.py
     )
 
 set(teca_alg_f90_srcs)

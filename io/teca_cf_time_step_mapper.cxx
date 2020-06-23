@@ -303,7 +303,7 @@ int teca_cf_time_step_mapper::initialize(MPI_Comm comm, long first_step,
             long first_step = i*this->n_time_steps_per_file;
 
             long n_steps = first_step + this->n_time_steps_per_file > this->n_time_steps ?
-                this->n_time_steps : this->n_time_steps_per_file;
+                this->n_time_steps - first_step : this->n_time_steps_per_file;
 
             this->file_table[i] = teca_cf_layout_manager::New(comm_i, i, first_step, n_steps);
         }

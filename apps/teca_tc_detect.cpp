@@ -465,7 +465,7 @@ int main(int argc, char **argv)
         {
             unsigned long first_step = 0;
             std::string start_date = opt_vals["start_date"].as<string>();
-            if (teca_coordinate_util::time_step_of(time, true, calendar,
+            if (teca_coordinate_util::time_step_of(time, true, true, calendar,
                  units, start_date, first_step))
             {
                 TECA_ERROR("Failed to lcoate time step for start date \""
@@ -480,7 +480,7 @@ int main(int argc, char **argv)
         {
             unsigned long last_step = 0;
             std::string end_date = opt_vals["end_date"].as<string>();
-            if (teca_coordinate_util::time_step_of(time, false, calendar,
+            if (teca_coordinate_util::time_step_of(time, false, true, calendar,
                  units, end_date, last_step))
             {
                 TECA_ERROR("Failed to lcoate time step for end date \""
