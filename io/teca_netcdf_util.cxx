@@ -57,7 +57,10 @@ int netcdf_handle::open(MPI_Comm comm, const std::string &file_path, int mode)
 #if !defined(TECA_HAS_NETCDF_MPI)
 #if defined(TECA_HAS_MPI)
     int n_ranks = 1;
-    MPI_Comm_size(comm, &n_ranks);
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
+        MPI_Comm_size(comm, &n_ranks);
     if (n_ranks > 1)
     {
         // it would open all kinds of confusion and chaos to let this call
@@ -73,6 +76,14 @@ int netcdf_handle::open(MPI_Comm comm, const std::string &file_path, int mode)
     return this->open(file_path, mode);
 #endif
 #else
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (!is_init)
+    {
+        // forward to the non-collective library call
+        return this->open(file_path, mode);
+    }
+
     // open the file for collective parallel i/o
     if (m_handle)
     {
@@ -141,7 +152,10 @@ int netcdf_handle::create(MPI_Comm comm, const std::string &file_path, int mode)
 #if !defined(TECA_HAS_NETCDF_MPI)
 #if defined(TECA_HAS_MPI)
     int n_ranks = 1;
-    MPI_Comm_size(comm, &n_ranks);
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
+        MPI_Comm_size(comm, &n_ranks);
     if (n_ranks > 1)
     {
         // it would create all kinds of confusion and chaos to let this call
@@ -157,6 +171,14 @@ int netcdf_handle::create(MPI_Comm comm, const std::string &file_path, int mode)
     return this->create(file_path, mode);
 #endif
 #else
+    // forward to the non-collective library call if MPI is not in use
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (!is_init)
+    {
+        return this->create(file_path, mode);
+    }
+
     // create the file for collective parallel i/o
     if (m_handle)
     {
@@ -201,7 +223,7 @@ int netcdf_handle::create(MPI_Comm comm, const std::string &file_path, int mode)
 int netcdf_handle::flush()
 {
 #if !defined(HDF5_THREAD_SAFE)
-        std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+    std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
     int ierr = 0;
     if ((ierr = nc_sync(m_handle)) != NC_NOERR)
