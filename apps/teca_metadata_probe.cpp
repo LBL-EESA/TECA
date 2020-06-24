@@ -31,8 +31,8 @@ int main(int argc, char **argv)
         "Basic comand line options", 120, -1
         );
     basic_opt_defs.add_options()
-        ("input_file", value<string>(), "file path to the simulation to search for tropical cyclones")
-        ("input_regex", value<string>(), "regex matching simulation files to search for tropical cylones")
+        ("input_file", value<string>(), "file path to the NetCDF-CF2 dataset")
+        ("input_regex", value<string>(), "regex matching a NetCDF-CF2 dataset")
         ("start_date", value<string>(), "first time to proces in Y-M-D h:m:s format")
         ("end_date", value<string>(), "first time to proces in Y-M-D h:m:s format")
         ("help", "display the basic options help")
@@ -172,12 +172,28 @@ int main(int argc, char **argv)
     }
 
     teca_metadata coords;
-    p_teca_double_array time;
-    if (md.get("coordinates", coords)
-       || !(time = std::dynamic_pointer_cast<teca_double_array>(coords.get("t"))))
+    p_teca_variant_array t;
+    if (md.get("coordinates", coords) || !(t = coords.get("t")))
     {
         TECA_ERROR("failed to determine time coordinate")
         return -1;
+    }
+
+    p_teca_double_array time =
+        std::dynamic_pointer_cast<teca_double_array>(t);
+
+    if (!time)
+    {
+        // convert to double precision
+        size_t n = t->size();
+        time = teca_double_array::New(n);
+        double *p_time = time->get();
+        TEMPLATE_DISPATCH(teca_variant_array_impl,
+            t.get(),
+            NT *p_t = std::dynamic_pointer_cast<TT>(t)->get();
+            for (size_t i = 0; i < n; ++i)
+                p_time[i] = static_cast<double>(p_t[i]);
+            )
     }
 
     unsigned long n_time_steps = 0;
