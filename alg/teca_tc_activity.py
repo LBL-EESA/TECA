@@ -2,12 +2,18 @@ import sys
 import teca_py
 import numpy as np
 
+
 class teca_tc_activity(teca_py.teca_python_algorithm):
     """
     Computes summary statistics, histograms on sorted, classified,
     TC trajectory output.
     """
     def __init__(self):
+        # defer import so that user may select a backend
+        global plt, plt_mp, plt_tick
+        import matplotlib.pyplot as plt
+        import matplotlib.patches as plt_mp
+        import matplotlib.ticker as plt_tick
         self.basename = 'activity'
         self.dpi = 100
         self.interactive = False
@@ -15,7 +21,7 @@ class teca_tc_activity(teca_py.teca_python_algorithm):
         self.color_map = None
 
     def __str__(self):
-        return 'basename=%s, dpi=%d, interactive=%s, rel_axes=%s'%( \
+        return 'basename=%s, dpi=%d, interactive=%s, rel_axes=%s' % (
             self.basename, self.dpi, str(self.interactive), str(self.rel_axes))
 
     def set_basename(self, basename):
@@ -58,13 +64,8 @@ class teca_tc_activity(teca_py.teca_python_algorithm):
         and plots. returns summary table with counts of annual
         storms and their categories.
         """
-        global plt
-        global plt_mp
-        global plt_tick
-
-        import matplotlib.pyplot as plt
-        import matplotlib.patches as plt_mp
-        import matplotlib.ticker as plt_tick
+        if plt is None:
+            raise RuntimeError('Missing Python module matplotlib')
 
         # store matplotlib state we modify
         legend_frame_on_orig = plt.rcParams['legend.frameon']
@@ -102,27 +103,27 @@ class teca_tc_activity(teca_py.teca_python_algorithm):
         n_year = len(uyear)
         ureg = sorted(set(zip(region_id, region_name, region_long_name)))
 
-        self.accum_by_year_and_region(uyear, \
-            ureg, year, region_id, start_y, ACE, regional_ACE)
+        self.accum_by_year_and_region(uyear, ureg, year, region_id,
+                                      start_y, ACE, regional_ACE)
 
-        self.accum_by_year_and_region(uyear, \
-            ureg, year, region_id, start_y, PDI, regional_PDI)
+        self.accum_by_year_and_region(uyear, ureg, year, region_id,
+                                      start_y, PDI, regional_PDI)
 
         # now plot the organized data in various ways
         if self.color_map is None:
             self.color_map = plt.cm.jet
 
-        self.plot_individual(uyear, \
-             ureg, regional_ACE,'ACE', '$10^4 kn^2$')
+        self.plot_individual(uyear, ureg, regional_ACE,
+                             'ACE', '$10^4 kn^2$')
 
-        self.plot_individual(uyear, \
-            ureg, regional_PDI, 'PDI', '$m^3 s^{-2}$')
+        self.plot_individual(uyear, ureg, regional_PDI,
+                             'PDI', '$m^3 s^{-2}$')
 
-        self.plot_cumulative(uyear, \
-            ureg, regional_ACE, 'ACE', '$10^4 kn^2$')
+        self.plot_cumulative(uyear, ureg, regional_ACE,
+                             'ACE', '$10^4 kn^2$')
 
-        self.plot_cumulative(uyear, \
-            ureg, regional_PDI, 'PDI', '$m^3 s^{-2}$')
+        self.plot_cumulative(uyear, ureg, regional_PDI,
+                             'PDI', '$m^3 s^{-2}$')
 
         if (self.interactive):
             plt.show()
@@ -137,20 +138,22 @@ class teca_tc_activity(teca_py.teca_python_algorithm):
     def two_digit_year_fmt(x, pos):
         q = int(x)
         q = q - q/100*100
-        return '%02d'%q
+        return '%02d' % q
 
     @staticmethod
-    def accum_by_year_and_region(uyear,ureg,year,region_id,start_y,var,var_out):
+    def accum_by_year_and_region(uyear, ureg, year, region_id,
+                                 start_y, var, var_out):
+
         for yy in uyear:
-            yids = np.where(year==yy)
+            yids = np.where(year == yy)
             # break these down by year
             yvar = var[yids]
             # break down by year and region
             rr = region_id[yids]
             max_reg = np.max(rr)
             tot = 0
-            for r,n,l in ureg:
-                rids = np.where(rr==r)
+            for r, n, l in ureg:
+                rids = np.where(rr == r)
                 rvar = yvar[rids]
                 var_out.append(np.sum(rvar))
             # south
@@ -166,7 +169,8 @@ class teca_tc_activity(teca_py.teca_python_algorithm):
             var_out.append(np.sum(yvar))
 
     def plot_individual(self, uyear, ureg, var, var_name, units):
-        n_reg = len(ureg) + 3 # add 2 for n & s hemi, 1 for global
+        # add 2 for n & s hemi, 1 for global
+        n_reg = len(ureg) + 3
         n_year = len(uyear)
 
         # now plot the organized data in various ways
@@ -177,10 +181,10 @@ class teca_tc_activity(teca_py.teca_python_algorithm):
         reg_t_fig = plt.figure()
 
         rnms = list(zip(*ureg))[2]
-        rnms += ('Southern','Northern','Global')
+        rnms += ('Southern', 'Northern', 'Global')
 
         n_plots = n_reg + 1
-        n_left = n_plots%n_cols
+        n_left = n_plots % n_cols
         n_rows = n_plots/n_cols + (1 if n_left else 0)
         wid = 2.5*n_cols
         ht = 2.0*n_rows
@@ -203,46 +207,51 @@ class teca_tc_activity(teca_py.teca_python_algorithm):
             plt.subplot(n_rows, n_cols, q+1)
             ax = plt.gca()
             ax.grid(zorder=0)
-            ax.xaxis.set_major_formatter(plt_tick.FuncFormatter( \
+
+            ax.xaxis.set_major_formatter(plt_tick.FuncFormatter(
                 teca_tc_activity.two_digit_year_fmt))
 
-            plt.plot(uyear, var[q::n_reg],'-',color=fill_col[q],linewidth=2)
+            plt.plot(uyear, var[q::n_reg], '-', color=fill_col[q], linewidth=2)
             ax.set_xticks(uyear[:] if n_year < 10 else uyear[::2])
             ax.set_xlim([uyear[0], uyear[-1]])
 
             if self.rel_axes and q < n_reg - 1:
-                ax.set_ylim([0, 1.05*(max_y_reg if q < n_reg - 3 else max_y_hem)])
-            if (q%n_cols == 0):
+                ax.set_ylim(
+                    [0, 1.05*(max_y_reg if q < n_reg - 3 else max_y_hem)])
+
+            if (q % n_cols == 0):
                 plt.ylabel(units, fontweight='normal', fontsize=10)
+
             if (q >= (n_reg - n_cols)):
                 plt.xlabel('Year', fontweight='normal', fontsize=10)
-            plt.title('%s'%(rnms[q]), fontweight='bold', fontsize=11)
+
+            plt.title('%s' % (rnms[q]), fontweight='bold', fontsize=11)
             plt.grid(True)
 
             q += 1
 
-        plt.suptitle('%s Individual Region'%(var_name), fontweight='bold')
+        plt.suptitle('%s Individual Region' % (var_name), fontweight='bold')
         plt.subplots_adjust(wspace=0.35, hspace=0.6, top=0.92)
 
-        plt.savefig('%s_%s_individual_%d.png'%( \
+        plt.savefig('%s_%s_individual_%d.png' % (
             self.basename, var_name, self.dpi), dpi=self.dpi)
 
         return
 
     def plot_cumulative(self, uyear, ureg, var, var_name, units):
-
-        n_reg = len(ureg) + 3 # add 2 for n & s hemi, 1 for global
+        # add 2 for n & s hemi, 1 for global
+        n_reg = len(ureg) + 3
         n_year = len(uyear)
 
         rnms = list(zip(*ureg))[2]
-        rnms += ('Southern','Northern','Global')
+        rnms += ('Southern', 'Northern', 'Global')
 
         fill_col = [self.color_map(i) for i in np.linspace(0, 1, n_reg)]
 
         # stacked plot by region
         nhsh_stack_fig = plt.figure()
         ax = plt.gca()
-        ax.xaxis.set_major_formatter(plt_tick.FuncFormatter( \
+        ax.xaxis.set_major_formatter(plt_tick.FuncFormatter(
             teca_tc_activity.two_digit_year_fmt))
 
         base = np.zeros(n_year)
@@ -251,8 +260,13 @@ class teca_tc_activity(teca_py.teca_python_algorithm):
             vals = var[q::n_reg]
             bot = base
             top = bot + vals
-            ax.fill_between(uyear, bot, top, facecolor=fill_col[q], alpha=0.75, zorder=3)
-            ax.plot(uyear, top, color=fill_col[q], linewidth=2, label=rnms[q], zorder=3)
+
+            ax.fill_between(uyear, bot, top, facecolor=fill_col[q],
+                            alpha=0.75, zorder=3)
+
+            ax.plot(uyear, top, color=fill_col[q],
+                    linewidth=2, label=rnms[q], zorder=3)
+
             base = top
             q += 1
 
@@ -263,20 +277,20 @@ class teca_tc_activity(teca_py.teca_python_algorithm):
         ylim = ax.get_ylim()
         ax.set_ylim([0, ylim[1]])
 
-        leg=plt.legend(loc=2, bbox_to_anchor=(1.0, 1.01))
+        leg = plt.legend(loc=2, bbox_to_anchor=(1.0, 1.01))
         plt.subplots_adjust(right=0.78)
 
         plt.ylabel(units)
         plt.xlabel('Year')
-        plt.title('%s by Region'%(var_name), fontweight='bold')
+        plt.title('%s by Region' % (var_name), fontweight='bold')
 
-        plt.savefig('%s_%s_regions_%d.png'%( \
+        plt.savefig('%s_%s_regions_%d.png' % (
             self.basename, var_name, self.dpi), dpi=self.dpi)
 
         # stacked plot of northern, southern hemispheres
         nhsh_stack_fig = plt.figure()
         ax = plt.gca()
-        ax.xaxis.set_major_formatter(plt_tick.FuncFormatter( \
+        ax.xaxis.set_major_formatter(plt_tick.FuncFormatter(
             teca_tc_activity.two_digit_year_fmt))
 
         base = np.zeros(n_year)
@@ -285,8 +299,13 @@ class teca_tc_activity(teca_py.teca_python_algorithm):
             vals = var[q::n_reg]
             bot = base
             top = bot + vals
-            ax.fill_between(uyear, bot, top, facecolor=fill_col[q], alpha=0.75, zorder=3)
-            ax.plot(uyear, top, color=fill_col[q], linewidth=2, label=rnms[q], zorder=3)
+
+            ax.fill_between(uyear, bot, top, facecolor=fill_col[q],
+                            alpha=0.75, zorder=3)
+
+            ax.plot(uyear, top, color=fill_col[q], linewidth=2,
+                    label=rnms[q], zorder=3)
+
             base = top
             q += 1
 
@@ -297,15 +316,14 @@ class teca_tc_activity(teca_py.teca_python_algorithm):
         ylim = ax.get_ylim()
         ax.set_ylim([0, ylim[1]])
 
-        leg=plt.legend(loc=2, bbox_to_anchor=(1.0, 1.01))
+        leg = plt.legend(loc=2, bbox_to_anchor=(1.0, 1.01))
         plt.subplots_adjust(right=0.78)
 
         plt.xlabel('Year')
         plt.ylabel(units)
-        plt.title('%s by Hemisphere'%(var_name), fontweight='bold')
+        plt.title('%s by Hemisphere' % (var_name), fontweight='bold')
 
-        plt.savefig('%s_%s_hemispheres_%d.png'%( \
+        plt.savefig('%s_%s_hemispheres_%d.png' % (
             self.basename, var_name, self.dpi), dpi=self.dpi)
 
         return
-

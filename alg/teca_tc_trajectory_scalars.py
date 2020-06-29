@@ -2,12 +2,22 @@ import sys
 import teca_py
 import numpy as np
 
+
 class teca_tc_trajectory_scalars(teca_py.teca_python_algorithm):
     """
     Computes summary statistics, histograms on sorted, classified,
     TC trajectory output.
     """
     def __init__(self):
+        # defer import so that user may select a backend
+        global plt, plt_mp, plt_img, plt_gridspec, plt_path, plt_patches
+        import matplotlib.pyplot as plt
+        import matplotlib.patches as plt_mp
+        import matplotlib.image as plt_img
+        import matplotlib.gridspec as plt_gridspec
+        import matplotlib.path as plt_path
+        import matplotlib.patches as plt_patches
+
         self.basename = 'tc_track'
         self.tex_file = ''
         self.tex = None
@@ -17,7 +27,7 @@ class teca_tc_trajectory_scalars(teca_py.teca_python_algorithm):
         self.plot_peak_radius = False
 
     def __str__(self):
-        return 'basename=%s, dpi=%d, interactive=%s, rel_axes=%s'%( \
+        return 'basename=%s, dpi=%d, interactive=%s, rel_axes=%s' % (
             self.basename, self.dpi, str(self.interactive), str(self.rel_axes))
 
     def set_basename(self, basename):
@@ -65,12 +75,9 @@ class teca_tc_trajectory_scalars(teca_py.teca_python_algorithm):
         and plots. returns summary table with counts of annual
         storms and their categories.
         """
-        #sys.stderr.write('teca_tc_trajectory_scalars::execute\n')
 
-        import matplotlib.pyplot as plt
-        import matplotlib.patches as plt_mp
-        import matplotlib.image as plt_img
-        import matplotlib.gridspec as plt_gridspec
+        if plt is None:
+            raise RuntimeError('Missing Python module matplotlib')
 
         # store matplotlib state we modify
         legend_frame_on_orig = plt.rcParams['legend.frameon']
@@ -88,8 +95,9 @@ class teca_tc_trajectory_scalars(teca_py.teca_python_algorithm):
             return teca_py.teca_table.New()
 
         # use this color map for Saphir-Simpson scale
-        red_cmap = ['#ffd2a3','#ffa749','#ff7c04', \
-            '#ea4f00','#c92500','#a80300']
+        red_cmap = [
+            '#ffd2a3', '#ffa749', '#ff7c04',
+            '#ea4f00', '#c92500', '#a80300']
 
         km_per_deg_lat = 111
 
@@ -120,7 +128,7 @@ class teca_tc_trajectory_scalars(teca_py.teca_python_algorithm):
         wind_rad = []
         i = 0
         while i < 5:
-            col_name = 'wind_radius_%d'%(i)
+            col_name = 'wind_radius_%d' % (i)
             if in_table.has_column(col_name):
                 wind_rad.append(in_table.get_column(col_name).as_array())
             i += 1
@@ -136,11 +144,11 @@ class teca_tc_trajectory_scalars(teca_py.teca_python_algorithm):
             self.tex = plt_img.imread(self.tex_file)
 
         for i in utrack:
-            #sys.stderr.write('processing track %d\n'%(i))
+            # sys.stderr.write('processing track %d\n' % (i))
             sys.stderr.write('.')
 
             fig = plt.figure()
-            fig.set_size_inches(10,9.75)
+            fig.set_size_inches(10, 9.75)
 
             ii = np.where(track == i)[0]
 
@@ -186,20 +194,25 @@ class teca_tc_trajectory_scalars(teca_py.teca_python_algorithm):
 
             tt = time[ii] - t0
 
-            cat = teca_py.teca_tc_saffir_simpson.classify_mps(float(np.max(wind_i)))
+            cat = teca_py.teca_tc_saffir_simpson.classify_mps(
+                float(np.max(wind_i)))
 
-            plt.suptitle( \
-                'Track %d, cat %d, steps %d - %d\n%d/%d/%d %d:%d:00 - %d/%d/%d %d:%d:00'%(\
-                i, cat, s0, s1, Y0, M0, D0, h0, m0, Y1, M1, D1, h1, m1), \
+            plt.suptitle(
+                'Track %d, cat %d, steps %d - %d\n'
+                '%d/%d/%d %d:%d:00 - %d/%d/%d %d:%d:00' % (
+                    i, cat, s0, s1, Y0, M0, D0, h0, m0, Y1, M1, D1, h1, m1),
                 fontweight='bold')
 
             # plot the scalars
             gs = plt_gridspec.GridSpec(5, 4)
 
-            plt.subplot2grid((5,4),(0,0),colspan=2,rowspan=2)
+            plt.subplot2grid((5, 4), (0, 0), colspan=2, rowspan=2)
             # prepare the texture
             if self.tex is not None:
-                ext = [np.min(lon_i), np.max(lon_i), np.min(lat_i), np.max(lat_i)]
+
+                ext = [np.min(lon_i), np.max(lon_i),
+                       np.min(lat_i), np.max(lat_i)]
+
                 if self.axes_equal:
                     w = ext[1]-ext[0]
                     h = ext[3]-ext[2]
@@ -215,7 +228,7 @@ class teca_tc_trajectory_scalars(teca_py.teca_python_algorithm):
                         ext[1] = c + h2
                 border_size = 0.15
                 wrimax = 0 if peak_rad_i is None else \
-                    max(0 if not self.plot_peak_radius else \
+                    max(0 if not self.plot_peak_radius else
                         np.max(peak_rad_i), np.max(wind_rad_i[0]))
                 dlon = max(wrimax, (ext[1] - ext[0])*border_size)
                 dlat = max(wrimax, (ext[3] - ext[2])*border_size)
@@ -263,9 +276,10 @@ class teca_tc_trajectory_scalars(teca_py.teca_python_algorithm):
                 nwri = len(wind_rad_i)
                 q = nwri - 1
                 while q >= 0:
-                    self.plot_wind_rad(lon_i, lat_i, norm_x, norm_y, \
-                        wind_rad_i[q], '-', edge_color if q==0 else red_cmap[q], \
-                        2 if q==0 else 1, red_cmap[q], 0.98, q+4)
+                    self.plot_wind_rad(
+                        lon_i, lat_i, norm_x, norm_y, wind_rad_i[q],
+                        '-', edge_color if q == 0 else red_cmap[q],
+                        2 if q == 0 else 1, red_cmap[q], 0.98, q + 4)
                     q -= 1
                 # plot the peak radius
                 if (self.plot_peak_radius):
@@ -277,20 +291,24 @@ class teca_tc_trajectory_scalars(teca_py.teca_python_algorithm):
                         kk = np.logical_or(kk, wind_rad_i[q] > 1.0e-6)
                         q += 1
                     peak_rad_i[np.logical_not(kk)] = 0.0
-                    self.plot_wind_rad(lon_i, lat_i, norm_x, norm_y, \
-                        peak_rad_i, '--', (0,0,0,0.25), 1, 'none', 1.00, nwri+4)
+                    self.plot_wind_rad(
+                        lon_i, lat_i, norm_x, norm_y, peak_rad_i,
+                        '--', (0, 0, 0, 0.25), 1, 'none', 1.00, nwri+4)
                 # mark track
                 marks = wind_rad_i[0] <= 1.0e-6
                 q = 1
                 while q < nwri:
-                    marks = np.logical_and(marks, np.logical_not(wind_rad_i[q] > 1.0e-6))
+                    marks = np.logical_and(
+                        marks, np.logical_not(wind_rad_i[q] > 1.0e-6))
                     q += 1
                 kk = np.where(marks)[0]
 
-                plt.plot(lon_i[kk], lat_i[kk], '.', linewidth=2, \
-                    color=edge_color,zorder=10)
+                plt.plot(
+                    lon_i[kk], lat_i[kk], '.', linewidth=2,
+                    color=edge_color, zorder=10)
 
-                plt.plot(lon_i[kk], lat_i[kk], '.', linewidth=1, \
+                plt.plot(
+                    lon_i[kk], lat_i[kk], '.', linewidth=1,
                     color='k', zorder=10, markersize=1)
 
                 marks = wind_rad_i[0] > 1.0e-6
@@ -300,22 +318,25 @@ class teca_tc_trajectory_scalars(teca_py.teca_python_algorithm):
                     q += 1
                 kk = np.where(marks)[0]
 
-                plt.plot(lon_i[kk], lat_i[kk], '.', linewidth=1, \
+                plt.plot(
+                    lon_i[kk], lat_i[kk], '.', linewidth=1,
                     color='k', zorder=10, markersize=2, alpha=0.1)
 
             # mark track start and end
-            plt.plot(lon_i[0], lat_i[0], 'o', markersize=6, markeredgewidth=2, \
-                color=edge_color, markerfacecolor='g',zorder=10)
+            plt.plot(
+                lon_i[0], lat_i[0], 'o', markersize=6, markeredgewidth=2,
+                color=edge_color, markerfacecolor='g', zorder=10)
 
-            plt.plot(lon_i[-1], lat_i[-1], '^', markersize=6, markeredgewidth=2, \
-                color=edge_color, markerfacecolor='r',zorder=10)
+            plt.plot(
+                lon_i[-1], lat_i[-1], '^', markersize=6, markeredgewidth=2,
+                color=edge_color, markerfacecolor='r', zorder=10)
 
             plt.grid(True)
             plt.xlabel('deg lon')
             plt.ylabel('deg lat')
             plt.title('Track', fontweight='bold')
 
-            plt.subplot2grid((5,4),(0,2),colspan=2)
+            plt.subplot2grid((5, 4), (0, 2), colspan=2)
             plt.plot(tt, psl_i, 'b-', linewidth=2)
             plt.grid(True)
             plt.xlabel('time (days)')
@@ -323,7 +344,7 @@ class teca_tc_trajectory_scalars(teca_py.teca_python_algorithm):
             plt.title('Sea Level Pressure', fontweight='bold')
             plt.xlim([0, tt[-1]])
 
-            plt.subplot2grid((5,4),(1,2),colspan=2)
+            plt.subplot2grid((5, 4), (1, 2), colspan=2)
             plt.plot(tt, wind_i, 'b-', linewidth=2)
             plt.grid(True)
             plt.xlabel('time (days)')
@@ -331,7 +352,7 @@ class teca_tc_trajectory_scalars(teca_py.teca_python_algorithm):
             plt.title('Surface Wind', fontweight='bold')
             plt.xlim([0, tt[-1]])
 
-            plt.subplot2grid((5,4),(2,0),colspan=2)
+            plt.subplot2grid((5, 4), (2, 0), colspan=2)
             plt.plot(tt, speed_i, 'b-', linewidth=2)
             plt.grid(True)
             plt.xlabel('time (days)')
@@ -339,7 +360,7 @@ class teca_tc_trajectory_scalars(teca_py.teca_python_algorithm):
             plt.title('Propagation Speed', fontweight='bold')
             plt.xlim([0, tt[-1]])
 
-            plt.subplot2grid((5,4),(2,2),colspan=2)
+            plt.subplot2grid((5, 4), (2, 2), colspan=2)
             plt.plot(tt, vort_i, 'b-', linewidth=2)
             plt.grid(True)
             plt.xlabel('time (days)')
@@ -347,7 +368,7 @@ class teca_tc_trajectory_scalars(teca_py.teca_python_algorithm):
             plt.title('Vorticity', fontweight='bold')
             plt.xlim([0, tt[-1]])
 
-            plt.subplot2grid((5,4),(3,0),colspan=2)
+            plt.subplot2grid((5, 4), (3, 0), colspan=2)
             plt.plot(tt, thick_i, 'b-', linewidth=2)
             plt.grid(True)
             plt.xlabel('time (days)')
@@ -355,7 +376,7 @@ class teca_tc_trajectory_scalars(teca_py.teca_python_algorithm):
             plt.title('Thickness', fontweight='bold')
             plt.xlim([0, tt[-1]])
 
-            plt.subplot2grid((5,4),(3,2),colspan=2)
+            plt.subplot2grid((5, 4), (3, 2), colspan=2)
             plt.plot(tt, temp_i, 'b-', linewidth=2)
             plt.grid(True)
             plt.xlabel('time (days)')
@@ -364,15 +385,24 @@ class teca_tc_trajectory_scalars(teca_py.teca_python_algorithm):
             plt.xlim([0, tt[-1]])
 
             if peak_rad_i is not None:
-                plt.subplot2grid((5,4),(4,0),colspan=2)
+                plt.subplot2grid((5, 4), (4, 0), colspan=2)
+
                 q = len(wind_rad_i) - 1
                 while q >= 0:
                     wr_i_q = km_per_deg_lat*wind_rad_i[q]
-                    plt.fill_between(tt, 0, wr_i_q, color=red_cmap[q], alpha=0.9, zorder=q+3)
-                    plt.plot(tt, wr_i_q, '-', linewidth=2, color=red_cmap[q], zorder=q+3)
+
+                    plt.fill_between(tt, 0, wr_i_q, color=red_cmap[q],
+                                     alpha=0.9, zorder=q+3)
+
+                    plt.plot(tt, wr_i_q, '-', linewidth=2,
+                             color=red_cmap[q], zorder=q+3)
+
                     q -= 1
+
                 if (self.plot_peak_radius):
-                    plt.plot(tt, km_per_deg_lat*peak_rad_i, 'k--', linewidth=1, zorder=10)
+                    plt.plot(tt, km_per_deg_lat*peak_rad_i, 'k--',
+                             linewidth=1, zorder=10)
+
                 plt.plot(tt, np.zeros(len(tt)), 'w-', linewidth=2, zorder=10)
                 plt.grid(True)
                 plt.xlabel('time (days)')
@@ -381,24 +411,27 @@ class teca_tc_trajectory_scalars(teca_py.teca_python_algorithm):
                 plt.xlim([0, tt[-1]])
                 plt.ylim(ymin=0)
 
-                plt.subplot2grid((5,4),(4,2))
+                plt.subplot2grid((5, 4), (4, 2))
                 red_cmap_pats = []
                 q = 0
                 while q < 6:
-                    red_cmap_pats.append( \
-                        plt_mp.Patch(color=red_cmap[q], label='R%d'%(q)))
+                    red_cmap_pats.append(
+                        plt_mp.Patch(color=red_cmap[q], label='R%d' % (q)))
                     q += 1
                 if (self.plot_peak_radius):
                     red_cmap_pats.append(plt_mp.Patch(color='k', label='RP'))
-                l = plt.legend(handles=red_cmap_pats, loc=2, \
-                        bbox_to_anchor=(-0.1, 1.0), borderaxespad=0.0, \
-                        frameon=True, ncol=2)
+
+                plt.legend(
+                    handles=red_cmap_pats, loc=2, bbox_to_anchor=(-0.1, 1.0),
+                    borderaxespad=0.0, frameon=True, ncol=2)
+
                 plt.axis('off')
 
-            plt.subplots_adjust(left=0.065, right=0.98, \
-                bottom=0.05, top=0.9, wspace=0.6, hspace=0.7)
+            plt.subplots_adjust(
+                left=0.065, right=0.98, bottom=0.05, top=0.9,
+                wspace=0.6, hspace=0.7)
 
-            plt.savefig('%s_%06d.png'%(self.basename, i), dpi=self.dpi)
+            plt.savefig('%s_%06d.png' % (self.basename, i), dpi=self.dpi)
             if (not self.interactive):
                 plt.close(fig)
 
@@ -410,13 +443,11 @@ class teca_tc_trajectory_scalars(teca_py.teca_python_algorithm):
         return out_table
 
     @staticmethod
-    def render_poly(x, y, norm_x, norm_y, rad, edge_style, \
-        edge_color, edge_width, face_color, face_alpha, z):
-        """draw a polygon centered at x,y with a normal width
+    def render_poly(
+            x, y, norm_x, norm_y, rad, edge_style,
+            edge_color, edge_width, face_color, face_alpha, z):
+        """draw a polygon centered at x, y with a normal width
            given by rad in the current axes"""
-        import matplotlib.path as plt_path
-        import matplotlib.patches as plt_patches
-        import matplotlib.pyplot as plt
         wr_x = rad*norm_x
         wr_y = rad*norm_y
         nids = len(x)
@@ -434,30 +465,31 @@ class teca_tc_trajectory_scalars(teca_py.teca_python_algorithm):
             wwx = wr_x[q0:q1]
             wwy = wr_y[q0:q1]
             poly_nodes = np.zeros((5, 2))
-            poly_nodes[0:2,0] = xx + wwx
-            poly_nodes[0:2,1] = yy + wwy
-            poly_nodes[2:4,0] = (xx - wwx)[::-1]
-            poly_nodes[2:4,1] = (yy - wwy)[::-1]
-            poly_nodes[4,0] = poly_nodes[0,0]
-            poly_nodes[4,1] = poly_nodes[0,1]
+            poly_nodes[0:2, 0] = xx + wwx
+            poly_nodes[0:2, 1] = yy + wwy
+            poly_nodes[2:4, 0] = (xx - wwx)[::-1]
+            poly_nodes[2:4, 1] = (yy - wwy)[::-1]
+            poly_nodes[4, 0] = poly_nodes[0, 0]
+            poly_nodes[4, 1] = poly_nodes[0, 1]
             # build types for for edge
-            edge_node_types = np.array([plt_path.Path.MOVETO, plt_path.Path.LINETO, \
-                plt_path.Path.LINETO if q == nids-2 else plt_path.Path.MOVETO, \
-                plt_path.Path.LINETO, plt_path.Path.LINETO if q == 0 else \
-                plt_path.Path.MOVETO])
+            edge_node_types = np.array(
+                [plt_path.Path.MOVETO, plt_path.Path.LINETO,
+                 plt_path.Path.LINETO if q == nids-2 else plt_path.Path.MOVETO,
+                 plt_path.Path.LINETO, plt_path.Path.LINETO if q == 0 else
+                 plt_path.Path.MOVETO])
             # check for bow-tie configuration which occurs with sharp
             # curvature. NOTE: this tests for self intersection,
             # another case that we should handle is intersection
             # with preceding geometry.
-            # the order of nodes relative to my diagram is p0,p2,p3,p1
-            p0x = poly_nodes[0,0]
-            p0y = poly_nodes[0,1]
-            p2x = poly_nodes[1,0]
-            p2y = poly_nodes[1,1]
-            p3x = poly_nodes[2,0]
-            p3y = poly_nodes[2,1]
-            p1x = poly_nodes[3,0]
-            p1y = poly_nodes[3,1]
+            # the order of nodes relative to my diagram is p0, p2, p3, p1
+            p0x = poly_nodes[0, 0]
+            p0y = poly_nodes[0, 1]
+            p2x = poly_nodes[1, 0]
+            p2y = poly_nodes[1, 1]
+            p3x = poly_nodes[2, 0]
+            p3y = poly_nodes[2, 1]
+            p1x = poly_nodes[3, 0]
+            p1y = poly_nodes[3, 1]
             # a = p0 - p2
             # b = p1 - p0
             # c = p3 - p2
@@ -471,63 +503,64 @@ class teca_tc_trajectory_scalars(teca_py.teca_python_algorithm):
             # D1 = -ax*by + ay*bx
             # D2 = cx*ay - cy*ax
             D = -cx*by + cy*bx
-            #D1 = -ax*by + ay*bx
+            # D1 = -ax*by + ay*bx
             D2 = cx*ay - cy*ax
             # t0 = D2/D
             # t1 = D1/D
             if (abs(D) > 1e-6):
                 t0 = D2/D
-                #t1 = D1/D
+                # t1 = D1/D
                 # pi = p0 + (p1 - p0)t0
                 pix = p0x + bx*t0
                 piy = p0y + by*t0
                 # pi = p2 + (p3 - p2)t1
-                #pi1x = p2x + cx*t1
-                #pi1y = p2y + cy*t1
+                # pi1x = p2x + cx*t1
+                # pi1y = p2y + cy*t1
                 if ((t0 > 0.0) and (t0 <= 0.5)):
                     # track is turning right
-                    # convert path to triangle, with p0 removed and p2 replaced with pi
-                    poly_nodes[1,:] = [pix, piy]
+                    # convert path to triangle, with p0 removed and p2 replaced
+                    # with pi
+                    poly_nodes[1, :] = [pix, piy]
                     poly_node_types[1] = plt_path.Path.MOVETO
 
                     edge_node_types[1] = plt_path.Path.MOVETO
-                    #sys.stderr.write('%d sharp right! t0=%f %f,%f\n'%(q,t0,pix,piy))
-                    #plt.plot([pix],[piy],'gx')
+                    # sys.stderr.write('%d sharp right! t0=%f %f, %f\n' % (
+                    #     q, t0, pix, piy))
+                    # plt.plot([pix], [piy], 'gx')
                 if ((t0 > 0.5) and (t0 < 1.0)):
                     # track is turning left
                     # convert path to triangle, remove p1, replace p3 with pi
-                    poly_nodes[2,:] = [pix, piy]
-                    poly_nodes[3,:] = poly_nodes[0,:]
+                    poly_nodes[2, :] = [pix, piy]
+                    poly_nodes[3, :] = poly_nodes[0, :]
                     poly_node_types[3] = plt_path.Path.CLOSEPOLY
 
                     edge_node_types[3] = edge_node_types[4]
                     edge_node_types[4] = plt_path.Path.MOVETO
-                    #sys.stderr.write('%d sharp left! t0=%f %f,%f\n'%(q,t0,pix,piy))
-                    #plt.plot([pix],[piy],'r+')
+                    # sys.stderr.write('%d sharp left! t0=%f %f, %f\n' % (
+                    #    q, t0, pix, piy))
+                    # plt.plot([pix], [piy], 'r+')
             # patch is added to the current axes, constructed from a path
             # which is constructed from nodes and node types
-            plt.gca().add_patch(plt_patches.PathPatch( \
-                plt_path.Path(poly_nodes, poly_node_types), \
-                facecolor=face_color, edgecolor=face_color, \
+            plt.gca().add_patch(plt_patches.PathPatch(
+                plt_path.Path(poly_nodes, poly_node_types),
+                facecolor=face_color, edgecolor=face_color,
                 linewidth=1, alpha=face_alpha, zorder=z))
 
-            plt.gca().add_patch(plt_patches.PathPatch( \
-                plt_path.Path(poly_nodes, edge_node_types), \
-                facecolor='none', edgecolor=edge_color, \
-                linestyle=edge_style, linewidth=edge_width, \
+            plt.gca().add_patch(plt_patches.PathPatch(
+                plt_path.Path(poly_nodes, edge_node_types),
+                facecolor='none', edgecolor=edge_color,
+                linestyle=edge_style, linewidth=edge_width,
                 alpha=1.0, zorder=z))
 
             q += 1
         return
 
     @staticmethod
-    def render_poly_simple(x, y, norm_x, norm_y, rad, edge_color, \
-        edge_width, face_color, face_alpha, z):
-        """draw a polygon centered at x,y with a normal width
+    def render_poly_simple(
+            x, y, norm_x, norm_y, rad, edge_color,
+            edge_width, face_color, face_alpha, z):
+        """draw a polygon centered at x, y with a normal width
            given by rad in the current axes"""
-        import matplotlib.path as plt_path
-        import matplotlib.patches as plt_patches
-        import matplotlib.pyplot as plt
         wr_x = rad*norm_x
         wr_y = rad*norm_y
         nids = len(x)
@@ -545,29 +578,27 @@ class teca_tc_trajectory_scalars(teca_py.teca_python_algorithm):
             wwx = wr_x[q0:q1]
             wwy = wr_y[q0:q1]
             nodes = np.zeros((5, 2))
-            nodes[0:2,0] = xx - wwx
-            nodes[0:2,1] = yy - wwy
-            nodes[2:4,0] = (xx + wwx)[::-1]
-            nodes[2:4,1] = (yy + wwy)[::-1]
-            nodes[4,0] = nodes[0,0]
-            nodes[4,1] = nodes[0,1]
+            nodes[0:2, 0] = xx - wwx
+            nodes[0:2, 1] = yy - wwy
+            nodes[2:4, 0] = (xx + wwx)[::-1]
+            nodes[2:4, 1] = (yy + wwy)[::-1]
+            nodes[4, 0] = nodes[0, 0]
+            nodes[4, 1] = nodes[0, 1]
             # patch is added to the current axes, constructed from a path
             # which is constructed from nodes and node types
-            plt.gca().add_patch(plt_patches.PathPatch( \
-                plt_path.Path(nodes, node_types), \
-                facecolor=face_color, \
+            plt.gca().add_patch(plt_patches.PathPatch(
+                plt_path.Path(nodes, node_types),
+                facecolor=face_color,
                 linewidth=1, alpha=0.5, zorder=z))
             q += 1
         return
 
     @staticmethod
-    def render_poly_convex(x, y, norm_x, norm_y, rad, edge_style, \
-        edge_color, edge_width, face_color, face_alpha, z):
-        """draw a polygon centered at x,y with a normal width
+    def render_poly_convex(
+            x, y, norm_x, norm_y, rad, edge_style, edge_color,
+            edge_width, face_color, face_alpha, z):
+        """draw a polygon centered at x, y with a normal width
            given by rad in the current axes"""
-        import matplotlib.path as plt_path
-        import matplotlib.patches as plt_patches
-        import matplotlib.pyplot as plt
         nids = len(x)
         if nids:
             nids2 = 2*nids
@@ -580,23 +611,24 @@ class teca_tc_trajectory_scalars(teca_py.teca_python_algorithm):
             nodes = np.zeros((nnodes, 2))
             wr_x = rad*norm_x
             wr_y = rad*norm_y
-            nodes[0:nids,0] = x - wr_x
-            nodes[0:nids,1] = y - wr_y
-            nodes[nids:nids2,0] = x[::-1] + wr_x[::-1]
-            nodes[nids:nids2,1] = y[::-1] + wr_y[::-1]
-            nodes[nids2,0] = nodes[0,0]
-            nodes[nids2,1] = nodes[0,1]
+            nodes[0:nids, 0] = x - wr_x
+            nodes[0:nids, 1] = y - wr_y
+            nodes[nids:nids2, 0] = x[::-1] + wr_x[::-1]
+            nodes[nids:nids2, 1] = y[::-1] + wr_y[::-1]
+            nodes[nids2, 0] = nodes[0, 0]
+            nodes[nids2, 1] = nodes[0, 1]
             # patch is added to the current axes, constructed from a path
             # which is constructed from nodes and node types
-            plt.gca().add_patch(plt_patches.PathPatch( \
-                plt_path.Path(nodes, node_types), \
-                facecolor=face_color, edgecolor=edge_color, \
-                linestyle=edge_style, linewidth=edge_width, \
+            plt.gca().add_patch(plt_patches.PathPatch(
+                plt_path.Path(nodes, node_types),
+                facecolor=face_color, edgecolor=edge_color,
+                linestyle=edge_style, linewidth=edge_width,
                 alpha=face_alpha, zorder=z))
         return
 
-    def plot_wind_rad(self, x, y, norm_x, norm_y, wind_rad, \
-        edge_style, edge_color, edge_width, face_color, face_alpha, z):
+    def plot_wind_rad(
+            self, x, y, norm_x, norm_y, wind_rad, edge_style,
+            edge_color, edge_width, face_color, face_alpha, z):
         """slpit the track into continuous segements where wind rad is defined
            and render them on the current axes as close polygons/polylines"""
         nqq = len(x)-1
@@ -610,11 +642,10 @@ class teca_tc_trajectory_scalars(teca_py.teca_python_algorithm):
                 # found end of poly, render it
                 p1 = qq+1 if qq == nqq else qq
                 if p1 - p0 > 1:
-                    self.render_poly(x[p0:p1], y[p0:p1], \
-                        norm_x[p0:p1], norm_y[p0:p1], wind_rad[p0:p1], \
-                        edge_style, edge_color, edge_width, face_color, \
-                        face_alpha, z)
+                    self.render_poly(
+                        x[p0:p1], y[p0:p1], norm_x[p0:p1], norm_y[p0:p1],
+                        wind_rad[p0:p1], edge_style, edge_color, edge_width,
+                        face_color, face_alpha, z)
 
                 p0 = -1
             qq += 1
-
