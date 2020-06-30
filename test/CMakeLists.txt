@@ -2,6 +2,7 @@ project(teca_test)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/test)
 
+add_subdirectory(apps)
 add_subdirectory(test_array)
 add_subdirectory(test_amr)
 if (TECA_HAS_PYTHON)
