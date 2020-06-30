@@ -1,5 +1,5 @@
 # teca_add_test(name
-#   EXEC_NAME -- optional, name of the copiled test
+#   EXEC_NAME -- optional, name of the compiled test
 #   SOURCES  -- optional, source files to comile
 #   LIBS -- optional, libraries to link to the compiled test
 #   COMMAND -- required, test command

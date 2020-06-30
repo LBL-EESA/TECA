@@ -16,7 +16,7 @@ set_stack_trace_on_mpi_error()
 argc = len(sys.argv)
 if argc < 9:
     sys.stderr.write('usage: app [in file regex] [z axis var] [out file base] '
-                     '[n threads] [steps per file] [interval] [operator] '
+                     '[steps per file] [n threads] [interval] [operator] '
                      '[use fill value] [array name 0] ... [array name n]\n')
     sys.exit(-1)
 

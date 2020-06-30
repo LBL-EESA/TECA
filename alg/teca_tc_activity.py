@@ -79,7 +79,7 @@ class teca_tc_activity(teca_py.teca_python_algorithm):
             # TODO if this is part of a parallel pipeline then
             # only rank 0 should report an error.
             sys.stderr.write('ERROR: empty input, or not a table\n')
-            return teca_table.New()
+            return teca_py.teca_table.New()
 
         time_units = in_table.get_time_units()
 
