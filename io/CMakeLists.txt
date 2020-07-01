@@ -5,6 +5,7 @@ include_directories(
     $<TARGET_PROPERTY:teca_system,INTERFACE_INCLUDE_DIRECTORIES>
     $<TARGET_PROPERTY:teca_core,INTERFACE_INCLUDE_DIRECTORIES>
     $<TARGET_PROPERTY:teca_data,INTERFACE_INCLUDE_DIRECTORIES>
+    $<TARGET_PROPERTY:teca_alg,INTERFACE_INCLUDE_DIRECTORIES>
     )
 
 set(teca_io_srcs
@@ -28,7 +29,13 @@ endif()
 set(teca_io_link teca_system)
 
 if (TECA_HAS_NETCDF)
-    list(APPEND teca_io_srcs teca_netcdf_util.cxx teca_cf_reader.cxx teca_cf_writer.cxx)
+    list(APPEND teca_io_srcs
+        teca_netcdf_util.cxx
+        teca_cf_reader.cxx
+        teca_cf_writer.cxx
+        teca_multi_cf_reader.cxx
+        )
+
     list(APPEND teca_io_link NetCDF)
     if (TECA_HAS_OPENSSL)
         include_directories(SYSTEM ${OPENSSL_INCLUDE_DIR})
