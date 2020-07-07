@@ -1,4 +1,3 @@
-
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/test)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}
@@ -20,17 +19,16 @@ teca_add_test(test_deeplabv3p_ar_detect_app
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
-teca_add_test(test_bayesian_ar_detect_app
-    LIBS teca_io teca_alg
+teca_add_test(test_bayesian_ar_detect_app_serial
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_bayesian_ar_detect_app.sh
-    ${CMAKE_BINARY_DIR}/${BIN_PREFIX}
-    --input_regex "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D.*\.nc$"
-    --cf_reader::filename_time_template "ARTMIP_MERRA_2D_%Y%m%d_%H.nc"
-    --cf_reader::t_axis_variable ''
-    --cf_reader::t_units "days since 1979-01-01 00:00:00"
-    --output_file "${TECA_DATA_ROOT}/test_bayesian_ar_detect_app_output.nc"
-    0 "${TECA_DATA_ROOT}/test_bayesian_ar_detect_app_ref.bin"
+        ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
     FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_bayesian_ar_detect_app_mpi
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_bayesian_ar_detect_app.sh
+        ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} ${MPIEXEC} 2
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
 teca_add_test(test_tc_detect_app

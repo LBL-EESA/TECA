@@ -1,43 +1,35 @@
 #!/bin/bash
 
-if [[ $# -ne 13 ]]
+if [[ $# < 2 ]]
 then
-    echo "usage: test_bayesian_ar_detect_app.sh" \
-         "[app_prefix] [input_regex_option] [input_regex] " \
-         "[f_time_template_option] [f_time_template]" \
-         "[t_axis_var_option] [t_axis_var]" \
-         "[t_units_option] [t_axis_var]" \
-         "[t_units_option] [t_units]" \
-         "[output_file_option] [output_file]" \
-         "[output_file_type] [output_ref]"
-    exit 1
+    echo "usage: test_bayesian_ar_detect_app.sh [app prefix] " \
+         "[data root] [mpi exec] [test cores]"
+    exit -1
 fi
 
-# First command
-app_name="teca_bayesian_ar_detect"
 app_prefix=${1}
-input_regex_option=${2}
-input_regex=${3}
-f_time_template_option=${4}
-f_time_template=${5}
-t_axis_var_option=${6}
-eval t_axis_var=${7}
-t_units_option=${8}
-t_units="${9}"
-output_file_option=${10}
-output_file="${11}"
+data_root=${2}
 
-# Second command
-output_file_type=${12}
-output_ref="${13}"
+launcher=
+if [[ $# -eq 4 ]]
+then
+    mpi_exec=${3}
+    test_cores=${4}
+    launcher="${mpi_exec} -n ${test_cores}"
+fi
 
-app_exec="${app_prefix}/${app_name}"
-verifier_exec="${app_prefix}/teca_cartesian_mesh_diff"
+set -x
 
-${app_exec} ${input_regex_option} ${input_regex} \
-    ${f_time_template_option} ${f_time_template} \
-    ${t_axis_var_option} "${t_axis_var}" \
-    ${t_units_option} "${t_units}" \
-    ${output_file_option} ${output_file}
+# run the app
+${launcher} ${app_prefix}/teca_bayesian_ar_detect                       \
+    --verbose                                                           \
+    --input_regex "${data_root}/ARTMIP_MERRA_2D_201702.*\.nc$"          \
+    --cf_reader::filename_time_template "ARTMIP_MERRA_2D_%Y%m%d_%H.nc"  \
+    --cf_reader::t_axis_variable ""                                     \
+    --cf_reader::t_units "days since 1979-01-01 00:00:00"               \
+    --output_file "${data_root}/test_bayesian_ar_detect_app_output.nc"
 
-${verifier_exec} ${output_file_type} ${output_file} ${output_ref}
+# run the diff
+${app_prefix}/teca_cartesian_mesh_diff                      \
+    0 "${data_root}/test_bayesian_ar_detect_app_output.nc"  \
+    "${data_root}/test_bayesian_ar_detect_app_ref.bin"
