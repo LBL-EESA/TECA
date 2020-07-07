@@ -35,7 +35,7 @@ column_name=${14}
 app_exec="${app_prefix}/${app_name}"
 verifier_exec="${app_prefix}/teca_table_diff"
 
-eval ${app_exec} ${input_regex_option} ${input_regex} \
+${app_exec} ${input_regex_option} ${input_regex} \
     ${candidate_file_option} ${candidate_file} \
     ${track_file_option} ${track_file} \
     ${lowest_lat_option} ${lowest_lat} \
