@@ -984,6 +984,7 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
     pr->set_input_connection(pa->get_output_port());
     pr->set_reduce_callback(reduce);
     pr->set_finalize_callback(reduce);
+    pr->set_stream_size(2);
     pr->set_verbose(0);
     pr->set_data_request_queue(this->internals->queue);
 
