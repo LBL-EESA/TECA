@@ -60,7 +60,7 @@ int main(int argc, char **argv)
 
     p_teca_cf_reader mesh_data_reader = teca_cf_reader::New();
     mesh_data_reader->set_files_regex(mesh_data_regex);
-    mesh_data_reader->set_periodic_in_x(1);
+    //mesh_data_reader->set_periodic_in_x(1);
 
     p_teca_bayesian_ar_detect ar_detect = teca_bayesian_ar_detect::New();
     ar_detect->set_input_connection(0, parameter_reader->get_output_port());
@@ -83,10 +83,17 @@ int main(int argc, char **argv)
     ca->set_input_connection(cc->get_output_port());
     ca->set_component_variable("ars");
 
-    /*p_teca_cf_writer wri = teca_cf_writer::New();
+#undef WRITE_RESULT
+#if defined WRITE_RESULT
+    std::cerr << "writing data to disk for manual verification" << std::endl;
+    p_teca_cf_writer wri = teca_cf_writer::New();
     wri->set_input_connection(ca->get_output_port());
     wri->set_file_name(out_file_name);
-    wri->set_thread_pool_size(1);*/
+    wri->set_thread_pool_size(1);
+    wri->set_point_arrays({"ar_probability", "ar_probability_0.25", "ars"});
+    wri->update();
+    exit(0);
+#endif
 
     p_teca_component_statistics cs = teca_component_statistics::New();
     cs->set_input_connection(ca->get_output_port());

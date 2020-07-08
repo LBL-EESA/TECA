@@ -39,7 +39,7 @@ parameter_reader.set_file_name(parameter_table)
 
 mesh_data_reader = teca_cf_reader.New()
 mesh_data_reader.set_files_regex(mesh_data_regex)
-mesh_data_reader.set_periodic_in_x(1)
+#mesh_data_reader.set_periodic_in_x(1)
 
 ar_detect = teca_bayesian_ar_detect.New()
 ar_detect.set_input_connection(0, parameter_reader.get_output_port())
