@@ -13,7 +13,7 @@ import os
 set_stack_trace_on_error()
 set_stack_trace_on_mpi_error()
 
-if (len(sys.argv) != 9):
+if (len(sys.argv) != 8):
     sys.stderr.write('\n\nUsage error:\n'\
         'test_bayesian_ar_detect [parameter table] [mesh data regex] ' \
         '[baseline table] [water vapor var] [out file] [num threads] ' \
@@ -21,28 +21,26 @@ if (len(sys.argv) != 9):
     sys.exit(-1)
 
 # parse command line
-parameter_table = sys.argv[1]
-mesh_data_regex = sys.argv[2]
-baseline_table = sys.argv[3]
-water_vapor_var = sys.argv[4]
-out_file_name = sys.argv[5]
-n_threads = int(sys.argv[6])
-first_step =  int(sys.argv[7])
-last_step = int(sys.argv[8])
+mesh_data_regex = sys.argv[1]
+baseline_table = sys.argv[2]
+water_vapor_var = sys.argv[3]
+out_file_name = sys.argv[4]
+n_threads = int(sys.argv[5])
+first_step =  int(sys.argv[6])
+last_step = int(sys.argv[7])
 
 if (rank == 0):
     sys.stderr.write('Testing on %d MPI processes %d threads\n'%(n_ranks, n_threads))
 
 # create the pipeline
-parameter_reader = teca_table_reader.New()
-parameter_reader.set_file_name(parameter_table)
+parameter_table = teca_bayesian_ar_detect_parameters.New()
 
 mesh_data_reader = teca_cf_reader.New()
 mesh_data_reader.set_files_regex(mesh_data_regex)
 #mesh_data_reader.set_periodic_in_x(1)
 
 ar_detect = teca_bayesian_ar_detect.New()
-ar_detect.set_input_connection(0, parameter_reader.get_output_port())
+ar_detect.set_input_connection(0, parameter_table.get_output_port())
 ar_detect.set_input_connection(1, mesh_data_reader.get_output_port())
 ar_detect.set_water_vapor_variable(water_vapor_var)
 ar_detect.set_thread_pool_size(n_threads)

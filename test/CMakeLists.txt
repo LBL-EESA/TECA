@@ -521,7 +521,7 @@ teca_add_test(test_bayesian_ar_detect_serial
     EXEC_NAME test_bayesian_ar_detect
     SOURCES test_bayesian_ar_detect.cpp
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
-    COMMAND test_bayesian_ar_detect "${TECA_DATA_ROOT}/bayesian_ar_parameters.bin"
+    COMMAND test_bayesian_ar_detect
     "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\\.nc$"
     "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" IVT
     "bayesian_ar_detect_%t%.nc" 1 0 4
@@ -529,7 +529,7 @@ teca_add_test(test_bayesian_ar_detect_serial
     REQ_TECA_DATA)
 
 teca_add_test(test_bayesian_ar_detect_threads
-    COMMAND test_bayesian_ar_detect "${TECA_DATA_ROOT}/bayesian_ar_parameters.bin"
+    COMMAND test_bayesian_ar_detect
     "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\\.nc$"
     "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" IVT
     "bayesian_ar_detect_%t%.nc" ${TEST_CORES} 0 4
@@ -537,7 +537,6 @@ teca_add_test(test_bayesian_ar_detect_threads
 
 teca_add_test(test_bayesian_ar_detect_mpi_threads
     COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} test_bayesian_ar_detect
-    "${TECA_DATA_ROOT}/bayesian_ar_parameters.bin"
     "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\\.nc$"
     "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" IVT
     "bayesian_ar_detect_%t%.nc" -1 0 4

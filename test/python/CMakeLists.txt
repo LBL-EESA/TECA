@@ -283,7 +283,6 @@ teca_add_test(py_test_tc_wind_radii_stats
 
 teca_add_test(py_test_bayesian_ar_detect_serial
     COMMAND  ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_bayesian_ar_detect.py
-    "${TECA_DATA_ROOT}/bayesian_ar_parameters.bin"
     "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\\.nc$"
     "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" IVT
     "bayesian_ar_detect_py_%t%.vtk" 1 0 4
@@ -292,7 +291,6 @@ teca_add_test(py_test_bayesian_ar_detect_serial
 
 teca_add_test(py_test_bayesian_ar_detect_threads
     COMMAND  ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_bayesian_ar_detect.py
-    "${TECA_DATA_ROOT}/bayesian_ar_parameters.bin"
     "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\\.nc$"
     "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" IVT
     "bayesian_ar_detect_py_%t%.vtk" -1 0 4
@@ -302,7 +300,6 @@ teca_add_test(py_test_bayesian_ar_detect_threads
 teca_add_test(py_test_bayesian_ar_detect_mpi_threads
     COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_bayesian_ar_detect.py
-    "${TECA_DATA_ROOT}/bayesian_ar_parameters.bin"
     "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\\.nc$"
     "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" IVT
     "bayesian_ar_detect_py_%t%.vtk"

@@ -8,6 +8,7 @@
 #include "teca_system_interface.h"
 #include "teca_mpi_manager.h"
 #include "teca_bayesian_ar_detect.h"
+#include "teca_bayesian_ar_detect_parameters.h"
 #include "teca_binary_segmentation.h"
 #include "teca_connected_components.cxx"
 #include "teca_2d_component_area.h"
@@ -33,37 +34,36 @@ int main(int argc, char **argv)
     teca_system_interface::set_stack_trace_on_mpi_error();
 
     // parse command line
-    if (argc != 9)
+    if (argc != 8)
     {
         if (rank == 0)
         {
             cerr << endl << "Usage error:" << endl
-                << "test_bayesian_ar_detect [parameter table] [mesh data regex] "
+                << "test_bayesian_ar_detect [mesh data regex] "
                    "[baseline table] [water vapor var] [out file name] [num threads] "
                    "[first step] [last step]" << endl << endl;
         }
         return -1;
     }
 
-    std::string parameter_table = argv[1];
-    std::string mesh_data_regex = argv[2];
-    std::string baseline_table = argv[3];
-    std::string water_vapor_var = argv[4];
-    std::string out_file_name = argv[5];
-    int n_threads = atoi(argv[6]);
-    int first_step =  atoi(argv[7]);
-    int last_step = atoi(argv[8]);
+    std::string mesh_data_regex = argv[1];
+    std::string baseline_table = argv[2];
+    std::string water_vapor_var = argv[3];
+    std::string out_file_name = argv[4];
+    int n_threads = atoi(argv[5]);
+    int first_step =  atoi(argv[6]);
+    int last_step = atoi(argv[7]);
 
     // create the pipeline
-    p_teca_table_reader parameter_reader = teca_table_reader::New();
-    parameter_reader->set_file_name(parameter_table);
+    p_teca_bayesian_ar_detect_parameters parameter_table =
+        teca_bayesian_ar_detect_parameters::New();
 
     p_teca_cf_reader mesh_data_reader = teca_cf_reader::New();
     mesh_data_reader->set_files_regex(mesh_data_regex);
     //mesh_data_reader->set_periodic_in_x(1);
 
     p_teca_bayesian_ar_detect ar_detect = teca_bayesian_ar_detect::New();
-    ar_detect->set_input_connection(0, parameter_reader->get_output_port());
+    ar_detect->set_input_connection(0, parameter_table->get_output_port());
     ar_detect->set_input_connection(1, mesh_data_reader->get_output_port());
     ar_detect->set_water_vapor_variable(water_vapor_var);
     ar_detect->set_thread_pool_size(n_threads);
