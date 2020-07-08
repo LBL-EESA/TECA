@@ -77,9 +77,9 @@ teca_add_test(test_cf_reader_era5
 
 teca_add_test(test_cf_reader_file_time
     COMMAND test_cf_reader
-    -i "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_20170210_06\.nc"
+    -i "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05-16-00Z\.nc"
     -o "test_cf_reader_file_time_%t%.%e%" -s 0,-1 -x lon -y lat
-    -n "ARTMIP_MERRA_2D_%Y%m%d_%H.nc" IVT
+    -t time -n "ARTMIP_MERRA_2D_%Y-%m-%d-%HZ.nc" IVT
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
