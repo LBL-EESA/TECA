@@ -127,8 +127,13 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
     int rank = 0;
     int n_ranks = 1;
 #if defined(TECA_HAS_MPI)
-    MPI_Comm_rank(this->comm, &rank);
-    MPI_Comm_size(this->comm, &n_ranks);
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
+    {
+        MPI_Comm_rank(this->comm, &rank);
+        MPI_Comm_size(this->comm, &n_ranks);
+    }
 #endif
 
     // get the cordinate axes
@@ -372,8 +377,8 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
         }
 
 #if defined(TECA_HAS_NETCDF_MPI)
-        if ((ierr = nc_var_par_access(this->handle.get(), var_id,
-            NC_INDEPENDENT)) != NC_NOERR)
+        if (is_init && ((ierr = nc_var_par_access(this->handle.get(),
+            var_id, NC_INDEPENDENT)) != NC_NOERR))
         {
             TECA_ERROR("Failed to set inidependant mode on variable \"" << name << "\"")
             return -1;
@@ -468,8 +473,8 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
         {
         std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-        if ((ierr = nc_var_par_access(this->handle.get(), var_id,
-            NC_INDEPENDENT)) != NC_NOERR)
+        if (is_init && ((ierr = nc_var_par_access(this->handle.get(), var_id,
+            NC_INDEPENDENT)) != NC_NOERR))
         {
             TECA_ERROR("Failed to set inidependant mode on variable \"" << name << "\"")
             return -1;

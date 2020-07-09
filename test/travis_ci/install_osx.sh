@@ -4,10 +4,11 @@ set -x
 # override system install
 export PATH=/usr/local/bin:$PATH
 
-# install deps. note than many are included as a part of brew-core
+# install deps. note that many are included as a part of brew-core
 # these days. hence this list isn't comprehensive
 brew update
-brew install mpich swig svn udunits openssl@1.1
+brew unlink python@2
+brew install mpich swig svn udunits openssl python
 
 # matplotlib currently doesn't have a formula
 # teca fails to locate mpi4py installed from brew
