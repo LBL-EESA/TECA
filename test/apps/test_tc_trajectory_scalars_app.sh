@@ -1,31 +1,33 @@
 #!/bin/bash
 
-if [[ $# -ne 7 ]]
+if [[ $# < 2 ]]
 then
-    echo "usage: test_tc_trajectory_scalars_app.sh" \
-         "[app_prefix] [tracks_file] [output_prefix]" \
-         "[first_track_option] [first_track]" \
-         "[last_track_option] [last_track]"
-    exit 1
+    echo "usage: test_tc_trajectory_scalars_app.sh [app prefix] "     \
+         "[data root] [mpi exec] [test cores]"
+    exit -1
 fi
 
-# First command
-app_name="teca_tc_trajectory_scalars"
 app_prefix=${1}
-tracks_file=${2}
-output_prefix="${3}"
-first_track_option=${4}
-first_track="${5}"
-last_track_option=${6}
-last_track="${7}"
+data_root=${2}
 
-app_exec="${app_prefix}/${app_name}"
+if [[ $# -eq 4 ]]
+then
+    mpi_exec=${3}
+    test_cores=${4}
+    launcher="${mpi_exec} -n ${test_cores}"
+fi
 
-${app_exec} ${tracks_file} ${output_prefix} \
-    ${first_track_option} ${first_track} \
-    ${last_track_option} ${last_track}
+output_prefix="test_tc_trajectory_scalars_app_output"
 
-output_list=($(ls ${output_prefix}_*))
+set -x
+
+# run the app
+${launcher} ${app_prefix}/teca_tc_trajectory_scalars                  \
+        "${data_root}/tracks_1990s_3hr_mdd_4800_median_in_cat_wr.bin" \
+        ${output_prefix} --first_track 0 --last_track -1
+
+# check if number of outputs are correct
+output_list=($(ls ${output_prefix}*))
 output_len=${#output_list[@]}
 
 if [[ ${output_len} -ne 6 ]]
@@ -34,6 +36,7 @@ then
     exit 1
 fi
 
+# check if outputs aren't empty
 for i in ${output_list[@]}
 do
     if [[ ! -s $i ]]
@@ -42,3 +45,6 @@ do
         exit 1
     fi
 done
+
+# clean up
+rm ${output_prefix}*

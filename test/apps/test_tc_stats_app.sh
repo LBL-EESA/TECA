@@ -1,38 +1,39 @@
 #!/bin/bash
 
-if [[ $# -ne 4 ]]
+if [[ $# -ne 2 ]]
 then
-    echo "usage: test_tc_stats_app.sh" \
-         "[app_prefix] [tracks_file] [output_file]" \
-         "[output_ref]"
-    exit 1
+    echo "usage: test_tc_stats_app.sh [app prefix] [data root]"
+    exit -1
 fi
 
-# First command
-app_name="teca_tc_stats"
 app_prefix=${1}
-tracks_file=${2}
-output_file=${3}
+data_root=${2}
 
-# Second command
-output_ref=${4}
+output_prefix="test_tc_stats_app_output"
 
-app_exec="${app_prefix}/${app_name}"
-verifier_exec="${app_prefix}/teca_table_diff"
+set -x
 
-${app_exec} ${tracks_file} ${output_file}
+# run the app
+${app_prefix}/teca_tc_stats                                     \
+    "${data_root}/cam5_1_amip_run2_tracks_2005_09.bin"          \
+    ${output_prefix}
 
-${verifier_exec} ${output_file}_class_table.bin ${output_ref}
+# run the diff
+${app_prefix}/teca_table_diff                                   \
+    test_tc_stats_app_output_class_table.bin                    \
+    "${data_root}/test_tc_stats_app_output_class_table_ref.bin"
 
-output_list=($(ls ${output_file}_*))
+# check if number of outputs are correct
+output_list=($(ls ${output_prefix}*))
 output_len=${#output_list[@]}
 
-if [[ ${output_len} -ne 14 ]]
+if [[ ${output_len} -ne 13 ]]
 then
     echo "error: unexpected number of tc_stats outputs"
     exit 1
 fi
 
+# check if outputs aren't empty
 for i in ${output_list[@]}
 do
     if [[ ! -s $i ]]
@@ -41,3 +42,6 @@ do
         exit 1
     fi
 done
+
+# clean up
+rm ${output_prefix}*

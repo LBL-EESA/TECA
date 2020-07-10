@@ -40,15 +40,6 @@ int main(int argc, char **argv)
     std::string t_file = argv[1];
     std::string ref_file = argv[2];
 
-    cerr << "t_file: " << t_file << endl;
-    cerr << "ref_file: " << ref_file << endl;
-
-    if (!teca_file_util::file_exists(ref_file.c_str()))
-    {
-        TECA_ERROR("no reference file to compare to");
-        return -1;
-    }
-
     p_teca_cf_reader cfr_t_file = teca_cf_reader::New();
     p_teca_cf_reader cfr_ref_file = teca_cf_reader::New();
 
