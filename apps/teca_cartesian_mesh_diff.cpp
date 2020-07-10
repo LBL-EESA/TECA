@@ -23,29 +23,25 @@ int main(int argc, char **argv)
     teca_system_interface::set_stack_trace_on_error();
     teca_system_interface::set_stack_trace_on_mpi_error();
 
-    if (argc < 4)
+    if (argc < 3)
     {
         if (rank == 0)
         {
             cerr << endl
                 << "Usage:" << endl
-                << "teca_cartesian_mesh_diff [test file type] [test file] "
+                << "teca_cartesian_mesh_diff [test file] "
                    "[reference file]" << endl
-                 << endl;
+                << endl;
         }
         return -1;
     }
 
     // parse command line
-    unsigned int t_file_type = atoi(argv[1]);
-    std::string t_file = argv[2];
-    std::string ref_file = argv[3];
+    std::string t_file = argv[1];
+    std::string ref_file = argv[2];
 
-    if (!teca_file_util::file_exists(t_file.c_str()))
-    {
-        TECA_ERROR("output file doesn't exist");
-        return -1;
-    }
+    cerr << "t_file: " << t_file << endl;
+    cerr << "ref_file: " << ref_file << endl;
 
     if (!teca_file_util::file_exists(ref_file.c_str()))
     {
@@ -53,41 +49,56 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    p_teca_cf_reader cf_reader = teca_cf_reader::New();
+    p_teca_cf_reader cfr_t_file = teca_cf_reader::New();
+    p_teca_cf_reader cfr_ref_file = teca_cf_reader::New();
 
-    p_teca_cartesian_mesh_reader m_reader = teca_cartesian_mesh_reader::New();
+    p_teca_cartesian_mesh_reader mr_t_file = teca_cartesian_mesh_reader::New();
+    p_teca_cartesian_mesh_reader mr_ref_file = teca_cartesian_mesh_reader::New();
 
     p_teca_dataset_diff diff = teca_dataset_diff::New();
 
-    p_teca_cartesian_mesh_reader ref_reader = teca_cartesian_mesh_reader::New();
-    ref_reader->set_file_name(ref_file);
+    std::string t_file_type = teca_file_util::extension(t_file);
+    std::string ref_file_type = teca_file_util::extension(ref_file);
 
-    diff->set_input_connection(0, ref_reader->get_output_port());
-
-    switch (t_file_type)
+    if (t_file_type == "nc" && ref_file_type == "nc")
     {
-        // 0 -> nc format
-        case 0:
-        {
-            cf_reader->append_file_name(t_file);
-            diff->set_input_connection(1, cf_reader->get_output_port());
-            break;
-        }
-        // 1 -> bin format
-        case 1:
-        {
-            m_reader->set_file_name(t_file);
-            diff->set_input_connection(1, m_reader->get_output_port());
-            break;
-        }
-        default:
-        {
-            TECA_ERROR("input file format type" << t_file_type
-                << " is not supported");
-            return -1;
-        }
+        cfr_ref_file->set_files_regex(ref_file);
+        cfr_t_file->set_files_regex(t_file);
+
+        diff->set_input_connection(0, cfr_ref_file->get_output_port());
+        diff->set_input_connection(1, cfr_t_file->get_output_port());
     }
-    
+    else if (t_file_type == "nc" && ref_file_type == "bin")
+    {
+        mr_ref_file->set_file_name(ref_file);
+        cfr_t_file->set_files_regex(t_file);
+
+        diff->set_input_connection(0, mr_ref_file->get_output_port());
+        diff->set_input_connection(1, cfr_t_file->get_output_port());
+    }
+    else if (t_file_type == "bin" && ref_file_type == "nc")
+    {
+        cfr_ref_file->set_files_regex(ref_file);
+        mr_t_file->set_file_name(t_file);
+
+        diff->set_input_connection(0, cfr_ref_file->get_output_port());
+        diff->set_input_connection(1, mr_t_file->get_output_port());
+    }
+    else if (t_file_type == "bin" && ref_file_type == "bin")
+    {
+        mr_ref_file->set_file_name(ref_file);
+        mr_t_file->set_file_name(t_file);
+
+        diff->set_input_connection(0, mr_ref_file->get_output_port());
+        diff->set_input_connection(1, mr_t_file->get_output_port());
+    }
+    else
+    {
+        TECA_ERROR("input or reference files format type - test file type: "
+            << t_file_type << " or reference file type: " << ref_file_type
+            << " is not supported");
+        return -1;
+    }
 
     diff->update();
 

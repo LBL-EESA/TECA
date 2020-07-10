@@ -44,7 +44,7 @@ int main(int argc, char **argv)
 
     if (!teca_file_util::file_exists(t_file.c_str()))
     {
-        TECA_ERROR("output file doesn't exist");
+        TECA_ERROR("test file doesn't exist");
         return -1;
     }
 
