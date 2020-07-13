@@ -43,6 +43,7 @@ int main(int argc, char **argv)
         ("input_regex", value<std::string>(), "a regex matching NetCDF CF2 files")
         ("point_arrays", value<std::vector<std::string>>()->multitoken(), "list of point centered arrays to write")
         ("information_arrays", value<std::vector<std::string>>()->multitoken(), "list of non-geometric arrays to write")
+        ("bounds", value<std::vector<double>>()->multitoken(), "lat lon lev bounding box to subset with")
         ("first_step", value<long>(), "first time step to process")
         ("last_step", value<long>(), "last time step to process")
         ("steps_per_file", value<long>(), "number of time steps per output file")
@@ -89,7 +90,11 @@ int main(int argc, char **argv)
     try
     {
         boost::program_options::store(
-            boost::program_options::command_line_parser(argc, argv).options(all_opt_defs).run(),
+            boost::program_options::command_line_parser(argc, argv)
+                .style(boost::program_options::command_line_style::unix_style ^
+                       boost::program_options::command_line_style::allow_short)
+                .options(all_opt_defs)
+                .run(),
             opt_vals);
 
         if (mpi_man.get_comm_rank() == 0)
@@ -171,6 +176,10 @@ int main(int argc, char **argv)
     if (opt_vals.count("last_step"))
         cf_writer->set_last_step(opt_vals["last_step"].as<long>());
 
+    if (opt_vals.count("bounds"))
+        exec->set_bounds(
+            opt_vals["bounds"].as<std::vector<double>>());
+
     if (opt_vals.count("verbose"))
     {
         cf_writer->set_verbose(1);
@@ -188,8 +197,7 @@ int main(int argc, char **argv)
     {
         if (mpi_man.get_comm_rank() == 0)
         {
-            TECA_ERROR(
-                "missing file name or regex for the NetCDF CF reader. "
+            TECA_ERROR("missing file name or regex for the NetCDF CF reader. "
                 "See --help for a list of command line options.")
         }
         return -1;
@@ -199,8 +207,7 @@ int main(int argc, char **argv)
     {
         if (mpi_man.get_comm_rank() == 0)
         {
-            TECA_ERROR(
-                "missing file name pattern for the NetCDF CF writer. "
+            TECA_ERROR("missing file name pattern for the NetCDF CF writer. "
                 "See --help for a list of command line options.")
         }
         return -1;

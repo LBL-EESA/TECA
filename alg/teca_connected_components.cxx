@@ -5,11 +5,13 @@
 #include "teca_variant_array.h"
 #include "teca_metadata.h"
 #include "teca_cartesian_mesh.h"
+#include "teca_array_attributes.h"
 
 #include <algorithm>
 #include <iostream>
 #include <deque>
 #include <cmath>
+#include <sstream>
 
 using std::cerr;
 using std::endl;
@@ -273,8 +275,27 @@ teca_metadata teca_connected_components::get_output_metadata(
             component_var = this->segmentation_variable + "_components";
     }
 
+    // tell the downstream about the variable we produce
     teca_metadata md = input_md[0];
     md.append("variables", component_var);
+
+    // add metadata for CF I/O
+    teca_metadata atts;
+    md.get("attributes", atts);
+
+    std::ostringstream oss;
+    oss << "the connected components of " << this->segmentation_variable;
+
+    teca_array_attributes cc_atts(
+        teca_variant_array_code<short>::get(),
+        teca_array_attributes::point_centering,
+        0, "unitless", component_var,
+        oss.str().c_str());
+
+    atts.set(component_var, (teca_metadata)cc_atts);
+
+    md.set("attributes", atts);
+
     return md;
 }
 
