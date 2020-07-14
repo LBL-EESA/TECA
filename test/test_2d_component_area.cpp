@@ -103,7 +103,12 @@ int main(int argc, char **argv)
     source->set_bounds({0., 360., y0, y1, 0., 0., 1., 1.});
 
     tile_labeler labeler = {nxl, nyl, consecutive_labels};
-    source->append_field_generator({"labels", labeler});
+
+    source->append_field_generator({"labels",
+        teca_array_attributes(teca_variant_array_code<int>::get(),
+            teca_array_attributes::point_centering, 0, "unitless",
+            "labeled data", "the labels define rectangular tiles"),
+        labeler});
 
     p_teca_normalize_coordinates norm_coord = teca_normalize_coordinates::New();
     norm_coord->set_input_connection(source->get_output_port());

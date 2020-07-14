@@ -2,6 +2,8 @@
 #define teca_cartesian_mesh_source_h
 
 #include "teca_algorithm.h"
+#include "teca_array_attributes.h"
+
 #include <functional>
 #include <map>
 #include <utility>
@@ -9,7 +11,7 @@
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_cartesian_mesh_source)
 
 // f(x, y, z, t)
-// given coordinat axes x,y,z return the field
+// given aptial coordinate axes x,y,z and the time t, return the field
 using field_generator_callback = std::function<p_teca_variant_array(
     const const_p_teca_variant_array &, const const_p_teca_variant_array &,
     const const_p_teca_variant_array &, double)>;
@@ -17,6 +19,7 @@ using field_generator_callback = std::function<p_teca_variant_array(
 struct field_generator
 {
     std::string name;
+    teca_array_attributes attributes;
     field_generator_callback generator;
 };
 
@@ -52,9 +55,11 @@ public:
     TECA_SET_ALGORITHM_PROPERTIES()
 
     // set/get the type code for generated coordinates.
-    // default is 32 bit floating point.
-    TECA_ALGORITHM_PROPERTY(int, coordinate_type_code)
-    TECA_ALGORITHM_PROPERTY(int, field_type_code)
+    // default is 32 bit floating point. Use
+    // teca_variant_array_type<NT>::get() to get specific type
+    // codes for C++ POD types NT.
+    TECA_ALGORITHM_PROPERTY(unsigned int, coordinate_type_code)
+    TECA_ALGORITHM_PROPERTY(unsigned int, field_type_code)
 
     // set/get the global index space extent of the data.  the extents are
     // given by 8 values, 6 spatial plus 2 temporal, in the following order
@@ -86,15 +91,15 @@ public:
     TECA_ALGORITHM_PROPERTY(std::string, calendar)
     TECA_ALGORITHM_PROPERTY(std::string, time_units)
 
-    // set the named callbacks to generate fields on the mesh
-    // A callback f must have the signature f(x,y,z,t).
+    // set the named callbacks to generate fields on the mesh.  A callback
+    // function must have the signature f(x,y,z,t).
     TECA_ALGORITHM_VECTOR_PROPERTY(field_generator_t, field_generator);
 
     // set a callback function f(x,y,z,t) that generates a field named name
     // x,y,z are coordinate axes in variant arrays, t is the double precision
     // time value.
     void append_field_generator(const std::string &name,
-        field_generator_callback &callback);
+        const teca_array_attributes &atts, field_generator_callback &callback);
 
 protected:
     teca_cartesian_mesh_source();
@@ -111,8 +116,8 @@ private:
     void clear_cached_metadata();
 
 private:
-    int coordinate_type_code;
-    int field_type_code;
+    unsigned int coordinate_type_code;
+    unsigned int field_type_code;
     std::string x_axis_variable;
     std::string y_axis_variable;
     std::string z_axis_variable;
