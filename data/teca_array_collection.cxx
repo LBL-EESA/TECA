@@ -160,6 +160,30 @@ void teca_array_collection::shallow_copy(const p_teca_array_collection &other)
         m_arrays.push_back(other->get(i));
 }
 
+// ----------------------------------------------------------------------------
+int teca_array_collection::append(const const_p_teca_array_collection &other)
+{
+    unsigned int n = other->size();
+    for (unsigned int i = 0; i < n; ++i)
+    {
+        if (this->append(other->get_name(i), other->get(i)->new_copy()) < 0)
+            return -1;
+    }
+    return 0;
+}
+
+// ----------------------------------------------------------------------------
+int teca_array_collection::shallow_append(const p_teca_array_collection &other)
+{
+    unsigned int n = other->size();
+    for (unsigned int i = 0; i < n; ++i)
+    {
+        if (this->append(other->get_name(i), other->get(i)) < 0)
+            return -1;
+    }
+    return 0;
+}
+
 // --------------------------------------------------------------------------
 void teca_array_collection::swap(p_teca_array_collection &other)
 {

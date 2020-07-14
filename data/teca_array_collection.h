@@ -81,6 +81,10 @@ public:
     void copy(const const_p_teca_array_collection &other);
     void shallow_copy(const p_teca_array_collection &other);
 
+    // append
+    int append(const const_p_teca_array_collection &other);
+    int shallow_append(const p_teca_array_collection &other);
+
     // swap
     void swap(p_teca_array_collection &other);
 
