@@ -1,4 +1,5 @@
 #include "teca_cartesian_mesh_source.h"
+#include "teca_array_attributes.h"
 #include "teca_normalize_coordinates.h"
 #include "teca_cartesian_mesh_writer.h"
 #include "teca_index_executive.h"
@@ -25,6 +26,16 @@ struct distance_field
     double m_x0;
     double m_y0;
     double m_z0;
+
+    teca_array_attributes get_attributes()
+    {
+        std::ostringstream oss;
+        oss << "distance to (" << m_x0 << ", " << m_y0 << ", " << m_z0 << ")";
+
+        return teca_array_attributes(teca_variant_array_code<double>::get(),
+            teca_array_attributes::point_centering, 0, "degrees", "distance",
+            oss.str().c_str());
+    }
 
     p_teca_variant_array operator()(const const_p_teca_variant_array &x,
         const const_p_teca_variant_array &y, const const_p_teca_variant_array &z,
@@ -104,7 +115,7 @@ int main(int argc, char **argv)
     source->set_bounds({x0, x1, y0, y1, z0, z1, 0., 0.});
 
     distance_field distance = {80., -80., 2.5};
-    source->append_field_generator({"distance", distance});
+    source->append_field_generator({"distance", distance.get_attributes(), distance});
 
     p_teca_normalize_coordinates coords = teca_normalize_coordinates::New();
     coords->set_input_connection(source->get_output_port());

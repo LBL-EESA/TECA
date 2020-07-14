@@ -147,9 +147,10 @@ void teca_cartesian_mesh_source::clear_cached_metadata()
 
 // --------------------------------------------------------------------------
 void teca_cartesian_mesh_source::append_field_generator(
-    const std::string &name, field_generator_callback &callback)
+    const std::string &name, const teca_array_attributes &atts,
+    field_generator_callback &callback)
 {
-    this->append_field_generator({name, callback});
+    this->append_field_generator({name, atts, callback});
 }
 
 // --------------------------------------------------------------------------
@@ -184,6 +185,12 @@ teca_metadata teca_cartesian_mesh_source::get_output_metadata(
         this->whole_extents.data(), this->bounds.data(), x_axis,
         y_axis, z_axis, t_axis);
 
+    size_t nx = this->whole_extents[1] - this->whole_extents[0] + 1;
+    size_t ny = this->whole_extents[3] - this->whole_extents[2] + 1;
+    size_t nz = this->whole_extents[5] - this->whole_extents[4] + 1;
+    size_t nt = this->whole_extents[7] - this->whole_extents[6] + 1;
+    size_t nxyz = nx*ny*nz;
+
     std::string x_ax_var_name = (this->x_axis_variable.empty() ? "x" : this->x_axis_variable);
     std::string y_ax_var_name = (this->y_axis_variable.empty() ? "y" : this->y_axis_variable);
     std::string z_ax_var_name = (this->z_axis_variable.empty() ? "z" : this->z_axis_variable);
@@ -192,12 +199,18 @@ teca_metadata teca_cartesian_mesh_source::get_output_metadata(
     // construct attributes
     teca_metadata x_atts;
     x_atts.set("units", (this->x_axis_units.empty() ? "meters" : this->x_axis_units));
+    x_atts.set("type_code", this->coordinate_type_code);
+    x_atts.set("size", nx);
 
     teca_metadata y_atts;
     y_atts.set("units", (this->y_axis_units.empty() ? "meters" : this->y_axis_units));
+    y_atts.set("type_code", this->coordinate_type_code);
+    y_atts.set("size", ny);
 
     teca_metadata z_atts;
     z_atts.set("units", (this->z_axis_units.empty() ? "meters" : this->z_axis_units));
+    z_atts.set("type_code", this->coordinate_type_code);
+    z_atts.set("size", nz);
 
     teca_metadata t_atts;
     t_atts.set("units", (this->time_units.empty() ?
@@ -205,6 +218,9 @@ teca_metadata teca_cartesian_mesh_source::get_output_metadata(
 
     t_atts.set("calendar", (this->calendar.empty() ?
         "standard" : this->calendar));
+
+    t_atts.set("type_code", this->coordinate_type_code);
+    t_atts.set("size", nt);
 
     teca_metadata atts;
     atts.set(x_ax_var_name, x_atts);
@@ -231,7 +247,15 @@ teca_metadata teca_cartesian_mesh_source::get_output_metadata(
     std::vector<field_generator_t>::iterator it = this->field_generators.begin();
     std::vector<field_generator_t>::iterator end = this->field_generators.end();
     for (; it != end; ++it)
+    {
         vars.push_back(it->name);
+
+        // correct size
+        teca_array_attributes var_atts = it->attributes;
+        var_atts.size = nxyz;
+
+        atts.set(it->name, teca_metadata(var_atts));
+    }
 
     this->internals->metadata.set("variables", vars);
     this->internals->metadata.set("attributes", atts);
