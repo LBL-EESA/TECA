@@ -293,15 +293,17 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
 
         // define variable for the axis
         int var_id = -1;
+        unsigned int var_type_code = 0;
         TEMPLATE_DISPATCH(const teca_variant_array_impl,
             coord_arrays[i].get(),
-            int type = teca_netcdf_util::netcdf_tt<NT>::type_code;
+            var_type_code = teca_variant_array_code<NT>::get();
+            int var_nc_type = teca_netcdf_util::netcdf_tt<NT>::type_code;
 #if !defined(HDF5_THREAD_SAFE)
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
             if ((ierr = nc_def_var(this->handle.get(), coord_array_names[i].c_str(),
-                type, 1, &dim_id, &var_id)) != NC_NOERR)
+                var_nc_type, 1, &dim_id, &var_id)) != NC_NOERR)
             {
                 TECA_ERROR("failed to define variables for coordinate axis "
                     <<  i << " \"" << coord_array_names[i] << "\" "
@@ -314,7 +316,7 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
             )
 
         // save the var id
-        this->var_ids[coord_array_names[i]] = var_id;
+        this->var_def[coord_array_names[i]] = std::make_pair(var_id, var_type_code);
     }
 
     // define variables for each point array
@@ -332,15 +334,15 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
         }
 
         // get the type code
-        int var_type = 0;
-        if (atts_i.get("type_code", var_type))
+        int var_type_code = 0;
+        if (atts_i.get("type_code", var_type_code))
         {
             TECA_ERROR("Array \"" << name << "\" missing type attribute")
             return -1;
         }
 
         int var_id = -1;
-        CODE_DISPATCH(var_type,
+        CODE_DISPATCH(var_type_code,
             // define variable
             int var_nc_type = teca_netcdf_util::netcdf_tt<NT>::type_code;
 #if !defined(HDF5_THREAD_SAFE)
@@ -358,7 +360,7 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
             }
 #endif
             // save the var id
-            this->var_ids[name] = var_id;
+            this->var_def[name] = std::make_pair(var_id, var_type_code);
             )
 
 #if !defined(HDF5_THREAD_SAFE)
@@ -465,7 +467,7 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
             }
 #endif
             // save the var id
-            this->var_ids[name] = var_id;
+            this->var_def[name] = std::make_pair(var_id, type_code);
             )
 
 #if defined(TECA_HAS_NETCDF_MPI)
@@ -486,8 +488,8 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
     }
 
     // write attributes of the varibles in hand
-    std::map<std::string,int>::iterator it = this->var_ids.begin();
-    std::map<std::string,int>::iterator end = this->var_ids.end();
+    std::map<std::string, var_def_t>::iterator it = this->var_def.begin();
+    std::map<std::string, var_def_t>::iterator end = this->var_def.end();
     for (; it != end; ++it)
     {
         teca_metadata array_atts;
@@ -498,7 +500,7 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
             continue;
         }
 
-        int var_id = it->second;
+        int var_id = it->second.first;
 
         unsigned long n_atts = array_atts.size();
         for (unsigned long j = 0; j < n_atts; ++j)
@@ -592,13 +594,13 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
     {
         // look up the var id
         std::string array_name = coord_array_names[i];
-        std::map<std::string, int>::iterator it = this->var_ids.find(array_name);
-        if (it  == this->var_ids.end())
+        std::map<std::string, var_def_t>::iterator it = this->var_def.find(array_name);
+        if (it  == this->var_def.end())
         {
             TECA_ERROR("No var id for \"" << array_name << "\"")
             return -1;
         }
-        int var_id = it->second;
+        int var_id = it->second.first;
 
         size_t start = 0;
         // only rank 0 should write these since they are the same on all ranks
@@ -669,8 +671,8 @@ int teca_cf_layout_manager::write(long index,
             const_p_teca_variant_array array = point_arrays->get(i);
 
             // look up the var id
-            std::map<std::string, int>::iterator it = this->var_ids.find(array_name);
-            if (it == this->var_ids.end())
+            std::map<std::string, std::pair<int,unsigned int>>::iterator it = this->var_def.find(array_name);
+            if (it == this->var_def.end())
             {
                 // skip arrays we don't know about. if we want to make this an error
                 // we will need the cf writer to subset the point arrays collection
@@ -678,10 +680,22 @@ int teca_cf_layout_manager::write(long index,
                 //TECA_ERROR("No var id for \"" << array_name << "\"")
                 //return -1;
             }
-            int var_id = it->second;
+            int var_id = it->second.first;
+            unsigned int declared_type_code = it->second.second;
 
             TEMPLATE_DISPATCH(const teca_variant_array_impl,
                 array.get(),
+
+                unsigned int actual_type_code = teca_variant_array_code<NT>::get();
+                if (actual_type_code != declared_type_code)
+                {
+                    TECA_ERROR("The declared type (" << declared_type_code
+                        << ") of point centered array \"" << array_name
+                        << "\" does not match the actual type ("
+                        << actual_type_code << ")")
+                    return -1;
+                }
+
                 const NT *pa = static_cast<TT*>(array.get())->get();
 #if !defined(HDF5_THREAD_SAFE)
                 {
@@ -689,7 +703,7 @@ int teca_cf_layout_manager::write(long index,
 #endif
                 if ((ierr = nc_put_vara(this->handle.get(), var_id, starts, counts, pa)) != NC_NOERR)
                 {
-                    TECA_ERROR("failed to write array \"" << array_name << "\". "
+                    TECA_ERROR("failed to write point array \"" << array_name << "\". "
                         << nc_strerror(ierr))
                     return -1;
                 }
@@ -715,8 +729,8 @@ int teca_cf_layout_manager::write(long index,
             const_p_teca_variant_array array = info_arrays->get(i);
 
             // look up the var id
-            std::map<std::string, int>::iterator it = this->var_ids.find(array_name);
-            if (it  == this->var_ids.end())
+            std::map<std::string, var_def_t>::iterator it = this->var_def.find(array_name);
+            if (it  == this->var_def.end())
             {
                 // skip arrays we don't know about. if we want to make this an error
                 // we will need the cf writer to subset the information arrays collection
@@ -724,12 +738,24 @@ int teca_cf_layout_manager::write(long index,
                 //TECA_ERROR("No var id for \"" << array_name << "\"")
                 //return -1;
             }
-            int var_id = it->second;
+            int var_id = it->second.first;
+            unsigned int declared_type_code = it->second.second;
 
             size_t counts[2] = {1, array->size()};
 
             TEMPLATE_DISPATCH(const teca_variant_array_impl,
                 array.get(),
+
+                unsigned int actual_type_code = teca_variant_array_code<NT>::get();
+                if (actual_type_code != declared_type_code)
+                {
+                    TECA_ERROR("The declared type (" << declared_type_code
+                        << ") of information array \"" << array_name
+                        << "\" does not match the actual type ("
+                        << actual_type_code << ")")
+                    return -1;
+                }
+
                 const NT *pa = static_cast<TT*>(array.get())->get();
 #if !defined(HDF5_THREAD_SAFE)
                 {
@@ -737,7 +763,7 @@ int teca_cf_layout_manager::write(long index,
 #endif
                 if ((ierr = nc_put_vara(this->handle.get(), var_id, starts, counts, pa)) != NC_NOERR)
                 {
-                    TECA_ERROR("failed to write array \"" << array_name << "\". "
+                    TECA_ERROR("failed to write information array \"" << array_name << "\". "
                         << nc_strerror(ierr))
                     return -1;
                 }
