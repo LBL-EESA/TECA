@@ -35,6 +35,10 @@ teca_add_test(py_test_cf_writer_mpi_threads
     FEATURES ${TECA_HAS_MPI} ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
+teca_add_test(py_test_connected_components_simple
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_connected_components_simple.py
+    5 5 0 "py_test_connected_components_simple_%t%.%e%")
+
 # TODO -- camke_parse_arguments eats ""
 if (TECA_DATA_ROOT AND TECA_HAS_NETCDF)
     add_test(NAME py_test_connected_components
