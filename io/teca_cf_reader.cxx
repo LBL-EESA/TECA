@@ -1090,7 +1090,7 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
     }
 
     // get names, need to be careful since some of these depend
-    // on run time information, ex user can specific a time axis
+    // on run time information. eg: user can specify a time axis
     // via algorithm properties
     std::string x_axis_var;
     std::string y_axis_var;
@@ -1329,7 +1329,7 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
         }
 
         // check if it's a mesh variable, if it is not a mesh variable
-        // it is an information variable (ie non-spatiol)
+        // it is an information variable (ie non-spatial)
         bool mesh_var = false;
         unsigned int n_dims = dim_names->size();
 
