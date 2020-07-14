@@ -87,6 +87,8 @@ void component_area(unsigned long nlon, unsigned long nlat,
     d_cos_phi[0] = calc_t();
     d_cos_phi[nlatm1] = calc_t();
 
+    const component_t neg_one = -1;
+
     // finish off the calc by multiplying the factors
     for (unsigned long j = 1; j < nlatm1; ++j)
     {
@@ -94,7 +96,12 @@ void component_area(unsigned long nlon, unsigned long nlat,
         unsigned long jj = j*nlon;
         for (unsigned long i = 1; i < nlonm1; ++i)
         {
-            area[labels[jj + i]] += rho_sq_d_theta[i]*d_cos_phi_j;
+
+            // avoid calculating the area of background labels
+            if (labels[jj + i] != neg_one)
+            {
+              area[labels[jj + i]] += rho_sq_d_theta[i]*d_cos_phi_j;
+            }
         }
     }
 

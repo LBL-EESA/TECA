@@ -121,6 +121,8 @@ void periodic_labeler(unsigned long i0, unsigned long j0, unsigned long k0,
     std::deque<id3> work_queue;
     work_queue.push_back(id3(i0,j0,k0));
 
+    component_t neg_one = -1;
+
     while (work_queue.size())
     {
         id3 ijk = work_queue.back();
@@ -151,7 +153,7 @@ void periodic_labeler(unsigned long i0, unsigned long j0, unsigned long k0,
                     qq = (qq + nx) % nx;
                     unsigned long w = qq + jj + kk;
 
-                    if (segments[w] && !components[w])
+                    if (segments[w] && (components[w] == neg_one))
                     {
                         components[w] = current_component;
                         work_queue.push_back(id3(qq,rr,ss));
@@ -178,9 +180,11 @@ void label(unsigned long *ext, int periodic_in_x, int periodic_in_y,
     unsigned long nz = ext[5] - ext[4] + 1;
     unsigned long nxy = nx*ny;
 
+    component_t neg_one = -1;
+
     // initialize the components
-    component_t current_component = 0;
-    memset(components, 0, nxy*nz*sizeof(component_t));
+    component_t current_component = neg_one;
+    memset(components, neg_one, nxy*nz*sizeof(component_t));
 
     // visit each element to see if it is a seed
     for (unsigned long k = 0; k < nz; ++k)
@@ -194,7 +198,7 @@ void label(unsigned long *ext, int periodic_in_x, int periodic_in_y,
                 unsigned long q = kk + jj + i;
 
                 // found seed, label it
-                if (segments[q] && !components[q])
+                if (segments[q] && (components[q] == neg_one))
                 {
                     components[q] = ++current_component;
                     periodic_labeler(i,j,k, current_component,
