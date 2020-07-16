@@ -10,7 +10,7 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_connected_components)
 
-/// an algorithm that computes connected component componenting
+/// an algorithm that computes connected component labeling
 /**
 an algorithm that computes connected component labeling for 1D, 2D, and 3D
 data. The components are computed from a binary segmentation provided on the
@@ -21,6 +21,26 @@ component_variable property. the component ids are added to the output
 dataset metadata in an key named 'component_ids', and the number of components
 is stored in a key named 'number_of_components'. These keys facilitate further
 processing as one need not scan the labeled data to get the list of label ids.
+
+The cells outside of the segmentation (i.e. the background) are always assigned
+the label 0. The cells belonging to connected regions inside the segmentation
+are labeled starting from 1 up to number_of_components - 1.
+
+output keys:
+
+    number_of_components - number of component ids found. this will always be
+                           at least 1 long as the cells outside the segmentation
+                           are assigned the label 0.
+
+    component_ids - a vector containing the label of each component. This is
+                    always starts with 0, where the label 0 identifies cells
+                    out side of the segmentation, and ranges up to
+                    number_of_components - 1, where the labels from 1 up to
+                    number_of_components - 1 identify connected regions of
+                    cells inside the segmentation.
+
+    background_id - the label used for cells outside of the segmentation,
+                    i.e. the background. always 0.
 */
 class teca_connected_components : public teca_algorithm
 {
