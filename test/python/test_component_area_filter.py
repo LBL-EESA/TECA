@@ -79,10 +79,13 @@ source = teca_dataset_source.New()
 source.set_metadata(md)
 source.set_dataset(mesh)
 
+bg_id = 0 if consecutive_labels else -2
+
 ca = teca_2d_component_area.New()
 ca.set_input_connection(source.get_output_port())
 ca.set_component_variable("labels")
 ca.set_contiguous_component_ids(consecutive_labels)
+ca.set_background_id(bg_id)
 
 caf = teca_component_area_filter.New()
 caf.set_input_connection(ca.get_output_port())
