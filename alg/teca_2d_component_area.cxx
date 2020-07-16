@@ -109,7 +109,7 @@ void component_area(unsigned long nlon, unsigned long nlat,
 
 // --------------------------------------------------------------------------
 teca_2d_component_area::teca_2d_component_area() :
-    component_variable(""), contiguous_component_ids(0)
+    component_variable(""), contiguous_component_ids(0), background_id(-1)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -133,6 +133,8 @@ void teca_2d_component_area::get_properties_description(
         TECA_POPTS_GET(int, prefix, contiguous_component_ids,
             "when the region label ids start at 0 and are consecutive "
             "this flag enables use of an optimization (0)")
+        TECA_POPTS_GET(long, prefix, background_id,
+            "the label id that corresponds to the background (-1)")
         ;
 
     global_opts.add(opts);
@@ -144,6 +146,7 @@ void teca_2d_component_area::set_properties(const std::string &prefix,
 {
     TECA_POPTS_SET(opts, std::string, prefix, component_variable)
     TECA_POPTS_SET(opts, int, prefix, contiguous_component_ids)
+    TECA_POPTS_SET(opts, long, prefix, background_id)
 }
 #endif
 
@@ -284,6 +287,20 @@ const_p_teca_dataset teca_2d_component_area::execute(
         const_cast<teca_metadata&>(in_mesh->get_metadata());
 
     teca_metadata &out_metadata = out_mesh->get_metadata();
+
+    // get the background_id, and pass it through
+    long bg_id = this->background_id;
+    if (this->background_id == -1)
+    {
+        if (in_metadata.get("background_id", bg_id))
+        {
+            TECA_ERROR("Metadata is missing the key \"background_id\". "
+                "One should specify it via the \"background_id\" algorithm "
+                "property")
+            return nullptr;
+        }
+    }
+    out_metadata.set("background_id", bg_id);
 
     // calculate area of components
     NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,

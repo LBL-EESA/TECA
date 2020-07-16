@@ -108,9 +108,12 @@ int main(int argc, char **argv)
     p_teca_normalize_coordinates norm_coord = teca_normalize_coordinates::New();
     norm_coord->set_input_connection(source->get_output_port());
 
+    long background_id = consecutive_labels ? 0 : -2;
+
     p_teca_2d_component_area ca = teca_2d_component_area::New();
     ca->set_component_variable("labels");
     ca->set_contiguous_component_ids(consecutive_labels);
+    ca->set_background_id(background_id);
     ca->set_input_connection(norm_coord->get_output_port());
 
     p_teca_dataset_capture cao = teca_dataset_capture::New();
