@@ -496,6 +496,22 @@ public:
 
         mesh_out->get_point_arrays()->append(this->probability_array_name, prob_out);
 
+
+        long n_elem = n_wvcc_out->size();
+        TEMPLATE_DISPATCH(
+            teca_variant_array_impl,
+            n_wvcc_out.get(),
+
+            NT *p_n_wvcc_out = dynamic_cast<TT*>(n_wvcc_out.get())->get();
+
+            // remove 1 from the AR counts to account for the background
+            for (auto n = 0; n < n_elem; n++)
+            {
+                p_n_wvcc_out[n] -= 1;
+            }
+        )
+
+        
         mesh_out->get_information_arrays()->append("ar_count", n_wvcc_out);
         mesh_out->get_information_arrays()->append("parameter_table_row", pt_row_out);
 
