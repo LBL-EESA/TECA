@@ -113,10 +113,13 @@ int main(int argc, char **argv)
     source->set_metadata(md);
     source->set_dataset(mesh);
 
+    long background_id = consecutive_labels ? 0 : -2;
+
     p_teca_2d_component_area ca = teca_2d_component_area::New();
     ca->set_input_connection(source->get_output_port());
     ca->set_component_variable("labels");
     ca->set_contiguous_component_ids(consecutive_labels);
+    ca->set_background_id(background_id);
 
     p_teca_component_area_filter caf = teca_component_area_filter::New();
     caf->set_input_connection(ca->get_output_port());

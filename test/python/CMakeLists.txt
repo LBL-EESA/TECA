@@ -283,24 +283,26 @@ teca_add_test(py_test_tc_wind_radii_stats
 
 teca_add_test(py_test_bayesian_ar_detect_serial
     COMMAND  ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_bayesian_ar_detect.py
-    "${TECA_DATA_ROOT}/bayesian_ar_parameters.bin" "${TECA_DATA_ROOT}/prw_hus_day_MRI.*\\.nc$"
-    "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" prw "bayesian_ar_detect_py_%t%.vtk" 1 0 4
+    "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\\.nc$"
+    "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" IVT
+    "bayesian_ar_detect_py_%t%.vtk" 1 0 4
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_bayesian_ar_detect_threads
     COMMAND  ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_bayesian_ar_detect.py
-    "${TECA_DATA_ROOT}/bayesian_ar_parameters.bin" "${TECA_DATA_ROOT}/prw_hus_day_MRI.*\\.nc$"
-    "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" prw "bayesian_ar_detect_py_%t%.vtk" -1 0 4
+    "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\\.nc$"
+    "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" IVT
+    "bayesian_ar_detect_py_%t%.vtk" -1 0 4
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_bayesian_ar_detect_mpi_threads
     COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_bayesian_ar_detect.py
-    "${TECA_DATA_ROOT}/bayesian_ar_parameters.bin"
-    "${TECA_DATA_ROOT}/prw_hus_day_MRI.*\\.nc$"
-    "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" prw "bayesian_ar_detect_py_%t%.vtk"
+    "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\\.nc$"
+    "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" IVT
+    "bayesian_ar_detect_py_%t%.vtk"
     ${HALF_TEST_CORES} 0 4
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
@@ -308,7 +310,7 @@ teca_add_test(py_test_bayesian_ar_detect_mpi_threads
 teca_add_test(py_test_deeplabv3p_ar_detect
     COMMAND  ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_deeplabv3p_ar_detect.py
     "${TECA_DATA_ROOT}/cascade_deeplab_IVT.pt"
-    "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D.*\.nc$"
+    "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\.nc$"
     "${TECA_DATA_ROOT}/test_deeplabv3p_ar_detect.bin" IVT 1
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
@@ -316,8 +318,8 @@ teca_add_test(py_test_deeplabv3p_ar_detect
 teca_add_test(py_test_deeplabv3p_ar_detect_mpi
     COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} ${PYTHON_EXECUTABLE}
         ${CMAKE_CURRENT_SOURCE_DIR}/test_deeplabv3p_ar_detect.py
-       "${TECA_DATA_ROOT}/cascade_deeplab_IVT.pt"
-        "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D.*\.nc$"
+        "${TECA_DATA_ROOT}/cascade_deeplab_IVT.pt"
+        "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\.nc$"
         "${TECA_DATA_ROOT}/test_deeplabv3p_ar_detect.bin" IVT 1
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI} ${MPI4Py_FOUND}
     REQ_TECA_DATA)

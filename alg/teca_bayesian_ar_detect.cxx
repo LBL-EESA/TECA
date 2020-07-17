@@ -271,8 +271,19 @@ public:
                     prob = prob_0;
                     wvcc = wvcc_1;
 
-                    // append ar count and param table row
+                    // append ar count
+                    // don't count the background label as an ar detection.
+                    // TECA by convention uses label 0 for cells out side of
+                    // the segmentation (i.e. the background), and by
+                    // convention this is stored in the first entry.
                     int val = 0;
+                    if (md_1.get("component_ids", &val, 1))
+                    {
+                        TECA_ERROR("mesh 1 is missing component_ids")
+                        return nullptr;
+                    }
+                    int wvcc_bg = val == 0 ? 1 : 0;
+
                     if (md_1.get("number_of_components", val))
                     {
                         TECA_ERROR("mesh 1 is missing number_of_components")
@@ -280,8 +291,9 @@ public:
                     }
 
                     n_wvcc_out = n_wvcc_0->new_copy();
-                    n_wvcc_out->append(val);
+                    n_wvcc_out->append(val - wvcc_bg);
 
+                    // append param table row
                     if (md_1.get("parameter_table_row", val))
                     {
                         TECA_ERROR("mesh 1 is missing parameter_table_row")
@@ -298,20 +310,32 @@ public:
                     prob = prob_1;
                     wvcc = wvcc_0;
 
-                    // append ar count and param table row
+                    // append ar count
+                    // don't count the background label as an ar detection.
+                    // TECA by convention uses label 0 for cells out side of
+                    // the segmentation (i.e. the background), and by
+                    // convention this is stored in the first entry.
                     int val = 0;
+                    if (md_0.get("component_ids", &val, 1))
+                    {
+                        TECA_ERROR("mesh 1 is missing component_ids")
+                        return nullptr;
+                    }
+                    int wvcc_bg = val == 0 ? 1 : 0;
+
                     if (md_0.get("number_of_components", val))
                     {
-                        TECA_ERROR("mesh 1 is missing number_of_components")
+                        TECA_ERROR("mesh 0 is missing number_of_components")
                         return nullptr;
                     }
 
                     n_wvcc_out = n_wvcc_1->new_copy();
-                    n_wvcc_out->append(val);
+                    n_wvcc_out->append(val - wvcc_bg);
 
+                    // append param table row
                     if (md_0.get("parameter_table_row", val))
                     {
-                        TECA_ERROR("mesh 1 is missing parameter_table_row")
+                        TECA_ERROR("mesh 0 is missing parameter_table_row")
                         return nullptr;
                     }
 
@@ -380,7 +404,7 @@ public:
                         )
                     )
 
-                // append ar count and param table row
+                // append ar count
                 int vals[2];
                 if (md_0.get("number_of_components", vals[0]) ||
                     md_1.get("number_of_components", vals[1]))
@@ -389,8 +413,30 @@ public:
                     return nullptr;
                 }
 
+                // don't count the background label as an ar detection.
+                // TECA by convention uses label 0 for cells out side of
+                // the segmentation (i.e. the background), and by
+                // convention this is stored in the first entry.
+                int val = 0;
+                if (md_0.get("component_ids", &val, 1))
+                {
+                    TECA_ERROR("mesh 1 is missing component_ids")
+                    return nullptr;
+                }
+                int wvcc_bg = val == 0 ? 1 : 0;
+                vals[0] -= wvcc_bg;
+
+                if (md_1.get("component_ids", &val, 1))
+                {
+                    TECA_ERROR("mesh 1 is missing component_ids")
+                    return nullptr;
+                }
+                wvcc_bg = val == 0 ? 1 : 0;
+                vals[1] -= wvcc_bg;
+
                 n_wvcc_out = teca_int_array::New(vals, 2);
 
+                // append param table row
                 if (md_0.get("parameter_table_row", vals[0]) ||
                     md_1.get("parameter_table_row", vals[1]))
                 {
@@ -460,21 +506,38 @@ public:
                         )
                     )
 
-                // get ar counts and parameter table rows from metadata and
-                // pass into the information arrays
+                // get ar counts from metadata and pass into the information
+                // arrays
+                // don't count the background label as an ar detection.
+                // TECA by convention uses label 0 for cells out side of
+                // the segmentation (i.e. the background), and by
+                // convention this is stored in the first entry.
                 int val = 0;
+                if (md.get("component_ids", &val, 1))
+                {
+                    TECA_ERROR("mesh 1 is missing component_ids")
+                    return nullptr;
+                }
+                int wvcc_bg = val == 0 ? 1 : 0;
+
                 if (md.get("number_of_components", val))
                 {
                     TECA_ERROR("metadata missing number_of_components")
                     return nullptr;
                 }
+
+                val -= wvcc_bg;
+
                 n_wvcc_out = teca_int_array::New(&val, 1);
 
+                // get parameter table rows from metadata and pass into the
+                // information arrays
                 if (md.get("parameter_table_row", val))
                 {
                     TECA_ERROR("meatdata missing parameter_table_row")
                     return nullptr;
                 }
+
                 pt_row_out = teca_int_array::New(&val,1);
             }
         }

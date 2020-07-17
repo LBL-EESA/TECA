@@ -166,7 +166,7 @@ void periodic_labeler(unsigned long i0, unsigned long j0, unsigned long k0,
 /**
 given a binary segmentation(segments) and buffer(components), both
 with dimensions described by the given exent(ext), compute
-the componenting.
+the labeling.
 */
 template <typename segment_t, typename component_t>
 void label(unsigned long *ext, int periodic_in_x, int periodic_in_y,
@@ -438,6 +438,7 @@ const_p_teca_dataset teca_connected_components::execute(
     teca_metadata &omd = out_mesh->get_metadata();
     omd.set("component_ids", component_id);
     omd.set("number_of_components", num_components);
+    omd.set("background_id", short(0));
 
     return out_mesh;
 }

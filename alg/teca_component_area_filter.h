@@ -65,8 +65,12 @@ public:
     // areas
     TECA_ALGORITHM_PROPERTY(std::string, component_area_key)
 
-    // set this to be the default label id for the filtered
-    // out component areas. The default will be '0'
+    // set this to be the default label id for the filtered out component
+    // areas. This will typically correspond to the label used for cells
+    // outside of the segmentation (i.e. in the background). One can use this
+    // property to override the mask value.  The default mask value is '-1'
+    // which results in aquiring the mask value from input metadata key
+    // `background_id`. Use -2 to specify no background label.
     TECA_ALGORITHM_PROPERTY(long, mask_value)
 
     // set the range identifying values to area filter.

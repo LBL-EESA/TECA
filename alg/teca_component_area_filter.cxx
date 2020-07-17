@@ -58,7 +58,7 @@ void apply_label_map(label_t *labels, const label_t *labels_in,
 teca_component_area_filter::teca_component_area_filter() :
     component_variable(""), number_of_components_key("number_of_components"),
     component_ids_key("component_ids"), component_area_key("component_area"),
-    mask_value(0), low_area_threshold(std::numeric_limits<double>::lowest()),
+    mask_value(-1), low_area_threshold(std::numeric_limits<double>::lowest()),
     high_area_threshold(std::numeric_limits<double>::max()),
     variable_post_fix(""), contiguous_component_ids(0)
 {
@@ -92,7 +92,7 @@ void teca_component_area_filter::get_properties_description(
             "(\"component_area\")")
         TECA_POPTS_GET(int, prefix, mask_value,
             "components with area outside of the range will be replaced "
-            "by this label value (0)")
+            "by this label value (-1)")
         TECA_POPTS_GET(double, prefix, low_area_threshold,
             "set the lower end of the range of areas to pass through. "
             "components smaller than this are masked out. (-inf)")
@@ -287,6 +287,18 @@ const_p_teca_dataset teca_component_area_filter::execute(
     // get the output metadata to add results to after the filter is applied
     teca_metadata &out_metadata = out_mesh->get_metadata();
 
+    long mask_value = this->mask_value;
+    if (this->mask_value == -1)
+    {
+        if (in_metadata.get("background_id", mask_value))
+        {
+            TECA_ERROR("Metadata is missing the key \"background_id\". "
+                "One should specify it via the \"mask_value\" algorithm "
+                "property")
+            return nullptr;
+        }
+    }
+
     // apply the filter
     NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
         labels_out.get(),
@@ -327,13 +339,13 @@ const_p_teca_dataset teca_component_area_filter::execute(
                     max_id = std::max(max_id, p_ids_in[i]);
 
                 // allocate the map
-                std::vector<NT_LABEL> label_map(max_id+1, NT_LABEL(this->mask_value));
+                std::vector<NT_LABEL> label_map(max_id+1, NT_LABEL(mask_value));
 
                 // construct the map from input label to output label.
                 // removing a lable from the output ammounts to applying
                 // the mask value to the labels
                 ::build_label_map(p_ids_in, p_areas, n_ids_in,
-                        low_val, high_val, NT_LABEL(this->mask_value),
+                        low_val, high_val, NT_LABEL(mask_value),
                         label_map, ids_out, areas_out);
 
                 // use the map to mask out removed labels
@@ -347,7 +359,7 @@ const_p_teca_dataset teca_component_area_filter::execute(
                 // removing a lable from the output ammounts to applying
                 // the mask value to the labels
                 ::build_label_map(p_ids_in, p_areas, n_ids_in,
-                        low_val, high_val, NT_LABEL(this->mask_value),
+                        low_val, high_val, NT_LABEL(mask_value),
                         label_map, ids_out, areas_out);
 
                 // use the map to mask out removed labels
@@ -359,6 +371,7 @@ const_p_teca_dataset teca_component_area_filter::execute(
             out_metadata.set(this->number_of_components_key + this->variable_post_fix, ids_out.size());
             out_metadata.set(this->component_ids_key + this->variable_post_fix, ids_out);
             out_metadata.set(this->component_area_key + this->variable_post_fix, areas_out);
+            out_metadata.set("background_id" + this->variable_post_fix, mask_value);
 
             // pass the threshold values used
             out_metadata.set("low_area_threshold_km", low_val);

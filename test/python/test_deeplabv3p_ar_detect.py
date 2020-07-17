@@ -30,7 +30,6 @@ n_threads = int(sys.argv[5])
 
 cf_reader = teca_cf_reader.New()
 cf_reader.set_files_regex(mesh_data_regex)
-cf_reader.set_t_axis_variable("")
 cf_reader.set_periodic_in_x(1)
 
 deeplabv3p_ar_detect = teca_deeplabv3p_ar_detect.New()
