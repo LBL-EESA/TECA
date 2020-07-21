@@ -150,7 +150,7 @@ int teca_cf_time_step_mapper::free_file_comms()
 // --------------------------------------------------------------------------
 int teca_cf_time_step_mapper::get_file_id(long time_step, long &file_id)
 {
-    file_id = time_step/this->n_time_steps_per_file;
+    file_id = (time_step - this->start_time_step)/this->n_time_steps_per_file;
     return 0;
 }
 
@@ -158,7 +158,7 @@ int teca_cf_time_step_mapper::get_file_id(long time_step, long &file_id)
 p_teca_cf_layout_manager teca_cf_time_step_mapper::get_layout_manager(
     long time_step)
 {
-    long file_id = time_step/this->n_time_steps_per_file;
+    long file_id = (time_step - this->start_time_step)/this->n_time_steps_per_file;
     file_table_t::iterator it = this->file_table.find(file_id);
     if (it == this->file_table.end())
     {
@@ -259,7 +259,7 @@ int teca_cf_time_step_mapper::initialize(MPI_Comm comm, long first_step,
     file_ranks_i.reserve(n_ranks);
     for (long i = 0; i < this->n_files; ++i)
     {
-        long file_time_step_0 = i*this->n_time_steps_per_file;
+        long file_time_step_0 = first + i*this->n_time_steps_per_file;
         long file_time_step_1 = file_time_step_0 + this->n_time_steps_per_file - 1;
 
         file_ranks_i.clear();
@@ -305,7 +305,7 @@ int teca_cf_time_step_mapper::initialize(MPI_Comm comm, long first_step,
             long n_steps = first_step + this->n_time_steps_per_file > this->n_time_steps ?
                 this->n_time_steps - first_step : this->n_time_steps_per_file;
 
-            this->file_table[i] = teca_cf_layout_manager::New(comm_i, i, first_step, n_steps);
+            this->file_table[i] = teca_cf_layout_manager::New(comm_i, i, first + first_step, n_steps);
         }
     }
 
