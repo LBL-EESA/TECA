@@ -22,9 +22,9 @@ set -x
 # run the app
 ${launcher} ${app_prefix}/teca_tc_detect                              \
     --input_regex "${data_root}/test_tc_candidates_1990_07_0[12]\.nc" \
-    --candidate_file test_tc_candidates_app_output.bin                \
-    --track_file test_tc_track_app_output.bin                         \
-    --lowest_lat -20 --highest_lat 20 --n_threads 1
+    --first_step 0 --last_step 3 --lowest_lat -20 --highest_lat 20    \
+    --n_threads 1 --candidate_file test_tc_candidates_app_output.bin  \
+    --track_file test_tc_track_app_output.bin
 
 # run the diff
 ${app_prefix}/teca_table_diff                                         \
