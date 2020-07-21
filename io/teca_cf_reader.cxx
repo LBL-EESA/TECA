@@ -872,6 +872,40 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
                     time_atts.set("calendar", cal);
                     atrs.set(t_axis_variable, time_atts);
+
+                }
+
+                // override the calendar and units if given
+                if (!this->t_calendar.empty() || !this->t_units.empty())
+                {
+                    teca_metadata time_atts;
+                    if (!this->t_calendar.empty())
+                        time_atts.set("calendar", this->t_calendar);
+                    if (!this->t_units.empty())
+                        time_atts.set("units", this->t_units);
+
+                    // override the time and calendar units
+                    atrs.set("time", time_atts);
+                }
+                
+                // override the time values if given
+                if (!this->t_values.empty())
+                {
+                    size_t n_t_vals = this->t_values.size();
+                    if (n_t_vals != t_axis->size())
+                    {
+                        TECA_ERROR("Number of timesteps detected doesn't"
+                            " match the number of time values provided; " 
+                            << n_t_vals << " given, " << t_axis->size() << 
+                            " detected.")
+                        return teca_metadata();
+                    }
+
+                    p_teca_variant_array_impl<double> t =
+                        teca_variant_array_impl<double>::New(
+                                this->t_values.data(), n_t_vals);
+
+                    t_axis = t;
                 }
             }
             else if (!this->t_values.empty())
@@ -888,7 +922,8 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 if (n_t_vals != files.size())
                 {
                     TECA_ERROR("Number of files choosen doesn't match the"
-                        " number of time values provided")
+                        " number of time values provided; " << n_t_vals <<
+                        " given, " << files.size() << " detected.")
                     return teca_metadata();
                 }
 
@@ -899,7 +934,8 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 atrs.set("time", time_atts);
 
                 p_teca_variant_array_impl<double> t =
-                    teca_variant_array_impl<double>::New(this->t_values.data(), n_t_vals);
+                    teca_variant_array_impl<double>::New(
+                            this->t_values.data(), n_t_vals);
 
                 step_count.resize(n_t_vals, 1);
 
