@@ -97,7 +97,7 @@ int index_of(const data_t *data, unsigned long l, unsigned long r,
         return 0;
     }
     else
-    if (val < data[m_0])
+    if (bracket_t::comp1_t::eval(val, data[m_0]))
     {
         // split range to the left
         return teca_coordinate_util::index_of<data_t, bracket_t>(
