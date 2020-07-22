@@ -6,6 +6,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <sys/stat.h>
 
 class teca_binary_stream;
 
@@ -24,11 +25,12 @@ namespace teca_file_util
 int read_stream(const char *file_name, const char *header,
     teca_binary_stream &stream, bool verbose=true);
 
-// write the stream to the file. the header is prepended to the
-// file. return zero upon success. The verbose flag indicates
-// whether or not an error is reported if creating the file
-// fails. All other errors are reported.
-int write_stream(const char *file_name, const char *header,
+// write the stream to the file. the passed in flags control file access, a
+// reasonable value is S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH. the header is prepended
+// to the file. return zero upon success. The verbose flag indicates whether or
+// not an error is reported if creating the file fails. All other errors are
+// reported.
+int write_stream(const char *file_name, int flags, const char *header,
     const teca_binary_stream &stream, bool verbose=true);
 
 // replace %t% with the given value

@@ -52,7 +52,8 @@ int write_bin(const_p_teca_table table, const std::string &file_name)
     teca_binary_stream bs;
     table->to_stream(bs);
 
-    if (teca_file_util::write_stream(file_name.c_str(), "teca_table", bs))
+    if (teca_file_util::write_stream(file_name.c_str(),
+        S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH, "teca_table", bs))
     {
         TECA_ERROR("Failed to write \"" << file_name << "\"")
         return -1;

@@ -1022,6 +1022,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     metadata_cache_path[i] + PATH_SEP + metadata_cache_key + ".tmd";
 
                 if (!teca_file_util::write_stream(metadata_cache_file.c_str(),
+                    S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH,
                     "teca_cf_reader::metadata_cache_file", stream, false))
                 {
                     cached_metadata = true;
