@@ -353,3 +353,13 @@ teca_add_test(py_test_cf_writer_collective_mpi
 teca_add_test(py_test_config
     COMMAND ${PYTHON_EXECUTABLE}
     "${CMAKE_CURRENT_SOURCE_DIR}/test_config.py")
+
+teca_add_test(py_test_thread_parameters_serial
+    COMMAND ${PYTHON_EXECUTABLE}
+    "${CMAKE_CURRENT_SOURCE_DIR}/test_thread_parameters.py")
+
+teca_add_test(py_test_thread_parameters_mpi
+    COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} ${PYTHON_EXECUTABLE}
+    "${CMAKE_CURRENT_SOURCE_DIR}/test_thread_parameters.py"
+    FEATURES ${MPI4Py_FOUND})
+

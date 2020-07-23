@@ -1,4 +1,4 @@
-#include "teca_thread_pool.h"
+#include "teca_thread_util.h"
 
 #if defined(_GNU_SOURCE)
 #include <cstring>
@@ -6,10 +6,15 @@
 #include <cstdint>
 #include <sstream>
 #include <iomanip>
+#include <functional>
+#include <limits>
+#include <thread>
+#include <vector>
 #endif
 
-namespace internal
+namespace teca_thread_util
 {
+
 #if defined(_GNU_SOURCE)
 struct closest_core
 {
@@ -100,7 +105,7 @@ int detect_cpu_topology(int &n_threads, int &n_threads_per_core)
 
     // check if topology leaf is supported on this processor.
     uint64_t ra = 0, rb = 0, rc = 0, rd = 0;
-    if (internal::cpuid(0, 0, ra, rb, rc, rd) || (ra < 0xb))
+    if (teca_thread_util::cpuid(0, 0, ra, rb, rc, rd) || (ra < 0xb))
         return -1;
 
     // this is all Intel specific, AMD uses a different leaf in cpuid
@@ -108,7 +113,7 @@ int detect_cpu_topology(int &n_threads, int &n_threads_per_core)
     uint64_t level = 0;
     do
     {
-        internal::cpuid(0xb, level, ra, rb, rc, rd);
+        teca_thread_util::cpuid(0xb, level, ra, rb, rc, rd);
         n_threads = ((rc&0x0ff00) == 0x200) ? (0xffff&rb) : n_threads;
         n_threads_per_core = ((rc&0x0ff00) == 0x100) ? (0xffff&rb) : n_threads_per_core;
         level += 1;
@@ -266,18 +271,44 @@ int generate_report(MPI_Comm comm, int local_proc, int base_id,
 
     return 0;
 }
+#endif
 
 // **************************************************************************
-int thread_parameters(MPI_Comm comm, int base_core_id, int n_req,
-    bool bind, bool verbose, std::deque<int> &affinity)
+int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
+    bool bind, bool verbose, int &n_threads, std::deque<int> &affinity)
 {
-    std::vector<int> base_core_ids;
+    // initialize to the user provided value. This will be used if
+    // the functions needed to set affinity are not present. In that
+    // case we set n_threads to 1 and report the failure.
+    n_threads = n_requested;
 
-    int n_threads = n_req;
+#if !defined(_GNU_SOURCE)
+    // functions we need to set thread affinity are not available on this
+    // platform. Set 1 thread per rank and if the caller asked us to return the error.
+    (void)bind;
+    (void)verbose;
+    (void)comm;
+    (void)base_core_id;
+    (void)affinity;
+    if (n_requested < 1)
+    {
+        TECA_WARNING("Cannot autmatically detect threading parameters "
+            "on this platform. The default is 1 thread per process.")
+        n_threads = 1;
+    }
+    return -1;
+#else
+    // get the core that this rank's main thread is running on. typically MPI
+    // ranks land on unqiue cores but if needed one can use the batch system to
+    // explicitly bind ranks to unique cores
+    if (base_core_id < 0)
+        base_core_id = sched_getcpu();
 
     // get the number of MPI ranks on this node, and their core id's
     int n_procs = 1;
     int proc_id = 0;
+
+    std::vector<int> base_core_ids;
 
 #if defined(TECA_HAS_MPI)
     int is_init = 0;
@@ -310,7 +341,7 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_req,
     // get the number of cores on this cpu
     int threads_per_chip = 1;
     int hw_threads_per_core = 1;
-    if (internal::detect_cpu_topology(threads_per_chip, hw_threads_per_core))
+    if (teca_thread_util::detect_cpu_topology(threads_per_chip, hw_threads_per_core))
     {
         TECA_WARNING("failed to detect cpu topology. Assuming "
             << threads_per_chip/hw_threads_per_core << " physical cores.")
@@ -320,10 +351,10 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_req,
 
     // thread pool size is based on core and process count
     int nlg = 0;
-    if (n_req > 0)
+    if (n_requested > 0)
     {
         // user specified override
-        n_threads = n_req;
+        n_threads = n_requested;
     }
     else
     {
@@ -338,7 +369,7 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_req,
         if (verbose)
             TECA_STATUS("thread to core binding disabled")
 
-        return n_threads;
+        return 0;
     }
 
     // track which threads/cores are in use
@@ -372,12 +403,12 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_req,
     for (int i = 0; i <= proc_id; ++i)
     {
         int proc_base = base_core_ids[i];
-        int proc_n_threads = n_req > 0 ? n_req : cores_per_node/n_procs + (i < nlg ? 1 : 0);
+        int proc_n_threads = n_requested > 0 ? n_requested : cores_per_node/n_procs + (i < nlg ? 1 : 0);
         for (int j = 0; j < proc_n_threads; ++j)
         {
             // scan for empty core
-            int q = select(cores_per_node, core_use, false,
-                closest_core(proc_base, cores_per_node));
+            int q = teca_thread_util::select(cores_per_node,
+                core_use, false, closest_core(proc_base, cores_per_node));
 
             if (q < cores_per_node)
             {
@@ -405,8 +436,9 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_req,
                 // hyperthread assigned. find the first empty hyperthread on
                 // any core. if that fails then find the least used hyperthread.
                 // if this for us record the id for later use
-                int q = select(threads_per_node, thread_use, false,
-                    closest_hyperthread(proc_base, cores_per_node));
+                int q = teca_thread_util::select(threads_per_node,
+                    thread_use, false, closest_hyperthread(proc_base,
+                    cores_per_node));
 
                 if (q >= threads_per_node)
                     q = select(threads_per_node, thread_use, true,
@@ -430,8 +462,8 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_req,
 
     if (verbose)
         generate_report(comm, proc_id, base_core_id, affinity);
-
-    return n_threads;
-}
 #endif
+    return 0;
+}
+
 }

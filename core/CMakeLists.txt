@@ -16,7 +16,7 @@ set(teca_core_srcs
     teca_mpi_manager.cxx
     teca_parallel_id.cxx
     teca_threaded_algorithm.cxx
-    teca_thread_pool.cxx
+    teca_thread_util.cxx
     teca_profiler.cxx
     teca_variant_array.cxx
     )
