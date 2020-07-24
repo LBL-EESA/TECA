@@ -708,6 +708,8 @@ struct calendar_util
 static
 PyObject *date(double offset, const char *units, const char *calendar)
 {
+    teca_py_gil_state gil;
+
     int year = -1;
     int month = -1;
     int day = -1;
@@ -734,6 +736,8 @@ static
 PyObject *is_leap_year(const char *calendar, const char *units,
     int year)
 {
+    teca_py_gil_state gil;
+
     int leap = 0;
     if (calcalcs::is_leap_year(calendar, units, year, leap))
     {
@@ -750,6 +754,8 @@ static
 PyObject *days_in_month( const char *calendar, const char *units,
                    int year, int month)
 {
+    teca_py_gil_state gil;
+
     int dpm = 0;
     if (calcalcs::days_in_month(calendar, units, year, month, dpm))
     {
@@ -778,6 +784,8 @@ static
 PyObject *thread_parameters(MPI_Comm comm,
     int n_requested, int bind, int verbose)
 {
+    teca_py_gil_state gil;
+
     std::deque<int> affinity;
     int n_threads = n_requested;
     if (teca_thread_util::thread_parameters(comm, -1,
