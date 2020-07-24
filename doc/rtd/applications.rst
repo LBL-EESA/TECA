@@ -771,4 +771,72 @@ Example
     teca_deeplabv3p_ar_detect                                        \
         --input_regex "${data_dir}/ARTMIP_MERRA_2D_2017-05.*\.nc$"   \
         --pytorch_deeplab_model ${model_dir}/cascade_deeplab_IVT.pt  \
-        --output_file test_deeplabv3p_ar_detect_app_output_%t%.nc
+
+Bayesian - BARD
+---------------
+The Bayesian AR detection (TECA-BARD) application is an MPI+threads parallel
+code that applies an uncertainty inference on a range of input fields, mainly
+Integrated Vapor Transport (IVT) and Integrated Water Vapor (IWV).
+We use a Bayesian framework to sample from the set of AR detector parameters
+that yield AR counts similar to the expert database of AR counts; this yields
+a set of plausible AR detectors from which we can assess quantitative uncertainty.
+
+Command Line Arguments
+~~~~~~~~~~~~~~~~~~~~~~
+The most common command line options are:
+
+--input_regex INPUT_REGEX
+    regex matching the desired set of input NetCDF CF2 files
+
+--output_file OUTPUT_FILE
+    file pattern for writing output netcdf files. %t% will be replaced by a
+    date/time string or time step. See the teca_cf_writer for more information.
+
+--ivt IVT_VARIABLE
+    name of variable with integrated vapor transport (IVT).
+
+--n_threads N_THREADS
+    number of threads used in PyTorch for parallelizing intra CPU operations.
+
+--binary_ar_threshold THRESHOLD
+    probability threshold for segmenting AR probabilities.
+
+--filename_time_template TEMPLATE
+    An optional way to read time template information from input filenames
+
+--compression_level COMPRESSION_LEVEL
+    the compression level used for each variable.
+
+--date_format DATE_FORMAT
+    the format for the date to write in the filename
+
+--first_step FIRST_STEP
+    first time step to process.
+
+--last_step LAST_STEP
+    last time step to process.
+
+--steps_per_file STEPS_PER_FILE
+    number of time steps to write to each output file.
+
+--start_date START_DATE
+    an optional way to further specify the time range to process. The accepted
+    format is a CF style human readable date spec such as YYYY-MM-DD hh:mm:ss.
+    Because of the space in between day and hour spec quotes must be used. For
+    example "2005-01-01 00:00:00". Specifying a start date is optional, if
+    none is given then all of the time steps in all of the files specified in
+    the `--input_regex` are processed.
+
+--end_date END_DATE
+    see `--start_date`. this is has a similar purpose in restricting
+    the range of time steps processed.
+
+--periodic_in_x FLAG
+    Flags whether the x dimension (typically longitude) is periodic.
+
+Example
+~~~~~~~
+.. code-block:: bash
+
+    teca_bayesian_ar_detect --n_threads 1                            \
+        --input_regex "${data_dir}/ARTMIP_MERRA_2D_2017-05.*\.nc$"   \
