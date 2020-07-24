@@ -311,16 +311,24 @@ teca_add_test(py_test_deeplabv3p_ar_detect_serial
     COMMAND  ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_deeplabv3p_ar_detect.py
     "${TECA_DATA_ROOT}/cascade_deeplab_IVT.pt"
     "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\.nc$"
-    "${TECA_DATA_ROOT}/test_deeplabv3p_ar_detect.bin" IVT 1
+    "${TECA_DATA_ROOT}/test_deeplabv3p_ar_detect" IVT 1
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
-teca_add_test(py_test_deeplabv3p_ar_detect_mpi
+teca_add_test(py_test_deeplabv3p_ar_detect_threads
+    COMMAND  ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_deeplabv3p_ar_detect.py
+    "${TECA_DATA_ROOT}/cascade_deeplab_IVT.pt"
+    "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\.nc$"
+    "${TECA_DATA_ROOT}/test_deeplabv3p_ar_detect" IVT -1
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(py_test_deeplabv3p_ar_detect_mpi_threads
     COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} ${PYTHON_EXECUTABLE}
         ${CMAKE_CURRENT_SOURCE_DIR}/test_deeplabv3p_ar_detect.py
         "${TECA_DATA_ROOT}/cascade_deeplab_IVT.pt"
         "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\.nc$"
-        "${TECA_DATA_ROOT}/test_deeplabv3p_ar_detect.bin" IVT 1
+        "${TECA_DATA_ROOT}/test_deeplabv3p_ar_detect" IVT -1
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI} ${MPI4Py_FOUND}
     REQ_TECA_DATA)
 
