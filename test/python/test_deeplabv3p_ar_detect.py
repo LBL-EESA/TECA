@@ -38,7 +38,7 @@ deeplabv3p_ar_detect.set_input_connection(
     cf_reader.get_output_port())
 
 deeplabv3p_ar_detect.set_variable_name(water_vapor_var)
-deeplabv3p_ar_detect.set_num_threads(n_threads)
+deeplabv3p_ar_detect.set_thread_pool_size(n_threads)
 deeplabv3p_ar_detect.build_model(deeplab_model)
 
 if os.path.exists(baseline_mesh):

@@ -22,6 +22,7 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
         self.model = None
         self.model_path = None
         self.device = 'cpu'
+        self.threads_per_core = 1
 
     def __str__(self):
         ms_str = 'variable_name=%s, pred_name=%s\n' % (
@@ -29,7 +30,7 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
         ms_str += 'model=%s\n' % (str(self.model))
         ms_str += 'model_path=%s\n' % (self.model_path)
         ms_str += 'device=%s\n' % (str(self.device))
-        ms_str += 'torch_num_threads=%d\n' % (self.get_num_threads())
+        ms_str += 'thread pool size=%d\n' % (self.get_thread_pool_size())
         ms_str += 'hostname=%s, pid=%s' % (
                   socket.gethostname(), os.getpid())
 
@@ -79,19 +80,68 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
     def output_postprocess(self, output_data):
         return output_data
 
+    def set_threads_per_core(self, threads_per_core):
         """
+        Set the number of threds per core. Typically 1 gives the best
+        performance for CPU bound applicaitons, however 2 can sometimes
+        be useful. More than 2 will likeley harm performance.
         """
+        if threads_per_core > 4:
+            raise ValueError('Using more than 2 threads per phyiscal core '
+                             'will degrade performance on most architectures.')
+        self.threads_per_core = threads_per_core
 
+    def set_thread_pool_size(self, n_requested):
         """
-        torch: Sets the number of threads used for intra-op parallelism on CPU
+        Sets the number of threads used for intra-op parallelism on CPU
         """
-        # n=-1: use default
-        if n != -1:
-            torch.set_num_threads(n)
+        if n_requested > 0:
+            # pass to torch
+            torch.set_num_threads(n_requested)
 
-    def get_num_threads(self):
+        else:
+
+            # detemrmine the number of physical cores are available
+            # on this node, accounting for all MPI ranks scheduled to
+            # run here.
+            rank = 0
+            n_ranks = 1
+            comm = self.get_communicator()
+            if teca_py.get_teca_has_mpi():
+                rank = comm.Get_rank()
+                n_ranks = comm.Get_size()
+
+            try:
+                n_threads, affinity = \
+                     teca_py.thread_util.thread_parameters(comm, -1, 0, 0)
+
+                # make use of hyper-threads
+                n_threads *= self.threads_per_core
+
+                # pass to torch
+                torch.set_num_threads(n_threads)
+
+            except(RuntimeError):
+                # we failed to detect the number of physical cores per MPI rank
+                # if this is an MPI job then fall back to 2 threads per rank and
+                # if not let torch use all (what happens when you do nothing)
+                n_threads = -1
+                comm = self.get_communicator()
+                if teca_py.get_teca_has_mpi() and comm.Get_size() > 1:
+                    torch.set_num_threads(2)
+                    n_threads = 2
+                else:
+                    pass
+                if rank == 0:
+                   sys.stderr.write('STATUS: Failed to determine the number of'
+                                    ' physical cores available per MPI rank.'
+                                    ' using %d threads per MPI rank.\n'%(
+                                        n_threads))
+
+
+    def get_thread_pool_size(self):
         """
-        torch: Gets the number of threads available for intra-op parallelism on CPU
+        Gets the number of threads available for intra-op parallelism on CPU
         """
         return torch.get_num_threads()
 
