@@ -301,14 +301,14 @@ class DeepLabv3_plus(nn.Module):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
 
-# End of DeepLabv3_plus implementation
 
 
 class teca_deeplabv3p_ar_detect(teca_py.teca_model_segmentation):
     """
-    This algorithm detects Atmospheric Rivers using the DeepLabv3+
-    architecture. Given an input field of integrated vapor transport,
-    it calculates the probability of AR presence at each gridcell.
+    This algorithm detects Atmospheric Rivers using deep learning techniques
+    derived from the DeepLabv3+ architecture. Given an input field of
+    integrated vapor transport (IVT), it calculates the probability of an AR
+    event and stores it in a new scalar field named 'ar_probability'.
     """
     def __init__(self):
         super().__init__()
@@ -405,7 +405,7 @@ class teca_deeplabv3p_ar_detect(teca_py.teca_model_segmentation):
         model.load_state_dict(state_dict_deeplab)
 
         self.set_model(model)
-        self.torch_inference_fn = torch.sigmoid
+        self.inference_function = torch.sigmoid
 
     def report(self, port, md_in):
         """

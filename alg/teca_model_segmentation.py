@@ -18,9 +18,7 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
         self.pred_name = None
         self.var_array = None
         self.pred_array = None
-        self.torch_inference_fn = None
-        self.transform_fn = None
-        self.transport_fn_args = None
+        self.inference_function = None
         self.model = None
         self.model_path = None
         self.device = 'cpu'
@@ -69,11 +67,11 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
         """
         self.pred_name = name
 
-    def set_torch_inference_fn(self, torch_fn):
+    def set_inference_function(self, fn):
         """
-        set the final torch inference function. ex. torch.sigmoid()
+        set the final inference function. ex. torch.sigmoid()
         """
-        self.torch_inference_fn = torch_fn
+        self.inference_function = fn
 
     def input_preprocess(self, input_data):
         return input_data
@@ -81,29 +79,9 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
     def output_postprocess(self, output_data):
         return output_data
 
-    def __set_transform_fn(self, fn, *args):
         """
-        if the data need to be transformed in a way then a function
-        could be provided to be applied on the requested data before
-        running it to the model.
         """
-        if not hasattr(fn, '__call__'):
-            raise TypeError(
-                "ERROR: The provided data transform function"
-                "is not a function"
-                )
 
-        if not args:
-            raise ValueError(
-                "ERROR: The provided data transform function "
-                "must at least have 1 argument -- the data array object to "
-                "apply the transformation on."
-                )
-
-        self.transform_fn = fn
-        self.transport_fn_args = args
-
-    def set_num_threads(self, n):
         """
         torch: Sets the number of threads used for intra-op parallelism on CPU
         """
@@ -122,10 +100,8 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
         Set device to either 'cuda' or 'cpu'
         """
         if device[:4] == "cuda" and not torch.cuda.is_available():
-            raise AttributeError(
-                "ERROR: Couldn\'t set device to cuda, cuda is "
-                "not available"
-                )
+            raise RuntimeError('Failed to set device to CUDA. '
+                                 'CUDA is not available')
 
         self.device = device
 
@@ -148,7 +124,7 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
 
     def request(self, port, md_in, req_in):
         if not self.variable_name:
-            raise ValueError("No variable to request specifed")
+            raise RuntimeError("No variable to request specifed")
 
         req = teca_py.teca_metadata(req_in)
 
@@ -180,40 +156,30 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
         in_mesh = teca_py.as_teca_cartesian_mesh(data_in[0])
 
         if in_mesh is None:
-            raise ValueError("ERROR: empty input, or not a mesh")
+            raise RuntimeError('empty input, or not a mesh')
 
         if self.model is None:
-            raise ValueError(
-                "ERROR: pretrained model has not been specified"
-                )
+            raise RuntimeError('A pretrained model has not been specified')
 
         if self.variable_name is None:
-            raise ValueError(
-                "ERROR: data variable name has not been specified"
-                )
+            raise RuntimeError('variable_name has not been specified')
 
         if self.var_array is None:
-            raise ValueError(
-                "ERROR: data variable array has not been set"
-                )
+            raise RuntimeError('data variable array has not been set')
 
-        if self.torch_inference_fn is None:
-            raise ValueError(
-                "ERROR: final torch inference layer"
-                "has not been set"
-                )
+        if self.inference_function is None:
+            raise RuntimeError('The inference function has not been set')
 
         self.var_array = self.input_preprocess(self.var_array)
 
         self.var_array = torch.from_numpy(self.var_array).to(self.device)
 
         with torch.no_grad():
-            self.pred_array = self.torch_inference_fn(
-                self.model(self.var_array)
-            )
+            self.pred_array = \
+                self.inference_function(self.model(self.var_array))
 
         if self.pred_array is None:
-            raise Exception("ERROR: Model failed to get predictions")
+            raise RuntimeError("Model failed to get predictions")
 
         self.pred_array = self.output_postprocess(self.pred_array)
 
