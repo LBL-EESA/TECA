@@ -23,6 +23,7 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
         self.model_path = None
         self.device = 'cpu'
         self.threads_per_core = 1
+        self.verbose = 0
 
     def __str__(self):
         ms_str = 'variable_name=%s, pred_name=%s\n' % (
@@ -53,6 +54,13 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
         sd = comm.bcast(sd, root=0)
 
         return sd
+
+    def set_verbose(self, val):
+        """
+        Set the verbosity of the run, higher values will result in more
+        terminal output
+        """
+        self.verbose = val
 
     def set_variable_name(self, name):
         """
@@ -95,22 +103,22 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
         """
         Sets the number of threads used for intra-op parallelism on CPU
         """
+        rank = 0
+        n_ranks = 1
+        comm = self.get_communicator()
+        if teca_py.get_teca_has_mpi():
+            rank = comm.Get_rank()
+            n_ranks = comm.Get_size()
+
+        n_threads = n_requested
+
         if n_requested > 0:
-            # pass to torch
+            # pass directly to torch
             torch.set_num_threads(n_requested)
-
         else:
-
             # detemrmine the number of physical cores are available
             # on this node, accounting for all MPI ranks scheduled to
             # run here.
-            rank = 0
-            n_ranks = 1
-            comm = self.get_communicator()
-            if teca_py.get_teca_has_mpi():
-                rank = comm.Get_rank()
-                n_ranks = comm.Get_size()
-
             try:
                 n_threads, affinity = \
                      teca_py.thread_util.thread_parameters(comm, -1, 0, 0)
@@ -134,10 +142,20 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
                     pass
                 if rank == 0:
                    sys.stderr.write('STATUS: Failed to determine the number of'
-                                    ' physical cores available per MPI rank.'
-                                    ' using %d threads per MPI rank.\n'%(
-                                        n_threads))
+                                    ' physical cores available per MPI rank.')
 
+        # print a report describing the load balancing decisions
+        if self.verbose:
+            if teca_py.get_teca_has_mpi():
+                thread_map = comm.gather(n_threads, root=0)
+            else:
+                thread_map = [n_threads]
+            if rank == 0:
+                sys.stderr.write('STATUS: model_segmentation thread '
+                                 'parameters :\n')
+                for i in range(n_ranks):
+                    sys.stderr.write('  %d : %d\n'%(i, thread_map[i]))
+                sys.stderr.flush()
 
     def get_thread_pool_size(self):
         """
