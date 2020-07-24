@@ -781,6 +781,12 @@ We use a Bayesian framework to sample from the set of AR detector parameters
 that yield AR counts similar to the expert database of AR counts; this yields
 a set of plausible AR detectors from which we can assess quantitative uncertainty.
 
+TECA-BARD is described in the following article:
+
+O’Brien, T. A., and Coauthors, 2020: Detection of Atmospheric Rivers with
+Inline Uncertainty Quantification: TECA-BARD v1.0. Geosci. Model Dev. Discuss.,
+In Review, https://doi.org/10.5194/gmd-2020-55
+
 Command Line Arguments
 ~~~~~~~~~~~~~~~~~~~~~~
 The most common command line options are:
@@ -840,3 +846,45 @@ Example
 
     teca_bayesian_ar_detect --n_threads 1                            \
         --input_regex "${data_dir}/ARTMIP_MERRA_2D_2017-05.*\.nc$"   \
+        --output_file test_deeplabv3p_ar_detect_app_output_%t%.nc
+
+Parallel Example
+~~~~~~~~~~~~~~~~
+
+The following example documents SLURM script that was used to generate output
+used by O'Brien et al. (see citation above).  This used 1520 nodes, and
+simultaneously ran 1,024 AR detectors on the 37 years of the MERRA-2 reanalysis
+in approximately 2 minutes on the Cori KNL supercomputer at NERSC:
+
+.. code-block:: bash
+
+   #!/bin/bash
+  #SBATCH -J bard_merra2
+  #SBATCH -N 1520
+  #SBATCH -C knl
+  #SBATCH -q regular
+  #SBATCH -t 00:20:00
+
+  WORKDIR=$SCRATCH/teca_bard_merra2_artmip
+  mkdir -p ${WORKDIR}
+  cd $WORKDIR
+
+  module load teca/develop_haswell
+  HDF5_USE_FILE_LOCKING=FALSE
+
+  for year in `seq 1980 2017`
+  do
+      echo "Starting ${year}"
+      srun -n 680 -c 16 -N 40 --cpu_bind=cores teca_bayesian_ar_detect \
+          --input_regex "/global/project/projectdirs/m1517/cascade/external_datasets/ARTMIP/MERRA_2D/${year}/ARTMIP_MERRA_2D_.*\.nc" \
+          --cf_reader::t_axis_variable "" \
+          --cf_reader::filename_time_template  "ARTMIP_MERRA_2D_%Y%m%d_%H.nc" \
+          --steps_per_file 3000 \
+          --cf_writer::date_format "%Y" \
+          --output_file MERRA2.ar_tag.teca_bard_v1.0.3hourly.%t%.nc4 &> bard_${year}_${SLURM_JOB_ID}.log &
+  done
+
+  wait
+  echo "All done."
+
+
