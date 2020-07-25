@@ -31,6 +31,7 @@ last_step = int(sys.argv[7])
 
 if (rank == 0):
     sys.stderr.write('Testing on %d MPI processes %d threads\n'%(n_ranks, n_threads))
+    sys.stderr.flush()
 
 # create the pipeline
 parameter_table = teca_bayesian_ar_detect_parameters.New()
@@ -40,6 +41,7 @@ mesh_data_reader.set_files_regex(mesh_data_regex)
 #mesh_data_reader.set_periodic_in_x(1)
 
 ar_detect = teca_bayesian_ar_detect.New()
+ar_detect.set_verbose(1)
 ar_detect.set_input_connection(0, parameter_table.get_output_port())
 ar_detect.set_input_connection(1, mesh_data_reader.get_output_port())
 ar_detect.set_water_vapor_variable(water_vapor_var)
@@ -71,7 +73,7 @@ map_reduce = teca_table_reduce.New()
 map_reduce.set_input_connection(cs.get_output_port())
 map_reduce.set_start_index(first_step)
 map_reduce.set_end_index(last_step)
-map_reduce.set_verbose(1)
+map_reduce.set_verbose(0)
 map_reduce.set_thread_pool_size(1)
 
 # sort results in time
@@ -91,7 +93,8 @@ if os.path.exists(baseline_table):
 else:
     # make a baseline
     if rank == 0:
-        sys.stdout.write('generating baseline image ' + baseline_table + '\n')
+        sys.stderr.write('generating baseline image ' + baseline_table + '\n')
+        sys.stderr.flush()
 
     tts = teca_table_to_stream.New()
     tts.set_input_connection(sort.get_output_port())
