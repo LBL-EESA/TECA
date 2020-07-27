@@ -27,16 +27,9 @@ public:
     // set the name of the the arrays involved in integration
     TECA_ALGORITHM_PROPERTY(std::string, long_name)
     TECA_ALGORITHM_PROPERTY(std::string, units)
-    TECA_ALGORITHM_PROPERTY(std::string, hybrid_a_variable)
-    TECA_ALGORITHM_PROPERTY(std::string, hybrid_b_variable)
-    TECA_ALGORITHM_PROPERTY(std::string, sigma_variable)
-    TECA_ALGORITHM_PROPERTY(std::string, surface_p_variable)
-    TECA_ALGORITHM_PROPERTY(std::string, p_top_variable)
+    TECA_ALGORITHM_PROPERTY(std::string, pressure_level_variable)
     TECA_ALGORITHM_PROPERTY(std::string, integration_variable)
     TECA_ALGORITHM_PROPERTY(std::string, output_variable_name)
-    // set whether the vertical coordinate is hybrid or sigma
-    TECA_ALGORITHM_PROPERTY(int, using_hybrid)
-    TECA_ALGORITHM_PROPERTY(float, p_top_override_value)
 
 protected:
     teca_vertical_integral();
@@ -45,15 +38,9 @@ private:
 
     std::string long_name;
     std::string units;
-    std::string hybrid_a_variable;
-    std::string hybrid_b_variable;
-    std::string sigma_variable;
-    std::string surface_p_variable;
-    std::string p_top_variable;
+    std::string pressure_level_variable;
     std::string integration_variable;
     std::string output_variable_name;
-    int using_hybrid = true;
-    float p_top_override_value = -1;
 
     std::vector<teca_metadata> get_upstream_request(
         unsigned int port, const std::vector<teca_metadata> &input_md,

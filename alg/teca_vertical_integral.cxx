@@ -21,7 +21,7 @@
 
 // 1/gravity - s^2/m
 template <typename num_t>
-constexpr num_t neg_one_over_g() {return num_t(-1.0)/num_t(9.81); } 
+constexpr num_t neg_one_over_g() {return num_t(-1.0)/num_t(9.806); } 
 
 /* 
  * Calculates the vertical integral of 'array'
@@ -33,21 +33,9 @@ constexpr num_t neg_one_over_g() {return num_t(-1.0)/num_t(9.81); }
  *   
  *   nx, ny, nz - the sizes of the x, y, z dimensions
  *
- *   csystem    - an integer indicating the vertical coordinate system
- *                type of `array`:
- *                0 = sigma coordinate system
- *                1 = hybrid coordinate system
- *
- *   a_or_sigma - the a hybrid coordinate, or sigma if a sigma coordinate
+ *   pressure_level - the a hybrid coordinate, or sigma if a sigma coordinate
  *                system
  *   
- *   b          - the hybrid coordinates (see below), or a null pointer if the
- *                coordinate system is sigma
- *
- *   ps         - a pointer to a 2D array of pressure values
- *
- *   p_top         - a scalar value giving the model top pressure
- *
  *   array_int  - a pointer to an already-allocated 2D array
  *                that will hold the values of the integral of 
  *                `array`
@@ -62,76 +50,52 @@ constexpr num_t neg_one_over_g() {return num_t(-1.0)/num_t(9.81); }
  *
  *  - array has dimensions [z,y,x]
  *
- *  - ps has dimensions [y,x]
- *
- *  - z is either a hybrid coordinate system where pressure
- *    is defined as p = a * p_top + b * ps, or it is a sigma
- *    coordinate system where p is defined as p = (ps - p_top)*sigma + p_top
- *
  *  - z is ordered such that the bottom of the atmosphere is at z = 0
  *
- *  - the values of a_or_sigma, and b are given on level interfaces and
- *    the values of `array` are given on level centers, such that
- *    dp (the pressure differential) will also be on level centers
+ *  - all values are given on level centers
  *
- *  - a_or_sigma and b have shape [nz + 1]
- *
- *  - the units of ps and p_top are in Pa
+ *  - the units of pressure_level are in [Pa]
  *
  *
  *  
 / 
 */
 template <typename num_t>
-void vertical_integral(const num_t * array,
-                       unsigned long nx,
-                       unsigned long ny,
-                       unsigned long nz,
-                       int csystem,
-                       const num_t * a_or_sigma,
-                       const num_t * b,
-                       const num_t * ps,
-                       num_t p_top,
-                       num_t * array_int) {
-
+void mass_integral_trapezoidal(const num_t * array,
+                               unsigned long nx,
+                               unsigned long ny,
+                               unsigned long nz,
+                               const num_t * pressure_level,
+                               num_t * array_int) {
 
   // loop over both horizontal dimensions
   for (unsigned long i = 0; i < nx; i++){
     for (unsigned long j = 0; j < ny; j++){
 
-      // Determine the current index in ps
+
+      // Determine the current index the integrated array
       unsigned long n2d = j + ny * i;
 
       // set the current integral value to zero
       num_t tmp_int = 0.0;
 
       // loop over the vertical dimension
-      for (unsigned long k = 0; k < nz; k++){
+      for (unsigned long k = 0; k < (nz-1); k++){
 
         // Determine the current index in the 3D array
         unsigned long n3d = k + nz*(j + ny * i);
 
-        num_t dp = num_t(0.0);
+        // calculate the pressure differential for this layer
+        num_t dp = pressure_level[k+1] - pressure_level[k];
 
-        // calculate the pressure differential for the sigma
-        // coordinate system
-        if (csystem == 1){
-          // calculate da and db
-          num_t da = a_or_sigma[k+1] - a_or_sigma[k];
-          num_t db = b[k+1] - b[k];
+        // calculate the value of the array between these two levels
+        num_t array_bar = (array[n3d] + array[n3d + 1])/num_t(2);
 
-          // calculate dp
-          dp = p_top * da + ps[n2d] * db;
-        }
-        // calculate the pressure differential for the sigma
-        // coordinate system
-        else{
-          num_t dsigma = a_or_sigma[k+1] - a_or_sigma[k];
-          dp = (ps[n2d] - p_top)*dsigma;
-        }
-    
-        // accumulate the integral
-        tmp_int += neg_one_over_g<num_t>() * array[n3d] * dp;
+        // calculate the density-weighted vertical differential
+        num_t rho_times_dz = neg_one_over_g<num_t>() * dp;
+
+        // add the integral contribution to the array
+        tmp_int +=  array_bar * rho_times_dz;
 
       }
       
@@ -210,13 +174,7 @@ const_p_teca_variant_array get_info_variable(
 teca_vertical_integral::teca_vertical_integral() :
     long_name("integrated_var"),
     units("unknown"),
-    hybrid_a_variable("a_bnds"),
-    hybrid_b_variable("b_bnds"),
-    sigma_variable("sigma_bnds"),
-    surface_p_variable("ps"),
-    p_top_variable("ptop"),
-    using_hybrid(1),
-    p_top_override_value(float(-1.0))
+    pressure_level_variable("plev"),
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -242,27 +200,16 @@ void teca_vertical_integral::get_properties_description(
             "list of arrays to compute statistics for")
         ;*/
     opts.add_options()
+        TECA_POPTS_GET(std::string, prefix, integration_variable,
+            "name of the variable to integrate (\"\")")
         TECA_POPTS_GET(std::string, prefix, long_name,
             "long name of the output variable (\"\")")
         TECA_POPTS_GET(std::string, prefix, units,
             "units of the output variable(\"\")")
-        TECA_POPTS_GET(std::string, prefix, hybrid_a_variable,
+        TECA_POPTS_GET(std::string, prefix, pressure_level_variable,
             "name of a coordinate in the hybrid coordinate system(\"\")")
-        TECA_POPTS_GET(std::string, prefix, hybrid_b_variable,
-            "name of b coordinate in the hybrid coordinate system(\"\")")
-        TECA_POPTS_GET(std::string, prefix, sigma_variable,
-            "name of sigma coordinate (\"\")")
-        TECA_POPTS_GET(std::string, prefix, surface_p_variable,
-            "name of the surface pressure variable (\"\")")
-        TECA_POPTS_GET(std::string, prefix, p_top_variable,
-            "name of the model top variable (\"\")")
         TECA_POPTS_GET(std::string, prefix, output_variable_name,
             "name for the integrated, output variable (\"\")")
-        TECA_POPTS_GET(int, prefix, using_hybrid,
-            "flags whether the vertical coordinate is hybrid (1) or "
-            "sigma (0) (\"\")")
-        TECA_POPTS_GET(float, prefix, p_top_override_value,
-            "name of the model top variable(\"\")")
         ;
 
     global_opts.add(opts);
@@ -275,15 +222,10 @@ void teca_vertical_integral::set_properties(
     (void) prefix;
     (void) opts;
 
+    TECA_POPTS_SET(opts, std::string, prefix, integration_variable)
     TECA_POPTS_SET(opts, std::string, prefix, long_name)
     TECA_POPTS_SET(opts, std::string, prefix, units)
-    TECA_POPTS_SET(opts, std::string, prefix, hybrid_a_variable)
-    TECA_POPTS_SET(opts, std::string, prefix, hybrid_b_variable)
-    TECA_POPTS_SET(opts, std::string, prefix, sigma_variable)
-    TECA_POPTS_SET(opts, std::string, prefix, surface_p_variable)
-    TECA_POPTS_SET(opts, std::string, prefix, p_top_variable)
-    TECA_POPTS_SET(opts, int, prefix, using_hybrid)
-    TECA_POPTS_SET(opts, float, prefix, p_top_override_value)
+    TECA_POPTS_SET(opts, std::string, prefix, pressure_level_variable)
     TECA_POPTS_SET(opts, std::string, prefix, output_variable_name)
 
 }
@@ -397,38 +339,10 @@ teca_vertical_integral::get_upstream_request(
     if (req.has("arrays"))
         req.get("arrays", arrays);
 
-    if (using_hybrid)
-    {
-      // get the a coordinate
-      if (request_var(this->hybrid_a_variable,
-                                     std::string("hybrid_a_variable"),
-                                     &arrays) != 0 ) return up_reqs;
-
-      // get the b coordinate
-      if (request_var(this->hybrid_b_variable,
-                              std::string("hybrid_b_variable"),
-                              &arrays) != 0 ) return up_reqs;
-    }  
-    else
-    {
-      // get the sigma coordinate
-      if (request_var(this->sigma_variable,
-                                     std::string("sigma_variable"),
-                                     &arrays) != 0 ) return up_reqs;
-    }
-
-    // get the surface pressure
-    if (request_var(this->surface_p_variable,
-                        std::string("surface_p_variable"),
-                        &arrays) != 0 ) return up_reqs;
-
-    // only request p_top if it isn't being overriden
-    if (! this->p_top_override_value ){
-      // get the model top pressure
-      if (request_var(this->p_top_variable,
-                          std::string("p_top_variable"),
-                          &arrays) != 0 ) return up_reqs;
-    }
+    // get the pressure coordinate
+    if (request_var(this->pressure_level_variable,
+                                   std::string("pressure_level_variable"),
+                                   &arrays) != 0 ) return up_reqs;
 
     // get the input array
     if (request_var(this->integration_variable,
@@ -514,57 +428,13 @@ const_p_teca_dataset teca_vertical_integral::execute(
       nx << ", " << ny << ", " << nz << "]" << std::endl;
 #endif
 
-    int using_hybrid = this->using_hybrid;
-
-    const_p_teca_variant_array a_or_sigma = nullptr;
-    const_p_teca_variant_array b_i = nullptr;
+    const_p_teca_variant_array pressure_level = nullptr;
     
-    if (using_hybrid)
-    {
-      // get the a coordinate
-      a_or_sigma = get_info_variable(this->hybrid_a_variable,
-                                     std::string("hybrid_a_variable"),
-                                     in_mesh);
-      if (!a_or_sigma) return nullptr;
-
-      // get the b coordinate
-      b_i = get_info_variable(this->hybrid_b_variable,
-                              std::string("hybrid_b_variable"),
-                              in_mesh);
-      if (!b_i) return nullptr;
-    }  
-    else
-    {
-      // get the sigma coordinate
-      a_or_sigma = get_info_variable(this->sigma_variable,
-                                     std::string("sigma_variable"),
-                                     in_mesh);
-      if (!a_or_sigma) return nullptr;
-    }
-
-    // get the surface pressure
-    const_p_teca_variant_array p_s = 
-      get_info_variable(this->surface_p_variable,
-                        std::string("surface_p_variable"),
-                        in_mesh);
-    if (!p_s) return nullptr;
-
-    const_p_teca_variant_array p_top_array;
-    p_teca_variant_array p_top_override_tmp;
-    if (! this->p_top_override_value){
-      // get the model top pressure
-      // TODO: p_top is a scalar: is const_p_teca_variant array correct?
-      // probably need to put this in information array
-      p_top_array = get_mesh_variable(this->p_top_variable,
-          std::string("p_top_variable"),
-          in_mesh);
-      if (!p_top_array) return nullptr;
-    }
-    else{
-      p_top_override_tmp = teca_variant_array_impl<double>::New(1);
-      p_top_override_tmp->set(0, this->p_top_override_value);
-      p_top_array = (const_p_teca_variant_array) p_top_override_tmp;
-    }
+    // get the pressure coordinate
+    pressure_level = get_info_variable(this->pressure_level_variable,
+                                   std::string("pressure_level_variable"),
+                                   in_mesh);
+    if (!pressure_level) return nullptr;
 
 #ifdef TECA_DEBUG
       std::cerr << teca_parallel_id() << "teca_vertical_integral::execute:" 
@@ -595,25 +465,15 @@ const_p_teca_dataset teca_vertical_integral::execute(
         const NT_INARR * p_input_array 
           = dynamic_cast<const TT_INARR*>(input_array.get())->get();
 
-        const NT_INARR * p_a_or_sigma 
-          = dynamic_cast<const TT_INARR*>(a_or_sigma.get())->get();
-
-        const NT_INARR * p_b_i 
-          = dynamic_cast<const TT_INARR*>(b_i.get())->get();
-
-        const NT_INARR * p_p_s 
-          = dynamic_cast<const TT_INARR*>(p_s.get())->get();
-
-        const NT_INARR *  p_p_top 
-          = dynamic_cast<const TT_INARR*>(p_top_array.get())->get();
+        const NT_INARR * p_pressure_level 
+          = dynamic_cast<const TT_INARR*>(pressure_level.get())->get();
 
         NT_INARR * p_integrated_array 
           = dynamic_cast<TT_INARR*>(integrated_array.get())->get();
 
         // call the vertical integration routine
-        vertical_integral(p_input_array, nx, ny, nz,
-                          using_hybrid, p_a_or_sigma, p_b_i, p_p_s, p_p_top[0],
-                          p_integrated_array);
+        mass_integral_trapezoidal(p_input_array, nx, ny, nz, p_pressure_level, 
+          p_integrated_array);
         )
 
 #ifdef TECA_DEBUG
