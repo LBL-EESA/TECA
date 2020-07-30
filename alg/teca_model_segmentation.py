@@ -121,7 +121,7 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
             # run here.
             try:
                 n_threads, affinity = \
-                     teca_py.thread_util.thread_parameters(comm, -1, 0, 0)
+                    teca_py.thread_util.thread_parameters(comm, -1, 0, 0)
 
                 # make use of hyper-threads
                 n_threads *= self.threads_per_core
@@ -131,18 +131,18 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
 
             except(RuntimeError):
                 # we failed to detect the number of physical cores per MPI rank
-                # if this is an MPI job then fall back to 2 threads per rank and
-                # if not let torch use all (what happens when you do nothing)
+                # if this is an MPI job then fall back to 2 threads per rank
+                # and if not let torch use all (what happens when you do
+                # nothing)
                 n_threads = -1
                 comm = self.get_communicator()
                 if teca_py.get_teca_has_mpi() and comm.Get_size() > 1:
                     torch.set_num_threads(2)
                     n_threads = 2
-                else:
-                    pass
                 if rank == 0:
-                   sys.stderr.write('STATUS: Failed to determine the number of'
-                                    ' physical cores available per MPI rank.')
+                    sys.stderr.write('STATUS: Failed to determine the number '
+                                     'of physical cores available per MPI '
+                                     'rank.')
 
         # print a report describing the load balancing decisions
         if self.verbose:
@@ -154,7 +154,7 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
                 sys.stderr.write('STATUS: model_segmentation thread '
                                  'parameters :\n')
                 for i in range(n_ranks):
-                    sys.stderr.write('  %d : %d\n'%(i, thread_map[i]))
+                    sys.stderr.write('  %d : %d\n' % (i, thread_map[i]))
                 sys.stderr.flush()
 
     def get_thread_pool_size(self):
@@ -169,7 +169,7 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
         """
         if device[:4] == "cuda" and not torch.cuda.is_available():
             raise RuntimeError('Failed to set device to CUDA. '
-                                 'CUDA is not available')
+                               'CUDA is not available')
 
         self.device = device
 
@@ -205,7 +205,7 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
         # remove the arrays we produce
         try:
             arrays.remove(self.pred_name)
-        except:
+        except(Exception):
             pass
 
         # add the arrays we need
