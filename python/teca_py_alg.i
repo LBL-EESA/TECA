@@ -26,8 +26,6 @@
 #include "teca_laplacian.h"
 #include "teca_mask.h"
 #include "teca_normalize_coordinates.h"
-#include "teca_programmable_algorithm.h"
-#include "teca_programmable_reduce.h"
 #include "teca_saffir_simpson.h"
 #include "teca_table_calendar.h"
 #include "teca_table_sort.h"
@@ -39,10 +37,9 @@
 #include "teca_tc_trajectory.h"
 #include "teca_tc_wind_radii.h"
 #include "teca_temporal_average.h"
-#include "teca_threaded_programmable_algorithm.h"
 #include "teca_vorticity.h"
+
 #include "teca_py_object.h"
-#include "teca_py_algorithm.h"
 #include "teca_py_gil_state.h"
 %}
 
@@ -135,129 +132,6 @@
 %include "teca_vorticity.h"
 
 /***************************************************************************
- programmable_algorithm
- ***************************************************************************/
-%ignore teca_programmable_algorithm::shared_from_this;
-%shared_ptr(teca_programmable_algorithm)
-%extend teca_programmable_algorithm
-{
-    void set_report_callback(PyObject *f)
-    {
-        teca_py_gil_state gil;
-
-        self->set_report_callback(teca_py_algorithm::report_callback(f));
-    }
-
-    void set_request_callback(PyObject *f)
-    {
-        teca_py_gil_state gil;
-
-        self->set_request_callback(teca_py_algorithm::request_callback(f));
-    }
-
-    void set_execute_callback(PyObject *f)
-    {
-        teca_py_gil_state gil;
-
-        self->set_execute_callback(teca_py_algorithm::execute_callback(f));
-    }
-}
-%ignore teca_programmable_algorithm::operator=;
-%ignore teca_programmable_algorithm::set_report_callback;
-%ignore teca_programmable_algorithm::get_report_callback;
-%ignore teca_programmable_algorithm::set_request_callback;
-%ignore teca_programmable_algorithm::get_request_callback;
-%ignore teca_programmable_algorithm::set_execute_callback;
-%ignore teca_programmable_algorithm::get_execute_callback;
-%include "teca_programmable_algorithm_fwd.h"
-%include "teca_programmable_algorithm.h"
-
-/***************************************************************************
- threaded programmable_algorithm
- ***************************************************************************/
-%ignore teca_threaded_programmable_algorithm::shared_from_this;
-%shared_ptr(teca_threaded_programmable_algorithm)
-%extend teca_threaded_programmable_algorithm
-{
-    void set_report_callback(PyObject *f)
-    {
-        teca_py_gil_state gil;
-
-        self->set_report_callback(teca_py_algorithm::report_callback(f));
-    }
-
-    void set_request_callback(PyObject *f)
-    {
-        teca_py_gil_state gil;
-
-        self->set_request_callback(teca_py_algorithm::request_callback(f));
-    }
-
-    void set_execute_callback(PyObject *f)
-    {
-        teca_py_gil_state gil;
-
-        self->set_execute_callback(teca_py_algorithm::threaded_execute_callback(f));
-    }
-}
-%ignore teca_threaded_programmable_algorithm::operator=;
-%ignore teca_threaded_programmable_algorithm::set_report_callback;
-%ignore teca_threaded_programmable_algorithm::get_report_callback;
-%ignore teca_threaded_programmable_algorithm::set_request_callback;
-%ignore teca_threaded_programmable_algorithm::get_request_callback;
-%ignore teca_threaded_programmable_algorithm::set_execute_callback;
-%ignore teca_threaded_programmable_algorithm::get_execute_callback;
-%include "teca_programmable_algorithm_fwd.h"
-%include "teca_threaded_programmable_algorithm.h"
-
-/***************************************************************************
- programmable_reduce
- ***************************************************************************/
-%ignore teca_programmable_reduce::shared_from_this;
-%shared_ptr(teca_programmable_reduce)
-%extend teca_programmable_reduce
-{
-    void set_report_callback(PyObject *f)
-    {
-        teca_py_gil_state gil;
-
-        self->set_report_callback(teca_py_algorithm::report_callback(f));
-    }
-
-    void set_request_callback(PyObject *f)
-    {
-        teca_py_gil_state gil;
-
-        self->set_request_callback(teca_py_algorithm::request_callback(f));
-    }
-
-    void set_reduce_callback(PyObject *f)
-    {
-        teca_py_gil_state gil;
-
-        self->set_reduce_callback(teca_py_algorithm::reduce_callback(f));
-    }
-
-    void set_finalize_callback(PyObject *f)
-    {
-        teca_py_gil_state gil;
-
-        self->set_finalize_callback(teca_py_algorithm::finalize_callback(f));
-    }
-}
-%ignore teca_programmable_reduce::operator=;
-%ignore teca_programmable_reduce::set_report_callback;
-%ignore teca_programmable_reduce::get_report_callback;
-%ignore teca_programmable_reduce::set_request_callback;
-%ignore teca_programmable_reduce::get_request_callback;
-%ignore teca_programmable_reduce::set_reduce_callback;
-%ignore teca_programmable_reduce::get_reduce_callback;
-%ignore teca_programmable_reduce::set_finalize_callback;
-%ignore teca_programmable_reduce::get_finalize_callback;
-%include "teca_programmable_reduce_fwd.h"
-%include "teca_programmable_reduce.h"
-
-/***************************************************************************
  derived_quantity
  ***************************************************************************/
 %ignore teca_derived_quantity::shared_from_this;
@@ -347,27 +221,6 @@
     TECA_PY_ALGORITHM_VECTOR_PROPERTY(double, region_x_coordinate);
     TECA_PY_ALGORITHM_VECTOR_PROPERTY(double, region_y_coordinate);
 }
-
-/***************************************************************************
- python_algorithm
- ***************************************************************************/
-%pythoncode %{
-from teca_python_algorithm import *
-%}
-
-/***************************************************************************
- threaded python_algorithm
- ***************************************************************************/
-%pythoncode %{
-from teca_threaded_python_algorithm import *
-%}
-
-/***************************************************************************
- python_reduce
- ***************************************************************************/
-%pythoncode %{
-from teca_python_reduce import *
-%}
 
 /***************************************************************************
  model_segmentation & deeplabv3p_ar_detect
