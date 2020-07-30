@@ -1,5 +1,4 @@
 #include "teca_programmable_reduce.h"
-#include "teca_table.h"
 
 #include <iostream>
 #include <limits>
