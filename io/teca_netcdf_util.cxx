@@ -161,7 +161,12 @@ int netcdf_handle::create(MPI_Comm comm, const std::string &file_path, int mode)
         // it would create all kinds of confusion and chaos to let this call
         // succeed without collective I/O capabilities in a MPI parallel run
         // error out now.
-        TECA_ERROR("Collective I/O attempted with a non-MPI NetCDF install")
+        TECA_ERROR("Collective I/O attempted with a non-MPI NetCDF install. "
+            "Re-install the NetCDF C library with --enable-parallel-4. See "
+            "also the output of \"nc-config --has-parallel\" and/or the "
+            "value of the \"NC-4 Parallel Support\" field in the file "
+            "\"<prefix>/lib/libnetcdf.settings\" to determine if the install "
+            "supports parallel I/O." )
         return -1;
     }
     // forward to the non-collective library call
