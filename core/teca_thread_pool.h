@@ -3,6 +3,7 @@
 
 #include "teca_common.h"
 #include "teca_algorithm_fwd.h"
+#include "teca_thread_util.h"
 #include "teca_threadsafe_queue.h"
 #include "teca_mpi.h"
 
@@ -18,12 +19,6 @@
 #include <sched.h>
 #include <deque>
 #endif
-
-namespace internal
-{
-int thread_parameters(MPI_Comm comm, int base_core_id, int n_req,
-    bool bind, bool verbose, std::deque<int> &affinity);
-}
 
 template <typename task_t, typename data_t>
 class teca_thread_pool;
@@ -108,26 +103,14 @@ teca_thread_pool<task_t, data_t>::teca_thread_pool(MPI_Comm comm, int n,
 
 // --------------------------------------------------------------------------
 template <typename task_t, typename data_t>
-void teca_thread_pool<task_t, data_t>::create_threads(MPI_Comm comm, int n,
-    bool bind, bool verbose)
+void teca_thread_pool<task_t, data_t>::create_threads(MPI_Comm comm,
+    int n_requested, bool bind, bool verbose)
 {
-#if !defined(_GNU_SOURCE)
-    (void)bind;
-    (void)verbose;
-    (void)comm;
-    if (n < 1)
-    {
-        TECA_WARNING("Cannot autmatically detect threading parameters "
-            "on this platform. The default is 1 thread per process.")
-        n = 1;
-    }
-    int n_threads = n;
-#else
-    int base_core_id = sched_getcpu();
+    int n_threads = n_requested;
+
     std::deque<int> core_ids;
-    int n_threads = internal::thread_parameters
-        (comm, base_core_id, n, bind, verbose, core_ids);
-#endif
+    teca_thread_util::thread_parameters(comm, -1,
+        n_requested, bind, verbose, n_threads, core_ids);
 
     // allocate the threads
     for (int i = 0; i < n_threads; ++i)

@@ -7,6 +7,7 @@
 #include "teca_metadata.h"
 #include "teca_algorithm.h"
 #include "teca_threaded_algorithm.h"
+#include "teca_thread_util.h"
 #include "teca_index_reduce.h"
 #include "teca_variant_array.h"
 #include "teca_binary_stream.h"
@@ -707,6 +708,8 @@ struct calendar_util
 static
 PyObject *date(double offset, const char *units, const char *calendar)
 {
+    teca_py_gil_state gil;
+
     int year = -1;
     int month = -1;
     int day = -1;
@@ -733,6 +736,8 @@ static
 PyObject *is_leap_year(const char *calendar, const char *units,
     int year)
 {
+    teca_py_gil_state gil;
+
     int leap = 0;
     if (calcalcs::is_leap_year(calendar, units, year, leap))
     {
@@ -749,6 +754,8 @@ static
 PyObject *days_in_month( const char *calendar, const char *units,
                    int year, int month)
 {
+    teca_py_gil_state gil;
+
     int dpm = 0;
     if (calcalcs::days_in_month(calendar, units, year, month, dpm))
     {
@@ -758,6 +765,48 @@ PyObject *days_in_month( const char *calendar, const char *units,
         return Py_None;
     }
     return CIntToPyInteger(dpm);
+}
+};
+%}
+
+/***************************************************************************
+ thread util
+ ***************************************************************************/
+%inline
+%{
+struct thread_util
+{
+// determine the number of threads , taking into account, all MPI ranks
+// running on the node, such that each thread has a dedicated physical
+// core.  builds an affinity map that explicitly specifies the core for
+// each thread.
+static
+PyObject *thread_parameters(MPI_Comm comm,
+    int n_requested, int bind, int verbose)
+{
+    teca_py_gil_state gil;
+
+    std::deque<int> affinity;
+    int n_threads = n_requested;
+    if (teca_thread_util::thread_parameters(comm, -1,
+        n_requested, bind, verbose, n_threads, affinity))
+    {
+        // caller requested automatic load balancing but this,
+        // failed.
+        TECA_PY_ERROR(PyExc_RuntimeError,
+            "Automatic load balancing failed")
+        return nullptr;
+    }
+
+    // convert the affinity map to a Python list
+    int len = bind ? n_threads : 0;
+    PyObject *py_affinity = PyList_New(len);
+    for (int i = 0; i < len; ++i)
+        PyList_SET_ITEM(py_affinity, i,
+            CIntToPyInteger(affinity[i]));
+
+    // return the number of threads and affinity map
+    return Py_BuildValue("(iN)", n_threads, py_affinity);
 }
 };
 %}

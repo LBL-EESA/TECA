@@ -7,6 +7,7 @@ try:
     from mpi4py import MPI
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
+    n_ranks = comm.Get_size()
 except ImportError:
     rank = 0
 
@@ -116,8 +117,17 @@ if args.output_file:
 if args.ivt:
     deeplabv3p_ar_detect.set_variable_name(args.ivt)
 
-if args.n_threads:
-    deeplabv3p_ar_detect.set_num_threads(args.num_threads)
+# set the number of threads. this is particularly fraught
+# in MPI parallel mode without checking how many ranks are
+# scheduled to each node. Each MPI rank will allocate
+# this many threads and performance of the application will
+# severely degrade when more than a couple of threads per
+# physical core are created. hence the warning
+if args.n_threads > 0 and n_ranks > 1:
+    if rank == 0:
+        sys.stderr.write('WARNING: Command line setting %d threads per MPI '
+                         'rank may degrade performance!'%(args.n_threads))
+deeplabv3p_ar_detect.set_thread_pool_size(args.n_threads)
 
 if args.pytorch_deeplab_model:
     deeplabv3p_ar_detect.build_model(args.pytorch_deeplab_model)

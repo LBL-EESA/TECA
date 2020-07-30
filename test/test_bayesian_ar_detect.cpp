@@ -66,6 +66,7 @@ int main(int argc, char **argv)
     ar_detect->set_input_connection(0, parameter_table->get_output_port());
     ar_detect->set_input_connection(1, mesh_data_reader->get_output_port());
     ar_detect->set_water_vapor_variable(water_vapor_var);
+    ar_detect->set_verbose(1);
     ar_detect->set_thread_pool_size(n_threads);
 
     p_teca_binary_segmentation seg = teca_binary_segmentation::New();
@@ -102,7 +103,7 @@ int main(int argc, char **argv)
     map_reduce->set_input_connection(cs->get_output_port());
     map_reduce->set_start_index(first_step);
     map_reduce->set_end_index(last_step);
-    map_reduce->set_verbose(1);
+    map_reduce->set_verbose(0);
     map_reduce->set_thread_pool_size(1);
 
     // sort results in time
