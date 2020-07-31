@@ -12,14 +12,16 @@ apt-get update -qq
 # install deps
 # use PIP for Python packages
 apt-get install -qq -y git-core gcc g++ gfortran cmake swig \
-    libmpich-dev libhdf5-dev libnetcdf-dev libboost-program-options-dev \
+    libmpich-dev libhdf5-mpich-dev libboost-program-options-dev \
     python3-dev python3-pip subversion libudunits2-0 \
-    libudunits2-dev zlib1g-dev libssl-dev
+    libudunits2-dev zlib1g-dev libssl-dev m4 wget
 
-git clone http://github.com/burlen/libxlsxwriter.git
-cd libxlsxwriter
-make
-make install
+wget https://www.unidata.ucar.edu/downloads/netcdf/ftp/netcdf-c-4.7.4.tar.gz
+tar -xvf netcdf-c-4.7.4.tar.gz && cd netcdf-c-4.7.4
+./configure CC=mpicc CFLAGS="-O2 -g -I/usr/include/hdf5/mpich" \
+    LDFLAGS="-L/usr/lib/x86_64-linux-gnu/hdf5/mpich/ -lhdf5" \
+    --enable-parallel-4 --disable-dap
+make -j install
 cd ..
 
 echo ${TRAVIS_BRANCH}
