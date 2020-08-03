@@ -78,6 +78,21 @@ endif()
 
 include(teca_interface_library)
 
+# these control behavior of the build. most of the time you want to error
+# out if these are not found. for those times when you don't set the corresponding
+# REQUIRE variable to FALSE
+set(REQUIRE_MPI TRUE CACHE BOOL "Forces build failure when MPI is missing")
+set(REQUIRE_NETCDF TRUE CACHE BOOL "Forces build failure when NetCDF is missing")
+set(REQUIRE_NETCDF_MPI TRUE CACHE BOOL "Forces build failure when NetCDF_MPI is missing")
+set(REQUIRE_UDUNITS TRUE CACHE BOOL "Forces build failure when udunits2 is missing")
+set(REQUIRE_BOOST TRUE CACHE BOOL "Forces build failure when boost is missing")
+set(REQUIRE_OPENSSL ${REQUIRE_NETRCDF} CACHE BOOL "Forces build failure when OpenSSL is missing")
+set(REQUIRE_PYTHON TRUE CACHE BOOL "Forces build failure when Python is missing")
+set(REQUIRE_LIBXLSXWRITER FALSE CACHE BOOL "Forces build failure when libxlsxwriter is missing")
+set(REQUIRE_PARAVIEW FALSE CACHE BOOL "Forces build failure when ParaView is missing")
+set(REQUIRE_VTK FALSE CACHE BOOL "Forces build failure when VTK is missing")
+set(REQUIRE_TECA_DATA ${BUILD_TESTING} CACHE BOOL "Forces build failure when TECA_data is missing")
+
 # locate dependencies
 # configure for MPI
 if (ENABLE_CRAY_MPICH)
@@ -141,7 +156,7 @@ if (LIBXLSXWRITER_FOUND AND ((DEFINED TECA_HAS_LIBXLSXWRITER AND TECA_HAS_LIBXLS
     OR (NOT DEFINED TECA_HAS_LIBXLSXWRITER)))
     message(STATUS "libxlsxwriter features -- enabled")
     set(tmp ON)
-elseif (REQUIRE_LIBXLSXWRITE)
+elseif (REQUIRE_LIBXLSXWRITER)
     message(STATUS "libxlsxwriter features -- required but not found. set LIBXLSXWRITER_DIR to enable.")
 else()
     message(STATUS "libxlsxwriter features -- not found. set LIBXLSXWRITER_DIR to enable.")
