@@ -16,16 +16,22 @@ env:
     - TECA_PYTHON_VERSION=3
     - TECA_DATA_REVISION=78
   jobs:
+    - DOCKER_IMAGE=ubuntu IMAGE_VERSION=20.04 IMAGE_NAME=ubuntu_20_04 REQUIRE_NETCDF_MPI=TRUE
     - DOCKER_IMAGE=ubuntu IMAGE_VERSION=20.04 IMAGE_NAME=ubuntu_20_04 REQUIRE_NETCDF_MPI=FALSE
     - DOCKER_IMAGE=fedora IMAGE_VERSION=31 IMAGE_NAME=fedora_31 REQUIRE_NETCDF_MPI=TRUE
+    - DOCKER_IMAGE=fedora IMAGE_VERSION=31 IMAGE_NAME=fedora_31 REQUIRE_NETCDF_MPI=FALSE
     - NO_DOCKER=TRUE
 
 jobs:
   exclude:
     - os: osx
+      env: DOCKER_IMAGE=ubuntu IMAGE_VERSION=20.04 IMAGE_NAME=ubuntu_20_04 REQUIRE_NETCDF_MPI=TRUE
+    - os: osx
       env: DOCKER_IMAGE=ubuntu IMAGE_VERSION=20.04 IMAGE_NAME=ubuntu_20_04 REQUIRE_NETCDF_MPI=FALSE
     - os: osx
       env: DOCKER_IMAGE=fedora IMAGE_VERSION=31 IMAGE_NAME=fedora_31 REQUIRE_NETCDF_MPI=TRUE
+    - os: osx
+      env: DOCKER_IMAGE=fedora IMAGE_VERSION=31 IMAGE_NAME=fedora_31 REQUIRE_NETCDF_MPI=FALSE
     - os: linux
       env: NO_DOCKER=TRUE
 
@@ -48,6 +54,7 @@ install:
     docker exec teca_${DOCKER_IMAGE}_${IMAGE_VERSION} /bin/bash -c
     "export TECA_PYTHON_VERSION=${TECA_PYTHON_VERSION} &&
     export TECA_DATA_REVISION=${TECA_DATA_REVISION} &&
+    export REQUIRE_NETCDF_MPI=${REQUIRE_NETCDF_MPI} &&
     ${TECA_DIR}/test/travis_ci/install_${IMAGE_NAME}.sh";
     fi
 
@@ -64,5 +71,6 @@ script:
     export BUILD_TYPE=${BUILD_TYPE} &&
     export DOCKER_IMAGE=${DOCKER_IMAGE} &&
     export IMAGE_VERSION=${IMAGE_VERSION} &&
+    export REQUIRE_NETCDF_MPI=${REQUIRE_NETCDF_MPI} &&
     ${TECA_DIR}/test/travis_ci/ctest_linux.sh";
     fi

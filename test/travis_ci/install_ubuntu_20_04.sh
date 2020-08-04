@@ -11,18 +11,24 @@ apt-get update -qq
 
 # install deps
 # use PIP for Python packages
-apt-get install -qq -y git-core gcc g++ gfortran cmake swig \
-    libmpich-dev libhdf5-mpich-dev libboost-program-options-dev \
-    python3-dev python3-pip subversion libudunits2-0 \
-    libudunits2-dev zlib1g-dev libssl-dev m4 wget
+apt-get install -qq -y git-core gcc g++ gfortran cmake swig libmpich-dev \
+    libboost-program-options-dev python3-dev python3-pip subversion \
+    libudunits2-0 libudunits2-dev zlib1g-dev libssl-dev m4 wget
 
-wget https://www.unidata.ucar.edu/downloads/netcdf/ftp/netcdf-c-4.7.4.tar.gz
-tar -xvf netcdf-c-4.7.4.tar.gz && cd netcdf-c-4.7.4
-./configure CC=mpicc CFLAGS="-O2 -g -I/usr/include/hdf5/mpich" \
-    LDFLAGS="-L/usr/lib/x86_64-linux-gnu/hdf5/mpich/ -lhdf5" \
-    --enable-parallel-4 --disable-dap
-make -j install
-cd ..
+if [[ ${REQUIRE_NETCDF_MPI} == TRUE ]]
+then
+    apt-get install -qq -y libhdf5-mpich-dev
+
+    wget https://www.unidata.ucar.edu/downloads/netcdf/ftp/netcdf-c-4.7.4.tar.gz
+    tar -xvf netcdf-c-4.7.4.tar.gz && cd netcdf-c-4.7.4
+    ./configure CC=mpicc CFLAGS="-O2 -g -I/usr/include/hdf5/mpich" \
+        LDFLAGS="-L/usr/lib/x86_64-linux-gnu/hdf5/mpich/ -lhdf5" \
+        --enable-parallel-4 --disable-dap
+    make -j install
+    cd ..
+else
+    apt-get install -qq -y libhdf5-dev libnetcdf-dev
+fi
 
 echo ${TRAVIS_BRANCH}
 echo ${BUILD_TYPE}
