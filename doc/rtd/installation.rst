@@ -126,33 +126,46 @@ Compiling TECA from sources
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 TECA depends on a number of third party libraries. Before attempting to compile
 TECA please install dependencies as described in section
-:ref;`install-deps`.
+:ref:`install-deps` and then set up the Python environment as described in
+section :ref:`python-environment`.
 
 Once dependencies are installed, a typical install might proceed as follows.
 
 .. code-block:: bash
 
    git clone https://github.com/LBL-EESA/TECA.git
+   svn co svn://svn.code.sf.net/p/teca/TECA_data TECA_data
    cd TECA
    mkdir bin
    cd bin
    cmake ..
-   make -j8
-   make -j8 install
+   make -j
+   make -j install
 
-At the end of this TECA will be installed. However, note that the install
-location should be added to the PYTHONPATH in order to use TECA's Python
-features.
+If all goes well, at the end of this TECA will be installed. However, note that
+the install location should be added to various system paths, See :ref:`post-install`
+for how to configure the run time environment.
 
-TECA was designed to be easy to install, as such when third party library
-dependencies are missing the build will continue with related features
-disabled. Carefully examine CMake output to verify that desired features are
-being compiled.
+When running CMake one can pass `-DCMAKE_INSTALL_PREFIX=<some path>` to control
+where the install lands, and `-DBUILD_TESTING=ON` to enable regression tests.
+
+The most common problem is when CMake failed to locate a dependency. Usually
+the error message has information about correcting the situation. Usually the
+remedy is to explicitly pass the path where the dependency is installed
+directly to CMake on the command line. While not recommened, as a last resort
+one may disable a problematic dependency using `-DREQUIRE_<X>=OFF` where X is
+the dependency.
 
 .. _install-deps:
 
 Installing dependencies
 ~~~~~~~~~~~~~~~~~~~~~~~
+Most of the dependencies can be installed by the OS specific package manager.
+For Python modules pip is used as described in :ref:`python-environment`.
+
+It is recommended to have a parallel HDF5 based NetCDF install, on some systems
+(Ubuntu, Mac) this requires installing NetCDF from source as outlined in
+:ref:`netcdf-parallel-4`.
 
 Apple Mac OS
 ++++++++++++
@@ -160,12 +173,10 @@ Apple Mac OS
 .. code-block:: bash
 
     brew update
-    brew tap Homebrew/homebrew-science
-    brew install gcc openmpi hdf5 netcdf python swig svn udunits
-    pip3 install numpy mpi4py matplotlib
+    brew unlink python@2
+    brew install netcdf mpich swig svn udunits openssl python
 
-
-Ubuntu 18.04
+Ubuntu 20.04
 ++++++++++++
 
 .. code-block:: bash
@@ -176,21 +187,99 @@ Ubuntu 18.04
         libboost-program-options-dev python3-dev python3-pip \
         libudunits2-0 libudunits2-dev zlib1g-dev libssl-dev
 
-Fedora 28
+Fedora 32
 +++++++++
 
 .. code-block:: bash
 
     $ dnf update
-    $ dnf install -y gcc-c++ gcc-gfortran make cmake-3.11.0-1.fc28 \
-        swig mpich-devel hdf5-devel netcdf-devel boost-devel \
-        python3-devel python3-pip udunits2-devel zlib-devel openssl-devel
+    $ dnf install -qq -y environment-modules which git-all gcc-c++ gcc-gfortran \
+        make cmake swig mpich-devel hdf5-mpich-devel netcdf-mpich-devel \
+        boost-devel python3-devel python3-pip subversion udunits2 udunits2-devel \
+        zlib-devel openssl-devel wget redhat-rpm-config
 
 Some of these packages may need an environment module loaded, for instance ``MPI``
 
 .. code-block:: bash
 
     $ module load mpi
+
+.. _python-environment:
+
+Python environment
+++++++++++++++++++
+
+TECA's Python dependencies can be easily installed via pip.
+
+.. code-block:: bash
+    
+    $ pip3 install numpy mpi4py matplotlib torch
+
+However, when building TECA from sources it can be useful to setup a virtual
+environment.  Creating the virtual environment is something that you do once,
+typically in your home folder or the SCRATCH file system on the Cray. Once
+setup the venv will need to be activated each time you use TECA.
+
+.. code-block:: bash
+
+    $ cd ~
+    $ python3 -mvenv teca-py3k
+    $ source teca-py3k/bin/activate
+    $ pip3 install numpy matplotlib mpi4py torch  
+
+Before building TECA, and every time you use TECA be sure to activate the same venv.
+
+.. code-block:: bash
+
+    $ source teca-py3k/bin/activate
+
+Once the venv is installed and activated, see :ref:`compile`.
+
+.. note::
+
+    As of 1/1/2020 TECA switched to Python 3. Python 2 may still work
+    but is no longer maintained and should not be used.
+
+
+.. _netcdf-parallel-4:
+
+NetCDF w/ Parallel 4
++++++++++++++++++++++
+As of 7/31/2020 TECA relies on HDF5 NetCDF with MPI collective I/O. The
+NetCDF project calls this feature set "parallel 4". At this time neither
+Mac OS homebrew nor Ubuntu 20.04 have a functional parallel NetCDF package.
+On those systems one should install NetCDF from sources.
+
+On Ubuntu 20.04
+
+.. code-block:: bash
+
+    $ cd ~
+    $ sudo apt-get remove libhdf5-dev
+    $ sudo apt-get install libmpich-dev libhdf5-mpich-dev
+    $ wget https://www.unidata.ucar.edu/downloads/netcdf/ftp/netcdf-c-4.7.4.tar.gz
+    $ tar -xvf netcdf-c-4.7.4.tar.gz
+    $ cd netcdf-c-4.7.4
+    $ ./configure CC=mpicc CFLAGS="-O3 -I/usr/include/hdf5/mpich"       \
+          LDFLAGS="-L/usr/lib/x86_64-linux-gnu/hdf5/mpich/ -lhdf5"      \
+          --prefix=`pwd`/../netcdf-c-4.7.4-install --enable-parallel-4  \
+          --disable-dap
+    $ make -j install
+
+On Apple Mac OS
+
+.. code-block:: bash
+
+    $ brew uninstall netcdf hdf5 mpich
+    $ brew install mpi hdf5-mpi
+    $ wget https://www.unidata.ucar.edu/downloads/netcdf/ftp/netcdf-c-4.7.4.tar.gz
+    $ tar -xvf netcdf-c-4.7.4.tar.gz
+    $ cd netcdf-c-4.7.4
+    $ ./configure CC=mpicc --enable-shared --enable-static          \
+        --enable-fortran --disable-dap --enable-netcdf-4            \
+        --enable-parallel4 --prefix=`pwd`/../netcdf-c-4.7.4-install
+    $ make -j install
+
 
 .. _post-install:
 
@@ -216,3 +305,6 @@ template for this purpose by replacing @CMAKE_INSTALL_PREFIX@ and
 
 With this shell script in hand one configures the environment for use by sourcing it.
 
+When developing TECA it is common to skip the install step and run out of the
+build directory. When doing so one must also set LD_LIBRARY_PATH,
+DYLD_LIBRARY_PATH, PYTHONPATH, and PATH to point to the build directory.
