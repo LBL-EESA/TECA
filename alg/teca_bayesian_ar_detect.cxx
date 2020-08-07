@@ -477,7 +477,7 @@ public:
                 // compute the probability from the connected components
                 p_teca_variant_array wvcc =
                     mesh->get_point_arrays()->get(this->component_array_name);
-                if (wvcc)
+                if (!wvcc)
                 {
                     TECA_ERROR("pipeline error, component array \""
                         << this->component_array_name << "\" is not present")
