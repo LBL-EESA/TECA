@@ -31,7 +31,7 @@ teca_add_test(py_test_cf_writer_mpi_threads
     COMMAND  ${MPIEXEC} -n ${HALF_TEST_CORES} ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_cf_writer.py
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
-    0 -1 ${HALF_TEST_CORES} 1 "py_test_cf_writer_%t%.nc" U850 V850
+    0 -1 2 1 "py_test_cf_writer_%t%.nc" U850 V850
     FEATURES ${TECA_HAS_MPI} ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
@@ -233,7 +233,7 @@ teca_add_test(py_test_tc_candidates_mpi_threads
     COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_candidates.py
     "${TECA_DATA_ROOT}/test_tc_candidates_1990_07_0[12]\\.nc"
-    "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 ${HALF_TEST_CORES}
+    "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 2
     U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
