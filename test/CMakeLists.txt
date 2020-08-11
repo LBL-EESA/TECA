@@ -652,3 +652,11 @@ teca_add_test(test_cf_writer_collective_mpi_threads
     "${TECA_DATA_ROOT}/test_cf_writer_collective_%t%.bin" 213
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
+
+teca_add_test(test_cf_writer_bad_type
+    SOURCES test_cf_writer_bad_type.cpp
+    LIBS teca_core teca_data teca_alg teca_io ${teca_test_link}
+    COMMAND test_cf_writer_bad_type
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA
+    WILL_FAIL)

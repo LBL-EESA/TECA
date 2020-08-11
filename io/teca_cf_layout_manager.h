@@ -106,7 +106,8 @@ protected:
     int use_unlimited_dim;
     int n_dims;
     size_t dims[4];
-    std::map<std::string, int> var_ids;
+    using var_def_t = std::pair<int,unsigned int>;
+    std::map<std::string, var_def_t> var_def;
     std::string t_variable;
     p_teca_double_array t;
 };
