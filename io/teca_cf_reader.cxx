@@ -389,7 +389,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
         for (int i = n_metadata_cache_paths; i >= 0; --i)
         {
             std::string metadata_cache_file =
-                metadata_cache_path[i] + PATH_SEP + metadata_cache_key + ".tmd";
+                metadata_cache_path[i] + PATH_SEP + "." + metadata_cache_key + ".tmd";
 
             if (teca_file_util::file_exists(metadata_cache_file.c_str()))
             {
@@ -1019,7 +1019,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
             for (int i = n_metadata_cache_paths; i >= 0; --i)
             {
                 std::string metadata_cache_file =
-                    metadata_cache_path[i] + PATH_SEP + metadata_cache_key + ".tmd";
+                    metadata_cache_path[i] + PATH_SEP + "." + metadata_cache_key + ".tmd";
 
                 if (!teca_file_util::write_stream(metadata_cache_file.c_str(),
                     S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH,
