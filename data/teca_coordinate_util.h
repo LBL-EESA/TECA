@@ -216,7 +216,7 @@ int index_of(const const_p_teca_cartesian_mesh &mesh, T x, T y, T z,
 // see index_of for a description of lower, if clamp is true then
 // when the date falls outside of the time values either the first
 // or last time step is returned.
-int time_step_of(p_teca_double_array time, bool lower, bool clamp,
+int time_step_of(p_teca_variant_array time, bool lower, bool clamp,
     const std::string &calendar, const std::string &units,
     const std::string &date, unsigned long &step);
 
