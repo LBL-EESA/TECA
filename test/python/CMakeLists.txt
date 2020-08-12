@@ -370,3 +370,5 @@ teca_add_test(py_test_thread_parameters_mpi
     "${CMAKE_CURRENT_SOURCE_DIR}/test_thread_parameters.py"
     FEATURES ${MPI4Py_FOUND})
 
+teca_add_test(py_test_calendaring
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_calendaring.py)

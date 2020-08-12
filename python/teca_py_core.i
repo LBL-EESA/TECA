@@ -899,7 +899,7 @@ PyObject *is_leap_year(const char *calendar, const char *units,
 
 // get the days in the month
 static
-PyObject *days_in_month( const char *calendar, const char *units,
+PyObject *days_in_month(const char *calendar, const char *units,
                    int year, int month)
 {
     teca_py_gil_state gil;

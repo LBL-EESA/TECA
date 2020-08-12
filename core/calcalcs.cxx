@@ -2086,14 +2086,16 @@ int is_leap_year( const char *calendar_name, const char *unit_str,
     int ierr = 0;
     if ((ierr = set_current_calendar(calendar_name, unit_str)))
     {
-        fprintf(stderr, "Error: system initialization failed");
+        fprintf(stderr, "Error: system initialization failed\n");
         return ierr;
     }
 
     // calculate leap year
     if ((ierr = ccs_isleap(current_calendar, year, &leap)))
     {
-        fprintf(stderr, "Error, failed to initialized");
+        fprintf(stderr, "Error, failed to determine if %d in the \"%s\" "
+            "calendar with units \"%s\" is a leap year\n", year,
+            calendar_name, unit_str);
         return ierr;
     }
 

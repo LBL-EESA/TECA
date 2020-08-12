@@ -30,6 +30,7 @@ The io module contains readers and writers.
 %include <std_string.i>
 %include "teca_py_common.i"
 %include "teca_py_config.i"
+%include "teca_py_array.i"
 %include "teca_py_vector.i"
 %include "teca_py_shared_ptr.i"
 %include "teca_py_mpi.i"
