@@ -482,11 +482,11 @@ int read_stream(const char *file_name, const char *header,
 }
 
 // **************************************************************************
-int write_stream(const char *file_name, const char *header,
+int write_stream(const char *file_name, int flags, const char *header,
     const teca_binary_stream &stream, bool verbose)
 {
     // open up a file
-    int fd = creat(file_name, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
+    int fd = creat(file_name, flags);
     if (fd == -1)
     {
         if (verbose)

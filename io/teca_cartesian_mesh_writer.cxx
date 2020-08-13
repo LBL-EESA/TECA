@@ -329,7 +329,8 @@ int write_bin(const_p_teca_cartesian_mesh mesh, const std::string &file_name,
     teca_binary_stream bs;
     mesh->to_stream(bs);
 
-    if (teca_file_util::write_stream(out_file.c_str(), "teca_cartesian_mesh", bs))
+    if (teca_file_util::write_stream(out_file.c_str(),
+        S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH, "teca_cartesian_mesh", bs))
     {
         TECA_ERROR("Failed to write \"" << out_file << "\"")
         return -1;

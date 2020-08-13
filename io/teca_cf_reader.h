@@ -7,7 +7,6 @@
 
 #include <vector>
 #include <string>
-#include <mutex>
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_cf_reader)
 

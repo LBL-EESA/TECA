@@ -389,7 +389,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
         for (int i = n_metadata_cache_paths; i >= 0; --i)
         {
             std::string metadata_cache_file =
-                metadata_cache_path[i] + PATH_SEP + metadata_cache_key + ".tmd";
+                metadata_cache_path[i] + PATH_SEP + "." + metadata_cache_key + ".tmd";
 
             if (teca_file_util::file_exists(metadata_cache_file.c_str()))
             {
@@ -1019,9 +1019,10 @@ teca_metadata teca_cf_reader::get_output_metadata(
             for (int i = n_metadata_cache_paths; i >= 0; --i)
             {
                 std::string metadata_cache_file =
-                    metadata_cache_path[i] + PATH_SEP + metadata_cache_key + ".tmd";
+                    metadata_cache_path[i] + PATH_SEP + "." + metadata_cache_key + ".tmd";
 
                 if (!teca_file_util::write_stream(metadata_cache_file.c_str(),
+                    S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH,
                     "teca_cf_reader::metadata_cache_file", stream, false))
                 {
                     cached_metadata = true;
@@ -1090,7 +1091,7 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
     }
 
     // get names, need to be careful since some of these depend
-    // on run time information, ex user can specific a time axis
+    // on run time information. eg: user can specify a time axis
     // via algorithm properties
     std::string x_axis_var;
     std::string y_axis_var;
@@ -1329,7 +1330,7 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
         }
 
         // check if it's a mesh variable, if it is not a mesh variable
-        // it is an information variable (ie non-spatiol)
+        // it is an information variable (ie non-spatial)
         bool mesh_var = false;
         unsigned int n_dims = dim_names->size();
 
