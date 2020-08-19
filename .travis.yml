@@ -66,7 +66,7 @@ script:
     elif [[ "${TRAVIS_OS_NAME}" == "linux" ]];
     then
     docker exec teca_${DOCKER_IMAGE}_${IMAGE_VERSION} /bin/bash -c
-    "export TRAVIS_BRANCH=${TRAVIS_BRANCH} &&
+    "lscpu && id && cat /proc/cpuinfo #export TRAVIS_BRANCH=${TRAVIS_BRANCH} &&
     export TECA_PYTHON_VERSION=${TECA_PYTHON_VERSION} &&
     export BUILD_TYPE=${BUILD_TYPE} &&
     export DOCKER_IMAGE=${DOCKER_IMAGE} &&
