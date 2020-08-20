@@ -1151,8 +1151,12 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
             memcpy(extent, whole_extent, 6*sizeof(unsigned long));
         }
         // get bounds of the extent being read
-        for (int i = 0; i < 6; ++i)
-            in_x->get(extent[i], bounds[i]);
+        in_x->get(extent[0], bounds[0]);
+        in_x->get(extent[1], bounds[1]);
+        in_y->get(extent[2], bounds[2]);
+        in_y->get(extent[3], bounds[3]);
+        in_z->get(extent[4], bounds[4]);
+        in_z->get(extent[5], bounds[5]);
     }
     else
     {
