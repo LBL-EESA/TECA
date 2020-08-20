@@ -2,6 +2,7 @@
 
 #include "teca_config.h"
 #include "teca_cartesian_mesh.h"
+#include "teca_curvilinear_mesh.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_file_util.h"
@@ -115,7 +116,7 @@ void write_vtk_array_data(FILE *ofile,
 }
 
 // **************************************************************************
-int write_vtk_legacy_header(FILE *ofile,
+int write_vtk_legacy_rectilinear_header(FILE *ofile,
     const const_p_teca_variant_array &x, const const_p_teca_variant_array &y,
     const const_p_teca_variant_array &z, bool binary,
     const std::string &comment = "")
@@ -178,6 +179,81 @@ int write_vtk_legacy_header(FILE *ofile,
 }
 
 // **************************************************************************
+int write_vtk_legacy_curvilinear_header(FILE *ofile,
+    size_t *extent, const const_p_teca_variant_array &x,
+    const const_p_teca_variant_array &y, const const_p_teca_variant_array &z,
+    bool binary, const std::string &comment = "")
+{
+    // this is because the reader should always provide 3D data
+    if (!x || !y || !z)
+    {
+        TECA_ERROR("data must be 3 dimensional")
+        return -1;
+    }
+
+    size_t nx = extent[1] - extent[0] + 1;
+    size_t ny = extent[3] - extent[2] + 1;
+    size_t nz = extent[5] - extent[4] + 1;
+    size_t nxy = nx*ny;
+    size_t nxyz = nxy*nz;
+
+    fprintf(ofile, "# vtk DataFile Version 2.0\n");
+
+    if (comment.empty())
+    {
+        time_t rawtime;
+        time(&rawtime);
+        struct tm *timeinfo = localtime(&rawtime);
+
+        char date_str[128] = {'\0'};
+        strftime(date_str, 128, "%F %T", timeinfo);
+
+        fprintf(ofile, "TECA cartesian_mesh_writer "
+            TECA_VERSION_DESCR " %s\n", date_str);
+    }
+    else
+    {
+        fprintf(ofile, "%s\n", comment.c_str());
+    }
+
+    const char *coord_type_str = nullptr;
+    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+        (x ? x.get() : (y ? y.get() : (z ? z.get() : nullptr))),
+        coord_type_str = teca_vtk_util::vtk_tt<NT>::str();
+        )
+
+    fprintf(ofile, "%s\n"
+        "DATASET STRUCTURED_GRID\n"
+        "DIMENSIONS %zu %zu %zu\n"
+        "POINTS %zu %s\n",
+        (binary ? "BINARY" : "ASCII"),
+        nx, ny, nz, nxyz, coord_type_str);
+
+    // convert the WRF arrays into VTK layout
+    p_teca_variant_array xyz = x->new_instance(3*nxyz);
+
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
+        xyz.get(),
+        const NT *px = dynamic_cast<const TT*>(x.get())->get();
+        const NT *py = dynamic_cast<const TT*>(y.get())->get();
+        const NT *pz = dynamic_cast<const TT*>(z.get())->get();
+        NT *pxyz = dynamic_cast<TT*>(xyz.get())->get();
+        for (size_t i = 0; i < nxyz; ++i)
+            pxyz[3*i] = px[i];
+
+        for (size_t i = 0; i < nxyz; ++i)
+            pxyz[3*i + 1] = py[i];
+
+        for (size_t i = 0; i < nxyz; ++i)
+            pxyz[3*i + 2] = pz[i];
+        )
+
+    internals::write_vtk_array_data(ofile, xyz, binary);
+
+    return 0;
+}
+
+// **************************************************************************
 enum center_t { cell, point, face, edge };
 
 int write_vtk_legacy_attribute(FILE *ofile,
@@ -231,10 +307,18 @@ int write_vtk_legacy_attribute(FILE *ofile,
 
 // write VTK XML
 // ********************************************************************************
-int write_vtr(const_p_teca_cartesian_mesh mesh, const std::string &file_name,
+int write_vtr(const_p_teca_mesh dataset, const std::string &file_name,
     long index, double time, int binary)
 {
 #if defined(TECA_HAS_VTK) || defined(TECA_HAS_PARAVIEW)
+    const_p_teca_cartesian_mesh mesh = std::dyanmic_pointer_cast<const teca_cartesian_mesh>(dataset);
+    if (!mesh)
+    {
+        TECA_ERROR("The vtr format is only supported for type "
+            "teca_cartesian_mesh but this is a " << dataset->get_class_name())
+        return -1;
+    }
+
     vtkRectilinearGrid *rg = vtkRectilinearGrid::New();
 
     if (teca_vtk_util::deep_copy(rg, mesh))
@@ -316,7 +400,7 @@ int write_vtr(const_p_teca_cartesian_mesh mesh, const std::string &file_name,
 
     return 0;
 #else
-    (void)mesh;
+    (void)dataset;
     (void)file_name;
     (void)index;
     (void)time;
@@ -327,7 +411,7 @@ int write_vtr(const_p_teca_cartesian_mesh mesh, const std::string &file_name,
 
 // write VTK legacy format
 // ********************************************************************************
-int write_vtk(const_p_teca_cartesian_mesh mesh, const std::string &file_name,
+int write_vtk(const const_p_teca_mesh &mesh, const std::string &file_name,
     long index, int binary)
 {
     // built without VTK. write as legacy file
@@ -346,11 +430,42 @@ int write_vtk(const_p_teca_cartesian_mesh mesh, const std::string &file_name,
         return -1;
     }
 
-    if (internals::write_vtk_legacy_header(ofile,
-        mesh->get_x_coordinates(), mesh->get_y_coordinates(),
-        mesh->get_z_coordinates(), binary))
+    if (std::dynamic_pointer_cast<const teca_cartesian_mesh>(mesh))
     {
-        TECA_ERROR("failed to write the header")
+        const_p_teca_cartesian_mesh r_mesh
+             = std::static_pointer_cast<const teca_cartesian_mesh>(mesh);
+
+        if (internals::write_vtk_legacy_rectilinear_header(ofile,
+            r_mesh->get_x_coordinates(), r_mesh->get_y_coordinates(),
+            r_mesh->get_z_coordinates(), binary))
+        {
+            TECA_ERROR("failed to write the header")
+            return -1;
+        }
+    }
+    else if (std::dynamic_pointer_cast<const teca_curvilinear_mesh>(mesh))
+    {
+        const_p_teca_curvilinear_mesh c_mesh
+             = std::static_pointer_cast<const teca_curvilinear_mesh>(mesh);
+
+        size_t ext[6] = {0};
+        if (c_mesh->get_extent(ext))
+        {
+            TECA_ERROR("Failed to get the extent")
+            return -1;
+        }
+
+        if (internals::write_vtk_legacy_curvilinear_header(ofile,
+            ext, c_mesh->get_x_coordinates(), c_mesh->get_y_coordinates(),
+            c_mesh->get_z_coordinates(), binary))
+        {
+            TECA_ERROR("failed to write the header")
+            return -1;
+        }
+    }
+    else
+    {
+        TECA_ERROR("Unsupported mesh type")
         return -1;
     }
 
@@ -374,19 +489,20 @@ int write_vtk(const_p_teca_cartesian_mesh mesh, const std::string &file_name,
 }
 
 // ********************************************************************************
-int write_bin(const_p_teca_cartesian_mesh mesh, const std::string &file_name,
+int write_bin(const_p_teca_mesh mesh, const std::string &file_name,
     long index)
 {
     std::string out_file = file_name;
     teca_file_util::replace_timestep(out_file, index);
     teca_file_util::replace_extension(out_file, "bin");
 
-    // serialize the table to a binary representation
+    // serialize the mesh to a binary representation
     teca_binary_stream bs;
     mesh->to_stream(bs);
 
     if (teca_file_util::write_stream(out_file.c_str(),
-        S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH, "teca_cartesian_mesh", bs))
+        S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH, mesh->get_class_name().c_str(),
+        bs))
     {
         TECA_ERROR("Failed to write \"" << out_file << "\"")
         return -1;
@@ -448,9 +564,8 @@ const_p_teca_dataset teca_cartesian_mesh_writer::execute(
 {
     (void)port;
 
-    const_p_teca_cartesian_mesh mesh
-        = std::dynamic_pointer_cast<const teca_cartesian_mesh>(
-            input_data[0]);
+    const_p_teca_mesh mesh
+        = std::dynamic_pointer_cast<const teca_mesh>(input_data[0]);
 
     // only rank 0 is required to have data
     int rank = 0;
