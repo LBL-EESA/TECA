@@ -1352,4 +1352,48 @@ unsigned int teca_variant_array_impl<T>::type_code() const noexcept
     return teca_variant_array_code<T>::get();
 }
 
+// **************************************************************************
+template <typename num_t>
+num_t min(const const_p_teca_variant_array_impl<num_t> &a)
+{
+    num_t mn = std::numeric_limits<num_t>::max();
+    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+        a.get(),
+        const NT *pa = std::dynamic_pointer_cast<TT>(a)->get();
+        size_t n = a->size();
+        for (size_t i = 0; i < n; ++i)
+            mn = mn > pa[i] ? pa[i] : mn;
+        )
+    return mn;
+}
+
+// **************************************************************************
+template <typename num_t>
+num_t min(const p_teca_variant_array_impl<num_t> &a)
+{
+    return min(const_p_teca_variant_array_impl<num_t>(a));
+}
+
+// **************************************************************************
+template <typename num_t>
+num_t max(const const_p_teca_variant_array_impl<num_t> &a)
+{
+    num_t mx = std::numeric_limits<num_t>::lowest();
+    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+        a.get(),
+        const NT *pa = std::dynamic_pointer_cast<TT>(a)->get();
+        size_t n = a->size();
+        for (size_t i = 0; i < n; ++i)
+            mx = mx < pa[i] ? pa[i] : mx;
+        )
+    return mx;
+}
+
+// **************************************************************************
+template <typename num_t>
+num_t max(const p_teca_variant_array_impl<num_t> &a)
+{
+    return max(const_p_teca_variant_array_impl<num_t>(a));
+}
+
 #endif
