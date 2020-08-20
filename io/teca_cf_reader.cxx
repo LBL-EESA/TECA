@@ -654,7 +654,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     else
                     {
                         NC_DISPATCH(att_type,
-                            NC_T *tmp = static_cast<NC_T*>(realloc(att_buffer, att_len));
+                            NC_T *tmp = static_cast<NC_T*>(realloc(att_buffer, sizeof(NC_T)*att_len));
 #if !defined(HDF5_THREAD_SAFE)
                             {
                             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
