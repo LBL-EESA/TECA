@@ -628,6 +628,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
 #endif
                         teca_netcdf_util::crtrim(tmp, att_len);
                         atts.set(att_name, std::string(tmp));
+                        att_buffer = tmp;
                     }
                     else if (att_type == NC_STRING)
                     {
@@ -663,6 +664,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                             }
 #endif
                             atts.set(att_name, tmp, att_len);
+                            att_buffer = tmp;
                             )
                     }
                 }
