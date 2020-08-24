@@ -18,4 +18,4 @@ export LD_LIBRARY_PATH=${DASHROOT}/build/lib
 export MPLBACKEND=Agg
 mkdir build
 
-ctest -S ${DASHROOT}/test/travis_ci/ctest_linux.cmake -V --timeout 180
+ctest -S ${DASHROOT}/test/travis_ci/ctest_linux.cmake -VV --timeout 180
