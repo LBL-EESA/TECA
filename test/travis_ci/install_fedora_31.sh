@@ -7,7 +7,7 @@ dnf update -qq -y
 # install deps
 # use PIP for Python packages
 dnf install -qq -y environment-modules which git-all gcc-c++ gcc-gfortran \
-    make cmake swig mpich-devel boost-devel python3-devel python3-pip subversion \
+    make cmake swig openmpi-devel boost-devel python3-devel python3-pip subversion \
     udunits2 udunits2-devel zlib-devel openssl-devel wget redhat-rpm-config
 
 if [[ ${REQUIRE_NETCDF_MPI} == TRUE ]]
@@ -19,7 +19,7 @@ fi
 
 set +x
 source /usr/share/Modules/init/bash
-module load mpi/mpich-x86_64
+module load mpi
 set -x
 
 echo ${TRAVIS_BRANCH}
