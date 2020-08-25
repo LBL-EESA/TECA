@@ -56,7 +56,7 @@ install:
     export TECA_DATA_REVISION=${TECA_DATA_REVISION} &&
     export REQUIRE_NETCDF_MPI=${REQUIRE_NETCDF_MPI} &&
     ${TECA_DIR}/test/travis_ci/install_${IMAGE_NAME}.sh &&
-    chmod -R ug+rwX ${TECA_DIR}";
+    chmod -R a+rwX ${TECA_DIR}";
     fi
 
 script:
