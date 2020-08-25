@@ -12,7 +12,8 @@ dnf install -qq -y environment-modules which git-all gcc-c++ gcc-gfortran \
 
 if [[ ${REQUIRE_NETCDF_MPI} == TRUE ]]
 then
-    dnf install -qq -y  hdf5-mpich-devel netcdf-mpich-devel
+    #dnf install -qq -y  hdf5-mpich-devel netcdf-mpich-devel
+    dnf install -qq -y  hdf5-openmpi-devel netcdf-openmpi-devel
 else
     dnf install -qq -y hdf5-devel netcdf-devel
 fi
