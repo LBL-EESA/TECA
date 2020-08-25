@@ -55,7 +55,8 @@ install:
     "export TECA_PYTHON_VERSION=${TECA_PYTHON_VERSION} &&
     export TECA_DATA_REVISION=${TECA_DATA_REVISION} &&
     export REQUIRE_NETCDF_MPI=${REQUIRE_NETCDF_MPI} &&
-    ${TECA_DIR}/test/travis_ci/install_${IMAGE_NAME}.sh";
+    ${TECA_DIR}/test/travis_ci/install_${IMAGE_NAME}.sh &&
+    chmod -R ug+rwX ${TECA_DIR}";
     fi
 
 script:
@@ -65,7 +66,7 @@ script:
     ./test/travis_ci/ctest_osx.sh;
     elif [[ "${TRAVIS_OS_NAME}" == "linux" ]];
     then
-    docker exec teca_${DOCKER_IMAGE}_${IMAGE_VERSION} /bin/bash -c
+    docker exec --user 1000:1000 teca_${DOCKER_IMAGE}_${IMAGE_VERSION} /bin/bash -c
     "lscpu && id && cat /proc/cpuinfo && export TRAVIS_BRANCH=${TRAVIS_BRANCH} &&
     export TECA_PYTHON_VERSION=${TECA_PYTHON_VERSION} &&
     export BUILD_TYPE=${BUILD_TYPE} &&
