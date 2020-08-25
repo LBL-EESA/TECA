@@ -15,4 +15,4 @@ source `pwd`/../tci/bin/activate
 set -x
 
 mkdir build
-ctest -S ${DASHROOT}/test/travis_ci/ctest_osx.cmake -V --timeout 180
+ctest -S ${DASHROOT}/test/travis_ci/ctest_osx.cmake -VV --timeout 180
