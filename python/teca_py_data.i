@@ -8,6 +8,7 @@
 #include "teca_mesh.h"
 #include "teca_cartesian_mesh.h"
 #include "teca_curvilinear_mesh.h"
+#include "teca_arakawa_c_grid.h"
 #include "teca_table.h"
 #include "teca_table_collection.h"
 #include "teca_database.h"
@@ -214,6 +215,53 @@ TECA_PY_CONST_CAST(teca_curvilinear_mesh)
     TECA_PY_DATASET_METADATA(std::string, x_coordinate_variable)
     TECA_PY_DATASET_METADATA(std::string, y_coordinate_variable)
     TECA_PY_DATASET_METADATA(std::string, z_coordinate_variable)
+    TECA_PY_DATASET_METADATA(std::string, t_coordinate_variable)
+}
+
+/***************************************************************************
+ arakawa_c_grid
+ ***************************************************************************/
+%ignore teca_arakawa_c_grid::shared_from_this;
+%shared_ptr(teca_arakawa_c_grid)
+%ignore teca_arakawa_c_grid::operator=;
+%ignore teca_arakawa_c_grid::get_periodic_in_x(int *) const;
+%ignore teca_arakawa_c_grid::get_periodic_in_y(int *) const;
+%ignore teca_arakawa_c_grid::get_periodic_in_z(int *) const;
+%ignore teca_arakawa_c_grid::set_m_x_coordinate_variable(std::string const *);
+%ignore teca_arakawa_c_grid::set_m_y_coordinate_variable(std::string const *);
+%ignore teca_arakawa_c_grid::set_u_x_coordinate_variable(std::string const *);
+%ignore teca_arakawa_c_grid::set_u_y_coordinate_variable(std::string const *);
+%ignore teca_arakawa_c_grid::set_v_x_coordinate_variable(std::string const *);
+%ignore teca_arakawa_c_grid::set_v_y_coordinate_variable(std::string const *);
+%ignore teca_arakawa_c_grid::set_m_z_coordinate_variable(std::string const *);
+%ignore teca_arakawa_c_grid::set_w_z_coordinate_variable(std::string const *);
+%ignore teca_arakawa_c_grid::set_t_coordinate_variable(std::string const *);
+%include "teca_arakawa_c_grid.h"
+TECA_PY_DYNAMIC_CAST(teca_arakawa_c_grid, teca_dataset)
+TECA_PY_CONST_CAST(teca_arakawa_c_grid)
+%extend teca_arakawa_c_grid
+{
+    TECA_PY_STR()
+
+    TECA_PY_DATASET_VECTOR_METADATA(unsigned long, extent)
+    TECA_PY_DATASET_VECTOR_METADATA(unsigned long, whole_extent)
+
+    TECA_PY_DATASET_METADATA(int, periodic_in_x)
+    TECA_PY_DATASET_METADATA(int, periodic_in_y)
+    TECA_PY_DATASET_METADATA(int, periodic_in_z)
+
+    TECA_PY_DATASET_METADATA(std::string, m_x_coordinate_variable)
+    TECA_PY_DATASET_METADATA(std::string, m_y_coordinate_variable)
+
+    TECA_PY_DATASET_METADATA(std::string, u_x_coordinate_variable)
+    TECA_PY_DATASET_METADATA(std::string, u_y_coordinate_variable)
+
+    TECA_PY_DATASET_METADATA(std::string, v_x_coordinate_variable)
+    TECA_PY_DATASET_METADATA(std::string, v_y_coordinate_variable)
+
+    TECA_PY_DATASET_METADATA(std::string, m_z_coordinate_variable)
+    TECA_PY_DATASET_METADATA(std::string, w_z_coordinate_variable)
+
     TECA_PY_DATASET_METADATA(std::string, t_coordinate_variable)
 }
 

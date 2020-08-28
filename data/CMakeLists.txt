@@ -6,6 +6,7 @@ include_directories(
     )
 
 set(teca_data_srcs
+    teca_arakawa_c_grid.cxx
     teca_array_attributes.cxx
     teca_array_collection.cxx
     teca_cartesian_mesh.cxx
