@@ -11,48 +11,41 @@ teca_curvilinear_mesh::teca_curvilinear_mesh()
 // --------------------------------------------------------------------------
 void teca_curvilinear_mesh::copy(const const_p_teca_dataset &dataset)
 {
+    this->teca_mesh::copy(dataset);
+
     const_p_teca_curvilinear_mesh other
         = std::dynamic_pointer_cast<const teca_curvilinear_mesh>(dataset);
 
-    if (!other)
-        throw std::bad_cast();
-
-    if (this == other.get())
+    if ((!other) || (this == other.get()))
         return;
 
-    this->teca_mesh::copy(dataset);
     m_coordinate_arrays->copy(other->m_coordinate_arrays);
 }
 
 // --------------------------------------------------------------------------
 void teca_curvilinear_mesh::shallow_copy(const p_teca_dataset &dataset)
 {
+    this->teca_mesh::shallow_copy(dataset);
+
     p_teca_curvilinear_mesh other
         = std::dynamic_pointer_cast<teca_curvilinear_mesh>(dataset);
 
-    if (!other)
-        throw std::bad_cast();
-
-    if (this == other.get())
+    if ((!other) || (this == other.get()))
         return;
 
-    this->teca_mesh::shallow_copy(dataset);
     m_coordinate_arrays->shallow_copy(other->m_coordinate_arrays);
 }
 
 // --------------------------------------------------------------------------
 void teca_curvilinear_mesh::copy_metadata(const const_p_teca_dataset &dataset)
 {
+    this->teca_mesh::copy_metadata(dataset);
+
     const_p_teca_curvilinear_mesh other
         = std::dynamic_pointer_cast<const teca_curvilinear_mesh>(dataset);
 
-    if (!other)
-        throw std::bad_cast();
-
-    if (this == other.get())
+    if ((!other) || (this == other.get()))
         return;
-
-    this->teca_mesh::copy_metadata(dataset);
 
     m_coordinate_arrays->copy(other->m_coordinate_arrays);
 }
@@ -60,6 +53,8 @@ void teca_curvilinear_mesh::copy_metadata(const const_p_teca_dataset &dataset)
 // --------------------------------------------------------------------------
 void teca_curvilinear_mesh::swap(p_teca_dataset &dataset)
 {
+    this->teca_mesh::swap(dataset);
+
     p_teca_curvilinear_mesh other
         = std::dynamic_pointer_cast<teca_curvilinear_mesh>(dataset);
 
@@ -69,7 +64,6 @@ void teca_curvilinear_mesh::swap(p_teca_dataset &dataset)
     if (this == other.get())
         return;
 
-    this->teca_mesh::swap(dataset);
     m_coordinate_arrays->swap(other->m_coordinate_arrays);
 }
 
