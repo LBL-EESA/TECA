@@ -115,6 +115,16 @@
 %ignore teca_mesh::set_time_units(std::string const *);
 %ignore teca_mesh::set_array_attributes(teca_metadata const *);
 %ignore teca_mesh::get_array_attributes(teca_metadata *) const;
+%ignore teca_mesh::get_arrays(int) const;
+%ignore teca_mesh::get_point_arrays() const;
+%ignore teca_mesh::get_cell_arrays() const;
+%ignore teca_mesh::get_x_edge_arrays() const;
+%ignore teca_mesh::get_y_edge_arrays() const;
+%ignore teca_mesh::get_z_edge_arrays() const;
+%ignore teca_mesh::get_x_face_arrays() const;
+%ignore teca_mesh::get_y_face_arrays() const;
+%ignore teca_mesh::get_z_face_arrays() const;
+%ignore teca_mesh::get_information_arrays() const;
 %include "teca_mesh_fwd.h"
 %include "teca_mesh.h"
 TECA_PY_DYNAMIC_CAST(teca_mesh, teca_dataset)

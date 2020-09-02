@@ -482,20 +482,52 @@ int teca_dataset_diff::compare_cartesian_meshes(
     }
 
     // Edge-centered arrays.
-    arrays1 = reference_mesh->get_edge_arrays();
-    arrays2 = data_mesh->get_edge_arrays();
+    arrays1 = reference_mesh->get_x_edge_arrays();
+    arrays2 = data_mesh->get_x_edge_arrays();
     if (this->compare_array_collections(arrays1, arrays2))
     {
-        TECA_ERROR("difference in edge arrays")
+        TECA_ERROR("difference in x-edge arrays")
+        return -1;
+    }
+
+    arrays1 = reference_mesh->get_y_edge_arrays();
+    arrays2 = data_mesh->get_y_edge_arrays();
+    if (this->compare_array_collections(arrays1, arrays2))
+    {
+        TECA_ERROR("difference in y-edge arrays")
+        return -1;
+    }
+
+    arrays1 = reference_mesh->get_z_edge_arrays();
+    arrays2 = data_mesh->get_z_edge_arrays();
+    if (this->compare_array_collections(arrays1, arrays2))
+    {
+        TECA_ERROR("difference in z-edge arrays")
         return -1;
     }
 
     // Face-centered arrays.
-    arrays1 = reference_mesh->get_face_arrays();
-    arrays2 = data_mesh->get_face_arrays();
+    arrays1 = reference_mesh->get_x_face_arrays();
+    arrays2 = data_mesh->get_x_face_arrays();
     if (this->compare_array_collections(arrays1, arrays2))
     {
-        TECA_ERROR("difference in face arrays")
+        TECA_ERROR("difference in x-face arrays")
+        return -1;
+    }
+
+    arrays1 = reference_mesh->get_y_face_arrays();
+    arrays2 = data_mesh->get_y_face_arrays();
+    if (this->compare_array_collections(arrays1, arrays2))
+    {
+        TECA_ERROR("difference in y-face arrays")
+        return -1;
+    }
+
+    arrays1 = reference_mesh->get_z_face_arrays();
+    arrays2 = data_mesh->get_z_face_arrays();
+    if (this->compare_array_collections(arrays1, arrays2))
+    {
+        TECA_ERROR("difference in z-face arrays")
         return -1;
     }
 

@@ -241,4 +241,47 @@ int bounds_to_extent(const double *bounds,
     TECA_ERROR("invalid coordinate array type")
     return -1;
 }
+
+// **************************************************************************
+int validate_centering(int centering)
+{
+    int ret = -1;
+    switch (centering)
+    {
+        case teca_array_attributes::invalid_value:
+            TECA_ERROR("detected invalid_value in centering")
+            break;
+        case teca_array_attributes::cell_centering:
+            ret = 0;
+            break;
+        case teca_array_attributes::x_face_centering:
+            ret = 0;
+            break;
+        case teca_array_attributes::y_face_centering:
+            ret = 0;
+            break;
+        case teca_array_attributes::z_face_centering:
+            ret = 0;
+            break;
+        case teca_array_attributes::x_edge_centering:
+            ret = 0;
+            break;
+        case teca_array_attributes::y_edge_centering:
+            ret = 0;
+            break;
+        case teca_array_attributes::z_edge_centering:
+            ret = 0;
+            break;
+        case teca_array_attributes::point_centering:
+            ret = 0;
+            break;
+        case teca_array_attributes::no_centering:
+            ret = 0;
+            break;
+        default:
+            TECA_ERROR("this centering is undefined " << centering)
+    }
+    return ret;
+}
+
 };

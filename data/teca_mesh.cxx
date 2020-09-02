@@ -1,11 +1,16 @@
 #include "teca_mesh.h"
+#include "teca_array_attributes.h"
 
 teca_mesh::impl_t::impl_t()
 {
     this->point_arrays = teca_array_collection::New();
     this->cell_arrays = teca_array_collection::New();
-    this->edge_arrays = teca_array_collection::New();
-    this->face_arrays = teca_array_collection::New();
+    this->x_edge_arrays = teca_array_collection::New();
+    this->y_edge_arrays = teca_array_collection::New();
+    this->z_edge_arrays = teca_array_collection::New();
+    this->x_face_arrays = teca_array_collection::New();
+    this->y_face_arrays = teca_array_collection::New();
+    this->z_face_arrays = teca_array_collection::New();
     this->info_arrays = teca_array_collection::New();
 }
 
@@ -31,8 +36,12 @@ void teca_mesh::copy(const const_p_teca_dataset &dataset)
     m_impl = std::make_shared<teca_mesh::impl_t>();
     m_impl->point_arrays->copy(other->m_impl->point_arrays);
     m_impl->cell_arrays->copy(other->m_impl->cell_arrays);
-    m_impl->edge_arrays->copy(other->m_impl->edge_arrays);
-    m_impl->face_arrays->copy(other->m_impl->face_arrays);
+    m_impl->x_edge_arrays->copy(other->m_impl->x_edge_arrays);
+    m_impl->y_edge_arrays->copy(other->m_impl->y_edge_arrays);
+    m_impl->z_edge_arrays->copy(other->m_impl->z_edge_arrays);
+    m_impl->x_face_arrays->copy(other->m_impl->x_face_arrays);
+    m_impl->y_face_arrays->copy(other->m_impl->y_face_arrays);
+    m_impl->z_face_arrays->copy(other->m_impl->z_face_arrays);
     m_impl->info_arrays->copy(other->m_impl->info_arrays);
 }
 
@@ -53,8 +62,12 @@ void teca_mesh::shallow_copy(const p_teca_dataset &dataset)
     m_impl = std::make_shared<teca_mesh::impl_t>();
     m_impl->point_arrays->shallow_copy(other->m_impl->point_arrays);
     m_impl->cell_arrays->shallow_copy(other->m_impl->cell_arrays);
-    m_impl->edge_arrays->shallow_copy(other->m_impl->edge_arrays);
-    m_impl->face_arrays->shallow_copy(other->m_impl->face_arrays);
+    m_impl->x_edge_arrays->shallow_copy(other->m_impl->x_edge_arrays);
+    m_impl->y_edge_arrays->shallow_copy(other->m_impl->y_edge_arrays);
+    m_impl->z_edge_arrays->shallow_copy(other->m_impl->z_edge_arrays);
+    m_impl->x_face_arrays->shallow_copy(other->m_impl->x_face_arrays);
+    m_impl->y_face_arrays->shallow_copy(other->m_impl->y_face_arrays);
+    m_impl->z_face_arrays->shallow_copy(other->m_impl->z_face_arrays);
     m_impl->info_arrays->shallow_copy(other->m_impl->info_arrays);
 }
 
@@ -76,13 +89,66 @@ void teca_mesh::swap(p_teca_dataset &dataset)
 }
 
 // --------------------------------------------------------------------------
+p_teca_array_collection &teca_mesh::get_arrays(int centering)
+{
+    switch (centering)
+    {
+        case teca_array_attributes::invalid_value:
+            TECA_ERROR("detected invalid_value in centering")
+            break;
+        case teca_array_attributes::cell_centering:
+            return m_impl->cell_arrays;
+            break;
+        case teca_array_attributes::x_face_centering:
+            return m_impl->x_face_arrays;
+            break;
+        case teca_array_attributes::y_face_centering:
+            return m_impl->y_face_arrays;
+            break;
+        case teca_array_attributes::z_face_centering:
+            return m_impl->z_face_arrays;
+            break;
+        case teca_array_attributes::x_edge_centering:
+            return m_impl->x_edge_arrays;
+            break;
+        case teca_array_attributes::y_edge_centering:
+            return m_impl->y_edge_arrays;
+            break;
+        case teca_array_attributes::z_edge_centering:
+            return m_impl->z_edge_arrays;
+            break;
+        case teca_array_attributes::point_centering:
+            return m_impl->point_arrays;
+            break;
+        case teca_array_attributes::no_centering:
+            return m_impl->info_arrays;
+            break;
+        default:
+            TECA_ERROR("this centering is undefined " << centering)
+    }
+
+    // because there is no such thing as a null reference
+    return m_impl->invalid;
+}
+
+// --------------------------------------------------------------------------
+const_p_teca_array_collection teca_mesh::get_arrays(int centering) const
+{
+    return const_cast<teca_mesh*>(this)->get_arrays(centering);
+}
+
+// --------------------------------------------------------------------------
 void teca_mesh::to_stream(teca_binary_stream &s) const
 {
     this->teca_dataset::to_stream(s);
     m_impl->point_arrays->to_stream(s);
     m_impl->cell_arrays->to_stream(s);
-    m_impl->edge_arrays->to_stream(s);
-    m_impl->face_arrays->to_stream(s);
+    m_impl->x_edge_arrays->to_stream(s);
+    m_impl->y_edge_arrays->to_stream(s);
+    m_impl->z_edge_arrays->to_stream(s);
+    m_impl->x_face_arrays->to_stream(s);
+    m_impl->y_face_arrays->to_stream(s);
+    m_impl->z_face_arrays->to_stream(s);
     m_impl->info_arrays->to_stream(s);
 }
 
@@ -92,8 +158,12 @@ void teca_mesh::from_stream(teca_binary_stream &s)
     this->teca_dataset::from_stream(s);
     m_impl->point_arrays->from_stream(s);
     m_impl->cell_arrays->from_stream(s);
-    m_impl->edge_arrays->from_stream(s);
-    m_impl->face_arrays->from_stream(s);
+    m_impl->x_edge_arrays->from_stream(s);
+    m_impl->y_edge_arrays->from_stream(s);
+    m_impl->z_edge_arrays->from_stream(s);
+    m_impl->x_face_arrays->from_stream(s);
+    m_impl->y_face_arrays->from_stream(s);
+    m_impl->z_face_arrays->from_stream(s);
     m_impl->info_arrays->from_stream(s);
 }
 
@@ -105,6 +175,9 @@ void teca_mesh::to_stream(std::ostream &s) const
     s << "point arrays = ";
     m_impl->point_arrays->to_stream(s);
     s << std::endl;
+    s << "cell arrays = ";
+    m_impl->cell_arrays->to_stream(s);
+    s << std::endl;
 }
 
 // --------------------------------------------------------------------------
@@ -113,7 +186,11 @@ bool teca_mesh::empty() const noexcept
     return
         !( m_impl->point_arrays->size()
         || m_impl->cell_arrays->size()
-        || m_impl->edge_arrays->size()
-        || m_impl->face_arrays->size()
+        || m_impl->x_edge_arrays->size()
+        || m_impl->y_edge_arrays->size()
+        || m_impl->z_edge_arrays->size()
+        || m_impl->x_face_arrays->size()
+        || m_impl->y_face_arrays->size()
+        || m_impl->z_face_arrays->size()
         || m_impl->info_arrays->size());
 }

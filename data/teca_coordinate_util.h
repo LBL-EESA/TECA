@@ -4,6 +4,7 @@
 #include "teca_cartesian_mesh.h"
 #include "teca_variant_array.h"
 #include "teca_metadata.h"
+#include "teca_array_attributes.h"
 
 #include <vector>
 #include <cmath>
@@ -384,6 +385,58 @@ template<> struct interpolate_t<1>
              sx,sy,sz,sa, ihi,jhi,khi, nx,nxy, ta);
     }
 };
+
+// return 0 if the centering is one of the values defined
+// in teca_array_attributes
+int validate_centering(int centering);
+
+// convert from a cell extent to a face, edge or point centered
+// extent
+template <typename num_t>
+int convert_cell_extent(num_t *extent, int centering)
+{
+    switch (centering)
+    {
+        case teca_array_attributes::invalid_value:
+            TECA_ERROR("detected invalid_value in centering")
+            return -1;
+            break;
+        case teca_array_attributes::cell_centering:
+            break;
+        case teca_array_attributes::x_face_centering:
+            extent[1] += 1;
+            break;
+        case teca_array_attributes::y_face_centering:
+            extent[3] += 1;
+            break;
+        case teca_array_attributes::z_face_centering:
+            extent[5] += 1;
+            break;
+        case teca_array_attributes::x_edge_centering:
+            extent[3] += 1;
+            extent[5] += 1;
+            break;
+        case teca_array_attributes::y_edge_centering:
+            extent[1] += 1;
+            extent[5] += 1;
+            break;
+        case teca_array_attributes::z_edge_centering:
+            extent[1] += 1;
+            extent[3] += 1;
+            break;
+        case teca_array_attributes::point_centering:
+            extent[1] += 1;
+            extent[3] += 1;
+            extent[5] += 1;
+            break;
+        case teca_array_attributes::no_centering:
+            break;
+        default:
+            TECA_ERROR("this centering is undefined " << centering)
+            return -1;
+    }
+    return 0;
+}
 
 };
 #endif
