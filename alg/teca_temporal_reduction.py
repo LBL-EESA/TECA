@@ -99,7 +99,7 @@ class interval_iterator:
 
             # find the time step of the last day
             n_days = self.last_day_of_month()
-            t1 = '%04d-%02d-%02d 11:59:59' % (self.year, self.month, n_days)
+            t1 = '%04d-%02d-%02d 23:59:59' % (self.year, self.month, n_days)
             i1 = teca_py.coordinate_util.time_step_of(self.t, True, True,
                                                       self.calendar,
                                                       self.units, t1)
@@ -181,7 +181,7 @@ class interval_iterator:
                                                       self.units, t0)
 
             # find the time step of the last day
-            t1 = '%04d-%02d-%02d 11:59:59' % (self.year, self.month, self.day)
+            t1 = '%04d-%02d-%02d 23:59:59' % (self.year, self.month, self.day)
             i1 = teca_py.coordinate_util.time_step_of(self.t, True, True,
                                                       self.calendar,
                                                       self.units, t1)
