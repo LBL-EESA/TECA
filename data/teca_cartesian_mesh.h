@@ -2,7 +2,8 @@
 #define teca_cartesian_mesh_h
 
 #include "teca_mesh.h"
-#include "teca_cartesian_mesh_fwd.h"
+#include "teca_shared_object.h"
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_cartesian_mesh)
 
 /// data on a physically uniform cartesian mesh
 class teca_cartesian_mesh : public teca_mesh

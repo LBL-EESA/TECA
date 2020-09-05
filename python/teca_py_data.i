@@ -164,7 +164,6 @@ TECA_PY_CONST_CAST(teca_mesh)
 %ignore teca_cartesian_mesh::set_y_coordinate_variable(std::string const *);
 %ignore teca_cartesian_mesh::set_z_coordinate_variable(std::string const *);
 %ignore teca_cartesian_mesh::set_t_coordinate_variable(std::string const *);
-%include "teca_cartesian_mesh_fwd.h"
 %include "teca_cartesian_mesh.h"
 TECA_PY_DYNAMIC_CAST(teca_cartesian_mesh, teca_dataset)
 TECA_PY_CONST_CAST(teca_cartesian_mesh)

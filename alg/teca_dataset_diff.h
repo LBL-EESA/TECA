@@ -4,9 +4,9 @@
 #include "teca_shared_object.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
-#include "teca_table_fwd.h"
-#include "teca_cartesian_mesh_fwd.h"
-#include "teca_array_collection_fwd.h"
+#include "teca_table.h"
+#include "teca_cartesian_mesh.h"
+#include "teca_array_collection.h"
 
 #include <vector>
 #include <string>
