@@ -480,4 +480,7 @@ int teca_metadata::get(const std::string &name,
 
 // convenience defs for nesting metadata
 using teca_metadata_array = teca_variant_array_impl<teca_metadata>;
+using p_teca_metadata_array = std::shared_ptr<teca_variant_array_impl<teca_metadata>>;
+using const_p_teca_metadata_array = std::shared_ptr<const teca_variant_array_impl<teca_metadata>>;
+
 #endif
