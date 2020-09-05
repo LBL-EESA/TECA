@@ -539,6 +539,24 @@ private:
     TEMPLATE_DISPATCH_CASE(t, float, p, body)   \
     else TEMPLATE_DISPATCH_CASE(t, double, p, body)
 
+// variant that limits dispatch to signed integer types
+// for use in numerical compuatation where signed integer types
+// are not supported
+#define TEMPLATE_DISPATCH_SI(t, p, body)                        \
+    TEMPLATE_DISPATCH_CASE(t, long long, p, body)               \
+    else TEMPLATE_DISPATCH_CASE(t, long, p, body)               \
+    else TEMPLATE_DISPATCH_CASE(t, int, p, body)                \
+    else TEMPLATE_DISPATCH_CASE(t, short int, p, body)          \
+    else TEMPLATE_DISPATCH_CASE(t, char, p, body)
+
+// variant that limits dispatch to floating point types
+// for use in numerical compuatation where integer types
+// are not supported (ie, math operations from std library)
+#define TEMPLATE_DISPATCH_FP_SI(t, p, body)             \
+    TEMPLATE_DISPATCH_CASE(t, float, p, body)           \
+    else TEMPLATE_DISPATCH_CASE(t, double, p, body)     \
+    else TEMPLATE_DISPATCH_SI(t, p, body)
+
 // variant that limits dispatch to integer types
 // for use in numerical compuatation where floating point types
 // are not supported
