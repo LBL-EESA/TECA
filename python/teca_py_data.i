@@ -174,6 +174,8 @@ TECA_PY_CONST_CAST(teca_cartesian_mesh)
     TECA_PY_DATASET_VECTOR_METADATA(unsigned long, extent)
     TECA_PY_DATASET_VECTOR_METADATA(unsigned long, whole_extent)
 
+    TECA_PY_DATASET_VECTOR_METADATA(double, bounds)
+
     TECA_PY_DATASET_METADATA(int, periodic_in_x)
     TECA_PY_DATASET_METADATA(int, periodic_in_y)
     TECA_PY_DATASET_METADATA(int, periodic_in_z)
