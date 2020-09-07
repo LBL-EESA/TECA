@@ -28,6 +28,55 @@
 
 namespace internals {
 
+bool is_big_endian(void)
+{
+    union { uint32_t i; char c[4]; } bint = {0x01020304};
+    return bint.c[0] == 1;
+}
+
+template<typename num_t>
+int fwrite_big_endian(num_t *data, size_t elem_size, size_t n_elem, FILE *ofile)
+{
+    size_t elem_size_2 = elem_size / 2;
+    size_t n_bytes = elem_size*n_elem;
+    char *tmp = (char*)malloc(n_bytes);
+    char *dst = tmp;
+    char *src = (char*)data;
+    for (size_t i = 0; i < n_elem; ++i)
+    {
+        for (size_t j = 0; j < elem_size_2; ++j)
+        {
+            size_t jj = elem_size - j - 1;
+            dst[j] = src[jj];
+            dst[jj] = src[j];
+        }
+        dst += elem_size;
+        src += elem_size;
+    }
+    if (fwrite(tmp, elem_size, n_elem, ofile) != n_elem)
+    {
+        free(tmp);
+        char *estr = strerror(errno);
+        TECA_ERROR("Failed to fwrite data. "  << estr)
+        return -1;
+
+    }
+    free(tmp);
+    return 0;
+}
+
+template<typename num_t>
+int fwrite_native_endian(num_t *data, size_t elem_size, size_t n_elem, FILE *ofile)
+{
+    if (fwrite(data, elem_size, n_elem, ofile) != n_elem)
+    {
+        char *estr = strerror(errno);
+        TECA_ERROR("Failed to fwrite data. "  << estr)
+        return -1;
+    }
+    return 0;
+}
+
 void write_vtk_array_data(FILE *ofile,
     const const_p_teca_variant_array &a, int binary)
 {
@@ -36,10 +85,14 @@ void write_vtk_array_data(FILE *ofile,
         size_t na = a->size();
         TEMPLATE_DISPATCH(const teca_variant_array_impl,
             a.get(),
-            const NT *pa = dynamic_cast<TT*>(a.get())->get();
+            const NT *pa = static_cast<TT*>(a.get())->get();
             if (binary)
             {
-                fwrite(pa, sizeof(NT), na, ofile);
+                // because VTK's legacy file fomrat  requires big endian storage
+                if (!is_big_endian())
+                    fwrite_big_endian(pa, sizeof(NT), na, ofile);
+                else
+                    fwrite_native_endian(pa, sizeof(NT), na, ofile);
             }
             else
             {
@@ -51,9 +104,12 @@ void write_vtk_array_data(FILE *ofile,
             }
             )
         fprintf(ofile, "\n");
+        fprintf(ofile, "METADATA\n");
+        fprintf(ofile, "INFORMATION 0\n\n");
     }
     else
     {
+        TECA_ERROR("Attempt to write a nullptr")
         fprintf(ofile, "0\n");
     }
 }
