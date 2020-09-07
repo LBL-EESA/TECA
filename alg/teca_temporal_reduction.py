@@ -3,266 +3,294 @@ import teca_py
 import numpy as np
 
 
-class time_point:
-    """
-    A structure holding a floating point time value and its
-    corresponding year, month day, hour minute and second
-    """
-    def __init__(self, t, units, calendar):
-        self.t = t
-        self.units = units
-        self.calendar = calendar
-
-        self.year, self.month, self.day, \
-            self.hour, self.minutes, self.seconds = \
-            teca_py.calendar_util.date(t, self.units, self.calendar)
-
-    def __str__(self):
-        return '%g (%s, %s) --> %04d-%02d-%02d %02d:%02d:%02g' % (
-            self.t, self.units, self.calendar, self.year, self.month, self.day,
-            self.hour, self.minutes, self.seconds)
-
-
-class c_struct:
-    """
-    A c like data structure
-    """
-    def __init__(self, **kwds):
-        self.__dict__.update(kwds)
-
-    def __str__(self):
-        strg = ''
-        for k, v in self.__dict__.items():
-            strg += k + '=' + str(v) + ', '
-        return strg
-
-
-class interval_iterator:
-    class month_iterator:
+class teca_temporal_reduction_internals:
+    class time_point:
         """
-        An iterator over all months between 2 time_point's. A pair
-        of time steps bracketing the current month are returned at
-        each iteration.
+        A structure holding a floating point time value and its
+        corresponding year, month day, hour minute and second
         """
-
         def __init__(self, t, units, calendar):
-            """
-            t - an array of floating point time values
-            units - string units of the time values
-            calendar - string name of the calendar system
-            """
             self.t = t
             self.units = units
-
-            calendar = calendar.lower()
             self.calendar = calendar
 
-            # time point's to iterate between
-            self.t0 = time_point(t[0], units, calendar)
-            self.t1 = time_point(t[-1], units, calendar)
+            self.year, self.month, self.day, \
+                self.hour, self.minutes, self.seconds = \
+                teca_py.calendar_util.date(t, self.units, self.calendar)
 
-            # current time state
-            self.year = self.t0.year
-            self.month = self.t0.month
+        def __str__(self):
+            return '%g (%s, %s) --> %04d-%02d-%02d %02d:%02d:%02g' % (
+                self.t, self.units, self.calendar, self.year, self.month,
+                self.day, self.hour, self.minutes, self.seconds)
 
-        def last_day_of_month(self):
-            """
-            get the number of days in the month, with logic for
-            leap years
-            """
-            return \
-                teca_py.calendar_util.days_in_month(self.calendar, self.units,
-                                                    self.year, self.month)
-
-        def __iter__(self):
-            return self
-
-        def __next__(self):
-            """
-            return a pair of time steps bracketing the current month.
-            both returned time steps belong to the current month.
-            """
-            # check for more months to process
-            if (self.year > self.t1.year) or \
-                    (self.year == self.t1.year) and \
-                    (self.month > self.t1.month):
-                raise StopIteration
-
-            # find the time step of the first day
-            year = self.year
-            month = self.month
-
-            t0 = '%04d-%02d-01 00:00:00' % (self.year, self.month)
-            i0 = teca_py.coordinate_util.time_step_of(self.t, True, True,
-                                                      self.calendar,
-                                                      self.units, t0)
-
-            # find the time step of the last day
-            n_days = self.last_day_of_month()
-            t1 = '%04d-%02d-%02d 23:59:59' % (self.year, self.month, n_days)
-            i1 = teca_py.coordinate_util.time_step_of(self.t, True, True,
-                                                      self.calendar,
-                                                      self.units, t1)
-
-            # move to next month
-            self.month += 1
-
-            # move to next year
-            if self.month == 13:
-                self.month = 1
-                self.year += 1
-
-            return c_struct(time=self.t[i0], year=year, month=month,
-                            day=1, start_index=i0, end_index=i1)
-
-    class day_iterator:
+    class c_struct:
         """
-        An iterator over all days between 2 time_point's. A pair
-        of time steps bracketing the current day are returned at
-        each iteration.
+        A c like data structure
         """
+        def __init__(self, **kwds):
+            self.__dict__.update(kwds)
 
-        def __init__(self, t, units, calendar):
+        def __str__(self):
+            strg = ''
+            for k, v in self.__dict__.items():
+                strg += k + '=' + str(v) + ', '
+            return strg
+
+    class interval_iterator:
+        class month_iterator:
             """
-            t - an array of floating point time values
-            units - string units of the time values
-            calendar - string name of the calendar system
+            An iterator over all months between 2 time_point's. A pair
+            of time steps bracketing the current month are returned at
+            each iteration.
             """
-            # time values
-            self.t = t
-            self.units = units
 
-            calendar = calendar.lower()
-            self.calendar = calendar
+            def __init__(self, t, units, calendar):
+                """
+                t - an array of floating point time values
+                units - string units of the time values
+                calendar - string name of the calendar system
+                """
+                self.t = t
+                self.units = units
 
-            # time point's to iterate between
-            self.t0 = time_point(t[0], units, calendar)
-            self.t1 = time_point(t[-1], units, calendar)
+                calendar = calendar.lower()
+                self.calendar = calendar
 
-            # current time state
-            self.year = self.t0.year
-            self.month = self.t0.month
-            self.day = self.t0.day
+                # time point's to iterate between
+                self.t0 = teca_temporal_reduction_internals.time_point(
+                              t[0], units, calendar)
 
-        def last_day_of_month(self):
-            """
-            get the number of days in the month, with logic for
-            leap years
-            """
-            return \
-                teca_py.calendar_util.days_in_month(self.calendar, self.units,
-                                                    self.year, self.month)
+                self.t1 = teca_temporal_reduction_internals.time_point(
+                              t[-1], units, calendar)
 
-        def __iter__(self):
-            return self
+                # current time state
+                self.year = self.t0.year
+                self.month = self.t0.month
 
-        def __next__(self):
-            """
-            return a pair of time steps bracketing the current month.
-            both returned time steps belong to the current month.
-            """
-            # check for more days to process
-            if (self.year > self.t1.year) or \
-                    ((self.year == self.t1.year) and
-                     (self.month > self.t1.month)) or \
-                    ((self.year == self.t1.year) and
-                     (self.month == self.t1.month) and
-                     (self.day > self.t1.day)):
-                raise StopIteration
+            def last_day_of_month(self):
+                """
+                get the number of days in the month, with logic for
+                leap years
+                """
+                return \
+                    teca_py.calendar_util.days_in_month(self.calendar,
+                                                        self.units, self.year,
+                                                        self.month)
 
-            # find the time step of the first day
-            year = self.year
-            month = self.month
-            day = self.day
+            def __iter__(self):
+                return self
 
-            t0 = '%04d-%02d-%02d 00:00:00' % (self.year, self.month, self.day)
-            i0 = teca_py.coordinate_util.time_step_of(self.t, True, True,
-                                                      self.calendar,
-                                                      self.units, t0)
+            def __next__(self):
+                """
+                return a pair of time steps bracketing the current month.
+                both returned time steps belong to the current month.
+                """
+                # check for more months to process
+                if (self.year > self.t1.year) or \
+                        (self.year == self.t1.year) and \
+                        (self.month > self.t1.month):
+                    raise StopIteration
 
-            # find the time step of the last day
-            t1 = '%04d-%02d-%02d 23:59:59' % (self.year, self.month, self.day)
-            i1 = teca_py.coordinate_util.time_step_of(self.t, True, True,
-                                                      self.calendar,
-                                                      self.units, t1)
+                # find the time step of the first day
+                year = self.year
+                month = self.month
 
-            # move to next day
-            n_days = self.last_day_of_month()
-            self.day += 1
+                t0 = '%04d-%02d-01 00:00:00' % (self.year, self.month)
+                i0 = teca_py.coordinate_util.time_step_of(self.t, True, True,
+                                                          self.calendar,
+                                                          self.units, t0)
 
-            # move to next month
-            if self.day > n_days:
+                # find the time step of the last day
+                n_days = self.last_day_of_month()
+
+                t1 = '%04d-%02d-%02d 23:59:59' % \
+                    (self.year, self.month, n_days)
+
+                i1 = teca_py.coordinate_util.time_step_of(self.t, True, True,
+                                                          self.calendar,
+                                                          self.units, t1)
+
+                # move to next month
                 self.month += 1
-                self.day = 1
 
-            # move to next year
-            if self.month == 13:
-                self.month = 1
-                self.year += 1
+                # move to next year
+                if self.month == 13:
+                    self.month = 1
+                    self.year += 1
 
-            return c_struct(time=self.t[i0], year=year, month=month,
-                            day=day, start_index=i0, end_index=i1)
+                return teca_temporal_reduction_internals.c_struct(
+                    time=self.t[i0], year=year, month=month,
+                    day=1, start_index=i0, end_index=i1)
 
-    @staticmethod
-    def New(interval, t, units, calendar):
-        if interval == 'monthly':
-            return interval_iterator.month_iterator(t, units, calendar)
-        elif interval == 'daily':
-            return interval_iterator.day_iterator(t, units, calendar)
-        else:
-            raise RuntimeError('Invlid interval %s' % (interval))
+        class day_iterator:
+            """
+            An iterator over all days between 2 time_point's. A pair
+            of time steps bracketing the current day are returned at
+            each iteration.
+            """
 
+            def __init__(self, t, units, calendar):
+                """
+                t - an array of floating point time values
+                units - string units of the time values
+                calendar - string name of the calendar system
+                """
+                # time values
+                self.t = t
+                self.units = units
 
-class reduction_operator:
-    class average:
-        num_t = []
+                calendar = calendar.lower()
+                self.calendar = calendar
 
-        def __init__(self):
-            self.count = 1.0
+                # time point's to iterate between
+                self.t0 = teca_temporal_reduction_internals.time_point(
+                              t[0], units, calendar)
 
-        def update(self, out_array, in_array):
-            # track number of entries for average.
-            self.count += 1
-            # don't use integer types for this calculation
-            if in_array.dtype.kind == 'i':
-                in_array = in_array.astype(np.float32) \
-                   if in_array.itemsize < 8 else in_array.astype(float64)
+                self.t1 = teca_temporal_reduction_internals.time_point(
+                              t[-1], units, calendar)
 
-            if out_array.dtype.kind == 'i':
-                out_array = out_array.astype(np.float32) \
-                    if out_array.itemsize < 8 else out_array.astype(float64)
-            # accumulate
-            return out_array + in_array
+                # current time state
+                self.year = self.t0.year
+                self.month = self.t0.month
+                self.day = self.t0.day
 
-        def finalize(self, out_array):
-            n = self.count
-            self.count = 1.0
-            return out_array / n
+            def last_day_of_month(self):
+                """
+                get the number of days in the month, with logic for
+                leap years
+                """
+                return teca_py.calendar_util.days_in_month(
+                           self.calendar, self.units, self.year, self.month)
 
-    class minimum:
-        def update(self, out_array, in_array):
-            return np.minimum(out_array, in_array)
+            def __iter__(self):
+                return self
 
-        def finalize(self, out_array):
-            return out_array
+            def __next__(self):
+                """
+                return a pair of time steps bracketing the current month.
+                both returned time steps belong to the current month.
+                """
+                # check for more days to process
+                if (self.year > self.t1.year) or \
+                        ((self.year == self.t1.year) and
+                         (self.month > self.t1.month)) or \
+                        ((self.year == self.t1.year) and
+                         (self.month == self.t1.month) and
+                         (self.day > self.t1.day)):
+                    raise StopIteration
 
-    class maximum:
-        def update(self, out_array, in_array):
-            return np.maximum(out_array, in_array)
+                # find the time step of the first day
+                year = self.year
+                month = self.month
+                day = self.day
 
-        def finalize(self, out_array):
-            return out_array
+                t0 = '%04d-%02d-%02d 00:00:00' % \
+                    (self.year, self.month, self.day)
 
-    @staticmethod
-    def New(op_name):
-        if op_name == 'average':
-            return reduction_operator.average()
-        elif op_name == 'minimum':
-            return reduction_operator.minimum()
-        elif op_name == 'maximum':
-            return reduction_operator.maximum()
+                i0 = teca_py.coordinate_util.time_step_of(self.t, True, True,
+                                                          self.calendar,
+                                                          self.units, t0)
 
-        raise RuntimeError('Invalid operator %s' % (op_name))
+                # find the time step of the last day
+                t1 = '%04d-%02d-%02d 23:59:59' % \
+                    (self.year, self.month, self.day)
+
+                i1 = teca_py.coordinate_util.time_step_of(self.t, True, True,
+                                                          self.calendar,
+                                                          self.units, t1)
+
+                # move to next day
+                n_days = self.last_day_of_month()
+                self.day += 1
+
+                # move to next month
+                if self.day > n_days:
+                    self.month += 1
+                    self.day = 1
+
+                # move to next year
+                if self.month == 13:
+                    self.month = 1
+                    self.year += 1
+
+                return teca_temporal_reduction_internals.c_struct(
+                    time=self.t[i0], year=year, month=month, day=day,
+                    start_index=i0, end_index=i1)
+
+        @staticmethod
+        def New(interval, t, units, calendar):
+            if interval == 'monthly':
+
+                return teca_temporal_reduction_internals. \
+                    interval_iterator.month_iterator(t, units, calendar)
+
+            elif interval == 'daily':
+
+                return teca_temporal_reduction_internals. \
+                    interval_iterator.day_iterator(t, units, calendar)
+
+            else:
+
+                raise RuntimeError('Invlid interval %s' % (interval))
+
+    class reduction_operator:
+        class average:
+            num_t = []
+
+            def __init__(self):
+                self.count = 1.0
+
+            def update(self, out_array, in_array):
+                # track number of entries for average.
+                self.count += 1
+                # don't use integer types for this calculation
+                if in_array.dtype.kind == 'i':
+                    in_array = in_array.astype(np.float32) \
+                        if in_array.itemsize < 8 else \
+                        in_array.astype(float64)
+
+                if out_array.dtype.kind == 'i':
+                    out_array = out_array.astype(np.float32) \
+                        if out_array.itemsize < 8 else \
+                        out_array.astype(float64)
+
+                # accumulate
+                return out_array + in_array
+
+            def finalize(self, out_array):
+                n = self.count
+                self.count = 1.0
+                return out_array / n
+
+        class minimum:
+            def update(self, out_array, in_array):
+                return np.minimum(out_array, in_array)
+
+            def finalize(self, out_array):
+                return out_array
+
+        class maximum:
+            def update(self, out_array, in_array):
+                return np.maximum(out_array, in_array)
+
+            def finalize(self, out_array):
+                return out_array
+
+        @staticmethod
+        def New(op_name):
+            if op_name == 'average':
+                return teca_temporal_reduction_internals. \
+                    reduction_operator.average()
+
+            elif op_name == 'minimum':
+                return teca_temporal_reduction_internals. \
+                    reduction_operator.minimum()
+
+            elif op_name == 'maximum':
+                return teca_temporal_reduction_internals. \
+                    reduction_operator.maximum()
+
+            raise RuntimeError('Invalid operator %s' % (op_name))
 
 
 class teca_temporal_reduction(teca_py.teca_threaded_python_algorithm):
@@ -369,9 +397,9 @@ class teca_temporal_reduction(teca_py.teca_threaded_python_algorithm):
         t_units = t_atts['units']
 
         # convert the time axis to a monthly delta t
-        self.indices = [ii for ii in
-                        interval_iterator.New(self.interval_name,
-                                              t, t_units, cal)]
+        self.indices = [ii for ii in teca_temporal_reduction_internals.
+                        interval_iterator.New(
+                            self.interval_name, t, t_units, cal)]
 
         if self.get_verbose() > 1:
             sys.stderr.write('indices = [\n')
@@ -403,7 +431,7 @@ class teca_temporal_reduction(teca_py.teca_threaded_python_algorithm):
                         or tc == teca_py.teca_unsigned_int_array_code.get() \
                         or tc == teca_py.teca_unsigned_char_array_code.get():
                     tc = teca_py.teca_float_array_code.get()
-                elif  tc == teca_py.teca_long_long_array_code.get()         \
+                elif tc == teca_py.teca_long_long_array_code.get()          \
                         or tc == teca_py.teca_unsigned_long_long_array_code.get():
                     tc = teca_py.teca_double_array_code.get()
                 in_atts['type_code'] = tc
@@ -446,7 +474,8 @@ class teca_temporal_reduction(teca_py.teca_threaded_python_algorithm):
         # initialize a new reduction operator, for the subsequent
         # execute
         for array in self.arrays:
-            self.operator[array] = reduction_operator.New(self.operator_name)
+            self.operator[array] = teca_temporal_reduction_internals. \
+                reduction_operator.New(self.operator_name)
 
         # generate one request for each time step in the interval
         up_reqs = []
