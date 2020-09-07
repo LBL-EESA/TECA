@@ -23,6 +23,11 @@ public:
 
     ~teca_database();
 
+    // return a unique string identifier
+    std::string get_class_name() const override
+    { return "teca_database"; }
+
+
     // append table
     int append_table(p_teca_table table)
     { return this->tables->append(table); }

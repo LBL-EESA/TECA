@@ -42,6 +42,9 @@ public:
     // dataset in a new instance.
     virtual p_teca_dataset new_copy() const = 0;
 
+    // return a string identifier uniquely naming the dataset type
+    virtual std::string get_class_name() const = 0;
+
     // copy data and metadata. shallow copy uses reference
     // counting, while copy duplicates the data.
     virtual void copy(const const_p_teca_dataset &other);

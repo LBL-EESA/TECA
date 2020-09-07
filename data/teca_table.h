@@ -27,6 +27,10 @@ public:
     TECA_DATASET_METADATA(calendar, std::string, 1)
     TECA_DATASET_METADATA(time_units, std::string, 1)
 
+    // return a unique string identifier
+    std::string get_class_name() const override
+    { return "teca_table"; }
+
     // remove all column definitions and data
     void clear();
 
