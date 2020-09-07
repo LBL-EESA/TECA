@@ -628,6 +628,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
 #endif
                         teca_netcdf_util::crtrim(tmp, att_len);
                         atts.set(att_name, std::string(tmp));
+                        att_buffer = tmp;
                     }
                     else if (att_type == NC_STRING)
                     {
@@ -653,7 +654,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     else
                     {
                         NC_DISPATCH(att_type,
-                            NC_T *tmp = static_cast<NC_T*>(realloc(att_buffer, att_len));
+                            NC_T *tmp = static_cast<NC_T*>(realloc(att_buffer, sizeof(NC_T)*att_len));
 #if !defined(HDF5_THREAD_SAFE)
                             {
                             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
@@ -663,6 +664,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                             }
 #endif
                             atts.set(att_name, tmp, att_len);
+                            att_buffer = tmp;
                             )
                     }
                 }
@@ -1149,8 +1151,12 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
             memcpy(extent, whole_extent, 6*sizeof(unsigned long));
         }
         // get bounds of the extent being read
-        for (int i = 0; i < 6; ++i)
-            in_x->get(extent[i], bounds[i]);
+        in_x->get(extent[0], bounds[0]);
+        in_x->get(extent[1], bounds[1]);
+        in_y->get(extent[2], bounds[2]);
+        in_y->get(extent[3], bounds[3]);
+        in_z->get(extent[4], bounds[4]);
+        in_z->get(extent[5], bounds[5]);
     }
     else
     {
