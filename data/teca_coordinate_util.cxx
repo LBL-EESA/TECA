@@ -48,7 +48,7 @@ int time_step_of(p_teca_variant_array time, bool lower, bool clamp,
 
     // locate the nearest time value in the time axis
     unsigned long last = time->size() - 1;
-    TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+    TEMPLATE_DISPATCH_FP_SI(teca_variant_array_impl,
         time.get(),
         NT *p_time = std::dynamic_pointer_cast<TT>(time)->get();
         if (clamp && (t <= p_time[0]))
@@ -69,7 +69,8 @@ int time_step_of(p_teca_variant_array time, bool lower, bool clamp,
         )
 
     TECA_ERROR("time_step_of failed because the internal storage "
-        "type used for the time axis is currently not supported")
+        "type used for the time axis (" << time->get_class_name()
+        << ") is currently not supported")
     return -1;
 #else
     (void)time;

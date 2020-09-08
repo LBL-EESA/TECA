@@ -3,11 +3,13 @@
 
 #include <vector>
 #include <string>
+#include <sstream>
 #include <exception>
 #include <typeinfo>
 #include <iterator>
 #include <algorithm>
 #include <type_traits>
+#include <typeinfo>
 #include <utility>
 
 #include "teca_common.h"
@@ -65,6 +67,9 @@ public:
     // return true if values are equal
     bool operator==(const teca_variant_array &other) const
     { return this->equal(other); }
+
+    // return the name of the class in a human readable form
+    virtual std::string get_class_name() = 0;
 
     // initialize contents with the native type initializer
     virtual void initialize() = 0;
@@ -273,6 +278,9 @@ public:
     p_teca_variant_array new_copy(size_t start, size_t end) const override;
     p_teca_variant_array new_instance() const override;
     p_teca_variant_array new_instance(size_t n) const override;
+
+    // return the name of the class in a human readable form
+    std::string get_class_name() override;
 
     // intialize with T()
     void initialize() override;
@@ -530,6 +538,24 @@ private:
 #define TEMPLATE_DISPATCH_FP(t, p, body)        \
     TEMPLATE_DISPATCH_CASE(t, float, p, body)   \
     else TEMPLATE_DISPATCH_CASE(t, double, p, body)
+
+// variant that limits dispatch to signed integer types
+// for use in numerical compuatation where signed integer types
+// are not supported
+#define TEMPLATE_DISPATCH_SI(t, p, body)                        \
+    TEMPLATE_DISPATCH_CASE(t, long long, p, body)               \
+    else TEMPLATE_DISPATCH_CASE(t, long, p, body)               \
+    else TEMPLATE_DISPATCH_CASE(t, int, p, body)                \
+    else TEMPLATE_DISPATCH_CASE(t, short int, p, body)          \
+    else TEMPLATE_DISPATCH_CASE(t, char, p, body)
+
+// variant that limits dispatch to floating point types
+// for use in numerical compuatation where integer types
+// are not supported (ie, math operations from std library)
+#define TEMPLATE_DISPATCH_FP_SI(t, p, body)             \
+    TEMPLATE_DISPATCH_CASE(t, float, p, body)           \
+    else TEMPLATE_DISPATCH_CASE(t, double, p, body)     \
+    else TEMPLATE_DISPATCH_SI(t, p, body)
 
 // variant that limits dispatch to integer types
 // for use in numerical compuatation where floating point types
@@ -872,6 +898,18 @@ const teca_variant_array_impl<T> &teca_variant_array_impl<T>::operator=(
 {
     m_data = std::move(other.m_data);
     return *this;
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
+std::string teca_variant_array_impl<T>::get_class_name()
+{
+    const char *element_name = typeid(T).name();
+    size_t element_size = sizeof(T);
+    std::ostringstream oss;
+    oss << "teca_variant_array_impl<" << element_name
+        << element_size << ">";
+    return oss.str();
 }
 
 // --------------------------------------------------------------------------

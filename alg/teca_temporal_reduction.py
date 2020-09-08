@@ -235,14 +235,14 @@ class teca_temporal_reduction_internals:
 
     class reduction_operator:
         class average:
-            num_t = []
-
             def __init__(self):
-                self.count = 1.0
+                self.count = None
+                self.fill_value = None
+
+            def initialize(self, fill_value):
+                self.fill_value = fill_value
 
             def update(self, out_array, in_array):
-                # track number of entries for average.
-                self.count += 1
                 # don't use integer types for this calculation
                 if in_array.dtype.kind == 'i':
                     in_array = in_array.astype(np.float32) \
@@ -254,24 +254,96 @@ class teca_temporal_reduction_internals:
                         if out_array.itemsize < 8 else \
                         out_array.astype(float64)
 
-                # accumulate
-                return out_array + in_array
+                # identify the invalid values
+                if self.fill_value is not None:
+                    out_is_bad = np.isclose(out_array, self.fill_value)
+                    in_is_bad = np.isclose(in_array, self.fill_value)
+
+                # initialize the count the first time through. this needs to
+                # happen now since before this we don't know where invalid
+                # values are.
+                if self.count is None:
+                    if self.fill_value is None:
+                        self.count = 1.0
+                    else:
+                        self.count = np.where(out_is_bad, np.float32(0.0),
+                                              np.float32(1.0))
+
+                if self.fill_value is not None:
+                    # update the count only where there is valid data
+                    self.count += np.where(in_is_bad, np.float32(0.0),
+                                           np.float32(1.0))
+
+                    # accumulate
+                    tmp = np.where(out_is_bad, np.float32(0.0), out_array) \
+                        + np.where(in_is_bad, np.float32(0.0), in_array)
+
+                else:
+                    # update count
+                    self.count += np.float32(1.0)
+
+                    # accumulate
+                    tmp = out_array + in_array
+
+                return tmp
 
             def finalize(self, out_array):
-                n = self.count
-                self.count = 1.0
-                return out_array / n
+                if self.fill_value is not None:
+                    # finish the average. We keep track of the invalid
+                    # values (these will have a zero count) set them to
+                    # the fill value
+                    n = self.count
+                    ii = np.isclose(n, np.float32(0.0))
+                    n[ii] = np.float32(1.0)
+                    tmp = out_array / n
+                    tmp[ii] = self.fill_value
+                else:
+                    tmp = out_array / self.count
+                self.count = None
+                return tmp
 
         class minimum:
+            def __init__(self):
+                self.fill_value = None
+
+            def initialize(self, fill_value):
+                self.fill_value = fill_value
+
             def update(self, out_array, in_array):
-                return np.minimum(out_array, in_array)
+                tmp = np.minimum(out_array, in_array)
+                # fix invalid values
+                if self.fill_value is not None:
+                    out_is_bad = np.isclose(out_array, self.fill_value)
+                    out_is_good = np.logical_not(out_is_bad)
+                    in_is_bad = np.isclose(in_array, self.fill_value)
+                    in_is_good = np.logical_not(in_is_bad)
+                    tmp = np.where(np.logical_and(out_is_bad, in_is_good), in_array, tmp)
+                    tmp = np.where(np.logical_and(in_is_bad, out_is_good), out_array, tmp)
+                    tmp = np.where(np.logical_and(in_is_bad, out_is_bad), self.fill_value, tmp)
+                return tmp
 
             def finalize(self, out_array):
                 return out_array
 
         class maximum:
+            def __init__(self):
+                self.fill_value = None
+
+            def initialize(self, fill_value):
+                self.fill_value = fill_value
+
             def update(self, out_array, in_array):
-                return np.maximum(out_array, in_array)
+                tmp = np.maximum(out_array, in_array)
+                # fix invalid values
+                if self.fill_value is not None:
+                    out_is_bad = np.isclose(out_array, self.fill_value)
+                    out_is_good = np.logical_not(out_is_bad)
+                    in_is_bad = np.isclose(in_array, self.fill_value)
+                    in_is_good = np.logical_not(in_is_bad)
+                    tmp = np.where(np.logical_and(out_is_bad, in_is_good), in_array, tmp)
+                    tmp = np.where(np.logical_and(in_is_bad, out_is_good), out_array, tmp)
+                    tmp = np.where(np.logical_and(in_is_bad, out_is_bad), self.fill_value, tmp)
+                return tmp
 
             def finalize(self, out_array):
                 return out_array
@@ -304,13 +376,44 @@ class teca_temporal_reduction(teca_py.teca_threaded_python_algorithm):
     The output time axis will be defined using the selected increment.
     The output data will be accumulated/reduced using the selected
     operation.
+
+    The set_use_fill_value  method controls how invalid or missing values are
+    teated.  When set to 1, NetCDF CF fill values are detected and handled.
+    This is the default. If it is known that the dataset has no invalid or
+    missing values one may set this to 0 for faster processing. By default the
+    fill value will be obtained from metadata stored in the NetCDF CF file
+    (_FillValue). One may override this by explicitly calling set_fill_value
+    method with the desired fill value.
+
+    For minimum and maximum operations, at given grid point only valid values
+    over the interval are used in the calculation.  if there are no valid
+    values over the interval at the grid point it is set to the fill_value.
+
+    For the averaging operation, during summation missing values are treated
+    as 0.0 and a per-grid point count of valid values over the interval is
+    maintained and used in the average. Grid points with no valid values over
+    the inteval are set to the fill value.
     """
     def __init__(self):
         self.indices = []
-        self.arrays = []
+        self.point_arrays = []
         self.interval_name = None
         self.operator_name = None
+        self.use_fill_value = 1
+        self.fill_value = None
         self.operator = {}
+
+    def set_fill_value(self, fill_value):
+        """
+        set the output fill_value
+        """
+        self.fill_value = fill_value
+
+    def set_use_fill_value(self, use):
+        """
+        set the output fill_value
+        """
+        self.use_fill_value = use
 
     def set_interval(self, interval):
         """
@@ -354,13 +457,13 @@ class teca_temporal_reduction(teca_py.teca_threaded_python_algorithm):
         """
         self.operator_name = 'average'
 
-    def set_arrays(self, arrays):
+    def set_point_arrays(self, arrays):
         """
         Set the list of arrays to reduce
         """
         if isinstance(arrays, list):
             arrays = list(arrays)
-        self.arrays = arrays
+        self.point_arrays = arrays
 
     def report(self, port, md_in):
         """
@@ -380,20 +483,27 @@ class teca_temporal_reduction(teca_py.teca_threaded_python_algorithm):
         if self.operator_name is None:
             raise RuntimeError('No operator specified')
 
-        if self.arrays is None:
+        if self.point_arrays is None:
             raise RuntimeError('No arrays specified')
 
         md_out = md_in[0]
 
-        # get the input time axis
+        # get the input time axis and metadata
         atts = md_out['attributes']
         coords = md_out['coordinates']
 
         t = coords['t']
         t_var = coords['t_variable']
-
         t_atts = atts[t_var]
-        cal = t_atts['calendar']
+
+        try:
+            cal = t_atts['calendar']
+        except KeyError:
+            cal = 'standard'
+            sys.stderr.write('Attributes for the time axis %s is missing '
+                             'calendar. The "standard" calendar will be '
+                             'used'%(t_var))
+
         t_units = t_atts['units']
 
         # convert the time axis to a monthly delta t
@@ -416,7 +526,7 @@ class teca_temporal_reduction(teca_py.teca_threaded_python_algorithm):
         out_atts = teca_py.teca_metadata()
         out_vars = []
 
-        for array in self.arrays:
+        for array in self.point_arrays:
             # name of the output array
             out_vars.append(array)
 
@@ -471,16 +581,39 @@ class teca_temporal_reduction(teca_py.teca_threaded_python_algorithm):
                 rnk = 0
             sys.stderr.write('[%d] teca_temporal_reduction::request\n' % (rnk))
 
+        md = md_in[0]
+
         # initialize a new reduction operator, for the subsequent
         # execute
-        for array in self.arrays:
-            self.operator[array] = teca_temporal_reduction_internals. \
+        atrs = md['attributes']
+        for array in self.point_arrays:
+            # get the fill value
+            fill_value = self.fill_value
+            if self.use_fill_value and fill_value is None:
+                array_atrs = atrs[array]
+                if array_atrs.has('_FillValue'):
+                    fill_value = array_atrs['_FillValue']
+                elif array_atrs.has('missing_value'):
+                    fill_value = array_atrs['missing_value']
+                else:
+                    raise RuntimeError('Array %s has no fill value. With use_'
+                                       'fill_value arrays must have _FillValue'
+                                       ' or missing_value attribute or you '
+                                       'must set a fill_value explicitly.'%(
+                                       array))
+
+            # create and initialize the operator
+            op = teca_temporal_reduction_internals. \
                 reduction_operator.New(self.operator_name)
+
+            op.initialize(fill_value)
+
+            # save the operator
+            self.operator[array] = op
 
         # generate one request for each time step in the interval
         up_reqs = []
 
-        md = md_in[0]
         request_key = md['index_request_key']
         req_id = req_in[request_key]
         ii = self.indices[req_id]
@@ -498,7 +631,7 @@ class teca_temporal_reduction(teca_py.teca_threaded_python_algorithm):
         implements the execute phase of pipeline execution
         """
 
-        # get the requested index and its
+        # get the requested index
         request_key = req_in['index_request_key']
         req_id = req_in[request_key]
         ii = self.indices[req_id]
@@ -524,7 +657,7 @@ class teca_temporal_reduction(teca_py.teca_threaded_python_algorithm):
         while len(data_in):
             mesh_in = teca_py.as_teca_cartesian_mesh(data_in.pop())
             arrays_in = mesh_in.get_point_arrays()
-            for array in self.arrays:
+            for array in self.point_arrays:
                 arrays_out[array] = \
                     self.operator[array].update(arrays_out[array],
                                                 arrays_in[array])
@@ -532,7 +665,7 @@ class teca_temporal_reduction(teca_py.teca_threaded_python_algorithm):
         # when all the data is processed
         if not streaming:
             # finalize reduction
-            for array in self.arrays:
+            for array in self.point_arrays:
                 arrays_out[array] = \
                     self.operator[array].finalize(arrays_out[array])
 

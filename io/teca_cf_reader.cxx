@@ -821,6 +821,38 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     t_axis->append(*tmp.get());
                     step_count.push_back(tmp->size());
                 }
+
+                // validate the time axis calendaring metadata. this code is to
+                // let us know when the time axis is not correctly specified in
+                // the input file.
+                teca_metadata time_atts;
+                if (atrs.get(t_axis_variable, time_atts))
+                {
+                    TECA_ERROR("Attribute metadata for time axis variable \""
+                        << t_axis_variable << "\" is missing, Temporal analysis is "
+                        << "likely to fail.")
+                }
+                else if (!time_atts.has("units"))
+                {
+                    TECA_ERROR("units attribute for time axis variable \""
+                        << t_axis_variable << "\" is missing, Temporal analysis is "
+                        << "likely to fail.")
+                }
+                else if (!time_atts.has("calendar"))
+                {
+                    std::string cal;
+                    if (this->t_calendar.empty())
+                        cal = "standard";
+                    else
+                        cal = this->t_calendar;
+
+                    TECA_WARNING("the calendar attribute for time axis variable \""
+                        << t_axis_variable << "\" is missing. Using the \""
+                        << cal << "\" calendar")
+
+                    time_atts.set("calendar", cal);
+                    atrs.set(t_axis_variable, time_atts);
+                }
             }
             else if (!this->t_values.empty())
             {
@@ -939,6 +971,11 @@ teca_metadata teca_cf_reader::get_output_metadata(
 #endif
                 }
 
+                TECA_STATUS("The time axis will be infered from file names using "
+                    "the user provided template \"" << this->filename_time_template
+                    << "\" with the \"" << t_calendar << "\" in units \"" << t_units
+                    << "\"")
+
                 // set the time metadata
                 teca_metadata time_atts;
                 time_atts.set("calendar", t_calendar);
@@ -960,7 +997,6 @@ teca_metadata teca_cf_reader::get_output_metadata(
             }
             else
             {
-
                 // make a dummy time axis, this enables parallelization over
                 // file sets that do not have time dimension. However, there is
                 // no guarantee on the order of the dummy axis to the lexical
@@ -980,6 +1016,8 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     )
 
                 t_axis_var = "time";
+
+                TECA_STATUS("The time axis will be generated, with 1 step per file")
             }
 
             this->internals->metadata.set("variables", vars);

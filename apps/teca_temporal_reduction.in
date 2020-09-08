@@ -24,15 +24,6 @@ parser.add_argument('--input_regex', type=str, required=True,
                     help='regex matching the desired set of '
                          'input NetCDF CF2 files')
 
-parser.add_argument('--arrays', nargs='+', required=True,
-                    help='list of arrays to process.')
-
-parser.add_argument('--output_file', type=str, required=True,
-                    help='file pattern for writing output netcdf '
-                         'files. %%t%% will be replaced by a date/time '
-                         'string or time step. See the teca_cf_writer '
-                         'for more information.')
-
 parser.add_argument('--interval', type=str, default='monthly',
                     help='interval to reduce the time axis to. One of '
                          'daily, or monthly (monthly)')
@@ -41,9 +32,48 @@ parser.add_argument('--operator', type=str, default='average',
                     help='reduction operator to use. One of minimum, '
                          'maximum, or average (average)')
 
+parser.add_argument('--point_arrays', nargs='+', required=True,
+                    help='list of point centered arrays to process.')
+
+parser.add_argument('--fill_value', type=float, default=None,
+                    help='A value that identifies missing or invalid data. '
+                         'Specifying the fill value on the command line '
+                         'overrides array specific fill values stored in '
+                         'the file. (None)')
+
+parser.add_argument('--ignore_fill_value',
+                    default=False, action='store_true',
+                    help='Boolean flag that enables missing or invalid '
+                         'value handling. When enabled NetCDF CF conventions '
+                         'are used to determine fill value. Alternativley one '
+                         'can explicitly provide a fill value on the command '
+                         'line via the --fill_value argument. (True).')
+
+parser.add_argument('--output_file', type=str, required=True,
+                    help='file pattern for writing output netcdf '
+                         'files. %%t%% will be replaced by a date/time '
+                         'string or time step. See the teca_cf_writer '
+                         'for more information.')
+
 parser.add_argument('--steps_per_file', type=int, default=12,
                     help='number of time steps to write to each output '
                          'file. (12)')
+
+parser.add_argument('--x_axis_variable', type=str, default='lon',
+                    help='name of the variable to use for x-coordinates '
+                         '(lon)')
+
+parser.add_argument('--y_axis_variable', type=str, default='lat',
+                    help='name of the variable to use for y-coordinates '
+                         '(lat)')
+
+parser.add_argument('--z_axis_variable', type=str, default='',
+                    help='name of the variable to use for z-coordinates '
+                         '()')
+
+parser.add_argument('--t_axis_variable', type=str, default='time',
+                    help='name of the variable to use for t-coordinates '
+                         '(time)')
 
 parser.add_argument('--n_threads', type=int, default=2,
                     help='Number of threads to use when stremaing the '
@@ -64,7 +94,13 @@ steps_per_file = args.steps_per_file
 n_threads = args.n_threads
 interval = args.interval
 operator = args.operator
-arrays = args.arrays
+point_arrays = args.point_arrays
+fill_value = args.fill_value
+ignore_fill_value = args.ignore_fill_value
+x_axis_var = args.x_axis_variable
+y_axis_var = args.y_axis_variable
+z_axis_var = args.z_axis_variable
+t_axis_var = args.t_axis_variable
 verbose = args.verbose
 
 if verbose and rank == 0:
@@ -73,16 +109,24 @@ if verbose and rank == 0:
     sys.stderr.write('steps_per_file=%d\n' % (steps_per_file))
     sys.stderr.write('interval=%s\n' % (interval))
     sys.stderr.write('operator=%s\n' % (operator))
-    sys.stderr.write('arrays=%s\n' % (str(arrays)))
+    sys.stderr.write('point_arrays=%s\n' % (str(point_arrays)))
+    sys.stderr.write('ignore_fill_value=%d\n' % (ignore_fill_value))
+    sys.stderr.write('fill_value=%s\n' % (str(fill_value)))
 
 cfr = teca_cf_reader.New()
 cfr.set_files_regex(in_files)
+cfr.set_x_axis_variable(x_axis_var)
+cfr.set_y_axis_variable(y_axis_var)
+cfr.set_z_axis_variable(z_axis_var)
+cfr.set_t_axis_variable(t_axis_var)
 
 mav = teca_temporal_reduction.New()
 mav.set_input_connection(cfr.get_output_port())
 mav.set_interval(interval)
 mav.set_operator(operator)
-mav.set_arrays(arrays)
+mav.set_fill_value(fill_value)
+mav.set_use_fill_value( 0 if ignore_fill_value else 1 )
+mav.set_point_arrays(point_arrays)
 mav.set_verbose(verbose)
 mav.set_thread_pool_size(n_threads)
 mav.set_stream_size(2)
@@ -93,5 +137,5 @@ cfw.set_verbose(verbose)
 cfw.set_thread_pool_size(1)
 cfw.set_steps_per_file(steps_per_file)
 cfw.set_file_name(out_files)
-cfw.set_point_arrays(arrays)
+cfw.set_point_arrays(point_arrays)
 cfw.update()
