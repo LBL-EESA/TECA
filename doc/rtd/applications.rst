@@ -606,37 +606,61 @@ Command Line Arguments
 ~~~~~~~~~~~~~~~~~~~~~~
 The most common command line options are:
 
+
 --input_regex INPUT_REGEX
-    regex matching the desired set of input NetCDF CF2 files
-
---arrays ARRAYS [ARRAYS ...]
-    list of arrays to process.
-
+                      regex matching the desired set of input NetCDF CF2
+                      files
+--interval INTERVAL   interval to reduce the time axis to. One of daily, or
+                      monthly (monthly)
+--operator OPERATOR   reduction operator to use. One of minimum, maximum, or
+                      average (average)
+--point_arrays POINT_ARRAYS [POINT_ARRAYS ...]
+                      list of point centered arrays to process.
+--fill_value FILL_VALUE
+                      A value that identifies missing or invalid data.
+                      Specifying the fill value on the command line
+                      overrides array specific fill values stored in the
+                      file. (None)
+--ignore_fill_value   Boolean flag that enables missing or invalid value
+                      handling. When enabled NetCDF CF conventions are used
+                      to determine fill value. Alternativley one can
+                      explicitly provide a fill value on the command line
+                      via the --fill_value argument. (True).
 --output_file OUTPUT_FILE
-    file pattern for writing output netcdf files. %t% will be replaced by a
-    date/time string or time step. See the teca_cf_writer for more information.
-
---interval INTERVAL
-    interval to reduce the time axis to. One of daily, or monthly (monthly)
-
---operator OPERATOR
-    reduction operator to use. One of minimum, maximum, or average (average)
-
+                      file pattern for writing output netcdf files. %t% will
+                      be replaced by a date/time string or time step. See
+                      the teca_cf_writer for more information.
 --steps_per_file STEPS_PER_FILE
-    number of time steps to write to each output file. (12)
+                      number of time steps to write to each output file.
+                      (12)
+--x_axis_variable X_AXIS_VARIABLE
+                      name of the variable to use for x-coordinates (lon)
+--y_axis_variable Y_AXIS_VARIABLE
+                      name of the variable to use for y-coordinates (lat)
+--z_axis_variable Z_AXIS_VARIABLE
+                      name of the variable to use for z-coordinates ()
+--t_axis_variable T_AXIS_VARIABLE
+                      name of the variable to use for t-coordinates (time)
+--n_threads N_THREADS
+                      Number of threads to use when stremaing the reduction
+                      (2)
+--verbose VERBOSE     enable verbose mode. (1)
+
+For 3D data one will need to use --z_axis_variable to specify the name of
+the array to use as vertical coordinates.
 
 Example
 ~~~~~~~
 Processing an entire dataset is straight forward once you know how many cores
-you want to run on. You will launch teca\_temporal_reduction
+you want to run on. You will launch teca_temporal_reduction
 from a SLURM batch script. A batch script is provided below.
 
 TECA can process any size dataset on any number of compute cores. However, for
-the temporal reduction, the best performance will occur when the number of
-cores matches the number of intervals that are generated. For example when
+the temporal reduction, the work is limitted by the number of intervals and one
+should not exceed that number of MPI ranks in a parallel run.  For example when
 the reduction is used to convert from a 6 hourly interval to a daily interval
-one should run with the same number of MPI ranks as the number of days in the
-dataset.
+one should run with at most the same number of MPI ranks as the number of days
+in the dataset.
 
 The following SLURM batch script was used to calculate daily averages from a 3
 hourly input dataset. The first 10 years of the 2000's was selected using a
@@ -644,30 +668,32 @@ regular expression.
 
 .. code-block:: bash
 
-   #!/bin/bash
-
+    #!/bin/bash
     #SBATCH --account=m1517
-    #SBATCH --qos=premium
-    #SBATCH --time=02:00:00
-    #SBATCH --nodes=146
-    #SBATCH --tasks-per-node=25
-    #SBATCH --constraint=knl
+    #SBATCH --qos=debug
+    #SBATCH --time=00:30:00
+    #SBATCH --nodes=10
+    #SBATCH --tasks-per-node=32
+    #SBATCH --constraint=haswell
+
+    export PYTHONUNBUFFERED=1
 
     module swap PrgEnv-intel PrgEnv-gnu
-    module use ${SCRATCH}/teca_testing/deps/devel/modulefiles/
-    module load teca
 
-    set -x
+    module use /global/common/software/m1517/users/taobrien/modulefiles
+    module load teca/develop_haswell
 
-    in_dir=/project/projectdirs/dasrepo/gmd/input/ALLHIST/run1
-    in_files=CAM5-1-0'\.25degree_All-Hist_est1_v3_run1\.cam\.h2\.200[0-9].*\.nc$'
+    #export HDF5_USE_FILE_LOCKING=FALSE
+    #data_dir=/global/cfs/cdirs/m3522/cmip6/CMIP6_hrmcol/HighResMIP/CMIP6/HighResMIP/ECMWF/ECMWF-IFS-LR/highresSST-present/r1i1p1f1/6hrPlevPt/psl/gr/v20170915/
 
-    out_dir=/global/cscratch1/sd/loring/teca_testing/TECA/build/daily/
-    out_files=cam5-025deg-all-hist-est1-v3-r1-%t%.nc
+    data_dir=.
+    regex=psl_6hrPlevPt_ECMWF-IFS-LR_highresSST-present_r1i1p1f1_gr_198'.*\.nc$'
 
-    srun -N 146 -n 3650 python3 -u teca_temporal_reduction      \
-        --steps_per_file 30 --interval daily --operator average \
-        --input_regex ${in_dir}/${in_files}                     \
-        --output_file ${out_dir}/${out_files}                   \
-        --arrays PSL TMQ UBOT VBOT U850 V850
+    time teca_metadata_probe --input_regex ${data_dir}/${regex}
+
+    time srun -n 320 teca_temporal_reduction \
+        --input_regex ${data_dir}/${regex} \
+        --interval daily --operator average \
+        --arrays psl --steps_per_file 366 \
+        --output_file psl_daily_avg_loc_%t%.nc
 
