@@ -3,6 +3,7 @@
 
 #include "teca_config.h"
 #include "teca_mpi.h"
+#include "teca_metadata.h"
 
 #include <mutex>
 #include <string>
@@ -177,6 +178,35 @@ private:
     int m_handle;
 };
 
+// read the specified variable attribute by name.
+// it's value is stored in the metadata object
+// return is non-zero if an error occurred
+int read_attribute(netcdf_handle &fh, int var_id,
+    const std::string &att_name, teca_metadata &atts);
+
+// read the specified variable attribute by id
+// it's value is stored in the metadata object
+// return is non-zero if an error occurred
+int read_attribute(netcdf_handle &fh, int var_id,
+    int att_id, teca_metadata &atts);
+
+// read the specified variable's name, dimensions, and it's associated
+// NetCDF attributes into the metadata object. Additonally the following
+// key/value pairs are added and useful for subsequent I/O and processing
+//
+//  cf_id - the NetCDF variable id that can be used to read the variable
+//  cf_dims - a vector of the NetCDF dimension lengths (i.e. the variable's shape)
+//  cf_dim_names - a vector of the names of the NetCDF dimensions
+//  cf_type_code - the NetCDF type code
+//  type_code - the TECA type code
+//  centering - for now it is set to teca_array_attributes::point_centering
+//
+// return is non-zero if an error occurred
+int read_variable_attributes(netcdf_handle &fh, int var_id,
+    std::string &name, teca_metadata &atts);
+
+int read_variable_attributes(netcdf_handle &fh,
+    const std::string &name, teca_metadata &atts);
 }
 
 #endif
