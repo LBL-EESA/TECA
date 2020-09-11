@@ -75,6 +75,10 @@ public:
     // home dir, which ever location succeeds first.
     TECA_ALGORITHM_PROPERTY(std::string, metadata_cache_dir)
 
+    // Enable/disable metadata caching. By default it is on, pass 0
+    // to disable.
+    TECA_ALGORITHM_PROPERTY(int, cache_metadata)
+
     // set if the dataset has periodic boundary conditions
     TECA_ALGORITHM_PROPERTY(int, periodic_in_x)
     TECA_ALGORITHM_PROPERTY(int, periodic_in_y)
@@ -148,6 +152,7 @@ private:
     int periodic_in_y;
     int periodic_in_z;
     int thread_pool_size;
+    int cache_metadata;
     p_teca_cf_reader_internals internals;
 };
 

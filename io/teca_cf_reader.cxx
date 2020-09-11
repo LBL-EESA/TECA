@@ -214,8 +214,20 @@ teca_cf_reader::teca_cf_reader() :
     periodic_in_y(0),
     periodic_in_z(0),
     thread_pool_size(-1),
+    cache_metadata(1),
     internals(new teca_cf_reader_internals)
-{}
+{
+    const char *val = getenv("TECA_CF_READER_CACHE_METADATA");
+    if (val)
+    {
+        int tmp = strtol(val, nullptr, 0);
+        if (errno != EINVAL)
+        {
+            cache_metadata = tmp;
+            TECA_STATUS("metadata cache " << (tmp ? "enabled" : "disabled"))
+        }
+    }
+}
 
 // --------------------------------------------------------------------------
 teca_cf_reader::~teca_cf_reader()
@@ -262,6 +274,8 @@ void teca_cf_reader::get_properties_description(
             "the dataset has apriodic boundary in the z direction (0)")
         TECA_POPTS_GET(int, prefix, thread_pool_size,
             "set the number of I/O threads (-1)")
+        TECA_POPTS_GET(int, prefix, cache_metadata,
+            "a flag when set enables the use of cached metadata (1)")
         ;
 
     global_opts.add(opts);
@@ -286,6 +300,7 @@ void teca_cf_reader::set_properties(const std::string &prefix,
     TECA_POPTS_SET(opts, int, prefix, periodic_in_y)
     TECA_POPTS_SET(opts, int, prefix, periodic_in_z)
     TECA_POPTS_SET(opts, int, prefix, thread_pool_size)
+    TECA_POPTS_SET(opts, int, prefix, cache_metadata)
 }
 #endif
 
@@ -378,36 +393,41 @@ teca_metadata teca_cf_reader::get_output_metadata(
         // datasets on Lustre, scanning the time dimension is costly because of
         // NetCDF CF convention that time is unlimitted and thus not layed out
         // contiguously in the files.
-        std::string metadata_cache_key =
-            this->internals->create_metadata_cache_key(path, files);
+        std::string metadata_cache_key;
 
         std::string metadata_cache_path[4] =
             {(getenv("HOME") ? : "."), ".", path, metadata_cache_dir};
 
         int n_metadata_cache_paths = metadata_cache_dir.empty() ? 2 : 3;
 
-        for (int i = n_metadata_cache_paths; i >= 0; --i)
+        if (this->cache_metadata)
         {
-            std::string metadata_cache_file =
-                metadata_cache_path[i] + PATH_SEP + "." + metadata_cache_key + ".tmd";
+            metadata_cache_key =
+                this->internals->create_metadata_cache_key(path, files);
 
-            if (teca_file_util::file_exists(metadata_cache_file.c_str()))
+            for (int i = n_metadata_cache_paths; i >= 0; --i)
             {
-                // read the cache
-                if (teca_file_util::read_stream(metadata_cache_file.c_str(),
-                    "teca_cf_reader::metadata_cache_file", stream))
+                std::string metadata_cache_file =
+                    metadata_cache_path[i] + PATH_SEP + "." + metadata_cache_key + ".tmd";
+
+                if (teca_file_util::file_exists(metadata_cache_file.c_str()))
                 {
-                    TECA_WARNING("Failed to read metadata cache \""
-                        << metadata_cache_file << "\"")
-                }
-                else
-                {
-                    TECA_STATUS("Found metadata cache \""
-                        << metadata_cache_file << "\"")
-                    // recover metadata
-                    this->internals->metadata.from_stream(stream);
-                    // stop
-                    break;
+                    // read the cache
+                    if (teca_file_util::read_stream(metadata_cache_file.c_str(),
+                        "teca_cf_reader::metadata_cache_file", stream))
+                    {
+                        TECA_WARNING("Failed to read metadata cache \""
+                            << metadata_cache_file << "\"")
+                    }
+                    else
+                    {
+                        TECA_STATUS("Found metadata cache \""
+                            << metadata_cache_file << "\"")
+                        // recover metadata
+                        this->internals->metadata.from_stream(stream);
+                        // stop
+                        break;
+                    }
                 }
             }
         }
@@ -1054,26 +1074,29 @@ teca_metadata teca_cf_reader::get_output_metadata(
             this->internals->metadata.to_stream(stream);
 
 #if defined(TECA_HAS_OPENSSL)
-            // cache metadata on disk
-            bool cached_metadata = false;
-            for (int i = n_metadata_cache_paths; i >= 0; --i)
+            if (this->cache_metadata)
             {
-                std::string metadata_cache_file =
-                    metadata_cache_path[i] + PATH_SEP + "." + metadata_cache_key + ".tmd";
-
-                if (!teca_file_util::write_stream(metadata_cache_file.c_str(),
-                    S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH,
-                    "teca_cf_reader::metadata_cache_file", stream, false))
+                // cache metadata on disk
+                bool cached_metadata = false;
+                for (int i = n_metadata_cache_paths; i >= 0; --i)
                 {
-                    cached_metadata = true;
-                    TECA_STATUS("Wrote metadata cache \""
-                        << metadata_cache_file << "\"")
-                    break;
+                    std::string metadata_cache_file =
+                        metadata_cache_path[i] + PATH_SEP + "." + metadata_cache_key + ".tmd";
+
+                    if (!teca_file_util::write_stream(metadata_cache_file.c_str(),
+                        S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH,
+                        "teca_cf_reader::metadata_cache_file", stream, false))
+                    {
+                        cached_metadata = true;
+                        TECA_STATUS("Wrote metadata cache \""
+                            << metadata_cache_file << "\"")
+                        break;
+                    }
                 }
-            }
-            if (!cached_metadata)
-            {
-                TECA_ERROR("failed to create a metadata cache")
+                if (!cached_metadata)
+                {
+                    TECA_ERROR("failed to create a metadata cache")
+                }
             }
 #endif
         }
