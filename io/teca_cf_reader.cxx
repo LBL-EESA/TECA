@@ -935,6 +935,10 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 teca_metadata time_atts;
                 time_atts.set("calendar", this->t_calendar);
                 time_atts.set("units", this->t_units);
+                time_atts.set("cf_dims", n_t_vals);
+                time_atts.set("cf_type_code", int(teca_netcdf_util::netcdf_tt<double>::type_code));
+                time_atts.set("type_code", teca_variant_array_code<double>::get());
+                time_atts.set("centering", int(teca_array_attributes::point_centering));
 
                 atrs.set("time", time_atts);
 
@@ -1037,12 +1041,6 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     << "\" with the \"" << t_calendar << "\" in units \"" << t_units
                     << "\"")
 
-                // set the time metadata
-                teca_metadata time_atts;
-                time_atts.set("calendar", t_calendar);
-                time_atts.set("units", t_units);
-                atrs.set("time", time_atts);
-
                 // create a teca variant array from the times
                 size_t n_t_vals = t_values.size();
                 p_teca_variant_array_impl<double> t =
@@ -1052,9 +1050,20 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 // set the number of time steps
                 step_count.resize(n_t_vals, 1);
 
+                // set the time metadata
+                teca_metadata time_atts;
+                time_atts.set("calendar", t_calendar);
+                time_atts.set("units", t_units);
+                time_atts.set("cf_dims", n_t_vals);
+                time_atts.set("cf_type_code", int(teca_netcdf_util::netcdf_tt<double>::type_code));
+                time_atts.set("type_code", teca_variant_array_code<double>::get());
+                time_atts.set("centering", int(teca_array_attributes::point_centering));
+                atrs.set("time", time_atts);
+
                 // set the time axis
                 t_axis = t;
                 t_axis_var = "time";
+
             }
             else
             {
