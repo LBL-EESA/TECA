@@ -842,44 +842,83 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     step_count.push_back(tmp->size());
                 }
 
+                // override the time values read from disk with user supplied set
+                if (!this->t_values.empty())
+                {
+                    TECA_WARNING("Overriding the time coordinates stored on disk "
+                        "with runtime provided values.")
+
+                    size_t n_t_vals = this->t_values.size();
+                    if (n_t_vals != t_axis->size())
+                    {
+                        TECA_ERROR("Number of timesteps detected doesn't match "
+                            "the number of time values provided; " << n_t_vals
+                            << " given, " << t_axis->size() << " are necessary.")
+                        return teca_metadata();
+                    }
+
+                    p_teca_double_array t =
+                        teca_double_array::New(this->t_values.data(), n_t_vals);
+
+                    t_axis = t;
+                }
+
                 // validate the time axis calendaring metadata. this code is to
                 // let us know when the time axis is not correctly specified in
                 // the input file.
                 teca_metadata time_atts;
                 if (atrs.get(t_axis_variable, time_atts))
                 {
-                    TECA_ERROR("Attribute metadata for time axis variable \""
+                    TECA_WARNING("Attribute metadata for time axis variable \""
                         << t_axis_variable << "\" is missing, Temporal analysis is "
                         << "likely to fail.")
                 }
-                else if (!time_atts.has("units"))
+
+                // override the calendar
+                if (!this->t_calendar.empty())
                 {
-                    TECA_ERROR("units attribute for time axis variable \""
-                        << t_axis_variable << "\" is missing, Temporal analysis is "
+                    TECA_WARNING("Overriding the calendar with the runtime "
+                        "provided value \"" << this->t_calendar << "\"")
+                    time_atts.set("calendar", this->t_calendar);
+                }
+
+                // override the units
+                if (!this->t_units.empty())
+                {
+                    TECA_WARNING("Overriding the time units with the runtime "
+                        "provided value \"" << this->t_units << "\"")
+                    time_atts.set("units", this->t_units);
+                }
+
+                // check for units. units are necessary.
+                if (!time_atts.has("units"))
+                {
+                    TECA_WARNING("The units attribute for the time axis variable \""
+                        << t_axis_variable << "\" is missing. Temporal analysis is "
                         << "likely to fail.")
                 }
-                else if (!time_atts.has("calendar"))
+
+                // check for calendar. calendar, if missing will be set to "standard"
+                if (!time_atts.has("calendar"))
                 {
-                    std::string cal;
-                    if (this->t_calendar.empty())
-                        cal = "standard";
-                    else
-                        cal = this->t_calendar;
-
-                    TECA_WARNING("the calendar attribute for time axis variable \""
-                        << t_axis_variable << "\" is missing. Using the \""
-                        << cal << "\" calendar")
-
-                    time_atts.set("calendar", cal);
-                    atrs.set(t_axis_variable, time_atts);
+                    TECA_WARNING("The calendar attribute for the time axis variable \""
+                        << t_axis_variable << "\" is missing. Using the \"standard\" "
+                        "calendar")
+                    time_atts.set("calendar", std::string("standard"));
                 }
+
+                // save the updates
+                atrs.set(t_axis_variable, time_atts);
             }
             else if (!this->t_values.empty())
             {
+                TECA_STATUS("The t_axis_variable was unspecified, using the "
+                    "provided time values")
+
                 if (this->t_calendar.empty() || this->t_units.empty())
                 {
-                    TECA_ERROR("calendar and units has to be specified"
-                        " for the time variable")
+                    TECA_ERROR("The calendar and units must to be specified when "
+                        " providing time values")
                     return teca_metadata();
                 }
 
@@ -888,18 +927,24 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 if (n_t_vals != files.size())
                 {
                     TECA_ERROR("Number of files choosen doesn't match the"
-                        " number of time values provided")
+                        " number of time values provided; " << n_t_vals <<
+                        " given, " << files.size() << " detected.")
                     return teca_metadata();
                 }
 
                 teca_metadata time_atts;
                 time_atts.set("calendar", this->t_calendar);
                 time_atts.set("units", this->t_units);
+                time_atts.set("cf_dims", n_t_vals);
+                time_atts.set("cf_type_code", int(teca_netcdf_util::netcdf_tt<double>::type_code));
+                time_atts.set("type_code", teca_variant_array_code<double>::get());
+                time_atts.set("centering", int(teca_array_attributes::point_centering));
 
                 atrs.set("time", time_atts);
 
                 p_teca_variant_array_impl<double> t =
-                    teca_variant_array_impl<double>::New(this->t_values.data(), n_t_vals);
+                    teca_variant_array_impl<double>::New(
+                            this->t_values.data(), n_t_vals);
 
                 step_count.resize(n_t_vals, 1);
 
@@ -996,12 +1041,6 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     << "\" with the \"" << t_calendar << "\" in units \"" << t_units
                     << "\"")
 
-                // set the time metadata
-                teca_metadata time_atts;
-                time_atts.set("calendar", t_calendar);
-                time_atts.set("units", t_units);
-                atrs.set("time", time_atts);
-
                 // create a teca variant array from the times
                 size_t n_t_vals = t_values.size();
                 p_teca_variant_array_impl<double> t =
@@ -1011,9 +1050,20 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 // set the number of time steps
                 step_count.resize(n_t_vals, 1);
 
+                // set the time metadata
+                teca_metadata time_atts;
+                time_atts.set("calendar", t_calendar);
+                time_atts.set("units", t_units);
+                time_atts.set("cf_dims", n_t_vals);
+                time_atts.set("cf_type_code", int(teca_netcdf_util::netcdf_tt<double>::type_code));
+                time_atts.set("type_code", teca_variant_array_code<double>::get());
+                time_atts.set("centering", int(teca_array_attributes::point_centering));
+                atrs.set("time", time_atts);
+
                 // set the time axis
                 t_axis = t;
                 t_axis_var = "time";
+
             }
             else
             {
