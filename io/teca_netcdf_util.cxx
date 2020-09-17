@@ -2,8 +2,11 @@
 #include "teca_common.h"
 #include "teca_system_interface.h"
 #include "teca_file_util.h"
+#include "teca_variant_array.h"
+#include "teca_array_attributes.h"
 
 #include <cstring>
+#include <vector>
 
 static std::mutex g_netcdf_mutex;
 
@@ -250,6 +253,293 @@ int netcdf_handle::close()
         nc_close(m_handle);
         m_handle = 0;
     }
+    return 0;
+}
+
+// **************************************************************************
+int read_attribute(netcdf_handle &fh, int var_id,
+    const std::string &att_name, teca_metadata &atts)
+{
+    int ierr = 0;
+    int att_id = 0;
+    if ((ierr = nc_inq_attid(fh.get(), var_id, att_name.c_str(),
+        &att_id)) != NC_NOERR)
+    {
+        TECA_ERROR("Failed to get the id of attribute \""
+            << att_name << "\" of variable " << var_id << std::endl
+            << nc_strerror(ierr))
+        return -1;
+    }
+
+    return teca_netcdf_util::read_attribute(fh, var_id, att_id, atts);
+}
+
+// **************************************************************************
+int read_attribute(netcdf_handle &fh, int var_id, int att_id, teca_metadata &atts)
+{
+    int ierr = 0;
+    char att_name[NC_MAX_NAME + 1] = {'\0'};
+    nc_type att_type = 0;
+    size_t att_len = 0;
+#if !defined(HDF5_THREAD_SAFE)
+    {
+    std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+    if (((ierr = nc_inq_attname(fh.get(), var_id, att_id, att_name)) != NC_NOERR)
+        || ((ierr = nc_inq_att(fh.get(), var_id, att_name, &att_type, &att_len)) != NC_NOERR))
+    {
+        TECA_ERROR("Failed to query the " << att_id << "th attribute of variable "
+            << var_id << std::endl << nc_strerror(ierr))
+        return -1;
+    }
+#if !defined(HDF5_THREAD_SAFE)
+    }
+#endif
+    if (att_type == NC_CHAR)
+    {
+        char *tmp = static_cast<char*>(malloc(att_len + 1));
+        tmp[att_len] = '\0';
+#if !defined(HDF5_THREAD_SAFE)
+        {
+        std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+        if ((ierr = nc_get_att_text(fh.get(), var_id, att_name, tmp)) != NC_NOERR)
+        {
+            free(tmp);
+            TECA_ERROR("Failed get text from the " << att_id << "th attribute \""
+                << att_name << "\" of variable " << var_id << std::endl
+                << nc_strerror(ierr))
+            return -1;
+        }
+#if !defined(HDF5_THREAD_SAFE)
+        }
+#endif
+        teca_netcdf_util::crtrim(tmp, att_len);
+        atts.set(att_name, std::string(tmp));
+
+        free(tmp);
+
+        return 0;
+    }
+    else if (att_type == NC_STRING)
+    {
+        char *strs[1] = {nullptr};
+#if !defined(HDF5_THREAD_SAFE)
+        {
+        std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+        if ((ierr = nc_get_att_string(fh.get(), var_id, att_name, strs)) != NC_NOERR)
+        {
+            TECA_ERROR("Failed get string from the " << att_id << "th attribute \""
+                << att_name << "\" of variable " << var_id << std::endl
+                << nc_strerror(ierr))
+            return -1;
+        }
+#if !defined(HDF5_THREAD_SAFE)
+        }
+#endif
+        atts.set(att_name, std::string(strs[0]));
+#if !defined(HDF5_THREAD_SAFE)
+        {
+        std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+        nc_free_string(1, strs);
+#if !defined(HDF5_THREAD_SAFE)
+        }
+#endif
+        return 0;
+    }
+    else
+    {
+        NC_DISPATCH(att_type,
+            NC_T *tmp = static_cast<NC_T*>(malloc(sizeof(NC_T)*att_len));
+#if !defined(HDF5_THREAD_SAFE)
+            {
+            std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+            if ((ierr = nc_get_att(fh.get(), var_id, att_name, tmp)) != NC_NOERR)
+            {
+                TECA_ERROR("Failed get the " << att_id << "th attribute \""
+                    << att_name << "\" of variable " << var_id << std::endl
+                    << nc_strerror(ierr))
+                free(tmp);
+
+            }
+#if !defined(HDF5_THREAD_SAFE)
+            }
+#endif
+            atts.set(att_name, tmp, att_len);
+            free(tmp);
+
+            return 0;
+            )
+    }
+
+    TECA_ERROR("Failed to read the " << att_id << "th attribute of variable "
+        << var_id << ". Unhandled case")
+    return -1;
+}
+
+// **************************************************************************
+int read_variable_attributes(netcdf_handle &fh, const std::string &var_name,
+    teca_metadata &atts)
+{
+    int ierr = 0;
+    int var_id = 0;
+    int var_type = 0;
+    nc_type var_nc_type = 0;
+    int n_dims = 0;
+    int dim_id[NC_MAX_VAR_DIMS] = {0};
+    int n_atts = 0;
+
+#if !defined(HDF5_THREAD_SAFE)
+    {
+    std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+    if (((ierr = nc_inq_varid(fh.get(), var_name.c_str(), &var_id)) != NC_NOERR)
+        || ((ierr = nc_inq_var(fh.get(), var_id, nullptr,
+        &var_nc_type, &n_dims, dim_id, &n_atts)) != NC_NOERR))
+    {
+        TECA_ERROR("Failed to query \"" << var_name << "\" variable."
+            << std::endl << nc_strerror(ierr))
+        return -1;
+    }
+#if !defined(HDF5_THREAD_SAFE)
+    }
+#endif
+
+    // convert from the netcdf type code
+    NC_DISPATCH(var_nc_type,
+       var_type = teca_variant_array_code<NC_T>::get();
+       )
+
+    // skip scalars
+    if (n_dims == 0)
+        return 0;
+
+    std::vector<size_t> dims;
+    std::vector<std::string> dim_names;
+    unsigned int centering = teca_array_attributes::point_centering;
+    for (int ii = 0; ii < n_dims; ++ii)
+    {
+        char dim_name[NC_MAX_NAME + 1] = {'\0'};
+        size_t dim = 0;
+#if !defined(HDF5_THREAD_SAFE)
+        {
+        std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+        if ((ierr = nc_inq_dim(fh.get(), dim_id[ii], dim_name, &dim)) != NC_NOERR)
+        {
+            TECA_ERROR("Failed to query " << ii << "th dimension of variable \""
+                << var_name << "\"." << std::endl << nc_strerror(ierr))
+            return -1;
+        }
+#if !defined(HDF5_THREAD_SAFE)
+        }
+#endif
+        dim_names.push_back(dim_name);
+        dims.push_back(dim);
+    }
+
+    atts.set("cf_id", var_id);
+    atts.set("cf_dims", dims);
+    atts.set("cf_dim_names", dim_names);
+    atts.set("cf_type_code", var_nc_type);
+    atts.set("type_code", var_type);
+    atts.set("centering", centering);
+
+    for (int ii = 0; ii < n_atts; ++ii)
+    {
+        if (teca_netcdf_util::read_attribute(fh, var_id, ii, atts))
+        {
+            TECA_ERROR("Failed to read the " << ii << "th attribute for variable \""
+                << var_name << "\"." << std::endl << nc_strerror(ierr))
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+// **************************************************************************
+int read_variable_attributes(netcdf_handle &fh, int var_id,
+    std::string &name, teca_metadata &atts)
+{
+    int ierr = 0;
+    char var_name[NC_MAX_NAME + 1] = {'\0'};
+    int var_type = 0;
+    nc_type var_nc_type = 0;
+    int n_dims = 0;
+    int dim_id[NC_MAX_VAR_DIMS] = {0};
+    int n_atts = 0;
+
+#if !defined(HDF5_THREAD_SAFE)
+    {
+    std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+    if ((ierr = nc_inq_var(fh.get(), var_id, var_name,
+            &var_nc_type, &n_dims, dim_id, &n_atts)) != NC_NOERR)
+    {
+        TECA_ERROR("Failed to query " << var_id << "th variable."
+            << std::endl << nc_strerror(ierr))
+        return -1;
+    }
+#if !defined(HDF5_THREAD_SAFE)
+    }
+#endif
+
+    // convert from the netcdf type code
+    NC_DISPATCH(var_nc_type,
+       var_type = teca_variant_array_code<NC_T>::get();
+       )
+
+    // skip scalars
+    if (n_dims == 0)
+        return 0;
+
+    std::vector<size_t> dims;
+    std::vector<std::string> dim_names;
+    unsigned int centering = teca_array_attributes::point_centering;
+    for (int ii = 0; ii < n_dims; ++ii)
+    {
+        char dim_name[NC_MAX_NAME + 1] = {'\0'};
+        size_t dim = 0;
+#if !defined(HDF5_THREAD_SAFE)
+        {
+        std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+        if ((ierr = nc_inq_dim(fh.get(), dim_id[ii], dim_name, &dim)) != NC_NOERR)
+        {
+            TECA_ERROR("Failed to query " << ii << "th dimension of variable, "
+                << var_name << ". " << std::endl << nc_strerror(ierr))
+            return -1;
+        }
+#if !defined(HDF5_THREAD_SAFE)
+        }
+#endif
+        dim_names.push_back(dim_name);
+        dims.push_back(dim);
+    }
+
+    name = var_name;
+
+    atts.set("cf_id", var_id);
+    atts.set("cf_dims", dims);
+    atts.set("cf_dim_names", dim_names);
+    atts.set("cf_type_code", var_nc_type);
+    atts.set("type_code", var_type);
+    atts.set("centering", centering);
+
+    for (int ii = 0; ii < n_atts; ++ii)
+    {
+        if (teca_netcdf_util::read_attribute(fh, var_id, ii, atts))
+        {
+            TECA_ERROR("Failed to read the " << ii << "th attribute for variable "
+                << var_name << ". " << std::endl << nc_strerror(ierr))
+            return -1;
+        }
+    }
+
     return 0;
 }
 

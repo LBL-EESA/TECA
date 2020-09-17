@@ -36,7 +36,11 @@ using std::cerr;
 #endif
 
 // data and task types
-using read_variable_data_t = std::pair<unsigned long, p_teca_variant_array>;
+using read_variable_data_elem_t
+    = std::pair<p_teca_variant_array, teca_metadata>;
+
+using read_variable_data_t = std::pair<unsigned long, read_variable_data_elem_t>;
+
 using read_variable_task_t = std::packaged_task<read_variable_data_t()>;
 
 using read_variable_queue_t =
@@ -100,7 +104,6 @@ std::string teca_cf_reader_internals::create_metadata_cache_key(
 }
 #endif
 
-
 // function that reads and returns a variable from the
 // named file. we're doing this so we can do thread
 // parallel I/O to hide some of the cost of opening files
@@ -120,7 +123,15 @@ public:
         m_file(file), m_variable(variable), m_id(id)
     {}
 
-    std::pair<unsigned long, p_teca_variant_array> operator()()
+    static
+    read_variable_data_t make_read_variable_data(unsigned long id,
+        p_teca_variant_array var = nullptr,
+        const teca_metadata &md = teca_metadata())
+    {
+        return std::make_pair(id, std::make_pair(var, md));
+    }
+
+    read_variable_data_t operator()()
     {
         p_teca_variant_array var;
 
@@ -134,59 +145,70 @@ public:
         {
             TECA_ERROR("Failed to open read variable \"" << m_variable
                 << "\" from \"" << m_file << "\"")
-            return std::make_pair(m_id, nullptr);
+            return make_read_variable_data(m_id);
         }
 
         // query variable attributes
-        int file_id = fh.get();
-        int var_id = 0;
-        size_t var_size = 0;
-        nc_type var_type = 0;
-
         int ierr = 0;
-#if !defined(HDF5_THREAD_SAFE)
+        teca_metadata atts;
+        if (teca_netcdf_util::read_variable_attributes(fh, m_variable, atts))
         {
-        std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
-#endif
-        if (((ierr = nc_inq_dimid(file_id, m_variable.c_str(), &var_id)) != NC_NOERR)
-            || ((ierr = nc_inq_dimlen(file_id, var_id, &var_size)) != NC_NOERR)
-            || ((ierr = nc_inq_varid(file_id, m_variable.c_str(), &var_id)) != NC_NOERR)
-            || ((ierr = nc_inq_vartype(file_id, var_id, &var_type)) != NC_NOERR))
+            TECA_ERROR("Failed to read \"" << m_variable << "\" attributes")
+            return make_read_variable_data(m_id);
+        }
+
+        // get the type and dimensions
+        int var_type = 0;
+        int var_id = 0;
+        p_teca_size_t_array dims;
+        if (atts.get("cf_type_code", var_type)
+            || atts.get("cf_id", var_id)
+            || !(dims = std::dynamic_pointer_cast<teca_size_t_array>(atts.get("cf_dims"))))
         {
-            TECA_ERROR("Failed to read metadata for variable \"" << m_variable
-                << "\" from \"" << m_file << "\". " << nc_strerror(ierr))
-            return std::make_pair(m_id, nullptr);
+            TECA_ERROR("Metadata issue can't read \"" << m_variable << "\"")
+            return make_read_variable_data(m_id);
         }
-#if !defined(HDF5_THREAD_SAFE)
+
+        // get the size
+        size_t var_size = 1;
+        size_t start[NC_MAX_DIMS] = {0};
+        size_t count[NC_MAX_DIMS] = {0};
+        int n_dims = dims->size();
+        size_t *p_dims = dims->get();
+        for (int i = 0; i < n_dims; ++i)
+        {
+            var_size *= p_dims[i];
+            count[i] = p_dims[i];
         }
-#endif
 
         // allocate a buffer and read the variable.
         NC_DISPATCH(var_type,
-            size_t start = 0;
-            p_teca_variant_array_impl<NC_T> var = teca_variant_array_impl<NC_T>::New();
-            var->resize(var_size);
+
+            p_teca_variant_array_impl<NC_T> var =
+                teca_variant_array_impl<NC_T>::New(var_size);
+
 #if !defined(HDF5_THREAD_SAFE)
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-            if ((ierr = nc_get_vara(file_id, var_id, &start, &var_size, var->get())) != NC_NOERR)
+            if ((ierr = nc_get_vara(fh.get(), var_id, start, count , var->get())) != NC_NOERR)
             {
                 TECA_ERROR("Failed to read variable \"" << m_variable  << "\" from \""
                     << m_file << "\". " << nc_strerror(ierr))
-                return std::make_pair(m_id, nullptr);
+                return make_read_variable_data(m_id);
             }
 #if !defined(HDF5_THREAD_SAFE)
             }
 #endif
             // success!
-            return std::make_pair(m_id, var);
+            return make_read_variable_data(m_id, var, atts);
             )
 
         // unsupported type
         TECA_ERROR("Failed to read variable \"" << m_variable
-            << "\" from \"" << m_file << "\". Unsupported data type")
-        return std::make_pair(m_id, nullptr);
+            << "\". Unsupported data type")
+
+        return make_read_variable_data(m_id);
     }
 
 private:
@@ -195,8 +217,6 @@ private:
     std::string m_variable;
     unsigned long m_id;
 };
-
-
 
 
 
@@ -439,27 +459,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
             int ierr = 0;
             std::string file = path + PATH_SEP + files[0];
 
-            // get mesh coordinates and dimensions
-            int x_id = 0;
-            int y_id = 0;
-            int z_id = 0;
-            size_t n_x = 1;
-            size_t n_y = 1;
-            size_t n_z = 1;
-            nc_type x_t = 0;
-            nc_type y_t = 0;
-            nc_type z_t = 0;
-            int n_vars = 0;
-            p_teca_variant_array x_axis;
-            p_teca_variant_array y_axis;
-            p_teca_variant_array z_axis;
-            p_teca_variant_array t_axis;
-            double bounds[6] = {0.0};
-            unsigned long whole_extent[6] = {0ul};
-
-            teca_metadata atrs;
-            std::vector<std::string> vars;
-
+            // open the file
             teca_netcdf_util::netcdf_handle fh;
             if (fh.open(file.c_str(), NC_NOWRITE))
             {
@@ -467,68 +467,14 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 return teca_metadata();
             }
 
-            // query mesh axes
-#if !defined(HDF5_THREAD_SAFE)
-            {
-            std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
-#endif
-            if (((ierr = nc_inq_dimid(fh.get(), x_axis_variable.c_str(), &x_id)) != NC_NOERR)
-                || ((ierr = nc_inq_dimlen(fh.get(), x_id, &n_x)) != NC_NOERR)
-                || ((ierr = nc_inq_varid(fh.get(), x_axis_variable.c_str(), &x_id)) != NC_NOERR)
-                || ((ierr = nc_inq_vartype(fh.get(), x_id, &x_t)) != NC_NOERR))
-            {
-                this->clear_cached_metadata();
-                TECA_ERROR(
-                    << "Failed to query x axis variable \"" << x_axis_variable
-                    << "\" in file \"" << file << "\"" << endl
-                    << nc_strerror(ierr))
-                return teca_metadata();
-            }
-#if !defined(HDF5_THREAD_SAFE)
-            }
-            {
-            std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
-#endif
-
-            if (!y_axis_variable.empty()
-                && (((ierr = nc_inq_dimid(fh.get(), y_axis_variable.c_str(), &y_id)) != NC_NOERR)
-                || ((ierr = nc_inq_dimlen(fh.get(), y_id, &n_y)) != NC_NOERR)
-                || ((ierr = nc_inq_varid(fh.get(), y_axis_variable.c_str(), &y_id)) != NC_NOERR)
-                || ((ierr = nc_inq_vartype(fh.get(), y_id, &y_t)) != NC_NOERR)))
-            {
-                this->clear_cached_metadata();
-                TECA_ERROR(
-                    << "Failed to query y axis variable \"" << y_axis_variable
-                    << "\" in file \"" << file << "\"" << endl
-                    << nc_strerror(ierr))
-                return teca_metadata();
-            }
-#if !defined(HDF5_THREAD_SAFE)
-            }
-            {
-            std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
-#endif
-
-            if (!z_axis_variable.empty()
-                && (((ierr = nc_inq_dimid(fh.get(), z_axis_variable.c_str(), &z_id)) != NC_NOERR)
-                || ((ierr = nc_inq_dimlen(fh.get(), z_id, &n_z)) != NC_NOERR)
-                || ((ierr = nc_inq_varid(fh.get(), z_axis_variable.c_str(), &z_id)) != NC_NOERR)
-                || ((ierr = nc_inq_vartype(fh.get(), z_id, &z_t)) != NC_NOERR)))
-            {
-                this->clear_cached_metadata();
-                TECA_ERROR(
-                    << "Failed to query z axis variable \"" << z_axis_variable
-                    << "\" in file \"" << file << "\"" << endl
-                    << nc_strerror(ierr))
-                return teca_metadata();
-            }
-#if !defined(HDF5_THREAD_SAFE)
-            }
-            {
-            std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
-#endif
-
             // enumerate mesh arrays and their attributes
+            int n_vars = 0;
+            teca_metadata atrs;
+            std::vector<std::string> vars;
+#if !defined(HDF5_THREAD_SAFE)
+            {
+            std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
             if (((ierr = nc_inq_nvars(fh.get(), &n_vars)) != NC_NOERR))
             {
                 this->clear_cached_metadata();
@@ -541,159 +487,45 @@ teca_metadata teca_cf_reader::get_output_metadata(
 #if !defined(HDF5_THREAD_SAFE)
             }
 #endif
-
             for (int i = 0; i < n_vars; ++i)
             {
-                char var_name[NC_MAX_NAME + 1] = {'\0'};
-                int var_type = 0;
-                nc_type var_nc_type = 0;
-                int n_dims = 0;
-                int dim_id[NC_MAX_VAR_DIMS] = {0};
-                int n_atts = 0;
+                std::string name;
+                teca_metadata atts;
 
-#if !defined(HDF5_THREAD_SAFE)
-                {
-                std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
-#endif
-                if ((ierr = nc_inq_var(fh.get(), i, var_name,
-                        &var_nc_type, &n_dims, dim_id, &n_atts)) != NC_NOERR)
+                if (teca_netcdf_util::read_variable_attributes(fh, i, name, atts))
                 {
                     this->clear_cached_metadata();
                     TECA_ERROR(
-                        << "Failed to query " << i << "th variable, "
-                        << file << endl << nc_strerror(ierr))
+                        << "Failed to read " << i <<"th variable attributes")
                     return teca_metadata();
                 }
-#if !defined(HDF5_THREAD_SAFE)
-                }
-#endif
-                // convert from the netcdf type code
-                NC_DISPATCH(var_nc_type,
-                   var_type = teca_variant_array_code<NC_T>::get();
-                   )
 
-                // skip scalars
-                if (n_dims == 0)
-                    continue;
-
-                std::vector<size_t> dims;
-                std::vector<std::string> dim_names;
-                unsigned int centering = teca_array_attributes::point_centering;
-                for (int ii = 0; ii < n_dims; ++ii)
-                {
-                    char dim_name[NC_MAX_NAME + 1] = {'\0'};
-                    size_t dim = 0;
-#if !defined(HDF5_THREAD_SAFE)
-                    {
-                    std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
-#endif
-                    if ((ierr = nc_inq_dim(fh.get(), dim_id[ii], dim_name, &dim)) != NC_NOERR)
-                    {
-                        this->clear_cached_metadata();
-                        TECA_ERROR(
-                            << "Failed to query " << ii << "th dimension of variable, "
-                            << var_name << ", " << file << endl << nc_strerror(ierr))
-                        return teca_metadata();
-                    }
-#if !defined(HDF5_THREAD_SAFE)
-                    }
-#endif
-                    dim_names.push_back(dim_name);
-                    dims.push_back(dim);
-                }
-
-                vars.push_back(var_name);
-
-                teca_metadata atts;
-                atts.set("cf_id", i);
-                atts.set("cf_dims", dims);
-                atts.set("cf_dim_names", dim_names);
-                atts.set("cf_type_code", var_nc_type);
-                atts.set("type_code", var_type);
-                atts.set("centering", centering);
-
-                void *att_buffer = nullptr;
-                for (int ii = 0; ii < n_atts; ++ii)
-                {
-                    char att_name[NC_MAX_NAME + 1] = {'\0'};
-                    nc_type att_type = 0;
-                    size_t att_len = 0;
-#if !defined(HDF5_THREAD_SAFE)
-                    {
-                    std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
-#endif
-                    if (((ierr = nc_inq_attname(fh.get(), i, ii, att_name)) != NC_NOERR)
-                        || ((ierr = nc_inq_att(fh.get(), i, att_name, &att_type, &att_len)) != NC_NOERR))
-                    {
-                        this->clear_cached_metadata();
-                        TECA_ERROR("Failed to query " << ii << "th attribute of variable, "
-                            << var_name << ", " << file << endl << nc_strerror(ierr))
-                        free(att_buffer);
-                        return teca_metadata();
-                    }
-#if !defined(HDF5_THREAD_SAFE)
-                    }
-#endif
-                    if (att_type == NC_CHAR)
-                    {
-                        char *tmp = static_cast<char*>(realloc(att_buffer, att_len + 1));
-                        tmp[att_len] = '\0';
-#if !defined(HDF5_THREAD_SAFE)
-                        {
-                        std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
-#endif
-                        nc_get_att_text(fh.get(), i, att_name, tmp);
-#if !defined(HDF5_THREAD_SAFE)
-                        }
-#endif
-                        teca_netcdf_util::crtrim(tmp, att_len);
-                        atts.set(att_name, std::string(tmp));
-                        att_buffer = tmp;
-                    }
-                    else if (att_type == NC_STRING)
-                    {
-                        char *strs[1] = {nullptr};
-#if !defined(HDF5_THREAD_SAFE)
-                        {
-                        std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
-#endif
-                        nc_get_att_string(fh.get(), i, att_name, strs);
-#if !defined(HDF5_THREAD_SAFE)
-                        }
-#endif
-                        atts.set(att_name, std::string(strs[0]));
-#if !defined(HDF5_THREAD_SAFE)
-                        {
-                        std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
-#endif
-                        nc_free_string(1, strs);
-#if !defined(HDF5_THREAD_SAFE)
-                        }
-#endif
-                    }
-                    else
-                    {
-                        NC_DISPATCH(att_type,
-                            NC_T *tmp = static_cast<NC_T*>(realloc(att_buffer, sizeof(NC_T)*att_len));
-#if !defined(HDF5_THREAD_SAFE)
-                            {
-                            std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
-#endif
-                            nc_get_att(fh.get(), i, att_name, tmp);
-#if !defined(HDF5_THREAD_SAFE)
-                            }
-#endif
-                            atts.set(att_name, tmp, att_len);
-                            att_buffer = tmp;
-                            )
-                    }
-                }
-                free(att_buffer);
-
-                atrs.set(var_name, atts);
+                vars.push_back(name);
+                atrs.set(name, atts);
             }
 
             // read spatial coordinate arrays
+            double bounds[6] = {0.0};
+            unsigned long whole_extent[6] = {0ul};
+
+            int x_id = 0;
+            size_t n_x = 1;
+            nc_type x_t = 0;
+            teca_metadata x_atts;
+            p_teca_variant_array x_axis;
+
+            if (atrs.get(x_axis_variable, x_atts) ||
+                x_atts.get("cf_dims", n_x) ||
+                x_atts.get("cf_type_code", x_t) ||
+                x_atts.get("cf_id", x_id))
+            {
+                this->clear_cached_metadata();
+                TECA_ERROR(
+                    << "Failed to get the attributes for x-axis variable \""
+                    << x_axis_variable << "\"")
+                return teca_metadata();
+            }
+
             NC_DISPATCH_FP(x_t,
                 size_t x_0 = 0;
                 p_teca_variant_array_impl<NC_T> x = teca_variant_array_impl<NC_T>::New(n_x);
@@ -718,8 +550,25 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 bounds[1] = x->get(whole_extent[1]);
                 )
 
+            int y_id = 0;
+            size_t n_y = 1;
+            nc_type y_t = 0;
+            teca_metadata y_atts;
+            p_teca_variant_array y_axis;
             if (!y_axis_variable.empty())
             {
+                if (atrs.get(y_axis_variable, y_atts) ||
+                    y_atts.get("cf_dims", n_y) ||
+                    y_atts.get("cf_type_code", y_t) ||
+                    y_atts.get("cf_id", y_id))
+                {
+                    this->clear_cached_metadata();
+                    TECA_ERROR(
+                        << "Failed to get the attributes for y-axis variable \""
+                        << y_axis_variable << "\"")
+                    return teca_metadata();
+                }
+
                 NC_DISPATCH_FP(y_t,
                     size_t y_0 = 0;
                     p_teca_variant_array_impl<NC_T> y = teca_variant_array_impl<NC_T>::New(n_y);
@@ -753,8 +602,25 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     )
             }
 
+            int z_id = 0;
+            size_t n_z = 1;
+            nc_type z_t = 0;
+            teca_metadata z_atts;
+            p_teca_variant_array z_axis;
             if (!z_axis_variable.empty())
             {
+                if (atrs.get(z_axis_variable, z_atts) ||
+                    z_atts.get("cf_dims", n_z) ||
+                    z_atts.get("cf_type_code", z_t) ||
+                    z_atts.get("cf_id", z_id))
+                {
+                    this->clear_cached_metadata();
+                    TECA_ERROR(
+                        << "Failed to get the attributes for z-axis variable \""
+                        << z_axis_variable << "\"")
+                    return teca_metadata();
+                }
+
                 NC_DISPATCH_FP(z_t,
                     size_t z_0 = 0;
                     p_teca_variant_array_impl<NC_T> z = teca_variant_array_impl<NC_T>::New(n_z);
@@ -806,63 +672,12 @@ teca_metadata teca_cf_reader::get_output_metadata(
             // consistency across those cases.
             std::string t_axis_var = t_axis_variable;
 
+            p_teca_variant_array t_axis;
+            teca_metadata t_atts;
+
             std::vector<unsigned long> step_count;
             if (!t_axis_variable.empty())
             {
-                // assign the reads to threads
-                size_t n_files = files.size();
-                for (size_t i = 0; i < n_files; ++i)
-                {
-                    read_variable reader(path, files[i], i, t_axis_variable);
-                    read_variable_task_t task(reader);
-                    thread_pool.push_task(task);
-                }
-
-                // wait for the results
-                std::vector<read_variable_data_t> tmp;
-                tmp.reserve(n_files);
-                thread_pool.wait_all(tmp);
-
-                // unpack the results. map is used to ensure the correct
-                // file to time association.
-                std::map<unsigned long, p_teca_variant_array>
-                    time_arrays(tmp.begin(), tmp.end());
-                t_axis = time_arrays[0];
-                if (!t_axis)
-                {
-                    TECA_ERROR("Failed to read time axis")
-                    return teca_metadata();
-                }
-                step_count.push_back(time_arrays[0]->size());
-
-                for (size_t i = 1; i < n_files; ++i)
-                {
-                    p_teca_variant_array tmp = time_arrays[i];
-                    t_axis->append(*tmp.get());
-                    step_count.push_back(tmp->size());
-                }
-
-                // override the time values read from disk with user supplied set
-                if (!this->t_values.empty())
-                {
-                    TECA_WARNING("Overriding the time coordinates stored on disk "
-                        "with runtime provided values.")
-
-                    size_t n_t_vals = this->t_values.size();
-                    if (n_t_vals != t_axis->size())
-                    {
-                        TECA_ERROR("Number of timesteps detected doesn't match "
-                            "the number of time values provided; " << n_t_vals
-                            << " given, " << t_axis->size() << " are necessary.")
-                        return teca_metadata();
-                    }
-
-                    p_teca_double_array t =
-                        teca_double_array::New(this->t_values.data(), n_t_vals);
-
-                    t_axis = t;
-                }
-
                 // validate the time axis calendaring metadata. this code is to
                 // let us know when the time axis is not correctly specified in
                 // the input file.
@@ -891,7 +706,8 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 }
 
                 // check for units. units are necessary.
-                if (!time_atts.has("units"))
+                int has_units = 0;
+                if (!(has_units = time_atts.has("units")))
                 {
                     TECA_WARNING("The units attribute for the time axis variable \""
                         << t_axis_variable << "\" is missing. Temporal analysis is "
@@ -899,7 +715,8 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 }
 
                 // check for calendar. calendar, if missing will be set to "standard"
-                if (!time_atts.has("calendar"))
+                int has_calendar = 0;
+                if (!(has_calendar = time_atts.has("calendar")))
                 {
                     TECA_WARNING("The calendar attribute for the time axis variable \""
                         << t_axis_variable << "\" is missing. Using the \"standard\" "
@@ -907,8 +724,182 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     time_atts.set("calendar", std::string("standard"));
                 }
 
+                // correct the data type if applying a user provided override
+                if (!this->t_values.empty())
+                {
+                    time_atts.set("cf_type_code",
+                        int(teca_netcdf_util::netcdf_tt<double>::type_code));
+
+                    time_atts.set("type_code",
+                        teca_variant_array_code<double>::get());
+                }
+
+                // get the base calendar and units. all the files are required to
+                // use the same calendar, but in the case that some of the files
+                // have different untis we will convert them into the base units.
+                std::string base_calendar;
+                time_atts.get("calendar", base_calendar);
+
+                std::string base_units;
+                time_atts.get("units", base_units);
+
                 // save the updates
                 atrs.set(t_axis_variable, time_atts);
+
+                // assign the reads to threads
+                size_t n_files = files.size();
+                for (size_t i = 0; i < n_files; ++i)
+                {
+                    read_variable reader(path, files[i], i, t_axis_variable);
+                    read_variable_task_t task(reader);
+                    thread_pool.push_task(task);
+                }
+
+                // wait for the results
+                std::vector<read_variable_data_t> tmp;
+                tmp.reserve(n_files);
+                thread_pool.wait_all(tmp);
+
+                // unpack the results. map is used to ensure the correct
+                // file to time association.
+                std::map<unsigned long, read_variable_data_elem_t>
+                    time_arrays(tmp.begin(), tmp.end());
+
+                p_teca_variant_array t0 = time_arrays[0].first;
+                if (!t0)
+                {
+                    TECA_ERROR("Failed to read time axis")
+                    return teca_metadata();
+                }
+                t_axis = t0->new_instance();
+
+                for (size_t i = 0; i < n_files; ++i)
+                {
+                    auto &elem_i = time_arrays[i];
+
+                    // ge the values read
+                    p_teca_variant_array tmp = elem_i.first;
+                    if (!tmp || !tmp->size())
+                    {
+                        TECA_ERROR("File " << i << " had no time values")
+                        return teca_metadata();
+                    }
+
+                    // it is an error for the files to have different calendars
+                    std::string calendar_i;
+                    elem_i.second.get("calendar", calendar_i);
+                    if ((!has_calendar && !calendar_i.empty())
+                        || (has_calendar && (calendar_i != base_calendar)))
+                    {
+                        TECA_ERROR("The base calendar is \"" << base_calendar
+                            << "\" but file " << i << " has the \"" << calendar_i
+                            <<  "\" calendar")
+                        return teca_metadata();
+                    }
+
+                    // update the step map
+                    size_t n_ti = tmp->size();
+                    step_count.push_back(n_ti);
+
+                    // allocate space to hold incoming values
+                    size_t n_t = t_axis->size();
+                    t_axis->resize(n_t + n_ti);
+
+                    std::string units_i;
+                    elem_i.second.get("units", units_i);
+                    if (units_i == base_units)
+                    {
+                        // the files are in the same units copy the data
+                        TEMPLATE_DISPATCH(teca_variant_array_impl,
+                            t_axis.get(),
+                            NT *p_ti = static_cast<TT*>(elem_i.first.get())->get();
+                            NT *p_t = static_cast<TT*>(t_axis.get())->get() + n_t;
+                            memcpy(p_t, p_ti, sizeof(NT)*n_ti);
+                            )
+                    }
+                    else
+                    {
+                        // if there are no units present then we can not do a conversion
+                        if (!has_units)
+                        {
+                            TECA_ERROR("Calendaring conversion requires time units")
+                            return teca_metadata();
+                        }
+
+                        // the files are in a different units, warn and convert
+                        // to the base units
+                        TECA_WARNING("File " << i << " \"" << files[i] << "\" units \""
+                            << units_i << "\" differs from base units \"" << base_units
+                            << "\" a conversion will be made.")
+
+                        TEMPLATE_DISPATCH(teca_variant_array_impl,
+                            t_axis.get(),
+                            NT *p_ti = static_cast<TT*>(elem_i.first.get())->get();
+                            NT *p_t = static_cast<TT*>(t_axis.get())->get() + n_t;
+                            for (size_t j = 0; j < n_ti; ++j)
+                            {
+                                // convert offset from units_i to time
+                                int YY=0;
+                                int MM=0;
+                                int DD=0;
+                                int hh=0;
+                                int mm=0;
+                                double ss=0.0;
+                                if (calcalcs::date(double(p_ti[j]), &YY, &MM, &DD, &hh, &mm, &ss,
+                                    units_i.c_str(), base_calendar.c_str()))
+                                {
+                                    TECA_ERROR("Failed to convert offset ti[" << j << "] = "
+                                        << p_ti[j] << " calendar \"" << base_calendar
+                                        << "\" units \"" << units_i << "\" to time")
+                                    return teca_metadata();
+                                }
+
+                                // convert time to offsets from base units
+                                double offs = 0.0;
+                                if (calcalcs::coordinate(YY, MM, DD, hh, mm, ss,
+                                    base_units.c_str(), base_calendar.c_str(), &offs))
+                                {
+                                    TECA_ERROR("Failed to convert time "
+                                        << YY << "-" << MM << "-" << DD << " " << hh << ":"
+                                        << mm << ":" << ss << " to offset in calendar \""
+                                        << base_calendar << "\" units \"" << base_units
+                                        << "\"")
+                                    return teca_metadata();
+                                }
+
+                                p_t[j] = offs;
+#ifdef TECA_DEBUG
+                                std::cerr
+                                    << YY << "-" << MM << "-" << DD << " " << hh << ":"
+                                    << mm << ":" << ss << " "  << p_ti[j] << " -> " << offs
+                                    << std::endl;
+#endif
+                            }
+                            )
+                    }
+                }
+
+                // override the time values read from disk with user supplied set
+                if (!this->t_values.empty())
+                {
+
+                    TECA_WARNING("Overriding the time coordinates stored on disk "
+                        "with runtime provided values.")
+
+                    size_t n_t_vals = this->t_values.size();
+                    if (n_t_vals != t_axis->size())
+                    {
+                        TECA_ERROR("Number of timesteps detected doesn't match "
+                            "the number of time values provided; " << n_t_vals
+                            << " given, " << t_axis->size() << " are necessary.")
+                        return teca_metadata();
+                    }
+
+                    p_teca_double_array t =
+                        teca_double_array::New(this->t_values.data(), n_t_vals);
+
+                    t_axis = t;
+                }
             }
             else if (!this->t_values.empty())
             {
