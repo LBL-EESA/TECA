@@ -140,21 +140,21 @@ teca_add_test(test_temporal_reduction_app_monthly_maximum_mpi_thread
 teca_add_test(test_temporal_reduction_app_daily_average_missing_values
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
-    "MERRA2_100_inst3_3d_asm_Np_crop_19800128\\.nc" T daily average 1
+    "MERRA2_100_inst3_3d_asm_Np_crop_1980012[89]\\.nc" T daily average 1
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
 teca_add_test(test_temporal_reduction_app_daily_maximum_missing_values
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
-    "MERRA2_100_inst3_3d_asm_Np_crop_19800128\\.nc" T daily maximum 1
+    "MERRA2_100_inst3_3d_asm_Np_crop_1980012[89]\\.nc" T daily maximum 1
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
 teca_add_test(test_temporal_reduction_app_daily_minimum_missing_values
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
-    "MERRA2_100_inst3_3d_asm_Np_crop_19800128\\.nc" T daily minimum 1
+    "MERRA2_100_inst3_3d_asm_Np_crop_1980012[89]\\.nc" T daily minimum 1
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 

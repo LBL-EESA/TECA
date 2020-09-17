@@ -207,7 +207,7 @@ teca_add_test(py_test_temporal_monthly_maximum_mpi_thread
 teca_add_test(py_test_temporal_daily_average
     COMMAND ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction.py
-    "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_19800128\\.nc" "."
+    "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_1980012[89]\\.nc" "."
     "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_ignore_missing_T" 7 2 daily average 0 T H
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
@@ -215,7 +215,7 @@ teca_add_test(py_test_temporal_daily_average
 teca_add_test(py_test_temporal_daily_average_missing_values
     COMMAND ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction.py
-    "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_19800128\\.nc" "."
+    "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_1980012[89]\\.nc" "."
     "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_T" 7 2 daily average 1 T H
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
@@ -223,7 +223,7 @@ teca_add_test(py_test_temporal_daily_average_missing_values
 teca_add_test(py_test_temporal_daily_maximum
     COMMAND ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction.py
-    "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_19800128\\.nc" "."
+    "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_1980012[89]\\.nc" "."
     "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_ignore_missing_T" 7 2 daily maximum 0 T H
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
@@ -231,7 +231,7 @@ teca_add_test(py_test_temporal_daily_maximum
 teca_add_test(py_test_temporal_daily_maximum_missing_values
     COMMAND ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction.py
-    "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_19800128\\.nc" "."
+    "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_1980012[89]\\.nc" "."
     "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_T" 7 2 daily maximum 1 T H
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
@@ -239,7 +239,7 @@ teca_add_test(py_test_temporal_daily_maximum_missing_values
 teca_add_test(py_test_temporal_daily_minimum
     COMMAND ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction.py
-    "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_19800128\\.nc" "."
+    "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_1980012[89]\\.nc" "."
     "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_ignore_missing_T" 7 2 daily minimum 0 T H
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
@@ -247,7 +247,7 @@ teca_add_test(py_test_temporal_daily_minimum
 teca_add_test(py_test_temporal_daily_minimum_missing_values
     COMMAND ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction.py
-    "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_19800128\\.nc" "."
+    "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_1980012[89]\\.nc" "."
     "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_T" 7 2 daily minimum 1 T H
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
