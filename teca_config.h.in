@@ -15,11 +15,13 @@
 
 #cmakedefine TECA_VERSION_DESCR "@TECA_VERSION_DESCR@"
 #cmakedefine TECA_PYTHON_VERSION @TECA_PYTHON_VERSION@
-#cmakedefine TECA_DATA_ROOT "@TECA_DATA_ROOT@"
 
 #cmakedefine TECA_ENABLE_PROFILER
 
 #cmakedefine TECA_HAS_DATA
 #cmakedefine TECA_DATA_ROOT "@TECA_DATA_ROOT@"
+
+#cmakedefine TECA_HAS_ASSETS
+#cmakedefine TECA_ASSETS_ROOT "@TECA_ASSETS_ROOT@"
 
 #endif

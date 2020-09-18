@@ -251,6 +251,7 @@ cmake \
     -DCMAKE_INSTALL_PREFIX=${TECA_INSTALL_DIR} \
     -DBUILD_TESTING=ON \
     -DTECA_DATA_ROOT=${TECA_DATA_DIR} \
+    -DTECA_ASSETS_ROOT=${TECA_ASSETS_DIR} \
     ${TECA_SOURCE_DIR}
 
 make -j4 && make -j4 install
@@ -270,6 +271,7 @@ cmake \
     -DCMAKE_INSTALL_PREFIX=${TECA_INSTALL_DIR} \
     -DBUILD_TESTING=ON \
     -DTECA_DATA_ROOT=${TECA_DATA_DIR} \
+    -DTECA_ASSETS_ROOT=${TECA_ASSETS_DIR} \
     ${TECA_SOURCE_DIR}
 
 make -j4 && make -j4 install
@@ -710,7 +712,7 @@ The trajectory scalars application can be used to plot detection parameters for 
 \subsection{Example}
 \begin{minted}{bash}
 mpiexec -np 10 ./bin/teca_tc_trajectory_scalars   \
-    --texture ../../TECA_data/earthmap4k.png      \
+    --texture ../../TECA_assets/earthmap4k.png      \
     tracks_1990s_3hr_mdd_4800.bin                 \
     traj_scalars_1990s_3hr_mdd_4800
 \end{minted}

@@ -93,6 +93,7 @@ set(REQUIRE_LIBXLSXWRITER FALSE CACHE BOOL "Forces build failure when libxlsxwri
 set(REQUIRE_PARAVIEW FALSE CACHE BOOL "Forces build failure when ParaView is missing")
 set(REQUIRE_VTK FALSE CACHE BOOL "Forces build failure when VTK is missing")
 set(REQUIRE_TECA_DATA ${BUILD_TESTING} CACHE BOOL "Forces build failure when TECA_data is missing")
+set(REQUIRE_TECA_ASSETS ${BUILD_TESTING} CACHE BOOL "Forces build failure when TECA_assets is missing")
 
 # locate dependencies
 # configure for MPI
@@ -334,7 +335,7 @@ message(STATUS "TECA version ${TECA_VERSION_DESCR}")
 
 # configure for TECA_data
 set(tmp OFF)
-set(TECA_DATA_ROOT ${CMAKE_CURRENT_BINARY_DIR}/TECA_data
+set(TECA_DATA_ROOT ${CMAKE_CURRENT_BINARY_DIR}/share/TECA/TECA_data
     CACHE PATH "Path to TECA_data repository")
 set(TECA_DATA_REVISION "-r86" CACHE STRING "TECA_data svn revision")
 if (REQUIRE_TECA_DATA)
@@ -356,6 +357,33 @@ else()
     message(STATUS "TECA_data -- not required")
 endif()
 set(TECA_HAS_DATA ${tmp} CACHE BOOL "TECA_data is present")
+
+# configure for TECA_assets
+set(tmp OFF)
+set(TECA_ASSETS_ROOT ${CMAKE_CURRENT_BINARY_DIR}/share/TECA/TECA_assets
+    CACHE PATH "Path to TECA_assets repository")
+set(TECA_ASSETS_REVISION "-r3" CACHE STRING "TECA_assets svn revision")
+if (REQUIRE_TECA_ASSETS)
+    set(tmp ON)
+    # do we have access to a checkout of TECA_assets?
+    if (EXISTS "${TECA_ASSETS_ROOT}")
+        message(STATUS "TECA_assets -- available")
+    else()
+        ExternalProject_Add(TECA_assets
+            SOURCE_DIR ${TECA_ASSETS_ROOT}
+            SVN_REPOSITORY svn://svn.code.sf.net/p/teca/TECA_assets
+            SVN_REVISION ${TECA_ASSETS_REVISION}
+            UPDATE_COMMAND svn update
+            CONFIGURE_COMMAND "" BUILD_COMMAND ""
+            INSTALL_COMMAND "" LOG_DOWNLOAD 1)
+        install(DIRECTORY ${TECA_ASSETS_ROOT}
+            DESTINATION ${CMAKE_INSTALL_PREFIX}/share/TECA)
+        message(STATUS "TECA_assets -- populating content at ${TECA_ASSETS_ROOT}")
+    endif()
+else()
+    message(STATUS "TECA_assets -- not required")
+endif()
+set(TECA_HAS_ASSETS ${tmp} CACHE BOOL "TECA_assets is present")
 
 # generate global configuration
 include(CMake/teca_test.cmake)
