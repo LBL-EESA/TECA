@@ -3,6 +3,7 @@ cmake_policy(SET CMP0028 NEW)
 cmake_policy(SET CMP0053 NEW)
 
 project(teca C CXX Fortran)
+include(ExternalProject)
 
 # set build/install sub dirs for various components
 if (NOT LIB_PREFIX)
@@ -331,17 +332,28 @@ endif()
 set(TECA_VERSION_DESCR ${tmp} CACHE STRING "TECA version descriptor")
 message(STATUS "TECA version ${TECA_VERSION_DESCR}")
 
-# do we have access to a checkout of TECA_data?
+# configure for TECA_data
 set(tmp OFF)
-set(TECA_DATA_ROOT "/path/to/TECA_data"
+set(TECA_DATA_ROOT ${CMAKE_CURRENT_BINARY_DIR}/TECA_data
     CACHE PATH "Path to TECA_data repository")
-if (EXISTS "${TECA_DATA_ROOT}")
+set(TECA_DATA_REVISION "-r86" CACHE STRING "TECA_data svn revision")
+if (REQUIRE_TECA_DATA)
     set(tmp ON)
-    message(STATUS "TECA_data -- available")
-elseif (REQUIRE_TECA_DATA)
-    message(FATAL_ERROR "TECA_data -- required but not found")
+    # do we have access to a checkout of TECA_data?
+    if (EXISTS "${TECA_DATA_ROOT}")
+        message(STATUS "TECA_data -- available")
+    else()
+        ExternalProject_Add(TECA_data
+            SOURCE_DIR ${TECA_DATA_ROOT}
+            SVN_REPOSITORY svn://svn.code.sf.net/p/teca/TECA_data
+            SVN_REVISION ${TECA_DATA_REVISION}
+            UPDATE_COMMAND svn update
+            CONFIGURE_COMMAND "" BUILD_COMMAND ""
+            INSTALL_COMMAND "" LOG_DOWNLOAD 1)
+        message(STATUS "TECA_data -- populating content at ${TECA_DATA_ROOT}")
+    endif()
 else()
-    message(STATUS "TECA_data -- not available")
+    message(STATUS "TECA_data -- not required")
 endif()
 set(TECA_HAS_DATA ${tmp} CACHE BOOL "TECA_data is present")
 
