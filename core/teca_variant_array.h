@@ -69,7 +69,7 @@ public:
     { return this->equal(other); }
 
     // return the name of the class in a human readable form
-    virtual std::string get_class_name() = 0;
+    virtual std::string get_class_name() const = 0;
 
     // initialize contents with the native type initializer
     virtual void initialize() = 0;
@@ -280,7 +280,7 @@ public:
     p_teca_variant_array new_instance(size_t n) const override;
 
     // return the name of the class in a human readable form
-    std::string get_class_name() override;
+    std::string get_class_name() const override;
 
     // intialize with T()
     void initialize() override;
@@ -902,7 +902,7 @@ const teca_variant_array_impl<T> &teca_variant_array_impl<T>::operator=(
 
 // --------------------------------------------------------------------------
 template<typename T>
-std::string teca_variant_array_impl<T>::get_class_name()
+std::string teca_variant_array_impl<T>::get_class_name() const
 {
     const char *element_name = typeid(T).name();
     size_t element_size = sizeof(T);
