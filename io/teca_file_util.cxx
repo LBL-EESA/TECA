@@ -427,32 +427,37 @@ int read_stream(const char *file_name, const char *header,
     fseek(fd, 0, SEEK_SET);
 
     // look at the header to check if this is really ours
-    unsigned long header_len = strlen(header);
+    unsigned long header_len = 0;
 
-    char *file_header = static_cast<char*>(malloc(header_len+1));
-    file_header[header_len] = '\0';
-
-    if (fread(file_header, 1, header_len, fd) != header_len)
+    if (header)
     {
-        const char *estr = (ferror(fd) ? strerror(errno) : "");
-        fclose(fd);
-        free(file_header);
-        TECA_ERROR("Failed to read header from \""
-            << file_name << "\". " << estr)
-        return -1;
-    }
+        header_len = strlen(header);
 
-    if (strncmp(file_header, header, header_len))
-    {
-        fclose(fd);
-        free(file_header);
-        TECA_ERROR("Header missmatch in \""
-             << file_name << "\". Expected \"" << header
-             << "\" found \"" << file_header << "\"")
-        return -1;
-    }
+        char *file_header = static_cast<char*>(malloc(header_len+1));
+        file_header[header_len] = '\0';
 
-    free(file_header);
+        if (fread(file_header, 1, header_len, fd) != header_len)
+        {
+            const char *estr = (ferror(fd) ? strerror(errno) : "");
+            fclose(fd);
+            free(file_header);
+            TECA_ERROR("Failed to read header from \""
+                << file_name << "\". " << estr)
+            return -1;
+        }
+
+        if (strncmp(file_header, header, header_len))
+        {
+            fclose(fd);
+            free(file_header);
+            TECA_ERROR("Header missmatch in \""
+                 << file_name << "\". Expected \"" << header
+                 << "\" found \"" << file_header << "\"")
+            return -1;
+        }
+
+        free(file_header);
+    }
 
     // create the buffer for the file contents
     unsigned long nbytes = end - start - header_len;
@@ -503,17 +508,20 @@ int write_stream(const char *file_name, int flags, const char *header,
         return -1;
     }
 
-    // this will let the reader verify that we have a teca binary table
-    long header_len = strlen(header);
-    if (write(fd, header, header_len) != header_len)
+    // add a header, this will let the reader verify the file format
+    if (header)
     {
-        const char *estr = strerror(errno);
-        TECA_ERROR("Failed to write header to \""
-            << file_name << "\". " << estr)
-        return -1;
+        long header_len = strlen(header);
+        if (write(fd, header, header_len) != header_len)
+        {
+            const char *estr = strerror(errno);
+            TECA_ERROR("Failed to write header to \""
+                << file_name << "\". " << estr)
+            return -1;
+        }
     }
 
-    // now write the table
+    // now write the stream
     ssize_t n_wrote = 0;
     ssize_t n_to_write = stream.size();
     while (n_to_write > 0)

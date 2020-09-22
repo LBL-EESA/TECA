@@ -18,18 +18,18 @@ class teca_binary_stream;
 
 namespace teca_file_util
 {
-// read the file into a stream. read will fail if header
-// is not found. return zero upon success. The verbose flag
-// indicates whether or not an error is reported if opening
-// the file fails. All other errors are always reported.
+// read the file into a stream. if header is not null the call will fail if the
+// given string is not found. return zero upon success. The verbose flag
+// indicates whether or not an error is reported if opening the file fails. All
+// other errors are always reported.
 int read_stream(const char *file_name, const char *header,
     teca_binary_stream &stream, bool verbose=true);
 
 // write the stream to the file. the passed in flags control file access, a
-// reasonable value is S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH. the header is prepended
-// to the file. return zero upon success. The verbose flag indicates whether or
-// not an error is reported if creating the file fails. All other errors are
-// reported.
+// reasonable value is S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH. if header is not null
+// the given string is prepended to the file. return zero upon success. The
+// verbose flag indicates whether or not an error is reported if creating the
+// file fails. All other errors are reported.
 int write_stream(const char *file_name, int flags, const char *header,
     const teca_binary_stream &stream, bool verbose=true);
 
