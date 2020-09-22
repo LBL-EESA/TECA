@@ -74,6 +74,15 @@ public:
         this->clear_metadata_column_keys();
     }
 
+    // Select the output file format. 0 : csv, 1 : bin, 2 : xlsx, 3 : auto
+    // the default is csv.
+    enum {format_csv, format_bin, format_xlsx, format_auto};
+    TECA_ALGORITHM_PROPERTY(int, file_format)
+    void set_file_format_csv(){ this->set_file_format(format_csv); }
+    void set_file_format_bin(){ this->set_file_format(format_bin); }
+    void set_file_format_xlsx(){ this->set_file_format(format_xlsx); }
+    void set_file_format_auto(){ this->set_file_format(format_auto); }
+
 protected:
     teca_table_reader();
 
@@ -92,6 +101,7 @@ private:
     std::string file_name;
     std::string index_column;
     int generate_original_ids;
+    int file_format;
     std::vector<std::string> metadata_column_names;
     std::vector<std::string> metadata_column_keys;
 
