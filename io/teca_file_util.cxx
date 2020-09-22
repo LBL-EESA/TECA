@@ -327,7 +327,9 @@ size_t load_lines(const char *filename, std::vector<std::string> &lines)
     std::ifstream file(filename);
     if (!file.is_open())
     {
-        std::cerr << "ERROR: File " << filename << " could not be opened." << std::endl;
+        const char *estr = strerror(errno);
+        TECA_ERROR("File \"" << filename << "\" could not be opened."
+            << std::endl << estr)
         return 0;
     }
     while(file.good())
@@ -349,7 +351,9 @@ size_t load_text(const std::string &filename, std::string &text)
     std::ifstream file(filename.c_str());
     if (!file.is_open())
     {
-        TECA_ERROR("File " << filename << " could not be opened.")
+        const char *estr = strerror(errno);
+        TECA_ERROR("File \"" << filename << "\" could not be opened."
+            << std::endl << estr)
         return 0;
     }
     // Determine the length of the file ...
@@ -372,7 +376,9 @@ int write_text(std::string &filename, std::string &text)
     std::ofstream file(filename.c_str());
     if (!file.is_open())
     {
-        TECA_ERROR("File " << filename << " could not be opened.")
+        const char *estr = strerror(errno);
+        TECA_ERROR("File \"" << filename << "\" could not be opened."
+            << std::endl << estr)
         return 0;
     }
     file << text << std::endl;
