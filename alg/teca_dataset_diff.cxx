@@ -365,7 +365,7 @@ int teca_dataset_diff::compare_arrays(
         return 0;
         )
     // handle arrays of strings
-    TEMPLATE_DISPATCH_CLASS(
+    TEMPLATE_DISPATCH_CASE(
         const teca_variant_array_impl, std::string,
         array1.get(),
         if (dynamic_cast<const TT*>(array2.get()))

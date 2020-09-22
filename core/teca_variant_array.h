@@ -515,23 +515,6 @@ private:
         body                                                \
     }
 
-// tt - container
-// nt - class type
-// tt<nt> - complete derived type
-// p1 - base class pointer
-// p2 - const base class pointer
-// body - code to execute if p1 and p2's type match
-#define TEMPLATE_DISPATCH_CLASS(tt, nt, p1, body)   \
-    {                                                   \
-    using TT = tt<nt>;                                  \
-    using NT = nt;                                      \
-    TT *p1_tt = dynamic_cast<TT*>(p1);                  \
-    if (p1_tt)                                          \
-    {                                                   \
-        body                                            \
-    }                                                   \
-    }
-
 // variant that limits dispatch to floating point types
 // for use in numerical compuatation where integer types
 // are not supported (ie, math operations from std library)
