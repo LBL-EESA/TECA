@@ -151,11 +151,11 @@ public:
     { return this->equal(*other.get()); }
 
     // serrialize to/from stream
-    virtual void to_stream(teca_binary_stream &s) const = 0;
-    virtual void from_stream(teca_binary_stream &s) = 0;
+    virtual int to_stream(teca_binary_stream &s) const = 0;
+    virtual int from_stream(teca_binary_stream &s) = 0;
 
-    virtual void to_stream(std::ostream &s) const = 0;
-    virtual void from_stream(std::ostream &s) = 0;
+    virtual int to_stream(std::ostream &s) const = 0;
+    virtual int from_stream(std::ostream &s) = 0;
 
     // used for serialization
     virtual unsigned int type_code() const noexcept = 0;
@@ -375,17 +375,29 @@ public:
     bool equal(const teca_variant_array &other) const override;
 
     // serialize to/from stream
-    void to_stream(teca_binary_stream &s) const override
-    { this->to_binary<T>(s); }
+    int to_stream(teca_binary_stream &s) const override
+    {
+        this->to_binary<T>(s);
+        return 0;
+    }
 
-    void from_stream(teca_binary_stream &s) override
-    { this->from_binary<T>(s); }
+    int from_stream(teca_binary_stream &s) override
+    {
+        this->from_binary<T>(s);
+        return 0;
+    }
 
-    void to_stream(std::ostream &s) const override
-    { this->to_ascii<T>(s); }
+    int to_stream(std::ostream &s) const override
+    {
+        this->to_ascii<T>(s);
+        return 0;
+    }
 
-    void from_stream(std::ostream &s) override
-    { this->from_ascii<T>(s); }
+    int from_stream(std::ostream &s) override
+    {
+        this->from_ascii<T>(s);
+        return 0;
+    }
 
 protected:
     // construct

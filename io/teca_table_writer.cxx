@@ -10,6 +10,8 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <cerrno>
+#include <cstring>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -36,11 +38,16 @@ int write_csv(const_p_teca_table table, const std::string &file_name)
     std::ofstream os(file_name.c_str());
     if (!os.good())
     {
-        TECA_ERROR("Failed to open \"" << file_name << "\" for writing")
+        const char *estr = strerror(errno);
+        TECA_ERROR("Failed to open \"" << file_name << "\" for writing. " << estr)
         return -1;
     }
 
-    table->to_stream(os);
+    if (table->to_stream(os))
+    {
+        TECA_ERROR("Failed to serialize to stream \"" << file_name << "\"")
+        return -1;
+    }
 
     return 0;
 }

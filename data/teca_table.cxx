@@ -250,15 +250,28 @@ void teca_table::to_stream(teca_binary_stream &s) const
 }
 
 // --------------------------------------------------------------------------
-void teca_table::from_stream(teca_binary_stream &s)
+int teca_table::to_stream(teca_binary_stream &s) const
 {
-    this->clear();
-    this->teca_dataset::from_stream(s);
-    m_impl->columns->from_stream(s);
+    if (this->teca_dataset::to_stream(s)
+        || m_impl->columns->to_stream(s))
+        return -1;
+    return 0;
 }
 
 // --------------------------------------------------------------------------
-void teca_table::to_stream(std::ostream &s) const
+int teca_table::from_stream(teca_binary_stream &s)
+{
+    this->clear();
+
+    if (this->teca_dataset::from_stream(s)
+        || m_impl->columns->from_stream(s))
+        return -1;
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+int teca_table::to_stream(std::ostream &s) const
 {
     // because this is used for general purpose I/O
     // we don't let the base class insert anything.
@@ -354,10 +367,12 @@ void teca_table::to_stream(std::ostream &s) const
         }
         s << std::endl;
     }
+
+    return 0;
 }
 
 // --------------------------------------------------------------------------
-void teca_table::from_stream(std::istream &s)
+int teca_table::from_stream(std::istream &s)
 {
     m_impl->columns->clear();
 
@@ -375,7 +390,7 @@ void teca_table::from_stream(std::istream &s)
     {
         free(buf);
         TECA_ERROR("Failed to read from the stream")
-        return;
+        return -1;
     }
 
     // split into lines, and work line by line
@@ -384,7 +399,7 @@ void teca_table::from_stream(std::istream &s)
     {
         free(buf);
         TECA_ERROR("Failed to split lines")
-        return;
+        return -1;
     }
 
     size_t n_lines = lines.size();
@@ -431,7 +446,7 @@ void teca_table::from_stream(std::istream &s)
     {
         free(buf);
         TECA_ERROR("Failed to split fields")
-        return;
+        return -1;
     }
     ++lno;
 
@@ -451,7 +466,7 @@ void teca_table::from_stream(std::istream &s)
             TECA_ERROR("Failed to parse column name and type. " << n_match
                 << " matches. Line " << lno - 1 << " column " << i << " field \""
                 << header[i] << "\"")
-            return;
+            return -1;
         }
 
         p_teca_variant_array col = teca_variant_array_factory::New(code);
@@ -459,7 +474,7 @@ void teca_table::from_stream(std::istream &s)
         {
             free(buf);
             TECA_ERROR("Failed to construct an array for column " << i)
-            return;
+            return -1;
         }
 
         col->resize(n_rows);
@@ -484,7 +499,7 @@ void teca_table::from_stream(std::istream &s)
             free(buf);
             free(data);
             TECA_ERROR("Failed to tokenize row data at row " << j)
-            return;
+            return -1;
         }
     }
 
@@ -506,7 +521,7 @@ void teca_table::from_stream(std::istream &s)
                     free(data);
                     TECA_ERROR("Failed to convert numeric cell " << i << ", " << j
                         << " \"" << cell << "\" using format \"" << fmt << "\"")
-                    return;
+                    return -1;
                 }
 
             }
@@ -523,7 +538,7 @@ void teca_table::from_stream(std::istream &s)
                     free(data);
                     TECA_ERROR("Failed to convert string cell " << i << ", " << j
                         << " \"" << cell << "\"")
-                    return;
+                    return -1;
                 }
             }
             )
@@ -531,7 +546,7 @@ void teca_table::from_stream(std::istream &s)
         {
             TECA_ERROR("Failed to deserialize column " << j << " of type "
                 << col->get_class_name())
-            return;
+            return -1;
         }
 
         // save it
@@ -540,6 +555,8 @@ void teca_table::from_stream(std::istream &s)
 
     free(buf);
     free(data);
+
+    return 0;
 }
 
 // --------------------------------------------------------------------------

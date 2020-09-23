@@ -90,11 +90,11 @@ public:
 
     // serialize the data to/from the given stream
     // for I/O or communication
-    void to_stream(teca_binary_stream &s) const;
-    void from_stream(teca_binary_stream &s);
+    int to_stream(teca_binary_stream &s) const;
+    int from_stream(teca_binary_stream &s);
 
     // stream to/from human readable representation
-    void to_stream(std::ostream &) const;
+    int to_stream(std::ostream &) const;
 
 protected:
     teca_array_collection() = default;

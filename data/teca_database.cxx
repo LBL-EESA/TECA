@@ -104,22 +104,28 @@ void teca_database::swap(p_teca_dataset &o)
 }
 
 // --------------------------------------------------------------------------
-void teca_database::to_stream(teca_binary_stream &s) const
+int teca_database::to_stream(teca_binary_stream &s) const
 {
-    this->teca_dataset::to_stream(s);
-    this->tables->to_stream(s);
+    if (this->teca_dataset::to_stream(s)
+        || this->tables->to_stream(s))
+        return -1;
+    return 0;
 }
 
 // --------------------------------------------------------------------------
-void teca_database::from_stream(teca_binary_stream &s)
+int teca_database::from_stream(teca_binary_stream &s)
 {
-    this->teca_dataset::from_stream(s);
-    this->tables->from_stream(s);
+    if (this->teca_dataset::from_stream(s) ||
+        this->tables->from_stream(s))
+        return -1;
+    return 0;
 }
 
 // --------------------------------------------------------------------------
-void teca_database::to_stream(std::ostream &s) const
+int teca_database::to_stream(std::ostream &s) const
 {
-    this->teca_dataset::to_stream(s);
-    this->tables->to_stream(s);
+    if (this->teca_dataset::to_stream(s)
+        || this->tables->to_stream(s))
+        return -1;
+    return 0;
 }

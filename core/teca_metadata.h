@@ -170,12 +170,12 @@ public:
     { return !empty(); }
 
     // serialize to/from binary
-    void to_stream(teca_binary_stream &s) const;
-    void from_stream(teca_binary_stream &s);
+    int to_stream(teca_binary_stream &s) const;
+    int from_stream(teca_binary_stream &s);
 
     // serialize to/from ascii
-    void to_stream(std::ostream &os) const;
-    void from_stream(std::ostream &) {}
+    int to_stream(std::ostream &os) const;
+    int from_stream(std::ostream &) { return -1; }
 
 private:
     unsigned long long get_next_id() const noexcept;

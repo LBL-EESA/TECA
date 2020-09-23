@@ -65,10 +65,10 @@ public:
 
     // serialize the dataset to/from the given stream
     // for I/O or communication
-    void to_stream(teca_binary_stream &s) const override;
-    void from_stream(teca_binary_stream &s) override;
+    int to_stream(teca_binary_stream &s) const override;
+    int from_stream(teca_binary_stream &s) override;
 
-    void to_stream(std::ostream &s) const override;
+    int to_stream(std::ostream &s) const override;
 
 protected:
     array() : extent({0,0}) {}

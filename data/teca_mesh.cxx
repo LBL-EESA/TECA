@@ -138,37 +138,41 @@ const_p_teca_array_collection teca_mesh::get_arrays(int centering) const
 }
 
 // --------------------------------------------------------------------------
-void teca_mesh::to_stream(teca_binary_stream &s) const
+int teca_mesh::to_stream(teca_binary_stream &s) const
 {
-    this->teca_dataset::to_stream(s);
-    m_impl->point_arrays->to_stream(s);
-    m_impl->cell_arrays->to_stream(s);
-    m_impl->x_edge_arrays->to_stream(s);
-    m_impl->y_edge_arrays->to_stream(s);
-    m_impl->z_edge_arrays->to_stream(s);
-    m_impl->x_face_arrays->to_stream(s);
-    m_impl->y_face_arrays->to_stream(s);
-    m_impl->z_face_arrays->to_stream(s);
-    m_impl->info_arrays->to_stream(s);
+    if (this->teca_dataset::to_stream(s)
+        || m_impl->point_arrays->to_stream(s)
+        || m_impl->cell_arrays->to_stream(s)
+        || m_impl->x_edge_arrays->to_stream(s)
+        || m_impl->y_edge_arrays->to_stream(s)
+        || m_impl->z_edge_arrays->to_stream(s)
+        || m_impl->x_face_arrays->to_stream(s)
+        || m_impl->y_face_arrays->to_stream(s)
+        || m_impl->z_face_arrays->to_stream(s)
+        || m_impl->info_arrays->to_stream(s))
+        return -1;
+    return 0;
 }
 
 // --------------------------------------------------------------------------
-void teca_mesh::from_stream(teca_binary_stream &s)
+int teca_mesh::from_stream(teca_binary_stream &s)
 {
-    this->teca_dataset::from_stream(s);
-    m_impl->point_arrays->from_stream(s);
-    m_impl->cell_arrays->from_stream(s);
-    m_impl->x_edge_arrays->from_stream(s);
-    m_impl->y_edge_arrays->from_stream(s);
-    m_impl->z_edge_arrays->from_stream(s);
-    m_impl->x_face_arrays->from_stream(s);
-    m_impl->y_face_arrays->from_stream(s);
-    m_impl->z_face_arrays->from_stream(s);
-    m_impl->info_arrays->from_stream(s);
+    if (this->teca_dataset::from_stream(s)
+        || m_impl->point_arrays->from_stream(s)
+        || m_impl->cell_arrays->from_stream(s)
+        || m_impl->x_edge_arrays->from_stream(s)
+        || m_impl->y_edge_arrays->from_stream(s)
+        || m_impl->z_edge_arrays->from_stream(s)
+        || m_impl->x_face_arrays->from_stream(s)
+        || m_impl->y_face_arrays->from_stream(s)
+        || m_impl->z_face_arrays->from_stream(s)
+        || m_impl->info_arrays->from_stream(s))
+        return -1;
+    return 0;
 }
 
 // --------------------------------------------------------------------------
-void teca_mesh::to_stream(std::ostream &s) const
+int teca_mesh::to_stream(std::ostream &s) const
 {
     this->teca_dataset::to_stream(s);
 
@@ -178,6 +182,8 @@ void teca_mesh::to_stream(std::ostream &s) const
     s << "cell arrays = ";
     m_impl->cell_arrays->to_stream(s);
     s << std::endl;
+
+    return 0;
 }
 
 // --------------------------------------------------------------------------

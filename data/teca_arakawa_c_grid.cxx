@@ -277,39 +277,45 @@ void teca_arakawa_c_grid::swap(p_teca_dataset &dataset)
 }
 
 // --------------------------------------------------------------------------
-void teca_arakawa_c_grid::to_stream(teca_binary_stream &s) const
+int teca_arakawa_c_grid::to_stream(teca_binary_stream &s) const
 {
-    this->teca_mesh::to_stream(s);
-    m_impl->m_x_coordinates->to_stream(s);
-    m_impl->m_y_coordinates->to_stream(s);
-    m_impl->u_x_coordinates->to_stream(s);
-    m_impl->u_y_coordinates->to_stream(s);
-    m_impl->v_x_coordinates->to_stream(s);
-    m_impl->v_y_coordinates->to_stream(s);
-    m_impl->m_z_coordinates->to_stream(s);
-    m_impl->w_z_coordinates->to_stream(s);
-    m_impl->t_coordinates->to_stream(s);
+    if (this->teca_mesh::to_stream(s)
+        || m_impl->m_x_coordinates->to_stream(s)
+        || m_impl->m_y_coordinates->to_stream(s)
+        || m_impl->u_x_coordinates->to_stream(s)
+        || m_impl->u_y_coordinates->to_stream(s)
+        || m_impl->v_x_coordinates->to_stream(s)
+        || m_impl->v_y_coordinates->to_stream(s)
+        || m_impl->m_z_coordinates->to_stream(s)
+        || m_impl->w_z_coordinates->to_stream(s)
+        || m_impl->t_coordinates->to_stream(s))
+        return -1;
+    return 0;
 }
 
 // --------------------------------------------------------------------------
-void teca_arakawa_c_grid::from_stream(teca_binary_stream &s)
+int teca_arakawa_c_grid::from_stream(teca_binary_stream &s)
 {
-    this->teca_mesh::from_stream(s);
-    m_impl->m_x_coordinates->from_stream(s);
-    m_impl->m_y_coordinates->from_stream(s);
-    m_impl->u_x_coordinates->from_stream(s);
-    m_impl->u_y_coordinates->from_stream(s);
-    m_impl->v_x_coordinates->from_stream(s);
-    m_impl->v_y_coordinates->from_stream(s);
-    m_impl->m_z_coordinates->from_stream(s);
-    m_impl->w_z_coordinates->from_stream(s);
-    m_impl->t_coordinates->from_stream(s);
+    if (this->teca_mesh::from_stream(s)
+        || m_impl->m_x_coordinates->from_stream(s)
+        || m_impl->m_y_coordinates->from_stream(s)
+        || m_impl->u_x_coordinates->from_stream(s)
+        || m_impl->u_y_coordinates->from_stream(s)
+        || m_impl->v_x_coordinates->from_stream(s)
+        || m_impl->v_y_coordinates->from_stream(s)
+        || m_impl->m_z_coordinates->from_stream(s)
+        || m_impl->w_z_coordinates->from_stream(s)
+        || m_impl->t_coordinates->from_stream(s))
+        return -1;
+    return 0;
 }
 
 // --------------------------------------------------------------------------
-void teca_arakawa_c_grid::to_stream(std::ostream &s) const
+int teca_arakawa_c_grid::to_stream(std::ostream &s) const
 {
-    this->teca_mesh::to_stream(s);
+    if (this->teca_mesh::to_stream(s))
+        return -1;
+    return 0;
 }
 
 // --------------------------------------------------------------------------

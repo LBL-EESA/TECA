@@ -92,24 +92,29 @@ void teca_curvilinear_mesh::set_z_coordinates(const std::string &var,
 }
 
 // --------------------------------------------------------------------------
-void teca_curvilinear_mesh::to_stream(teca_binary_stream &s) const
+int teca_curvilinear_mesh::to_stream(teca_binary_stream &s) const
 {
-    this->teca_mesh::to_stream(s);
-    m_coordinate_arrays->to_stream(s);
+    if (this->teca_mesh::to_stream(s)
+        || m_coordinate_arrays->to_stream(s))
+        return -1;
+    return 0;
 }
 
 // --------------------------------------------------------------------------
-void teca_curvilinear_mesh::from_stream(teca_binary_stream &s)
+int teca_curvilinear_mesh::from_stream(teca_binary_stream &s)
 {
-    this->teca_mesh::from_stream(s);
-    m_coordinate_arrays->from_stream(s);
+    if (this->teca_mesh::from_stream(s)
+        || m_coordinate_arrays->from_stream(s))
+        return -1;
+    return 0;
 }
 
 // --------------------------------------------------------------------------
-void teca_curvilinear_mesh::to_stream(std::ostream &s) const
+int teca_curvilinear_mesh::to_stream(std::ostream &s) const
 {
     this->teca_mesh::to_stream(s);
     s << "coordinate arrays = {";
     m_coordinate_arrays->to_stream(s);
     s << "}" << endl;
+    return 0;
 }

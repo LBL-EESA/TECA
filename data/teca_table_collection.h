@@ -83,12 +83,12 @@ public:
 
     // serialize the data to/from the given stream
     // for I/O or communication
-    void to_stream(teca_binary_stream &s) const;
-    void from_stream(teca_binary_stream &s);
+    int to_stream(teca_binary_stream &s) const;
+    int from_stream(teca_binary_stream &s);
 
     // stream to/from human readable representation
-    void to_stream(std::ostream &) const;
-    void from_stream(std::istream &) {}
+    int to_stream(std::ostream &) const;
+    int from_stream(std::istream &) { return -1; }
 
 protected:
     teca_table_collection() = default;

@@ -175,11 +175,11 @@ public:
 
     // serialize the dataset to/from the given stream
     // for I/O or communication
-    void to_stream(teca_binary_stream &) const override;
-    void from_stream(teca_binary_stream &) override;
+    int to_stream(teca_binary_stream &) const override;
+    int from_stream(teca_binary_stream &) override;
 
     // stream to/from human readable representation
-    void to_stream(std::ostream &) const override;
+    int to_stream(std::ostream &) const override;
 
 protected:
     teca_arakawa_c_grid();
