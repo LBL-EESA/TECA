@@ -1,38 +1,44 @@
 #!/bin/bash
 
-if [[ $# -ne 2 ]]
+if [[ $# -ne 4 ]]
 then
-    echo "usage: test_convert_table_app.sh [app prefix] [data root]"
+    echo "usage: test_convert_table_app.sh [app prefix] " \
+         "[data root] [in file] [out file]"
     exit -1
 fi
 
-app_prefix=${1}
-data_root=${2}
-
-output_prefix="test_convert_table_output.csv"
-
 set -x
 
-# run the app
-${app_prefix}/teca_convert_table                       \
-    "${data_root}/cam5_1_amip_run2_tracks_2005_09.bin" \
-    ${output_prefix}
+ierr=0
 
-# check if number of outputs are correct
-output_list=($(ls ${output_prefix}*))
-output_len=${#output_list[@]}
+app_prefix=${1}
+data_root=${2}
+in_file=${3}
+out_file=${4}
+out_ext=${4##*.}
 
-if [[ ${output_len} -ne 1 ]]
+${app_prefix}/teca_convert_table ${data_root}/${in_file} ${out_file}
+
+# check that the file was written
+if [[ ! -f ${out_file} ]]
 then
-    echo "error: unexpected number of convert_table outputs"
-    exit 1
+    echo "ERROR: output file ${out_file} does not exist"
+    ierr=-1
 fi
 
-if [[ ! -s ${output_prefix} ]]
+# do a diff
+if [[ "${out_ext}" != "nc" ]]
 then
-    echo "error: file '${output_prefix}' is empty"
-    exit 1
+    ${app_prefix}/teca_table_diff "${out_file}" "${data_root}/${in_file}"
+    res=$?
+    if [[ ${res} -ne 0 ]]
+    then
+        echo "ERROR: the converted table differs from the baseline"
+        ierr=-1
+    fi
 fi
 
-# clean up
-rm ${output_prefix}
+# clean output file.
+# rm ${out_file}
+
+exit ${ierr}
