@@ -209,7 +209,6 @@ int read_variable_attributes(netcdf_handle &fh, int var_id,
 int read_variable_attributes(netcdf_handle &fh,
     const std::string &name, teca_metadata &atts);
 
-
 // functional that reads and returns a variable from the
 // named file. we're doing this so we can do thread
 // parallel I/O to hide some of the cost of opening files
@@ -295,7 +294,10 @@ private:
     unsigned long m_id;
 };
 
+// write the attributes in array_atts to the variable identified by var_id the
+// name is used in error messages. returns zero of successful.
+int write_variable_attributes(netcdf_handle &fh, int var_id,
+    teca_metadata &array_atts);
 
 }
-
 #endif
