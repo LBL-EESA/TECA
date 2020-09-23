@@ -1,7 +1,7 @@
 #include "teca_table.h"
 
 #include "teca_binary_stream.h"
-#include "teca_mesh.h"
+#include "teca_dataset_util.h"
 
 namespace teca_table_internals
 {
@@ -243,10 +243,9 @@ void teca_table::reserve(unsigned long n)
 }
 
 // --------------------------------------------------------------------------
-void teca_table::to_stream(teca_binary_stream &s) const
+int teca_table::get_type_code() const
 {
-    this->teca_dataset::to_stream(s);
-    m_impl->columns->to_stream(s);
+    return teca_dataset_tt<teca_table>::type_code;
 }
 
 // --------------------------------------------------------------------------

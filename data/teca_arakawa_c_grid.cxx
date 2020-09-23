@@ -1,4 +1,5 @@
 #include "teca_arakawa_c_grid.h"
+#include "teca_dataset_util.h"
 
 #include <iostream>
 #include <cctype>
@@ -20,6 +21,12 @@ teca_arakawa_c_grid::impl_t::impl_t()
 teca_arakawa_c_grid::teca_arakawa_c_grid()
     : m_impl(std::make_shared<teca_arakawa_c_grid::impl_t>())
 {}
+
+// --------------------------------------------------------------------------
+int teca_arakawa_c_grid::get_type_code() const
+{
+    return teca_dataset_tt<teca_arakawa_c_grid>::type_code;
+}
 
 // --------------------------------------------------------------------------
 void teca_arakawa_c_grid::set_m_x_coordinates(const std::string &name,

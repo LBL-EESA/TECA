@@ -1,5 +1,6 @@
 #include "teca_database.h"
 #include "teca_table_collection.h"
+#include "teca_dataset_util.h"
 #include <sstream>
 
 // --------------------------------------------------------------------------
@@ -21,6 +22,12 @@ void teca_database::declare_tables(unsigned int n)
        oss << "table_" << i;
        this->declare_table(oss.str());
     }
+}
+
+// --------------------------------------------------------------------------
+int teca_database::get_type_code() const
+{
+    return teca_dataset_tt<teca_database>::type_code;
 }
 
 // --------------------------------------------------------------------------

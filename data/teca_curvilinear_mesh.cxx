@@ -1,4 +1,5 @@
 #include "teca_curvilinear_mesh.h"
+#include "teca_dataset_util.h"
 
 #include <iostream>
 using std::endl;
@@ -7,6 +8,12 @@ using std::endl;
 teca_curvilinear_mesh::teca_curvilinear_mesh()
     : m_coordinate_arrays(teca_array_collection::New())
 {}
+
+// --------------------------------------------------------------------------
+int teca_curvilinear_mesh::get_type_code() const
+{
+    return teca_dataset_tt<teca_curvilinear_mesh>::type_code;
+}
 
 // --------------------------------------------------------------------------
 void teca_curvilinear_mesh::copy(const const_p_teca_dataset &dataset)

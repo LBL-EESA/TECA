@@ -23,11 +23,6 @@ public:
 
     ~teca_database();
 
-    // return a unique string identifier
-    std::string get_class_name() const override
-    { return "teca_database"; }
-
-
     // append table
     int append_table(p_teca_table table)
     { return this->tables->append(table); }
@@ -80,6 +75,13 @@ public:
 
     int remove_table(const std::string &name)
     { return this->tables->remove(name); }
+
+    // return a unique string identifier
+    std::string get_class_name() const override
+    { return "teca_database"; }
+
+    // return an integer identifier uniquely naming the dataset type
+    int get_type_code() const override;
 
     // return true if the dataset is empty.
     bool empty() const noexcept override;

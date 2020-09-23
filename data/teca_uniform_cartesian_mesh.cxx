@@ -1,8 +1,15 @@
 #include "teca_uniform_cartesian_mesh.h"
+#include "teca_dataset_util.h"
 
 // --------------------------------------------------------------------------
 teca_uniform_cartesian_mesh::teca_uniform_cartesian_mesh()
 {}
+
+// --------------------------------------------------------------------------
+int teca_uniform_cartesian_mesh::get_type_code() const
+{
+    return teca_dataset_tt<teca_uniform_cartesian_mesh>::type_code;
+}
 
 // --------------------------------------------------------------------------
 void teca_uniform_cartesian_mesh::copy(const const_p_teca_dataset &dataset)

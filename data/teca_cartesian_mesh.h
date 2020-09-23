@@ -15,10 +15,6 @@ public:
 
     virtual ~teca_cartesian_mesh() = default;
 
-    // return a unique string identifier
-    std::string get_class_name() const override
-    { return "teca_cartesian_mesh"; }
-
     // set/get metadata
     TECA_DATASET_METADATA(whole_extent, unsigned long, 6)
     TECA_DATASET_METADATA(extent, unsigned long, 6)
@@ -61,6 +57,14 @@ public:
 
     void set_z_coordinates(const std::string &name,
         const p_teca_variant_array &array);
+
+
+    // return a unique string identifier
+    std::string get_class_name() const override
+    { return "teca_cartesian_mesh"; }
+
+    // return an integer identifier uniquely naming the dataset type
+    int get_type_code() const override;
 
     // copy data and metadata. shallow copy uses reference
     // counting, while copy duplicates the data.

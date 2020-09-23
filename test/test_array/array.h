@@ -21,10 +21,13 @@ public:
     TECA_DATASET_PROPERTY(std::vector<size_t>, extent)
     TECA_DATASET_PROPERTY(std::string, name)
 
-
     // return a unique string identifier
     std::string get_class_name() const override
     { return "array"; }
+
+    // return an integer identifier uniquely naming the dataset type
+    int get_type_code() const override
+    { return 1; }
 
     // return true if the dataset is empty.
     bool empty() const noexcept override

@@ -19,6 +19,9 @@ public:
     std::string get_class_name() const override
     { return "teca_curvilinear_mesh"; }
 
+    // return the type code
+    int get_type_code() const override;
+
     // set/get metadata
     TECA_DATASET_METADATA(whole_extent, unsigned long, 6)
     TECA_DATASET_METADATA(extent, unsigned long, 6)

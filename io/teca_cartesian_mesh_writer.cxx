@@ -643,11 +643,15 @@ int write_bin(const_p_teca_mesh mesh, const std::string &file_name,
 
     // serialize the mesh to a binary representation
     teca_binary_stream bs;
-    mesh->to_stream(bs);
+    bs.pack(mesh->get_type_code());
+    if (mesh->to_stream(bs))
+    {
+        TECA_ERROR("Failed to serialize \"" << mesh->get_class_name() << "\"")
+        return -1;
+    }
 
     if (teca_file_util::write_stream(out_file.c_str(),
-        S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH, mesh->get_class_name().c_str(),
-        bs))
+        S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH, "teca_cartesian_mesh_writer_v2", bs))
     {
         TECA_ERROR("Failed to write \"" << out_file << "\"")
         return -1;
@@ -655,7 +659,6 @@ int write_bin(const_p_teca_mesh mesh, const std::string &file_name,
 
     return 0;
 }
-
 
 };
 

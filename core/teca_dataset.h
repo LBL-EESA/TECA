@@ -45,6 +45,9 @@ public:
     // return a string identifier uniquely naming the dataset type
     virtual std::string get_class_name() const = 0;
 
+    // return an integer identifier uniquely naming the dataset type
+    virtual int get_type_code() const = 0;
+
     // copy data and metadata. shallow copy uses reference
     // counting, while copy duplicates the data.
     virtual void copy(const const_p_teca_dataset &other);

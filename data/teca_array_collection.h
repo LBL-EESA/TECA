@@ -77,6 +77,14 @@ public:
     const std::string &get_name(unsigned int i) const
     { return m_names[i]; }
 
+    // return a unique string identifier
+    std::string get_class_name() const
+    { return "teca_array_collection"; }
+
+    // return an integer identifier uniquely naming the dataset type
+    int get_type_code() const
+    { return -1; }
+
     // copy
     void copy(const const_p_teca_array_collection &other);
     void shallow_copy(const p_teca_array_collection &other);

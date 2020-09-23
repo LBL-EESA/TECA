@@ -1,12 +1,18 @@
 #include "teca_cartesian_mesh.h"
+#include "teca_dataset_util.h"
 
 #include <iostream>
-using std::endl;
 
 // --------------------------------------------------------------------------
 teca_cartesian_mesh::teca_cartesian_mesh()
     : m_coordinate_arrays(teca_array_collection::New())
 {}
+
+// --------------------------------------------------------------------------
+int teca_cartesian_mesh::get_type_code() const
+{
+    return teca_dataset_tt<teca_cartesian_mesh>::type_code;
+}
 
 // --------------------------------------------------------------------------
 void teca_cartesian_mesh::copy(const const_p_teca_dataset &dataset)
