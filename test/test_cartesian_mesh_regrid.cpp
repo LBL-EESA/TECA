@@ -10,6 +10,7 @@
 #include "teca_file_util.h"
 #include "teca_mpi_manager.h"
 #include "teca_system_interface.h"
+#include "teca_system_util.h"
 #include "teca_mpi.h"
 
 #include <vector>
@@ -119,8 +120,9 @@ int main(int argc, char **argv)
     exec->set_end_index(last_step);
     exec->set_arrays(target_arrays);
 
-
-    if (teca_file_util::file_exists(out_file.c_str()))
+    bool do_test = true;
+    teca_system_util::get_environment_variable("TECA_DO_TEST", do_test);
+    if (do_test && teca_file_util::file_exists(out_file.c_str()))
     {
         // run the test
         p_teca_cartesian_mesh_reader baseline_reader = teca_cartesian_mesh_reader::New();

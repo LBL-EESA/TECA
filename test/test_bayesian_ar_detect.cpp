@@ -17,6 +17,7 @@
 #include "teca_table_sort.h"
 #include "teca_table_to_stream.h"
 #include "teca_cartesian_mesh_writer.h"
+#include "teca_system_util.h"
 
 #include <vector>
 #include <string>
@@ -111,6 +112,8 @@ int main(int argc, char **argv)
     sort->set_input_connection(map_reduce->get_output_port());
     sort->set_index_column("global_component_ids");
 
+    bool do_test = true;
+    teca_system_util::get_environment_variable("TECA_DO_TEST", do_test);
     if (teca_file_util::file_exists(baseline_table.c_str()))
     {
         // run the test

@@ -104,7 +104,8 @@ if rank == worker_rank:
     comm.send(bs.get_data(), dest=master_rank, tag=27)
 
 
-if os.path.exists(baseline):
+do_test = system_util.get_environment_variable_bool('TECA_DO_TEST', True)
+if do_test and os.path.exists(baseline):
     table_reader = teca_table_reader.New()
     table_reader.set_file_name(baseline)
     diff = teca_dataset_diff.New()

@@ -32,7 +32,8 @@ rr.set_input_connection(ee.get_output_port())
 rr.set_mask_expression('!(in_temporal && in_spatial)')
 rr.set_remove_dependent_variables(1)
 
-if os.path.exists(table_out):
+do_test = system_util.get_environment_variable_bool('TECA_DO_TEST', True)
+if do_test and os.path.exists(table_out):
     #run the test
     br = teca_table_reader.New()
     br.set_file_name(table_out)

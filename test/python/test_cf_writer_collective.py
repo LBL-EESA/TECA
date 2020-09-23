@@ -241,7 +241,8 @@ if rank == 0:
     rex.set_end_index(check_step)
 
     fn = file_util.replace_timestep(baseline, check_step)
-    if os.path.exists(fn):
+    do_test = system_util.get_environment_variable_bool('TECA_DO_TEST', True)
+    if do_test and os.path.exists(fn):
         sys.stderr.write('running the test...\n')
 
         cmr = teca_cartesian_mesh_reader.New()

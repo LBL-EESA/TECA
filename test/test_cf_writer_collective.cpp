@@ -14,6 +14,7 @@
 #include "teca_file_util.h"
 #include "teca_mpi_manager.h"
 #include "teca_mpi.h"
+#include "teca_system_util.h"
 
 #define _USE_MATH_DEFINES
 #include <cmath>
@@ -407,7 +408,9 @@ int main(int argc, char **argv)
 
         std::string fn(baseline);
         teca_file_util::replace_timestep(fn, check_step);
-        if (teca_file_util::file_exists(fn.c_str()))
+        bool do_test = true;
+        teca_system_util::get_environment_variable("TECA_DO_TEST", do_test);
+        if (do_test && teca_file_util::file_exists(fn.c_str()))
         {
             std::cerr << "running the test..." << std::endl;
 

@@ -14,6 +14,7 @@
 #include "teca_test_util.h"
 #include "teca_mpi_manager.h"
 #include "teca_system_interface.h"
+#include "teca_system_util.h"
 #include "teca_mpi.h"
 
 #include <vector>
@@ -163,7 +164,9 @@ int main(int argc, char **argv)
     p_teca_table_calendar cal = teca_table_calendar::New();
     cal->set_input_connection(sort->get_output_port());
 
-    if (have_baseline)
+    bool do_test = true;
+    teca_system_util::get_environment_variable("TECA_DO_TEST", do_test);
+    if (do_test && have_baseline)
     {
         // run the test
         p_teca_table_reader table_reader = teca_table_reader::New();

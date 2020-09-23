@@ -52,7 +52,8 @@ sort = teca_table_sort.New()
 sort.set_input_connection(mapper.get_output_port())
 sort.set_index_column('original_ids')
 
-if os.path.exists(out_file):
+do_test = system_util.get_environment_variable_bool('TECA_DO_TEST', True)
+if do_test and os.path.exists(out_file):
   baseline = teca_table_reader.New()
   baseline.set_file_name(out_file)
 
