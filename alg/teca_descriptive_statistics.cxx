@@ -5,6 +5,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_metadata.h"
+#include "teca_array_attributes.h"
 
 #include <algorithm>
 #include <iostream>
@@ -209,19 +210,24 @@ const_p_teca_dataset teca_descriptive_statistics::execute(
     (void)port;
 
     // get the input mesh
-    const_p_teca_cartesian_mesh in_mesh
-        = std::dynamic_pointer_cast<const teca_cartesian_mesh>(input_data[0]);
+    const_p_teca_mesh in_mesh
+        = std::dynamic_pointer_cast<const teca_mesh>(input_data[0]);
 
     if (!in_mesh)
     {
         TECA_ERROR("dataset is not a teca_cartesian_mesh")
         return nullptr;
     }
+    // dependent variables
+    std::vector<std::string> dep_var_names;
+    this->get_dependent_variables(request, dep_var_names);
+    size_t n_dep_vars = dep_var_names.size();
 
     // set up the output
     p_teca_table table = teca_table::New();
     table->declare_columns("step", long(), "time", double());
 
+    // pass calendaring metadata
     std::string calendar;
     in_mesh->get_calendar(calendar);
     table->set_calendar(calendar);
@@ -238,12 +244,69 @@ const_p_teca_dataset teca_descriptive_statistics::execute(
     in_mesh->get_time(time);
     table << time;
 
-    // dependent variables
-    std::vector<std::string> dep_var_names;
-    this->get_dependent_variables(request, dep_var_names);
+    // pass attributes and add the new variables we consrtuct. this is for
+    // NetCDF output.
+    teca_metadata atrs;
+    if (in_mesh->get_metadata().get("attributes", atrs) == 0)
+    {
+        for (size_t i = 0; i < n_dep_vars; ++i)
+        {
+            const std::string &dep_var_name = dep_var_names[i];
+
+            teca_metadata var_atts;
+            if (atrs.get(dep_var_names[i], var_atts) == 0)
+            {
+                teca_array_attributes out_atts(var_atts);
+
+                std::string out_var_name = "min_" + dep_var_name;
+                out_atts.long_name = out_var_name;
+                out_atts.description = "minimum of " + dep_var_name;
+                atrs.set(out_var_name, (teca_metadata)out_atts);
+
+                out_var_name = "max_" + dep_var_name;
+                out_atts.long_name = out_var_name;
+                out_atts.description = "maximum of " + dep_var_name;
+                atrs.set(out_var_name, (teca_metadata)out_atts);
+
+                out_var_name = "avg_" + dep_var_name;
+                out_atts.long_name = out_var_name;
+                out_atts.description = "average of " + dep_var_name;
+                atrs.set(out_var_name, (teca_metadata)out_atts);
+
+                out_var_name = "var_" + dep_var_name;
+                out_atts.long_name = out_var_name;
+                out_atts.description = "variance of " + dep_var_name;
+                atrs.set(out_var_name, (teca_metadata)out_atts);
+
+                out_var_name = "med_" + dep_var_name;
+                out_atts.long_name = out_var_name;
+                out_atts.description = "median of " + dep_var_name;
+                atrs.set(out_var_name, (teca_metadata)out_atts);
+
+                out_var_name = "low_q_" + dep_var_name;
+                out_atts.long_name = out_var_name;
+                out_atts.description = "lower quartile of " + dep_var_name;
+                atrs.set(out_var_name, (teca_metadata)out_atts);
+
+                out_var_name = "up_q_" + dep_var_name;
+                out_atts.long_name = out_var_name;
+                out_atts.description = "upper quartile of " + dep_var_name;
+                atrs.set(out_var_name, (teca_metadata)out_atts);
+            }
+        }
+
+        teca_array_attributes step_atts;
+        step_atts.long_name = "time step";
+        step_atts.description = "input dataset time step";
+        step_atts.units = "unitless";
+        atrs.set("step", (teca_metadata)step_atts);
+
+        table->get_metadata().set("attributes", atrs);
+
+        atrs.to_stream(std::cerr);
+    }
 
     // for each variable
-    size_t n_dep_vars = dep_var_names.size();
     for (size_t i = 0; i < n_dep_vars; ++i)
     {
         const std::string &dep_var_name = dep_var_names[i];
@@ -274,10 +337,10 @@ const_p_teca_dataset teca_descriptive_statistics::execute(
 
             // add to output table
             table->declare_columns(
-                "min " + dep_var_name, NT(), "max " + dep_var_name, NT(),
-                "avg " + dep_var_name, NT(), "var " + dep_var_name, NT(),
-                "low_q " + dep_var_name, NT(), "med " + dep_var_name, NT(),
-                "up_q " + dep_var_name, NT());
+                "min_" + dep_var_name, NT(), "max_" + dep_var_name, NT(),
+                "avg_" + dep_var_name, NT(), "var_" + dep_var_name, NT(),
+                "low_q_" + dep_var_name, NT(), "med_" + dep_var_name, NT(),
+                "up_q_" + dep_var_name, NT());
 
             table << mn << mx << av << vr << lq << med << uq;
             )
