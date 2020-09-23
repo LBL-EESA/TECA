@@ -2,6 +2,7 @@
 #include "teca_config.h"
 #include "teca_common.h"
 #include "teca_profiler.h"
+#include "teca_system_util.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -24,19 +25,8 @@ teca_mpi_manager::teca_mpi_manager(int &argc, char **&argv)
 #if defined(TECA_HAS_MPI)
     // let the user disable MPI_Init. This is primarilly to work around Cray's
     // practice of calling abort from MPI_Init on login nodes.
-    int init_mpi = 1;
-    const char *tmp = getenv("TECA_INITIALIZE_MPI");
-    if (tmp)
-    {
-        char buf[17];
-        buf[16] = '\0';
-        size_t n = strlen(tmp);
-        for (size_t i = 0; i < n && i < 16; ++i)
-            buf[i] = tolower(tmp[i]);
-        if ((strcmp(buf, "0") == 0)
-            || (strcmp(buf, "false") == 0) || (strcmp(buf, "off") == 0))
-            init_mpi = 0;
-    }
+    bool init_mpi = true;
+    teca_system_util::get_environment_variable("TECA_INITIALIZE_MPI", init_mpi);
     if (init_mpi)
     {
         int mpi_thread_required = MPI_THREAD_SERIALIZED;
@@ -50,7 +40,7 @@ teca_mpi_manager::teca_mpi_manager(int &argc, char **&argv)
     }
     else
     {
-        TECA_WARNING("TECA_INITIALIZE_MPI=" << tmp << " MPI_Init was not called.")
+        TECA_WARNING("TECA_INITIALIZE_MPI=FALSE MPI_Init was not called.")
     }
 #endif
 

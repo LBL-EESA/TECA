@@ -15,12 +15,13 @@ set(teca_core_srcs
     teca_metadata_util.cxx
     teca_mpi_manager.cxx
     teca_parallel_id.cxx
+    teca_profiler.cxx
     teca_programmable_algorithm.cxx
     teca_programmable_reduce.cxx
+    teca_system_util.cxx
     teca_threaded_algorithm.cxx
     teca_threaded_programmable_algorithm.cxx
     teca_thread_util.cxx
-    teca_profiler.cxx
     teca_variant_array.cxx
     )
 

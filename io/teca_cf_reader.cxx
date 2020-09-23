@@ -5,6 +5,7 @@
 #include "teca_thread_pool.h"
 #include "teca_coordinate_util.h"
 #include "teca_netcdf_util.h"
+#include "teca_system_util.h"
 #include "calcalcs.h"
 
 #include <netcdf.h>
@@ -237,15 +238,13 @@ teca_cf_reader::teca_cf_reader() :
     cache_metadata(1),
     internals(new teca_cf_reader_internals)
 {
-    const char *val = getenv("TECA_CF_READER_CACHE_METADATA");
-    if (val)
+    bool tmp = true;
+    if (teca_system_util::get_environment_variable(
+        "TECA_CF_READER_CACHE_METADATA", tmp) == 0)
     {
-        int tmp = strtol(val, nullptr, 0);
-        if (errno != EINVAL)
-        {
-            cache_metadata = tmp;
-            TECA_STATUS("metadata cache " << (tmp ? "enabled" : "disabled"))
-        }
+        cache_metadata = tmp;
+        TECA_STATUS("TECA_CF_READER_CACHE_METADATA = " << (tmp ? "TRUE" : "FALSE")
+            << " metadata cache " << (tmp ? "enabled" : "disabled"))
     }
 }
 

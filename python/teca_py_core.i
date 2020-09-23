@@ -16,6 +16,7 @@
 #include "teca_programmable_algorithm.h"
 #include "teca_programmable_reduce.h"
 #include "teca_threaded_programmable_algorithm.h"
+#include "teca_system_util.h"
 
 #include "teca_py_object.h"
 #include "teca_py_sequence.h"
@@ -955,6 +956,28 @@ PyObject *thread_parameters(MPI_Comm comm,
 
     // return the number of threads and affinity map
     return Py_BuildValue("(iN)", n_threads, py_affinity);
+}
+};
+%}
+
+/***************************************************************************
+ system util
+ ***************************************************************************/
+%inline
+%{
+struct system_util
+{
+static
+PyObject *get_environment_variable_bool(const char *str, int def)
+{
+    bool tmp = def;
+    int ierr = teca_system_util::get_environment_variable(str, tmp);
+    if (ierr < 0)
+    {
+        TECA_PY_ERROR(PyExc_RuntimeError, "conversion error")
+        return nullptr;
+    }
+    return PyLong_FromLong(tmp);
 }
 };
 %}
