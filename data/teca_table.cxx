@@ -306,6 +306,14 @@ int teca_table::to_stream(std::ostream &s) const
         col = m_impl->columns->get(0);
         col_name = m_impl->columns->get_name(0);
         col_type = col->type_code();
+
+        if (col_name.find_first_of("()") != std::string::npos)
+        {
+            TECA_WARNING("Writing incompatible table to stream. This data "
+                "will not be readable by TECA because parentheses were "
+                "used in the column 0 name \"" << col_name << "\"")
+        }
+
         s << "\"" << col_name << "(" << col_type << ")\"";
 
         for (unsigned int i = 1; i < n_cols; ++i)
@@ -313,6 +321,14 @@ int teca_table::to_stream(std::ostream &s) const
             col = m_impl->columns->get(i);
             col_name = m_impl->columns->get_name(i);
             col_type = col->type_code();
+
+            if (col_name.find_first_of("()") != std::string::npos)
+            {
+                TECA_WARNING("Writing incompatible table to stream. This data "
+                    "will not be readable by TECA because parentheses were "
+                    "used in the column " << i << " name \"" << col_name << "\"")
+            }
+
             s << ", \"" << col_name << "(" << col_type << ")\"";
         }
 
