@@ -13,7 +13,7 @@ teca_add_test(test_deeplabv3p_ar_detect_app_serial
 
 teca_add_test(test_deeplabv3p_ar_detect_app_mpi
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_deeplabv3p_ar_detect_app.sh
-    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} ${MPIEXEC} 2
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} ${MPIEXEC} ${HALF_TEST_CORES}
     FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI} ${MPI4Py_FOUND}
     REQ_TECA_DATA)
 
@@ -25,7 +25,7 @@ teca_add_test(test_bayesian_ar_detect_app_serial
 
 teca_add_test(test_bayesian_ar_detect_app_mpi
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_bayesian_ar_detect_app.sh
-    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} ${MPIEXEC} 2
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} ${MPIEXEC} ${HALF_TEST_CORES}
     FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
@@ -39,7 +39,7 @@ teca_add_test(test_tc_detect_app_serial
 teca_add_test(test_tc_detect_app_mpi
     LIBS teca_io teca_alg
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_detect_app.sh
-    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} ${MPIEXEC} 2
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} ${MPIEXEC} ${TEST_CORES}
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
@@ -59,7 +59,7 @@ teca_add_test(test_tc_wind_radii_app_serial
 teca_add_test(test_tc_wind_radii_app_mpi
     LIBS teca_io teca_alg
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_wind_radii_app.sh
-    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} ${MPIEXEC} 2
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} ${MPIEXEC} ${TEST_CORES}
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
@@ -75,7 +75,7 @@ teca_add_test(test_tc_trajectory_scalars_app_serial
 
 teca_add_test(test_tc_trajectory_scalars_app_mpi
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_trajectory_scalars_app.sh
-    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} ${MPIEXEC} 2
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} ${MPIEXEC} ${TEST_CORES}
     FEATURES ${TECA_HAS_MPI} ${MPI4Py_FOUND}
     REQ_TECA_DATA)
 
@@ -101,7 +101,7 @@ teca_add_test(test_temporal_reduction_app_monthly_average_mpi_thread
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
     "prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc" prw
-    monthly average 7 ${MPIEXEC} 2
+    monthly average 7 ${MPIEXEC} ${HALF_TEST_CORES}
     FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4Py_FOUND}
     REQ_TECA_DATA)
 
@@ -117,7 +117,7 @@ teca_add_test(test_temporal_reduction_app_monthly_minimum_mpi_thread
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
     "prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc" prw
-    monthly minimum 7 ${MPIEXEC} 2
+    monthly minimum 7 ${MPIEXEC} ${HALF_TEST_CORES}
     FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4Py_FOUND}
     REQ_TECA_DATA)
 
@@ -133,7 +133,7 @@ teca_add_test(test_temporal_reduction_app_monthly_maximum_mpi_thread
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
     "prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc" prw
-    monthly maximum 7 ${MPIEXEC} 2
+    monthly maximum 7 ${MPIEXEC} ${HALF_TEST_CORES}
     FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4Py_FOUND}
     REQ_TECA_DATA)
 
