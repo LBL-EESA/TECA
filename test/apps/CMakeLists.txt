@@ -30,34 +30,29 @@ teca_add_test(test_bayesian_ar_detect_app_mpi
     REQ_TECA_DATA)
 
 teca_add_test(test_tc_detect_app_serial
-    LIBS teca_io teca_alg
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_detect_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(test_tc_detect_app_mpi
-    LIBS teca_io teca_alg
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_detect_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} ${MPIEXEC} ${TEST_CORES}
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
 teca_add_test(test_tc_trajectory_app
-    LIBS teca_io teca_alg
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_trajectory_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
     REQ_TECA_DATA)
 
 teca_add_test(test_tc_wind_radii_app_serial
-    LIBS teca_io teca_alg
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_wind_radii_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(test_tc_wind_radii_app_mpi
-    LIBS teca_io teca_alg
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_wind_radii_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} ${MPIEXEC} ${TEST_CORES}
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
@@ -159,7 +154,6 @@ teca_add_test(test_temporal_reduction_app_daily_minimum_missing_values
     REQ_TECA_DATA)
 
 teca_add_test(test_cartesian_mesh_diff_app_pass
-    LIBS teca_io teca_alg
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_cartesian_mesh_diff_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX}
     ${TECA_DATA_ROOT}/test_cartesian_mesh_regrid.bin
@@ -167,7 +161,6 @@ teca_add_test(test_cartesian_mesh_diff_app_pass
     REQ_TECA_DATA)
 
 teca_add_test(test_cartesian_mesh_diff_app_fail
-    LIBS teca_io teca_alg
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_cartesian_mesh_diff_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX}
     ${TECA_DATA_ROOT}/test_cf_writer_collective_000213.bin
@@ -176,7 +169,6 @@ teca_add_test(test_cartesian_mesh_diff_app_fail
     WILL_FAIL)
 
 teca_add_test(test_table_diff_app_pass
-    LIBS teca_io teca_alg
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_table_diff_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX}
     ${TECA_DATA_ROOT}/cam5_1_amip_run2_tracks_2005_09.bin
@@ -184,7 +176,6 @@ teca_add_test(test_table_diff_app_pass
     REQ_TECA_DATA)
 
 teca_add_test(test_table_diff_app_fail
-    LIBS teca_io teca_alg
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_table_diff_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX}
     ${TECA_DATA_ROOT}/test_tc_stats_app_output_class_table_ref.bin
