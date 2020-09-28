@@ -18,8 +18,9 @@ ${launcher} ${app_prefix}/teca_tc_trajectory                                \
     --max_daily_distance 1600 --min_wind_speed 17 --min_wind_duration 2     
 
 # run the diff
-${app_prefix}/teca_table_diff test_tc_trajectory_app_output.bin             \
-    "${data_root}/cam5_1_amip_run2_tracks_2005_09.bin"
+${app_prefix}/teca_table_diff                                               \
+    "${data_root}/cam5_1_amip_run2_tracks_2005_09.bin"                      \
+    test_tc_trajectory_app_output.bin
 
 # clean up
 rm test_tc_trajectory_app_output.bin

@@ -24,7 +24,7 @@ int main(int argc, char **argv)
         if (rank == 0)
         {
             std::cerr << std::endl << "Usage:" << std::endl
-                << "teca_cartesian_mesh_diff [test file] [reference file]"
+                << "teca_cartesian_mesh_diff [reference file] [test file]"
                 << std::endl << std::endl;
         }
         return -1;

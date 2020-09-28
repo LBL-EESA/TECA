@@ -34,8 +34,8 @@ ${launcher} ${app_prefix}/teca_tc_wind_radii                            \
 
 # run the diff
 ${app_prefix}/teca_table_diff                                           \
-    test_tc_wind_radii_app_output.bin                                   \
-    "${data_root}/test_tc_wind_radii.bin"
+    "${data_root}/test_tc_wind_radii.bin"                               \
+    test_tc_wind_radii_app_output.bin
 
 # clean up
 rm test_tc_wind_radii_app_output.bin

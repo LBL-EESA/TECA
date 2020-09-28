@@ -20,8 +20,8 @@ ${app_prefix}/teca_tc_stats                                     \
 
 # run the diff
 ${app_prefix}/teca_table_diff                                   \
-    test_tc_stats_app_output_class_table.bin                    \
-    "${data_root}/test_tc_stats_app_output_class_table_ref.bin"
+    "${data_root}/test_tc_stats_app_output_class_table_ref.bin" \
+    test_tc_stats_app_output_class_table.bin
 
 # check if number of outputs are correct
 output_list=($(ls ${output_prefix}*))

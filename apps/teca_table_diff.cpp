@@ -28,7 +28,7 @@ int main(int argc, char **argv)
         {
             cerr << endl
                 << "Usage:" << endl
-                << "teca_table_diff [test file] [reference file] "
+                << "teca_table_diff [reference file] [test file] "
                    "[column to sort by (optional)]" << endl
                  << endl;
         }
@@ -36,17 +36,11 @@ int main(int argc, char **argv)
     }
 
     // parse command line
-    std::string t_file = argv[1];
-    std::string ref_file = argv[2];
+    std::string ref_file = argv[1];
+    std::string t_file = argv[2];
     std::string column_name;
     if (argc == 4) column_name = argv[3];
     
-
-    if (!teca_file_util::file_exists(t_file.c_str()))
-    {
-        TECA_ERROR("test file doesn't exist");
-        return -1;
-    }
 
     if (!teca_file_util::file_exists(ref_file.c_str()))
     {
@@ -54,11 +48,17 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    p_teca_table_reader t_reader = teca_table_reader::New();
-    t_reader->set_file_name(t_file);
+    if (!teca_file_util::file_exists(t_file.c_str()))
+    {
+        TECA_ERROR("test file doesn't exist");
+        return -1;
+    }
 
     p_teca_table_reader ref_reader = teca_table_reader::New();
     ref_reader->set_file_name(ref_file);
+
+    p_teca_table_reader t_reader = teca_table_reader::New();
+    t_reader->set_file_name(t_file);
     
     p_teca_table_sort sort = teca_table_sort::New();
 

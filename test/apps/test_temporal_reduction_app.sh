@@ -34,8 +34,8 @@ ${launcher} ${app_prefix}/teca_temporal_reduction \
 
 # run the diff
 ${app_prefix}/teca_cartesian_mesh_diff \
-    "${array_name}_${interval}_${operator}_.*\.nc" \
-    "${data_root}/test_temporal_reduction_app_${array_name}_${interval}_${operator}_.*\.nc"
+    "${data_root}/test_temporal_reduction_app_${array_name}_${interval}_${operator}_.*\.nc" \
+    "${array_name}_${interval}_${operator}_.*\.nc"
 
 # clean up
 rm -f ${array_name}_${interval}_${operator}_*.nc

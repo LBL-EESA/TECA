@@ -23,8 +23,8 @@ ${app_prefix}/teca_event_filter                          \
 
 # run the diff
 ${app_prefix}/teca_table_diff                            \
-    test_event_filter_app_output.bin                     \
-    "${data_root}/test_event_filter_app_ref.bin"
+    "${data_root}/test_event_filter_app_ref.bin"         \
+    test_event_filter_app_output.bin
 
 # clean up
 rm test_event_filter_app_output.bin
