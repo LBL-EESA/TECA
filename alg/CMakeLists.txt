@@ -26,6 +26,7 @@ set(teca_alg_cxx_srcs
     teca_evaluate_expression.cxx
     teca_face_to_cell_centering.cxx
     teca_geography.cxx
+    teca_integrated_vapor_transport.cxx
     teca_l2_norm.cxx
     teca_latitude_damper.cxx
     teca_laplacian.cxx

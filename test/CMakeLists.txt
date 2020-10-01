@@ -679,3 +679,10 @@ teca_add_test(test_cf_writer_bad_type
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA
     WILL_FAIL)
+
+teca_add_test(test_integrated_vapor_transport
+    SOURCES test_integrated_vapor_transport.cpp
+    LIBS teca_core teca_data teca_alg teca_io ${teca_test_link}
+    COMMAND test_integrated_vapor_transport
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
