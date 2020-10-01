@@ -284,4 +284,47 @@ int validate_centering(int centering)
     return ret;
 }
 
+// **************************************************************************
+int get_cartesian_mesh_extent(const teca_metadata &md,
+    unsigned long *whole_extent, double *bounds)
+{
+    // get the whole extent
+    if (md.get("whole_extent", whole_extent, 6))
+    {
+        TECA_ERROR("metadata is missing \"whole_extent\"")
+        return -1;
+    }
+
+    if (md.get("bounds", bounds, 6))
+    {
+        // get coordinates
+        teca_metadata coords;
+        if (md.get("coordinates", coords))
+        {
+            TECA_ERROR("metadata is missing \"coordinates\"")
+            return -1;
+        }
+
+        // get the coordinate arrays
+        p_teca_variant_array x, y, z;
+        if (!(x = coords.get("x")) || !(y = coords.get("y"))
+            || !(z = coords.get("z")))
+        {
+            TECA_ERROR("coordinate metadata is missing x,y, and or z "
+                "coordinate arrays")
+            return -1;
+        }
+
+        // get bounds of the whole_extent being read
+        x->get(whole_extent[0], bounds[0]);
+        x->get(whole_extent[1], bounds[1]);
+        y->get(whole_extent[2], bounds[2]);
+        y->get(whole_extent[3], bounds[3]);
+        z->get(whole_extent[4], bounds[4]);
+        z->get(whole_extent[5], bounds[5]);
+    }
+
+    return 0;
+}
+
 };
