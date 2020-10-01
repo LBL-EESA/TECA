@@ -45,6 +45,7 @@ set(teca_alg_cxx_srcs
     teca_temporal_average.cxx
     teca_variant_array_operand.cxx
     teca_vertical_coordinate_transform.cxx
+    teca_vertical_reduction.cxx
     teca_vorticity.cxx
     teca_dataset_diff.cxx
     )

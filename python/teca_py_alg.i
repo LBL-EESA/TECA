@@ -37,6 +37,7 @@
 #include "teca_tc_trajectory.h"
 #include "teca_tc_wind_radii.h"
 #include "teca_temporal_average.h"
+#include "teca_vertical_reduction.h"
 #include "teca_vorticity.h"
 
 #include "teca_py_object.h"
@@ -404,3 +405,11 @@ struct teca_tc_saffir_simpson
  temporal_reduction
  ***************************************************************************/
 %pythoncode "teca_temporal_reduction.py"
+
+/***************************************************************************
+ vertical_reduction
+ ***************************************************************************/
+%ignore teca_vertical_reduction::shared_from_this;
+%shared_ptr(teca_vertical_reduction)
+%ignore teca_vertical_reduction::operator=;
+%include "teca_vertical_reduction.h"
