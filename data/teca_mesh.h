@@ -64,6 +64,11 @@ public:
     void copy(const const_p_teca_dataset &) override;
     void shallow_copy(const p_teca_dataset &) override;
 
+    // copy coordinate arrays from the pased instance. shallow copy uses
+    // reference counting, while copy duplicates the data.
+    virtual void copy_coordinates(const const_p_teca_dataset &) = 0;
+    virtual void shallow_copy_coordinates(const p_teca_dataset &) = 0;
+
     // swap internals of the two objects
     void swap(p_teca_dataset &) override;
 
