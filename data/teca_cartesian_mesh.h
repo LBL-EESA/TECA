@@ -69,6 +69,11 @@ public:
     // copy metadata. always a deep copy.
     void copy_metadata(const const_p_teca_dataset &other) override;
 
+    // copy coordinate arrays from the pased instance. shallow copy uses
+    // reference counting, while copy duplicates the data.
+    void copy_coordinates(const const_p_teca_dataset &) override;
+    void shallow_copy_coordinates(const p_teca_dataset &) override;
+
     // swap internals of the two objects
     void swap(p_teca_dataset &) override;
 

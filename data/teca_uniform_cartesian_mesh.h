@@ -26,10 +26,15 @@ public:
     std::string get_class_name() const override
     { return "teca_uniform_cartesian_mesh"; }
 
-    // copy data and metadata. shallow copy uses reference
+    // copy coordinates, data, and metadata. shallow copy uses reference
     // counting, while copy duplicates the data.
     void copy(const const_p_teca_dataset &) override;
     void shallow_copy(const p_teca_dataset &) override;
+
+    // copy coordinate arrays from the pased instance. shallow copy uses
+    // reference counting, while copy duplicates the data.
+    void copy_coordinates(const const_p_teca_dataset &) override {}
+    void shallow_copy_coordinates(const p_teca_dataset &) override {}
 
     // swap internals of the two objects
     void swap(p_teca_dataset &) override;
