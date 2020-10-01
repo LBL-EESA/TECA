@@ -25,6 +25,7 @@ set(teca_alg_cxx_srcs
     teca_descriptive_statistics.cxx
     teca_evaluate_expression.cxx
     teca_geography.cxx
+    teca_integrated_vapor_transport.cxx
     teca_l2_norm.cxx
     teca_latitude_damper.cxx
     teca_laplacian.cxx

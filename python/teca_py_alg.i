@@ -11,9 +11,7 @@
 #include "teca_cartesian_mesh_regrid.h"
 #include "teca_connected_components.h"
 #include "teca_component_statistics.h"
-#include "teca_2d_component_area.h"
 #include "teca_component_area_filter.h"
-#include "teca_latitude_damper.h"
 #include "teca_dataset_diff.h"
 #include "teca_dataset_capture.h"
 #include "teca_dataset_source.h"
@@ -21,15 +19,17 @@
 #include "teca_derived_quantity_numerics.h"
 #include "teca_descriptive_statistics.h"
 #include "teca_evaluate_expression.h"
-#include "teca_table_region_mask.h"
+#include "teca_integrated_vapor_transport.h"
 #include "teca_l2_norm.h"
 #include "teca_laplacian.h"
+#include "teca_latitude_damper.h"
 #include "teca_mask.h"
 #include "teca_normalize_coordinates.h"
 #include "teca_saffir_simpson.h"
 #include "teca_table_calendar.h"
 #include "teca_table_sort.h"
 #include "teca_table_reduce.h"
+#include "teca_table_region_mask.h"
 #include "teca_table_remove_rows.h"
 #include "teca_table_to_stream.h"
 #include "teca_tc_candidates.h"
@@ -424,3 +424,11 @@ from teca_temporal_reduction import *
 %shared_ptr(teca_vertical_reduction)
 %ignore teca_vertical_reduction::operator=;
 %include "teca_vertical_reduction.h"
+
+/***************************************************************************
+ integrated_vapor_transport
+ ***************************************************************************/
+%ignore teca_integrated_vapor_transport::shared_from_this;
+%shared_ptr(teca_integrated_vapor_transport)
+%ignore teca_integrated_vapor_transport::operator=;
+%include "teca_integrated_vapor_transport.h"
