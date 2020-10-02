@@ -192,7 +192,24 @@ teca_add_test(test_table_diff_app_fail
     REQ_TECA_DATA
     WILL_FAIL)
 
-teca_add_test(test_convert_table_app
+teca_add_test(test_convert_table_app_csv_bin
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_convert_table_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
+    "cam5-025deg-all-hist-est1-v3-r1-tracks_size.csv"
+    "cam5-025deg-all-hist-est1-v3-r1-tracks_size.bin"
+    REQ_TECA_DATA)
+
+teca_add_test(test_convert_table_app_bin_csv
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_convert_table_app.sh
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
+    "cam5-025deg-all-hist-est1-v3-r1-tracks_size.bin"
+    "cam5-025deg-all-hist-est1-v3-r1-tracks_size.csv"
+    REQ_TECA_DATA)
+
+teca_add_test(test_convert_table_app_bin_netcdf
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_convert_table_app.sh
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
+    "test_descriptive_statistics.bin"
+    "test_descriptive_statistics.nc"
+    FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)

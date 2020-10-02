@@ -17,7 +17,7 @@ parser.add_argument('out_file', type=str,
 
 parser.add_argument('--out_format', type=str, default='auto',
     help='The file formate to use in the output. ' \
-         'One of: auto, bin, csv. (auto)')
+         'One of: auto, bin, csv, netcdf. (auto)')
 
 parser.add_argument('--select', type=str, required=False,
     help='a logical expression on table columns. '      \
@@ -35,6 +35,8 @@ elif args.in_format == 'bin':
     reader.set_file_format_bin()
 elif args.in_format == 'csv':
     reader.set_file_format_csv()
+elif args.in_format == 'netcdf':
+    reader.set_file_format_netcdf()
 else:
     sys.stderr.write('ERROR: Invalid input file format %s'%(
         args.in_format))

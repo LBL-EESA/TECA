@@ -501,72 +501,10 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
         }
 
         int var_id = it->second.first;
-
-        unsigned long n_atts = array_atts.size();
-        for (unsigned long j = 0; j < n_atts; ++j)
+        if (teca_netcdf_util::write_variable_attributes(
+            this->handle, var_id, array_atts))
         {
-            std::string att_name;
-            if (array_atts.get_name(j, att_name))
-            {
-                TECA_ERROR("failed to get name of the " << j
-                    << "th attribute for array \"" << array_name << "\"")
-                return -1;
-            }
-
-            // skip non-standard internal book keeping metadata this is
-            // potentially OK to pass through but likely of no interest to
-            // anyone else
-            if ((att_name == "cf_id") || (att_name == "cf_dims") ||
-                (att_name == "cf_dim_names") || (att_name == "type_code") ||
-                (att_name == "cf_type_code") || (att_name == "centering") ||
-                (att_name == "size"))
-                continue;
-
-            // get the attribute value
-            const_p_teca_variant_array att_values = array_atts.get(att_name);
-
-            // handle string type
-            TEMPLATE_DISPATCH_CASE(
-                const teca_variant_array_impl, std::string,
-                att_values.get(),
-                if (att_values->size() > 1)
-                    continue;
-                const std::string att_val = static_cast<const TT*>(att_values.get())->get(0);
-#if !defined(HDF5_THREAD_SAFE)
-                {
-                std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
-#endif
-                if ((ierr = nc_put_att_text(this->handle.get(), var_id, att_name.c_str(), att_val.size()+1,
-                    att_val.c_str())) != NC_NOERR)
-                {
-                    TECA_ERROR("failed to put attribute \"" << att_name << "\"")
-                }
-#if !defined(HDF5_THREAD_SAFE)
-                }
-#endif
-                )
-            // handle POD types
-            else TEMPLATE_DISPATCH(const teca_variant_array_impl,
-                att_values.get(),
-
-                int type = teca_netcdf_util::netcdf_tt<NT>::type_code;
-                const NT *pvals = static_cast<TT*>(att_values.get())->get();
-                unsigned long n_vals = att_values->size();
-
-#if !defined(HDF5_THREAD_SAFE)
-                {
-                std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
-#endif
-                if ((ierr = nc_put_att(this->handle.get(), var_id, att_name.c_str(), type,
-                    n_vals, pvals)) != NC_NOERR)
-                {
-                    TECA_ERROR("failed to put attribute \"" << att_name << "\" "
-                        << nc_strerror(ierr))
-                }
-#if !defined(HDF5_THREAD_SAFE)
-                }
-#endif
-                )
+            TECA_ERROR("Failed to write attributes for \"" << array_name << "\"")
         }
     }
 
