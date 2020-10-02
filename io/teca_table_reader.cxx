@@ -136,14 +136,24 @@ teca_table_reader::teca_table_reader_internals::read_table(MPI_Comm comm,
 
     if (file_format == teca_table_reader::format_bin)
     {
-        table->from_stream(stream);
+        if (table->from_stream(stream))
+        {
+            TECA_ERROR("Failed to deserialize binary stream from file \""
+                << file_name << "\"")
+            return nullptr;
+        }
     }
     else if (file_format == teca_table_reader::format_csv)
     {
         size_t n_bytes = stream.size();
         const char *p_data = (const char*)stream.get_data();
         std::istringstream cpp_stream(std::string(p_data, p_data + n_bytes));
-        table->from_stream(cpp_stream);
+        if (table->from_stream(cpp_stream))
+        {
+            TECA_ERROR("Failed to deserialize std::stream from file \""
+                << file_name << "\"")
+            return nullptr;
+        }
     }
     else
     {

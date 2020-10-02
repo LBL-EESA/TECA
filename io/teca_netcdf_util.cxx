@@ -543,4 +543,159 @@ int read_variable_attributes(netcdf_handle &fh, int var_id,
     return 0;
 }
 
+// --------------------------------------------------------------------------
+read_variable_and_attributes::data_t read_variable_and_attributes::operator()()
+{
+    p_teca_variant_array var;
+
+    // get a handle to the file. managed by the reader
+    // since it will reuse the handle when it needs to read
+    // mesh based data
+    std::string file_path = m_path + PATH_SEP + m_file;
+
+    teca_netcdf_util::netcdf_handle fh;
+    if (fh.open(file_path, NC_NOWRITE))
+    {
+        TECA_ERROR("Failed to open read variable \"" << m_variable
+            << "\" from \"" << m_file << "\"")
+        return this->package(m_id);
+    }
+
+    // query variable attributes
+    int ierr = 0;
+    teca_metadata atts;
+    if (teca_netcdf_util::read_variable_attributes(fh, m_variable, atts))
+    {
+        TECA_ERROR("Failed to read \"" << m_variable << "\" attributes")
+        return this->package(m_id);
+    }
+
+    // get the type and dimensions
+    int var_type = 0;
+    int var_id = 0;
+    p_teca_size_t_array dims;
+    if (atts.get("cf_type_code", var_type)
+        || atts.get("cf_id", var_id)
+        || !(dims = std::dynamic_pointer_cast<teca_size_t_array>(atts.get("cf_dims"))))
+    {
+        TECA_ERROR("Metadata issue can't read \"" << m_variable << "\"")
+        return this->package(m_id);
+    }
+
+    // get the size
+    size_t var_size = 1;
+    size_t start[NC_MAX_DIMS] = {0};
+    size_t count[NC_MAX_DIMS] = {0};
+    int n_dims = dims->size();
+    size_t *p_dims = dims->get();
+    for (int i = 0; i < n_dims; ++i)
+    {
+        var_size *= p_dims[i];
+        count[i] = p_dims[i];
+    }
+
+    // allocate a buffer and read the variable.
+    NC_DISPATCH(var_type,
+
+        p_teca_variant_array_impl<NC_T> var =
+            teca_variant_array_impl<NC_T>::New(var_size);
+
+#if !defined(HDF5_THREAD_SAFE)
+        {
+        std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+        if ((ierr = nc_get_vara(fh.get(), var_id, start, count , var->get())) != NC_NOERR)
+        {
+            TECA_ERROR("Failed to read variable \"" << m_variable  << "\" from \""
+                << m_file << "\". " << nc_strerror(ierr))
+            return this->package(m_id);
+        }
+#if !defined(HDF5_THREAD_SAFE)
+        }
+#endif
+
+        // success!
+        return this->package(m_id, var, atts);
+        )
+
+    // unsupported type
+    TECA_ERROR("Failed to read variable \"" << m_variable
+        << "\". Unsupported data type")
+
+    return this->package(m_id);
+}
+
+// --------------------------------------------------------------------------
+read_variable::data_t read_variable::operator()()
+{
+    p_teca_variant_array var;
+
+    // get a handle to the file. managed by the reader
+    // since it will reuse the handle when it needs to read
+    // mesh based data
+    std::string file_path = m_path + PATH_SEP + m_file;
+
+    teca_netcdf_util::netcdf_handle fh;
+    if (fh.open(file_path, NC_NOWRITE))
+    {
+        TECA_ERROR("Failed to open read variable \"" << m_variable
+            << "\" from \"" << m_file << "\"")
+        return this->package(m_id);
+    }
+
+    // query variable attributes
+    int file_id = fh.get();
+    int dim_id = 0;
+    int var_id = 0;
+    int var_ndims = 0;
+    size_t var_size = 0;
+    nc_type var_type = 0;
+
+    int ierr = 0;
+#if !defined(HDF5_THREAD_SAFE)
+    {
+    std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+    if (((ierr = nc_inq_varid(file_id, m_variable.c_str(), &var_id)) != NC_NOERR)
+        || ((ierr = nc_inq_varndims(file_id, var_id, &var_ndims)) != NC_NOERR)
+        || (var_ndims != 1)
+        || ((ierr = nc_inq_vardimid(file_id, var_id, &dim_id)) != NC_NOERR)
+        || ((ierr = nc_inq_dimlen(file_id, dim_id, &var_size)) != NC_NOERR)
+        || ((ierr = nc_inq_vartype(file_id, var_id, &var_type)) != NC_NOERR))
+    {
+        TECA_ERROR("Failed to read metadata for variable \"" << m_variable
+            << "\" from \"" << m_file << "\". " << nc_strerror(ierr))
+        return this->package(m_id);
+    }
+#if !defined(HDF5_THREAD_SAFE)
+    }
+#endif
+
+    // allocate a buffer and read the variable.
+    NC_DISPATCH(var_type,
+        size_t start = 0;
+        p_teca_variant_array_impl<NC_T> var = teca_variant_array_impl<NC_T>::New();
+        var->resize(var_size);
+#if !defined(HDF5_THREAD_SAFE)
+        {
+        std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+        if ((ierr = nc_get_vara(file_id, var_id, &start, &var_size, var->get())) != NC_NOERR)
+        {
+            TECA_ERROR("Failed to read variable \"" << m_variable  << "\" from \""
+                << m_file << "\". " << nc_strerror(ierr))
+            return this->package(m_id);
+        }
+#if !defined(HDF5_THREAD_SAFE)
+        }
+#endif
+        // success!
+        return this->package(m_id, var);
+        )
+
+    // unsupported type
+    TECA_ERROR("Failed to read variable \"" << m_variable
+        << "\" from \"" << m_file << "\". Unsupported data type")
+    return this->package(m_id);
+}
 }

@@ -45,6 +45,9 @@ public:
     // return a string identifier uniquely naming the dataset type
     virtual std::string get_class_name() const = 0;
 
+    // return an integer identifier uniquely naming the dataset type
+    virtual int get_type_code() const = 0;
+
     // copy data and metadata. shallow copy uses reference
     // counting, while copy duplicates the data.
     virtual void copy(const const_p_teca_dataset &other);
@@ -63,12 +66,12 @@ public:
 
     // serialize the dataset to/from the given stream
     // for I/O or communication
-    virtual void to_stream(teca_binary_stream &) const;
-    virtual void from_stream(teca_binary_stream &);
+    virtual int to_stream(teca_binary_stream &) const;
+    virtual int from_stream(teca_binary_stream &);
 
     // stream to/from human readable representation
-    virtual void to_stream(std::ostream &) const;
-    virtual void from_stream(std::istream &);
+    virtual int to_stream(std::ostream &) const;
+    virtual int from_stream(std::istream &);
 
 protected:
     teca_dataset();

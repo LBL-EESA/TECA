@@ -7,6 +7,7 @@
 #include "teca_table_reader.h"
 #include "teca_table_writer.h"
 #include "teca_system_interface.h"
+#include "teca_system_util.h"
 
 #include <vector>
 #include <string>
@@ -58,7 +59,9 @@ int main(int argc, char **argv)
     cal->set_input_connection(tracks->get_output_port());
 
     // regression test
-    if (have_baseline)
+    bool do_test = true;
+    teca_system_util::get_environment_variable("TECA_DO_TEST", do_test);
+    if (do_test && have_baseline)
     {
         // run the test
         p_teca_table_reader base = teca_table_reader::New();

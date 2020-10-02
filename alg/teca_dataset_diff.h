@@ -4,9 +4,12 @@
 #include "teca_shared_object.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
-#include "teca_table_fwd.h"
-#include "teca_cartesian_mesh_fwd.h"
-#include "teca_array_collection_fwd.h"
+#include "teca_table.h"
+#include "teca_mesh.h"
+#include "teca_cartesian_mesh.h"
+#include "teca_curvilinear_mesh.h"
+#include "teca_arakawa_c_grid.h"
+#include "teca_array_collection.h"
 
 #include <vector>
 #include <string>
@@ -53,9 +56,21 @@ protected:
     // Comparison methods.
     int compare_tables(const_p_teca_table table1, const_p_teca_table table2);
 
+    int compare_meshes(
+        const_p_teca_mesh reference_mesh,
+        const_p_teca_mesh data_mesh);
+
     int compare_cartesian_meshes(
         const_p_teca_cartesian_mesh reference_mesh,
         const_p_teca_cartesian_mesh data_mesh);
+
+    int compare_curvilinear_meshes(
+        const_p_teca_curvilinear_mesh reference_mesh,
+        const_p_teca_curvilinear_mesh data_mesh);
+
+    int compare_arakawa_c_grids(
+        const_p_teca_arakawa_c_grid reference_mesh,
+        const_p_teca_arakawa_c_grid data_mesh);
 
     int compare_array_collections(
         const_p_teca_array_collection reference_arrays,

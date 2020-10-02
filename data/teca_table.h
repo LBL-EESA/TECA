@@ -27,10 +27,6 @@ public:
     TECA_DATASET_METADATA(calendar, std::string, 1)
     TECA_DATASET_METADATA(time_units, std::string, 1)
 
-    // return a unique string identifier
-    std::string get_class_name() const override
-    { return "teca_table"; }
-
     // remove all column definitions and data
     void clear();
 
@@ -98,6 +94,13 @@ public:
     template<typename cT, typename... oT>
     void append(cT &&val, oT &&... args);
 
+    // return a unique string identifier
+    std::string get_class_name() const override
+    { return "teca_table"; }
+
+    // return an integer identifier uniquely naming the dataset type
+    int get_type_code() const override;
+
     // covert to bool. true if the dataset is not empty.
     // otherwise false.
     explicit operator bool() const noexcept
@@ -108,12 +111,12 @@ public:
 
     // serialize the dataset to/from the given stream
     // for I/O or communication
-    void to_stream(teca_binary_stream &) const override;
-    void from_stream(teca_binary_stream &) override;
+    int to_stream(teca_binary_stream &) const override;
+    int from_stream(teca_binary_stream &) override;
 
     // stream to/from human readable representation
-    void to_stream(std::ostream &) const override;
-    void from_stream(std::istream &) override;
+    int to_stream(std::ostream &) const override;
+    int from_stream(std::istream &) override;
 
     // copy data and metadata. shallow copy uses reference
     // counting, while copy duplicates the data.

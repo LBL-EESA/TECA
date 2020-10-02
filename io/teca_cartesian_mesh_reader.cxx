@@ -3,6 +3,7 @@
 #include "teca_binary_stream.h"
 #include "teca_coordinate_util.h"
 #include "teca_file_util.h"
+#include "teca_dataset_util.h"
 
 #include <algorithm>
 #include <cstring>
@@ -24,10 +25,10 @@ struct teca_cartesian_mesh_reader::teca_cartesian_mesh_reader_internals
 
     void clear();
 
-    static p_teca_cartesian_mesh read_cartesian_mesh(
+    static p_teca_mesh read_cartesian_mesh(
         const std::string &file_name);
 
-    p_teca_cartesian_mesh mesh;
+    p_teca_mesh mesh;
 };
 
 // --------------------------------------------------------------------------
@@ -37,24 +38,42 @@ void teca_cartesian_mesh_reader::teca_cartesian_mesh_reader_internals::clear()
 }
 
 // --------------------------------------------------------------------------
-p_teca_cartesian_mesh
+p_teca_mesh
 teca_cartesian_mesh_reader::teca_cartesian_mesh_reader_internals::read_cartesian_mesh(
     const std::string &file_name)
 {
     // read the binary representation
+    std::string header;
     teca_binary_stream stream;
     if (teca_file_util::read_stream(file_name.c_str(),
-        "teca_cartesian_mesh", stream))
+        "teca_cartesian_mesh_writer_v2", stream))
     {
         TECA_ERROR("Failed to read teca_cartesian_mesh from \""
             << file_name << "\"")
         return nullptr;
+    }
 
+    // construct the mesh
+    int type_code = 0;
+    stream.unpack(type_code);
+
+    p_teca_mesh mesh = std::dynamic_pointer_cast<teca_mesh>
+        (teca_dataset_factory::New(type_code));
+
+    if (!mesh)
+    {
+        TECA_ERROR("Failed to construct an appropriate mesh type")
+        return nullptr;
     }
 
     // deserialize the binary rep
-    p_teca_cartesian_mesh mesh = teca_cartesian_mesh::New();
-    mesh->from_stream(stream);
+    if (mesh->from_stream(stream))
+    {
+        TECA_ERROR("Failed to deserialize the \""
+            << mesh->get_class_name() << "\"")
+        return nullptr;
+    }
+
     return mesh;
 }
 

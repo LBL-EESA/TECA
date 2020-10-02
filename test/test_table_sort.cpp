@@ -6,6 +6,7 @@
 #include "teca_dataset_diff.h"
 #include "teca_file_util.h"
 #include "teca_system_interface.h"
+#include "teca_system_util.h"
 
 #include <vector>
 #include <string>
@@ -36,7 +37,9 @@ int main(int argc, char **argv)
     sort->set_input_connection(input_reader->get_output_port());
     sort->set_index_column("step");
 
-    if (teca_file_util::file_exists(baseline_table.c_str()))
+    bool do_test = true;
+    teca_system_util::get_environment_variable("TECA_DO_TEST", do_test);
+    if (do_test && teca_file_util::file_exists(baseline_table.c_str()))
     {
         // run the test
         p_teca_table_reader baseline_table_reader = teca_table_reader::New();

@@ -74,6 +74,14 @@ public:
     const std::string &get_name(unsigned int i) const
     { return m_names[i]; }
 
+    // return a unique string identifier
+    std::string get_class_name() const
+    { return "teca_table_collection"; }
+
+    // return an integer identifier uniquely naming the dataset type
+    int get_type_code() const
+    { return -1; }
+
     // copy
     void copy(const const_p_teca_table_collection &other);
     void shallow_copy(const p_teca_table_collection &other);
@@ -83,12 +91,12 @@ public:
 
     // serialize the data to/from the given stream
     // for I/O or communication
-    void to_stream(teca_binary_stream &s) const;
-    void from_stream(teca_binary_stream &s);
+    int to_stream(teca_binary_stream &s) const;
+    int from_stream(teca_binary_stream &s);
 
     // stream to/from human readable representation
-    void to_stream(std::ostream &) const;
-    void from_stream(std::istream &) {}
+    int to_stream(std::ostream &) const;
+    int from_stream(std::istream &) { return -1; }
 
 protected:
     teca_table_collection() = default;

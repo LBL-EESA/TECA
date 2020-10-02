@@ -26,6 +26,9 @@ public:
     std::string get_class_name() const override
     { return "teca_uniform_cartesian_mesh"; }
 
+    // return a unique integer identifier
+    int get_type_code() const override;
+
     // copy data and metadata. shallow copy uses reference
     // counting, while copy duplicates the data.
     void copy(const const_p_teca_dataset &) override;

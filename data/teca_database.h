@@ -23,11 +23,6 @@ public:
 
     ~teca_database();
 
-    // return a unique string identifier
-    std::string get_class_name() const override
-    { return "teca_database"; }
-
-
     // append table
     int append_table(p_teca_table table)
     { return this->tables->append(table); }
@@ -81,6 +76,13 @@ public:
     int remove_table(const std::string &name)
     { return this->tables->remove(name); }
 
+    // return a unique string identifier
+    std::string get_class_name() const override
+    { return "teca_database"; }
+
+    // return an integer identifier uniquely naming the dataset type
+    int get_type_code() const override;
+
     // return true if the dataset is empty.
     bool empty() const noexcept override;
 
@@ -97,12 +99,12 @@ public:
 
     // serialize the dataset to/from the given stream
     // for I/O or communication
-    void to_stream(teca_binary_stream &) const override;
-    void from_stream(teca_binary_stream &) override;
+    int to_stream(teca_binary_stream &) const override;
+    int from_stream(teca_binary_stream &) override;
 
     // stream to/from human readable representation
-    void to_stream(std::ostream &) const override;
-    void from_stream(std::istream &) override {}
+    int to_stream(std::ostream &) const override;
+    int from_stream(std::istream &) override { return -1; }
 
 protected:
     teca_database();

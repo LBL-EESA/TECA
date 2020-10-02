@@ -11,6 +11,7 @@
 #include "teca_cartesian_mesh.h"
 #include "teca_variant_array.h"
 #include "teca_file_util.h"
+#include "teca_system_util.h"
 
 #define _USE_MATH_DEFINES
 #include <cmath>
@@ -123,7 +124,9 @@ int main(int argc, char **argv)
     p_teca_index_executive exec = teca_index_executive::New();
     exec->set_bounds(req_bounds);
 
-    if (teca_file_util::file_exists(out_file.c_str()))
+    bool do_test = true;
+    teca_system_util::get_environment_variable("TECA_DO_TEST", do_test);
+    if (do_test && teca_file_util::file_exists(out_file.c_str()))
     {
         // run the test
         p_teca_cartesian_mesh_reader baseline_reader = teca_cartesian_mesh_reader::New();

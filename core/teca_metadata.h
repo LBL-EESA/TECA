@@ -170,12 +170,12 @@ public:
     { return !empty(); }
 
     // serialize to/from binary
-    void to_stream(teca_binary_stream &s) const;
-    void from_stream(teca_binary_stream &s);
+    int to_stream(teca_binary_stream &s) const;
+    int from_stream(teca_binary_stream &s);
 
     // serialize to/from ascii
-    void to_stream(std::ostream &os) const;
-    void from_stream(std::ostream &) {}
+    int to_stream(std::ostream &os) const;
+    int from_stream(std::ostream &) { return -1; }
 
 private:
     unsigned long long get_next_id() const noexcept;
@@ -480,4 +480,7 @@ int teca_metadata::get(const std::string &name,
 
 // convenience defs for nesting metadata
 using teca_metadata_array = teca_variant_array_impl<teca_metadata>;
+using p_teca_metadata_array = std::shared_ptr<teca_variant_array_impl<teca_metadata>>;
+using const_p_teca_metadata_array = std::shared_ptr<const teca_variant_array_impl<teca_metadata>>;
+
 #endif

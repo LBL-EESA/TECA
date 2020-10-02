@@ -99,23 +99,47 @@ void teca_dataset::set_metadata(const teca_metadata &md)
 }
 
 // --------------------------------------------------------------------------
-void teca_dataset::to_stream(teca_binary_stream &bs) const
+int teca_dataset::to_stream(teca_binary_stream &bs) const
 {
-    this->metadata->to_stream(bs);
+    std::string class_name = this->get_class_name();
+    bs.pack(class_name.c_str(), class_name.size());
+
+    if (this->metadata->to_stream(bs))
+        return -1;
+
+    return 0;
 }
 
 // --------------------------------------------------------------------------
-void teca_dataset::from_stream(teca_binary_stream &bs)
+int teca_dataset::from_stream(teca_binary_stream &bs)
 {
-    this->metadata->from_stream(bs);
+    std::string class_name = this->get_class_name();
+
+    if (bs.expect(class_name.c_str(), class_name.size()))
+    {
+        TECA_ERROR("invalid stream")
+        return -1;
+    }
+
+    if (this->metadata->from_stream(bs))
+    {
+        TECA_ERROR("Failed to deserialize metadata")
+        return -1;
+    }
+
+    return 0;
 }
 
 // --------------------------------------------------------------------------
-void teca_dataset::to_stream(std::ostream &os) const
+int teca_dataset::to_stream(std::ostream &os) const
 {
-    this->metadata->to_stream(os);
+    if (this->metadata->to_stream(os))
+        return -1;
+    return 0;
 }
 
 // --------------------------------------------------------------------------
-void teca_dataset::from_stream(std::istream &)
-{}
+int teca_dataset::from_stream(std::istream &)
+{
+    return -1;
+}

@@ -4,6 +4,7 @@
 #include "teca_config.h"
 #include "teca_mpi.h"
 #include "teca_metadata.h"
+#include "teca_thread_pool.h"
 
 #include <mutex>
 #include <string>
@@ -207,6 +208,94 @@ int read_variable_attributes(netcdf_handle &fh, int var_id,
 
 int read_variable_attributes(netcdf_handle &fh,
     const std::string &name, teca_metadata &atts);
+
+
+// functional that reads and returns a variable from the
+// named file. we're doing this so we can do thread
+// parallel I/O to hide some of the cost of opening files
+// on Lustre and to hide the cost of reading time coordinate
+// which is typically very expensive as NetCDF stores
+// unlimted dimensions non-contiguously
+//
+// note: Thu 09 Apr 2020 05:45:29 AM PDT
+// Threading these operations worked well in NetCDF 3, however
+// in NetCDF 4 backed by HDF5 necessary locking eliminates any
+// speed up.
+class read_variable_and_attributes
+{
+public:
+    // data and task types
+    using data_elem_t = std::pair<p_teca_variant_array, teca_metadata>;
+    using data_t = std::pair<unsigned long, data_elem_t>;
+    using task_t = std::packaged_task<data_t()>;
+    using queue_t = teca_thread_pool<task_t, data_t>;
+    using p_queue_t = std::shared_ptr<queue_t>;
+
+    read_variable_and_attributes(const std::string &path, const std::string &file,
+        unsigned long id, const std::string &variable) : m_path(path),
+        m_file(file), m_variable(variable), m_id(id)
+    {}
+
+    static
+    data_t package(unsigned long id,
+        p_teca_variant_array var = nullptr,
+        const teca_metadata &md = teca_metadata())
+    {
+        return std::make_pair(id, std::make_pair(var, md));
+    }
+
+    data_t operator()();
+
+private:
+    std::string m_path;
+    std::string m_file;
+    std::string m_variable;
+    unsigned long m_id;
+};
+
+// function that reads and returns a variable from the
+// named file. we're doing this so we can do thread
+// parallel I/O to hide some of the cost of opening files
+// on Lustre and to hide the cost of reading time coordinate
+// which is typically very expensive as NetCDF stores
+// unlimted dimensions non-contiguously
+//
+// note: Thu 09 Apr 2020 05:45:29 AM PDT
+// Threading these operations worked well in NetCDF 3, however
+// in NetCDF 4 backed by HDF5 necessary locking eliminates any
+// speed up.
+class read_variable
+{
+public:
+    // data and task types
+    using data_t = std::pair<unsigned long, p_teca_variant_array>;
+    using task_t = std::packaged_task<data_t()>;
+    using queue_t = teca_thread_pool<task_t, data_t>;
+    using p_queue_t = std::shared_ptr<queue_t>;
+
+
+    read_variable(const std::string &path, const std::string &file,
+        unsigned long id, const std::string &variable) : m_path(path),
+        m_file(file), m_variable(variable), m_id(id)
+    {}
+
+    static
+    data_t package(unsigned long id,
+        p_teca_variant_array var = nullptr)
+    {
+        return std::make_pair(id, var);
+    }
+
+    data_t operator()();
+
+private:
+    std::string m_path;
+    std::string m_file;
+    std::string m_variable;
+    unsigned long m_id;
+};
+
+
 }
 
 #endif

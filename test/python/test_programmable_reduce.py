@@ -122,7 +122,8 @@ sort.set_index_column('time')
 cal = teca_table_calendar.New()
 cal.set_input_connection(sort.get_output_port())
 
-if os.path.exists(out_file):
+do_test = system_util.get_environment_variable_bool('TECA_DO_TEST', True)
+if do_test and os.path.exists(out_file):
   tr = teca_table_reader.New()
   tr.set_file_name(out_file)
 

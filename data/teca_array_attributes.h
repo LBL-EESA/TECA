@@ -62,14 +62,39 @@ struct teca_array_attributes
     void to_stream(std::ostream &os);
 
     // possible centrings
+    //
+    // for coordinate system with orthogonal axes x,y,z
+    // relative to cell centering:
+    //
+    //   If A is one of x,y or z then A_face_centering data is located on the
+    //   low A face i.e. shifted in the -A direction and arrays will be longer
+    //   by 1 value in the A direction.
+    //
+    //   If A is one of x,y or z then  A_edge_centering data is located on the
+    //   low side edge parallel to A corrdinate axis. i.e. shifted in the -B
+    //   and -C directions and arrays will be longer by 1 value in the B and C
+    //   directions.
+    //
+    //   point_centering data is located on the low corner. i.e. shifted
+    //   in the -A,-B, and -C directions and arrays will be longer
+    //   by 1 value in the A, B and C directions.
+    //
+    // arrays that are not associated with geometric locations should
+    // be identified as no_centering.
+    //
+    // the default centering is cell centering.
     enum
     {
-        invalid_value = 0,
-        no_centering = 1,
-        point_centering = 2,
-        cell_centering = 3,
-        edge_centering = 4,
-        face_centering = 5
+        invalid_value    = 0,
+        cell_centering   = 0x0100,
+        x_face_centering = 0x0201,
+        y_face_centering = 0x0202,
+        z_face_centering = 0x0203,
+        x_edge_centering = 0x0401,
+        y_edge_centering = 0x0402,
+        z_edge_centering = 0x0403,
+        point_centering  = 0x0800,
+        no_centering     = 0x1000,
     };
 
     unsigned int type_code;

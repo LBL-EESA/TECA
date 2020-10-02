@@ -84,6 +84,24 @@ teca_add_test(test_cf_reader_file_time
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
+teca_add_test(test_wrf_reader_3d
+    EXEC_NAME test_wrf_reader
+    SOURCES test_wrf_reader.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_wrf_reader
+    -i "${TECA_DATA_ROOT}/wrfout_d01_2020-03-01_crop_00_00_00"
+    -o "test_wrf_reader_3d_%t%.vtk" QVAPOR P_HYD U V W T P
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_wrf_reader_2d
+    COMMAND test_wrf_reader
+    -i "${TECA_DATA_ROOT}/wrfout_d01_2020-03-01_crop_00_00_00"
+    -e 0,373,0,678,0,0 -o "test_wrf_reader_2d_%t%.vtk"
+    XLAND PSFC QVAPOR P_HYD U V W T P
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
 teca_add_test(test_cf_writer_cam5_serial
     EXEC_NAME test_cf_writer
     SOURCES test_cf_writer.cpp

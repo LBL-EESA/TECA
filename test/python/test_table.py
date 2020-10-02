@@ -46,7 +46,8 @@ except:
 source = teca_dataset_source.New()
 source.set_dataset(tab)
 
-if os.path.exists(baseline):
+do_test = system_util.get_environment_variable_bool('TECA_DO_TEST', True)
+if do_test and os.path.exists(baseline):
     # run the test
     table_reader = teca_table_reader.New()
     table_reader.set_file_name(baseline)

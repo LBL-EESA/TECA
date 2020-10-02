@@ -81,23 +81,31 @@ void array::swap(p_teca_dataset &other)
 }
 
 // --------------------------------------------------------------------------
-void array::to_stream(teca_binary_stream &s) const
+int array::to_stream(teca_binary_stream &s) const
 {
+    s.pack("array", 5);
     s.pack(this->name);
     s.pack(this->extent);
     s.pack(this->data);
+    return 0;
 }
 
 // --------------------------------------------------------------------------
-void array::from_stream(teca_binary_stream &s)
+int array::from_stream(teca_binary_stream &s)
 {
+    if (s.expect("array"))
+    {
+        TECA_ERROR("invalid stream")
+        return -1;
+    }
     s.unpack(this->name);
     s.unpack(this->extent);
     s.unpack(this->data);
+    return 0;
 }
 
 // --------------------------------------------------------------------------
-void array::to_stream(std::ostream &ostr) const
+int array::to_stream(std::ostream &ostr) const
 {
     ostr << "name=" << this->name
         << " extent="
@@ -111,4 +119,5 @@ void array::to_stream(std::ostream &ostr) const
         for (size_t i = 1; i < n_elem; ++i)
             ostr << ", " << this->data[i];
     }
+    return 0;
 }

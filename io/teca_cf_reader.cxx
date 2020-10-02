@@ -5,6 +5,7 @@
 #include "teca_thread_pool.h"
 #include "teca_coordinate_util.h"
 #include "teca_netcdf_util.h"
+#include "teca_system_util.h"
 #include "calcalcs.h"
 
 #include <netcdf.h>
@@ -34,19 +35,6 @@ using std::cerr;
 #if defined(TECA_HAS_OPENSSL)
 #include <openssl/sha.h>
 #endif
-
-// data and task types
-using read_variable_data_elem_t
-    = std::pair<p_teca_variant_array, teca_metadata>;
-
-using read_variable_data_t = std::pair<unsigned long, read_variable_data_elem_t>;
-
-using read_variable_task_t = std::packaged_task<read_variable_data_t()>;
-
-using read_variable_queue_t =
-    teca_thread_pool<read_variable_task_t, read_variable_data_t>;
-
-using p_read_variable_queue_t = std::shared_ptr<read_variable_queue_t>;
 
 // internals for the cf reader
 class teca_cf_reader_internals
@@ -104,121 +92,6 @@ std::string teca_cf_reader_internals::create_metadata_cache_key(
 }
 #endif
 
-// function that reads and returns a variable from the
-// named file. we're doing this so we can do thread
-// parallel I/O to hide some of the cost of opening files
-// on Lustre and to hide the cost of reading time coordinate
-// which is typically very expensive as NetCDF stores
-// unlimted dimensions non-contiguously
-//
-// note: Thu 09 Apr 2020 05:45:29 AM PDT
-// Threading these operations worked well in NetCDF 3, however
-// in NetCDF 4 backed by HDF5 necessary locking eliminates any
-// speed up.
-class read_variable
-{
-public:
-    read_variable(const std::string &path, const std::string &file,
-        unsigned long id, const std::string &variable) : m_path(path),
-        m_file(file), m_variable(variable), m_id(id)
-    {}
-
-    static
-    read_variable_data_t make_read_variable_data(unsigned long id,
-        p_teca_variant_array var = nullptr,
-        const teca_metadata &md = teca_metadata())
-    {
-        return std::make_pair(id, std::make_pair(var, md));
-    }
-
-    read_variable_data_t operator()()
-    {
-        p_teca_variant_array var;
-
-        // get a handle to the file. managed by the reader
-        // since it will reuse the handle when it needs to read
-        // mesh based data
-        std::string file_path = m_path + PATH_SEP + m_file;
-
-        teca_netcdf_util::netcdf_handle fh;
-        if (fh.open(file_path, NC_NOWRITE))
-        {
-            TECA_ERROR("Failed to open read variable \"" << m_variable
-                << "\" from \"" << m_file << "\"")
-            return make_read_variable_data(m_id);
-        }
-
-        // query variable attributes
-        int ierr = 0;
-        teca_metadata atts;
-        if (teca_netcdf_util::read_variable_attributes(fh, m_variable, atts))
-        {
-            TECA_ERROR("Failed to read \"" << m_variable << "\" attributes")
-            return make_read_variable_data(m_id);
-        }
-
-        // get the type and dimensions
-        int var_type = 0;
-        int var_id = 0;
-        p_teca_size_t_array dims;
-        if (atts.get("cf_type_code", var_type)
-            || atts.get("cf_id", var_id)
-            || !(dims = std::dynamic_pointer_cast<teca_size_t_array>(atts.get("cf_dims"))))
-        {
-            TECA_ERROR("Metadata issue can't read \"" << m_variable << "\"")
-            return make_read_variable_data(m_id);
-        }
-
-        // get the size
-        size_t var_size = 1;
-        size_t start[NC_MAX_DIMS] = {0};
-        size_t count[NC_MAX_DIMS] = {0};
-        int n_dims = dims->size();
-        size_t *p_dims = dims->get();
-        for (int i = 0; i < n_dims; ++i)
-        {
-            var_size *= p_dims[i];
-            count[i] = p_dims[i];
-        }
-
-        // allocate a buffer and read the variable.
-        NC_DISPATCH(var_type,
-
-            p_teca_variant_array_impl<NC_T> var =
-                teca_variant_array_impl<NC_T>::New(var_size);
-
-#if !defined(HDF5_THREAD_SAFE)
-            {
-            std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
-#endif
-            if ((ierr = nc_get_vara(fh.get(), var_id, start, count , var->get())) != NC_NOERR)
-            {
-                TECA_ERROR("Failed to read variable \"" << m_variable  << "\" from \""
-                    << m_file << "\". " << nc_strerror(ierr))
-                return make_read_variable_data(m_id);
-            }
-#if !defined(HDF5_THREAD_SAFE)
-            }
-#endif
-            // success!
-            return make_read_variable_data(m_id, var, atts);
-            )
-
-        // unsupported type
-        TECA_ERROR("Failed to read variable \"" << m_variable
-            << "\". Unsupported data type")
-
-        return make_read_variable_data(m_id);
-    }
-
-private:
-    std::string m_path;
-    std::string m_file;
-    std::string m_variable;
-    unsigned long m_id;
-};
-
-
 
 // --------------------------------------------------------------------------
 teca_cf_reader::teca_cf_reader() :
@@ -237,15 +110,13 @@ teca_cf_reader::teca_cf_reader() :
     cache_metadata(1),
     internals(new teca_cf_reader_internals)
 {
-    const char *val = getenv("TECA_CF_READER_CACHE_METADATA");
-    if (val)
+    bool tmp = true;
+    if (teca_system_util::get_environment_variable(
+        "TECA_CF_READER_CACHE_METADATA", tmp) == 0)
     {
-        int tmp = strtol(val, nullptr, 0);
-        if (errno != EINVAL)
-        {
-            cache_metadata = tmp;
-            TECA_STATUS("metadata cache " << (tmp ? "enabled" : "disabled"))
-        }
+        cache_metadata = tmp;
+        TECA_STATUS("TECA_CF_READER_CACHE_METADATA = " << (tmp ? "TRUE" : "FALSE")
+            << " metadata cache " << (tmp ? "enabled" : "disabled"))
     }
 }
 
@@ -663,8 +534,10 @@ teca_metadata teca_cf_reader::get_output_metadata(
             // when procesing large numbers of files these issues kill
             // serial performance. hence we are reading time dimension
             // in parallel.
-            read_variable_queue_t thread_pool(MPI_COMM_SELF,
-                this->thread_pool_size, true, false);
+            using teca_netcdf_util::read_variable_and_attributes;
+
+            read_variable_and_attributes::queue_t
+                thread_pool(MPI_COMM_SELF, this->thread_pool_size, true, false);
 
             // we rely t_axis_variable being empty to indicate either that
             // there is no time axis, or that a time axis will be defined by
@@ -750,19 +623,22 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 size_t n_files = files.size();
                 for (size_t i = 0; i < n_files; ++i)
                 {
-                    read_variable reader(path, files[i], i, t_axis_variable);
-                    read_variable_task_t task(reader);
+                    read_variable_and_attributes
+                         reader(path, files[i], i, t_axis_variable);
+
+                    read_variable_and_attributes::task_t task(reader);
+
                     thread_pool.push_task(task);
                 }
 
                 // wait for the results
-                std::vector<read_variable_data_t> tmp;
+                std::vector<read_variable_and_attributes::data_t> tmp;
                 tmp.reserve(n_files);
                 thread_pool.wait_all(tmp);
 
                 // unpack the results. map is used to ensure the correct
                 // file to time association.
-                std::map<unsigned long, read_variable_data_elem_t>
+                std::map<unsigned long, read_variable_and_attributes::data_elem_t>
                     time_arrays(tmp.begin(), tmp.end());
 
                 p_teca_variant_array t0 = time_arrays[0].first;
@@ -781,7 +657,8 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     p_teca_variant_array tmp = elem_i.first;
                     if (!tmp || !tmp->size())
                     {
-                        TECA_ERROR("File " << i << " had no time values")
+                        TECA_ERROR("File " << i << " \"" << files[i]
+                            << "\" had no time values")
                         return teca_metadata();
                     }
 
@@ -792,8 +669,8 @@ teca_metadata teca_cf_reader::get_output_metadata(
                         || (has_calendar && (calendar_i != base_calendar)))
                     {
                         TECA_ERROR("The base calendar is \"" << base_calendar
-                            << "\" but file " << i << " has the \"" << calendar_i
-                            <<  "\" calendar")
+                            << "\" but file " << i << " \"" << files[i]
+                            << "\" has the \"" << calendar_i <<  "\" calendar")
                         return teca_metadata();
                     }
 

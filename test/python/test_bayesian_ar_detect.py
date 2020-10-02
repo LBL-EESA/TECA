@@ -81,7 +81,8 @@ sort = teca_table_sort.New()
 sort.set_input_connection(map_reduce.get_output_port())
 sort.set_index_column('global_component_ids')
 
-if os.path.exists(baseline_table):
+do_test = system_util.get_environment_variable_bool('TECA_DO_TEST', True)
+if do_test and os.path.exists(baseline_table):
     # run the test
     baseline_table_reader = teca_table_reader.New()
     baseline_table_reader.set_file_name(baseline_table)

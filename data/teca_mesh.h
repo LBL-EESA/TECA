@@ -6,7 +6,13 @@
 #include "teca_metadata.h"
 #include "teca_array_collection.h"
 
-/// class for geometric data
+/// a base class for geometric data
+/**
+The nesh declares containers for typical geometricly associated data
+such as point, cell, face and edge centered data arrays and defines
+the API's for accessing them. API's for accessing common metadata such
+as time related metadata are declared here.
+*/
 class teca_mesh : public teca_dataset
 {
 public:
@@ -21,36 +27,64 @@ public:
     // set/get array attribute metadata
     TECA_DATASET_METADATA(array_attributes, teca_metadata, 1)
 
+    // get the array collection for the given centering
+    p_teca_array_collection &get_arrays(int centering);
+    const_p_teca_array_collection get_arrays(int centering) const;
+
     // get point centered data
-    p_teca_array_collection get_point_arrays()
+    p_teca_array_collection &get_point_arrays()
     { return m_impl->point_arrays; }
 
     const_p_teca_array_collection get_point_arrays() const
     { return m_impl->point_arrays; }
 
     // get cell centered data
-    p_teca_array_collection get_cell_arrays()
+    p_teca_array_collection &get_cell_arrays()
     { return m_impl->cell_arrays; }
 
     const_p_teca_array_collection get_cell_arrays() const
     { return m_impl->cell_arrays; }
 
     // get edge centered data
-    p_teca_array_collection get_edge_arrays()
-    { return m_impl->edge_arrays; }
+    p_teca_array_collection &get_x_edge_arrays()
+    { return m_impl->x_edge_arrays; }
 
-    const_p_teca_array_collection get_edge_arrays() const
-    { return m_impl->edge_arrays; }
+    const_p_teca_array_collection get_x_edge_arrays() const
+    { return m_impl->x_edge_arrays; }
+
+    p_teca_array_collection &get_y_edge_arrays()
+    { return m_impl->y_edge_arrays; }
+
+    const_p_teca_array_collection get_y_edge_arrays() const
+    { return m_impl->y_edge_arrays; }
+
+    p_teca_array_collection &get_z_edge_arrays()
+    { return m_impl->z_edge_arrays; }
+
+    const_p_teca_array_collection get_z_edge_arrays() const
+    { return m_impl->z_edge_arrays; }
 
     // get face centered data
-    p_teca_array_collection get_face_arrays()
-    { return m_impl->face_arrays; }
+    p_teca_array_collection &get_x_face_arrays()
+    { return m_impl->x_face_arrays; }
 
-    const_p_teca_array_collection get_face_arrays() const
-    { return m_impl->face_arrays; }
+    const_p_teca_array_collection get_x_face_arrays() const
+    { return m_impl->x_face_arrays; }
+
+    p_teca_array_collection &get_y_face_arrays()
+    { return m_impl->y_face_arrays; }
+
+    const_p_teca_array_collection get_y_face_arrays() const
+    { return m_impl->y_face_arrays; }
+
+    p_teca_array_collection &get_z_face_arrays()
+    { return m_impl->z_face_arrays; }
+
+    const_p_teca_array_collection get_z_face_arrays() const
+    { return m_impl->z_face_arrays; }
 
     // get non-geometric data
-    p_teca_array_collection get_information_arrays()
+    p_teca_array_collection &get_information_arrays()
     { return m_impl->info_arrays; }
 
     const_p_teca_array_collection get_information_arrays() const
@@ -69,12 +103,12 @@ public:
 
     // serialize the dataset to/from the given stream
     // for I/O or communication
-    void to_stream(teca_binary_stream &) const override;
-    void from_stream(teca_binary_stream &) override;
+    int to_stream(teca_binary_stream &) const override;
+    int from_stream(teca_binary_stream &) override;
 
     // stream to/from human readable representation
-    void to_stream(std::ostream &) const override;
-    void from_stream(std::istream &) override {}
+    int to_stream(std::ostream &) const override;
+    int from_stream(std::istream &) override { return -1; }
 
 protected:
     teca_mesh();
@@ -84,11 +118,16 @@ public:
     {
         impl_t();
         //
-        p_teca_array_collection point_arrays;
         p_teca_array_collection cell_arrays;
-        p_teca_array_collection edge_arrays;
-        p_teca_array_collection face_arrays;
+        p_teca_array_collection x_edge_arrays;
+        p_teca_array_collection y_edge_arrays;
+        p_teca_array_collection z_edge_arrays;
+        p_teca_array_collection x_face_arrays;
+        p_teca_array_collection y_face_arrays;
+        p_teca_array_collection z_face_arrays;
+        p_teca_array_collection point_arrays;
         p_teca_array_collection info_arrays;
+        p_teca_array_collection invalid;
     };
     std::shared_ptr<impl_t> m_impl;
 };

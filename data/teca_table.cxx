@@ -1,7 +1,7 @@
 #include "teca_table.h"
 
 #include "teca_binary_stream.h"
-#include "teca_mesh.h"
+#include "teca_dataset_util.h"
 
 namespace teca_table_internals
 {
@@ -243,22 +243,34 @@ void teca_table::reserve(unsigned long n)
 }
 
 // --------------------------------------------------------------------------
-void teca_table::to_stream(teca_binary_stream &s) const
+int teca_table::get_type_code() const
 {
-    this->teca_dataset::to_stream(s);
-    m_impl->columns->to_stream(s);
+    return teca_dataset_tt<teca_table>::type_code;
 }
 
 // --------------------------------------------------------------------------
-void teca_table::from_stream(teca_binary_stream &s)
+int teca_table::to_stream(teca_binary_stream &s) const
+{
+    if (this->teca_dataset::to_stream(s)
+        || m_impl->columns->to_stream(s))
+        return -1;
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+int teca_table::from_stream(teca_binary_stream &s)
 {
     this->clear();
-    this->teca_dataset::from_stream(s);
-    m_impl->columns->from_stream(s);
+
+    if (this->teca_dataset::from_stream(s)
+        || m_impl->columns->from_stream(s))
+        return -1;
+
+    return 0;
 }
 
 // --------------------------------------------------------------------------
-void teca_table::to_stream(std::ostream &s) const
+int teca_table::to_stream(std::ostream &s) const
 {
     // because this is used for general purpose I/O
     // we don't let the base class insert anything.
@@ -294,6 +306,14 @@ void teca_table::to_stream(std::ostream &s) const
         col = m_impl->columns->get(0);
         col_name = m_impl->columns->get_name(0);
         col_type = col->type_code();
+
+        if (col_name.find_first_of("()") != std::string::npos)
+        {
+            TECA_WARNING("Writing incompatible table to stream. This data "
+                "will not be readable by TECA because parentheses were "
+                "used in the column 0 name \"" << col_name << "\"")
+        }
+
         s << "\"" << col_name << "(" << col_type << ")\"";
 
         for (unsigned int i = 1; i < n_cols; ++i)
@@ -301,6 +321,14 @@ void teca_table::to_stream(std::ostream &s) const
             col = m_impl->columns->get(i);
             col_name = m_impl->columns->get_name(i);
             col_type = col->type_code();
+
+            if (col_name.find_first_of("()") != std::string::npos)
+            {
+                TECA_WARNING("Writing incompatible table to stream. This data "
+                    "will not be readable by TECA because parentheses were "
+                    "used in the column " << i << " name \"" << col_name << "\"")
+            }
+
             s << ", \"" << col_name << "(" << col_type << ")\"";
         }
 
@@ -354,10 +382,12 @@ void teca_table::to_stream(std::ostream &s) const
         }
         s << std::endl;
     }
+
+    return 0;
 }
 
 // --------------------------------------------------------------------------
-void teca_table::from_stream(std::istream &s)
+int teca_table::from_stream(std::istream &s)
 {
     m_impl->columns->clear();
 
@@ -375,7 +405,7 @@ void teca_table::from_stream(std::istream &s)
     {
         free(buf);
         TECA_ERROR("Failed to read from the stream")
-        return;
+        return -1;
     }
 
     // split into lines, and work line by line
@@ -384,7 +414,7 @@ void teca_table::from_stream(std::istream &s)
     {
         free(buf);
         TECA_ERROR("Failed to split lines")
-        return;
+        return -1;
     }
 
     size_t n_lines = lines.size();
@@ -431,7 +461,7 @@ void teca_table::from_stream(std::istream &s)
     {
         free(buf);
         TECA_ERROR("Failed to split fields")
-        return;
+        return -1;
     }
     ++lno;
 
@@ -451,7 +481,7 @@ void teca_table::from_stream(std::istream &s)
             TECA_ERROR("Failed to parse column name and type. " << n_match
                 << " matches. Line " << lno - 1 << " column " << i << " field \""
                 << header[i] << "\"")
-            return;
+            return -1;
         }
 
         p_teca_variant_array col = teca_variant_array_factory::New(code);
@@ -459,7 +489,7 @@ void teca_table::from_stream(std::istream &s)
         {
             free(buf);
             TECA_ERROR("Failed to construct an array for column " << i)
-            return;
+            return -1;
         }
 
         col->resize(n_rows);
@@ -484,7 +514,7 @@ void teca_table::from_stream(std::istream &s)
             free(buf);
             free(data);
             TECA_ERROR("Failed to tokenize row data at row " << j)
-            return;
+            return -1;
         }
     }
 
@@ -506,7 +536,7 @@ void teca_table::from_stream(std::istream &s)
                     free(data);
                     TECA_ERROR("Failed to convert numeric cell " << i << ", " << j
                         << " \"" << cell << "\" using format \"" << fmt << "\"")
-                    return;
+                    return -1;
                 }
 
             }
@@ -523,7 +553,7 @@ void teca_table::from_stream(std::istream &s)
                     free(data);
                     TECA_ERROR("Failed to convert string cell " << i << ", " << j
                         << " \"" << cell << "\"")
-                    return;
+                    return -1;
                 }
             }
             )
@@ -531,7 +561,7 @@ void teca_table::from_stream(std::istream &s)
         {
             TECA_ERROR("Failed to deserialize column " << j << " of type "
                 << col->get_class_name())
-            return;
+            return -1;
         }
 
         // save it
@@ -540,6 +570,8 @@ void teca_table::from_stream(std::istream &s)
 
     free(buf);
     free(data);
+
+    return 0;
 }
 
 // --------------------------------------------------------------------------

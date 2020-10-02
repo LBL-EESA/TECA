@@ -166,18 +166,33 @@ void teca_table_collection::swap(p_teca_table_collection &other)
 }
 
 // --------------------------------------------------------------------------
-void teca_table_collection::to_stream(teca_binary_stream &s) const
+int teca_table_collection::to_stream(teca_binary_stream &s) const
 {
+    s.pack<std::string>("teca_table_collection");
+
     unsigned int na = m_tables.size();
     s.pack(na);
     s.pack(m_names);
     for (unsigned int i = 0; i < na; ++i)
         m_tables[i]->to_stream(s);
+
+    return 0;
 }
 
 // --------------------------------------------------------------------------
-void teca_table_collection::from_stream(teca_binary_stream &s)
+int teca_table_collection::from_stream(teca_binary_stream &s)
 {
+
+    std::string class_name;
+    s.unpack(class_name);
+
+    if (class_name != "teca_table_collection")
+    {
+        TECA_ERROR("teca_table_collection can't deserialize from a \""
+            << class_name << "\" stream")
+        return -1;
+    }
+
     unsigned int na;
     s.unpack(na);
     s.unpack(m_names);
@@ -189,10 +204,12 @@ void teca_table_collection::from_stream(teca_binary_stream &s)
         m_tables[i] = teca_table::New();
         m_tables[i]->from_stream(s);
     }
+
+    return 0;
 }
 
 // --------------------------------------------------------------------------
-void teca_table_collection::to_stream(std::ostream &s) const
+int teca_table_collection::to_stream(std::ostream &s) const
 {
     size_t n_tables = this->size();
     if (n_tables)
@@ -207,4 +224,5 @@ void teca_table_collection::to_stream(std::ostream &s) const
             s << std::endl;
         }
     }
+    return 0;
 }
