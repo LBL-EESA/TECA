@@ -5,53 +5,69 @@
 // --------------------------------------------------------------------------
 void teca_variant_array::copy(const teca_variant_array &other)
 {
-    TEMPLATE_DISPATCH_CLASS(
+    TEMPLATE_DISPATCH_CASE(
         teca_variant_array_impl, std::string, this,
-        if (const TT *p2_tt = dynamic_cast<const TT*>(&other))
+        TT *p1_tt = static_cast<TT*>(this);
+        const TT *p2_tt = dynamic_cast<const TT*>(&other);
+        if (p2_tt)
         {
             *p1_tt = *p2_tt;
             return;
         }
         )
-    TEMPLATE_DISPATCH_CLASS(
+    else
+    TEMPLATE_DISPATCH_CASE(
         teca_variant_array_impl, teca_metadata, this,
-        if (const TT *p2_tt = dynamic_cast<const TT*>(&other))
+        TT *p1_tt = static_cast<TT*>(this);
+        const TT *p2_tt = dynamic_cast<const TT*>(&other);
+        if (p2_tt)
         {
             *p1_tt = *p2_tt;
             return;
         }
         )
+    else
     TEMPLATE_DISPATCH(teca_variant_array_impl, this,
         TT *this_t = static_cast<TT*>(this);
         this_t->copy(other);
         return;
         )
+    TECA_ERROR("Can't copy a \"" << other.get_class_name()
+        << "\" to a \"" << this->get_class_name() << "\"")
     throw std::bad_cast();
 }
 
 // --------------------------------------------------------------------------
 void teca_variant_array::append(const teca_variant_array &other)
 {
-    TEMPLATE_DISPATCH_CLASS(
+    TEMPLATE_DISPATCH_CASE(
         teca_variant_array_impl, std::string, this,
-        if (const TT *p2_tt = dynamic_cast<const TT*>(&other))
+        TT *p1_tt = static_cast<TT*>(this);
+        const TT *p2_tt = dynamic_cast<const TT*>(&other);
+        if (p2_tt)
         {
             p1_tt->append(p2_tt->m_data);
             return;
         }
         )
-    TEMPLATE_DISPATCH_CLASS(
+    else
+    TEMPLATE_DISPATCH_CASE(
         teca_variant_array_impl, teca_metadata, this,
-        if (const TT *p2_tt = dynamic_cast<const TT*>(&other))
+        const TT *p2_tt = dynamic_cast<const TT*>(&other);
+        if (p2_tt)
         {
+            TT *p1_tt = static_cast<TT*>(this);
             p1_tt->append(p2_tt->m_data);
             return;
         }
         )
+    else
     TEMPLATE_DISPATCH(teca_variant_array_impl, this,
         TT *this_t = static_cast<TT*>(this);
         this_t->append(other);
         return;
         )
+    TECA_ERROR("Can't append a \"" << other.get_class_name()
+        << "\" to a \"" << this->get_class_name() << "\"")
     throw std::bad_cast();
 }

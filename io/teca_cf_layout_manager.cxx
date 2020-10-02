@@ -526,7 +526,7 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
             const_p_teca_variant_array att_values = array_atts.get(att_name);
 
             // handle string type
-            TEMPLATE_DISPATCH_CLASS(
+            TEMPLATE_DISPATCH_CASE(
                 const teca_variant_array_impl, std::string,
                 att_values.get(),
                 if (att_values->size() > 1)
@@ -544,11 +544,9 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
 #if !defined(HDF5_THREAD_SAFE)
                 }
 #endif
-                continue;
                 )
-
             // handle POD types
-            TEMPLATE_DISPATCH(const teca_variant_array_impl,
+            else TEMPLATE_DISPATCH(const teca_variant_array_impl,
                 att_values.get(),
 
                 int type = teca_netcdf_util::netcdf_tt<NT>::type_code;

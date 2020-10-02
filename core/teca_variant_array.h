@@ -69,7 +69,7 @@ public:
     { return this->equal(other); }
 
     // return the name of the class in a human readable form
-    virtual std::string get_class_name() = 0;
+    virtual std::string get_class_name() const = 0;
 
     // initialize contents with the native type initializer
     virtual void initialize() = 0;
@@ -280,7 +280,7 @@ public:
     p_teca_variant_array new_instance(size_t n) const override;
 
     // return the name of the class in a human readable form
-    std::string get_class_name() override;
+    std::string get_class_name() const override;
 
     // intialize with T()
     void initialize() override;
@@ -513,23 +513,6 @@ private:
         using TT##i = tt<nt>;                               \
         using NT##i = nt;                                   \
         body                                                \
-    }
-
-// tt - container
-// nt - class type
-// tt<nt> - complete derived type
-// p1 - base class pointer
-// p2 - const base class pointer
-// body - code to execute if p1 and p2's type match
-#define TEMPLATE_DISPATCH_CLASS(tt, nt, p1, body)   \
-    {                                                   \
-    using TT = tt<nt>;                                  \
-    using NT = nt;                                      \
-    TT *p1_tt = dynamic_cast<TT*>(p1);                  \
-    if (p1_tt)                                          \
-    {                                                   \
-        body                                            \
-    }                                                   \
     }
 
 // variant that limits dispatch to floating point types
@@ -902,7 +885,7 @@ const teca_variant_array_impl<T> &teca_variant_array_impl<T>::operator=(
 
 // --------------------------------------------------------------------------
 template<typename T>
-std::string teca_variant_array_impl<T>::get_class_name()
+std::string teca_variant_array_impl<T>::get_class_name() const
 {
     const char *element_name = typeid(T).name();
     size_t element_size = sizeof(T);

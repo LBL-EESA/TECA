@@ -113,6 +113,7 @@ public:
 
     // stream to/from human readable representation
     void to_stream(std::ostream &) const override;
+    void from_stream(std::istream &) override;
 
     // copy data and metadata. shallow copy uses reference
     // counting, while copy duplicates the data.

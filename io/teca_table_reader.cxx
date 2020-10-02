@@ -29,8 +29,9 @@ struct teca_table_reader::teca_table_reader_internals
 
     void clear();
 
-    static p_teca_table read_table(const std::string &file_name,
-        MPI_Comm comm, bool distribute);
+    static p_teca_table read_table(MPI_Comm comm,
+        const std::string &file_name, int file_format,
+        bool distribute);
 
     p_teca_table table;
     teca_metadata metadata;
@@ -53,14 +54,42 @@ void teca_table_reader::teca_table_reader_internals::clear()
 
 // --------------------------------------------------------------------------
 p_teca_table
-teca_table_reader::teca_table_reader_internals::read_table(
-    const std::string &file_name, MPI_Comm comm, bool distribute)
+teca_table_reader::teca_table_reader_internals::read_table(MPI_Comm comm,
+    const std::string &file_name, int file_format, bool distribute)
 {
     teca_binary_stream stream;
 #if !defined(TECA_HAS_MPI)
     (void)comm;
     (void)distribute;
 #else
+    // dtermine which format we are to read from
+    if (file_format == teca_table_reader::format_auto)
+    {
+        std::string ext = teca_file_util::extension(file_name);
+        if (ext == "bin")
+        {
+            file_format = teca_table_reader::format_bin;
+        }
+        else if (ext == "csv")
+        {
+            file_format = teca_table_reader::format_csv;
+        }
+        else
+        {
+            TECA_ERROR("Failed to determine file format from extension \""
+                << ext << "\"")
+            return nullptr;
+        }
+    }
+
+    // validate the format override
+    if ((file_format != teca_table_reader::format_bin) &&
+        (file_format != teca_table_reader::format_csv))
+    {
+        TECA_ERROR("Invalid file format code " << file_format)
+        return nullptr;
+    }
+
     int init = 0;
     int rank = 0;
     MPI_Initialized(&init);
@@ -75,8 +104,13 @@ teca_table_reader::teca_table_reader_internals::read_table(
     if (rank == root_rank)
     {
 #endif
-        if (teca_file_util::read_stream(file_name.c_str(),
-            "teca_table", stream))
+        // set the header for the binary format. this is done to detect
+        // compatible binary streams. for the csv fomat there is no header
+        const char *header = nullptr;
+        if (file_format == teca_table_reader::format_bin)
+            header = "teca_table";
+
+        if (teca_file_util::read_stream(file_name.c_str(), header, stream))
         {
             TECA_ERROR("Failed to read teca_table from \""
                 << file_name << "\"")
@@ -99,13 +133,31 @@ teca_table_reader::teca_table_reader_internals::read_table(
 #endif
     // deserialize the binary rep
     p_teca_table table = teca_table::New();
-    table->from_stream(stream);
+
+    if (file_format == teca_table_reader::format_bin)
+    {
+        table->from_stream(stream);
+    }
+    else if (file_format == teca_table_reader::format_csv)
+    {
+        size_t n_bytes = stream.size();
+        const char *p_data = (const char*)stream.get_data();
+        std::istringstream cpp_stream(std::string(p_data, p_data + n_bytes));
+        table->from_stream(cpp_stream);
+    }
+    else
+    {
+        TECA_ERROR("Invalid file format " << file_format)
+        return nullptr;
+    }
+
     return table;
 }
 
 
 // --------------------------------------------------------------------------
-teca_table_reader::teca_table_reader() : generate_original_ids(0)
+teca_table_reader::teca_table_reader() : generate_original_ids(0),
+    file_format(format_auto)
 {
     this->internals = new teca_table_reader_internals;
 }
@@ -135,6 +187,9 @@ void teca_table_reader::get_properties_description(
              "names of the columns to copy directly into metadata")
         TECA_POPTS_MULTI_GET(std::vector<std::string>, prefix, metadata_column_keys,
              "names of the metadata keys to create from the named columns")
+        TECA_POPTS_GET(int, prefix, output_format,
+            "output file format enum, 0:csv, 1:bin, 2:xlsx, 3:auto."
+            "if auto is used, format is deduced from file_name")
         ;
 
     global_opts.add(opts);
@@ -146,6 +201,7 @@ void teca_table_reader::set_properties(const string &prefix, variables_map &opts
     TECA_POPTS_SET(opts, string, prefix, file_name)
     TECA_POPTS_SET(opts, string, prefix, index_column)
     TECA_POPTS_SET(opts, int, prefix, generate_original_ids)
+    TECA_POPTS_SET(opts, int, prefix, file_format)
     TECA_POPTS_SET(opts, std::vector<std::string>, prefix, metadata_column_names)
     TECA_POPTS_SET(opts, std::vector<std::string>, prefix, metadata_column_keys)
 }
@@ -186,7 +242,8 @@ teca_metadata teca_table_reader::get_output_metadata(unsigned int port,
 
     this->internals->table =
         teca_table_reader::teca_table_reader_internals::read_table(
-            this->file_name, this->get_communicator(), distribute);
+            this->get_communicator(), this->file_name, this->file_format,
+            distribute);
 
     // when no index column is specified  act like a serial reader
     if (!this->internals->table || !distribute)

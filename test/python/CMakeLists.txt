@@ -420,3 +420,13 @@ teca_add_test(py_test_thread_parameters_mpi
 
 teca_add_test(py_test_calendaring
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_calendaring.py)
+
+teca_add_test(py_test_table_from_stream_csv
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_table_from_stream.py
+        "${TECA_DATA_ROOT}/cam5-025deg-all-hist-est1-v3-r1-tracks_size.csv"
+    REQ_TECA_DATA)
+
+teca_add_test(py_test_table_from_stream_bin
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_table_from_stream.py
+        "${TECA_DATA_ROOT}/cam5-025deg-all-hist-est1-v3-r1-tracks_size.bin"
+    REQ_TECA_DATA)
