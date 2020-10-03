@@ -827,23 +827,17 @@ typedef std::pair<std::shared_ptr<teca_algorithm>, unsigned int> teca_algorithm_
 /***************************************************************************
  python_algorithm
  ***************************************************************************/
-%pythoncode %{
-from teca_python_algorithm import *
-%}
+%pythoncode "teca_python_algorithm.py"
 
 /***************************************************************************
  threaded python_algorithm
  ***************************************************************************/
-%pythoncode %{
-from teca_threaded_python_algorithm import *
-%}
+%pythoncode "teca_threaded_python_algorithm.py"
 
 /***************************************************************************
  python_reduce
  ***************************************************************************/
-%pythoncode %{
-from teca_python_reduce import *
-%}
+%pythoncode "teca_python_reduce.py"
 
 /***************************************************************************
  calcalcs

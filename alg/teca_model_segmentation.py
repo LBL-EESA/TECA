@@ -1,19 +1,19 @@
 import os
 import sys
 import socket
-import teca_py
 import numpy as np
 import torch
 import torch.nn.functional as F
 
 
-class teca_model_segmentation(teca_py.teca_python_algorithm):
+class teca_model_segmentation(teca_python_algorithm):
     """
     A generic TECA algorithm that provides torch based deep
     learning feature detecting algorithms with core TECA
     capabilities for easy integration.
     """
     def __init__(self):
+
         self.variable_name = None
         self.pred_name = None
         self.var_array = None
@@ -106,7 +106,7 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
         rank = 0
         n_ranks = 1
         comm = self.get_communicator()
-        if teca_py.get_teca_has_mpi():
+        if get_teca_has_mpi():
             rank = comm.Get_rank()
             n_ranks = comm.Get_size()
 
@@ -121,7 +121,7 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
             # run here.
             try:
                 n_threads, affinity = \
-                    teca_py.thread_util.thread_parameters(comm, -1, 0, 0)
+                    thread_util.thread_parameters(comm, -1, 0, 0)
 
                 # make use of hyper-threads
                 n_threads *= self.threads_per_core
@@ -136,7 +136,7 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
                 # nothing)
                 n_threads = -1
                 comm = self.get_communicator()
-                if teca_py.get_teca_has_mpi() and comm.Get_size() > 1:
+                if get_teca_has_mpi() and comm.Get_size() > 1:
                     torch.set_num_threads(2)
                     n_threads = 2
                 if rank == 0:
@@ -146,7 +146,7 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
 
         # print a report describing the load balancing decisions
         if self.verbose:
-            if teca_py.get_teca_has_mpi():
+            if get_teca_has_mpi():
                 thread_map = comm.gather(n_threads, root=0)
             else:
                 thread_map = [n_threads]
@@ -181,7 +181,7 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
         self.model.eval()
 
     def report(self, port, rep_in):
-        rep = teca_py.teca_metadata(rep_in[0])
+        rep = teca_metadata(rep_in[0])
 
         if rep.has('variables'):
             rep.append('variables', self.pred_name)
@@ -194,7 +194,7 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
         if not self.variable_name:
             raise RuntimeError("No variable to request specifed")
 
-        req = teca_py.teca_metadata(req_in)
+        req = teca_metadata(req_in)
 
         arrays = []
         if req.has('arrays'):
@@ -221,7 +221,7 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
         the torch model and get the segmentation results as an
         output.
         """
-        in_mesh = teca_py.as_teca_cartesian_mesh(data_in[0])
+        in_mesh = as_teca_cartesian_mesh(data_in[0])
 
         if in_mesh is None:
             raise RuntimeError('empty input, or not a mesh')
@@ -251,10 +251,10 @@ class teca_model_segmentation(teca_py.teca_python_algorithm):
 
         self.pred_array = self.output_postprocess(self.pred_array)
 
-        out_mesh = teca_py.teca_cartesian_mesh.New()
+        out_mesh = teca_cartesian_mesh.New()
         out_mesh.shallow_copy(in_mesh)
 
-        self.pred_array = teca_py.teca_variant_array.New(self.pred_array)
+        self.pred_array = teca_variant_array.New(self.pred_array)
         out_mesh.get_point_arrays().set(self.pred_name, self.pred_array)
 
         return out_mesh

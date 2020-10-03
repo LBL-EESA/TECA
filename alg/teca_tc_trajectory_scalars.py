@@ -1,8 +1,7 @@
 import sys
-import teca_py
 import numpy as np
 
-class teca_tc_trajectory_scalars(teca_py.teca_python_algorithm):
+class teca_tc_trajectory_scalars(teca_python_algorithm):
     """
     Computes summary statistics, histograms on sorted, classified,
     TC trajectory output.
@@ -80,12 +79,12 @@ class teca_tc_trajectory_scalars(teca_py.teca_python_algorithm):
         plt.rcParams['legend.frameon'] = 1
 
         # get the input table
-        in_table = teca_py.as_teca_table(data_in[0])
+        in_table = as_teca_table(data_in[0])
         if in_table is None:
             # TODO if this is part of a parallel pipeline then
             # only rank 0 should report an error.
             sys.stderr.write('ERROR: empty input, or not a table\n')
-            return teca_py.teca_table.New()
+            return teca_table.New()
 
         # use this color map for Saphir-Simpson scale
         red_cmap = ['#ffd2a3','#ffa749','#ff7c04', \
@@ -186,7 +185,7 @@ class teca_tc_trajectory_scalars(teca_py.teca_python_algorithm):
 
             tt = time[ii] - t0
 
-            cat = teca_py.teca_tc_saffir_simpson.classify_mps(float(np.max(wind_i)))
+            cat = teca_tc_saffir_simpson.classify_mps(float(np.max(wind_i)))
 
             plt.suptitle( \
                 'Track %d, cat %d, steps %d - %d\n%d/%d/%d %d:%d:00 - %d/%d/%d %d:%d:00'%(\
@@ -405,7 +404,7 @@ class teca_tc_trajectory_scalars(teca_py.teca_python_algorithm):
         if (self.interactive):
             plt.show()
 
-        out_table = teca_py.teca_table.New()
+        out_table = teca_table.New()
         out_table.shallow_copy(in_table)
         return out_table
 

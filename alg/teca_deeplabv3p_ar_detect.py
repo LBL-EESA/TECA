@@ -1,5 +1,4 @@
 import os
-import teca_py
 import math
 import numpy as np
 import torch
@@ -308,7 +307,7 @@ class teca_deeplabv3p_ar_detect_internals:
                     m.bias.data.zero_()
 
 
-class teca_deeplabv3p_ar_detect(teca_py.teca_model_segmentation):
+class teca_deeplabv3p_ar_detect(teca_model_segmentation):
     """
     This algorithm detects Atmospheric Rivers using deep learning techniques
     derived from the DeepLabv3+ architecture. Given an input field of
@@ -317,7 +316,6 @@ class teca_deeplabv3p_ar_detect(teca_py.teca_model_segmentation):
     """
     def __init__(self):
         super().__init__()
-
         # inner config data needed for pre & post processing for
         # the input and its prediction
         self.mesh_ny = None
@@ -399,7 +397,7 @@ class teca_deeplabv3p_ar_detect(teca_py.teca_model_segmentation):
             deeplab_sd_path = \
                 "cascade_deeplab_IVT.pt"
             state_dict_deeplab_file = os.path.join(
-                teca_py.get_teca_data_root(),
+                get_teca_data_root(),
                 deeplab_sd_path
                 )
 
@@ -420,9 +418,9 @@ class teca_deeplabv3p_ar_detect(teca_py.teca_model_segmentation):
         """
         md_out = super().report(port, md_in)
 
-        arp_atts = teca_py.teca_array_attributes(
-            teca_py.teca_float_array_code.get(),
-            teca_py.teca_array_attributes.point_centering,
+        arp_atts = teca_array_attributes(
+            teca_float_array_code.get(),
+            teca_array_attributes.point_centering,
             0, 'unitless', 'posterior AR flag',
             'the posterior probability of the presence '
             'of an atmospheric river')
@@ -439,7 +437,7 @@ class teca_deeplabv3p_ar_detect(teca_py.teca_model_segmentation):
         the torch model and get the segmentation results as an
         output.
         """
-        in_mesh = teca_py.as_teca_cartesian_mesh(data_in[0])
+        in_mesh = as_teca_cartesian_mesh(data_in[0])
 
         if in_mesh is None:
             raise ValueError("empty input, or not a mesh")
