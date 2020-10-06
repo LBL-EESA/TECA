@@ -393,15 +393,13 @@ teca_add_test(py_test_nested_pipeline
 
 teca_add_test(py_test_cf_writer_collective_serial
     COMMAND ${PYTHON_EXECUTABLE}
-    "${CMAKE_CURRENT_SOURCE_DIR}/test_cf_writer_collective.py" 128 512 128
-    "${TECA_DATA_ROOT}/test_cf_writer_collective_%t%.bin" 213
+    "${CMAKE_CURRENT_SOURCE_DIR}/test_cf_writer_collective.py" 128 512 128 213
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_cf_writer_collective_mpi
     COMMAND ${MPIEXEC} -n ${TEST_CORES} ${PYTHON_EXECUTABLE}
-    "${CMAKE_CURRENT_SOURCE_DIR}/test_cf_writer_collective.py" 128 512 128
-    "${TECA_DATA_ROOT}/test_cf_writer_collective_%t%.bin" 213
+    "${CMAKE_CURRENT_SOURCE_DIR}/test_cf_writer_collective.py" 128 512 128 213
     FEATURES ${TECA_HAS_NETCDF} ${MPI4Py_FOUND}
     REQ_TECA_DATA)
 

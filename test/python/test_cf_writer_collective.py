@@ -7,17 +7,16 @@ from mpi4py import *
 
 set_stack_trace_on_error()
 
-if len(sys.argv) != 6:
+if len(sys.argv) != 5:
     sys.stderr.write('test_information_array_io.py [n points] [n steps] ' \
-        '[steps per file] [baseline file] [baseline step]\n')
+        '[steps per file] [step]\n')
     sys.exit(-1)
 
 n_threads = 1
 nx = int(sys.argv[1])
 n_steps = int(sys.argv[2])
 steps_per_file = int(sys.argv[3])
-baseline = sys.argv[4]
-check_step = int(sys.argv[5])
+check_step = int(sys.argv[4])
 
 out_file = 'py_test_cf_writer_collective-%t%.nc'
 files_regex = 'py_test_cf_writer_collective.*\\.nc$'
@@ -240,28 +239,10 @@ if rank == 0:
     rex.set_start_index(check_step)
     rex.set_end_index(check_step)
 
-    fn = file_util.replace_timestep(baseline, check_step)
-    do_test = system_util.get_environment_variable_bool('TECA_DO_TEST', True)
-    if do_test and os.path.exists(fn):
-        sys.stderr.write('running the test...\n')
-
-        cmr = teca_cartesian_mesh_reader.New()
-        cmr.set_file_name(fn)
-
-        diff = teca_dataset_diff.New()
-        diff.set_communicator(MPI.COMM_SELF)
-        diff.set_input_connection(0, cmr.get_output_port())
-        diff.set_input_connection(1, par.get_output_port())
-        diff.set_executive(rex)
-        diff.set_tolerance(1.e-4)
-        diff.update()
-    else:
-        sys.stderr.write('writing the baseline...\n')
-
-        cmw = teca_cartesian_mesh_writer.New()
-        cmw.set_communicator(MPI.COMM_SELF)
-        cmw.set_file_name(baseline)
-        cmw.set_input_connection(par.get_output_port())
-        cmw.set_file_name(baseline)
-        cmw.set_executive(rex)
-        cmw.update()
+    diff = teca_dataset_diff.New()
+    diff.set_communicator(MPI.COMM_SELF)
+    diff.set_input_connection(0, gd.get_output_port())
+    diff.set_input_connection(1, par.get_output_port())
+    diff.set_executive(rex)
+    diff.set_tolerance(1.e-4)
+    diff.update()

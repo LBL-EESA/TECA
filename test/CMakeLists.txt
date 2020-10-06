@@ -649,26 +649,24 @@ teca_add_test(test_cf_writer_collective_serial
     EXEC_NAME test_cf_writer_collective
     SOURCES test_cf_writer_collective.cpp
     LIBS teca_core teca_data teca_alg teca_io ${teca_test_link}
-    COMMAND test_cf_writer_collective 128 512 128 1
-    "${TECA_DATA_ROOT}/test_cf_writer_collective_%t%.bin" 213
+    COMMAND test_cf_writer_collective 128 512 128 1 213
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(test_cf_writer_collective_threads
-    COMMAND test_cf_writer_collective 128 512 128 ${TEST_CORES}
-    "${TECA_DATA_ROOT}/test_cf_writer_collective_%t%.bin" 213
+    COMMAND test_cf_writer_collective 128 512 128 ${TEST_CORES} 213
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(test_cf_writer_collective_mpi
-    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_writer_collective 128 512 128 1
-    "${TECA_DATA_ROOT}/test_cf_writer_collective_%t%.bin" 213
+    COMMAND ${MPIEXEC} -n ${TEST_CORES}
+    test_cf_writer_collective 128 512 128 1 213
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
 teca_add_test(test_cf_writer_collective_mpi_threads
-    COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} test_cf_writer_collective 128 512 128 2
-    "${TECA_DATA_ROOT}/test_cf_writer_collective_%t%.bin" 213
+    COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES}
+    test_cf_writer_collective 128 512 128 2 213
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 

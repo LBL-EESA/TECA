@@ -329,10 +329,10 @@ int main(int argc, char **argv)
     teca_system_interface::set_stack_trace_on_error();
     teca_system_interface::set_stack_trace_on_mpi_error();
 
-    if (argc != 7)
+    if (argc != 6)
     {
         std::cerr << "test_information_array_io.py [n points] [n steps] "
-            "[steps per file] [n threads] [baseline file] [baseline step]" << std::endl;
+            "[steps per file] [n threads] [step]" << std::endl;
         return -1;
     }
 
@@ -340,8 +340,7 @@ int main(int argc, char **argv)
     unsigned long n_steps = atoi(argv[2]);
     int steps_per_file = atoi(argv[3]);
     int n_threads = atoi(argv[4]);
-    const char *baseline = argv[5];
-    int check_step = atoi(argv[6]);
+    int check_step = atoi(argv[5]);
 
     const char *out_file = "test_cf_writer_collective-%t%.nc";
     const char *files_regex = "test_cf_writer_collective.*\\.nc$";
@@ -406,36 +405,12 @@ int main(int argc, char **argv)
         rex->set_start_index(check_step);
         rex->set_end_index(check_step);
 
-        std::string fn(baseline);
-        teca_file_util::replace_timestep(fn, check_step);
-        bool do_test = true;
-        teca_system_util::get_environment_variable("TECA_DO_TEST", do_test);
-        if (do_test && teca_file_util::file_exists(fn.c_str()))
-        {
-            std::cerr << "running the test..." << std::endl;
-
-            p_teca_cartesian_mesh_reader cmr = teca_cartesian_mesh_reader::New();
-            cmr->set_file_name(fn);
-
-            p_teca_dataset_diff diff = teca_dataset_diff::New();
-            diff->set_communicator(MPI_COMM_SELF);
-            diff->set_input_connection(0, cmr->get_output_port());
-            diff->set_input_connection(1, par->get_output_port());
-            diff->set_executive(rex);
-            diff->update();
-        }
-        else
-        {
-            std::cerr << "writing the baseline..." << std::endl;
-
-            p_teca_cartesian_mesh_writer cmw = teca_cartesian_mesh_writer::New();
-            cmw->set_communicator(MPI_COMM_SELF);
-            cmw->set_file_name(baseline);
-            cmw->set_input_connection(par->get_output_port());
-            cmw->set_file_name(baseline);
-            cmw->set_executive(rex);
-            cmw->update();
-        }
+        p_teca_dataset_diff diff = teca_dataset_diff::New();
+        diff->set_communicator(MPI_COMM_SELF);
+        diff->set_input_connection(0, gd->get_output_port());
+        diff->set_input_connection(1, par->get_output_port());
+        diff->set_executive(rex);
+        diff->update();
     }
 
     return 0;
