@@ -49,19 +49,6 @@ set(teca_alg_cxx_srcs
     teca_dataset_diff.cxx
     )
 
-teca_py_install(${LIB_PREFIX}
-    teca_model_segmentation.py
-    teca_deeplabv3p_ar_detect.py
-    teca_tc_stats.py
-    teca_tc_activity.py
-    teca_python_algorithm.py
-    teca_python_reduce.py
-    teca_tc_wind_radii_stats.py
-    teca_tc_trajectory_scalars.py
-    teca_temporal_reduction.py
-    teca_threaded_python_algorithm.py
-    )
-
 set(teca_alg_f90_srcs)
 
 set(teca_alg_f90_generics

@@ -30,8 +30,7 @@ class teca_threaded_python_algorithm(object):
 
         # call overrides to get implementation for teca execution
         # phase implementations
-        import teca_py
-        self.impl = teca_py.teca_threaded_programmable_algorithm.New()
+        self.impl = teca_threaded_programmable_algorithm.New()
         self.impl.set_number_of_input_connections(n_inputs)
         self.impl.set_number_of_output_ports(n_outputs)
         self.impl.set_name(self.__class__.__name__)
@@ -104,8 +103,7 @@ class teca_threaded_python_algorithm(object):
         Override this to customize the behavior of the report phase of
         execution. The default passes metadata on the first input through.
         """
-        import teca_py
-        return teca_py.teca_metadata(md_in[0])
+        return teca_metadata(md_in[0])
 
     def request(self, port, md_in, req_in):
         """
@@ -113,8 +111,7 @@ class teca_threaded_python_algorithm(object):
         customize the behavior of the request phase of execution. The default
         passes the request on the first input port through.
         """
-        import teca_py
-        return [teca_py.teca_metadata(req_in)]
+        return [teca_metadata(req_in)]
 
     def execute(self, port, data_in, req_in, streaming):
         """
@@ -122,8 +119,7 @@ class teca_threaded_python_algorithm(object):
         the execute phase of execution. The default passes the dataset on the
         first input port through.
         """
-        import teca_py
         if len(data_in):
             data_out = data_in[0].new_instance()
-            data_out.shallow_copy(teca_py.as_non_const_teca_dataset(data_out))
+            data_out.shallow_copy(as_non_const_teca_dataset(data_out))
         return data_out

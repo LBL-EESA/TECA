@@ -1,5 +1,4 @@
 import sys
-import teca_py
 import numpy as np
 
 
@@ -16,7 +15,7 @@ class teca_temporal_reduction_internals:
 
             self.year, self.month, self.day, \
                 self.hour, self.minutes, self.seconds = \
-                teca_py.calendar_util.date(t, self.units, self.calendar)
+                calendar_util.date(t, self.units, self.calendar)
 
         def __str__(self):
             return '%g (%s, %s) --> %04d-%02d-%02d %02d:%02d:%02g' % (
@@ -73,9 +72,9 @@ class teca_temporal_reduction_internals:
                 leap years
                 """
                 return \
-                    teca_py.calendar_util.days_in_month(self.calendar,
-                                                        self.units, self.year,
-                                                        self.month)
+                    calendar_util.days_in_month(self.calendar,
+                                                self.units, self.year,
+                                                self.month)
 
             def __iter__(self):
                 return self
@@ -96,9 +95,9 @@ class teca_temporal_reduction_internals:
                 month = self.month
 
                 t0 = '%04d-%02d-01 00:00:00' % (self.year, self.month)
-                i0 = teca_py.coordinate_util.time_step_of(self.t, True, True,
-                                                          self.calendar,
-                                                          self.units, t0)
+                i0 = coordinate_util.time_step_of(self.t, True, True,
+                                                  self.calendar,
+                                                  self.units, t0)
 
                 # find the time step of the last day
                 n_days = self.last_day_of_month()
@@ -106,9 +105,9 @@ class teca_temporal_reduction_internals:
                 t1 = '%04d-%02d-%02d 23:59:59' % \
                     (self.year, self.month, n_days)
 
-                i1 = teca_py.coordinate_util.time_step_of(self.t, True, True,
-                                                          self.calendar,
-                                                          self.units, t1)
+                i1 = coordinate_util.time_step_of(self.t, True, True,
+                                                  self.calendar,
+                                                  self.units, t1)
 
                 # move to next month
                 self.month += 1
@@ -159,7 +158,7 @@ class teca_temporal_reduction_internals:
                 get the number of days in the month, with logic for
                 leap years
                 """
-                return teca_py.calendar_util.days_in_month(
+                return calendar_util.days_in_month(
                            self.calendar, self.units, self.year, self.month)
 
             def __iter__(self):
@@ -187,17 +186,17 @@ class teca_temporal_reduction_internals:
                 t0 = '%04d-%02d-%02d 00:00:00' % \
                     (self.year, self.month, self.day)
 
-                i0 = teca_py.coordinate_util.time_step_of(self.t, True, True,
-                                                          self.calendar,
-                                                          self.units, t0)
+                i0 = coordinate_util.time_step_of(self.t, True, True,
+                                                  self.calendar,
+                                                  self.units, t0)
 
                 # find the time step of the last day
                 t1 = '%04d-%02d-%02d 23:59:59' % \
                     (self.year, self.month, self.day)
 
-                i1 = teca_py.coordinate_util.time_step_of(self.t, True, True,
-                                                          self.calendar,
-                                                          self.units, t1)
+                i1 = coordinate_util.time_step_of(self.t, True, True,
+                                                  self.calendar,
+                                                  self.units, t1)
 
                 # move to next day
                 n_days = self.last_day_of_month()
@@ -365,7 +364,7 @@ class teca_temporal_reduction_internals:
             raise RuntimeError('Invalid operator %s' % (op_name))
 
 
-class teca_temporal_reduction(teca_py.teca_threaded_python_algorithm):
+class teca_temporal_reduction(teca_threaded_python_algorithm):
     """
     Reduce a mesh across the time dimensions by a defined increment using
     a defined operation.
@@ -523,7 +522,7 @@ class teca_temporal_reduction(teca_py.teca_threaded_python_algorithm):
 
         # update the metadata so that  modified time axis and reduced variables
         # are presented
-        out_atts = teca_py.teca_metadata()
+        out_atts = teca_metadata()
         out_vars = []
 
         for array in self.point_arrays:
@@ -536,14 +535,14 @@ class teca_temporal_reduction(teca_py.teca_threaded_python_algorithm):
             # convert integer to floating point for averaging operations
             if self.operator_name == 'average':
                 tc = in_atts['type_code']
-                if tc == teca_py.teca_int_array_code.get()                  \
-                        or tc == teca_py.teca_char_array_code.get()         \
-                        or tc == teca_py.teca_unsigned_int_array_code.get() \
-                        or tc == teca_py.teca_unsigned_char_array_code.get():
-                    tc = teca_py.teca_float_array_code.get()
-                elif tc == teca_py.teca_long_long_array_code.get()          \
-                        or tc == teca_py.teca_unsigned_long_long_array_code.get():
-                    tc = teca_py.teca_double_array_code.get()
+                if tc == teca_int_array_code.get()                  \
+                        or tc == teca_char_array_code.get()         \
+                        or tc == teca_unsigned_int_array_code.get() \
+                        or tc == teca_unsigned_char_array_code.get():
+                    tc = teca_float_array_code.get()
+                elif tc == teca_long_long_array_code.get()          \
+                        or tc == teca_unsigned_long_long_array_code.get():
+                    tc = teca_double_array_code.get()
                 in_atts['type_code'] = tc
 
             # document the transformation
@@ -619,7 +618,7 @@ class teca_temporal_reduction(teca_py.teca_threaded_python_algorithm):
         ii = self.indices[req_id]
         i = ii.start_index
         while i <= ii.end_index:
-            req = teca_py.teca_metadata(req_in)
+            req = teca_metadata(req_in)
             req[request_key] = i
             up_reqs.append(req)
             i += 1
@@ -648,14 +647,14 @@ class teca_temporal_reduction(teca_py.teca_threaded_python_algorithm):
                                            streaming))
 
         # copy the first mesh
-        mesh_in = teca_py.as_teca_cartesian_mesh(data_in.pop())
-        mesh_out = teca_py.teca_cartesian_mesh.New()
+        mesh_in = as_teca_cartesian_mesh(data_in.pop())
+        mesh_out = teca_cartesian_mesh.New()
         mesh_out.copy(mesh_in)
         arrays_out = mesh_out.get_point_arrays()
 
         # accumulate incoming values
         while len(data_in):
-            mesh_in = teca_py.as_teca_cartesian_mesh(data_in.pop())
+            mesh_in = as_teca_cartesian_mesh(data_in.pop())
             arrays_in = mesh_in.get_point_arrays()
             for array in self.point_arrays:
                 arrays_out[array] = \

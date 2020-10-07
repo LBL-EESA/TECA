@@ -22,8 +22,7 @@ class teca_python_reduce(object):
         """
         # call overrides to get implementation for teca execution
         # phase implementations
-        import teca_py
-        self.impl = teca_py.teca_programmable_reduce.New()
+        self.impl = teca_programmable_reduce.New()
         self.impl.set_name(self.__class__.__name__)
         self.impl.set_report_callback(self.get_report_callback())
         self.impl.set_request_callback(self.get_request_callback())
@@ -99,8 +98,7 @@ class teca_python_reduce(object):
         Override this to customize the behavior of the report phase of
         execution. The default passes metadata on the first input through.
         """
-        import teca_py
-        return teca_py.teca_metadata(md_in[0])
+        return teca_metadata(md_in[0])
 
     def request(self, port, md_in, req_in):
         """
@@ -108,8 +106,7 @@ class teca_python_reduce(object):
         customize the behavior of the request phase of execution. The default
         passes the request on the first input port through.
         """
-        import teca_py
-        return [teca_py.teca_metadata(req_in)]
+        return [teca_metadata(req_in)]
 
     def reduce(self, left, right):
         """
@@ -124,7 +121,6 @@ class teca_python_reduce(object):
         Called after the reduction is complete. Override this method to customize the
         finalization of the reduction. the default passes the dataset through.
         """
-        import teca_py
         data_out = data_in.new_instance()
-        data_out.shallow_copy(teca_py.as_non_const_teca_dataset(data_out))
+        data_out.shallow_copy(as_non_const_teca_dataset(data_out))
         return data_out

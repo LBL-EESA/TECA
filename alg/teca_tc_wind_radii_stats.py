@@ -1,8 +1,7 @@
 import sys
-import teca_py
 import numpy as np
 
-class teca_tc_wind_radii_stats(teca_py.teca_python_algorithm):
+class teca_tc_wind_radii_stats(teca_python_algorithm):
     """
     Computes statistics using track wind radii
     """
@@ -54,7 +53,7 @@ class teca_tc_wind_radii_stats(teca_py.teca_python_algorithm):
         along each point of the track. produces statistical plots showing
         the global distribution of wind radii.
         """
-        track_table = teca_py.as_teca_table(data_in[0])
+        track_table = as_teca_table(data_in[0])
 
         # plot stats
         import matplotlib.pyplot as plt
@@ -91,7 +90,7 @@ class teca_tc_wind_radii_stats(teca_py.teca_python_algorithm):
 
         i = 0
         while i < nwr:
-            wc = teca_py.teca_tc_saffir_simpson.get_upper_bound_kmph(i-1)
+            wc = teca_tc_saffir_simpson.get_upper_bound_kmph(i-1)
             wri = wr[i]
             ii = np.where(wri > 0.0)
             plt.scatter(wri[ii], ws[ii], c=red_cmap[i], alpha=0.25, marker='.', zorder=3+i)
@@ -107,7 +106,7 @@ class teca_tc_wind_radii_stats(teca_py.teca_python_algorithm):
         plt.subplot('332')
         i = 0
         while i < nwr:
-            wc = teca_py.teca_tc_saffir_simpson.get_upper_bound_kmph(i-1)
+            wc = teca_tc_saffir_simpson.get_upper_bound_kmph(i-1)
             wri = wr[i]
             n,bins,pats = plt.hist(wri[np.where(wri > 0.0)], 32, range=[0,6.0*km_per_deg_lat], \
                 facecolor=red_cmap[i], alpha=0.95, edgecolor='black', \
@@ -123,7 +122,7 @@ class teca_tc_wind_radii_stats(teca_py.teca_python_algorithm):
         i = 0
         while i < nwr:
             plt.subplot(333+i)
-            wc = teca_py.teca_tc_saffir_simpson.get_upper_bound_kmph(i-1)
+            wc = teca_tc_saffir_simpson.get_upper_bound_kmph(i-1)
             wri = wr[i]
             wrii=wri[np.where(wri > 0.0)]
             n,bins,pats = plt.hist(wrii, 32, \

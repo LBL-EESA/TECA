@@ -1,8 +1,7 @@
 import sys
-import teca_py
 import numpy as np
 
-class teca_tc_activity(teca_py.teca_python_algorithm):
+class teca_tc_activity(teca_python_algorithm):
     """
     Computes summary statistics, histograms on sorted, classified,
     TC trajectory output.
@@ -74,12 +73,12 @@ class teca_tc_activity(teca_py.teca_python_algorithm):
         plt.rcParams['legend.frameon'] = 1
 
         # get the input table
-        in_table = teca_py.as_teca_table(data_in[0])
+        in_table = as_teca_table(data_in[0])
         if in_table is None:
             # TODO if this is part of a parallel pipeline then
             # only rank 0 should report an error.
             sys.stderr.write('ERROR: empty input, or not a table\n')
-            return teca_py.teca_table.New()
+            return teca_table.New()
 
         time_units = in_table.get_time_units()
 

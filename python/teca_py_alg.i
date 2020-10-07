@@ -223,43 +223,34 @@
 }
 
 /***************************************************************************
- model_segmentation & deeplabv3p_ar_detect
+ model_segmentation
  ***************************************************************************/
-%pythoncode %{
-try:
-    from teca_model_segmentation import *
-    from teca_deeplabv3p_ar_detect import teca_deeplabv3p_ar_detect
-except ImportError:
-    pass
-%}
+ %pythoncode "teca_model_segmentation.py"
+
+/***************************************************************************
+ deeplabv3p_ar_detect
+ ***************************************************************************/
+ %pythoncode "teca_deeplabv3p_ar_detect.py"
 
 /***************************************************************************
  tc_activity
  ***************************************************************************/
-%pythoncode %{
-from teca_tc_activity import *
-%}
+%pythoncode "teca_tc_activity.py"
 
 /***************************************************************************
  tc_stats
  ***************************************************************************/
-%pythoncode %{
-from teca_tc_stats import *
-%}
+%pythoncode "teca_tc_stats.py"
 
 /***************************************************************************
  tc_trajectory_scalars
  ***************************************************************************/
-%pythoncode %{
-from teca_tc_trajectory_scalars import *
-%}
+%pythoncode "teca_tc_trajectory_scalars.py"
 
 /***************************************************************************
  tc_wind_radii_stats
  ***************************************************************************/
-%pythoncode %{
-from teca_tc_wind_radii_stats import *
-%}
+%pythoncode "teca_tc_wind_radii_stats.py"
 
 /***************************************************************************
  binary_segmentation
@@ -412,6 +403,4 @@ struct teca_tc_saffir_simpson
 /***************************************************************************
  temporal_reduction
  ***************************************************************************/
-%pythoncode %{
-from teca_temporal_reduction import *
-%}
+%pythoncode "teca_temporal_reduction.py"
