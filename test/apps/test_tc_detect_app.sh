@@ -28,13 +28,13 @@ ${launcher} ${app_prefix}/teca_tc_detect                              \
 
 # run the diff
 ${app_prefix}/teca_table_diff                                         \
-    test_tc_candidates_app_output.bin                                 \
-    "${data_root}/test_tc_candidates_app_ref.bin" "storm_id"
+    "${data_root}/test_tc_candidates_app_ref.bin"                     \
+    test_tc_candidates_app_output.bin "storm_id"
 
 # run the diff
 ${app_prefix}/teca_table_diff                                         \
-    test_tc_track_app_output.bin                                      \
-    "${data_root}/test_tc_track_app_ref.bin" "storm_id"
+    "${data_root}/test_tc_track_app_ref.bin"                          \
+    test_tc_track_app_output.bin "storm_id"
 
 # clean up
 rm test_tc_candidates_app_output.bin
