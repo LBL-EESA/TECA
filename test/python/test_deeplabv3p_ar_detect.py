@@ -14,20 +14,23 @@ from teca import *
 set_stack_trace_on_error()
 set_stack_trace_on_mpi_error()
 
-if (len(sys.argv) != 6):
+if (len(sys.argv) != 5):
     sys.stderr.write('\n\nUsage error:\n'
-                     'test_deeplabv3p_ar_detect [deeplab model] '
-                     '[mesh data regex] [baseline] '
-                     '[water vapor var] [num threads]\n\n')
+                     'test_deeplabv3p_ar_detect [mesh data regex] '
+                     '[baseline] [water vapor var] [num threads]\n\n')
     sys.exit(-1)
 
 # parse command line
-deeplab_model = sys.argv[1]
-input_regex = sys.argv[2]
-baseline = sys.argv[3]
-water_vapor_var = sys.argv[4]
-n_threads = int(sys.argv[5])
+input_regex = sys.argv[1]
+baseline = sys.argv[2]
+water_vapor_var = sys.argv[3]
+n_threads = int(sys.argv[4])
 vrb = 1
+
+deeplab_model = os.path.join(
+    get_teca_assets_root(),
+    "cascade_deeplab_IVT.pt"
+    )
 
 cf_reader = teca_cf_reader.New()
 cf_reader.set_files_regex(input_regex)
