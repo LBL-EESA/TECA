@@ -438,5 +438,12 @@ int convert_cell_extent(num_t *extent, int centering)
     return 0;
 }
 
+// given carteisan mesh metadata extract whole_extent and bounds
+// if bounds metadata is not already present then it is initialized
+// from coordinate arrays. It's an error if whole_extent or coordinate
+// arrays are not present. return zero if successful.
+int get_cartesian_mesh_extent(const teca_metadata &md,
+    unsigned long *whole_extent, double *bounds);
+
 };
 #endif
