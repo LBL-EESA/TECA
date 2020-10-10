@@ -45,3 +45,4 @@ pip3 install numpy mpi4py matplotlib torch
 
 # install data files.
 svn co svn://svn.code.sf.net/p/teca/TECA_data@${TECA_DATA_REVISION} TECA_data
+svn co svn://svn.code.sf.net/p/teca/TECA_assets@${TECA_ASSETS_REVISION} TECA_assets

@@ -34,3 +34,12 @@ do
   echo -n "."
   sleep 2s
 done
+
+svn co svn://svn.code.sf.net/p/teca/TECA_assets@${TECA_ASSETS_REVISION} TECA_assets &
+svn_pid=$!
+
+while [ -n "$(ps -p $svn_pid -o pid=)" ]
+do
+  echo -n "."
+  sleep 2s
+done

@@ -23,3 +23,4 @@ sudo tar -C /usr -x -z -f cmake-3.5.2-Linux-x86_64.tar.gz --strip-components=1
 
 # install data files.
 svn co svn://svn.code.sf.net/p/teca/TECA_data@${TECA_DATA_REVISION} TECA_data
+svn co svn://svn.code.sf.net/p/teca/TECA_assets@${TECA_ASSETS_REVISION} TECA_assets

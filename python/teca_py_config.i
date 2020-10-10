@@ -42,6 +42,27 @@ const char *get_teca_data_root()
 #endif
 }
 
+// return true if the location of TECA_assets repo is known
+bool get_teca_has_assets()
+{
+#if defined(TECA_HAS_ASSETS)
+    return true;
+#else
+    return false;
+#endif
+}
+
+// return the path to a TECA_assets repo check out, or None if the
+// path is not known at compile time
+const char *get_teca_assets_root()
+{
+#if defined(TECA_HAS_ASSETS)
+    return TECA_ASSETS_ROOT;
+#else
+    return nullptr;
+#endif
+}
+
 // return true if TECA was compiled with regex support
 bool get_teca_has_regex()
 {

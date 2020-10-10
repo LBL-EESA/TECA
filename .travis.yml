@@ -15,6 +15,7 @@ env:
     - TECA_DIR=/travis_teca_dir
     - TECA_PYTHON_VERSION=3
     - TECA_DATA_REVISION=86
+    - TECA_ASSETS_REVISION=3
   jobs:
     - DOCKER_IMAGE=ubuntu IMAGE_VERSION=20.04 IMAGE_NAME=ubuntu_20_04 REQUIRE_NETCDF_MPI=TRUE
     - DOCKER_IMAGE=ubuntu IMAGE_VERSION=20.04 IMAGE_NAME=ubuntu_20_04 REQUIRE_NETCDF_MPI=FALSE
@@ -54,6 +55,7 @@ install:
     docker exec teca_${DOCKER_IMAGE}_${IMAGE_VERSION} /bin/bash -c
     "export TECA_PYTHON_VERSION=${TECA_PYTHON_VERSION} &&
     export TECA_DATA_REVISION=${TECA_DATA_REVISION} &&
+    export TECA_ASSETS_REVISION=${TECA_ASSETS_REVISION} &&
     export REQUIRE_NETCDF_MPI=${REQUIRE_NETCDF_MPI} &&
     ${TECA_DIR}/test/travis_ci/install_${IMAGE_NAME}.sh";
     fi

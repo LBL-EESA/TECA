@@ -8,7 +8,7 @@
 #   WILL_FAIL -- flag whose presence indicates the test is expected to fail
 #   )
 function (teca_add_test T_NAME)
-    set(opt_args REQ_TECA_DATA WILL_FAIL)
+    set(opt_args REQ_TECA_DATA REQ_TECA_ASSETS WILL_FAIL)
     set(val_args EXEC_NAME)
     set(array_args SOURCES LIBS COMMAND FEATURES)
     cmake_parse_arguments(T "${opt_args}" "${val_args}" "${array_args}" ${ARGN})
@@ -33,7 +33,8 @@ function (teca_add_test T_NAME)
                 target_link_libraries(${EXEC_NAME} ${T_LIBS})
             endif()
         endif()
-        if ((T_REQ_TECA_DATA AND TECA_HAS_DATA) OR NOT T_REQ_TECA_DATA)
+        if (((T_REQ_TECA_DATA AND TECA_HAS_DATA) OR NOT T_REQ_TECA_DATA) AND
+            ((T_REQ_TECA_ASSETS AND TECA_HAS_ASSETS) OR NOT T_REQ_TECA_ASSETS))
             add_test(NAME ${T_NAME} COMMAND ${T_COMMAND}
                 WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
             if (T_WILL_FAIL)

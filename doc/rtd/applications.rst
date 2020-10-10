@@ -484,7 +484,7 @@ Example
 .. code-block:: bash
 
     mpiexec -np 10 ./bin/teca_tc_trajectory_scalars   \
-        --texture ../../TECA_data/earthmap4k.png      \
+        --texture ../../TECA_assets/earthmap4k.png      \
         tracks_1990s_3hr_mdd_4800.bin                 \
         traj_scalars_1990s_3hr_mdd_4800
 
