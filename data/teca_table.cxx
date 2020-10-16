@@ -2,179 +2,7 @@
 
 #include "teca_binary_stream.h"
 #include "teca_dataset_util.h"
-
-namespace teca_table_internals
-{
-// convert the characters between the first and second double
-// quote to a std::string. Escaped characters are skipped. Return
-// 0 if successful.
-int extract_string(const char *istr, std::string &field)
-{
-    const char *sb = istr;
-    while (*sb != '"')
-    {
-        if (*sb == '\0')
-        {
-            TECA_ERROR("End of string encountered before opening \"")
-            return -1;
-        }
-        ++sb;
-    }
-    ++sb;
-    const char *se = sb;
-    while (*se != '"')
-    {
-        if (*se == '\\')
-        {
-            ++se;
-        }
-        if (*se == '\0')
-        {
-            TECA_ERROR("End of string encountered before closing \"")
-            return -1;
-        }
-        ++se;
-    }
-    field = std::string(sb, se);
-    return 0;
-}
-
-// scan the input string (istr) for the given a delimiter (delim). push a pointer
-// to the first non-delimiter character and the first character after each
-// instance of the delimiter.  return zero if successful. when successful there
-// will be at least one value.
-int tokenize(char *istr, char delim, int n_cols, char **ostr)
-{
-    // skip delim at the beginning
-    while ((*istr == delim) && (*istr != '\0'))
-        ++istr;
-
-    // nothing here
-    if (*istr == '\0')
-        return -1;
-
-    // save the first
-    ostr[0] = istr;
-    int col = 1;
-
-    while ((*istr != '\0') && (col < n_cols))
-    {
-        // seek to delim
-        while ((*istr != delim) && (*istr != '\0'))
-            ++istr;
-
-        if (*istr == delim)
-        {
-            // terminate the token
-            *istr = '\0';
-
-            // move past the terminator
-            ++istr;
-
-            // check for end, if not start the next token
-            if (*istr != '\0')
-                ostr[col] = istr;
-
-            // count it
-            ++col;
-        }
-    }
-
-    // we should have found n_cols
-    if (col != n_cols)
-    {
-        TECA_ERROR("Failed to process all the data, "
-            << col << "columns of the " << n_cols
-            << " expected were processed.")
-        return -1;
-    }
-
-    return 0;
-}
-
-
-// scan the input string (istr) for the given a delimiter (delim). push a point
-// to the first non-delimiter character and the first character after each
-// instance of the delimiter.  return zero if successful. when successful there
-// will be at least one value.
-int tokenize(char *istr, char delim, std::vector<char *> &ostr)
-{
-    // skip delim at the beginning
-    while ((*istr == delim) && (*istr != '\0'))
-        ++istr;
-
-    // nothing here
-    if (*istr == '\0')
-        return -1;
-
-    // save the first
-    ostr.push_back(istr);
-
-    while (*istr != '\0')
-    {
-        while ((*istr != delim) && (*istr != '\0'))
-            ++istr;
-
-        if (*istr == delim)
-        {
-            // terminate the token
-            *istr = '\0';
-            ++istr;
-            if (*istr != '\0')
-            {
-                // not at the end, start the next token
-                ostr.push_back(istr);
-            }
-        }
-    }
-    return 0;
-}
-
-// skip space, tabs, and new lines.  return non-zero if the end of the string
-// is reached before a non-pad character is encountered
-int skip_pad(char *&buf)
-{
-    while ((*buf != '\0') &&
-        ((*buf == ' ') || (*buf == '\n') || (*buf == '\r') || (*buf == '\t')))
-        ++buf;
-    return *buf == '\0' ? -1 : 0;
-}
-
-// return 0 if the first non-pad character is #
-int is_comment(char *buf)
-{
-    skip_pad(buf);
-    if (buf[0] == '#')
-        return 1;
-    return 0;
-}
-
-template <typename num_t>
-struct scanf_tt {};
-
-#define DECLARE_SCANF_TT(_CPP_T, _FMT_STR)      \
-template<>                                      \
-struct scanf_tt<_CPP_T>                         \
-{                                               \
-    static                                      \
-    const char *format() { return _FMT_STR; }   \
-};
-DECLARE_SCANF_TT(float," %g")
-DECLARE_SCANF_TT(double," %lg")
-DECLARE_SCANF_TT(char," %hhi")
-DECLARE_SCANF_TT(short, " %hi")
-DECLARE_SCANF_TT(int, " %i")
-DECLARE_SCANF_TT(long, " %li")
-DECLARE_SCANF_TT(long long, "%lli")
-DECLARE_SCANF_TT(unsigned char," %hhu")
-DECLARE_SCANF_TT(unsigned short, " %hu")
-DECLARE_SCANF_TT(unsigned int, " %u")
-DECLARE_SCANF_TT(unsigned long, " %lu")
-DECLARE_SCANF_TT(unsigned long long, "%llu")
-DECLARE_SCANF_TT(std::string, " \"%128s")
-}
-
-
+#include "teca_string_util.h"
 
 teca_table::impl_t::impl_t() :
     columns(teca_array_collection::New()), active_column(0)
@@ -410,7 +238,7 @@ int teca_table::from_stream(std::istream &s)
 
     // split into lines, and work line by line
     std::vector<char*> lines;
-    if (teca_table_internals::tokenize(buf, '\n', lines))
+    if (teca_string_util::tokenize(buf, '\n', lines))
     {
         free(buf);
         TECA_ERROR("Failed to split lines")
@@ -423,14 +251,14 @@ int teca_table::from_stream(std::istream &s)
     // these may contain metadata such as calendaring info
     size_t lno = 0;
     while ((lno < n_lines) &&
-        teca_table_internals::is_comment(lines[lno]))
+        teca_string_util::is_comment(lines[lno]))
     {
         const char *lp = lines[lno];
         // calendar
         if (strstr(lp, "calendar"))
         {
             std::string calendar;
-            if (teca_table_internals::extract_string(lp, calendar))
+            if (teca_string_util::extract_string(lp, calendar))
             {
                 TECA_ERROR("Invalid calendar (" << lp << ")")
             }
@@ -443,7 +271,7 @@ int teca_table::from_stream(std::istream &s)
         if (strstr(lp, "time_units"))
         {
             std::string time_units;
-            if (teca_table_internals::extract_string(lp, time_units))
+            if (teca_string_util::extract_string(lp, time_units))
             {
                 TECA_ERROR("Invalid time_units spec (" << lp << ")")
             }
@@ -457,7 +285,7 @@ int teca_table::from_stream(std::istream &s)
 
     // split the header
     std::vector<char *> header;
-    if (teca_table_internals::tokenize(lines[lno], ',', header))
+    if (teca_string_util::tokenize(lines[lno], ',', header))
     {
         free(buf);
         TECA_ERROR("Failed to split fields")
@@ -509,7 +337,7 @@ int teca_table::from_stream(std::istream &s)
         size_t j = i + lno;
         size_t ii = i*n_cols;
 
-        if (teca_table_internals::tokenize(lines[j], ',', n_cols, data + ii))
+        if (teca_string_util::tokenize(lines[j], ',', n_cols, data + ii))
         {
             free(buf);
             free(data);
@@ -526,7 +354,7 @@ int teca_table::from_stream(std::istream &s)
         TEMPLATE_DISPATCH(teca_variant_array_impl,
             col.get(),
             NT *p_col = static_cast<TT*>(col.get())->get();
-            const char *fmt = teca_table_internals::scanf_tt<NT>::format();
+            const char *fmt = teca_string_util::scanf_tt<NT>::format();
             for (size_t i = 0; i < n_rows; ++i)
             {
                 const char *cell = data[i*n_cols + j];
@@ -547,7 +375,7 @@ int teca_table::from_stream(std::istream &s)
             for (size_t i = 0; i < n_rows; ++i)
             {
                 const char *cell = data[i*n_cols + j];
-                if (teca_table_internals::extract_string(cell, p_col[i]))
+                if (teca_string_util::extract_string(cell, p_col[i]))
                 {
                     free(buf);
                     free(data);
