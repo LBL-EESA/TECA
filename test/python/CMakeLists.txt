@@ -5,19 +5,39 @@ teca_add_test(py_test_cf_reader
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
-teca_add_test(py_test_multi_cf_reader_serial
+if (TECA_HAS_DATA)
+    configure_file(${TECA_DATA_ROOT}/ECMWF-IFS-HR-SST-present.mcf.in
+         ${CMAKE_CURRENT_BINARY_DIR}/ECMWF-IFS-HR-SST-present.mcf)
+endif()
+
+teca_add_test(py_test_multi_cf_reader_config_serial
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_multi_cf_reader.py
-    -g r_0 -t r_0 -o py_test_multi_cf_reader_serial_%t%.nc
+    -g r_0 -t r_0 -o py_test_multi_cf_reader_config_serial_%t%.nc
+    -f ${CMAKE_CURRENT_BINARY_DIR}/ECMWF-IFS-HR-SST-present.mcf
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(py_test_multi_cf_reader_config_mpi
+    COMMAND  ${MPIEXEC} -n ${TEST_CORES} ${PYTHON_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_multi_cf_reader.py
+    -g r_0 -t r_0 -o py_test_multi_cf_reader_config_mpi_%t%.nc
+    -f ${CMAKE_CURRENT_BINARY_DIR}/ECMWF-IFS-HR-SST-present.mcf
+    FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(py_test_multi_cf_reader_cmdln_serial
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_multi_cf_reader.py
+    -g r_0 -t r_0 -o py_test_multi_cf_reader_cmdln_serial_%t%.nc
     "(" "${TECA_DATA_ROOT}/HighResMIP/ECMWF-IFS-HR-SST-present/hus/hus_6hrPlevPt_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_gr_1950-.*\\.nc" hus ")"
     "(" "${TECA_DATA_ROOT}/HighResMIP/ECMWF-IFS-HR-SST-present/ua/ua_6hrPlevPt_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_gr_1950-.*\\.nc" ua ")"
     "(" "${TECA_DATA_ROOT}/HighResMIP/ECMWF-IFS-HR-SST-present/va/va_6hrPlevPt_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_gr_1950-.*\\.nc" va ")"
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
-teca_add_test(py_test_multi_cf_reader_mpi
+teca_add_test(py_test_multi_cf_reader_cmdln_mpi
     COMMAND  ${MPIEXEC} -n ${TEST_CORES} ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_multi_cf_reader.py
-    -g r_0 -t r_0 -o py_test_multi_cf_reader_mpi_%t%.nc
+    -g r_0 -t r_0 -o py_test_multi_cf_reader_cmdln_mpi_%t%.nc
     "(" "${TECA_DATA_ROOT}/HighResMIP/ECMWF-IFS-HR-SST-present/hus/hus_6hrPlevPt_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_gr_1950-.*\\.nc" hus ")"
     "(" "${TECA_DATA_ROOT}/HighResMIP/ECMWF-IFS-HR-SST-present/ua/ua_6hrPlevPt_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_gr_1950-.*\\.nc" ua ")"
     "(" "${TECA_DATA_ROOT}/HighResMIP/ECMWF-IFS-HR-SST-present/va/va_6hrPlevPt_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_gr_1950-.*\\.nc" va ")"

@@ -16,19 +16,51 @@ using p_teca_multi_cf_reader_internals = std::shared_ptr<teca_multi_cf_reader_in
 
 /// a reader for data stored in NetCDF CF format in multiple files
 /**
-a reader for data stored in NetCDF CF format in multiple files.
-the data read is presented to the down stream as a single dataset
+a reader for data stored in NetCDF CF format in multiple files.  the data read
+is presented to the down stream as a single dataset
 
 use the add_reader method to specify regular experiession and corresponding
 list of variables to read. a reader, not necessarily the same one, must be
 selected to provide the time and spatial axes.
 
-this reader could handle spatio-temporal interpolations as well, however
-that is currently not implemented. as a result all data is expected to
-be on the same coordinate system.
+this reader could handle spatio-temporal interpolations as well, however that
+is currently not implemented. as a result all data is expected to be on the
+same coordinate system.
 
-A number of algorithm properties modify run time behavior, most of these
-are exposed from teca_cf_reader. see the teca_cf_reader for details.
+A number of algorithm properties modify run time behavior, most of these are
+exposed from teca_cf_reader. see the teca_cf_reader for details.
+
+The reader may be initialized via a configuration file. The configuration file
+consists of name = value pairs and flags organized in sections. Sections are
+declared using []. There is an optional  global section followed by a number of
+[cf_reader] sections. Each [cf_reader] section consists of a name(optional), a
+regex, a list of variables, a provides_time flag(optional) and a provides
+geometry flag(optional). At least one section must contain a provides_time and
+provides geometry flag. The global section may contain a data_root. Occurances
+of the string %data_root% in the regex are replaced with the value of
+data_root.
+
+The following example configures the reader to read hus,ua and va.
+
+```
+# TECA multi_cf_reader config
+
+data_root = /opt/TECA_data/HighResMIP/ECMWF-IFS-HR-SST-present
+
+[cf_reader]
+regex = %data_root%/hus/hus.*\.nc$
+variables = hus
+provides_time
+provides_geometry
+
+[cf_reader]
+regex = %data_root%/va/va.*\.nc$
+variables = va
+
+[cf_reader]
+regex = %data_root%/ua/ua.*\.nc$
+variables = ua
+```
 */
 class teca_multi_cf_reader : public teca_algorithm
 {
@@ -42,6 +74,9 @@ public:
     // objects.
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
+
+    // set the file name describing the dataset to read
+    int set_input_file(const std::string &input_file);
 
     // adds a reader to the collection and at the same time specifies
     // how it will be used.
@@ -63,6 +98,9 @@ public:
     // sets the list of variable that a reader will provide.
     int set_variable_reader(const std::string &key,
         const std::vector<std::string> &variable);
+
+    // get the list of variables that the reader will serve up
+    void get_variables(std::vector<std::string> &vars);
 
     // the directory where metadata should be cached. if this is not specified
     // metadata is cached either with the data, in the CWD, or in the user's

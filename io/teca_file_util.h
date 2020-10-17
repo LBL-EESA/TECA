@@ -2,6 +2,7 @@
 #define teca_file_util_h
 
 #include <vector>
+#include <deque>
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -72,7 +73,7 @@ std::string filename(const std::string &filename);
 // Returns the extension from the given filename.
 std::string extension(const std::string &filename);
 
-// rad the line of the ascii file into a vector
+// read the lines of the ascii file into a vector
 size_t load_lines(const char *filename, std::vector<std::string> &lines);
 
 // read the file into a string
@@ -175,6 +176,47 @@ size_t parse_value(std::string &in,size_t at, std::string key, T &value)
     }
   return p;
 }
+
+// a stack of lines. lines can be popped as they are processed
+// and the current line number is recorded.
+struct line_buffer
+{
+    line_buffer() : m_buffer(nullptr), m_line_number(0) {}
+    ~line_buffer() { free(m_buffer); }
+
+    // read the contents of the file and intitalize the
+    // stack of lines.
+    int initialize(const char *file_name);
+
+    // check if the stack is not empty
+    operator bool ()
+    {
+        return !m_lines.empty();
+    }
+
+    // get the line at the top of the stack
+    char *current()
+    {
+        return m_lines.front();
+    }
+
+    // remove the line at the top of the stack
+    void pop()
+    {
+        m_lines.pop_front();
+        ++m_line_number;
+    }
+
+    // get the current line number
+    size_t line_number()
+    {
+        return m_line_number;
+    }
+
+    char *m_buffer;
+    std::deque<char*> m_lines;
+    size_t m_line_number;
+};
 
 };
 

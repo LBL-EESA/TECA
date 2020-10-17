@@ -27,8 +27,27 @@
 %ignore teca_multi_cf_reader::shared_from_this;
 %shared_ptr(teca_multi_cf_reader)
 %ignore teca_multi_cf_reader::operator=;
+%ignore teca_multi_cf_reader::get_variables(std::vector<std::string>&);
 %include "teca_multi_cf_reader.h"
 #endif
+%extend teca_multi_cf_reader
+{
+    PyObject *get_variables()
+    {
+        std::vector<std::string> vars;
+        $self->get_variables(vars);
+
+        size_t n_vars = vars.size();
+
+        PyObject *vars_out = PyList_New(n_vars);
+
+        for (size_t i = 0; i < n_vars; ++i)
+            PyList_SetItem(vars_out, i, CStringToPyString(vars[i].c_str()));
+
+        return vars_out;
+    }
+}
+
 
 /***************************************************************************
  cf_writer

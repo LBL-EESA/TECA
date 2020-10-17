@@ -23,6 +23,7 @@ def parse_args(args):
     baseline = ''
     time_reader = ''
     geometry_reader = ''
+    config_file = ''
     verbose = 0
     tmp_vars = []
     in_list = False
@@ -85,45 +86,42 @@ def parse_args(args):
                 except Exception:
                     raise RuntimeError('Missing base file name')
 
+            elif arg == '-f':
+                try:
+                    config_file = next(it)
+                except Exception:
+                    raise RuntimeError('Missing config_file name')
+
             elif arg == '-h':
                 sys.stderr.write('usage: test_multi_cf_reader [-o out file] '
-                                 '[-b base line] [-s first step] [-e last step] [-v] '
-                                 '[( regex var0 ... varn )] '
+                                 '[-b base line] [-f config file ] [-s first step] '
+                                 ' [-e last step] [-v] [( regex var0 ... varn )] '
                                  ' ... [( regex var0 ... varn )]\n')
                 sys.exit(-1)
 
         except StopIteration:
             return regex, time_reader, geometry_reader, \
-                var, first_step, last_step, out_file, baseline, \
-                verbose
+                var, config_file, first_step, last_step, out_file, \
+                baseline, verbose
 
 
 # parse the comman tail
 regex, time_reader, geometry_reader, \
-var, first_step, last_step, out_file, baseline, \
-verbose = parse_args(sys.argv)
+var, config_file, first_step, last_step, \
+out_file, baseline, verbose = parse_args(sys.argv)
 
-if not geometry_reader:
-    sys.stderr.write('ERROR: no geometry_reader was specified\n')
-    sys.exit(-1)
+if not config_file:
+    if not geometry_reader:
+        sys.stderr.write('ERROR: no geometry_reader was specified\n')
+        sys.exit(-1)
 
-if not time_reader:
-    sys.stderr.write('ERROR: no time_reader was specified\n')
-    sys.exit(-1)
+    if not time_reader:
+        sys.stderr.write('ERROR: no time_reader was specified\n')
+        sys.exit(-1)
 
-if not len(regex):
-    sys.stderr.write('ERROR: at least one regex must be provided\n')
-    sys.exit(-1)
-
-if verbose:
-    sys.stderr.write('regex=%s\n'%(str(regex)))
-    sys.stderr.write('time_reader=%s\n'%(str(time_reader)))
-    sys.stderr.write('geometry_reader=%s\n'%(str(geometry_reader)))
-    sys.stderr.write('var=%s\n'%(str(var)))
-    sys.stderr.write('first_step=%s\n'%(str(first_step)))
-    sys.stderr.write('last_step=%s\n'%(str(last_step)))
-    sys.stderr.write('out_file=%s\n'%(str(out_file)))
-    sys.stderr.write('baseline=%s\n'%(str(baseline)))
+    if not len(regex):
+        sys.stderr.write('ERROR: at least one regex must be provided\n')
+        sys.exit(-1)
 
 # read data from multiple files, present it as a single dataset
 cfmr = teca_multi_cf_reader.New()
@@ -131,27 +129,43 @@ cfmr.set_x_axis_variable('lon')
 cfmr.set_y_axis_variable('lat')
 cfmr.set_z_axis_variable('plev')
 cfmr.set_t_axis_variable('time')
-n = len(regex)
-i = 0
-while i < n:
-    key = 'r_%d'%(i)
-    cfmr.add_reader(key, regex[i], 0, 0, var[i])
-    i += 1
-cfmr.set_time_reader(time_reader)
-cfmr.set_geometry_reader(geometry_reader)
+if config_file:
+    cfmr.set_input_file(config_file)
+    all_var = cfmr.get_variables()
+else:
+    n = len(regex)
+    i = 0
+    while i < n:
+        key = 'r_%d'%(i)
+        cfmr.add_reader(key, regex[i], 0, 0, var[i])
+        i += 1
+    cfmr.set_time_reader(time_reader)
+    cfmr.set_geometry_reader(geometry_reader)
+
+    all_var = []
+    for vl in var:
+        for v in vl:
+            all_var.append(v)
 
 if verbose:
+    if config_file:
+        sys.stderr.write('config_file=%s\n'%(config_file))
+        sys.stderr.write('var=%s\n'%(str(all_var)))
+    else:
+        sys.stderr.write('regex=%s\n'%(str(regex)))
+        sys.stderr.write('time_reader=%s\n'%(str(time_reader)))
+        sys.stderr.write('geometry_reader=%s\n'%(str(geometry_reader)))
+        sys.stderr.write('var=%s\n'%(str(var)))
+    sys.stderr.write('first_step=%s\n'%(str(first_step)))
+    sys.stderr.write('last_step=%s\n'%(str(last_step)))
+    sys.stderr.write('out_file=%s\n'%(str(out_file)))
+    sys.stderr.write('baseline=%s\n'%(str(baseline)))
+
     md = cfmr.update_metadata()
     sys.stderr.write('md = %s\n'%(str(md)))
 
 coords = teca_normalize_coordinates.New()
 coords.set_input_connection(cfmr.get_output_port())
-
-# flatten the list of variables
-all_var = []
-for vl in var:
-    for v in vl:
-        all_var.append(v)
 
 exe = teca_index_executive.New()
 exe.set_start_index(first_step)
