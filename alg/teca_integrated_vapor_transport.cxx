@@ -128,55 +128,68 @@ teca_metadata teca_integrated_vapor_transport::get_output_metadata(
 #endif
     (void)port;
 
-    // the base class will handle dealing with the transformation of
-    // mesh dimensions and reporting the array we produce, but we have
-    // to determine the data type and tell the name of the produced array.
-    const teca_metadata &md = input_md[0];
+    // set things up in the first pass, and don't modify in subsequent passes
+    // due to threading concerns
 
-    teca_metadata attributes;
-    if (md.get("attributes", attributes))
+    if (this->get_number_of_derived_variables() == 0)
     {
-        TECA_ERROR("Failed to determine output data type "
-            "because attributes are misisng")
-        return teca_metadata();
+        // the base class will handle dealing with the transformation of
+        // mesh dimensions and reporting the array we produce, but we have
+        // to determine the data type and tell the name of the produced array.
+        const teca_metadata &md = input_md[0];
+
+        teca_metadata attributes;
+        if (md.get("attributes", attributes))
+        {
+            TECA_ERROR("Failed to determine output data type "
+                "because attributes are misisng")
+            return teca_metadata();
+        }
+
+        teca_metadata u_atts;
+        if (attributes.get(this->wind_u_variable, u_atts))
+        {
+            TECA_ERROR("Failed to determine output data type "
+                "because attributes for \"" << this->wind_u_variable
+                << "\" are misisng")
+            return teca_metadata();
+        }
+
+        int type_code = 0;
+        if (u_atts.get("type_code", type_code))
+        {
+            TECA_ERROR("Failed to determine output data type "
+                "because attributes for \"" << this->wind_u_variable
+                << "\" is misisng a \"type_code\"")
+            return teca_metadata();
+        }
+
+        teca_array_attributes ivt_u_atts(
+            type_code, teca_array_attributes::point_centering,
+            0, "kg m^{-1} s^{-1}", "longitudinal integrated vapor transport",
+            "the longitudinal component of integrated vapor transport");
+
+        teca_array_attributes ivt_v_atts(
+            type_code, teca_array_attributes::point_centering,
+            0, "kg m^{-1} s^{-1}", "latitudinal integrated vapor transport",
+            "the latitudinal component of integrated vapor transport");
+
+        // install name and attributes of the output variables in the base classs
+        this->append_derived_variable(this->ivt_u_variable);
+        this->append_derived_variable(this->ivt_v_variable);
+
+        this->append_derived_variable_attribute(ivt_u_atts);
+        this->append_derived_variable_attribute(ivt_v_atts);
+
     }
 
-    teca_metadata u_atts;
-    if (attributes.get(this->wind_u_variable, u_atts))
+    if (this->get_number_of_dependent_variables() == 0)
     {
-        TECA_ERROR("Failed to determine output data type "
-            "because attributes for \"" << this->wind_u_variable
-            << "\" are misisng")
-        return teca_metadata();
+        // install the names of the input variables in the base class
+        this->append_dependent_variable(this->wind_u_variable);
+        this->append_dependent_variable(this->wind_v_variable);
+        this->append_dependent_variable(this->specific_humidity_variable);
     }
-
-    int type_code = 0;
-    if (u_atts.get("type_code", type_code))
-    {
-        TECA_ERROR("Failed to determine output data type "
-            "because attributes for \"" << this->wind_u_variable
-            << "\" is misisng a \"type_code\"")
-        return teca_metadata();
-    }
-
-    teca_array_attributes ivt_u_atts(
-        type_code, teca_array_attributes::point_centering,
-        0, "kg m^{-1} s^{-1}", "longitudinal integrated vapor transport",
-        "the longitudinal component of integrated vapor transport");
-
-    teca_array_attributes ivt_v_atts(
-        type_code, teca_array_attributes::point_centering,
-        0, "kg m^{-1} s^{-1}", "latitudinal integrated vapor transport",
-        "the latitudinal component of integrated vapor transport");
-
-    // install name and attributes of the output variables in the base classs
-    this->clear_derived_variables();
-    this->append_derived_variable(this->ivt_u_variable);
-    this->append_derived_variable(this->ivt_v_variable);
-
-    this->clear_derived_variable_attributes();
-    this->append_derived_variable_attribute(ivt_u_atts);
-    this->append_derived_variable_attribute(ivt_v_atts);
 
     // invoke the base class method, which does the work of transforming
     // the mesh and reporting the variables and their attributes.
@@ -189,13 +202,7 @@ std::vector<teca_metadata> teca_integrated_vapor_transport::get_upstream_request
     const std::vector<teca_metadata> &input_md,
     const teca_metadata &request)
 {
-    // install the names of the input variables in the base class
-    this->clear_dependent_variables();
-    this->append_dependent_variable(this->wind_u_variable);
-    this->append_dependent_variable(this->wind_v_variable);
-    this->append_dependent_variable(this->specific_humidity_variable);
-
-    // invoke th ebase class methd
+    // invoke the base class method
     return teca_vertical_reduction::get_upstream_request(port, input_md, request);
 }
 
