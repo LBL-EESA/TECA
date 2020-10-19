@@ -75,6 +75,9 @@ struct function_of_z
 
 int main(int argc, char **argv)
 {
+    (void)argc;
+    (void)argv;
+
     unsigned long z1 = 1024;
     double p_sfc = 92500e-4;
     double p_top = 5000e-4;
