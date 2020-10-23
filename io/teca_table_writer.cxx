@@ -73,7 +73,8 @@ int write_bin(const_p_teca_table table, const std::string &file_name)
 
 #if defined(TECA_HAS_NETCDF)
 // ********************************************************************************
-int write_netcdf(const_p_teca_table table, const std::string &file_name)
+int write_netcdf(const_p_teca_table table, const std::string &file_name,
+		 const std::string &row_dim_name)
 {
     // create the file
     teca_netcdf_util::netcdf_handle fh;
@@ -91,7 +92,7 @@ int write_netcdf(const_p_teca_table table, const std::string &file_name)
     {
     std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-    if ((ierr = nc_def_dim(fh.get(), "n_rows", n_rows, &row_dim_id)) != NC_NOERR)
+    if ((ierr = nc_def_dim(fh.get(), row_dim_name.c_str(), n_rows, &row_dim_id)) != NC_NOERR)
     {
         TECA_ERROR("Failed to create n_rows dimension. " << nc_strerror(ierr))
         return -1;
@@ -279,7 +280,8 @@ int write_xlsx(const_p_teca_table table, lxw_worksheet *worksheet)
 
 // --------------------------------------------------------------------------
 teca_table_writer::teca_table_writer()
-    : file_name("table_%t%.bin"), output_format(format_auto)
+    : file_name("table_%t%.bin"), output_format(format_auto),
+      row_dim_name("n_rows")
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -300,6 +302,8 @@ void teca_table_writer::get_properties_description(
     opts.add_options()
         TECA_POPTS_GET(std::string, prefix, file_name,
             "path/name of file to write")
+        TECA_POPTS_GET(std::string, prefix, row_dim_name,
+            "name of the row dimension (only used if output format is netCDF)")
         TECA_POPTS_GET(int, prefix, output_format,
             "output file format enum, 0:csv, 1:bin, 2:xlsx, 3:auto."
             "if auto is used, format is deduced from file_name")
@@ -312,6 +316,7 @@ void teca_table_writer::get_properties_description(
 void teca_table_writer::set_properties(const std::string &prefix, variables_map &opts)
 {
     TECA_POPTS_SET(opts, std::string, prefix, file_name)
+    TECA_POPTS_SET(opts, std::string, prefix, row_dim_name)
     TECA_POPTS_SET(opts, bool, prefix, output_format)
 }
 #endif
@@ -511,7 +516,7 @@ const_p_teca_dataset teca_table_writer::execute(
             std::string out_file_i = out_file;
             teca_file_util::replace_identifier(out_file_i, name);
             const_p_teca_table table = database->get_table(i);
-            if (internal::write_netcdf(table, out_file_i))
+            if (internal::write_netcdf(table, out_file_i, this->row_dim_name))
             {
                 TECA_ERROR("Failed to write table " << i << " \"" << name << "\"")
                 return nullptr;
