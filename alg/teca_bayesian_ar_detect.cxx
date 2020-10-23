@@ -607,7 +607,7 @@ void teca_bayesian_ar_detect::internals_t::clear()
 // --------------------------------------------------------------------------
 teca_bayesian_ar_detect::teca_bayesian_ar_detect() :
     min_component_area_variable("min_component_area"),
-    min_water_vapor_variable("min_water_vapor"),
+    min_ivt_variable("min_water_vapor"),
     hwhm_latitude_variable("hwhm_latitude"), thread_pool_size(1),
     verbose(0), internals(new internals_t)
 {
@@ -630,12 +630,12 @@ void teca_bayesian_ar_detect::get_properties_description(
         + (prefix.empty()?"teca_bayesian_ar_detect":prefix));
 
     opts.add_options()
-        TECA_POPTS_GET(std::string, prefix, water_vapor_variable,
+        TECA_POPTS_GET(std::string, prefix, ivt_variable,
             "name of the water vapor variable (\"\")")
         TECA_POPTS_GET(std::string, prefix, min_component_area_variable,
             "name of the column in the parameter table containing the "
             "component area threshold (\"min_component_area\")")
-        TECA_POPTS_GET(std::string, prefix, min_water_vapor_variable,
+        TECA_POPTS_GET(std::string, prefix, min_ivt_variable,
             "name of the column in the parameter table containing the "
             "water vapor threshold (\"min_water_vapor\")")
         TECA_POPTS_GET(std::string, prefix, hwhm_latitude_variable,
@@ -655,9 +655,9 @@ void teca_bayesian_ar_detect::get_properties_description(
 void teca_bayesian_ar_detect::set_properties(const std::string &prefix,
     variables_map &opts)
 {
-    TECA_POPTS_SET(opts, std::string, prefix, water_vapor_variable)
+    TECA_POPTS_SET(opts, std::string, prefix, ivt_variable)
     TECA_POPTS_SET(opts, std::string, prefix, min_component_area_variable)
-    TECA_POPTS_SET(opts, std::string, prefix, min_water_vapor_variable)
+    TECA_POPTS_SET(opts, std::string, prefix, min_ivt_variable)
     TECA_POPTS_SET(opts, std::string, prefix, hwhm_latitude_variable)
     TECA_POPTS_SET(opts, int, prefix, thread_pool_size)
     TECA_POPTS_SET(opts, int, prefix, verbose)
@@ -747,10 +747,10 @@ teca_metadata teca_bayesian_ar_detect::get_output_metadata(
             {
                 TECA_ERROR("metadata pipeline failure")
             }
-            else if (!parameter_table->has_column(this->min_water_vapor_variable))
+            else if (!parameter_table->has_column(this->min_ivt_variable))
             {
                 TECA_ERROR("metadata missing percentile column \""
-                    << this->min_water_vapor_variable << "\"")
+                    << this->min_ivt_variable << "\"")
             }
             else if (!parameter_table->get_column(this->min_component_area_variable))
             {
@@ -860,7 +860,7 @@ std::vector<teca_metadata> teca_bayesian_ar_detect::get_upstream_request(
     std::vector<teca_metadata> up_reqs;
 
     // get the name of the array to request
-    if (this->water_vapor_variable.empty())
+    if (this->ivt_variable.empty())
     {
         TECA_ERROR("A water vapor variable was not specified")
         return up_reqs;
@@ -872,7 +872,7 @@ std::vector<teca_metadata> teca_bayesian_ar_detect::get_upstream_request(
     std::set<std::string> arrays;
     if (req.has("arrays"))
         req.get("arrays", arrays);
-    arrays.insert(this->water_vapor_variable);
+    arrays.insert(this->ivt_variable);
 
     // remove what we produce
     arrays.erase("ar_probability");
@@ -959,7 +959,7 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
     // and always pass the input mesh down stream
     ::parameter_table_request_generator request_gen(parameter_table_size,
             this->internals->parameter_table->get_column(this->hwhm_latitude_variable),
-            this->internals->parameter_table->get_column(this->min_water_vapor_variable),
+            this->internals->parameter_table->get_column(this->min_ivt_variable),
             this->internals->parameter_table->get_column(this->min_component_area_variable));
 
     teca_metadata exec_md;
@@ -999,12 +999,12 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
     p_teca_latitude_damper damp = teca_latitude_damper::New();
     damp->set_communicator(MPI_COMM_SELF);
     damp->set_input_connection(dss->get_output_port());
-    damp->set_damped_variables({this->water_vapor_variable});
+    damp->set_damped_variables({this->ivt_variable});
 
     p_teca_binary_segmentation seg = teca_binary_segmentation::New();
     seg->set_communicator(MPI_COMM_SELF);
     seg->set_input_connection(damp->get_output_port());
-    seg->set_threshold_variable(this->water_vapor_variable);
+    seg->set_threshold_variable(this->ivt_variable);
     seg->set_segmentation_variable("wv_seg");
     seg->set_threshold_by_percentile();
 
