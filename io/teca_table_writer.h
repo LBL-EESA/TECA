@@ -39,6 +39,9 @@ public:
     // %s% is replaced with the table name (workbooks only).
     TECA_ALGORITHM_PROPERTY(std::string, file_name)
 
+    // sets the name of the row variable in the netCDF file
+    TECA_ALGORITHM_PROPERTY(std::string, row_dim_name)
+
     // report/initialize to/from Boost program options
     // objects.
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
@@ -73,6 +76,7 @@ private:
 private:
     std::string index_request_key;
     std::string file_name;
+    std::string row_dim_name;
     int output_format;
 };
 
