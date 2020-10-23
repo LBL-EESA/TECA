@@ -5,15 +5,10 @@ teca_add_test(py_test_cf_reader
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
-if (TECA_HAS_DATA)
-    configure_file(${TECA_DATA_ROOT}/ECMWF-IFS-HR-SST-present.mcf.in
-         ${CMAKE_CURRENT_BINARY_DIR}/ECMWF-IFS-HR-SST-present.mcf)
-endif()
-
 teca_add_test(py_test_multi_cf_reader_config_serial
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_multi_cf_reader.py
     -g r_0 -t r_0 -o py_test_multi_cf_reader_config_serial_%t%.nc
-    -f ${CMAKE_CURRENT_BINARY_DIR}/ECMWF-IFS-HR-SST-present.mcf
+    -f ${CMAKE_CURRENT_BINARY_DIR}/../ECMWF-IFS-HR-SST-present.mcf
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
@@ -21,7 +16,7 @@ teca_add_test(py_test_multi_cf_reader_config_mpi
     COMMAND  ${MPIEXEC} -n ${TEST_CORES} ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_multi_cf_reader.py
     -g r_0 -t r_0 -o py_test_multi_cf_reader_config_mpi_%t%.nc
-    -f ${CMAKE_CURRENT_BINARY_DIR}/ECMWF-IFS-HR-SST-present.mcf
+    -f ${CMAKE_CURRENT_BINARY_DIR}/../ECMWF-IFS-HR-SST-present.mcf
     FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
