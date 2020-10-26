@@ -67,7 +67,7 @@ public:
 protected:
     teca_cf_time_step_mapper() : index_initializer_key(""),
         index_request_key(""), start_time_step(0), end_time_step(-1),
-        stride(1), n_files(0), n_time_steps_per_file(1)
+        n_files(0), n_time_steps_per_file(1)
     {}
 
     // remove these for convenience
@@ -94,7 +94,6 @@ private:
     // user provided overrides
     long start_time_step;
     long end_time_step;
-    long stride;
 
     // time_steps to request by rank
     long n_time_steps;
