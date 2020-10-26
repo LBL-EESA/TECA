@@ -1071,6 +1071,9 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
         return nullptr;
     }
 
+    // pass arrays through
+    out_mesh->shallow_append_arrays(in_mesh);
+
     // reset the pipeline control keys
     teca_metadata &out_md = out_mesh->get_metadata();
     out_md.set("index_request_key", index_request_key);
