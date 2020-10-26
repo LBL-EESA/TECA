@@ -1,6 +1,7 @@
 #include "teca_multi_cf_reader.h"
 #include "teca_array_attributes.h"
 #include "teca_file_util.h"
+#include "teca_string_util.h"
 #include "teca_cartesian_mesh.h"
 #include "teca_cf_reader.h"
 #include "teca_array_collection.h"
@@ -41,6 +42,11 @@ public:
         const teca_metadata &request,
         const std::vector<std::string> &arrays,
         p_teca_cartesian_mesh &mesh_out);
+
+    static
+    int parse_cf_reader_section(teca_file_util::line_buffer &lines,
+        std::string &name, std::string &regex, int &provides_time,
+        int &provides_geometry, std::vector<std::string> &variables);
 
 public:
     // a container that packages informatiuon associated with a reader
@@ -106,6 +112,144 @@ int teca_multi_cf_reader_internals::read_arrays(p_teca_cf_reader reader,
     return 0;
 }
 
+// --------------------------------------------------------------------------
+int teca_multi_cf_reader_internals::parse_cf_reader_section(
+    teca_file_util::line_buffer &lines, std::string &name,
+    std::string &regex, int &provides_time, int &provides_geometry,
+    std::vector<std::string> &variables)
+{
+    name = "";
+    regex = "";
+    provides_time = 0;
+    provides_geometry = 0;
+    variables.clear();
+
+    // the section was valid if at least regex and vars were found
+    int have_name = 0;
+    int have_regex = 0;
+    int have_variables = 0;
+    int have_time_reader = 0;
+    int have_geometry_reader = 0;
+
+    // the caller is expected to pass the current line and that line
+    // is expected to be "[cf_reader]".
+    char *l = lines.current();
+    teca_string_util::skip_pad(l);
+
+    if (l[0] == '[')
+        lines.pop();
+
+    while (lines)
+    {
+        long lno = lines.line_number() + 1;
+        l = lines.current();
+
+        // stop at the next section header
+        teca_string_util::skip_pad(l);
+        if (l[0] == '[')
+            break;
+
+        lines.pop();
+
+        // skip comments
+        if (teca_string_util::is_comment(l))
+            continue;
+
+
+        // look for and process key words
+        if (strncmp("name", l, 5) == 0)
+        {
+            if (have_name)
+            {
+                TECA_ERROR("Duplicate name lable found on line " << lno)
+                return -1;
+            }
+
+            if (teca_string_util::extract_value<std::string>(l, name))
+            {
+                TECA_ERROR("Syntax error when parsing name on line " << lno)
+                return -1;
+            }
+
+            have_name = 1;
+        }
+        else if (strncmp("regex", l, 5) == 0)
+        {
+            if (have_regex)
+            {
+                TECA_ERROR("Duplicate regex lable found on line " << lno)
+                return -1;
+            }
+
+            if (teca_string_util::extract_value<std::string>(l, regex))
+            {
+                TECA_ERROR("Syntax error when parsing regex on line " << lno)
+                return -1;
+            }
+
+            have_regex = 1;
+        }
+        else if (strncmp("variables", l, 9) == 0)
+        {
+            if (have_variables)
+            {
+                TECA_ERROR("Duplicate regex lable found on line " << lno)
+                return -1;
+            }
+
+            std::vector<char*> tmp;
+            if (teca_string_util::tokenize(l, '=', tmp) || (tmp.size() != 2))
+            {
+                TECA_ERROR("Invalid variables specifier : \"" << l
+                    << "\" on line " << lno)
+                return -1;
+            }
+
+            std::vector<char*> vars;
+            if (teca_string_util::tokenize(tmp[1], ',', vars) || (vars.size() < 1))
+            {
+                TECA_ERROR("Invalid variables specifier : \"" << l
+                    << "\" on line " << lno)
+                return -1;
+            }
+
+            size_t n_vars  = vars.size();
+            for (size_t i = 0; i < n_vars; ++i)
+            {
+                char *v = vars[i];
+                if (teca_string_util::skip_pad(v))
+                {
+                    TECA_ERROR("Invalid variable name on line " << lno)
+                    return -1;
+                }
+                variables.push_back(v);
+            }
+
+            have_variables = 1;
+        }
+        else if (strncmp("provides_time", l, 11) == 0)
+        {
+            if (have_time_reader)
+            {
+                TECA_ERROR("Duplicate provides_time lable found on line " << lno)
+                return -1;
+            }
+            provides_time = 1;
+            have_time_reader = 1;
+        }
+        else if (strncmp("provides_geometry", l, 15) == 0)
+        {
+            if (have_geometry_reader)
+            {
+                TECA_ERROR("Duplicate provides_geometry lable found on line " << lno)
+                return -1;
+            }
+            provides_geometry = 1;
+        }
+    }
+
+    return (have_regex && have_variables) ? 0 : -1;
+}
 
 
 // --------------------------------------------------------------------------
@@ -137,6 +281,8 @@ void teca_multi_cf_reader::get_properties_description(
         + (prefix.empty()?"teca_multi_cf_reader":prefix));
 
     opts.add_options()
+        TECA_POPTS_GET(std::string, prefix, input_file,
+            "a file dedscribing the dataset layout ()")
         TECA_POPTS_GET(std::string, prefix, metadata_cache_dir,
             "a directory where metadata caches can be stored ()")
         TECA_POPTS_GET(std::string, prefix, x_axis_variable,
@@ -157,11 +303,11 @@ void teca_multi_cf_reader::get_properties_description(
             "name of variable that has t axis values set by the"
             "the user if the file doesn't have time variable set ()")
         TECA_POPTS_GET(int, prefix, periodic_in_x,
-            "the dataset has apriodic boundary in the x direction (0)")
+            "the dataset has a periodic boundary in the x direction (0)")
         TECA_POPTS_GET(int, prefix, periodic_in_y,
-            "the dataset has apriodic boundary in the y direction (0)")
+            "the dataset has a periodic boundary in the y direction (0)")
         TECA_POPTS_GET(int, prefix, periodic_in_z,
-            "the dataset has apriodic boundary in the z direction (0)")
+            "the dataset has a periodic boundary in the z direction (0)")
         TECA_POPTS_GET(int, prefix, thread_pool_size,
             "set the number of I/O threads (-1)")
         ;
@@ -190,6 +336,147 @@ void teca_multi_cf_reader::set_properties(const std::string &prefix,
 #endif
 
 // --------------------------------------------------------------------------
+int teca_multi_cf_reader::set_input_file(const std::string &input_file)
+{
+    int rank = 0;
+    int n_ranks = 1;
+#if defined(TECA_HAS_MPI)
+    MPI_Comm comm = this->get_communicator();
+
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
+    {
+        MPI_Comm_rank(comm, &rank);
+        MPI_Comm_size(comm, &n_ranks);
+    }
+#endif
+
+    teca_binary_stream bs;
+
+    // save a spot at the head of the stream for the number of readers.
+    // after we know how many readers were detected we will update this.
+    int num_readers = 0;
+    bs.pack(num_readers);
+
+    if (rank == 0)
+    {
+        teca_file_util::line_buffer lines;
+        if (lines.initialize(input_file.c_str()))
+        {
+            TECA_ERROR("Failed to read \"" << input_file << "\"")
+            return -1;
+        }
+
+        std::string data_root;
+
+        while (lines)
+        {
+            long lno = lines.line_number();
+            char *l = lines.current();
+            teca_string_util::skip_pad(l);
+            lines.pop();
+
+            if (teca_string_util::is_comment(l))
+                continue;
+
+            if (strncmp("data_root", l, 9) == 0)
+            {
+                if (teca_string_util::extract_value<std::string>(l, data_root))
+                {
+                    TECA_ERROR("Failed to parse \"data_root\" specifier on line " << lno)
+                    return -1;
+                }
+            }
+            else if (strcmp("[cf_reader]", l) == 0)
+            {
+                std::string name;
+                std::string regex;
+                int provides_time = 0;
+                int provides_geometry = 0;
+                std::vector<std::string> variables;
+
+                if (teca_multi_cf_reader_internals::parse_cf_reader_section(lines,
+                    name, regex, provides_time, provides_geometry, variables))
+                {
+                    TECA_ERROR("Failed to parse [cf_reader] section on line " << lno)
+                    return -1;
+                }
+
+                // always give a name
+                if (name.empty())
+                    name = std::to_string(num_readers);
+
+                // look for and replace %data_root% if it is present
+                if (!data_root.empty())
+                {
+                    size_t loc = regex.find("%data_root%");
+                    if (loc != std::string::npos)
+                        regex.replace(loc, 11, data_root);
+                }
+
+                // serialize
+                bs.pack(name);
+                bs.pack(regex);
+                bs.pack(provides_time);
+                bs.pack(provides_geometry);
+                bs.pack(variables);
+
+                num_readers += 1;
+            }
+        }
+
+        // update count
+        size_t ebs = bs.size();
+        bs.set_write_pos(0);
+        bs.pack(num_readers);
+        bs.set_write_pos(ebs);
+    }
+
+    // share
+    bs.broadcast(this->get_communicator());
+
+    // deserialize
+    bs.unpack(num_readers);
+
+    if (num_readers < 1)
+    {
+        TECA_ERROR("No readers found in \"" << input_file << "\"")
+        return -1;
+    }
+
+    int num_time_readers = 0;
+    int num_geometry_readers = 0;
+
+    for (int i = 0; i < num_readers; ++i)
+    {
+        std::string name;
+        std::string regex;
+        int provides_time;
+        int provides_geometry;
+        std::vector<std::string> variables;
+
+        bs.unpack(name);
+        bs.unpack(regex);
+        bs.unpack(provides_time);
+        bs.unpack(provides_geometry);
+        bs.unpack(variables);
+
+        num_time_readers += provides_time;
+        num_geometry_readers += provides_geometry;
+
+        if (this->add_reader(name, regex, provides_time,
+            provides_geometry, variables))
+        {
+            TECA_ERROR("Failed to add reader " << i << " \"" << name << "\"")
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
 void teca_multi_cf_reader::set_modified()
 {
     // clear cached metadata before forwarding on to
@@ -210,6 +497,12 @@ int teca_multi_cf_reader::add_reader(const std::string &key,
     int provides_time, int provides_geometry,
     const std::vector<std::string> &variables)
 {
+    if (key.empty())
+    {
+        TECA_ERROR("Invalid key, it must not be empty")
+        return -1;
+    }
+
     p_teca_cf_reader reader = teca_cf_reader::New();
     reader->set_files_regex(files_regex);
 
@@ -285,6 +578,24 @@ int teca_multi_cf_reader::set_variable_reader(const std::string &key,
 
     it->second->variables.insert(variables.begin(), variables.end());
     return 0;
+}
+
+// --------------------------------------------------------------------------
+void teca_multi_cf_reader::get_variables(std::vector<std::string> &vars)
+{
+    vars.clear();
+
+    teca_multi_cf_reader_internals::reader_map_t::iterator it =
+        this->internals->readers.begin();
+
+    teca_multi_cf_reader_internals::reader_map_t::iterator end =
+        this->internals->readers.end();
+
+    for (; it != end; ++it)
+    {
+        vars.insert(vars.end(), it->second->variables.begin(),
+            it->second->variables.end());
+    }
 }
 
 // --------------------------------------------------------------------------
