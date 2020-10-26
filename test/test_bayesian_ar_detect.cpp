@@ -49,7 +49,7 @@ int main(int argc, char **argv)
 
     std::string mesh_data_regex = argv[1];
     std::string baseline_table = argv[2];
-    std::string water_vapor_var = argv[3];
+    std::string ivt_var = argv[3];
     std::string out_file_name = argv[4];
     int n_threads = atoi(argv[5]);
     int first_step =  atoi(argv[6]);
@@ -66,7 +66,7 @@ int main(int argc, char **argv)
     p_teca_bayesian_ar_detect ar_detect = teca_bayesian_ar_detect::New();
     ar_detect->set_input_connection(0, parameter_table->get_output_port());
     ar_detect->set_input_connection(1, mesh_data_reader->get_output_port());
-    ar_detect->set_water_vapor_variable(water_vapor_var);
+    ar_detect->set_ivt_variable(ivt_var);
     ar_detect->set_verbose(1);
     ar_detect->set_thread_pool_size(n_threads);
 

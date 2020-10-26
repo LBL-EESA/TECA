@@ -4,6 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_metadata.h"
+#include "teca_array_attributes.h"
 
 #include <algorithm>
 #include <iostream>
@@ -169,6 +170,12 @@ teca_metadata teca_l2_norm::get_output_metadata(
 #endif
     (void)port;
 
+    if (this->component_0_variable.empty())
+    {
+        TECA_ERROR("The component_0_variable was not set")
+        return teca_metadata();
+    }
+
     // add in the array we will generate
     teca_metadata out_md(input_md[0]);
 
@@ -177,6 +184,37 @@ teca_metadata teca_l2_norm::get_output_metadata(
         norm_var = "l2_norm";
 
     out_md.append("variables", norm_var);
+
+    // insert attributes to enable this to be written by the CF writer
+    teca_metadata attributes;
+    out_md.get("attributes", attributes);
+
+    teca_metadata comp_0_atts;
+    if (attributes.get(this->component_0_variable, comp_0_atts))
+    {
+        TECA_WARNING("Failed to get component 0 \"" << this->component_0_variable
+            << "\" attrbibutes. Writing the result will not be possible")
+    }
+    else
+    {
+        // copy the attributes from the input. this will capture the
+        // data type, size, units, etc.
+        teca_array_attributes norm_atts(comp_0_atts);
+
+        // update name, long_name, and description.
+        norm_atts.long_name = norm_var;
+
+        norm_atts.description =
+            std::string("The L2 norm of (" + this->component_0_variable);
+        if (!this->component_1_variable.empty())
+            norm_atts.description += ", " + this->component_1_variable;
+        if (!this->component_2_variable.empty())
+            norm_atts.description += ", " + this->component_2_variable;
+        norm_atts.description += ")";
+
+        attributes.set(norm_var, (teca_metadata)norm_atts);
+        out_md.set("attributes", attributes);
+    }
 
     return out_md;
 }

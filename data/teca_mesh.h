@@ -8,7 +8,7 @@
 
 /// a base class for geometric data
 /**
-The nesh declares containers for typical geometricly associated data
+The mesh declares containers for typical geometricly associated data
 such as point, cell, face and edge centered data arrays and defines
 the API's for accessing them. API's for accessing common metadata such
 as time related metadata are declared here.
@@ -97,6 +97,11 @@ public:
     // counting, while copy duplicates the data.
     void copy(const const_p_teca_dataset &) override;
     void shallow_copy(const p_teca_dataset &) override;
+
+    // append array based data from another mesh. No consistency
+    // checks are performed.
+    void append_arrays(const const_p_teca_mesh &);
+    void shallow_append_arrays(const p_teca_mesh &);
 
     // swap internals of the two objects
     void swap(p_teca_dataset &) override;

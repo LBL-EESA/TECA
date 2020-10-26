@@ -50,10 +50,10 @@ public:
     TECA_SET_ALGORITHM_PROPERTIES()
 
     // set the name of the input array
-    TECA_ALGORITHM_PROPERTY(std::string, water_vapor_variable)
+    TECA_ALGORITHM_PROPERTY(std::string, ivt_variable)
 
     // set the names of columns in the parameter table.
-    TECA_ALGORITHM_PROPERTY(std::string, min_water_vapor_variable)
+    TECA_ALGORITHM_PROPERTY(std::string, min_ivt_variable)
     TECA_ALGORITHM_PROPERTY(std::string, min_component_area_variable)
     TECA_ALGORITHM_PROPERTY(std::string, hwhm_latitude_variable)
 
@@ -94,9 +94,9 @@ private:
     void set_modified() override;
 
 private:
-    std::string water_vapor_variable;
+    std::string ivt_variable;
     std::string min_component_area_variable;
-    std::string min_water_vapor_variable;
+    std::string min_ivt_variable;
     std::string hwhm_latitude_variable;
     int thread_pool_size;
     int verbose;

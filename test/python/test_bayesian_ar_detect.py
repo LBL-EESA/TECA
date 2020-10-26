@@ -23,7 +23,7 @@ if (len(sys.argv) != 8):
 # parse command line
 mesh_data_regex = sys.argv[1]
 baseline_table = sys.argv[2]
-water_vapor_var = sys.argv[3]
+ivt_variable = sys.argv[3]
 out_file_name = sys.argv[4]
 n_threads = int(sys.argv[5])
 first_step =  int(sys.argv[6])
@@ -44,7 +44,7 @@ ar_detect = teca_bayesian_ar_detect.New()
 ar_detect.set_verbose(1)
 ar_detect.set_input_connection(0, parameter_table.get_output_port())
 ar_detect.set_input_connection(1, mesh_data_reader.get_output_port())
-ar_detect.set_water_vapor_variable(water_vapor_var)
+ar_detect.set_ivt_variable(ivt_variable)
 ar_detect.set_thread_pool_size(n_threads)
 
 seg = teca_binary_segmentation.New()

@@ -24,6 +24,11 @@ if (TECA_HAS_BOOST)
     list(APPEND teca_test_link ${Boost_LIBRARIES})
 endif()
 
+if (TECA_HAS_DATA)
+    configure_file(${TECA_DATA_ROOT}/ECMWF-IFS-HR-SST-present.mcf.in
+         ${CMAKE_CURRENT_BINARY_DIR}/ECMWF-IFS-HR-SST-present.mcf)
+endif()
+
 teca_add_test(test_pipeline_time_average
     SOURCES test_pipeline_time_average.cpp
     LIBS teca_core teca_test_array ${teca_test_link}

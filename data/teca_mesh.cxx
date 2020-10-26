@@ -72,6 +72,40 @@ void teca_mesh::shallow_copy(const p_teca_dataset &dataset)
 }
 
 // --------------------------------------------------------------------------
+void teca_mesh::append_arrays(const const_p_teca_mesh &other)
+{
+    if (this == other.get())
+        return;
+
+    m_impl->point_arrays->append(other->m_impl->point_arrays);
+    m_impl->cell_arrays->append(other->m_impl->cell_arrays);
+    m_impl->x_edge_arrays->append(other->m_impl->x_edge_arrays);
+    m_impl->y_edge_arrays->append(other->m_impl->y_edge_arrays);
+    m_impl->z_edge_arrays->append(other->m_impl->z_edge_arrays);
+    m_impl->x_face_arrays->append(other->m_impl->x_face_arrays);
+    m_impl->y_face_arrays->append(other->m_impl->y_face_arrays);
+    m_impl->z_face_arrays->append(other->m_impl->z_face_arrays);
+    m_impl->info_arrays->append(other->m_impl->info_arrays);
+}
+
+// --------------------------------------------------------------------------
+void teca_mesh::shallow_append_arrays(const p_teca_mesh &other)
+{
+    if (this == other.get())
+        return;
+
+    m_impl->point_arrays->shallow_append(other->m_impl->point_arrays);
+    m_impl->cell_arrays->shallow_append(other->m_impl->cell_arrays);
+    m_impl->x_edge_arrays->shallow_append(other->m_impl->x_edge_arrays);
+    m_impl->y_edge_arrays->shallow_append(other->m_impl->y_edge_arrays);
+    m_impl->z_edge_arrays->shallow_append(other->m_impl->z_edge_arrays);
+    m_impl->x_face_arrays->shallow_append(other->m_impl->x_face_arrays);
+    m_impl->y_face_arrays->shallow_append(other->m_impl->y_face_arrays);
+    m_impl->z_face_arrays->shallow_append(other->m_impl->z_face_arrays);
+    m_impl->info_arrays->shallow_append(other->m_impl->info_arrays);
+}
+
+// --------------------------------------------------------------------------
 void teca_mesh::swap(p_teca_dataset &dataset)
 {
     p_teca_mesh other

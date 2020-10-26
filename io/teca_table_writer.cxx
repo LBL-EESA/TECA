@@ -279,9 +279,9 @@ int write_xlsx(const_p_teca_table table, lxw_worksheet *worksheet)
 
 
 // --------------------------------------------------------------------------
-teca_table_writer::teca_table_writer()
-    : file_name("table_%t%.bin"), output_format(format_auto),
-      row_dim_name("n_rows")
+teca_table_writer::teca_table_writer() :
+     file_name("table_%t%.bin"), row_dim_name("n_rows"),
+     output_format(format_auto)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
