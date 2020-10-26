@@ -95,7 +95,7 @@ teca_metadata teca_vertical_reduction::get_output_metadata(
     }
 
     // set the output extent, with vertical dim reduced
-    whole_extent[6] = whole_extent[5] = 0;
+    whole_extent[4] = whole_extent[5] = 0;
     out_md.set("whole_extent", whole_extent, 6);
 
     // fix bounds if it is present
