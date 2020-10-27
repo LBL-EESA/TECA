@@ -52,19 +52,19 @@ int main(int argc, char **argv)
         ("ivt", value<string>(),
             "name of variable with the magnitude of integrated vapor transport (IVT)")
 
-        ("compute_ivt_magnitude", "when this flag is present magnitude of vector IVT is calculated. "
-            "use --ivt_u and --ivt_v to set the name of the IVT vector components if needed.")
+        ("compute_ivt_magnitude", "when this flag is present magnitude of vector IVT is calculated."
+            " use --ivt_u and --ivt_v to set the name of the IVT vector components if needed.")
         ("ivt_u", value<string>(),
-            "name of variable with longitudinal component of the integrated vapor transport (IVT) vector."
-            " If present the magnitude of IVT will be computed from vector components.")
+            "name of variable with longitudinal component of the integrated vapor transport vector. (IVT_U)")
         ("ivt_v", value<string>(),
-            "name of variable with latitudinal component of the integrated vapor transport (IVT) vector."
-            " If present the magnitude of IVT will be computed from vector components.")
-        ("write_ivt_magnitude", "when this flag is present IVT magnitude is written to disk with the result")
+            " name of variable with latitudinal component of the integrated vapor transport vector. (IVT_V)")
+        ("write_ivt_magnitude", "when this flag is present IVT magnitude is written to disk with the AR"
+            " detector results")
 
         ("compute_ivt", "when this flag is present IVT vector is calculated from specific humidity, and"
             " wind vector components. use --specific_humidity --wind_u and --wind_v to set the name of the"
-            " specific humidity and wind vector components if needed.")
+            " specific humidity and wind vector components, and --ivt_u and --ivt_v to control the names of"
+            " the results, if needed.")
         ("specific_humidity", value<string>(),
             "name of variable with the 3D specific humidity field. If present IVT vector will be computed"
             " from 3D wind  and specific humidity fields.")
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
     l2_norm->set_l2_norm_variable("IVT");
 
     p_teca_integrated_vapor_transport ivt_int = teca_integrated_vapor_transport::New();
-    ivt_int->get_properties_description("ivt", advanced_opt_defs);
+    ivt_int->get_properties_description("ivt_integral", advanced_opt_defs);
     ivt_int->set_specific_humidity_variable("Q");
     ivt_int->set_wind_u_variable("U");
     ivt_int->set_wind_v_variable("V");
@@ -222,7 +222,7 @@ int main(int argc, char **argv)
     cf_reader->set_properties("cf_reader", opt_vals);
     mcf_reader->set_properties("mcf_reader", opt_vals);
     l2_norm->set_properties("ivt_magnitude", opt_vals);
-    ivt_int->set_properties("ivt", opt_vals);
+    ivt_int->set_properties("ivt_integral", opt_vals);
     norm_coords->set_properties("norm_coords", opt_vals);
     params->set_properties("parameter_table", opt_vals);
     ar_detect->set_properties("ar_detect", opt_vals);
