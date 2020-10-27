@@ -369,7 +369,7 @@ size_t load_text(const std::string &filename, std::string &text)
     file.read (buf, n_bytes);
     file.close();
     text = buf;
-    delete buf;
+    delete [] buf;
     return n_bytes;
 }
 

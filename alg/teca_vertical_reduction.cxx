@@ -95,14 +95,14 @@ teca_metadata teca_vertical_reduction::get_output_metadata(
     }
 
     // set the output extent, with vertical dim reduced
-    whole_extent[6] = whole_extent[5] = 0;
+    whole_extent[4] = whole_extent[5] = 0;
     out_md.set("whole_extent", whole_extent, 6);
 
     // fix bounds if it is present
     double bounds[6] = {0.0};
     if (out_md.get("bounds", bounds, 6) == 0)
     {
-        bounds[6] = bounds[5] = 0.0;
+        bounds[4] = bounds[5] = 0.0;
         out_md.set("bounds", bounds, 6);
     }
 
@@ -144,16 +144,16 @@ std::vector<teca_metadata> teca_vertical_reduction::get_upstream_request(
     unsigned long extent_up[6] = {0};
     if (request.get("bounds", bounds_up, 6) == 0)
     {
+        bounds_up[4] = bounds[4];
         bounds_up[5] = bounds[5];
-        bounds_up[6] = bounds[6];
         req.set("bounds", bounds_up, 6);
     }
 
     // restore vertical extent
     else if (request.get("extent", extent_up, 6) == 0)
     {
+        extent_up[4] = whole_extent[4];
         extent_up[5] = whole_extent[5];
-        extent_up[6] = whole_extent[6];
         req.set("extent", extent_up, 6);
     }
     // no subset requested, request all the data
@@ -224,7 +224,7 @@ const_p_teca_dataset teca_vertical_reduction::execute(
     unsigned long whole_extent[6] = {0};
     if (out_md.get("whole_extent", whole_extent, 6) == 0)
     {
-        whole_extent[5] = whole_extent[6] = 0;
+        whole_extent[4] = whole_extent[5] = 0;
         out_md.set("whole_extent", whole_extent, 6);
     }
 
@@ -232,7 +232,7 @@ const_p_teca_dataset teca_vertical_reduction::execute(
     unsigned long extent[6] = {0};
     if (out_md.get("extent", extent, 6) == 0)
     {
-        extent[5] = extent[6] = 0;
+        extent[4] = extent[5] = 0;
         out_md.set("extent", extent, 6);
     }
 
@@ -240,7 +240,7 @@ const_p_teca_dataset teca_vertical_reduction::execute(
     double bounds[6] = {0};
     if (out_md.get("bounds", bounds, 6) == 0)
     {
-        bounds[5] = bounds[6] = 0.0;
+        bounds[4] = bounds[5] = 0.0;
         out_md.set("bounds", bounds, 6);
     }
 

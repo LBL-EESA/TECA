@@ -30,7 +30,7 @@ ${launcher} ${app_prefix}/teca_bayesian_ar_detect                       \
     --steps_per_file 365 --first_step 8 --last_step 23
 
 
- run the diff
+# run the diff
 ${app_prefix}/teca_cartesian_mesh_diff                          \
     ${data_root}/test_bayesian_ar_detect_app_mcf_ref'.*\.nc'    \
     test_bayesian_ar_detect_app_mcf_output'.*\.nc'

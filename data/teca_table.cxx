@@ -301,7 +301,7 @@ int teca_table::from_stream(std::istream &s)
     for (size_t i = 0; i < n_cols; ++i)
     {
         int n_match = 0;
-        char name[128];
+        char name[129];
         int code = 0;
         if ((n_match = sscanf(header[i], " \"%128[^(](%d)\"", name, &code)) != 2)
         {
