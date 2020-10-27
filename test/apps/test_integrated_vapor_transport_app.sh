@@ -1,35 +1,41 @@
 #!/bin/bash
 
-if [[ $# < 2 ]]
+if [[ $# < 3 ]]
 then
     echo "usage: test_integrated_vapor_transport_app.sh [app prefix] "   \
-         "[data root] [mpiexec] [num ranks]"
+         "[data root] [num threads] [mpiexec] [num ranks]"
     exit -1
 fi
 
 app_prefix=${1}
 data_root=${2}
+n_threads=${3}
 
-if [[ $# -eq 4 ]]
+if [[ $# -eq 5 ]]
 then
-    mpi_exec=${3}
-    test_cores=${4}
+    mpi_exec=${4}
+    test_cores=${5}
     launcher="${mpi_exec} -n ${test_cores}"
 fi
 
 set -x
+set -e
 
 # run the app
-${launcher} ${app_prefix}/teca_integrated_vapor_transport --readers                                                                       \
-    "r_0,${data_root}/HighResMIP/ECMWF-IFS-HR-SST-present/ua/ua_6hrPlevPt_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_gr_1950-.*\\.nc,ua"    \
-    "r_1,${data_root}/HighResMIP/ECMWF-IFS-HR-SST-present/va/va_6hrPlevPt_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_gr_1950-.*\\.nc,va"    \
-    "r_2,${data_root}/HighResMIP/ECMWF-IFS-HR-SST-present/hus/hus_6hrPlevPt_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_gr_1950-.*\\.nc,hus" \
-    --steps_per_file 127 --verbose --output_file test_ivt_computation_app_output.nc
+${launcher} ${app_prefix}/teca_integrated_vapor_transport               \
+    --input_file "${app_prefix}/../test/ECMWF-IFS-HR-SST-present.mcf"   \
+    --wind_u ua --wind_v va --specific_humidity hus                     \
+    --write_ivt 1 --write_ivt_magnitude 1 --n_threads ${n_threads}      \
+    --output_file test_integrated_vapor_transport_app_mcf_output_%t%.nc \
+    --verbose --steps_per_file 365
+
+
 
 # run the diff
-${app_prefix}/teca_cartesian_mesh_diff                        \
-    "${data_root}/test_ivt_computation_app_ref.bin"           \
-    "test_ivt_computation_app_output.*\.nc"
+${app_prefix}/teca_cartesian_mesh_diff                                                      \
+    --reference_dataset ${data_root}/test_integrated_vapor_transport_app_mcf_ref'.*\.nc'    \
+    --test_dataset test_integrated_vapor_transport_app_mcf_output'.*\.nc'                   \
+    --arrays IVT_U IVT_V IVT --verbose
 
 # clean up
-rm test_ivt_computation_app_output*.nc
+rm test_integrated_vapor_transport_app_mcf_output*.nc
