@@ -172,14 +172,14 @@ teca_add_test(test_cartesian_mesh_diff_app_pass
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_cartesian_mesh_diff_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX}
     ${TECA_DATA_ROOT}/test_cartesian_mesh_regrid.bin
-    ${TECA_DATA_ROOT}/test_cartesian_mesh_regrid.bin
+    ${TECA_DATA_ROOT}/test_cartesian_mesh_regrid.bin LSMASK
     REQ_TECA_DATA)
 
 teca_add_test(test_cartesian_mesh_diff_app_fail
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_cartesian_mesh_diff_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX}
     ${TECA_DATA_ROOT}/test_cf_writer_collective_000213.bin
-    ${TECA_DATA_ROOT}/test_cartesian_mesh_regrid.bin
+    ${TECA_DATA_ROOT}/test_cartesian_mesh_regrid.bin LSMASK
     REQ_TECA_DATA
     WILL_FAIL)
 

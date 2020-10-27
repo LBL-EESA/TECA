@@ -23,13 +23,25 @@ set -x
 # run the app
 ${launcher} ${app_prefix}/teca_bayesian_ar_detect                \
     --input_regex "${data_root}/ARTMIP_MERRA_2D_2017-05.*\.nc$"  \
-    --n_threads ${n_threads} --verbose                           \
-    --output_file test_bayesian_ar_detect_app_output.nc
+    --output_file test_bayesian_ar_detect_app_output_%t%.nc      \
+    --steps_per_file 365 --n_threads ${n_threads} --verbose
 
-# run the diff
-${app_prefix}/teca_cartesian_mesh_diff                           \
-    "${data_root}/test_bayesian_ar_detect_app_ref.bin"           \
-    "test_bayesian_ar_detect_app_output.*\.nc"
+do_test=1
+if [[ $do_test -eq 0 ]]
+then
+    echo "regenerating baseline..."
+    for f in `ls test_bayesian_ar_detect_app_output_*.nc`
+    do
+        ff=`echo $f | sed s/output/ref/g`
+        cp -vd $f ${data_root}/$ff
+    done
+else
+    # run the diff
+    ${app_prefix}/teca_cartesian_mesh_diff                                          \
+        --reference_dataset "${data_root}/test_bayesian_ar_detect_app_ref.*\.nc"    \
+        --test_dataset "test_bayesian_ar_detect_app_output.*\.nc"                   \
+        --arrays ar_probability ar_binary_tag --verbose
 
-# clean up
-rm test_bayesian_ar_detect_app_output*.nc
+    # clean up
+    rm test_bayesian_ar_detect_app_output*.nc
+fi
