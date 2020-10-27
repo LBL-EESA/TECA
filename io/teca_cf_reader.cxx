@@ -1108,7 +1108,16 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
         // support case where only 1 time step is present in a file.
         request.get("time_step", time_step);
         if ((in_t) && (time_step < in_t->size()))
+        {
             in_t->get(time_step, t);
+        }
+        else if ((in_t) && in_t->size() != 1)
+        {
+            TECA_ERROR("Invalid time step " << time_step
+                << " requested from data set with " << in_t->size()
+                << " steps")
+            return nullptr;
+        }
     }
 
     unsigned long whole_extent[6] = {0};
