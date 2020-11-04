@@ -1,5 +1,6 @@
 #include "teca_config.h"
 #include "teca_metadata.h"
+#include "teca_netcdf_util.h"
 #include "teca_cf_reader.h"
 #include "teca_multi_cf_reader.h"
 #include "teca_array_collection.h"
@@ -13,6 +14,7 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <iomanip>
 #include <chrono>
 #include <boost/program_options.hpp>
 
@@ -310,6 +312,110 @@ int main(int argc, char **argv)
         }
         std::cerr << *it;
     }
+    std::cerr << std::endl;
+
+    // report the arrays
+    size_t n_arrays = atrs.size();
+
+    // column widths
+    int anw = 0;
+    int atw = 0;
+    int adw = 0;
+    int asw = 0;
+
+    // column data
+    std::vector<std::string> an(n_arrays);
+    std::vector<std::string> at(n_arrays);
+    std::vector<std::string> ad(n_arrays);
+    std::vector<std::string> as(n_arrays);
+
+    for (size_t i = 0; i < n_arrays; ++i)
+    {
+        std::string array;
+        atrs.get_name(i, array);
+
+
+        // get metadata
+        teca_metadata atts;
+        int type = 0;
+        int id = 0;
+        p_teca_size_t_array dims;
+        p_teca_string_array dim_names;
+
+        if (atrs.get(array, atts)
+            || atts.get("cf_type_code", 0, type)
+            || atts.get("cf_id", 0, id)
+            || !(dims = std::dynamic_pointer_cast<teca_size_t_array>(atts.get("cf_dims")))
+            || !(dim_names = std::dynamic_pointer_cast<teca_string_array>(atts.get("cf_dim_names"))))
+        {
+            TECA_ERROR("metadata issue \"" << array << "\"")
+            continue;
+        }
+
+        // name
+        an[i] = array;
+        anw = std::max<int>(anw, an[i].size() + 4);
+
+        // type
+        NC_DISPATCH(type,
+            at[i] = teca_netcdf_util::netcdf_tt<NC_T>::name();
+            )
+        atw = std::max<int>(atw, at[i].size() + 4);
+
+        // dims
+        int n_dims = dim_names->size();
+
+        oss.str("");
+        oss << "[" << dim_names->get(0);
+        for (int i = 1; i < n_dims; ++i)
+        {
+            oss << ", " << dim_names->get(i);
+        }
+        oss << "]";
+        ad[i] = oss.str();
+        adw = std::max<int>(adw, ad[i].size() + 4);
+
+        // shape
+        oss.str("");
+        if (dim_names->get(0) == "time")
+            oss << "[" << n_time_steps;
+        else
+           oss << "[" << dims->get(0);
+        for (int i = 1; i < n_dims; ++i)
+        {
+            if (dim_names->get(i) == "time")
+                oss << ", " << n_time_steps;
+            else
+                oss << ", " << dims->get(i);
+        }
+        oss << "]";
+        as[i] = oss.str();
+        asw = std::max<int>(asw, as[i].size() + 4);
+    }
+
+    std::cerr << std::endl
+        << n_arrays << " data arrays available" << std::endl << std::endl
+        << "  "
+        << std::setw(anw) << std::left << "Name"
+        << std::setw(atw) << std::left << "Type"
+        << std::setw(adw) << std::left << "Dimensions"
+        << std::setw(asw) << std::left << "Shape" << std::endl;
+
+    int tw =  anw + atw + adw + asw;
+    for (int i = 0; i < tw; ++i)
+        std::cerr << '-';
+    std::cerr << std::endl;
+
+    for (size_t i = 0; i < n_arrays; ++i)
+    {
+        std::cerr << "  "
+            << std::setw(anw) << std::left << an[i]
+            << std::setw(atw) << std::left << at[i]
+            << std::setw(adw) << std::left << ad[i]
+            << std::setw(asw) << std::left << as[i]
+            << std::endl;
+    }
+
     std::cerr << std::endl;
 
     return 0;
