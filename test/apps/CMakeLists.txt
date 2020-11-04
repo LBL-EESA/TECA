@@ -232,3 +232,15 @@ teca_add_test(test_convert_table_app_bin_netcdf
     "test_descriptive_statistics.nc"
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
+
+teca_add_test(test_metadata_probe_app_cf
+    COMMAND ${CMAKE_BINARY_DIR}/${BIN_PREFIX}/teca_metadata_probe
+    --input_regex "${TECA_DATA_ROOT}/test_tc_candidates_1990_07_0[0-9]\\.nc"
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_metadata_probe_app_mcf
+    COMMAND ${CMAKE_BINARY_DIR}/${BIN_PREFIX}/teca_metadata_probe
+    --input_file ${CMAKE_CURRENT_BINARY_DIR}/../ECMWF-IFS-HR-SST-present.mcf
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
