@@ -57,7 +57,7 @@ teca_add_test(test_integrated_vapor_transport_app_mpi
     FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
-teca_add_test(test_tc_detect_app_serial
+teca_add_test(test_tc_detect_app
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_detect_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
     FEATURES ${TECA_HAS_NETCDF}
@@ -67,6 +67,12 @@ teca_add_test(test_tc_detect_app_mpi
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_detect_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} ${MPIEXEC} ${TEST_CORES}
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(test_tc_detect_app_mcf
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_detect_app_mcf.sh
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
+    FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(test_tc_trajectory_app

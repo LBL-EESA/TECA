@@ -1,5 +1,6 @@
 #include "teca_config.h"
 #include "teca_cf_reader.h"
+#include "teca_multi_cf_reader.h"
 #include "teca_normalize_coordinates.h"
 #include "teca_l2_norm.h"
 #include "teca_vorticity.h"
@@ -45,8 +46,14 @@ int main(int argc, char **argv)
         "Basic command line options", 120, -1
         );
     basic_opt_defs.add_options()
-        ("input_file", value<string>(), "file path to the simulation to search for tropical cyclones")
-        ("input_regex", value<string>(), "regex matching simulation files to search for tropical cylones")
+        ("input_file", value<string>(), "multi_cf_reader configuration file identifying simulation"
+            " files to search for atmospheric rivers. when present data is read using the"
+            " multi_cf_reader. use one of either --input_file or --input_regex.")
+
+        ("input_regex", value<string>(), "cf_reader regex identyifying simulation files to search"
+            " for atmospheric rivers. when present data is read using the"
+            " cf_reader. use one of either --input_file or --input_regex.")
+
         ("candidate_file", value<string>(), "file path to write the storm candidates to (candidates.bin)")
         ("850mb_wind_u", value<string>(), "name of variable with 850 mb wind x-component (U850)")
         ("850mb_wind_v", value<string>(), "name of variable with 850 mb wind x-component (V850)")
@@ -90,8 +97,8 @@ int main(int argc, char **argv)
         "(see" "--help) map to these, and will override them if both are\n"
         "specified.\n\n"
         "tropical storms pipeline:\n\n"
-        "   (sim_reader)\n"
-        "        \\\n"
+        "   (cf / mcf_reader)\n"
+        "         \\\n"
         "  (surface_wind_speed)--(850mb_vorticity)--(core_temperature)\n"
         "                                                    /\n"
         " (tracks)--(sort)--(map_reduce)--(candidates)--(thickness)\n"
@@ -105,40 +112,37 @@ int main(int argc, char **argv)
     // objects report all of their properties directly
     // set default options here so that command line options override
     // them. while we are at it connect the pipeline
-    p_teca_cf_reader sim_reader = teca_cf_reader::New();
-    sim_reader->get_properties_description("sim_reader", advanced_opt_defs);
+    p_teca_cf_reader cf_reader = teca_cf_reader::New();
+    cf_reader->get_properties_description("cf_reader", advanced_opt_defs);
+
+    p_teca_multi_cf_reader mcf_reader = teca_multi_cf_reader::New();
+    mcf_reader->get_properties_description("mcf_reader", advanced_opt_defs);
 
     p_teca_normalize_coordinates sim_coords = teca_normalize_coordinates::New();
-    sim_coords->set_input_connection(sim_reader->get_output_port());
 
     p_teca_l2_norm surf_wind = teca_l2_norm::New();
-    surf_wind->set_input_connection(sim_coords->get_output_port());
     surf_wind->set_component_0_variable("UBOT");
     surf_wind->set_component_1_variable("VBOT");
     surf_wind->set_l2_norm_variable("surface_wind");
     surf_wind->get_properties_description("surface_wind_speed", advanced_opt_defs);
 
     p_teca_vorticity vort_850mb = teca_vorticity::New();
-    vort_850mb->set_input_connection(surf_wind->get_output_port());
     vort_850mb->set_component_0_variable("U850");
     vort_850mb->set_component_1_variable("V850");
     vort_850mb->set_vorticity_variable("850mb_vorticity");
     vort_850mb->get_properties_description("850mb_vorticity", advanced_opt_defs);
 
     p_teca_derived_quantity core_temp = teca_derived_quantity::New();
-    core_temp->set_input_connection(vort_850mb->get_output_port());
     core_temp->set_dependent_variables({"T500", "T200"});
     core_temp->set_derived_variable("core_temperature");
     core_temp->get_properties_description("core_temperature", advanced_opt_defs);
 
     p_teca_derived_quantity thickness = teca_derived_quantity::New();
-    thickness->set_input_connection(core_temp->get_output_port());
     thickness->set_dependent_variables({"Z1000", "Z200"});
     thickness->set_derived_variable("thickness");
     thickness->get_properties_description("thickness", advanced_opt_defs);
 
     p_teca_tc_candidates candidates = teca_tc_candidates::New();
-    candidates->set_input_connection(thickness->get_output_port());
     candidates->set_surface_wind_speed_variable("surface_wind");
     candidates->set_vorticity_850mb_variable("850mb_vorticity");
     candidates->set_sea_level_pressure_variable("PSL");
@@ -158,32 +162,26 @@ int main(int argc, char **argv)
     candidates->get_properties_description("candidates", advanced_opt_defs);
 
     p_teca_table_reduce map_reduce = teca_table_reduce::New();
-    map_reduce->set_input_connection(candidates->get_output_port());
     map_reduce->get_properties_description("map_reduce", advanced_opt_defs);
 
     p_teca_table_writer candidate_writer = teca_table_writer::New();
-    candidate_writer->set_input_connection(map_reduce->get_output_port());
     candidate_writer->set_output_format_auto();
     candidate_writer->get_properties_description("candidate_writer", advanced_opt_defs);
 
     p_teca_table_sort sort = teca_table_sort::New();
-    sort->set_input_connection(candidate_writer->get_output_port());
     sort->set_index_column("storm_id");
     sort->get_properties_description("sort", advanced_opt_defs);
 
     p_teca_tc_trajectory tracks = teca_tc_trajectory::New();
-    tracks->set_input_connection(sort->get_output_port());
     tracks->set_max_daily_distance(1600.0);
     tracks->set_min_wind_speed(17.0);
     tracks->set_min_wind_duration(2.0);
     tracks->get_properties_description("tracks", advanced_opt_defs);
 
     p_teca_table_calendar calendar = teca_table_calendar::New();
-    calendar->set_input_connection(tracks->get_output_port());
     calendar->get_properties_description("calendar", advanced_opt_defs);
 
     p_teca_table_writer track_writer = teca_table_writer::New();
-    track_writer->set_input_connection(calendar->get_output_port());
     track_writer->set_output_format_auto();
     track_writer->get_properties_description("track_writer", advanced_opt_defs);
 
@@ -243,7 +241,8 @@ int main(int argc, char **argv)
     // pass command line arguments into the pipeline objects
     // advanced options are processed first, so that the basic
     // options will override them
-    sim_reader->set_properties("sim_reader", opt_vals);
+    cf_reader->set_properties("cf_reader", opt_vals);
+    mcf_reader->set_properties("mcf_reader", opt_vals);
     surf_wind->set_properties("surface_wind_speed", opt_vals);
     vort_850mb->set_properties("850mb_vorticity", opt_vals);
     core_temp->set_properties("core_temperature", opt_vals);
@@ -258,13 +257,22 @@ int main(int argc, char **argv)
 
     // now pass in the basic options, these are processed
     // last so that they will take precedence
-    if (opt_vals.count("input_file"))
-        sim_reader->append_file_name(
-            opt_vals["input_file"].as<string>());
 
-    if (opt_vals.count("input_regex"))
-        sim_reader->set_files_regex(
-            opt_vals["input_regex"].as<string>());
+    // configure the reader
+    bool have_file = opt_vals.count("input_file");
+    bool have_regex = opt_vals.count("input_regex");
+
+    p_teca_algorithm reader;
+    if (opt_vals.count("input_file"))
+    {
+        mcf_reader->set_input_file(opt_vals["input_file"].as<string>());
+        reader = mcf_reader;
+    }
+    else if (opt_vals.count("input_regex"))
+    {
+        cf_reader->set_files_regex(opt_vals["input_regex"].as<string>());
+        reader = cf_reader;
+    }
 
     if (opt_vals.count("850mb_wind_u"))
         vort_850mb->set_component_0_variable(
@@ -378,16 +386,14 @@ int main(int argc, char **argv)
         track_writer->set_file_name(
             opt_vals["track_file"].as<string>());
 
-
     // some minimal check for missing options
-    if (sim_reader->get_number_of_file_names() == 0
-        && sim_reader->get_files_regex().empty())
+    if ((have_file && have_regex) || !(have_file || have_regex))
     {
         if (mpi_man.get_comm_rank() == 0)
         {
-            TECA_ERROR(
-                "missing file name or regex for simulation reader. "
-                "See --help for a list of command line options.")
+            TECA_ERROR("Extacly one of --input_file or --input_regex can be specified. "
+                "Use --input_file to activate the multi_cf_reader (HighResMIP datasets) "
+                "and --input_regex to activate the cf_reader (CAM like datasets)")
         }
         return -1;
     }
@@ -430,7 +436,7 @@ int main(int argc, char **argv)
     if (parse_start_date || parse_end_date)
     {
         // run the reporting phase of the pipeline
-        teca_metadata md = sim_reader->update_metadata();
+        teca_metadata md = reader->update_metadata();
 
         teca_metadata atrs;
         if (md.get("attributes", atrs))
@@ -490,6 +496,20 @@ int main(int argc, char **argv)
             map_reduce->set_end_index(last_step);
         }
     }
+
+    // connect all the stages
+    sim_coords->set_input_connection(reader->get_output_port());
+    surf_wind->set_input_connection(sim_coords->get_output_port());
+    vort_850mb->set_input_connection(surf_wind->get_output_port());
+    core_temp->set_input_connection(vort_850mb->get_output_port());
+    thickness->set_input_connection(core_temp->get_output_port());
+    candidates->set_input_connection(thickness->get_output_port());
+    map_reduce->set_input_connection(candidates->get_output_port());
+    candidate_writer->set_input_connection(map_reduce->get_output_port());
+    sort->set_input_connection(candidate_writer->get_output_port());
+    tracks->set_input_connection(sort->get_output_port());
+    calendar->set_input_connection(tracks->get_output_port());
+    track_writer->set_input_connection(calendar->get_output_port());
 
     // run the pipeline
     track_writer->update();
