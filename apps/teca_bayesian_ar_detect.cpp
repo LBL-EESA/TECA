@@ -237,12 +237,12 @@ int main(int argc, char **argv)
     bool have_file = opt_vals.count("input_file");
     bool have_regex = opt_vals.count("input_regex");
 
-    if (opt_vals.count("input_file"))
+    if (have_file)
     {
         mcf_reader->set_input_file(opt_vals["input_file"].as<string>());
         head = mcf_reader;
     }
-    else if (opt_vals.count("input_regex"))
+    else if (have_regex)
     {
         cf_reader->set_files_regex(opt_vals["input_regex"].as<string>());
         head = cf_reader;
