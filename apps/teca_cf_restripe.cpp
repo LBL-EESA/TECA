@@ -3,6 +3,7 @@
 #include "teca_array_attributes.h"
 #include "teca_variant_array.h"
 #include "teca_cf_reader.h"
+#include "teca_multi_cf_reader.h"
 #include "teca_cf_writer.h"
 #include "teca_dataset_diff.h"
 #include "teca_index_executive.h"
@@ -38,11 +39,22 @@ int main(int argc, char **argv)
         "Basic command line options", 120, -1
         );
     basic_opt_defs.add_options()
-        ("input_file", value<std::string>(), "file path to input NetcDF CF2 dataset")
+        ("input_file", value<std::string>(), "multi_cf_reader configuration file identifying simulation"
+            " files to search for atmospheric rivers. when present data is read using the"
+            " multi_cf_reader. use one of either --input_file or --input_regex.")
+
+        ("input_regex", value<std::string>(), "cf_reader regex identyifying simulation files to search"
+            " for atmospheric rivers. when present data is read using the"
+            " cf_reader. use one of either --input_file or --input_regex.")
+
+        ("x_axis", value<std::string>(), "name of x coordinate variable (lon)")
+        ("y_axis", value<std::string>(), "name of y coordinate variable (lat)")
+        ("z_axis", value<std::string>(), "name of z coordinate variable (plev)")
+
         ("output_file", value<std::string>(), "file path for output NetCDF CF2 dataset")
-        ("input_regex", value<std::string>(), "a regex matching NetCDF CF2 files")
         ("point_arrays", value<std::vector<std::string>>()->multitoken(), "list of point centered arrays to write")
         ("information_arrays", value<std::vector<std::string>>()->multitoken(), "list of non-geometric arrays to write")
+
         ("bounds", value<std::vector<double>>()->multitoken(), "lat lon lev bounding box to subset with")
         ("first_step", value<long>(), "first time step to process")
         ("last_step", value<long>(), "last time step to process")
@@ -74,9 +86,11 @@ int main(int argc, char **argv)
     p_teca_cf_reader cf_reader = teca_cf_reader::New();
     cf_reader->get_properties_description("cf_reader", advanced_opt_defs);
 
+    p_teca_multi_cf_reader mcf_reader = teca_multi_cf_reader::New();
+    mcf_reader->get_properties_description("mcf_reader", advanced_opt_defs);
+
     p_teca_cf_writer cf_writer = teca_cf_writer::New();
     cf_writer->get_properties_description("cf_writer", advanced_opt_defs);
-    cf_writer->set_input_connection(cf_reader->get_output_port());
 
     // Add an executive for the writer
     p_teca_index_executive exec = teca_index_executive::New();
@@ -142,17 +156,42 @@ int main(int argc, char **argv)
     // advanced options are processed first, so that the basic
     // options will override them
     cf_reader->set_properties("cf_reader", opt_vals);
+    mcf_reader->set_properties("mcf_reader", opt_vals);
     cf_writer->set_properties("cf_writer", opt_vals);
 
     // now pass in the basic options, these are processed
     // last so that they will take precedence
-    if (opt_vals.count("input_file"))
-        cf_reader->append_file_name(
-            opt_vals["input_file"].as<std::string>());
+    p_teca_algorithm reader;
+    bool have_file = opt_vals.count("input_file");
+    bool have_regex = opt_vals.count("input_regex");
+    if (have_file)
+    {
+        mcf_reader->set_input_file(opt_vals["input_file"].as<std::string>());
+        reader = mcf_reader;
+    }
+    else if (have_regex)
+    {
+        cf_reader->set_files_regex(opt_vals["input_regex"].as<std::string>());
+        reader = cf_reader;
+    }
 
-    if (opt_vals.count("input_regex"))
-        cf_reader->set_files_regex(
-            opt_vals["input_regex"].as<std::string>());
+    if (opt_vals.count("x_axis"))
+    {
+        cf_reader->set_x_axis_variable(opt_vals["x_axis"].as<std::string>());
+        mcf_reader->set_x_axis_variable(opt_vals["x_axis"].as<std::string>());
+    }
+
+    if (opt_vals.count("y_axis"))
+    {
+        cf_reader->set_y_axis_variable(opt_vals["y_axis"].as<std::string>());
+        mcf_reader->set_y_axis_variable(opt_vals["y_axis"].as<std::string>());
+    }
+
+    if (opt_vals.count("z_axis"))
+    {
+        cf_reader->set_z_axis_variable(opt_vals["z_axis"].as<std::string>());
+        mcf_reader->set_z_axis_variable(opt_vals["z_axis"].as<std::string>());
+    }
 
     if (opt_vals.count("output_file"))
         cf_writer->set_file_name(
@@ -192,13 +231,13 @@ int main(int argc, char **argv)
         cf_writer->set_thread_pool_size(1);
 
     // some minimal check for missing options
-    if (cf_reader->get_number_of_file_names() == 0
-        && cf_reader->get_files_regex().empty())
+    if ((have_file && have_regex) || !(have_file || have_regex))
     {
         if (mpi_man.get_comm_rank() == 0)
         {
-            TECA_ERROR("missing file name or regex for the NetCDF CF reader. "
-                "See --help for a list of command line options.")
+            TECA_ERROR("Extacly one of --input_file or --input_regex can be specified. "
+                "Use --input_file to activate the multi_cf_reader (HighResMIP datasets) "
+                "and --input_regex to activate the cf_reader (CAM like datasets)")
         }
         return -1;
     }
@@ -321,6 +360,9 @@ int main(int argc, char **argv)
             cf_writer->set_last_step(last_step);
         }
     }
+
+    // connect the pipeline
+    cf_writer->set_input_connection(reader->get_output_port());
 
     // run the pipeline
     cf_writer->set_executive(exec);

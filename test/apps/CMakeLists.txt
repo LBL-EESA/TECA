@@ -250,3 +250,16 @@ teca_add_test(test_metadata_probe_app_mcf
     --input_file ${CMAKE_CURRENT_BINARY_DIR}/../ECMWF-IFS-HR-SST-present.mcf
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
+
+teca_add_test(test_cf_restripe_app
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_cf_restripe_app.sh
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_restripe_app_mpi
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_cf_restripe_app.sh
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1
+    ${MPIEXEC} ${HALF_TEST_CORES}
+    FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
