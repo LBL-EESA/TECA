@@ -19,6 +19,7 @@ set(teca_core_srcs
     teca_programmable_algorithm.cxx
     teca_programmable_reduce.cxx
     teca_string_util.cxx
+    teca_system_util.cxx
     teca_threaded_algorithm.cxx
     teca_threaded_programmable_algorithm.cxx
     teca_thread_util.cxx
