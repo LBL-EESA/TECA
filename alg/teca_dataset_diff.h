@@ -50,6 +50,9 @@ public:
     //            0            otherwise
     TECA_ALGORITHM_PROPERTY(double, tolerance)
 
+    // if set infromation about the test progress is displayed during
+    // the test.
+    TECA_ALGORITHM_PROPERTY(int, verbose)
 protected:
     teca_dataset_diff();
 
@@ -100,6 +103,7 @@ private:
 private:
     // Tolerance for equality of field values.
     double tolerance;
+    int verbose;
 };
 
 #endif
