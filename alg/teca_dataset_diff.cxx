@@ -65,15 +65,6 @@ teca_metadata teca_dataset_diff::get_output_metadata(
 {
     (void) port;
 
-#if defined(TECA_HAS_MPI)
-    int rank = 0;
-
-    int is_init = 0;
-    MPI_Initialized(&is_init);
-    if (is_init)
-        MPI_Comm_rank(this->get_communicator(), &rank);
-#endif
-
     // get input 0 initializer
     std::string initializer_key;
     if (input_md[0].get("index_initializer_key", initializer_key))
@@ -90,17 +81,26 @@ teca_metadata teca_dataset_diff::get_output_metadata(
         return teca_metadata();
     }
 
-    // get input 1 initializer
-    if (input_md[1].get("index_initializer_key", initializer_key))
-    {
-        TECA_ERROR("Input 0 metadata is missing index_initializer_key")
-        return teca_metadata();
-    }
-
     // if one were to run across all indices, both inputs would need to have
     // the same number of them. it is not necessarily an error to have
     // different numbers of indices because one could configure the executive
     // to run over a mutual subset
+    /*
+    // get input 1 initializer
+    if (input_md[1].get("index_initializer_key", initializer_key))
+    {
+        TECA_ERROR("Input 1 metadata is missing index_initializer_key")
+        return teca_metadata();
+    }
+
+    unsigned long n_indices_1 = 0;
+    if (input_md[1].get(initializer_key, n_indices_1))
+    {
+        TECA_ERROR("Input 0 metadata is missing its intializer \""
+            << initializer_key << "\"")
+        return teca_metadata();
+    }
+    */
 
     // prepare pieline executive metadata to run a test for each input dataset
     teca_metadata omd(input_md[0]);
@@ -170,6 +170,14 @@ const_p_teca_dataset teca_dataset_diff::execute(
     (void) port;
     (void) request;
 
+    int rank = 0;
+#if defined(TECA_HAS_MPI)
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
+        MPI_Comm_rank(this->get_communicator(), &rank);
+#endif
+
     const_p_teca_dataset ds0 = input_data[0];
     const_p_teca_dataset ds1 = input_data[1];
 
@@ -208,7 +216,13 @@ const_p_teca_dataset teca_dataset_diff::execute(
 
     // If the datasets are both empty, they are "equal." :-/
     if (ds0->empty() && ds1->empty())
+    {
+        if (rank == 0)
+        {
+            TECA_ERROR("Both the reference and test datasets are empty")
+        }
         return nullptr;
+    }
 
     // compare the inputs. the type of data is inferred from the
     // reference mesh.
@@ -520,7 +534,7 @@ int teca_dataset_diff::compare_meshes(
     arrays2 = data_mesh->get_information_arrays();
     if (this->compare_array_collections(arrays1, arrays2))
     {
-        TECA_ERROR("differrnce in informational arrays")
+        TECA_ERROR("difference in information arrays")
         return -1;
     }
 

@@ -42,8 +42,8 @@ public:
     TECA_SET_ALGORITHM_PROPERTIES()
 
     // Relative tolerance below which two floating-point quantities are
-    // considered equal. The relative difference for a computed quantity A and
-    // a reference quantity B is
+    // considered equal (1e-6). The relative difference for a computed
+    // quantity A and a reference quantity B is
     //
     // rel_diff = |A - B| / B, B != 0
     //          = |A - B| / A, B == 0, A != 0
