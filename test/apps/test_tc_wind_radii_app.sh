@@ -2,7 +2,7 @@
 
 if [[ $# < 2 ]]
 then
-    echo "usage: test_tc_wind_radii_app.sh [app prefix] [data root] "   \
+    echo "usage: test_tc_wind_radii_app.sh [app prefix] [data root] " \
          "[mpi exec] [test cores]"
     exit -1
 fi
@@ -26,7 +26,7 @@ set -x
 # run the app
 ${launcher} ${app_prefix}/teca_tc_wind_radii                            \
     --track_file "${data_root}/tracks_1990s_3hr_mdd_4800.bin"           \
-    --wind_files "${data_root}/cam5_1_amip_run2_1990s/.*\.nc$"          \
+    --input_regex "${data_root}/cam5_1_amip_run2_1990s/.*\.nc$"         \
     --track_file_out test_tc_wind_radii_app_output.bin                  \
     --track_mask "!(${mask1}||${mask2}||${mask3})"                      \
     --number_of_bins "32" --profile_type "avg" --n_threads "1"          \

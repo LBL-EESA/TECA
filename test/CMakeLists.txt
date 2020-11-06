@@ -27,6 +27,9 @@ endif()
 if (TECA_HAS_DATA)
     configure_file(${TECA_DATA_ROOT}/ECMWF-IFS-HR-SST-present.mcf.in
          ${CMAKE_CURRENT_BINARY_DIR}/ECMWF-IFS-HR-SST-present.mcf)
+
+    configure_file(${TECA_DATA_ROOT}/HighResMIP_TC_test.mcf.in
+         ${CMAKE_CURRENT_BINARY_DIR}/HighResMIP_TC_test.mcf)
 endif()
 
 teca_add_test(test_pipeline_time_average

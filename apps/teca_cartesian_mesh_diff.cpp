@@ -15,20 +15,62 @@ using boost::program_options::value;
 #include <iostream>
 #include <vector>
 
+
 int main(int argc, char **argv)
 {
     teca_mpi_manager mpi_man(argc, argv);
     teca_system_interface::set_stack_trace_on_error();
     teca_system_interface::set_stack_trace_on_mpi_error();
 
+    // are we doing the test or updating the baseline?
+    bool do_test = true;
+    teca_system_util::get_environment_variable("TECA_DO_TEST", do_test);
+
+    // grab file names first so we can construct an instance
+    // then we can use the instance to get advanced options.
+    std::string ref_file;
+    if (teca_system_util::get_command_line_option(
+        argc, argv, "--reference_dataset", 1, ref_file))
+        return -1;
+
+    std::string test_file;
+    if (teca_system_util::get_command_line_option(
+        argc, argv, "--test_dataset", 1, test_file))
+        return -1;
+
+    p_teca_algorithm test_reader = teca_cartesian_mesh_reader_factory::New(test_file);
+    if (!test_reader)
+    {
+        TECA_ERROR("the test file format was not recognized from \""
+            << test_file << "\"")
+        return -1;
+    }
+
+    p_teca_algorithm ref_reader;
+    p_teca_algorithm ref_writer;
+
+    if (do_test)
+        ref_reader = teca_cartesian_mesh_reader_factory::New(ref_file);
+    else
+        ref_writer = teca_cartesian_mesh_writer_factory::New(ref_file);
+
+    if (!ref_reader && !ref_writer)
+    {
+        TECA_ERROR("the refence file format was not recognized from \""
+            << ref_file << "\"")
+        return -1;
+    }
+
+    p_teca_dataset_diff diff = teca_dataset_diff::New();
+
     // initialize command line options description
     // set up some common options to simplify use for most
     // common scenarios
-    options_description opt_defs(
+    options_description basic_opt_defs(
         "teca_cartesian_mesh_diff an application that compares two datasets.\n\n"
         "Command line options", 120, -1
         );
-    opt_defs.add_options()
+    basic_opt_defs.add_options()
         ("reference_dataset", value<std::string>()->required(),
             "cf_reader regex identifying the reference dataset")
 
@@ -49,15 +91,51 @@ int main(int argc, char **argv)
 
         ("verbose", "enable extra terminal output")
         ("help", "display the basic options help")
+        ("full_help", "display all options help information")
+        ("advanced_help", "display the advanced options help")
         ;
+
+    // add all options from each pipeline stage for more advanced use
+    options_description advanced_opt_defs(
+        "Advanced usage:\n\n"
+        "The following list contains the full set options giving one full\n"
+        "control over all runtime modifiable parameters. The basic options\n"
+        "(see" "--help) map to these, and will override them if both are\n"
+        "specified.\n\n"
+        "Advanced command line options", -1, 1
+        );
+
+    // create the pipeline stages here, they contain the
+    // documentation and parse command line.
+    // objects report all of their properties directly
+    // set default options here so that command line options override
+    // them. while we are at it connect the pipeline
+    test_reader->get_properties_description("test_reader", advanced_opt_defs);
+    if (do_test)
+    {
+        ref_reader->get_properties_description("ref_reader", advanced_opt_defs);
+        diff->get_properties_description("diff", advanced_opt_defs);
+    }
+    else
+    {
+        ref_writer->get_properties_description("ref_writer", advanced_opt_defs);
+    }
+
+    // package basic and advanced options for display
+    options_description all_opt_defs(-1, -1);
+    all_opt_defs.add(basic_opt_defs).add(advanced_opt_defs);
 
     // parse the command line
     variables_map opt_vals;
     try
     {
         boost::program_options::store(
-            boost::program_options::command_line_parser(argc, argv).options(opt_defs).run(),
-            opt_vals);
+            boost::program_options::command_line_parser(argc, argv)
+                .style(boost::program_options::command_line_style::unix_style ^
+                       boost::program_options::command_line_style::allow_short)
+                .options(all_opt_defs)
+                .run(),
+                opt_vals);
 
         if (mpi_man.get_comm_rank() == 0)
         {
@@ -66,7 +144,27 @@ int main(int argc, char **argv)
                 std::cerr << std::endl
                     << "usage: teca_cartesian_mesh_diff [options]" << std::endl
                     << std::endl
-                    << opt_defs << std::endl
+                    << basic_opt_defs << std::endl
+                    << std::endl;
+                return -1;
+            }
+
+            if (opt_vals.count("advanced_help"))
+            {
+                std::cerr << std::endl
+                    << "usage: teca_cartesian_mesh_diff [options]" << std::endl
+                    << std::endl
+                    << advanced_opt_defs << std::endl
+                    << std::endl;
+                return -1;
+            }
+
+            if (opt_vals.count("full_help"))
+            {
+                std::cerr << std::endl
+                    << "usage: teca_cartesian_mesh_diff [options]" << std::endl
+                    << std::endl
+                    << all_opt_defs << std::endl
                     << std::endl;
                 return -1;
             }
@@ -84,34 +182,52 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    std::string ref_file = opt_vals["reference_dataset"].as<std::string>();
-    std::string test_file = opt_vals["test_dataset"].as<std::string>();
+    // pass command line arguments into the pipeline objects
+    // advanced options are processed first, so that the basic
+    // options will override them
+    test_reader->set_properties("test_reader", opt_vals);
+    if (do_test)
+    {
+        ref_reader->set_properties("ref_reader", opt_vals);
+        diff->set_properties("diff", opt_vals);
+    }
+    else
+    {
+        ref_writer->set_properties("ref_writer", opt_vals);
+    }
+
+    if (opt_vals.count("test_tolerance"))
+    {
+        diff->set_tolerance(opt_vals["test_tolerance"].as<double>());
+    }
+
     std::vector<std::string> arrays = opt_vals["arrays"].as<std::vector<std::string>>();
-    double test_tol = opt_vals["test_tolerance"].as<double>();
     long start_index = opt_vals["start_index"].as<long>();
     long end_index = opt_vals["end_index"].as<long>();
-
 
     p_teca_index_executive exec = teca_index_executive::New();
     exec->set_start_index(start_index);
     exec->set_end_index(end_index);
     exec->set_arrays(arrays);
-    if (opt_vals.count("verbose"))
-        exec->set_verbose(1);
 
-    bool do_test = true;
-    teca_system_util::get_environment_variable("TECA_DO_TEST", do_test);
+    bool verbose = opt_vals.count("verbose");
+    if (verbose)
+    {
+        exec->set_verbose(1);
+        diff->set_verbose(1);
+    }
+    else
+    {
+        exec->set_verbose(0);
+        diff->set_verbose(0);
+    }
+
     if (do_test)
     {
         TECA_STATUS("Running the test")
 
-        p_teca_algorithm ref_reader = teca_cartesian_mesh_reader_factory::New(ref_file);
-        p_teca_algorithm test_reader = teca_cartesian_mesh_reader_factory::New(test_file);
-
-        p_teca_dataset_diff diff = teca_dataset_diff::New();
         diff->set_input_connection(0, ref_reader->get_output_port());
         diff->set_input_connection(1, test_reader->get_output_port());
-        diff->set_tolerance(test_tol);
         diff->set_executive(exec);
 
         diff->update();
@@ -120,13 +236,10 @@ int main(int argc, char **argv)
     {
         TECA_STATUS("Writing the baseline")
 
-        p_teca_algorithm reader = teca_cartesian_mesh_reader_factory::New(test_file);
+        ref_writer->set_input_connection(test_reader->get_output_port());
+        ref_writer->set_executive(exec);
 
-        p_teca_algorithm writer = teca_cartesian_mesh_writer_factory::New(ref_file);
-        writer->set_input_connection(reader->get_output_port());
-        writer->set_executive(exec);
-
-        writer->update();
+        ref_writer->update();
     }
 
     return 0;

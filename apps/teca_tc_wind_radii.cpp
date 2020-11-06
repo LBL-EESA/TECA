@@ -3,6 +3,7 @@
 #include "teca_table_remove_rows.h"
 #include "teca_table_sort.h"
 #include "teca_cf_reader.h"
+#include "teca_multi_cf_reader.h"
 #include "teca_normalize_coordinates.h"
 #include "teca_tc_wind_radii.h"
 #include "teca_table_reduce.h"
@@ -40,7 +41,17 @@ int main(int argc, char **argv)
         );
     basic_opt_defs.add_options()
         ("track_file", value<std::string>(), "file path to read the cyclone from (tracks.bin)")
-        ("wind_files", value<std::string>(), "regex matching simulation files containing wind fields ()")
+
+        ("input_file", value<std::string>(), "multi_cf_reader configuration file identifying"
+            " simulation files tracks were generated from. when present data is read using"
+            " the multi_cf_reader. use one of either --input_file or --input_regex.")
+
+        ("input_regex", value<std::string>(), "cf_reader regex identyifying simulation files"
+            " tracks were generated from. when present data is read using the cf_reader. use"
+            " one of either --input_file or --input_regex.")
+
+        ("wind_files", value<std::string>(), "a deprecated option that is a synonym for --input_regex.")
+
         ("track_file_out", value<std::string>(), "file path to write cyclone tracks with size (tracks_size.bin)")
         ("wind_u_var", value<std::string>(), "name of variable with wind x-component (UBOT)")
         ("wind_v_var", value<std::string>(), "name of variable with wind y-component (VBOT)")
@@ -66,7 +77,7 @@ int main(int argc, char **argv)
         "tc storm size pipeline:\n\n"
         "   (track reader)--(track filter)\n"
         "                        \\\n"
-        "     (wind reader)--(storm size)\n"
+        "  (cf / mcf_reader)--(storm size)\n"
         "                         \\\n"
         "                      (map reduce)--(table sort)\n"
         "                                          \\\n"
@@ -86,29 +97,28 @@ int main(int argc, char **argv)
     p_teca_table_remove_rows track_filter = teca_table_remove_rows::New();
     track_filter->get_properties_description("track_filter", advanced_opt_defs);
 
-    p_teca_cf_reader wind_reader = teca_cf_reader::New();
-    wind_reader->get_properties_description("wind_reader", advanced_opt_defs);
+    p_teca_cf_reader cf_reader = teca_cf_reader::New();
+    cf_reader->get_properties_description("cf_reader", advanced_opt_defs);
+
+    p_teca_multi_cf_reader mcf_reader = teca_multi_cf_reader::New();
+    mcf_reader->get_properties_description("mcf_reader", advanced_opt_defs);
 
     p_teca_normalize_coordinates wind_coords = teca_normalize_coordinates::New();
-    wind_coords->set_input_connection(wind_reader->get_output_port());
 
     p_teca_tc_wind_radii wind_radii = teca_tc_wind_radii::New();
     wind_radii->get_properties_description("wind_radii", advanced_opt_defs);
-    wind_radii->set_input_connection(1, wind_coords->get_output_port());
+
 
     p_teca_table_reduce map_reduce = teca_table_reduce::New();
     map_reduce->get_properties_description("map_reduce", advanced_opt_defs);
-    map_reduce->set_input_connection(wind_radii->get_output_port());
 
     p_teca_table_sort sort = teca_table_sort::New();
     sort->get_properties_description("table_sort", advanced_opt_defs);
-    sort->set_input_connection(map_reduce->get_output_port());
     sort->set_index_column("track_id");
     sort->enable_stable_sort();
 
     p_teca_table_writer track_writer = teca_table_writer::New();
     track_writer->get_properties_description("track_writer", advanced_opt_defs);
-    track_writer->set_input_connection(sort->get_output_port());
     track_writer->set_file_name("tracks_size.bin");
 
     // package basic and advanced options for display
@@ -168,7 +178,8 @@ int main(int argc, char **argv)
     // options will override them
     track_reader->set_properties("track_reader", opt_vals);
     track_filter->set_properties("track_filter", opt_vals);
-    wind_reader->set_properties("wind_reader", opt_vals);
+    cf_reader->set_properties("cf_reader", opt_vals);
+    mcf_reader->set_properties("mcf_reader", opt_vals);
     wind_radii->set_properties("wind_radii", opt_vals);
     map_reduce->set_properties("map_reduce", opt_vals);
     sort->set_properties("table_sort", opt_vals);
@@ -179,28 +190,44 @@ int main(int argc, char **argv)
     if (opt_vals.count("track_file"))
         track_reader->set_file_name(opt_vals["track_file"].as<std::string>());
 
-    if (opt_vals.count("wind_files"))
+    bool have_file = opt_vals.count("input_file");
+    bool have_wind_files = opt_vals.count("wind_files");
+    bool have_regex = opt_vals.count("input_regex");
+    p_teca_algorithm wind_reader;
+    if (have_file)
     {
-        wind_reader->set_files_regex(opt_vals["wind_files"].as<std::string>());
+        mcf_reader->set_input_file(opt_vals["input_file"].as<std::string>());
+        wind_reader = mcf_reader;
     }
-    else
+    else if (have_wind_files)
     {
-        TECA_ERROR("--wind_files is a required option")
-        return -1;
+        // Wed Nov  4 09:37:00 AM PST 2020
+        have_regex = true;
+        TECA_WARNING("The --wind_files command line argument has been replaced by"
+            " --input_regex. --wind_files will be removed in a future release"
+            " please update your scripts to use --input_regex")
+        cf_reader->set_files_regex(opt_vals["wind_files"].as<std::string>());
+        wind_reader = cf_reader;
+    }
+    else if (have_regex)
+    {
+        cf_reader->set_files_regex(opt_vals["input_regex"].as<std::string>());
+        wind_reader = cf_reader;
     }
 
     if (opt_vals.count("track_file_out"))
         track_writer->set_file_name(opt_vals["track_file_out"].as<std::string>());
 
+    p_teca_algorithm track_input;
     if (opt_vals.count("track_mask"))
     {
         track_filter->set_input_connection(track_reader->get_output_port());
         track_filter->set_mask_expression(opt_vals["track_mask"].as<std::string>());
-        wind_radii->set_input_connection(0, track_filter->get_output_port());
+        track_input = track_filter;
     }
     else
     {
-        wind_radii->set_input_connection(0, track_reader->get_output_port());
+        track_input = track_reader;
     }
 
     if (opt_vals.count("wind_u_var"))
@@ -243,6 +270,26 @@ int main(int argc, char **argv)
         map_reduce->set_thread_pool_size(opt_vals["n_threads"].as<int>());
     else
         map_reduce->set_thread_pool_size(-1);
+
+    // some minimal check for missing options
+    if ((have_file && have_regex) || !(have_file || have_regex))
+    {
+        if (mpi_man.get_comm_rank() == 0)
+        {
+            TECA_ERROR("Extacly one of --input_file or --input_regex can be specified. "
+                "Use --input_file to activate the multi_cf_reader (HighResMIP datasets) "
+                "and --input_regex to activate the cf_reader (CAM like datasets)")
+        }
+        return -1;
+    }
+
+    // connect the pipeline
+    wind_coords->set_input_connection(wind_reader->get_output_port());
+    wind_radii->set_input_connection(0, track_input->get_output_port());
+    wind_radii->set_input_connection(1, wind_coords->get_output_port());
+    map_reduce->set_input_connection(wind_radii->get_output_port());
+    sort->set_input_connection(map_reduce->get_output_port());
+    track_writer->set_input_connection(sort->get_output_port());
 
     // run the pipeline
     track_writer->update();

@@ -57,7 +57,7 @@ teca_add_test(test_integrated_vapor_transport_app_mpi
     FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
-teca_add_test(test_tc_detect_app_serial
+teca_add_test(test_tc_detect_app
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_detect_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
     FEATURES ${TECA_HAS_NETCDF}
@@ -67,6 +67,12 @@ teca_add_test(test_tc_detect_app_mpi
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_detect_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} ${MPIEXEC} ${TEST_CORES}
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(test_tc_detect_app_mcf
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_detect_app_mcf.sh
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
+    FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(test_tc_trajectory_app
@@ -231,4 +237,29 @@ teca_add_test(test_convert_table_app_bin_netcdf
     "test_descriptive_statistics.bin"
     "test_descriptive_statistics.nc"
     FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_metadata_probe_app_cf
+    COMMAND ${CMAKE_BINARY_DIR}/${BIN_PREFIX}/teca_metadata_probe
+    --input_regex "${TECA_DATA_ROOT}/test_tc_candidates_1990_07_0[0-9]\\.nc"
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_metadata_probe_app_mcf
+    COMMAND ${CMAKE_BINARY_DIR}/${BIN_PREFIX}/teca_metadata_probe
+    --input_file ${CMAKE_CURRENT_BINARY_DIR}/../ECMWF-IFS-HR-SST-present.mcf
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_restripe_app
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_cf_restripe_app.sh
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_restripe_app_mpi
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_cf_restripe_app.sh
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1
+    ${MPIEXEC} ${HALF_TEST_CORES}
+    FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
     REQ_TECA_DATA)

@@ -12,6 +12,7 @@ struct teca_cartesian_mesh_reader_factory
     //
     // bin -- teca_cartesian_mesh_reader
     // nc  -- teca_cf_reader
+    // mcf -- teca_multi_cf_reader
     //
     // returns a new instance of the reader with the file or
     // regex set or a nullptr if an error is encountered

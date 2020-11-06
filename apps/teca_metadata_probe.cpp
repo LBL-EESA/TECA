@@ -1,6 +1,8 @@
 #include "teca_config.h"
 #include "teca_metadata.h"
+#include "teca_netcdf_util.h"
 #include "teca_cf_reader.h"
+#include "teca_multi_cf_reader.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_coordinate_util.h"
@@ -12,6 +14,7 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <iomanip>
 #include <chrono>
 #include <boost/program_options.hpp>
 
@@ -31,10 +34,17 @@ int main(int argc, char **argv)
         "Basic comand line options", 120, -1
         );
     basic_opt_defs.add_options()
-        ("input_file", value<string>(), "file path to the NetCDF-CF2 dataset")
-        ("input_regex", value<string>(), "regex matching a NetCDF-CF2 dataset")
-        ("start_date", value<string>(), "first time to proces in Y-M-D h:m:s format")
-        ("end_date", value<string>(), "first time to proces in Y-M-D h:m:s format")
+
+        ("input_file", value<std::string>(), "multi_cf_reader configuration file identifying"
+            " simulation files tracks were generated from. when present data is read using"
+            " the multi_cf_reader. use one of either --input_file or --input_regex.")
+
+        ("input_regex", value<std::string>(), "cf_reader regex identyifying simulation files"
+            " tracks were generated from. when present data is read using the cf_reader. use"
+            " one of either --input_file or --input_regex.")
+
+        ("start_date", value<std::string>(), "first time to proces in Y-M-D h:m:s format")
+        ("end_date", value<std::string>(), "first time to proces in Y-M-D h:m:s format")
         ("help", "display the basic options help")
         ("advanced_help", "display the advanced options help")
         ("full_help", "display all options help")
@@ -55,8 +65,11 @@ int main(int argc, char **argv)
     // objects report all of their properties directly
     // set default options here so that comand line options override
     // them. while we are at it connect the pipeline
-    p_teca_cf_reader sim_reader = teca_cf_reader::New();
-    sim_reader->get_properties_description("sim_reader", advanced_opt_defs);
+    p_teca_cf_reader cf_reader = teca_cf_reader::New();
+    cf_reader->get_properties_description("cf_reader", advanced_opt_defs);
+
+    p_teca_multi_cf_reader mcf_reader = teca_multi_cf_reader::New();
+    mcf_reader->get_properties_description("mcf_reader", advanced_opt_defs);
 
     // package basic and advanced options for display
     options_description all_opt_defs(-1, -1);
@@ -72,30 +85,30 @@ int main(int argc, char **argv)
 
         if (opt_vals.count("help"))
         {
-            cerr << endl
-                << "usage: teca_data_probe [options]" << endl
-                << endl
-                << basic_opt_defs << endl
-                << endl;
+            std::cerr << std::endl
+                << "usage: teca_metadata_probe [options]" << std::endl
+                << std::endl
+                << basic_opt_defs << std::endl
+                << std::endl;
             return -1;
         }
         if (opt_vals.count("advanced_help"))
         {
-            cerr << endl
-                << "usage: teca_data_probe [options]" << endl
-                << endl
-                << advanced_opt_defs << endl
-                << endl;
+            std::cerr << std::endl
+                << "usage: teca_metadata_probe [options]" << std::endl
+                << std::endl
+                << advanced_opt_defs << std::endl
+                << std::endl;
             return -1;
         }
 
         if (opt_vals.count("full_help"))
         {
-            cerr << endl
-                << "usage: teca_data_probe [options]" << endl
-                << endl
-                << all_opt_defs << endl
-                << endl;
+            std::cerr << std::endl
+                << "usage: teca_metadata_probe [options]" << std::endl
+                << std::endl
+                << all_opt_defs << std::endl
+                << std::endl;
             return -1;
         }
 
@@ -111,17 +124,25 @@ int main(int argc, char **argv)
     // pass comand line arguments into the pipeline objects
     // advanced options are procesed first, so that the basic
     // options will override them
-    sim_reader->set_properties("sim_reader", opt_vals);
+    cf_reader->set_properties("cf_reader", opt_vals);
+    mcf_reader->set_properties("mcf_reader", opt_vals);
 
     // now pas in the basic options, these are procesed
     // last so that they will take precedence
-    if (opt_vals.count("input_file"))
-        sim_reader->append_file_name(
-            opt_vals["input_file"].as<string>());
+    bool have_file = opt_vals.count("input_file");
+    bool have_regex = opt_vals.count("input_regex");
 
-    if (opt_vals.count("input_regex"))
-        sim_reader->set_files_regex(
-            opt_vals["input_regex"].as<string>());
+    p_teca_algorithm reader;
+    if (opt_vals.count("input_file"))
+    {
+        mcf_reader->set_input_file(opt_vals["input_file"].as<string>());
+        reader = mcf_reader;
+    }
+    else if (opt_vals.count("input_regex"))
+    {
+        cf_reader->set_files_regex(opt_vals["input_regex"].as<string>());
+        reader = cf_reader;
+    }
 
     std::string time_i;
     if (opt_vals.count("start_date"))
@@ -132,26 +153,24 @@ int main(int argc, char **argv)
         time_j = opt_vals["end_date"].as<string>();
 
     // some minimal check for mising options
-    if (sim_reader->get_number_of_file_names() == 0
-        && sim_reader->get_files_regex().empty())
+    if ((have_file && have_regex) || !(have_file || have_regex))
     {
-        TECA_ERROR(
-            "mising file name or regex for simulation reader. "
-            "See --help for a list of comand line options.")
+        TECA_ERROR("Extacly one of --input_file or --input_regex can be specified. "
+            "Use --input_file to activate the multi_cf_reader (HighResMIP datasets) "
+            "and --input_regex to activate the cf_reader (CAM like datasets)")
         return -1;
     }
 
     // run the reporting phase of the pipeline
-    teca_metadata md = sim_reader->update_metadata();
+    teca_metadata md = reader->update_metadata();
     //md.to_stream(cerr);
 
     // extract metadata
-    if (!md.has("files"))
+    int n_files = -1;
+    if (md.has("files"))
     {
-        TECA_ERROR("no files were located")
-        return -1;
+        n_files = md.get("files")->size();
     }
-    int n_files = md.get("files")->size();
 
     teca_metadata atrs;
     if (md.get("attributes", atrs))
@@ -262,8 +281,10 @@ int main(int argc, char **argv)
     }
 
     oss.str("");
-    oss << "A total of " <<  n_time_steps << " steps available in " << n_files
-        << " files. Using the " << calendar << " calendar. Times are specified in units of "
+    oss << "A total of " <<  n_time_steps << " steps available";
+    if (n_files > 0)
+        oss << " in " << n_files << " files";
+    oss << ". Using the " << calendar << " calendar. Times are specified in units of "
         << units << ". The available times range from " << time_0 << " (" << time->get(0)
         << ") to " << time_n << " (" << time->get(time->size()-1) << ").";
 
@@ -275,21 +296,127 @@ int main(int argc, char **argv)
     }
 
     std::string report(oss.str());
+
     std::string::iterator it = report.begin();
     std::string::iterator end = report.end();
     unsigned long i = 0;
     unsigned long line_len = 74;
+    std::cerr << std::endl;
     for (; it != end; ++it, ++i)
     {
         if ((i >= line_len) && (*it == ' '))
         {
-            cerr << endl;
+            std::cerr << std::endl;
             ++it;
             i = 0;
         }
-        cerr << *it;
+        std::cerr << *it;
     }
-    cerr << endl;
+    std::cerr << std::endl;
+
+    // report the arrays
+    size_t n_arrays = atrs.size();
+
+    // column widths
+    int anw = 0;
+    int atw = 0;
+    int adw = 0;
+    int asw = 0;
+
+    // column data
+    std::vector<std::string> an(n_arrays);
+    std::vector<std::string> at(n_arrays);
+    std::vector<std::string> ad(n_arrays);
+    std::vector<std::string> as(n_arrays);
+
+    for (size_t i = 0; i < n_arrays; ++i)
+    {
+        std::string array;
+        atrs.get_name(i, array);
+
+
+        // get metadata
+        teca_metadata atts;
+        int type = 0;
+        int id = 0;
+        p_teca_size_t_array dims;
+        p_teca_string_array dim_names;
+
+        if (atrs.get(array, atts)
+            || atts.get("cf_type_code", 0, type)
+            || atts.get("cf_id", 0, id)
+            || !(dims = std::dynamic_pointer_cast<teca_size_t_array>(atts.get("cf_dims")))
+            || !(dim_names = std::dynamic_pointer_cast<teca_string_array>(atts.get("cf_dim_names"))))
+        {
+            TECA_ERROR("metadata issue \"" << array << "\"")
+            continue;
+        }
+
+        // name
+        an[i] = array;
+        anw = std::max<int>(anw, an[i].size() + 4);
+
+        // type
+        NC_DISPATCH(type,
+            at[i] = teca_netcdf_util::netcdf_tt<NC_T>::name();
+            )
+        atw = std::max<int>(atw, at[i].size() + 4);
+
+        // dims
+        int n_dims = dim_names->size();
+
+        oss.str("");
+        oss << "[" << dim_names->get(0);
+        for (int i = 1; i < n_dims; ++i)
+        {
+            oss << ", " << dim_names->get(i);
+        }
+        oss << "]";
+        ad[i] = oss.str();
+        adw = std::max<int>(adw, ad[i].size() + 4);
+
+        // shape
+        oss.str("");
+        if (dim_names->get(0) == "time")
+            oss << "[" << n_time_steps;
+        else
+           oss << "[" << dims->get(0);
+        for (int i = 1; i < n_dims; ++i)
+        {
+            if (dim_names->get(i) == "time")
+                oss << ", " << n_time_steps;
+            else
+                oss << ", " << dims->get(i);
+        }
+        oss << "]";
+        as[i] = oss.str();
+        asw = std::max<int>(asw, as[i].size() + 4);
+    }
+
+    std::cerr << std::endl
+        << n_arrays << " data arrays available" << std::endl << std::endl
+        << "  "
+        << std::setw(anw) << std::left << "Name"
+        << std::setw(atw) << std::left << "Type"
+        << std::setw(adw) << std::left << "Dimensions"
+        << std::setw(asw) << std::left << "Shape" << std::endl;
+
+    int tw =  anw + atw + adw + asw;
+    for (int i = 0; i < tw; ++i)
+        std::cerr << '-';
+    std::cerr << std::endl;
+
+    for (size_t i = 0; i < n_arrays; ++i)
+    {
+        std::cerr << "  "
+            << std::setw(anw) << std::left << an[i]
+            << std::setw(atw) << std::left << at[i]
+            << std::setw(adw) << std::left << ad[i]
+            << std::setw(asw) << std::left << as[i]
+            << std::endl;
+    }
+
+    std::cerr << std::endl;
 
     return 0;
 }

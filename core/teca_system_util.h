@@ -32,6 +32,17 @@ int get_environment_variable(const char *var, T &val)
     }
     return 1;
 }
+
+// extract the value of the named command line argument.
+// return 0 if successful. If require is not zero then an error
+// will be reported if the argument is not present.
+int get_command_line_option(int argc, char **argv,
+    const char *arg_name, int require, std::string &arg_val);
+
+// check for the presence of the name command line option.
+// return non-zero if it is found.
+int command_line_option_check(int argc, char **argv,
+    const char *arg_name);
 }
 
 #endif

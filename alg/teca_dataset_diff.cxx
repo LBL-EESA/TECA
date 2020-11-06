@@ -7,6 +7,7 @@
 #include "teca_array_collection.h"
 #include "teca_metadata.h"
 #include "teca_file_util.h"
+#include "teca_mpi.h"
 
 #include <iostream>
 #include <sstream>
@@ -18,15 +19,19 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include <iostream>
 
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
 #endif
 
+#define TEST_STATUS(_msg)                               \
+    std::cerr << teca_parallel_id()                     \
+        << " teca_dataset_diff :: " _msg << std::endl;
 
 // --------------------------------------------------------------------------
 teca_dataset_diff::teca_dataset_diff()
-    : tolerance(1e-6)
+    : tolerance(1e-6), verbose(1)
 {
     this->set_number_of_input_connections(2);
     this->set_number_of_output_ports(1);
@@ -46,6 +51,7 @@ void teca_dataset_diff::get_properties_description(
 
     opts.add_options()
         TECA_POPTS_GET(double, prefix, tolerance, "relative test tolerance")
+        TECA_POPTS_GET(int, prefix, verbose, "print status messages as the diff runs")
         ;
 
     global_opts.add(opts);
@@ -55,6 +61,7 @@ void teca_dataset_diff::get_properties_description(
 void teca_dataset_diff::set_properties(const std::string &prefix, variables_map &opts)
 {
     TECA_POPTS_SET(opts, double, prefix, tolerance)
+    TECA_POPTS_SET(opts, int, prefix, verbose)
 }
 #endif
 
@@ -281,6 +288,18 @@ int teca_dataset_diff::compare_tables(
     const_p_teca_table table1,
     const_p_teca_table table2)
 {
+    int rank = 0;
+#if defined(TECA_HAS_MPI)
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
+        MPI_Comm_rank(this->get_communicator(), &rank);
+#endif
+    if (this->verbose && (rank == 0))
+    {
+        TEST_STATUS("comparing tables")
+    }
+
     unsigned int ncols1 = table1->get_number_of_columns();
     unsigned int ncols2 = table2->get_number_of_columns();
 
@@ -319,12 +338,19 @@ int teca_dataset_diff::compare_tables(
     {
         const_p_teca_variant_array col1 = table1->get_column(col);
         const_p_teca_variant_array col2 = table2->get_column(col);
+
+        const std::string &col_name = table1->get_column_name(col);
+
+        if (this->verbose && (rank == 0))
+        {
+            TEST_STATUS("  comparing collumn \"" << col_name << "\"")
+        }
+
         if (compare_arrays(col1, col2))
         {
-            TECA_ERROR("difference in column " << col << " \""
-                << table1->get_column_name(col) << "\"")
-            return -1;
 
+            TECA_ERROR("difference in column " << col << " \"" << col_name << "\"")
+            return -1;
         }
     }
 
@@ -426,6 +452,14 @@ int teca_dataset_diff::compare_array_collections(
     const_p_teca_array_collection reference_arrays,
     const_p_teca_array_collection data_arrays)
 {
+    int rank = 0;
+#if defined(TECA_HAS_MPI)
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
+        MPI_Comm_rank(this->get_communicator(), &rank);
+#endif
+
     // The data arrays should contain all the data in the reference arrays.
     for (unsigned int i = 0; i < reference_arrays->size(); ++i)
     {
@@ -443,7 +477,14 @@ int teca_dataset_diff::compare_array_collections(
     {
         const_p_teca_variant_array a1 = reference_arrays->get(i);
         std::string name = reference_arrays->get_name(i);
+
         const_p_teca_variant_array a2 = data_arrays->get(name);
+
+        if (this->verbose && (rank == 0))
+        {
+            TEST_STATUS("    comparing array " << name)
+        }
+
         if (this->compare_arrays(a1, a2))
         {
             TECA_ERROR("difference in array " << i << " \"" << name << "\"")
@@ -458,12 +499,24 @@ int teca_dataset_diff::compare_meshes(
     const_p_teca_mesh reference_mesh,
     const_p_teca_mesh data_mesh)
 {
+    int rank = 0;
+#if defined(TECA_HAS_MPI)
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
+        MPI_Comm_rank(this->get_communicator(), &rank);
+#endif
+
     // If the arrays are different in shape or in content, the datasets differ.
     const_p_teca_array_collection arrays1, arrays2;
 
     // Point arrays.
     arrays1 = reference_mesh->get_point_arrays();
     arrays2 = data_mesh->get_point_arrays();
+    if (this->verbose && (rank == 0) && arrays1->size())
+    {
+        TEST_STATUS("  comparing point arrays")
+    }
     if (this->compare_array_collections(arrays1, arrays2))
     {
         TECA_ERROR("difference in point arrays")
@@ -473,6 +526,10 @@ int teca_dataset_diff::compare_meshes(
     // cell-centered arrays.
     arrays1 = reference_mesh->get_cell_arrays();
     arrays2 = data_mesh->get_cell_arrays();
+    if (this->verbose && (rank == 0) && arrays1->size())
+    {
+        TEST_STATUS("  comparing cell arrays")
+    }
     if (this->compare_array_collections(arrays1, arrays2))
     {
         TECA_ERROR("difference in cell arrays")
@@ -482,6 +539,10 @@ int teca_dataset_diff::compare_meshes(
     // Edge-centered arrays.
     arrays1 = reference_mesh->get_x_edge_arrays();
     arrays2 = data_mesh->get_x_edge_arrays();
+    if (this->verbose && (rank == 0) && arrays1->size())
+    {
+        TEST_STATUS("  comparing x-dege arrays")
+    }
     if (this->compare_array_collections(arrays1, arrays2))
     {
         TECA_ERROR("difference in x-edge arrays")
@@ -490,6 +551,10 @@ int teca_dataset_diff::compare_meshes(
 
     arrays1 = reference_mesh->get_y_edge_arrays();
     arrays2 = data_mesh->get_y_edge_arrays();
+    if (this->verbose && (rank == 0) && arrays1->size())
+    {
+        TEST_STATUS("  comparing y-edge arrays")
+    }
     if (this->compare_array_collections(arrays1, arrays2))
     {
         TECA_ERROR("difference in y-edge arrays")
@@ -498,6 +563,10 @@ int teca_dataset_diff::compare_meshes(
 
     arrays1 = reference_mesh->get_z_edge_arrays();
     arrays2 = data_mesh->get_z_edge_arrays();
+    if (this->verbose && (rank == 0) && arrays1->size())
+    {
+        TEST_STATUS("  comparing z-edge arrays")
+    }
     if (this->compare_array_collections(arrays1, arrays2))
     {
         TECA_ERROR("difference in z-edge arrays")
@@ -507,6 +576,10 @@ int teca_dataset_diff::compare_meshes(
     // Face-centered arrays.
     arrays1 = reference_mesh->get_x_face_arrays();
     arrays2 = data_mesh->get_x_face_arrays();
+    if (this->verbose && (rank == 0) && arrays1->size())
+    {
+        TEST_STATUS("  comparing x-face arrays")
+    }
     if (this->compare_array_collections(arrays1, arrays2))
     {
         TECA_ERROR("difference in x-face arrays")
@@ -515,6 +588,10 @@ int teca_dataset_diff::compare_meshes(
 
     arrays1 = reference_mesh->get_y_face_arrays();
     arrays2 = data_mesh->get_y_face_arrays();
+    if (this->verbose && (rank == 0) && arrays1->size())
+    {
+        TEST_STATUS("  comparing y-face arrays")
+    }
     if (this->compare_array_collections(arrays1, arrays2))
     {
         TECA_ERROR("difference in y-face arrays")
@@ -523,6 +600,10 @@ int teca_dataset_diff::compare_meshes(
 
     arrays1 = reference_mesh->get_z_face_arrays();
     arrays2 = data_mesh->get_z_face_arrays();
+    if (this->verbose && (rank == 0) && arrays1->size())
+    {
+        TEST_STATUS("  comparing z-face arrays")
+    }
     if (this->compare_array_collections(arrays1, arrays2))
     {
         TECA_ERROR("difference in z-face arrays")
@@ -532,6 +613,10 @@ int teca_dataset_diff::compare_meshes(
     // Non-geometric arrays.
     arrays1 = reference_mesh->get_information_arrays();
     arrays2 = data_mesh->get_information_arrays();
+    if (this->verbose && (rank == 0) && arrays1->size())
+    {
+        TEST_STATUS("  comparing information arrays")
+    }
     if (this->compare_array_collections(arrays1, arrays2))
     {
         TECA_ERROR("difference in information arrays")
@@ -546,8 +631,19 @@ int teca_dataset_diff::compare_cartesian_meshes(
     const_p_teca_cartesian_mesh reference_mesh,
     const_p_teca_cartesian_mesh data_mesh)
 {
+    int rank = 0;
+#if defined(TECA_HAS_MPI)
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
+        MPI_Comm_rank(this->get_communicator(), &rank);
+#endif
 
     // compare base class elements
+    if (this->verbose && (rank == 0))
+    {
+        TEST_STATUS("comparing cartesian meshes")
+    }
     if (this->compare_meshes(reference_mesh, data_mesh))
     {
         TECA_ERROR("Difference in mesh")
@@ -555,21 +651,38 @@ int teca_dataset_diff::compare_cartesian_meshes(
     }
 
     // Coordinate arrays.
-    if (this->compare_arrays(reference_mesh->get_x_coordinates(),
-        data_mesh->get_x_coordinates()))
+    std::string name;
+    const_p_teca_variant_array coord1 = reference_mesh->get_x_coordinates();
+    reference_mesh->get_x_coordinate_variable(name);
+    if (this->verbose && (rank == 0) && coord1->size())
+    {
+        TEST_STATUS("comparing x-coordinates " << name)
+    }
+    if (this->compare_arrays(coord1, data_mesh->get_x_coordinates()))
     {
         TECA_ERROR("difference in x coordinates")
         return -1;
     }
 
-    if (this->compare_arrays(reference_mesh->get_y_coordinates(),
-        data_mesh->get_y_coordinates()))
+    coord1 = reference_mesh->get_y_coordinates();
+    reference_mesh->get_y_coordinate_variable(name);
+    if (this->verbose && (rank == 0) && coord1->size())
+    {
+        TEST_STATUS("comparing y-coordinates " << name)
+    }
+    if (this->compare_arrays(coord1, data_mesh->get_y_coordinates()))
     {
         TECA_ERROR("difference in y coordinates")
         return -1;
     }
 
-    if (this->compare_arrays(reference_mesh->get_z_coordinates(),
+    coord1 = reference_mesh->get_z_coordinates();
+    reference_mesh->get_z_coordinate_variable(name);
+    if (this->verbose && (rank == 0) && coord1->size())
+    {
+        TEST_STATUS("comparing z-coordinates " << name)
+    }
+    if (this->compare_arrays(coord1,
         data_mesh->get_z_coordinates()))
     {
         TECA_ERROR("difference in z coordinates")
@@ -584,8 +697,19 @@ int teca_dataset_diff::compare_curvilinear_meshes(
     const_p_teca_curvilinear_mesh reference_mesh,
     const_p_teca_curvilinear_mesh data_mesh)
 {
+    int rank = 0;
+#if defined(TECA_HAS_MPI)
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
+        MPI_Comm_rank(this->get_communicator(), &rank);
+#endif
 
     // compare base class elements
+    if (this->verbose && (rank == 0))
+    {
+        TEST_STATUS("comparing curvilinear meshes")
+    }
     if (this->compare_meshes(reference_mesh, data_mesh))
     {
         TECA_ERROR("Difference in mesh")
@@ -593,6 +717,10 @@ int teca_dataset_diff::compare_curvilinear_meshes(
     }
 
     // Coordinate arrays.
+    if (this->verbose && (rank == 0))
+    {
+        TEST_STATUS("comparing x-coordinates")
+    }
     if (this->compare_arrays(reference_mesh->get_x_coordinates(),
         data_mesh->get_x_coordinates()))
     {
@@ -600,6 +728,10 @@ int teca_dataset_diff::compare_curvilinear_meshes(
         return -1;
     }
 
+    if (this->verbose && (rank == 0))
+    {
+        TEST_STATUS("comparing y-coordinates")
+    }
     if (this->compare_arrays(reference_mesh->get_y_coordinates(),
         data_mesh->get_y_coordinates()))
     {
@@ -607,6 +739,10 @@ int teca_dataset_diff::compare_curvilinear_meshes(
         return -1;
     }
 
+    if (this->verbose && (rank == 0))
+    {
+        TEST_STATUS("comparing z-coordinates")
+    }
     if (this->compare_arrays(reference_mesh->get_z_coordinates(),
         data_mesh->get_z_coordinates()))
     {
@@ -622,8 +758,19 @@ int teca_dataset_diff::compare_arakawa_c_grids(
     const_p_teca_arakawa_c_grid reference_mesh,
     const_p_teca_arakawa_c_grid data_mesh)
 {
+    int rank = 0;
+#if defined(TECA_HAS_MPI)
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
+        MPI_Comm_rank(this->get_communicator(), &rank);
+#endif
 
     // compare base class elements
+    if (this->verbose && (rank == 0))
+    {
+        TEST_STATUS("comparing arakawa c grids")
+    }
     if (this->compare_meshes(reference_mesh, data_mesh))
     {
         TECA_ERROR("Difference in mesh")
@@ -631,6 +778,10 @@ int teca_dataset_diff::compare_arakawa_c_grids(
     }
 
     // Coordinate arrays.
+    if (this->verbose && (rank == 0))
+    {
+        TEST_STATUS("comparing m x-coordinates")
+    }
     if (this->compare_arrays(reference_mesh->get_m_x_coordinates(),
         data_mesh->get_m_x_coordinates()))
     {
@@ -638,6 +789,10 @@ int teca_dataset_diff::compare_arakawa_c_grids(
         return -1;
     }
 
+    if (this->verbose && (rank == 0))
+    {
+        TEST_STATUS("comparing m y-coordinates")
+    }
     if (this->compare_arrays(reference_mesh->get_m_y_coordinates(),
         data_mesh->get_m_y_coordinates()))
     {
@@ -645,6 +800,10 @@ int teca_dataset_diff::compare_arakawa_c_grids(
         return -1;
     }
 
+    if (this->verbose && (rank == 0))
+    {
+        TEST_STATUS("comparing u x-coordinates")
+    }
     if (this->compare_arrays(reference_mesh->get_u_x_coordinates(),
         data_mesh->get_u_x_coordinates()))
     {
@@ -652,6 +811,10 @@ int teca_dataset_diff::compare_arakawa_c_grids(
         return -1;
     }
 
+    if (this->verbose && (rank == 0))
+    {
+        TEST_STATUS("comparing u x-coordinates")
+    }
     if (this->compare_arrays(reference_mesh->get_u_y_coordinates(),
         data_mesh->get_u_y_coordinates()))
     {
@@ -659,6 +822,10 @@ int teca_dataset_diff::compare_arakawa_c_grids(
         return -1;
     }
 
+    if (this->verbose && (rank == 0))
+    {
+        TEST_STATUS("comparing v x-coordinates")
+    }
     if (this->compare_arrays(reference_mesh->get_v_x_coordinates(),
         data_mesh->get_v_x_coordinates()))
     {
@@ -666,6 +833,10 @@ int teca_dataset_diff::compare_arakawa_c_grids(
         return -1;
     }
 
+    if (this->verbose && (rank == 0))
+    {
+        TEST_STATUS("comparing v y-coordinates")
+    }
     if (this->compare_arrays(reference_mesh->get_v_y_coordinates(),
         data_mesh->get_v_y_coordinates()))
     {
@@ -673,6 +844,10 @@ int teca_dataset_diff::compare_arakawa_c_grids(
         return -1;
     }
 
+    if (this->verbose && (rank == 0))
+    {
+        TEST_STATUS("comparing m z-coordinates")
+    }
     if (this->compare_arrays(reference_mesh->get_m_z_coordinates(),
         data_mesh->get_m_z_coordinates()))
     {
@@ -680,6 +855,10 @@ int teca_dataset_diff::compare_arakawa_c_grids(
         return -1;
     }
 
+    if (this->verbose && (rank == 0))
+    {
+        TEST_STATUS("comparing w z-coordinates")
+    }
     if (this->compare_arrays(reference_mesh->get_w_z_coordinates(),
         data_mesh->get_w_z_coordinates()))
     {
