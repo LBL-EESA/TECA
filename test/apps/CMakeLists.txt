@@ -248,6 +248,7 @@ teca_add_test(test_metadata_probe_app_cf
 teca_add_test(test_metadata_probe_app_mcf
     COMMAND ${CMAKE_BINARY_DIR}/${BIN_PREFIX}/teca_metadata_probe
     --input_file ${CMAKE_CURRENT_BINARY_DIR}/../ECMWF-IFS-HR-SST-present.mcf
+    --z_axis plev
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
