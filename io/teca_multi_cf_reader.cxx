@@ -368,7 +368,9 @@ int teca_multi_cf_reader::set_input_file(const std::string &input_file)
             return -1;
         }
 
-        std::string data_root;
+        // these are global variables and need to be at the top of the file
+        std::string g_data_root;
+        std::string g_regex;
 
         while (lines)
         {
@@ -382,9 +384,17 @@ int teca_multi_cf_reader::set_input_file(const std::string &input_file)
 
             if (strncmp("data_root", l, 9) == 0)
             {
-                if (teca_string_util::extract_value<std::string>(l, data_root))
+                if (teca_string_util::extract_value<std::string>(l, g_data_root))
                 {
                     TECA_ERROR("Failed to parse \"data_root\" specifier on line " << lno)
+                    return -1;
+                }
+            }
+            else if (strncmp("regex", l, 5) == 0)
+            {
+                if (teca_string_util::extract_value<std::string>(l, g_regex))
+                {
+                    TECA_ERROR("Failed to parse \"regex\" specifier on line " << lno)
                     return -1;
                 }
             }
@@ -408,11 +418,18 @@ int teca_multi_cf_reader::set_input_file(const std::string &input_file)
                     name = std::to_string(num_readers);
 
                 // look for and replace %data_root% if it is present
-                if (!data_root.empty())
+                if (!g_data_root.empty())
                 {
                     size_t loc = regex.find("%data_root%");
                     if (loc != std::string::npos)
-                        regex.replace(loc, 11, data_root);
+                        regex.replace(loc, 11, g_data_root);
+                }
+
+                if (!g_regex.empty())
+                {
+                    size_t loc = regex.find("%regex%");
+                    if (loc != std::string::npos)
+                        regex.replace(loc, 7, g_regex);
                 }
 
                 // serialize
