@@ -45,8 +45,7 @@ public:
 
 #if defined(TECA_HAS_OPENSSL)
     // create a key used to identify metadata
-    std::string create_metadata_cache_key(const std::string &path,
-        const std::vector<std::string> &files);
+    std::string create_metadata_cache_key(teca_binary_stream &bs);
 #endif
 
 public:
@@ -56,7 +55,7 @@ public:
 #if defined(TECA_HAS_OPENSSL)
 // --------------------------------------------------------------------------
 std::string teca_cf_reader_internals::create_metadata_cache_key(
-    const std::string &path, const std::vector<std::string> &files)
+    teca_binary_stream &bs)
 {
     // create the hash using the version, file names, and path
     SHA_CTX ctx;
@@ -65,17 +64,8 @@ std::string teca_cf_reader_internals::create_metadata_cache_key(
     // include the version since metadata could change between releases
     SHA1_Update(&ctx, TECA_VERSION_DESCR, strlen(TECA_VERSION_DESCR));
 
-    // include path to the data
-    SHA1_Update(&ctx, path.c_str(), path.size());
-
-    // include each file. different regex could identify different sets
-    // of files.
-    unsigned long n = files.size();
-    for (unsigned long i = 0; i < n; ++i)
-    {
-        const std::string &file_name = files[i];
-        SHA1_Update(&ctx, file_name.c_str(), file_name.size());
-    }
+    // include run time parameters that would lead to a change in the metadata
+    SHA1_Update(&ctx, bs.get_data(), bs.size());
 
     unsigned char key[SHA_DIGEST_LENGTH] = {0};
     SHA1_Final(key, &ctx);
@@ -293,8 +283,28 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
         if (this->cache_metadata)
         {
+            // the key should include runtime attributes that change the metadata
+            teca_binary_stream bs;
+
+            bs.pack(path);
+            bs.pack(files);
+
+            bs.pack(this->files_regex);
+            bs.pack(this->file_names);
+            bs.pack(this->x_axis_variable);
+            bs.pack(this->y_axis_variable);
+            bs.pack(this->z_axis_variable);
+            bs.pack(this->t_axis_variable);
+            bs.pack(this->t_units);
+            bs.pack(this->t_calendar);
+            bs.pack(this->t_values);
+            bs.pack(this->filename_time_template);
+            bs.pack(this->periodic_in_x);
+            bs.pack(this->periodic_in_y);
+            bs.pack(this->periodic_in_z);
+
             metadata_cache_key =
-                this->internals->create_metadata_cache_key(path, files);
+                this->internals->create_metadata_cache_key(bs);
 
             for (int i = n_metadata_cache_paths; i >= 0; --i)
             {

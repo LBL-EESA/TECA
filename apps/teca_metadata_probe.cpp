@@ -43,6 +43,12 @@ int main(int argc, char **argv)
             " tracks were generated from. when present data is read using the cf_reader. use"
             " one of either --input_file or --input_regex.")
 
+        ("x_axis", value<std::string>(), "name of x coordinate variable (lon)")
+        ("y_axis", value<std::string>(), "name of y coordinate variable (lat)")
+        ("z_axis", value<std::string>(), "name of z coordinate variable ()."
+            " When processing 3D set this to the variable containing vertical coordinates."
+            " When empty the data will be treated as 2D.")
+
         ("start_date", value<std::string>(), "first time to proces in Y-M-D h:m:s format")
         ("end_date", value<std::string>(), "first time to proces in Y-M-D h:m:s format")
         ("help", "display the basic options help")
@@ -129,6 +135,30 @@ int main(int argc, char **argv)
 
     // now pas in the basic options, these are procesed
     // last so that they will take precedence
+    if (opt_vals.count("x_axis"))
+    {
+        cf_reader->set_x_axis_variable(opt_vals["x_axis"].as<std::string>());
+        mcf_reader->set_x_axis_variable(opt_vals["x_axis"].as<std::string>());
+    }
+
+    if (opt_vals.count("y_axis"))
+    {
+        cf_reader->set_y_axis_variable(opt_vals["y_axis"].as<std::string>());
+        mcf_reader->set_y_axis_variable(opt_vals["y_axis"].as<std::string>());
+    }
+
+    if (opt_vals.count("z_axis"))
+    {
+        cf_reader->set_z_axis_variable(opt_vals["z_axis"].as<std::string>());
+        mcf_reader->set_z_axis_variable(opt_vals["z_axis"].as<std::string>());
+    }
+
+
+    std::string x_var;
+    std::string y_var;
+    std::string z_var;
+
+
     bool have_file = opt_vals.count("input_file");
     bool have_regex = opt_vals.count("input_regex");
 
@@ -136,11 +166,17 @@ int main(int argc, char **argv)
     if (opt_vals.count("input_file"))
     {
         mcf_reader->set_input_file(opt_vals["input_file"].as<string>());
+        x_var = mcf_reader->get_x_axis_variable();
+        y_var = mcf_reader->get_y_axis_variable();
+        z_var = mcf_reader->get_z_axis_variable();
         reader = mcf_reader;
     }
     else if (opt_vals.count("input_regex"))
     {
         cf_reader->set_files_regex(opt_vals["input_regex"].as<string>());
+        x_var = cf_reader->get_x_axis_variable();
+        y_var = cf_reader->get_y_axis_variable();
+        z_var = cf_reader->get_z_axis_variable();
         reader = cf_reader;
     }
 
@@ -311,6 +347,17 @@ int main(int argc, char **argv)
             i = 0;
         }
         std::cerr << *it;
+    }
+    std::cerr << std::endl << std::endl;
+
+    // report the mesh dimensionality and coordinates
+    std::cerr << "Mesh dimension: " << (z_var.empty() ? 2 : 3)
+        << "D" << std::endl;
+
+    std::cerr << "Mesh coordinates: " << x_var << ", " << y_var;
+    if (!z_var.empty())
+    {
+        std::cerr << ", " << z_var;
     }
     std::cerr << std::endl;
 
