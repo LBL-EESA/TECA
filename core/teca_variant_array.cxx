@@ -34,7 +34,7 @@ void teca_variant_array::copy(const teca_variant_array &other)
         )
     TECA_ERROR("Can't copy a \"" << other.get_class_name()
         << "\" to a \"" << this->get_class_name() << "\"")
-    throw std::bad_cast();
+    throw teca_bad_cast(other.get_class_name(), this->get_class_name());
 }
 
 // --------------------------------------------------------------------------
@@ -69,5 +69,5 @@ void teca_variant_array::append(const teca_variant_array &other)
         )
     TECA_ERROR("Can't append a \"" << other.get_class_name()
         << "\" to a \"" << this->get_class_name() << "\"")
-    throw std::bad_cast();
+    throw teca_bad_cast(other.get_class_name(), this->get_class_name());
 }

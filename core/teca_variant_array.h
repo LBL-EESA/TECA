@@ -15,6 +15,7 @@
 #include "teca_common.h"
 #include "teca_binary_stream.h"
 #include "teca_variant_array_fwd.h"
+#include "teca_bad_cast.h"
 
 // tag for ops on POD data
 template <typename T>
@@ -1025,7 +1026,7 @@ void teca_variant_array_impl<T>::copy(const teca_variant_array &other)
         *this = *other_t;
         return;
         )
-     throw std::bad_cast();
+    throw teca_bad_cast(safe_class_name(&other), safe_class_name(this));
 }
 
 // --------------------------------------------------------------------------
@@ -1040,7 +1041,7 @@ void teca_variant_array_impl<T>::append(const teca_variant_array &other)
             std::back_inserter(this->m_data));
         return;
         )
-     throw std::bad_cast();
+    throw teca_bad_cast(safe_class_name(&other), safe_class_name(this));
 }
 
 // --------------------------------------------------------------------------
@@ -1054,7 +1055,7 @@ void teca_variant_array_impl<T>::swap(teca_variant_array &other)
         this->m_data.swap(other_t->m_data);
         return;
     }
-    throw std::bad_cast();
+    throw teca_bad_cast(safe_class_name(&other), safe_class_name(this));
 }
 
 // --------------------------------------------------------------------------
@@ -1067,7 +1068,7 @@ bool teca_variant_array_impl<T>::equal(const teca_variant_array &other) const
     {
         return this->m_data == other_t->m_data;
     }
-    throw std::bad_cast();
+    throw teca_bad_cast(safe_class_name(&other), safe_class_name(this));
     return false;
 }
 

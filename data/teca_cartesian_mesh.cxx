@@ -1,5 +1,6 @@
 #include "teca_cartesian_mesh.h"
 #include "teca_dataset_util.h"
+#include "teca_bad_cast.h"
 
 #include <iostream>
 
@@ -65,7 +66,7 @@ void teca_cartesian_mesh::swap(p_teca_dataset &dataset)
         = std::dynamic_pointer_cast<teca_cartesian_mesh>(dataset);
 
     if (!other)
-        throw std::bad_cast();
+        throw teca_bad_cast(safe_class_name(dataset), "teca_cartesian_mesh");
 
     if (this == other.get())
         return;

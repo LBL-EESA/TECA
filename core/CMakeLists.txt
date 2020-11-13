@@ -5,6 +5,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 set(teca_core_srcs
     teca_algorithm.cxx
     teca_algorithm_executive.cxx
+    teca_bad_cast.cxx
     teca_binary_stream.cxx
     teca_calendar.cxx
     teca_dataset.cxx
