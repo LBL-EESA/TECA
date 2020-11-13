@@ -70,15 +70,6 @@ public:
     // file name pattern
     TECA_ALGORITHM_PROPERTY(std::string, files_regex)
 
-    // the directory where metadata should be cached. if this is not specified
-    // metadata is cached either with the data, in the CWD, or in the user's
-    // home dir, which ever location succeeds first.
-    TECA_ALGORITHM_PROPERTY(std::string, metadata_cache_dir)
-
-    // Enable/disable metadata caching. By default it is on, pass 0
-    // to disable.
-    TECA_ALGORITHM_PROPERTY(int, cache_metadata)
-
     // set if the dataset has periodic boundary conditions
     TECA_ALGORITHM_PROPERTY(int, periodic_in_x)
     TECA_ALGORITHM_PROPERTY(int, periodic_in_y)
@@ -115,10 +106,11 @@ public:
     // exist.
     TECA_ALGORITHM_VECTOR_PROPERTY(double, t_value)
 
-    // set/get the number of threads in the pool. setting
-    // to less than 1 results in 1 - the number of cores.
-    // the default is 1.
-    TECA_ALGORITHM_PROPERTY(int, thread_pool_size)
+    // set/get the number of ranks used to read the time axis.
+    // the default value of 1024 ranks works well on NERSC
+    // Cori scratch file system and may not be optimal on
+    // other systems.
+    TECA_ALGORITHM_PROPERTY(int, max_metadata_ranks)
 
 protected:
     teca_cf_reader();
@@ -139,7 +131,6 @@ private:
 private:
     std::vector<std::string> file_names;
     std::string files_regex;
-    std::string metadata_cache_dir;
     std::string x_axis_variable;
     std::string y_axis_variable;
     std::string z_axis_variable;
@@ -151,8 +142,7 @@ private:
     int periodic_in_x;
     int periodic_in_y;
     int periodic_in_z;
-    int thread_pool_size;
-    int cache_metadata;
+    int max_metadata_ranks;
     p_teca_cf_reader_internals internals;
 };
 
