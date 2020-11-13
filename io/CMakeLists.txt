@@ -18,6 +18,7 @@ set(teca_io_srcs
     teca_cf_time_step_mapper.cxx
     teca_cf_time_axis_data.cxx
     teca_cf_time_axis_data_reduce.cxx
+    teca_cf_time_axis_reader.cxx
     teca_table_reader.cxx
     teca_table_writer.cxx
     teca_vtk_util.cxx

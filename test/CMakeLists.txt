@@ -694,3 +694,17 @@ teca_add_test(test_integrated_vapor_transport
     COMMAND test_integrated_vapor_transport
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
+
+teca_add_test(test_cf_time_axis_reader
+    SOURCES test_cf_time_axis_reader.cpp
+    LIBS teca_core teca_data teca_alg teca_io ${teca_test_link}
+    COMMAND test_cf_time_axis_reader
+        "${TECA_DATA_ROOT}/HighResMIP/TC_test/PSL/PSL.*\\.nc$" 1
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_time_axis_reader_mpi
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_time_axis_reader
+        "${TECA_DATA_ROOT}/HighResMIP/TC_test/PSL/PSL.*\\.nc$" ${HALF_TEST_CORES}
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
