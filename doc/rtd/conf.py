@@ -24,11 +24,26 @@ author = "Burlen Loring, Travis O'Brien & Abdelrahman Elbashandy"
 
 # -- General configuration ---------------------------------------------------
 
+# Run Doxygen to generate Doxygen's XML output for autodoc by Breathe
+import subprocess, os
+
+read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
+
+if read_the_docs_build:
+    subprocess.call('cd ../doxygen; doxygen', shell=True)
+
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'breathe'
 ]
+
+# Setup the breathe extension
+breathe_projects = {
+    "TECA": "../doxygen/xml"
+}
+breathe_default_project = "TECA"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
