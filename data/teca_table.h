@@ -2,13 +2,15 @@
 #define teca_table_h
 
 #include "teca_dataset.h"
-#include "teca_table_fwd.h"
 #include "teca_variant_array.h"
 #include "teca_array_collection.h"
+#include "teca_shared_object.h"
 
 #include <map>
 #include <vector>
 #include <string>
+
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_table)
 
 /**
 A collection of collumnar data with row based
