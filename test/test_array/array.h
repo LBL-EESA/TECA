@@ -39,6 +39,7 @@ public:
 
     // return a new copy constructed array
     p_teca_dataset new_copy() const override;
+    p_teca_dataset new_shallow_copy() override;
 
     size_t size() const
     { return this->data.size(); }

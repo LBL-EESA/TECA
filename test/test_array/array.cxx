@@ -1,5 +1,8 @@
 #include "array.h"
 #include "teca_binary_stream.h"
+#include "teca_bad_cast.h"
+
+
 #include <utility>
 #include <iostream>
 #include <sstream>
@@ -12,6 +15,14 @@ p_teca_dataset array::new_copy() const
 {
     p_teca_dataset a(new array());
     a->copy(this->shared_from_this());
+    return a;
+}
+
+// --------------------------------------------------------------------------
+p_teca_dataset array::new_shallow_copy()
+{
+    p_teca_dataset a(new array());
+    a->shallow_copy(this->shared_from_this());
     return a;
 }
 
@@ -35,7 +46,7 @@ void array::copy(const const_p_teca_dataset &other)
 {
     const_p_array other_a = std::dynamic_pointer_cast<const array>(other);
     if (!other_a)
-        throw std::bad_cast();
+        throw teca_bad_cast(safe_class_name(other), "array");
 
     if (this == other_a.get())
         return;
@@ -58,7 +69,7 @@ void array::copy_metadata(const const_p_teca_dataset &other)
 {
     const_p_array other_a = std::dynamic_pointer_cast<const array>(other);
     if (!other_a)
-        throw std::bad_cast();
+        throw teca_bad_cast(safe_class_name(other), "array");
 
     if (this == other_a.get())
         return;
@@ -73,7 +84,7 @@ void array::swap(p_teca_dataset &other)
 {
     p_array other_a = std::dynamic_pointer_cast<array>(other);
     if (!other_a)
-        throw std::bad_cast();
+        throw teca_bad_cast(safe_class_name(other), "array");
 
     std::swap(this->name, other_a->name);
     std::swap(this->extent, other_a->extent);

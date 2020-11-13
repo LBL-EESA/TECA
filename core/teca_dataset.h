@@ -38,9 +38,10 @@ public:
     // virtual constructor. return a new dataset of the same type.
     virtual p_teca_dataset new_instance() const = 0;
 
-    // virtual copy constructor. return a deep copy of this
+    // virtual copy constructor. return a shallow/deep copy of this
     // dataset in a new instance.
     virtual p_teca_dataset new_copy() const = 0;
+    virtual p_teca_dataset new_shallow_copy() = 0;
 
     // return a string identifier uniquely naming the dataset type
     virtual std::string get_class_name() const = 0;
