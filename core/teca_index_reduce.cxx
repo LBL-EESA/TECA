@@ -160,6 +160,26 @@ std::vector<teca_metadata> teca_index_reduce::get_upstream_request(
 {
     std::vector<teca_metadata> up_req;
 
+    unsigned long rank = 0;
+    unsigned long n_ranks = 1;
+    MPI_Comm comm = this->get_communicator();
+#if defined(TECA_HAS_MPI)
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
+    {
+        // this is excluded from processing
+        if (comm == MPI_COMM_NULL)
+            return up_req;
+
+        int tmp = 0;
+        MPI_Comm_size(comm, &tmp);
+        n_ranks = tmp;
+        MPI_Comm_rank(comm, &tmp);
+        rank = tmp;
+    }
+#endif
+
     // locate the keys that enable us to know how many
     // requests we need to make and what key to use
     const teca_metadata &md = input_md[0];
@@ -195,21 +215,6 @@ std::vector<teca_metadata> teca_index_reduce::get_upstream_request(
 
     // partition indices across MPI ranks. each rank will end up with a unique
     // block of indices to process.
-    unsigned long rank = 0;
-    unsigned long n_ranks = 1;
-    MPI_Comm comm = this->get_communicator();
-#if defined(TECA_HAS_MPI)
-    int is_init = 0;
-    MPI_Initialized(&is_init);
-    if (is_init)
-    {
-        int tmp = 0;
-        MPI_Comm_size(comm, &tmp);
-        n_ranks = tmp;
-        MPI_Comm_rank(comm, &tmp);
-        rank = tmp;
-    }
-#endif
     unsigned long block_size = 1;
     unsigned long block_start = 0;
 
@@ -396,6 +401,19 @@ const_p_teca_dataset teca_index_reduce::execute(unsigned int port,
 {
     (void)port;
     (void)request;
+
+#if defined(TECA_HAS_MPI)
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
+    {
+        MPI_Comm comm = this->get_communicator();
+
+        // this rank is excluded from processing
+        if (comm == MPI_COMM_NULL)
+            return nullptr;
+    }
+#endif
 
     // note: it is not an error to have no input data.  this can occur if there
     // are fewer indices to process than there are MPI ranks.
