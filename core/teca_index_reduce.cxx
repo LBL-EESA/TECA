@@ -86,19 +86,24 @@ void block_decompose(MPI_Comm comm, unsigned long n_indices, unsigned long n_ran
     if (verbose)
     {
         std::vector<unsigned long> decomp = {block_start, block_size};
-        if (rank == 0)
-        {
-            decomp.resize(2*n_ranks);
 #if defined(TECA_HAS_MPI)
-            MPI_Gather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, decomp.data(),
-                2, MPI_UNSIGNED_LONG, 0, comm);
-        }
-        else
+        int is_init = 0;
+        MPI_Initialized(&is_init);
+        if (is_init)
         {
-            MPI_Gather(decomp.data(), 2, MPI_UNSIGNED_LONG, nullptr,
-                0, MPI_DATATYPE_NULL, 0, comm);
-#endif
+            if (rank == 0)
+            {
+                decomp.resize(2*n_ranks);
+                    MPI_Gather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
+                        decomp.data(), 2, MPI_UNSIGNED_LONG, 0, comm);
+            }
+            else
+            {
+                MPI_Gather(decomp.data(), 2, MPI_UNSIGNED_LONG,
+                    nullptr, 0, MPI_DATATYPE_NULL, 0, comm);
+            }
         }
+#endif
         if (rank == 0)
         {
             std::ostringstream oss;
@@ -108,8 +113,7 @@ void block_decompose(MPI_Comm comm, unsigned long n_indices, unsigned long n_ran
                 oss << i << " : " << decomp[ii] << " - " << decomp[ii] + decomp[ii+1] -1
                     << (i < n_ranks-1 ? "\n" : "");
             }
-            TECA_STATUS("map index decomposition:"
-                << std::endl << oss.str())
+            TECA_STATUS("map index decomposition:" << std::endl << oss.str())
         }
     }
 }
