@@ -9,6 +9,8 @@ set(teca_core_srcs
     teca_binary_stream.cxx
     teca_calendar.cxx
     teca_dataset.cxx
+    teca_dataset_source.cxx
+    teca_dataset_capture.cxx
     teca_index_executive.cxx
     teca_index_reduce.cxx
     teca_memory_profiler.cxx

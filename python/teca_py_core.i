@@ -840,6 +840,22 @@ typedef std::pair<std::shared_ptr<teca_algorithm>, unsigned int> teca_algorithm_
 %pythoncode "teca_python_reduce.py"
 
 /***************************************************************************
+ dataset_source
+ ***************************************************************************/
+%ignore teca_dataset_source::shared_from_this;
+%shared_ptr(teca_dataset_source)
+%ignore teca_dataset_source::operator=;
+%include "teca_dataset_source.h"
+
+/***************************************************************************
+ dataset_capture
+ ***************************************************************************/
+%ignore teca_dataset_capture::shared_from_this;
+%shared_ptr(teca_dataset_capture)
+%ignore teca_dataset_capture::operator=;
+%include "teca_dataset_capture.h"
+
+/***************************************************************************
  calcalcs
  ***************************************************************************/
 %inline
@@ -971,7 +987,7 @@ PyObject *get_environment_variable_bool(const char *str, int def)
         TECA_PY_ERROR(PyExc_RuntimeError, "conversion error")
         return nullptr;
     }
-    return PyLong_FromLong(tmp);
+    return PyLong_FromLong(long(tmp));
 }
 };
 %}

@@ -324,22 +324,6 @@ struct teca_tc_saffir_simpson
 %include "teca_tc_wind_radii.h"
 
 /***************************************************************************
- dataset_source
- ***************************************************************************/
-%ignore teca_dataset_source::shared_from_this;
-%shared_ptr(teca_dataset_source)
-%ignore teca_dataset_source::operator=;
-%include "teca_dataset_source.h"
-
-/***************************************************************************
- dataset_capture
- ***************************************************************************/
-%ignore teca_dataset_capture::shared_from_this;
-%shared_ptr(teca_dataset_capture)
-%ignore teca_dataset_capture::operator=;
-%include "teca_dataset_capture.h"
-
-/***************************************************************************
  2d_component_area
  ***************************************************************************/
 %ignore teca_2d_component_area::shared_from_this;
