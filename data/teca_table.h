@@ -147,9 +147,11 @@ public:
 
 protected:
     teca_table();
-    teca_table(const teca_table &other) = default;
-    teca_table(teca_table &&other) = default;
-    teca_table &operator=(const teca_table &other) = default;
+
+    teca_table(const teca_table &other) = delete;
+    teca_table(teca_table &&other) = delete;
+    teca_table &operator=(const teca_table &other) = delete;
+
     void declare_columns(){}
     void append(){}
 
