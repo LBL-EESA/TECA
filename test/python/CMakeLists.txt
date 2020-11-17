@@ -393,7 +393,7 @@ teca_add_test(py_test_deeplabv3p_ar_detect_serial
     "${TECA_DATA_ROOT}/cascade_deeplab_IVT.pt"
     "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\.nc$"
     "${TECA_DATA_ROOT}/test_deeplabv3p_ar_detect" IVT 1
-    FEATURES ${TECA_HAS_NETCDF}
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_PYTORCH}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_deeplabv3p_ar_detect_threads
@@ -401,7 +401,7 @@ teca_add_test(py_test_deeplabv3p_ar_detect_threads
     "${TECA_DATA_ROOT}/cascade_deeplab_IVT.pt"
     "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\.nc$"
     "${TECA_DATA_ROOT}/test_deeplabv3p_ar_detect" IVT -1
-    FEATURES ${TECA_HAS_NETCDF}
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_PYTORCH}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_deeplabv3p_ar_detect_mpi_threads
@@ -410,7 +410,7 @@ teca_add_test(py_test_deeplabv3p_ar_detect_mpi_threads
         "${TECA_DATA_ROOT}/cascade_deeplab_IVT.pt"
         "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\.nc$"
         "${TECA_DATA_ROOT}/test_deeplabv3p_ar_detect" IVT -1
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI} ${MPI4Py_FOUND}
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_PYTORCH} ${TECA_HAS_MPI} ${MPI4Py_FOUND}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_binary_stream
