@@ -13,6 +13,7 @@
 #include "teca_coordinate_util.h"
 #include "teca_table.h"
 #include "teca_dataset_source.h"
+#include "teca_app_util.h"
 #include "calcalcs.h"
 
 #include <vector>
@@ -33,74 +34,84 @@ int main(int argc, char **argv)
     // initialize command line options description
     // set up some common options to simplify use for most
     // common scenarios
+    int help_width = 100;
     options_description basic_opt_defs(
         "Basic usage:\n\n"
         "The following options are the most commonly used. Information\n"
         "on advanced options can be displayed using --advanced_help\n\n"
-        "Basic command line options", 120, -1
+        "Basic command line options", help_width, help_width - 4
         );
     basic_opt_defs.add_options()
-        ("input_file", value<string>(), "multi_cf_reader configuration file identifying simulation"
-            " files to search for atmospheric rivers. when present data is read using the"
-            " multi_cf_reader. use one of either --input_file or --input_regex.")
+        ("input_file", value<std::string>(), "\na teca_multi_cf_reader configuration file"
+            " identifying the set of NetCDF CF2 files to process. When present data is"
+            " read using the teca_multi_cf_reader. Use one of either --input_file or"
+            " --input_regex.\n")
 
-        ("input_regex", value<string>(), "cf_reader regex identyifying simulation files to search"
-            " for atmospheric rivers. when present data is read using the"
-            " cf_reader. use one of either --input_file or --input_regex.")
+        ("input_regex", value<std::string>(), "\na teca_cf_reader regex identifying the"
+            " set of NetCDF CF2 files to process. When present data is read using the"
+            " teca_cf_reader. Use one of either --input_file or --input_regex.\n")
 
         ("specific_humidity", value<string>(),
-            "name of variable with the 3D specific humidity field. (Q)")
+            "\nname of variable with the 3D specific humidity field. (Q)\n")
 
         ("wind_u", value<string>()->default_value(std::string("U")),
-            "name of variable with the 3D longitudinal component of the wind vector. (U)")
+            "\nname of variable with the 3D longitudinal component of the wind vector. (U)\n")
 
         ("wind_v", value<string>()->default_value(std::string("V")),
-            "name of variable with the 3D latitudinal component of the wind vector. If present IVT vector"
-            " will be computed from 3D wind  and specific humidity fields.")
+            "\nname of variable with the 3D latitudinal component of the wind vector. If present IVT vector"
+            " will be computed from 3D wind  and specific humidity fields.\n")
 
         ("ivt_u", value<string>(),
-            "name to use for the longitudinal component of the integrated vapor transport vector."
-            " If present the magnitude of IVT will be computed from vector components. (IVT_U)")
+            "\nname to use for the longitudinal component of the integrated vapor transport vector."
+            " If present the magnitude of IVT will be computed from vector components. (IVT_U)\n")
 
         ("ivt_v", value<string>(),
-            "name to use for the latitudinal component of the integrated vapor transport vector."
-            " If present the magnitude of IVT will be computed from vector components. (IVT_V)")
+            "\nname to use for the latitudinal component of the integrated vapor transport vector."
+            " If present the magnitude of IVT will be computed from vector components. (IVT_V)\n")
 
         ("ivt", value<string>(),
-            "name of variable with the magnitude of integrated vapor transport (IVT)")
+            "\nname of variable with the magnitude of integrated vapor transport (IVT)\n")
 
         ("write_ivt_magnitude", value<int>()->default_value(0),
-            "when this is set to 1 magnitude of vector IVT is calculated. use --ivt_u and"
+            "\nwhen this is set to 1 magnitude of vector IVT is calculated. use --ivt_u and"
             " --ivt_v to set the name of the IVT vector components and --ivt to set the name"
-            " of the result if needed. (0)")
+            " of the result if needed. (0)\n")
 
         ("write_ivt", value<int>()->default_value(1),
-            "when this is set to 1 IVT vector is written to disk with the result. use"
+            "\nwhen this is set to 1 IVT vector is written to disk with the result. use"
             " --ivt_u and --ivt_v to set the name of the IVT vector components of the"
-            " result if needed. (1)")
+            " result if needed. (1)\n")
 
         ("output_file", value<string>()->default_value(std::string("IVT_%t%.nc")),
-            "file pattern for output netcdf files (%t% is the time index)")
+            "\nA path and file name pattern for the output NetCDF files. %t% is replaced with a"
+            " human readable date and time corresponding to the time of the first time step in"
+            " the file. Use --cf_writer::date_format to change the formatting\n")
 
-        ("steps_per_file", value<long>(), "number of time steps per output file")
+        ("steps_per_file", value<long>(), "\nnumber of time steps per output file\n")
 
-        ("x_axis", value<string>(), "name of x coordinate variable (lon)")
-        ("y_axis", value<string>(), "name of y coordinate variable (lat)")
-        ("z_axis", value<string>(), "name of z coordinate variable (plev)")
+        ("x_axis_variable", value<string>(), "\nname of x coordinate variable (lon)\n")
+        ("y_axis_variable", value<string>(), "\nname of y coordinate variable (lat)\n")
+        ("z_axis_variable", value<string>(), "\nname of z coordinate variable (plev)\n")
 
         ("periodic_in_x", value<int>()->default_value(1),
-            "Flags whether the x dimension (typically longitude) is periodic.")
+            "\nFlags whether the x dimension (typically longitude) is periodic.\n")
 
-        ("first_step", value<long>(), "first time step to process")
-        ("last_step", value<long>(), "last time step to process")
-        ("start_date", value<string>(), "first time to proces in YYYY-MM-DD hh:mm:ss format")
-        ("end_date", value<string>(), "first time to proces in YYYY-MM-DD hh:mm:ss format")
-        ("n_threads", value<int>(), "thread pool size. default is -1. -1 for all")
-        ("verbose", "enable extra terminal output")
+        ("first_step", value<long>(), "\nfirst time step to process\n")
+        ("last_step", value<long>(), "\nlast time step to process\n")
 
-        ("help", "display the basic options help")
-        ("advanced_help", "display the advanced options help")
-        ("full_help", "display entire help message")
+        ("start_date", value<std::string>(), "\nThe first time to process in 'Y-M-D h:m:s'"
+            " format. Note: There must be a space between the date and time specification\n")
+        ("end_date", value<std::string>(), "\nThe last time to process in 'Y-M-D h:m:s' format\n")
+
+        ("n_threads", value<int>(), "\nSets the thread pool size on each MPI rank. When the default"
+            " value of -1 is used TECA will coordinate the thread pools across ranks such each"
+            " thread is bound to a unique physical core.\n")
+
+        ("verbose", "\nenable extra terminal output\n")
+
+        ("help", "\ndisplays documentation for application specific command line options\n")
+        ("advanced_help", "\ndisplays documentation for algorithm specific command line options\n")
+        ("full_help", "\ndisplays both basic and advanced documentation together\n")
         ;
 
     // add all options from each pipeline stage for more advanced use
@@ -116,7 +127,7 @@ int main(int argc, char **argv)
         "        (ivt_integral)--(ivt_magnitude)\n"
         "                                 \\\n"
         "                              (cf_writer)\n\n"
-        "Advanced command line options", -1, 1
+        "Advanced command line options", help_width, help_width - 4
         );
 
     // create the pipeline stages here, they contain the
@@ -158,50 +169,9 @@ int main(int argc, char **argv)
 
     // parse the command line
     variables_map opt_vals;
-    try
+    if (teca_app_util::process_command_line_help(mpi_man.get_comm_rank(),
+        argc, argv, basic_opt_defs, advanced_opt_defs, all_opt_defs, opt_vals))
     {
-        boost::program_options::store(
-            boost::program_options::command_line_parser(argc, argv).options(all_opt_defs).run(),
-            opt_vals);
-
-        if (mpi_man.get_comm_rank() == 0)
-        {
-            if (opt_vals.count("help"))
-            {
-                cerr << endl
-                    << "usage: teca_integrated_vapor_transport [options]" << endl
-                    << endl
-                    << basic_opt_defs << endl
-                    << endl;
-                return -1;
-            }
-            if (opt_vals.count("advanced_help"))
-            {
-                cerr << endl
-                    << "usage: teca_integrated_vapor_transport [options]" << endl
-                    << endl
-                    << advanced_opt_defs << endl
-                    << endl;
-                return -1;
-            }
-
-            if (opt_vals.count("full_help"))
-            {
-                cerr << endl
-                    << "usage: teca_integrated_vapor_transport [options]" << endl
-                    << endl
-                    << all_opt_defs << endl
-                    << endl;
-                return -1;
-            }
-        }
-
-        boost::program_options::notify(opt_vals);
-    }
-    catch (std::exception &e)
-    {
-        TECA_ERROR("Error parsing command line options. See --help "
-            "for a list of supported options. " << e.what())
         return -1;
     }
 
@@ -241,16 +211,16 @@ int main(int argc, char **argv)
         mcf_reader->set_periodic_in_x(opt_vals["periodic_in_x"].as<int>());
     }
 
-    if (opt_vals.count("x_axis"))
+    if (opt_vals.count("x_axis_variable"))
     {
-        cf_reader->set_x_axis_variable(opt_vals["x_axis"].as<string>());
-        mcf_reader->set_x_axis_variable(opt_vals["x_axis"].as<string>());
+        cf_reader->set_x_axis_variable(opt_vals["x_axis_variable"].as<string>());
+        mcf_reader->set_x_axis_variable(opt_vals["x_axis_variable"].as<string>());
     }
 
-    if (opt_vals.count("y_axis"))
+    if (opt_vals.count("y_axis_variable"))
     {
-        cf_reader->set_y_axis_variable(opt_vals["y_axis"].as<string>());
-        mcf_reader->set_y_axis_variable(opt_vals["y_axis"].as<string>());
+        cf_reader->set_y_axis_variable(opt_vals["y_axis_variable"].as<string>());
+        mcf_reader->set_y_axis_variable(opt_vals["y_axis_variable"].as<string>());
     }
 
     // set the inputs to the integrator
@@ -293,8 +263,8 @@ int main(int argc, char **argv)
     bool do_ivt_magnitude = opt_vals["write_ivt_magnitude"].as<int>();
 
     std::string z_var = "plev";
-    if (opt_vals.count("z_axis"))
-        z_var = opt_vals["z_axis"].as<string>();
+    if (opt_vals.count("z_axis_variable"))
+        z_var = opt_vals["z_axis_variable"].as<string>();
 
     cf_reader->set_z_axis_variable(z_var);
     mcf_reader->set_z_axis_variable(z_var);
