@@ -175,11 +175,9 @@ int main(int argc, char **argv)
         mcf_reader->set_z_axis_variable(opt_vals["z_axis"].as<std::string>());
     }
 
-
     std::string x_var;
     std::string y_var;
     std::string z_var;
-
 
     bool have_file = opt_vals.count("input_file");
     bool have_regex = opt_vals.count("input_regex");
@@ -394,22 +392,29 @@ int main(int argc, char **argv)
         size_t n_arrays = atrs.size();
 
         // column widths
+        int aiw = 0;
         int anw = 0;
         int atw = 0;
         int adw = 0;
         int asw = 0;
 
         // column data
-        std::vector<std::string> an(n_arrays);
-        std::vector<std::string> at(n_arrays);
-        std::vector<std::string> ad(n_arrays);
-        std::vector<std::string> as(n_arrays);
+        std::vector<std::string> ai;
+        std::vector<std::string> an;
+        std::vector<std::string> at;
+        std::vector<std::string> ad;
+        std::vector<std::string> as;
+
+        ai.reserve(n_arrays);
+        an.reserve(n_arrays);
+        at.reserve(n_arrays);
+        ad.reserve(n_arrays);
+        as.reserve(n_arrays);
 
         for (size_t i = 0; i < n_arrays; ++i)
         {
             std::string array;
             atrs.get_name(i, array);
-
 
             // get metadata
             teca_metadata atts;
@@ -424,19 +429,24 @@ int main(int argc, char **argv)
                 || !(dims = std::dynamic_pointer_cast<teca_size_t_array>(atts.get("cf_dims")))
                 || !(dim_names = std::dynamic_pointer_cast<teca_string_array>(atts.get("cf_dim_names"))))
             {
-                TECA_ERROR("metadata issue \"" << array << "\"")
+                // TODO -- Michael's CAM5 sometimes triggers this with an empty array name
+                //TECA_ERROR("metadata issue in array " << i << "\"" << array << "\"")
                 continue;
             }
 
+            // id
+            ai.push_back(std::to_string(i+1));
+            aiw = std::max<int>(aiw, ai.back().size() + 4);
+
             // name
-            an[i] = array;
-            anw = std::max<int>(anw, an[i].size() + 4);
+            an.push_back(array);
+            anw = std::max<int>(anw, an.back().size() + 4);
 
             // type
             NC_DISPATCH(type,
-                at[i] = teca_netcdf_util::netcdf_tt<NC_T>::name();
+                at.push_back(teca_netcdf_util::netcdf_tt<NC_T>::name());
                 )
-            atw = std::max<int>(atw, at[i].size() + 4);
+            atw = std::max<int>(atw, at.back().size() + 4);
 
             // dims
             int n_dims = dim_names->size();
@@ -448,8 +458,8 @@ int main(int argc, char **argv)
                 oss << ", " << dim_names->get(i);
             }
             oss << "]";
-            ad[i] = oss.str();
-            adw = std::max<int>(adw, ad[i].size() + 4);
+            ad.push_back(oss.str());
+            adw = std::max<int>(adw, ad.back().size() + 4);
 
             // shape
             oss.str("");
@@ -465,13 +475,17 @@ int main(int argc, char **argv)
                     oss << ", " << dims->get(i);
             }
             oss << "]";
-            as[i] = oss.str();
-            asw = std::max<int>(asw, as[i].size() + 4);
+            as.push_back(oss.str());
+            asw = std::max<int>(asw, as.back().size() + 4);
         }
+
+        // update with the number found
+        n_arrays = ai.size();
 
         std::cerr << std::endl
             << n_arrays << " data arrays available" << std::endl << std::endl
             << "  "
+            << std::setw(aiw) << std::left << "Id"
             << std::setw(anw) << std::left << "Name"
             << std::setw(atw) << std::left << "Type"
             << std::setw(adw) << std::left << "Dimensions"
@@ -484,7 +498,9 @@ int main(int argc, char **argv)
 
         for (size_t i = 0; i < n_arrays; ++i)
         {
-            std::cerr << "  "
+            std::cerr
+                << "  "
+                << std::setw(aiw) << std::left << ai[i]
                 << std::setw(anw) << std::left << an[i]
                 << std::setw(atw) << std::left << at[i]
                 << std::setw(adw) << std::left << ad[i]
