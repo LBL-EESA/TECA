@@ -1,12 +1,12 @@
-Applications
-============
+Command Line Applications
+=========================
 TECA's command line applications deliver the highest perfromance, while
 providing a good deal of flexibility for common use cases.  This section
-describes how to run TECA's command line applciations. If you need more
-felxibility or functionalty not packaged in a command line application consider
+describes how to run TECA's command line applications. If you need more
+flexibility or functionality not packaged in a command line application consider
 using our Python scripting capabilities.
 
-Running the command line applications requires the enviornment to be correctly
+Running the command line applications requires the environment to be correctly
 configured. One should either install to a default location, or load the
 appropriate modulefile, for example when using installs on NERSC. Experience
 has proven that it is best to start with a clean environment (i.e. no other
@@ -14,75 +14,1227 @@ modules loaded) and to load the teca modulefiles as late as possible.  For
 instance when running in a batch script on the Cray load the teca module in the
 batch script rather than in your shell.
 
-Metadata Probe
---------------
-The metadata probe is a simple command line application that can be used
-to determine the number of time steps in a dataset. The metadata probe is
-most helpful when a dataset is split across multiple files and/or a subset
-selection is applied via a regular expression.
++----------------------------------------+----------------------------------------------+
+| **Application**                        | **Description**                              |
++----------------------------------------+----------------------------------------------+
+| :ref:`teca_metadata_probe`             | A diagnostic tool used for run planning      |
++----------------------------------------+----------------------------------------------+
+| :ref:`teca_integrated_vapor_transport` | Computes IVT (integrated vapor transport)    |
++----------------------------------------+----------------------------------------------+
+| :ref:`teca_bayesian_ar_detect`         | AR detection with uncertainty quantification |
++----------------------------------------+----------------------------------------------+
+| :ref:`teca_deeplab_ar_detect`          || A machine learning based AR detector        |
++----------------------------------------+----------------------------------------------+
+| :ref:`teca_temporal_reduction`         || Computes reductions (min, max, average)     |
+|                                        || over the time dimension                     |
++----------------------------------------+----------------------------------------------+
+| :ref:`teca_tc_detect`                  | TC detection using GFDL algorithm            |
++----------------------------------------+----------------------------------------------+
+| :ref:`teca_tc_trajectory`              | Computes TC tracks from a set of candidates  |
++----------------------------------------+----------------------------------------------+
+| :ref:`teca_tc_wind_radii`              | Computes storm size from a set of TC tracks  |
++----------------------------------------+----------------------------------------------+
+| :ref:`teca_tc_stats`                   || Computes descriptive statistics from a set  |
+|                                        || of TC tracks                                |
++----------------------------------------+----------------------------------------------+
+| :ref:`teca_tc_trajectory_scalars`      || Plots tracks on a map along with GFDL       |
+|                                        || detectors parameters                        |
++----------------------------------------+----------------------------------------------+
+| :ref:`teca_tc_wind_radii_stats`        || Computes descriptive statistics relating to |
+|                                        || TC storm size                               |
++----------------------------------------+----------------------------------------------+
+| :ref:`teca_convert_table`              || Convert tabular data from one file format   |
+|                                        || to another                                  |
++----------------------------------------+----------------------------------------------+
+| :ref:`teca_event_filter`               || Select TC tracks using run time provided    |
+|                                        || expressions                                 |
++----------------------------------------+----------------------------------------------+
 
-Command Line Arguments
-~~~~~~~~~~~~~~~~~~~~~~
---input_regex
-    this is how you tell TECA what files are in the dataset. We use the grep
-    style regex, which must be quoted with single ticks to protect it from the
-    shell. Regex meta characters present in the file name must be escaped with
-    a \textbackslash. An example of an input regex which includes all .nc files
-    is: '.*\textbackslash.nc\$'. If instead one wanted to grab only files from
-    2004-2005 then '.*\textbackslash.200[45 .*\textbackslash.nc\$' would do the
-    trick. For the best performance, specify the smallest set of files needed
-    to achieve the desired result. Each of the files will be opened in order to
-    scan the time axis.
+Considerations When Running at NERSC
+-------------------------------------
+Runtime Environment
+~~~~~~~~~~~~~~~~~~~~
+The runtime environment must be configured correctly to use TECA. This includes
+setting paths such that the versions of dependencies, such as Python and
+NetCDF, that TECA was compiled against are found at runtime as well as a number
+of other settings.
 
---start_date
-    an optional way to further specify the time range to process. The accepted
-    format is a CF style human readable date spec such as YYYY-MM-DD hh:mm:ss.
-    Because of the space in between day and hour spec quotes must be used. For
-    example "2005-01-01 00:00:00". Specifying a start date is optional,  if
-    none is given then all of the time steps in all of the files specified in
-    the *--input_regex* are processed.
-
---end_date
-    see *--start_date*. this is has a similar purpose in restricting
-    the range of time steps processed.
-
-Example
-~~~~~~~
-The teca_metadata_probe is not MPI parallel and therefor can be run on login
-nodes on NERSC systems. In the following example the metadata probe is used
-to determine the number of time steps in a large dataset spread over many files.
-A regular expression is used to subset the first decade of 2000's. The result
-is show in the comment folloing the example.
+The TECA_sueprbuild is used to install TECA at NERSC. The process is described
+in more detail in :ref:`install_hpc`.  During the install an environment
+modules modulefile is generated and installed. Using TECA on NERSC's
+Cray systems requires loading the modulefile.
 
 .. code-block:: bash
 
-    in_dir=/project/projectdirs/dasrepo/gmd/input/ALLHIST/run1
-    in_files=CAM5-1-0'\.25degree_All-Hist_est1_v3_run1\.cam\.h2\.200[0-9].*\.nc$'
+    module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles/
+    module load teca
 
-    teca_metadata_probe \
-        --sim_reader::thread_pool_size 16 --input_regex ${in_dir}/${in_files}
+The first line tells the module system where to look for the modulefile and the
+second loads the file.
 
-    # A total of 29200 steps available in 3650 files. Using the noleap calendar.
-    # Times are specified in units of days since 1995-02-01 00:00:00. The available
-    # times range from 2000-1-1 0:0:0 (1794) to 2009-12-31 21:0:0 (5443.88).
+Compute vs Login Nodes
+~~~~~~~~~~~~~~~~~~~~~~
+The Login nodes are the ones you land on when ssh'ing in while compute nodes
+are obtained via slurm commands.  MPI parallel programs cannot be run on the login
+nodes, even in serial. When one tries to run a parallel application on a login
+node the program will abort in MPI_Init.  Because many of the TECA command line
+applications use MPI, one should run them from the compute nodes. For large
+runs this should be accomplished by submitting a batch job. For experimentation
+and debugging in the shell use the interactive queue.
+
+File Systems
+~~~~~~~~~~~~
+NERSC provides the following file systems, knowing their properties is a key
+part of successfully making runs at NERSC.
+
+Home ($HOME)
+    The home file system is a conventional networked file system. It provides
+    the worst performance and should not be used with TECA at all.
+
+Scratch ($SCRATCH)
+    The Lustre scratch file system provides the best performance and should be
+    used for both TECA installs and the data that will be processed.
+
+Project/Community ($CFS)
+    The CFS file system provides reasonable performance and could be used for
+    both TECA installs and data. Note that before launching runs processing
+    data stored on CFS `export HDF5_USE_FILE_LOCKING=FALSE`. Not disabling file
+    locking on CFS will result in the cryptic NetCDF error `NetCDF: HDF error`
+
+When making runs at NERSC using TECA one should use the scratch file system for
+both builds and installs if at all possible. When the data to be processed
+resides on CFS file system, disable HDF5 file locking.
+
+Python based code on KNL Nodes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Importing numpy can abort on KNL nodes, a warning that 272 cores is beyond the
+acceptable limit of 256 is displayed before the code exits.  One may work
+around this by setting
+
+.. code-block:: bash
+
+    export OPENBLAS_NUM_THREADS=1
 
 
+KNL vs Haswell Nodes
+~~~~~~~~~~~~~~~~~~~~
+Some key differences in architectures should be taking into account when
+planning runs.  Haswell CPU's have higher clock speeds and greater overall
+computational throughput and TECA will run faster there. The Haswell nodes have
+2 CPU's per node and hence 2 NUMA domains. For this reason one should tell
+slurm to bind MPI ranks to cores. This ensures memory accesses occur within the
+local NUMA domain. TECA's threading infrastructure does this by default.  While
+the KNL nodes are slower, they have a lower charge factor and jobs over 1024
+nodes in the regular queue have a 50% discount. Additionally queue wait times
+for KNL nodes are substantially lower than for Haswell nodes. For those reasons
+KNL is a great option.
 
-GFDL Tropical Cyclone Detector
+Sizing and Layout of Runs
+~~~~~~~~~~~~~~~~~~~~~~~~~
+The number of time steps is key for planning a parallel run in TECA
+applications that parallelize over time steps. One can use the run time of the
+app on a single time step in conjunction with number of time steps per MPI rank
+in the job to estimate the run time at a given concurrency level. One then
+selects the concurrency level based on the run time and, queue wait times, etc.
+See :ref:`teca_metadata_probe` for information on determining the number of
+time steps and available arrays.
+
+TECA will automatically make use of threads for on node parallelism if there
+are more physical cores available than there are MPI ranks in use. In order to
+take advantage of this one needs to spread the MPI ranks out on the set of
+compute nodes in use such that there are fewer MPI ranks than physical CPU
+cores. This is done through the combination of *-n* and *-N* srun options.
+Little n tells the total number of MPI ranks to use, and big N tells how many
+nodes in total to spread them across.  :math:`(number of nodes) * (physical
+cores per node) > (total number of MPI ranks)` Haswell nodes have 32 physical
+cores per node while KNL nodes have 68 physical cores per node.
+
+TECA makes use of threads and OpenMP for parallelism on CPU based systems. When
+there are fewer MPI ranks per node than there are physical cores per node (32
+on Haswell/68 on KNL) TECA will size internal thread pools such that each
+thread is bound to a unique physical core while accounting for all thread pools
+on the node. This has been determined to be the most performant strategy.  One
+should avoid the use of the `-c` and `--bind-cores` srun options unless one
+fully understands the implications as improper settings can substantially
+degrade performance.
+
+Common Command Line Options
+---------------------------
+The command line applications have been designed so that the specification input
+datasets, output datasets, and common execution control options are the same
+where ever possible. Details of the common options and controls are presented
+in this section in more detail.
+
+Getting Help
+~~~~~~~~~~~~
+All command line applications support the following options for displaying
+application specific command line option documentation in the shell.
+
+--help
+    Display the basic options help. Basic options are the ones that will be
+    most commonly used with the application. In most cases using just the basic
+    options will suffice.
+
+--advanced_help
+    Display the advanced options help. All of the settable properties of the
+    individual pipeline stages used in the application can be accessed via the
+    advanced options. Each stage is given a name that is used to prefix its
+    options. In that way multiple stages of the same type can be differentiated.
+    Through this mechanism all available control parameters are exposed to the
+    user.
+
+--full_help
+    Display both the basic and the advanced options help.
+
+Specifying Input NetCDF Datasets
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+For applications that process mesh based data in NetCDF format there are two
+command line options for specifying input data to process.
+
+--input_file arg
+    a *teca_multi_cf_reader* configuration file identifying the set of NetCDF CF2
+    files to process.  When present data is read using the
+    teca_multi_cf_reader. Use one of either *--input_file* or *--input_regex*.
+
+--input_regex arg
+    a *teca_cf_reader* regex identifying the set of NetCDF CF2 files to process.
+    When present data is read using the teca_cf_reader. Use one of either
+    *--input_file* or *--input_regex*.
+
+Note that both of these options make use of regular expressions to identify a
+set of files to process. Regular expressions provide a compact mechanism for
+specifying a large set of files. Furthermore they can be used to subset the
+files based on the contents of the file names. Subsetting in this way enables
+one to process time ranges.
+
+Regular Expressions
+^^^^^^^^^^^^^^^^^^^^
+Regular expressions are used by the *teca_wrf_reader*, *teca_cf_reader* and
+*teca_multi_cf_reader* to identify and select all or a subset of a NetCDF
+dataset to read and process.
+
+Regular expressions look like the more familiar shell glob, but are
+much more powerful and the special characters have different meanings.
+Here are the basics:
+
++---------------+------------------------------------------------------------------+
+| **Character** | **Description**                                                  |
++---------------+------------------------------------------------------------------+
+| .             | wild card, matches any character                                 |
++---------------+------------------------------------------------------------------+
+| \*            | repeat the previous character zero or more times                 |
++---------------+------------------------------------------------------------------+
+| []            || match any character in the brackets. For example [0-9] matches  |
+|               || a single digit number zero through nine. [A-Z] matches a single |
+|               || capital letter, while [xzy] matches a single x,y, or z          |
++---------------+------------------------------------------------------------------+
+| ^             || If used as the first character in a [] list, it negates the     |
+|               || list. Otherwise, this is an anchor matching the beginning of    |
+|               || the string.                                                     |
++---------------+------------------------------------------------------------------+
+| \\            || Escapes the next character. This is critical for specifying     |
+|               || file names, the . separating the file from the extension needs  |
+|               || to be escaped.                                                  |
++---------------+------------------------------------------------------------------+
+| $             | matches the end of the string.                                   |
++---------------+------------------------------------------------------------------+
+
+Because shell globs uses some of the same control characters, when a regex
+is issued in a shell the characters must be quoted or escaped to keep the
+shell from expanding them. Single quotes are the most effective since they
+prevent the shell from processing the quoted text. Alternatively backslashes
+may be used to escape characters individually.
+
+Another difference between shell globbing and regular expressions is that
+regular expressions can partially match. Use of anchors ^ and $
+can help, even so care is required to avoid picking up files inadvertently.
+
+An example of an input regex which includes all .nc files is: '.\*\\.nc\$'. If
+instead one wanted to grab only files from 2004-2005 then
+'.\*\\.200[45].*\\.nc\$' would do the trick. For the best performance, specify
+the smallest set of files needed to achieve the desired result. Each of the
+files will be opened in order to scan the time axis.
+
+TECA makes use of POSIX Basic Regular Expressions, more information can be found
+`here <https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap09.html#tag_09>`_.
+
+MCF Reader Configuration Files
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+When data from the same dataset resides in different directories MCF
+configuration files are used to configure the readers.
+
+The configuration file consists of *name = value* pairs and *flags* organized
+in sections. Sections are declared using brackets []. There is an optional
+opening global section that comes first followed by one or more `[cf_reader]`
+sections.
+
+The following example from the HighResMIP dataset MCF configures the reader to
+read the variables *hus*, *ua* and *va* each from a different subdirectory.
+
+.. _HighResMIPMCF:
+
+.. code-block:: ini
+
+    # TECA multi cf reader config
+    # Fri Nov  6 09:24:17 PST 2020
+
+    data_root = /global/cfs/cdirs/m3522/cmip6/CMIP6_hrmcol/HighResMIP/CMIP6/HighResMIP/ECMWF/ECMWF-IFS-HR/highresSST-present/r1i1p1f1/6hrPlevPt
+    regex = 6hrPlevPt_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_gr_199[0-9].*\.nc$
+
+    [cf_reader]
+    variables = hus
+    regex = %data_root%/hus/gr/v20170915/hus_%regex%
+    provides_time
+    provides_geometry
+
+    [cf_reader]
+    variables = ua
+    regex = %data_root%/ua/gr/v20170915/ua_%regex%
+
+    [cf_reader]
+    variables = va
+    regex = %data_root%/va/gr/v20170915/va_%regex%
+
+
+The global section may contain `data_root` and `regex` name-value pairs.
+Occurrences of the strings `%data_root%` and `%regex%` in the `regex` name-value
+pairs found in following `[cf_reader]` sections are replaced with the values of
+the globals.  The following global section key words are supported:
+
++-----------------------+-----------------------------------------------------+
+| key word              | description                                         |
++=======================+=====================================================+
+| data_root             | | Can be used to hold the common part of the path   |
+|                       | | to data files. Optional. Occurrences of           |
+|                       | | %data_root% found in the regex specification will |
+|                       | | be replaced with this value.                      |
++-----------------------+-----------------------------------------------------+
+| regex                 | | Can be used to hold the common part of the        |
+|                       | | regular expression. Optional. Occurrences of      |
+|                       | | %data_root% found in the regex specification will |
+|                       | | be replaced with this value.                      |
++-----------------------+-----------------------------------------------------+
+
+Each `[cf_reader]` section consists of a `name`(optional), a `regex`,
+a list of `variables`, a `provides_time` flag(optional) and a
+`provides_geometry` flag(optional). At least one section must contain a
+`provides_time` and `provides geometry` flag.  The following are `[cf_reader]`
+section key words:
+
++-----------------------+-----------------------------------------------------+
+| key word              | description                                         |
++=======================+=====================================================+
+| name                  | | An optional name for the reader. This is used to  |
+|                       | | set advanced command line options.                |
++-----------------------+-----------------------------------------------------+
+| regex                 | A regular expression identifying a set of files.    |
++-----------------------+-----------------------------------------------------+
+| variables             | | A comma separated list of variables to serve from |
+|                       | | this reader. Variables not in the list are        |
+|                       | | ignored.                                          |
++-----------------------+-----------------------------------------------------+
+| provides_time         | | A flag, the presence of which indicates that this |
+|                       | | reader will provide the time axis.                |
++-----------------------+-----------------------------------------------------+
+| provides_geometry     | | A flag the presence of which indicates that this  |
+|                       | | reader will provide the mesh definition.          |
++-----------------------+-----------------------------------------------------+
+
+
+.. _rearranging_data:
+
+Rearranging Input Data
+^^^^^^^^^^^^^^^^^^^^^^
+When the data to be processed is organized on disk such that can't easily be
+selected using the regex mechanism described above, one possible solution is
+to use a shell script to create a set of symbolic links pointing to the
+original data that is.
+
+For instance the following shell script was used to rearrange an ERA5 dataset
+that was stored on disk such that each month of data exists in a unique folder.
+The folders were named by an integer with 4 digits encoding the year and 2
+digits encoding the month, `YYYYMM`.
+
+.. code-block:: bash
+
+    mkdir CMIP6_ERA5_e5_oper_an_sfc/
+    for d in `ls --color=never /global/cfs/cdirs/m3522/cmip6/ERA5/e5.oper.an.sfc`
+    do
+        f=/global/cfs/cdirs/m3522/cmip6/ERA5/e5.oper.an.sfc/${d}/e5.oper.an.sfc.128_137_tcwv.*.nc
+        ln -s ${f} CMIP6_ERA5_e5_oper_an_sfc/
+    done
+
+The `ln` command creates a symbolic link to the file passed as its first
+argument at the location passed as its second argument. See also
+:ref:`mdp_era5` and :ref:`ta_era5`.
+
+Overriding the Time Axis
+~~~~~~~~~~~~~~~~~~~~~~~~
+In cases where it is necessary to override the time axis or manually specify
+values, the following teca_cf_reader options can be used.
+
+--cf_reader::t_axis_variable arg
+  The name of variable that has time axis coordinates (time). Set to an empty
+  string to enable override methods (--filename_time_template, --t_values) or
+  to disable time coordinates completely
+
+--cf_reader::t_calendar arg
+  An optional calendar override. May be one of: standard, Julian,
+  proplectic_Julian, Gregorian, proplectic_Gregorian, Gregorian_Y0,
+  proplectic_Gregorian_Y0, noleap, no_leap, 365_day, 360_day. When the
+  override is provided it takes precedence over the value found in the file.
+  Otherwise the calendar is expected to be encoded in the data files using
+  CF2 conventions.
+
+--cf_reader::t_units arg
+  An optional CF2 time units specification override declaring the units of
+  the time axis and a reference date and time from which the time values are
+  relative to. If this is provided it takes precedence over the value found
+  in the file. Otherwise the time units are expected to be encoded in the
+  files using the CF2 conventions
+
+--cf_reader::filename_time_template arg
+  An optional std::get_time template string for decoding time from the input
+  file names. If no calendar is specified the standard calendar is used. If
+  no units are specified then "days since %Y-%m-%d 00:00:00" where Y,m,d are
+  determined from the filename of the first file. Set t_axis_variable to an
+  empty string to use.
+
+--cf_reader::t_values arg
+  An optional explicit list of double precision values to use as the time
+  axis. If provided these take precedence over the values found in the files.
+  Otherwise the variable pointed to by the t_axis_variable provides the time
+  values. Set t_axis_variable to an empty string to use.
+
+The Overrides, *--filename_time_template* and *t_values* are activated by
+setting *--t_axis_variable* to an empty string "". When decoding the time
+axis from file names, a template must be provided that matches the filenames.
+For instance a template for the files: my_file_20170516_00.nc,
+my_file_20170516_03.nc, ... might be my_file_%Y%m%d_%H.nc.
+
+
+Subsetting in the Time Dimension
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+A simple way of subsetting the time dimension is by using a suitable regex
+when specifying the input dataset. This section describes options that will
+subset withing the data identified by the regular expression.
+
+The following two command line options let one subset by time step. This is the
+most efficient way to subset the time dimension. However, Use of these
+options requires one to know the mapping between steps and times. In some cases
+this is easy to calculate. For instance when there is a file per day of data.
+
+--first_step arg
+    The first time step to process
+
+--last_step arg
+    The last time step to process
+
+When it is not easy to determine the mapping between time steps and time the
+following command line options use TECA's calendaring capabilities to select a
+subset of data occurring between two dates provided in a human readable form.
+
+--start_date arg
+    The first time to process in 'Y-M-D h:m:s' format
+
+--end_date arg
+    The last time to process in 'Y-M-D h:m:s' format
+
+The accepted format is a human readable date spec such as `YYYY-MM-DD hh:mm:ss`.
+Because of the space in between day and hour spec quotes must be used. For
+example "2005-01-01 00:00:00". Specifying start and end dates are optional. If
+only *--start_date* is given then the steps from that date on are included,
+while if only *--end-date* is given steps up to an including that date are
+included.  if neither *--start-date* nor *--end-date* are given then all of
+the time steps in all of the files specified are processed.
+
+
+Specifying Mesh Dimensions
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+TECA identifies mesh coordinate axes using the names *lon* and *lat*. One can
+override these and make another variable provide the coordinate axes.
+
+Unless an application is intrinsically 3D (eg. a vertical integral) by default
+the mesh is assumed to be 2D. To tell the reader to generate a 3D mesh
+set the z-axis variable name.
+
+--x_axis_variable arg
+    name of x coordinate variable (lon)
+
+--y_axis_variable arg
+    name of y coordinate variable (lat)
+
+--z_axis_variable arg
+    name of z coordinate variable (). When processing 3D set this to the
+    variable containing the vertical coordinates. When empty the data will be
+    treated as 2D.
+
+Writing Results To Disk
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Mesh Based Data in NetCDF CF2 Format
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The following options control file name and layout when writing mesh based data
+in NetCDF CF2 format.
+
+--output_file arg
+    file pattern for output netcdf files (%t% is the time index)
+
+--steps_per_file arg
+    number of time steps per output file
+
+--cf_writer::date_format arg
+    A strftime format used when encoding dates into the output
+    file names (%F-%HZ)")
+
+
+Tabular Data
+^^^^^^^^^^^^
+Data such as TC tracks is stored in tabular format. The table writer will
+select the format based on the output file extension. This can be one of:
+*.csv*, *.bin*, or *.nc*.  The *.bin* and *.nc* format are organized by columns
+while the *.csv* format is organized by rows. The :ref:`teca_convert_table`
+command line application converts from one format to the other and TECA's
+Python bindings can be used to write post processing scripts.
+
+.. _teca_metadata_probe:
+
+teca_metadata_probe
+------------------------------------
+The metadata probe is a command line application that presents how TECA sees
+input dataset to the user in a textual format. The primary use of the metadata
+probe is: planning runs by getting the number of time steps selected by a date
+range or regular expression; validating regular expression or MCF (multi-cf)
+configuration files; determining which variables are in the files and what are
+their shapes and dimensions.
+
+Inputs
+~~~~~~
+A 2 or 3D time dependent mesh in NetCDF CF2 format
+
+Outputs
+~~~~~~~
+#. The number of time steps found in the files selected by the regex and/or start and end date
+#. The calendar and simulated time range selected by the regex and/or start/end date
+#. The mesh dimensionality. The default is 2D , for 3D data use the `--z_axis_variable` command line option.
+#. A list of the available arrays and their dimensions and shapes.
+
+
+Command Line Arguments
+~~~~~~~~~~~~~~~~~~~~~~
+
+--input_file arg
+    a teca_multi_cf_reader configuration file identifying the set of NetCDF CF2 files to process.
+    When present data is read using the teca_multi_cf_reader. Use one of either `--input_file` or
+    `--input_regex`.
+
+--input_regex arg
+    a teca_cf_reader regex identyifying the set of NetCDF CF2 files to process. When present data
+    is read using the teca_cf_reader. Use one of either `--input_file` or `--input_regex`.
+
+--x_axis_variable arg (=lon)
+    name of x coordinate variable
+
+--y_axis_variable arg (=lat)
+    name of y coordinate variable
+
+--z_axis_variable arg
+    name of z coordinate variable. When processing 3D set this to the variable containing vertical
+    coordinates. When empty the data will be treated as 2D.
+
+--start_date arg
+    The first time to process in 'Y-M-D h:m:s' format. Note: There must be a space between the date
+    and time specification
+
+--end_date arg
+    The last time to process in 'Y-M-D h:m:s' format
+
+--help
+    displays documentation for application specific command line options
+
+--advanced_help
+    displays documentation for algorithm specific command line options
+
+--full_help
+    displays both basic and advanced documentation together
+
+Examples
+~~~~~~~~
+
+.. _mdp_highresmip:
+
+CMIP6 data
+^^^^^^^^^^
+In this example the metadata_probe examines data from the HighResMIP collection.
+The data is organized such that the data files for each variable reside in their
+own directory. In this case we use the :ref:`MCF file<HighResMIPMCF>`.
+
+.. code-block:: bash
+
+    $ salloc -N 17 -C knl -q interactive -t 01:00:00
+
+    $ module swap PrgEnv-intel PrgEnv-gnu
+    $ module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles/
+    $ module load teca
+
+    $ time srun -N 17 -n 1024 teca_metadata_probe --z_axis_variable plev \
+        --input_file HighResMIP_ECMWF_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_6hrPlevPt.mcf
+
+    WARNING: [0:46912496725888] [/global/cscratch1/sd/loring/teca_testing/TECA_superbuild/build-cf-reader/TECA-prefix/src/TECA/io/teca_cf_reader.cxx:623 TECA-BARD-v1.0.1-222-ge294c25]
+    WARNING: File 528 "hus_6hrPlevPt_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_gr_199401010000-199401311800.nc" units "days since 1994-1-1 00:00:00" differs from base units "days since 1950-1-1 00:00:00" a conversion will be made.
+    WARNING: [0:46912496725888] [/global/cscratch1/sd/loring/teca_testing/TECA_superbuild/build-cf-reader/TECA-prefix/src/TECA/io/teca_cf_reader.cxx:623 TECA-BARD-v1.0.1-222-ge294c25]
+    WARNING: File 529 "hus_6hrPlevPt_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_gr_199402010000-199402281800.nc" units "days since 1994-1-1 00:00:00" differs from base units "days since 1950-1-1 00:00:00" a conversion will be made.
+    #
+    # many simlar warning messages omitted...
+    #
+    WARNING: [0:46912496725888] [/global/cscratch1/sd/loring/teca_testing/TECA_superbuild/build-cf-reader/TECA-prefix/src/TECA/io/teca_cf_reader.cxx:623 TECA-BARD-v1.0.1-222-ge294c25]
+    WARNING: File 779 "va_6hrPlevPt_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_gr_201412010000-201412311800.nc" units "days since 1994-1-1 00:00:00" differs from base units "days since 1950-1-1 00:00:00" a conversion will be made.
+
+    A total of 94964 steps available. Using the gregorian calendar. Times are specified
+    in units of days since 1950-1-1 00:00:00. The available times range from 1950-1-1
+    0:0:0 (0) to 2014-12-31 18:0:0 (23740.8).
+
+    Mesh dimension: 3D
+    Mesh coordinates: lon, lat, plev
+
+    7 data arrays available
+
+      Id   Name    Type         Dimensions                Shape
+    -----------------------------------------------------------------------
+      1    hus     NC_FLOAT     [time, plev, lat, lon]    [94964, 7, 361, 720]
+      2    lat     NC_DOUBLE    [lat]                     [361]
+      3    lon     NC_DOUBLE    [lon]                     [720]
+      4    plev    NC_DOUBLE    [plev]                    [7]
+      5    time    NC_DOUBLE    [time]                    [94964]
+      6    ua      NC_FLOAT     [time, plev, lat, lon]    [94964, 7, 361, 720]
+      7    va      NC_FLOAT     [time, plev, lat, lon]    [94964, 7, 361, 720]
+
+
+    real	1m23.011s
+    user	0m0.451s
+    sys	0m0.469s
+
+There are 94964 time steps in this 3D dataset. The maximum MPI concurrency for
+this dataset is 94964 MPI ranks. Using fewer MPI ranks will result in some or
+all ranks processing multiple time steps. A number of warnings were printed as
+the probe ran because the reader detected that the calendar and/or time units
+were inconsistent in some of the files. In this case the reader made a
+conversion such that all of the data is presented to the down stream stages
+in the same calendar and units.
+
+.. _mdp_artmip:
+
+ARTMIP MERRA data
+^^^^^^^^^^^^^^^^^
+This example shows how to configure the reader for extracting the time axis
+from the file names.  In this example dataset was organized such that the data
+from each simulated year was stored in its own folder. Each time step was stored
+in a file, no time information was stored in the file itself. Instead, the date
+and time was encoded in the file name.
+
+.. code-block:: bash
+
+    $ salloc -N 10 -C knl -q interactive -t 01:00:00
+
+    $ module swap PrgEnv-intel PrgEnv-gnu
+    $ module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles/
+    $ module load teca
+
+    $ year=1980
+    $ data_dir=/global/project/projectdirs/m1517/cascade/external_datasets/ARTMIP/MERRA_2D/${year}
+    $ regex='ARTMIP_MERRA_2D_.*\.nc'
+
+    $ time srun -n 680 -N 10 teca_metadata_probe \
+        --input_regex "${data_dir}/${regex}" --cf_reader::t_axis_variable '' \
+        --cf_reader::filename_time_template ARTMIP_MERRA_2D_%Y%m%d_%H.nc
+
+    STATUS: [0:46912496725888] [/global/cscratch1/sd/loring/teca_testing/TECA_superbuild/build-cf-reader/TECA-prefix/src/TECA/io/teca_cf_reader.cxx:823 TECA-BARD-v1.0.1-222-ge294c25]
+    STATUS: The time axis will be infered from file names using the user provided template "ARTMIP_MERRA_2D_%Y%m%d_%H.nc" with the "standard" calendar in units "days since 1980-01-01 00:00:00"
+
+    A total of 2928 steps available in 2928 files. Using the standard calendar.
+    Times are specified in units of days since 1980-01-01 00:00:00. The available
+    times range from 1980-1-1 0:0:0 (0) to 1980-12-31 21:0:0 (365.875).
+
+    Mesh dimension: 2D
+    Mesh coordinates: lon, lat
+
+    7 data arrays available
+
+      Id   Name    Type         Dimensions    Shape
+    -------------------------------------------------
+      1    IVT     NC_FLOAT     [lat, lon]    [361, 576]
+      2    IWV     NC_FLOAT     [lat, lon]    [361, 576]
+      3    PS      NC_FLOAT     [lat, lon]    [361, 576]
+      4    lat     NC_DOUBLE    [lat]         [361]
+      5    lon     NC_DOUBLE    [lon]         [576]
+      7    uIVT    NC_FLOAT     [lat, lon]    [361, 576]
+      8    vIVT    NC_FLOAT     [lat, lon]    [361, 576]
+
+    real	0m13.980s
+    user	0m0.307s
+    sys	0m0.240s
+
+The output shows that there were 2928 time steps in this year. The maximum level
+of concurrency one could exploit in processing this dataset is 2928 MPI ranks.
+Running with fewer than 2928 MPI ranks will result in some or all ranks processing
+multiple time steps.
+
+.. _mdp_cam5:
+
+CAM5 data
+^^^^^^^^^
+In the following example the metadata probe is used
+to determine the number of time steps in a large CAM5 dataset spread over many files.
+
+.. code-block:: bash
+
+    $data_dir=/global/cscratch1/sd/mwehner/machine_learning_climate_data/All-Hist/CAM5-1-0.25degree_All-Hist_est1_v3_run1/h2
+    $srun -N 17 -n 1024 ./bin/teca_metadata_probe --input_regex=${data_dir}/'.*\.nc$'
+
+    A total of 58400 steps available in 7300 files. Using the noleap calendar.
+    Times are specified in units of days since 1995-02-01 00:00:00. The available
+    times range from 1996-1-1 0:0:0 (334) to 2015-12-31 21:0:0 (7633.88).
+
+    Mesh dimension: 2D
+    Mesh coordinates: lon, lat
+
+    45 data arrays available
+
+      Id    Name            Type         Dimensions          Shape
+    -----------------------------------------------------------------------
+
+      1     PRECT           NC_FLOAT     [time, lat, lon]    [58400, 768, 1152]
+      2     PS              NC_FLOAT     [time, lat, lon]    [58400, 768, 1152]
+      3     PSL             NC_FLOAT     [time, lat, lon]    [58400, 768, 1152]
+      4     QREFHT          NC_FLOAT     [time, lat, lon]    [58400, 768, 1152]
+      5     T200            NC_FLOAT     [time, lat, lon]    [58400, 768, 1152]
+      6     T500            NC_FLOAT     [time, lat, lon]    [58400, 768, 1152]
+      7     TMQ             NC_FLOAT     [time, lat, lon]    [58400, 768, 1152]
+      8     TREFHT          NC_FLOAT     [time, lat, lon]    [58400, 768, 1152]
+      9     TS              NC_FLOAT     [time, lat, lon]    [58400, 768, 1152]
+      10    U850            NC_FLOAT     [time, lat, lon]    [58400, 768, 1152]
+      11    UBOT            NC_FLOAT     [time, lat, lon]    [58400, 768, 1152]
+      12    V850            NC_FLOAT     [time, lat, lon]    [58400, 768, 1152]
+      13    VBOT            NC_FLOAT     [time, lat, lon]    [58400, 768, 1152]
+      14    Z1000           NC_FLOAT     [time, lat, lon]    [58400, 768, 1152]
+      15    Z200            NC_FLOAT     [time, lat, lon]    [58400, 768, 1152]
+      16    ZBOT            NC_FLOAT     [time, lat, lon]    [58400, 768, 1152]
+      17    ch4vmr          NC_DOUBLE    [time]              [58400]
+      18    co2vmr          NC_DOUBLE    [time]              [58400]
+      19    date            NC_INT       [time]              [58400]
+      20    date_written    NC_BYTE      [time, chars]       [58400, 8]
+      21    datesec         NC_INT       [time]              [58400]
+      22    f11vmr          NC_DOUBLE    [time]              [58400]
+      23    f12vmr          NC_DOUBLE    [time]              [58400]
+      24    gw              NC_DOUBLE    [lat]               [768]
+      25    hyai            NC_DOUBLE    [ilev]              [31]
+      26    hyam            NC_DOUBLE    [lev]               [30]
+      27    hybi            NC_DOUBLE    [ilev]              [31]
+      28    hybm            NC_DOUBLE    [lev]               [30]
+      29    ilev            NC_DOUBLE    [ilev]              [31]
+      30    lat             NC_DOUBLE    [lat]               [768]
+      31    lev             NC_DOUBLE    [lev]               [30]
+      32    lon             NC_DOUBLE    [lon]               [1152]
+      33    n2ovmr          NC_DOUBLE    [time]              [58400]
+      34    ndcur           NC_INT       [time]              [58400]
+      35    nlon            NC_INT       [lat]               [768]
+      36    nscur           NC_INT       [time]              [58400]
+      37    nsteph          NC_INT       [time]              [58400]
+      38    slat            NC_DOUBLE    [slat]              [767]
+      39    slon            NC_DOUBLE    [slon]              [1152]
+      40    sol_tsi         NC_DOUBLE    [time]              [58400]
+      41    time            NC_DOUBLE    [time]              [58400]
+      42    time_bnds       NC_DOUBLE    [time, nbnd]        [58400, 2]
+      43    time_written    NC_BYTE      [time, chars]       [58400, 8]
+      44    w_stag          NC_DOUBLE    [slat]              [767]
+      45    wnummax         NC_INT       [lat]               [768]
+
+In this example the dataset is quite large comprised of 7300 files. Each file has
+456MB of data for a total aggregate size of over 3TB. In this case it is necessary
+to run the metadata probe using MPI in order for the probe to complete in a
+reasonable amount of time. A serial run of the  probe on this dataset took over
+71 minutes while the parallel run shown above took about 47 seconds. Note that because this
+dataset has a large number of files it is an extreme case, for datasets with on the order
+of a few hundred files a serial or small MPI parallel run should work well.
+
+
+.. _mdp_era5:
+
+ERA5 data
+^^^^^^^^^^
+In the following example the metadata probe is used to determine the contents of a
+an ERA5 dataset spanning 41 years of simulated time at quarter degree, 1 hourly resolution.
+
+
+.. code-block:: bash
+
+    time srun -n 247 teca_metadata_probe \
+        --input_regex ./CMIP6_ERA5_e5_oper_an_sfc/'.*\.nc$' \
+        --x_axis_variable longitude --y_axis_variable latitude
+
+    A total of 360840 steps available in 494 files. Using the gregorian calendar.
+    Times are specified in units of hours since 1900-01-01 00:00:00. The available
+    times range from 1979-1-1 0:0:0 (692496) to 2020-2-29 22:59:60 (1.05334e+06).
+
+    Mesh dimension: 2D
+    Mesh coordinates: longitude, latitude
+
+    5 data arrays available
+
+      Id   Name         Type         Dimensions                     Shape
+    --------------------------------------------------------------------------------
+      1    TCWV         NC_FLOAT     [time, latitude, longitude]    [360840, 721, 1440]
+      2    latitude     NC_DOUBLE    [latitude]                     [721]
+      3    longitude    NC_DOUBLE    [longitude]                    [1440]
+      4    time         NC_INT       [time]                         [360840]
+      5    utc_date     NC_INT       [time]                         [360840]
+
+
+This dataset was stored on disk arranged such that each month of data exists in
+a unique folder. The folders are named by a 6 digit integer, `YYYYMM`, with 4
+digits encoding the year and 2 digits encoding the month. Prior to applying the
+metadata probe a set of symlinks were created so that all of the files of
+interest were collocated in a single folder making them easy to select with a
+simple regex. See :ref:`rearranging_data` for information on creating symlinks.
+
+
+.. _teca_bayesian_ar_detect:
+
+teca_bayesian_ar_detect
+--------------------------------------
+The Bayesian AR detection (BARD) application is an MPI+threads parallel
+code that applies an uncertainty inference on a range of input fields, mainly
+Integrated Vapor Transport (IVT) and Integrated Water Vapor (IWV).
+We use a Bayesian framework to sample from the set of AR detector parameters
+that yield AR counts similar to the expert database of AR counts; this yields
+a set of plausible AR detectors from which we can assess quantitative uncertainty.
+TECA-BARD is described in :cite:`teca_bard`.
+
+.. figure:: images/cascade_ar_globe_fig.png
+    :width: 70%
+    :align: center
+
+    Pseudocoloring of precipitable water with superposed 5%, 50%, and 100%
+    contours of AR probability. Green x shows ground truth obtained via
+    manual expert identification.
+
+Inputs
+~~~~~~
+A 3D time dependent mesh in NetCDF CF2 format with:
+
+1. horizontal wind velocity vector
+2. specific humidity
+
+Or a 2D time dependent mesh with:
+
+1. IVT magnitude
+
+Outputs
+~~~~~~~
+A 2D mesh with:
+
+1. AR probability
+2. A segmentation of AR probability
+
+If IVT was computed from horizontal wind and specific humidity
+
+1. IVT vector
+2. IVT magnitude
+
+Command Line Arguments
+~~~~~~~~~~~~~~~~~~~~~~
+
+--input_file arg
+    a teca_multi_cf_reader configuration file identifying the set of NetCDF CF2 files to process.
+    When present data is read using the teca_multi_cf_reader. Use one of either `--input_file` or
+    `--input_regex`.
+
+--input_regex arg
+    a teca_cf_reader regex identifying the set of NetCDF CF2 files to process. When present data is
+    read using the teca_cf_reader. Use one of either `--input_file` or `--input_regex`.
+
+--ivt arg (=IVT)
+    name of variable with the magnitude of integrated vapor transport
+
+--compute_ivt_magnitude
+    when this flag is present magnitude of vector IVT is calculated. use `--ivt_u` and `--ivt_v` to set
+    the name of the IVT vector components if needed.
+
+--ivt_u arg (=IVT_U)
+    name of variable with longitudinal component of the integrated vapor transport vector.
+
+--ivt_v arg (=IVT_V)
+    name of variable with latitudinal component of the integrated vapor transport vector.
+
+--write_ivt_magnitude
+    when this flag is present IVT magnitude is written to disk with the AR detector results
+
+--compute_ivt
+    when this flag is present IVT vector is calculated from specific humidity, and wind vector
+    components. use `--specific_humidity` `--wind_u` and `--wind_v` to set the name of the specific
+    humidity and wind vector components, and `--ivt_u` and `--ivt_v` to control the names of the
+    results, if needed.
+
+--specific_humidity arg (=Q)
+    name of variable with the 3D specific humidity field.(Q)
+
+--wind_u arg (=U)
+    name of variable with the 3D longitudinal component of the wind vector.
+
+--wind_v arg (=V)
+    name of variable with the 3D latitudinal component of the wind vector.
+
+--write_ivt
+    when this flag is present IVT vector is written to disk with the result
+
+--x_axis_variable arg (=lon)
+    name of x coordinate variable
+
+--y_axis_variable arg (=lat)
+    name of y coordinate variable
+
+--z_axis_variable arg (=plev)
+    name of z coordinate variable
+
+--periodic_in_x arg (=1)
+    Flags whether the x dimension (typically longitude) is periodic.
+
+--binary_ar_threshold arg (=0.667)
+    probability threshold for segmenting ar_probability to produce ar_binary_tag
+
+--output_file arg (=CASCADE_BARD_%t%.nc)
+    A path and file name pattern for the output NetCDF files. %t% is replaced with a human readable
+    date and time corresponding to the time of the first time step in the file. Use
+    `--cf_writer::date_format` to change the formatting
+
+--steps_per_file arg (=128)
+    number of time steps per output file
+
+
+--last_step arg (=-1)
+    last time step to process
+
+--start_date arg
+    The first time to process in 'Y-M-D h:m:s' format. Note: There must be a space between the date
+    and time specification
+
+--end_date arg
+    The last time to process in 'Y-M-D h:m:s' format
+
+--n_threads arg (=-1)
+    Sets the thread pool size on each MPI rank. When the default value of -1 is used TECA will
+    coordinate the thread pools across ranks such each thread is bound to a unique physical core.
+
+--verbose
+    enable extra terminal output
+
+--help
+    displays documentation for application specific command line options
+
+--advanced_help
+    displays documentation for algorithm specific command line options
+
+--full_help
+    displays both basic and advanced documentation together
+
+
+Node level parallelism
+~~~~~~~~~~~~~~~~~~~~~~
+The CASCADE BARD AR detector internally makes use C++ threads for node level
+parallelism. By default the detector determines the size of thread pools based
+on the number of physical CPU cores per node and the number of MPI ranks
+running on the node. Taking advantage of this feature requires scheduling fewer
+MPI ranks per node than there are physical CPU cores.  This is accomplished by
+using the `-N X` and `-n Y` srun command line options because srun will spread
+the `Y`` MPI ranks evenly across `X` nodes leaving free CPU cores.  On Cori KNL
+nodes there are 68 CPU cores per node amd on Cori Haswell nodes 32.  So, for
+example when running on KNL nodes with 68 MPI ranks, to give the detector
+thread pools 4 cores one would launch the job with `srun -N 4 -n 68 ...`.
+
+Examples
+~~~~~~~~
+
+.. _cmip6_ex_desc:
+
+CMIP6 data
+^^^^^^^^^^
+This example illustrates detecting ARs(atmospheric rivers) in a CMIP6
+dataset using TECA's BARD(Bayesian AR detector) detector.
+
+.. code-block:: bash
+
+    #!/bin/bash
+    #SBATCH -C knl
+    #SBATCH -N 1484
+    #SBATCH -q regular
+    #SBATCH -t 00:30:00
+    #SBATCH -A m1517
+    #SBATCH -J 2_CASCADE_BARD_AR_detect
+
+    # load the GCC enviornment
+    module swap PrgEnv-intel PrgEnv-gnu
+
+    # load the TECA module
+    module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles/
+    module load teca
+
+    # make a directory for the output files
+    out_dir=HighResMIP_ECMWF_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_6hrPlevPt/CASCADE_BARD_all
+    mkdir -p ${out_dir}
+
+    # do the ar detections. change -N and -n to match the rus size.
+    time srun -N 1484 -n 23744 teca_bayesian_ar_detect \
+        --input_file ./HighResMIP_ECMWF_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_6hrPlevPt.mcf \
+        --specific_humidity hus --wind_u ua --wind_v va --ivt_u ivt_u --ivt_v ivt_v --ivt ivt \
+        --compute_ivt --write_ivt --write_ivt_magnitude --steps_per_file 128 \
+        --output_file ${out_dir}/CASCADE_BARD_AR_%t%.nc
+
+This dataset spans the year 1950 to 2014 with 7 pressure levels at a
+1/2 degree spatial and 6 hourly time resolution. There are 94964 simulated time
+steps stored in 780 files which require 290 GB disk space per scalar field.
+The data is organized such that the data files for each variable reside in their
+own directory. This :ref:`MCF file<HighResMIPMCF>` was used to configure the
+readers.
+
+In this example IVT is calculated on the fly from horizontal wind vector and
+specific humidity, thus 870 GB was processed. If IVT magnitude is available on
+disk, one may omit the *--compute_ivt* flag to use it directly.
+
+The dataset was processed using 100912 cores on 1484 KNL nodes on NERSC's Cray
+supercomputer Cori. The run computed the IVT vector, its magnitude, the
+probability of an AR and a segmentation of the AR probability. The run
+completed in 4m 1s and generated a total of 392 GB of data.
+
+In determining the number of MPI ranks to use in this run, the number of time
+steps in the dataset was first determined using the :ref:`teca_metadata_probe`
+as shown in the above :ref:`example<mdp_highresmip>`.  The CASCADE BARD AR detector
+relies on threading for performance and spreading the MPI ranks out such that
+each has a number of threads is advised. Here each MPI rank was given 4
+physical cores for exclusive use.
+
+
+ARTMIP MERRA data
+^^^^^^^^^^^^^^^^^
+The following example documents SLURM script that was used to generate output
+used by :cite:`teca_bard`.  This run used 1520 nodes, and simultaneously ran
+1,024 AR detectors on the 37 years of the MERRA-2 reanalysis in approximately 2
+minutes on the Cori KNL supercomputer at NERSC.
+
+.. code-block:: bash
+
+    #!/bin/bash
+    #SBATCH -J bard_merra2
+    #SBATCH -N 1520
+    #SBATCH -C knl
+    #SBATCH -q regular
+    #SBATCH -t 00:20:00
+
+    # load the gcc environment
+    module swap PrgEnv-intel PrgEnv-gnu
+
+    # bring a TECA install into your environment
+    module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles/
+    module load teca
+
+    WORKDIR=$SCRATCH/teca_bard_merra2_artmip
+    mkdir -p ${WORKDIR}
+    cd $WORKDIR
+
+    for year in `seq 1980 2017`
+    do
+        echo "Starting ${year}"
+        srun -n 680 -c 16 -N 40 --cpu_bind=cores teca_bayesian_ar_detect \
+            --input_regex "/global/project/projectdirs/m1517/cascade/external_datasets/ARTMIP/MERRA_2D/${year}/ARTMIP_MERRA_2D_.*\.nc" \
+            --cf_reader::t_axis_variable "" \
+            --cf_reader::filename_time_template  "ARTMIP_MERRA_2D_%Y%m%d_%H.nc" \
+            --steps_per_file 3000 \
+            --cf_writer::date_format "%Y" \
+            --output_file MERRA2.ar_tag.teca_bard_v1.0.3hourly.%t%.nc4 &> bard_${year}_${SLURM_JOB_ID}.log &
+    done
+
+    wait
+    echo "All done."
+
+This example shows how to configure the reader for extracting the time axis
+from the file names.  In this example dataset was organized such that the data
+from each simulated year was stored in its own folder. Each time step was stored
+in a file, no time information was stored in the file itself. Instead, the date
+and time was encoded in the file name.
+
+In the above script, *srun* launches the detector once for each year on a unique
+set of 40 nodes using 680 MPI ranks. The BARD makes use of threads internally
+and it can be beneficial to spread the MPI ranks out giving each rank exclusive
+access to a number of physical cores. In this example each rank has
+approximately 4 cores.
+
+In determining the number of ranks to use per run, the number of steps per year was
+taken into account. See the :ref:`teca_metadata_probe` ARTMIP :ref:`example<mdp_artmip>`.
+
+
+.. _teca_integrated_vapor_transport:
+
+teca_integrated_vapor_transport
+-------------------------------
+The integrated vapor transport(IVT) command line application computes IVT from
+input wind vector and specific humidity.
+
+Inputs
+~~~~~~
+A 3D time dependent mesh in NetCDF CF2 format with:
+
+1. horizontal wind velocity vector
+2. specific humidity
+
+Outputs
+~~~~~~~
+A 2D mesh with one or more of:
+
+1. IVT vector
+2. IVT magnitude
+
+
+Command Line Arguments
+~~~~~~~~~~~~~~~~~~~~~~
+
+--input_file arg
+    a teca_multi_cf_reader configuration file identifying the set of NetCDF CF2 files to process.
+    When present data is read using the teca_multi_cf_reader. Use one of either `--input_file` or
+    `--input_regex`.
+
+--input_regex arg
+    a teca_cf_reader regex identifying the set of NetCDF CF2 files to process. When present data is
+    read using the teca_cf_reader. Use one of either `--input_file` or `--input_regex`.
+
+--specific_humidity arg (=Q)
+    name of variable with the 3D specific humidity field.
+
+--wind_u arg (=U)
+    name of variable with the 3D longitudinal component of the wind vector.
+
+--wind_v arg (=V)
+    name of variable with the 3D latitudinal component of the wind vector.
+
+--ivt_u arg (=IVT_U)
+    name to use for the longitudinal component of the integrated vapor transport vector.
+
+--ivt_v arg (=IVT_V)
+    name to use for the latitudinal component of the integrated vapor transport vector.
+
+--ivt arg (=IVT)
+    name of variable with the magnitude of integrated vapor transport
+
+--write_ivt_magnitude arg (=0)
+    when this is set to 1 magnitude of vector IVT is calculated. use `--ivt_u` and `--ivt_v` to set the
+    name of the IVT vector components and `--ivt` to set the name of the result if needed.
+
+--write_ivt arg (=1)
+    when this is set to 1 IVT vector is written to disk with the result. use `--ivt_u` and `--ivt_v` to
+    set the name of the IVT vector components of the result if needed.
+
+--output_file arg (=IVT_%t%.nc)
+    A path and file name pattern for the output NetCDF files. %t% is replaced with a human readable
+    date and time corresponding to the time of the first time step in the file. Use
+    --cf_writer::date_format to change the formatting
+
+--steps_per_file arg (=128)
+    number of time steps per output file
+
+--x_axis_variable arg (=lon)
+    name of x coordinate variable
+
+--y_axis_variable arg (=lat)
+    name of y coordinate variable
+
+--z_axis_variable arg (=plev)
+    name of z coordinate variable
+
+--periodic_in_x arg (=1)
+    Flags whether the x dimension (typically longitude) is periodic.
+
+--first_step arg (=0)
+    first time step to process
+
+--last_step arg (=-1)
+    last time step to process
+
+--start_date arg
+    The first time to process in 'Y-M-D h:m:s' format. Note: There must be a space between the date
+    and time specification
+
+--end_date arg
+    The last time to process in 'Y-M-D h:m:s' format
+
+--n_threads arg
+    Sets the thread pool size on each MPI rank. When the default value of -1 is used TECA will
+    coordinate the thread pools across ranks such each thread is bound to a unique physical core.
+
+--verbose
+    enable extra terminal output
+
+--help
+    displays documentation for application specific command line options
+
+--advanced_help
+    displays documentation for algorithm specific command line options
+
+--full_help
+    displays both basic and advanced documentation together
+
+
+Examples
+~~~~~~~~
+
+CMIP6 data
+^^^^^^^^^^
+This example illustrates computing IVT(integrated vapor transport) from a
+HighResMIP dataset using TECA.
+
+.. code-block:: bash
+
+    #!/bin/bash
+    #SBATCH -C knl
+    #SBATCH -N 500
+    #SBATCH -q debug
+    #SBATCH -t 00:30:00
+    #SBATCH -A m1517
+
+    # load the gcc environment
+    module swap PrgEnv-intel PrgEnv-gnu
+
+    # bring a TECA install into your environment
+    module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles/
+    module load teca
+
+    # make a directory for the output files
+    mkdir -p HighResMIP_ECMWF_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_6hrPlevPt/ivt
+
+    # do the IVT calcllation. change -N and -n to match the run size.
+    time srun -N 500 -n 1000 teca_integrated_vapor_transport                                                \
+        --input_file ./HighResMIP_ECMWF_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_6hrPlevPt.mcf              \
+        --specific_humidity hus --wind_u ua --wind_v va --ivt_u ivt_u --ivt_v ivt_v --ivt ivt               \
+        --write_ivt 1 --write_ivt_magnitude 1                                                               \
+        --output_file ./HighResMIP_ECMWF_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_6hrPlevPt/ivt/ivt_%t%.nc  \
+        --steps_per_file 32 --n_threads -1 --verbose
+
+This HighResMIP dataset spans the year 1950 to 2014 with 7 pressure levels at a
+1 degree spatial and 6 hourly time resolution. There are 94964 simulated time
+steps stored in 780 files which require 290 GB disk space per scalar field.
+The IVT calculation makes use of horizontal wind vector and specific humidity,
+thus 870 GB was processed.
+
+The dataset was processed using
+100912 cores on 1484 KNL nodes on NERSC's Cray supercomputer Cori. The run
+computed the IVT vector and its magnitude. The run completed in 2m 49s and
+generated a total of 276 GB of data.
+
+The HighResMIP data is organized such that each
+variable is stored in its own directory.  This :ref:`MCF file<HighResMIPMCF>`
+was used to configure the readers.
+
+.. _teca_tc_detect:
+
+teca_tc_detect
 ------------------------------
-.. _tracks:
-
-.. figure:: ./images/tracks_1824.png
-
-    Cyclone tracks plotted with 850 mb wind speed and integrated moisture.
-
-
-.. _candidates:
-
-.. figure:: ./images/candidates_and_tracks.png
-
-    Cyclone candidates and tracks. Not all candidates end up in tracks.
-
 The cyclone detector is an MPI+threads parallel map-reduce based application
 that identifies tropical cyclone tracks in NetCDF-CF2 climate data. The
 application is comprised of a number of stages that are run in succession
@@ -90,156 +1242,248 @@ producing tables containing cyclone tracks. The tracks then can be visualized
 or further analyzed using the TECA TC statistics application, TECA's Python
 bindings, or the TECA ParaView plugin.
 
+The detection algorithm is based on the open source GFDL code
+described in :cite:`gfdl_tc` with improvements to the original code to handle
+modern higher spatio-temporal resolution datasets and adjustments to default
+thresholds based on observational data published in :cite:`tc_props`.
+
+.. _tracks:
+
+.. figure:: ./images/lic_v850_TMQ.0071.png
+
+    Cyclone tracks plotted with 850 mb wind speed and integrated moisture.
+
+
+Inputs
+~~~~~~
+A Cartesian mesh stored in a collection of NetCDF CF2 files. The detector requires on
+the following fields.
+
+1. Sea level pressure
+2. Surface wind vector
+3. 850 mb wind vector
+4. 500 mb temperature
+5. 200 mb temperature
+6. 1000 mb height
+7. 200 mb height
+
+Outputs
+~~~~~~~
+1. Cyclone andidate table
+2. Cyclone track table
+
 Command Line Arguments
 ~~~~~~~~~~~~~~~~~~~~~~
-The most common command line options are:
+
+--input_file arg
+    a teca_multi_cf_reader configuration file identifying the set of NetCDF CF2 files to process.
+    When present data is read using the teca_multi_cf_reader. Use one of either `--input_file` or
+    `--input_regex`.
+
+--input_regex arg
+    a teca_cf_reader regex identifying the set of NetCDF CF2 files to process. When present data is
+    read using the teca_cf_reader. Use one of either `--input_file` or `--input_regex`.
+
+--candidate_file arg (=candidates.bin)
+    file path to write the storm candidates to. The extension determines the file format. May be one of
+    `.nc`, `.csv`, or `.bin`
+
+--850mb_wind_u arg (=U850)
+    name of variable with 850 mb wind x-component
+
+--850mb_wind_v arg (=V850)
+    name of variable with 850 mb wind x-component
+
+--surface_wind_u arg (=UBOT)
+    name of variable with surface wind x-component
+
+--surface_wind_v arg (=VBOT)
+    name of variable with surface wind y-component
+
+--sea_level_pressure arg (=PSL)
+    name of variable with sea level pressure
+
+--500mb_temp arg (=T500)
+    name of variable with 500mb temperature for warm core calc
+
+--200mb_temp arg (=T200)
+    name of variable with 200mb temperature for warm core calc
+
+--1000mb_height arg (=Z1000)
+    name of variable with 1000mb height for thickness calc
+
+--200mb_height arg (=Z200)
+    name of variable with 200mb height for thickness calc
+
+--storm_core_radius arg (=2)
+    maximum number of degrees latitude separationi between vorticity max and pressure min defining
+    a storm
+
+--min_vorticity arg (=1.6e-4)
+    minimum vorticty to be considered a tropical storm
+
+--vorticity_window arg (=7.74446)
+    size of the search window in degrees. storms core must have a local vorticity max centered on
+    this window
+
+--pressure_delta arg (=400)
+    maximum pressure change within specified radius
+
+--pressure_delta_radius arg (=5)
+    radius in degrees over which max pressure change is computed
+
+--core_temp_delta arg (=0.8)
+    maximum core temperature change over the specified radius
+
+--core_temp_radius arg (=5)
+    radius in degrees over which max core temperature change is computed
+
+--thickness_delta arg (=50)
+    maximum thickness change over the specified radius
+
+--thickness_radius arg (=4)
+    radius in degrees over with max thickness change is computed
+
+--lowest_lat arg (=80)
+    lowest latitude in degrees to search for storms
+
+--highest_lat arg (=80)
+    highest latitude in degrees to search for storms
+
+--max_daily_distance arg (=1600)
+    max distance in km that a storm can travel in one day
+
+--min_wind_speed arg (=17)
+    minimum peak wind speed to be considered a tropical storm
+
+--min_wind_duration arg (=2)
+    number of, not necessarily consecutive, days min wind speed sustained
+
+--track_file arg (=tracks.bin)
+    file path to write storm tracks to.  The extension determines the file format. May be one of
+    `.nc`, `.csv`, or `.bin`
+
+--first_step arg (=0)
+    first time step to process
+
+--last_step arg (=-1)
+    last time step to process
+
+--start_date arg
+    The first time to process in 'Y-M-D h:m:s' format. Note: There must be a space between the date
+    and time specification
+
+--end_date arg
+    The last time to process in 'Y-M-D h:m:s' format
+
+--n_threads arg (=-1)
+    Sets the thread pool size on each MPI rank. When the default value of -1 is used TECA will
+    coordinate the thread pools across ranks such each thread is bound to a unique physical core.
 
 --help
-    prints documentation for the most common options. MPI programs, such as
-    teca_tc_detect aren't allowed to run on the login noes at NERSC. For
-    this reason to use *--help* you'll need to obtain a compute node
-    via *salloc* first.
+    displays documentation for application specific command line options
+
+--advanced_help
+    displays documentation for algorithm specific command line options
 
 --full_help
-    prints documentation for all options. See *--help* notes.
+    displays both basic and advanced documentation together
 
---input_regex
-    this is how you tell TECA what files are in the dataset. We use the grep
-    style regex, which must be quoted with single ticks to protect it from the
-    shell. Regex meta characters present in the file name must be escaped with
-    a \textbackslash. An example of an input regex which includes all .nc files
-    is: '.*\textbackslash.nc\$'. If instead one wanted to grab only files from
-    2004-2005 then '.*\textbackslash.200[45 .*\textbackslash.nc\$' would do the
-    trick. For the best performance, specify the smallest set of files needed
-    to achieve the desired result. Each of the files will be opened in order to
-    scan the time axis.
+Examples
+~~~~~~~~~
 
---start_date
-    an optional way to further specify the time range to process. The accepted
-    format is a CF style human readable date spec such as YYYY-MM-DD hh:mm:ss.
-    Because of the space in between day and hour spec quotes must be used. For
-    example "2005-01-01 00:00:00". Specifying a start date is optional,  if
-    none is given then all of the time steps in all of the files specified in
-    the *--input_regex* are processed.
+.. _tc_cam5:
 
---end_date
-    see *--start_date*. this is has a similar purpose in restricting
-    the range of time steps processed.
-
---candidate_file
-    a file name specifying where to write the storm candidates to. If not
-    specified result will be written to candidates.bin in the current working
-    directory. One sets the output format via the extension. Supported formats
-    include csv, xlsx, and bin.
-
---track_file
-    a file name specifying where to write the detected storm tracks. If not
-    specified the tracks are written to a file named tracks.bin in the current
-    working directory. See *--candidate_file* for information about the
-    supported formats.
-
-
-Example
-~~~~~~~
-Once on Edison load the TECA module
+CAM5 data
+^^^^^^^^^
 
 .. code-block:: bash
 
+    #!/bin/bash
+    #SBATCH -N 913
+    #SBATCH -C knl
+    #SBATCH -q regular
+    #SBATCH -t 01:00:00
+    #SBATCH -A m1517
+    #SBATCH -J teca_tc_detect
+
+    # set up for gcc environment
+    module swap PrgEnv-intel PrgEnv-gnu
+
+    # load the TECA module
+    module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles/
     module load teca
 
-note that there are multiple versions installed, just use the latest and
-greatest as they become available.
+    data_dir=/global/cscratch1/sd/mwehner/machine_learning_climate_data/All-Hist/CAM5-1-0.25degree_All-Hist_est1_v3_run1/h2
 
-Processing an entire dataset is straight forward once you know how many cores
-you want to run on. You will launch teca_tc_detect, the tropical cyclone
-application, from a SLURM batch script. A batch script is provided below.
+    time srun -N 913 -n 58400 \
+        teca_tc_detect --input_regex ${data_dir}/'.*\.nc$'  \
+            --candidate_file CAM5-1-025degree_All-Hist_est1_v3_run1_h2_candidates.bin \
+            --track_file CAM5-1-025degree_All-Hist_est1_v3_run1_h2_tracks.bin
 
-TECA can process any size dataset on any number of compute cores. However, the
-fastest results are attained when there is 1 time step per core. In order to
-set this up one must determine how many time steps there are and write the
-SLURM batch script accordingly. The teca_metadata_probe command line
-application can be used for this purpose. When executed with the same
-*--input_regex* and optionally the *--start_date* and or
-*--end_date* options that will be used in the cyclone detection run it
-will print out the information needed to configure a 1 to 1 (time steps to
-cores) run. The metadata probe is a serial application and can be run on the
-login nodes.
+This example shows the detection of TC's in a large (3TB, 7300 file) CAM5
+dataset using 58400 cores on NERSC Cori. The run completed in 35 minutes 4
+seconds on the KNL nodes. As shown in the above :ref:`example<mdp_cam5>`,
+:ref:`teca_metadata_probe` was used to determine the number of MPI ranks.
 
-.. code-block:: bash
 
-    teca_metadata_probe --input_regex '.*\.199[0-9].*\.nc$'
+.. _teca_tc_trajectory:
 
-    # A total of 29200 steps available in 3650 files. Using the noleap calendar.
-    # Times are specified in units of days since 1979-01-01 00:00:00. The available
-    # times range from 1990-1-1 3:0:0 (4015.12) to 2000-1-1 0:0:0 (7665).
-
-With the number of time steps in hand one can set up the SLURM batch script for
-the run. The following batch script, named \textit{1990s.sh}, processes the
-entire decade of the 1990's. The teca_metadata_probe was used to determine
-that there are 29200 time steps. The srun command is used to launch the cyclone
-detector on 29200 cores.
-
-.. code-block:: bash
-
-    #!/bin/bash -l
-
-    #SBATCH -p regular
-    #SBATCH -N 1217
-    #SBATCH -t 00:30:00
-
-    data_dir=/scratch2/scratchdirs/prabhat/TCHero/data
-    files_regex=cam5_1_amip_run2'\.cam2\.h2\.199[0-9].*.nc$'
-
-    srun -n 29200 teca_tc_detect                    \
-        --input_regex ${data_dir}/${files_regex}    \
-        --candidate_file candidates_1990s.bin       \
-        --track_file tracks_1990s.bin
-
-Finally, the batch script must be submitted to the batch system requesting the
-appropriate number of nodes. In this case the command is:
-
-.. code-block:: bash
-
-    sbatch ./1990s.sh
-
-For the :math:`\frac{1}{4}` degree resolution dataset when processing latitudes
-between -90 to 90 the detector runs in approx 15 min. Detector run time could
-be reduced by subsetting in latitude (see *--lowest_lat*,
-*--highest_lat* options). Note that as the number of files in the
-dataset increases the metadata phase takes more time. You can use
-teca_metadata_probe to get a sense of how much more and extend the run time
-accordingly.
-
-Tropical Cyclone Trajectories
+teca_tc_trajectory
 ------------------------------
-The trajectory stage runs after the map-reduce candidate detection stage and
-generates cyclone storm tracks. The TC detector described above invokes the
-trajectory stage automatically, however it can also be run independently on the
-candidate stage output. The trajectory stage can be run from the login nodes.
+The teca_tc_trajevctory application generates cyclone tracks from a set of
+cyclone candidates. A number of detector parameters are applied here that
+influence the assembly of tracks from candidates. The parameters are more
+completely described in :cite:`gfdl_tc`.  The teca_tc_trajectory application is
+not needed to obtain TC tracks because the same code runs as part of the
+:ref:`teca_tc_detect` application. It's primary use is for re-running tracking
+stages of the algorithm with different parameters on the same set of
+candidates.
+
+.. _candidates:
+
+.. figure:: ./images/candidates_and_tracks.png
+
+    Cyclone candidates and tracks. Not all candidates end up in tracks.
+
+Inputs
+~~~~~~
+A table of TC candidates.
+
+Outputs
+~~~~~~~
+A table of TC tracks.
 
 Command Line Arguments
 ~~~~~~~~~~~~~~~~~~~~~~
-The most commonly used command line arguments to the trajectory stage are:
+
+--candidate_file arg (=candidates.bin)
+    file path to read the storm candidates from
+
+--max_daily_distance arg (=1600)
+    max distance in km that a storm can travel in one day
+
+--min_wind_speed arg (=17)
+    minimum peak wind speed to be considered a tropical storm
+
+--min_wind_duration arg (=2)
+    number of, not necessarily consecutive, days min wind speed sustained
+
+--track_file arg (=tracks.bin)
+    file path to write storm tracks to. The extension determines the file format. May be one of
+    `.nc`, `.csv`, or `.bin`
 
 --help
-    prints documentation for the most common options.
+    displays documentation for application specific command line options
+
+--advanced_help
+    displays documentation for algorithm specific command line options
 
 --full_help
-    prints documentation for all options. See --help notes.
+    displays both basic and advanced documentation together
 
---candidate_file
-    a file name specifying where to read the storm candidates from.
-
---track_file
-    a file name specifying where to write the detected storm tracks. If not
-    specified the tracks are written to a file named tracks.bin in the current
-    working directory. One sets the output format via the extension. Supported
-    formats include csv, xlsx, and bin.
-
-
-
-Example
-~~~~~~~
+Examples
+~~~~~~~~~
 An example of running the trajectory stage is:
 
 .. code-block:: bash
@@ -248,100 +1492,210 @@ An example of running the trajectory stage is:
         --candidate_file candidates_1990s.bin       \
         --track_file tracks_1990s.bin
 
-the file \textit{tracks_1990s.bin} will contain the list of storm tracks.
+the file *tracks_1990s.bin* will contain the list of storm tracks.
 
-TC Wind Radii
---------------------------
-The wind radii application can be used to compute wind radii from track data in
-parallel. For each point on each track a radial profile is computed over a
-number of angular intervals. The radial profiles are used to compute distance
-from the storm center to the first downward crossing of given wind speeds. The
-default wind speeds are the3 Saffir-Simpson transitions. Additionally distance
-to the peak wind speed and peak wind speed are recorded.  A new table is
-produced containing the data. The TC trajectory scalars application, TC stats
-application and ParaView plugin can be used to further analyze the data.
+.. _teca_tc_wind_radii:
+
+teca_tc_wind_radii
+----------------------------------
+The wind radii application computes an estimation of a TC's  physical size
+using the algorithm described in :cite:`wind_rad_1` and :cite:`wind_rad_2`.
+For each point on each track a radial profile is computed over a number of
+angular intervals. The radial profiles are used to compute distance from the
+storm center to the first downward crossing of given wind speeds. The default
+wind speeds are the Saffir-Simpson transitions. Additionally distance to the
+peak wind speed and peak wind speed are recorded.  A new table is produced
+containing the data.
+
+Tracks are processed in parallel.  The TC trajectory scalars application, TC
+stats application and ParaView plugin can be used to further analyze the data.
+This application has been used to generate data to train machine learning
+algorithms.
+
+
+.. figure:: images/vbot_tmq_wr_prof_and_plot_0093.png
+    :width: 100%
+    :align: center
+
+    A category 5 storm about to make landfall over Japan and
+    the strom's radial wind profile at the same time instant.
+    Rings in the image on the right correspond to blue lines
+    in the radial profile on the right. Red lines in the profile
+    show the Saffir-Simpson thresholds.
+
+Inputs
+~~~~~~
+1. A table of TC tracks as generated by the :ref:`teca_tc_detect` application
+   or other application with at least time step, track id, and lat, lon locations.
+2. The original mesh based data from which tracks were computed with at least
+   wind velocity vector.
+
+Output
+~~~~~~
+A table of TC tracks augmented with storm size columns, with a column for each
+threshold and an additional column for the radius at the peak wind speed.
 
 Command Line Arguments
 ~~~~~~~~~~~~~~~~~~~~~~
-The most commonly used command liine arguments are:
 
---track_file
-    file path to read the cyclone from (tracks.bin)
+--track_file arg
+    a file containing cyclone tracks (tracks.bin)
 
---wind_files
-    regex matching simulation files containing wind fields ()
+--input_file arg
+    a teca_multi_cf_reader configuration file identifying the set of NetCDF CF2 files to process.
+    When present data is read using the teca_multi_cf_reader. Use one of either `--input_file` or
+    `--input_regex`.
 
---track_file_out
-    file path to write cyclone tracks with size (tracks_size.bin)
+--input_regex arg
+    a teca_cf_reader regex identifying the set of NetCDF CF2 files to process. When present data is
+    read using the teca_cf_reader. Use one of either `--input_file` or `--input_regex`.
 
---wind_u_var
-    name of variable with wind x-component (UBOT)
+--wind_files arg
+    a synonym for --input_regex.
 
---wind_v_var
-    name of variable with wind y-component (VBOT)
+--track_file_out arg (=tracks_size.bin)
+    file path to write cyclone tracks with size
 
---track_mask
-    expression to filter tracks by ()
+--wind_u_var arg (=UBOT)
+    name of variable with wind x-component
 
---n_theta
-    number of points in the wind profile in the theta direction (32)
+--wind_v_var arg (=VBOT)
+    name of variable with wind y-component
 
---n_r
-    number cells in the wind profile in radial direction (32)
+--track_mask arg
+    An expression to filter tracks by
 
---profile_type
-    radial wind profile type. max or avg (avg)
+--number_of_bins arg (=32)
+    number of bins in the radial wind decomposition
 
---search_radius
-    size of search window in deg lat (6)
+--profile_type arg (=avg)
+    radial wind profile type. max or avg
 
-see --help and --full_help for more information.
+--search_radius arg (=6)
+    size of search window in decimal degrees
 
-Example
-~~~~~~~
-The following examples shows computation of wind radii for a decades worth of
-tracks using 128 cores on NERSC Cori.
+--first_track arg (=0)
+    first track to process
 
+--last_track arg (=-1)
+    last track to process
+
+--n_threads arg (=-1)
+    Sets the thread pool size on each MPI rank. When the default value of -1 is used TECA will
+    coordinate the thread pools across ranks such each thread is bound to a unique physical core.
+
+--help
+    displays documentation for application specific command line options
+
+--advanced_help
+    displays documentation for algorithm specific command line options
+
+--full_help
+    displays both basic and advanced documentation together
+
+
+Examples
+~~~~~~~~
+
+CAM5 data
+^^^^^^^^^
 .. code-block:: bash
 
-    module load teca
-    sbatch wind_radii_1990s.sh
+    #!/bin/bash
 
-where the contents of \textit{wind_radii_1990s.sh} are as follows
-
-.. code-block:: bash
-
-    #!/bin/bash -l
-    #SBATCH -p debug
-    #SBATCH -N 4
+    #SBATCH -A m1517
+    #SBATCH -C knl
     #SBATCH -t 00:30:00
-    #SBATCH -C haswell
+    #SBATCH -q debug
+    #SBATCH -N 22
 
-    data_dir=/global/cscratch1/sd/mwehner/cylones_ensemble/cam5_1_amip_run2/ncfiles
-    files_regex=${data_dir}/cam5_1_amip_run2'\.cam2\.h2\.199[0-9].*\.nc$'
-    track_file=tracks_1990s_3hr_mdd_4800.bin
-    track_file_out=wind_radii_1990s_3hr_mdd_4800_co.bin
+    module swap PrgEnv-intel PrgEnv-gnu
 
-    srun -n 4 --ntasks-per-node=1 \
-        teca_tc_wind_radii --n_threads 32 --first_track 0 \
-        --last_track -1 --wind_files ${files_regex} --track_file ${track_file} \
-        --track_file_out ${track_file_out}
+    module use  /global/cscratch1/sd/loring/teca_testing/deps/cf_reader_performance/modulefiles/
+    module load teca/cf_reader_performance
 
-Tropical Cyclone Statistics
----------------------------
+    # if on KNL. avoid an error about too many cores in OpenBLAS (used by numpy)
+    export OMP_NUM_THREADS=1
+
+    data_dir=/global/cscratch1/sd/mwehner/machine_learning_climate_data/All-Hist/CAM5-1-0.25degree_All-Hist_est1_v3_run1/h2
+
+    # run the wind radii calculation
+    time srun -N ${SLURM_NNODES} -n 1448 \
+        teca_tc_wind_radii --input_regex ${data_dir}/'^CAM5.*\.nc$' \
+            --track_file ${data_dir}/../TECA2/tracks_CAM5-1-2_025degree_All-Hist_est1_v3_run1.bin \
+            --track_file_out ./wind_tracks_CAM5-1-2_025degree_All-Hist_est1_v3_run1.bin
+
+This script shows computing the radial wind profiles for the 1448 tracks that
+were detected in the run shown in the :ref:`teca_tc_detect`, :ref:`example<tc_cam5>` above.
+
+.. _teca_tc_stats:
+
+teca_tc_stats
+-------------------------------------------
 The statistics stage can be used to compute a variety of statistics on detected
 cyclones. It generates a number of plots and tables and it can be ran on the
 login nodes. The most common options are the input file and output prefix.
 
+Inputs
+~~~~~~
+A table of TC tracks generated by the :ref:`teca_tc_detect` application.
+
+Outputs
+~~~~~~~
+
++--------------------+--------------------------------------------------------------+
+| **Class table**    || A table containing a row for each track, with columns       |
+|                    || containing location of the first point in the track; min    |
+|                    || and max of detector parameters; track length and duration;  |
+|                    || a column indicating the basin of origin; ACE and PDI        |
+|                    || columns, and Saffir-Simspon categorization                  |
++--------------------+--------------------------------------------------------------+
+| **Summary table**  | Annual counts of storms by Saffir-Simpson category.          |
++--------------------+--------------------------------------------------------------+
+| **Plots**          || Plots of the tabular data by year and region.               |
+|                    ||                                                             |
+|                    || Categorical Distribution                                    |
+|                    ||     Produces a histogram containing counts of each class    |
+|                    ||     of storm on the Saffir-Simpson scale. See figure        |
+|                    ||     :numref:`ass`.                                          |
+|                    ||                                                             |
+|                    || Categorical Monthly Breakdown                               |
+|                    ||     Produces histogram for each year that shows             |
+|                    ||     the breakdown by month and Saffir-Simpson category.     |
+|                    ||     See figure :numref:`mon`.                               |
+|                    ||                                                             |
+|                    || Categorical Regional Breakdown                              |
+|                    ||     Produces a histogram for each year that shows           |
+|                    ||     breakdown by region and Saffir-Simpson category. See    |
+|                    ||     figure :numref:`reg`.                                   |
+|                    ||                                                             |
+|                    || Categorical Regional Trend                                  |
+|                    ||     Produces a histogram for each geographic region that    |
+|                    ||     shows trend of storm count and Saffir-Simpson category  |
+|                    ||     over time. See figure :numref:`trend`                   |
+|                    ||                                                             |
+|                    || Parameter Distributions                                     |
+|                    ||     Produces box and whisker plots for each year for a      |
+|                    ||     number of detector parameters. See figure               |
+|                    ||     :numref:`dist`.                                         |
+|                    ||                                                             |
++--------------------+--------------------------------------------------------------+
+
 Command Line Arguments
 ~~~~~~~~~~~~~~~~~~~~~~
 The command line arguments to the stats stage are:
+
+positional
+^^^^^^^^^^
 
 tracks_file
     A required positional argument pointing to the file containing TC storm tracks.
 
 output_prefix
     Required positional argument declaring the prefix that is prepended to all output files.
+
+optional
+^^^^^^^^
 
 --help
     prints documentation for the command line options.
@@ -356,33 +1710,6 @@ output_prefix
     Normalize y axes in the subplots allowing for easier inter-plot comparison.
 
 
-Analysis
-~~~~~~~~
-The following analysis are performed by the stats stage:
-
-Classification Table
-    Produces a table containing cyclogenisis information, Saphir-Simpson
-    category, and the min/max of a number of detection parameters.
-
-Categorical Distribution
-    Produces a histogram containing counts of each class of storm on the
-    Saphir-Simpson scale. See figure :numref:`ass`.
-
-Categorical Monthly Breakdown
-    Produces histogram for each year that shows the breakdown by month and
-    Saphir-Simpson category. See figure :numref:`mon`.
-
-Categorical Regional Breakdown
-    Produces a histogram for each year that shows breakdown by region and
-    Saphir-Simpson category. See figure :numref:`reg`.
-
-Categorical Regional Trend
-    Produces a histogram for each geographic region that shows trend of storm
-    count and Saphir-Simpson category over time. See figure :numref:`trend`
-
-Parameter Distributions
-    Produces box and whisker plots for each year for a number of detector
-    parameters. See figure :numref:`dist`.
 
 Analyses produced by the stats stage
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -437,28 +1764,47 @@ An example of running the stats stage is:
    teca_tc_stats tracks_1990s.bin stats/stats_1990s
 
 
-TC Trajectory Scalars
+.. _teca_tc_trajectory_scalars:
+
+teca_tc_trajectory_scalars
 --------------------------
+The trajectory scalars application can be used to plot detection parameters for
+each storm in time. For each track, a geographic plot of the track along with the
+detector parameters is generated.  The application can be run in parallel with
+a maximum concurrency equal to the number of tracks.
 
 .. _traj_scalar:
 
 .. figure:: ./images/track_scalars_1990s_3hr_mdd_4800_000280.png
-    :width: 3 in
+    :width: 5 in
 
     The trajectory scalars application plots cyclone properties over time.
 
-The trajectory scalars application can be used to plot detection parameters for
-each storm in time. The application can be run in parallel.
+Inputs
+~~~~~~
+A table of TC tracks generated by :ref:`teca_tc_detect` optionally including
+storm size data generated by :ref:`teca_tc_wind_radii`.
+
+Outputs
+~~~~~~~
+An image per track showing the path of the track on a map. If storm size data
+is present that is plotted as bands around the track. A plot showing each
+detector parameter time evolution is included.
+
 
 Command Line Arguments
 ~~~~~~~~~~~~~~~~~~~~~~
 
+Positional arguments
+^^^^^^^^^^^^^^^^^^^^^
 tracks_file
     A required positional argument pointing to the file containing TC storm tracks.
 
 output_prefix
     A required positional argument declaring the prefix that is prepended to all output files.
 
+Optional arguments
+^^^^^^^^^^^^^^^^^^^
 -h, --help
     prints documentation for the command line options.
 
@@ -488,26 +1834,45 @@ Example
         tracks_1990s_3hr_mdd_4800.bin                 \
         traj_scalars_1990s_3hr_mdd_4800
 
-TC Wind Radii Stats
--------------------
-The wind radii stats application can be used to generate summary statistics
-describing the wind radii distributions.
+
+.. _teca_tc_wind_radii_stats:
+
+teca_tc_wind_radii_stats
+----------------------------------------------
+The wind radii stats application can be used to plot the wind radii
+distributions. If one takes the category 1 radius to be the size of
+the cyclone then category 1 radii distribution could be used to compare
+storm size between two or more runs.
 
 .. _wind_rad_stats :
 
 .. figure:: ./images/wind_radii_stats.png
-    :width: 3 in
+    :width: 5 in
 
     The wind radii stats application plots distribution of wind radii.
 
+Inputs
+~~~~~~
+A table containing TC tracks with storm size data generated by the :ref:`teca_tc_wind_radii` application.
+
+Outputs
+~~~~~~~
+Two plots showing a distrubtions of the radii.
+
 Command Line Arguments
 ~~~~~~~~~~~~~~~~~~~~~~
+
+positional
+^^^^^^^^^^
 
 tracks_file
     A required positional argument pointing to the file containing TC storm tracks.
 
 output_prefix
     Required positional argument declaring the prefix that is prepended to all output files.
+
+optional
+^^^^^^^^
 
 --help
     prints documentation for the command line options.
@@ -529,12 +1894,23 @@ Example
     teca_tc_wind_radii_stats \
         wind_radii_1990s_3hr_mdd_4800_ed.bin wind_radii_stats_ed/
 
-Event Filter
-------------
+.. _teca_event_filter:
+
+teca_event_filter
+----------------------------------------
 The event filter application lets one remove rows from an input table that do
 not fall within specified geographic and/or temporal bounds. This gives one the
 capability to zoom into a specific storm, time period, or geographic region for
 detailed analysis.
+
+Inputs
+~~~~~~
+A table containing TC tracks.
+
+
+Outputs
+~~~~~~~
+A table with TC tracks matching the bounds query.
 
 Command Line Arguments
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -545,7 +1921,7 @@ in_file
 out_file
     A required positional argument pointing where the output should be written.
 
--h, --help
+--help
     prints documentation for the command line options.
 
 --time_column
@@ -588,303 +1964,435 @@ Example
         --region_sizes 4 --x_coordinate_column lon --y_coordinate_column lat  \
         candidates_1990s_3hr.bin filtered.bin
 
-Temporal Reduction
--------------------
-The temporal reduction application is an MPI+threads parallel code that
-applies a reduction operator on the time axis of a NetCDF CF2 dataset.
-The reduction can be applied over a number of specific intervals, for instance
-daily, and monthly intervals. Minimum, maximum, and average operators are
-supported. A rule of thumb for when running in parallel one should size the
-job such that there is a rank per interval. For instance, to apply a
-reduction that computes a monthly time series from a 6 hourly time series
-spanning 10 years one would use 120 ranks. In this case the reduction
-interval is monthly and one arrives at 120 MPI ranks by multiplying:
-12 months/year * 10 years. The procedure for selecting the number of MPI
-ranks for other intervals and datasets with different time spans is similar.
+.. _teca_temporal_reduction:
+
+teca_temporal_reduction
+-----------------------
+The temporal reduction application applies a reduction operator on the time
+axis of a NetCDF CF2 dataset.  The reduction can be applied over a number of
+specific intervals, for instance daily, monthly, or seasonal intervals.
+Minimum, maximum, and average operators are supported.
+
+A rule of thumb for when running in parallel one should size the job such that
+there is a rank per interval. For instance, to apply a reduction that computes
+a monthly time series from a 6 hourly time series spanning 10 years one would
+use 120 ranks. In this case the reduction interval is monthly and one arrives
+at 120 MPI ranks by multiplying: 12 months/year * 10 years. The procedure for
+selecting the number of MPI ranks for other intervals and datasets with
+different time spans is similar.
+
+Inputs
+~~~~~~
+A mesh with one temporal resolution.
+
+Outputs
+~~~~~~~
+A mesh with a reduced temporal resolution.
 
 Command Line Arguments
 ~~~~~~~~~~~~~~~~~~~~~~
-The most common command line options are:
+--help
+    show this help message and exit
 
+--input_file INPUT_FILE
+    a teca_multi_cf_reader configuration file identifying the set of NetCDF CF2 files to process.
+    When present data is read using the teca_multi_cf_reader. Use one of either --input_file or
+    --input_regex. (default: None)
 
 --input_regex INPUT_REGEX
-                      regex matching the desired set of input NetCDF CF2
-                      files
---interval INTERVAL   interval to reduce the time axis to. One of daily, or
-                      monthly (monthly)
---operator OPERATOR   reduction operator to use. One of minimum, maximum, or
-                      average (average)
+    a teca_cf_reader regex identifying the set of NetCDF CF2 files to process. When present data is
+    read using the teca_cf_reader. Use one of either --input_file or --input_regex. (default: None)
+
+--interval INTERVAL
+    interval to reduce the time axis to. One of daily, monthly, or seasonal (default: monthly)
+
+--operator OPERATOR
+    reduction operator to use. One of minimum, maximum, or average (default: average)
+
 --point_arrays POINT_ARRAYS [POINT_ARRAYS ...]
-                      list of point centered arrays to process.
+    list of point centered arrays to process. (default: None)
+
 --fill_value FILL_VALUE
-                      A value that identifies missing or invalid data.
-                      Specifying the fill value on the command line
-                      overrides array specific fill values stored in the
-                      file. (None)
---ignore_fill_value   Boolean flag that enables missing or invalid value
-                      handling. When enabled NetCDF CF conventions are used
-                      to determine fill value. Alternativley one can
-                      explicitly provide a fill value on the command line
-                      via the --fill_value argument. (True).
+    A value that identifies missing or invalid data. Specifying the fill value on the command line
+    overrides array specific fill values stored in the file. (default: None)
+
+--ignore_fill_value
+    Boolean flag that enables missing or invalid value handling. When enabled NetCDF CF conventions
+    are used to determine fill value. Alternativley one can explicitly provide a fill value on the
+    command line via the --fill_value argument. (default: False)
+
 --output_file OUTPUT_FILE
-                      file pattern for writing output netcdf files. %t% will
-                      be replaced by a date/time string or time step. See
-                      the teca_cf_writer for more information.
+    A path and file name pattern for the output NetCDF files. %t% is replaced with a human readable
+    date and time corresponding to the time of the first time step in the file. Use --date_format to
+    change the formatting (default: None)
+
 --steps_per_file STEPS_PER_FILE
-                      number of time steps to write to each output file.
-                      (12)
+    number of time steps to write to each output file (default: 128)
+
 --x_axis_variable X_AXIS_VARIABLE
-                      name of the variable to use for x-coordinates (lon)
+    name of the variable to use for x-coordinates (default: lon)
+
 --y_axis_variable Y_AXIS_VARIABLE
-                      name of the variable to use for y-coordinates (lat)
+    name of the variable to use for y-coordinates (default: lat)
+
 --z_axis_variable Z_AXIS_VARIABLE
-                      name of the variable to use for z-coordinates ()
+    name of z coordinate variable. When processing 3D set this to the variable containing vertical
+    coordinates. When empty the data will be treated as 2D. (default: )
+
 --t_axis_variable T_AXIS_VARIABLE
-                      name of the variable to use for t-coordinates (time)
+    name of the variable to use for t-coordinates (default: time)
+
 --n_threads N_THREADS
-                      Number of threads to use when stremaing the reduction
-                      (2)
---verbose VERBOSE     enable verbose mode. (1)
+    Number of threads to use when stremaing the reduction (default: 2)
 
-For 3D data one will need to use --z_axis_variable to specify the name of
-the array to use as vertical coordinates.
+--verbose VERBOSE
+    enable verbose mode. (default: 0)
 
-Example
-~~~~~~~
-Processing an entire dataset is straight forward once you know how many cores
-you want to run on. You will launch teca_temporal_reduction
-from a SLURM batch script. A batch script is provided below.
+Examples
+~~~~~~~~
 
-TECA can process any size dataset on any number of compute cores. However, for
-the temporal reduction, the work is limitted by the number of intervals and one
-should not exceed that number of MPI ranks in a parallel run.  For example when
-the reduction is used to convert from a 6 hourly interval to a daily interval
-one should run with at most the same number of MPI ranks as the number of days
-in the dataset.
+Daily Average of CAM5 Data
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+This example illustrates computing a daily average of TMQ from 20 years of
+simulated time at quarter degree 3 hourly resolution.
 
-The following SLURM batch script was used to calculate daily averages from a 3
-hourly input dataset. The first 10 years of the 2000's was selected using a
-regular expression.
+4m47.865s
 
 .. code-block:: bash
 
     #!/bin/bash
-    #SBATCH --account=m1517
-    #SBATCH --qos=debug
-    #SBATCH --time=00:30:00
-    #SBATCH --nodes=10
-    #SBATCH --tasks-per-node=32
-    #SBATCH --constraint=haswell
+    #SBATCH -C knl
+    #SBATCH -N 73
+    #SBATCH -q regular
+    #SBATCH -t 00:30:00
+    #SBATCH -A m1517
+    #SBATCH -J 2_daily_average
 
-    export PYTHONUNBUFFERED=1
-
+    # load the gcc environment
     module swap PrgEnv-intel PrgEnv-gnu
 
-    module use /global/common/software/m1517/users/taobrien/modulefiles
-    module load teca/develop_haswell
+    # bring a TECA install into your environment
+    module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles
+    module load teca
 
-    #export HDF5_USE_FILE_LOCKING=FALSE
-    #data_dir=/global/cfs/cdirs/m3522/cmip6/CMIP6_hrmcol/HighResMIP/CMIP6/HighResMIP/ECMWF/ECMWF-IFS-LR/highresSST-present/r1i1p1f1/6hrPlevPt/psl/gr/v20170915/
+    # print the commands as they execute, and error out if any one command fails
+    set -e
+    set -x
 
-    data_dir=.
-    regex=psl_6hrPlevPt_ECMWF-IFS-LR_highresSST-present_r1i1p1f1_gr_198'.*\.nc$'
+    # make a directory for the output files
+    data_dir=/global/cscratch1/sd/mwehner/machine_learning_climate_data/All-Hist/CAM5-1-0.25degree_All-Hist_est1_v3_run1/h2
 
-    time teca_metadata_probe --input_regex ${data_dir}/${regex}
+    out_dir=CAM5-1-025degree_All-Hist_est1_v3_run1_daily_avg
+    mkdir -p ${out_dir}
 
-    time srun -n 320 teca_temporal_reduction \
-        --input_regex ${data_dir}/${regex} \
-        --interval daily --operator average \
-        --arrays psl --steps_per_file 366 \
-        --output_file psl_daily_avg_loc_%t%.nc
+    # compute the daily average. change -N and -n to match the rus size.
+    # the run size is determened by the number of output time steps. here the
+    # input is 3 hourly, the output is daily.
+    time srun -N 73 -n 146 \
+        teca_temporal_reduction \
+            --n_threads 2 --verbose 1 --input_regex ${data_dir}/'.*\.nc$' \
+            --interval daily --operator average --point_arrays TS TMQ --ignore_fill_value \
+            --output_file ${out_dir}/CAM5-1-025degree_All-Hist_est1_v3_daily_avg_%t%.nc \
+            --steps_per_file 50
 
-Atmospheric Rivers Detection (ARs)
-----------------------------------
-TECA developed detection techniques to quantify the uncertainty of Atmospheric
-River events.
+.. _ta_era5:
 
-DeepLab v3 Plus
----------------
-The Deeplabv3+ AR detection application is an MPI+threads parallel code that
-applies an uncertainty inference on a range of input fields, mainly Integrated
-Vapor Transport (IVT) and Integrated Water Vapor (IWV), read from NetCDF-CF2
-climate datasets.
-DeepLab is a state-of-art deep learning model for semantic image segmentation.
-The model is implemented using PyTorch in TECA.
+Seasonal Average of ERA5 Data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+This example contains the batch script from a run on NERSC Cori computing
+seasonal averages of TCWV spanning 41 years of simulated time at a quarter
+degree, 1 hourly resolution.
+
+.. code-block:: bash
+
+    #!/bin/bash
+    #SBATCH -C knl
+    #SBATCH -N 164
+    #SBATCH -q regular
+    #SBATCH -t 02:00:00
+    #SBATCH -A m1517
+    #SBATCH -J 2_seasonal_average_ERA5
+
+    # load the gnu environment
+    module swap PrgEnv-intel PrgEnv-gnu
+
+    # bring a TECA install into your environment
+    module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles
+    module load teca
+
+    # print the commands as they execute, and error out if any one command fails
+    set -e
+    set -x
+
+    # make a directory for the output files
+    data_dir=CMIP6_ERA5_e5_oper_an_sfc
+    out_dir=CMIP6_ERA5_e5_oper_an_sfc_seasonal_avg
+    mkdir -p ${out_dir}
+
+    # compute the daily average. change -N and -n to match the run size.
+    # the run size is determened by the number of output time steps. here the
+    # input is 41 years of 1 hourly data, the output is seasonal, with 164 seasons.
+    time srun -N 164 -n 164 \
+        teca_temporal_reduction \
+            --n_threads 4 --verbose 1 --input_regex ${data_dir}/'.*\.nc$' \
+            --x_axis_variable longitude --y_axis_variable latitude \
+            --interval seasonal --operator average --point_arrays TCWV \
+            --output_file ${out_dir}/e5_oper_an_sfc_128_137_tcwv_ll025sc_seasonal_avg_%t%.nc \
+            --steps_per_file 4
+
+This run made use of 164 MPI ranks on 164 KNL nodes. 164 ranks were used
+because the input data spans 41 years of simulated time, and 41 years each with
+4 seasons makes for 164 seasons. Within each rank 4 threads were used. 546 GB
+of input data was processed and a 651 MB dataset was produced. The run
+completed in approximately 81 minutes.
+Sections :ref:`rearranging_data` and :ref:`mdp_era5` show the run preparation.
+
+.. _teca_deeplab_ar_detect:
+
+teca_deeplab_ar_detect
+-----------------------
+This AR detection application identifies AR's using a machine learning based
+approach. It is currently under development and released for experimental use.
 
 Command Line Arguments
 ~~~~~~~~~~~~~~~~~~~~~~
-The most common command line options are:
+
+-h, --help
+    show this help message and exit
+
+--input_file INPUT_FILE
+    a teca_multi_cf_reader configuration file identifying the set of NetCDF CF2 files to process.
+    When present data is read using the teca_multi_cf_reader. Use one of either `--input_file` or
+    `--input_regex`. (default: None)
 
 --input_regex INPUT_REGEX
-    regex matching the desired set of input NetCDF CF2 files
+    a teca_cf_reader regex identifying the set of NetCDF CF2 files to process. When present data is
+    read using the teca_cf_reader. Use one of either `--input_file` or `--input_regex`. (default: None)
+
+--ivt IVT
+    name of variable with integrated vapor transport magnitude (default: IVT)
+
+--compute_ivt_magnitude
+    when this flag is present magnitude of vector IVT is calculated. use `--ivt_u` and `--ivt_v` to set
+    the name of the IVT vector components if needed. (default: False)
+
+--ivt_u IVT_U
+    name of variable with longitudinal component of the integrated vapor transport vector. (default:
+    IVT_U)
+
+--ivt_v IVT_V
+    name of variable with latitudinal component of the integrated vapor transport vector. (default:
+    IVT_V)
+
+--write_ivt_magnitude
+    when this flag is present IVT magnitude is written to disk with the AR detector results
+    (default: False)
+
+--compute_ivt
+    when this flag is present IVT vector is calculated from specific humidity, and wind vector
+    components. use `--specific_humidity` `--wind_u` and `--wind_v` to set the name of the specific
+    humidity and wind vector components, and `--ivt_u` and `--ivt_v` to control the names of the
+    results, if needed. (default: False)
+
+--specific_humidity SPECIFIC_HUMIDITY
+    name of variable with the 3D specific humidity field. (default: Q)
+
+--wind_u WIND_U
+    name of variable with the 3D longitudinal component of the windvector. (default: U)
+
+--wind_v WIND_V
+    name of variable with the 3D latitudinal component of the wind vector. (default: V)
+
+--write_ivt
+    when this flag is present IVT vector is written to disk with the result (default: False)
+
+--x_axis_variable X_AXIS_VARIABLE
+    name of x coordinate variable (default: lon)
+
+--y_axis_variable Y_AXIS_VARIABLE
+    name of y coordinate variable (default: lat)
+
+--z_axis_variable Z_AXIS_VARIABLE
+    name of z coordinate variable (default: plev)
 
 --output_file OUTPUT_FILE
-    file pattern for writing output netcdf files. %t% will be replaced by a
-    date/time string or time step. See the teca_cf_writer for more information.
-
---ivt IVT_VARIABLE
-    name of variable with integrated vapor transport (IVT).
-
---n_threads N_THREADS
-    number of threads used in PyTorch for parallelizing intra CPU operations.
-
---binary_ar_threshold THRESHOLD
-    probability threshold for segmenting AR probabilities.
-
---pytorch_deeplab_model MODEL
-    the pretrained deeplabv3plus model file.
-
---filename_time_template TEMPLATE
-    An optional way to read time template information from input filenames
-
---compression_level COMPRESSION_LEVEL
-    the compression level used for each variable.
-
---date_format DATE_FORMAT
-    the format for the date to write in the filename
-
---first_step FIRST_STEP
-    first time step to process.
-
---last_step LAST_STEP
-    last time step to process.
+    A path and file name pattern for the output NetCDF files. %t% is replaced with a human readable
+    date and time corresponding to the time of the first time step in the file. Use `--date_format` to
+    change the formatting (default: None)
 
 --steps_per_file STEPS_PER_FILE
-    number of time steps to write to each output file.
+    number of time steps per output file (default: 128)
+
+--n_threads N_THREADS
+    Sets the thread pool size on each MPI rank. When the default value of -1 is used TECA will
+    coordinate the thread pools across ranks such each thread is bound to a unique physical core.
+    (default: -1)
+
+--n_threads_max N_THREADS_MAX
+    Sets the max thread pool size on each MPI rank. Set to -1 to use all available cores. (default:
+    4)
+
+--binary_ar_threshold BINARY_AR_THRESHOLD
+    probability threshold for segmentingar_probability to produce ar_binary_tag (default:
+    0.6666666666666666)
+
+--pytorch_model PYTORCH_MODEL
+    path to the the pytorch model file (default: None)
+
+--t_axis_variable T_AXIS_VARIABLE
+    time dimension name (default: None)
+
+--t_calendar T_CALENDAR
+    time calendar (default: None)
+
+--t_units T_UNITS
+    time unit (default: None)
+
+--filename_time_template FILENAME_TIME_TEMPLATE
+    filename time template (default: None)
+
+--date_format DATE_FORMAT
+    A strftime format used when encoding dates into the output file names (%F-%HZ). %t% in the file
+    name is replaced with date/time of the first time step in the file using this format specifier.
+    (default: None)
+
+--first_step FIRST_STEP
+    first time step to process (default: 0)
+
+--last_step LAST_STEP
+    last time step to process (default: -1)
 
 --start_date START_DATE
-    an optional way to further specify the time range to process. The accepted
-    format is a CF style human readable date spec such as YYYY-MM-DD hh:mm:ss.
-    Because of the space in between day and hour spec quotes must be used. For
-    example "2005-01-01 00:00:00". Specifying a start date is optional, if
-    none is given then all of the time steps in all of the files specified in
-    the `--input_regex` are processed.
+    first time to process in "YYYY-MM-DD hh:mm:ss" format (default: None)
 
 --end_date END_DATE
-    see `--start_date`. this is has a similar purpose in restricting
-    the range of time steps processed.
+    end time to process in "YYYY-MM-DD hh:mm:ss" format (default: None)
 
-Example
-~~~~~~~
-.. code-block:: bash
+--verbose
+    Enable verbose output (default: False)
 
-    teca_deeplabv3p_ar_detect                                        \
-        --input_regex "${data_dir}/ARTMIP_MERRA_2D_2017-05.*\.nc$"   \
-        --pytorch_deeplab_model ${model_dir}/cascade_deeplab_IVT.pt  \
 
-Bayesian - BARD
----------------
-The Bayesian AR detection (TECA-BARD) application is an MPI+threads parallel
-code that applies an uncertainty inference on a range of input fields, mainly
-Integrated Vapor Transport (IVT) and Integrated Water Vapor (IWV).
-We use a Bayesian framework to sample from the set of AR detector parameters
-that yield AR counts similar to the expert database of AR counts; this yields
-a set of plausible AR detectors from which we can assess quantitative uncertainty.
-
-TECA-BARD is described in the following article:
-
-O’Brien, T. A., and Coauthors, 2020: Detection of Atmospheric Rivers with
-Inline Uncertainty Quantification: TECA-BARD v1.0. Geosci. Model Dev. Discuss.,
-In Review, https://doi.org/10.5194/gmd-2020-55
-
-Command Line Arguments
+Node level parallelism
 ~~~~~~~~~~~~~~~~~~~~~~
-The most common command line options are:
+Torch can make use of GPUs or OpenMP thread pools for node level parallelism.
+TECA internally configures OpenMP such that its thread pools will make use of
+up to 4 threads bound to unique CPU cores taking into account all ranks running
+on the node. To take advantage of threads on Cori KNL when using the
+`teca_deeplab_ar_detect` application limit the number of MPI ranks per node to
+17 or fewer, or on Cori Haswell 8 or fewer. To use more than 4 threads per rank
+(not recommended) set `--n_threads_max` to a number larger than 4.
 
---input_regex INPUT_REGEX
-    regex matching the desired set of input NetCDF CF2 files
+Examples
+~~~~~~~~~
 
---output_file OUTPUT_FILE
-    file pattern for writing output netcdf files. %t% will be replaced by a
-    date/time string or time step. See the teca_cf_writer for more information.
+CMIP6 Data
+^^^^^^^^^^
+This example illustrates running `teca_deeeplab_ar_detect` command line application
+on a CMIP6 dataset on NERSC Cori KNL nodes. The dataset is further described in
+ref:`cmip6_ex_desc<teca_bayesian_ar_detect examples>`.
 
---ivt IVT_VARIABLE
-    name of variable with integrated vapor transport (IVT).
+.. code-block:: bash
 
---n_threads N_THREADS
-    number of threads used in PyTorch for parallelizing intra CPU operations.
+    #!/bin/bash
+    #SBATCH -C knl
+    #SBATCH -N 1484
+    #SBATCH -q regular
+    #SBATCH -t 00:45:00
+    #SBATCH -A m1517
+    #SBATCH -J 2_deeplab_AR_detect
 
---binary_ar_threshold THRESHOLD
-    probability threshold for segmenting AR probabilities.
+    # load the gcc module
+    module swap PrgEnv-intel PrgEnv-gnu
 
---filename_time_template TEMPLATE
-    An optional way to read time template information from input filenames
+    # bring a TECA install into your environment
+    module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles
+    module load teca
 
---compression_level COMPRESSION_LEVEL
-    the compression level used for each variable.
+    # print the commands aas the execute, and error out if any one command fails
+    set -e
+    set -x
 
---date_format DATE_FORMAT
-    the format for the date to write in the filename
+    # 94964 steps
+    # 4 steps per rank
+    # === 23741 ranks
+    # 4 cores per rank
+    # 64 cores per node
+    # === 16 ranks per node
+    # === 1484 nodes
 
---first_step FIRST_STEP
-    first time step to process.
+    # locate the model file
+    pytorch_model=/global/cscratch1/sd/loring/teca_testing/TECA_data/cascade_deeplab_IVT.pt
 
---last_step LAST_STEP
-    last time step to process.
+    # make a directory for the output files
+    out_dir=HighResMIP_ECMWF_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_6hrPlevPt/deeplab_all
+    rm -rf ${out_dir}
+    mkdir -p ${out_dir}
 
---steps_per_file STEPS_PER_FILE
-    number of time steps to write to each output file.
+    # do the ar detections. tell slurm to generate core masks for OpenMP
+    time srun -N 1484 -n 23741 teca_deeplab_ar_detect \
+        --pytorch_model ${pytorch_model} \
+        --input_file ./HighResMIP_ECMWF_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_6hrPlevPt.mcf \
+        --compute_ivt --wind_u ua --wind_v va --specific_humidity hus \
+        --write_ivt --write_ivt_magnitude \
+        --output_file ${out_dir}/deeplab_AR_%t%.nc \
+        --steps_per_file 128
 
---start_date START_DATE
-    an optional way to further specify the time range to process. The accepted
-    format is a CF style human readable date spec such as YYYY-MM-DD hh:mm:ss.
-    Because of the space in between day and hour spec quotes must be used. For
-    example "2005-01-01 00:00:00". Specifying a start date is optional, if
-    none is given then all of the time steps in all of the files specified in
-    the `--input_regex` are processed.
+.. _teca_convert_table:
 
---end_date END_DATE
-    see `--start_date`. this is has a similar purpose in restricting
-    the range of time steps processed.
+teca_convert_table
+-------------------
+The teca_convert_table application can be used to convert tabular data in
+between known file formats. Its most often used to convert tracks generated
+with :ref:`teca_tc_detect` from TECA's binary file format into CSV or NetCDF
+format that can be easily ingested by other tools. By default the input and output file
+formats are determined from the file extension.
 
---periodic_in_x FLAG
-    Flags whether the x dimension (typically longitude) is periodic.
 
-Example
+Inputs
+~~~~~~
+The file name of a table to convert, followed by the file name to write the
+result to. By default the extension of the file names are used to determine the
+file formats to use. The recognized file formats are: *.bin*, *.csv*, and
+*.nc*.
+
+Outputs
 ~~~~~~~
+The converted table.
+
+Command Line Options
+~~~~~~~~~~~~~~~~~~~~~
+
+positional
+^^^^^^^^^^
+in_file
+    the path to the table to convert
+
+out_file
+    the path to write the converted table to.
+
+optional
+^^^^^^^^^^
+--help
+    show this help message and exit
+
+--in_format IN_FORMAT
+    The file format to assume on the input. One of: auto, bin, csv. (auto) (default: auto)
+
+--out_format OUT_FORMAT
+    The file formate to use in the output. One of: auto, bin, csv, netcdf. (auto) (default: auto)
+
+--select SELECT
+    a logical expression on table columns. Row where this evaluates to true are passed to the output
+    (default: None)
+
+Examples
+~~~~~~~~
+
 .. code-block:: bash
 
-    teca_bayesian_ar_detect --n_threads 1                            \
-        --input_regex "${data_dir}/ARTMIP_MERRA_2D_2017-05.*\.nc$"   \
-        --output_file test_deeplabv3p_ar_detect_app_output_%t%.nc
 
-Parallel Example
-~~~~~~~~~~~~~~~~
+   teca_convert_table tracks.bin tracks.nc
 
-The following example documents SLURM script that was used to generate output
-used by O'Brien et al. (see citation above).  This used 1520 nodes, and
-simultaneously ran 1,024 AR detectors on the 37 years of the MERRA-2 reanalysis
-in approximately 2 minutes on the Cori KNL supercomputer at NERSC:
-
-.. code-block:: bash
-
-   #!/bin/bash
-  #SBATCH -J bard_merra2
-  #SBATCH -N 1520
-  #SBATCH -C knl
-  #SBATCH -q regular
-  #SBATCH -t 00:20:00
-
-  WORKDIR=$SCRATCH/teca_bard_merra2_artmip
-  mkdir -p ${WORKDIR}
-  cd $WORKDIR
-
-  module load teca/develop_haswell
-  HDF5_USE_FILE_LOCKING=FALSE
-
-  for year in `seq 1980 2017`
-  do
-      echo "Starting ${year}"
-      srun -n 680 -c 16 -N 40 --cpu_bind=cores teca_bayesian_ar_detect \
-          --input_regex "/global/project/projectdirs/m1517/cascade/external_datasets/ARTMIP/MERRA_2D/${year}/ARTMIP_MERRA_2D_.*\.nc" \
-          --cf_reader::t_axis_variable "" \
-          --cf_reader::filename_time_template  "ARTMIP_MERRA_2D_%Y%m%d_%H.nc" \
-          --steps_per_file 3000 \
-          --cf_writer::date_format "%Y" \
-          --output_file MERRA2.ar_tag.teca_bard_v1.0.3hourly.%t%.nc4 &> bard_${year}_${SLURM_JOB_ID}.log &
-  done
-
-  wait
-  echo "All done."
-
+This example converts a table stored in TECA's binary format to NetCDF. To covnert
+to CSV instead one would change the extension from *.nc* to *.csv*.
 
