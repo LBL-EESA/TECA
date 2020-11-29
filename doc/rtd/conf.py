@@ -21,14 +21,15 @@ project = 'TECA'
 copyright = "2019, Burlen Loring, Travis O'Brien & Abdelrahman Elbashandy"
 author = "Burlen Loring, Travis O'Brien & Abdelrahman Elbashandy"
 
-
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = [
-]
+
+# pip install sphinxcontrib-bibtex
+extensions = ['sphinxcontrib.bibtex']
+bibtex_bibfiles = ['bibliography.bib']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
