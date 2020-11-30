@@ -191,8 +191,8 @@ class teca_tc_stats(teca_python_algorithm):
         # now plot the organized data in various ways
         n_cols = 3
         n_plots = n_year + 1
-        n_left = n_plots%n_cols
-        n_rows = n_plots/n_cols + (1 if n_left else 0)
+        n_left = n_plots % n_cols
+        n_rows = n_plots // n_cols + (1 if n_left else 0)
         wid = 2.5*n_cols
         ht = 2.0*n_rows
 
@@ -443,8 +443,8 @@ class teca_tc_stats(teca_python_algorithm):
             ynms.append('%02d'%t)
 
         n_plots = n_reg + 1
-        n_left = n_plots%n_cols
-        n_rows = n_plots/n_cols + (1 if n_left else 0)
+        n_left = n_plots % n_cols
+        n_rows = n_plots // n_cols + (1 if n_left else 0)
         wid = 2.5*n_cols
         ht = 2.0*n_rows
         reg_t_fig.set_size_inches(wid, ht)
