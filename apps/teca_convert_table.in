@@ -4,25 +4,28 @@ import sys
 import argparse
 
 # parse the command line
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(
+    formatter_class=lambda prog: argparse.ArgumentDefaultsHelpFormatter(
+                        prog, max_help_position=4, width=100))
+
 parser.add_argument('in_file', type=str,
-    help='path to table to read')
+                    help='path to table to read')
 
 parser.add_argument('--in_format', type=str, default='auto',
-    help='The file format to assume on the input. ' \
-         'One of: auto, bin, csv. (auto)')
+                    help='The file format to assume on the input. '
+                         'One of: auto, bin, csv. (auto)')
 
 parser.add_argument('out_file', type=str,
-    help='path to write result')
+                    help='path to write result')
 
 parser.add_argument('--out_format', type=str, default='auto',
-    help='The file formate to use in the output. ' \
-         'One of: auto, bin, csv, netcdf. (auto)')
+                    help='The file formate to use in the output. '
+                         'One of: auto, bin, csv, netcdf. (auto)')
 
 parser.add_argument('--select', type=str, required=False,
-    help='a logical expression on table columns. '      \
-         'Row where this evaluates to true are passed ' \
-         'to the output')
+                    help='a logical expression on table columns. '
+                         'Row where this evaluates to true are passed '
+                         'to the output')
 
 args = parser.parse_args()
 
@@ -38,9 +41,7 @@ elif args.in_format == 'csv':
 elif args.in_format == 'netcdf':
     reader.set_file_format_netcdf()
 else:
-    sys.stderr.write('ERROR: Invalid input file format %s'%(
-        args.in_format))
-    sys.exit(-1)
+    raise RuntimeError('Invalid input file format %s' % (args.in_format))
 
 # optionally remove unselected rows
 tip = reader
@@ -63,9 +64,7 @@ elif args.in_format == 'bin':
 elif args.in_format == 'csv':
     writer.set_output_format_csv()
 else:
-    sys.stderr.write('ERROR: Invalid in output format %s'%(
-        args.out_format))
-    sys.exit(-1)
+    raise RuntimeError('Invalid in output format %s' % (args.out_format))
 
 # execute the pipeline
 writer.update()
