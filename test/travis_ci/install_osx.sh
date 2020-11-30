@@ -8,7 +8,13 @@ export PATH=/usr/local/bin:$PATH
 # these days. hence this list isn't comprehensive
 brew update
 brew unlink python@2
-brew install mpich swig svn udunits openssl python@3.8
+brew install cmake
+brew install mpich
+brew install swig
+brew install svn
+brew install udunits
+brew install openssl
+brew install python@3.8
 brew unlink python
 brew link --force python@3.8
 
@@ -18,7 +24,10 @@ python3 -mvenv `pwd`/../tci
 set +x
 source `pwd`/../tci/bin/activate
 set -x
-pip3 install numpy mpi4py matplotlib torch
+pip3 install numpy
+pip3 install mpi4py
+pip3 install matplotlib
+pip3 install torch
 
 # install data files.
 # On Apple svn is very very slow. On my mac book pro
