@@ -9,6 +9,9 @@ os:
   - linux
   - osx
 
+osx_image:
+  - xcode12.2
+
 env:
   global:
     - BUILD_TYPE=Debug
