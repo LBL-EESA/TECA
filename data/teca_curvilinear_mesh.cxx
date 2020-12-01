@@ -1,5 +1,6 @@
 #include "teca_curvilinear_mesh.h"
 #include "teca_dataset_util.h"
+#include "teca_bad_cast.h"
 
 #include <iostream>
 using std::endl;
@@ -66,7 +67,7 @@ void teca_curvilinear_mesh::swap(p_teca_dataset &dataset)
         = std::dynamic_pointer_cast<teca_curvilinear_mesh>(dataset);
 
     if (!other)
-        throw std::bad_cast();
+        throw teca_bad_cast(safe_class_name(dataset), "teca_curvilinear_mesh");
 
     if (this == other.get())
         return;

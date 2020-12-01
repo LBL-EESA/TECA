@@ -2,7 +2,7 @@
 #define teca_database_h
 
 #include "teca_dataset.h"
-#include "teca_table_fwd.h"
+#include "teca_table.h"
 #include "teca_database_fwd.h"
 #include "teca_table_collection.h"
 #include <iosfwd>

@@ -152,6 +152,19 @@ const_p_teca_dataset teca_threaded_algorithm::request_data(
     teca_algorithm_output_port &current,
     const teca_metadata &request)
 {
+#if defined(TECA_HAS_MPI)
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
+    {
+        MPI_Comm comm = this->get_communicator();
+
+        // this rank is excluded from execution
+        if (comm == MPI_COMM_NULL)
+            return nullptr;
+    }
+#endif
+
     // check that we have a thread pool. it is left to a derived class
     // to construct the thread pool with a call to set_thread_pool_size
     // so that use of MPI can be tailored to the specific scenario

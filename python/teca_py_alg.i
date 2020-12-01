@@ -226,12 +226,16 @@
 /***************************************************************************
  model_segmentation
  ***************************************************************************/
- %pythoncode "teca_model_segmentation.py"
+#ifdef TECA_HAS_PYTORCH
+%pythoncode "teca_model_segmentation.py"
+#endif
 
 /***************************************************************************
  deeplabv3p_ar_detect
  ***************************************************************************/
- %pythoncode "teca_deeplabv3p_ar_detect.py"
+#ifdef TECA_HAS_PYTORCH
+%pythoncode "teca_deeplabv3p_ar_detect.py"
+#endif
 
 /***************************************************************************
  tc_activity
@@ -318,22 +322,6 @@ struct teca_tc_saffir_simpson
 %shared_ptr(teca_tc_wind_radii)
 %ignore teca_tc_wind_radii::operator=;
 %include "teca_tc_wind_radii.h"
-
-/***************************************************************************
- dataset_source
- ***************************************************************************/
-%ignore teca_dataset_source::shared_from_this;
-%shared_ptr(teca_dataset_source)
-%ignore teca_dataset_source::operator=;
-%include "teca_dataset_source.h"
-
-/***************************************************************************
- dataset_capture
- ***************************************************************************/
-%ignore teca_dataset_capture::shared_from_this;
-%shared_ptr(teca_dataset_capture)
-%ignore teca_dataset_capture::operator=;
-%include "teca_dataset_capture.h"
 
 /***************************************************************************
  2d_component_area

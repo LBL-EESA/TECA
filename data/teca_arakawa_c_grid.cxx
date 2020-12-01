@@ -1,5 +1,6 @@
 #include "teca_arakawa_c_grid.h"
 #include "teca_dataset_util.h"
+#include "teca_bad_cast.h"
 
 #include <iostream>
 #include <cctype>
@@ -275,7 +276,7 @@ void teca_arakawa_c_grid::swap(p_teca_dataset &dataset)
         = std::dynamic_pointer_cast<teca_arakawa_c_grid>(dataset);
 
     if (!other)
-        throw std::bad_cast();
+        throw teca_bad_cast(safe_class_name(dataset), "teca_arakawa_c_grid");
 
     if (this == other.get())
         return;

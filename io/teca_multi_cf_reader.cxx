@@ -264,7 +264,7 @@ teca_multi_cf_reader::teca_multi_cf_reader() :
     periodic_in_x(0),
     periodic_in_y(0),
     periodic_in_z(0),
-    thread_pool_size(-1),
+    max_metadata_ranks(1024),
     internals(new teca_multi_cf_reader_internals)
 {}
 
@@ -283,8 +283,6 @@ void teca_multi_cf_reader::get_properties_description(
     opts.add_options()
         TECA_POPTS_GET(std::string, prefix, input_file,
             "a file dedscribing the dataset layout ()")
-        TECA_POPTS_GET(std::string, prefix, metadata_cache_dir,
-            "a directory where metadata caches can be stored ()")
         TECA_POPTS_GET(std::string, prefix, x_axis_variable,
             "name of variable that has x axis coordinates (lon)")
         TECA_POPTS_GET(std::string, prefix, y_axis_variable,
@@ -308,8 +306,8 @@ void teca_multi_cf_reader::get_properties_description(
             "the dataset has a periodic boundary in the y direction (0)")
         TECA_POPTS_GET(int, prefix, periodic_in_z,
             "the dataset has a periodic boundary in the z direction (0)")
-        TECA_POPTS_GET(int, prefix, thread_pool_size,
-            "set the number of I/O threads (-1)")
+        TECA_POPTS_GET(int, prefix, max_metadata_ranks,
+            "set the max number of ranks for reading metadata (1024)")
         ;
 
     global_opts.add(opts);
@@ -319,7 +317,6 @@ void teca_multi_cf_reader::get_properties_description(
 void teca_multi_cf_reader::set_properties(const std::string &prefix,
     variables_map &opts)
 {
-    TECA_POPTS_SET(opts, std::string, prefix, metadata_cache_dir)
     TECA_POPTS_SET(opts, std::string, prefix, x_axis_variable)
     TECA_POPTS_SET(opts, std::string, prefix, y_axis_variable)
     TECA_POPTS_SET(opts, std::string, prefix, z_axis_variable)
@@ -331,7 +328,7 @@ void teca_multi_cf_reader::set_properties(const std::string &prefix,
     TECA_POPTS_SET(opts, int, prefix, periodic_in_x)
     TECA_POPTS_SET(opts, int, prefix, periodic_in_y)
     TECA_POPTS_SET(opts, int, prefix, periodic_in_z)
-    TECA_POPTS_SET(opts, int, prefix, thread_pool_size)
+    TECA_POPTS_SET(opts, int, prefix, max_metadata_ranks)
 }
 #endif
 
@@ -655,8 +652,7 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
         inst->reader->set_periodic_in_x(this->periodic_in_x);
         inst->reader->set_periodic_in_y(this->periodic_in_y);
         inst->reader->set_periodic_in_z(this->periodic_in_z);
-        inst->reader->set_metadata_cache_dir(this->metadata_cache_dir);
-        inst->reader->set_thread_pool_size(this->thread_pool_size);
+        inst->reader->set_max_metadata_ranks(this->max_metadata_ranks);
 
         // update the internal reader's metadata
         inst->metadata = inst->reader->update_metadata();

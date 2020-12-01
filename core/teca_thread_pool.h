@@ -106,6 +106,10 @@ template <typename task_t, typename data_t>
 void teca_thread_pool<task_t, data_t>::create_threads(MPI_Comm comm,
     int n_requested, bool bind, bool verbose)
 {
+    // this rank is excluded from computations
+    if (comm == MPI_COMM_NULL)
+        return;
+
     int n_threads = n_requested;
 
     std::deque<int> core_ids;

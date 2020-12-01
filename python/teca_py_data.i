@@ -274,7 +274,6 @@ TECA_PY_CONST_CAST(teca_arakawa_c_grid)
 %ignore teca_table::operator=;
 %ignore teca_table::set_calendar(std::string const *);
 %ignore teca_table::set_time_units(std::string const *);
-%include "teca_table_fwd.h"
 %include "teca_table.h"
 TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
 TECA_PY_CONST_CAST(teca_table)

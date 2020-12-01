@@ -3,6 +3,7 @@
 #include "teca_binary_stream.h"
 #include "teca_dataset_util.h"
 #include "teca_string_util.h"
+#include "teca_bad_cast.h"
 
 teca_table::impl_t::impl_t() :
     columns(teca_array_collection::New()), active_column(0)
@@ -409,7 +410,7 @@ void teca_table::copy(const const_p_teca_dataset &dataset)
         = std::dynamic_pointer_cast<const teca_table>(dataset);
 
     if (!other)
-        throw std::bad_cast();
+        throw teca_bad_cast(safe_class_name(dataset), "teca_table");
 
     if (this == other.get())
         return;
@@ -449,7 +450,7 @@ void teca_table::shallow_copy(const p_teca_dataset &dataset)
         = std::dynamic_pointer_cast<const teca_table>(dataset);
 
     if (!other)
-        throw std::bad_cast();
+        throw teca_bad_cast(safe_class_name(dataset), "teca_table");
 
     this->clear();
 
@@ -475,7 +476,7 @@ void teca_table::swap(p_teca_dataset &dataset)
         = std::dynamic_pointer_cast<teca_table>(dataset);
 
     if (!other)
-        throw std::bad_cast();
+        throw teca_bad_cast(safe_class_name(dataset), "teca_table");
 
     this->teca_dataset::swap(dataset);
 

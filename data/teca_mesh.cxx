@@ -1,5 +1,6 @@
 #include "teca_mesh.h"
 #include "teca_array_attributes.h"
+#include "teca_bad_cast.h"
 
 teca_mesh::impl_t::impl_t()
 {
@@ -26,7 +27,7 @@ void teca_mesh::copy(const const_p_teca_dataset &dataset)
         = std::dynamic_pointer_cast<const teca_mesh>(dataset);
 
     if (!other)
-        throw std::bad_cast();
+        throw teca_bad_cast(safe_class_name(dataset), "teca_mesh");
 
     if (this == other.get())
         return;
@@ -52,7 +53,7 @@ void teca_mesh::shallow_copy(const p_teca_dataset &dataset)
         = std::dynamic_pointer_cast<teca_mesh>(dataset);
 
     if (!other)
-        throw std::bad_cast();
+        throw teca_bad_cast(safe_class_name(dataset), "teca_mesh");
 
     if (this == other.get())
         return;
@@ -112,7 +113,7 @@ void teca_mesh::swap(p_teca_dataset &dataset)
         = std::dynamic_pointer_cast<teca_mesh>(dataset);
 
     if (!other)
-        throw std::bad_cast();
+        throw teca_bad_cast(safe_class_name(dataset), "teca_mesh");
 
     if (this == other.get())
         return;

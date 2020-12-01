@@ -277,6 +277,10 @@ int generate_report(MPI_Comm comm, int local_proc, int base_id,
 int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
     bool bind, bool verbose, int &n_threads, std::deque<int> &affinity)
 {
+    // this rank is excluded from computations
+    if (comm == MPI_COMM_NULL)
+        return 0;
+
     // initialize to the user provided value. This will be used if
     // the functions needed to set affinity are not present. In that
     // case we set n_threads to 1 and report the failure.

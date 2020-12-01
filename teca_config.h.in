@@ -9,6 +9,9 @@
 #cmakedefine TECA_HAS_VTK
 #cmakedefine TECA_HAS_PARAVIEW
 #cmakedefine TECA_HAS_PYTHON
+#cmakedefine TECA_HAS_NUMPY
+#cmakedefine TECA_HAS_PYTORCH
+#cmakedefine TECA_HAS_MATPLOTLIB
 #cmakedefine TECA_HAS_LIBXLSXWRITER
 #cmakedefine TECA_HAS_UDUNITS
 #cmakedefine TECA_HAS_OPENSSL
