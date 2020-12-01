@@ -21,7 +21,7 @@ ${app_prefix}/teca_tc_stats                                     \
 # run the diff
 ${app_prefix}/teca_table_diff                                   \
     "${data_root}/test_tc_stats_app_output_class_table_ref.bin" \
-    test_tc_stats_app_output_class_table.bin
+    test_tc_stats_app_output_class_table.csv
 
 # check if number of outputs are correct
 output_list=($(ls ${output_prefix}*))

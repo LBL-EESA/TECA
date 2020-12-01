@@ -21,7 +21,7 @@ parser.add_argument('-a', '--ind_axes', action='store_false',
     help="normalize y-axis in grouped plots")
 
 parser.add_argument('-f', '--out-format', type=str,
-    default='bin', help='output in a csv or bin format (bin)')
+    default='csv', help='output in a csv or bin format (bin)')
 
 args = parser.parse_args()
 
