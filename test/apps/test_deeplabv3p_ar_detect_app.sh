@@ -23,7 +23,7 @@ set -x
 # run the app
 ${launcher} ${app_prefix}/teca_deeplabv3p_ar_detect              \
     --input_regex "${data_root}/ARTMIP_MERRA_2D_2017-05.*\.nc$"  \
-    --pytorch_deeplab_model ${data_root}/cascade_deeplab_IVT.pt  \
+    --pytorch_model ${data_root}/cascade_deeplab_IVT.pt          \
     --output_file test_deeplabv3p_ar_detect_app_output_%t%.nc    \
     --steps_per_file 365 --n_threads ${n_threads}
 

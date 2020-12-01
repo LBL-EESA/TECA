@@ -7,34 +7,46 @@ try:
     from mpi4py import MPI
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
-    n_ranks = comm.Get_size()
 except ImportError:
     rank = 0
 
 # parse the command line
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(
+    formatter_class = lambda prog: argparse.ArgumentDefaultsHelpFormatter(
+                        prog, max_help_position=4, width=100))
+
 parser.add_argument('--input_file', type=str, required=False,
-    help='file path to the simulation to search for atmospheric rivers')
+    help='a teca_multi_cf_reader configuration file identifying the set'
+         ' of NetCDF CF2 files to process. When present data is read'
+         ' using the teca_multi_cf_reader. Use one of either --input_file'
+         ' or --input_regex.')
 
 parser.add_argument('--input_regex', type=str, required=False,
-    help='regex matching simulation files to search for atmospheric rivers')
+    help='a teca_cf_reader regex identifying the'
+         ' set of NetCDF CF2 files to process. When present data is read'
+         ' using the teca_cf_reader. Use one of either --input_file or '
+         ' --input_regex.')
 
-parser.add_argument('--output_file', type=str, required=False,
-    default=r'deeplabv3p_ar_detect_%t%.nc',
-    help=r'file pattern for output netcdf files (%%t%% is the time index)')
+parser.add_argument('--output_file', type=str, required=True,
+    help='A path and file name pattern for the output NetCDF files. %%t%% is'
+         ' replaced with a human readable date and time corresponding to the'
+         ' time of the first time step in the file. Use --date_format to change'
+         ' the formatting')
 
 parser.add_argument('--ivt', type=str, default='IVT',
-    help='name of variable with integrated vapor transport (IVT)')
+    help='name of variable with integrated vapor transport (IVT) magnitude')
 
 parser.add_argument('--n_threads', type=int, default=-1,
-    help='number of threads used in torch for parallelizing CPU operations')
+    help='Sets the thread pool size on each MPI rank. When the default'
+         ' value of -1 is used TECA will coordinate the thread pools across'
+         ' ranks such each thread is bound to a unique physical core.')
 
 parser.add_argument('--binary_ar_threshold', type=float,
-    default=0.6666666667, help='probability threshold for segmenting'
+    default=(2.0/3.0), help='probability threshold for segmenting'
     'ar_probability to produce ar_binary_tag')
 
-parser.add_argument('--pytorch_deeplab_model', type=str, required=False,
-    help='the pretrained deeplabv3plus model file')
+parser.add_argument('--pytorch_model', type=str, required=False,
+    help='path to the the pytorch model file')
 
 parser.add_argument('--t_axis_variable', type=str, required=False,
     help='time dimension name')
@@ -48,11 +60,10 @@ parser.add_argument('--t_units', type=str, required=False,
 parser.add_argument('--filename_time_template', type=str, required=False,
     help='filename time template')
 
-parser.add_argument('--compression_level', type=int, required=False,
-    help='the compression level used for each variable')
-
 parser.add_argument('--date_format', type=str, required=False,
-    help='the format for the date to write in the filename')
+    help='A strftime format used when encoding dates into the output'
+         ' file names (%%F-%%HZ). %%t%% in the file name is replaced with date/time'
+         ' of the first time step in the file using this format specifier.')
 
 parser.add_argument('--first_step', type=int, required=False,
     help='first time step to process')
@@ -64,12 +75,20 @@ parser.add_argument('--steps_per_file', type=int, required=False,
     help='number of time steps per output file')
 
 parser.add_argument('--start_date', type=str, required=False,
-    help='first time to proces in YYYY-MM-DD hh:mm:ss format')
+    help='first time to process in "YYYY-MM-DD hh:mm:ss" format')
 
 parser.add_argument('--end_date', type=str, required=False,
-    help='end time to proces in YYYY-MM-DD hh:mm:ss format')
+    help='end time to process in "YYYY-MM-DD hh:mm:ss" format')
 
-args = parser.parse_args()
+parser.add_argument('--verbose', action='store_true',
+    help='Enable verbose output')
+
+
+# prevent spew when running under mpi
+try:
+    args = parser.parse_args()
+except Exception:
+    if rank == 0: raise
 
 # create the reader
 if args.input_file:
@@ -86,8 +105,9 @@ else:
 coords = teca_normalize_coordinates.New()
 coords.set_input_connection(reader.get_output_port())
 
-deeplabv3p_ar_detect = teca_deeplabv3p_ar_detect.New()
-deeplabv3p_ar_detect.set_input_connection(coords.get_output_port())
+ar_detect = teca_deeplabv3p_ar_detect.New()
+ar_detect.set_input_connection(coords.get_output_port())
+ar_detect.set_verbose(args.verbose)
 
 seg_atts = teca_metadata()
 seg_atts["long_name"] = "binary indicator of atmospheric river"
@@ -98,7 +118,7 @@ seg_atts["note"] = "derived by thresholding ar_probability >= %f" \
     % args.binary_ar_threshold
 
 ar_tag = teca_binary_segmentation.New()
-ar_tag.set_input_connection(deeplabv3p_ar_detect.get_output_port())
+ar_tag.set_input_connection(ar_detect.get_output_port())
 ar_tag.set_threshold_mode(ar_tag.BY_VALUE)
 ar_tag.set_threshold_variable("ar_probability")
 ar_tag.set_segmentation_variable("ar_binary_tag")
@@ -108,12 +128,10 @@ ar_tag.set_segmentation_variable_attributes(seg_atts)
 cf_writer = teca_cf_writer.New()
 cf_writer.set_input_connection(ar_tag.get_output_port())
 cf_writer.set_thread_pool_size(1)
-
-if args.output_file:
-    cf_writer.set_file_name(args.output_file)
+cf_writer.set_file_name(args.output_file)
 
 if args.ivt:
-    deeplabv3p_ar_detect.set_variable_name(args.ivt)
+    ar_detect.set_variable_name(args.ivt)
 
 # set the number of threads. this is particularly fraught
 # in MPI parallel mode without checking how many ranks are
@@ -121,16 +139,16 @@ if args.ivt:
 # this many threads and performance of the application will
 # severely degrade when more than a couple of threads per
 # physical core are created. hence the warning
-if args.n_threads > 0 and n_ranks > 1:
+if args.n_threads > 0:
     if rank == 0:
         sys.stderr.write('WARNING: Command line setting %d threads per MPI '
                          'rank may degrade performance!'%(args.n_threads))
-deeplabv3p_ar_detect.set_thread_pool_size(args.n_threads)
+ar_detect.set_thread_pool_size(args.n_threads)
 
-if args.pytorch_deeplab_model:
-    deeplabv3p_ar_detect.build_model(args.pytorch_deeplab_model)
+if args.pytorch_model:
+    ar_detect.build_model(args.pytorch_model)
 else:
-    deeplabv3p_ar_detect.build_model()
+    ar_detect.build_model()
 
 if args.t_axis_variable is not None:
     reader.set_t_axis_variable(args.t_axis_variable)
@@ -143,9 +161,6 @@ if args.t_units:
 
 if args.filename_time_template:
     reader.set_filename_time_template(args.filename_time_template)
-
-if args.compression_level:
-    cf_writer.set_compression_level(args.compression_level)
 
 if args.date_format:
     cf_writer.set_date_format(args.date_format)
