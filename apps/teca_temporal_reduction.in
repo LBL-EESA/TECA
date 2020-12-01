@@ -18,19 +18,29 @@ teca_profiler.start_event('temporal_reduction')
 # parse the command line
 parser = argparse.ArgumentParser(
     description='Reduce the time axis of a NetcCDF CF2 dataset '
-                'using a predfined interval and reduction operator')
+                'using a predfined interval and reduction operator',
+    formatter_class=lambda prog: argparse.ArgumentDefaultsHelpFormatter(
+                        prog, max_help_position=4, width=100))
 
-parser.add_argument('--input_regex', type=str, required=True,
-                    help='regex matching the desired set of '
-                         'input NetCDF CF2 files')
+parser.add_argument('--input_file', type=str, required=False,
+                    help='a teca_multi_cf_reader configuration file identifying'
+                         ' the set of NetCDF CF2 files to process. When present'
+                         ' data is read using the teca_multi_cf_reader. Use one'
+                         ' of either --input_file or --input_regex.')
+
+parser.add_argument('--input_regex', type=str, required=False,
+                    help='a teca_cf_reader regex identifying the set of NetCDF'
+                         ' CF2 files to process. When present data is read'
+                         ' using the teca_cf_reader. Use one of either'
+                         ' --input_file or --input_regex.')
 
 parser.add_argument('--interval', type=str, default='monthly',
                     help='interval to reduce the time axis to. One of '
-                         'daily, monthly, or seasonal (monthly)')
+                         'daily, monthly, or seasonal')
 
 parser.add_argument('--operator', type=str, default='average',
                     help='reduction operator to use. One of minimum, '
-                         'maximum, or average (average)')
+                         'maximum, or average')
 
 parser.add_argument('--point_arrays', nargs='+', required=True,
                     help='list of point centered arrays to process.')
@@ -39,7 +49,7 @@ parser.add_argument('--fill_value', type=float, default=None,
                     help='A value that identifies missing or invalid data. '
                          'Specifying the fill value on the command line '
                          'overrides array specific fill values stored in '
-                         'the file. (None)')
+                         'the file.')
 
 parser.add_argument('--ignore_fill_value',
                     default=False, action='store_true',
@@ -47,40 +57,39 @@ parser.add_argument('--ignore_fill_value',
                          'value handling. When enabled NetCDF CF conventions '
                          'are used to determine fill value. Alternativley one '
                          'can explicitly provide a fill value on the command '
-                         'line via the --fill_value argument. (True).')
+                         'line via the --fill_value argument.')
 
 parser.add_argument('--output_file', type=str, required=True,
-                    help='file pattern for writing output netcdf '
-                         'files. %%t%% will be replaced by a date/time '
-                         'string or time step. See the teca_cf_writer '
-                         'for more information.')
+                    help='A path and file name pattern for the output NetCDF'
+                         ' files. %%t%% is replaced with a human readable date'
+                         ' and time corresponding to the time of the first time'
+                         ' step in the file. Use --date_format to change'
+                         ' the formatting')
 
-parser.add_argument('--steps_per_file', type=int, default=12,
+parser.add_argument('--steps_per_file', type=int, default=128,
                     help='number of time steps to write to each output '
-                         'file. (12)')
+                         'file')
 
 parser.add_argument('--x_axis_variable', type=str, default='lon',
-                    help='name of the variable to use for x-coordinates '
-                         '(lon)')
+                    help='name of the variable to use for x-coordinates')
 
 parser.add_argument('--y_axis_variable', type=str, default='lat',
-                    help='name of the variable to use for y-coordinates '
-                         '(lat)')
+                    help='name of the variable to use for y-coordinates')
 
 parser.add_argument('--z_axis_variable', type=str, default='',
-                    help='name of the variable to use for z-coordinates '
-                         '()')
+                    help='name of z coordinate variable. When processing 3D set this to'
+                         ' the variable containing vertical coordinates. When empty the'
+                         ' data will be treated as 2D.')
 
 parser.add_argument('--t_axis_variable', type=str, default='time',
-                    help='name of the variable to use for t-coordinates '
-                         '(time)')
+                    help='name of the variable to use for t-coordinates')
 
 parser.add_argument('--n_threads', type=int, default=2,
                     help='Number of threads to use when stremaing the '
-                         'reduction (2)')
+                         'reduction')
 
-parser.add_argument('--verbose', type=int, default=1,
-                    help='enable verbose mode. (1)')
+parser.add_argument('--verbose', type=int, default=0,
+                    help='enable verbose mode.')
 
 # prevent spew when running under mpi
 try:
@@ -104,7 +113,7 @@ t_axis_var = args.t_axis_variable
 verbose = args.verbose
 
 if verbose and rank == 0:
-    sys.stderr.write('testing on %d ranks' % (n_ranks))
+    sys.stderr.write('running on %d ranks' % (n_ranks))
     sys.stderr.write('n_threads=%d\n' % (n_threads))
     sys.stderr.write('steps_per_file=%d\n' % (steps_per_file))
     sys.stderr.write('interval=%s\n' % (interval))
