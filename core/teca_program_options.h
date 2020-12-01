@@ -42,12 +42,12 @@ using variables_map
 //
 #define TECA_POPTS_GET(_type, _prefix, _name, _desc)        \
      (((_prefix.empty()?"":_prefix+"::") + #_name).c_str(), \
-         boost::program_options::value<_type>(), _desc)
+         boost::program_options::value<_type>(), "\n" _desc "\n")
 
 #define TECA_POPTS_MULTI_GET(_type, _prefix, _name, _desc)     \
      (((_prefix.empty()?"":_prefix+"::") + #_name).c_str(),    \
          boost::program_options::value<_type>()->multitoken(), \
-         _desc)
+         "\n" _desc "\n")
 
 #define TECA_POPTS_SET(_opts, _type, _prefix, _name)    \
     {std::string opt_name =                             \
