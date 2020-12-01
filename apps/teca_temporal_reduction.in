@@ -113,8 +113,16 @@ if verbose and rank == 0:
     sys.stderr.write('ignore_fill_value=%d\n' % (ignore_fill_value))
     sys.stderr.write('fill_value=%s\n' % (str(fill_value)))
 
-cfr = teca_cf_reader.New()
-cfr.set_files_regex(in_files)
+if args.input_regex:
+    cfr = teca_cf_reader.New()
+    cfr.set_files_regex(args.input_regex)
+elif args.input_file:
+    cfr = teca_multi_cf_reader.New()
+    cfr.set_input_file(args.input_file)
+else:
+    if rank == 0:
+        raise RuntimeError('Missing one of --input_file or --input_regex')
+
 cfr.set_x_axis_variable(x_axis_var)
 cfr.set_y_axis_variable(y_axis_var)
 cfr.set_z_axis_variable(z_axis_var)
