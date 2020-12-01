@@ -92,8 +92,8 @@ deeplabv3p_ar_detect.set_input_connection(coords.get_output_port())
 seg_atts = teca_metadata()
 seg_atts["long_name"] = "binary indicator of atmospheric river"
 seg_atts["description"] = "binary indicator of atmospheric river"
-seg_atts["scheme"] = "cascade_bard"
-seg_atts["version"] = "1.0"
+seg_atts["scheme"] = "deeplab"
+seg_atts["version"] = "0.0"
 seg_atts["note"] = "derived by thresholding ar_probability >= %f" \
     % args.binary_ar_threshold
 
