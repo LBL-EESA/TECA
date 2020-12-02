@@ -6,7 +6,7 @@ import torch
 import torch.nn.functional as F
 
 
-class teca_model_segmentation(teca_python_algorithm):
+class teca_pytorch_algorithm(teca_python_algorithm):
     """
     A generic TECA algorithm that provides torch based deep
     learning feature detecting algorithms with core TECA
@@ -151,7 +151,7 @@ class teca_model_segmentation(teca_python_algorithm):
             else:
                 thread_map = [n_threads]
             if rank == 0:
-                sys.stderr.write('STATUS: model_segmentation thread '
+                sys.stderr.write('STATUS: pytorch_algorithm thread '
                                  'parameters :\n')
                 for i in range(n_ranks):
                     sys.stderr.write('  %d : %d\n' % (i, thread_map[i]))

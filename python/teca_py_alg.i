@@ -224,10 +224,10 @@
 }
 
 /***************************************************************************
- model_segmentation
+ pytorch_algorithm
  ***************************************************************************/
 #ifdef TECA_HAS_PYTORCH
-%pythoncode "teca_model_segmentation.py"
+%pythoncode "teca_pytorch_algorithm.py"
 #endif
 
 /***************************************************************************

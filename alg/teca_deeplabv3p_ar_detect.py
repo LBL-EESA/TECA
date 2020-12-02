@@ -307,7 +307,7 @@ class teca_deeplabv3p_ar_detect_internals:
                     m.bias.data.zero_()
 
 
-class teca_deeplabv3p_ar_detect(teca_model_segmentation):
+class teca_deeplabv3p_ar_detect(teca_pytorch_algorithm):
     """
     This algorithm detects Atmospheric Rivers using deep learning techniques
     derived from the DeepLabv3+ architecture. Given an input field of
