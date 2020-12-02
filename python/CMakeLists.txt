@@ -4,7 +4,7 @@ if (TECA_HAS_PYTHON)
     include(CMake/teca_python.cmake)
 
     depend_swig(teca_py.i teca_py.dep)
-    wrap_swig(teca_py.i teca_py.cxx teca_py.dep)
+    wrap_swig(teca_py.i teca_py.cxx DEPEND_FILES teca_py.dep)
 
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}
             ${CMAKE_CURRENT_BINARY_DIR}
