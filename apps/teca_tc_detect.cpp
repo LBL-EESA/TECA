@@ -18,12 +18,14 @@
 #include "teca_table_writer.h"
 #include "teca_mpi_manager.h"
 #include "teca_coordinate_util.h"
+#include "teca_app_util.h"
 #include "calcalcs.h"
 
 #include <vector>
 #include <string>
 #include <iostream>
 #include <boost/program_options.hpp>
+
 
 using namespace std;
 using namespace teca_derived_quantity_numerics;
@@ -39,54 +41,59 @@ int main(int argc, char **argv)
     // initialize command line options description
     // set up some common options to simplify use for most
     // common scenarios
+    int help_width = 100;
     options_description basic_opt_defs(
         "Basic usage:\n\n"
         "The following options are the most commonly used. Information\n"
         "on advanced options can be displayed using --advanced_help\n\n"
-        "Basic command line options", 120, -1
+        "Basic command line options", help_width, help_width - 4
         );
     basic_opt_defs.add_options()
-        ("input_file", value<string>(), "multi_cf_reader configuration file identifying simulation"
-            " files to search for atmospheric rivers. when present data is read using the"
-            " multi_cf_reader. use one of either --input_file or --input_regex.")
+        ("input_file", value<std::string>(), "\na teca_multi_cf_reader configuration file"
+            " identifying the set of NetCDF CF2 files to process. When present data is"
+            " read using the teca_multi_cf_reader. Use one of either --input_file or"
+            " --input_regex.\n")
 
-        ("input_regex", value<string>(), "cf_reader regex identyifying simulation files to search"
-            " for atmospheric rivers. when present data is read using the"
-            " cf_reader. use one of either --input_file or --input_regex.")
+        ("input_regex", value<std::string>(), "\na teca_cf_reader regex identifying the"
+            " set of NetCDF CF2 files to process. When present data is read using the"
+            " teca_cf_reader. Use one of either --input_file or --input_regex.\n")
 
-        ("candidate_file", value<string>(), "file path to write the storm candidates to (candidates.bin)")
-        ("850mb_wind_u", value<string>(), "name of variable with 850 mb wind x-component (U850)")
-        ("850mb_wind_v", value<string>(), "name of variable with 850 mb wind x-component (V850)")
-        ("surface_wind_u", value<string>(), "name of variable with surface wind x-component (UBOT)")
-        ("surface_wind_v", value<string>(), "name of variable with surface wind y-component (VBOT)")
-        ("sea_level_pressure", value<string>(), "name of variable with sea level pressure (PSL)")
-        ("500mb_temp", value<string>(), "name of variable with 500mb temperature for warm core calc (T500)")
-        ("200mb_temp", value<string>(), "name of variable with 200mb temperature for warm core calc (T200)")
-        ("1000mb_height", value<string>(), "name of variable with 1000mb height for thickness calc (Z1000)")
-        ("200mb_height", value<string>(), "name of variable with 200mb height for thickness calc (Z200)")
-        ("storm_core_radius", value<double>(), "maximum number of degrees latitude separation between vorticity max and pressure min defining a storm (2.0)")
-        ("min_vorticity", value<double>(), "minimum vorticty to be considered a tropical storm (1.6e-4)")
-        ("vorticity_window", value<double>(), "size of the search window in degrees. storms core must have a local vorticity max centered on this window (7.74446)")
-        ("pressure_delta", value<double>(), "maximum pressure change within specified radius (400.0)")
-        ("pressure_delta_radius", value<double>(), "radius in degrees over which max pressure change is computed (5.0)")
-        ("core_temp_delta", value<double>(), "maximum core temperature change over the specified radius (0.8)")
-        ("core_temp_radius", value<double>(), "radius in degrees over which max core temperature change is computed (5.0)")
-        ("thickness_delta", value<double>(), "maximum thickness change over the specified radius (50.0)")
-        ("thickness_radius", value<double>(), "radius in degrees over with max thickness change is comuted (4.0)")
-        ("lowest_lat", value<double>(), "lowest latitude in degrees to search for storms (80)")
-        ("highest_lat", value<double>(), "highest latitude in degrees to search for storms (80)")
-        ("max_daily_distance", value<double>(), "max distance in km that a storm can travel in one day (1600)")
-        ("min_wind_speed", value<double>(), "minimum peak wind speed to be considered a tropical storm (17.0)")
-        ("min_wind_duration", value<double>(), "number of, not necessarily consecutive, days min wind speed sustained (2.0)")
-        ("track_file", value<string>(), "file path to write storm tracks to")
-        ("first_step", value<long>(), "first time step to process")
-        ("last_step", value<long>(), "last time step to process")
-        ("start_date", value<string>(), "first time to proces in YYYY-MM-DD hh:mm:ss format")
-        ("end_date", value<string>(), "first time to proces in YYYY-MM-DD hh:mm:ss format")
-        ("n_threads", value<int>(), "thread pool size. default is 1. -1 for all")
-        ("help", "display the basic options help")
-        ("advanced_help", "display the advanced options help")
-        ("full_help", "display entire help message")
+        ("candidate_file", value<string>(), "\nfile path to write the storm candidates to (candidates.bin)\n")
+        ("850mb_wind_u", value<string>(), "\nname of variable with 850 mb wind x-component (U850)\n")
+        ("850mb_wind_v", value<string>(), "\nname of variable with 850 mb wind x-component (V850)\n")
+        ("surface_wind_u", value<string>(), "\nname of variable with surface wind x-component (UBOT)\n")
+        ("surface_wind_v", value<string>(), "\nname of variable with surface wind y-component (VBOT)\n")
+        ("sea_level_pressure", value<string>(), "\nname of variable with sea level pressure (PSL)\n")
+        ("500mb_temp", value<string>(), "\nname of variable with 500mb temperature for warm core calc (T500)\n")
+        ("200mb_temp", value<string>(), "\nname of variable with 200mb temperature for warm core calc (T200)\n")
+        ("1000mb_height", value<string>(), "\nname of variable with 1000mb height for thickness calc (Z1000)\n")
+        ("200mb_height", value<string>(), "\nname of variable with 200mb height for thickness calc (Z200)\n")
+        ("storm_core_radius", value<double>(), "\nmaximum number of degrees latitude separation between vorticity max and pressure min defining a storm (2.0)\n")
+        ("min_vorticity", value<double>(), "\nminimum vorticty to be considered a tropical storm (1.6e-4)\n")
+        ("vorticity_window", value<double>(), "\nsize of the search window in degrees. storms core must have a local vorticity max centered on this window (7.74446)\n")
+        ("pressure_delta", value<double>(), "\nmaximum pressure change within specified radius (400.0)\n")
+        ("pressure_delta_radius", value<double>(), "\nradius in degrees over which max pressure change is computed (5.0)\n")
+        ("core_temp_delta", value<double>(), "\nmaximum core temperature change over the specified radius (0.8)\n")
+        ("core_temp_radius", value<double>(), "\nradius in degrees over which max core temperature change is computed (5.0)\n")
+        ("thickness_delta", value<double>(), "\nmaximum thickness change over the specified radius (50.0)\n")
+        ("thickness_radius", value<double>(), "\nradius in degrees over with max thickness change is computed (4.0)\n")
+        ("lowest_lat", value<double>(), "\nlowest latitude in degrees to search for storms (80)\n")
+        ("highest_lat", value<double>(), "\nhighest latitude in degrees to search for storms (80)\n")
+        ("max_daily_distance", value<double>(), "\nmax distance in km that a storm can travel in one day (1600)\n")
+        ("min_wind_speed", value<double>(), "\nminimum peak wind speed to be considered a tropical storm (17.0)\n")
+        ("min_wind_duration", value<double>(), "\nnumber of, not necessarily consecutive, days min wind speed sustained (2.0)\n")
+        ("track_file", value<string>(), "\nfile path to write storm tracks to\n")
+        ("first_step", value<long>(), "\nfirst time step to process\n")
+        ("last_step", value<long>(), "\nlast time step to process\n")
+        ("start_date", value<std::string>(), "\nThe first time to process in 'Y-M-D h:m:s'"
+            " format. Note: There must be a space between the date and time specification\n")
+        ("end_date", value<std::string>(), "\nThe last time to process in 'Y-M-D h:m:s' format\n")
+        ("n_threads", value<int>(), "\nSets the thread pool size on each MPI rank. When the default"
+            " value of -1 is used TECA will coordinate the thread pools across ranks such each"
+            " thread is bound to a unique physical core.\n")
+        ("help", "\ndisplays documentation for application specific command line options\n")
+        ("advanced_help", "\ndisplays documentation for algorithm specific command line options\n")
+        ("full_help", "\ndisplays both basic and advanced documentation together\n")
         ;
 
     // add all options from each pipeline stage for more advanced use
@@ -104,7 +111,7 @@ int main(int argc, char **argv)
         " (tracks)--(sort)--(map_reduce)--(candidates)--(thickness)\n"
         "     \\                               /\n"
         " (track_writer)              (candidate_writer)\n\n"
-        "Advanced command line options", -1, 1
+        "Advanced command line options", help_width, help_width - 4
         );
 
     // create the pipeline stages here, they contain the
@@ -191,50 +198,9 @@ int main(int argc, char **argv)
 
     // parse the command line
     variables_map opt_vals;
-    try
+    if (teca_app_util::process_command_line_help(mpi_man.get_comm_rank(),
+        argc, argv, basic_opt_defs, advanced_opt_defs, all_opt_defs, opt_vals))
     {
-        boost::program_options::store(
-            boost::program_options::command_line_parser(argc, argv).options(all_opt_defs).run(),
-            opt_vals);
-
-        if (mpi_man.get_comm_rank() == 0)
-        {
-            if (opt_vals.count("help"))
-            {
-                cerr << endl
-                    << "usage: teca_tc_detect [options]" << endl
-                    << endl
-                    << basic_opt_defs << endl
-                    << endl;
-                return -1;
-            }
-            if (opt_vals.count("advanced_help"))
-            {
-                cerr << endl
-                    << "usage: teca_tc_detect [options]" << endl
-                    << endl
-                    << advanced_opt_defs << endl
-                    << endl;
-                return -1;
-            }
-
-            if (opt_vals.count("full_help"))
-            {
-                cerr << endl
-                    << "usage: teca_tc_detect [options]" << endl
-                    << endl
-                    << all_opt_defs << endl
-                    << endl;
-                return -1;
-            }
-        }
-
-        boost::program_options::notify(opt_vals);
-    }
-    catch (std::exception &e)
-    {
-        TECA_ERROR("Error parsing command line options. See --help "
-            "for a list of supported options. " << e.what())
         return -1;
     }
 

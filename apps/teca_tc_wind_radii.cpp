@@ -11,6 +11,7 @@
 #include "teca_table_writer.h"
 #include "teca_dataset_diff.h"
 #include "teca_file_util.h"
+#include "teca_app_util.h"
 #include "teca_mpi_manager.h"
 
 #include <vector>
@@ -33,38 +34,42 @@ int main(int argc, char **argv)
     // initialize command line options description
     // set up some common options to simplify use for most
     // common scenarios
+    int help_width = 100;
     options_description basic_opt_defs(
         "Basic usage:\n\n"
         "The following options are the most commonly used. Information\n"
         "on advanced options can be displayed using --advanced_help\n\n"
-        "Basic command line options", 120, -1
+        "Basic command line options", help_width, help_width - 4
         );
     basic_opt_defs.add_options()
-        ("track_file", value<std::string>(), "file path to read the cyclone from (tracks.bin)")
+        ("track_file", value<std::string>(), "\nA file containing cyclone tracks (tracks.bin)\n")
 
-        ("input_file", value<std::string>(), "multi_cf_reader configuration file identifying"
-            " simulation files tracks were generated from. when present data is read using"
-            " the multi_cf_reader. use one of either --input_file or --input_regex.")
+        ("input_file", value<std::string>(), "\na teca_multi_cf_reader configuration file"
+            " identifying the set of NetCDF CF2 files to process. When present data is"
+            " read using the teca_multi_cf_reader. Use one of either --input_file or"
+            " --input_regex.\n")
 
-        ("input_regex", value<std::string>(), "cf_reader regex identyifying simulation files"
-            " tracks were generated from. when present data is read using the cf_reader. use"
-            " one of either --input_file or --input_regex.")
+        ("input_regex", value<std::string>(), "\na teca_cf_reader regex identifying the"
+            " set of NetCDF CF2 files to process. When present data is read using the"
+            " teca_cf_reader. Use one of either --input_file or --input_regex.\n")
 
-        ("wind_files", value<std::string>(), "a deprecated option that is a synonym for --input_regex.")
+        ("wind_files", value<std::string>(), "\na synonym for --input_regex.\n")
 
-        ("track_file_out", value<std::string>(), "file path to write cyclone tracks with size (tracks_size.bin)")
-        ("wind_u_var", value<std::string>(), "name of variable with wind x-component (UBOT)")
-        ("wind_v_var", value<std::string>(), "name of variable with wind y-component (VBOT)")
-        ("track_mask", value<std::string>(), "expression to filter tracks by ()")
-        ("number_of_bins", value<int>(), "number of bins in the radial wind decomposition (32)")
-        ("profile_type", value<std::string>(), "radial wind profile type. max or avg (avg)")
-        ("search_radius", value<double>(), "size of search window in deg lat (6)")
-        ("first_track", value<long>(), "first track to process")
-        ("last_track", value<long>(), "last track to process")
-        ("n_threads", value<int>(), "thread pool size. default is 1. -1 for all")
-        ("help", "display the basic options help")
-        ("advanced_help", "display the advanced options help")
-        ("full_help", "display entire help message")
+        ("track_file_out", value<std::string>(), "\nfile path to write cyclone tracks with size (tracks_size.bin)\n")
+        ("wind_u_var", value<std::string>(), "\nname of variable with wind x-component (UBOT)\n")
+        ("wind_v_var", value<std::string>(), "\nname of variable with wind y-component (VBOT)\n")
+        ("track_mask", value<std::string>(), "\nAn expression to filter tracks by ()\n")
+        ("number_of_bins", value<int>(), "\nnumber of bins in the radial wind decomposition (32)\n")
+        ("profile_type", value<std::string>(), "\nradial wind profile type. max or avg (avg)\n")
+        ("search_radius", value<double>(), "\nsize of search window in degrees (6)\n")
+        ("first_track", value<long>(), "\nfirst track to process\n")
+        ("last_track", value<long>(), "\nlast track to process\n")
+        ("n_threads", value<int>(), "\nSets the thread pool size on each MPI rank. When the default"
+            " value of -1 is used TECA will coordinate the thread pools across ranks such each"
+            " thread is bound to a unique physical core.\n")
+        ("help", "\ndisplays documentation for application specific command line options\n")
+        ("advanced_help", "\ndisplays documentation for algorithm specific command line options\n")
+        ("full_help", "\ndisplays both basic and advanced documentation together\n")
         ;
 
     // add all options from each pipeline stage for more advanced use
@@ -82,7 +87,7 @@ int main(int argc, char **argv)
         "                      (map reduce)--(table sort)\n"
         "                                          \\\n"
         "                                       (track writer)\n\n"
-        "Advanced command line options", -1, 1
+        "Advanced command line options", help_width, help_width - 4
         );
 
     // create the pipeline stages here, they contain the
@@ -108,7 +113,6 @@ int main(int argc, char **argv)
     p_teca_tc_wind_radii wind_radii = teca_tc_wind_radii::New();
     wind_radii->get_properties_description("wind_radii", advanced_opt_defs);
 
-
     p_teca_table_reduce map_reduce = teca_table_reduce::New();
     map_reduce->get_properties_description("map_reduce", advanced_opt_defs);
 
@@ -122,54 +126,14 @@ int main(int argc, char **argv)
     track_writer->set_file_name("tracks_size.bin");
 
     // package basic and advanced options for display
-    options_description all_opt_defs(-1, -1);
+    options_description all_opt_defs(help_width, help_width - 4);
     all_opt_defs.add(basic_opt_defs).add(advanced_opt_defs);
 
     // parse the command line
     variables_map opt_vals;
-    try
+    if (teca_app_util::process_command_line_help(mpi_man.get_comm_rank(),
+        argc, argv, basic_opt_defs, advanced_opt_defs, all_opt_defs, opt_vals))
     {
-        boost::program_options::store(
-            boost::program_options::command_line_parser(argc, argv).options(all_opt_defs).run(),
-            opt_vals);
-
-        if (mpi_man.get_comm_rank() == 0)
-        {
-            if (opt_vals.count("help"))
-            {
-                cerr << endl
-                    << "usage: teca_tc_wind_radii [options]" << endl
-                    << endl
-                    << basic_opt_defs << endl
-                    << endl;
-                return -1;
-            }
-            if (opt_vals.count("advanced_help"))
-            {
-                cerr << endl
-                    << "usage: teca_tc_wind_radii [options]" << endl
-                    << endl
-                    << advanced_opt_defs << endl
-                    << endl;
-                return -1;
-            }
-            if (opt_vals.count("full_help"))
-            {
-                cerr << endl
-                    << "usage: teca_tc_wind_radii [options]" << endl
-                    << endl
-                    << all_opt_defs << endl
-                    << endl;
-                return -1;
-            }
-        }
-
-        boost::program_options::notify(opt_vals);
-    }
-    catch (std::exception &e)
-    {
-        TECA_ERROR("Error parsing command line options. See --help "
-            "for a list of supported options. " << e.what())
         return -1;
     }
 
@@ -201,11 +165,7 @@ int main(int argc, char **argv)
     }
     else if (have_wind_files)
     {
-        // Wed Nov  4 09:37:00 AM PST 2020
         have_regex = true;
-        TECA_WARNING("The --wind_files command line argument has been replaced by"
-            " --input_regex. --wind_files will be removed in a future release"
-            " please update your scripts to use --input_regex")
         cf_reader->set_files_regex(opt_vals["wind_files"].as<std::string>());
         wind_reader = cf_reader;
     }

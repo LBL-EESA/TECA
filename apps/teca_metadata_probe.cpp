@@ -8,6 +8,7 @@
 #include "teca_coordinate_util.h"
 #include "teca_mpi_manager.h"
 #include "teca_system_interface.h"
+#include "teca_app_util.h"
 
 #if defined(TECA_HAS_UDUNITS)
 #include "calcalcs.h"
@@ -33,36 +34,38 @@ int main(int argc, char **argv)
     teca_system_interface::set_stack_trace_on_error();
     teca_system_interface::set_stack_trace_on_mpi_error();
 
-    // initialize comand line options description
-    // set up some comon options to simplify use for most
-    // comon scenarios
+    // initialize comand line options description set up some comon options to
+    // simplify use for most comon scenarios
+    int help_width = 100;
     options_description basic_opt_defs(
         "Basic usage:\n\n"
         "The following options are the most comonly used. Information\n"
-        "on advanced options can be displayed using --advanced_help\n\n"
-        "Basic comand line options", 120, -1
+        "on all available options can be displayed using --advanced_help\n\n"
+        "Basic comand line options", help_width, help_width - 4
         );
     basic_opt_defs.add_options()
 
-        ("input_file", value<std::string>(), "multi_cf_reader configuration file identifying"
-            " simulation files tracks were generated from. when present data is read using"
-            " the multi_cf_reader. use one of either --input_file or --input_regex.")
+        ("input_file", value<std::string>(), "\na teca_multi_cf_reader configuration file"
+            " identifying the set of NetCDF CF2 files to process. When present data is"
+            " read using the teca_multi_cf_reader. Use one of either --input_file or"
+            " --input_regex.\n")
 
-        ("input_regex", value<std::string>(), "cf_reader regex identyifying simulation files"
-            " tracks were generated from. when present data is read using the cf_reader. use"
-            " one of either --input_file or --input_regex.")
+        ("input_regex", value<std::string>(), "\na teca_cf_reader regex identyifying the"
+            " set of NetCDF CF2 files to process. When present data is read using the"
+            " teca_cf_reader. Use one of either --input_file or --input_regex.\n")
 
-        ("x_axis", value<std::string>(), "name of x coordinate variable (lon)")
-        ("y_axis", value<std::string>(), "name of y coordinate variable (lat)")
-        ("z_axis", value<std::string>(), "name of z coordinate variable ()."
-            " When processing 3D set this to the variable containing vertical coordinates."
-            " When empty the data will be treated as 2D.")
+        ("x_axis_variable", value<std::string>(), "\nname of x coordinate variable (lon)\n")
+        ("y_axis_variable", value<std::string>(), "\nname of y coordinate variable (lat)\n")
+        ("z_axis_variable", value<std::string>(), "\nname of z coordinate variable ()."
+            " When processing 3D set this to the variable containing vertical"
+            " coordinates. When empty the data will be treated as 2D.\n")
 
-        ("start_date", value<std::string>(), "first time to proces in Y-M-D h:m:s format")
-        ("end_date", value<std::string>(), "first time to proces in Y-M-D h:m:s format")
-        ("help", "display the basic options help")
-        ("advanced_help", "display the advanced options help")
-        ("full_help", "display all options help")
+        ("start_date", value<std::string>(), "\nThe first time to process in 'Y-M-D h:m:s'"
+            " format. Note: There must be a space between the date and time specification\n")
+        ("end_date", value<std::string>(), "\nThe last time to process in 'Y-M-D h:m:s' format\n")
+        ("help", "\ndisplays documentation for application specific command line options\n")
+        ("advanced_help", "\ndisplays documentation for algorithm specific command line options\n")
+        ("full_help", "\ndisplays both basic and advanced documentation together\n")
         ;
 
     // add all options from each pipeline stage for more advanced use
@@ -72,7 +75,7 @@ int main(int argc, char **argv)
         "control over all runtime modifiable parameters. The basic options\n"
         "(see" "--help) map to these, and will override them if both are\n"
         "specified.\n\n"
-        "Advanced comand line options", 120, -1
+        "Advanced comand line options", help_width, help_width - 4
         );
 
     // create the pipeline stages here, they contain the
@@ -87,65 +90,14 @@ int main(int argc, char **argv)
     mcf_reader->get_properties_description("mcf_reader", advanced_opt_defs);
 
     // package basic and advanced options for display
-    options_description all_opt_defs(-1, -1);
+    options_description all_opt_defs(help_width, help_width - 4);
     all_opt_defs.add(basic_opt_defs).add(advanced_opt_defs);
 
-    // parse the comand line
+    // parse the command line
     variables_map opt_vals;
-    try
+    if (teca_app_util::process_command_line_help(mpi_man.get_comm_rank(),
+        argc, argv, basic_opt_defs, advanced_opt_defs, all_opt_defs, opt_vals))
     {
-        boost::program_options::store(
-            boost::program_options::command_line_parser(argc, argv).options(all_opt_defs).run(),
-            opt_vals);
-
-        if (opt_vals.count("help"))
-        {
-            if (rank == 0)
-            {
-                std::cerr << std::endl
-                    << "usage: teca_metadata_probe [options]" << std::endl
-                    << std::endl
-                    << basic_opt_defs << std::endl
-                    << std::endl;
-            }
-            return -1;
-        }
-        if (opt_vals.count("advanced_help"))
-        {
-            if (rank == 0)
-            {
-                std::cerr << std::endl
-                    << "usage: teca_metadata_probe [options]" << std::endl
-                    << std::endl
-                    << advanced_opt_defs << std::endl
-                    << std::endl;
-            }
-            return -1;
-        }
-
-        if (opt_vals.count("full_help"))
-        {
-
-            if (rank == 0)
-            {
-                std::cerr << std::endl
-                    << "usage: teca_metadata_probe [options]" << std::endl
-                    << std::endl
-                    << all_opt_defs << std::endl
-                    << std::endl;
-            }
-            return -1;
-        }
-
-        boost::program_options::notify(opt_vals);
-    }
-    catch (std::exception &e)
-    {
-        if (rank == 0)
-        {
-            TECA_ERROR("Error parsing comand line options. See --help "
-                "for a list of supported options. " << e.what())
-        }
         return -1;
     }
 
@@ -157,22 +109,22 @@ int main(int argc, char **argv)
 
     // now pas in the basic options, these are procesed
     // last so that they will take precedence
-    if (opt_vals.count("x_axis"))
+    if (opt_vals.count("x_axis_variable"))
     {
-        cf_reader->set_x_axis_variable(opt_vals["x_axis"].as<std::string>());
-        mcf_reader->set_x_axis_variable(opt_vals["x_axis"].as<std::string>());
+        cf_reader->set_x_axis_variable(opt_vals["x_axis_variable"].as<std::string>());
+        mcf_reader->set_x_axis_variable(opt_vals["x_axis_variable"].as<std::string>());
     }
 
-    if (opt_vals.count("y_axis"))
+    if (opt_vals.count("y_axis_variable"))
     {
-        cf_reader->set_y_axis_variable(opt_vals["y_axis"].as<std::string>());
-        mcf_reader->set_y_axis_variable(opt_vals["y_axis"].as<std::string>());
+        cf_reader->set_y_axis_variable(opt_vals["y_axis_variable"].as<std::string>());
+        mcf_reader->set_y_axis_variable(opt_vals["y_axis_variable"].as<std::string>());
     }
 
-    if (opt_vals.count("z_axis"))
+    if (opt_vals.count("z_axis_variable"))
     {
-        cf_reader->set_z_axis_variable(opt_vals["z_axis"].as<std::string>());
-        mcf_reader->set_z_axis_variable(opt_vals["z_axis"].as<std::string>());
+        cf_reader->set_z_axis_variable(opt_vals["z_axis_variable"].as<std::string>());
+        mcf_reader->set_z_axis_variable(opt_vals["z_axis_variable"].as<std::string>());
     }
 
     std::string x_var;

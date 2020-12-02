@@ -82,35 +82,56 @@ void teca_cf_reader::get_properties_description(
 
     opts.add_options()
         TECA_POPTS_GET(std::vector<std::string>, prefix, file_names,
-            "paths/file names to read")
+            "An explcict list of files to read. If specified takes precedence"
+            " over --files_regex. Use one of --files_regex or --file_names")
         TECA_POPTS_GET(std::string, prefix, files_regex,
-            "a regular expression that matches the set of files "
-            "comprising the dataset")
+            "A POSIX basic regular expression that matches the set of files to process."
+            " Only the final component in a path may conatin a regular expression."
+            " Use one of --files_regex or --file_names ")
         TECA_POPTS_GET(std::string, prefix, x_axis_variable,
             "name of variable that has x axis coordinates (lon)")
         TECA_POPTS_GET(std::string, prefix, y_axis_variable,
             "name of variable that has y axis coordinates (lat)")
         TECA_POPTS_GET(std::string, prefix, z_axis_variable,
-            "name of variable that has z axis coordinates ()")
+            "name of variable that has z axis coordinates (). If left empty the"
+            " output mesh will be 2D.")
         TECA_POPTS_GET(std::string, prefix, t_axis_variable,
-            "name of variable that has t axis coordinates (time)")
+            "name of variable that has time axis coordinates (time). Set to an empty"
+            " string to enable override methods (--filename_time_template, --t_values)"
+            " or to disable time coordinates completely")
         TECA_POPTS_GET(std::string, prefix, t_calendar,
-            "name of variable that has the time calendar (calendar)")
+            "An optional calendar override. May be one of: standard, Julian,"
+            " proplectic_Julian, Gregorian, proplectic_Gregorian, Gregorian_Y0,"
+            " proplectic_Gregorian_Y0, noleap, no_leap, 365_day, 360_day. When the"
+            " override is provided it takes precedence over the value found in the"
+            " file. Otherwise the calendar is expected to be encoded in the data"
+            " files using CF2 conventions.")
         TECA_POPTS_GET(std::string, prefix, t_units,
-            "a std::get_time template for decoding time from the input filename")
+            "An optional CF2 time units specification override declaring the"
+            " units of the time axis and a reference date and time from which the"
+            " time values are relative to. If this is provided it takes precedence"
+            " over the value found in the file. Otherwise the time units are"
+            " expected to be encouded in the files using the CF2 conventions")
         TECA_POPTS_GET(std::string, prefix, filename_time_template,
-            "name of variable that has the time unit (units)")
+            "An optional std::get_time template string for decoding time from the input"
+            " file names. If no calendar is specified the standard calendar is used. If"
+            " no units are specified then \"days since %Y-%m-%d 00:00:00\" where Y,m,d"
+            " are determined from the filename of the first file. Set t_axis_variable to"
+            " an empty string to use.")
         TECA_POPTS_GET(std::vector<double>, prefix, t_values,
-            "name of variable that has t axis values set by the"
-            "the user if the file doesn't have time variable set ()")
+            "An optional explicit list of double precision values to use as the"
+            " time axis. If provided these take precedence over the values found"
+            " in the files. Otherwise the variable pointed to by the t_axis_variable"
+            " provides the time values. Set t_axis_variable to an empty string"
+            " to use.")
         TECA_POPTS_GET(int, prefix, periodic_in_x,
-            "the dataset has apriodic boundary in the x direction (0)")
+            "the dataset has a periodic boundary in the x direction (0)")
         TECA_POPTS_GET(int, prefix, periodic_in_y,
-            "the dataset has apriodic boundary in the y direction (0)")
+            "the dataset has a periodic boundary in the y direction (0)")
         TECA_POPTS_GET(int, prefix, periodic_in_z,
-            "the dataset has apriodic boundary in the z direction (0)")
+            "the dataset has a periodic boundary in the z direction (0)")
         TECA_POPTS_GET(int, prefix, max_metadata_ranks,
-            "set the max number of ranks for reading metadata (1024)")
+            "set the max number of MPI ranks for reading metadata (1024)")
         ;
 
     global_opts.add(opts);
@@ -819,8 +840,8 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
             TECA_STATUS("The time axis will be infered from file names using "
                 "the user provided template \"" << this->filename_time_template
-                << "\" with the \"" << t_calendar << "\" in units \"" << t_units
-                << "\"")
+                << "\" with the \"" << t_calendar << "\" calendar in units \""
+                << t_units << "\"")
 
             // create a teca variant array from the times
             size_t n_t_vals = t_values.size();

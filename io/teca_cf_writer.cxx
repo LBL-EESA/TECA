@@ -65,9 +65,14 @@ void teca_cf_writer::get_properties_description(
 
     opts.add_options()
         TECA_POPTS_GET(std::string, prefix, file_name,
-            "path/name to write series to")
+            "A path and file name pattern to write data to. For time varying output"
+            " spanning more than one file the string %t% is replaced with the date"
+            " and/or time of the first time step in the file. The formatting of the"
+            " date/time encoding is specified using --date_format.")
         TECA_POPTS_GET(std::string, prefix, date_format,
-            "strftime format string for date string in output filename (%F-%H)")
+            "A strftime format used when encoding dates into the output"
+            " file names (%F-%HZ). %t% in the file name is replaced with date/time"
+            " of the first time step in the file using this format specifier.")
         TECA_POPTS_GET(long, prefix, first_step,
             "set the first time step to process (0)")
         TECA_POPTS_GET(long, prefix, last_step,
@@ -79,10 +84,10 @@ void teca_cf_writer::get_properties_description(
             "mode flags to pass to NetCDF when creating the file (NC_CLOBBER)")
         TECA_POPTS_GET(int, prefix, use_unlimited_dim,
             "if set the slowest varying dimension is specified to be "
-            "NC_UNLIMITED. (1)")
+            "NC_UNLIMITED. (0)")
         TECA_POPTS_GET(int, prefix, compression_level,
             "sets the zlib compression level used for each variable;"
-            "does nothing if the value is less than or equal to 0. (-1)")
+            " does nothing if the value is less than or equal to 0. (-1)")
         TECA_POPTS_GET(int, prefix, flush_files,
             "if set files are flushed before they are closed. (0)")
         TECA_POPTS_MULTI_GET(std::vector<std::string>, prefix, point_arrays,

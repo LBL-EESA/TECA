@@ -71,9 +71,9 @@ public:
     // for info about date formatting.
     TECA_ALGORITHM_PROPERTY(std::string, file_name)
 
-    // set the format for the date to write in the filename this requires the
+    // set the format for the date to write in the filename. this requires the
     // input dataset to have unit/calendar information if none are available,
-    // the time index is used instead. (%F-%H)
+    // the time index is used instead. (%F-%HZ)
     TECA_ALGORITHM_PROPERTY(std::string, date_format)
 
     // set the range of time step to process.

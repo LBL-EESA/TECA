@@ -12,6 +12,7 @@
 #include "teca_file_util.h"
 #include "teca_mpi_manager.h"
 #include "teca_mpi.h"
+#include "teca_app_util.h"
 #include "calcalcs.h"
 
 #include <iostream>
@@ -32,40 +33,54 @@ int main(int argc, char **argv)
     // initialize command line options description
     // set up some common options to simplify use for most
     // common scenarios
+    int help_width = 100;
     options_description basic_opt_defs(
         "Basic usage:\n\n"
         "The following options are the most commonly used. Information\n"
         "on advanced options can be displayed using --advanced_help\n\n"
-        "Basic command line options", 120, -1
+        "Basic command line options", help_width, help_width - 4
         );
     basic_opt_defs.add_options()
-        ("input_file", value<std::string>(), "multi_cf_reader configuration file identifying simulation"
-            " files to search for atmospheric rivers. when present data is read using the"
-            " multi_cf_reader. use one of either --input_file or --input_regex.")
+        ("input_file", value<std::string>(), "\na teca_multi_cf_reader configuration file"
+            " identifying the set of NetCDF CF2 files to process. When present data is"
+            " read using the teca_multi_cf_reader. Use one of either --input_file or"
+            " --input_regex.\n")
 
-        ("input_regex", value<std::string>(), "cf_reader regex identyifying simulation files to search"
-            " for atmospheric rivers. when present data is read using the"
-            " cf_reader. use one of either --input_file or --input_regex.")
+        ("input_regex", value<std::string>(), "\na teca_cf_reader regex identifying the"
+            " set of NetCDF CF2 files to process. When present data is read using the"
+            " teca_cf_reader. Use one of either --input_file or --input_regex.\n")
 
-        ("x_axis", value<std::string>(), "name of x coordinate variable (lon)")
-        ("y_axis", value<std::string>(), "name of y coordinate variable (lat)")
-        ("z_axis", value<std::string>(), "name of z coordinate variable (plev)")
+        ("x_axis_variable", value<std::string>(), "\nname of x coordinate variable (lon)\n")
+        ("y_axis_variable", value<std::string>(), "\nname of y coordinate variable (lat)\n")
+        ("z_axis_variable", value<std::string>(), "\nname of z coordinate variable (plev)\n")
 
-        ("output_file", value<std::string>(), "file path for output NetCDF CF2 dataset")
-        ("point_arrays", value<std::vector<std::string>>()->multitoken(), "list of point centered arrays to write")
-        ("information_arrays", value<std::vector<std::string>>()->multitoken(), "list of non-geometric arrays to write")
+        ("point_arrays", value<std::vector<std::string>>()->multitoken(),
+            "\nA list of point centered arrays to write\n")
 
-        ("bounds", value<std::vector<double>>()->multitoken(), "lat lon lev bounding box to subset with")
-        ("first_step", value<long>(), "first time step to process")
-        ("last_step", value<long>(), "last time step to process")
-        ("steps_per_file", value<long>(), "number of time steps per output file")
-        ("start_date", value<std::string>(), "first time to proces in YYYY-MM-DD hh:mm:ss format")
-        ("end_date", value<std::string>(), "first time to proces in YYYY-MM-DD hh:mm:ss format")
-        ("n_threads", value<int>(), "thread pool size. default is -1. -1 for all")
-        ("verbose", "enable extra terminal output")
-        ("help", "display the basic options help")
-        ("advanced_help", "display the advanced options help")
-        ("full_help", "display entire help message")
+        ("information_arrays", value<std::vector<std::string>>()->multitoken(),
+            "\nA list of non-geometric arrays to write\n")
+
+        ("output_file", value<std::string>()->default_value(std::string("IVT_%t%.nc")),
+            "\nA path and file name pattern for the output NetCDF files. %t% is replaced with a"
+            " human readable date and time corresponding to the time of the first time step in"
+            " the file. Use --cf_writer::date_format to change the formatting\n")
+
+        ("steps_per_file", value<long>(), "\nnumber of time steps per output file\n")
+
+        ("bounds", value<std::vector<double>>()->multitoken(),
+            "\nlat lon lev bounding box to subset with\n")
+
+        ("first_step", value<long>(), "\nfirst time step to process\n")
+        ("last_step", value<long>(), "\nlast time step to process\n")
+        ("start_date", value<std::string>(), "\nfirst time to proces in YYYY-MM-DD hh:mm:ss format\n")
+        ("end_date", value<std::string>(), "\nfirst time to proces in YYYY-MM-DD hh:mm:ss format\n")
+        ("n_threads", value<int>(), "\nSets the thread pool size on each MPI rank. When the default"
+            " value of -1 is used TECA will coordinate the thread pools across ranks such each"
+            " thread is bound to a unique physical core.\n")
+        ("verbose", "\nenable extra terminal output\n")
+        ("help", "\ndisplays documentation for application specific command line options\n")
+        ("advanced_help", "\ndisplays documentation for algorithm specific command line options\n")
+        ("full_help", "\ndisplays both basic and advanced documentation together\n")
         ;
 
     // add all options from each pipeline stage for more advanced use
@@ -75,7 +90,7 @@ int main(int argc, char **argv)
         "control over all runtime modifiable parameters. The basic options\n"
         "(see" "--help) map to these, and will override them if both are\n"
         "specified.\n\n"
-        "Advanced command line options", -1, 1
+        "Advanced command line options", help_width, help_width - 4
         );
 
     // create the pipeline stages here, they contain the
@@ -96,59 +111,14 @@ int main(int argc, char **argv)
     p_teca_index_executive exec = teca_index_executive::New();
 
     // package basic and advanced options for display
-    options_description all_opt_defs(-1, -1);
+    options_description all_opt_defs(help_width, help_width - 4);
     all_opt_defs.add(basic_opt_defs).add(advanced_opt_defs);
 
     // parse the command line
     variables_map opt_vals;
-    try
+    if (teca_app_util::process_command_line_help(mpi_man.get_comm_rank(),
+        argc, argv, basic_opt_defs, advanced_opt_defs, all_opt_defs, opt_vals))
     {
-        boost::program_options::store(
-            boost::program_options::command_line_parser(argc, argv)
-                .style(boost::program_options::command_line_style::unix_style ^
-                       boost::program_options::command_line_style::allow_short)
-                .options(all_opt_defs)
-                .run(),
-            opt_vals);
-
-        if (mpi_man.get_comm_rank() == 0)
-        {
-            if (opt_vals.count("help"))
-            {
-                std::cerr << std::endl
-                    << "usage: teca_cf_restripe [options]" << std::endl
-                    << std::endl
-                    << basic_opt_defs << std::endl
-                    << std::endl;
-                return -1;
-            }
-            if (opt_vals.count("advanced_help"))
-            {
-                std::cerr << std::endl
-                    << "usage: teca_cf_restripe [options]" << std::endl
-                    << std::endl
-                    << advanced_opt_defs << std::endl
-                    << std::endl;
-                return -1;
-            }
-
-            if (opt_vals.count("full_help"))
-            {
-                std::cerr << std::endl
-                    << "usage: teca_cf_restripe [options]" << std::endl
-                    << std::endl
-                    << all_opt_defs << std::endl
-                    << std::endl;
-                return -1;
-            }
-        }
-
-        boost::program_options::notify(opt_vals);
-    }
-    catch (std::exception &e)
-    {
-        TECA_ERROR("Error parsing command line options. See --help "
-            "for a list of supported options. " << e.what())
         return -1;
     }
 
@@ -175,22 +145,22 @@ int main(int argc, char **argv)
         reader = cf_reader;
     }
 
-    if (opt_vals.count("x_axis"))
+    if (opt_vals.count("x_axis_variable"))
     {
-        cf_reader->set_x_axis_variable(opt_vals["x_axis"].as<std::string>());
-        mcf_reader->set_x_axis_variable(opt_vals["x_axis"].as<std::string>());
+        cf_reader->set_x_axis_variable(opt_vals["x_axis_variable"].as<std::string>());
+        mcf_reader->set_x_axis_variable(opt_vals["x_axis_variable"].as<std::string>());
     }
 
-    if (opt_vals.count("y_axis"))
+    if (opt_vals.count("y_axis_variable"))
     {
-        cf_reader->set_y_axis_variable(opt_vals["y_axis"].as<std::string>());
-        mcf_reader->set_y_axis_variable(opt_vals["y_axis"].as<std::string>());
+        cf_reader->set_y_axis_variable(opt_vals["y_axis_variable"].as<std::string>());
+        mcf_reader->set_y_axis_variable(opt_vals["y_axis_variable"].as<std::string>());
     }
 
-    if (opt_vals.count("z_axis"))
+    if (opt_vals.count("z_axis_variable"))
     {
-        cf_reader->set_z_axis_variable(opt_vals["z_axis"].as<std::string>());
-        mcf_reader->set_z_axis_variable(opt_vals["z_axis"].as<std::string>());
+        cf_reader->set_z_axis_variable(opt_vals["z_axis_variable"].as<std::string>());
+        mcf_reader->set_z_axis_variable(opt_vals["z_axis_variable"].as<std::string>());
     }
 
     if (opt_vals.count("output_file"))

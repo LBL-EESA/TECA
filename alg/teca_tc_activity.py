@@ -135,7 +135,7 @@ class teca_tc_activity(teca_python_algorithm):
     @staticmethod
     def two_digit_year_fmt(x, pos):
         q = int(x)
-        q = q - q/100*100
+        q = q - q // 100 * 100
         return '%02d'%q
 
     @staticmethod
@@ -179,8 +179,8 @@ class teca_tc_activity(teca_python_algorithm):
         rnms += ('Southern','Northern','Global')
 
         n_plots = n_reg + 1
-        n_left = n_plots%n_cols
-        n_rows = n_plots/n_cols + (1 if n_left else 0)
+        n_left = n_plots % n_cols
+        n_rows = n_plots // n_cols + (1 if n_left else 0)
         wid = 2.5*n_cols
         ht = 2.0*n_rows
         reg_t_fig.set_size_inches(wid, ht)
@@ -207,7 +207,8 @@ class teca_tc_activity(teca_python_algorithm):
 
             plt.plot(uyear, var[q::n_reg],'-',color=fill_col[q],linewidth=2)
             ax.set_xticks(uyear[:] if n_year < 10 else uyear[::2])
-            ax.set_xlim([uyear[0], uyear[-1]])
+            if len(uyear) > 1:
+                ax.set_xlim([uyear[0], uyear[-1]])
 
             if self.rel_axes and q < n_reg - 1:
                 ax.set_ylim([0, 1.05*(max_y_reg if q < n_reg - 3 else max_y_hem)])
@@ -256,7 +257,8 @@ class teca_tc_activity(teca_python_algorithm):
             q += 1
 
         ax.set_xticks(uyear[:] if n_year < 15 else uyear[::2])
-        ax.set_xlim([uyear[0], uyear[-1]])
+        if len(uyear) > 1:
+            ax.set_xlim([uyear[0], uyear[-1]])
         plt.grid(True, zorder=0)
 
         ylim = ax.get_ylim()
@@ -290,7 +292,8 @@ class teca_tc_activity(teca_python_algorithm):
             q += 1
 
         ax.set_xticks(uyear[:] if n_year < 15 else uyear[::2])
-        ax.set_xlim([uyear[0], uyear[-1]])
+        if len(uyear) > 1:
+            ax.set_xlim([uyear[0], uyear[-1]])
         plt.grid(True, zorder=0)
 
         ylim = ax.get_ylim()
