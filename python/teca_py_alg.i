@@ -231,10 +231,10 @@
 #endif
 
 /***************************************************************************
- deeplabv3p_ar_detect
+ deeplab_ar_detect
  ***************************************************************************/
 #ifdef TECA_HAS_PYTORCH
-%pythoncode "teca_deeplabv3p_ar_detect.py"
+%pythoncode "teca_deeplab_ar_detect.py"
 #endif
 
 /***************************************************************************

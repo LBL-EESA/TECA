@@ -105,7 +105,7 @@ else:
 coords = teca_normalize_coordinates.New()
 coords.set_input_connection(reader.get_output_port())
 
-ar_detect = teca_deeplabv3p_ar_detect.New()
+ar_detect = teca_deeplab_ar_detect.New()
 ar_detect.set_input_connection(coords.get_output_port())
 ar_detect.set_verbose(args.verbose)
 

@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class teca_deeplabv3p_ar_detect_internals:
+class teca_deeplab_ar_detect_internals:
 
     # Implementation of Google's Deeplab-V3-Plus
     # source: https://arxiv.org/pdf/1802.02611.pdf
@@ -15,7 +15,7 @@ class teca_deeplabv3p_ar_detect_internals:
 
         def __init__(self, inplanes, planes,
                      stride=1, rate=1, downsample=None):
-            super(teca_deeplabv3p_ar_detect_internals.Bottleneck,
+            super(teca_deeplab_ar_detect_internals.Bottleneck,
                   self).__init__()
             self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)
             self.bn1 = nn.BatchNorm2d(planes)
@@ -56,7 +56,7 @@ class teca_deeplabv3p_ar_detect_internals:
     class ResNet(nn.Module):
         def __init__(self, nInputChannels, block, layers, os=16):
             self.inplanes = 64
-            super(teca_deeplabv3p_ar_detect_internals.ResNet, self).__init__()
+            super(teca_deeplab_ar_detect_internals.ResNet, self).__init__()
             if os == 16:
                 strides = [1, 2, 2, 1]
                 rates = [1, 1, 1, 2]
@@ -152,7 +152,7 @@ class teca_deeplabv3p_ar_detect_internals:
 
     class ASPP_module(nn.Module):
         def __init__(self, inplanes, planes, rate):
-            super(teca_deeplabv3p_ar_detect_internals.ASPP_module,
+            super(teca_deeplab_ar_detect_internals.ASPP_module,
                   self).__init__()
             if rate == 1:
                 kernel_size = 1
@@ -193,12 +193,12 @@ class teca_deeplabv3p_ar_detect_internals:
                 sys.stdout.write(
                     "Number of Input Channels: {}\n".format(nInputChannels)
                 )
-            super(teca_deeplabv3p_ar_detect_internals.DeepLabv3_plus,
+            super(teca_deeplab_ar_detect_internals.DeepLabv3_plus,
                   self).__init__()
 
-            self.resnet_features = teca_deeplabv3p_ar_detect_internals.ResNet(
+            self.resnet_features = teca_deeplab_ar_detect_internals.ResNet(
                 nInputChannels,
-                teca_deeplabv3p_ar_detect_internals.Bottleneck,
+                teca_deeplab_ar_detect_internals.Bottleneck,
                 [3, 4, 23, 3], os
                 )
 
@@ -210,13 +210,13 @@ class teca_deeplabv3p_ar_detect_internals:
             else:
                 raise NotImplementedError
 
-            self.aspp1 = teca_deeplabv3p_ar_detect_internals.ASPP_module(
+            self.aspp1 = teca_deeplab_ar_detect_internals.ASPP_module(
                 2048, 256, rate=rates[0])
-            self.aspp2 = teca_deeplabv3p_ar_detect_internals.ASPP_module(
+            self.aspp2 = teca_deeplab_ar_detect_internals.ASPP_module(
                 2048, 256, rate=rates[1])
-            self.aspp3 = teca_deeplabv3p_ar_detect_internals.ASPP_module(
+            self.aspp3 = teca_deeplab_ar_detect_internals.ASPP_module(
                 2048, 256, rate=rates[2])
-            self.aspp4 = teca_deeplabv3p_ar_detect_internals.ASPP_module(
+            self.aspp4 = teca_deeplab_ar_detect_internals.ASPP_module(
                 2048, 256, rate=rates[3])
 
             self.relu = nn.ReLU()
@@ -307,7 +307,7 @@ class teca_deeplabv3p_ar_detect_internals:
                     m.bias.data.zero_()
 
 
-class teca_deeplabv3p_ar_detect(teca_pytorch_algorithm):
+class teca_deeplab_ar_detect(teca_pytorch_algorithm):
     """
     This algorithm detects Atmospheric Rivers using deep learning techniques
     derived from the DeepLabv3+ architecture. Given an input field of
@@ -405,7 +405,7 @@ class teca_deeplabv3p_ar_detect(teca_pytorch_algorithm):
 
         state_dict_deeplab = self.load_state_dict(state_dict_deeplab_file)
 
-        model = teca_deeplabv3p_ar_detect_internals.DeepLabv3_plus(
+        model = teca_deeplab_ar_detect_internals.DeepLabv3_plus(
             n_classes=1, _print=False)
         model.load_state_dict(state_dict_deeplab)
 
