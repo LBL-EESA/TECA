@@ -49,7 +49,7 @@ mav.set_interval(interval)
 mav.set_operator(operator)
 mav.set_point_arrays(arrays)
 mav.set_use_fill_value(use_fill)
-mav.set_verbose(1)
+mav.set_verbose(2)
 mav.set_thread_pool_size(n_threads)
 mav.set_stream_size(2)
 
@@ -68,6 +68,7 @@ if do_test:
     diff = teca_dataset_diff.New()
     diff.set_input_connection(0, bcfr.get_output_port())
     diff.set_input_connection(1, mav.get_output_port())
+    diff.set_tolerance(1e-5)
     diff.set_executive(exe)
 
     diff.update()
