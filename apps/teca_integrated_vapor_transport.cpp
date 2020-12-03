@@ -52,53 +52,51 @@ int main(int argc, char **argv)
             " set of NetCDF CF2 files to process. When present data is read using the"
             " teca_cf_reader. Use one of either --input_file or --input_regex.\n")
 
-        ("specific_humidity", value<string>(),
-            "\nname of variable with the 3D specific humidity field. (Q)\n")
+        ("specific_humidity", value<std::string>()->default_value("Q"),
+            "\nname of variable with the 3D specific humidity field.\n")
 
-        ("wind_u", value<string>()->default_value(std::string("U")),
-            "\nname of variable with the 3D longitudinal component of the wind vector. (U)\n")
+        ("wind_u", value<std::string>()->default_value("U"),
+            "\nname of variable with the 3D longitudinal component of the wind vector.\n")
 
-        ("wind_v", value<string>()->default_value(std::string("V")),
-            "\nname of variable with the 3D latitudinal component of the wind vector. If present IVT vector"
-            " will be computed from 3D wind  and specific humidity fields.\n")
+        ("wind_v", value<std::string>()->default_value("V"),
+            "\nname of variable with the 3D latitudinal component of the wind vector.\n")
 
-        ("ivt_u", value<string>(),
-            "\nname to use for the longitudinal component of the integrated vapor transport vector."
-            " If present the magnitude of IVT will be computed from vector components. (IVT_U)\n")
+        ("ivt_u", value<std::string>()->default_value("IVT_U"),
+            "\nname to use for the longitudinal component of the integrated vapor transport vector.\n")
 
-        ("ivt_v", value<string>(),
-            "\nname to use for the latitudinal component of the integrated vapor transport vector."
-            " If present the magnitude of IVT will be computed from vector components. (IVT_V)\n")
+        ("ivt_v", value<std::string>()->default_value("IVT_V"),
+            "\nname to use for the latitudinal component of the integrated vapor transport vector.\n")
 
-        ("ivt", value<string>(),
+        ("ivt", value<std::string>()->default_value("IVT"),
             "\nname of variable with the magnitude of integrated vapor transport (IVT)\n")
 
         ("write_ivt_magnitude", value<int>()->default_value(0),
             "\nwhen this is set to 1 magnitude of vector IVT is calculated. use --ivt_u and"
             " --ivt_v to set the name of the IVT vector components and --ivt to set the name"
-            " of the result if needed. (0)\n")
+            " of the result if needed.\n")
 
         ("write_ivt", value<int>()->default_value(1),
             "\nwhen this is set to 1 IVT vector is written to disk with the result. use"
             " --ivt_u and --ivt_v to set the name of the IVT vector components of the"
-            " result if needed. (1)\n")
+            " result if needed.\n")
 
-        ("output_file", value<string>()->default_value(std::string("IVT_%t%.nc")),
+        ("output_file", value<std::string>()->default_value("IVT_%t%.nc"),
             "\nA path and file name pattern for the output NetCDF files. %t% is replaced with a"
             " human readable date and time corresponding to the time of the first time step in"
             " the file. Use --cf_writer::date_format to change the formatting\n")
 
-        ("steps_per_file", value<long>(), "\nnumber of time steps per output file\n")
+        ("steps_per_file", value<long>()->default_value(128),
+            "\nnumber of time steps per output file\n")
 
-        ("x_axis_variable", value<string>(), "\nname of x coordinate variable (lon)\n")
-        ("y_axis_variable", value<string>(), "\nname of y coordinate variable (lat)\n")
-        ("z_axis_variable", value<string>(), "\nname of z coordinate variable (plev)\n")
+        ("x_axis_variable", value<std::string>()->default_value("lon"),
+            "\nname of x coordinate variable\n")
+        ("y_axis_variable", value<std::string>()->default_value("lat"),
+            "\nname of y coordinate variable\n")
+        ("z_axis_variable", value<std::string>()->default_value("plev"),
+            "\nname of z coordinate variable\n")
 
-        ("periodic_in_x", value<int>()->default_value(1),
-            "\nFlags whether the x dimension (typically longitude) is periodic.\n")
-
-        ("first_step", value<long>(), "\nfirst time step to process\n")
-        ("last_step", value<long>(), "\nlast time step to process\n")
+        ("first_step", value<long>()->default_value(0), "\nfirst time step to process\n")
+        ("last_step", value<long>()->default_value(-1), "\nlast time step to process\n")
 
         ("start_date", value<std::string>(), "\nThe first time to process in 'Y-M-D h:m:s'"
             " format. Note: There must be a space between the date and time specification\n")
@@ -166,6 +164,7 @@ int main(int argc, char **argv)
     p_teca_cf_writer cf_writer = teca_cf_writer::New();
     cf_writer->get_properties_description("cf_writer", advanced_opt_defs);
     cf_writer->set_verbose(0);
+    cf_writer->set_steps_per_file(128);
 
     // package basic and advanced options for display
     options_description all_opt_defs(-1, -1);
@@ -210,55 +209,49 @@ int main(int argc, char **argv)
     }
     p_teca_algorithm reader = head;
 
-    if (opt_vals.count("periodic_in_x"))
-    {
-        cf_reader->set_periodic_in_x(opt_vals["periodic_in_x"].as<int>());
-        mcf_reader->set_periodic_in_x(opt_vals["periodic_in_x"].as<int>());
-    }
-
-    if (opt_vals.count("x_axis_variable"))
+    if (!opt_vals["x_axis_variable"].defaulted())
     {
         cf_reader->set_x_axis_variable(opt_vals["x_axis_variable"].as<string>());
         mcf_reader->set_x_axis_variable(opt_vals["x_axis_variable"].as<string>());
     }
 
-    if (opt_vals.count("y_axis_variable"))
+    if (!opt_vals["y_axis_variable"].defaulted())
     {
         cf_reader->set_y_axis_variable(opt_vals["y_axis_variable"].as<string>());
         mcf_reader->set_y_axis_variable(opt_vals["y_axis_variable"].as<string>());
     }
 
     // set the inputs to the integrator
-    if (opt_vals.count("wind_u"))
+    if (!opt_vals["wind_u"].defaulted())
     {
         ivt_int->set_wind_u_variable(opt_vals["wind_u"].as<string>());
     }
 
-    if (opt_vals.count("wind_v"))
+    if (!opt_vals["wind_v"].defaulted())
     {
         ivt_int->set_wind_v_variable(opt_vals["wind_v"].as<string>());
     }
 
-    if (opt_vals.count("specific_humidity"))
+    if (!opt_vals["specific_humidity"].defaulted())
     {
         ivt_int->set_specific_humidity_variable(
             opt_vals["specific_humidity"].as<string>());
     }
 
     // set all that use or produce ivt
-    if (opt_vals.count("ivt_u"))
+    if (!opt_vals["ivt_u"].defaulted())
     {
         ivt_int->set_ivt_u_variable(opt_vals["ivt_u"].as<string>());
         l2_norm->set_component_0_variable(opt_vals["ivt_u"].as<string>());
     }
 
-    if (opt_vals.count("ivt_v"))
+    if (!opt_vals["ivt_v"].defaulted())
     {
         ivt_int->set_ivt_v_variable(opt_vals["ivt_v"].as<string>());
         l2_norm->set_component_1_variable(opt_vals["ivt_v"].as<string>());
     }
 
-    if (opt_vals.count("ivt"))
+    if (!opt_vals["ivt"].defaulted())
     {
         l2_norm->set_l2_norm_variable(opt_vals["ivt"].as<string>());
     }
@@ -272,7 +265,7 @@ int main(int argc, char **argv)
     bool do_ivt_magnitude = opt_vals["write_ivt_magnitude"].as<int>();
 
     std::string z_var = "plev";
-    if (opt_vals.count("z_axis_variable"))
+    if (!opt_vals["z_axis_variable"].defaulted())
         z_var = opt_vals["z_axis_variable"].as<string>();
 
     cf_reader->set_z_axis_variable(z_var);
@@ -299,16 +292,15 @@ int main(int argc, char **argv)
     }
     cf_writer->set_point_arrays(point_arrays);
 
-    if (opt_vals.count("output_file"))
-        cf_writer->set_file_name(opt_vals["output_file"].as<string>());
+    cf_writer->set_file_name(opt_vals["output_file"].as<string>());
 
-    if (opt_vals.count("steps_per_file"))
+    if (!opt_vals["steps_per_file"].defaulted())
         cf_writer->set_steps_per_file(opt_vals["steps_per_file"].as<long>());
 
-    if (opt_vals.count("first_step"))
+    if (!opt_vals["first_step"].defaulted())
         cf_writer->set_first_step(opt_vals["first_step"].as<long>());
 
-    if (opt_vals.count("last_step"))
+    if (!opt_vals["last_step"].defaulted())
         cf_writer->set_last_step(opt_vals["last_step"].as<long>());
 
     if (opt_vals.count("verbose"))
@@ -317,7 +309,7 @@ int main(int argc, char **argv)
         exec->set_verbose(1);
     }
 
-    if (opt_vals.count("n_threads"))
+    if (!opt_vals["n_threads"].defaulted())
         cf_writer->set_thread_pool_size(opt_vals["n_threads"].as<int>());
     else
         cf_writer->set_thread_pool_size(-1);
