@@ -5,20 +5,31 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-
 class teca_pytorch_algorithm(teca_python_algorithm):
     """
-    A generic TECA algorithm that provides torch based deep
-    learning feature detecting algorithms with core TECA
-    capabilities for easy integration.
+    A TECA algorithm that provides access to torch. To use this class, derive
+    a new class from it and from your class:
+
+    1. call set input_/output_variable. this tells the pytorch_algorithm
+       which array to process and how to name the result.
+
+    2. call set_model. this installs your torch model. Use load_state_dict
+       to load state dict from the file system in parallel.
+
+    3. override preprocess. The input numpy array is passed in.  return the
+       array to send to torch after applying any preprocessing or transforms.
+
+    4. override postprocess. the tensor returned from torch is passed. return a
+       numpy array with the correct mesh dimensions
+
+    5. Optionally override the usual teca_python_algorithm methods as needed.
+
     """
     def __init__(self):
 
-        self.variable_name = None
-        self.pred_name = None
-        self.var_array = None
-        self.pred_array = None
-        self.inference_function = None
+        self.input_variable = None
+        self.output_variable = None
+
         self.model = None
         self.model_path = None
         self.device = 'cpu'
@@ -26,8 +37,8 @@ class teca_pytorch_algorithm(teca_python_algorithm):
         self.verbose = 0
 
     def __str__(self):
-        ms_str = 'variable_name=%s, pred_name=%s\n' % (
-                  self.variable_name, self.pred_name)
+        ms_str = 'input_variable=%s, output_variable=%s\n' % (
+                  self.input_variable, self.output_variable)
         ms_str += 'model=%s\n' % (str(self.model))
         ms_str += 'model_path=%s\n' % (self.model_path)
         ms_str += 'device=%s\n' % (str(self.device))
@@ -37,7 +48,7 @@ class teca_pytorch_algorithm(teca_python_algorithm):
 
         return ms_str
 
-    def load_state_dict(self, state_dict_file):
+    def load_state_dict(self, filename):
         """
         Load only the pytorch state_dict parameters file only
         once and broadcast it to all ranks
@@ -47,9 +58,8 @@ class teca_pytorch_algorithm(teca_python_algorithm):
 
         sd = None
         if rank == 0:
-            sd = torch.load(state_dict_file,
-                            map_location=lambda storage,
-                            loc: storage)
+            sd = torch.load(filename,
+                            map_location=lambda storage, loc: storage)
 
         sd = comm.bcast(sd, root=0)
 
@@ -62,31 +72,37 @@ class teca_pytorch_algorithm(teca_python_algorithm):
         """
         self.verbose = val
 
-    def set_variable_name(self, name):
+    def set_input_variable(self, name):
         """
         set the variable name that will be inputed to the model
         """
-        self.variable_name = str(name)
-        if self.pred_name is None:
-            self.set_pred_name(self.variable_name + '_pred')
+        self.input_variable = name
 
-    def set_pred_name(self, name):
+        if self.output_variable is None:
+            self.set_output_variable(self.input_variable + '_pred')
+
+    def set_output_variable(self, name):
         """
         set the variable name that will be the output to the model
         """
-        self.pred_name = name
+        self.output_variable = name
 
-    def set_inference_function(self, fn):
+    def preprocess(self, in_array):
         """
-        set the final inference function. ex. torch.sigmoid()
+        Override this to preprocess the passed in array before it is passed to
+        torch. The passed array has the shape of the input/output mesh. the
+        default implementation does nothing.
         """
-        self.inference_function = fn
+        return in_array
 
-    def input_preprocess(self, input_data):
-        return input_data
-
-    def output_postprocess(self, output_data):
-        return output_data
+    def postprocess(self, out_tensor):
+        """
+        Override this to postprocess the tensor data returned from torch.
+        return the result as a numpy array. the return should be sized
+        compatibly with the output mesh. The default implementation converts
+        the tensor to a ndarray.
+        """
+        return out_tensor.numpy()
 
     def set_threads_per_core(self, threads_per_core):
         """
@@ -142,7 +158,8 @@ class teca_pytorch_algorithm(teca_python_algorithm):
                 if rank == 0:
                     sys.stderr.write('STATUS: Failed to determine the number '
                                      'of physical cores available per MPI '
-                                     'rank.')
+                                     'rank.\n')
+                    sys.stderr.flush()
 
         # print a report describing the load balancing decisions
         if self.verbose:
@@ -181,18 +198,28 @@ class teca_pytorch_algorithm(teca_python_algorithm):
         self.model.eval()
 
     def report(self, port, rep_in):
+
+        # check for required parameters.
+        if self.model is None:
+            raise RuntimeError('A torch model has not been specified')
+
+        if self.input_variable is None:
+            raise RuntimeError('input_variable has not been specified')
+
+        if self.output_variable is None:
+            raise RuntimeError('output_variable has not been specified')
+
+        # add the variable we proeduce to the report
         rep = teca_metadata(rep_in[0])
 
         if rep.has('variables'):
-            rep.append('variables', self.pred_name)
+            rep.append('variables', self.output_variable)
         else:
-            rep.set('variables', self.pred_name)
+            rep.set('variables', self.output_variable)
 
         return rep
 
     def request(self, port, md_in, req_in):
-        if not self.variable_name:
-            raise RuntimeError("No variable to request specifed")
 
         req = teca_metadata(req_in)
 
@@ -204,12 +231,12 @@ class teca_pytorch_algorithm(teca_python_algorithm):
 
         # remove the arrays we produce
         try:
-            arrays.remove(self.pred_name)
+            arrays.remove(self.output_variable)
         except(Exception):
             pass
 
         # add the arrays we need
-        arrays.append(self.variable_name)
+        arrays.append(self.input_variable)
 
         req['arrays'] = arrays
 
@@ -221,40 +248,41 @@ class teca_pytorch_algorithm(teca_python_algorithm):
         the torch model and get the segmentation results as an
         output.
         """
+
+        # get the input array and reshape it to a 2D layout that's compatible
+        # with numpy and torch
         in_mesh = as_teca_cartesian_mesh(data_in[0])
 
         if in_mesh is None:
             raise RuntimeError('empty input, or not a mesh')
 
-        if self.model is None:
-            raise RuntimeError('A pretrained model has not been specified')
+        arrays = in_mesh.get_point_arrays()
+        in_va = arrays[self.input_variable]
 
-        if self.variable_name is None:
-            raise RuntimeError('variable_name has not been specified')
+        ext = in_mesh.get_extent()
+        in_va.shape = (ext[3] - ext[2] + 1,
+                       ext[1] - ext[0] + 1)
 
-        if self.var_array is None:
-            raise RuntimeError('data variable array has not been set')
+        # let the derived class do model specific preprocessing
+        in_array = self.preprocess(in_va)
 
-        if self.inference_function is None:
-            raise RuntimeError('The inference function has not been set')
-
-        self.var_array = self.input_preprocess(self.var_array)
-
-        self.var_array = torch.from_numpy(self.var_array).to(self.device)
+        # send to torch for processing
+        in_tensor = torch.from_numpy(in_array).to(self.device)
 
         with torch.no_grad():
-            self.pred_array = \
-                self.inference_function(self.model(self.var_array))
+            out_tensor = self.model(in_tensor)
 
-        if self.pred_array is None:
+        if out_tensor is None:
             raise RuntimeError("Model failed to get predictions")
 
-        self.pred_array = self.output_postprocess(self.pred_array)
+        # let the derived class do model specific posprocessing
+        out_array = self.postprocess(out_tensor)
 
+        # build the output
         out_mesh = teca_cartesian_mesh.New()
         out_mesh.shallow_copy(in_mesh)
 
-        self.pred_array = teca_variant_array.New(self.pred_array)
-        out_mesh.get_point_arrays().set(self.pred_name, self.pred_array)
+        out_va = teca_variant_array.New(out_array)
+        out_mesh.get_point_arrays().set(self.output_variable, out_va)
 
         return out_mesh

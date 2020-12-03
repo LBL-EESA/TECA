@@ -311,106 +311,99 @@ class teca_deeplab_ar_detect(teca_pytorch_algorithm):
     """
     This algorithm detects Atmospheric Rivers using deep learning techniques
     derived from the DeepLabv3+ architecture. Given an input field of
-    integrated vapor transport (IVT), it calculates the probability of an AR
-    event and stores it in a new scalar field named 'ar_probability'.
+    integrated vapor transport (IVT) magnitude, it calculates the probability
+    of an AR event and stores it in a new scalar field named 'ar_probability'.
     """
     def __init__(self):
         super().__init__()
-        # inner config data needed for pre & post processing for
-        # the input and its prediction
-        self.mesh_ny = None
-        self.mesh_nx = None
-        self.padding_amount_y = None
-        self.padding_amount_x = None
-        self.set_variable_name("IVT")
-        self.set_pred_name("ar_probability")
 
-    def set_mesh_dims(self, mesh_ny, mesh_nx):
-        self.mesh_ny = mesh_ny
-        self.mesh_nx = mesh_nx
+        self.set_input_variable("IVT")
+        self.set_output_variable("ar_probability")
 
-    def set_padding_atts(self):
-        target_shape = 128 * np.ceil(self.mesh_ny / 128.0)
-        target_shape_diff = target_shape - self.mesh_ny
-
-        self.padding_amount_y = (int(np.ceil(target_shape_diff / 2.0)),
-                                 int(np.floor(target_shape_diff / 2.0)))
-
-        target_shape = 64 * np.ceil(self.mesh_nx/64.0)
-        target_shape_diff = target_shape - self.mesh_nx
-
-        self.padding_amount_x = (int(np.ceil(target_shape_diff / 2.0)),
-                                 int(np.floor(target_shape_diff / 2.0)))
-
-    def input_preprocess(self, input_data):
+    def set_ivt_variable(self, var):
         """
-        Necessary data preprocessing before inputing it into
-        the model. The preprocessing is padding the data and
-        converting it into 3 channels
+        set the name of the variable containing the integrated vapor
+        transport(IVT) magnitude field.
         """
-        self.set_padding_atts()
+        self.set_input_variable(var)
 
-        input_data = np.reshape(self.var_array,
-                                [1, self.mesh_ny, self.mesh_nx])
-
-        input_data = np.pad(input_data, ((0, 0), self.padding_amount_y,
-                            (0, 0)), 'constant', constant_values=0)
-
-        input_data = np.pad(input_data, ((0, 0), (0, 0),
-                            self.padding_amount_x), 'constant',
-                            constant_values=0)
-
-        input_data = input_data.astype('float32')
-
-        transformed_input_data = np.zeros((1, 3, input_data.shape[1],
-                                          input_data.shape[2]),
-                                          dtype=np.float32)
-
-        for i in range(3):
-            transformed_input_data[0, i, ...] = input_data
-
-        return transformed_input_data
-
-    def output_postprocess(self, ouput_data):
+    def load_model(self, filename):
         """
-        post-processing the model output. This is
-        necessary to unpad the output to fit the netcdf
-        dimensions
+        Load model from file system. In MPI parallel runs rank 0
+        loads the model file and broadcasts it to the other ranks.
         """
-        # unpadding the padded zeros
-        y_start = self.padding_amount_y[0]
-        y_end = ouput_data.shape[2] - self.padding_amount_y[1]
-        x_start = self.padding_amount_x[0]
-        x_end = ouput_data.shape[3] - self.padding_amount_x[1]
-
-        ouput_data = ouput_data.numpy()
-        ouput_data = ouput_data[:, :, y_start:y_end, x_start:x_end]
-
-        return ouput_data.ravel()
-
-    def build_model(self, state_dict_deeplab_file=None):
-        """
-        Load model from file system. If multi-threading is used rank 0
-        loads the model file and broadcasts it to the other ranks
-        """
-        if not state_dict_deeplab_file:
-            deeplab_sd_path = \
-                "cascade_deeplab_IVT.pt"
-            state_dict_deeplab_file = os.path.join(
-                get_teca_data_root(),
-                deeplab_sd_path
-                )
-
-        comm = self.get_communicator()
-
-        state_dict_deeplab = self.load_state_dict(state_dict_deeplab_file)
+        state_dict_deeplab = self.load_state_dict(filename)
 
         model = teca_deeplab_ar_detect_internals.DeepLabv3_plus(
             n_classes=1, _print=False)
+
         model.load_state_dict(state_dict_deeplab)
 
         self.set_model(model)
-        self.inference_function = torch.sigmoid
+
+    def get_padding_sizes(self, div, dim):
+        """
+        given a divisor(div) and an input mesh dimension(dim)
+        returns a tuple of values holding the number of values to
+        add onto the low and high sides of the mesh to make the mesh
+        dimension evely divisible by the divisor
+        """
+        # ghost cells in the y direction
+        target_shape = div * np.ceil(dim / div)
+        target_shape_diff = target_shape - dim
+
+        pad_low = int(np.ceil(target_shape_diff / 2.0))
+        pad_high = int(np.floor(target_shape_diff / 2.0))
+
+        return pad_low, pad_high
+
+    def preprocess(self, in_array):
+        """
+        resize the array to be a multiple of 64 in the y direction and 128 in
+        the x direction amd convert to 3 channel (i.e. RGB image like)
+        """
+        nx_in = in_array.shape[1]
+        ny_in = in_array.shape[0]
+
+        # get the padding sizes to make the mesh evenly divisible by 64 in the
+        # x direction and 128 in the y direction
+        ng_x0, ng_x1 = self.get_padding_sizes(64.0, nx_in)
+        ng_y0, ng_y1 = self.get_padding_sizes(128.0, ny_in)
+
+        nx_out = ng_x0 + ng_x1 + nx_in
+        ny_out = ng_y0 + ng_y1 + ny_in
+
+        # allocate a new larger array
+        out_array = np.zeros((1, 3, ny_out, nx_out), dtype=np.float32)
+
+        # copy the input array into the center
+        out_array[:, :, ng_y0 : ng_y0 + ny_in,
+                  ng_x0 : ng_x0 + nx_in] = in_array
+
+        # cache the padding info in order to extract the result
+        self.ng_x0 = ng_x0
+        self.ng_y0 = ng_y0
+        self.nx_in = nx_in
+        self.ny_in = ny_in
+
+        return out_array
+
+    def postprocess(self, out_tensor):
+        """
+        convert the tensor to a numpy array and extract the output data from
+        the padded tensor. padding was added during preprocess.
+        """
+        # normalize the raw model output
+        tmp = torch.sigmoid(out_tensor)
+
+        # convert from torch tensor to numpy ndarray
+        out_array = tmp.numpy()
+
+        # extract the valid protion of the result
+        out_array = out_array[:, :, self.ng_y0 : self.ng_y0 + self.ny_in,
+                              self.ng_x0 : self.ng_x0 + self.nx_in]
+
+        return out_array
 
     def report(self, port, md_in):
         """
@@ -430,30 +423,3 @@ class teca_deeplab_ar_detect(teca_pytorch_algorithm):
         md_out["attributes"] = attributes
 
         return md_out
-
-    def execute(self, port, data_in, req):
-        """
-        expects an array of an input variable to run through
-        the torch model and get the segmentation results as an
-        output.
-        """
-        in_mesh = as_teca_cartesian_mesh(data_in[0])
-
-        if in_mesh is None:
-            raise ValueError("empty input, or not a mesh")
-
-        if self.model is None:
-            raise ValueError("pretrained model has not been specified")
-
-        md = in_mesh.get_metadata()
-        ext = md["extent"]
-
-        nlat = int(ext[3]-ext[2]+1)
-        nlon = int(ext[1]-ext[0]+1)
-        self.set_mesh_dims(nlat, nlon)
-
-        arrays = in_mesh.get_point_arrays()
-        self.var_array = arrays[self.variable_name]
-
-        out_mesh = super().execute(port, data_in, req)
-        return out_mesh
