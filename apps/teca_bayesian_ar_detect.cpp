@@ -53,41 +53,43 @@ int main(int argc, char **argv)
             " set of NetCDF CF2 files to process. When present data is read using the"
             " teca_cf_reader. Use one of either --input_file or --input_regex.\n")
 
-        ("ivt", value<string>(),
+        ("ivt", value<std::string>(),
             "\nname of variable with the magnitude of integrated vapor transport (IVT)\n")
 
-        ("compute_ivt_magnitude", "\nwhen this flag is present magnitude of vector IVT is calculated."
-            " use --ivt_u and --ivt_v to set the name of the IVT vector components if needed.\n")
-        ("ivt_u", value<string>(),
-            "\nname of variable with longitudinal component of the integrated vapor transport vector. (IVT_U)\n")
-        ("ivt_v", value<string>(),
-            "\nname of variable with latitudinal component of the integrated vapor transport vector. (IVT_V)\n")
-        ("write_ivt_magnitude", "\nwhen this flag is present IVT magnitude is written to disk with the AR"
-            " detector results\n")
+        ("compute_ivt_magnitude", "\nwhen this flag is present magnitude of vector"
+            " IVT is calculated. use --ivt_u and --ivt_v to set the name of the IVT"
+            " vector components if needed.\n")
+        ("ivt_u", value<std::string>(),
+            "\nname of variable with longitudinal component of the integrated vapor"
+            " transport vector. (IVT_U)\n")
+        ("ivt_v", value<std::string>(),
+            "\nname of variable with latitudinal component of the integrated vapor"
+            " transport vector. (IVT_V)\n")
+        ("write_ivt_magnitude", "\nwhen this flag is present IVT magnitude is"
+            " written to disk with the AR detector results\n")
 
-        ("compute_ivt", "\nwhen this flag is present IVT vector is calculated from specific humidity, and"
-            " wind vector components. use --specific_humidity --wind_u and --wind_v to set the name of the"
-            " specific humidity and wind vector components, and --ivt_u and --ivt_v to control the names of"
+        ("compute_ivt", "\nwhen this flag is present IVT vector is calculated from"
+            " specific humidity, and wind vector components. use --specific_humidity"
+            " --wind_u and --wind_v to set the name of the specific humidity and wind"
+            " vector components, and --ivt_u and --ivt_v to control the names of"
             " the results, if needed.\n")
-        ("specific_humidity", value<string>(),
-            "\nname of variable with the 3D specific humidity field. If present IVT vector will be computed"
-            " from 3D wind  and specific humidity fields.\n")
-        ("wind_u", value<string>()->default_value(std::string("U")),
-            "\nname of variable with the 3D longitudinal component of the wind vector. If present IVT vector"
-            " will be computed from 3D wind  and specific humidity fields.\n")
-        ("wind_v", value<string>()->default_value(std::string("V")),
-            "\nname of variable with the 3D latitudinal component of the wind vector. If present IVT vector"
-            " will be computed from 3D wind  and specific humidity fields.\n")
-        ("write_ivt", "\nwhen this flag is present IVT vector is written to disk with the result\n")
+        ("specific_humidity", value<std::string>(),
+            "\nname of variable with the 3D specific humidity field.(Q)")
+        ("wind_u", value<std::string>(),
+            "\nname of variable with the 3D longitudinal component of the wind vector. (U)")
+        ("wind_v", value<std::string>(),
+            "\nname of variable with the 3D latitudinal component of the wind vector. (V)")
+        ("write_ivt", "\nwhen this flag is present IVT vector is written to disk with"
+            " the result\n")
 
-        ("x_axis_variable", value<string>(), "\nname of x coordinate variable (lon)\n")
-        ("y_axis_variable", value<string>(), "\nname of y coordinate variable (lat)\n")
-        ("z_axis_variable", value<string>(), "\nname of z coordinate variable (plev)\n")
+        ("x_axis_variable", value<std::string>(), "\nname of x coordinate variable (lon)\n")
+        ("y_axis_variable", value<std::string>(), "\nname of y coordinate variable (lat)\n")
+        ("z_axis_variable", value<std::string>(), "\nname of z coordinate variable (plev)\n")
 
         ("binary_ar_threshold", value<double>()->default_value(2.0/3.0,"0.667"),
             "\nprobability threshold for segmenting ar_probability to produce ar_binary_tag\n")
 
-        ("output_file", value<string>()->default_value(std::string("CASCADE_BARD_%t%.nc")),
+        ("output_file", value<std::string>()->default_value(std::string("CASCADE_BARD_%t%.nc")),
             "\nA path and file name pattern for the output NetCDF files. %t% is replaced with a"
             " human readable date and time corresponding to the time of the first time step in"
             " the file. Use --cf_writer::date_format to change the formatting\n")
