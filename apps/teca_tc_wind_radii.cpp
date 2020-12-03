@@ -42,7 +42,7 @@ int main(int argc, char **argv)
         "Basic command line options", help_width, help_width - 4
         );
     basic_opt_defs.add_options()
-        ("track_file", value<std::string>(), "\nA file containing cyclone tracks (tracks.bin)\n")
+        ("track_file", value<std::string>(), "\na file containing cyclone tracks (tracks.bin)\n")
 
         ("input_file", value<std::string>(), "\na teca_multi_cf_reader configuration file"
             " identifying the set of NetCDF CF2 files to process. When present data is"
@@ -55,18 +55,23 @@ int main(int argc, char **argv)
 
         ("wind_files", value<std::string>(), "\na synonym for --input_regex.\n")
 
-        ("track_file_out", value<std::string>(), "\nfile path to write cyclone tracks with size (tracks_size.bin)\n")
-        ("wind_u_var", value<std::string>(), "\nname of variable with wind x-component (UBOT)\n")
-        ("wind_v_var", value<std::string>(), "\nname of variable with wind y-component (VBOT)\n")
-        ("track_mask", value<std::string>(), "\nAn expression to filter tracks by ()\n")
-        ("number_of_bins", value<int>(), "\nnumber of bins in the radial wind decomposition (32)\n")
-        ("profile_type", value<std::string>(), "\nradial wind profile type. max or avg (avg)\n")
-        ("search_radius", value<double>(), "\nsize of search window in degrees (6)\n")
-        ("first_track", value<long>(), "\nfirst track to process\n")
-        ("last_track", value<long>(), "\nlast track to process\n")
-        ("n_threads", value<int>(), "\nSets the thread pool size on each MPI rank. When the default"
-            " value of -1 is used TECA will coordinate the thread pools across ranks such each"
-            " thread is bound to a unique physical core.\n")
+        ("track_file_out", value<std::string>()->default_value("tracks_size.bin"),
+            "\nfile path to write cyclone tracks with size\n")
+
+        ("wind_u_var", value<std::string>()->default_value("UBOT"), "\nname of variable with wind x-component\n")
+        ("wind_v_var", value<std::string>()->default_value("VBOT"), "\nname of variable with wind y-component\n")
+        ("track_mask", value<std::string>(), "\nAn expression to filter tracks by\n")
+        ("number_of_bins", value<int>()->default_value(32), "\nnumber of bins in the radial wind decomposition\n")
+        ("profile_type", value<std::string>()->default_value("avg"), "\nradial wind profile type. max or avg\n")
+        ("search_radius", value<double>()->default_value(6), "\nsize of search window in decimal degrees\n")
+
+        ("first_track", value<long>()->default_value(0), "\nfirst track to process\n")
+        ("last_track", value<long>()->default_value(-1), "\nlast track to process\n")
+
+        ("n_threads", value<int>()->default_value(-1), "\nSets the thread pool size on each"
+            " MPI rank. When the default value of -1 is used TECA will coordinate the thread"
+            " pools across ranks such each thread is bound to a unique physical core.\n")
+
         ("help", "\ndisplays documentation for application specific command line options\n")
         ("advanced_help", "\ndisplays documentation for algorithm specific command line options\n")
         ("full_help", "\ndisplays both basic and advanced documentation together\n")
@@ -151,7 +156,7 @@ int main(int argc, char **argv)
 
     // now pass in the basic options, these are processed
     // last so that they will take precedence
-    if (opt_vals.count("track_file"))
+    if (!opt_vals["track_file"].defaulted())
         track_reader->set_file_name(opt_vals["track_file"].as<std::string>());
 
     bool have_file = opt_vals.count("input_file");
@@ -175,7 +180,7 @@ int main(int argc, char **argv)
         wind_reader = cf_reader;
     }
 
-    if (opt_vals.count("track_file_out"))
+    if (!opt_vals["track_file_out"].defaulted())
         track_writer->set_file_name(opt_vals["track_file_out"].as<std::string>());
 
     p_teca_algorithm track_input;
@@ -190,16 +195,16 @@ int main(int argc, char **argv)
         track_input = track_reader;
     }
 
-    if (opt_vals.count("wind_u_var"))
+    if (!opt_vals["wind_u_var"].defaulted())
         wind_radii->set_wind_u_variable(opt_vals["wind_u_var"].as<std::string>());
 
-    if (opt_vals.count("wind_v_var"))
+    if (!opt_vals["wind_v_var"].defaulted())
         wind_radii->set_wind_v_variable(opt_vals["wind_v_var"].as<std::string>());
 
-    if (opt_vals.count("n_radial_bins"))
+    if (!opt_vals["n_radial_bins"].defaulted())
         wind_radii->set_number_of_radial_bins(opt_vals["n_radial_bins"].as<int>());
 
-    if (opt_vals.count("profile_type"))
+    if (!opt_vals["profile_type"].defaulted())
     {
         std::string profile_type = opt_vals["profile_type"].as<std::string>();
         if (profile_type == "avg")
@@ -217,16 +222,16 @@ int main(int argc, char **argv)
         }
     }
 
-    if (opt_vals.count("search_radius"))
+    if (!opt_vals["search_radius"].defaulted())
         wind_radii->set_search_radius(opt_vals["search_radius"].as<double>());
 
-    if (opt_vals.count("first_track"))
+    if (!opt_vals["first_track"].defaulted())
         map_reduce->set_start_index(opt_vals["first_track"].as<long>());
 
-    if (opt_vals.count("last_track"))
+    if (!opt_vals["last_track"].defaulted())
         map_reduce->set_end_index(opt_vals["last_track"].as<long>());
 
-    if (opt_vals.count("n_threads"))
+    if (!opt_vals["n_threads"].defaulted())
         map_reduce->set_thread_pool_size(opt_vals["n_threads"].as<int>());
     else
         map_reduce->set_thread_pool_size(-1);
