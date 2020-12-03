@@ -53,18 +53,18 @@ int main(int argc, char **argv)
             " set of NetCDF CF2 files to process. When present data is read using the"
             " teca_cf_reader. Use one of either --input_file or --input_regex.\n")
 
-        ("ivt", value<std::string>(),
-            "\nname of variable with the magnitude of integrated vapor transport (IVT)\n")
+        ("ivt", value<std::string>()->default_value(std::string("IVT")),
+            "\nname of variable with the magnitude of integrated vapor transport\n")
 
         ("compute_ivt_magnitude", "\nwhen this flag is present magnitude of vector"
             " IVT is calculated. use --ivt_u and --ivt_v to set the name of the IVT"
             " vector components if needed.\n")
-        ("ivt_u", value<std::string>(),
+        ("ivt_u", value<std::string>()->default_value(std::string("IVT_U")),
             "\nname of variable with longitudinal component of the integrated vapor"
-            " transport vector. (IVT_U)\n")
-        ("ivt_v", value<std::string>(),
+            " transport vector.\n")
+        ("ivt_v", value<std::string>()->default_value(std::string("IVT_V")),
             "\nname of variable with latitudinal component of the integrated vapor"
-            " transport vector. (IVT_V)\n")
+            " transport vector.\n")
         ("write_ivt_magnitude", "\nwhen this flag is present IVT magnitude is"
             " written to disk with the AR detector results\n")
 
@@ -73,18 +73,24 @@ int main(int argc, char **argv)
             " --wind_u and --wind_v to set the name of the specific humidity and wind"
             " vector components, and --ivt_u and --ivt_v to control the names of"
             " the results, if needed.\n")
-        ("specific_humidity", value<std::string>(),
-            "\nname of variable with the 3D specific humidity field.(Q)")
-        ("wind_u", value<std::string>(),
-            "\nname of variable with the 3D longitudinal component of the wind vector. (U)")
-        ("wind_v", value<std::string>(),
-            "\nname of variable with the 3D latitudinal component of the wind vector. (V)")
+        ("specific_humidity", value<std::string>()->default_value(std::string("Q")),
+            "\nname of variable with the 3D specific humidity field.(Q)\n")
+        ("wind_u", value<std::string>()->default_value(std::string("U")),
+            "\nname of variable with the 3D longitudinal component of the wind vector.\n")
+        ("wind_v", value<std::string>()->default_value(std::string("V")),
+            "\nname of variable with the 3D latitudinal component of the wind vector.\n")
         ("write_ivt", "\nwhen this flag is present IVT vector is written to disk with"
             " the result\n")
 
-        ("x_axis_variable", value<std::string>(), "\nname of x coordinate variable (lon)\n")
-        ("y_axis_variable", value<std::string>(), "\nname of y coordinate variable (lat)\n")
-        ("z_axis_variable", value<std::string>(), "\nname of z coordinate variable (plev)\n")
+        ("x_axis_variable", value<std::string>()->default_value("lon"),
+            "\nname of x coordinate variable\n")
+        ("y_axis_variable", value<std::string>()->default_value("lat"),
+            "\nname of y coordinate variable\n")
+        ("z_axis_variable", value<std::string>()->default_value("plev"),
+            "\nname of z coordinate variable\n")
+
+        ("periodic_in_x", value<int>()->default_value(1),
+            "\nFlags whether the x dimension (typically longitude) is periodic.\n")
 
         ("binary_ar_threshold", value<double>()->default_value(2.0/3.0,"0.667"),
             "\nprobability threshold for segmenting ar_probability to produce ar_binary_tag\n")
@@ -94,19 +100,20 @@ int main(int argc, char **argv)
             " human readable date and time corresponding to the time of the first time step in"
             " the file. Use --cf_writer::date_format to change the formatting\n")
 
-        ("first_step", value<long>(), "\nfirst time step to process\n")
-        ("last_step", value<long>(), "\nlast time step to process\n")
-        ("steps_per_file", value<long>(), "\nnumber of time steps per output file\n")
+        ("steps_per_file", value<long>()->default_value(128),
+            "\nnumber of time steps per output file\n")
+
+        ("first_step", value<long>()->default_value(0), "\nfirst time step to process\n")
+        ("last_step", value<long>()->default_value(-1), "\nlast time step to process\n")
 
         ("start_date", value<std::string>(), "\nThe first time to process in 'Y-M-D h:m:s'"
             " format. Note: There must be a space between the date and time specification\n")
         ("end_date", value<std::string>(), "\nThe last time to process in 'Y-M-D h:m:s' format\n")
 
-        ("n_threads", value<int>(), "\nSets the thread pool size on each MPI rank. When the default"
-            " value of -1 is used TECA will coordinate the thread pools across ranks such each"
-            " thread is bound to a unique physical core.\n")
-        ("periodic_in_x", value<int>()->default_value(1),
-            "\nFlags whether the x dimension (typically longitude) is periodic.\n")
+        ("n_threads", value<int>()->default_value(-1), "\nSets the thread pool size on each"
+            " MPI rank. When the default value of -1 is used TECA will coordinate the thread"
+            " pools across ranks such each thread is bound to a unique physical core.\n")
+
         ("verbose", "\nenable extra terminal output\n")
         ("help", "\ndisplays documentation for application specific command line options\n")
         ("advanced_help", "\ndisplays documentation for algorithm specific command line options\n")
@@ -130,6 +137,7 @@ int main(int argc, char **argv)
     // them. while we are at it connect the pipeline
     p_teca_cf_reader cf_reader = teca_cf_reader::New();
     cf_reader->get_properties_description("cf_reader", advanced_opt_defs);
+    cf_reader->set_periodic_in_x(1);
 
     p_teca_multi_cf_reader mcf_reader = teca_multi_cf_reader::New();
     mcf_reader->get_properties_description("mcf_reader", advanced_opt_defs);
@@ -178,8 +186,9 @@ int main(int argc, char **argv)
     // Add the writer
     p_teca_cf_writer cf_writer = teca_cf_writer::New();
     cf_writer->get_properties_description("cf_writer", advanced_opt_defs);
-    cf_writer->set_thread_pool_size(1);
     cf_writer->set_verbose(0);
+    cf_writer->set_thread_pool_size(1);
+    cf_writer->set_steps_per_file(128);
 
     // package basic and advanced options for display
     options_description all_opt_defs(help_width, help_width - 4);
@@ -227,55 +236,55 @@ int main(int argc, char **argv)
     }
     p_teca_algorithm reader = head;
 
-    if (opt_vals.count("periodic_in_x"))
+    if (!opt_vals["periodic_in_x"].defaulted())
     {
         cf_reader->set_periodic_in_x(opt_vals["periodic_in_x"].as<int>());
         mcf_reader->set_periodic_in_x(opt_vals["periodic_in_x"].as<int>());
     }
 
-    if (opt_vals.count("x_axis_variable"))
+    if (!opt_vals["x_axis_variable"].defaulted())
     {
         cf_reader->set_x_axis_variable(opt_vals["x_axis_variable"].as<string>());
         mcf_reader->set_x_axis_variable(opt_vals["x_axis_variable"].as<string>());
     }
 
-    if (opt_vals.count("y_axis_variable"))
+    if (!opt_vals["y_axis_variable"].defaulted())
     {
         cf_reader->set_y_axis_variable(opt_vals["y_axis_variable"].as<string>());
         mcf_reader->set_y_axis_variable(opt_vals["y_axis_variable"].as<string>());
     }
 
     // set the inputs to the integrator
-    if (opt_vals.count("wind_u"))
+    if (!opt_vals["wind_u"].defaulted())
     {
         ivt_int->set_wind_u_variable(opt_vals["wind_u"].as<string>());
     }
 
-    if (opt_vals.count("wind_v"))
+    if (!opt_vals["wind_v"].defaulted())
     {
         ivt_int->set_wind_v_variable(opt_vals["wind_v"].as<string>());
     }
 
-    if (opt_vals.count("specific_humidity"))
+    if (!opt_vals["specific_humidity"].defaulted())
     {
         ivt_int->set_specific_humidity_variable(
             opt_vals["specific_humidity"].as<string>());
     }
 
     // set all that use or produce ivt
-    if (opt_vals.count("ivt_u"))
+    if (!opt_vals["ivt_u"].defaulted())
     {
         ivt_int->set_ivt_u_variable(opt_vals["ivt_u"].as<string>());
         l2_norm->set_component_0_variable(opt_vals["ivt_u"].as<string>());
     }
 
-    if (opt_vals.count("ivt_v"))
+    if (!opt_vals["ivt_v"].defaulted())
     {
         ivt_int->set_ivt_v_variable(opt_vals["ivt_v"].as<string>());
         l2_norm->set_component_1_variable(opt_vals["ivt_v"].as<string>());
     }
 
-    if (opt_vals.count("ivt"))
+    if (!opt_vals["ivt"].defaulted())
     {
         l2_norm->set_l2_norm_variable(opt_vals["ivt"].as<string>());
         ar_detect->set_ivt_variable(opt_vals["ivt"].as<string>());
@@ -288,7 +297,7 @@ int main(int argc, char **argv)
     if (do_ivt)
     {
         std::string z_var = "plev";
-        if (opt_vals.count("z_axis_variable"))
+        if (!opt_vals["z_axis_variable"].defaulted())
             z_var = opt_vals["z_axis_variable"].as<string>();
 
         cf_reader->set_z_axis_variable(z_var);
@@ -323,16 +332,16 @@ int main(int argc, char **argv)
     cf_writer->set_point_arrays(point_arrays);
 
 
-    if (opt_vals.count("output_file"))
+    if (!opt_vals["output_file"].defaulted())
         cf_writer->set_file_name(opt_vals["output_file"].as<string>());
 
-    if (opt_vals.count("steps_per_file"))
+    if (!opt_vals["steps_per_file"].defaulted())
         cf_writer->set_steps_per_file(opt_vals["steps_per_file"].as<long>());
 
-    if (opt_vals.count("first_step"))
+    if (!opt_vals["first_step"].defaulted())
         cf_writer->set_first_step(opt_vals["first_step"].as<long>());
 
-    if (opt_vals.count("last_step"))
+    if (!opt_vals["last_step"].defaulted())
         cf_writer->set_last_step(opt_vals["last_step"].as<long>());
 
     if (opt_vals.count("verbose"))
@@ -342,7 +351,7 @@ int main(int argc, char **argv)
         exec->set_verbose(1);
     }
 
-    if (opt_vals.count("n_threads"))
+    if (!opt_vals["n_threads"].defaulted())
         ar_detect->set_thread_pool_size(opt_vals["n_threads"].as<int>());
     else
         ar_detect->set_thread_pool_size(-1);
