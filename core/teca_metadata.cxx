@@ -143,6 +143,19 @@ int teca_metadata::get_name(unsigned long i, std::string &name) const
 }
 
 // --------------------------------------------------------------------------
+int teca_metadata::get_names(std::vector<std::string> &names) const
+{
+    prop_map_t::const_iterator it = this->props.cbegin();
+    prop_map_t::const_iterator end = this->props.cend();
+    for (; it != end; ++it)
+    {
+        names.push_back(it->first);
+    }
+
+    return names.size() > 0 ? 0 : -1;
+}
+
+// --------------------------------------------------------------------------
 int teca_metadata::size(const std::string &name, unsigned int &n) const noexcept
 {
     prop_map_t::const_iterator it = this->props.find(name);
