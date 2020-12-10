@@ -370,6 +370,10 @@ add_subdirectory(paraview)
 # enable regression tests
 set(BUILD_TESTING OFF CACHE BOOL "Enable tests")
 if (BUILD_TESTING)
+    # these are dsiabled by default because they are slow and threaded version
+    # provides sufficient coverage.
+    set(TECA_SERIAL_TESTS OFF CACHE BOOL "Enables serial tests of threaded codes.")
+
     include(CTest)
     include(ProcessorCount)
     configure_file(
