@@ -980,6 +980,8 @@ struct system_util
 static
 PyObject *get_environment_variable_bool(const char *str, int def)
 {
+    teca_py_gil_state gil;
+
     bool tmp = def;
     int ierr = teca_system_util::get_environment_variable(str, tmp);
     if (ierr < 0)

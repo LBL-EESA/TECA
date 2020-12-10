@@ -34,6 +34,8 @@
 {
     PyObject *get_variables()
     {
+        teca_py_gil_state gil;
+
         std::vector<std::string> vars;
         $self->get_variables(vars);
 
