@@ -196,7 +196,7 @@ teca_add_test(py_test_python_reduce_mpi_thread
 teca_add_test(py_test_temporal_monthly_average_thread
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction.py
     "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc"
-    "." "${TECA_DATA_ROOT}/prw" 7 2 monthly average 0 prw
+    "." "${TECA_DATA_ROOT}/test_temporal_reduction_prw" 7 2 monthly average 0 prw
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
@@ -204,14 +204,14 @@ teca_add_test(py_test_temporal_monthly_average_mpi_thread
     COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction.py
     "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc"
-    "." "${TECA_DATA_ROOT}/prw" 7 2 monthly average 0 prw
+    "." "${TECA_DATA_ROOT}/test_temporal_reduction_prw" 7 2 monthly average 0 prw
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4Py_FOUND}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_temporal_monthly_minimum_thread
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction.py
     "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc"
-    "." "${TECA_DATA_ROOT}/prw" 7 2 monthly minimum 0 prw
+    "." "${TECA_DATA_ROOT}/test_temporal_reduction_prw" 7 2 monthly minimum 0 prw
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
@@ -219,7 +219,7 @@ teca_add_test(py_test_temporal_monthly_minimum_mpi_thread
     COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction.py
     "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc"
-    "." "${TECA_DATA_ROOT}/prw" 7 2 monthly minimum 0 prw
+    "." "${TECA_DATA_ROOT}/test_temporal_reduction_prw" 7 2 monthly minimum 0 prw
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4Py_FOUND}
     REQ_TECA_DATA)
 
@@ -234,7 +234,7 @@ teca_add_test(py_test_temporal_monthly_maximum_mpi_thread
     COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction.py
     "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc"
-    "." "${TECA_DATA_ROOT}/prw" 7 2 monthly maximum 0 prw
+    "." "${TECA_DATA_ROOT}/test_temporal_reduction_prw" 7 2 monthly maximum 0 prw
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4Py_FOUND}
     REQ_TECA_DATA)
 
