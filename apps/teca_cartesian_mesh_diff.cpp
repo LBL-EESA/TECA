@@ -80,8 +80,11 @@ int main(int argc, char **argv)
         ("arrays", value<std::vector<std::string>>()->multitoken()->required(),
             "a list of arrays to compare")
 
-        ("test_tolerance", value<double>()->default_value(1e-6),
-            "max allowable relative difference in array values (1e-6)")
+        ("relative_tolerance", value<double>()->default_value(-1.0),
+            "max allowable relative difference in array values")
+
+        ("absolute_tolerance", value<double>()->default_value(-1.0),
+            "max allowable relative difference in array values")
 
         ("start_index", value<long>()->default_value(0),
             "first time step to process (0)")
@@ -196,9 +199,14 @@ int main(int argc, char **argv)
         ref_writer->set_properties("ref_writer", opt_vals);
     }
 
-    if (opt_vals.count("test_tolerance"))
+    if (!opt_vals["relative_tolerance"].defaulted())
     {
-        diff->set_tolerance(opt_vals["test_tolerance"].as<double>());
+        diff->set_relative_tolerance(opt_vals["relative_tolerance"].as<double>());
+    }
+
+    if (!opt_vals["absolute_tolerance"].defaulted())
+    {
+        diff->set_absolute_tolerance(opt_vals["absolute_tolerance"].as<double>());
     }
 
     std::vector<std::string> arrays = opt_vals["arrays"].as<std::vector<std::string>>();

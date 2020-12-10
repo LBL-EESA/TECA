@@ -253,7 +253,7 @@ if rank == 0:
         diff.set_input_connection(0, cmr.get_output_port())
         diff.set_input_connection(1, par.get_output_port())
         diff.set_executive(rex)
-        diff.set_tolerance(1.e-4)
+        #diff.set_relative_tolerance(1.e-4)
         diff.update()
     else:
         sys.stderr.write('writing the baseline...\n')

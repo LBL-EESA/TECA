@@ -7,6 +7,7 @@
 #include "teca_array_collection.h"
 #include "teca_metadata.h"
 #include "teca_file_util.h"
+#include "teca_coordinate_util.h"
 #include "teca_mpi.h"
 
 #include <iostream>
@@ -20,6 +21,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <iostream>
+#include <iomanip>
 
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
@@ -31,7 +33,7 @@
 
 // --------------------------------------------------------------------------
 teca_dataset_diff::teca_dataset_diff()
-    : tolerance(1e-6), verbose(1)
+    : relative_tolerance(1.0e-6), absolute_tolerance(-1.0), verbose(1)
 {
     this->set_number_of_input_connections(2);
     this->set_number_of_output_ports(1);
@@ -50,7 +52,8 @@ void teca_dataset_diff::get_properties_description(
         + (prefix.empty()?"teca_dataset_diff":prefix));
 
     opts.add_options()
-        TECA_POPTS_GET(double, prefix, tolerance, "relative test tolerance")
+        TECA_POPTS_GET(double, prefix, relative_tolerance, "relative test tolerance")
+        TECA_POPTS_GET(double, prefix, absolute_tolerance, "absolute test tolerance")
         TECA_POPTS_GET(int, prefix, verbose, "print status messages as the diff runs")
         ;
 
@@ -60,10 +63,27 @@ void teca_dataset_diff::get_properties_description(
 // --------------------------------------------------------------------------
 void teca_dataset_diff::set_properties(const std::string &prefix, variables_map &opts)
 {
-    TECA_POPTS_SET(opts, double, prefix, tolerance)
+    TECA_POPTS_SET(opts, double, prefix, relative_tolerance)
+    TECA_POPTS_SET(opts, double, prefix, absolute_tolerance)
     TECA_POPTS_SET(opts, int, prefix, verbose)
 }
 #endif
+
+// --------------------------------------------------------------------------
+double teca_dataset_diff::get_abs_tol() const
+{
+    return this->absolute_tolerance <= 0.0 ?
+        teca_coordinate_util::equal_tt<double>::absTol() :
+        this->absolute_tolerance;
+}
+
+// --------------------------------------------------------------------------
+double teca_dataset_diff::get_rel_tol() const
+{
+    return this->relative_tolerance <= 0.0 ?
+        teca_coordinate_util::equal_tt<double>::relTol() :
+        this->relative_tolerance;
+}
 
 // --------------------------------------------------------------------------
 teca_metadata teca_dataset_diff::get_output_metadata(
@@ -334,6 +354,9 @@ int teca_dataset_diff::compare_tables(
 
     // At this point, we know that the tables are both non-empty and the same size,
     // so we simply compare them one element at a time.
+    double absTol = this->get_abs_tol();
+    double relTol = this->get_rel_tol();
+
     for (unsigned int col = 0; col < ncols1; ++col)
     {
         const_p_teca_variant_array col1 = table1->get_column(col);
@@ -343,10 +366,12 @@ int teca_dataset_diff::compare_tables(
 
         if (this->verbose && (rank == 0))
         {
-            TEST_STATUS("  comparing collumn \"" << col_name << "\"")
+            TEST_STATUS("  comparing collumn \"" << col_name
+                << "\" absTol=" << max_prec(double) << absTol
+                << " relTol=" << max_prec(double) << relTol)
         }
 
-        if (compare_arrays(col1, col2))
+        if (compare_arrays(col1, col2, absTol, relTol))
         {
 
             TECA_ERROR("difference in column " << col << " \"" << col_name << "\"")
@@ -360,7 +385,8 @@ int teca_dataset_diff::compare_tables(
 // --------------------------------------------------------------------------
 int teca_dataset_diff::compare_arrays(
     const_p_teca_variant_array array1,
-    const_p_teca_variant_array array2)
+    const_p_teca_variant_array array2,
+    double absTol, double relTol)
 {
     // Arrays of different sizes are different.
     size_t n_elem = array1->size();
@@ -388,25 +414,29 @@ int teca_dataset_diff::compare_arrays(
         const NT *pa1 = static_cast<const TT*>(array1.get())->get();
         const NT *pa2 = a2->get();
 
+        std::string diagnostic;
         for (size_t i = 0; i < n_elem; ++i)
         {
-            // we don't care too much about performance here so
-            // use double precision for the comparison.
-            double ref_val = static_cast<double>(pa1[i]);  // reference
-            double comp_val = static_cast<double>(pa2[i]); // computed
-
-            // Compute the relative difference.
-            double rel_diff = 0.0;
-            if (ref_val != 0.0)
-                rel_diff = std::abs(comp_val - ref_val) / std::abs(ref_val);
-            else if (comp_val != 0.0)
-                rel_diff = std::abs(comp_val - ref_val) / std::abs(comp_val);
-
-            if (rel_diff > this->tolerance)
+            if (std::isinf(pa1[i]) && std::isinf(pa2[i]))
             {
-                TECA_ERROR("relative difference " << rel_diff << " exceeds tolerance "
-                    << this->tolerance << " in element " << i << ". ref value \""
-                    << ref_val << "\" is not equal to test value \"" << comp_val << "\"")
+                // the GFDL TC tracker returns inf for some fields in some cases.
+                // warn about it so that it may be addressed in other algorithms.
+                if (this->verbose)
+                {
+                    TECA_WARNING("Inf detected in element " << i)
+                }
+            }
+            else if (std::isnan(pa1[i]) || std::isnan(pa2[i]))
+            {
+                // for the time being, don't allow NaN.
+                TECA_ERROR("NaN detected in element " << i)
+                return -1;
+            }
+            else if (!teca_coordinate_util::equal<double>(pa1[i], pa2[i],
+                diagnostic, relTol, absTol))
+            {
+                TECA_ERROR("difference above the prescribed tolerance detected"
+                    " in element " << i << ". " << diagnostic)
                 return -1;
             }
         }
@@ -430,8 +460,8 @@ int teca_dataset_diff::compare_arrays(
                 const std::string &v2 = a2->get(i);
                 if (v1 != v2)
                 {
-                    TECA_ERROR("string element " << i << " not equal. ref value \"" << v1
-                        << "\" is not equal to test value \"" << v2 << "\"")
+                    TECA_ERROR("string element " << i << " not equal. ref value \""
+                        << v1 << "\" is not equal to test value \"" << v2 << "\"")
                     return -1;
                 }
             }
@@ -473,6 +503,9 @@ int teca_dataset_diff::compare_array_collections(
     }
 
     // Now diff the contents.
+    double absTol = this->get_abs_tol();
+    double relTol = this->get_rel_tol();
+
     for (unsigned int i = 0; i < reference_arrays->size(); ++i)
     {
         const_p_teca_variant_array a1 = reference_arrays->get(i);
@@ -482,10 +515,12 @@ int teca_dataset_diff::compare_array_collections(
 
         if (this->verbose && (rank == 0))
         {
-            TEST_STATUS("    comparing array " << name)
+            TEST_STATUS("    comparing array \"" << name
+                << "\" absTol=" << max_prec(double) << absTol
+                << " relTol=" << max_prec(double) << relTol)
         }
 
-        if (this->compare_arrays(a1, a2))
+        if (this->compare_arrays(a1, a2, absTol, relTol))
         {
             TECA_ERROR("difference in array " << i << " \"" << name << "\"")
             return -1;
@@ -651,14 +686,19 @@ int teca_dataset_diff::compare_cartesian_meshes(
     }
 
     // Coordinate arrays.
+    double absTol = this->get_abs_tol();
+    double relTol = this->get_rel_tol();
+
     std::string name;
     const_p_teca_variant_array coord1 = reference_mesh->get_x_coordinates();
     reference_mesh->get_x_coordinate_variable(name);
     if (this->verbose && (rank == 0) && coord1->size())
     {
-        TEST_STATUS("comparing x-coordinates " << name)
+        TEST_STATUS("comparing x-coordinates " << name
+            << " absTol=" << max_prec(double) << absTol
+            << " relTol=" << max_prec(double) << relTol)
     }
-    if (this->compare_arrays(coord1, data_mesh->get_x_coordinates()))
+    if (this->compare_arrays(coord1, data_mesh->get_x_coordinates(), absTol, relTol))
     {
         TECA_ERROR("difference in x coordinates")
         return -1;
@@ -668,9 +708,11 @@ int teca_dataset_diff::compare_cartesian_meshes(
     reference_mesh->get_y_coordinate_variable(name);
     if (this->verbose && (rank == 0) && coord1->size())
     {
-        TEST_STATUS("comparing y-coordinates " << name)
+        TEST_STATUS("comparing y-coordinates " << name
+            << " absTol=" << max_prec(double) << absTol
+            << " relTol=" << max_prec(double) << relTol)
     }
-    if (this->compare_arrays(coord1, data_mesh->get_y_coordinates()))
+    if (this->compare_arrays(coord1, data_mesh->get_y_coordinates(), absTol, relTol))
     {
         TECA_ERROR("difference in y coordinates")
         return -1;
@@ -680,10 +722,12 @@ int teca_dataset_diff::compare_cartesian_meshes(
     reference_mesh->get_z_coordinate_variable(name);
     if (this->verbose && (rank == 0) && coord1->size())
     {
-        TEST_STATUS("comparing z-coordinates " << name)
+        TEST_STATUS("comparing z-coordinates " << name
+            << " absTol=" << max_prec(double) << absTol
+            << " relTol=" << max_prec(double) << relTol)
     }
     if (this->compare_arrays(coord1,
-        data_mesh->get_z_coordinates()))
+        data_mesh->get_z_coordinates(), absTol, relTol))
     {
         TECA_ERROR("difference in z coordinates")
         return -1;
@@ -717,12 +761,17 @@ int teca_dataset_diff::compare_curvilinear_meshes(
     }
 
     // Coordinate arrays.
+    double absTol = this->get_abs_tol();
+    double relTol = this->get_rel_tol();
+
     if (this->verbose && (rank == 0))
     {
-        TEST_STATUS("comparing x-coordinates")
+        TEST_STATUS("comparing x-coordinates"
+            << " absTol=" << max_prec(double) << absTol
+            << " relTol=" << max_prec(double) << relTol)
     }
     if (this->compare_arrays(reference_mesh->get_x_coordinates(),
-        data_mesh->get_x_coordinates()))
+        data_mesh->get_x_coordinates(), absTol, relTol))
     {
         TECA_ERROR("difference in x coordinates")
         return -1;
@@ -730,10 +779,12 @@ int teca_dataset_diff::compare_curvilinear_meshes(
 
     if (this->verbose && (rank == 0))
     {
-        TEST_STATUS("comparing y-coordinates")
+        TEST_STATUS("comparing y-coordinates"
+            << " absTol=" << max_prec(double) << absTol
+            << " relTol=" << max_prec(double) << relTol)
     }
     if (this->compare_arrays(reference_mesh->get_y_coordinates(),
-        data_mesh->get_y_coordinates()))
+        data_mesh->get_y_coordinates(), absTol, relTol))
     {
         TECA_ERROR("difference in y coordinates")
         return -1;
@@ -741,10 +792,12 @@ int teca_dataset_diff::compare_curvilinear_meshes(
 
     if (this->verbose && (rank == 0))
     {
-        TEST_STATUS("comparing z-coordinates")
+        TEST_STATUS("comparing z-coordinates"
+            << " absTol=" << max_prec(double) << absTol
+            << " relTol=" << max_prec(double) << relTol)
     }
     if (this->compare_arrays(reference_mesh->get_z_coordinates(),
-        data_mesh->get_z_coordinates()))
+        data_mesh->get_z_coordinates(), absTol, relTol))
     {
         TECA_ERROR("difference in z coordinates")
         return -1;
@@ -778,12 +831,17 @@ int teca_dataset_diff::compare_arakawa_c_grids(
     }
 
     // Coordinate arrays.
+    double absTol = this->get_abs_tol();
+    double relTol = this->get_rel_tol();
+
     if (this->verbose && (rank == 0))
     {
-        TEST_STATUS("comparing m x-coordinates")
+        TEST_STATUS("comparing m x-coordinates"
+            << " absTol=" << max_prec(double) << absTol
+            << " relTol=" << max_prec(double) << relTol)
     }
     if (this->compare_arrays(reference_mesh->get_m_x_coordinates(),
-        data_mesh->get_m_x_coordinates()))
+        data_mesh->get_m_x_coordinates(), absTol, relTol))
     {
         TECA_ERROR("difference in m_x coordinates")
         return -1;
@@ -791,10 +849,12 @@ int teca_dataset_diff::compare_arakawa_c_grids(
 
     if (this->verbose && (rank == 0))
     {
-        TEST_STATUS("comparing m y-coordinates")
+        TEST_STATUS("comparing m y-coordinates"
+            << " absTol=" << max_prec(double) << absTol
+            << " relTol=" << max_prec(double) << relTol)
     }
     if (this->compare_arrays(reference_mesh->get_m_y_coordinates(),
-        data_mesh->get_m_y_coordinates()))
+        data_mesh->get_m_y_coordinates(), absTol, relTol))
     {
         TECA_ERROR("difference in m_y coordinates")
         return -1;
@@ -802,10 +862,12 @@ int teca_dataset_diff::compare_arakawa_c_grids(
 
     if (this->verbose && (rank == 0))
     {
-        TEST_STATUS("comparing u x-coordinates")
+        TEST_STATUS("comparing u x-coordinates"
+            << " absTol=" << max_prec(double) << absTol
+            << " relTol=" << max_prec(double) << relTol)
     }
     if (this->compare_arrays(reference_mesh->get_u_x_coordinates(),
-        data_mesh->get_u_x_coordinates()))
+        data_mesh->get_u_x_coordinates(), absTol, relTol))
     {
         TECA_ERROR("difference in u_x coordinates")
         return -1;
@@ -813,10 +875,12 @@ int teca_dataset_diff::compare_arakawa_c_grids(
 
     if (this->verbose && (rank == 0))
     {
-        TEST_STATUS("comparing u x-coordinates")
+        TEST_STATUS("comparing u x-coordinates"
+            << " absTol=" << max_prec(double) << absTol
+            << " relTol=" << max_prec(double) << relTol)
     }
     if (this->compare_arrays(reference_mesh->get_u_y_coordinates(),
-        data_mesh->get_u_y_coordinates()))
+        data_mesh->get_u_y_coordinates(), absTol, relTol))
     {
         TECA_ERROR("difference in u_y coordinates")
         return -1;
@@ -824,10 +888,12 @@ int teca_dataset_diff::compare_arakawa_c_grids(
 
     if (this->verbose && (rank == 0))
     {
-        TEST_STATUS("comparing v x-coordinates")
+        TEST_STATUS("comparing v x-coordinates"
+            << " absTol=" << max_prec(double) << absTol
+            << " relTol=" << max_prec(double) << relTol)
     }
     if (this->compare_arrays(reference_mesh->get_v_x_coordinates(),
-        data_mesh->get_v_x_coordinates()))
+        data_mesh->get_v_x_coordinates(), absTol, relTol))
     {
         TECA_ERROR("difference in v_x coordinates")
         return -1;
@@ -835,10 +901,12 @@ int teca_dataset_diff::compare_arakawa_c_grids(
 
     if (this->verbose && (rank == 0))
     {
-        TEST_STATUS("comparing v y-coordinates")
+        TEST_STATUS("comparing v y-coordinates"
+            << " absTol=" << max_prec(double) << absTol
+            << " relTol=" << max_prec(double) << relTol)
     }
     if (this->compare_arrays(reference_mesh->get_v_y_coordinates(),
-        data_mesh->get_v_y_coordinates()))
+        data_mesh->get_v_y_coordinates(), absTol, relTol))
     {
         TECA_ERROR("difference in v_y coordinates")
         return -1;
@@ -846,10 +914,12 @@ int teca_dataset_diff::compare_arakawa_c_grids(
 
     if (this->verbose && (rank == 0))
     {
-        TEST_STATUS("comparing m z-coordinates")
+        TEST_STATUS("comparing m z-coordinates"
+            << " absTol=" << max_prec(double) << absTol
+            << " relTol=" << max_prec(double) << relTol)
     }
     if (this->compare_arrays(reference_mesh->get_m_z_coordinates(),
-        data_mesh->get_m_z_coordinates()))
+        data_mesh->get_m_z_coordinates(), absTol, relTol))
     {
         TECA_ERROR("difference in m_z coordinates")
         return -1;
@@ -857,10 +927,12 @@ int teca_dataset_diff::compare_arakawa_c_grids(
 
     if (this->verbose && (rank == 0))
     {
-        TEST_STATUS("comparing w z-coordinates")
+        TEST_STATUS("comparing w z-coordinates"
+            << " absTol=" << max_prec(double) << absTol
+            << " relTol=" << max_prec(double) << relTol)
     }
     if (this->compare_arrays(reference_mesh->get_w_z_coordinates(),
-        data_mesh->get_w_z_coordinates()))
+        data_mesh->get_w_z_coordinates(), absTol, relTol))
     {
         TECA_ERROR("difference in w_z coordinates")
         return -1;
