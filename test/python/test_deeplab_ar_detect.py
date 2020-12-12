@@ -16,7 +16,7 @@ set_stack_trace_on_mpi_error()
 
 if (len(sys.argv) != 6):
     sys.stderr.write('\n\nUsage error:\n'
-                     'test_deeplabv3p_ar_detect [deeplab model] '
+                     'test_deeplab_ar_detect [deeplab model] '
                      '[mesh data regex] [baseline] '
                      '[water vapor var] [num threads]\n\n')
     sys.exit(-1)
@@ -33,13 +33,13 @@ cf_reader = teca_cf_reader.New()
 cf_reader.set_files_regex(input_regex)
 cf_reader.set_periodic_in_x(1)
 
-ar_detect = teca_deeplabv3p_ar_detect.New()
+ar_detect = teca_deeplab_ar_detect.New()
 ar_detect.set_input_connection(cf_reader.get_output_port())
 ar_detect.set_verbose(vrb)
-ar_detect.set_variable_name(water_vapor_var)
+ar_detect.set_ivt_variable(water_vapor_var)
 ar_detect.set_threads_per_core(1)
 ar_detect.set_thread_pool_size(n_threads)
-ar_detect.build_model(deeplab_model)
+ar_detect.load_model(deeplab_model)
 
 
 rex = teca_index_executive.New()

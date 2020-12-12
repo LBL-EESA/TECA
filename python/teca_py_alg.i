@@ -224,17 +224,17 @@
 }
 
 /***************************************************************************
- model_segmentation
+ pytorch_algorithm
  ***************************************************************************/
 #ifdef TECA_HAS_PYTORCH
-%pythoncode "teca_model_segmentation.py"
+%pythoncode "teca_pytorch_algorithm.py"
 #endif
 
 /***************************************************************************
- deeplabv3p_ar_detect
+ deeplab_ar_detect
  ***************************************************************************/
 #ifdef TECA_HAS_PYTORCH
-%pythoncode "teca_deeplabv3p_ar_detect.py"
+%pythoncode "teca_deeplab_ar_detect.py"
 #endif
 
 /***************************************************************************
