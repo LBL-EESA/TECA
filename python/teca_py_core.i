@@ -30,6 +30,23 @@
  profiler
  ***************************************************************************/
 %include "teca_profiler.h"
+%inline
+%{
+class teca_time_py_event
+{
+public:
+    // logs an event named:
+    // <name>
+    teca_time_py_event(const std::string &name) : eventname(name)
+    { teca_profiler::start_event(name.c_str()); }
+
+    ~teca_time_py_event()
+    { teca_profiler::end_event(this->eventname.c_str()); }
+
+private:
+    std::string eventname;
+};
+%}
 
 /***************************************************************************
  parallel_id
