@@ -48,7 +48,8 @@ else
     time ${app_prefix}/teca_cartesian_mesh_diff                     \
         --reference_dataset "${data_root}/${output_base}_.*\.nc"    \
         --test_dataset "${output_base}_.*\.nc"                      \
-        --arrays ${array_name} --verbose
+        --arrays ${array_name} --verbose                            \
+        --test_tolerance 1.e-5
 
     # clean up
     rm ${output_base}_*.nc
