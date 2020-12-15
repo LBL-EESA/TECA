@@ -12,8 +12,8 @@ import numpy as np
 import sys
 import os
 
-set_stack_trace_on_error()
-set_stack_trace_on_mpi_error()
+teca_profiler.initialize()
+teca_profiler.start_event('temporal_reduction')
 
 # parse the command line
 parser = argparse.ArgumentParser(
@@ -147,3 +147,6 @@ cfw.set_steps_per_file(steps_per_file)
 cfw.set_file_name(out_files)
 cfw.set_point_arrays(point_arrays)
 cfw.update()
+
+teca_profiler.end_event('temporal_reduction')
+teca_profiler.finalize()

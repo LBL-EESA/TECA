@@ -35,6 +35,9 @@ time ${launcher} ${app_prefix}/teca_temporal_reduction                  \
     --steps_per_file ${steps_per_file} --n_threads 2 --verbose 1        \
     --output_file "${output_base}_%t%.nc"
 
+# don't profile the diff
+unset PROFILER_ENABLE
+
 do_test=1
 if [[ $do_test -eq 0 ]]
 then
