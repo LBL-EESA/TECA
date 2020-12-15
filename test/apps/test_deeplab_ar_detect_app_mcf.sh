@@ -29,6 +29,9 @@ time ${launcher} ${app_prefix}/teca_deeplab_ar_detect                   \
     --output_file test_deeplab_ar_detect_app_mcf_%t%.nc                 \
     --steps_per_file 365 --n_threads ${n_threads} --verbose
 
+# don't profile the diff
+unset PROFILER_ENABLE
+
 do_test=1
 if [[ ${do_test} -eq 0 ]]
 then

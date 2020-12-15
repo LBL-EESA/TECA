@@ -218,7 +218,7 @@ class dsiplay_rank_events:
 
         cmap = []
         for cmap_name in cmap_names:
-            cmap.append(plt.get_cmap(cmap_name, cmap_n))
+            cmap.append(plt.get_cmap(cmap_name, 1.5*cmap_n))
 
         # in a patch collection all rectangles have
         # the same zorder, hence we need a collection
@@ -253,7 +253,7 @@ class dsiplay_rank_events:
                     data.rank, i, tid, eid, enm, str([et0, tid*dy, \
                     edt, dy])))
             else:
-                if int(i % (ne // 78)) == 0:
+                if (ne < 78) or int(i % (ne // 78)) == 0:
                     sys.stderr.write('=')
                     sys.stderr.flush()
 
@@ -263,21 +263,21 @@ class dsiplay_rank_events:
 
             if ' thread_pool ' in enm:
                 fa = 0.5
-                ec = fc
+                ec = 'b'
                 ew = 3
                 fill = True
                 pz = 2
             else:
                 fa = 0.9
-                ec = fc
-                ew = None
+                ec = 'k'
+                ew = 1
                 fill = True
                 pz = 3
 
             dep = data.depth[i]
-            df = dep*.15*dy
+            df = dep*(0.5 - 0.125)/float(max_depth)
 
-            rect = Rectangle((et0, tid*dy+df), edt, dy-2*df, \
+            rect = Rectangle((et0, tid*dy+df), edt, dy-2.*df, \
                 alpha=1, facecolor=fc, edgecolor=ec, \
                 linewidth=ew, zorder=dep+1, fill=fill, \
                 label=enm)

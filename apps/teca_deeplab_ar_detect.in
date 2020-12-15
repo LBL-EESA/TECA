@@ -10,6 +10,9 @@ try:
 except ImportError:
     rank = 0
 
+teca_profiler.initialize()
+teca_profiler.start_event('deeplab ar_detect')
+
 # parse the command line
 parser = argparse.ArgumentParser(
     formatter_class=lambda prog: argparse.ArgumentDefaultsHelpFormatter(
@@ -280,3 +283,6 @@ if args.start_date or args.end_date:
 
 # run the pipeline
 writer.update()
+
+teca_profiler.end_event('deeplab ar_detect')
+teca_profiler.finalize()

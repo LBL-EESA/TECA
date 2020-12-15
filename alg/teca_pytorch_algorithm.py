@@ -53,6 +53,8 @@ class teca_pytorch_algorithm(teca_python_algorithm):
         Load only the pytorch state_dict parameters file only
         once and broadcast it to all ranks
         """
+        event = teca_time_py_event('teca_pytorch_algorithm::load_state_dict')
+
         comm = self.get_communicator()
         rank = comm.Get_rank()
 
@@ -119,6 +121,8 @@ class teca_pytorch_algorithm(teca_python_algorithm):
         """
         Sets the number of threads used for intra-op parallelism on CPU
         """
+        event = teca_time_py_event('teca_pytorch_algorithm::set_thread_pool_size')
+
         rank = 0
         n_ranks = 1
         comm = self.get_communicator()
@@ -194,10 +198,14 @@ class teca_pytorch_algorithm(teca_python_algorithm):
         """
         set Pytorch pretrained model
         """
+        event = teca_time_py_event('teca_pytorch_algorithm::set_model')
+
         self.model = model
         self.model.eval()
 
     def report(self, port, rep_in):
+        """ TECA report override """
+        event = teca_time_py_event('teca_pytorch_algorithm::report')
 
         # check for required parameters.
         if self.model is None:
@@ -220,6 +228,8 @@ class teca_pytorch_algorithm(teca_python_algorithm):
         return rep
 
     def request(self, port, md_in, req_in):
+        """ TECA request override """
+        event = teca_time_py_event('teca_pytorch_algorithm::request')
 
         req = teca_metadata(req_in)
 
@@ -243,11 +253,8 @@ class teca_pytorch_algorithm(teca_python_algorithm):
         return [req]
 
     def execute(self, port, data_in, req):
-        """
-        expects an array of an input variable to run through
-        the torch model and get the segmentation results as an
-        output.
-        """
+        """ TECA execute override """
+        event = teca_time_py_event('teca_pytorch_algorithm::execute')
 
         # get the input array and reshape it to a 2D layout that's compatible
         # with numpy and torch

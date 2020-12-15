@@ -332,6 +332,8 @@ class teca_deeplab_ar_detect(teca_pytorch_algorithm):
         Load model from file system. In MPI parallel runs rank 0
         loads the model file and broadcasts it to the other ranks.
         """
+        event = teca_time_py_event('teca_deeplab_ar_detect::load_model')
+
         state_dict_deeplab = self.load_state_dict(filename)
 
         model = teca_deeplab_ar_detect_internals.DeepLabv3_plus(
@@ -362,6 +364,8 @@ class teca_deeplab_ar_detect(teca_pytorch_algorithm):
         resize the array to be a multiple of 64 in the y direction and 128 in
         the x direction amd convert to 3 channel (i.e. RGB image like)
         """
+        event = teca_time_py_event('teca_deeplab_ar_detect::preprocess')
+
         nx_in = in_array.shape[1]
         ny_in = in_array.shape[0]
 
@@ -393,6 +397,8 @@ class teca_deeplab_ar_detect(teca_pytorch_algorithm):
         convert the tensor to a numpy array and extract the output data from
         the padded tensor. padding was added during preprocess.
         """
+        event = teca_time_py_event('teca_deeplab_ar_detect::postprocess')
+
         # normalize the raw model output
         tmp = torch.sigmoid(out_tensor)
 
@@ -409,6 +415,9 @@ class teca_deeplab_ar_detect(teca_pytorch_algorithm):
         """
         return the metadata decribing the data available for consumption.
         """
+        """ TECA report override """
+        event = teca_time_py_event('teca_deeplab_ar_detect::report')
+
         md_out = super().report(port, md_in)
 
         arp_atts = teca_array_attributes(
