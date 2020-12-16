@@ -36,6 +36,170 @@ class teca_temporal_reduction_internals:
             return strg
 
     class interval_iterator:
+        class season_iterator:
+            """
+            An iterator over seasons (DJF, MAM, JJA, SON) between 2
+            time_point's.  A pair of time steps bracketing the current season
+            are returned at each iteration. Only full seasonal intervals are
+            processed.  If the input data doesn't start or end on a seasonal
+            boundary it is skipped.
+            """
+
+            def __init__(self, t, units, calendar):
+                """
+                t - an array of floating point time values
+                units - string units of the time values
+                calendar - string name of the calendar system
+                """
+                self.t = t
+                self.units = units
+
+                calendar = calendar.lower()
+                self.calendar = calendar
+
+                # time point's to iterate between
+                self.t0 = teca_temporal_reduction_internals.time_point(
+                              t[0], units, calendar)
+
+                self.t1 = teca_temporal_reduction_internals.time_point(
+                              t[-1], units, calendar)
+
+                # current time state
+                self.year, self.month = \
+                     self.get_first_season(self.t0.year, self.t0.month)
+
+            def get_season_name(self, month):
+                """
+                returns one of DJF,MAM,JJA,SON based on the month passed in
+                """
+                if (month == 12) or ((month >= 1) and (month <= 2)):
+                    return 'DJF'
+                elif (month >= 3) and (month <= 5):
+                    return 'MAM'
+                elif (month >= 6) and (month <= 8):
+                    return 'JJA'
+                elif (month >= 9) and (month <= 11):
+                    return 'SON'
+
+                raise RuntimeError('Invalid month %d' % (month))
+
+            def get_first_season(self, y, m):
+                """
+                given a year and month, checks that the values fall on
+                a seasonal boundary. if not, returns the year and month
+                of the start of the next season.
+                """
+                if (m == 12) or (m == 3) or (m == 6) or (m == 9):
+                    return y, m
+                else:
+                    return self.get_next_season(y, m)
+
+            def get_season_end(self, year, month):
+                """
+                Given a year and month returns the year month and day
+                of the end of the season. the input month need not be on
+                a seasonal boundary.
+                """
+                if (month == 12):
+                    y = year + 1
+                    m = 2
+                elif (month >= 1) and (month <= 2):
+                    y = year
+                    m = 2
+                elif (month >= 3) and (month <= 5):
+                    y = year
+                    m = 5
+                elif (month >= 6) and (month <= 8):
+                    y = year
+                    m = 8
+                elif (month >= 9) and (month <= 11):
+                    y = year
+                    m = 11
+                else:
+                    raise RuntimeError('Invalid month %d' % (month))
+
+                d = self.last_day_of_month(y, m)
+
+                return y, m, d
+
+            def get_next_season(self, year, month):
+                """
+                Given a year and month returns the year and month
+                of the next season. the input momnth doesn't need to be
+                on a seasonal boundary.
+                """
+                if (month == 12):
+                    y = year + 1
+                    m = 3
+                elif (month >= 1) and (month <= 2):
+                    y = year
+                    m = 3
+                elif (month >= 3) and (month <= 5):
+                    y = year
+                    m = 6
+                elif (month >= 6) and (month <= 8):
+                    y = year
+                    m = 9
+                elif (month >= 9) and (month <= 11):
+                    y = year
+                    m = 12
+                else:
+                    raise RuntimeError('Invalid month %d' % (month))
+
+                return y, m
+
+            def last_day_of_month(self, year, month):
+                """
+                get the number of days in the month, with logic for
+                leap years
+                """
+                return \
+                    calendar_util.days_in_month(self.calendar,
+                                                self.units, year,
+                                                month)
+
+            def __iter__(self):
+                return self
+
+            def __next__(self):
+                """
+                return a pair of time steps bracketing the current month.
+                both returned time steps belong to the current month.
+                """
+                # get the end of the current season
+                ey, em, ed = self.get_season_end(self.year, self.month)
+
+                # verify that we have data for the current season
+                if ((ey > self.t1.year) or
+                    ((ey == self.t1.year) and (em > self.t1.month)) or
+                    ((ey == self.t1.year) and (em == self.t1.month) and
+                    (ed > self.t1.day))):
+                    raise StopIteration
+
+                # find the time step of the first day
+                sy = self.year
+                sm = self.month
+
+                t0 = '%04d-%02d-01 00:00:00' % (sy, sm)
+                i0 = coordinate_util.time_step_of(self.t, True, True,
+                                                  self.calendar,
+                                                  self.units, t0)
+
+                # find the time step of the last day
+                t1 = '%04d-%02d-%02d 23:59:59' % (ey, em, ed)
+                i1 = coordinate_util.time_step_of(self.t, True, True,
+                                                  self.calendar,
+                                                  self.units, t1)
+
+                # move to next season
+                self.year, self.month = \
+                     self.get_next_season(sy, sm)
+
+                return teca_temporal_reduction_internals.c_struct(
+                    time=self.t[i0], year=sy, month=sm,
+                    day=1, start_index=i0, end_index=i1)
+
+
         class month_iterator:
             """
             An iterator over all months between 2 time_point's. A pair
@@ -218,6 +382,11 @@ class teca_temporal_reduction_internals:
 
         @staticmethod
         def New(interval, t, units, calendar):
+            if interval == 'seasonal':
+
+                return teca_temporal_reduction_internals. \
+                    interval_iterator.season_iterator(t, units, calendar)
+
             if interval == 'monthly':
 
                 return teca_temporal_reduction_internals. \
@@ -369,7 +538,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
     Reduce a mesh across the time dimensions by a defined increment using
     a defined operation.
 
-        time increments: daily, monthly
+        time increments: daily, monthly, seasonal
         reduction operators: average, min, max
 
     The output time axis will be defined using the selected increment.
@@ -419,6 +588,12 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
         set the output interval
         """
         self.interval_name = interval
+
+    def set_interval_to_seasonal(self):
+        """
+        set the output interval to seasonal.
+        """
+        self.interval_name = 'seasonal'
 
     def set_interval_to_monthly(self):
         """
@@ -505,7 +680,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
 
         t_units = t_atts['units']
 
-        # convert the time axis to a monthly delta t
+        # convert the time axis to the specified interval
         self.indices = [ii for ii in teca_temporal_reduction_internals.
                         interval_iterator.New(
                             self.interval_name, t, t_units, cal)]

@@ -25,18 +25,32 @@ fi
 
 set -x
 
+test_name=test_temporal_reduction
+output_base=${test_name}_${array_name}_${interval}_${operator}
+
 # run the app
-${launcher} ${app_prefix}/teca_temporal_reduction \
-    --input_regex "${data_root}/${input_regex}" --interval ${interval} \
-    --operator ${operator} --point_arrays ${array_name} \
-    --steps_per_file ${steps_per_file} --n_threads 2 --verbose 1 \
-    --output_file "${array_name}_${interval}_${operator}_%t%.nc"
+time ${launcher} ${app_prefix}/teca_temporal_reduction                  \
+    --input_regex "${data_root}/${input_regex}" --interval ${interval}  \
+    --operator ${operator} --point_arrays ${array_name}                 \
+    --steps_per_file ${steps_per_file} --n_threads 2 --verbose 1        \
+    --output_file "${output_base}_%t%.nc"
 
-# run the diff
-${app_prefix}/teca_cartesian_mesh_diff \
-    --reference_dataset "${data_root}/test_temporal_reduction_${array_name}_${interval}_${operator}_.*\.nc" \
-    --test_dataset "${array_name}_${interval}_${operator}_.*\.nc" \
-    --arrays ${array_name} --verbose
+# don't profile the diff
+unset PROFILER_ENABLE
 
-# clean up
-rm -f ${array_name}_${interval}_${operator}_*.nc
+do_test=1
+if [[ $do_test -eq 0 ]]
+then
+    # update the baselines
+    cp -vd ${output_base}_*.nc ${data_root}/
+else
+    # run the diff
+    time ${app_prefix}/teca_cartesian_mesh_diff                     \
+        --reference_dataset "${data_root}/${output_base}_.*\.nc"    \
+        --test_dataset "${output_base}_.*\.nc"                      \
+        --arrays ${array_name} --verbose                            \
+        --test_tolerance 1.e-5
+
+    # clean up
+    rm ${output_base}_*.nc
+fi
