@@ -425,7 +425,8 @@ class teca_deeplab_ar_detect(teca_pytorch_algorithm):
             teca_array_attributes.point_centering,
             0, 'unitless', 'posterior AR flag',
             'the posterior probability of the presence '
-            'of an atmospheric river')
+            'of an atmospheric river',
+            None)
 
         attributes = md_out["attributes"]
         attributes["ar_probability"] = arp_atts.to_metadata()

@@ -2,7 +2,9 @@
 #define teca_array_attributes_h
 
 #include "teca_metadata.h"
+
 #include <ostream>
+#include <variant>
 
 // a convenience container for conventional array attributes.
 // the attributes listed here are used for CF I/O.
@@ -19,16 +21,24 @@
 // long name - a more descriptive name
 //
 // description - text describing the data
+//
+// have_fill_value - set non-zero to indicate that a fill_value
+//                   has been provided.
+//
+// fill_value - value used to identify missing or invalid data
 struct teca_array_attributes
 {
     teca_array_attributes() : type_code(0),
-        centering(0), size(0), units(), long_name(), description()
+        centering(0), size(0), units(), long_name(), description(),
+        have_fill_value(0), fill_value(1e20f)
     {}
 
+    template <typename fv_t = float>
     teca_array_attributes(unsigned int tc, unsigned int cen,
-        unsigned long n, const std::string &un, const std::string ln,
-        const std::string &descr) : type_code(tc), centering(cen),
-        size(n), units(un), long_name(ln), description(descr)
+        unsigned long n, const std::string &un, const std::string &ln,
+        const std::string &descr, const int &have_fv=0, const fv_t &fv=fv_t(1e20f)) :
+        type_code(tc), centering(cen), size(n), units(un), long_name(ln),
+        description(descr), have_fill_value(have_fv), fill_value(fv)
     {}
 
     teca_array_attributes(const teca_array_attributes &) = default;
@@ -37,7 +47,7 @@ struct teca_array_attributes
     // converts from metadata object.
     teca_array_attributes(const teca_metadata &md) :
         type_code(0), centering(0), size(0), units(), long_name(),
-        description()
+        description(), have_fill_value(0), fill_value(1.e20f)
     {
         from(md);
     }
@@ -97,12 +107,19 @@ struct teca_array_attributes
         no_centering     = 0x1000,
     };
 
+    using fill_value_t =
+        std::variant<char, unsigned char, short, unsigned short,
+            int, unsigned int, long, unsigned long, long long,
+            unsigned long long, float, double>;
+
     unsigned int type_code;
     unsigned int centering;
     unsigned long size;
     std::string units;
     std::string long_name;
     std::string description;
+    int have_fill_value;
+    fill_value_t fill_value;
 };
 
 #endif
