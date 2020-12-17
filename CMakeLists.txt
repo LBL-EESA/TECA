@@ -45,7 +45,10 @@ else()
             set(tmp "${tmp} -stdlib=libc++")
         endif()
         if ("${CMAKE_BUILD_TYPE}" MATCHES "Release")
-            set(tmp "${tmp} -march=native -mtune=native")
+            set(tmp "${tmp} -march=native -mtune=native -fno-trapping-math -fno-math-errno")
+            if (NOT "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+                set(tmp "${tmp} -fno-signaling-nans")
+            endif()
         endif()
         set(CMAKE_CXX_FLAGS "${tmp}"
             CACHE STRING "TECA build defaults"
@@ -54,7 +57,7 @@ else()
     if (NOT CMAKE_Fortran_FLAGS)
         set(tmp "-Wall -Wextra -Wno-conversion -Wno-compare-reals")
         if (CMAKE_BUILD_TYPE STREQUAL "Release")
-            set(tmp "${tmp} -march=native -mtune=native")
+            set(tmp "${tmp} -march=native -mtune=native -fno-trapping-math -fno-signaling-nans -fno-math-errno")
         endif()
         set(CMAKE_Fortran_FLAGS "${tmp}"
             CACHE STRING "TECA build defaults"
