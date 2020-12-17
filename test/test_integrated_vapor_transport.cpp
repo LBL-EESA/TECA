@@ -1,10 +1,11 @@
-
 #include "teca_cartesian_mesh_source.h"
 #include "teca_cartesian_mesh_writer.h"
 #include "teca_cf_writer.h"
+#include "teca_valid_value_mask.h"
 #include "teca_integrated_vapor_transport.h"
 #include "teca_coordinate_util.h"
 #include "teca_dataset_capture.h"
+#include "teca_system_interface.h"
 
 
 #include <cmath>
@@ -33,7 +34,8 @@ struct function_of_z
 {
     using f_type = std::function<num_t(num_t)>;
 
-    function_of_z(const f_type &a_f) : m_f(a_f) {}
+    function_of_z(const f_type &a_f, num_t max_z, num_t fill_value) :
+        m_max_z(max_z), m_fill_value(fill_value), m_f(a_f)  {}
 
     p_teca_variant_array operator()(const const_p_teca_variant_array &x,
         const const_p_teca_variant_array &y, const const_p_teca_variant_array &z,
@@ -58,7 +60,8 @@ struct function_of_z
                 {
                     for (size_t i = 0; i < nx; ++i)
                     {
-                        pfz[k*nxy + j*nx + i] = this->m_f(pz[k]);
+                        num_t z = pz[k];
+                        pfz[k*nxy + j*nx + i] = z > m_max_z ? m_fill_value : this->m_f(z);
                     }
                 }
             }
@@ -67,6 +70,8 @@ struct function_of_z
         return fz;
     }
 
+    num_t m_max_z;
+    num_t m_fill_value;
     f_type m_f;
 };
 
@@ -78,59 +83,81 @@ int main(int argc, char **argv)
     (void)argc;
     (void)argv;
 
-    unsigned long z1 = 1024;
+    teca_system_interface::set_stack_trace_on_error();
+
+    unsigned long i1 = 1024;
     double p_sfc = 92500e-4;
     double p_top = 5000e-4;
+    double fill_value = 1.0e14;
     int write_input = 0;
     int write_output = 0;
+    
+    // double the z axis, but hit all of the original points.  if we set the
+    // integrand to the fill_value where p > p_sfc and apply the valid value
+    // mask then the integral should have the value as if integrated from p_sfc
+    // to p_top. This lets us verify that the integrator works correctly in
+    // the presence of missing values
+    double p_sfc_2 = 2.0*p_sfc - p_top;
+    unsigned long j1 = 2*i1;
 
-    p_teca_cartesian_mesh_source s = teca_cartesian_mesh_source::New();
-    s->set_whole_extents({0, 2, 0, 2, 0, z1, 0, 0});
-    s->set_bounds({-1.0, 1.0, -1.0, 1.0, p_sfc, p_top, 0.0, 0.0});
-    s->set_calendar("standard");
-    s->set_time_units("days since 2020-09-30 00:00:00");
+    p_teca_cartesian_mesh_source mesh = teca_cartesian_mesh_source::New();
+    mesh->set_whole_extents({0, 2, 0, 2, 0, j1, 0, 0});
+    mesh->set_bounds({-1.0, 1.0, -1.0, 1.0, p_sfc_2, p_top, 0.0, 0.0});
+    mesh->set_calendar("standard");
+    mesh->set_time_units("days since 2020-09-30 00:00:00");
 
     // let q = sin(p)
-    function_of_z<double> q([](double p) -> double { return sin(p); });
+    function_of_z<double> q([](double p) -> double { return sin(p); },
+        p_sfc, fill_value);
 
-    s->append_field_generator({"q",
+    mesh->append_field_generator({"q",
         teca_array_attributes(teca_variant_array_code<double>::get(),
             teca_array_attributes::point_centering, 0, "g kg^-1",
-            "specific humidty", "test data where q = sin(p)"),
+            "specific humidty", "test data where q = sin(p)",
+            1, fill_value),
             q});
 
     // let u = cos(p)
-    function_of_z<double> u([](double p) -> double { return cos(p); });
+    function_of_z<double> u([](double p) -> double { return cos(p); },
+        p_sfc, fill_value);
 
-    s->append_field_generator({"u",
+    mesh->append_field_generator({"u",
         teca_array_attributes(teca_variant_array_code<double>::get(),
             teca_array_attributes::point_centering, 0, "m s^-1",
-            "longitudinal wind velocity", "test data where u = cos(p)"),
+            "longitudinal wind velocity", "test data where u = cos(p)",
+            1, fill_value),
             u});
 
     // let v = p
-    function_of_z<double> v([](double z) -> double { return z; });
+    function_of_z<double> v([](double z) -> double { return z; },
+        p_sfc, fill_value);
 
-    s->append_field_generator({"v",
+    mesh->append_field_generator({"v",
         teca_array_attributes(teca_variant_array_code<double>::get(),
             teca_array_attributes::point_centering, 0, "m s^-1",
-            "latiitudinal wind velocity", "test data where v = p"),
+            "latiitudinal wind velocity", "test data where v = p",
+            1, fill_value),
             v});
+
+    // generate the valid value mask
+    p_teca_valid_value_mask mask = teca_valid_value_mask::New();
+    mask->set_input_connection(mesh->get_output_port());
+    mask->set_verbose(0);
 
     // write the test input dataset
     if (write_input)
     {
         p_teca_cf_writer w = teca_cf_writer::New();
-        w->set_input_connection(s->get_output_port());
+        w->set_input_connection(mask->get_output_port());
         w->set_file_name("test_integrated_vapor_transport_input_%t%.nc");
         w->set_thread_pool_size(1);
-        w->set_point_arrays({"q", "u", "v"});
+        w->set_point_arrays({"q", "u", "v", "q_valid", "u_valid", "v_valid"});
         w->update();
     }
 
     // compute IVT
     p_teca_integrated_vapor_transport ivt = teca_integrated_vapor_transport::New();
-    ivt->set_input_connection(s->get_output_port());
+    ivt->set_input_connection(mask->get_output_port());
     ivt->set_wind_u_variable("u");
     ivt->set_wind_v_variable("v");
     ivt->set_specific_humidity_variable("q");
