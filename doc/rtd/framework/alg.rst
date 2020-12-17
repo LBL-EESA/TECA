@@ -6,8 +6,6 @@ Classes
 
 .. doxygenclass:: teca_2d_component_area
    :members:
-   :protected-members:
-   :private-members:
    :undoc-members:
 
 .. doxygenclass:: teca_bayesian_ar_detect

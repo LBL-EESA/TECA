@@ -1,4 +1,6 @@
 *.sw[a-z]
 *.patch
 _build
+xml
 *.pt
+.DS_store

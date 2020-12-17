@@ -2,11 +2,10 @@ Framework
 =========
 
 TECA provides an extensive suite of algorithms and software utilities
-to build Climage Data Analysis pipelines
-for climate data analysis.
+to build Climage Data Analysis/Transformation pipelines.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
    alg

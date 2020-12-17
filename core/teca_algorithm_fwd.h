@@ -32,6 +32,7 @@ std::shared_ptr<T const> shared_from_this() const   \
 }
 
 #define TECA_ALGORITHM_CLASS_NAME(T)                \
+/*! returns the string value "T" */                 \
 const char *get_class_name() const override         \
 {                                                   \
     return #T;                                      \
@@ -50,6 +51,12 @@ const char *get_class_name() const override         \
 // convenience macro to declare standard set_X/get_X methods
 // where X is the name of a class member. will manage the
 // algorithm's modified state for the user.
+/*
+  \def TECA_ALGORITHM_PROPERTY(T, NAME)
+  convenience macro to declare standard set_X/get_X methods
+  where X is the name of a class member. will manage the
+  algorithm's modified state for the user.
+*/
 #define TECA_ALGORITHM_PROPERTY(T, NAME) \
                                          \
 void set_##NAME(const T &v)              \
