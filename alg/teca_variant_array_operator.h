@@ -246,7 +246,7 @@ struct resolver
         switch (*op)
         {
             case '!':
-                r = apply(a1, logical_not());
+                r = teca_variant_array_operator::apply(a1, logical_not());
                 return 0;
                 break;
         }
