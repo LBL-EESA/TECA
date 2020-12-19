@@ -184,7 +184,7 @@ std::vector<teca_metadata> teca_vertical_reduction::get_upstream_request(
         // request the array needed for the calculation
         arrays.insert(dep_var);
 
-        // request the valid value mask
+        // request the valid value mask if they are available.
         std::string mask_var = dep_var + "_valid";
         if (variables.count(mask_var))
             arrays.insert(mask_var);
