@@ -9,6 +9,7 @@
 #include "teca_l2_norm.h"
 #include "teca_multi_cf_reader.h"
 #include "teca_integrated_vapor_transport.h"
+#include "teca_valid_value_mask.h"
 #include "teca_mpi_manager.h"
 #include "teca_coordinate_util.h"
 #include "teca_table.h"
@@ -155,6 +156,9 @@ int main(int argc, char **argv)
     l2_norm->set_component_1_variable("IVT_V");
     l2_norm->set_l2_norm_variable("IVT");
 
+    p_teca_valid_value_mask vv_mask = teca_valid_value_mask::New();
+    vv_mask->get_properties_description("vv_mask", advanced_opt_defs);
+
     // Add an executive for the writer
     p_teca_index_executive exec = teca_index_executive::New();
 
@@ -180,8 +184,9 @@ int main(int argc, char **argv)
     // options will override them
     cf_reader->set_properties("cf_reader", opt_vals);
     mcf_reader->set_properties("mcf_reader", opt_vals);
-    l2_norm->set_properties("ivt_magnitude", opt_vals);
+    vv_mask->set_properties("vv_mask", opt_vals);
     ivt_int->set_properties("ivt_integral", opt_vals);
+    l2_norm->set_properties("ivt_magnitude", opt_vals);
     cf_writer->set_properties("cf_writer", opt_vals);
 
     // now pass in the basic options, these are processed
@@ -257,6 +262,10 @@ int main(int argc, char **argv)
     {
         l2_norm->set_l2_norm_variable(opt_vals["ivt"].as<string>());
     }
+
+    // add the valid value mask stage
+    vv_mask->set_input_connection(head->get_output_port());
+    head = vv_mask;
 
     // add the ivt caluation stages if needed
     bool do_ivt = opt_vals["write_ivt"].as<int>();
