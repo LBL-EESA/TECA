@@ -15,4 +15,13 @@ source `pwd`/../tci/bin/activate
 set -x
 
 mkdir build
-ctest -S ${DASHROOT}/test/travis_ci/ctest_osx.cmake -VV --timeout 180
+ctest -S ${DASHROOT}/test/travis_ci/ctest_osx.cmake --output-on-failure --timeout 180 &
+ctest_pid=$!
+
+# this loop prevents travis from killing the job
+set +x
+while [ -n "$(ps -p $ctest_pid -o pid=)" ]
+do
+  echo "ctest pid=$ctest_pid alive"
+  sleep 30s
+done
