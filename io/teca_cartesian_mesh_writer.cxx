@@ -398,7 +398,7 @@ int write_vtr(const_p_teca_mesh dataset, const std::string &file_name,
     long index, double time, int binary)
 {
 #if defined(TECA_HAS_VTK) || defined(TECA_HAS_PARAVIEW)
-    const_p_teca_cartesian_mesh mesh = std::dyanmic_pointer_cast<const teca_cartesian_mesh>(dataset);
+    const_p_teca_cartesian_mesh mesh = std::dynamic_pointer_cast<const teca_cartesian_mesh>(dataset);
     if (!mesh)
     {
         TECA_ERROR("The vtr format is only supported for type "
@@ -444,7 +444,7 @@ int write_vtr(const_p_teca_mesh dataset, const std::string &file_name,
     if (teca_file_util::file_exists(pvd_file_name.c_str()))
     {
         // add dataset to the file
-        ofstream pvd_file(pvd_file_name,
+        std::ofstream pvd_file(pvd_file_name,
             std::ios_base::in|std::ios_base::out|std::ios_base::ate);
 
         if (!pvd_file.good())
@@ -466,7 +466,7 @@ int write_vtr(const_p_teca_mesh dataset, const std::string &file_name,
     else
     {
         // write the initial file
-        ofstream pvd_file(pvd_file_name, std::ios_base::out|std::ios_base::trunc);
+        std::ofstream pvd_file(pvd_file_name, std::ios_base::out|std::ios_base::trunc);
         if (!pvd_file.good())
         {
             TECA_ERROR("Failed to open \"" << pvd_file_name << "\"")
