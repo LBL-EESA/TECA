@@ -64,7 +64,7 @@ int vtkTECATimeAnnotation::RequestData(vtkInformation *req,
     inInfo->Get(vtkDataObject::DATA_OBJECT()));
   if (!input)
     {
-    vtkErrorMacro("empty input")
+    vtkErrorMacro("empty input");
     return 1;
     }
 
@@ -73,7 +73,7 @@ int vtkTECATimeAnnotation::RequestData(vtkInformation *req,
     outInfo->Get(vtkDataObject::DATA_OBJECT()));
   if (!output)
     {
-    vtkErrorMacro("empty output")
+    vtkErrorMacro("empty output");
     return 1;
     }
 
@@ -82,7 +82,7 @@ int vtkTECATimeAnnotation::RequestData(vtkInformation *req,
     input->GetFieldData()->GetAbstractArray("calendar"));
   if (!sarr)
     {
-    vtkErrorMacro("missing calendar")
+    vtkErrorMacro("missing calendar");
     return 1;
     }
   std::string calendar = sarr->GetValue(0);
@@ -91,7 +91,7 @@ int vtkTECATimeAnnotation::RequestData(vtkInformation *req,
     input->GetFieldData()->GetAbstractArray("time_units"));
   if (!sarr)
     {
-    vtkErrorMacro("missing time_units")
+    vtkErrorMacro("missing time_units");
     return 1;
     }
   std::string time_units = sarr->GetValue(0);
@@ -114,7 +114,7 @@ int vtkTECATimeAnnotation::RequestData(vtkInformation *req,
   if (calcalcs::date(time, &year, &month, &day, &hour, &minute, &second,
       time_units.c_str(), calendar.c_str()))
   {
-      vtkErrorMacro("Failed to compute the date time=" <<  time)
+      vtkErrorMacro("Failed to compute the date time=" <<  time);
       return 1;
   }
 

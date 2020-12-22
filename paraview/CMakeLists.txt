@@ -1,34 +1,23 @@
-project(teca_paraview_plugin)
-
 if (TECA_HAS_PARAVIEW)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}
-        $<TARGET_PROPERTY:teca_core,INTERFACE_INCLUDE_DIRECTORIES>
-        $<TARGET_PROPERTY:teca_data,INTERFACE_INCLUDE_DIRECTORIES>)
 
-    set(plugin_srcs
-        vtkTECATCCandidateTableReader.cxx
-        vtkTECATCTrackTableReader.cxx
-        vtkTECACF2Reader.cxx)
+    set(_paraview_build_plugin PVTECA)
 
-    set(plugin_xml
-        TECASMReaders.xml)
+    paraview_plugin_scan(
+      PLUGIN_FILES "${CMAKE_CURRENT_SOURCE_DIR}/plugin/paraview.plugin"
+      PROVIDES_PLUGINS plugins
+      REQUIRES_MODULES required_modules
+      ENABLE_BY_DEFAULT ON
+      )
 
-    if (TECA_HAS_UDUNITS)
-        list(APPEND plugin_srcs vtkTECATimeAnnotation.cxx)
-        list(APPEND plugin_xml TECASMFilters.xml)
-    endif()
+    message(STATUS "==== found plugin ${plugins} ====")
+    foreach (module IN LISTS required_modules)
+      message(STATUS "checking ${module} ... ")
+      if (NOT TARGET "${module}")
+        message(FATAL_ERROR "Missing required module: ${module} for ${plugins}")
+      endif ()
+      message(STATUS "checking ${module} ... OK")
+    endforeach ()
 
-    set(plugin_link teca_data teca_core teca_io teca_alg)
-
-    include(${PARAVIEW_USE_FILE})
-
-    ADD_PARAVIEW_PLUGIN(
-        TECAParaViewPlugin "${TECA_VERSION_DESCR}"
-        SERVER_MANAGER_XML ${plugin_xml}
-        SERVER_MANAGER_SOURCES ${plugin_srcs}
-        REQUIRED_ON_SERVER)
-
-    target_link_libraries(TECAParaViewPlugin
-        PRIVATE ${plugin_link})
+    paraview_plugin_build(PLUGINS ${plugins})
 
 endif()

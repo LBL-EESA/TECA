@@ -1,0 +1,5 @@
+NAME
+  TECA
+DEPENDS
+  VTK::CommonCore
+  VTK::CommonDataModel

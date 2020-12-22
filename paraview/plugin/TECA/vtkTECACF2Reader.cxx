@@ -304,7 +304,7 @@ int vtkTECACF2Reader::RequestInformation(
 
     if (!this->FileName)
       {
-      vtkErrorMacro("FileName has not been set.")
+      vtkErrorMacro("FileName has not been set.");
       return 1;
       }
 
@@ -362,7 +362,7 @@ int vtkTECACF2Reader::RequestInformation(
     if (this->Metadata.get("variables", vars))
       {
       this->Metadata.to_stream(cerr);
-      vtkErrorMacro("metadata is missing \"variables\"")
+      vtkErrorMacro("metadata is missing \"variables\"");
       return 1;
       }
 
@@ -378,7 +378,7 @@ int vtkTECACF2Reader::RequestInformation(
   if (this->Metadata.get("coordinates", coords))
     {
     this->Metadata.to_stream(cerr);
-    vtkErrorMacro("metadata is missing \"coordinates\"")
+    vtkErrorMacro("metadata is missing \"coordinates\"");
     return 1;
     }
 
@@ -401,7 +401,7 @@ int vtkTECACF2Reader::RequestInformation(
   if (this->Metadata.get("whole_extent", wholeExt))
     {
     this->Metadata.to_stream(cerr);
-    vtkErrorMacro("metadata missing \"whole_extent\"")
+    vtkErrorMacro("metadata missing \"whole_extent\"");
     return  1;
     }
 

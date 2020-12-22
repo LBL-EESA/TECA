@@ -4,18 +4,21 @@ cmake_policy(SET CMP0053 NEW)
 
 project(teca C CXX Fortran)
 
+include(GNUInstallDirs)
+set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries")
+
 # set build/install sub dirs for various components
 if (NOT LIB_PREFIX)
-  set(LIB_PREFIX lib)
+  set(LIB_PREFIX ${CMAKE_INSTALL_LIBDIR})
 endif()
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${LIB_PREFIX})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${LIB_PREFIX})
 if (NOT BIN_PREFIX)
-  set(BIN_PREFIX bin)
+  set(BIN_PREFIX ${CMAKE_INSTALL_BINDIR})
 endif()
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${BIN_PREFIX})
 if (NOT INCLUDE_PREFIX)
-  set(INCLUDE_PREFIX include)
+  set(INCLUDE_PREFIX ${CMAKE_INSTALL_INCLUDEDIR})
 endif()
 
 # bring our cmake codes into scope
@@ -303,7 +306,6 @@ set(ignore ${REQUIRE_MPI} ${REQUIRE_NETCDF} ${REQUIRE_LIBXLSXWRITE}
 
 # configure library type
 set(CMAKE_MACOSX_RPATH 1)
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libraries")
 if (TECA_HAS_PYTHON)
     # SWIG RTTI system requires libs when multiple modules
     # have cross dependencies

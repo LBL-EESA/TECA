@@ -1,0 +1,7 @@
+NAME
+  PVTECA
+DESCRIPTION
+  A plugin exposing TECA's I/O and processing capabilities in ParaView
+REQUIRES_MODULES
+  VTK::CommonCore
+  VTK::CommonDataModel
