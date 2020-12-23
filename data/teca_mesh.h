@@ -28,6 +28,9 @@ public:
     TECA_DATASET_METADATA(array_attributes, teca_metadata, 1)
 
     // get the array collection for the given centering
+    // the centering enumeration is defined in teca_array_attributes
+    // the centering attribute is typically stored in array attribute
+    // metadata
     p_teca_array_collection &get_arrays(int centering);
     const_p_teca_array_collection get_arrays(int centering) const;
 

@@ -152,6 +152,10 @@ public:
     // return 0 if i is valid index.
     int get_name(unsigned long i, std::string &name) const;
 
+    // get the names of all name, value pairs. returns 0
+    // if there are any properties.
+    int get_names(std::vector<std::string> &names) const;
+
     // remove. return 0 if successful
     int remove(const std::string &name) noexcept;
 

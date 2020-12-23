@@ -155,6 +155,7 @@ private:
 %shared_ptr(teca_variant_array_impl<std::string>)
 class teca_variant_array;
 %template(teca_variant_array_base) std::enable_shared_from_this<teca_variant_array>;
+%ignore operator<<(std::ostream &, const std::vector<std::string> &);
 %include "teca_common.h"
 %include "teca_shared_object.h"
 %include "teca_variant_array_fwd.h"

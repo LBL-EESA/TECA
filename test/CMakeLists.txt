@@ -368,7 +368,7 @@ teca_add_test(test_tc_candidates_serial
     "${TECA_DATA_ROOT}/test_tc_candidates_1990_07_0[12]\\.nc"
     "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 1
     U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_SERIAL_TESTS}
     REQ_TECA_DATA)
 
 teca_add_test(test_tc_candidates_mpi
@@ -545,17 +545,17 @@ teca_add_test(test_binary_segmentation
     REQ_TECA_DATA)
 
 teca_add_test(test_bayesian_ar_detect_serial
-    EXEC_NAME test_bayesian_ar_detect
-    SOURCES test_bayesian_ar_detect.cpp
-    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_bayesian_ar_detect
     "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\\.nc$"
     "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" IVT
     "bayesian_ar_detect_%t%.nc" 1 0 -1
-    FEATURES ${TECA_HAS_NETCDF}
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_SERIAL_TESTS}
     REQ_TECA_DATA)
 
 teca_add_test(test_bayesian_ar_detect_threads
+    EXEC_NAME test_bayesian_ar_detect
+    SOURCES test_bayesian_ar_detect.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_bayesian_ar_detect
     "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\\.nc$"
     "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" IVT

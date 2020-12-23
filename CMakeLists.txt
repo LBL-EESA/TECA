@@ -40,12 +40,15 @@ if (MSVC)
             CACHE STRING "" FORCE)
 else()
     if (NOT CMAKE_CXX_FLAGS)
-        set(tmp "-fPIC -std=c++11 -Wall -Wextra")
+        set(tmp "-fPIC -std=c++17 -Wall -Wextra")
         if ((APPLE) AND ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang"))
             set(tmp "${tmp} -stdlib=libc++")
         endif()
         if ("${CMAKE_BUILD_TYPE}" MATCHES "Release")
-            set(tmp "${tmp} -march=native -mtune=native")
+            set(tmp "${tmp} -march=native -mtune=native -fno-trapping-math -fno-math-errno")
+            if (NOT "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+                set(tmp "${tmp} -fno-signaling-nans")
+            endif()
         endif()
         set(CMAKE_CXX_FLAGS "${tmp}"
             CACHE STRING "TECA build defaults"
@@ -54,7 +57,7 @@ else()
     if (NOT CMAKE_Fortran_FLAGS)
         set(tmp "-Wall -Wextra -Wno-conversion -Wno-compare-reals")
         if (CMAKE_BUILD_TYPE STREQUAL "Release")
-            set(tmp "${tmp} -march=native -mtune=native")
+            set(tmp "${tmp} -march=native -mtune=native -fno-trapping-math -fno-signaling-nans -fno-math-errno")
         endif()
         set(CMAKE_Fortran_FLAGS "${tmp}"
             CACHE STRING "TECA build defaults"
@@ -370,6 +373,10 @@ add_subdirectory(paraview)
 # enable regression tests
 set(BUILD_TESTING OFF CACHE BOOL "Enable tests")
 if (BUILD_TESTING)
+    # these are dsiabled by default because they are slow and threaded version
+    # provides sufficient coverage.
+    set(TECA_SERIAL_TESTS OFF CACHE BOOL "Enables serial tests of threaded codes.")
+
     include(CTest)
     include(ProcessorCount)
     configure_file(

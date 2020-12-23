@@ -55,7 +55,7 @@ public:
     TECA_SET_ALGORITHM_PROPERTIES()
 
     // set/get the type code for generated coordinates.
-    // default is 32 bit floating point. Use
+    // default is a 64 bit floating point type. Use
     // teca_variant_array_type<NT>::get() to get specific type
     // codes for C++ POD types NT.
     TECA_ALGORITHM_PROPERTY(unsigned int, coordinate_type_code)

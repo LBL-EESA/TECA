@@ -306,7 +306,7 @@ teca_add_test(py_test_tc_candidates_serial
     "${TECA_DATA_ROOT}/test_tc_candidates_1990_07_0[12]\\.nc"
     "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 1
     U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_SERIAL_TESTS}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_tc_candidates_mpi
@@ -383,7 +383,7 @@ teca_add_test(py_test_bayesian_ar_detect_serial
     "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\\.nc$"
     "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" IVT
     "bayesian_ar_detect_py_%t%.vtk" 1 0 -1
-    FEATURES ${TECA_HAS_NETCDF}
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_SERIAL_TESTS}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_bayesian_ar_detect_threads
@@ -408,7 +408,7 @@ teca_add_test(py_test_deeplab_ar_detect_serial
     "${TECA_DATA_ROOT}/cascade_deeplab_IVT.pt"
     "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\.nc$"
     "${TECA_DATA_ROOT}/test_deeplab_ar_detect" IVT 1
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_PYTORCH}
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_PYTORCH} ${TECA_SERIAL_TESTS}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_deeplab_ar_detect_threads
