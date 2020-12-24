@@ -28,13 +28,13 @@ struct teca_cartesian_mesh_reader::teca_cartesian_mesh_reader_internals
     static p_teca_mesh read_cartesian_mesh(
         const std::string &file_name);
 
-    p_teca_mesh mesh;
+    teca_metadata metadata;
 };
 
 // --------------------------------------------------------------------------
 void teca_cartesian_mesh_reader::teca_cartesian_mesh_reader_internals::clear()
 {
-    this->mesh = nullptr;
+    this->metadata.clear();
 }
 
 // --------------------------------------------------------------------------
@@ -79,7 +79,10 @@ teca_cartesian_mesh_reader::teca_cartesian_mesh_reader_internals::read_cartesian
 
 
 // --------------------------------------------------------------------------
-teca_cartesian_mesh_reader::teca_cartesian_mesh_reader() : generate_original_ids(0)
+teca_cartesian_mesh_reader::teca_cartesian_mesh_reader() :
+file_name(""),
+files_regex(""),
+generate_original_ids(0)
 {
     this->internals = new teca_cartesian_mesh_reader_internals;
 }
@@ -101,6 +104,9 @@ void teca_cartesian_mesh_reader::get_properties_description(
     opts.add_options()
         TECA_POPTS_GET(std::string, prefix, file_name,
             "a file name to read")
+        TECA_POPTS_GET(std::string, prefix, files_regex,
+            "a regular expression that matches the set of files "
+            "comprising the dataset")
         ;
 
     global_opts.add(opts);
@@ -111,6 +117,7 @@ void teca_cartesian_mesh_reader::set_properties(const std::string &prefix,
     variables_map &opts)
 {
     TECA_POPTS_SET(opts, std::string, prefix, file_name)
+    TECA_POPTS_SET(opts, std::string, prefix, files_regex)
 }
 #endif
 
@@ -144,23 +151,43 @@ teca_metadata teca_cartesian_mesh_reader::get_output_metadata(unsigned int port,
     // 1 use regex for multi step dataset
     // 2 read metadata without reading mesh
 
-    // read the mesh if we have not already done so
-    if (!this->internals->mesh)
+    if (this->internals->metadata)
+        return this->internals->metadata;
+
+    std::vector<std::string> files;
+    std::string path;
+
+    if (!this->file_name.empty())
     {
-        if (!(this->internals->mesh =
-            teca_cartesian_mesh_reader_internals::read_cartesian_mesh(this->file_name)))
+        files.push_back(teca_file_util::filename(this->file_name));
+        path = teca_file_util::path(this->file_name);
+    }
+    else
+    {
+        // use regex
+        std::string regex = teca_file_util::filename(this->files_regex);
+        path = teca_file_util::path(this->files_regex);
+
+        if (teca_file_util::locate_files(path, regex, files))
         {
-            TECA_ERROR("Failed to read the mesh from \"" << this->file_name << "\"")
+            TECA_ERROR(
+                << "Failed to locate any files" << endl
+                << this->files_regex << endl
+                << path << endl
+                << regex)
             return teca_metadata();
         }
     }
 
-    teca_metadata md = this->internals->mesh->get_metadata();
-    md.set("index_initializer_key", std::string("number_of_meshes"));
-    md.set("index_request_key", std::string("mesh_id"));
-    md.set("number_of_meshes", 1l);
+    size_t n_files = files.size();
 
-    return md;
+    this->internals->metadata.set("index_initializer_key", std::string("number_of_time_steps"));
+    this->internals->metadata.set("number_of_time_steps", n_files);
+    this->internals->metadata.set("index_request_key", std::string("time_step"));
+    this->internals->metadata.set("files", files);
+    this->internals->metadata.set("root", path);
+
+    return this->internals->metadata;
 }
 
 // --------------------------------------------------------------------------
@@ -174,18 +201,45 @@ const_p_teca_dataset teca_cartesian_mesh_reader::execute(unsigned int port,
 #endif
     (void) port;
     (void) input_data;
-    (void) request;
 
     // TODO
     // 1 handle request for specific index
     // 2 handle spatial subseting
     // 3 Pass only requested arrays
 
-    p_teca_dataset ds = this->internals->mesh->new_instance();
-    ds->shallow_copy(this->internals->mesh);
+    // get the timestep
+    unsigned long time_step = 0;
+    if (request.get("time_step", time_step))
+    {
+        TECA_ERROR("Request is missing time_step")
+        return nullptr;
+    }
 
-    ds->get_metadata().set("index_request_key", std::string("mesh_id"));
-    ds->get_metadata().set("mesh_id", 0l);
+    std::string path;
+    std::string file;
+    if (this->internals->metadata.get("root", path)
+        || this->internals->metadata.get("files", time_step, file))
+    {
+        TECA_ERROR("time_step=" << time_step
+            << " Failed to locate file for time step " << time_step)
+        return nullptr;
+    }
+
+    std::string file_path = path + PATH_SEP + file;
+
+    p_teca_mesh mesh;
+    if (!(mesh =
+            teca_cartesian_mesh_reader_internals::read_cartesian_mesh(file_path)))
+    {
+        TECA_ERROR("Failed to read the mesh from \"" << file_path << "\"")
+        return nullptr;
+    }
+
+    p_teca_dataset ds = mesh->new_instance();
+    ds->shallow_copy(mesh);
+
+    ds->get_metadata().set("index_request_key", std::string("time_step"));
+    ds->get_metadata().set("time_step", time_step);
 
     return ds;
 }

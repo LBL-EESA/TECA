@@ -42,6 +42,11 @@ public:
     // the file from which data will be read.
     TECA_ALGORITHM_PROPERTY(std::string, file_name)
 
+    // describe the set of files comprising the dataset. This
+    // should contain the full path and regex describing the
+    // file name pattern
+    TECA_ALGORITHM_PROPERTY(std::string, files_regex)
+
     // name of the column containing index values.
     // if this is not empty the reader will operate
     // in parallel mode serving up requested indices
@@ -90,6 +95,7 @@ private:
 
 private:
     std::string file_name;
+    std::string files_regex;
     std::string index_column;
     int generate_original_ids;
     std::vector<std::string> metadata_column_names;
