@@ -78,19 +78,22 @@ class generate_data(teca_python_algorithm):
             teca_double_array_code.get(),
             teca_array_attributes.point_centering,
             int(ncells), 'meters', 'height',
-            'height is defined by the function z=sin^2(x*y + t)')
+            'height is defined by the function z=sin^2(x*y + t)',
+            None)
 
         zt_atts = teca_array_attributes(
             teca_double_array_code.get(),
             teca_array_attributes.no_centering,
             1, 'meters', 'threshold height',
-            'value of height used to segment the z data')
+            'value of height used to segment the z data',
+            None)
 
         count_atts = teca_array_attributes(
             teca_int_array_code.get(),
             teca_array_attributes.no_centering,
             2, 'cells', 'number of cells',
-            'number of cells above and below the threshold value')
+            'number of cells above and below the threshold value',
+            None)
 
         # put it in the array attributes
         try:
@@ -253,7 +256,7 @@ if rank == 0:
         diff.set_input_connection(0, cmr.get_output_port())
         diff.set_input_connection(1, par.get_output_port())
         diff.set_executive(rex)
-        diff.set_tolerance(1.e-4)
+        #diff.set_relative_tolerance(1.e-4)
         diff.update()
     else:
         sys.stderr.write('writing the baseline...\n')

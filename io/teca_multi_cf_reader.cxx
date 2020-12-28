@@ -876,7 +876,6 @@ const_p_teca_dataset teca_multi_cf_reader::execute(unsigned int port,
     // get the requested arrays
     std::vector<std::string> req_arrays;
     request.get("arrays", req_arrays);
-    size_t n_arrays = req_arrays.size();
 
     // route the requested arrays to the correct reader.
     using array_router_t = std::map<std::string, std::vector<std::string>>;
@@ -891,26 +890,65 @@ const_p_teca_dataset teca_multi_cf_reader::execute(unsigned int port,
         const std::string &key = it->first;
         teca_multi_cf_reader_internals::p_cf_reader_instance &inst = it->second;
 
+        // make a pass over the arrays. if this reader provides the array
+        // add it to the associated router and don't include it in later
+        // searches.
+        std::vector<std::string> arrays_left;
+
+        size_t n_arrays = req_arrays.size();
         for (size_t i = 0; i < n_arrays; ++i)
         {
             const std::string &array = req_arrays[i];
             std::set<std::string>::iterator vit = inst->variables.find(array);
-            if (vit != inst->variables.end())
-                array_router[key].push_back(*vit);
+
+            if (vit == inst->variables.end())
+                arrays_left.push_back(array);
+            else
+                array_router[key].push_back(array);
         }
+
+        req_arrays.swap(arrays_left);
     }
 
-    // read mesh geometry first
-    p_teca_cartesian_mesh mesh_out;
-    if (teca_multi_cf_reader_internals::read_arrays(
-        this->internals->readers[this->internals->geometry_reader]->reader,
-        request, array_router[this->internals->geometry_reader], mesh_out))
+    // none of the readers could provide the remaining arrays.
+    if (!req_arrays.empty())
     {
-        TECA_ERROR("Failed to read mesh geometry")
+        TECA_ERROR("No reader provides the requested arrays " << req_arrays)
         return nullptr;
     }
 
-    // read the rest of the arrays
+    // read mesh geometry, and the arrays provided by this reader first.
+    // the returned mesh becomes the output.
+    p_teca_cartesian_mesh mesh_out;
+
+    const std::string &geom_reader = this->internals->geometry_reader;
+
+    const std::vector<std::string> &geom_arrays =
+        array_router[this->internals->geometry_reader];
+
+    if (teca_multi_cf_reader_internals::read_arrays(
+        this->internals->readers[geom_reader]->reader, request, geom_arrays,
+        mesh_out))
+    {
+        TECA_ERROR("Geometry reader \"" << geom_reader
+            << "\" failed to read arrays " << geom_arrays)
+        return nullptr;
+    }
+
+    // get the output metadata and the array attributes
+    teca_metadata &md_out = mesh_out->get_metadata();
+
+    teca_metadata attributes;
+    if (md_out.get("attributes", attributes))
+    {
+        TECA_ERROR("Geometry reader \"" << geom_reader
+            << "\" failed to get attributes")
+        return nullptr;
+    }
+
+    // read the rest of the arrays. iterate over each reader, get the list
+    // of requested arrays that it sources, read, and transfer the arrays
+    // and metadata to the output
     it = this->internals->readers.begin();
     for (; it != end; ++it)
     {
@@ -922,30 +960,57 @@ const_p_teca_dataset teca_multi_cf_reader::execute(unsigned int port,
             continue;
 
         // read the reader's arrays
+        const std::vector<std::string> &arrays = array_router[key];
+        size_t n_arrays = arrays.size();
+
         p_teca_cartesian_mesh tmp;
         if (teca_multi_cf_reader_internals::read_arrays(inst->reader,
-            request, array_router[key], tmp))
+            request, arrays, tmp))
         {
-            TECA_ERROR("Failed to read mesh geometry")
+            TECA_ERROR("Reader \"" << key << "\" failed to read arrays " << arrays)
             return nullptr;
         }
 
-        // pass them into the output
-        if (mesh_out->get_point_arrays()->append(tmp->get_point_arrays()) ||
-            mesh_out->get_cell_arrays()->append(tmp->get_cell_arrays()) ||
-            mesh_out->get_x_edge_arrays()->append(tmp->get_x_edge_arrays()) ||
-            mesh_out->get_y_edge_arrays()->append(tmp->get_y_edge_arrays()) ||
-            mesh_out->get_z_edge_arrays()->append(tmp->get_z_edge_arrays()) ||
-            mesh_out->get_x_face_arrays()->append(tmp->get_x_face_arrays()) ||
-            mesh_out->get_y_face_arrays()->append(tmp->get_y_face_arrays()) ||
-            mesh_out->get_z_face_arrays()->append(tmp->get_z_face_arrays()) ||
-            mesh_out->get_information_arrays()->append(
-                tmp->get_information_arrays()))
+        // transfer the arrays into the output
+        mesh_out->get_point_arrays()->append(tmp->get_point_arrays());
+        mesh_out->get_cell_arrays()->append(tmp->get_cell_arrays());
+        mesh_out->get_x_edge_arrays()->append(tmp->get_x_edge_arrays());
+        mesh_out->get_y_edge_arrays()->append(tmp->get_y_edge_arrays());
+        mesh_out->get_z_edge_arrays()->append(tmp->get_z_edge_arrays());
+        mesh_out->get_x_face_arrays()->append(tmp->get_x_face_arrays());
+        mesh_out->get_y_face_arrays()->append(tmp->get_y_face_arrays());
+        mesh_out->get_z_face_arrays()->append(tmp->get_z_face_arrays());
+        mesh_out->get_information_arrays()->append(tmp->get_information_arrays());
+
+        // transfer the array attributes
+        teca_metadata &md_tmp = tmp->get_metadata();
+
+        teca_metadata atrs;
+        if (md_tmp.get("attributes", atrs))
         {
-            TECA_ERROR("Failed to pass the arrays")
+            TECA_ERROR("Reader \"" << key << " failed to get attributes")
             return nullptr;
         }
+
+        for (size_t i = 0; i < n_arrays; ++i)
+        {
+            const std::string &array_name = arrays[i];
+            teca_metadata array_atts;
+            if (atrs.get(array_name, array_atts))
+            {
+                TECA_ERROR("Reader \"" << key
+                    << "\" failed to get attributes for array \""
+                    << array_name << "\"")
+                atrs.to_stream(std::cerr);
+                return nullptr;
+            }
+
+            attributes.set(array_name, array_atts);
+        }
     }
+
+    // update the array attribute metadata
+    md_out.set("attributes", attributes);
 
     return mesh_out;
 }

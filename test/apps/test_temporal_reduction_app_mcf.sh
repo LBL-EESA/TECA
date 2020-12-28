@@ -50,7 +50,7 @@ else
         --test_dataset "${output_base}_.*\.nc"                                  \
         --ref_reader::z_axis_variable plev --test_reader::z_axis_variable plev  \
         --arrays ${array_name} --verbose                                        \
-        --test_tolerance 1.e-5
+        --relative_tolerance 1.e-5
 
     # clean up
     rm ${output_base}_*.nc

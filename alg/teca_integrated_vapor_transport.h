@@ -57,6 +57,10 @@ public:
     // component of the ivt vector ("ivt_v")
     TECA_ALGORITHM_PROPERTY(std::string, ivt_v_variable)
 
+    // set the _fillValue attribute for the output data.
+    // default 1.0e20
+    TECA_ALGORITHM_PROPERTY(double, fill_value)
+
 protected:
     teca_integrated_vapor_transport();
 
@@ -81,6 +85,7 @@ private:
     std::string specific_humidity_variable;
     std::string ivt_u_variable;
     std::string ivt_v_variable;
+    double fill_value;
 };
 
 #endif

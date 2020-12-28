@@ -68,7 +68,7 @@ if do_test:
     diff = teca_dataset_diff.New()
     diff.set_input_connection(0, bcfr.get_output_port())
     diff.set_input_connection(1, mav.get_output_port())
-    diff.set_tolerance(1e-5)
+    diff.set_relative_tolerance(1e-5)
     diff.set_executive(exe)
 
     diff.update()

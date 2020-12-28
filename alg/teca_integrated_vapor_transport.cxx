@@ -71,13 +71,72 @@ void cartesian_ivt(unsigned long nx, unsigned long ny,
     for (unsigned long i = 0; i < nxy; ++i)
         ivt[i] *= m1g;
 }
+
+template <typename coord_t, typename num_t>
+void cartesian_ivt(unsigned long nx, unsigned long ny,
+    unsigned long nz, const coord_t *plev, const num_t *wind,
+    const char *wind_valid, const num_t *q, const char *q_valid,
+    num_t *ivt)
+{
+    unsigned long nxy = nx*ny;
+    unsigned long nxyz = nxy*nz;
+
+    // compute the mask
+    char *mask = (char*)malloc(nxyz);
+    for (unsigned long i = 0; i < nxyz; ++i)
+        mask[i] = wind_valid[i] && q_valid[i] ? 1 : 0;
+
+    // compute the integrand
+    num_t *f = (num_t*)malloc(nxyz*sizeof(num_t));
+    for (unsigned long i = 0; i < nxyz; ++i)
+        f[i] = wind[i]*q[i];
+
+    // initialize the result
+    memset(ivt, 0, nxy*sizeof(num_t));
+
+    // work an x-y slice at a time
+    unsigned long nzm1 = nz - 1;
+    for (unsigned long k = 0; k < nzm1; ++k)
+    {
+        // dp over the slice
+        num_t h2 = num_t(0.5) * (plev[k+1] - plev[k]);
+
+        // the current two x-y-planes of data
+        unsigned long knxy = k*nxy;
+        num_t *f_k0 = f + knxy;
+        num_t *f_k1 = f_k0 + nxy;
+
+        char *mask_k0 = mask + knxy;
+        char *mask_k1 = mask_k0 + nxy;
+
+        // accumulate this plane of data using trapazoid rule
+        for (unsigned long q = 0; q < nxy; ++q)
+        {
+            ivt[q] += ((mask_k0[q] && mask_k1[q]) ?
+               h2 * (f_k0[q] + f_k1[q]) : num_t(0));
+        }
+    }
+
+    // free up the integrand and mask
+    free(mask);
+    free(f);
+
+    // check the sign, in this way we can handle both increasing and decreasing
+    // pressure coordinates
+    num_t s = plev[1] - plev[0] < num_t(0) ? num_t(-1) : num_t(1);
+
+    // scale by -1/g
+    num_t m1g = s/num_t(9.80665);
+    for (unsigned long i = 0; i < nxy; ++i)
+        ivt[i] *= m1g;
+}
 }
 
 // --------------------------------------------------------------------------
 teca_integrated_vapor_transport::teca_integrated_vapor_transport() :
     wind_u_variable("ua"), wind_v_variable("va"),
     specific_humidity_variable("hus"), ivt_u_variable("ivt_u"),
-    ivt_v_variable("ivt_v")
+    ivt_v_variable("ivt_v"), fill_value(1.0e20)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -101,7 +160,9 @@ void teca_integrated_vapor_transport::get_properties_description(
         TECA_POPTS_GET(std::string, prefix, wind_v_variable,
             "name of the variable containg the lat component of the wind vector (va)")
         TECA_POPTS_GET(std::string, prefix, specific_humidty_variable,
-            "array containg the specific humidity (hus)")
+            "name of the variable containg the specific humidity (hus)")
+        TECA_POPTS_GET(double, prefix, fill_value,
+            "the value of the NetCDF _FillValue attribute (1e20)")
         ;
 
     global_opts.add(opts);
@@ -114,6 +175,7 @@ void teca_integrated_vapor_transport::set_properties(
     TECA_POPTS_SET(opts, std::string, prefix, wind_u_variable)
     TECA_POPTS_SET(opts, std::string, prefix, wind_v_variable)
     TECA_POPTS_SET(opts, std::string, prefix, specific_humidity_variable)
+    TECA_POPTS_SET(opts, double, prefix, fill_value)
 }
 #endif
 
@@ -167,12 +229,14 @@ teca_metadata teca_integrated_vapor_transport::get_output_metadata(
         teca_array_attributes ivt_u_atts(
             type_code, teca_array_attributes::point_centering,
             0, "kg m^{-1} s^{-1}", "longitudinal integrated vapor transport",
-            "the longitudinal component of integrated vapor transport");
+            "the longitudinal component of integrated vapor transport",
+            1, this->fill_value);
 
         teca_array_attributes ivt_v_atts(
             type_code, teca_array_attributes::point_centering,
             0, "kg m^{-1} s^{-1}", "latitudinal integrated vapor transport",
-            "the latitudinal component of integrated vapor transport");
+            "the latitudinal component of integrated vapor transport",
+            this->fill_value);
 
         // install name and attributes of the output variables in the base classs
         this->append_derived_variable(this->ivt_u_variable);
@@ -266,6 +330,9 @@ const_p_teca_dataset teca_integrated_vapor_transport::execute(
         return nullptr;
     }
 
+    const_p_teca_variant_array wind_u_valid =
+           in_mesh->get_point_arrays()->get(this->wind_u_variable + "_valid");
+
     const_p_teca_variant_array wind_v =
         in_mesh->get_point_arrays()->get(this->wind_v_variable);
 
@@ -276,6 +343,9 @@ const_p_teca_dataset teca_integrated_vapor_transport::execute(
         return nullptr;
     }
 
+    const_p_teca_variant_array wind_v_valid =
+           in_mesh->get_point_arrays()->get(this->wind_v_variable + "_valid");
+
     const_p_teca_variant_array q =
         in_mesh->get_point_arrays()->get(this->specific_humidity_variable);
 
@@ -285,6 +355,9 @@ const_p_teca_dataset teca_integrated_vapor_transport::execute(
             << this->specific_humidity_variable << "\" is missing")
         return nullptr;
     }
+
+    const_p_teca_variant_array q_valid =
+           in_mesh->get_point_arrays()->get(this->specific_humidity_variable + "_valid");
 
     // the base class will construct the output mesh
     p_teca_cartesian_mesh out_mesh
@@ -317,15 +390,32 @@ const_p_teca_dataset teca_integrated_vapor_transport::execute(
         NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
             ivt_u.get(), _DATA,
 
+            NT_DATA *p_ivt_u = static_cast<TT_DATA*>(ivt_u.get())->get();
+            NT_DATA *p_ivt_v = static_cast<TT_DATA*>(ivt_v.get())->get();
+
             const NT_DATA *p_wind_u = static_cast<const TT_DATA*>(wind_u.get())->get();
             const NT_DATA *p_wind_v = static_cast<const TT_DATA*>(wind_v.get())->get();
             const NT_DATA *p_q = static_cast<const TT_DATA*>(q.get())->get();
 
-            NT_DATA *p_ivt_u = static_cast<TT_DATA*>(ivt_u.get())->get();
-            NT_DATA *p_ivt_v = static_cast<TT_DATA*>(ivt_v.get())->get();
+            const char *p_wind_u_valid = nullptr;
+            const char *p_wind_v_valid = nullptr;
+            const char *p_q_valid = nullptr;
+            if (wind_u_valid)
+            {
+                using TT_MASK = teca_char_array;
 
-            ::cartesian_ivt(nx, ny, nz, p_p, p_wind_u, p_q, p_ivt_u);
-            ::cartesian_ivt(nx, ny, nz, p_p, p_wind_v, p_q, p_ivt_v);
+                p_wind_u_valid = dynamic_cast<const TT_MASK*>(wind_u_valid.get())->get();
+                p_wind_v_valid = dynamic_cast<const TT_MASK*>(wind_v_valid.get())->get();
+                p_q_valid = dynamic_cast<const TT_MASK*>(q_valid.get())->get();
+
+                ::cartesian_ivt(nx, ny, nz, p_p, p_wind_u, p_wind_u_valid, p_q, p_q_valid, p_ivt_u);
+                ::cartesian_ivt(nx, ny, nz, p_p, p_wind_v, p_wind_v_valid, p_q, p_q_valid, p_ivt_v);
+            }
+            else
+            {
+                ::cartesian_ivt(nx, ny, nz, p_p, p_wind_u, p_q, p_ivt_u);
+                ::cartesian_ivt(nx, ny, nz, p_p, p_wind_v, p_q, p_ivt_v);
+            }
             )
         )
 

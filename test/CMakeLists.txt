@@ -708,3 +708,10 @@ teca_add_test(test_cf_time_axis_reader_mpi
         "${TECA_DATA_ROOT}/HighResMIP/TC_test/PSL/PSL.*\\.nc$" ${HALF_TEST_CORES}
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
+
+teca_add_test(test_valid_value_mask
+    SOURCES test_valid_value_mask.cpp
+    LIBS teca_core teca_data teca_alg teca_io ${teca_test_link}
+    COMMAND test_valid_value_mask 0.25 1.0e20 "${TECA_DATA_ROOT}/test_valid_value_mask.nc"
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)

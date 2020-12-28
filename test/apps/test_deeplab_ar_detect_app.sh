@@ -41,7 +41,7 @@ else
     ${app_prefix}/teca_cartesian_mesh_diff                                   \
         --reference_dataset "${data_root}/test_deeplab_ar_detect_app_ref.nc" \
         --test_dataset "test_deeplab_ar_detect_app_output.*\.nc"             \
-        --arrays ar_probability ar_binary_tag --test_tolerance 1e-3 --verbose
+        --arrays ar_probability ar_binary_tag --relative_tolerance 1e-4 --verbose
 
     # clean up
     rm test_deeplab_ar_detect_app_output*.nc

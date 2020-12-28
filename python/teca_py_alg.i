@@ -37,6 +37,7 @@
 #include "teca_tc_trajectory.h"
 #include "teca_tc_wind_radii.h"
 #include "teca_temporal_average.h"
+#include "teca_valid_value_mask.h"
 #include "teca_vertical_reduction.h"
 #include "teca_vorticity.h"
 
@@ -409,3 +410,11 @@ struct teca_tc_saffir_simpson
 %shared_ptr(teca_integrated_vapor_transport)
 %ignore teca_integrated_vapor_transport::operator=;
 %include "teca_integrated_vapor_transport.h"
+
+/***************************************************************************
+ valid_value_mask
+ ***************************************************************************/
+%ignore teca_valid_value_mask::shared_from_this;
+%shared_ptr(teca_valid_value_mask)
+%ignore teca_valid_value_mask::operator=;
+%include "teca_valid_value_mask.h"

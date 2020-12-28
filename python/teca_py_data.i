@@ -28,11 +28,45 @@
 {
     TECA_PY_STR()
 
+    // wraps cast operator that is used in C++
     teca_metadata to_metadata()
     {
         teca_metadata md;
         self->to(md);
         return md;
+    }
+
+    // wrap the constructor to deal with the fill value template. Either pass
+    // a numerical object of the appropriate type or None to indicate no
+    // fill value.
+    teca_array_attributes(unsigned int tc, unsigned int cen,
+        unsigned long n, const std::string &un, const std::string &ln,
+        const std::string &descr, PyObject *fv)
+    {
+        if (fv != Py_None)
+        {
+            if (tc < 1)
+            {
+                TECA_PY_ERROR(PyExc_RuntimeError, "a valid type_code"
+                    " is required when specifying a fill_value")
+                return nullptr;
+            }
+
+            TECA_PY_OBJECT_DISPATCH_NUM(fv,
+                return new teca_array_attributes(tc, cen, n, un, ln, descr,
+                    1, teca_py_object::cpp_tt<OT>::value(fv));
+                )
+
+            TECA_PY_ERROR(PyExc_TypeError, "Unsupported type of fill_value")
+        }
+        else
+        {
+            return new teca_array_attributes(tc, cen, n, un, ln, descr);
+        }
+
+        // the following two statements should never be executed.
+        TECA_PY_ERROR_NOW(PyExc_RuntimeError, "unspecified error")
+        return nullptr;
     }
 }
 

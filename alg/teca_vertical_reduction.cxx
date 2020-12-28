@@ -162,6 +162,15 @@ std::vector<teca_metadata> teca_vertical_reduction::get_upstream_request(
         req.set("extent", whole_extent);
     }
 
+    // get the list of variable available. we need to see if
+    // the valid value mask is available and if so request it
+    std::set<std::string> variables;
+    if (md.get("variables", variables))
+    {
+        TECA_ERROR("Metadata issue. variables is missing")
+        return up_reqs;
+    }
+
     // add the dependent variables into the requested arrays
     std::set<std::string> arrays;
     if (req.has("arrays"))
@@ -169,7 +178,17 @@ std::vector<teca_metadata> teca_vertical_reduction::get_upstream_request(
 
     int n_dep_vars = this->dependent_variables.size();
     for (int i = 0; i < n_dep_vars; ++i)
-        arrays.insert(this->dependent_variables[i]);
+    {
+        const std::string &dep_var = this->dependent_variables[i];
+
+        // request the array needed for the calculation
+        arrays.insert(dep_var);
+
+        // request the valid value mask if they are available.
+        std::string mask_var = dep_var + "_valid";
+        if (variables.count(mask_var))
+            arrays.insert(mask_var);
+    }
 
     // capture the arrays we produce
     size_t n_derived = this->derived_variables.size();
