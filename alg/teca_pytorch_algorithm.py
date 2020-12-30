@@ -2,8 +2,6 @@ import os
 import sys
 import socket
 import numpy as np
-import torch
-import torch.nn.functional as F
 
 class teca_pytorch_algorithm(teca_python_algorithm):
     """
@@ -29,31 +27,191 @@ class teca_pytorch_algorithm(teca_python_algorithm):
 
         self.input_variable = None
         self.output_variable = None
+        self.output_variable_atts = None
 
         self.model = None
         self.model_path = None
         self.device = 'cpu'
-        self.threads_per_core = 1
+        self.n_threads = -1
+        self.n_threads_max = 4
         self.verbose = 0
+        self.initialized = False
 
-    def __str__(self):
-        ms_str = 'input_variable=%s, output_variable=%s\n' % (
-                  self.input_variable, self.output_variable)
-        ms_str += 'model=%s\n' % (str(self.model))
-        ms_str += 'model_path=%s\n' % (self.model_path)
-        ms_str += 'device=%s\n' % (str(self.device))
-        ms_str += 'thread pool size=%d\n' % (self.get_thread_pool_size())
-        ms_str += 'hostname=%s, pid=%s' % (
-                  socket.gethostname(), os.getpid())
+    def set_verbose(self, val):
+        """
+        Set the verbosity of the run, higher values will result in more
+        terminal output
+        """
+        self.verbose = val
 
-        return ms_str
+    def set_input_variable(self, name):
+        """
+        set the name of the variable to be processed
+        """
+        self.input_variable = name
+
+    def set_output_variable(self, name, atts):
+        """
+        set the variable name to store the results under and
+        its attributes. Attributes are optional and may be None
+        but are required for the CF writer to write the result
+        to disk.
+        """
+        self.output_variable = name
+        self.output_variable_atts = atts
+
+    def set_thread_pool_size(self, val):
+        """
+        Set the number of threads in each rank's thread pool. Setting
+        to a value of -1 will result in the thread pool being sized
+        such that each thread is uniquely and exclusively bound to a
+        specific core accounting for thread pools in other ranks
+        running on the same node
+        """
+        self.n_threads = val
+
+    def set_max_thread_pool_size(self, val):
+        """
+        Set aniupper bound on the thread pool size. This is applied
+        during automatic thread pool sizing.
+        """
+        self.n_threads_max = val
+
+    def set_torch_device(self, device):
+        """
+        Set the torch target device
+        """
+        self.device = device
+
+    def set_model(self, model):
+        """
+        set Pytorch pretrained model
+        """
+        self.model = model
+        # tell troch to run in inference mode
+        self.model.eval()
+
+    def initialize(self):
+        """
+        determine the mapping to hardware for the current MPI layout.
+        if device is cpu then this configures OpenMP such that its
+        thread pools have 1 thread per physical core.
+        this also imports torch. this must be called prior to using any
+        torch api's etc.
+        """
+        event = teca_time_py_event('teca_pytorch_algorithm::initialize')
+
+        if self.initialized:
+            return
+
+        rank = 0
+        n_ranks = 1
+        comm = self.get_communicator()
+        if get_teca_has_mpi():
+            rank = comm.Get_rank()
+            n_ranks = comm.Get_size()
+
+        # tell OpenMP to report on what it does
+        if self.verbose > 2:
+            os.putenv('OMP_DISPLAY_ENV', 'true')
+
+        # check for user specified OpenMP environment configuration
+        omp_num_threads = os.getenv('OMP_NUM_THREADS')
+        omp_places = os.getenv('OMP_PLACES')
+        omp_proc_bind = os.getenv('OMP_PROC_BIND')
+
+        if omp_num_threads is not None or omp_places is not None \
+            or omp_proc_bind is not None:
+
+            # at least one of the OpenMP environment control variables
+            # was set. we will now bail out and use those settings
+            if rank == 0:
+                sys.stderr.write('[0] STATUS: OpenMP environment override '
+                                 'detected. OMP_NUM_THREADS=%s '
+                                 'OMP_PROC_BIND=%s OMP_PLACES=%s\n' % (
+                                 str(omp_num_threads), str(omp_proc_bind),
+                                 str(omp_places)))
+                sys.stderr.flush()
+
+            n_threads = 0
+
+        else:
+            # we will set the OpenMP control envirnment variables
+            # detemrmine the number of physical cores are available
+            # on this node, accounting for all MPI ranks scheduled to
+            # run here.
+            try:
+                # let the user request a specific number of threads
+                n_threads = self.n_threads
+
+                n_threads, affinity = \
+                    thread_util.thread_parameters(comm, n_threads, 1, self.verbose)
+
+                # let the user request a bound on the number of threads
+                if self.n_threads_max > 0:
+                    n_threads = min(n_threads, self.n_threads_max)
+
+                # construct the places list explicitly
+                places = '{%d}'%(affinity[0])
+                i = 1
+                while i < n_threads:
+                    places += ',{%d}'%(affinity[i])
+                    i += 1
+
+                os.putenv('OMP_NUM_THREADS', '%d'%(n_threads))
+                os.putenv('OMP_PROC_BIND', 'true')
+                os.putenv('OMP_PLACES', places)
+
+                if self.verbose:
+                    sys.stderr.write('[%d] STATUS: OpenMP control '
+                                     'enironment variables '
+                                     'OMP_NUM_THREADS=%d '
+                                     'OMP_PROC_BIND=true OMP_PLACES=%s\n' % (
+                                     rank, n_threads, places))
+                    sys.stderr.flush()
+
+            except(RuntimeError):
+                # we failed to detect the number of physical cores per MPI rank
+                os.putenv('OMP_NUM_THREADS', 2)
+                n_threads = 2
+
+                if rank == 0:
+                    sys.stderr.write('[0] STATUS: Failed to determine the '
+                                     'number of physical cores available per '
+                                     'MPI rank. OMP_NUM_THREADS=2\n')
+                    sys.stderr.flush()
+
+        global torch
+        import torch
+
+        if n_threads:
+            torch.set_num_threads(n_threads)
+            torch.set_num_interop_threads(n_threads)
+
+        if self.verbose > 1:
+            torch.__config__.parallel_info()
+            sys.stderr.write('[%d] STATUS: %s'%(
+                             rank, torch.__config__.parallel_info()))
+            sys.stderr.flush()
+
+        self.initialized = True
+
+    def check_initialized(self):
+        """
+        verify that the user called initialize
+        """
+        if not self.initialized:
+            raise RuntimeError('Not initialized! call '
+                               'teca_pytroch_algorithm::initialize before '
+                               'use to configure the run and import torch')
 
     def load_state_dict(self, filename):
         """
-        Load only the pytorch state_dict parameters file only
-        once and broadcast it to all ranks
+        Load only the pytorch state_dict parameters file.
         """
         event = teca_time_py_event('teca_pytorch_algorithm::load_state_dict')
+
+        self.check_initialized()
 
         comm = self.get_communicator()
         rank = comm.Get_rank()
@@ -66,28 +224,6 @@ class teca_pytorch_algorithm(teca_python_algorithm):
         sd = comm.bcast(sd, root=0)
 
         return sd
-
-    def set_verbose(self, val):
-        """
-        Set the verbosity of the run, higher values will result in more
-        terminal output
-        """
-        self.verbose = val
-
-    def set_input_variable(self, name):
-        """
-        set the variable name that will be inputed to the model
-        """
-        self.input_variable = name
-
-        if self.output_variable is None:
-            self.set_output_variable(self.input_variable + '_pred')
-
-    def set_output_variable(self, name):
-        """
-        set the variable name that will be the output to the model
-        """
-        self.output_variable = name
 
     def preprocess(self, in_array):
         """
@@ -106,106 +242,11 @@ class teca_pytorch_algorithm(teca_python_algorithm):
         """
         return out_tensor.numpy()
 
-    def set_threads_per_core(self, threads_per_core):
-        """
-        Set the number of threds per core. Typically 1 gives the best
-        performance for CPU bound applicaitons, however 2 can sometimes
-        be useful. More than 2 will likeley harm performance.
-        """
-        if threads_per_core > 4:
-            raise ValueError('Using more than 2 threads per phyiscal core '
-                             'will degrade performance on most architectures.')
-        self.threads_per_core = threads_per_core
-
-    def set_thread_pool_size(self, n_requested):
-        """
-        Sets the number of threads used for intra-op parallelism on CPU
-        """
-        event = teca_time_py_event('teca_pytorch_algorithm::set_thread_pool_size')
-
-        rank = 0
-        n_ranks = 1
-        comm = self.get_communicator()
-        if get_teca_has_mpi():
-            rank = comm.Get_rank()
-            n_ranks = comm.Get_size()
-
-        n_threads = n_requested
-
-        if n_requested > 0:
-            # pass directly to torch
-            torch.set_num_threads(n_requested)
-        else:
-            # detemrmine the number of physical cores are available
-            # on this node, accounting for all MPI ranks scheduled to
-            # run here.
-            try:
-                n_threads, affinity = \
-                    thread_util.thread_parameters(comm, -1, 0, 0)
-
-                # make use of hyper-threads
-                n_threads *= self.threads_per_core
-
-                # pass to torch
-                torch.set_num_threads(n_threads)
-
-            except(RuntimeError):
-                # we failed to detect the number of physical cores per MPI rank
-                # if this is an MPI job then fall back to 2 threads per rank
-                # and if not let torch use all (what happens when you do
-                # nothing)
-                n_threads = -1
-                comm = self.get_communicator()
-                if get_teca_has_mpi() and comm.Get_size() > 1:
-                    torch.set_num_threads(2)
-                    n_threads = 2
-                if rank == 0:
-                    sys.stderr.write('STATUS: Failed to determine the number '
-                                     'of physical cores available per MPI '
-                                     'rank.\n')
-                    sys.stderr.flush()
-
-        # print a report describing the load balancing decisions
-        if self.verbose:
-            if get_teca_has_mpi():
-                thread_map = comm.gather(n_threads, root=0)
-            else:
-                thread_map = [n_threads]
-            if rank == 0:
-                sys.stderr.write('STATUS: pytorch_algorithm thread '
-                                 'parameters :\n')
-                for i in range(n_ranks):
-                    sys.stderr.write('  %d : %d\n' % (i, thread_map[i]))
-                sys.stderr.flush()
-
-    def get_thread_pool_size(self):
-        """
-        Gets the number of threads available for intra-op parallelism on CPU
-        """
-        return torch.get_num_threads()
-
-    def set_torch_device(self, device="cpu"):
-        """
-        Set device to either 'cuda' or 'cpu'
-        """
-        if device[:4] == "cuda" and not torch.cuda.is_available():
-            raise RuntimeError('Failed to set device to CUDA. '
-                               'CUDA is not available')
-
-        self.device = device
-
-    def set_model(self, model):
-        """
-        set Pytorch pretrained model
-        """
-        event = teca_time_py_event('teca_pytorch_algorithm::set_model')
-
-        self.model = model
-        self.model.eval()
-
     def report(self, port, rep_in):
         """ TECA report override """
         event = teca_time_py_event('teca_pytorch_algorithm::report')
+
+        self.check_initialized()
 
         # check for required parameters.
         if self.model is None:
@@ -235,6 +276,8 @@ class teca_pytorch_algorithm(teca_python_algorithm):
         """ TECA request override """
         event = teca_time_py_event('teca_pytorch_algorithm::request')
 
+        self.check_initialized()
+
         req = teca_metadata(req_in)
 
         arrays = []
@@ -259,6 +302,8 @@ class teca_pytorch_algorithm(teca_python_algorithm):
     def execute(self, port, data_in, req):
         """ TECA execute override """
         event = teca_time_py_event('teca_pytorch_algorithm::execute')
+
+        self.check_initialized()
 
         # get the input array and reshape it to a 2D layout that's compatible
         # with numpy and torch
