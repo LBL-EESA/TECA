@@ -11,7 +11,8 @@
 // split block 1 into 2 blocks in the d direction. block1 is modified in place
 // and the new block is returned in block 2. return 1 if the split succeeded
 // and 0 if it failed.
-int split(std::array<unsigned long,6> &block_1, std::array<unsigned long,6> &block_2, int d)
+int split(std::array<unsigned long,6> &block_1,
+    std::array<unsigned long,6> &block_2, int d)
 {
     // compute length in this direction
     int i0 = 2*d;
@@ -31,14 +32,16 @@ int split(std::array<unsigned long,6> &block_1, std::array<unsigned long,6> &blo
 
     // split
     block_1[i1] = block_1[i0] + no;
-    block_2[i0] = block_1[i1] + 1;
+    block_2[i0] = std::min(block_2[i1], block_1[i1] + 1);
 
     return 1;
 }
 
 
-
-int partition(const std::array<unsigned long,6> &ext, int n_blocks, std::deque<std::array<unsigned long, 6>> &blocks)
+// given an input extent etx partition in into n_blocks disjoint blocks.
+// return the list of new bloacks in blocks. return 0 if successful.
+int partition(const std::array<unsigned long,6> &ext, int n_blocks,
+    std::deque<std::array<unsigned long, 6>> &blocks)
 {
     // get the length in each direction
     unsigned long nx = ext[1] - ext[0] + 1;
@@ -84,7 +87,7 @@ int partition(const std::array<unsigned long,6> &ext, int n_blocks, std::deque<s
                 blocks.pop_front();
 
                 // add the new blocks to the back
-                if (split(b1, b2, d))
+                if (split(b1, b2, dirs[d]))
                     blocks.push_back(b2);
                 blocks.push_back(b1);
 
@@ -99,18 +102,20 @@ int partition(const std::array<unsigned long,6> &ext, int n_blocks, std::deque<s
 }
 
 
-std::ostream &operator<<(std::ostream &os, const std::array<unsigned long,6> &blk)
+std::ostream &operator<<(std::ostream &os,
+    const std::array<unsigned long,6> &blk)
 {
-    os << blk[0] << ", " << blk[1] <<  ", " << blk[2] << ", " << blk[3] << ", " << blk[4] << ", " << blk[5];
+    os << blk[0] << ", " << blk[1] <<  ", " << blk[2] << ", "
+        << blk[3] << ", " << blk[4] << ", " << blk[5];
     return os;
 }
 
 
 int main(int argc, char **argv)
 {
-    int nx = atoi(argv[1]);
-    int ny = atoi(argv[2]);
-    int nz = atoi(argv[3]);
+    unsigned long nx = atoi(argv[1]);
+    unsigned long ny = atoi(argv[2]);
+    unsigned long nz = atoi(argv[3]);
     int n_blks = atoi(argv[4]);
 
     std::array<unsigned long,6> ext({0,nx-1, 0,ny-1, 0,nz-1});
