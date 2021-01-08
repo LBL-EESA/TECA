@@ -172,14 +172,13 @@ class teca_pytorch_algorithm(teca_python_algorithm):
 
             except(RuntimeError):
                 # we failed to detect the number of physical cores per MPI rank
-                os.putenv('OMP_NUM_THREADS', 2)
-                n_threads = 2
+                os.putenv('OMP_NUM_THREADS', '1')
+                n_threads = 1
 
-                if rank == 0:
-                    sys.stderr.write('[0] STATUS: Failed to determine the '
-                                     'number of physical cores available per '
-                                     'MPI rank. OMP_NUM_THREADS=2\n')
-                    sys.stderr.flush()
+                sys.stderr.write('[0] STATUS: Failed to determine the '
+                                 'number of physical cores available per '
+                                 'MPI rank. OMP_NUM_THREADS=1\n')
+                sys.stderr.flush()
 
         global torch
         import torch
