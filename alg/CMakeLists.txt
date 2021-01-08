@@ -92,6 +92,10 @@ target_include_directories(teca_alg
     $<INSTALL_INTERFACE:${INCLUDE_PREFIX}>
     )
 
+teca_py_install(${LIB_PREFIX}
+    teca_deeplab_ar_detect_internals.py
+    )
+
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     DESTINATION ${INCLUDE_PREFIX}
     FILES_MATCHING PATTERN "*.h")

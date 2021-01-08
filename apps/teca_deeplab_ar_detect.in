@@ -95,6 +95,10 @@ parser.add_argument('--n_threads', type=int, default=-1,
          ' value of -1 is used TECA will coordinate the thread pools across'
          ' ranks such each thread is bound to a unique physical core.')
 
+parser.add_argument('--n_threads_max', type=int, default=4,
+    help='Sets the max thread pool size on each MPI rank. Set to -1'
+         ' to use all available cores.')
+
 parser.add_argument('--binary_ar_threshold', type=float,
     default=(2.0/3.0), help='probability threshold for segmenting'
     'ar_probability to produce ar_binary_tag')
@@ -205,11 +209,8 @@ ar_detect = teca_deeplab_ar_detect.New()
 ar_detect.set_input_connection(coords.get_output_port())
 ar_detect.set_verbose(args.verbose)
 ar_detect.set_ivt_variable(args.ivt)
-if args.n_threads > 0:
-    if rank == 0:
-        sys.stderr.write('WARNING: Command line setting %d threads per MPI '
-                         'rank may degrade performance!'%(args.n_threads))
 ar_detect.set_thread_pool_size(args.n_threads)
+ar_detect.set_max_thread_pool_size(args.n_threads_max)
 ar_detect.load_model(args.pytorch_model)
 
 # post detection segemntation

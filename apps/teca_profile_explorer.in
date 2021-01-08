@@ -157,7 +157,7 @@ class profiler_data:
 
 
 
-class dsiplay_rank_events:
+class display_rank_events:
     def __init__(self):
         self.data = None
         self.axes = None
@@ -165,7 +165,7 @@ class dsiplay_rank_events:
         self.patches = None
         self.verbose = False
 
-    def initialize(self, data, ax):
+    def initialize(self, data, ax, title):
         """ renders the data to axes ax and sets up the click handlers
             to print event data when the plot is clicked on """
 
@@ -248,10 +248,10 @@ class dsiplay_rank_events:
             edt =  data.delta_t[i]
 
             if self.verbose:
-                sys.stderr.write('rank=%d event_index=%d thread=%d ' \
-                    'event_id=%d event_name=%s rect = %s\n'%( \
-                    data.rank, i, tid, eid, enm, str([et0, tid*dy, \
-                    edt, dy])))
+                sys.stderr.write('%srank=%d event_index=%d thread=%d ' \
+                    'event_id=%d event_name=%s rect = %s\n' % (
+                    title, data.rank, i, tid, eid, enm, str([et0,
+                    tid*dy, edt, dy])))
             else:
                 if (ne < 78) or int(i % (ne // 78)) == 0:
                     sys.stderr.write('=')
@@ -277,10 +277,10 @@ class dsiplay_rank_events:
             dep = data.depth[i]
             df = dep*(0.5 - 0.125)/float(max_depth)
 
-            rect = Rectangle((et0, tid*dy+df), edt, dy-2.*df, \
-                alpha=1, facecolor=fc, edgecolor=ec, \
-                linewidth=ew, zorder=dep+1, fill=fill, \
-                label=enm)
+            rect = Rectangle((et0, tid*dy+df), edt, dy-2.*df,
+                             alpha=1, facecolor=fc, edgecolor=ec,
+                             linewidth=ew, zorder=dep+1, fill=fill,
+                             label=enm)
 
             #ax.add_patch(rect)
             self.patches[dep].append(rect)
@@ -308,12 +308,13 @@ class dsiplay_rank_events:
             mmx = np.max(self.data.mem_use)
             self.data.mem_use = self.data.mem_use/mmx * n_threads*dy
 
-            plt.plot(self.data.mem_time, self.data.mem_use, 'k--', linewidth=3)
+            plt.plot(self.data.mem_time, self.data.mem_use, 'r--', linewidth=3)
 
-            plt.title('MPI rank %d event times, max RSS %0.1f MiB'%( \
-                data.rank, mmx/(2.**10)), fontweight='bold')
+            plt.title('%sMPI rank %d event times, max RSS %0.1f MiB'%(
+                      title, data.rank, mmx/(2.**10)), fontweight='bold')
         else:
-            plt.title('MPI rank %d event times'%(data.rank), fontweight='bold')
+            plt.title('%sMPI rank %d event times'%(title, data.rank),
+                      fontweight='bold')
 
         pfx = 0.01
         pfy = 0.10
@@ -348,10 +349,13 @@ class dsiplay_rank_events:
                 for i in ids['ind']:
                     ii = self.patch_ids[d][i]
                     #rect = self.patches[i]
-                    sys.stderr.write( \
-                        'rank=%d i=%d ii=%d event_name=%s thread=%d start=%g end=%g duration=%g depth=%d\n'%( \
-                        self.data.rank, i, ii, self.data.event_name[ii], self.data.thread_id[ii], self.data.start_t[ii], \
-                        self.data.end_t[ii], self.data.delta_t[ii], self.data.depth[ii]))
+                    sys.stderr.write(
+                        'rank=%d i=%d ii=%d event_name=%s thread=%d start=%g' \
+                        ' end=%g duration=%g depth=%d\n'%(
+                        self.data.rank, i, ii, self.data.event_name[ii],
+                        self.data.thread_id[ii], self.data.start_t[ii],
+                        self.data.end_t[ii], self.data.delta_t[ii],
+                        self.data.depth[ii]))
 
         if n_hits > 0:
             sys.stderr.write('\n')
@@ -363,20 +367,26 @@ class dsiplay_rank_events:
 
 parser = argparse.ArgumentParser(prog='teca_profile_explorer')
 
-parser.add_argument('-e', '--event_file', required=True, type=str, \
-    help='path to a TECA profiler event data file')
+parser.add_argument('-e', '--event_file', required=True, type=str,
+                    help='path to a TECA profiler event data file')
 
-parser.add_argument('-m', '--mem_file', required=False, type=str, \
-    default=None, help='path to a TECA profiler memory data file')
+parser.add_argument('-m', '--mem_file', required=False, type=str, default=None,
+                    help='path to a TECA profiler memory data file')
 
-parser.add_argument('-r', '--ranks', nargs='+', required=True, \
-    type=int, help='path to a TECA profiler data file')
+parser.add_argument('-r', '--ranks', nargs='+', required=True, type=int,
+                    help='path to a TECA profiler data file')
 
-parser.add_argument('-x', '--xlim', required=False, type=float, \
-    default=-1., help='set the high x axis limmit used in plots')
+parser.add_argument('-o', '--out_prefix', required=False, type=str, default='',
+                    help='a string that is preprended to output file names')
 
-parser.add_argument('-v', '--verbose', required=False, type=int, \
-    default=0, help='verbosity level')
+parser.add_argument('-t', '--title', required=False, type=str, default='',
+                    help='a string that is preprended to plot titles')
+
+parser.add_argument('-x', '--xlim', required=False, type=float, default=-1.,
+                    help='set the high x axis limmit used in plots')
+
+parser.add_argument('-v', '--verbose', required=False, type=int,
+                    default=0, help='set the verbosity level')
 
 args = parser.parse_args()
 
@@ -386,22 +396,22 @@ data.verbose = args.verbose > 0
 data.initialize(args.event_file, args.mem_file)
 
 dres = []
-for r in args.ranks:
+for rank in args.ranks:
 
     # get this rank's data
-    subset = data.subset(r)
+    subset = data.subset(rank)
 
     # size the plot
     n_threads = subset.n_threads
     fig_width = 12
-    fig_height = 0.625*n_threads
+    fig_height = 0.625*(n_threads + 2)
     fig = plt.figure(figsize=(fig_width, fig_height))
 
     # draw the plot & connect the event hander
     ax = plt.gca()
-    dre = dsiplay_rank_events()
+    dre = display_rank_events()
     dre.verbose = args.verbose > 1
-    dre.initialize(subset, ax)
+    dre.initialize(subset, ax, args.title)
     dre.connect()
     dres.append(dre)
 
@@ -411,7 +421,9 @@ for r in args.ranks:
         x0,x1 = plt.xlim()
         plt.xlim(x0, args.xlim)
 
-    plt.savefig('rank_profile_data_%d.png'%(r), dpi=200)
+    plt.savefig('%srank_profile_data_%d.png'%(
+                args.out_prefix,rank),
+                dpi=200)
 
 plt.show()
 

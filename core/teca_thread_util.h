@@ -49,7 +49,7 @@ namespace teca_thread_util
 //
 // affinity - an affinity map, describing for each of n_threads,
 //            a core id that the thread can be bound to. if n_requested is -1
-//            then the3 map will conatin an entry for each of n_threads where
+//            then the map will conatin an entry for each of n_threads where
 //            each of the threads is assigned a unique phyical core.  when
 //            n_requested is >= 1 the map contains an enrty for each of the
 //            n_requested threads such that when more threads are requested
