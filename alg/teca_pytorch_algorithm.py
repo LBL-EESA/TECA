@@ -225,6 +225,10 @@ class teca_pytorch_algorithm(teca_python_algorithm):
         else:
             rep.set('variables', self.output_variable)
 
+        attributes = rep["attributes"]
+        attributes["ar_probability"] = self.output_variable_atts.to_metadata()
+        rep["attributes"] = attributes
+
         return rep
 
     def request(self, port, md_in, req_in):

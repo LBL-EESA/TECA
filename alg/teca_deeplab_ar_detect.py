@@ -318,7 +318,16 @@ class teca_deeplab_ar_detect(teca_pytorch_algorithm):
         super().__init__()
 
         self.set_input_variable("IVT")
-        self.set_output_variable("ar_probability")
+
+        arp_atts = teca_array_attributes(
+            teca_float_array_code.get(),
+            teca_array_attributes.point_centering,
+            0, 'unitless', 'posterior AR flag',
+            'the posterior probability of the presence '
+            'of an atmospheric river',
+            None)
+
+        self.set_output_variable("ar_probability", arp_atts)
 
     def set_ivt_variable(self, var):
         """
@@ -410,26 +419,3 @@ class teca_deeplab_ar_detect(teca_pytorch_algorithm):
                               self.ng_x0 : self.ng_x0 + self.nx_in]
 
         return out_array
-
-    def report(self, port, md_in):
-        """
-        return the metadata decribing the data available for consumption.
-        """
-        """ TECA report override """
-        event = teca_time_py_event('teca_deeplab_ar_detect::report')
-
-        md_out = super().report(port, md_in)
-
-        arp_atts = teca_array_attributes(
-            teca_float_array_code.get(),
-            teca_array_attributes.point_centering,
-            0, 'unitless', 'posterior AR flag',
-            'the posterior probability of the presence '
-            'of an atmospheric river',
-            None)
-
-        attributes = md_out["attributes"]
-        attributes["ar_probability"] = arp_atts.to_metadata()
-        md_out["attributes"] = attributes
-
-        return md_out
