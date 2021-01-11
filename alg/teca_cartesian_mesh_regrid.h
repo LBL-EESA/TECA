@@ -37,21 +37,45 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // set the list of arrays to move from the source
-    // to the target
+    /** @anchor arrays
+     * @name arrays
+     * Set the list of arrays to move from the source to the target.
+     */
+    ///@{
     TECA_ALGORITHM_VECTOR_PROPERTY(std::string, array)
+    ///@}
 
-    // set the input connection from which metadata such as arrays
-    // and time steps are taken from.
+    /** @anchor target_input
+     * @name target_input
+     * Set the input connection from which metadata such as arrays
+     * and time steps are taken from.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(int, target_input)
+    ///@}
 
-    // set the interpolation mode used in transfering
-    // data between meshes of differing resolution.
-    // in nearest mode value at the nearest grid point
-    // is used, in linear mode bi/tri linear interpolation
-    // is used.
-    enum {nearest=0, linear=1};
+    /** list the interpolation modes used in transfering
+     *  data between meshes of differing resolution.
+     *  In nearest mode value at the nearest grid point
+     *  is used, in linear mode bi/tri linear interpolation
+     *  is used.
+     */
+    enum
+    {
+        /** 0 */
+        nearest=0,
+        /** 1 */
+        linear=1
+    };
+
+    /** @anchor interpolation_mode
+     * @name interpolation_mode
+     * Set the interpolation_mode mode. default is nearest
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(int, interpolation_mode)
+    ///@}
+
     void set_interpolation_mode_nearest(){ interpolation_mode = nearest; }
     void set_interpolation_mode_linear(){ interpolation_mode = linear; }
 

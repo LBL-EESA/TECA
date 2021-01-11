@@ -845,7 +845,11 @@ WARN_LOGFILE           =
 # spaces. See also FILE_PATTERNS and EXTENSION_MAPPING
 # Note: If this tag is empty the current directory is searched.
 
-INPUT                  = ../../alg/teca_2d_component_area.h
+INPUT                  = ../../alg/teca_2d_component_area.h \
+                         ../../alg/teca_bayesian_ar_detect.h \
+                         ../../alg/teca_binary_segmentation.h \
+                         ../../alg/teca_cartesian_mesh_regrid.h
+#INPUT                  = ../../alg/teca_2d_component_area.h
 #INPUT                  = ../..
 #INPUT                  =
 
@@ -1129,7 +1133,7 @@ IGNORE_PREFIX          =
 # If the GENERATE_HTML tag is set to YES, doxygen will generate HTML output
 # The default value is: YES.
 
-GENERATE_HTML          = NO
+GENERATE_HTML          = YES
 
 # The HTML_OUTPUT tag is used to specify where the HTML docs will be put. If a
 # relative path is entered the value of OUTPUT_DIRECTORY will be put in front of
