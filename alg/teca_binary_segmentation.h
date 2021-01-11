@@ -30,24 +30,65 @@ public:
     TECA_ALGORITHM_CLASS_NAME(teca_binary_segmentation)
     ~teca_binary_segmentation();
 
-    // set the name of the output array to store the resulting segmentation in
+    /** @anchor segmentation_variable
+     * @name segmentation_variable
+     * Set the name of the output array to store the resulting segmentation in.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, segmentation_variable)
+    ///@}
 
     // set extra metadata for the segmentation variable
+    /** @anchor segmentation_variable_attributes
+     * @name segmentation_variable_attributes
+     * Set extra metadata for the segmentation variable.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(teca_metadata, segmentation_variable_attributes)
+    ///@}
 
-    // set the name of the input array to segment
+    /** @anchor threshold_variable
+     * @name threshold_variable
+     * Set the name of the input array to segment.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, threshold_variable)
+    ///@}
 
-    // Set the threshold range. The defaults are (-infinity, infinity].
+    /** @anchor low_threshold_value
+     * @name low_threshold_value
+     * Sets the low threshold value. default is -infinity.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, low_threshold_value)
+    ///@}
+    /** @anchor high_threshold_value
+     * @name high_threshold_value
+     * Sets the high threshold value. default is infinity.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, high_threshold_value)
+    ///@}
 
-    // Set the threshold mode. In BY_PERCENTILE mode low and high thresholds
-    // define the percentiles (0 to 100) between which data is in the
-    // segmentation. default is BY_VALUE.
-    enum {BY_VALUE=0, BY_PERCENTILE=1};
+    /** list threshold modes. In BY_PERCENTILE mode low and high thresholds
+     *  define the percentiles (0 to 100) between which data is in the
+     *  segmentation.
+     */
+    enum
+    {
+        /** 0 */
+        BY_VALUE=0,
+        /** 1 */
+        BY_PERCENTILE=1
+    };
+
+    /** @anchor threshold_mode
+     * @name threshold_mode
+     * Set the threshold mode. default is BY_VALUE
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(int, threshold_mode);
+    ///@}
 
     void set_threshold_by_percentile() { set_threshold_mode(BY_PERCENTILE); }
     void set_threshold_by_value() { set_threshold_mode(BY_VALUE); }

@@ -49,28 +49,53 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // set the name of the input array
+    /** @anchor ivt_variable
+     * @name ivt_variable
+     * Set the name of the input array
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, ivt_variable)
 
-    // set the names of columns in the parameter table.
+    /** @anchor min_ivt_variable
+     * @name min_ivt_variable
+     * Set the name of the min IVT column in the parameter table.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, min_ivt_variable)
-    TECA_ALGORITHM_PROPERTY(std::string, min_component_area_variable)
-    TECA_ALGORITHM_PROPERTY(std::string, hwhm_latitude_variable)
+    ///@}
 
-    // flag indicating verbose terminal output is desired.
-    // default is 0
+    /** @anchor min_component_area_variable
+     * @name min_component_area_variable
+     * Set the name of the component area column in the parameter table.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(std::string, min_component_area_variable)
+    ///@}
+
+    /** @anchor hwhm_latitude_variable
+     * @name hwhm_latitude_variable
+     * Set the name of the HWHM lattitude column in the parameter table.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(std::string, hwhm_latitude_variable)
+    ///@}
+
     TECA_ALGORITHM_PROPERTY(int, verbose)
 
-    // set/get the number of threads in the pool. setting
-    // to -1 results in a thread per core factoring in all MPI
-    // ranks running on the node. the default is -1.
+    /** set the number of threads in the pool. setting
+     *  to -1 results in a thread per core factoring in all MPI
+     *  ranks running on the node. the default is -1.
+     */
     void set_thread_pool_size(int n_threads);
+
+    /** get the number of threads in the pool. the default is -1. */
     unsigned int get_thread_pool_size() const noexcept;
 
-    // override the input connections because we are going to
-    // take the first input and use it to generate metadata.
-    // the second input then becomes the only one the pipeline
-    // knows about.
+    /** override the input connections because we are going to
+     *  take the first input and use it to generate metadata.
+     *  the second input then becomes the only one the pipeline
+     *  knows about.
+     */
     void set_input_connection(unsigned int id,
         const teca_algorithm_output_port &port) override;
 
