@@ -58,39 +58,50 @@ int main(int argc, char **argv)
             " set of NetCDF CF2 files to process. When present data is read using the"
             " teca_cf_reader. Use one of either --input_file or --input_regex.\n")
 
-        ("candidate_file", value<string>(), "\nfile path to write the storm candidates to (candidates.bin)\n")
-        ("850mb_wind_u", value<string>(), "\nname of variable with 850 mb wind x-component (U850)\n")
-        ("850mb_wind_v", value<string>(), "\nname of variable with 850 mb wind x-component (V850)\n")
-        ("surface_wind_u", value<string>(), "\nname of variable with surface wind x-component (UBOT)\n")
-        ("surface_wind_v", value<string>(), "\nname of variable with surface wind y-component (VBOT)\n")
-        ("sea_level_pressure", value<string>(), "\nname of variable with sea level pressure (PSL)\n")
-        ("500mb_temp", value<string>(), "\nname of variable with 500mb temperature for warm core calc (T500)\n")
-        ("200mb_temp", value<string>(), "\nname of variable with 200mb temperature for warm core calc (T200)\n")
-        ("1000mb_height", value<string>(), "\nname of variable with 1000mb height for thickness calc (Z1000)\n")
-        ("200mb_height", value<string>(), "\nname of variable with 200mb height for thickness calc (Z200)\n")
-        ("storm_core_radius", value<double>(), "\nmaximum number of degrees latitude separation between vorticity max and pressure min defining a storm (2.0)\n")
-        ("min_vorticity", value<double>(), "\nminimum vorticty to be considered a tropical storm (1.6e-4)\n")
-        ("vorticity_window", value<double>(), "\nsize of the search window in degrees. storms core must have a local vorticity max centered on this window (7.74446)\n")
-        ("pressure_delta", value<double>(), "\nmaximum pressure change within specified radius (400.0)\n")
-        ("pressure_delta_radius", value<double>(), "\nradius in degrees over which max pressure change is computed (5.0)\n")
-        ("core_temp_delta", value<double>(), "\nmaximum core temperature change over the specified radius (0.8)\n")
-        ("core_temp_radius", value<double>(), "\nradius in degrees over which max core temperature change is computed (5.0)\n")
-        ("thickness_delta", value<double>(), "\nmaximum thickness change over the specified radius (50.0)\n")
-        ("thickness_radius", value<double>(), "\nradius in degrees over with max thickness change is computed (4.0)\n")
-        ("lowest_lat", value<double>(), "\nlowest latitude in degrees to search for storms (80)\n")
-        ("highest_lat", value<double>(), "\nhighest latitude in degrees to search for storms (80)\n")
-        ("max_daily_distance", value<double>(), "\nmax distance in km that a storm can travel in one day (1600)\n")
-        ("min_wind_speed", value<double>(), "\nminimum peak wind speed to be considered a tropical storm (17.0)\n")
-        ("min_wind_duration", value<double>(), "\nnumber of, not necessarily consecutive, days min wind speed sustained (2.0)\n")
-        ("track_file", value<string>(), "\nfile path to write storm tracks to\n")
-        ("first_step", value<long>(), "\nfirst time step to process\n")
-        ("last_step", value<long>(), "\nlast time step to process\n")
+        ("candidate_file", value<string>()->default_value("candidates.bin"),
+            "\nfile path to write the storm candidates to. The extension determines"
+            " the file format. May be one of `.nc`, `.csv`, or `.bin`\n")
+
+        ("850mb_wind_u", value<string>()->default_value("U850"), "\nname of variable with 850 mb wind x-component\n")
+        ("850mb_wind_v", value<string>()->default_value("V850"), "\nname of variable with 850 mb wind x-component\n")
+        ("surface_wind_u", value<string>()->default_value("UBOT"), "\nname of variable with surface wind x-component\n")
+        ("surface_wind_v", value<string>()->default_value("VBOT"), "\nname of variable with surface wind y-component\n")
+        ("sea_level_pressure", value<string>()->default_value("PSL"), "\nname of variable with sea level pressure\n")
+        ("500mb_temp", value<string>()->default_value("T500"), "\nname of variable with 500mb temperature for warm core calc\n")
+        ("200mb_temp", value<string>()->default_value("T200"), "\nname of variable with 200mb temperature for warm core calc\n")
+        ("1000mb_height", value<string>()->default_value("Z1000"), "\nname of variable with 1000mb height for thickness calc\n")
+        ("200mb_height", value<string>()->default_value("Z200"), "\nname of variable with 200mb height for thickness calc\n")
+        ("storm_core_radius", value<double>()->default_value(2.0),
+            "\nmaximum number of degrees latitude separationi between vorticity max and pressure min defining a storm\n")
+        ("min_vorticity", value<double>()->default_value(1.6e-4, "1.6e-4"), "\nminimum vorticty to be considered a tropical storm\n")
+        ("vorticity_window", value<double>()->default_value(7.74446, "7.74446"),
+            "\nsize of the search window in degrees. storms core must have a local vorticity max centered on this window\n")
+        ("pressure_delta", value<double>()->default_value(400.0), "\nmaximum pressure change within specified radius\n")
+        ("pressure_delta_radius", value<double>()->default_value(5.0),
+            "\nradius in degrees over which max pressure change is computed\n")
+        ("core_temp_delta", value<double>()->default_value(0.8, "0.8"), "\nmaximum core temperature change over the specified radius\n")
+        ("core_temp_radius", value<double>()->default_value(5.0), "\nradius in degrees over which max core temperature change is computed\n")
+        ("thickness_delta", value<double>()->default_value(50.0), "\nmaximum thickness change over the specified radius\n")
+        ("thickness_radius", value<double>()->default_value(4.0), "\nradius in degrees over with max thickness change is computed\n")
+        ("lowest_lat", value<double>()->default_value(80), "\nlowest latitude in degrees to search for storms\n")
+        ("highest_lat", value<double>()->default_value(80), "\nhighest latitude in degrees to search for storms\n")
+        ("max_daily_distance", value<double>()->default_value(1600), "\nmax distance in km that a storm can travel in one day\n")
+        ("min_wind_speed", value<double>()->default_value(17.0), "\nminimum peak wind speed to be considered a tropical storm\n")
+        ("min_wind_duration", value<double>()->default_value(2.0), "\nnumber of, not necessarily consecutive, days min wind speed sustained\n")
+
+        ("track_file", value<string>()->default_value("tracks.bin"), "\nfile path to"
+            " write storm tracks to. The extension determines the file format. May be"
+            " one of `.nc`, `.csv`, or `.bin`\n")
+
+        ("first_step", value<long>()->default_value(0), "\nfirst time step to process\n")
+        ("last_step", value<long>()->default_value(-1), "\nlast time step to process\n")
         ("start_date", value<std::string>(), "\nThe first time to process in 'Y-M-D h:m:s'"
             " format. Note: There must be a space between the date and time specification\n")
         ("end_date", value<std::string>(), "\nThe last time to process in 'Y-M-D h:m:s' format\n")
-        ("n_threads", value<int>(), "\nSets the thread pool size on each MPI rank. When the default"
-            " value of -1 is used TECA will coordinate the thread pools across ranks such each"
-            " thread is bound to a unique physical core.\n")
+        ("n_threads", value<int>()->default_value(-1), "\nSets the thread pool size on each"
+            " MPI rank. When the default value of -1 is used TECA will coordinate the thread"
+            " pools across ranks such each thread is bound to a unique physical core.\n")
+
         ("help", "\ndisplays documentation for application specific command line options\n")
         ("advanced_help", "\ndisplays documentation for algorithm specific command line options\n")
         ("full_help", "\ndisplays both basic and advanced documentation together\n")
@@ -240,117 +251,115 @@ int main(int argc, char **argv)
         reader = cf_reader;
     }
 
-    if (opt_vals.count("850mb_wind_u"))
+    if (!opt_vals["850mb_wind_u"].defaulted())
         vort_850mb->set_component_0_variable(
             opt_vals["850mb_wind_u"].as<string>());
 
-    if (opt_vals.count("850mb_wind_v"))
+    if (!opt_vals["850mb_wind_v"].defaulted())
         vort_850mb->set_component_1_variable(
             opt_vals["850mb_wind_v"].as<string>());
 
-    if (opt_vals.count("surface_wind_u"))
+    if (!opt_vals["surface_wind_u"].defaulted())
         surf_wind->set_component_0_variable(
             opt_vals["surface_wind_u"].as<string>());
 
-    if (opt_vals.count("surface_wind_v"))
+    if (!opt_vals["surface_wind_v"].defaulted())
         surf_wind->set_component_1_variable(
             opt_vals["surface_wind_v"].as<string>());
 
     std::vector<std::string> dep_var;
     core_temp->get_dependent_variables(dep_var);
-    if (opt_vals.count("500mb_temp"))
+    if (!opt_vals["500mb_temp"].defaulted())
         dep_var[0] = opt_vals["500mb_temp"].as<string>();
-    if (opt_vals.count("200mb_temp"))
+    if (!opt_vals["200mb_temp"].defaulted())
         dep_var[1] = opt_vals["200mb_temp"].as<string>();
     core_temp->set_dependent_variables(dep_var);
     dep_var.clear();
 
     thickness->get_dependent_variables(dep_var);
-    if (opt_vals.count("1000mb_height"))
+    if (!opt_vals["1000mb_height"].defaulted())
         dep_var[0] = opt_vals["1000mb_height"].as<string>();
-    if (opt_vals.count("200mb_height"))
+    if (!opt_vals["200mb_height"].defaulted())
         dep_var[1] = opt_vals["200mb_height"].as<string>();
     thickness->set_dependent_variables(dep_var);
     dep_var.clear();
 
-    if (opt_vals.count("sea_level_pressure"))
+    if (!opt_vals["sea_level_pressure"].defaulted())
         candidates->set_sea_level_pressure_variable(
             opt_vals["sea_level_pressure"].as<string>());
 
-    if (opt_vals.count("storm_core_radius"))
+    if (!opt_vals["storm_core_radius"].defaulted())
         candidates->set_max_core_radius(
             opt_vals["storm_core_radius"].as<double>());
 
-    if (opt_vals.count("min_vorticity"))
+    if (!opt_vals["min_vorticity"].defaulted())
         candidates->set_min_vorticity_850mb(
             opt_vals["min_vorticity"].as<double>());
 
-    if (opt_vals.count("vorticity_window"))
+    if (!opt_vals["vorticity_window"].defaulted())
         candidates->set_vorticity_850mb_window(
             opt_vals["vorticity_window"].as<double>());
 
-    if (opt_vals.count("pressure_delta"))
+    if (!opt_vals["pressure_delta"].defaulted())
         candidates->set_max_pressure_delta(
             opt_vals["pressure_delta"].as<double>());
 
-    if (opt_vals.count("pressure_delta_radius"))
+    if (!opt_vals["pressure_delta_radius"].defaulted())
         candidates->set_max_pressure_radius(
             opt_vals["pressure_delta_radius"].as<double>());
 
-    if (opt_vals.count("core_temp_delta"))
+    if (!opt_vals["core_temp_delta"].defaulted())
         candidates->set_max_core_temperature_delta(
             opt_vals["core_temp_delta"].as<double>());
 
-    if (opt_vals.count("core_temp_radius"))
+    if (!opt_vals["core_temp_radius"].defaulted())
         candidates->set_max_core_temperature_radius(
             opt_vals["core_temp_radius"].as<double>());
 
-    if (opt_vals.count("thickness_delta"))
+    if (!opt_vals["thickness_delta"].defaulted())
         candidates->set_max_thickness_delta(
             opt_vals["thickness_delta"].as<double>());
 
-    if (opt_vals.count("thickness_radius"))
+    if (!opt_vals["thickness_radius"].defaulted())
         candidates->set_max_thickness_radius(
             opt_vals["thickness_radius"].as<double>());
 
-    if (opt_vals.count("lowest_lat"))
+    if (!opt_vals["lowest_lat"].defaulted())
         candidates->set_search_lat_low(
             opt_vals["lowest_lat"].as<double>());
 
-    if (opt_vals.count("highest_lat"))
+    if (!opt_vals["highest_lat"].defaulted())
         candidates->set_search_lat_high(
             opt_vals["highest_lat"].as<double>());
 
-    if (opt_vals.count("first_step"))
+    if (!opt_vals["first_step"].defaulted())
         map_reduce->set_start_index(opt_vals["first_step"].as<long>());
 
-    if (opt_vals.count("last_step"))
+    if (!opt_vals["last_step"].defaulted())
         map_reduce->set_end_index(opt_vals["last_step"].as<long>());
 
-    if (opt_vals.count("n_threads"))
+    if (!opt_vals["n_threads"].defaulted())
         map_reduce->set_thread_pool_size(opt_vals["n_threads"].as<int>());
     else
         map_reduce->set_thread_pool_size(-1);
 
-    if (opt_vals.count("max_daily_distance"))
+    if (!opt_vals["max_daily_distance"].defaulted())
         tracks->set_max_daily_distance(
             opt_vals["max_daily_distance"].as<double>());
 
-    if (opt_vals.count("min_wind_speed"))
+    if (!opt_vals["min_wind_speed"].defaulted())
         tracks->set_min_wind_speed(
             opt_vals["min_wind_speed"].as<double>());
 
-    if (opt_vals.count("min_wind_duration"))
+    if (!opt_vals["min_wind_duration"].defaulted())
         tracks->set_min_wind_duration(
             opt_vals["min_wind_duration"].as<double>());
 
-    if (opt_vals.count("candidate_file"))
-        candidate_writer->set_file_name(
-            opt_vals["candidate_file"].as<string>());
+    candidate_writer->set_file_name(
+        opt_vals["candidate_file"].as<string>());
 
-    if (opt_vals.count("track_file"))
-        track_writer->set_file_name(
-            opt_vals["track_file"].as<string>());
+    track_writer->set_file_name(
+        opt_vals["track_file"].as<string>());
 
     // some minimal check for missing options
     if ((have_file && have_regex) || !(have_file || have_regex))

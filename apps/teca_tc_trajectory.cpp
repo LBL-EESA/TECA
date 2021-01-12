@@ -47,11 +47,13 @@ int main(int argc, char **argv)
         "Basic command line options", help_width, help_width - 4
         );
     basic_opt_defs.add_options()
-        ("candidate_file", value<string>(), "\nfile path to read the storm candidates from (candidates.bin)\n")
-        ("max_daily_distance", value<double>(), "\nmax distance in km that a storm can travel in one day (1600)\n")
-        ("min_wind_speed", value<double>(), "\nminimum peak wind speed to be considered a tropical storm (17.0)\n")
-        ("min_wind_duration", value<double>(), "\nnumber of, not necessarily consecutive, days min wind speed sustained (2.0)\n")
-        ("track_file", value<string>(), "\nfile path to write storm tracks to\n")
+        ("candidate_file", value<string>()->default_value("candidates.bin"), "\nfile path to read the storm candidates from\n")
+        ("max_daily_distance", value<double>()->default_value(1600), "\nmax distance in km that a storm can travel in one day\n")
+        ("min_wind_speed", value<double>()->default_value(17.0), "\nminimum peak wind speed to be considered a tropical storm\n")
+        ("min_wind_duration", value<double>()->default_value(2.0), "\nnumber of, not necessarily consecutive, days min wind speed sustained\n")
+        ("track_file", value<string>()->default_value("tracks.bin"), "\nfile path to"
+            " write storm tracks to. The extension determines the file format. May be"
+            " one of `.nc`, `.csv`, or `.bin`\n")
         ("help", "\ndisplays documentation for application specific command line options\n")
         ("advanced_help", "\ndisplays documentation for algorithm specific command line options\n")
         ("full_help", "\ndisplays both basic and advanced documentation together\n")
@@ -121,25 +123,23 @@ int main(int argc, char **argv)
 
     // now pass in the basic options, these are processed
     // last so that they will take precedence
-    if (opt_vals.count("candidate_file"))
-        candidate_reader->set_file_name(
-            opt_vals["candidate_file"].as<string>());
+    candidate_reader->set_file_name(
+        opt_vals["candidate_file"].as<string>());
 
-    if (opt_vals.count("max_daily_distance"))
+    if (!opt_vals["max_daily_distance"].defaulted())
         tracks->set_max_daily_distance(
             opt_vals["max_daily_distance"].as<double>());
 
-    if (opt_vals.count("min_wind_speed"))
+    if (!opt_vals["min_wind_speed"].defaulted())
         tracks->set_min_wind_speed(
             opt_vals["min_wind_speed"].as<double>());
 
-    if (opt_vals.count("min_wind_duration"))
+    if (!opt_vals["min_wind_duration"].defaulted())
         tracks->set_min_wind_duration(
             opt_vals["min_wind_duration"].as<double>());
 
-    if (opt_vals.count("track_file"))
-        track_writer->set_file_name(
-            opt_vals["track_file"].as<string>());
+    track_writer->set_file_name(
+        opt_vals["track_file"].as<string>());
 
     // some minimal check for missing options
     if (candidate_reader->get_file_name().empty())

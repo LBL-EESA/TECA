@@ -54,15 +54,19 @@ int main(int argc, char **argv)
             " set of NetCDF CF2 files to process. When present data is read using the"
             " teca_cf_reader. Use one of either --input_file or --input_regex.\n")
 
-        ("x_axis_variable", value<std::string>(), "\nname of x coordinate variable (lon)\n")
-        ("y_axis_variable", value<std::string>(), "\nname of y coordinate variable (lat)\n")
-        ("z_axis_variable", value<std::string>(), "\nname of z coordinate variable ()."
-            " When processing 3D set this to the variable containing vertical"
-            " coordinates. When empty the data will be treated as 2D.\n")
+        ("x_axis_variable", value<std::string>()->default_value("lon"),
+            "\nname of x coordinate variable\n")
+        ("y_axis_variable", value<std::string>()->default_value("lat"),
+            "\nname of y coordinate variable\n")
+        ("z_axis_variable", value<std::string>()->default_value(""),
+            "\nname of z coordinate variable. When processing 3D set this to"
+            " the variable containing vertical coordinates. When empty the"
+            " data will be treated as 2D.\n")
 
         ("start_date", value<std::string>(), "\nThe first time to process in 'Y-M-D h:m:s'"
             " format. Note: There must be a space between the date and time specification\n")
         ("end_date", value<std::string>(), "\nThe last time to process in 'Y-M-D h:m:s' format\n")
+
         ("help", "\ndisplays documentation for application specific command line options\n")
         ("advanced_help", "\ndisplays documentation for algorithm specific command line options\n")
         ("full_help", "\ndisplays both basic and advanced documentation together\n")
@@ -109,19 +113,19 @@ int main(int argc, char **argv)
 
     // now pas in the basic options, these are procesed
     // last so that they will take precedence
-    if (opt_vals.count("x_axis_variable"))
+    if (!opt_vals["x_axis_variable"].defaulted())
     {
         cf_reader->set_x_axis_variable(opt_vals["x_axis_variable"].as<std::string>());
         mcf_reader->set_x_axis_variable(opt_vals["x_axis_variable"].as<std::string>());
     }
 
-    if (opt_vals.count("y_axis_variable"))
+    if (!opt_vals["y_axis_variable"].defaulted())
     {
         cf_reader->set_y_axis_variable(opt_vals["y_axis_variable"].as<std::string>());
         mcf_reader->set_y_axis_variable(opt_vals["y_axis_variable"].as<std::string>());
     }
 
-    if (opt_vals.count("z_axis_variable"))
+    if (!opt_vals["z_axis_variable"].defaulted())
     {
         cf_reader->set_z_axis_variable(opt_vals["z_axis_variable"].as<std::string>());
         mcf_reader->set_z_axis_variable(opt_vals["z_axis_variable"].as<std::string>());
