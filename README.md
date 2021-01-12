@@ -4,7 +4,7 @@
 <a href="https://doi.org/10.20358/C8C651"><img src="doc/images/teca_doi_badge.svg"></a>
 
 
-## The Toolkit for Extreme Climate Analytics
+## The Toolkit for Extreme Climate Analysis
 TECA is a collection of climate analysis algorithms geared toward extreme event detection and tracking implemented in a scalable parallel framework. The code has been successfully deployed and run at massive scales on current DOE supercomputers. TECA's core is written in modern C++ and exploits MPI + X parallelism where X is one of threads, OpenMP, or GPUs. The framework supports a number of parallel design patterns including distributed data parallelism and map-reduce. While modern C++ delivers the highest performance, Python bindings make the code approachable and easy to use.
 
 ## Documentation
