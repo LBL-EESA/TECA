@@ -31,7 +31,7 @@ parser.add_argument('--input_regex', type=str, required=False,
          ' --input_regex.')
 
 parser.add_argument('--ivt', type=str, required=False, default='IVT',
-    help='name of variable with integrated vapor transport (IVT) magnitude')
+    help='name of variable with integrated vapor transport magnitude')
 
 parser.add_argument('--compute_ivt_magnitude', action='store_true',
     help='when this flag is present magnitude of vector IVT is calculated.'
@@ -40,7 +40,7 @@ parser.add_argument('--compute_ivt_magnitude', action='store_true',
 
 parser.add_argument('--ivt_u', type=str, required=False, default='IVT_U',
     help='name of variable with longitudinal component of the integrated vapor'
-         ' transport vector. (IVT_U)')
+         ' transport vector.')
 
 parser.add_argument('--ivt_v', type=str, required=False, default='IVT_V',
     help='name of variable with latitudinal component of the integrated vapor'
@@ -62,7 +62,7 @@ parser.add_argument('--specific_humidity', type=str, required=False,
 
 parser.add_argument('--wind_u', type=str, required=False, default='U',
     help='name of variable with the 3D longitudinal component of the wind'
-         'vector. (U)')
+         'vector.')
 
 parser.add_argument('--wind_v', type=str, required=False, default='V',
     help='name of variable with the 3D latitudinal component of the wind'
