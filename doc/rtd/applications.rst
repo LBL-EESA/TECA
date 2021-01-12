@@ -14,41 +14,41 @@ modules loaded) and to load the teca modulefiles as late as possible.  For
 instance when running in a batch script on the Cray load the teca module in the
 batch script rather than in your shell.
 
-+----------------------------------------+----------------------------------------------+
-| **Application**                        | **Description**                              |
-+----------------------------------------+----------------------------------------------+
-| :ref:`teca_metadata_probe`             | A diagnostic tool used for run planning      |
-+----------------------------------------+----------------------------------------------+
-| :ref:`teca_integrated_vapor_transport` | Computes IVT (integrated vapor transport)    |
-+----------------------------------------+----------------------------------------------+
-| :ref:`teca_bayesian_ar_detect`         | AR detection with uncertainty quantification |
-+----------------------------------------+----------------------------------------------+
-| :ref:`teca_deeplab_ar_detect`          || A machine learning based AR detector        |
-+----------------------------------------+----------------------------------------------+
-| :ref:`teca_temporal_reduction`         || Computes reductions (min, max, average)     |
-|                                        || over the time dimension                     |
-+----------------------------------------+----------------------------------------------+
-| :ref:`teca_tc_detect`                  | TC detection using GFDL algorithm            |
-+----------------------------------------+----------------------------------------------+
-| :ref:`teca_tc_trajectory`              | Computes TC tracks from a set of candidates  |
-+----------------------------------------+----------------------------------------------+
-| :ref:`teca_tc_wind_radii`              | Computes storm size from a set of TC tracks  |
-+----------------------------------------+----------------------------------------------+
-| :ref:`teca_tc_stats`                   || Computes descriptive statistics from a set  |
-|                                        || of TC tracks                                |
-+----------------------------------------+----------------------------------------------+
-| :ref:`teca_tc_trajectory_scalars`      || Plots tracks on a map along with GFDL       |
-|                                        || detectors parameters                        |
-+----------------------------------------+----------------------------------------------+
-| :ref:`teca_tc_wind_radii_stats`        || Computes descriptive statistics relating to |
-|                                        || TC storm size                               |
-+----------------------------------------+----------------------------------------------+
-| :ref:`teca_convert_table`              || Convert tabular data from one file format   |
-|                                        || to another                                  |
-+----------------------------------------+----------------------------------------------+
-| :ref:`teca_event_filter`               || Select TC tracks using run time provided    |
-|                                        || expressions                                 |
-+----------------------------------------+----------------------------------------------+
++----------------------------------------+--------------------------------------------------+
+| **Application**                        | **Description**                                  |
++----------------------------------------+--------------------------------------------------+
+| :ref:`teca_metadata_probe`             | A diagnostic tool used for run planning          |
++----------------------------------------+--------------------------------------------------+
+| :ref:`teca_integrated_vapor_transport` | Computes IVT (integrated vapor transport)        |
++----------------------------------------+--------------------------------------------------+
+| :ref:`teca_bayesian_ar_detect`         | AR detection with uncertainty quantification     |
++----------------------------------------+--------------------------------------------------+
+| :ref:`teca_deeplab_ar_detect`          | A machine learning based AR detector             |
++----------------------------------------+--------------------------------------------------+
+| :ref:`teca_temporal_reduction`         | Computes reductions (min, max, average) over     |
+|                                        | the time dimension                               |
++----------------------------------------+--------------------------------------------------+
+| :ref:`teca_tc_detect`                  | TC detection using GFDL algorithm                |
++----------------------------------------+--------------------------------------------------+
+| :ref:`teca_tc_trajectory`              | Computes TC tracks from a set of candidates      |
++----------------------------------------+--------------------------------------------------+
+| :ref:`teca_tc_wind_radii`              | Computes storm size from a set of TC tracks      |
++----------------------------------------+--------------------------------------------------+
+| :ref:`teca_tc_stats`                   | Computes descriptive statistics from a set       |
+|                                        | of TC tracks                                     |
++----------------------------------------+--------------------------------------------------+
+| :ref:`teca_tc_trajectory_scalars`      | Plots tracks on a map along with GFDL            |
+|                                        | detectors parameters                             |
++----------------------------------------+--------------------------------------------------+
+| :ref:`teca_tc_wind_radii_stats`        | Computes descriptive statistics relating to      |
+|                                        | TC storm size                                    |
++----------------------------------------+--------------------------------------------------+
+| :ref:`teca_convert_table`              | Convert tabular data from one file format        |
+|                                        | to another                                       |
++----------------------------------------+--------------------------------------------------+
+| :ref:`teca_event_filter`               | Select TC tracks using run time provided         |
+|                                        | expressions                                      |
++----------------------------------------+--------------------------------------------------+
 
 Considerations When Running at NERSC
 -------------------------------------
@@ -224,17 +224,17 @@ Here are the basics:
 +---------------+------------------------------------------------------------------+
 | \*            | repeat the previous character zero or more times                 |
 +---------------+------------------------------------------------------------------+
-| []            || match any character in the brackets. For example [0-9] matches  |
-|               || a single digit number zero through nine. [A-Z] matches a single |
-|               || capital letter, while [xzy] matches a single x,y, or z          |
+| []            | match any character in the brackets. For example [0-9] matches   |
+|               | a single digit number zero through nine. [A-Z] matches a single  |
+|               | capital letter, while [xzy] matches a single x,y, or z           |
 +---------------+------------------------------------------------------------------+
-| ^             || If used as the first character in a [] list, it negates the     |
-|               || list. Otherwise, this is an anchor matching the beginning of    |
-|               || the string.                                                     |
+| ^             | If used as the first character in a [] list, it negates the      |
+|               | list. Otherwise, this is an anchor matching the beginning of     |
+|               | the string.                                                      |
 +---------------+------------------------------------------------------------------+
-| \\            || Escapes the next character. This is critical for specifying     |
-|               || file names, the . separating the file from the extension needs  |
-|               || to be escaped.                                                  |
+| \\            | Escapes the next character. This is critical for specifying      |
+|               | file names, the . separating the file from the extension needs   |
+|               | to be escaped.                                                   |
 +---------------+------------------------------------------------------------------+
 | $             | matches the end of the string.                                   |
 +---------------+------------------------------------------------------------------+
@@ -304,15 +304,15 @@ the globals.  The following global section key words are supported:
 +-----------------------+-----------------------------------------------------+
 | key word              | description                                         |
 +=======================+=====================================================+
-| data_root             | | Can be used to hold the common part of the path   |
-|                       | | to data files. Optional. Occurrences of           |
-|                       | | %data_root% found in the regex specification will |
-|                       | | be replaced with this value.                      |
+| data_root             | Can be used to hold the common part of the path     |
+|                       | to data files. Optional. Occurrences of             |
+|                       | %data_root% found in the regex specification will   |
+|                       | be replaced with this value.                        |
 +-----------------------+-----------------------------------------------------+
-| regex                 | | Can be used to hold the common part of the        |
-|                       | | regular expression. Optional. Occurrences of      |
-|                       | | %data_root% found in the regex specification will |
-|                       | | be replaced with this value.                      |
+| regex                 | Can be used to hold the common part of the          |
+|                       | regular expression. Optional. Occurrences of        |
+|                       | %data_root% found in the regex specification will   |
+|                       | be replaced with this value.                        |
 +-----------------------+-----------------------------------------------------+
 
 Each `[cf_reader]` section consists of a `name`(optional), a `regex`,
@@ -324,20 +324,20 @@ section key words:
 +-----------------------+-----------------------------------------------------+
 | key word              | description                                         |
 +=======================+=====================================================+
-| name                  | | An optional name for the reader. This is used to  |
-|                       | | set advanced command line options.                |
+| name                  | An optional name for the reader. This is used to    |
+|                       | set advanced command line options.                  |
 +-----------------------+-----------------------------------------------------+
 | regex                 | A regular expression identifying a set of files.    |
 +-----------------------+-----------------------------------------------------+
-| variables             | | A comma separated list of variables to serve from |
-|                       | | this reader. Variables not in the list are        |
-|                       | | ignored.                                          |
+| variables             | A comma separated list of variables to serve from   |
+|                       | this reader. Variables not in the list are          |
+|                       | ignored.                                            |
 +-----------------------+-----------------------------------------------------+
-| provides_time         | | A flag, the presence of which indicates that this |
-|                       | | reader will provide the time axis.                |
+| provides_time         | A flag, the presence of which indicates that this   |
+|                       | reader will provide the time axis.                  |
 +-----------------------+-----------------------------------------------------+
-| provides_geometry     | | A flag the presence of which indicates that this  |
-|                       | | reader will provide the mesh definition.          |
+| provides_geometry     | A flag the presence of which indicates that this    |
+|                       | reader will provide the mesh definition.            |
 +-----------------------+-----------------------------------------------------+
 
 
@@ -1644,41 +1644,41 @@ Outputs
 ~~~~~~~
 
 +--------------------+--------------------------------------------------------------+
-| **Class table**    || A table containing a row for each track, with columns       |
-|                    || containing location of the first point in the track; min    |
-|                    || and max of detector parameters; track length and duration;  |
-|                    || a column indicating the basin of origin; ACE and PDI        |
-|                    || columns, and Saffir-Simspon categorization                  |
+| **Class table**    | A table containing a row for each track, with columns        |
+|                    | containing location of the first point in the track; min     |
+|                    | and max of detector parameters; track length and duration;   |
+|                    | a column indicating the basin of origin; ACE and PDI         |
+|                    | columns, and Saffir-Simspon categorization                   |
 +--------------------+--------------------------------------------------------------+
 | **Summary table**  | Annual counts of storms by Saffir-Simpson category.          |
 +--------------------+--------------------------------------------------------------+
-| **Plots**          || Plots of the tabular data by year and region.               |
-|                    ||                                                             |
-|                    || Categorical Distribution                                    |
-|                    ||     Produces a histogram containing counts of each class    |
-|                    ||     of storm on the Saffir-Simpson scale. See figure        |
-|                    ||     :numref:`ass`.                                          |
-|                    ||                                                             |
-|                    || Categorical Monthly Breakdown                               |
-|                    ||     Produces histogram for each year that shows             |
-|                    ||     the breakdown by month and Saffir-Simpson category.     |
-|                    ||     See figure :numref:`mon`.                               |
-|                    ||                                                             |
-|                    || Categorical Regional Breakdown                              |
-|                    ||     Produces a histogram for each year that shows           |
-|                    ||     breakdown by region and Saffir-Simpson category. See    |
-|                    ||     figure :numref:`reg`.                                   |
-|                    ||                                                             |
-|                    || Categorical Regional Trend                                  |
-|                    ||     Produces a histogram for each geographic region that    |
-|                    ||     shows trend of storm count and Saffir-Simpson category  |
-|                    ||     over time. See figure :numref:`trend`                   |
-|                    ||                                                             |
-|                    || Parameter Distributions                                     |
-|                    ||     Produces box and whisker plots for each year for a      |
-|                    ||     number of detector parameters. See figure               |
-|                    ||     :numref:`dist`.                                         |
-|                    ||                                                             |
+| **Plots**          | Plots of the tabular data by year and region.                |
+|                    |                                                              |
+|                    | Categorical Distribution                                     |
+|                    |     Produces a histogram containing counts of each class     |
+|                    |     of storm on the Saffir-Simpson scale. See figure         |
+|                    |     :numref:`ass`.                                           |
+|                    |                                                              |
+|                    | Categorical Monthly Breakdown                                |
+|                    |     Produces histogram for each year that shows              |
+|                    |     the breakdown by month and Saffir-Simpson category.      |
+|                    |     See figure :numref:`mon`.                                |
+|                    |                                                              |
+|                    | Categorical Regional Breakdown                               |
+|                    |     Produces a histogram for each year that shows            |
+|                    |     breakdown by region and Saffir-Simpson category. See     |
+|                    |     figure :numref:`reg`.                                    |
+|                    |                                                              |
+|                    | Categorical Regional Trend                                   |
+|                    |     Produces a histogram for each geographic region that     |
+|                    |     shows trend of storm count and Saffir-Simpson category   |
+|                    |     over time. See figure :numref:`trend`                    |
+|                    |                                                              |
+|                    | Parameter Distributions                                      |
+|                    |     Produces box and whisker plots for each year for a       |
+|                    |     number of detector parameters. See figure                |
+|                    |     :numref:`dist`.                                          |
+|                    |                                                              |
 +--------------------+--------------------------------------------------------------+
 
 Command Line Arguments
