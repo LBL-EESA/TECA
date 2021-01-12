@@ -36,7 +36,7 @@ Classes
    :members:
    :undoc-members:
 
-.. doxygenclass:: teca_deeplabv3p_ar_detect::teca_deeplabv3p_ar_detect
+.. doxygenclass:: teca_deeplab_ar_detect::teca_deeplab_ar_detect
    :members:
    :undoc-members:
 

@@ -27,15 +27,41 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // set the arrays that contain the vector components
-    // to compute norm from
+    /** @anchor component_0_variable
+     * @name component_0_variable
+     * Set the 1st array that contains the vector components
+     * to compute norm from
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, component_0_variable)
-    TECA_ALGORITHM_PROPERTY(std::string, component_1_variable)
-    TECA_ALGORITHM_PROPERTY(std::string, component_2_variable)
+    ///@}
 
-    // set the name of the array to store the result in.
-    // the default is "l2_norm"
+    /** @anchor component_1_variable
+     * @name component_1_variable
+     * Set the 2nd array that contains the vector components
+     * to compute norm from
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(std::string, component_1_variable)
+    ///@}
+
+    /** @anchor component_2_variable
+     * @name component_2_variable
+     * Set the 3rd array that contains the vector components
+     * to compute norm from
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(std::string, component_2_variable)
+    ///@}
+
+    /** @anchor l2_norm_variable
+     * @name l2_norm_variable
+     * Set the name of the array to store the result in.
+     * the default is "l2_norm"
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, l2_norm_variable)
+    ///@}
 
 protected:
     teca_l2_norm();

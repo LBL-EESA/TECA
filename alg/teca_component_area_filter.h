@@ -49,45 +49,95 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // set the name of the input array containing connected
-    // component labels
+    /** @anchor component_variable
+     * @name component_variable
+     * Set the name of the input array containing connected
+     * component labels
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, component_variable)
+    ///@}
 
-    // set the name of the dataset metadata key holding the number of
-    // components left after the filter is applied
+    /** @anchor number_of_components_key
+     * @name number_of_components_key
+     * Set the name of the dataset metadata key holding the number of
+     * components left after the filter is applied
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, number_of_components_key)
+    ///@}
 
-    // set the name of the dataset metadata key holding connected component
-    // label ids
+    /** @anchor component_ids_key
+     * @name component_ids_key
+     * Set the name of the dataset metadata key holding connected component
+     * label ids
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, component_ids_key)
+    ///@}
 
-    // set the name of the dataset metadata key holding connected component
-    // areas
+    /** @anchor component_area_key
+     * @name component_area_key
+     * Set the name of the dataset metadata key holding connected component
+     * areas
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, component_area_key)
+    ///@}
 
-    // set this to be the default label id for the filtered out component
-    // areas. This will typically correspond to the label used for cells
-    // outside of the segmentation (i.e. in the background). One can use this
-    // property to override the mask value.  The default mask value is '-1'
-    // which results in aquiring the mask value from input metadata key
-    // `background_id`. Use -2 to specify no background label.
+    /** @anchor mask_value
+     * @name mask_value
+     * Set this to be the default label id for the filtered out component
+     * areas. This will typically correspond to the label used for cells
+     * outside of the segmentation (i.e. in the background). One can use this
+     * property to override the mask value.  The default mask value is '-1'
+     * which results in aquiring the mask value from input metadata key
+     * `background_id`. Use -2 to specify no background label.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(long, mask_value)
+    ///@}
 
     // set the range identifying values to area filter.
     // The defaults are (-infinity, infinity].
+    /** @anchor low_area_threshold
+     * @name low_area_threshold
+     * Set the low area threshold value to area filter.
+     * default is -infinity.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, low_area_threshold)
+    ///@}
+
+    /** @anchor high_area_threshold
+     * @name high_area_threshold
+     * Set the high area threshold value to area filter.
+     * default is infinity.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, high_area_threshold)
+    ///@}
 
-    // a string to be appended to the name of the output variable.
-    // setting this to an empty string will result in the masked array
-    // replacing the input array in the output. default is an empty
-    // string ""
+    /** @anchor variable_post_fix
+     * @name variable_post_fix
+     * Set a string to be appended to the name of the output variable.
+     * setting this to an empty string will result in the masked array
+     * replacing the input array in the output. default is an empty
+     * string ""
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, variable_post_fix)
+    ///@}
 
-    // set this only if you know for certain that label ids
-    // are contiguous and start at 0. this enables use of a
-    // faster implementation.
+    /** @anchor contiguous_component_ids
+     * @name contiguous_component_ids
+     * @attention Set this only if you know for certain that label ids
+     *            are contiguous and start at 0. this enables use of a
+     *            faster implementation.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(int, contiguous_component_ids)
+    ///@}
 
 protected:
     teca_component_area_filter();

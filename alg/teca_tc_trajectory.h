@@ -46,16 +46,42 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // set the arrays that contain the vector components
-    // to compute norm from
+    /** @anchor max_daily_distance
+     * @name max_daily_distance
+     * Set the `max_daily_distance` array that contains the vector
+     * components to compute norm from
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, max_daily_distance)
-    TECA_ALGORITHM_PROPERTY(double, min_wind_speed)
-    TECA_ALGORITHM_PROPERTY(double, min_wind_duration)
+    ///@}
 
-    // number of time steps between candidate data
-    // this is used to detect missing candidate data
-    // and abort those tracks. default 1
+    /** @anchor min_wind_speed
+     * @name min_wind_speed
+     * Set the `min_wind_speed` array that contains the vector
+     * components to compute norm from
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(double, min_wind_speed)
+    ///@}
+
+    /** @anchor min_wind_duration
+     * @name min_wind_duration
+     * Set the `min_wind_duration` array that contains the vector
+     * components to compute norm from
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(double, min_wind_duration)
+    ///@}
+
+    /** @anchor step_interval
+     * @name step_interval
+     * Set the number of time steps between candidate data.
+     * This is used to detect missing candidate data
+     * and abort those tracks. default 1
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(unsigned long, step_interval)
+    ///@}
 
 protected:
     teca_tc_trajectory();

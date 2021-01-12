@@ -38,35 +38,57 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // set the center of the Gaussian in units of degress latitude.
-    // default is 0.0 deg lat
+    /** @anchor center
+     * @name center
+     * Set the center of the Gaussian in units of degress latitude.
+     * default is \f$ 0.0 ^{\circ} \f$ lat
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, center)
+    ///@}
 
-    // set the half width of the Gaussian in units of degrees latitude.
-    // default is 45.0 deg lat
+    /** @anchor half_width_at_half_max
+     * @name half_width_at_half_max
+     * Set the half width of the Gaussian in units of degrees latitude.
+     * default is \f$ 45.0 ^{\circ} \f$ lat
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, half_width_at_half_max)
+    ///@}
 
-    // set the names of the arrays that the filter will apply on
+    /** @anchor damped_variables
+     * @name damped_variables
+     * Set the names of the arrays that the filter will apply on
+     */
+    ///@{
     TECA_ALGORITHM_VECTOR_PROPERTY(std::string, damped_variable)
+    ///@}
 
-    // a string to be appended to the name of each output variable
-    // setting this to an empty string will result in the damped array
-    // replacing the input array in the output. default is an empty
-    // string ""
+    /** @anchor variable_post_fix
+     * @name variable_post_fix
+     * Set a string to be appended to the name of each output variable
+     * setting this to an empty string will result in the damped array
+     * replacing the input array in the output. default is an empty
+     * string ""
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, variable_post_fix)
+    ///@}
 
 protected:
     teca_latitude_damper();
 
-    // helpers to get parameters defining the Gaussian used by the
-    // the filter. if the user has not specified a value then the
-    // request is probed. a return of zero indicates success
+    /* helpers to get parameters defining the Gaussian used by the
+     * the filter. if the user has not specified a value then the
+     * request is probed. a return of zero indicates success
+     */
     int get_sigma(const teca_metadata &request, double &sigma);
     int get_mu(const teca_metadata &request, double &mu);
 
-    // helper to get the list of variables to apply the filter on
-    // if the user provided none, then the request is probed. a
-    // return of 0 indicates success
+    /* helper to get the list of variables to apply the filter on
+     * if the user provided none, then the request is probed. a
+     * return of 0 indicates success
+     */
     int get_damped_variables(std::vector<std::string> &vars);
 
 private:

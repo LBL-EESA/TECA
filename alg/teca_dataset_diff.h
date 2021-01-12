@@ -41,18 +41,30 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // Relative tolerance below which two floating-point quantities are
-    // considered equal (1e-6). The relative difference for a computed
-    // quantity A and a reference quantity B is
-    //
-    // rel_diff = |A - B| / B, B != 0
-    //          = |A - B| / A, B == 0, A != 0
-    //            0            otherwise
+    /** @anchor tolerance
+     * @name tolerance
+     * Set tolerance. Relative tolerance below which two floating-point
+     * quantities are considered equal (1e-6). The relative difference
+     * \f$ (d_r) \f$ for a computed quantity A and a reference quantity B is
+     *
+     * \f{eqnarray*}{
+     * d_r &=& \frac{|A - B|}{B}, B != 0 \\
+     *           &=& \frac{|A - B|}{A}, B == 0, A != 0 \\
+     *           &=& 0, otherwise
+     * \f}
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, tolerance)
+    ///@}
 
-    // if set infromation about the test progress is displayed during
-    // the test.
+    /** @anchor verbose
+     * @name verbose
+     * If set, infromation about the test progress is displayed during
+     * the test.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(int, verbose)
+    ///@}
 protected:
     teca_dataset_diff();
 
@@ -84,8 +96,9 @@ protected:
 
     // Reporting methods.
 
-    // Call this with contextual information when datasets differ. You can use
-    // printf formatting.
+    /** Call this with contextual information when datasets differ. You can use
+     * printf formatting.
+     */
     void datasets_differ(const char* info, ...);
 
 private:
@@ -101,7 +114,7 @@ private:
         const teca_metadata &request) override;
 
 private:
-    // Tolerance for equality of field values.
+    /** Tolerance for equality of field values. */
     double tolerance;
     int verbose;
 };

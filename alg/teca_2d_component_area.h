@@ -59,7 +59,7 @@ public:
 
     /** @anchor component_variable
      * @name component_variable
-     * Sets the component variable name containing the region labels.
+     * Set the component variable name containing the region labels.
      */
     ///@{
     TECA_ALGORITHM_PROPERTY(std::string, component_variable)

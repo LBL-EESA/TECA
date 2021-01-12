@@ -54,50 +54,137 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // set/get the type code for generated coordinates.
-    // default is 32 bit floating point. Use
-    // teca_variant_array_type<NT>::get() to get specific type
-    // codes for C++ POD types NT.
+    /** @anchor coordinate_type_code
+     * @name coordinate_type_code
+     * Set the type code for generated coordinates.
+     * default is 32 bit floating point. Use
+     * teca_variant_array_type<NT>::get() to get specific type
+     * codes for C++ POD types NT.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(unsigned int, coordinate_type_code)
+    ///@}
+
+    /** @anchor field_type_code
+     * @name field_type_code
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(unsigned int, field_type_code)
+    ///@}
 
-    // set/get the global index space extent of the data.  the extents are
-    // given by 8 values, 6 spatial plus 2 temporal, in the following order
-    // [i0 i1 j0 j1 k0 k1 q0 q1]
-    // this should be the same on all ranks elements.
+    /** @anchor whole_extents
+     * @name whole_extents
+     * Set the global index space extent of the data.  the extents are
+     * given by 8 values, 6 spatial plus 2 temporal, in the following order
+     * [i0 i1 j0 j1 k0 k1 q0 q1]
+     * this should be the same on all ranks elements.
+     */
+    ///@{
     TECA_ALGORITHM_VECTOR_PROPERTY(unsigned long, whole_extent)
+    ///@}
 
-    // set/get the global bounds of the data. the bounds are 8 values 6 spatial
-    // plus 2 temporal in the following order.
-    // [x0 x1 y0 y1 z0 z1 t0 t1]
-    // this should be the same on all ranks elements.
+    /** @anchor bounds
+     * @name bounds
+     * Set the global bounds of the data. the bounds are 8 values 6 spatial
+     * plus 2 temporal in the following order.
+     * [x0 x1 y0 y1 z0 z1 t0 t1]
+     * this should be the same on all ranks elements.
+     */
+    ///@{
     TECA_ALGORITHM_VECTOR_PROPERTY(double, bound)
+    ///@}
 
-    // set the variable to use for the coordinate axes.
-    // the defaults are: x => lon, y => lat, z = plev,
-    // t => time
+    /** @anchor x_axis_variable
+     * @name x_axis_variable
+     * Set the variable to use for the x coordinate axis. default is lon
+     * the defaults are: x => lon, y => lat, z = plev,
+     * t => time
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, x_axis_variable)
+    ///@}
+
+    /** @anchor y_axis_variable
+     * @name y_axis_variable
+     * Set the variable to use for the y coordinate axis. default is lat
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, y_axis_variable)
+    ///@}
+
+    /** @anchor z_axis_variable
+     * @name z_axis_variable
+     * Set the variable to use for the y coordinate axis. default is plev
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, z_axis_variable)
+    ///@}
+
+    /** @anchor t_axis_variable
+     * @name t_axis_variable
+     * Set the variable to use for the y coordinate axis. default is time
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, t_axis_variable)
+    ///@}
 
-    // set the units of spatial axes. The defaults are:
-    // degrees_east, degrees_north, and pressure_level
+    /** @anchor x_axis_units
+     * @name x_axis_units
+     * Set the units of the x spatial axis. The default is degrees_east
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, x_axis_units)
+    ///@}
+
+    /** @anchor y_axis_units
+     * @name y_axis_units
+     * Set the units of the y spatial axis. The default is degrees_north
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, y_axis_units)
+    ///@}
+
+    /** @anchor z_axis_units
+     * @name z_axis_units
+     * Set the units of the z spatial axis. The default is pressure_level
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, z_axis_units)
+    ///@}
 
-    // number of time steps to generate
+    /** @anchor calendar
+     * @name calendar
+     * Set the calendar to generate the number of time steps.
+     * @note @ref time_units need to be set as well to correctly generate
+     *       the number of time steps
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, calendar)
+    ///@}
+
+    /** @anchor time_units
+     * @name time_units
+     * Set the time units to generate the number of time steps.
+     * @note @ref calendar need to be set as well to correctly generate
+     *       the number of time steps
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, time_units)
+    ///@}
 
-    // set the named callbacks to generate fields on the mesh.  A callback
-    // function must have the signature f(x,y,z,t).
+    /** @anchor field_generators
+     * @name field_generators
+     * Set the named callbacks to generate fields on the mesh.  A callback
+     * function must have the signature f(x,y,z,t).
+     */
+    ///@{
     TECA_ALGORITHM_VECTOR_PROPERTY(field_generator_t, field_generator);
+    ///@}
 
-    // set a callback function f(x,y,z,t) that generates a field named name
-    // x,y,z are coordinate axes in variant arrays, t is the double precision
-    // time value.
+    /** set a callback function f(x,y,z,t) that generates a field named name
+     *  x,y,z are coordinate axes in variant arrays, t is the double precision
+     *  time value.
+     */
     void append_field_generator(const std::string &name,
         const teca_array_attributes &atts, field_generator_callback &callback);
 

@@ -35,59 +35,135 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // set the name of the column that defines the track ids
-    // if set the specified column is coppied into the output
-    // metadata and accessed with the key event_id
+    /** @anchor storm_id_column
+     * @name storm_id_column
+     * Set the name of the column that defines the track ids
+     * if set the specified column is coppied into the output
+     * metadata and accessed with the key event_id.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, storm_id_column)
+    ///@}
 
-    // set the name of the columns that define the event position
-    // if  set the columns are coppied into the output metadata
-    // and accessed with the keys storm_x_coordinate, storm_y_coordinate
+    /** @anchor storm_x_coordinate_column
+     * @name storm_x_coordinate_column
+     * Set the name of the `storm_x_coordinate_column`
+     * column that define the event position.
+     * If set the column is copied into the output metadata
+     * and accessed with the key storm_x_coordinate.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, storm_x_coordinate_column)
+    ///@}
+
+    /** @anchor storm_y_coordinate_column
+     * @name storm_y_coordinate_column
+     * Set the name of the `storm_y_coordinate_column`
+     * column that define the event position.
+     * If set the column is copied into the output metadata
+     * and accessed with the key storm_y_coordinate.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, storm_y_coordinate_column)
+    ///@}
 
-    // set the name of the column containing peak instantanious
-    // surface wind speed
+    /** @anchor storm_wind_speed_column
+     * @name storm_wind_speed_column
+     * Set the name of the column containing peak instantanious
+     * surface wind speed
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, storm_wind_speed_column)
+    ///@}
 
-    // set the name of the column that defines the event time
-    // if set the specified column is coppied into the output
-    // metadata and accessed with the key event_time
+    /** @anchor storm_time_column
+     * @name storm_time_column
+     * Set the name of the column that defines the event time
+     * if set the specified column is coppied into the output
+     * metadata and accessed with the key event_time
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, storm_time_column)
+    ///@}
 
-    // set the name of the wind variable components
+    /** @anchor wind_u_variable
+     * @name wind_u_variable
+     * Set the name of the U wind variable component.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, wind_u_variable)
+    ///@}
+
+    /** @anchor wind_v_variable
+     * @name wind_v_variable
+     * Set the name of the V wind variable component.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, wind_v_variable)
+    ///@}
 
-    // set the radius in degrees of latitude to sample the wind
-    // field
+    /** @anchor search_radius
+     * @name search_radius
+     * Set the radius in degrees of latitude to sample the wind field.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, search_radius)
+    ///@}
 
-    // set the radius in degrees of latitude beyond which to
-    // terminate the search for peak wind speed. if the peak
-    // lies beyond this distance search is terminated and a
-    // warning is displayed.
+    /** @anchor core_radius
+     * @name core_radius
+     * Set the radius in degrees of latitude beyond which to
+     * terminate the search for peak wind speed. if the peak
+     * lies beyond this distance search is terminated and a
+     * warning is displayed.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, core_radius)
+    ///@}
 
-    // number of bins to discetize by in the radial direction
+    /** @anchor number_of_radial_bins
+     * @name number_of_radial_bins
+     * Set the number of bins to discetize by in the radial direction.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(int, number_of_radial_bins)
+    ///@}
 
-    // set the wind speeds (in m/s) to find the radius of. the
-    // defualt values are the transition speeds of the Saffir-Simpson
-    // scale.
+    /** @anchor critical_wind_speeds
+     * @name critical_wind_speeds
+     * Set the wind speeds (in m/s) to find the radius of. the
+     * defualt values are the transition speeds of the Saffir-Simpson
+     * scale.
+     */
+    ///@{
     TECA_ALGORITHM_VECTOR_PROPERTY(double, critical_wind_speed)
+    ///@}
 
-    // set the profile type. PROFILE_MAX uses the maximum
-    // wind speed on each interval of the discretization, while
-    // PROFILE_AVERAGE uses the average on each interval
-    enum {PROFILE_MAX = 0, PROFILE_AVERAGE = 1};
+    /** Profile types. PROFILE_MAX uses the maximum
+     * wind speed on each interval of the discretization, while
+     * PROFILE_AVERAGE uses the average on each interval
+     */
+    enum {
+        /** 0 */
+        PROFILE_MAX = 0,
+        /** 1 */
+        PROFILE_AVERAGE = 1
+    };
+
+    /** @anchor profile_type
+     * @name profile_type
+     * Set the profile type.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(int, profile_type);
+    ///@}
 
 
-    // override the input connections because we are going to
-    // take the first input and use it to generate metadata.
-    // the second input then becomes the only one the pipeline
-    // knows about.
+    /** override the input connections because we are going to
+     * take the first input and use it to generate metadata.
+     * the second input then becomes the only one the pipeline
+     * knows about.
+     */
     void set_input_connection(unsigned int id,
         const teca_algorithm_output_port &port) override;
 

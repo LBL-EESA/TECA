@@ -58,53 +58,213 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // set/get the name of input variables
+    /** @anchor surface_wind_speed_variable
+     * @name surface_wind_speed_variable
+     * Set the name of surface wind speed input variable
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, surface_wind_speed_variable)
+    ///@}
+
+    /** @anchor vorticity_850mb_variable
+     * @name vorticity_850mb_variable
+     * Set the name of vorticity 850mb input variable
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, vorticity_850mb_variable)
+    ///@}
+
+    /** @anchor sea_level_pressure_variable
+     * @name sea_level_pressure_variable
+     * Set the name of sea level pressure input variable
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, sea_level_pressure_variable)
+    ///@}
+
+    /** @anchor core_temperature_variable
+     * @name core_temperature_variable
+     * Set the name of core temperature input variable
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, core_temperature_variable)
+    ///@}
+
+    /** @anchor thickness_variable
+     * @name thickness_variable
+     * Set the name of thickness input variable
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, thickness_variable)
+    ///@}
 
-    // a candidate is defined as having:
-    // 1) a local maximum in vorticity above vorticty_850mb_threshold,
-    //    centered on a window of vorticty_850mb_window degrees
-    // 2) a local minimum in pressure within max_core_radius degrees
-    // 3) having max pressure delta within max_pressure_radius at
-    //    that location
+    /** @anchor max_core_radius
+     * @name max_core_radius
+     * Set `max_core_radius`.
+     *
+     * @note A candidate is defined as having:\n
+     *       1) a local maximum in vorticity above vorticty_850mb_threshold,
+     *          centered on a window of vorticty_850mb_window degrees\n
+     *       2) a local minimum in pressure within max_core_radius degrees\n
+     *       3) having max pressure delta within max_pressure_radius at
+     *          that location
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, max_core_radius)
+    ///@}
+
+    /** @anchor min_vorticity_850mb
+     * @name min_vorticity_850mb
+     * Set `min_vorticity_850mb`.
+     *
+     * @note A candidate is defined as having:\n
+     *       1) a local maximum in vorticity above vorticty_850mb_threshold,
+     *          centered on a window of vorticty_850mb_window degrees\n
+     *       2) a local minimum in pressure within max_core_radius degrees\n
+     *       3) having max pressure delta within max_pressure_radius at
+     *          that location
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, min_vorticity_850mb)
+    ///@}
+
+    /** @anchor vorticity_850mb_window
+     * @name vorticity_850mb_window
+     * Set `vorticity_850mb_window`.
+     *
+     * @note A candidate is defined as having:\n
+     *       1) a local maximum in vorticity above vorticty_850mb_threshold,
+     *          centered on a window of vorticty_850mb_window degrees\n
+     *       2) a local minimum in pressure within max_core_radius degrees\n
+     *       3) having max pressure delta within max_pressure_radius at
+     *          that location
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, vorticity_850mb_window)
+    ///@}
+
+    /** @anchor max_pressure_delta
+     * @name max_pressure_delta
+     * Set `max_pressure_delta`.
+     *
+     * @note A candidate is defined as having:\n
+     *       1) a local maximum in vorticity above vorticty_850mb_threshold,
+     *          centered on a window of vorticty_850mb_window degrees\n
+     *       2) a local minimum in pressure within max_core_radius degrees\n
+     *       3) having max pressure delta within max_pressure_radius at
+     *          that location
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, max_pressure_delta)
+    ///@}
+
+    /** @anchor max_pressure_radius
+     * @name max_pressure_radius
+     * Set `max_pressure_radius`.
+     *
+     * @note A candidate is defined as having:\n
+     *       1) a local maximum in vorticity above vorticty_850mb_threshold,
+     *          centered on a window of vorticty_850mb_window degrees\n
+     *       2) a local minimum in pressure within max_core_radius degrees\n
+     *       3) having max pressure delta within max_pressure_radius at
+     *          that location
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, max_pressure_radius)
+    ///@}
 
-    // these criteria are recorded here but only used in the trajectory
-    // stitching stage.
+    /** @anchor max_core_temperature_delta
+     * @name max_core_temperature_delta
+     * this criteria is recorded here but only used in the trajectory
+     * stitching stage.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, max_core_temperature_delta)
+    ///@}
+
+    /** @anchor max_core_temperature_radius
+     * @name max_core_temperature_radius
+     * this criteria is recorded here but only used in the trajectory
+     * stitching stage.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, max_core_temperature_radius)
+    ///@}
+
+    /** @anchor max_thickness_delta
+     * @name max_thickness_delta
+     * this criteria is recorded here but only used in the trajectory
+     * stitching stage.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, max_thickness_delta)
+    ///@}
+
+    /** @anchor max_thickness_radius
+     * @name max_thickness_radius
+     * this criteria is recorded here but only used in the trajectory
+     * stitching stage.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, max_thickness_radius)
+    ///@}
 
-    // set/get the bounding box to search for storms
-    // in units of degreees lat,lon
+    /** @anchor search_lat_low
+     * @name search_lat_low
+     * Set the low lat bounding box to search for storms
+     * in units of degrees
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, search_lat_low)
+    ///@}
+
+    /** @anchor search_lat_high
+     * @name search_lat_high
+     * Set the high lat bounding box to search for storms
+     * in units of degrees
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, search_lat_high)
+    ///@}
+
+    /** @anchor search_lon_low
+     * @name search_lon_low
+     * Set the low lon bounding box to search for storms
+     * in units of degrees
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, search_lon_low)
+    ///@}
+
+    /** @anchor search_lon_high
+     * @name search_lon_high
+     * Set the high lon bounding box to search for storms
+     * in units of degrees
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, search_lon_high)
+    ///@}
 
-    // set/get the number of iterations to search for the
-    // storm local minimum. raising this paramter might increase
-    // detections but the detector will run slowerd. default is
-    // 50.
+    /** @anchor minimizer_iterations
+     * @name minimizer_iterations
+     * Set the number of iterations to search for the
+     * storm local minimum. raising this paramter might increase
+     * detections but the detector will run slowerd. default is
+     * 50.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(int, minimizer_iterations)
+    ///@}
 
-    // send humand readable representation to the
-    // stream
+    /** send humand readable representation to the
+     * stream
+     */
     virtual void to_stream(std::ostream &os) const override;
 
 protected:
     teca_tc_candidates();
 
-    // helper that computes the output extent
+    /** helper that computes the output extent */
     int get_active_extent(
         p_teca_variant_array lat,
         p_teca_variant_array lon,

@@ -848,7 +848,23 @@ WARN_LOGFILE           =
 INPUT                  = ../../alg/teca_2d_component_area.h \
                          ../../alg/teca_bayesian_ar_detect.h \
                          ../../alg/teca_binary_segmentation.h \
-                         ../../alg/teca_cartesian_mesh_regrid.h
+                         ../../alg/teca_cartesian_mesh_regrid.h \
+                         ../../alg/teca_cartesian_mesh_source.h \
+                         ../../alg/teca_component_area_filter.h \
+                         ../../alg/teca_connected_components.h \
+                         ../../alg/teca_dataset_diff.h \
+                         ../../alg/teca_deeplab_ar_detect.py \
+                         ../../alg/teca_integrated_vapor_transport.h \
+                         ../../alg/teca_l2_norm.h \
+                         ../../alg/teca_latitude_damper.h \
+                         ../../alg/teca_normalize_coordinates.h \
+                         ../../alg/teca_table_reduce.h \
+                         ../../alg/teca_tc_candidates.h \
+                         ../../alg/teca_tc_trajectory.h \
+                         ../../alg/teca_tc_wind_radii.h \
+                         ../../alg/teca_temporal_average.h \
+                         ../../alg/teca_temporal_reduction.py \
+                         ../../alg/teca_vorticity.h
 #INPUT                  = ../../alg/teca_2d_component_area.h
 #INPUT                  = ../..
 #INPUT                  =
@@ -1572,7 +1588,8 @@ FORMULA_MACROFILE      =
 # The default value is: NO.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-USE_MATHJAX            = NO
+#USE_MATHJAX            = NO
+USE_MATHJAX            = YES
 
 # When MathJax is enabled you can set the default output format to be used for
 # the MathJax output. See the MathJax site (see:
