@@ -4,6 +4,7 @@ TECA is designed to deliver the highest available performance on platforms
 ranging from Cray supercomputers to laptops. The installation procedure depends
 on the platform and desired use.
 
+.. _install_hpc:
 
 On a Cray Supercomputer
 -----------------------
@@ -33,57 +34,79 @@ library.
 Overview
 ~~~~~~~~
 A quick overview follows. Note that step 8 is for using TECA after.
-This is usually put in an environment module.
 
 1. module swap PrgEnv-intel PrgEnv-gnu
-2. module load cmake/3.8.2
+2. module load cmake
 3. git clone https://github.com/LBL-EESA/TECA_superbuild.git
 4. mkdir build && cd build
-5. edit install paths and potentially update library paths after NERSC upgrades OS in config-teca-sb.sh. (see below)
-6. run config-teca-sb.sh .. (you may need to replace .. with path to super build clone)
-7. make -j 32 install
-8. When using TECA you need to source teca_env.sh from the install's bin dir, load the correct version of gnu programming environment, and ensure that no incompatible modules are loaded(Python, HDF5, NetCDF etc).
-
+5. edit install paths in the `config-teca-sb.sh` script provided below.
+6. run `config-teca-sb.sh ..`. You may need to replace `..` with the path to super build clone.
+7. make -j16 install
+8. When using TECA you'll need to load the teca modulefile installed by the
+   superbuild find this file in the `modulefiles` directory.
 
 Configure script
 ~~~~~~~~~~~~~~~~
 The configure script is a shell script that captures build settings specific to
-Cray environment (see steps 5 & 6 above). You will need to edit the TECA_VER
-and TECA_INSTALL variables before running it. Additional CMake arguments may be
+Cray environment (see steps 5 & 6 above). You will need to edit the `TECA_SOURCE`
+and `TECA_INSTALL` variables before running it. Additional CMake arguments may be
 passed on the command line. You must pass the location of the superbuild
 sources(see step 3 above).
 
-Here is the script config-teca-sb.sh use at NERSC for Cori and Edison.
+Here is the script `config-teca-sb.sh` in use at NERSC for Cori.
 
 .. code-block:: bash
 
     #!/bin/bash
 
-    # mpich is not in the pkg-config path on Cori/Edison
-    # I have reported this bug to NERSC. for now we
-    # must add it ourselves.
+    # mpich is not in the pkg-config path on Cori
     export PKG_CONFIG_PATH=$CRAY_MPICH_DIR/lib/pkgconfig:$PKG_CONFIG_PATH
 
     # set the the path where TECA is installed to.
-    # this must be a writable directory by the user
-    # who is doing the build, as install is progressive.
-    TECA_VER=2.1.1
-    TECA_INSTALL=/global/cscratch1/sd/loring/test_superbuild/teca/$TECA_VER
+    TECA_SOURCE=develop
+    TECA_INSTALL=$SCRATCH/teca_installs/$TECA_SOURCE
+
+    echo TECA_SOURCE=${TECA_SOURCE}
+    echo TECA_INSTALL=${TECA_INSTALL}
+    rm -rfI ${TECA_INSTALL}
 
     # Configure TECA superbuild
     cmake \
       -DCMAKE_CXX_COMPILER=`which g++` \
       -DCMAKE_C_COMPILER=`which gcc` \
       -DCMAKE_BUILD_TYPE=Release \
+      -DTECA_SOURCE=${TECA_SOURCE} \
       -DCMAKE_INSTALL_PREFIX=${TECA_INSTALL} \
       -DENABLE_MPICH=OFF \
       -DENABLE_OPENMPI=OFF \
       -DENABLE_CRAY_MPICH=ON \
       -DENABLE_TECA_TEST=OFF \
       -DENABLE_TECA_DATA=ON \
-      -DENABLE_READLINE=OFF \
+      -DENABLE_TECA=ON \
       $*
 
+    # build and install
+    make -j16 install
+
+The superbuild will install the release or branch named in `TECA_SOURCE` variable.
+The install will be placed in the `TECA_INSTALL` directory.  An environment module will
+be installed in `$TECA_INSTALL/modulefiles/`. To use the new install of TECA you will need
+to use it to configure the run time environment.
+
+.. code-block:: bash
+
+    module swap PrgEnv-intel PrgEnv-gnu
+    module use ${TECA_INSTALL}/modulefiles
+    module load teca
+
+The teca module must be loaded each time you use TECA and is usually best done from
+within your batch script.
+
+.. hint::
+
+   When trouble shooting the superbuild it is necessary to `rm -rf`
+   both the build and install prefix directories. Failing to do so will lead to
+   confusing build failures.
 
 On a laptop or desktop
 ----------------------
