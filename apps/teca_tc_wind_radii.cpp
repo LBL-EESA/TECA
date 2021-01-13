@@ -201,8 +201,8 @@ int main(int argc, char **argv)
     if (!opt_vals["wind_v_var"].defaulted())
         wind_radii->set_wind_v_variable(opt_vals["wind_v_var"].as<std::string>());
 
-    if (!opt_vals["n_radial_bins"].defaulted())
-        wind_radii->set_number_of_radial_bins(opt_vals["n_radial_bins"].as<int>());
+    if (!opt_vals["number_of_bins"].defaulted())
+        wind_radii->set_number_of_radial_bins(opt_vals["number_of_bins"].as<int>());
 
     if (!opt_vals["profile_type"].defaulted())
     {
