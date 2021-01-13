@@ -36,22 +36,21 @@ class teca_deeplab_ar_detect(teca_pytorch_algorithm):
         """
         event = teca_time_py_event('teca_deeplab_ar_detect::load_model')
 
-        # this triggers torch setup in base class
+        # this creates OpenMP thread pools and imports torch
+        # it must be called *before* we import torch
         self.initialize()
 
-        # bring in our torch codes here
+        # import our torch codes only now that torch has been initialized
         global teca_deeplab_ar_detect_internals
-        from teca_deeplab_ar_detect_internals import teca_deeplab_ar_detect_internals
+        from teca_deeplab_ar_detect_internals \
+            import teca_deeplab_ar_detect_internals
 
-        # load the model from disk
-        state_dict_deeplab = self.load_state_dict(filename)
-
+        # create an instance of the model
         model = teca_deeplab_ar_detect_internals.DeepLabv3_plus(
             n_classes=1, _print=False)
 
-        model.load_state_dict(state_dict_deeplab)
-
-        self.set_model(model)
+        # load model weights from state on disk
+        super().load_model(filename, model)
 
     def get_padding_sizes(self, div, dim):
         """
@@ -109,13 +108,17 @@ class teca_deeplab_ar_detect(teca_pytorch_algorithm):
         """
         event = teca_time_py_event('teca_deeplab_ar_detect::postprocess')
 
-        # normalize the raw model output
+        # normalize the output
         tmp = torch.sigmoid(out_tensor)
+
+        # move to the CPU if running on a GPU
+        if self.device != 'cpu':
+            tmp = tmp.to('cpu')
 
         # convert from torch tensor to numpy ndarray
         out_array = tmp.numpy()
 
-        # extract the valid protion of the result
+        # extract the valid portion of the result
         out_array = out_array[:, :, self.ng_y0 : self.ng_y0 + self.ny_in,
                               self.ng_x0 : self.ng_x0 + self.nx_in]
 

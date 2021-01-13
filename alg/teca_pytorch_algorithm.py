@@ -1,6 +1,6 @@
 import os
 import sys
-import socket
+from socket import gethostname
 import numpy as np
 
 class teca_pytorch_algorithm(teca_python_algorithm):
@@ -77,19 +77,20 @@ class teca_pytorch_algorithm(teca_python_algorithm):
         """
         self.n_threads_max = val
 
-    def set_torch_device(self, device):
+    def set_target_device(self, val):
         """
-        Set the torch target device
+        Set the target device. May be one of 'cpu' or 'cuda'.
         """
-        self.device = device
+        if val == 'cpu' or val == 'cuda':
+            self.device = val
+        else:
+            raise RuntimeError('Invalid target device %s' % (val))
 
     def set_model(self, model):
         """
-        set Pytorch pretrained model
+        set PyTorch model
         """
         self.model = model
-        # tell troch to run in inference mode
-        self.model.eval()
 
     def initialize(self):
         """
@@ -119,7 +120,6 @@ class teca_pytorch_algorithm(teca_python_algorithm):
         omp_num_threads = os.getenv('OMP_NUM_THREADS')
         omp_places = os.getenv('OMP_PLACES')
         omp_proc_bind = os.getenv('OMP_PROC_BIND')
-
         if omp_num_threads is not None or omp_places is not None \
             or omp_proc_bind is not None:
 
@@ -145,7 +145,8 @@ class teca_pytorch_algorithm(teca_python_algorithm):
                 n_threads = self.n_threads
 
                 n_threads, affinity = \
-                    thread_util.thread_parameters(comm, n_threads, 1, self.verbose)
+                    thread_util.thread_parameters(comm, n_threads, 1,
+                                                  0 if self.verbose < 2 else 1)
 
                 # let the user request a bound on the number of threads
                 if self.n_threads_max > 0:
@@ -163,11 +164,10 @@ class teca_pytorch_algorithm(teca_python_algorithm):
                 os.putenv('OMP_PLACES', places)
 
                 if self.verbose:
-                    sys.stderr.write('[%d] STATUS: OpenMP control '
-                                     'enironment variables '
-                                     'OMP_NUM_THREADS=%d '
-                                     'OMP_PROC_BIND=true OMP_PLACES=%s\n' % (
-                                     rank, n_threads, places))
+                    sys.stderr.write('[%d] STATUS: %s : %d : OMP_NUM_THREADS=%d'
+                                     ' OMP_PROC_BIND=true OMP_PLACES=%s\n' % (
+                                     rank, gethostname(), rank, n_threads,
+                                     places))
                     sys.stderr.flush()
 
             except(RuntimeError):
@@ -184,14 +184,37 @@ class teca_pytorch_algorithm(teca_python_algorithm):
         import torch
 
         if n_threads:
+            # also tell torch explicitly
             torch.set_num_threads(n_threads)
             torch.set_num_interop_threads(n_threads)
 
-        if self.verbose > 1:
-            torch.__config__.parallel_info()
-            sys.stderr.write('[%d] STATUS: %s'%(
-                             rank, torch.__config__.parallel_info()))
-            sys.stderr.flush()
+        if 'cuda' in self.device:
+            # check that CUDA is present
+            if torch.cuda.is_available():
+                # get the number of devices and assign them to ranks round
+                # robin
+                n_dev = torch.cuda.device_count()
+                dev_id = rank % n_dev
+
+                if self.device == 'cuda':
+                    # select the GPU that this rank will use.
+                    self.device = 'cuda:%d' % (dev_id)
+
+                if self.verbose:
+                    dev_name = torch.cuda.get_device_name(self.device)
+
+                    sys.stderr.write('[%d] STATUS: %s : %d : %d/%d : %s\n' % (
+                                     rank, gethostname(), rank, dev_id, n_dev,
+                                     dev_name))
+                    sys.stderr.flush()
+            else:
+                # fall back to OpenMP
+                if rank == 0:
+                   sys.stderr.write('[%d] WARNING: CUDA was requested but is not'
+                                    ' available. OpenMP will be used.\n')
+                   sys.stderr.flush()
+
+                self.device = 'cpu'
 
         self.initialized = True
 
@@ -202,7 +225,7 @@ class teca_pytorch_algorithm(teca_python_algorithm):
         if not self.initialized:
             raise RuntimeError('Not initialized! call '
                                'teca_pytroch_algorithm::initialize before '
-                               'use to configure the run and import torch')
+                               'use to configure OpenMP and import torch')
 
     def load_state_dict(self, filename):
         """
@@ -217,12 +240,31 @@ class teca_pytorch_algorithm(teca_python_algorithm):
 
         sd = None
         if rank == 0:
-            sd = torch.load(filename,
-                            map_location=lambda storage, loc: storage)
+            sd = torch.load(filename, map_location=self.device)
 
         sd = comm.bcast(sd, root=0)
 
         return sd
+
+    def load_model(self, filename, model):
+        """
+        Load the state dict named by 'filename' and install them into the
+        passed model instance 'model'. This also moves the model on the current
+        target device, and puts the model into inference mode.
+        """
+        event = teca_time_py_event('teca_pytorch_algorithm::load_model')
+
+        self.check_initialized()
+
+        # load the model weights from disk
+        model_state = self.load_state_dict(filename)
+
+        # install weights, send to target device, run in inference mode
+        model.load_state_dict(model_state)
+        model.to(self.device)
+        model.eval()
+
+        self.model = model
 
     def preprocess(self, in_array):
         """

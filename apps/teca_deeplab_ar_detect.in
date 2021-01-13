@@ -90,6 +90,9 @@ parser.add_argument('--output_file', type=str, required=True,
 parser.add_argument('--steps_per_file', type=int, required=False, default=128,
     help='number of time steps per output file')
 
+parser.add_argument('--target_device', type=str, default='cpu',
+    help='set the execution target. May be one of "cpu", or "cuda"')
+
 parser.add_argument('--n_threads', type=int, default=-1,
     help='Sets the thread pool size on each MPI rank. When the default'
          ' value of -1 is used TECA will coordinate the thread pools across'
@@ -209,6 +212,7 @@ ar_detect = teca_deeplab_ar_detect.New()
 ar_detect.set_input_connection(coords.get_output_port())
 ar_detect.set_verbose(args.verbose)
 ar_detect.set_ivt_variable(args.ivt)
+ar_detect.set_target_device(args.target_device)
 ar_detect.set_thread_pool_size(args.n_threads)
 ar_detect.set_max_thread_pool_size(args.n_threads_max)
 ar_detect.load_model(args.pytorch_model)
