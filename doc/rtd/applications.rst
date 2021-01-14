@@ -2223,6 +2223,9 @@ Command Line Arguments
 --steps_per_file STEPS_PER_FILE
     number of time steps per output file (default: 128)
 
+--target_device TARGET_DEVICE
+    set the execution target. May be one of "cpu", or "cuda" (default: cpu)
+
 --n_threads N_THREADS
     Sets the thread pool size on each MPI rank. When the default value of -1 is used TECA will
     coordinate the thread pools across ranks such each thread is bound to a unique physical core.
@@ -2275,12 +2278,22 @@ Command Line Arguments
 Node level parallelism
 ~~~~~~~~~~~~~~~~~~~~~~
 Torch can make use of GPUs or OpenMP thread pools for node level parallelism.
+
+OpenMP
+^^^^^^
 TECA internally configures OpenMP such that its thread pools will make use of
 up to 4 threads bound to unique CPU cores taking into account all ranks running
 on the node. To take advantage of threads on Cori KNL when using the
 `teca_deeplab_ar_detect` application limit the number of MPI ranks per node to
 17 or fewer, or on Cori Haswell 8 or fewer. To use more than 4 threads per rank
 (not recommended) set `--n_threads_max` to a number larger than 4.
+
+CUDA
+^^^^
+To enable use of CUDA pass `--target_device cuda` to the
+`teca_deeplab_ar_detect` application.  TECA assigns MPI ranks to GPUs in a
+round robin fashion.  If more MPI ranks than GPUs are scheduled to a node then
+multiple MPI ranks will share a single GPU.
 
 Examples
 ~~~~~~~~~

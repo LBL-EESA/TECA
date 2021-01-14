@@ -28,6 +28,7 @@ baseline = sys.argv[3]
 water_vapor_var = sys.argv[4]
 n_threads = int(sys.argv[5])
 vrb = 1
+dev = 'cuda'
 
 cf_reader = teca_cf_reader.New()
 cf_reader.set_files_regex(input_regex)
@@ -35,11 +36,11 @@ cf_reader.set_periodic_in_x(1)
 
 ar_detect = teca_deeplab_ar_detect.New()
 ar_detect.set_input_connection(cf_reader.get_output_port())
+ar_detect.set_target_device(dev)
 ar_detect.set_verbose(vrb)
 ar_detect.set_ivt_variable(water_vapor_var)
 ar_detect.set_thread_pool_size(n_threads)
 ar_detect.load_model(deeplab_model)
-
 
 rex = teca_index_executive.New()
 rex.set_arrays(['ar_probability'])
@@ -58,7 +59,7 @@ if do_test:
     diff = teca_dataset_diff.New()
     diff.set_input_connection(0, baseline_reader.get_output_port())
     diff.set_input_connection(1, ar_detect.get_output_port())
-    diff.set_relative_tolerance(1e-4)
+    diff.set_relative_tolerance(5e-4)
     diff.set_executive(rex)
     diff.update()
 
