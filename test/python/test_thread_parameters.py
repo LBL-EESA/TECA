@@ -1,6 +1,6 @@
 import sys
+from mpi4py import MPI
 from teca import *
-from mpi4py import *
 
 n_explicit = 3
 verbose = 1

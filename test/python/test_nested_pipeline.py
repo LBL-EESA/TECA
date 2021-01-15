@@ -1,7 +1,7 @@
 import sys
 import os
+from mpi4py import MPI
 from teca import *
-from mpi4py import *
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
