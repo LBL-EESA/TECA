@@ -1,5 +1,5 @@
 try:
-    from mpi4py import *
+    from mpi4py import MPI
     rank = MPI.COMM_WORLD.Get_rank()
     n_ranks = MPI.COMM_WORLD.Get_size()
 except:

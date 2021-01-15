@@ -1,4 +1,4 @@
-from mpi4py import *
+from mpi4py import MPI
 from teca import *
 import numpy as np
 import sys

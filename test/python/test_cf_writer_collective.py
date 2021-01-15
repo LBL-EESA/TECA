@@ -2,8 +2,11 @@ import sys, os
 from time import sleep
 import platform
 import numpy as np
+try:
+    from mpi4py import MPI
+except ImportError:
+    pass
 from teca import *
-from mpi4py import *
 
 set_stack_trace_on_error()
 

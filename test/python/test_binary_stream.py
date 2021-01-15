@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 import sys
 import os
+from mpi4py import MPI
 from teca import *
-from mpi4py import *
 from math import pi,e
 
 comm = MPI.COMM_WORLD
