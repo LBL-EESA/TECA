@@ -89,7 +89,7 @@ set(REQUIRE_NETCDF TRUE CACHE BOOL "Forces build failure when NetCDF is missing"
 set(REQUIRE_NETCDF_MPI TRUE CACHE BOOL "Forces build failure when NetCDF_MPI is missing")
 set(REQUIRE_UDUNITS TRUE CACHE BOOL "Forces build failure when udunits2 is missing")
 set(REQUIRE_BOOST TRUE CACHE BOOL "Forces build failure when boost is missing")
-set(REQUIRE_OPENSSL ${REQUIRE_NETRCDF} CACHE BOOL "Forces build failure when OpenSSL is missing")
+set(REQUIRE_OPENSSL ${REQUIRE_NETCDF} CACHE BOOL "Forces build failure when OpenSSL is missing")
 set(REQUIRE_PYTHON TRUE CACHE BOOL "Forces build failure when Python is missing")
 set(REQUIRE_LIBXLSXWRITER FALSE CACHE BOOL "Forces build failure when libxlsxwriter is missing")
 set(REQUIRE_PARAVIEW FALSE CACHE BOOL "Forces build failure when ParaView is missing")
