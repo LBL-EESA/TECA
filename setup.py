@@ -12,7 +12,7 @@ from distutils.version import LooseVersion
 # when compiled outside of the git repo we must set the version
 # manually. Also note that these must be unique per upload to PyPi
 # so be sure to use an 'rcX' for testing
-teca_version = "3.0.0"
+teca_version = "4.0.0rc2"
 
 class CMakeExtension(Extension):
     def __init__(self, name, sourcedir=''):
@@ -20,7 +20,60 @@ class CMakeExtension(Extension):
         self.sourcedir = os.path.abspath(sourcedir)
 
 class CMakeBuild(build_ext):
+
+    user_options = build_ext.user_options + [
+        ('without-mpi', None, 'Disables MPI parallel features'),
+        ('without-netcdf-mpi', None, 'Disables NetCDF "parallel 4" features'),
+        ('with-cray-mpich', None, 'Sets the build up to use Cray MPICH'),
+        ('with-teca-data=', None, 'Path to the TECA_data subversion repo'),
+        ('with-netcdf=', None, 'Sets the path to a NetCDF install. This may be '
+                               'necessary on MacOS, Ubuntu, and other systems '
+                               'with broken NetCDF packages'),
+        ]
+
+    boolean_options = build_ext.boolean_options + [
+        'without-mpi', 'without-netcdf-mpi', 'with-cray-mpich'
+        ]
+
+    def initialize_options(self):
+        super().initialize_options()
+
+        self.without_mpi = False
+        self.without_netcdf_mpi = False
+        self.with_cray_mpich = False
+        self.with_teca_data = ''
+        self.with_netcdf = ''
+
+    def finalize_options(self):
+        super().finalize_options()
+
+        # enable the CMake logic that works with Cray MPICH and sets up CMake's
+        # run time environment.
+        if self.with_cray_mpich:
+            self.without_mpi = False
+            if 'CRAY_MPICH_DIR' in os.environ:
+                cray_mpich_dir = os.environ['CRAY_MPICH_DIR']
+                if 'PKG_CONFIG_PATH' in os.environ:
+                    pkg_config_path = ':' + os.environ['PKG_CONFIG_PATH']
+                else:
+                    pkg_config_path = ''
+                os.environ['PKG_CONFIG_PATH'] = cray_mpich_dir + \
+                    '/lib/pkgconfig' + pkg_config_path
+            else:
+                sys.stderr.write('WARNING: Failed to add the CRAY_MPICH_DIR'
+                                 ' to the PKG_CONFIG_PATH this is required on'
+                                 ' NERSC Cori\n')
+
+        # toggle NetCDF parallel 4 features based on MPI flags
+        if self.without_mpi:
+            self.without_netcdf_mpi = True
+
+        elif self.with_netcdf:
+            self.without_netcdf_mpi = False
+
+
     def run(self):
+
         try:
             out = subprocess.check_output(['cmake', '--version'])
         except OSError:
@@ -46,10 +99,24 @@ class CMakeBuild(build_ext):
         # and also error out when dependencies are not found
         cmake_args = ['-DCMAKE_INSTALL_PREFIX=' + extdir,
                       '-DLIB_PREFIX=.', '-DREQUIRE_PYTHON=TRUE',
-                      '-DREQUIRE_MPI=TRUE', '-DREQUIRE_UDUNITS=TRUE',
-                      '-DREQUIRE_NETCDF=TRUE', '-DREQUIRE_BOOST=TRUE',
                       '-DTECA_PYTHON_VERSION=%d'%(sys.version_info.major),
+                      '-DREQUIRE_UDUNITS=TRUE', '-DREQUIRE_NETCDF=TRUE',
+                      '-DREQUIRE_BOOST=TRUE', '-DREQUIRE_OPENSSL=FALSE',
+                      '-DREQUIRE_MPI=%s' % ('FALSE' if self.without_mpi else 'TRUE'),
+                      '-DENABLE_CRAY_MPICH=%s' % ('TRUE' if self.with_cray_mpich else 'FALSE'),
+                      '-DREQUIRE_NETCDF_MPI=%s' % ('FALSE' if self.without_netcdf_mpi else 'TRUE'),
+                      '-DREQUIRE_TECA_DATA=%s' % ('TRUE' if self.with_teca_data else 'FALSE'),
                       '-DTECA_VERSION=%s(PyPi)'%(teca_version)]
+
+        # override CMake search path for NetCDF. Currently necessary for MacOS
+        # and Ubuntu due to broken or missing NetCDF parallel 4 capable
+        # packages
+        if self.with_netcdf:
+            cmake_args += ['-DNETCDF_DIR=%s' % ( self.with_netcdf )]
+
+        # point to the TECA_data repo
+        if self.with_teca_data:
+            cmake_args += ['-DTECA_DATA_ROOT=%s' % ( self.with_teca_data )]
 
         # set some command line arguments for cmake
         cfg = 'Debug' if self.debug else 'Release'
@@ -60,7 +127,8 @@ class CMakeBuild(build_ext):
         nj = multiprocessing.cpu_count()
 
         if platform.system() == "Windows":
-            raise RuntimeError('Windows is currrently unsupprted due to a lack of interest/funding')
+            raise RuntimeError('Windows is currrently unsupprted due to a lack '
+                               'of interest/funding')
         else:
             cmake_args += ['-DCMAKE_BUILD_TYPE=' + cfg]
             build_args += ['--', '-j%d'%(nj)]
@@ -114,6 +182,6 @@ setup(name='teca',
     ext_modules=[CMakeExtension('teca')],
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
-    install_requires=["mpi4py", "numpy", "matplotlib",],
+    install_requires=["mpi4py", "numpy", "matplotlib", "torch",],
     )
 
