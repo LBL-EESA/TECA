@@ -121,6 +121,14 @@ DYLD_LIBRRAY_PATH on Mac), and PYTHONPATH need to be set correctly. See section
 
 The TECA Python package
 ~~~~~~~~~~~~~~~~~~~~~~~
+Two installation methods have been documented here, `pip` and `conda`.
+Currently the `conda` method has some limitations. As a result `pip` is the
+recommended method.
+
+.. _pip_install:
+
+pip + venv
+^^^^^^^^^^
 The TECA Python package can be installed from PyPi using pip. This may be
 useful for developing new Python based applications and post processing codes.
 A virtual environment is recommended.
@@ -147,10 +155,29 @@ options on the pip command line.
 
 .. code-block:: bash
 
-   pip install teca --global-option=build_ext --global-option="--with-netcdf=/Users/bloring/netcdf-c-4.7.4-install/" 
+   pip install teca --global-option=build_ext \
+       --global-option="--with-netcdf=/Users/bloring/netcdf-c-4.7.4-install/"
 
 See section :ref:`netcdf-parallel-4` for information on compiling NetCDF with
 MPI enabled.
+
+conda
+^^^^^
+The following is an experimental recipe for installing TECA into a conda environment.
+
+.. code-block:: bash
+
+   conda create --yes -c conda-forge -n tecapy \
+       python=3.9 numpy mpi4py netCDF4 boost openmpi \
+       matplotlib python-dateutil cython swig pyparsing \
+       cycler pytz torch
+   source activate tecapy
+   pip install teca --global-option=build_ext \
+       --global-option="--without-netcdf-mpi"
+
+This method does not support parallel I/O. As a result it is recommended to use
+:ref:`pip_install` installation method.
+
 
 .. _compile:
 
@@ -200,7 +227,7 @@ It is recommended to have a parallel HDF5 based NetCDF install, on some systems
 :ref:`netcdf-parallel-4`.
 
 Apple Mac OS
-++++++++++++
+^^^^^^^^^^^^
 
 .. code-block:: bash
 
@@ -209,7 +236,7 @@ Apple Mac OS
     brew install netcdf mpich swig svn udunits openssl python
 
 Ubuntu 20.04
-++++++++++++
+^^^^^^^^^^^^
 
 .. code-block:: bash
 
@@ -220,7 +247,7 @@ Ubuntu 20.04
         libudunits2-0 libudunits2-dev zlib1g-dev libssl-dev
 
 Fedora 32
-+++++++++
+^^^^^^^^^
 
 .. code-block:: bash
 
@@ -239,7 +266,7 @@ Some of these packages may need an environment module loaded, for instance ``MPI
 .. _python-environment:
 
 Python environment
-++++++++++++++++++
+^^^^^^^^^^^^^^^^^^
 
 TECA's Python dependencies can be easily installed via pip.
 
@@ -276,7 +303,7 @@ Once the venv is installed and activated, see :ref:`compile`.
 .. _netcdf-parallel-4:
 
 NetCDF w/ Parallel 4
-+++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^
 As of 7/31/2020 TECA relies on HDF5 NetCDF with MPI collective I/O. The
 NetCDF project calls this feature set "parallel 4". At this time neither
 Mac OS homebrew nor Ubuntu 20.04 have a functional parallel NetCDF package.
