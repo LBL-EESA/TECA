@@ -50,6 +50,18 @@ batch script rather than in your shell.
 |                                        | expressions                                      |
 +----------------------------------------+--------------------------------------------------+
 
+Applying the Command Line Applications at Scale
+-----------------------------------------------
+In addition to the examples shown below, the TECA_examples_ github repository
+contains a number of examples illustrating the application of various command
+line tools on large data sets at scale on DOE supercomputers. The examples are
+organized by application or task(AR detection, TC detection, etc) then by data
+source (eg. CMIP6, CAM5, etc).  These examples include batch scripts used to
+probe the dataset to determine run size and the batch scripts used to process
+the data as well as any batch scripts used to post-process the results.
+
+.. _TECA_examples: https://github.com/LBL-EESA/TECA_examples
+
 Considerations When Running at NERSC
 -------------------------------------
 Runtime Environment
@@ -2408,4 +2420,3 @@ Examples
 
 This example converts a table stored in TECA's binary format to NetCDF. To covnert
 to CSV instead one would change the extension from *.nc* to *.csv*.
-

@@ -17,19 +17,14 @@ TECA_superbuild_.
 
 Installing TECA on the Cray requires pointing the superbuild to Cray's MPI and
 is sensitive to the modules loaded at compile time. You want a clean
-environment with only GNU compilers and CMake modules loaded. The GNU compilers
-are C++11 and Fortran 2008 standards compliant, while many other compilers are
-not. Additionally the HDF5 HL library needs to be built with thread safety
-enabled, which is rarely the case at the time of writing. Finally, some HPC
-centers have started to use Anaconda Python which can mix in incompatible
-builds of various libraries. The superbuild will take care of compiling and
-installing TECA and its dependencies. As occasionally occurs, something may go
-awry. If that happens it is best to start over from scratch. Starting over from
-scratch entails rm'ing contents of both build and install directories. This is
-because of CMake's caching mechanism which will remember bad values and also
-because the superbuild makes use of what's already been installed as it
-progresses and if you don't clean it out you may end up referring to a broken
-library.
+environment with only GNU compilers and CMake modules loaded. The superbuild
+will take care of compiling and installing TECA and its dependencies. As
+occasionally occurs, something may go awry. If that happens it is best to start
+over from scratch by `rm -rf *` the contents of both build and install
+directories. This is because of CMake's caching mechanism which will remember
+bad values and also because the superbuild makes use of what's already been
+installed as it progresses and if you don't clean it out you may end up
+referring to a broken library.
 
 Overview
 ~~~~~~~~
@@ -124,24 +119,65 @@ DYLD_LIBRRAY_PATH on Mac), and PYTHONPATH need to be set correctly. See section
 
 .. _py-only-install:
 
-A Python only install
-~~~~~~~~~~~~~~~~~~~~~
-It is often convenient to install TECA locally for post processing results from
-runs made on a supercomputer. If one only desires access to the Python package,
-one may use pip. It is convenient, but not required, to do so in a virtual env.
+The TECA Python package
+~~~~~~~~~~~~~~~~~~~~~~~
+Two installation methods have been documented here, `pip` and `conda`.
+Currently the `conda` method has some limitations. As a result `pip` is the
+recommended method.
+
+.. _pip_install:
+
+pip + venv
+^^^^^^^^^^
+The TECA Python package can be installed from PyPi using pip. This may be
+useful for developing new Python based applications and post processing codes.
+A virtual environment is recommended.
 
 Before attempting to install TECA, install dependencies as shown in section
-:ref:`install-deps`
+:ref:`install-deps`. Python package dependencies may then be installed via pip.
 
 .. code-block:: bash
 
-   python3 -m venv py3k
-   source py3k/bin/activate
-   pip3 install numpy matploptlib mpi4py teca
+   python3 -m venv py3k-teca
+   source py3k-teca/bin/activate
+   pip3 install numpy matploptlib mpi4py torch
+   pip3 install teca
 
 The install may take a few minutes as TECA compiles from sources. Errors are
-typically due to missing dependencies, from the corresponding message it should
-be obvious which dependency is missing.
+typically due to missing dependencies, from the corresponding CMake output it
+should be apparent which dependency was not found.
+
+TECA makes heavy use of MPI and NetCDF parallel I/O. On some systems, notably
+Unbuntu and Mac OS MPI enabled NetCDF libraries are non existant or broken. In
+this case one can install NetCDF with MPI features enabled (in NetCDF docs this
+is called "parallel 4") and point the build to the local install by passing
+options on the pip command line.
+
+.. code-block:: bash
+
+   pip install teca --global-option=build_ext \
+       --global-option="--with-netcdf=/Users/bloring/netcdf-c-4.7.4-install/"
+
+See section :ref:`netcdf-parallel-4` for information on compiling NetCDF with
+MPI enabled.
+
+conda
+^^^^^
+The following is an experimental recipe for installing TECA into a conda environment.
+
+.. code-block:: bash
+
+   conda create --yes -c conda-forge -n tecapy \
+       python=3.9 numpy mpi4py netCDF4 boost openmpi \
+       matplotlib python-dateutil cython swig pyparsing \
+       cycler pytz torch
+   source activate tecapy
+   pip install teca --global-option=build_ext \
+       --global-option="--without-netcdf-mpi"
+
+This method does not support parallel I/O. As a result it is recommended to use
+:ref:`pip_install` installation method.
+
 
 .. _compile:
 
@@ -175,7 +211,7 @@ where the install lands, and `-DBUILD_TESTING=ON` to enable regression tests.
 The most common problem is when CMake failed to locate a dependency. Usually
 the error message has information about correcting the situation. Usually the
 remedy is to explicitly pass the path where the dependency is installed
-directly to CMake on the command line. While not recommened, as a last resort
+directly to CMake on the command line. While not recommended, as a last resort
 one may disable a problematic dependency using `-DREQUIRE_<X>=OFF` where X is
 the dependency.
 
@@ -184,14 +220,14 @@ the dependency.
 Installing dependencies
 ~~~~~~~~~~~~~~~~~~~~~~~
 Most of the dependencies can be installed by the OS specific package manager.
-For Python modules pip is used as described in :ref:`python-environment`.
+For Python package dependencies pip is used as described in :ref:`python-environment`.
 
 It is recommended to have a parallel HDF5 based NetCDF install, on some systems
 (Ubuntu, Mac) this requires installing NetCDF from source as outlined in
 :ref:`netcdf-parallel-4`.
 
 Apple Mac OS
-++++++++++++
+^^^^^^^^^^^^
 
 .. code-block:: bash
 
@@ -200,7 +236,7 @@ Apple Mac OS
     brew install netcdf mpich swig svn udunits openssl python
 
 Ubuntu 20.04
-++++++++++++
+^^^^^^^^^^^^
 
 .. code-block:: bash
 
@@ -211,7 +247,7 @@ Ubuntu 20.04
         libudunits2-0 libudunits2-dev zlib1g-dev libssl-dev
 
 Fedora 32
-+++++++++
+^^^^^^^^^
 
 .. code-block:: bash
 
@@ -230,7 +266,7 @@ Some of these packages may need an environment module loaded, for instance ``MPI
 .. _python-environment:
 
 Python environment
-++++++++++++++++++
+^^^^^^^^^^^^^^^^^^
 
 TECA's Python dependencies can be easily installed via pip.
 
@@ -267,7 +303,7 @@ Once the venv is installed and activated, see :ref:`compile`.
 .. _netcdf-parallel-4:
 
 NetCDF w/ Parallel 4
-+++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^
 As of 7/31/2020 TECA relies on HDF5 NetCDF with MPI collective I/O. The
 NetCDF project calls this feature set "parallel 4". At this time neither
 Mac OS homebrew nor Ubuntu 20.04 have a functional parallel NetCDF package.
