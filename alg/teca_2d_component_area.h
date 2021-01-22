@@ -44,6 +44,22 @@ stored in the output dataset metadata in the following keys:
     background_id - the label used for cells outside of the segmentation,
                     i.e. the background. This can be used to skip processing
                     of the background when desirable.
+
+@rst
+.. table:: Algorithm Properties
+
+    +----------------------------+------------------------------------------------------------+
+    |         Property           |                      Description                           |
+    +============================+============================================================+
+    | component_variable         | the component variable name containing the region labels.  |
+    +----------------------------+------------------------------------------------------------+
+    | contiguous_component_ids   | the label used for cells inside the segmentation.          |
+    +----------------------------+------------------------------------------------------------+
+    | background_id              | | the label used for cells outside of the segmentation,    |
+    |                            | | i.e. the background. This can be used to skip processing |
+    |                            | | of the background when desirable.                        |
+    +----------------------------+------------------------------------------------------------+
+@endrst
 */
 class teca_2d_component_area : public teca_algorithm
 {
@@ -57,38 +73,24 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    /** @anchor component_variable
-     * @name component_variable
-     * Set the component variable name containing the region labels.
-     */
-    ///@{
+    // The component variable name containing the region labels.
     TECA_ALGORITHM_PROPERTY(std::string, component_variable)
-    ///@}
 
-    /** @anchor contiguous_component_ids
-     * @name contiguous_component_ids
-     * Set the label used for cells inside the segmentation.
-     * @attention set this only if you know for certain that label ids are contiguous and
-     *          start at 0. this enables use of a faster implementation.
+    /** @fn set_contiguous_component_ids
+     *  @attention set this only if you know for certain that label ids
+     *             are contiguous and start at 0. this enables use of a
+     *             faster implementation.
      */
-    ///@{
     TECA_ALGORITHM_PROPERTY(int, contiguous_component_ids)
-    ///@}
-
-    /** @anchor background_id
-     * @name background_id
-     * Set the label used for cells outside of the segmentation,
-     * i.e. the background. This can be used to skip processing
-     * of the background when desirable. 
-     * @note By default this is set to -1 to indicate that the value should
-     *       be obtained from the metadata key `background_id`.
-     *       TECA's connected component labeler uses the id 0 for the
-     *       background and passes this in a metadata key and as a result
-     *       no action is required.
+    
+    /** @fn set_background_id
+     *  @note By default this is set to -1 to indicate that the value should
+     *        be obtained from the metadata key `background_id`.
+     *        TECA's connected component labeler uses the id 0 for the
+     *        background and passes this in a metadata key and as a result
+     *        no action is required.
      */
-    ///@{
     TECA_ALGORITHM_PROPERTY(long, background_id)
-    ///@}
 
 protected:
     teca_2d_component_area();

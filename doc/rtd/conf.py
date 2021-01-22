@@ -26,24 +26,78 @@ author = "Burlen Loring, Travis O'Brien & Abdelrahman Elbashandy"
 
 # Run Doxygen to generate Doxygen's XML output for autodoc by Breathe
 import subprocess, os
+from exhale import utils
 
-read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
+#read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
 
-if read_the_docs_build:
-    subprocess.call('cd ../doxygen; doxygen -d Preprocessor', shell=True)
+#if read_the_docs_build:
+#    subprocess.call('cd ../doxygen; doxygen -d Preprocessor', shell=True)
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'breathe'
+    'breathe',
+    'exhale'
 ]
 
 # Setup the breathe extension
 breathe_projects = {
-    "TECA": "../doxygen/xml"
+    #"TECA": "../doxygen/xml"
+    "TECA": "xml"
 }
 breathe_default_project = "TECA"
+
+#### AR: START ######
+
+def specificationsForKind(kind):
+    '''
+    For a given input ``kind``, return the list of reStructuredText specifications
+    for the associated Breathe directive.
+    '''
+    # Change the defaults for .. doxygenclass:: and .. doxygenstruct::
+    if kind == "class" or kind == "struct":
+        return [
+          ":members:",
+          ":undoc-members:"
+        ]
+    # Change the defaults for .. doxygenenum::
+    elif kind == "enum":
+        return [":no-link:"]
+    elif kind == "enum":
+        return [":no-link:"]
+    # An empty list signals to Exhale to use the defaults
+    else:
+        return []
+
+# Setup the exhale extension
+exhale_args = {
+    # These arguments are required
+    "containmentFolder":     "./api",
+    "rootFileName":          "framework_root.rst",
+    "rootFileTitle":         "Framework API",
+    "doxygenStripFromPath":  "..",
+    # Suggested optional arguments
+    "createTreeView":        True,
+    "verboseBuild":          True,
+    # TIP: if using the sphinx-bootstrap-theme, you need
+    # "treeViewIsBootstrap": True,
+    "exhaleExecutesDoxygen": True,
+    #"exhaleDoxygenStdin":    "INPUT = ../include"
+    # AR: set values
+    "exhaleUseDoxyfile":     True,
+    "unabridgedOrphanKinds": {"dir", "file", "typedef"},
+    "customSpecificationsMapping": utils.makeCustomSpecificationsMapping(
+        specificationsForKind
+    ),
+}
+
+# Tell sphinx what the primary language being documented is.
+primary_domain = 'cpp'
+
+# Tell sphinx what the pygments highlight language should be.
+highlight_language = 'text'
+#### AR: END ######
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

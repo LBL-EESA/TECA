@@ -53,7 +53,7 @@ const char *get_class_name() const override         \
 // algorithm's modified state for the user.
 #define TECA_ALGORITHM_PROPERTY(T, NAME)              \
                                                       \
-/** set the @ref NAME algorithm property */           \
+/** Set the @ref NAME algorithm property */           \
 void set_##NAME(const T &v)                           \
 {                                                     \
     if (this->NAME != v)                              \
@@ -63,7 +63,7 @@ void set_##NAME(const T &v)                           \
     }                                                 \
 }                                                     \
                                                       \
-/** get the @ref NAME algorithm property */           \
+/** Get the @ref NAME algorithm property */           \
 const T &get_##NAME() const                           \
 {                                                     \
     return this->NAME;                                \

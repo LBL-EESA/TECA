@@ -10,13 +10,13 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_integrated_vapor_transport)
 
-/// an algorithm that computes integrated vapor transport \f$ (IVT) \f$
+/// an algorithm that computes integrated vapor transport \f$ (\vec{\text{IVT}}) \f$
 /**
-Compute integrated vaport transport \f$ (IVT) \f$ from wind vector and
+Compute integrated vaport transport \f$ (\vec{\text{IVT}}) \f$ from wind vector and
 specific humidity.
 
 \f{eqnarray*}{
-IVT = - \frac{1}{g} \int_{p_0}^{p_1} \vec{v}q \,dp
+\vec{\text{IVT}} = - \frac{1}{g} \int_{p_0}^{p_1} \vec{v}q \,dp
 \f}
 
 where q is the specific humidity, and \f$ \vec{v} = (u, v) \f$ are the
