@@ -7,10 +7,21 @@
 ## The Toolkit for Extreme Climate Analysis
 TECA is a collection of climate analysis algorithms geared toward extreme event detection and tracking implemented in a scalable parallel framework. The code has been successfully deployed and run at massive scales on current DOE supercomputers. TECA's core is written in modern C++ and exploits MPI + X parallelism where X is one of threads, OpenMP, or GPUs. The framework supports a number of parallel design patterns including distributed data parallelism and map-reduce. While modern C++ delivers the highest performance, Python bindings make the code approachable and easy to use.
 
-## Documentation
-For more information please see the [TECA User's Guide](https://teca.readthedocs.io/en/latest/).
+### Documentation
+The [TECA User's Guide](https://teca.readthedocs.io/en/latest/) is the authorotative source for documentation on topics such as [installing TECA](https://teca.readthedocs.io/en/latest/installation.html), running TECA's [command line applications](https://teca.readthedocs.io/en/latest/applications.html), and [Python development](https://teca.readthedocs.io/en/latest/python.html).
 
-## CI and Testing
+### Tutorials
+The [TECA tutorials](https://sourceforge.net/p/teca/TECA_tutorials) subversion repository contains slides from previous tutorials.
+
+### Examples
+The [TECA examples](https://github.com/LBL-EESA/TECA_examples) repository contains batch scripts and codes illustrating the use of TECA at scale.
+
+### Python
+The [TECA Python package]() is available on PyPi or by installing from sources. For more information see [TECA User's Guide](https://teca.readthedocs.io/en/latest/).
+
+See also [installing TECA](https://teca.readthedocs.io/en/latest/installation.html) and [Python development](https://teca.readthedocs.io/en/latest/python.html).
+
+### CI and Testing
 For the latest regression suite results see the [TECA CDash project site](https://cdash.nersc.gov/index.php?project=TECA).
 
 ## Copyright Notice
