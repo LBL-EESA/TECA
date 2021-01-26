@@ -181,71 +181,6 @@ to be set to pick up the install.  Specifically, PATH, LD_LIBRARY_PATH (or
 DYLD_LIBRRAY_PATH on Mac), and PYTHONPATH need to be set correctly. See section
 :ref:`post-install`.
 
-.. _py-only-install:
-
-The TECA Python package
-~~~~~~~~~~~~~~~~~~~~~~~
-TECA's C++ codes are wrapped in Python, and a number of pure Python
-implementations exist in the code base as well. This makes it possible to
-develop new TECA applications in Python using the teca Python package.
-Two installation methods have been
-documented here, `pip` and `conda`.  Currently the `conda` method has some
-limitations. As a result `pip` is the recommended method.
-
-.. _pip_install:
-
-Installing with pip
-^^^^^^^^^^^^^^^^^^^
-The TECA Python package can be installed from PyPi using pip. This may be
-useful for developing new Python based applications and post processing codes.
-A virtual environment is recommended.
-
-Before attempting to install TECA, install dependencies as shown in section
-:ref:`install-deps`. Python package dependencies may then be installed via pip.
-
-.. code-block:: bash
-
-   python3 -m venv py3k-teca
-   source py3k-teca/bin/activate
-   pip3 install numpy matploptlib mpi4py torch
-   pip3 install teca
-
-The install may take a few minutes as TECA compiles from sources. Errors are
-typically due to missing dependencies, from the corresponding CMake output it
-should be apparent which dependency was not found.
-
-TECA makes heavy use of MPI and NetCDF parallel I/O. On some systems, notably
-Unbuntu and Mac OS MPI enabled NetCDF libraries are non existant or broken. In
-this case one can install NetCDF with MPI features enabled (in NetCDF docs this
-is called "parallel 4") and point the build to the local install by passing
-options on the pip command line.
-
-.. code-block:: bash
-
-   pip install teca --global-option=build_ext \
-       --global-option="--with-netcdf=/Users/bloring/netcdf-c-4.7.4-install/"
-
-See section :ref:`netcdf-parallel-4` for information on compiling NetCDF with
-MPI enabled.
-
-Installing with conda
-^^^^^^^^^^^^^^^^^^^^^
-The following is an experimental recipe for installing TECA into a conda environment.
-
-.. code-block:: bash
-
-   conda create --yes -c conda-forge -n tecapy \
-       python=3.9 numpy mpi4py netCDF4 boost openmpi \
-       matplotlib python-dateutil cython swig pyparsing \
-       cycler pytz torch
-   source activate tecapy
-   pip install teca --global-option=build_ext \
-       --global-option="--without-netcdf-mpi"
-
-This method does not support parallel I/O. As a result it is recommended to use
-:ref:`pip_install` installation method.
-
-
 .. _compile:
 
 Compiling TECA from sources
@@ -410,7 +345,7 @@ On Apple Mac OS
 .. _post-install:
 
 Post Install
-------------
+~~~~~~~~~~~~
 When installing after compiling from sources the user's environment should be
 updated to use the install. One may use the following shell script as a
 template for this purpose by replacing @CMAKE_INSTALL_PREFIX@ and
@@ -434,3 +369,76 @@ With this shell script in hand one configures the environment for use by sourcin
 When developing TECA it is common to skip the install step and run out of the
 build directory. When doing so one must also set LD_LIBRARY_PATH,
 DYLD_LIBRARY_PATH, PYTHONPATH, and PATH to point to the build directory.
+
+.. _py-only-install:
+
+Python only
+-----------
+TECA's C++ codes are wrapped in Python, and a number of pure Python
+implementations exist in the code base as well. This makes it possible to
+develop new TECA applications in Python using the teca Python package.  Two
+installation methods have been documented here, `pip` and `conda`.  Currently
+the `conda` method has some limitations. As a result `pip` is the recommended
+method.
+
+.. _pip_install:
+
+with pip
+~~~~~~~~
+The TECA Python package can be installed from PyPi using pip. This may be
+useful for developing new Python based applications and post processing codes.
+A virtual environment is recommended.
+
+Before attempting to install TECA, install system library dependencies as shown
+in section :ref:`install-deps`. Pure Python package dependencies may then be
+installed via pip.
+
+.. code-block:: bash
+
+   python3 -m venv py3k-teca
+   source py3k-teca/bin/activate
+   pip3 install numpy matploptlib mpi4py torch
+   pip3 install teca
+
+.. note::
+
+    When installing PyTorch, especially when using GPUs, follow the
+    `PyTorch_install` instructions found on the PyTorch site.
+
+.. _PyTorch_install: https://pytorch.org/get-started/locally/#start-locally
+
+The `pip install teca` command may take a few minutes as TECA compiles from
+sources. Errors are typically due to missing dependencies, from the
+corresponding CMake output it should be apparent which dependency was not
+found.
+
+TECA makes heavy use of MPI and NetCDF parallel I/O. On some systems, notably
+Unbuntu and Mac OS the MPI enabled NetCDF libraries available from package
+managers are broken or missing. In this case one can install NetCDF with MPI
+features enabled (in NetCDF docs this is called "parallel 4") and point the
+build to the local install by passing options on the pip command line.
+
+.. code-block:: bash
+
+   pip install teca --global-option=build_ext \
+       --global-option="--with-netcdf=/Users/bloring/netcdf-c-4.7.4-install/"
+
+See section :ref:`netcdf-parallel-4` for information on compiling NetCDF with
+MPI enabled.
+
+with conda
+~~~~~~~~~~
+The following is an experimental recipe for installing TECA into a conda environment.
+
+.. code-block:: bash
+
+   conda create --yes -c conda-forge -n tecapy \
+       python=3.9 numpy mpi4py netCDF4 boost openmpi \
+       matplotlib python-dateutil cython swig pyparsing \
+       cycler pytz torch
+   source activate tecapy
+   pip install teca --global-option=build_ext \
+       --global-option="--without-netcdf-mpi"
+
+This method does not support parallel I/O. As a result it is recommended to use
+:ref:`pip_install` installation method.
