@@ -17,9 +17,7 @@ The [TECA tutorials](https://sourceforge.net/p/teca/TECA_tutorials) subversion r
 The [TECA examples](https://github.com/LBL-EESA/TECA_examples) repository contains batch scripts and codes illustrating the use of TECA at scale.
 
 ### Python
-The [TECA Python package]() is available on PyPi or by installing from sources. For more information see [TECA User's Guide](https://teca.readthedocs.io/en/latest/).
-
-See also [installing TECA](https://teca.readthedocs.io/en/latest/installation.html) and [Python development](https://teca.readthedocs.io/en/latest/python.html).
+The [TECA Python package]() is available on PyPi or by installing from sources. For more information see the [TECA User's Guide](https://teca.readthedocs.io/en/latest/) sections on [installing TECA](https://teca.readthedocs.io/en/latest/installation.html) and [Python development](https://teca.readthedocs.io/en/latest/python.html).
 
 ### CI and Testing
 For the latest regression suite results see the [TECA CDash project site](https://cdash.nersc.gov/index.php?project=TECA).
