@@ -1,8 +1,7 @@
 import sys
-import teca_py
 import numpy as np
 
-class teca_tc_activity(teca_py.teca_python_algorithm):
+class teca_tc_activity(teca_python_algorithm):
     """
     Computes summary statistics, histograms on sorted, classified,
     TC trajectory output.
@@ -51,98 +50,92 @@ class teca_tc_activity(teca_py.teca_python_algorithm):
         """
         self.color_map = color_map
 
-    def get_execute_callback(self):
+    def execute(self, port, data_in, req):
         """
-        return a teca_algorithm::execute function. a closure
-        is used to gain self.
+        expects the output of the teca_tc_classify algorithm
+        generates a handful of histograms, summary statistics,
+        and plots. returns summary table with counts of annual
+        storms and their categories.
         """
-        def execute(port, data_in, req):
-            """
-            expects the output of the teca_tc_classify algorithm
-            generates a handful of histograms, summary statistics,
-            and plots. returns summary table with counts of annual
-            storms and their categories.
-            """
-            global plt
-            global plt_mp
-            global plt_tick
+        global plt
+        global plt_mp
+        global plt_tick
 
-            import matplotlib.pyplot as plt
-            import matplotlib.patches as plt_mp
-            import matplotlib.ticker as plt_tick
+        import matplotlib.pyplot as plt
+        import matplotlib.patches as plt_mp
+        import matplotlib.ticker as plt_tick
 
-            # store matplotlib state we modify
-            legend_frame_on_orig = plt.rcParams['legend.frameon']
+        # store matplotlib state we modify
+        legend_frame_on_orig = plt.rcParams['legend.frameon']
 
-            # tweak matplotlib slightly
-            plt.rcParams['figure.max_open_warning'] = 0
-            plt.rcParams['legend.frameon'] = 1
+        # tweak matplotlib slightly
+        plt.rcParams['figure.max_open_warning'] = 0
+        plt.rcParams['legend.frameon'] = 1
 
-            # get the input table
-            in_table = teca_py.as_teca_table(data_in[0])
-            if in_table is None:
-                # TODO if this is part of a parallel pipeline then
-                # only rank 0 should report an error.
-                sys.stderr.write('ERROR: empty input, or not a table\n')
-                return teca_table.New()
+        # get the input table
+        in_table = as_teca_table(data_in[0])
+        if in_table is None:
+            # TODO if this is part of a parallel pipeline then
+            # only rank 0 should report an error.
+            sys.stderr.write('ERROR: empty input, or not a table\n')
+            return teca_table.New()
 
-            time_units = in_table.get_time_units()
+        time_units = in_table.get_time_units()
 
-            # get the columns of raw data
-            year = in_table.get_column('year').as_array()
-            region_id = in_table.get_column('region_id').as_array()
-            region_name = in_table.get_column('region_name')
-            region_long_name = in_table.get_column('region_long_name')
-            start_y = in_table.get_column('start_y').as_array()
+        # get the columns of raw data
+        year = in_table.get_column('year').as_array()
+        region_id = in_table.get_column('region_id').as_array()
+        region_name = in_table.get_column('region_name')
+        region_long_name = in_table.get_column('region_long_name')
+        start_y = in_table.get_column('start_y').as_array()
 
-            ACE = in_table.get_column('ACE').as_array()
-            PDI = in_table.get_column('PDI').as_array()
+        ACE = in_table.get_column('ACE').as_array()
+        PDI = in_table.get_column('PDI').as_array()
 
-            # organize the data by year month etc...
-            regional_ACE = []
-            regional_PDI = []
+        # organize the data by year month etc...
+        regional_ACE = []
+        regional_PDI = []
 
-            # get unique for use as indices etc
-            uyear = sorted(set(year))
-            n_year = len(uyear)
-            ureg = sorted(set(zip(region_id, region_name, region_long_name)))
+        # get unique for use as indices etc
+        uyear = sorted(set(year))
+        n_year = len(uyear)
+        ureg = sorted(set(zip(region_id, region_name, region_long_name)))
 
-            self.accum_by_year_and_region(uyear, \
-                ureg, year, region_id, start_y, ACE, regional_ACE)
+        self.accum_by_year_and_region(uyear, \
+            ureg, year, region_id, start_y, ACE, regional_ACE)
 
-            self.accum_by_year_and_region(uyear, \
-                ureg, year, region_id, start_y, PDI, regional_PDI)
+        self.accum_by_year_and_region(uyear, \
+            ureg, year, region_id, start_y, PDI, regional_PDI)
 
-            # now plot the organized data in various ways
-            if self.color_map is None:
-                self.color_map = plt.cm.jet
+        # now plot the organized data in various ways
+        if self.color_map is None:
+            self.color_map = plt.cm.jet
 
-            self.plot_individual(uyear, \
-                 ureg, regional_ACE,'ACE', '$10^4 kn^2$')
+        self.plot_individual(uyear, \
+             ureg, regional_ACE,'ACE', '$10^4 kn^2$')
 
-            self.plot_individual(uyear, \
-                ureg, regional_PDI, 'PDI', '$m^3 s^{-2}$')
+        self.plot_individual(uyear, \
+            ureg, regional_PDI, 'PDI', '$m^3 s^{-2}$')
 
-            self.plot_cumulative(uyear, \
-                ureg, regional_ACE, 'ACE', '$10^4 kn^2$')
+        self.plot_cumulative(uyear, \
+            ureg, regional_ACE, 'ACE', '$10^4 kn^2$')
 
-            self.plot_cumulative(uyear, \
-                ureg, regional_PDI, 'PDI', '$m^3 s^{-2}$')
+        self.plot_cumulative(uyear, \
+            ureg, regional_PDI, 'PDI', '$m^3 s^{-2}$')
 
-            if (self.interactive):
-                plt.show()
+        if (self.interactive):
+            plt.show()
 
-            # restore matplot lib global state
-            plt.rcParams['legend.frameon'] = legend_frame_on_orig
+        # restore matplot lib global state
+        plt.rcParams['legend.frameon'] = legend_frame_on_orig
 
-            # send data downstream
-            return in_table
-        return execute
+        # send data downstream
+        return in_table
 
     @staticmethod
     def two_digit_year_fmt(x, pos):
         q = int(x)
-        q = q - q/100*100
+        q = q - q // 100 * 100
         return '%02d'%q
 
     @staticmethod
@@ -186,8 +179,8 @@ class teca_tc_activity(teca_py.teca_python_algorithm):
         rnms += ('Southern','Northern','Global')
 
         n_plots = n_reg + 1
-        n_left = n_plots%n_cols
-        n_rows = n_plots/n_cols + (1 if n_left else 0)
+        n_left = n_plots % n_cols
+        n_rows = n_plots // n_cols + (1 if n_left else 0)
         wid = 2.5*n_cols
         ht = 2.0*n_rows
         reg_t_fig.set_size_inches(wid, ht)
@@ -214,7 +207,8 @@ class teca_tc_activity(teca_py.teca_python_algorithm):
 
             plt.plot(uyear, var[q::n_reg],'-',color=fill_col[q],linewidth=2)
             ax.set_xticks(uyear[:] if n_year < 10 else uyear[::2])
-            ax.set_xlim([uyear[0], uyear[-1]])
+            if len(uyear) > 1:
+                ax.set_xlim([uyear[0], uyear[-1]])
 
             if self.rel_axes and q < n_reg - 1:
                 ax.set_ylim([0, 1.05*(max_y_reg if q < n_reg - 3 else max_y_hem)])
@@ -263,7 +257,8 @@ class teca_tc_activity(teca_py.teca_python_algorithm):
             q += 1
 
         ax.set_xticks(uyear[:] if n_year < 15 else uyear[::2])
-        ax.set_xlim([uyear[0], uyear[-1]])
+        if len(uyear) > 1:
+            ax.set_xlim([uyear[0], uyear[-1]])
         plt.grid(True, zorder=0)
 
         ylim = ax.get_ylim()
@@ -297,7 +292,8 @@ class teca_tc_activity(teca_py.teca_python_algorithm):
             q += 1
 
         ax.set_xticks(uyear[:] if n_year < 15 else uyear[::2])
-        ax.set_xlim([uyear[0], uyear[-1]])
+        if len(uyear) > 1:
+            ax.set_xlim([uyear[0], uyear[-1]])
         plt.grid(True, zorder=0)
 
         ylim = ax.get_ylim()
@@ -315,23 +311,3 @@ class teca_tc_activity(teca_py.teca_python_algorithm):
 
         return
 
-#    def write_table(state, uyear, ureg, var, var_name, units, table_out):
-#
-#        n_reg = len(ureg) + 3 # add 2 for n & s hemi, 1 for global
-#        n_year = len(uyear)
-#
-#        rnms = zip(*ureg)[2]
-#        rnms += ('Southern','Northern','Global')
-#
-#
-#        tab = teca_table.New()
-#        tab.declare_columns(['Year'] + rnms,
-#            ['l'] + ['d']*n_reg)
-#
-#        for val in var:
-#            if 
-#        q = 0
-#        while q < n_reg:
-#            tmp = var[q::n_reg]
-#
-#            plt.plot(uyear, ,'-',color=fill_col[q],linewidth=2)

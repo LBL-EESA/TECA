@@ -1,5 +1,5 @@
 set(CTEST_SITE "Travis_CI")
-set(CTEST_BUILD_NAME "$ENV{DOCKER_IMAGE}_$ENV{IMAGE_VERSION}_$ENV{TRAVIS_BRANCH}_$ENV{SHA}")
+set(CTEST_BUILD_NAME "$ENV{DOCKER_IMAGE}_$ENV{IMAGE_VERSION}_$ENV{NETCDF_BUILD_TYPE}_$ENV{TRAVIS_BRANCH}_$ENV{SHA}")
 set(CTEST_DASHBOARD_ROOT "$ENV{DASHROOT}")
 set(CTEST_BUILD_CONFIGURATION $ENV{BUILD_TYPE})
 set(CTEST_TEST_ARGS PARALLEL_LEVEL 1)
@@ -20,16 +20,31 @@ BUILD_TESTING=ON
 TECA_ENABLE_PROFILER=ON
 TECA_PYTHON_VERSION=$ENV{TECA_PYTHON_VERSION}
 TECA_DATA_ROOT=$ENV{DASHROOT}/TECA_data
-TECA_TEST_CORES=2")
+TECA_TEST_CORES=2
+REQUIRE_OPENSSL=TRUE
+REQUIRE_BOOST=TRUE
+REQUIRE_NETCDF=TRUE
+REQUIRE_NETCDF_MPI=$ENV{REQUIRE_NETCDF_MPI}
+REQUIRE_UDUNITS=TRUE
+REQUIRE_MPI=TRUE
+REQUIRE_PYTHON=TRUE
+REQUIRE_TECA_DATA=TRUE")
 file(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeCache.txt" ${INITIAL_CACHE})
 ctest_start("${DASHBOARD_TRACK}")
-ctest_configure()
 ctest_read_custom_files("${CTEST_BINARY_DIRECTORY}")
-ctest_build()
-ctest_submit(PARTS Update Configure Build Notes RETRY_DELAY 15 RETRY_COUNT 10)
-ctest_test(RETURN_VALUE terr)
-ctest_submit(PARTS Test RETRY_DELAY 15 RETRY_COUNT 10)
+ctest_configure(RETURN_VALUE terr)
+ctest_submit(PARTS Update Configure RETRY_DELAY 15 RETRY_COUNT 0)
 if (NOT terr EQUAL 0)
-    # if any tests failed abort with a fatal error
-    message(FATAL_ERROR "ERROR: At least one test failed!")
+    message(FATAL_ERROR "ERROR: ctest configure failed!")
 endif()
+ctest_build(RETURN_VALUE terr)
+ctest_submit(PARTS Build RETRY_DELAY 15 RETRY_COUNT 0)
+if (NOT terr EQUAL 0)
+    message(FATAL_ERROR "ERROR: ctest build failed!")
+endif()
+ctest_test(RETURN_VALUE terr)
+ctest_submit(PARTS Test RETRY_DELAY 15 RETRY_COUNT 0)
+if (NOT terr EQUAL 0)
+    message(FATAL_ERROR "ERROR: ctest test failed!")
+endif()
+message(STATUS "testing complete")

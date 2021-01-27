@@ -21,14 +21,15 @@ project = 'TECA'
 copyright = "2019, Burlen Loring, Travis O'Brien & Abdelrahman Elbashandy"
 author = "Burlen Loring, Travis O'Brien & Abdelrahman Elbashandy"
 
-
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = [
-]
+
+# pip install sphinxcontrib-bibtex
+extensions = ['sphinxcontrib.bibtex']
+bibtex_bibfiles = ['bibliography.bib']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -53,6 +54,12 @@ html_theme = 'sphinx_rtd_theme'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 #html_static_path = ['_static']
-html_static_path = []
+html_static_path = ['_static']
+
+html_context = {
+    'css_files': [
+        '_static/theme_overrides.css',  # overrides for wide tables in RTD theme
+        ],
+    }
 
 numfig = True

@@ -5,11 +5,13 @@
 #include "teca_variant_array.h"
 #include "teca_metadata.h"
 #include "teca_cartesian_mesh.h"
+#include "teca_array_attributes.h"
 
 #include <algorithm>
 #include <iostream>
 #include <deque>
 #include <cmath>
+#include <sstream>
 
 using std::cerr;
 using std::endl;
@@ -164,7 +166,7 @@ void periodic_labeler(unsigned long i0, unsigned long j0, unsigned long k0,
 /**
 given a binary segmentation(segments) and buffer(components), both
 with dimensions described by the given exent(ext), compute
-the componenting.
+the labeling.
 */
 template <typename segment_t, typename component_t>
 void label(unsigned long *ext, int periodic_in_x, int periodic_in_y,
@@ -273,8 +275,27 @@ teca_metadata teca_connected_components::get_output_metadata(
             component_var = this->segmentation_variable + "_components";
     }
 
+    // tell the downstream about the variable we produce
     teca_metadata md = input_md[0];
     md.append("variables", component_var);
+
+    // add metadata for CF I/O
+    teca_metadata atts;
+    md.get("attributes", atts);
+
+    std::ostringstream oss;
+    oss << "the connected components of " << this->segmentation_variable;
+
+    teca_array_attributes cc_atts(
+        teca_variant_array_code<short>::get(),
+        teca_array_attributes::point_centering,
+        0, "unitless", component_var,
+        oss.str().c_str());
+
+    atts.set(component_var, (teca_metadata)cc_atts);
+
+    md.set("attributes", atts);
+
     return md;
 }
 
@@ -417,6 +438,7 @@ const_p_teca_dataset teca_connected_components::execute(
     teca_metadata &omd = out_mesh->get_metadata();
     omd.set("component_ids", component_id);
     omd.set("number_of_components", num_components);
+    omd.set("background_id", short(0));
 
     return out_mesh;
 }

@@ -15,11 +15,14 @@ namespace teca_coordinate_util
 {
 
 // **************************************************************************
-int time_step_of(p_teca_double_array time, bool lower,
+int time_step_of(p_teca_variant_array time, bool lower, bool clamp,
     const std::string &calendar, const std::string &units,
     const std::string &date, unsigned long &step)
 {
 #if defined(TECA_HAS_UDUNITS)
+    step = 0;
+
+    // extraxt the time values from the input string
     double s = 0;
     int Y = 0, M = 0, D = 0, h = 0, m = 0;
     int n_conv = sscanf(date.c_str(),
@@ -31,6 +34,7 @@ int time_step_of(p_teca_double_array time, bool lower,
         return -1;
     }
 
+    // apply calendaring to get a time offset
     double t = 0.0;
     if (calcalcs::coordinate(Y, M, D, h, m, s,
         units.c_str(), calendar.c_str(), &t))
@@ -38,22 +42,40 @@ int time_step_of(p_teca_double_array time, bool lower,
         TECA_ERROR("failed to convert date \"" << date
             << "\" to relative time in the \"" << calendar
             << "\" calendar in units of \"" << units << "\".")
+
         return -1;
     }
 
-    step = 0;
+    // locate the nearest time value in the time axis
     unsigned long last = time->size() - 1;
-    if (teca_coordinate_util::index_of(time->get(), 0, last, t, lower, step))
-    {
-        TECA_ERROR("failed to locate the requested time " << t << " in ["
-            << time->get(0) << ", " << time->get(last) << "]")
-        return -1;
-    }
+    TEMPLATE_DISPATCH_FP_SI(teca_variant_array_impl,
+        time.get(),
+        NT *p_time = std::dynamic_pointer_cast<TT>(time)->get();
+        if (clamp && (t <= p_time[0]))
+        {
+            step = 0;
+        }
+        else if (clamp && (t >= p_time[last]))
+        {
+            step = last;
+        }
+        else if (teca_coordinate_util::index_of(p_time, 0, last, NT(t), lower, step))
+        {
+            TECA_ERROR("failed to locate the requested time " << t << " in ["
+                << p_time[0] << ", " << p_time[last] << "]")
+            return -1;
+        }
+        return 0;
+        )
 
-    return 0;
+    TECA_ERROR("time_step_of failed because the internal storage "
+        "type used for the time axis (" << time->get_class_name()
+        << ") is currently not supported")
+    return -1;
 #else
     (void)time;
     (void)lower;
+    (void)clamp;
     (void)calendar;
     (void)units;
     (void)date;
@@ -109,6 +131,31 @@ int time_to_string(double val, const std::string &calendar,
     return -1;
 #endif
 }
+
+// **************************************************************************
+int bounds_to_extent(const double *bounds, const teca_metadata &md,
+    unsigned long *extent)
+{
+    teca_metadata coords;
+    if (md.get("coordinates", coords))
+    {
+        TECA_ERROR("missing cooridnates")
+        return -1;
+    }
+
+    const_p_teca_variant_array x = coords.get("x");
+    const_p_teca_variant_array y = coords.get("y");
+    const_p_teca_variant_array z = coords.get("z");
+
+    if (!x || !y || !z)
+    {
+        TECA_ERROR("empty coordinate axes")
+        return -1;
+    }
+
+    return bounds_to_extent(bounds, x, y, z, extent);
+}
+
 
 // **************************************************************************
 int bounds_to_extent(const double *bounds,
@@ -194,4 +241,90 @@ int bounds_to_extent(const double *bounds,
     TECA_ERROR("invalid coordinate array type")
     return -1;
 }
+
+// **************************************************************************
+int validate_centering(int centering)
+{
+    int ret = -1;
+    switch (centering)
+    {
+        case teca_array_attributes::invalid_value:
+            TECA_ERROR("detected invalid_value in centering")
+            break;
+        case teca_array_attributes::cell_centering:
+            ret = 0;
+            break;
+        case teca_array_attributes::x_face_centering:
+            ret = 0;
+            break;
+        case teca_array_attributes::y_face_centering:
+            ret = 0;
+            break;
+        case teca_array_attributes::z_face_centering:
+            ret = 0;
+            break;
+        case teca_array_attributes::x_edge_centering:
+            ret = 0;
+            break;
+        case teca_array_attributes::y_edge_centering:
+            ret = 0;
+            break;
+        case teca_array_attributes::z_edge_centering:
+            ret = 0;
+            break;
+        case teca_array_attributes::point_centering:
+            ret = 0;
+            break;
+        case teca_array_attributes::no_centering:
+            ret = 0;
+            break;
+        default:
+            TECA_ERROR("this centering is undefined " << centering)
+    }
+    return ret;
+}
+
+// **************************************************************************
+int get_cartesian_mesh_extent(const teca_metadata &md,
+    unsigned long *whole_extent, double *bounds)
+{
+    // get the whole extent
+    if (md.get("whole_extent", whole_extent, 6))
+    {
+        TECA_ERROR("metadata is missing \"whole_extent\"")
+        return -1;
+    }
+
+    if (md.get("bounds", bounds, 6))
+    {
+        // get coordinates
+        teca_metadata coords;
+        if (md.get("coordinates", coords))
+        {
+            TECA_ERROR("metadata is missing \"coordinates\"")
+            return -1;
+        }
+
+        // get the coordinate arrays
+        p_teca_variant_array x, y, z;
+        if (!(x = coords.get("x")) || !(y = coords.get("y"))
+            || !(z = coords.get("z")))
+        {
+            TECA_ERROR("coordinate metadata is missing x,y, and or z "
+                "coordinate arrays")
+            return -1;
+        }
+
+        // get bounds of the whole_extent being read
+        x->get(whole_extent[0], bounds[0]);
+        x->get(whole_extent[1], bounds[1]);
+        y->get(whole_extent[2], bounds[2]);
+        y->get(whole_extent[3], bounds[3]);
+        z->get(whole_extent[4], bounds[4]);
+        z->get(whole_extent[5], bounds[5]);
+    }
+
+    return 0;
+}
+
 };

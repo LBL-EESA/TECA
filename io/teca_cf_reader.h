@@ -7,7 +7,6 @@
 
 #include <vector>
 #include <string>
-#include <mutex>
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_cf_reader)
 
@@ -68,7 +67,8 @@ public:
 
     // describe the set of files comprising the dataset. This
     // should contain the full path and regex describing the
-    // file name pattern
+    // file name pattern. only the final component of a path
+    // can contain a regex.
     TECA_ALGORITHM_PROPERTY(std::string, files_regex)
 
     // set if the dataset has periodic boundary conditions
@@ -85,22 +85,39 @@ public:
     TECA_ALGORITHM_PROPERTY(std::string, z_axis_variable)
     TECA_ALGORITHM_PROPERTY(std::string, t_axis_variable)
 
-    // time calendar and time unit if the user wants to
-    // specify them
+    // Override the calendar and time unit. When these are specified
+    // their values take precedence over the values found in the file.
     TECA_ALGORITHM_PROPERTY(std::string, t_calendar)
     TECA_ALGORITHM_PROPERTY(std::string, t_units)
 
-    // a way to infer time from the filename if needed
+    // a way to infer time from the filename if the time axis is not
+    // stored in the file itself. std::get_time format codes are used.
+    // If a calendar is not specified then the standard calendar is
+    // used. If time units are not specified then the time units will
+    // be "days since %Y-%m-%d 00:00:00" where Y,m, and d are computed
+    // from the filename of the first file. set t_axis_variable to an
+    // empty string to use.
+    //
+    // For example, for the list of files:
+    //
+    //      my_file_20170516_00.nc
+    //      my_file_20170516_03.nc
+    //      ...
+    //
+    // the template would be
+    //
+    //      my_file_%Y%m%d_%H.nc
     TECA_ALGORITHM_PROPERTY(std::string, filename_time_template)
 
-    // time values to use instead if time variable doesn't
-    // exist.
+    // an explicit list of double precision time values to use.
+    // set t_axis_variable to an empty string to use.
     TECA_ALGORITHM_VECTOR_PROPERTY(double, t_value)
 
-    // set/get the number of threads in the pool. setting
-    // to less than 1 results in 1 - the number of cores.
-    // the default is 1.
-    TECA_ALGORITHM_PROPERTY(int, thread_pool_size)
+    // set/get the number of ranks used to read the time axis.
+    // the default value of 1024 ranks works well on NERSC
+    // Cori scratch file system and may not be optimal on
+    // other systems.
+    TECA_ALGORITHM_PROPERTY(int, max_metadata_ranks)
 
 protected:
     teca_cf_reader();
@@ -132,7 +149,7 @@ private:
     int periodic_in_x;
     int periodic_in_y;
     int periodic_in_z;
-    int thread_pool_size;
+    int max_metadata_ranks;
     p_teca_cf_reader_internals internals;
 };
 

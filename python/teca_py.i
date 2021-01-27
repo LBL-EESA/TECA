@@ -24,12 +24,25 @@ The io module contains readers and writers.
 #define PY_ARRAY_UNIQUE_SYMBOL  PyArray_API_teca_py
 #include <numpy/arrayobject.h>
 #include <Python.h>
+
+// disable some warnings that are present in SWIG
+// generated code.
+#if !defined(TECA_DEBUG)
+#if __GNUC__ > 8
+#pragma GCC diagnostic ignored "-Wcast-function-type"
+#endif
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 %}
 
 %include <std_pair.i>
 %include <std_string.i>
+%include <std_iostream.i>
 %include "teca_py_common.i"
 %include "teca_py_config.i"
+%include "teca_py_array.i"
 %include "teca_py_vector.i"
 %include "teca_py_shared_ptr.i"
 %include "teca_py_mpi.i"

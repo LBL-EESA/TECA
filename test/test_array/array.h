@@ -21,6 +21,14 @@ public:
     TECA_DATASET_PROPERTY(std::vector<size_t>, extent)
     TECA_DATASET_PROPERTY(std::string, name)
 
+    // return a unique string identifier
+    std::string get_class_name() const override
+    { return "array"; }
+
+    // return an integer identifier uniquely naming the dataset type
+    int get_type_code() const override
+    { return 1; }
+
     // return true if the dataset is empty.
     bool empty() const noexcept override
     { return this->data.empty(); }
@@ -31,6 +39,7 @@ public:
 
     // return a new copy constructed array
     p_teca_dataset new_copy() const override;
+    p_teca_dataset new_shallow_copy() override;
 
     size_t size() const
     { return this->data.size(); }
@@ -60,10 +69,10 @@ public:
 
     // serialize the dataset to/from the given stream
     // for I/O or communication
-    void to_stream(teca_binary_stream &s) const override;
-    void from_stream(teca_binary_stream &s) override;
+    int to_stream(teca_binary_stream &s) const override;
+    int from_stream(teca_binary_stream &s) override;
 
-    void to_stream(std::ostream &s) const override;
+    int to_stream(std::ostream &s) const override;
 
 protected:
     array() : extent({0,0}) {}

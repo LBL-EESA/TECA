@@ -2,8 +2,10 @@
 #include "teca_config.h"
 #include "teca_common.h"
 #include "teca_profiler.h"
+#include "teca_system_util.h"
 
 #include <cstdlib>
+#include <cstring>
 
 #if defined(TECA_HAS_MPI)
 #include <mpi.h>
@@ -21,13 +23,24 @@ teca_mpi_manager::teca_mpi_manager(int &argc, char **&argv)
     teca_profiler::start_event("app_initialize");
 
 #if defined(TECA_HAS_MPI)
-    int mpi_thread_required = MPI_THREAD_SERIALIZED;
-    int mpi_thread_provided = 0;
-    MPI_Init_thread(&argc, &argv, mpi_thread_required, &mpi_thread_provided);
-    if (mpi_thread_provided < mpi_thread_required)
+    // let the user disable MPI_Init. This is primarilly to work around Cray's
+    // practice of calling abort from MPI_Init on login nodes.
+    bool init_mpi = true;
+    teca_system_util::get_environment_variable("TECA_INITIALIZE_MPI", init_mpi);
+    if (init_mpi)
     {
-        TECA_ERROR("This MPI does not support thread serialized");
-        abort();
+        int mpi_thread_required = MPI_THREAD_SERIALIZED;
+        int mpi_thread_provided = 0;
+        MPI_Init_thread(&argc, &argv, mpi_thread_required, &mpi_thread_provided);
+        if (mpi_thread_provided < mpi_thread_required)
+        {
+            TECA_ERROR("This MPI does not support thread serialized");
+            abort();
+        }
+    }
+    else
+    {
+        TECA_WARNING("TECA_INITIALIZE_MPI=FALSE MPI_Init was not called.")
     }
 #endif
 

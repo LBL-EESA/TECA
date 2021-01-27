@@ -103,14 +103,22 @@ int main(int argc, char **argv)
     source->set_bounds({0., 360., y0, y1, 0., 0., 1., 1.});
 
     tile_labeler labeler = {nxl, nyl, consecutive_labels};
-    source->append_field_generator({"labels", labeler});
+
+    source->append_field_generator({"labels",
+        teca_array_attributes(teca_variant_array_code<int>::get(),
+            teca_array_attributes::point_centering, 0, "unitless",
+            "labeled data", "the labels define rectangular tiles"),
+        labeler});
 
     p_teca_normalize_coordinates norm_coord = teca_normalize_coordinates::New();
     norm_coord->set_input_connection(source->get_output_port());
 
+    long background_id = consecutive_labels ? 0 : -2;
+
     p_teca_2d_component_area ca = teca_2d_component_area::New();
     ca->set_component_variable("labels");
     ca->set_contiguous_component_ids(consecutive_labels);
+    ca->set_background_id(background_id);
     ca->set_input_connection(norm_coord->get_output_port());
 
     p_teca_dataset_capture cao = teca_dataset_capture::New();

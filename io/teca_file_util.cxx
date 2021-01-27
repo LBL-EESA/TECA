@@ -1,7 +1,9 @@
+#include "teca_file_util.h"
 #include "teca_config.h"
 #include "teca_common.h"
 #include "teca_binary_stream.h"
 #include "teca_coordinate_util.h"
+#include "teca_string_util.h"
 
 #include <cstring>
 #include <cstdlib>
@@ -9,6 +11,7 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <iomanip>
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -174,13 +177,13 @@ int locate_files(
 }
 
 // **************************************************************************
-void replace_timestep(std::string &file_name, unsigned long time_step)
+void replace_timestep(std::string &file_name, unsigned long time_step, int width)
 {
     size_t t_pos = file_name.find("%t%");
     if (t_pos != std::string::npos)
     {
         std::ostringstream oss;
-        oss << time_step;
+        oss << std::setfill('0') << std::setw(width) << time_step;
 
         file_name.replace(t_pos, 3, oss.str());
     }
@@ -326,10 +329,12 @@ size_t load_lines(const char *filename, std::vector<std::string> &lines)
     std::ifstream file(filename);
     if (!file.is_open())
     {
-        std::cerr << "ERROR: File " << filename << " could not be opened." << std::endl;
+        const char *estr = strerror(errno);
+        TECA_ERROR("File \"" << filename << "\" could not be opened."
+            << std::endl << estr)
         return 0;
     }
-    while(file.good())
+    while (file.good())
     {
         file.getline(buf,buf_size);
         if (file.gcount() > 1)
@@ -348,13 +353,15 @@ size_t load_text(const std::string &filename, std::string &text)
     std::ifstream file(filename.c_str());
     if (!file.is_open())
     {
-        TECA_ERROR("File " << filename << " could not be opened.")
+        const char *estr = strerror(errno);
+        TECA_ERROR("File \"" << filename << "\" could not be opened."
+            << std::endl << estr)
         return 0;
     }
     // Determine the length of the file ...
-    file.seekg (0, std::ios::end);
+    file.seekg(0, std::ios::end);
     size_t n_bytes = (size_t)file.tellg();
-    file.seekg (0, std::ios::beg);
+    file.seekg(0, std::ios::beg);
     // and allocate a buffer to hold its contents.
     char *buf = new char [n_bytes];
     memset(buf, 0, n_bytes);
@@ -362,6 +369,7 @@ size_t load_text(const std::string &filename, std::string &text)
     file.read (buf, n_bytes);
     file.close();
     text = buf;
+    delete [] buf;
     return n_bytes;
 }
 
@@ -371,7 +379,9 @@ int write_text(std::string &filename, std::string &text)
     std::ofstream file(filename.c_str());
     if (!file.is_open())
     {
-        TECA_ERROR("File " << filename << " could not be opened.")
+        const char *estr = strerror(errno);
+        TECA_ERROR("File \"" << filename << "\" could not be opened."
+            << std::endl << estr)
         return 0;
     }
     file << text << std::endl;
@@ -420,32 +430,37 @@ int read_stream(const char *file_name, const char *header,
     fseek(fd, 0, SEEK_SET);
 
     // look at the header to check if this is really ours
-    unsigned long header_len = strlen(header);
+    unsigned long header_len = 0;
 
-    char *file_header = static_cast<char*>(malloc(header_len+1));
-    file_header[header_len] = '\0';
-
-    if (fread(file_header, 1, header_len, fd) != header_len)
+    if (header)
     {
-        const char *estr = (ferror(fd) ? strerror(errno) : "");
-        fclose(fd);
-        free(file_header);
-        TECA_ERROR("Failed to read header from \""
-            << file_name << "\". " << estr)
-        return -1;
-    }
+        header_len = strlen(header);
 
-    if (strncmp(file_header, header, header_len))
-    {
-        fclose(fd);
-        free(file_header);
-        TECA_ERROR("Header missmatch in \""
-             << file_name << "\". Expected \"" << header
-             << "\" found \"" << file_header << "\"")
-        return -1;
-    }
+        char *file_header = static_cast<char*>(malloc(header_len+1));
+        file_header[header_len] = '\0';
 
-    free(file_header);
+        if (fread(file_header, 1, header_len, fd) != header_len)
+        {
+            const char *estr = (ferror(fd) ? strerror(errno) : "");
+            fclose(fd);
+            free(file_header);
+            TECA_ERROR("Failed to read header from \""
+                << file_name << "\". " << estr)
+            return -1;
+        }
+
+        if (strncmp(file_header, header, header_len))
+        {
+            fclose(fd);
+            free(file_header);
+            TECA_ERROR("Header missmatch in \""
+                 << file_name << "\". Expected \"" << header
+                 << "\" found \"" << file_header << "\"")
+            return -1;
+        }
+
+        free(file_header);
+    }
 
     // create the buffer for the file contents
     unsigned long nbytes = end - start - header_len;
@@ -481,11 +496,11 @@ int read_stream(const char *file_name, const char *header,
 }
 
 // **************************************************************************
-int write_stream(const char *file_name, const char *header,
+int write_stream(const char *file_name, int flags, const char *header,
     const teca_binary_stream &stream, bool verbose)
 {
     // open up a file
-    int fd = creat(file_name, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
+    int fd = creat(file_name, flags);
     if (fd == -1)
     {
         if (verbose)
@@ -496,17 +511,20 @@ int write_stream(const char *file_name, const char *header,
         return -1;
     }
 
-    // this will let the reader verify that we have a teca binary table
-    long header_len = strlen(header);
-    if (write(fd, header, header_len) != header_len)
+    // add a header, this will let the reader verify the file format
+    if (header)
     {
-        const char *estr = strerror(errno);
-        TECA_ERROR("Failed to write header to \""
-            << file_name << "\". " << estr)
-        return -1;
+        long header_len = strlen(header);
+        if (write(fd, header, header_len) != header_len)
+        {
+            const char *estr = strerror(errno);
+            TECA_ERROR("Failed to write header to \""
+                << file_name << "\". " << estr)
+            return -1;
+        }
     }
 
-    // now write the table
+    // now write the stream
     ssize_t n_wrote = 0;
     ssize_t n_to_write = stream.size();
     while (n_to_write > 0)
@@ -527,6 +545,49 @@ int write_stream(const char *file_name, const char *header,
     {
         const char *estr = strerror(errno);
         TECA_ERROR("Failed to close \"" << file_name << "\". " << estr)
+        return -1;
+    }
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+int line_buffer::initialize(const char *file_name)
+{
+    FILE *fh = fopen(file_name, "r");
+    if (!fh)
+    {
+        const char *estr = strerror(errno);
+        TECA_ERROR("Failed to open the file \""
+            << file_name << "\". " << estr)
+        return -1;
+    }
+
+    fseek(fh, 0, SEEK_END);
+    size_t n_bytes = ftell(fh);
+    fseek(fh, 0, SEEK_SET);
+
+    char *m_buffer = (char*)malloc(n_bytes + 1);
+    m_buffer[n_bytes] = '\0';
+
+    if (fread(m_buffer, 1, n_bytes, fh) != n_bytes)
+    {
+        const char *estr = strerror(errno);
+        TECA_ERROR("Failed to read the file \""
+            << file_name << "\". " << estr)
+        fclose(fh);
+        free(m_buffer);
+        m_buffer = nullptr;
+        return -1;
+    }
+    fclose(fh);
+
+    if (teca_string_util::tokenize(m_buffer, '\n', m_lines))
+    {
+        TECA_ERROR("Incompatible file \"" << file_name
+            << "\" no lines found")
+        free(m_buffer);
+        m_buffer = nullptr;
         return -1;
     }
 

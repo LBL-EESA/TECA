@@ -1,21 +1,28 @@
 %{
 #include <vector>
 
+#include "calcalcs.h"
 #include "teca_algorithm_executive.h"
 #include "teca_index_executive.h"
 #include "teca_metadata.h"
 #include "teca_algorithm.h"
 #include "teca_threaded_algorithm.h"
+#include "teca_thread_util.h"
 #include "teca_index_reduce.h"
 #include "teca_variant_array.h"
 #include "teca_binary_stream.h"
 #include "teca_parallel_id.h"
 #include "teca_profiler.h"
+#include "teca_programmable_algorithm.h"
+#include "teca_programmable_reduce.h"
+#include "teca_threaded_programmable_algorithm.h"
+#include "teca_system_util.h"
 
 #include "teca_py_object.h"
 #include "teca_py_sequence.h"
 #include "teca_py_array.h"
 #include "teca_py_iterator.h"
+#include "teca_py_algorithm.h"
 #include "teca_py_gil_state.h"
 %}
 
@@ -23,6 +30,23 @@
  profiler
  ***************************************************************************/
 %include "teca_profiler.h"
+%inline
+%{
+class teca_time_py_event
+{
+public:
+    // logs an event named:
+    // <name>
+    teca_time_py_event(const std::string &name) : eventname(name)
+    { teca_profiler::start_event(name.c_str()); }
+
+    ~teca_time_py_event()
+    { teca_profiler::end_event(this->eventname.c_str()); }
+
+private:
+    std::string eventname;
+};
+%}
 
 /***************************************************************************
  parallel_id
@@ -122,13 +146,16 @@
 %shared_ptr(teca_variant_array_impl<float>)
 %shared_ptr(teca_variant_array_impl<char>)
 %shared_ptr(teca_variant_array_impl<int>)
+%shared_ptr(teca_variant_array_impl<long>)
 %shared_ptr(teca_variant_array_impl<long long>)
 %shared_ptr(teca_variant_array_impl<unsigned char>)
 %shared_ptr(teca_variant_array_impl<unsigned int>)
+%shared_ptr(teca_variant_array_impl<unsigned long>)
 %shared_ptr(teca_variant_array_impl<unsigned long long>)
 %shared_ptr(teca_variant_array_impl<std::string>)
 class teca_variant_array;
 %template(teca_variant_array_base) std::enable_shared_from_this<teca_variant_array>;
+%ignore operator<<(std::ostream &, const std::vector<std::string> &);
 %include "teca_common.h"
 %include "teca_shared_object.h"
 %include "teca_variant_array_fwd.h"
@@ -139,15 +166,31 @@ class teca_variant_array;
 %ignore copy(const teca_variant_array &other);
 %ignore teca_variant_array::get;
 %ignore teca_variant_array::set;
+%ignore teca_variant_array::swap;
+%ignore teca_variant_array::equal;
 %include "teca_variant_array.h"
-%template(teca_double_array) teca_variant_array_impl<double>;
+// named variant arrays
 %template(teca_float_array) teca_variant_array_impl<float>;
-%template(teca_int_array) teca_variant_array_impl<char>;
-%template(teca_char_array) teca_variant_array_impl<int>;
+%template(teca_double_array) teca_variant_array_impl<double>;
+%template(teca_char_array) teca_variant_array_impl<char>;
+%template(teca_int_array) teca_variant_array_impl<int>;
+%template(teca_long_array) teca_variant_array_impl<long>;
 %template(teca_long_long_array) teca_variant_array_impl<long long>;
-%template(teca_unsigned_int_array) teca_variant_array_impl<unsigned char>;
-%template(teca_unsigned_char_array) teca_variant_array_impl<unsigned int>;
+%template(teca_unsigned_char_array) teca_variant_array_impl<unsigned char>;
+%template(teca_unsigned_int_array) teca_variant_array_impl<unsigned int>;
+%template(teca_unsigned_long_array) teca_variant_array_impl<unsigned long>;
 %template(teca_unsigned_long_long_array) teca_variant_array_impl<unsigned long long>;
+// named variant array traits
+%template(teca_float_array_code) teca_variant_array_code<float>;
+%template(teca_double_array_code) teca_variant_array_code<double>;
+%template(teca_char_array_code) teca_variant_array_code<char>;
+%template(teca_int_array_code) teca_variant_array_code<int>;
+%template(teca_long_array_code) teca_variant_array_code<long>;
+%template(teca_long_long_array_code) teca_variant_array_code<long long>;
+%template(teca_unsigned_char_array_code) teca_variant_array_code<unsigned char>;
+%template(teca_unsigned_int_array_code) teca_variant_array_code<unsigned int>;
+%template(teca_unsigned_long_array_code) teca_variant_array_code<unsigned long>;
+%template(teca_unsigned_long_long_array_code) teca_variant_array_code<unsigned long long>;
 %extend teca_variant_array
 {
     static
@@ -281,9 +324,11 @@ TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(double, double)
 TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(float, float)
 TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(char, char)
 TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(int, int)
+TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(long, long)
 TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(long long, long_long)
 TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned char, unsigned_char)
 TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned int, unsigned_int)
+TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned long, unsigned_long)
 TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned long long, unsigned_long_long)
 
 /***************************************************************************
@@ -359,8 +404,7 @@ TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned long long, unsigned_long_long)
             else TEMPLATE_DISPATCH_CASE(const teca_variant_array_impl,
                 teca_metadata, varr.get(),
                 TT *varrt = static_cast<TT*>(varr.get());
-                return SWIG_NewPointerObj(new teca_metadata(varrt->get(0)),
-                     SWIGTYPE_p_teca_metadata, SWIG_POINTER_OWN);
+                return teca_py_object::py_tt<NT>::new_object(varrt->get(0));
                 )
         }
         else if (n_elem > 1)
@@ -389,8 +433,7 @@ TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned long long, unsigned_long_long)
                 for (size_t i = 0; i < n_elem; ++i)
                 {
                     PyList_SET_ITEM(list, i,
-                        SWIG_NewPointerObj(new teca_metadata(varrt->get(i)),
-                            SWIGTYPE_p_teca_metadata, SWIG_POINTER_OWN));
+                        teca_py_object::py_tt<NT>::new_object(varrt->get(i)));
                 }
                 return list;
                 )
@@ -440,6 +483,7 @@ TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned long long, unsigned_long_long)
 class teca_dataset;
 %template(teca_dataset_base) std::enable_shared_from_this<teca_dataset>;
 %ignore teca_dataset::operator=;
+%ignore teca_dataset::set_index_request_key(std::string const *);
 %include "teca_dataset_fwd.h"
 %include "teca_dataset.h"
 TECA_PY_CONST_CAST(teca_dataset)
@@ -674,3 +718,296 @@ typedef std::pair<std::shared_ptr<teca_algorithm>, unsigned int> teca_algorithm_
 %ignore teca_index_reduce::operator=;
 %include "teca_index_reduce_fwd.h"
 %include "teca_index_reduce.h"
+
+/***************************************************************************
+ programmable_algorithm
+ ***************************************************************************/
+%ignore teca_programmable_algorithm::shared_from_this;
+%shared_ptr(teca_programmable_algorithm)
+%extend teca_programmable_algorithm
+{
+    void set_report_callback(PyObject *f)
+    {
+        teca_py_gil_state gil;
+
+        self->set_report_callback(teca_py_algorithm::report_callback(f));
+    }
+
+    void set_request_callback(PyObject *f)
+    {
+        teca_py_gil_state gil;
+
+        self->set_request_callback(teca_py_algorithm::request_callback(f));
+    }
+
+    void set_execute_callback(PyObject *f)
+    {
+        teca_py_gil_state gil;
+
+        self->set_execute_callback(teca_py_algorithm::execute_callback(f));
+    }
+}
+%ignore teca_programmable_algorithm::operator=;
+%ignore teca_programmable_algorithm::set_report_callback;
+%ignore teca_programmable_algorithm::get_report_callback;
+%ignore teca_programmable_algorithm::set_request_callback;
+%ignore teca_programmable_algorithm::get_request_callback;
+%ignore teca_programmable_algorithm::set_execute_callback;
+%ignore teca_programmable_algorithm::get_execute_callback;
+%include "teca_programmable_algorithm_fwd.h"
+%include "teca_programmable_algorithm.h"
+
+/***************************************************************************
+ threaded programmable_algorithm
+ ***************************************************************************/
+%ignore teca_threaded_programmable_algorithm::shared_from_this;
+%shared_ptr(teca_threaded_programmable_algorithm)
+%extend teca_threaded_programmable_algorithm
+{
+    void set_report_callback(PyObject *f)
+    {
+        teca_py_gil_state gil;
+
+        self->set_report_callback(teca_py_algorithm::report_callback(f));
+    }
+
+    void set_request_callback(PyObject *f)
+    {
+        teca_py_gil_state gil;
+
+        self->set_request_callback(teca_py_algorithm::request_callback(f));
+    }
+
+    void set_execute_callback(PyObject *f)
+    {
+        teca_py_gil_state gil;
+
+        self->set_execute_callback(teca_py_algorithm::threaded_execute_callback(f));
+    }
+}
+%ignore teca_threaded_programmable_algorithm::operator=;
+%ignore teca_threaded_programmable_algorithm::set_report_callback;
+%ignore teca_threaded_programmable_algorithm::get_report_callback;
+%ignore teca_threaded_programmable_algorithm::set_request_callback;
+%ignore teca_threaded_programmable_algorithm::get_request_callback;
+%ignore teca_threaded_programmable_algorithm::set_execute_callback;
+%ignore teca_threaded_programmable_algorithm::get_execute_callback;
+%include "teca_programmable_algorithm_fwd.h"
+%include "teca_threaded_programmable_algorithm.h"
+
+/***************************************************************************
+ programmable_reduce
+ ***************************************************************************/
+%ignore teca_programmable_reduce::shared_from_this;
+%shared_ptr(teca_programmable_reduce)
+%extend teca_programmable_reduce
+{
+    void set_report_callback(PyObject *f)
+    {
+        teca_py_gil_state gil;
+
+        self->set_report_callback(teca_py_algorithm::report_callback(f));
+    }
+
+    void set_request_callback(PyObject *f)
+    {
+        teca_py_gil_state gil;
+
+        self->set_request_callback(teca_py_algorithm::request_callback(f));
+    }
+
+    void set_reduce_callback(PyObject *f)
+    {
+        teca_py_gil_state gil;
+
+        self->set_reduce_callback(teca_py_algorithm::reduce_callback(f));
+    }
+
+    void set_finalize_callback(PyObject *f)
+    {
+        teca_py_gil_state gil;
+
+        self->set_finalize_callback(teca_py_algorithm::finalize_callback(f));
+    }
+}
+%ignore teca_programmable_reduce::operator=;
+%ignore teca_programmable_reduce::set_report_callback;
+%ignore teca_programmable_reduce::get_report_callback;
+%ignore teca_programmable_reduce::set_request_callback;
+%ignore teca_programmable_reduce::get_request_callback;
+%ignore teca_programmable_reduce::set_reduce_callback;
+%ignore teca_programmable_reduce::get_reduce_callback;
+%ignore teca_programmable_reduce::set_finalize_callback;
+%ignore teca_programmable_reduce::get_finalize_callback;
+%include "teca_programmable_reduce_fwd.h"
+%include "teca_programmable_reduce.h"
+
+/***************************************************************************
+ python_algorithm
+ ***************************************************************************/
+%pythoncode "teca_python_algorithm.py"
+
+/***************************************************************************
+ threaded python_algorithm
+ ***************************************************************************/
+%pythoncode "teca_threaded_python_algorithm.py"
+
+/***************************************************************************
+ python_reduce
+ ***************************************************************************/
+%pythoncode "teca_python_reduce.py"
+
+/***************************************************************************
+ dataset_source
+ ***************************************************************************/
+%ignore teca_dataset_source::shared_from_this;
+%shared_ptr(teca_dataset_source)
+%ignore teca_dataset_source::operator=;
+%include "teca_dataset_source.h"
+
+/***************************************************************************
+ dataset_capture
+ ***************************************************************************/
+%ignore teca_dataset_capture::shared_from_this;
+%shared_ptr(teca_dataset_capture)
+%ignore teca_dataset_capture::operator=;
+%include "teca_dataset_capture.h"
+
+/***************************************************************************
+ calcalcs
+ ***************************************************************************/
+%inline
+%{
+struct calendar_util
+{
+// for the given offset in the specified units and caledar returns
+// year, month, day, hours, minutes, seconds
+static
+PyObject *date(double offset, const char *units, const char *calendar)
+{
+    teca_py_gil_state gil;
+
+    int year = -1;
+    int month = -1;
+    int day = -1;
+    int hour = -1;
+    int minute = -1;
+    double second = -1.0;
+
+    if (calcalcs::date(offset, &year, &month, &day, &hour,
+        &minute, &second, units, calendar))
+    {
+        TECA_PY_ERROR_NOW(PyExc_RuntimeError, "Failed to convert time")
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
+
+    PyObject *ret = Py_BuildValue("(iiiiid)",
+        year, month, day, hour, minute, second);
+
+    return ret;
+}
+
+// determine if the specified year is a leap year in the specified calendar
+static
+PyObject *is_leap_year(const char *calendar, const char *units,
+    int year)
+{
+    teca_py_gil_state gil;
+
+    int leap = 0;
+    if (calcalcs::is_leap_year(calendar, units, year, leap))
+    {
+        TECA_PY_ERROR_NOW(PyExc_RuntimeError,
+            "Failed to determine leap year status")
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
+    return PyBool_FromLong(leap);
+}
+
+// get the days in the month
+static
+PyObject *days_in_month(const char *calendar, const char *units,
+                   int year, int month)
+{
+    teca_py_gil_state gil;
+
+    int dpm = 0;
+    if (calcalcs::days_in_month(calendar, units, year, month, dpm))
+    {
+        TECA_PY_ERROR_NOW(PyExc_RuntimeError,
+            "Failed to determine days in month")
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
+    return CIntToPyInteger(dpm);
+}
+};
+%}
+
+/***************************************************************************
+ thread util
+ ***************************************************************************/
+%inline
+%{
+struct thread_util
+{
+// determine the number of threads , taking into account, all MPI ranks
+// running on the node, such that each thread has a dedicated physical
+// core.  builds an affinity map that explicitly specifies the core for
+// each thread.
+static
+PyObject *thread_parameters(MPI_Comm comm,
+    int n_requested, int bind, int verbose)
+{
+    teca_py_gil_state gil;
+
+    std::deque<int> affinity;
+    int n_threads = n_requested;
+    if (teca_thread_util::thread_parameters(comm, -1,
+        n_requested, bind, verbose, n_threads, affinity))
+    {
+        // caller requested automatic load balancing but this,
+        // failed.
+        TECA_PY_ERROR(PyExc_RuntimeError,
+            "Automatic load balancing failed")
+        return nullptr;
+    }
+
+    // convert the affinity map to a Python list
+    int len = bind ? n_threads : 0;
+    PyObject *py_affinity = PyList_New(len);
+    for (int i = 0; i < len; ++i)
+        PyList_SET_ITEM(py_affinity, i,
+            CIntToPyInteger(affinity[i]));
+
+    // return the number of threads and affinity map
+    return Py_BuildValue("(iN)", n_threads, py_affinity);
+}
+};
+%}
+
+/***************************************************************************
+ system util
+ ***************************************************************************/
+%inline
+%{
+struct system_util
+{
+static
+PyObject *get_environment_variable_bool(const char *str, int def)
+{
+    teca_py_gil_state gil;
+
+    bool tmp = def;
+    int ierr = teca_system_util::get_environment_variable(str, tmp);
+    if (ierr < 0)
+    {
+        TECA_PY_ERROR(PyExc_RuntimeError, "conversion error")
+        return nullptr;
+    }
+    return PyLong_FromLong(long(tmp));
+}
+};
+%}

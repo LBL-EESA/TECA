@@ -60,6 +60,13 @@ protected:
     virtual p_teca_dataset reduce(const const_p_teca_dataset &left,
         const const_p_teca_dataset &right) = 0;
 
+    // override that is called when the reduction is complete.
+    // the default implementation passes data through.
+    virtual p_teca_dataset finalize(const const_p_teca_dataset &ds)
+    {
+        return std::const_pointer_cast<teca_dataset>(ds);
+    }
+
     // override that allows derived classes to generate upstream
     // requests that will be applied over all time steps. derived
     // classes implement this method instead of get_upstream_request,
@@ -74,7 +81,6 @@ protected:
     // will strip out time and partition time across MPI ranks.
     virtual teca_metadata initialize_output_metadata(unsigned int port,
         const std::vector<teca_metadata> &input_md) = 0;
-
 
 protected:
 // customized pipeline behavior and parallel code.
@@ -94,7 +100,7 @@ protected:
     // dataset, which is returned.
     const_p_teca_dataset execute(unsigned int port,
         const std::vector<const_p_teca_dataset> &input_data,
-        const teca_metadata &request) override;
+        const teca_metadata &request, int streaming) override;
 
     // consumes time metadata, partitions time's across
     // MPI ranks.

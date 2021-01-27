@@ -3,6 +3,8 @@
 #include "teca_normalize_coordinates.h"
 #include "teca_dataset_diff.h"
 #include "teca_descriptive_statistics.h"
+#include "teca_table.h"
+#include "teca_table_to_stream.h"
 #include "teca_file_util.h"
 #include "teca_table_reader.h"
 #include "teca_programmable_reduce.h"
@@ -12,7 +14,7 @@
 #include "teca_test_util.h"
 #include "teca_mpi_manager.h"
 #include "teca_system_interface.h"
-#include "teca_table.h"
+#include "teca_system_util.h"
 #include "teca_mpi.h"
 
 #include <vector>
@@ -69,24 +71,32 @@ int main(int argc, char **argv)
     if (argc < 3)
     {
         cerr << endl << "Usage error:" << endl
-            << "test_map_descriptive_statistics [input regex] [test baseline] [first step = 0] "
-            << "[last step = -1] [num threads = 1] [array 0 =] ... [array n =]"
+            << "test_map_descriptive_statistics [number of files] [input regex] "
+               "[test baseline] [first step = 0] [last step = -1] [num threads = 1] "
+               "[array 0 =] ... [array n =]"
             << endl << endl;
         return -1;
     }
 
+    // handle a list of files on the command line.
+    // the first argument passed is the number of files
+    // or 0 if a regex is to be used. this case was added
+    // to test processing datasets that do not contain a
+    // time axis, but have one stored externally.
     int i = 1;
     int files_num = atoi(argv[i++]);
 
+    // get the list of files (if files_num != 0)
     vector<string> files;
     vector<double> time_values;
     for (; i <= (files_num + 1); ++i)
         files.push_back(argv[i]);
 
+    // generate some time values for the passed files
     for (; i <= (2*files_num + 1); ++i)
         time_values.push_back(atof(argv[i]));
 
-    // regex is set
+    // files_num == 0 so a regex should have been given
     if (files.empty())
         files.push_back(argv[i++]);
 
@@ -119,6 +129,7 @@ int main(int argc, char **argv)
     p_teca_cf_reader cf_reader = teca_cf_reader::New();
     if (files_num)
     {
+        // we pass the time axis with a list of files
         cf_reader->set_t_axis_variable("");
         cf_reader->set_t_values(time_values);
         cf_reader->set_t_calendar("noleap");
@@ -127,6 +138,7 @@ int main(int argc, char **argv)
     }
     else
     {
+        // time axis is obtained from CF2 compliant dataset
         cf_reader->set_files_regex(files[0]);
     }
 
@@ -137,22 +149,24 @@ int main(int argc, char **argv)
     stats->set_input_connection(coords->get_output_port());
     stats->set_dependent_variables(arrays);
 
-    p_teca_programmable_reduce map_reduce = teca_programmable_reduce::New();
-    map_reduce->set_name("table_reduce");
-    map_reduce->set_input_connection(stats->get_output_port());
-    map_reduce->set_start_index(first_step);
-    map_reduce->set_end_index(last_step);
-    map_reduce->set_thread_pool_size(n_threads);
-    map_reduce->set_reduce_callback(reduce_callback());
+    p_teca_programmable_reduce reduce = teca_programmable_reduce::New();
+    reduce->set_name("table_reduce");
+    reduce->set_input_connection(stats->get_output_port());
+    reduce->set_start_index(first_step);
+    reduce->set_end_index(last_step);
+    reduce->set_thread_pool_size(n_threads);
+    reduce->set_reduce_callback(reduce_callback());
 
     p_teca_table_sort sort = teca_table_sort::New();
-    sort->set_input_connection(map_reduce->get_output_port());
+    sort->set_input_connection(reduce->get_output_port());
     sort->set_index_column("step");
 
     p_teca_table_calendar cal = teca_table_calendar::New();
     cal->set_input_connection(sort->get_output_port());
 
-    if (have_baseline)
+    bool do_test = true;
+    teca_system_util::get_environment_variable("TECA_DO_TEST", do_test);
+    if (do_test && have_baseline)
     {
         // run the test
         p_teca_table_reader table_reader = teca_table_reader::New();
@@ -169,10 +183,13 @@ int main(int argc, char **argv)
         // make a baseline
         if (rank == 0)
             cerr << "generating baseline image " << baseline << endl;
+
+        p_teca_table_to_stream tts = teca_table_to_stream::New();
+        tts->set_input_connection(cal->get_output_port());
+
         p_teca_table_writer table_writer = teca_table_writer::New();
-        table_writer->set_input_connection(cal->get_output_port());
+        table_writer->set_input_connection(tts->get_output_port());
         table_writer->set_file_name(baseline.c_str());
-        table_writer->set_output_format_bin();
 
         table_writer->update();
     }

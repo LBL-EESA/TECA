@@ -1,10 +1,9 @@
 #include "teca_table.h"
 
 #include "teca_binary_stream.h"
-#include "teca_mesh.h"
-
-using std::vector;
-using std::map;
+#include "teca_dataset_util.h"
+#include "teca_string_util.h"
+#include "teca_bad_cast.h"
 
 teca_table::impl_t::impl_t() :
     columns(teca_array_collection::New()), active_column(0)
@@ -73,34 +72,104 @@ void teca_table::reserve(unsigned long n)
 }
 
 // --------------------------------------------------------------------------
-void teca_table::to_stream(teca_binary_stream &s) const
+int teca_table::get_type_code() const
 {
-    this->teca_dataset::to_stream(s);
-    m_impl->columns->to_stream(s);
+    return teca_dataset_tt<teca_table>::type_code;
 }
 
 // --------------------------------------------------------------------------
-void teca_table::from_stream(teca_binary_stream &s)
+int teca_table::to_stream(teca_binary_stream &s) const
+{
+    if (this->teca_dataset::to_stream(s)
+        || m_impl->columns->to_stream(s))
+        return -1;
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+int teca_table::from_stream(teca_binary_stream &s)
 {
     this->clear();
-    this->teca_dataset::from_stream(s);
-    m_impl->columns->from_stream(s);
+
+    if (this->teca_dataset::from_stream(s)
+        || m_impl->columns->from_stream(s))
+        return -1;
+
+    return 0;
 }
 
 // --------------------------------------------------------------------------
-void teca_table::to_stream(std::ostream &s) const
+int teca_table::to_stream(std::ostream &s) const
 {
     // because this is used for general purpose I/O
     // we don't let the base class insert anything.
 
+    // write the identifier
+    s << "# teca_table v1 " << std::endl
+        << "# " << TECA_VERSION_DESCR << std::endl;
+
+    // write the calendar and units
+    const teca_metadata &md = this->get_metadata();
+
+    if (md.has("calendar"))
+    {
+        std::string calendar;
+        md.get("calendar", calendar);
+
+        std::string units;
+        md.get("time_units", units);
+
+        s << "# calendar = \"" << calendar << "\"" << std::endl
+            << "# time_units = \"" << units << "\"" << std::endl;
+    }
+
+    // first row contains column names. the name is followed by (int)
+    // the int tells the array type. this is needed for deserialization
     unsigned int n_cols = m_impl->columns->size();
     if (n_cols)
     {
-        s << "\"" << m_impl->columns->get_name(0) << "\"";
+        std::string col_name;
+        const_p_teca_variant_array col;
+        unsigned int col_type;
+
+        col = m_impl->columns->get(0);
+        col_name = m_impl->columns->get_name(0);
+        col_type = col->type_code();
+
+        if (col_name.find_first_of("()") != std::string::npos)
+        {
+            TECA_WARNING("Writing incompatible table to stream. This data "
+                "will not be readable by TECA because parentheses were "
+                "used in the column 0 name \"" << col_name << "\"")
+        }
+
+        s << "\"" << col_name << "(" << col_type << ")\"";
+
         for (unsigned int i = 1; i < n_cols; ++i)
-            s << ", \"" << m_impl->columns->get_name(i) << "\"";
+        {
+            col = m_impl->columns->get(i);
+            col_name = m_impl->columns->get_name(i);
+            col_type = col->type_code();
+
+            if (col_name.find_first_of("()") != std::string::npos)
+            {
+                TECA_WARNING("Writing incompatible table to stream. This data "
+                    "will not be readable by TECA because parentheses were "
+                    "used in the column " << i << " name \"" << col_name << "\"")
+            }
+
+            s << ", \"" << col_name << "(" << col_type << ")\"";
+        }
+
         s << std::endl;
     }
+
+    // set the precision such that we get the same floating point
+    // value back when deserializzing
+    s.precision(std::numeric_limits<long double>::digits10 + 1);
+    s.setf(std::ios_base::scientific, std::ios_base::floatfield);
+
+    // the remainder of the data is sent row by row.
     unsigned long long n_rows = this->get_number_of_rows();
     for (unsigned long long j = 0; j < n_rows; ++j)
     {
@@ -142,6 +211,196 @@ void teca_table::to_stream(std::ostream &s) const
         }
         s << std::endl;
     }
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+int teca_table::from_stream(std::istream &s)
+{
+    m_impl->columns->clear();
+
+    // read the stream into a working buffer
+    std::streamoff cur_pos = s.tellg();
+    s.seekg(0, std::ios_base::end);
+    std::streamoff end_pos = s.tellg();
+    size_t n_bytes = end_pos - cur_pos;
+    s.seekg(cur_pos);
+
+    char *buf = (char*)malloc(n_bytes+1);
+    buf[n_bytes] = '\0';
+
+    if (!s.read(buf, n_bytes))
+    {
+        free(buf);
+        TECA_ERROR("Failed to read from the stream")
+        return -1;
+    }
+
+    // split into lines, and work line by line
+    std::vector<char*> lines;
+    if (teca_string_util::tokenize(buf, '\n', lines))
+    {
+        free(buf);
+        TECA_ERROR("Failed to split lines")
+        return -1;
+    }
+
+    size_t n_lines = lines.size();
+
+    // process comment lines, the begin with the # char
+    // these may contain metadata such as calendaring info
+    size_t lno = 0;
+    while ((lno < n_lines) &&
+        teca_string_util::is_comment(lines[lno]))
+    {
+        const char *lp = lines[lno];
+        // calendar
+        if (strstr(lp, "calendar"))
+        {
+            std::string calendar;
+            if (teca_string_util::extract_string(lp, calendar))
+            {
+                TECA_ERROR("Invalid calendar (" << lp << ")")
+            }
+            else
+            {
+                this->set_calendar(calendar);
+            }
+        }
+        // time units
+        if (strstr(lp, "time_units"))
+        {
+            std::string time_units;
+            if (teca_string_util::extract_string(lp, time_units))
+            {
+                TECA_ERROR("Invalid time_units spec (" << lp << ")")
+            }
+            else
+            {
+                this->set_time_units(time_units);
+            }
+        }
+        ++lno;
+    }
+
+    // split the header
+    std::vector<char *> header;
+    if (teca_string_util::tokenize(lines[lno], ',', header))
+    {
+        free(buf);
+        TECA_ERROR("Failed to split fields")
+        return -1;
+    }
+    ++lno;
+
+    // extract the column names and types from each header field
+    size_t n_rows = n_lines - lno;
+    size_t n_cols = header.size();
+    std::vector<std::string> col_names(n_cols);
+    std::vector<p_teca_variant_array> cols(n_cols);
+    for (size_t i = 0; i < n_cols; ++i)
+    {
+        int n_match = 0;
+        char name[129];
+        int code = 0;
+        if ((n_match = sscanf(header[i], " \"%128[^(](%d)\"", name, &code)) != 2)
+        {
+            free(buf);
+            TECA_ERROR("Failed to parse column name and type. " << n_match
+                << " matches. Line " << lno - 1 << " column " << i << " field \""
+                << header[i] << "\"")
+            return -1;
+        }
+
+        p_teca_variant_array col = teca_variant_array_factory::New(code);
+        if (!col)
+        {
+            free(buf);
+            TECA_ERROR("Failed to construct an array for column " << i)
+            return -1;
+        }
+
+        col->resize(n_rows);
+
+        col_names[i] = name;
+        cols[i] = col;
+    }
+
+    // allocate a 2D buffer to hold pointers to each cell in the table.
+    n_bytes = n_lines*n_cols*sizeof(char*);
+    char **data = (char **)malloc(n_bytes);
+    memset(data, 0, n_bytes);
+
+    // copy the data from the line buffer into the 2D structure
+    for (size_t i = 0; i < n_rows; ++i)
+    {
+        size_t j = i + lno;
+        size_t ii = i*n_cols;
+
+        if (teca_string_util::tokenize(lines[j], ',', n_cols, data + ii))
+        {
+            free(buf);
+            free(data);
+            TECA_ERROR("Failed to tokenize row data at row " << j)
+            return -1;
+        }
+    }
+
+    // work column by column
+    for (size_t j = 0; j < n_cols; ++j)
+    {
+        // deserialize the column
+        p_teca_variant_array col = cols[j];
+        TEMPLATE_DISPATCH(teca_variant_array_impl,
+            col.get(),
+            NT *p_col = static_cast<TT*>(col.get())->get();
+            const char *fmt = teca_string_util::scanf_tt<NT>::format();
+            for (size_t i = 0; i < n_rows; ++i)
+            {
+                const char *cell = data[i*n_cols + j];
+                if (sscanf(cell, fmt, p_col + i) != 1)
+                {
+                    free(buf);
+                    free(data);
+                    TECA_ERROR("Failed to convert numeric cell " << i << ", " << j
+                        << " \"" << cell << "\" using format \"" << fmt << "\"")
+                    return -1;
+                }
+
+            }
+            )
+        else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
+            std::string, col.get(),
+            NT *p_col = static_cast<TT*>(col.get())->get();
+            for (size_t i = 0; i < n_rows; ++i)
+            {
+                const char *cell = data[i*n_cols + j];
+                if (teca_string_util::extract_string(cell, p_col[i]))
+                {
+                    free(buf);
+                    free(data);
+                    TECA_ERROR("Failed to convert string cell " << i << ", " << j
+                        << " \"" << cell << "\"")
+                    return -1;
+                }
+            }
+            )
+        else
+        {
+            TECA_ERROR("Failed to deserialize column " << j << " of type "
+                << col->get_class_name())
+            return -1;
+        }
+
+        // save it
+        m_impl->columns->append(col_names[j], col);
+    }
+
+    free(buf);
+    free(data);
+
+    return 0;
 }
 
 // --------------------------------------------------------------------------
@@ -151,7 +410,7 @@ void teca_table::copy(const const_p_teca_dataset &dataset)
         = std::dynamic_pointer_cast<const teca_table>(dataset);
 
     if (!other)
-        throw std::bad_cast();
+        throw teca_bad_cast(safe_class_name(dataset), "teca_table");
 
     if (this == other.get())
         return;
@@ -191,7 +450,7 @@ void teca_table::shallow_copy(const p_teca_dataset &dataset)
         = std::dynamic_pointer_cast<const teca_table>(dataset);
 
     if (!other)
-        throw std::bad_cast();
+        throw teca_bad_cast(safe_class_name(dataset), "teca_table");
 
     this->clear();
 
@@ -217,7 +476,7 @@ void teca_table::swap(p_teca_dataset &dataset)
         = std::dynamic_pointer_cast<teca_table>(dataset);
 
     if (!other)
-        throw std::bad_cast();
+        throw teca_bad_cast(safe_class_name(dataset), "teca_table");
 
     this->teca_dataset::swap(dataset);
 

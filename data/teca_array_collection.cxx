@@ -160,6 +160,30 @@ void teca_array_collection::shallow_copy(const p_teca_array_collection &other)
         m_arrays.push_back(other->get(i));
 }
 
+// ----------------------------------------------------------------------------
+int teca_array_collection::append(const const_p_teca_array_collection &other)
+{
+    unsigned int n = other->size();
+    for (unsigned int i = 0; i < n; ++i)
+    {
+        if (this->append(other->get_name(i), other->get(i)->new_copy()) < 0)
+            return -1;
+    }
+    return 0;
+}
+
+// ----------------------------------------------------------------------------
+int teca_array_collection::shallow_append(const p_teca_array_collection &other)
+{
+    unsigned int n = other->size();
+    for (unsigned int i = 0; i < n; ++i)
+    {
+        if (this->append(other->get_name(i), other->get(i)) < 0)
+            return -1;
+    }
+    return 0;
+}
+
 // --------------------------------------------------------------------------
 void teca_array_collection::swap(p_teca_array_collection &other)
 {
@@ -169,8 +193,9 @@ void teca_array_collection::swap(p_teca_array_collection &other)
 }
 
 // --------------------------------------------------------------------------
-void teca_array_collection::to_stream(teca_binary_stream &s) const
+int teca_array_collection::to_stream(teca_binary_stream &s) const
 {
+    s.pack("teca_array_collection", 21);
     unsigned int na = m_arrays.size();
     s.pack(na);
     s.pack(m_names);
@@ -179,11 +204,18 @@ void teca_array_collection::to_stream(teca_binary_stream &s) const
         s.pack(m_arrays[i]->type_code());
         m_arrays[i]->to_stream(s);
     }
+    return 0;
 }
 
 // --------------------------------------------------------------------------
-void teca_array_collection::from_stream(teca_binary_stream &s)
+int teca_array_collection::from_stream(teca_binary_stream &s)
 {
+    if (s.expect("teca_array_collection"))
+    {
+        TECA_ERROR("invalid stream")
+        return -1;
+    }
+
     unsigned int na;
     s.unpack(na);
     s.unpack(m_names);
@@ -199,10 +231,12 @@ void teca_array_collection::from_stream(teca_binary_stream &s)
         m_arrays[i]->from_stream(s);
         m_name_array_map.emplace(m_names[i], i);
     }
+
+    return 0;
 }
 
 // --------------------------------------------------------------------------
-void teca_array_collection::to_stream(std::ostream &s) const
+int teca_array_collection::to_stream(std::ostream &s) const
 {
     s << "{" << std::endl;
     size_t n_arrays = this->size();
@@ -220,4 +254,5 @@ void teca_array_collection::to_stream(std::ostream &s) const
         }
     }
     s << "}" << std::endl;
+    return 0;
 }

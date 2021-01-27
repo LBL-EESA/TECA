@@ -11,9 +11,7 @@
 #include "teca_cartesian_mesh_regrid.h"
 #include "teca_connected_components.h"
 #include "teca_component_statistics.h"
-#include "teca_2d_component_area.h"
 #include "teca_component_area_filter.h"
-#include "teca_latitude_damper.h"
 #include "teca_dataset_diff.h"
 #include "teca_dataset_capture.h"
 #include "teca_dataset_source.h"
@@ -21,17 +19,17 @@
 #include "teca_derived_quantity_numerics.h"
 #include "teca_descriptive_statistics.h"
 #include "teca_evaluate_expression.h"
-#include "teca_table_region_mask.h"
+#include "teca_integrated_vapor_transport.h"
 #include "teca_l2_norm.h"
 #include "teca_laplacian.h"
+#include "teca_latitude_damper.h"
 #include "teca_mask.h"
 #include "teca_normalize_coordinates.h"
-#include "teca_programmable_algorithm.h"
-#include "teca_programmable_reduce.h"
 #include "teca_saffir_simpson.h"
 #include "teca_table_calendar.h"
 #include "teca_table_sort.h"
 #include "teca_table_reduce.h"
+#include "teca_table_region_mask.h"
 #include "teca_table_remove_rows.h"
 #include "teca_table_to_stream.h"
 #include "teca_tc_candidates.h"
@@ -39,9 +37,11 @@
 #include "teca_tc_trajectory.h"
 #include "teca_tc_wind_radii.h"
 #include "teca_temporal_average.h"
+#include "teca_valid_value_mask.h"
+#include "teca_vertical_reduction.h"
 #include "teca_vorticity.h"
+
 #include "teca_py_object.h"
-#include "teca_py_algorithm.h"
 #include "teca_py_gil_state.h"
 %}
 
@@ -92,7 +92,6 @@
 %ignore teca_laplacian::operator=;
 %include "teca_laplacian.h"
 
-
 /***************************************************************************
  mask
  ***************************************************************************/
@@ -133,82 +132,6 @@
 %shared_ptr(teca_vorticity)
 %ignore teca_vorticity::operator=;
 %include "teca_vorticity.h"
-
-/***************************************************************************
- programmable_algorithm
- ***************************************************************************/
-%ignore teca_programmable_algorithm::shared_from_this;
-%shared_ptr(teca_programmable_algorithm)
-%extend teca_programmable_algorithm
-{
-    void set_report_callback(PyObject *f)
-    {
-        teca_py_gil_state gil;
-
-        self->set_report_callback(teca_py_algorithm::report_callback(f));
-    }
-
-    void set_request_callback(PyObject *f)
-    {
-        teca_py_gil_state gil;
-
-        self->set_request_callback(teca_py_algorithm::request_callback(f));
-    }
-
-    void set_execute_callback(PyObject *f)
-    {
-        teca_py_gil_state gil;
-
-        self->set_execute_callback(teca_py_algorithm::execute_callback(f));
-    }
-}
-%ignore teca_programmable_algorithm::operator=;
-%ignore teca_programmable_algorithm::set_report_callback;
-%ignore teca_programmable_algorithm::get_report_callback;
-%ignore teca_programmable_algorithm::set_request_callback;
-%ignore teca_programmable_algorithm::get_request_callback;
-%ignore teca_programmable_algorithm::set_execute_callback;
-%ignore teca_programmable_algorithm::get_execute_callback;
-%include "teca_programmable_algorithm_fwd.h"
-%include "teca_programmable_algorithm.h"
-
-/***************************************************************************
- programmable_reduce
- ***************************************************************************/
-%ignore teca_programmable_reduce::shared_from_this;
-%shared_ptr(teca_programmable_reduce)
-%extend teca_programmable_reduce
-{
-    void set_report_callback(PyObject *f)
-    {
-        teca_py_gil_state gil;
-
-        self->set_report_callback(teca_py_algorithm::report_callback(f));
-    }
-
-    void set_request_callback(PyObject *f)
-    {
-        teca_py_gil_state gil;
-
-        self->set_request_callback(teca_py_algorithm::request_callback(f));
-    }
-
-    void set_reduce_callback(PyObject *f)
-    {
-        teca_py_gil_state gil;
-
-        self->set_reduce_callback(teca_py_algorithm::reduce_callback(f));
-    }
-}
-%ignore teca_programmable_reduce::operator=;
-%ignore teca_programmable_reduce::set_report_callback;
-%ignore teca_programmable_reduce::get_report_callback;
-%ignore teca_programmable_reduce::set_request_callback;
-%ignore teca_programmable_reduce::get_request_callback;
-%ignore teca_programmable_reduce::set_reduce_callback;
-%ignore teca_programmable_reduce::get_reduce_callback;
-%include "teca_programmable_reduce_fwd.h"
-%include "teca_programmable_reduce.h"
 
 /***************************************************************************
  derived_quantity
@@ -302,39 +225,38 @@
 }
 
 /***************************************************************************
- python_algorithm
+ pytorch_algorithm
  ***************************************************************************/
-%pythoncode %{
-from teca_python_algorithm import *
-%}
+#ifdef TECA_HAS_PYTORCH
+%pythoncode "teca_pytorch_algorithm.py"
+#endif
+
+/***************************************************************************
+ deeplab_ar_detect
+ ***************************************************************************/
+#ifdef TECA_HAS_PYTORCH
+%pythoncode "teca_deeplab_ar_detect.py"
+#endif
 
 /***************************************************************************
  tc_activity
  ***************************************************************************/
-%pythoncode %{
-from teca_tc_activity import *
-%}
+%pythoncode "teca_tc_activity.py"
 
 /***************************************************************************
  tc_stats
  ***************************************************************************/
-%pythoncode %{
-from teca_tc_stats import *
-%}
+%pythoncode "teca_tc_stats.py"
 
 /***************************************************************************
  tc_trajectory_scalars
  ***************************************************************************/
-%pythoncode %{
-from teca_tc_trajectory_scalars import *
-%}
+%pythoncode "teca_tc_trajectory_scalars.py"
 
 /***************************************************************************
  tc_wind_radii_stats
  ***************************************************************************/
-%pythoncode %{
-from teca_tc_wind_radii_stats import *
-%}
+%pythoncode "teca_tc_wind_radii_stats.py"
 
 /***************************************************************************
  binary_segmentation
@@ -403,22 +325,6 @@ struct teca_tc_saffir_simpson
 %include "teca_tc_wind_radii.h"
 
 /***************************************************************************
- dataset_source
- ***************************************************************************/
-%ignore teca_dataset_source::shared_from_this;
-%shared_ptr(teca_dataset_source)
-%ignore teca_dataset_source::operator=;
-%include "teca_dataset_source.h"
-
-/***************************************************************************
- dataset_capture
- ***************************************************************************/
-%ignore teca_dataset_capture::shared_from_this;
-%shared_ptr(teca_dataset_capture)
-%ignore teca_dataset_capture::operator=;
-%include "teca_dataset_capture.h"
-
-/***************************************************************************
  2d_component_area
  ***************************************************************************/
 %ignore teca_2d_component_area::shared_from_this;
@@ -483,3 +389,32 @@ struct teca_tc_saffir_simpson
 %ignore operator==(const field_generator &l, const field_generator &r);
 %ignore operator!=(const field_generator &l, const field_generator &r);
 %include "teca_cartesian_mesh_source.h"
+
+/***************************************************************************
+ temporal_reduction
+ ***************************************************************************/
+%pythoncode "teca_temporal_reduction.py"
+
+/***************************************************************************
+ vertical_reduction
+ ***************************************************************************/
+%ignore teca_vertical_reduction::shared_from_this;
+%shared_ptr(teca_vertical_reduction)
+%ignore teca_vertical_reduction::operator=;
+%include "teca_vertical_reduction.h"
+
+/***************************************************************************
+ integrated_vapor_transport
+ ***************************************************************************/
+%ignore teca_integrated_vapor_transport::shared_from_this;
+%shared_ptr(teca_integrated_vapor_transport)
+%ignore teca_integrated_vapor_transport::operator=;
+%include "teca_integrated_vapor_transport.h"
+
+/***************************************************************************
+ valid_value_mask
+ ***************************************************************************/
+%ignore teca_valid_value_mask::shared_from_this;
+%shared_ptr(teca_valid_value_mask)
+%ignore teca_valid_value_mask::operator=;
+%include "teca_valid_value_mask.h"

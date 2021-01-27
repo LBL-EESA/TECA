@@ -143,6 +143,19 @@ int teca_metadata::get_name(unsigned long i, std::string &name) const
 }
 
 // --------------------------------------------------------------------------
+int teca_metadata::get_names(std::vector<std::string> &names) const
+{
+    prop_map_t::const_iterator it = this->props.cbegin();
+    prop_map_t::const_iterator end = this->props.cend();
+    for (; it != end; ++it)
+    {
+        names.push_back(it->first);
+    }
+
+    return names.size() > 0 ? 0 : -1;
+}
+
+// --------------------------------------------------------------------------
 int teca_metadata::size(const std::string &name, unsigned int &n) const noexcept
 {
     prop_map_t::const_iterator it = this->props.find(name);
@@ -200,8 +213,10 @@ unsigned long long teca_metadata::get_next_id() const noexcept
 }
 
 // --------------------------------------------------------------------------
-void teca_metadata::to_stream(teca_binary_stream &s) const
+int teca_metadata::to_stream(teca_binary_stream &s) const
 {
+    s.pack("teca_metadata", 13);
+
     unsigned int n_props = this->props.size();
     s.pack(n_props);
 
@@ -213,12 +228,20 @@ void teca_metadata::to_stream(teca_binary_stream &s) const
         s.pack(it->second->type_code());
         it->second->to_stream(s);
     }
+
+    return 0;
 }
 
 // --------------------------------------------------------------------------
-void teca_metadata::from_stream(teca_binary_stream &s)
+int teca_metadata::from_stream(teca_binary_stream &s)
 {
     this->clear();
+
+    if (s.expect("teca_metadata"))
+    {
+        TECA_ERROR("invalid stream")
+        return -1;
+    }
 
     unsigned int n_props;
     s.unpack(n_props);
@@ -238,10 +261,12 @@ void teca_metadata::from_stream(teca_binary_stream &s)
 
         this->set(key, val);
     }
+
+    return 0;
 }
 
 // --------------------------------------------------------------------------
-void teca_metadata::to_stream(ostream &os) const
+int teca_metadata::to_stream(ostream &os) const
 {
     prop_map_t::const_iterator it = this->props.cbegin();
     prop_map_t::const_iterator end = this->props.cend();
@@ -269,6 +294,8 @@ void teca_metadata::to_stream(ostream &os) const
             )
         os << "}" << endl;
     }
+
+    return 0;
 }
 
 // --------------------------------------------------------------------------

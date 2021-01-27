@@ -75,6 +75,7 @@ int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
 #if !defined(TECA_HAS_MPI)
     (void)comm;
 #endif
+
     this->requests.clear();
 
     // locate the keys that enable us to know how many

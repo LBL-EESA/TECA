@@ -2,13 +2,15 @@
 #define teca_table_h
 
 #include "teca_dataset.h"
-#include "teca_table_fwd.h"
 #include "teca_variant_array.h"
 #include "teca_array_collection.h"
+#include "teca_shared_object.h"
 
 #include <map>
 #include <vector>
 #include <string>
+
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_table)
 
 /**
 A collection of collumnar data with row based
@@ -94,6 +96,13 @@ public:
     template<typename cT, typename... oT>
     void append(cT &&val, oT &&... args);
 
+    // return a unique string identifier
+    std::string get_class_name() const override
+    { return "teca_table"; }
+
+    // return an integer identifier uniquely naming the dataset type
+    int get_type_code() const override;
+
     // covert to bool. true if the dataset is not empty.
     // otherwise false.
     explicit operator bool() const noexcept
@@ -104,11 +113,12 @@ public:
 
     // serialize the dataset to/from the given stream
     // for I/O or communication
-    void to_stream(teca_binary_stream &) const override;
-    void from_stream(teca_binary_stream &) override;
+    int to_stream(teca_binary_stream &) const override;
+    int from_stream(teca_binary_stream &) override;
 
     // stream to/from human readable representation
-    void to_stream(std::ostream &) const override;
+    int to_stream(std::ostream &) const override;
+    int from_stream(std::istream &) override;
 
     // copy data and metadata. shallow copy uses reference
     // counting, while copy duplicates the data.
@@ -137,9 +147,11 @@ public:
 
 protected:
     teca_table();
-    teca_table(const teca_table &other) = default;
-    teca_table(teca_table &&other) = default;
-    teca_table &operator=(const teca_table &other) = default;
+
+    teca_table(const teca_table &other) = delete;
+    teca_table(teca_table &&other) = delete;
+    teca_table &operator=(const teca_table &other) = delete;
+
     void declare_columns(){}
     void append(){}
 

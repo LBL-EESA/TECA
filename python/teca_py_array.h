@@ -151,19 +151,49 @@ teca_py_array_numpy_scalar_tt_declare(NPY_DOUBLE, Float64, double)
         CODE                                                   \
     }
 
-#define TECA_PY_ARRAY_SCALAR_DISPATCH(OBJ, CODE)                       \
-    TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(float, OBJ, CODE)               \
-    TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(double, OBJ, CODE)              \
-    TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(int, OBJ, CODE)                 \
-    TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(unsigned int, OBJ, CODE)        \
-    TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(long, OBJ, CODE)                \
-    TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(unsigned long, OBJ, CODE)       \
-    TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(long long, OBJ, CODE)           \
-    TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(unsigned long long, OBJ, CODE)  \
-    TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(char, OBJ, CODE)                \
-    TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(unsigned char, OBJ, CODE)       \
-    TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(short, OBJ, CODE)               \
-    TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(unsigned short, OBJ, CODE)
+#define TECA_PY_ARRAY_SCALAR_DISPATCH_FP(OBJ, CODE)                         \
+    TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(float, OBJ, CODE)                    \
+    else TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(double, OBJ, CODE)
+
+#define TECA_PY_ARRAY_SCALAR_DISPATCH_I8(OBJ, CODE)                         \
+    TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(char, OBJ, CODE)                     \
+    else TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(unsigned char, OBJ, CODE)
+
+#define TECA_PY_ARRAY_SCALAR_DISPATCH_I16(OBJ, CODE)                        \
+    TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(short, OBJ, CODE)                    \
+    else TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(unsigned short, OBJ, CODE)
+
+#if 0 
+#define TECA_PY_ARRAY_SCALAR_DISPATCH_I32(OBJ, CODE)                        \
+    TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(int, OBJ, CODE)                      \
+    else TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(unsigned int, OBJ, CODE)        \
+    else TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(long, OBJ, CODE)                \
+    else TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(unsigned long, OBJ, CODE)
+
+#define TECA_PY_ARRAY_SCALAR_DISPATCH_I64(OBJ, CODE)                        \
+    TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(long long, OBJ, CODE)                \
+    else TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(unsigned long long, OBJ, CODE)
+#else
+#define TECA_PY_ARRAY_SCALAR_DISPATCH_I32(OBJ, CODE)                        \
+    TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(int, OBJ, CODE)                      \
+    else TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(unsigned int, OBJ, CODE)        \
+    else TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(long, OBJ, CODE)                \
+    else TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(unsigned long, OBJ, CODE)
+
+#define TECA_PY_ARRAY_SCALAR_DISPATCH_I64(OBJ, CODE)                        \
+    TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(long long, OBJ, CODE)                \
+    else TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(unsigned long long, OBJ, CODE)
+#endif
+
+#define TECA_PY_ARRAY_SCALAR_DISPATCH_I(OBJ, CODE)                          \
+    TECA_PY_ARRAY_SCALAR_DISPATCH_I8(OBJ, CODE)                             \
+    else TECA_PY_ARRAY_SCALAR_DISPATCH_I16(OBJ, CODE)                       \
+    else TECA_PY_ARRAY_SCALAR_DISPATCH_I32(OBJ, CODE)                       \
+    else TECA_PY_ARRAY_SCALAR_DISPATCH_I64(OBJ, CODE)
+
+#define TECA_PY_ARRAY_SCALAR_DISPATCH(OBJ, CODE)                            \
+    TECA_PY_ARRAY_SCALAR_DISPATCH_FP(OBJ, CODE)                             \
+    else TECA_PY_ARRAY_SCALAR_DISPATCH_I(OBJ, CODE)
 
 
 // ****************************************************************************

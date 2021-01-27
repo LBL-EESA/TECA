@@ -4,10 +4,12 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_metadata.h"
+#include "teca_array_attributes.h"
 #include "teca_cartesian_mesh.h"
 
 #include <algorithm>
 #include <iostream>
+#include <sstream>
 #include <set>
 #include <iomanip>
 
@@ -159,7 +161,6 @@ int teca_binary_segmentation::get_segmentation_variable(
     return 0;
 }
 
-
 // --------------------------------------------------------------------------
 int teca_binary_segmentation::get_threshold_variable(
     std::string &threshold_var)
@@ -185,18 +186,43 @@ teca_metadata teca_binary_segmentation::get_output_metadata(
 #endif
     (void) port;
 
-
-    std::string segmentation_var = this->segmentation_variable;
-    if (segmentation_var.empty())
+    if (this->threshold_variable.empty())
     {
-        if (this->threshold_variable.empty())
-            segmentation_var = "_segmentation";
-        else
-            segmentation_var = this->threshold_variable + "_segmentation";
+        TECA_ERROR("a threshold_variable has not been set")
+        return teca_metadata();
     }
 
+    std::string segmentation_var;
+    this->get_segmentation_variable(segmentation_var);
+
+    // add to the list of available variables
     teca_metadata md = input_md[0];
     md.append("variables", segmentation_var);
+
+    // insert attributes to enable this to be written by the CF writer
+    teca_metadata attributes;
+    md.get("attributes", attributes);
+
+    std::ostringstream oss;
+    oss << "a binary mask non-zero where " << this->low_threshold_value
+        << (this->threshold_mode == BY_VALUE ? "" : "th percentile")
+        << " <= " << this->threshold_variable << " <= "
+        << (this->threshold_mode == BY_VALUE ? "" : "th percentile")
+        << this->high_threshold_value;
+
+    teca_array_attributes default_atts(
+        teca_variant_array_code<char>::get(),
+        teca_array_attributes::point_centering,
+        0, "unitless", segmentation_var, oss.str());
+
+    // start with user provided attributes, provide default values
+    // where user attributes are missing
+    teca_metadata seg_atts(this->segmentation_variable_attributes);
+    default_atts.merge_to(seg_atts);
+
+    attributes.set(segmentation_var, seg_atts);
+    md.set("attributes", attributes);
+
     return md;
 }
 
@@ -351,19 +377,6 @@ const_p_teca_dataset teca_binary_segmentation::execute(
     teca_metadata &out_metadata = out_mesh->get_metadata();
     out_metadata.set("low_threshold_value", low);
     out_metadata.set("high_threshold_value", high);
-
-
-    // get a copy of the attributes
-    teca_metadata attributes;
-    out_metadata.get("attributes", attributes);
-
-    // insert attributes for the segmentation variable
-    // into the output metadata pointer
-    attributes.set(segmentation_var.c_str(),
-        this->get_segmentation_variable_atts());
-
-    // overwrite the outgoing metadata with the new attributes variable
-    out_metadata.set("attributes", attributes);
 
     return out_mesh;
 }

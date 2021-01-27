@@ -1,16 +1,74 @@
 %{
 #include <memory>
 #include <sstream>
+#include "teca_array_attributes.h"
 #include "teca_variant_array.h"
 #include "teca_array_collection.h"
-#include "teca_cartesian_mesh.h"
+#include "teca_coordinate_util.h"
 #include "teca_mesh.h"
+#include "teca_cartesian_mesh.h"
+#include "teca_curvilinear_mesh.h"
+#include "teca_arakawa_c_grid.h"
 #include "teca_table.h"
 #include "teca_table_collection.h"
 #include "teca_database.h"
 #include "teca_py_object.h"
 #include "teca_py_string.h"
 %}
+
+/***************************************************************************
+ array_attributes
+ ***************************************************************************/
+%ignore teca_array_attributes::operator=;
+%rename(from_metadata) teca_array_attributes::from;
+%rename(to_metadata) teca_array_attributes::to;
+%rename(as_metadata) teca_array_attributes::operator teca_metadata() const;
+%include "teca_array_attributes.h"
+%extend teca_array_attributes
+{
+    TECA_PY_STR()
+
+    // wraps cast operator that is used in C++
+    teca_metadata to_metadata()
+    {
+        teca_metadata md;
+        self->to(md);
+        return md;
+    }
+
+    // wrap the constructor to deal with the fill value template. Either pass
+    // a numerical object of the appropriate type or None to indicate no
+    // fill value.
+    teca_array_attributes(unsigned int tc, unsigned int cen,
+        unsigned long n, const std::string &un, const std::string &ln,
+        const std::string &descr, PyObject *fv)
+    {
+        if (fv != Py_None)
+        {
+            if (tc < 1)
+            {
+                TECA_PY_ERROR(PyExc_RuntimeError, "a valid type_code"
+                    " is required when specifying a fill_value")
+                return nullptr;
+            }
+
+            TECA_PY_OBJECT_DISPATCH_NUM(fv,
+                return new teca_array_attributes(tc, cen, n, un, ln, descr,
+                    1, teca_py_object::cpp_tt<OT>::value(fv));
+                )
+
+            TECA_PY_ERROR(PyExc_TypeError, "Unsupported type of fill_value")
+        }
+        else
+        {
+            return new teca_array_attributes(tc, cen, n, un, ln, descr);
+        }
+
+        // the following two statements should never be executed.
+        TECA_PY_ERROR_NOW(PyExc_RuntimeError, "unspecified error")
+        return nullptr;
+    }
+}
 
 /***************************************************************************
  array_collection
@@ -93,6 +151,16 @@
 %ignore teca_mesh::set_time_units(std::string const *);
 %ignore teca_mesh::set_array_attributes(teca_metadata const *);
 %ignore teca_mesh::get_array_attributes(teca_metadata *) const;
+%ignore teca_mesh::get_arrays(int) const;
+%ignore teca_mesh::get_point_arrays() const;
+%ignore teca_mesh::get_cell_arrays() const;
+%ignore teca_mesh::get_x_edge_arrays() const;
+%ignore teca_mesh::get_y_edge_arrays() const;
+%ignore teca_mesh::get_z_edge_arrays() const;
+%ignore teca_mesh::get_x_face_arrays() const;
+%ignore teca_mesh::get_y_face_arrays() const;
+%ignore teca_mesh::get_z_face_arrays() const;
+%ignore teca_mesh::get_information_arrays() const;
 %include "teca_mesh_fwd.h"
 %include "teca_mesh.h"
 TECA_PY_DYNAMIC_CAST(teca_mesh, teca_dataset)
@@ -130,11 +198,45 @@ TECA_PY_CONST_CAST(teca_mesh)
 %ignore teca_cartesian_mesh::set_y_coordinate_variable(std::string const *);
 %ignore teca_cartesian_mesh::set_z_coordinate_variable(std::string const *);
 %ignore teca_cartesian_mesh::set_t_coordinate_variable(std::string const *);
-%include "teca_cartesian_mesh_fwd.h"
 %include "teca_cartesian_mesh.h"
 TECA_PY_DYNAMIC_CAST(teca_cartesian_mesh, teca_dataset)
 TECA_PY_CONST_CAST(teca_cartesian_mesh)
 %extend teca_cartesian_mesh
+{
+    TECA_PY_STR()
+
+    TECA_PY_DATASET_VECTOR_METADATA(unsigned long, extent)
+    TECA_PY_DATASET_VECTOR_METADATA(unsigned long, whole_extent)
+
+    TECA_PY_DATASET_VECTOR_METADATA(double, bounds)
+
+    TECA_PY_DATASET_METADATA(int, periodic_in_x)
+    TECA_PY_DATASET_METADATA(int, periodic_in_y)
+    TECA_PY_DATASET_METADATA(int, periodic_in_z)
+
+    TECA_PY_DATASET_METADATA(std::string, x_coordinate_variable)
+    TECA_PY_DATASET_METADATA(std::string, y_coordinate_variable)
+    TECA_PY_DATASET_METADATA(std::string, z_coordinate_variable)
+    TECA_PY_DATASET_METADATA(std::string, t_coordinate_variable)
+}
+
+/***************************************************************************
+ curvilinear_mesh
+ ***************************************************************************/
+%ignore teca_curvilinear_mesh::shared_from_this;
+%shared_ptr(teca_curvilinear_mesh)
+%ignore teca_curvilinear_mesh::operator=;
+%ignore teca_curvilinear_mesh::get_periodic_in_x(int *) const;
+%ignore teca_curvilinear_mesh::get_periodic_in_y(int *) const;
+%ignore teca_curvilinear_mesh::get_periodic_in_z(int *) const;
+%ignore teca_curvilinear_mesh::set_x_coordinate_variable(std::string const *);
+%ignore teca_curvilinear_mesh::set_y_coordinate_variable(std::string const *);
+%ignore teca_curvilinear_mesh::set_z_coordinate_variable(std::string const *);
+%ignore teca_curvilinear_mesh::set_t_coordinate_variable(std::string const *);
+%include "teca_curvilinear_mesh.h"
+TECA_PY_DYNAMIC_CAST(teca_curvilinear_mesh, teca_dataset)
+TECA_PY_CONST_CAST(teca_curvilinear_mesh)
+%extend teca_curvilinear_mesh
 {
     TECA_PY_STR()
 
@@ -152,6 +254,53 @@ TECA_PY_CONST_CAST(teca_cartesian_mesh)
 }
 
 /***************************************************************************
+ arakawa_c_grid
+ ***************************************************************************/
+%ignore teca_arakawa_c_grid::shared_from_this;
+%shared_ptr(teca_arakawa_c_grid)
+%ignore teca_arakawa_c_grid::operator=;
+%ignore teca_arakawa_c_grid::get_periodic_in_x(int *) const;
+%ignore teca_arakawa_c_grid::get_periodic_in_y(int *) const;
+%ignore teca_arakawa_c_grid::get_periodic_in_z(int *) const;
+%ignore teca_arakawa_c_grid::set_m_x_coordinate_variable(std::string const *);
+%ignore teca_arakawa_c_grid::set_m_y_coordinate_variable(std::string const *);
+%ignore teca_arakawa_c_grid::set_u_x_coordinate_variable(std::string const *);
+%ignore teca_arakawa_c_grid::set_u_y_coordinate_variable(std::string const *);
+%ignore teca_arakawa_c_grid::set_v_x_coordinate_variable(std::string const *);
+%ignore teca_arakawa_c_grid::set_v_y_coordinate_variable(std::string const *);
+%ignore teca_arakawa_c_grid::set_m_z_coordinate_variable(std::string const *);
+%ignore teca_arakawa_c_grid::set_w_z_coordinate_variable(std::string const *);
+%ignore teca_arakawa_c_grid::set_t_coordinate_variable(std::string const *);
+%include "teca_arakawa_c_grid.h"
+TECA_PY_DYNAMIC_CAST(teca_arakawa_c_grid, teca_dataset)
+TECA_PY_CONST_CAST(teca_arakawa_c_grid)
+%extend teca_arakawa_c_grid
+{
+    TECA_PY_STR()
+
+    TECA_PY_DATASET_VECTOR_METADATA(unsigned long, extent)
+    TECA_PY_DATASET_VECTOR_METADATA(unsigned long, whole_extent)
+
+    TECA_PY_DATASET_METADATA(int, periodic_in_x)
+    TECA_PY_DATASET_METADATA(int, periodic_in_y)
+    TECA_PY_DATASET_METADATA(int, periodic_in_z)
+
+    TECA_PY_DATASET_METADATA(std::string, m_x_coordinate_variable)
+    TECA_PY_DATASET_METADATA(std::string, m_y_coordinate_variable)
+
+    TECA_PY_DATASET_METADATA(std::string, u_x_coordinate_variable)
+    TECA_PY_DATASET_METADATA(std::string, u_y_coordinate_variable)
+
+    TECA_PY_DATASET_METADATA(std::string, v_x_coordinate_variable)
+    TECA_PY_DATASET_METADATA(std::string, v_y_coordinate_variable)
+
+    TECA_PY_DATASET_METADATA(std::string, m_z_coordinate_variable)
+    TECA_PY_DATASET_METADATA(std::string, w_z_coordinate_variable)
+
+    TECA_PY_DATASET_METADATA(std::string, t_coordinate_variable)
+}
+
+/***************************************************************************
  table
  ***************************************************************************/
 %ignore teca_table::shared_from_this;
@@ -159,7 +308,6 @@ TECA_PY_CONST_CAST(teca_cartesian_mesh)
 %ignore teca_table::operator=;
 %ignore teca_table::set_calendar(std::string const *);
 %ignore teca_table::set_time_units(std::string const *);
-%include "teca_table_fwd.h"
 %include "teca_table.h"
 TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
 TECA_PY_CONST_CAST(teca_table)
@@ -619,3 +767,53 @@ TECA_PY_CONST_CAST(teca_database)
 {
     TECA_PY_STR()
 }
+
+/***************************************************************************
+ coordinate utilities
+ ***************************************************************************/
+%inline
+%{
+struct coordinate_util
+{
+// given a human readable date string in YYYY-MM-DD hh:mm:ss format
+// amd a list of floating point offset times in the specified calendar
+// and units find the closest time step. return 0 if successful
+static
+unsigned long time_step_of(PyObject *time, bool lower, bool clamp,
+    const std::string &calendar, const std::string &units,
+    const std::string &date)
+{
+    p_teca_variant_array varr;
+    if ((varr = teca_py_array::new_variant_array(time))
+        || (varr = teca_py_sequence::new_variant_array(time))
+        || (varr = teca_py_iterator::new_variant_array(time)))
+    {
+        unsigned long step = 0;
+        if (teca_coordinate_util::time_step_of(varr,
+            lower, clamp, calendar, units, date, step))
+        {
+            TECA_PY_ERROR_NOW(PyExc_RuntimeError, "Failed to get time step from string")
+        }
+        return step;
+    }
+
+    TECA_PY_ERROR_NOW(PyExc_TypeError, "Time axis must be doubles for calendaring")
+    return 0;
+}
+
+// given a time value (val), associated time units (units), and calendar
+// (calendar), return a human-readable rendering of the date (date) in a
+// strftime-format (format).  return 0 if successful.
+static
+std::string time_to_string(double val, const std::string &calendar,
+    const std::string &units, const std::string &format)
+{
+    std::string date;
+    if (teca_coordinate_util::time_to_string(val, calendar, units, format, date))
+    {
+        TECA_PY_ERROR_NOW(PyExc_RuntimeError, "Failed to convert time to string")
+    }
+    return date;
+}
+};
+%}

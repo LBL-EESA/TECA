@@ -49,7 +49,9 @@ by parallel TECA applications and tests.
 +---------------------+---------------------------------------------------+
 | Variable            | Description                                       |
 +---------------------+---------------------------------------------------+
-| PROFILER_ENABLE     | integer turns on or off logging                   |
+| PROFILER_ENABLE     | a binary mask that enables logging.               |
+|                     | 0x01 -- event profiling enabled.                  |
+|                     | 0x02 -- memory profiling enabled.                 |
 +---------------------+---------------------------------------------------+
 | PROFILER_LOG_FILE   | path to write timer log to                        |
 +---------------------+---------------------------------------------------+

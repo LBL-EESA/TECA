@@ -2,7 +2,8 @@
 #define teca_cartesian_mesh_h
 
 #include "teca_mesh.h"
-#include "teca_cartesian_mesh_fwd.h"
+#include "teca_shared_object.h"
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_cartesian_mesh)
 
 /// data on a physically uniform cartesian mesh
 class teca_cartesian_mesh : public teca_mesh
@@ -57,6 +58,14 @@ public:
     void set_z_coordinates(const std::string &name,
         const p_teca_variant_array &array);
 
+
+    // return a unique string identifier
+    std::string get_class_name() const override
+    { return "teca_cartesian_mesh"; }
+
+    // return an integer identifier uniquely naming the dataset type
+    int get_type_code() const override;
+
     // copy data and metadata. shallow copy uses reference
     // counting, while copy duplicates the data.
     void copy(const const_p_teca_dataset &) override;
@@ -70,11 +79,11 @@ public:
 
     // serialize the dataset to/from the given stream
     // for I/O or communication
-    void to_stream(teca_binary_stream &) const override;
-    void from_stream(teca_binary_stream &) override;
+    int to_stream(teca_binary_stream &) const override;
+    int from_stream(teca_binary_stream &) override;
 
     // stream to/from human readable representation
-    void to_stream(std::ostream &) const override;
+    int to_stream(std::ostream &) const override;
 
 protected:
     teca_cartesian_mesh();

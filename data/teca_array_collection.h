@@ -77,20 +77,32 @@ public:
     const std::string &get_name(unsigned int i) const
     { return m_names[i]; }
 
+    // return a unique string identifier
+    std::string get_class_name() const
+    { return "teca_array_collection"; }
+
+    // return an integer identifier uniquely naming the dataset type
+    int get_type_code() const
+    { return -1; }
+
     // copy
     void copy(const const_p_teca_array_collection &other);
     void shallow_copy(const p_teca_array_collection &other);
+
+    // append
+    int append(const const_p_teca_array_collection &other);
+    int shallow_append(const p_teca_array_collection &other);
 
     // swap
     void swap(p_teca_array_collection &other);
 
     // serialize the data to/from the given stream
     // for I/O or communication
-    void to_stream(teca_binary_stream &s) const;
-    void from_stream(teca_binary_stream &s);
+    int to_stream(teca_binary_stream &s) const;
+    int from_stream(teca_binary_stream &s);
 
     // stream to/from human readable representation
-    void to_stream(std::ostream &) const;
+    int to_stream(std::ostream &) const;
 
 protected:
     teca_array_collection() = default;

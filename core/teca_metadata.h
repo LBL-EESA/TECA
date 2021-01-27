@@ -76,12 +76,11 @@ public:
     int set(const std::string &name, const p_teca_variant_array &prop_val);
 
     template<typename T>
-    void set(const std::string &name,
+    int set(const std::string &name,
         const p_teca_variant_array_impl<T> &prop_val);
 
-    // append a value to the named property. reports
-    // an error and does nothing if the property doesn't
-    // exist. return 0 on success.
+    // append a value to the named property. if the property doesn't
+    // exist it is created. return 0 on success.
     template<typename T>
     int append(const std::string &name, const T &val);
 
@@ -118,7 +117,7 @@ public:
     // get prop value. return 0 if successful
     template<typename T>
     int get(const std::string &name, T &val) const
-    { return this->get<T>(name, 0, val); }
+    { return this->get<T>(name, (unsigned int)(0), val); }
 
     // get ith prop value. return 0 if successful
     template<typename T>
@@ -153,6 +152,10 @@ public:
     // return 0 if i is valid index.
     int get_name(unsigned long i, std::string &name) const;
 
+    // get the names of all name, value pairs. returns 0
+    // if there are any properties.
+    int get_names(std::vector<std::string> &names) const;
+
     // remove. return 0 if successful
     int remove(const std::string &name) noexcept;
 
@@ -171,12 +174,12 @@ public:
     { return !empty(); }
 
     // serialize to/from binary
-    void to_stream(teca_binary_stream &s) const;
-    void from_stream(teca_binary_stream &s);
+    int to_stream(teca_binary_stream &s) const;
+    int from_stream(teca_binary_stream &s);
 
     // serialize to/from ascii
-    void to_stream(std::ostream &os) const;
-    void from_stream(std::ostream &) {}
+    int to_stream(std::ostream &os) const;
+    int from_stream(std::ostream &) { return -1; }
 
 private:
     unsigned long long get_next_id() const noexcept;
@@ -235,7 +238,7 @@ int teca_metadata::append(const std::string &name, const T &val)
     prop_map_t::iterator it = this->props.find(name);
     if (it == this->props.end())
     {
-        return -1;
+        return this->set(name, val);
     }
 
     it->second->append(val);
@@ -321,11 +324,11 @@ int teca_metadata::set(const std::string &name,
 
 // --------------------------------------------------------------------------
 template<typename T>
-void teca_metadata::set(
-    const std::string &name,
+int teca_metadata::set(const std::string &name,
     const p_teca_variant_array_impl<T> &prop_val)
 {
     this->props[name] = prop_val;
+    return 0;
 }
 
 // --------------------------------------------------------------------------
@@ -481,4 +484,7 @@ int teca_metadata::get(const std::string &name,
 
 // convenience defs for nesting metadata
 using teca_metadata_array = teca_variant_array_impl<teca_metadata>;
+using p_teca_metadata_array = std::shared_ptr<teca_variant_array_impl<teca_metadata>>;
+using const_p_teca_metadata_array = std::shared_ptr<const teca_variant_array_impl<teca_metadata>>;
+
 #endif

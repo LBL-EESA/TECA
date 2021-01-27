@@ -2,10 +2,12 @@
 #define teca_file_util_h
 
 #include <vector>
+#include <deque>
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <sys/stat.h>
 
 class teca_binary_stream;
 
@@ -17,22 +19,23 @@ class teca_binary_stream;
 
 namespace teca_file_util
 {
-// read the file into a stream. read will fail if header
-// is not found. return zero upon success. The verbose flag
-// indicates whether or not an error is reported if opening
-// the file fails. All other errors are always reported.
+// read the file into a stream. if header is not null the call will fail if the
+// given string is not found. return zero upon success. The verbose flag
+// indicates whether or not an error is reported if opening the file fails. All
+// other errors are always reported.
 int read_stream(const char *file_name, const char *header,
     teca_binary_stream &stream, bool verbose=true);
 
-// write the stream to the file. the header is prepended to the
-// file. return zero upon success. The verbose flag indicates
-// whether or not an error is reported if creating the file
-// fails. All other errors are reported.
-int write_stream(const char *file_name, const char *header,
+// write the stream to the file. the passed in flags control file access, a
+// reasonable value is S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH. if header is not null
+// the given string is prepended to the file. return zero upon success. The
+// verbose flag indicates whether or not an error is reported if creating the
+// file fails. All other errors are reported.
+int write_stream(const char *file_name, int flags, const char *header,
     const teca_binary_stream &stream, bool verbose=true);
 
 // replace %t% with the given value
-void replace_timestep(std::string &file_name, unsigned long time_step);
+void replace_timestep(std::string &file_name, unsigned long time_step, int width = 6);
 
 // replace %t% with the time t in calendar with units in the strftime format
 int replace_time(std::string &file_name, double t,
@@ -70,7 +73,7 @@ std::string filename(const std::string &filename);
 // Returns the extension from the given filename.
 std::string extension(const std::string &filename);
 
-// rad the line of the ascii file into a vector
+// read the lines of the ascii file into a vector
 size_t load_lines(const char *filename, std::vector<std::string> &lines);
 
 // read the file into a string
@@ -173,6 +176,47 @@ size_t parse_value(std::string &in,size_t at, std::string key, T &value)
     }
   return p;
 }
+
+// a stack of lines. lines can be popped as they are processed
+// and the current line number is recorded.
+struct line_buffer
+{
+    line_buffer() : m_buffer(nullptr), m_line_number(0) {}
+    ~line_buffer() { free(m_buffer); }
+
+    // read the contents of the file and intitalize the
+    // stack of lines.
+    int initialize(const char *file_name);
+
+    // check if the stack is not empty
+    operator bool ()
+    {
+        return !m_lines.empty();
+    }
+
+    // get the line at the top of the stack
+    char *current()
+    {
+        return m_lines.front();
+    }
+
+    // remove the line at the top of the stack
+    void pop()
+    {
+        m_lines.pop_front();
+        ++m_line_number;
+    }
+
+    // get the current line number
+    size_t line_number()
+    {
+        return m_line_number;
+    }
+
+    char *m_buffer;
+    std::deque<char*> m_lines;
+    size_t m_line_number;
+};
 
 };
 

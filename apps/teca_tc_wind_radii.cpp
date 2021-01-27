@@ -3,6 +3,7 @@
 #include "teca_table_remove_rows.h"
 #include "teca_table_sort.h"
 #include "teca_cf_reader.h"
+#include "teca_multi_cf_reader.h"
 #include "teca_normalize_coordinates.h"
 #include "teca_tc_wind_radii.h"
 #include "teca_table_reduce.h"
@@ -10,6 +11,7 @@
 #include "teca_table_writer.h"
 #include "teca_dataset_diff.h"
 #include "teca_file_util.h"
+#include "teca_app_util.h"
 #include "teca_mpi_manager.h"
 
 #include <vector>
@@ -32,28 +34,47 @@ int main(int argc, char **argv)
     // initialize command line options description
     // set up some common options to simplify use for most
     // common scenarios
+    int help_width = 100;
     options_description basic_opt_defs(
         "Basic usage:\n\n"
         "The following options are the most commonly used. Information\n"
         "on advanced options can be displayed using --advanced_help\n\n"
-        "Basic command line options", 120, -1
+        "Basic command line options", help_width, help_width - 4
         );
     basic_opt_defs.add_options()
-        ("track_file", value<std::string>(), "file path to read the cyclone from (tracks.bin)")
-        ("wind_files", value<std::string>(), "regex matching simulation files containing wind fields ()")
-        ("track_file_out", value<std::string>(), "file path to write cyclone tracks with size (tracks_size.bin)")
-        ("wind_u_var", value<std::string>(), "name of variable with wind x-component (UBOT)")
-        ("wind_v_var", value<std::string>(), "name of variable with wind y-component (VBOT)")
-        ("track_mask", value<std::string>(), "expression to filter tracks by ()")
-        ("number_of_bins", value<int>(), "number of bins in the radial wind decomposition (32)")
-        ("profile_type", value<std::string>(), "radial wind profile type. max or avg (avg)")
-        ("search_radius", value<double>(), "size of search window in deg lat (6)")
-        ("first_track", value<long>(), "first track to process")
-        ("last_track", value<long>(), "last track to process")
-        ("n_threads", value<int>(), "thread pool size. default is 1. -1 for all")
-        ("help", "display the basic options help")
-        ("advanced_help", "display the advanced options help")
-        ("full_help", "display entire help message")
+        ("track_file", value<std::string>(), "\na file containing cyclone tracks (tracks.bin)\n")
+
+        ("input_file", value<std::string>(), "\na teca_multi_cf_reader configuration file"
+            " identifying the set of NetCDF CF2 files to process. When present data is"
+            " read using the teca_multi_cf_reader. Use one of either --input_file or"
+            " --input_regex.\n")
+
+        ("input_regex", value<std::string>(), "\na teca_cf_reader regex identifying the"
+            " set of NetCDF CF2 files to process. When present data is read using the"
+            " teca_cf_reader. Use one of either --input_file or --input_regex.\n")
+
+        ("wind_files", value<std::string>(), "\na synonym for --input_regex.\n")
+
+        ("track_file_out", value<std::string>()->default_value("tracks_size.bin"),
+            "\nfile path to write cyclone tracks with size\n")
+
+        ("wind_u_var", value<std::string>()->default_value("UBOT"), "\nname of variable with wind x-component\n")
+        ("wind_v_var", value<std::string>()->default_value("VBOT"), "\nname of variable with wind y-component\n")
+        ("track_mask", value<std::string>(), "\nAn expression to filter tracks by\n")
+        ("number_of_bins", value<int>()->default_value(32), "\nnumber of bins in the radial wind decomposition\n")
+        ("profile_type", value<std::string>()->default_value("avg"), "\nradial wind profile type. max or avg\n")
+        ("search_radius", value<double>()->default_value(6), "\nsize of search window in decimal degrees\n")
+
+        ("first_track", value<long>()->default_value(0), "\nfirst track to process\n")
+        ("last_track", value<long>()->default_value(-1), "\nlast track to process\n")
+
+        ("n_threads", value<int>()->default_value(-1), "\nSets the thread pool size on each"
+            " MPI rank. When the default value of -1 is used TECA will coordinate the thread"
+            " pools across ranks such each thread is bound to a unique physical core.\n")
+
+        ("help", "\ndisplays documentation for application specific command line options\n")
+        ("advanced_help", "\ndisplays documentation for algorithm specific command line options\n")
+        ("full_help", "\ndisplays both basic and advanced documentation together\n")
         ;
 
     // add all options from each pipeline stage for more advanced use
@@ -66,12 +87,12 @@ int main(int argc, char **argv)
         "tc storm size pipeline:\n\n"
         "   (track reader)--(track filter)\n"
         "                        \\\n"
-        "     (wind reader)--(storm size)\n"
+        "  (cf / mcf_reader)--(storm size)\n"
         "                         \\\n"
         "                      (map reduce)--(table sort)\n"
         "                                          \\\n"
         "                                       (track writer)\n\n"
-        "Advanced command line options", -1, 1
+        "Advanced command line options", help_width, help_width - 4
         );
 
     // create the pipeline stages here, they contain the
@@ -86,80 +107,38 @@ int main(int argc, char **argv)
     p_teca_table_remove_rows track_filter = teca_table_remove_rows::New();
     track_filter->get_properties_description("track_filter", advanced_opt_defs);
 
-    p_teca_cf_reader wind_reader = teca_cf_reader::New();
-    wind_reader->get_properties_description("wind_reader", advanced_opt_defs);
+    p_teca_cf_reader cf_reader = teca_cf_reader::New();
+    cf_reader->get_properties_description("cf_reader", advanced_opt_defs);
+
+    p_teca_multi_cf_reader mcf_reader = teca_multi_cf_reader::New();
+    mcf_reader->get_properties_description("mcf_reader", advanced_opt_defs);
 
     p_teca_normalize_coordinates wind_coords = teca_normalize_coordinates::New();
-    wind_coords->set_input_connection(wind_coords->get_output_port());
 
     p_teca_tc_wind_radii wind_radii = teca_tc_wind_radii::New();
     wind_radii->get_properties_description("wind_radii", advanced_opt_defs);
-    wind_radii->set_input_connection(1, wind_coords->get_output_port());
 
     p_teca_table_reduce map_reduce = teca_table_reduce::New();
     map_reduce->get_properties_description("map_reduce", advanced_opt_defs);
-    map_reduce->set_input_connection(wind_radii->get_output_port());
 
     p_teca_table_sort sort = teca_table_sort::New();
     sort->get_properties_description("table_sort", advanced_opt_defs);
-    sort->set_input_connection(map_reduce->get_output_port());
     sort->set_index_column("track_id");
     sort->enable_stable_sort();
 
     p_teca_table_writer track_writer = teca_table_writer::New();
     track_writer->get_properties_description("track_writer", advanced_opt_defs);
-    track_writer->set_input_connection(sort->get_output_port());
     track_writer->set_file_name("tracks_size.bin");
 
     // package basic and advanced options for display
-    options_description all_opt_defs(-1, -1);
+    options_description all_opt_defs(help_width, help_width - 4);
     all_opt_defs.add(basic_opt_defs).add(advanced_opt_defs);
 
     // parse the command line
     variables_map opt_vals;
-    try
+    if (teca_app_util::process_command_line_help(mpi_man.get_comm_rank(),
+        argc, argv, basic_opt_defs, advanced_opt_defs, all_opt_defs, opt_vals))
     {
-        boost::program_options::store(
-            boost::program_options::command_line_parser(argc, argv).options(all_opt_defs).run(),
-            opt_vals);
-
-        if (mpi_man.get_comm_rank() == 0)
-        {
-            if (opt_vals.count("help"))
-            {
-                cerr << endl
-                    << "usage: teca_tc_wind_radii [options]" << endl
-                    << endl
-                    << basic_opt_defs << endl
-                    << endl;
-                return -1;
-            }
-            if (opt_vals.count("advanced_help"))
-            {
-                cerr << endl
-                    << "usage: teca_tc_wind_radii [options]" << endl
-                    << endl
-                    << advanced_opt_defs << endl
-                    << endl;
-                return -1;
-            }
-            if (opt_vals.count("full_help"))
-            {
-                cerr << endl
-                    << "usage: teca_tc_wind_radii [options]" << endl
-                    << endl
-                    << all_opt_defs << endl
-                    << endl;
-                return -1;
-            }
-        }
-
-        boost::program_options::notify(opt_vals);
-    }
-    catch (std::exception &e)
-    {
-        TECA_ERROR("Error parsing command line options. See --help "
-            "for a list of supported options. " << e.what())
         return -1;
     }
 
@@ -168,7 +147,8 @@ int main(int argc, char **argv)
     // options will override them
     track_reader->set_properties("track_reader", opt_vals);
     track_filter->set_properties("track_filter", opt_vals);
-    wind_reader->set_properties("wind_reader", opt_vals);
+    cf_reader->set_properties("cf_reader", opt_vals);
+    mcf_reader->set_properties("mcf_reader", opt_vals);
     wind_radii->set_properties("wind_radii", opt_vals);
     map_reduce->set_properties("map_reduce", opt_vals);
     sort->set_properties("table_sort", opt_vals);
@@ -176,43 +156,55 @@ int main(int argc, char **argv)
 
     // now pass in the basic options, these are processed
     // last so that they will take precedence
-    if (opt_vals.count("track_file"))
+    if (!opt_vals["track_file"].defaulted())
         track_reader->set_file_name(opt_vals["track_file"].as<std::string>());
 
-    if (opt_vals.count("wind_files"))
+    bool have_file = opt_vals.count("input_file");
+    bool have_wind_files = opt_vals.count("wind_files");
+    bool have_regex = opt_vals.count("input_regex");
+    p_teca_algorithm wind_reader;
+    if (have_file)
     {
-        wind_reader->set_files_regex(opt_vals["wind_files"].as<std::string>());
+        mcf_reader->set_input_file(opt_vals["input_file"].as<std::string>());
+        wind_reader = mcf_reader;
     }
-    else
+    else if (have_wind_files)
     {
-        TECA_ERROR("--wind_files is a required option")
-        return -1;
+        have_regex = true;
+        cf_reader->set_files_regex(opt_vals["wind_files"].as<std::string>());
+        wind_reader = cf_reader;
+    }
+    else if (have_regex)
+    {
+        cf_reader->set_files_regex(opt_vals["input_regex"].as<std::string>());
+        wind_reader = cf_reader;
     }
 
-    if (opt_vals.count("track_file_out"))
+    if (!opt_vals["track_file_out"].defaulted())
         track_writer->set_file_name(opt_vals["track_file_out"].as<std::string>());
 
+    p_teca_algorithm track_input;
     if (opt_vals.count("track_mask"))
     {
         track_filter->set_input_connection(track_reader->get_output_port());
         track_filter->set_mask_expression(opt_vals["track_mask"].as<std::string>());
-        wind_radii->set_input_connection(0, track_filter->get_output_port());
+        track_input = track_filter;
     }
     else
     {
-        wind_radii->set_input_connection(0, track_reader->get_output_port());
+        track_input = track_reader;
     }
 
-    if (opt_vals.count("wind_u_var"))
+    if (!opt_vals["wind_u_var"].defaulted())
         wind_radii->set_wind_u_variable(opt_vals["wind_u_var"].as<std::string>());
 
-    if (opt_vals.count("wind_v_var"))
+    if (!opt_vals["wind_v_var"].defaulted())
         wind_radii->set_wind_v_variable(opt_vals["wind_v_var"].as<std::string>());
 
-    if (opt_vals.count("n_radial_bins"))
-        wind_radii->set_number_of_radial_bins(opt_vals["n_radial_bins"].as<int>());
+    if (!opt_vals["number_of_bins"].defaulted())
+        wind_radii->set_number_of_radial_bins(opt_vals["number_of_bins"].as<int>());
 
-    if (opt_vals.count("profile_type"))
+    if (!opt_vals["profile_type"].defaulted())
     {
         std::string profile_type = opt_vals["profile_type"].as<std::string>();
         if (profile_type == "avg")
@@ -230,19 +222,39 @@ int main(int argc, char **argv)
         }
     }
 
-    if (opt_vals.count("search_radius"))
+    if (!opt_vals["search_radius"].defaulted())
         wind_radii->set_search_radius(opt_vals["search_radius"].as<double>());
 
-    if (opt_vals.count("first_track"))
+    if (!opt_vals["first_track"].defaulted())
         map_reduce->set_start_index(opt_vals["first_track"].as<long>());
 
-    if (opt_vals.count("last_track"))
+    if (!opt_vals["last_track"].defaulted())
         map_reduce->set_end_index(opt_vals["last_track"].as<long>());
 
-    if (opt_vals.count("n_threads"))
+    if (!opt_vals["n_threads"].defaulted())
         map_reduce->set_thread_pool_size(opt_vals["n_threads"].as<int>());
     else
         map_reduce->set_thread_pool_size(-1);
+
+    // some minimal check for missing options
+    if ((have_file && have_regex) || !(have_file || have_regex))
+    {
+        if (mpi_man.get_comm_rank() == 0)
+        {
+            TECA_ERROR("Extacly one of --input_file or --input_regex can be specified. "
+                "Use --input_file to activate the multi_cf_reader (HighResMIP datasets) "
+                "and --input_regex to activate the cf_reader (CAM like datasets)")
+        }
+        return -1;
+    }
+
+    // connect the pipeline
+    wind_coords->set_input_connection(wind_reader->get_output_port());
+    wind_radii->set_input_connection(0, track_input->get_output_port());
+    wind_radii->set_input_connection(1, wind_coords->get_output_port());
+    map_reduce->set_input_connection(wind_radii->get_output_port());
+    sort->set_input_connection(map_reduce->get_output_port());
+    track_writer->set_input_connection(sort->get_output_port());
 
     // run the pipeline
     track_writer->update();

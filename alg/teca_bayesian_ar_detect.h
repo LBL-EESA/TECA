@@ -10,8 +10,31 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_bayesian_ar_detect)
 
-/// 
+/// CASCADE BARD atmospheric river detector
 /**
+Given a point wise IVT (integrated vapor transport) field and a training
+parameter table computes the point wise probability of an atmospheric river
+using the CASCADE BARD algorithm.
+
+Required inputs:
+
+    1. IVT (integrated vapor transport) array on a Cartesian nesh.
+    2. a compatible parameter table. columns of which are : min IVT,
+       component area, HWHM lattitude
+
+The names of the input varibale and columns can be specified at run time
+through algorithm properties.
+
+Produces:
+
+    A Cartesian mesh with probability of an AR stored in the point centered
+    array named "ar_probability". The diagnostic quantites "ar_count" amd
+    "parameter_table_row" are stored in information arrays.
+
+For more information see:
+
+Detection of Atmospheric Rivers with Inline Uncertainty Quantification: TECA-BARD v1.0
+O'Brien, T. A et al. Geoscientific Model Development, 2020
 */
 class teca_bayesian_ar_detect : public teca_algorithm
 {
@@ -27,10 +50,10 @@ public:
     TECA_SET_ALGORITHM_PROPERTIES()
 
     // set the name of the input array
-    TECA_ALGORITHM_PROPERTY(std::string, water_vapor_variable)
+    TECA_ALGORITHM_PROPERTY(std::string, ivt_variable)
 
     // set the names of columns in the parameter table.
-    TECA_ALGORITHM_PROPERTY(std::string, min_water_vapor_variable)
+    TECA_ALGORITHM_PROPERTY(std::string, min_ivt_variable)
     TECA_ALGORITHM_PROPERTY(std::string, min_component_area_variable)
     TECA_ALGORITHM_PROPERTY(std::string, hwhm_latitude_variable)
 
@@ -71,9 +94,9 @@ private:
     void set_modified() override;
 
 private:
-    std::string water_vapor_variable;
+    std::string ivt_variable;
     std::string min_component_area_variable;
-    std::string min_water_vapor_variable;
+    std::string min_ivt_variable;
     std::string hwhm_latitude_variable;
     int thread_pool_size;
     int verbose;

@@ -290,12 +290,108 @@ private:
     teca_py_object::teca_py_callable m_callback;
 };
 
-/// wrapper for reduce_callback of the programmable reduction
-/** Manages a python callback for use during a programmable reduction addition
-to holding the callback it handles translation of the input and output arguments.
+/// wrapper for execute_callback phase callback
+/** Manages a python callback for use during the execute_callback phase of
+pipeline execution. In addition to holding the callback it handles translation
+of the input and output arguments.
 
-the python function must accept the two datasets to reduce and
-return the reduced data
+the python function must accept the following arguments:
+
+   port - an integer set to the active port number
+   input_data - a list of datasets objects one per input connection,
+        per upstream request
+   request - a metadata object containing the request
+   streaming - flag indicating when processing is finished
+
+it must return: a teca_dataset object.
+*/
+class threaded_execute_callback
+{
+public:
+    threaded_execute_callback(PyObject *f)
+        : m_callback(f) {}
+
+    PyObject *set_callback(PyObject *f)
+    { return m_callback.set_object(f); }
+
+    explicit operator bool() const
+    { return static_cast<bool>(m_callback); }
+
+    const_p_teca_dataset operator()(unsigned int port,
+        const std::vector<const_p_teca_dataset> &in_data,
+        const teca_metadata &request, int streaming)
+    {
+        teca_py_gil_state gil;
+
+        PyObject *f = m_callback.get_object();
+        if (!f)
+        {
+            TECA_PY_ERROR_NOW(PyExc_TypeError,
+                "execute_callback callback not set")
+            return nullptr;
+        }
+
+        // wrap the data in a list
+        size_t n_elem = in_data.size();
+        PyObject *py_data = PyList_New(n_elem);
+        for (size_t i = 0; i < n_elem; ++i)
+        {
+            PyList_SET_ITEM(py_data, i, SWIG_NewPointerObj(
+                SWIG_as_voidptr(new const_p_teca_dataset(in_data[i])),
+                SWIGTYPE_p_std__shared_ptrT_teca_dataset_t,
+                SWIG_POINTER_OWN));
+        }
+
+        // wrap the request
+        PyObject *py_req = SWIG_NewPointerObj(
+            SWIG_as_voidptr(new teca_metadata(request)),
+            SWIGTYPE_p_teca_metadata, SWIG_POINTER_OWN);
+
+        // call the callback
+        PyObject *args = Py_BuildValue("INNI", port, py_data, py_req, streaming);
+
+        PyObject *ret = nullptr;
+        if (!(ret = PyObject_CallObject(f, args)) || PyErr_Occurred())
+        {
+            TECA_PY_CALLBACK_ERROR(execute, f)
+            return nullptr;
+        }
+
+        Py_DECREF(args);
+
+        // convert the return
+        int i_own = 0;
+        p_teca_dataset *tmp_data = nullptr;
+        if (!SWIG_IsOK(SWIG_ConvertPtrAndOwn(ret,
+            reinterpret_cast<void**>(&tmp_data),
+            SWIGTYPE_p_std__shared_ptrT_teca_dataset_t, 0, &i_own))
+            || !tmp_data)
+        {
+            TECA_PY_ERROR_NOW(PyExc_TypeError,
+                "invalid return type from execute_callback")
+            return nullptr;
+        }
+
+        p_teca_dataset out_data(*tmp_data);
+
+        if (i_own)
+            delete tmp_data;
+
+        return out_data;
+    }
+
+private:
+    teca_py_object::teca_py_callable m_callback;
+};
+
+/// wrapper for reduce_callback of the programmable reduction
+/**
+Manages a python callback for use during a programmable reduction. In addition
+to holding the callback it handles translation of the input and output
+arguments.
+
+the python function must accept the two datasets to reduce and return the
+reduced data
 */
 class reduce_callback
 {
@@ -323,18 +419,37 @@ public:
         }
 
         // package input datasets
-        PyObject *py_input_0 = SWIG_NewPointerObj(
+        PyObject *py_input_0 = nullptr;
+        if (input_0)
+        {
+            py_input_0 = SWIG_NewPointerObj(
                 SWIG_as_voidptr(new const_p_teca_dataset(input_0)),
                 SWIGTYPE_p_std__shared_ptrT_teca_dataset_t,
                 SWIG_POINTER_OWN);
+        }
+        else
+        {
+            py_input_0 = Py_None;
+            Py_INCREF(Py_None);
+        }
 
-        PyObject *py_input_1 = SWIG_NewPointerObj(
+        PyObject *py_input_1 = nullptr;
+        if (input_1)
+        {
+            py_input_1 = SWIG_NewPointerObj(
                 SWIG_as_voidptr(new const_p_teca_dataset(input_1)),
                 SWIGTYPE_p_std__shared_ptrT_teca_dataset_t,
                 SWIG_POINTER_OWN);
+        }
+        else
+        {
+            py_input_1 = Py_None;
+            Py_INCREF(Py_None);
+        }
 
         // call the callback
-        PyObject *args = Py_BuildValue("NN", py_input_0, py_input_1);
+        PyObject *args =
+            Py_BuildValue("NN", py_input_0, py_input_1);
 
         PyObject *ret = nullptr;
         if (!(ret = PyObject_CallObject(f, args)) || PyErr_Occurred())
@@ -353,7 +468,7 @@ public:
             SWIGTYPE_p_std__shared_ptrT_teca_dataset_t, 0, &i_own))
             || !tmp_data)
         {
-            // this is not necessarilly an error
+            // this is not necessarily an error
             return nullptr;
         }
 
@@ -369,6 +484,90 @@ private:
     teca_py_object::teca_py_callable m_callback;
 };
 
+/// wrapper for finalize_callback of the programmable reduction
+/**
+Manages a python callback for use during a programmable reduction. In addition
+to holding the callback it handles translation of the input and output
+arguments.
+
+the python function must accept the dataset to finalize and return the
+finalized data
+*/
+class finalize_callback
+{
+public:
+    finalize_callback(PyObject *f)
+        : m_callback(f) {}
+
+    PyObject *set_callback(PyObject *f)
+    { return m_callback.set_object(f); }
+
+    explicit operator bool() const
+    { return static_cast<bool>(m_callback); }
+
+    p_teca_dataset operator()(const const_p_teca_dataset &ds)
+    {
+        teca_py_gil_state gil;
+
+        PyObject *f = m_callback.get_object();
+        if (!f)
+        {
+            TECA_PY_ERROR_NOW(PyExc_TypeError,
+                "finalize_callback callback not set")
+            return nullptr;
+        }
+
+        // package input dataset
+        PyObject *py_ds = nullptr;
+        if (ds)
+        {
+            py_ds = SWIG_NewPointerObj(
+                SWIG_as_voidptr(new const_p_teca_dataset(ds)),
+                SWIGTYPE_p_std__shared_ptrT_teca_dataset_t,
+                SWIG_POINTER_OWN);
+        }
+        else
+        {
+            py_ds = Py_None;
+            Py_INCREF(Py_None);
+        }
+
+        // call the callback
+        PyObject *args =
+            Py_BuildValue("(N)", py_ds);
+
+        PyObject *ret = nullptr;
+        if (!(ret = PyObject_CallObject(f, args)) || PyErr_Occurred())
+        {
+            TECA_PY_CALLBACK_ERROR(reduce, f)
+            return nullptr;
+        }
+
+        Py_DECREF(args);
+
+        // convert the return
+        int i_own = 0;
+        p_teca_dataset *tmp_data = nullptr;
+        if (!SWIG_IsOK(SWIG_ConvertPtrAndOwn(ret,
+            reinterpret_cast<void**>(&tmp_data),
+            SWIGTYPE_p_std__shared_ptrT_teca_dataset_t, 0, &i_own))
+            || !tmp_data)
+        {
+            // this is not necessarily an error
+            return nullptr;
+        }
+
+        p_teca_dataset out_data(*tmp_data);
+
+        if (i_own)
+            delete tmp_data;
+
+        return out_data;
+    }
+
+private:
+    teca_py_object::teca_py_callable m_callback;
 };
+}
 
 #endif

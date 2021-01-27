@@ -17,6 +17,7 @@
 #include "teca_mpi_manager.h"
 #include "teca_coordinate_util.h"
 #include "calcalcs.h"
+#include "teca_app_util.h"
 
 #include <vector>
 #include <string>
@@ -38,21 +39,24 @@ int main(int argc, char **argv)
     // initialize command line options description
     // set up some common options to simplify use for most
     // common scenarios
+    int help_width = 100;
     options_description basic_opt_defs(
         "Basic usage:\n\n"
         "The following options are the most commonly used. Information\n"
         "on advanced options can be displayed using --advanced_help\n\n"
-        "Basic command line options", 120, -1
+        "Basic command line options", help_width, help_width - 4
         );
     basic_opt_defs.add_options()
-        ("candidate_file", value<string>(), "file path to read the storm candidates from (candidates.bin)")
-        ("max_daily_distance", value<double>(), "max distance in km that a storm can travel in one day (1600)")
-        ("min_wind_speed", value<double>(), "minimum peak wind speed to be considered a tropical storm (17.0)")
-        ("min_wind_duration", value<double>(), "number of, not necessarily consecutive, days min wind speed sustained (2.0)")
-        ("track_file", value<string>(), "file path to write storm tracks to")
-        ("help", "display the basic options help")
-        ("advanced_help", "display the advanced options help")
-        ("full_help", "display entire help message")
+        ("candidate_file", value<string>()->default_value("candidates.bin"), "\nfile path to read the storm candidates from\n")
+        ("max_daily_distance", value<double>()->default_value(1600), "\nmax distance in km that a storm can travel in one day\n")
+        ("min_wind_speed", value<double>()->default_value(17.0), "\nminimum peak wind speed to be considered a tropical storm\n")
+        ("min_wind_duration", value<double>()->default_value(2.0), "\nnumber of, not necessarily consecutive, days min wind speed sustained\n")
+        ("track_file", value<string>()->default_value("tracks.bin"), "\nfile path to"
+            " write storm tracks to. The extension determines the file format. May be"
+            " one of `.nc`, `.csv`, or `.bin`\n")
+        ("help", "\ndisplays documentation for application specific command line options\n")
+        ("advanced_help", "\ndisplays documentation for algorithm specific command line options\n")
+        ("full_help", "\ndisplays both basic and advanced documentation together\n")
         ;
 
     // add all options from each pipeline stage for more advanced use
@@ -64,7 +68,7 @@ int main(int argc, char **argv)
         "specified.\n\n"
         "tropical storms trajectory pipeline:\n\n"
         "   (candidate reader)--(sort)--(tracks)--(track writer)\n\n"
-        "Advanced command line options", -1, 1
+        "Advanced command line options", help_width, help_width - 4
         );
 
     // create the pipeline stages here, they contain the
@@ -75,11 +79,8 @@ int main(int argc, char **argv)
     p_teca_table_reader candidate_reader = teca_table_reader::New();
     candidate_reader->get_properties_description("candidate_reader", advanced_opt_defs);
 
-    p_teca_normalize_coordinates candidate_coords = teca_normalize_coordinates::New();
-    candidate_coords->set_input_connection(candidate_reader->get_output_port());
-
     p_teca_table_sort sort = teca_table_sort::New();
-    sort->set_input_connection(candidate_coords->get_output_port());
+    sort->set_input_connection(candidate_reader->get_output_port());
     sort->set_index_column("storm_id");
     sort->get_properties_description("sort", advanced_opt_defs);
 
@@ -100,55 +101,14 @@ int main(int argc, char **argv)
     track_writer->get_properties_description("track_writer", advanced_opt_defs);
 
     // package basic and advanced options for display
-    options_description all_opt_defs(-1, -1);
+    options_description all_opt_defs(help_width, help_width - 4);
     all_opt_defs.add(basic_opt_defs).add(advanced_opt_defs);
 
     // parse the command line
     variables_map opt_vals;
-    try
+    if (teca_app_util::process_command_line_help(mpi_man.get_comm_rank(),
+        argc, argv, basic_opt_defs, advanced_opt_defs, all_opt_defs, opt_vals))
     {
-        boost::program_options::store(
-            boost::program_options::command_line_parser(argc, argv).options(all_opt_defs).run(),
-            opt_vals);
-
-        if (mpi_man.get_comm_rank() == 0)
-        {
-            if (opt_vals.count("help"))
-            {
-                cerr << endl
-                    << "usage: teca_tc_detect [options]" << endl
-                    << endl
-                    << basic_opt_defs << endl
-                    << endl;
-                return -1;
-            }
-            if (opt_vals.count("advanced_help"))
-            {
-                cerr << endl
-                    << "usage: teca_tc_detect [options]" << endl
-                    << endl
-                    << advanced_opt_defs << endl
-                    << endl;
-                return -1;
-            }
-
-            if (opt_vals.count("full_help"))
-            {
-                cerr << endl
-                    << "usage: teca_tc_detect [options]" << endl
-                    << endl
-                    << all_opt_defs << endl
-                    << endl;
-                return -1;
-            }
-        }
-
-        boost::program_options::notify(opt_vals);
-    }
-    catch (std::exception &e)
-    {
-        TECA_ERROR("Error parsing command line options. See --help "
-            "for a list of supported options. " << e.what())
         return -1;
     }
 
@@ -163,25 +123,23 @@ int main(int argc, char **argv)
 
     // now pass in the basic options, these are processed
     // last so that they will take precedence
-    if (opt_vals.count("candidate_file"))
-        candidate_reader->set_file_name(
-            opt_vals["candidate_file"].as<string>());
+    candidate_reader->set_file_name(
+        opt_vals["candidate_file"].as<string>());
 
-    if (opt_vals.count("max_daily_distance"))
+    if (!opt_vals["max_daily_distance"].defaulted())
         tracks->set_max_daily_distance(
             opt_vals["max_daily_distance"].as<double>());
 
-    if (opt_vals.count("min_wind_speed"))
+    if (!opt_vals["min_wind_speed"].defaulted())
         tracks->set_min_wind_speed(
             opt_vals["min_wind_speed"].as<double>());
 
-    if (opt_vals.count("min_wind_duration"))
+    if (!opt_vals["min_wind_duration"].defaulted())
         tracks->set_min_wind_duration(
             opt_vals["min_wind_duration"].as<double>());
 
-    if (opt_vals.count("track_file"))
-        track_writer->set_file_name(
-            opt_vals["track_file"].as<string>());
+    track_writer->set_file_name(
+        opt_vals["track_file"].as<string>());
 
     // some minimal check for missing options
     if (candidate_reader->get_file_name().empty())

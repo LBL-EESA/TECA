@@ -44,6 +44,13 @@ virtual p_teca_dataset new_copy() const override    \
     p_teca_dataset o = this->new_instance();        \
     o->copy(this->shared_from_this());              \
     return o;                                       \
+}                                                   \
+                                                    \
+virtual p_teca_dataset new_shallow_copy() override  \
+{                                                   \
+    p_teca_dataset o = this->new_instance();        \
+    o->shallow_copy(this->shared_from_this());      \
+    return o;                                       \
 }
 
 // convenience macro for adding properties to dataset

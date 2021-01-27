@@ -4,6 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_metadata.h"
+#include "teca_array_attributes.h"
 
 #include <algorithm>
 #include <iostream>
@@ -130,16 +131,14 @@ const_p_teca_dataset teca_table_calendar::execute(
 
     // get calendar and unit system
     std::string units = this->units;
-    if (units.empty() &&
-        ((in_table->get_time_units(units)) && units.empty()))
+    if (units.empty() && (in_table->get_time_units(units) || units.empty()))
     {
         TECA_ERROR("Units are missing")
         return nullptr;
     }
 
     std::string calendar = this->calendar;
-    if (calendar.empty() &&
-        ((in_table->get_calendar(calendar)) && calendar.empty()))
+    if (calendar.empty() && (in_table->get_calendar(calendar) || calendar.empty()))
     {
         TECA_ERROR("Calendar is missing")
         return nullptr;
@@ -158,6 +157,9 @@ const_p_teca_dataset teca_table_calendar::execute(
     p_teca_table out_table = teca_table::New();
     out_table->copy_metadata(in_table);
 
+    teca_metadata atrs;
+    out_table->get_metadata().get("attributes", atrs);
+
     unsigned long n_rows = time->size();
 
     p_teca_variant_array_impl<int> year;
@@ -168,6 +170,11 @@ const_p_teca_dataset teca_table_calendar::execute(
         year = std::static_pointer_cast
             <teca_variant_array_impl<int>>(out_table->get_column(year_col));
         year->reserve(n_rows);
+
+        teca_array_attributes atts;
+        atts.long_name = "year";
+        atts.description = calendar + " calendar year";
+        atrs.set("year", (teca_metadata)atts);
     }
 
     p_teca_variant_array_impl<int> month;
@@ -178,6 +185,11 @@ const_p_teca_dataset teca_table_calendar::execute(
         month = std::static_pointer_cast
             <teca_variant_array_impl<int>>(out_table->get_column(month_col));
         month->reserve(n_rows);
+
+        teca_array_attributes atts;
+        atts.long_name = "month";
+        atts.description = calendar + " calendar month of year";
+        atrs.set("month", (teca_metadata)atts);
     }
 
     p_teca_variant_array_impl<int> day;
@@ -188,6 +200,11 @@ const_p_teca_dataset teca_table_calendar::execute(
         day = std::static_pointer_cast
             <teca_variant_array_impl<int>>(out_table->get_column(day_col));
         day->reserve(n_rows);
+
+        teca_array_attributes atts;
+        atts.long_name = "day";
+        atts.description = calendar + " calendar day of the monnth";
+        atrs.set("day", (teca_metadata)atts);
     }
 
     p_teca_variant_array_impl<int> hour;
@@ -198,6 +215,11 @@ const_p_teca_dataset teca_table_calendar::execute(
         hour = std::static_pointer_cast
             <teca_variant_array_impl<int>>(out_table->get_column(hour_col));
         hour->reserve(n_rows);
+
+        teca_array_attributes atts;
+        atts.long_name = "hour";
+        atts.description = "hour of the day";
+        atrs.set("hour", (teca_metadata)atts);
     }
 
     p_teca_variant_array_impl<int> minute;
@@ -208,6 +230,11 @@ const_p_teca_dataset teca_table_calendar::execute(
         minute = std::static_pointer_cast
             <teca_variant_array_impl<int>>(out_table->get_column(minute_col));
         minute->reserve(n_rows);
+
+        teca_array_attributes atts;
+        atts.long_name = "minute";
+        atts.description = "minute of the hour";
+        atrs.set("minute", (teca_metadata)atts);
     }
 
     p_teca_variant_array_impl<double> second;
@@ -218,7 +245,14 @@ const_p_teca_dataset teca_table_calendar::execute(
         second = std::static_pointer_cast
             <teca_variant_array_impl<double>>(out_table->get_column(second_col));
         second->reserve(n_rows);
+
+        teca_array_attributes atts;
+        atts.long_name = "second";
+        atts.description = "second of the minute";
+        atrs.set("second", (teca_metadata)atts);
     }
+
+    out_table->get_metadata().set("attributes", atrs);
 
     // make the date computations
     TEMPLATE_DISPATCH(

@@ -3,17 +3,22 @@
 
 #cmakedefine TECA_HAS_REGEX
 #cmakedefine TECA_HAS_NETCDF
+#cmakedefine TECA_HAS_NETCDF_MPI
 #cmakedefine TECA_HAS_MPI
 #cmakedefine TECA_HAS_BOOST
 #cmakedefine TECA_HAS_VTK
 #cmakedefine TECA_HAS_PARAVIEW
 #cmakedefine TECA_HAS_PYTHON
+#cmakedefine TECA_HAS_NUMPY
+#cmakedefine TECA_HAS_PYTORCH
+#cmakedefine TECA_HAS_MATPLOTLIB
 #cmakedefine TECA_HAS_LIBXLSXWRITER
 #cmakedefine TECA_HAS_UDUNITS
 #cmakedefine TECA_HAS_OPENSSL
 
 #cmakedefine TECA_VERSION_DESCR "@TECA_VERSION_DESCR@"
 #cmakedefine TECA_PYTHON_VERSION @TECA_PYTHON_VERSION@
+#cmakedefine TECA_DATA_ROOT "@TECA_DATA_ROOT@"
 
 #cmakedefine TECA_ENABLE_PROFILER
 

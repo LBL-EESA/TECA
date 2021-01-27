@@ -1,5 +1,6 @@
 #include "teca_config.h"
 #include "teca_cf_reader.h"
+#include "teca_multi_cf_reader.h"
 #include "teca_normalize_coordinates.h"
 #include "teca_l2_norm.h"
 #include "teca_vorticity.h"
@@ -17,12 +18,14 @@
 #include "teca_table_writer.h"
 #include "teca_mpi_manager.h"
 #include "teca_coordinate_util.h"
+#include "teca_app_util.h"
 #include "calcalcs.h"
 
 #include <vector>
 #include <string>
 #include <iostream>
 #include <boost/program_options.hpp>
+
 
 using namespace std;
 using namespace teca_derived_quantity_numerics;
@@ -38,48 +41,70 @@ int main(int argc, char **argv)
     // initialize command line options description
     // set up some common options to simplify use for most
     // common scenarios
+    int help_width = 100;
     options_description basic_opt_defs(
         "Basic usage:\n\n"
         "The following options are the most commonly used. Information\n"
         "on advanced options can be displayed using --advanced_help\n\n"
-        "Basic command line options", 120, -1
+        "Basic command line options", help_width, help_width - 4
         );
     basic_opt_defs.add_options()
-        ("input_file", value<string>(), "file path to the simulation to search for tropical cyclones")
-        ("input_regex", value<string>(), "regex matching simulation files to search for tropical cylones")
-        ("candidate_file", value<string>(), "file path to write the storm candidates to (candidates.bin)")
-        ("850mb_wind_u", value<string>(), "name of variable with 850 mb wind x-component (U850)")
-        ("850mb_wind_v", value<string>(), "name of variable with 850 mb wind x-component (V850)")
-        ("surface_wind_u", value<string>(), "name of variable with surface wind x-component (UBOT)")
-        ("surface_wind_v", value<string>(), "name of variable with surface wind y-component (VBOT)")
-        ("sea_level_pressure", value<string>(), "name of variable with sea level pressure (PSL)")
-        ("500mb_temp", value<string>(), "name of variable with 500mb temperature for warm core calc (T500)")
-        ("200mb_temp", value<string>(), "name of variable with 200mb temperature for warm core calc (T200)")
-        ("1000mb_height", value<string>(), "name of variable with 1000mb height for thickness calc (Z1000)")
-        ("200mb_height", value<string>(), "name of variable with 200mb height for thickness calc (Z200)")
-        ("storm_core_radius", value<double>(), "maximum number of degrees latitude separation between vorticity max and pressure min defining a storm (2.0)")
-        ("min_vorticity", value<double>(), "minimum vorticty to be considered a tropical storm (1.6e-4)")
-        ("vorticity_window", value<double>(), "size of the search window in degrees. storms core must have a local vorticity max centered on this window (7.74446)")
-        ("pressure_delta", value<double>(), "maximum pressure change within specified radius (400.0)")
-        ("pressure_delta_radius", value<double>(), "radius in degrees over which max pressure change is computed (5.0)")
-        ("core_temp_delta", value<double>(), "maximum core temperature change over the specified radius (0.8)")
-        ("core_temp_radius", value<double>(), "radius in degrees over which max core temperature change is computed (5.0)")
-        ("thickness_delta", value<double>(), "maximum thickness change over the specified radius (50.0)")
-        ("thickness_radius", value<double>(), "radius in degrees over with max thickness change is comuted (4.0)")
-        ("lowest_lat", value<double>(), "lowest latitude in degrees to search for storms (80)")
-        ("highest_lat", value<double>(), "highest latitude in degrees to search for storms (80)")
-        ("max_daily_distance", value<double>(), "max distance in km that a storm can travel in one day (1600)")
-        ("min_wind_speed", value<double>(), "minimum peak wind speed to be considered a tropical storm (17.0)")
-        ("min_wind_duration", value<double>(), "number of, not necessarily consecutive, days min wind speed sustained (2.0)")
-        ("track_file", value<string>(), "file path to write storm tracks to")
-        ("first_step", value<long>(), "first time step to process")
-        ("last_step", value<long>(), "last time step to process")
-        ("start_date", value<string>(), "first time to proces in YYYY-MM-DD hh:mm:ss format")
-        ("end_date", value<string>(), "first time to proces in YYYY-MM-DD hh:mm:ss format")
-        ("n_threads", value<int>(), "thread pool size. default is 1. -1 for all")
-        ("help", "display the basic options help")
-        ("advanced_help", "display the advanced options help")
-        ("full_help", "display entire help message")
+        ("input_file", value<std::string>(), "\na teca_multi_cf_reader configuration file"
+            " identifying the set of NetCDF CF2 files to process. When present data is"
+            " read using the teca_multi_cf_reader. Use one of either --input_file or"
+            " --input_regex.\n")
+
+        ("input_regex", value<std::string>(), "\na teca_cf_reader regex identifying the"
+            " set of NetCDF CF2 files to process. When present data is read using the"
+            " teca_cf_reader. Use one of either --input_file or --input_regex.\n")
+
+        ("candidate_file", value<string>()->default_value("candidates.bin"),
+            "\nfile path to write the storm candidates to. The extension determines"
+            " the file format. May be one of `.nc`, `.csv`, or `.bin`\n")
+
+        ("850mb_wind_u", value<string>()->default_value("U850"), "\nname of variable with 850 mb wind x-component\n")
+        ("850mb_wind_v", value<string>()->default_value("V850"), "\nname of variable with 850 mb wind x-component\n")
+        ("surface_wind_u", value<string>()->default_value("UBOT"), "\nname of variable with surface wind x-component\n")
+        ("surface_wind_v", value<string>()->default_value("VBOT"), "\nname of variable with surface wind y-component\n")
+        ("sea_level_pressure", value<string>()->default_value("PSL"), "\nname of variable with sea level pressure\n")
+        ("500mb_temp", value<string>()->default_value("T500"), "\nname of variable with 500mb temperature for warm core calc\n")
+        ("200mb_temp", value<string>()->default_value("T200"), "\nname of variable with 200mb temperature for warm core calc\n")
+        ("1000mb_height", value<string>()->default_value("Z1000"), "\nname of variable with 1000mb height for thickness calc\n")
+        ("200mb_height", value<string>()->default_value("Z200"), "\nname of variable with 200mb height for thickness calc\n")
+        ("storm_core_radius", value<double>()->default_value(2.0),
+            "\nmaximum number of degrees latitude separationi between vorticity max and pressure min defining a storm\n")
+        ("min_vorticity", value<double>()->default_value(1.6e-4, "1.6e-4"), "\nminimum vorticty to be considered a tropical storm\n")
+        ("vorticity_window", value<double>()->default_value(7.74446, "7.74446"),
+            "\nsize of the search window in degrees. storms core must have a local vorticity max centered on this window\n")
+        ("pressure_delta", value<double>()->default_value(400.0), "\nmaximum pressure change within specified radius\n")
+        ("pressure_delta_radius", value<double>()->default_value(5.0),
+            "\nradius in degrees over which max pressure change is computed\n")
+        ("core_temp_delta", value<double>()->default_value(0.8, "0.8"), "\nmaximum core temperature change over the specified radius\n")
+        ("core_temp_radius", value<double>()->default_value(5.0), "\nradius in degrees over which max core temperature change is computed\n")
+        ("thickness_delta", value<double>()->default_value(50.0), "\nmaximum thickness change over the specified radius\n")
+        ("thickness_radius", value<double>()->default_value(4.0), "\nradius in degrees over with max thickness change is computed\n")
+        ("lowest_lat", value<double>()->default_value(80), "\nlowest latitude in degrees to search for storms\n")
+        ("highest_lat", value<double>()->default_value(80), "\nhighest latitude in degrees to search for storms\n")
+        ("max_daily_distance", value<double>()->default_value(1600), "\nmax distance in km that a storm can travel in one day\n")
+        ("min_wind_speed", value<double>()->default_value(17.0), "\nminimum peak wind speed to be considered a tropical storm\n")
+        ("min_wind_duration", value<double>()->default_value(2.0), "\nnumber of, not necessarily consecutive, days min wind speed sustained\n")
+
+        ("track_file", value<string>()->default_value("tracks.bin"), "\nfile path to"
+            " write storm tracks to. The extension determines the file format. May be"
+            " one of `.nc`, `.csv`, or `.bin`\n")
+
+        ("first_step", value<long>()->default_value(0), "\nfirst time step to process\n")
+        ("last_step", value<long>()->default_value(-1), "\nlast time step to process\n")
+        ("start_date", value<std::string>(), "\nThe first time to process in 'Y-M-D h:m:s'"
+            " format. Note: There must be a space between the date and time specification\n")
+        ("end_date", value<std::string>(), "\nThe last time to process in 'Y-M-D h:m:s' format\n")
+        ("n_threads", value<int>()->default_value(-1), "\nSets the thread pool size on each"
+            " MPI rank. When the default value of -1 is used TECA will coordinate the thread"
+            " pools across ranks such each thread is bound to a unique physical core.\n")
+
+        ("help", "\ndisplays documentation for application specific command line options\n")
+        ("advanced_help", "\ndisplays documentation for algorithm specific command line options\n")
+        ("full_help", "\ndisplays both basic and advanced documentation together\n")
         ;
 
     // add all options from each pipeline stage for more advanced use
@@ -90,14 +115,14 @@ int main(int argc, char **argv)
         "(see" "--help) map to these, and will override them if both are\n"
         "specified.\n\n"
         "tropical storms pipeline:\n\n"
-        "   (sim_reader)\n"
-        "        \\\n"
+        "   (cf / mcf_reader)\n"
+        "         \\\n"
         "  (surface_wind_speed)--(850mb_vorticity)--(core_temperature)\n"
         "                                                    /\n"
         " (tracks)--(sort)--(map_reduce)--(candidates)--(thickness)\n"
         "     \\                               /\n"
         " (track_writer)              (candidate_writer)\n\n"
-        "Advanced command line options", -1, 1
+        "Advanced command line options", help_width, help_width - 4
         );
 
     // create the pipeline stages here, they contain the
@@ -105,40 +130,37 @@ int main(int argc, char **argv)
     // objects report all of their properties directly
     // set default options here so that command line options override
     // them. while we are at it connect the pipeline
-    p_teca_cf_reader sim_reader = teca_cf_reader::New();
-    sim_reader->get_properties_description("sim_reader", advanced_opt_defs);
+    p_teca_cf_reader cf_reader = teca_cf_reader::New();
+    cf_reader->get_properties_description("cf_reader", advanced_opt_defs);
+
+    p_teca_multi_cf_reader mcf_reader = teca_multi_cf_reader::New();
+    mcf_reader->get_properties_description("mcf_reader", advanced_opt_defs);
 
     p_teca_normalize_coordinates sim_coords = teca_normalize_coordinates::New();
-    sim_coords->set_input_connection(sim_reader->get_output_port());
 
     p_teca_l2_norm surf_wind = teca_l2_norm::New();
-    surf_wind->set_input_connection(sim_coords->get_output_port());
     surf_wind->set_component_0_variable("UBOT");
     surf_wind->set_component_1_variable("VBOT");
     surf_wind->set_l2_norm_variable("surface_wind");
     surf_wind->get_properties_description("surface_wind_speed", advanced_opt_defs);
 
     p_teca_vorticity vort_850mb = teca_vorticity::New();
-    vort_850mb->set_input_connection(surf_wind->get_output_port());
     vort_850mb->set_component_0_variable("U850");
     vort_850mb->set_component_1_variable("V850");
     vort_850mb->set_vorticity_variable("850mb_vorticity");
     vort_850mb->get_properties_description("850mb_vorticity", advanced_opt_defs);
 
     p_teca_derived_quantity core_temp = teca_derived_quantity::New();
-    core_temp->set_input_connection(vort_850mb->get_output_port());
     core_temp->set_dependent_variables({"T500", "T200"});
     core_temp->set_derived_variable("core_temperature");
     core_temp->get_properties_description("core_temperature", advanced_opt_defs);
 
     p_teca_derived_quantity thickness = teca_derived_quantity::New();
-    thickness->set_input_connection(core_temp->get_output_port());
     thickness->set_dependent_variables({"Z1000", "Z200"});
     thickness->set_derived_variable("thickness");
     thickness->get_properties_description("thickness", advanced_opt_defs);
 
     p_teca_tc_candidates candidates = teca_tc_candidates::New();
-    candidates->set_input_connection(thickness->get_output_port());
     candidates->set_surface_wind_speed_variable("surface_wind");
     candidates->set_vorticity_850mb_variable("850mb_vorticity");
     candidates->set_sea_level_pressure_variable("PSL");
@@ -158,32 +180,26 @@ int main(int argc, char **argv)
     candidates->get_properties_description("candidates", advanced_opt_defs);
 
     p_teca_table_reduce map_reduce = teca_table_reduce::New();
-    map_reduce->set_input_connection(candidates->get_output_port());
     map_reduce->get_properties_description("map_reduce", advanced_opt_defs);
 
     p_teca_table_writer candidate_writer = teca_table_writer::New();
-    candidate_writer->set_input_connection(map_reduce->get_output_port());
     candidate_writer->set_output_format_auto();
     candidate_writer->get_properties_description("candidate_writer", advanced_opt_defs);
 
     p_teca_table_sort sort = teca_table_sort::New();
-    sort->set_input_connection(candidate_writer->get_output_port());
     sort->set_index_column("storm_id");
     sort->get_properties_description("sort", advanced_opt_defs);
 
     p_teca_tc_trajectory tracks = teca_tc_trajectory::New();
-    tracks->set_input_connection(sort->get_output_port());
     tracks->set_max_daily_distance(1600.0);
     tracks->set_min_wind_speed(17.0);
     tracks->set_min_wind_duration(2.0);
     tracks->get_properties_description("tracks", advanced_opt_defs);
 
     p_teca_table_calendar calendar = teca_table_calendar::New();
-    calendar->set_input_connection(tracks->get_output_port());
     calendar->get_properties_description("calendar", advanced_opt_defs);
 
     p_teca_table_writer track_writer = teca_table_writer::New();
-    track_writer->set_input_connection(calendar->get_output_port());
     track_writer->set_output_format_auto();
     track_writer->get_properties_description("track_writer", advanced_opt_defs);
 
@@ -193,57 +209,17 @@ int main(int argc, char **argv)
 
     // parse the command line
     variables_map opt_vals;
-    try
+    if (teca_app_util::process_command_line_help(mpi_man.get_comm_rank(),
+        argc, argv, basic_opt_defs, advanced_opt_defs, all_opt_defs, opt_vals))
     {
-        boost::program_options::store(
-            boost::program_options::command_line_parser(argc, argv).options(all_opt_defs).run(),
-            opt_vals);
-
-        if (mpi_man.get_comm_rank() == 0)
-        {
-            if (opt_vals.count("help"))
-            {
-                cerr << endl
-                    << "usage: teca_tc_detect [options]" << endl
-                    << endl
-                    << basic_opt_defs << endl
-                    << endl;
-                return -1;
-            }
-            if (opt_vals.count("advanced_help"))
-            {
-                cerr << endl
-                    << "usage: teca_tc_detect [options]" << endl
-                    << endl
-                    << advanced_opt_defs << endl
-                    << endl;
-                return -1;
-            }
-
-            if (opt_vals.count("full_help"))
-            {
-                cerr << endl
-                    << "usage: teca_tc_detect [options]" << endl
-                    << endl
-                    << all_opt_defs << endl
-                    << endl;
-                return -1;
-            }
-        }
-
-        boost::program_options::notify(opt_vals);
-    }
-    catch (std::exception &e)
-    {
-        TECA_ERROR("Error parsing command line options. See --help "
-            "for a list of supported options. " << e.what())
         return -1;
     }
 
     // pass command line arguments into the pipeline objects
     // advanced options are processed first, so that the basic
     // options will override them
-    sim_reader->set_properties("sim_reader", opt_vals);
+    cf_reader->set_properties("cf_reader", opt_vals);
+    mcf_reader->set_properties("mcf_reader", opt_vals);
     surf_wind->set_properties("surface_wind_speed", opt_vals);
     vort_850mb->set_properties("850mb_vorticity", opt_vals);
     core_temp->set_properties("core_temperature", opt_vals);
@@ -258,136 +234,141 @@ int main(int argc, char **argv)
 
     // now pass in the basic options, these are processed
     // last so that they will take precedence
+
+    // configure the reader
+    bool have_file = opt_vals.count("input_file");
+    bool have_regex = opt_vals.count("input_regex");
+
+    p_teca_algorithm reader;
     if (opt_vals.count("input_file"))
-        sim_reader->append_file_name(
-            opt_vals["input_file"].as<string>());
+    {
+        mcf_reader->set_input_file(opt_vals["input_file"].as<string>());
+        reader = mcf_reader;
+    }
+    else if (opt_vals.count("input_regex"))
+    {
+        cf_reader->set_files_regex(opt_vals["input_regex"].as<string>());
+        reader = cf_reader;
+    }
 
-    if (opt_vals.count("input_regex"))
-        sim_reader->set_files_regex(
-            opt_vals["input_regex"].as<string>());
-
-    if (opt_vals.count("850mb_wind_u"))
+    if (!opt_vals["850mb_wind_u"].defaulted())
         vort_850mb->set_component_0_variable(
             opt_vals["850mb_wind_u"].as<string>());
 
-    if (opt_vals.count("850mb_wind_v"))
+    if (!opt_vals["850mb_wind_v"].defaulted())
         vort_850mb->set_component_1_variable(
             opt_vals["850mb_wind_v"].as<string>());
 
-    if (opt_vals.count("surface_wind_u"))
+    if (!opt_vals["surface_wind_u"].defaulted())
         surf_wind->set_component_0_variable(
             opt_vals["surface_wind_u"].as<string>());
 
-    if (opt_vals.count("surface_wind_v"))
+    if (!opt_vals["surface_wind_v"].defaulted())
         surf_wind->set_component_1_variable(
             opt_vals["surface_wind_v"].as<string>());
 
     std::vector<std::string> dep_var;
     core_temp->get_dependent_variables(dep_var);
-    if (opt_vals.count("500mb_temp"))
+    if (!opt_vals["500mb_temp"].defaulted())
         dep_var[0] = opt_vals["500mb_temp"].as<string>();
-    if (opt_vals.count("200mb_temp"))
+    if (!opt_vals["200mb_temp"].defaulted())
         dep_var[1] = opt_vals["200mb_temp"].as<string>();
     core_temp->set_dependent_variables(dep_var);
     dep_var.clear();
 
     thickness->get_dependent_variables(dep_var);
-    if (opt_vals.count("1000mb_height"))
+    if (!opt_vals["1000mb_height"].defaulted())
         dep_var[0] = opt_vals["1000mb_height"].as<string>();
-    if (opt_vals.count("200mb_height"))
+    if (!opt_vals["200mb_height"].defaulted())
         dep_var[1] = opt_vals["200mb_height"].as<string>();
     thickness->set_dependent_variables(dep_var);
     dep_var.clear();
 
-    if (opt_vals.count("sea_level_pressure"))
+    if (!opt_vals["sea_level_pressure"].defaulted())
         candidates->set_sea_level_pressure_variable(
             opt_vals["sea_level_pressure"].as<string>());
 
-    if (opt_vals.count("storm_core_radius"))
+    if (!opt_vals["storm_core_radius"].defaulted())
         candidates->set_max_core_radius(
             opt_vals["storm_core_radius"].as<double>());
 
-    if (opt_vals.count("min_vorticity"))
+    if (!opt_vals["min_vorticity"].defaulted())
         candidates->set_min_vorticity_850mb(
             opt_vals["min_vorticity"].as<double>());
 
-    if (opt_vals.count("vorticity_window"))
+    if (!opt_vals["vorticity_window"].defaulted())
         candidates->set_vorticity_850mb_window(
             opt_vals["vorticity_window"].as<double>());
 
-    if (opt_vals.count("pressure_delta"))
+    if (!opt_vals["pressure_delta"].defaulted())
         candidates->set_max_pressure_delta(
             opt_vals["pressure_delta"].as<double>());
 
-    if (opt_vals.count("pressure_delta_radius"))
+    if (!opt_vals["pressure_delta_radius"].defaulted())
         candidates->set_max_pressure_radius(
             opt_vals["pressure_delta_radius"].as<double>());
 
-    if (opt_vals.count("core_temp_delta"))
+    if (!opt_vals["core_temp_delta"].defaulted())
         candidates->set_max_core_temperature_delta(
             opt_vals["core_temp_delta"].as<double>());
 
-    if (opt_vals.count("core_temp_radius"))
+    if (!opt_vals["core_temp_radius"].defaulted())
         candidates->set_max_core_temperature_radius(
             opt_vals["core_temp_radius"].as<double>());
 
-    if (opt_vals.count("thickness_delta"))
+    if (!opt_vals["thickness_delta"].defaulted())
         candidates->set_max_thickness_delta(
             opt_vals["thickness_delta"].as<double>());
 
-    if (opt_vals.count("thickness_radius"))
+    if (!opt_vals["thickness_radius"].defaulted())
         candidates->set_max_thickness_radius(
             opt_vals["thickness_radius"].as<double>());
 
-    if (opt_vals.count("lowest_lat"))
+    if (!opt_vals["lowest_lat"].defaulted())
         candidates->set_search_lat_low(
             opt_vals["lowest_lat"].as<double>());
 
-    if (opt_vals.count("highest_lat"))
+    if (!opt_vals["highest_lat"].defaulted())
         candidates->set_search_lat_high(
             opt_vals["highest_lat"].as<double>());
 
-    if (opt_vals.count("first_step"))
+    if (!opt_vals["first_step"].defaulted())
         map_reduce->set_start_index(opt_vals["first_step"].as<long>());
 
-    if (opt_vals.count("last_step"))
+    if (!opt_vals["last_step"].defaulted())
         map_reduce->set_end_index(opt_vals["last_step"].as<long>());
 
-    if (opt_vals.count("n_threads"))
+    if (!opt_vals["n_threads"].defaulted())
         map_reduce->set_thread_pool_size(opt_vals["n_threads"].as<int>());
     else
         map_reduce->set_thread_pool_size(-1);
 
-    if (opt_vals.count("max_daily_distance"))
+    if (!opt_vals["max_daily_distance"].defaulted())
         tracks->set_max_daily_distance(
             opt_vals["max_daily_distance"].as<double>());
 
-    if (opt_vals.count("min_wind_speed"))
+    if (!opt_vals["min_wind_speed"].defaulted())
         tracks->set_min_wind_speed(
             opt_vals["min_wind_speed"].as<double>());
 
-    if (opt_vals.count("min_wind_duration"))
+    if (!opt_vals["min_wind_duration"].defaulted())
         tracks->set_min_wind_duration(
             opt_vals["min_wind_duration"].as<double>());
 
-    if (opt_vals.count("candidate_file"))
-        candidate_writer->set_file_name(
-            opt_vals["candidate_file"].as<string>());
+    candidate_writer->set_file_name(
+        opt_vals["candidate_file"].as<string>());
 
-    if (opt_vals.count("track_file"))
-        track_writer->set_file_name(
-            opt_vals["track_file"].as<string>());
-
+    track_writer->set_file_name(
+        opt_vals["track_file"].as<string>());
 
     // some minimal check for missing options
-    if (sim_reader->get_number_of_file_names() == 0
-        && sim_reader->get_files_regex().empty())
+    if ((have_file && have_regex) || !(have_file || have_regex))
     {
         if (mpi_man.get_comm_rank() == 0)
         {
-            TECA_ERROR(
-                "missing file name or regex for simulation reader. "
-                "See --help for a list of command line options.")
+            TECA_ERROR("Extacly one of --input_file or --input_regex can be specified. "
+                "Use --input_file to activate the multi_cf_reader (HighResMIP datasets) "
+                "and --input_regex to activate the cf_reader (CAM like datasets)")
         }
         return -1;
     }
@@ -430,7 +411,7 @@ int main(int argc, char **argv)
     if (parse_start_date || parse_end_date)
     {
         // run the reporting phase of the pipeline
-        teca_metadata md = sim_reader->update_metadata();
+        teca_metadata md = reader->update_metadata();
 
         teca_metadata atrs;
         if (md.get("attributes", atrs))
@@ -465,7 +446,7 @@ int main(int argc, char **argv)
         {
             unsigned long first_step = 0;
             std::string start_date = opt_vals["start_date"].as<string>();
-            if (teca_coordinate_util::time_step_of(time, true, calendar,
+            if (teca_coordinate_util::time_step_of(time, true, true, calendar,
                  units, start_date, first_step))
             {
                 TECA_ERROR("Failed to lcoate time step for start date \""
@@ -480,7 +461,7 @@ int main(int argc, char **argv)
         {
             unsigned long last_step = 0;
             std::string end_date = opt_vals["end_date"].as<string>();
-            if (teca_coordinate_util::time_step_of(time, false, calendar,
+            if (teca_coordinate_util::time_step_of(time, false, true, calendar,
                  units, end_date, last_step))
             {
                 TECA_ERROR("Failed to lcoate time step for end date \""
@@ -490,6 +471,20 @@ int main(int argc, char **argv)
             map_reduce->set_end_index(last_step);
         }
     }
+
+    // connect all the stages
+    sim_coords->set_input_connection(reader->get_output_port());
+    surf_wind->set_input_connection(sim_coords->get_output_port());
+    vort_850mb->set_input_connection(surf_wind->get_output_port());
+    core_temp->set_input_connection(vort_850mb->get_output_port());
+    thickness->set_input_connection(core_temp->get_output_port());
+    candidates->set_input_connection(thickness->get_output_port());
+    map_reduce->set_input_connection(candidates->get_output_port());
+    candidate_writer->set_input_connection(map_reduce->get_output_port());
+    sort->set_input_connection(candidate_writer->get_output_port());
+    tracks->set_input_connection(sort->get_output_port());
+    calendar->set_input_connection(tracks->get_output_port());
+    track_writer->set_input_connection(calendar->get_output_port());
 
     // run the pipeline
     track_writer->update();

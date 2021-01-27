@@ -1,5 +1,5 @@
 try:
-    from mpi4py import *
+    from mpi4py import MPI
     rank = MPI.COMM_WORLD.Get_rank()
     n_ranks = MPI.COMM_WORLD.Get_size()
 except:
@@ -13,7 +13,7 @@ import os
 set_stack_trace_on_error()
 set_stack_trace_on_mpi_error()
 
-if (len(sys.argv) != 9):
+if (len(sys.argv) != 8):
     sys.stderr.write('\n\nUsage error:\n'\
         'test_bayesian_ar_detect [parameter table] [mesh data regex] ' \
         '[baseline table] [water vapor var] [out file] [num threads] ' \
@@ -21,30 +21,30 @@ if (len(sys.argv) != 9):
     sys.exit(-1)
 
 # parse command line
-parameter_table = sys.argv[1]
-mesh_data_regex = sys.argv[2]
-baseline_table = sys.argv[3]
-water_vapor_var = sys.argv[4]
-out_file_name = sys.argv[5]
-n_threads = int(sys.argv[6])
-first_step =  int(sys.argv[7])
-last_step = int(sys.argv[8])
+mesh_data_regex = sys.argv[1]
+baseline_table = sys.argv[2]
+ivt_variable = sys.argv[3]
+out_file_name = sys.argv[4]
+n_threads = int(sys.argv[5])
+first_step =  int(sys.argv[6])
+last_step = int(sys.argv[7])
 
 if (rank == 0):
     sys.stderr.write('Testing on %d MPI processes %d threads\n'%(n_ranks, n_threads))
+    sys.stderr.flush()
 
 # create the pipeline
-parameter_reader = teca_table_reader.New()
-parameter_reader.set_file_name(parameter_table)
+parameter_table = teca_bayesian_ar_detect_parameters.New()
 
 mesh_data_reader = teca_cf_reader.New()
 mesh_data_reader.set_files_regex(mesh_data_regex)
-mesh_data_reader.set_periodic_in_x(1)
+#mesh_data_reader.set_periodic_in_x(1)
 
 ar_detect = teca_bayesian_ar_detect.New()
-ar_detect.set_input_connection(0, parameter_reader.get_output_port())
+ar_detect.set_verbose(1)
+ar_detect.set_input_connection(0, parameter_table.get_output_port())
 ar_detect.set_input_connection(1, mesh_data_reader.get_output_port())
-ar_detect.set_water_vapor_variable(water_vapor_var)
+ar_detect.set_ivt_variable(ivt_variable)
 ar_detect.set_thread_pool_size(n_threads)
 
 seg = teca_binary_segmentation.New()
@@ -73,7 +73,7 @@ map_reduce = teca_table_reduce.New()
 map_reduce.set_input_connection(cs.get_output_port())
 map_reduce.set_start_index(first_step)
 map_reduce.set_end_index(last_step)
-map_reduce.set_verbose(1)
+map_reduce.set_verbose(0)
 map_reduce.set_thread_pool_size(1)
 
 # sort results in time
@@ -81,7 +81,8 @@ sort = teca_table_sort.New()
 sort.set_input_connection(map_reduce.get_output_port())
 sort.set_index_column('global_component_ids')
 
-if os.path.exists(baseline_table):
+do_test = system_util.get_environment_variable_bool('TECA_DO_TEST', True)
+if do_test and os.path.exists(baseline_table):
     # run the test
     baseline_table_reader = teca_table_reader.New()
     baseline_table_reader.set_file_name(baseline_table)
@@ -93,7 +94,8 @@ if os.path.exists(baseline_table):
 else:
     # make a baseline
     if rank == 0:
-        cerr << 'generating baseline image ' << baseline_table << endl
+        sys.stderr.write('generating baseline image ' + baseline_table + '\n')
+        sys.stderr.flush()
 
     tts = teca_table_to_stream.New()
     tts.set_input_connection(sort.get_output_port())

@@ -86,6 +86,19 @@ public:
     template<typename T> void pack(const std::vector<T> &v);
     template<typename T> void unpack(std::vector<T> &v);
 
+    template<typename KT, typename VT> void pack(const std::map<KT, VT> &v);
+    template<typename KT, typename VT> void unpack(std::map<KT, VT> &v);
+
+    template<typename T1, typename T2> void pack(const std::pair<T1, T2> &v);
+    template<typename T1, typename T2> void unpack(std::pair<T1, T2> &v);
+
+    // verify that the passed value is in the stream
+    // advance past the value. return 0 if the value is found
+    // for char * case null terminator is not read
+    template <typename T> int expect(const T &val);
+    template <typename T> int expect(const T *val, unsigned long n);
+    int expect(const char *str);
+
     // broadcast the stream from the root process to all other processes
     int broadcast(MPI_Comm comm, int root_rank=0);
 
@@ -212,4 +225,98 @@ void teca_binary_stream::unpack(std::vector<T> &v)
     this->unpack(v.data(), vlen);
 }
 
+//-----------------------------------------------------------------------------
+template<typename KT, typename VT>
+void teca_binary_stream::pack(const std::map<KT, VT> &m)
+{
+    unsigned long n_elem = m.size();
+    this->pack(n_elem);
+
+    typename std::map<KT,VT>::const_iterator it = m.begin();
+
+    for (unsigned long i = 0; i < n_elem; ++i)
+    {
+        this->pack(it->first);
+        this->pack(it->second);
+    }
+}
+
+//-----------------------------------------------------------------------------
+template<typename KT, typename VT>
+void teca_binary_stream::unpack(std::map<KT, VT> &m)
+{
+    unsigned long n_elem = 0;
+    this->unpack(n_elem);
+
+    for (unsigned long i = 0; i < n_elem; ++i)
+    {
+        KT key;
+        VT val;
+
+        this->unpack(key);
+        this->unpack(val);
+
+        m.emplace(std::move(key), std::move(val));
+    }
+}
+
+//-----------------------------------------------------------------------------
+template<typename T1, typename T2>
+void teca_binary_stream::pack(const std::pair<T1, T2> &p)
+{
+    this->pack(p.first);
+    this->pack(p.second);
+}
+
+//-----------------------------------------------------------------------------
+template<typename T1, typename T2>
+void teca_binary_stream::unpack(std::pair<T1, T2> &p)
+{
+    this->unpack(p.first);
+    this->unpack(p.second);
+}
+
+//-----------------------------------------------------------------------------
+template<typename T>
+int teca_binary_stream::expect(const T &val)
+{
+    T tmp;
+    this->unpack(tmp);
+
+    if (tmp == val)
+        return 0;
+
+    return -1;
+}
+
+//-----------------------------------------------------------------------------
+template<typename T>
+int teca_binary_stream::expect(const T *val, unsigned long n)
+{
+    int same = 0;
+    T *tmp = (T*)malloc(n*sizeof(T));
+    this->unpack(tmp, n);
+    for (unsigned long i = 0; i < n; ++i)
+    {
+        if (tmp[i] != val[i])
+        {
+            same = -1;
+            break;
+        }
+    }
+    free(tmp);
+    return same;
+}
+
+//-----------------------------------------------------------------------------
+inline
+int teca_binary_stream::expect(const char *str)
+{
+    unsigned long n = strlen(str);
+    char *tmp = (char*)malloc(n);
+    this->unpack(tmp, n);
+    int same = strncmp(str, tmp, n);
+    free(tmp);
+    return same;
+}
 #endif

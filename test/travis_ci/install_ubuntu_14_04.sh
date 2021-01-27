@@ -15,11 +15,11 @@ sudo apt-get install -qq -y gcc-5 g++-5 gfortran-5 swig3.0 \
     libmpich-dev libhdf5-dev libnetcdf-dev libboost-program-options-dev \
     python-dev subversion libudunits2-0 libudunits2-dev
 
-pip install --user numpy mpi4py matplotlib
+pip install --user numpy mpi4py matplotlib torch
 
 # install cmake manually because repo/ppa versions are too old
 wget https://cmake.org/files/v3.5/cmake-3.5.2-Linux-x86_64.tar.gz
 sudo tar -C /usr -x -z -f cmake-3.5.2-Linux-x86_64.tar.gz --strip-components=1
 
 # install data files.
-svn co svn://missmarple.lbl.gov/work3/teca/TECA_data@${TECA_DATA_REVISION} TECA_data
+svn co svn://svn.code.sf.net/p/teca/TECA_data@${TECA_DATA_REVISION} TECA_data

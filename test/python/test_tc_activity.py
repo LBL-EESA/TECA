@@ -20,7 +20,8 @@ cal.set_time_column('start_time')
 activity = teca_tc_activity.New()
 activity.set_input_connection(cal.get_output_port())
 
-if os.path.exists(baseline):
+do_test = system_util.get_environment_variable_bool('TECA_DO_TEST', True)
+if do_test and os.path.exists(baseline):
     table_reader = teca_table_reader.New()
     table_reader.set_file_name(baseline)
     diff = teca_dataset_diff.New()

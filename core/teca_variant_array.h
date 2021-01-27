@@ -3,16 +3,19 @@
 
 #include <vector>
 #include <string>
+#include <sstream>
 #include <exception>
 #include <typeinfo>
 #include <iterator>
 #include <algorithm>
 #include <type_traits>
+#include <typeinfo>
 #include <utility>
 
 #include "teca_common.h"
 #include "teca_binary_stream.h"
 #include "teca_variant_array_fwd.h"
+#include "teca_bad_cast.h"
 
 // tag for ops on POD data
 template <typename T>
@@ -65,6 +68,9 @@ public:
     // return true if values are equal
     bool operator==(const teca_variant_array &other) const
     { return this->equal(other); }
+
+    // return the name of the class in a human readable form
+    virtual std::string get_class_name() const = 0;
 
     // initialize contents with the native type initializer
     virtual void initialize() = 0;
@@ -146,11 +152,11 @@ public:
     { return this->equal(*other.get()); }
 
     // serrialize to/from stream
-    virtual void to_stream(teca_binary_stream &s) const = 0;
-    virtual void from_stream(teca_binary_stream &s) = 0;
+    virtual int to_stream(teca_binary_stream &s) const = 0;
+    virtual int from_stream(teca_binary_stream &s) = 0;
 
-    virtual void to_stream(std::ostream &s) const = 0;
-    virtual void from_stream(std::ostream &s) = 0;
+    virtual int to_stream(std::ostream &s) const = 0;
+    virtual int from_stream(std::ostream &s) = 0;
 
     // used for serialization
     virtual unsigned int type_code() const noexcept = 0;
@@ -274,6 +280,9 @@ public:
     p_teca_variant_array new_instance() const override;
     p_teca_variant_array new_instance(size_t n) const override;
 
+    // return the name of the class in a human readable form
+    std::string get_class_name() const override;
+
     // intialize with T()
     void initialize() override;
 
@@ -367,17 +376,29 @@ public:
     bool equal(const teca_variant_array &other) const override;
 
     // serialize to/from stream
-    void to_stream(teca_binary_stream &s) const override
-    { this->to_binary<T>(s); }
+    int to_stream(teca_binary_stream &s) const override
+    {
+        this->to_binary<T>(s);
+        return 0;
+    }
 
-    void from_stream(teca_binary_stream &s) override
-    { this->from_binary<T>(s); }
+    int from_stream(teca_binary_stream &s) override
+    {
+        this->from_binary<T>(s);
+        return 0;
+    }
 
-    void to_stream(std::ostream &s) const override
-    { this->to_ascii<T>(s); }
+    int to_stream(std::ostream &s) const override
+    {
+        this->to_ascii<T>(s);
+        return 0;
+    }
 
-    void from_stream(std::ostream &s) override
-    { this->from_ascii<T>(s); }
+    int from_stream(std::ostream &s) override
+    {
+        this->from_ascii<T>(s);
+        return 0;
+    }
 
 protected:
     // construct
@@ -507,29 +528,30 @@ private:
         body                                                \
     }
 
-// tt - container
-// nt - class type
-// tt<nt> - complete derived type
-// p1 - base class pointer
-// p2 - const base class pointer
-// body - code to execute if p1 and p2's type match
-#define TEMPLATE_DISPATCH_CLASS(tt, nt, p1, body)   \
-    {                                                   \
-    using TT = tt<nt>;                                  \
-    using NT = nt;                                      \
-    TT *p1_tt = dynamic_cast<TT*>(p1);                  \
-    if (p1_tt)                                          \
-    {                                                   \
-        body                                            \
-    }                                                   \
-    }
-
 // variant that limits dispatch to floating point types
 // for use in numerical compuatation where integer types
 // are not supported (ie, math operations from std library)
 #define TEMPLATE_DISPATCH_FP(t, p, body)        \
     TEMPLATE_DISPATCH_CASE(t, float, p, body)   \
     else TEMPLATE_DISPATCH_CASE(t, double, p, body)
+
+// variant that limits dispatch to signed integer types
+// for use in numerical compuatation where signed integer types
+// are not supported
+#define TEMPLATE_DISPATCH_SI(t, p, body)                        \
+    TEMPLATE_DISPATCH_CASE(t, long long, p, body)               \
+    else TEMPLATE_DISPATCH_CASE(t, long, p, body)               \
+    else TEMPLATE_DISPATCH_CASE(t, int, p, body)                \
+    else TEMPLATE_DISPATCH_CASE(t, short int, p, body)          \
+    else TEMPLATE_DISPATCH_CASE(t, char, p, body)
+
+// variant that limits dispatch to floating point types
+// for use in numerical compuatation where integer types
+// are not supported (ie, math operations from std library)
+#define TEMPLATE_DISPATCH_FP_SI(t, p, body)             \
+    TEMPLATE_DISPATCH_CASE(t, float, p, body)           \
+    else TEMPLATE_DISPATCH_CASE(t, double, p, body)     \
+    else TEMPLATE_DISPATCH_SI(t, p, body)
 
 // variant that limits dispatch to integer types
 // for use in numerical compuatation where floating point types
@@ -876,6 +898,18 @@ const teca_variant_array_impl<T> &teca_variant_array_impl<T>::operator=(
 
 // --------------------------------------------------------------------------
 template<typename T>
+std::string teca_variant_array_impl<T>::get_class_name() const
+{
+    const char *element_name = typeid(T).name();
+    size_t element_size = sizeof(T);
+    std::ostringstream oss;
+    oss << "teca_variant_array_impl<" << element_name
+        << element_size << ">";
+    return oss.str();
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
 void teca_variant_array_impl<T>::initialize()
 {
     m_data.assign(m_data.size(), T());
@@ -992,7 +1026,7 @@ void teca_variant_array_impl<T>::copy(const teca_variant_array &other)
         *this = *other_t;
         return;
         )
-     throw std::bad_cast();
+    throw teca_bad_cast(safe_class_name(&other), safe_class_name(this));
 }
 
 // --------------------------------------------------------------------------
@@ -1007,7 +1041,7 @@ void teca_variant_array_impl<T>::append(const teca_variant_array &other)
             std::back_inserter(this->m_data));
         return;
         )
-     throw std::bad_cast();
+    throw teca_bad_cast(safe_class_name(&other), safe_class_name(this));
 }
 
 // --------------------------------------------------------------------------
@@ -1021,7 +1055,7 @@ void teca_variant_array_impl<T>::swap(teca_variant_array &other)
         this->m_data.swap(other_t->m_data);
         return;
     }
-    throw std::bad_cast();
+    throw teca_bad_cast(safe_class_name(&other), safe_class_name(this));
 }
 
 // --------------------------------------------------------------------------
@@ -1034,7 +1068,7 @@ bool teca_variant_array_impl<T>::equal(const teca_variant_array &other) const
     {
         return this->m_data == other_t->m_data;
     }
-    throw std::bad_cast();
+    throw teca_bad_cast(safe_class_name(&other), safe_class_name(this));
     return false;
 }
 
@@ -1210,12 +1244,13 @@ void teca_variant_array_impl<T>::from_ascii(
 }
 
 template <typename T>
-struct teca_variant_array_code
-{}; // intentionally empty
+struct teca_variant_array_code {};
 
 template <unsigned int I>
-struct teca_variant_array_new
-{}; // intentionally empty
+struct teca_variant_array_new {};
+
+template <unsigned int I>
+struct teca_variant_array_type {};
 
 #define TECA_VARIANT_ARRAY_TT_SPEC(T, v)            \
 template <>                                         \
@@ -1229,11 +1264,16 @@ struct teca_variant_array_new<v>                    \
 {                                                   \
     static p_teca_variant_array_impl<T> New()       \
     { return teca_variant_array_impl<T>::New(); }   \
+};                                                  \
+template <>                                         \
+struct teca_variant_array_type<v>                   \
+{                                                   \
+    using type = T;                                 \
 };
 
-#define TECA_VARIANT_ARRAY_FACTORY_NEW(_code)               \
-        case _code:                                         \
-            return teca_variant_array_new<_code>::New();
+#define TECA_VARIANT_ARRAY_FACTORY_NEW(_v)              \
+        case _v:                                        \
+            return teca_variant_array_new<_v>::New();
 
 #include "teca_metadata.h"
 class teca_metadata;
@@ -1284,11 +1324,89 @@ struct teca_variant_array_factory
     }
 };
 
+#define CODE_DISPATCH_CASE(_v, _c, _code)               \
+    if (_v == _c)                                       \
+    {                                                   \
+        using NT = teca_variant_array_type<_c>::type;   \
+        using TT = teca_variant_array_impl<NT>;         \
+        _code                                           \
+    }
+
+#define CODE_DISPATCH_I(_v, _code)          \
+    CODE_DISPATCH_CASE(_v, 1, _code)        \
+    else CODE_DISPATCH_CASE(_v, 2, _code)   \
+    else CODE_DISPATCH_CASE(_v, 3, _code)   \
+    else CODE_DISPATCH_CASE(_v, 4, _code)   \
+    else CODE_DISPATCH_CASE(_v, 5, _code)   \
+    else CODE_DISPATCH_CASE(_v, 6, _code)   \
+    else CODE_DISPATCH_CASE(_v, 7, _code)   \
+    else CODE_DISPATCH_CASE(_v, 8, _code)   \
+    else CODE_DISPATCH_CASE(_v, 9, _code)   \
+    else CODE_DISPATCH_CASE(_v, 10, _code)
+
+#define CODE_DISPATCH_FP(_v, _code)         \
+    CODE_DISPATCH_CASE(_v, 11, _code)       \
+    else CODE_DISPATCH_CASE(_v, 12, _code)
+
+#define CODE_DISPATCH_CLASS(_v, _code)      \
+    CODE_DISPATCH_CASE(_v, 13, _code)       \
+    else CODE_DISPATCH_CASE(_v, 14, _code)  \
+    else CODE_DISPATCH_CASE(_v, 15, _code)
+
+#define CODE_DISPATCH(_v, _code)            \
+    CODE_DISPATCH_I(_v, _code)              \
+    else CODE_DISPATCH_FP(_v, _code)
+
+
 // --------------------------------------------------------------------------
 template<typename T>
 unsigned int teca_variant_array_impl<T>::type_code() const noexcept
 {
     return teca_variant_array_code<T>::get();
+}
+
+// **************************************************************************
+template <typename num_t>
+num_t min(const const_p_teca_variant_array_impl<num_t> &a)
+{
+    num_t mn = std::numeric_limits<num_t>::max();
+    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+        a.get(),
+        const NT *pa = std::dynamic_pointer_cast<TT>(a)->get();
+        size_t n = a->size();
+        for (size_t i = 0; i < n; ++i)
+            mn = mn > pa[i] ? pa[i] : mn;
+        )
+    return mn;
+}
+
+// **************************************************************************
+template <typename num_t>
+num_t min(const p_teca_variant_array_impl<num_t> &a)
+{
+    return min(const_p_teca_variant_array_impl<num_t>(a));
+}
+
+// **************************************************************************
+template <typename num_t>
+num_t max(const const_p_teca_variant_array_impl<num_t> &a)
+{
+    num_t mx = std::numeric_limits<num_t>::lowest();
+    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+        a.get(),
+        const NT *pa = std::dynamic_pointer_cast<TT>(a)->get();
+        size_t n = a->size();
+        for (size_t i = 0; i < n; ++i)
+            mx = mx < pa[i] ? pa[i] : mx;
+        )
+    return mx;
+}
+
+// **************************************************************************
+template <typename num_t>
+num_t max(const p_teca_variant_array_impl<num_t> &a)
+{
+    return max(const_p_teca_variant_array_impl<num_t>(a));
 }
 
 #endif

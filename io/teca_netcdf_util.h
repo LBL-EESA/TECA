@@ -2,12 +2,17 @@
 #define teca_netcdf_util_h
 
 #include "teca_config.h"
+#include "teca_mpi.h"
+#include "teca_metadata.h"
+#include "teca_thread_pool.h"
 
 #include <mutex>
 #include <string>
 
 #include <netcdf.h>
-
+#if defined(TECA_HAS_NETCDF_MPI)
+#include <netcdf_par.h>
+#endif
 
 // macro to help with netcdf data types
 #define NC_DISPATCH_FP(tc_, code_)                          \
@@ -50,12 +55,17 @@
 namespace teca_netcdf_util
 {
 
-// traits class mapping to netcdf
+// traits class mapping to/from netcdf
 template<typename num_t> class netcdf_tt {};
+template<int nc_enum> class cpp_tt {};
 
-#define DECLARE_NETCDF_TT(cpp_t_, nc_c_) \
-template <> class netcdf_tt<cpp_t_>      \
-{ public: enum { type_code = nc_c_ }; };
+#define DECLARE_NETCDF_TT(cpp_t_, nc_c_)            \
+template <> class netcdf_tt<cpp_t_>                 \
+{                                                   \
+public:                                             \
+    enum { type_code = nc_c_ };                     \
+    static const char *name() { return #nc_c_; }    \
+};
 DECLARE_NETCDF_TT(char, NC_BYTE)
 DECLARE_NETCDF_TT(unsigned char, NC_UBYTE)
 //DECLARE_NETCDF_TT(char, NC_CHAR)
@@ -69,6 +79,27 @@ DECLARE_NETCDF_TT(long long, NC_INT64)
 DECLARE_NETCDF_TT(unsigned long long, NC_UINT64)
 DECLARE_NETCDF_TT(float, NC_FLOAT)
 DECLARE_NETCDF_TT(double, NC_DOUBLE)
+
+#define DECLARE_CPP_TT(cpp_t_, nc_c_)               \
+template <> class cpp_tt<nc_c_>                     \
+{                                                   \
+public:                                             \
+    using type = cpp_t_;                            \
+    static const char *name() { return #cpp_t_; }   \
+};
+DECLARE_CPP_TT(char, NC_BYTE)
+DECLARE_CPP_TT(unsigned char, NC_UBYTE)
+//DECLARE_CPP_TT(char, NC_CHAR)
+DECLARE_CPP_TT(short int, NC_SHORT)
+DECLARE_CPP_TT(unsigned short int, NC_USHORT)
+DECLARE_CPP_TT(int, NC_INT)
+//DECLARE_CPP_TT(long, NC_LONG)
+//DECLARE_CPP_TT(unsigned long, NC_LONG)
+DECLARE_CPP_TT(unsigned int, NC_UINT)
+DECLARE_CPP_TT(long long, NC_INT64)
+DECLARE_CPP_TT(unsigned long long, NC_UINT64)
+DECLARE_CPP_TT(float, NC_FLOAT)
+DECLARE_CPP_TT(double, NC_DOUBLE)
 
 // to deal with fortran fixed length strings
 // which are not properly nulll terminated
@@ -118,23 +149,163 @@ public:
         other.m_handle = 0;
     }
 
-    // open the file
+    // open the file. this can be used from MPI parallel runs, but collective
+    // I/O is not possible when a file is opend this way. Returns 0 on success.
     int open(const std::string &file_path, int mode);
 
-    // create the file
+    // open the file. this can be used when collective I/O is desired. the
+    // passed in communcator specifies the subset of ranks that will access
+    // the file. Calling this when linked to a non-MPI enabled NetCDF install,
+    // from a parallel run will, result in an error. Returns 0 on success.
+    int open(MPI_Comm comm, const std::string &file_path, int mode);
+
+    // create the file. this can be used from MPI parallel runs, but collective
+    // I/O is not possible when a file is created this way. Returns 0 on success.
     int create(const std::string &file_path, int mode);
 
+    // create the file. this can be used when collective I/O is desired. the
+    // passed in communcator specifies the subset of ranks that will access
+    // the file. Calling this when linked to a non-MPI enabled NetCDF install,
+    // from a parallel run will, result in an error. Returns 0 on success.
+    int create(MPI_Comm comm, const std::string &file_path, int mode);
+
     // close the file
-    void close();
+    int close();
+
+    // flush all data to disk
+    int flush();
 
     // returns a reference to the handle
     int &get()
     { return m_handle; }
 
+    // test if the handle is valid
+    operator bool() const
+    { return m_handle > 0; }
+
 private:
     int m_handle;
 };
 
-}
+// read the specified variable attribute by name.
+// it's value is stored in the metadata object
+// return is non-zero if an error occurred
+int read_attribute(netcdf_handle &fh, int var_id,
+    const std::string &att_name, teca_metadata &atts);
 
+// read the specified variable attribute by id
+// it's value is stored in the metadata object
+// return is non-zero if an error occurred
+int read_attribute(netcdf_handle &fh, int var_id,
+    int att_id, teca_metadata &atts);
+
+// read the specified variable's name, dimensions, and it's associated
+// NetCDF attributes into the metadata object. Additonally the following
+// key/value pairs are added and useful for subsequent I/O and processing
+//
+//  cf_id - the NetCDF variable id that can be used to read the variable
+//  cf_dims - a vector of the NetCDF dimension lengths (i.e. the variable's shape)
+//  cf_dim_names - a vector of the names of the NetCDF dimensions
+//  cf_type_code - the NetCDF type code
+//  type_code - the TECA type code
+//  centering - for now it is set to teca_array_attributes::point_centering
+//
+// return is non-zero if an error occurred
+int read_variable_attributes(netcdf_handle &fh, int var_id,
+    std::string &name, teca_metadata &atts);
+
+int read_variable_attributes(netcdf_handle &fh,
+    const std::string &name, teca_metadata &atts);
+
+// functional that reads and returns a variable from the
+// named file. we're doing this so we can do thread
+// parallel I/O to hide some of the cost of opening files
+// on Lustre and to hide the cost of reading time coordinate
+// which is typically very expensive as NetCDF stores
+// unlimted dimensions non-contiguously
+//
+// note: Thu 09 Apr 2020 05:45:29 AM PDT
+// Threading these operations worked well in NetCDF 3, however
+// in NetCDF 4 backed by HDF5 necessary locking eliminates any
+// speed up.
+class read_variable_and_attributes
+{
+public:
+    // data and task types
+    using data_elem_t = std::pair<p_teca_variant_array, teca_metadata>;
+    using data_t = std::pair<unsigned long, data_elem_t>;
+    using task_t = std::packaged_task<data_t()>;
+    using queue_t = teca_thread_pool<task_t, data_t>;
+    using p_queue_t = std::shared_ptr<queue_t>;
+
+    read_variable_and_attributes(const std::string &path, const std::string &file,
+        unsigned long id, const std::string &variable) : m_path(path),
+        m_file(file), m_variable(variable), m_id(id)
+    {}
+
+    static
+    data_t package(unsigned long id,
+        p_teca_variant_array var = nullptr,
+        const teca_metadata &md = teca_metadata())
+    {
+        return std::make_pair(id, std::make_pair(var, md));
+    }
+
+    data_t operator()();
+
+private:
+    std::string m_path;
+    std::string m_file;
+    std::string m_variable;
+    unsigned long m_id;
+};
+
+// function that reads and returns a variable from the
+// named file. we're doing this so we can do thread
+// parallel I/O to hide some of the cost of opening files
+// on Lustre and to hide the cost of reading time coordinate
+// which is typically very expensive as NetCDF stores
+// unlimted dimensions non-contiguously
+//
+// note: Thu 09 Apr 2020 05:45:29 AM PDT
+// Threading these operations worked well in NetCDF 3, however
+// in NetCDF 4 backed by HDF5 necessary locking eliminates any
+// speed up.
+class read_variable
+{
+public:
+    // data and task types
+    using data_t = std::pair<unsigned long, p_teca_variant_array>;
+    using task_t = std::packaged_task<data_t()>;
+    using queue_t = teca_thread_pool<task_t, data_t>;
+    using p_queue_t = std::shared_ptr<queue_t>;
+
+
+    read_variable(const std::string &path, const std::string &file,
+        unsigned long id, const std::string &variable) : m_path(path),
+        m_file(file), m_variable(variable), m_id(id)
+    {}
+
+    static
+    data_t package(unsigned long id,
+        p_teca_variant_array var = nullptr)
+    {
+        return std::make_pair(id, var);
+    }
+
+    data_t operator()();
+
+private:
+    std::string m_path;
+    std::string m_file;
+    std::string m_variable;
+    unsigned long m_id;
+};
+
+// write the attributes in array_atts to the variable identified by var_id the
+// name is used in error messages. returns zero of successful.
+int write_variable_attributes(netcdf_handle &fh, int var_id,
+    teca_metadata &array_atts);
+
+}
 #endif

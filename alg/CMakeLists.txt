@@ -19,20 +19,18 @@ set(teca_alg_cxx_srcs
     teca_2d_component_area.cxx
     teca_component_area_filter.cxx
     teca_component_statistics.cxx
-    teca_dataset_capture.cxx
-    teca_dataset_source.cxx
     teca_derived_quantity.cxx
     teca_descriptive_statistics.cxx
     teca_evaluate_expression.cxx
+    teca_face_to_cell_centering.cxx
     teca_geography.cxx
+    teca_integrated_vapor_transport.cxx
     teca_l2_norm.cxx
     teca_latitude_damper.cxx
     teca_laplacian.cxx
     teca_mask.cxx
     teca_normalize_coordinates.cxx
     teca_parser.cxx
-    teca_programmable_algorithm.cxx
-    teca_programmable_reduce.cxx
     teca_table_calendar.cxx
     teca_table_reduce.cxx
     teca_table_region_mask.cxx
@@ -44,17 +42,12 @@ set(teca_alg_cxx_srcs
     teca_tc_wind_radii.cxx
     teca_tc_trajectory.cxx
     teca_temporal_average.cxx
+    teca_valid_value_mask.cxx
     teca_variant_array_operand.cxx
+    teca_vertical_coordinate_transform.cxx
+    teca_vertical_reduction.cxx
     teca_vorticity.cxx
     teca_dataset_diff.cxx
-    )
-
-teca_py_install(${LIB_PREFIX}
-    teca_tc_stats.py
-    teca_tc_activity.py
-    teca_python_algorithm.py
-    teca_tc_wind_radii_stats.py
-    teca_tc_trajectory_scalars.py
     )
 
 set(teca_alg_f90_srcs)
@@ -97,6 +90,10 @@ target_include_directories(teca_alg
     INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<INSTALL_INTERFACE:${INCLUDE_PREFIX}>
+    )
+
+teca_py_install(${LIB_PREFIX}
+    teca_deeplab_ar_detect_internals.py
     )
 
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}

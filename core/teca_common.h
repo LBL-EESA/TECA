@@ -6,16 +6,29 @@
 #include <iostream>
 #include <unistd.h>
 #include <cstdio>
+#include <string>
+#include <vector>
+
+// send a vector to a stream
+template <typename T>
+std::ostream &operator<<(std::ostream &os, const std::vector<T> &vec)
+{
+    if (!vec.empty())
+    {
+        os << vec[0];
+        size_t n = vec.size();
+        for (size_t i = 1; i < n; ++i)
+            os << ", " << vec[i];
+    }
+    return os;
+}
+
+// send a vector of strings to a stream
+std::ostream &operator<<(std::ostream &os, const std::vector<std::string> &vec);
 
 // detect if we are writing to a tty, if not then
 // we should not use ansi color codes
-inline int have_tty()
-{
-    static int have = -1;
-    if (have < 0)
-        have = isatty(fileno(stderr));
-    return have;
-}
+int have_tty();
 
 #define ANSI_RED "\033[1;31;40m"
 #define ANSI_GREEN "\033[1;32;40m"

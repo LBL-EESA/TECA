@@ -57,21 +57,47 @@ public:
     // likely degrade performance. Default is 1.
     TECA_ALGORITHM_PROPERTY(int, bind_threads);
 
+    // set the smallest number of datasets to gather per call to
+    // execute. the default (-1) results in all datasets being
+    // gathered. In practice more datasets will be returned if
+    // ready
+    TECA_ALGORITHM_PROPERTY(int, stream_size);
+
+    // set the duration in nano seconds to wait between checking
+    // for completed tasks
+    TECA_ALGORITHM_PROPERTY(long long, poll_interval);
+
     // explicitly set the thread pool to submit requests to
     void set_data_request_queue(const p_teca_data_request_queue &queue);
 
 protected:
     teca_threaded_algorithm();
 
+    // streaming execute. streaming flag will be set when there is more
+    // data to process. it is not safe to use MPI when the streaming flag
+    // is set. on the last call streaming flag will not be set, at that
+    // point MPI may be used.
+    virtual
+    const_p_teca_dataset execute(unsigned int port,
+        const std::vector<const_p_teca_dataset> &input_data,
+        const teca_metadata &request, int streaming);
+
+    // forward to streaming execute
+    const_p_teca_dataset execute(unsigned int port,
+        const std::vector<const_p_teca_dataset> &input_data,
+        const teca_metadata &request) override;
+
     // driver function that manages execution of the given
     // requst on the named port. each upstream request issued
     // will be executed by the thread pool.
     const_p_teca_dataset request_data(teca_algorithm_output_port &port,
         const teca_metadata &request) override;
-
 private:
     int verbose;
     int bind_threads;
+    int stream_size;
+    long long poll_interval;
+
     teca_threaded_algorithm_internals *internals;
 };
 

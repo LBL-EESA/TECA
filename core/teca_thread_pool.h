@@ -3,6 +3,7 @@
 
 #include "teca_common.h"
 #include "teca_algorithm_fwd.h"
+#include "teca_thread_util.h"
 #include "teca_threadsafe_queue.h"
 #include "teca_mpi.h"
 
@@ -11,18 +12,13 @@
 #include <atomic>
 #include <mutex>
 #include <future>
+#include <chrono>
 #include <algorithm>
 #if defined(_GNU_SOURCE)
 #include <pthread.h>
 #include <sched.h>
 #include <deque>
 #endif
-
-namespace internal
-{
-int thread_parameters(MPI_Comm comm, int base_core_id, int n_req,
-    bool bind, bool verbose, std::deque<int> &affinity);
-}
 
 template <typename task_t, typename data_t>
 class teca_thread_pool;
@@ -65,7 +61,19 @@ public:
     // datasets in the order that corresponding requests
     // were added to the queue.
     template <template <typename ... > class container_t, typename ... args>
-    void wait_data(container_t<data_t, args ...> &data);
+    void wait_all(container_t<data_t, args ...> &data);
+
+    // wait for some of the requests to execute. datasets will be retruned as
+    // they become ready. n_to_wait specifies how many datasets to gather but
+    // there are three cases when the number of datasets returned differs from
+    // n_to_wait.  when n_to_wait is larger than the number of tasks remaining,
+    // datasets from all of the remaining tasks is returned. when n_to_wait is
+    // smaller than the number of datasets ready, all of the currenttly ready
+    // data are returned. finally, when n_to_wait is < 1 the call blocks until
+    // all of the tasks complete and all of the data is returned.
+    template <template <typename ... > class container_t, typename ... args>
+    int wait_some(long n_to_wait, long long poll_interval,
+        container_t<data_t, args ...> &data);
 
     // get the number of threads
     unsigned int size() const noexcept
@@ -95,26 +103,18 @@ teca_thread_pool<task_t, data_t>::teca_thread_pool(MPI_Comm comm, int n,
 
 // --------------------------------------------------------------------------
 template <typename task_t, typename data_t>
-void teca_thread_pool<task_t, data_t>::create_threads(MPI_Comm comm, int n,
-    bool bind, bool verbose)
+void teca_thread_pool<task_t, data_t>::create_threads(MPI_Comm comm,
+    int n_requested, bool bind, bool verbose)
 {
-#if !defined(_GNU_SOURCE)
-    (void)bind;
-    (void)verbose;
-    (void)comm;
-    if (n < 1)
-    {
-        TECA_WARNING("Cannot autmatically detect threading parameters "
-            "on this platform. The default is 1 thread per process.")
-        n = 1;
-    }
-    int n_threads = n;
-#else
-    int base_core_id = sched_getcpu();
+    // this rank is excluded from computations
+    if (comm == MPI_COMM_NULL)
+        return;
+
+    int n_threads = n_requested;
+
     std::deque<int> core_ids;
-    int n_threads = internal::thread_parameters
-        (comm, base_core_id, n, bind, verbose, core_ids);
-#endif
+    teca_thread_util::thread_parameters(comm, -1,
+        n_requested, bind, verbose, n_threads, core_ids);
 
     // allocate the threads
     for (int i = 0; i < n_threads; ++i)
@@ -172,7 +172,57 @@ void teca_thread_pool<task_t, data_t>::push_task(task_t &task)
 // --------------------------------------------------------------------------
 template <typename task_t, typename data_t>
 template <template <typename ... > class container_t, typename ... args>
-void teca_thread_pool<task_t, data_t>::wait_data(container_t<data_t, args ...> &data)
+int teca_thread_pool<task_t, data_t>::wait_some(long n_to_wait,
+    long long poll_interval, container_t<data_t, args ...> &data)
+{
+    long n_tasks = m_futures.size();
+
+    // wait for all
+    if (n_to_wait < 1)
+    {
+        this->wait_all(data);
+        return 0;
+    }
+    // wait for at most the number of queued tasks
+    else if (n_to_wait > n_tasks)
+        n_to_wait = n_tasks;
+
+
+    // gather the requested number of datasets
+    while (1)
+    {
+        // scan the tasks once. capture any data that is ready
+        auto it = m_futures.begin();
+        while (it != m_futures.end())
+        {
+            std::future_status stat = it->wait_for(std::chrono::seconds::zero());
+            if (stat == std::future_status::ready)
+            {
+                data.push_back(it->get());
+                it = m_futures.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+
+        // if we have not accumulated the requested number of datasets
+        // wait for the user supplied duration before re-scanning
+        if (data.size() < static_cast<unsigned int>(n_to_wait))
+            std::this_thread::sleep_for(std::chrono::nanoseconds(poll_interval));
+        else
+            break;
+    }
+
+    // return the number of tasks remaining
+    return m_futures.size();
+}
+
+// --------------------------------------------------------------------------
+template <typename task_t, typename data_t>
+template <template <typename ... > class container_t, typename ... args>
+void teca_thread_pool<task_t, data_t>::wait_all(container_t<data_t, args ...> &data)
 {
     // wait on all pending requests and gather the generated
     // datasets

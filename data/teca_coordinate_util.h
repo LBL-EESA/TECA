@@ -3,23 +3,128 @@
 
 #include "teca_cartesian_mesh.h"
 #include "teca_variant_array.h"
+#include "teca_metadata.h"
+#include "teca_array_attributes.h"
 
 #include <vector>
 #include <cmath>
+#include <type_traits>
+#include <typeinfo>
+#include <iomanip>
+
+#define max_prec(T) \
+    std::setprecision(std::numeric_limits<T>::digits10 + 1)
 
 namespace teca_coordinate_util
 {
+// traits classes used to get default tolerances for comparing numbers
+// of a given precision. A relative tolerance is used for comparing large
+// numbers and an absolute tolerance is used for comparing small numbers.
+// these defaults are not universal and will not work well in all situations.
+// see also:
+// https://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/
+template <typename n_t>
+struct equal_tt {};
+
+#define declare_equal_tt(cpp_t, atol, rtol) \
+template <>                                 \
+struct equal_tt<cpp_t>                      \
+{                                           \
+    static cpp_t absTol() { return atol; }  \
+    static cpp_t relTol() { return rtol; }  \
+};
+
+declare_equal_tt(float, 10.0f*std::numeric_limits<float>::epsilon(),
+    std::numeric_limits<float>::epsilon())
+
+declare_equal_tt(double, 10.0*std::numeric_limits<double>::epsilon(),
+    std::numeric_limits<float>::epsilon())
+
+declare_equal_tt(long double, std::numeric_limits<double>::epsilon(),
+    std::numeric_limits<double>::epsilon())
+
+// compare two floating point numbers.
+// absTol handles comparing numbers very close to zero.
+// relTol handles comparing larger values.
 template <typename T>
-bool equal(T a, T b, T tol)
+bool equal(T a, T b,
+    T relTol = equal_tt<T>::relTol(), T absTol = equal_tt<T>::absTol(),
+    typename std::enable_if<std::is_floating_point<T>::value>::type* = 0)
 {
+    // for numbers close to zero
     T diff = std::abs(a - b);
+    if (diff <= absTol)
+        return true;
+    // realtive difference for larger values
     a = std::abs(a);
     b = std::abs(b);
     b = (b > a) ? b : a;
-    if (diff <= (b*tol))
+    b *= relTol;
+    if (diff <= b)
         return true;
     return false;
 }
+
+// a specialization for integer types
+template <typename T>
+bool equal(T a, T b, T relTol = 0, T absTol = 0,
+    typename std::enable_if<std::is_integral<T>::value>::type* = 0)
+{
+    (void)relTol;
+    (void)absTol;
+    return a == b;
+}
+
+// an overload for use in regression tests. If the numbers are not equal then a diagnostic
+// message is returned.
+template <typename T>
+bool equal(T a, T b, std::string &diagnostic,
+    T relTol = equal_tt<T>::relTol(), T absTol = equal_tt<T>::absTol(),
+    typename std::enable_if<std::is_floating_point<T>::value>::type* = 0)
+{
+    // for numbers close to zero
+    T diff = std::abs(a - b);
+    if (diff <= absTol)
+        return true;
+    // realtive difference for larger values
+    T aa = std::abs(a);
+    T bb = std::abs(b);
+    bb = (bb > aa) ? bb : aa;
+    T cc = bb*relTol;
+    if (diff <= cc)
+        return true;
+    // a and b are not equal format the diagnostic
+    T eps = std::numeric_limits<T>::epsilon();
+    std::ostringstream os;
+    os  << max_prec(T) << a << " != " << max_prec(T) << b
+        << " relTol=" << max_prec(T) << relTol
+        << " absTol=" << max_prec(T) << absTol
+        << " |a-b|=" << max_prec(T) << diff
+        << " |a-b|/eps=" << max_prec(T) << diff/eps
+        << " max(|a|,|b|)*relTol=" << max_prec(T) << cc
+        << " |a-b|/max(|a|,|b|)=" << max_prec(T) << diff/bb
+        << " eps(" << typeid(a).name() << sizeof(T) << ")="
+        << max_prec(T) << eps;
+    diagnostic = os.str();
+    return false;
+}
+
+// a specialization for integer types
+template <typename T>
+bool equal(T a, T b, std::string &diagnostic, T relTol = 0, T absTol = 0,
+    typename std::enable_if<std::is_integral<T>::value>::type* = 0)
+{
+    (void)relTol;
+    (void)absTol;
+    if (a == b)
+        return true;
+    // a and b are not equal format the diagnostic
+    std::ostringstream os;
+    os  << typeid(a).name() << sizeof(T) << " " << a << " != " << b;
+    diagnostic = os.str();
+    return false;
+}
+
 
 // comparators implementing bracket for ascending and
 // descending input arrays
@@ -68,8 +173,7 @@ int index_of(const data_t *data, unsigned long l, unsigned long r,
 
     if (m_0 == r)
     {
-        data_t eps8 = data_t(8)*std::numeric_limits<data_t>::epsilon();
-        if (equal(val, data[m_0], eps8))
+        if (equal(val, data[m_0]))
         {
             id = m_0;
             return 0;
@@ -81,12 +185,11 @@ int index_of(const data_t *data, unsigned long l, unsigned long r,
     if (bracket_t::comp0_t::eval(val, data[m_0]) &&
          bracket_t::comp1_t::eval(val, data[m_1]))
     {
-        data_t eps8 = data_t(8)*std::numeric_limits<data_t>::epsilon();
         // found a bracket around the value
-        if (equal(val, data[m_0], eps8))
+        if (equal(val, data[m_0]))
             id = m_0;
         else
-        if (equal(val, data[m_1], eps8))
+        if (equal(val, data[m_1]))
             id = m_1;
         else
         if (lower)
@@ -96,7 +199,7 @@ int index_of(const data_t *data, unsigned long l, unsigned long r,
         return 0;
     }
     else
-    if (val < data[m_0])
+    if (bracket_t::comp1_t::eval(val, data[m_0]))
     {
         // split range to the left
         return teca_coordinate_util::index_of<data_t, bracket_t>(
@@ -168,6 +271,9 @@ int bounds_to_extent(const double *bounds,
     const_p_teca_variant_array x, const_p_teca_variant_array y,
     const_p_teca_variant_array z, unsigned long *extent);
 
+int bounds_to_extent(const double *bounds, const teca_metadata &md,
+    unsigned long *extent);
+
 // get the i,j,k cell index of point x,y,z in the given mesh.
 // return 0 if successful.
 template<typename T>
@@ -209,7 +315,10 @@ int index_of(const const_p_teca_cartesian_mesh &mesh, T x, T y, T z,
 // given a human readable date string in YYYY-MM-DD hh:mm:ss format
 // amd a list of floating point offset times inthe specified calendar
 // and units find the closest time step. return 0 if successful
-int time_step_of(p_teca_double_array time, bool lower,
+// see index_of for a description of lower, if clamp is true then
+// when the date falls outside of the time values either the first
+// or last time step is returned.
+int time_step_of(p_teca_variant_array time, bool lower, bool clamp,
     const std::string &calendar, const std::string &units,
     const std::string &date, unsigned long &step);
 
@@ -377,6 +486,65 @@ template<> struct interpolate_t<1>
              sx,sy,sz,sa, ihi,jhi,khi, nx,nxy, ta);
     }
 };
+
+// return 0 if the centering is one of the values defined
+// in teca_array_attributes
+int validate_centering(int centering);
+
+// convert from a cell extent to a face, edge or point centered
+// extent
+template <typename num_t>
+int convert_cell_extent(num_t *extent, int centering)
+{
+    switch (centering)
+    {
+        case teca_array_attributes::invalid_value:
+            TECA_ERROR("detected invalid_value in centering")
+            return -1;
+            break;
+        case teca_array_attributes::cell_centering:
+            break;
+        case teca_array_attributes::x_face_centering:
+            extent[1] += 1;
+            break;
+        case teca_array_attributes::y_face_centering:
+            extent[3] += 1;
+            break;
+        case teca_array_attributes::z_face_centering:
+            extent[5] += 1;
+            break;
+        case teca_array_attributes::x_edge_centering:
+            extent[3] += 1;
+            extent[5] += 1;
+            break;
+        case teca_array_attributes::y_edge_centering:
+            extent[1] += 1;
+            extent[5] += 1;
+            break;
+        case teca_array_attributes::z_edge_centering:
+            extent[1] += 1;
+            extent[3] += 1;
+            break;
+        case teca_array_attributes::point_centering:
+            extent[1] += 1;
+            extent[3] += 1;
+            extent[5] += 1;
+            break;
+        case teca_array_attributes::no_centering:
+            break;
+        default:
+            TECA_ERROR("this centering is undefined " << centering)
+            return -1;
+    }
+    return 0;
+}
+
+// given carteisan mesh metadata extract whole_extent and bounds
+// if bounds metadata is not already present then it is initialized
+// from coordinate arrays. It's an error if whole_extent or coordinate
+// arrays are not present. return zero if successful.
+int get_cartesian_mesh_extent(const teca_metadata &md,
+    unsigned long *whole_extent, double *bounds);
 
 };
 #endif

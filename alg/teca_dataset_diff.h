@@ -4,9 +4,12 @@
 #include "teca_shared_object.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
-#include "teca_table_fwd.h"
-#include "teca_cartesian_mesh_fwd.h"
-#include "teca_array_collection_fwd.h"
+#include "teca_table.h"
+#include "teca_mesh.h"
+#include "teca_cartesian_mesh.h"
+#include "teca_curvilinear_mesh.h"
+#include "teca_arakawa_c_grid.h"
+#include "teca_array_collection.h"
 
 #include <vector>
 #include <string>
@@ -38,31 +41,47 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // Relative tolerance below which two floating-point quantities are
-    // considered equal. The relative difference for a computed quantity A and
-    // a reference quantity B is
-    //
-    // rel_diff = |A - B| / B, B != 0
-    //          = |A - B| / A, B == 0, A != 0
-    //            0            otherwise
-    TECA_ALGORITHM_PROPERTY(double, tolerance)
+    // Relative tolerance below which two floating-point numbers a and b are
+    // considered equal. if |a - b| <= max(|a|,|b|)*tol then a is equal to b.
+    // the relative tolerance is used with numbers not close to zero.
+    TECA_ALGORITHM_PROPERTY(double, relative_tolerance)
 
+    // The absolute tolerance below which two floating point numbers a and b are
+    // considered equal. if |a - b| <= tol then a is equal to b. The absolute
+    // tolerance is used with numbers close to zero.
+    TECA_ALGORITHM_PROPERTY(double, absolute_tolerance)
+
+    // if set infromation about the test progress is displayed during
+    // the test.
+    TECA_ALGORITHM_PROPERTY(int, verbose)
 protected:
     teca_dataset_diff();
 
     // Comparison methods.
     int compare_tables(const_p_teca_table table1, const_p_teca_table table2);
 
+    int compare_meshes(
+        const_p_teca_mesh reference_mesh,
+        const_p_teca_mesh data_mesh);
+
     int compare_cartesian_meshes(
         const_p_teca_cartesian_mesh reference_mesh,
         const_p_teca_cartesian_mesh data_mesh);
+
+    int compare_curvilinear_meshes(
+        const_p_teca_curvilinear_mesh reference_mesh,
+        const_p_teca_curvilinear_mesh data_mesh);
+
+    int compare_arakawa_c_grids(
+        const_p_teca_arakawa_c_grid reference_mesh,
+        const_p_teca_arakawa_c_grid data_mesh);
 
     int compare_array_collections(
         const_p_teca_array_collection reference_arrays,
         const_p_teca_array_collection data_arrays);
 
-    int compare_arrays(
-        const_p_teca_variant_array array1, const_p_teca_variant_array array2);
+    int compare_arrays(const_p_teca_variant_array array1,
+        const_p_teca_variant_array array2, double absTol, double relTol);
 
     // Reporting methods.
 
@@ -82,9 +101,13 @@ private:
         const std::vector<const_p_teca_dataset> &input_data,
         const teca_metadata &request) override;
 
+    double get_abs_tol() const;
+    double get_rel_tol() const;
+
 private:
-    // Tolerance for equality of field values.
-    double tolerance;
+    double relative_tolerance;
+    double absolute_tolerance;
+    int verbose;
 };
 
 #endif

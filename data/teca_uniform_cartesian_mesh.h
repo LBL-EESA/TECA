@@ -22,6 +22,13 @@ public:
     TECA_DATASET_METADATA(extent, unsigned long, 6)
     TECA_DATASET_METADATA(local_extent, unsigned long, 6)
 
+    // return a unique string identifier
+    std::string get_class_name() const override
+    { return "teca_uniform_cartesian_mesh"; }
+
+    // return a unique integer identifier
+    int get_type_code() const override;
+
     // copy data and metadata. shallow copy uses reference
     // counting, while copy duplicates the data.
     void copy(const const_p_teca_dataset &) override;

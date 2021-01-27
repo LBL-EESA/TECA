@@ -1,7 +1,8 @@
 #include "teca_cartesian_mesh.h"
+#include "teca_dataset_util.h"
+#include "teca_bad_cast.h"
 
 #include <iostream>
-using std::endl;
 
 // --------------------------------------------------------------------------
 teca_cartesian_mesh::teca_cartesian_mesh()
@@ -9,50 +10,49 @@ teca_cartesian_mesh::teca_cartesian_mesh()
 {}
 
 // --------------------------------------------------------------------------
+int teca_cartesian_mesh::get_type_code() const
+{
+    return teca_dataset_tt<teca_cartesian_mesh>::type_code;
+}
+
+// --------------------------------------------------------------------------
 void teca_cartesian_mesh::copy(const const_p_teca_dataset &dataset)
 {
+    this->teca_mesh::copy(dataset);
+
     const_p_teca_cartesian_mesh other
         = std::dynamic_pointer_cast<const teca_cartesian_mesh>(dataset);
 
-    if (!other)
-        throw std::bad_cast();
-
-    if (this == other.get())
+    if ((!other) || (this == other.get()))
         return;
 
-    this->teca_mesh::copy(dataset);
     m_coordinate_arrays->copy(other->m_coordinate_arrays);
 }
 
 // --------------------------------------------------------------------------
 void teca_cartesian_mesh::shallow_copy(const p_teca_dataset &dataset)
 {
+    this->teca_mesh::shallow_copy(dataset);
+
     p_teca_cartesian_mesh other
         = std::dynamic_pointer_cast<teca_cartesian_mesh>(dataset);
 
-    if (!other)
-        throw std::bad_cast();
-
-    if (this == other.get())
+    if ((!other) || (this == other.get()))
         return;
 
-    this->teca_mesh::shallow_copy(dataset);
     m_coordinate_arrays->shallow_copy(other->m_coordinate_arrays);
 }
 
 // --------------------------------------------------------------------------
 void teca_cartesian_mesh::copy_metadata(const const_p_teca_dataset &dataset)
 {
+    this->teca_mesh::copy_metadata(dataset);
+
     const_p_teca_cartesian_mesh other
         = std::dynamic_pointer_cast<const teca_cartesian_mesh>(dataset);
 
-    if (!other)
-        throw std::bad_cast();
-
-    if (this == other.get())
+    if ((!other) || (this == other.get()))
         return;
-
-    this->teca_mesh::copy_metadata(dataset);
 
     m_coordinate_arrays->copy(other->m_coordinate_arrays);
 }
@@ -60,16 +60,17 @@ void teca_cartesian_mesh::copy_metadata(const const_p_teca_dataset &dataset)
 // --------------------------------------------------------------------------
 void teca_cartesian_mesh::swap(p_teca_dataset &dataset)
 {
+    this->teca_mesh::swap(dataset);
+
     p_teca_cartesian_mesh other
         = std::dynamic_pointer_cast<teca_cartesian_mesh>(dataset);
 
     if (!other)
-        throw std::bad_cast();
+        throw teca_bad_cast(safe_class_name(dataset), "teca_cartesian_mesh");
 
     if (this == other.get())
         return;
 
-    this->teca_mesh::swap(dataset);
     m_coordinate_arrays->swap(other->m_coordinate_arrays);
 }
 
@@ -98,24 +99,29 @@ void teca_cartesian_mesh::set_z_coordinates(const std::string &var,
 }
 
 // --------------------------------------------------------------------------
-void teca_cartesian_mesh::to_stream(teca_binary_stream &s) const
+int teca_cartesian_mesh::to_stream(teca_binary_stream &s) const
 {
-    this->teca_mesh::to_stream(s);
-    m_coordinate_arrays->to_stream(s);
+    if (this->teca_mesh::to_stream(s)
+        || m_coordinate_arrays->to_stream(s))
+        return -1;
+    return 0;
 }
 
 // --------------------------------------------------------------------------
-void teca_cartesian_mesh::from_stream(teca_binary_stream &s)
+int teca_cartesian_mesh::from_stream(teca_binary_stream &s)
 {
-    this->teca_mesh::from_stream(s);
-    m_coordinate_arrays->from_stream(s);
+    if (this->teca_mesh::from_stream(s)
+        || m_coordinate_arrays->from_stream(s))
+        return -1;
+    return 0;
 }
 
 // --------------------------------------------------------------------------
-void teca_cartesian_mesh::to_stream(std::ostream &s) const
+int teca_cartesian_mesh::to_stream(std::ostream &s) const
 {
     this->teca_mesh::to_stream(s);
     s << "coordinate arrays = {";
     m_coordinate_arrays->to_stream(s);
-    s << "}" << endl;
+    s << "}" << std::endl;
+    return 0;
 }
