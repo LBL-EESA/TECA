@@ -4,7 +4,9 @@ function(depend_swig input output)
     # custom command to update the dependency file
     add_custom_command(
         OUTPUT ${output_file}
-        COMMAND ${swig_cmd} -c++ -python -MM
+        COMMAND env LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}
+            DYLD_LIBRARY_PATH=$ENV{DYLD_LIBRARY_PATH}
+            ${swig_cmd} -c++ -python -MM
             -I${MPI4Py_INCLUDE_DIR}
             -I${CMAKE_CURRENT_BINARY_DIR}
             -I${CMAKE_CURRENT_BINARY_DIR}/..
@@ -19,7 +21,9 @@ function(depend_swig input output)
     # bootstrap the dependency list
     message(STATUS "Generating initial dependency list for ${input}")
     execute_process(
-        COMMAND ${swig_cmd} -c++ -python -MM
+        COMMAND env LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}
+            DYLD_LIBRARY_PATH=$ENV{DYLD_LIBRARY_PATH}
+            ${swig_cmd} -c++ -python -MM
             -I${MPI4Py_INCLUDE_DIR}
             -I${CMAKE_CURRENT_BINARY_DIR}
             -I${CMAKE_CURRENT_BINARY_DIR}/..
@@ -73,7 +77,9 @@ function(wrap_swig input output)
     endforeach()
     add_custom_command(
         OUTPUT ${output_file}
-        COMMAND ${swig_cmd} -c++ -python -threads -w341,325
+        COMMAND env LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}
+            DYLD_LIBRARY_PATH=$ENV{DYLD_LIBRARY_PATH}
+            ${swig_cmd} -c++ -python -threads -w341,325
             -DSWIG_TYPE_TABLE=teca_py
             -I${MPI4Py_INCLUDE_DIR}
             -I${CMAKE_CURRENT_BINARY_DIR}
