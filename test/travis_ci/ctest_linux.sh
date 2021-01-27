@@ -35,3 +35,7 @@ do
   echo "ctest pid=$ctest_pid alive"
   sleep 30s
 done
+
+# return the exit code from ctest
+wait $ctest_pid
+exit $?

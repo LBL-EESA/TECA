@@ -69,7 +69,7 @@ class teca_tc_wind_radii_stats(teca_python_algorithm):
         fig = plt.figure(figsize=(9.25,6.75),dpi=self.dpi)
 
         # scatter
-        plt.subplot('331')
+        plt.subplot(331)
 
         if not track_table.has_column(self.wind_column):
             sys.stderr.write('ERROR: track table missing %s\n'%(self.wind_column))
@@ -103,7 +103,7 @@ class teca_tc_wind_radii_stats(teca_python_algorithm):
         ax.set_xlim([0.0, 6.0*km_per_deg_lat])
 
         # all
-        plt.subplot('332')
+        plt.subplot(332)
         i = 0
         while i < nwr:
             wc = teca_tc_saffir_simpson.get_upper_bound_kmph(i-1)
@@ -142,7 +142,7 @@ class teca_tc_wind_radii_stats(teca_python_algorithm):
             i += 1
 
         # legend
-        plt.subplot('339')
+        plt.subplot(339)
         red_cmap_pats = []
         q = 0
         while q < nwr:
@@ -183,7 +183,7 @@ class teca_tc_wind_radii_stats(teca_python_algorithm):
         ax.set_xlim([0.0, np.max(pr)])
 
         # scatter
-        plt.subplot('122')
+        plt.subplot(122)
         ii = np.where(pr > 0.0)
         cnts,xe,ye,im = plt.hist2d(pr[ii], ws[ii], bins=24, norm=LogNorm(), zorder=2)
         plt.ylabel('Wind speed (km/hr)', fontweight='normal', fontsize=10)

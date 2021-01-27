@@ -35,7 +35,6 @@ ${app_prefix}/teca_cartesian_mesh_diff                                          
     --reference_dataset ${data_root}/test_bayesian_ar_detect_app_mcf_ref'.*\.nc'    \
     --test_dataset test_bayesian_ar_detect_app_mcf_output'.*\.nc'                   \
     --arrays IVT IVT_U IVT_V ar_probability ar_binary_tag                           \
-    --ref_reader::z_axis_variable plev  --test_reader::z_axis_variable plev         \
     --verbose
 
 # clean up

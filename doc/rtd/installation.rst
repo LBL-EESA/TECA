@@ -9,8 +9,8 @@ on the platform and desired use.
 On a Cray Supercomputer
 -----------------------
 When installing TECA on a supercomputer one of the best options is the
-superbuild, a piece of CMake code that downloads and builds TECA and its now
-more than 26 dependencies. The superbuild is located in a git repository here
+superbuild, a piece of CMake code that downloads and builds TECA and its many
+dependencies. The superbuild is located in a git repository here
 TECA_superbuild_.
 
 .. _TECA_superbuild: https://github.com/LBL-EESA/TECA_superbuild
@@ -28,24 +28,63 @@ referring to a broken library.
 
 Overview
 ~~~~~~~~
-A quick overview follows. Note that step 8 is for using TECA after.
+A quick overview of installing the latest stable version of TECA from the
+`master` branch is:
 
-1. module swap PrgEnv-intel PrgEnv-gnu
-2. module load cmake
-3. git clone https://github.com/LBL-EESA/TECA_superbuild.git
-4. mkdir build && cd build
-5. edit install paths in the `config-teca-sb.sh` script provided below.
-6. run `config-teca-sb.sh ..`. You may need to replace `..` with the path to super build clone.
-7. make -j16 install
-8. When using TECA you'll need to load the teca modulefile installed by the
-   superbuild find this file in the `modulefiles` directory.
+1.  module swap PrgEnv-intel PrgEnv-gnu
+2.  module load cmake
+3.  git clone https://github.com/LBL-EESA/TECA_superbuild.git
+4.  cd TECA_superbuild
+5.  git checkout master
+6.  mkdir build && cd build
+7.  run `config-teca-sb.sh ..`
+
+When using the resulting TECA install you'll need to load the teca modulefile
+installed by the superbuild find this file in the `modulefiles` directory.
+
+.. _sb_version:
+
+Versioning
+~~~~~~~~~~
+Over time both TECA and its dependencies evolve such that the compatible
+versions of dependencies and build options change. This is handled by tagging
+releases in both TECA and the TECA_superbuild. Each such stable release of TECA
+is paired with a corresponding release of the TECA_superbuild. The superbuild
+must be explicitly checked out to the same TECA release one is compiling. Be
+sure to call `git checkout X` in the superbuild clone where `X` is either
+`master`, `develop`, or a release number found at the `releases`_  page of the
+TECA github repo.
+
+Here we show how to install from the `master` branch which has the latest
+stable version of the code.  One may also wish to install from the `develop`
+branch which gets one the most up to date experimental codes. No matter which
+branch or release is selected the process is similar, one will modify the
+examples by replacing `master` with `develop` or the desired release number.
+
+.. _releases: https://github.com/LBL-EESA/TECA/releases
+
+.. _fs_selection:
+
+Selecting the file system
+~~~~~~~~~~~~~~~~~~~~~~~~~
+Supercomputers often come with a number of file systems attached. The choice of
+which file system to install the software on can impact the performance of
+large scale runs as many processes simultaneously will load code from library
+files stored on disk. Often home directories are located on a low performance
+networked file system not designed for use at large parallel concurrencies making
+the home folder a poor choice for an install. Typically there is also a high
+throughput parallel file system, such as Lustre, available that is designed for
+massive concurrent access.  Parallel file systems will deliver the best
+performance and can be a good choice for installs. Consult your HPC center's
+documentation before deciding on a file system for the install. For more information
+on the file systems available at NERSC see :ref:`nersc_file_systems`.
 
 Configure script
 ~~~~~~~~~~~~~~~~
 The configure script is a shell script that captures build settings specific to
-Cray environment (see steps 5 & 6 above). You will need to edit the `TECA_SOURCE`
-and `TECA_INSTALL` variables before running it. Additional CMake arguments may be
-passed on the command line. You must pass the location of the superbuild
+Cray environment (see step 7 above). You may wish to edit the `TECA_SOURCE` and
+`TECA_INSTALL` variables before running the script. Additional CMake arguments
+may be passed on the command line. You must pass the location of the superbuild
 sources(see step 3 above).
 
 Here is the script `config-teca-sb.sh` in use at NERSC for Cori.
@@ -54,11 +93,14 @@ Here is the script `config-teca-sb.sh` in use at NERSC for Cori.
 
     #!/bin/bash
 
+    # use the GNU compiler collection
+    module swap PrgEnv-intel PrgEnv-gnu
+
     # mpich is not in the pkg-config path on Cori
     export PKG_CONFIG_PATH=$CRAY_MPICH_DIR/lib/pkgconfig:$PKG_CONFIG_PATH
 
-    # set the the path where TECA is installed to.
-    TECA_SOURCE=develop
+    # set the banch of TECA and the path where TECA is installed to.
+    TECA_SOURCE=master
     TECA_INSTALL=$SCRATCH/teca_installs/$TECA_SOURCE
 
     echo TECA_SOURCE=${TECA_SOURCE}
@@ -77,16 +119,32 @@ Here is the script `config-teca-sb.sh` in use at NERSC for Cori.
       -DENABLE_CRAY_MPICH=ON \
       -DENABLE_TECA_TEST=OFF \
       -DENABLE_TECA_DATA=ON \
-      -DENABLE_TECA=ON \
       $*
 
     # build and install
     make -j16 install
 
-The superbuild will install the release or branch named in `TECA_SOURCE` variable.
-The install will be placed in the `TECA_INSTALL` directory.  An environment module will
-be installed in `$TECA_INSTALL/modulefiles/`. To use the new install of TECA you will need
-to use it to configure the run time environment.
+This script configures the superbuild such that the release or branch named in
+`TECA_SOURCE` variable is compiled and installed in the `TECA_INSTALL`
+directory.  As discussed in :ref:`sb_version`, the superbuild should be checked
+out to the same branch or release number  named in `TECA_source`.  Note that
+`$SCRATCH` is a NERSC specific environment variable that points to a directory
+owned by the user on a Lustre based file system. On other HPC centers you will
+need to replace `$SCRATCH` with the path to the file system you wish to install
+TECA on. See :ref:`fs_selection` for more information.
+
+.. hint::
+
+   When trouble shooting the superbuild it is necessary to `rm -rf`
+   both the build and install prefix directories. Failing to do so will lead to
+   confusing build failures.
+
+Configuring the runtime environment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+During the install an environment module is generated and installed to
+`$TECA_INSTALL/modulefiles/`. To use the new install of TECA you will need to
+use it to configure the run time environment.
 
 .. code-block:: bash
 
@@ -97,11 +155,17 @@ to use it to configure the run time environment.
 The teca module must be loaded each time you use TECA and is usually best done from
 within your batch script.
 
-.. hint::
-
-   When trouble shooting the superbuild it is necessary to `rm -rf`
-   both the build and install prefix directories. Failing to do so will lead to
-   confusing build failures.
+Debugging and development on a supercomputer
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Modifying the source code directly in the superbuild is a cumbersome process.
+It is far easier to keep a separate build for development and debugging.  In
+this case the superbuild is still useful for installing the dependencies.  To
+setup for TECA development and debugging on a supercomputer run the superbuild
+with `-DENABLE_TECA=OFF`. This will build the dependencies but not TECA itself.
+Once the superbuild completes, load the installed module, and compile a
+separate clone of the TECA github repo (See :ref:`compile`). This enables one
+to make local modifications, quickly recompile, and run out of the build
+directory.
 
 On a laptop or desktop
 ----------------------
@@ -116,68 +180,6 @@ Note, that as with any install, post install the environment will likely need
 to be set to pick up the install.  Specifically, PATH, LD_LIBRARY_PATH (or
 DYLD_LIBRRAY_PATH on Mac), and PYTHONPATH need to be set correctly. See section
 :ref:`post-install`.
-
-.. _py-only-install:
-
-The TECA Python package
-~~~~~~~~~~~~~~~~~~~~~~~
-Two installation methods have been documented here, `pip` and `conda`.
-Currently the `conda` method has some limitations. As a result `pip` is the
-recommended method.
-
-.. _pip_install:
-
-pip + venv
-^^^^^^^^^^
-The TECA Python package can be installed from PyPi using pip. This may be
-useful for developing new Python based applications and post processing codes.
-A virtual environment is recommended.
-
-Before attempting to install TECA, install dependencies as shown in section
-:ref:`install-deps`. Python package dependencies may then be installed via pip.
-
-.. code-block:: bash
-
-   python3 -m venv py3k-teca
-   source py3k-teca/bin/activate
-   pip3 install numpy matploptlib mpi4py torch
-   pip3 install teca
-
-The install may take a few minutes as TECA compiles from sources. Errors are
-typically due to missing dependencies, from the corresponding CMake output it
-should be apparent which dependency was not found.
-
-TECA makes heavy use of MPI and NetCDF parallel I/O. On some systems, notably
-Unbuntu and Mac OS MPI enabled NetCDF libraries are non existant or broken. In
-this case one can install NetCDF with MPI features enabled (in NetCDF docs this
-is called "parallel 4") and point the build to the local install by passing
-options on the pip command line.
-
-.. code-block:: bash
-
-   pip install teca --global-option=build_ext \
-       --global-option="--with-netcdf=/Users/bloring/netcdf-c-4.7.4-install/"
-
-See section :ref:`netcdf-parallel-4` for information on compiling NetCDF with
-MPI enabled.
-
-conda
-^^^^^
-The following is an experimental recipe for installing TECA into a conda environment.
-
-.. code-block:: bash
-
-   conda create --yes -c conda-forge -n tecapy \
-       python=3.9 numpy mpi4py netCDF4 boost openmpi \
-       matplotlib python-dateutil cython swig pyparsing \
-       cycler pytz torch
-   source activate tecapy
-   pip install teca --global-option=build_ext \
-       --global-option="--without-netcdf-mpi"
-
-This method does not support parallel I/O. As a result it is recommended to use
-:ref:`pip_install` installation method.
-
 
 .. _compile:
 
@@ -343,7 +345,7 @@ On Apple Mac OS
 .. _post-install:
 
 Post Install
-------------
+~~~~~~~~~~~~
 When installing after compiling from sources the user's environment should be
 updated to use the install. One may use the following shell script as a
 template for this purpose by replacing @CMAKE_INSTALL_PREFIX@ and
@@ -367,3 +369,76 @@ With this shell script in hand one configures the environment for use by sourcin
 When developing TECA it is common to skip the install step and run out of the
 build directory. When doing so one must also set LD_LIBRARY_PATH,
 DYLD_LIBRARY_PATH, PYTHONPATH, and PATH to point to the build directory.
+
+.. _py-only-install:
+
+Python only
+-----------
+TECA's C++ codes are wrapped in Python, and a number of pure Python
+implementations exist in the code base as well. This makes it possible to
+develop new TECA applications in Python using the teca Python package.  Two
+installation methods have been documented here, `pip` and `conda`.  Currently
+the `conda` method has some limitations. As a result `pip` is the recommended
+method.
+
+.. _pip_install:
+
+with pip
+~~~~~~~~
+The TECA Python package can be installed from PyPi using pip. This may be
+useful for developing new Python based applications and post processing codes.
+A virtual environment is recommended.
+
+Before attempting to install TECA, install system library dependencies as shown
+in section :ref:`install-deps`. Pure Python package dependencies may then be
+installed via pip.
+
+.. code-block:: bash
+
+   python3 -m venv py3k-teca
+   source py3k-teca/bin/activate
+   pip3 install numpy matploptlib mpi4py torch
+   pip3 install teca
+
+.. note::
+
+    When installing PyTorch, especially when using GPUs, follow the
+    `PyTorch_install` instructions found on the PyTorch site.
+
+.. _PyTorch_install: https://pytorch.org/get-started/locally/#start-locally
+
+The `pip install teca` command may take a few minutes as TECA compiles from
+sources. Errors are typically due to missing dependencies, from the
+corresponding CMake output it should be apparent which dependency was not
+found.
+
+TECA makes heavy use of MPI and NetCDF parallel I/O. On some systems, notably
+Unbuntu and Mac OS the MPI enabled NetCDF libraries available from package
+managers are broken or missing. In this case one can install NetCDF with MPI
+features enabled (in NetCDF docs this is called "parallel 4") and point the
+build to the local install by passing options on the pip command line.
+
+.. code-block:: bash
+
+   pip install teca --global-option=build_ext \
+       --global-option="--with-netcdf=/Users/bloring/netcdf-c-4.7.4-install/"
+
+See section :ref:`netcdf-parallel-4` for information on compiling NetCDF with
+MPI enabled.
+
+with conda
+~~~~~~~~~~
+The following is an experimental recipe for installing TECA into a conda environment.
+
+.. code-block:: bash
+
+   conda create --yes -c conda-forge -n tecapy \
+       python=3.9 numpy mpi4py netCDF4 boost openmpi \
+       matplotlib python-dateutil cython swig pyparsing \
+       cycler pytz torch
+   source activate tecapy
+   pip install teca --global-option=build_ext \
+       --global-option="--without-netcdf-mpi"
+
+This method does not support parallel I/O. As a result it is recommended to use
+:ref:`pip_install` installation method.

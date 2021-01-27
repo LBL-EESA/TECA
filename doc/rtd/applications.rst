@@ -78,11 +78,38 @@ Cray systems requires loading the modulefile.
 
 .. code-block:: bash
 
+    module swap PrgEnv-intel PrgEnv-gnu
     module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles/
     module load teca
 
-The first line tells the module system where to look for the modulefile and the
-second loads the file.
+The first line loads the GCC compiler environment and must occur prior to
+loading the teca environment module. The second line tells the module system
+where to look for the teca modulefile and the third line loads the module,
+configuring the environment for use with TECA.
+
+m1517 CASCADE installs
+~~~~~~~~~~~~~~~~~~~~~~
+Members of the CASCADE project m1517 can access rolling installs on Cori. These
+are located on the common file system. At least two installs will be available:
+`stable` and `develop`. The `stable` install contains the latest official
+release.  See `releases`_ page of the TECA github repo for an up to date list
+of releases.  The `develop` install points to a rolling release of TECA with
+new as of yet unreleased features and code. The `develop` install is used to
+deliver updates to the team on an as needed basis.
+
+In order to use the `develp` install one would issue the following shell commands
+at the top of their batch scripts.
+
+.. code-block:: bash
+
+   module swap PrgEnv-intel PrgEnv-gnu
+   module use /global/common/software/m1517/develop
+   module load teca
+
+In order to make use of the `stable` release install swap `develop` for
+`stable` in the second of these commands.
+
+.. _releases: https://github.com/LBL-EESA/TECA/releases
 
 Compute vs Login Nodes
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -94,6 +121,8 @@ applications use MPI, one should run them from the compute nodes. For large
 runs this should be accomplished by submitting a batch job. For experimentation
 and debugging in the shell use the interactive queue.
 
+.. _nersc_file_systems:
+
 File Systems
 ~~~~~~~~~~~~
 NERSC provides the following file systems, knowing their properties is a key
@@ -104,14 +133,27 @@ Home ($HOME)
     the worst performance and should not be used with TECA at all.
 
 Scratch ($SCRATCH)
-    The Lustre scratch file system provides the best performance and should be
-    used for both TECA installs and the data that will be processed.
+    The Lustre scratch file system provides the best performance and could be
+    used for both TECA installs and the data that will be processed. One caveat
+    is that NERSC periodically purges unused files from scratch and an install
+    may be damaged or removed completely during the purging process.
+
+Common (/global/common/software/)
+    This parallel file system is optimized for software installs. It delivers a
+    simlar performance to the scratch file system and is not periodically
+    purged. The common file system is a good option for locating an install.
+    An effective stratgey for deploying TECA at NERSC is to place installs on
+    in common and the data to be processed on scratch.
 
 Project/Community ($CFS)
-    The CFS file system provides reasonable performance and could be used for
-    both TECA installs and data. Note that before launching runs processing
-    data stored on CFS `export HDF5_USE_FILE_LOCKING=FALSE`. Not disabling file
-    locking on CFS will result in the cryptic NetCDF error `NetCDF: HDF error`
+    The community file system (CFS), formerly know as project, is intended to
+    house long lived data shared with the outside world.  The CFS does not
+    deliver the best performance and the scratch and/or common file systems
+    should be preferred for housing both TECA installs and the data to be
+    processed when possible. Note that before launching runs processing data
+    stored on CFS `export HDF5_USE_FILE_LOCKING=FALSE`. Not disabling file
+    locking on CFS will result in the cryptic NetCDF error `NetCDF: HDF error`.
+    The teca environment module handles this setting.
 
 When making runs at NERSC using TECA one should use the scratch file system for
 both builds and installs if at all possible. When the data to be processed
@@ -127,6 +169,7 @@ around this by setting
 
     export OPENBLAS_NUM_THREADS=1
 
+This is currently set automatically in the teca environment module file.
 
 KNL vs Haswell Nodes
 ~~~~~~~~~~~~~~~~~~~~

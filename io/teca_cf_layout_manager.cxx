@@ -190,8 +190,12 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
     // the cf reader always creates 4D data, but some other tools choke
     // on it, notably ParView. All dimensions of 1 are safe to skip, unless
     // we are writing a variable with 1 value.
-    unsigned long skip_dim_of_1 = (x && x->size() > 1 ? 1 : 0) +
-        (y && y->size() > 1 ? 1 : 0) + (z && z->size() > 1 ? 1 : 0);
+    size_t nx = extent[1] - extent[0] + 1;
+    size_t ny = extent[3] - extent[2] + 1;
+    size_t nz = extent[5] - extent[4] + 1;
+
+    unsigned long skip_dim_of_1 = (x && nx > 1 ? 1 : 0) +
+        (y && ny > 1 ? 1 : 0) + (z && nz > 1 ? 1 : 0);
 
     if (this->t)
     {
@@ -207,9 +211,8 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
     }
     if (z)
     {
-        if (!skip_dim_of_1 || z->size() > 1)
+        if (!skip_dim_of_1 || nz > 1)
         {
-            size_t nz = extent[5] - extent[4] + 1;
 
             coord_arrays[this->n_dims] = z;
             coord_array_names[this->n_dims] = z_variable.empty() ? "z" : z_variable;
@@ -227,10 +230,8 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
     }
     if (y)
     {
-        if (!skip_dim_of_1 || y->size() > 1)
+        if (!skip_dim_of_1 || ny > 1)
         {
-            size_t ny = extent[3] - extent[2] + 1;
-
             coord_arrays[this->n_dims] = y;
             coord_array_names[this->n_dims] = y_variable.empty() ? "y" : y_variable;
 
@@ -247,10 +248,8 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
     }
     if (x)
     {
-        if (!skip_dim_of_1 || x->size() > 1)
+        if (!skip_dim_of_1 || nx > 1)
         {
-            size_t nx = extent[1] - extent[0] + 1;
-
             coord_arrays[this->n_dims] = x;
             coord_array_names[this->n_dims] = x_variable.empty() ? "x" : x_variable;
 
