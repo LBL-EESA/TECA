@@ -183,7 +183,7 @@ teca_add_test(test_cf_writer_cam5_mpi_threads
     COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} test_cf_writer
     -i "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-[0-9][0-9]-10800\\.nc"
     -o "test_cf_writer_cam5_mt_%t%.nc" -s 0,-1 -x lon -y lat -t time -c 1 -n 2 U850 V850
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
 teca_add_test(test_cf_writer_cfsr_mpi_threads
@@ -191,14 +191,14 @@ teca_add_test(test_cf_writer_cfsr_mpi_threads
     -i "${TECA_DATA_ROOT}/NCEP_CFSR_0\\.5_1979\\.nc"
     -o "test_cf_writer_NCEP_CFSR_mt_%t%.nc" -s 0,-1 -x longitude -y latitude
     -b 65,110,10,55,0,0 -c 1 -n 2 elevation
-    FEATURES ${TECA_HAS_NETCDF}
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
 teca_add_test(test_cf_writer_era5_mpi_threads
     COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} test_cf_writer
     -i "${TECA_DATA_ROOT}/e5\.oper\.an\.vinteg\.162_072_viwvn.*\.nc"
     -o "test_cf_writer_era5_mt_%t%.nc" -s 0,-1 -x longitude -y latitude -t time -c 1 -n 2 VIWVN
-    FEATURES ${TECA_HAS_NETCDF}
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
 teca_add_test(test_connected_components
@@ -331,7 +331,7 @@ teca_add_test(test_descriptive_statistics_mpi_threads
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-[0-9][0-9]-10800\\.nc"
     "${TECA_DATA_ROOT}/test_descriptive_statistics.bin" 0 -1 2
     TMQ T200 T500
-    FEATURES ${TECA_HAS_UDUNITS} ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
+    FEATURES ${TECA_HAS_UDUNITS} ${TECA_HAS_NETCDF} ${TECA_HAS_MPI} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
 teca_add_test(test_streaming_reduce_threads
@@ -347,9 +347,8 @@ teca_add_test(test_streaming_reduce_mpi_threads
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} test_descriptive_statistics 0
     "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3.*\\.nc"
-    "${TECA_DATA_ROOT}/test_streaming_reduce.bin" 0 -1 4
-    prw
-    FEATURES ${TECA_HAS_UDUNITS} ${TECA_HAS_NETCDF}
+    "${TECA_DATA_ROOT}/test_streaming_reduce.bin" 0 -1 4 prw
+    FEATURES ${TECA_HAS_UDUNITS} ${TECA_HAS_NETCDF} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
 teca_add_test(test_binary_stream
@@ -396,6 +395,7 @@ teca_add_test(test_tc_candidates_mpi_threads
     "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 2
     U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI}
+        ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
 teca_add_test(test_tc_trajectory
@@ -446,7 +446,7 @@ teca_add_test(test_table_reader_distribute_mpi_threads
     "${TECA_DATA_ROOT}/test_tc_candidates_20.bin"
     "${TECA_DATA_ROOT}/test_table_reader_distribute_20.bin"
     "step" 0 -1 2
-    FEATURES ${TECA_HAS_MPI}
+    FEATURES ${TECA_HAS_MPI} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
 teca_add_test(test_tc_wind_radii_serial
@@ -473,7 +473,7 @@ teca_add_test(test_tc_wind_radii_mpi_threads
     "${TECA_DATA_ROOT}/cam5_1_amip_run2_1990s/.*\\.nc$" "${TECA_DATA_ROOT}/test_tc_wind_radii.bin"
     "!(((track_id==4)&&(surface_wind*3.6d>=177.0d))||((track_id==191)&&(surface_wind*3.6d>=249.0d))||((track_id==523)&&(3.6d*surface_wind>=209.0d)))"
     32 1 2 0 -1
-    FEATURES (${TECA_HAS_MPI} AND ${TECA_HAS_NETCDF})
+    FEATURES ${TECA_HAS_MPI} ${TECA_HAS_NETCDF} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
 teca_add_test(test_tc_wind_radii_threads
@@ -559,7 +559,15 @@ teca_add_test(test_bayesian_ar_detect_threads
     COMMAND test_bayesian_ar_detect
     "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\\.nc$"
     "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" IVT
-    "bayesian_ar_detect_%t%.nc" ${TEST_CORES} 0 -1
+    "bayesian_ar_detect_%t%.nc" -1 0 -1
+    REQ_TECA_DATA)
+
+teca_add_test(test_bayesian_ar_detect_mpi
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_bayesian_ar_detect
+    "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\\.nc$"
+    "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" IVT
+    "bayesian_ar_detect_%t%.nc" -1 0 -1
+    FEATURES ${TECA_HAS_MPI} ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(test_bayesian_ar_detect_mpi_threads
@@ -567,7 +575,7 @@ teca_add_test(test_bayesian_ar_detect_mpi_threads
     "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\\.nc$"
     "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" IVT
     "bayesian_ar_detect_%t%.nc" -1 0 -1
-    FEATURES (${TECA_HAS_MPI} AND ${TECA_HAS_NETCDF})
+    FEATURES ${TECA_HAS_MPI} ${TECA_HAS_NETCDF} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
 teca_add_test(test_normalize_coordinates_pass_through
@@ -677,7 +685,7 @@ teca_add_test(test_cf_writer_collective_mpi
 teca_add_test(test_cf_writer_collective_mpi_threads
     COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} test_cf_writer_collective 128 512 128 2
     "${TECA_DATA_ROOT}/test_cf_writer_collective_%t%.bin" 213
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
 teca_add_test(test_cf_writer_bad_type
@@ -705,7 +713,7 @@ teca_add_test(test_cf_time_axis_reader
 
 teca_add_test(test_cf_time_axis_reader_mpi
     COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_time_axis_reader
-        "${TECA_DATA_ROOT}/HighResMIP/TC_test/PSL/PSL.*\\.nc$" ${HALF_TEST_CORES}
+        "${TECA_DATA_ROOT}/HighResMIP/TC_test/PSL/PSL.*\\.nc$" ${TEST_CORES}
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
