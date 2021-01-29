@@ -387,25 +387,49 @@ if (BUILD_TESTING)
     # figure out how many cores we can use for parallel tests
     set(TECA_TEST_CORES 0 CACHE STRING
         "Max number of cores for use in parallel tests")
+
+    # by default assume 2 hyperthreads per core, if this is not
+    # the case override here
+    set(HYPERTHREADS_PER_CORE 2 CACHE STRING
+        "The number of hyperthreads per core.")
+
+    # use CMake to get the number of logical cores. includes hyperthreads
+    # in the count.
     if (TECA_TEST_CORES LESS 1)
         ProcessorCount(LOGICAL_CORES)
         if (LOGICAL_CORES EQUAL 0)
-            set(LOGICAL_CORES 4)
+            message(FATAL_ERROR "Failed to detect the number of cores. "
+                "Set TECA_TEST_CORES")
         endif()
     else()
-        math(EXPR LOGICAL_CORES "${TECA_TEST_CORES}*2")
+        math(EXPR LOGICAL_CORES "${TECA_TEST_CORES}*${HYPERTHREADS_PER_CORE}")
     endif()
-    math(EXPR PHYSICAL_CORES "${LOGICAL_CORES}/2")
-    if (PHYSICAL_CORES LESS 3)
-        set(TEST_CORES 2)
-        set(HALF_TEST_CORES 2)
-        set(TWICE_TEST_CORES 4)
-    else()
-        set(TEST_CORES ${PHYSICAL_CORES})
-        math(EXPR HALF_TEST_CORES "${TEST_CORES}/2")
-        set(TWICE_TEST_CORES ${LOGICAL_CORES})
+
+    # adjust count for hyperthreads.
+    math(EXPR PHYSICAL_CORES "${LOGICAL_CORES}/${HYPERTHREADS_PER_CORE}")
+    if (PHYSICAL_CORES LESS 1)
+        message(FATAL_ERROR "Invalid CPU configuration. "
+            "LOGICAL_CORES=${LOGICAL_CORES} HYPERTHREADS_PER_CORE="
+            "${HYPERTHREADS_PER_CORE}")
     endif()
+
+    # set the number of cores to use for pure MPI or purely threaded tests
+    set(TEST_CORES ${PHYSICAL_CORES})
     message(STATUS "regression testing -- enabled (${TEST_CORES} cores).")
+
+    # set the number of cores to use for MPI + threads tests. if there are too
+    # few physical cores then disable hybrid parallel tests
+    math(EXPR HALF_TEST_CORES "${TEST_CORES}/2")
+    if (HALF_TEST_CORES LESS 2)
+        message(STATUS "Hybrid parallel tests -- disabled.")
+        set(TEST_MPI_THREADS OFF)
+    else()
+        message(STATUS "Hybrid parallel tests -- enabled.")
+        set(TEST_MPI_THREADS ON)
+    endif()
+
+    # set the number of cores for oversubscription/streaming tests
+    math(EXPR TWICE_TEST_CORES "${TEST_CORES}*2")
 
     add_subdirectory(test)
 else()
