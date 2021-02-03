@@ -368,14 +368,17 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
     }
 
     // if the user runs more MPI ranks than cores some of the ranks
-    // will have no cores to use. fallback to 1 thread on core 0
-    if (n_threads < 1)
+    // will have no cores to use.
+    if (n_procs > cores_per_node)
     {
+        TECA_WARNING(<< n_procs << " MPI ranks running on this node but only "
+            << cores_per_node << " CPU cores are available. Performance will"
+            " be degraded.")
+
         n_threads = 1;
-        affinity.push_back(0);
-        TECA_WARNING("CPU cores are unavailable, performance will be degraded. "
-            "This can occur when running more MPI ranks than there are CPU "
-            "cores. Launching 1 thread on core 0.")
+        affinity.push_back(base_core_id);
+
+        return -1;
     }
 
     // stop now if we are not binding threads to cores

@@ -113,8 +113,16 @@ void teca_thread_pool<task_t, data_t>::create_threads(MPI_Comm comm,
     int n_threads = n_requested;
 
     std::deque<int> core_ids;
-    teca_thread_util::thread_parameters(comm, -1,
-        n_requested, bind, verbose, n_threads, core_ids);
+
+    if (teca_thread_util::thread_parameters(comm, -1,
+        n_requested, bind, verbose, n_threads, core_ids))
+    {
+        TECA_WARNING("Failed to detetermine thread parameters."
+            " Falling back to 1 thread, affinity disabled.")
+
+        n_threads = 1;
+        bind = false;
+    }
 
     // allocate the threads
     for (int i = 0; i < n_threads; ++i)
