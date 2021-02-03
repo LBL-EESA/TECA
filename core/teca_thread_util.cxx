@@ -296,7 +296,7 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
     (void)affinity;
     if (n_requested < 1)
     {
-        TECA_WARNING("Cannot autmatically detect threading parameters "
+        TECA_WARNING("Can not automatically detect threading parameters "
             "on this platform. The default is 1 thread per process.")
         n_threads = 1;
     }
@@ -404,7 +404,7 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
 
     // there are enough cores that each thread can have it's own core
     // mark the cores which have the root thread as used so that we skip them.
-    // if we always did this in the fully apcked case we'd always be assigning
+    // if we always did this in the fully packed case we'd always be assigning
     // hyperthreads off core. it is better to keep them local.
     if (((n_threads+1)*n_procs) < cores_per_node)
     {

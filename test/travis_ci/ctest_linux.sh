@@ -19,6 +19,8 @@ then
     export NETCDF_BUILD_TYPE="netcdf_mpi"
 fi
 
+cat /proc/cpuinfo
+
 export PATH=.:${PATH}
 export PYTHONPATH=${DASHROOT}/build/lib
 export LD_LIBRARY_PATH=${DASHROOT}/build/lib
