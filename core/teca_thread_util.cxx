@@ -296,7 +296,7 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
     (void)affinity;
     if (n_requested < 1)
     {
-        TECA_WARNING("Cannot autmatically detect threading parameters "
+        TECA_WARNING("Can not automatically detect threading parameters "
             "on this platform. The default is 1 thread per process.")
         n_threads = 1;
     }
@@ -368,14 +368,17 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
     }
 
     // if the user runs more MPI ranks than cores some of the ranks
-    // will have no cores to use. fallback to 1 thread on core 0
-    if (n_threads < 1)
+    // will have no cores to use.
+    if (n_procs > cores_per_node)
     {
+        TECA_WARNING(<< n_procs << " MPI ranks running on this node but only "
+            << cores_per_node << " CPU cores are available. Performance will"
+            " be degraded.")
+
         n_threads = 1;
-        affinity.push_back(0);
-        TECA_WARNING("CPU cores are unavailable, performance will be degraded. "
-            "This can occur when running more MPI ranks than there are CPU "
-            "cores. Launching 1 thread on core 0.")
+        affinity.push_back(base_core_id);
+
+        return -1;
     }
 
     // stop now if we are not binding threads to cores
@@ -401,7 +404,7 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
 
     // there are enough cores that each thread can have it's own core
     // mark the cores which have the root thread as used so that we skip them.
-    // if we always did this in the fully apcked case we'd always be assigning
+    // if we always did this in the fully packed case we'd always be assigning
     // hyperthreads off core. it is better to keep them local.
     if (((n_threads+1)*n_procs) < cores_per_node)
     {

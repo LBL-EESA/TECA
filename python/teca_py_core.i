@@ -970,8 +970,8 @@ PyObject *thread_parameters(MPI_Comm comm,
     {
         // caller requested automatic load balancing but this,
         // failed.
-        TECA_PY_ERROR(PyExc_RuntimeError,
-            "Automatic load balancing failed")
+        PyErr_Format(PyExc_RuntimeError,
+            "Failed to detect thread parameters.");
         return nullptr;
     }
 
