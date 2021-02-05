@@ -3,6 +3,7 @@
 #include "teca_binary_stream.h"
 #include "teca_dataset_util.h"
 #include "teca_string_util.h"
+#include "teca_metadata_util.h"
 #include "teca_bad_cast.h"
 
 teca_table::impl_t::impl_t() :
@@ -266,6 +267,8 @@ int teca_table::from_stream(std::istream &s)
             else
             {
                 this->set_calendar(calendar);
+                teca_metadata_util::set_attribute(this->get_metadata(),
+                    "time", "calendar", calendar);
             }
         }
         // time units
@@ -279,6 +282,8 @@ int teca_table::from_stream(std::istream &s)
             else
             {
                 this->set_time_units(time_units);
+                teca_metadata_util::set_attribute(this->get_metadata(),
+                    "time", "units", time_units);
             }
         }
         ++lno;
