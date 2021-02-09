@@ -11,6 +11,7 @@ set(teca_alg_cxx_srcs
     teca_apply_binary_mask.cxx
     teca_apply_tempest_remap.cxx
     teca_binary_segmentation.cxx
+    teca_binary_segmentation_internals.cxx
     teca_bayesian_ar_detect.cxx
     teca_bayesian_ar_detect_parameters.cxx
     teca_cartesian_mesh_coordinate_transform.cxx
@@ -57,6 +58,14 @@ set(teca_alg_cxx_srcs
     teca_dataset_diff.cxx
     )
 
+set(teca_alg_cuda_srcs)
+if (TECA_HAS_CUDA)
+    set(teca_alg_cuda_srcs
+        teca_binary_segmentation_internals.cu
+        teca_cuda_util.cu
+        )
+endif()
+
 set(teca_alg_f90_srcs)
 
 set(teca_alg_f90_generics
@@ -90,7 +99,14 @@ if (TECA_HAS_BOOST)
     list(APPEND teca_alg_link ${Boost_LIBRARIES})
 endif()
 
-add_library(teca_alg ${teca_alg_cxx_srcs} ${teca_alg_f90_srcs})
+add_library(teca_alg ${teca_alg_cxx_srcs} ${teca_alg_cuda_srcs} ${teca_alg_f90_srcs})
+
+if (TECA_HAS_CUDA)
+    target_compile_features(teca_alg PUBLIC cxx_std_17)
+    set_target_properties(teca_alg PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    set_target_properties(teca_alg PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+endif()
+
 target_link_libraries(teca_alg teca_data teca_core ${teca_alg_link})
 
 target_include_directories(teca_alg
