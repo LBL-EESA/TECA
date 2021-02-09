@@ -14,6 +14,9 @@ set +x
 source `pwd`/../tci/bin/activate
 set -x
 
+export PATH=$(brew --prefix)/opt/curl/bin:$PATH
+export DYLD_LIBRARY_PATH=$(brew --prefix)/opt/curl/lib:$DYLD_LIBRARY_PATH
+
 mkdir build
 ctest -S ${DASHROOT}/test/travis_ci/ctest_osx.cmake --output-on-failure --timeout 180 &
 ctest_pid=$!
