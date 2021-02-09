@@ -84,6 +84,7 @@ include(teca_interface_library)
 # these control behavior of the build. most of the time you want to error
 # out if these are not found. for those times when you don't set the corresponding
 # REQUIRE variable to FALSE
+set(REQUIRE_CUDA TRUE CACHE BOOL "Forces build failure when CUDA is missing")
 set(REQUIRE_MPI TRUE CACHE BOOL "Forces build failure when MPI is missing")
 set(REQUIRE_NETCDF TRUE CACHE BOOL "Forces build failure when NetCDF is missing")
 set(REQUIRE_NETCDF_MPI TRUE CACHE BOOL "Forces build failure when NetCDF_MPI is missing")
@@ -97,6 +98,25 @@ set(REQUIRE_VTK FALSE CACHE BOOL "Forces build failure when VTK is missing")
 set(REQUIRE_TECA_DATA ${BUILD_TESTING} CACHE BOOL "Forces build failure when TECA_data is missing")
 
 # locate dependencies
+#configure for CUDA
+set(tmp OFF)
+include(CheckLanguage)
+set(CMAKE_CUDA_STANDARD 17)
+set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+if (NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+  set(CMAKE_CUDA_ARCHITECTURES 75)
+endif()
+check_language(CUDA)
+if (CMAKE_CUDA_COMPILER)
+    enable_language(CUDA)
+    message(STATUS "CUDA features -- enabled")
+elseif (REQUIRE_CUDA)
+    message(FATAL_ERROR "CUDA features -- required but not found.")
+else()
+    message(STATUS "CUDA features -- not found.")
+endif()
+set(TECA_HAS_CUDA ${tmp} CACHE BOOL "CUDA features")
+
 # configure for MPI
 if (ENABLE_CRAY_MPICH)
     set(ENV{PKG_CONFIG_PATH} "$ENV{CRAY_MPICH_DIR}/lib/pkgconfig:$ENV{PKG_CONFIG_PATH}")
