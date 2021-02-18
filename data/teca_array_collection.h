@@ -38,8 +38,11 @@ public:
     int append(p_teca_variant_array array);
     int append(const std::string &name, p_teca_variant_array array);
 
-    // set, return 0 on success.
+    // replace the ith array, return 0 on success.
+    // the name of the array is not changed.
     int set(unsigned int i, p_teca_variant_array array);
+
+    // add or replace the named array, returns 0 on success.
     int set(const std::string &name, p_teca_variant_array array);
 
     // remove
