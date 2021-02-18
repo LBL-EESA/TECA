@@ -224,6 +224,18 @@ int main(int argc, char **argv)
     bool have_file = opt_vals.count("input_file");
     bool have_regex = opt_vals.count("input_regex");
 
+    if ((have_file && have_regex) || !(have_file || have_regex))
+    {
+        if (mpi_man.get_comm_rank() == 0)
+        {
+            TECA_ERROR("Extacly one of --input_file or --input_regex can be specified. "
+                "Use --input_file to activate the multi_cf_reader (HighResMIP datasets) "
+                "and --input_regex to activate the cf_reader (CAM like datasets)")
+        }
+        return -1;
+    }
+
+
     if (have_file)
     {
         mcf_reader->set_input_file(opt_vals["input_file"].as<string>());
@@ -294,6 +306,16 @@ int main(int argc, char **argv)
     bool do_ivt = opt_vals.count("compute_ivt");
     bool do_ivt_magnitude = opt_vals.count("compute_ivt_magnitude");
 
+    if (do_ivt && do_ivt_magnitude)
+    {
+        if (mpi_man.get_comm_rank() == 0)
+        {
+            TECA_ERROR("Only one of --compute_ivt and compute_ivt_magnitude can "
+                "be specified. --compute_ivt implies --compute_ivt_magnitude")
+        }
+        return -1;
+    }
+
     if (do_ivt)
     {
         std::string z_var = "plev";
@@ -328,12 +350,9 @@ int main(int argc, char **argv)
         point_arrays.push_back(ivt_int->get_ivt_v_variable());
     }
 
+    cf_writer->set_file_name(opt_vals["output_file"].as<string>());
     cf_writer->set_information_arrays({"ar_count", "parameter_table_row"});
     cf_writer->set_point_arrays(point_arrays);
-
-
-    if (!opt_vals["output_file"].defaulted())
-        cf_writer->set_file_name(opt_vals["output_file"].as<string>());
 
     if (!opt_vals["steps_per_file"].defaulted())
         cf_writer->set_steps_per_file(opt_vals["steps_per_file"].as<long>());
@@ -355,29 +374,6 @@ int main(int argc, char **argv)
         ar_detect->set_thread_pool_size(opt_vals["n_threads"].as<int>());
     else
         ar_detect->set_thread_pool_size(-1);
-
-
-    // some minimal check for missing options
-    if ((have_file && have_regex) || !(have_file || have_regex))
-    {
-        if (mpi_man.get_comm_rank() == 0)
-        {
-            TECA_ERROR("Extacly one of --input_file or --input_regex can be specified. "
-                "Use --input_file to activate the multi_cf_reader (HighResMIP datasets) "
-                "and --input_regex to activate the cf_reader (CAM like datasets)")
-        }
-        return -1;
-    }
-
-    if (do_ivt && do_ivt_magnitude)
-    {
-        if (mpi_man.get_comm_rank() == 0)
-        {
-            TECA_ERROR("Only one of --compute_ivt and compute_ivt_magnitude can "
-                "be specified. --compute_ivt implies --compute_ivt_magnitude")
-        }
-        return -1;
-    }
 
     if (cf_writer->get_file_name().empty())
     {
