@@ -147,7 +147,7 @@ void teca_cartesian_mesh_source::clear_cached_metadata()
 
 // --------------------------------------------------------------------------
 void teca_cartesian_mesh_source::append_field_generator(
-    const std::string &name, const teca_array_attributes &atts,
+    const std::string &name, const teca_metadata &atts,
     field_generator_callback &callback)
 {
     this->append_field_generator({name, atts, callback});
@@ -251,10 +251,10 @@ teca_metadata teca_cartesian_mesh_source::get_output_metadata(
         vars.push_back(it->name);
 
         // correct size
-        teca_array_attributes var_atts = it->attributes;
-        var_atts.size = nxyz;
+        teca_metadata var_atts = it->attributes;
+        var_atts.set("size", nxyz);
 
-        atts.set(it->name, teca_metadata(var_atts));
+        atts.set(it->name, var_atts);
     }
 
     this->internals->metadata.set("variables", vars);

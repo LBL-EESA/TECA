@@ -11,6 +11,7 @@
 #include "teca_dataset.h"
 #include "teca_cartesian_mesh.h"
 #include "teca_variant_array.h"
+#include "teca_array_attributes.h"
 
 #define _USE_MATH_DEFINES
 #include <cmath>
