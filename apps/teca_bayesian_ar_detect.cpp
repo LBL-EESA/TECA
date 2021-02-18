@@ -11,6 +11,7 @@
 #include "teca_multi_cf_reader.h"
 #include "teca_integrated_vapor_transport.h"
 #include "teca_valid_value_mask.h"
+#include "teca_unpack_data.h"
 #include "teca_mpi_manager.h"
 #include "teca_coordinate_util.h"
 #include "teca_table.h"
@@ -159,6 +160,9 @@ int main(int argc, char **argv)
     p_teca_valid_value_mask vv_mask = teca_valid_value_mask::New();
     vv_mask->get_properties_description("vv_mask", advanced_opt_defs);
 
+    p_teca_unpack_data unpack = teca_unpack_data::New();
+    unpack->get_properties_description("unpack", advanced_opt_defs);
+
     p_teca_normalize_coordinates norm_coords = teca_normalize_coordinates::New();
     norm_coords->get_properties_description("norm_coords", advanced_opt_defs);
 
@@ -210,6 +214,7 @@ int main(int argc, char **argv)
     l2_norm->set_properties("ivt_magnitude", opt_vals);
     ivt_int->set_properties("ivt_integral", opt_vals);
     vv_mask->set_properties("vv_mask", opt_vals);
+    unpack->set_properties("unpack", opt_vals);
     norm_coords->set_properties("norm_coords", opt_vals);
     params->set_properties("parameter_table", opt_vals);
     ar_detect->set_properties("ar_detect", opt_vals);
@@ -247,6 +252,11 @@ int main(int argc, char **argv)
         head = cf_reader;
     }
     p_teca_algorithm reader = head;
+
+    // add basic transfomration stages to the pipeline
+    vv_mask->set_input_connection(reader->get_output_port());
+    unpack->set_input_connection(vv_mask->get_output_port());
+    head = unpack;
 
     if (!opt_vals["periodic_in_x"].defaulted())
     {
@@ -325,8 +335,7 @@ int main(int argc, char **argv)
         cf_reader->set_z_axis_variable(z_var);
         mcf_reader->set_z_axis_variable(z_var);
 
-        vv_mask->set_input_connection(head->get_output_port());
-        ivt_int->set_input_connection(vv_mask->get_output_port());
+        ivt_int->set_input_connection(head->get_output_port());
         l2_norm->set_input_connection(ivt_int->get_output_port());
 
         head = l2_norm;
