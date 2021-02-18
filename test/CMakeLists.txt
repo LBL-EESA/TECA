@@ -700,8 +700,7 @@ teca_add_test(test_integrated_vapor_transport
     SOURCES test_integrated_vapor_transport.cpp
     LIBS teca_core teca_data teca_alg teca_io ${teca_test_link}
     COMMAND test_integrated_vapor_transport
-    FEATURES ${TECA_HAS_NETCDF}
-    REQ_TECA_DATA)
+    FEATURES ${TECA_HAS_NETCDF})
 
 teca_add_test(test_cf_time_axis_reader
     SOURCES test_cf_time_axis_reader.cpp
@@ -721,5 +720,12 @@ teca_add_test(test_valid_value_mask
     SOURCES test_valid_value_mask.cpp
     LIBS teca_core teca_data teca_alg teca_io ${teca_test_link}
     COMMAND test_valid_value_mask 0.25 1.0e20 "${TECA_DATA_ROOT}/test_valid_value_mask.nc"
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_unpack_data
+    SOURCES test_unpack_data.cpp
+    LIBS teca_core teca_data teca_alg teca_io ${teca_test_link}
+    COMMAND test_unpack_data "${TECA_DATA_ROOT}/test_unpack_data.nc"
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)

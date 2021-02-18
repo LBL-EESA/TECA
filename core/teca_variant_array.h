@@ -1256,7 +1256,7 @@ struct teca_variant_array_type {};
 template <>                                         \
 struct teca_variant_array_code<T>                   \
 {                                                   \
-    static unsigned int get() noexcept              \
+    static constexpr unsigned int get()             \
     { return v; }                                   \
 };                                                  \
 template <>                                         \
@@ -1269,6 +1269,9 @@ template <>                                         \
 struct teca_variant_array_type<v>                   \
 {                                                   \
     using type = T;                                 \
+                                                    \
+    static constexpr const char *name()             \
+    { return #T; }                                  \
 };
 
 #define TECA_VARIANT_ARRAY_FACTORY_NEW(_v)              \

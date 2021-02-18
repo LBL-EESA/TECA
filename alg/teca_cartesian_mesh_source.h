@@ -2,7 +2,7 @@
 #define teca_cartesian_mesh_source_h
 
 #include "teca_algorithm.h"
-#include "teca_array_attributes.h"
+#include "teca_metadata.h"
 
 #include <functional>
 #include <map>
@@ -19,7 +19,7 @@ using field_generator_callback = std::function<p_teca_variant_array(
 struct field_generator
 {
     std::string name;
-    teca_array_attributes attributes;
+    teca_metadata attributes;
     field_generator_callback generator;
 };
 
@@ -56,7 +56,7 @@ public:
 
     // set/get the type code for generated coordinates.
     // default is a 64 bit floating point type. Use
-    // teca_variant_array_type<NT>::get() to get specific type
+    // teca_variant_array_code<NT>::get() to get specific type
     // codes for C++ POD types NT.
     TECA_ALGORITHM_PROPERTY(unsigned int, coordinate_type_code)
     TECA_ALGORITHM_PROPERTY(unsigned int, field_type_code)
@@ -87,7 +87,7 @@ public:
     TECA_ALGORITHM_PROPERTY(std::string, y_axis_units)
     TECA_ALGORITHM_PROPERTY(std::string, z_axis_units)
 
-    // number of time steps to generate
+    // set the calendar and time units
     TECA_ALGORITHM_PROPERTY(std::string, calendar)
     TECA_ALGORITHM_PROPERTY(std::string, time_units)
 
@@ -99,7 +99,7 @@ public:
     // x,y,z are coordinate axes in variant arrays, t is the double precision
     // time value.
     void append_field_generator(const std::string &name,
-        const teca_array_attributes &atts, field_generator_callback &callback);
+        const teca_metadata &atts, field_generator_callback &callback);
 
 protected:
     teca_cartesian_mesh_source();

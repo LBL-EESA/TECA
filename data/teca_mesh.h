@@ -24,8 +24,8 @@ public:
     TECA_DATASET_METADATA(time_units, std::string, 1)
     TECA_DATASET_METADATA(time_step, unsigned long, 1)
 
-    // set/get array attribute metadata
-    TECA_DATASET_METADATA(array_attributes, teca_metadata, 1)
+    // set/get attribute metadata
+    TECA_DATASET_METADATA(attributes, teca_metadata, 1)
 
     // get the array collection for the given centering
     // the centering enumeration is defined in teca_array_attributes

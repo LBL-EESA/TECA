@@ -149,8 +149,8 @@
 %ignore teca_mesh::get_time_step(unsigned long *) const;
 %ignore teca_mesh::set_calendar(std::string const *);
 %ignore teca_mesh::set_time_units(std::string const *);
-%ignore teca_mesh::set_array_attributes(teca_metadata const *);
-%ignore teca_mesh::get_array_attributes(teca_metadata *) const;
+%ignore teca_mesh::set_attributes(teca_metadata const *);
+%ignore teca_mesh::get_attributes(teca_metadata *) const;
 %ignore teca_mesh::get_arrays(int) const;
 %ignore teca_mesh::get_point_arrays() const;
 %ignore teca_mesh::get_cell_arrays() const;
@@ -174,12 +174,12 @@ TECA_PY_CONST_CAST(teca_mesh)
     TECA_PY_DATASET_METADATA(std::string, calendar)
     TECA_PY_DATASET_METADATA(std::string, time_units)
 
-    teca_metadata get_array_attributes()
+    teca_metadata get_attributes()
     {
         teca_py_gil_state gil;
 
         teca_metadata atts;
-        self->get_array_attributes(atts);
+        self->get_attributes(atts);
 
         return atts;
     }
