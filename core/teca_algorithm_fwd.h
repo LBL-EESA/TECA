@@ -47,8 +47,8 @@ const char *get_class_name() const override         \
     T &operator=(const T &src) = delete;        \
     T &operator=(T &&src) = delete;
 
-// convenience macro to declare standard set_X/get_X methods
-// where X is the name of a class member. will manage the
+// convenience macro to declare standard set_NAME/get_NAME methods
+// where NAME is the name of a class member. will manage the
 // algorithm's modified state for the user.
 #define TECA_ALGORITHM_PROPERTY(T, NAME) \
                                          \
@@ -66,8 +66,32 @@ const T &get_##NAME() const              \
     return this->NAME;                   \
 }
 
-// convenience macro to declare standard set_X/get_X methods
-// where X is the name of a class member. will manage the
+// similar to TECA_ALGORITHM_PROPERTY but prior to setting NAME
+// will call the member function int valididate_NAME(T v). If
+// the value v is valid the fucntion should return 0. If the value
+// is not zero the function should invoke TECA_ERROR with a
+// descriptive message and return non-zero.
+#define TECA_ALGORITHM_PROPERTY_V(T, NAME) \
+                                           \
+void set_##NAME(const T &v)                \
+{                                          \
+    if (this->validate_ ## NAME (v))       \
+        return;                            \
+                                           \
+    if (this->NAME != v)                   \
+    {                                      \
+        this->NAME = v;                    \
+        this->set_modified();              \
+    }                                      \
+}                                          \
+                                           \
+const T &get_##NAME() const                \
+{                                          \
+    return this->NAME;                     \
+}
+
+// convenience macro to declare standard set_NAME/get_NAME methods
+// where NAME is the name of a class member. will manage the
 // algorithm's modified state for the user.
 #define TECA_ALGORITHM_VECTOR_PROPERTY(T, NAME)         \
                                                         \
