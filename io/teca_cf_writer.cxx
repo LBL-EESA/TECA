@@ -40,7 +40,7 @@ public:
 // --------------------------------------------------------------------------
 teca_cf_writer::teca_cf_writer() :
     file_name(""), date_format("%F-%HZ"), first_step(0), last_step(-1),
-    steps_per_file(16), mode_flags(NC_CLOBBER|NC_NETCDF4), use_unlimited_dim(0),
+    steps_per_file(128), mode_flags(NC_CLOBBER|NC_NETCDF4), use_unlimited_dim(0),
     compression_level(-1), flush_files(0)
 {
     this->set_number_of_input_connections(1);
@@ -79,7 +79,7 @@ void teca_cf_writer::get_properties_description(
             "set the last time step to process. A value less than 0 results "
             "in all steps being processed.(-1)")
         TECA_POPTS_GET(unsigned int, prefix, steps_per_file,
-            "set the number of time steps to write per file (1)")
+            "set the number of time steps to write per file (128)")
         TECA_POPTS_GET(int, prefix, mode_flags,
             "mode flags to pass to NetCDF when creating the file (NC_CLOBBER)")
         TECA_POPTS_GET(int, prefix, use_unlimited_dim,
