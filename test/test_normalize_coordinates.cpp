@@ -103,7 +103,6 @@ int main(int argc, char **argv)
         atof(argv[9]), atof(argv[10]), atof(argv[11]), atof(argv[12])});
     std::string out_file = argv[13];
 
-
     p_teca_cartesian_mesh_source source = teca_cartesian_mesh_source::New();
     source->set_whole_extents({0, nx-1, 0, ny-1, 0, nz-1, 0, 0});
 
@@ -111,8 +110,8 @@ int main(int argc, char **argv)
     double x1 = flip_x ? 0.0 : 360.0;
     double y0 = flip_y ? 90.0 : -90.0;
     double y1 = flip_y ? -90.0 : 90.0;
-    double z0 = flip_z ? 10.0 : 0.0;
-    double z1 = flip_z ? 0.0 : 10.0;
+    double z0 = flip_z ? 0.0 : 100.0; // the z-axis is descending by default
+    double z1 = flip_z ? 100.0 : 0.0;
     source->set_bounds({x0, x1, y0, y1, z0, z1, 0., 0.});
 
     distance_field distance = {80., -80., 2.5};
@@ -123,6 +122,26 @@ int main(int argc, char **argv)
 
     p_teca_index_executive exec = teca_index_executive::New();
     exec->set_bounds(req_bounds);
+    exec->set_verbose(1);
+
+    std::cerr << "running the test with x "
+        << (flip_x ? "descending" : "ascending") << ", y "
+        << (flip_y ? "descending" : "ascending") << ", z "
+        << (flip_z ? "ascending" : "descending") << std::endl
+        << "whole_extents = [0, " << nx-1 << ", 0, "
+        << ny-1 << ", 0, " << nz-1 << "]" << std::endl
+        << "bounds = [" << x0 << ", " << x1 << ", " << y0
+        << ", " << y1 << ", " << z0 << ", " << z1 << "]"
+        << std::endl;
+
+    teca_metadata md = coords->update_metadata();
+
+    teca_metadata coord_axes;
+    md.get("coordinates", coord_axes);
+
+    std::cerr << "coordinates" << std::endl;
+    coord_axes.to_stream(std::cerr);
+    std::cerr << std::endl;
 
     bool do_test = true;
     teca_system_util::get_environment_variable("TECA_DO_TEST", do_test);
