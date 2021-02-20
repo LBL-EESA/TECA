@@ -223,7 +223,6 @@ int main(int argc, char **argv)
     // now pass in the basic options, these are processed
     // last so that they will take precedence
     // configure the pipeline from the command line options.
-    p_teca_algorithm head;
 
     // configure the reader
     bool have_file = opt_vals.count("input_file");
@@ -241,22 +240,24 @@ int main(int argc, char **argv)
     }
 
 
+    p_teca_algorithm reader;
     if (have_file)
     {
         mcf_reader->set_input_file(opt_vals["input_file"].as<string>());
-        head = mcf_reader;
+        reader = mcf_reader;
     }
     else if (have_regex)
     {
         cf_reader->set_files_regex(opt_vals["input_regex"].as<string>());
-        head = cf_reader;
+        reader = cf_reader;
     }
-    p_teca_algorithm reader = head;
 
     // add basic transfomration stages to the pipeline
-    vv_mask->set_input_connection(reader->get_output_port());
+    norm_coords->set_input_connection(reader->get_output_port());
+    vv_mask->set_input_connection(norm_coords->get_output_port());
     unpack->set_input_connection(vv_mask->get_output_port());
-    head = unpack;
+
+    p_teca_algorithm head = unpack;
 
     if (!opt_vals["periodic_in_x"].defaulted())
     {
@@ -395,9 +396,8 @@ int main(int argc, char **argv)
     }
 
     // connect the fixed stages of the pipeline
-    norm_coords->set_input_connection(head->get_output_port());
     ar_detect->set_input_connection(0, params->get_output_port());
-    ar_detect->set_input_connection(1, norm_coords->get_output_port());
+    ar_detect->set_input_connection(1, head->get_output_port());
     ar_tag->set_input_connection(0, ar_detect->get_output_port());
     cf_writer->set_input_connection(ar_tag->get_output_port());
 
