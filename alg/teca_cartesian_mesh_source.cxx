@@ -26,8 +26,8 @@ struct teca_cartesian_mesh_source::internals_t
     // the world space [x0 x1 y0 y1 z0 z1 t0 t1] generate
     // equally spaced coordinate axes x,y,z,t
     static
-    void initialize_axes(int type_code, unsigned long *extent,
-        double *bounds, p_teca_variant_array &x_axis,
+    void initialize_axes(int type_code, const unsigned long *extent,
+        const double *bounds, p_teca_variant_array &x_axis,
         p_teca_variant_array &y_axis, p_teca_variant_array &z_axis,
         p_teca_variant_array &t_axis);
 
@@ -59,7 +59,7 @@ void teca_cartesian_mesh_source::internals_t::initialize_axis(
 
 // --------------------------------------------------------------------------
 void teca_cartesian_mesh_source::internals_t::initialize_axes(int type_code,
-    unsigned long *extent, double *bounds, p_teca_variant_array &x_axis,
+    const unsigned long *extent, const double *bounds, p_teca_variant_array &x_axis,
     p_teca_variant_array &y_axis, p_teca_variant_array &z_axis,
     p_teca_variant_array &t_axis)
 {

@@ -546,5 +546,68 @@ int convert_cell_extent(num_t *extent, int centering)
 int get_cartesian_mesh_extent(const teca_metadata &md,
     unsigned long *whole_extent, double *bounds);
 
+
+// check that one Cartesian region covers the other coordinates must be in
+// ascending order. assumes that both regions are specified in ascending order.
+template <typename num_t>
+int covers_ascending(const num_t *whole, const num_t *part)
+{
+    if ((part[0] >= whole[0]) && (part[0] <= whole[1]) &&
+        (part[1] >= whole[0]) && (part[1] <= whole[1]) &&
+        (part[2] >= whole[2]) && (part[2] <= whole[3]) &&
+        (part[3] >= whole[2]) && (part[3] <= whole[3]) &&
+        (part[4] >= whole[4]) && (part[4] <= whole[5]) &&
+        (part[5] >= whole[4]) && (part[5] <= whole[5]))
+        return 1;
+    return 0;
+}
+
+// check that one Cartesian region covers the other, taking into account the
+// order of the coordinates. assumes that the regions are specified in the same
+// orientation.
+template <typename num_t>
+int covers(const num_t *whole, const num_t *part)
+{
+    bool x_ascend = whole[0] <= whole[1];
+    bool y_ascend = whole[2] <= whole[3];
+    bool z_ascend = whole[4] <= whole[5];
+    if (((x_ascend &&
+        (part[0] >= whole[0]) && (part[0] <= whole[1]) &&
+        (part[1] >= whole[0]) && (part[1] <= whole[1])) ||
+        (!x_ascend &&
+        (part[0] <= whole[0]) && (part[0] >= whole[1]) &&
+        (part[1] <= whole[0]) && (part[1] >= whole[1]))) &&
+        ((y_ascend &&
+        (part[2] >= whole[2]) && (part[2] <= whole[3]) &&
+        (part[3] >= whole[2]) && (part[3] <= whole[3])) ||
+        (!y_ascend &&
+        (part[2] <= whole[2]) && (part[2] >= whole[3]) &&
+        (part[3] <= whole[2]) && (part[3] >= whole[3]))) &&
+        ((z_ascend &&
+        (part[4] >= whole[4]) && (part[4] <= whole[5]) &&
+        (part[5] >= whole[4]) && (part[5] <= whole[5])) ||
+        (!z_ascend &&
+        (part[4] <= whole[4]) && (part[4] >= whole[5]) &&
+        (part[5] <= whole[4]) && (part[5] >= whole[5]))))
+        return 1;
+    return 0;
+}
+
+// check that two Cartesian regions have the same orientation
+// ie they are either both specidied in ascending or descending
+// order.
+template <typename num_t>
+int same_orientation(const num_t *whole, const num_t *part)
+{
+    if ((((whole[0] <= whole[1]) && (part[0] <= part[1])) ||
+        ((whole[0] >= whole[1]) && (part[0] >= part[1]))) &&
+        (((whole[2] <= whole[3]) && (part[2] <= part[3])) ||
+        ((whole[2] >= whole[3]) && (part[2] >= part[3]))) &&
+        (((whole[4] <= whole[5]) && (part[4] <= part[5])) ||
+        ((whole[4] >= whole[5]) && (part[4] >= part[5]))))
+        return 1;
+    return 0;
+}
+
 };
 #endif

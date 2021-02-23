@@ -226,7 +226,7 @@ For Python package dependencies pip is used as described in :ref:`python-environ
 
 It is recommended to have a parallel HDF5 based NetCDF install, on some systems
 (Ubuntu, Mac) this requires installing NetCDF from source as outlined in
-:ref:`netcdf-parallel-4`.
+:ref:`netcdf-parallel4`.
 
 Apple Mac OS
 ^^^^^^^^^^^^
@@ -302,7 +302,7 @@ Once the venv is installed and activated, see :ref:`compile`.
     but is no longer maintained and should not be used.
 
 
-.. _netcdf-parallel-4:
+.. _netcdf-parallel4:
 
 NetCDF w/ Parallel 4
 ^^^^^^^^^^^^^^^^^^^^^
@@ -323,7 +323,7 @@ On Ubuntu 20.04
     $ cd netcdf-c-4.7.4
     $ ./configure CC=mpicc CFLAGS="-O3 -I/usr/include/hdf5/mpich"       \
           LDFLAGS="-L/usr/lib/x86_64-linux-gnu/hdf5/mpich/ -lhdf5"      \
-          --prefix=`pwd`/../netcdf-c-4.7.4-install --enable-parallel-4  \
+          --prefix=`pwd`/../netcdf-c-4.7.4-install --enable-parallel4   \
           --disable-dap
     $ make -j install
 
@@ -423,7 +423,7 @@ build to the local install by passing options on the pip command line.
    pip install teca --global-option=build_ext \
        --global-option="--with-netcdf=/Users/bloring/netcdf-c-4.7.4-install/"
 
-See section :ref:`netcdf-parallel-4` for information on compiling NetCDF with
+See section :ref:`netcdf-parallel4` for information on compiling NetCDF with
 MPI enabled.
 
 with conda

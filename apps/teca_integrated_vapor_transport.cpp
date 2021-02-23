@@ -141,6 +141,9 @@ int main(int argc, char **argv)
     p_teca_multi_cf_reader mcf_reader = teca_multi_cf_reader::New();
     mcf_reader->get_properties_description("mcf_reader", advanced_opt_defs);
 
+    p_teca_normalize_coordinates norm_coords = teca_normalize_coordinates::New();
+    norm_coords->get_properties_description("norm_coords", advanced_opt_defs);
+
     p_teca_valid_value_mask vv_mask = teca_valid_value_mask::New();
     vv_mask->get_properties_description("vv_mask", advanced_opt_defs);
 
@@ -187,6 +190,7 @@ int main(int argc, char **argv)
     // options will override them
     cf_reader->set_properties("cf_reader", opt_vals);
     mcf_reader->set_properties("mcf_reader", opt_vals);
+    norm_coords->set_properties("norm_coords", opt_vals);
     vv_mask->set_properties("vv_mask", opt_vals);
     unpack->set_properties("unpack", opt_vals);
     ivt_int->set_properties("ivt_integral", opt_vals);
@@ -196,7 +200,7 @@ int main(int argc, char **argv)
     // now pass in the basic options, these are processed
     // last so that they will take precedence
     // configure the pipeline from the command line options.
-    p_teca_algorithm head;
+    p_teca_algorithm reader;
 
     // configure the reader
     bool have_file = opt_vals.count("input_file");
@@ -205,14 +209,14 @@ int main(int argc, char **argv)
     if (opt_vals.count("input_file"))
     {
         mcf_reader->set_input_file(opt_vals["input_file"].as<string>());
-        head = mcf_reader;
+        reader = mcf_reader;
     }
     else if (opt_vals.count("input_regex"))
     {
         cf_reader->set_files_regex(opt_vals["input_regex"].as<string>());
-        head = cf_reader;
+        reader = cf_reader;
     }
-    p_teca_algorithm reader = head;
+    p_teca_algorithm head = reader;
 
     if (!opt_vals["x_axis_variable"].defaulted())
     {
@@ -262,7 +266,8 @@ int main(int argc, char **argv)
     }
 
     // add the valid value mask stage
-    vv_mask->set_input_connection(head->get_output_port());
+    norm_coords->set_input_connection(head->get_output_port());
+    vv_mask->set_input_connection(norm_coords->get_output_port());
     unpack->set_input_connection(vv_mask->get_output_port());
     head = unpack;
 

@@ -29,8 +29,37 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
+    /** @anchor x,y,z_axis_order
+     * @name x,y,z_axis_order
+     * Set the desired order of the output for each coordinate
+     * axis. Use ORDER_ASCENDING(0) to ensure the output is in
+     * ascending order, and ORDER_DESCENDING(1) to ensure the
+     * output is in descending order. By default the x and y
+     * axes are put in ascending order and the z axis is put
+     * into descending order.
+     */
+    ///@{
+    enum {ORDER_ASCENDING = 0, ORDER_DESCENDING = 1};
+
+    TECA_ALGORITHM_PROPERTY_V(int, x_axis_order)
+    TECA_ALGORITHM_PROPERTY_V(int, y_axis_order)
+    TECA_ALGORITHM_PROPERTY_V(int, z_axis_order)
+    ///@}
+
+    /** @anchor verbose
+     * @name verbose
+     * if set to a non-zero value, rank 0 will send status information to the
+     * terminal. The default setting of zero results in minimal output.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, verbose)
+    ///@}
 protected:
     teca_normalize_coordinates();
+
+    int validate_x_axis_order(int val);
+    int validate_y_axis_order(int val);
+    int validate_z_axis_order(int val);
 
 private:
     teca_metadata get_output_metadata(unsigned int port,
@@ -45,6 +74,11 @@ private:
         const teca_metadata &request) override;
 
 private:
+    int x_axis_order;
+    int y_axis_order;
+    int z_axis_order;
+    int verbose;
+
     struct internals_t;
     internals_t *internals;
 };

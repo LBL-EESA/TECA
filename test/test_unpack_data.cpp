@@ -118,8 +118,7 @@ struct packed_data
 
 int main(int argc, char **argv)
 {
-    int write_input = 1;
-    int write_output = 0;
+    int write_input = 0;
 
     if (argc != 2)
     {

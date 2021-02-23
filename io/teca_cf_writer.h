@@ -83,12 +83,12 @@ public:
     // set how many time steps are written to each file. Note that upstream is
     // parallelized over files rather than time steps.  this has the affect of
     // reducing the available oportunity for MPI parallelization by this
-    // factor. For example if there are 16 timee steps and steps_per_file is 8,
+    // factor. For example if there are 16 time steps and steps_per_file is 8,
     // 2 MPI ranks each running 8 or more threads would be optimal. One
     // should make such calculations when planning large runs if optimal
     // performance is desired. time steps are gathered before the file is
     // written, thus available memory per MPI rank is the limiting factor in
-    // how many steps can be stored in a single file (1).
+    // how many steps can be stored in a single file (128).
     TECA_ALGORITHM_PROPERTY(unsigned int, steps_per_file)
 
     // sets the flags passed to NetCDF during file creation. (NC_CLOBBER)

@@ -3,6 +3,7 @@
 #include "teca_netcdf_util.h"
 #include "teca_cf_reader.h"
 #include "teca_multi_cf_reader.h"
+#include "teca_normalize_coordinates.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_coordinate_util.h"
@@ -93,6 +94,9 @@ int main(int argc, char **argv)
     p_teca_multi_cf_reader mcf_reader = teca_multi_cf_reader::New();
     mcf_reader->get_properties_description("mcf_reader", advanced_opt_defs);
 
+    p_teca_normalize_coordinates norm_coords = teca_normalize_coordinates::New();
+    norm_coords->get_properties_description("norm_coords", advanced_opt_defs);
+
     // package basic and advanced options for display
     options_description all_opt_defs(help_width, help_width - 4);
     all_opt_defs.add(basic_opt_defs).add(advanced_opt_defs);
@@ -110,6 +114,7 @@ int main(int argc, char **argv)
     // options will override them
     cf_reader->set_properties("cf_reader", opt_vals);
     mcf_reader->set_properties("mcf_reader", opt_vals);
+    norm_coords->set_properties("norm_coords", opt_vals);
 
     // now pas in the basic options, these are procesed
     // last so that they will take precedence
@@ -155,6 +160,7 @@ int main(int argc, char **argv)
         z_var = cf_reader->get_z_axis_variable();
         reader = cf_reader;
     }
+    norm_coords->set_input_connection(reader->get_output_port());
 
     std::string time_i;
     if (opt_vals.count("start_date"))
@@ -177,7 +183,7 @@ int main(int argc, char **argv)
     }
 
     // run the reporting phase of the pipeline
-    teca_metadata md = reader->update_metadata();
+    teca_metadata md = norm_coords->update_metadata();
 
     // from here on out just rank 0
     if (rank == 0)
@@ -343,6 +349,33 @@ int main(int argc, char **argv)
             std::cerr << ", " << z_var;
         }
         std::cerr << std::endl;
+
+        // report extents
+        long extent[6] = {0l};
+        if (!md.get("whole_extent", extent, 6))
+        {
+            std::cerr << "Mesh extents: " << extent[0] << ", " << extent[1]
+                << ", " << extent[2] << ", " << extent[3];
+            if (!z_var.empty())
+            {
+                std::cerr << ", " << extent[4] << ", " << extent[5];
+            }
+            std::cerr << std::endl;
+        }
+
+        // report bounds
+        double bounds[6] = {0.0};
+        if (!md.get("bounds", bounds, 6))
+        {
+            std::cerr << "Mesh bounds: " << bounds[0] << ", " << bounds[1]
+                << ", " << bounds[2] << ", " << bounds[3];
+            if (!z_var.empty())
+            {
+                std::cerr << ", " << bounds[4] << ", " << bounds[5];
+            }
+            std::cerr << std::endl;
+        }
+
 
         // report the arrays
         size_t n_arrays = atrs.size();
