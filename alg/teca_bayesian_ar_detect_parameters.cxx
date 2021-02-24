@@ -976,6 +976,8 @@ void teca_bayesian_ar_detect_parameters::get_properties_description(
             "the number of parameter table rows to serve (-1)")
         ;
 
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 
@@ -983,6 +985,8 @@ void teca_bayesian_ar_detect_parameters::get_properties_description(
 void teca_bayesian_ar_detect_parameters::set_properties(const std::string &prefix,
     variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, long, prefix, number_of_rows)
 }
 #endif

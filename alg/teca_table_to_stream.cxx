@@ -54,6 +54,9 @@ void teca_table_to_stream::get_properties_description(
         TECA_POPTS_GET(std::string, prefix, stream,
             "name of stream to send output to. stderr, stdout")
         ;
+
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 
@@ -61,6 +64,8 @@ void teca_table_to_stream::get_properties_description(
 void teca_table_to_stream::set_properties(
     const string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, std::string, prefix, header)
     TECA_POPTS_SET(opts, std::string, prefix, footer)
     TECA_POPTS_SET(opts, std::string, prefix, stream)

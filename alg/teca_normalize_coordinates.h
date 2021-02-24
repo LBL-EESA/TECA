@@ -46,14 +46,6 @@ public:
     TECA_ALGORITHM_PROPERTY_V(int, z_axis_order)
     ///@}
 
-    /** @anchor verbose
-     * @name verbose
-     * if set to a non-zero value, rank 0 will send status information to the
-     * terminal. The default setting of zero results in minimal output.
-     */
-    ///@{
-    TECA_ALGORITHM_PROPERTY(int, verbose)
-    ///@}
 protected:
     teca_normalize_coordinates();
 
@@ -77,7 +69,6 @@ private:
     int x_axis_order;
     int y_axis_order;
     int z_axis_order;
-    int verbose;
 
     struct internals_t;
     internals_t *internals;

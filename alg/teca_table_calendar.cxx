@@ -73,6 +73,8 @@ void teca_table_calendar::get_properties_description(
             "prepended to all output column names")
         ;
 
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 
@@ -80,6 +82,8 @@ void teca_table_calendar::get_properties_description(
 void teca_table_calendar::set_properties(
     const string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, std::string, prefix, units)
     TECA_POPTS_SET(opts, std::string, prefix, calendar)
     TECA_POPTS_SET(opts, std::string, prefix, time_column)

@@ -161,6 +161,8 @@ void teca_vorticity::get_properties_description(
             "array to store the computed vorticity in")
         ;
 
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 

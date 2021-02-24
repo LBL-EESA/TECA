@@ -165,6 +165,8 @@ void teca_integrated_vapor_transport::get_properties_description(
             "the value of the NetCDF _FillValue attribute (1e20)")
         ;
 
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 
@@ -172,6 +174,8 @@ void teca_integrated_vapor_transport::get_properties_description(
 void teca_integrated_vapor_transport::set_properties(
     const string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, std::string, prefix, wind_u_variable)
     TECA_POPTS_SET(opts, std::string, prefix, wind_v_variable)
     TECA_POPTS_SET(opts, std::string, prefix, specific_humidity_variable)

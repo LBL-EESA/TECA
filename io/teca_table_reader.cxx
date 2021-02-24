@@ -3,6 +3,7 @@
 #include "teca_binary_stream.h"
 #include "teca_coordinate_util.h"
 #include "teca_file_util.h"
+#include "teca_common.h"
 
 #include <algorithm>
 #include <cstring>
@@ -202,12 +203,16 @@ void teca_table_reader::get_properties_description(
             "if auto is used, format is deduced from file_name")
         ;
 
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 
 // --------------------------------------------------------------------------
 void teca_table_reader::set_properties(const string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, string, prefix, file_name)
     TECA_POPTS_SET(opts, string, prefix, index_column)
     TECA_POPTS_SET(opts, int, prefix, generate_original_ids)

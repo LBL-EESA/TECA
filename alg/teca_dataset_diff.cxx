@@ -33,7 +33,7 @@
 
 // --------------------------------------------------------------------------
 teca_dataset_diff::teca_dataset_diff()
-    : relative_tolerance(1.0e-6), absolute_tolerance(-1.0), verbose(1)
+    : relative_tolerance(1.0e-6), absolute_tolerance(-1.0)
 {
     this->set_number_of_input_connections(2);
     this->set_number_of_output_ports(1);
@@ -54,8 +54,9 @@ void teca_dataset_diff::get_properties_description(
     opts.add_options()
         TECA_POPTS_GET(double, prefix, relative_tolerance, "relative test tolerance")
         TECA_POPTS_GET(double, prefix, absolute_tolerance, "absolute test tolerance")
-        TECA_POPTS_GET(int, prefix, verbose, "print status messages as the diff runs")
         ;
+
+    this->teca_algorithm::get_properties_description(prefix, opts);
 
     global_opts.add(opts);
 }
@@ -63,6 +64,8 @@ void teca_dataset_diff::get_properties_description(
 // --------------------------------------------------------------------------
 void teca_dataset_diff::set_properties(const std::string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, double, prefix, relative_tolerance)
     TECA_POPTS_SET(opts, double, prefix, absolute_tolerance)
     TECA_POPTS_SET(opts, int, prefix, verbose)

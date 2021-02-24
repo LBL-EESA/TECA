@@ -60,7 +60,7 @@ int main(int argc, char **argv)
         ("information_arrays", value<std::vector<std::string>>()->multitoken(),
             "\nA list of non-geometric arrays to write\n")
 
-        ("output_file", value<std::string>()->default_value(std::string("IVT_%t%.nc")),
+        ("output_file", value<std::string>(),
             "\nA path and file name pattern for the output NetCDF files. %t% is replaced with a"
             " human readable date and time corresponding to the time of the first time step in"
             " the file. Use --cf_writer::date_format to change the formatting\n")

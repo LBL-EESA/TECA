@@ -175,6 +175,8 @@ void teca_ar_detect::get_properties_description(
             "high land value")
         ;
 
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     opts.add(ard_opts);
 }
 
@@ -182,6 +184,8 @@ void teca_ar_detect::get_properties_description(
 void teca_ar_detect::set_properties(
     const std::string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, std::string, prefix, water_vapor_variable)
     TECA_POPTS_SET(opts, double, prefix, low_water_vapor_threshold)
     TECA_POPTS_SET(opts, double, prefix, high_water_vapor_threshold)

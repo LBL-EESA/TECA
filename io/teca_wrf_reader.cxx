@@ -153,6 +153,8 @@ void teca_wrf_reader::get_properties_description(
             "set the number of I/O threads (-1)")
         ;
 
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 
@@ -160,6 +162,8 @@ void teca_wrf_reader::get_properties_description(
 void teca_wrf_reader::set_properties(const std::string &prefix,
     variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, std::vector<std::string>, prefix, file_names)
     TECA_POPTS_SET(opts, std::string, prefix, files_regex)
     TECA_POPTS_SET(opts, std::string, prefix, metadata_cache_dir)

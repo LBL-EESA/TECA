@@ -258,6 +258,8 @@ void teca_tc_trajectory::get_properties_description(
             "number of time steps between valid candidate data. (1 step)")
         ;
 
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 
@@ -265,6 +267,8 @@ void teca_tc_trajectory::get_properties_description(
 void teca_tc_trajectory::set_properties(
     const std::string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, double, prefix, max_daily_distance)
     TECA_POPTS_SET(opts, double, prefix, min_wind_speed)
     TECA_POPTS_SET(opts, double, prefix, min_wind_duration)

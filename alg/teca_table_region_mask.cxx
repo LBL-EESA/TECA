@@ -62,6 +62,8 @@ void teca_table_region_mask::get_properties_description(
             "list of y coordinates describing the regions")
         ;
 
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 
@@ -69,6 +71,8 @@ void teca_table_region_mask::get_properties_description(
 void teca_table_region_mask::set_properties(
     const std::string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, std::string, prefix, x_coordinate_column)
     TECA_POPTS_SET(opts, std::string, prefix, y_coordinate_column)
     TECA_POPTS_SET(opts, std::string, prefix, result_column)

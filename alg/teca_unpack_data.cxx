@@ -41,8 +41,7 @@ void transform(output_t * __restrict__ p_out, input_t * __restrict__ p_in,
 
 // --------------------------------------------------------------------------
 teca_unpack_data::teca_unpack_data() :
-    output_data_type(teca_variant_array_code<float>::get()),
-    verbose(0)
+    output_data_type(teca_variant_array_code<float>::get())
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -68,6 +67,9 @@ void teca_unpack_data::get_properties_description(
         TECA_POPTS_GET(int, prefix, verbose, "Enables verbose output")
         ;
 
+
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 
@@ -75,6 +77,8 @@ void teca_unpack_data::get_properties_description(
 void teca_unpack_data::set_properties(
     const std::string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, int, prefix, output_data_type)
     TECA_POPTS_SET(opts, int, prefix, verbose)
 }

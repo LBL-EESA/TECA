@@ -47,6 +47,8 @@ void teca_component_statistics::get_properties_description(
             "list of arrays to compute statistics for")
         ;*/
 
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 
@@ -54,8 +56,7 @@ void teca_component_statistics::get_properties_description(
 void teca_component_statistics::set_properties(
     const std::string &prefix, variables_map &opts)
 {
-    (void) prefix;
-    (void) opts;
+    this->teca_algorithm::set_properties(prefix, opts);
 
     //TECA_POPTS_SET(opts, std::vector<std::string>, prefix, dependent_variables)
 }

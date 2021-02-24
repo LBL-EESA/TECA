@@ -311,7 +311,7 @@ void teca_normalize_coordinates::internals_t::normalize_variables(
 // --------------------------------------------------------------------------
 teca_normalize_coordinates::teca_normalize_coordinates() :
     x_axis_order(ORDER_ASCENDING), y_axis_order(ORDER_ASCENDING),
-    z_axis_order(ORDER_DESCENDING), verbose(0), internals(nullptr)
+    z_axis_order(ORDER_DESCENDING), internals(nullptr)
 {
     this->internals = new teca_normalize_coordinates::internals_t;
 
@@ -350,6 +350,8 @@ void teca_normalize_coordinates::get_properties_description(
             "If set then status messages are sent to the terminal.")
         ;
 
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 
@@ -357,10 +359,11 @@ void teca_normalize_coordinates::get_properties_description(
 void teca_normalize_coordinates::set_properties(
     const std::string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, int, prefix, x_axis_order)
     TECA_POPTS_SET(opts, int, prefix, y_axis_order)
     TECA_POPTS_SET(opts, int, prefix, z_axis_order)
-    TECA_POPTS_SET(opts, int, prefix, verbose)
 }
 #endif
 

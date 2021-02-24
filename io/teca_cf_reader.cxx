@@ -134,6 +134,8 @@ void teca_cf_reader::get_properties_description(
             "set the max number of MPI ranks for reading metadata (1024)")
         ;
 
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 
@@ -141,6 +143,8 @@ void teca_cf_reader::get_properties_description(
 void teca_cf_reader::set_properties(const std::string &prefix,
     variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, std::vector<std::string>, prefix, file_names)
     TECA_POPTS_SET(opts, std::string, prefix, files_regex)
     TECA_POPTS_SET(opts, std::string, prefix, x_axis_variable)

@@ -44,16 +44,27 @@ public:
     MPI_Comm get_communicator();
 
 #if defined(TECA_HAS_BOOST)
-    // initialize the given options description
-    // with algorithm's properties
-    virtual void get_properties_description(const std::string &, options_description &)
-    {}
+    // initialize the given options description with algorithm's properties
+    // implementors should call the base implementation when overriding.
+    // this should be called after the override adds its options.
+    virtual void get_properties_description(const std::string &prefix,
+        options_description &opts);
 
-    // initialize the algorithm from the given options
-    // variable map.
-    virtual void set_properties(const std::string &, variables_map &)
-    {}
+    // initialize the algorithm from the given options variable map.
+    // implementors should call the base implementation when overriding.
+    // this should be called before the override sets its properties.
+    virtual void set_properties(const std::string &prefix,
+        variables_map &opts);
 #endif
+
+    /** @anchor verbose
+     * @name verbose
+     * if set to a non-zero value, rank 0 will send status information to the
+     * terminal. The default setting of zero results in no output.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, verbose)
+    ///@}
 
     // get an output port from the algorithm. to be used
     // during pipeline building
@@ -231,6 +242,10 @@ protected:
 
     // return the output port's modified flag value
     int get_modified(unsigned int port) const;
+
+protected:
+// algorithm properties
+    int verbose;
 
 private:
     teca_algorithm_internals *internals;

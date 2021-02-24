@@ -309,12 +309,16 @@ void teca_table_writer::get_properties_description(
             "if auto is used, format is deduced from file_name")
         ;
 
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 
 // --------------------------------------------------------------------------
 void teca_table_writer::set_properties(const std::string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, std::string, prefix, file_name)
     TECA_POPTS_SET(opts, std::string, prefix, row_dim_name)
     TECA_POPTS_SET(opts, bool, prefix, output_format)

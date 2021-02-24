@@ -99,6 +99,8 @@ void teca_tc_candidates::get_properties_description(
             "highest longitude in degrees to search for storms (0)")
         ;
 
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     opts.add(ard_opts);
 }
 
@@ -106,6 +108,8 @@ void teca_tc_candidates::get_properties_description(
 void teca_tc_candidates::set_properties(
     const std::string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, std::string, prefix, surface_wind_speed_variable)
     TECA_POPTS_SET(opts, std::string, prefix, vorticity_850mb_variable)
     TECA_POPTS_SET(opts, std::string, prefix, sea_level_pressure_variable)

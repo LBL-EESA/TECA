@@ -96,6 +96,8 @@ void teca_cf_writer::get_properties_description(
             "the list of non-geometric arrays to write (empty)")
         ;
 
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 
@@ -103,6 +105,8 @@ void teca_cf_writer::get_properties_description(
 void teca_cf_writer::set_properties(
     const std::string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, std::string, prefix, file_name)
     TECA_POPTS_SET(opts, std::string, prefix, date_format)
     TECA_POPTS_SET(opts, long, prefix, first_step)

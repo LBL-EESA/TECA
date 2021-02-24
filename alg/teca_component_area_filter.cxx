@@ -107,6 +107,8 @@ void teca_component_area_filter::get_properties_description(
             "this flag enables use of an optimization (0)")
         ;
 
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 
@@ -114,6 +116,8 @@ void teca_component_area_filter::get_properties_description(
 void teca_component_area_filter::set_properties(const std::string &prefix,
     variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, std::string, prefix, component_variable)
     TECA_POPTS_SET(opts, std::string, prefix, number_of_components_key)
     TECA_POPTS_SET(opts, std::string, prefix, component_ids_key)

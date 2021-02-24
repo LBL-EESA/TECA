@@ -609,7 +609,7 @@ teca_bayesian_ar_detect::teca_bayesian_ar_detect() :
     min_component_area_variable("min_component_area"),
     min_ivt_variable("min_water_vapor"),
     hwhm_latitude_variable("hwhm_latitude"), thread_pool_size(1),
-    verbose(0), internals(new internals_t)
+    internals(new internals_t)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -648,6 +648,8 @@ void teca_bayesian_ar_detect::get_properties_description(
             "the terminal (0)")
         ;
 
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 
@@ -655,6 +657,8 @@ void teca_bayesian_ar_detect::get_properties_description(
 void teca_bayesian_ar_detect::set_properties(const std::string &prefix,
     variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, std::string, prefix, ivt_variable)
     TECA_POPTS_SET(opts, std::string, prefix, min_component_area_variable)
     TECA_POPTS_SET(opts, std::string, prefix, min_ivt_variable)

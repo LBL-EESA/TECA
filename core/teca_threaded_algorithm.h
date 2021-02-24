@@ -92,8 +92,8 @@ protected:
     // will be executed by the thread pool.
     const_p_teca_dataset request_data(teca_algorithm_output_port &port,
         const teca_metadata &request) override;
+
 private:
-    int verbose;
     int bind_threads;
     int stream_size;
     long long poll_interval;

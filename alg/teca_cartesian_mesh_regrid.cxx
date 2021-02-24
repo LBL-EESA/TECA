@@ -116,6 +116,8 @@ void teca_cartesian_mesh_regrid::get_properties_description(
             "linear or nearest interpolation (1)")
         ;
 
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 
@@ -123,6 +125,8 @@ void teca_cartesian_mesh_regrid::get_properties_description(
 void teca_cartesian_mesh_regrid::set_properties(
     const std::string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, int, prefix, target_input)
     TECA_POPTS_SET(opts, std::vector<std::string>, prefix, arrays)
     TECA_POPTS_SET(opts, int, prefix, interpolation_mode)

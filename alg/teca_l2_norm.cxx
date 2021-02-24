@@ -92,6 +92,8 @@ void teca_l2_norm::get_properties_description(
             "array to store the computed norm in")
         ;
 
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 
@@ -99,6 +101,8 @@ void teca_l2_norm::get_properties_description(
 void teca_l2_norm::set_properties(
     const string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, std::string, prefix, component_0_variable)
     TECA_POPTS_SET(opts, std::string, prefix, component_1_variable)
     TECA_POPTS_SET(opts, std::string, prefix, component_2_variable)

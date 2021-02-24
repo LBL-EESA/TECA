@@ -48,6 +48,8 @@ void teca_cartesian_mesh_subset::get_properties_description(
             "subset contained by bounds")
         ;
 
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 
@@ -55,7 +57,9 @@ void teca_cartesian_mesh_subset::get_properties_description(
 void teca_cartesian_mesh_subset::set_properties(
     const string &prefix, variables_map &opts)
 {
-    TECA_POPTS_SET(opts, vector<double>, prefix, bounds)
+    this->teca_algorithm::set_properties(prefix, opts);
+
+    TECA_POPTS_SET(opts, std::vector<double>, prefix, bounds)
     TECA_POPTS_SET(opts, bool, prefix, cover_bounds)
 }
 #endif

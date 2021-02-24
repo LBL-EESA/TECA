@@ -73,7 +73,7 @@ void teca_threaded_algorithm_internals::thread_pool_resize(MPI_Comm comm,
 
 
 // --------------------------------------------------------------------------
-teca_threaded_algorithm::teca_threaded_algorithm() : verbose(0),
+teca_threaded_algorithm::teca_threaded_algorithm() :
     bind_threads(1), stream_size(-1), poll_interval(1000000),
     internals(new teca_threaded_algorithm_internals)
 {
@@ -109,6 +109,8 @@ void teca_threaded_algorithm::get_properties_description(
             "for completed tasks (1.0e6)")
         ;
 
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 
@@ -116,6 +118,8 @@ void teca_threaded_algorithm::get_properties_description(
 void teca_threaded_algorithm::set_properties(const std::string &prefix,
     variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, int, prefix, bind_threads)
     TECA_POPTS_SET(opts, int, prefix, verbose)
 

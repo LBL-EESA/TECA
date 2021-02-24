@@ -81,6 +81,8 @@ void teca_tc_classify::get_properties_description(
             "each region. if not provided names are generated from ids")
         ;
 
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 
@@ -88,6 +90,8 @@ void teca_tc_classify::get_properties_description(
 void teca_tc_classify::set_properties(
     const std::string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, std::string, prefix, track_id_column)
     TECA_POPTS_SET(opts, std::string, prefix, time_column)
     TECA_POPTS_SET(opts, std::string, prefix, surface_wind_column)

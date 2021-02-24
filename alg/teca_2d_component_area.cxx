@@ -137,6 +137,8 @@ void teca_2d_component_area::get_properties_description(
             "the label id that corresponds to the background (-1)")
         ;
 
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 
@@ -144,6 +146,8 @@ void teca_2d_component_area::get_properties_description(
 void teca_2d_component_area::set_properties(const std::string &prefix,
     variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, std::string, prefix, component_variable)
     TECA_POPTS_SET(opts, int, prefix, contiguous_component_ids)
     TECA_POPTS_SET(opts, long, prefix, background_id)
