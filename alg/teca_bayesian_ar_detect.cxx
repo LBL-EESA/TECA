@@ -631,21 +631,18 @@ void teca_bayesian_ar_detect::get_properties_description(
 
     opts.add_options()
         TECA_POPTS_GET(std::string, prefix, ivt_variable,
-            "name of the water vapor variable (\"\")")
+            "name of the water vapor variable")
         TECA_POPTS_GET(std::string, prefix, min_component_area_variable,
             "name of the column in the parameter table containing the "
-            "component area threshold (\"min_component_area\")")
+            "component area threshold")
         TECA_POPTS_GET(std::string, prefix, min_ivt_variable,
             "name of the column in the parameter table containing the "
-            "water vapor threshold (\"min_water_vapor\")")
+            "water vapor threshold")
         TECA_POPTS_GET(std::string, prefix, hwhm_latitude_variable,
             "name of the column in the parameter table containing the "
-            "half width at half max latitude (\"hwhm_latitude\")")
+            "half width at half max latitude")
         TECA_POPTS_GET(int, prefix, thread_pool_size,
-            "number of threads to parallelize execution over (1)")
-        TECA_POPTS_GET(int, prefix, verbose,
-            "flag indicating diagnostic info should be displayed in "
-            "the terminal (0)")
+            "number of threads to parallelize execution over")
         ;
 
     this->teca_algorithm::get_properties_description(prefix, opts);
@@ -697,7 +694,10 @@ void teca_bayesian_ar_detect::set_thread_pool_size(int n)
 // --------------------------------------------------------------------------
 unsigned int teca_bayesian_ar_detect::get_thread_pool_size() const noexcept
 {
-    return this->internals->queue->size();
+    unsigned int n_threads = 0;
+    if (this->internals->queue)
+        n_threads = this->internals->queue->size();
+    return n_threads;
 }
 
 // --------------------------------------------------------------------------

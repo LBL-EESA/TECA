@@ -132,9 +132,9 @@ void teca_2d_component_area::get_properties_description(
             "name of the varibale containing region labels")
         TECA_POPTS_GET(int, prefix, contiguous_component_ids,
             "when the region label ids start at 0 and are consecutive "
-            "this flag enables use of an optimization (0)")
+            "this flag enables use of an optimization")
         TECA_POPTS_GET(long, prefix, background_id,
-            "the label id that corresponds to the background (-1)")
+            "the label id that corresponds to the background")
         ;
 
     this->teca_algorithm::get_properties_description(prefix, opts);

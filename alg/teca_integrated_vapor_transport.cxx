@@ -156,13 +156,13 @@ void teca_integrated_vapor_transport::get_properties_description(
 
     opts.add_options()
         TECA_POPTS_GET(std::string, prefix, wind_u_variable,
-            "name of the variable containg the lon component of the wind vector (ua)")
+            "name of the variable containg the lon component of the wind vector")
         TECA_POPTS_GET(std::string, prefix, wind_v_variable,
-            "name of the variable containg the lat component of the wind vector (va)")
-        TECA_POPTS_GET(std::string, prefix, specific_humidty_variable,
-            "name of the variable containg the specific humidity (hus)")
+            "name of the variable containg the lat component of the wind vector")
+        TECA_POPTS_GET(std::string, prefix, specific_humidity_variable,
+            "name of the variable containg the specific humidity")
         TECA_POPTS_GET(double, prefix, fill_value,
-            "the value of the NetCDF _FillValue attribute (1e20)")
+            "the value of the NetCDF _FillValue attribute")
         ;
 
     this->teca_algorithm::get_properties_description(prefix, opts);

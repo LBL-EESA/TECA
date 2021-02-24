@@ -2,6 +2,8 @@
 #define teca_program_options_h
 
 #include "teca_config.h"
+#include "teca_common.h"
+#include "teca_mpi_util.h"
 
 #if defined(TECA_HAS_BOOST) && !defined(SWIG)
 namespace boost
@@ -40,21 +42,30 @@ using variables_map
 // <boost/program_options.hpp>. These need to be
 // included in your cxx files.
 //
-#define TECA_POPTS_GET(_type, _prefix, _name, _desc)        \
-     (((_prefix.empty()?"":_prefix+"::") + #_name).c_str(), \
-         boost::program_options::value<_type>(), "\n" _desc "\n")
-
-#define TECA_POPTS_MULTI_GET(_type, _prefix, _name, _desc)     \
+#define TECA_POPTS_GET(_type, _prefix, _name, _desc)           \
      (((_prefix.empty()?"":_prefix+"::") + #_name).c_str(),    \
-         boost::program_options::value<_type>()->multitoken(), \
+         boost::program_options::value<_type>()->default_value \
+            (this->get_ ## _name()), "\n" _desc "\n")
+
+#define TECA_POPTS_MULTI_GET(_type, _prefix, _name, _desc)  \
+     (((_prefix.empty()?"":_prefix+"::") + #_name).c_str(), \
+         boost::program_options::value<_type>()->multitoken \
+            ()->default_value(this->get_ ## _name()),       \
          "\n" _desc "\n")
 
-#define TECA_POPTS_SET(_opts, _type, _prefix, _name)    \
-    {std::string opt_name =                             \
-        (_prefix.empty()?"":_prefix+"::") + #_name;     \
-    if (_opts.count(opt_name))                          \
-    {                                                   \
-        this->set_##_name(_opts[opt_name].as<_type>()); \
+#define TECA_POPTS_SET(_opts, _type, _prefix, _name)             \
+    {std::string opt_name =                                      \
+        (_prefix.empty()?"":_prefix+"::") + #_name;              \
+    bool defd = _opts[opt_name].defaulted();                     \
+    if (!defd)                                                   \
+    {                                                            \
+        _type val = _opts[opt_name].as<_type>();                 \
+        if (this->verbose &&                                     \
+            teca_mpi_util::mpi_rank_0(this->get_communicator())) \
+        {                                                        \
+            TECA_STATUS("Setting " << opt_name << " = " << val)  \
+        }                                                        \
+        this->set_##_name(val);                                  \
     }}
 
 #else

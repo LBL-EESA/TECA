@@ -109,11 +109,11 @@ void teca_cartesian_mesh_regrid::get_properties_description(
 
     opts.add_options()
         TECA_POPTS_GET(int, prefix, target_input,
-            "select input connection that contains metadata (0)")
-        TECA_POPTS_GET(std::vector<std::string>, prefix, arrays,
-            "list of arrays to move from source to target mesh ("")")
+            "select input connection that contains metadata")
+        TECA_POPTS_MULTI_GET(std::vector<std::string>, prefix, arrays,
+            "list of arrays to move from source to target mesh")
         TECA_POPTS_GET(int, prefix, interpolation_mode,
-            "linear or nearest interpolation (1)")
+            "linear or nearest interpolation")
         ;
 
     this->teca_algorithm::get_properties_description(prefix, opts);

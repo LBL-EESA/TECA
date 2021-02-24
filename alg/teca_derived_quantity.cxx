@@ -31,7 +31,7 @@ void teca_derived_quantity::get_properties_description(
         + (prefix.empty()?"teca_derived_quantity":prefix));
 
     opts.add_options()
-        TECA_POPTS_GET(std::vector<std::string>, prefix, dependent_variables,
+        TECA_POPTS_MULTI_GET(std::vector<std::string>, prefix, dependent_variables,
             "list of arrays needed to compute the derived quantity")
         TECA_POPTS_GET(std::string, prefix, derived_variable,
             "name of the derived quantity")

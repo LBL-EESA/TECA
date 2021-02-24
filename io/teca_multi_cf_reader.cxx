@@ -254,6 +254,7 @@ int teca_multi_cf_reader_internals::parse_cf_reader_section(
 
 // --------------------------------------------------------------------------
 teca_multi_cf_reader::teca_multi_cf_reader() :
+    input_file(""),
     x_axis_variable("lon"),
     y_axis_variable("lat"),
     z_axis_variable(""),
@@ -282,32 +283,32 @@ void teca_multi_cf_reader::get_properties_description(
 
     opts.add_options()
         TECA_POPTS_GET(std::string, prefix, input_file,
-            "a file dedscribing the dataset layout ()")
+            "a file dedscribing the dataset layout")
         TECA_POPTS_GET(std::string, prefix, x_axis_variable,
-            "name of variable that has x axis coordinates (lon)")
+            "name of variable that has x axis coordinates")
         TECA_POPTS_GET(std::string, prefix, y_axis_variable,
-            "name of variable that has y axis coordinates (lat)")
+            "name of variable that has y axis coordinates")
         TECA_POPTS_GET(std::string, prefix, z_axis_variable,
-            "name of variable that has z axis coordinates ()")
+            "name of variable that has z axis coordinates")
         TECA_POPTS_GET(std::string, prefix, t_axis_variable,
-            "name of variable that has t axis coordinates (time)")
+            "name of variable that has t axis coordinates")
         TECA_POPTS_GET(std::string, prefix, t_calendar,
-            "name of variable that has the time calendar (calendar)")
+            "name of variable that has the time calendar")
         TECA_POPTS_GET(std::string, prefix, t_units,
             "a std::get_time template for decoding time from the input filename")
         TECA_POPTS_GET(std::string, prefix, filename_time_template,
-            "name of variable that has the time unit (units)")
-        TECA_POPTS_GET(std::vector<double>, prefix, t_values,
+            "name of variable that has the time unit")
+        TECA_POPTS_MULTI_GET(std::vector<double>, prefix, t_values,
             "name of variable that has t axis values set by the"
-            "the user if the file doesn't have time variable set ()")
+            "the user if the file doesn't have time variable set")
         TECA_POPTS_GET(int, prefix, periodic_in_x,
-            "the dataset has a periodic boundary in the x direction (0)")
+            "the dataset has a periodic boundary in the x direction")
         TECA_POPTS_GET(int, prefix, periodic_in_y,
-            "the dataset has a periodic boundary in the y direction (0)")
+            "the dataset has a periodic boundary in the y direction")
         TECA_POPTS_GET(int, prefix, periodic_in_z,
-            "the dataset has a periodic boundary in the z direction (0)")
+            "the dataset has a periodic boundary in the z direction")
         TECA_POPTS_GET(int, prefix, max_metadata_ranks,
-            "set the max number of ranks for reading metadata (1024)")
+            "set the max number of ranks for reading metadata")
         ;
 
     this->teca_algorithm::get_properties_description(prefix, opts);
@@ -490,6 +491,8 @@ int teca_multi_cf_reader::set_input_file(const std::string &input_file)
             return -1;
         }
     }
+
+    this->input_file = input_file;
 
     return 0;
 }

@@ -63,7 +63,7 @@ void teca_unpack_data::get_properties_description(
         TECA_POPTS_GET(int, prefix, output_data_type,
             "Sets the type of the transformed data to either single or double"
             " precision floating point. Use 11 for single precision and 12 for"
-            " double precision. The default is single precision")
+            " double precision.")
         TECA_POPTS_GET(int, prefix, verbose, "Enables verbose output")
         ;
 

@@ -1,5 +1,7 @@
 #include "teca_common.h"
 
+namespace std
+{
 // **************************************************************************
 std::ostream &operator<<(std::ostream &os, const std::vector<std::string> &vec)
 {
@@ -11,6 +13,7 @@ std::ostream &operator<<(std::ostream &os, const std::vector<std::string> &vec)
             os << ", \"" << vec[i] << "\"";
     }
     return os;
+}
 }
 
 // **************************************************************************

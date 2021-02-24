@@ -128,7 +128,7 @@ void teca_descriptive_statistics::get_properties_description(
         + (prefix.empty()?"teca_descriptive_statistics":prefix));
 
     opts.add_options()
-        TECA_POPTS_GET(std::vector<std::string>, prefix, dependent_variables,
+        TECA_POPTS_MULTI_GET(std::vector<std::string>, prefix, dependent_variables,
             "list of arrays to compute statistics for")
         ;
 

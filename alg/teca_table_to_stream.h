@@ -40,6 +40,9 @@ public:
     void set_stream_to_stderr();
     void set_stream_to_stdout();
 
+    // get the stream name
+    std::string get_stream();
+
 protected:
     teca_table_to_stream();
 

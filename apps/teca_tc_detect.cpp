@@ -267,22 +267,21 @@ int main(int argc, char **argv)
         surf_wind->set_component_1_variable(
             opt_vals["surface_wind_v"].as<string>());
 
-    std::vector<std::string> dep_var;
-    core_temp->get_dependent_variables(dep_var);
     if (!opt_vals["500mb_temp"].defaulted())
-        dep_var[0] = opt_vals["500mb_temp"].as<string>();
-    if (!opt_vals["200mb_temp"].defaulted())
-        dep_var[1] = opt_vals["200mb_temp"].as<string>();
-    core_temp->set_dependent_variables(dep_var);
-    dep_var.clear();
+        core_temp->set_dependent_variable(0,
+            opt_vals["500mb_temp"].as<string>());
 
-    thickness->get_dependent_variables(dep_var);
+    if (!opt_vals["200mb_temp"].defaulted())
+        core_temp->set_dependent_variable(1,
+            opt_vals["200mb_temp"].as<string>());
+
     if (!opt_vals["1000mb_height"].defaulted())
-        dep_var[0] = opt_vals["1000mb_height"].as<string>();
+        thickness->set_dependent_variable(0,
+            opt_vals["1000mb_height"].as<string>());
+
     if (!opt_vals["200mb_height"].defaulted())
-        dep_var[1] = opt_vals["200mb_height"].as<string>();
-    thickness->set_dependent_variables(dep_var);
-    dep_var.clear();
+        thickness->set_dependent_variable(1,
+            opt_vals["200mb_height"].as<string>());
 
     if (!opt_vals["sea_level_pressure"].defaulted())
         candidates->set_sea_level_pressure_variable(
@@ -375,29 +374,31 @@ int main(int argc, char **argv)
 
     // now that command line opts have been parsed we can create
     // the programmable algorithms' functors
-    core_temp->get_dependent_variables(dep_var);
-    if (dep_var.size() != 2)
+    size_t n_var = core_temp->get_number_of_dependent_variables();
+    if (n_var != 2)
     {
         TECA_ERROR("core temperature calculation requires 2 "
-            "variables. given " << dep_var.size())
+            "variables. given " << n_var)
         return -1;
     }
     core_temp->set_execute_callback(
-        point_wise_average(dep_var[0], dep_var[1],
-        core_temp->get_derived_variable()));
-    dep_var.clear();
+        point_wise_average(
+            core_temp->get_dependent_variable(0),
+            core_temp->get_dependent_variable(1),
+            core_temp->get_derived_variable()));
 
-    thickness->get_dependent_variables(dep_var);
-    if (dep_var.size() != 2)
+    n_var = thickness->get_number_of_dependent_variables();
+    if (n_var != 2)
     {
         TECA_ERROR("thickness calculation requires 2 "
-            "variables. given " << dep_var.size())
+            "variables. given " << n_var)
         return -1;
     }
     thickness->set_execute_callback(
-        point_wise_difference(dep_var[0], dep_var[1],
-        thickness->get_derived_variable()));
-    dep_var.clear();
+        point_wise_difference(
+            thickness->get_dependent_variable(0),
+            thickness->get_dependent_variable(1),
+            thickness->get_derived_variable()));
 
     // and tell the candidate stage what variables the functors produce
     candidates->set_surface_wind_speed_variable(surf_wind->get_l2_norm_variable());

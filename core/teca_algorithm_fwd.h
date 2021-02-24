@@ -134,25 +134,14 @@ void set_##NAME##s(const std::initializer_list<T> &&l)  \
     }                                                   \
 }                                                       \
                                                         \
-void set_##NAME##s(const const_p_teca_variant_array &v) \
-{                                                       \
-    v->get(this->NAME##s);                              \
-    this->set_modified();                               \
-}                                                       \
-                                                        \
 const T &get_##NAME(size_t i) const                     \
 {                                                       \
     return this->NAME##s[i];                            \
 }                                                       \
                                                         \
-void get_##NAME##s(std::vector<T> &v) const             \
+const std::vector<T> &get_##NAME##s() const             \
 {                                                       \
-    v = this->NAME##s;                                  \
-}                                                       \
-                                                        \
-void get_##NAME##s(const p_teca_variant_array &v) const \
-{                                                       \
-    v->set(this->NAME##s);                              \
+    return this->NAME##s;                               \
 }                                                       \
                                                         \
 void clear_##NAME##s()                                  \

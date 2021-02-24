@@ -973,7 +973,7 @@ void teca_bayesian_ar_detect_parameters::get_properties_description(
 
     opts.add_options()
         TECA_POPTS_GET(long, prefix, number_of_rows,
-            "the number of parameter table rows to serve (-1)")
+            "the number of parameter table rows to serve")
         ;
 
     this->teca_algorithm::get_properties_description(prefix, opts);

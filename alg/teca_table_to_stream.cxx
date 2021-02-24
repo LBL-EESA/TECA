@@ -97,6 +97,25 @@ void teca_table_to_stream::set_stream(const std::string &s)
 }
 
 // --------------------------------------------------------------------------
+std::string teca_table_to_stream::get_stream()
+{
+    if (this->stream == &std::cerr)
+    {
+        return "stderr";
+    }
+    else if (this->stream == &std::cout)
+    {
+        return "stdout";
+    }
+    else if (!this->stream)
+    {
+        return "null";
+    }
+
+    return "unknown";
+}
+
+// --------------------------------------------------------------------------
 void teca_table_to_stream::set_stream_to_stderr()
 {
     this->stream = &std::cerr;

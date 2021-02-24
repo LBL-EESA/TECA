@@ -11,6 +11,8 @@ namespace teca_mpi_util
 int equipartition_communicator(MPI_Comm comm,
     int new_comm_size, MPI_Comm *new_comm);
 
+// return non-zero if this process is MPI rank 0
+int mpi_rank_0(MPI_Comm comm);
 };
 
 #endif
