@@ -149,7 +149,7 @@ int main(int argc, char **argv)
                     << std::endl
                     << basic_opt_defs << std::endl
                     << std::endl;
-                return -1;
+                return 0;
             }
 
             if (opt_vals.count("advanced_help"))
@@ -159,7 +159,7 @@ int main(int argc, char **argv)
                     << std::endl
                     << advanced_opt_defs << std::endl
                     << std::endl;
-                return -1;
+                return 0;
             }
 
             if (opt_vals.count("full_help"))
@@ -169,7 +169,7 @@ int main(int argc, char **argv)
                     << std::endl
                     << all_opt_defs << std::endl
                     << std::endl;
-                return -1;
+                return 0;
             }
         }
 
