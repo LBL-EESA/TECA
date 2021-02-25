@@ -596,6 +596,8 @@ void teca_tc_wind_radii::get_properties_description(const std::string &prefix,
             "the average wind speed over the interval is used.")
         ;
 
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 
@@ -603,6 +605,8 @@ void teca_tc_wind_radii::get_properties_description(const std::string &prefix,
 void teca_tc_wind_radii::set_properties(const std::string &prefix,
     variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, std::string, prefix, storm_id_column)
     TECA_POPTS_SET(opts, std::string, prefix, storm_x_coordinate_column)
     TECA_POPTS_SET(opts, std::string, prefix, storm_y_coordinate_column)

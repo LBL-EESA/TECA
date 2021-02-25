@@ -49,11 +49,11 @@ void teca_table_region_mask::get_properties_description(
 
     opts.add_options()
         TECA_POPTS_GET(std::string, prefix, x_coordinate_column,
-            "name of the column containing x cooridnates. default \"lon\"")
+            "name of the column containing x cooridnates.")
         TECA_POPTS_GET(std::string, prefix, y_coordinate_column,
-            "name of the column containing y cooridnates. default \"lat\"")
+            "name of the column containing y cooridnates.")
         TECA_POPTS_GET(std::string, prefix, result_column,
-            "name of the column to store the mask in. default \"region_mask\"")
+            "name of the column to store the mask in.")
         TECA_POPTS_MULTI_GET(std::vector<unsigned long>, prefix, region_sizes,
             "the number of points in each region")
         TECA_POPTS_MULTI_GET(std::vector<double>, prefix, region_x_coordinates,
@@ -62,6 +62,8 @@ void teca_table_region_mask::get_properties_description(
             "list of y coordinates describing the regions")
         ;
 
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 
@@ -69,6 +71,8 @@ void teca_table_region_mask::get_properties_description(
 void teca_table_region_mask::set_properties(
     const std::string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, std::string, prefix, x_coordinate_column)
     TECA_POPTS_SET(opts, std::string, prefix, y_coordinate_column)
     TECA_POPTS_SET(opts, std::string, prefix, result_column)

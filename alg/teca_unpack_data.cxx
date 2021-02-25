@@ -41,8 +41,7 @@ void transform(output_t * __restrict__ p_out, input_t * __restrict__ p_in,
 
 // --------------------------------------------------------------------------
 teca_unpack_data::teca_unpack_data() :
-    output_data_type(teca_variant_array_code<float>::get()),
-    verbose(0)
+    output_data_type(teca_variant_array_code<float>::get())
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -64,9 +63,12 @@ void teca_unpack_data::get_properties_description(
         TECA_POPTS_GET(int, prefix, output_data_type,
             "Sets the type of the transformed data to either single or double"
             " precision floating point. Use 11 for single precision and 12 for"
-            " double precision. The default is single precision")
+            " double precision.")
         TECA_POPTS_GET(int, prefix, verbose, "Enables verbose output")
         ;
+
+
+    this->teca_algorithm::get_properties_description(prefix, opts);
 
     global_opts.add(opts);
 }
@@ -75,6 +77,8 @@ void teca_unpack_data::get_properties_description(
 void teca_unpack_data::set_properties(
     const std::string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, int, prefix, output_data_type)
     TECA_POPTS_SET(opts, int, prefix, verbose)
 }

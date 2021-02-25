@@ -51,4 +51,21 @@ int equipartition_communicator(MPI_Comm comm,
 #endif
     return 0;
 }
+
+// **************************************************************************
+int mpi_rank_0(MPI_Comm comm)
+{
+    int rank = 0;
+#if defined(TECA_HAS_MPI)
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
+    {
+        MPI_Comm_rank(comm, &rank);
+    }
+#endif
+    if (rank == 0)
+        return 1;
+    return 0;
+}
 }

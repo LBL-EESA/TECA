@@ -92,8 +92,10 @@ void teca_vertical_coordinate_transform::get_properties_description(
 
     opts.add_options()
         TECA_POPTS_GET(int, prefix, mode,
-            "transform mode (mode_wrf_v3)")
+            "Sets the coordinate transform mode. The modes are: mode_wrf_v3")
         ;
+
+    this->teca_algorithm::get_properties_description(prefix, opts);
 
     global_opts.add(opts);
 }
@@ -102,6 +104,8 @@ void teca_vertical_coordinate_transform::get_properties_description(
 void teca_vertical_coordinate_transform::set_properties(
     const string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, int, prefix, mode)
 }
 #endif

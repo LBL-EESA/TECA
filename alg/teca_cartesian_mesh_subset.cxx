@@ -41,12 +41,14 @@ void teca_cartesian_mesh_subset::get_properties_description(
         + (prefix.empty()?"teca_cartesian_mesh_subset":prefix));
 
     opts.add_options()
-        TECA_POPTS_GET(vector<double>, prefix, bounds,
+        TECA_POPTS_MULTI_GET(std::vector<double>, prefix, bounds,
             "bounding box given by x0,x1,y0,y1,z0,z1")
         TECA_POPTS_GET(bool, prefix, cover_bounds,
             "(T)use smallest subset covering or (F)largest "
             "subset contained by bounds")
         ;
+
+    this->teca_algorithm::get_properties_description(prefix, opts);
 
     global_opts.add(opts);
 }
@@ -55,7 +57,9 @@ void teca_cartesian_mesh_subset::get_properties_description(
 void teca_cartesian_mesh_subset::set_properties(
     const string &prefix, variables_map &opts)
 {
-    TECA_POPTS_SET(opts, vector<double>, prefix, bounds)
+    this->teca_algorithm::set_properties(prefix, opts);
+
+    TECA_POPTS_SET(opts, std::vector<double>, prefix, bounds)
     TECA_POPTS_SET(opts, bool, prefix, cover_bounds)
 }
 #endif

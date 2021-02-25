@@ -51,9 +51,6 @@ public:
     // tolerance is used with numbers close to zero.
     TECA_ALGORITHM_PROPERTY(double, absolute_tolerance)
 
-    // if set infromation about the test progress is displayed during
-    // the test.
-    TECA_ALGORITHM_PROPERTY(int, verbose)
 protected:
     teca_dataset_diff();
 
@@ -107,7 +104,6 @@ private:
 private:
     double relative_tolerance;
     double absolute_tolerance;
-    int verbose;
 };
 
 #endif

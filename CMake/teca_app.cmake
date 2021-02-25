@@ -31,6 +31,7 @@ function (teca_add_app app_name)
                 teca_system teca_core teca_data teca_io teca_alg
                 ${APP_LIBS})
         endif()
+        set_target_properties(${app_name} PROPERTIES APP_TYPE C++)
         install(TARGETS ${app_name} RUNTIME DESTINATION ${BIN_PREFIX})
     else()
         message(STATUS "command line application ${app_name} -- disabled")

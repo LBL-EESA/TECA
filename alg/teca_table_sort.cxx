@@ -76,6 +76,8 @@ void teca_table_sort::get_properties_description(
             "if set a stable sort will be used")
         ;
 
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 
@@ -83,6 +85,8 @@ void teca_table_sort::get_properties_description(
 void teca_table_sort::set_properties(
     const string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, std::string, prefix, index_column)
     TECA_POPTS_SET(opts, int, prefix, index_column_id)
     TECA_POPTS_SET(opts, int, prefix, stable_sort)

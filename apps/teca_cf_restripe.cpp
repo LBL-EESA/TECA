@@ -60,7 +60,7 @@ int main(int argc, char **argv)
         ("information_arrays", value<std::vector<std::string>>()->multitoken(),
             "\nA list of non-geometric arrays to write\n")
 
-        ("output_file", value<std::string>()->default_value(std::string("IVT_%t%.nc")),
+        ("output_file", value<std::string>(),
             "\nA path and file name pattern for the output NetCDF files. %t% is replaced with a"
             " human readable date and time corresponding to the time of the first time step in"
             " the file. Use --cf_writer::date_format to change the formatting\n")
@@ -115,10 +115,14 @@ int main(int argc, char **argv)
     all_opt_defs.add(basic_opt_defs).add(advanced_opt_defs);
 
     // parse the command line
+    int ierr = 0;
     variables_map opt_vals;
-    if (teca_app_util::process_command_line_help(mpi_man.get_comm_rank(),
-        argc, argv, basic_opt_defs, advanced_opt_defs, all_opt_defs, opt_vals))
+    if ((ierr = teca_app_util::process_command_line_help(
+        mpi_man.get_comm_rank(), argc, argv, basic_opt_defs,
+        advanced_opt_defs, all_opt_defs, opt_vals)))
     {
+        if (ierr == 1)
+            return 0;
         return -1;
     }
 

@@ -67,15 +67,6 @@ public:
     TECA_ALGORITHM_PROPERTY(int, enable_valid_range)
     ///@}
 
-    /** @anchor verbose
-     * @name verbose
-     * if set to a non-zero value, rank 0 will send status information to the
-     * terminal. The default setting of zero results in minimal output.
-     */
-    ///@{
-    TECA_ALGORITHM_PROPERTY(int, verbose)
-    ///@}
-
 protected:
     teca_valid_value_mask();
 
@@ -94,7 +85,6 @@ private:
 private:
     std::vector<std::string> mask_arrays;
     int enable_valid_range;
-    int verbose;
 };
 
 #endif

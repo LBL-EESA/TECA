@@ -311,7 +311,7 @@ void teca_normalize_coordinates::internals_t::normalize_variables(
 // --------------------------------------------------------------------------
 teca_normalize_coordinates::teca_normalize_coordinates() :
     x_axis_order(ORDER_ASCENDING), y_axis_order(ORDER_ASCENDING),
-    z_axis_order(ORDER_DESCENDING), verbose(0), internals(nullptr)
+    z_axis_order(ORDER_DESCENDING), internals(nullptr)
 {
     this->internals = new teca_normalize_coordinates::internals_t;
 
@@ -336,19 +336,16 @@ void teca_normalize_coordinates::get_properties_description(
     opts.add_options()
         TECA_POPTS_GET(int, prefix, x_axis_order,
             "Sets the desired output order of the x-axis. Use"
-            " ORDER_ASCENDING(0) or ORDER_DESCENDING(1). By default"
-            " the x-axis will be output in ascending order.")
+            " ORDER_ASCENDING(0) or ORDER_DESCENDING(1).")
         TECA_POPTS_GET(int, prefix, y_axis_order,
             "Sets the desired output order of the y-axis. Use"
-            " ORDER_ASCENDING(0) or ORDER_DESCENDING(1). By default"
-            " the y-axis will be output in ascending order.")
+            " ORDER_ASCENDING(0) or ORDER_DESCENDING(1).")
         TECA_POPTS_GET(int, prefix, z_axis_order,
             "Sets the desired output order of the z-axis. Use"
-            " ORDER_ASCENDING(0) or ORDER_DESCENDING(1). By default"
-            " the z-axis will be output in descending order.")
-        TECA_POPTS_GET(int, prefix, verbose,
-            "If set then status messages are sent to the terminal.")
+            " ORDER_ASCENDING(0) or ORDER_DESCENDING(1).")
         ;
+
+    this->teca_algorithm::get_properties_description(prefix, opts);
 
     global_opts.add(opts);
 }
@@ -357,10 +354,11 @@ void teca_normalize_coordinates::get_properties_description(
 void teca_normalize_coordinates::set_properties(
     const std::string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, int, prefix, x_axis_order)
     TECA_POPTS_SET(opts, int, prefix, y_axis_order)
     TECA_POPTS_SET(opts, int, prefix, z_axis_order)
-    TECA_POPTS_SET(opts, int, prefix, verbose)
 }
 #endif
 

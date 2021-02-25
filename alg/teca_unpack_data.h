@@ -54,9 +54,6 @@ public:
     void set_output_data_type_to_double()
     { this->set_output_data_type(teca_variant_array_code<double>::get()); }
 
-    // set the algorihtm verbosity. off by default.
-    TECA_ALGORITHM_PROPERTY(int, verbose)
-
 protected:
     teca_unpack_data();
 
@@ -79,7 +76,6 @@ private:
 
 private:
     int output_data_type;
-    int verbose;
 };
 
 #endif

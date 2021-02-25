@@ -248,15 +248,17 @@ void teca_tc_trajectory::get_properties_description(
 
     opts.add_options()
         TECA_POPTS_GET(double, prefix, max_daily_distance,
-            "max distance a storm can move on the same track in single day (1600 km)")
+            "max distance a storm can move on the same track in single day")
         TECA_POPTS_GET(double, prefix, min_wind_speed,
-            "minimum wind speed to be worthy of tracking (17.0 ms^-1)")
+            "minimum wind speed to be worthy of tracking")
         TECA_POPTS_GET(double, prefix, min_wind_duration,
             "minimum number of, not necessarily consecutive, days thickness, "
-            "core temp, and wind speed criteria must be satisfied (2.0 days)")
+            "core temp, and wind speed criteria must be satisfied")
         TECA_POPTS_GET(unsigned long, prefix, step_interval,
-            "number of time steps between valid candidate data. (1 step)")
+            "number of time steps between valid candidate data.")
         ;
+
+    this->teca_algorithm::get_properties_description(prefix, opts);
 
     global_opts.add(opts);
 }
@@ -265,6 +267,8 @@ void teca_tc_trajectory::get_properties_description(
 void teca_tc_trajectory::set_properties(
     const std::string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, double, prefix, max_daily_distance)
     TECA_POPTS_SET(opts, double, prefix, min_wind_speed)
     TECA_POPTS_SET(opts, double, prefix, min_wind_duration)

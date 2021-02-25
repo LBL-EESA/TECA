@@ -217,13 +217,6 @@
 %shared_ptr(teca_table_region_mask)
 %ignore teca_table_region_mask::operator=;
 %include "teca_table_region_mask.h"
-%extend teca_table_region_mask
-{
-    TECA_PY_ALGORITHM_VECTOR_PROPERTY(unsigned long, region_size)
-    TECA_PY_ALGORITHM_VECTOR_PROPERTY(unsigned long, region_start);
-    TECA_PY_ALGORITHM_VECTOR_PROPERTY(double, region_x_coordinate);
-    TECA_PY_ALGORITHM_VECTOR_PROPERTY(double, region_y_coordinate);
-}
 
 /***************************************************************************
  pytorch_algorithm

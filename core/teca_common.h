@@ -3,12 +3,17 @@
 
 #include "teca_config.h"
 #include "teca_parallel_id.h"
+
 #include <iostream>
 #include <unistd.h>
 #include <cstdio>
 #include <string>
 #include <vector>
 
+// the operator<< overloads have to be namespace std in order for
+// boost to find them. they are needed for mutitoken program options
+namespace std
+{
 // send a vector to a stream
 template <typename T>
 std::ostream &operator<<(std::ostream &os, const std::vector<T> &vec)
@@ -25,6 +30,7 @@ std::ostream &operator<<(std::ostream &os, const std::vector<T> &vec)
 
 // send a vector of strings to a stream
 std::ostream &operator<<(std::ostream &os, const std::vector<std::string> &vec);
+}
 
 // detect if we are writing to a tty, if not then
 // we should not use ansi color codes

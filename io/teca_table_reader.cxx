@@ -3,6 +3,7 @@
 #include "teca_binary_stream.h"
 #include "teca_coordinate_util.h"
 #include "teca_file_util.h"
+#include "teca_common.h"
 
 #include <algorithm>
 #include <cstring>
@@ -190,17 +191,19 @@ void teca_table_reader::get_properties_description(
         TECA_POPTS_GET(string, prefix, file_name,
             "a file name to read")
         TECA_POPTS_GET(string, prefix, index_column,
-            "name of the column containing index values (\"\")")
+            "name of the column containing index values")
         TECA_POPTS_GET(int, prefix, generate_original_ids,
             "add original row ids into the output. default off.")
         TECA_POPTS_MULTI_GET(std::vector<std::string>, prefix, metadata_column_names,
              "names of the columns to copy directly into metadata")
         TECA_POPTS_MULTI_GET(std::vector<std::string>, prefix, metadata_column_keys,
              "names of the metadata keys to create from the named columns")
-        TECA_POPTS_GET(int, prefix, output_format,
+        TECA_POPTS_GET(int, prefix, file_format,
             "output file format enum, 0:csv, 1:bin, 2:xlsx, 3:auto."
             "if auto is used, format is deduced from file_name")
         ;
+
+    this->teca_algorithm::get_properties_description(prefix, opts);
 
     global_opts.add(opts);
 }
@@ -208,6 +211,8 @@ void teca_table_reader::get_properties_description(
 // --------------------------------------------------------------------------
 void teca_table_reader::set_properties(const string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, string, prefix, file_name)
     TECA_POPTS_SET(opts, string, prefix, index_column)
     TECA_POPTS_SET(opts, int, prefix, generate_original_ids)

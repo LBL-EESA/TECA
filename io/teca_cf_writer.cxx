@@ -74,27 +74,29 @@ void teca_cf_writer::get_properties_description(
             " file names (%F-%HZ). %t% in the file name is replaced with date/time"
             " of the first time step in the file using this format specifier.")
         TECA_POPTS_GET(long, prefix, first_step,
-            "set the first time step to process (0)")
+            "set the first time step to process")
         TECA_POPTS_GET(long, prefix, last_step,
             "set the last time step to process. A value less than 0 results "
-            "in all steps being processed.(-1)")
+            "in all steps being processed.")
         TECA_POPTS_GET(unsigned int, prefix, steps_per_file,
-            "set the number of time steps to write per file (128)")
+            "set the number of time steps to write per file")
         TECA_POPTS_GET(int, prefix, mode_flags,
-            "mode flags to pass to NetCDF when creating the file (NC_CLOBBER)")
+            "mode flags to pass to NetCDF when creating the file")
         TECA_POPTS_GET(int, prefix, use_unlimited_dim,
             "if set the slowest varying dimension is specified to be "
-            "NC_UNLIMITED. (0)")
+            "NC_UNLIMITED.")
         TECA_POPTS_GET(int, prefix, compression_level,
             "sets the zlib compression level used for each variable;"
-            " does nothing if the value is less than or equal to 0. (-1)")
+            " does nothing if the value is less than or equal to 0.")
         TECA_POPTS_GET(int, prefix, flush_files,
-            "if set files are flushed before they are closed. (0)")
+            "if set files are flushed before they are closed.")
         TECA_POPTS_MULTI_GET(std::vector<std::string>, prefix, point_arrays,
-            "the list of point centered arrays to write (empty)")
+            "the list of point centered arrays to write")
         TECA_POPTS_MULTI_GET(std::vector<std::string>, prefix, information_arrays,
-            "the list of non-geometric arrays to write (empty)")
+            "the list of non-geometric arrays to write")
         ;
+
+    this->teca_algorithm::get_properties_description(prefix, opts);
 
     global_opts.add(opts);
 }
@@ -103,6 +105,8 @@ void teca_cf_writer::get_properties_description(
 void teca_cf_writer::set_properties(
     const std::string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, std::string, prefix, file_name)
     TECA_POPTS_SET(opts, std::string, prefix, date_format)
     TECA_POPTS_SET(opts, long, prefix, first_step)

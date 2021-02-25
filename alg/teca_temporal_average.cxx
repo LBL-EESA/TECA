@@ -47,6 +47,8 @@ void teca_temporal_average::get_properties_description(
             "use a backward(0), forward(1) or centered(2) stencil")
         ;
 
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 
@@ -54,6 +56,8 @@ void teca_temporal_average::get_properties_description(
 void teca_temporal_average::set_properties(
     const string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, unsigned int, prefix, filter_width)
     TECA_POPTS_SET(opts, int, prefix, filter_type)
 }

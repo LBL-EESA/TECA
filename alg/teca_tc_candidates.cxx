@@ -71,33 +71,35 @@ void teca_tc_candidates::get_properties_description(
             "name of core temperature variable")
         TECA_POPTS_GET(double, prefix, max_core_radius,
             "maximum number of degrees latitude separation between "
-            "vorticity max and pressure min defining a storm (2.0)")
+            "vorticity max and pressure min defining a storm")
         TECA_POPTS_GET(double, prefix, min_vorticity_850mb,
-            "minimum vorticty to be considered a tropical storm (1.6e-4)")
+            "minimum vorticty to be considered a tropical storm")
         TECA_POPTS_GET(double, prefix, vorticity_850mb_window,
             "size of the search window in degrees. storms core must have a "
-            "local vorticity max centered on this window (7.74446)")
+            "local vorticity max centered on this window")
         TECA_POPTS_GET(double, prefix, max_pressure_delta,
-            "maximum pressure change within specified radius (400.0)")
+            "maximum pressure change within specified radius")
         TECA_POPTS_GET(double, prefix, max_pressure_radius,
-            "radius in degrees over which max pressure change is computed (5.0)")
+            "radius in degrees over which max pressure change is computed")
         TECA_POPTS_GET(double, prefix, max_core_temperature_delta,
-            "maximum core temperature change over the specified radius (0.8)")
+            "maximum core temperature change over the specified radius")
         TECA_POPTS_GET(double, prefix, max_core_temperature_radius,
-            "radius in degrees over which max core temperature change is computed (5.0)")
+            "radius in degrees over which max core temperature change is computed")
         TECA_POPTS_GET(double, prefix, max_thickness_delta,
-            "maximum thickness change over the specified radius (50.0)")
+            "maximum thickness change over the specified radius")
         TECA_POPTS_GET(double, prefix, max_thickness_radius,
-            "radius in degrees over with max thickness change is comuted (4.0)")
+            "radius in degrees over with max thickness change is comuted")
         TECA_POPTS_GET(double, prefix, search_lat_low,
-            "lowest latitude in degrees to search for storms (-80.0)")
+            "lowest latitude in degrees to search for storms")
         TECA_POPTS_GET(double, prefix, search_lat_high,
-            "highest latitude in degrees to search for storms (80.0)")
+            "highest latitude in degrees to search for storms")
         TECA_POPTS_GET(double, prefix, search_lon_low,
-            "lowest longitude in degrees to search for stroms (1)")
+            "lowest longitude in degrees to search for stroms")
         TECA_POPTS_GET(double, prefix, search_lon_high,
-            "highest longitude in degrees to search for storms (0)")
+            "highest longitude in degrees to search for storms")
         ;
+
+    this->teca_algorithm::get_properties_description(prefix, opts);
 
     opts.add(ard_opts);
 }
@@ -106,6 +108,8 @@ void teca_tc_candidates::get_properties_description(
 void teca_tc_candidates::set_properties(
     const std::string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, std::string, prefix, surface_wind_speed_variable)
     TECA_POPTS_SET(opts, std::string, prefix, vorticity_850mb_variable)
     TECA_POPTS_SET(opts, std::string, prefix, sea_level_pressure_variable)

@@ -127,31 +127,33 @@ void teca_wrf_reader::get_properties_description(
         + (prefix.empty()?"teca_wrf_reader":prefix));
 
     opts.add_options()
-        TECA_POPTS_GET(std::vector<std::string>, prefix, file_names,
+        TECA_POPTS_MULTI_GET(std::vector<std::string>, prefix, file_names,
             "paths/file names to read")
         TECA_POPTS_GET(std::string, prefix, files_regex,
             "a regular expression that matches the set of files "
             "comprising the dataset")
         TECA_POPTS_GET(std::string, prefix, metadata_cache_dir,
-            "a directory where metadata caches can be stored ()")
+            "a directory where metadata caches can be stored")
         TECA_POPTS_GET(std::string, prefix, t_calendar,
-            "name of variable that has the time calendar (calendar)")
+            "name of variable that has the time calendar")
         TECA_POPTS_GET(std::string, prefix, t_units,
             "a std::get_time template for decoding time from the input filename")
         TECA_POPTS_GET(std::string, prefix, filename_time_template,
-            "name of variable that has the time unit (units)")
-        TECA_POPTS_GET(std::vector<double>, prefix, t_values,
+            "name of variable that has the time unit")
+        TECA_POPTS_MULTI_GET(std::vector<double>, prefix, t_values,
             "name of variable that has t axis values set by the"
-            "the user if the file doesn't have time variable set ()")
+            "the user if the file doesn't have time variable set")
         TECA_POPTS_GET(int, prefix, periodic_in_x,
-            "the dataset has apriodic boundary in the x direction (0)")
+            "the dataset has apriodic boundary in the x direction")
         TECA_POPTS_GET(int, prefix, periodic_in_y,
-            "the dataset has apriodic boundary in the y direction (0)")
+            "the dataset has apriodic boundary in the y direction")
         TECA_POPTS_GET(int, prefix, periodic_in_z,
-            "the dataset has apriodic boundary in the z direction (0)")
+            "the dataset has apriodic boundary in the z direction")
         TECA_POPTS_GET(int, prefix, thread_pool_size,
-            "set the number of I/O threads (-1)")
+            "set the number of I/O threads")
         ;
+
+    this->teca_algorithm::get_properties_description(prefix, opts);
 
     global_opts.add(opts);
 }
@@ -160,6 +162,8 @@ void teca_wrf_reader::get_properties_description(
 void teca_wrf_reader::set_properties(const std::string &prefix,
     variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, std::vector<std::string>, prefix, file_names)
     TECA_POPTS_SET(opts, std::string, prefix, files_regex)
     TECA_POPTS_SET(opts, std::string, prefix, metadata_cache_dir)

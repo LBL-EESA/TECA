@@ -77,6 +77,7 @@ public:
 
     // set the file name describing the dataset to read
     int set_input_file(const std::string &input_file);
+    std::string get_input_file() { return this->input_file; }
 
     // adds a reader to the collection and at the same time specifies
     // how it will be used.
@@ -160,6 +161,7 @@ private:
     void set_modified() override;
 
 private:
+    std::string input_file;
     std::string x_axis_variable;
     std::string y_axis_variable;
     std::string z_axis_variable;

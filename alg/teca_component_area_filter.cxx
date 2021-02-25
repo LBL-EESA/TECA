@@ -82,30 +82,29 @@ void teca_component_area_filter::get_properties_description(
         TECA_POPTS_GET(std::string, prefix, component_variable,
             "name of the varibale containing connected component labeling")
         TECA_POPTS_GET(std::string, prefix, number_of_components_key,
-            "name of the key that contains the number of components"
-            "\"number_of_components\")")
+            "name of the key that contains the number of components")
         TECA_POPTS_GET(std::string, prefix, component_ids_key,
-            "name of the key that contains the list of component ids "
-            "\"component_ids\")")
+            "name of the key that contains the list of component ids")
         TECA_POPTS_GET(std::string, prefix, component_area_key,
-            "name of the key that contains the list of component areas "
-            "(\"component_area\")")
+            "name of the key that contains the list of component areas")
         TECA_POPTS_GET(int, prefix, mask_value,
             "components with area outside of the range will be replaced "
-            "by this label value (-1)")
+            "by this label value")
         TECA_POPTS_GET(double, prefix, low_area_threshold,
             "set the lower end of the range of areas to pass through. "
-            "components smaller than this are masked out. (-inf)")
+            "components smaller than this are masked out.")
         TECA_POPTS_GET(double, prefix, high_area_threshold,
             "set the higher end of the range of areas to pass through. "
-            "components larger than this are masked out. (+inf)")
+            "components larger than this are masked out.")
         TECA_POPTS_GET(std::string, prefix, variable_post_fix,
             "set a string that will be appended to variable names and "
-            "metadata keys in the filter's output (\"\")")
+            "metadata keys in the filter's output")
         TECA_POPTS_GET(int, prefix, contiguous_component_ids,
             "when the region label ids start at 0 and are consecutive "
-            "this flag enables use of an optimization (0)")
+            "this flag enables use of an optimization")
         ;
+
+    this->teca_algorithm::get_properties_description(prefix, opts);
 
     global_opts.add(opts);
 }
@@ -114,6 +113,8 @@ void teca_component_area_filter::get_properties_description(
 void teca_component_area_filter::set_properties(const std::string &prefix,
     variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, std::string, prefix, component_variable)
     TECA_POPTS_SET(opts, std::string, prefix, number_of_components_key)
     TECA_POPTS_SET(opts, std::string, prefix, component_ids_key)
