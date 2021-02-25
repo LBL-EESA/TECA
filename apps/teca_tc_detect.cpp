@@ -204,7 +204,7 @@ int main(int argc, char **argv)
     track_writer->get_properties_description("track_writer", advanced_opt_defs);
 
     // package basic and advanced options for display
-    options_description all_opt_defs(-1, -1);
+    options_description all_opt_defs(help_width, help_width - 4);
     all_opt_defs.add(basic_opt_defs).add(advanced_opt_defs);
 
     // parse the command line
