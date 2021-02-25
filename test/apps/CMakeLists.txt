@@ -442,3 +442,36 @@ teca_add_app_test(test_cf_restripe_app_mpi teca_cf_restripe
     ${MPIEXEC} ${TEST_CORES}
     FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
+
+set(app_names
+    teca_bayesian_ar_detect
+    teca_cf_restripe
+    teca_convert_table
+    teca_deeplab_ar_detect
+    teca_event_filter
+    teca_integrated_vapor_transport
+    teca_metadata_probe
+    teca_profile_explorer
+    teca_tc_detect
+    teca_tc_stats
+    teca_tc_trajectory
+    teca_tc_trajectory_scalars
+    teca_tc_wind_radii
+    teca_tc_wind_radii_stats
+    teca_temporal_reduction)
+
+foreach (app_name ${app_names})
+    teca_add_app_test(${app_name}_help ${app_name}
+        COMMAND ${CMAKE_BINARY_DIR}/${BIN_PREFIX}/${app_name} --help)
+
+    get_target_property(app_type ${app_name} APP_TYPE)
+    if ("${app_type}" STREQUAL "C++")
+
+        teca_add_app_test(${app_name}_full_help ${app_name}
+            COMMAND ${CMAKE_BINARY_DIR}/${BIN_PREFIX}/${app_name} --full_help)
+
+        teca_add_app_test(${app_name}_advanced_help ${app_name}
+            COMMAND ${CMAKE_BINARY_DIR}/${BIN_PREFIX}/${app_name} --advanced_help)
+
+    endif()
+endforeach()
