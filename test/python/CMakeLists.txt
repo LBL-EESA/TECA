@@ -497,3 +497,7 @@ teca_add_test(py_test_table_from_stream_bin
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_table_from_stream.py
         "${TECA_DATA_ROOT}/cam5-025deg-all-hist-est1-v3-r1-tracks_size.bin"
     REQ_TECA_DATA)
+
+teca_add_test(py_test_apply_binary_mask
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_apply_binary_mask.py
+        128 128 mask_ 1e-5)
