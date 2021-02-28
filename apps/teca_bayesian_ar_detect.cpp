@@ -8,6 +8,7 @@
 #include "teca_bayesian_ar_detect_parameters.h"
 #include "teca_binary_segmentation.h"
 #include "teca_l2_norm.h"
+#include "teca_apply_binary_mask.h"
 #include "teca_multi_cf_reader.h"
 #include "teca_integrated_vapor_transport.h"
 #include "teca_valid_value_mask.h"
@@ -96,7 +97,7 @@ int main(int argc, char **argv)
         ("binary_ar_threshold", value<double>()->default_value(2.0/3.0,"0.667"),
             "\nprobability threshold for segmenting ar_probability to produce ar_binary_tag\n")
 
-        ("output_file", value<std::string>()->default_value(std::string("CASCADE_BARD_%t%.nc")),
+        ("output_file", value<std::string>()->default_value(std::string("TECA_BARD_%t%.nc")),
             "\nA path and file name pattern for the output NetCDF files. %t% is replaced with a"
             " human readable date and time corresponding to the time of the first time step in"
             " the file. Use --cf_writer::date_format to change the formatting\n")
@@ -184,6 +185,12 @@ int main(int argc, char **argv)
     ar_tag->set_threshold_variable("ar_probability");
     ar_tag->set_segmentation_variable("ar_binary_tag");
 
+    // mask any requested variables by "ar_probability"
+    p_teca_apply_binary_mask ar_mask = teca_apply_binary_mask::New();
+    ar_mask->get_properties_description("ar_mask", advanced_opt_defs);
+    ar_mask->set_mask_variable("ar_probability");
+    ar_mask->set_output_var_prefix("ar_wgtd_");
+
     // Add an executive for the writer
     p_teca_index_executive exec = teca_index_executive::New();
 
@@ -222,6 +229,7 @@ int main(int argc, char **argv)
     norm_coords->set_properties("norm_coords", opt_vals);
     params->set_properties("parameter_table", opt_vals);
     ar_detect->set_properties("ar_detect", opt_vals);
+    ar_mask->set_properties("ar_mask", opt_vals);
     cf_writer->set_properties("cf_writer", opt_vals);
 
     // now pass in the basic options, these are processed
@@ -317,7 +325,7 @@ int main(int argc, char **argv)
         ar_detect->set_ivt_variable(opt_vals["ivt"].as<string>());
     }
 
-    // add the ivt caluation stages if needed
+    // add the ivt caculation stages if needed
     bool do_ivt = opt_vals.count("compute_ivt");
     bool do_ivt_magnitude = opt_vals.count("compute_ivt_magnitude");
 
@@ -364,6 +372,14 @@ int main(int argc, char **argv)
         point_arrays.push_back(ivt_int->get_ivt_v_variable());
     }
 
+    // add any ar-weighted variables to the output
+    std::vector<std::string> mask_variables = ar_mask->get_input_variables();
+    if (! mask_variables.empty()){
+        for (std::string input_var : mask_variables){
+            point_arrays.push_back(ar_mask->get_output_variable_name(input_var));
+        }
+    }
+
     cf_writer->set_file_name(opt_vals["output_file"].as<string>());
     cf_writer->set_information_arrays({"ar_count", "parameter_table_row"});
     cf_writer->set_point_arrays(point_arrays);
@@ -403,7 +419,8 @@ int main(int argc, char **argv)
     ar_detect->set_input_connection(0, params->get_output_port());
     ar_detect->set_input_connection(1, head->get_output_port());
     ar_tag->set_input_connection(0, ar_detect->get_output_port());
-    cf_writer->set_input_connection(ar_tag->get_output_port());
+    ar_mask->set_input_connection(0, ar_tag->get_output_port());
+    cf_writer->set_input_connection(ar_mask->get_output_port());
 
     // look for requested time step range, start
     bool parse_start_date = opt_vals.count("start_date");
