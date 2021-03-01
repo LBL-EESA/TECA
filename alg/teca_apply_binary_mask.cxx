@@ -5,6 +5,7 @@
 #include "teca_variant_array.h"
 #include "teca_metadata.h"
 #include "teca_array_attributes.h"
+#include "teca_mpi_util.h"
 
 #include <algorithm>
 #include <iostream>
@@ -16,35 +17,28 @@
 #include <boost/program_options.hpp>
 #endif
 
-using std::vector;
-using std::set;
+//#define TECA_DEBUG
+
 using std::cerr;
 using std::endl;
-using std::string;
 
 namespace internal
 {
+// output = mask*input
 template <typename mask_t, typename var_t>
-void apply_mask(var_t * __restrict__ mask_output, const mask_t * __restrict__
-mask_variable, const var_t * __restrict__ input_variable, unsigned long n)
+void apply_mask(var_t * __restrict__ output,
+    const mask_t * __restrict__ mask,
+    const var_t * __restrict__ input,
+    unsigned long n)
 {
     for (size_t i = 0; i < n; ++i)
-    {
-        mask_t m = mask_variable[i];
-        var_t v = input_variable[i];
-        mask_output[i] = m*v;
-    }
+        output[i] = mask[i]*input[i];
 }
-};
-
-//#define TECA_DEBUG// --------------------------------------------------------------------------
-std::string teca_apply_binary_mask::get_output_variable_name(std::string input_var){
-    return this->output_var_prefix + input_var;
 }
 
 // --------------------------------------------------------------------------
-teca_apply_binary_mask::teca_apply_binary_mask() : 
-    mask_variable(""), output_var_prefix("masked_")
+teca_apply_binary_mask::teca_apply_binary_mask() :
+    mask_variable(""), output_variable_prefix("masked_")
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -57,18 +51,19 @@ teca_apply_binary_mask::~teca_apply_binary_mask()
 #if defined(TECA_HAS_BOOST)
 // --------------------------------------------------------------------------
 void teca_apply_binary_mask::get_properties_description(
-    const string &prefix, options_description &global_opts)
+    const std::string &prefix, options_description &global_opts)
 {
     options_description opts("Options for "
         + (prefix.empty()?"teca_apply_binary_mask":prefix));
 
     opts.add_options()
-        TECA_POPTS_MULTI_GET(std::vector<std::string>, prefix, input_variables,
-            "the input variables")
+        TECA_POPTS_MULTI_GET(std::vector<std::string>, prefix, masked_variables,
+            "A list of variables to apply the mask to.")
         TECA_POPTS_GET(std::string, prefix, mask_variable,
-            "the name of the variable containing the mask array")
-        TECA_POPTS_GET(std::string, prefix, output_var_prefix,
-            "the prefix to apply to masked input variable names")
+            "The name of the variable containing the mask values.")
+        TECA_POPTS_GET(std::string, prefix, output_variable_prefix,
+            "A string prepended to the output variable names. If empty the"
+            " input variables will be replaced by their masked results")
         ;
 
     this->teca_algorithm::get_properties_description(prefix, opts);
@@ -78,15 +73,34 @@ void teca_apply_binary_mask::get_properties_description(
 
 // --------------------------------------------------------------------------
 void teca_apply_binary_mask::set_properties(
-    const string &prefix, variables_map &opts)
+    const std::string &prefix, variables_map &opts)
 {
     this->teca_algorithm::set_properties(prefix, opts);
 
-    TECA_POPTS_SET(opts, std::vector<std::string>, prefix, input_variables)
+    TECA_POPTS_SET(opts, std::vector<std::string>, prefix, masked_variables)
     TECA_POPTS_SET(opts, std::string, prefix, mask_variable)
-    TECA_POPTS_SET(opts, std::string, prefix, output_var_prefix)
+    TECA_POPTS_SET(opts, std::string, prefix, output_variable_prefix)
 }
 #endif
+
+// --------------------------------------------------------------------------
+std::string teca_apply_binary_mask::get_output_variable_name(std::string input_var)
+{
+    return this->output_variable_prefix + input_var;
+}
+
+// --------------------------------------------------------------------------
+void teca_apply_binary_mask::get_output_variable_names(
+    std::vector<std::string> &names)
+{
+    int n_inputs = this->masked_variables.size();
+    for (int i = 0; i < n_inputs; ++i)
+    {
+        names.push_back(
+            this->get_output_variable_name(this->masked_variables[i]));
+    }
+}
+
 // --------------------------------------------------------------------------
 teca_metadata teca_apply_binary_mask::get_output_metadata(
     unsigned int port,
@@ -98,9 +112,13 @@ teca_metadata teca_apply_binary_mask::get_output_metadata(
 #endif
     (void)port;
 
-    if (this->input_variables.empty())
+    // check that the input variables have been specified.
+    // this is likely a user error.
+    if (this->masked_variables.empty() &&
+        teca_mpi_util::mpi_rank_0(this->get_communicator()))
     {
-        TECA_WARNING("The list of input variables was not set")
+        TECA_WARNING("Nothing to do, masked_variables have not"
+            " been specified.")
     }
 
     // add in the array we will generate
@@ -111,7 +129,8 @@ teca_metadata teca_apply_binary_mask::get_output_metadata(
     out_md.get("attributes", attributes);
 
     // construct the list of output variable names
-    for (auto& input_var : input_variables){
+    for (auto& input_var : masked_variables)
+    {
         std::string output_var = this->get_output_variable_name(input_var);
 
         // add the varible to the list of output variables
@@ -130,15 +149,21 @@ teca_metadata teca_apply_binary_mask::get_output_metadata(
             // data type, size, units, etc.
             teca_array_attributes output_atts(input_atts);
 
-            // update description.
-            output_atts.description = 
-                std::string("masked/weighted by `" + this->mask_variable + "`");
-            
+            // update description and long name
+            output_atts.description = input_var +
+                " multiplied by " + this->mask_variable;
+
+            output_atts.long_name.clear();
+
+            // update the array attributes
             attributes.set(output_var, (teca_metadata)output_atts);
-            out_md.set("attributes", attributes);
         }
 
     }
+
+    // update the attributes
+    out_md.set("attributes", attributes);
+
     return out_md;
 }
 
@@ -154,9 +179,9 @@ std::vector<teca_metadata> teca_apply_binary_mask::get_upstream_request(
     (void) port;
     (void) input_md;
 
-    vector<teca_metadata> up_reqs;
+    std::vector<teca_metadata> up_reqs;
 
-    // get the name of the array to request
+    // get the name of the mask array
     if (this->mask_variable.empty())
     {
         TECA_ERROR("A mask variable was not specified")
@@ -167,25 +192,36 @@ std::vector<teca_metadata> teca_apply_binary_mask::get_upstream_request(
     // add in what we need
     teca_metadata req(request);
     std::set<std::string> arrays;
+
     if (req.has("arrays"))
         req.get("arrays", arrays);
+
     arrays.insert(this->mask_variable);
 
-    // check that a prefix was given
-    if (this->get_output_var_prefix().empty()){
-        TECA_ERROR("A prefix for the output variables was not specified")
-        return up_reqs;
+    // check that the input variables have been specified.
+    // this is likely a user error.
+    if (this->masked_variables.empty() &&
+        teca_mpi_util::mpi_rank_0(this->get_communicator()))
+    {
+        TECA_WARNING("Nothing to do, masked_variables have not"
+            " been specified.")
     }
 
-    for (auto& input_var : input_variables){
-        // insert the needed variable
+    // request the arrays to mask
+    for (auto& input_var : masked_variables)
+    {
+        // request the needed variable
         arrays.insert(input_var);
 
         // intercept request for our output if the variable will have a new name
-        if(this->get_output_variable_name(input_var) != input_var){
-            arrays.erase(this->get_output_variable_name(input_var));
+        std::string out_var = this->get_output_variable_name(input_var);
+        if (out_var != input_var)
+        {
+            arrays.erase(out_var);
         }
     }
+
+    // update the list of arrays to request
     req.set("arrays", arrays);
 
     // send up
@@ -205,23 +241,24 @@ const_p_teca_dataset teca_apply_binary_mask::execute(
     (void)request;
 
     // get the input
-    const_p_teca_cartesian_mesh in_mesh
-        = std::dynamic_pointer_cast<const teca_cartesian_mesh>(input_data[0]);
+    const_p_teca_mesh in_mesh
+        = std::dynamic_pointer_cast<const teca_mesh>(input_data[0]);
     if (!in_mesh)
     {
-        TECA_ERROR("Failed to apply mask. Dataset is not a teca_cartesian_mesh")
+        TECA_ERROR("Failed to apply mask. Dataset is not a teca_mesh")
         return nullptr;
     }
 
     // create the output mesh, pass everything through
-    // output arrays are added in the variable loop
-    p_teca_cartesian_mesh out_mesh = teca_cartesian_mesh::New();
-    out_mesh->shallow_copy(std::const_pointer_cast<teca_cartesian_mesh>(in_mesh));
+    // masked arrays are added or replaced below
+    p_teca_mesh out_mesh =
+        std::static_pointer_cast<teca_mesh>
+            (std::const_pointer_cast<teca_mesh>(in_mesh)->new_shallow_copy());
 
     // check that a masking variable has been provided
     if (this->mask_variable.empty())
     {
-        TECA_ERROR("A mask variable was not specified")
+        TECA_ERROR("The mask_variable name was not specified")
         return nullptr;
     }
 
@@ -230,46 +267,50 @@ const_p_teca_dataset teca_apply_binary_mask::execute(
         = in_mesh->get_point_arrays()->get(this->mask_variable);
     if (!mask_array)
     {
-        TECA_ERROR("masking array \"" << this->mask_variable
-            << "\" requested but not present.")
+        TECA_ERROR("The mask_variable \"" << this->mask_variable
+            << "\" was requested but is not present in the input data.")
         return nullptr;
     }
 
     // apply the mask
     NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
-        mask_array.get(), _mask,
+        mask_array.get(), _MASK,
 
         // loop over input variables
-        for (auto& input_var : input_variables){
+        for (auto& input_var : masked_variables)
+        {
             std::string output_var = this->get_output_variable_name(input_var);
+
             // get the input array
             const_p_teca_variant_array input_array
                 = in_mesh->get_point_arrays()->get(input_var);
             if (!input_array)
             {
-                TECA_ERROR("input array \"" << input_var
-                    << "\" requested but not present.")
+                TECA_ERROR("The masked_variable \"" << input_var
+                    << "\" was requested but is not present in the input data.")
                 return nullptr;
             }
 
             // allocate the output array
             size_t n = input_array->size();
-            p_teca_variant_array output_array = input_array->new_instance();
-            output_array->resize(n);
+
+            p_teca_variant_array output_array = input_array->new_instance(n);
+
+            //output_array->resize(n);
 
             // do the mask calculation
-            NESTED_TEMPLATE_DISPATCH_FP(
+            NESTED_TEMPLATE_DISPATCH(
                 teca_variant_array_impl,
-                output_array.get(), _var,
+                output_array.get(), _VAR,
 
                 internal::apply_mask(
-                    dynamic_cast<TT_var*>(output_array.get())->get(),
-                    static_cast<const TT_mask*>(mask_array.get())->get(),
-                    static_cast<const TT_var*>(input_array.get())->get(),
+                    dynamic_cast<TT_VAR*>(output_array.get())->get(),
+                    static_cast<const TT_MASK*>(mask_array.get())->get(),
+                    static_cast<const TT_VAR*>(input_array.get())->get(),
                     n);
                 )
 
-            out_mesh->get_point_arrays()->append(
+            out_mesh->get_point_arrays()->set(
                 output_var, output_array);
         }
     )

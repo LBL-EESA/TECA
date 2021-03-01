@@ -27,7 +27,7 @@ of this masked precipitation variable gives the average precipitation due to
 atmospheric rivers.
 
 The output variable names are given a prefix to distinguish them from the
-upstream versions. E.g., if the algorithm property `output_var_prefix` is set
+upstream versions. E.g., if the algorithm property `output_variable_prefix` is set
 to 'ar_', and the variable being masked is 'precip', then the output array
 name is 'ar_precip'.
 
@@ -45,18 +45,22 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // set the name of the output array
+    // set the name of the variable containing the mask values
     TECA_ALGORITHM_PROPERTY(std::string, mask_variable)
 
-    // the arrays to mask. if empty no arrays will be
+    // A list of of variables to apply the mask to. If empty no arrays will be
     // requested, and no variables will be masked
-    TECA_ALGORITHM_VECTOR_PROPERTY(std::string, input_variable)
+    TECA_ALGORITHM_VECTOR_PROPERTY(std::string, masked_variable)
 
-    // the names of the arrays to store the masking results in
-    TECA_ALGORITHM_PROPERTY(std::string, output_var_prefix)
+    // A prefix to prepend to the names of the variables that have been masked.
+    // If this is empty maked data replaces its input, otherwise input data is
+    // preserved and maked data is added.
+    TECA_ALGORITHM_PROPERTY(std::string, output_variable_prefix)
 
-    // adds output_var_prefix to a given variable name
-    std::string get_output_variable_name(std::string input_var);
+    // helper that constructs and returns the result variable names taking into
+    // account he list of masked_variables and the output_variable_prefix.  use
+    // this to know what variables will be produced.
+    void get_output_variable_names(std::vector<std::string> &names);
 
 protected:
     teca_apply_binary_mask();
@@ -74,10 +78,14 @@ private:
         const std::vector<const_p_teca_dataset> &input_data,
         const teca_metadata &request) override;
 
+    // helper that given and input variable name constructs the result variable
+    // name taking into account the output_variable_prefix
+    std::string get_output_variable_name(std::string input_var);
+
 private:
     std::string mask_variable;
-    std::vector<std::string> input_variables;
-    std::string output_var_prefix;
+    std::vector<std::string> masked_variables;
+    std::string output_variable_prefix;
 };
 
 #endif
