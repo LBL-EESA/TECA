@@ -942,6 +942,10 @@ Command Line Arguments
 --write_ivt
     when this flag is present IVT vector is written to disk with the result
 
+--ar_weighted_variables arg
+    An optional list of variables to weight with the computed AR probability. Each such variable
+    will be multiplied by the computed AR probability, and written to disk as "NAME_ar_wgtd".
+
 --x_axis_variable arg (=lon)
     name of x coordinate variable
 

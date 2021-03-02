@@ -8,6 +8,7 @@
 #include "teca_bayesian_ar_detect_parameters.h"
 #include "teca_binary_segmentation.h"
 #include "teca_l2_norm.h"
+#include "teca_apply_binary_mask.h"
 #include "teca_multi_cf_reader.h"
 #include "teca_integrated_vapor_transport.h"
 #include "teca_valid_value_mask.h"
@@ -83,6 +84,11 @@ int main(int argc, char **argv)
         ("write_ivt", "\nwhen this flag is present IVT vector is written to disk with"
             " the result\n")
 
+        ("ar_weighted_variables", value<std::vector<std::string>>()->multitoken(),
+            "\nAn optional list of variables to weight with the computed AR probability."
+            " Each such variable will be multiplied by the computed AR probability, and"
+            " written to disk as \"NAME_ar_wgtd\".\n")
+
         ("x_axis_variable", value<std::string>()->default_value("lon"),
             "\nname of x coordinate variable\n")
         ("y_axis_variable", value<std::string>()->default_value("lat"),
@@ -96,7 +102,7 @@ int main(int argc, char **argv)
         ("binary_ar_threshold", value<double>()->default_value(2.0/3.0,"0.667"),
             "\nprobability threshold for segmenting ar_probability to produce ar_binary_tag\n")
 
-        ("output_file", value<std::string>()->default_value(std::string("CASCADE_BARD_%t%.nc")),
+        ("output_file", value<std::string>()->default_value(std::string("TECA_BARD_%t%.nc")),
             "\nA path and file name pattern for the output NetCDF files. %t% is replaced with a"
             " human readable date and time corresponding to the time of the first time step in"
             " the file. Use --cf_writer::date_format to change the formatting\n")
@@ -177,12 +183,17 @@ int main(int argc, char **argv)
     ar_detect->get_properties_description("ar_detect", advanced_opt_defs);
     ar_detect->set_ivt_variable("IVT");
 
-
     // segment the ar probability field
     p_teca_binary_segmentation ar_tag = teca_binary_segmentation::New();
     ar_tag->set_threshold_mode(ar_tag->BY_VALUE);
     ar_tag->set_threshold_variable("ar_probability");
     ar_tag->set_segmentation_variable("ar_binary_tag");
+
+    // mask any requested variables by "ar_probability"
+    p_teca_apply_binary_mask ar_mask = teca_apply_binary_mask::New();
+    ar_mask->get_properties_description("ar_mask", advanced_opt_defs);
+    ar_mask->set_mask_variable("ar_probability");
+    ar_mask->set_output_variable_prefix("ar_wgtd_");
 
     // Add an executive for the writer
     p_teca_index_executive exec = teca_index_executive::New();
@@ -222,6 +233,7 @@ int main(int argc, char **argv)
     norm_coords->set_properties("norm_coords", opt_vals);
     params->set_properties("parameter_table", opt_vals);
     ar_detect->set_properties("ar_detect", opt_vals);
+    ar_mask->set_properties("ar_mask", opt_vals);
     cf_writer->set_properties("cf_writer", opt_vals);
 
     // now pass in the basic options, these are processed
@@ -256,7 +268,7 @@ int main(int argc, char **argv)
         reader = cf_reader;
     }
 
-    // add basic transfomration stages to the pipeline
+    // add transformation stages to the pipeline
     norm_coords->set_input_connection(reader->get_output_port());
     vv_mask->set_input_connection(norm_coords->get_output_port());
     unpack->set_input_connection(vv_mask->get_output_port());
@@ -317,7 +329,7 @@ int main(int argc, char **argv)
         ar_detect->set_ivt_variable(opt_vals["ivt"].as<string>());
     }
 
-    // add the ivt caluation stages if needed
+    // add the ivt calculation stages if needed
     bool do_ivt = opt_vals.count("compute_ivt");
     bool do_ivt_magnitude = opt_vals.count("compute_ivt_magnitude");
 
@@ -351,6 +363,31 @@ int main(int argc, char **argv)
         head = l2_norm;
     }
 
+    // connect the detector and post detector operations
+    ar_detect->set_input_connection(0, params->get_output_port());
+    ar_detect->set_input_connection(1, head->get_output_port());
+
+    ar_tag->set_input_connection(0, ar_detect->get_output_port());
+    head = ar_tag;
+
+    // set the variables to weight by AR probability
+    if (opt_vals.count("ar_weighted_variables"))
+    {
+        ar_mask->set_masked_variables
+            (opt_vals["ar_weighted_variables"].as<std::vector<std::string>>());
+    }
+
+    // if there are any variables to weight add the mask stage to the pipeline
+    bool do_weighted = ar_mask->get_number_of_masked_variables();
+    if (do_weighted)
+    {
+        ar_mask->set_input_connection(0, ar_tag->get_output_port());
+        head = ar_mask;
+    }
+
+    // connect and configure the writer
+    cf_writer->set_input_connection(head->get_output_port());
+
     // tell the writer to write ivt if needed
     std::vector<std::string> point_arrays({"ar_probability", "ar_binary_tag"});
     if ((do_ivt || do_ivt_magnitude) && opt_vals.count("write_ivt_magnitude"))
@@ -362,6 +399,12 @@ int main(int argc, char **argv)
     {
         point_arrays.push_back(ivt_int->get_ivt_u_variable());
         point_arrays.push_back(ivt_int->get_ivt_v_variable());
+    }
+
+    // tell the writer to write ar weighted variables if needed
+    if (do_weighted)
+    {
+        ar_mask->get_output_variable_names(point_arrays);
     }
 
     cf_writer->set_file_name(opt_vals["output_file"].as<string>());
@@ -398,12 +441,6 @@ int main(int argc, char **argv)
         }
         return -1;
     }
-
-    // connect the fixed stages of the pipeline
-    ar_detect->set_input_connection(0, params->get_output_port());
-    ar_detect->set_input_connection(1, head->get_output_port());
-    ar_tag->set_input_connection(0, ar_detect->get_output_port());
-    cf_writer->set_input_connection(ar_tag->get_output_port());
 
     // look for requested time step range, start
     bool parse_start_date = opt_vals.count("start_date");
@@ -480,7 +517,7 @@ int main(int argc, char **argv)
     teca_metadata seg_atts;
     seg_atts.set("long_name", std::string("binary indicator of atmospheric river"));
     seg_atts.set("description", std::string("binary indicator of atmospheric river"));
-    seg_atts.set("scheme", std::string("cascade_bard"));
+    seg_atts.set("scheme", std::string("TECA_BARD"));
     seg_atts.set("version", std::string("1.0"));
     seg_atts.set("note",
         std::string("derived by thresholding ar_probability >= ") +

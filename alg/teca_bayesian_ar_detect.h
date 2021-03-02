@@ -10,11 +10,11 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_bayesian_ar_detect)
 
-/// CASCADE BARD atmospheric river detector
+/// TECA BARD atmospheric river detector
 /**
 Given a point wise IVT (integrated vapor transport) field and a training
 parameter table computes the point wise probability of an atmospheric river
-using the CASCADE BARD algorithm.
+using the TECA BARD algorithm.
 
 Required inputs:
 
@@ -33,8 +33,13 @@ Produces:
 
 For more information see:
 
-Detection of Atmospheric Rivers with Inline Uncertainty Quantification: TECA-BARD v1.0
-O'Brien, T. A et al. Geoscientific Model Development, 2020
+O’Brien, T. A., Risser, M. D., Loring, B., Elbashandy, A. A., Krishnan, H.,
+Johnson, J., Patricola, C. M., O’Brien, J. P., Mahesh, A., Arriaga Ramirez,
+S., Rhoades, A. M., Charn, A., Inda Díaz, H., & Collins, W. D. (2020).
+Detection of atmospheric rivers with inline uncertainty quantification:
+TECA-BARD v1.0.1. Geoscientific Model Development, 13(12), 6131–6148.
+https://doi.org/10.5194/gmd-13-6131-2020
+
 */
 class teca_bayesian_ar_detect : public teca_algorithm
 {

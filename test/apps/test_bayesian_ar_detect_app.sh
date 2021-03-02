@@ -23,6 +23,7 @@ set -x
 # run the app
 ${launcher} ${app_prefix}/teca_bayesian_ar_detect                \
     --input_regex "${data_root}/ARTMIP_MERRA_2D_2017-05.*\.nc$"  \
+    --ar_weighted_variables IVT                                  \
     --output_file test_bayesian_ar_detect_app_output_%t%.nc      \
     --steps_per_file 365 --n_threads ${n_threads} --verbose
 
@@ -40,7 +41,7 @@ else
     ${app_prefix}/teca_cartesian_mesh_diff                                          \
         --reference_dataset "${data_root}/test_bayesian_ar_detect_app_ref.*\.nc"    \
         --test_dataset "test_bayesian_ar_detect_app_output.*\.nc"                   \
-        --arrays ar_probability ar_binary_tag --verbose
+        --arrays ar_probability ar_binary_tag ar_wgtd_IVT --verbose
 
     # clean up
     rm test_bayesian_ar_detect_app_output*.nc
