@@ -254,8 +254,8 @@ teca_add_test(test_temporal_average
     SOURCES test_temporal_average.cpp
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_temporal_average
-    "${TECA_DATA_ROOT}/cam5_1_amip_run2.cam2.h2.1991-10-01-10800.nc"
-    test_temporal_average_%t%.%e% 0 -1 3 U850
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc$"
+    "${TECA_DATA_ROOT}/test_temporal_average" 0 -1 3 1 prw
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
