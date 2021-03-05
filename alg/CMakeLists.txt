@@ -24,6 +24,7 @@ set(teca_alg_cxx_srcs
     teca_evaluate_expression.cxx
     teca_face_to_cell_centering.cxx
     teca_geography.cxx
+    teca_indexed_dataset_cache.cxx
     teca_integrated_vapor_transport.cxx
     teca_l2_norm.cxx
     teca_latitude_damper.cxx
@@ -41,7 +42,7 @@ set(teca_alg_cxx_srcs
     teca_tc_classify.cxx
     teca_tc_wind_radii.cxx
     teca_tc_trajectory.cxx
-    teca_temporal_average.cxx
+    teca_simple_moving_average.cxx
     teca_unpack_data.cxx
     teca_valid_value_mask.cxx
     teca_variant_array_operand.cxx

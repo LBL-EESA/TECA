@@ -1,5 +1,5 @@
-#ifndef teca_temporal_average_h
-#define teca_temporal_average_h
+#ifndef teca_simple_moving_average_h
+#define teca_simple_moving_average_h
 
 #include "teca_shared_object.h"
 #include "teca_algorithm.h"
@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-TECA_SHARED_OBJECT_FORWARD_DECL(teca_temporal_average)
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_simple_moving_average)
 
 /// an algorithm that averages data in time
 /**
@@ -16,13 +16,13 @@ an algorithm that averages data in time. filter_width
 controls the number of time steps to average over.
 all arrays in the input data are processed.
 */
-class teca_temporal_average : public teca_algorithm
+class teca_simple_moving_average : public teca_algorithm
 {
 public:
-    TECA_ALGORITHM_STATIC_NEW(teca_temporal_average)
-    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_temporal_average)
-    TECA_ALGORITHM_CLASS_NAME(teca_temporal_average)
-    ~teca_temporal_average();
+    TECA_ALGORITHM_STATIC_NEW(teca_simple_moving_average)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_simple_moving_average)
+    TECA_ALGORITHM_CLASS_NAME(teca_simple_moving_average)
+    ~teca_simple_moving_average();
 
     // report/initialize to/from Boost program options
     // objects.
@@ -42,7 +42,7 @@ public:
     TECA_ALGORITHM_PROPERTY(int, filter_type)
 
 protected:
-    teca_temporal_average();
+    teca_simple_moving_average();
 
 private:
     std::vector<teca_metadata> get_upstream_request(

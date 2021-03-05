@@ -1,4 +1,4 @@
-#include "teca_temporal_average.h"
+#include "teca_simple_moving_average.h"
 
 #include "teca_mesh.h"
 #include "teca_array_collection.h"
@@ -21,7 +21,7 @@ using std::endl;
 //#define TECA_DEBUG
 
 // --------------------------------------------------------------------------
-teca_temporal_average::teca_temporal_average()
+teca_simple_moving_average::teca_simple_moving_average()
     : filter_width(3), filter_type(backward)
 {
     this->set_number_of_input_connections(1);
@@ -29,16 +29,16 @@ teca_temporal_average::teca_temporal_average()
 }
 
 // --------------------------------------------------------------------------
-teca_temporal_average::~teca_temporal_average()
+teca_simple_moving_average::~teca_simple_moving_average()
 {}
 
 #if defined(TECA_HAS_BOOST)
 // --------------------------------------------------------------------------
-void teca_temporal_average::get_properties_description(
+void teca_simple_moving_average::get_properties_description(
     const string &prefix, options_description &global_opts)
 {
     options_description opts("Options for "
-        + (prefix.empty()?"teca_temporal_average":prefix));
+        + (prefix.empty()?"teca_simple_moving_average":prefix));
 
     opts.add_options()
         TECA_POPTS_GET(unsigned int, prefix, filter_width,
@@ -53,7 +53,7 @@ void teca_temporal_average::get_properties_description(
 }
 
 // --------------------------------------------------------------------------
-void teca_temporal_average::set_properties(
+void teca_simple_moving_average::set_properties(
     const string &prefix, variables_map &opts)
 {
     this->teca_algorithm::set_properties(prefix, opts);
@@ -64,7 +64,7 @@ void teca_temporal_average::set_properties(
 #endif
 
 // --------------------------------------------------------------------------
-std::vector<teca_metadata> teca_temporal_average::get_upstream_request(
+std::vector<teca_metadata> teca_simple_moving_average::get_upstream_request(
     unsigned int port,
     const std::vector<teca_metadata> &input_md,
     const teca_metadata &request)
@@ -84,7 +84,7 @@ std::vector<teca_metadata> teca_temporal_average::get_upstream_request(
             break;
     }
     cerr << teca_parallel_id()
-        << "teca_temporal_average::get_upstream_request filter_type="
+        << "teca_simple_moving_average::get_upstream_request filter_type="
         << type << endl;
 #endif
     (void) port;
@@ -132,37 +132,41 @@ std::vector<teca_metadata> teca_temporal_average::get_upstream_request(
             TECA_ERROR("Invalid \"filter_type\" " << this->filter_type)
             return up_reqs;
     }
+    first = std::max(0l, first);
+    last = std::min(num_steps - 1, last);
 
+    // make a request for each time that will be used in the
+    // average
     for (long i = first; i <= last; ++i)
     {
-        // make a request for each time that will be used in the
-        // average
-        if ((i >= 0) && (i < num_steps))
-        {
-#ifdef TECA_DEBUG
-            cerr << teca_parallel_id()
-                << "request time_step " << i << endl;
-#endif
-            teca_metadata up_req(request);
-            up_req.set("time_step", i);
-            up_reqs.push_back(up_req);
-        }
+        teca_metadata up_req(request);
+        up_req.set("time_step", i);
+        up_reqs.push_back(up_req);
     }
+
+#ifdef TECA_DEBUG
+    cerr << teca_parallel_id() << "processing " << active_step
+        << " request " << first << " - " << last << endl;
+#endif
 
     return up_reqs;
 }
 
 // --------------------------------------------------------------------------
-const_p_teca_dataset teca_temporal_average::execute(
+const_p_teca_dataset teca_simple_moving_average::execute(
     unsigned int port,
     const std::vector<const_p_teca_dataset> &input_data,
     const teca_metadata &request)
 {
 #ifdef TECA_DEBUG
     cerr << teca_parallel_id()
-        << "teca_temporal_average::execute" << endl;
+        << "teca_simple_moving_average::execute" << endl;
 #endif
     (void)port;
+
+    // nothing to do
+    if ((input_data.size() < 1) || !input_data[0])
+        return nullptr;
 
     // create output and copy metadata, coordinates, etc
     p_teca_mesh out_mesh

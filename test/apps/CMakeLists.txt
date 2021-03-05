@@ -106,7 +106,7 @@ teca_add_app_test(test_bayesian_ar_detect_app_packed_data_mpi
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_bayesian_ar_detect_app_packed_data.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1
     ${MPIEXEC} ${TEST_CORES}
-    FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
+    FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
 teca_add_app_test(test_integrated_vapor_transport_app_threads
