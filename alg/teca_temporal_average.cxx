@@ -132,22 +132,22 @@ std::vector<teca_metadata> teca_temporal_average::get_upstream_request(
             TECA_ERROR("Invalid \"filter_type\" " << this->filter_type)
             return up_reqs;
     }
+    first = std::max(0l, first);
+    last = std::min(num_steps - 1, last);
 
+    // make a request for each time that will be used in the
+    // average
     for (long i = first; i <= last; ++i)
     {
-        // make a request for each time that will be used in the
-        // average
-        if ((i >= 0) && (i < num_steps))
-        {
-#ifdef TECA_DEBUG
-            cerr << teca_parallel_id()
-                << "request time_step " << i << endl;
-#endif
-            teca_metadata up_req(request);
-            up_req.set("time_step", i);
-            up_reqs.push_back(up_req);
-        }
+        teca_metadata up_req(request);
+        up_req.set("time_step", i);
+        up_reqs.push_back(up_req);
     }
+
+#ifdef TECA_DEBUG
+    cerr << teca_parallel_id() << "processing " << active_step
+        << " request " << first << " - " << last << endl;
+#endif
 
     return up_reqs;
 }
@@ -163,6 +163,10 @@ const_p_teca_dataset teca_temporal_average::execute(
         << "teca_temporal_average::execute" << endl;
 #endif
     (void)port;
+
+    // nothing to do
+    if ((input_data.size() < 1) || !input_data[0])
+        return nullptr;
 
     // create output and copy metadata, coordinates, etc
     p_teca_mesh out_mesh
