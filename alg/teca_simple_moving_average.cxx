@@ -1,4 +1,4 @@
-#include "teca_temporal_average.h"
+#include "teca_simple_moving_average.h"
 
 #include "teca_mesh.h"
 #include "teca_array_collection.h"
@@ -21,7 +21,7 @@ using std::endl;
 //#define TECA_DEBUG
 
 // --------------------------------------------------------------------------
-teca_temporal_average::teca_temporal_average()
+teca_simple_moving_average::teca_simple_moving_average()
     : filter_width(3), filter_type(backward)
 {
     this->set_number_of_input_connections(1);
@@ -29,16 +29,16 @@ teca_temporal_average::teca_temporal_average()
 }
 
 // --------------------------------------------------------------------------
-teca_temporal_average::~teca_temporal_average()
+teca_simple_moving_average::~teca_simple_moving_average()
 {}
 
 #if defined(TECA_HAS_BOOST)
 // --------------------------------------------------------------------------
-void teca_temporal_average::get_properties_description(
+void teca_simple_moving_average::get_properties_description(
     const string &prefix, options_description &global_opts)
 {
     options_description opts("Options for "
-        + (prefix.empty()?"teca_temporal_average":prefix));
+        + (prefix.empty()?"teca_simple_moving_average":prefix));
 
     opts.add_options()
         TECA_POPTS_GET(unsigned int, prefix, filter_width,
@@ -53,7 +53,7 @@ void teca_temporal_average::get_properties_description(
 }
 
 // --------------------------------------------------------------------------
-void teca_temporal_average::set_properties(
+void teca_simple_moving_average::set_properties(
     const string &prefix, variables_map &opts)
 {
     this->teca_algorithm::set_properties(prefix, opts);
@@ -64,7 +64,7 @@ void teca_temporal_average::set_properties(
 #endif
 
 // --------------------------------------------------------------------------
-std::vector<teca_metadata> teca_temporal_average::get_upstream_request(
+std::vector<teca_metadata> teca_simple_moving_average::get_upstream_request(
     unsigned int port,
     const std::vector<teca_metadata> &input_md,
     const teca_metadata &request)
@@ -84,7 +84,7 @@ std::vector<teca_metadata> teca_temporal_average::get_upstream_request(
             break;
     }
     cerr << teca_parallel_id()
-        << "teca_temporal_average::get_upstream_request filter_type="
+        << "teca_simple_moving_average::get_upstream_request filter_type="
         << type << endl;
 #endif
     (void) port;
@@ -153,14 +153,14 @@ std::vector<teca_metadata> teca_temporal_average::get_upstream_request(
 }
 
 // --------------------------------------------------------------------------
-const_p_teca_dataset teca_temporal_average::execute(
+const_p_teca_dataset teca_simple_moving_average::execute(
     unsigned int port,
     const std::vector<const_p_teca_dataset> &input_data,
     const teca_metadata &request)
 {
 #ifdef TECA_DEBUG
     cerr << teca_parallel_id()
-        << "teca_temporal_average::execute" << endl;
+        << "teca_simple_moving_average::execute" << endl;
 #endif
     (void)port;
 

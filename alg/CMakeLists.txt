@@ -42,7 +42,7 @@ set(teca_alg_cxx_srcs
     teca_tc_classify.cxx
     teca_tc_wind_radii.cxx
     teca_tc_trajectory.cxx
-    teca_temporal_average.cxx
+    teca_simple_moving_average.cxx
     teca_unpack_data.cxx
     teca_valid_value_mask.cxx
     teca_variant_array_operand.cxx

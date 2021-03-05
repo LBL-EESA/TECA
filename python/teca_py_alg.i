@@ -36,7 +36,7 @@
 #include "teca_tc_classify.h"
 #include "teca_tc_trajectory.h"
 #include "teca_tc_wind_radii.h"
-#include "teca_temporal_average.h"
+#include "teca_simple_moving_average.h"
 #include "teca_unpack_data.h"
 #include "teca_valid_value_mask.h"
 #include "teca_vertical_reduction.h"
@@ -119,12 +119,12 @@
 %include "teca_table_to_stream.h"
 
 /***************************************************************************
- temporal_average
+ simple_moving_average
  ***************************************************************************/
-%ignore teca_temporal_average::shared_from_this;
-%shared_ptr(teca_temporal_average)
-%ignore teca_temporal_average::operator=;
-%include "teca_temporal_average.h"
+%ignore teca_simple_moving_average::shared_from_this;
+%shared_ptr(teca_simple_moving_average)
+%ignore teca_simple_moving_average::operator=;
+%include "teca_simple_moving_average.h"
 
 /***************************************************************************
  vorticity

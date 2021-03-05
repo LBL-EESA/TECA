@@ -1,7 +1,7 @@
 #include "teca_cf_reader.h"
 #include "teca_normalize_coordinates.h"
 #include "teca_indexed_dataset_cache.h"
-#include "teca_temporal_average.h"
+#include "teca_simple_moving_average.h"
 #include "teca_cartesian_mesh_writer.h"
 #include "teca_cf_writer.h"
 #include "teca_dataset_diff.h"
@@ -21,7 +21,7 @@ int main(int argc, char **argv)
     if (argc < 8)
     {
         std::cerr << std::endl << "Usage error:" << std::endl
-            << "test_temporal_average [input regex] [baseline] [first step] [last step]"
+            << "test_simple_moving_average [input regex] [baseline] [first step] [last step]"
                "  [filter width] [n threads] [array] [array] ..." << std::endl
             << std::endl;
         return -1;
@@ -53,9 +53,9 @@ int main(int argc, char **argv)
     dsc->set_max_cache_size(2*n_threads*filter_width);
 
     // temporal avg
-    p_teca_temporal_average a = teca_temporal_average::New();
+    p_teca_simple_moving_average a = teca_simple_moving_average::New();
     a->set_filter_width(filter_width);
-    a->set_filter_type(teca_temporal_average::backward);
+    a->set_filter_type(teca_simple_moving_average::backward);
     a->set_input_connection(dsc->get_output_port());
 
 
