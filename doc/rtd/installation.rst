@@ -8,6 +8,13 @@ on the platform and desired use.
 
 On a Cray Supercomputer
 -----------------------
+
+.. tip::
+
+   CASCADE team members who need to run the command line applications on NERSC
+   Cori can use the m1517 group installs instead of manually installing TECA.
+   See :ref:`m1517_installs` for more information.
+
 When installing TECA on a supercomputer one of the best options is the
 superbuild, a piece of CMake code that downloads and builds TECA and its many
 dependencies. The superbuild is located in a git repository here

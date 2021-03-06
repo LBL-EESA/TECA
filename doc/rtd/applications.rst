@@ -87,6 +87,8 @@ loading the teca environment module. The second line tells the module system
 where to look for the teca modulefile and the third line loads the module,
 configuring the environment for use with TECA.
 
+.. _m1517_installs:
+
 m1517 CASCADE installs
 ~~~~~~~~~~~~~~~~~~~~~~
 Members of the CASCADE project m1517 can access rolling installs on Cori. These
@@ -103,7 +105,7 @@ at the top of their batch scripts.
 .. code-block:: bash
 
    module swap PrgEnv-intel PrgEnv-gnu
-   module use /global/common/software/m1517/develop
+   module use /global/common/software/m1517/teca/develop/modulefiles
    module load teca
 
 In order to make use of the `stable` release install swap `develop` for
