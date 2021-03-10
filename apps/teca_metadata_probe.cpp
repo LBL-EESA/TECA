@@ -147,6 +147,18 @@ int main(int argc, char **argv)
     bool have_file = opt_vals.count("input_file");
     bool have_regex = opt_vals.count("input_regex");
 
+    // validate the input method
+    if ((have_file && have_regex) || !(have_file || have_regex))
+    {
+        if (rank == 0)
+        {
+            TECA_ERROR("Extacly one of --input_file or --input_regex can be specified. "
+                "Use --input_file to activate the multi_cf_reader (CMIP6 datasets) "
+                "and --input_regex to activate the cf_reader (CAM like datasets)")
+        }
+        return -1;
+    }
+
     p_teca_algorithm reader;
     if (opt_vals.count("input_file"))
     {
@@ -173,18 +185,6 @@ int main(int argc, char **argv)
     std::string time_j;
     if (opt_vals.count("end_date"))
         time_j = opt_vals["end_date"].as<string>();
-
-    // some minimal check for mising options
-    if ((have_file && have_regex) || !(have_file || have_regex))
-    {
-        if (rank == 0)
-        {
-            TECA_ERROR("Extacly one of --input_file or --input_regex can be specified. "
-                "Use --input_file to activate the multi_cf_reader (HighResMIP datasets) "
-                "and --input_regex to activate the cf_reader (CAM like datasets)")
-        }
-        return -1;
-    }
 
     // run the reporting phase of the pipeline
     teca_metadata md = norm_coords->update_metadata();
