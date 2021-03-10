@@ -603,8 +603,8 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 const teca_metadata &md_i = teca_cf_time_axis_data::get_metadata(elem_i);
                 std::string calendar_i;
                 md_i.get("calendar", calendar_i);
-                if ((!has_calendar && !calendar_i.empty())
-                    || (has_calendar && (calendar_i != base_calendar)))
+                if ((has_calendar || !calendar_i.empty())
+                    && (calendar_i != base_calendar))
                 {
                     TECA_ERROR("The base calendar is \"" << base_calendar
                         << "\" but file " << i << " \"" << files[i]
