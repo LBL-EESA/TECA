@@ -94,7 +94,7 @@ teca_cartesian_mesh_source::teca_cartesian_mesh_source() :
     field_type_code(teca_variant_array_code<double>::get()),
     x_axis_variable("lon"), y_axis_variable("lat"), z_axis_variable("plev"),
     t_axis_variable("time"), x_axis_units("degrees_east"),
-    y_axis_units("degrees_north"), z_axis_units("pascals"),
+    y_axis_units("degrees_north"), z_axis_units("Pa"),
     calendar("Gregorian"), time_units("seconds since 1970-01-01 00:00:00"),
     whole_extents{0l, 359l, 0l, 179l, 0l, 0l, 0l, 0l},
     bounds{0., 360, -90., 90., 0., 0., 0., 0.},
@@ -129,6 +129,70 @@ void teca_cartesian_mesh_source::set_properties(const std::string &prefix,
 }
 #endif
 
+// --------------------------------------------------------------------------
+int teca_cartesian_mesh_source::set_spatial_bounds(const teca_metadata &md)
+{
+    teca_metadata coords;
+    if (md.get("coordinates", coords))
+        return -1;
+
+    // get the bounds in the x direction
+    p_teca_variant_array x = coords.get("x");
+
+    if (!x)
+        return -1;
+
+    x->get(0lu, this->bounds[0]);
+    x->get(x->size() - 1lu, this->bounds[1]);
+
+    // get the bounds in the y direction
+    p_teca_variant_array y = coords.get("y");
+
+    if (!y)
+        return -1;
+
+    y->get(0lu, this->bounds[2]);
+    y->get(y->size() - 1lu, this->bounds[3]);
+
+    // get the bounds in the z direction
+    p_teca_variant_array z = coords.get("z");
+
+    if (!z)
+        return -1;
+
+    z->get(0lu, this->bounds[4]);
+    z->get(z->size() - 1lu, this->bounds[5]);
+
+    // set the coordinate type
+    this->set_coordinate_type_code(x->type_code());
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+int teca_cartesian_mesh_source::set_calendar(const teca_metadata &md)
+{
+    teca_metadata atts;
+    if (md.get("attributes", atts))
+        return -1;
+
+    teca_metadata time_atts;
+    if (atts.get("time", time_atts))
+        return -1;
+
+    std::string calendar;
+    if (time_atts.get("calendar", calendar))
+        return -1;
+
+    std::string units;
+    if (time_atts.get("units", units))
+        return -1;
+
+    this->calendar = calendar;
+    this->time_units  = units;
+
+    return 0;
+}
 
 // --------------------------------------------------------------------------
 void teca_cartesian_mesh_source::set_modified()

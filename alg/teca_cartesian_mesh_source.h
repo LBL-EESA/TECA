@@ -73,6 +73,14 @@ public:
     // this should be the same on all ranks elements.
     TECA_ALGORITHM_VECTOR_PROPERTY(double, bound)
 
+    /** Set the spatial bounds from a metadata object following the conventions
+     * defined by the teca_cf_reader. This provides an easy way to get valid
+     * mesh bounds from an existing dataset where the producer of the dataset
+     * has followed those conventions. Returns zero if successful and non-zero
+     * if the supplied metadata is missing any of the requisite information.
+     */
+    int set_spatial_bounds(const teca_metadata &md);
+
     // set the variable to use for the coordinate axes.
     // the defaults are: x => lon, y => lat, z = plev,
     // t => time
@@ -94,6 +102,16 @@ public:
     // set the named callbacks to generate fields on the mesh.  A callback
     // function must have the signature f(x,y,z,t).
     TECA_ALGORITHM_VECTOR_PROPERTY(field_generator_t, field_generator);
+
+    /** Set the time units and calendar from a metadata object following the
+     * conventions defined by the teca_cf_reader. This provides an easy way to
+     * get calendaring information from an existing dataset where the producer
+     * of the dataset has followed those conventions. Returns zero if
+     * successful and non-zero if the supplied metadata is missing any of the
+     * requisite information.
+     */
+    int set_calendar(const teca_metadata &md);
+
 
     // set a callback function f(x,y,z,t) that generates a field named name
     // x,y,z are coordinate axes in variant arrays, t is the double precision
