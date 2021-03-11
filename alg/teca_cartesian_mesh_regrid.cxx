@@ -18,6 +18,27 @@ using std::endl;
 
 //#define TECA_DEBUG
 
+// always use nearest neighbor interpolation for integers
+// to avoid truncation errors. an alternative would be to
+// implement rounding in the interpolator for integer types
+template <typename data_t>
+int get_interpolation_mode(int desired_mode,
+    typename std::enable_if<std::is_integral<data_t>::value>::type* = 0)
+{
+    (void)desired_mode;
+    return teca_cartesian_mesh_regrid::nearest;
+}
+
+// use the requested interpolation mode for floating point
+// data
+template <typename data_t>
+int get_interpolation_mode(int desired_mode,
+    typename std::enable_if<std::is_floating_point<data_t>::value>::type* = 0)
+{
+    return desired_mode;
+}
+
+
 template<typename NT1, typename NT2, typename NT3, class interp_t>
 int interpolate(unsigned long target_nx, unsigned long target_ny,
     unsigned long target_nz, const NT1 *p_target_xc, const NT1 *p_target_yc,
@@ -64,7 +85,7 @@ int interpolate(int mode, unsigned long target_nx, unsigned long target_ny,
     using nearest_interp_t = teca_coordinate_util::interpolate_t<0>;
     using linear_interp_t = teca_coordinate_util::interpolate_t<1>;
 
-    switch (mode)
+    switch (get_interpolation_mode<array_t>(mode))
     {
         case teca_cartesian_mesh_regrid::nearest:
             return interpolate<taget_coord_t,source_coord_t,array_t,nearest_interp_t>(
