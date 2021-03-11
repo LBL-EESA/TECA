@@ -14,6 +14,7 @@ A collection of named arrays
 class teca_array_collection
 {
 public:
+
     // construct on heap
     static
     p_teca_array_collection New()
@@ -79,6 +80,13 @@ public:
 
     const std::string &get_name(unsigned int i) const
     { return m_names[i]; }
+
+    // access the list of names
+    std::vector<std::string> &get_names()
+    { return m_names; }
+
+    const std::vector<std::string> &get_names() const
+    { return m_names; }
 
     // return a unique string identifier
     std::string get_class_name() const
