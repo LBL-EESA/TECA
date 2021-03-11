@@ -3,3 +3,5 @@
 _build
 *.pt
 *.vscode*
+.DS_Store
+generated_rtd*
