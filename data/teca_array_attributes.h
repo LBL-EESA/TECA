@@ -69,7 +69,7 @@ struct teca_array_attributes
     int from(const teca_metadata &md);
 
     // send to the stream in human readable form
-    void to_stream(std::ostream &os);
+    void to_stream(std::ostream &os) const;
 
     // possible centrings
     //
