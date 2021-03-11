@@ -689,3 +689,13 @@ teca_add_test(test_bounds_to_extent
     SOURCES test_bounds_to_extent.cpp
     LIBS teca_core teca_data ${teca_test_link}
     COMMAND test_bounds_to_extent)
+
+teca_add_test(test_elevation_mask
+    SOURCES test_elevation_mask.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_elevation_mask cf
+    "${TECA_DATA_ROOT}/ECMWF-IFS-HR-SST-present_himalaya\\.nc"
+    "${TECA_DATA_ROOT}/GTOPO_DEM_025deg\\.nc"
+    "${TECA_DATA_ROOT}/test_elevation_mask"
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
