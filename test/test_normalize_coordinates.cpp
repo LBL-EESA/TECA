@@ -86,10 +86,10 @@ int main(int argc, char **argv)
 {
     teca_system_interface::set_stack_trace_on_error();
 
-    if (argc != 14)
+    if (argc != 17)
     {
         cerr << "test_normalize_coordinates [nx] [ny] [nz] [flip x] [flip y] [flip z] "
-            "[x0 x1 y0 y1 z0 z1] [out file]" << endl;
+            "[trans x] [trans y] trans z] [x0 x1 y0 y1 z0 z1] [out file]" << endl;
         return -1;
     }
 
@@ -99,9 +99,12 @@ int main(int argc, char **argv)
     int flip_x = atoi(argv[4]);
     int flip_y = atoi(argv[5]);
     int flip_z = atoi(argv[6]);
-    std::vector<double> req_bounds({atof(argv[7]), atof(argv[8]),
-        atof(argv[9]), atof(argv[10]), atof(argv[11]), atof(argv[12])});
-    std::string out_file = argv[13];
+    double trans_x = atof(argv[7]);
+    double trans_y = atof(argv[8]);
+    double trans_z = atof(argv[9]);
+    std::vector<double> req_bounds({atof(argv[10]), atof(argv[11]),
+        atof(argv[12]), atof(argv[13]), atof(argv[14]), atof(argv[15])});
+    std::string out_file = argv[16];
 
     p_teca_cartesian_mesh_source source = teca_cartesian_mesh_source::New();
     source->set_whole_extents({0, nx-1, 0, ny-1, 0, nz-1, 0, 0});
@@ -119,6 +122,16 @@ int main(int argc, char **argv)
 
     p_teca_normalize_coordinates coords = teca_normalize_coordinates::New();
     coords->set_input_connection(source->get_output_port());
+    coords->set_translate_x(trans_x);
+    coords->set_translate_y(trans_y);
+    coords->set_translate_z(trans_z);
+
+    req_bounds[0] += trans_x;
+    req_bounds[1] += trans_x;
+    req_bounds[2] += trans_y;
+    req_bounds[3] += trans_y;
+    req_bounds[4] += trans_z;
+    req_bounds[5] += trans_z;
 
     p_teca_index_executive exec = teca_index_executive::New();
     exec->set_bounds(req_bounds);
@@ -131,15 +144,17 @@ int main(int argc, char **argv)
         << "whole_extents = [0, " << nx-1 << ", 0, "
         << ny-1 << ", 0, " << nz-1 << "]" << std::endl
         << "bounds = [" << x0 << ", " << x1 << ", " << y0
-        << ", " << y1 << ", " << z0 << ", " << z1 << "]"
-        << std::endl;
+        << ", " << y1 << ", " << z0 << ", " << z1 << "]" << std::endl
+        << "translate = [" << trans_x << ", "
+        << trans_y << ", " << trans_z << "]" << std::endl
+        << "req_bounds = [" << req_bounds << "]" << std::endl;
 
     teca_metadata md = coords->update_metadata();
 
     teca_metadata coord_axes;
     md.get("coordinates", coord_axes);
 
-    std::cerr << "coordinates" << std::endl;
+    std::cerr << "coordinates :" << std::endl;
     coord_axes.to_stream(std::cerr);
     std::cerr << std::endl;
 

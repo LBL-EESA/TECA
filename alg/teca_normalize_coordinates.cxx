@@ -31,16 +31,18 @@ struct teca_normalize_coordinates::internals_t
         const const_p_teca_variant_array &in_x,
         const const_p_teca_variant_array &in_y,
         const const_p_teca_variant_array &in_z,
-        int x_axis_order, int y_axis_order,
-        int z_axis_order, double *bounds);
+        double *bounds,
+        int x_axis_order, int y_axis_order, int z_axis_order,
+        double tx_fact, double ty_fact, double tz_fact,
+        bool &flip_x, bool &flip_y, bool &flip_z);
 
     template <template<typename> typename compare_t>
     static p_teca_variant_array normalize_axis(
-        const const_p_teca_variant_array &x, double *bounds);
+        const const_p_teca_variant_array &x, double *bounds,
+        double tx_fact, bool &flip);
 
     static
-    void normalize_extent(p_teca_variant_array out_x,
-        p_teca_variant_array out_y, p_teca_variant_array out_z,
+    void normalize_extent(bool flip_x, bool flip_y, bool flip_z,
         unsigned long *whole_extent, unsigned long *extent_in,
         unsigned long *extent_out);
 
@@ -53,24 +55,38 @@ struct teca_normalize_coordinates::internals_t
 // --------------------------------------------------------------------------
 template <template<typename> typename compare_t>
 p_teca_variant_array teca_normalize_coordinates::internals_t::normalize_axis(
-    const const_p_teca_variant_array &x, double *bounds)
+    const const_p_teca_variant_array &x, double *bounds, double tx_fact,
+    bool &flip)
 {
     unsigned long nx = x->size();
     unsigned long x1 = nx - 1;
 
-    NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
-        x.get(), _C,
+    p_teca_variant_array xo;
 
-        const NT_C *px = dynamic_cast<TT_C*>(x.get())->get();
+    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+        x.get(),
+
+        using TT_OUT = teca_variant_array_impl<NT>;
+
+        const NT *px = dynamic_cast<TT*>(x.get())->get();
+        NT *pxo = nullptr;
+
+        // initialize bounds, correct if a flip or translate is applied
+        bounds[0] = px[0];
+        bounds[1] = px[x1];
 
         // if comp(x0, x1) reverse the axis.
         // when comp is less than the output will be ascending
         // when comp is greater than the output will be descending
         compare_t compare;
-        if (compare(px[x1], px[0]))
+        flip = compare(px[x1], px[0]);
+
+        bool translate = tx_fact != 0.0;
+
+        if (flip)
         {
-            p_teca_variant_array xo = x->new_instance(nx);
-            NT_C *pxo = static_cast<teca_variant_array_impl<NT_C>*>(xo.get())->get();
+            xo = x->new_instance(nx);
+            pxo = static_cast<TT_OUT*>(xo.get())->get();
 
             pxo += x1;
             for (unsigned long i = 0; i < nx; ++i)
@@ -78,14 +94,27 @@ p_teca_variant_array teca_normalize_coordinates::internals_t::normalize_axis(
 
             bounds[0] = px[x1];
             bounds[1] = px[0];
-
-            return xo;
         }
 
-        bounds[0] = px[0];
-        bounds[1] = px[x1];
+        if (translate)
+        {
+            if (!xo)
+                xo = x->new_instance(nx);
+            else
+                px = static_cast<TT_OUT*>(xo.get())->get();
+
+            pxo = static_cast<TT_OUT*>(xo.get())->get();
+
+            NT tx = tx_fact;
+            for (unsigned long i = 0; i < nx; ++i)
+                pxo[i] = px[i] + tx;
+
+            bounds[0] += tx_fact;
+            bounds[1] += tx_fact;
+        }
         )
-    return nullptr;
+
+    return xo;
 }
 
 // --------------------------------------------------------------------------
@@ -96,17 +125,21 @@ int teca_normalize_coordinates::internals_t::normalize_axes(
     const const_p_teca_variant_array &in_x,
     const const_p_teca_variant_array &in_y,
     const const_p_teca_variant_array &in_z,
+    double *bounds,
     int x_axis_order, int y_axis_order, int z_axis_order,
-    double *bounds)
+    double tx_fact, double ty_fact, double tz_fact,
+    bool &flip_x, bool &flip_y, bool &flip_z)
 {
     // x axis
     if (x_axis_order == ORDER_ASCENDING)
     {
-       out_x = internals_t::normalize_axis<std::less>(in_x, bounds);
+        out_x = internals_t::normalize_axis<std::less>(in_x,
+            bounds, tx_fact, flip_x);
     }
     else if (x_axis_order == ORDER_DESCENDING)
     {
-       out_x = internals_t::normalize_axis<std::greater>(in_x, bounds);
+        out_x = internals_t::normalize_axis<std::greater>(in_x,
+            bounds, tx_fact, flip_x);
     }
     else
     {
@@ -117,11 +150,13 @@ int teca_normalize_coordinates::internals_t::normalize_axes(
     // y axis
     if (y_axis_order == ORDER_ASCENDING)
     {
-       out_y = internals_t::normalize_axis<std::less>(in_y, bounds + 2);
+        out_y = internals_t::normalize_axis<std::less>(in_y,
+            bounds + 2, ty_fact, flip_y);
     }
     else if (y_axis_order == ORDER_DESCENDING)
     {
-       out_y = internals_t::normalize_axis<std::greater>(in_y, bounds + 2);
+        out_y = internals_t::normalize_axis<std::greater>(in_y,
+            bounds + 2, ty_fact, flip_y);
     }
     else
     {
@@ -132,11 +167,13 @@ int teca_normalize_coordinates::internals_t::normalize_axes(
     // z axis
     if (z_axis_order == ORDER_ASCENDING)
     {
-       out_z = internals_t::normalize_axis<std::less>(in_z, bounds + 4);
+        out_z = internals_t::normalize_axis<std::less>(in_z,
+            bounds + 4, tz_fact, flip_z);
     }
     else if (z_axis_order == ORDER_DESCENDING)
     {
-       out_z = internals_t::normalize_axis<std::greater>(in_z, bounds + 4);
+        out_z = internals_t::normalize_axis<std::greater>(in_z,
+            bounds + 4, tz_fact, flip_z);
     }
     else
     {
@@ -149,13 +186,12 @@ int teca_normalize_coordinates::internals_t::normalize_axes(
 
 // --------------------------------------------------------------------------
 void teca_normalize_coordinates::internals_t::normalize_extent(
-    p_teca_variant_array out_x, p_teca_variant_array out_y,
-    p_teca_variant_array out_z, unsigned long *whole_extent,
+    bool flip_x, bool flip_y, bool flip_z, unsigned long *whole_extent,
     unsigned long *extent_in, unsigned long *extent_out)
 {
 #if defined(TECA_DEBUG)
     std::cerr
-        << "out=[" << out_x << ", " << out_y << ", " << out_z << "]" << std::endl
+        << "out=[" << flip_x << ", " << flip_y << ", " << flip_z << "]" << std::endl
         << "whole_extent=[" << whole_extent[0] << ", " << whole_extent[1] << ", "
         << whole_extent[2] << ", " << whole_extent[3] << ", " << whole_extent[4]
         << ", " << whole_extent[5] << "]" << std::endl
@@ -169,21 +205,21 @@ void teca_normalize_coordinates::internals_t::normalize_extent(
     // detect coordinate axes in descending order, transform the incoming
     // extents from ascending order coordinates back to original descending
     // order coordinate system so the upstream gets the correct extent
-    if (out_x)
+    if (flip_x)
     {
         unsigned long wnx = whole_extent[1] - whole_extent[0];
         extent_out[0] = wnx - extent_in[1];
         extent_out[1] = wnx - extent_in[0];
     }
 
-    if (out_y)
+    if (flip_y)
     {
         unsigned long wny = whole_extent[3] - whole_extent[2];
         extent_out[2] = wny - extent_in[3];
         extent_out[3] = wny - extent_in[2];
     }
 
-    if (out_z)
+    if (flip_z)
     {
         unsigned long wnz = whole_extent[5] - whole_extent[4];
         extent_out[4] = wnz - extent_in[5];
@@ -311,7 +347,9 @@ void teca_normalize_coordinates::internals_t::normalize_variables(
 // --------------------------------------------------------------------------
 teca_normalize_coordinates::teca_normalize_coordinates() :
     x_axis_order(ORDER_ASCENDING), y_axis_order(ORDER_ASCENDING),
-    z_axis_order(ORDER_DESCENDING), internals(nullptr)
+    z_axis_order(ORDER_DESCENDING), translate_x(0.0),
+    translate_y(0.0), translate_z(0.0),
+    internals(nullptr)
 {
     this->internals = new teca_normalize_coordinates::internals_t;
 
@@ -343,6 +381,12 @@ void teca_normalize_coordinates::get_properties_description(
         TECA_POPTS_GET(int, prefix, z_axis_order,
             "Sets the desired output order of the z-axis. Use"
             " ORDER_ASCENDING(0) or ORDER_DESCENDING(1).")
+        TECA_POPTS_GET(double, prefix, translate_x,
+            "Translate the x-axis by the given value.")
+        TECA_POPTS_GET(double, prefix, translate_y,
+            "Translate the y-axis by the given value.")
+        TECA_POPTS_GET(double, prefix, translate_z,
+            "Translate the z-axis by the given value.")
         ;
 
     this->teca_algorithm::get_properties_description(prefix, opts);
@@ -359,6 +403,9 @@ void teca_normalize_coordinates::set_properties(
     TECA_POPTS_SET(opts, int, prefix, x_axis_order)
     TECA_POPTS_SET(opts, int, prefix, y_axis_order)
     TECA_POPTS_SET(opts, int, prefix, z_axis_order)
+    TECA_POPTS_SET(opts, double, prefix, translate_x)
+    TECA_POPTS_SET(opts, double, prefix, translate_y)
+    TECA_POPTS_SET(opts, double, prefix, translate_z)
 }
 #endif
 
@@ -424,11 +471,13 @@ teca_metadata teca_normalize_coordinates::get_output_metadata(
 
     // check for and transform coordinate axes from descending order
     // to ascending order
+    bool flip_x, flip_y, flip_z;
     double bounds[6] = {0.0};
     p_teca_variant_array out_x, out_y, out_z;
-    if (this->internals->normalize_axes(out_x, out_y, out_z,
-        in_x, in_y, in_z, this->x_axis_order, this->y_axis_order,
-        this->z_axis_order, bounds))
+    if (this->internals->normalize_axes(out_x, out_y, out_z, in_x, in_y, in_z,
+        bounds, this->x_axis_order, this->y_axis_order, this->z_axis_order,
+        this->translate_x, this->translate_y, this->translate_z,
+        flip_x, flip_y, flip_z))
     {
         TECA_ERROR("Failed to normalize axes")
         return teca_metadata();
@@ -485,11 +534,13 @@ std::vector<teca_metadata> teca_normalize_coordinates::get_upstream_request(
 
     // now convert the original coordinate axes into the
     // normalized system. this isn't cached for thread safety
+    bool flip_x, flip_y, flip_z;
     double bounds[6] = {0.0};
     p_teca_variant_array out_x, out_y, out_z;
-    if (this->internals->normalize_axes(out_x, out_y, out_z,
-        in_x, in_y, in_z, this->x_axis_order, this->y_axis_order,
-        this->z_axis_order, bounds))
+    if (this->internals->normalize_axes(out_x, out_y, out_z, in_x, in_y, in_z,
+        bounds, this->x_axis_order, this->y_axis_order, this->z_axis_order,
+        this->translate_x, this->translate_y, this->translate_z,
+        flip_x, flip_y, flip_z))
     {
         TECA_ERROR("Failed to normalize axes")
         return up_reqs;
@@ -547,7 +598,7 @@ std::vector<teca_metadata> teca_normalize_coordinates::get_upstream_request(
     }
 
     // apply the transform if needed
-    this->internals->normalize_extent(out_x, out_y, out_z,
+    this->internals->normalize_extent(flip_x, flip_y, flip_z,
         whole_extent, extent_in, extent_out);
 
     // validate the requested extent
@@ -603,11 +654,13 @@ const_p_teca_dataset teca_normalize_coordinates::execute(unsigned int port,
     const_p_teca_variant_array in_z = in_mesh->get_z_coordinates();
 
     // transform the axes to ascending order if needed
+    bool flip_x, flip_y, flip_z;
     double bounds[6] = {0.0};
     p_teca_variant_array out_x, out_y, out_z;
-    if (this->internals->normalize_axes(out_x, out_y, out_z,
-        in_x, in_y, in_z, this->x_axis_order, this->y_axis_order,
-        this->z_axis_order, bounds))
+    if (this->internals->normalize_axes(out_x, out_y, out_z, in_x, in_y, in_z,
+        bounds, this->x_axis_order, this->y_axis_order, this->z_axis_order,
+        this->translate_x, this->translate_y, this->translate_z,
+        flip_x, flip_y, flip_z))
     {
         TECA_ERROR("Failed to normalize axes")
         return nullptr;
@@ -635,14 +688,13 @@ const_p_teca_dataset teca_normalize_coordinates::execute(unsigned int port,
     }
 
     // apply the same set of transforms to the data
-    if (out_x || out_y || out_z)
+    if (flip_x || flip_y || flip_z)
     {
         unsigned long extent[6];
         in_mesh->get_extent(extent);
 
-        this->internals->normalize_variables(out_x.get(),
-            out_y.get(), out_z.get(), extent,
-            out_mesh->get_point_arrays());
+        this->internals->normalize_variables(flip_x, flip_y,
+            flip_z, extent, out_mesh->get_point_arrays());
     }
 
     return out_mesh;
