@@ -351,7 +351,7 @@ const_p_teca_dataset teca_cartesian_mesh_regrid::execute(
 
     // get the list of arrays to move
     std::vector<std::string> req_arrays;
-    request.get("regrid_arrays", req_arrays);
+    request.get("arrays", req_arrays);
 
     // add any explicitly named
     std::copy(this->arrays.begin(), this->arrays.end(),
@@ -367,6 +367,13 @@ const_p_teca_dataset teca_cartesian_mesh_regrid::execute(
     {
         if (!target->get_point_arrays()->has(*it))
             source_arrays.push_back(*it);
+    }
+
+    // catch a user error
+    if (!source_arrays.size() &&
+        teca_mpi_util::mpi_rank_0(this->get_communicator()))
+    {
+        TECA_WARNING("No arrays will be interpolated")
     }
 
     // move the arrays

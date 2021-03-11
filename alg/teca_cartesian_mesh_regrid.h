@@ -21,7 +21,7 @@ By default the first input is the target mesh. the second input is the source
 mesh. This can be changed by setting the target_input property.
 
 the arrays to move from source to target can be selected using add_array api or
-in the request key regrid_source_arrays. this is a spatial regriding operation
+in the request key "arrays". this is a spatial regriding operation
 for temporal regriding see teca_mesh_temporal_regrid.
 */
 class teca_cartesian_mesh_regrid : public teca_algorithm
