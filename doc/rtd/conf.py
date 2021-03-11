@@ -23,12 +23,22 @@ author = "Burlen Loring, Travis O'Brien & Abdelrahman Elbashandy"
 
 # -- General configuration ---------------------------------------------------
 
+import subprocess, os
+
+read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
+
+if read_the_docs_build:
+    if not os.path.exists('_build/html'):
+        os.makedirs('_build/html')
+    subprocess.call('doxygen', shell=True)
+
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 
 # pip install sphinxcontrib-bibtex
 extensions = ['sphinxcontrib.bibtex']
+
 bibtex_bibfiles = ['bibliography.bib']
 
 # Add any paths that contain templates here, relative to this directory.
