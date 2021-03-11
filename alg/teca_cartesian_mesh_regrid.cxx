@@ -39,6 +39,7 @@ int get_interpolation_mode(int desired_mode,
 }
 
 
+// 3D
 template<typename NT1, typename NT2, typename NT3, class interp_t>
 int interpolate(unsigned long target_nx, unsigned long target_ny,
     unsigned long target_nz, const NT1 *p_target_xc, const NT1 *p_target_yc,
@@ -74,36 +75,106 @@ int interpolate(unsigned long target_nx, unsigned long target_ny,
     return 0;
 }
 
+// 2D - x-y
+template<typename NT1, typename NT2, typename NT3, class interp_t>
+int interpolate(unsigned long target_nx, unsigned long target_ny,
+    const NT1 *p_target_xc, const NT1 *p_target_yc,
+    NT3 *p_target_a, const NT2 *p_source_xc,
+    const NT2 *p_source_yc, const NT3 *p_source_a,
+    unsigned long source_ihi, unsigned long source_jhi,
+    unsigned long source_nx)
+{
+    interp_t f;
+    unsigned long q = 0;
+    for (unsigned long j = 0; j < target_ny; ++j)
+    {
+        NT2 ty = static_cast<NT2>(p_target_yc[j]);
+        for (unsigned long i = 0; i < target_nx; ++i, ++q)
+        {
+            NT2 tx = static_cast<NT2>(p_target_xc[i]);
+            if (f(tx,ty,
+                p_source_xc, p_source_yc,
+                p_source_a, source_ihi, source_jhi,
+                source_nx, p_target_a[q]))
+            {
+                TECA_ERROR("failed to interpolate i=(" << i << ", " << j
+                    << ") x=(" << tx << ", " << ty << ", " << ")")
+                return -1;
+            }
+        }
+    }
+    return 0;
+}
+
 template<typename taget_coord_t, typename source_coord_t, typename array_t>
 int interpolate(int mode, unsigned long target_nx, unsigned long target_ny,
-    unsigned long target_nz, const taget_coord_t *p_target_xc, const taget_coord_t *p_target_yc,
-    const taget_coord_t *p_target_zc, array_t *p_target_a, const source_coord_t *p_source_xc,
-    const source_coord_t *p_source_yc, const source_coord_t *p_source_zc, const array_t *p_source_a,
-    unsigned long source_ihi, unsigned long source_jhi, unsigned long source_khi,
-    unsigned long source_nx, unsigned long source_nxy)
+    unsigned long target_nz, const taget_coord_t *p_target_xc,
+    const taget_coord_t *p_target_yc, const taget_coord_t *p_target_zc,
+    array_t *p_target_a, const source_coord_t *p_source_xc,
+    const source_coord_t *p_source_yc, const source_coord_t *p_source_zc,
+    const array_t *p_source_a, unsigned long source_ihi, unsigned long source_jhi,
+    unsigned long source_khi, unsigned long source_nx, unsigned long source_ny,
+    unsigned long source_nz)
 {
     using nearest_interp_t = teca_coordinate_util::interpolate_t<0>;
     using linear_interp_t = teca_coordinate_util::interpolate_t<1>;
 
+    unsigned long source_nxy = source_nx*source_ny;
+
     switch (get_interpolation_mode<array_t>(mode))
     {
         case teca_cartesian_mesh_regrid::nearest:
-            return interpolate<taget_coord_t,source_coord_t,array_t,nearest_interp_t>(
-                target_nx, target_ny, target_nz, p_target_xc, p_target_yc, p_target_zc,
-                p_target_a, p_source_xc, p_source_yc, p_source_zc, p_source_a,
-                source_ihi, source_jhi, source_khi, source_nx, source_nxy);
+        {
+            if ((target_nz == 1) && (source_nz == 1))
+            {
+                // 2D in the x-y plane
+                return interpolate<taget_coord_t,
+                    source_coord_t, array_t, nearest_interp_t>(
+                        target_nx, target_ny, p_target_xc, p_target_yc,
+                        p_target_a, p_source_xc, p_source_yc, p_source_a,
+                        source_ihi, source_jhi, source_nx);
+            }
+            else
+            {
+                // 3D
+                return interpolate<taget_coord_t,
+                    source_coord_t, array_t, nearest_interp_t>(
+                        target_nx, target_ny, target_nz, p_target_xc,
+                        p_target_yc, p_target_zc, p_target_a, p_source_xc,
+                        p_source_yc, p_source_zc, p_source_a, source_ihi,
+                        source_jhi, source_khi, source_nx, source_nxy);
+            }
             break;
+        }
         case teca_cartesian_mesh_regrid::linear:
-            return interpolate<taget_coord_t,source_coord_t,array_t,linear_interp_t>(
-                target_nx, target_ny, target_nz, p_target_xc, p_target_yc, p_target_zc,
-                p_target_a, p_source_xc, p_source_yc, p_source_zc, p_source_a,
-                source_ihi, source_jhi, source_khi, source_nx, source_nxy);
+        {
+            if ((target_nz == 1) && (source_nz == 1))
+            {
+                // 2D in the x-y plane
+                return interpolate<taget_coord_t,
+                    source_coord_t, array_t, linear_interp_t>(
+                        target_nx, target_ny, p_target_xc, p_target_yc,
+                        p_target_a, p_source_xc, p_source_yc, p_source_a,
+                        source_ihi, source_jhi, source_nx);
+            }
+            else
+            {
+                // 3D
+                return interpolate<taget_coord_t,
+                    source_coord_t, array_t, linear_interp_t>(
+                        target_nx, target_ny, target_nz, p_target_xc,
+                        p_target_yc, p_target_zc, p_target_a, p_source_xc,
+                        p_source_yc, p_source_zc, p_source_a, source_ihi,
+                        source_jhi, source_khi, source_nx, source_nxy);
+            }
             break;
+        }
     }
 
     TECA_ERROR("invalid interpolation mode \"" << mode << "\"")
     return -1;
 }
+
 
 
 
@@ -329,7 +400,6 @@ std::vector<teca_metadata> teca_cartesian_mesh_regrid::get_upstream_request(
     return up_reqs;
 }
 
-
 // --------------------------------------------------------------------------
 const_p_teca_dataset teca_cartesian_mesh_regrid::execute(
     unsigned int port, const std::vector<const_p_teca_dataset> &input_data,
@@ -416,7 +486,6 @@ const_p_teca_dataset teca_cartesian_mesh_regrid::execute(
     unsigned long source_nx = source_xc->size();
     unsigned long source_ny = source_yc->size();
     unsigned long source_nz = source_zc->size();
-    unsigned long source_nxy = source_nx*source_ny;
     unsigned long source_ihi = source_nx - 1;
     unsigned long source_jhi = source_ny - 1;
     unsigned long source_khi = source_nz - 1;
@@ -424,20 +493,20 @@ const_p_teca_dataset teca_cartesian_mesh_regrid::execute(
     NESTED_TEMPLATE_DISPATCH_FP(
         const teca_variant_array_impl,
         target_xc.get(),
-        1,
+        _TGT,
 
-        const NT1 *p_target_xc = std::dynamic_pointer_cast<TT1>(target_xc)->get();
-        const NT1 *p_target_yc = std::dynamic_pointer_cast<TT1>(target_yc)->get();
-        const NT1 *p_target_zc = std::dynamic_pointer_cast<TT1>(target_zc)->get();
+        const NT_TGT *p_target_xc = std::dynamic_pointer_cast<TT_TGT>(target_xc)->get();
+        const NT_TGT *p_target_yc = std::dynamic_pointer_cast<TT_TGT>(target_yc)->get();
+        const NT_TGT *p_target_zc = std::dynamic_pointer_cast<TT_TGT>(target_zc)->get();
 
         NESTED_TEMPLATE_DISPATCH_FP(
             const teca_variant_array_impl,
             source_xc.get(),
-            2,
+            _SRC,
 
-            const NT2 *p_source_xc = std::dynamic_pointer_cast<TT2>(source_xc)->get();
-            const NT2 *p_source_yc = std::dynamic_pointer_cast<TT2>(source_yc)->get();
-            const NT2 *p_source_zc = std::dynamic_pointer_cast<TT2>(source_zc)->get();
+            const NT_SRC *p_source_xc = std::dynamic_pointer_cast<TT_SRC>(source_xc)->get();
+            const NT_SRC *p_source_yc = std::dynamic_pointer_cast<TT_SRC>(source_yc)->get();
+            const NT_SRC *p_source_zc = std::dynamic_pointer_cast<TT_SRC>(source_zc)->get();
 
             size_t n_arrays = source_arrays.size();
             for (size_t i = 0; i < n_arrays; ++i)
@@ -449,25 +518,37 @@ const_p_teca_dataset teca_cartesian_mesh_regrid::execute(
                 NESTED_TEMPLATE_DISPATCH(
                     teca_variant_array_impl,
                     target_a.get(),
-                    3,
+                    _DATA,
 
-                    const NT3 *p_source_a = std::static_pointer_cast<const TT3>(source_a)->get();
-                    NT3 *p_target_a = std::static_pointer_cast<TT3>(target_a)->get();
+                    const NT_DATA *p_source_a = std::static_pointer_cast<const TT_DATA>(source_a)->get();
+                    NT_DATA *p_target_a = std::static_pointer_cast<TT_DATA>(target_a)->get();
 
                     if (interpolate(this->interpolation_mode, target_nx, target_ny, target_nz,
                         p_target_xc, p_target_yc, p_target_zc, p_target_a, p_source_xc,
                         p_source_yc, p_source_zc, p_source_a, source_ihi, source_jhi,
-                        source_khi, source_nx, source_nxy))
+                        source_khi, source_nx, source_ny, source_nz))
                     {
                         TECA_ERROR("Failed to move \"" << source_arrays[i] << "\"")
                         return nullptr;
                     }
-
-                    target_ac->set(source_arrays[i], target_a);
                     )
+                else
+                {
+                    TECA_ERROR("Unsupported array type " << source_a->get_class_name())
                 }
-                )
+
+                target_ac->set(source_arrays[i], target_a);
+            }
             )
+        else
+        {
+            TECA_ERROR("Unupported coordinate type " << source_xc->get_class_name())
+        }
+        )
+    else
+    {
+        TECA_ERROR("Unupported coordinate type " << target_xc->get_class_name())
+    }
 
     return target;
 }
