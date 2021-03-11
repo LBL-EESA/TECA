@@ -433,15 +433,15 @@ int interpolate_linear(CT cx, CT cy, CT cz,
         return -1;
     }
 
-    // get i,j of node greater than cx,cy
+    // get i,j of node greater than cx,cy,cz
     unsigned long ii = std::min(i + 1, ihi);
     unsigned long jj = std::min(j + 1, jhi);
     unsigned long kk = std::min(k + 1, khi);
 
     // compute weights
-    CT wx = (cx - p_x[i])/(p_x[ii] - p_x[i]);
-    CT wy = (cy - p_y[i])/(p_y[ii] - p_y[i]);
-    CT wz = (cz - p_z[i])/(p_z[ii] - p_z[i]);
+    CT wx = ii == i ? 0 : (cx - p_x[i])/(p_x[ii] - p_x[i]);
+    CT wy = jj == j ? 0 : (cy - p_y[j])/(p_y[jj] - p_y[j]);
+    CT wz = kk == k ? 0 : (cz - p_z[k])/(p_z[kk] - p_z[k]);
 
     CT vx = CT(1) - wx;
     CT vy = CT(1) - wy;
