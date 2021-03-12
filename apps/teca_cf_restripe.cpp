@@ -4,6 +4,9 @@
 #include "teca_variant_array.h"
 #include "teca_cf_reader.h"
 #include "teca_multi_cf_reader.h"
+#include "teca_normalize_coordinates.h"
+#include "teca_cartesian_mesh_regrid.h"
+#include "teca_cartesian_mesh_source.h"
 #include "teca_cf_writer.h"
 #include "teca_dataset_diff.h"
 #include "teca_index_executive.h"
@@ -67,8 +70,18 @@ int main(int argc, char **argv)
 
         ("steps_per_file", value<long>(), "\nnumber of time steps per output file\n")
 
+        ("normalize_coordinates", "\nEnable coordinate normalization pipeline stage\n")
+
+        ("regrid", "\nEnable mesh regridding pipeline stage. When enabled requires --dims"
+            " to be provided\n")
+
+        ("dims", value<std::vector<unsigned long>>()->multitoken(),
+            "\nA 3-tuple of values specifying the mesh size of the output dataset in the x, y,"
+            " and z dimensions. The accepted format for dimensions is: nx ny nz\n")
+
         ("bounds", value<std::vector<double>>()->multitoken(),
-            "\nlat lon lev bounding box to subset with\n")
+            "\nA hex-tuple of low and high values specifying lon lat lev bounding box to subset"
+            " the input dataset with. The accepted format for bounds is: x0 x1 y0 y1 z0 z1\n")
 
         ("first_step", value<long>(), "\nfirst time step to process\n")
         ("last_step", value<long>(), "\nlast time step to process\n")
@@ -97,12 +110,22 @@ int main(int argc, char **argv)
     // documentation and parse command line.
     // objects report all of their properties directly
     // set default options here so that command line options override
-    // them. while we are at it connect the pipeline
+    // them.
     p_teca_cf_reader cf_reader = teca_cf_reader::New();
     cf_reader->get_properties_description("cf_reader", advanced_opt_defs);
 
     p_teca_multi_cf_reader mcf_reader = teca_multi_cf_reader::New();
     mcf_reader->get_properties_description("mcf_reader", advanced_opt_defs);
+
+    p_teca_normalize_coordinates norm_coords = teca_normalize_coordinates::New();
+    norm_coords->get_properties_description("norm_coords", advanced_opt_defs);
+
+    p_teca_cartesian_mesh_regrid regrid = teca_cartesian_mesh_regrid::New();
+    regrid->set_interpolation_mode_linear();
+    regrid->get_properties_description("regrid", advanced_opt_defs);
+
+    p_teca_cartesian_mesh_source regrid_src = teca_cartesian_mesh_source::New();
+    regrid_src->get_properties_description("regrid_source", advanced_opt_defs);
 
     p_teca_cf_writer cf_writer = teca_cf_writer::New();
     cf_writer->get_properties_description("cf_writer", advanced_opt_defs);
@@ -131,6 +154,9 @@ int main(int argc, char **argv)
     // options will override them
     cf_reader->set_properties("cf_reader", opt_vals);
     mcf_reader->set_properties("mcf_reader", opt_vals);
+    norm_coords->set_properties("norm_coords", opt_vals);
+    regrid->set_properties("regrid", opt_vals);
+    regrid_src->set_properties("regrid_source", opt_vals);
     cf_writer->set_properties("cf_writer", opt_vals);
 
     // now pass in the basic options, these are processed
@@ -189,9 +215,50 @@ int main(int argc, char **argv)
     if (opt_vals.count("last_step"))
         cf_writer->set_last_step(opt_vals["last_step"].as<long>());
 
-    if (opt_vals.count("bounds"))
-        exec->set_bounds(
-            opt_vals["bounds"].as<std::vector<double>>());
+    std::vector<double> bounds;
+    bool have_bounds = opt_vals.count("bounds");
+    if (have_bounds)
+    {
+        std::vector<double> bounds =
+            opt_vals["bounds"].as<std::vector<double>>();
+
+        if (bounds.size() != 6)
+        {
+            TECA_ERROR("An invlaid bounds specification was provided in"
+                " --bounds, size != 6. Use: --bounds x0 x1 y0 y1 z0 z1")
+            return -1;
+        }
+    }
+
+    bool do_regrid = opt_vals.count("regrid");
+
+    // when not regriding let the executive subset. when regriding
+    // the regrid algorithm handles subsetting and the executive should
+    // request the entire domain.
+    if (have_bounds && !do_regrid)
+        exec->set_bounds(bounds);
+
+    // when regriding target mesh dimensions must be provided
+    std::vector<unsigned long> dims;
+    if (do_regrid)
+    {
+        if (opt_vals.count("dims"))
+        {
+            dims = opt_vals["dims"].as<std::vector<unsigned long>>();
+            if (dims.size() != 3)
+            {
+                TECA_ERROR("An invlaid dimension specification was provided in"
+                    " --dims, size != 3. Use: --dims nx ny nz")
+                return -1;
+            }
+        }
+        else
+        {
+            TECA_ERROR("The --regrid option requires that --dims"
+                " also be specified")
+            return -1;
+        }
+    }
 
     if (opt_vals.count("verbose"))
     {
@@ -226,10 +293,21 @@ int main(int argc, char **argv)
         return -1;
     }
 
+    // add the normalize coordinates stage before accessing metadata
+    p_teca_algorithm head = reader;
+    if (opt_vals.count("normalize_coordinates"))
+    {
+        norm_coords->set_input_connection(reader->get_output_port());
+        head = norm_coords;
+    }
+
     // if no point arrays were specified on the command line by default
     // write all point arrays
     teca_metadata md;
     teca_metadata atts;
+    teca_metadata time_atts;
+    std::string calendar;
+    std::string units;
     // TODO -- this will need some more work in the reader as currently
     // all arrays are marked as being point centered, but here we need
     // to identify only the arrays on the mesh.
@@ -237,7 +315,7 @@ int main(int argc, char **argv)
     {
         // run the reporting phase of the pipeline
         if (md.empty())
-            md = cf_reader->update_metadata();
+            md = head->update_metadata();
 
         // if array attributes are present, use them to locate the set of
         // point centered arrrays
@@ -275,7 +353,7 @@ int main(int argc, char **argv)
     {
         // run the reporting phase of the pipeline
         if (md.empty())
-            md = cf_reader->update_metadata();
+            md = head->update_metadata();
 
         if (atts.empty() && md.get("attributes", atts))
         {
@@ -283,9 +361,6 @@ int main(int argc, char **argv)
             return -1;
         }
 
-        teca_metadata time_atts;
-        std::string calendar;
-        std::string units;
         if (atts.get("time", time_atts)
            || time_atts.get("calendar", calendar)
            || time_atts.get("units", units))
@@ -335,8 +410,56 @@ int main(int argc, char **argv)
         }
     }
 
-    // connect the pipeline
-    cf_writer->set_input_connection(reader->get_output_port());
+    // set up regridding
+    if (do_regrid)
+    {
+        // run the reporting phase of the pipeline, the resulting metadata
+        // can be used to automatically determine the calendaring parameters
+        // and spatial bounds
+        if (md.empty())
+            md = head->update_metadata();
+
+        // if possible use the calendar of the input dataset
+        if (regrid_src->set_calendar(md))
+        {
+            // fallback to the standard calendar and an arbitary
+            // reference date
+            regrid_src->set_calendar("standard");
+            regrid_src->set_time_units("days since 1800-01-01 00:00:00");
+        }
+
+        // to construct the target mesh we need bounds.  if no bounds are
+        // specified on the command line use those of the input dataset and
+        // error out if that fails
+        if (have_bounds)
+        {
+            // extend to include time
+            bounds.resize(8, 0.0);
+            regrid_src->set_bounds(bounds);
+        }
+        else
+        {
+            // try to determine the bounds from the input mesh metadata
+            if (regrid_src->set_spatial_bounds(md))
+            {
+                TECA_ERROR("Failed to determine target mesh bounds from the"
+                    " input metadata. Use --bounds to specify them manually.")
+                return -1;
+            }
+        }
+
+        // set the target mesh dimensions
+        regrid_src->set_whole_extents({0lu, dims[0] - 1lu,
+            0lu, dims[1] - 1lu, 0lu, dims[2] - 1lu, 0lu, 0lu});
+
+        // connect to the pipeline
+        regrid->set_input_connection(0, regrid_src->get_output_port());
+        regrid->set_input_connection(1, head->get_output_port());
+        head = regrid;
+    }
+
+    // add the writer last
+    cf_writer->set_input_connection(head->get_output_port());
 
     // run the pipeline
     cf_writer->set_executive(exec);

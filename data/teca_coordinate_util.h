@@ -374,8 +374,16 @@ void get_table_offsets(const int_t *index, unsigned long n_rows,
         offsets[i] = offsets[i-1] + counts[i-1];
 }
 
-// 0 order (nearest neighbor) interpolation
-// for nodal data on stretched cartesian mesh.
+/** 0th order (nearest neighbor) interpolation for nodal data on a stretched
+ * cartesian mesh. This overload implements the general 3D case.
+ * cx, cy, cz is the location to interpolate to
+ * p_x, p_y, p_z array arrays containing the source cooridnates with extents
+ * [0, ihi, 0, jhi, 0, khi]
+ * p_data is the field to interpolate from
+ * val is the result
+ * returns 0 if successful, an error occurs if cx, cy, cz is outside of the
+ * source coordinate system
+ */
 template<typename CT, typename DT>
 int interpolate_nearest(CT cx, CT cy, CT cz,
     const CT *p_x, const CT *p_y, const CT *p_z,
@@ -411,8 +419,58 @@ int interpolate_nearest(CT cx, CT cy, CT cz,
     return 0;
 }
 
-// 1 order (linear) interpolation
-// for nodal data on stretched cartesian mesh.
+/** 0th order (nearest neighbor) interpolation for nodal data on a stretched
+ * cartesian mesh.  This overload implements the special case where both source
+ * and targent mesh data are in a 2D x-y plane using fewer operations than the
+ * general 3D implementation.
+ * cx, cy, cz is the location to interpolate to
+ * p_x, p_y, p_z array arrays containing the source cooridnates with extents
+ * [0, ihi, 0, jhi, 0, khi]
+ * p_data is the field to interpolate from
+ * val is the result
+ * returns 0 if successful, an error occurs if cx, cy, cz is outside of the
+ * source coordinate system
+ */
+template<typename coord_t, typename data_t>
+int interpolate_nearest(coord_t cx, coord_t cy, const coord_t *p_x,
+    const coord_t *p_y, const data_t *p_data, unsigned long ihi,
+    unsigned long jhi, unsigned long nx, data_t &val)
+{
+    // get i,j of node less than cx,cy
+    unsigned long i = 0;
+    unsigned long j = 0;
+
+    if ((ihi && teca_coordinate_util::index_of(p_x, 0, ihi, cx, true, i))
+        || (jhi && teca_coordinate_util::index_of(p_y, 0, jhi, cy, true, j)))
+    {
+        // cx,cy is outside the coordinate axes
+        return -1;
+    }
+
+    // get i,j of node greater than cx,cy
+    unsigned long ii = std::min(i + 1, ihi);
+    unsigned long jj = std::min(j + 1, jhi);
+
+    // get index of nearest node
+    unsigned long p = (cx - p_x[i]) <= (p_x[ii] - cx) ? i : ii;
+    unsigned long q = (cy - p_y[j]) <= (p_y[jj] - cy) ? j : jj;
+
+    // assign value from nearest node
+    val = p_data[p + nx*q];
+
+    return 0;
+}
+
+/** 1st order (linear) interpolation for nodal data on stretched cartesian
+ * mesh. This overload implements the general 3D case.
+ * cx, cy, cz is the location to interpolate to
+ * p_x, p_y, p_z array arrays containing the source cooridnates with extents
+ * [0, ihi, 0, jhi, 0, khi]
+ * p_data is the field to interpolate from
+ * val is the result
+ * returns 0 if successful, an error occurs if cx, cy, cz is outside of the
+ * source coordinate system
+ */
 template<typename CT, typename DT>
 int interpolate_linear(CT cx, CT cy, CT cz,
     const CT *p_x, const CT *p_y, const CT *p_z,
@@ -433,15 +491,15 @@ int interpolate_linear(CT cx, CT cy, CT cz,
         return -1;
     }
 
-    // get i,j of node greater than cx,cy
+    // get i,j of node greater than cx,cy,cz
     unsigned long ii = std::min(i + 1, ihi);
     unsigned long jj = std::min(j + 1, jhi);
     unsigned long kk = std::min(k + 1, khi);
 
     // compute weights
-    CT wx = (cx - p_x[i])/(p_x[ii] - p_x[i]);
-    CT wy = (cy - p_y[i])/(p_y[ii] - p_y[i]);
-    CT wz = (cz - p_z[i])/(p_z[ii] - p_z[i]);
+    CT wx = ii == i ? 0 : (cx - p_x[i])/(p_x[ii] - p_x[i]);
+    CT wy = jj == j ? 0 : (cy - p_y[j])/(p_y[jj] - p_y[j]);
+    CT wz = kk == k ? 0 : (cz - p_z[k])/(p_z[kk] - p_z[k]);
 
     CT vx = CT(1) - wx;
     CT vy = CT(1) - wy;
@@ -460,11 +518,60 @@ int interpolate_linear(CT cx, CT cy, CT cz,
     return 0;
 }
 
-// functor templated on order of accuracy for above Cartesian mesh interpolants
+/** 1st order (linear) interpolation for nodal data on stretched cartesian mesh.
+ * This overload implements the special case where both source and target data
+ * are in a 2D x-y plane using fewer operations than the general 3D
+ * implementation.
+ * cx, cy, cz is the location to interpolate to
+ * p_x, p_y, p_z array arrays containing the source cooridnates with extents
+ * [0, ihi, 0, jhi, 0, khi]
+ * p_data is the field to interpolate from
+ * val is the result
+ * returns 0 if successful, an error occurs if cx, cy, cz is outside of the
+ * source coordinate system
+ */
+template<typename CT, typename DT>
+int interpolate_linear(CT cx, CT cy, const CT *p_x, const CT *p_y,
+    const DT *p_data, unsigned long ihi, unsigned long jhi,
+    unsigned long nx, DT &val)
+{
+    // get i,j of node less than cx,cy
+    unsigned long i = 0;
+    unsigned long j = 0;
+
+    if ((ihi && teca_coordinate_util::index_of(p_x, 0, ihi, cx, true, i))
+        || (jhi && teca_coordinate_util::index_of(p_y, 0, jhi, cy, true, j)))
+    {
+        // cx,cy is outside the coordinate axes
+        return -1;
+    }
+
+    // get i,j of node greater than cx,cy
+    unsigned long ii = std::min(i + 1, ihi);
+    unsigned long jj = std::min(j + 1, jhi);
+
+    // compute weights
+    CT wx = ii == i ? 0 : (cx - p_x[i])/(p_x[ii] - p_x[i]);
+    CT wy = jj == j ? 0 : (cy - p_y[j])/(p_y[jj] - p_y[j]);
+
+    CT vx = CT(1) - wx;
+    CT vy = CT(1) - wy;
+
+    // interpolate
+    val = vx*vy*p_data[ i +  j*nx]
+        + wx*vy*p_data[ii +  j*nx]
+        + wx*wy*p_data[ii + jj*nx]
+        + vx*wy*p_data[ i + jj*nx];
+
+    return 0;
+}
+
+// A functor templated on order of accuracy for above Cartesian mesh interpolants
 template<int> struct interpolate_t;
 
 template<> struct interpolate_t<0>
 {
+    // 3D
     template<typename CT, typename DT>
     int operator()(CT tx, CT ty, CT tz, const CT *sx, const CT *sy,
         const CT *sz, const DT *sa, unsigned long ihi, unsigned long jhi,
@@ -473,10 +580,21 @@ template<> struct interpolate_t<0>
         return teca_coordinate_util::interpolate_nearest(tx,ty,tz,
              sx,sy,sz,sa, ihi,jhi,khi, nx,nxy, ta);
     }
+
+    // 2D x-y plane
+    template<typename CT, typename DT>
+    int operator()(CT tx, CT ty, const CT *sx, const CT *sy,
+        const DT *sa, unsigned long ihi, unsigned long jhi,
+        unsigned long nx, DT &ta)
+    {
+        return teca_coordinate_util::interpolate_nearest(tx,ty,
+             sx,sy,sa, ihi,jhi, nx, ta);
+    }
 };
 
 template<> struct interpolate_t<1>
 {
+    // 3D
     template<typename CT, typename DT>
     int operator()(CT tx, CT ty, CT tz, const CT *sx, const CT *sy,
         const CT *sz, const DT *sa, unsigned long ihi, unsigned long jhi,
@@ -484,6 +602,16 @@ template<> struct interpolate_t<1>
     {
         return teca_coordinate_util::interpolate_linear(tx,ty,tz,
              sx,sy,sz,sa, ihi,jhi,khi, nx,nxy, ta);
+    }
+
+    // 2D x-y plane
+    template<typename CT, typename DT>
+    int operator()(CT tx, CT ty, const CT *sx, const CT *sy,
+        const DT *sa, unsigned long ihi, unsigned long jhi,
+        unsigned long nx,  DT &ta)
+    {
+        return teca_coordinate_util::interpolate_linear(tx,ty,
+             sx,sy,sa, ihi,jhi, nx, ta);
     }
 };
 

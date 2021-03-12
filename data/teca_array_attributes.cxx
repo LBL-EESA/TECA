@@ -149,7 +149,7 @@ int teca_array_attributes::from(const teca_metadata &md)
 }
 
 // --------------------------------------------------------------------------
-void teca_array_attributes::to_stream(std::ostream &os)
+void teca_array_attributes::to_stream(std::ostream &os) const
 {
     os << "type_code=" << type_code << ", centering=" << centering
         << ", size=" << size << ", units=\"" << units
