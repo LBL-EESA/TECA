@@ -13,6 +13,7 @@ int teca_algorithm_executive::initialize(MPI_Comm comm, const teca_metadata &md)
         return -1;
     }
 
+    m_request.set("index_request_key", request_key);
     m_request.set(request_key, 0);
 
     return 0;

@@ -166,6 +166,7 @@ int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
         if ((index % this->stride) == 0)
         {
             this->requests.push_back(base_req);
+            this->requests.back().set("index_request_key", this->index_request_key);
             this->requests.back().set(this->index_request_key, index);
         }
     }
