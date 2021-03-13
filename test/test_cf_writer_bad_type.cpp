@@ -35,8 +35,7 @@ int main(int, char **)
     p_teca_cartesian_mesh_source ms = teca_cartesian_mesh_source::New();
     ms->set_whole_extents({0, 359, 0, 179, 0, 0, 0, 7});
     ms->set_bounds({0.0, 360.0, -90.0, 90.0, 0.0, 0.0, 0.0, 10.0});
-    ms->set_calendar("standard");
-    ms->set_time_units("days since 07-14-2020");
+    ms->set_calendar("standard", "days since 07-14-2020");
     ms->append_field_generator({"mesh_time",
         teca_array_attributes(teca_variant_array_code<int>::get(), // this is the wrong type code!
             teca_array_attributes::point_centering, 0, "days since 01-01-1980",

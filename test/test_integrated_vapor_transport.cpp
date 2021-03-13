@@ -91,7 +91,7 @@ int main(int argc, char **argv)
     double fill_value = 1.0e14;
     int write_input = 0;
     int write_output = 0;
-    
+
     // double the z axis, but hit all of the original points.  if we set the
     // integrand to the fill_value where p > p_sfc and apply the valid value
     // mask then the integral should have the value as if integrated from p_sfc
@@ -103,8 +103,7 @@ int main(int argc, char **argv)
     p_teca_cartesian_mesh_source mesh = teca_cartesian_mesh_source::New();
     mesh->set_whole_extents({0, 2, 0, 2, 0, j1, 0, 0});
     mesh->set_bounds({-1.0, 1.0, -1.0, 1.0, p_sfc_2, p_top, 0.0, 0.0});
-    mesh->set_calendar("standard");
-    mesh->set_time_units("days since 2020-09-30 00:00:00");
+    mesh->set_calendar("standard", "days since 2020-09-30 00:00:00");
 
     // let q = sin(p)
     function_of_z<double> q([](double p) -> double { return sin(p); },

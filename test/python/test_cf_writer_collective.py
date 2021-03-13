@@ -195,8 +195,7 @@ class print_info_arrays(teca_python_algorithm):
 src = teca_cartesian_mesh_source.New()
 src.set_whole_extents([0, nx -1, 0, nx - 1, 0, 0, 0, n_steps-1])
 src.set_bounds([-90.0, 90.0, -90.0, 90.0, 0.0, 0.0, 0.0, 2.*np.pi])
-src.set_calendar('standard')
-src.set_time_units('days since 2019-09-24')
+src.set_calendar('standard', 'days since 2019-09-24')
 
 # generate point and information data to be written and then read
 # the point data is z = sin^2(x*y + t) thus correctness can be easily
