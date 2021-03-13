@@ -410,7 +410,7 @@ int main(int argc, char **argv)
         }
     }
 
-    // set up regridding
+    // set up regriding
     if (do_regrid)
     {
         // run the reporting phase of the pipeline, the resulting metadata
@@ -419,13 +419,11 @@ int main(int argc, char **argv)
         if (md.empty())
             md = head->update_metadata();
 
-        // if possible use the calendar of the input dataset
-        if (regrid_src->set_calendar(md))
+        // use the calendar and time axis of the input dataset
+        if (regrid_src->set_t_axis_variable(md) || regrid_src->set_t_axis(md))
         {
-            // fallback to the standard calendar and an arbitary
-            // reference date
-            regrid_src->set_calendar("standard");
-            regrid_src->set_time_units("days since 1800-01-01 00:00:00");
+            TECA_ERROR("Failed to determine the time axis")
+            return -1;
         }
 
         // to construct the target mesh we need bounds.  if no bounds are
