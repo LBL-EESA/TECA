@@ -219,9 +219,7 @@ int main(int argc, char **argv)
     bool have_bounds = opt_vals.count("bounds");
     if (have_bounds)
     {
-        std::vector<double> bounds =
-            opt_vals["bounds"].as<std::vector<double>>();
-
+        bounds = opt_vals["bounds"].as<std::vector<double>>();
         if (bounds.size() != 6)
         {
             TECA_ERROR("An invlaid bounds specification was provided in"
