@@ -191,7 +191,7 @@ teca_add_app_test(test_tc_trajectory_scalars_app_mpi
     teca_tc_trajectory_scalars
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_trajectory_scalars_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} ${MPIEXEC} ${TEST_CORES}
-    FEATURES ${TECA_HAS_MPI} ${MPI4Py_FOUND}
+    FEATURES ${TECA_HAS_MPI} ${MPI4Py_FOUND} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
 teca_add_app_test(test_tc_wind_radii_stats_app teca_tc_wind_radii_stats
