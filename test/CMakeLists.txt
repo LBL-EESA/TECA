@@ -582,143 +582,33 @@ teca_add_test(test_normalize_coordinates_pass_through
     EXEC_NAME test_normalize_coordinates
     SOURCES test_normalize_coordinates.cpp
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
-    COMMAND test_normalize_coordinates 90 45 7 0 0 0 0 0 0 0 360 -90 90 100 0
-    "${TECA_DATA_ROOT}/test_normalize_coordinates.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_flip_x
-    COMMAND test_normalize_coordinates 90 45 7 1 0 0 0 0 0 0 360 -90 90 100 0
+    COMMAND test_normalize_coordinates 90 45 7 0 360 -90 90 100 0
     "${TECA_DATA_ROOT}/test_normalize_coordinates.bin"
     REQ_TECA_DATA)
 
 teca_add_test(test_normalize_coordinates_flip_y
-    COMMAND test_normalize_coordinates 90 45 7 0 1 0 0 0 0 0 360 -90 90 100 0
+    COMMAND test_normalize_coordinates 90 45 7 0 360 90 -90 100 0
     "${TECA_DATA_ROOT}/test_normalize_coordinates.bin"
     REQ_TECA_DATA)
 
-teca_add_test(test_normalize_coordinates_flip_z
-    COMMAND test_normalize_coordinates 90 45 7 0 0 1 0 0 0 0 360 -90 90 100 0
-    "${TECA_DATA_ROOT}/test_normalize_coordinates.bin"
+teca_add_test(test_normalize_coordinates_shift_x
+    COMMAND test_normalize_coordinates 90 45 7 -180 180 -90 90 100 0
+    "${TECA_DATA_ROOT}/test_normalize_coordinates_shift_x.bin"
     REQ_TECA_DATA)
 
-teca_add_test(test_normalize_coordinates_flip_xy
-    COMMAND test_normalize_coordinates 90 45 7 1 1 0 0 0 0 0 360 -90 90 100 0
-    "${TECA_DATA_ROOT}/test_normalize_coordinates.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_flip_xz
-    COMMAND test_normalize_coordinates 90 45 7 1 0 1 0 0 0 0 360 -90 90 100 0
-    "${TECA_DATA_ROOT}/test_normalize_coordinates.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_flip_yz
-    COMMAND test_normalize_coordinates 90 45 7 0 1 1 0 0 0 0 360 -90 90 100 0
-    "${TECA_DATA_ROOT}/test_normalize_coordinates.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_flip_xyz
-    COMMAND test_normalize_coordinates 90 45 7 1 1 1 0 0 0 0 360 -90 90 100 0
-    "${TECA_DATA_ROOT}/test_normalize_coordinates.bin"
+teca_add_test(test_normalize_coordinates_shift_x_flip_y
+    COMMAND test_normalize_coordinates 90 45 7 -180 180 90 -90 100 0
+    "${TECA_DATA_ROOT}/test_normalize_coordinates_shift_x.bin"
     REQ_TECA_DATA)
 
 teca_add_test(test_normalize_coordinates_pass_through_subset
-    COMMAND test_normalize_coordinates 90 45 7 0 0 0 0 0 0 40 190 -30 45 70 30
-    "${TECA_DATA_ROOT}/test_normalize_coordinates_subset.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_flip_x_subset
-    COMMAND test_normalize_coordinates 90 45 7 1 0 0 0 0 0 40 190 -30 45 70 30
+    COMMAND test_normalize_coordinates 90 45 7 0 360 -90 90 100 0 40 190 -30 45 70 30
     "${TECA_DATA_ROOT}/test_normalize_coordinates_subset.bin"
     REQ_TECA_DATA)
 
 teca_add_test(test_normalize_coordinates_flip_y_subset
-    COMMAND test_normalize_coordinates 90 45 7 0 1 0 0 0 0 40 190 -30 45 70 30
+    COMMAND test_normalize_coordinates 90 45 7 0 360 90 -90 100 0 40 190 -30 45 70 30
     "${TECA_DATA_ROOT}/test_normalize_coordinates_subset.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_flip_z_subset
-    COMMAND test_normalize_coordinates 90 45 7 0 0 1 0 0 0 40 190 -30 45 70 30
-    "${TECA_DATA_ROOT}/test_normalize_coordinates_subset.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_flip_xy_subset
-    COMMAND test_normalize_coordinates 90 45 7 1 1 0 0 0 0 40 190 -30 45 70 30
-    "${TECA_DATA_ROOT}/test_normalize_coordinates_subset.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_flip_xz_subset
-    COMMAND test_normalize_coordinates 90 45 7 1 0 1 0 0 0 40 190 -30 45 70 30
-    "${TECA_DATA_ROOT}/test_normalize_coordinates_subset.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_flip_yz_subset
-    COMMAND test_normalize_coordinates 90 45 7 0 1 1 0 0 0 40 190 -30 45 70 30
-    "${TECA_DATA_ROOT}/test_normalize_coordinates_subset.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_flip_xyz_subset
-    COMMAND test_normalize_coordinates 90 45 7 1 1 1 0 0 0 40 190 -30 45 70 30
-    "${TECA_DATA_ROOT}/test_normalize_coordinates_subset.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_trans_x
-    COMMAND test_normalize_coordinates 90 45 7 0 0 0 -180 0 0 0 360 -90 90 100 0
-    "${TECA_DATA_ROOT}/test_normalize_coordinates_trans_x.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_trans_x_flip_x
-    COMMAND test_normalize_coordinates 90 45 7 1 0 0 -180 0 0 0 360 -90 90 100 0
-    "${TECA_DATA_ROOT}/test_normalize_coordinates_trans_x.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_trans_x_flip_y
-    COMMAND test_normalize_coordinates 90 45 7 0 1 0 -180 0 0 0 360 -90 90 100 0
-    "${TECA_DATA_ROOT}/test_normalize_coordinates_trans_x.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_trans_x_flip_z
-    COMMAND test_normalize_coordinates 90 45 7 0 0 1 -180 0 0 0 360 -90 90 100 0
-    "${TECA_DATA_ROOT}/test_normalize_coordinates_trans_x.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_trans_y
-    COMMAND test_normalize_coordinates 90 45 7 0 0 0 0 90 0 0 360 -90 90 100 0
-    "${TECA_DATA_ROOT}/test_normalize_coordinates_trans_y.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_trans_y_flip_x
-    COMMAND test_normalize_coordinates 90 45 7 1 0 0 0 90 0 0 360 -90 90 100 0
-    "${TECA_DATA_ROOT}/test_normalize_coordinates_trans_y.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_trans_y_flip_y
-    COMMAND test_normalize_coordinates 90 45 7 0 1 0 0 90 0 0 360 -90 90 100 0
-    "${TECA_DATA_ROOT}/test_normalize_coordinates_trans_y.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_trans_y_flip_z
-    COMMAND test_normalize_coordinates 90 45 7 0 0 1 0 90 0 0 360 -90 90 100 0
-    "${TECA_DATA_ROOT}/test_normalize_coordinates_trans_y.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_trans_z
-    COMMAND test_normalize_coordinates 90 45 7 0 0 0 0 0 100 0 360 -90 90 100 0
-    "${TECA_DATA_ROOT}/test_normalize_coordinates_trans_z.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_trans_z_flip_x
-    COMMAND test_normalize_coordinates 90 45 7 1 0 0 0 0 100 0 360 -90 90 100 0
-    "${TECA_DATA_ROOT}/test_normalize_coordinates_trans_z.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_trans_z_flip_y
-    COMMAND test_normalize_coordinates 90 45 7 0 1 0 0 0 100 0 360 -90 90 100 0
-    "${TECA_DATA_ROOT}/test_normalize_coordinates_trans_z.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_trans_z_flip_z
-    COMMAND test_normalize_coordinates 90 45 7 0 0 1 0 0 100 0 360 -90 90 100 0
-    "${TECA_DATA_ROOT}/test_normalize_coordinates_trans_z.bin"
     REQ_TECA_DATA)
 
 teca_add_test(test_cf_writer_collective_serial
