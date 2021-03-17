@@ -22,4 +22,5 @@ to develop new diagnostics.
    applications
    python
    developer
+   api/api
    bibliography

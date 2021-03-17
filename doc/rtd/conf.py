@@ -23,12 +23,23 @@ author = "Burlen Loring, Travis O'Brien & Abdelrahman Elbashandy"
 
 # -- General configuration ---------------------------------------------------
 
+import subprocess, os
+
+read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
+
+if read_the_docs_build:
+    if not os.path.exists('_build/html'):
+        os.makedirs('_build/html')
+    subprocess.call('doxygen', shell=True)
+    subprocess.call('./parse_xml.py', shell=True)
+
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 
 # pip install sphinxcontrib-bibtex
 extensions = ['sphinxcontrib.bibtex']
+
 bibtex_bibfiles = ['bibliography.bib']
 
 # Add any paths that contain templates here, relative to this directory.
@@ -53,13 +64,16 @@ html_theme = 'sphinx_rtd_theme'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-#html_static_path = ['_static']
 html_static_path = ['_static']
 
-html_context = {
-    'css_files': [
-        '_static/theme_overrides.css',  # overrides for wide tables in RTD theme
-        ],
-    }
+html_css_files = [
+    'theme_overrides.css',  # overrides for wide tables in RTD theme
+    'collapsible-lists/css/tree_view.css'
+    ]
+
+html_js_files = [
+    'collapsible-lists/js/CollapsibleLists.compressed.js',
+    'collapsible-lists/js/apply-collapsible-lists.js'
+    ]
 
 numfig = True
