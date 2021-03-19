@@ -794,3 +794,8 @@ teca_add_test(test_priority_queue
     SOURCES test_priority_queue.cpp
     LIBS teca_core teca_data ${teca_test_link}
     COMMAND test_priority_queue 57 1)
+
+teca_add_test(test_bounds_to_extent
+    SOURCES test_bounds_to_extent.cpp
+    LIBS teca_core teca_data ${teca_test_link}
+    COMMAND test_bounds_to_extent)
