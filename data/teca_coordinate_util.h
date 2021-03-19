@@ -268,8 +268,11 @@ int index_of(const T *data, size_t l, size_t r, T val, unsigned long &id)
 // the given coordinate arrays. coordinate arrays must
 // not be empty.
 int bounds_to_extent(const double *bounds,
-    const_p_teca_variant_array x, const_p_teca_variant_array y,
-    const_p_teca_variant_array z, unsigned long *extent);
+    const const_p_teca_variant_array &x, const const_p_teca_variant_array &y,
+    const const_p_teca_variant_array &z, unsigned long *extent);
+
+int bounds_to_extent(const double *bounds,
+    const const_p_teca_variant_array &x, unsigned long *extent);
 
 int bounds_to_extent(const double *bounds, const teca_metadata &md,
     unsigned long *extent);
@@ -674,6 +677,10 @@ int convert_cell_extent(num_t *extent, int centering)
 int get_cartesian_mesh_extent(const teca_metadata &md,
     unsigned long *whole_extent, double *bounds);
 
+// get the mesh's bounds from the cooridnate axis arrays
+int get_cartesian_mesh_bounds(const const_p_teca_variant_array x,
+    const const_p_teca_variant_array y, const const_p_teca_variant_array z,
+    double *bounds);
 
 // check that one Cartesian region covers the other coordinates must be in
 // ascending order. assumes that both regions are specified in ascending order.
