@@ -104,6 +104,14 @@ public:
      */
     ///@{
     TECA_ALGORITHM_VECTOR_PROPERTY(unsigned long, whole_extent)
+
+    /** Set the spatial extents from a metadata object following the
+     * conventions defined by the @ref teca_cf_reader. If three_d is true the
+     * extents in the z-direction are copied, otherwise they are set to 0.
+     * Returns zero if successful and non-zero if the supplied metadata is
+     * missing any of the requisite information.
+     **/
+    int set_spatial_extents(const teca_metadata &md, bool three_d = true);
     ///@}
 
     /** @anchor bounds
@@ -116,10 +124,11 @@ public:
     TECA_ALGORITHM_VECTOR_PROPERTY(double, bound)
 
     /** Set the spatial bounds from a metadata object following the conventions
-     * defined by the @ref teca_cf_reader. Returns zero if successful and non-zero
-     * if the supplied metadata is missing any of the requisite information.
+     * defined by the @ref teca_cf_reader. Returns zero if successful and
+     * non-zero if the supplied metadata is missing any of the requisite
+     * information.
      */
-    int set_spatial_bounds(const teca_metadata &md);
+    int set_spatial_bounds(const teca_metadata &md, bool three_d = true);
 
     ///@}
 
@@ -221,6 +230,13 @@ public:
      * supplied metadata is missing any of the requisite information.
      */
     int set_t_axis(const teca_metadata &md);
+
+    /** Set the time axis directly.  When a time axis is provided values are
+     * served up from the array rather than being generated. Execution control
+     * keys are also made use of if present.
+     */
+    void set_t_axis(const p_teca_variant_array &t);
+
     ///@}
 
     /** @anchor output_metadata

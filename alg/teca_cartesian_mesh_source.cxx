@@ -352,6 +352,12 @@ int teca_cartesian_mesh_source::set_t_axis(const teca_metadata &md)
 }
 
 // --------------------------------------------------------------------------
+void teca_cartesian_mesh_source::set_t_axis(const p_teca_variant_array &t)
+{
+    this->internals->t_axis = t;
+}
+
+// --------------------------------------------------------------------------
 int teca_cartesian_mesh_source::set_output_metadata(const teca_metadata &md)
 {
     teca_metadata coords;
@@ -402,7 +408,8 @@ int teca_cartesian_mesh_source::set_output_metadata(const teca_metadata &md)
 }
 
 // --------------------------------------------------------------------------
-int teca_cartesian_mesh_source::set_spatial_bounds(const teca_metadata &md)
+int teca_cartesian_mesh_source::set_spatial_extents(const teca_metadata &md,
+    bool three_d)
 {
     // get coordinates and attributes, fail if either are missing
     teca_metadata coords;
@@ -413,32 +420,56 @@ int teca_cartesian_mesh_source::set_spatial_bounds(const teca_metadata &md)
     if (md.get("attributes", attributes))
         return -1;
 
-    // get the bounds in the x direction
+    // get the coordinate axes
     p_teca_variant_array x = coords.get("x");
-
-    if (!x)
-        return -1;
-
-    x->get(0lu, this->bounds[0]);
-    x->get(x->size() - 1lu, this->bounds[1]);
-
-    // get the bounds in the y direction
     p_teca_variant_array y = coords.get("y");
-
-    if (!y)
-        return -1;
-
-    y->get(0lu, this->bounds[2]);
-    y->get(y->size() - 1lu, this->bounds[3]);
-
-    // get the bounds in the z direction
     p_teca_variant_array z = coords.get("z");
 
-    if (!z)
+    // verify
+    if (!x || !y || (three_d && !z))
         return -1;
 
+    // set the extents
+    this->whole_extents[0] = 0;
+    this->whole_extents[1] = x->size() - 1;
+    this->whole_extents[2] = 0;
+    this->whole_extents[3] = y->size() - 1;
+    this->whole_extents[4] = 0;
+    this->whole_extents[5] = three_d ? z->size() - 1 : 0;
+
+    return 0;
+}
+// --------------------------------------------------------------------------
+int teca_cartesian_mesh_source::set_spatial_bounds(const teca_metadata &md,
+    bool three_d)
+{
+    // get coordinates and attributes, fail if either are missing
+    teca_metadata coords;
+    if (md.get("coordinates", coords))
+        return -1;
+
+    teca_metadata attributes;
+    if (md.get("attributes", attributes))
+        return -1;
+
+    // get the coordinate axes
+    p_teca_variant_array x = coords.get("x");
+    p_teca_variant_array y = coords.get("y");
+    p_teca_variant_array z = coords.get("z");
+
+    // verify
+    if (!x || !y || (three_d && !z))
+        return -1;
+
+    // get the bounds
+    x->get(0lu, this->bounds[0]);
+    x->get(x->size() - 1lu, this->bounds[1]);
+    y->get(0lu, this->bounds[2]);
+    y->get(y->size() - 1lu, this->bounds[3]);
     z->get(0lu, this->bounds[4]);
-    z->get(z->size() - 1lu, this->bounds[5]);
+
+    unsigned long khi = three_d ? z->size() - 1lu : 0lu;
+    z->get(khi, this->bounds[5]);
 
     // set the coordinate type
     this->set_coordinate_type_code(x->type_code());
