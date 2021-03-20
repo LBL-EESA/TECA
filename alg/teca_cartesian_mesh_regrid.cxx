@@ -390,12 +390,40 @@ std::vector<teca_metadata> teca_cartesian_mesh_regrid::get_upstream_request(
     target_z->get(target_extent[4], target_bounds[4]);
     target_z->get(target_extent[5], target_bounds[5]);
 
+    // if the source is 2D, the cf_reader may have faked the vertical dimension.
+    // in that case, use the source's vertical coordinate in the requested bounds
+    teca_metadata source_coords;
+    p_teca_variant_array source_z;
+
+    if (input_md[md_src].get("coordinates", source_coords)
+        || !(source_z = source_coords.get("z")))
+    {
+        TECA_ERROR("failed to locate source mesh coordinates")
+        return up_reqs;
+    }
+
+    if (source_z->size() == 1)
+    {
+        source_z->get(0, target_bounds[4]);
+        source_z->get(0, target_bounds[5]);
+    }
+
     // send the target bounds to the source as well
     source_req.set("bounds", target_bounds, 6);
 
     // send the requests up
     up_reqs[md_tgt] = target_req;
     up_reqs[md_src] = source_req;
+
+#ifdef TECA_DEBUG
+    std::cerr << "source request = ";
+    source_req.to_stream(std::cerr);
+    std::cerr << std::endl;
+
+    std::cerr << "target request = ";
+    target_req.to_stream(std::cerr);
+    std::cerr << std::endl;
+#endif
 
     return up_reqs;
 }
