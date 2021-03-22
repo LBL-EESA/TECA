@@ -493,6 +493,7 @@ private:
     template<typename U> friend class teca_variant_array_impl;
 };
 
+// @cond
 
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
 #pragma GCC diagnostic ignored "-Wunused-local-typedefs"
@@ -605,6 +606,7 @@ private:
     NESTED_TEMPLATE_DISPATCH_FP(t, p, i, body)      \
     else NESTED_TEMPLATE_DISPATCH_I(t, p, i, body)
 
+// @endcond
 
 // --------------------------------------------------------------------------
 template<typename T>
@@ -1230,6 +1232,9 @@ void teca_variant_array_impl<T>::to_ascii(
 }
 
 // --------------------------------------------------------------------------
+
+// @cond
+
 template<typename T>
     template <typename U>
 void teca_variant_array_impl<T>::from_ascii(
@@ -1356,6 +1361,7 @@ struct teca_variant_array_factory
     CODE_DISPATCH_I(_v, _code)              \
     else CODE_DISPATCH_FP(_v, _code)
 
+// @endcond
 
 // --------------------------------------------------------------------------
 template<typename T>

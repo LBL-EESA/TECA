@@ -14,6 +14,8 @@
 #include <netcdf_par.h>
 #endif
 
+// @cond
+
 // macro to help with netcdf data types
 #define NC_DISPATCH_FP(tc_, code_)                          \
     switch (tc_)                                            \
@@ -100,6 +102,8 @@ DECLARE_CPP_TT(long long, NC_INT64)
 DECLARE_CPP_TT(unsigned long long, NC_UINT64)
 DECLARE_CPP_TT(float, NC_FLOAT)
 DECLARE_CPP_TT(double, NC_DOUBLE)
+
+// @endcond
 
 // to deal with fortran fixed length strings
 // which are not properly nulll terminated
