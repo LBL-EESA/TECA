@@ -219,9 +219,7 @@ int main(int argc, char **argv)
     bool have_bounds = opt_vals.count("bounds");
     if (have_bounds)
     {
-        std::vector<double> bounds =
-            opt_vals["bounds"].as<std::vector<double>>();
-
+        bounds = opt_vals["bounds"].as<std::vector<double>>();
         if (bounds.size() != 6)
         {
             TECA_ERROR("An invlaid bounds specification was provided in"
@@ -410,7 +408,7 @@ int main(int argc, char **argv)
         }
     }
 
-    // set up regridding
+    // set up regriding
     if (do_regrid)
     {
         // run the reporting phase of the pipeline, the resulting metadata
@@ -419,13 +417,14 @@ int main(int argc, char **argv)
         if (md.empty())
             md = head->update_metadata();
 
-        // if possible use the calendar of the input dataset
-        if (regrid_src->set_calendar(md))
+        // use the calendar and time axis of the input dataset
+        if (regrid_src->set_t_axis_variable(md) || regrid_src->set_t_axis(md))
         {
-            // fallback to the standard calendar and an arbitary
-            // reference date
-            regrid_src->set_calendar("standard");
-            regrid_src->set_time_units("days since 1800-01-01 00:00:00");
+            TECA_WARNING("Failed to determine the time axis, assuming a single time step")
+
+            p_teca_double_array t = teca_double_array::New(1);
+            regrid_src->set_t_axis_variable("");
+            regrid_src->set_t_axis(t);
         }
 
         // to construct the target mesh we need bounds.  if no bounds are

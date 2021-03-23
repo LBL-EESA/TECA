@@ -156,11 +156,10 @@ int bounds_to_extent(const double *bounds, const teca_metadata &md,
     return bounds_to_extent(bounds, x, y, z, extent);
 }
 
-
 // **************************************************************************
 int bounds_to_extent(const double *bounds,
-    const_p_teca_variant_array x, const_p_teca_variant_array y,
-    const_p_teca_variant_array z, unsigned long *extent)
+    const const_p_teca_variant_array &x, const const_p_teca_variant_array &y,
+    const const_p_teca_variant_array &z, unsigned long *extent)
 {
     TEMPLATE_DISPATCH_FP(
         const teca_variant_array_impl,
@@ -238,7 +237,56 @@ int bounds_to_extent(const double *bounds,
         return 0;
         )
 
-    TECA_ERROR("invalid coordinate array type")
+    TECA_ERROR("invalid coordinate array type \"" << x->get_class_name() << "\"")
+    return -1;
+}
+
+// **************************************************************************
+int bounds_to_extent(const double *bounds,
+    const const_p_teca_variant_array &x, unsigned long *extent)
+{
+    TEMPLATE_DISPATCH_FP(
+        const teca_variant_array_impl,
+        x.get(),
+
+        // in the following, for each side (low, high) of the bounds in
+        // each cooridnate direction we are searching for the index that
+        // is either just below, just above, or exactly at the given value.
+        // special cases include:
+        //   * x,y,z in descending order. we check for that and
+        //     invert the compare functions that define the bracket
+        //   * bounds describing a plane. we test for this and
+        //     so that both high and low extent return the same value.
+        //   * x,y,z are length 1. we can skip the search in that
+        //     case.
+
+        const NT eps8 = NT(8)*std::numeric_limits<NT>::epsilon();
+
+        unsigned long nx = x->size();
+        unsigned long high_i = nx - 1;
+        extent[0] = 0;
+        extent[1] = high_i;
+        const NT *px = std::dynamic_pointer_cast<TT>(x)->get();
+        NT low_x = static_cast<NT>(bounds[0]);
+        NT high_x = static_cast<NT>(bounds[1]);
+        bool slice_x = equal(low_x, high_x, eps8);
+
+        if (((nx > 1) && (((px[high_i] > px[0]) &&
+            (teca_coordinate_util::index_of(px, 0, high_i, low_x, true, extent[0])
+            || teca_coordinate_util::index_of(px, 0, high_i, high_x, slice_x, extent[1]))) ||
+            ((px[high_i] < px[0]) &&
+            (teca_coordinate_util::index_of<NT,descend_bracket<NT>>(px, 0, high_i, low_x, false, extent[0])
+            || teca_coordinate_util::index_of<NT,descend_bracket<NT>>(px, 0, high_i, high_x, !slice_x, extent[1]))))))
+        {
+            TECA_ERROR(<< "requested subset [" << bounds[0] << ", " << bounds[1] << ", "
+                << "] is not contained in the current dataset bounds [" << px[0] << ", "
+                << px[high_i] << "]")
+            return -1;
+        }
+        return 0;
+        )
+
+    TECA_ERROR("invalid coordinate array type \"" << x->get_class_name() << "\"")
     return -1;
 }
 
@@ -282,6 +330,25 @@ int validate_centering(int centering)
             TECA_ERROR("this centering is undefined " << centering)
     }
     return ret;
+}
+
+// **************************************************************************
+int get_cartesian_mesh_bounds(const const_p_teca_variant_array x,
+    const const_p_teca_variant_array y, const const_p_teca_variant_array z,
+    double *bounds)
+{
+    unsigned long x1 = x->size() - 1;
+    unsigned long y1 = y->size() - 1;
+    unsigned long z1 = z->size() - 1;
+
+    x->get(0, bounds[0]);
+    x->get(x1, bounds[1]);
+    y->get(0, bounds[2]);
+    y->get(y1, bounds[3]);
+    z->get(0, bounds[4]);
+    z->get(z1, bounds[5]);
+
+    return 0;
 }
 
 // **************************************************************************

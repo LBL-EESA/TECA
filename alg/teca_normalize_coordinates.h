@@ -10,21 +10,27 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_normalize_coordinates)
 
-/// an algorithm that ensures that Cartesian mesh coordinates follow conventions
-/**
- * Transformations of coordinates and data to/from ascending order
- * are made as data and information pass up and down stream through
- * the algorithm. See @ref axis_order
+/** @brief
+ * An algorithm to ensure that Cartesian mesh coordinates follow conventions
  *
- * An optional translation to each axis can be applied by setting
- * one or more of translate_x, translate_y, or translate_z to a
- * non-zero value. See @ref translate_axis
+ * @details
+ * When enabled, transformations of coordinates and data are applied such that
+ * Cartesian meshes are follow the conventions:
  *
- * Use this algorithm when downstream processing depends on coordinate
- * conventions. For instance differentials or integrals may require spatial
- * coordinate be in ascending or descending order. Similarly regriding
- * operations may require data in the same coordinate system.
-*/
+ * 1. the x-axis coordinates are in the range of 0 to 360.
+ * 2. the y-axis coordinate are in ascending order.
+ *
+ * These transformations are automatically applied and can be enabled or
+ * disbaled as needed. The properties @ref enable_periodic_shift and
+ * @ref enable_y_axis_ascending provide a way to enable/disable the transforms.
+ *
+ * Subset requests are not implemented when the periodic shift is enabled. When
+ * a request is made for data that crosses the periodic boundary, the request
+ * is modified to request the entire x-axis.
+ *
+ * If data point opn the periodic boundary is duplicated, the data at 180 is
+ * dropped and a warning is issued.g
+ */
 class teca_normalize_coordinates : public teca_algorithm
 {
 public:
@@ -38,38 +44,34 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    /** @anchor axis_order
-     * @name axis_order
-     * Set the desired order of the output for each coordinate
-     * axis. Use ORDER_ASCENDING(0) to ensure the output is in
-     * ascending order, and ORDER_DESCENDING(1) to ensure the
-     * output is in descending order. By default the x and y
-     * axes are put in ascending order and the z axis is put
-     * into descending order.
+    /** @anchor enable_periodic_shift_x
+     * @name enable_periodic_shift_x
+     * If set, this  enables an automatic transformation of the x-axis
+     * coordinates and data from [-180, 180] to [0, 360]. When enabled, the
+     * transformation is applied if the lowest x coordinate is less than 0 and
+     * skipped otherwise.
      */
     ///@{
-    enum {ORDER_ASCENDING = 0, ORDER_DESCENDING = 1};
-    TECA_ALGORITHM_PROPERTY_V(int, x_axis_order)
-    TECA_ALGORITHM_PROPERTY_V(int, y_axis_order)
-    TECA_ALGORITHM_PROPERTY_V(int, z_axis_order)
+    TECA_ALGORITHM_PROPERTY(int, enable_periodic_shift_x)
     ///@}
 
-    /** @anchor translate_axis
-     * @name translate_axis
-     * Set the amount to translate the x, y, or z axis by.
+    /** @anchor enable_y_axis_ascending
+     * @name enable_y_axis_ascending
+     * If set, this enables an automatic transformation of the y-axis
+     * coordinates and data from descending to ascending order. The
+     * transformation is applied if the lowest y coordinate is greater than the
+     * highest y coordinate skipped otherwise. Many TECA algorithms are written
+     * to process data with y-axis coordinates in ascending order, thus the
+     * transform is enabled by default. Setting this to 0 disables the
+     * transform for cases where it is desirable to pass data through
+     * unmodified.
      */
     ///@{
-    TECA_ALGORITHM_PROPERTY(double, translate_x)
-    TECA_ALGORITHM_PROPERTY(double, translate_y)
-    TECA_ALGORITHM_PROPERTY(double, translate_z)
+    TECA_ALGORITHM_PROPERTY(int, enable_y_axis_ascending)
     ///@}
 
 protected:
     teca_normalize_coordinates();
-
-    int validate_x_axis_order(int val);
-    int validate_y_axis_order(int val);
-    int validate_z_axis_order(int val);
 
 private:
     teca_metadata get_output_metadata(unsigned int port,
@@ -84,15 +86,8 @@ private:
         const teca_metadata &request) override;
 
 private:
-    int x_axis_order;
-    int y_axis_order;
-    int z_axis_order;
-    double translate_x;
-    double translate_y;
-    double translate_z;
-
-    struct internals_t;
-    internals_t *internals;
+    int enable_periodic_shift_x;
+    int enable_y_axis_ascending;
 };
 
 #endif

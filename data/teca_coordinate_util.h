@@ -147,15 +147,43 @@ struct gt
 template<typename data_t>
 struct ascend_bracket
 {
+    // m_0 is an index into the data, m_1 = m_0 + 1
+    // comparitors defining the bracket orientation. for data in
+    // ascending order:  val >= data[m_0] && val <= data[m_1]
     using comp0_t = geq<data_t>;
     using comp1_t = leq<data_t>;
+
+    // m_0 is an index into the data, m_1 = m_0 + 1
+    // get the id of the smaller value (lower == true)
+    // or the larger value (lower == false)
+    static unsigned long get_id(bool lower,
+        unsigned long m_0, unsigned long m_1)
+    {
+        if (lower)
+            return m_0;
+        return m_1;
+    }
 };
 
 template<typename data_t>
 struct descend_bracket
 {
+    // m_0 is an index into the data, m_1 = m_0 + 1
+    // comparitors defining the bracket orientation. for data in
+    // descending order:  val <= data[m_0] && val >= data[m_1]
     using comp0_t = leq<data_t>;
     using comp1_t = geq<data_t>;
+
+    // m_0 is an index into the data, m_1 = m_0 + 1
+    // get the id of the smaller value (lower == true)
+    // or the larger value (lower == false)
+    static unsigned long get_id(bool lower,
+        unsigned long m_0, unsigned long m_1)
+    {
+        if (lower)
+            return m_1;
+        return m_0;
+    }
 };
 
 // binary search that will locate index bounding the value
@@ -192,10 +220,7 @@ int index_of(const data_t *data, unsigned long l, unsigned long r,
         if (equal(val, data[m_1]))
             id = m_1;
         else
-        if (lower)
-            id = m_0;
-        else
-            id = m_1;
+            id = bracket_t::get_id(lower, m_0, m_1);
         return 0;
     }
     else
@@ -268,8 +293,11 @@ int index_of(const T *data, size_t l, size_t r, T val, unsigned long &id)
 // the given coordinate arrays. coordinate arrays must
 // not be empty.
 int bounds_to_extent(const double *bounds,
-    const_p_teca_variant_array x, const_p_teca_variant_array y,
-    const_p_teca_variant_array z, unsigned long *extent);
+    const const_p_teca_variant_array &x, const const_p_teca_variant_array &y,
+    const const_p_teca_variant_array &z, unsigned long *extent);
+
+int bounds_to_extent(const double *bounds,
+    const const_p_teca_variant_array &x, unsigned long *extent);
 
 int bounds_to_extent(const double *bounds, const teca_metadata &md,
     unsigned long *extent);
@@ -674,6 +702,10 @@ int convert_cell_extent(num_t *extent, int centering)
 int get_cartesian_mesh_extent(const teca_metadata &md,
     unsigned long *whole_extent, double *bounds);
 
+// get the mesh's bounds from the cooridnate axis arrays
+int get_cartesian_mesh_bounds(const const_p_teca_variant_array x,
+    const const_p_teca_variant_array y, const const_p_teca_variant_array z,
+    double *bounds);
 
 // check that one Cartesian region covers the other coordinates must be in
 // ascending order. assumes that both regions are specified in ascending order.

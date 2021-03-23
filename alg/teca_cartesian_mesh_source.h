@@ -104,6 +104,14 @@ public:
      */
     ///@{
     TECA_ALGORITHM_VECTOR_PROPERTY(unsigned long, whole_extent)
+
+    /** Set the spatial extents from a metadata object following the
+     * conventions defined by the @ref teca_cf_reader. If three_d is true the
+     * extents in the z-direction are copied, otherwise they are set to 0.
+     * Returns zero if successful and non-zero if the supplied metadata is
+     * missing any of the requisite information.
+     **/
+    int set_spatial_extents(const teca_metadata &md, bool three_d = true);
     ///@}
 
     /** @anchor bounds
@@ -116,93 +124,135 @@ public:
     TECA_ALGORITHM_VECTOR_PROPERTY(double, bound)
 
     /** Set the spatial bounds from a metadata object following the conventions
-     * defined by the teca_cf_reader. This provides an easy way to get valid
-     * mesh bounds from an existing dataset where the producer of the dataset
-     * has followed those conventions. Returns zero if successful and non-zero
-     * if the supplied metadata is missing any of the requisite information.
+     * defined by the @ref teca_cf_reader. Returns zero if successful and
+     * non-zero if the supplied metadata is missing any of the requisite
+     * information.
      */
-    int set_spatial_bounds(const teca_metadata &md);
+    int set_spatial_bounds(const teca_metadata &md, bool three_d = true);
+
     ///@}
 
     /** @anchor x_axis_variable
      * @name x_axis_variable
-     * set the variable to use for the coordinate axes. the default is: lon
+     * set the name of the variable to use for the coordinate axes and
+     * optionally associated attributes.
      */
     ///@{
-    TECA_ALGORITHM_PROPERTY(std::string, x_axis_variable)
+    /** set the name of the t_axis_variable */
+    void set_x_axis_variable(const std::string &name);
+
+    /** Set the name of the variable and its attributes. See @ref
+     * teca_array_attributes for more information.
+     */
+    void set_x_axis_variable(const std::string &name, const teca_metadata &atts);
+
+    /** Set the name of the variable and its attributes using conventions
+     * defined by the @ref teca_cf_reader. Returns zero if successful and
+     * non-zero if the supplied metadata is missing any of the requisite
+     * information.
+     */
+    int set_x_axis_variable(const teca_metadata &md);
     ///@}
 
     /** @anchor y_axis_variable
      * @name y_axis_variable
-     * set the variable to use for the coordinate axes. the defaults is: lat
+     * set the name of the variable to use for the coordinate axes and
+     * optionally associated attributes.
      */
     ///@{
-    TECA_ALGORITHM_PROPERTY(std::string, y_axis_variable)
+    /** set the name of the y_axis_variable */
+    void set_y_axis_variable(const std::string &name);
+
+    /** Set the name of the variable and its attributes. See @ref
+     * teca_array_attributes for more information.
+     */
+    void set_y_axis_variable(const std::string &name, const teca_metadata &atts);
+
+    /** Set the name of the variable and its attributes using conventions
+     * defined by the @ref teca_cf_reader. Returns zero if successful and
+     * non-zero if the supplied metadata is missing any of the requisite
+     * information.
+     */
+    int set_y_axis_variable(const teca_metadata &md);
     ///@}
 
     /** @anchor z_axis_variable
      * @name z_axis_variable
-     * set the variable to use for the coordinate axes. the default is: plev
+     * set the name of the variable to use for the coordinate axes and
+     * optionally associated attributes.
      */
     ///@{
-    TECA_ALGORITHM_PROPERTY(std::string, z_axis_variable)
+    /** set the name of the z_axis_variable */
+    void set_z_axis_variable(const std::string &name);
+
+    /** Set the name of the variable and its attributes. See @ref
+     * teca_array_attributes for more information.
+     */
+    void set_z_axis_variable(const std::string &name, const teca_metadata &atts);
+
+    /** Set the name of the variable and its attributes using conventions
+     * defined by the @ref teca_cf_reader. Returns zero if successful and
+     * non-zero if the supplied metadata is missing any of the requisite
+     * information.
+     */
+    int set_z_axis_variable(const teca_metadata &md);
     ///@}
 
     /** @anchor t_axis_variable
      * @name t_axis_variable
-     * set the variable to use for the coordinate axes.  * the default is: time
+     * set the name of the variable to use for the coordinate axes and
+     * optionally associated attributes.
      */
     ///@{
-    TECA_ALGORITHM_PROPERTY(std::string, t_axis_variable)
+    /** set the name of the t_axis_variable */
+    void set_t_axis_variable(const std::string &name);
+
+    /** Set the calendar, and time units of the t_axis_variable */
+    void set_calendar(const std::string &calendar, const std::string &units);
+
+    /** Set the name of the variable and its attributes. See @ref
+     * teca_array_attributes for more information.
+     */
+    void set_t_axis_variable(const std::string &name,
+        const teca_metadata &atts);
+
+    /** Set the name of the variable and its attributes using conventions
+     * defined by the @ref teca_cf_reader. Returns zero if successful and
+     * non-zero if the supplied metadata is missing any of the requisite
+     * information.
+     */
+    int set_t_axis_variable(const teca_metadata &md);
+
+    /** Set the time axis using coordinate conventions defined by the @ref
+     * teca_cf_reader. When a time axis is provided values are served up from
+     * the array rather than being generated. Execution control keys are also
+     * made use of if present. Returns zero if successful and non-zero if the
+     * supplied metadata is missing any of the requisite information.
+     */
+    int set_t_axis(const teca_metadata &md);
+
+    /** Set the time axis directly.  When a time axis is provided values are
+     * served up from the array rather than being generated. Execution control
+     * keys are also made use of if present.
+     */
+    void set_t_axis(const p_teca_variant_array &t);
+
     ///@}
 
-    /** @anchor x_axis_units
-     * @name x_axis_units
-     * set the units of spatial axes. The defaults is: degrees_east
+    /** @anchor output_metadata
+     * @name output_metadata
+     * Set the output metadata directly. The provided metadata must contain
+     * "coordinates" as defined by the @ref teca_cf_reader because these are
+     * required for mesh generation. Pipeline execution control keys as defined
+     * by @ref teca_index_executive are also required. Calendaring metadata is
+     * recommended. A copy of the passed object is made but "variables" are
+     * replaced with those generated by this class, if any. As a result be sure
+     * to specifiy field generators before calling this method. Returns 0 if
+     * successful, and non-zero if the supplied metadata doesn't contain the
+     * expected information. No error messages are sent to the terminal.
      */
     ///@{
-    TECA_ALGORITHM_PROPERTY(std::string, x_axis_units)
-    ///@}
-
-    /** @anchor y_axis_units
-     * @name y_axis_units
-     * set the units of spatial axes. The defaults is: degrees_north
-     */
-    ///@{
-    TECA_ALGORITHM_PROPERTY(std::string, y_axis_units)
-    ///@}
-
-    /** @anchor z_axis_units
-     * @name z_axis_units
-     * set the units of spatial axes. The defaults is: Pa
-     */
-    ///@{
-    TECA_ALGORITHM_PROPERTY(std::string, z_axis_units)
-    ///@}
-
-    /** @anchor calendar
-     * @name calendar
-     * Set/get the calendar. The default is "Gregorian".
-     */
-    ///@{
-    TECA_ALGORITHM_PROPERTY(std::string, calendar)
-
-    /** Set the time units and calendar from a metadata object following the
-     * conventions defined by the teca_cf_reader. This provides an easy way to
-     * get calendaring information from an existing dataset where the producer
-     * of the dataset has followed those conventions. Returns zero if
-     * successful and non-zero if the supplied metadata is missing any of the
-     * requisite information.
-     */
-    int set_calendar(const teca_metadata &md);
-    ///@}
-
-    /** @anchor time_units
-     * @name time_units
-     * Set/get the calendar. The default is "seconds since 1970-01-01 00:00:00".
-     */
-    ///@{
-    TECA_ALGORITHM_PROPERTY(std::string, time_units)
+    int set_output_metadata(const teca_metadata &md);
     ///@}
 
     /** @anchor append_field_generator
@@ -247,11 +297,10 @@ private:
     std::string y_axis_variable;
     std::string z_axis_variable;
     std::string t_axis_variable;
-    std::string x_axis_units;
-    std::string y_axis_units;
-    std::string z_axis_units;
-    std::string calendar;
-    std::string time_units;
+    teca_metadata x_axis_attributes;
+    teca_metadata y_axis_attributes;
+    teca_metadata z_axis_attributes;
+    teca_metadata t_axis_attributes;
     std::vector<unsigned long> whole_extents;
     std::vector<double> bounds;
 

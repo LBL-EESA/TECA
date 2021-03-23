@@ -137,8 +137,7 @@ int main(int argc, char **argv)
     src->set_whole_extents({0, 63, 0, 63, 0, 0, 0, 15});
     src->set_bounds({-M_PI, M_PI, -M_PI, M_PI, 0.0, 0.0, 0.0, M_PI/4.});
     src->append_field_generator({"func", pd.get_attributes(), pd});
-    src->set_calendar("standard");
-    src->set_time_units("days since 1980-01-01 00:00:00");
+    src->set_calendar("standard", "days since 1980-01-01 00:00:00");
 
     if (write_input)
     {

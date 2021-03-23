@@ -76,8 +76,7 @@ int main(int argc, char **argv)
     p_teca_cartesian_mesh_source s = teca_cartesian_mesh_source::New();
     s->set_whole_extents({0, 99, 0, 99, 0, 0, 0, 0});
     s->set_bounds({-pi, pi, -pi, pi, 0.0, 0.0, 0.0, 0.0});
-    s->set_calendar("standard");
-    s->set_time_units("days since 2020-12-15 00:00:00");
+    s->set_calendar("standard", "days since 2020-12-15 00:00:00");
 
     cosx_cosy func(threshold, fill_value);
 
