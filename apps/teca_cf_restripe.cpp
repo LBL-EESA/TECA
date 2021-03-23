@@ -423,9 +423,7 @@ int main(int argc, char **argv)
             TECA_WARNING("Failed to determine the time axis, assuming a single time step")
 
             p_teca_double_array t = teca_double_array::New(1);
-
-            regrid_src->set_t_axis_variable("time");
-            regrid_src->set_calendar("standard", "days since 1800-01-01");
+            regrid_src->set_t_axis_variable("");
             regrid_src->set_t_axis(t);
         }
 
