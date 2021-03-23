@@ -485,7 +485,18 @@ const_p_teca_dataset teca_cartesian_mesh_regrid::execute(
     for (; it != end; ++it)
     {
         if (!target->get_point_arrays()->has(*it))
-            source_arrays.push_back(*it);
+        {
+            if (source->get_point_arrays()->has(*it))
+            {
+                source_arrays.push_back(*it);
+            }
+            else
+            {
+                TECA_ERROR("Array \"" << *it
+                    << "\" is neither present in source or target mesh")
+                return nullptr;
+            }
+        }
     }
 
     // catch a user error
