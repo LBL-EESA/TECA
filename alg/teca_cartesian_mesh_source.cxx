@@ -556,7 +556,9 @@ teca_metadata teca_cartesian_mesh_source::get_output_metadata(
     atts.set(this->x_axis_variable, x_atts);
     atts.set(this->y_axis_variable, y_atts);
     atts.set(this->z_axis_variable, z_atts);
-    atts.set(this->t_axis_variable, t_atts);
+
+    if (!this->t_axis_variable.empty())
+        atts.set(this->t_axis_variable, t_atts);
 
     // construct dataset metadata
     teca_metadata coords;
