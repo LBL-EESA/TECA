@@ -263,6 +263,12 @@ int extract_value(char *l, val_t &val)
  */
 void remove_post_fix(std::set<std::string> &names, std::string post_fix);
 
+/// When passed the string "" return empty string otherwise return the passed string
+inline std::string emptystr(const std::string &in)
+{
+    return (in == "\"\"" ? std::string() : in);
+}
+
 }
 
 #endif
