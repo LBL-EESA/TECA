@@ -11,6 +11,10 @@
 #include "teca_integrated_vapor_transport.h"
 #include "teca_valid_value_mask.h"
 #include "teca_unpack_data.h"
+#include "teca_cartesian_mesh_source.h"
+#include "teca_cartesian_mesh_regrid.h"
+#include "teca_elevation_mask.h"
+#include "teca_indexed_dataset_cache.h"
 #include "teca_mpi_manager.h"
 #include "teca_coordinate_util.h"
 #include "teca_table.h"
@@ -22,6 +26,8 @@
 #include <string>
 #include <iostream>
 #include <boost/program_options.hpp>
+
+#include "teca_cartesian_mesh_writer.h"
 
 using namespace std;
 
@@ -96,6 +102,16 @@ int main(int argc, char **argv)
         ("z_axis_variable", value<std::string>()->default_value("plev"),
             "\nname of z coordinate variable\n")
 
+        ("dem", value<std::string>(), "\nA teca_cf_reader regex identifying the"
+            " file containing surface elevation field or DEM.\n")
+
+        ("dem_variable", value<std::string>()->default_value("Z"),
+            "\nSets the name of the variable containing the surface elevation field\n")
+
+        ("mesh_height", value<std::string>()->default_value("Zg"),
+            "\nSets the name of the variable containing the point wise vertical height"
+            " in meters above mean sea level\n")
+
         ("first_step", value<long>()->default_value(0), "\nfirst time step to process\n")
         ("last_step", value<long>()->default_value(-1), "\nlast time step to process\n")
 
@@ -150,6 +166,29 @@ int main(int argc, char **argv)
     p_teca_unpack_data unpack = teca_unpack_data::New();
     unpack->get_properties_description("unpack", advanced_opt_defs);
 
+    p_teca_cf_reader elev_reader = teca_cf_reader::New();
+    elev_reader->get_properties_description("elev_reader", advanced_opt_defs);
+    elev_reader->set_t_axis_variable("");
+
+    p_teca_normalize_coordinates elev_coords = teca_normalize_coordinates::New();
+    elev_coords->get_properties_description("elev_coords", advanced_opt_defs);
+    elev_coords->set_enable_periodic_shift_x(1);
+
+    p_teca_indexed_dataset_cache elev_cache = teca_indexed_dataset_cache::New();
+    elev_cache->get_properties_description("elev_cache", advanced_opt_defs);
+    elev_cache->set_max_cache_size(1);
+
+    p_teca_cartesian_mesh_source elev_mesh = teca_cartesian_mesh_source::New();
+    elev_mesh->get_properties_description("elev_mesh", advanced_opt_defs);
+
+    p_teca_cartesian_mesh_regrid elev_regrid = teca_cartesian_mesh_regrid::New();
+    elev_regrid->get_properties_description("elev_regrid", advanced_opt_defs);
+
+    p_teca_elevation_mask elev_mask = teca_elevation_mask::New();
+    elev_mask->get_properties_description("elev_mask", advanced_opt_defs);
+    elev_mask->set_surface_elevation_variable("Z");
+    elev_mask->set_mesh_height_variable("ZG");
+
     p_teca_integrated_vapor_transport ivt_int = teca_integrated_vapor_transport::New();
     ivt_int->get_properties_description("ivt_integral", advanced_opt_defs);
     ivt_int->set_specific_humidity_variable("Q");
@@ -197,6 +236,12 @@ int main(int argc, char **argv)
     norm_coords->set_properties("norm_coords", opt_vals);
     vv_mask->set_properties("vv_mask", opt_vals);
     unpack->set_properties("unpack", opt_vals);
+    elev_reader->set_properties("elev_reader", opt_vals);
+    elev_coords->set_properties("elev_coords", opt_vals);
+    elev_mesh->set_properties("elev_mesh", opt_vals);
+    elev_cache->set_properties("elev_cache", opt_vals);
+    elev_regrid->set_properties("elev_regrid", opt_vals);
+    elev_mask->set_properties("elev_mask", opt_vals);
     ivt_int->set_properties("ivt_integral", opt_vals);
     l2_norm->set_properties("ivt_magnitude", opt_vals);
     cf_writer->set_properties("cf_writer", opt_vals);
@@ -233,6 +278,13 @@ int main(int argc, char **argv)
         cf_reader->set_y_axis_variable(opt_vals["y_axis_variable"].as<string>());
         mcf_reader->set_y_axis_variable(opt_vals["y_axis_variable"].as<string>());
     }
+
+    std::string z_var = "plev";
+    if (!opt_vals["z_axis_variable"].defaulted())
+        z_var = opt_vals["z_axis_variable"].as<string>();
+
+    cf_reader->set_z_axis_variable(z_var);
+    mcf_reader->set_z_axis_variable(z_var);
 
     // set the inputs to the integrator
     if (!opt_vals["wind_u"].defaulted())
@@ -279,17 +331,69 @@ int main(int argc, char **argv)
     bool do_ivt = opt_vals["write_ivt"].as<int>();
     bool do_ivt_magnitude = opt_vals["write_ivt_magnitude"].as<int>();
 
-    std::string z_var = "plev";
-    if (!opt_vals["z_axis_variable"].defaulted())
-        z_var = opt_vals["z_axis_variable"].as<string>();
+    // add the elevation mask stages
+    teca_metadata md;
+    if (opt_vals.count("dem"))
+    {
+        if (mpi_man.get_comm_rank() == 0)
+            TECA_STATUS("Generating elevation mask")
 
-    cf_reader->set_z_axis_variable(z_var);
-    mcf_reader->set_z_axis_variable(z_var);
+        elev_reader->set_files_regex(opt_vals["dem"].as<string>());
+
+        elev_coords->set_input_connection(elev_reader->get_output_port());
+
+        md = head->update_metadata();
+
+        elev_mesh->set_spatial_bounds(md, false);
+        elev_mesh->set_spatial_extents(md, false);
+        elev_mesh->set_x_axis_variable(md);
+        elev_mesh->set_y_axis_variable(md);
+        elev_mesh->set_z_axis_variable(md);
+        elev_mesh->set_t_axis_variable(md);
+        elev_mesh->set_t_axis(md);
+
+        elev_regrid->set_input_connection(0, elev_mesh->get_output_port());
+        elev_regrid->set_input_connection(1, elev_coords->get_output_port());
+
+        elev_cache->set_input_connection(elev_regrid->get_output_port());
+
+        /*p_teca_cartesian_mesh_writer rdw = teca_cartesian_mesh_writer::New();
+        rdw->set_input_connection(elev_cache->get_output_port());
+        rdw->set_file_name("regrid_dem_%t%.vtk");*/
+
+        elev_mask->set_input_connection(0, head->get_output_port());
+        elev_mask->set_input_connection(1, elev_cache->get_output_port());
+        //elev_mask->set_input_connection(1, rdw->get_output_port());
+
+        if (!opt_vals["dem_variable"].defaulted())
+            elev_mask->set_surface_elevation_variable(
+                opt_vals["dem_variable"].as<string>());
+
+        if (!opt_vals["mesh_height"].defaulted())
+            elev_mask->set_mesh_height_variable(
+                opt_vals["mesh_height"].as<string>());
+
+        elev_mask->set_mask_variables({
+            ivt_int->get_specific_humidity_variable() + "_valid",
+            ivt_int->get_wind_u_variable() + "_valid",
+            ivt_int->get_wind_v_variable() + "_valid"});
+
+        /*p_teca_cartesian_mesh_writer emw = teca_cartesian_mesh_writer::New();
+        emw->set_input_connection(elev_mask->get_output_port());
+        emw->set_file_name("elev_mask_%t%.vtk");
+        emw->set_binary(1);
+        head = emw;*/
+
+        head = elev_mask;
+    }
 
     ivt_int->set_input_connection(head->get_output_port());
 
     if (do_ivt_magnitude)
     {
+        if (mpi_man.get_comm_rank() == 0)
+            TECA_STATUS("Computing IVT magnitude")
+
         l2_norm->set_input_connection(ivt_int->get_output_port());
         head = l2_norm;
     }
@@ -367,7 +471,8 @@ int main(int argc, char **argv)
     if (parse_start_date || parse_end_date)
     {
         // run the reporting phase of the pipeline
-        teca_metadata md = reader->update_metadata();
+        if (md.empty())
+            md = reader->update_metadata();
 
         teca_metadata atrs;
         if (md.get("attributes", atrs))
