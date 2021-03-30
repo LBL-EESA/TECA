@@ -3,7 +3,7 @@
 #include "teca_variant_array.h"
 #include "teca_metadata.h"
 #include "teca_cartesian_mesh.h"
-#include "teca_metadata_util.h"
+#include "teca_string_util.h"
 
 #include <iostream>
 #include <set>
@@ -224,7 +224,7 @@ std::vector<teca_metadata> teca_latitude_damper::get_upstream_request(
     const std::string &var_post_fix = this->variable_post_fix;
     if (!var_post_fix.empty())
     {
-        teca_metadata_util::remove_post_fix(arrays, var_post_fix);
+        teca_string_util::remove_post_fix(arrays, var_post_fix);
     }
 
     req.set("arrays", arrays);
