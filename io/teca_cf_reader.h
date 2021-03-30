@@ -87,7 +87,7 @@ public:
 
     // Override the calendar and time unit. When these are specified
     // their values take precedence over the values found in the file.
-    TECA_ALGORITHM_PROPERTY(std::string, t_calendar)
+    TECA_ALGORITHM_PROPERTY(std::string, calendar)
     TECA_ALGORITHM_PROPERTY(std::string, t_units)
 
     // a way to infer time from the filename if the time axis is not
@@ -142,7 +142,7 @@ private:
     std::string y_axis_variable;
     std::string z_axis_variable;
     std::string t_axis_variable;
-    std::string t_calendar;
+    std::string calendar;
     std::string t_units;
     std::string filename_time_template;
     std::vector<double> t_values;

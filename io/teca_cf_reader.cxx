@@ -58,7 +58,7 @@ teca_cf_reader::teca_cf_reader() :
     y_axis_variable("lat"),
     z_axis_variable(""),
     t_axis_variable("time"),
-    t_calendar(""),
+    calendar(""),
     t_units(""),
     filename_time_template(""),
     periodic_in_x(0),
@@ -99,7 +99,7 @@ void teca_cf_reader::get_properties_description(
             "name of variable that has time axis coordinates (time). Set to an empty"
             " string to enable override methods (--filename_time_template, --t_values)"
             " or to disable time coordinates completely")
-        TECA_POPTS_GET(std::string, prefix, t_calendar,
+        TECA_POPTS_GET(std::string, prefix, calendar,
             "An optional calendar override. May be one of: standard, Julian,"
             " proplectic_Julian, Gregorian, proplectic_Gregorian, Gregorian_Y0,"
             " proplectic_Gregorian_Y0, noleap, no_leap, 365_day, 360_day. When the"
@@ -151,7 +151,7 @@ void teca_cf_reader::set_properties(const std::string &prefix,
     TECA_POPTS_SET(opts, std::string, prefix, y_axis_variable)
     TECA_POPTS_SET(opts, std::string, prefix, z_axis_variable)
     TECA_POPTS_SET(opts, std::string, prefix, t_axis_variable)
-    TECA_POPTS_SET(opts, std::string, prefix, t_calendar)
+    TECA_POPTS_SET(opts, std::string, prefix, calendar)
     TECA_POPTS_SET(opts, std::string, prefix, t_units)
     TECA_POPTS_SET(opts, std::string, prefix, filename_time_template)
     TECA_POPTS_SET(opts, std::vector<double>, prefix, t_values)
@@ -522,11 +522,11 @@ teca_metadata teca_cf_reader::get_output_metadata(
             }
 
             // override the calendar
-            if (!this->t_calendar.empty())
+            if (!this->calendar.empty())
             {
                 TECA_WARNING("Overriding the calendar with the runtime "
-                    "provided value \"" << this->t_calendar << "\"")
-                time_atts.set("calendar", this->t_calendar);
+                    "provided value \"" << this->calendar << "\"")
+                time_atts.set("calendar", this->calendar);
             }
 
             // override the units
@@ -724,7 +724,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
             TECA_STATUS("The t_axis_variable was unspecified, using the "
                 "provided time values")
 
-            if (this->t_calendar.empty() || this->t_units.empty())
+            if (this->calendar.empty() || this->t_units.empty())
             {
                 TECA_ERROR("The calendar and units must to be specified when "
                     " providing time values")
@@ -742,7 +742,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
             }
 
             teca_metadata time_atts;
-            time_atts.set("calendar", this->t_calendar);
+            time_atts.set("calendar", this->calendar);
             time_atts.set("units", this->t_units);
             time_atts.set("cf_dims", n_t_vals);
             time_atts.set("cf_type_code", int(teca_netcdf_util::netcdf_tt<double>::type_code));
@@ -767,12 +767,12 @@ teca_metadata teca_cf_reader::get_output_metadata(
             std::vector<double> t_values;
 
             std::string t_units = this->t_units;
-            std::string t_calendar = this->t_calendar;
+            std::string calendar = this->calendar;
 
             // assume that this is a standard calendar if none is provided
-            if (this->t_calendar.empty())
+            if (this->calendar.empty())
             {
-                t_calendar = "standard";
+                calendar = "standard";
             }
 
             // loop over all files and infer dates from names
@@ -831,7 +831,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 double second = current_tm.tm_sec;
                 double current_time = 0;
                 if (calcalcs::coordinate(year, mon, day, hour, minute,
-                    second, t_units.c_str(), t_calendar.c_str(), &current_time))
+                    second, t_units.c_str(), calendar.c_str(), &current_time))
                 {
                     TECA_ERROR("conversion of date inferred from "
                         "filename failed");
@@ -847,7 +847,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
             TECA_STATUS("The time axis will be infered from file names using "
                 "the user provided template \"" << this->filename_time_template
-                << "\" with the \"" << t_calendar << "\" calendar in units \""
+                << "\" with the \"" << calendar << "\" calendar in units \""
                 << t_units << "\"")
 
             // create a teca variant array from the times
@@ -861,7 +861,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
             // set the time metadata
             teca_metadata time_atts;
-            time_atts.set("calendar", t_calendar);
+            time_atts.set("calendar", calendar);
             time_atts.set("units", t_units);
             time_atts.set("cf_dims", n_t_vals);
             time_atts.set("cf_type_code", int(teca_netcdf_util::netcdf_tt<double>::type_code));

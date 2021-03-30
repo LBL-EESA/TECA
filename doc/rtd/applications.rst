@@ -435,7 +435,7 @@ values, the following teca_cf_reader options can be used.
   string to enable override methods (--filename_time_template, --t_values) or
   to disable time coordinates completely
 
---cf_reader::t_calendar arg
+--cf_reader::calendar arg
   An optional calendar override. May be one of: standard, Julian,
   proplectic_Julian, Gregorian, proplectic_Gregorian, Gregorian_Y0,
   proplectic_Gregorian_Y0, noleap, no_leap, 365_day, 360_day. When the
@@ -2306,7 +2306,7 @@ Command Line Arguments
 --t_axis_variable T_AXIS_VARIABLE
     time dimension name (default: None)
 
---t_calendar T_CALENDAR
+--calendar calendar
     time calendar (default: None)
 
 --t_units T_UNITS

@@ -82,7 +82,7 @@ public:
 
     // time calendar and time unit if the user wants to
     // specify them
-    TECA_ALGORITHM_PROPERTY(std::string, t_calendar)
+    TECA_ALGORITHM_PROPERTY(std::string, calendar)
     TECA_ALGORITHM_PROPERTY(std::string, t_units)
 
     // a way to infer time from the filename if the time axis is not
@@ -136,7 +136,7 @@ private:
     std::string m_z_axis_variable;
     std::string w_z_axis_variable;
     std::string t_axis_variable;
-    std::string t_calendar;
+    std::string calendar;
     std::string t_units;
     std::string filename_time_template;
     std::vector<double> t_values;

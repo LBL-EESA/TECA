@@ -104,7 +104,7 @@ teca_wrf_reader::teca_wrf_reader() :
     m_z_axis_variable("ZNU"),
     w_z_axis_variable("ZNW"),
     t_axis_variable("XTIME"),
-    t_calendar(""),
+    calendar(""),
     t_units(""),
     filename_time_template(""),
     periodic_in_x(0),
@@ -134,7 +134,7 @@ void teca_wrf_reader::get_properties_description(
             "comprising the dataset")
         TECA_POPTS_GET(std::string, prefix, metadata_cache_dir,
             "a directory where metadata caches can be stored")
-        TECA_POPTS_GET(std::string, prefix, t_calendar,
+        TECA_POPTS_GET(std::string, prefix, calendar,
             "name of variable that has the time calendar")
         TECA_POPTS_GET(std::string, prefix, t_units,
             "a std::get_time template for decoding time from the input filename")
@@ -167,7 +167,7 @@ void teca_wrf_reader::set_properties(const std::string &prefix,
     TECA_POPTS_SET(opts, std::vector<std::string>, prefix, file_names)
     TECA_POPTS_SET(opts, std::string, prefix, files_regex)
     TECA_POPTS_SET(opts, std::string, prefix, metadata_cache_dir)
-    TECA_POPTS_SET(opts, std::string, prefix, t_calendar)
+    TECA_POPTS_SET(opts, std::string, prefix, calendar)
     TECA_POPTS_SET(opts, std::string, prefix, t_units)
     TECA_POPTS_SET(opts, std::string, prefix, filename_time_template)
     TECA_POPTS_SET(opts, std::vector<double>, prefix, t_values)
@@ -664,17 +664,17 @@ teca_metadata teca_wrf_reader::get_output_metadata(
                 if (!time_atts.has("calendar"))
                 {
                     std::string cal = "standard";
-                    if (!this->t_calendar.empty())
+                    if (!this->calendar.empty())
                         cal = "standard";
                     else
-                        cal = this->t_calendar;
+                        cal = this->calendar;
                     time_atts.set("calendar", cal);
                     atrs.set(t_axis_variable, time_atts);
                 }
             }
             else if (!this->t_values.empty())
             {
-                if (this->t_calendar.empty() || this->t_units.empty())
+                if (this->calendar.empty() || this->t_units.empty())
                 {
                     TECA_ERROR("calendar and units has to be specified"
                         " for the time variable")
@@ -691,7 +691,7 @@ teca_metadata teca_wrf_reader::get_output_metadata(
                 }
 
                 teca_metadata time_atts;
-                time_atts.set("calendar", this->t_calendar);
+                time_atts.set("calendar", this->calendar);
                 time_atts.set("units", this->t_units);
 
                 atrs.set("time", time_atts);
@@ -711,12 +711,12 @@ teca_metadata teca_wrf_reader::get_output_metadata(
                 std::vector<double> t_values;
 
                 std::string t_units = this->t_units;
-                std::string t_calendar = this->t_calendar;
+                std::string calendar = this->calendar;
 
                 // assume that this is a standard calendar if none is provided
-                if (this->t_calendar.empty())
+                if (this->calendar.empty())
                 {
-                    t_calendar = "standard";
+                    calendar = "standard";
                 }
 
                 // loop over all files and infer dates from names
@@ -775,7 +775,7 @@ teca_metadata teca_wrf_reader::get_output_metadata(
                     double second = current_tm.tm_sec;
                     double current_time = 0;
                     if (calcalcs::coordinate(year, mon, day, hour, minute,
-                        second, t_units.c_str(), t_calendar.c_str(), &current_time))
+                        second, t_units.c_str(), calendar.c_str(), &current_time))
                     {
                         TECA_ERROR("conversion of date inferred from "
                             "filename failed");
@@ -791,7 +791,7 @@ teca_metadata teca_wrf_reader::get_output_metadata(
 
                 // set the time metadata
                 teca_metadata time_atts;
-                time_atts.set("calendar", t_calendar);
+                time_atts.set("calendar", calendar);
                 time_atts.set("units", t_units);
                 atrs.set("time", time_atts);
 
