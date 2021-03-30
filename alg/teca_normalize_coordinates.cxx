@@ -5,6 +5,7 @@
 #include "teca_variant_array.h"
 #include "teca_metadata.h"
 #include "teca_coordinate_util.h"
+#include "teca_metadata_util.h"
 
 #include <algorithm>
 #include <iostream>
@@ -51,9 +52,11 @@ struct internals
         const const_p_teca_variant_array &in_x,
         bool &shifted_x);
 
-    static void periodic_shift_x(p_teca_array_collection data,
+    static int periodic_shift_x(p_teca_array_collection data,
+        const teca_metadata &attributes,
         const const_p_teca_unsigned_long_array &shift_map,
-        unsigned long *extent_in, unsigned long *extent_out);
+        const unsigned long *extent_in,
+        const unsigned long *extent_out);
 
     // put the y-axis in ascending order if it is not.  if a transformation was
     // applied reordered_y is set.
@@ -63,8 +66,8 @@ struct internals
 
     // apply corresponding transformation that put the -y-axis in ascending
     // order to all data arrays
-    static void ascending_order_y(p_teca_array_collection data,
-        unsigned long *extent);
+    static int ascending_order_y(p_teca_array_collection data,
+        const teca_metadata &attributes, const unsigned long *extent);
 
 
     template <typename data_t>
@@ -290,28 +293,48 @@ int internals::ascending_order_y(
 }
 
 // --------------------------------------------------------------------------
-void internals::periodic_shift_x(p_teca_array_collection data,
+int internals::periodic_shift_x(p_teca_array_collection data,
+    const teca_metadata &attributes,
     const const_p_teca_unsigned_long_array &shift_map,
-    unsigned long *extent_in, unsigned long *extent_out)
+    const unsigned long *extent_in,
+    const unsigned long *extent_out)
 {
-    // input and output arrays may be different size if there was a duplicated
-    // coordinate point on the periodic boundaryg
-    unsigned long nxi = extent_in[1] - extent_in[0] + 1;
-    unsigned long nyi = extent_in[3] - extent_in[2] + 1;
-    unsigned long nxyi = nxi*nyi;
-
-    unsigned long nxo = extent_out[1] - extent_out[0] + 1;
-    unsigned long nyo = extent_out[3] - extent_out[2] + 1;
-    unsigned long nzo = extent_out[5] - extent_out[4] + 1;
-    unsigned long nxyo = nxo*nyo;
-    unsigned long nxyzo = nxyo*nzo;
-
     // apply periodic shift in the x-direction
     const unsigned long *pmap = shift_map->get();
 
     unsigned int n_arrays = data->size();
     for (unsigned int l = 0; l < n_arrays; ++l)
     {
+        // get the extent of the input/output array
+        const std::string &array_name = data->get_name(l);
+        teca_metadata array_attributes;
+        if (attributes.get(array_name, array_attributes))
+        {
+            TECA_ERROR("Failed to get the attributes for \""
+                << array_name << "\"")
+            return -1;
+        }
+
+        unsigned long array_extent_in[6] = {0ul};
+        teca_metadata_util::get_array_extent(array_attributes,
+            extent_in, array_extent_in);
+
+        unsigned long array_extent_out[6] = {0ul};
+        teca_metadata_util::get_array_extent(array_attributes,
+            extent_out, array_extent_out);
+
+        // input and output arrays may be different size if there was a duplicated
+        // coordinate point on the periodic boundary
+        unsigned long nxi = array_extent_in[1] - array_extent_in[0] + 1;
+        unsigned long nyi = array_extent_in[3] - array_extent_in[2] + 1;
+        unsigned long nxyi = nxi*nyi;
+
+        unsigned long nxo = array_extent_out[1] - array_extent_out[0] + 1;
+        unsigned long nyo = array_extent_out[3] - array_extent_out[2] + 1;
+        unsigned long nzo = array_extent_out[5] - array_extent_out[4] + 1;
+        unsigned long nxyo = nxo*nyo;
+        unsigned long nxyzo = nxyo*nzo;
+
         p_teca_variant_array a = data->get(l);
 
         p_teca_variant_array ao = a->new_instance(nxyzo);
@@ -341,26 +364,45 @@ void internals::periodic_shift_x(p_teca_array_collection data,
 
         data->set(l, ao);
     }
+
+    return 0;
 }
 
 // --------------------------------------------------------------------------
-void internals::ascending_order_y(p_teca_array_collection data,
-    unsigned long *extent_out)
+int internals::ascending_order_y(p_teca_array_collection data,
+    const teca_metadata &attributes, const unsigned long *mesh_extent)
 {
-    unsigned long nx = extent_out[1] - extent_out[0] + 1;
-    unsigned long ny = extent_out[3] - extent_out[2] + 1;
-    unsigned long nz = extent_out[5] - extent_out[4] + 1;
-
-    unsigned long nxy = nx*ny;
-    unsigned long nxyz = nxy*nz;
-
-    unsigned long y1 = ny - 1;
-
     // for any coodinate axes that have been transformed from descending order
     // into ascending order, apply the same transform to the scalar data arrays
     unsigned int n_arrays = data->size();
     for (unsigned int l = 0; l < n_arrays; ++l)
     {
+        const std::string &array_name = data->get_name(l);
+
+        // get the extent of the array
+        unsigned long array_extent[6] = {0ul};
+
+        teca_metadata array_attributes;
+        if (attributes.get(array_name, array_attributes))
+        {
+            TECA_ERROR("Failed to get attributes for array \""
+                << array_name << "\"")
+            return -1;
+        }
+
+        teca_metadata_util::get_array_extent(array_attributes,
+            mesh_extent, array_extent);
+
+        unsigned long nx = array_extent[1] - array_extent[0] + 1;
+        unsigned long ny = array_extent[3] - array_extent[2] + 1;
+        unsigned long nz = array_extent[5] - array_extent[4] + 1;
+
+        unsigned long nxy = nx*ny;
+        unsigned long nxyz = nxy*nz;
+
+        unsigned long y1 = ny - 1;
+
+        // apply the transform
         p_teca_variant_array a = data->get(l);
         p_teca_variant_array ao = a->new_instance(nxyz);
         NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
@@ -383,6 +425,8 @@ void internals::ascending_order_y(p_teca_array_collection data,
             )
         data->set(l, ao);
     }
+
+    return 0;
 }
 
 
@@ -767,8 +811,12 @@ const_p_teca_dataset teca_normalize_coordinates::execute(unsigned int port,
         return nullptr;
     }
 
+    teca_metadata attributes;
+
     if (shifted_x)
     {
+        in_mesh->get_attributes(attributes);
+
         if (this->verbose &&
             teca_mpi_util::mpi_rank_0(this->get_communicator()))
         {
@@ -799,8 +847,12 @@ const_p_teca_dataset teca_normalize_coordinates::execute(unsigned int port,
             out_mesh->set_whole_extent(whole_extent);
         }
 
-        internals::periodic_shift_x(out_mesh->get_point_arrays(),
-            shift_map, extent_in, extent_out);
+        if (internals::periodic_shift_x(out_mesh->get_point_arrays(),
+            attributes, shift_map, extent_in, extent_out))
+        {
+            TECA_ERROR("Failed to apply periodic shift in the x direction")
+            return nullptr;
+        }
     }
 
     // ensure y-axis ascending
@@ -815,6 +867,9 @@ const_p_teca_dataset teca_normalize_coordinates::execute(unsigned int port,
 
     if (reordered_y)
     {
+        if (attributes.empty())
+            in_mesh->get_attributes(attributes);
+
         if (this->verbose &&
             teca_mpi_util::mpi_rank_0(this->get_communicator()))
         {
@@ -826,8 +881,12 @@ const_p_teca_dataset teca_normalize_coordinates::execute(unsigned int port,
         in_mesh->get_y_coordinate_variable(var);
         out_mesh->set_y_coordinates(var, out_y);
 
-        internals::ascending_order_y(out_mesh->get_point_arrays(),
-            extent_out);
+        if (internals::ascending_order_y(out_mesh->get_point_arrays(),
+            attributes, extent_out))
+        {
+            TECA_ERROR("Failed to put point arrays into ascending order")
+            return nullptr;
+        }
     }
 
     return out_mesh;
