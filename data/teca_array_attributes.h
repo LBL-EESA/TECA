@@ -106,6 +106,9 @@ struct teca_array_attributes
         no_centering     = 0x1000,
     };
 
+    /// convert the centering code to a string
+    static const char *centering_to_string(int cen);
+
     using fill_value_t =
         std::variant<char, unsigned char, short, unsigned short,
             int, unsigned int, long, unsigned long, long long,
