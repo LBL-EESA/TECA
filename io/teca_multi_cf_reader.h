@@ -122,7 +122,6 @@ public:
     int get_periodic_in_x() const;
     ///@}
 
-
     /** @anchor x_axis_variable
      * @name x_axis_variable
      * Set the variable to use for the mesh x-axis. If set this will override
@@ -231,6 +230,28 @@ public:
     TECA_ALGORITHM_PROPERTY(int, max_metadata_ranks)
     ///@}
 
+    /** @anchor periodic_in_x
+     * @name periodic_in_x
+     * Set to indicate the presence of a periodic boundary in the x direction.
+     * If set this will override the corresponding setting from the MCF file
+     * for all internal readers.
+     */
+    ///@{
+    ///@}
+
+    /** @anchor clamp_dimensions_of_one
+     * @name clamp_dimensions_of_one
+     * If set the requested extent will be clamped in a given direction if the
+     * coorinate axis in that direction has a length of 1 and the requested extent
+     * would be out of bounds. This is a work around to enable loading 2D data
+     * with a vertical dimension of 1, into a 3D mesh and should be used with
+     * caution.
+     */
+    ///@{
+    void set_clamp_dimensions_of_one(int flag);
+    int get_clamp_dimensions_of_one() const;
+    ///@}
+
 protected:
     teca_multi_cf_reader();
 
@@ -258,6 +279,7 @@ private:
     std::vector<double> t_values;
     int periodic_in_x;
     int max_metadata_ranks;
+    int clamp_dimensions_of_one;
 
     p_teca_multi_cf_reader_internals internals;
 };

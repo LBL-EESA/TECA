@@ -39,7 +39,8 @@ public:
             name(), regex(), provides_time(0), provides_geometry(0),
             variables(), x_axis_variable(), y_axis_variable(),
             z_axis_variable(), t_axis_variable(), periodic_in_x(-1),
-            calendar(), t_units(), filename_time_template()
+            calendar(), t_units(), filename_time_template(),
+            clamp_dimensions_of_one(-1)
             {}
 
         /**
@@ -80,6 +81,9 @@ public:
         const std::string &get_filename_time_template(
             const std::string &default_val) const;
 
+        /// return the internal value if set otherwise the default
+        int get_clamp_dimensions_of_one(int default_val) const;
+
         /// serialize/deserialize to/from the stream
         void to_stream(teca_binary_stream &bs) const;
         void from_stream(teca_binary_stream &bs);
@@ -97,6 +101,7 @@ public:
         std::string calendar;               /// calendar
         std::string t_units;                /// time axis units
         std::string filename_time_template; /// for deriving time from the filename
+        int clamp_dimensions_of_one;        /// ignore out of bounds requests if dim is 1
     };
 
     // read a subset of arrays using the passed in reader. the passed
@@ -233,6 +238,16 @@ teca_multi_cf_reader_internals::cf_reader_options::get_filename_time_template(
 }
 
 // --------------------------------------------------------------------------
+int teca_multi_cf_reader_internals::cf_reader_options::get_clamp_dimensions_of_one(
+    int default_val) const
+{
+    if (clamp_dimensions_of_one < 0)
+        return default_val;
+
+    return clamp_dimensions_of_one;
+}
+
+// --------------------------------------------------------------------------
 void teca_multi_cf_reader_internals::cf_reader_options::to_stream(
     teca_binary_stream &bs) const
 {
@@ -249,6 +264,7 @@ void teca_multi_cf_reader_internals::cf_reader_options::to_stream(
     bs.pack(calendar);
     bs.pack(t_units);
     bs.pack(filename_time_template);
+    bs.pack(clamp_dimensions_of_one);
 }
 
 // --------------------------------------------------------------------------
@@ -268,6 +284,7 @@ void teca_multi_cf_reader_internals::cf_reader_options::from_stream(
     bs.unpack(calendar);
     bs.unpack(t_units);
     bs.unpack(filename_time_template);
+    bs.unpack(clamp_dimensions_of_one);
 }
 
 // --------------------------------------------------------------------------
@@ -410,7 +427,7 @@ int teca_multi_cf_reader_internals::cf_reader_options::parse_line(
     {
         if (!(periodic_in_x < 0))
         {
-            TECA_ERROR("Duplicate y_axis_variable label found on line " << line_no)
+            TECA_ERROR("Duplicate periodic_in_x label found on line " << line_no)
             return -1;
         }
 
@@ -488,6 +505,27 @@ int teca_multi_cf_reader_internals::cf_reader_options::parse_line(
             TECA_ERROR("Syntax error when parsing filename_time_template on line " << line_no)
             return -1;
         }
+
+        return 1;
+    }
+    else if (strncmp("clamp_dimensions_of_one", line, 23) == 0)
+    {
+        if (!(clamp_dimensions_of_one < 0))
+        {
+            TECA_ERROR("Duplicate clamp_dimensions_of_one label found on line " << line_no)
+            return -1;
+        }
+
+        std::string tmp;
+        bool val = false;
+        if (teca_string_util::extract_value<std::string>(line, tmp)
+            || teca_string_util::string_tt<bool>::convert(tmp.c_str(), val))
+        {
+            TECA_ERROR("Syntax error when parsing clamp_dimensions_of_one on line " << line_no)
+            return -1;
+        }
+
+        clamp_dimensions_of_one = val ? 1 : 0;
 
         return 1;
     }
@@ -626,6 +664,7 @@ teca_multi_cf_reader::teca_multi_cf_reader() :
     filename_time_template(""),
     periodic_in_x(0),
     max_metadata_ranks(-1),
+    clamp_dimensions_of_one(0),
     internals(new teca_multi_cf_reader_internals)
 {}
 
@@ -665,6 +704,9 @@ void teca_multi_cf_reader::get_properties_description(
             "the dataset has a periodic boundary in the x direction")
         TECA_POPTS_GET(int, prefix, max_metadata_ranks,
             "set the max number of ranks for reading metadata")
+        TECA_POPTS_GET(int, prefix, clamp_dimensions_of_one,
+            "If set clamp requested axis extent in where the request is out of"
+            " bounds and the coordinate array dimension is 1.")
         ;
 
     this->teca_algorithm::get_properties_description(prefix, opts);
@@ -688,6 +730,7 @@ void teca_multi_cf_reader::set_properties(const std::string &prefix,
     TECA_POPTS_SET(opts, std::vector<double>, prefix, t_values)
     TECA_POPTS_SET(opts, int, prefix, periodic_in_x)
     TECA_POPTS_SET(opts, int, prefix, max_metadata_ranks)
+    TECA_POPTS_SET(opts, int, prefix, clamp_dimensions_of_one)
 }
 #endif
 
@@ -1213,6 +1256,49 @@ std::string teca_multi_cf_reader::get_filename_time_template() const
 }
 
 // --------------------------------------------------------------------------
+void teca_multi_cf_reader::set_clamp_dimensions_of_one(int var)
+{
+    if (this->clamp_dimensions_of_one != var)
+    {
+        this->clamp_dimensions_of_one = var;
+        this->set_modified();
+    }
+}
+
+// --------------------------------------------------------------------------
+int teca_multi_cf_reader::get_clamp_dimensions_of_one() const
+{
+    // settings from the MCF file should override algorithm properties
+    // however, this may be called any time before or after the readers
+    // are set up.
+
+    if (this->internals->geometry_reader.empty())
+    {
+        // the geometry reader wasn't established yet, fall back to
+        // the current property value
+        return this->clamp_dimensions_of_one;
+    }
+
+    // get the geometry reader instance
+    teca_multi_cf_reader_internals::reader_map_t::iterator it =
+        this->internals->readers.find(this->internals->geometry_reader);
+
+    if (it == this->internals->readers.end())
+    {
+        TECA_ERROR("No reader named \""
+            << this->internals->geometry_reader << "\" found")
+        return -1;
+    }
+
+    // values in the configuration file take precedence over the member variable
+    // with in the configuration file, section options take precedence over
+    // globally scoped options
+    return it->second->options.get_clamp_dimensions_of_one(
+        this->internals->global_options.get_clamp_dimensions_of_one(
+            this->clamp_dimensions_of_one));
+}
+
+// --------------------------------------------------------------------------
 int teca_multi_cf_reader::add_reader(const std::string &regex,
     const std::string &key, int provides_time, int provides_geometry,
     const std::vector<std::string> &variables)
@@ -1387,6 +1473,11 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
             inst->options.get_filename_time_template(
                 global_options.get_filename_time_template(
                     this->filename_time_template)));
+
+        inst->reader->set_clamp_dimensions_of_one(
+            inst->options.get_clamp_dimensions_of_one(
+                global_options.get_clamp_dimensions_of_one(
+                    this->clamp_dimensions_of_one)));
 
         if (!this->t_values.empty())
             inst->reader->set_t_values(this->t_values);
