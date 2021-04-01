@@ -12,26 +12,24 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_apply_binary_mask)
 
 /// Applies a mask to a given list of variables
 /**
-
-Given a mask variable, this routine applies the mask to a list of input
-variables.
-
-The mask variable can either be binary, or it can represent a probability
-ranging from 0 to 1. For mask variable `mask` and input variable `var`, this
-algorithm computes `mask * var` and sends the resulting array downstream; this
-masking operation is applied for all variables in the input list.
-
-A potential use-case for this algorithm is masking quantities like
-precipitation by the probability of atmospheric river presence; the average
-of this masked precipitation variable gives the average precipitation due to
-atmospheric rivers.
-
-The output variable names are given a prefix to distinguish them from the
-upstream versions. E.g., if the algorithm property `output_variable_prefix` is set
-to 'ar_', and the variable being masked is 'precip', then the output array
-name is 'ar_precip'.
-
-*/
+ * Given a mask variable, this routine applies the mask to a list of input
+ * variables.
+ *
+ * The mask variable can either be binary, or it can represent a probability
+ * ranging from 0 to 1. For mask variable `mask` and input variable `var`, this
+ * algorithm computes `mask * var` and sends the resulting array downstream; this
+ * masking operation is applied for all variables in the input list.
+ *
+ * A potential use-case for this algorithm is masking quantities like
+ * precipitation by the probability of atmospheric river presence; the average
+ * of this masked precipitation variable gives the average precipitation due to
+ * atmospheric rivers.
+ *
+ * The output variable names are given a prefix to distinguish them from the
+ * upstream versions. E.g., if the algorithm property `output_variable_prefix` is set
+ * to 'ar_', and the variable being masked is 'precip', then the output array
+ * name is 'ar_precip'.
+ */
 class teca_apply_binary_mask : public teca_algorithm
 {
 public:
@@ -45,21 +43,37 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // set the name of the variable containing the mask values
+    /** @anchor mask_variable
+     * @name mask_variable
+     * set the name of the variable containing the mask values
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, mask_variable)
+    ///@}
 
-    // A list of of variables to apply the mask to. If empty no arrays will be
-    // requested, and no variables will be masked
+    /** @anchor masked_variable
+     * @name masked_variable
+     * A list of of variables to apply the mask to. If empty no arrays will be
+     * requested, and no variables will be masked
+     */
+    ///@{
     TECA_ALGORITHM_VECTOR_PROPERTY(std::string, masked_variable)
+    ///@}
 
-    // A prefix to prepend to the names of the variables that have been masked.
-    // If this is empty maked data replaces its input, otherwise input data is
-    // preserved and maked data is added.
+    /** @anchor output_variable_prefix
+     * @name output_variable_prefix
+     * A prefix for the names of the variables that have been masked.  If this
+     * is empty masked data replaces its input, otherwise input data is
+     * preserved and masked data is added.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, output_variable_prefix)
+    ///@}
 
-    // helper that constructs and returns the result variable names taking into
-    // account he list of masked_variables and the output_variable_prefix.  use
-    // this to know what variables will be produced.
+    /** helper that constructs and returns the result variable names taking
+     * into account he list of masked_variables and the output_variable_prefix.
+     * use this to know what variables will be produced.
+     */
     void get_output_variable_names(std::vector<std::string> &names);
 
 protected:
