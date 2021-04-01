@@ -7,10 +7,7 @@
 #include <vector>
 #include <string>
 
-// a collection of named tables
-/**
-A collection of named tables
-*/
+/// A collection of named tables.
 class teca_table_collection
 {
 public:

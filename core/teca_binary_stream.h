@@ -11,7 +11,7 @@
 #include <vector>
 
 
-// Serialize objects into a binary stream.
+/// Serialize objects into a binary stream.
 class teca_binary_stream
 {
 public:
@@ -35,7 +35,7 @@ public:
     // state.
     void clear() noexcept;
 
-    // Alolocate n_bytes for the stream.
+    // Allocate n_bytes for the stream.
     void resize(unsigned long n_bytes);
 
     // ensures space for n_bytes more to the stream.
@@ -53,7 +53,7 @@ public:
     unsigned long size() const noexcept
     { return m_write_p - m_data; }
 
-    // Get the sise of the internal buffer allocated
+    // Get the size of the internal buffer allocated
     // for the stream.
     unsigned long capacity() const noexcept
     { return m_size; }

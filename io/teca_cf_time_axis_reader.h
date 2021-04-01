@@ -11,7 +11,7 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_cf_time_axis_reader)
 
-/// an algorithm to read time axis and its attributes in parallel
+/// An algorithm to read time axis and its attributes in parallel.
 class teca_cf_time_axis_reader : public teca_algorithm
 {
 public:

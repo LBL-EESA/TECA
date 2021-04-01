@@ -5,21 +5,23 @@
 #include "teca_metadata.h"
 #include "teca_mpi.h"
 
-// base class and default implementation for executives. algorithm
-// executives can control pipeline execution by providing a series
-// of requests. this allows for the executive to act as a load
-// balancer. the executive can for example partition requests across
-// spatial data, time steps, or file names. in an MPI parallel
-// setting the executive could coordinate this partitioning amongst
-// the ranks. However, the only requirement of an algorithm executive
-// is that it provide at least one non-empty request.
-//
-// the default implementation creates a single trivially non-empty
-// request containing the key "__request_empty = 0". This will cause
-// the pipeline to be executed once but will result in no data being
-// requested. Therefore when the default implementation is used
-// upstream algorithms must fill in the requests further to pull
-// data as needed.
+/// Base class and default implementation for executives.
+/**
+ * Algorithm executives can control pipeline execution by providing
+ * a series of requests. this allows for the executive to act as a load
+ * balancer. the executive can for example partition requests across
+ * spatial data, time steps, or file names. in an MPI parallel
+ * setting the executive could coordinate this partitioning amongst
+ * the ranks. However, the only requirement of an algorithm executive
+ * is that it provide at least one non-empty request.
+ *
+ * The default implementation creates a single trivially non-empty
+ * request containing the key "__request_empty = 0". This will cause
+ * the pipeline to be executed once but will result in no data being
+ * requested. Therefore when the default implementation is used
+ * upstream algorithms must fill in the requests further to pull
+ * data as needed.
+ */
 class teca_algorithm_executive
     : public std::enable_shared_from_this<teca_algorithm_executive>
 {

@@ -5,7 +5,7 @@
 #include "teca_shared_object.h"
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_curvilinear_mesh)
 
-/// data on a physically uniform curvilinear mesh
+/// Data on a physically uniform curvilinear mesh.
 class teca_curvilinear_mesh : public teca_mesh
 {
 public:

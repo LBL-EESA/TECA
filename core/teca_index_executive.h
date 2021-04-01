@@ -10,27 +10,27 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_index_executive)
 
-///
-/**
-An executive that generates requests using a upstream
-or user defined index. an extent and list of arrays
-can be optionally set.
-
-meta data keys:
-
-     requires:
-
-     index_initializer_key -- holds the name of the key that tells how
-                              many indices are available. the named key
-                              must also be present and should conatin the
-                              number of indices available
-
-     index_request_key -- holds the name of the key used to request
-                          a specific index. request are generated with this
-                          name set to a specific index to be processed some
-                          upstream algorithm is expected to produce the data
-                          associated with the given index
-
+/** @brief
+ * An executive that generates requests using a upstream
+ * or user defined index.
+ *
+ * @details
+ * An extent and list of arrays can be optionally set.
+ *
+ * metadata keys:
+ *
+ *      requires:
+ *
+ *      index_initializer_key -- holds the name of the key that tells how
+ *                               many indices are available. the named key
+ *                               must also be present and should contain the
+ *                               number of indices available
+ *
+ *      index_request_key -- holds the name of the key used to request
+ *                           a specific index. request are generated with this
+ *                           name set to a specific index to be processed some
+ *                           upstream algorithm is expected to produce the
+ *                           data associated with the given index
 */
 class teca_index_executive : public teca_algorithm_executive
 {
@@ -61,7 +61,7 @@ public:
     void set_extent(unsigned long *ext);
     void set_extent(const std::vector<unsigned long> &ext);
 
-    // set the bounds to process. If nothging is set then
+    // set the bounds to process. If nothing is set then
     // extent as provided by set_extent is used.
     void set_bounds(double *bounds);
     void set_bounds(const std::vector<double> &bounds);

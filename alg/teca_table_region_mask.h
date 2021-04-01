@@ -10,13 +10,16 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_table_region_mask)
 
-/**
- an algorithm that identifies rows in the table that are
-inside the list of regions provided. a new column, called
-the mask column is created. It has 1's if the row is in
-the set of regions, otherwise 0's. The invert property
-can be used to invert the result.
-*/
+/** @brief
+ * An algorithm that identifies rows in the table that are
+ * inside the list of regions provided.
+ *
+ * @details
+ * A new column, called the mask column is created. 
+ * It has 1's if the row is in the set of regions,
+ * otherwise 0's. The invert property
+ * can be used to invert the result.
+ */
 class teca_table_region_mask : public teca_algorithm
 {
 public:
@@ -37,7 +40,7 @@ public:
 
     // set the name of the column to store the mask in
     // the mask is a column of 1 and 0 indicating if the
-    // row satsifies the criteria or not. the default is
+    // row satisfies the criteria or not. the default is
     // "region_mask"
     TECA_ALGORITHM_PROPERTY(std::string, result_column);
 

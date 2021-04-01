@@ -9,9 +9,11 @@
 #include <ostream>
 
 
-// A class containing methods managing memory and time profiling
-// Each timed event logs rank, event name, start and end time, and
-// duration.
+/// A class containing methods managing memory and time profiling.
+/**
+ * Each timed event logs rank, event name, start and end time, and
+ * duration.
+ */
 class teca_profiler
 {
 public:
@@ -37,7 +39,7 @@ public:
     static int finalize();
 
     // this can occur after MPI_Finalize. It should only be called by rank 0.
-    // Any remaining events will be appeneded to the log file. This is necessary
+    // Any remaining events will be appended to the log file. This is necessary
     // to time MPI_Initialize/Finalize and log associated I/O.
     static int flush();
 
@@ -47,26 +49,26 @@ public:
     static void set_communicator(MPI_Comm comm);
 
     // Sets the path to write the timer log to
-    // overriden by PROFILER_LOG_FILE environment variable
+    // overridden by PROFILER_LOG_FILE environment variable
     // default value; Timer.csv
     static void set_timer_log_file(const std::string &file_name);
 
     // Sets the path to write the timer log to
-    // overriden by MEMPROF_LOG_FILE environment variable
+    // overridden by MEMPROF_LOG_FILE environment variable
     // default value: MemProfLog.csv
     static void set_mem_prof_log_file(const std::string &file_name);
 
     // Sets the number of seconds in between memory use recordings
-    // overriden by MEMPROF_INTERVAL environment variable.
+    // overridden by MEMPROF_INTERVAL environment variable.
     static void set_mem_prof_interval(int interval);
 
-    // Enable/Disable logging. Overriden by PROFILER_ENABLE environment
+    // Enable/Disable logging. Overridden by PROFILER_ENABLE environment
     // variable. In the default format a CSV file is generated capturing each
     // ranks timer events. default value: disabled
     static void enable(int arg = 0x03);
     static void disable();
 
-    // return true if loggin is enabled.
+    // return true if logging is enabled.
     static bool enabled();
 
     // @brief Log start of an event.
@@ -99,10 +101,12 @@ public:
     static int to_stream(std::ostream &os);
 };
 
-// teca_time_event -- A helper class that times it's life.
-// A timer event is created that starts at the object's construction and ends
-// at its destruction. The pointer to the event name must be valid throughout
-// the objects life.
+/// A helper class that times it's life.
+/**
+ * A timer event is created that starts at the object's construction and ends
+ * at its destruction. The pointer to the event name must be valid throughout
+ * the objects life.
+ */
 template <int buffer_size>
 class teca_time_event
 {

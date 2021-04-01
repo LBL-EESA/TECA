@@ -16,20 +16,20 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_multi_cf_reader)
 class teca_multi_cf_reader_internals;
 using p_teca_multi_cf_reader_internals = std::shared_ptr<teca_multi_cf_reader_internals>;
 
-/// A reader for data stored in NetCDF CF format in multiple files
+/// A reader for data stored in NetCDF CF format in multiple files.
 /**
  * The data read is presented to the down stream as a single dataset
  *
- * use the add_reader method to specify regular experiession and corresponding
+ * use the add_reader method to specify regular expression and corresponding
  * list of variables to read. a reader, not necessarily the same one, must be
  * selected to provide the time and spatial axes.
  *
  * this reader could handle spatio-temporal interpolations as well, however
- * that is currently not implemented. as a result all data is expected to be on
- * the same coordinate system.
+ * that is currently not implemented. as a result all data is expected to be
+ * on the same coordinate system.
  *
- * A number of algorithm properties modify run time behavior, most of these are
- * exposed from teca_cf_reader. see the teca_cf_reader for details.
+ * A number of algorithm properties modify run time behavior, most of these
+ * are exposed from teca_cf_reader. see the teca_cf_reader for details.
  *
  * The reader may be initialized via a configuration file. The configuration
  * file consists of name = value pairs and flags organized in sections.
@@ -38,7 +38,7 @@ using p_teca_multi_cf_reader_internals = std::shared_ptr<teca_multi_cf_reader_in
  * consists of a name(optional), a regex, a list of variables, a provides_time
  * flag(optional) and a provides geometry flag(optional). At least one section
  * must contain a provides_time and provides geometry flag. The global section
- * may contain a data_root. Occurances of the string %data_root% in the regex
+ * may contain a data_root. Occurrences of the string %data_root% in the regex
  * are replaced with the value of data_root.
  *
  * The following example configures the reader to read hus,ua and va.
@@ -77,8 +77,8 @@ public:
     TECA_SET_ALGORITHM_PROPERTIES()
 
     /**
-     * Set the MCF configuration file that describes the dataset to read.  Each
-     * section in the MCF file adds an internal reader.
+     * Set the MCF configuration file that describes the dataset to read.
+     * Each section in the MCF file adds an internal reader.
      */
     int set_input_file(const std::string &input_file);
     std::string get_input_file() { return this->input_file; }
@@ -146,8 +146,8 @@ public:
      * @name z_axis_variable
      * Set the variable to use for the mesh z-axis. Leaving the z-axis empty
      * results in a 2D mesh. You must set this to the correct vertical
-     * coordinate dimension to produce a 3D mesh. If set this will override the
-     * corresponding setting from the MCF file for all internal readers.
+     * coordinate dimension to produce a 3D mesh. If set this will override
+     * the corresponding setting from the MCF file for all internal readers.
      */
     ///@{
     void set_z_axis_variable(const std::string &var);
@@ -222,9 +222,9 @@ public:
 
     /** @anchor max_metadata_ranks
      * @name max_metadata_ranks
-     * set/get the number of ranks used to read the time axis. If set this will
-     * override the corresponding setting from the MCF file for all internal
-     * readers.
+     * set/get the number of ranks used to read the time axis. If set this
+     * will override the corresponding setting from the MCF file for all
+     * internal readers.
      */
     ///@{
     TECA_ALGORITHM_PROPERTY(int, max_metadata_ranks)
@@ -242,10 +242,10 @@ public:
     /** @anchor clamp_dimensions_of_one
      * @name clamp_dimensions_of_one
      * If set the requested extent will be clamped in a given direction if the
-     * coorinate axis in that direction has a length of 1 and the requested extent
-     * would be out of bounds. This is a work around to enable loading 2D data
-     * with a vertical dimension of 1, into a 3D mesh and should be used with
-     * caution.
+     * coorinate axis in that direction has a length of 1 and the requested
+     * extent would be out of bounds. This is a work around to enable loading
+     * 2D data with a vertical dimension of 1, into a 3D mesh and should be
+     * used with caution.
      */
     ///@{
     void set_clamp_dimensions_of_one(int flag);

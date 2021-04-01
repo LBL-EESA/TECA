@@ -12,7 +12,7 @@
 // is the type of container used to hold the locations of user provided
 // keys in the heap.
 // for keys that are not ordinals 0 to N, use the mapped_key_t alias
-// for contiguious keys 0 to N (faster), use the contiguous_key_t alias
+// for contiguous keys 0 to N (faster), use the contiguous_key_t alias
 template<typename key_t>
 using mapped_key_t = std::map<key_t, unsigned long>;
 
@@ -22,7 +22,7 @@ using contiguous_key_t = std::vector<unsigned long>;
 // given key. these objects internally point to the container index by
 // key value holding the associated priority.
 // for keys that are not ordinals 0 to N, use the mapped_key_priority_t alias
-// for contiguious keys 0 to N (faster), use the contiguous_key_priority_t alias
+// for contiguous keys 0 to N (faster), use the contiguous_key_priority_t alias
 template<typename key_t, typename priority_t>
 struct mapped_key_priority
 {
@@ -62,13 +62,16 @@ template<typename key_t, typename lookup_t, typename ...Types >
 using p_teca_priority_queue = std::shared_ptr<
     teca_priority_queue<key_t, lookup_t, Types...>>;
 
-/// an indirect priority queue that supports random access modification of priority
-/**
+/** @brief
+ * An indirect priority queue that supports random access modification of
+ * priority.
+ * 
+ * @details
  * an indirect priority queue that supports random access modification of
  * priority the queue works with user provided keys and lookup functor that
  * converts keys to priorities.
  *
- * teplate parameters:
+ * template parameters:
  *
  * key_t - type of the user provided keys
  *
@@ -88,8 +91,8 @@ using p_teca_priority_queue = std::shared_ptr<
  * object that given a key returns the priority of the coresponding object.
  * create an instance of the priority_queue and push the key values. as keys
  * are pushed heap ording is imposed, this is why objects need to be in place
- * before pushing keys. when an object's prioriy has been changed one must call
- * modified passing the key of the object. the location of each object is
+ * before pushing keys. when an object's priority has been changed one must
+ * call modified passing the key of the object. the location of each object is
  * tracked and the queue will reprioritize itself after modification.
  *
  * recomendation:
@@ -100,7 +103,7 @@ using p_teca_priority_queue = std::shared_ptr<
  *
  * don't forget to change key_map_t to mapped_key_t<key_t> if
  * keys are not integer ordinals 0 to N.
-*/
+ */
 template <typename key_t, typename lookup_t,
     typename comp_t, typename key_map_t>
 class teca_priority_queue
@@ -206,7 +209,7 @@ private:
     key_map_t m_locs;           // map indexed by key to find the current position in the queue
     unsigned long m_size;       // size of the key buffer
     unsigned long m_end;        // index of the last key in the queue
-    unsigned long m_block_size; // ammount to grow the dynamicaly alloacted buffers by
+    unsigned long m_block_size; // amount to grow the dynamically alloacted buffers by
 };
 
 

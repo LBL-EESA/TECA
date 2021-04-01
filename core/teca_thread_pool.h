@@ -26,8 +26,7 @@ class teca_thread_pool;
 template <typename task_t, typename data_t>
 using p_teca_thread_pool = std::shared_ptr<teca_thread_pool<task_t, data_t>>;
 
-// a class to manage a fixed size pool of threads that dispatch
-// I/O work
+/// A class to manage a fixed size pool of threads that dispatch I/O work.
 template <typename task_t, typename data_t>
 class teca_thread_pool
 {

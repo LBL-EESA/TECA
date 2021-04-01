@@ -64,7 +64,7 @@ using p_teca_cf_reader_internals = std::shared_ptr<teca_cf_reader_internals>;
  * The reader generates a 1,2 or 3D cartesian mesh for the requested timestep
  * on the requested extent with the requested point based arrays and value at
  * this timestep for all time variables.
-*/
+ */
 class teca_cf_reader : public teca_algorithm
 {
 public:
