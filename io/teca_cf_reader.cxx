@@ -65,6 +65,7 @@ teca_cf_reader::teca_cf_reader() :
     periodic_in_y(0),
     periodic_in_z(0),
     max_metadata_ranks(1024),
+    clamp_dimensions_of_one(0),
     internals(new teca_cf_reader_internals)
 {}
 
@@ -132,6 +133,9 @@ void teca_cf_reader::get_properties_description(
             "the dataset has a periodic boundary in the z direction")
         TECA_POPTS_GET(int, prefix, max_metadata_ranks,
             "set the max number of MPI ranks for reading metadata")
+        TECA_POPTS_GET(int, prefix, clamp_dimensions_of_one,
+            "If set clamp requested axis extent in where the request is out of"
+            " bounds and the coordinate array dimension is 1.")
         ;
 
     this->teca_algorithm::get_properties_description(prefix, opts);
@@ -159,6 +163,7 @@ void teca_cf_reader::set_properties(const std::string &prefix,
     TECA_POPTS_SET(opts, int, prefix, periodic_in_y)
     TECA_POPTS_SET(opts, int, prefix, periodic_in_z)
     TECA_POPTS_SET(opts, int, prefix, max_metadata_ranks)
+    TECA_POPTS_SET(opts, int, prefix, clamp_dimensions_of_one)
 }
 #endif
 
@@ -984,6 +989,11 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
         return nullptr;
     }
 
+    // the requested extents must not exceed these limits
+    unsigned long nx_max = in_x->size();
+    unsigned long ny_max = in_y->size();
+    unsigned long nz_max = in_z->size();
+
     // get names, need to be careful since some of these depend
     // on run time information. eg: user can specify a time axis
     // via algorithm properties
@@ -1051,6 +1061,28 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
         {
             memcpy(extent, whole_extent, 6*sizeof(unsigned long));
         }
+        else
+        {
+            // clamp the extent. this is a workaround to support 2D data
+            // with a vertical dimension of 1 being read into a 3D mesh.
+            if (this->clamp_dimensions_of_one)
+            {
+                teca_coordinate_util::clamp_dimensions_of_one(
+                    nx_max, ny_max, nz_max, extent, this->verbose);
+            }
+
+            // validate the requested extent before using it
+            if (teca_coordinate_util::validate_extent(nx_max,
+                ny_max, nz_max, extent, true))
+            {
+                TECA_ERROR("An invalid extent [" << extent
+                    << "] was requested. The available extent is [0, "
+                    << nx_max << ", 0, " << ny_max << ", 0, " << nz_max
+                    << "]")
+                return nullptr;
+            }
+        }
+
         // get bounds of the extent being read
         in_x->get(extent[0], bounds[0]);
         in_x->get(extent[1], bounds[1]);
@@ -1067,6 +1099,25 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
             bounds, in_x, in_y, in_z, extent))
         {
             TECA_ERROR("invalid bounds requested.")
+            return nullptr;
+        }
+
+        // clamp the extent. this is a workaround to support 2D data
+        // with a vertical dimension of 1 being read into a 3D mesh.
+        if (this->clamp_dimensions_of_one)
+        {
+            teca_coordinate_util::clamp_dimensions_of_one(
+                nx_max, ny_max, nz_max, extent, this->verbose);
+        }
+
+        // validate the requested extent before using it
+        if (teca_coordinate_util::validate_extent(nx_max,
+            ny_max, nz_max, extent, true))
+        {
+            TECA_ERROR("An invalid extent [" << extent
+                << "] was requested. The available extent is [0, "
+                << nx_max << ", 0, " << ny_max << ", 0, " << nz_max
+                << "]")
             return nullptr;
         }
     }

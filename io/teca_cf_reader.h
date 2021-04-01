@@ -220,6 +220,17 @@ public:
     TECA_ALGORITHM_PROPERTY(int, max_metadata_ranks)
     ///@}
 
+    /** @anchor clamp_dimensions_of_one
+     * @name clamp_dimensions_of_one
+     * If set the requested extent will be clamped in a given direction if the
+     * coorinate axis in that dircetion has a length of 1 and the requested extent
+     * would be out of bounds. This exists to deal with non-conformant data and
+     * should be used with caution.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, clamp_dimensions_of_one)
+    ///@}
+
 protected:
     teca_cf_reader();
     void clear_cached_metadata();
@@ -251,6 +262,7 @@ private:
     int periodic_in_y;
     int periodic_in_z;
     int max_metadata_ranks;
+    int clamp_dimensions_of_one;
     p_teca_cf_reader_internals internals;
 };
 
