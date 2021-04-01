@@ -14,7 +14,7 @@
 // boost to find them. they are needed for mutitoken program options
 namespace std
 {
-// send a vector to a stream
+/// send a vector to a stream
 template <typename T>
 std::ostream &operator<<(std::ostream &os, const std::vector<T> &vec)
 {
@@ -28,12 +28,26 @@ std::ostream &operator<<(std::ostream &os, const std::vector<T> &vec)
     return os;
 }
 
-// send a vector of strings to a stream
+/// send a vector of strings to a stream
 std::ostream &operator<<(std::ostream &os, const std::vector<std::string> &vec);
 }
 
-// detect if we are writing to a tty, if not then
-// we should not use ansi color codes
+#ifndef SWIG
+/// send a fixed length c-array to the stream
+template <typename num_t, int len,
+    typename = typename std::enable_if<!std::is_same<num_t,char>::value,bool>::type>
+std::ostream &operator<<(std::ostream &os, const num_t (& data)[len])
+{
+    os << data[0];
+    for (int i = 1; i < len; ++i)
+        os << ", " << data[i];
+    return os;
+}
+#endif
+
+/** Return true if we are writing to a TTY. If we are not then we should not
+ * use ansi color codes.
+ */
 int have_tty();
 
 #define ANSI_RED "\033[1;31;40m"
