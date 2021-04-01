@@ -423,5 +423,22 @@ const_p_teca_dataset teca_integrated_vapor_transport::execute(
             )
         )
 
+    // pass 2D arrays through.
+    p_teca_array_collection in_arrays =
+        std::const_pointer_cast<teca_array_collection>(in_mesh->get_point_arrays());
+
+    p_teca_array_collection out_arrays = out_mesh->get_point_arrays();
+
+    int n_arrays = in_arrays->size();
+    for (int i = 0; i < n_arrays; ++i)
+    {
+        p_teca_variant_array array = in_arrays->get(i);
+        if (array->size() == nxy)
+        {
+            // pass the array.
+            out_arrays->append(in_arrays->get_name(i), array);
+        }
+    }
+
     return out_mesh;
 }
