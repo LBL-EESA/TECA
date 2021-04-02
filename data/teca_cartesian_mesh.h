@@ -27,6 +27,15 @@ public:
     TECA_DATASET_METADATA(z_coordinate_variable, std::string, 1)
     TECA_DATASET_METADATA(t_coordinate_variable, std::string, 1)
 
+    /** Get the extent of the named array, taking into account the variable's
+     * dimensions as opposed to the mesh's dimensions.  For instance the mesh
+     * extent may represent a volume while a variables extent may represent a
+     * slice. returns 0 if successful, -1 if an error occurred, 1 if the
+     * have_mesh_dims flag is missing. The latter is not necessarily an error.
+     */
+    int get_array_extent(const std::string &array_name,
+        unsigned long array_extent[6]);
+
     // get x coordinate array
     p_teca_variant_array get_x_coordinates()
     { return m_coordinate_arrays->get("x"); }
