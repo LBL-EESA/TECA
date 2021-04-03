@@ -394,4 +394,94 @@ int get_cartesian_mesh_extent(const teca_metadata &md,
     return 0;
 }
 
+// **************************************************************************
+int validate_extent(unsigned long nx_max, unsigned long ny_max,
+    unsigned long nz_max, unsigned long *extent, bool verbose)
+{
+    // validate x
+    if (extent[1] >= nx_max)
+    {
+        if (verbose)
+        {
+            TECA_ERROR("The x-axis extent [" << extent[0] << ", "
+                << extent[1] << "] is invalid, the x-axis coordinate"
+                " array has " << nx_max << " values")
+        }
+        return -1;
+    }
+
+    // validate y
+    if (extent[3] >= ny_max)
+    {
+        if (verbose)
+        {
+            TECA_ERROR("The y-axis extent [" << extent[2] << ", "
+                << extent[3] << "] is invalid, the y-axis coordinate"
+                " array has " << ny_max << " values")
+        }
+        return -1;
+    }
+
+    // validate z
+    if (extent[5] >= nz_max)
+    {
+        if (verbose)
+        {
+            TECA_ERROR("The z-axis extent [" << extent[4] << ", "
+                << extent[5] << "] is invalid, the z-axis coordinate"
+                " array has " << nz_max << " values")
+        }
+        return -1;
+    }
+
+    return 0;
+}
+
+// **************************************************************************
+int clamp_dimensions_of_one(unsigned long nx_max, unsigned long ny_max,
+    unsigned long nz_max, unsigned long *extent, bool verbose)
+{
+    int clamped = 0;
+
+    // clamp x
+    if ((nx_max == 1) && (extent[1] != 0))
+    {
+        if (verbose)
+        {
+            TECA_WARNING("The requested x-axis extent [" << extent[0] << ", "
+                << extent[1] << "] is invalid and was clamped to [0, 0]")
+        }
+        extent[0] = 0;
+        extent[1] = 0;
+        clamped = 1;
+    }
+
+    // clamp y
+    if ((ny_max == 1) && (extent[3] != 0))
+    {
+        if (verbose)
+        {
+            TECA_WARNING("The requested y-axis extent [" << extent[2] << ", "
+                << extent[3] << "] is invalid and was clamped to [0, 0]")
+        }
+        extent[2] = 0;
+        extent[3] = 0;
+        clamped = 1;
+    }
+
+    // clamp z
+    if ((nz_max == 1) && (extent[5] != 0))
+    {
+        if (verbose)
+        {
+            TECA_WARNING("The requested z-axis extent [" << extent[4] << ", "
+                << extent[5] << "] is invalid and was clamped to [0, 0]")
+        }
+        extent[4] = 0;
+        extent[5] = 0;
+        clamped = 1;
+    }
+
+    return clamped;
+}
 };

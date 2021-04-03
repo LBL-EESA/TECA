@@ -370,18 +370,17 @@ int main(int argc, char **argv)
     ar_tag->set_input_connection(0, ar_detect->get_output_port());
     head = ar_tag;
 
-    // set the variables to weight by AR probability
+    // configure weight by AR probability
+    std::vector<std::string> weighted_vars;
+    int do_weighted = opt_vals.count("ar_weighted_variables");
     if (opt_vals.count("ar_weighted_variables"))
     {
-        ar_mask->set_masked_variables
-            (opt_vals["ar_weighted_variables"].as<std::vector<std::string>>());
-    }
+        weighted_vars =
+            opt_vals["ar_weighted_variables"].as<std::vector<std::string>>();
 
-    // if there are any variables to weight add the mask stage to the pipeline
-    bool do_weighted = ar_mask->get_number_of_masked_variables();
-    if (do_weighted)
-    {
         ar_mask->set_input_connection(0, ar_tag->get_output_port());
+        ar_mask->set_masked_variables(weighted_vars);
+
         head = ar_mask;
     }
 
@@ -404,6 +403,9 @@ int main(int argc, char **argv)
     // tell the writer to write ar weighted variables if needed
     if (do_weighted)
     {
+        point_arrays.insert(point_arrays.end(),
+            weighted_vars.begin(), weighted_vars.end());
+
         ar_mask->get_output_variable_names(point_arrays);
     }
 
@@ -469,10 +471,8 @@ int main(int argc, char **argv)
         }
 
         teca_metadata coords;
-        p_teca_double_array time;
-        if (md.get("coordinates", coords) ||
-            !(time = std::dynamic_pointer_cast<teca_double_array>(
-                coords.get("t"))))
+        p_teca_variant_array time;
+        if (md.get("coordinates", coords) || !(time = coords.get("t")))
         {
             TECA_ERROR("failed to determine time coordinate")
             return -1;

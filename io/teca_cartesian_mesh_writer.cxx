@@ -91,7 +91,7 @@ void write_vtk_array_data(FILE *ofile,
             if (binary)
             {
                 // because VTK's legacy file fomrat  requires big endian storage
-                if (!is_big_endian())
+                if ((sizeof(NT) > 1) && !is_big_endian())
                     fwrite_big_endian(pa, sizeof(NT), na, ofile);
                 else
                     fwrite_native_endian(pa, sizeof(NT), na, ofile);

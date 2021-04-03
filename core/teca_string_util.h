@@ -8,6 +8,7 @@
 #include <cerrno>
 #include <string>
 #include <vector>
+#include <set>
 
 namespace teca_string_util
 {
@@ -254,6 +255,18 @@ int extract_value(char *l, val_t &val)
     }
 
     return 0;
+}
+
+/** Given a collection of strings, where some of the strings end with a common
+ * substring, the post-fix, this function visits each string in the collection
+ * and removes the post-fix from each string that it is found in.
+ */
+void remove_post_fix(std::set<std::string> &names, std::string post_fix);
+
+/// When passed the string "" return empty string otherwise return the passed string
+inline std::string emptystr(const std::string &in)
+{
+    return (in == "\"\"" ? std::string() : in);
 }
 
 }

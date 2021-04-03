@@ -385,22 +385,25 @@ int main(int argc, char **argv)
         size_t n_arrays = atrs.size();
 
         // column widths
-        int aiw = 0;
-        int anw = 0;
-        int atw = 0;
-        int adw = 0;
-        int asw = 0;
+        int aiw = 4;
+        int anw = 8;
+        int atw = 8;
+        int acw = 14;
+        int adw = 15;
+        int asw = 9;
 
         // column data
         std::vector<std::string> ai;
         std::vector<std::string> an;
         std::vector<std::string> at;
+        std::vector<std::string> ac;
         std::vector<std::string> ad;
         std::vector<std::string> as;
 
         ai.reserve(n_arrays);
         an.reserve(n_arrays);
         at.reserve(n_arrays);
+        ac.reserve(n_arrays);
         ad.reserve(n_arrays);
         as.reserve(n_arrays);
 
@@ -415,10 +418,14 @@ int main(int argc, char **argv)
             int id = 0;
             p_teca_size_t_array dims;
             p_teca_string_array dim_names;
+            int centering = 0;
+            int n_active_dims = 0;
 
             if (atrs.get(array, atts)
                 || atts.get("cf_type_code", 0, type)
                 || atts.get("cf_id", 0, id)
+                || atts.get("centering", centering)
+                || atts.get("n_active_dims", n_active_dims)
                 || !(dims = std::dynamic_pointer_cast<teca_size_t_array>(atts.get("cf_dims")))
                 || !(dim_names = std::dynamic_pointer_cast<teca_string_array>(atts.get("cf_dim_names"))))
             {
@@ -440,6 +447,11 @@ int main(int argc, char **argv)
                 at.push_back(teca_netcdf_util::netcdf_tt<NC_T>::name());
                 )
             atw = std::max<int>(atw, at.back().size() + 4);
+
+            // centering
+            ac.push_back(teca_array_attributes::centering_to_string(centering) +
+                std::string(" ") + std::to_string(n_active_dims) + "D");
+            acw = std::max<int>(acw, ac.back().size() + 4);
 
             // dims
             int n_dims = dim_names->size();
@@ -481,10 +493,11 @@ int main(int argc, char **argv)
             << std::setw(aiw) << std::left << "Id"
             << std::setw(anw) << std::left << "Name"
             << std::setw(atw) << std::left << "Type"
+            << std::setw(acw) << std::left << "Centering"
             << std::setw(adw) << std::left << "Dimensions"
             << std::setw(asw) << std::left << "Shape" << std::endl;
 
-        int tw =  anw + atw + adw + asw;
+        int tw =  aiw + anw + atw + adw + acw + asw;
         for (int i = 0; i < tw; ++i)
             std::cerr << '-';
         std::cerr << std::endl;
@@ -496,6 +509,7 @@ int main(int argc, char **argv)
                 << std::setw(aiw) << std::left << ai[i]
                 << std::setw(anw) << std::left << an[i]
                 << std::setw(atw) << std::left << at[i]
+                << std::setw(acw) << std::left << ac[i]
                 << std::setw(adw) << std::left << ad[i]
                 << std::setw(asw) << std::left << as[i]
                 << std::endl;

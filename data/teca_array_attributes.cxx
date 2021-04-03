@@ -171,3 +171,49 @@ void teca_array_attributes::to_stream(std::ostream &os) const
         os << "None";
     }
 }
+
+// --------------------------------------------------------------------------
+const char *teca_array_attributes::centering_to_string(int cen)
+{
+    const char *cen_str = "invalid";
+    switch (cen)
+    {
+        case cell_centering:
+            cen_str = "cell";
+            break;
+
+        case x_face_centering:
+            cen_str = "x-face";
+            break;
+
+        case y_face_centering:
+            cen_str = "y-face";
+            break;
+
+        case z_face_centering:
+            cen_str = "z-face";
+            break;
+
+        case x_edge_centering:
+            cen_str = "x-edge";
+            break;
+
+        case y_edge_centering:
+            cen_str = "y-edge";
+            break;
+
+        case z_edge_centering:
+            cen_str = "z-edge";
+            break;
+
+        case point_centering:
+            cen_str = "point";
+            break;
+
+        case no_centering:
+            cen_str = "none";
+            break;
+    }
+
+    return cen_str;
+}

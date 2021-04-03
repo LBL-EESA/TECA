@@ -4,6 +4,7 @@
 #include <exception>
 #include <string>
 
+/// An exception that maybe thrown when a conversion between two data types fails.
 class teca_bad_cast : public std::exception
 {
 public:
@@ -18,6 +19,9 @@ private:
     std::string m_what;
 };
 
+/** returns the class name of the teca_algorithm or the string "nullptr"
+ * if the algorithm is a nullptr.
+ */
 template <typename class_t>
 const std::string safe_class_name(const class_t &o)
 {

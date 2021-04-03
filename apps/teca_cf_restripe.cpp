@@ -368,10 +368,8 @@ int main(int argc, char **argv)
         }
 
         teca_metadata coords;
-        p_teca_double_array time;
-        if (md.get("coordinates", coords) ||
-            !(time = std::dynamic_pointer_cast<teca_double_array>(
-                coords.get("t"))))
+        p_teca_variant_array time;
+        if (md.get("coordinates", coords) || !(time = coords.get("t")))
         {
             TECA_ERROR("failed to determine time coordinate")
             return -1;

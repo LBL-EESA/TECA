@@ -769,5 +769,21 @@ int same_orientation(const num_t *whole, const num_t *part)
     return 0;
 }
 
+/** where array dimensions specified by nx_max, ny_max, and nz_max are 1, and
+ * the extent would be out of bounds, set the extent to [0, 0].  If verbose is
+ * set, a warning is reported when the extent was clamped in one or more
+ * directions. The return is non zero if any direction was clamped and 0
+ * otherwise.
+ */
+int clamp_dimensions_of_one(unsigned long nx_max, unsigned long ny_max,
+    unsigned long nz_max, unsigned long *extent, bool verbose);
+
+/** Return 0 if the passed extent does not exceed array dimensions specified in
+ * nx_max, ny_max, and nz_max.  If verbose is set, an error is reported via
+ * TECA_ERROR when the extent would be out of bounds.
+ */
+int validate_extent(unsigned long nx_max, unsigned long ny_max,
+    unsigned long nz_max, unsigned long *extent, bool verbose);
+
 };
 #endif

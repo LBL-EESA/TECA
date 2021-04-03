@@ -338,6 +338,8 @@ read the variables *hus*, *ua* and *va* each from a different subdirectory.
     data_root = /global/cfs/cdirs/m3522/cmip6/CMIP6_hrmcol/HighResMIP/CMIP6/HighResMIP/ECMWF/ECMWF-IFS-HR/highresSST-present/r1i1p1f1/6hrPlevPt
     regex = 6hrPlevPt_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_gr_199[0-9].*\.nc$
 
+    z_axis_variable = plev
+
     [cf_reader]
     variables = hus
     regex = %data_root%/hus/gr/v20170915/hus_%regex%
@@ -397,6 +399,62 @@ section key words:
 |                       | reader will provide the mesh definition.            |
 +-----------------------+-----------------------------------------------------+
 
+A number of optional `teca_cf_reader` properties may be placed in either the
+global or individual sections. When not specified in the MCF file the default
+values defined by the `teca_cf_reader` are used. Such properties, when
+specified in the global section are applied to all readers. Properties
+specified with in a `[cf_reader]` section are applied only to the reader
+declared in that section. When the same property is specified in both the
+global section and a `[cf_reader]` section, the property specified in the
+`[cf_reader]` section takes precedence. The following `teca_cf_reader`
+properties are supported:
+
++-------------------------+---------------------------------------------------+
+| key word                | description                                       |
++=========================+===================================================+
+| x_axis_variable         | The name of the variable defining the x           |
+|                         | coordinate axis. The default is *lon*.            |
++-------------------------+---------------------------------------------------+
+| y_axis_variable         | The name of the variable defining the y           |
+|                         | coordinate axis. The default is *lat*.            |
++-------------------------+---------------------------------------------------+
+| z_axis_variable         | The name of the variable defining the z           |
+|                         | coordinate axis. The default is *""*. The         |
+|                         | *z_axis_variable* must be specified for 3D data.  |
++-------------------------+---------------------------------------------------+
+| t_axis_variable         | The name of the variable defining the time axis.  |
+|                         | The default is *time*.                            |
++-------------------------+---------------------------------------------------+
+| calendar                | The calendar to use with the time axis. The       |
+|                         | calendar is typically encoded in the file. The    |
+|                         | value provided here can be used to override what  |
+|                         | is in the file or to specify the calendar when it |
+|                         | is missing from the file.                         |
++-------------------------+---------------------------------------------------+
+| t_units                 | The units that the time axis is in.  This time    |
+|                         | units are typically encoded in the file. The      |
+|                         | value provided here can be used to overrides what |
+|                         | is in the file or to specify the time units when  |
+|                         | they are missing from the file.                   |
++-------------------------+---------------------------------------------------+
+| filename_time_template  | Provides a way to infer time from the filename if |
+|                         | the time axis is not stored in the file itself.   |
+|                         | *strftime* format codes are used. For example for |
+|                         | the files: *my_file_20170516_00.nc*,              |
+|                         | *my_file_20170516_03.nc*, *...*; the template     |
+|                         | would be *my_file_%Y%m%d_%H.nc*                   |
++-------------------------+---------------------------------------------------+
+| periodic_in_x           | A flag that indicates a periodic boundary in the  |
+|                         | x direction.                                      |
++-------------------------+---------------------------------------------------+
+| clamp_dimensions_of_one | If set the requested extent will be clamped in a  |
+|                         | given direction if the coordinate axis in that    |
+|                         | direction has a length of 1 and the requested     |
+|                         | extent would be out of bounds. This is a work     |
+|                         | around to enable loading 2D data with a vertical  |
+|                         | dimension of 1, into a 3D mesh and should be used |
+|                         | with caution.                                     |
++-------------------------+---------------------------------------------------+
 
 .. _rearranging_data:
 
@@ -435,7 +493,7 @@ values, the following teca_cf_reader options can be used.
   string to enable override methods (--filename_time_template, --t_values) or
   to disable time coordinates completely
 
---cf_reader::t_calendar arg
+--cf_reader::calendar arg
   An optional calendar override. May be one of: standard, Julian,
   proplectic_Julian, Gregorian, proplectic_Gregorian, Gregorian_Y0,
   proplectic_Gregorian_Y0, noleap, no_leap, 365_day, 360_day. When the
@@ -2306,7 +2364,7 @@ Command Line Arguments
 --t_axis_variable T_AXIS_VARIABLE
     time dimension name (default: None)
 
---t_calendar T_CALENDAR
+--calendar calendar
     time calendar (default: None)
 
 --t_units T_UNITS

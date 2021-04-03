@@ -58,13 +58,14 @@ teca_cf_reader::teca_cf_reader() :
     y_axis_variable("lat"),
     z_axis_variable(""),
     t_axis_variable("time"),
-    t_calendar(""),
+    calendar(""),
     t_units(""),
     filename_time_template(""),
     periodic_in_x(0),
     periodic_in_y(0),
     periodic_in_z(0),
     max_metadata_ranks(1024),
+    clamp_dimensions_of_one(0),
     internals(new teca_cf_reader_internals)
 {}
 
@@ -99,7 +100,7 @@ void teca_cf_reader::get_properties_description(
             "name of variable that has time axis coordinates (time). Set to an empty"
             " string to enable override methods (--filename_time_template, --t_values)"
             " or to disable time coordinates completely")
-        TECA_POPTS_GET(std::string, prefix, t_calendar,
+        TECA_POPTS_GET(std::string, prefix, calendar,
             "An optional calendar override. May be one of: standard, Julian,"
             " proplectic_Julian, Gregorian, proplectic_Gregorian, Gregorian_Y0,"
             " proplectic_Gregorian_Y0, noleap, no_leap, 365_day, 360_day. When the"
@@ -132,6 +133,9 @@ void teca_cf_reader::get_properties_description(
             "the dataset has a periodic boundary in the z direction")
         TECA_POPTS_GET(int, prefix, max_metadata_ranks,
             "set the max number of MPI ranks for reading metadata")
+        TECA_POPTS_GET(int, prefix, clamp_dimensions_of_one,
+            "If set clamp requested axis extent in where the request is out of"
+            " bounds and the coordinate array dimension is 1.")
         ;
 
     this->teca_algorithm::get_properties_description(prefix, opts);
@@ -151,7 +155,7 @@ void teca_cf_reader::set_properties(const std::string &prefix,
     TECA_POPTS_SET(opts, std::string, prefix, y_axis_variable)
     TECA_POPTS_SET(opts, std::string, prefix, z_axis_variable)
     TECA_POPTS_SET(opts, std::string, prefix, t_axis_variable)
-    TECA_POPTS_SET(opts, std::string, prefix, t_calendar)
+    TECA_POPTS_SET(opts, std::string, prefix, calendar)
     TECA_POPTS_SET(opts, std::string, prefix, t_units)
     TECA_POPTS_SET(opts, std::string, prefix, filename_time_template)
     TECA_POPTS_SET(opts, std::vector<double>, prefix, t_values)
@@ -159,6 +163,7 @@ void teca_cf_reader::set_properties(const std::string &prefix,
     TECA_POPTS_SET(opts, int, prefix, periodic_in_y)
     TECA_POPTS_SET(opts, int, prefix, periodic_in_z)
     TECA_POPTS_SET(opts, int, prefix, max_metadata_ranks)
+    TECA_POPTS_SET(opts, int, prefix, clamp_dimensions_of_one)
 }
 #endif
 
@@ -333,7 +338,10 @@ teca_metadata teca_cf_reader::get_output_metadata(
             std::string name;
             teca_metadata atts;
 
-            if (teca_netcdf_util::read_variable_attributes(fh, i, name, atts))
+            if (teca_netcdf_util::read_variable_attributes(fh, i,
+                this->x_axis_variable, this->y_axis_variable,
+                this->z_axis_variable, this->t_axis_variable,
+                this->clamp_dimensions_of_one, name, atts))
             {
                 this->clear_cached_metadata();
                 TECA_ERROR(
@@ -519,11 +527,11 @@ teca_metadata teca_cf_reader::get_output_metadata(
             }
 
             // override the calendar
-            if (!this->t_calendar.empty())
+            if (!this->calendar.empty())
             {
                 TECA_WARNING("Overriding the calendar with the runtime "
-                    "provided value \"" << this->t_calendar << "\"")
-                time_atts.set("calendar", this->t_calendar);
+                    "provided value \"" << this->calendar << "\"")
+                time_atts.set("calendar", this->calendar);
             }
 
             // override the units
@@ -721,7 +729,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
             TECA_STATUS("The t_axis_variable was unspecified, using the "
                 "provided time values")
 
-            if (this->t_calendar.empty() || this->t_units.empty())
+            if (this->calendar.empty() || this->t_units.empty())
             {
                 TECA_ERROR("The calendar and units must to be specified when "
                     " providing time values")
@@ -739,7 +747,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
             }
 
             teca_metadata time_atts;
-            time_atts.set("calendar", this->t_calendar);
+            time_atts.set("calendar", this->calendar);
             time_atts.set("units", this->t_units);
             time_atts.set("cf_dims", n_t_vals);
             time_atts.set("cf_type_code", int(teca_netcdf_util::netcdf_tt<double>::type_code));
@@ -764,12 +772,12 @@ teca_metadata teca_cf_reader::get_output_metadata(
             std::vector<double> t_values;
 
             std::string t_units = this->t_units;
-            std::string t_calendar = this->t_calendar;
+            std::string calendar = this->calendar;
 
             // assume that this is a standard calendar if none is provided
-            if (this->t_calendar.empty())
+            if (this->calendar.empty())
             {
-                t_calendar = "standard";
+                calendar = "standard";
             }
 
             // loop over all files and infer dates from names
@@ -828,7 +836,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 double second = current_tm.tm_sec;
                 double current_time = 0;
                 if (calcalcs::coordinate(year, mon, day, hour, minute,
-                    second, t_units.c_str(), t_calendar.c_str(), &current_time))
+                    second, t_units.c_str(), calendar.c_str(), &current_time))
                 {
                     TECA_ERROR("conversion of date inferred from "
                         "filename failed");
@@ -844,7 +852,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
             TECA_STATUS("The time axis will be infered from file names using "
                 "the user provided template \"" << this->filename_time_template
-                << "\" with the \"" << t_calendar << "\" calendar in units \""
+                << "\" with the \"" << calendar << "\" calendar in units \""
                 << t_units << "\"")
 
             // create a teca variant array from the times
@@ -858,7 +866,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
             // set the time metadata
             teca_metadata time_atts;
-            time_atts.set("calendar", t_calendar);
+            time_atts.set("calendar", calendar);
             time_atts.set("units", t_units);
             time_atts.set("cf_dims", n_t_vals);
             time_atts.set("cf_type_code", int(teca_netcdf_util::netcdf_tt<double>::type_code));
@@ -981,6 +989,11 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
         return nullptr;
     }
 
+    // the requested extents must not exceed these limits
+    unsigned long nx_max = in_x->size();
+    unsigned long ny_max = in_y->size();
+    unsigned long nz_max = in_z->size();
+
     // get names, need to be careful since some of these depend
     // on run time information. eg: user can specify a time axis
     // via algorithm properties
@@ -1048,6 +1061,28 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
         {
             memcpy(extent, whole_extent, 6*sizeof(unsigned long));
         }
+        else
+        {
+            // clamp the extent. this is a workaround to support 2D data
+            // with a vertical dimension of 1 being read into a 3D mesh.
+            if (this->clamp_dimensions_of_one)
+            {
+                teca_coordinate_util::clamp_dimensions_of_one(
+                    nx_max, ny_max, nz_max, extent, this->verbose);
+            }
+
+            // validate the requested extent before using it
+            if (teca_coordinate_util::validate_extent(nx_max,
+                ny_max, nz_max, extent, true))
+            {
+                TECA_ERROR("An invalid extent [" << extent
+                    << "] was requested. The available extent is [0, "
+                    << nx_max << ", 0, " << ny_max << ", 0, " << nz_max
+                    << "]")
+                return nullptr;
+            }
+        }
+
         // get bounds of the extent being read
         in_x->get(extent[0], bounds[0]);
         in_x->get(extent[1], bounds[1]);
@@ -1064,6 +1099,25 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
             bounds, in_x, in_y, in_z, extent))
         {
             TECA_ERROR("invalid bounds requested.")
+            return nullptr;
+        }
+
+        // clamp the extent. this is a workaround to support 2D data
+        // with a vertical dimension of 1 being read into a 3D mesh.
+        if (this->clamp_dimensions_of_one)
+        {
+            teca_coordinate_util::clamp_dimensions_of_one(
+                nx_max, ny_max, nz_max, extent, this->verbose);
+        }
+
+        // validate the requested extent before using it
+        if (teca_coordinate_util::validate_extent(nx_max,
+            ny_max, nz_max, extent, true))
+        {
+            TECA_ERROR("An invalid extent [" << extent
+                << "] was requested. The available extent is [0, "
+                << nx_max << ", 0, " << ny_max << ", 0, " << nz_max
+                << "]")
             return nullptr;
         }
     }
@@ -1176,43 +1230,6 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
 
     md.set("attributes", out_atrs);
 
-    // figure out the mapping between our extent and netcdf
-    // representation
-    std::vector<std::string> mesh_dim_names;
-    std::vector<size_t> starts;
-    std::vector<size_t> counts;
-    size_t mesh_size = 1;
-    if (!t_axis_variable.empty())
-    {
-        mesh_dim_names.push_back(t_axis_variable);
-        starts.push_back(offs);
-        counts.push_back(1);
-    }
-    if (!z_axis_variable.empty())
-    {
-        mesh_dim_names.push_back(z_axis_variable);
-        starts.push_back(extent[4]);
-        size_t count = extent[5] - extent[4] + 1;
-        counts.push_back(count);
-        mesh_size *= count;
-    }
-    if (!y_axis_variable.empty())
-    {
-        mesh_dim_names.push_back(y_axis_variable);
-        starts.push_back(extent[2]);
-        size_t count = extent[3] - extent[2] + 1;
-        counts.push_back(count);
-        mesh_size *= count;
-    }
-    if (!x_axis_variable.empty())
-    {
-        mesh_dim_names.push_back(x_axis_variable);
-        starts.push_back(extent[0]);
-        size_t count = extent[1] - extent[0] + 1;
-        counts.push_back(count);
-        mesh_size *= count;
-    }
-
     // read requested arrays
     for (size_t i = 0; i < n_arrays; ++i)
     {
@@ -1220,113 +1237,144 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
         teca_metadata atts;
         int type = 0;
         int id = 0;
-        p_teca_size_t_array dims;
-        p_teca_string_array dim_names;
+        int have_mesh_dim[4] = {0};
+        int mesh_dim_active[4] = {0};
+        unsigned int centering = teca_array_attributes::no_centering;
+        std::vector<size_t> cf_dims;
 
         if (atrs.get(arrays[i], atts)
             || atts.get("cf_type_code", 0, type)
             || atts.get("cf_id", 0, id)
-            || !(dims = std::dynamic_pointer_cast<teca_size_t_array>(atts.get("cf_dims")))
-            || !(dim_names = std::dynamic_pointer_cast<teca_string_array>(atts.get("cf_dim_names"))))
+            || atts.get("cf_dims", cf_dims)
+            || atts.get("centering", centering)
+            || atts.get("have_mesh_dim", have_mesh_dim, 4)
+            || atts.get("mesh_dim_active", mesh_dim_active, 4))
         {
             TECA_ERROR("metadata issue can't read \"" << arrays[i] << "\"")
             continue;
         }
 
-        // check if it's a mesh variable, if it is not a mesh variable
-        // it is an information variable (ie non-spatial)
-        bool mesh_var = false;
-        unsigned int n_dims = dim_names->size();
+        size_t n_vals = 1;
+        unsigned int n_dims = cf_dims.size();
+        std::vector<size_t> starts;
+        std::vector<size_t> counts;
 
-        if (n_dims == mesh_dim_names.size())
+        if (centering == teca_array_attributes::point_centering)
         {
-            mesh_var = true;
-            for (unsigned int ii = 0; ii < n_dims; ++ii)
+            // select the requested time step
+            // subset point centered variables based on the incoming requested
+            // extent.
+            if (have_mesh_dim[3])
             {
-                if (dim_names->get(ii) != mesh_dim_names[ii])
-                {
-                    mesh_var = false;
-                    break;
-                }
+                starts.push_back(mesh_dim_active[3] ? offs : 0);
+                counts.push_back(1);
+            }
+
+            if (have_mesh_dim[2])
+            {
+                size_t start = mesh_dim_active[2] ? extent[4] : 0;
+                size_t count = mesh_dim_active[2] ? extent[5] - extent[4] + 1 : 1;
+
+                starts.push_back(start);
+                counts.push_back(count);
+
+                n_vals *= count;
+            }
+
+            if (have_mesh_dim[1])
+            {
+                size_t start = mesh_dim_active[1] ? extent[2] : 0;
+                size_t count = mesh_dim_active[1] ? extent[3] - extent[2] + 1 : 1;
+
+                starts.push_back(start);
+                counts.push_back(count);
+
+                n_vals *= count;
+            }
+
+            if (have_mesh_dim[0])
+            {
+                size_t start = mesh_dim_active[0] ? extent[0] : 0;
+                size_t count = mesh_dim_active[0] ? extent[1] - extent[0] + 1 : 1;
+
+                starts.push_back(start);
+                counts.push_back(count);
+
+                n_vals *= count;
             }
         }
+        else if (centering == teca_array_attributes::no_centering)
+        {
+            // most of the time this is a user error, forgetting to set z_axis_variable.
+            if (have_mesh_dim[0] || have_mesh_dim[1] || have_mesh_dim[2])
+            {
+                TECA_WARNING("The variable \"" << arrays[i] << "\" is being treated"
+                    " as an information array. It has dimensions matching those of the mesh"
+                    " in the " << (have_mesh_dim[0] ? "x " : "") << (have_mesh_dim[1] ? "y " : "")
+                    << (have_mesh_dim[2] ? "z " : "") << (have_mesh_dim[3] ? "t " : "")
+                    << "directions but the " << (have_mesh_dim[0] ? "" : "x ")
+                    << (have_mesh_dim[1] ? "" : "y ") << (have_mesh_dim[2] ? "" : "z ")
+                    << (have_mesh_dim[3] ? "" : "t ") << " dimensions of the mesh have been"
+                    " disabled.")
+            }
 
-        // read requested variables
-        if (mesh_var)
-        {
-            // read mesh based data
-            p_teca_variant_array array;
-            NC_DISPATCH(type,
-                p_teca_variant_array_impl<NC_T> a = teca_variant_array_impl<NC_T>::New(mesh_size);
-#if !defined(HDF5_THREAD_SAFE)
-                {
-                std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
-#endif
-                if ((ierr = nc_get_vara(file_id,  id, &starts[0], &counts[0], a->get())) != NC_NOERR)
-                {
-                    TECA_ERROR("time_step=" << time_step
-                        << " Failed to read variable \"" << arrays[i] << "\" "
-                        << file << endl << nc_strerror(ierr))
-                    continue;
-                }
-#if !defined(HDF5_THREAD_SAFE)
-                }
-#endif
-                array = a;
-                )
-            mesh->get_point_arrays()->append(arrays[i], array);
-        }
-        else
-        {
             // read non-spatial data
             // if the first dimension is time then select the requested time
             // step. otherwise read the entire thing
-            std::vector<size_t> starts(n_dims);
-            std::vector<size_t> counts(n_dims);
-            size_t n_vals = 1;
-            if (!t_axis_variable.empty() && (dim_names->get(0) == t_axis_variable))
+            if (!t_axis_variable.empty() && have_mesh_dim[3])
             {
-                starts[0] = offs;
-                counts[0] = 1;
+                starts.push_back(offs);
+                counts.push_back(1);
             }
             else
             {
-                starts[0] = 0;
-                size_t dim_len = dims->get(0);
-                counts[0] = dim_len;
+                starts.push_back(0);
+
+                size_t dim_len = cf_dims[0];
+                counts.push_back(dim_len);
+
                 n_vals = dim_len;
             }
 
             for (unsigned int ii = 1; ii < n_dims; ++ii)
             {
-                size_t dim_len = dims->get(ii);
-                counts[ii] = dim_len;
+                starts.push_back(0);
+
+                size_t dim_len = cf_dims[ii];
+                counts.push_back(dim_len);
+
                 n_vals *= dim_len;
             }
-
-            p_teca_variant_array array;
-
-            NC_DISPATCH(type,
-                p_teca_variant_array_impl<NC_T> a = teca_variant_array_impl<NC_T>::New(n_vals);
-#if !defined(HDF5_THREAD_SAFE)
-                {
-                std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
-#endif
-                if ((ierr = nc_get_vara(file_id,  id, &starts[0], &counts[0], a->get())) != NC_NOERR)
-                {
-                    TECA_ERROR("time_step=" << time_step
-                        << " Failed to read \"" << arrays[i] << "\" "
-                        << file << endl << nc_strerror(ierr))
-                    continue;
-                }
-#if !defined(HDF5_THREAD_SAFE)
-                }
-#endif
-                array = a;
-                )
-
-            mesh->get_information_arrays()->append(arrays[i], array);
         }
+        else
+        {
+            TECA_ERROR("Invalid centering can't read \"" << arrays[i] << "\"")
+            continue;
+        }
+
+        // read the array
+        p_teca_variant_array array;
+        NC_DISPATCH(type,
+            p_teca_variant_array_impl<NC_T> a = teca_variant_array_impl<NC_T>::New(n_vals);
+#if !defined(HDF5_THREAD_SAFE)
+            {
+            std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+            if ((ierr = nc_get_vara(file_id,  id, &starts[0], &counts[0], a->get())) != NC_NOERR)
+            {
+                TECA_ERROR("time_step=" << time_step
+                    << " Failed to read variable \"" << arrays[i] << "\" "
+                    << file << endl << nc_strerror(ierr))
+                continue;
+            }
+#if !defined(HDF5_THREAD_SAFE)
+            }
+#endif
+            array = a;
+            )
+
+        // pas it into the output
+        mesh->get_arrays(centering)->append(arrays[i], array);
     }
 
     return mesh;

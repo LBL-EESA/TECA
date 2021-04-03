@@ -31,10 +31,7 @@ struct object_dispatch :
     !std::is_arithmetic<T>::value>
 {};
 
-/// type agnostic container for array based data
-/**
-type agnostic container for array based data.
-*/
+/// A type agnostic container for array based data.
 class teca_variant_array : public std::enable_shared_from_this<teca_variant_array>
 {
 public:
@@ -262,8 +259,7 @@ struct pack_object
 
 
 
-// implementation of our type agnostic container
-// for simple arrays
+/// The concrete implementation of our type agnostic container for simple arrays.
 template<typename T>
 class teca_variant_array_impl : public teca_variant_array
 {
