@@ -2,7 +2,9 @@
 #include "teca_cartesian_mesh_writer.h"
 #include "teca_cf_writer.h"
 #include "teca_valid_value_mask.h"
+#include "teca_elevation_mask.h"
 #include "teca_integrated_vapor_transport.h"
+#include "teca_index_executive.h"
 #include "teca_coordinate_util.h"
 #include "teca_dataset_capture.h"
 #include "teca_system_interface.h"
@@ -89,8 +91,9 @@ int main(int argc, char **argv)
     double p_sfc = 92500e-4;
     double p_top = 5000e-4;
     double fill_value = 1.0e14;
-    int write_input = 0;
-    int write_output = 0;
+    int vv_mask = (argc > 0 ? atoi(argv[1]) : 1);
+    int write_input = (argc > 1 ? atoi(argv[2]) : 0);
+    int write_output = (argc > 2 ? atoi(argv[3]) : 0);
 
     // double the z axis, but hit all of the original points.  if we set the
     // integrand to the fill_value where p > p_sfc and apply the valid value
@@ -138,25 +141,81 @@ int main(int argc, char **argv)
             1, fill_value),
             v});
 
-    // generate the valid value mask
-    p_teca_valid_value_mask mask = teca_valid_value_mask::New();
-    mask->set_input_connection(mesh->get_output_port());
-    mask->set_verbose(0);
+    p_teca_algorithm head;
+    if (vv_mask)
+    {
+        // generate the valid value mask
+        std::cerr << "Testing with the valid_value_mask" << std::endl;
+
+        p_teca_valid_value_mask mask = teca_valid_value_mask::New();
+        mask->set_input_connection(mesh->get_output_port());
+        mask->set_verbose(0);
+
+        head = mask;
+    }
+    else
+    {
+        // generate the elevation mask
+        std::cerr << "Testing with the elevation_mask" << std::endl;
+
+        // add generator for mesh height
+        // let zg = -p
+        function_of_z<double> zg([](double z) -> double { return -z; },
+                1e6, fill_value);
+
+        mesh->append_field_generator({"zg",
+            teca_array_attributes(teca_variant_array_code<double>::get(),
+                teca_array_attributes::point_centering, 0, "m",
+                "mesh height", "test data where zg = p",
+                1, fill_value),
+                zg});
+
+        // generate surface elevation
+        p_teca_cartesian_mesh_source elev = teca_cartesian_mesh_source::New();
+        elev->set_whole_extents({0, 2, 0, 2, 0, 0, 0, 0});
+        elev->set_bounds({-1.0, 1.0, -1.0, 1.0, p_sfc, p_sfc, 0.0, 0.0});
+        elev->set_t_axis_variable("");
+
+        elev->append_field_generator({"z",
+            teca_array_attributes(teca_variant_array_code<double>::get(),
+                teca_array_attributes::point_centering, 0, "m",
+                "surface elevation", "test data where z = p",
+                1, fill_value),
+                zg});
+
+        p_teca_elevation_mask mask = teca_elevation_mask::New();
+        mask->set_input_connection(0, mesh->get_output_port());
+        mask->set_input_connection(1, elev->get_output_port());
+        mask->set_mask_variables({"q_valid", "u_valid", "v_valid"});
+        mask->set_surface_elevation_variable("z");
+        mask->set_mesh_height_variable("zg");
+
+        head = mask;
+    }
 
     // write the test input dataset
     if (write_input)
     {
+        std::string fn = std::string("test_integrated_vapor_transport_input_") +
+            std::string(vv_mask ? "vv_mask" : "elev_mask") + std::string("_%t%.nc");
+
+        p_teca_index_executive exec = teca_index_executive::New();
+
         p_teca_cf_writer w = teca_cf_writer::New();
-        w->set_input_connection(mask->get_output_port());
-        w->set_file_name("test_integrated_vapor_transport_input_%t%.nc");
+        w->set_input_connection(head->get_output_port());
+        w->set_file_name(fn);
         w->set_thread_pool_size(1);
         w->set_point_arrays({"q", "u", "v", "q_valid", "u_valid", "v_valid"});
+        if (!vv_mask)
+            w->append_point_array("zg");
+        w->set_executive(exec);
+
         w->update();
     }
 
     // compute IVT
     p_teca_integrated_vapor_transport ivt = teca_integrated_vapor_transport::New();
-    ivt->set_input_connection(mask->get_output_port());
+    ivt->set_input_connection(head->get_output_port());
     ivt->set_wind_u_variable("u");
     ivt->set_wind_v_variable("v");
     ivt->set_specific_humidity_variable("q");
@@ -164,9 +223,12 @@ int main(int argc, char **argv)
     // write the result
     if (write_output)
     {
+        std::string fn = std::string("test_integrated_vapor_transport_output_") +
+            std::string(vv_mask ? "vv_mask" : "elev_mask") + std::string("_%t%.nc");
+
         p_teca_cf_writer w = teca_cf_writer::New();
         w->set_input_connection(ivt->get_output_port());
-        w->set_file_name("test_integrated_vapor_transport_output_%t%.nc");
+        w->set_file_name(fn);
         w->set_thread_pool_size(1);
         w->set_point_arrays({"ivt_u", "ivt_v"});
         w->update();
