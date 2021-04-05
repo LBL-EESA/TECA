@@ -254,6 +254,16 @@ int main(int argc, char **argv)
     // configure the reader
     bool have_file = opt_vals.count("input_file");
     bool have_regex = opt_vals.count("input_regex");
+    if ((have_file && have_regex) || !(have_file || have_regex))
+    {
+        if (mpi_man.get_comm_rank() == 0)
+        {
+            TECA_ERROR("Extacly one of --input_file or --input_regex can be specified. "
+                "Use --input_file to activate the multi_cf_reader (HighResMIP datasets) "
+                "and --input_regex to activate the cf_reader (CAM like datasets)")
+        }
+        return -1;
+    }
 
     if (opt_vals.count("input_file"))
     {
@@ -330,6 +340,16 @@ int main(int argc, char **argv)
     // add the ivt caluation stages if needed
     bool do_ivt = opt_vals["write_ivt"].as<int>();
     bool do_ivt_magnitude = opt_vals["write_ivt_magnitude"].as<int>();
+    if (!(do_ivt || do_ivt_magnitude))
+
+    {
+        if (mpi_man.get_comm_rank() == 0)
+        {
+            TECA_ERROR("At least one of --write_ivt or --write_ivt_magnitude "
+                " must be set.")
+        }
+        return -1;
+    }
 
     // add the elevation mask stages
     teca_metadata md;
@@ -431,27 +451,6 @@ int main(int argc, char **argv)
     cf_writer->set_thread_pool_size(opt_vals["n_threads"].as<int>());
 
     // some minimal check for missing options
-    if ((have_file && have_regex) || !(have_file || have_regex))
-    {
-        if (mpi_man.get_comm_rank() == 0)
-        {
-            TECA_ERROR("Extacly one of --input_file or --input_regex can be specified. "
-                "Use --input_file to activate the multi_cf_reader (HighResMIP datasets) "
-                "and --input_regex to activate the cf_reader (CAM like datasets)")
-        }
-        return -1;
-    }
-
-    if (!(do_ivt || do_ivt_magnitude))
-    {
-        if (mpi_man.get_comm_rank() == 0)
-        {
-            TECA_ERROR("AT least one of --write_ivt or --write_ivt_magnitude "
-                " must be set.")
-        }
-        return -1;
-    }
-
     if (cf_writer->get_file_name().empty())
     {
         if (mpi_man.get_comm_rank() == 0)
