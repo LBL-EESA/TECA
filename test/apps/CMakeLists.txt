@@ -473,5 +473,8 @@ foreach (app_name ${app_names})
         teca_add_app_test(${app_name}_advanced_help ${app_name}
             COMMAND ${CMAKE_BINARY_DIR}/${BIN_PREFIX}/${app_name} --advanced_help)
 
+        teca_add_app_test(${app_name}_no_args ${app_name}
+            COMMAND ${CMAKE_BINARY_DIR}/${BIN_PREFIX}/${app_name}
+            WILL_FAIL)
     endif()
 endforeach()
