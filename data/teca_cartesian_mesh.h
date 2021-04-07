@@ -6,7 +6,7 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_cartesian_mesh)
 
-/// An object representing data on a stretched Cartesian mesh
+/// An object representing data on a stretched Cartesian mesh.
 class teca_cartesian_mesh : public teca_mesh
 {
 public:

@@ -84,6 +84,8 @@ int is_comment(char *buf)
     return 0;
 }
 
+/// @cond
+
 template <typename num_t>
 struct scanf_tt {};
 
@@ -272,3 +274,5 @@ inline std::string emptystr(const std::string &in)
 }
 
 #endif
+
+/// @endcond

@@ -4,7 +4,7 @@
 #include "teca_uniform_cartesian_mesh_fwd.h"
 #include "teca_mesh.h"
 
-/// data on a uniform cartesian mesh
+/// Data on a uniform cartesian mesh.
 class teca_uniform_cartesian_mesh : public teca_mesh
 {
 public:

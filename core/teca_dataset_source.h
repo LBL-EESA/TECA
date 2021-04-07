@@ -10,11 +10,11 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_dataset_source)
 
+/// An algorithm that serves up user provided data and metadata.
 /**
-An algorithm that serves up user provided data and metadata.
-This algorithm can be used to inject a dataset constructed
-on outside of TECA into a TECA pipleine.
-*/
+ * This algorithm can be used to inject a dataset constructed
+ * on outside of TECA into a TECA pipeline.
+ */
 class teca_dataset_source : public teca_algorithm
 {
 public:

@@ -11,10 +11,10 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_cf_time_axis_data_reduce)
 
-/**
-gathers the time axis and metadata from a parallel read of a
-set of NetCDF CF2 files
-*/
+/** @brief
+ * Gathers the time axis and metadata from a parallel read of a
+ * set of NetCDF CF2 files.
+ */
 class teca_cf_time_axis_data_reduce : public teca_index_reduce
 {
 public:

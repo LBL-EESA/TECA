@@ -3,13 +3,13 @@
 
 #include "teca_config.h"
 
-// forward delcaration of ref counted types
+// forward declaration of ref counted types
 #include "teca_dataset_fwd.h"
 #include "teca_algorithm_fwd.h"
 #include "teca_algorithm_executive_fwd.h"
 class teca_algorithm_internals;
 
-// for types used in the api
+// for types used in the API
 #include "teca_metadata.h"
 #include "teca_algorithm_output_port.h"
 #include "teca_program_options.h"
@@ -19,8 +19,10 @@ class teca_algorithm_internals;
 #include <utility>
 #include <iosfwd>
 
-// interface to teca pipeline architecture. all sources/readers
-// filters, sinks/writers will implement this interface
+/// Interface to TECA pipeline architecture.
+/**
+ * All sources/readers filters, sinks/writers will implement this interface.
+ */
 class teca_algorithm : public std::enable_shared_from_this<teca_algorithm>
 {
 public:
@@ -166,7 +168,7 @@ protected:
     // in the first argument. The second argument is
     // a list of all of the input datasets. See also
     // get_request. The third argument contains a request
-    // from the consumer which can spcify information
+    // from the consumer which can specify information
     // such as arrays, subset region, timestep etc.
     // The implementation is free to handle the request
     // as it sees fit.
@@ -177,7 +179,7 @@ protected:
 
     // implementations may choose to override this method
     // to gain control of keys used in the cache. By default
-    // the passed in request is used as the key. This overide
+    // the passed in request is used as the key. This override
     // gives implementor the chance to filter the passed in
     // request.
     virtual
@@ -187,7 +189,7 @@ protected:
 protected:
 // this section contains methods that control the
 // pipeline's behavior. these would typically only
-// need to be overriden when designing a new class
+// need to be overridden when designing a new class
 // of algorithms.
 
     // driver function that manage meta data reporting  phase
@@ -197,7 +199,7 @@ protected:
         teca_algorithm_output_port &current);
 
     // driver function that manages execution of the given
-    // requst on the named port
+    // request on the named port
     virtual
     const_p_teca_dataset request_data(
         teca_algorithm_output_port &port,

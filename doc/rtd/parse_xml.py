@@ -236,7 +236,8 @@ class TECA_Tree(object):
             rst += '\n.. _' + page_name + ':\n'
             rst += '\n' + page_name + '\n'
             rst += '-' * len(page_name) + '\n\n'
-            rst += self.meta_info[key]['description'] + '\n\n'
+            rst += self.meta_info[key]['description'] + '. '
+            rst += '(For more details, click on the class name) \n\n'
 
             rst += '.. csv-table:: TECA Classes\n'
             rst += '   :header: "Class", "Description"\n'

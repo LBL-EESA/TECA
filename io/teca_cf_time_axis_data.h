@@ -12,9 +12,7 @@
 #include "teca_shared_object.h"
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_cf_time_axis_data)
 
-/**
-A dataset used to read NetCDF CF2 time and metadata in parallel
-*/
+/// A dataset used to read NetCDF CF2 time and metadata in parallel.
 class teca_cf_time_axis_data : public teca_dataset
 {
 public:
@@ -63,7 +61,7 @@ public:
     // return an integer identifier uniquely naming the dataset type
     int get_type_code() const override;
 
-    // covert to bool. true if the dataset is not empty.
+    // covert to boolean. true if the dataset is not empty.
     // otherwise false.
     explicit operator bool() const noexcept
     { return !this->empty(); }

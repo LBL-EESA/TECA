@@ -52,12 +52,12 @@ public:
     teca_variant_array &operator=(teca_variant_array &&other)
     { this->swap(other); return *this; }
 
-    // virtual constructor. return a new'ly allocated
+    // virtual constructor. return a newly allocated
     // empty object of the same type.
     virtual p_teca_variant_array new_instance() const = 0;
     virtual p_teca_variant_array new_instance(size_t n) const = 0;
 
-    // virtual copy construct. return a new'ly allocated object,
+    // virtual copy construct. return a newly allocated object,
     // initialized copy from this. caller must delete.
     virtual p_teca_variant_array new_copy() const = 0;
     virtual p_teca_variant_array new_copy(size_t start, size_t end) const = 0;
@@ -116,7 +116,7 @@ public:
     // resize. allocates new storage and copies in existing values
     virtual void resize(unsigned long i) = 0;
 
-    // reserve. reserves the requested ammount of space with out
+    // reserve. reserves the requested amount of space with out
     // constructing elements
     virtual void reserve(unsigned long i) = 0;
 
@@ -124,7 +124,7 @@ public:
     virtual void clear() noexcept = 0;
 
     // copy the contents from the other array.
-    // an excpetion is thrown when no conversion
+    // an exception is thrown when no conversion
     // between the two types exists. This method
     // is not virtual so that string can be handled
     // as a special case in the base class.
@@ -137,7 +137,7 @@ public:
     { this->append(*other.get()); }
 
     // swap the contents of this and the other object.
-    // an excpetion is thrown when no conversion
+    // an exception is thrown when no conversion
     // between the two types exists.
     virtual void swap(teca_variant_array &other) = 0;
     void swap(const p_teca_variant_array &other)
@@ -259,7 +259,10 @@ struct pack_object
 
 
 
-/// The concrete implementation of our type agnostic container for simple arrays.
+/** @brief
+ * The concrete implementation of our type agnostic container for simple
+ * arrays.
+ */
 template<typename T>
 class teca_variant_array_impl : public teca_variant_array
 {
@@ -279,7 +282,7 @@ public:
     // return the name of the class in a human readable form
     std::string get_class_name() const override;
 
-    // intialize with T()
+    // initialize with T()
     void initialize() override;
 
     // copy
@@ -307,7 +310,7 @@ public:
     template<typename U>
     void get(unsigned long i, U &val) const;
 
-    // get a range of values decribed by [start end]
+    // get a range of values described by [start end]
     // inclusive
     template<typename U>
     void get(size_t start, size_t end, U *vals) const;
@@ -324,7 +327,7 @@ public:
     template<typename U>
     void set(unsigned long i, const U &val);
 
-    // set a range opf values described by [start end]
+    // set a range of values described by [start end]
     // inclusive
     template<typename U>
     void set(size_t start, size_t end, const U *vals);
@@ -368,7 +371,7 @@ public:
     // virtual swap
     void swap(teca_variant_array &other) override;
 
-    // virtual equavalince test
+    // virtual equivalence test
     bool equal(const teca_variant_array &other) const override;
 
     // serialize to/from stream
@@ -444,7 +447,7 @@ private:
     void from_binary(teca_binary_stream &s,
         typename std::enable_if<pack_object<U>::value, U>::type* = 0);
 
-    // tag dispatch array of poniter to other objects
+    // tag dispatch array of pointer to other objects
     template <typename U = T>
     void to_binary(teca_binary_stream &s,
         typename std::enable_if<pack_object_ptr<U>::value, U>::type* = 0)
@@ -484,7 +487,7 @@ private:
     void from_ascii(std::ostream &s,
         typename std::enable_if<pack_object_ptr<U>::value, U>::type* = 0);
 
-    // for serializaztion
+    // for serialization
     unsigned int type_code() const noexcept override;
 private:
     std::vector<T> m_data;
@@ -493,6 +496,7 @@ private:
     template<typename U> friend class teca_variant_array_impl;
 };
 
+// @cond
 
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
 #pragma GCC diagnostic ignored "-Wunused-local-typedefs"
@@ -605,6 +609,7 @@ private:
     NESTED_TEMPLATE_DISPATCH_FP(t, p, i, body)      \
     else NESTED_TEMPLATE_DISPATCH_I(t, p, i, body)
 
+// @endcond
 
 // --------------------------------------------------------------------------
 template<typename T>
@@ -1230,6 +1235,9 @@ void teca_variant_array_impl<T>::to_ascii(
 }
 
 // --------------------------------------------------------------------------
+
+// @cond
+
 template<typename T>
     template <typename U>
 void teca_variant_array_impl<T>::from_ascii(
@@ -1356,6 +1364,7 @@ struct teca_variant_array_factory
     CODE_DISPATCH_I(_v, _code)              \
     else CODE_DISPATCH_FP(_v, _code)
 
+// @endcond
 
 // --------------------------------------------------------------------------
 template<typename T>

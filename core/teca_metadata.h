@@ -9,10 +9,12 @@
 #include <set>
 #include "teca_variant_array.h"
 
-// a generic container for meta data in the form
-// of name=value pairs. value arrays are supported.
-// see meta data producer-consumer documentation for
-// information about what names are valid.
+/// A generic container for meta data in the form of name=value pairs.
+/**
+ * Value arrays are supported. See metadata
+ * producer-consumer documentation for
+ * information about what names are valid.
+ */
 class teca_metadata
 {
 public:
@@ -177,7 +179,7 @@ public:
     int to_stream(teca_binary_stream &s) const;
     int from_stream(teca_binary_stream &s);
 
-    // serialize to/from ascii
+    // serialize to/from ASCII
     int to_stream(std::ostream &os) const;
     int from_stream(std::ostream &) { return -1; }
 

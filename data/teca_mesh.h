@@ -6,13 +6,13 @@
 #include "teca_metadata.h"
 #include "teca_array_collection.h"
 
-/// a base class for geometric data
+/// A base class for geometric data.
 /**
-The mesh declares containers for typical geometricly associated data
-such as point, cell, face and edge centered data arrays and defines
-the API's for accessing them. API's for accessing common metadata such
-as time related metadata are declared here.
-*/
+ * The mesh declares containers for typical geometrically associated data
+ * such as point, cell, face and edge centered data arrays and defines
+ * the APIs for accessing them. APIs for accessing common metadata such
+ * as time related metadata are declared here.
+ */
 class teca_mesh : public teca_dataset
 {
 public:

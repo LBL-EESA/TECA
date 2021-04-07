@@ -10,41 +10,42 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_tc_candidates)
 
+/// GFDL tropical storms detection algorithm.
 /**
-GFDL tropical storms detection algorithm
-for more information see
-"Seasonal forecasting of tropical storms using coupled GCM integrations"
-
- --- INPUT
-     Gwind  - wind speed at 850 mb
-     Gvort  - vorticity_850mb  at 850 mb
-     Gtbar  - mean core_temperature for warm core layer
-     Gpsl   - sea level sea_level_pressure
-     Gthick - thickness of 200 to 1000 mb layer
-     Grlon  - longitudes
-     Grlat  - latitudes
-     iyear  - year
-     imon   - month
-     iday   - day of month
-     ihour  - hour
-     iucy   - unit for output
-
- --- OUTPUT
- --- record # 1
-     num0   - day
-     imon0  - month
-     iyear  - year
-     number - number of cyclones found
- --- records # 2...number+1
-     idex, jdex - (i,j) index of cyclone
-     svort_max  - max vorticity_850mb
-     swind_max  - max wind
-      spsl_min  - min sea level sea_level_pressure
-     svort_lon,  svort_lat - longitude & latitude of max vorticity_850mb
-      spsl_lon,   spsl_lat - longitude & latitude of min slp
-      stemperature_lon,   stemperature_lat - longitude & latitude of warm core
-    sthick_lon, sthick_lat - longitude & latitude of max thickness
-*/
+ * For more information see
+ * "Seasonal forecasting of tropical storms using coupled GCM integrations"
+ *
+ *  --- INPUT
+ *      Gwind  - wind speed at 850 mb
+ *      Gvort  - vorticity_850mb  at 850 mb
+ *      Gtbar  - mean core_temperature for warm core layer
+ *      Gpsl   - sea level sea_level_pressure
+ *      Gthick - thickness of 200 to 1000 mb layer
+ *      Grlon  - longitudes
+ *      Grlat  - latitudes
+ *      iyear  - year
+ *      imon   - month
+ *      iday   - day of month
+ *      ihour  - hour
+ *      iucy   - unit for output
+ *
+ *  --- OUTPUT
+ *  --- record # 1
+ *      num0   - day
+ *      imon0  - month
+ *      iyear  - year
+ *      number - number of cyclones found
+ *  --- records # 2...number+1
+ *      idex, jdex - (i,j) index of cyclone
+ *      svort_max  - max vorticity_850mb
+ *      swind_max  - max wind
+ *       spsl_min  - min sea level sea_level_pressure
+ *      svort_lon,  svort_lat - longitude & latitude of max vorticity_850mb
+ *       spsl_lon,   spsl_lat - longitude & latitude of min slp
+ *     stemperature_lon,   stemperature_lat - longitude & latitude of warm
+ *                                            core
+ *     sthick_lon, sthick_lat - longitude & latitude of max thickness
+ */
 class teca_tc_candidates : public teca_algorithm
 {
 public:
@@ -85,19 +86,19 @@ public:
     TECA_ALGORITHM_PROPERTY(double, max_thickness_radius)
 
     // set/get the bounding box to search for storms
-    // in units of degreees lat,lon
+    // in units of degrees lat,lon
     TECA_ALGORITHM_PROPERTY(double, search_lat_low)
     TECA_ALGORITHM_PROPERTY(double, search_lat_high)
     TECA_ALGORITHM_PROPERTY(double, search_lon_low)
     TECA_ALGORITHM_PROPERTY(double, search_lon_high)
 
     // set/get the number of iterations to search for the
-    // storm local minimum. raising this paramter might increase
-    // detections but the detector will run slowerd. default is
+    // storm local minimum. raising this parameter might increase
+    // detections but the detector will run slower. default is
     // 50.
     TECA_ALGORITHM_PROPERTY(int, minimizer_iterations)
 
-    // send humand readable representation to the
+    // send human readable representation to the
     // stream
     virtual void to_stream(std::ostream &os) const override;
 

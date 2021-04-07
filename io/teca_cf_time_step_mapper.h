@@ -17,6 +17,7 @@
 class teca_cf_time_step_mapper;
 using p_teca_cf_time_step_mapper = std::shared_ptr<teca_cf_time_step_mapper>;
 
+/// NetCDF CF2 files time step mapper.
 class teca_cf_time_step_mapper
 {
 public:
@@ -27,15 +28,15 @@ public:
 
     ~teca_cf_time_step_mapper() {}
 
-    // intialize based on input metadata. this is a collective call
+    // initialize based on input metadata. this is a collective call
     // creates communicator groups for each file and creates the
     // file layout managers for the local rank. After this call
     // on can access file managers to create, define and write
-    // local datasets to the netcdf files in cf format.
+    // local datasets to the NetCDF files in cf format.
     int initialize(MPI_Comm comm, long first_step, long last_step,
         long steps_per_file, const teca_metadata &md);
 
-    // returns true if the mapper has been successfully initallized
+    // returns true if the mapper has been successfully initialized
     bool initialized() { return this->file_comms.size(); }
 
     // close all files, destroy file managers, and release communicators
@@ -58,7 +59,7 @@ public:
     // is:
     //      int f(long file_id, teca_cf_layout_manager &manager)
     //
-    // a return of non-zero from the fucntor will immediately stop the
+    // a return of non-zero from the functor will immediately stop the
     // apply and the value will be returned, but no error will be
     // reported.
     template<typename op_t>
@@ -105,7 +106,7 @@ private:
     long n_time_steps_per_file;
     std::vector<std::set<int>> file_ranks;
 
-    // per file communcators
+    // per file communicators
     std::vector<MPI_Comm> file_comms;
 
     // the file table maps from a time step to a specific layout manager

@@ -10,14 +10,14 @@
 #include <string>
 #include <vector>
 
-// callbacks implement a user defined reduction over time steps
+/// Callbacks implement a user defined reduction over time steps.
 /**
-callbacks implement a reduction on teca_datasets over time steps.
-user provides reduce callable that takes 2 datasets and produces
-a thrid reduced dataset. callbacks should be threadsafe as this is
-a parallel operation. see teca_index_reduce for details of
-parallelization.
-*/
+ * Callbacks implement a reduction on teca_datasets over time steps.
+ * User provides reduce callable that takes 2 datasets and produces
+ * a third reduced dataset. Callbacks should be threadsafe as this is
+ * a parallel operation. See teca_index_reduce for details of
+ * parallelization.
+ */
 class teca_programmable_reduce : public teca_index_reduce
 {
 public:
@@ -26,7 +26,7 @@ public:
     ~teca_programmable_reduce(){}
 
     // set the implementation name, this is used in logging to
-    // identify the specific instance of programmable redeuce
+    // identify the specific instance of programmable reduce
     int set_name(const std::string &name);
 
     const char *get_class_name() const override

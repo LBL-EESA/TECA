@@ -7,10 +7,7 @@
 #include <vector>
 #include <string>
 
-// a collection of named arrays
-/**
-A collection of named arrays
-*/
+/// A collection of named arrays.
 class teca_array_collection
 {
 public:
@@ -25,8 +22,8 @@ public:
 
     // declare a set of arrays. requires name,type pairs
     // for ex. define("c1",int(),"c2",float()) creates
-    // 2 arrays in the collection the first storing int's
-    // the second storing float's.
+    // 2 arrays in the collection the first storing int
+    // the second storing float.
     template<typename nT, typename aT, typename... oT>
     void declare_set(nT &&a_name, aT a_type, oT &&...args);
 

@@ -27,9 +27,11 @@ using p_teca_data_request_queue = std::shared_ptr<teca_data_request_queue>;
 p_teca_data_request_queue new_teca_data_request_queue(MPI_Comm comm,
     int n, bool bind, bool verbose);
 
-// this is the base class defining a threaded algorithm.
-// the stratgey employed is to parallelize over upstream
-// data requests using a thread pool.
+/// This is the base class defining a threaded algorithm.
+/**
+ * The strategy employed is to parallelize over upstream
+ * data requests using a thread pool.
+ */
 class teca_threaded_algorithm : public teca_algorithm
 {
 public:
@@ -63,7 +65,7 @@ public:
     // ready
     TECA_ALGORITHM_PROPERTY(int, stream_size);
 
-    // set the duration in nano seconds to wait between checking
+    // set the duration in nanoseconds to wait between checking
     // for completed tasks
     TECA_ALGORITHM_PROPERTY(long long, poll_interval);
 
@@ -88,7 +90,7 @@ protected:
         const teca_metadata &request) override;
 
     // driver function that manages execution of the given
-    // requst on the named port. each upstream request issued
+    // request on the named port. each upstream request issued
     // will be executed by the thread pool.
     const_p_teca_dataset request_data(teca_algorithm_output_port &port,
         const teca_metadata &request) override;

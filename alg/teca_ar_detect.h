@@ -10,17 +10,16 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_ar_detect)
 
+/// Suren and Junmin's atmospheric river detector.
 /**
-Suren and Junmin's atmospheric river detector.
-
-The algorithm searches for atmospheric rivers that
-end on the California coast in water vapor data over
-a specific subset of the input data. A river is detected
-based on it's length, width, and percent area of the
-search space. The algorithm can optionally use a
-land-sea mask to increase accuracy of the California
-coast. Without the land-sea mask a box is used.
-*/
+ * The algorithm searches for atmospheric rivers that
+ * end on the California coast in water vapor data over
+ * a specific subset of the input data. A river is detected
+ * based on it's length, width, and percent area of the
+ * search space. The algorithm can optionally use a
+ * land-sea mask to increase accuracy of the California
+ * coast. Without the land-sea mask a box is used.
+ */
 class teca_ar_detect : public teca_algorithm
 {
 public:
@@ -54,7 +53,7 @@ public:
     TECA_ALGORITHM_PROPERTY(double, river_start_lat_low)
     TECA_ALGORITHM_PROPERTY(double, river_start_lon_low)
 
-    // set/get the river ladfall region in lat lon coordinate system
+    // set/get the river landfall region in lat lon coordinate system
     // defaults are  29 233 56 238
     TECA_ALGORITHM_PROPERTY(double, river_end_lat_low)
     TECA_ALGORITHM_PROPERTY(double, river_end_lon_low)
@@ -80,7 +79,7 @@ public:
     TECA_ALGORITHM_PROPERTY(double, land_threshold_low)
     TECA_ALGORITHM_PROPERTY(double, land_threshold_high)
 
-    // send humand readable representation to the
+    // send human readable representation to the
     // stream
     virtual void to_stream(std::ostream &os) const override;
 

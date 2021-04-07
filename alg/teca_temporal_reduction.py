@@ -1,7 +1,7 @@
 import sys
 import numpy as np
 
-
+# @cond
 class teca_temporal_reduction_internals:
     class time_point:
         """
@@ -531,6 +531,7 @@ class teca_temporal_reduction_internals:
                     reduction_operator.maximum()
 
             raise RuntimeError('Invalid operator %s' % (op_name))
+# @endcond
 
 
 class teca_temporal_reduction(teca_threaded_python_algorithm):

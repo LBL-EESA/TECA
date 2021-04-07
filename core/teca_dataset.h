@@ -7,15 +7,13 @@
 class teca_binary_stream;
 class teca_metadata;
 
-/**
-interface for teca datasets.
-*/
+/// Interface for TECA datasets.
 class teca_dataset : public std::enable_shared_from_this<teca_dataset>
 {
 public:
     virtual ~teca_dataset();
 
-    // the name of the key that holds the index identifing this dataset
+    // the name of the key that holds the index identifying this dataset
     // this should be set by the algorithm that creates the dataset.
     TECA_DATASET_METADATA(index_request_key, std::string, 1)
 
@@ -26,7 +24,7 @@ public:
     virtual int set_request_index(const std::string &key, long val);
     virtual int set_request_index(long val);
 
-    // covert to bool. true if the dataset is not empty.
+    // covert to boolean. true if the dataset is not empty.
     // otherwise false.
     explicit operator bool() const noexcept
     { return !this->empty(); }

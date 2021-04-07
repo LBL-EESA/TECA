@@ -10,21 +10,24 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_latitude_damper)
 
+/// Inverted Gaussian damper for scalar fields.
 /**
-damps the specified scalar field(s) using an inverted Gaussian centered on a
-given latitude with a half width specified in degrees latitude. The paramters
-defining the Gaussian (center, half width at half max) can be specified by the
-user directly or by down stream algorithm via the following keys in the request.
-
-request keys:
-
-  teca_latitude_damper::damped_variables
-  teca_latitude_damper::half_width_at_half_max
-  teca_latitude_damper::center
-
-note that user specified values take precedence over request keys. When using
-request keys be sure to include the variable post-fix.
-*/
+ * Damps the specified scalar field(s) using an inverted Gaussian centered on a
+ * given latitude with a half width specified in degrees latitude. The
+ * parameters defining the Gaussian (center, half width at half max) can be
+ * specified by the user directly or by down stream algorithm via the
+ * following keys in the request.
+ *
+ * request keys:
+ *
+ *   teca_latitude_damper::damped_variables
+ *   teca_latitude_damper::half_width_at_half_max
+ *   teca_latitude_damper::center
+ *
+ * @note
+ * User specified values take precedence over request keys. When
+ * using request keys be sure to include the variable post-fix.
+ */
 class teca_latitude_damper : public teca_algorithm
 {
 public:
@@ -38,7 +41,7 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // set the center of the Gaussian in units of degress latitude.
+    // set the center of the Gaussian in units of degrees latitude.
     // default is 0.0 deg lat
     TECA_ALGORITHM_PROPERTY(double, center)
 

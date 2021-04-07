@@ -4,7 +4,10 @@
 #include <exception>
 #include <string>
 
-/// An exception that maybe thrown when a conversion between two data types fails.
+/** @brief
+ * An exception that maybe thrown when a conversion between two data types
+ * fails.
+ */
 class teca_bad_cast : public std::exception
 {
 public:

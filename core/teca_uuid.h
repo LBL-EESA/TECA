@@ -5,7 +5,7 @@
 #include <boost/uuid/uuid_generators.hpp>
 
 
-// a universally uniquer identifier
+/// A universally uniquer identifier.
 class teca_uuid : public boost::uuids::uuid
 {
 public:

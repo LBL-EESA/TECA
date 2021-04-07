@@ -14,6 +14,8 @@
 #include <netcdf_par.h>
 #endif
 
+// @cond
+
 // macro to help with netcdf data types
 #define NC_DISPATCH_FP(tc_, code_)                          \
     switch (tc_)                                            \
@@ -101,47 +103,52 @@ DECLARE_CPP_TT(unsigned long long, NC_UINT64)
 DECLARE_CPP_TT(float, NC_FLOAT)
 DECLARE_CPP_TT(double, NC_DOUBLE)
 
-// to deal with fortran fixed length strings
-// which are not properly nulll terminated
+// @endcond
+
+/**
+ * To deal with fortran fixed length strings
+ * which are not properly nulll terminated.
+ */
 void crtrim(char *s, long n);
 
-// NetCDF 3 is not threadsafe. The HDF5 C-API can be compiled to be threadsafe,
-// but it is usually not. NetCDF uses HDF5-HL API to access HDF5, but HDF5-HL
-// API is not threadsafe without the --enable-unsupported flag. For all those
-// reasons it's best for the time being to protect all NetCDF I/O.
+/**
+ * NetCDF 3 is not threadsafe. The HDF5 C-API can be compiled to be threadsafe,
+ * but it is usually not. NetCDF uses HDF5-HL API to access HDF5, but HDF5-HL
+ * API is not threadsafe without the --enable-unsupported flag. For all those
+ * reasons it's best for the time being to protect all NetCDF I/O.
+ */
 std::mutex &get_netcdf_mutex();
 
-// RAII for managing netcdf files
+/// RAII for managing NETCDF files.
 class netcdf_handle
 {
 public:
     netcdf_handle() : m_handle(0)
     {}
 
-    // initialize with a handle returned from
-    // nc_open/nc_create etc
+    /** Initialize with a handle returned from nc_open/nc_create etc. */
     netcdf_handle(int h) : m_handle(h)
     {}
 
-    // close the file during destruction
+    /** Close the file during destruction. */
     ~netcdf_handle()
     { this->close(); }
 
-    // this is a move only class, and should
-    // only be initialized with an valid handle
+    /**
+     * This is a move only class, and should
+     * only be initialized with an valid handle.
+     */
     netcdf_handle(const netcdf_handle &) = delete;
     void operator=(const netcdf_handle &) = delete;
 
-    // move construction takes ownership
-    // from the other object
+    /** Move construction takes ownership from the other object. */
     netcdf_handle(netcdf_handle &&other)
     {
         m_handle = other.m_handle;
         other.m_handle = 0;
     }
 
-    // move assignment takes ownership
-    // from the other object
+    /** Move assignment takes ownership from the other object. */
     void operator=(netcdf_handle &&other)
     {
         this->close();
@@ -149,37 +156,47 @@ public:
         other.m_handle = 0;
     }
 
-    // open the file. this can be used from MPI parallel runs, but collective
-    // I/O is not possible when a file is opend this way. Returns 0 on success.
+    /**
+     * Open the file. this can be used from MPI parallel runs, but collective
+     * I/O is not possible when a file is opened this way. Returns 0 on
+     * success.
+     */
     int open(const std::string &file_path, int mode);
 
-    // open the file. this can be used when collective I/O is desired. the
-    // passed in communcator specifies the subset of ranks that will access
-    // the file. Calling this when linked to a non-MPI enabled NetCDF install,
-    // from a parallel run will, result in an error. Returns 0 on success.
+    /**
+     * Open the file. this can be used when collective I/O is desired. the
+     * passed in communicator specifies the subset of ranks that will access
+     * the file. Calling this when linked to a non-MPI enabled NetCDF install,
+     * from a parallel run will, result in an error. Returns 0 on success.
+     */
     int open(MPI_Comm comm, const std::string &file_path, int mode);
 
-    // create the file. this can be used from MPI parallel runs, but collective
-    // I/O is not possible when a file is created this way. Returns 0 on success.
+    /**
+     * Create the file. this can be used from MPI parallel runs, but collective
+     * I/O is not possible when a file is created this way. Returns 0 on
+     * success.
+     */
     int create(const std::string &file_path, int mode);
 
-    // create the file. this can be used when collective I/O is desired. the
-    // passed in communcator specifies the subset of ranks that will access
-    // the file. Calling this when linked to a non-MPI enabled NetCDF install,
-    // from a parallel run will, result in an error. Returns 0 on success.
+    /**
+     * Create the file. this can be used when collective I/O is desired. the
+     * passed in communicator specifies the subset of ranks that will access
+     * the file. Calling this when linked to a non-MPI enabled NetCDF install,
+     * from a parallel run will, result in an error. Returns 0 on success.
+     */
     int create(MPI_Comm comm, const std::string &file_path, int mode);
 
-    // close the file
+    /** Close the file. */
     int close();
 
-    // flush all data to disk
+    /** Flush all data to disk. */
     int flush();
 
-    // returns a reference to the handle
+    /** Returns a reference to the handle. */
     int &get()
     { return m_handle; }
 
-    // test if the handle is valid
+    /** Test if the handle is valid. */
     operator bool() const
     { return m_handle > 0; }
 
@@ -187,15 +204,19 @@ private:
     int m_handle;
 };
 
-// read the specified variable attribute by name.
-// it's value is stored in the metadata object
-// return is non-zero if an error occurred
+/**
+ * Read the specified variable attribute by name.
+ * Its value is stored in the metadata object
+ * return is non-zero if an error occurred.
+ */
 int read_attribute(netcdf_handle &fh, int var_id,
     const std::string &att_name, teca_metadata &atts);
 
-// read the specified variable attribute by id
-// it's value is stored in the metadata object
-// return is non-zero if an error occurred
+/**
+ * Read the specified variable attribute by id.
+ * Its value is stored in the metadata object
+ * return is non-zero if an error occurred.
+ */
 int read_attribute(netcdf_handle &fh, int var_id,
     int att_id, teca_metadata &atts);
 
@@ -266,21 +287,24 @@ int read_variable_attributes(netcdf_handle &fh,
     const std::string &z_variable, const std::string &t_variable,
     int clamp_dimensions_of_one, teca_metadata &atts);
 
-// functional that reads and returns a variable from the
-// named file. we're doing this so we can do thread
-// parallel I/O to hide some of the cost of opening files
-// on Lustre and to hide the cost of reading time coordinate
-// which is typically very expensive as NetCDF stores
-// unlimted dimensions non-contiguously
-//
-// note: Thu 09 Apr 2020 05:45:29 AM PDT
-// Threading these operations worked well in NetCDF 3, however
-// in NetCDF 4 backed by HDF5 necessary locking eliminates any
-// speed up.
+/// Functional that reads and returns a variable from the named file.
+/**
+ * We're doing this so we can do thread
+ * parallel I/O to hide some of the cost of opening files
+ * on Lustre and to hide the cost of reading time coordinate
+ * which is typically very expensive as NetCDF stores
+ * unlimited dimensions non-contiguously.
+ *
+ * @note
+ * Thu 09 Apr 2020 05:45:29 AM PDT
+ * Threading these operations worked well in NetCDF 3, however
+ * in NetCDF 4 backed by HDF5 necessary locking eliminates any
+ * speed up.
+ */
 class read_variable_and_attributes
 {
 public:
-    // data and task types
+    /** Data and task types. */
     using data_elem_t = std::pair<p_teca_variant_array, teca_metadata>;
     using data_t = std::pair<unsigned long, data_elem_t>;
     using task_t = std::packaged_task<data_t()>;
@@ -309,21 +333,24 @@ private:
     unsigned long m_id;
 };
 
-// function that reads and returns a variable from the
-// named file. we're doing this so we can do thread
-// parallel I/O to hide some of the cost of opening files
-// on Lustre and to hide the cost of reading time coordinate
-// which is typically very expensive as NetCDF stores
-// unlimted dimensions non-contiguously
-//
-// note: Thu 09 Apr 2020 05:45:29 AM PDT
-// Threading these operations worked well in NetCDF 3, however
-// in NetCDF 4 backed by HDF5 necessary locking eliminates any
-// speed up.
+/// Function that reads and returns a variable from the named file.
+/**
+ * we're doing this so we can do thread
+ * parallel I/O to hide some of the cost of opening files
+ * on Lustre and to hide the cost of reading time coordinate
+ * which is typically very expensive as NetCDF stores
+ * unlimited dimensions non-contiguously
+ *
+ * @note
+ * Thu 09 Apr 2020 05:45:29 AM PDT
+ * Threading these operations worked well in NetCDF 3, however
+ * in NetCDF 4 backed by HDF5 necessary locking eliminates any
+ * speed up.
+ */
 class read_variable
 {
 public:
-    // data and task types
+    /** Data and task types. */
     using data_t = std::pair<unsigned long, p_teca_variant_array>;
     using task_t = std::packaged_task<data_t()>;
     using queue_t = teca_thread_pool<task_t, data_t>;
@@ -351,8 +378,11 @@ private:
     unsigned long m_id;
 };
 
-// write the attributes in array_atts to the variable identified by var_id the
-// name is used in error messages. returns zero of successful.
+
+/**
+ * Write the attributes in array_atts to the variable identified by var_id the
+ * name is used in error messages. Returns zero of successful.
+ */
 int write_variable_attributes(netcdf_handle &fh, int var_id,
     teca_metadata &array_atts);
 
