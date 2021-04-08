@@ -62,6 +62,14 @@ public:
     TECA_ALGORITHM_PROPERTY(std::string, min_component_area_variable)
     TECA_ALGORITHM_PROPERTY(std::string, hwhm_latitude_variable)
 
+    /** @anchor probability variable
+     * @name probability variable
+     * Set the name of the variable to store output probability as.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(std::string, ar_probability_variable)
+    ///@}
+
     // set/get the number of threads in the pool. setting
     // to -1 results in a thread per core factoring in all MPI
     // ranks running on the node. the default is -1.
@@ -99,6 +107,7 @@ private:
     std::string min_component_area_variable;
     std::string min_ivt_variable;
     std::string hwhm_latitude_variable;
+    std::string ar_probability_variable;
     int thread_pool_size;
 
     struct internals_t;
