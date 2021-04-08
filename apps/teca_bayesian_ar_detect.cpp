@@ -96,6 +96,9 @@ int main(int argc, char **argv)
             "\nSets the name of the variable containing the point wise vertical height"
             " in meters above mean sea level\n")
 
+        ("ar_probability", value<std::string>()->default_value("ar_probability"),
+            "\nSets the name of the variable to store the computed AR probability mask in.\n")
+
         ("ar_weighted_variables", value<std::vector<std::string>>()->multitoken(),
             "\nAn optional list of variables to weight with the computed AR probability."
             " Each such variable will be multiplied by the computed AR probability, and"
@@ -111,8 +114,16 @@ int main(int argc, char **argv)
         ("periodic_in_x", value<int>()->default_value(1),
             "\nFlags whether the x dimension (typically longitude) is periodic.\n")
 
-        ("binary_ar_threshold", value<double>()->default_value(2.0/3.0,"0.667"),
-            "\nprobability threshold for segmenting ar_probability to produce ar_binary_tag\n")
+        ("segment_ar_probability", "\nA flag that enables a binary segmentation of AR"
+            " probability to be produced. --segment_threshold controls the segmentation."
+            " threshold and --segment_variable to set the name of the variable to store"
+            " the result in.\n")
+        ("segment_threshold", value<double>()->default_value(2.0/3.0,"0.667"),
+            "\nSets the threshold value that is used when segmenting ar_probability."
+            " See also --segment_ar_probability\n")
+        ("segment_variable", value<std::string>()->default_value("ar_binary_tag"),
+            "\nSet the name of the variable to store the result of a binary"
+            " segmentation of AR probabilty. See also --segment_ar_probability.")
 
         ("output_file", value<std::string>()->default_value(std::string("TECA_BARD_%t%.nc")),
             "\nA path and file name pattern for the output NetCDF files. %t% is replaced with a"
@@ -207,7 +218,6 @@ int main(int argc, char **argv)
     ivt_int->set_ivt_u_variable("IVT_U");
     ivt_int->set_ivt_v_variable("IVT_V");
 
-
     // parameter source
     p_teca_bayesian_ar_detect_parameters params
         = teca_bayesian_ar_detect_parameters::New();
@@ -218,6 +228,7 @@ int main(int argc, char **argv)
     p_teca_bayesian_ar_detect ar_detect = teca_bayesian_ar_detect::New();
     ar_detect->get_properties_description("ar_detect", advanced_opt_defs);
     ar_detect->set_ivt_variable("IVT");
+    ar_detect->set_ar_probability_variable("ar_probability");
 
     // segment the ar probability field
     p_teca_binary_segmentation ar_tag = teca_binary_segmentation::New();
@@ -225,7 +236,7 @@ int main(int argc, char **argv)
     ar_tag->set_threshold_variable("ar_probability");
     ar_tag->set_segmentation_variable("ar_binary_tag");
 
-    // mask any requested variables by "ar_probability"
+    // mask any requested variables by the AR probability
     p_teca_apply_binary_mask ar_mask = teca_apply_binary_mask::New();
     ar_mask->get_properties_description("ar_mask", advanced_opt_defs);
     ar_mask->set_mask_variable("ar_probability");
@@ -454,8 +465,44 @@ int main(int argc, char **argv)
     ar_detect->set_input_connection(0, params->get_output_port());
     ar_detect->set_input_connection(1, head->get_output_port());
 
-    ar_tag->set_input_connection(0, ar_detect->get_output_port());
-    head = ar_tag;
+    if (!opt_vals["ar_probability"].defaulted())
+        ar_detect->set_ar_probability_variable(
+            opt_vals["ar_probability"].as<std::string>());
+
+    head = ar_detect;
+
+    // configure binary segmentation
+    bool do_segment = opt_vals.count("segment_ar_probability");
+    if (do_segment)
+    {
+        ar_tag->set_input_connection(0, ar_detect->get_output_port());
+
+        // set input and output variable names
+        ar_tag->set_threshold_variable(
+            ar_detect->get_ar_probability_variable());
+
+        if (!opt_vals["segement_variable"].defaulted())
+            ar_tag->set_segmentation_variable(
+                opt_vals["segment_variable"].as<std::string>());
+
+        // set threshold value
+        double ar_tag_threshold = opt_vals["segment_threshold"].as<double>();
+        ar_tag->set_low_threshold_value(ar_tag_threshold);
+
+        // add I/O metadata
+        teca_metadata seg_atts;
+        seg_atts.set("long_name", std::string("binary indicator of atmospheric river"));
+        seg_atts.set("description", std::string("binary indicator of atmospheric river"));
+        seg_atts.set("scheme", std::string("TECA_BARD"));
+        seg_atts.set("version", std::string("1.0"));
+        seg_atts.set("note",
+            std::string("derived by thresholding ar_probability >= ") +
+            std::to_string(ar_tag_threshold));
+
+        ar_tag->set_segmentation_variable_attributes(seg_atts);
+
+        head = ar_tag;
+    }
 
     // configure weight by AR probability
     std::vector<std::string> weighted_vars;
@@ -465,8 +512,9 @@ int main(int argc, char **argv)
         weighted_vars =
             opt_vals["ar_weighted_variables"].as<std::vector<std::string>>();
 
-        ar_mask->set_input_connection(0, ar_tag->get_output_port());
+        ar_mask->set_input_connection(0, head->get_output_port());
         ar_mask->set_masked_variables(weighted_vars);
+        ar_mask->set_mask_variable(ar_detect->get_ar_probability_variable());
 
         head = ar_mask;
     }
@@ -475,7 +523,9 @@ int main(int argc, char **argv)
     cf_writer->set_input_connection(head->get_output_port());
 
     // tell the writer to write ivt if needed
-    std::vector<std::string> point_arrays({"ar_probability", "ar_binary_tag"});
+    std::vector<std::string> point_arrays(
+        {ar_detect->get_ar_probability_variable()});
+
     if ((do_ivt || do_ivt_magnitude) && opt_vals.count("write_ivt_magnitude"))
     {
         point_arrays.push_back(l2_norm->get_l2_norm_variable());
@@ -485,6 +535,11 @@ int main(int argc, char **argv)
     {
         point_arrays.push_back(ivt_int->get_ivt_u_variable());
         point_arrays.push_back(ivt_int->get_ivt_v_variable());
+    }
+
+    if (do_segment)
+    {
+        point_arrays.push_back(ar_tag->get_segmentation_variable());
     }
 
     // tell the writer to write ar weighted variables if needed
@@ -597,20 +652,6 @@ int main(int argc, char **argv)
         }
     }
 
-    // set the threshold for calculating ar_binary_tag
-    double ar_tag_threshold = opt_vals["binary_ar_threshold"].as<double>();
-    ar_tag->set_low_threshold_value(ar_tag_threshold);
-
-    // add metadata for ar_binary_tag
-    teca_metadata seg_atts;
-    seg_atts.set("long_name", std::string("binary indicator of atmospheric river"));
-    seg_atts.set("description", std::string("binary indicator of atmospheric river"));
-    seg_atts.set("scheme", std::string("TECA_BARD"));
-    seg_atts.set("version", std::string("1.0"));
-    seg_atts.set("note",
-        std::string("derived by thresholding ar_probability >= ") +
-        std::to_string(ar_tag_threshold));
-    ar_tag->set_segmentation_variable_attributes(seg_atts);
 
     // run the pipeline
     cf_writer->set_executive(exec);

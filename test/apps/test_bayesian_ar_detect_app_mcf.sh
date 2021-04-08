@@ -24,7 +24,7 @@ set -x
 ${launcher} ${app_prefix}/teca_bayesian_ar_detect                       \
     --input_file "${app_prefix}/../test/ECMWF-IFS-HR-SST-present.mcf"   \
     --compute_ivt --wind_u ua --wind_v va --specific_humidity hus       \
-    --write_ivt --write_ivt_magnitude                                   \
+    --segment_ar_probability --write_ivt --write_ivt_magnitude          \
     --output_file test_bayesian_ar_detect_app_mcf_output_%t%.nc         \
     --steps_per_file 365 --first_step 8 --last_step 23                  \
     --n_threads ${n_threads} --verbose
