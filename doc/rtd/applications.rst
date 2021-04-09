@@ -1004,6 +1004,19 @@ Command Line Arguments
 --write_ivt
     when this flag is present IVT vector is written to disk with the result
 
+--dem arg
+    A teca_cf_reader regex identifying the file containing surface elevation field or DEM.
+
+--dem_variable arg (=Z)
+    Sets the name of the variable containing the surface elevation field
+
+--mesh_height arg (=Zg)
+    Sets the name of the variable containing the point wise vertical height in meters above mean
+    sea level
+
+--ar_probability arg (=ar_probability)
+    Sets the name of the variable to store the computed AR probability mask in.
+
 --ar_weighted_variables arg
     An optional list of variables to weight with the computed AR probability. Each such variable
     will be multiplied by the computed AR probability, and written to disk as "NAME_ar_wgtd".
@@ -1020,10 +1033,20 @@ Command Line Arguments
 --periodic_in_x arg (=1)
     Flags whether the x dimension (typically longitude) is periodic.
 
---binary_ar_threshold arg (=0.667)
-    probability threshold for segmenting ar_probability to produce ar_binary_tag
+--segment_ar_probability
+    A flag that enables a binary segmentation of AR probability to be produced. `--segment_threshold`
+    controls the segmentation. threshold and `--segment_variable` to set the name of the variable to
+    store the result in.
 
---output_file arg (=CASCADE_BARD_%t%.nc)
+--segment_threshold arg (=0.667)
+    Sets the threshold value that is used when segmenting ar_probability. See also
+    `--segment_ar_probability`
+
+--segment_variable arg (=ar_binary_tag)
+    Set the name of the variable to store the result of a binary segmentation of AR probabilty. See
+    also `--segment_ar_probability`.
+
+--output_file arg (=TECA_BARD_%t%.nc)
     A path and file name pattern for the output NetCDF files. %t% is replaced with a human readable
     date and time corresponding to the time of the first time step in the file. Use
     `--cf_writer::date_format` to change the formatting
@@ -1031,6 +1054,8 @@ Command Line Arguments
 --steps_per_file arg (=128)
     number of time steps per output file
 
+--first_step arg (=0)
+    first time step to process
 
 --last_step arg (=-1)
     last time step to process
