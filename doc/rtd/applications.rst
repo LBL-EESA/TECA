@@ -1196,8 +1196,14 @@ taken into account. See the :ref:`teca_metadata_probe` ARTMIP :ref:`example<mdp_
 
 teca_integrated_vapor_transport
 -------------------------------
-The integrated vapor transport(IVT) command line application computes IVT from
-input wind vector and specific humidity.
+The integrated vapor transport(IVT) command line application computes:
+
+.. math::
+
+    IVT = \frac{1}{g} \int_{p_{sfc}}^{p_{top}} \vec{v} q dp
+
+where q is the specific humidity, and :math:`\vec{v} = (u, v)` are the
+longitudinal and latitudinal components of wind.
 
 Inputs
 ~~~~~~
@@ -1242,7 +1248,7 @@ Command Line Arguments
     name to use for the latitudinal component of the integrated vapor transport vector.
 
 --ivt arg (=IVT)
-    name of variable with the magnitude of integrated vapor transport
+    name of variable with the magnitude of integrated vapor transport (IVT)
 
 --write_ivt_magnitude arg (=0)
     when this is set to 1 magnitude of vector IVT is calculated. use `--ivt_u` and `--ivt_v` to set the
@@ -1269,8 +1275,15 @@ Command Line Arguments
 --z_axis_variable arg (=plev)
     name of z coordinate variable
 
---periodic_in_x arg (=1)
-    Flags whether the x dimension (typically longitude) is periodic.
+--dem arg
+    A teca_cf_reader regex identifying the file containing surface elevation field or DEM.
+
+--dem_variable arg (=Z)
+    Sets the name of the variable containing the surface elevation field
+
+--mesh_height arg (=Zg)
+    Sets the name of the variable containing the point wise vertical height in meters above mean
+    sea level
 
 --first_step arg (=0)
     first time step to process
@@ -1285,8 +1298,8 @@ Command Line Arguments
 --end_date arg
     The last time to process in 'Y-M-D h:m:s' format
 
---n_threads arg
-    Sets the thread pool size on each MPI rank. When the default value of -1 is used TECA will
+--n_threads arg (=-1)
+    Sets the thread pool size on each MPI  rank. When the default value of -1 is used TECA will
     coordinate the thread pools across ranks such each thread is bound to a unique physical core.
 
 --verbose
