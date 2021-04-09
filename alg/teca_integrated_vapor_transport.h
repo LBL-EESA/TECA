@@ -10,19 +10,19 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_integrated_vapor_transport)
 
-/// an algorithm that computes integrated vapor transport (IVT)
+/// An algorithm that computes integrated vapor transport (IVT)
 /**
-Compute integrated vaport transport (IVT) from wind vector and
-specific humidity.
-
-IVT = - \frac{1}{g} \int_{p_0}^{p_1} \vec{v} q dp
-
-where q is the specific humidity, and \vec{v} = (u, v) are the
-longitudinal and latitudinal components of wind.
-
-This calculation is an instance of a vertical reduction where
-a 3D mesh is transformed into a 2D one.
-*/
+ * Compute integrated vapor transport (IVT) from wind vector and
+ * specific humidity.
+ *
+ * IVT = \frac{1}{g} \int_{p_{sfc}}^{p_{top}} \vec{v} q dp
+ *
+ * where q is the specific humidity, and \vec{v} = (u, v) are the
+ * longitudinal and latitudinal components of wind.
+ *
+ * This calculation is an instance of a vertical reduction where
+ * a 3D mesh is transformed into a 2D one.
+ */
 class teca_integrated_vapor_transport : public teca_vertical_reduction
 {
 public:
