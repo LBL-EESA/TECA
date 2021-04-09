@@ -12,15 +12,15 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_integrated_water_vapor)
 
 /// An algorithm that computes integrated water vapor (IWV)
 /**
-Compute integrated vaport transport (IWV) from the specific humidity.
-
-IWV = - \frac{1}{g} \int_{p_0}^{p_1} q dp
-
-where q is the specific humidity.
-
-This calculation is an instance of a vertical reduction where
-a 3D mesh is transformed into a 2D one.
-*/
+ * Compute integrated vaport transport (IWV) from the specific humidity.
+ *
+ * IWV = \frac{1}{g} \int_{p_{sfc}}^{p_{top}} q dp
+ *
+ * where q is the specific humidity.
+ *
+ * This calculation is an instance of a vertical reduction where
+ * a 3D mesh is transformed into a 2D one.
+ */
 class teca_integrated_water_vapor : public teca_vertical_reduction
 {
 public:
