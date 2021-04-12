@@ -1,6 +1,9 @@
 #include "teca_calendar.h"
 
-// --------------------------------------------------------------------------
+namespace teca_calendar_util
+{
+
+// **************************************************************************
 long gregorian_number(long y, long m, long d)
 {
     m = (m + 9) % 12;
@@ -8,7 +11,7 @@ long gregorian_number(long y, long m, long d)
     return 365*y + y/4 - y/100 + y/400 + (m*306 + 5)/10 + (d - 1);
 }
 
-// --------------------------------------------------------------------------
+// **************************************************************************
 void date_from_gregorian_number(long g, long &y, long &m, long &d)
 {
     y = (10000*g + 14780)/3652425;
@@ -26,7 +29,7 @@ void date_from_gregorian_number(long g, long &y, long &m, long &d)
     d = ddd - (mi*306 + 5)/10 + 1;
 }
 
-// --------------------------------------------------------------------------
+// **************************************************************************
 bool valid_gregorian_date(long y, long m, long d)
 {
     long g = gregorian_number(y,m,d);
@@ -40,4 +43,6 @@ bool valid_gregorian_date(long y, long m, long d)
         return false;
 
     return true;
+}
+
 }
