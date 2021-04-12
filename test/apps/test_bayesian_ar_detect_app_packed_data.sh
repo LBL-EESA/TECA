@@ -24,8 +24,9 @@ set -x
 ${launcher} ${app_prefix}/teca_bayesian_ar_detect                                  \
     --input_regex "${data_root}/ERAinterim_1979-01-0.*\.nc$"                       \
     --x_axis_variable longitude --y_axis_variable latitude --z_axis_variable level \
-    --wind_u uwnd --wind_v vwnd --specific_humidity shum --compute_ivt --write_ivt \
-    --write_ivt_magnitude --steps_per_file 256 --n_threads ${n_threads} --verbose  \
+    --wind_u uwnd --wind_v vwnd --specific_humidity shum --segment_ar_probability  \
+    --compute_ivt --write_ivt --write_ivt_magnitude --steps_per_file 256           \
+    --n_threads ${n_threads} --verbose                                             \
     --output_file test_bayesian_ar_detect_app_packed_data_output_%t%.nc
 
 do_test=1

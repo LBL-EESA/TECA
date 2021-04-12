@@ -42,7 +42,7 @@ int main(int argc, char **argv)
         "Basic command line options", help_width, help_width - 4
         );
     basic_opt_defs.add_options()
-        ("track_file", value<std::string>(), "\na file containing cyclone tracks (tracks.bin)\n")
+        ("track_file", value<std::string>(), "\na file containing cyclone tracks\n")
 
         ("input_file", value<std::string>(), "\na teca_multi_cf_reader configuration file"
             " identifying the set of NetCDF CF2 files to process. When present data is"
@@ -160,12 +160,33 @@ int main(int argc, char **argv)
 
     // now pass in the basic options, these are processed
     // last so that they will take precedence
-    if (!opt_vals["track_file"].defaulted())
-        track_reader->set_file_name(opt_vals["track_file"].as<std::string>());
+    if (!opt_vals.count("track_file"))
+    {
+        if (mpi_man.get_comm_rank() == 0)
+        {
+            TECA_ERROR("A file with previously calculated storm tracks must be "
+                "specified with --track_file")
+        }
+        return -1;
+    }
+
+    track_reader->set_file_name(opt_vals["track_file"].as<std::string>());
 
     bool have_file = opt_vals.count("input_file");
     bool have_wind_files = opt_vals.count("wind_files");
     bool have_regex = opt_vals.count("input_regex");
+
+    if ((have_file && have_regex) || !(have_file || have_regex))
+    {
+        if (mpi_man.get_comm_rank() == 0)
+        {
+            TECA_ERROR("Extacly one of --input_file or --input_regex can be specified. "
+                "Use --input_file to activate the multi_cf_reader (HighResMIP datasets) "
+                "and --input_regex to activate the cf_reader (CAM like datasets)")
+        }
+        return -1;
+    }
+
     p_teca_algorithm wind_reader;
     if (have_file)
     {
@@ -239,18 +260,6 @@ int main(int argc, char **argv)
         map_reduce->set_thread_pool_size(opt_vals["n_threads"].as<int>());
     else
         map_reduce->set_thread_pool_size(-1);
-
-    // some minimal check for missing options
-    if ((have_file && have_regex) || !(have_file || have_regex))
-    {
-        if (mpi_man.get_comm_rank() == 0)
-        {
-            TECA_ERROR("Extacly one of --input_file or --input_regex can be specified. "
-                "Use --input_file to activate the multi_cf_reader (HighResMIP datasets) "
-                "and --input_regex to activate the cf_reader (CAM like datasets)")
-        }
-        return -1;
-    }
 
     // connect the pipeline
     wind_coords->set_input_connection(wind_reader->get_output_port());

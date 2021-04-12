@@ -549,7 +549,7 @@ teca_metadata teca_cartesian_mesh_source::get_output_metadata(
     z_atts.set("size", nz);
 
     teca_metadata t_atts = this->t_axis_attributes;
-    t_atts.set("type_code", z_axis->type_code());
+    t_atts.set("type_code", t_axis->type_code());
     t_atts.set("size", nt);
 
     teca_metadata atts;
@@ -707,7 +707,6 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
     std::string x_variable = this->x_axis_variable.empty() ? "x" : this->x_axis_variable;
     std::string y_variable = this->y_axis_variable.empty() ? "y" : this->y_axis_variable;
     std::string z_variable = this->z_axis_variable.empty() ? "z" : this->z_axis_variable;
-    std::string t_variable = this->t_axis_variable.empty() ? "t" : this->t_axis_variable;
 
     mesh->set_x_coordinates(x_variable, out_x);
     mesh->set_y_coordinates(y_variable, out_y);

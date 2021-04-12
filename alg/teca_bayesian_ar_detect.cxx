@@ -608,7 +608,9 @@ void teca_bayesian_ar_detect::internals_t::clear()
 teca_bayesian_ar_detect::teca_bayesian_ar_detect() :
     min_component_area_variable("min_component_area"),
     min_ivt_variable("min_water_vapor"),
-    hwhm_latitude_variable("hwhm_latitude"), thread_pool_size(1),
+    hwhm_latitude_variable("hwhm_latitude"),
+    ar_probability_variable("ar_probability"),
+    thread_pool_size(1),
     internals(new internals_t)
 {
     this->set_number_of_input_connections(1);
@@ -631,18 +633,21 @@ void teca_bayesian_ar_detect::get_properties_description(
 
     opts.add_options()
         TECA_POPTS_GET(std::string, prefix, ivt_variable,
-            "name of the water vapor variable")
+            "Set the name of the integrated vaopr transport(IVT) variable to"
+            " compute AR probability from.")
         TECA_POPTS_GET(std::string, prefix, min_component_area_variable,
-            "name of the column in the parameter table containing the "
-            "component area threshold")
+            "Set the name of the column in the parameter table containing the "
+            "minimum feature area threshold.")
         TECA_POPTS_GET(std::string, prefix, min_ivt_variable,
-            "name of the column in the parameter table containing the "
-            "water vapor threshold")
+            "Set the name of the column in the parameter table containing the "
+            "minimum percentile IVT threshold.")
         TECA_POPTS_GET(std::string, prefix, hwhm_latitude_variable,
-            "name of the column in the parameter table containing the "
-            "half width at half max latitude")
+            "Set the name of the column in the parameter table containing the "
+            "half width at half max latitude mask value.")
+        TECA_POPTS_GET(std::string, prefix, ar_probability_variable,
+            "Set the name of the variable to store the computed AR probability in.")
         TECA_POPTS_GET(int, prefix, thread_pool_size,
-            "number of threads to parallelize execution over")
+            "Set the number of threads to parallelize execution over.")
         ;
 
     this->teca_algorithm::get_properties_description(prefix, opts);
@@ -660,6 +665,7 @@ void teca_bayesian_ar_detect::set_properties(const std::string &prefix,
     TECA_POPTS_SET(opts, std::string, prefix, min_component_area_variable)
     TECA_POPTS_SET(opts, std::string, prefix, min_ivt_variable)
     TECA_POPTS_SET(opts, std::string, prefix, hwhm_latitude_variable)
+    TECA_POPTS_SET(opts, std::string, prefix, ar_probability_variable)
     TECA_POPTS_SET(opts, int, prefix, thread_pool_size)
     TECA_POPTS_SET(opts, int, prefix, verbose)
 }
@@ -809,7 +815,7 @@ teca_metadata teca_bayesian_ar_detect::get_output_metadata(
     // report the variable that we compute, for each timestep from the
     // parameter tables.
     teca_metadata md(input_md[0]);
-    md.append("variables", std::string("ar_probability"));
+    md.append("variables", std::string(this->ar_probability_variable));
 
     // add attributes to enable CF I/O
     teca_metadata atts;
@@ -820,7 +826,7 @@ teca_metadata teca_bayesian_ar_detect::get_output_metadata(
         0, "unitless", "posterior AR flag",
         "the posterior probability of the presence of an atmospheric river");
 
-    atts.set("ar_probability", (teca_metadata)prob_atts);
+    atts.set(this->ar_probability_variable, (teca_metadata)prob_atts);
 
     unsigned long num_params =
         this->internals->parameter_table->get_number_of_rows();
@@ -879,7 +885,7 @@ std::vector<teca_metadata> teca_bayesian_ar_detect::get_upstream_request(
     arrays.insert(this->ivt_variable);
 
     // remove what we produce
-    arrays.erase("ar_probability");
+    arrays.erase(this->ar_probability_variable);
     arrays.erase("ar_count");
     arrays.erase("parameter_table_row");
 
@@ -1043,7 +1049,7 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
     // set up the reduction which computes the average over runs of all control
     // parameter combinations provided in the parameter table
     ::parameter_table_reduction reduce(parameter_table_size,
-        "wv_cc", "ar_probability");
+        "wv_cc", this->ar_probability_variable);
 
     p_teca_programmable_reduce pr = teca_programmable_reduce::New();
     pr->set_name("parameter_table_reduce");

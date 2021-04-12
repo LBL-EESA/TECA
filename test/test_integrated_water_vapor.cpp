@@ -3,7 +3,7 @@
 #include "teca_cf_writer.h"
 #include "teca_valid_value_mask.h"
 #include "teca_elevation_mask.h"
-#include "teca_integrated_vapor_transport.h"
+#include "teca_integrated_water_vapor.h"
 #include "teca_index_executive.h"
 #include "teca_coordinate_util.h"
 #include "teca_dataset_capture.h"
@@ -14,21 +14,16 @@
 #include <functional>
 
 
-// ivt = - \frac{1}{g} \int_{p_{sfc}}^{p_{top}} q \vec{v} dp
+// iwv = - \frac{1}{g} \int_{p_{sfc}}^{p_{top}} q dp
 //
-// strategy: define integrands that are the product of 2 functions, subsitute in
-// q, u, and v and evaluate numerically using our implementation and analytically
-// and compare the results as a check
+// strategy: define integrand q = exp(p) and evaluate numerically using our
+// implementation and analytically and compare the results as a check
 //
-// let q = sin p , u = cos p, and v = p.
+// let q = exp(p)
 //
 // we can then validate our implementation against the analyitic solutions:
 //
-// ivt_u = - \frac{1}{g} \int_{p_{sfc}}^{p_{top}} p sin p dp
-//       = - \frac{1}{g} [ -p cos p + sin p + c ]
-//
-// ivt_v = - \frac{1}{g} \int_{p_{sfc}}^{p_{top}} cos p sin p dp
-//       = - \frac{1}{g} [ \frac{1}{2} sin^2 p + c ]
+// iwv = exp(p) |_{p_{sfc}}^{p_{top}}
 //
 
 template <typename num_t>
@@ -108,8 +103,8 @@ int main(int argc, char **argv)
     mesh->set_bounds({-1.0, 1.0, -1.0, 1.0, p_sfc_2, p_top, 0.0, 0.0});
     mesh->set_calendar("standard", "days since 2020-09-30 00:00:00");
 
-    // let q = sin(p)
-    function_of_z<double> q([](double p) -> double { return sin(p); },
+    // let q = exp(p)
+    function_of_z<double> q([](double p) -> double { return exp(p); },
         p_sfc, fill_value);
 
     mesh->append_field_generator({"q",
@@ -118,28 +113,6 @@ int main(int argc, char **argv)
             "specific humidty", "test data where q = sin(p)",
             1, fill_value),
             q});
-
-    // let u = cos(p)
-    function_of_z<double> u([](double p) -> double { return cos(p); },
-        p_sfc, fill_value);
-
-    mesh->append_field_generator({"u",
-        teca_array_attributes(teca_variant_array_code<double>::get(),
-            teca_array_attributes::point_centering, 0, "m s^-1",
-            "longitudinal wind velocity", "test data where u = cos(p)",
-            1, fill_value),
-            u});
-
-    // let v = p
-    function_of_z<double> v([](double z) -> double { return z; },
-        p_sfc, fill_value);
-
-    mesh->append_field_generator({"v",
-        teca_array_attributes(teca_variant_array_code<double>::get(),
-            teca_array_attributes::point_centering, 0, "m s^-1",
-            "latiitudinal wind velocity", "test data where v = p",
-            1, fill_value),
-            v});
 
     p_teca_algorithm head;
     if (vv_mask)
@@ -186,7 +159,7 @@ int main(int argc, char **argv)
         p_teca_elevation_mask mask = teca_elevation_mask::New();
         mask->set_input_connection(0, mesh->get_output_port());
         mask->set_input_connection(1, elev->get_output_port());
-        mask->set_mask_variables({"q_valid", "u_valid", "v_valid"});
+        mask->set_mask_variables({"q_valid"});
         mask->set_surface_elevation_variable("z");
         mask->set_mesh_height_variable("zg");
 
@@ -196,7 +169,7 @@ int main(int argc, char **argv)
     // write the test input dataset
     if (write_input)
     {
-        std::string fn = std::string("test_integrated_vapor_transport_input_") +
+        std::string fn = std::string("test_integrated_water_vapor_input_") +
             std::string(vv_mask ? "vv_mask" : "elev_mask") + std::string("_%t%.nc");
 
         p_teca_index_executive exec = teca_index_executive::New();
@@ -205,7 +178,7 @@ int main(int argc, char **argv)
         w->set_input_connection(head->get_output_port());
         w->set_file_name(fn);
         w->set_thread_pool_size(1);
-        w->set_point_arrays({"q", "u", "v", "q_valid", "u_valid", "v_valid"});
+        w->set_point_arrays({"q", "q_valid"});
         if (!vv_mask)
             w->append_point_array("zg");
         w->set_executive(exec);
@@ -213,72 +186,52 @@ int main(int argc, char **argv)
         w->update();
     }
 
-    // compute IVT
-    p_teca_integrated_vapor_transport ivt = teca_integrated_vapor_transport::New();
-    ivt->set_input_connection(head->get_output_port());
-    ivt->set_wind_u_variable("u");
-    ivt->set_wind_v_variable("v");
-    ivt->set_specific_humidity_variable("q");
+    // compute IWV
+    p_teca_integrated_water_vapor iwv = teca_integrated_water_vapor::New();
+    iwv->set_input_connection(head->get_output_port());
+    iwv->set_specific_humidity_variable("q");
+    iwv->set_iwv_variable("iwv");
 
     // write the result
     if (write_output)
     {
-        std::string fn = std::string("test_integrated_vapor_transport_output_") +
+        std::string fn = std::string("test_integrated_water_vapor_output_") +
             std::string(vv_mask ? "vv_mask" : "elev_mask") + std::string("_%t%.nc");
 
         p_teca_cf_writer w = teca_cf_writer::New();
-        w->set_input_connection(ivt->get_output_port());
+        w->set_input_connection(iwv->get_output_port());
         w->set_file_name(fn);
         w->set_thread_pool_size(1);
-        w->set_point_arrays({"ivt_u", "ivt_v"});
+        w->set_point_arrays({"iwv"});
         w->update();
     }
 
     // capture the result
     p_teca_dataset_capture dsc = teca_dataset_capture::New();
-    dsc->set_input_connection(ivt->get_output_port());
+    dsc->set_input_connection(iwv->get_output_port());
     dsc->update();
 
     const_p_teca_cartesian_mesh m =
         std::dynamic_pointer_cast<const teca_cartesian_mesh>(dsc->get_dataset());
 
-    const_p_teca_double_array ivt_u =
+    const_p_teca_double_array iwva =
         std::dynamic_pointer_cast<const teca_double_array>
-            (m->get_point_arrays()->get("ivt_u"));
+            (m->get_point_arrays()->get("iwv"));
 
-    const_p_teca_double_array ivt_v =
-        std::dynamic_pointer_cast<const teca_double_array>
-            (m->get_point_arrays()->get("ivt_v"));
-
-    double test_ivt_u = ivt_u->get(0);
-    double test_ivt_v = ivt_v->get(0);
+    double test_iwv = iwva->get(0);
 
     // calculate the analytic solution
     double g = 9.80665;
-
-    double base_ivt_u = -(1./g) * (1./2.) * (sin(p_top)*sin(p_top)
-                                           - sin(p_sfc)*sin(p_sfc));
-
-    double base_ivt_v = -(1./g) * ((-p_top * cos(p_top) + sin(p_top))
-                                 - (-p_sfc * cos(p_sfc) + sin(p_sfc)));
+    double base_iwv = -(1./g) * (exp(p_top) - exp(p_sfc));
 
     // display
-    std::cerr << "base_ivt_u = " << base_ivt_u << std::endl;
-    std::cerr << "test_ivt_u = " << test_ivt_u << std::endl << std::endl;
-
-    std::cerr << "base_ivt_v = " << base_ivt_v << std::endl;
-    std::cerr << "test_ivt_v = " << test_ivt_v << std::endl;
+    std::cerr << "base_iwv = " << base_iwv << std::endl;
+    std::cerr << "test_iwv = " << test_iwv << std::endl << std::endl;
 
     // compare against the analytic solution
-    if (!teca_coordinate_util::equal(base_ivt_u, test_ivt_u, 1e-4))
+    if (!teca_coordinate_util::equal(base_iwv, test_iwv, 1e-4))
     {
-        TECA_ERROR("base_ivt_u = " << base_ivt_u << " test_ivt_u = " << test_ivt_u)
-        return -1;
-    }
-
-    if (!teca_coordinate_util::equal(base_ivt_v, test_ivt_v, 1e-4))
-    {
-        TECA_ERROR("base_ivt_v = " << base_ivt_v << " test_ivt_v = " << test_ivt_v)
+        TECA_ERROR("base_iwv = " << base_iwv << " test_iwv = " << test_iwv)
         return -1;
     }
 

@@ -4,11 +4,11 @@
 #include "teca_index_executive.h"
 #include "teca_normalize_coordinates.h"
 #include "teca_metadata.h"
-#include "teca_integrated_vapor_transport.h"
+#include "teca_integrated_water_vapor.h"
 #include "teca_binary_segmentation.h"
 #include "teca_l2_norm.h"
 #include "teca_multi_cf_reader.h"
-#include "teca_integrated_vapor_transport.h"
+#include "teca_integrated_water_vapor.h"
 #include "teca_valid_value_mask.h"
 #include "teca_unpack_data.h"
 #include "teca_cartesian_mesh_source.h"
@@ -62,32 +62,10 @@ int main(int argc, char **argv)
         ("specific_humidity", value<std::string>()->default_value("Q"),
             "\nname of variable with the 3D specific humidity field.\n")
 
-        ("wind_u", value<std::string>()->default_value("U"),
-            "\nname of variable with the 3D longitudinal component of the wind vector.\n")
-
-        ("wind_v", value<std::string>()->default_value("V"),
-            "\nname of variable with the 3D latitudinal component of the wind vector.\n")
-
-        ("ivt_u", value<std::string>()->default_value("IVT_U"),
+        ("iwv", value<std::string>()->default_value("IWV"),
             "\nname to use for the longitudinal component of the integrated vapor transport vector.\n")
 
-        ("ivt_v", value<std::string>()->default_value("IVT_V"),
-            "\nname to use for the latitudinal component of the integrated vapor transport vector.\n")
-
-        ("ivt", value<std::string>()->default_value("IVT"),
-            "\nname of variable with the magnitude of integrated vapor transport (IVT)\n")
-
-        ("write_ivt_magnitude", value<int>()->default_value(0),
-            "\nwhen this is set to 1 magnitude of vector IVT is calculated. use --ivt_u and"
-            " --ivt_v to set the name of the IVT vector components and --ivt to set the name"
-            " of the result if needed.\n")
-
-        ("write_ivt", value<int>()->default_value(1),
-            "\nwhen this is set to 1 IVT vector is written to disk with the result. use"
-            " --ivt_u and --ivt_v to set the name of the IVT vector components of the"
-            " result if needed.\n")
-
-        ("output_file", value<std::string>()->default_value("IVT_%t%.nc"),
+        ("output_file", value<std::string>()->default_value("IWV_%t%.nc"),
             "\nA path and file name pattern for the output NetCDF files. %t% is replaced with a"
             " human readable date and time corresponding to the time of the first time step in"
             " the file. Use --cf_writer::date_format to change the formatting\n")
@@ -140,7 +118,7 @@ int main(int argc, char **argv)
         "integrated vapor transport pipeline:\n\n"
         "    (cf / mcf_reader)\n"
         "            \\\n"
-        "        (ivt_integral)--(ivt_magnitude)\n"
+        "        (iwv_integral)--(iwv_magnitude)\n"
         "                                 \\\n"
         "                              (cf_writer)\n\n"
         "Advanced command line options", help_width, help_width - 4
@@ -189,19 +167,10 @@ int main(int argc, char **argv)
     elev_mask->set_surface_elevation_variable("Z");
     elev_mask->set_mesh_height_variable("ZG");
 
-    p_teca_integrated_vapor_transport ivt_int = teca_integrated_vapor_transport::New();
-    ivt_int->get_properties_description("ivt_integral", advanced_opt_defs);
-    ivt_int->set_specific_humidity_variable("Q");
-    ivt_int->set_wind_u_variable("U");
-    ivt_int->set_wind_v_variable("V");
-    ivt_int->set_ivt_u_variable("IVT_U");
-    ivt_int->set_ivt_v_variable("IVT_V");
-
-    p_teca_l2_norm l2_norm = teca_l2_norm::New();
-    l2_norm->get_properties_description("ivt_magnitude", advanced_opt_defs);
-    l2_norm->set_component_0_variable("IVT_U");
-    l2_norm->set_component_1_variable("IVT_V");
-    l2_norm->set_l2_norm_variable("IVT");
+    p_teca_integrated_water_vapor iwv_int = teca_integrated_water_vapor::New();
+    iwv_int->get_properties_description("iwv_integral", advanced_opt_defs);
+    iwv_int->set_specific_humidity_variable("Q");
+    iwv_int->set_iwv_variable("IWV");
 
     // Add an executive for the writer
     p_teca_index_executive exec = teca_index_executive::New();
@@ -242,8 +211,7 @@ int main(int argc, char **argv)
     elev_cache->set_properties("elev_cache", opt_vals);
     elev_regrid->set_properties("elev_regrid", opt_vals);
     elev_mask->set_properties("elev_mask", opt_vals);
-    ivt_int->set_properties("ivt_integral", opt_vals);
-    l2_norm->set_properties("ivt_magnitude", opt_vals);
+    iwv_int->set_properties("iwv_integral", opt_vals);
     cf_writer->set_properties("cf_writer", opt_vals);
 
     // now pass in the basic options, these are processed
@@ -297,59 +265,21 @@ int main(int argc, char **argv)
     mcf_reader->set_z_axis_variable(z_var);
 
     // set the inputs to the integrator
-    if (!opt_vals["wind_u"].defaulted())
-    {
-        ivt_int->set_wind_u_variable(opt_vals["wind_u"].as<string>());
-    }
-
-    if (!opt_vals["wind_v"].defaulted())
-    {
-        ivt_int->set_wind_v_variable(opt_vals["wind_v"].as<string>());
-    }
-
     if (!opt_vals["specific_humidity"].defaulted())
     {
-        ivt_int->set_specific_humidity_variable(
+        iwv_int->set_specific_humidity_variable(
             opt_vals["specific_humidity"].as<string>());
     }
 
-    // set all that use or produce ivt
-    if (!opt_vals["ivt_u"].defaulted())
-    {
-        ivt_int->set_ivt_u_variable(opt_vals["ivt_u"].as<string>());
-        l2_norm->set_component_0_variable(opt_vals["ivt_u"].as<string>());
-    }
-
-    if (!opt_vals["ivt_v"].defaulted())
-    {
-        ivt_int->set_ivt_v_variable(opt_vals["ivt_v"].as<string>());
-        l2_norm->set_component_1_variable(opt_vals["ivt_v"].as<string>());
-    }
-
-    if (!opt_vals["ivt"].defaulted())
-    {
-        l2_norm->set_l2_norm_variable(opt_vals["ivt"].as<string>());
-    }
+    // set all that use or produce iwv
+    if (!opt_vals["iwv"].defaulted())
+        iwv_int->set_iwv_variable(opt_vals["iwv"].as<string>());
 
     // add the valid value mask stage
     norm_coords->set_input_connection(head->get_output_port());
     vv_mask->set_input_connection(norm_coords->get_output_port());
     unpack->set_input_connection(vv_mask->get_output_port());
     head = unpack;
-
-    // add the ivt caluation stages if needed
-    bool do_ivt = opt_vals["write_ivt"].as<int>();
-    bool do_ivt_magnitude = opt_vals["write_ivt_magnitude"].as<int>();
-    if (!(do_ivt || do_ivt_magnitude))
-
-    {
-        if (mpi_man.get_comm_rank() == 0)
-        {
-            TECA_ERROR("At least one of --write_ivt or --write_ivt_magnitude "
-                " must be set.")
-        }
-        return -1;
-    }
 
     // add the elevation mask stages
     teca_metadata md;
@@ -377,13 +307,8 @@ int main(int argc, char **argv)
 
         elev_cache->set_input_connection(elev_regrid->get_output_port());
 
-        /*p_teca_cartesian_mesh_writer rdw = teca_cartesian_mesh_writer::New();
-        rdw->set_input_connection(elev_cache->get_output_port());
-        rdw->set_file_name("regrid_dem_%t%.vtk");*/
-
         elev_mask->set_input_connection(0, head->get_output_port());
         elev_mask->set_input_connection(1, elev_cache->get_output_port());
-        //elev_mask->set_input_connection(1, rdw->get_output_port());
 
         if (!opt_vals["dem_variable"].defaulted())
             elev_mask->set_surface_elevation_variable(
@@ -394,41 +319,18 @@ int main(int argc, char **argv)
                 opt_vals["mesh_height"].as<string>());
 
         elev_mask->set_mask_variables({
-            ivt_int->get_specific_humidity_variable() + "_valid",
-            ivt_int->get_wind_u_variable() + "_valid",
-            ivt_int->get_wind_v_variable() + "_valid"});
-
-        /*p_teca_cartesian_mesh_writer emw = teca_cartesian_mesh_writer::New();
-        emw->set_input_connection(elev_mask->get_output_port());
-        emw->set_file_name("elev_mask_%t%.vtk");
-        emw->set_binary(1);
-        head = emw;*/
+            iwv_int->get_specific_humidity_variable() + "_valid"});
 
         head = elev_mask;
     }
 
-    ivt_int->set_input_connection(head->get_output_port());
+    iwv_int->set_input_connection(head->get_output_port());
+    head = iwv_int;
 
-    if (do_ivt_magnitude)
-    {
-        if (mpi_man.get_comm_rank() == 0)
-            TECA_STATUS("Computing IVT magnitude")
-
-        l2_norm->set_input_connection(ivt_int->get_output_port());
-        head = l2_norm;
-    }
-
-    // tell the writer to write ivt if needed
+    // tell the writer to write iwv if needed
     std::vector<std::string> point_arrays;
-    if (do_ivt)
-    {
-        point_arrays.push_back(ivt_int->get_ivt_u_variable());
-        point_arrays.push_back(ivt_int->get_ivt_v_variable());
-    }
-    if (do_ivt_magnitude)
-    {
-        point_arrays.push_back(l2_norm->get_l2_norm_variable());
-    }
+    point_arrays.push_back(iwv_int->get_iwv_variable());
+
     cf_writer->set_point_arrays(point_arrays);
 
     cf_writer->set_file_name(opt_vals["output_file"].as<string>());

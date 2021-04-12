@@ -19,6 +19,7 @@
 #include "teca_derived_quantity_numerics.h"
 #include "teca_descriptive_statistics.h"
 #include "teca_evaluate_expression.h"
+#include "teca_elevation_mask.h"
 #include "teca_integrated_vapor_transport.h"
 #include "teca_l2_norm.h"
 #include "teca_laplacian.h"
@@ -420,3 +421,11 @@ struct teca_tc_saffir_simpson
 %shared_ptr(teca_unpack_data)
 %ignore teca_unpack_data::operator=;
 %include "teca_unpack_data.h"
+
+/***************************************************************************
+ elevation_mask
+ ***************************************************************************/
+%ignore teca_elevation_mask::shared_from_this;
+%shared_ptr(teca_elevation_mask)
+%ignore teca_elevation_mask::operator=;
+%include "teca_elevation_mask.h"

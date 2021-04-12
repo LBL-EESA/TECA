@@ -646,10 +646,28 @@ teca_add_test(test_cf_writer_bad_type
     REQ_TECA_DATA
     WILL_FAIL)
 
-teca_add_test(test_integrated_vapor_transport
-    SOURCES test_integrated_vapor_transport.cpp
+teca_add_test(test_integrated_water_vapor_vv_mask
+    SOURCES test_integrated_water_vapor.cpp
+    EXEC_NAME test_integrated_water_vapor
     LIBS teca_core teca_data teca_alg teca_io ${teca_test_link}
-    COMMAND test_integrated_vapor_transport
+    COMMAND test_integrated_water_vapor 0 0 0
+    FEATURES ${TECA_HAS_NETCDF})
+
+teca_add_test(test_integrated_water_vapor_elev_mask
+    LIBS teca_core teca_data teca_alg teca_io ${teca_test_link}
+    COMMAND test_integrated_water_vapor 1 0 0
+    FEATURES ${TECA_HAS_NETCDF})
+
+teca_add_test(test_integrated_vapor_transport_vv_mask
+    SOURCES test_integrated_vapor_transport.cpp
+    EXEC_NAME test_integrated_vapor_transport
+    LIBS teca_core teca_data teca_alg teca_io ${teca_test_link}
+    COMMAND test_integrated_vapor_transport 0 0 0
+    FEATURES ${TECA_HAS_NETCDF})
+
+teca_add_test(test_integrated_vapor_transport_elev_mask
+    LIBS teca_core teca_data teca_alg teca_io ${teca_test_link}
+    COMMAND test_integrated_vapor_transport 1 0 0
     FEATURES ${TECA_HAS_NETCDF})
 
 teca_add_test(test_cf_time_axis_reader
@@ -689,3 +707,13 @@ teca_add_test(test_bounds_to_extent
     SOURCES test_bounds_to_extent.cpp
     LIBS teca_core teca_data ${teca_test_link}
     COMMAND test_bounds_to_extent)
+
+teca_add_test(test_elevation_mask
+    SOURCES test_elevation_mask.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_elevation_mask cf
+    "${TECA_DATA_ROOT}/ECMWF-IFS-HR-SST-present_himalaya\\.nc"
+    "${TECA_DATA_ROOT}/GTOPO_DEM_025deg\\.nc"
+    "${TECA_DATA_ROOT}/test_elevation_mask"
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)

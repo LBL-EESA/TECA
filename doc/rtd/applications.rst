@@ -21,6 +21,8 @@ batch script rather than in your shell.
 +----------------------------------------+--------------------------------------------------+
 | :ref:`teca_integrated_vapor_transport` | Computes IVT (integrated vapor transport)        |
 +----------------------------------------+--------------------------------------------------+
+| :ref:`teca_integrated_water_vapor`     | Computes IWV (integrated water vapor)            |
++----------------------------------------+--------------------------------------------------+
 | :ref:`teca_bayesian_ar_detect`         | AR detection with uncertainty quantification     |
 +----------------------------------------+--------------------------------------------------+
 | :ref:`teca_deeplab_ar_detect`          | A machine learning based AR detector             |
@@ -1002,6 +1004,19 @@ Command Line Arguments
 --write_ivt
     when this flag is present IVT vector is written to disk with the result
 
+--dem arg
+    A teca_cf_reader regex identifying the file containing surface elevation field or DEM.
+
+--dem_variable arg (=Z)
+    Sets the name of the variable containing the surface elevation field
+
+--mesh_height arg (=Zg)
+    Sets the name of the variable containing the point wise vertical height in meters above mean
+    sea level
+
+--ar_probability arg (=ar_probability)
+    Sets the name of the variable to store the computed AR probability mask in.
+
 --ar_weighted_variables arg
     An optional list of variables to weight with the computed AR probability. Each such variable
     will be multiplied by the computed AR probability, and written to disk as "NAME_ar_wgtd".
@@ -1018,10 +1033,20 @@ Command Line Arguments
 --periodic_in_x arg (=1)
     Flags whether the x dimension (typically longitude) is periodic.
 
---binary_ar_threshold arg (=0.667)
-    probability threshold for segmenting ar_probability to produce ar_binary_tag
+--segment_ar_probability
+    A flag that enables a binary segmentation of AR probability to be produced. `--segment_threshold`
+    controls the segmentation. threshold and `--segment_variable` to set the name of the variable to
+    store the result in.
 
---output_file arg (=CASCADE_BARD_%t%.nc)
+--segment_threshold arg (=0.667)
+    Sets the threshold value that is used when segmenting ar_probability. See also
+    `--segment_ar_probability`
+
+--segment_variable arg (=ar_binary_tag)
+    Set the name of the variable to store the result of a binary segmentation of AR probabilty. See
+    also `--segment_ar_probability`.
+
+--output_file arg (=TECA_BARD_%t%.nc)
     A path and file name pattern for the output NetCDF files. %t% is replaced with a human readable
     date and time corresponding to the time of the first time step in the file. Use
     `--cf_writer::date_format` to change the formatting
@@ -1029,6 +1054,8 @@ Command Line Arguments
 --steps_per_file arg (=128)
     number of time steps per output file
 
+--first_step arg (=0)
+    first time step to process
 
 --last_step arg (=-1)
     last time step to process
@@ -1194,8 +1221,14 @@ taken into account. See the :ref:`teca_metadata_probe` ARTMIP :ref:`example<mdp_
 
 teca_integrated_vapor_transport
 -------------------------------
-The integrated vapor transport(IVT) command line application computes IVT from
-input wind vector and specific humidity.
+The integrated vapor transport(IVT) command line application computes:
+
+.. math::
+
+    IVT = \frac{1}{g} \int_{p_{sfc}}^{p_{top}} \vec{v} q dp
+
+where q is the specific humidity, and :math:`\vec{v} = (u, v)` are the
+longitudinal and latitudinal components of wind.
 
 Inputs
 ~~~~~~
@@ -1240,7 +1273,7 @@ Command Line Arguments
     name to use for the latitudinal component of the integrated vapor transport vector.
 
 --ivt arg (=IVT)
-    name of variable with the magnitude of integrated vapor transport
+    name of variable with the magnitude of integrated vapor transport (IVT)
 
 --write_ivt_magnitude arg (=0)
     when this is set to 1 magnitude of vector IVT is calculated. use `--ivt_u` and `--ivt_v` to set the
@@ -1267,8 +1300,15 @@ Command Line Arguments
 --z_axis_variable arg (=plev)
     name of z coordinate variable
 
---periodic_in_x arg (=1)
-    Flags whether the x dimension (typically longitude) is periodic.
+--dem arg
+    A teca_cf_reader regex identifying the file containing surface elevation field or DEM.
+
+--dem_variable arg (=Z)
+    Sets the name of the variable containing the surface elevation field
+
+--mesh_height arg (=Zg)
+    Sets the name of the variable containing the point wise vertical height in meters above mean
+    sea level
 
 --first_step arg (=0)
     first time step to process
@@ -1283,8 +1323,8 @@ Command Line Arguments
 --end_date arg
     The last time to process in 'Y-M-D h:m:s' format
 
---n_threads arg
-    Sets the thread pool size on each MPI rank. When the default value of -1 is used TECA will
+--n_threads arg (=-1)
+    Sets the thread pool size on each MPI  rank. When the default value of -1 is used TECA will
     coordinate the thread pools across ranks such each thread is bound to a unique physical core.
 
 --verbose
@@ -1349,6 +1389,108 @@ generated a total of 276 GB of data.
 The HighResMIP data is organized such that each
 variable is stored in its own directory.  This :ref:`MCF file<HighResMIPMCF>`
 was used to configure the readers.
+
+
+.. _teca_integrated_water_vapor:
+
+teca_integrated_water_vapor
+-------------------------------
+The integrated water vapor(IWV) command line application computes:
+
+.. math::
+
+   IWV = \frac{1}{g} \int_{p_{sfc}}^{p_{top}} q dp
+
+where g is the acceleration due to Earth's gravity, p is atmospheric pressure,
+and q is specific humidity.
+
+
+Inputs
+~~~~~~
+A 3D time dependent mesh in NetCDF CF2 format with:
+
+1. specific humidity
+
+Outputs
+~~~~~~~
+A 2D mesh with:
+
+1. IWV
+
+
+Command Line Arguments
+~~~~~~~~~~~~~~~~~~~~~~
+--input_file arg
+    a teca_multi_cf_reader configuration file identifying the set of NetCDF CF2 files to process.
+    When present data is read using the teca_multi_cf_reader. Use one of either `--input_file` or
+    `--input_regex`.
+
+--input_regex arg
+    a teca_cf_reader regex identifying the set of NetCDF CF2 files to process. When present data is
+    read using the teca_cf_reader. Use one of either `--input_file` or `--input_regex`.
+
+--specific_humidity arg (=Q)
+    name of variable with the 3D specific humidity field.
+
+--iwv arg (=IWV)
+    name to use for the longitudinal component of the integrated vapor transport vector.
+
+--output_file arg (=IWV_%t%.nc)
+    A path and file name pattern for the output NetCDF files. %t% is replaced with a human readable
+    date and time corresponding to the time of the first time step in the file. Use
+    `--cf_writer::date_format` to change the formatting
+
+--steps_per_file arg (=128)
+    number of time steps per output file
+
+--x_axis_variable arg (=lon)
+    name of x coordinate variable
+
+--y_axis_variable arg (=lat)
+    name of y coordinate variable
+
+--z_axis_variable arg (=plev)
+    name of z coordinate variable
+
+--dem arg
+    A teca_cf_reader regex identifying the file containing surface elevation field or DEM.
+
+--dem_variable arg (=Z)
+    Sets the name of the variable containing the surface elevation field
+
+--mesh_height arg (=Zg)
+    Sets the name of the variable containing the point wise vertical height in meters above mean
+    sea level
+
+--first_step arg (=0)
+    first time step to process
+
+--last_step arg (=-1)
+    last time step to process
+
+--start_date arg
+    The first time to process in 'Y-M-D h:m:s' format. Note: There must be a space between the date
+    and time specification
+
+--end_date arg
+    The last time to process in 'Y-M-D h:m:s' format
+
+--n_threads arg (=-1)
+    Sets the thread pool size on each MPI  rank. When the default value of -1 is used TECA will
+    coordinate the thread pools across ranks such each thread is bound to a unique physical core.
+
+--verbose
+    enable extra terminal output
+
+--help
+    displays documentation for application specific command line options
+
+--advanced_help
+    displays documentation for algorithm specific command line options
+
+--full_help
+    displays both basic and advanced documentation together
+
 
 .. _teca_tc_detect:
 

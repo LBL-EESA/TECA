@@ -40,7 +40,10 @@ int teca_cf_layout_manager::create(const std::string &file_name,
     }
 
     coords.get("t_variable", this->t_variable);
-    p_teca_variant_array t = coords.get("t");
+
+    p_teca_variant_array t;
+    if (!this->t_variable.empty())
+        t = coords.get("t");
 
     // construct the file name
     if (!date_format.empty())
@@ -593,7 +596,11 @@ int teca_cf_layout_manager::write(long index,
     {
         size_t starts[4] = {0, 0, 0, 0};
         size_t counts[4] = {1, 0, 0, 0};
-        for (int i = 1; i < this->n_dims; ++i)
+
+        // make space for the time dimension
+        int i0 = this->t ? 1 : 0;
+
+        for (int i = i0; i < this->n_dims; ++i)
             counts[i] = this->dims[i];
 
         // get this data's position in the file

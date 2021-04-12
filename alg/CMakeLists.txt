@@ -21,11 +21,13 @@ set(teca_alg_cxx_srcs
     teca_component_statistics.cxx
     teca_derived_quantity.cxx
     teca_descriptive_statistics.cxx
+    teca_elevation_mask.cxx
     teca_evaluate_expression.cxx
     teca_face_to_cell_centering.cxx
     teca_geography.cxx
     teca_indexed_dataset_cache.cxx
     teca_integrated_vapor_transport.cxx
+    teca_integrated_water_vapor.cxx
     teca_l2_norm.cxx
     teca_latitude_damper.cxx
     teca_laplacian.cxx
