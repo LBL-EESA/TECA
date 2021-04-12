@@ -37,10 +37,16 @@ if read_the_docs_build:
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 
-# pip install sphinxcontrib-bibtex
-extensions = ['sphinxcontrib.bibtex']
+# pip install sphinxcontrib-bibtex breathe
+extensions = ['sphinxcontrib.bibtex', 'breathe']
 
 bibtex_bibfiles = ['bibliography.bib']
+
+# Configuring Breathe
+breathe_projects = {
+    "TECA": "_build/xml"
+}
+breathe_default_project = "TECA"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
