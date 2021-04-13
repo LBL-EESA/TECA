@@ -15,9 +15,10 @@ namespace teca_coordinate_util
 {
 
 // **************************************************************************
-int time_step_of(p_teca_variant_array time, bool lower, bool clamp,
-    const std::string &calendar, const std::string &units,
-    const std::string &date, unsigned long &step)
+int time_step_of(const const_p_teca_variant_array &time,
+    bool lower, bool clamp, const std::string &calendar,
+    const std::string &units, const std::string &date,
+    unsigned long &step)
 {
 #if defined(TECA_HAS_UDUNITS)
     step = 0;
@@ -48,9 +49,9 @@ int time_step_of(p_teca_variant_array time, bool lower, bool clamp,
 
     // locate the nearest time value in the time axis
     unsigned long last = time->size() - 1;
-    TEMPLATE_DISPATCH_FP_SI(teca_variant_array_impl,
+    TEMPLATE_DISPATCH_FP_SI(const teca_variant_array_impl,
         time.get(),
-        NT *p_time = std::dynamic_pointer_cast<TT>(time)->get();
+        const NT *p_time = std::dynamic_pointer_cast<const TT>(time)->get();
         if (clamp && (t <= p_time[0]))
         {
             step = 0;
