@@ -23,4 +23,5 @@ to develop new diagnostics.
    python
    developer
    api/api
+   framework/framework
    bibliography
