@@ -68,6 +68,12 @@ int main(int argc, char **argv)
             " human readable date and time corresponding to the time of the first time step in"
             " the file. Use --cf_writer::date_format to change the formatting\n")
 
+        ("file_layout", value<std::string>()->default_value("monthly"),
+            "\nSelects the size and layout of the set of output files. May be one of"
+            " number_of_steps, daily, monthly, seasonal, or yearly. Files are structured"
+            " such that each file contains one of the selected interval. For the number_of_steps"
+            " option use --steps_per_file.\n")
+
         ("steps_per_file", value<long>(), "\nnumber of time steps per output file\n")
 
         ("normalize_coordinates", "\nEnable coordinate normalization pipeline stage\n")
@@ -129,6 +135,7 @@ int main(int argc, char **argv)
 
     p_teca_cf_writer cf_writer = teca_cf_writer::New();
     cf_writer->get_properties_description("cf_writer", advanced_opt_defs);
+    cf_writer->set_layout(teca_cf_writer::monthly);
 
     // Add an executive for the writer
     p_teca_index_executive exec = teca_index_executive::New();
@@ -204,6 +211,14 @@ int main(int argc, char **argv)
     if (opt_vals.count("information_arrays"))
         cf_writer->set_information_arrays(
             opt_vals["information_arrays"].as<std::vector<std::string>>());
+
+    if (!opt_vals["file_layout"].defaulted() &&
+        cf_writer->set_layout(opt_vals["file_layout"].as<std::string>()))
+    {
+        TECA_ERROR("An invalid file layout was provided \""
+            << opt_vals["file_layout"].as<std::string>() << "\"")
+        return -1;
+    }
 
     if (opt_vals.count("steps_per_file"))
         cf_writer->set_steps_per_file(
