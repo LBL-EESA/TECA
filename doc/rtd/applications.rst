@@ -1051,6 +1051,11 @@ Command Line Arguments
     date and time corresponding to the time of the first time step in the file. Use
     `--cf_writer::date_format` to change the formatting
 
+  --file_layout arg (=monthly)
+    Selects the size and layout of the set of output files. May be one of number_of_steps, daily,
+    monthly, seasonal, or yearly. Files are structured such that each file contains one of the
+    selected interval. For the number_of_steps option use `--steps_per_file`.
+
 --steps_per_file arg (=128)
     number of time steps per output file
 
@@ -1288,6 +1293,11 @@ Command Line Arguments
     date and time corresponding to the time of the first time step in the file. Use
     --cf_writer::date_format to change the formatting
 
+  --file_layout arg (=monthly)
+    Selects the size and layout of the set of output files. May be one of number_of_steps, daily,
+    monthly, seasonal, or yearly. Files are structured such that each file contains one of the
+    selected interval. For the number_of_steps option use `--steps_per_file`.
+
 --steps_per_file arg (=128)
     number of time steps per output file
 
@@ -1439,6 +1449,11 @@ Command Line Arguments
     A path and file name pattern for the output NetCDF files. %t% is replaced with a human readable
     date and time corresponding to the time of the first time step in the file. Use
     `--cf_writer::date_format` to change the formatting
+
+  --file_layout arg (=monthly)
+    Selects the size and layout of the set of output files. May be one of number_of_steps, daily,
+    monthly, seasonal, or yearly. Files are structured such that each file contains one of the
+    selected interval. For the number_of_steps option use `--steps_per_file`.
 
 --steps_per_file arg (=128)
     number of time steps per output file
@@ -2287,6 +2302,11 @@ Command Line Arguments
     date and time corresponding to the time of the first time step in the file. Use --date_format to
     change the formatting (default: None)
 
+  --file_layout FILE_LAYOUT
+    Selects the size and layout of the set of output files. May be one of number_of_steps, daily,
+    monthly, seasonal, or yearly. Files are structured such that each file contains one of the
+    selected interval. For the number_of_steps option use `--steps_per_file`. (default: yearly)
+
 --steps_per_file STEPS_PER_FILE
     number of time steps to write to each output file (default: 128)
 
@@ -2480,6 +2500,11 @@ Command Line Arguments
     A path and file name pattern for the output NetCDF files. %t% is replaced with a human readable
     date and time corresponding to the time of the first time step in the file. Use `--date_format` to
     change the formatting (default: None)
+
+  --file_layout FILE_LAYOUT
+    Selects the size and layout of the set of output files. May be one of number_of_steps, daily,
+    monthly, seasonal, or yearly. Files are structured such that each file contains one of the
+    selected interval. For the number_of_steps option use `--steps_per_file`. (default: monthly)
 
 --steps_per_file STEPS_PER_FILE
     number of time steps per output file (default: 128)
