@@ -629,13 +629,13 @@ teca_add_test(test_cf_writer_collective_threads
 teca_add_test(test_cf_writer_collective_mpi
     COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_writer_collective 128 512 128 1
     "${TECA_DATA_ROOT}/test_cf_writer_collective_%t%.bin" 213
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
+    FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
 teca_add_test(test_cf_writer_collective_mpi_threads
     COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} test_cf_writer_collective 128 512 128 2
     "${TECA_DATA_ROOT}/test_cf_writer_collective_%t%.bin" 213
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI} ${TEST_MPI_THREADS}
+    FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
 teca_add_test(test_cf_writer_bad_type

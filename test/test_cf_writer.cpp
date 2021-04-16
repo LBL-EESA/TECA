@@ -175,6 +175,7 @@ int parse_command_line(int argc, char **argv, int rank,
     cf_writer->set_thread_pool_size(n_threads);
     cf_writer->set_first_step(first_step);
     cf_writer->set_last_step(last_step);
+    cf_writer->set_layout(teca_cf_writer::number_of_steps);
     cf_writer->set_steps_per_file(steps_per_file);
     cf_writer->set_compression_level(deflate_level);
     cf_writer->set_point_arrays(arrays);

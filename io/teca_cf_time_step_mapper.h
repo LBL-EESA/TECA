@@ -17,42 +17,29 @@
 class teca_cf_time_step_mapper;
 using p_teca_cf_time_step_mapper = std::shared_ptr<teca_cf_time_step_mapper>;
 
-/// NetCDF CF2 files time step mapper.
+/// Defines the interface for mapping time steps to files
 class teca_cf_time_step_mapper
 {
 public:
-
-    // allocate and return a new object
-    static p_teca_cf_time_step_mapper New()
-    { return p_teca_cf_time_step_mapper(new teca_cf_time_step_mapper); }
-
-    ~teca_cf_time_step_mapper() {}
-
-    // initialize based on input metadata. this is a collective call
-    // creates communicator groups for each file and creates the
-    // file layout managers for the local rank. After this call
-    // on can access file managers to create, define and write
-    // local datasets to the NetCDF files in cf format.
-    int initialize(MPI_Comm comm, long first_step, long last_step,
-        long steps_per_file, const teca_metadata &md);
+    virtual ~teca_cf_time_step_mapper() {}
 
     // returns true if the mapper has been successfully initialized
-    bool initialized() { return this->file_comms.size(); }
+    virtual bool initialized() { return this->file_comms.size(); }
 
     // close all files, destroy file managers, and release communicators
     // this should be done once all I/O is complete.
-    int finalize();
+    virtual int finalize();
 
     // construct requests for this rank
-    int get_upstream_requests(teca_metadata base_req,
+    virtual int get_upstream_requests(teca_metadata base_req,
         std::vector<teca_metadata> &up_reqs);
 
     // given a time step, get the corresponding layout manager that
     // can be used to create, define and write data to disk.
-    p_teca_cf_layout_manager get_layout_manager(long time_step);
+    virtual p_teca_cf_layout_manager get_layout_manager(long time_step) = 0;
 
     // print a summary to the stream
-    int to_stream(std::ostream &os);
+    virtual int to_stream(std::ostream &os) = 0;
 
     // call the passed in functor once per file table entry, safe
     // for MPI collective operations. The required functor signature
@@ -68,7 +55,7 @@ public:
 protected:
     teca_cf_time_step_mapper() : index_initializer_key(""),
         index_request_key(""), start_time_step(0), end_time_step(-1),
-        n_files(0), n_time_steps_per_file(1)
+        n_files(0)
     {}
 
     // remove these for convenience
@@ -81,10 +68,7 @@ protected:
     int alloc_file_comms();
     int free_file_comms();
 
-    // given a time step, get the corresponding file id
-    int get_file_id(long time_step, long &file_id);
-
-private:
+protected:
     // communicator to partition into per-file communicators
     MPI_Comm comm;
 
@@ -103,7 +87,6 @@ private:
 
     // output files
     long n_files;
-    long n_time_steps_per_file;
     std::vector<std::set<int>> file_ranks;
 
     // per file communicators

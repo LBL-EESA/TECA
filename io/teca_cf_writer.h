@@ -82,6 +82,40 @@ public:
     TECA_ALGORITHM_PROPERTY(long, first_step)
     TECA_ALGORITHM_PROPERTY(long, last_step)
 
+    /** @anchor layout
+     * @name layout
+     * Set the layout mode to one of : number_of_steps, daily, monthly,
+     * seasonal, or yearly. This controls the size of the files written.  In
+     * daily, monthly, seasonal, and yearly modes each file will contain the
+     * steps spanning the given duration. The number_of_steps mode writes a
+     * fixed number of steps per file which can be set using the
+     * @ref steps_per_file property.
+     */
+    ///@{
+    enum {invalid=0, number_of_steps=1, daily=2, monthly=3, seasonal=4, yearly=5};
+    TECA_ALGORITHM_PROPERTY_V(int, layout)
+
+    void set_layout_to_number_of_steps() { this->set_layout(number_of_steps); }
+    void set_layout_to_daily() { this->set_layout(daily); }
+    void set_layout_to_monthly() { this->set_layout(monthly); }
+    void set_layout_to_seasonal() { this->set_layout(seasonal); }
+    void set_layout_to_yearly() { this->set_layout(yearly); }
+
+    /// set the layout mode from a string.
+    int set_layout(const std::string &layout);
+
+    /// @returns 0 if the passed value is a valid layout mode
+    int validate_layout(int mode)
+    {
+        if ((mode == number_of_steps) || (mode == daily) ||
+             (mode == monthly) || (mode == seasonal) || (mode == yearly))
+            return 0;
+
+        TECA_ERROR("Invalid layout mode " << mode)
+        return -1;
+    }
+    ///@}
+
     // set how many time steps are written to each file. Note that upstream is
     // parallelized over files rather than time steps.  this has the affect of
     // reducing the available opportunity for MPI parallelization by this
@@ -145,6 +179,7 @@ private:
     std::string date_format;
     long first_step;
     long last_step;
+    int layout;
     unsigned int steps_per_file;
     int mode_flags;
     int use_unlimited_dim;
