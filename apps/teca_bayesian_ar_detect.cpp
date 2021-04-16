@@ -129,7 +129,11 @@ int main(int argc, char **argv)
             "\nA path and file name pattern for the output NetCDF files. %t% is replaced with a"
             " human readable date and time corresponding to the time of the first time step in"
             " the file. Use --cf_writer::date_format to change the formatting\n")
-
+        ("file_layout", value<std::string>()->default_value("monthly"),
+            "\nSelects the size and layout of the set of output files. May be one of"
+            " number_of_steps, daily, monthly, seasonal, or yearly. Files are structured"
+            " such that each file contains one of the selected interval. For the number_of_steps"
+            " option use --steps_per_file.\n")
         ("steps_per_file", value<long>()->default_value(128),
             "\nnumber of time steps per output file\n")
 
@@ -251,6 +255,7 @@ int main(int argc, char **argv)
     cf_writer->set_verbose(0);
     cf_writer->set_thread_pool_size(1);
     cf_writer->set_steps_per_file(128);
+    cf_writer->set_layout(teca_cf_writer::monthly);
 
     // package basic and advanced options for display
     options_description all_opt_defs(help_width, help_width - 4);
@@ -563,6 +568,14 @@ int main(int argc, char **argv)
 
     if (!opt_vals["last_step"].defaulted())
         cf_writer->set_last_step(opt_vals["last_step"].as<long>());
+
+    if (!opt_vals["file_layout"].defaulted() &&
+        cf_writer->set_layout(opt_vals["file_layout"].as<std::string>()))
+    {
+        TECA_ERROR("An invalid file layout was provided \""
+            << opt_vals["file_layout"].as<std::string>() << "\"")
+        return -1;
+    }
 
     if (opt_vals.count("verbose"))
     {
