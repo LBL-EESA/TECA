@@ -32,8 +32,9 @@ output_base=${test_name}_${array_name}_${interval}_${operator}
 time ${launcher} ${app_prefix}/teca_temporal_reduction                  \
     --input_regex "${data_root}/${input_regex}" --interval ${interval}  \
     --operator ${operator} --point_arrays ${array_name}                 \
-    --steps_per_file ${steps_per_file} --n_threads 2 --verbose 1        \
-    --output_file "${output_base}_%t%.nc"
+    --file_layout yearly --steps_per_file ${steps_per_file}             \
+    --output_file "${output_base}_%t%.nc"                               \
+    --n_threads 2 --verbose 1
 
 # don't profile the diff
 unset PROFILER_ENABLE
