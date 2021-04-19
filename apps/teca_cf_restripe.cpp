@@ -7,6 +7,7 @@
 #include "teca_normalize_coordinates.h"
 #include "teca_cartesian_mesh_regrid.h"
 #include "teca_cartesian_mesh_source.h"
+#include "teca_rename_variables.h"
 #include "teca_cf_writer.h"
 #include "teca_dataset_diff.h"
 #include "teca_index_executive.h"
@@ -59,15 +60,12 @@ int main(int argc, char **argv)
 
         ("point_arrays", value<std::vector<std::string>>()->multitoken(),
             "\nA list of point centered arrays to write\n")
-
         ("information_arrays", value<std::vector<std::string>>()->multitoken(),
             "\nA list of non-geometric arrays to write\n")
-
         ("output_file", value<std::string>(),
             "\nA path and file name pattern for the output NetCDF files. %t% is replaced with a"
             " human readable date and time corresponding to the time of the first time step in"
             " the file. Use --cf_writer::date_format to change the formatting\n")
-
         ("file_layout", value<std::string>()->default_value("monthly"),
             "\nSelects the size and layout of the set of output files. May be one of"
             " number_of_steps, daily, monthly, seasonal, or yearly. Files are structured"
@@ -80,14 +78,19 @@ int main(int argc, char **argv)
 
         ("regrid", "\nEnable mesh regridding pipeline stage. When enabled requires --dims"
             " to be provided\n")
-
         ("dims", value<std::vector<unsigned long>>()->multitoken(),
             "\nA 3-tuple of values specifying the mesh size of the output dataset in the x, y,"
             " and z dimensions. The accepted format for dimensions is: nx ny nz\n")
-
         ("bounds", value<std::vector<double>>()->multitoken(),
             "\nA hex-tuple of low and high values specifying lon lat lev bounding box to subset"
             " the input dataset with. The accepted format for bounds is: x0 x1 y0 y1 z0 z1\n")
+
+        ("rename", "\nEnable variable renaming stage\n")
+        ("original_name", value<std::vector<std::string>>()->multitoken(),
+            "\nA list of variables to rename. Use --new_name to set the new names\n")
+        ("new_name", value<std::vector<std::string>>()->multitoken(),
+            "\nThe new names to use when renaming variables. Use --original_name to set the"
+            " list of variables to rename\n")
 
         ("first_step", value<long>(), "\nfirst time step to process\n")
         ("last_step", value<long>(), "\nlast time step to process\n")
@@ -133,6 +136,9 @@ int main(int argc, char **argv)
     p_teca_cartesian_mesh_source regrid_src = teca_cartesian_mesh_source::New();
     regrid_src->get_properties_description("regrid_source", advanced_opt_defs);
 
+    p_teca_rename_variables rename = teca_rename_variables::New();
+    rename->get_properties_description("rename", advanced_opt_defs);
+
     p_teca_cf_writer cf_writer = teca_cf_writer::New();
     cf_writer->get_properties_description("cf_writer", advanced_opt_defs);
     cf_writer->set_layout(teca_cf_writer::monthly);
@@ -164,6 +170,7 @@ int main(int argc, char **argv)
     norm_coords->set_properties("norm_coords", opt_vals);
     regrid->set_properties("regrid", opt_vals);
     regrid_src->set_properties("regrid_source", opt_vals);
+    rename->set_properties("rename", opt_vals);
     cf_writer->set_properties("cf_writer", opt_vals);
 
     // now pass in the basic options, these are processed
@@ -310,6 +317,9 @@ int main(int argc, char **argv)
     p_teca_algorithm head = reader;
     if (opt_vals.count("normalize_coordinates"))
     {
+        if (mpi_man.get_comm_rank() == 0)
+            TECA_STATUS("Added cooridnate normalization stage");
+
         norm_coords->set_input_connection(reader->get_output_port());
         head = norm_coords;
     }
@@ -370,7 +380,8 @@ int main(int argc, char **argv)
 
         if (atts.empty() && md.get("attributes", atts))
         {
-            TECA_ERROR("metadata missing attributes")
+            if (mpi_man.get_comm_rank() == 0)
+                TECA_ERROR("metadata missing attributes")
             return -1;
         }
 
@@ -378,7 +389,8 @@ int main(int argc, char **argv)
            || time_atts.get("calendar", calendar)
            || time_atts.get("units", units))
         {
-            TECA_ERROR("failed to determine the calendaring parameters")
+            if (mpi_man.get_comm_rank() == 0)
+                TECA_ERROR("failed to determine the calendaring parameters")
             return -1;
         }
 
@@ -386,7 +398,8 @@ int main(int argc, char **argv)
         p_teca_variant_array time;
         if (md.get("coordinates", coords) || !(time = coords.get("t")))
         {
-            TECA_ERROR("failed to determine time coordinate")
+            if (mpi_man.get_comm_rank() == 0)
+                TECA_ERROR("failed to determine time coordinate")
             return -1;
         }
 
@@ -398,8 +411,9 @@ int main(int argc, char **argv)
             if (teca_coordinate_util::time_step_of(time, true, true, calendar,
                  units, start_date, first_step))
             {
-                TECA_ERROR("Failed to locate time step for start date \""
-                    <<  start_date << "\"")
+                if (mpi_man.get_comm_rank() == 0)
+                    TECA_ERROR("Failed to locate time step for start date \""
+                        <<  start_date << "\"")
                 return -1;
             }
             cf_writer->set_first_step(first_step);
@@ -413,8 +427,9 @@ int main(int argc, char **argv)
             if (teca_coordinate_util::time_step_of(time, false, true, calendar,
                  units, end_date, last_step))
             {
-                TECA_ERROR("Failed to locate time step for end date \""
-                    <<  end_date << "\"")
+                if (mpi_man.get_comm_rank() == 0)
+                    TECA_ERROR("Failed to locate time step for end date \""
+                        <<  end_date << "\"")
                 return -1;
             }
             cf_writer->set_last_step(last_step);
@@ -424,6 +439,9 @@ int main(int argc, char **argv)
     // set up regriding
     if (do_regrid)
     {
+        if (mpi_man.get_comm_rank() == 0)
+            TECA_STATUS("Added regrid stage");
+
         // run the reporting phase of the pipeline, the resulting metadata
         // can be used to automatically determine the calendaring parameters
         // and spatial bounds
@@ -433,7 +451,9 @@ int main(int argc, char **argv)
         // use the calendar and time axis of the input dataset
         if (regrid_src->set_t_axis_variable(md) || regrid_src->set_t_axis(md))
         {
-            TECA_WARNING("Failed to determine the time axis, assuming a single time step")
+            if (mpi_man.get_comm_rank() == 0)
+                TECA_WARNING("Failed to determine the time axis, assuming a"
+                    " single time step")
 
             p_teca_double_array t = teca_double_array::New(1);
             regrid_src->set_t_axis_variable("");
@@ -454,8 +474,9 @@ int main(int argc, char **argv)
             // try to determine the bounds from the input mesh metadata
             if (regrid_src->set_spatial_bounds(md))
             {
-                TECA_ERROR("Failed to determine target mesh bounds from the"
-                    " input metadata. Use --bounds to specify them manually.")
+                if (mpi_man.get_comm_rank() == 0)
+                    TECA_ERROR("Failed to determine target mesh bounds from the"
+                        " input metadata. Use --bounds to specify them manually.")
                 return -1;
             }
         }
@@ -468,6 +489,48 @@ int main(int argc, char **argv)
         regrid->set_input_connection(0, regrid_src->get_output_port());
         regrid->set_input_connection(1, head->get_output_port());
         head = regrid;
+    }
+
+    // add rename stage
+    if (opt_vals.count("rename"))
+    {
+        if (!opt_vals.count("original_name"))
+        {
+            if (mpi_man.get_comm_rank() == 0)
+                TECA_ERROR("--original_name is required when renaming variables")
+            return -1;
+        }
+
+        std::vector<std::string> original_name =
+            opt_vals["original_name"].as<std::vector<std::string>>();
+
+        if (!opt_vals.count("new_name"))
+        {
+            if (mpi_man.get_comm_rank() == 0)
+                TECA_ERROR("--new_name is required when renaming variables")
+            return -1;
+        }
+
+        std::vector<std::string> new_name =
+            opt_vals["new_name"].as<std::vector<std::string>>();
+
+        if (original_name.size() != new_name.size())
+        {
+            if (mpi_man.get_comm_rank() == 0)
+                TECA_ERROR("--original_name and --new_name must have the same"
+                    " number of values")
+            return -1;
+
+        }
+
+        if (mpi_man.get_comm_rank() == 0)
+            TECA_STATUS("Added rename stage");
+
+        rename->set_input_connection(head->get_output_port());
+        rename->set_original_variable_names(original_name);
+        rename->set_new_variable_names(new_name);
+
+        head = rename;
     }
 
     // add the writer last
