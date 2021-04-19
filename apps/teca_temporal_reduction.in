@@ -66,6 +66,14 @@ parser.add_argument('--output_file', type=str, required=True,
                          ' step in the file. Use --date_format to change'
                          ' the formatting')
 
+parser.add_argument('--file_layout', type=str, default='yearly',
+                    help='Selects the size and layout of the set of output'
+                         ' files. May be one of number_of_steps, daily,'
+                         ' monthly, seasonal, or yearly. Files are structured'
+                         ' such that each file contains one of the selected'
+                         ' interval. For the number_of_steps option use'
+                         ' --steps_per_file.')
+
 parser.add_argument('--steps_per_file', type=int, default=128,
                     help='number of time steps to write to each output '
                          'file')
@@ -85,7 +93,7 @@ parser.add_argument('--t_axis_variable', type=str, default='time',
                     help='name of the variable to use for t-coordinates')
 
 parser.add_argument('--n_threads', type=int, default=2,
-                    help='Number of threads to use when stremaing the '
+                    help='Number of threads to use when streaming the '
                          'reduction')
 
 parser.add_argument('--verbose', type=int, default=0,
@@ -99,6 +107,7 @@ except Exception:
 
 in_files = args.input_regex
 out_files = args.output_file
+layout = args.file_layout
 steps_per_file = args.steps_per_file
 n_threads = args.n_threads
 interval = args.interval
@@ -115,6 +124,7 @@ verbose = args.verbose
 if verbose and rank == 0:
     sys.stderr.write('running on %d ranks' % (n_ranks))
     sys.stderr.write('n_threads=%d\n' % (n_threads))
+    sys.stderr.write('file_layout=%s\n'%(layout))
     sys.stderr.write('steps_per_file=%d\n' % (steps_per_file))
     sys.stderr.write('interval=%s\n' % (interval))
     sys.stderr.write('operator=%s\n' % (operator))
@@ -152,6 +162,7 @@ cfw = teca_cf_writer.New()
 cfw.set_input_connection(mav.get_output_port())
 cfw.set_verbose(verbose)
 cfw.set_thread_pool_size(1)
+cfw.set_layout(layout)
 cfw.set_steps_per_file(steps_per_file)
 cfw.set_file_name(out_files)
 cfw.set_point_arrays(point_arrays)

@@ -4,7 +4,6 @@
 #include "teca_variant_array.h"
 #include "teca_table.h"
 #include "teca_database.h"
-#include "teca_calendar.h"
 #include "teca_coordinate_util.h"
 #include "gfdl_tc_candidates.h"
 

@@ -19,7 +19,7 @@
 // max(f) = 1
 struct packed_data
 {
-    char m_fill;
+    unsigned char m_fill;
     float m_scale;
     float m_offset;
 

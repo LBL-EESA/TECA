@@ -629,13 +629,13 @@ teca_add_test(test_cf_writer_collective_threads
 teca_add_test(test_cf_writer_collective_mpi
     COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_writer_collective 128 512 128 1
     "${TECA_DATA_ROOT}/test_cf_writer_collective_%t%.bin" 213
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
+    FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
 teca_add_test(test_cf_writer_collective_mpi_threads
     COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} test_cf_writer_collective 128 512 128 2
     "${TECA_DATA_ROOT}/test_cf_writer_collective_%t%.bin" 213
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI} ${TEST_MPI_THREADS}
+    FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
 teca_add_test(test_cf_writer_bad_type
@@ -715,5 +715,36 @@ teca_add_test(test_elevation_mask
     "${TECA_DATA_ROOT}/ECMWF-IFS-HR-SST-present_himalaya\\.nc"
     "${TECA_DATA_ROOT}/GTOPO_DEM_025deg\\.nc"
     "${TECA_DATA_ROOT}/test_elevation_mask"
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_interval_iterator_daily
+    SOURCES test_interval_iterator.cpp
+    EXEC_NAME test_interval_iterator
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_interval_iterator daily
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc$"
+    365
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_interval_iterator_monthly
+    COMMAND test_interval_iterator monthly
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc$"
+    12
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_interval_iterator_seasonal
+    COMMAND test_interval_iterator seasonal
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc$"
+    3
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_interval_iterator_yearly
+    COMMAND test_interval_iterator yearly
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc$"
+    1
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)

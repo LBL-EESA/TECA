@@ -7,7 +7,6 @@ set(teca_core_srcs
     teca_algorithm_executive.cxx
     teca_bad_cast.cxx
     teca_binary_stream.cxx
-    teca_calendar.cxx
     teca_common.cxx
     teca_dataset.cxx
     teca_dataset_source.cxx

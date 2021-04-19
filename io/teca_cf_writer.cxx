@@ -8,6 +8,8 @@
 #include "teca_netcdf_util.h"
 #include "teca_coordinate_util.h"
 #include "teca_cf_time_step_mapper.h"
+#include "teca_cf_block_time_step_mapper.h"
+#include "teca_cf_interval_time_step_mapper.h"
 #include "teca_cf_layout_manager.h"
 #include "teca_coordinate_util.h"
 
@@ -27,8 +29,7 @@
 class teca_cf_writer::internals_t
 {
 public:
-    internals_t() : mapper(teca_cf_time_step_mapper::New()),
-        layout_defined(0)
+    internals_t() : mapper(), layout_defined(0)
     {}
 
     p_teca_cf_time_step_mapper mapper;
@@ -40,8 +41,8 @@ public:
 // --------------------------------------------------------------------------
 teca_cf_writer::teca_cf_writer() :
     file_name(""), date_format("%F-%HZ"), first_step(0), last_step(-1),
-    steps_per_file(128), mode_flags(NC_CLOBBER|NC_NETCDF4), use_unlimited_dim(0),
-    compression_level(-1), flush_files(0)
+    layout(monthly), steps_per_file(128), mode_flags(NC_CLOBBER|NC_NETCDF4),
+    use_unlimited_dim(0), compression_level(-1), flush_files(0)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -76,8 +77,11 @@ void teca_cf_writer::get_properties_description(
         TECA_POPTS_GET(long, prefix, first_step,
             "set the first time step to process")
         TECA_POPTS_GET(long, prefix, last_step,
-            "set the last time step to process. A value less than 0 results "
-            "in all steps being processed.")
+            "Set the last time step to process. A value less than 0 results"
+            " in all steps being processed.")
+        TECA_POPTS_GET(int, prefix, layout,
+            "Set the layout for writing files. May be one of : number_of_steps(1),"
+            "  daily(2), monthly(3), seasonal(4), or yearly(5)")
         TECA_POPTS_GET(unsigned int, prefix, steps_per_file,
             "set the number of time steps to write per file")
         TECA_POPTS_GET(int, prefix, mode_flags,
@@ -111,6 +115,7 @@ void teca_cf_writer::set_properties(
     TECA_POPTS_SET(opts, std::string, prefix, date_format)
     TECA_POPTS_SET(opts, long, prefix, first_step)
     TECA_POPTS_SET(opts, long, prefix, last_step)
+    TECA_POPTS_SET(opts, int, prefix, layout)
     TECA_POPTS_SET(opts, unsigned int, prefix, steps_per_file)
     TECA_POPTS_SET(opts, int, prefix, mode_flags)
     TECA_POPTS_SET(opts, int, prefix, use_unlimited_dim)
@@ -120,6 +125,37 @@ void teca_cf_writer::set_properties(
     TECA_POPTS_SET(opts, std::vector<std::string>, prefix, information_arrays)
 }
 #endif
+
+// --------------------------------------------------------------------------
+int teca_cf_writer::set_layout(const std::string &mode)
+{
+    if (mode == "daily")
+    {
+        this->set_layout(daily);
+    }
+    else if (mode == "monthly")
+    {
+        this->set_layout(monthly);
+    }
+    else if (mode == "seasonal")
+    {
+        this->set_layout(seasonal);
+    }
+    else if (mode == "yearly")
+    {
+        this->set_layout(yearly);
+    }
+    else if (mode == "number_of_steps")
+    {
+        this->set_layout(number_of_steps);
+    }
+    else
+    {
+        TECA_ERROR("Invalid layout mode \"" << mode << "\"")
+        return -1;
+    }
+    return 0;
+}
 
 // --------------------------------------------------------------------------
 int teca_cf_writer::flush()
@@ -268,11 +304,45 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
 
     // initialize the mapper.
     MPI_Comm comm = this->get_communicator();
-    if (this->internals->mapper->initialize(comm, this->first_step,
-        this->last_step, this->steps_per_file, md_in))
+    if (this->layout == number_of_steps)
     {
-        TECA_ERROR("Failed to initialize the mapper")
-        return up_reqs;
+        p_teca_cf_block_time_step_mapper bmap =
+            teca_cf_block_time_step_mapper::New();
+
+        if (bmap->initialize(comm, this->first_step,
+            this->last_step, this->steps_per_file, md_in))
+        {
+            TECA_ERROR("Failed to initialize the block mapper")
+            return up_reqs;
+        }
+
+        this->internals->mapper = bmap;
+    }
+    else
+    {
+        // create the requested interval iterator
+        teca_calendar_util::p_interval_iterator it =
+            teca_calendar_util::interval_iterator_factory::New(this->layout);
+
+        if (!it)
+        {
+            TECA_ERROR("Failed to create an iterator for layout "
+                <<  this->layout)
+            return up_reqs;
+        }
+
+        // initialize the layout mapper
+        p_teca_cf_interval_time_step_mapper imap =
+            teca_cf_interval_time_step_mapper::New();
+
+        if (imap->initialize(comm,
+            this->first_step, this->last_step, it, md_in))
+        {
+            TECA_ERROR("Failed to initialize the interval mapper")
+            return up_reqs;
+        }
+
+        this->internals->mapper = imap;
     }
 
     if (this->get_verbose())
