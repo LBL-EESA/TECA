@@ -88,8 +88,8 @@ void teca_unpack_data::set_properties(
 int teca_unpack_data::validate_output_data_type(int val)
 {
     // validate the output type
-    if ((val != teca_variant_array_code<float>::get()) &&
-        (val != teca_variant_array_code<double>::get()))
+    if ((val != ((int)teca_variant_array_code<float>::get())) &&
+        (val != ((int)teca_variant_array_code<double>::get())))
     {
         TECA_ERROR("Invlaid output data type " << val << ". Use "
             << teca_variant_array_code<double>::get()
@@ -158,9 +158,9 @@ teca_metadata teca_unpack_data::get_output_metadata(
                array_atts.remove("_FillValue");
                array_atts.remove("missing_value");
 
-               if (this->output_data_type == teca_variant_array_code<double>::get())
+               if (this->output_data_type == ((int)teca_variant_array_code<double>::get()))
                    array_atts.set("_FillValue", 1e20);
-               else if (this->output_data_type == teca_variant_array_code<float>::get())
+               else if (this->output_data_type == ((int)teca_variant_array_code<float>::get()))
                    array_atts.set("_FillValue", 1e20f);
             }
 
