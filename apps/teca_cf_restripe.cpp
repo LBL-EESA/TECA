@@ -71,8 +71,8 @@ int main(int argc, char **argv)
             " number_of_steps, daily, monthly, seasonal, or yearly. Files are structured"
             " such that each file contains one of the selected interval. For the number_of_steps"
             " option use --steps_per_file.\n")
-
-        ("steps_per_file", value<long>(), "\nnumber of time steps per output file\n")
+        ("steps_per_file", value<long>(), "\nThe number of time steps per output file when "
+            " --file_layout number_of_steps is specified.\n")
 
         ("normalize_coordinates", "\nEnable coordinate normalization pipeline stage\n")
 

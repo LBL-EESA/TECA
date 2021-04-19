@@ -95,7 +95,8 @@ int main(int argc, char **argv)
             " such that each file contains one of the selected interval. For the number_of_steps"
             " option use --steps_per_file.\n")
         ("steps_per_file", value<long>()->default_value(128),
-            "\nnumber of time steps per output file\n")
+            "\nThe number of time steps per output file when --file_layout number_of_steps is"
+            " specified.\n")
 
         ("x_axis_variable", value<std::string>()->default_value("lon"),
             "\nname of x coordinate variable\n")

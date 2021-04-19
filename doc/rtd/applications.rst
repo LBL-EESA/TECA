@@ -597,8 +597,13 @@ in NetCDF CF2 format.
 --output_file arg
     file pattern for output netcdf files (%t% is the time index)
 
+--file_layout arg (=monthly)
+    Selects the size and layout of the set of output files. May be one of *number_of_steps*, *daily*,
+    *monthly*, *seasonal*, or *yearly*. Files are structured such that each file contains one of the
+    selected interval. For the number_of_steps option use `--steps_per_file`.
+
 --steps_per_file arg
-    number of time steps per output file
+    The number of time steps per output file when `--file_layout number_of_steps` is specified.
 
 --cf_writer::date_format arg
     A strftime format used when encoding dates into the output
@@ -1057,7 +1062,7 @@ Command Line Arguments
     selected interval. For the number_of_steps option use `--steps_per_file`.
 
 --steps_per_file arg (=128)
-    number of time steps per output file
+    The number of time steps per output file when `--file_layout number_of_steps` is specified.
 
 --first_step arg (=0)
     first time step to process
@@ -1137,7 +1142,7 @@ dataset using TECA's BARD(Bayesian AR detector) detector.
     time srun -N 1484 -n 23744 teca_bayesian_ar_detect \
         --input_file ./HighResMIP_ECMWF_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_6hrPlevPt.mcf \
         --specific_humidity hus --wind_u ua --wind_v va --ivt_u ivt_u --ivt_v ivt_v --ivt ivt \
-        --compute_ivt --write_ivt --write_ivt_magnitude --steps_per_file 128 \
+        --compute_ivt --write_ivt --write_ivt_magnitude --file_layout monthly \
         --output_file ${out_dir}/CASCADE_BARD_AR_%t%.nc
 
 This dataset spans the year 1950 to 2014 with 7 pressure levels at a
@@ -1198,7 +1203,7 @@ minutes on the Cori KNL supercomputer at NERSC.
             --input_regex "/global/project/projectdirs/m1517/cascade/external_datasets/ARTMIP/MERRA_2D/${year}/ARTMIP_MERRA_2D_.*\.nc" \
             --cf_reader::t_axis_variable "" \
             --cf_reader::filename_time_template  "ARTMIP_MERRA_2D_%Y%m%d_%H.nc" \
-            --steps_per_file 3000 \
+            --file_layout number_of_steps --steps_per_file 3000 \
             --cf_writer::date_format "%Y" \
             --output_file MERRA2.ar_tag.teca_bard_v1.0.3hourly.%t%.nc4 &> bard_${year}_${SLURM_JOB_ID}.log &
     done
@@ -1299,7 +1304,7 @@ Command Line Arguments
     selected interval. For the number_of_steps option use `--steps_per_file`.
 
 --steps_per_file arg (=128)
-    number of time steps per output file
+    The number of time steps per output file when `--file_layout number_of_steps` is specified.
 
 --x_axis_variable arg (=lon)
     name of x coordinate variable
@@ -1383,7 +1388,7 @@ HighResMIP dataset using TECA.
         --specific_humidity hus --wind_u ua --wind_v va --ivt_u ivt_u --ivt_v ivt_v --ivt ivt               \
         --write_ivt 1 --write_ivt_magnitude 1                                                               \
         --output_file ./HighResMIP_ECMWF_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_6hrPlevPt/ivt/ivt_%t%.nc  \
-        --steps_per_file 32 --n_threads -1 --verbose
+        --n_threads -1 --verbose
 
 This HighResMIP dataset spans the year 1950 to 2014 with 7 pressure levels at a
 1 degree spatial and 6 hourly time resolution. There are 94964 simulated time
@@ -1456,7 +1461,7 @@ Command Line Arguments
     selected interval. For the number_of_steps option use `--steps_per_file`.
 
 --steps_per_file arg (=128)
-    number of time steps per output file
+    The number of time steps per output file when `--file_layout number_of_steps` is specified.
 
 --x_axis_variable arg (=lon)
     name of x coordinate variable
@@ -2308,7 +2313,7 @@ Command Line Arguments
     selected interval. For the number_of_steps option use `--steps_per_file`. (default: yearly)
 
 --steps_per_file STEPS_PER_FILE
-    number of time steps to write to each output file (default: 128)
+    The number of time steps per output file when `--file_layout number_of_steps` is specified.
 
 --x_axis_variable X_AXIS_VARIABLE
     name of the variable to use for x-coordinates (default: lon)
@@ -2374,7 +2379,7 @@ simulated time at quarter degree 3 hourly resolution.
             --n_threads 2 --verbose 1 --input_regex ${data_dir}/'.*\.nc$' \
             --interval daily --operator average --point_arrays TS TMQ --ignore_fill_value \
             --output_file ${out_dir}/CAM5-1-025degree_All-Hist_est1_v3_daily_avg_%t%.nc \
-            --steps_per_file 50
+            --file_layout monthly
 
 .. _ta_era5:
 
@@ -2410,7 +2415,7 @@ degree, 1 hourly resolution.
     out_dir=CMIP6_ERA5_e5_oper_an_sfc_seasonal_avg
     mkdir -p ${out_dir}
 
-    # compute the daily average. change -N and -n to match the run size.
+    # compute the seasonal average. change -N and -n to match the run size.
     # the run size is determened by the number of output time steps. here the
     # input is 41 years of 1 hourly data, the output is seasonal, with 164 seasons.
     time srun -N 164 -n 164 \
@@ -2419,7 +2424,7 @@ degree, 1 hourly resolution.
             --x_axis_variable longitude --y_axis_variable latitude \
             --interval seasonal --operator average --point_arrays TCWV \
             --output_file ${out_dir}/e5_oper_an_sfc_128_137_tcwv_ll025sc_seasonal_avg_%t%.nc \
-            --steps_per_file 4
+            --file_layout number_of_steps --steps_per_file 4
 
 This run made use of 164 MPI ranks on 164 KNL nodes. 164 ranks were used
 because the input data spans 41 years of simulated time, and 41 years each with
@@ -2501,7 +2506,7 @@ Command Line Arguments
     date and time corresponding to the time of the first time step in the file. Use `--date_format` to
     change the formatting (default: None)
 
-  --file_layout FILE_LAYOUT
+--file_layout FILE_LAYOUT
     Selects the size and layout of the set of output files. May be one of number_of_steps, daily,
     monthly, seasonal, or yearly. Files are structured such that each file contains one of the
     selected interval. For the number_of_steps option use `--steps_per_file`. (default: monthly)
@@ -2633,8 +2638,7 @@ ref:`cmip6_ex_desc<teca_bayesian_ar_detect examples>`.
         --input_file ./HighResMIP_ECMWF_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_6hrPlevPt.mcf \
         --compute_ivt --wind_u ua --wind_v va --specific_humidity hus \
         --write_ivt --write_ivt_magnitude \
-        --output_file ${out_dir}/deeplab_AR_%t%.nc \
-        --steps_per_file 128
+        --output_file ${out_dir}/deeplab_AR_%t%.nc
 
 .. _teca_convert_table:
 
