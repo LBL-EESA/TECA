@@ -26,6 +26,7 @@
 #include "teca_latitude_damper.h"
 #include "teca_mask.h"
 #include "teca_normalize_coordinates.h"
+#include "teca_rename_variables.h"
 #include "teca_saffir_simpson.h"
 #include "teca_table_calendar.h"
 #include "teca_table_sort.h"
@@ -429,3 +430,11 @@ struct teca_tc_saffir_simpson
 %shared_ptr(teca_elevation_mask)
 %ignore teca_elevation_mask::operator=;
 %include "teca_elevation_mask.h"
+
+/***************************************************************************
+ rename_variables
+ ***************************************************************************/
+%ignore teca_rename_variables::shared_from_this;
+%shared_ptr(teca_rename_variables)
+%ignore teca_rename_variables::operator=;
+%include "teca_rename_variables.h"
