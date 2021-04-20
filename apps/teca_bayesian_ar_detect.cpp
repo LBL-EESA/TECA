@@ -135,7 +135,8 @@ int main(int argc, char **argv)
             " such that each file contains one of the selected interval. For the number_of_steps"
             " option use --steps_per_file.\n")
         ("steps_per_file", value<long>()->default_value(128),
-            "\nnumber of time steps per output file\n")
+            "\nThe number of time steps per output file when --file_layout number_of_steps is"
+            " specified.\n")
 
         ("first_step", value<long>()->default_value(0), "\nfirst time step to process\n")
         ("last_step", value<long>()->default_value(-1), "\nlast time step to process\n")

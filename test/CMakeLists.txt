@@ -748,3 +748,10 @@ teca_add_test(test_interval_iterator_yearly
     1
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
+
+teca_add_test(test_rename_variables
+    SOURCES test_rename_variables.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_rename_variables "${TECA_DATA_ROOT}/test_rename_variables.nc"
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
