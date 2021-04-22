@@ -18,16 +18,16 @@
 # -- Project information -----------------------------------------------------
 
 project = 'TECA'
-copyright = "2019, Burlen Loring, Travis O'Brien & Abdelrahman Elbashandy"
+copyright = "2021, Burlen Loring, Travis O'Brien & Abdelrahman Elbashandy"
 author = "Burlen Loring, Travis O'Brien & Abdelrahman Elbashandy"
 
 # -- General configuration ---------------------------------------------------
 
 import subprocess, os
 
-read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
+doxygen_enabled = True
 
-if read_the_docs_build:
+if doxygen_enabled:
     if not os.path.exists('_build/html'):
         os.makedirs('_build/html')
     subprocess.call('doxygen', shell=True)
