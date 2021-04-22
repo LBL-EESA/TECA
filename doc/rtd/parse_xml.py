@@ -52,7 +52,7 @@ class TECA_Tree(object):
         self.rescue_every_family()
         self.generate_class_hierarchy()
 
-        self.generate_api_pages(output_dir='api')
+        self.generate_api_pages(output_dir='_build/rst')
 
     def get_first_dir(self, trunk_dict):
         for key, _ in trunk_dict.items():
@@ -111,7 +111,7 @@ class TECA_Tree(object):
             html += '</li>'
             return html
 
-        rst = '\nClass Hierarchy\n---------------\n\n.. raw:: html\n\n   '
+        rst = '\nClass Hierarchy\n~~~~~~~~~~~~~~~\n\n.. raw:: html\n\n   '
 
         html = '<ul class="treeView" id="class-treeView">'
         html += '<li><ul class="collapsibleList">'
@@ -190,7 +190,7 @@ class TECA_Tree(object):
                     trunk[directory] = defaultdict(dict, (('files', []),))
                 attach(others, trunk[directory], refid)
 
-        rst = '\nFile Hierarchy\n---------------\n\n.. raw:: html\n\n   '
+        rst = '\nFile Hierarchy\n~~~~~~~~~~~~~~~\n\n.. raw:: html\n\n   '
 
         html = '<ul class="treeView" id="file-treeView">'
         html += '<li><ul class="collapsibleList">'
@@ -273,7 +273,7 @@ class TECA_Tree(object):
             rst += '   ' + full_name + '<' + file.replace('.rst', '') + '>\n'
 
         with open(os.path.join(
-                    output_dir, 'generated_rtd_pages.rst'),
+                    output_dir, 'generated_rtd_pages.txt'),
                   'w') as f:
             f.write(rst)
 

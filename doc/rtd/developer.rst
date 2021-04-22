@@ -1,5 +1,25 @@
 Development
 ===========
+
+Online Source Code Documentation
+--------------------------------
+TECA's C++ sources are documented via Doxygen at the `TECA Doxygen site <doxygen/index.html>`_.
+
+Class Indices
+-------------
+
+.. tip::
+
+    The following tables contain a partial listing of TECA classes. The
+    `TECA Doxygen site <doxygen/index.html>`_ is a more complete reference.
+
+.. include:: _build/rst/generated_rtd_alg.rst
+.. include:: _build/rst/generated_rtd_io.rst
+.. include:: _build/rst/generated_rtd_core.rst
+.. include:: _build/rst/generated_rtd_data.rst
+.. include:: _build/rst/generated_rtd_file_hierarchy.rst
+.. include:: _build/rst/generated_rtd_class_hierarchy.rst
+
 Testing
 -------
 TECA comes with an extensive regression test suite which can be used to validate
@@ -92,4 +112,3 @@ to the title of the plot. Example output is shown in :numref:`prof_vis_10t_1r`.
 
    Visualization of TECA's run time profiler for the test_bayesian_ar_detect
    regression test, run with 1 MPI rank and 10 threads.
-
