@@ -12,7 +12,7 @@
 TECA is a collection of climate analysis algorithms geared toward extreme event detection and tracking implemented in a scalable parallel framework. The code has been successfully deployed and run at massive scales on current DOE supercomputers. TECA's core is written in modern C++ and exploits MPI + X parallelism where X is one of threads, OpenMP, or GPUs. The framework supports a number of parallel design patterns including distributed data parallelism and map-reduce. While modern C++ delivers the highest performance, Python bindings make the code approachable and easy to use.
 
 ### Documentation
-The [TECA User's Guide](https://teca.readthedocs.io/en/latest/) is the authorotative source for documentation on topics such as [installing TECA](https://teca.readthedocs.io/en/latest/installation.html), running TECA's [command line applications](https://teca.readthedocs.io/en/latest/applications.html), and [Python development](https://teca.readthedocs.io/en/latest/python.html).
+The [TECA User's Guide](https://teca.readthedocs.io/en/latest/) is the authorotative source for documentation on topics such as [installing TECA](https://teca.readthedocs.io/en/latest/installation.html), running TECA's [command line applications](https://teca.readthedocs.io/en/latest/applications.html), and [Python development](https://teca.readthedocs.io/en/latest/python.html). The TECA source code is documented on our [Doxygen site](https://teca.readthedocs.io/en/latest/doxygen/index.html).
 
 ### Tutorials
 The [TECA tutorials](https://sourceforge.net/p/teca/TECA_tutorials) subversion repository contains slides from previous tutorials.
