@@ -1,5 +1,6 @@
 # Doxyfile 1.8.20
 
+
 # This file describes the settings to be used by the documentation system
 # doxygen (www.doxygen.org) for a project.
 #
@@ -1749,7 +1750,7 @@ LATEX_MAKEINDEX_CMD    = makeindex
 # This tag requires that the tag GENERATE_LATEX is set to YES.
 
 COMPACT_LATEX          = NO
-00
+
 # The PAPER_TYPE tag can be used to set the paper type that is used by the
 # printer.
 # Possible values are: a4 (210 x 297 mm), letter (8.5 x 11 inches), legal (8.5 x

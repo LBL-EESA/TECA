@@ -8,11 +8,13 @@
 
     <tab type="user" url="https://github.com/LBL-EESA/TECA" title="Source code"/>
 
+    <!-- RTD uses too old a version for this
     <tab type="interfaces" visible="yes" title="">
       <tab type="interfacelist" visible="yes" title="" intro=""/>
       <tab type="interfaceindex" visible="$ALPHABETICAL_INDEX" title=""/>
       <tab type="interfacehierarchy" visible="yes" title="" intro=""/>
     </tab>
+    -->
 
     <tab type="classes" visible="yes" title="">
       <tab type="classlist" visible="yes" title="" intro=""/>
@@ -20,21 +22,27 @@
       <tab type="hierarchy" visible="no" title="" intro=""/>
       <tab type="classmembers" visible="no" title="" intro=""/>
     </tab>
+
+    <!-- RTD uses too old a version for this
     <tab type="structs" visible="yes" title="">
       <tab type="structlist" visible="yes" title="" intro=""/>
       <tab type="structindex" visible="no" title=""/>
     </tab>
+    -->
 
     <tab type="namespaces" visible="yes" title="">
       <tab type="namespacelist" visible="yes" title="" intro=""/>
       <tab type="namespacemembers" visible="no" title="" intro=""/>
     </tab>
 
+    <!-- RTD uses too old a version for this
     <tab type="exceptions" visible="no" title="">
       <tab type="exceptionlist" visible="yes" title="" intro=""/>
       <tab type="exceptionindex" visible="$ALPHABETICAL_INDEX" title=""/>
       <tab type="exceptionhierarchy" visible="yes" title="" intro=""/>
     </tab>
+    -->
+
     <tab type="files" visible="no" title="">
       <tab type="filelist" visible="no" title="" intro=""/>
       <tab type="globals" visible="no" title="" intro=""/>
@@ -107,13 +115,17 @@
     <memberdecl>
       <nestednamespaces visible="yes" title=""/>
       <constantgroups visible="yes" title=""/>
-      <interfaces visible="yes" title=""/>
+      <!-- RTD uses too old a version for these
+
+        <interfaces visible="yes" title=""/>
+        <structs visible="yes" title=""/>
+        <sequences title=""/>
+        <exceptions visible="yes" title=""/>
+        <dictionaries title=""/>
+
+      -->
       <classes visible="yes" title=""/>
-      <structs visible="yes" title=""/>
-      <exceptions visible="yes" title=""/>
       <typedefs title=""/>
-      <sequences title=""/>
-      <dictionaries title=""/>
       <enums title=""/>
       <functions title=""/>
       <variables title=""/>
@@ -123,8 +135,10 @@
     <memberdef>
       <inlineclasses title=""/>
       <typedefs title=""/>
-      <sequences title=""/>
-      <dictionaries title=""/>
+      <!-- RTD uses too old a version for these
+          <sequences title=""/>
+          <dictionaries title=""/>
+      -->
       <enums title=""/>
       <functions title=""/>
       <variables title=""/>
@@ -140,16 +154,20 @@
     <includedbygraph visible="$INCLUDED_BY_GRAPH"/>
     <sourcelink visible="yes"/>
     <memberdecl>
-      <interfaces visible="yes" title=""/>
+      <!-- RTD uses too old a version for these
+
+        <interfaces visible="yes" title=""/>
+        <structs visible="yes" title=""/>
+        <sequences title=""/>
+        <exceptions visible="yes" title=""/>
+        <dictionaries title=""/>
+
+      -->
       <classes visible="yes" title=""/>
-      <structs visible="yes" title=""/>
-      <exceptions visible="yes" title=""/>
       <namespaces visible="yes" title=""/>
       <constantgroups visible="yes" title=""/>
       <defines title=""/>
       <typedefs title=""/>
-      <sequences title=""/>
-      <dictionaries title=""/>
       <enums title=""/>
       <functions title=""/>
       <variables title=""/>
@@ -160,8 +178,10 @@
       <inlineclasses title=""/>
       <defines title=""/>
       <typedefs title=""/>
-      <sequences title=""/>
-      <dictionaries title=""/>
+      <!-- RTD uses too old a version for these
+          <sequences title=""/>
+          <dictionaries title=""/>
+      -->
       <enums title=""/>
       <functions title=""/>
       <variables title=""/>
@@ -181,8 +201,10 @@
       <classes visible="yes" title=""/>
       <defines title=""/>
       <typedefs title=""/>
-      <sequences title=""/>
-      <dictionaries title=""/>
+      <!-- RTD uses too old a version for these
+          <sequences title=""/>
+          <dictionaries title=""/>
+      -->
       <enums title=""/>
       <enumvalues title=""/>
       <functions title=""/>
@@ -202,8 +224,10 @@
       <inlineclasses title=""/>
       <defines title=""/>
       <typedefs title=""/>
-      <sequences title=""/>
-      <dictionaries title=""/>
+      <!-- RTD uses too old a version for these
+          <sequences title=""/>
+          <dictionaries title=""/>
+      -->
       <enums title=""/>
       <enumvalues title=""/>
       <functions title=""/>
