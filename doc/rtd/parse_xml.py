@@ -261,7 +261,7 @@ class TECA_Tree(object):
                 for _, refid, _ in value['files']:
                     node = self.nodes[refid]
 
-                    rst += '.. _' + node.name + ': ' + node.refid + '.html\n'
+                    rst += '.. _' + node.name + ': doxygen/' + node.refid + '.html\n'
 
                 filename = 'generated_rtd_%s.rst' % key
                 with open(os.path.join(output_dir, filename), 'w') as f:

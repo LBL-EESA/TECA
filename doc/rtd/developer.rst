@@ -10,7 +10,7 @@ Class Indices
 
 .. tip::
 
-    The following tables contain a partial listing of TECA classes. The
+    The following tables contain a listing of some commonly used TECA classes. The
     `TECA Doxygen site <doxygen/index.html>`_ is a more complete reference.
 
 .. include:: _build/rst/generated_rtd_alg.rst
