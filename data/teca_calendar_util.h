@@ -1,6 +1,8 @@
 #ifndef teca_calendar_h
 #define teca_calendar_h
 
+/// @file
+
 #include "teca_variant_array_fwd.h"
 #include "teca_metadata.h"
 
@@ -9,6 +11,7 @@
 #include <cstring>
 #include <memory>
 
+/// Codes dealing with calendaring
 namespace teca_calendar_util
 {
 

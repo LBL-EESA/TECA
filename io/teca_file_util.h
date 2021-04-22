@@ -1,6 +1,8 @@
 #ifndef teca_file_util_h
 #define teca_file_util_h
 
+/// @file
+
 #include <vector>
 #include <deque>
 #include <string>
@@ -17,82 +19,89 @@ class teca_binary_stream;
   #define PATH_SEP "\\"
 #endif
 
+/// Codes dealing with low level file system API's
 namespace teca_file_util
 {
-// read the file into a stream. if header is not null the call will fail if the
-// given string is not found. return zero upon success. The verbose flag
-// indicates whether or not an error is reported if opening the file fails. All
-// other errors are always reported.
+/** read the file into a stream. if header is not null the call will fail if the
+ * given string is not found. return zero upon success. The verbose flag
+ * indicates whether or not an error is reported if opening the file fails. All
+ * other errors are always reported.
+ */
 int read_stream(const char *file_name, const char *header,
     teca_binary_stream &stream, bool verbose=true);
 
-// write the stream to the file. the passed in flags control file access, a
-// reasonable value is S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH. if header is not null
-// the given string is prepended to the file. return zero upon success. The
-// verbose flag indicates whether or not an error is reported if creating the
-// file fails. All other errors are reported.
+/** write the stream to the file. the passed in flags control file access, a
+ * reasonable value is S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH. if header is not null
+ * the given string is prepended to the file. return zero upon success. The
+ * verbose flag indicates whether or not an error is reported if creating the
+ * file fails. All other errors are reported.
+ */
 int write_stream(const char *file_name, int flags, const char *header,
     const teca_binary_stream &stream, bool verbose=true);
 
-// replace %t% with the given value
+/// replace %t% with the given value
 void replace_timestep(std::string &file_name, unsigned long time_step, int width = 6);
 
-// replace %t% with the time t in calendar with units in the strftime format
+/// replace %t% with the time t in calendar with units in the strftime format
 int replace_time(std::string &file_name, double t,
     const std::string &calendar, const std::string &units,
     const std::string &format);
 
-// replace %e% with the given string
+/// replace %e% with the given string
 void replace_extension(std::string &file_name, const std::string &ext);
 
-// replace %s% with the given string
+/// replace %s% with the given string
 void replace_identifier(std::string &file_name, const std::string &id);
 
-// return string converted to lower case
+/// return string converted to lower case
 void to_lower(std::string &in);
 
-// return 0 if the file does not exist
+/// return 0 if the file does not exist
 int file_exists(const char *path);
 
-// return 0 if the file/directory is not writeable
+/// return 0 if the file/directory is not writeable
 int file_writable(const char *path);
 
-// Returns the path not including the file name and not
-// including the final PATH_SEP. If PATH_SEP isn't found
-// then ".PATH_SEP" is returned.
+/** Returns the path not including the file name and not including the final
+ * PATH_SEP. If PATH_SEP isn't found then ".PATH_SEP" is returned.
+ */
 std::string path(const std::string &filename);
 
-// Returns the file name not including the extension (ie what ever is after
-// the last ".". If there is no "." then the filename is returned unmodified.
+/** Returns the file name not including the extension (ie what ever is after
+ * the last ".". If there is no "." then the filename is returned unmodified.
+ */
 std::string base_filename(const std::string &filename);
 
-// Returns the file name from the given path. If PATH_SEP isn't found
-// then the filename is returned unmodified.
+/** Returns the file name from the given path. If PATH_SEP isn't found
+ * then the filename is returned unmodified.
+ */
 std::string filename(const std::string &filename);
 
-// Returns the extension from the given filename.
+/// Returns the extension from the given filename.
 std::string extension(const std::string &filename);
 
-// read the lines of the ascii file into a vector
+/// read the lines of the ascii file into a vector
 size_t load_lines(const char *filename, std::vector<std::string> &lines);
 
-// read the file into a string
+/// read the file into a string
 size_t load_text(const std::string &filename, std::string &text);
 
-// write the string to the named file
+/// write the string to the named file
 int write_text(std::string &filename, std::string &text);
 
+/// Search and replace with in a string of text.
 int search_and_replace(
     const std::string &search_for,
     const std::string &replace_with,
     std::string &in_text);
 
+/// Locate files in path that match a regular expression.
 int locate_files(
     const std::string &path,
     const std::string &re,
     std::vector<std::string> &file_list);
 
-//*****************************************************************************
+/// Load a binary file into memory
 template<typename T>
 size_t load_bin(const char *filename, size_t dlen, T *buffer)
 {
@@ -125,9 +134,7 @@ size_t load_bin(const char *filename, size_t dlen, T *buffer)
   return dlen;
 }
 
-/**
-*/
-// ****************************************************************************
+/// extract a name-value pair from the given set of lines.
 template<typename T>
 int name_value(std::vector<std::string> &lines, std::string name, T &value)
 {
@@ -146,14 +153,11 @@ int name_value(std::vector<std::string> &lines, std::string name, T &value)
   return 0;
 }
 
-/**
-Parse a string for a "key", starting at offset "at" then
-advance past the key and attempt to convert what follows
-in to a value of type "T". If the key isn't found, then
-npos is returned otherwise the position imediately following
-the key is returned.
+/** Parse a string for a "key", starting at offset "at" then advance past the
+ * key and attempt to convert what follows in to a value of type "T". If the
+ * key isn't found, then npos is returned otherwise the position imediately
+ * following the key is returned.
 */
-// ****************************************************************************
 template <typename T>
 size_t parse_value(std::string &in,size_t at, std::string key, T &value)
 {
@@ -177,8 +181,9 @@ size_t parse_value(std::string &in,size_t at, std::string key, T &value)
   return p;
 }
 
-// a stack of lines. lines can be popped as they are processed
-// and the current line number is recorded.
+/** a stack of lines. lines can be popped as they are processed and the current
+ * line number is recorded.
+ */
 struct line_buffer
 {
     line_buffer() : m_buffer(nullptr), m_line_number(0) {}

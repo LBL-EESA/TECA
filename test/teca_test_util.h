@@ -6,8 +6,6 @@
 #include "teca_table.h"
 #include "teca_mpi.h"
 
-
-
 namespace teca_test_util
 {
 

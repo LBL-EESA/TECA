@@ -1,14 +1,18 @@
 #ifndef teca_py_object_h
 #define teca_py_object_h
 
+/// @file
+
 #include "teca_common.h"
 #include "teca_variant_array.h"
 #include "teca_py_string.h"
 #include "teca_py_integer.h"
 #include <Python.h>
 
+/// Codes dealing with Python objects
 namespace teca_py_object
 {
+/// @cond
 /// teca_py_object::cpp_tt, A traits class for working with PyObject's
 /**
 if know the Python type tag then this class gives you:
@@ -162,7 +166,9 @@ template <> struct py_tt<teca_metadata>
 #define TECA_PY_OBJECT_DISPATCH_MD(PY_OBJ, CODE)                \
     TECA_PY_OBJECT_DISPATCH_CASE(teca_metadata, PY_OBJ, CODE)
 
-// ****************************************************************************
+/// @cond
+
+/// Creates a new variant array initializede with a copy of the object.
 p_teca_variant_array new_variant_array(PyObject *obj)
 {
     TECA_PY_OBJECT_DISPATCH(obj,
@@ -178,7 +184,7 @@ p_teca_variant_array new_variant_array(PyObject *obj)
     return nullptr;
 }
 
-// ****************************************************************************
+/// Copies values from the object into the variant array.
 bool copy(teca_variant_array *varr, PyObject *obj)
 {
     TEMPLATE_DISPATCH(teca_variant_array_impl, varr,
@@ -211,7 +217,7 @@ bool copy(teca_variant_array *varr, PyObject *obj)
     return false;
 }
 
-// ****************************************************************************
+/// Sets the i'th element of the variant array to the value of the object.
 bool set(teca_variant_array *varr, unsigned long i, PyObject *obj)
 {
     TEMPLATE_DISPATCH(teca_variant_array_impl, varr,
@@ -241,7 +247,7 @@ bool set(teca_variant_array *varr, unsigned long i, PyObject *obj)
     return false;
 }
 
-// ****************************************************************************
+/// Appends values from the object at the end of the variant array.
 bool append(teca_variant_array *varr, PyObject *obj)
 {
     TEMPLATE_DISPATCH(teca_variant_array_impl, varr,
@@ -270,7 +276,7 @@ bool append(teca_variant_array *varr, PyObject *obj)
     return false;
 }
 
-// container that keeps a reference to a PyObject
+/// A container that keeps a reference to a PyObject
 class teca_py_object_ptr
 {
 public:
@@ -321,6 +327,7 @@ private:
     PyObject *m_obj;
 };
 
+/// A container that keeps a reference to a callable object.
 class teca_py_callable : public teca_py_object_ptr
 {
 public:

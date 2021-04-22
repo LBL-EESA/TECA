@@ -1,6 +1,8 @@
 #ifndef teca_netcdf_util_h
 #define teca_netcdf_util_h
 
+/// @file
+
 #include "teca_config.h"
 #include "teca_mpi.h"
 #include "teca_metadata.h"
@@ -14,9 +16,7 @@
 #include <netcdf_par.h>
 #endif
 
-// @cond
-
-// macro to help with netcdf data types
+/// macro to help with netcdf floating point data types
 #define NC_DISPATCH_FP(tc_, code_)                          \
     switch (tc_)                                            \
     {                                                       \
@@ -27,6 +27,7 @@
             << " is not a floating point type")             \
     }
 
+/// macro to help with netcdf data types
 #define NC_DISPATCH(tc_, code_)                             \
     switch (tc_)                                            \
     {                                                       \
@@ -46,6 +47,7 @@
             << " is not supported")                         \
     }
 
+/// macro that executes code when the type code is matched.
 #define NC_DISPATCH_CASE(cc_, tt_, code_)   \
     case cc_:                               \
     {                                       \
@@ -54,19 +56,23 @@
         break;                              \
     }
 
+/// Codes dealing with NetCDF I/O calls
 namespace teca_netcdf_util
 {
 
-// traits class mapping to/from netcdf
+/// A traits class mapping to netcdf from C++
 template<typename num_t> class netcdf_tt {};
+
+/// A traits class mapping to C++ from netcdf
 template<int nc_enum> class cpp_tt {};
 
-#define DECLARE_NETCDF_TT(cpp_t_, nc_c_)            \
-template <> class netcdf_tt<cpp_t_>                 \
-{                                                   \
-public:                                             \
-    enum { type_code = nc_c_ };                     \
-    static const char *name() { return #nc_c_; }    \
+#define DECLARE_NETCDF_TT(cpp_t_, nc_c_)                                 \
+/** A traits class mapping to NetCDF from C++, specialized for cpp_t_ */ \
+template <> class netcdf_tt<cpp_t_>                                      \
+{                                                                        \
+public:                                                                  \
+    enum { type_code = nc_c_ };                                          \
+    static const char *name() { return #nc_c_; }                         \
 };
 DECLARE_NETCDF_TT(char, NC_BYTE)
 DECLARE_NETCDF_TT(unsigned char, NC_UBYTE)
@@ -82,12 +88,13 @@ DECLARE_NETCDF_TT(unsigned long long, NC_UINT64)
 DECLARE_NETCDF_TT(float, NC_FLOAT)
 DECLARE_NETCDF_TT(double, NC_DOUBLE)
 
-#define DECLARE_CPP_TT(cpp_t_, nc_c_)               \
-template <> class cpp_tt<nc_c_>                     \
-{                                                   \
-public:                                             \
-    using type = cpp_t_;                            \
-    static const char *name() { return #cpp_t_; }   \
+#define DECLARE_CPP_TT(cpp_t_, nc_c_)                                    \
+/** A traits class mapping to C++ from NetCDF, specialized for cpp_t_ */ \
+template <> class cpp_tt<nc_c_>                                          \
+{                                                                        \
+public:                                                                  \
+    using type = cpp_t_;                                                 \
+    static const char *name() { return #cpp_t_; }                        \
 };
 DECLARE_CPP_TT(char, NC_BYTE)
 DECLARE_CPP_TT(unsigned char, NC_UBYTE)
@@ -103,23 +110,19 @@ DECLARE_CPP_TT(unsigned long long, NC_UINT64)
 DECLARE_CPP_TT(float, NC_FLOAT)
 DECLARE_CPP_TT(double, NC_DOUBLE)
 
-// @endcond
-
-/**
- * To deal with fortran fixed length strings
- * which are not properly nulll terminated.
+/** To deal with fortran fixed length strings which are not properly nulll
+ * terminated.
  */
 void crtrim(char *s, long n);
 
-/**
- * NetCDF 3 is not threadsafe. The HDF5 C-API can be compiled to be threadsafe,
- * but it is usually not. NetCDF uses HDF5-HL API to access HDF5, but HDF5-HL
- * API is not threadsafe without the --enable-unsupported flag. For all those
- * reasons it's best for the time being to protect all NetCDF I/O.
+/** NetCDF 3 is not threadsafe. The HDF5 C-API can be compiled to be
+ * threadsafe, but it is usually not. NetCDF uses HDF5-HL API to access HDF5,
+ * but HDF5-HL API is not threadsafe without the --enable-unsupported flag. For
+ * all those reasons it's best for the time being to protect all NetCDF I/O.
  */
 std::mutex &get_netcdf_mutex();
 
-/// RAII for managing NETCDF files.
+/// A RAII class for managing NETCDF files. The file is kept open while the object exists.
 class netcdf_handle
 {
 public:

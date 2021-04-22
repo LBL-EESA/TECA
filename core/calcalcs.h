@@ -22,10 +22,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef calcalcs_h
 #define calcalcs_h
 
+/// @file
+
 #define CALCALCS_VERSION_NUMBER	1.0
 
+
+/// A threadsafe port of the calcalcs library.
 namespace calcalcs
 {
+
+/// @cond
 
 struct cccalendar {
 	int	sig;
@@ -212,24 +218,22 @@ char *ccs_err_str(int ccs_errno);
 #define UT_ENOINIT -10
 #define UT_EINVALID -11
 
-/*--------------------------------------------------------------------------
- * high level thread safe initialize the library and select a calendar
+/// @endcond
+
+/** high level thread safe initialize the library and select a calendar
  * to use in subsequent calls.
  * return 0 upon success
  */
 int set_current_calendar( const char *calendar, const char *units );
 
-/*--------------------------------------------------------------------------
- * is_leap_year: determine if the specified year is a leap year in
- * 	the specified calendar. this wraps ccs_isleap such that initialization
- * 	is automatically handled and optimizes for repeat calls. return 0 
- * 	if successful.
+/** Determine if the specified year is a leap year in the specified calendar.
+ * this wraps ccs_isleap such that initialization is automatically handled and
+ * optimizes for repeat calls. @returns 0 if successful.
  */
 int is_leap_year( const char *calendar, const char *units,
                   int year, int &leap );
 
-/*--------------------------------------------------------------------------
- * days_in_month: returns the days per month for the given year/month.
+/** Returns the days per month for the given year/month.
  * Note that during the month that transitions from a Julian to a
  * Gregorian calendar, this might be a strange number of days. this
  * wraps ccs_dpm such that initialization is automatically handled and
@@ -238,8 +242,7 @@ int is_leap_year( const char *calendar, const char *units,
 int days_in_month( const char *calendar, const char *units,
                    int year, int month, int &dpm );
 
-/*--------------------------------------------------------------------------
- * date : given a floating point offset in the given calendar return
+/** Given a floating point offset in the given calendar return
  * year, month, day, hour, minute, seconds. returns 0 upon success.
  */
 int date( double val, int *year, int *month, int *day, int *hour,
@@ -247,8 +250,7 @@ int date( double val, int *year, int *month, int *day, int *hour,
           const char *calendar_name );
 
 
-/*--------------------------------------------------------------------------
- * given a year, month, day, hour, minute, second and calendar find
+/** given a year, month, day, hour, minute, second and calendar find
  * the floating point offset. returns 0 upon success.
  */
 int coordinate( int year, int month, int day, int hour, int minute,

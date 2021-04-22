@@ -11,40 +11,41 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_arakawa_c_grid)
 
-/// Data on an Arkawa C Grid.
+/// A representation of mesh based data on an Arkawa C Grid.
 /**
- * The C grid is defined by combinations of horizontal and vertical
- * centerings.
+ * The Arakawa C grid is defined by various combinations of horizontal and
+ * vertical centerings.
  *
  * The horizontal centerings occur at so called mass or M points, U points,
  * and V points. These centerings are depicted in the following diagram:
  *
- *  *-------V-------*
- *  |               |
- *  |               |
- *  |               |
- *  U       M       U
- *  |               |
- *  |               |
- *  |               |
- *  *-------V-------*
+ * >  *-------V-------*
+ * >  |               |
+ * >  |               |
+ * >  |               |
+ * >  U       M       U
+ * >  |               |
+ * >  |               |
+ * >  |               |
+ * >  *-------V-------*
  *
  * The horizontal coordinates are stored in 2d arrays. Assuming the mass
  * coordinate arrays have dimension [nx, ny], then the U coordinate arrays
  * have dimension [nx + 1, ny], and the V coordinate arrays have dimension
  * [nx, ny + 1].
  *
- * The vertical centerings occur at so called mass and w points
+ * The vertical centerings occur at so called M points and W points. These
+ * centerings are depicted in the following diagram.
  *
- *  *-------W-------*
- *  |               |
- *  |               |
- *  |               |
- *  |       M       |
- *  |               |
- *  |               |
- *  |               |
- *  *-------W-------*
+ * >  *-------W-------*
+ * >  |               |
+ * >  |               |
+ * >  |               |
+ * >  |       M       |
+ * >  |               |
+ * >  |               |
+ * >  |               |
+ * >  *-------W-------*
  *
  * The vertical coordinates are stored in 1d arrays. Assuming the M vertical
  * coordinate has the dimension [nz], then the W coordinate has dimension

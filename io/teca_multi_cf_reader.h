@@ -122,7 +122,7 @@ public:
     int get_periodic_in_x() const;
     ///@}
 
-    /** @anchor x_axis_variable
+    /** @anchor x_axis_variable_
      * @name x_axis_variable
      * Set the variable to use for the mesh x-axis. If set this will override
      * the corresponding setting from the MCF file for all internal readers.
@@ -132,7 +132,7 @@ public:
     std::string get_x_axis_variable() const;
     ///@}
 
-    /** @anchor y_axis_variable
+    /** @anchor y_axis_variable_
      * @name y_axis_variable
      * Set the variable to use for the mesh y-axis. If set this will override
      * the corresponding setting from the MCF file for all internal readers.
@@ -142,7 +142,7 @@ public:
     std::string get_y_axis_variable() const;
     ///@}
 
-    /** @anchor z_axis_variable
+    /** @anchor z_axis_variable_
      * @name z_axis_variable
      * Set the variable to use for the mesh z-axis. Leaving the z-axis empty
      * results in a 2D mesh. You must set this to the correct vertical
@@ -154,7 +154,7 @@ public:
     std::string get_z_axis_variable() const;
     ///@}
 
-    /** @anchor t_axis_variable
+    /** @anchor t_axis_variable_
      * @name t_axis_variable
      * Set the variable to use for the mesh t-axis. Default "time". Setting
      * this to an empty string disables the time axis. If set this will

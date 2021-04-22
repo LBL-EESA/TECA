@@ -1,6 +1,8 @@
 #ifndef teca_parser_h
 #define teca_parser_h
 
+/// @file
+
 #include "teca_common.h"
 
 #include <vector>
@@ -42,14 +44,14 @@
          << "\" requires " << _nreq << " operands, given "              \
          << _ngive << ". ", _expr, _pos)
 
+/// Codes dealing with expression parsing.
 namespace teca_parser
 {
-/**
-class that recognizes and extracts tokens during parsing.
-given a pointer (first argument) the methods return the
-number of chars in the token, or 0 when the pointer doesn't
-point to a valid token, and copies the token into the buffer
-(second argument).
+/** Recognizes and extracts tokens during parsing.
+ * given a pointer (first argument) the methods return the
+ * number of chars in the token, or 0 when the pointer doesn't
+ * point to a valid token, and copies the token into the buffer
+ * (second argument).
 */
 class tokenizer
 {
@@ -64,13 +66,12 @@ public:
     static unsigned int get_operator_precedence(char *op);
 };
 
-/**
-convert infix expression to postfix. returns the postfix form
-of the expression in a string allocated with malloc. caller to
-free the string. return nullptr if there is an error.
-
-template types implement detection of classes of syntactical
-tokens. groups, constants, variables, and operators.
+/** Convert infix expression to postfix. returns the postfix form
+ * of the expression in a string allocated with malloc. caller to
+ * free the string. return nullptr if there is an error.
+ *
+ * template types implement detection of classes of syntactical
+ * tokens. groups, constants, variables, and operators.
 */
 template<typename tokenizer_t=teca_parser::tokenizer>
 char *infix_to_postfix(const char *iexpr, std::set<std::string> *variables)
@@ -191,15 +192,14 @@ char *infix_to_postfix(const char *iexpr, std::set<std::string> *variables)
     return rpnexpr;
 }
 
-/**
-evaluate a postfix expression. returns non zero if an error occurred.
-the result of the evaluted expression is returned in iexpr_result.
-
-template types define the intermediate types used in the calculation.
-arg_t would likely be the const form of work_t. resolvers for constants,
-variables, and operators are passed. The purpose of the resolvers is
-to identify token class and implement variable lookup, and operator
-evaluation.
+/** evaluate a postfix expression. returns non zero if an error occurred.
+ * the result of the evaluated expression is returned in iexpr_result.
+ *
+ * template types define the intermediate types used in the calculation.
+ * arg_t would likely be the const form of work_t. resolvers for constants,
+ * variables, and operators are passed. The purpose of the resolvers is
+ * to identify token class and implement variable lookup, and operator
+ * evaluation.
 */
 template<typename work_t, typename arg_t, typename operand_resolver_t,
 typename operator_resolver_t, typename tokenizer_t=teca_parser::tokenizer>

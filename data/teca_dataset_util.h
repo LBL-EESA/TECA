@@ -10,6 +10,7 @@
 #include "teca_table.h"
 #include "teca_database.h"
 
+/// @cond
 template <typename dataset_t>
 struct teca_dataset_tt {};
 
@@ -41,7 +42,22 @@ DECLARE_DATASET_TT(teca_curvilinear_mesh, 6)
     case _code:                                 \
         return teca_dataset_new<_code>::New();  \
         break;
+/// @endcond
 
+
+/// Constructs a new instance of teca_dataset from the provided type code.
+/** The type codes are:
+ *
+ * | code | teca_dataset |
+ * | ---- | ------------ |
+ * | 1    | teca_table |
+ * | 2    | teca_database |
+ * | 3    | teca_cartesian_mesh |
+ * | 4    | teca_uniform_cartesian_mesh |
+ * | 5    | teca_arakawa_c_grid |
+ * | 6    | teca_curvilinear_mesh |
+ *
+ */
 struct teca_dataset_factory
 {
     static p_teca_dataset New(int code)

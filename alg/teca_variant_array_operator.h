@@ -1,11 +1,15 @@
 #ifndef teca_variant_array_operator
 #define teca_variant_array_operator
 
+/// @file
+
 #include "teca_variant_array.h"
 #include "teca_type_select.h"
 
+/// Codes dealing with run time specified operations on teca_variant_arrays
 namespace teca_variant_array_operator
 {
+/// @cond
 namespace internal
 {
 // --------------------------------------------------------------------------
@@ -64,6 +68,7 @@ p_teca_variant_array apply(unsigned long n,
     return out;
 }
 };
+/// @endcond
 
 // --------------------------------------------------------------------------
 template <typename operator_t>

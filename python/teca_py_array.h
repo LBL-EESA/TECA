@@ -1,6 +1,8 @@
 #ifndef teca_py_array_h
 #define teca_py_array_h
 
+/// @file
+
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/arrayobject.h>
 #include <Python.h>
@@ -10,8 +12,10 @@
 #include "teca_common.h"
 #include "teca_variant_array.h"
 
+/// Codes for interfacing with numpy arrays
 namespace teca_py_array
 {
+/// @cond
 /// cpp_tt -- traits class for working with PyArrayObject's
 /**
 cpp_tt::type -- get the C++ type given a numpy enum.
@@ -70,7 +74,6 @@ teca_py_array_numpy_tt_declare(NPY_UINT64, unsigned long long)
 teca_py_array_numpy_tt_declare(NPY_FLOAT, float)
 teca_py_array_numpy_tt_declare(NPY_DOUBLE, double)
 
-
 // CPP_T - array type to match
 // OBJ - PyArrayObject* instance
 // CODE - code to execute on match
@@ -80,7 +83,16 @@ teca_py_array_numpy_tt_declare(NPY_DOUBLE, double)
         using AT = CPP_T;                               \
         CODE                                            \
     }
+/// @endcond
 
+
+/** @brief A dispatch macro that executes the code in CODE based
+ *  on the run time determined type of OBJ.
+ *
+ *  @details The following alias is available for determining the actual
+ *  type within the CODE section: `using AT = CPP_T;`
+ *
+ */
 #define TECA_PY_ARRAY_DISPATCH(OBJ, CODE)                       \
     TECA_PY_ARRAY_DISPATCH_CASE(float, OBJ, CODE)               \
     TECA_PY_ARRAY_DISPATCH_CASE(double, OBJ, CODE)              \
@@ -96,7 +108,7 @@ teca_py_array_numpy_tt_declare(NPY_DOUBLE, double)
     TECA_PY_ARRAY_DISPATCH_CASE(unsigned short, OBJ, CODE)
 
 
-
+/// @cond
 /// numpy_scalar_tt - traits class for working with PyArrayObject's
 /**
 ::code - get the numpy type enum given a C++ type.
@@ -163,7 +175,7 @@ teca_py_array_numpy_scalar_tt_declare(NPY_DOUBLE, Float64, double)
     TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(short, OBJ, CODE)                    \
     else TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(unsigned short, OBJ, CODE)
 
-#if 0 
+#if 0
 #define TECA_PY_ARRAY_SCALAR_DISPATCH_I32(OBJ, CODE)                        \
     TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(int, OBJ, CODE)                      \
     else TECA_PY_ARRAY_SCALAR_DISPATCH_CASE(unsigned int, OBJ, CODE)        \
@@ -194,9 +206,10 @@ teca_py_array_numpy_scalar_tt_declare(NPY_DOUBLE, Float64, double)
 #define TECA_PY_ARRAY_SCALAR_DISPATCH(OBJ, CODE)                            \
     TECA_PY_ARRAY_SCALAR_DISPATCH_FP(OBJ, CODE)                             \
     else TECA_PY_ARRAY_SCALAR_DISPATCH_I(OBJ, CODE)
+/// @endcond
 
 
-// ****************************************************************************
+/// Append values from the object to the variant array.
 bool append(teca_variant_array *varr, PyObject *obj)
 {
     // numpy ndarray
@@ -253,7 +266,7 @@ bool append(teca_variant_array *varr, PyObject *obj)
     return false;
 }
 
-// ****************************************************************************
+/// Copy values from the object into variant array.
 bool copy(teca_variant_array *varr, PyObject *obj)
 {
     if (PyArray_Check(obj) || PyArray_CheckScalar(obj))
@@ -267,7 +280,7 @@ bool copy(teca_variant_array *varr, PyObject *obj)
     return false;
 }
 
-// ****************************************************************************
+/// Set i'th element of the variant array to the value of the object.
 bool set(teca_variant_array *varr, unsigned long i, PyObject *obj)
 {
     // numpy scalar
@@ -284,8 +297,7 @@ bool set(teca_variant_array *varr, unsigned long i, PyObject *obj)
     return false;
 }
 
-
-// ****************************************************************************
+/// Construct a new variant array and initialize it with a copy of the object.
 p_teca_variant_array new_variant_array(PyObject *obj)
 {
     // not an array
@@ -320,7 +332,7 @@ p_teca_variant_array new_variant_array(PyObject *obj)
     return nullptr;
 }
 
-// ****************************************************************************
+/// Construct a new numpy array initialized with the contents of the variant array.
 template <typename NT>
 PyArrayObject *new_object(teca_variant_array_impl<NT> *varrt)
 {
@@ -346,7 +358,7 @@ PyArrayObject *new_object(teca_variant_array_impl<NT> *varrt)
     return arr;
 }
 
-// ****************************************************************************
+/// Construct a new numpy array initialized with the contents of the variant array.
 PyArrayObject *new_object(teca_variant_array *varr)
 {
     TEMPLATE_DISPATCH(teca_variant_array_impl, varr,

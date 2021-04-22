@@ -1,9 +1,12 @@
 #ifndef teca_geometry_h
 #define teca_geometry_h
 
+/// @file
+
+/// Codes dealing with computational geometry
 namespace teca_geometry
 {
-// tests if a point is Left|On|Right of an infinite line.
+/// tests if a point is Left|On|Right of an infinite line.
 template<typename n_t>
 bool left(n_t e0x, n_t e0y, n_t e1x, n_t e1y, n_t px, n_t py)
 {
@@ -14,8 +17,9 @@ bool left(n_t e0x, n_t e0y, n_t e1x, n_t e1y, n_t px, n_t py)
     ((e1x - e0x)*(py - e0y) - (px -  e0x)*(e1y - e0y)) >= n_t();
 }
 
-// winding number test for a point in a polygon
-// winding number is 0 when the point is outside.
+/** Winding number test for a point in a polygon. The winding number is 0 when
+ * the point is outside.
+ */
 template<typename n_t>
 bool point_in_poly(n_t px, n_t py,
     n_t *vx, n_t *vy, unsigned long nppts)

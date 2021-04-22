@@ -1,12 +1,15 @@
 #ifndef teca_py_iterator_h
 #define teca_py_iterator_h
 
+/// @file
+
 #include "teca_common.h"
 #include "teca_variant_array.h"
 #include "teca_py_object.h"
 #include "teca_py_string.h"
 #include <Python.h>
 
+/// @cond
 // this macro is used to build up dispatchers
 // PYT - type tag idnetifying the PyObject
 // ITER - PySequence* instance
@@ -36,12 +39,13 @@
 // this one just strings
 #define TECA_PY_ITERATOR_DISPATCH_STR(ITER, CODE)   \
     TECA_PY_ITERATOR_DISPATCH_CASE(char*, ITER, CODE)
+/// @endcode
 
-
+/// Codes for interfacing to Python iterators
 namespace teca_py_iterator
 {
 
-// ****************************************************************************
+/// Returns true if the object is iterable.
 bool is_iterable(PyObject *obj)
 {
     PyObject *iter = nullptr;
@@ -55,7 +59,7 @@ bool is_iterable(PyObject *obj)
 }
 
 
-// ****************************************************************************
+/// Returns true if all of the elements of the container match the templated type.
 template <typename py_t>
 bool is_type(PyObject *obj)
 {
@@ -83,7 +87,7 @@ bool is_type(PyObject *obj)
     return true;
 }
 
-// ****************************************************************************
+/// Appends values from the object to the variant array
 bool append(teca_variant_array *va, PyObject *obj)
 {
     // not a iterator
@@ -127,7 +131,7 @@ bool append(teca_variant_array *va, PyObject *obj)
     return false;
 }
 
-// ****************************************************************************
+/// Copies values from the object into the variant array
 bool copy(teca_variant_array *va, PyObject *obj)
 {
     // not a iterator
@@ -173,7 +177,7 @@ bool copy(teca_variant_array *va, PyObject *obj)
     return false;
 }
 
-// ****************************************************************************
+/// Cretaes a new variant array initialized with a copy of the object.
 p_teca_variant_array new_variant_array(PyObject *obj)
 {
     // not a iterator
