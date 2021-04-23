@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os
+import sys, os, traceback
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 
@@ -27,8 +27,8 @@ class TECA_Tree(object):
         self.meta_info = {
             'alg': {
                 'full_name': 'Algorithms',
-                'description': 'TECA\'s suite of algorithms that can \
-                                be inserted in functional pipelines'
+                'description': 'TECA\'s suite of algorithms that can ' \
+                               'be inserted in functional pipelines'
             },
             'core': {
                 'full_name': 'Core',
@@ -40,8 +40,8 @@ class TECA_Tree(object):
             },
             'io': {
                 'full_name': 'I/O',
-                'description': 'TECA\'s I/O components to read datasets \
-                                efficiently'
+                'description': 'TECA\'s I/O components to read datasets ' \
+                               'efficiently'
             }
         }
 
@@ -218,6 +218,7 @@ class TECA_Tree(object):
             f.write(rst)
 
     def generate_api_pages(self, output_dir='_build/rst'):
+
         first_dir = 'TECA'
         trunk = self.directory_structure[first_dir]
 
@@ -227,45 +228,52 @@ class TECA_Tree(object):
         generated_files = []
 
         for key, value in trunk.items():
-            if key == 'files':
-                continue
 
-            page_name = self.meta_info[key]['full_name']
+            try:
+                if key == 'files':
+                    continue
 
-            rst = ''
-            rst += '\n.. _' + page_name + ':\n'
-            rst += '\n' + page_name + '\n'
-            rst += '-' * len(page_name) + '\n\n'
-            rst += self.meta_info[key]['description'] + '. '
-            rst += '(For more details, click on the class name) \n\n'
+                page_name = self.meta_info[key]['full_name']
 
-            rst += '.. csv-table:: TECA Classes\n'
-            rst += '   :header: "Class", "Description"\n'
-            rst += '   :widths: 5, 30\n\n'
+                rst = ''
+                rst += '\n.. _' + page_name + ':\n'
+                rst += '\n' + page_name + '\n'
+                rst += '~' * len(page_name) + '\n\n'
+                rst += self.meta_info[key]['description'] + '. '
+                rst += '(For more details, click on the class name) \n\n'
 
-            for _, refid, _ in value['files']:
-                node = self.nodes[refid]
+                rst += '.. csv-table:: TECA Classes\n'
+                rst += '   :header: "Class", "Description"\n'
+                rst += '   :widths: 5, 30\n\n'
 
-                rst += '   ' + node.name + '_ , '
+                for _, refid, _ in value['files']:
+                    node = self.nodes[refid]
 
-                if (node.brief_description and
-                        not node.brief_description.isspace()):
-                    rst += node.brief_description.strip()
+                    rst += '   ' + node.name + '_ , '
+
+                    if (node.brief_description and
+                            not node.brief_description.isspace()):
+                        rst += node.brief_description.strip()
+
+                    rst += '\n'
 
                 rst += '\n'
+                for _, refid, _ in value['files']:
+                    node = self.nodes[refid]
 
-            rst += '\n'
-            for _, refid, _ in value['files']:
-                node = self.nodes[refid]
+                    rst += '.. _' + node.name + ': ' + node.refid + '.html\n'
 
-                rst += '.. _' + node.name + ': ' + node.refid + '.html\n'
+                filename = 'generated_rtd_%s.rst' % key
+                with open(os.path.join(output_dir, filename), 'w') as f:
+                    f.write(rst)
 
-            filename = 'generated_rtd_%s.rst' % key
-            with open(os.path.join(output_dir, filename), 'w') as f:
-                f.write(rst)
+                generated_files.append(
+                    (filename, self.meta_info[key]['full_name']))
 
-            generated_files.append(
-                (filename, self.meta_info[key]['full_name']))
+            except Exception:
+                sys.stderr.write('Exception caught in parse_xml.py !\n')
+                traceback.print_exc()
+                sys.stderr.write('Exception ignored !\n')
 
         rst = '\n\n.. toctree::\n   :maxdepth: 1\n   :caption: Contents:\n\n'
 
@@ -343,9 +351,14 @@ class TECA_Tree(object):
             children = []
             for child_element in self.node_xml_root.findall(
                     'derivedcompoundref'):
-                if 'refid' in child_element.attrib:
-                    child = nodes[child_element.get('refid')]
-                    children.append(child)
+                try:
+                    if 'refid' in child_element.attrib:
+                        child = nodes[child_element.get('refid')]
+                        children.append(child)
+                except Exception:
+                   sys.stderr.write('Exception caught in parse_xml.py !\n')
+                   traceback.print_exc()
+                   sys.stderr.write('Exception ignored !\n')
 
             self.children = children
 
