@@ -1,7 +1,7 @@
 %{
 #include <vector>
 
-#include "calcalcs.h"
+#include "teca_calcalcs.h"
 #include "teca_algorithm_executive.h"
 #include "teca_index_executive.h"
 #include "teca_metadata.h"
@@ -874,7 +874,7 @@ typedef std::pair<std::shared_ptr<teca_algorithm>, unsigned int> teca_algorithm_
 %include "teca_dataset_capture.h"
 
 /***************************************************************************
- calcalcs
+ teca_calcalcs
  ***************************************************************************/
 %inline
 %{
@@ -894,7 +894,7 @@ PyObject *date(double offset, const char *units, const char *calendar)
     int minute = -1;
     double second = -1.0;
 
-    if (calcalcs::date(offset, &year, &month, &day, &hour,
+    if (teca_calcalcs::date(offset, &year, &month, &day, &hour,
         &minute, &second, units, calendar))
     {
         TECA_PY_ERROR_NOW(PyExc_RuntimeError, "Failed to convert time")
@@ -916,7 +916,7 @@ PyObject *is_leap_year(const char *calendar, const char *units,
     teca_py_gil_state gil;
 
     int leap = 0;
-    if (calcalcs::is_leap_year(calendar, units, year, leap))
+    if (teca_calcalcs::is_leap_year(calendar, units, year, leap))
     {
         TECA_PY_ERROR_NOW(PyExc_RuntimeError,
             "Failed to determine leap year status")
@@ -934,7 +934,7 @@ PyObject *days_in_month(const char *calendar, const char *units,
     teca_py_gil_state gil;
 
     int dpm = 0;
-    if (calcalcs::days_in_month(calendar, units, year, month, dpm))
+    if (teca_calcalcs::days_in_month(calendar, units, year, month, dpm))
     {
         TECA_PY_ERROR_NOW(PyExc_RuntimeError,
             "Failed to determine days in month")

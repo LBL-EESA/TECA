@@ -10,7 +10,7 @@
 #include "teca_coordinate_util.h"
 #include "teca_netcdf_util.h"
 #include "teca_system_util.h"
-#include "calcalcs.h"
+#include "teca_calcalcs.h"
 
 #include <netcdf.h>
 #include <iostream>
@@ -668,7 +668,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                             int hh=0;
                             int mm=0;
                             double ss=0.0;
-                            if (calcalcs::date(double(p_ti[j]), &YY, &MM, &DD, &hh, &mm, &ss,
+                            if (teca_calcalcs::date(double(p_ti[j]), &YY, &MM, &DD, &hh, &mm, &ss,
                                 units_i.c_str(), base_calendar.c_str()))
                             {
                                 TECA_ERROR("Failed to convert offset ti[" << j << "] = "
@@ -679,7 +679,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
                             // convert time to offsets from base units
                             double offs = 0.0;
-                            if (calcalcs::coordinate(YY, MM, DD, hh, mm, ss,
+                            if (teca_calcalcs::coordinate(YY, MM, DD, hh, mm, ss,
                                 base_units.c_str(), base_calendar.c_str(), &offs))
                             {
                                 TECA_ERROR("Failed to convert time "
@@ -835,7 +835,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 int minute = current_tm.tm_min;
                 double second = current_tm.tm_sec;
                 double current_time = 0;
-                if (calcalcs::coordinate(year, mon, day, hour, minute,
+                if (teca_calcalcs::coordinate(year, mon, day, hour, minute,
                     second, t_units.c_str(), calendar.c_str(), &current_time))
                 {
                     TECA_ERROR("conversion of date inferred from "

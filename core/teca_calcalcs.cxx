@@ -1,4 +1,7 @@
 /*
+A threadsafe port of the calcalcs library
+Burlen Loring Thu Apr 22 06:22:16 PM PDT 2021
+
 The CalCalcs routines, a set of C-language routines to perform
 calendar calculations.
 
@@ -35,9 +38,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 #include "udunits2.h"
-#include "calcalcs.h"
+#include "teca_calcalcs.h"
 
-namespace calcalcs
+namespace teca_calcalcs
 {
 
 static int c_isleap_gregorian    ( int year, int *leap );

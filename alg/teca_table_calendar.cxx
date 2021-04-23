@@ -16,7 +16,7 @@
 #include <boost/program_options.hpp>
 #endif
 #if defined(TECA_HAS_UDUNITS)
-#include "calcalcs.h"
+#include "teca_calcalcs.h"
 #endif
 #if defined(TECA_HAS_MPI)
 #include <mpi.h>
@@ -274,7 +274,7 @@ const_p_teca_dataset teca_table_calendar::execute(
             int curr_minute = 0;
             double curr_second = 0;
 
-            if (calcalcs::date(curr_time[i], &curr_year, &curr_month,
+            if (teca_calcalcs::date(curr_time[i], &curr_year, &curr_month,
                 &curr_day, &curr_hour, &curr_minute, &curr_second,
                 units.c_str(), calendar.c_str()))
             {

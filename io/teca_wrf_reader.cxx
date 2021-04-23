@@ -5,7 +5,7 @@
 #include "teca_thread_pool.h"
 #include "teca_coordinate_util.h"
 #include "teca_netcdf_util.h"
-#include "calcalcs.h"
+#include "teca_calcalcs.h"
 
 #include <netcdf.h>
 #include <iostream>
@@ -774,7 +774,7 @@ teca_metadata teca_wrf_reader::get_output_metadata(
                     int minute = current_tm.tm_min;
                     double second = current_tm.tm_sec;
                     double current_time = 0;
-                    if (calcalcs::coordinate(year, mon, day, hour, minute,
+                    if (teca_calcalcs::coordinate(year, mon, day, hour, minute,
                         second, t_units.c_str(), calendar.c_str(), &current_time))
                     {
                         TECA_ERROR("conversion of date inferred from "

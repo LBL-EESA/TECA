@@ -16,7 +16,7 @@
 #include "teca_table_writer.h"
 #include "teca_mpi_manager.h"
 #include "teca_coordinate_util.h"
-#include "calcalcs.h"
+#include "teca_calcalcs.h"
 #include "teca_app_util.h"
 
 #include <vector>
