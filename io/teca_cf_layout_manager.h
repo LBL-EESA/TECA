@@ -57,7 +57,8 @@ public:
     // return true if the file has been defined
     bool defined()  { return this->n_dims > 0; }
 
-    // TODO -- this is no longer correct
+    // TODO -- this is only true when a rank writes all of the steps
+    // to the given file.
     bool completed()
     {
         return this->n_written == this->n_indices;
