@@ -458,6 +458,13 @@ const_p_teca_dataset teca_cf_writer::execute(unsigned int port,
             TECA_ERROR("Write time step " << time_step << " failed for time step")
             return nullptr;
         }
+
+        if (this->verbose)
+        {
+            std::ostringstream oss;
+            layout_mgr->to_stream(oss);
+            TECA_STATUS(<< oss.str())
+        }
     }
 
     // close the file when all data has been written

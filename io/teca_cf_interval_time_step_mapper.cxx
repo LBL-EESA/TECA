@@ -75,18 +75,25 @@ int teca_cf_interval_time_step_mapper::to_stream(std::ostream &os)
         os << std::endl
             << std::left << std::setw(8) << "file"
             << std::left << std::setw(16) << "steps"
+            << std::left << std::setw(8) << "n_steps"
             << "ranks" << std::endl;
+
+        long n_steps_total = 0;
 
         for (int i = 0; i < this->n_files; ++i)
         {
-            std::string tmp("[");
-            tmp += std::to_string(this->file_steps[i].first);
-            tmp += ", ";
-            tmp += std::to_string(this->file_steps[i].second);
-            tmp += "]";
+            std::string steps("[");
+            steps += std::to_string(this->file_steps[i].first);
+            steps += ", ";
+            steps += std::to_string(this->file_steps[i].second);
+            steps += "]";
+
+            long n_steps = this->file_steps[i].second - this->file_steps[i].first + 1;
+            n_steps_total += n_steps;
 
             os << std::left << std::setw(8) << i
-                << std::left << std::setw(16) << tmp;
+                << std::left << std::setw(16) << steps
+                << std::left << std::setw(8) << n_steps;
 
             std::set<int> &f_ranks = this->file_ranks[i];
             size_t n_f_ranks = f_ranks.size();
@@ -106,6 +113,8 @@ int teca_cf_interval_time_step_mapper::to_stream(std::ostream &os)
 
             os << std::endl;
         }
+
+        os << std::endl << "n_steps_total = " << n_steps_total << std::endl;
     }
 
     return 0;

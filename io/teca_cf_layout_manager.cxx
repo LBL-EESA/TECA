@@ -480,7 +480,7 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
         if (is_init && ((ierr = nc_var_par_access(this->handle.get(), var_id,
             NC_INDEPENDENT)) != NC_NOERR))
         {
-            TECA_ERROR("Failed to set inidependant mode on variable \"" << name << "\"")
+            TECA_ERROR("Failed to set inidependent mode on variable \"" << name << "\"")
             return -1;
         }
 #if !defined(HDF5_THREAD_SAFE)
@@ -746,7 +746,8 @@ int teca_cf_layout_manager::to_stream(std::ostream &os)
        << n_franks << " file_id=" << file_id
        << " file_name=\"" << this->file_name
        << "\" first_index=" << this->first_index
-       << " n_indeces=" << this->n_indices;
+       << " n_indices=" << this->n_indices
+       << " n_written=" << this->n_written;
 
     return 0;
 }
