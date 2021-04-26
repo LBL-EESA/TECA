@@ -51,6 +51,9 @@ batch script rather than in your shell.
 | :ref:`teca_event_filter`               | Select TC tracks using run time provided         |
 |                                        | expressions                                      |
 +----------------------------------------+--------------------------------------------------+
+| :ref:`teca_cf_restripe`                | Convert the internal layout of a dataset on disk |
+|                                        | with optional subsetting and/or regridding.      |
++----------------------------------------+--------------------------------------------------+
 
 Applying the Command Line Applications at Scale
 -----------------------------------------------
@@ -2698,3 +2701,199 @@ Examples
 
 This example converts a table stored in TECA's binary format to NetCDF. To covnert
 to CSV instead one would change the extension from *.nc* to *.csv*.
+
+
+.. _teca_cf_restripe:
+
+teca_cf_restripe
+----------------
+
+The `teca_cf_restripe` application was written to test TECA's parallel
+collective I/O capabilities. It can be used to change the internal organization
+of the files comprising a dataset. For instance one can convert a dataset where
+each file stores a single day's worth of data to one where each file stores a
+month's worth of data, a year's worth of data, or a fixed number of time steps.
+The application can be used to subset a dataset in either space and time,
+extracting a reduced sized selection of interest. It can also be used to
+spatially regrid a dataset onto a Cartesian mesh of user supplied bounds and
+extents. The regridding feature can be used to slice a 3D dataset in
+preparation for GFDL TC tracker which requires 2D slices at specified vertical
+pressure levels.
+
+Inputs
+~~~~~~
+A NetCDF CF dataset.
+
+Outputs
+~~~~~~~
+A copy of the input NetCDF data, potentially reorganized on disk, and/or subset
+in space and time, and/or spatially regridded.
+
+
+Command Line Options
+~~~~~~~~~~~~~~~~~~~~
+
+--input_file arg
+    a teca_multi_cf_reader configuration file identifying the set of NetCDF CF2 files to process.
+    When present data is read using the teca_multi_cf_reader. Use one of either --input_file or
+    --input_regex.
+
+--input_regex arg
+    a teca_cf_reader regex identifying the set of NetCDF CF2 files to process. When present data is
+    read using the teca_cf_reader. Use one of either --input_file or --input_regex.
+
+--x_axis_variable arg
+    name of x coordinate variable (lon)
+
+--y_axis_variable arg
+    name of y coordinate variable (lat)
+
+--z_axis_variable arg
+    name of z coordinate variable (plev)
+
+--point_arrays arg
+    A list of point centered arrays to write
+
+--information_arrays arg
+    A list of non-geometric arrays to write
+
+--output_file arg
+    A path and file name pattern for the output NetCDF files. %t% is replaced with a human readable
+    date and time corresponding to the time of the first time step in the file. Use
+    --cf_writer::date_format to change the formatting
+
+--file_layout arg (=monthly)
+    Selects the size and layout of the set of output files. May be one of number_of_steps, daily,
+    monthly, seasonal, or yearly. Files are structured such that each file contains one of the
+    selected interval. For the number_of_steps option use --steps_per_file.
+
+--steps_per_file arg
+    The number of time steps per output file when  --file_layout number_of_steps is specified.
+
+--normalize_coordinates
+    Enable coordinate normalization pipeline stage
+
+--regrid
+    Enable mesh regridding pipeline stage. When enabled requires --dims to be provided
+
+--dims arg
+    A 3-tuple of values specifying the mesh size of the output dataset in the x, y, and z
+    dimensions. The accepted format for dimensions is: nx ny nz
+
+--bounds arg
+    A hex-tuple of low and high values specifying lon lat lev bounding box to subset the input
+    dataset with. The accepted format for bounds is: x0 x1 y0 y1 z0 z1
+
+--rename
+    Enable variable renaming stage
+
+--original_name arg
+    A list of variables to rename. Use --new_name to set the new names
+
+--new_name arg
+    The new names to use when renaming variables. Use --original_name to set the list of variables
+    to rename
+
+--first_step arg
+    first time step to process
+
+--last_step arg
+    last time step to process
+
+--start_date arg
+    first time to proces in YYYY-MM-DD hh:mm:ss format
+
+--end_date arg
+    first time to proces in YYYY-MM-DD hh:mm:ss format
+
+--n_threads arg
+    Sets the thread pool size on each MPI rank. When the default value of -1 is used TECA will
+    coordinate the thread pools across ranks such each thread is bound to a unique physical core.
+
+--verbose
+    enable extra terminal output
+
+--help
+    displays documentation for application specific command line options
+
+--advanced_help
+    displays documentation for algorithm specific command line options
+
+--full_help
+    displays both basic and advanced documentation together
+
+
+Examples
+~~~~~~~~
+
+.. _slicing_3d_data:
+
+Slicing 3D CMIP6 Data
+^^^^^^^^^^^^^^^^^^^^^
+
+This example shows how to regrid 3D data onto run time specified 2D slices at
+the pressure levels needed for the GFDL TC tracker. In this CMIP6 dataset seal
+level pressure and surface winds are on a 2D Cartesian mesh but atmospheric
+wind speed, temperature, and geopotential height are on a 3D Cartesian mesh. In
+order to run the GFDL TC tracker we'll need to compute the following slices:
+850 mB wind vector, 500 and 200 mB air temperature, 1000 and 200 mB
+geopotential height. The input dataset spans 65 years at 6 hourly, 1/2 degree
+resolution. There are a total of 94964 time steps to process. The following
+script illustrates computing the slices using 1024 compute nodes and 4096 MPI
+ranks.
+
+.. code-block:: bash
+
+    #!/bin/bash
+    #SBATCH -C knl
+    #SBATCH -N 1024
+    #SBATCH -q regular
+    #SBATCH -t 04:00:00
+    #SBATCH -A m1517
+    #SBATCH -J 2_slice_data
+
+    # load gcc
+    module swap PrgEnv-intel PrgEnv-gnu
+
+    # bring a TECA install into your environment.
+    module use /global/common/software/m1517/teca/develop/modulefiles
+    module load teca
+
+    # run with 4 MPI ranks per node
+    NN=1024
+    let nn=${NN}*4
+
+    # store the output data here
+    data_root_out=ECMWF-IFS-HR_highresSST-present_r1i1p1f1_6hrPlevPt
+    mkdir ${data_root_out}
+
+    # get the input data here
+    data_root_in=/global/cfs/cdirs/m3522/cmip6/CMIP6_hrmcol/HighResMIP/CMIP6/HighResMIP/ECMWF/ECMWF-IFS-HR/highresSST-present/r1i1p1f1/6hrPlevPt
+    regex_in=6hrPlevPt_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_gr_'.*\.nc$'
+
+    # slice the following variables on the following pressure levels (in millibar)
+    var_in=(ua va ta ta zg zg)
+    plev_mb=(850 850 200 500 200 924)
+
+    let n=${#var_in[@]}-1
+    for i in `seq 0 $n`
+    do
+        # convert from millbar to Pascals
+        let plev_pa=${plev_mb[${i}]}*100
+        var_out=${var_in[${i}]}${plev_mb[${i}]}
+
+        echo "====================================================="
+        echo "slicing ${var_in[${i}]} at ${plev_pa} into ${var_out}"
+        echo "====================================================="
+
+        rm -rf "${data_root_out}/${var_out}"
+        mkdir -p "${data_root_out}/${var_out}"
+
+        time srun -n ${nn} -N ${NN}                                                                                             \
+            teca_cf_restripe                                                                                                    \
+            --input_regex "${data_root_in}/${var_in[${i}]}/gr/v20170915/${var_in[${i}]}_${regex_in}"                            \
+            --z_axis_variable plev --regrid --dims 720 361 1 --bounds 0 359.5 -90 90 ${plev_pa} ${plev_pa}                      \
+            --rename --original_name ${var_in[${i}]} --new_name ${var_out}                                                      \
+            --output_file "${data_root_out}/${var_out}/${var_out}_6hrPlevPt_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_gr_%t%.nc" \
+            --point_arrays ${var_out} --file_layout monthly
+    done
