@@ -1059,7 +1059,7 @@ Command Line Arguments
     date and time corresponding to the time of the first time step in the file. Use
     `--cf_writer::date_format` to change the formatting
 
-  --file_layout arg (=monthly)
+--file_layout arg (=monthly)
     Selects the size and layout of the set of output files. May be one of number_of_steps, daily,
     monthly, seasonal, or yearly. Files are structured such that each file contains one of the
     selected interval. For the number_of_steps option use `--steps_per_file`.
@@ -1301,7 +1301,7 @@ Command Line Arguments
     date and time corresponding to the time of the first time step in the file. Use
     --cf_writer::date_format to change the formatting
 
-  --file_layout arg (=monthly)
+--file_layout arg (=monthly)
     Selects the size and layout of the set of output files. May be one of number_of_steps, daily,
     monthly, seasonal, or yearly. Files are structured such that each file contains one of the
     selected interval. For the number_of_steps option use `--steps_per_file`.
@@ -1458,7 +1458,7 @@ Command Line Arguments
     date and time corresponding to the time of the first time step in the file. Use
     `--cf_writer::date_format` to change the formatting
 
-  --file_layout arg (=monthly)
+--file_layout arg (=monthly)
     Selects the size and layout of the set of output files. May be one of number_of_steps, daily,
     monthly, seasonal, or yearly. Files are structured such that each file contains one of the
     selected interval. For the number_of_steps option use `--steps_per_file`.
@@ -2310,7 +2310,7 @@ Command Line Arguments
     date and time corresponding to the time of the first time step in the file. Use --date_format to
     change the formatting (default: None)
 
-  --file_layout FILE_LAYOUT
+--file_layout FILE_LAYOUT
     Selects the size and layout of the set of output files. May be one of number_of_steps, daily,
     monthly, seasonal, or yearly. Files are structured such that each file contains one of the
     selected interval. For the number_of_steps option use `--steps_per_file`. (default: yearly)
