@@ -17,8 +17,6 @@ Class Indices
 .. include:: _build/rst/generated_rtd_io.rst
 .. include:: _build/rst/generated_rtd_core.rst
 .. include:: _build/rst/generated_rtd_data.rst
-.. include:: _build/rst/generated_rtd_file_hierarchy.rst
-.. include:: _build/rst/generated_rtd_class_hierarchy.rst
 
 Testing
 -------
