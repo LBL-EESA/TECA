@@ -1,6 +1,8 @@
 #ifndef teca_mask_h
 #define teca_mask_h
 
+/// @file
+
 #include "teca_shared_object.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
@@ -11,9 +13,8 @@
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_mask)
 
 /// an algorithm that masks a range of values
-/**
-An algorithm to mask a range of values in an array. Values
-in the range are replaced with the mask value.
+/** An algorithm to mask a range of values in an array. Values
+ * in the range are replaced with the mask value.
 */
 class teca_mask : public teca_algorithm
 {

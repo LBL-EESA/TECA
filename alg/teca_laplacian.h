@@ -10,10 +10,7 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_laplacian)
 
-/// an algorithm that computes laplacian
-/**
-Compute laplacian from a vector field.
-*/
+/// An algorithm that computes the Laplacian from a vector field.
 class teca_laplacian : public teca_algorithm
 {
 public:
@@ -27,14 +24,29 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // set the arrays that contain the vector components
-    // to compute laplacian from
+    /** @name component_0_variable
+     * Set the arrays that contain the vector components to compute laplacian
+     * from.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, component_0_variable)
-    TECA_ALGORITHM_PROPERTY(std::string, component_1_variable)
+    ///@}
 
-    // set the name of the array to store the result in.
-    // the default is "laplacian"
+    /** @name component_1_variable
+     * Set the arrays that contain the vector components to compute laplacian
+     * from.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(std::string, component_1_variable)
+    ///@}
+
+    /** @name laplacian_variable
+     * Set the name of the array to store the result in.  the default is
+     * "laplacian".
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, laplacian_variable)
+    ///@}
 
 protected:
     teca_laplacian();

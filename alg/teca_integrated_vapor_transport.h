@@ -15,9 +15,11 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_integrated_vapor_transport)
  * Compute integrated vapor transport (IVT) from wind vector and
  * specific humidity.
  *
+ * \f[
  * IVT = \frac{1}{g} \int_{p_{sfc}}^{p_{top}} \vec{v} q dp
+ * \f]
  *
- * where q is the specific humidity, and \vec{v} = (u, v) are the
+ * where q is the specific humidity, and \f$\vec{v} = (u, v)\f$ are the
  * longitudinal and latitudinal components of wind.
  *
  * This calculation is an instance of a vertical reduction where
@@ -31,35 +33,59 @@ public:
     TECA_ALGORITHM_CLASS_NAME(teca_integrated_vapor_transport)
     ~teca_integrated_vapor_transport();
 
-    // report/initialize to/from Boost program options
-    // objects.
+    /** @name program_options
+     * report/initialize to/from Boost program options objects.
+     */
+    ///@{
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
+    ///@}
 
-    // set the name of the varaiable that contains the longitudinal
-    // component of the wind vector ("ua")
+    /** @name wind_u_variable
+     * set the name of the varaiable that contains the longitudinal component
+     * of the wind vector ("ua")
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, wind_u_variable)
+    ///@}
 
-    // set the name of the varaiable that contains the latitudinal
-    // component of the wind vector ("va")
+    /** @name wind_v_variable
+     * set the name of the varaiable that contains the latitudinal component of
+     * the wind vector ("va")
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, wind_v_variable)
+    ///@}
 
-    // set the name of the variable that contains the specific
-    // humidity ("hus")
-    TECA_ALGORITHM_PROPERTY(std::string,
-        specific_humidity_variable)
+    /** @name specific_humidity_variable
+     * set the name of the variable that contains the specific humidity ("hus")
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(std::string, specific_humidity_variable)
+    ///@}
 
-    // set the name of the varaiable that contains the longitudinal
-    // component of the ivt vector ("ivt_u")
+    /** @name ivt_u_variable
+     * set the name of the varaiable that contains the longitudinal component
+     * of the ivt vector ("ivt_u")
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, ivt_u_variable)
+    ///@}
 
-    // set the name of the varaiable that contains the latitudinal
-    // component of the ivt vector ("ivt_v")
+    /** @name ivt_v_variable
+     * set the name of the varaiable that contains the latitudinal component of
+     * the ivt vector ("ivt_v")
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, ivt_v_variable)
+    ///@}
 
-    // set the _fillValue attribute for the output data.
-    // default 1.0e20
+    /** @name fill_value
+     * set the _fillValue attribute for the output data.  default 1.0e20
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, fill_value)
+    ///@}
 
 protected:
     teca_integrated_vapor_transport();

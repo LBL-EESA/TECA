@@ -22,9 +22,9 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_elevation_mask)
  * that is 1 where the 3D point is on or above the surface of the Earth and 0
  * where it is below.
  *
- * The name of the 3D height field is specified by the @ref mesh_height_variable
+ * The name of the 3D height field is specified by the  mesh_height_variable
  * property. The name of the 2D height field conntaining elveation of the
- * Earth's surface is specified by the @ref surface_elevation_variable property.
+ * Earth's surface is specified by the  surface_elevation_variable property.
  *
  * The 3D mesh height field must be provided on input 0, and the 2D surface
  * height field on input 1. Use the mask_names property to name the output
@@ -56,30 +56,30 @@ public:
     TECA_ALGORITHM_CLASS_NAME(teca_elevation_mask)
     ~teca_elevation_mask();
 
-    // report/initialize to/from Boost program options
-    // objects.
+    /** @name program_options
+     * report/initialize to/from Boost program options objects.
+     */
+    ///@{
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
+    ///@}
 
-    /** @anchor mesh_height_variable
-     * @name algorithm property: mesh_height_variable
-     * set/get the name of the 3D height field
+    /** @name mesh_height_variable
+     * Set the name of the 3D height field
      */
     ///@{
     TECA_ALGORITHM_PROPERTY(std::string, mesh_height_variable)
     ///@}
 
-    /** @anchor surface_elevation_variable
-     * @name algorithm property: surface_elevation_variable
-     * set/get the name of the variable containing the elevation of the Earth's
+    /** @name surface_elevation_variable
+     * Set the name of the variable containing the elevation of the Earth's
      * surface.
      */
     ///@{
     TECA_ALGORITHM_PROPERTY(std::string, surface_elevation_variable)
     ///@}
 
-    /** @anchor mask_variables
-     * @name algorithm property: mask_variable
+    /** @name mask_variables
      * set the names of the variables to store the generated mask in
      * each variable will contain a reference to the mask
      */

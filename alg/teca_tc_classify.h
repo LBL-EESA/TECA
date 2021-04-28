@@ -12,12 +12,12 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_tc_classify)
 
 /// an algorithm that classifies storms using Saphire-Simpson scale
 /**
-An algorithm that classifies storms using Saphire-Simpson scale
-a column containing the classification is added to the output
-
-An algorithm that sorts the storms by geographic region
-and category. tyhe output is a table where regions is
-mapped to columns and category is mapped to rows.
+ * An algorithm that classifies storms using Saphire-Simpson scale a column
+ * containing the classification is added to the output
+ *
+ * An algorithm that sorts the storms by geographic region and category. tyhe
+ * output is a table where regions is mapped to columns and category is mapped to
+rows.
 */
 class teca_tc_classify : public teca_algorithm
 {

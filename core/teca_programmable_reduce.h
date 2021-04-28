@@ -1,14 +1,30 @@
 #ifndef teca_programmable_reduce_h
 #define teca_programmable_reduce_h
 
-#include "teca_programmable_reduce_fwd.h"
-#include "teca_programmable_algorithm_fwd.h"
-#include "teca_index_reduce.h"
-#include "teca_dataset_fwd.h"
+#include "teca_dataset.h"
 #include "teca_metadata.h"
+#include "teca_shared_object.h"
+#include "teca_programmable_algorithm.h"
+#include "teca_index_reduce.h"
 
 #include <string>
 #include <vector>
+#include <functional>
+
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_programmable_reduce)
+
+#ifdef SWIG
+typedef void* reduce_callback_t;
+typedef void* finalize_callback_t;
+#else
+/// A callable that can reduce two datasets into one.
+using reduce_callback_t = std::function<p_teca_dataset(
+    const const_p_teca_dataset &, const const_p_teca_dataset &)>;
+
+/// A callable that can finalize the reduction.
+using finalize_callback_t = std::function<p_teca_dataset(
+    const const_p_teca_dataset &)>;
+#endif
 
 /// Callbacks implement a user defined reduction over time steps.
 /**

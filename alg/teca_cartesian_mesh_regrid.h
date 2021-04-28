@@ -4,7 +4,7 @@
 #include "teca_shared_object.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
-#include "teca_variant_array_fwd.h"
+#include "teca_variant_array.h"
 
 #include <string>
 #include <vector>
@@ -40,24 +40,21 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    /** @anchor array
-     * @name array
+    /** @name array
      * set the list of arrays to move from the source to the target
      */
     //@{
     TECA_ALGORITHM_VECTOR_PROPERTY(std::string, array)
     //@}
 
-    /** @anchor target_input
-     * @name target_input
+    /** @name target_input
      * set the input connection which provides the output geometry.
      */
     ///@{
     TECA_ALGORITHM_PROPERTY(int, target_input)
     ///@}
 
-    /** @anchor interpolation_mode
-     * @name interpolation_mode
+    /** @name interpolation_mode
      * set the interpolation mode used in transfering data between meshes of
      * differing resolution.  in nearest mode value at the nearest grid point
      * is used, in linear mode bi/tri linear interpolation is used.

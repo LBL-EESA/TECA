@@ -23,8 +23,8 @@ using p_teca_wrf_reader_internals = std::shared_ptr<teca_wrf_reader_internals>;
  *  | key                   | description |
  *  | ----                  | ----------- |
  *  | variables             | a list of all available variables |
- *  | <var>                 | a metadata object holding all NetCDF attributes for the |
- *  |                       | variable named <var> |
+ *  | [var]                 | a metadata object holding all NetCDF attributes for the |
+ *  |                       | variable named [var] |
  *  | time variables        | a list of all variables with time as the only |
  *  |                       | dimension |
  *  | coordinates           | a metadata object holding names and arrays of the |

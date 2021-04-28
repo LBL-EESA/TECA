@@ -43,16 +43,14 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    /** @anchor mask_variable
-     * @name mask_variable
+    /** @name mask_variable
      * set the name of the variable containing the mask values
      */
     ///@{
     TECA_ALGORITHM_PROPERTY(std::string, mask_variable)
     ///@}
 
-    /** @anchor masked_variable
-     * @name masked_variable
+    /** @name masked_variable
      * A list of of variables to apply the mask to. If empty no arrays will be
      * requested, and no variables will be masked
      */
@@ -60,8 +58,7 @@ public:
     TECA_ALGORITHM_VECTOR_PROPERTY(std::string, masked_variable)
     ///@}
 
-    /** @anchor output_variable_prefix
-     * @name output_variable_prefix
+    /** @name output_variable_prefix
      * A prefix for the names of the variables that have been masked.  If this
      * is empty masked data replaces its input, otherwise input data is
      * preserved and masked data is added.

@@ -29,17 +29,25 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // set the number of steps to average. should be odd.
+    /** @name filter_width
+     * set the number of steps to average. should be odd.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(unsigned int, filter_width)
+    ///@}
 
 
-    // select the filter stencil, default is backward
+    /** @name filter_type
+     * select the filter stencil, default is backward
+     */
+    ///@{
     enum {
         backward,
         centered,
         forward
     };
     TECA_ALGORITHM_PROPERTY(int, filter_type)
+    ///@}
 
 protected:
     teca_simple_moving_average();

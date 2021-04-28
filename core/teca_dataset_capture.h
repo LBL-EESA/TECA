@@ -3,7 +3,7 @@
 
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
-#include "teca_dataset_fwd.h"
+#include "teca_dataset.h"
 #include "teca_shared_object.h"
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_dataset_capture)

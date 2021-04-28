@@ -11,28 +11,25 @@
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_tc_trajectory)
 
 /// GFDL tropical storms trajectory tracking algorithm
-/**
-GFDL tropical storms trajectory tracking algorithm
-
-for more information see
-"Seasonal forecasting of tropical storms using coupled GCM integrations"
-
-computes trajectories from table of detections. trajectories
-are stored in a table.
-
-the trajectory computation makes use of the following paramteters:
-
-max_daily_distance (1600 km)
-    event must be within this distance on the
-    following day to be considered as part of the trajectory.
-
-min_wind_speed (17 m/s)
-    850 mb wind sped must be above this value.
-
-min_wind_duration (2 days)
-    criteria must be satisfied for this many days to be
-    a candidate
-*/
+/** for more information see
+ * "Seasonal forecasting of tropical storms using coupled GCM integrations"
+ *
+ * computes trajectories from table of detections. trajectories
+ * are stored in a table.
+ *
+ * the trajectory computation makes use of the following paramteters:
+ *
+ * max_daily_distance (1600 km)
+ *     event must be within this distance on the
+ *     following day to be considered as part of the trajectory.
+ *
+ * min_wind_speed (17 m/s)
+ *     850 mb wind sped must be above this value.
+ *
+ * min_wind_duration (2 days)
+ *     criteria must be satisfied for this many days to be
+ *     a candidate
+ */
 class teca_tc_trajectory : public teca_algorithm
 {
 public:

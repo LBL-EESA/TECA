@@ -158,7 +158,6 @@ class teca_variant_array;
 %ignore operator<<(std::ostream &, const std::vector<std::string> &);
 %include "teca_common.h"
 %include "teca_shared_object.h"
-%include "teca_variant_array_fwd.h"
 %ignore teca_variant_array::operator=;
 %ignore teca_variant_array_factory;
 %ignore teca_variant_array::append(const teca_variant_array &other);
@@ -484,7 +483,6 @@ class teca_dataset;
 %template(teca_dataset_base) std::enable_shared_from_this<teca_dataset>;
 %ignore teca_dataset::operator=;
 %ignore teca_dataset::set_index_request_key(std::string const *);
-%include "teca_dataset_fwd.h"
 %include "teca_dataset.h"
 TECA_PY_CONST_CAST(teca_dataset)
 %extend teca_dataset
@@ -589,7 +587,6 @@ class teca_algorithm_executive;
 %ignore teca_algorithm_executive::operator=;
 %include "teca_common.h"
 %include "teca_shared_object.h"
-%include "teca_algorithm_executive_fwd.h"
 %include "teca_algorithm_executive.h"
 
 /***************************************************************************
@@ -613,7 +610,6 @@ typedef std::pair<std::shared_ptr<teca_algorithm>, unsigned int> teca_algorithm_
 %template(teca_output_port_type) std::pair<std::shared_ptr<teca_algorithm>, unsigned int>;
 %include "teca_common.h"
 %include "teca_shared_object.h"
-%include "teca_algorithm_fwd.h"
 %include "teca_program_options.h"
 %include "teca_algorithm.h"
 
@@ -707,7 +703,6 @@ typedef std::pair<std::shared_ptr<teca_algorithm>, unsigned int> teca_algorithm_
 %ignore teca_threaded_algorithm::shared_from_this;
 %shared_ptr(teca_threaded_algorithm)
 %ignore teca_threaded_algorithm::operator=;
-%include "teca_threaded_algorithm_fwd.h"
 %include "teca_threaded_algorithm.h"
 
 /***************************************************************************
@@ -716,7 +711,6 @@ typedef std::pair<std::shared_ptr<teca_algorithm>, unsigned int> teca_algorithm_
 %ignore teca_index_reduce::shared_from_this;
 %shared_ptr(teca_index_reduce)
 %ignore teca_index_reduce::operator=;
-%include "teca_index_reduce_fwd.h"
 %include "teca_index_reduce.h"
 
 /***************************************************************************
@@ -754,7 +748,6 @@ typedef std::pair<std::shared_ptr<teca_algorithm>, unsigned int> teca_algorithm_
 %ignore teca_programmable_algorithm::get_request_callback;
 %ignore teca_programmable_algorithm::set_execute_callback;
 %ignore teca_programmable_algorithm::get_execute_callback;
-%include "teca_programmable_algorithm_fwd.h"
 %include "teca_programmable_algorithm.h"
 
 /***************************************************************************
@@ -792,7 +785,6 @@ typedef std::pair<std::shared_ptr<teca_algorithm>, unsigned int> teca_algorithm_
 %ignore teca_threaded_programmable_algorithm::get_request_callback;
 %ignore teca_threaded_programmable_algorithm::set_execute_callback;
 %ignore teca_threaded_programmable_algorithm::get_execute_callback;
-%include "teca_programmable_algorithm_fwd.h"
 %include "teca_threaded_programmable_algorithm.h"
 
 /***************************************************************************
@@ -839,7 +831,6 @@ typedef std::pair<std::shared_ptr<teca_algorithm>, unsigned int> teca_algorithm_
 %ignore teca_programmable_reduce::get_reduce_callback;
 %ignore teca_programmable_reduce::set_finalize_callback;
 %ignore teca_programmable_reduce::get_finalize_callback;
-%include "teca_programmable_reduce_fwd.h"
 %include "teca_programmable_reduce.h"
 
 /***************************************************************************

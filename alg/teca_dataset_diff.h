@@ -18,16 +18,14 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_dataset_diff)
 
 /// compute the element wise difference between to datasets
 /**
-a two input algorithm that compares datasets by examining each
-element of their contained arrays. a threshold is used to detect
-when an element is different. a report containing the string FAIL
-is issued to stderr stream when a difference is detected. this
-algorithm is the core of TECA's regression test suite.
-
-by convention the first input produces the reference dataset,
-and the second input produces the dataset to validate. this is
-primarilly to support map-reduce implementation where after
-the reduction only rank 0 has data.
+ * a two input algorithm that compares datasets by examining each element of their
+ * contained arrays. a threshold is used to detect when an element is different. a
+ * report containing the string FAIL is issued to stderr stream when a difference
+ * is detected. this algorithm is the core of TECA's regression test suite.
+ *
+ * by convention the first input produces the reference dataset, and the second
+ * input produces the dataset to validate. this is primarilly to support
+ * map-reduce implementation where after the reduction only rank 0 has data.
 */
 class teca_dataset_diff : public teca_algorithm
 {
@@ -41,15 +39,23 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // Relative tolerance below which two floating-point numbers a and b are
-    // considered equal. if |a - b| <= max(|a|,|b|)*tol then a is equal to b.
-    // the relative tolerance is used with numbers not close to zero.
+    /** @name relative_tolerance
+     * Relative tolerance below which two floating-point numbers a and b are
+     * considered equal. if |a - b| <= max(|a|,|b|)*tol then a is equal to b.
+     * the relative tolerance is used with numbers not close to zero.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, relative_tolerance)
+    ///@}
 
-    // The absolute tolerance below which two floating point numbers a and b are
-    // considered equal. if |a - b| <= tol then a is equal to b. The absolute
-    // tolerance is used with numbers close to zero.
+    /** @name absolute_tolerance
+     * The absolute tolerance below which two floating point numbers a and b
+     * are considered equal. if |a - b| <= tol then a is equal to b. The
+     * absolute tolerance is used with numbers close to zero.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, absolute_tolerance)
+    ///@}
 
 protected:
     teca_dataset_diff();

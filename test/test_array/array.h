@@ -1,11 +1,14 @@
 #ifndef array_h
 #define array_h
 
-#include "array_fwd.h"
+#include "array.h"
 #include "teca_dataset.h"
+#include "teca_shared_object.h"
 
 #include <string>
 #include <vector>
+
+TECA_SHARED_OBJECT_FORWARD_DECL(array)
 
 class teca_binary_stream;
 

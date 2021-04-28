@@ -10,17 +10,17 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_binary_segmentation)
 
-/// an algorithm that computes a binary segmentation
+/// An algorithm that computes a binary segmentation.
 /**
-an algorithm that computes a binary segmentation for 1D, 2D, and 3D data. The
-segmentation is computed using threshold operation where values in a range
-(low, high] are in the segmentation (assigned 1). Values outside the range
-are outside of the segmentation (assigned 0).
-
-The algorithm has 2 modes, BY_VALUE and BY_PERCENTILE. In the BY_VALUE mode,
-the test for inclusion is applied on the raw data. In the BY_PERCENTILE mode
-the range is given in percentiles and each data point is converted to a
-percentile before applying the test for inclusion.
+ * an algorithm that computes a binary segmentation for 1D, 2D, and 3D data.
+ * The segmentation is computed using threshold operation where values in a
+ * range (low, high] are in the segmentation (assigned 1). Values outside the
+ * range are outside of the segmentation (assigned 0).
+ *
+ * The algorithm has 2 modes, BY_VALUE and BY_PERCENTILE. In the BY_VALUE mode,
+ * the test for inclusion is applied on the raw data. In the BY_PERCENTILE mode
+ * the range is given in percentiles and each data point is converted to a
+ * percentile before applying the test for inclusion.
 */
 class teca_binary_segmentation : public teca_algorithm
 {
@@ -31,26 +31,59 @@ public:
     ~teca_binary_segmentation();
 
     // set the name of the output array to store the resulting segmentation in
+    /** @name segmentation_variable
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, segmentation_variable)
+    ///@}
+
 
     // set extra metadata for the segmentation variable
+    /** @name segmentation_variable_attributes
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(teca_metadata, segmentation_variable_attributes)
+    ///@}
 
-    // set the name of the input array to segment
+
+    /** @name threshold_variable
+     * set the name of the input array to segment
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, threshold_variable)
+    ///@}
 
-    // Set the threshold range. The defaults are (-infinity, infinity].
+    /** @name low_threshold_value
+     * Set the threshold range. The defaults are (-infinity, infinity].
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, low_threshold_value)
+    ///@}
+
+    /** @name high_threshold_value
+     * Set the threshold range. The defaults are (-infinity, infinity].
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, high_threshold_value)
+    ///@}
 
-    // Set the threshold mode. In BY_PERCENTILE mode low and high thresholds
-    // define the percentiles (0 to 100) between which data is in the
-    // segmentation. default is BY_VALUE.
+    /** @name threshold_mode
+     * Set the threshold mode. In BY_PERCENTILE mode low and high thresholds
+     * define the percentiles (0 to 100) between which data is in the
+     * segmentation. default is BY_VALUE.
+     */
+    ///@{
+    /// The threshold_mode modes
     enum {BY_VALUE=0, BY_PERCENTILE=1};
-    TECA_ALGORITHM_PROPERTY(int, threshold_mode);
 
+    TECA_ALGORITHM_PROPERTY(int, threshold_mode)
+
+    /// Set the threshold_mode to percentile.
     void set_threshold_by_percentile() { set_threshold_mode(BY_PERCENTILE); }
+
+    /// Set the threshold_mode to value.
     void set_threshold_by_value() { set_threshold_mode(BY_VALUE); }
+    ///@}
 
 protected:
     teca_binary_segmentation();

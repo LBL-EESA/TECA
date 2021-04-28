@@ -3,10 +3,12 @@
 
 #include "teca_dataset.h"
 #include "teca_table.h"
-#include "teca_database_fwd.h"
+#include "teca_shared_object.h"
 #include "teca_table_collection.h"
 #include <iosfwd>
 class teca_binary_stream;
+
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_database)
 
 /// A collection of named tables.
 /**

@@ -36,7 +36,7 @@ using p_teca_cf_reader_internals = std::shared_ptr<teca_cf_reader_internals>;
  *
  *  | key             | description |
  *  | ----            | ----------- |
- *  | <variable name> | a metadata object holding all NetCDF attributes, and |
+ *  | [variable name] | a metadata object holding all NetCDF attributes, and |
  *  |                 | TECA specific per-array metadata |
  *
  * ### cooridnate metadata:
@@ -78,8 +78,7 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    /** @anchor file_name
-     * @name file_name
+    /** @name file_name
      * Set a list of files to open. If this is used then the files_regex is
      * ignored.
      */
@@ -87,8 +86,7 @@ public:
     TECA_ALGORITHM_VECTOR_PROPERTY(std::string, file_name)
     ///@}
 
-    /** @anchor files_regex
-     * @name files_regex
+    /** @name files_regex
      * Set a regular expression identifying the set of files comprising the
      * dataset. This should contain the full path to the files and the regular
      * expression.  Only the final component of a path may contain a regex.
@@ -101,32 +99,28 @@ public:
     TECA_ALGORITHM_PROPERTY(std::string, files_regex)
     ///@}
 
-    /** @anchor periodic_in_x
-     * @name periodic_in_x
+    /** @name periodic_in_x
      * A flag that indicates a periodic bondary in the z direction
      */
     ///@{
     TECA_ALGORITHM_PROPERTY(int, periodic_in_x)
     ///@}
 
-    /** @anchor periodic_in_y
-     * @name periodic_in_y
+    /** @name periodic_in_y
      * A flag that indicates a periodic bondary in the z direction
      */
     ///@{
     TECA_ALGORITHM_PROPERTY(int, periodic_in_y)
     ///@}
 
-    /** @anchor periodic_in_z
-     * @name periodic_in_z
+    /** @name periodic_in_z
      * A flag that indicates a periodic bondary in the z direction
      */
     ///@{
     TECA_ALGORITHM_PROPERTY(int, periodic_in_z)
     ///@}
 
-    /** @anchor x_axis_variable
-     * @name x_axis_variable
+    /** @name x_axis_variable
      * Set the name of the variable to use for the x coordinate axis.
      * An empty string disables this dimension.
      */
@@ -134,16 +128,14 @@ public:
     TECA_ALGORITHM_PROPERTY(std::string, x_axis_variable)
     ///@}
 
-    /** @anchor y_axis_variable
-     * @name y_axis_variable
+    /** @name y_axis_variable
      * Set the name of the variable to use for the y coordinate axis.
      * An empty string disables this dimension.
      */
     ///@{
     TECA_ALGORITHM_PROPERTY(std::string, y_axis_variable)
     ///@}
-    /** @anchor z_axis_variable
-     * @name z_axis_variable
+    /** @name z_axis_variable
      * Set the name of the variable to use for the z coordinate axis.
      * An empty string disables this dimension.
      */
@@ -151,8 +143,7 @@ public:
     TECA_ALGORITHM_PROPERTY(std::string, z_axis_variable)
     ///@}
 
-    /** @anchor t_axis_variable
-     * @name t_axis_variable
+    /** @name t_axis_variable
      * Set the name of the variable to use for the t coordinate axis.
      * An empty string disables this dimension.
      */
@@ -160,8 +151,7 @@ public:
     TECA_ALGORITHM_PROPERTY(std::string, t_axis_variable)
     ///@}
 
-    /** @anchor calendar
-     * @name calendar
+    /** @name calendar
      * Override the calendar.  When specified the values takes precedence over
      * the values found in the file.
      */
@@ -169,8 +159,7 @@ public:
     TECA_ALGORITHM_PROPERTY(std::string, calendar)
     ///@}
 
-    /** @anchor t_units
-     * @name t_units
+    /** @name t_units
      * Override the time units. When specified the value takes precedence over
      * the values found in the file.
      */
@@ -178,8 +167,7 @@ public:
     TECA_ALGORITHM_PROPERTY(std::string, t_units)
     ///@}
 
-    /** @anchor filename_time_template
-     * @name filename_time_template
+    /** @name filename_time_template
      * a way to infer time from the filename if the time axis is not stored in
      * the file itself. std::get_time format codes are used.  If a calendar is
      * not specified then the standard calendar is used. If time units are not
@@ -201,8 +189,7 @@ public:
     TECA_ALGORITHM_PROPERTY(std::string, filename_time_template)
     ///@}
 
-    /** @anchor t_value
-     * @name t_value
+    /** @name t_value
      * an explicit list of double precision time values to use.  set
      * t_axis_variable to an empty string to use.
      */
@@ -210,8 +197,7 @@ public:
     TECA_ALGORITHM_VECTOR_PROPERTY(double, t_value)
     ///@}
 
-    /** @anchor max_metadata_ranks
-     * @name max_metadata_ranks
+    /** @name max_metadata_ranks
      * set/get the number of ranks used to read the time axis.  the default
      * value of 1024 ranks works well on NERSC Cori scratch file system and may
      * not be optimal on other systems.
@@ -220,8 +206,7 @@ public:
     TECA_ALGORITHM_PROPERTY(int, max_metadata_ranks)
     ///@}
 
-    /** @anchor clamp_dimensions_of_one
-     * @name clamp_dimensions_of_one
+    /** @name clamp_dimensions_of_one
      * If set the requested extent will be clamped in a given direction if the
      * coorinate axis in that dircetion has a length of 1 and the requested extent
      * would be out of bounds. This exists to deal with non-conformant data and

@@ -30,10 +30,14 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // set/get the max number of datasets to cache.
+    /** @name max_cache_size
+     * Set the max number of datasets to cache.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(unsigned long, max_cache_size)
+    ///@}
 
-    // clear any cached data.
+    /// clear any cached data.
     void clear_cache();
 
 protected:

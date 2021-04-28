@@ -10,10 +10,7 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_face_to_cell_centering)
 
-/// an algorithm that transforms vertical cooridinates
-/**
-An algorithm that transforms vertical coordinates of a mesh.
-*/
+/// An  algorithm that transforms from face to cell centering
 class teca_face_to_cell_centering : public teca_algorithm
 {
 public:

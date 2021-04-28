@@ -9,12 +9,12 @@
 #include "teca_py_string.h"
 #include <Python.h>
 
-/// @cond
-// this macro is used to build up dispatchers
-// PYT - type tag idnetifying the PyObject
-// ITER - PySequence* instance
-// CODE - code to execute on match
-// ST - typedef coresponding to matching tag
+/** this macro is used to build up dispatchers
+ * PYT - type tag idnetifying the PyObject
+ * ITER - PySequence* instance
+ * CODE - code to execute on match
+ * ST - typedef coresponding to matching tag
+ */
 #define TECA_PY_ITERATOR_DISPATCH_CASE(PYT, ITER, CODE) \
     if (teca_py_iterator::is_type<PYT>(ITER))           \
     {                                                   \
@@ -22,7 +22,7 @@
         CODE                                            \
     }
 
-// the macro dispatches for all the Python types
+/// the macro dispatches for all the Python types
 #define TECA_PY_ITERATOR_DISPATCH(ITER, CODE)               \
     TECA_PY_ITERATOR_DISPATCH_CASE(bool, ITER, CODE)        \
     else TECA_PY_ITERATOR_DISPATCH_CASE(int, ITER, CODE)    \
@@ -30,16 +30,15 @@
     else TECA_PY_ITERATOR_DISPATCH_CASE(char*, ITER, CODE)  \
     else TECA_PY_ITERATOR_DISPATCH_CASE(long, ITER, CODE)
 
-// this one just the numeric types
+/// this one just the numeric types
 #define TECA_PY_ITERATOR_DISPATCH_NUM(ITER, CODE)           \
     TECA_PY_ITERATOR_DISPATCH_CASE(int, ITER, CODE)         \
     else TECA_PY_ITERATOR_DISPATCH_CASE(float, ITER, CODE)  \
     else TECA_PY_ITERATOR_DISPATCH_CASE(long, ITER, CODE)
 
-// this one just strings
+/// this one just strings
 #define TECA_PY_ITERATOR_DISPATCH_STR(ITER, CODE)   \
     TECA_PY_ITERATOR_DISPATCH_CASE(char*, ITER, CODE)
-/// @endcode
 
 /// Codes for interfacing to Python iterators
 namespace teca_py_iterator

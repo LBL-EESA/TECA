@@ -12,11 +12,9 @@
 #include <Python.h>
 #include <vector>
 
-
-/// Reports an error from a user provided callback.
-/** We are going to be overly verbose in an effort to help
- * the user debug their code. package this up for use in all
- * the callbacks.
+/** Reports an error from a user provided callback.  We are going to be overly
+ * verbose in an effort to help the user debug their code. package this up for
+ * use in all the callbacks.
  */
 #define TECA_PY_CALLBACK_ERROR(_phase, _cb_obj)             \
     {                                                       \

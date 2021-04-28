@@ -37,7 +37,7 @@ template <typename n_t>
 struct equal_tt {};
 
 #define declare_equal_tt(cpp_t, atol, rtol)                                 \
-/** Specialization for cpp_t with default absTol=atol and reltol=rtol */    \
+/** Specialization for cpp_t with default absTol and relTol */              \
 template <>                                                                 \
 struct equal_tt<cpp_t>                                                      \
 {                                                                           \

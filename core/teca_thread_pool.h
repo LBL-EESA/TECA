@@ -2,7 +2,7 @@
 #define teca_thread_pool_h
 
 #include "teca_common.h"
-#include "teca_algorithm_fwd.h"
+#include "teca_algorithm.h"
 #include "teca_thread_util.h"
 #include "teca_threadsafe_queue.h"
 #include "teca_mpi.h"

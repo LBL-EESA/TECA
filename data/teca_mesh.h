@@ -1,10 +1,12 @@
 #ifndef teca_mesh_h
 #define teca_mesh_h
 
-#include "teca_mesh_fwd.h"
 #include "teca_dataset.h"
 #include "teca_metadata.h"
 #include "teca_array_collection.h"
+#include "teca_shared_object.h"
+
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_mesh)
 
 /// A base class for geometric data.
 /**

@@ -12,8 +12,8 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_descriptive_statistics)
 
 /// compute descriptive statistics over a set of arrays.
 /**
-compute the min, max, avg, median, standard deviation of a
-set of named arrays. the results are returned in a table.
+ * compute the min, max, avg, median, standard deviation of a set of named
+ * arrays. the results are returned in a table.
 */
 class teca_descriptive_statistics : public teca_algorithm
 {
