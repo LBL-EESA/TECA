@@ -456,8 +456,9 @@ const_p_teca_dataset teca_tc_candidates::execute(unsigned int port,
     cerr << std::endl;
 #endif
     seconds_t dt(t1 - t0);
-    TECA_STATUS("teca_tc_candidates step=" << time_step
-        << " t=" << time_offset << ", dt=" << dt.count() << " sec")
+
+    TECA_STATUS("At step " << time_step << " time " << time_offset << " "
+        << n_candidates << " candidates detected in " << dt.count() << " seconds")
 
     return out_table;
 }

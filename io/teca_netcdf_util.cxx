@@ -417,15 +417,27 @@ int read_variable_attributes(netcdf_handle &fh, const std::string &var_name,
     }
 #endif
 
+    // skip scalars
+    if (n_dims == 0)
+        return 0;
+
     // convert from the netcdf type code
     NC_DISPATCH(var_nc_type,
        var_type = teca_variant_array_code<NC_T>::get();
        )
 
-    // skip scalars
-    if (n_dims == 0)
-        return 0;
+    // read attributes
+    for (int ii = 0; ii < n_atts; ++ii)
+    {
+        if (teca_netcdf_util::read_attribute(fh, var_id, ii, atts))
+        {
+            TECA_ERROR("Failed to read the " << ii << "th attribute for variable \""
+                << var_name << "\"." << std::endl << nc_strerror(ierr))
+            return -1;
+        }
+    }
 
+    // read the dimensions
     int n_mesh_dims = 0;
     int have_mesh_dim[4] = {0};
 
@@ -512,16 +524,6 @@ int read_variable_attributes(netcdf_handle &fh, const std::string &var_name,
     atts.set("n_mesh_dims", n_mesh_dims);
     atts.set("n_active_dims", n_active_dims);
 
-    for (int ii = 0; ii < n_atts; ++ii)
-    {
-        if (teca_netcdf_util::read_attribute(fh, var_id, ii, atts))
-        {
-            TECA_ERROR("Failed to read the " << ii << "th attribute for variable \""
-                << var_name << "\"." << std::endl << nc_strerror(ierr))
-            return -1;
-        }
-    }
-
     return 0;
 }
 
@@ -554,15 +556,29 @@ int read_variable_attributes(netcdf_handle &fh, int var_id,
     }
 #endif
 
+    // skip scalars
+    if (n_dims == 0)
+        return 0;
+
+    name = var_name;
+
     // convert from the netcdf type code
     NC_DISPATCH(var_nc_type,
        var_type = teca_variant_array_code<NC_T>::get();
        )
 
-    // skip scalars
-    if (n_dims == 0)
-        return 0;
+    // read attributes
+    for (int ii = 0; ii < n_atts; ++ii)
+    {
+        if (teca_netcdf_util::read_attribute(fh, var_id, ii, atts))
+        {
+            TECA_ERROR("Failed to read the " << ii << "th attribute for variable "
+                << var_name << ". " << std::endl << nc_strerror(ierr))
+            return -1;
+        }
+    }
 
+    // read the dimensions
     int n_mesh_dims = 0;
     int have_mesh_dim[4] = {0};
 
@@ -629,8 +645,6 @@ int read_variable_attributes(netcdf_handle &fh, int var_id,
         dims.push_back(dim);
     }
 
-    name = var_name;
-
     // can only be point centered if all the dimensions are active coordinate
     // axes
     unsigned int centering = teca_array_attributes::no_centering;
@@ -649,16 +663,6 @@ int read_variable_attributes(netcdf_handle &fh, int var_id,
     atts.set("mesh_dim_active", mesh_dim_active);
     atts.set("n_mesh_dims", n_mesh_dims);
     atts.set("n_active_dims", n_active_dims);
-
-    for (int ii = 0; ii < n_atts; ++ii)
-    {
-        if (teca_netcdf_util::read_attribute(fh, var_id, ii, atts))
-        {
-            TECA_ERROR("Failed to read the " << ii << "th attribute for variable "
-                << var_name << ". " << std::endl << nc_strerror(ierr))
-            return -1;
-        }
-    }
 
     return 0;
 }
@@ -841,7 +845,9 @@ int write_variable_attributes(netcdf_handle &fh, int var_id,
         if ((att_name == "cf_id") || (att_name == "cf_dims") ||
             (att_name == "cf_dim_names") || (att_name == "type_code") ||
             (att_name == "cf_type_code") || (att_name == "centering") ||
-            (att_name == "size"))
+            (att_name == "size") || (att_name == "have_mesh_dim") ||
+            (att_name == "mesh_dim_active") || (att_name == "n_mesh_dims") ||
+            (att_name == "n_active_dims"))
             continue;
 
         // get the attribute value

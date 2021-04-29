@@ -38,6 +38,7 @@ int main(int argc, char **argv)
     }
 
     int n_intervals = 0;
+    long n_steps_total = 0;
 
     while (*it)
     {
@@ -46,10 +47,16 @@ int main(int argc, char **argv)
 
         it->get_next_interval(first_step, last_step);
 
-        std::cerr << "(" << first_step << ") to (" << last_step << ")" << std::endl;
+        long n_steps = last_step.index - first_step.index + 1;
+        n_steps_total += n_steps;
+
+        std::cerr << "From: " << first_step << " To: " << last_step
+            << " steps=" << n_steps  << std::endl;
 
         n_intervals += 1;
     }
+
+    std::cerr << n_steps_total << " steps located" << std::endl;
 
     // check the number of intervals
     if (n_intervals != n_expected)

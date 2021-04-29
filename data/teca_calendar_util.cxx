@@ -7,14 +7,22 @@
 
 #include <algorithm>
 
+// TODO - With 23:59:59, sometimes we select the next day.  What is the right
+// end-of-day time so that all use cases are satisfied without selecting the
+// next day?
+#define END_OF_DAY_HH 23
+#define END_OF_DAY_MM 30
+#define END_OF_DAY_SS 0
+#define END_OF_DAY "23:30:00"
+
 // --------------------------------------------------------------------------
 std::ostream &operator<<(std::ostream &os,
     const teca_calendar_util::time_point &tpt)
 {
-    os << "time[" << tpt.index << "] = " << tpt.time << "("
+    os << "time[" << tpt.index << "] = " << tpt.time << ", \""
         << tpt.year << "-" << tpt.month << "-"
         << tpt.day << " " << tpt.hour << ":" << tpt.minute
-        << ":" << tpt.second << ")";
+        << ":" << tpt.second << "\"";
     return os;
 }
 
@@ -333,7 +341,7 @@ int season_iterator::get_next_interval(time_point &first_step,
 
     // find the time step of the last day
     char t1[21] = {'\0'};
-    snprintf(t1, 21, "%04d-%02d-%02d 23:59:59", end_year, end_month, end_day);
+    snprintf(t1, 21, "%04d-%02d-%02d " END_OF_DAY, end_year, end_month, end_day);
 
     unsigned long i1 = 0;
     if (teca_coordinate_util::time_step_of(this->time,
@@ -344,7 +352,8 @@ int season_iterator::get_next_interval(time_point &first_step,
     }
 
     this->time->get(i1, ti);
-    last_step = time_point(i1, ti, end_year, end_month, end_day, 23, 59, 59);
+    last_step = time_point(i1, ti, end_year, end_month,
+        end_day, END_OF_DAY_HH, END_OF_DAY_MM, END_OF_DAY_SS);
 
     // move to next season
     if (this->get_next_season(sy, sm, this->year, this->month))
@@ -459,7 +468,7 @@ int year_iterator::get_next_interval(time_point &first_step,
     }
 
     char t1[21] = {'\0'};
-    snprintf(t1, 21, "%04d-12-%02d 23:59:59", this->year, n_days);
+    snprintf(t1, 21, "%04d-12-%02d " END_OF_DAY, this->year, n_days);
 
     unsigned long i1 = 0;
     if (teca_coordinate_util::time_step_of(this->time,
@@ -470,7 +479,8 @@ int year_iterator::get_next_interval(time_point &first_step,
     }
 
     this->time->get(i1, ti);
-    last_step = time_point(i1, ti, this->year, 12, n_days, 23, 59, 59);
+    last_step = time_point(i1, ti, this->year, 12,
+        n_days, END_OF_DAY_HH, END_OF_DAY_MM, END_OF_DAY_SS);
 
     // move to next year
     this->year += 1;
@@ -584,7 +594,7 @@ int month_iterator::get_next_interval(time_point &first_step,
     }
 
     char t1[21] = {'\0'};
-    snprintf(t1, 21, "%04d-%02d-%02d 23:59:59", this->year, this->month, n_days);
+    snprintf(t1, 21, "%04d-%02d-%02d " END_OF_DAY, this->year, this->month, n_days);
 
     unsigned long i1 = 0;
     if (teca_coordinate_util::time_step_of(this->time,
@@ -595,7 +605,8 @@ int month_iterator::get_next_interval(time_point &first_step,
     }
 
     this->time->get(i1, ti);
-    last_step = time_point(i1, ti, this->year, this->month, n_days, 23, 59, 59);
+    last_step = time_point(i1, ti, this->year, this->month,
+        n_days, END_OF_DAY_HH, END_OF_DAY_MM, END_OF_DAY_SS);
 
     // move to next month
     this->month += 1;
@@ -711,7 +722,7 @@ int day_iterator::get_next_interval(time_point &first_step,
 
     // find the time step of the last hour of the day
     char t1[21] = {'\0'};
-    snprintf(t1, 21, "%04d-%02d-%02d 23:59:59",
+    snprintf(t1, 21, "%04d-%02d-%02d " END_OF_DAY,
         this->year, this->month, this->day);
 
     unsigned long i1 = 0;
@@ -723,7 +734,8 @@ int day_iterator::get_next_interval(time_point &first_step,
     }
 
     this->time->get(i1, ti);
-    last_step = time_point(i1, ti, this->year, this->month, this->day, 23, 59, 59);
+    last_step = time_point(i1, ti, this->year, this->month,
+        this->day, END_OF_DAY_HH, END_OF_DAY_MM, END_OF_DAY_SS);
 
     // move to next day
     int n_days = 0;
