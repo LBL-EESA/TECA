@@ -38,10 +38,12 @@ int teca_tc_trajectory(var_t r_crit, var_t wind_crit, double n_wind_crit,
     const int *storm_uid, const coord_t *d_lon, const coord_t *d_lat,
     const var_t *wind_max, const var_t *vort_max, const var_t *psl,
     const int *have_twc, const int *have_thick, const var_t *twc_max,
-    const var_t *thick_max, unsigned long n_rows, p_teca_table track_table)
+    const var_t *thick_max, unsigned long n_rows, p_teca_table track_table,
+    unsigned long &n_tracks)
 {
     const coord_t DEG_TO_RAD = M_PI/180.0;
     unsigned long track_id = 0;
+    n_tracks = 0;
 
     // convert from dsegrees to radians
     unsigned long nbytes = n_rows*sizeof(coord_t);
@@ -217,6 +219,8 @@ int teca_tc_trajectory(var_t r_crit, var_t wind_crit, double n_wind_crit,
     free(r_lon);
     free(r_lat);
     free(available);
+
+    n_tracks = track_id + 1;
 
     return 0;
 }
@@ -409,7 +413,18 @@ const_p_teca_dataset teca_tc_trajectory::execute(
     }
 
     unsigned long n_rows = candidates->get_number_of_rows();
+
+    // check that there are some candidates to work with.
+    if (n_rows < 1)
+    {
+        TECA_ERROR("Failed to form TC tracks because there were no candiates")
+        return nullptr;
+    }
+
+    unsigned long n_tracks = 0;
+
     std::chrono::high_resolution_clock::time_point t0, t1;
+    t0 = std::chrono::high_resolution_clock::now();
 
     NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
         lon.get(), _COORD,
@@ -449,24 +464,25 @@ const_p_teca_dataset teca_tc_trajectory::execute(
                 dynamic_cast<const TT_VAR*>(thick_max.get())->get();
 
             // invoke the track finder
-            t0 = std::chrono::high_resolution_clock::now();
             if (internal::teca_tc_trajectory(
                 static_cast<NT_VAR>(this->max_daily_distance),
                 static_cast<NT_VAR>(this->min_wind_speed), this->min_wind_duration,
                 this->step_interval, p_step, p_time, p_storm_id, p_lon, p_lat,
                 p_wind_max, p_vort_max, p_psl_min, p_have_twc, p_have_thick,
-                p_twc_max, p_thick_max, n_rows, storm_tracks))
+                p_twc_max, p_thick_max, n_rows, storm_tracks, n_tracks))
             {
-                TECA_ERROR("GFDL TC trajectory analysis encountered an error")
+                TECA_ERROR("Failed to form tracks")
                 return nullptr;
             }
-            t1 = std::chrono::high_resolution_clock::now();
             )
         )
 
+    t1 = std::chrono::high_resolution_clock::now();
     seconds_t dt(t1 - t0);
-    TECA_STATUS("teca_tc_trajectory n_candidates=" << n_rows << ", n_tracks="
-        << storm_tracks->get_number_of_rows() << ", dt=" << dt.count() << " sec")
+
+    TECA_STATUS("Formed " << n_tracks << " tracks comprised of "
+        << storm_tracks->get_number_of_rows() << " of the " << n_rows
+        << " avilable candidates in " << dt.count() << " seconds")
 
     return storm_tracks;
 }
