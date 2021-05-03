@@ -30,6 +30,8 @@ doxygen_enabled = True
 if doxygen_enabled:
     if not os.path.exists('_build/html'):
         os.makedirs('_build/html')
+    subprocess.call('cat /etc/issue', shell=True)
+    subprocess.call('doxygen --version', shell=True)
     subprocess.call('doxygen', shell=True)
     subprocess.call('./parse_xml.py', shell=True)
 
