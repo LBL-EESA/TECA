@@ -4,6 +4,9 @@
 
 version: 2
 
+build:
+  image: testing
+
 sphinx:
   configuration: doc/rtd/conf.py
 
