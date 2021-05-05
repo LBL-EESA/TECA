@@ -729,8 +729,10 @@ std::vector<teca_metadata> teca_normalize_coordinates::get_upstream_request(
     unsigned long extent_out[6];
     memcpy(extent_out, extent_in, 6*sizeof(unsigned long));
 
-    if (teca_coordinate_util::bounds_to_extent(tfm_bounds, in_x,
-        in_y, z, extent_out))
+    if (teca_coordinate_util::bounds_to_extent(tfm_bounds,
+            in_x, in_y, z, extent_out) ||
+        teca_coordinate_util::validate_extent(in_x->size(),
+            in_y->size(), z->size(), extent_out, true))
     {
         TECA_ERROR("invalid bounds requested.")
         return up_reqs;
