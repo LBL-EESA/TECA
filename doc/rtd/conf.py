@@ -1,3 +1,5 @@
+import subprocess, os
+
 # Configuration file for the Sphinx documentation builder.
 #
 # This file only contains a selection of the most common options. For a full
@@ -23,17 +25,23 @@ author = "Burlen Loring, Travis O'Brien & Abdelrahman Elbashandy"
 
 # -- General configuration ---------------------------------------------------
 
-import subprocess, os
 
-doxygen_enabled = True
+if not os.path.exists('_build/html'):
+    os.makedirs('_build/html')
 
-if doxygen_enabled:
-    if not os.path.exists('_build/html'):
-        os.makedirs('_build/html')
-    subprocess.call('cat /etc/issue', shell=True)
-    subprocess.call('doxygen --version', shell=True)
+subprocess.call('cat /etc/issue', shell=True)
+subprocess.call('doxygen --version', shell=True)
+
+# RTD version of Doxygen has a bug that crashes it on our code due to a fixed
+# buffer size. When RTD updates to Ubuntu 20.04 this will be resolved. See
+# issue 613
+resolved_613 = False
+if resolved_613:
     subprocess.call('doxygen', shell=True)
     subprocess.call('./parse_xml.py', shell=True)
+else:
+    subprocess.call('svn checkout svn://svn.code.sf.net/p/teca/rtd_extras/doxygen _build/html/doxygen', shell=True)
+    subprocess.call('svn checkout svn://svn.code.sf.net/p/teca/rtd_extras/rst _build/rst', shell=True)
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
