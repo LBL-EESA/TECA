@@ -190,6 +190,13 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
     for (int i = 0; i < 4; ++i)
         this->dims[i] = 0;
 
+    // check for bad bounds request on dataset with y axis in descending order.
+    if (extent[2] > extent[3])
+    {
+        TECA_ERROR("Bad y-axis extent [" << extent[2] << ", " << extent[3] << "]")
+        return -1;
+    }
+
     // the cf reader always creates 4D data, but some other tools choke
     // on it, notably ParView. All dimensions of 1 are safe to skip, unless
     // we are writing a variable with 1 value.
