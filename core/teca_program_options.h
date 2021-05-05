@@ -1,6 +1,8 @@
 #ifndef teca_program_options_h
 #define teca_program_options_h
 
+/// @file
+
 #include "teca_config.h"
 #include "teca_common.h"
 #include "teca_mpi_util.h"
@@ -15,25 +17,21 @@ namespace boost
     }
 };
 
-using options_description
-    = boost::program_options::options_description;
+using options_description = boost::program_options::options_description;
+using variables_map = boost::program_options::variables_map;
 
-using variables_map
-    = boost::program_options::variables_map;
+/// initialize the given options description with algorithm's properties
+#define TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()                         \
+                                                                            \
+    /** Adds the class algorithm properties to the description object */    \
+    void get_properties_description(const std::string &prefix,              \
+        boost::program_options::options_description &opts) override;        \
 
-// initialize the given options description
-// with algorithm's properties
-#define TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION() \
-    void get_properties_description(                \
-        const std::string &prefix,                  \
-        options_description &opts) override;        \
-
-// initialize the algorithm from the given options
-// variable map.
-#define TECA_SET_ALGORITHM_PROPERTIES()             \
-    void set_properties(                            \
-        const std::string &prefix,                  \
-        variables_map &opts) override;              \
+/// initialize the algorithm from the given options variable map.
+#define TECA_SET_ALGORITHM_PROPERTIES()                                     \
+    /** Sets the class algorithm properties from the map object */          \
+    void set_properties(const std::string &prefix,                          \
+        boost::program_options::variables_map &opts) override;              \
 
 // helpers for implementation dealing with Boost
 // program options. NOTE: because the above declarations

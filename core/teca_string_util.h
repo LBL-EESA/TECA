@@ -1,6 +1,8 @@
 #ifndef teca_string_util_h
 #define teca_string_util_h
 
+/// @file
+
 #include "teca_common.h"
 
 #include <cstdlib>
@@ -10,24 +12,28 @@
 #include <vector>
 #include <set>
 
+/// Codes for dealing with string processing
 namespace teca_string_util
 {
-// convert the characters between the first and second double
-// quote to a std::string. Escaped characters are skipped. Return
-// 0 if successful.
+/** Convert the characters between the first and second double
+ * quote to a std::string. Escaped characters are skipped. Return
+ * 0 if successful.
+ */
 int extract_string(const char *istr, std::string &field);
 
-// scan the input string (istr) for the given a delimiter (delim). push a pointer
-// to the first non-delimiter character and the first character after each
-// instance of the delimiter.  return zero if successful. when successful there
-// will be at least one value.
+/** Scan the input string (istr) for the given a delimiter (delim). push a pointer
+ * to the first non-delimiter character and the first character after each
+ * instance of the delimiter.  return zero if successful. when successful there
+ * will be at least one value.
+ */
 int tokenize(char *istr, char delim, int n_cols, char **ostr);
 
 
-// scan the input string (istr) for the given a delimiter (delim). push a point
-// to the first non-delimiter character and the first character after each
-// instance of the delimiter.  return zero if successful. when successful there
-// will be at least one value.
+/** Scan the input string (istr) for the given a delimiter (delim). push a point
+ * to the first non-delimiter character and the first character after each
+ * instance of the delimiter.  return zero if successful. when successful there
+ * will be at least one value.
+ */
 template <typename container_t = std::vector<char*>>
 int tokenize(char *istr, char delim, container_t &ostr)
 {
@@ -63,8 +69,9 @@ int tokenize(char *istr, char delim, container_t &ostr)
     return 0;
 }
 
-// skip space, tabs, and new lines.  return non-zero if the end of the string
-// is reached before a non-pad character is encountered
+/** Skip space, tabs, and new lines.  return non-zero if the end of the string
+ * is reached before a non-pad character is encountered
+ */
 inline
 int skip_pad(char *&buf)
 {
@@ -74,7 +81,7 @@ int skip_pad(char *&buf)
     return *buf == '\0' ? -1 : 0;
 }
 
-// return 0 if the first non-pad character is #
+/// return 0 if the first non-pad character is #
 inline
 int is_comment(char *buf)
 {
@@ -84,17 +91,17 @@ int is_comment(char *buf)
     return 0;
 }
 
-/// @cond
-
+/// A traits class for scanf conversion codes.
 template <typename num_t>
 struct scanf_tt {};
 
-#define DECLARE_SCANF_TT(_CPP_T, _FMT_STR)      \
-template<>                                      \
-struct scanf_tt<_CPP_T>                         \
-{                                               \
-    static                                      \
-    const char *format() { return _FMT_STR; }   \
+#define DECLARE_SCANF_TT(_CPP_T, _FMT_STR)                              \
+template<>                                                              \
+/** A traits class for scanf conversion codes, specialized fo _CPP_T */ \
+struct scanf_tt<_CPP_T>                                                 \
+{                                                                       \
+    static                                                              \
+    const char *format() { return _FMT_STR; }                           \
 };
 DECLARE_SCANF_TT(float," %g")
 DECLARE_SCANF_TT(double," %lg")
@@ -110,63 +117,66 @@ DECLARE_SCANF_TT(unsigned long, " %lu")
 DECLARE_SCANF_TT(unsigned long long, "%llu")
 DECLARE_SCANF_TT(std::string, " \"%128s")
 
+/// A traits class for conversion from text to numbers
 template <typename T>
 struct string_tt {};
 
-#define DECLARE_STR_CONVERSION_I(_CPP_T, _FUNC)                 \
-template <>                                                     \
-struct string_tt<_CPP_T>                                        \
-{                                                               \
-    static const char *type_name() { return # _CPP_T; }         \
-                                                                \
-    static int convert(char *str, _CPP_T &val)                  \
-    {                                                           \
-        errno = 0;                                              \
-        char *endp = nullptr;                                   \
-        _CPP_T tmp = _FUNC(str, &endp, 0);                      \
-        if (errno != 0)                                         \
-        {                                                       \
-            TECA_ERROR("Failed to convert string \""            \
-                << str << "\" to a nunber." << strerror(errno)) \
-            return  -1;                                         \
-        }                                                       \
-        else if (endp == str)                                   \
-        {                                                       \
-            TECA_ERROR("Failed to convert string \""            \
-                << str << "\" to a nunber. Invalid string.")    \
-            return  -1;                                         \
-        }                                                       \
-        val = tmp;                                              \
-        return 0;                                               \
-    }                                                           \
+#define DECLARE_STR_CONVERSION_I(_CPP_T, _FUNC)                                     \
+/** A traits class for conversion from text to numbers, specialized for _CPP_T */   \
+template <>                                                                         \
+struct string_tt<_CPP_T>                                                            \
+{                                                                                   \
+    static const char *type_name() { return # _CPP_T; }                             \
+                                                                                    \
+    static int convert(char *str, _CPP_T &val)                                      \
+    {                                                                               \
+        errno = 0;                                                                  \
+        char *endp = nullptr;                                                       \
+        _CPP_T tmp = _FUNC(str, &endp, 0);                                          \
+        if (errno != 0)                                                             \
+        {                                                                           \
+            TECA_ERROR("Failed to convert string \""                                \
+                << str << "\" to a nunber." << strerror(errno))                     \
+            return  -1;                                                             \
+        }                                                                           \
+        else if (endp == str)                                                       \
+        {                                                                           \
+            TECA_ERROR("Failed to convert string \""                                \
+                << str << "\" to a nunber. Invalid string.")                        \
+            return  -1;                                                             \
+        }                                                                           \
+        val = tmp;                                                                  \
+        return 0;                                                                   \
+    }                                                                               \
 };
 
-#define DECLARE_STR_CONVERSION_F(_CPP_T, _FUNC)                 \
-template <>                                                     \
-struct string_tt<_CPP_T>                                        \
-{                                                               \
-    static const char *type_name() { return # _CPP_T; }         \
-                                                                \
-    static int convert(const char *str, _CPP_T &val)            \
-    {                                                           \
-        errno = 0;                                              \
-        char *endp = nullptr;                                   \
-        _CPP_T tmp = _FUNC(str, &endp);                         \
-        if (errno != 0)                                         \
-        {                                                       \
-            TECA_ERROR("Failed to convert string \""            \
-                << str << "\" to a nunber." << strerror(errno)) \
-            return  -1;                                         \
-        }                                                       \
-        else if (endp == str)                                   \
-        {                                                       \
-            TECA_ERROR("Failed to convert string \""            \
-                << str << "\" to a nunber. Invalid string.")    \
-            return  -1;                                         \
-        }                                                       \
-        val = tmp;                                              \
-        return 0;                                               \
-    }                                                           \
+#define DECLARE_STR_CONVERSION_F(_CPP_T, _FUNC)                                     \
+/** A traits class for conversion from text to numbers, specialized for _CPP_T */   \
+template <>                                                                         \
+struct string_tt<_CPP_T>                                                            \
+{                                                                                   \
+    static const char *type_name() { return # _CPP_T; }                             \
+                                                                                    \
+    static int convert(const char *str, _CPP_T &val)                                \
+    {                                                                               \
+        errno = 0;                                                                  \
+        char *endp = nullptr;                                                       \
+        _CPP_T tmp = _FUNC(str, &endp);                                             \
+        if (errno != 0)                                                             \
+        {                                                                           \
+            TECA_ERROR("Failed to convert string \""                                \
+                << str << "\" to a nunber." << strerror(errno))                     \
+            return  -1;                                                             \
+        }                                                                           \
+        else if (endp == str)                                                       \
+        {                                                                           \
+            TECA_ERROR("Failed to convert string \""                                \
+                << str << "\" to a nunber. Invalid string.")                        \
+            return  -1;                                                             \
+        }                                                                           \
+        val = tmp;                                                                  \
+        return 0;                                                                   \
+    }                                                                               \
 };
 
 DECLARE_STR_CONVERSION_F(float, strtof)
@@ -177,6 +187,7 @@ DECLARE_STR_CONVERSION_I(int, strtol)
 DECLARE_STR_CONVERSION_I(long, strtoll)
 DECLARE_STR_CONVERSION_I(long long, strtoll)
 
+/// A traits class for conversion from text to numbers, specialized for bool
 template <>
 struct string_tt<bool>
 {
@@ -209,6 +220,7 @@ struct string_tt<bool>
     }
 };
 
+/// A traits class for conversion from text to numbers, specialized for std::string
 template <>
 struct string_tt<std::string>
 {
@@ -221,8 +233,9 @@ struct string_tt<std::string>
     }
 };
 
-
-// watch out for memory leak, val needs to be free'd
+/** A traits class for conversion from text to numbers, specialized for char*
+ * watch out for memory leak, val needs to be free'd
+ */
 template <>
 struct string_tt<char*>
 {
@@ -235,9 +248,10 @@ struct string_tt<char*>
     }
 };
 
-// extract the value in a "name = value" pair.
-// an error occurs if splitting the input on '=' doesn't produce 2 tokens
-// or if the conversion to val_t fails. returns 0 if successful.
+/** Extract the value in a "name = value" pair.
+ * an error occurs if splitting the input on '=' doesn't produce 2 tokens
+ * or if the conversion to val_t fails. returns 0 if successful.
+ */
 template <typename val_t>
 int extract_value(char *l, val_t &val)
 {
@@ -274,5 +288,3 @@ inline std::string emptystr(const std::string &in)
 }
 
 #endif
-
-/// @endcond

@@ -1,21 +1,22 @@
 #ifndef teca_numerics_h
 #define teca_numerics_h
 
+/// @file
+
 #include "teca_mesh.h"
 #include <string>
 #include <vector>
 
-// this namespace contains numeric code that could be reused
-// by teca_derived_quantity
+/// Numeric code that could be reused by teca_derived_quantity
 namespace teca_derived_quantity_numerics
 {
-// an execute function designed for use with teca_derived_quantity
-// on a teca_mesh. shallow copies the input and computes the
-// point-wise average of the named variables.
-//
-// for every i
-// avg[i] = (v0[i] + v1[i])/2
-//
+/** an execute function designed for use with teca_derived_quantity
+ *  on a teca_mesh. shallow copies the input and computes the
+ *  point-wise average of the named variables.
+ *
+ *  for every i
+ *  avg[i] = (v0[i] + v1[i])/2
+ */
 struct point_wise_average
 {
     // construct the class with two input array names, v0,v1
@@ -70,12 +71,12 @@ struct point_wise_average
     std::string m_avg; // output variable name
 };
 
-// an execute function designed for use with teca_derived_quantity
-// on a teca_mesh. compute the point-wise difference of two variables
-//
-// for every i
-// diff[i] = v1[i] - v0[i]
-//
+/**  an execute function designed for use with teca_derived_quantity
+ *  on a teca_mesh. compute the point-wise difference of two variables
+ *
+ *  for every i
+ *  diff[i] = v1[i] - v0[i]
+ */
 struct point_wise_difference
 {
     // construct the class with two input array names, v0,v1

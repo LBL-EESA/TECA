@@ -2,7 +2,7 @@
 
 #include "teca_common.h"
 #if defined(TECA_HAS_UDUNITS)
-#include "calcalcs.h"
+#include "teca_calcalcs.h"
 #endif
 
 #include <string>
@@ -37,7 +37,7 @@ int time_step_of(const const_p_teca_variant_array &time,
 
     // apply calendaring to get a time offset
     double t = 0.0;
-    if (calcalcs::coordinate(Y, M, D, h, m, s,
+    if (teca_calcalcs::coordinate(Y, M, D, h, m, s,
         units.c_str(), calendar.c_str(), &t))
     {
         TECA_ERROR("failed to convert date \"" << date
@@ -92,10 +92,10 @@ int time_to_string(double val, const std::string &calendar,
   const std::string &units, const std::string &format, std::string &date)
 {
 #if defined(TECA_HAS_UDUNITS)
-    // use calcalcs to convert val to a set of year/month/day/etc.
+    // use teca_calcalcs to convert val to a set of year/month/day/etc.
     struct tm timedata = {};
     double seconds = 0.0;
-    if (calcalcs::date(val, &timedata.tm_year, &timedata.tm_mon,
+    if (teca_calcalcs::date(val, &timedata.tm_year, &timedata.tm_mon,
         &timedata.tm_mday, &timedata.tm_hour, &timedata.tm_min, &seconds,
         units.c_str(), calendar.c_str()))
     {

@@ -17,7 +17,7 @@
 #include <boost/program_options.hpp>
 #endif
 #if defined(TECA_HAS_UDUNITS)
-#include "calcalcs.h"
+#include "teca_calcalcs.h"
 #endif
 #if defined(TECA_HAS_MPI)
 #include <mpi.h>

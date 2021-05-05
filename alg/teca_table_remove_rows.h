@@ -41,17 +41,27 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // set the expression to use to determine which rows
-    // are removed. rows are removed where the expression
-    // evaluates true.
+    /** @name mask_expression
+     * set the expression to use to determine which rows are removed. rows are
+     * removed where the expression evaluates true.
+     */
+    ///@{
+    /// Set the mask expression
     void set_mask_expression(const std::string &expr);
 
+    /// Get the mask expression
     std::string get_mask_expression()
     { return this->mask_expression; }
+    ///@}
 
-    // when set columns used in the calculation are removed
-    // from the output. default off.
+    /** @name remove_dependent_variables
+     * when set columns used in the calculation are removed from the output.
+     * default off.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(int, remove_dependent_variables)
+    ///@}
+
 
 protected:
     teca_table_remove_rows();

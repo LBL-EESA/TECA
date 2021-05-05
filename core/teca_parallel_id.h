@@ -1,6 +1,8 @@
 #ifndef teca_parallel_id_h
 #define teca_parallel_id_h
 
+/// @file
+
 #include <iosfwd>
 
 /// A helper class for debug and error messages.

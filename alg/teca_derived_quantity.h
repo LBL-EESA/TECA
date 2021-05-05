@@ -3,7 +3,7 @@
 
 #include "teca_programmable_algorithm.h"
 #include "teca_metadata.h"
-#include "teca_dataset_fwd.h"
+#include "teca_dataset.h"
 #include "teca_shared_object.h"
 
 #include <string>
@@ -13,14 +13,13 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_derived_quantity)
 
 /// a programmable algorithm specialized for simple array based computations
 /**
-A programmable algorithm specialized for simple array based
-computations. A user provided callable(see set execute_callback)
-which operates on one or more arrays(the dependent variables) to
-produce a new array (the derived quantity). The purpose of this
-class is to implement the request and report phases of the pipeline
-consistently for this common use case. An implementation specific
-context(operation_name) differentiates between multiple instances
-in the same pipeline.
+ * A programmable algorithm specialized for simple array based computations. A
+ * user provided callable(see set execute_callback) which operates on one or more
+ * arrays(the dependent variables) to produce a new array (the derived quantity).
+ * The purpose of this class is to implement the request and report phases of the
+ * pipeline consistently for this common use case. An implementation specific
+ * context(operation_name) differentiates between multiple instances in the same
+pipeline.
 */
 class teca_derived_quantity : public teca_programmable_algorithm
 {

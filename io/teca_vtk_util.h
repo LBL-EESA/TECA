@@ -1,6 +1,8 @@
 #ifndef teca_vtk_util_h
 #define teca_vtk_util_h
 
+/// @file
+
 #include "teca_config.h"
 #include "teca_cartesian_mesh.h"
 
@@ -35,8 +37,13 @@ using vtkUnsignedLongLongArray = void*;
 class vtkRectilinearGrid;
 #endif
 
+
+/// Codes dealing with VTK
 namespace teca_vtk_util
 {
+
+/// @cond
+
 // traits class for naming and/or selecting
 // the VTK type given a C++ type
 template <typename T> struct vtk_tt {};
@@ -65,8 +72,9 @@ VTK_TT_SPEC(unsigned long, unsigned_long, vtkUnsignedLongArray, "%lu")
 VTK_TT_SPEC(long long, long_long, vtkLongLongArray, "%lli")
 VTK_TT_SPEC(unsigned long long, unsigned_long_long, vtkUnsignedLongLongArray, "%llu")
 
-// deep copy input mesh into the VTK object
-// return is 0 if successful
+/// @endcond
+
+/// deep copy input mesh into the VTK object. @returns 0 if successful
 int deep_copy(vtkRectilinearGrid *output,
     const_p_teca_cartesian_mesh input);
 

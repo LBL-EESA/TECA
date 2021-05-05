@@ -20,7 +20,7 @@
 #include "teca_table.h"
 #include "teca_dataset_source.h"
 #include "teca_app_util.h"
-#include "calcalcs.h"
+#include "teca_calcalcs.h"
 
 #include <vector>
 #include <string>

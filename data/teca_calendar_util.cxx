@@ -3,7 +3,7 @@
 #include "teca_common.h"
 #include "teca_variant_array.h"
 #include "teca_coordinate_util.h"
-#include "calcalcs.h"
+#include "teca_calcalcs.h"
 
 #include <algorithm>
 
@@ -104,7 +104,7 @@ time_point::time_point(long i, double t, const std::string &units,
     day(0), hour(0), minute(0), second(0)
 
 {
-    if (calcalcs::date(t, &this->year, &this->month, &this->day,
+    if (teca_calcalcs::date(t, &this->year, &this->month, &this->day,
         &this->hour, &this->minute, &this->second, units.c_str(),
         calendar.c_str()))
     {
@@ -247,7 +247,7 @@ int season_iterator::get_season_end(int y_in, int m_in, int &y_out,
         return -1;
     }
 
-    if (calcalcs::days_in_month(this->calendar.c_str(),
+    if (teca_calcalcs::days_in_month(this->calendar.c_str(),
         this->units.c_str(), y_out, m_out, d_out))
     {
         TECA_ERROR("Failed to get the last day of the month "
@@ -459,7 +459,7 @@ int year_iterator::get_next_interval(time_point &first_step,
 
     // find the time step of the last day
     int n_days = 0;
-    if (calcalcs::days_in_month(this->calendar.c_str(),
+    if (teca_calcalcs::days_in_month(this->calendar.c_str(),
         this->units.c_str(), this->year, 12, n_days))
     {
         TECA_ERROR("Failed to get the last day of the month "
@@ -585,7 +585,7 @@ int month_iterator::get_next_interval(time_point &first_step,
 
     // find the time step of the last day
     int n_days = 0;
-    if (calcalcs::days_in_month(this->calendar.c_str(),
+    if (teca_calcalcs::days_in_month(this->calendar.c_str(),
         this->units.c_str(), this->year, this->month, n_days))
     {
         TECA_ERROR("Failed to get the last day of the month "
@@ -739,7 +739,7 @@ int day_iterator::get_next_interval(time_point &first_step,
 
     // move to next day
     int n_days = 0;
-    if (calcalcs::days_in_month(this->calendar.c_str(),
+    if (teca_calcalcs::days_in_month(this->calendar.c_str(),
         this->units.c_str(), this->year, this->month, n_days))
     {
         TECA_ERROR("Failed to get the last day of the month "

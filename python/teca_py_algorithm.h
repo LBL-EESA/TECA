@@ -1,6 +1,8 @@
 #ifndef teca_py_algorithm_h
 #define teca_py_algorithm_h
 
+/// @file
+
 #include "teca_metadata.h"
 #include "teca_dataset.h"
 #include "teca_py_object.h"
@@ -10,10 +12,10 @@
 #include <Python.h>
 #include <vector>
 
-
-// we are going to be overly verbose in an effort to help
-// the user debug their code. package this up for use in all
-// the callbacks.
+/** Reports an error from a user provided callback.  We are going to be overly
+ * verbose in an effort to help the user debug their code. package this up for
+ * use in all the callbacks.
+ */
 #define TECA_PY_CALLBACK_ERROR(_phase, _cb_obj)             \
     {                                                       \
     PyObject *cb_str = PyObject_Str(_cb_obj);               \
@@ -29,19 +31,21 @@
     Py_XDECREF(cb_str);                                     \
     }
 
+/// Codes for briding teca_algorithm to Python
 namespace teca_py_algorithm
 {
 /// wrapper for report_callback phase callback
-/** Manages a python callback for use during the report_callback phase of
-pipeline execution. In addition to holding the callback it handles translation
-of the input and output arguments.
-
-the python function must accept the following arguments:
-
-   port - an integer set to the active port number
-   input_md - a list of metadata objects one per input connection
-
-it must return: a teca_metadata object.
+/**
+ * Manages a python callback for use during the report_callback phase of
+ * pipeline execution. In addition to holding the callback it handles translation
+ * of the input and output arguments.
+ *
+ * the python function must accept the following arguments:
+ *
+ * > port - an integer set to the active port number
+ * > input_md - a list of metadata objects one per input connection
+ *
+ * it must return: a teca_metadata object.
 */
 class report_callback
 {
@@ -107,11 +111,11 @@ private:
     teca_py_object::teca_py_callable m_callback;
 };
 
-/// wrapper for request phase callback
+/// A wrapper for the request phase callback.
 /** Manages a python callback for use during the request phase of pipeline
-execution. In addition to holding the callback it handles translation of the
-input and output arguments.
-*/
+ * execution. In addition to holding the callback it handles translation of the
+ *input and output arguments.
+ */
 class request_callback
 {
 public:
@@ -199,18 +203,18 @@ private:
 
 /// wrapper for execute_callback phase callback
 /** Manages a python callback for use during the execute_callback phase of
-pipeline execution. In addition to holding the callback it handles translation
-of the input and output arguments.
-
-the python function must accept the following arguments:
-
-   port - an integer set to the active port number
-   input_data - a list of datasets objects one per input connection,
-        per upstream request
-   request - a metadata object containing the request
-
-it must return: a teca_dataset object.
-*/
+ * pipeline execution. In addition to holding the callback it handles translation
+ * of the input and output arguments.
+ *
+ * the python function must accept the following arguments:
+ *
+ * >  port - an integer set to the active port number
+ * >  input_data - a list of datasets objects one per input connection,
+ * >               per upstream request
+ * >  request - a metadata object containing the request
+ *
+ * it must return: a teca_dataset object.
+ */
 class execute_callback
 {
 public:
@@ -292,18 +296,18 @@ private:
 
 /// wrapper for execute_callback phase callback
 /** Manages a python callback for use during the execute_callback phase of
-pipeline execution. In addition to holding the callback it handles translation
-of the input and output arguments.
-
-the python function must accept the following arguments:
-
-   port - an integer set to the active port number
-   input_data - a list of datasets objects one per input connection,
-        per upstream request
-   request - a metadata object containing the request
-   streaming - flag indicating when processing is finished
-
-it must return: a teca_dataset object.
+ * pipeline execution. In addition to holding the callback it handles translation
+ * of the input and output arguments.
+ *
+ * the python function must accept the following arguments:
+ *
+ * >  port - an integer set to the active port number
+ * >  input_data - a list of datasets objects one per input connection,
+ * >               per upstream request
+ * >  request - a metadata object containing the request
+ * >  streaming - flag indicating when processing is finished
+ *
+ * it must return: a teca_dataset object.
 */
 class threaded_execute_callback
 {
@@ -386,12 +390,12 @@ private:
 
 /// wrapper for reduce_callback of the programmable reduction
 /**
-Manages a python callback for use during a programmable reduction. In addition
-to holding the callback it handles translation of the input and output
-arguments.
-
-the python function must accept the two datasets to reduce and return the
-reduced data
+ * Manages a python callback for use during a programmable reduction. In addition
+ * to holding the callback it handles translation of the input and output
+ * arguments.
+ *
+ * the python function must accept the two datasets to reduce and return the
+ * reduced data
 */
 class reduce_callback
 {
@@ -486,12 +490,12 @@ private:
 
 /// wrapper for finalize_callback of the programmable reduction
 /**
-Manages a python callback for use during a programmable reduction. In addition
-to holding the callback it handles translation of the input and output
-arguments.
-
-the python function must accept the dataset to finalize and return the
-finalized data
+ * Manages a python callback for use during a programmable reduction. In addition
+ * to holding the callback it handles translation of the input and output
+ * arguments.
+ *
+ * the python function must accept the dataset to finalize and return the
+ * finalized data
 */
 class finalize_callback
 {

@@ -2,9 +2,11 @@
 #define teca_threaded_algorithm_h
 
 #include "teca_algorithm.h"
-#include "teca_threaded_algorithm_fwd.h"
-#include "teca_algorithm_output_port.h"
 #include "teca_dataset.h"
+#include "teca_shared_object.h"
+
+#include <thread>
+#include <future>
 
 template <typename task_t, typename data_t>
 class teca_thread_pool;
@@ -12,18 +14,27 @@ class teca_thread_pool;
 class teca_metadata;
 class teca_threaded_algorithm_internals;
 
-#include <thread>
-#include <future>
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_threaded_algorithm)
 
-// declare the thread pool type
+/// Task type for tasks returing a pointer to teca_dataset
 using teca_data_request_task = std::packaged_task<const_p_teca_dataset()>;
 
 class teca_data_request;
+
+/// A thread pool for processing teca_data_request_task
 using teca_data_request_queue =
     teca_thread_pool<teca_data_request_task, const_p_teca_dataset>;
 
+/// A pointer to teca_data_request_queue
 using p_teca_data_request_queue = std::shared_ptr<teca_data_request_queue>;
 
+/** Allocate and initialize a new thread pool.
+ * comm [in] The communicator to allocate thread across
+ * n [in] The number of threads to create per MPI rank. Use -1 to
+ *        map one thread per physical core on each node.
+ * bind [in] If set then thread will be bound to a specific core.
+ * verbose [in] If set then the mapping is sent to the stderr
+ */
 p_teca_data_request_queue new_teca_data_request_queue(MPI_Comm comm,
     int n, bool bind, bool verbose);
 
@@ -45,29 +56,46 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // set/get the number of threads in the pool. setting
-    // to -1 results in a thread per core factoring in all MPI
-    // ranks running on the node. the default is -1.
+    /** Set the number of threads in the pool. setting to -1 results in a
+     * thread per core factoring in all MPI ranks running on the node.
+     */
     void set_thread_pool_size(int n_threads);
+
+    /// Get the number of threads in the pool.
     unsigned int get_thread_pool_size() const noexcept;
 
-    // set/get the verbosity level.
-    TECA_ALGORITHM_PROPERTY(int, verbose);
+    /** @name verbose
+     * set/get the verbosity level.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, verbose)
+    ///@}
 
-    // set/get thread affinity mode. When 0 threads are not bound
-    // CPU cores, allowing for migration among all cores. This will
-    // likely degrade performance. Default is 1.
-    TECA_ALGORITHM_PROPERTY(int, bind_threads);
+    /** @name bind_threads
+     * set/get thread affinity mode. When 0 threads are not bound CPU cores,
+     * allowing for migration among all cores. This will likely degrade
+     * performance. Default is 1.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, bind_threads)
+    ///@}
 
-    // set the smallest number of datasets to gather per call to
-    // execute. the default (-1) results in all datasets being
-    // gathered. In practice more datasets will be returned if
-    // ready
-    TECA_ALGORITHM_PROPERTY(int, stream_size);
+    /** @name stream_size
+     * set the smallest number of datasets to gather per call to execute. the
+     * default (-1) results in all datasets being gathered. In practice more
+     * datasets will be returned if ready
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, stream_size)
+    ///@}
 
-    // set the duration in nanoseconds to wait between checking
-    // for completed tasks
-    TECA_ALGORITHM_PROPERTY(long long, poll_interval);
+    /** @name poll_interval
+     * set the duration in nanoseconds to wait between checking for completed
+     * tasks
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(long long, poll_interval)
+    ///@}
 
     // explicitly set the thread pool to submit requests to
     void set_data_request_queue(const p_teca_data_request_queue &queue);

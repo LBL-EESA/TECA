@@ -41,18 +41,32 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // set/get the expression to evaluate
+    /** @name expression
+     * Set the expression to evaluate.
+     */
+    ///@{
+    /// Set the expression.
     void set_expression(const std::string &expr);
 
+    /// Get the expression.
     std::string get_expression()
     { return this->expression; }
+    ///@}
 
-    // set the name of the variable to store the result in
-    TECA_ALGORITHM_PROPERTY(std::string, result_variable);
+    /** @name result_variable
+     * set the name of the variable to store the result in
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(std::string, result_variable)
+    ///@}
 
-    // when set columns used in the calculation are removed
-    // from the output. default off.
+    /** @name remove_dependent_variables
+     * when set columns used in the calculation are removed from the output.
+     * default off.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(int, remove_dependent_variables)
+    ///@}
 
 protected:
     teca_evaluate_expression();

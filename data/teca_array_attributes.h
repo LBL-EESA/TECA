@@ -8,7 +8,7 @@
 
 /** @brief
  * A convenience container for conventional array attributes necessary and/or
- * useful when producing NetCDF CF format files using the @ref teca_cf_writer.
+ * useful when producing NetCDF CF format files using the teca_cf_writer.
  *
  * @details
  *

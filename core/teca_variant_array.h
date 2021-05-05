@@ -1,6 +1,8 @@
 #ifndef teca_variant_array_h
 #define teca_variant_array_h
 
+/// @file
+
 #include <vector>
 #include <string>
 #include <sstream>
@@ -14,24 +16,273 @@
 
 #include "teca_common.h"
 #include "teca_binary_stream.h"
-#include "teca_variant_array_fwd.h"
 #include "teca_bad_cast.h"
+#include "teca_shared_object.h"
 
-// tag for ops on POD data
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_variant_array)
+TECA_SHARED_OBJECT_TEMPLATE_FORWARD_DECL(teca_variant_array_impl)
+
+#ifndef SWIG
+using teca_string_array = teca_variant_array_impl<std::string>;
+using p_teca_string_array = std::shared_ptr<teca_variant_array_impl<std::string>>;
+using const_p_teca_string_array = std::shared_ptr<const teca_variant_array_impl<std::string>>;
+
+using teca_float_array = teca_variant_array_impl<float>;
+using p_teca_float_array = std::shared_ptr<teca_variant_array_impl<float>>;
+using const_p_teca_float_array = std::shared_ptr<const teca_variant_array_impl<float>>;
+
+using teca_double_array = teca_variant_array_impl<double>;
+using p_teca_double_array = std::shared_ptr<teca_variant_array_impl<double>>;
+using const_p_teca_double_array = std::shared_ptr<const teca_variant_array_impl<double>>;
+
+using teca_char_array = teca_variant_array_impl<char>;
+using p_teca_char_array = std::shared_ptr<teca_variant_array_impl<char>>;
+using const_p_teca_char_array = std::shared_ptr<const teca_variant_array_impl<char>>;
+
+using teca_unsigned_char_array = teca_variant_array_impl<unsigned char>;
+using p_teca_unsigned_char_array = std::shared_ptr<teca_variant_array_impl<unsigned char>>;
+using const_p_teca_unsigned_char_array = std::shared_ptr<const teca_variant_array_impl<unsigned char>>;
+
+using teca_short_array = teca_variant_array_impl<short>;
+using p_teca_short_array = std::shared_ptr<teca_variant_array_impl<short>>;
+using const_p_teca_short_array = std::shared_ptr<const teca_variant_array_impl<short>>;
+
+using teca_unsigned_short_array = teca_variant_array_impl<unsigned short>;
+using p_teca_unsigned_short_array = std::shared_ptr<teca_variant_array_impl<unsigned short>>;
+using const_p_teca_unsigned_short_array = std::shared_ptr<const teca_variant_array_impl<unsigned short>>;
+
+using teca_int_array = teca_variant_array_impl<int>;
+using p_teca_int_array = std::shared_ptr<teca_variant_array_impl<int>>;
+using const_p_teca_int_array = std::shared_ptr<const teca_variant_array_impl<int>>;
+
+using teca_unsigned_int_array = teca_variant_array_impl<unsigned int>;
+using p_teca_unsigned_int_array = std::shared_ptr<teca_variant_array_impl<unsigned int>>;
+using const_p_teca_unsigned_int_array = std::shared_ptr<const teca_variant_array_impl<unsigned int>>;
+
+using teca_long_array = teca_variant_array_impl<long>;
+using p_teca_long_array = std::shared_ptr<teca_variant_array_impl<long>>;
+using const_p_teca_long_array = std::shared_ptr<const teca_variant_array_impl<long>>;
+
+using teca_unsigned_long_array = teca_variant_array_impl<unsigned long>;
+using p_teca_unsigned_long_array = std::shared_ptr<teca_variant_array_impl<unsigned long>>;
+using const_p_teca_unsigned_long_array = std::shared_ptr<const teca_variant_array_impl<unsigned long>>;
+
+using teca_long_long_array = teca_variant_array_impl<long long>;
+using p_teca_long_long_array = std::shared_ptr<teca_variant_array_impl<long long>>;
+using const_p_teca_long_long_array = std::shared_ptr<const teca_variant_array_impl<long long>>;
+
+using teca_unsigned_long_long_array = teca_variant_array_impl<unsigned long long>;
+using p_teca_unsigned_long_long_array = std::shared_ptr<teca_variant_array_impl<unsigned long long>>;
+using const_p_teca_unsigned_long_long_array = std::shared_ptr<const teca_variant_array_impl<unsigned long long>>;
+
+using teca_size_t_array = teca_variant_array_impl<size_t>;
+using p_teca_size_t_array = std::shared_ptr<teca_variant_array_impl<size_t>>;
+using const_p_teca_size_t_array = std::shared_ptr<const teca_variant_array_impl<size_t>>;
+#endif
+
+/** this is a convenience macro to be used to declare a static
+ * New method that will be used to construct new objects in
+ * shared_ptr's. This manages the details of interoperability
+ * with std C++11 shared pointer
+ */
+#define TECA_VARIANT_ARRAY_STATIC_NEW(T, t)                             \
+                                                                        \
+/** Allocate a T<t> */                                                  \
+static std::shared_ptr<T<t>> New()                                      \
+{                                                                       \
+    return std::shared_ptr<T<t>>(new T<t>);                             \
+}                                                                       \
+                                                                        \
+/** Allocate a T<t> of size n */                                        \
+static std::shared_ptr<T<t>> New(size_t n)                              \
+{                                                                       \
+    return std::shared_ptr<T<t>>(new T<t>(n));                          \
+}                                                                       \
+                                                                        \
+/** Allocate a T<t> of size n initialized with v */                     \
+static std::shared_ptr<T<t>> New(size_t n, const t &v)                  \
+{                                                                       \
+    return std::shared_ptr<T<t>>(new T<t>(n, v));                       \
+}                                                                       \
+                                                                        \
+/** Allocate a T<t> initialized with n values from vals */              \
+static std::shared_ptr<T<t>> New(const t *vals, size_t n)               \
+{                                                                       \
+    return std::shared_ptr<T<t>>(new T<t>(vals, n));                    \
+}                                                                       \
+                                                                        \
+using teca_variant_array::shared_from_this;                             \
+                                                                        \
+std::shared_ptr<T> shared_from_this()                                   \
+{                                                                       \
+    return std::static_pointer_cast<T>(shared_from_this());             \
+}                                                                       \
+                                                                        \
+std::shared_ptr<T const> shared_from_this() const                       \
+{                                                                       \
+    return std::static_pointer_cast<T const>(shared_from_this());       \
+}
+
+
+
+
+
+
+
+
+/// @cond
+/// A tag for dispatching operations on POD data
 template <typename T>
 struct pod_dispatch :
     std::integral_constant<bool,
     std::is_arithmetic<T>::value>
 {};
 
-// tag for ops on classes
+/// A tag for disp[atching operations on classes
 template <typename T>
 struct object_dispatch :
     std::integral_constant<bool,
     !std::is_arithmetic<T>::value>
 {};
+/// @endcond
+
+/** Executes the code in body if p is a tt<nt>
+ * @param tt     derived container
+ * @param nt     contained type
+ * @param p      base class pointer
+ * @param body   the code to execute if the type matches
+ *
+ * The following aliases are provided to know the type within the code to execute.
+ *
+ *     using TT = tt<nt>;
+ *     using NT = nt;
+ *
+ */
+#define TEMPLATE_DISPATCH_CASE(tt, nt, p, body) \
+    if (dynamic_cast<tt<nt>*>(p))               \
+    {                                           \
+        using TT = tt<nt>;                      \
+        using NT = nt;                          \
+        body                                    \
+    }
+
+/** Executes the code in body if p is a tt<nt> an idnetifier disambiguates type
+ * aliases  when nested
+ *
+ * @param tt     derived container
+ * @param nt     contained type
+ * @param p      base class pointer
+ * @param i      identifier
+ * @param body   the code to execute if the type matches
+ *
+ * The following aliases are provided to know the type within the code to execute.
+ *
+ *     using TT##i = tt<nt>;
+ *     using NT##i = nt;
+ *
+ */
+#define NESTED_TEMPLATE_DISPATCH_CASE(tt, nt, p, i, body)   \
+    if (dynamic_cast<tt<nt>*>(p))                           \
+    {                                                       \
+        using TT##i = tt<nt>;                               \
+        using NT##i = nt;                                   \
+        body                                                \
+    }
+
+/// Executes the code in body if p is a t<nt> where nt is a floating point type
+#define TEMPLATE_DISPATCH_FP(t, p, body)        \
+    TEMPLATE_DISPATCH_CASE(t, float, p, body)   \
+    else TEMPLATE_DISPATCH_CASE(t, double, p, body)
+
+/// Executes the code in body if p is a t<nt> where nt is a signed inetegral type
+#define TEMPLATE_DISPATCH_SI(t, p, body)                        \
+    TEMPLATE_DISPATCH_CASE(t, long long, p, body)               \
+    else TEMPLATE_DISPATCH_CASE(t, long, p, body)               \
+    else TEMPLATE_DISPATCH_CASE(t, int, p, body)                \
+    else TEMPLATE_DISPATCH_CASE(t, short int, p, body)          \
+    else TEMPLATE_DISPATCH_CASE(t, char, p, body)
+
+/// Executes the code in body if p is a t<nt> where nt is either a signed integral or floating point type
+#define TEMPLATE_DISPATCH_FP_SI(t, p, body)             \
+    TEMPLATE_DISPATCH_CASE(t, float, p, body)           \
+    else TEMPLATE_DISPATCH_CASE(t, double, p, body)     \
+    else TEMPLATE_DISPATCH_SI(t, p, body)
+
+/// Executes the code in body if p is a t<nt> where nt is an integral type
+#define TEMPLATE_DISPATCH_I(t, p, body)                         \
+    TEMPLATE_DISPATCH_CASE(t, long long, p, body)               \
+    else TEMPLATE_DISPATCH_CASE(t, unsigned long long, p, body) \
+    else TEMPLATE_DISPATCH_CASE(t, long, p, body)               \
+    else TEMPLATE_DISPATCH_CASE(t, int, p, body)                \
+    else TEMPLATE_DISPATCH_CASE(t, unsigned int, p, body)       \
+    else TEMPLATE_DISPATCH_CASE(t, unsigned long, p, body)      \
+    else TEMPLATE_DISPATCH_CASE(t, short int, p, body)          \
+    else TEMPLATE_DISPATCH_CASE(t, short unsigned int, p, body) \
+    else TEMPLATE_DISPATCH_CASE(t, char, p, body)               \
+    else TEMPLATE_DISPATCH_CASE(t, unsigned char, p, body)
+
+/** A macro for accessing the typed contents of a teca_variant_array
+ * @param t    container type
+ * @param p    pointer to an instance to match on
+ * @param body code to execute on match
+ *
+ * See #TEMPLATE_DISPATCH_CASE for details.
+ */
+#define TEMPLATE_DISPATCH(t, p, body)       \
+    TEMPLATE_DISPATCH_FP(t, p, body)        \
+    else TEMPLATE_DISPATCH_I(t, p, body)
+
+/** A macro for accessing the floating point typed contents of a teca_variant_array
+ * @param t    container type
+ * @param p    pointer to an instance to match on
+ * @param i    an indentifier to use with type aliases
+ * @param body code to execute on match
+ *
+ * See #NESTED_TEMPLATE_DISPATCH_CASE for details.
+ */
+#define NESTED_TEMPLATE_DISPATCH_FP(t, p, i, body)              \
+    NESTED_TEMPLATE_DISPATCH_CASE(t, float, p, i, body)         \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, double, p, i, body)
+
+/** A macro for accessing the inetgral typed contents of a teca_variant_array
+ * @param t    container type
+ * @param p    pointer to an instance to match on
+ * @param i    an indentifier to use with type aliases
+ * @param body code to execute on match
+ *
+ * See #NESTED_TEMPLATE_DISPATCH_CASE for details.
+ */
+#define NESTED_TEMPLATE_DISPATCH_I(t, p, i, body)                         \
+    NESTED_TEMPLATE_DISPATCH_CASE(t, long long, p, i, body)               \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, unsigned long long, p, i, body) \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, long, p, i, body)               \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, int, p, i, body)                \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, unsigned int, p, i, body)       \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, unsigned long, p, i, body)      \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, short int, p, i, body)          \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, short unsigned int, p, i, body) \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, char, p, i, body)               \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, unsigned char, p, i, body)
+
+/** \def NESTED_TEMPLATE_DISPATCH(t, p, i, body)
+ * A macro for accessing the typed contents of a teca_variant_array
+ * @param t    container type
+ * @param p    pointer to an instance to match on
+ * @param i    an indentifier to use with type aliases
+ * @param body code to execute on match
+ *
+ * See #NESTED_TEMPLATE_DISPATCH_CASE for details.
+ */
+#define NESTED_TEMPLATE_DISPATCH(t, p, i, body)     \
+    NESTED_TEMPLATE_DISPATCH_FP(t, p, i, body)      \
+    else NESTED_TEMPLATE_DISPATCH_I(t, p, i, body)
+
+
 
 /// A type agnostic container for array based data.
+/** See #TEMPLATE_DISPATCH and #NESTED_TEMPLATE_DISPATCH for details on how to
+ * apply type specific code to an instance of teca_variant_array.
+ */
 class teca_variant_array : public std::enable_shared_from_this<teca_variant_array>
 {
 public:
@@ -229,7 +480,7 @@ private:
 };
 
 
-
+/// @cond
 // tag for contiguous arrays, and objects that have
 // overrides in teca_binary_stream
 template<typename T>
@@ -256,57 +507,69 @@ struct pack_object
     !std::is_pointer<T>::value &&
     !pack_object_ptr<T>::value>
 {};
-
+/// @endcond
 
 
 /** @brief
- * The concrete implementation of our type agnostic container for simple
+ * The concrete implementation of our type agnostic container for contiguous
  * arrays.
  */
 template<typename T>
 class teca_variant_array_impl : public teca_variant_array
 {
 public:
-    // construct
+    /** @name Array constructors
+     * Constructs a new instance containing the templated type.
+     */
+    ///@{
     TECA_VARIANT_ARRAY_STATIC_NEW(teca_variant_array_impl, T)
 
-    // destruct
+    /// Returns a new instance initialized with a copy of this one.
+    p_teca_variant_array new_copy() const override;
+
+    /// Returns a new instance initialized with a copy of a subset of this one.
+    p_teca_variant_array new_copy(size_t start, size_t end) const override;
+
+    /// Returns a new instance of the same type.
+    p_teca_variant_array new_instance() const override;
+
+    /// Returns a new instance of the same type sized to hold n elements.
+    p_teca_variant_array new_instance(size_t n) const override;
+    ///@}
+
     virtual ~teca_variant_array_impl() noexcept;
 
-    // virtual constructor
-    p_teca_variant_array new_copy() const override;
-    p_teca_variant_array new_copy(size_t start, size_t end) const override;
-    p_teca_variant_array new_instance() const override;
-    p_teca_variant_array new_instance(size_t n) const override;
-
-    // return the name of the class in a human readable form
+    /// Returns the name of the class in a human readable form
     std::string get_class_name() const override;
 
-    // initialize with T()
+    /// Initialize all elements with T()
     void initialize() override;
 
-    // copy
+    /// Copy from the other array
     const teca_variant_array_impl<T> &
     operator=(const teca_variant_array_impl<T> &other);
 
+    /// Copy from the other array
     template<typename U>
     const teca_variant_array_impl<T> &
     operator=(const teca_variant_array_impl<U> &other);
 
-    // move
+    /// Move the contents of the other array
     teca_variant_array_impl(teca_variant_array_impl<T> &&other);
 
+    /// Move the contents of the other array
     const teca_variant_array_impl<T> &
     operator=(teca_variant_array_impl<T> &&other);
 
-    // get the ith value
+    /// Get the ith value
     T &get(unsigned long i)
     { return m_data[i]; }
 
+    /// Get the ith value
     const T &get(unsigned long i) const
     { return m_data[i]; }
 
-    // get the ith value
+    /// Get the ith value
     template<typename U>
     void get(unsigned long i, U &val) const;
 
@@ -315,29 +578,27 @@ public:
     template<typename U>
     void get(size_t start, size_t end, U *vals) const;
 
-    // copy the data out into the passed in vector
+    /// Copy the data out into the passed in vector
     template<typename U>
     void get(std::vector<U> &val) const;
 
-    // pointer to the data
+    /// Get a pointer to the data
     T *get(){ return &m_data[0]; }
     const T *get() const { return &m_data[0]; }
 
-    // set the ith value
+    /// Set the ith value
     template<typename U>
     void set(unsigned long i, const U &val);
 
-    // set a range of values described by [start end]
-    // inclusive
+    /// Set a range of values described by [start end] inclusive
     template<typename U>
     void set(size_t start, size_t end, const U *vals);
 
-    // copy data, replacing contents with the passed in
-    // vector
+    /// Copy data, replacing contents with the passed in vector
     template<typename U>
     void set(const std::vector<U> &val);
 
-    // insert from the passed in vector at the back
+    /// Insert from the passed in vector at the back
     template<typename U>
     void append(const std::vector<U> &val);
 
@@ -345,54 +606,57 @@ public:
     template<typename U>
     void append(const U &val);
 
-    // get the current size of the data
+    /// Get the current size of the data
     virtual unsigned long size() const noexcept override;
 
-    // resize the data
+    /// Resize the data
     virtual void resize(unsigned long n) override;
     void resize(unsigned long n, const T &val);
 
-    // reserve space
+    /// Reserve space
     virtual void reserve(unsigned long n) override;
 
-    // clear the data
+    /// Clear the data
     virtual void clear() noexcept override;
 
-    // copy. This method is not virtual so that
-    // string can be handled as a special case in
-    // the base class.
+    /** copy. This method is not virtual so that string can be handled as a
+     * special case in the base class.
+     */
     void copy(const teca_variant_array &other);
 
-    // append. This method is not virtual so that
-    // string can be handled as a special case in
-    // the base class.
+    /** append. This method is not virtual so that
+     * string can be handled as a special case in the base class.
+     */
     void append(const teca_variant_array &other);
 
-    // virtual swap
+    /// virtual swap
     void swap(teca_variant_array &other) override;
 
-    // virtual equivalence test
+    /// virtual equivalence test
     bool equal(const teca_variant_array &other) const override;
 
-    // serialize to/from stream
+    /// Serialize to the stream
     int to_stream(teca_binary_stream &s) const override
     {
         this->to_binary<T>(s);
         return 0;
     }
 
+    /// Deserialize from the stream
     int from_stream(teca_binary_stream &s) override
     {
         this->from_binary<T>(s);
         return 0;
     }
 
+    /// Serialize to the stream
     int to_stream(std::ostream &s) const override
     {
         this->to_ascii<T>(s);
         return 0;
     }
 
+    /// Deserialize from the stream
     int from_stream(std::ostream &s) override
     {
         this->from_ascii<T>(s);
@@ -496,120 +760,8 @@ private:
     template<typename U> friend class teca_variant_array_impl;
 };
 
-// @cond
-
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
 #pragma GCC diagnostic ignored "-Wunused-local-typedefs"
-
-// tt - derived container
-// nt - contained type
-// tt<nt> - complete derived type
-// p - base class pointer
-// body - code to execute
-#define TEMPLATE_DISPATCH_CASE(tt, nt, p, body) \
-    if (dynamic_cast<tt<nt>*>(p))               \
-    {                                           \
-        using TT = tt<nt>;                      \
-        using NT = nt;                          \
-        body                                    \
-    }
-
-// tt - derived container
-// nt - contained type
-// tt<nt> - complete derived type
-// p - base class pointer
-// i - id suffix
-// body - code to execute
-#define NESTED_TEMPLATE_DISPATCH_CASE(tt, nt, p, i, body)   \
-    if (dynamic_cast<tt<nt>*>(p))                           \
-    {                                                       \
-        using TT##i = tt<nt>;                               \
-        using NT##i = nt;                                   \
-        body                                                \
-    }
-
-// variant that limits dispatch to floating point types
-// for use in numerical compuatation where integer types
-// are not supported (ie, math operations from std library)
-#define TEMPLATE_DISPATCH_FP(t, p, body)        \
-    TEMPLATE_DISPATCH_CASE(t, float, p, body)   \
-    else TEMPLATE_DISPATCH_CASE(t, double, p, body)
-
-// variant that limits dispatch to signed integer types
-// for use in numerical compuatation where signed integer types
-// are not supported
-#define TEMPLATE_DISPATCH_SI(t, p, body)                        \
-    TEMPLATE_DISPATCH_CASE(t, long long, p, body)               \
-    else TEMPLATE_DISPATCH_CASE(t, long, p, body)               \
-    else TEMPLATE_DISPATCH_CASE(t, int, p, body)                \
-    else TEMPLATE_DISPATCH_CASE(t, short int, p, body)          \
-    else TEMPLATE_DISPATCH_CASE(t, char, p, body)
-
-// variant that limits dispatch to floating point types
-// for use in numerical compuatation where integer types
-// are not supported (ie, math operations from std library)
-#define TEMPLATE_DISPATCH_FP_SI(t, p, body)             \
-    TEMPLATE_DISPATCH_CASE(t, float, p, body)           \
-    else TEMPLATE_DISPATCH_CASE(t, double, p, body)     \
-    else TEMPLATE_DISPATCH_SI(t, p, body)
-
-// variant that limits dispatch to integer types
-// for use in numerical compuatation where floating point types
-// are not supported
-#define TEMPLATE_DISPATCH_I(t, p, body)                         \
-    TEMPLATE_DISPATCH_CASE(t, long long, p, body)               \
-    else TEMPLATE_DISPATCH_CASE(t, unsigned long long, p, body) \
-    else TEMPLATE_DISPATCH_CASE(t, long, p, body)               \
-    else TEMPLATE_DISPATCH_CASE(t, int, p, body)                \
-    else TEMPLATE_DISPATCH_CASE(t, unsigned int, p, body)       \
-    else TEMPLATE_DISPATCH_CASE(t, unsigned long, p, body)      \
-    else TEMPLATE_DISPATCH_CASE(t, short int, p, body)          \
-    else TEMPLATE_DISPATCH_CASE(t, short unsigned int, p, body) \
-    else TEMPLATE_DISPATCH_CASE(t, char, p, body)               \
-    else TEMPLATE_DISPATCH_CASE(t, unsigned char, p, body)
-
-// macro for helping downcast to POD types
-// don't add classes to this.
-// t - derived container type
-// p - pointer to base class
-// body - code to execute on match
-#define TEMPLATE_DISPATCH(t, p, body)       \
-    TEMPLATE_DISPATCH_FP(t, p, body)        \
-    else TEMPLATE_DISPATCH_I(t, p, body)
-
-// variant that limits dispatch to floating point types
-// for use in numerical compuatation where integer types
-// are not supported (ie, math operations from std library)
-#define NESTED_TEMPLATE_DISPATCH_FP(t, p, i, body)              \
-    NESTED_TEMPLATE_DISPATCH_CASE(t, float, p, i, body)         \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, double, p, i, body)
-
-// variant that limits dispatch to integer types
-// for use in numerical compuatation where integer types
-// are not supported (ie, math operations from std library)
-#define NESTED_TEMPLATE_DISPATCH_I(t, p, i, body)      \
-    NESTED_TEMPLATE_DISPATCH_CASE(t, long long, p, i, body)               \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, unsigned long long, p, i, body) \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, long, p, i, body)               \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, int, p, i, body)                \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, unsigned int, p, i, body)       \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, unsigned long, p, i, body)      \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, short int, p, i, body)          \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, short unsigned int, p, i, body) \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, char, p, i, body)               \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, unsigned char, p, i, body)
-
-// macro for helping downcast to POD types
-// don't add classes to this.
-// t - templated derived type
-// p - base class pointer
-// i - id for nesting
-// body - code to execute on match
-#define NESTED_TEMPLATE_DISPATCH(t, p, i, body)     \
-    NESTED_TEMPLATE_DISPATCH_FP(t, p, i, body)      \
-    else NESTED_TEMPLATE_DISPATCH_I(t, p, i, body)
-
-// @endcond
 
 // --------------------------------------------------------------------------
 template<typename T>
@@ -1235,9 +1387,6 @@ void teca_variant_array_impl<T>::to_ascii(
 }
 
 // --------------------------------------------------------------------------
-
-// @cond
-
 template<typename T>
     template <typename U>
 void teca_variant_array_impl<T>::from_ascii(
@@ -1247,6 +1396,7 @@ void teca_variant_array_impl<T>::from_ascii(
     // TODO
 }
 
+/// @cond
 template <typename T>
 struct teca_variant_array_code {};
 
@@ -1300,7 +1450,9 @@ TECA_VARIANT_ARRAY_TT_SPEC(double, 12)
 TECA_VARIANT_ARRAY_TT_SPEC(std::string, 13)
 TECA_VARIANT_ARRAY_TT_SPEC(teca_metadata, 14)
 TECA_VARIANT_ARRAY_TT_SPEC(p_teca_variant_array, 15)
+/// @endcond
 
+/// Creates an instance of teca_variant_array_impl<T> where T is determined from the type code.
 struct teca_variant_array_factory
 {
     static p_teca_variant_array New(unsigned int type_code)
@@ -1331,6 +1483,7 @@ struct teca_variant_array_factory
     }
 };
 
+/// @cond
 #define CODE_DISPATCH_CASE(_v, _c, _code)               \
     if (_v == _c)                                       \
     {                                                   \
@@ -1364,7 +1517,7 @@ struct teca_variant_array_factory
     CODE_DISPATCH_I(_v, _code)              \
     else CODE_DISPATCH_FP(_v, _code)
 
-// @endcond
+/// @endcond
 
 // --------------------------------------------------------------------------
 template<typename T>

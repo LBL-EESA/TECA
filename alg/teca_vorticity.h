@@ -10,10 +10,7 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_vorticity)
 
-/// an algorithm that computes vorticity
-/**
-Compute vorticity from a vector field.
-*/
+/// An algorithm that computes vorticity from a vector field.
 class teca_vorticity : public teca_algorithm
 {
 public:
@@ -27,14 +24,29 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // set the arrays that contain the vector components
-    // to compute vorticity from
+    /** @name component_0_variable
+     * set the arrays that contain the vector components to compute vorticity
+     * from.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, component_0_variable)
-    TECA_ALGORITHM_PROPERTY(std::string, component_1_variable)
+    ///@}
 
-    // set the name of the array to store the result in.
-    // the default is "vorticity"
+    /** @name component_1_variable
+     * set the arrays that contain the vector components to compute vorticity
+     * from.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(std::string, component_1_variable)
+    ///@}
+
+    /** @name vorticity_variable
+     * set the name of the array to store the result in.  the default is
+     * "vorticity"
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, vorticity_variable)
+    ///@}
 
 protected:
     teca_vorticity();

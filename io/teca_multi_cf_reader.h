@@ -6,7 +6,6 @@
 #include "teca_shared_object.h"
 #include "teca_cf_reader.h"
 
-
 #include <set>
 #include <vector>
 #include <string>
@@ -111,8 +110,7 @@ public:
     /// get the list of variables that the reader will serve up
     void get_variables(std::vector<std::string> &vars);
 
-    /** @anchor periodic_in_x
-     * @name periodic_in_x
+    /** @name periodic_in_x
      * Set to indicate the presence of a periodic boundary in the x direction.
      * If set this will override the corresponding setting from the MCF file
      * for all internal readers.
@@ -122,8 +120,7 @@ public:
     int get_periodic_in_x() const;
     ///@}
 
-    /** @anchor x_axis_variable
-     * @name x_axis_variable
+    /** @name x_axis_variable
      * Set the variable to use for the mesh x-axis. If set this will override
      * the corresponding setting from the MCF file for all internal readers.
      */
@@ -132,8 +129,7 @@ public:
     std::string get_x_axis_variable() const;
     ///@}
 
-    /** @anchor y_axis_variable
-     * @name y_axis_variable
+    /** @name y_axis_variable
      * Set the variable to use for the mesh y-axis. If set this will override
      * the corresponding setting from the MCF file for all internal readers.
      */
@@ -142,8 +138,7 @@ public:
     std::string get_y_axis_variable() const;
     ///@}
 
-    /** @anchor z_axis_variable
-     * @name z_axis_variable
+    /** @name z_axis_variable
      * Set the variable to use for the mesh z-axis. Leaving the z-axis empty
      * results in a 2D mesh. You must set this to the correct vertical
      * coordinate dimension to produce a 3D mesh. If set this will override
@@ -154,8 +149,7 @@ public:
     std::string get_z_axis_variable() const;
     ///@}
 
-    /** @anchor t_axis_variable
-     * @name t_axis_variable
+    /** @name t_axis_variable_
      * Set the variable to use for the mesh t-axis. Default "time". Setting
      * this to an empty string disables the time axis. If set this will
      * override the corresponding setting from the MCF file for all internal
@@ -166,8 +160,7 @@ public:
     std::string get_t_axis_variable() const;
     ///@}
 
-    /** @anchor calendar
-     * @name calendar
+    /** @name calendar
      * Use this to override the calendar, or set one when specifying t_values
      * directly. If set this will override the corresponding setting from the
      * MCF file for all internal readers.
@@ -177,8 +170,7 @@ public:
     std::string get_calendar() const;
     ///@}
 
-    /** @anchor t_units
-     * @name t_units
+    /** @name t_units
      * Use this to set or override the time units. This is necessary when
      * specifying time values directly. If set this will override the
      * corresponding setting from the MCF file for all internal readers.
@@ -188,8 +180,7 @@ public:
     std::string get_t_units() const;
     ///@}
 
-    /** @anchor filename_time_template
-     * @name filename_time_template
+    /** @name filename_time_template
      * a way to infer time from the filename if the time axis is not stored in
      * the file itself. If set this will override the corresponding setting
      * from the MCF file for all internal readers.
@@ -210,8 +201,7 @@ public:
     std::string get_filename_time_template() const;
     ///@}
 
-    /** @anchor t_values
-     * @name t_values
+    /** @name t_values
      * Set the time values to use instead if a time variable doesn't exist or
      * you need to override it. If set this will override the corresponding
      * setting from the MCF file for all internal readers.
@@ -220,8 +210,7 @@ public:
     TECA_ALGORITHM_VECTOR_PROPERTY(double, t_value)
     ///@}
 
-    /** @anchor max_metadata_ranks
-     * @name max_metadata_ranks
+    /** @name max_metadata_ranks
      * set/get the number of ranks used to read the time axis. If set this
      * will override the corresponding setting from the MCF file for all
      * internal readers.
@@ -230,8 +219,7 @@ public:
     TECA_ALGORITHM_PROPERTY(int, max_metadata_ranks)
     ///@}
 
-    /** @anchor periodic_in_x
-     * @name periodic_in_x
+    /** @name periodic_in_x
      * Set to indicate the presence of a periodic boundary in the x direction.
      * If set this will override the corresponding setting from the MCF file
      * for all internal readers.
@@ -239,8 +227,7 @@ public:
     ///@{
     ///@}
 
-    /** @anchor clamp_dimensions_of_one
-     * @name clamp_dimensions_of_one
+    /** @name clamp_dimensions_of_one
      * If set the requested extent will be clamped in a given direction if the
      * coorinate axis in that direction has a length of 1 and the requested
      * extent would be out of bounds. This is a work around to enable loading

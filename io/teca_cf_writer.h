@@ -83,8 +83,7 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    /** @anchor file_name
-     * @name file_name
+    /** @name file_name
      * Set the output filename. For time series the substring %t% is replaced
      * with the current time step or date. See comments on date_format below
      * for info about date formatting.
@@ -94,8 +93,7 @@ public:
     ///@}
 
 
-    /** @anchor date_format
-     * @name date_format
+    /** @name date_format
      * set the format for the date to write in the filename. this requires the
      * input dataset to have unit/calendar information if none are available,
      * the time index is used instead. (%F-%HZ)
@@ -104,30 +102,27 @@ public:
     TECA_ALGORITHM_PROPERTY(std::string, date_format)
     ///@}
 
-    /** @anchor first_step
-     * @name first_step
+    /** @name first_step
      * Set the first step in the range of time step to process.
      */
     ///@{
     TECA_ALGORITHM_PROPERTY(long, first_step)
     ///@}
 
-    /** @anchor last_step
-     * @name last_step
+    /** @name last_step
      * Set the last step in the range of time step to process.
      */
     ///@{
     TECA_ALGORITHM_PROPERTY(long, last_step)
     ///@}
 
-    /** @anchor layout
-     * @name layout
+    /** @name layout
      * Set the layout mode to one of : number_of_steps, daily, monthly,
      * seasonal, or yearly. This controls the size of the files written.  In
      * daily, monthly, seasonal, and yearly modes each file will contain the
      * steps spanning the given duration. The number_of_steps mode writes a
      * fixed number of steps per file which can be set using the
-     * @ref steps_per_file property.
+     * steps_per_file property.
      */
     ///@{
     enum {invalid=0, number_of_steps=1, daily=2, monthly=3, seasonal=4, yearly=5};
@@ -154,8 +149,7 @@ public:
     }
     ///@}
 
-    /** @anchor steps_per_file
-     * @name steps_per_file
+    /** @name steps_per_file
      * Set how many time steps are written to each file when the layout mode is
      * set to number_of_steps.
      */
@@ -163,8 +157,7 @@ public:
     TECA_ALGORITHM_PROPERTY(unsigned int, steps_per_file)
     ///@}
 
-    /** @anchor mode_flags
-     * @name mode_flags
+    /** @name mode_flags
      * sets the flags passed to NetCDF during file creation. (NC_CLOBBER)
      */
     ///@{
@@ -172,8 +165,7 @@ public:
     ///@}
 
 
-    /** @anchor use_unlimited_dim
-     * @name use_unlimited_dim
+    /** @name use_unlimited_dim
      * if set the slowest varying dimension is specified to be NC_UNLIMITED.
      * This has a negative impact on performance when reading the values in a
      * single pass. However, unlimited dimensions are used ubiquitously thus
@@ -186,8 +178,7 @@ public:
     TECA_ALGORITHM_PROPERTY(int, use_unlimited_dim)
     ///@}
 
-    /** @anchor compression_level
-     * @name compression_level
+    /** @name compression_level
      * sets the compression level used for each variable compression is not
      * used if the value is less than or equal to 0. This feature requires
      * collective writes and is incompatible with out of order execution,
@@ -197,8 +188,7 @@ public:
     TECA_ALGORITHM_PROPERTY(int, compression_level)
     ///@}
 
-    /** @anchor flush_files
-     * @name flush_files
+    /** @name flush_files
      * Flush files before closing them, this may be necessary if accessing data
      * immediately.
      */
@@ -207,8 +197,7 @@ public:
     ///@}
 ;
 
-    /** @anchor point_array
-     * @name point_array
+    /** @name point_array
      * Specify the arrays to write. A data array is only written to disk if
      * it is included in this list. It is an error to not specify at least
      * one point centered array to write
@@ -217,8 +206,7 @@ public:
     TECA_ALGORITHM_VECTOR_PROPERTY(std::string, point_array)
     ///@}
 
-    /** @anchor information_array
-     * @name information_array
+    /** @name information_array
      * Set the list of non-geometric arrays to write.
      */
     ///@{

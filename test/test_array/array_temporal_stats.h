@@ -2,7 +2,7 @@
 #define array_temporal_stats_h
 
 #include "teca_shared_object.h"
-#include "array_fwd.h"
+#include "array.h"
 
 #include "teca_index_reduce.h"
 #include "teca_metadata.h"

@@ -1,13 +1,14 @@
 #ifndef teca_index_reduce_h
 #define teca_index_reduce_h
 
-#include "teca_dataset_fwd.h"
-#include "teca_index_reduce_fwd.h"
-
-#include "teca_threaded_algorithm.h"
+#include "teca_dataset.h"
 #include "teca_metadata.h"
+#include "teca_shared_object.h"
+#include "teca_threaded_algorithm.h"
 
 #include <vector>
+
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_index_reduce)
 
 /// Base class for MPI + threads map reduce reduction over an index.
 /**

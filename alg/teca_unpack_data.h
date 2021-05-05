@@ -13,19 +13,19 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_unpack_data)
 
 /// an algorithm that unpacks NetCDF packed values
 /**
-Applies a data transform according to the NetCDF attribute conventions for
-packed data values.
-https://www.unidata.ucar.edu/software/netcdf/docs/attribute_conventions.html
-
-Variables in the input dataset are scanned for the presence
-of the `scale_factor` and `add_offset` attributes. When both are present
-an element wise transformation is applied such that
-
-out[i] = scale_factor * in[i] + add_offset
-
-The input array is expected to be an integer type while the type of the output
-array may be either float or double. Valid value masks may be necessary for
-correct results, see `teca_valid_value_mask`.
+ * Applies a data transform according to the NetCDF attribute conventions for
+ * packed data values.
+ * https://www.unidata.ucar.edu/software/netcdf/docs/attribute_conventions.html
+ *
+ * Variables in the input dataset are scanned for the presence
+ * of the `scale_factor` and `add_offset` attributes. When both are present
+ * an element wise transformation is applied such that
+ *
+ * out[i] = scale_factor * in[i] + add_offset
+ *
+ * The input array is expected to be an integer type while the type of the output
+ * array may be either float or double. Valid value masks may be necessary for
+ * correct results, see `teca_valid_value_mask`.
 */
 class teca_unpack_data : public teca_algorithm
 {
@@ -40,19 +40,22 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // set the output data type.
-    // use teca_variant_array_code<T>::get() to get the numeric
-    // code corresponding to the data type T. The default output
-    // data type is single precision floating point.
+    /** @name output_data_type
+     * set the output data type.  use teca_variant_array_code<T>::get() to get
+     * the numeric code corresponding to the data type T. The default output
+     * data type is single precision floating point.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY_V(int, output_data_type)
 
-    // set the output data type to double precision floating point
+    /// set the output data type to double precision floating point
     void set_output_data_type_to_float()
     { this->set_output_data_type(teca_variant_array_code<float>::get()); }
 
-    // set the output data type to single precision floating point
+    /// set the output data type to single precision floating point
     void set_output_data_type_to_double()
     { this->set_output_data_type(teca_variant_array_code<double>::get()); }
+    ///@}
 
 protected:
     teca_unpack_data();

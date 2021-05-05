@@ -1,4 +1,8 @@
-<img src="doc/rtd/images/teca_logo_crop2_lg.png" width="48%">
+<table style="border: 1px; border-collapse: collapse; border-spacing: 0px;">
+<tr><td width="402px">
+<img src="https://raw.githubusercontent.com/LBL-EESA/TECA/8ea6a121c8c29cdab31be4226b0564c9ee5a9726/doc/rtd/images/teca_logo_crop2_lg.png" width="400px">
+</td></tr>
+</table>
 <a href="https://travis-ci.com/LBL-EESA/TECA"><img src="https://travis-ci.com/LBL-EESA/TECA.svg?token=zV3LhFtYvjcvo67W2uji&branch=master"></a>
 <a href="https://teca.readthedocs.io/en/latest/?badge=latest"><img src="https://readthedocs.org/projects/teca/badge/?version=latest"></a>
 <a href="https://badge.fury.io/py/teca"><img src="https://badge.fury.io/py/teca.svg" alt="PyPI version"></a>
@@ -8,7 +12,7 @@
 TECA is a collection of climate analysis algorithms geared toward extreme event detection and tracking implemented in a scalable parallel framework. The code has been successfully deployed and run at massive scales on current DOE supercomputers. TECA's core is written in modern C++ and exploits MPI + X parallelism where X is one of threads, OpenMP, or GPUs. The framework supports a number of parallel design patterns including distributed data parallelism and map-reduce. While modern C++ delivers the highest performance, Python bindings make the code approachable and easy to use.
 
 ### Documentation
-The [TECA User's Guide](https://teca.readthedocs.io/en/latest/) is the authorotative source for documentation on topics such as [installing TECA](https://teca.readthedocs.io/en/latest/installation.html), running TECA's [command line applications](https://teca.readthedocs.io/en/latest/applications.html), and [Python development](https://teca.readthedocs.io/en/latest/python.html).
+The [TECA User's Guide](https://teca.readthedocs.io/en/latest/) is the authorotative source for documentation on topics such as [installing TECA](https://teca.readthedocs.io/en/latest/installation.html), running TECA's [command line applications](https://teca.readthedocs.io/en/latest/applications.html), and [Python development](https://teca.readthedocs.io/en/latest/python.html). The TECA source code is documented on our [Doxygen site](https://teca.readthedocs.io/en/latest/doxygen/index.html).
 
 ### Tutorials
 The [TECA tutorials](https://sourceforge.net/p/teca/TECA_tutorials) subversion repository contains slides from previous tutorials.

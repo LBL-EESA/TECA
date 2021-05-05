@@ -2,7 +2,7 @@
 #define teca_cf_time_axis_data_reduce_h
 
 #include "teca_shared_object.h"
-#include "teca_dataset_fwd.h"
+#include "teca_dataset.h"
 #include "teca_metadata.h"
 #include "teca_index_reduce.h"
 

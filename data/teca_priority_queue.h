@@ -8,6 +8,9 @@
 #include <cmath>
 #include <memory>
 
+
+/// @cond
+
 // use one of the following aliases for key_map_t. key_map_t
 // is the type of container used to hold the locations of user provided
 // keys in the heap.
@@ -62,30 +65,31 @@ template<typename key_t, typename lookup_t, typename ...Types >
 using p_teca_priority_queue = std::shared_ptr<
     teca_priority_queue<key_t, lookup_t, Types...>>;
 
+/// @endcond
+
 /** @brief
  * An indirect priority queue that supports random access modification of
  * priority.
- * 
+ *
  * @details
  * an indirect priority queue that supports random access modification of
  * priority the queue works with user provided keys and lookup functor that
  * converts keys to priorities.
  *
- * template parameters:
+ * ### template parameters:
  *
- * key_t - type of the user provided keys
+ *  | name      | description |
+ *  | ----      | ----------- |
+ *  | key_t     | type of the user provided keys |
+ *  | lookup_t  | callable that implements: priority_t operator()(key_t key) |
+ *  | comp_t    | callable that implements the predicate: bool(key_t, key_t), |
+ *  |           | used to enforce heap order. (std::less<key_t>) |
+ *  | key_map_t | type of container used to track the position in the heap |
+ *  |           | of the keys. The default, a vector, is only valid for |
+ *  |           | interger ordinals from 0 to N. Use mapped_key_t<key_t> |
+ *  |           | for all other cases. (contiguous_key_t) |
  *
- * lookup_t - callable that implements: priority_t operator()(key_t key)
- *
- * comp_t - callable that implements the predicate: bool(key_t, key_t),
- *          used to enforce heap order. (std::less<key_t>)
- *
- * key_map_t - type of container used to track the position in the heap
- *             of the keys. The default, a vector, is only valid for
- *             interger ordinals from 0 to N. Use mapped_key_t<key_t>
- *             for all other cases. (contiguous_key_t)
- *
- * typical usage:
+ * ### typical usage:
  *
  * construct a container of objects to prioritize, and initialize a lookup
  * object that given a key returns the priority of the coresponding object.
@@ -95,7 +99,7 @@ using p_teca_priority_queue = std::shared_ptr<
  * call modified passing the key of the object. the location of each object is
  * tracked and the queue will reprioritize itself after modification.
  *
- * recomendation:
+ * ### recomendation:
  *
  * to obtain high performance, it's best to avoid using std::function for
  * lookup operations. Instead, write a small functor so that the compiler

@@ -12,7 +12,7 @@
 #include "teca_app_util.h"
 
 #if defined(TECA_HAS_UDUNITS)
-#include "calcalcs.h"
+#include "teca_calcalcs.h"
 #endif
 
 #include <vector>
@@ -258,7 +258,7 @@ int main(int argc, char **argv)
         int Y = 0, M = 0, D = 0, h = 0, m = 0;
         double s = 0;
 #if defined(TECA_HAS_UDUNITS)
-        if (calcalcs::date(time->get(i0), &Y, &M, &D, &h, &m, &s,
+        if (teca_calcalcs::date(time->get(i0), &Y, &M, &D, &h, &m, &s,
             units.c_str(), calendar.c_str()))
         {
             TECA_ERROR("failed to detmine the first available time in the file")
@@ -274,7 +274,7 @@ int main(int argc, char **argv)
         // human readbale last time available
         Y = 0, M = 0, D = 0, h = 0, m = 0, s = 0;
 #if defined(TECA_HAS_UDUNITS)
-        if (calcalcs::date(time->get(i1), &Y, &M, &D, &h, &m, &s,
+        if (teca_calcalcs::date(time->get(i1), &Y, &M, &D, &h, &m, &s,
             units.c_str(), calendar.c_str()))
         {
             TECA_ERROR("failed to detmine the last available time in the file")

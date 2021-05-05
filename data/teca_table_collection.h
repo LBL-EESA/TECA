@@ -1,11 +1,14 @@
 #ifndef teca_table_collection_h
 #define teca_table_collection_h
 
-#include "teca_table_collection_fwd.h"
 #include "teca_table.h"
+#include "teca_shared_object.h"
+
 #include <map>
 #include <vector>
 #include <string>
+
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_table_collection)
 
 /// A collection of named tables.
 class teca_table_collection

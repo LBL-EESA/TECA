@@ -1,3 +1,5 @@
+import subprocess, os
+
 # Configuration file for the Sphinx documentation builder.
 #
 # This file only contains a selection of the most common options. For a full
@@ -18,29 +20,43 @@
 # -- Project information -----------------------------------------------------
 
 project = 'TECA'
-copyright = "2019, Burlen Loring, Travis O'Brien & Abdelrahman Elbashandy"
+copyright = "2021, Burlen Loring, Travis O'Brien & Abdelrahman Elbashandy"
 author = "Burlen Loring, Travis O'Brien & Abdelrahman Elbashandy"
 
 # -- General configuration ---------------------------------------------------
 
-import subprocess, os
 
-read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
+if not os.path.exists('_build/html'):
+    os.makedirs('_build/html')
 
-if read_the_docs_build:
-    if not os.path.exists('_build/html'):
-        os.makedirs('_build/html')
+subprocess.call('cat /etc/issue', shell=True)
+subprocess.call('doxygen --version', shell=True)
+
+# RTD version of Doxygen has a bug that crashes it on our code due to a fixed
+# buffer size. When RTD updates to Ubuntu 20.04 this will be resolved. See
+# issue 613
+resolved_613 = False
+if resolved_613:
     subprocess.call('doxygen', shell=True)
     subprocess.call('./parse_xml.py', shell=True)
+else:
+    subprocess.call('svn checkout svn://svn.code.sf.net/p/teca/rtd_extras/doxygen _build/html/doxygen', shell=True)
+    subprocess.call('svn checkout svn://svn.code.sf.net/p/teca/rtd_extras/rst _build/rst', shell=True)
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 
-# pip install sphinxcontrib-bibtex
-extensions = ['sphinxcontrib.bibtex']
+# pip install sphinxcontrib-bibtex breathe
+extensions = ['sphinxcontrib.bibtex', 'breathe']
 
 bibtex_bibfiles = ['bibliography.bib']
+
+# Configuring Breathe
+breathe_projects = {
+    "TECA": "_build/xml"
+}
+breathe_default_project = "TECA"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

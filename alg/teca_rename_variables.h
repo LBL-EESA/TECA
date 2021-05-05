@@ -10,7 +10,7 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_rename_variables)
 
-/// An algorithm that renames original_variable_names.
+/// An algorithm that renames variables.
 class teca_rename_variables : public teca_algorithm
 {
 public:
@@ -24,18 +24,16 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    /** @anchor original_variable_names
-     * @name original_variable_names
+    /** @name original_variable_names
      * Set the list of variables to rename. For each variable to rename a new
-     * name must be specified at the same index in the @ref new_variable_names
+     * name must be specified at the same index in the new_variable_names
      * list. The two lists must be the same length.
      */
     ///@{
     TECA_ALGORITHM_VECTOR_PROPERTY(std::string, original_variable_name)
     ///@}
 
-    /** @anchor new_variable_names
-     * @name new_variable_names
+    /** @name new_variable_names
      * Set the names of the renamed variables. The new names are applied to the
      * list of variables to rename in the same order and the two lists must be
      * the same length.

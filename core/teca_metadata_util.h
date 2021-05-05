@@ -1,8 +1,11 @@
 #ifndef teca_metadata_util_h
 #define teca_metadata_util_h
 
+/// @file
+
 class teca_metadata;
 
+/// Codes for dealing with teca_metadata
 namespace teca_metadata_util
 {
 /** Given a collection of array attributes (following the conventions used by

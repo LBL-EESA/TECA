@@ -1,7 +1,9 @@
 #ifndef teca_calendar_h
 #define teca_calendar_h
 
-#include "teca_variant_array_fwd.h"
+/// @file
+
+#include "teca_variant_array.h"
 #include "teca_metadata.h"
 
 #include <string>
@@ -9,11 +11,11 @@
 #include <cstring>
 #include <memory>
 
+/// Codes dealing with calendaring
 namespace teca_calendar_util
 {
 
-/** @anchor Gregorian calendar
- * @name Gregorian calendar
+/** @name Gregorian calendar
  * functions for date computations in gregorian calendar.  to use convert the
  * origin to a gergorian_number do the calculation and convert the number back
  * into a date useing date_from_gregorian_number. for details about the math
@@ -130,8 +132,8 @@ public:
     /** Initialize the iterator from a metadata object following the
      * conventions defined by the teca_cf_reader.
      * @param[in] md a metadata object
-     * @param[in] the first step to include in the series or 0 to use all
-     * @param[in] the last step to include in the series or -1 to use all
+     * @param[in] first_step the first step to include in the series or 0 to use all
+     * @param[in] last_step the last step to include in the series or -1 to use all
      * @returns 0 if successfully initialized
      */
     virtual int initialize(const teca_metadata &md,
@@ -141,8 +143,8 @@ public:
      * @param[in] t  An array of time values
      * @param[in] units A string units of the time values
      * @param[in] calendar A string name of the calendar system
-     * @param[in] the first step to include in the series or 0 to use all
-     * @param[in] the last step to include in the series or -1 to use all
+     * @param[in] first_step the first step to include in the series or 0 to use all
+     * @param[in] last_step the last step to include in the series or -1 to use all
      * @returns 0 if successfully initialized
      */
     virtual int initialize(const const_p_teca_variant_array &t,
@@ -203,6 +205,8 @@ public:
      * @param[in] t  An array of time values
      * @param[in] units A string units of the time values
      * @param[in] calendar A string name of the calendar system
+     * @param[in] first_step the first step to include in the series or 0 to use all
+     * @param[in] last_step the last step to include in the series or -1 to use all
      * @returns 0 if successfully initialized
      */
     int initialize(const const_p_teca_variant_array &t,
@@ -256,6 +260,8 @@ public:
      * @param[in] t  An array of time values
      * @param[in] units A string units of the time values
      * @param[in] calendar A string name of the calendar system
+     * @param[in] first_step the first step to include in the series or 0 to use all
+     * @param[in] last_step the last step to include in the series or -1 to use all
      * @returns 0 if successfully initialized
      */
     int initialize(const const_p_teca_variant_array &t,
@@ -290,6 +296,8 @@ public:
      * @param[in] t  An array of time values
      * @param[in] units A string units of the time values
      * @param[in] calendar A string name of the calendar system
+     * @param[in] first_step the first step to include in the series or 0 to use all
+     * @param[in] last_step the last step to include in the series or -1 to use all
      * @returns 0 if successfully initialized
      */
     int initialize(const const_p_teca_variant_array &t,
@@ -325,6 +333,8 @@ public:
      * @param[in] t  An array of time values
      * @param[in] units A string units of the time values
      * @param[in] calendar A string name of the calendar system
+     * @param[in] first_step the first step to include in the series or 0 to use all
+     * @param[in] last_step the last step to include in the series or -1 to use all
      * @returns 0 if successfully initialized
      */
     int initialize(const const_p_teca_variant_array &t,
@@ -346,12 +356,13 @@ protected:
 
 using p_interval_iterator = std::shared_ptr<interval_iterator>;
 
+/// A factory for interval_iterator
 class interval_iterator_factory
 {
 public:
     /** Allocate and return an instance of the named iterator
-     * @param[in] Name of the desired interval iterator. One of daily, monthly,
-     *            seasonal, or yearly
+     * @param[in] interval Name of the desired interval iterator. One of daily,
+     *                     monthly, seasonal, or yearly
      * @returns an instance of interval_iterator
      */
     static p_interval_iterator New(const std::string &interval);
@@ -360,13 +371,12 @@ public:
     enum {invalid = 0, daily = 2, monthly = 3, seasonal = 4, yearly = 5};
 
     /** Allocate and return an instance of the named iterator
-     * @param[in] Name of the desired interval iterator. One of daily, monthly,
-     *            seasonal, or yearly
+     * @param[in] interval Id of the desired interval iterator. One of daily,
+     *            monthly, seasonal, or yearly
      * @returns an instance of interval_iterator
      */
     static p_interval_iterator New(int interval);
 };
-
 
 }
 

@@ -18,37 +18,44 @@ using p_teca_wrf_reader_internals = std::shared_ptr<teca_wrf_reader_internals>;
  * Reads a set of arrays from single time step into an Arakawa C grid
  * mesh. The mesh is optionally subset.
  *
- * metadata keys:
- *     variables - a list of all available variables.
- *     <var> -  a metadata object holding all NetCDF attributes for the
- *              variable named <var>
- *     time variables - a list of all variables with time as the only
- *                      dimension
- *     coordinates - a metadata object holding names and arrays of the
- *                   coordinate axes
- *         x_axis_variable - name of x axis variable
- *         y_axis_variable - name of y axis variable
- *         z_axis_variable - name of z axis variable
- *         t_axis_variable - name of t axis variable
- *         x - array of x coordinates
- *         y - array of y coordinates
- *         z - array of z coordinates
- *         t - array of t coordinates
- *     files - list of files in this dataset
- *     step_count - list of the number of steps in each file
- *     number_of_time_steps - total number of time steps in all files
- *     whole_extent - index space extent describing (nodal) dimensions of the
- *                    mesh
+ * ### metadata keys:
  *
- * request keys:
- *     time_step - the time step to read
- *     arrays - list of arrays to read
- *     extent - index space extents describing the subset of data to read
+ *  | key                   | description |
+ *  | ----                  | ----------- |
+ *  | variables             | a list of all available variables |
+ *  | [var]                 | a metadata object holding all NetCDF attributes for the |
+ *  |                       | variable named [var] |
+ *  | time variables        | a list of all variables with time as the only |
+ *  |                       | dimension |
+ *  | coordinates           | a metadata object holding names and arrays of the |
+ *  |                       | coordinate axes |
+ *  |  x_axis_variable      | name of x axis variable |
+ *  |  y_axis_variable      | name of y axis variable |
+ *  |  z_axis_variable      | name of z axis variable |
+ *  |  t_axis_variable      | name of t axis variable |
+ *  |  x                    | array of x coordinates |
+ *  |  y                    | array of y coordinates |
+ *  |  z                    | array of z coordinates |
+ *  |  t                    | array of t coordinates |
+ *  |  files                | list of files in this dataset |
+ *  |  step_count           | list of the number of steps in each file |
+ *  |  number_of_time_steps | total number of time steps in all files |
+ *  |  whole_extent         | index space extent describing (nodal) dimensions of the |
+ *  |                       | mesh |
  *
- * output:
- *     generates a 2 or 3D teca_arakawa_c_grid mesh for the requested timestep
- *     on the requested extent with the requested point based arrays and value
- *     at this timestep for all time variables.
+ * ### request keys:
+ *
+ *  | key        | description |
+ *  | ----       | ----------- |
+ *  | time_step  | the time step to read
+ *  | arrays     | list of arrays to read
+ *  | extent     | index space extents describing the subset of data to read
+ *
+ * ### output:
+ *
+ * generates a 2 or 3D teca_arakawa_c_grid mesh for the requested timestep on
+ * the requested extent with the requested point based arrays and value at this
+ * timestep for all time variables.
  */
 class teca_wrf_reader : public teca_algorithm
 {

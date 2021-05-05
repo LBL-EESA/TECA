@@ -10,16 +10,12 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_index_executive)
 
-/** @brief
- * An executive that generates requests using a upstream
- * or user defined index.
- *
- * @details
- * An extent and list of arrays can be optionally set.
+/// An executive that generates requests using a upstream or user defined index.
+/** An extent or bounds to subset by, and list of arrays can be optionally set.
  *
  * metadata keys:
  *
- *      requires:
+ * requires:
  *
  *      index_initializer_key -- holds the name of the key that tells how
  *                               many indices are available. the named key
@@ -40,33 +36,33 @@ public:
     int initialize(MPI_Comm comm, const teca_metadata &md) override;
     teca_metadata get_next_request() override;
 
-    // set the index to process
+    /// set the index to process
     void set_index(long s);
 
-    // set the first time step in the series to process.
-    // default is 0.
+    // Set the first time step in the series to process. The default is 0.
     void set_start_index(long s);
 
-    // set the last time step in the series to process.
-    // default is -1. negative number results in the last
-    // available time step being used.
+    /** Set the last time step in the series to process.  default is -1.
+     * negative number results in the last available time step being used.
+     */
     void set_end_index(long s);
 
-    // set the stride to process time steps at. default
-    // is 1
+    /// Set the stride to process time steps at. The default is 1
     void set_stride(long s);
 
-    // set the extent to process. the default is the
-    // whole_extent.
+    /// Set the extent to process. The default is taken from whole_extent key.
     void set_extent(unsigned long *ext);
+
+    /// @copydoc set_extent
     void set_extent(const std::vector<unsigned long> &ext);
 
-    // set the bounds to process. If nothing is set then
-    // extent as provided by set_extent is used.
+    /** Set the bounds to process. If nothing is set then extent as provided by
+     * set_extent is used.
+     */
     void set_bounds(double *bounds);
     void set_bounds(const std::vector<double> &bounds);
 
-    // set the list of arrays to process
+    /// Set the list of arrays to process
     void set_arrays(const std::vector<std::string> &arrays);
 
 protected:
