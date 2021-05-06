@@ -372,7 +372,9 @@ std::vector<teca_metadata> teca_cartesian_mesh_regrid::get_upstream_request(
     else
     {
         if (teca_coordinate_util::bounds_to_extent(request_bounds,
-            target_x, target_y, target_z, target_extent))
+                target_x, target_y, target_z, target_extent) ||
+            teca_coordinate_util::validate_extent(target_x->size(),
+                target_y->size(), target_z->size(), target_extent, true))
         {
             TECA_ERROR("invalid bounds requested [" << request_bounds[0]  << ", "
                 << request_bounds[1] << ", " << request_bounds[2] << ", "

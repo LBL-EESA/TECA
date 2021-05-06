@@ -177,6 +177,7 @@ int main(int argc, char **argv)
         reader = cf_reader;
     }
     norm_coords->set_input_connection(reader->get_output_port());
+    norm_coords->set_verbose(2);
 
     std::string time_i;
     if (opt_vals.count("start_date"))

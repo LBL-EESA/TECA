@@ -140,7 +140,7 @@ int bounds_to_extent(const double *bounds, const teca_metadata &md,
     teca_metadata coords;
     if (md.get("coordinates", coords))
     {
-        TECA_ERROR("missing cooridnates")
+        TECA_ERROR("Metadata issue, missing cooridnates")
         return -1;
     }
 
@@ -150,11 +150,20 @@ int bounds_to_extent(const double *bounds, const teca_metadata &md,
 
     if (!x || !y || !z)
     {
-        TECA_ERROR("empty coordinate axes")
+        TECA_ERROR("Metadata issue, empty coordinate axes")
         return -1;
     }
 
-    return bounds_to_extent(bounds, x, y, z, extent);
+    if (bounds_to_extent(bounds, x, y, z, extent) ||
+        validate_extent(x->size(), y->size(), z->size(), extent, true))
+    {
+        TECA_ERROR("Invalid bounds raequested [" << bounds[0] << ", "
+            << bounds[1] << ", " <<  bounds[2] << ", " << bounds[3] << ", "
+            << bounds[4] << ", " << bounds[5] << "]")
+        return -1;
+    }
+
+    return 0;
 }
 
 // **************************************************************************
@@ -400,7 +409,7 @@ int validate_extent(unsigned long nx_max, unsigned long ny_max,
     unsigned long nz_max, unsigned long *extent, bool verbose)
 {
     // validate x
-    if (extent[1] >= nx_max)
+    if ((extent[1] >= nx_max) || (extent[1] < extent[0]))
     {
         if (verbose)
         {
@@ -412,7 +421,7 @@ int validate_extent(unsigned long nx_max, unsigned long ny_max,
     }
 
     // validate y
-    if (extent[3] >= ny_max)
+    if ((extent[3] >= ny_max) || (extent[3] < extent[2]))
     {
         if (verbose)
         {
@@ -424,7 +433,7 @@ int validate_extent(unsigned long nx_max, unsigned long ny_max,
     }
 
     // validate z
-    if (extent[5] >= nz_max)
+    if ((extent[5] >= nz_max) || (extent[5] < extent[4]))
     {
         if (verbose)
         {

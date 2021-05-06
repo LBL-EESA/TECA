@@ -659,8 +659,10 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
     {
         // bounds key was present, convert the bounds to an
         // an extent that covers them.
-        if (teca_coordinate_util::bounds_to_extent(
-            req_bounds, in_x, in_y, in_z, req_extent))
+        if (teca_coordinate_util::bounds_to_extent(req_bounds,
+                in_x, in_y, in_z, req_extent) ||
+            teca_coordinate_util::validate_extent(in_x->size(),
+                in_y->size(), in_z->size(), req_extent, true))
         {
             TECA_ERROR("invalid bounds requested.")
             return nullptr;

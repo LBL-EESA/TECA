@@ -89,8 +89,10 @@ teca_metadata teca_cartesian_mesh_subset::get_output_metadata(
     }
 
     this->extent.resize(6, 0UL);
-    if (teca_coordinate_util::bounds_to_extent(
-        this->bounds.data(), x, y, z, this->extent.data()))
+    if (teca_coordinate_util::bounds_to_extent(this->bounds.data(),
+            x, y, z, this->extent.data()) ||
+        teca_coordinate_util::validate_extent(x->size(),
+            y->size(), z->size(), this->extent.data(), true))
     {
         TECA_ERROR("Failed to convert bounds to extent")
         return teca_metadata();

@@ -546,7 +546,6 @@ teca_metadata teca_normalize_coordinates::get_output_metadata(
     if (out_y)
         coords.set("y", out_y);
 
-
     if (out_x || out_y)
     {
         double bounds[6] = {0.0};
@@ -555,6 +554,16 @@ teca_metadata teca_normalize_coordinates::get_output_metadata(
             bounds);
         out_md.set("coordinates", coords);
         out_md.set("bounds", bounds);
+    }
+
+    if ((this->verbose > 1) &&
+        teca_mpi_util::mpi_rank_0(this->get_communicator()))
+    {
+        if (reordered_y)
+            TECA_STATUS("The y-axis will be transformed to be in ascending order.")
+
+        if (shifted_x)
+            TECA_STATUS("The x-axis will be transformed from [-180, 180] to [0, 360].")
     }
 
     return out_md;
@@ -729,8 +738,10 @@ std::vector<teca_metadata> teca_normalize_coordinates::get_upstream_request(
     unsigned long extent_out[6];
     memcpy(extent_out, extent_in, 6*sizeof(unsigned long));
 
-    if (teca_coordinate_util::bounds_to_extent(tfm_bounds, in_x,
-        in_y, z, extent_out))
+    if (teca_coordinate_util::bounds_to_extent(tfm_bounds,
+            in_x, in_y, z, extent_out) ||
+        teca_coordinate_util::validate_extent(in_x->size(),
+            in_y->size(), z->size(), extent_out, true))
     {
         TECA_ERROR("invalid bounds requested.")
         return up_reqs;
@@ -820,8 +831,7 @@ const_p_teca_dataset teca_normalize_coordinates::execute(unsigned int port,
         if (this->verbose &&
             teca_mpi_util::mpi_rank_0(this->get_communicator()))
         {
-            TECA_STATUS("Transforming to the x-axis from [-180, 180]"
-                " to [0, 360]")
+            TECA_STATUS("The x-axis will be transformed from [-180, 180] to [0, 360].")
         }
 
         std::string var;
@@ -873,8 +883,7 @@ const_p_teca_dataset teca_normalize_coordinates::execute(unsigned int port,
         if (this->verbose &&
             teca_mpi_util::mpi_rank_0(this->get_communicator()))
         {
-            TECA_STATUS("Transforming to the y-axis from descending"
-                " order to ascending order")
+            TECA_STATUS("The y-axis will be transformed to be in ascending order.")
         }
 
         std::string var;
