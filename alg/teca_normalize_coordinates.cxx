@@ -546,7 +546,6 @@ teca_metadata teca_normalize_coordinates::get_output_metadata(
     if (out_y)
         coords.set("y", out_y);
 
-
     if (out_x || out_y)
     {
         double bounds[6] = {0.0};
@@ -555,6 +554,16 @@ teca_metadata teca_normalize_coordinates::get_output_metadata(
             bounds);
         out_md.set("coordinates", coords);
         out_md.set("bounds", bounds);
+    }
+
+    if ((this->verbose > 1) &&
+        teca_mpi_util::mpi_rank_0(this->get_communicator()))
+    {
+        if (reordered_y)
+            TECA_STATUS("The y-axis will be transformed to be in ascending order.")
+
+        if (shifted_x)
+            TECA_STATUS("The x-axis will be transformed from [-180, 180] to [0, 360].")
     }
 
     return out_md;
@@ -822,8 +831,7 @@ const_p_teca_dataset teca_normalize_coordinates::execute(unsigned int port,
         if (this->verbose &&
             teca_mpi_util::mpi_rank_0(this->get_communicator()))
         {
-            TECA_STATUS("Transforming to the x-axis from [-180, 180]"
-                " to [0, 360]")
+            TECA_STATUS("The x-axis will be transformed from [-180, 180] to [0, 360].")
         }
 
         std::string var;
@@ -875,8 +883,7 @@ const_p_teca_dataset teca_normalize_coordinates::execute(unsigned int port,
         if (this->verbose &&
             teca_mpi_util::mpi_rank_0(this->get_communicator()))
         {
-            TECA_STATUS("Transforming to the y-axis from descending"
-                " order to ascending order")
+            TECA_STATUS("The y-axis will be transformed to be in ascending order.")
         }
 
         std::string var;
