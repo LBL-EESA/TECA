@@ -131,6 +131,10 @@ public:
     int get(const std::string &name,
         T *val, unsigned int n) const;
 
+    template<typename T, unsigned int N>
+    int get(const std::string &name, T (&val)[N]) const
+    { return this->get(name, val, N); }
+
     // copy prop values from the named prop into the passed in vector.
     // return 0 if successful
     template<typename T>
