@@ -606,7 +606,6 @@ class teca_algorithm_executive;
 %shared_ptr(teca_algorithm)
 class teca_algorithm;
 %template(teca_algorithm_base) std::enable_shared_from_this<teca_algorithm>;
-typedef std::pair<std::shared_ptr<teca_algorithm>, unsigned int> teca_algorithm_output_port;
 %template(teca_output_port_type) std::pair<std::shared_ptr<teca_algorithm>, unsigned int>;
 %include "teca_common.h"
 %include "teca_shared_object.h"
