@@ -37,7 +37,7 @@ bool is_mask_array(const std::string &array)
 
 // --------------------------------------------------------------------------
 teca_valid_value_mask::teca_valid_value_mask() :
-    mask_arrays(), enable_valid_range(0), verbose(0)
+    mask_arrays(), enable_valid_range(0)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -62,9 +62,9 @@ void teca_valid_value_mask::get_properties_description(
         TECA_POPTS_GET(int, prefix, enable_valid_range,
             "If set non-zero vald_range, valid_min, and valid_max attributes"
             " would be used if there is no _FillValue attribute.")
-        TECA_POPTS_GET(int, prefix, verbose,
-            "If set then status messages are sent to the terminal.")
         ;
+
+    this->teca_algorithm::get_properties_description(prefix, opts);
 
     global_opts.add(opts);
 }
@@ -73,9 +73,10 @@ void teca_valid_value_mask::get_properties_description(
 void teca_valid_value_mask::set_properties(
     const std::string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, std::vector<std::string>, prefix, mask_arrays)
     TECA_POPTS_SET(opts, int, prefix, enable_valid_range)
-    TECA_POPTS_SET(opts, int, prefix, verbose)
 }
 #endif
 

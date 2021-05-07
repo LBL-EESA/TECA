@@ -161,6 +161,8 @@ void teca_vorticity::get_properties_description(
             "array to store the computed vorticity in")
         ;
 
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 
@@ -168,6 +170,8 @@ void teca_vorticity::get_properties_description(
 void teca_vorticity::set_properties(
     const string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, std::string, prefix, component_0_variable)
     TECA_POPTS_SET(opts, std::string, prefix, component_1_variable)
     TECA_POPTS_SET(opts, std::string, prefix, vorticity_variable)

@@ -10,19 +10,20 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_table_writer)
 
-/// teca_table_writer - writes tabular datasets in CSV format.
-/**
-an algorithm that writes tabular data in a binary or CSV (comma separated value)
-format that is easily ingested by most spreadsheet apps. Each page of
-a database is written to a file.
-
-The binary format is internal to TECA, and provides the best performance.
-
-The CSV format is intended for use getting data into other tools such as MS
-Excel and or Python based codes.
-
-See TECA CSV format specification in teca_table_reader for more information.
-*/
+/** @brief
+ * An algorithm that writes tabular data in a binary or CSV (comma separated
+ * value) format that is easily ingested by most spreadsheet apps. Each page
+ * of a database is written to a file.
+ *
+ * @details
+ * The binary format is internal to TECA, and provides the best performance.
+ *
+ * The CSV format is intended for use getting data into other tools such as MS
+ * Excel and or Python based codes.
+ *
+ * See TECA CSV format specification in teca_table_reader for more
+ * information.
+ */
 class teca_table_writer : public teca_algorithm
 {
 public:

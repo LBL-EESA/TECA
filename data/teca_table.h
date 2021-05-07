@@ -12,10 +12,10 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_table)
 
-/**
-A collection of collumnar data with row based
-accessors and communication and I/O support.
-*/
+/** @brief
+ * A collection of columnar data with row based
+ * accessors and communication and I/O support.
+ */
 class teca_table : public teca_dataset
 {
 public:
@@ -34,8 +34,8 @@ public:
 
     // define the table columns. requires name,type pairs
     // for ex. define("c1",int(),"c2",float()) creates a
-    // table with 2 columns the first storing int's the
-    // second storing float's.
+    // table with 2 columns the first storing int the
+    // second storing float.
     template<typename nT, typename cT, typename... oT>
     void declare_columns(nT &&col_name, cT col_type, oT &&...args);
 
@@ -55,7 +55,7 @@ public:
     const_p_teca_variant_array get_column(unsigned int i) const;
     const_p_teca_variant_array get_column(const std::string &col_name) const;
 
-    // test for the existance of a specific column
+    // test for the existence of a specific column
     bool has_column(const std::string &col_name) const
     { return m_impl->columns->has(col_name); }
 
@@ -103,7 +103,7 @@ public:
     // return an integer identifier uniquely naming the dataset type
     int get_type_code() const override;
 
-    // covert to bool. true if the dataset is not empty.
+    // covert to boolean. true if the dataset is not empty.
     // otherwise false.
     explicit operator bool() const noexcept
     { return !this->empty(); }

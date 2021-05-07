@@ -29,11 +29,12 @@ test_name=test_temporal_reduction
 output_base=${test_name}_${array_name}_${interval}_${operator}
 
 # run the app
-time ${launcher} ${app_prefix}/teca_temporal_reduction                                  \
-    --input_file "${app_prefix}/../test/ECMWF-IFS-HR-SST-present.mcf"                   \
-    --interval ${interval} --operator ${operator} --point_arrays ${array_name}          \
-    --z_axis_variable plev --steps_per_file ${steps_per_file} --n_threads 2 --verbose 1 \
-    --output_file "${output_base}_%t%.nc"
+time ${launcher} ${app_prefix}/teca_temporal_reduction                         \
+    --input_file "${app_prefix}/../test/ECMWF-IFS-HR-SST-present.mcf"          \
+    --interval ${interval} --operator ${operator} --point_arrays ${array_name} \
+    --z_axis_variable plev --file_layout yearly                                \
+    --steps_per_file ${steps_per_file} --output_file "${output_base}_%t%.nc"   \
+    --n_threads 2 --verbose 1
 
 # don't profile the diff
 unset PROFILER_ENABLE

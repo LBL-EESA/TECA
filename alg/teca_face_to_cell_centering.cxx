@@ -128,26 +128,26 @@ teca_face_to_cell_centering::~teca_face_to_cell_centering()
 void teca_face_to_cell_centering::get_properties_description(
     const string &prefix, options_description &global_opts)
 {
-    (void)prefix;
-    (void)global_opts;
-    /*options_description opts("Options for "
+    options_description opts("Options for "
         + (prefix.empty()?"teca_face_to_cell_centering":prefix));
 
-    opts.add_options()
+    /*opts.add_options()
         TECA_POPTS_GET(int, prefix, mode,
-            "transform mode (mode_wrf_v3)")
-        ;
+            "Set the coordinate transform mode. The valid modes"
+            " are: mode_wrf_v3)")
+        ;*/
 
-    global_opts.add(opts);*/
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
+    global_opts.add(opts);
 }
 
 // --------------------------------------------------------------------------
 void teca_face_to_cell_centering::set_properties(
     const string &prefix, variables_map &opts)
 {
-    (void)prefix;
-    (void)opts;
     //TECA_POPTS_SET(opts, int, prefix, mode)
+    this->teca_algorithm::set_properties(prefix, opts);
 }
 #endif
 

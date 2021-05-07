@@ -3,7 +3,10 @@
 
 #include <Python.h>
 
-// RAII helper for managing the Python GIL
+/// A RAII helper for managing the Python GIL.
+/** The GIL is aquired and held while the object exists. The GIL must be held
+ * by C++ code invoking any Python C-API calls.
+ */
 class teca_py_gil_state
 {
 public:

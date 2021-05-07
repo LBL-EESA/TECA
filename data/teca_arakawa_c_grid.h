@@ -11,56 +11,60 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_arakawa_c_grid)
 
-/// data on an Arkawa C Grid
-//
-// The C grid is defined by combinations of horizontal and vertical centerings.
-//
-// The horzontal centerings occur at so called mass or M points, U points, and
-// V points. These centerings are depicted in the following diagram:
-//
-//  *-------V-------*
-//  |               |
-//  |               |
-//  |               |
-//  U       M       U
-//  |               |
-//  |               |
-//  |               |
-//  *-------V-------*
-//
-// The horizontal coordinates are stored in 2d arrays. Assuming the mass
-// corrinate arrays have dimension [nx, ny], then the U coordinate arrays have
-// dimension [nx + 1, ny], and the V coordinate arrays have dimension
-// [nx, ny + 1].
-//
-// The vertical centerings occur at so called mass and w points
-//
-//  *-------W-------*
-//  |               |
-//  |               |
-//  |               |
-//  |       M       |
-//  |               |
-//  |               |
-//  |               |
-//  *-------W-------*
-//
-// The vertical coordinates are stored in 1d arrays. Assuming the M vertical
-// coordinate has the dimension [nz], then the W coordinate has dimension
-// [nz + 1].
-//
-// The 3d mesh dimensions can be obtained from mesh metadata, as well as coordinate
-// array names, and array attributes describing the data type, units, etc.
-//
-// Variables may exist on one of a number of permutations of horizontal and
-// vertical centerings, array attributes contains the centering metadata.
-//
-// See also:
-// "A Description of the Advanced Research WRF Model Version 4",
-// NCAR/TN-556+STR
-//
-// "Grids in Numerical Weather and Climate Models"
-// http://dx.doi.org/10.5772/55922
+/// A representation of mesh based data on an Arkawa C Grid.
+/**
+ * The Arakawa C grid is defined by various combinations of horizontal and
+ * vertical centerings.
+ *
+ * The horizontal centerings occur at so called mass or M points, U points,
+ * and V points. These centerings are depicted in the following diagram:
+ *
+ * >  *-------V-------*
+ * >  |               |
+ * >  |               |
+ * >  |               |
+ * >  U       M       U
+ * >  |               |
+ * >  |               |
+ * >  |               |
+ * >  *-------V-------*
+ *
+ * The horizontal coordinates are stored in 2d arrays. Assuming the mass
+ * coordinate arrays have dimension [nx, ny], then the U coordinate arrays
+ * have dimension [nx + 1, ny], and the V coordinate arrays have dimension
+ * [nx, ny + 1].
+ *
+ * The vertical centerings occur at so called M points and W points. These
+ * centerings are depicted in the following diagram.
+ *
+ * >  *-------W-------*
+ * >  |               |
+ * >  |               |
+ * >  |               |
+ * >  |       M       |
+ * >  |               |
+ * >  |               |
+ * >  |               |
+ * >  *-------W-------*
+ *
+ * The vertical coordinates are stored in 1d arrays. Assuming the M vertical
+ * coordinate has the dimension [nz], then the W coordinate has dimension
+ * [nz + 1].
+ *
+ * The 3d mesh dimensions can be obtained from mesh metadata, as well as
+ * coordinate array names, and array attributes describing the data type,
+ * units, etc.
+ *
+ * Variables may exist on one of a number of permutations of horizontal and
+ * vertical centerings, array attributes contains the centering metadata.
+ *
+ * See also:
+ * "A Description of the Advanced Research WRF Model Version 4",
+ * NCAR/TN-556+STR
+ *
+ * "Grids in Numerical Weather and Climate Models"
+ * http://dx.doi.org/10.5772/55922
+ */
 class teca_arakawa_c_grid : public teca_mesh
 {
 public:
@@ -75,7 +79,7 @@ public:
     TECA_DATASET_METADATA(extent, unsigned long, 6)
     TECA_DATASET_METADATA(bounds, double, 6)
 
-    // flag set if the boundary in the given direction is perdiodic
+    // flag set if the boundary in the given direction is periodic
     TECA_DATASET_METADATA(periodic_in_x, int, 1)
     TECA_DATASET_METADATA(periodic_in_y, int, 1)
     TECA_DATASET_METADATA(periodic_in_z, int, 1)

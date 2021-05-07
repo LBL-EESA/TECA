@@ -10,10 +10,7 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_l2_norm)
 
-/// an algorithm that computes L2 norm
-/**
-Compute L2 norm
-*/
+/// An algorithm that computes L2 norm
 class teca_l2_norm : public teca_algorithm
 {
 public:
@@ -27,19 +24,43 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // set the arrays that contain the vector components
-    // to compute norm from
+    /** @name component_0_variable
+     * Set the arrays that contain the vector components to compute the norm
+     * from.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, component_0_variable)
-    TECA_ALGORITHM_PROPERTY(std::string, component_1_variable)
-    TECA_ALGORITHM_PROPERTY(std::string, component_2_variable)
+    ///@}
 
-    // set the name of the array to store the result in.
-    // the default is "l2_norm"
+    /** @name component_1_variable
+     * Set the arrays that contain the vector components to compute the norm
+     * from.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(std::string, component_1_variable)
+    ///@}
+
+    /** @name component_2_variable
+     * Set the arrays that contain the vector components to compute the norm
+     * from.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(std::string, component_2_variable)
+    ///@}
+
+    /** @name l2_norm_variable
+     * set the name of the array to store the result in.  the default is
+     * "l2_norm"
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, l2_norm_variable)
+    ///@}
 
 protected:
     teca_l2_norm();
 
+    // helpers to get the variable names from either the incoming
+    // request or the class member variable.
     std::string get_component_0_variable(const teca_metadata &request);
     std::string get_component_1_variable(const teca_metadata &request);
     std::string get_component_2_variable(const teca_metadata &request);

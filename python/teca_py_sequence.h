@@ -1,12 +1,15 @@
 #ifndef teca_py_sequence_h
 #define teca_py_sequence_h
 
+/// @file
+
 #include "teca_common.h"
 #include "teca_variant_array.h"
 #include "teca_py_object.h"
 #include "teca_py_string.h"
 #include <Python.h>
 
+/// @cond
 // this macro is used to build up dispatchers
 // PYT - type tag idnetifying the PyObject
 // SEQ - PySequence* instance
@@ -37,10 +40,15 @@
 #define TECA_PY_SEQUENCE_DISPATCH_STR(SEQ, CODE)    \
     TECA_PY_SEQUENCE_DISPATCH_CASE(char*, SEQ, CODE)
 
+/// @endcond
 
+/// Codes for interfacing to Python sequences
 namespace teca_py_sequence
 {
-// ****************************************************************************
+
+/** @brief Returns true if all the elements in the sequence have the same type
+ * as the template argument.
+ */
 template <typename py_t>
 bool is_type(PyObject *seq)
 {
@@ -68,7 +76,7 @@ bool is_type(PyObject *seq)
     return true;
 }
 
-// ****************************************************************************
+/// Appends values from the sequence into the variant array.
 bool append(teca_variant_array *va, PyObject *seq)
 {
     // not a sequence
@@ -110,7 +118,7 @@ bool append(teca_variant_array *va, PyObject *seq)
     return false;
 }
 
-// ****************************************************************************
+/// Copies the values from the sequence into the variant array.
 bool copy(teca_variant_array *va, PyObject *seq)
 {
     // not a sequence
@@ -155,7 +163,7 @@ bool copy(teca_variant_array *va, PyObject *seq)
     return false;
 }
 
-// ****************************************************************************
+/// Returns a new variant array initialized with a copy of the sequence.
 p_teca_variant_array new_variant_array(PyObject *seq)
 {
     // not a sequence
@@ -187,7 +195,7 @@ p_teca_variant_array new_variant_array(PyObject *seq)
     return nullptr;
 }
 
-// ****************************************************************************
+/// Returns a list initialized with a copy of the variant array.
 template<typename NT>
 PyObject *new_object(const teca_variant_array_impl<NT> *va)
 {
@@ -199,7 +207,7 @@ PyObject *new_object(const teca_variant_array_impl<NT> *va)
     return list;
 }
 
-// ****************************************************************************
+/// Returns a list initialized with a copy of the variant array.
 PyObject *new_object(const_p_teca_variant_array va)
 {
     TEMPLATE_DISPATCH(const teca_variant_array_impl,

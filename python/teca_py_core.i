@@ -1,7 +1,7 @@
 %{
 #include <vector>
 
-#include "calcalcs.h"
+#include "teca_calcalcs.h"
 #include "teca_algorithm_executive.h"
 #include "teca_index_executive.h"
 #include "teca_metadata.h"
@@ -158,7 +158,6 @@ class teca_variant_array;
 %ignore operator<<(std::ostream &, const std::vector<std::string> &);
 %include "teca_common.h"
 %include "teca_shared_object.h"
-%include "teca_variant_array_fwd.h"
 %ignore teca_variant_array::operator=;
 %ignore teca_variant_array_factory;
 %ignore teca_variant_array::append(const teca_variant_array &other);
@@ -484,7 +483,6 @@ class teca_dataset;
 %template(teca_dataset_base) std::enable_shared_from_this<teca_dataset>;
 %ignore teca_dataset::operator=;
 %ignore teca_dataset::set_index_request_key(std::string const *);
-%include "teca_dataset_fwd.h"
 %include "teca_dataset.h"
 TECA_PY_CONST_CAST(teca_dataset)
 %extend teca_dataset
@@ -589,7 +587,6 @@ class teca_algorithm_executive;
 %ignore teca_algorithm_executive::operator=;
 %include "teca_common.h"
 %include "teca_shared_object.h"
-%include "teca_algorithm_executive_fwd.h"
 %include "teca_algorithm_executive.h"
 
 /***************************************************************************
@@ -609,11 +606,9 @@ class teca_algorithm_executive;
 %shared_ptr(teca_algorithm)
 class teca_algorithm;
 %template(teca_algorithm_base) std::enable_shared_from_this<teca_algorithm>;
-typedef std::pair<std::shared_ptr<teca_algorithm>, unsigned int> teca_algorithm_output_port;
 %template(teca_output_port_type) std::pair<std::shared_ptr<teca_algorithm>, unsigned int>;
 %include "teca_common.h"
 %include "teca_shared_object.h"
-%include "teca_algorithm_fwd.h"
 %include "teca_program_options.h"
 %include "teca_algorithm.h"
 
@@ -707,7 +702,6 @@ typedef std::pair<std::shared_ptr<teca_algorithm>, unsigned int> teca_algorithm_
 %ignore teca_threaded_algorithm::shared_from_this;
 %shared_ptr(teca_threaded_algorithm)
 %ignore teca_threaded_algorithm::operator=;
-%include "teca_threaded_algorithm_fwd.h"
 %include "teca_threaded_algorithm.h"
 
 /***************************************************************************
@@ -716,7 +710,6 @@ typedef std::pair<std::shared_ptr<teca_algorithm>, unsigned int> teca_algorithm_
 %ignore teca_index_reduce::shared_from_this;
 %shared_ptr(teca_index_reduce)
 %ignore teca_index_reduce::operator=;
-%include "teca_index_reduce_fwd.h"
 %include "teca_index_reduce.h"
 
 /***************************************************************************
@@ -754,7 +747,6 @@ typedef std::pair<std::shared_ptr<teca_algorithm>, unsigned int> teca_algorithm_
 %ignore teca_programmable_algorithm::get_request_callback;
 %ignore teca_programmable_algorithm::set_execute_callback;
 %ignore teca_programmable_algorithm::get_execute_callback;
-%include "teca_programmable_algorithm_fwd.h"
 %include "teca_programmable_algorithm.h"
 
 /***************************************************************************
@@ -792,7 +784,6 @@ typedef std::pair<std::shared_ptr<teca_algorithm>, unsigned int> teca_algorithm_
 %ignore teca_threaded_programmable_algorithm::get_request_callback;
 %ignore teca_threaded_programmable_algorithm::set_execute_callback;
 %ignore teca_threaded_programmable_algorithm::get_execute_callback;
-%include "teca_programmable_algorithm_fwd.h"
 %include "teca_threaded_programmable_algorithm.h"
 
 /***************************************************************************
@@ -839,7 +830,6 @@ typedef std::pair<std::shared_ptr<teca_algorithm>, unsigned int> teca_algorithm_
 %ignore teca_programmable_reduce::get_reduce_callback;
 %ignore teca_programmable_reduce::set_finalize_callback;
 %ignore teca_programmable_reduce::get_finalize_callback;
-%include "teca_programmable_reduce_fwd.h"
 %include "teca_programmable_reduce.h"
 
 /***************************************************************************
@@ -874,7 +864,7 @@ typedef std::pair<std::shared_ptr<teca_algorithm>, unsigned int> teca_algorithm_
 %include "teca_dataset_capture.h"
 
 /***************************************************************************
- calcalcs
+ teca_calcalcs
  ***************************************************************************/
 %inline
 %{
@@ -894,7 +884,7 @@ PyObject *date(double offset, const char *units, const char *calendar)
     int minute = -1;
     double second = -1.0;
 
-    if (calcalcs::date(offset, &year, &month, &day, &hour,
+    if (teca_calcalcs::date(offset, &year, &month, &day, &hour,
         &minute, &second, units, calendar))
     {
         TECA_PY_ERROR_NOW(PyExc_RuntimeError, "Failed to convert time")
@@ -916,7 +906,7 @@ PyObject *is_leap_year(const char *calendar, const char *units,
     teca_py_gil_state gil;
 
     int leap = 0;
-    if (calcalcs::is_leap_year(calendar, units, year, leap))
+    if (teca_calcalcs::is_leap_year(calendar, units, year, leap))
     {
         TECA_PY_ERROR_NOW(PyExc_RuntimeError,
             "Failed to determine leap year status")
@@ -934,7 +924,7 @@ PyObject *days_in_month(const char *calendar, const char *units,
     teca_py_gil_state gil;
 
     int dpm = 0;
-    if (calcalcs::days_in_month(calendar, units, year, month, dpm))
+    if (teca_calcalcs::days_in_month(calendar, units, year, month, dpm))
     {
         TECA_PY_ERROR_NOW(PyExc_RuntimeError,
             "Failed to determine days in month")
@@ -970,8 +960,8 @@ PyObject *thread_parameters(MPI_Comm comm,
     {
         // caller requested automatic load balancing but this,
         // failed.
-        TECA_PY_ERROR(PyExc_RuntimeError,
-            "Automatic load balancing failed")
+        PyErr_Format(PyExc_RuntimeError,
+            "Failed to detect thread parameters.");
         return nullptr;
     }
 

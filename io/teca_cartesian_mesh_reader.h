@@ -13,19 +13,19 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_cartesian_mesh_reader)
 
-/// a reader for data stored in binary cartesian_mesh format
+/// A reader for data stored in binary cartesian_mesh format.
 /**
-A reader for data stored in binary cartesian_mesh format. By default
-the reader reads and returns the entire cartesian_mesh on rank 0.
-The reader can partition the data accross an "index column".
-The index column assigns a unique id to rows that should be
-returned together. The reader reports the number of unique
-ids to the pipeline which can then be requested by the pipeline
-during parallel or sequential execution.
-
-output:
-    generates a cartesian_mesh containing the data read from the file.
-*/
+ * A reader for data stored in binary cartesian_mesh format. By default
+ * the reader reads and returns the entire cartesian_mesh on rank 0.
+ * The reader can partition the data accross an "index column".
+ * The index column assigns a unique id to rows that should be
+ * returned together. The reader reports the number of unique
+ * ids to the pipeline which can then be requested by the pipeline
+ * during parallel or sequential execution.
+ *
+ * output:
+ *     generates a cartesian_mesh containing the data read from the file.
+ */
 class teca_cartesian_mesh_reader : public teca_algorithm
 {
 public:

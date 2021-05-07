@@ -15,74 +15,72 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_table_reader)
 
 /// a reader for data stored in binary table format
 /**
-A reader for data stored in CSV or binary table format. By default the reader
-reads and returns the entire table on rank 0.  The reader can partition the
-data across an "index column".  The index column assigns a unique id to rows
-that should be returned together. The reader reports the number of unique ids
-to the pipeline which can then be requested by the pipeline during parallel or
-sequential execution.
-
-output:
-    generates a table containing the data read from the file.
-
-
-TECA CSV format specification
------------------------------
-Comment lines
-~~~~~~~~~~~~~
-a '#' character at the start of a line marks it as a comment. The version of
-the CSV specification as well as the version of TECA used to write the table
-will be stored in comment lines. Comment lines are currently skipped when
-reading the table.
-
-Column definitions
-~~~~~~~~~~~~~~~~~~
-the first row stores the names and data types of the columns. Column names are
-strings and delimited by double quotes. A column's data type is
-encoded in the name using (N) where N is an integer type code defined by
-teca_variant_array and parentheses delimit the type code. The type code
-sequence is stripped from the name when the file is read.
-
-+-------------------+------+
-| C type            | code |
-+-------------------+------+
-| char              | 1    |
-| unsigned char     | 2    |
-| int               | 3    |
-| unsigned int      | 4    |
-| short int         | 5    |
-| short unsigned int| 6    |
-| long              | 7    |
-| unsigned long     | 8    |
-| long long         | 9    |
-| unsigned long long| 10   |
-| float             | 11   |
-| double            | 12   |
-| std::string       | 13   |
-+-------------------+------+
-
-The number of column definitions found determines the number of columns in the
-table when reading.
-
-Column data
-~~~~~~~~~~~
-Data is organized row by row with an entry for each column. Entries are
-separated by commas ','. Error's will occur when the number of column
-definitions don't match the number of data entries per row.
-
-String data
-~~~~~~~~~~~
-Strings are delimited by double quotations. Double quotes and commas in strings
-may be escaped by a backslash.
-
-Numeric data
-~~~~~~~~~~~~
-The type code provided in the column definition tells the type of number.
-These codes are defined in teca_variant_array.
-
-floating point types are written with format and precision such that they
-may be read without introducing rounding error.
-*/
+ * A reader for data stored in CSV or binary table format. By default the reader
+ * reads and returns the entire table on rank 0.  The reader can partition the
+ * data across an "index column".  The index column assigns a unique id to rows
+ * that should be returned together. The reader reports the number of unique ids
+ * to the pipeline which can then be requested by the pipeline during parallel or
+ * sequential execution.
+ *
+ * output:
+ *     generates a table containing the data read from the file.
+ *
+ *
+ * ### TECA CSV format specification
+ *
+ * #### Comment lines
+ *
+ * a '#' character at the start of a line marks it as a comment. The version of
+ * the CSV specification as well as the version of TECA used to write the table
+ * will be stored in comment lines. Comment lines are currently skipped when
+ * reading the table.
+ *
+ * #### Column definitions
+ *
+ * the first row stores the names and data types of the columns. Column names are
+ * strings and delimited by double quotes. A column's data type is
+ * encoded in the name using (N) where N is an integer type code defined by
+ * teca_variant_array and parentheses delimit the type code. The type code
+ * sequence is stripped from the name when the file is read.
+ *
+ * | C type             | code |
+ * | ------             | ---- |
+ * | char               | 1    |
+ * | unsigned char      | 2    |
+ * | int                | 3    |
+ * | unsigned int       | 4    |
+ * | short int          | 5    |
+ * | short unsigned int | 6    |
+ * | long               | 7    |
+ * | unsigned long      | 8    |
+ * | long long          | 9    |
+ * | unsigned long long | 10   |
+ * | float              | 11   |
+ * | double             | 12   |
+ * | std::string        | 13   |
+ *
+ * The number of column definitions found determines the number of columns in the
+ * table when reading.
+ *
+ * #### Column data
+ *
+ * Data is organized row by row with an entry for each column. Entries are
+ * separated by commas ','. Error's will occur when the number of column
+ * definitions don't match the number of data entries per row.
+ *
+ * #### String data
+ *
+ * Strings are delimited by double quotations. Double quotes and commas in strings
+ * may be escaped by a backslash.
+ *
+ * #### Numeric data
+ *
+ * The type code provided in the column definition tells the type of number.
+ * These codes are defined in teca_variant_array.
+ *
+ * floating point types are written with format and precision such that they
+ * may be read without introducing rounding error.
+ */
 class teca_table_reader : public teca_algorithm
 {
 public:

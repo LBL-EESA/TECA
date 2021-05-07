@@ -2,57 +2,86 @@
 #define teca_programmable_algorithm_h
 
 #include "teca_algorithm.h"
+#include "teca_shared_object.h"
 #include "teca_metadata.h"
-#include "teca_dataset_fwd.h"
-#include "teca_programmable_algorithm_fwd.h"
+#include "teca_dataset.h"
 
-/// an algorithm implemented with  user provided callbacks
-/**
-The user can provide a callback for each of the three phases
-of pipeline execution. The number of input and output ports
-can also be set for filters (1 or more inputs, 1 or more outputs)
-sources, (no  inputs, 1 or more outputs), or sinks (1 or more
-inputs, no outputs).
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_programmable_algorithm)
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_threaded_programmable_algorithm)
 
-1) report phase. the report callback returns metadata
-    describing data that can be produced. The report callback
-    is optional. It's only needed if the algorithm will produce
-    new data or transform metadata.
+#ifdef SWIG
+typedef void* report_callback_t;
+typedef void* request_callback_t;
+typedef void* execute_callback_t;
+typedef void* threaded_execute_callback_t;
+#else
+/// A callable implementing the report phase of pipeline execution
+using report_callback_t = std::function<teca_metadata(
+        unsigned int, const std::vector<teca_metadata>&)>;
 
-    the report callback must be callable with signature:
-    teca_metadata(unsigned int)
+/// A callable implementing the request phase of pipeline execution
+using request_callback_t = std::function<std::vector<teca_metadata>(
+        unsigned int, const std::vector<teca_metadata> &,
+        const teca_metadata &)>;
 
-2) request phase. the request callback generates a vector
-    of requests(metadata objects) that inform the upstream of
-    what data to generate. The request callback is optional.
-    It's only needed if the algorithm needs data from the
-    upstream or transform metadata.
-
-    the request callback must be callable with the signature:
-    std::vector<teca_metadata>(
-        unsigned int,
-        const std::vector<teca_metadata> &,
-        const teca_metadata &)
-
-3) execute phase. the execute callback is used to do useful
-    work on incoming or outgoing data. Examples include
-    generating new datasets, processing datasets, reading
-    and writing data to/from disk, and so on. The execute
-    callback is  optional.
-
-    the execute callback must be callable with the signature:
-    const_p_teca_dataset(
+/// A callable implementing the execute phase of pipeline execution
+using execute_callback_t = std::function<const_p_teca_dataset(
         unsigned int, const std::vector<const_p_teca_dataset> &,
-        const teca_metadata &)
+        const teca_metadata &)>;
 
-see also:
+/// A callable implementing the streaming execute phase of pipeline execution
+using threaded_execute_callback_t = std::function<const_p_teca_dataset(
+        unsigned int, const std::vector<const_p_teca_dataset> &,
+        const teca_metadata &, int)>;
+#endif
 
-set_number_of_input_connections
-set_number_of_output_ports
-set_report_callback
-set_request_callback
-set_execute_callback
-*/
+/// An algorithm implemented with  user provided callbacks.
+/**
+ * The user can provide a callback for each of the three phases
+ * of pipeline execution. The number of input and output ports
+ * can also be set for filters (1 or more inputs, 1 or more outputs)
+ * sources, (no  inputs, 1 or more outputs), or sinks (1 or more
+ * inputs, no outputs).
+ *
+ * 1) report phase. the report callback returns metadata
+ *     describing data that can be produced. The report callback
+ *     is optional. It's only needed if the algorithm will produce
+ *     new data or transform metadata.
+ *
+ *     the report callback must be callable with signature:
+ *     teca_metadata(unsigned int)
+ *
+ * 2) request phase. the request callback generates a vector
+ *     of requests(metadata objects) that inform the upstream of
+ *     what data to generate. The request callback is optional.
+ *     It's only needed if the algorithm needs data from the
+ *     upstream or transform metadata.
+ *
+ *     the request callback must be callable with the signature:
+ *     std::vector<teca_metadata>(
+ *         unsigned int,
+ *         const std::vector<teca_metadata> &,
+ *         const teca_metadata &)
+ *
+ * 3) execute phase. the execute callback is used to do useful
+ *     work on incoming or outgoing data. Examples include
+ *     generating new datasets, processing datasets, reading
+ *     and writing data to/from disk, and so on. The execute
+ *     callback is  optional.
+ *
+ *     the execute callback must be callable with the signature:
+ *     const_p_teca_dataset(
+ *         unsigned int, const std::vector<const_p_teca_dataset> &,
+ *         const teca_metadata &)
+ *
+ * see also:
+ *
+ * set_number_of_input_connections
+ * set_number_of_output_ports
+ * set_report_callback
+ * set_request_callback
+ * set_execute_callback
+ */
 class teca_programmable_algorithm : public teca_algorithm
 {
 public:

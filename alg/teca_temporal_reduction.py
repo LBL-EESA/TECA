@@ -1,7 +1,7 @@
 import sys
 import numpy as np
 
-
+# @cond
 class teca_temporal_reduction_internals:
     class time_point:
         """
@@ -181,7 +181,7 @@ class teca_temporal_reduction_internals:
                 sm = self.month
 
                 t0 = '%04d-%02d-01 00:00:00' % (sy, sm)
-                i0 = coordinate_util.time_step_of(self.t, True, True,
+                i0 = coordinate_util.time_step_of(self.t, False, True,
                                                   self.calendar,
                                                   self.units, t0)
 
@@ -259,7 +259,7 @@ class teca_temporal_reduction_internals:
                 month = self.month
 
                 t0 = '%04d-%02d-01 00:00:00' % (self.year, self.month)
-                i0 = coordinate_util.time_step_of(self.t, True, True,
+                i0 = coordinate_util.time_step_of(self.t, False, True,
                                                   self.calendar,
                                                   self.units, t0)
 
@@ -350,7 +350,7 @@ class teca_temporal_reduction_internals:
                 t0 = '%04d-%02d-%02d 00:00:00' % \
                     (self.year, self.month, self.day)
 
-                i0 = coordinate_util.time_step_of(self.t, True, True,
+                i0 = coordinate_util.time_step_of(self.t, False, True,
                                                   self.calendar,
                                                   self.units, t0)
 
@@ -531,6 +531,7 @@ class teca_temporal_reduction_internals:
                     reduction_operator.maximum()
 
             raise RuntimeError('Invalid operator %s' % (op_name))
+# @endcond
 
 
 class teca_temporal_reduction(teca_threaded_python_algorithm):

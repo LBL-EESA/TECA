@@ -14,7 +14,7 @@
 class teca_cf_layout_manager;
 using p_teca_cf_layout_manager = std::shared_ptr<teca_cf_layout_manager>;
 
-// puts data on disk using NetCDF CF2 conventions
+/// Puts data on disk using NetCDF CF2 conventions.
 class teca_cf_layout_manager
 {
 public:
@@ -42,13 +42,13 @@ public:
         const std::vector<std::string> &point_arrays,
         const std::vector<std::string> &info_arrays, int compression_level);
 
-    // writes the colllection of arrays to the NetCDF file
+    // writes the collection of arrays to the NetCDF file
     // in the correct spot.
     int write(long index,
         const const_p_teca_array_collection &point_arrays,
         const const_p_teca_array_collection &info_arrays);
 
-    // close the file. This is an MPI collecive call.
+    // close the file. This is an MPI collective call.
     int close()  { return this->handle.close(); }
 
     // return true if the file is open and can be written to
@@ -57,7 +57,8 @@ public:
     // return true if the file has been defined
     bool defined()  { return this->n_dims > 0; }
 
-    // TODO -- this is no longer correct
+    // TODO -- this is only true when a rank writes all of the steps
+    // to the given file.
     bool completed()
     {
         return this->n_written == this->n_indices;
@@ -87,7 +88,7 @@ protected:
     void operator=(const teca_cf_layout_manager&&) = delete;
 
 protected:
-    // communicator decribing ranks that act on the file
+    // communicator describing ranks that act on the file
     MPI_Comm comm;
 
     // identifying the file
@@ -95,7 +96,7 @@ protected:
     std::string file_name;
     teca_netcdf_util::netcdf_handle handle;
 
-    // for indentifying the incoming dataset and determining its
+    // for identifying the incoming dataset and determining its
     // position in the file
     long first_index;
     long n_indices;

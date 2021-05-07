@@ -1,5 +1,23 @@
 Development
 ===========
+
+Online Source Code Documentation
+--------------------------------
+TECA's C++ sources are documented via Doxygen at the `TECA Doxygen site <doxygen/index.html>`_.
+
+Class Indices
+-------------
+
+.. tip::
+
+    The following tables contain a listing of some commonly used TECA classes. The
+    `TECA Doxygen site <doxygen/index.html>`_ is a more complete reference.
+
+.. include:: _build/rst/generated_rtd_alg.rst
+.. include:: _build/rst/generated_rtd_io.rst
+.. include:: _build/rst/generated_rtd_core.rst
+.. include:: _build/rst/generated_rtd_data.rst
+
 Testing
 -------
 TECA comes with an extensive regression test suite which can be used to validate
@@ -92,4 +110,19 @@ to the title of the plot. Example output is shown in :numref:`prof_vis_10t_1r`.
 
    Visualization of TECA's run time profiler for the test_bayesian_ar_detect
    regression test, run with 1 MPI rank and 10 threads.
+
+
+Creating PyPi Packages
+----------------------
+The typical sequence for pushing and testing to PyPi is as follows. Be sure to
+add an rc number to the version in setup.py when testing since these are unique
+and cannot be reused.
+
+.. code-block:: bash
+
+    python3 setup.py build_ext
+    python3 setup.py install
+    python3 setup.py sdist
+    python3 -m twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+    pip3 install --index-url https://test.pypi.org/simple/ teca
 

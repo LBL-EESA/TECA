@@ -21,6 +21,8 @@ batch script rather than in your shell.
 +----------------------------------------+--------------------------------------------------+
 | :ref:`teca_integrated_vapor_transport` | Computes IVT (integrated vapor transport)        |
 +----------------------------------------+--------------------------------------------------+
+| :ref:`teca_integrated_water_vapor`     | Computes IWV (integrated water vapor)            |
++----------------------------------------+--------------------------------------------------+
 | :ref:`teca_bayesian_ar_detect`         | AR detection with uncertainty quantification     |
 +----------------------------------------+--------------------------------------------------+
 | :ref:`teca_deeplab_ar_detect`          | A machine learning based AR detector             |
@@ -48,6 +50,9 @@ batch script rather than in your shell.
 +----------------------------------------+--------------------------------------------------+
 | :ref:`teca_event_filter`               | Select TC tracks using run time provided         |
 |                                        | expressions                                      |
++----------------------------------------+--------------------------------------------------+
+| :ref:`teca_cf_restripe`                | Convert the internal layout of a dataset on disk |
+|                                        | with optional subsetting and/or regridding.      |
 +----------------------------------------+--------------------------------------------------+
 
 Applying the Command Line Applications at Scale
@@ -87,6 +92,8 @@ loading the teca environment module. The second line tells the module system
 where to look for the teca modulefile and the third line loads the module,
 configuring the environment for use with TECA.
 
+.. _m1517_installs:
+
 m1517 CASCADE installs
 ~~~~~~~~~~~~~~~~~~~~~~
 Members of the CASCADE project m1517 can access rolling installs on Cori. These
@@ -103,7 +110,7 @@ at the top of their batch scripts.
 .. code-block:: bash
 
    module swap PrgEnv-intel PrgEnv-gnu
-   module use /global/common/software/m1517/develop
+   module use /global/common/software/m1517/teca/develop/modulefiles
    module load teca
 
 In order to make use of the `stable` release install swap `develop` for
@@ -336,6 +343,8 @@ read the variables *hus*, *ua* and *va* each from a different subdirectory.
     data_root = /global/cfs/cdirs/m3522/cmip6/CMIP6_hrmcol/HighResMIP/CMIP6/HighResMIP/ECMWF/ECMWF-IFS-HR/highresSST-present/r1i1p1f1/6hrPlevPt
     regex = 6hrPlevPt_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_gr_199[0-9].*\.nc$
 
+    z_axis_variable = plev
+
     [cf_reader]
     variables = hus
     regex = %data_root%/hus/gr/v20170915/hus_%regex%
@@ -395,6 +404,62 @@ section key words:
 |                       | reader will provide the mesh definition.            |
 +-----------------------+-----------------------------------------------------+
 
+A number of optional `teca_cf_reader` properties may be placed in either the
+global or individual sections. When not specified in the MCF file the default
+values defined by the `teca_cf_reader` are used. Such properties, when
+specified in the global section are applied to all readers. Properties
+specified with in a `[cf_reader]` section are applied only to the reader
+declared in that section. When the same property is specified in both the
+global section and a `[cf_reader]` section, the property specified in the
+`[cf_reader]` section takes precedence. The following `teca_cf_reader`
+properties are supported:
+
++-------------------------+---------------------------------------------------+
+| key word                | description                                       |
++=========================+===================================================+
+| x_axis_variable         | The name of the variable defining the x           |
+|                         | coordinate axis. The default is *lon*.            |
++-------------------------+---------------------------------------------------+
+| y_axis_variable         | The name of the variable defining the y           |
+|                         | coordinate axis. The default is *lat*.            |
++-------------------------+---------------------------------------------------+
+| z_axis_variable         | The name of the variable defining the z           |
+|                         | coordinate axis. The default is *""*. The         |
+|                         | *z_axis_variable* must be specified for 3D data.  |
++-------------------------+---------------------------------------------------+
+| t_axis_variable         | The name of the variable defining the time axis.  |
+|                         | The default is *time*.                            |
++-------------------------+---------------------------------------------------+
+| calendar                | The calendar to use with the time axis. The       |
+|                         | calendar is typically encoded in the file. The    |
+|                         | value provided here can be used to override what  |
+|                         | is in the file or to specify the calendar when it |
+|                         | is missing from the file.                         |
++-------------------------+---------------------------------------------------+
+| t_units                 | The units that the time axis is in.  This time    |
+|                         | units are typically encoded in the file. The      |
+|                         | value provided here can be used to overrides what |
+|                         | is in the file or to specify the time units when  |
+|                         | they are missing from the file.                   |
++-------------------------+---------------------------------------------------+
+| filename_time_template  | Provides a way to infer time from the filename if |
+|                         | the time axis is not stored in the file itself.   |
+|                         | *strftime* format codes are used. For example for |
+|                         | the files: *my_file_20170516_00.nc*,              |
+|                         | *my_file_20170516_03.nc*, *...*; the template     |
+|                         | would be *my_file_%Y%m%d_%H.nc*                   |
++-------------------------+---------------------------------------------------+
+| periodic_in_x           | A flag that indicates a periodic boundary in the  |
+|                         | x direction.                                      |
++-------------------------+---------------------------------------------------+
+| clamp_dimensions_of_one | If set the requested extent will be clamped in a  |
+|                         | given direction if the coordinate axis in that    |
+|                         | direction has a length of 1 and the requested     |
+|                         | extent would be out of bounds. This is a work     |
+|                         | around to enable loading 2D data with a vertical  |
+|                         | dimension of 1, into a 3D mesh and should be used |
+|                         | with caution.                                     |
++-------------------------+---------------------------------------------------+
 
 .. _rearranging_data:
 
@@ -433,7 +498,7 @@ values, the following teca_cf_reader options can be used.
   string to enable override methods (--filename_time_template, --t_values) or
   to disable time coordinates completely
 
---cf_reader::t_calendar arg
+--cf_reader::calendar arg
   An optional calendar override. May be one of: standard, Julian,
   proplectic_Julian, Gregorian, proplectic_Gregorian, Gregorian_Y0,
   proplectic_Gregorian_Y0, noleap, no_leap, 365_day, 360_day. When the
@@ -535,8 +600,13 @@ in NetCDF CF2 format.
 --output_file arg
     file pattern for output netcdf files (%t% is the time index)
 
+--file_layout arg (=monthly)
+    Selects the size and layout of the set of output files. May be one of *number_of_steps*, *daily*,
+    *monthly*, *seasonal*, or *yearly*. Files are structured such that each file contains one of the
+    selected interval. For the number_of_steps option use `--steps_per_file`.
+
 --steps_per_file arg
-    number of time steps per output file
+    The number of time steps per output file when `--file_layout number_of_steps` is specified.
 
 --cf_writer::date_format arg
     A strftime format used when encoding dates into the output
@@ -942,6 +1012,23 @@ Command Line Arguments
 --write_ivt
     when this flag is present IVT vector is written to disk with the result
 
+--dem arg
+    A teca_cf_reader regex identifying the file containing surface elevation field or DEM.
+
+--dem_variable arg (=Z)
+    Sets the name of the variable containing the surface elevation field
+
+--mesh_height arg (=Zg)
+    Sets the name of the variable containing the point wise vertical height in meters above mean
+    sea level
+
+--ar_probability arg (=ar_probability)
+    Sets the name of the variable to store the computed AR probability mask in.
+
+--ar_weighted_variables arg
+    An optional list of variables to weight with the computed AR probability. Each such variable
+    will be multiplied by the computed AR probability, and written to disk as "NAME_ar_wgtd".
+
 --x_axis_variable arg (=lon)
     name of x coordinate variable
 
@@ -954,17 +1041,34 @@ Command Line Arguments
 --periodic_in_x arg (=1)
     Flags whether the x dimension (typically longitude) is periodic.
 
---binary_ar_threshold arg (=0.667)
-    probability threshold for segmenting ar_probability to produce ar_binary_tag
+--segment_ar_probability
+    A flag that enables a binary segmentation of AR probability to be produced. `--segment_threshold`
+    controls the segmentation. threshold and `--segment_variable` to set the name of the variable to
+    store the result in.
 
---output_file arg (=CASCADE_BARD_%t%.nc)
+--segment_threshold arg (=0.667)
+    Sets the threshold value that is used when segmenting ar_probability. See also
+    `--segment_ar_probability`
+
+--segment_variable arg (=ar_binary_tag)
+    Set the name of the variable to store the result of a binary segmentation of AR probabilty. See
+    also `--segment_ar_probability`.
+
+--output_file arg (=TECA_BARD_%t%.nc)
     A path and file name pattern for the output NetCDF files. %t% is replaced with a human readable
     date and time corresponding to the time of the first time step in the file. Use
     `--cf_writer::date_format` to change the formatting
 
---steps_per_file arg (=128)
-    number of time steps per output file
+--file_layout arg (=monthly)
+    Selects the size and layout of the set of output files. May be one of number_of_steps, daily,
+    monthly, seasonal, or yearly. Files are structured such that each file contains one of the
+    selected interval. For the number_of_steps option use `--steps_per_file`.
 
+--steps_per_file arg (=128)
+    The number of time steps per output file when `--file_layout number_of_steps` is specified.
+
+--first_step arg (=0)
+    first time step to process
 
 --last_step arg (=-1)
     last time step to process
@@ -1041,7 +1145,7 @@ dataset using TECA's BARD(Bayesian AR detector) detector.
     time srun -N 1484 -n 23744 teca_bayesian_ar_detect \
         --input_file ./HighResMIP_ECMWF_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_6hrPlevPt.mcf \
         --specific_humidity hus --wind_u ua --wind_v va --ivt_u ivt_u --ivt_v ivt_v --ivt ivt \
-        --compute_ivt --write_ivt --write_ivt_magnitude --steps_per_file 128 \
+        --compute_ivt --write_ivt --write_ivt_magnitude --file_layout monthly \
         --output_file ${out_dir}/CASCADE_BARD_AR_%t%.nc
 
 This dataset spans the year 1950 to 2014 with 7 pressure levels at a
@@ -1102,7 +1206,7 @@ minutes on the Cori KNL supercomputer at NERSC.
             --input_regex "/global/project/projectdirs/m1517/cascade/external_datasets/ARTMIP/MERRA_2D/${year}/ARTMIP_MERRA_2D_.*\.nc" \
             --cf_reader::t_axis_variable "" \
             --cf_reader::filename_time_template  "ARTMIP_MERRA_2D_%Y%m%d_%H.nc" \
-            --steps_per_file 3000 \
+            --file_layout number_of_steps --steps_per_file 3000 \
             --cf_writer::date_format "%Y" \
             --output_file MERRA2.ar_tag.teca_bard_v1.0.3hourly.%t%.nc4 &> bard_${year}_${SLURM_JOB_ID}.log &
     done
@@ -1130,8 +1234,14 @@ taken into account. See the :ref:`teca_metadata_probe` ARTMIP :ref:`example<mdp_
 
 teca_integrated_vapor_transport
 -------------------------------
-The integrated vapor transport(IVT) command line application computes IVT from
-input wind vector and specific humidity.
+The integrated vapor transport(IVT) command line application computes:
+
+.. math::
+
+    IVT = \frac{1}{g} \int_{p_{sfc}}^{p_{top}} \vec{v} q dp
+
+where q is the specific humidity, and :math:`\vec{v} = (u, v)` are the
+longitudinal and latitudinal components of wind.
 
 Inputs
 ~~~~~~
@@ -1176,7 +1286,7 @@ Command Line Arguments
     name to use for the latitudinal component of the integrated vapor transport vector.
 
 --ivt arg (=IVT)
-    name of variable with the magnitude of integrated vapor transport
+    name of variable with the magnitude of integrated vapor transport (IVT)
 
 --write_ivt_magnitude arg (=0)
     when this is set to 1 magnitude of vector IVT is calculated. use `--ivt_u` and `--ivt_v` to set the
@@ -1191,8 +1301,13 @@ Command Line Arguments
     date and time corresponding to the time of the first time step in the file. Use
     --cf_writer::date_format to change the formatting
 
+--file_layout arg (=monthly)
+    Selects the size and layout of the set of output files. May be one of number_of_steps, daily,
+    monthly, seasonal, or yearly. Files are structured such that each file contains one of the
+    selected interval. For the number_of_steps option use `--steps_per_file`.
+
 --steps_per_file arg (=128)
-    number of time steps per output file
+    The number of time steps per output file when `--file_layout number_of_steps` is specified.
 
 --x_axis_variable arg (=lon)
     name of x coordinate variable
@@ -1203,8 +1318,15 @@ Command Line Arguments
 --z_axis_variable arg (=plev)
     name of z coordinate variable
 
---periodic_in_x arg (=1)
-    Flags whether the x dimension (typically longitude) is periodic.
+--dem arg
+    A teca_cf_reader regex identifying the file containing surface elevation field or DEM.
+
+--dem_variable arg (=Z)
+    Sets the name of the variable containing the surface elevation field
+
+--mesh_height arg (=Zg)
+    Sets the name of the variable containing the point wise vertical height in meters above mean
+    sea level
 
 --first_step arg (=0)
     first time step to process
@@ -1219,8 +1341,8 @@ Command Line Arguments
 --end_date arg
     The last time to process in 'Y-M-D h:m:s' format
 
---n_threads arg
-    Sets the thread pool size on each MPI rank. When the default value of -1 is used TECA will
+--n_threads arg (=-1)
+    Sets the thread pool size on each MPI  rank. When the default value of -1 is used TECA will
     coordinate the thread pools across ranks such each thread is bound to a unique physical core.
 
 --verbose
@@ -1269,7 +1391,7 @@ HighResMIP dataset using TECA.
         --specific_humidity hus --wind_u ua --wind_v va --ivt_u ivt_u --ivt_v ivt_v --ivt ivt               \
         --write_ivt 1 --write_ivt_magnitude 1                                                               \
         --output_file ./HighResMIP_ECMWF_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_6hrPlevPt/ivt/ivt_%t%.nc  \
-        --steps_per_file 32 --n_threads -1 --verbose
+        --n_threads -1 --verbose
 
 This HighResMIP dataset spans the year 1950 to 2014 with 7 pressure levels at a
 1 degree spatial and 6 hourly time resolution. There are 94964 simulated time
@@ -1285,6 +1407,113 @@ generated a total of 276 GB of data.
 The HighResMIP data is organized such that each
 variable is stored in its own directory.  This :ref:`MCF file<HighResMIPMCF>`
 was used to configure the readers.
+
+
+.. _teca_integrated_water_vapor:
+
+teca_integrated_water_vapor
+-------------------------------
+The integrated water vapor(IWV) command line application computes:
+
+.. math::
+
+   IWV = \frac{1}{g} \int_{p_{sfc}}^{p_{top}} q dp
+
+where g is the acceleration due to Earth's gravity, p is atmospheric pressure,
+and q is specific humidity.
+
+
+Inputs
+~~~~~~
+A 3D time dependent mesh in NetCDF CF2 format with:
+
+1. specific humidity
+
+Outputs
+~~~~~~~
+A 2D mesh with:
+
+1. IWV
+
+
+Command Line Arguments
+~~~~~~~~~~~~~~~~~~~~~~
+--input_file arg
+    a teca_multi_cf_reader configuration file identifying the set of NetCDF CF2 files to process.
+    When present data is read using the teca_multi_cf_reader. Use one of either `--input_file` or
+    `--input_regex`.
+
+--input_regex arg
+    a teca_cf_reader regex identifying the set of NetCDF CF2 files to process. When present data is
+    read using the teca_cf_reader. Use one of either `--input_file` or `--input_regex`.
+
+--specific_humidity arg (=Q)
+    name of variable with the 3D specific humidity field.
+
+--iwv arg (=IWV)
+    name to use for the longitudinal component of the integrated vapor transport vector.
+
+--output_file arg (=IWV_%t%.nc)
+    A path and file name pattern for the output NetCDF files. %t% is replaced with a human readable
+    date and time corresponding to the time of the first time step in the file. Use
+    `--cf_writer::date_format` to change the formatting
+
+--file_layout arg (=monthly)
+    Selects the size and layout of the set of output files. May be one of number_of_steps, daily,
+    monthly, seasonal, or yearly. Files are structured such that each file contains one of the
+    selected interval. For the number_of_steps option use `--steps_per_file`.
+
+--steps_per_file arg (=128)
+    The number of time steps per output file when `--file_layout number_of_steps` is specified.
+
+--x_axis_variable arg (=lon)
+    name of x coordinate variable
+
+--y_axis_variable arg (=lat)
+    name of y coordinate variable
+
+--z_axis_variable arg (=plev)
+    name of z coordinate variable
+
+--dem arg
+    A teca_cf_reader regex identifying the file containing surface elevation field or DEM.
+
+--dem_variable arg (=Z)
+    Sets the name of the variable containing the surface elevation field
+
+--mesh_height arg (=Zg)
+    Sets the name of the variable containing the point wise vertical height in meters above mean
+    sea level
+
+--first_step arg (=0)
+    first time step to process
+
+--last_step arg (=-1)
+    last time step to process
+
+--start_date arg
+    The first time to process in 'Y-M-D h:m:s' format. Note: There must be a space between the date
+    and time specification
+
+--end_date arg
+    The last time to process in 'Y-M-D h:m:s' format
+
+--n_threads arg (=-1)
+    Sets the thread pool size on each MPI  rank. When the default value of -1 is used TECA will
+    coordinate the thread pools across ranks such each thread is bound to a unique physical core.
+
+--verbose
+    enable extra terminal output
+
+--help
+    displays documentation for application specific command line options
+
+--advanced_help
+    displays documentation for algorithm specific command line options
+
+--full_help
+    displays both basic and advanced documentation together
+
 
 .. _teca_tc_detect:
 
@@ -2081,8 +2310,13 @@ Command Line Arguments
     date and time corresponding to the time of the first time step in the file. Use --date_format to
     change the formatting (default: None)
 
+--file_layout FILE_LAYOUT
+    Selects the size and layout of the set of output files. May be one of number_of_steps, daily,
+    monthly, seasonal, or yearly. Files are structured such that each file contains one of the
+    selected interval. For the number_of_steps option use `--steps_per_file`. (default: yearly)
+
 --steps_per_file STEPS_PER_FILE
-    number of time steps to write to each output file (default: 128)
+    The number of time steps per output file when `--file_layout number_of_steps` is specified.
 
 --x_axis_variable X_AXIS_VARIABLE
     name of the variable to use for x-coordinates (default: lon)
@@ -2148,7 +2382,7 @@ simulated time at quarter degree 3 hourly resolution.
             --n_threads 2 --verbose 1 --input_regex ${data_dir}/'.*\.nc$' \
             --interval daily --operator average --point_arrays TS TMQ --ignore_fill_value \
             --output_file ${out_dir}/CAM5-1-025degree_All-Hist_est1_v3_daily_avg_%t%.nc \
-            --steps_per_file 50
+            --file_layout monthly
 
 .. _ta_era5:
 
@@ -2184,7 +2418,7 @@ degree, 1 hourly resolution.
     out_dir=CMIP6_ERA5_e5_oper_an_sfc_seasonal_avg
     mkdir -p ${out_dir}
 
-    # compute the daily average. change -N and -n to match the run size.
+    # compute the seasonal average. change -N and -n to match the run size.
     # the run size is determened by the number of output time steps. here the
     # input is 41 years of 1 hourly data, the output is seasonal, with 164 seasons.
     time srun -N 164 -n 164 \
@@ -2193,7 +2427,7 @@ degree, 1 hourly resolution.
             --x_axis_variable longitude --y_axis_variable latitude \
             --interval seasonal --operator average --point_arrays TCWV \
             --output_file ${out_dir}/e5_oper_an_sfc_128_137_tcwv_ll025sc_seasonal_avg_%t%.nc \
-            --steps_per_file 4
+            --file_layout number_of_steps --steps_per_file 4
 
 This run made use of 164 MPI ranks on 164 KNL nodes. 164 ranks were used
 because the input data spans 41 years of simulated time, and 41 years each with
@@ -2275,6 +2509,11 @@ Command Line Arguments
     date and time corresponding to the time of the first time step in the file. Use `--date_format` to
     change the formatting (default: None)
 
+--file_layout FILE_LAYOUT
+    Selects the size and layout of the set of output files. May be one of number_of_steps, daily,
+    monthly, seasonal, or yearly. Files are structured such that each file contains one of the
+    selected interval. For the number_of_steps option use `--steps_per_file`. (default: monthly)
+
 --steps_per_file STEPS_PER_FILE
     number of time steps per output file (default: 128)
 
@@ -2300,7 +2539,7 @@ Command Line Arguments
 --t_axis_variable T_AXIS_VARIABLE
     time dimension name (default: None)
 
---t_calendar T_CALENDAR
+--calendar calendar
     time calendar (default: None)
 
 --t_units T_UNITS
@@ -2402,8 +2641,7 @@ ref:`cmip6_ex_desc<teca_bayesian_ar_detect examples>`.
         --input_file ./HighResMIP_ECMWF_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_6hrPlevPt.mcf \
         --compute_ivt --wind_u ua --wind_v va --specific_humidity hus \
         --write_ivt --write_ivt_magnitude \
-        --output_file ${out_dir}/deeplab_AR_%t%.nc \
-        --steps_per_file 128
+        --output_file ${out_dir}/deeplab_AR_%t%.nc
 
 .. _teca_convert_table:
 
@@ -2463,3 +2701,199 @@ Examples
 
 This example converts a table stored in TECA's binary format to NetCDF. To covnert
 to CSV instead one would change the extension from *.nc* to *.csv*.
+
+
+.. _teca_cf_restripe:
+
+teca_cf_restripe
+----------------
+
+The `teca_cf_restripe` application was written to test TECA's parallel
+collective I/O capabilities. It can be used to change the internal organization
+of the files comprising a dataset. For instance one can convert a dataset where
+each file stores a single day's worth of data to one where each file stores a
+month's worth of data, a year's worth of data, or a fixed number of time steps.
+The application can be used to subset a dataset in either space and time,
+extracting a reduced sized selection of interest. It can also be used to
+spatially regrid a dataset onto a Cartesian mesh of user supplied bounds and
+extents. The regridding feature can be used to slice a 3D dataset in
+preparation for GFDL TC tracker which requires 2D slices at specified vertical
+pressure levels.
+
+Inputs
+~~~~~~
+A NetCDF CF dataset.
+
+Outputs
+~~~~~~~
+A copy of the input NetCDF data, potentially reorganized on disk, and/or subset
+in space and time, and/or spatially regridded.
+
+
+Command Line Options
+~~~~~~~~~~~~~~~~~~~~
+
+--input_file arg
+    a teca_multi_cf_reader configuration file identifying the set of NetCDF CF2 files to process.
+    When present data is read using the teca_multi_cf_reader. Use one of either --input_file or
+    --input_regex.
+
+--input_regex arg
+    a teca_cf_reader regex identifying the set of NetCDF CF2 files to process. When present data is
+    read using the teca_cf_reader. Use one of either --input_file or --input_regex.
+
+--x_axis_variable arg
+    name of x coordinate variable (lon)
+
+--y_axis_variable arg
+    name of y coordinate variable (lat)
+
+--z_axis_variable arg
+    name of z coordinate variable (plev)
+
+--point_arrays arg
+    A list of point centered arrays to write
+
+--information_arrays arg
+    A list of non-geometric arrays to write
+
+--output_file arg
+    A path and file name pattern for the output NetCDF files. %t% is replaced with a human readable
+    date and time corresponding to the time of the first time step in the file. Use
+    --cf_writer::date_format to change the formatting
+
+--file_layout arg (=monthly)
+    Selects the size and layout of the set of output files. May be one of number_of_steps, daily,
+    monthly, seasonal, or yearly. Files are structured such that each file contains one of the
+    selected interval. For the number_of_steps option use --steps_per_file.
+
+--steps_per_file arg
+    The number of time steps per output file when  --file_layout number_of_steps is specified.
+
+--normalize_coordinates
+    Enable coordinate normalization pipeline stage
+
+--regrid
+    Enable mesh regridding pipeline stage. When enabled requires --dims to be provided
+
+--dims arg
+    A 3-tuple of values specifying the mesh size of the output dataset in the x, y, and z
+    dimensions. The accepted format for dimensions is: nx ny nz
+
+--bounds arg
+    A hex-tuple of low and high values specifying lon lat lev bounding box to subset the input
+    dataset with. The accepted format for bounds is: x0 x1 y0 y1 z0 z1
+
+--rename
+    Enable variable renaming stage
+
+--original_name arg
+    A list of variables to rename. Use --new_name to set the new names
+
+--new_name arg
+    The new names to use when renaming variables. Use --original_name to set the list of variables
+    to rename
+
+--first_step arg
+    first time step to process
+
+--last_step arg
+    last time step to process
+
+--start_date arg
+    first time to proces in YYYY-MM-DD hh:mm:ss format
+
+--end_date arg
+    first time to proces in YYYY-MM-DD hh:mm:ss format
+
+--n_threads arg
+    Sets the thread pool size on each MPI rank. When the default value of -1 is used TECA will
+    coordinate the thread pools across ranks such each thread is bound to a unique physical core.
+
+--verbose
+    enable extra terminal output
+
+--help
+    displays documentation for application specific command line options
+
+--advanced_help
+    displays documentation for algorithm specific command line options
+
+--full_help
+    displays both basic and advanced documentation together
+
+
+Examples
+~~~~~~~~
+
+.. _slicing_3d_data:
+
+Slicing 3D CMIP6 Data
+^^^^^^^^^^^^^^^^^^^^^
+
+This example shows how to regrid 3D data onto run time specified 2D slices at
+the pressure levels needed for the GFDL TC tracker. In this CMIP6 dataset seal
+level pressure and surface winds are on a 2D Cartesian mesh but atmospheric
+wind speed, temperature, and geopotential height are on a 3D Cartesian mesh. In
+order to run the GFDL TC tracker we'll need to compute the following slices:
+850 mB wind vector, 500 and 200 mB air temperature, 1000 and 200 mB
+geopotential height. The input dataset spans 65 years at 6 hourly, 1/2 degree
+resolution. There are a total of 94964 time steps to process. The following
+script illustrates computing the slices using 1024 compute nodes and 4096 MPI
+ranks.
+
+.. code-block:: bash
+
+    #!/bin/bash
+    #SBATCH -C knl
+    #SBATCH -N 1024
+    #SBATCH -q regular
+    #SBATCH -t 04:00:00
+    #SBATCH -A m1517
+    #SBATCH -J 2_slice_data
+
+    # load gcc
+    module swap PrgEnv-intel PrgEnv-gnu
+
+    # bring a TECA install into your environment.
+    module use /global/common/software/m1517/teca/develop/modulefiles
+    module load teca
+
+    # run with 4 MPI ranks per node
+    NN=1024
+    let nn=${NN}*4
+
+    # store the output data here
+    data_root_out=ECMWF-IFS-HR_highresSST-present_r1i1p1f1_6hrPlevPt
+    mkdir ${data_root_out}
+
+    # get the input data here
+    data_root_in=/global/cfs/cdirs/m3522/cmip6/CMIP6_hrmcol/HighResMIP/CMIP6/HighResMIP/ECMWF/ECMWF-IFS-HR/highresSST-present/r1i1p1f1/6hrPlevPt
+    regex_in=6hrPlevPt_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_gr_'.*\.nc$'
+
+    # slice the following variables on the following pressure levels (in millibar)
+    var_in=(ua va ta ta zg zg)
+    plev_mb=(850 850 200 500 200 924)
+
+    let n=${#var_in[@]}-1
+    for i in `seq 0 $n`
+    do
+        # convert from millbar to Pascals
+        let plev_pa=${plev_mb[${i}]}*100
+        var_out=${var_in[${i}]}${plev_mb[${i}]}
+
+        echo "====================================================="
+        echo "slicing ${var_in[${i}]} at ${plev_pa} into ${var_out}"
+        echo "====================================================="
+
+        rm -rf "${data_root_out}/${var_out}"
+        mkdir -p "${data_root_out}/${var_out}"
+
+        time srun -n ${nn} -N ${NN}                                                                                             \
+            teca_cf_restripe                                                                                                    \
+            --input_regex "${data_root_in}/${var_in[${i}]}/gr/v20170915/${var_in[${i}]}_${regex_in}"                            \
+            --z_axis_variable plev --regrid --dims 720 361 1 --bounds 0 359.5 -90 90 ${plev_pa} ${plev_pa}                      \
+            --rename --original_name ${var_in[${i}]} --new_name ${var_out}                                                      \
+            --output_file "${data_root_out}/${var_out}/${var_out}_6hrPlevPt_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_gr_%t%.nc" \
+            --point_arrays ${var_out} --file_layout monthly
+    done

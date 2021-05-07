@@ -5,10 +5,10 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_bayesian_ar_detect_parameters)
 
-/**
-An algorithm that constructs and serves up the parameter
-table needed to run the Bayesain AR detector
-*/
+/** @brief
+ * An algorithm that constructs and serves up the parameter
+ * table needed to run the Bayesian AR detector.
+ */
 class teca_bayesian_ar_detect_parameters : public teca_algorithm
 {
 public:
@@ -22,12 +22,16 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // control the number of rows coppied into the table.  The rows are
-    // copppied in sequential order starting from row zero. The default value
-    // of -1 is used to serve all rows. See also get_parameter_table_size.
+    /** @name number_of_rows
+     * control the number of rows copied into the table.  The rows are copied
+     * in sequential order starting from row zero. The default value of -1 is
+     * used to serve all rows. See also get_parameter_table_size.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(long, number_of_rows)
+    ///@}
 
-    // return the number of rows in the internal parameter table.
+    /// return the number of rows in the internal parameter table.
     unsigned long get_parameter_table_size();
 
 protected:

@@ -1,6 +1,6 @@
 #include "teca_l2_norm.h"
 
-#include "teca_cartesian_mesh.h"
+#include "teca_mesh.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_metadata.h"
@@ -92,6 +92,8 @@ void teca_l2_norm::get_properties_description(
             "array to store the computed norm in")
         ;
 
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 
@@ -99,6 +101,8 @@ void teca_l2_norm::get_properties_description(
 void teca_l2_norm::set_properties(
     const string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, std::string, prefix, component_0_variable)
     TECA_POPTS_SET(opts, std::string, prefix, component_1_variable)
     TECA_POPTS_SET(opts, std::string, prefix, component_2_variable)
@@ -279,12 +283,12 @@ const_p_teca_dataset teca_l2_norm::execute(
     (void)port;
 
     // get the input mesh
-    const_p_teca_cartesian_mesh in_mesh
-        = std::dynamic_pointer_cast<const teca_cartesian_mesh>(input_data[0]);
+    const_p_teca_mesh in_mesh
+        = std::dynamic_pointer_cast<const teca_mesh>(input_data[0]);
 
     if (!in_mesh)
     {
-        TECA_ERROR("Failed to compute l2 norm. dataset is not a teca_cartesian_mesh")
+        TECA_ERROR("Failed to compute l2 norm. dataset is not a teca_mesh")
         return nullptr;
     }
 
@@ -355,11 +359,10 @@ const_p_teca_dataset teca_l2_norm::execute(
 
     // create the output mesh, pass everything through, and
     // add the l2 norm array
-    p_teca_cartesian_mesh out_mesh = teca_cartesian_mesh::New();
+    p_teca_mesh out_mesh = std::static_pointer_cast<teca_mesh>
+        (std::const_pointer_cast<teca_mesh>(in_mesh)->new_shallow_copy());
 
-    out_mesh->shallow_copy(std::const_pointer_cast<teca_cartesian_mesh>(in_mesh));
-
-    out_mesh->get_point_arrays()->append(
+    out_mesh->get_point_arrays()->set(
         this->get_l2_norm_variable(request), l2_norm);
 
     return out_mesh;

@@ -2,7 +2,7 @@
 #define teca_table_reduce_h
 
 #include "teca_shared_object.h"
-#include "teca_dataset_fwd.h"
+#include "teca_dataset.h"
 #include "teca_metadata.h"
 #include "teca_index_reduce.h"
 
@@ -11,12 +11,11 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_table_reduce)
 
-// a reduction on tabular data over time steps
+/// A reduction on tabular data over time steps.
 /**
-a reduction on tabular data over time steps.
-tabular data from each time step is collected and
-concatenated into a big table.
-*/
+ * Tabular data from each time step is collected and
+ * concatenated into a big table.
+ */
 class teca_table_reduce : public teca_index_reduce
 {
 public:

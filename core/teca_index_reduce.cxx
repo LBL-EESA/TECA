@@ -138,9 +138,9 @@ void teca_index_reduce::get_properties_description(const std::string &prefix,
         + (prefix.empty()?"teca_index_reduce":prefix));
 
     opts.add_options()
-        TECA_POPTS_GET(long, prefix, start_index, "first index to process (0)")
+        TECA_POPTS_GET(long, prefix, start_index, "first index to process")
         TECA_POPTS_GET(long, prefix, end_index, "last index to process. "
-            "If set to -1 all indices are processed. (-1)")
+            "If set to -1 all indices are processed.")
         ;
 
     global_opts.add(opts);

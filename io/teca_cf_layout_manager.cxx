@@ -40,7 +40,10 @@ int teca_cf_layout_manager::create(const std::string &file_name,
     }
 
     coords.get("t_variable", this->t_variable);
-    p_teca_variant_array t = coords.get("t");
+
+    p_teca_variant_array t;
+    if (!this->t_variable.empty())
+        t = coords.get("t");
 
     // construct the file name
     if (!date_format.empty())
@@ -186,6 +189,13 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
     this->n_dims = 0;
     for (int i = 0; i < 4; ++i)
         this->dims[i] = 0;
+
+    // check for bad bounds request on dataset with y axis in descending order.
+    if (extent[2] > extent[3])
+    {
+        TECA_ERROR("Bad y-axis extent [" << extent[2] << ", " << extent[3] << "]")
+        return -1;
+    }
 
     // the cf reader always creates 4D data, but some other tools choke
     // on it, notably ParView. All dimensions of 1 are safe to skip, unless
@@ -477,7 +487,7 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
         if (is_init && ((ierr = nc_var_par_access(this->handle.get(), var_id,
             NC_INDEPENDENT)) != NC_NOERR))
         {
-            TECA_ERROR("Failed to set inidependant mode on variable \"" << name << "\"")
+            TECA_ERROR("Failed to set independent mode on variable \"" << name << "\"")
             return -1;
         }
 #if !defined(HDF5_THREAD_SAFE)
@@ -593,7 +603,11 @@ int teca_cf_layout_manager::write(long index,
     {
         size_t starts[4] = {0, 0, 0, 0};
         size_t counts[4] = {1, 0, 0, 0};
-        for (int i = 1; i < this->n_dims; ++i)
+
+        // make space for the time dimension
+        int i0 = this->t ? 1 : 0;
+
+        for (int i = i0; i < this->n_dims; ++i)
             counts[i] = this->dims[i];
 
         // get this data's position in the file
@@ -739,7 +753,8 @@ int teca_cf_layout_manager::to_stream(std::ostream &os)
        << n_franks << " file_id=" << file_id
        << " file_name=\"" << this->file_name
        << "\" first_index=" << this->first_index
-       << " n_indeces=" << this->n_indices;
+       << " n_indices=" << this->n_indices
+       << " n_written=" << this->n_written;
 
     return 0;
 }

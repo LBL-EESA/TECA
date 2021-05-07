@@ -27,7 +27,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_valid_value_mask)
  * a variable named "V" it will be named "V_valid".
  *
  * Masks are requested for specific arrays in one of two ways. One may use the
- * @ref mask_arrays algorithm property to explicitly name the list of variables to
+ * mask_arrays algorithm property to explicitly name the list of variables to
  * compute masks for. Alternatively, a heuristic applied to incoming requests
  * determines if masks should be generated. Specifically the string "_valid" is
  * looked for at the end of each requested array.  If it is found then the mask
@@ -48,8 +48,7 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    /** @anchor mask_arrays
-     * @name mask_arrays
+    /** @name mask_arrays
      * explicitly set a list of input arrays to process. By default
      * all arrays are processed. Use this property to compute masks
      * for a subset of the arrays,
@@ -58,22 +57,12 @@ public:
     TECA_ALGORITHM_VECTOR_PROPERTY(std::string, mask_array)
     ///@}
 
-    /** @anchor enable_valid_range
-     * @name enable_valid_range
+    /** @name enable_valid_range
      * enable the use of valid_range, valid_min, valid_max attributes.
      * by default this is off.
      */
     ///@{
     TECA_ALGORITHM_PROPERTY(int, enable_valid_range)
-    ///@}
-
-    /** @anchor verbose
-     * @name verbose
-     * if set to a non-zero value, rank 0 will send status information to the
-     * terminal. The default setting of zero results in minimal output.
-     */
-    ///@{
-    TECA_ALGORITHM_PROPERTY(int, verbose)
     ///@}
 
 protected:
@@ -94,7 +83,6 @@ private:
 private:
     std::vector<std::string> mask_arrays;
     int enable_valid_range;
-    int verbose;
 };
 
 #endif

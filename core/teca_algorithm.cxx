@@ -12,6 +12,10 @@
 #include <algorithm>
 #include <mutex>
 
+#if defined(TECA_HAS_BOOST)
+#include <boost/program_options.hpp>
+#endif
+
 using std::vector;
 using std::map;
 using std::string;
@@ -382,7 +386,8 @@ void teca_algorithm_internals::from_stream(istream &is)
 
 
 // --------------------------------------------------------------------------
-teca_algorithm::teca_algorithm() : internals(new teca_algorithm_internals)
+teca_algorithm::teca_algorithm() : verbose(0),
+    internals(new teca_algorithm_internals)
 {}
 
 // --------------------------------------------------------------------------
@@ -402,6 +407,25 @@ MPI_Comm teca_algorithm::get_communicator()
 {
     return this->internals->comm;
 }
+
+#if defined(TECA_HAS_BOOST)
+// --------------------------------------------------------------------------
+void teca_algorithm::get_properties_description(
+    const string &prefix, options_description &opts)
+{
+    opts.add_options()
+        TECA_POPTS_GET(int, prefix, verbose,
+            "Set to non-zero to send diagnostic messages to the terminal")
+        ;
+}
+
+// --------------------------------------------------------------------------
+void teca_algorithm::set_properties(
+    const string &prefix, variables_map &opts)
+{
+    TECA_POPTS_SET(opts, int, prefix, verbose)
+}
+#endif
 
 // --------------------------------------------------------------------------
 teca_algorithm_output_port teca_algorithm::get_output_port(

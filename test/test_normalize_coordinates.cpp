@@ -86,43 +86,71 @@ int main(int argc, char **argv)
 {
     teca_system_interface::set_stack_trace_on_error();
 
-    if (argc != 14)
+    if ((argc != 17) && (argc != 11))
     {
-        cerr << "test_normalize_coordinates [nx] [ny] [nz] [flip x] [flip y] [flip z] "
-            "[x0 x1 y0 y1 z0 z1] [out file]" << endl;
+        std::cerr << "test_normalize_coordinates [nx] [ny] [nz]"
+            " [dataset bounds : x0 x1 y0 y1 z0 z1] [subset bounds : x0 x1 y0 y1 z0 z1]"
+            " [out file]" << std::endl;
         return -1;
     }
 
     unsigned long nx = atoi(argv[1]);
     unsigned long ny = atoi(argv[2]);
     unsigned long nz = atoi(argv[3]);
-    int flip_x = atoi(argv[4]);
-    int flip_y = atoi(argv[5]);
-    int flip_z = atoi(argv[6]);
-    std::vector<double> req_bounds({atof(argv[7]), atof(argv[8]),
-        atof(argv[9]), atof(argv[10]), atof(argv[11]), atof(argv[12])});
-    std::string out_file = argv[13];
 
+    std::vector<double> bounds({atof(argv[4]), atof(argv[5]),
+        atof(argv[6]), atof(argv[7]), atof(argv[8]), atof(argv[9])});
+
+    // optional subset
+    std::vector<double> req_bounds(6);
+    bool subset = false;
+    if (argc == 17)
+    {
+        req_bounds = std::vector<double>({atof(argv[10]), atof(argv[11]),
+            atof(argv[12]), atof(argv[13]), atof(argv[14]), atof(argv[15])});
+
+        subset = true;
+    }
+
+    std::string out_file = argv[subset ? 16 : 10];
 
     p_teca_cartesian_mesh_source source = teca_cartesian_mesh_source::New();
     source->set_whole_extents({0, nx-1, 0, ny-1, 0, nz-1, 0, 0});
 
-    double x0 = flip_x ? 360.0 : 0.0;
-    double x1 = flip_x ? 0.0 : 360.0;
-    double y0 = flip_y ? 90.0 : -90.0;
-    double y1 = flip_y ? -90.0 : 90.0;
-    double z0 = flip_z ? 10.0 : 0.0;
-    double z1 = flip_z ? 0.0 : 10.0;
-    source->set_bounds({x0, x1, y0, y1, z0, z1, 0., 0.});
+    source->set_bounds({bounds[0], bounds[1], bounds[2],
+        bounds[3], bounds[4], bounds[5], 0., 0.});
 
     distance_field distance = {80., -80., 2.5};
     source->append_field_generator({"distance", distance.get_attributes(), distance});
 
     p_teca_normalize_coordinates coords = teca_normalize_coordinates::New();
     coords->set_input_connection(source->get_output_port());
+    coords->set_enable_periodic_shift_x(1);
 
     p_teca_index_executive exec = teca_index_executive::New();
-    exec->set_bounds(req_bounds);
+    if (subset)
+        exec->set_bounds(req_bounds);
+    exec->set_verbose(1);
+
+    std::cerr << "running the test with " << std::endl
+        << "whole_extents = [0, " << nx-1 << ", 0, "
+        << ny-1 << ", 0, " << nz-1 << "]" << std::endl
+        << "bounds = [" << bounds[0] << ", " << bounds[1] << ", " << bounds[2]
+        << ", " << bounds[3] << ", " << bounds[4] << ", " << bounds[5] << "]"
+        << std::endl
+        << "req_bounds = [" << req_bounds[0] << ", " << req_bounds[1] << ", "
+        << req_bounds[2] << ", " << req_bounds[3] << ", " << req_bounds[4]
+        << ", " << req_bounds[5] << "]"
+        << std::endl;
+
+    teca_metadata md = coords->update_metadata();
+
+    teca_metadata coord_axes;
+    md.get("coordinates", coord_axes);
+
+    std::cerr << "coordinates" << std::endl;
+    coord_axes.to_stream(std::cerr);
+    std::cerr << std::endl;
 
     bool do_test = true;
     teca_system_util::get_environment_variable("TECA_DO_TEST", do_test);

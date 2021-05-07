@@ -77,7 +77,6 @@
 %shared_ptr(teca_array_collection)
 %ignore teca_array_collection::operator=;
 %ignore teca_array_collection::operator[];
-%include "teca_array_collection_fwd.h"
 %include "teca_array_collection.h"
 %extend teca_array_collection
 {
@@ -149,8 +148,8 @@
 %ignore teca_mesh::get_time_step(unsigned long *) const;
 %ignore teca_mesh::set_calendar(std::string const *);
 %ignore teca_mesh::set_time_units(std::string const *);
-%ignore teca_mesh::set_array_attributes(teca_metadata const *);
-%ignore teca_mesh::get_array_attributes(teca_metadata *) const;
+%ignore teca_mesh::set_attributes(teca_metadata const *);
+%ignore teca_mesh::get_attributes(teca_metadata *) const;
 %ignore teca_mesh::get_arrays(int) const;
 %ignore teca_mesh::get_point_arrays() const;
 %ignore teca_mesh::get_cell_arrays() const;
@@ -161,7 +160,6 @@
 %ignore teca_mesh::get_y_face_arrays() const;
 %ignore teca_mesh::get_z_face_arrays() const;
 %ignore teca_mesh::get_information_arrays() const;
-%include "teca_mesh_fwd.h"
 %include "teca_mesh.h"
 TECA_PY_DYNAMIC_CAST(teca_mesh, teca_dataset)
 TECA_PY_CONST_CAST(teca_mesh)
@@ -174,12 +172,12 @@ TECA_PY_CONST_CAST(teca_mesh)
     TECA_PY_DATASET_METADATA(std::string, calendar)
     TECA_PY_DATASET_METADATA(std::string, time_units)
 
-    teca_metadata get_array_attributes()
+    teca_metadata get_attributes()
     {
         teca_py_gil_state gil;
 
         teca_metadata atts;
-        self->get_array_attributes(atts);
+        self->get_attributes(atts);
 
         return atts;
     }
@@ -723,7 +721,6 @@ TECA_PY_CONST_CAST(teca_table)
 %shared_ptr(teca_table_collection)
 %ignore teca_table_collection::operator=;
 %ignore teca_table_collection::operator[];
-%include "teca_table_collection_fwd.h"
 %include "teca_table_collection.h"
 %extend teca_table_collection
 {
@@ -759,7 +756,6 @@ TECA_PY_CONST_CAST(teca_table)
 %shared_ptr(teca_database)
 %ignore teca_database::operator=;
 %ignore teca_database::get_table_name(unsigned int);
-%include "teca_database_fwd.h"
 %include "teca_database.h"
 TECA_PY_DYNAMIC_CAST(teca_database, teca_dataset)
 TECA_PY_CONST_CAST(teca_database)

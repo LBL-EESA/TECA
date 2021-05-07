@@ -26,12 +26,19 @@ struct teca_cartesian_mesh_source::internals_t
     // the world space [x0 x1 y0 y1 z0 z1 t0 t1] generate
     // equally spaced coordinate axes x,y,z,t
     static
-    void initialize_axes(int type_code, unsigned long *extent,
-        double *bounds, p_teca_variant_array &x_axis,
+    void initialize_axes(int type_code, const unsigned long *extent,
+        const double *bounds, p_teca_variant_array &x_axis,
         p_teca_variant_array &y_axis, p_teca_variant_array &z_axis,
         p_teca_variant_array &t_axis);
 
+    static
+    void initialize_axes(int type_code, const unsigned long *extent,
+        const double *bounds, p_teca_variant_array &x_axis,
+        p_teca_variant_array &y_axis, p_teca_variant_array &z_axis);
+
+    // cached metadata
     teca_metadata metadata;
+    p_teca_variant_array t_axis;
 };
 
 
@@ -45,21 +52,25 @@ void teca_cartesian_mesh_source::internals_t::initialize_axis(
     unsigned long nx = i1 - i0 + 1;
     x->resize(nx);
 
+    num_t *px = x->get();
+
     // avoid divide by zero
     if (nx < 2)
+    {
+        px[0] = x0;
         return;
+    }
 
     num_t dx = (x1 - x0)/(nx - 1l);
     num_t xx = x0 + i0*dx;
 
-    num_t *px = x->get();
     for (unsigned long i = 0; i < nx; ++i)
         px[i] = xx + dx*i;
 }
 
 // --------------------------------------------------------------------------
 void teca_cartesian_mesh_source::internals_t::initialize_axes(int type_code,
-    unsigned long *extent, double *bounds, p_teca_variant_array &x_axis,
+    const unsigned long *extent, const double *bounds, p_teca_variant_array &x_axis,
     p_teca_variant_array &y_axis, p_teca_variant_array &z_axis,
     p_teca_variant_array &t_axis)
 {
@@ -86,6 +97,30 @@ void teca_cartesian_mesh_source::internals_t::initialize_axes(int type_code,
         )
 }
 
+// --------------------------------------------------------------------------
+void teca_cartesian_mesh_source::internals_t::initialize_axes(int type_code,
+    const unsigned long *extent, const double *bounds, p_teca_variant_array &x_axis,
+    p_teca_variant_array &y_axis, p_teca_variant_array &z_axis)
+{
+    // gernate equally spaced coordinate axes x,y,z,t
+    x_axis = teca_variant_array_factory::New(type_code);
+    y_axis = x_axis->new_instance();
+    z_axis = x_axis->new_instance();
+
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
+        x_axis.get(),
+
+        internals_t::initialize_axis<NT>(std::static_pointer_cast<TT>(x_axis),
+            extent[0], extent[1], bounds[0], bounds[1]);
+
+        internals_t::initialize_axis<NT>(std::static_pointer_cast<TT>(y_axis),
+            extent[2], extent[3], bounds[2], bounds[3]);
+
+        internals_t::initialize_axis<NT>(std::static_pointer_cast<TT>(z_axis),
+            extent[4], extent[5], bounds[4], bounds[5]);
+        )
+}
+
 
 
 // --------------------------------------------------------------------------
@@ -93,9 +128,7 @@ teca_cartesian_mesh_source::teca_cartesian_mesh_source() :
     coordinate_type_code(teca_variant_array_code<double>::get()),
     field_type_code(teca_variant_array_code<double>::get()),
     x_axis_variable("lon"), y_axis_variable("lat"), z_axis_variable("plev"),
-    t_axis_variable("time"), x_axis_units("degrees_east"),
-    y_axis_units("degrees_north"), z_axis_units("pascals"),
-    calendar("Gregorian"), time_units("seconds since 1970-01-01 00:00:00"),
+    t_axis_variable("time"),
     whole_extents{0l, 359l, 0l, 179l, 0l, 0l, 0l, 0l},
     bounds{0., 360, -90., 90., 0., 0., 0., 0.},
     internals(new internals_t)
@@ -129,7 +162,6 @@ void teca_cartesian_mesh_source::set_properties(const std::string &prefix,
 }
 #endif
 
-
 // --------------------------------------------------------------------------
 void teca_cartesian_mesh_source::set_modified()
 {
@@ -143,11 +175,311 @@ void teca_cartesian_mesh_source::set_modified()
 void teca_cartesian_mesh_source::clear_cached_metadata()
 {
     this->internals->metadata.clear();
+    teca_algorithm::set_modified();
+}
+
+
+
+// --------------------------------------------------------------------------
+void teca_cartesian_mesh_source::set_x_axis_variable(const std::string &name)
+{
+    this->x_axis_variable = name;
+    this->x_axis_attributes.clear();
+    teca_algorithm::set_modified();
+}
+
+// --------------------------------------------------------------------------
+void teca_cartesian_mesh_source::set_x_axis_variable(const std::string &name,
+    const teca_metadata &atts)
+{
+    this->x_axis_variable = name;
+    this->x_axis_attributes = atts;
+    teca_algorithm::set_modified();
+}
+
+// --------------------------------------------------------------------------
+int teca_cartesian_mesh_source::set_x_axis_variable(const teca_metadata &md)
+{
+    teca_metadata coords;
+    if (md.get("coordinates", coords))
+        return -1;
+
+    if (coords.get("x_variable", this->x_axis_variable))
+        return -1;
+
+    teca_metadata atts;
+    if (md.get("attributes", atts))
+        return -1;
+
+    if (atts.get(this->x_axis_variable, this->x_axis_attributes))
+        return -1;
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+void teca_cartesian_mesh_source::set_y_axis_variable(const std::string &name)
+{
+    this->y_axis_variable = name;
+    this->y_axis_attributes.clear();
+    teca_algorithm::set_modified();
+}
+
+// --------------------------------------------------------------------------
+void teca_cartesian_mesh_source::set_y_axis_variable(const std::string &name,
+    const teca_metadata &atts)
+{
+    this->y_axis_variable = name;
+    this->y_axis_attributes = atts;
+    teca_algorithm::set_modified();
+}
+
+// --------------------------------------------------------------------------
+int teca_cartesian_mesh_source::set_y_axis_variable(const teca_metadata &md)
+{
+    teca_metadata coords;
+    if (md.get("coordinates", coords))
+        return -1;
+
+    if (coords.get("y_variable", this->y_axis_variable))
+        return -1;
+
+    teca_metadata atts;
+    if (md.get("attributes", atts))
+        return -1;
+
+    if (atts.get(this->y_axis_variable, this->y_axis_attributes))
+        return -1;
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+void teca_cartesian_mesh_source::set_z_axis_variable(const std::string &name)
+{
+    this->z_axis_variable = name;
+    this->z_axis_attributes.clear();
+    teca_algorithm::set_modified();
+}
+
+// --------------------------------------------------------------------------
+void teca_cartesian_mesh_source::set_z_axis_variable(const std::string &name,
+    const teca_metadata &atts)
+{
+    this->z_axis_variable = name;
+    this->z_axis_attributes = atts;
+    teca_algorithm::set_modified();
+}
+
+// --------------------------------------------------------------------------
+int teca_cartesian_mesh_source::set_z_axis_variable(const teca_metadata &md)
+{
+    // get coordinates and attributes, fail if either are missing
+    teca_metadata coords;
+    if (md.get("coordinates", coords))
+        return -1;
+
+    if (coords.get("x_variable", this->z_axis_variable))
+        return -1;
+
+    teca_metadata atts;
+    if (md.get("attributes", atts))
+        return -1;
+
+    if (atts.get(this->z_axis_variable, this->z_axis_attributes))
+        return -1;
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+void teca_cartesian_mesh_source::set_t_axis_variable(const std::string &name)
+{
+    this->t_axis_variable = name;
+    this->t_axis_attributes.clear();
+    teca_algorithm::set_modified();
+}
+
+// --------------------------------------------------------------------------
+void teca_cartesian_mesh_source::set_calendar(
+    const std::string &calendar, const std::string &units)
+{
+    this->t_axis_attributes.clear();
+    this->t_axis_attributes.set("calendar", calendar);
+    this->t_axis_attributes.set("units", units);
+    teca_algorithm::set_modified();
+}
+
+// --------------------------------------------------------------------------
+void teca_cartesian_mesh_source::set_t_axis_variable(const std::string &name,
+    const teca_metadata &atts)
+{
+    this->t_axis_variable = name;
+    this->t_axis_attributes = atts;
+    teca_algorithm::set_modified();
+}
+
+// --------------------------------------------------------------------------
+int teca_cartesian_mesh_source::set_t_axis_variable(const teca_metadata &md)
+{
+    teca_metadata coords;
+    if (md.get("coordinates", coords))
+        return -1;
+
+    if (coords.get("t_variable", this->t_axis_variable))
+        return -1;
+
+    teca_metadata atts;
+    if (md.get("attributes", atts))
+        return -1;
+
+    if (atts.get(this->t_axis_variable, this->t_axis_attributes))
+        return -1;
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+int teca_cartesian_mesh_source::set_t_axis(const teca_metadata &md)
+{
+    teca_metadata coords;
+    if (md.get("coordinates", coords))
+        return -1;
+
+    this->internals->t_axis = coords.get("t");
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+void teca_cartesian_mesh_source::set_t_axis(const p_teca_variant_array &t)
+{
+    this->internals->t_axis = t;
+}
+
+// --------------------------------------------------------------------------
+int teca_cartesian_mesh_source::set_output_metadata(const teca_metadata &md)
+{
+    teca_metadata coords;
+    if (md.get("coordinates", coords))
+        return -1;
+
+    teca_metadata atts;
+    if (md.get("attributes", atts))
+        return -1;
+
+    // get the coordinate axes.
+    const_p_teca_variant_array x = coords.get("x");
+    const_p_teca_variant_array y = coords.get("y");
+    const_p_teca_variant_array z = coords.get("z");
+    const_p_teca_variant_array t = coords.get("t");
+
+    // because of assumptions made in execute, all must be provided
+    if (!x || !y || !z || !t)
+        return -1;
+
+    unsigned long nx = x->size();
+    unsigned long ny = y->size();
+    unsigned long nz = z->size();
+    unsigned long nxyz = nx*ny*nz;
+
+    // clear out any variables, and replace with those that we provide.
+    std::vector<std::string> vars;
+    std::vector<field_generator_t>::iterator it = this->field_generators.begin();
+    std::vector<field_generator_t>::iterator end = this->field_generators.end();
+    for (; it != end; ++it)
+    {
+        vars.push_back(it->name);
+
+        // correct size
+        teca_metadata var_atts = it->attributes;
+        var_atts.set("size", nxyz);
+
+        atts.set(it->name, var_atts);
+    }
+
+    // copy the metadata
+    this->set_modified();
+
+    this->internals->metadata = md;
+    this->internals->metadata.set("variables", vars);
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+int teca_cartesian_mesh_source::set_spatial_extents(const teca_metadata &md,
+    bool three_d)
+{
+    // get coordinates and attributes, fail if either are missing
+    teca_metadata coords;
+    if (md.get("coordinates", coords))
+        return -1;
+
+    teca_metadata attributes;
+    if (md.get("attributes", attributes))
+        return -1;
+
+    // get the coordinate axes
+    p_teca_variant_array x = coords.get("x");
+    p_teca_variant_array y = coords.get("y");
+    p_teca_variant_array z = coords.get("z");
+
+    // verify
+    if (!x || !y || (three_d && !z))
+        return -1;
+
+    // set the extents
+    this->whole_extents[0] = 0;
+    this->whole_extents[1] = x->size() - 1;
+    this->whole_extents[2] = 0;
+    this->whole_extents[3] = y->size() - 1;
+    this->whole_extents[4] = 0;
+    this->whole_extents[5] = three_d ? z->size() - 1 : 0;
+
+    return 0;
+}
+// --------------------------------------------------------------------------
+int teca_cartesian_mesh_source::set_spatial_bounds(const teca_metadata &md,
+    bool three_d)
+{
+    // get coordinates and attributes, fail if either are missing
+    teca_metadata coords;
+    if (md.get("coordinates", coords))
+        return -1;
+
+    teca_metadata attributes;
+    if (md.get("attributes", attributes))
+        return -1;
+
+    // get the coordinate axes
+    p_teca_variant_array x = coords.get("x");
+    p_teca_variant_array y = coords.get("y");
+    p_teca_variant_array z = coords.get("z");
+
+    // verify
+    if (!x || !y || (three_d && !z))
+        return -1;
+
+    // get the bounds
+    x->get(0lu, this->bounds[0]);
+    x->get(x->size() - 1lu, this->bounds[1]);
+    y->get(0lu, this->bounds[2]);
+    y->get(y->size() - 1lu, this->bounds[3]);
+    z->get(0lu, this->bounds[4]);
+
+    unsigned long khi = three_d ? z->size() - 1lu : 0lu;
+    z->get(khi, this->bounds[5]);
+
+    // set the coordinate type
+    this->set_coordinate_type_code(x->type_code());
+
+    return 0;
 }
 
 // --------------------------------------------------------------------------
 void teca_cartesian_mesh_source::append_field_generator(
-    const std::string &name, const teca_array_attributes &atts,
+    const std::string &name, const teca_metadata &atts,
     field_generator_callback &callback)
 {
     this->append_field_generator({name, atts, callback});
@@ -181,59 +513,59 @@ teca_metadata teca_cartesian_mesh_source::get_output_metadata(
     // generate cooridnate axes
     p_teca_variant_array x_axis, y_axis, z_axis, t_axis;
 
-    internals_t::initialize_axes(this->coordinate_type_code,
-        this->whole_extents.data(), this->bounds.data(), x_axis,
-        y_axis, z_axis, t_axis);
+    if (this->internals->t_axis)
+    {
+        // generate x,y,z axes but use cached time axis
+        internals_t::initialize_axes(this->coordinate_type_code,
+            this->whole_extents.data(), this->bounds.data(), x_axis,
+            y_axis, z_axis);
 
-    size_t nx = this->whole_extents[1] - this->whole_extents[0] + 1;
-    size_t ny = this->whole_extents[3] - this->whole_extents[2] + 1;
-    size_t nz = this->whole_extents[5] - this->whole_extents[4] + 1;
-    size_t nt = this->whole_extents[7] - this->whole_extents[6] + 1;
-    size_t nxyz = nx*ny*nz;
+        t_axis = this->internals->t_axis;
+    }
+    else
+    {
+        // generate x,y,z and t axes
+        internals_t::initialize_axes(this->coordinate_type_code,
+            this->whole_extents.data(), this->bounds.data(), x_axis,
+            y_axis, z_axis, t_axis);
+    }
 
-    std::string x_ax_var_name = (this->x_axis_variable.empty() ? "x" : this->x_axis_variable);
-    std::string y_ax_var_name = (this->y_axis_variable.empty() ? "y" : this->y_axis_variable);
-    std::string z_ax_var_name = (this->z_axis_variable.empty() ? "z" : this->z_axis_variable);
-    std::string t_ax_var_name = (this->t_axis_variable.empty() ? "t" : this->t_axis_variable);
+    size_t nx = x_axis->size();
+    size_t ny = y_axis->size();
+    size_t nz = z_axis->size();
+    size_t nt = t_axis->size();
 
     // construct attributes
-    teca_metadata x_atts;
-    x_atts.set("units", (this->x_axis_units.empty() ? "meters" : this->x_axis_units));
-    x_atts.set("type_code", this->coordinate_type_code);
+    teca_metadata x_atts = this->x_axis_attributes;
+    x_atts.set("type_code", x_axis->type_code());
     x_atts.set("size", nx);
 
-    teca_metadata y_atts;
-    y_atts.set("units", (this->y_axis_units.empty() ? "meters" : this->y_axis_units));
-    y_atts.set("type_code", this->coordinate_type_code);
+    teca_metadata y_atts = this->y_axis_attributes;
+    y_atts.set("type_code", y_axis->type_code());
     y_atts.set("size", ny);
 
-    teca_metadata z_atts;
-    z_atts.set("units", (this->z_axis_units.empty() ? "meters" : this->z_axis_units));
-    z_atts.set("type_code", this->coordinate_type_code);
+    teca_metadata z_atts = this->z_axis_attributes;
+    z_atts.set("type_code", z_axis->type_code());
     z_atts.set("size", nz);
 
-    teca_metadata t_atts;
-    t_atts.set("units", (this->time_units.empty() ?
-        "seconds since 1970-01-01 00:00:00" : this->time_units));
-
-    t_atts.set("calendar", (this->calendar.empty() ?
-        "standard" : this->calendar));
-
-    t_atts.set("type_code", this->coordinate_type_code);
+    teca_metadata t_atts = this->t_axis_attributes;
+    t_atts.set("type_code", t_axis->type_code());
     t_atts.set("size", nt);
 
     teca_metadata atts;
-    atts.set(x_ax_var_name, x_atts);
-    atts.set(y_ax_var_name, y_atts);
-    atts.set(z_ax_var_name, z_atts);
-    atts.set(t_ax_var_name, t_atts);
+    atts.set(this->x_axis_variable, x_atts);
+    atts.set(this->y_axis_variable, y_atts);
+    atts.set(this->z_axis_variable, z_atts);
+
+    if (!this->t_axis_variable.empty())
+        atts.set(this->t_axis_variable, t_atts);
 
     // construct dataset metadata
     teca_metadata coords;
-    coords.set("x_variable", x_ax_var_name);
-    coords.set("y_variable", y_ax_var_name);
-    coords.set("z_variable", z_ax_var_name);
-    coords.set("t_variable", t_ax_var_name);
+    coords.set("x_variable", this->x_axis_variable);
+    coords.set("y_variable", this->y_axis_variable);
+    coords.set("z_variable", this->z_axis_variable);
+    coords.set("t_variable", this->t_axis_variable);
 
     coords.set("x", x_axis);
     coords.set("y", y_axis);
@@ -243,6 +575,7 @@ teca_metadata teca_cartesian_mesh_source::get_output_metadata(
     this->internals->metadata.set("whole_extent", this->whole_extents);
     this->internals->metadata.set("coordinates", coords);
 
+    size_t nxyz = nx*ny*nz;
     std::vector<std::string> vars;
     std::vector<field_generator_t>::iterator it = this->field_generators.begin();
     std::vector<field_generator_t>::iterator end = this->field_generators.end();
@@ -251,18 +584,24 @@ teca_metadata teca_cartesian_mesh_source::get_output_metadata(
         vars.push_back(it->name);
 
         // correct size
-        teca_array_attributes var_atts = it->attributes;
-        var_atts.size = nxyz;
+        teca_metadata var_atts = it->attributes;
+        var_atts.set("size", nxyz);
 
-        atts.set(it->name, teca_metadata(var_atts));
+        atts.set(it->name, var_atts);
     }
 
     this->internals->metadata.set("variables", vars);
     this->internals->metadata.set("attributes", atts);
 
-    this->internals->metadata.set("number_of_time_steps", t_axis->size());
-    this->internals->metadata.set("index_initializer_key", std::string("number_of_time_steps"));
-    this->internals->metadata.set("index_request_key", std::string("time_step"));
+    // setup the execution control keys
+    this->internals->metadata.set("number_of_time_steps",
+        t_axis->size());
+
+    this->internals->metadata.set("index_initializer_key",
+        std::string("number_of_time_steps"));
+
+    this->internals->metadata.set("index_request_key",
+        std::string("time_step"));
 
     return this->internals->metadata;
 }
@@ -320,25 +659,44 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
     {
         // bounds key was present, convert the bounds to an
         // an extent that covers them.
-        if (teca_coordinate_util::bounds_to_extent(
-            req_bounds, in_x, in_y, in_z, req_extent))
+        if (teca_coordinate_util::bounds_to_extent(req_bounds,
+                in_x, in_y, in_z, req_extent) ||
+            teca_coordinate_util::validate_extent(in_x->size(),
+                in_y->size(), in_z->size(), req_extent, true))
         {
             TECA_ERROR("invalid bounds requested.")
             return nullptr;
         }
     }
 
-    // get the timestep
-    unsigned long time_step = 0;
-    if (request.get("time_step", time_step))
+    // get the timestep, no matter what the key is named we treat it as
+    // a time step. this is to support metadata provided by another source
+    // eg. a different reader.
+    std::string request_key;
+    if (request.get("index_request_key", request_key))
     {
-        TECA_ERROR("Request is missing time_step")
+        TECA_ERROR("Request is missing the \"index_request_key\"")
+        return nullptr;
+    }
+
+    unsigned long req_index = 0;
+    if (request.get(request_key, req_index))
+    {
+        TECA_ERROR("Request is missing \"" << request_key << "\"")
+        return nullptr;
+    }
+
+    // check that the we have a time value for the requested index.
+    if (req_index >= in_t->size())
+    {
+        TECA_ERROR("The requested index " << req_index
+            << " is out of bounds [0, " << in_t->size() << "]")
         return nullptr;
     }
 
     // get the time
     double t = 0.;
-    in_t->get(time_step, t);
+    in_t->get(req_index, t);
 
     // slice axes on the requested extent
     p_teca_variant_array out_x = in_x->new_copy(req_extent[0], req_extent[1]);
@@ -351,22 +709,29 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
     std::string x_variable = this->x_axis_variable.empty() ? "x" : this->x_axis_variable;
     std::string y_variable = this->y_axis_variable.empty() ? "y" : this->y_axis_variable;
     std::string z_variable = this->z_axis_variable.empty() ? "z" : this->z_axis_variable;
-    std::string t_variable = this->t_axis_variable.empty() ? "t" : this->t_axis_variable;
 
     mesh->set_x_coordinates(x_variable, out_x);
     mesh->set_y_coordinates(y_variable, out_y);
     mesh->set_z_coordinates(z_variable, out_z);
 
+    // get the calendar
+    std::string calendar;
+    std::string units;
+    teca_metadata atts;
+    this->internals->metadata.get("attributes", atts);
+    atts.get("calendar", calendar);
+    atts.get("units", units);
+
     // set metadata
     mesh->set_whole_extent(md_whole_extent);
     mesh->set_extent(req_extent);
-    mesh->set_time_step(time_step);
+    mesh->set_time_step(req_index);
     mesh->set_time(t);
-    mesh->set_calendar(this->calendar);
-    mesh->set_time_units(this->time_units);
+    mesh->set_calendar(calendar);
+    mesh->set_time_units(units);
 
     teca_metadata &mesh_md = mesh->get_metadata();
-    mesh_md.set("index_request_key", std::string("time_step"));
+    mesh_md.set("index_request_key", request_key);
 
     // generate fields over the requested subset
     std::vector<field_generator_t>::iterator it = this->field_generators.begin();
@@ -378,8 +743,6 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
     }
 
     // pass the attributes
-    teca_metadata atts;
-    this->internals->metadata.get("attributes", atts);
     mesh_md.set("attributes", atts);
 
     return mesh;

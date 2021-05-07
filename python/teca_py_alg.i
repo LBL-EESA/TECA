@@ -19,12 +19,14 @@
 #include "teca_derived_quantity_numerics.h"
 #include "teca_descriptive_statistics.h"
 #include "teca_evaluate_expression.h"
+#include "teca_elevation_mask.h"
 #include "teca_integrated_vapor_transport.h"
 #include "teca_l2_norm.h"
 #include "teca_laplacian.h"
 #include "teca_latitude_damper.h"
 #include "teca_mask.h"
 #include "teca_normalize_coordinates.h"
+#include "teca_rename_variables.h"
 #include "teca_saffir_simpson.h"
 #include "teca_table_calendar.h"
 #include "teca_table_sort.h"
@@ -36,7 +38,8 @@
 #include "teca_tc_classify.h"
 #include "teca_tc_trajectory.h"
 #include "teca_tc_wind_radii.h"
-#include "teca_temporal_average.h"
+#include "teca_simple_moving_average.h"
+#include "teca_unpack_data.h"
 #include "teca_valid_value_mask.h"
 #include "teca_vertical_reduction.h"
 #include "teca_vorticity.h"
@@ -118,12 +121,12 @@
 %include "teca_table_to_stream.h"
 
 /***************************************************************************
- temporal_average
+ simple_moving_average
  ***************************************************************************/
-%ignore teca_temporal_average::shared_from_this;
-%shared_ptr(teca_temporal_average)
-%ignore teca_temporal_average::operator=;
-%include "teca_temporal_average.h"
+%ignore teca_simple_moving_average::shared_from_this;
+%shared_ptr(teca_simple_moving_average)
+%ignore teca_simple_moving_average::operator=;
+%include "teca_simple_moving_average.h"
 
 /***************************************************************************
  vorticity
@@ -216,13 +219,6 @@
 %shared_ptr(teca_table_region_mask)
 %ignore teca_table_region_mask::operator=;
 %include "teca_table_region_mask.h"
-%extend teca_table_region_mask
-{
-    TECA_PY_ALGORITHM_VECTOR_PROPERTY(unsigned long, region_size)
-    TECA_PY_ALGORITHM_VECTOR_PROPERTY(unsigned long, region_start);
-    TECA_PY_ALGORITHM_VECTOR_PROPERTY(double, region_x_coordinate);
-    TECA_PY_ALGORITHM_VECTOR_PROPERTY(double, region_y_coordinate);
-}
 
 /***************************************************************************
  pytorch_algorithm
@@ -418,3 +414,27 @@ struct teca_tc_saffir_simpson
 %shared_ptr(teca_valid_value_mask)
 %ignore teca_valid_value_mask::operator=;
 %include "teca_valid_value_mask.h"
+
+/***************************************************************************
+ unpack_data
+ ***************************************************************************/
+%ignore teca_unpack_data::shared_from_this;
+%shared_ptr(teca_unpack_data)
+%ignore teca_unpack_data::operator=;
+%include "teca_unpack_data.h"
+
+/***************************************************************************
+ elevation_mask
+ ***************************************************************************/
+%ignore teca_elevation_mask::shared_from_this;
+%shared_ptr(teca_elevation_mask)
+%ignore teca_elevation_mask::operator=;
+%include "teca_elevation_mask.h"
+
+/***************************************************************************
+ rename_variables
+ ***************************************************************************/
+%ignore teca_rename_variables::shared_from_this;
+%shared_ptr(teca_rename_variables)
+%ignore teca_rename_variables::operator=;
+%include "teca_rename_variables.h"

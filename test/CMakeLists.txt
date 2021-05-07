@@ -183,7 +183,7 @@ teca_add_test(test_cf_writer_cam5_mpi_threads
     COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} test_cf_writer
     -i "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-[0-9][0-9]-10800\\.nc"
     -o "test_cf_writer_cam5_mt_%t%.nc" -s 0,-1 -x lon -y lat -t time -c 1 -n 2 U850 V850
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
 teca_add_test(test_cf_writer_cfsr_mpi_threads
@@ -191,14 +191,14 @@ teca_add_test(test_cf_writer_cfsr_mpi_threads
     -i "${TECA_DATA_ROOT}/NCEP_CFSR_0\\.5_1979\\.nc"
     -o "test_cf_writer_NCEP_CFSR_mt_%t%.nc" -s 0,-1 -x longitude -y latitude
     -b 65,110,10,55,0,0 -c 1 -n 2 elevation
-    FEATURES ${TECA_HAS_NETCDF}
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
 teca_add_test(test_cf_writer_era5_mpi_threads
     COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} test_cf_writer
     -i "${TECA_DATA_ROOT}/e5\.oper\.an\.vinteg\.162_072_viwvn.*\.nc"
     -o "test_cf_writer_era5_mt_%t%.nc" -s 0,-1 -x longitude -y latitude -t time -c 1 -n 2 VIWVN
-    FEATURES ${TECA_HAS_NETCDF}
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
 teca_add_test(test_connected_components
@@ -250,12 +250,12 @@ teca_add_test(test_latitude_damper
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_latitude_damper 361 181 10 "test_latitude_damper_%t%.%e%")
 
-teca_add_test(test_temporal_average
-    SOURCES test_temporal_average.cpp
+teca_add_test(test_simple_moving_average
+    SOURCES test_simple_moving_average.cpp
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
-    COMMAND test_temporal_average
-    "${TECA_DATA_ROOT}/cam5_1_amip_run2.cam2.h2.1991-10-01-10800.nc"
-    test_temporal_average_%t%.%e% 0 -1 3 U850
+    COMMAND test_simple_moving_average
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc$"
+    "${TECA_DATA_ROOT}/test_temporal_average" 0 -1 3 1 prw
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
@@ -331,7 +331,7 @@ teca_add_test(test_descriptive_statistics_mpi_threads
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-[0-9][0-9]-10800\\.nc"
     "${TECA_DATA_ROOT}/test_descriptive_statistics.bin" 0 -1 2
     TMQ T200 T500
-    FEATURES ${TECA_HAS_UDUNITS} ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
+    FEATURES ${TECA_HAS_UDUNITS} ${TECA_HAS_NETCDF} ${TECA_HAS_MPI} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
 teca_add_test(test_streaming_reduce_threads
@@ -347,9 +347,8 @@ teca_add_test(test_streaming_reduce_mpi_threads
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} test_descriptive_statistics 0
     "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3.*\\.nc"
-    "${TECA_DATA_ROOT}/test_streaming_reduce.bin" 0 -1 4
-    prw
-    FEATURES ${TECA_HAS_UDUNITS} ${TECA_HAS_NETCDF}
+    "${TECA_DATA_ROOT}/test_streaming_reduce.bin" 0 -1 4 prw
+    FEATURES ${TECA_HAS_UDUNITS} ${TECA_HAS_NETCDF} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
 teca_add_test(test_binary_stream
@@ -396,6 +395,7 @@ teca_add_test(test_tc_candidates_mpi_threads
     "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 2
     U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI}
+        ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
 teca_add_test(test_tc_trajectory
@@ -446,7 +446,7 @@ teca_add_test(test_table_reader_distribute_mpi_threads
     "${TECA_DATA_ROOT}/test_tc_candidates_20.bin"
     "${TECA_DATA_ROOT}/test_table_reader_distribute_20.bin"
     "step" 0 -1 2
-    FEATURES ${TECA_HAS_MPI}
+    FEATURES ${TECA_HAS_MPI} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
 teca_add_test(test_tc_wind_radii_serial
@@ -473,7 +473,7 @@ teca_add_test(test_tc_wind_radii_mpi_threads
     "${TECA_DATA_ROOT}/cam5_1_amip_run2_1990s/.*\\.nc$" "${TECA_DATA_ROOT}/test_tc_wind_radii.bin"
     "!(((track_id==4)&&(surface_wind*3.6d>=177.0d))||((track_id==191)&&(surface_wind*3.6d>=249.0d))||((track_id==523)&&(3.6d*surface_wind>=209.0d)))"
     32 1 2 0 -1
-    FEATURES (${TECA_HAS_MPI} AND ${TECA_HAS_NETCDF})
+    FEATURES ${TECA_HAS_MPI} ${TECA_HAS_NETCDF} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
 teca_add_test(test_tc_wind_radii_threads
@@ -559,7 +559,15 @@ teca_add_test(test_bayesian_ar_detect_threads
     COMMAND test_bayesian_ar_detect
     "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\\.nc$"
     "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" IVT
-    "bayesian_ar_detect_%t%.nc" ${TEST_CORES} 0 -1
+    "bayesian_ar_detect_%t%.nc" -1 0 -1
+    REQ_TECA_DATA)
+
+teca_add_test(test_bayesian_ar_detect_mpi
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_bayesian_ar_detect
+    "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\\.nc$"
+    "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" IVT
+    "bayesian_ar_detect_%t%.nc" -1 0 -1
+    FEATURES ${TECA_HAS_MPI} ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(test_bayesian_ar_detect_mpi_threads
@@ -567,89 +575,39 @@ teca_add_test(test_bayesian_ar_detect_mpi_threads
     "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\\.nc$"
     "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" IVT
     "bayesian_ar_detect_%t%.nc" -1 0 -1
-    FEATURES (${TECA_HAS_MPI} AND ${TECA_HAS_NETCDF})
+    FEATURES ${TECA_HAS_MPI} ${TECA_HAS_NETCDF} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
 teca_add_test(test_normalize_coordinates_pass_through
     EXEC_NAME test_normalize_coordinates
     SOURCES test_normalize_coordinates.cpp
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
-    COMMAND test_normalize_coordinates 90 45 7 0 0 0 0 360 -90 90 0 10
-    "${TECA_DATA_ROOT}/test_normalize_coordinates.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_flip_x
-    COMMAND test_normalize_coordinates 90 45 7 1 0 0 0 360 -90 90 0 10
+    COMMAND test_normalize_coordinates 90 45 7 0 360 -90 90 100 0
     "${TECA_DATA_ROOT}/test_normalize_coordinates.bin"
     REQ_TECA_DATA)
 
 teca_add_test(test_normalize_coordinates_flip_y
-    COMMAND test_normalize_coordinates 90 45 7 0 1 0 0 360 -90 90 0 10
+    COMMAND test_normalize_coordinates 90 45 7 0 360 90 -90 100 0
     "${TECA_DATA_ROOT}/test_normalize_coordinates.bin"
     REQ_TECA_DATA)
 
-teca_add_test(test_normalize_coordinates_flip_z
-    COMMAND test_normalize_coordinates 90 45 7 0 0 1 0 360 -90 90 0 10
-    "${TECA_DATA_ROOT}/test_normalize_coordinates.bin"
+teca_add_test(test_normalize_coordinates_shift_x
+    COMMAND test_normalize_coordinates 90 45 7 -180 180 -90 90 100 0
+    "${TECA_DATA_ROOT}/test_normalize_coordinates_shift_x.bin"
     REQ_TECA_DATA)
 
-teca_add_test(test_normalize_coordinates_flip_xy
-    COMMAND test_normalize_coordinates 90 45 7 1 1 0 0 360 -90 90 0 10
-    "${TECA_DATA_ROOT}/test_normalize_coordinates.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_flip_xz
-    COMMAND test_normalize_coordinates 90 45 7 1 0 1 0 360 -90 90 0 10
-    "${TECA_DATA_ROOT}/test_normalize_coordinates.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_flip_yz
-    COMMAND test_normalize_coordinates 90 45 7 0 1 1 0 360 -90 90 0 10
-    "${TECA_DATA_ROOT}/test_normalize_coordinates.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_flip_xyz
-    COMMAND test_normalize_coordinates 90 45 7 1 1 1 0 360 -90 90 0 10
-    "${TECA_DATA_ROOT}/test_normalize_coordinates.bin"
+teca_add_test(test_normalize_coordinates_shift_x_flip_y
+    COMMAND test_normalize_coordinates 90 45 7 -180 180 90 -90 100 0
+    "${TECA_DATA_ROOT}/test_normalize_coordinates_shift_x.bin"
     REQ_TECA_DATA)
 
 teca_add_test(test_normalize_coordinates_pass_through_subset
-    COMMAND test_normalize_coordinates 90 45 7 0 0 0 40 190 -30 45 3 7
-    "${TECA_DATA_ROOT}/test_normalize_coordinates_subset.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_flip_x_subset
-    COMMAND test_normalize_coordinates 90 45 7 1 0 0 40 190 -30 45 3 7
+    COMMAND test_normalize_coordinates 90 45 7 0 360 -90 90 100 0 40 190 -30 45 70 30
     "${TECA_DATA_ROOT}/test_normalize_coordinates_subset.bin"
     REQ_TECA_DATA)
 
 teca_add_test(test_normalize_coordinates_flip_y_subset
-    COMMAND test_normalize_coordinates 90 45 7 0 1 0 40 190 -30 45 3 7
-    "${TECA_DATA_ROOT}/test_normalize_coordinates_subset.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_flip_z_subset
-    COMMAND test_normalize_coordinates 90 45 7 0 0 1 40 190 -30 45 3 7
-    "${TECA_DATA_ROOT}/test_normalize_coordinates_subset.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_flip_xy_subset
-    COMMAND test_normalize_coordinates 90 45 7 1 1 0 40 190 -30 45 3 7
-    "${TECA_DATA_ROOT}/test_normalize_coordinates_subset.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_flip_xz_subset
-    COMMAND test_normalize_coordinates 90 45 7 1 0 1 40 190 -30 45 3 7
-    "${TECA_DATA_ROOT}/test_normalize_coordinates_subset.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_flip_yz_subset
-    COMMAND test_normalize_coordinates 90 45 7 0 1 1 40 190 -30 45 3 7
-    "${TECA_DATA_ROOT}/test_normalize_coordinates_subset.bin"
-    REQ_TECA_DATA)
-
-teca_add_test(test_normalize_coordinates_flip_xyz_subset
-    COMMAND test_normalize_coordinates 90 45 7 1 1 1 40 190 -30 45 3 7
+    COMMAND test_normalize_coordinates 90 45 7 0 360 90 -90 100 0 40 190 -30 45 70 30
     "${TECA_DATA_ROOT}/test_normalize_coordinates_subset.bin"
     REQ_TECA_DATA)
 
@@ -671,13 +629,13 @@ teca_add_test(test_cf_writer_collective_threads
 teca_add_test(test_cf_writer_collective_mpi
     COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_writer_collective 128 512 128 1
     "${TECA_DATA_ROOT}/test_cf_writer_collective_%t%.bin" 213
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
+    FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
 teca_add_test(test_cf_writer_collective_mpi_threads
     COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} test_cf_writer_collective 128 512 128 2
     "${TECA_DATA_ROOT}/test_cf_writer_collective_%t%.bin" 213
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
+    FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
 teca_add_test(test_cf_writer_bad_type
@@ -688,12 +646,29 @@ teca_add_test(test_cf_writer_bad_type
     REQ_TECA_DATA
     WILL_FAIL)
 
-teca_add_test(test_integrated_vapor_transport
-    SOURCES test_integrated_vapor_transport.cpp
+teca_add_test(test_integrated_water_vapor_vv_mask
+    SOURCES test_integrated_water_vapor.cpp
+    EXEC_NAME test_integrated_water_vapor
     LIBS teca_core teca_data teca_alg teca_io ${teca_test_link}
-    COMMAND test_integrated_vapor_transport
-    FEATURES ${TECA_HAS_NETCDF}
-    REQ_TECA_DATA)
+    COMMAND test_integrated_water_vapor 0 0 0
+    FEATURES ${TECA_HAS_NETCDF})
+
+teca_add_test(test_integrated_water_vapor_elev_mask
+    LIBS teca_core teca_data teca_alg teca_io ${teca_test_link}
+    COMMAND test_integrated_water_vapor 1 0 0
+    FEATURES ${TECA_HAS_NETCDF})
+
+teca_add_test(test_integrated_vapor_transport_vv_mask
+    SOURCES test_integrated_vapor_transport.cpp
+    EXEC_NAME test_integrated_vapor_transport
+    LIBS teca_core teca_data teca_alg teca_io ${teca_test_link}
+    COMMAND test_integrated_vapor_transport 0 0 0
+    FEATURES ${TECA_HAS_NETCDF})
+
+teca_add_test(test_integrated_vapor_transport_elev_mask
+    LIBS teca_core teca_data teca_alg teca_io ${teca_test_link}
+    COMMAND test_integrated_vapor_transport 1 0 0
+    FEATURES ${TECA_HAS_NETCDF})
 
 teca_add_test(test_cf_time_axis_reader
     SOURCES test_cf_time_axis_reader.cpp
@@ -705,7 +680,7 @@ teca_add_test(test_cf_time_axis_reader
 
 teca_add_test(test_cf_time_axis_reader_mpi
     COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_time_axis_reader
-        "${TECA_DATA_ROOT}/HighResMIP/TC_test/PSL/PSL.*\\.nc$" ${HALF_TEST_CORES}
+        "${TECA_DATA_ROOT}/HighResMIP/TC_test/PSL/PSL.*\\.nc$" ${TEST_CORES}
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
@@ -713,5 +688,70 @@ teca_add_test(test_valid_value_mask
     SOURCES test_valid_value_mask.cpp
     LIBS teca_core teca_data teca_alg teca_io ${teca_test_link}
     COMMAND test_valid_value_mask 0.25 1.0e20 "${TECA_DATA_ROOT}/test_valid_value_mask.nc"
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_unpack_data
+    SOURCES test_unpack_data.cpp
+    LIBS teca_core teca_data teca_alg teca_io ${teca_test_link}
+    COMMAND test_unpack_data "${TECA_DATA_ROOT}/test_unpack_data.nc"
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_priority_queue
+    SOURCES test_priority_queue.cpp
+    LIBS teca_core teca_data ${teca_test_link}
+    COMMAND test_priority_queue 57 1)
+
+teca_add_test(test_bounds_to_extent
+    SOURCES test_bounds_to_extent.cpp
+    LIBS teca_core teca_data ${teca_test_link}
+    COMMAND test_bounds_to_extent)
+
+teca_add_test(test_elevation_mask
+    SOURCES test_elevation_mask.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_elevation_mask cf
+    "${TECA_DATA_ROOT}/ECMWF-IFS-HR-SST-present_himalaya\\.nc"
+    "${TECA_DATA_ROOT}/GTOPO_DEM_025deg\\.nc"
+    "${TECA_DATA_ROOT}/test_elevation_mask"
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_interval_iterator_daily
+    SOURCES test_interval_iterator.cpp
+    EXEC_NAME test_interval_iterator
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_interval_iterator daily
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc$"
+    365
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_interval_iterator_monthly
+    COMMAND test_interval_iterator monthly
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc$"
+    12
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_interval_iterator_seasonal
+    COMMAND test_interval_iterator seasonal
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc$"
+    3
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_interval_iterator_yearly
+    COMMAND test_interval_iterator yearly
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc$"
+    1
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_rename_variables
+    SOURCES test_rename_variables.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_rename_variables "${TECA_DATA_ROOT}/test_rename_variables.nc"
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)

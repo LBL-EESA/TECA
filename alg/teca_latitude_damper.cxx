@@ -3,7 +3,7 @@
 #include "teca_variant_array.h"
 #include "teca_metadata.h"
 #include "teca_cartesian_mesh.h"
-#include "teca_metadata_util.h"
+#include "teca_string_util.h"
 
 #include <iostream>
 #include <set>
@@ -74,27 +74,31 @@ void teca_latitude_damper::get_properties_description(
 {
     options_description opts("Options for "
         + (prefix.empty()?"teca_latitude_damper":prefix));
-    
+
     opts.add_options()
         TECA_POPTS_GET(double, prefix, center,
             "set the center (mu) for the gaussian filter")
         TECA_POPTS_GET(double, prefix, half_width_at_half_max,
             "set the value of the half width at half maximum (HWHM) "
             "to calculate sigma from: sigma = HWHM/std::sqrt(2.0*std::log(2.0))")
-        TECA_POPTS_GET(std::vector<std::string>, prefix, damped_variables,
+        TECA_POPTS_MULTI_GET(std::vector<std::string>, prefix, damped_variables,
             "set the variables that will be damped by the inverted "
             "gaussian filter")
         TECA_POPTS_GET(std::string, prefix, variable_post_fix,
             "set the post-fix that will be attached to the variables "
             "that will be saved in the output")
         ;
-    
+
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 // --------------------------------------------------------------------------
 void teca_latitude_damper::set_properties(const std::string &prefix,
     variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, double, prefix, center)
     TECA_POPTS_SET(opts, double, prefix, half_width_at_half_max)
     TECA_POPTS_SET(opts, std::vector<std::string>, prefix, damped_variables)
@@ -213,14 +217,14 @@ std::vector<teca_metadata> teca_latitude_damper::get_upstream_request(
 
     arrays.insert(damped_vars.begin(), damped_vars.end());
 
-    // Cleaning off the postfix for arrays passed in the pipeline. 
+    // Cleaning off the postfix for arrays passed in the pipeline.
     // For ex a down stream could request "foo_damped" then we'd
     // need to request "foo". also remove "foo_damped" from the
     // request.
     const std::string &var_post_fix = this->variable_post_fix;
     if (!var_post_fix.empty())
     {
-        teca_metadata_util::remove_post_fix(arrays, var_post_fix);
+        teca_string_util::remove_post_fix(arrays, var_post_fix);
     }
 
     req.set("arrays", arrays);

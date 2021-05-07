@@ -1,6 +1,8 @@
 #include "teca_cartesian_mesh.h"
 #include "teca_dataset_util.h"
 #include "teca_bad_cast.h"
+#include "teca_metadata.h"
+#include "teca_metadata_util.h"
 
 #include <iostream>
 
@@ -96,6 +98,32 @@ void teca_cartesian_mesh::set_z_coordinates(const std::string &var,
 {
     this->set_z_coordinate_variable(var);
     m_coordinate_arrays->set("z", array);
+}
+
+// --------------------------------------------------------------------------
+int teca_cartesian_mesh::get_array_extent(const std::string &array_name,
+    unsigned long array_extent[6])
+{
+    teca_metadata atts;
+    teca_metadata array_atts;
+    unsigned long mesh_extent[6] = {0};
+    if (this->get_extent(mesh_extent) || this->get_attributes(atts) ||
+        atts.get(array_name, array_atts))
+    {
+        TECA_ERROR("Cartesian mesh dataset metadata issue. extent,"
+            "attributes, and array attributes for \""
+            << array_name << "\" are required")
+        return -1;
+    }
+
+    if (teca_metadata_util::get_array_extent(array_atts,
+        mesh_extent, array_extent))
+    {
+        // not necessarily an error
+        return 1;
+    }
+
+    return 0;
 }
 
 // --------------------------------------------------------------------------

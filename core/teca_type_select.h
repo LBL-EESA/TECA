@@ -1,28 +1,45 @@
 #ifndef teca_type_elevate_h
 #define teca_type_elevate_h
 
+/// @file
+
+/// Select a type based on input type(s)
 namespace teca_type_select
 {
-// given two arguments, an elevate cast, selects
-// the type of or casts to the higher precision
-// type. note that given a signed and unsigned
-// argument, signed type is selected.
+/// Select the higher precision type.
+/** Given two arguments, an elevate cast, selects the type of or casts to the
+ * higher precision type. note that given a signed and unsigned argument,
+ * signed type is selected.
+ *
+ * @tparam t1 first input type
+ * @tparam t2 second input type
+ */
 template <typename t1, typename t2>
 struct elevate {};
 
-// given two areuments, a decay cast, selects the
-// type of or casts to the lower precision
-// type. note that given a signed and unsigned
-// argument, unsigned type is selected.
+/// Select the lower precision type.
+/** Given two arguments, a decay cast, selects the type of or casts to the lower
+ * precision type. note that given a signed and unsigned argument, unsigned
+ * type is selected.
+ *
+ * @tparam t1 first input type
+ * @tparam t2 second input type
+ */
 template <typename t1, typename t2>
 struct decay {};
 
 #define teca_type_select(_class, _ret, _t1, _t2)    \
+/** Given _t1 and _t2 _class to _ret */             \
 template <>                                         \
 struct _class<_t1, _t2>                             \
 {                                                   \
+    /** _class result type */                       \
     using type = _ret;                              \
+                                                    \
+    /** cast to _ret */                             \
     static _ret cast(_t1 arg){ return arg; }        \
+                                                    \
+    /** name of the _class result type */           \
     static constexpr const char *type_name()        \
     { return #_ret; }                               \
 };

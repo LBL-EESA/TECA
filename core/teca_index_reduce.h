@@ -1,38 +1,40 @@
 #ifndef teca_index_reduce_h
 #define teca_index_reduce_h
 
-#include "teca_dataset_fwd.h"
-#include "teca_index_reduce_fwd.h"
-
-#include "teca_threaded_algorithm.h"
+#include "teca_dataset.h"
 #include "teca_metadata.h"
+#include "teca_shared_object.h"
+#include "teca_threaded_algorithm.h"
 
 #include <vector>
 
-// base class for MPI + threads map reduce reduction over an index. the available
-// indices  are partitioned across MPI ranks and threads. one can restrict
-// operation to a range of time steps by setting first and last indeces to
-// process.
-//
-// meta data keys:
-//
-//      requires:
-//
-//      index_initializer_key -- holds the name of the key that tells how
-//                               many indices are available. the named key
-//                               must also be present and should conatin the
-//                               number of indices available
-//
-//      index_request_key -- holds the name of the key used to request
-//                           a specific index. request are generated with this
-//                           name set to a specific index to be processed some
-//                           upstream algorithm is expected to produce the data
-//                           associated with the given index
-//
-//      consumes:
-//
-//      the key named by index_request_key
-//
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_index_reduce)
+
+/// Base class for MPI + threads map reduce reduction over an index.
+/**
+ * The available indices are partitioned across MPI ranks and threads. One can
+ * restrict operation to a range of time steps by setting first and last
+ * indices to process.
+ *
+ * metadata keys:
+ *
+ *      requires:
+ *
+ *      index_initializer_key -- holds the name of the key that tells how
+ *                               many indices are available. the named key
+ *                               must also be present and should contain the
+ *                               number of indices available
+ *
+ *      index_request_key -- holds the name of the key used to request
+ *                           a specific index. request are generated with this
+ *                           name set to a specific index to be processed some
+ *                           upstream algorithm is expected to produce the
+ *                           data associated with the given index
+ *
+ *      consumes:
+ *
+ *      The key named by index_request_key
+ */
 class teca_index_reduce : public teca_threaded_algorithm
 {
 public:

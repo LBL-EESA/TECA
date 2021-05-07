@@ -132,7 +132,7 @@ int main(int argc, char **argv)
         // we pass the time axis with a list of files
         cf_reader->set_t_axis_variable("");
         cf_reader->set_t_values(time_values);
-        cf_reader->set_t_calendar("noleap");
+        cf_reader->set_calendar("noleap");
         cf_reader->set_t_units("days since 1979-01-01");
         cf_reader->set_file_names(files);
     }

@@ -58,6 +58,7 @@ if do_test:
     # run the test
     if rank == 0:
         sys.stderr.write('running test...\n')
+        sys.stderr.write('regex=%s_%s_%s_.*\\.nc$\n'%(out_base,interval,operator))
     bcfr = teca_cf_reader.New()
     bcfr.set_files_regex(('%s_%s_%s_.*\\.nc$'%(out_base,interval,operator)))
     bcfr.set_z_axis_variable(z_axis)
@@ -76,10 +77,12 @@ else:
     # make a baseline
     if rank == 0:
         sys.stderr.write('generating baseline...\n')
+        sys.stderr.write('filename=%s_%s_%s_%%t%%.nc\n'%(out_base,interval,operator))
     cfw = teca_cf_writer.New()
     cfw.set_input_connection(mav.get_output_port())
     cfw.set_verbose(1)
     cfw.set_thread_pool_size(1)
+    cfw.set_layout('yearly')
     cfw.set_steps_per_file(steps_per_file)
     cfw.set_file_name('%s_%s_%s_%%t%%.nc'%(out_base,interval,operator))
     cfw.set_point_arrays(arrays)

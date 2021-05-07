@@ -1,18 +1,20 @@
 #ifndef teca_mesh_h
 #define teca_mesh_h
 
-#include "teca_mesh_fwd.h"
 #include "teca_dataset.h"
 #include "teca_metadata.h"
 #include "teca_array_collection.h"
+#include "teca_shared_object.h"
 
-/// a base class for geometric data
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_mesh)
+
+/// A base class for geometric data.
 /**
-The mesh declares containers for typical geometricly associated data
-such as point, cell, face and edge centered data arrays and defines
-the API's for accessing them. API's for accessing common metadata such
-as time related metadata are declared here.
-*/
+ * The mesh declares containers for typical geometrically associated data
+ * such as point, cell, face and edge centered data arrays and defines
+ * the APIs for accessing them. APIs for accessing common metadata such
+ * as time related metadata are declared here.
+ */
 class teca_mesh : public teca_dataset
 {
 public:
@@ -24,8 +26,8 @@ public:
     TECA_DATASET_METADATA(time_units, std::string, 1)
     TECA_DATASET_METADATA(time_step, unsigned long, 1)
 
-    // set/get array attribute metadata
-    TECA_DATASET_METADATA(array_attributes, teca_metadata, 1)
+    // set/get attribute metadata
+    TECA_DATASET_METADATA(attributes, teca_metadata, 1)
 
     // get the array collection for the given centering
     // the centering enumeration is defined in teca_array_attributes

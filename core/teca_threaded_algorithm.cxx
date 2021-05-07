@@ -73,7 +73,7 @@ void teca_threaded_algorithm_internals::thread_pool_resize(MPI_Comm comm,
 
 
 // --------------------------------------------------------------------------
-teca_threaded_algorithm::teca_threaded_algorithm() : verbose(0),
+teca_threaded_algorithm::teca_threaded_algorithm() :
     bind_threads(1), stream_size(-1), poll_interval(1000000),
     internals(new teca_threaded_algorithm_internals)
 {
@@ -95,19 +95,21 @@ void teca_threaded_algorithm::get_properties_description(
 
     opts.add_options()
         TECA_POPTS_GET(int, prefix, bind_threads,
-            "bind software threads to hardware cores (1)")
+            "bind software threads to hardware cores")
         TECA_POPTS_GET(int, prefix, verbose,
-            "print a run time report of settings (0)")
+            "print a run time report of settings")
         TECA_POPTS_GET(int, prefix, thread_pool_size,
             "number of threads in pool. When n == -1, 1 thread per core is "
-            "created (-1)")
+            "created")
         TECA_POPTS_GET(int, prefix, stream_size,
             "number of datasests to pass per execute call. -1 means wait "
-            "for all. (-1)")
+            "for all.")
         TECA_POPTS_GET(long, prefix, poll_interval,
             "number of nanoseconds to wait between scans of the thread pool "
-            "for completed tasks (1.0e6)")
+            "for completed tasks")
         ;
+
+    this->teca_algorithm::get_properties_description(prefix, opts);
 
     global_opts.add(opts);
 }
@@ -116,6 +118,8 @@ void teca_threaded_algorithm::get_properties_description(
 void teca_threaded_algorithm::set_properties(const std::string &prefix,
     variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, int, prefix, bind_threads)
     TECA_POPTS_SET(opts, int, prefix, verbose)
 

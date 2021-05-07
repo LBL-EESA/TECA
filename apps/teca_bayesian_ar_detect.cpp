@@ -8,15 +8,21 @@
 #include "teca_bayesian_ar_detect_parameters.h"
 #include "teca_binary_segmentation.h"
 #include "teca_l2_norm.h"
+#include "teca_apply_binary_mask.h"
 #include "teca_multi_cf_reader.h"
 #include "teca_integrated_vapor_transport.h"
 #include "teca_valid_value_mask.h"
+#include "teca_cartesian_mesh_source.h"
+#include "teca_cartesian_mesh_regrid.h"
+#include "teca_indexed_dataset_cache.h"
+#include "teca_elevation_mask.h"
+#include "teca_unpack_data.h"
 #include "teca_mpi_manager.h"
 #include "teca_coordinate_util.h"
 #include "teca_table.h"
 #include "teca_dataset_source.h"
 #include "teca_app_util.h"
-#include "calcalcs.h"
+#include "teca_calcalcs.h"
 
 #include <vector>
 #include <string>
@@ -82,6 +88,22 @@ int main(int argc, char **argv)
         ("write_ivt", "\nwhen this flag is present IVT vector is written to disk with"
             " the result\n")
 
+        ("dem", value<std::string>(), "\nA teca_cf_reader regex identifying the"
+            " file containing surface elevation field or DEM.\n")
+        ("dem_variable", value<std::string>()->default_value("Z"),
+            "\nSets the name of the variable containing the surface elevation field\n")
+        ("mesh_height", value<std::string>()->default_value("Zg"),
+            "\nSets the name of the variable containing the point wise vertical height"
+            " in meters above mean sea level\n")
+
+        ("ar_probability", value<std::string>()->default_value("ar_probability"),
+            "\nSets the name of the variable to store the computed AR probability mask in.\n")
+
+        ("ar_weighted_variables", value<std::vector<std::string>>()->multitoken(),
+            "\nAn optional list of variables to weight with the computed AR probability."
+            " Each such variable will be multiplied by the computed AR probability, and"
+            " written to disk as \"NAME_ar_wgtd\".\n")
+
         ("x_axis_variable", value<std::string>()->default_value("lon"),
             "\nname of x coordinate variable\n")
         ("y_axis_variable", value<std::string>()->default_value("lat"),
@@ -92,16 +114,29 @@ int main(int argc, char **argv)
         ("periodic_in_x", value<int>()->default_value(1),
             "\nFlags whether the x dimension (typically longitude) is periodic.\n")
 
-        ("binary_ar_threshold", value<double>()->default_value(2.0/3.0,"0.667"),
-            "\nprobability threshold for segmenting ar_probability to produce ar_binary_tag\n")
+        ("segment_ar_probability", "\nA flag that enables a binary segmentation of AR"
+            " probability to be produced. --segment_threshold controls the segmentation."
+            " threshold and --segment_variable to set the name of the variable to store"
+            " the result in.\n")
+        ("segment_threshold", value<double>()->default_value(2.0/3.0,"0.667"),
+            "\nSets the threshold value that is used when segmenting ar_probability."
+            " See also --segment_ar_probability\n")
+        ("segment_variable", value<std::string>()->default_value("ar_binary_tag"),
+            "\nSet the name of the variable to store the result of a binary"
+            " segmentation of AR probabilty. See also --segment_ar_probability.")
 
-        ("output_file", value<std::string>()->default_value(std::string("CASCADE_BARD_%t%.nc")),
+        ("output_file", value<std::string>()->default_value(std::string("TECA_BARD_%t%.nc")),
             "\nA path and file name pattern for the output NetCDF files. %t% is replaced with a"
             " human readable date and time corresponding to the time of the first time step in"
             " the file. Use --cf_writer::date_format to change the formatting\n")
-
+        ("file_layout", value<std::string>()->default_value("monthly"),
+            "\nSelects the size and layout of the set of output files. May be one of"
+            " number_of_steps, daily, monthly, seasonal, or yearly. Files are structured"
+            " such that each file contains one of the selected interval. For the number_of_steps"
+            " option use --steps_per_file.\n")
         ("steps_per_file", value<long>()->default_value(128),
-            "\nnumber of time steps per output file\n")
+            "\nThe number of time steps per output file when --file_layout number_of_steps is"
+            " specified.\n")
 
         ("first_step", value<long>()->default_value(0), "\nfirst time step to process\n")
         ("last_step", value<long>()->default_value(-1), "\nlast time step to process\n")
@@ -142,6 +177,38 @@ int main(int argc, char **argv)
     p_teca_multi_cf_reader mcf_reader = teca_multi_cf_reader::New();
     mcf_reader->get_properties_description("mcf_reader", advanced_opt_defs);
 
+    p_teca_valid_value_mask vv_mask = teca_valid_value_mask::New();
+    vv_mask->get_properties_description("vv_mask", advanced_opt_defs);
+
+    p_teca_unpack_data unpack = teca_unpack_data::New();
+    unpack->get_properties_description("unpack", advanced_opt_defs);
+
+    p_teca_normalize_coordinates norm_coords = teca_normalize_coordinates::New();
+    norm_coords->get_properties_description("norm_coords", advanced_opt_defs);
+
+    p_teca_cf_reader elev_reader = teca_cf_reader::New();
+    elev_reader->get_properties_description("elev_reader", advanced_opt_defs);
+    elev_reader->set_t_axis_variable("");
+
+    p_teca_normalize_coordinates elev_coords = teca_normalize_coordinates::New();
+    elev_coords->get_properties_description("elev_coords", advanced_opt_defs);
+    elev_coords->set_enable_periodic_shift_x(1);
+
+    p_teca_indexed_dataset_cache elev_cache = teca_indexed_dataset_cache::New();
+    elev_cache->get_properties_description("elev_cache", advanced_opt_defs);
+    elev_cache->set_max_cache_size(1);
+
+    p_teca_cartesian_mesh_source elev_mesh = teca_cartesian_mesh_source::New();
+    elev_mesh->get_properties_description("elev_mesh", advanced_opt_defs);
+
+    p_teca_cartesian_mesh_regrid elev_regrid = teca_cartesian_mesh_regrid::New();
+    elev_regrid->get_properties_description("elev_regrid", advanced_opt_defs);
+
+    p_teca_elevation_mask elev_mask = teca_elevation_mask::New();
+    elev_mask->get_properties_description("elev_mask", advanced_opt_defs);
+    elev_mask->set_surface_elevation_variable("Z");
+    elev_mask->set_mesh_height_variable("ZG");
+
     p_teca_l2_norm l2_norm = teca_l2_norm::New();
     l2_norm->get_properties_description("ivt_magnitude", advanced_opt_defs);
     l2_norm->set_component_0_variable("IVT_U");
@@ -156,12 +223,6 @@ int main(int argc, char **argv)
     ivt_int->set_ivt_u_variable("IVT_U");
     ivt_int->set_ivt_v_variable("IVT_V");
 
-    p_teca_valid_value_mask vv_mask = teca_valid_value_mask::New();
-    vv_mask->get_properties_description("vv_mask", advanced_opt_defs);
-
-    p_teca_normalize_coordinates norm_coords = teca_normalize_coordinates::New();
-    norm_coords->get_properties_description("norm_coords", advanced_opt_defs);
-
     // parameter source
     p_teca_bayesian_ar_detect_parameters params
         = teca_bayesian_ar_detect_parameters::New();
@@ -172,13 +233,19 @@ int main(int argc, char **argv)
     p_teca_bayesian_ar_detect ar_detect = teca_bayesian_ar_detect::New();
     ar_detect->get_properties_description("ar_detect", advanced_opt_defs);
     ar_detect->set_ivt_variable("IVT");
-
+    ar_detect->set_ar_probability_variable("ar_probability");
 
     // segment the ar probability field
     p_teca_binary_segmentation ar_tag = teca_binary_segmentation::New();
     ar_tag->set_threshold_mode(ar_tag->BY_VALUE);
     ar_tag->set_threshold_variable("ar_probability");
     ar_tag->set_segmentation_variable("ar_binary_tag");
+
+    // mask any requested variables by the AR probability
+    p_teca_apply_binary_mask ar_mask = teca_apply_binary_mask::New();
+    ar_mask->get_properties_description("ar_mask", advanced_opt_defs);
+    ar_mask->set_mask_variable("ar_probability");
+    ar_mask->set_output_variable_prefix("ar_wgtd_");
 
     // Add an executive for the writer
     p_teca_index_executive exec = teca_index_executive::New();
@@ -189,16 +256,21 @@ int main(int argc, char **argv)
     cf_writer->set_verbose(0);
     cf_writer->set_thread_pool_size(1);
     cf_writer->set_steps_per_file(128);
+    cf_writer->set_layout(teca_cf_writer::monthly);
 
     // package basic and advanced options for display
     options_description all_opt_defs(help_width, help_width - 4);
     all_opt_defs.add(basic_opt_defs).add(advanced_opt_defs);
 
     // parse the command line
+    int ierr = 0;
     variables_map opt_vals;
-    if (teca_app_util::process_command_line_help(mpi_man.get_comm_rank(),
-        argc, argv, basic_opt_defs, advanced_opt_defs, all_opt_defs, opt_vals))
+    if ((ierr = teca_app_util::process_command_line_help(
+        mpi_man.get_comm_rank(), argc, argv, basic_opt_defs,
+        advanced_opt_defs, all_opt_defs, opt_vals)))
     {
+        if (ierr == 1)
+            return 0;
         return -1;
     }
 
@@ -207,34 +279,60 @@ int main(int argc, char **argv)
     // options will override them
     cf_reader->set_properties("cf_reader", opt_vals);
     mcf_reader->set_properties("mcf_reader", opt_vals);
-    l2_norm->set_properties("ivt_magnitude", opt_vals);
-    ivt_int->set_properties("ivt_integral", opt_vals);
     vv_mask->set_properties("vv_mask", opt_vals);
     norm_coords->set_properties("norm_coords", opt_vals);
+    unpack->set_properties("unpack", opt_vals);
+    elev_reader->set_properties("elev_reader", opt_vals);
+    elev_coords->set_properties("elev_coords", opt_vals);
+    elev_mesh->set_properties("elev_mesh", opt_vals);
+    elev_cache->set_properties("elev_cache", opt_vals);
+    elev_regrid->set_properties("elev_regrid", opt_vals);
+    elev_mask->set_properties("elev_mask", opt_vals);
+    l2_norm->set_properties("ivt_magnitude", opt_vals);
+    ivt_int->set_properties("ivt_integral", opt_vals);
     params->set_properties("parameter_table", opt_vals);
     ar_detect->set_properties("ar_detect", opt_vals);
+    ar_mask->set_properties("ar_mask", opt_vals);
     cf_writer->set_properties("cf_writer", opt_vals);
 
     // now pass in the basic options, these are processed
     // last so that they will take precedence
     // configure the pipeline from the command line options.
-    p_teca_algorithm head;
 
     // configure the reader
     bool have_file = opt_vals.count("input_file");
     bool have_regex = opt_vals.count("input_regex");
 
+    if ((have_file && have_regex) || !(have_file || have_regex))
+    {
+        if (mpi_man.get_comm_rank() == 0)
+        {
+            TECA_ERROR("Extacly one of --input_file or --input_regex can be specified. "
+                "Use --input_file to activate the multi_cf_reader (HighResMIP datasets) "
+                "and --input_regex to activate the cf_reader (CAM like datasets)")
+        }
+        return -1;
+    }
+
+
+    p_teca_algorithm reader;
     if (have_file)
     {
         mcf_reader->set_input_file(opt_vals["input_file"].as<string>());
-        head = mcf_reader;
+        reader = mcf_reader;
     }
     else if (have_regex)
     {
         cf_reader->set_files_regex(opt_vals["input_regex"].as<string>());
-        head = cf_reader;
+        reader = cf_reader;
     }
-    p_teca_algorithm reader = head;
+
+    // add transformation stages to the pipeline
+    norm_coords->set_input_connection(reader->get_output_port());
+    vv_mask->set_input_connection(norm_coords->get_output_port());
+    unpack->set_input_connection(vv_mask->get_output_port());
+
+    p_teca_algorithm head = unpack;
 
     if (!opt_vals["periodic_in_x"].defaulted())
     {
@@ -290,10 +388,21 @@ int main(int argc, char **argv)
         ar_detect->set_ivt_variable(opt_vals["ivt"].as<string>());
     }
 
-    // add the ivt caluation stages if needed
+    // add the ivt calculation stages if needed
     bool do_ivt = opt_vals.count("compute_ivt");
     bool do_ivt_magnitude = opt_vals.count("compute_ivt_magnitude");
 
+    if (do_ivt && do_ivt_magnitude)
+    {
+        if (mpi_man.get_comm_rank() == 0)
+        {
+            TECA_ERROR("Only one of --compute_ivt and compute_ivt_magnitude can "
+                "be specified. --compute_ivt implies --compute_ivt_magnitude")
+        }
+        return -1;
+    }
+
+    teca_metadata md;
     if (do_ivt)
     {
         std::string z_var = "plev";
@@ -303,8 +412,51 @@ int main(int argc, char **argv)
         cf_reader->set_z_axis_variable(z_var);
         mcf_reader->set_z_axis_variable(z_var);
 
-        vv_mask->set_input_connection(head->get_output_port());
-        ivt_int->set_input_connection(vv_mask->get_output_port());
+        // add the elevation mask stages
+        if (opt_vals.count("dem"))
+        {
+            if (mpi_man.get_comm_rank() == 0)
+                TECA_STATUS("Generating elevation mask")
+
+            elev_reader->set_files_regex(opt_vals["dem"].as<string>());
+
+            elev_coords->set_input_connection(elev_reader->get_output_port());
+
+            md = head->update_metadata();
+
+            elev_mesh->set_spatial_bounds(md, false);
+            elev_mesh->set_spatial_extents(md, false);
+            elev_mesh->set_x_axis_variable(md);
+            elev_mesh->set_y_axis_variable(md);
+            elev_mesh->set_z_axis_variable(md);
+            elev_mesh->set_t_axis_variable(md);
+            elev_mesh->set_t_axis(md);
+
+            elev_regrid->set_input_connection(0, elev_mesh->get_output_port());
+            elev_regrid->set_input_connection(1, elev_coords->get_output_port());
+
+            elev_cache->set_input_connection(elev_regrid->get_output_port());
+
+            elev_mask->set_input_connection(0, head->get_output_port());
+            elev_mask->set_input_connection(1, elev_cache->get_output_port());
+
+            if (!opt_vals["dem_variable"].defaulted())
+                elev_mask->set_surface_elevation_variable(
+                    opt_vals["dem_variable"].as<string>());
+
+            if (!opt_vals["mesh_height"].defaulted())
+                elev_mask->set_mesh_height_variable(
+                    opt_vals["mesh_height"].as<string>());
+
+            elev_mask->set_mask_variables({
+                ivt_int->get_specific_humidity_variable() + "_valid",
+                ivt_int->get_wind_u_variable() + "_valid",
+                ivt_int->get_wind_v_variable() + "_valid"});
+
+            head = elev_mask;
+        }
+
+        ivt_int->set_input_connection(head->get_output_port());
         l2_norm->set_input_connection(ivt_int->get_output_port());
 
         head = l2_norm;
@@ -315,8 +467,71 @@ int main(int argc, char **argv)
         head = l2_norm;
     }
 
+    // connect the detector and post detector operations
+    ar_detect->set_input_connection(0, params->get_output_port());
+    ar_detect->set_input_connection(1, head->get_output_port());
+
+    if (!opt_vals["ar_probability"].defaulted())
+        ar_detect->set_ar_probability_variable(
+            opt_vals["ar_probability"].as<std::string>());
+
+    head = ar_detect;
+
+    // configure binary segmentation
+    bool do_segment = opt_vals.count("segment_ar_probability");
+    if (do_segment)
+    {
+        ar_tag->set_input_connection(0, ar_detect->get_output_port());
+
+        // set input and output variable names
+        ar_tag->set_threshold_variable(
+            ar_detect->get_ar_probability_variable());
+
+        if (!opt_vals["segement_variable"].defaulted())
+            ar_tag->set_segmentation_variable(
+                opt_vals["segment_variable"].as<std::string>());
+
+        // set threshold value
+        double ar_tag_threshold = opt_vals["segment_threshold"].as<double>();
+        ar_tag->set_low_threshold_value(ar_tag_threshold);
+
+        // add I/O metadata
+        teca_metadata seg_atts;
+        seg_atts.set("long_name", std::string("binary indicator of atmospheric river"));
+        seg_atts.set("description", std::string("binary indicator of atmospheric river"));
+        seg_atts.set("scheme", std::string("TECA_BARD"));
+        seg_atts.set("version", std::string("1.0"));
+        seg_atts.set("note",
+            std::string("derived by thresholding ar_probability >= ") +
+            std::to_string(ar_tag_threshold));
+
+        ar_tag->set_segmentation_variable_attributes(seg_atts);
+
+        head = ar_tag;
+    }
+
+    // configure weight by AR probability
+    std::vector<std::string> weighted_vars;
+    int do_weighted = opt_vals.count("ar_weighted_variables");
+    if (opt_vals.count("ar_weighted_variables"))
+    {
+        weighted_vars =
+            opt_vals["ar_weighted_variables"].as<std::vector<std::string>>();
+
+        ar_mask->set_input_connection(0, head->get_output_port());
+        ar_mask->set_masked_variables(weighted_vars);
+        ar_mask->set_mask_variable(ar_detect->get_ar_probability_variable());
+
+        head = ar_mask;
+    }
+
+    // connect and configure the writer
+    cf_writer->set_input_connection(head->get_output_port());
+
     // tell the writer to write ivt if needed
-    std::vector<std::string> point_arrays({"ar_probability", "ar_binary_tag"});
+    std::vector<std::string> point_arrays(
+        {ar_detect->get_ar_probability_variable()});
+
     if ((do_ivt || do_ivt_magnitude) && opt_vals.count("write_ivt_magnitude"))
     {
         point_arrays.push_back(l2_norm->get_l2_norm_variable());
@@ -328,12 +543,23 @@ int main(int argc, char **argv)
         point_arrays.push_back(ivt_int->get_ivt_v_variable());
     }
 
+    if (do_segment)
+    {
+        point_arrays.push_back(ar_tag->get_segmentation_variable());
+    }
+
+    // tell the writer to write ar weighted variables if needed
+    if (do_weighted)
+    {
+        point_arrays.insert(point_arrays.end(),
+            weighted_vars.begin(), weighted_vars.end());
+
+        ar_mask->get_output_variable_names(point_arrays);
+    }
+
+    cf_writer->set_file_name(opt_vals["output_file"].as<string>());
     cf_writer->set_information_arrays({"ar_count", "parameter_table_row"});
     cf_writer->set_point_arrays(point_arrays);
-
-
-    if (!opt_vals["output_file"].defaulted())
-        cf_writer->set_file_name(opt_vals["output_file"].as<string>());
 
     if (!opt_vals["steps_per_file"].defaulted())
         cf_writer->set_steps_per_file(opt_vals["steps_per_file"].as<long>());
@@ -343,6 +569,14 @@ int main(int argc, char **argv)
 
     if (!opt_vals["last_step"].defaulted())
         cf_writer->set_last_step(opt_vals["last_step"].as<long>());
+
+    if (!opt_vals["file_layout"].defaulted() &&
+        cf_writer->set_layout(opt_vals["file_layout"].as<std::string>()))
+    {
+        TECA_ERROR("An invalid file layout was provided \""
+            << opt_vals["file_layout"].as<std::string>() << "\"")
+        return -1;
+    }
 
     if (opt_vals.count("verbose"))
     {
@@ -356,29 +590,6 @@ int main(int argc, char **argv)
     else
         ar_detect->set_thread_pool_size(-1);
 
-
-    // some minimal check for missing options
-    if ((have_file && have_regex) || !(have_file || have_regex))
-    {
-        if (mpi_man.get_comm_rank() == 0)
-        {
-            TECA_ERROR("Extacly one of --input_file or --input_regex can be specified. "
-                "Use --input_file to activate the multi_cf_reader (HighResMIP datasets) "
-                "and --input_regex to activate the cf_reader (CAM like datasets)")
-        }
-        return -1;
-    }
-
-    if (do_ivt && do_ivt_magnitude)
-    {
-        if (mpi_man.get_comm_rank() == 0)
-        {
-            TECA_ERROR("Only one of --compute_ivt and compute_ivt_magnitude can "
-                "be specified. --compute_ivt implies --compute_ivt_magnitude")
-        }
-        return -1;
-    }
-
     if (cf_writer->get_file_name().empty())
     {
         if (mpi_man.get_comm_rank() == 0)
@@ -389,20 +600,14 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    // connect the fixed stages of the pipeline
-    norm_coords->set_input_connection(head->get_output_port());
-    ar_detect->set_input_connection(0, params->get_output_port());
-    ar_detect->set_input_connection(1, norm_coords->get_output_port());
-    ar_tag->set_input_connection(0, ar_detect->get_output_port());
-    cf_writer->set_input_connection(ar_tag->get_output_port());
-
     // look for requested time step range, start
     bool parse_start_date = opt_vals.count("start_date");
     bool parse_end_date = opt_vals.count("end_date");
     if (parse_start_date || parse_end_date)
     {
         // run the reporting phase of the pipeline
-        teca_metadata md = reader->update_metadata();
+        if (md.empty())
+            md = reader->update_metadata();
 
         teca_metadata atrs;
         if (md.get("attributes", atrs))
@@ -423,10 +628,8 @@ int main(int argc, char **argv)
         }
 
         teca_metadata coords;
-        p_teca_double_array time;
-        if (md.get("coordinates", coords) ||
-            !(time = std::dynamic_pointer_cast<teca_double_array>(
-                coords.get("t"))))
+        p_teca_variant_array time;
+        if (md.get("coordinates", coords) || !(time = coords.get("t")))
         {
             TECA_ERROR("failed to determine time coordinate")
             return -1;
@@ -463,20 +666,6 @@ int main(int argc, char **argv)
         }
     }
 
-    // set the threshold for calculating ar_binary_tag
-    double ar_tag_threshold = opt_vals["binary_ar_threshold"].as<double>();
-    ar_tag->set_low_threshold_value(ar_tag_threshold);
-
-    // add metadata for ar_binary_tag
-    teca_metadata seg_atts;
-    seg_atts.set("long_name", std::string("binary indicator of atmospheric river"));
-    seg_atts.set("description", std::string("binary indicator of atmospheric river"));
-    seg_atts.set("scheme", std::string("cascade_bard"));
-    seg_atts.set("version", std::string("1.0"));
-    seg_atts.set("note",
-        std::string("derived by thresholding ar_probability >= ") +
-        std::to_string(ar_tag_threshold));
-    ar_tag->set_segmentation_variable_attributes(seg_atts);
 
     // run the pipeline
     cf_writer->set_executive(exec);

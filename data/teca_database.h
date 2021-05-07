@@ -3,17 +3,19 @@
 
 #include "teca_dataset.h"
 #include "teca_table.h"
-#include "teca_database_fwd.h"
+#include "teca_shared_object.h"
 #include "teca_table_collection.h"
 #include <iosfwd>
 class teca_binary_stream;
 
-/// teca_database - A collection of named tables
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_database)
+
+/// A collection of named tables.
 /**
-A dataset consisting of a collection of named tables. This
-is a thin wrapper around the teca_table_collection implementing
-the teca_dataset API.
-*/
+ * A dataset consisting of a collection of named tables. This
+ * is a thin wrapper around the teca_table_collection implementing
+ * the teca_dataset API.
+ */
 class teca_database : public teca_dataset
 {
 public:

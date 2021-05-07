@@ -10,21 +10,24 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_table_calendar)
 
-/// an algorithm that transforms NetCDF CF-2 time
-/// variable into an absolute date.
-/**
-Transform NetCDF CF-2 time variable into an absolute
-date. By default the "time" column is used, but this
-can be over road by set_active_column methods. the
-table must have temporal metadata containing base date
-and calendar units following the CF-2 convention.
-the output table will contain year,month,day,hours,
-minutes columns.
-
-NOTE: this should be used in serial, as the udunits
-package loads an xml file in each instance. The
-CalCalcs package also has thread safety issues.
-*/
+/** @brief
+ * An algorithm that transforms NetCDF CF-2 time
+ * variable into an absolute date.
+ *
+ * @details
+ * Transform NetCDF CF-2 time variable into an absolute
+ * date. By default the "time" column is used, but this
+ * can be over road by set_active_column methods. the
+ * table must have temporal metadata containing base date
+ * and calendar units following the CF-2 convention.
+ * the output table will contain year,month,day,hours,
+ * minutes columns.
+ *
+ * @note
+ * This should be used in serial, as the UDUNITS
+ * package loads an XML file in each instance. The
+ * CalCalcs package also has thread safety issues.
+ */
 class teca_table_calendar : public teca_algorithm
 {
 public:

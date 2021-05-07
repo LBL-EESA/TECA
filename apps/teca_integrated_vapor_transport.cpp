@@ -10,17 +10,24 @@
 #include "teca_multi_cf_reader.h"
 #include "teca_integrated_vapor_transport.h"
 #include "teca_valid_value_mask.h"
+#include "teca_unpack_data.h"
+#include "teca_cartesian_mesh_source.h"
+#include "teca_cartesian_mesh_regrid.h"
+#include "teca_elevation_mask.h"
+#include "teca_indexed_dataset_cache.h"
 #include "teca_mpi_manager.h"
 #include "teca_coordinate_util.h"
 #include "teca_table.h"
 #include "teca_dataset_source.h"
 #include "teca_app_util.h"
-#include "calcalcs.h"
+#include "teca_calcalcs.h"
 
 #include <vector>
 #include <string>
 #include <iostream>
 #include <boost/program_options.hpp>
+
+#include "teca_cartesian_mesh_writer.h"
 
 using namespace std;
 
@@ -57,13 +64,11 @@ int main(int argc, char **argv)
 
         ("wind_u", value<std::string>()->default_value("U"),
             "\nname of variable with the 3D longitudinal component of the wind vector.\n")
-
         ("wind_v", value<std::string>()->default_value("V"),
             "\nname of variable with the 3D latitudinal component of the wind vector.\n")
 
         ("ivt_u", value<std::string>()->default_value("IVT_U"),
             "\nname to use for the longitudinal component of the integrated vapor transport vector.\n")
-
         ("ivt_v", value<std::string>()->default_value("IVT_V"),
             "\nname to use for the latitudinal component of the integrated vapor transport vector.\n")
 
@@ -84,9 +89,14 @@ int main(int argc, char **argv)
             "\nA path and file name pattern for the output NetCDF files. %t% is replaced with a"
             " human readable date and time corresponding to the time of the first time step in"
             " the file. Use --cf_writer::date_format to change the formatting\n")
-
+        ("file_layout", value<std::string>()->default_value("monthly"),
+            "\nSelects the size and layout of the set of output files. May be one of"
+            " number_of_steps, daily, monthly, seasonal, or yearly. Files are structured"
+            " such that each file contains one of the selected interval. For the number_of_steps"
+            " option use --steps_per_file.\n")
         ("steps_per_file", value<long>()->default_value(128),
-            "\nnumber of time steps per output file\n")
+            "\nThe number of time steps per output file when --file_layout number_of_steps is"
+            " specified.\n")
 
         ("x_axis_variable", value<std::string>()->default_value("lon"),
             "\nname of x coordinate variable\n")
@@ -95,6 +105,16 @@ int main(int argc, char **argv)
         ("z_axis_variable", value<std::string>()->default_value("plev"),
             "\nname of z coordinate variable\n")
 
+        ("dem", value<std::string>(), "\nA teca_cf_reader regex identifying the"
+            " file containing surface elevation field or DEM.\n")
+
+        ("dem_variable", value<std::string>()->default_value("Z"),
+            "\nSets the name of the variable containing the surface elevation field\n")
+
+        ("mesh_height", value<std::string>()->default_value("Zg"),
+            "\nSets the name of the variable containing the point wise vertical height"
+            " in meters above mean sea level\n")
+
         ("first_step", value<long>()->default_value(0), "\nfirst time step to process\n")
         ("last_step", value<long>()->default_value(-1), "\nlast time step to process\n")
 
@@ -102,9 +122,9 @@ int main(int argc, char **argv)
             " format. Note: There must be a space between the date and time specification\n")
         ("end_date", value<std::string>(), "\nThe last time to process in 'Y-M-D h:m:s' format\n")
 
-        ("n_threads", value<int>(), "\nSets the thread pool size on each MPI rank. When the default"
-            " value of -1 is used TECA will coordinate the thread pools across ranks such each"
-            " thread is bound to a unique physical core.\n")
+        ("n_threads", value<int>()->default_value(-1), "\nSets the thread pool size on each MPI"
+            "  rank. When the default value of -1 is used TECA will coordinate the thread pools"
+            " across ranks such each thread is bound to a unique physical core.\n")
 
         ("verbose", "\nenable extra terminal output\n")
 
@@ -140,6 +160,38 @@ int main(int argc, char **argv)
     p_teca_multi_cf_reader mcf_reader = teca_multi_cf_reader::New();
     mcf_reader->get_properties_description("mcf_reader", advanced_opt_defs);
 
+    p_teca_normalize_coordinates norm_coords = teca_normalize_coordinates::New();
+    norm_coords->get_properties_description("norm_coords", advanced_opt_defs);
+
+    p_teca_valid_value_mask vv_mask = teca_valid_value_mask::New();
+    vv_mask->get_properties_description("vv_mask", advanced_opt_defs);
+
+    p_teca_unpack_data unpack = teca_unpack_data::New();
+    unpack->get_properties_description("unpack", advanced_opt_defs);
+
+    p_teca_cf_reader elev_reader = teca_cf_reader::New();
+    elev_reader->get_properties_description("elev_reader", advanced_opt_defs);
+    elev_reader->set_t_axis_variable("");
+
+    p_teca_normalize_coordinates elev_coords = teca_normalize_coordinates::New();
+    elev_coords->get_properties_description("elev_coords", advanced_opt_defs);
+    elev_coords->set_enable_periodic_shift_x(1);
+
+    p_teca_indexed_dataset_cache elev_cache = teca_indexed_dataset_cache::New();
+    elev_cache->get_properties_description("elev_cache", advanced_opt_defs);
+    elev_cache->set_max_cache_size(1);
+
+    p_teca_cartesian_mesh_source elev_mesh = teca_cartesian_mesh_source::New();
+    elev_mesh->get_properties_description("elev_mesh", advanced_opt_defs);
+
+    p_teca_cartesian_mesh_regrid elev_regrid = teca_cartesian_mesh_regrid::New();
+    elev_regrid->get_properties_description("elev_regrid", advanced_opt_defs);
+
+    p_teca_elevation_mask elev_mask = teca_elevation_mask::New();
+    elev_mask->get_properties_description("elev_mask", advanced_opt_defs);
+    elev_mask->set_surface_elevation_variable("Z");
+    elev_mask->set_mesh_height_variable("ZG");
+
     p_teca_integrated_vapor_transport ivt_int = teca_integrated_vapor_transport::New();
     ivt_int->get_properties_description("ivt_integral", advanced_opt_defs);
     ivt_int->set_specific_humidity_variable("Q");
@@ -154,9 +206,6 @@ int main(int argc, char **argv)
     l2_norm->set_component_1_variable("IVT_V");
     l2_norm->set_l2_norm_variable("IVT");
 
-    p_teca_valid_value_mask vv_mask = teca_valid_value_mask::New();
-    vv_mask->get_properties_description("vv_mask", advanced_opt_defs);
-
     // Add an executive for the writer
     p_teca_index_executive exec = teca_index_executive::New();
 
@@ -165,16 +214,21 @@ int main(int argc, char **argv)
     cf_writer->get_properties_description("cf_writer", advanced_opt_defs);
     cf_writer->set_verbose(0);
     cf_writer->set_steps_per_file(128);
+    cf_writer->set_layout(teca_cf_writer::monthly);
 
     // package basic and advanced options for display
-    options_description all_opt_defs(-1, -1);
+    options_description all_opt_defs(help_width, help_width - 4);
     all_opt_defs.add(basic_opt_defs).add(advanced_opt_defs);
 
     // parse the command line
+    int ierr = 0;
     variables_map opt_vals;
-    if (teca_app_util::process_command_line_help(mpi_man.get_comm_rank(),
-        argc, argv, basic_opt_defs, advanced_opt_defs, all_opt_defs, opt_vals))
+    if ((ierr = teca_app_util::process_command_line_help(
+        mpi_man.get_comm_rank(), argc, argv, basic_opt_defs,
+        advanced_opt_defs, all_opt_defs, opt_vals)))
     {
+        if (ierr == 1)
+            return 0;
         return -1;
     }
 
@@ -183,7 +237,15 @@ int main(int argc, char **argv)
     // options will override them
     cf_reader->set_properties("cf_reader", opt_vals);
     mcf_reader->set_properties("mcf_reader", opt_vals);
+    norm_coords->set_properties("norm_coords", opt_vals);
     vv_mask->set_properties("vv_mask", opt_vals);
+    unpack->set_properties("unpack", opt_vals);
+    elev_reader->set_properties("elev_reader", opt_vals);
+    elev_coords->set_properties("elev_coords", opt_vals);
+    elev_mesh->set_properties("elev_mesh", opt_vals);
+    elev_cache->set_properties("elev_cache", opt_vals);
+    elev_regrid->set_properties("elev_regrid", opt_vals);
+    elev_mask->set_properties("elev_mask", opt_vals);
     ivt_int->set_properties("ivt_integral", opt_vals);
     l2_norm->set_properties("ivt_magnitude", opt_vals);
     cf_writer->set_properties("cf_writer", opt_vals);
@@ -191,23 +253,33 @@ int main(int argc, char **argv)
     // now pass in the basic options, these are processed
     // last so that they will take precedence
     // configure the pipeline from the command line options.
-    p_teca_algorithm head;
+    p_teca_algorithm reader;
 
     // configure the reader
     bool have_file = opt_vals.count("input_file");
     bool have_regex = opt_vals.count("input_regex");
+    if ((have_file && have_regex) || !(have_file || have_regex))
+    {
+        if (mpi_man.get_comm_rank() == 0)
+        {
+            TECA_ERROR("Extacly one of --input_file or --input_regex can be specified. "
+                "Use --input_file to activate the multi_cf_reader (HighResMIP datasets) "
+                "and --input_regex to activate the cf_reader (CAM like datasets)")
+        }
+        return -1;
+    }
 
     if (opt_vals.count("input_file"))
     {
         mcf_reader->set_input_file(opt_vals["input_file"].as<string>());
-        head = mcf_reader;
+        reader = mcf_reader;
     }
     else if (opt_vals.count("input_regex"))
     {
         cf_reader->set_files_regex(opt_vals["input_regex"].as<string>());
-        head = cf_reader;
+        reader = cf_reader;
     }
-    p_teca_algorithm reader = head;
+    p_teca_algorithm head = reader;
 
     if (!opt_vals["x_axis_variable"].defaulted())
     {
@@ -220,6 +292,13 @@ int main(int argc, char **argv)
         cf_reader->set_y_axis_variable(opt_vals["y_axis_variable"].as<string>());
         mcf_reader->set_y_axis_variable(opt_vals["y_axis_variable"].as<string>());
     }
+
+    std::string z_var = "plev";
+    if (!opt_vals["z_axis_variable"].defaulted())
+        z_var = opt_vals["z_axis_variable"].as<string>();
+
+    cf_reader->set_z_axis_variable(z_var);
+    mcf_reader->set_z_axis_variable(z_var);
 
     // set the inputs to the integrator
     if (!opt_vals["wind_u"].defaulted())
@@ -257,24 +336,88 @@ int main(int argc, char **argv)
     }
 
     // add the valid value mask stage
-    vv_mask->set_input_connection(head->get_output_port());
-    head = vv_mask;
+    norm_coords->set_input_connection(head->get_output_port());
+    vv_mask->set_input_connection(norm_coords->get_output_port());
+    unpack->set_input_connection(vv_mask->get_output_port());
+    head = unpack;
 
     // add the ivt caluation stages if needed
     bool do_ivt = opt_vals["write_ivt"].as<int>();
     bool do_ivt_magnitude = opt_vals["write_ivt_magnitude"].as<int>();
+    if (!(do_ivt || do_ivt_magnitude))
 
-    std::string z_var = "plev";
-    if (!opt_vals["z_axis_variable"].defaulted())
-        z_var = opt_vals["z_axis_variable"].as<string>();
+    {
+        if (mpi_man.get_comm_rank() == 0)
+        {
+            TECA_ERROR("At least one of --write_ivt or --write_ivt_magnitude "
+                " must be set.")
+        }
+        return -1;
+    }
 
-    cf_reader->set_z_axis_variable(z_var);
-    mcf_reader->set_z_axis_variable(z_var);
+    // add the elevation mask stages
+    teca_metadata md;
+    if (opt_vals.count("dem"))
+    {
+        if (mpi_man.get_comm_rank() == 0)
+            TECA_STATUS("Generating elevation mask")
+
+        elev_reader->set_files_regex(opt_vals["dem"].as<string>());
+
+        elev_coords->set_input_connection(elev_reader->get_output_port());
+
+        md = head->update_metadata();
+
+        elev_mesh->set_spatial_bounds(md, false);
+        elev_mesh->set_spatial_extents(md, false);
+        elev_mesh->set_x_axis_variable(md);
+        elev_mesh->set_y_axis_variable(md);
+        elev_mesh->set_z_axis_variable(md);
+        elev_mesh->set_t_axis_variable(md);
+        elev_mesh->set_t_axis(md);
+
+        elev_regrid->set_input_connection(0, elev_mesh->get_output_port());
+        elev_regrid->set_input_connection(1, elev_coords->get_output_port());
+
+        elev_cache->set_input_connection(elev_regrid->get_output_port());
+
+        /*p_teca_cartesian_mesh_writer rdw = teca_cartesian_mesh_writer::New();
+        rdw->set_input_connection(elev_cache->get_output_port());
+        rdw->set_file_name("regrid_dem_%t%.vtk");*/
+
+        elev_mask->set_input_connection(0, head->get_output_port());
+        elev_mask->set_input_connection(1, elev_cache->get_output_port());
+        //elev_mask->set_input_connection(1, rdw->get_output_port());
+
+        if (!opt_vals["dem_variable"].defaulted())
+            elev_mask->set_surface_elevation_variable(
+                opt_vals["dem_variable"].as<string>());
+
+        if (!opt_vals["mesh_height"].defaulted())
+            elev_mask->set_mesh_height_variable(
+                opt_vals["mesh_height"].as<string>());
+
+        elev_mask->set_mask_variables({
+            ivt_int->get_specific_humidity_variable() + "_valid",
+            ivt_int->get_wind_u_variable() + "_valid",
+            ivt_int->get_wind_v_variable() + "_valid"});
+
+        /*p_teca_cartesian_mesh_writer emw = teca_cartesian_mesh_writer::New();
+        emw->set_input_connection(elev_mask->get_output_port());
+        emw->set_file_name("elev_mask_%t%.vtk");
+        emw->set_binary(1);
+        head = emw;*/
+
+        head = elev_mask;
+    }
 
     ivt_int->set_input_connection(head->get_output_port());
 
     if (do_ivt_magnitude)
     {
+        if (mpi_man.get_comm_rank() == 0)
+            TECA_STATUS("Computing IVT magnitude")
+
         l2_norm->set_input_connection(ivt_int->get_output_port());
         head = l2_norm;
     }
@@ -303,39 +446,23 @@ int main(int argc, char **argv)
     if (!opt_vals["last_step"].defaulted())
         cf_writer->set_last_step(opt_vals["last_step"].as<long>());
 
+    if (!opt_vals["file_layout"].defaulted() &&
+        cf_writer->set_layout(opt_vals["file_layout"].as<std::string>()))
+    {
+        TECA_ERROR("An invalid file layout was provided \""
+            << opt_vals["file_layout"].as<std::string>() << "\"")
+        return -1;
+    }
+
     if (opt_vals.count("verbose"))
     {
         cf_writer->set_verbose(1);
         exec->set_verbose(1);
     }
 
-    if (!opt_vals["n_threads"].defaulted())
-        cf_writer->set_thread_pool_size(opt_vals["n_threads"].as<int>());
-    else
-        cf_writer->set_thread_pool_size(-1);
+    cf_writer->set_thread_pool_size(opt_vals["n_threads"].as<int>());
 
     // some minimal check for missing options
-    if ((have_file && have_regex) || !(have_file || have_regex))
-    {
-        if (mpi_man.get_comm_rank() == 0)
-        {
-            TECA_ERROR("Extacly one of --input_file or --input_regex can be specified. "
-                "Use --input_file to activate the multi_cf_reader (HighResMIP datasets) "
-                "and --input_regex to activate the cf_reader (CAM like datasets)")
-        }
-        return -1;
-    }
-
-    if (!(do_ivt || do_ivt_magnitude))
-    {
-        if (mpi_man.get_comm_rank() == 0)
-        {
-            TECA_ERROR("AT least one of --write_ivt or --write_ivt_magnitude "
-                " must be set.")
-        }
-        return -1;
-    }
-
     if (cf_writer->get_file_name().empty())
     {
         if (mpi_man.get_comm_rank() == 0)
@@ -355,7 +482,8 @@ int main(int argc, char **argv)
     if (parse_start_date || parse_end_date)
     {
         // run the reporting phase of the pipeline
-        teca_metadata md = reader->update_metadata();
+        if (md.empty())
+            md = reader->update_metadata();
 
         teca_metadata atrs;
         if (md.get("attributes", atrs))
@@ -376,10 +504,8 @@ int main(int argc, char **argv)
         }
 
         teca_metadata coords;
-        p_teca_double_array time;
-        if (md.get("coordinates", coords) ||
-            !(time = std::dynamic_pointer_cast<teca_double_array>(
-                coords.get("t"))))
+        p_teca_variant_array time;
+        if (md.get("coordinates", coords) || !(time = coords.get("t")))
         {
             TECA_ERROR("failed to determine time coordinate")
             return -1;

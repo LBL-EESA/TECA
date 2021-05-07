@@ -156,14 +156,16 @@ void teca_integrated_vapor_transport::get_properties_description(
 
     opts.add_options()
         TECA_POPTS_GET(std::string, prefix, wind_u_variable,
-            "name of the variable containg the lon component of the wind vector (ua)")
+            "name of the variable containg the lon component of the wind vector")
         TECA_POPTS_GET(std::string, prefix, wind_v_variable,
-            "name of the variable containg the lat component of the wind vector (va)")
-        TECA_POPTS_GET(std::string, prefix, specific_humidty_variable,
-            "name of the variable containg the specific humidity (hus)")
+            "name of the variable containg the lat component of the wind vector")
+        TECA_POPTS_GET(std::string, prefix, specific_humidity_variable,
+            "name of the variable containg the specific humidity")
         TECA_POPTS_GET(double, prefix, fill_value,
-            "the value of the NetCDF _FillValue attribute (1e20)")
+            "the value of the NetCDF _FillValue attribute")
         ;
+
+    this->teca_algorithm::get_properties_description(prefix, opts);
 
     global_opts.add(opts);
 }
@@ -172,6 +174,8 @@ void teca_integrated_vapor_transport::get_properties_description(
 void teca_integrated_vapor_transport::set_properties(
     const string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, std::string, prefix, wind_u_variable)
     TECA_POPTS_SET(opts, std::string, prefix, wind_v_variable)
     TECA_POPTS_SET(opts, std::string, prefix, specific_humidity_variable)
@@ -418,6 +422,23 @@ const_p_teca_dataset teca_integrated_vapor_transport::execute(
             }
             )
         )
+
+    // pass 2D arrays through.
+    p_teca_array_collection in_arrays =
+        std::const_pointer_cast<teca_array_collection>(in_mesh->get_point_arrays());
+
+    p_teca_array_collection out_arrays = out_mesh->get_point_arrays();
+
+    int n_arrays = in_arrays->size();
+    for (int i = 0; i < n_arrays; ++i)
+    {
+        p_teca_variant_array array = in_arrays->get(i);
+        if (array->size() == nxy)
+        {
+            // pass the array.
+            out_arrays->append(in_arrays->get_name(i), array);
+        }
+    }
 
     return out_mesh;
 }

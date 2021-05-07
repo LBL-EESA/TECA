@@ -10,23 +10,24 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_evaluate_expression)
 
-/**
-An algorithm that evaluates an expression stores the
-result in a new variable.
-
-the expression parser supports the following operations:
-    +,-,*,/,%,<.<=,>,>=,==,!=,&&,||.!,?
-
-grouping in the expression is denoted in the usual
-way: ()
-
-constants in the expression are expanded to full length
-arrays and can be typed. The supported types are:
-    d,f,L,l,i,s,c
-coresponding to double,float,long long, long, int,
-short and char repsectively.  integer types can be
-unsigned by including u after the code.
-*/
+/** @brief
+ * An algorithm that evaluates an expression stores the
+ * result in a new variable.
+ *
+ * @details
+ * The expression parser supports the following operations:
+ *     +,-,*,/,%,<.<=,>,>=,==,!=,&&,||.!,?
+ *
+ * Grouping in the expression is denoted in the usual
+ * way: ()
+ *
+ * Constants in the expression are expanded to full length
+ * arrays and can be typed. The supported types are:
+ *     d,f,L,l,i,s,c
+ * Corresponding to double,float, long long, long, int,
+ * short and char respectively. Integer types can be
+ * unsigned by including u after the code.
+ */
 class teca_evaluate_expression : public teca_algorithm
 {
 public:
@@ -40,18 +41,32 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // set/get the expression to evaluate
+    /** @name expression
+     * Set the expression to evaluate.
+     */
+    ///@{
+    /// Set the expression.
     void set_expression(const std::string &expr);
 
+    /// Get the expression.
     std::string get_expression()
     { return this->expression; }
+    ///@}
 
-    // set the name of the variable to store the result in
-    TECA_ALGORITHM_PROPERTY(std::string, result_variable);
+    /** @name result_variable
+     * set the name of the variable to store the result in
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(std::string, result_variable)
+    ///@}
 
-    // when set columns used in the calculation are removed
-    // from the output. deault off.
+    /** @name remove_dependent_variables
+     * when set columns used in the calculation are removed from the output.
+     * default off.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(int, remove_dependent_variables)
+    ///@}
 
 protected:
     teca_evaluate_expression();

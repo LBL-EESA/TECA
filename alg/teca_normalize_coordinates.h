@@ -10,12 +10,27 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_normalize_coordinates)
 
-/// an algorithm to ensure that coordinates are in ascending order
-/**
-Transformations of coordinates and data to/from ascending order
-are made as data and information pass up and down stream through
-the algorithm.
-*/
+/** @brief
+ * An algorithm to ensure that Cartesian mesh coordinates follow conventions
+ *
+ * @details
+ * When enabled, transformations of coordinates and data are applied such that
+ * Cartesian meshes are follow the conventions:
+ *
+ * 1. the x-axis coordinates are in the range of 0 to 360.
+ * 2. the y-axis coordinate are in ascending order.
+ *
+ * These transformations are automatically applied and can be enabled or
+ * disbaled as needed. The properties enable_periodic_shift and
+ * enable_y_axis_ascending provide a way to enable/disable the transforms.
+ *
+ * Subset requests are not implemented when the periodic shift is enabled. When
+ * a request is made for data that crosses the periodic boundary, the request
+ * is modified to request the entire x-axis.
+ *
+ * If data point opn the periodic boundary is duplicated, the data at 180 is
+ * dropped and a warning is issued.g
+ */
 class teca_normalize_coordinates : public teca_algorithm
 {
 public:
@@ -28,6 +43,30 @@ public:
     // objects.
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
+
+    /** @name enable_periodic_shift_x
+     * If set, this  enables an automatic transformation of the x-axis
+     * coordinates and data from [-180, 180] to [0, 360]. When enabled, the
+     * transformation is applied if the lowest x coordinate is less than 0 and
+     * skipped otherwise.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, enable_periodic_shift_x)
+    ///@}
+
+    /** @name enable_y_axis_ascending
+     * If set, this enables an automatic transformation of the y-axis
+     * coordinates and data from descending to ascending order. The
+     * transformation is applied if the lowest y coordinate is greater than the
+     * highest y coordinate skipped otherwise. Many TECA algorithms are written
+     * to process data with y-axis coordinates in ascending order, thus the
+     * transform is enabled by default. Setting this to 0 disables the
+     * transform for cases where it is desirable to pass data through
+     * unmodified.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, enable_y_axis_ascending)
+    ///@}
 
 protected:
     teca_normalize_coordinates();
@@ -45,8 +84,8 @@ private:
         const teca_metadata &request) override;
 
 private:
-    struct internals_t;
-    internals_t *internals;
+    int enable_periodic_shift_x;
+    int enable_y_axis_ascending;
 };
 
 #endif

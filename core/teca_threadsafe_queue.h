@@ -5,6 +5,7 @@
 #include <queue>
 #include <condition_variable>
 
+/// A thread safe queue
 template<typename T>
 class teca_threadsafe_queue
 {

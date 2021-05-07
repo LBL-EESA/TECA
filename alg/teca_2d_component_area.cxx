@@ -132,10 +132,12 @@ void teca_2d_component_area::get_properties_description(
             "name of the varibale containing region labels")
         TECA_POPTS_GET(int, prefix, contiguous_component_ids,
             "when the region label ids start at 0 and are consecutive "
-            "this flag enables use of an optimization (0)")
+            "this flag enables use of an optimization")
         TECA_POPTS_GET(long, prefix, background_id,
-            "the label id that corresponds to the background (-1)")
+            "the label id that corresponds to the background")
         ;
+
+    this->teca_algorithm::get_properties_description(prefix, opts);
 
     global_opts.add(opts);
 }
@@ -144,6 +146,8 @@ void teca_2d_component_area::get_properties_description(
 void teca_2d_component_area::set_properties(const std::string &prefix,
     variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, std::string, prefix, component_variable)
     TECA_POPTS_SET(opts, int, prefix, contiguous_component_ids)
     TECA_POPTS_SET(opts, long, prefix, background_id)

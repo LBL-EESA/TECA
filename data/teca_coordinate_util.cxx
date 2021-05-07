@@ -2,7 +2,7 @@
 
 #include "teca_common.h"
 #if defined(TECA_HAS_UDUNITS)
-#include "calcalcs.h"
+#include "teca_calcalcs.h"
 #endif
 
 #include <string>
@@ -15,9 +15,10 @@ namespace teca_coordinate_util
 {
 
 // **************************************************************************
-int time_step_of(p_teca_variant_array time, bool lower, bool clamp,
-    const std::string &calendar, const std::string &units,
-    const std::string &date, unsigned long &step)
+int time_step_of(const const_p_teca_variant_array &time,
+    bool lower, bool clamp, const std::string &calendar,
+    const std::string &units, const std::string &date,
+    unsigned long &step)
 {
 #if defined(TECA_HAS_UDUNITS)
     step = 0;
@@ -36,7 +37,7 @@ int time_step_of(p_teca_variant_array time, bool lower, bool clamp,
 
     // apply calendaring to get a time offset
     double t = 0.0;
-    if (calcalcs::coordinate(Y, M, D, h, m, s,
+    if (teca_calcalcs::coordinate(Y, M, D, h, m, s,
         units.c_str(), calendar.c_str(), &t))
     {
         TECA_ERROR("failed to convert date \"" << date
@@ -48,9 +49,9 @@ int time_step_of(p_teca_variant_array time, bool lower, bool clamp,
 
     // locate the nearest time value in the time axis
     unsigned long last = time->size() - 1;
-    TEMPLATE_DISPATCH_FP_SI(teca_variant_array_impl,
+    TEMPLATE_DISPATCH_FP_SI(const teca_variant_array_impl,
         time.get(),
-        NT *p_time = std::dynamic_pointer_cast<TT>(time)->get();
+        const NT *p_time = std::dynamic_pointer_cast<const TT>(time)->get();
         if (clamp && (t <= p_time[0]))
         {
             step = 0;
@@ -91,10 +92,10 @@ int time_to_string(double val, const std::string &calendar,
   const std::string &units, const std::string &format, std::string &date)
 {
 #if defined(TECA_HAS_UDUNITS)
-    // use calcalcs to convert val to a set of year/month/day/etc.
+    // use teca_calcalcs to convert val to a set of year/month/day/etc.
     struct tm timedata = {};
     double seconds = 0.0;
-    if (calcalcs::date(val, &timedata.tm_year, &timedata.tm_mon,
+    if (teca_calcalcs::date(val, &timedata.tm_year, &timedata.tm_mon,
         &timedata.tm_mday, &timedata.tm_hour, &timedata.tm_min, &seconds,
         units.c_str(), calendar.c_str()))
     {
@@ -139,7 +140,7 @@ int bounds_to_extent(const double *bounds, const teca_metadata &md,
     teca_metadata coords;
     if (md.get("coordinates", coords))
     {
-        TECA_ERROR("missing cooridnates")
+        TECA_ERROR("Metadata issue, missing cooridnates")
         return -1;
     }
 
@@ -149,18 +150,26 @@ int bounds_to_extent(const double *bounds, const teca_metadata &md,
 
     if (!x || !y || !z)
     {
-        TECA_ERROR("empty coordinate axes")
+        TECA_ERROR("Metadata issue, empty coordinate axes")
         return -1;
     }
 
-    return bounds_to_extent(bounds, x, y, z, extent);
-}
+    if (bounds_to_extent(bounds, x, y, z, extent) ||
+        validate_extent(x->size(), y->size(), z->size(), extent, true))
+    {
+        TECA_ERROR("Invalid bounds raequested [" << bounds[0] << ", "
+            << bounds[1] << ", " <<  bounds[2] << ", " << bounds[3] << ", "
+            << bounds[4] << ", " << bounds[5] << "]")
+        return -1;
+    }
 
+    return 0;
+}
 
 // **************************************************************************
 int bounds_to_extent(const double *bounds,
-    const_p_teca_variant_array x, const_p_teca_variant_array y,
-    const_p_teca_variant_array z, unsigned long *extent)
+    const const_p_teca_variant_array &x, const const_p_teca_variant_array &y,
+    const const_p_teca_variant_array &z, unsigned long *extent)
 {
     TEMPLATE_DISPATCH_FP(
         const teca_variant_array_impl,
@@ -238,7 +247,56 @@ int bounds_to_extent(const double *bounds,
         return 0;
         )
 
-    TECA_ERROR("invalid coordinate array type")
+    TECA_ERROR("invalid coordinate array type \"" << x->get_class_name() << "\"")
+    return -1;
+}
+
+// **************************************************************************
+int bounds_to_extent(const double *bounds,
+    const const_p_teca_variant_array &x, unsigned long *extent)
+{
+    TEMPLATE_DISPATCH_FP(
+        const teca_variant_array_impl,
+        x.get(),
+
+        // in the following, for each side (low, high) of the bounds in
+        // each cooridnate direction we are searching for the index that
+        // is either just below, just above, or exactly at the given value.
+        // special cases include:
+        //   * x,y,z in descending order. we check for that and
+        //     invert the compare functions that define the bracket
+        //   * bounds describing a plane. we test for this and
+        //     so that both high and low extent return the same value.
+        //   * x,y,z are length 1. we can skip the search in that
+        //     case.
+
+        const NT eps8 = NT(8)*std::numeric_limits<NT>::epsilon();
+
+        unsigned long nx = x->size();
+        unsigned long high_i = nx - 1;
+        extent[0] = 0;
+        extent[1] = high_i;
+        const NT *px = std::dynamic_pointer_cast<TT>(x)->get();
+        NT low_x = static_cast<NT>(bounds[0]);
+        NT high_x = static_cast<NT>(bounds[1]);
+        bool slice_x = equal(low_x, high_x, eps8);
+
+        if (((nx > 1) && (((px[high_i] > px[0]) &&
+            (teca_coordinate_util::index_of(px, 0, high_i, low_x, true, extent[0])
+            || teca_coordinate_util::index_of(px, 0, high_i, high_x, slice_x, extent[1]))) ||
+            ((px[high_i] < px[0]) &&
+            (teca_coordinate_util::index_of<NT,descend_bracket<NT>>(px, 0, high_i, low_x, false, extent[0])
+            || teca_coordinate_util::index_of<NT,descend_bracket<NT>>(px, 0, high_i, high_x, !slice_x, extent[1]))))))
+        {
+            TECA_ERROR(<< "requested subset [" << bounds[0] << ", " << bounds[1] << ", "
+                << "] is not contained in the current dataset bounds [" << px[0] << ", "
+                << px[high_i] << "]")
+            return -1;
+        }
+        return 0;
+        )
+
+    TECA_ERROR("invalid coordinate array type \"" << x->get_class_name() << "\"")
     return -1;
 }
 
@@ -285,6 +343,25 @@ int validate_centering(int centering)
 }
 
 // **************************************************************************
+int get_cartesian_mesh_bounds(const const_p_teca_variant_array x,
+    const const_p_teca_variant_array y, const const_p_teca_variant_array z,
+    double *bounds)
+{
+    unsigned long x1 = x->size() - 1;
+    unsigned long y1 = y->size() - 1;
+    unsigned long z1 = z->size() - 1;
+
+    x->get(0, bounds[0]);
+    x->get(x1, bounds[1]);
+    y->get(0, bounds[2]);
+    y->get(y1, bounds[3]);
+    z->get(0, bounds[4]);
+    z->get(z1, bounds[5]);
+
+    return 0;
+}
+
+// **************************************************************************
 int get_cartesian_mesh_extent(const teca_metadata &md,
     unsigned long *whole_extent, double *bounds)
 {
@@ -327,4 +404,94 @@ int get_cartesian_mesh_extent(const teca_metadata &md,
     return 0;
 }
 
+// **************************************************************************
+int validate_extent(unsigned long nx_max, unsigned long ny_max,
+    unsigned long nz_max, unsigned long *extent, bool verbose)
+{
+    // validate x
+    if ((extent[1] >= nx_max) || (extent[1] < extent[0]))
+    {
+        if (verbose)
+        {
+            TECA_ERROR("The x-axis extent [" << extent[0] << ", "
+                << extent[1] << "] is invalid, the x-axis coordinate"
+                " array has " << nx_max << " values")
+        }
+        return -1;
+    }
+
+    // validate y
+    if ((extent[3] >= ny_max) || (extent[3] < extent[2]))
+    {
+        if (verbose)
+        {
+            TECA_ERROR("The y-axis extent [" << extent[2] << ", "
+                << extent[3] << "] is invalid, the y-axis coordinate"
+                " array has " << ny_max << " values")
+        }
+        return -1;
+    }
+
+    // validate z
+    if ((extent[5] >= nz_max) || (extent[5] < extent[4]))
+    {
+        if (verbose)
+        {
+            TECA_ERROR("The z-axis extent [" << extent[4] << ", "
+                << extent[5] << "] is invalid, the z-axis coordinate"
+                " array has " << nz_max << " values")
+        }
+        return -1;
+    }
+
+    return 0;
+}
+
+// **************************************************************************
+int clamp_dimensions_of_one(unsigned long nx_max, unsigned long ny_max,
+    unsigned long nz_max, unsigned long *extent, bool verbose)
+{
+    int clamped = 0;
+
+    // clamp x
+    if ((nx_max == 1) && (extent[1] != 0))
+    {
+        if (verbose)
+        {
+            TECA_WARNING("The requested x-axis extent [" << extent[0] << ", "
+                << extent[1] << "] is invalid and was clamped to [0, 0]")
+        }
+        extent[0] = 0;
+        extent[1] = 0;
+        clamped = 1;
+    }
+
+    // clamp y
+    if ((ny_max == 1) && (extent[3] != 0))
+    {
+        if (verbose)
+        {
+            TECA_WARNING("The requested y-axis extent [" << extent[2] << ", "
+                << extent[3] << "] is invalid and was clamped to [0, 0]")
+        }
+        extent[2] = 0;
+        extent[3] = 0;
+        clamped = 1;
+    }
+
+    // clamp z
+    if ((nz_max == 1) && (extent[5] != 0))
+    {
+        if (verbose)
+        {
+            TECA_WARNING("The requested z-axis extent [" << extent[4] << ", "
+                << extent[5] << "] is invalid and was clamped to [0, 0]")
+        }
+        extent[4] = 0;
+        extent[5] = 0;
+        clamped = 1;
+    }
+
+    return clamped;
+}
 };

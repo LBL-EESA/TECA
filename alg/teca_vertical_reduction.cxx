@@ -35,9 +35,9 @@ void teca_vertical_reduction::get_properties_description(
         + (prefix.empty()?"teca_vertical_reduction":prefix));
 
     opts.add_options()
-        TECA_POPTS_GET(std::vector<std::string>, prefix, dependent_variables,
+        TECA_POPTS_MULTI_GET(std::vector<std::string>, prefix, dependent_variables,
             "list of arrays needed to compute the derived quantity")
-        TECA_POPTS_GET(std::vector<std::string>, prefix, derived_variables,
+        TECA_POPTS_MULTI_GET(std::vector<std::string>, prefix, derived_variables,
             "name of the derived quantity")
         ;
 

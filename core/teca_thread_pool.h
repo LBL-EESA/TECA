@@ -2,7 +2,7 @@
 #define teca_thread_pool_h
 
 #include "teca_common.h"
-#include "teca_algorithm_fwd.h"
+#include "teca_algorithm.h"
 #include "teca_thread_util.h"
 #include "teca_threadsafe_queue.h"
 #include "teca_mpi.h"
@@ -26,8 +26,7 @@ class teca_thread_pool;
 template <typename task_t, typename data_t>
 using p_teca_thread_pool = std::shared_ptr<teca_thread_pool<task_t, data_t>>;
 
-// a class to manage a fixed size pool of threads that dispatch
-// I/O work
+/// A class to manage a fixed size pool of threads that dispatch I/O work.
 template <typename task_t, typename data_t>
 class teca_thread_pool
 {
@@ -113,8 +112,16 @@ void teca_thread_pool<task_t, data_t>::create_threads(MPI_Comm comm,
     int n_threads = n_requested;
 
     std::deque<int> core_ids;
-    teca_thread_util::thread_parameters(comm, -1,
-        n_requested, bind, verbose, n_threads, core_ids);
+
+    if (teca_thread_util::thread_parameters(comm, -1,
+        n_requested, bind, verbose, n_threads, core_ids))
+    {
+        TECA_WARNING("Failed to detetermine thread parameters."
+            " Falling back to 1 thread, affinity disabled.")
+
+        n_threads = 1;
+        bind = false;
+    }
 
     // allocate the threads
     for (int i = 0; i < n_threads; ++i)

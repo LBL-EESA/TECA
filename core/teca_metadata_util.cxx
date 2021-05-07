@@ -1,33 +1,37 @@
 #include "teca_metadata_util.h"
 
+#include "teca_metadata.h"
+#include "teca_common.h"
+
 namespace teca_metadata_util
 {
-// remove post-fix from the arrays in get_upstream_request if
-// the post-fix is set. For example if post-fix is set to "_filtered"
-// then we remove all the variables in the "arrays" set that end with 
-// this post-fix, and replace it with the actual requested array.
-void remove_post_fix(std::set<std::string> &arrays, std::string post_fix)
+
+// **************************************************************************
+int get_array_extent(const teca_metadata &array_attributes,
+    const unsigned long mesh_extent[6], unsigned long array_extent[6])
 {
-    size_t postfix_len = post_fix.length();
+    for (int i = 0; i < 6; ++i)
+        array_extent[i] = mesh_extent[i];
 
-    std::set<std::string>::iterator arrays_it;
-    for (arrays_it=arrays.begin(); arrays_it!=arrays.end(); ++arrays_it)
+    unsigned long dim_active[4] = {0ul};
+    if (array_attributes.get("mesh_dim_active", dim_active, 4))
     {
-        std::string array_var = *arrays_it;
-        size_t array_var_len = array_var.length();
-
-        if (array_var_len > postfix_len)
-        {
-            size_t postfix_pos = array_var.find(post_fix, 
-                                            array_var_len - postfix_len);
-            if (postfix_pos != std::string::npos)
-            {
-                array_var.erase(array_var_len - postfix_len, postfix_len);
-
-                arrays.erase(arrays_it);
-                arrays.insert(array_var);
-            }
-        }
+        //TECA_ERROR("metadata issue. The array attributes collection is"
+        //    " missing the mesh_dim_active key")
+        return -1;
     }
+
+    // make the extent 1 in any direction that this array is undefined in
+    if (!dim_active[0])
+        array_extent[1] = array_extent[0] = 0;
+
+    if (!dim_active[1])
+        array_extent[3] = array_extent[2] = 0;
+
+    if (!dim_active[2])
+        array_extent[5] = array_extent[4] = 0;
+
+    return 0;
 }
+
 };

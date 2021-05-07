@@ -66,9 +66,10 @@ int main(int argc, char **argv)
     // initialize command line options description
     // set up some common options to simplify use for most
     // common scenarios
+    int help_width = 100;
     options_description basic_opt_defs(
         "teca_cartesian_mesh_diff an application that compares two datasets.\n\n"
-        "Command line options", 120, -1
+        "Command line options", help_width, help_width - 4
         );
     basic_opt_defs.add_options()
         ("reference_dataset", value<std::string>()->required(),
@@ -105,7 +106,7 @@ int main(int argc, char **argv)
         "control over all runtime modifiable parameters. The basic options\n"
         "(see" "--help) map to these, and will override them if both are\n"
         "specified.\n\n"
-        "Advanced command line options", -1, 1
+        "Advanced command line options", help_width, help_width - 4
         );
 
     // create the pipeline stages here, they contain the
@@ -125,7 +126,7 @@ int main(int argc, char **argv)
     }
 
     // package basic and advanced options for display
-    options_description all_opt_defs(-1, -1);
+    options_description all_opt_defs(help_width, help_width - 4);
     all_opt_defs.add(basic_opt_defs).add(advanced_opt_defs);
 
     // parse the command line
@@ -149,7 +150,7 @@ int main(int argc, char **argv)
                     << std::endl
                     << basic_opt_defs << std::endl
                     << std::endl;
-                return -1;
+                return 0;
             }
 
             if (opt_vals.count("advanced_help"))
@@ -159,7 +160,7 @@ int main(int argc, char **argv)
                     << std::endl
                     << advanced_opt_defs << std::endl
                     << std::endl;
-                return -1;
+                return 0;
             }
 
             if (opt_vals.count("full_help"))
@@ -169,7 +170,7 @@ int main(int argc, char **argv)
                     << std::endl
                     << all_opt_defs << std::endl
                     << std::endl;
-                return -1;
+                return 0;
             }
         }
 

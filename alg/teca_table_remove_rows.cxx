@@ -17,7 +17,7 @@
 #include <boost/program_options.hpp>
 #endif
 #if defined(TECA_HAS_UDUNITS)
-#include "calcalcs.h"
+#include "teca_calcalcs.h"
 #endif
 #if defined(TECA_HAS_MPI)
 #include <mpi.h>
@@ -56,6 +56,8 @@ void teca_table_remove_rows::get_properties_description(
             "when set columns used in the calculation are removed from output")
         ;
 
+    this->teca_algorithm::get_properties_description(prefix, opts);
+
     global_opts.add(opts);
 }
 
@@ -63,6 +65,8 @@ void teca_table_remove_rows::get_properties_description(
 void teca_table_remove_rows::set_properties(
     const std::string &prefix, variables_map &opts)
 {
+    this->teca_algorithm::set_properties(prefix, opts);
+
     TECA_POPTS_SET(opts, std::string, prefix, mask_expression)
     TECA_POPTS_SET(opts, int, prefix, remove_dependent_variables)
 }

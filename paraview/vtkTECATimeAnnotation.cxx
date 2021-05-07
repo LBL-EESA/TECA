@@ -15,7 +15,7 @@
 #include <iomanip>
 #include <algorithm>
 
-#include "calcalcs.h"
+#include "teca_calcalcs.h"
 
 //----------------------------------------------------------------------------
 vtkStandardNewMacro(vtkTECATimeAnnotation);
@@ -111,7 +111,7 @@ int vtkTECATimeAnnotation::RequestData(vtkInformation *req,
   int minute = 0;
   double second = 0;
 
-  if (calcalcs::date(time, &year, &month, &day, &hour, &minute, &second,
+  if (teca_calcalcs::date(time, &year, &month, &day, &hour, &minute, &second,
       time_units.c_str(), calendar.c_str()))
   {
       vtkErrorMacro("Failed to compute the date time=" <<  time)

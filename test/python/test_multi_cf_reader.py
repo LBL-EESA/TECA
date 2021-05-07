@@ -137,7 +137,7 @@ else:
     i = 0
     while i < n:
         key = 'r_%d'%(i)
-        cfmr.add_reader(key, regex[i], 0, 0, var[i])
+        cfmr.add_reader(regex[i], key, 0, 0, var[i])
         i += 1
     cfmr.set_time_reader(time_reader)
     cfmr.set_geometry_reader(geometry_reader)

@@ -11,11 +11,11 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_vertical_reduction)
 
-/// base class for vertical reducitons
+/// The base class for vertical reducitons.
 /**
-implements common operations associated with computing a vertical
-reduction where a 3D dataset is transformed into a 2D dataset
-by a reduction along the 3rd spatial dimension.
+ * implements common operations associated with computing a vertical
+ * reduction where a 3D dataset is transformed into a 2D dataset
+ * by a reduction along the 3rd spatial dimension.
 */
 class teca_vertical_reduction : public teca_algorithm
 {
@@ -30,16 +30,27 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // set/get the list of variables that are needed to produce
-    // the derived quantity
+    /** @name dependent_variable
+     * set/get the list of variables that are needed to produce the derived
+     * quantity
+     */
+    ///@{
     TECA_ALGORITHM_VECTOR_PROPERTY(std::string, dependent_variable)
+    ///@}
 
-    // set/get the name of the variable that is produced
+    /** @name derived_variable
+     * set/get the name of the variable that is produced
+     */
+    ///@{
     TECA_ALGORITHM_VECTOR_PROPERTY(std::string, derived_variable)
+    ///@}
 
-    // set/get the attributes of the variable that is produced
-    TECA_ALGORITHM_VECTOR_PROPERTY(teca_array_attributes,
-        derived_variable_attribute)
+    /** @name derived_variable_attribute
+     * Set the attributes of the variable that is produced.
+     */
+    ///@{
+    TECA_ALGORITHM_VECTOR_PROPERTY(teca_array_attributes, derived_variable_attribute)
+    ///@}
 
 protected:
     teca_vertical_reduction();

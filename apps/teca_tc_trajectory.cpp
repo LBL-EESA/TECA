@@ -16,7 +16,7 @@
 #include "teca_table_writer.h"
 #include "teca_mpi_manager.h"
 #include "teca_coordinate_util.h"
-#include "calcalcs.h"
+#include "teca_calcalcs.h"
 #include "teca_app_util.h"
 
 #include <vector>
@@ -105,10 +105,14 @@ int main(int argc, char **argv)
     all_opt_defs.add(basic_opt_defs).add(advanced_opt_defs);
 
     // parse the command line
+    int ierr = 0;
     variables_map opt_vals;
-    if (teca_app_util::process_command_line_help(mpi_man.get_comm_rank(),
-        argc, argv, basic_opt_defs, advanced_opt_defs, all_opt_defs, opt_vals))
+    if ((ierr = teca_app_util::process_command_line_help(
+        mpi_man.get_comm_rank(), argc, argv, basic_opt_defs,
+        advanced_opt_defs, all_opt_defs, opt_vals)))
     {
+        if (ierr == 1)
+            return 0;
         return -1;
     }
 
