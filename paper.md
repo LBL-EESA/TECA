@@ -11,15 +11,6 @@ tags:
   - machine learning
   - parallel processing
   - high performance computing
-  - GPU
-  - MPI
-  - OpenMP
-  - threading
-  - CUDA
-  - HDF5
-  - NetCDF
-  - parallel I/O
-
 authors:
   - name: Burlen Loring
     orcid: 0000-0002-4678-8142
@@ -60,21 +51,20 @@ authors:
   - name: Noel Keen 
     orcid:
     affiliation: 1
-
 affiliations:
- - name: Lawrence Berkeley National Lab
-   index: 1
- - name: Indiana University Bloomington
+  - name: Lawrence Berkeley National Lab
+    index: 1
+  - name: Indiana University Bloomington
    index: 2
- - name: Iowa State University
-   index: 3
- - name: Microsoft 
-   index: 4
+  - name: Iowa State University
+    index: 3
+  - name: Microsoft 
+    index: 4
 date: Fri Feb  5 10:24:36 AM PST 2021
 bibliography: paper.bib
 
 # Summary
-TECA is an parallel infrastructure for climate analytics designed specifically
+TECA is a parallel infrastructure for climate analytics designed specifically
 for use on DOE HPC supercomputing platforms such as the Cray systems run by
 NERSC, ANL, and ORNL.
 
@@ -100,19 +90,21 @@ functions such as execution control, I/O, data transformation, feature
 detection, and so on.
 
 The pipeline abstraction enables the separation of analysis, I/O, and execution
-control concerns. This separation of concerns is a key to putting scalable,
-high performance computing methods into the hands of climate scientists, who
-are not always HPC experts.  The reuse of execution control and I/O components
-enables a domain expert to focus on implementing the analysis particular to
-their specific use cases.
+control concerns. This separation of concerns is a key to the system's
+flexibility, reusibility and to putting scalable, high performance computing
+methods into the hands of climate scientists, who are not always HPC experts.
+For instance the reuse of execution control and I/O components enables a
+climate to focus on implementing the analysis particular to their specific use
+cases without a deep knowledge of HPC, parallel programming, or parallel I/O
+techniques.
 
-The core climate specific I/O capabilities are leverage MPI independent and
-collective I/O either directly or indirectly through MPI, HDF5, and NetCDF.
-The core execution control components of TECA are written in C++ using
-techgnologies such as MPI, C++ threads, OpenMP, and CUDA.  Support currently
-exists for a diverse set of execution patterns including map reduce over time;
-map reduce over space and time; and single program multiple data (SPMD)
-distributed data parallel patterns.
+The core I/O capabilities are leverage MPI independent and collective I/O
+either directly or indirectly through MPI, HDF5, and NetCDF.  The core
+execution control components of TECA are written in C++ using techgnologies
+such as MPI, C++ threads, OpenMP, and CUDA.  Support currently exists for a
+diverse set of execution patterns including map reduce over time; map reduce
+over space and time; and single program multiple data (SPMD) distributed data
+parallel patterns.
 
 <!--
 TECA provides a framework for parallel execution where the units of work, the
@@ -140,10 +132,9 @@ The daily average reduction operator effects this transformation.
 # Extensibility
 TECA is modular and extensible in C++ and Python. Parallelism is built into
 modular reusable components and in many cases, new climate analyitcs
-applications can leverage these framework components without the need to deal
-with the details of parallel programming.  When the need for a new capability,
-such as a new I/O, execution control, or data processing or transformation,
-arises it casn be implemented using C++ or Python.
+applications can leverage existing framework components. When the need for a
+new capability, such as a new I/O, execution control, or data processing or
+transformation, arises it casn be implemented using C++ or Python.
 
 TECA's pipeline implements a state machine with 3 states:
 1. The report state where starting from the top down each component reports on
