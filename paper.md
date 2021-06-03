@@ -63,6 +63,8 @@ affiliations:
 date: Fri Feb  5 10:24:36 AM PST 2021
 bibliography: paper.bib
 
+---
+
 # Summary
 TECA is a parallel infrastructure for climate analytics designed specifically
 for use on DOE HPC supercomputing platforms such as the Cray systems run by
