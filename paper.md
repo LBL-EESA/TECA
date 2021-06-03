@@ -1,68 +1,33 @@
 ---
-title: 'TECA: The Toolkit for Extreme Climate Analysis'
+title: 'Gala: A Python package for galactic dynamics'
 tags:
-  - C++
   - Python
-  - Fortran
-  - climateology
-  - extreme event detection and attribution
-  - climate science
-  - big data
-  - machine learning
-  - parallel processing
-  - high performance computing
+  - astronomy
+  - dynamics
+  - galactic dynamics
+  - milky way
 authors:
-  - name: Burlen Loring
-    orcid: 0000-0002-4678-8142
-    affiliation: 1 
-  - name: Travis O'Brien
-    orcid:
-    affiliation: "1, 2"
-  - name: Prabhat
-    orcid: 0000-0003-3281-5186
-    affiliation: 4
-  - name: Abdel Elbashandy
-    orcid:
-    affiliation: 1
-  - name: Jefferey N Johnson
-    orcid:
-    affiliation: 
-  - name: Harinarayan Krishnan
-    orcid:
-    affiliation: 1
-  - name: Michael Whener
-    orcid:
-    affiliation: 1
-  - name: Christina M. Patricola
-    orcid: 0000-0002-3387-0307
-    affiliation: "1, 3"
-  - name: Suren Byna
-    orcid: 0000-0003-3048-3448
-    affiliation:
-  - name: Oliver Ruebel
-    orcid:
-    affiliation: 1
-  - name: William Collins
-    orcid:
-    affiliation: 1
-  - name: Mark D. Risser
-    orcid:
-    affiliation: 1
-  - name: Noel Keen 
-    orcid:
-    affiliation: 1
+  - name: Adrian M. Price-Whelan^[Custom footnotes for e.g. denoting who the corresponding author is can be included like this.]
+    orcid: 0000-0003-0872-7098
+    affiliation: "1, 2" # (Multiple affiliations must be quoted)
+  - name: Author Without ORCID
+    affiliation: 2
+  - name: Author with no affiliation
+    affiliation: 3
 affiliations:
-  - name: Lawrence Berkeley National Lab
-    index: 1
-  - name: Indiana University Bloomington
+ - name: Lyman Spitzer, Jr. Fellow, Princeton University
+   index: 1
+ - name: Institution Name
    index: 2
-  - name: Iowa State University
-    index: 3
-  - name: Microsoft 
-    index: 4
-date: Fri Feb  5 10:24:36 AM PST 2021
+ - name: Independent Researcher
+   index: 3
+date: 13 August 2017
 bibliography: paper.bib
 
+# Optional fields if submitting to a AAS journal too, see this blog post:
+# https://blog.joss.theoj.org/2018/12/a-new-collaboration-with-aas-publishing
+aas-doi: 10.3847/xxxxx <- update this with the DOI from AAS once you know it.
+aas-journal: Astrophysical Journal <- The name of the AAS journal.
 ---
 
 # Summary
