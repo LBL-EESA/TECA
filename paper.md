@@ -149,8 +149,8 @@ demonstrated by our use of teh GFDL TC detector [@gfdl_tc].
 # Deployment and Application at Scale
 TECA includes a number of climatalogical feature detectors such as
 detectors for atmospheric rivers (ARs) [@ca_ar, @teca_bard];
-detectors for tropical cyclones(TCs) [@gdfl_tc];. Diagnostics such as
-the Enso Longitudinal Index[@eli; @teca_eli] have also been implemented.
+detectors for tropical cyclones(TCs) [@gfdl_tc];. Diagnostics such as
+the Enso Longitudinal Index[@eli]; have also been implemented.
 
 A number of post fetaure detection analyses are available, such as computing
 cyclone sizes using radial wind profiles [@tc_wind_rad_1; @tc_wind_rad_2] and .
