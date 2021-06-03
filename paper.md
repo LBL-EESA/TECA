@@ -1,11 +1,16 @@
 ---
-title: 'Gala: A Python package for galactic dynamics'
+title: 'TECA: The Toolkit for Extreme Climate Analysis'
 tags:
+  - C++
   - Python
-  - astronomy
-  - dynamics
-  - galactic dynamics
-  - milky way
+  - Fortran
+  - climateology
+  - extreme event detection and attribution
+  - climate science
+  - big data
+  - machine learning
+  - parallel processing
+  - high performance computing
 authors:
   - name: Adrian M. Price-Whelan^[Custom footnotes for e.g. denoting who the corresponding author is can be included like this.]
     orcid: 0000-0003-0872-7098
@@ -23,12 +28,8 @@ affiliations:
    index: 3
 date: 13 August 2017
 bibliography: paper.bib
-
-# Optional fields if submitting to a AAS journal too, see this blog post:
-# https://blog.joss.theoj.org/2018/12/a-new-collaboration-with-aas-publishing
-aas-doi: 10.3847/xxxxx <- update this with the DOI from AAS once you know it.
-aas-journal: Astrophysical Journal <- The name of the AAS journal.
 ---
+
 
 # Summary
 TECA is a parallel infrastructure for climate analytics designed specifically
