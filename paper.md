@@ -18,21 +18,42 @@ authors:
   - name: Travis O'Brien
     orcid: 0000-0002-6643-1175
     affiliation: "1, 2"
-  - name: Adrian M. Price-Whelan^[Custom footnotes for e.g. denoting who the corresponding author is can be included like this.]
-    orcid: 0000-0003-0872-7098
-    affiliation: "1, 2" # (Multiple affiliations must be quoted)
-  - name: Author Without ORCID
-    affiliation: 2
-  - name: Author with no affiliation
-    affiliation: 3
+  - name: Prabhat
+    orcid: 0000-0003-3281-5186
+    affiliation: 4
+  - name: Abdel Elbashandy
+    affiliation: 1
+  - name: Jefferey N Johnson
+    affiliation: 
+  - name: Harinarayan Krishnan
+    affiliation: 1
+  - name: Michael Whener
+    affiliation: 1
+  - name: Christina M. Patricola
+    orcid: 0000-0002-3387-0307
+    affiliation: "1, 3"
+  - name: Suren Byna
+    orcid: 0000-0003-3048-3448
+    affiliation: 1
+  - name: Oliver Ruebel
+    affiliation: 1
+  - name: William Collins
+    affiliation: 1
+  - name: Mark D. Risser
+    affiliation: 1
+  - name: Noel Keen 
+    affiliation: 1
 affiliations:
  - name: Lawrence Berkeley National Lab
    index: 1
  - name: Indiana University Bloomington
    index: 2
- - name: Independent Researcher
+ - name: Iowa State University
    index: 3
-date: 13 August 2017
+ - name: Microsoft 
+   index: 4
+   
+date: 3 June 2021
 bibliography: paper.bib
 ---
 
@@ -159,3 +180,4 @@ improved the presentation of the methodology and the resulting discussion.
 This research has been supported by the Department of Energy (grant no.
 ESD13052).
 
+#Bibliography
