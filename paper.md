@@ -12,6 +12,12 @@ tags:
   - parallel processing
   - high performance computing
 authors:
+  - name: Burlen Loring
+    orcid: 0000-0002-4678-8142
+    affiliation: 1 
+  - name: Travis O'Brien
+    orcid: 0000-0002-6643-1175
+    affiliation: "1, 2"
   - name: Adrian M. Price-Whelan^[Custom footnotes for e.g. denoting who the corresponding author is can be included like this.]
     orcid: 0000-0003-0872-7098
     affiliation: "1, 2" # (Multiple affiliations must be quoted)
@@ -20,16 +26,15 @@ authors:
   - name: Author with no affiliation
     affiliation: 3
 affiliations:
- - name: Lyman Spitzer, Jr. Fellow, Princeton University
+ - name: Lawrence Berkeley National Lab
    index: 1
- - name: Institution Name
+ - name: Indiana University Bloomington
    index: 2
  - name: Independent Researcher
    index: 3
 date: 13 August 2017
 bibliography: paper.bib
 ---
-
 
 # Summary
 TECA is a parallel infrastructure for climate analytics designed specifically
