@@ -21,27 +21,29 @@ authors:
   - name: Prabhat
     orcid: 0000-0003-3281-5186
     affiliation: 4
+  - name: Michael Whener
+    affiliation: 1
   - name: Abdel Elbashandy
     affiliation: 1
   - name: Jefferey N Johnson
     affiliation: 
   - name: Harinarayan Krishnan
     affiliation: 1
-  - name: Michael Whener
+  - name: Noel Keen 
+    affiliation: 1
+  - name: Oliver Ruebel
+    affiliation: 1
+  - name: Suren Byna
+    orcid: 0000-0003-3048-3448
+    affiliation: 1
+  - name: Junmin Gu
     affiliation: 1
   - name: Christina M. Patricola
     orcid: 0000-0002-3387-0307
     affiliation: "1, 3"
-  - name: Suren Byna
-    orcid: 0000-0003-3048-3448
-    affiliation: 1
-  - name: Oliver Ruebel
-    affiliation: 1
   - name: William Collins
     affiliation: 1
   - name: Mark D. Risser
-    affiliation: 1
-  - name: Noel Keen 
     affiliation: 1
 affiliations:
  - name: Lawrence Berkeley National Lab
@@ -180,4 +182,4 @@ improved the presentation of the methodology and the resulting discussion.
 This research has been supported by the Department of Energy (grant no.
 ESD13052).
 
-#Bibliography
+# Bibliography
