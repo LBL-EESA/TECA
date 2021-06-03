@@ -438,3 +438,11 @@ struct teca_tc_saffir_simpson
 %shared_ptr(teca_rename_variables)
 %ignore teca_rename_variables::operator=;
 %include "teca_rename_variables.h"
+
+/***************************************************************************
+ surface_pressure_estimate
+ ***************************************************************************/
+%ignore teca_surface_pressure_estimate::shared_from_this;
+%shared_ptr(teca_surface_pressure_estimate)
+%ignore teca_surface_pressure_estimate::operator=;
+%include "teca_surface_pressure_estimate.h"
