@@ -59,15 +59,6 @@ date: 3 June 2021
 bibliography: paper.bib
 ---
 
-# Summary
-TECA is a parallel infrastructure for climate analytics designed specifically
-for use on DOE HPC supercomputing platforms such as the Cray systems run by
-NERSC, ANL, and ORNL.
-
-It's been proven to run at massive scales and is regularly used at
-concurrencies exceeding thousands of compute nodes and hundreds of thousands of
-CPU cores.  TECA can make use of accelerators such as GPU's through
-technologies such as CUDA, OpenCL, OpenMP, and SYCL where available.
 
 # Statement of Need
 The analysis of climate extremes requires processing massive amounts of high
@@ -77,30 +68,41 @@ is akin to finding a needle in a hay stack. Highly optimized,
 efficient, and scalable methods are required to detect and analyze
 climatalogical extremes in this data.
 
+# Summary
+TECA is a parallel infrastructure for climate analytics designed specifically
+for detecting and analyzing extreme climatological events in global climate
+    simulation ensembles using DOE HPC supercomputing platforms such as the
+    Cray systems run by NERSC, ANL, LANL, and ORNL.
+
+TECA been proven to run at massive scales and is regularly used at
+concurrencies exceeding thousands of compute nodes and hundreds of thousands of
+CPU cores.  TECA makes use of MPI for for inter-node parallelizm and can use
+threads  and accelerators such as GPU's through technologies such as CUDA,
+OpenCL, OpenMP, and SYCL where available for fine grained on node parallelism.
+
 # Design and Implementation
-TECA contains a collection of highly optimized I/O , computer vision, machine
-learning, and general purpose numerical analysis algorithms that can be easily
-connected together to construct new climate analysis applications.  TECA is
-designed around a pipeline concept where pipeline stages implement specific
-functions such as execution control, I/O, data transformation, feature
-detection, and so on.
+TECA is designed around a pipeline concept where pipeline stages implement
+specific functions such as execution control, I/O, data transformation, feature
+detection, and so on.  TECA contains a collection of highly optimized I/O ,
+computer vision, machine learning, and general purpose numerical analysis
+algorithms that can be easily connected together to construct new climate
+analysis applications.
 
 The pipeline abstraction enables the separation of analysis, I/O, and execution
 control concerns. This separation of concerns is a key to the system's
-flexibility, reusibility and to putting scalable, high performance computing
-methods into the hands of climate scientists, who are not always HPC experts.
-For instance the reuse of execution control and I/O components enables a
-climate to focus on implementing the analysis particular to their specific use
-cases without a deep knowledge of HPC, parallel programming, or parallel I/O
-techniques.
+flexibility, reusibility and lowers the bariers to the application of scalable,
+high performance computing methods in climate analytics.  For instance the
+reuse of execution control and I/O components enables a scientists to focus on
+implementing the analysis particular to their specific use cases without a deep
+knowledge of HPC, parallel programming, or parallel I/O techniques.
 
-The core I/O capabilities are leverage MPI independent and collective I/O
-either directly or indirectly through MPI, HDF5, and NetCDF.  The core
-execution control components of TECA are written in C++ using techgnologies
-such as MPI, C++ threads, OpenMP, and CUDA.  Support currently exists for a
-diverse set of execution patterns including map reduce over time; map reduce
-over space and time; and single program multiple data (SPMD) distributed data
-parallel patterns.
+The core I/O capabilities leverage MPI independent and collective I/O either
+directly or indirectly through MPI, HDF5, and NetCDF.  The core execution
+control components of TECA are written in C++ using techgnologies such as MPI,
+C++ threads, OpenMP, and CUDA.  Support currently exists for a diverse set of
+execution patterns including map reduce over time; map reduce over space and
+time; and single program multiple data (SPMD) distributed data parallel
+patterns.
 
 <!--
 TECA provides a framework for parallel execution where the units of work, the
@@ -132,19 +134,17 @@ applications can leverage existing framework components. When the need for a
 new capability, such as a new I/O, execution control, or data processing or
 transformation, arises it casn be implemented using C++ or Python.
 
-TECA's pipeline implements a state machine with 3 states:
-1. The report state where starting from the top down each component reports on
-   the universe of data it could produce.
-2. The request state where starting from the bottom up each component requests
-   the data it needs to acheive its aims
-3. The execute state where starting from the top down each component operates
-   on the incoming  data or generates new data 
+TECA's pipeline implements a state machine with 3 states or phases of
+execution, report, request and execute. In the report phase metadata describing
+the available data is shared.  In the request phase, specific data is requested
+for processing. In the execute phase the requested data is fetched and
+processed.
 
 The procudure for adding a new pipeline component involves providing one or
-more functions implementing one or more of the pipeline states.
-In the case of both languages, functional and polymorphic approaches are supported.
-Coupling to Fortran libraries is also possible as demonstrated by our use of
-teh GFDL TC detector [@gfdl_tc].
+more functions implementing one or more of the three pipeline states.  In the
+case of C++ and Python both functional and polymorphic approaches are
+supported.  Coupling directly to existing Fortran codes is also possible as
+demonstrated by our use of teh GFDL TC detector [@gfdl_tc].
 
 # Deployment and Application at Scale
 TECA includes a number of climatalogical feature detectors such as
@@ -153,7 +153,7 @@ detectors for tropical cyclones(TCs) [@gdfl_tc];. Diagnostics such as
 the Enso Longitudinal Index[@eli; @teca_eli] have also been implemented.
 
 A number of post fetaure detection analyses are available, such as computing
-cyclone sizes using radial wind profiles [@tc_wind_rad] and .
+cyclone sizes using radial wind profiles [@tc_wind_rad_1; @tc_wind_rad_2] and .
 TECA has been used to assess the impacts of a changing climate on extreme events
 such as AR's, TC's and ETC's [@ca_ar; @tc_changes; @peta_scale_teca].
 
