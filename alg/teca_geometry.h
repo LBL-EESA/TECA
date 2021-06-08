@@ -18,7 +18,17 @@ bool left(n_t e0x, n_t e0y, n_t e1x, n_t e1y, n_t px, n_t py)
 }
 
 /** Winding number test for a point in a polygon. The winding number is 0 when
- * the point is outside.
+ * the point is outside. The polygon is defined a series of x, y points in
+ * counter clockwise order. Defining in clock wise order changes the sign of
+ * the winding number. the first and last point of the polygon are required to
+ * be the same.
+ *
+ * @param [in] px the x coordinate of the point.
+ * @param [in] py the y coordinate of the point.
+ * @param [in] vx the x coordinates of the polygon.
+ * @param [in] vy the y coordinates of the polygon.
+ * @param [in] nppts the number of points in the polygon.
+ *
  */
 template<typename n_t>
 bool point_in_poly(n_t px, n_t py,
@@ -28,7 +38,8 @@ bool point_in_poly(n_t px, n_t py,
     // loop through all edges of the polygon
     unsigned long npptsm1 = nppts - 1;
     for (unsigned long i = 0; i < npptsm1; ++i)
-    {   // edge from vx[i], vy[i] to  vx[i+1], vy[i+1]
+    {
+        // edge from vx[i], vy[i] to  vx[i+1], vy[i+1]
         if (vy[i] <= py)
         {
             // if upward crossing and px, py left of edge then
