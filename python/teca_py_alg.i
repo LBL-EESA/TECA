@@ -28,6 +28,9 @@
 #include "teca_normalize_coordinates.h"
 #include "teca_rename_variables.h"
 #include "teca_saffir_simpson.h"
+#if defined(TECA_HAS_SHAPELIB)
+#include "teca_shape_file_mask.h"
+#endif
 #include "teca_table_calendar.h"
 #include "teca_table_sort.h"
 #include "teca_table_reduce.h"
@@ -438,3 +441,13 @@ struct teca_tc_saffir_simpson
 %shared_ptr(teca_rename_variables)
 %ignore teca_rename_variables::operator=;
 %include "teca_rename_variables.h"
+
+/***************************************************************************
+ shape_file_mask
+ ***************************************************************************/
+#if defined(TECA_HAS_SHAPELIB)
+%ignore teca_shape_file_mask::shared_from_this;
+%shared_ptr(teca_shape_file_mask)
+%ignore teca_shape_file_mask::operator=;
+%include "teca_shape_file_mask.h"
+#endif

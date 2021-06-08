@@ -67,6 +67,12 @@ if (TECA_HAS_LIBXLSXWRITER)
     list(APPEND teca_io_link ${LIBXLSXWRITER_LIBRARIES})
 endif()
 
+if (TECA_HAS_SHAPELIB)
+    list(APPEND teca_io_srcs teca_shape_file_util.cxx)
+    include_directories(SYSTEM ${shapelib_INCLUDE_DIRS})
+    list(APPEND teca_io_link ${shapelib_LIBRARIES})
+endif()
+
 add_library(teca_io ${teca_io_srcs})
 target_link_libraries(teca_io teca_core teca_data ${teca_io_link})
 

@@ -755,3 +755,11 @@ teca_add_test(test_rename_variables
     COMMAND test_rename_variables "${TECA_DATA_ROOT}/test_rename_variables.nc"
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
+
+teca_add_test(test_shape_file_mask
+    SOURCES test_shape_file_mask.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_shape_file_mask ${TECA_DATA_ROOT}/GMBAMountainInventory_v1.2-World.shp
+        mountain_mask 360 180 ${TECA_DATA_ROOT}/GMBAMountainInventory_v1.2-World.nc
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_SHAPELIB}
+    REQ_TECA_DATA)
