@@ -583,7 +583,6 @@ teca_metadata teca_cf_reader::get_output_metadata(
             // save the updates
             atrs.set(t_axis_variable, time_atts);
 
-
             // process time axis
             const teca_cf_time_axis_data::elem_t &elem_0 = time_axis_data->get(0);
             const_p_teca_variant_array t0 = teca_cf_time_axis_data::get_variant_array(elem_0);
@@ -611,7 +610,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 const teca_metadata &md_i = teca_cf_time_axis_data::get_metadata(elem_i);
                 std::string calendar_i;
                 md_i.get("calendar", calendar_i);
-                if ((has_calendar || !calendar_i.empty())
+                if (this->calendar.empty() && (has_calendar || !calendar_i.empty())
                     && (calendar_i != base_calendar))
                 {
                     TECA_ERROR("The base calendar is \"" << base_calendar
