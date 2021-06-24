@@ -629,7 +629,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
                 std::string units_i;
                 md_i.get("units", units_i);
-                if (units_i == base_units)
+                if (!this->t_units.empty() || (units_i == base_units))
                 {
                     // the files are in the same units copy the data
                     TEMPLATE_DISPATCH(teca_variant_array_impl,
