@@ -269,9 +269,9 @@ int write_vtk_legacy_curvilinear_header(FILE *ofile,
     bool binary, const std::string &comment = "")
 {
     // this is because the reader should always provide 3D data
-    if (!x || !y || !z)
+    if (!x || !y)
     {
-        TECA_ERROR("data must be 3 dimensional")
+        TECA_ERROR("data must be 2 dimensional")
         return -1;
     }
 
@@ -320,7 +320,7 @@ int write_vtk_legacy_curvilinear_header(FILE *ofile,
         xyz.get(),
         const NT *px = dynamic_cast<const TT*>(x.get())->get();
         const NT *py = dynamic_cast<const TT*>(y.get())->get();
-        const NT *pz = dynamic_cast<const TT*>(z.get())->get();
+        const NT *pz = z ? dynamic_cast<const TT*>(z.get())->get() : 0;
         NT *pxyz = dynamic_cast<TT*>(xyz.get())->get();
         for (size_t i = 0; i < nxyz; ++i)
             pxyz[3*i] = px[i];
@@ -329,7 +329,7 @@ int write_vtk_legacy_curvilinear_header(FILE *ofile,
             pxyz[3*i + 1] = py[i];
 
         for (size_t i = 0; i < nxyz; ++i)
-            pxyz[3*i + 2] = pz[i];
+            pxyz[3*i + 2] = pz ? pz[i] : NT(0);
         )
 
     internals::write_vtk_array_data(ofile, xyz, binary);

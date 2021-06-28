@@ -375,7 +375,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
             return teca_metadata();
         }
 
-        NC_DISPATCH_FP(x_t,
+        NC_DISPATCH(x_t,
             size_t x_0 = 0;
             p_teca_variant_array_impl<NC_T> x = teca_variant_array_impl<NC_T>::New(n_x);
 #if !defined(HDF5_THREAD_SAFE)
@@ -418,7 +418,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 return teca_metadata();
             }
 
-            NC_DISPATCH_FP(y_t,
+            NC_DISPATCH(y_t,
                 size_t y_0 = 0;
                 p_teca_variant_array_impl<NC_T> y = teca_variant_array_impl<NC_T>::New(n_y);
 #if !defined(HDF5_THREAD_SAFE)
@@ -470,7 +470,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 return teca_metadata();
             }
 
-            NC_DISPATCH_FP(z_t,
+            NC_DISPATCH(z_t,
                 size_t z_0 = 0;
                 p_teca_variant_array_impl<NC_T> z = teca_variant_array_impl<NC_T>::New(n_z);
 #if !defined(HDF5_THREAD_SAFE)
@@ -496,7 +496,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
         }
         else
         {
-            NC_DISPATCH_FP(x_t,
+            NC_DISPATCH(x_t,
                 p_teca_variant_array_impl<NC_T> z = teca_variant_array_impl<NC_T>::New(1);
                 z->set(0, NC_T());
                 z_axis = z;
@@ -583,7 +583,6 @@ teca_metadata teca_cf_reader::get_output_metadata(
             // save the updates
             atrs.set(t_axis_variable, time_atts);
 
-
             // process time axis
             const teca_cf_time_axis_data::elem_t &elem_0 = time_axis_data->get(0);
             const_p_teca_variant_array t0 = teca_cf_time_axis_data::get_variant_array(elem_0);
@@ -611,7 +610,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 const teca_metadata &md_i = teca_cf_time_axis_data::get_metadata(elem_i);
                 std::string calendar_i;
                 md_i.get("calendar", calendar_i);
-                if ((has_calendar || !calendar_i.empty())
+                if (this->calendar.empty() && (has_calendar || !calendar_i.empty())
                     && (calendar_i != base_calendar))
                 {
                     TECA_ERROR("The base calendar is \"" << base_calendar
@@ -630,7 +629,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
                 std::string units_i;
                 md_i.get("units", units_i);
-                if (units_i == base_units)
+                if (!this->t_units.empty() || (units_i == base_units))
                 {
                     // the files are in the same units copy the data
                     TEMPLATE_DISPATCH(teca_variant_array_impl,
@@ -888,7 +887,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
             // information. As a result many time aware algorithms will not
             // work.
             size_t n_files = files.size();
-            NC_DISPATCH_FP(x_t,
+            NC_DISPATCH(x_t,
                 p_teca_variant_array_impl<NC_T> t =
                     teca_variant_array_impl<NC_T>::New(n_files);
                 for (size_t i = 0; i < n_files; ++i)
@@ -902,6 +901,37 @@ teca_metadata teca_cf_reader::get_output_metadata(
             t_axis_var = "time";
 
             TECA_STATUS("The time axis will be generated, with 1 step per file")
+        }
+
+        // convert axis to floating point
+        if (!std::dynamic_pointer_cast<teca_variant_array_impl<double>>(x_axis) &&
+            !std::dynamic_pointer_cast<teca_variant_array_impl<float>>(x_axis))
+        {
+            p_teca_variant_array_impl<float> x = teca_variant_array_impl<float>::New();
+            x->copy(*x_axis);
+            x_axis = x;
+
+            if (y_axis)
+            {
+                p_teca_variant_array_impl<float> y = teca_variant_array_impl<float>::New();
+                y->copy(*y_axis);
+                y_axis = y;
+            }
+
+            if (z_axis)
+            {
+                p_teca_variant_array_impl<float> z = teca_variant_array_impl<float>::New();
+                z->copy(*z_axis);
+                z_axis = z;
+            }
+        }
+
+        if (!std::dynamic_pointer_cast<teca_variant_array_impl<double>>(t_axis) &&
+            !std::dynamic_pointer_cast<teca_variant_array_impl<float>>(t_axis))
+        {
+            p_teca_variant_array_impl<float> t = teca_variant_array_impl<float>::New();
+            t->copy(*t_axis);
+            t_axis = t;
         }
 
         this->internals->metadata.set("variables", vars);

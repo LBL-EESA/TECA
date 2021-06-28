@@ -60,6 +60,7 @@ if do_test:
     diff.set_input_connection(0, baseline_reader.get_output_port())
     diff.set_input_connection(1, ar_detect.get_output_port())
     diff.set_relative_tolerance(5e-4)
+    diff.set_absolute_tolerance(1e-6)
     diff.set_executive(rex)
     diff.update()
 
