@@ -2,6 +2,7 @@
 #include "teca_algorithm.h"
 #include "teca_cf_reader.h"
 #include "teca_multi_cf_reader.h"
+#include "teca_wrf_reader.h"
 #include "teca_cf_writer.h"
 #include "teca_file_util.h"
 #include "teca_table_reader.h"
@@ -50,6 +51,15 @@
     }
 }
 
+/***************************************************************************
+ wrf_reader
+ ***************************************************************************/
+#ifdef TECA_HAS_NETCDF
+%ignore teca_wrf_reader::shared_from_this;
+%shared_ptr(teca_wrf_reader)
+%ignore teca_wrf_reader::operator=;
+%include "teca_wrf_reader.h"
+#endif
 
 /***************************************************************************
  cf_writer
