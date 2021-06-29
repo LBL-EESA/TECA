@@ -21,6 +21,7 @@
 #include "teca_evaluate_expression.h"
 #include "teca_elevation_mask.h"
 #include "teca_integrated_vapor_transport.h"
+#include "teca_indexed_dataset_cache.h"
 #include "teca_l2_norm.h"
 #include "teca_laplacian.h"
 #include "teca_latitude_damper.h"
@@ -28,6 +29,9 @@
 #include "teca_normalize_coordinates.h"
 #include "teca_rename_variables.h"
 #include "teca_saffir_simpson.h"
+#if defined(TECA_HAS_SHAPELIB)
+#include "teca_shape_file_mask.h"
+#endif
 #include "teca_table_calendar.h"
 #include "teca_table_sort.h"
 #include "teca_table_reduce.h"
@@ -438,3 +442,21 @@ struct teca_tc_saffir_simpson
 %shared_ptr(teca_rename_variables)
 %ignore teca_rename_variables::operator=;
 %include "teca_rename_variables.h"
+
+/***************************************************************************
+ shape_file_mask
+ ***************************************************************************/
+#if defined(TECA_HAS_SHAPELIB)
+%ignore teca_shape_file_mask::shared_from_this;
+%shared_ptr(teca_shape_file_mask)
+%ignore teca_shape_file_mask::operator=;
+%include "teca_shape_file_mask.h"
+#endif
+
+/***************************************************************************
+ indexed_dataset_cache
+ ***************************************************************************/
+%ignore teca_indexed_dataset_cache::shared_from_this;
+%shared_ptr(teca_indexed_dataset_cache)
+%ignore teca_indexed_dataset_cache::operator=;
+%include "teca_indexed_dataset_cache.h"

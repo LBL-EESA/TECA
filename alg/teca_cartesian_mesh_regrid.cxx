@@ -365,8 +365,9 @@ std::vector<teca_metadata> teca_cartesian_mesh_regrid::get_upstream_request(
     {
         if (request.get("extent", target_extent, 6))
         {
-            TECA_ERROR("neither \"bounds\" nor \"extent\" has been requested")
-            return up_reqs;
+            target_extent[1] = target_x->size() - 1;
+            target_extent[3] = target_y->size() - 1;
+            target_extent[5] = target_z->size() - 1;
         }
     }
     else
@@ -518,6 +519,9 @@ const_p_teca_dataset teca_cartesian_mesh_regrid::execute(
     unsigned long target_ny = target_yc->size();
     unsigned long target_nz = target_zc->size();
     unsigned long target_size = target_nx*target_ny*target_nz;
+    unsigned long target_ihi = target_nx - 1;
+    unsigned long target_jhi = target_ny - 1;
+    unsigned long target_khi = target_nz - 1;
 
     const_p_teca_variant_array source_xc = source->get_x_coordinates();
     const_p_teca_variant_array source_yc = source->get_y_coordinates();
@@ -531,64 +535,106 @@ const_p_teca_dataset teca_cartesian_mesh_regrid::execute(
     unsigned long source_jhi = source_ny - 1;
     unsigned long source_khi = source_nz - 1;
 
-    NESTED_TEMPLATE_DISPATCH_FP(
-        const teca_variant_array_impl,
-        target_xc.get(),
-        _TGT,
+    // copy when the input and output meshes are the same. the meshes are the
+    // same when they span the same world space and have the same resolution
+    double tx0, tx1, sx0, sx1;
+    source_xc->get(0, sx0);
+    target_xc->get(0, tx0);
+    source_xc->get(source_ihi, sx1);
+    target_xc->get(target_ihi, tx1);
 
-        const NT_TGT *p_target_xc = std::dynamic_pointer_cast<TT_TGT>(target_xc)->get();
-        const NT_TGT *p_target_yc = std::dynamic_pointer_cast<TT_TGT>(target_yc)->get();
-        const NT_TGT *p_target_zc = std::dynamic_pointer_cast<TT_TGT>(target_zc)->get();
+    double ty0, ty1, sy0, sy1;
+    source_yc->get(0, sy0);
+    target_yc->get(0, ty0);
+    source_yc->get(source_jhi, sy1);
+    target_yc->get(target_jhi, ty1);
+
+    double tz0, tz1, sz0, sz1;
+    source_zc->get(0, sz0);
+    target_zc->get(0, tz0);
+    source_zc->get(source_khi, sz1);
+    target_zc->get(target_khi, tz1);
+
+    if ((source_nx == target_nx) && (source_ny == target_ny) && (source_nz == target_nz) &&
+        teca_coordinate_util::equal(sx0, tx0) && teca_coordinate_util::equal(sx1, tx1) &&
+        teca_coordinate_util::equal(sy0, ty0) && teca_coordinate_util::equal(sy1, ty1) &&
+        teca_coordinate_util::equal(sz0, tz0) && teca_coordinate_util::equal(sz1, tz1))
+    {
+        if (this->verbose)
+            TECA_STATUS("Identical mesh detected. Copying data.")
+
+        size_t n_arrays = source_arrays.size();
+        for (size_t i = 0; i < n_arrays; ++i)
+        {
+            const_p_teca_variant_array source_a = source_ac->get(source_arrays[i]);
+            p_teca_variant_array target_a = source_a->new_copy();
+            target_ac->set(source_arrays[i], target_a);
+        }
+    }
+    else
+    {
+        if (this->verbose)
+            TECA_STATUS("Interpolating data.")
 
         NESTED_TEMPLATE_DISPATCH_FP(
             const teca_variant_array_impl,
-            source_xc.get(),
-            _SRC,
+            target_xc.get(),
+            _TGT,
 
-            const NT_SRC *p_source_xc = std::dynamic_pointer_cast<TT_SRC>(source_xc)->get();
-            const NT_SRC *p_source_yc = std::dynamic_pointer_cast<TT_SRC>(source_yc)->get();
-            const NT_SRC *p_source_zc = std::dynamic_pointer_cast<TT_SRC>(source_zc)->get();
+            const NT_TGT *p_target_xc = std::dynamic_pointer_cast<TT_TGT>(target_xc)->get();
+            const NT_TGT *p_target_yc = std::dynamic_pointer_cast<TT_TGT>(target_yc)->get();
+            const NT_TGT *p_target_zc = std::dynamic_pointer_cast<TT_TGT>(target_zc)->get();
 
-            size_t n_arrays = source_arrays.size();
-            for (size_t i = 0; i < n_arrays; ++i)
-            {
-                const_p_teca_variant_array source_a = source_ac->get(source_arrays[i]);
-                p_teca_variant_array target_a = source_a->new_instance();
-                target_a->resize(target_size);
+            NESTED_TEMPLATE_DISPATCH_FP(
+                const teca_variant_array_impl,
+                source_xc.get(),
+                _SRC,
 
-                NESTED_TEMPLATE_DISPATCH(
-                    teca_variant_array_impl,
-                    target_a.get(),
-                    _DATA,
+                const NT_SRC *p_source_xc = std::dynamic_pointer_cast<TT_SRC>(source_xc)->get();
+                const NT_SRC *p_source_yc = std::dynamic_pointer_cast<TT_SRC>(source_yc)->get();
+                const NT_SRC *p_source_zc = std::dynamic_pointer_cast<TT_SRC>(source_zc)->get();
 
-                    const NT_DATA *p_source_a = std::static_pointer_cast<const TT_DATA>(source_a)->get();
-                    NT_DATA *p_target_a = std::static_pointer_cast<TT_DATA>(target_a)->get();
-
-                    if (interpolate(this->interpolation_mode, target_nx, target_ny, target_nz,
-                        p_target_xc, p_target_yc, p_target_zc, p_target_a, p_source_xc,
-                        p_source_yc, p_source_zc, p_source_a, source_ihi, source_jhi,
-                        source_khi, source_nx, source_ny, source_nz))
-                    {
-                        TECA_ERROR("Failed to move \"" << source_arrays[i] << "\"")
-                        return nullptr;
-                    }
-                    )
-                else
+                size_t n_arrays = source_arrays.size();
+                for (size_t i = 0; i < n_arrays; ++i)
                 {
-                    TECA_ERROR("Unsupported array type " << source_a->get_class_name())
-                }
+                    const_p_teca_variant_array source_a = source_ac->get(source_arrays[i]);
+                    p_teca_variant_array target_a = source_a->new_instance();
+                    target_a->resize(target_size);
 
-                target_ac->set(source_arrays[i], target_a);
+                    NESTED_TEMPLATE_DISPATCH(
+                        teca_variant_array_impl,
+                        target_a.get(),
+                        _DATA,
+
+                        const NT_DATA *p_source_a = std::static_pointer_cast<const TT_DATA>(source_a)->get();
+                        NT_DATA *p_target_a = std::static_pointer_cast<TT_DATA>(target_a)->get();
+
+                        if (interpolate(this->interpolation_mode, target_nx, target_ny, target_nz,
+                            p_target_xc, p_target_yc, p_target_zc, p_target_a, p_source_xc,
+                            p_source_yc, p_source_zc, p_source_a, source_ihi, source_jhi,
+                            source_khi, source_nx, source_ny, source_nz))
+                        {
+                            TECA_ERROR("Failed to move \"" << source_arrays[i] << "\"")
+                            return nullptr;
+                        }
+                        )
+                    else
+                    {
+                        TECA_ERROR("Unsupported array type " << source_a->get_class_name())
+                    }
+
+                    target_ac->set(source_arrays[i], target_a);
+                }
+                )
+            else
+            {
+                TECA_ERROR("Unupported coordinate type " << source_xc->get_class_name())
             }
             )
         else
         {
-            TECA_ERROR("Unupported coordinate type " << source_xc->get_class_name())
+            TECA_ERROR("Unupported coordinate type " << target_xc->get_class_name())
         }
-        )
-    else
-    {
-        TECA_ERROR("Unupported coordinate type " << target_xc->get_class_name())
     }
 
     return target;

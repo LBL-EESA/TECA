@@ -92,6 +92,7 @@ set(REQUIRE_BOOST TRUE CACHE BOOL "Forces build failure when boost is missing")
 set(REQUIRE_OPENSSL ${REQUIRE_NETCDF} CACHE BOOL "Forces build failure when OpenSSL is missing")
 set(REQUIRE_PYTHON TRUE CACHE BOOL "Forces build failure when Python is missing")
 set(REQUIRE_LIBXLSXWRITER FALSE CACHE BOOL "Forces build failure when libxlsxwriter is missing")
+set(REQUIRE_SHAPELIB FALSE CACHE BOOL "Forces build failure when shapelib is missing")
 set(REQUIRE_PARAVIEW FALSE CACHE BOOL "Forces build failure when ParaView is missing")
 set(REQUIRE_VTK FALSE CACHE BOOL "Forces build failure when VTK is missing")
 set(REQUIRE_TECA_DATA ${BUILD_TESTING} CACHE BOOL "Forces build failure when TECA_data is missing")
@@ -297,6 +298,21 @@ set(TECA_HAS_PYTHON ${tmp} CACHE BOOL "TECA Python bindings")
 set(TECA_HAS_NUMPY ${NumPy_FOUND} CACHE BOOL "Python NumPy module")
 set(TECA_HAS_PYTORCH ${PyTorch_FOUND} CACHE BOOL "Python torch module")
 set(TECA_HAS_MATPLOTLIB ${Matplotlib_FOUND} CACHE BOOL "Python matplotlib module")
+
+# configure for shapelib
+set(tmp OFF)
+find_package(shapelib QUIET)
+if (shapelib_FOUND AND ((DEFINED TECA_HAS_SHAPELIB AND TECA_HAS_SHAPELIB)
+    OR (NOT DEFINED TECA_HAS_SHAPELIB)))
+    message(STATUS "shapelib features -- enabled")
+    set(tmp ON)
+elseif (REQUIRE_SHAPELIB)
+    message(FATAL_ERROR "shapelib features -- required but not found. set SHAPELIB_DIR to enable.")
+else()
+    message(STATUS "shapelib features -- not found. set SHAPELIB_DIR to enable.")
+endif()
+set(TECA_HAS_SHAPELIB ${tmp} CACHE BOOL "shapelib features")
+
 
 # silence the annoying cmake warnings about REQUIRE_<X> when
 # the required package X is actually found.
