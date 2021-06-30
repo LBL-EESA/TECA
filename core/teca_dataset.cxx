@@ -67,7 +67,7 @@ void teca_dataset::shallow_copy(const p_teca_dataset &other)
 }
 
 // --------------------------------------------------------------------------
-void teca_dataset::swap(p_teca_dataset &other)
+void teca_dataset::swap(const p_teca_dataset &other)
 {
     teca_metadata *tmp = this->metadata;
     this->metadata = other->metadata;

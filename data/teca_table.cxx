@@ -470,7 +470,7 @@ void teca_table::copy_structure(const const_p_teca_table &other)
 }
 
 // --------------------------------------------------------------------------
-void teca_table::swap(p_teca_dataset &dataset)
+void teca_table::swap(const p_teca_dataset &dataset)
 {
     p_teca_table other
         = std::dynamic_pointer_cast<teca_table>(dataset);

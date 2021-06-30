@@ -107,7 +107,7 @@ void teca_mesh::shallow_append_arrays(const p_teca_mesh &other)
 }
 
 // --------------------------------------------------------------------------
-void teca_mesh::swap(p_teca_dataset &dataset)
+void teca_mesh::swap(const p_teca_dataset &dataset)
 {
     p_teca_mesh other
         = std::dynamic_pointer_cast<teca_mesh>(dataset);

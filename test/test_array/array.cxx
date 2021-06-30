@@ -80,7 +80,7 @@ void array::copy_metadata(const const_p_teca_dataset &other)
 }
 
 // --------------------------------------------------------------------------
-void array::swap(p_teca_dataset &other)
+void array::swap(const p_teca_dataset &other)
 {
     p_array other_a = std::dynamic_pointer_cast<array>(other);
     if (!other_a)

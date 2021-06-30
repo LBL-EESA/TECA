@@ -134,7 +134,7 @@ public:
     void copy_structure(const const_p_teca_table &other);
 
     // swap internals of the two objects
-    void swap(p_teca_dataset &other) override;
+    void swap(const p_teca_dataset &other) override;
 
     // append rows from the passed in table which must have identical
     // columns.

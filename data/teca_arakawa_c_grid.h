@@ -175,7 +175,7 @@ public:
     void copy_metadata(const const_p_teca_dataset &other) override;
 
     // swap internals of the two objects
-    void swap(p_teca_dataset &) override;
+    void swap(const p_teca_dataset &) override;
 
     // return true if the dataset is empty.
     bool empty() const noexcept override;

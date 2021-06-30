@@ -92,7 +92,7 @@ void teca_database::copy_metadata(const const_p_teca_dataset &o)
 }
 
 // --------------------------------------------------------------------------
-void teca_database::swap(p_teca_dataset &o)
+void teca_database::swap(const p_teca_dataset &o)
 {
     p_teca_database other
         = std::dynamic_pointer_cast<teca_database>(o);

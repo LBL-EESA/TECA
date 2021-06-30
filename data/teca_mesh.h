@@ -109,7 +109,7 @@ public:
     void shallow_append_arrays(const p_teca_mesh &);
 
     // swap internals of the two objects
-    void swap(p_teca_dataset &) override;
+    void swap(const p_teca_dataset &) override;
 
     // serialize the dataset to/from the given stream
     // for I/O or communication

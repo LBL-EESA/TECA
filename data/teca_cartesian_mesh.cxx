@@ -60,7 +60,7 @@ void teca_cartesian_mesh::copy_metadata(const const_p_teca_dataset &dataset)
 }
 
 // --------------------------------------------------------------------------
-void teca_cartesian_mesh::swap(p_teca_dataset &dataset)
+void teca_cartesian_mesh::swap(const p_teca_dataset &dataset)
 {
     this->teca_mesh::swap(dataset);
 

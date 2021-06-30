@@ -37,7 +37,7 @@ public:
     void shallow_copy(const p_teca_dataset &) override;
 
     /// swap internals of the two objects
-    void swap(p_teca_dataset &) override;
+    void swap(const p_teca_dataset &) override;
 
 protected:
     teca_uniform_cartesian_mesh();

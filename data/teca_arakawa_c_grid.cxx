@@ -268,7 +268,7 @@ void teca_arakawa_c_grid::copy_metadata(const const_p_teca_dataset &dataset)
 }
 
 // --------------------------------------------------------------------------
-void teca_arakawa_c_grid::swap(p_teca_dataset &dataset)
+void teca_arakawa_c_grid::swap(const p_teca_dataset &dataset)
 {
     this->teca_mesh::swap(dataset);
 

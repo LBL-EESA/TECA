@@ -87,7 +87,7 @@ public:
     void copy_metadata(const const_p_teca_dataset &other) override;
 
     /// Swap the internals of the two objects
-    void swap(p_teca_dataset &) override;
+    void swap(const p_teca_dataset &) override;
 
     /** Serialize the dataset to/from the given stream
      * for I/O or communication
