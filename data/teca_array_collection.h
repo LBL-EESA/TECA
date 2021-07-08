@@ -23,8 +23,14 @@ public:
     TECA_DATASET_NEW_INSTANCE()
     TECA_DATASET_NEW_COPY()
 
+    // set/get temporal metadata
+    TECA_DATASET_METADATA(time, double, 1)
+    TECA_DATASET_METADATA(calendar, std::string, 1)
+    TECA_DATASET_METADATA(time_units, std::string, 1)
+    TECA_DATASET_METADATA(time_step, unsigned long, 1)
 
-
+    // set/get attribute metadata
+    TECA_DATASET_METADATA(attributes, teca_metadata, 1)
 
     /// reset to empty state
     void clear();

@@ -77,10 +77,34 @@
 %shared_ptr(teca_array_collection)
 %ignore teca_array_collection::operator=;
 %ignore teca_array_collection::operator[];
+%ignore teca_array_collection::get_time(double *) const;
+%ignore teca_array_collection::get_time_step(unsigned long *) const;
+%ignore teca_array_collection::set_calendar(std::string const *);
+%ignore teca_array_collection::set_time_units(std::string const *);
+%ignore teca_array_collection::set_attributes(teca_metadata const *);
+%ignore teca_array_collection::get_attributes(teca_metadata *) const;
+%ignore teca_array_collection::get_arrays(int) const;
 %include "teca_array_collection.h"
+TECA_PY_DYNAMIC_CAST(teca_array_collection, teca_dataset)
+TECA_PY_CONST_CAST(teca_array_collection)
 %extend teca_array_collection
 {
     TECA_PY_STR()
+
+    TECA_PY_DATASET_METADATA(double, time)
+    TECA_PY_DATASET_METADATA(unsigned long, time_step)
+    TECA_PY_DATASET_METADATA(std::string, calendar)
+    TECA_PY_DATASET_METADATA(std::string, time_units)
+
+    teca_metadata get_attributes()
+    {
+        teca_py_gil_state gil;
+
+        teca_metadata atts;
+        self->get_attributes(atts);
+
+        return atts;
+    }
 
     /* add or replace an array using syntax: col['name'] = array */
     PyObject *__setitem__(const std::string &name, PyObject *array)
