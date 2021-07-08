@@ -3,6 +3,7 @@
 #include "teca_cf_reader.h"
 #include "teca_multi_cf_reader.h"
 #include "teca_wrf_reader.h"
+#include "teca_array_collection_reader.h"
 #include "teca_cf_writer.h"
 #include "teca_file_util.h"
 #include "teca_table_reader.h"
@@ -59,6 +60,16 @@
 %shared_ptr(teca_wrf_reader)
 %ignore teca_wrf_reader::operator=;
 %include "teca_wrf_reader.h"
+#endif
+
+/***************************************************************************
+ array_collection_reader
+ ***************************************************************************/
+#ifdef TECA_HAS_NETCDF
+%ignore teca_array_collection_reader::shared_from_this;
+%shared_ptr(teca_array_collection_reader)
+%ignore teca_array_collection_reader::operator=;
+%include "teca_array_collection_reader.h"
 #endif
 
 /***************************************************************************
