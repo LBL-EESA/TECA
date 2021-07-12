@@ -55,7 +55,6 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_array_collection_reader)
  *  | ----      | ----------- |
  *  | time_step | the time step to read |
  *  | arrays    | list of arrays to read |
- *  | extent    | index space extents describing the subset of data to read |
  *
  * ### output:
  * The reader generates a 1,2 or 3D cartesian mesh for the requested timestep
