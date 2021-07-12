@@ -3,6 +3,7 @@
 #include "teca_2d_component_area.h"
 #include "teca_algorithm.h"
 #include "teca_apply_binary_mask.h"
+#include "teca_apply_tempest_remap.h"
 #include "teca_bayesian_ar_detect.h"
 #include "teca_bayesian_ar_detect_parameters.h"
 #include "teca_binary_segmentation.h"
@@ -460,3 +461,11 @@ struct teca_tc_saffir_simpson
 %shared_ptr(teca_indexed_dataset_cache)
 %ignore teca_indexed_dataset_cache::operator=;
 %include "teca_indexed_dataset_cache.h"
+
+/***************************************************************************
+ apply_tempest_remap
+ ***************************************************************************/
+%ignore teca_apply_tempest_remap::shared_from_this;
+%shared_ptr(teca_apply_tempest_remap)
+%ignore teca_apply_tempest_remap::operator=;
+%include "teca_apply_tempest_remap.h"
