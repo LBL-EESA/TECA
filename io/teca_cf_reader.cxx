@@ -783,21 +783,10 @@ teca_metadata teca_cf_reader::get_output_metadata(
             size_t n_files = files.size();
             for (size_t i = 0; i < n_files; ++i)
             {
-                std::istringstream ss(files[i].c_str());
-                std::tm current_tm;
-                current_tm.tm_year = 0;
-                current_tm.tm_mon = 0;
-                current_tm.tm_mday = 0;
-                current_tm.tm_hour = 0;
-                current_tm.tm_min = 0;
-                current_tm.tm_sec = 0;
+                struct tm current_tm;
+                memset(&current_tm, 0, sizeof(current_tm));
 
-                // attempt to convert the filename into a time
-                ss >> std::get_time(&current_tm,
-                    this->filename_time_template.c_str());
-
-                // check whether the conversion failed
-                if(ss.fail())
+                if (!strptime(files[i].c_str(), this->filename_time_template.c_str(), &current_tm))
                 {
                     TECA_ERROR("Failed to infer time from filename \"" <<
                         files[i] << "\" using format \"" <<
