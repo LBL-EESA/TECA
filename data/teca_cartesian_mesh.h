@@ -37,6 +37,12 @@ public:
     int get_array_extent(const std::string &array_name,
         unsigned long array_extent[6]);
 
+    /// get the number of points in the mesh
+    unsigned long get_number_of_points() const override;
+
+    /// get the number of cells in the mesh
+    unsigned long get_number_of_cells() const override;
+
     /// Get the x coordinate array
     p_teca_variant_array get_x_coordinates()
     { return m_coordinate_arrays->get("x"); }

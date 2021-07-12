@@ -22,7 +22,13 @@ public:
     TECA_DATASET_METADATA(spacing, double, 3)
     TECA_DATASET_METADATA(origin, double, 3)
     TECA_DATASET_METADATA(extent, unsigned long, 6)
-    TECA_DATASET_METADATA(local_extent, unsigned long, 6)
+    TECA_DATASET_METADATA(whole_extent, unsigned long, 6)
+
+    /// get the number of points in the mesh
+    unsigned long get_number_of_points() const override;
+
+    /// get the number of cells in the mesh
+    unsigned long get_number_of_cells() const override;
 
     /// return a unique string identifier
     std::string get_class_name() const override

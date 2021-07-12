@@ -34,6 +34,12 @@ public:
     TECA_DATASET_METADATA(z_coordinate_variable, std::string, 1)
     TECA_DATASET_METADATA(t_coordinate_variable, std::string, 1)
 
+    /// get the number of points in the mesh
+    unsigned long get_number_of_points() const override;
+
+    /// get the number of cells in the mesh
+    unsigned long get_number_of_cells() const override;
+
     // get x coordinate array
     p_teca_variant_array get_x_coordinates()
     { return m_coordinate_arrays->get("x"); }

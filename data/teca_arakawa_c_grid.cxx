@@ -24,6 +24,24 @@ teca_arakawa_c_grid::teca_arakawa_c_grid()
 {}
 
 // --------------------------------------------------------------------------
+unsigned long teca_arakawa_c_grid::get_number_of_points() const
+{
+    unsigned long ext[6];
+    this->get_extent(ext);
+
+    return (ext[1] - ext[0] + 1) * (ext[3] - ext[2] + 1) * (ext[5] - ext[4] + 1);
+}
+
+// --------------------------------------------------------------------------
+unsigned long teca_arakawa_c_grid::get_number_of_cells() const
+{
+    unsigned long ext[6];
+    this->get_extent(ext);
+
+    return (ext[1] - ext[0]) * (ext[3] - ext[2]) * (ext[5] - ext[4]);
+}
+
+// --------------------------------------------------------------------------
 int teca_arakawa_c_grid::get_type_code() const
 {
     return teca_dataset_tt<teca_arakawa_c_grid>::type_code;
