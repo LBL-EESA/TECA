@@ -529,6 +529,14 @@ int read_variable_attributes(netcdf_handle &fh, const std::string &var_name,
 
 // **************************************************************************
 int read_variable_attributes(netcdf_handle &fh, int var_id,
+    std::string &name, teca_metadata &atts)
+{
+    return teca_netcdf_util::read_variable_attributes(fh,
+        var_id, "", "", "", "", 0, name, atts);
+}
+
+// **************************************************************************
+int read_variable_attributes(netcdf_handle &fh, int var_id,
     const std::string &x_axis_variable, const std::string &y_axis_variable,
     const std::string &z_axis_variable, const std::string &t_axis_variable,
     int clamp_dimensions_of_one, std::string &name, teca_metadata &atts)

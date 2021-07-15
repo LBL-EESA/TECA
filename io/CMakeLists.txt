@@ -9,7 +9,7 @@ include_directories(
     )
 
 set(teca_io_srcs
-    teca_file_util.cxx
+    teca_array_collection_reader.cxx
     teca_cartesian_mesh_reader.cxx
     teca_cartesian_mesh_reader_factory.cxx
     teca_cartesian_mesh_writer.cxx
@@ -21,6 +21,7 @@ set(teca_io_srcs
     teca_cf_time_axis_data.cxx
     teca_cf_time_axis_data_reduce.cxx
     teca_cf_time_axis_reader.cxx
+    teca_file_util.cxx
     teca_table_reader.cxx
     teca_table_writer.cxx
     teca_vtk_util.cxx

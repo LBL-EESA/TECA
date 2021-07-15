@@ -278,7 +278,7 @@ void teca_cf_time_axis_data::shallow_copy(const p_teca_dataset &o)
 }
 
 // --------------------------------------------------------------------------
-void teca_cf_time_axis_data::swap(p_teca_dataset &o)
+void teca_cf_time_axis_data::swap(const p_teca_dataset &o)
 {
     p_teca_cf_time_axis_data other =
         std::dynamic_pointer_cast<teca_cf_time_axis_data>(o);

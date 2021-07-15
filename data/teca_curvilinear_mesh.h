@@ -34,6 +34,12 @@ public:
     TECA_DATASET_METADATA(z_coordinate_variable, std::string, 1)
     TECA_DATASET_METADATA(t_coordinate_variable, std::string, 1)
 
+    /// get the number of points in the mesh
+    unsigned long get_number_of_points() const override;
+
+    /// get the number of cells in the mesh
+    unsigned long get_number_of_cells() const override;
+
     // get x coordinate array
     p_teca_variant_array get_x_coordinates()
     { return m_coordinate_arrays->get("x"); }
@@ -74,7 +80,7 @@ public:
     void copy_metadata(const const_p_teca_dataset &other) override;
 
     // swap internals of the two objects
-    void swap(p_teca_dataset &) override;
+    void swap(const p_teca_dataset &) override;
 
     // serialize the dataset to/from the given stream
     // for I/O or communication

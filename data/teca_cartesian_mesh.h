@@ -37,6 +37,12 @@ public:
     int get_array_extent(const std::string &array_name,
         unsigned long array_extent[6]);
 
+    /// get the number of points in the mesh
+    unsigned long get_number_of_points() const override;
+
+    /// get the number of cells in the mesh
+    unsigned long get_number_of_cells() const override;
+
     /// Get the x coordinate array
     p_teca_variant_array get_x_coordinates()
     { return m_coordinate_arrays->get("x"); }
@@ -87,7 +93,7 @@ public:
     void copy_metadata(const const_p_teca_dataset &other) override;
 
     /// Swap the internals of the two objects
-    void swap(p_teca_dataset &) override;
+    void swap(const p_teca_dataset &) override;
 
     /** Serialize the dataset to/from the given stream
      * for I/O or communication

@@ -261,7 +261,7 @@ public:
     virtual void copy_metadata(const const_p_teca_dataset &other);
 
     // swap internals of the two objects
-    virtual void swap(p_teca_dataset &other);
+    virtual void swap(const p_teca_dataset &other);
 
     // access metadata
     virtual teca_metadata &get_metadata() noexcept;

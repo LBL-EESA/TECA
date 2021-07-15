@@ -37,6 +37,7 @@ DECLARE_DATASET_TT(teca_cartesian_mesh, 3)
 DECLARE_DATASET_TT(teca_uniform_cartesian_mesh, 4)
 DECLARE_DATASET_TT(teca_arakawa_c_grid, 5)
 DECLARE_DATASET_TT(teca_curvilinear_mesh, 6)
+DECLARE_DATASET_TT(teca_array_collection, 7)
 
 #define DATASET_FACTORY_NEW_CASE(_code)         \
     case _code:                                 \
@@ -56,6 +57,7 @@ DECLARE_DATASET_TT(teca_curvilinear_mesh, 6)
  * | 4    | teca_uniform_cartesian_mesh |
  * | 5    | teca_arakawa_c_grid |
  * | 6    | teca_curvilinear_mesh |
+ * | 7    | teca_array_collection |
  *
  */
 struct teca_dataset_factory
@@ -70,6 +72,7 @@ struct teca_dataset_factory
             DATASET_FACTORY_NEW_CASE(4)
             DATASET_FACTORY_NEW_CASE(5)
             DATASET_FACTORY_NEW_CASE(6)
+            DATASET_FACTORY_NEW_CASE(7)
             default:
                 TECA_ERROR("Invalid dataset code " << code )
         }

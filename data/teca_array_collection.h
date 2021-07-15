@@ -1,6 +1,7 @@
 #ifndef teca_array_collection_h
 #define teca_array_collection_h
 
+#include "teca_dataset.h"
 #include "teca_shared_object.h"
 #include "teca_variant_array.h"
 #include <map>
@@ -10,14 +11,26 @@
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_array_collection)
 
 /// A collection of named arrays.
-class teca_array_collection
+/**
+ * The array collection is used internally in other mesh based datasets. It
+ * can also be used to process more general data where the arrays have
+ * differing lengths or a non-geometric association.
+ */
+class teca_array_collection : public teca_dataset
 {
 public:
+    TECA_DATASET_STATIC_NEW(teca_array_collection)
+    TECA_DATASET_NEW_INSTANCE()
+    TECA_DATASET_NEW_COPY()
 
-    /// construct on heap
-    static
-    p_teca_array_collection New()
-    { return p_teca_array_collection(new teca_array_collection()); }
+    // set/get temporal metadata
+    TECA_DATASET_METADATA(time, double, 1)
+    TECA_DATASET_METADATA(calendar, std::string, 1)
+    TECA_DATASET_METADATA(time_units, std::string, 1)
+    TECA_DATASET_METADATA(time_step, unsigned long, 1)
+
+    // set/get attribute metadata
+    TECA_DATASET_METADATA(attributes, teca_metadata, 1)
 
     /// reset to empty state
     void clear();
@@ -103,18 +116,17 @@ public:
     { return m_names; }
 
     /// Return the name of the class
-    std::string get_class_name() const
+    std::string get_class_name() const override
     { return "teca_array_collection"; }
 
     /// return an integer identifier uniquely naming the dataset type
-    int get_type_code() const
-    { return -1; }
+    int get_type_code() const override;
 
     /// copy
-    void copy(const const_p_teca_array_collection &other);
+    void copy(const const_p_teca_dataset &other) override;
 
     /// shallow copy
-    void shallow_copy(const p_teca_array_collection &other);
+    void shallow_copy(const p_teca_dataset &other) override;
 
     /// append
     int append(const const_p_teca_array_collection &other);
@@ -123,16 +135,16 @@ public:
     int shallow_append(const p_teca_array_collection &other);
 
     /// swap
-    void swap(p_teca_array_collection &other);
+    void swap(const p_teca_dataset &other) override;
 
     /// serialize the data to the given stream for I/O or communication
-    int to_stream(teca_binary_stream &s) const;
+    int to_stream(teca_binary_stream &s) const override;
 
     /// serialize the data from the given stream for I/O or communication
-    int from_stream(teca_binary_stream &s);
+    int from_stream(teca_binary_stream &s) override;
 
     /// stream to a human readable representation
-    int to_stream(std::ostream &) const;
+    int to_stream(std::ostream &) const override;
 
 protected:
     teca_array_collection() = default;

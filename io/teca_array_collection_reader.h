@@ -1,23 +1,21 @@
-#ifndef teca_cf_reader_h
-#define teca_cf_reader_h
+#ifndef teca_array_collection_reader_h
+#define teca_array_collection_reader_h
 
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
 #include "teca_shared_object.h"
+#include "teca_array_collection.h"
 
 #include <vector>
 #include <string>
+#include <mutex>
 
-TECA_SHARED_OBJECT_FORWARD_DECL(teca_cf_reader)
 
-class teca_cf_reader_internals;
-using p_teca_cf_reader_internals = std::shared_ptr<teca_cf_reader_internals>;
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_array_collection_reader)
 
-/// A reader for Cartesian mesh based data stored in NetCDF CF format.
+/// A reader for collections of arrays stored in NetCDF format.
 /**
- * Reads a set of arrays from  single time step into a teca_cartesian_mesh
- * dataset. The reader responds to requests for specific arrays and the data
- * may be optionally subset via extent and bounds request keys.
+ * The reader reads requested arrays into a teca_array_collection.
  *
  * The time varying dataset to read is identified by a regular expression
  * identifying a set of files. Note, regular expressions are similar and more
@@ -36,8 +34,6 @@ using p_teca_cf_reader_internals = std::shared_ptr<teca_cf_reader_internals>;
  *  | index_initializer_key | number_of_time_steps |
  *  | number_of_time_steps  | total number of time steps in all files |
  *  | index_request_key     | time_step |
- *  | whole_extent          | index space extent describing (nodal) dimensions of the mesh |
- *  | bounds                | world coordinate space bounding box covered by the mesh |
  *
  * ### attribute metadata:
  *
@@ -50,13 +46,7 @@ using p_teca_cf_reader_internals = std::shared_ptr<teca_cf_reader_internals>;
  *
  *  | key             | description |
  *  | ----            | ----------- |
- *  | x_axis_variable | name of x axis variable |
- *  | y_axis_variable | name of y axis variable |
- *  | z_axis_variable | name of z axis variable |
  *  | t_axis_variable | name of t axis variable |
- *  | x               | array of x coordinates |
- *  | y               | array of y coordinates |
- *  | z               | array of z coordinates |
  *  | t               | array of t coordinates |
  *
  * ### request keys:
@@ -65,21 +55,19 @@ using p_teca_cf_reader_internals = std::shared_ptr<teca_cf_reader_internals>;
  *  | ----      | ----------- |
  *  | time_step | the time step to read |
  *  | arrays    | list of arrays to read |
- *  | extent    | index space extents describing the subset of data to read |
- *  | bounds    | world space bounds describing the subset of data to read |
  *
  * ### output:
  * The reader generates a 1,2 or 3D cartesian mesh for the requested timestep
  * on the requested extent with the requested point based arrays and value at
  * this timestep for all time variables.
  */
-class teca_cf_reader : public teca_algorithm
+class teca_array_collection_reader : public teca_algorithm
 {
 public:
-    TECA_ALGORITHM_STATIC_NEW(teca_cf_reader)
-    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_cf_reader)
-    TECA_ALGORITHM_CLASS_NAME(teca_cf_reader)
-    ~teca_cf_reader();
+    TECA_ALGORITHM_STATIC_NEW(teca_array_collection_reader)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_array_collection_reader)
+    TECA_ALGORITHM_CLASS_NAME(teca_array_collection_reader)
+    ~teca_array_collection_reader();
 
     // report/initialize to/from Boost program options
     // objects.
@@ -107,50 +95,7 @@ public:
     TECA_ALGORITHM_PROPERTY(std::string, files_regex)
     ///@}
 
-    /** @name periodic_in_x
-     * A flag that indicates a periodic bondary in the z direction
-     */
-    ///@{
-    TECA_ALGORITHM_PROPERTY(int, periodic_in_x)
     ///@}
-
-    /** @name periodic_in_y
-     * A flag that indicates a periodic bondary in the z direction
-     */
-    ///@{
-    TECA_ALGORITHM_PROPERTY(int, periodic_in_y)
-    ///@}
-
-    /** @name periodic_in_z
-     * A flag that indicates a periodic bondary in the z direction
-     */
-    ///@{
-    TECA_ALGORITHM_PROPERTY(int, periodic_in_z)
-    ///@}
-
-    /** @name x_axis_variable
-     * Set the name of the variable to use for the x coordinate axis.
-     * An empty string disables this dimension.
-     */
-    ///@{
-    TECA_ALGORITHM_PROPERTY(std::string, x_axis_variable)
-    ///@}
-
-    /** @name y_axis_variable
-     * Set the name of the variable to use for the y coordinate axis.
-     * An empty string disables this dimension.
-     */
-    ///@{
-    TECA_ALGORITHM_PROPERTY(std::string, y_axis_variable)
-    ///@}
-    /** @name z_axis_variable
-     * Set the name of the variable to use for the z coordinate axis.
-     * An empty string disables this dimension.
-     */
-    ///@{
-    TECA_ALGORITHM_PROPERTY(std::string, z_axis_variable)
-    ///@}
-
     /** @name t_axis_variable
      * Set the name of the variable to use for the t coordinate axis.
      * An empty string disables this dimension.
@@ -205,58 +150,32 @@ public:
     TECA_ALGORITHM_VECTOR_PROPERTY(double, t_value)
     ///@}
 
-    /** @name max_metadata_ranks
-     * set/get the number of ranks used to read the time axis.  the default
-     * value of 1024 ranks works well on NERSC Cori scratch file system and may
-     * not be optimal on other systems.
-     */
-    ///@{
-    TECA_ALGORITHM_PROPERTY(int, max_metadata_ranks)
-    ///@}
-
-    /** @name clamp_dimensions_of_one
-     * If set the requested extent will be clamped in a given direction if the
-     * coorinate axis in that dircetion has a length of 1 and the requested extent
-     * would be out of bounds. This exists to deal with non-conformant data and
-     * should be used with caution.
-     */
-    ///@{
-    TECA_ALGORITHM_PROPERTY(int, clamp_dimensions_of_one)
-    ///@}
-
 protected:
-    teca_cf_reader();
-    void clear_cached_metadata();
+    teca_array_collection_reader();
 
 private:
-    teca_metadata get_output_metadata(
-        unsigned int port,
+    teca_metadata get_output_metadata(unsigned int port,
         const std::vector<teca_metadata> &input_md) override;
 
-    const_p_teca_dataset execute(
-        unsigned int port,
+    const_p_teca_dataset execute(unsigned int port,
         const std::vector<const_p_teca_dataset> &input_data,
         const teca_metadata &request) override;
 
-    virtual void set_modified() override;
+    void set_modified() override;
+    void clear_cached_metadata();
 
 private:
     std::vector<std::string> file_names;
     std::string files_regex;
-    std::string x_axis_variable;
-    std::string y_axis_variable;
-    std::string z_axis_variable;
     std::string t_axis_variable;
     std::string calendar;
     std::string t_units;
     std::string filename_time_template;
     std::vector<double> t_values;
-    int periodic_in_x;
-    int periodic_in_y;
-    int periodic_in_z;
     int max_metadata_ranks;
-    int clamp_dimensions_of_one;
-    p_teca_cf_reader_internals internals;
+
+    struct teca_array_collection_reader_internals;
+    teca_array_collection_reader_internals *internals;
 };
 
 #endif

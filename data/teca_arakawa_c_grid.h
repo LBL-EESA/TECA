@@ -84,6 +84,12 @@ public:
     TECA_DATASET_METADATA(periodic_in_y, int, 1)
     TECA_DATASET_METADATA(periodic_in_z, int, 1)
 
+    /// get the number of points in the mesh
+    unsigned long get_number_of_points() const override;
+
+    /// get the number of cells in the mesh
+    unsigned long get_number_of_cells() const override;
+
     // get the names of the m, and v horizontal coordinate arrays
     // these should not need to be modified
     TECA_DATASET_METADATA(m_x_coordinate_variable, std::string, 1)
@@ -175,7 +181,7 @@ public:
     void copy_metadata(const const_p_teca_dataset &other) override;
 
     // swap internals of the two objects
-    void swap(p_teca_dataset &) override;
+    void swap(const p_teca_dataset &) override;
 
     // return true if the dataset is empty.
     bool empty() const noexcept override;

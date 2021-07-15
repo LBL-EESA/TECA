@@ -9,6 +9,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
 set(teca_alg_cxx_srcs
     gfdl_tc_candidates.cxx
     teca_apply_binary_mask.cxx
+    teca_apply_tempest_remap.cxx
     teca_binary_segmentation.cxx
     teca_bayesian_ar_detect.cxx
     teca_bayesian_ar_detect_parameters.cxx

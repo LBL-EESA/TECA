@@ -1,7 +1,15 @@
 #include "teca_array_collection.h"
+#include "teca_dataset_util.h"
+#include "teca_bad_cast.h"
 
 #include <sstream>
 using std::ostringstream;
+
+// --------------------------------------------------------------------------
+int teca_array_collection::get_type_code() const
+{
+    return teca_dataset_tt<teca_array_collection>::type_code;
+}
 
 // ----------------------------------------------------------------------------
 void teca_array_collection::clear()
@@ -139,8 +147,17 @@ const_p_teca_variant_array teca_array_collection::get(const std::string &name) c
 }
 
 // ----------------------------------------------------------------------------
-void teca_array_collection::copy(const const_p_teca_array_collection &other)
+void teca_array_collection::copy(const const_p_teca_dataset &dataset)
 {
+    this->teca_dataset::copy(dataset);
+
+    const_p_teca_array_collection other
+        = std::dynamic_pointer_cast<const teca_array_collection>(dataset);
+
+    if ((!other) || (this == other.get()))
+        return;
+
+
     m_names = other->m_names;
     m_name_array_map = other->m_name_array_map;
 
@@ -150,8 +167,17 @@ void teca_array_collection::copy(const const_p_teca_array_collection &other)
 }
 
 // ----------------------------------------------------------------------------
-void teca_array_collection::shallow_copy(const p_teca_array_collection &other)
+void teca_array_collection::shallow_copy(const p_teca_dataset &dataset)
 {
+    this->teca_dataset::shallow_copy(dataset);
+
+    p_teca_array_collection other
+        = std::dynamic_pointer_cast<teca_array_collection>(dataset);
+
+    if ((!other) || (this == other.get()))
+        return;
+
+
     m_names = other->m_names;
     m_name_array_map = other->m_name_array_map;
 
@@ -185,8 +211,19 @@ int teca_array_collection::shallow_append(const p_teca_array_collection &other)
 }
 
 // --------------------------------------------------------------------------
-void teca_array_collection::swap(p_teca_array_collection &other)
+void teca_array_collection::swap(const p_teca_dataset &dataset)
 {
+    this->teca_dataset::swap(dataset);
+
+    p_teca_array_collection other
+        = std::dynamic_pointer_cast<teca_array_collection>(dataset);
+
+    if (!other)
+        throw teca_bad_cast(safe_class_name(dataset), "teca_array_collection");
+
+    if (this == other.get())
+        return;
+
     std::swap(m_names, other->m_names);
     std::swap(m_name_array_map, other->m_name_array_map);
     std::swap(m_arrays, other->m_arrays);
@@ -195,6 +232,9 @@ void teca_array_collection::swap(p_teca_array_collection &other)
 // --------------------------------------------------------------------------
 int teca_array_collection::to_stream(teca_binary_stream &s) const
 {
+    if (this->teca_dataset::to_stream(s))
+        return -1;
+
     s.pack("teca_array_collection", 21);
     unsigned int na = m_arrays.size();
     s.pack(na);
@@ -204,12 +244,16 @@ int teca_array_collection::to_stream(teca_binary_stream &s) const
         s.pack(m_arrays[i]->type_code());
         m_arrays[i]->to_stream(s);
     }
+
     return 0;
 }
 
 // --------------------------------------------------------------------------
 int teca_array_collection::from_stream(teca_binary_stream &s)
 {
+    if (this->teca_dataset::from_stream(s))
+        return -1;
+
     if (s.expect("teca_array_collection"))
     {
         TECA_ERROR("invalid stream")
@@ -238,6 +282,9 @@ int teca_array_collection::from_stream(teca_binary_stream &s)
 // --------------------------------------------------------------------------
 int teca_array_collection::to_stream(std::ostream &s) const
 {
+    if (this->teca_dataset::to_stream(s))
+        return -1;
+
     s << "{" << std::endl;
     size_t n_arrays = this->size();
     if (n_arrays)

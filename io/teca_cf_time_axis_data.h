@@ -89,7 +89,7 @@ public:
     void shallow_copy(const p_teca_dataset &other) override;
 
     // swap internals of the two objects
-    void swap(p_teca_dataset &other) override;
+    void swap(const p_teca_dataset &other) override;
 
 protected:
     teca_cf_time_axis_data();
