@@ -782,21 +782,24 @@ int interval_iterator::initialize(const teca_metadata &md,
 {
     // get the time axis and calendar
     teca_metadata attributes;
+    std::string t_var;
     teca_metadata t_atts;
     std::string calendar;
     std::string units;
     teca_metadata coords;
     p_teca_variant_array t;
-    if (md.get("attributes", attributes) || attributes.get("time", t_atts) ||
-        t_atts.get("calendar", calendar) || t_atts.get("units", units) ||
-        md.get("coordinates", coords) || !(t = coords.get("t")))
+    if (md.get("attributes", attributes) || md.get("coordinates", coords) ||
+        !(t = coords.get("t")) || coords.get("t_variable", t_var) ||
+        attributes.get(t_var, t_atts) || t_atts.get("calendar", calendar) ||
+        t_atts.get("units", units))
     {
         TECA_ERROR("Failed to get the time axis from the available metadata."
             << (attributes.empty() ? "missing" : "has") << " attributes. "
+            << (coords.empty() ? "missing" : "has") << " coordinates. "
+            << (t_var.empty() ? "missing" : "has") << " t_variable. "
             << (t_atts.empty() ? "missing" : "has") << " time attributes. "
             << (calendar.empty() ? "missing" : "has") << " calendar ."
             << (units.empty() ? "missing" : "has") << " time units. "
-            << (coords.empty() ? "missing" : "has") << " coordinates. "
             << (t ? "has" : "missing") << " time values.")
         return -1;
     }
