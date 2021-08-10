@@ -207,6 +207,12 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
     unsigned long skip_dim_of_1 = (x && nx > 1 ? 1 : 0) +
         (y && ny > 1 ? 1 : 0) + (z && nz > 1 ? 1 : 0);
 
+
+    // record the mesh axis id 0:x, 1:y, 2:z, 3:t
+    int mesh_axis[4] = {0};
+    for (int i = 0; i < 4; ++i)
+        mesh_axis[i] = 0;
+
     if (this->t)
     {
         coord_arrays[this->n_dims] = this->t;
@@ -216,6 +222,8 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
 
         if (this->dims[this->n_dims] == NC_UNLIMITED)
             unlimited_dim_actual_size = this->t->size();
+
+        mesh_axis[this->n_dims] = 3;
 
         ++this->n_dims;
     }
@@ -235,6 +243,8 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
             if (this->dims[this->n_dims] == NC_UNLIMITED)
                 unlimited_dim_actual_size = nz;
 
+            mesh_axis[this->n_dims] = 2;
+
             ++this->n_dims;
         }
     }
@@ -253,6 +263,8 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
             if (this->dims[this->n_dims] == NC_UNLIMITED)
                 unlimited_dim_actual_size = ny;
 
+            mesh_axis[this->n_dims] = 1;
+
             ++this->n_dims;
         }
     }
@@ -270,6 +282,8 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
 
             if (this->dims[this->n_dims] == NC_UNLIMITED)
                 unlimited_dim_actual_size = nx;
+
+            mesh_axis[this->n_dims] = 0;
 
             ++this->n_dims;
         }
@@ -325,7 +339,7 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
             )
 
         // save the var id
-        this->var_def[coord_array_names[i]] = std::make_pair(var_id, var_type_code);
+        this->var_def[coord_array_names[i]] = var_def_t(var_id, var_type_code);
     }
 
     // define variables for each point array
@@ -350,6 +364,35 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
             return -1;
         }
 
+        // get the active dimensions
+        int dim_active[4] = {0};
+        if (atts_i.get("mesh_dim_active", dim_active, 4))
+        {
+            // this matches the original behavior, but now that 2D and 3D data
+            // is supported in the same dataset all variables should provide
+            // the active dims metadata
+            TECA_WARNING("attributes for \"" << name << "\" are missing the"
+                " mesh_dim_active key. All mesh dimensions are assumed to be active.")
+
+            for (int j = 0; j < 4; ++j)
+                dim_active[j] = 1;
+        }
+
+        // copy the dim ids from the active dimensions
+        std::array<int,4> adims{{0,0,0,0}};
+        int n_active = 0;
+        int active_dim_ids[4] = {-1};
+        for (int j = 0; j < this->n_dims; ++j)
+        {
+            int active = dim_active[mesh_axis[j]];
+            adims[j] = active;
+            if (active)
+            {
+                active_dim_ids[n_active] = dim_ids[j];
+                ++n_active;
+            }
+        }
+
         int var_id = -1;
         CODE_DISPATCH(var_type_code,
             // define variable
@@ -359,7 +402,7 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
             if ((ierr = nc_def_var(this->handle.get(), name.c_str(), var_nc_type,
-                this->n_dims, dim_ids, &var_id)) != NC_NOERR)
+                n_active, active_dim_ids, &var_id)) != NC_NOERR)
             {
                 TECA_ERROR("failed to define variable for point array \""
                     << name << "\". " << nc_strerror(ierr))
@@ -368,9 +411,10 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
 #if !defined(HDF5_THREAD_SAFE)
             }
 #endif
-            // save the var id
-            this->var_def[name] = std::make_pair(var_id, var_type_code);
             )
+
+       // save the variable definition
+       this->var_def[name] = var_def_t(var_id, var_type_code, adims);
 
 #if !defined(HDF5_THREAD_SAFE)
         {
@@ -476,7 +520,7 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
             }
 #endif
             // save the var id
-            this->var_def[name] = std::make_pair(var_id, type_code);
+            this->var_def[name] = var_def_t(var_id, type_code);
             )
 
 #if defined(TECA_HAS_NETCDF_MPI)
@@ -509,7 +553,7 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
             continue;
         }
 
-        int var_id = it->second.first;
+        int var_id = it->second.var_id;
         if (teca_netcdf_util::write_variable_attributes(
             this->handle, var_id, array_atts))
         {
@@ -545,7 +589,7 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
             TECA_ERROR("No var id for \"" << array_name << "\"")
             return -1;
         }
-        int var_id = it->second.first;
+        int var_id = it->second.var_id;
 
         size_t start = 0;
         // only rank 0 should write these since they are the same on all ranks
@@ -602,13 +646,6 @@ int teca_cf_layout_manager::write(long index,
     if (unsigned int n_arrays = point_arrays->size())
     {
         size_t starts[4] = {0, 0, 0, 0};
-        size_t counts[4] = {1, 0, 0, 0};
-
-        // make space for the time dimension
-        int i0 = this->t ? 1 : 0;
-
-        for (int i = i0; i < this->n_dims; ++i)
-            counts[i] = this->dims[i];
 
         // get this data's position in the file
         unsigned long id = index - this->first_index;
@@ -620,7 +657,7 @@ int teca_cf_layout_manager::write(long index,
             const_p_teca_variant_array array = point_arrays->get(i);
 
             // look up the var id
-            std::map<std::string, std::pair<int,unsigned int>>::iterator it = this->var_def.find(array_name);
+            std::map<std::string, var_def_t>::iterator it = this->var_def.find(array_name);
             if (it == this->var_def.end())
             {
                 // skip arrays we don't know about. if we want to make this an error
@@ -629,8 +666,22 @@ int teca_cf_layout_manager::write(long index,
                 //TECA_ERROR("No var id for \"" << array_name << "\"")
                 //return -1;
             }
-            int var_id = it->second.first;
-            unsigned int declared_type_code = it->second.second;
+            int var_id = it->second.var_id;
+            unsigned int declared_type_code = it->second.type_code;
+            const std::array<int,4> &active_dims = it->second.active_dims;
+
+            // make space for the time dimension
+            size_t counts[4] = {1, 0, 0, 0};
+            int j0 = this->t && active_dims[0] ? 1 : 0;
+            int n_active = j0;
+            for (int j = j0; j < this->n_dims; ++j)
+            {
+                if (active_dims[j])
+                {
+                    counts[n_active] = this->dims[j];
+                    ++n_active;
+                }
+            }
 
             TEMPLATE_DISPATCH(const teca_variant_array_impl,
                 array.get(),
@@ -687,8 +738,8 @@ int teca_cf_layout_manager::write(long index,
                 //TECA_ERROR("No var id for \"" << array_name << "\"")
                 //return -1;
             }
-            int var_id = it->second.first;
-            unsigned int declared_type_code = it->second.second;
+            int var_id = it->second.var_id;
+            unsigned int declared_type_code = it->second.type_code;
 
             size_t counts[2] = {1, array->size()};
 
