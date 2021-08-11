@@ -399,6 +399,22 @@ teca_metadata teca_cf_reader::get_output_metadata(
             bounds[1] = x->get(whole_extent[1]);
             )
 
+        // ensure that the x axis is not an integer type
+        if ((x_t != NC_FLOAT) && (x_t != NC_DOUBLE))
+        {
+            TECA_WARNING("Integer x coordinate axes detected in " << x_axis_variable
+                << ". A conversion to float will be made.")
+
+            p_teca_variant_array_impl<float> tmp_x = teca_variant_array_impl<float>::New();
+            tmp_x->copy(*x_axis);
+            x_axis = tmp_x;
+
+            x_atts.set("type_code", x_axis->type_code());
+            atrs.set(x_axis_variable, x_atts);
+
+            x_t = NC_FLOAT;
+        }
+
         int y_id = 0;
         size_t n_y = 1;
         nc_type y_t = 0;
@@ -441,6 +457,22 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 bounds[2] = y->get(0);
                 bounds[3] = y->get(whole_extent[3]);
                 )
+
+           // ensure consistent type accross coordinate axes.
+           if (y_t != x_t)
+           {
+               TECA_WARNING("Mismatched y coordinate axes detected in " << y_axis_variable
+                   << ". A type conversion will be made.")
+
+               p_teca_variant_array tmp_y = x_axis->new_instance();
+               tmp_y->copy(*y_axis);
+               y_axis = tmp_y;
+
+               y_atts.set("type_code", y_axis->type_code());
+               atrs.set(y_axis_variable, y_atts);
+
+               y_t = x_t;
+           }
         }
         else
         {
@@ -493,6 +525,22 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 bounds[4] = z->get(0);
                 bounds[5] = z->get(whole_extent[5]);
                 )
+
+           // ensure consistent type accross coordinate axes.
+           if (z_t != x_t)
+           {
+               TECA_WARNING("Mismatched z coordinate axes detected in " << z_axis_variable
+                   << ". A type conversion will be made.")
+
+               p_teca_variant_array tmp_z = x_axis->new_instance();
+               tmp_z->copy(*z_axis);
+               z_axis = tmp_z;
+
+               z_atts.set("type_code", z_axis->type_code());
+               atrs.set(z_axis_variable, z_atts);
+
+               z_t = x_t;
+           }
         }
         else
         {
@@ -892,29 +940,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
             TECA_STATUS("The time axis will be generated, with 1 step per file")
         }
 
-        // convert axis to floating point
-        if (!std::dynamic_pointer_cast<teca_variant_array_impl<double>>(x_axis) &&
-            !std::dynamic_pointer_cast<teca_variant_array_impl<float>>(x_axis))
-        {
-            p_teca_variant_array_impl<float> x = teca_variant_array_impl<float>::New();
-            x->copy(*x_axis);
-            x_axis = x;
-
-            if (y_axis)
-            {
-                p_teca_variant_array_impl<float> y = teca_variant_array_impl<float>::New();
-                y->copy(*y_axis);
-                y_axis = y;
-            }
-
-            if (z_axis)
-            {
-                p_teca_variant_array_impl<float> z = teca_variant_array_impl<float>::New();
-                z->copy(*z_axis);
-                z_axis = z;
-            }
-        }
-
+        // convert time axis to floating point
         if (!std::dynamic_pointer_cast<teca_variant_array_impl<double>>(t_axis) &&
             !std::dynamic_pointer_cast<teca_variant_array_impl<float>>(t_axis))
         {
