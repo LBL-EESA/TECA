@@ -58,3 +58,6 @@ teca_add_python_app(teca_profile_explorer)
 teca_add_python_app(teca_tc_stats)
 teca_add_python_app(teca_tc_wind_radii_stats)
 teca_add_python_app(teca_tc_trajectory_scalars)
+
+teca_add_python_app(teca_potential_intensity
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_TCPYPI})

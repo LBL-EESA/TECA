@@ -151,4 +151,14 @@ bool get_teca_has_matplotlib()
     return false;
 #endif
 }
+
+// return true if TECA was compiled with tcpyPI support
+bool get_teca_has_tcpypi()
+{
+#if defined(TECA_HAS_TCPYPI)
+    return true;
+#else
+    return false;
+#endif
+}
 %}

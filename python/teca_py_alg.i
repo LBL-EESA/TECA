@@ -469,3 +469,10 @@ struct teca_tc_saffir_simpson
 %shared_ptr(teca_apply_tempest_remap)
 %ignore teca_apply_tempest_remap::operator=;
 %include "teca_apply_tempest_remap.h"
+
+/***************************************************************************
+ potential_intensity
+ ***************************************************************************/
+#if defined(TECA_HAS_TCPYPI)
+%pythoncode "teca_potential_intensity.py"
+#endif

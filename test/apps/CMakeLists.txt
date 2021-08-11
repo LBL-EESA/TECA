@@ -465,6 +465,12 @@ teca_add_app_test(test_cf_restripe_app_mpi teca_cf_restripe
     FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
+teca_add_app_test(test_potential_intensity_app teca_potential_intensity
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_potential_intensity_app.sh
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_TCPYPI}
+    REQ_TECA_DATA)
+
 set(app_names
     teca_bayesian_ar_detect
     teca_cf_restripe
@@ -473,6 +479,7 @@ set(app_names
     teca_event_filter
     teca_integrated_vapor_transport
     teca_metadata_probe
+    teca_potential_intensity
     teca_profile_explorer
     teca_tc_detect
     teca_tc_stats
@@ -483,20 +490,25 @@ set(app_names
     teca_temporal_reduction)
 
 foreach (app_name ${app_names})
-    teca_add_app_test(${app_name}_help ${app_name}
-        COMMAND ${CMAKE_BINARY_DIR}/${BIN_PREFIX}/${app_name} --help)
 
-    get_target_property(app_type ${app_name} APP_TYPE)
-    if ("${app_type}" STREQUAL "C++")
+    if (TARGET ${app_name})
 
-        teca_add_app_test(${app_name}_full_help ${app_name}
-            COMMAND ${CMAKE_BINARY_DIR}/${BIN_PREFIX}/${app_name} --full_help)
+        teca_add_app_test(${app_name}_help ${app_name}
+            COMMAND ${CMAKE_BINARY_DIR}/${BIN_PREFIX}/${app_name} --help)
 
-        teca_add_app_test(${app_name}_advanced_help ${app_name}
-            COMMAND ${CMAKE_BINARY_DIR}/${BIN_PREFIX}/${app_name} --advanced_help)
+        get_target_property(app_type ${app_name} APP_TYPE)
+        if ("${app_type}" STREQUAL "C++")
 
-        teca_add_app_test(${app_name}_no_args ${app_name}
-            COMMAND ${CMAKE_BINARY_DIR}/${BIN_PREFIX}/${app_name}
-            WILL_FAIL)
+            teca_add_app_test(${app_name}_full_help ${app_name}
+                COMMAND ${CMAKE_BINARY_DIR}/${BIN_PREFIX}/${app_name} --full_help)
+
+            teca_add_app_test(${app_name}_advanced_help ${app_name}
+                COMMAND ${CMAKE_BINARY_DIR}/${BIN_PREFIX}/${app_name} --advanced_help)
+
+            teca_add_app_test(${app_name}_no_args ${app_name}
+                COMMAND ${CMAKE_BINARY_DIR}/${BIN_PREFIX}/${app_name}
+                WILL_FAIL)
+        endif()
+
     endif()
 endforeach()
