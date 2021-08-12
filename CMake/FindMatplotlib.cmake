@@ -16,8 +16,10 @@ exec_program("${PYTHON_EXECUTABLE}"
 set(Matplotlib_VERSION_FOUND FALSE)
 if(NOT _TMP_PY_RETURN)
   set(Matplotlib_VERSION_FOUND TRUE)
+  message(STATUS "Looking for Python package matplotlib ... found version ${_TMP_PY_OUTPUT}")
 else()
   set(_TMP_PY_OUTPUT)
+  message(STATUS "Looking for Python package matplotlib ... not found")
 endif()
 set(Matplotlib_VERSION "${_TMP_PY_OUTPUT}")
 

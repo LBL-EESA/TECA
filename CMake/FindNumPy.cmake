@@ -7,6 +7,7 @@
 #  NumPy_FOUND, set TRUE if numpy and c-api are available
 #  NumPy_INCLUDE_DIR, where to find c-api headers
 #  NumPy_VERSION, numpy release version
+
 set(_TMP_PY_OUTPUT)
 set(_TMP_PY_RETURN)
 exec_program("${PYTHON_EXECUTABLE}"
@@ -30,8 +31,10 @@ exec_program("${PYTHON_EXECUTABLE}"
 set(NumPy_VERSION_FOUND FALSE)
 if(NOT _TMP_PY_RETURN)
   set(NumPy_VERSION_FOUND TRUE)
+  message(STATUS "Looking for Python package numpy ... found version ${_TMP_PY_OUTPUT}")
 else()
   set(_TMP_PY_OUTPUT)
+  message(STATUS "Looking for Python package numpy ... not found")
 endif()
 set(NumPy_VERSION "${_TMP_PY_OUTPUT}")
 
