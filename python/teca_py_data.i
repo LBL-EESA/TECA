@@ -68,6 +68,29 @@
         TECA_PY_ERROR_NOW(PyExc_RuntimeError, "unspecified error")
         return nullptr;
     }
+
+    void set_fill_value(PyObject *fv)
+    {
+        if (fv != Py_None)
+        {
+            TECA_PY_OBJECT_DISPATCH_NUM(fv,
+                self->have_fill_value = 1;
+                self->fill_value = teca_py_object::cpp_tt<OT>::value(fv);
+                return;
+                )
+            TECA_PY_ARRAY_SCALAR_DISPATCH(fv,
+                self->have_fill_value = 1;
+                self->fill_value = teca_py_array::numpy_scalar_tt<ST>::value(fv);
+                return;
+                )
+            TECA_PY_ERROR(PyExc_TypeError, "Unsupported type of fill_value")
+        }
+        else
+        {
+            self->have_fill_value = 0;
+            self->fill_value = 1e20f;
+        }
+    }
 }
 
 /***************************************************************************
