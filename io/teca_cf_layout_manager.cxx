@@ -371,8 +371,9 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
             // this matches the original behavior, but now that 2D and 3D data
             // is supported in the same dataset all variables should provide
             // the active dims metadata
-            TECA_WARNING("attributes for \"" << name << "\" are missing the"
-                " mesh_dim_active key. All mesh dimensions are assumed to be active.")
+            if (rank == 0)
+                TECA_WARNING("attributes for \"" << name << "\" are missing the"
+                    " mesh_dim_active key. All mesh dimensions are assumed to be active.")
 
             for (int j = 0; j < 4; ++j)
                 dim_active[j] = 1;
