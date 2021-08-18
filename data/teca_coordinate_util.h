@@ -889,5 +889,73 @@ private:
     std::vector<std::string> m_array_units;
 };
 
+/// Check that cooridnate arrays from different sources match a refrence array
+/** Compares names, units, and values of coordinate axis arrays.
+ */
+class teca_coordinate_axis_validator
+{
+public:
+    teca_coordinate_axis_validator() :
+        m_absolute_tolerance(equal_tt<float>::absTol()),
+        m_relative_tolerance(equal_tt<float>::relTol())
+    {}
+
+    /** Adds a time axis to validate. if provides_time is true then the axis
+      * becomes the reference to which all others are compared. returns 0 if
+      * necessary metadata was present and non zero if the necessary information
+      * was not present.
+      */
+    int add_time_axis(const std::string &source,
+        const teca_metadata &coords, const teca_metadata &atts,
+        bool provides_time);
+
+    /** Adds anx-coordinate axis to validate. if provides_geometry is true then
+     * the axis becomes the reference to which all others are compared. returns
+     * 0 if necessary metadata was present and non zero if the necessary
+     * information was not present.
+      */
+    int add_x_coordinate_axis(const std::string &source,
+        const teca_metadata &coords, const teca_metadata &atts,
+        bool provides_geometry);
+
+    /** Adds anx-coordinate axis to validate. if provides_geometry is true then
+     * the axis becomes the reference to which all others are compared. returns
+     * 0 if necessary metadata was present and non zero if the necessary
+     * information was not present.
+      */
+    int add_y_coordinate_axis(const std::string &source,
+        const teca_metadata &coords, const teca_metadata &atts,
+        bool provides_geometry);
+
+    /** Adds anx-coordinate axis to validate. if provides_geometry is true then
+     * the axis becomes the reference to which all others are compared. returns
+     * 0 if necessary metadata was present and non zero if the necessary
+     * information was not present.
+      */
+    int add_z_coordinate_axis(const std::string &source,
+        const teca_metadata &coords, const teca_metadata &atts,
+        bool provides_geometry);
+
+    /** runs the validation. returns 0 if all of the stored coordinate axes are
+     * equal to the reference axes. When an array does not compare equal to the
+     * reference array a descritpion explaining why is returned in errorStr.
+     */
+    int validate_spatial_coordinate_axes(std::string &errorStr);
+
+    /** runs the validation. returns 0 if all of the stored time axes are
+     * equal to the reference axis. When an array does not compare equal to the
+     * reference array a descritpion explaining why is returned in errorStr.
+     */
+    int validate_time_axis(std::string &errorStr);
+
+private:
+    double m_absolute_tolerance;
+    double m_relative_tolerance;
+    teca_validate_arrays m_x;
+    teca_validate_arrays m_y;
+    teca_validate_arrays m_z;
+    teca_validate_arrays m_t;
+};
+
 };
 #endif

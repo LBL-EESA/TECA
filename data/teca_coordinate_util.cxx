@@ -709,4 +709,165 @@ int teca_validate_arrays::validate(const std::string &a_descriptor,
     return 0;
 }
 
+// --------------------------------------------------------------------------
+int teca_coordinate_axis_validator::add_time_axis(const std::string &source,
+    const teca_metadata &coords, const teca_metadata &atts, bool provides_time)
+{
+    // get the name and values
+    std::string t_variable;
+    const_p_teca_variant_array t;
+    if (coords.get("t_variable", t_variable) || !(t = coords.get("t")))
+    {
+        TECA_ERROR("Failed to get attributes for the time axis  \"" << t_variable
+            << "\" from source \"" << source << ". A validation is not possible.")
+        return -1;
+    }
+
+    // get calendaring info, but don't error out if it's not present
+    teca_metadata t_atts;
+    atts.get(t_variable, t_atts);
+
+    std::string t_units;
+    std::string calendar;
+    t_atts.get("calendar", calendar);
+    t_atts.get("units", t_units);
+
+    // save it for the validation step
+    if (provides_time)
+    {
+        m_t.set_reference_array(source, t_variable, t_units + " " + calendar, t);
+    }
+    else
+    {
+        m_t.append_array(source, t_variable, t_units + " " + calendar, t);
+    }
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+int teca_coordinate_axis_validator::add_x_coordinate_axis(const std::string &source,
+    const teca_metadata &coords, const teca_metadata &atts, bool provides_geometry)
+{
+    // get the name and values
+    std::string x_variable;
+    const_p_teca_variant_array x;
+    if (coords.get("x_variable", x_variable) || !(x = coords.get("x")))
+    {
+        TECA_ERROR("Failed to get attributes for the x-coordinate axis  \"" << x_variable
+            << "\" from source \"" << source << ". A validation is not possible.")
+        return -1;
+    }
+
+    // get the units, not an error if they are not present
+    teca_metadata x_atts;
+    std::string x_units;
+    atts.get(x_variable, x_atts);
+    x_atts.get("units", x_units);
+
+    // save for later validation
+    if (provides_geometry)
+    {
+        m_x.set_reference_array(source, x_variable, x_units, x);
+    }
+    else
+    {
+        m_x.append_array(source, x_variable, x_units, x);
+    }
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+int teca_coordinate_axis_validator::add_y_coordinate_axis(const std::string &source,
+    const teca_metadata &coords, const teca_metadata &atts, bool provides_geometry)
+{
+    // get the name and values
+    std::string y_variable;
+    const_p_teca_variant_array y;
+    if (coords.get("y_variable", y_variable) || !(y = coords.get("y")))
+    {
+        TECA_ERROR("Failed to get attributes for the y-coordinate axis  \"" << y_variable
+            << "\" from source \"" << source << ". A validation is not possible.")
+        return -1;
+    }
+
+    // get the units
+    teca_metadata y_atts;
+    std::string y_units;
+    atts.get(y_variable, y_atts);
+    y_atts.get("units", y_units);
+
+    // save for later validation
+    if (provides_geometry)
+    {
+        m_y.set_reference_array(source, y_variable, y_units, y);
+    }
+    else
+    {
+        m_y.append_array(source, y_variable, y_units, y);
+    }
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+int teca_coordinate_axis_validator::add_z_coordinate_axis(const std::string &source,
+    const teca_metadata &coords, const teca_metadata &atts, bool provides_geometry)
+{
+    // get the name and values
+    std::string z_variable;
+    const_p_teca_variant_array z;
+    if (coords.get("z_variable", z_variable) || !(z = coords.get("z")))
+    {
+        TECA_ERROR("Failed to get attributes for the z-coordinate axis  \"" << z_variable
+            << "\" from source \"" << source << ". A validation is not possible.")
+        return -1;
+    }
+
+    // get the untis
+    teca_metadata z_atts;
+    std::string z_units;
+
+    atts.get(z_variable, z_atts);
+    z_atts.get("units", z_units);
+
+    // save for later validation
+    if (provides_geometry)
+    {
+        m_z.set_reference_array(source, z_variable, z_units, z);
+    }
+    else
+    {
+        m_z.append_array(source, z_variable, z_units, z);
+    }
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+int teca_coordinate_axis_validator::validate_spatial_coordinate_axes(std::string &errorStr)
+{
+    int errorNo = 0;
+
+    if ((errorNo = m_x.validate("x-coordinate axis",
+        m_absolute_tolerance, m_relative_tolerance, errorStr)) ||
+        (errorNo = m_y.validate("y-coordinate axis",
+        m_absolute_tolerance, m_relative_tolerance, errorStr)) ||
+        (errorNo = m_z.validate("z-coordinate axis",
+        m_absolute_tolerance, m_relative_tolerance, errorStr)))
+    {
+        return errorNo;
+    }
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+int teca_coordinate_axis_validator::validate_time_axis(std::string &errorStr)
+{
+    return m_t.validate("time axis",
+        m_absolute_tolerance, m_relative_tolerance, errorStr);
+}
+
 };
