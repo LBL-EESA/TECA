@@ -141,6 +141,38 @@ bool equal(T a, T b, std::string &diagnostic, T relTol = 0, T absTol = 0,
     return false;
 }
 
+/** Error codes returned by bool equal(const const_p_teca_variant_array &array1,
+ const const_p_teca_variant_array &array2,
+ double absTol, double relTol, int errorNo,
+ std::string &errorStr);
+ * | Code             | Meaning |
+ * |------------------|---------|
+ * | no_error         | no error |
+ * | length_missmatch | length missmatch |
+ * | type_missmatch   | type missmatch |
+ * | invalid_value    | invalid value detected (NaN, inf) |
+ * | value_missmatch  | a value failed to compare within the tolerance |
+ */
+struct equal_error
+{
+    enum {no_error = 0,
+        invalid_value = 1,
+        length_missmatch = 2,
+        type_missmatch = 3,
+        value_missmatch = 4,
+        unsupported_type = 5
+        };
+};
+
+/** Compare two variant arrays elementwise for equality. If the arrays fail to
+ * compare within the specified tolerance errorNo will contain one of the
+ * equal_error enumerations and errorStr will conatin a diagnostic message
+ * describing the failure.
+ */
+bool equal(const const_p_teca_variant_array &array1,
+    const const_p_teca_variant_array &array2,
+    double absTol, double relTol, int &errorNo,
+    std::string &errorStr);
 
 /// Less than or equal to predicate
 template<typename data_t>
@@ -810,6 +842,52 @@ int clamp_dimensions_of_one(unsigned long nx_max, unsigned long ny_max,
  */
 int validate_extent(unsigned long nx_max, unsigned long ny_max,
     unsigned long nz_max, unsigned long *extent, bool verbose);
+
+
+/// compares a set of arrays against a reference array
+class teca_validate_arrays
+{
+public:
+    /// set the array to which others will be compared to
+    void set_reference_array(const std::string &a_source,
+        const std::string &a_name, const std::string a_units,
+        const const_p_teca_variant_array &a_array);
+
+    /// add an array to check against the reference
+    void append_array(const std::string &a_source,
+        const std::string &a_name, const std::string &a_units,
+        const const_p_teca_variant_array &a_array);
+
+    /// error codes potentially returned from ::validate
+    enum {no_error = 0,
+        invalid_value = 1,
+        length_missmatch = 2,
+        type_missmatch = 3,
+        value_missmatch = 4,
+        unsupported_type = 5,
+        units_missmatch = 6
+        };
+
+    /** Compare all the arrays in the collection against the reference returns
+     * 0 if all arrays in the collection are equal to the reference.  When an
+     * array does not compare equal to the reference array a descritpion
+     * explaining why is returned in errorStr.
+     */
+    int validate(const std::string &a_descriptor,
+        double a_abs_tol, double a_rel_tol,
+        std::string &errorStr);
+
+private:
+    const_p_teca_variant_array m_reference;
+    std::string m_reference_source;
+    std::string m_reference_name;
+    std::string m_reference_units;
+
+    std::vector<const_p_teca_variant_array> m_arrays;
+    std::vector<std::string> m_array_sources;
+    std::vector<std::string> m_array_names;
+    std::vector<std::string> m_array_units;
+};
 
 };
 #endif

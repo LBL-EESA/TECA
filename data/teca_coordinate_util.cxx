@@ -15,6 +15,138 @@ namespace teca_coordinate_util
 {
 
 // **************************************************************************
+bool equal(const const_p_teca_variant_array &array1,
+    const const_p_teca_variant_array &array2,
+    double aAbsTol, double aRelTol, int &errorNo,
+    std::string &errorStr)
+{
+    std::ostringstream oss;
+
+    errorNo = equal_error::no_error;
+    errorStr = "";
+
+    // Arrays of different sizes are different.
+    size_t n_elem = array1->size();
+    if (n_elem != array2->size())
+    {
+        oss << "The arrays have different sizes "
+            << n_elem << " and " << array2->size();
+
+        errorStr = oss.str();
+        errorNo = equal_error::length_missmatch;
+
+        return false;
+    }
+
+    // handle POD arrays
+    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+        array1.get(),
+
+        // we know the type of array 1 now,
+        // check the type of array 2
+        const TT *a2 = dynamic_cast<const TT*>(array2.get());
+        if (!a2)
+        {
+            oss << "The arrays have different types : "
+                << array1->get_class_name() << " and "
+                << array2->get_class_name();
+
+            errorStr = oss.str();
+            errorNo = equal_error::type_missmatch;
+
+            return false;
+        }
+
+        // compare elements
+        const NT *pa1 = static_cast<const TT*>(array1.get())->get();
+        const NT *pa2 = a2->get();
+
+        std::string diagnostic;
+        for (size_t i = 0; i < n_elem; ++i)
+        {
+            if (std::isinf(pa1[i]) && std::isinf(pa2[i]))
+            {
+                // the GFDL TC tracker returns inf for some fields in some cases.
+                // warn about it so that it may be addressed in other algorithms.
+                oss << "Inf detected in element " << i;
+
+                errorStr = oss.str();
+                errorNo = equal_error::invalid_value;
+            }
+            else if (std::isnan(pa1[i]) || std::isnan(pa2[i]))
+            {
+                // for the time being, don't allow NaN.
+                oss << "NaN detected in element " << i;
+
+                errorStr = oss.str();
+                errorNo = equal_error::invalid_value;
+
+                return false;
+            }
+            else if (!teca_coordinate_util::equal<double>(pa1[i], pa2[i],
+                diagnostic, aRelTol, aAbsTol))
+            {
+                oss << "difference above the prescribed tolerance detected"
+                       " in element " << i << ". " << diagnostic;
+
+                errorStr = oss.str();
+                errorNo = equal_error::value_missmatch;
+
+                return false;
+            }
+        }
+
+        // we are here, arrays are the same
+        errorStr = "The arrays are equal";
+        errorNo = equal_error::no_error;
+
+        return true;
+        )
+    // handle arrays of strings
+    TEMPLATE_DISPATCH_CASE(
+        const teca_variant_array_impl, std::string,
+        array1.get(),
+        if (dynamic_cast<const TT*>(array2.get()))
+        {
+            const TT *a1 = static_cast<const TT*>(array1.get());
+            const TT *a2 = static_cast<const TT*>(array2.get());
+
+            for (size_t i = 0; i < n_elem; ++i)
+            {
+                // compare elements
+                const std::string &v1 = a1->get(i);
+                const std::string &v2 = a2->get(i);
+                if (v1 != v2)
+                {
+                    oss << "string element " << i << " not equal. ref value \""
+                        << v1 << "\" is not equal to test value \"" << v2 << "\"";
+
+                    errorStr = oss.str();
+                    errorNo = equal_error::value_missmatch;
+
+                    return false;
+                }
+            }
+
+            // we are here, arrays are the same
+            errorStr = "The arrays are equal";
+            errorNo = equal_error::no_error;
+
+            return true;
+        }
+        )
+
+    // we are here, array type is not handled
+    oss << "The array type " << array1->get_class_name()
+        << " is not supported.";
+
+    errorStr = oss.str();
+    errorNo = equal_error::unsupported_type;
+
+    return false;
+}
+
+// **************************************************************************
 int time_step_of(const const_p_teca_variant_array &time,
     bool lower, bool clamp, const std::string &calendar,
     const std::string &units, const std::string &date,
@@ -494,4 +626,87 @@ int clamp_dimensions_of_one(unsigned long nx_max, unsigned long ny_max,
 
     return clamped;
 }
+
+
+// --------------------------------------------------------------------------
+void teca_validate_arrays::set_reference_array(const std::string &a_source,
+    const std::string &a_name, const std::string a_units,
+    const const_p_teca_variant_array &a_array)
+{
+    m_reference = a_array;
+    m_reference_source = a_source;
+    m_reference_name = a_name;
+    m_reference_units = a_units;
+}
+
+// --------------------------------------------------------------------------
+void teca_validate_arrays::append_array(const std::string &a_source,
+    const std::string &a_name, const std::string &a_units,
+    const const_p_teca_variant_array &a_array)
+{
+    m_arrays.push_back(a_array);
+    m_array_sources.push_back(a_source);
+    m_array_names.push_back(a_name);
+    m_array_units.push_back(a_units);
+}
+
+// --------------------------------------------------------------------------
+int teca_validate_arrays::validate(const std::string &a_descriptor,
+    double a_abs_tol, double a_rel_tol, std::string &errorStr)
+{
+    std::ostringstream oss;
+
+    size_t n_arrays = m_arrays.size();
+    for (size_t i = 0; i < n_arrays; ++i)
+    {
+        // check values
+        int eNo = 0;
+        std::string eStr;
+
+        if (!teca_coordinate_util::equal(m_reference,
+            m_arrays[i], a_abs_tol, a_rel_tol, eNo, eStr))
+        {
+            oss << "The " << a_descriptor << " array \"" << m_array_names[i]
+                << "\" from source \"" << m_array_sources[i]
+                << "\" does not match the reference " << a_descriptor
+                << " array \"" << m_reference_name << "\" from source \""
+                << m_reference_source << "\". " << eStr;
+
+            errorStr = oss.str();
+
+            return eNo;
+        }
+
+        // check names
+        /*if (m_reference_name != m_array_names[i])
+        {
+            oss << "The " << a_descriptor << " array name " << m_array_names[i]
+                << " from source " << m_array_sources[i]
+                << " does not match the reference array name " << m_reference_name
+                << " from source " << m_reference_source;
+
+            errorStr = oss.str();
+
+            return = -1;
+        }*/
+
+        // check units
+        if (m_reference_units != m_array_units[i])
+        {
+            oss << "The " << a_descriptor << " array \"" << m_array_names[i]
+                << "\" from source \"" << m_array_sources[i]
+                << "\" units \"" << m_array_units[i]
+                << "\" does not match the reference " << a_descriptor
+                << " array \"" << m_reference_name << "\" from source \""
+                << m_reference_source << "\" units \""
+                << m_reference_units << "\"";
+
+            errorStr = oss.str();
+
+            return teca_validate_arrays::units_missmatch;
+        }
+    }
+    return 0;
+}
+
 };
