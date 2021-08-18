@@ -239,6 +239,24 @@ public:
     int get_clamp_dimensions_of_one() const;
     ///@}
 
+    /** @name validate_time_axis
+     * If set consistency checks are made to ensure that time axis from managed
+     * readers match each other. Names, calendar, units, and values of each array
+     * are verified.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, validate_time_axis)
+    ///@}
+
+    /** @name validate_spatial_coordinates
+     * If set consistency checks are made to ensure that spatial axes from managed
+     * readers match each other. Names, units, and values of each array
+     * are verified.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, validate_spatial_coordinates)
+    ///@}
+
 protected:
     teca_multi_cf_reader();
 
@@ -267,6 +285,8 @@ private:
     int periodic_in_x;
     int max_metadata_ranks;
     int clamp_dimensions_of_one;
+    int validate_time_axis;
+    int validate_spatial_coordinates;
 
     p_teca_multi_cf_reader_internals internals;
 };
