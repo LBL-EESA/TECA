@@ -40,6 +40,7 @@ jobs:
 
 before_install:
   - >
+    echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin;
     if [[ "${TRAVIS_OS_NAME}" == "linux" ]];
     then
     docker pull ${DOCKER_IMAGE}:${IMAGE_VERSION} &&
