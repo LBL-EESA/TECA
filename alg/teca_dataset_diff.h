@@ -83,9 +83,6 @@ protected:
         const_p_teca_array_collection reference_arrays,
         const_p_teca_array_collection data_arrays);
 
-    int compare_arrays(const_p_teca_variant_array array1,
-        const_p_teca_variant_array array2, double absTol, double relTol);
-
     // Reporting methods.
 
     // Call this with contextual information when datasets differ. You can use

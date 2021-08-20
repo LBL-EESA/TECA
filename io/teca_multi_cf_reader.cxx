@@ -6,6 +6,7 @@
 #include "teca_cf_reader.h"
 #include "teca_array_collection.h"
 #include "teca_programmable_algorithm.h"
+#include "teca_coordinate_util.h"
 
 #include <iostream>
 #include <algorithm>
@@ -665,6 +666,8 @@ teca_multi_cf_reader::teca_multi_cf_reader() :
     periodic_in_x(0),
     max_metadata_ranks(-1),
     clamp_dimensions_of_one(0),
+    validate_time_axis(1),
+    validate_spatial_coordinates(1),
     internals(new teca_multi_cf_reader_internals)
 {}
 
@@ -707,6 +710,12 @@ void teca_multi_cf_reader::get_properties_description(
         TECA_POPTS_GET(int, prefix, clamp_dimensions_of_one,
             "If set clamp requested axis extent in where the request is out of"
             " bounds and the coordinate array dimension is 1.")
+        TECA_POPTS_GET(int, prefix, validate_time_axis,
+            "Enable consistency checks on the reported time axis of the"
+            " managed readers")
+        TECA_POPTS_GET(int, prefix, validate_spatial_coordinates,
+            "Enable consistency checks on the reported time axis of the"
+            " managed readers")
         ;
 
     this->teca_algorithm::get_properties_description(prefix, opts);
@@ -731,6 +740,8 @@ void teca_multi_cf_reader::set_properties(const std::string &prefix,
     TECA_POPTS_SET(opts, int, prefix, periodic_in_x)
     TECA_POPTS_SET(opts, int, prefix, max_metadata_ranks)
     TECA_POPTS_SET(opts, int, prefix, clamp_dimensions_of_one)
+    TECA_POPTS_SET(opts, int, prefix, validate_time_axis)
+    TECA_POPTS_SET(opts, int, prefix, validate_spatial_coordinates)
 }
 #endif
 
@@ -1415,9 +1426,26 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
     if (this->internals->metadata)
         return this->internals->metadata;
 
+    int rank = 0;
+    int n_ranks = 1;
+#if defined(TECA_HAS_MPI)
+    MPI_Comm comm = this->get_communicator();
+
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
+    {
+        MPI_Comm_rank(comm, &rank);
+        MPI_Comm_size(comm, &n_ranks);
+    }
+#endif
+
     teca_metadata atts_out;
     teca_metadata coords_out;
     std::vector<std::string> vars_out;
+
+    // validate the coordinate axes
+    teca_coordinate_util::teca_coordinate_axis_validator validator;
 
     // update the metadata for the managed readers
     const teca_multi_cf_reader_internals::cf_reader_options &global_options = this->internals->global_options;
@@ -1495,7 +1523,15 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
         teca_metadata coords_in;
         inst->metadata.get("coordinates", coords_in);
 
-        if (key == this->internals->time_reader)
+        // validate time axis, if validation is enabled and the axis is active
+        // in this reader
+        bool provides_time = (key == this->internals->time_reader);
+
+        if (this->validate_time_axis && !inst->reader->get_t_axis_variable().empty())
+            validator.add_time_axis(key, coords_in, atts_in, provides_time);
+
+        // pass time coordinaytes
+        if (provides_time)
         {
             //pass time axis and attributes
             std::string t_variable;
@@ -1550,7 +1586,24 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
             this->internals->metadata.set(initializer_key, n_indices);
         }
 
-        if (key == this->internals->geometry_reader)
+        // validate spatial coordinate axes, if validation is enabled and the
+        // axis is active in this reader
+        bool provides_geometry = (key == this->internals->geometry_reader);
+
+        if (this->validate_spatial_coordinates)
+        {
+            if (!inst->reader->get_x_axis_variable().empty())
+                validator.add_x_coordinate_axis(key, coords_in, atts_in, provides_geometry);
+
+            if (!inst->reader->get_y_axis_variable().empty())
+                validator.add_y_coordinate_axis(key, coords_in, atts_in, provides_geometry);
+
+            if (!inst->reader->get_z_axis_variable().empty())
+                validator.add_z_coordinate_axis(key, coords_in, atts_in, provides_geometry);
+        }
+
+        // pass spatial coordinates
+        if (provides_geometry)
         {
             // pass x axis and attributes
             std::string x_variable;
@@ -1681,6 +1734,36 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
                 return teca_metadata();
             }
             atts_out.set(var_name, var_atts);
+        }
+    }
+
+    // detect problems in the cooridnate axes and error out. this could be
+    // overriden by disabling the validations
+    int errorNo = 0;
+    std::string errorStr;
+
+    if (this->validate_time_axis)
+    {
+        if ((errorNo = validator.validate_time_axis(errorStr)))
+        {
+            if (rank == 0)
+                TECA_ERROR("Time axis missmatch detected on a managed reader."
+                    " The time axis must be indentical across all managed"
+                    " readers. Correctness cannot be assured. " << errorStr)
+            return teca_metadata();
+        }
+    }
+
+    if (this->validate_spatial_coordinates)
+    {
+        if ((errorNo = validator.validate_spatial_coordinate_axes(errorStr)))
+        {
+            if (rank == 0)
+                TECA_ERROR("Spatial coordinate axis missmatch detected on"
+                    " managed reader.The spatial coordinate axes must be"
+                    " indentical across all managed readers. Correctness"
+                    " cannot be assured. " << errorStr)
+            return teca_metadata();
         }
     }
 
