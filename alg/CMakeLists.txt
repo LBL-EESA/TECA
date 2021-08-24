@@ -13,6 +13,7 @@ set(teca_alg_cxx_srcs
     teca_binary_segmentation.cxx
     teca_bayesian_ar_detect.cxx
     teca_bayesian_ar_detect_parameters.cxx
+    teca_cartesian_mesh_coordinate_transform.cxx
     teca_cartesian_mesh_source.cxx
     teca_cartesian_mesh_subset.cxx
     teca_cartesian_mesh_regrid.cxx
