@@ -463,6 +463,31 @@ properties are supported:
 |                         | dimension of 1, into a 3D mesh and should be used |
 |                         | with caution.                                     |
 +-------------------------+---------------------------------------------------+
+| target_bounds           | An optional axis aligned bounding box specified   |
+|                         | as a 6-tuple in the order [x0, x1, y0, y1, z0,    |
+|                         | z1] that defines a transform to apply to the      |
+|                         | mesh coordinate axes. If any of the axis          |
+|                         | directions are set to [1, 0] then no transform is |
+|                         | applied in that direction.                        |
++-------------------------+---------------------------------------------------+
+| target_x_axis_variable  | The name of the transformed x axis variable. If   |
+|                         | not specified then the name is passed through.    |
++-------------------------+---------------------------------------------------+
+| target_y_axis_variable  | The name of the transformed y axis variable. If   |
+|                         | not specified then the name is passed through.    |
++-------------------------+---------------------------------------------------+
+| target_z_axis_variable  | The name of the transformed z axis variable. If   |
+|                         | not specified then the name is passed through.    |
++-------------------------+---------------------------------------------------+
+| target_x_axis_units     | The units of the transformed x axis units. If     |
+|                         | not specified then the units are passed through.  |
++-------------------------+---------------------------------------------------+
+| target_y_axis_units     | The units of the transformed y axis units. If     |
+|                         | not specified then the units are passed through.  |
++-------------------------+---------------------------------------------------+
+| target_z_axis_units     | The units of the transformed z axis units. If     |
+|                         | not specified then the units are passed through.  |
++-------------------------+---------------------------------------------------+
 
 .. _rearranging_data:
 
