@@ -119,6 +119,24 @@ void teca_cartesian_mesh::set_z_coordinates(const std::string &var,
 }
 
 // --------------------------------------------------------------------------
+void teca_cartesian_mesh::update_x_coordinates(const p_teca_variant_array &array)
+{
+    m_coordinate_arrays->set("x", array);
+}
+
+// --------------------------------------------------------------------------
+void teca_cartesian_mesh::update_y_coordinates(const p_teca_variant_array &array)
+{
+    m_coordinate_arrays->set("y", array);
+}
+
+// --------------------------------------------------------------------------
+void teca_cartesian_mesh::update_z_coordinates(const p_teca_variant_array &array)
+{
+    m_coordinate_arrays->set("z", array);
+}
+
+// --------------------------------------------------------------------------
 int teca_cartesian_mesh::get_array_extent(const std::string &array_name,
     unsigned long array_extent[6])
 {
