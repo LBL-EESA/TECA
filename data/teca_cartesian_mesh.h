@@ -64,17 +64,26 @@ public:
     const_p_teca_variant_array get_z_coordinates() const
     { return m_coordinate_arrays->get("z"); }
 
-    /// Set the x coordinate array
+    /// Set the x coordinate array and x_coordinate_variable name
     void set_x_coordinates(const std::string &name,
         const p_teca_variant_array &array);
 
-    /// Set the y coordinate array
+    /// Set the y coordinate array and y_coordinate_variable name
     void set_y_coordinates(const std::string &name,
         const p_teca_variant_array &array);
 
-    /// Set the z coordinate array
+    /// set the z coordinate array and z_coordinate_variable name
     void set_z_coordinates(const std::string &name,
         const p_teca_variant_array &array);
+
+    /// Update the x coordinate array
+    void update_x_coordinates(const p_teca_variant_array &array);
+
+    /// Update the y coordinate array
+    void update_y_coordinates(const p_teca_variant_array &array);
+
+    /// Update the z coordinate array
+    void update_z_coordinates(const p_teca_variant_array &array);
 
     /// Return the name of the class
     std::string get_class_name() const override

@@ -13,6 +13,7 @@ set(teca_alg_cxx_srcs
     teca_binary_segmentation.cxx
     teca_bayesian_ar_detect.cxx
     teca_bayesian_ar_detect_parameters.cxx
+    teca_cartesian_mesh_coordinate_transform.cxx
     teca_cartesian_mesh_source.cxx
     teca_cartesian_mesh_subset.cxx
     teca_cartesian_mesh_regrid.cxx
@@ -89,12 +90,8 @@ if (TECA_HAS_BOOST)
     list(APPEND teca_alg_link ${Boost_LIBRARIES})
 endif()
 
-if (TECA_HAS_SHAPELIB)
-    list(APPEND teca_alg_cxx_srcs teca_shape_file_mask.cxx)
-endif()
-
 add_library(teca_alg ${teca_alg_cxx_srcs} ${teca_alg_f90_srcs})
-target_link_libraries(teca_alg teca_io teca_data teca_core ${teca_alg_link})
+target_link_libraries(teca_alg teca_data teca_core ${teca_alg_link})
 
 target_include_directories(teca_alg
     INTERFACE

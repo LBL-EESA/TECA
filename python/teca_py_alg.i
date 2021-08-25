@@ -7,6 +7,7 @@
 #include "teca_bayesian_ar_detect.h"
 #include "teca_bayesian_ar_detect_parameters.h"
 #include "teca_binary_segmentation.h"
+#include "teca_cartesian_mesh_coordinate_transform.h"
 #include "teca_cartesian_mesh_source.h"
 #include "teca_cartesian_mesh_subset.h"
 #include "teca_cartesian_mesh_regrid.h"
@@ -476,3 +477,11 @@ struct teca_tc_saffir_simpson
 #if defined(TECA_HAS_TCPYPI)
 %pythoncode "teca_potential_intensity.py"
 #endif
+
+/***************************************************************************
+ cartesian_mesh_coordinate_transform
+ ***************************************************************************/
+%ignore teca_cartesian_mesh_coordinate_transform::shared_from_this;
+%shared_ptr(teca_cartesian_mesh_coordinate_transform)
+%ignore teca_cartesian_mesh_coordinate_transform::operator=;
+%include "teca_cartesian_mesh_coordinate_transform.h"
