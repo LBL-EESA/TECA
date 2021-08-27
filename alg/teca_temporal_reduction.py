@@ -1,32 +1,280 @@
 import sys
 import numpy as np
 
-# @cond
-class teca_temporal_reduction_internals:
-    class time_point:
-        """
-        A structure holding a floating point time value and its
-        corresponding year, month day, hour minute and second
-        """
-        def __init__(self, t, units, calendar):
-            self.t = t
-            self.units = units
-            self.calendar = calendar
+class teca_temporal_reduction(teca_threaded_python_algorithm):
+    """
+    Reduce a mesh across the time dimensions by a defined increment using
+    a defined operation.
 
-            self.year, self.month, self.day, \
-                self.hour, self.minutes, self.seconds = \
-                calendar_util.date(t, self.units, self.calendar)
+        time increments: daily, monthly, seasonal
+        reduction operators: average, min, max
 
-        def __str__(self):
-            return '%g (%s, %s) --> %04d-%02d-%02d %02d:%02d:%02g' % (
-                self.t, self.units, self.calendar, self.year, self.month,
-                self.day, self.hour, self.minutes, self.seconds)
+    The output time axis will be defined using the selected increment.
+    The output data will be accumulated/reduced using the selected
+    operation.
 
-    class c_struct:
+    The set_use_fill_value  method controls how invalid or missing values are
+    teated.  When set to 1, NetCDF CF fill values are detected and handled.
+    This is the default. If it is known that the dataset has no invalid or
+    missing values one may set this to 0 for faster processing. By default the
+    fill value will be obtained from metadata stored in the NetCDF CF file
+    (_FillValue). One may override this by explicitly calling set_fill_value
+    method with the desired fill value.
+
+    For minimum and maximum operations, at given grid point only valid values
+    over the interval are used in the calculation.  if there are no valid
+    values over the interval at the grid point it is set to the fill_value.
+
+    For the averaging operation, during summation missing values are treated
+    as 0.0 and a per-grid point count of valid values over the interval is
+    maintained and used in the average. Grid points with no valid values over
+    the inteval are set to the fill value.
+
+    User defined reductions:
+    ------------------------
+    A reduction_operator compatible with teca_temporal_reduction must implement
+    3 class methods: initialize, update, and finalize.
+
+        initialize(self, fill_value) -> None
+
+            initializes the reduction. If a not None fill value is passed
+            the operator should use it to identify missing values in the data
+            and handle them approproiately.
+
+        update(self, out_array, in_array) -> numpy ndarray
+
+            reduces in_array (new data) into out_array (current state) and
+            returns the result.
+
+        finalize(self, out_array) -> numpy ndarray
+
+            finalizes out_array (current state) and returns the result.
+            if no finalization is needed simpy return out_array.
+
+    A reduction_operator_factory compatible with teca_temporal_reduction
+    must implement a factory method named New that takes a string and returns
+    a reduction_operator.
+
+        New(self, op_name) -> reduction_operator
+
+        A factory method that creates an instance on demand from a string that
+        matches its name. The existing operator_collection may be extended by
+        overriding this method and falling back to the base method when the
+        passed string is unknown.
+
+    To use a user defined custom reduction operator, one must install the
+    factory that creates it by passing a factory instance to
+    teca_temporal_reduction.set_reduction_operator_factory.
+
+    User defined time intervals:
+    ----------------------------
+    An interval_iterator compatible with teca_temporal_reduction must implement
+    the Python iterator methods : __init__, __iter__ and __next__. The __init__
+    method will be passed a floating point array of time values to iterate over
+    and calendaring metadata (calendar name and time units strings) needed to
+    interpret the values.  The __iter__method retuns self. The __next__ method
+    determines the indices that span the next interval and return the start and
+    end index into the time array as well as the floating point time of the
+    start of the interval.  Following the Python iterator protocol __next_
+    raises a StopIteration exception when all intervals have been visited and
+    iteration should stop. The __next__ method will return a time_interval
+    object. This object must have the following public member variables: time,
+    start_index, and end_index.
+
+        __init__(self, t, units, calendar)
+
+            initializes the interval iterator from time values in t and
+            calendaring metadata in units and calendar
+
+        __iter__(self) -> self
+
+            Boiler plate Python iterator protocol
+
+        __next__(self) -> time_interval
+
+            returns the next time_interval in the series and raises
+            StopIteration when the series in complete.
+
+    An interval_iterator_factory compatible with teca_temporal_reduction
+    must implement a factory method named New that takes a string naming
+    the type of the interval iterator to create, the floating point time
+    values to iterate over, and calendaring metadata. The factory will
+    return an iterator instance or raise a RuntimeError if no such interval
+    iterator is defined.
+
+        New(self, it_name, time_vals, units, calendar) -> interval_iterator
+
+        A factory method that creates an instance on demand from a string that
+        matches its name. The existing iterator_collection may be extended by
+        overriding this method and falling back to the base method when the
+        passed string is unknown.
+    """
+
+    class reduction_operator_collection:
         """
-        A c like data structure
+        A collection of reduction_operators compatible with
+        teca_temporal_reduction, and a factory method that creates one on demand
+        from a runtime provided string.
+
+        This collection implements the following operators:
+
+            minimum
+            maximum
+            average
+
+        The factory method (operator_collection.New) retruns instances when passed
+        a string naming one of them.
         """
-        def __init__(self, **kwds):
+        class average:
+            def __init__(self):
+                self.count = None
+                self.fill_value = None
+
+            def initialize(self, fill_value):
+                self.fill_value = fill_value
+
+            def update(self, out_array, in_array):
+                # don't use integer types for this calculation
+                if in_array.dtype.kind == 'i':
+                    in_array = in_array.astype(np.float32) \
+                        if in_array.itemsize < 8 else \
+                        in_array.astype(float64)
+
+                if out_array.dtype.kind == 'i':
+                    out_array = out_array.astype(np.float32) \
+                        if out_array.itemsize < 8 else \
+                        out_array.astype(float64)
+
+                # identify the invalid values
+                if self.fill_value is not None:
+                    out_is_bad = np.isclose(out_array, self.fill_value)
+                    in_is_bad = np.isclose(in_array, self.fill_value)
+
+                # initialize the count the first time through. this needs to
+                # happen now since before this we don't know where invalid
+                # values are.
+                if self.count is None:
+                    if self.fill_value is None:
+                        self.count = 1.0
+                    else:
+                        self.count = np.where(out_is_bad, np.float32(0.0),
+                                              np.float32(1.0))
+
+                if self.fill_value is not None:
+                    # update the count only where there is valid data
+                    self.count += np.where(in_is_bad, np.float32(0.0),
+                                           np.float32(1.0))
+
+                    # accumulate
+                    tmp = np.where(out_is_bad, np.float32(0.0), out_array) \
+                        + np.where(in_is_bad, np.float32(0.0), in_array)
+
+                else:
+                    # update count
+                    self.count += np.float32(1.0)
+
+                    # accumulate
+                    tmp = out_array + in_array
+
+                return tmp
+
+            def finalize(self, out_array):
+                if self.fill_value is not None:
+                    # finish the average. We keep track of the invalid
+                    # values (these will have a zero count) set them to
+                    # the fill value
+                    n = self.count
+                    ii = np.isclose(n, np.float32(0.0))
+                    n[ii] = np.float32(1.0)
+                    tmp = out_array / n
+                    tmp[ii] = self.fill_value
+                else:
+                    tmp = out_array / self.count
+                self.count = None
+                return tmp
+
+        class minimum:
+            def __init__(self):
+                self.fill_value = None
+
+            def initialize(self, fill_value):
+                self.fill_value = fill_value
+
+            def update(self, out_array, in_array):
+                tmp = np.minimum(out_array, in_array)
+                # fix invalid values
+                if self.fill_value is not None:
+                    out_is_bad = np.isclose(out_array, self.fill_value)
+                    out_is_good = np.logical_not(out_is_bad)
+                    in_is_bad = np.isclose(in_array, self.fill_value)
+                    in_is_good = np.logical_not(in_is_bad)
+                    tmp = np.where(np.logical_and(out_is_bad, in_is_good), in_array, tmp)
+                    tmp = np.where(np.logical_and(in_is_bad, out_is_good), out_array, tmp)
+                    tmp = np.where(np.logical_and(in_is_bad, out_is_bad), self.fill_value, tmp)
+                return tmp
+
+            def finalize(self, out_array):
+                return out_array
+
+        class maximum:
+            def __init__(self):
+                self.fill_value = None
+
+            def initialize(self, fill_value):
+                self.fill_value = fill_value
+
+            def update(self, out_array, in_array):
+                tmp = np.maximum(out_array, in_array)
+                # fix invalid values
+                if self.fill_value is not None:
+                    out_is_bad = np.isclose(out_array, self.fill_value)
+                    out_is_good = np.logical_not(out_is_bad)
+                    in_is_bad = np.isclose(in_array, self.fill_value)
+                    in_is_good = np.logical_not(in_is_bad)
+                    tmp = np.where(np.logical_and(out_is_bad, in_is_good), in_array, tmp)
+                    tmp = np.where(np.logical_and(in_is_bad, out_is_good), out_array, tmp)
+                    tmp = np.where(np.logical_and(in_is_bad, out_is_bad), self.fill_value, tmp)
+                return tmp
+
+            def finalize(self, out_array):
+                return out_array
+
+        def New(self, op_name):
+            """ factory method that creates an instance from a string """
+            if op_name == 'average':
+                return teca_temporal_reduction. \
+                    reduction_operator_collection. \
+                        average()
+
+            elif op_name == 'minimum':
+                return teca_temporal_reduction. \
+                    reduction_operator_collection. \
+                        minimum()
+
+            elif op_name == 'maximum':
+                return teca_temporal_reduction. \
+                    reduction_operator_collection. \
+                        maximum()
+
+            raise RuntimeError('Invalid operator %s' % (op_name))
+
+
+    class time_interval:
+        """
+        Defines a time interval.
+        Public member variables:
+
+            time        - the floating point time value of the start of the
+                          interval
+            start_index - the index into the floating point time array of the
+                          first index to include in the interval
+            end_index   - the index into the floating point time array of the
+                          last index to include in the interval
+        """
+        def __init__(self, t, start_idx, end_idx, **kwds):
+            self.time = t
+            self.start_index = start_idx
+            self.end_index = end_idx
             self.__dict__.update(kwds)
 
         def __str__(self):
@@ -35,7 +283,42 @@ class teca_temporal_reduction_internals:
                 strg += k + '=' + str(v) + ', '
             return strg
 
-    class interval_iterator:
+    class interval_iterator_collection:
+        """
+        A collection of interval_iterators compatible with
+        teca_temporal_reduction and a factory method that creates ionstances
+        from a string that names the type.
+
+        This collectiond implements the following interval_iterators
+
+            daily
+            monthly
+            seasonal
+            yearly
+
+        The factory method (interval_iterator_collection.New) retruns instances
+        when passed a string naming one of the above iterators.
+        """
+
+        class time_point:
+            """
+            A structure holding a floating point time value and its
+            corresponding year, month day, hour minute and second
+            """
+            def __init__(self, t, units, calendar):
+                self.t = t
+                self.units = units
+                self.calendar = calendar
+
+                self.year, self.month, self.day, \
+                    self.hour, self.minutes, self.seconds = \
+                    calendar_util.date(t, self.units, self.calendar)
+
+            def __str__(self):
+                return '%g (%s, %s) --> %04d-%02d-%02d %02d:%02d:%02g' % (
+                    self.t, self.units, self.calendar, self.year, self.month,
+                    self.day, self.hour, self.minutes, self.seconds)
+
         class season_iterator:
             """
             An iterator over seasons (DJF, MAM, JJA, SON) between 2
@@ -58,11 +341,13 @@ class teca_temporal_reduction_internals:
                 self.calendar = calendar
 
                 # time point's to iterate between
-                self.t0 = teca_temporal_reduction_internals.time_point(
-                              t[0], units, calendar)
+                self.t0 = teca_temporal_reduction. \
+                    interval_iterator_collection. \
+                        time_point(t[0], units, calendar)
 
-                self.t1 = teca_temporal_reduction_internals.time_point(
-                              t[-1], units, calendar)
+                self.t1 = teca_temporal_reduction. \
+                    interval_iterator_collection. \
+                        time_point(t[-1], units, calendar)
 
                 # current time state
                 self.year, self.month = \
@@ -195,9 +480,8 @@ class teca_temporal_reduction_internals:
                 self.year, self.month = \
                      self.get_next_season(sy, sm)
 
-                return teca_temporal_reduction_internals.c_struct(
-                    time=self.t[i0], year=sy, month=sm,
-                    day=1, start_index=i0, end_index=i1)
+                return teca_temporal_reduction.time_interval(
+                    self.t[i0], i0, i1, year=sy, month=sm, day=1)
 
 
         class month_iterator:
@@ -220,11 +504,13 @@ class teca_temporal_reduction_internals:
                 self.calendar = calendar
 
                 # time point's to iterate between
-                self.t0 = teca_temporal_reduction_internals.time_point(
-                              t[0], units, calendar)
+                self.t0 = teca_temporal_reduction. \
+                    interval_iterator_collection. \
+                        time_point(t[0], units, calendar)
 
-                self.t1 = teca_temporal_reduction_internals.time_point(
-                              t[-1], units, calendar)
+                self.t1 = teca_temporal_reduction. \
+                    interval_iterator_collection. \
+                        time_point(t[-1], units, calendar)
 
                 # current time state
                 self.year = self.t0.year
@@ -281,9 +567,8 @@ class teca_temporal_reduction_internals:
                     self.month = 1
                     self.year += 1
 
-                return teca_temporal_reduction_internals.c_struct(
-                    time=self.t[i0], year=year, month=month,
-                    day=1, start_index=i0, end_index=i1)
+                return teca_temporal_reduction.time_interval(
+                    self.t[i0], i0, i1, year=year, month=month, day=1)
 
         class day_iterator:
             """
@@ -306,11 +591,13 @@ class teca_temporal_reduction_internals:
                 self.calendar = calendar
 
                 # time point's to iterate between
-                self.t0 = teca_temporal_reduction_internals.time_point(
-                              t[0], units, calendar)
+                self.t0 = teca_temporal_reduction. \
+                    interval_iterator_collection. \
+                        time_point(t[0], units, calendar)
 
-                self.t1 = teca_temporal_reduction_internals.time_point(
-                              t[-1], units, calendar)
+                self.t1 = teca_temporal_reduction. \
+                    interval_iterator_collection. \
+                        time_point(t[-1], units, calendar)
 
                 # current time state
                 self.year = self.t0.year
@@ -376,193 +663,33 @@ class teca_temporal_reduction_internals:
                     self.month = 1
                     self.year += 1
 
-                return teca_temporal_reduction_internals.c_struct(
-                    time=self.t[i0], year=year, month=month, day=day,
-                    start_index=i0, end_index=i1)
+                return teca_temporal_reduction.time_interval(
+                    self.t[i0], i0, i1, year=year, month=month, day=day)
 
-        @staticmethod
-        def New(interval, t, units, calendar):
+        def New(self, interval, t, units, calendar):
             if interval == 'seasonal':
 
-                return teca_temporal_reduction_internals. \
-                    interval_iterator.season_iterator(t, units, calendar)
+                return teca_temporal_reduction. \
+                    interval_iterator_collection. \
+                        season_iterator(t, units, calendar)
 
             if interval == 'monthly':
 
-                return teca_temporal_reduction_internals. \
-                    interval_iterator.month_iterator(t, units, calendar)
+                return teca_temporal_reduction. \
+                    interval_iterator_collection. \
+                        month_iterator(t, units, calendar)
 
             elif interval == 'daily':
 
-                return teca_temporal_reduction_internals. \
-                    interval_iterator.day_iterator(t, units, calendar)
+                return teca_temporal_reduction. \
+                    interval_iterator_collection. \
+                        day_iterator(t, units, calendar)
 
             else:
 
                 raise RuntimeError('Invlid interval %s' % (interval))
 
-    class reduction_operator:
-        class average:
-            def __init__(self):
-                self.count = None
-                self.fill_value = None
 
-            def initialize(self, fill_value):
-                self.fill_value = fill_value
-
-            def update(self, out_array, in_array):
-                # don't use integer types for this calculation
-                if in_array.dtype.kind == 'i':
-                    in_array = in_array.astype(np.float32) \
-                        if in_array.itemsize < 8 else \
-                        in_array.astype(float64)
-
-                if out_array.dtype.kind == 'i':
-                    out_array = out_array.astype(np.float32) \
-                        if out_array.itemsize < 8 else \
-                        out_array.astype(float64)
-
-                # identify the invalid values
-                if self.fill_value is not None:
-                    out_is_bad = np.isclose(out_array, self.fill_value)
-                    in_is_bad = np.isclose(in_array, self.fill_value)
-
-                # initialize the count the first time through. this needs to
-                # happen now since before this we don't know where invalid
-                # values are.
-                if self.count is None:
-                    if self.fill_value is None:
-                        self.count = 1.0
-                    else:
-                        self.count = np.where(out_is_bad, np.float32(0.0),
-                                              np.float32(1.0))
-
-                if self.fill_value is not None:
-                    # update the count only where there is valid data
-                    self.count += np.where(in_is_bad, np.float32(0.0),
-                                           np.float32(1.0))
-
-                    # accumulate
-                    tmp = np.where(out_is_bad, np.float32(0.0), out_array) \
-                        + np.where(in_is_bad, np.float32(0.0), in_array)
-
-                else:
-                    # update count
-                    self.count += np.float32(1.0)
-
-                    # accumulate
-                    tmp = out_array + in_array
-
-                return tmp
-
-            def finalize(self, out_array):
-                if self.fill_value is not None:
-                    # finish the average. We keep track of the invalid
-                    # values (these will have a zero count) set them to
-                    # the fill value
-                    n = self.count
-                    ii = np.isclose(n, np.float32(0.0))
-                    n[ii] = np.float32(1.0)
-                    tmp = out_array / n
-                    tmp[ii] = self.fill_value
-                else:
-                    tmp = out_array / self.count
-                self.count = None
-                return tmp
-
-        class minimum:
-            def __init__(self):
-                self.fill_value = None
-
-            def initialize(self, fill_value):
-                self.fill_value = fill_value
-
-            def update(self, out_array, in_array):
-                tmp = np.minimum(out_array, in_array)
-                # fix invalid values
-                if self.fill_value is not None:
-                    out_is_bad = np.isclose(out_array, self.fill_value)
-                    out_is_good = np.logical_not(out_is_bad)
-                    in_is_bad = np.isclose(in_array, self.fill_value)
-                    in_is_good = np.logical_not(in_is_bad)
-                    tmp = np.where(np.logical_and(out_is_bad, in_is_good), in_array, tmp)
-                    tmp = np.where(np.logical_and(in_is_bad, out_is_good), out_array, tmp)
-                    tmp = np.where(np.logical_and(in_is_bad, out_is_bad), self.fill_value, tmp)
-                return tmp
-
-            def finalize(self, out_array):
-                return out_array
-
-        class maximum:
-            def __init__(self):
-                self.fill_value = None
-
-            def initialize(self, fill_value):
-                self.fill_value = fill_value
-
-            def update(self, out_array, in_array):
-                tmp = np.maximum(out_array, in_array)
-                # fix invalid values
-                if self.fill_value is not None:
-                    out_is_bad = np.isclose(out_array, self.fill_value)
-                    out_is_good = np.logical_not(out_is_bad)
-                    in_is_bad = np.isclose(in_array, self.fill_value)
-                    in_is_good = np.logical_not(in_is_bad)
-                    tmp = np.where(np.logical_and(out_is_bad, in_is_good), in_array, tmp)
-                    tmp = np.where(np.logical_and(in_is_bad, out_is_good), out_array, tmp)
-                    tmp = np.where(np.logical_and(in_is_bad, out_is_bad), self.fill_value, tmp)
-                return tmp
-
-            def finalize(self, out_array):
-                return out_array
-
-        @staticmethod
-        def New(op_name):
-            if op_name == 'average':
-                return teca_temporal_reduction_internals. \
-                    reduction_operator.average()
-
-            elif op_name == 'minimum':
-                return teca_temporal_reduction_internals. \
-                    reduction_operator.minimum()
-
-            elif op_name == 'maximum':
-                return teca_temporal_reduction_internals. \
-                    reduction_operator.maximum()
-
-            raise RuntimeError('Invalid operator %s' % (op_name))
-# @endcond
-
-
-class teca_temporal_reduction(teca_threaded_python_algorithm):
-    """
-    Reduce a mesh across the time dimensions by a defined increment using
-    a defined operation.
-
-        time increments: daily, monthly, seasonal
-        reduction operators: average, min, max
-
-    The output time axis will be defined using the selected increment.
-    The output data will be accumulated/reduced using the selected
-    operation.
-
-    The set_use_fill_value  method controls how invalid or missing values are
-    teated.  When set to 1, NetCDF CF fill values are detected and handled.
-    This is the default. If it is known that the dataset has no invalid or
-    missing values one may set this to 0 for faster processing. By default the
-    fill value will be obtained from metadata stored in the NetCDF CF file
-    (_FillValue). One may override this by explicitly calling set_fill_value
-    method with the desired fill value.
-
-    For minimum and maximum operations, at given grid point only valid values
-    over the interval are used in the calculation.  if there are no valid
-    values over the interval at the grid point it is set to the fill_value.
-
-    For the averaging operation, during summation missing values are treated
-    as 0.0 and a per-grid point count of valid values over the interval is
-    maintained and used in the average. Grid points with no valid values over
-    the inteval are set to the fill value.
-    """
     def __init__(self):
         self.indices = []
         self.point_arrays = []
@@ -571,6 +698,47 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
         self.use_fill_value = 1
         self.fill_value = None
         self.operator = {}
+
+        self.reduction_operator_factory = \
+            teca_temporal_reduction.reduction_operator_collection()
+
+        self.interval_iterator_factory = \
+            teca_temporal_reduction.interval_iterator_collection()
+
+    def set_reduction_operator_factory(self, factory):
+        """
+        Sets a factory object that implements a method named New that,
+        given a string naming an aoperastor, creates an instance of that
+        operator. The factory method has the following signature:
+
+            New(self, op_name) -> reduction_operator
+
+        where:
+
+            op_name - is a string naming the type of reduction operator to
+                      create
+
+        """
+        self.reduction_operator_factory = factory
+
+    def set_interval_iterator_factory(self, factory):
+        """
+        Sets a factory object that implelents a method named New that,
+        given a string naming the interval, can create the coresponding
+        interval_iterator. The factory has the following signature:
+
+            New(self, interval_name, t, units, calendar) -> interval_iterator
+
+        where
+
+            interval_name - a string naming the type of interval iterator to
+                          - create
+            t             - an array with the time coordinates to iterate over
+            units         - time units
+            calendar      - the calendar
+        """
+        self.interval_iterator_factory = factory
+
 
     def set_fill_value(self, fill_value):
         """
@@ -682,9 +850,8 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
         t_units = t_atts['units']
 
         # convert the time axis to the specified interval
-        self.indices = [ii for ii in teca_temporal_reduction_internals.
-                        interval_iterator.New(
-                            self.interval_name, t, t_units, cal)]
+        self.indices = [ii for ii in self.interval_iterator_factory. \
+                        New(self.interval_name, t, t_units, cal)]
 
         if self.get_verbose() > 1:
             sys.stderr.write('indices = [\n')
@@ -778,8 +945,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
                                        array))
 
             # create and initialize the operator
-            op = teca_temporal_reduction_internals. \
-                reduction_operator.New(self.operator_name)
+            op = self.reduction_operator_factory.New(self.operator_name)
 
             op.initialize(fill_value)
 
