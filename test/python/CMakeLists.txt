@@ -305,6 +305,14 @@ teca_add_test(py_test_temporal_daily_minimum_missing_values
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
+teca_add_test(py_test_custom_temporal_reduction
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_custom_temporal_reduction.py
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc"
+    "." "${TECA_DATA_ROOT}/test_custom_temporal_reduction_prw" 7 2 0 prw
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
+    REQ_TECA_DATA)
+
+
 teca_add_test(py_test_tc_candidates_serial
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_candidates.py
     "${TECA_DATA_ROOT}/test_tc_candidates_1990_07_0[12]\\.nc"
