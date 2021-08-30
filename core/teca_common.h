@@ -31,7 +31,7 @@ extern p_teca_error_handler error_handler;
 void error_message(const char *msg);
 
 /** An error handler that flushes stdout and stderr streams, and sends msg to
- * the stderr before aborting. When MPI is in use MPI_Abort is invokde. This
+ * the stderr before aborting. When MPI is in use MPI_Abort is invoked. This
  * implements the behavior after TECA 4.1.0
  */
 void error_message_abort(const char *msg);
