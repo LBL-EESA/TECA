@@ -6,12 +6,14 @@
 #include "teca_table.h"
 #include "teca_test_util.h"
 #include "teca_system_interface.h"
+#include "teca_common.h"
 
 #include <iostream>
 using namespace std;
 
 int main(int argc, char **argv)
 {
+    teca_error::set_error_message_handler();
     teca_system_interface::set_stack_trace_on_error();
 
     if (argc < 2)
