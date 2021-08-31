@@ -1,14 +1,57 @@
 #ifndef teca_common_h
 #define teca_common_h
 
+/// @file
+
 #include "teca_config.h"
 #include "teca_parallel_id.h"
 
 #include <iostream>
+#include <sstream>
 #include <unistd.h>
 #include <cstdio>
 #include <string>
 #include <vector>
+
+/** The call signature for the error handler. The error handler will be passed
+ * a string describing the error.
+ */
+using p_teca_error_handler = void (*) (const char*);
+
+/// global error handling hooks
+namespace teca_error
+{
+/// The global error handler instance.
+extern p_teca_error_handler error_handler;
+
+/** An error handler that flushes stdout and stderr streams, and sends msg to
+ * the stderr before returing. This implements the behavior up to and including
+ * TECA 4.1.0
+ */
+void error_message(const char *msg);
+
+/** An error handler that flushes stdout and stderr streams, and sends msg to
+ * the stderr before aborting. When MPI is in use MPI_Abort is invoked. This
+ * implements the behavior after TECA 4.1.0
+ */
+void error_message_abort(const char *msg);
+
+/** Install a custom error haandler. The error handler must have the following
+ * signature.
+ *
+ * void error_handler(const char *msg);
+ *
+ */
+void set_error_handler(p_teca_error_handler handler);
+
+/// Install the teca_error::error_message error handler
+void set_error_message_handler();
+
+/// Install the teca_error::error_message_abort error handler
+void set_error_message_abort_handler();
+};
+
+/// @cond
 
 // the operator<< overloads have to be namespace std in order for
 // boost to find them. they are needed for mutitoken program options
@@ -50,6 +93,7 @@ std::ostream &operator<<(std::ostream &os, const num_t (& data)[len])
  */
 int have_tty();
 
+
 #define ANSI_RED "\033[1;31;40m"
 #define ANSI_GREEN "\033[1;32;40m"
 #define ANSI_YELLOW "\033[1;33;40m"
@@ -59,6 +103,12 @@ int have_tty();
 #define BEGIN_HL(_color) (have_tty()?_color:"")
 #define END_HL (have_tty()?ANSI_OFF:"")
 
+/// @endcond
+
+
+/** Send a message into the stream with an ANSI color coded message that
+ * include MPI ranks and thread id.
+ */
 #define TECA_MESSAGE(_strm, _head, _head_color, _msg)                   \
 _strm                                                                   \
     << BEGIN_HL(_head_color) << _head << END_HL                         \
@@ -67,8 +117,20 @@ _strm                                                                   \
     << BEGIN_HL(_head_color) << _head << END_HL << " "                  \
     << BEGIN_HL(ANSI_WHITE) << "" _msg << END_HL << std::endl;
 
-#define TECA_ERROR(_msg) TECA_MESSAGE(std::cerr, "ERROR:", ANSI_RED, _msg)
+/** Constructs an the error message using TECA_MESSAGE and invokes the
+ * error handler.
+ */
+#define TECA_ERROR(_msg)                                                \
+{                                                                       \
+    std::ostringstream ess;                                             \
+    TECA_MESSAGE(ess, "ERROR:", ANSI_RED, _msg)                         \
+    teca_error::error_handler(ess.str().c_str());                       \
+}
+
+/// Constructs a warning message and sends it to the stderr stream
 #define TECA_WARNING(_msg) TECA_MESSAGE(std::cerr, "WARNING:", ANSI_YELLOW, _msg)
+
+/// Constructs a status message and sends it to the stderr stream
 #define TECA_STATUS(_msg) TECA_MESSAGE(std::cerr, "STATUS:", ANSI_GREEN, _msg)
 
 #endif

@@ -335,13 +335,13 @@ TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned long long, unsigned_long_long)
  ***************************************************************************/
 %ignore teca_metadata::teca_metadata(teca_metadata &&);
 %ignore teca_metadata::operator=;
+%ignore teca_metadata::get; /* will replace with get_internal */
 %ignore operator<(const teca_metadata &, const teca_metadata &);
 %ignore operator&(const teca_metadata &, const teca_metadata &);
 %ignore operator==(const teca_metadata &, const teca_metadata &);
 %ignore operator!=(const teca_metadata &, const teca_metadata &);
-%ignore teca_metadata::set; /* use __setitem__ instead */
-%ignore teca_metadata::get; /* use __getitem__ instead */
 %include "teca_metadata.h"
+%rename(get) teca_metadata::get_internal;
 %extend teca_metadata
 {
     TECA_PY_STR()
@@ -368,6 +368,12 @@ TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned long long, unsigned_long_long)
 
         Py_DECREF(Py_None);
         return nullptr;
+    }
+
+    /* set a property */
+    PyObject *set(const std::string &name, PyObject *value)
+    {
+        return teca_metadata___setitem__(self, name, value);
     }
 
     /* return md['name'] */
@@ -441,6 +447,12 @@ TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned long long, unsigned_long_long)
         TECA_PY_ERROR(PyExc_TypeError,
             "Failed to convert value for key \"" << name << "\"")
         return nullptr;
+    }
+
+    /* get a property */
+    PyObject *get_internal(const std::string &name)
+    {
+        return teca_metadata___getitem__(self, name);
     }
 
     PyObject *append(const std::string &name, PyObject *obj)
