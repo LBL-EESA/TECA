@@ -1,6 +1,8 @@
 #include "array.h"
 #include "teca_binary_stream.h"
 #include "teca_bad_cast.h"
+#include "teca_cuda_mm_allocator.h"
+#include "teca_cpu_allocator.h"
 
 
 #include <utility>
@@ -9,6 +11,53 @@
 
 using std::ostringstream;
 using std::ostream;
+
+// --------------------------------------------------------------------------
+array::array() : extent({0,0}), allocator{nullptr}, data{nullptr}
+{
+    this->allocator = teca_cpu_allocator::New();
+    this->data = std::make_shared<std::pmr::vector<double>>(this->allocator.get());
+}
+
+// --------------------------------------------------------------------------
+array::array(const p_teca_allocator &alloc) :
+    extent({0,0}), allocator{alloc}, data{nullptr}
+{
+    this->data = std::make_shared<std::pmr::vector<double>>(this->allocator.get());
+
+    /*std::cerr << "Created " << this->get_class_name() << " with an "
+        << alloc->get_class_name() << " allocator" << std::endl;*/
+}
+
+// --------------------------------------------------------------------------
+p_array array::new_cpu_accessible()
+{
+    return array::New(teca_cpu_allocator::New());
+}
+
+// --------------------------------------------------------------------------
+p_array array::new_cuda_accessible()
+{
+    return array::New(teca_cuda_mm_allocator::New());
+}
+
+// --------------------------------------------------------------------------
+p_array array::New(const p_teca_allocator &alloc)
+{
+    return p_array(new array(alloc));
+}
+
+// --------------------------------------------------------------------------
+bool array::cpu_accessible() const
+{
+    return this->allocator->cpu_accessible();
+}
+
+// --------------------------------------------------------------------------
+bool array::cuda_accessible() const
+{
+    return this->allocator->cuda_accessible();
+}
 
 // --------------------------------------------------------------------------
 p_teca_dataset array::new_copy() const
@@ -29,14 +78,14 @@ p_teca_dataset array::new_shallow_copy()
 // --------------------------------------------------------------------------
 void array::resize(size_t n)
 {
-    this->data.resize(n, 0.0);
+    this->data->resize(n, 0.0);
     this->extent = {0, n};
 }
 
 // --------------------------------------------------------------------------
 void array::clear()
 {
-    this->data.clear();
+    this->data->clear();
     this->extent[0] = 0;
     this->extent[1] = 0;
 }
@@ -53,7 +102,11 @@ void array::copy(const const_p_teca_dataset &other)
 
     this->name = other_a->name;
     this->extent = other_a->extent;
-    this->data = other_a->data;
+    // TODO - should we copy the allocator type as well? if so would need
+    // to add API for transfering from device to device.
+    /*this->allocator = other_a->allocator->new_instance();
+    this->data = std::make_shared<vector_t<double>>(this->allocator.get());*/
+    this->data->assign(other_a->data->begin(), other_a->data->end());
 }
 
 // --------------------------------------------------------------------------
@@ -76,7 +129,7 @@ void array::copy_metadata(const const_p_teca_dataset &other)
 
     this->name = other_a->name;
     this->extent = other_a->extent;
-    this->data.resize(this->extent[1]-this->extent[0]);
+    this->data->resize(this->extent[1]-this->extent[0]);
 }
 
 // --------------------------------------------------------------------------
@@ -88,6 +141,7 @@ void array::swap(const p_teca_dataset &other)
 
     std::swap(this->name, other_a->name);
     std::swap(this->extent, other_a->extent);
+    std::swap(this->allocator, other_a->allocator);
     std::swap(this->data, other_a->data);
 }
 
@@ -119,16 +173,16 @@ int array::from_stream(teca_binary_stream &s)
 int array::to_stream(std::ostream &ostr) const
 {
     ostr << "name=" << this->name
-        << " extent="
-        << this->extent[0] << ", " << this->extent[1]
+        << " extent=" << this->extent[0] << ", " << this->extent[1]
+        << " allocator=" << this->allocator->get_class_name()
         << " values=";
 
     size_t n_elem = this->size();
     if (n_elem)
     {
-        ostr << this->data[0];
+        ostr << this->data->at(0);
         for (size_t i = 1; i < n_elem; ++i)
-            ostr << ", " << this->data[i];
+            ostr << ", " << this->data->at(i);
     }
     return 0;
 }
