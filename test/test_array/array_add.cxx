@@ -1,4 +1,5 @@
 #include "array_add.h"
+#include "array_add_internals.h"
 
 #include "array.h"
 
@@ -23,10 +24,8 @@ array_add::~array_add()
 {}
 
 // --------------------------------------------------------------------------
-int array_add::get_active_array(
-    const std::string &user_array,
-    const teca_metadata &input_md,
-    std::string &active_array) const
+int array_add::get_active_array(const std::string &user_array,
+    const teca_metadata &input_md, std::string &active_array) const
 {
     if (user_array.empty())
     {
@@ -52,8 +51,7 @@ int array_add::get_active_array(
 
 
 // --------------------------------------------------------------------------
-teca_metadata array_add::get_output_metadata(
-    unsigned int port,
+teca_metadata array_add::get_output_metadata(unsigned int port,
     const std::vector<teca_metadata> &input_md)
 {
 #ifndef TECA_NDEBUG
@@ -84,14 +82,12 @@ teca_metadata array_add::get_output_metadata(
 }
 
 // --------------------------------------------------------------------------
-std::vector<teca_metadata> array_add::get_upstream_request(
-    unsigned int port,
-    const std::vector<teca_metadata> &input_md,
-    const teca_metadata &request)
+std::vector<teca_metadata> array_add::get_upstream_request(unsigned int port,
+    const std::vector<teca_metadata> &input_md, const teca_metadata &request)
 {
 #ifndef TECA_NDEBUG
-    cerr << teca_parallel_id()
-        << "array_add::get_upstream_request" << endl;
+    std::cerr << teca_parallel_id()
+        << "array_add::get_upstream_request" << std::endl;
 #endif
     (void)port;
 
@@ -119,14 +115,11 @@ std::vector<teca_metadata> array_add::get_upstream_request(
 }
 
 // --------------------------------------------------------------------------
-const_p_teca_dataset array_add::execute(
-    unsigned int port,
+const_p_teca_dataset array_add::execute(unsigned int port,
     const std::vector<const_p_teca_dataset> &input_data,
     const teca_metadata &request)
 {
     (void)port;
-
-    p_array a_out = array::New();
 
     // get the array on the two inputs
     const_p_array a_in_1 = std::dynamic_pointer_cast<const array>(input_data[0]);
@@ -134,29 +127,52 @@ const_p_teca_dataset array_add::execute(
     if (!a_in_1 || !a_in_2)
     {
         TECA_ERROR("required inputs are not present")
-        return a_out;
+        return nullptr;
     }
+
+    // add the arrays
+    size_t n_elem = a_in_1->size();
+    p_array a_out;
+
+#if defined(TECA_HAS_CUDA)
+    int device_id = -1;
+    request.get("device_id", device_id);
+    if (device_id >= 0)
+    {
+        if (array_add_internals::cuda_dispatch(device_id,
+            a_out, a_in_1, a_in_2, n_elem))
+        {
+            TECA_ERROR("Failed to add the data on the GPU")
+            return nullptr;
+        }
+    }
+    else
+    {
+#endif
+        if (array_add_internals::cpu_dispatch(a_out, a_in_1, a_in_2, n_elem))
+        {
+            TECA_ERROR("Failed to add the data on the CPU")
+            return nullptr;
+        }
+#if defined(TECA_HAS_CUDA)
+    }
+#endif
 
     // get the output array name
     string active_array;
     if (request.get("array_name", active_array))
     {
         TECA_ERROR("failed to get the active array")
-        return a_out;
+        return nullptr;
     }
 
-    // compute the output
+    // set the metadata on the output
     a_out->copy_metadata(a_in_1);
     a_out->set_name(active_array);
-
-    size_t n_elem = a_out->size();
-    for (size_t i = 0; i < n_elem; ++i)
-        a_out->get(i) = a_in_1->get(i) + a_in_2->get(i);
 
 #ifndef TECA_NDEBUG
     cerr << teca_parallel_id()
         << "array_add::execute " << active_array << endl;
 #endif
-
     return a_out;
 }

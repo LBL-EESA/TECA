@@ -8,6 +8,7 @@ include_directories(
 set(array_test_cxx_srcs
     array.cxx
     array_add.cxx
+    array_add_internals.cxx
     array_executive.cxx
     array_scalar_multiply.cxx
     array_source.cxx
@@ -25,8 +26,9 @@ endif()
 set(array_test_cuda_srcs)
 if (TECA_HAS_CUDA)
     set(array_test_cuda_srcs
-        array_util.cu
+        array_add_internals.cu
         array_source_internals.cu
+        array_util.cu
         )
 endif()
 
