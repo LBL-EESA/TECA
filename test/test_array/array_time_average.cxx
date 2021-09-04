@@ -116,14 +116,15 @@ const_p_teca_dataset array_time_average::execute(
             return p_teca_dataset();
         }
 
-        vector<double>::iterator out_it = a_out->get_data().begin();
-        vector<double>::const_iterator in_it = a_in->get_data().cbegin();
+        std::pmr::vector<double>::iterator out_it = a_out->get_data().begin();
+        std::pmr::vector<double>::const_iterator in_it = a_in->get_data().cbegin();
         for (size_t j = 0; j < n_elem; ++j, ++out_it, ++in_it)
         {
             *out_it += *in_it;
         }
     }
-    vector<double>::iterator out_it = a_out->get_data().begin();
+
+    std::pmr::vector<double>::iterator out_it = a_out->get_data().begin();
     for (size_t j = 0; j < n_elem; ++j, ++out_it)
     {
         *out_it /= n_times;
