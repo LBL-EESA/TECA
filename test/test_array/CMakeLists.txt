@@ -15,6 +15,7 @@ set(array_test_cxx_srcs
     array_source.cxx
     array_source_internals.cxx
     array_temporal_stats.cxx
+    array_temporal_stats_internals.cxx
     array_time_average.cxx
     array_util.cxx
     array_writer.cxx
@@ -28,6 +29,7 @@ set(array_test_cuda_srcs)
 if (TECA_HAS_CUDA)
     set(array_test_cuda_srcs
         array_add_internals.cu
+        array_temporal_stats_internals.cu
         array_scalar_multiply_internals.cu
         array_source_internals.cu
         array_util.cu

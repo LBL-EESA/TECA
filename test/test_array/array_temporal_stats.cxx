@@ -1,4 +1,5 @@
 #include "array_temporal_stats.h"
+#include "array_temporal_stats_internals.h"
 #include "array.h"
 
 #include <iostream>
@@ -14,59 +15,6 @@ array_temporal_stats::array_temporal_stats()
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
     this->set_thread_pool_size(-1);
-}
-
-// --------------------------------------------------------------------------
-p_array array_temporal_stats::new_stats_array(
-    const_p_array l_input,
-    const_p_array r_input)
-{
-    p_array stats = this->new_stats_array();
-
-    stats->get(0) = l_input->get(0) < r_input->get(0) ? l_input->get(0) : r_input->get(0);
-    stats->get(1) = l_input->get(1) > r_input->get(1) ? l_input->get(1) : r_input->get(1);
-    stats->get(2) = (l_input->get(2) + r_input->get(2))/2.0;
-
-    return stats;
-}
-
-// --------------------------------------------------------------------------
-p_array array_temporal_stats::new_stats_array(const_p_array input)
-{
-    p_array stats = this->new_stats_array();
-
-    double &min = stats->get(0);
-    double &max = stats->get(1);
-    double &avg = stats->get(2);
-
-    std::for_each(
-        input->get_data().cbegin(),
-        input->get_data().cend(),
-        [&min, &avg, &max] (double v)
-        {
-            min = min > v ? v : min;
-            max = max < v ? v : max;
-            avg += v;
-        });
-
-    avg /= input->size();
-
-    return stats;
-}
-
-// --------------------------------------------------------------------------
-p_array array_temporal_stats::new_stats_array()
-{
-    p_array stats = array::New();
-
-    stats->set_name(array_name + "_stats");
-    stats->resize(3);
-
-    stats->get(0) = std::numeric_limits<double>::max();
-    stats->get(1) = -std::numeric_limits<double>::max();
-    stats->get(2) = 0.0;
-
-    return stats;
 }
 
 // --------------------------------------------------------------------------
@@ -110,8 +58,8 @@ p_teca_dataset array_temporal_stats::reduce(const const_p_teca_dataset &left,
     const const_p_teca_dataset &right)
 {
 #ifndef TECA_NDEBUG
-    cerr << teca_parallel_id()
-        << "array_temporal_stats::reduce" << endl;
+    std::cerr << teca_parallel_id()
+        << "array_temporal_stats::reduce" << std::endl;
 #endif
 
     // validate inputs
@@ -129,36 +77,40 @@ p_teca_dataset array_temporal_stats::reduce(const const_p_teca_dataset &left,
         return p_teca_dataset();
     }
 
-    p_array stats;
+    // do the calculation
+    p_array a_out;
 
+    // check for the input array name to process. if found then new stats
+    // are computed, otherwise existing stats are reduced.
     bool l_active = l_in->get_name() == this->array_name;
     bool r_active = r_in->get_name() == this->array_name;
-    if (l_active && r_active)
-    {
-        // bopth left and right contain data
-        p_array l_stats = this->new_stats_array(l_in);
-        p_array r_stats = this->new_stats_array(r_in);
-        stats = this->new_stats_array(l_stats, r_stats);
-    }
-    else
-    if (l_active)
-    {
-        // left contains data, right contains stats
-        p_array l_stats = this->new_stats_array(l_in);
-        stats = this->new_stats_array(l_stats, r_in);
-    }
-    else
-    if (r_active)
-    {
-        // right contains data, left contains stats
-        p_array r_stats = this->new_stats_array(r_in);
-        stats = this->new_stats_array(l_in, r_stats);
-    }
-    else
-    {
-        // both left and right contains stats
-        stats = this->new_stats_array(l_in, r_in);
-    }
 
-    return stats;
+#if defined(TECA_HAS_CUDA)
+    int device_id = 0;
+    if (device_id >= 0)
+    {
+        if (array_temporal_stats_internals::cuda_dispatch(
+            device_id, a_out, l_in, r_in, l_active, r_active))
+        {
+            TECA_ERROR("Failed to compute stats on the GPU")
+            return nullptr;
+        }
+    }
+    else
+    {
+#endif
+        if (array_temporal_stats_internals::cpu_dispatch(
+            a_out, l_in, r_in, l_active, r_active))
+        {
+            TECA_ERROR("Failed to compute stats on the CPU")
+            return nullptr;
+        }
+#if defined(TECA_HAS_CUDA)
+    }
+#endif
+
+    // pass metadata
+    a_out->set_name(this->array_name + "_stats");
+
+    return a_out;
 }
