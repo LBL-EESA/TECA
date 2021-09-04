@@ -7,7 +7,16 @@ namespace teca_cuda_util
 int set_device(int device_id)
 {
     int n_devices = 0;
-    cudaGetDeviceCount(&n_devices);
+
+    cudaError_t ierr = cudaGetDeviceCount(&n_devices);
+    if (ierr != cudaSuccess)
+    {
+        TECA_ERROR("Failed to get CUDA device count. "
+            << cudaGetErrorString(ierr))
+        return -1;
+    }
+
+
     if (device_id >= n_devices)
     {
         TECA_ERROR("Attempt to select invalid device "
@@ -15,7 +24,7 @@ int set_device(int device_id)
         return -1;
     }
 
-    cudaError_t ierr = cudaSetDevice(device_id);
+    ierr = cudaSetDevice(device_id);
     if (ierr)
     {
         TECA_ERROR("Failed to select device " << device_id << ". "
@@ -31,15 +40,30 @@ int get_launch_props(int device_id,
     int *block_grid_max, int &warp_size,
     int &warps_per_block_max)
 {
-    cudaDeviceGetAttribute(&block_grid_max[0], cudaDevAttrMaxGridDimX, device_id);
-    cudaDeviceGetAttribute(&block_grid_max[1], cudaDevAttrMaxGridDimY, device_id);
-    cudaDeviceGetAttribute(&block_grid_max[2], cudaDevAttrMaxGridDimZ, device_id);
+    cudaError_t ierr = cudaSuccess;
 
-    cudaDeviceGetAttribute(&warp_size, cudaDevAttrWarpSize, device_id);
+    if (((ierr = cudaDeviceGetAttribute(&block_grid_max[0], cudaDevAttrMaxGridDimX, device_id)) != cudaSuccess)
+        || ((ierr = cudaDeviceGetAttribute(&block_grid_max[1], cudaDevAttrMaxGridDimY, device_id)) != cudaSuccess)
+        || ((ierr = cudaDeviceGetAttribute(&block_grid_max[2], cudaDevAttrMaxGridDimZ, device_id)) != cudaSuccess))
+    {
+        TECA_ERROR("Failed to get CUDA max grid dim. " << cudaGetErrorString(ierr))
+        return -1;
+    }
+
+    if ((ierr = cudaDeviceGetAttribute(&warp_size, cudaDevAttrWarpSize, device_id)) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to get CUDA warp size. " << cudaGetErrorString(ierr))
+        return -1;
+    }
 
     int threads_per_block_max = 0;
-    cudaDeviceGetAttribute(&threads_per_block_max,
-        cudaDevAttrMaxThreadsPerBlock, device_id);
+
+    if ((ierr = cudaDeviceGetAttribute(&threads_per_block_max,
+        cudaDevAttrMaxThreadsPerBlock, device_id)) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to get CUDA max threads per block. " << cudaGetErrorString(ierr))
+        return -1;
+    }
 
     warps_per_block_max = threads_per_block_max / warp_size;
 
