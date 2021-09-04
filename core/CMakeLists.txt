@@ -8,6 +8,7 @@ set(teca_core_srcs
     teca_bad_cast.cxx
     teca_binary_stream.cxx
     teca_common.cxx
+    teca_cpu_allocator.cxx
     teca_dataset.cxx
     teca_dataset_source.cxx
     teca_dataset_capture.cxx
@@ -27,6 +28,7 @@ set(teca_core_srcs
     teca_threaded_algorithm.cxx
     teca_threaded_programmable_algorithm.cxx
     teca_thread_util.cxx
+    teca_cuda_mm_allocator.cxx
     teca_variant_array.cxx
     )
 
@@ -34,6 +36,7 @@ set(teca_core_cuda_srcs)
 if (TECA_HAS_CUDA)
     set(teca_core_cuda_srcs
         teca_cuda_util.cu
+        teca_cuda_mm_allocator.cu
         )
 endif()
 
