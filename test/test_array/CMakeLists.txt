@@ -13,6 +13,7 @@ set(array_test_srcs
     array_source.cxx
     array_temporal_stats.cxx
     array_time_average.cxx
+    array_util.cxx
     array_writer.cxx
     )
 
@@ -20,7 +21,15 @@ if (TECA_HAS_MPI)
     include_directories(SYSTEM ${MPI_C_INCLUDE_PATH})
 endif()
 
-add_library(teca_test_array ${array_test_srcs})
+set(array_test_cuda_srcs)
+if (TECA_HAS_CUDA)
+    set(array_test_cuda_srcs
+        array_util.cu
+        )
+endif()
+
+add_library(teca_test_array ${array_test_cxx_srcs} ${array_test_cuda_srcs})
+
 target_link_libraries(teca_test_array teca_core)
 
 target_include_directories(teca_test_array
