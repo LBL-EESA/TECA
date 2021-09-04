@@ -5,12 +5,13 @@ include_directories(
     $<TARGET_PROPERTY:teca_core,INTERFACE_INCLUDE_DIRECTORIES>
     )
 
-set(array_test_srcs
+set(array_test_cxx_srcs
     array.cxx
     array_add.cxx
     array_executive.cxx
     array_scalar_multiply.cxx
     array_source.cxx
+    array_source_internals.cxx
     array_temporal_stats.cxx
     array_time_average.cxx
     array_util.cxx
@@ -25,6 +26,7 @@ set(array_test_cuda_srcs)
 if (TECA_HAS_CUDA)
     set(array_test_cuda_srcs
         array_util.cu
+        array_source_internals.cu
         )
 endif()
 
