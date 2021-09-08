@@ -16,14 +16,14 @@ using std::ostream;
 array::array() : extent({0,0}), allocator{nullptr}, data{nullptr}
 {
     this->allocator = teca_cpu_allocator::New();
-    this->data = std::make_shared<std::pmr::vector<double>>(this->allocator.get());
+    this->data = std::make_shared<vector_t<double>>(this->allocator.get());
 }
 
 // --------------------------------------------------------------------------
 array::array(const p_teca_allocator &alloc) :
     extent({0,0}), allocator{alloc}, data{nullptr}
 {
-    this->data = std::make_shared<std::pmr::vector<double>>(this->allocator.get());
+    this->data = std::make_shared<vector_t<double>>(this->allocator.get());
 
     /*std::cerr << "Created " << this->get_class_name() << " with an "
         << alloc->get_class_name() << " allocator" << std::endl;*/

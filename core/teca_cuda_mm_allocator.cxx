@@ -38,7 +38,7 @@ void teca_cuda_mm_allocator::do_deallocate(void *ptr, std::size_t n_bytes,
 }
 
 // --------------------------------------------------------------------------
-bool teca_cuda_mm_allocator::do_is_equal(const std::pmr::memory_resource& other) const noexcept
+bool teca_cuda_mm_allocator::do_is_equal(const memory_resource_t& other) const noexcept
 {
     (void) other;
     TECA_ERROR("Failed to compare resource because CUDA is not available")

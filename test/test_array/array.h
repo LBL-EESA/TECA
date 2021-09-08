@@ -7,8 +7,17 @@
 #include "teca_allocator.h"
 
 #include <string>
-#include <vector>
 #include <sstream>
+
+#if defined(__clang__)
+#include <experimental/vector>
+template <typename data_t>
+using vector_t = std::experimental::pmr::vector<data_t>;
+#else
+#include <vector>
+template <typename data_t>
+using vector_t = std::pmr::vector<data_t>;
+#endif
 
 TECA_SHARED_OBJECT_FORWARD_DECL(array)
 
@@ -36,11 +45,11 @@ public:
     TECA_DATASET_PROPERTY(std::string, name)
 
     // set the contained data
-    void set_data(const std::pmr::vector<double> &a_data) { *this->data = a_data; }
+    void set_data(const vector_t<double> &a_data) { *this->data = a_data; }
 
     // get the contained data
-    std::pmr::vector<double> &get_data() { return *this->data; }
-    const std::pmr::vector<double> &get_data() const { return *this->data; }
+    vector_t<double> &get_data() { return *this->data; }
+    const vector_t<double> &get_data() const { return *this->data; }
 
     // get a pointer to the contained data
     double *get() { return this->data->data(); }
@@ -121,7 +130,7 @@ private:
     std::vector<size_t> extent;
 
     p_teca_allocator allocator;
-    std::shared_ptr<std::pmr::vector<double>> data;
+    std::shared_ptr<vector_t<double>> data;
 };
 
 #endif

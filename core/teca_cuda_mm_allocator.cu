@@ -1,7 +1,6 @@
 #include "teca_cuda_mm_allocator.h"
 #include "teca_common.h"
 
-#include <memory_resource>
 #include <iostream>
 
 // --------------------------------------------------------------------------
@@ -64,7 +63,7 @@ void teca_cuda_mm_allocator::do_deallocate(void *ptr, std::size_t n_bytes,
 }
 
 // --------------------------------------------------------------------------
-bool teca_cuda_mm_allocator::do_is_equal(const std::pmr::memory_resource& other) const noexcept
+bool teca_cuda_mm_allocator::do_is_equal(const memory_resource_t& other) const noexcept
 {
     return dynamic_cast<const teca_cuda_mm_allocator*>(&other) != nullptr;
 }

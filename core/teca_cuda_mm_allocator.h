@@ -36,7 +36,7 @@ private:
     void do_deallocate(void *ptr, std::size_t n_bytes, std::size_t alignment) override;
 
     /// check for equality (eqaul if one can delete the memory allocated by the other)
-    bool do_is_equal(const std::pmr::memory_resource& other) const noexcept;
+    bool do_is_equal(const memory_resource_t& other) const noexcept override;
 };
 
 #endif

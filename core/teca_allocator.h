@@ -1,14 +1,21 @@
 #ifndef teca_allocator_h
 #define teca_allocator_h
 
+#if defined(__clang__)
+#include <experimental/memory_resource>
+using memory_resource_t = std::experimental::pmr::memory_resource;
+#else
 #include <memory_resource>
+using memory_resource_t = std::pmr::memory_resource;
+#endif
+
 #include <memory>
 
 class teca_allocator;
 using p_teca_allocator = std::shared_ptr<teca_allocator>;
 
 /// base class for allocators
-class teca_allocator : public std::pmr::memory_resource, std::enable_shared_from_this<teca_allocator>
+class teca_allocator : public memory_resource_t, std::enable_shared_from_this<teca_allocator>
 {
 public:
     teca_allocator() : verbose(0) {}
