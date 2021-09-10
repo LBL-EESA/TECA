@@ -1,45 +1,48 @@
 #ifndef teca_cuda_util_h
 #define teca_cuda_util_h
 
+/// @file
+
 #include "teca_common.h"
 
 #include <cuda.h> // standard cuda header
 #include <cuda_runtime.h> //
 
+/// A collection of utility classes and functions for intergacing with CUDA
 namespace teca_cuda_util
 {
-// set the CUDA device. returns non-zero on error
+/// set the CUDA device. returns non-zero on error
 int set_device(int device_id);
 
-// querry properties for the named CUDA device. retruns non-zero on error
+/// querry properties for the named CUDA device. retruns non-zero on error
 int get_launch_props(int device_id,
     int *block_grid_max, int &warp_size,
     int &max_warps_per_block);
 
-/**
-A flat array is
-broken into blocks of number of threads where each adjacent thread
-accesses adjacent memory locations. To accomplish this we might need
-a large number of blocks. If the number of blocks exceeds the max
-block dimension in the first and or second block grid dimension
-then we need to use a 2d or 3d block grid.
-
-partition_thread_blocks - decides on a partitioning of the data based
-on warps_per_block parameter. The resulting decomposition will
-be either 1,2, or 3D as needed to accomodate the number of
-fixed sized blocks. It can happen that max grid dimensions are
-hit, in which case you'll need to increase the number of warps
-per block.
-
-thread_id_to_array_index - given a thread and block id gets the
-array index to update. _this may be out of bounds so be sure
-to validate before using it.
-
-index_is_valid - test an index for validity.
+/** A flat array is broken into blocks of number of threads where each adjacent
+ * thread accesses adjacent memory locations. To accomplish this we might need
+ * a large number of blocks. If the number of blocks exceeds the max block
+ * dimension in the first and or second block grid dimension then we need to
+ * use a 2d or 3d block grid.
+ *
+ * partition_thread_blocks - decides on a partitioning of the data based on
+ * warps_per_block parameter. The resulting decomposition will be either 1,2,
+ * or 3D as needed to accomodate the number of fixed sized blocks. It can
+ * happen that max grid dimensions are hit, in which case you'll need to
+ * increase the number of warps per block.
+ *
+ * thread_id_to_array_index - given a thread and block id gets the
+ * array index to update. _this may be out of bounds so be sure
+ * to validate before using it.
+ *
+ * index_is_valid - test an index for validity.
 */
+/// @name CUDA indexing scheme
+///@{
 
-// convert a CUDA index into a flat array index using the paritioning scheme
-// defined in partition_thread_blocks
+/** convert a CUDA index into a flat array index using the paritioning scheme
+ * defined in partition_thread_blocks
+ */
 inline
 __device__
 unsigned long thread_id_to_array_index()
@@ -48,7 +51,7 @@ unsigned long thread_id_to_array_index()
         + blockIdx.z * gridDim.x * gridDim.y);
 }
 
-// bounds check the flat index
+/// bounds check the flat index
 inline
 __device__
 int index_is_valid(unsigned long index, unsigned long max_index)
@@ -93,4 +96,5 @@ int partition_thread_blocks(size_t array_size,
     dim3 &block_grid, int &n_blocks, dim3 &thread_grid);
 }
 
+///@}
 #endif
