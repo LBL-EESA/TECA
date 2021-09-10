@@ -18,8 +18,13 @@
 #include "teca_programmable_reduce.h"
 #include "teca_dataset_capture.h"
 #include "teca_index_executive.h"
-#include "teca_thread_pool.h"
 #include "teca_mpi.h"
+
+#if defined(TECA_HAS_CUDA)
+#include "teca_cuda_thread_pool.h"
+#else
+#include "teca_cpu_thread_pool.h"
+#endif
 
 #include <algorithm>
 #include <iostream>
@@ -694,7 +699,7 @@ void teca_bayesian_ar_detect::set_modified()
 void teca_bayesian_ar_detect::set_thread_pool_size(int n)
 {
     this->internals->queue = new_teca_data_request_queue(
-        this->get_communicator(), n, true, this->get_verbose());
+        this->get_communicator(), n, -1, true, this->get_verbose());
 }
 
 // --------------------------------------------------------------------------

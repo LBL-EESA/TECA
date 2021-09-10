@@ -8,8 +8,13 @@
 #include <thread>
 #include <future>
 
+#if defined(TECA_HAS_CUDA)
 template <typename task_t, typename data_t>
-class teca_thread_pool;
+class teca_cuda_thread_pool;
+#else
+template <typename task_t, typename data_t>
+class teca_cpu_thread_pool;
+#endif
 
 class teca_metadata;
 class teca_threaded_algorithm_internals;
@@ -17,26 +22,33 @@ class teca_threaded_algorithm_internals;
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_threaded_algorithm)
 
 /// Task type for tasks returing a pointer to teca_dataset
-using teca_data_request_task = std::packaged_task<const_p_teca_dataset()>;
+using teca_data_request_task = std::packaged_task<const_p_teca_dataset(int)>;
 
 class teca_data_request;
 
 /// A thread pool for processing teca_data_request_task
+#if defined(TECA_HAS_CUDA)
 using teca_data_request_queue =
-    teca_thread_pool<teca_data_request_task, const_p_teca_dataset>;
+    teca_cuda_thread_pool<teca_data_request_task, const_p_teca_dataset>;
+#else
+using teca_data_request_queue =
+    teca_cpu_thread_pool<teca_data_request_task, const_p_teca_dataset>;
+#endif
 
 /// A pointer to teca_data_request_queue
 using p_teca_data_request_queue = std::shared_ptr<teca_data_request_queue>;
 
 /** Allocate and initialize a new thread pool.
- * comm [in] The communicator to allocate thread across
- * n [in] The number of threads to create per MPI rank. Use -1 to
- *        map one thread per physical core on each node.
- * bind [in] If set then thread will be bound to a specific core.
- * verbose [in] If set then the mapping is sent to the stderr
+ * @param comm[in]      The communicator to allocate thread across
+ * @param n_threads[in] The number of threads to create per MPI rank. Use -1 to
+ *                      map one thread per physical core on each node.
+ * @param n_threads_per_device[in] The number of threads to assign to servicing
+ *                                 each CUDA device. -1 for all threads.
+ * @param bind[in]      If set then thread will be bound to a specific core.
+ * @param verbose[in]   If set then the mapping is sent to the stderr
  */
 p_teca_data_request_queue new_teca_data_request_queue(MPI_Comm comm,
-    int n, bool bind, bool verbose);
+    int n_threads, int n_threads_per_device, bool bind, bool verbose);
 
 /// This is the base class defining a threaded algorithm.
 /**
@@ -97,7 +109,14 @@ public:
     TECA_ALGORITHM_PROPERTY(long long, poll_interval)
     ///@}
 
-    // explicitly set the thread pool to submit requests to
+    /** @name threads_per_cuda_device
+     * set the number of threads to service each CUDA device.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, threads_per_cuda_device)
+    ///@}
+
+    /// explicitly set the thread pool to submit requests to
     void set_data_request_queue(const p_teca_data_request_queue &queue);
 
 protected:
@@ -127,6 +146,7 @@ private:
     int bind_threads;
     int stream_size;
     long long poll_interval;
+    int threads_per_cuda_device;
 
     teca_threaded_algorithm_internals *internals;
 };

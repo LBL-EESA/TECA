@@ -6,7 +6,7 @@
 #include "teca_config.h"
 #include "teca_mpi.h"
 #include "teca_metadata.h"
-#include "teca_thread_pool.h"
+#include "teca_cpu_thread_pool.h"
 
 #include <mutex>
 #include <string>
@@ -306,7 +306,7 @@ public:
     using data_elem_t = std::pair<p_teca_variant_array, teca_metadata>;
     using data_t = std::pair<unsigned long, data_elem_t>;
     using task_t = std::packaged_task<data_t()>;
-    using queue_t = teca_thread_pool<task_t, data_t>;
+    using queue_t = teca_cpu_thread_pool<task_t, data_t>;
     using p_queue_t = std::shared_ptr<queue_t>;
 
     read_variable_and_attributes(const std::string &path, const std::string &file,
@@ -322,7 +322,7 @@ public:
         return std::make_pair(id, std::make_pair(var, md));
     }
 
-    data_t operator()();
+    data_t operator()(int device_id = -1);
 
 private:
     std::string m_path;
@@ -350,8 +350,8 @@ class read_variable
 public:
     /** Data and task types. */
     using data_t = std::pair<unsigned long, p_teca_variant_array>;
-    using task_t = std::packaged_task<data_t()>;
-    using queue_t = teca_thread_pool<task_t, data_t>;
+    using task_t = std::packaged_task<data_t(int)>;
+    using queue_t = teca_cpu_thread_pool<task_t, data_t>;
     using p_queue_t = std::shared_ptr<queue_t>;
 
 
@@ -367,7 +367,7 @@ public:
         return std::make_pair(id, var);
     }
 
-    data_t operator()();
+    data_t operator()(int device_id = -1);
 
 private:
     std::string m_path;

@@ -676,8 +676,11 @@ int read_variable_attributes(netcdf_handle &fh, int var_id,
 }
 
 // --------------------------------------------------------------------------
-read_variable_and_attributes::data_t read_variable_and_attributes::operator()()
+read_variable_and_attributes::data_t
+read_variable_and_attributes::operator()(int device_id)
 {
+    (void) device_id;
+
     p_teca_variant_array var;
 
     // get a handle to the file. managed by the reader
@@ -759,8 +762,10 @@ read_variable_and_attributes::data_t read_variable_and_attributes::operator()()
 }
 
 // --------------------------------------------------------------------------
-read_variable::data_t read_variable::operator()()
+read_variable::data_t read_variable::operator()(int device_id)
 {
+    (void) device_id;
+
     p_teca_variant_array var;
 
     // get a handle to the file. managed by the reader

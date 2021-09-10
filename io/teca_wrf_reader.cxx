@@ -2,7 +2,6 @@
 #include "teca_array_attributes.h"
 #include "teca_file_util.h"
 #include "teca_arakawa_c_grid.h"
-#include "teca_thread_pool.h"
 #include "teca_coordinate_util.h"
 #include "teca_netcdf_util.h"
 #include "teca_calcalcs.h"
