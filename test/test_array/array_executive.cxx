@@ -4,6 +4,12 @@
 
 #include <string>
 #include <iostream>
+#include <deque>
+
+namespace teca_cuda_util
+{
+int get_local_cuda_devices(MPI_Comm comm, std::deque<int> &local_dev);
+}
 
 using std::vector;
 using std::string;
@@ -62,18 +68,37 @@ int array_executive::initialize(MPI_Comm comm, const teca_metadata &md)
         return -3;
     }
 
+    // determine the available CUDA GPUs
+    std::deque<int> device_ids;
+#if defined(TECA_HAS_CUDA)
+    if (teca_cuda_util::get_local_cuda_devices(comm, device_ids))
+    {
+        TECA_WARNING("Failed to determine the local CUDA device_ids."
+            " Falling back to the default device.")
+        device_ids.resize(1, 0);
+    }
+#endif
+    // add the CPU
+    //device_ids.push_back(-1);
+    int n_devices = device_ids.size();
+
     // for each time request each array
     size_t n_times = time.size();
     size_t n_arrays = array_names.size();
-    for (size_t i = 0; i < n_times; ++i)
+    for (size_t i = 0, q = 0; i < n_times; ++i)
     {
         for (size_t j = 0; j < n_arrays; ++j)
         {
+            int device_id = device_ids[q % n_devices];
+            ++q;
+
             teca_metadata req;
             req.set("time_step", i);
             req.set("time", time[i]);
             req.set("array_name", array_names[j]);
             req.set("extent", extent);
+            req.set("device_id", device_id);
+
             this->requests.push_back(req);
         }
     }
