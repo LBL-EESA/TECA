@@ -4,13 +4,33 @@
 /// @file
 
 #include "teca_common.h"
+#include "teca_mpi.h"
 
-#include <cuda.h> // standard cuda header
-#include <cuda_runtime.h> //
+#include <deque>
+
+#include <cuda.h>
+#include <cuda_runtime.h>
+
 
 /// A collection of utility classes and functions for intergacing with CUDA
 namespace teca_cuda_util
 {
+
+/** query the system for the locally available(on this rank) CUDA device count.
+ * this is an MPI collective call which returns a set of device ids that can be
+ * used locally. If there are as many (or more than) devices on the node than
+ * the number of MPI ranks assigned to the node the list of devicce ids will be
+ * unique across MPI ranks on the node. Otherwise devices are assigned round
+ * robbin fashion.
+ *
+ * @param[in]  comm      MPI communicator defining a set of nodes on which need
+ *                       access to the available GPUS
+ * @param[out] local_dev a list of device ids that can be used my the calling
+ *                       MPI rank.
+ * @returns              non-zero on error.
+ */
+int get_local_cuda_devices(MPI_Comm comm, std::deque<int> &local_dev);
+
 /// set the CUDA device. returns non-zero on error
 int set_device(int device_id);
 

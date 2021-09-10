@@ -15,6 +15,77 @@ int synchronize()
     return 0;
 }
 
+// **************************************************************************
+int get_local_cuda_devices(MPI_Comm comm, std::deque<int> &local_dev)
+{
+    cudaError_t ierr = cudaSuccess;
+
+    // get the number of CUDA GPU's available on this node
+    int n_node_dev = 0;
+    if ((ierr = cudaGetDeviceCount(&n_node_dev)) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to get the number of CUDA devices. "
+            << cudaGetErrorString(ierr))
+        return -1;
+    }
+
+    // if there are no GPU's error out
+    if (n_node_dev < 1)
+    {
+        TECA_ERROR("No CUDA devices found")
+        return -1;
+    }
+
+    // get the number of MPI ranks on this node, and their core id's
+    int n_node_ranks = 1;
+    int node_rank = 0;
+
+#if defined(TECA_HAS_MPI)
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
+    {
+        // get node local rank and num ranks
+        MPI_Comm node_comm;
+        MPI_Comm_split_type(comm, MPI_COMM_TYPE_SHARED,
+            0, MPI_INFO_NULL, &node_comm);
+
+        MPI_Comm_size(node_comm, &n_node_ranks);
+        MPI_Comm_rank(node_comm, &node_rank);
+
+        if (n_node_dev >= n_node_ranks)
+        {
+            // assign devices evenly between ranks
+            int max_dev = n_node_dev - 1;
+            int n_per_rank = std::max(n_node_dev / n_node_ranks, 1);
+            int n_larger = n_node_dev % n_node_ranks;
+
+            int first_dev = n_per_rank * node_rank + (node_rank < n_larger ? node_rank : n_larger);
+            first_dev = std::min(max_dev, first_dev);
+
+            int last_dev = first_dev + n_per_rank - 1 + (node_rank < n_larger ? 1 : 0);
+            last_dev = std::min(max_dev, last_dev);
+
+            for (int i = first_dev; i <= last_dev; ++i)
+                local_dev.push_back(i);
+        }
+        else
+        {
+            // round robbin assignment
+            local_dev.push_back( node_rank % n_node_dev );
+        }
+
+        MPI_Comm_free(&node_comm);
+
+        return 0;
+    }
+#endif
+    // without MPI this process can use all CUDA devices
+    for (int i = 0; i < n_node_dev; ++i)
+        local_dev.push_back(i);
+    return 0;
+}
+
 
 //-----------------------------------------------------------------------------
 int set_device(int device_id)
