@@ -14,6 +14,9 @@ namespace teca_cuda_util
 /// set the CUDA device. returns non-zero on error
 int set_device(int device_id);
 
+/// stop and wait for previuoiusly launched kernels to complete
+int synchronize();
+
 /// querry properties for the named CUDA device. retruns non-zero on error
 int get_launch_props(int device_id,
     int *block_grid_max, int &warp_size,

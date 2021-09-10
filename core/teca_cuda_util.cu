@@ -2,6 +2,19 @@
 
 namespace teca_cuda_util
 {
+// **************************************************************************
+int synchronize()
+{
+    cudaError_t ierr = cudaSuccess;
+    if ((ierr = cudaDeviceSynchronize()) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to synchronize CUDA execution. "
+            << cudaGetErrorString(ierr))
+        return -1;
+    }
+    return 0;
+}
+
 
 //-----------------------------------------------------------------------------
 int set_device(int device_id)
