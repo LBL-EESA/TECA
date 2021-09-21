@@ -176,7 +176,7 @@ teca_metadata teca_l2_norm::get_output_metadata(
 
     if (this->component_0_variable.empty())
     {
-        TECA_ERROR("The component_0_variable was not set")
+        TECA_FATAL_ERROR("The component_0_variable was not set")
         return teca_metadata();
     }
 
@@ -238,7 +238,7 @@ std::vector<teca_metadata> teca_l2_norm::get_upstream_request(
     std::string comp_0_var = this->get_component_0_variable(request);
     if (comp_0_var.empty())
     {
-        TECA_ERROR("component 0 array was not specified")
+        TECA_FATAL_ERROR("component 0 array was not specified")
         return up_reqs;
     }
 
@@ -288,7 +288,7 @@ const_p_teca_dataset teca_l2_norm::execute(
 
     if (!in_mesh)
     {
-        TECA_ERROR("Failed to compute l2 norm. dataset is not a teca_mesh")
+        TECA_FATAL_ERROR("Failed to compute l2 norm. dataset is not a teca_mesh")
         return nullptr;
     }
 
@@ -296,7 +296,7 @@ const_p_teca_dataset teca_l2_norm::execute(
     std::string comp_0_var = this->get_component_0_variable(request);
     if (comp_0_var.empty())
     {
-        TECA_ERROR("component 0 array was not specified")
+        TECA_FATAL_ERROR("component 0 array was not specified")
         return nullptr;
     }
 
@@ -309,7 +309,7 @@ const_p_teca_dataset teca_l2_norm::execute(
         = in_mesh->get_point_arrays()->get(comp_0_var);
     if (!c0)
     {
-        TECA_ERROR("component 0 array \"" << comp_0_var
+        TECA_FATAL_ERROR("component 0 array \"" << comp_0_var
             << "\" not present.")
         return nullptr;
     }
@@ -319,7 +319,7 @@ const_p_teca_dataset teca_l2_norm::execute(
     if (!comp_1_var.empty() &&
         !(c1 = in_mesh->get_point_arrays()->get(comp_1_var)))
     {
-        TECA_ERROR("component 1 array \"" << comp_1_var
+        TECA_FATAL_ERROR("component 1 array \"" << comp_1_var
             << "\" requested but not present.")
         return nullptr;
     }
@@ -328,7 +328,7 @@ const_p_teca_dataset teca_l2_norm::execute(
     if (!comp_2_var.empty() &&
         !(c2 = in_mesh->get_point_arrays()->get(comp_2_var)))
     {
-        TECA_ERROR("component 1 array \"" << comp_2_var
+        TECA_FATAL_ERROR("component 1 array \"" << comp_2_var
             << "\" requested but not present.")
         return nullptr;
     }

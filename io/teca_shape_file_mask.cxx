@@ -130,13 +130,13 @@ teca_metadata teca_shape_file_mask::get_output_metadata(
     unsigned int n_mask_vars = this->mask_variables.size();
     if (n_mask_vars == 0)
     {
-        TECA_ERROR("The names of the mask_variables were not provided")
+        TECA_FATAL_ERROR("The names of the mask_variables were not provided")
         return teca_metadata();
     }
 
     if (this->shape_file.empty())
     {
-        TECA_ERROR("A shape file was not provided")
+        TECA_FATAL_ERROR("A shape file was not provided")
         return teca_metadata();
 
     }
@@ -146,7 +146,7 @@ teca_metadata teca_shape_file_mask::get_output_metadata(
         teca_shape_file_util::load_polygons(this->get_communicator(),
         this->shape_file, this->internals->polys, this->verbose))
     {
-        TECA_ERROR("Failed to read polygons from \"" << this->shape_file << "\"")
+        TECA_FATAL_ERROR("Failed to read polygons from \"" << this->shape_file << "\"")
         return teca_metadata();
     }
 
@@ -222,7 +222,7 @@ const_p_teca_dataset teca_shape_file_mask::execute(
 
     if (!in_mesh)
     {
-        TECA_ERROR("Failed to compute surface pressure. The dataset is"
+        TECA_FATAL_ERROR("Failed to compute surface pressure. The dataset is"
             " not a teca_mesh")
         return nullptr;
     }
@@ -234,7 +234,7 @@ const_p_teca_dataset teca_shape_file_mask::execute(
 
     if (z->size() > 1)
     {
-        TECA_ERROR("The shape file mask requires 2D data but 3D data was found")
+        TECA_FATAL_ERROR("The shape file mask requires 2D data but 3D data was found")
         return nullptr;
     }
 
@@ -258,7 +258,7 @@ const_p_teca_dataset teca_shape_file_mask::execute(
         unsigned long extent[6] = {0};
         if (teca_coordinate_util::bounds_to_extent(bounds,x, y, z, extent))
         {
-            TECA_ERROR("Failed to convert polygon " << p << " bounds ["
+            TECA_FATAL_ERROR("Failed to convert polygon " << p << " bounds ["
                 << bounds[0] << ", " << bounds[1] << ", " << bounds[2]
                 << ", " << bounds[3] << " to a valid mesh extent")
             continue;

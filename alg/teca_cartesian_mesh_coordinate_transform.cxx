@@ -286,8 +286,6 @@ void teca_cartesian_mesh_coordinate_transform::set_properties(
 }
 #endif
 
-
-
 // --------------------------------------------------------------------------
 teca_metadata teca_cartesian_mesh_coordinate_transform::get_output_metadata(
     unsigned int port, const std::vector<teca_metadata> &input_md)
@@ -322,7 +320,7 @@ teca_metadata teca_cartesian_mesh_coordinate_transform::get_output_metadata(
     // check that bounds for each cooridnate axes are specified
     if (this->target_bounds.size() != 6)
     {
-        TECA_ERROR("Invalid target_bounds. " << this->target_bounds.size()
+        TECA_FATAL_ERROR("Invalid target_bounds. " << this->target_bounds.size()
             << "  were specified while 6 are needed.")
         return teca_metadata();
     }
@@ -340,7 +338,7 @@ teca_metadata teca_cartesian_mesh_coordinate_transform::get_output_metadata(
         || !(y_in = this->internals->coordinates_in.get("y"))
         || !(z_in = this->internals->coordinates_in.get("z")))
     {
-        TECA_ERROR("The input metadata has invalid coordinates")
+        TECA_FATAL_ERROR("The input metadata has invalid coordinates")
         this->internals->clear();
         return teca_metadata();
     }
@@ -356,7 +354,7 @@ teca_metadata teca_cartesian_mesh_coordinate_transform::get_output_metadata(
         || internals_t::validate_target_bounds('y', y_in, tgt_bounds + 2)
         || internals_t::validate_target_bounds('z', z_in, tgt_bounds + 4))
     {
-        TECA_ERROR("Invalid bounds requested")
+        TECA_FATAL_ERROR("Invalid bounds requested")
         this->internals->clear();
         return teca_metadata();
     }
@@ -391,7 +389,7 @@ teca_metadata teca_cartesian_mesh_coordinate_transform::get_output_metadata(
         || this->internals->coordinates_in.get("y_variable", y_axis_variable_in)
         || this->internals->coordinates_in.get("z_variable", z_axis_variable_in))
     {
-        TECA_ERROR("Failed to get the coordinate axis variables")
+        TECA_FATAL_ERROR("Failed to get the coordinate axis variables")
         this->internals->clear();
         return teca_metadata();
     }
@@ -424,7 +422,7 @@ teca_metadata teca_cartesian_mesh_coordinate_transform::get_output_metadata(
         || atts.get(y_axis_variable_in, this->internals->y_axis_attributes_out)
         || atts.get(z_axis_variable_in, this->internals->z_axis_attributes_out))
     {
-        TECA_ERROR("Failed to get the coordinate variables attributes")
+        TECA_FATAL_ERROR("Failed to get the coordinate variables attributes")
         this->internals->clear();
         return teca_metadata();
     }
@@ -531,7 +529,7 @@ teca_cartesian_mesh_coordinate_transform::get_upstream_request(
             || !(y_in = this->internals->coordinates_in.get("y"))
             || !(z_in = this->internals->coordinates_in.get("z")))
         {
-            TECA_ERROR("The input metadata has invalid coordinates")
+            TECA_FATAL_ERROR("The input metadata has invalid coordinates")
             return up_reqs;
         }
 
@@ -544,7 +542,7 @@ teca_cartesian_mesh_coordinate_transform::get_upstream_request(
             || !(y_out = this->internals->coordinates_out.get("y"))
             || !(z_out = this->internals->coordinates_out.get("z")))
         {
-            TECA_ERROR("The input metadata has invalid coordinates")
+            TECA_FATAL_ERROR("The input metadata has invalid coordinates")
             return up_reqs;
         }
 
@@ -553,7 +551,7 @@ teca_cartesian_mesh_coordinate_transform::get_upstream_request(
         unsigned long extent[6] = {0ul};
         if (teca_coordinate_util::bounds_to_extent(bounds, x_out, y_out, z_out, extent))
         {
-            TECA_ERROR("The requested bounds " << bounds[0] << ", " << bounds[1]
+            TECA_FATAL_ERROR("The requested bounds " << bounds[0] << ", " << bounds[1]
                 << ", " << bounds[2] << ", "  << bounds[3] << ", " << bounds[4]
                 << ", " << bounds[5] << "] were not found in the transformed coordinates")
             return up_reqs;
@@ -599,7 +597,7 @@ const_p_teca_dataset teca_cartesian_mesh_coordinate_transform::execute(
 
     if (!in_target)
     {
-        TECA_ERROR("invalid input dataset")
+        TECA_FATAL_ERROR("invalid input dataset")
         return nullptr;
     }
 
@@ -612,7 +610,7 @@ const_p_teca_dataset teca_cartesian_mesh_coordinate_transform::execute(
         || !(y_out = this->internals->coordinates_out.get("y"))
         || !(z_out = this->internals->coordinates_out.get("z")))
     {
-        TECA_ERROR("The cached metadata has invalid coordinates")
+        TECA_FATAL_ERROR("The cached metadata has invalid coordinates")
         return nullptr;
     }
 

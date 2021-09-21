@@ -85,7 +85,7 @@ const_p_teca_dataset teca_dataset_source::execute(unsigned int port,
     {
         if (this->metadata.get("index_request_key", request_key))
         {
-            TECA_ERROR("The provided metadata is missing index_request_key")
+            TECA_FATAL_ERROR("The provided metadata is missing index_request_key")
             return nullptr;
         }
     }
@@ -94,14 +94,14 @@ const_p_teca_dataset teca_dataset_source::execute(unsigned int port,
     unsigned long index = 0;
     if (request.get(request_key, index))
     {
-        TECA_ERROR("Request is missing index_request_key \"" << request_key << "\"")
+        TECA_FATAL_ERROR("Request is missing index_request_key \"" << request_key << "\"")
         return nullptr;
     }
 
     unsigned long num_datasets = this->datasets.size();
     if (index >= num_datasets)
     {
-        TECA_ERROR("No " << request_key << " index " << index << " in collection of "
+        TECA_FATAL_ERROR("No " << request_key << " index " << index << " in collection of "
             << num_datasets << " source datasets")
         return nullptr;
     }

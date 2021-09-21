@@ -127,7 +127,7 @@ teca_metadata teca_vertical_coordinate_transform::get_output_metadata(
     teca_metadata coords;
     if (out_md.get("coordinates", coords))
     {
-        TECA_ERROR("metadata issue, missing coordinate metadata")
+        TECA_FATAL_ERROR("metadata issue, missing coordinate metadata")
         return teca_metadata();
     }
 
@@ -135,7 +135,7 @@ teca_metadata teca_vertical_coordinate_transform::get_output_metadata(
     teca_metadata atrs;
     if (out_md.get("attributes", atrs))
     {
-        TECA_ERROR("failed to get array attributes")
+        TECA_FATAL_ERROR("failed to get array attributes")
         return teca_metadata();
     }
 
@@ -152,7 +152,7 @@ teca_metadata teca_vertical_coordinate_transform::get_output_metadata(
             teca_metadata ps_atts;
             if (atrs.get("PSFC", ps_atts))
             {
-                TECA_ERROR("failed to get PSFC attributes")
+                TECA_FATAL_ERROR("failed to get PSFC attributes")
                 return teca_metadata();
             }
             atrs.set("ZPDM", ps_atts);
@@ -161,7 +161,7 @@ teca_metadata teca_vertical_coordinate_transform::get_output_metadata(
         }
         default:
         {
-            TECA_ERROR("Invlaid mode " << this->mode)
+            TECA_FATAL_ERROR("Invlaid mode " << this->mode)
             return teca_metadata();
         }
     }
@@ -201,7 +201,7 @@ teca_vertical_coordinate_transform::get_upstream_request(
             break;
         }
         default:
-            TECA_ERROR("Invlaid mode " << this->mode)
+            TECA_FATAL_ERROR("Invlaid mode " << this->mode)
             return up_reqs;
     }
 
@@ -237,7 +237,7 @@ const_p_teca_dataset teca_vertical_coordinate_transform::execute(
 
     if (!in_mesh)
     {
-        TECA_ERROR("teca_arakawa_c_grid is required")
+        TECA_FATAL_ERROR("teca_arakawa_c_grid is required")
         return nullptr;
     }
 
@@ -266,14 +266,14 @@ const_p_teca_dataset teca_vertical_coordinate_transform::execute(
             const_p_teca_variant_array pt = in_mesh->get_information_arrays()->get("P_TOP");
             if (!pt)
             {
-                TECA_ERROR("Failed to get P_TOP")
+                TECA_FATAL_ERROR("Failed to get P_TOP")
                 return nullptr;
             }
 
             const_p_teca_variant_array ps = in_mesh->get_cell_arrays()->get("PSFC");
             if (!ps)
             {
-                TECA_ERROR("Failed to get PSFC")
+                TECA_FATAL_ERROR("Failed to get PSFC")
                 return nullptr;
             }
 
@@ -323,7 +323,7 @@ const_p_teca_dataset teca_vertical_coordinate_transform::execute(
         }
         default:
         {
-            TECA_ERROR("Invlaid mode " << this->mode)
+            TECA_FATAL_ERROR("Invlaid mode " << this->mode)
             return nullptr;
         }
     }

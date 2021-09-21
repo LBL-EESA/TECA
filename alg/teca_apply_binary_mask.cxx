@@ -184,7 +184,7 @@ std::vector<teca_metadata> teca_apply_binary_mask::get_upstream_request(
     // get the name of the mask array
     if (this->mask_variable.empty())
     {
-        TECA_ERROR("A mask variable was not specified")
+        TECA_FATAL_ERROR("A mask variable was not specified")
         return up_reqs;
     }
 
@@ -245,7 +245,7 @@ const_p_teca_dataset teca_apply_binary_mask::execute(
         = std::dynamic_pointer_cast<const teca_mesh>(input_data[0]);
     if (!in_mesh)
     {
-        TECA_ERROR("Failed to apply mask. Dataset is not a teca_mesh")
+        TECA_FATAL_ERROR("Failed to apply mask. Dataset is not a teca_mesh")
         return nullptr;
     }
 
@@ -258,7 +258,7 @@ const_p_teca_dataset teca_apply_binary_mask::execute(
     // check that a masking variable has been provided
     if (this->mask_variable.empty())
     {
-        TECA_ERROR("The mask_variable name was not specified")
+        TECA_FATAL_ERROR("The mask_variable name was not specified")
         return nullptr;
     }
 
@@ -267,7 +267,7 @@ const_p_teca_dataset teca_apply_binary_mask::execute(
         = in_mesh->get_point_arrays()->get(this->mask_variable);
     if (!mask_array)
     {
-        TECA_ERROR("The mask_variable \"" << this->mask_variable
+        TECA_FATAL_ERROR("The mask_variable \"" << this->mask_variable
             << "\" was requested but is not present in the input data.")
         return nullptr;
     }
@@ -286,7 +286,7 @@ const_p_teca_dataset teca_apply_binary_mask::execute(
                 = in_mesh->get_point_arrays()->get(input_var);
             if (!input_array)
             {
-                TECA_ERROR("The masked_variable \"" << input_var
+                TECA_FATAL_ERROR("The masked_variable \"" << input_var
                     << "\" was requested but is not present in the input data.")
                 return nullptr;
             }

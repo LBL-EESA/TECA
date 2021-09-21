@@ -340,7 +340,7 @@ const_p_teca_dataset teca_tc_trajectory::execute(
     {
         if (rank == 0)
         {
-            TECA_ERROR("empty input or not a table")
+            TECA_FATAL_ERROR("empty input or not a table")
         }
         return nullptr;
     }
@@ -356,7 +356,7 @@ const_p_teca_dataset teca_tc_trajectory::execute(
     {
         if (!candidates->has_column(req_cols[i]))
         {
-            TECA_ERROR("Candidate table missing \"" << req_cols[i] << "\"")
+            TECA_FATAL_ERROR("Candidate table missing \"" << req_cols[i] << "\"")
             return nullptr;
         }
     }
@@ -408,7 +408,7 @@ const_p_teca_dataset teca_tc_trajectory::execute(
     storm_tracks->get_time_units(time_units);
     if (time_units.find("days since") == std::string::npos)
     {
-        TECA_ERROR("Conversion for \"" << time_units << "\" not implemented")
+        TECA_FATAL_ERROR("Conversion for \"" << time_units << "\" not implemented")
         return nullptr;
     }
 
@@ -417,7 +417,7 @@ const_p_teca_dataset teca_tc_trajectory::execute(
     // check that there are some candidates to work with.
     if (n_rows < 1)
     {
-        TECA_ERROR("Failed to form TC tracks because there were no candiates")
+        TECA_FATAL_ERROR("Failed to form TC tracks because there were no candiates")
         return nullptr;
     }
 
@@ -471,7 +471,7 @@ const_p_teca_dataset teca_tc_trajectory::execute(
                 p_wind_max, p_vort_max, p_psl_min, p_have_twc, p_have_thick,
                 p_twc_max, p_thick_max, n_rows, storm_tracks, n_tracks))
             {
-                TECA_ERROR("Failed to form tracks")
+                TECA_FATAL_ERROR("Failed to form tracks")
                 return nullptr;
             }
             )

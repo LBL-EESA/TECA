@@ -117,7 +117,7 @@ teca_metadata teca_elevation_mask::get_output_metadata(
     unsigned int n_mask_vars = this->mask_variables.size();
     if (n_mask_vars == 0)
     {
-        TECA_ERROR("The names of the mask_variables were not provided")
+        TECA_FATAL_ERROR("The names of the mask_variables were not provided")
         return teca_metadata();
     }
 
@@ -179,13 +179,13 @@ std::vector<teca_metadata> teca_elevation_mask::get_upstream_request(
     // get the names of the arrays we need to request
     if (this->mesh_height_variable.empty())
     {
-        TECA_ERROR("The mesh_height_variable was not specified")
+        TECA_FATAL_ERROR("The mesh_height_variable was not specified")
         return up_reqs;
     }
 
     if (this->surface_elevation_variable.empty())
     {
-        TECA_ERROR("The surface_elevation_variable was not specified")
+        TECA_FATAL_ERROR("The surface_elevation_variable was not specified")
         return up_reqs;
     }
 
@@ -197,7 +197,7 @@ std::vector<teca_metadata> teca_elevation_mask::get_upstream_request(
         unsigned long req_extent[6];
         if (request.get("extent", req_extent, 6))
         {
-            TECA_ERROR("Neither bounds nor extent were specified in the request")
+            TECA_FATAL_ERROR("Neither bounds nor extent were specified in the request")
             return up_reqs;
         }
 
@@ -209,7 +209,7 @@ std::vector<teca_metadata> teca_elevation_mask::get_upstream_request(
         if (md.get("coordinates", coords) ||
             !(x = coords.get("x")) || !(y = coords.get("y")))
         {
-            TECA_ERROR("Failed to get mesh coordinates")
+            TECA_FATAL_ERROR("Failed to get mesh coordinates")
             return up_reqs;
         }
 
@@ -245,7 +245,7 @@ std::vector<teca_metadata> teca_elevation_mask::get_upstream_request(
     std::string req_key;
     if (elev_md.get("index_request_key", req_key))
     {
-        TECA_ERROR("Metadata is missing \"index_request_key\"")
+        TECA_FATAL_ERROR("Metadata is missing \"index_request_key\"")
         return up_reqs;
     }
 
@@ -285,7 +285,7 @@ const_p_teca_dataset teca_elevation_mask::execute(
     // check for an error upstream
     if ((input_data.size() != 2) || !input_data[0] || !input_data[1])
     {
-        TECA_ERROR("Invalid inputs detected")
+        TECA_FATAL_ERROR("Invalid inputs detected")
         return nullptr;
     }
 
@@ -295,7 +295,7 @@ const_p_teca_dataset teca_elevation_mask::execute(
 
     if (!in_mesh)
     {
-        TECA_ERROR("Data to mask on input port 0 is not a"
+        TECA_FATAL_ERROR("Data to mask on input port 0 is not a"
             " teca_cartesian_mesh. Got " << input_data[0]->get_class_name())
         return nullptr;
     }
@@ -315,7 +315,7 @@ const_p_teca_dataset teca_elevation_mask::execute(
 
     if (!mesh_height)
     {
-        TECA_ERROR("Mesh to mask is missing the height field \""
+        TECA_FATAL_ERROR("Mesh to mask is missing the height field \""
             << this->mesh_height_variable << "\"")
         return nullptr;
     }
@@ -326,7 +326,7 @@ const_p_teca_dataset teca_elevation_mask::execute(
 
     if (!in_elev)
     {
-        TECA_ERROR("Data to mask on input port 0 is not a"
+        TECA_FATAL_ERROR("Data to mask on input port 0 is not a"
             " teca_cartesian_mesh. Got " << input_data[0]->get_class_name())
         return nullptr;
     }
@@ -340,7 +340,7 @@ const_p_teca_dataset teca_elevation_mask::execute(
 
     if (!surface_elev)
     {
-        TECA_ERROR("Surface elevation data has no array \""
+        TECA_FATAL_ERROR("Surface elevation data has no array \""
             << this->surface_elevation_variable << "\"")
         return nullptr;
     }

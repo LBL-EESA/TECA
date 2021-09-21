@@ -180,7 +180,7 @@ teca_metadata teca_apply_tempest_remap::get_output_metadata(
                     {
                         // _FillValue must be present in this case, if not you can't
                         // use a target_mask_variable
-                        TECA_ERROR("Failed to get _FillValue for the target mask \""
+                        TECA_FATAL_ERROR("Failed to get _FillValue for the target mask \""
                             << this->target_mask_variable << "\"")
                         return teca_metadata();
                     }
@@ -265,7 +265,7 @@ teca_apply_tempest_remap::get_upstream_request(unsigned int port,
         }
         else
         {
-            TECA_ERROR("Neither the source or target data has "
+            TECA_FATAL_ERROR("Neither the source or target data has "
                 "a variable named \"" << array << "\"")
             return up_reqs;
         }
@@ -333,7 +333,7 @@ const_p_teca_dataset teca_apply_tempest_remap::execute(
 
     if (!src_mesh)
     {
-        TECA_ERROR("The source dataset is not a teca_mesh")
+        TECA_FATAL_ERROR("The source dataset is not a teca_mesh")
         return nullptr;
     }
 
@@ -346,7 +346,7 @@ const_p_teca_dataset teca_apply_tempest_remap::execute(
 
     if (!tgt_mesh)
     {
-        TECA_ERROR("The target dataset is not a teca_mesh")
+        TECA_FATAL_ERROR("The target dataset is not a teca_mesh")
         return nullptr;
     }
 
@@ -362,7 +362,7 @@ const_p_teca_dataset teca_apply_tempest_remap::execute(
 
         if (!tgt_valid)
         {
-            TECA_ERROR("Failed to get the target mask \"" << this->target_mask_variable
+            TECA_FATAL_ERROR("Failed to get the target mask \"" << this->target_mask_variable
                 << "_valid\". Include teca_valid_value_mask in the upstream pipeline.")
             return nullptr;
         }
@@ -374,14 +374,14 @@ const_p_teca_dataset teca_apply_tempest_remap::execute(
 
     if (!rmp_coll)
     {
-        TECA_ERROR("dataset is not a teca_mesh")
+        TECA_FATAL_ERROR("dataset is not a teca_mesh")
         return nullptr;
     }
 
     const_p_teca_variant_array row = rmp_coll->get(this->row_variable);
     if (!row)
     {
-        TECA_ERROR("Failed to get row indices no array named \""
+        TECA_FATAL_ERROR("Failed to get row indices no array named \""
             << this->row_variable << "\"")
         return nullptr;
     }
@@ -389,7 +389,7 @@ const_p_teca_dataset teca_apply_tempest_remap::execute(
     const_p_teca_variant_array col = rmp_coll->get(this->column_variable);
     if (!col)
     {
-        TECA_ERROR("Failed to get column indices no array named \""
+        TECA_FATAL_ERROR("Failed to get column indices no array named \""
             << this->column_variable << "\"")
         return nullptr;
     }
@@ -397,7 +397,7 @@ const_p_teca_dataset teca_apply_tempest_remap::execute(
     const_p_teca_variant_array weights = rmp_coll->get(this->weights_variable);
     if (!weights)
     {
-        TECA_ERROR("Failed to get the weights no array names \""
+        TECA_FATAL_ERROR("Failed to get the weights no array names \""
             << this->weights_variable << "\"")
         return nullptr;
     }
@@ -454,7 +454,7 @@ const_p_teca_dataset teca_apply_tempest_remap::execute(
             const_p_teca_variant_array src_data = src_mesh->get_point_arrays()->get(array);
             if (!src_data)
             {
-                TECA_ERROR("Failed to get \"" << array << "\" from the source mesh")
+                TECA_FATAL_ERROR("Failed to get \"" << array << "\" from the source mesh")
                 return nullptr;
             }
 
@@ -463,7 +463,7 @@ const_p_teca_dataset teca_apply_tempest_remap::execute(
 
             /*if (!src_valid)
             {
-                TECA_ERROR("Failed to get \"" << array << "_valid\" from the source mesh."
+                TECA_FATAL_ERROR("Failed to get \"" << array << "_valid\" from the source mesh."
                     " Include teca_valid_value_mask in the upstream pipeline")
                 return nullptr;
             }*/
@@ -510,7 +510,7 @@ const_p_teca_dataset teca_apply_tempest_remap::execute(
                             NT_DATA src_fill_value = NT_DATA(0);
                             if (src_array_atts.get("_FillValue", src_fill_value))
                             {
-                                TECA_ERROR("Failed to get the _FillValue for \"" << array << "\"")
+                                TECA_FATAL_ERROR("Failed to get the _FillValue for \"" << array << "\"")
                                 return nullptr;
                             }
 #if defined(CHAR_VALID_VALUE_MASK)
@@ -575,7 +575,7 @@ const_p_teca_dataset teca_apply_tempest_remap::execute(
                         if (src_array_atts.get("_FillValue", fill_value) &&
                             tgt_mask_atts.get("_FillValue", fill_value))
                         {
-                            TECA_ERROR("Failed to get the _FillValue from \"" << array
+                            TECA_FATAL_ERROR("Failed to get the _FillValue from \"" << array
                                 << "\" and \"" << this->target_mask_variable << "\"")
                             return nullptr;
                         }

@@ -79,7 +79,7 @@ p_teca_dataset teca_programmable_reduce::reduce(
 
     if (!this->reduce_callback)
     {
-        TECA_ERROR("a reduce callback has not been provided")
+        TECA_FATAL_ERROR("a reduce callback has not been provided")
         return nullptr;
     }
 

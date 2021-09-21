@@ -132,7 +132,7 @@ std::vector<teca_metadata> teca_indexed_dataset_cache::get_upstream_request(
     // force the user to set the cache size
     if (this->max_cache_size == 0)
     {
-        TECA_ERROR("max_cache_size is 0, you must set the"
+        TECA_FATAL_ERROR("max_cache_size is 0, you must set the"
             " cache size before use.")
         return up_reqs;
     }
@@ -141,14 +141,14 @@ std::vector<teca_metadata> teca_indexed_dataset_cache::get_upstream_request(
     std::string request_key;
     if (request.get("index_request_key", request_key))
     {
-        TECA_ERROR("Failed to locate the index_request_key")
+        TECA_FATAL_ERROR("Failed to locate the index_request_key")
         return up_reqs;
     }
 
     index_t index = 0;
     if (request.get(request_key, index))
     {
-        TECA_ERROR("Failed to get the requested index using the"
+        TECA_FATAL_ERROR("Failed to get the requested index using the"
             " index_request_key \"" << request_key << "\"")
         return up_reqs;
     }
@@ -214,14 +214,14 @@ const_p_teca_dataset teca_indexed_dataset_cache::execute(
     std::string request_key;
     if (request.get("index_request_key", request_key))
     {
-        TECA_ERROR("Failed to locate the index_request_key")
+        TECA_FATAL_ERROR("Failed to locate the index_request_key")
         return nullptr;
     }
 
     index_t index = 0;
     if (request.get(request_key, index))
     {
-        TECA_ERROR("Failed to get the requested index using the"
+        TECA_FATAL_ERROR("Failed to get the requested index using the"
             " index_request_key \"" << request_key << "\"")
         return nullptr;
     }
@@ -235,7 +235,7 @@ const_p_teca_dataset teca_indexed_dataset_cache::execute(
     data_map_t::iterator it = this->internals->m_data.find(index);
     if (it == this->internals->m_data.end())
     {
-        TECA_ERROR("The cache is in an invalid state")
+        TECA_FATAL_ERROR("The cache is in an invalid state")
         return nullptr;
     }
     elem = it->second;

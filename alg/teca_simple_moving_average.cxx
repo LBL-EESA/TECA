@@ -96,14 +96,14 @@ std::vector<teca_metadata> teca_simple_moving_average::get_upstream_request(
     long active_step;
     if (request.get("time_step", active_step))
     {
-        TECA_ERROR("request is missing \"time_step\"")
+        TECA_FATAL_ERROR("request is missing \"time_step\"")
         return up_reqs;
     }
 
     long num_steps;
     if (input_md[0].get("number_of_time_steps", num_steps))
     {
-        TECA_ERROR("input is missing \"number_of_time_steps\"")
+        TECA_FATAL_ERROR("input is missing \"number_of_time_steps\"")
         return up_reqs;
     }
 
@@ -118,7 +118,7 @@ std::vector<teca_metadata> teca_simple_moving_average::get_upstream_request(
         case centered:
             {
             if (this->filter_width % 2 == 0)
-                TECA_ERROR("\"filter_width\" should be odd for centered calculation")
+                TECA_FATAL_ERROR("\"filter_width\" should be odd for centered calculation")
             long delta = this->filter_width/2;
             first = active_step - delta;
             last = active_step + delta;
@@ -129,7 +129,7 @@ std::vector<teca_metadata> teca_simple_moving_average::get_upstream_request(
             last = active_step + this->filter_width - 1;
             break;
         default:
-            TECA_ERROR("Invalid \"filter_type\" " << this->filter_type)
+            TECA_FATAL_ERROR("Invalid \"filter_type\" " << this->filter_type)
             return up_reqs;
     }
     first = std::max(0l, first);
@@ -174,7 +174,7 @@ const_p_teca_dataset teca_simple_moving_average::execute(
 
     if (!out_mesh)
     {
-        TECA_ERROR("input data[0] is not a teca_mesh")
+        TECA_FATAL_ERROR("input data[0] is not a teca_mesh")
         return nullptr;
     }
 
@@ -185,7 +185,7 @@ const_p_teca_dataset teca_simple_moving_average::execute(
 
     if (!in_mesh)
     {
-        TECA_ERROR("Failed to average. dataset is not a teca_mesh")
+        TECA_FATAL_ERROR("Failed to average. dataset is not a teca_mesh")
         return nullptr;
     }
 
@@ -245,7 +245,7 @@ const_p_teca_dataset teca_simple_moving_average::execute(
     unsigned long active_step;
     if (request.get("time_step", active_step))
     {
-        TECA_ERROR("request is missing \"time_step\"")
+        TECA_FATAL_ERROR("request is missing \"time_step\"")
         return nullptr;
     }
 
@@ -258,7 +258,7 @@ const_p_teca_dataset teca_simple_moving_average::execute(
         unsigned long step;
         if (in_mesh->get_metadata().get("time_step", step))
         {
-            TECA_ERROR("input dataset metadata missing \"time_step\"")
+            TECA_FATAL_ERROR("input dataset metadata missing \"time_step\"")
             return nullptr;
         }
 

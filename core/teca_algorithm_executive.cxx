@@ -9,7 +9,7 @@ int teca_algorithm_executive::initialize(MPI_Comm comm, const teca_metadata &md)
     std::string request_key;
     if (md.get("index_request_key", request_key))
     {
-        TECA_ERROR("No index request key has been specified")
+        TECA_FATAL_ERROR("No index request key has been specified")
         return -1;
     }
 

@@ -205,7 +205,7 @@ std::vector<teca_metadata> teca_latitude_damper::get_upstream_request(
     std::vector<std::string> damped_vars;
     if (this->get_damped_variables(damped_vars))
     {
-        TECA_ERROR("No variables to damp specified")
+        TECA_FATAL_ERROR("No variables to damp specified")
         return up_reqs;
     }
 
@@ -252,7 +252,7 @@ const_p_teca_dataset teca_latitude_damper::execute(
 
     if (!in_mesh)
     {
-        TECA_ERROR("empty input, or not a mesh")
+        TECA_FATAL_ERROR("empty input, or not a mesh")
         return nullptr;
     }
 
@@ -267,7 +267,7 @@ const_p_teca_dataset teca_latitude_damper::execute(
     std::vector<std::string> damped_vars;
     if (this->get_damped_variables(damped_vars))
     {
-        TECA_ERROR("No variable specified to damp")
+        TECA_FATAL_ERROR("No variable specified to damp")
         return nullptr;
     }
 
@@ -306,7 +306,7 @@ const_p_teca_dataset teca_latitude_damper::execute(
                 = out_mesh->get_point_arrays()->get(damped_vars[i]);
             if (!input_array)
             {
-                TECA_ERROR("damper variable \"" << damped_vars[i]
+                TECA_FATAL_ERROR("damper variable \"" << damped_vars[i]
                     << "\" is not in the input")
                 return nullptr;
             }
