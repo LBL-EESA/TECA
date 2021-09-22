@@ -342,7 +342,7 @@ teca_metadata teca_table_writer::get_output_metadata(
     {
         if (md.get("index_request_key", this->index_request_key))
         {
-            TECA_ERROR("Failed to identify the index key")
+            TECA_FATAL_ERROR("Failed to identify the index key")
             return teca_metadata();
         }
     }
@@ -370,7 +370,7 @@ const_p_teca_dataset teca_table_writer::execute(
     {
         if (rank == 0)
         {
-            TECA_ERROR("empty input")
+            TECA_FATAL_ERROR("empty input")
         }
         return nullptr;
     }
@@ -381,14 +381,14 @@ const_p_teca_dataset teca_table_writer::execute(
     std::string index_request_key;
     if (md.get("index_request_key", index_request_key))
     {
-        TECA_ERROR("Dataset metadata is missing the index_request_key key")
+        TECA_FATAL_ERROR("Dataset metadata is missing the index_request_key key")
         return nullptr;
     }
 
     unsigned long index = 0;
     if (md.get(index_request_key, index))
     {
-        TECA_ERROR("Dataset metadata is missing the \""
+        TECA_FATAL_ERROR("Dataset metadata is missing the \""
             << index_request_key << "\" key")
         return nullptr;
     }
@@ -445,7 +445,7 @@ const_p_teca_dataset teca_table_writer::execute(
                 ext = "xlsx";
                 break;
             default:
-                TECA_ERROR("Invalid output format")
+                TECA_FATAL_ERROR("Invalid output format")
                 return nullptr;
         }
         teca_file_util::replace_extension(out_file, ext);
@@ -470,7 +470,7 @@ const_p_teca_dataset teca_table_writer::execute(
             <const teca_database>(input_data[0]);
         if (!database)
         {
-            TECA_ERROR("input must be a table or a database")
+            TECA_FATAL_ERROR("input must be a table or a database")
             return nullptr;
         }
     }
@@ -487,7 +487,7 @@ const_p_teca_dataset teca_table_writer::execute(
             const_p_teca_table table = database->get_table(i);
             if (internal::write_csv(table, out_file_i))
             {
-                TECA_ERROR("Failed to write table " << i << " \"" << name << "\"")
+                TECA_FATAL_ERROR("Failed to write table " << i << " \"" << name << "\"")
                 return nullptr;
             }
         }
@@ -504,7 +504,7 @@ const_p_teca_dataset teca_table_writer::execute(
             const_p_teca_table table = database->get_table(i);
             if (internal::write_bin(table, out_file_i))
             {
-                TECA_ERROR("Failed to write table " << i << " \"" << name << "\"")
+                TECA_FATAL_ERROR("Failed to write table " << i << " \"" << name << "\"")
                 return nullptr;
             }
         }
@@ -522,12 +522,12 @@ const_p_teca_dataset teca_table_writer::execute(
             const_p_teca_table table = database->get_table(i);
             if (internal::write_netcdf(table, out_file_i, this->row_dim_name))
             {
-                TECA_ERROR("Failed to write table " << i << " \"" << name << "\"")
+                TECA_FATAL_ERROR("Failed to write table " << i << " \"" << name << "\"")
                 return nullptr;
             }
         }
 #else
-        TECA_ERROR("Can't write table in NetCDF format because TECA "
+        TECA_FATAL_ERROR("Can't write table in NetCDF format because TECA "
             "was not compiled with NetCDF support enabled")
         return nullptr;
 #endif
@@ -544,7 +544,7 @@ const_p_teca_dataset teca_table_writer::execute(
 
         if (!workbook)
         {
-            TECA_ERROR("xlsx failed to create workbook ")
+            TECA_FATAL_ERROR("xlsx failed to create workbook ")
         }
 
         unsigned int n = database->get_number_of_tables();
@@ -557,7 +557,7 @@ const_p_teca_dataset teca_table_writer::execute(
 
             if (internal::write_xlsx(database->get_table(i), worksheet))
             {
-                TECA_ERROR("Failed to write table " << i << " \"" << name << "\"")
+                TECA_FATAL_ERROR("Failed to write table " << i << " \"" << name << "\"")
                 return nullptr;
             }
         }
@@ -565,14 +565,14 @@ const_p_teca_dataset teca_table_writer::execute(
         // close the workbook
         workbook_close(workbook);
 #else
-        TECA_ERROR("Can't write table in MS Excel xlsx format because TECA "
+        TECA_FATAL_ERROR("Can't write table in MS Excel xlsx format because TECA "
             "was not compiled with xlsx support enabled")
         return nullptr;
 #endif
     }
     else
     {
-        TECA_ERROR("invalid output format " << fmt)
+        TECA_FATAL_ERROR("invalid output format " << fmt)
         return nullptr;
     }
 

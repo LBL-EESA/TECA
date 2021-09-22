@@ -121,7 +121,7 @@ const_p_teca_dataset teca_table_sort::execute(
     {
         if (rank == 0)
         {
-            TECA_ERROR("empty input")
+            TECA_FATAL_ERROR("empty input")
         }
         return nullptr;
     }
@@ -134,7 +134,7 @@ const_p_teca_dataset teca_table_sort::execute(
         index_col = in_table->get_column(this->index_column);
     if (!index_col)
     {
-        TECA_ERROR("Failed to locate column to sort by \""
+        TECA_FATAL_ERROR("Failed to locate column to sort by \""
             <<  this->index_column << "\"")
         return nullptr;
     }

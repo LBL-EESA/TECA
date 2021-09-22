@@ -207,7 +207,7 @@ teca_metadata teca_cf_writer::get_output_metadata(unsigned int port,
     std::string up_initializer_key;
     if (md_in.get("index_initializer_key", up_initializer_key))
     {
-        TECA_ERROR("Failed to locate index_initializer_key")
+        TECA_FATAL_ERROR("Failed to locate index_initializer_key")
         return teca_metadata();
     }
 
@@ -243,21 +243,21 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
     std::string up_initializer_key;
     if (md_in.get("index_initializer_key", up_initializer_key))
     {
-        TECA_ERROR("Failed to locate index_initializer_key")
+        TECA_FATAL_ERROR("Failed to locate index_initializer_key")
         return up_reqs;
     }
 
     std::string up_request_key;
     if (md_in.get("index_request_key", up_request_key))
     {
-        TECA_ERROR("Failed to locate index_request_key")
+        TECA_FATAL_ERROR("Failed to locate index_request_key")
         return up_reqs;
     }
 
     long n_indices_up = 0;
     if (md_in.get(up_initializer_key, n_indices_up))
     {
-        TECA_ERROR("Missing index initializer \"" << up_initializer_key << "\"")
+        TECA_FATAL_ERROR("Missing index initializer \"" << up_initializer_key << "\"")
         return up_reqs;
     }
 
@@ -265,7 +265,7 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
     if ((this->point_arrays.size() == 0) &&
         (this->information_arrays.size() == 0))
     {
-        TECA_ERROR("The arrays to write have not been specified")
+        TECA_FATAL_ERROR("The arrays to write have not been specified")
         return up_reqs;
     }
 
@@ -284,7 +284,7 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
             {
                 if (md_in.get("whole_extent", extent, 6))
                 {
-                    TECA_ERROR("Failed to determine extent to write")
+                    TECA_FATAL_ERROR("Failed to determine extent to write")
                     return up_reqs;
                 }
             }
@@ -296,7 +296,7 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
         {
             if (md_in.get("whole_extent", extent, 6))
             {
-                TECA_ERROR("Failed to determine extent to write")
+                TECA_FATAL_ERROR("Failed to determine extent to write")
                 return up_reqs;
             }
         }
@@ -312,7 +312,7 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
         if (bmap->initialize(comm, this->first_step,
             this->last_step, this->steps_per_file, md_in))
         {
-            TECA_ERROR("Failed to initialize the block mapper")
+            TECA_FATAL_ERROR("Failed to initialize the block mapper")
             return up_reqs;
         }
 
@@ -326,7 +326,7 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
 
         if (!it)
         {
-            TECA_ERROR("Failed to create an iterator for layout "
+            TECA_FATAL_ERROR("Failed to create an iterator for layout "
                 <<  this->layout)
             return up_reqs;
         }
@@ -338,7 +338,7 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
         if (imap->initialize(comm,
             this->first_step, this->last_step, it, md_in))
         {
-            TECA_ERROR("Failed to initialize the interval mapper")
+            TECA_FATAL_ERROR("Failed to initialize the interval mapper")
             return up_reqs;
         }
 
@@ -358,7 +358,7 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
             if (layout_mgr->create(this->file_name, this->date_format, md_in,
                 this->mode_flags, this->use_unlimited_dim))
             {
-                TECA_ERROR("Failed to create file " << file_id)
+                TECA_FATAL_ERROR("Failed to create file " << file_id)
                 return -1;
             }
 
@@ -368,7 +368,7 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
             if (layout_mgr->define(md_in, extent, this->point_arrays,
                 this->information_arrays, this->compression_level))
             {
-                TECA_ERROR("failed to define file " << file_id)
+                TECA_FATAL_ERROR("failed to define file " << file_id)
                 return -1;
             }
 
@@ -390,7 +390,7 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
     base_req.set("index_request_key", up_request_key);
     if (this->internals->mapper->get_upstream_requests(base_req, up_reqs))
     {
-        TECA_ERROR("Failed to create upstream requests")
+        TECA_FATAL_ERROR("Failed to create upstream requests")
         return up_reqs;
     }
 
@@ -433,7 +433,7 @@ const_p_teca_dataset teca_cf_writer::execute(unsigned int port,
         if (!in_mesh)
         {
             if (rank == 0)
-                TECA_ERROR("input mesh 0 is empty input or not a cartesian mesh")
+                TECA_FATAL_ERROR("input mesh 0 is empty input or not a cartesian mesh")
             return nullptr;
         }
 
@@ -447,7 +447,7 @@ const_p_teca_dataset teca_cf_writer::execute(unsigned int port,
 
         if (!layout_mgr)
         {
-            TECA_ERROR("No layout manager found for time step " << time_step)
+            TECA_FATAL_ERROR("No layout manager found for time step " << time_step)
             return nullptr;
         }
 
@@ -455,7 +455,7 @@ const_p_teca_dataset teca_cf_writer::execute(unsigned int port,
         if (layout_mgr->write(time_step, in_mesh->get_point_arrays(),
             in_mesh->get_information_arrays()))
         {
-            TECA_ERROR("Write time step " << time_step << " failed for time step")
+            TECA_FATAL_ERROR("Write time step " << time_step << " failed for time step")
             return nullptr;
         }
 
@@ -473,7 +473,7 @@ const_p_teca_dataset teca_cf_writer::execute(unsigned int port,
         if ((this->flush_files && this->flush()) ||
             this->internals->mapper->finalize())
         {
-            TECA_ERROR("Failed to finalize I/O")
+            TECA_FATAL_ERROR("Failed to finalize I/O")
             return nullptr;
         }
     }

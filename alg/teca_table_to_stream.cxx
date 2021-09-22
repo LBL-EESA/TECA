@@ -92,7 +92,7 @@ void teca_table_to_stream::set_stream(const std::string &s)
     }
     else
     {
-        TECA_ERROR("unknown stream requested \"" << s << "\"")
+        TECA_FATAL_ERROR("unknown stream requested \"" << s << "\"")
     }
 }
 
@@ -141,7 +141,7 @@ const_p_teca_dataset teca_table_to_stream::execute(
 
     if (!this->stream)
     {
-        TECA_ERROR("output stream not set")
+        TECA_FATAL_ERROR("output stream not set")
         return nullptr;
     }
 
@@ -161,7 +161,7 @@ const_p_teca_dataset teca_table_to_stream::execute(
     {
         if (rank == 0)
         {
-            TECA_ERROR("empty input")
+            TECA_FATAL_ERROR("empty input")
         }
         return nullptr;
     }

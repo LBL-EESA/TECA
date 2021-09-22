@@ -117,15 +117,25 @@ _strm                                                                   \
     << BEGIN_HL(_head_color) << _head << END_HL << " "                  \
     << BEGIN_HL(ANSI_WHITE) << "" _msg << END_HL << std::endl;
 
+/// Send a message into the stream that include MPI ranks and thread id.
+#define TECA_MESSAGE_RAW(_strm, _head, _msg)                            \
+_strm                                                                   \
+    << _head << " " << teca_parallel_id() << " [" << __FILE__           \
+    << ":" << __LINE__ << " " << TECA_VERSION_DESCR << "]" << std::endl \
+    << _head << " " << "" _msg << std::endl;
+
 /** Constructs an the error message using TECA_MESSAGE and invokes the
  * error handler.
  */
-#define TECA_ERROR(_msg)                                                \
+#define TECA_FATAL_ERROR(_msg)                                          \
 {                                                                       \
     std::ostringstream ess;                                             \
     TECA_MESSAGE(ess, "ERROR:", ANSI_RED, _msg)                         \
     teca_error::error_handler(ess.str().c_str());                       \
 }
+
+/// Constructs an error message and sends it to the stderr stream
+#define TECA_ERROR(_msg) TECA_MESSAGE(std::cerr, "ERROR:", ANSI_RED, _msg)
 
 /// Constructs a warning message and sends it to the stderr stream
 #define TECA_WARNING(_msg) TECA_MESSAGE(std::cerr, "WARNING:", ANSI_YELLOW, _msg)

@@ -755,21 +755,21 @@ teca_metadata teca_bayesian_ar_detect::get_output_metadata(
 
             if (!parameter_table)
             {
-                TECA_ERROR("metadata pipeline failure")
+                TECA_FATAL_ERROR("metadata pipeline failure")
             }
             else if (!parameter_table->has_column(this->min_ivt_variable))
             {
-                TECA_ERROR("metadata missing percentile column \""
+                TECA_FATAL_ERROR("metadata missing percentile column \""
                     << this->min_ivt_variable << "\"")
             }
             else if (!parameter_table->get_column(this->min_component_area_variable))
             {
-                TECA_ERROR("metadata missing area column \""
+                TECA_FATAL_ERROR("metadata missing area column \""
                     << this->min_component_area_variable << "\"")
             }
             else if (!parameter_table->get_column(this->hwhm_latitude_variable))
             {
-                TECA_ERROR("metadata missing hwhm column \""
+                TECA_FATAL_ERROR("metadata missing hwhm column \""
                     << this->hwhm_latitude_variable << "\"")
             }
             else
@@ -805,7 +805,7 @@ teca_metadata teca_bayesian_ar_detect::get_output_metadata(
 
         if (num_params < 1)
         {
-            TECA_ERROR("Invalid parameter table, must have at least one row")
+            TECA_FATAL_ERROR("Invalid parameter table, must have at least one row")
             return teca_metadata();
         }
     }
@@ -872,7 +872,7 @@ std::vector<teca_metadata> teca_bayesian_ar_detect::get_upstream_request(
     // get the name of the array to request
     if (this->ivt_variable.empty())
     {
-        TECA_ERROR("A water vapor variable was not specified")
+        TECA_FATAL_ERROR("A water vapor variable was not specified")
         return up_reqs;
     }
 
@@ -911,7 +911,7 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
     // check the thread pool
     if (!this->internals->queue)
     {
-        TECA_ERROR("thread pool has not been created. Did you forget "
+        TECA_FATAL_ERROR("thread pool has not been created. Did you forget "
             "to call set_thread_pool_size?")
         return nullptr;
     }
@@ -919,7 +919,7 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
     // check the parameter table
     if (!this->internals->parameter_table)
     {
-        TECA_ERROR("empty parameter table input")
+        TECA_FATAL_ERROR("empty parameter table input")
         return nullptr;
     }
 
@@ -931,7 +931,7 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
         std::dynamic_pointer_cast<teca_cartesian_mesh>(in_data);
     if (!in_mesh)
     {
-        TECA_ERROR("empty mesh input, or not a cartesian_mesh")
+        TECA_FATAL_ERROR("empty mesh input, or not a cartesian_mesh")
         return nullptr;
     }
 
@@ -940,14 +940,14 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
     std::string index_request_key;
     if (in_md.get("index_request_key", index_request_key))
     {
-        TECA_ERROR("Dataset metadata is missing the index_request_key key")
+        TECA_FATAL_ERROR("Dataset metadata is missing the index_request_key key")
         return nullptr;
     }
 
     unsigned long index = 0;
     if (in_md.get(index_request_key, index))
     {
-        TECA_ERROR("Dataset metadata is missing the \""
+        TECA_FATAL_ERROR("Dataset metadata is missing the \""
             << index_request_key << "\" key")
         return nullptr;
     }
@@ -956,7 +956,7 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
     if (in_mesh->get_time(time) &&
         request.get("time", time))
     {
-        TECA_ERROR("request missing \"time\"")
+        TECA_FATAL_ERROR("request missing \"time\"")
         return nullptr;
     }
 
@@ -1077,7 +1077,7 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
 
     if (!out_mesh)
     {
-        TECA_ERROR("Pipeline execution failed")
+        TECA_FATAL_ERROR("Pipeline execution failed")
         return nullptr;
     }
 

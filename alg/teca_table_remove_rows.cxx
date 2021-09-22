@@ -84,7 +84,7 @@ void teca_table_remove_rows::set_mask_expression(const std::string &expr)
     char *pfix_expr = teca_parser::infix_to_postfix(expr.c_str(), &dep_vars);
     if (!pfix_expr)
     {
-        TECA_ERROR("failed to convert \"" << expr << "\" to postfix")
+        TECA_FATAL_ERROR("failed to convert \"" << expr << "\" to postfix")
         return;
     }
 
@@ -123,7 +123,7 @@ const_p_teca_dataset teca_table_remove_rows::execute(
     {
         if (rank == 0)
         {
-            TECA_ERROR("Input is empty or not a table")
+            TECA_FATAL_ERROR("Input is empty or not a table")
         }
         return nullptr;
     }
@@ -139,7 +139,7 @@ const_p_teca_dataset teca_table_remove_rows::execute(
     // verify that we have a valid expression
     if (this->postfix_expression.empty())
     {
-        TECA_ERROR("An expression was not provided.")
+        TECA_FATAL_ERROR("An expression was not provided.")
         return nullptr;
     }
 
@@ -150,7 +150,7 @@ const_p_teca_dataset teca_table_remove_rows::execute(
         operator_resolver_t>(mask, this->postfix_expression.c_str(),
             operand_resolver))
     {
-        TECA_ERROR("failed to evaluate the mask expression \""
+        TECA_FATAL_ERROR("failed to evaluate the mask expression \""
             << this->mask_expression << "\"")
         return nullptr;
     }

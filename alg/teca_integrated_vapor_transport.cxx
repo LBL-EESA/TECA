@@ -207,7 +207,7 @@ teca_metadata teca_integrated_vapor_transport::get_output_metadata(
         teca_metadata attributes;
         if (md.get("attributes", attributes))
         {
-            TECA_ERROR("Failed to determine output data type "
+            TECA_FATAL_ERROR("Failed to determine output data type "
                 "because attributes are misisng")
             return teca_metadata();
         }
@@ -215,7 +215,7 @@ teca_metadata teca_integrated_vapor_transport::get_output_metadata(
         teca_metadata u_atts;
         if (attributes.get(this->wind_u_variable, u_atts))
         {
-            TECA_ERROR("Failed to determine output data type "
+            TECA_FATAL_ERROR("Failed to determine output data type "
                 "because attributes for \"" << this->wind_u_variable
                 << "\" are misisng")
             return teca_metadata();
@@ -224,7 +224,7 @@ teca_metadata teca_integrated_vapor_transport::get_output_metadata(
         int type_code = 0;
         if (u_atts.get("type_code", type_code))
         {
-            TECA_ERROR("Failed to determine output data type "
+            TECA_FATAL_ERROR("Failed to determine output data type "
                 "because attributes for \"" << this->wind_u_variable
                 << "\" is misisng a \"type_code\"")
             return teca_metadata();
@@ -292,7 +292,7 @@ const_p_teca_dataset teca_integrated_vapor_transport::execute(
 
     if (!in_mesh)
     {
-        TECA_ERROR("Failed to compute IVT because a cartesian mesh is required.")
+        TECA_FATAL_ERROR("Failed to compute IVT because a cartesian mesh is required.")
         return nullptr;
     }
 
@@ -300,7 +300,7 @@ const_p_teca_dataset teca_integrated_vapor_transport::execute(
     unsigned long extent[6] = {0};
     if (in_mesh->get_extent(extent))
     {
-        TECA_ERROR("Failed to compute IVT because mesh extent is missing.")
+        TECA_FATAL_ERROR("Failed to compute IVT because mesh extent is missing.")
         return nullptr;
     }
 
@@ -312,13 +312,13 @@ const_p_teca_dataset teca_integrated_vapor_transport::execute(
     const_p_teca_variant_array p = in_mesh->get_z_coordinates();
     if (!p)
     {
-        TECA_ERROR("Failed to compute IVT because pressure coordinates are missing")
+        TECA_FATAL_ERROR("Failed to compute IVT because pressure coordinates are missing")
         return nullptr;
     }
 
     if (p->size() < 2)
     {
-        TECA_ERROR("Failed to compute IVT because z dimensions "
+        TECA_FATAL_ERROR("Failed to compute IVT because z dimensions "
             << p->size() << " < 2 as required by the integration method")
         return nullptr;
     }
@@ -329,7 +329,7 @@ const_p_teca_dataset teca_integrated_vapor_transport::execute(
 
     if (!wind_u)
     {
-        TECA_ERROR("Failed to compute IVT because longitudinal wind \""
+        TECA_FATAL_ERROR("Failed to compute IVT because longitudinal wind \""
             << this->wind_u_variable << "\" is missing")
         return nullptr;
     }
@@ -342,7 +342,7 @@ const_p_teca_dataset teca_integrated_vapor_transport::execute(
 
     if (!wind_v)
     {
-        TECA_ERROR("Failed to compute IVT because latitudinal wind \""
+        TECA_FATAL_ERROR("Failed to compute IVT because latitudinal wind \""
             << this->wind_v_variable << "\" is missing")
         return nullptr;
     }
@@ -355,7 +355,7 @@ const_p_teca_dataset teca_integrated_vapor_transport::execute(
 
     if (!q)
     {
-        TECA_ERROR("Failed to compute IVT because specific humidity \""
+        TECA_FATAL_ERROR("Failed to compute IVT because specific humidity \""
             << this->specific_humidity_variable << "\" is missing")
         return nullptr;
     }
@@ -371,7 +371,7 @@ const_p_teca_dataset teca_integrated_vapor_transport::execute(
 
     if (!out_mesh)
     {
-        TECA_ERROR("Failed to compute IVT because the output mesh was "
+        TECA_FATAL_ERROR("Failed to compute IVT because the output mesh was "
             "not constructed")
         return nullptr;
     }

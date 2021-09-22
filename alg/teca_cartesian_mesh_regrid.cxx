@@ -337,7 +337,7 @@ std::vector<teca_metadata> teca_cartesian_mesh_regrid::get_upstream_request(
         else if (find(src_0, src_1, *it) != src_1)
             source_arrays.push_back(*it);
         else
-            TECA_ERROR("\"" << *it << "\" was not in target nor source")
+            TECA_FATAL_ERROR("\"" << *it << "\" was not in target nor source")
     }
 
     target_req.set("arrays", target_arrays);
@@ -352,7 +352,7 @@ std::vector<teca_metadata> teca_cartesian_mesh_regrid::get_upstream_request(
         || !(target_y = target_coords.get("y"))
         || !(target_z = target_coords.get("z")))
     {
-        TECA_ERROR("failed to locate target mesh coordinates")
+        TECA_FATAL_ERROR("failed to locate target mesh coordinates")
         return up_reqs;
     }
 
@@ -377,7 +377,7 @@ std::vector<teca_metadata> teca_cartesian_mesh_regrid::get_upstream_request(
             teca_coordinate_util::validate_extent(target_x->size(),
                 target_y->size(), target_z->size(), target_extent, true))
         {
-            TECA_ERROR("invalid bounds requested [" << request_bounds[0]  << ", "
+            TECA_FATAL_ERROR("invalid bounds requested [" << request_bounds[0]  << ", "
                 << request_bounds[1] << ", " << request_bounds[2] << ", "
                 << request_bounds[3] << ", " << request_bounds[4] << ", "
                 << request_bounds[5] << "]")
@@ -401,7 +401,7 @@ std::vector<teca_metadata> teca_cartesian_mesh_regrid::get_upstream_request(
     if (input_md[md_src].get("coordinates", source_coords)
         || !(source_z = source_coords.get("z")))
     {
-        TECA_ERROR("failed to locate source mesh coordinates")
+        TECA_FATAL_ERROR("failed to locate source mesh coordinates")
         return up_reqs;
     }
 
@@ -455,7 +455,7 @@ const_p_teca_dataset teca_cartesian_mesh_regrid::execute(
 
     if (!in_target || !source)
     {
-        TECA_ERROR("invalid input. target invalid "
+        TECA_FATAL_ERROR("invalid input. target invalid "
             << !in_target << " source invalid " << !source )
         return nullptr;
     }
@@ -495,7 +495,7 @@ const_p_teca_dataset teca_cartesian_mesh_regrid::execute(
             }
             else
             {
-                TECA_ERROR("Array \"" << *it
+                TECA_FATAL_ERROR("Array \"" << *it
                     << "\" is neither present in source or target mesh")
                 return nullptr;
             }
@@ -614,13 +614,13 @@ const_p_teca_dataset teca_cartesian_mesh_regrid::execute(
                             p_source_yc, p_source_zc, p_source_a, source_ihi, source_jhi,
                             source_khi, source_nx, source_ny, source_nz))
                         {
-                            TECA_ERROR("Failed to move \"" << source_arrays[i] << "\"")
+                            TECA_FATAL_ERROR("Failed to move \"" << source_arrays[i] << "\"")
                             return nullptr;
                         }
                         )
                     else
                     {
-                        TECA_ERROR("Unsupported array type " << source_a->get_class_name())
+                        TECA_FATAL_ERROR("Unsupported array type " << source_a->get_class_name())
                     }
 
                     target_ac->set(source_arrays[i], target_a);
@@ -628,12 +628,12 @@ const_p_teca_dataset teca_cartesian_mesh_regrid::execute(
                 )
             else
             {
-                TECA_ERROR("Unupported coordinate type " << source_xc->get_class_name())
+                TECA_FATAL_ERROR("Unupported coordinate type " << source_xc->get_class_name())
             }
             )
         else
         {
-            TECA_ERROR("Unupported coordinate type " << target_xc->get_class_name())
+            TECA_FATAL_ERROR("Unupported coordinate type " << target_xc->get_class_name())
         }
     }
 

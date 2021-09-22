@@ -215,7 +215,7 @@ const_p_teca_dataset teca_descriptive_statistics::execute(
 
     if (!in_mesh)
     {
-        TECA_ERROR("dataset is not a teca_cartesian_mesh")
+        TECA_FATAL_ERROR("dataset is not a teca_cartesian_mesh")
         return nullptr;
     }
     // dependent variables
@@ -316,7 +316,7 @@ const_p_teca_dataset teca_descriptive_statistics::execute(
             = in_mesh->get_point_arrays()->get(dep_var_name);
         if (!dep_var)
         {
-            TECA_ERROR("dependent variable " << i << " \""
+            TECA_FATAL_ERROR("dependent variable " << i << " \""
                 << dep_var_name << "\" not present.")
             return nullptr;
         }

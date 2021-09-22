@@ -222,7 +222,7 @@ int main(int argc, char **argv)
     if (!opt_vals["file_layout"].defaulted() &&
         cf_writer->set_layout(opt_vals["file_layout"].as<std::string>()))
     {
-        TECA_ERROR("An invalid file layout was provided \""
+        TECA_FATAL_ERROR("An invalid file layout was provided \""
             << opt_vals["file_layout"].as<std::string>() << "\"")
         return -1;
     }
@@ -244,7 +244,7 @@ int main(int argc, char **argv)
         bounds = opt_vals["bounds"].as<std::vector<double>>();
         if (bounds.size() != 6)
         {
-            TECA_ERROR("An invlaid bounds specification was provided in"
+            TECA_FATAL_ERROR("An invlaid bounds specification was provided in"
                 " --bounds, size != 6. Use: --bounds x0 x1 y0 y1 z0 z1")
             return -1;
         }
@@ -267,14 +267,14 @@ int main(int argc, char **argv)
             dims = opt_vals["dims"].as<std::vector<unsigned long>>();
             if (dims.size() != 3)
             {
-                TECA_ERROR("An invlaid dimension specification was provided in"
+                TECA_FATAL_ERROR("An invlaid dimension specification was provided in"
                     " --dims, size != 3. Use: --dims nx ny nz")
                 return -1;
             }
         }
         else
         {
-            TECA_ERROR("The --regrid option requires that --dims"
+            TECA_FATAL_ERROR("The --regrid option requires that --dims"
                 " also be specified")
             return -1;
         }
@@ -296,7 +296,7 @@ int main(int argc, char **argv)
     {
         if (mpi_man.get_comm_rank() == 0)
         {
-            TECA_ERROR("Extacly one of --input_file or --input_regex can be specified. "
+            TECA_FATAL_ERROR("Extacly one of --input_file or --input_regex can be specified. "
                 "Use --input_file to activate the multi_cf_reader (HighResMIP datasets) "
                 "and --input_regex to activate the cf_reader (CAM like datasets)")
         }
@@ -307,7 +307,7 @@ int main(int argc, char **argv)
     {
         if (mpi_man.get_comm_rank() == 0)
         {
-            TECA_ERROR("missing file name pattern for the NetCDF CF writer. "
+            TECA_FATAL_ERROR("missing file name pattern for the NetCDF CF writer. "
                 "See --help for a list of command line options.")
         }
         return -1;
@@ -344,7 +344,7 @@ int main(int argc, char **argv)
         // point centered arrrays
         if (atts.empty() && md.get("attributes", atts))
         {
-            TECA_ERROR("metadata missing attributes")
+            TECA_FATAL_ERROR("metadata missing attributes")
             return -1;
         }
 
@@ -381,7 +381,7 @@ int main(int argc, char **argv)
         if (atts.empty() && md.get("attributes", atts))
         {
             if (mpi_man.get_comm_rank() == 0)
-                TECA_ERROR("metadata missing attributes")
+                TECA_FATAL_ERROR("metadata missing attributes")
             return -1;
         }
 
@@ -390,7 +390,7 @@ int main(int argc, char **argv)
            || time_atts.get("units", units))
         {
             if (mpi_man.get_comm_rank() == 0)
-                TECA_ERROR("failed to determine the calendaring parameters")
+                TECA_FATAL_ERROR("failed to determine the calendaring parameters")
             return -1;
         }
 
@@ -399,7 +399,7 @@ int main(int argc, char **argv)
         if (md.get("coordinates", coords) || !(time = coords.get("t")))
         {
             if (mpi_man.get_comm_rank() == 0)
-                TECA_ERROR("failed to determine time coordinate")
+                TECA_FATAL_ERROR("failed to determine time coordinate")
             return -1;
         }
 
@@ -412,7 +412,7 @@ int main(int argc, char **argv)
                  units, start_date, first_step))
             {
                 if (mpi_man.get_comm_rank() == 0)
-                    TECA_ERROR("Failed to locate time step for start date \""
+                    TECA_FATAL_ERROR("Failed to locate time step for start date \""
                         <<  start_date << "\"")
                 return -1;
             }
@@ -428,7 +428,7 @@ int main(int argc, char **argv)
                  units, end_date, last_step))
             {
                 if (mpi_man.get_comm_rank() == 0)
-                    TECA_ERROR("Failed to locate time step for end date \""
+                    TECA_FATAL_ERROR("Failed to locate time step for end date \""
                         <<  end_date << "\"")
                 return -1;
             }
@@ -475,7 +475,7 @@ int main(int argc, char **argv)
             if (regrid_src->set_spatial_bounds(md))
             {
                 if (mpi_man.get_comm_rank() == 0)
-                    TECA_ERROR("Failed to determine target mesh bounds from the"
+                    TECA_FATAL_ERROR("Failed to determine target mesh bounds from the"
                         " input metadata. Use --bounds to specify them manually.")
                 return -1;
             }
@@ -497,7 +497,7 @@ int main(int argc, char **argv)
         if (!opt_vals.count("original_name"))
         {
             if (mpi_man.get_comm_rank() == 0)
-                TECA_ERROR("--original_name is required when renaming variables")
+                TECA_FATAL_ERROR("--original_name is required when renaming variables")
             return -1;
         }
 
@@ -507,7 +507,7 @@ int main(int argc, char **argv)
         if (!opt_vals.count("new_name"))
         {
             if (mpi_man.get_comm_rank() == 0)
-                TECA_ERROR("--new_name is required when renaming variables")
+                TECA_FATAL_ERROR("--new_name is required when renaming variables")
             return -1;
         }
 
@@ -517,7 +517,7 @@ int main(int argc, char **argv)
         if (original_name.size() != new_name.size())
         {
             if (mpi_man.get_comm_rank() == 0)
-                TECA_ERROR("--original_name and --new_name must have the same"
+                TECA_FATAL_ERROR("--original_name and --new_name must have the same"
                     " number of values")
             return -1;
 

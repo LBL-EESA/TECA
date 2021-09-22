@@ -82,13 +82,13 @@ int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
     // requests we need to make and what key to use
     if (md.get("index_initializer_key", this->index_initializer_key))
     {
-        TECA_ERROR("No index initializer key has been specified")
+        TECA_FATAL_ERROR("No index initializer key has been specified")
         return -1;
     }
 
     if (md.get("index_request_key", this->index_request_key))
     {
-        TECA_ERROR("No index request key has been specified")
+        TECA_FATAL_ERROR("No index request key has been specified")
         return -1;
     }
 
@@ -96,7 +96,7 @@ int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
     long n_indices = 0;
     if (md.get(this->index_initializer_key, n_indices))
     {
-        TECA_ERROR("metadata is missing the initializer key \""
+        TECA_FATAL_ERROR("metadata is missing the initializer key \""
             << this->index_initializer_key << "\"")
         return -1;
     }

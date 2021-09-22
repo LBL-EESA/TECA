@@ -109,7 +109,7 @@ const_p_teca_dataset teca_table_calendar::execute(
     (void)request;
 #if !defined(TECA_HAS_UDUNITS)
     (void)input_data;
-    TECA_ERROR("Calendaring features are not present")
+    TECA_FATAL_ERROR("Calendaring features are not present")
     return nullptr;
 #else
     // get the input table
@@ -128,7 +128,7 @@ const_p_teca_dataset teca_table_calendar::execute(
     {
         if (rank == 0)
         {
-            TECA_ERROR("Input is empty or not a table")
+            TECA_FATAL_ERROR("Input is empty or not a table")
         }
         return nullptr;
     }
@@ -137,14 +137,14 @@ const_p_teca_dataset teca_table_calendar::execute(
     std::string units = this->units;
     if (units.empty() && (in_table->get_time_units(units) || units.empty()))
     {
-        TECA_ERROR("Units are missing")
+        TECA_FATAL_ERROR("Units are missing")
         return nullptr;
     }
 
     std::string calendar = this->calendar;
     if (calendar.empty() && (in_table->get_calendar(calendar) || calendar.empty()))
     {
-        TECA_ERROR("Calendar is missing")
+        TECA_FATAL_ERROR("Calendar is missing")
         return nullptr;
     }
 
@@ -152,7 +152,7 @@ const_p_teca_dataset teca_table_calendar::execute(
     const_p_teca_variant_array time = in_table->get_column(this->time_column);
     if (!time)
     {
-        TECA_ERROR("column \"" << this->time_column
+        TECA_FATAL_ERROR("column \"" << this->time_column
             << "\" is not in the table")
         return nullptr;
     }
@@ -278,7 +278,7 @@ const_p_teca_dataset teca_table_calendar::execute(
                 &curr_day, &curr_hour, &curr_minute, &curr_second,
                 units.c_str(), calendar.c_str()))
             {
-                TECA_ERROR("Failed to compute the date at row " << i)
+                TECA_FATAL_ERROR("Failed to compute the date at row " << i)
                 return nullptr;
             }
 

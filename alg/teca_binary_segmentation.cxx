@@ -167,7 +167,7 @@ int teca_binary_segmentation::get_threshold_variable(
 {
     if (this->threshold_variable.empty())
     {
-        TECA_ERROR("Threshold variable is not set")
+        TECA_FATAL_ERROR("Threshold variable is not set")
         return -1;
     }
 
@@ -188,7 +188,7 @@ teca_metadata teca_binary_segmentation::get_output_metadata(
 
     if (this->threshold_variable.empty())
     {
-        TECA_ERROR("a threshold_variable has not been set")
+        TECA_FATAL_ERROR("a threshold_variable has not been set")
         return teca_metadata();
     }
 
@@ -245,7 +245,7 @@ std::vector<teca_metadata> teca_binary_segmentation::get_upstream_request(
     std::string threshold_var;
     if (this->get_threshold_variable(threshold_var))
     {
-        TECA_ERROR("A threshold variable was not specified")
+        TECA_FATAL_ERROR("A threshold variable was not specified")
         return up_reqs;
     }
 
@@ -287,7 +287,7 @@ const_p_teca_dataset teca_binary_segmentation::execute(
             input_data[0]);
     if (!in_mesh)
     {
-        TECA_ERROR("empty input, or not a cartesian_mesh")
+        TECA_FATAL_ERROR("empty input, or not a cartesian_mesh")
         return nullptr;
     }
 
@@ -301,7 +301,7 @@ const_p_teca_dataset teca_binary_segmentation::execute(
     std::string threshold_var;
     if (this->get_threshold_variable(threshold_var))
     {
-        TECA_ERROR("A threshold variable was not specified")
+        TECA_FATAL_ERROR("A threshold variable was not specified")
         return nullptr;
     }
 
@@ -309,7 +309,7 @@ const_p_teca_dataset teca_binary_segmentation::execute(
         = out_mesh->get_point_arrays()->get(threshold_var);
     if (!input_array)
     {
-        TECA_ERROR("threshold variable \"" << threshold_var
+        TECA_FATAL_ERROR("threshold variable \"" << threshold_var
             << "\" is not in the input")
         return nullptr;
     }
@@ -336,7 +336,7 @@ const_p_teca_dataset teca_binary_segmentation::execute(
 
         if ((low < 0.0) || (high > 100.0))
         {
-            TECA_ERROR("The threshold values are " << low << ", " << high << ". "
+            TECA_FATAL_ERROR("The threshold values are " << low << ", " << high << ". "
               "In percentile mode the threshold values must be between 0 and 100")
             return nullptr;
         }
@@ -364,7 +364,7 @@ const_p_teca_dataset teca_binary_segmentation::execute(
         }
         else
         {
-            TECA_ERROR("Invalid threshold mode")
+            TECA_FATAL_ERROR("Invalid threshold mode")
             return nullptr;
         }
         )

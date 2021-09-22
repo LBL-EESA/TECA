@@ -154,7 +154,7 @@ teca_metadata teca_cartesian_mesh_reader::get_output_metadata(unsigned int port,
         if (!(this->internals->mesh =
             teca_cartesian_mesh_reader_internals::read_cartesian_mesh(this->file_name)))
         {
-            TECA_ERROR("Failed to read the mesh from \"" << this->file_name << "\"")
+            TECA_FATAL_ERROR("Failed to read the mesh from \"" << this->file_name << "\"")
             return teca_metadata();
         }
     }

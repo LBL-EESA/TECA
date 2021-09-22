@@ -238,7 +238,7 @@ teca_metadata teca_array_collection_reader::get_output_metadata(unsigned int por
 
         if ((rank == 0) && !time_axis_data)
         {
-            TECA_ERROR("Failed to read the time axis")
+            TECA_FATAL_ERROR("Failed to read the time axis")
             return teca_metadata();
         }
     }
@@ -269,7 +269,7 @@ teca_metadata teca_array_collection_reader::get_output_metadata(unsigned int por
 
         if (n_files == 0)
         {
-            TECA_ERROR("No files found")
+            TECA_FATAL_ERROR("No files found")
             return teca_metadata();
         }
 
@@ -280,7 +280,7 @@ teca_metadata teca_array_collection_reader::get_output_metadata(unsigned int por
         teca_netcdf_util::netcdf_handle fh;
         if (fh.open(file.c_str(), NC_NOWRITE))
         {
-            TECA_ERROR("Failed to open " << file << std::endl << nc_strerror(ierr))
+            TECA_FATAL_ERROR("Failed to open " << file << std::endl << nc_strerror(ierr))
             return teca_metadata();
         }
 
@@ -295,7 +295,7 @@ teca_metadata teca_array_collection_reader::get_output_metadata(unsigned int por
         if (((ierr = nc_inq_nvars(fh.get(), &n_vars)) != NC_NOERR))
         {
             this->clear_cached_metadata();
-            TECA_ERROR(
+            TECA_FATAL_ERROR(
                 << "Failed to get the number of variables in file \""
                 << file << "\"" << std::endl
                 << nc_strerror(ierr))
@@ -312,7 +312,7 @@ teca_metadata teca_array_collection_reader::get_output_metadata(unsigned int por
                 "", "", "", t_axis_variable, 0, name, atts))
             {
                 this->clear_cached_metadata();
-                TECA_ERROR("Failed to read " << i <<"th variable attributes")
+                TECA_FATAL_ERROR("Failed to read " << i <<"th variable attributes")
                 return teca_metadata();
             }
 
@@ -405,7 +405,7 @@ teca_metadata teca_array_collection_reader::get_output_metadata(unsigned int por
             const_p_teca_variant_array t0 = teca_cf_time_axis_data::get_variant_array(elem_0);
             if (!t0)
             {
-                TECA_ERROR("Failed to read time axis")
+                TECA_FATAL_ERROR("Failed to read time axis")
                 return teca_metadata();
             }
             t_axis = t0->new_instance();
@@ -418,7 +418,7 @@ teca_metadata teca_array_collection_reader::get_output_metadata(unsigned int por
                 const_p_teca_variant_array t_i = teca_cf_time_axis_data::get_variant_array(elem_i);
                 if (!t_i || !t_i->size())
                 {
-                    TECA_ERROR("File " << i << " \"" << files[i]
+                    TECA_FATAL_ERROR("File " << i << " \"" << files[i]
                         << "\" had no time values")
                     return teca_metadata();
                 }
@@ -430,7 +430,7 @@ teca_metadata teca_array_collection_reader::get_output_metadata(unsigned int por
                 if (this->calendar.empty() && (has_calendar || !calendar_i.empty())
                     && (calendar_i != base_calendar))
                 {
-                    TECA_ERROR("The base calendar is \"" << base_calendar
+                    TECA_FATAL_ERROR("The base calendar is \"" << base_calendar
                         << "\" but file " << i << " \"" << files[i]
                         << "\" has the \"" << calendar_i <<  "\" calendar")
                     return teca_metadata();
@@ -461,7 +461,7 @@ teca_metadata teca_array_collection_reader::get_output_metadata(unsigned int por
                     // if there are no units present then we can not do a conversion
                     if (!has_units)
                     {
-                        TECA_ERROR("Calendaring conversion requires time units")
+                        TECA_FATAL_ERROR("Calendaring conversion requires time units")
                         return teca_metadata();
                     }
 
@@ -487,7 +487,7 @@ teca_metadata teca_array_collection_reader::get_output_metadata(unsigned int por
                             if (teca_calcalcs::date(double(p_ti[j]), &YY, &MM, &DD, &hh, &mm, &ss,
                                 units_i.c_str(), base_calendar.c_str()))
                             {
-                                TECA_ERROR("Failed to convert offset ti[" << j << "] = "
+                                TECA_FATAL_ERROR("Failed to convert offset ti[" << j << "] = "
                                     << p_ti[j] << " calendar \"" << base_calendar
                                     << "\" units \"" << units_i << "\" to time")
                                 return teca_metadata();
@@ -498,7 +498,7 @@ teca_metadata teca_array_collection_reader::get_output_metadata(unsigned int por
                             if (teca_calcalcs::coordinate(YY, MM, DD, hh, mm, ss,
                                 base_units.c_str(), base_calendar.c_str(), &offs))
                             {
-                                TECA_ERROR("Failed to convert time "
+                                TECA_FATAL_ERROR("Failed to convert time "
                                     << YY << "-" << MM << "-" << DD << " " << hh << ":"
                                     << mm << ":" << ss << " to offset in calendar \""
                                     << base_calendar << "\" units \"" << base_units
@@ -528,7 +528,7 @@ teca_metadata teca_array_collection_reader::get_output_metadata(unsigned int por
                 size_t n_t_vals = this->t_values.size();
                 if (n_t_vals != t_axis->size())
                 {
-                    TECA_ERROR("Number of timesteps detected doesn't match "
+                    TECA_FATAL_ERROR("Number of timesteps detected doesn't match "
                         "the number of time values provided; " << n_t_vals
                         << " given, " << t_axis->size() << " are necessary.")
                     return teca_metadata();
@@ -547,7 +547,7 @@ teca_metadata teca_array_collection_reader::get_output_metadata(unsigned int por
 
             if (this->calendar.empty() || this->t_units.empty())
             {
-                TECA_ERROR("The calendar and units must to be specified when "
+                TECA_FATAL_ERROR("The calendar and units must to be specified when "
                     " providing time values")
                 return teca_metadata();
             }
@@ -556,7 +556,7 @@ teca_metadata teca_array_collection_reader::get_output_metadata(unsigned int por
             size_t n_t_vals = this->t_values.size();
             if (n_t_vals != files.size())
             {
-                TECA_ERROR("Number of files choosen doesn't match the"
+                TECA_FATAL_ERROR("Number of files choosen doesn't match the"
                     " number of time values provided; " << n_t_vals <<
                     " given, " << files.size() << " detected.")
                 return teca_metadata();
@@ -616,7 +616,7 @@ teca_metadata teca_array_collection_reader::get_output_metadata(unsigned int por
                 // check whether the conversion failed
                 if(ss.fail())
                 {
-                    TECA_ERROR("Failed to infer time from filename \"" <<
+                    TECA_FATAL_ERROR("Failed to infer time from filename \"" <<
                         files[i] << "\" using format \"" <<
                         this->filename_time_template << "\"")
                     return teca_metadata();
@@ -634,7 +634,7 @@ teca_metadata teca_array_collection_reader::get_output_metadata(unsigned int por
                     if (strftime(tmp, sizeof(tmp), t_units_fmt.c_str(),
                           &current_tm) == 0)
                     {
-                        TECA_ERROR(
+                        TECA_FATAL_ERROR(
                             "failed to convert the time as a string with \""
                             << t_units_fmt << "\"")
                         return teca_metadata();
@@ -654,14 +654,14 @@ teca_metadata teca_array_collection_reader::get_output_metadata(unsigned int por
                 if (teca_calcalcs::coordinate(year, mon, day, hour, minute,
                     second, t_units.c_str(), calendar.c_str(), &current_time))
                 {
-                    TECA_ERROR("conversion of date inferred from "
+                    TECA_FATAL_ERROR("conversion of date inferred from "
                         "filename failed");
                     return teca_metadata();
                 }
                 // add the current time to the list
                 t_values.push_back(current_time);
 #else
-                TECA_ERROR("The UDUnits package is required for this operation")
+                TECA_FATAL_ERROR("The UDUnits package is required for this operation")
                 return teca_metadata();
 #endif
             }
@@ -788,14 +788,14 @@ const_p_teca_dataset teca_array_collection_reader::execute(unsigned int port,
     teca_metadata coords;
     if (this->internals->metadata.get("coordinates", coords))
     {
-        TECA_ERROR("metadata is missing \"coordinates\"")
+        TECA_FATAL_ERROR("metadata is missing \"coordinates\"")
         return nullptr;
     }
 
     p_teca_variant_array in_t;
     if (!(in_t = coords.get("t")))
     {
-        TECA_ERROR("metadata is missing coordinate arrays")
+        TECA_FATAL_ERROR("metadata is missing coordinate arrays")
         return nullptr;
     }
 
@@ -819,7 +819,7 @@ const_p_teca_dataset teca_array_collection_reader::execute(unsigned int port,
             if (teca_coordinate_util::index_of(pin_t, 0,
                 in_t->size()-1, static_cast<NT>(t), time_step))
             {
-                TECA_ERROR("requested time " << t << " not found")
+                TECA_FATAL_ERROR("requested time " << t << " not found")
                 return nullptr;
             }
             )
@@ -835,7 +835,7 @@ const_p_teca_dataset teca_array_collection_reader::execute(unsigned int port,
         }
         else if ((in_t) && in_t->size() != 1)
         {
-            TECA_ERROR("Invalid time step " << time_step
+            TECA_FATAL_ERROR("Invalid time step " << time_step
                 << " requested from data set with " << in_t->size()
                 << " steps")
             return nullptr;
@@ -852,7 +852,7 @@ const_p_teca_dataset teca_array_collection_reader::execute(unsigned int port,
     std::vector<unsigned long> step_count;
     if (this->internals->metadata.get("step_count", step_count))
     {
-        TECA_ERROR("time_step=" << time_step
+        TECA_FATAL_ERROR("time_step=" << time_step
             << " metadata is missing \"step_count\"")
         return nullptr;
     }
@@ -872,7 +872,7 @@ const_p_teca_dataset teca_array_collection_reader::execute(unsigned int port,
     if (this->internals->metadata.get("root", path)
         || this->internals->metadata.get("files", idx, file))
     {
-        TECA_ERROR("time_step=" << time_step
+        TECA_FATAL_ERROR("time_step=" << time_step
             << " Failed to locate file for time step " << time_step)
         return nullptr;
     }
@@ -883,7 +883,7 @@ const_p_teca_dataset teca_array_collection_reader::execute(unsigned int port,
     teca_netcdf_util::netcdf_handle fh;
     if (fh.open(file_path, NC_NOWRITE))
     {
-        TECA_ERROR("time_step=" << time_step << " Failed to open \"" << file << "\"")
+        TECA_FATAL_ERROR("time_step=" << time_step << " Failed to open \"" << file << "\"")
         return nullptr;
     }
     int file_id = fh.get();
@@ -898,7 +898,7 @@ const_p_teca_dataset teca_array_collection_reader::execute(unsigned int port,
     teca_metadata atrs;
     if (this->internals->metadata.get("attributes", atrs))
     {
-        TECA_ERROR("time_step=" << time_step
+        TECA_FATAL_ERROR("time_step=" << time_step
             << " metadata missing \"attributes\"")
         return nullptr;
     }
@@ -951,7 +951,7 @@ const_p_teca_dataset teca_array_collection_reader::execute(unsigned int port,
             || atts.get("have_mesh_dim", have_mesh_dim, 4)
             || atts.get("mesh_dim_active", mesh_dim_active, 4))
         {
-            TECA_ERROR("metadata issue can't read \"" << arrays[i] << "\"")
+            TECA_FATAL_ERROR("metadata issue can't read \"" << arrays[i] << "\"")
             continue;
         }
 
@@ -998,7 +998,7 @@ const_p_teca_dataset teca_array_collection_reader::execute(unsigned int port,
 #endif
             if ((ierr = nc_get_vara(file_id,  id, &starts[0], &counts[0], a->get())) != NC_NOERR)
             {
-                TECA_ERROR("time_step=" << time_step
+                TECA_FATAL_ERROR("time_step=" << time_step
                     << " Failed to read variable \"" << arrays[i] << "\" "
                     << file << std::endl << nc_strerror(ierr))
                 continue;

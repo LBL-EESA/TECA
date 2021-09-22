@@ -491,7 +491,7 @@ teca_metadata teca_normalize_coordinates::get_output_metadata(
     teca_metadata coords;
     if (out_md.get("coordinates", coords))
     {
-        TECA_ERROR("metadata is missing coordinates");
+        TECA_FATAL_ERROR("metadata is missing coordinates");
         return teca_metadata();
     }
 
@@ -499,7 +499,7 @@ teca_metadata teca_normalize_coordinates::get_output_metadata(
     if (!(in_x = coords.get("x")) || !(in_y = coords.get("y"))
         || !(in_z = coords.get("z")))
     {
-        TECA_ERROR("coordinates metadata is missing axes arrays")
+        TECA_FATAL_ERROR("coordinates metadata is missing axes arrays")
         return teca_metadata();
     }
 
@@ -510,7 +510,7 @@ teca_metadata teca_normalize_coordinates::get_output_metadata(
     if (this->enable_periodic_shift_x &&
         internals::periodic_shift_x(out_x, shift_map, in_x, shifted_x))
     {
-        TECA_ERROR("Failed to apply periodic shift to the x-axis")
+        TECA_FATAL_ERROR("Failed to apply periodic shift to the x-axis")
         return teca_metadata();
     }
 
@@ -520,7 +520,7 @@ teca_metadata teca_normalize_coordinates::get_output_metadata(
     if (this->enable_y_axis_ascending &&
         internals::ascending_order_y(out_y, in_y, reordered_y))
     {
-        TECA_ERROR("Failed to put the y-axis in ascending order")
+        TECA_FATAL_ERROR("Failed to put the y-axis in ascending order")
         return teca_metadata();
     }
 
@@ -535,7 +535,7 @@ teca_metadata teca_normalize_coordinates::get_output_metadata(
             unsigned long whole_extent[6];
             if (out_md.get("whole_extent", whole_extent, 6))
             {
-                TECA_ERROR("Failed to get the input whole_extent")
+                TECA_FATAL_ERROR("Failed to get the input whole_extent")
                 return teca_metadata();
             }
             whole_extent[1] -= 1;
@@ -591,7 +591,7 @@ std::vector<teca_metadata> teca_normalize_coordinates::get_upstream_request(
     teca_metadata coords;
     if (input_md[0].get("coordinates", coords))
     {
-        TECA_ERROR("metadata is missing \"coordinates\"")
+        TECA_FATAL_ERROR("metadata is missing \"coordinates\"")
         return up_reqs;
     }
 
@@ -599,7 +599,7 @@ std::vector<teca_metadata> teca_normalize_coordinates::get_upstream_request(
     if (!(in_x = coords.get("x")) || !(in_y = coords.get("y"))
         || !(z = coords.get("z")))
     {
-        TECA_ERROR("metadata is missing coordinate arrays")
+        TECA_FATAL_ERROR("metadata is missing coordinate arrays")
         return up_reqs;
     }
 
@@ -610,7 +610,7 @@ std::vector<teca_metadata> teca_normalize_coordinates::get_upstream_request(
     if (this->enable_periodic_shift_x &&
         internals::periodic_shift_x(out_x, shift_map, in_x, shifted_x))
     {
-        TECA_ERROR("Failed to apply periodic shift to the x-axis")
+        TECA_FATAL_ERROR("Failed to apply periodic shift to the x-axis")
         return up_reqs;
     }
 
@@ -618,7 +618,7 @@ std::vector<teca_metadata> teca_normalize_coordinates::get_upstream_request(
     p_teca_unsigned_long_array inv_shift_map;
     if (shifted_x && internals::inv_periodic_shift_x(inv_shift_map, out_x))
     {
-        TECA_ERROR("Failed to compute the inverse shifty map")
+        TECA_FATAL_ERROR("Failed to compute the inverse shifty map")
         return up_reqs;
     }
 
@@ -628,7 +628,7 @@ std::vector<teca_metadata> teca_normalize_coordinates::get_upstream_request(
     if (this->enable_y_axis_ascending &&
         internals::ascending_order_y(out_y, in_y, reordered_y))
     {
-        TECA_ERROR("Failed to put the y-axis in ascending order")
+        TECA_FATAL_ERROR("Failed to put the y-axis in ascending order")
         return up_reqs;
     }
 
@@ -643,7 +643,7 @@ std::vector<teca_metadata> teca_normalize_coordinates::get_upstream_request(
     unsigned long whole_extent[6] = {0};
     if (input_md[0].get("whole_extent", whole_extent, 6))
     {
-        TECA_ERROR("metadata is missing \"whole_extent\"")
+        TECA_FATAL_ERROR("metadata is missing \"whole_extent\"")
         return up_reqs;
     }
 
@@ -683,7 +683,7 @@ std::vector<teca_metadata> teca_normalize_coordinates::get_upstream_request(
     if (!teca_coordinate_util::same_orientation(bounds, req_bounds) ||
         !teca_coordinate_util::covers(bounds, req_bounds))
     {
-        TECA_ERROR("Invalid request. The requested bounds ["
+        TECA_FATAL_ERROR("Invalid request. The requested bounds ["
             <<  req_bounds[0] << ", " << req_bounds[1] << ", "
             <<  req_bounds[2] << ", " << req_bounds[3] << ", "
             <<  req_bounds[4] << ", " << req_bounds[5]
@@ -743,7 +743,7 @@ std::vector<teca_metadata> teca_normalize_coordinates::get_upstream_request(
         teca_coordinate_util::validate_extent(in_x->size(),
             in_y->size(), z->size(), extent_out, true))
     {
-        TECA_ERROR("invalid bounds requested.")
+        TECA_FATAL_ERROR("invalid bounds requested.")
         return up_reqs;
     }
 
@@ -791,7 +791,7 @@ const_p_teca_dataset teca_normalize_coordinates::execute(unsigned int port,
 
     if (!in_mesh)
     {
-        TECA_ERROR("The input dataset is not a teca_cartesian_mesh")
+        TECA_FATAL_ERROR("The input dataset is not a teca_cartesian_mesh")
         return nullptr;
     }
 
@@ -818,7 +818,7 @@ const_p_teca_dataset teca_normalize_coordinates::execute(unsigned int port,
     if (this->enable_periodic_shift_x &&
         internals::periodic_shift_x(out_x, shift_map, in_x, shifted_x))
     {
-        TECA_ERROR("Failed to apply periodic shift to the x-axis")
+        TECA_FATAL_ERROR("Failed to apply periodic shift to the x-axis")
         return nullptr;
     }
 
@@ -860,7 +860,7 @@ const_p_teca_dataset teca_normalize_coordinates::execute(unsigned int port,
         if (internals::periodic_shift_x(out_mesh->get_point_arrays(),
             attributes, shift_map, extent_in, extent_out))
         {
-            TECA_ERROR("Failed to apply periodic shift in the x direction")
+            TECA_FATAL_ERROR("Failed to apply periodic shift in the x direction")
             return nullptr;
         }
     }
@@ -871,7 +871,7 @@ const_p_teca_dataset teca_normalize_coordinates::execute(unsigned int port,
     if (this->enable_y_axis_ascending &&
         internals::ascending_order_y(out_y, in_y, reordered_y))
     {
-        TECA_ERROR("Failed to put the y-axis in ascending order")
+        TECA_FATAL_ERROR("Failed to put the y-axis in ascending order")
         return nullptr;
     }
 
@@ -893,7 +893,7 @@ const_p_teca_dataset teca_normalize_coordinates::execute(unsigned int port,
         if (internals::ascending_order_y(out_mesh->get_point_arrays(),
             attributes, extent_out))
         {
-            TECA_ERROR("Failed to put point arrays into ascending order")
+            TECA_FATAL_ERROR("Failed to put point arrays into ascending order")
             return nullptr;
         }
     }

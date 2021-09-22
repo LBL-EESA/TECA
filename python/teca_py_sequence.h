@@ -65,8 +65,8 @@ bool is_type(PyObject *seq)
         {
             if (i)
             {
-                TECA_ERROR("Sequences with mixed types are not supported. "
-                    " Failed at element " <<  i)
+                TECA_PY_ERROR(PyExc_TypeError, "Sequences with mixed types "
+                    " are not supported. Failed at element " <<  i)
             }
             return false;
         }

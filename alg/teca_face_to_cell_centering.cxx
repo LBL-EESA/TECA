@@ -168,7 +168,7 @@ teca_metadata teca_face_to_cell_centering::get_output_metadata(
     teca_metadata atrs;
     if (out_md.get("attributes", atrs))
     {
-        TECA_ERROR("failed to get array attributes")
+        TECA_FATAL_ERROR("failed to get array attributes")
         return teca_metadata();
     }
 
@@ -176,7 +176,7 @@ teca_metadata teca_face_to_cell_centering::get_output_metadata(
     std::vector<std::string> arrays;
     if (out_md.get("variables", arrays))
     {
-        TECA_ERROR("failed to get array names")
+        TECA_FATAL_ERROR("failed to get array names")
         return teca_metadata();
     }
 
@@ -190,7 +190,7 @@ teca_metadata teca_face_to_cell_centering::get_output_metadata(
         teca_metadata array_atrs;
         if (atrs.get(array_name, array_atrs))
         {
-            TECA_ERROR("failed to get the attributes for array "
+            TECA_FATAL_ERROR("failed to get the attributes for array "
                 << i << " \"" << array_name << "\"")
             return teca_metadata();
         }
@@ -199,7 +199,7 @@ teca_metadata teca_face_to_cell_centering::get_output_metadata(
         int centering = teca_array_attributes::invalid_value;
         if (array_atrs.get("centering", centering))
         {
-            TECA_ERROR("failed to get the centering for array "
+            TECA_FATAL_ERROR("failed to get the centering for array "
                 << i << " \"" << array_name << "\"")
             return teca_metadata();
         }
@@ -256,7 +256,7 @@ const_p_teca_dataset teca_face_to_cell_centering::execute(
 
     if (!in_mesh)
     {
-        TECA_ERROR("teca_arakawa_c_grid is required")
+        TECA_FATAL_ERROR("teca_arakawa_c_grid is required")
         return nullptr;
     }
 

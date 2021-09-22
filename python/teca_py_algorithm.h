@@ -3,6 +3,7 @@
 
 /// @file
 
+#include "teca_common.h"
 #include "teca_metadata.h"
 #include "teca_dataset.h"
 #include "teca_py_object.h"
@@ -16,19 +17,25 @@
  * verbose in an effort to help the user debug their code. package this up for
  * use in all the callbacks.
  */
-#define TECA_PY_CALLBACK_ERROR(_phase, _cb_obj)             \
-    {                                                       \
-    PyObject *cb_str = PyObject_Str(_cb_obj);               \
-    const char *cb_c_str = PyStringToCString(cb_str);       \
-                                                            \
-    TECA_ERROR("An exception ocurred when invoking the "    \
-    "user supplied Python callback \"" << cb_c_str << "\""  \
-    "for the " #_phase " execution phase. The exception "   \
-    "that occurred is:")                                    \
-                                                            \
-    PyErr_Print();                                          \
-                                                            \
-    Py_XDECREF(cb_str);                                     \
+#define TECA_PY_CALLBACK_ERROR(_phase, _cb_obj)                 \
+    {                                                           \
+    PyObject *cb_str = PyObject_Str(_cb_obj);                   \
+    const char *cb_c_str = PyStringToCString(cb_str);           \
+                                                                \
+    TECA_MESSAGE_RAW(std::cerr, "ERROR:", "An exception "       \
+    "ocurred  when invoking the user supplied Python callback " \
+    "\"" << cb_c_str << "\" for the " #_phase " execution "     \
+    "phase. The exception that occurred is:")                   \
+                                                                \
+    PyErr_Print();                                              \
+                                                                \
+    PyObject *sys_stderr = PySys_GetObject("stderr");           \
+    PyObject_CallMethod(sys_stderr, "flush", nullptr);          \
+                                                                \
+    PyObject *sys_stdout = PySys_GetObject("stdout");           \
+    PyObject_CallMethod(sys_stdout, "flush", nullptr);          \
+                                                                \
+    Py_XDECREF(cb_str);                                         \
     }
 
 /// Codes for briding teca_algorithm to Python

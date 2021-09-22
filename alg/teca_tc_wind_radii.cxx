@@ -690,7 +690,7 @@ teca_metadata teca_tc_wind_radii::teca_tc_wind_radii::get_output_metadata(
 
         if (!storm_table)
         {
-            TECA_ERROR("metadata pipeline failure")
+            TECA_FATAL_ERROR("metadata pipeline failure")
         }
 
         // column need to build random access data structures
@@ -699,32 +699,32 @@ teca_metadata teca_tc_wind_radii::teca_tc_wind_radii::get_output_metadata(
 
         if (!storm_ids)
         {
-            TECA_ERROR("storm index column \""
+            TECA_FATAL_ERROR("storm index column \""
             << this->storm_id_column << "\" not found")
         }
         // these columns are needed to compute the storm size
         else
         if (!storm_table->has_column(this->storm_x_coordinate_column))
         {
-            TECA_ERROR("storm x coordinates column \""
+            TECA_FATAL_ERROR("storm x coordinates column \""
                 << this->storm_x_coordinate_column << "\" not found")
         }
         else
         if (!storm_table->has_column(this->storm_y_coordinate_column))
         {
-            TECA_ERROR("storm y coordinates column \""
+            TECA_FATAL_ERROR("storm y coordinates column \""
                 << this->storm_y_coordinate_column << "\" not found")
         }
         else
         if (!storm_table->has_column(this->storm_wind_speed_column))
         {
-            TECA_ERROR("storm wind speed column \""
+            TECA_FATAL_ERROR("storm wind speed column \""
                 << this->storm_wind_speed_column << "\" not found")
         }
         else
         if (!storm_table->has_column(this->storm_time_column))
         {
-            TECA_ERROR("storm time column \""
+            TECA_FATAL_ERROR("storm time column \""
                 << this->storm_time_column << "\" not found")
         }
         // things are ok, take a reference
@@ -769,7 +769,7 @@ teca_metadata teca_tc_wind_radii::teca_tc_wind_radii::get_output_metadata(
     // must have at least one time storm
     if (this->internals->number_of_storms < 1)
     {
-        TECA_ERROR("Invalid index \"" << this->storm_id_column << "\"")
+        TECA_FATAL_ERROR("Invalid index \"" << this->storm_id_column << "\"")
         this->internals->clear();
         return teca_metadata();
     }
@@ -930,7 +930,7 @@ const_p_teca_dataset teca_tc_wind_radii::execute(unsigned int port,
     unsigned long storm_id = 0;
     if (request.get("storm_id", storm_id))
     {
-        TECA_ERROR("Failed to get the storm id")
+        TECA_FATAL_ERROR("Failed to get the storm id")
         return nullptr;
     }
 
@@ -972,7 +972,7 @@ const_p_teca_dataset teca_tc_wind_radii::execute(unsigned int port,
 
             if (!mesh)
             {
-                TECA_ERROR("input " << k << " is empty or not a cartesian mesh")
+                TECA_FATAL_ERROR("input " << k << " is empty or not a cartesian mesh")
                 return nullptr;
             }
 
@@ -1043,7 +1043,7 @@ const_p_teca_dataset teca_tc_wind_radii::execute(unsigned int port,
                                 rad_all, wind_all);
                         break;
                     default:
-                        TECA_ERROR("Invalid profile type \"" << this->profile_type << "\"")
+                        TECA_FATAL_ERROR("Invalid profile type \"" << this->profile_type << "\"")
                         return nullptr;
                     }
 

@@ -133,7 +133,7 @@ const_p_teca_dataset teca_tc_classify::execute(
     {
         if (rank == 0)
         {
-            TECA_ERROR("Input is empty or not a table")
+            TECA_FATAL_ERROR("Input is empty or not a table")
         }
         return nullptr;
     }
@@ -142,20 +142,20 @@ const_p_teca_dataset teca_tc_classify::execute(
     std::string calendar;
     if ((in_table->get_calendar(calendar)) && calendar.empty())
     {
-        TECA_ERROR("Calendar is missing")
+        TECA_FATAL_ERROR("Calendar is missing")
         return nullptr;
     }
 
     std::string time_units;
     if ((in_table->get_time_units(time_units)) && time_units.empty())
     {
-        TECA_ERROR("time units are missing")
+        TECA_FATAL_ERROR("time units are missing")
         return nullptr;
     }
 
     if (time_units.find("days since") == std::string::npos)
     {
-        TECA_ERROR("Conversion for \"" << time_units << "\" not implemented")
+        TECA_FATAL_ERROR("Conversion for \"" << time_units << "\" not implemented")
         return nullptr;
     }
 
@@ -166,7 +166,7 @@ const_p_teca_dataset teca_tc_classify::execute(
 
     if (!track_ids)
     {
-        TECA_ERROR("column \"" << this->track_id_column
+        TECA_FATAL_ERROR("column \"" << this->track_id_column
             << "\" is not in the table")
         return nullptr;
     }
@@ -177,7 +177,7 @@ const_p_teca_dataset teca_tc_classify::execute(
 
     if (!x)
     {
-        TECA_ERROR("column \"" << this->x_coordinate_column
+        TECA_FATAL_ERROR("column \"" << this->x_coordinate_column
             << "\" is not in the table")
         return nullptr;
     }
@@ -187,7 +187,7 @@ const_p_teca_dataset teca_tc_classify::execute(
 
     if (!y)
     {
-        TECA_ERROR("column \"" << this->y_coordinate_column
+        TECA_FATAL_ERROR("column \"" << this->y_coordinate_column
             << "\" is not in the table")
         return nullptr;
     }
@@ -198,7 +198,7 @@ const_p_teca_dataset teca_tc_classify::execute(
 
     if (!time)
     {
-        TECA_ERROR("column \"" << this->time_column
+        TECA_FATAL_ERROR("column \"" << this->time_column
             << "\" is not in the table")
         return nullptr;
     }
@@ -209,7 +209,7 @@ const_p_teca_dataset teca_tc_classify::execute(
 
     if (!surface_wind)
     {
-        TECA_ERROR("column \"" << this->surface_wind_column
+        TECA_FATAL_ERROR("column \"" << this->surface_wind_column
             << "\" is not in the table")
         return nullptr;
     }
@@ -220,7 +220,7 @@ const_p_teca_dataset teca_tc_classify::execute(
 
     if (!sea_level_pressure)
     {
-        TECA_ERROR("column \"" << this->sea_level_pressure_column
+        TECA_FATAL_ERROR("column \"" << this->sea_level_pressure_column
             << "\" is not in the table")
         return nullptr;
     }

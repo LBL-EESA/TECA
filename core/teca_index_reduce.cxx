@@ -190,14 +190,14 @@ std::vector<teca_metadata> teca_index_reduce::get_upstream_request(
     std::string initializer_key;
     if (md.get("index_initializer_key", initializer_key))
     {
-        TECA_ERROR("No index initializer key has been specified")
+        TECA_FATAL_ERROR("No index initializer key has been specified")
         return up_req;
     }
 
     std::string request_key;
     if (md.get("index_request_key", request_key))
     {
-        TECA_ERROR("No index request key has been specified")
+        TECA_FATAL_ERROR("No index request key has been specified")
         return up_req;
     }
 
@@ -205,7 +205,7 @@ std::vector<teca_metadata> teca_index_reduce::get_upstream_request(
     long n_indeces = 0;
     if (md.get(initializer_key, n_indeces))
     {
-        TECA_ERROR("metadata is missing index initializer key")
+        TECA_FATAL_ERROR("metadata is missing index initializer key")
         return up_req;
     }
 

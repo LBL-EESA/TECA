@@ -84,7 +84,7 @@ teca_metadata teca_cartesian_mesh_subset::get_output_metadata(
         || !(x = coords.get("x")) || !(y = coords.get("y"))
         || !(z = coords.get("z")))
     {
-        TECA_ERROR("Input metadata has invalid coordinates")
+        TECA_FATAL_ERROR("Input metadata has invalid coordinates")
         return teca_metadata();
     }
 
@@ -94,7 +94,7 @@ teca_metadata teca_cartesian_mesh_subset::get_output_metadata(
         teca_coordinate_util::validate_extent(x->size(),
             y->size(), z->size(), this->extent.data(), true))
     {
-        TECA_ERROR("Failed to convert bounds to extent")
+        TECA_FATAL_ERROR("Failed to convert bounds to extent")
         return teca_metadata();
     }
 
@@ -136,7 +136,7 @@ const_p_teca_dataset teca_cartesian_mesh_subset::execute(
 
     if (!in_target)
     {
-        TECA_ERROR("invalid input dataset")
+        TECA_FATAL_ERROR("invalid input dataset")
         return nullptr;
     }
 

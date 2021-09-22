@@ -2223,7 +2223,7 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
             std::string t_variable;
             if (coords_in.get("t_variable", t_variable))
             {
-                TECA_ERROR("Failed to get the time varaible name")
+                TECA_FATAL_ERROR("Failed to get the time varaible name")
                 return teca_metadata();
             }
             coords_out.set("t_variable", t_variable);
@@ -2231,7 +2231,7 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
             teca_metadata t_atts;
             if (atts_in.get(t_variable, t_atts))
             {
-                TECA_ERROR("Failed to get attributes for \""
+                TECA_FATAL_ERROR("Failed to get attributes for \""
                     << t_variable << "\"")
                 return teca_metadata();
             }
@@ -2240,7 +2240,7 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
             p_teca_variant_array t = coords_in.get("t");
             if (!t)
             {
-                TECA_ERROR("Failed to get the time axis")
+                TECA_FATAL_ERROR("Failed to get the time axis")
                 return teca_metadata();
             }
             coords_out.set("t", t);
@@ -2249,7 +2249,7 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
             std::string initializer_key;
             if (inst->metadata.get("index_initializer_key", initializer_key))
             {
-                TECA_ERROR("Failed to get the index_initializer_key")
+                TECA_FATAL_ERROR("Failed to get the index_initializer_key")
                 return teca_metadata();
             }
             this->internals->metadata.set("index_initializer_key", initializer_key);
@@ -2257,7 +2257,7 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
             std::string request_key;
             if (inst->metadata.get("index_request_key", request_key))
             {
-                TECA_ERROR("Failed to get the index_request_key")
+                TECA_FATAL_ERROR("Failed to get the index_request_key")
                 return teca_metadata();
             }
             this->internals->metadata.set("index_request_key", request_key);
@@ -2265,7 +2265,7 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
             long n_indices = 0;
             if (inst->metadata.get(initializer_key, n_indices))
             {
-                TECA_ERROR("Failed to get the value of the intitializer \""
+                TECA_FATAL_ERROR("Failed to get the value of the intitializer \""
                     << initializer_key << "\"")
                 return teca_metadata();
             }
@@ -2295,7 +2295,7 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
             std::string x_variable;
             if (coords_in.get("x_variable", x_variable))
             {
-                TECA_ERROR("Failed to get the x-axis varaible name")
+                TECA_FATAL_ERROR("Failed to get the x-axis varaible name")
                 return teca_metadata();
             }
             coords_out.set("x_variable", x_variable);
@@ -2305,7 +2305,7 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
                 teca_metadata x_atts;
                 if (atts_in.get(x_variable, x_atts))
                 {
-                    TECA_ERROR("Failed to get attributes for the x-axis variable \""
+                    TECA_FATAL_ERROR("Failed to get attributes for the x-axis variable \""
                         << x_variable << "\"")
                     return teca_metadata();
                 }
@@ -2315,7 +2315,7 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
             p_teca_variant_array x = coords_in.get("x");
             if (!x)
             {
-                TECA_ERROR("Failed to get the x-axis")
+                TECA_FATAL_ERROR("Failed to get the x-axis")
                 return teca_metadata();
             }
             coords_out.set("x", x);
@@ -2324,7 +2324,7 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
             std::string y_variable;
             if (coords_in.get("y_variable", y_variable))
             {
-                TECA_ERROR("Failed to get the y-axis varaible name")
+                TECA_FATAL_ERROR("Failed to get the y-axis varaible name")
                 return teca_metadata();
             }
             coords_out.set("y_variable", y_variable);
@@ -2334,7 +2334,7 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
                 teca_metadata y_atts;
                 if (atts_in.get(y_variable, y_atts))
                 {
-                    TECA_ERROR("Failed to get attributes for the y-axis variable \""
+                    TECA_FATAL_ERROR("Failed to get attributes for the y-axis variable \""
                         << y_variable << "\"")
                     return teca_metadata();
                 }
@@ -2344,7 +2344,7 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
             p_teca_variant_array y = coords_in.get("y");
             if (!y)
             {
-                TECA_ERROR("Failed to get the y-axis")
+                TECA_FATAL_ERROR("Failed to get the y-axis")
                 return teca_metadata();
             }
             coords_out.set("y", y);
@@ -2353,7 +2353,7 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
             std::string z_variable;
             if (coords_in.get("z_variable", z_variable))
             {
-                TECA_ERROR("Failed to get the z-axis varaible name")
+                TECA_FATAL_ERROR("Failed to get the z-axis varaible name")
                 return teca_metadata();
             }
             coords_out.set("z_variable", z_variable);
@@ -2363,7 +2363,7 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
                 teca_metadata z_atts;
                 if (atts_in.get(z_variable, z_atts))
                 {
-                    TECA_ERROR("Failed to get attributes for the z-axis variable \""
+                    TECA_FATAL_ERROR("Failed to get attributes for the z-axis variable \""
                         << z_variable << "\"")
                     return teca_metadata();
                 }
@@ -2373,7 +2373,7 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
             p_teca_variant_array z = coords_in.get("z");
             if (!z)
             {
-                TECA_ERROR("Failed to get the z-axis")
+                TECA_FATAL_ERROR("Failed to get the z-axis")
                 return teca_metadata();
             }
             coords_out.set("z", z);
@@ -2387,7 +2387,7 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
             p_teca_variant_array bounds = inst->metadata.get("bounds");
             if (!bounds)
             {
-                TECA_ERROR("Failed to get the mesh bounds")
+                TECA_FATAL_ERROR("Failed to get the mesh bounds")
                 return teca_metadata();
             }
             this->internals->metadata.set("bounds", bounds);
@@ -2396,7 +2396,7 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
             p_teca_variant_array whole_extent = inst->metadata.get("whole_extent");
             if (!whole_extent)
             {
-                TECA_ERROR("Failed to get the mesh whole_extent")
+                TECA_FATAL_ERROR("Failed to get the mesh whole_extent")
                 return teca_metadata();
             }
             this->internals->metadata.set("whole_extent", whole_extent);
@@ -2415,7 +2415,7 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
             teca_metadata var_atts;
             if (atts_in.get(var_name, var_atts))
             {
-                TECA_ERROR("Failed to get attributes for \""
+                TECA_FATAL_ERROR("Failed to get attributes for \""
                     << var_name << "\"")
                 return teca_metadata();
             }
@@ -2433,7 +2433,7 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
         if ((errorNo = validator.validate_time_axis(errorStr)))
         {
             if (rank == 0)
-                TECA_ERROR("Time axis missmatch detected on a managed reader."
+                TECA_FATAL_ERROR("Time axis missmatch detected on a managed reader."
                     " The time axis must be indentical across all managed"
                     " readers. Correctness cannot be assured. " << errorStr)
             return teca_metadata();
@@ -2448,7 +2448,7 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
                 (errorNo != teca_coordinate_util::teca_validate_arrays::units_missmatch))
             {
                 if (rank == 0)
-                    TECA_ERROR("Spatial coordinate axis missmatch detected on"
+                    TECA_FATAL_ERROR("Spatial coordinate axis missmatch detected on"
                         " managed reader. The spatial coordinate axes must be"
                         " indentical across all managed readers. Correctness"
                         " cannot be assured. " << errorStr)
@@ -2522,7 +2522,7 @@ const_p_teca_dataset teca_multi_cf_reader::execute(unsigned int port,
     // none of the readers could provide the remaining arrays.
     if (!req_arrays.empty())
     {
-        TECA_ERROR("No reader provides the requested arrays " << req_arrays)
+        TECA_FATAL_ERROR("No reader provides the requested arrays " << req_arrays)
         return nullptr;
     }
 
@@ -2539,7 +2539,7 @@ const_p_teca_dataset teca_multi_cf_reader::execute(unsigned int port,
         this->internals->readers[geom_reader]->pipeline, request, geom_arrays,
         mesh_out))
     {
-        TECA_ERROR("Geometry reader \"" << geom_reader
+        TECA_FATAL_ERROR("Geometry reader \"" << geom_reader
             << "\" failed to read arrays " << geom_arrays)
         return nullptr;
     }
@@ -2550,7 +2550,7 @@ const_p_teca_dataset teca_multi_cf_reader::execute(unsigned int port,
     teca_metadata attributes;
     if (md_out.get("attributes", attributes))
     {
-        TECA_ERROR("Geometry reader \"" << geom_reader
+        TECA_FATAL_ERROR("Geometry reader \"" << geom_reader
             << "\" failed to get attributes")
         return nullptr;
     }
@@ -2576,7 +2576,7 @@ const_p_teca_dataset teca_multi_cf_reader::execute(unsigned int port,
         if (teca_multi_cf_reader_internals::read_arrays(inst->pipeline,
             request, arrays, tmp))
         {
-            TECA_ERROR("Reader \"" << key << "\" failed to read arrays " << arrays)
+            TECA_FATAL_ERROR("Reader \"" << key << "\" failed to read arrays " << arrays)
             return nullptr;
         }
 
@@ -2597,7 +2597,7 @@ const_p_teca_dataset teca_multi_cf_reader::execute(unsigned int port,
         teca_metadata atrs;
         if (md_tmp.get("attributes", atrs))
         {
-            TECA_ERROR("Reader \"" << key << " failed to get attributes")
+            TECA_FATAL_ERROR("Reader \"" << key << " failed to get attributes")
             return nullptr;
         }
 
@@ -2607,7 +2607,7 @@ const_p_teca_dataset teca_multi_cf_reader::execute(unsigned int port,
             teca_metadata array_atts;
             if (atrs.get(array_name, array_atts))
             {
-                TECA_ERROR("Reader \"" << key
+                TECA_FATAL_ERROR("Reader \"" << key
                     << "\" failed to get attributes for array \""
                     << array_name << "\"")
                 atrs.to_stream(std::cerr);

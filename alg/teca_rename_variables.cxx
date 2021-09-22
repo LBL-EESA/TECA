@@ -82,7 +82,7 @@ teca_metadata teca_rename_variables::get_output_metadata(
     // validate the user provided values.
     if (this->original_variable_names.size() != this->new_variable_names.size())
     {
-        TECA_ERROR("Each variable to rename must have a "
+        TECA_FATAL_ERROR("Each variable to rename must have a "
             " corresponding output_variable_name.")
         return teca_metadata();
     }
@@ -93,7 +93,7 @@ teca_metadata teca_rename_variables::get_output_metadata(
     std::set<std::string> out_vars;
     if (out_md.get("variables", out_vars))
     {
-        TECA_ERROR("Failed to get the list of variables")
+        TECA_FATAL_ERROR("Failed to get the list of variables")
         return teca_metadata();
     }
 
@@ -103,7 +103,7 @@ teca_metadata teca_rename_variables::get_output_metadata(
         std::set<std::string>::iterator it = out_vars.find(this->original_variable_names[i]);
         if (it == out_vars.end())
         {
-            TECA_ERROR("No such variable \"" << this->original_variable_names[i]
+            TECA_FATAL_ERROR("No such variable \"" << this->original_variable_names[i]
                 << "\" to rename")
             return teca_metadata();
         }
@@ -116,7 +116,7 @@ teca_metadata teca_rename_variables::get_output_metadata(
     teca_metadata attributes;
     if (out_md.get("attributes", attributes))
     {
-        TECA_ERROR("Failed to get attributes")
+        TECA_FATAL_ERROR("Failed to get attributes")
         return teca_metadata();
     }
 
@@ -127,7 +127,7 @@ teca_metadata teca_rename_variables::get_output_metadata(
         teca_metadata atts;
         if (attributes.get(var_name, atts))
         {
-            TECA_ERROR("Failed to get attributes for \"" << var_name << "\"")
+            TECA_FATAL_ERROR("Failed to get attributes for \"" << var_name << "\"")
             return teca_metadata();
         }
 
@@ -196,7 +196,7 @@ const_p_teca_dataset teca_rename_variables::execute(
 
     if (!in_mesh)
     {
-        TECA_ERROR("The input dataset is not a teca_mesh")
+        TECA_FATAL_ERROR("The input dataset is not a teca_mesh")
         return nullptr;
     }
 

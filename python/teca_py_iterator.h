@@ -73,8 +73,8 @@ bool is_type(PyObject *obj)
         {
             if (i)
             {
-                TECA_ERROR("mixed types are not supported. "
-                    " Failed at element " <<  i)
+                TECA_PY_ERROR(PyExc_TypeError, "mixed types are not "
+                    "supported. Failed at element " <<  i)
             }
             return false;
         }

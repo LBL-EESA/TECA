@@ -254,14 +254,14 @@ std::vector<teca_metadata> teca_vorticity::get_upstream_request(
     std::string comp_0_var = this->get_component_0_variable(request);
     if (comp_0_var.empty())
     {
-        TECA_ERROR("component 0 array was not specified")
+        TECA_FATAL_ERROR("component 0 array was not specified")
         return up_reqs;
     }
 
     std::string comp_1_var = this->get_component_1_variable(request);
     if (comp_1_var.empty())
     {
-        TECA_ERROR("component 0 array was not specified")
+        TECA_FATAL_ERROR("component 0 array was not specified")
         return up_reqs;
     }
 
@@ -305,7 +305,7 @@ const_p_teca_dataset teca_vorticity::execute(
 
     if (!in_mesh)
     {
-        TECA_ERROR("teca_cartesian_mesh is required")
+        TECA_FATAL_ERROR("teca_cartesian_mesh is required")
         return nullptr;
     }
 
@@ -314,7 +314,7 @@ const_p_teca_dataset teca_vorticity::execute(
 
     if (comp_0_var.empty())
     {
-        TECA_ERROR("component_0_variable was not specified")
+        TECA_FATAL_ERROR("component_0_variable was not specified")
         return nullptr;
     }
 
@@ -323,7 +323,7 @@ const_p_teca_dataset teca_vorticity::execute(
 
     if (!comp_0)
     {
-        TECA_ERROR("requested array \"" << comp_0_var << "\" not present.")
+        TECA_FATAL_ERROR("requested array \"" << comp_0_var << "\" not present.")
         return nullptr;
     }
 
@@ -332,7 +332,7 @@ const_p_teca_dataset teca_vorticity::execute(
 
     if (comp_1_var.empty())
     {
-        TECA_ERROR("component_1_variable was not specified")
+        TECA_FATAL_ERROR("component_1_variable was not specified")
         return nullptr;
     }
 
@@ -341,7 +341,7 @@ const_p_teca_dataset teca_vorticity::execute(
 
     if (!comp_1)
     {
-        TECA_ERROR("requested array \"" << comp_1_var << "\" not present.")
+        TECA_FATAL_ERROR("requested array \"" << comp_1_var << "\" not present.")
         return nullptr;
     }
 
@@ -351,7 +351,7 @@ const_p_teca_dataset teca_vorticity::execute(
 
     if (!lon || !lat)
     {
-        TECA_ERROR("lat lon mesh cooridinates not present.")
+        TECA_FATAL_ERROR("lat lon mesh cooridinates not present.")
         return nullptr;
     }
 

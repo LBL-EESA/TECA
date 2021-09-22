@@ -318,7 +318,7 @@ std::vector<teca_metadata> teca_connected_components::get_upstream_request(
     std::string segmentation_var = this->get_segmentation_variable(request);
     if (segmentation_var.empty())
     {
-        TECA_ERROR("A segmentation variable was not specified")
+        TECA_FATAL_ERROR("A segmentation variable was not specified")
         return up_reqs;
     }
 
@@ -359,7 +359,7 @@ const_p_teca_dataset teca_connected_components::execute(
             input_data[0]);
     if (!in_mesh)
     {
-        TECA_ERROR("empty input, or not a cartesian_mesh")
+        TECA_FATAL_ERROR("empty input, or not a cartesian_mesh")
         return nullptr;
     }
 
@@ -373,7 +373,7 @@ const_p_teca_dataset teca_connected_components::execute(
     std::string segmentation_var = this->get_segmentation_variable(request);
     if (segmentation_var.empty())
     {
-        TECA_ERROR("A segmentation variable was not specified")
+        TECA_FATAL_ERROR("A segmentation variable was not specified")
         return nullptr;
     }
 
@@ -381,7 +381,7 @@ const_p_teca_dataset teca_connected_components::execute(
         = out_mesh->get_point_arrays()->get(segmentation_var);
     if (!input_array)
     {
-        TECA_ERROR("The segmentation variable \"" << segmentation_var
+        TECA_FATAL_ERROR("The segmentation variable \"" << segmentation_var
             << "\" is not in the input")
         return nullptr;
     }

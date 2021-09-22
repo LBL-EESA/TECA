@@ -277,7 +277,7 @@ teca_metadata teca_table_reader::get_output_metadata(unsigned int port,
     if (!index)
     {
         this->clear_cached_metadata();
-        TECA_ERROR("Table is missing the index array \""
+        TECA_FATAL_ERROR("Table is missing the index array \""
             << this->index_column << "\"")
         return teca_metadata();
     }
@@ -297,7 +297,7 @@ teca_metadata teca_table_reader::get_output_metadata(unsigned int port,
     if (this->internals->number_of_indices < 1)
     {
         this->clear_cached_metadata();
-        TECA_ERROR("Invalid index \"" << this->index_column << "\"")
+        TECA_FATAL_ERROR("Invalid index \"" << this->index_column << "\"")
         return teca_metadata();
     }
 
@@ -320,7 +320,7 @@ teca_metadata teca_table_reader::get_output_metadata(unsigned int port,
             p_teca_variant_array md_col = this->internals->table->get_column(md_col_name);
             if (!md_col)
             {
-                TECA_ERROR("metadata column \"" << md_col_name << "\" not found")
+                TECA_FATAL_ERROR("metadata column \"" << md_col_name << "\" not found")
                 continue;
             }
             md.set(this->metadata_column_keys[i], md_col);
@@ -350,7 +350,7 @@ const_p_teca_dataset teca_table_reader::execute(unsigned int port,
         MPI_Comm_rank(this->get_communicator(), &rank);
     if ((rank == 0) && !this->internals->table)
     {
-        TECA_ERROR("Failed to read data")
+        TECA_FATAL_ERROR("Failed to read data")
         return nullptr;
     }
 #endif

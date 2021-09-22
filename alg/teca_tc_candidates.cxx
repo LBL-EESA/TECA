@@ -235,7 +235,7 @@ std::vector<teca_metadata> teca_tc_candidates::get_upstream_request(
     teca_metadata coords;
     if (md.get("coordinates", coords))
     {
-        TECA_ERROR("metadata is missing \"coordinates\"")
+        TECA_FATAL_ERROR("metadata is missing \"coordinates\"")
         return up_reqs;
     }
 
@@ -243,14 +243,14 @@ std::vector<teca_metadata> teca_tc_candidates::get_upstream_request(
     p_teca_variant_array lon;
     if (!(lat = coords.get("y")) || !(lon = coords.get("x")))
     {
-        TECA_ERROR("metadata missing lat lon coordinates")
+        TECA_FATAL_ERROR("metadata missing lat lon coordinates")
         return up_reqs;
     }
 
     std::vector<unsigned long> extent(6, 0l);
     if (this->get_active_extent(lat, lon, extent))
     {
-        TECA_ERROR("failed to determine the active extent")
+        TECA_FATAL_ERROR("failed to determine the active extent")
         return up_reqs;
     }
 
@@ -294,7 +294,7 @@ const_p_teca_dataset teca_tc_candidates::execute(unsigned int port,
 
     if (!input_data.size())
     {
-        TECA_ERROR("empty input")
+        TECA_FATAL_ERROR("empty input")
         return nullptr;
     }
 
@@ -303,7 +303,7 @@ const_p_teca_dataset teca_tc_candidates::execute(unsigned int port,
         = std::dynamic_pointer_cast<const teca_cartesian_mesh>(input_data[0]);
     if (!mesh)
     {
-        TECA_ERROR("teca_cartesian_mesh is required")
+        TECA_FATAL_ERROR("teca_cartesian_mesh is required")
         return nullptr;
     }
 
@@ -313,7 +313,7 @@ const_p_teca_dataset teca_tc_candidates::execute(unsigned int port,
 
     if (!x || !y)
     {
-        TECA_ERROR("mesh coordinates are missing.")
+        TECA_FATAL_ERROR("mesh coordinates are missing.")
         return nullptr;
     }
 
@@ -346,7 +346,7 @@ const_p_teca_dataset teca_tc_candidates::execute(unsigned int port,
 
     if (!surface_wind_speed)
     {
-        TECA_ERROR("Dataset missing wind speed variable \""
+        TECA_FATAL_ERROR("Dataset missing wind speed variable \""
             << this->surface_wind_speed_variable << "\"")
         return nullptr;
     }
@@ -357,7 +357,7 @@ const_p_teca_dataset teca_tc_candidates::execute(unsigned int port,
 
     if (!vorticity_850mb)
     {
-        TECA_ERROR("Dataset missing vorticity_850mb variable \""
+        TECA_FATAL_ERROR("Dataset missing vorticity_850mb variable \""
             << this->vorticity_850mb_variable << "\"")
         return nullptr;
     }
@@ -368,7 +368,7 @@ const_p_teca_dataset teca_tc_candidates::execute(unsigned int port,
 
     if (!core_temperature)
     {
-        TECA_ERROR("Dataset missing core_temperature variable \""
+        TECA_FATAL_ERROR("Dataset missing core_temperature variable \""
             << this->core_temperature_variable << "\"")
         return nullptr;
     }
@@ -379,7 +379,7 @@ const_p_teca_dataset teca_tc_candidates::execute(unsigned int port,
 
     if (!sea_level_pressure)
     {
-        TECA_ERROR("Dataset missing sea_level_pressure variable \""
+        TECA_FATAL_ERROR("Dataset missing sea_level_pressure variable \""
             << this->sea_level_pressure_variable << "\"")
         return nullptr;
     }
@@ -388,7 +388,7 @@ const_p_teca_dataset teca_tc_candidates::execute(unsigned int port,
     const_p_teca_variant_array thickness;
     if (!(thickness = mesh->get_point_arrays()->get(this->thickness_variable)))
     {
-        TECA_ERROR("Dataset missing thickness variable \""
+        TECA_FATAL_ERROR("Dataset missing thickness variable \""
             << this->thickness_variable << "\"")
         return nullptr;
     }
@@ -430,7 +430,7 @@ const_p_teca_dataset teca_tc_candidates::execute(unsigned int port,
                 T, P, th, lat, lon, nlat, nlon, this->minimizer_iterations,
                 time_step, candidates.get()))
             {
-                TECA_ERROR("GFDL TC detector encountered an error")
+                TECA_FATAL_ERROR("GFDL TC detector encountered an error")
                 return nullptr;
             }
             t1 = std::chrono::high_resolution_clock::now();

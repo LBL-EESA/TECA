@@ -120,14 +120,14 @@ teca_metadata teca_unpack_data::get_output_metadata(
     std::vector<std::string> variables;
     if (out_md.get("variables", variables))
     {
-        TECA_ERROR("Failed to get the list of variables")
+        TECA_FATAL_ERROR("Failed to get the list of variables")
         return teca_metadata();
     }
 
     teca_metadata attributes;
     if (out_md.get("attributes", attributes))
     {
-        TECA_ERROR("Failed to get the array attributes")
+        TECA_FATAL_ERROR("Failed to get the array attributes")
         return teca_metadata();
     }
 
@@ -193,14 +193,14 @@ std::vector<teca_metadata> teca_unpack_data::get_upstream_request(
     std::set<std::string> variables;
     if (md.get("variables", variables))
     {
-        TECA_ERROR("Metadata issue. variables is missing")
+        TECA_FATAL_ERROR("Metadata issue. variables is missing")
         return up_reqs;
     }
 
     teca_metadata attributes;
     if (md.get("attributes", attributes))
     {
-        TECA_ERROR("Failed to get the array attributes")
+        TECA_FATAL_ERROR("Failed to get the array attributes")
         return up_reqs;
     }
 
@@ -261,7 +261,7 @@ const_p_teca_dataset teca_unpack_data::execute(
 
     if (!in_mesh)
     {
-        TECA_ERROR("Input dataset is not a teca_mesh")
+        TECA_FATAL_ERROR("Input dataset is not a teca_mesh")
         return nullptr;
     }
 
@@ -273,7 +273,7 @@ const_p_teca_dataset teca_unpack_data::execute(
     teca_metadata attributes;
     if (out_mesh->get_attributes(attributes))
     {
-        TECA_ERROR("Failed to get attributes")
+        TECA_FATAL_ERROR("Failed to get attributes")
         return nullptr;
     }
 
@@ -310,7 +310,7 @@ const_p_teca_dataset teca_unpack_data::execute(
             teca_variant_array_factory::New(this->output_data_type);
         if (!out_array)
         {
-            TECA_ERROR("Failed to allocate the output array")
+            TECA_FATAL_ERROR("Failed to allocate the output array")
             return nullptr;
         }
 

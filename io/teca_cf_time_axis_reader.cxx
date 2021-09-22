@@ -70,7 +70,7 @@ teca_metadata teca_cf_time_axis_reader::get_output_metadata(unsigned int,
 
                 if (teca_file_util::locate_files(tmp_path, regex, tmp_files))
                 {
-                    TECA_ERROR(
+                    TECA_FATAL_ERROR(
                         << "Failed to locate any files" << std::endl
                         << this->files_regex << std::endl
                         << tmp_path << std::endl
@@ -118,7 +118,7 @@ const_p_teca_dataset teca_cf_time_axis_reader::execute(unsigned int,
     unsigned long file_id = 0;
     if (request.get("file_id", file_id))
     {
-        TECA_ERROR("Invalid file_id " << file_id)
+        TECA_FATAL_ERROR("Invalid file_id " << file_id)
         return nullptr;
     }
 

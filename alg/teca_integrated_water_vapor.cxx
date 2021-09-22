@@ -173,7 +173,7 @@ teca_metadata teca_integrated_water_vapor::get_output_metadata(
         teca_metadata attributes;
         if (md.get("attributes", attributes))
         {
-            TECA_ERROR("Failed to determine output data type "
+            TECA_FATAL_ERROR("Failed to determine output data type "
                 "because attributes are misisng")
             return teca_metadata();
         }
@@ -181,7 +181,7 @@ teca_metadata teca_integrated_water_vapor::get_output_metadata(
         teca_metadata hus_atts;
         if (attributes.get(this->specific_humidity_variable, hus_atts))
         {
-            TECA_ERROR("Failed to determine output data type "
+            TECA_FATAL_ERROR("Failed to determine output data type "
                 "because attributes for \"" << this->specific_humidity_variable
                 << "\" are misisng")
             return teca_metadata();
@@ -190,7 +190,7 @@ teca_metadata teca_integrated_water_vapor::get_output_metadata(
         int type_code = 0;
         if (hus_atts.get("type_code", type_code))
         {
-            TECA_ERROR("Failed to determine output data type "
+            TECA_FATAL_ERROR("Failed to determine output data type "
                 "because attributes for \"" << this->specific_humidity_variable
                 << "\" is misisng a \"type_code\"")
             return teca_metadata();
@@ -247,7 +247,7 @@ const_p_teca_dataset teca_integrated_water_vapor::execute(
 
     if (!in_mesh)
     {
-        TECA_ERROR("Failed to compute IWV because a cartesian mesh is required.")
+        TECA_FATAL_ERROR("Failed to compute IWV because a cartesian mesh is required.")
         return nullptr;
     }
 
@@ -255,7 +255,7 @@ const_p_teca_dataset teca_integrated_water_vapor::execute(
     unsigned long extent[6] = {0};
     if (in_mesh->get_extent(extent))
     {
-        TECA_ERROR("Failed to compute IWV because mesh extent is missing.")
+        TECA_FATAL_ERROR("Failed to compute IWV because mesh extent is missing.")
         return nullptr;
     }
 
@@ -267,13 +267,13 @@ const_p_teca_dataset teca_integrated_water_vapor::execute(
     const_p_teca_variant_array p = in_mesh->get_z_coordinates();
     if (!p)
     {
-        TECA_ERROR("Failed to compute IWV because pressure coordinates are missing")
+        TECA_FATAL_ERROR("Failed to compute IWV because pressure coordinates are missing")
         return nullptr;
     }
 
     if (p->size() < 2)
     {
-        TECA_ERROR("Failed to compute IWV because z dimensions "
+        TECA_FATAL_ERROR("Failed to compute IWV because z dimensions "
             << p->size() << " < 2 as required by the integration method")
         return nullptr;
     }
@@ -284,7 +284,7 @@ const_p_teca_dataset teca_integrated_water_vapor::execute(
 
     if (!q)
     {
-        TECA_ERROR("Failed to compute IWV because specific humidity \""
+        TECA_FATAL_ERROR("Failed to compute IWV because specific humidity \""
             << this->specific_humidity_variable << "\" is missing")
         return nullptr;
     }
@@ -300,7 +300,7 @@ const_p_teca_dataset teca_integrated_water_vapor::execute(
 
     if (!out_mesh)
     {
-        TECA_ERROR("Failed to compute IWV because the output mesh was "
+        TECA_FATAL_ERROR("Failed to compute IWV because the output mesh was "
             "not constructed")
         return nullptr;
     }

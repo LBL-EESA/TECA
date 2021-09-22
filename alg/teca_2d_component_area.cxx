@@ -198,7 +198,7 @@ std::vector<teca_metadata> teca_2d_component_area::get_upstream_request(
     std::string component_var;
     if (this->get_component_variable(component_var))
     {
-        TECA_ERROR("component_variable was not specified")
+        TECA_FATAL_ERROR("component_variable was not specified")
         return up_reqs;
     }
 
@@ -237,7 +237,7 @@ const_p_teca_dataset teca_2d_component_area::execute(
             input_data[0]);
     if (!in_mesh)
     {
-        TECA_ERROR("empty input, or not a cartesian_mesh")
+        TECA_FATAL_ERROR("empty input, or not a cartesian_mesh")
         return nullptr;
     }
 
@@ -251,7 +251,7 @@ const_p_teca_dataset teca_2d_component_area::execute(
     std::string component_var;
     if (this->get_component_variable(component_var))
     {
-        TECA_ERROR("component_variable was not specified")
+        TECA_FATAL_ERROR("component_variable was not specified")
         return nullptr;
     }
 
@@ -259,7 +259,7 @@ const_p_teca_dataset teca_2d_component_area::execute(
         = out_mesh->get_point_arrays()->get(component_var);
     if (!component_array)
     {
-        TECA_ERROR("label variable \"" << component_var
+        TECA_FATAL_ERROR("label variable \"" << component_var
             << "\" is not in the input")
         return nullptr;
     }
@@ -275,7 +275,7 @@ const_p_teca_dataset teca_2d_component_area::execute(
     unsigned long nz = extent[5] - extent[4] + 1;
     if (nz != 1)
     {
-        TECA_ERROR("This calculation requires 2D data. The current dataset "
+        TECA_FATAL_ERROR("This calculation requires 2D data. The current dataset "
             "extents are [" << extent[0] << ", " << extent[1] << ", "
             << extent[2] << ", " << extent[3] << ", " << extent[4] << ", "
             << extent[5] << "]")
@@ -298,7 +298,7 @@ const_p_teca_dataset teca_2d_component_area::execute(
     {
         if (in_metadata.get("background_id", bg_id))
         {
-            TECA_ERROR("Metadata is missing the key \"background_id\". "
+            TECA_FATAL_ERROR("Metadata is missing the key \"background_id\". "
                 "One should specify it via the \"background_id\" algorithm "
                 "property")
             return nullptr;

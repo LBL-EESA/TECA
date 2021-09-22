@@ -98,14 +98,14 @@ teca_metadata teca_valid_value_mask::get_output_metadata(
     std::vector<std::string> variables(this->mask_arrays);
     if (variables.empty() && out_md.get("variables", variables))
     {
-        TECA_ERROR("Failed to get the list of variables")
+        TECA_FATAL_ERROR("Failed to get the list of variables")
         return teca_metadata();
     }
 
     teca_metadata attributes;
     if (out_md.get("attributes", attributes))
     {
-        TECA_ERROR("Failed to get the array attributes")
+        TECA_FATAL_ERROR("Failed to get the array attributes")
         return teca_metadata();
     }
 
@@ -233,7 +233,7 @@ const_p_teca_dataset teca_valid_value_mask::execute(
 
     if (!in_mesh)
     {
-        TECA_ERROR("Empty input dataset or not a teca_mesh")
+        TECA_FATAL_ERROR("Empty input dataset or not a teca_mesh")
         return nullptr;
     }
 
@@ -265,7 +265,7 @@ const_p_teca_dataset teca_valid_value_mask::execute(
     teca_metadata attributes;
     if (md.get("attributes", attributes))
     {
-        TECA_ERROR("Failed to get the array attributes")
+        TECA_FATAL_ERROR("Failed to get the array attributes")
         return nullptr;
     }
 
@@ -279,7 +279,7 @@ const_p_teca_dataset teca_valid_value_mask::execute(
         teca_metadata array_atts;
         if (attributes.get(array_name, array_atts))
         {
-            TECA_ERROR("The mask for array \"" << array_name
+            TECA_FATAL_ERROR("The mask for array \"" << array_name
                 << "\" not computed. The array has no attributes")
             return nullptr;
         }
@@ -289,7 +289,7 @@ const_p_teca_dataset teca_valid_value_mask::execute(
         unsigned int centering = 0;
         if (array_atts.get("centering", centering))
         {
-            TECA_ERROR("Mask for array \"" << array_name << "\" not computed."
+            TECA_FATAL_ERROR("Mask for array \"" << array_name << "\" not computed."
                 " Attributes are missing centering metadata")
             return nullptr;
         }
@@ -297,7 +297,7 @@ const_p_teca_dataset teca_valid_value_mask::execute(
         p_teca_array_collection arrays = out_mesh->get_arrays(centering);
         if (!arrays)
         {
-            TECA_ERROR("Mask for array \"" << array_name << "\" not computed."
+            TECA_FATAL_ERROR("Mask for array \"" << array_name << "\" not computed."
                 " Failed to get the array collection with centering " << centering)
             return nullptr;
         }
@@ -306,7 +306,7 @@ const_p_teca_dataset teca_valid_value_mask::execute(
         p_teca_variant_array array = arrays->get(array_name);
         if (!array)
         {
-            TECA_ERROR("Mask for array \"" << array_name << "\" not computed."
+            TECA_FATAL_ERROR("Mask for array \"" << array_name << "\" not computed."
                 " No array named \"" << array_name << "\"")
             return nullptr;
         }

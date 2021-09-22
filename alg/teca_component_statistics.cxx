@@ -98,7 +98,7 @@ const_p_teca_dataset teca_component_statistics::execute(
 
     if (!in_mesh)
     {
-        TECA_ERROR("dataset is not a teca_cartesian_mesh")
+        TECA_FATAL_ERROR("dataset is not a teca_cartesian_mesh")
         return nullptr;
     }
 
@@ -121,7 +121,7 @@ const_p_teca_dataset teca_component_statistics::execute(
     p_teca_variant_array component_ids = dsmd.get("component_ids");
     if (!component_ids)
     {
-        TECA_ERROR("No component ids present")
+        TECA_FATAL_ERROR("No component ids present")
         return nullptr;
     }
 

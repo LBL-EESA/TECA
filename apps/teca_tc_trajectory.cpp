@@ -150,7 +150,7 @@ int main(int argc, char **argv)
     {
         if (mpi_man.get_comm_rank() == 0)
         {
-            TECA_ERROR("missing file name for candidate reader. "
+            TECA_FATAL_ERROR("missing file name for candidate reader. "
                 "See --help for a list of command line options.")
         }
         return -1;
