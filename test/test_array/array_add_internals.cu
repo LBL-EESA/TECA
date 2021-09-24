@@ -35,7 +35,8 @@ int cuda_dispatch(int device_id, p_array &result, const const_p_array &array_1,
     cudaError_t ierr = cudaSuccess;
     if ((ierr = cudaSetDevice(device_id)) != cudaSuccess)
     {
-        TECA_ERROR("Failed to set the CUDA device to " << device_id)
+        TECA_ERROR("Failed to set the CUDA device to " << device_id
+            << ". " << cudaGetErrorString(ierr))
         return -1;
     }
 

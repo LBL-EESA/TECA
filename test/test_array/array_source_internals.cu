@@ -1,6 +1,4 @@
 #include "array_source_internals.h"
-
-#include "teca_cuda_mm_allocator.h"
 #include "teca_cuda_util.h"
 
 namespace array_source_internals
@@ -33,7 +31,8 @@ int cuda_dispatch(int device_id, p_array &a_out, double val, size_t n_vals)
     cudaError_t ierr = cudaSuccess;
     if ((ierr = cudaSetDevice(device_id)) != cudaSuccess)
     {
-        TECA_ERROR("Failed to set the CUDA device to " << device_id)
+        TECA_ERROR("Failed to set the CUDA device to " << device_id
+            << ". " << cudaGetErrorString(ierr))
         return -1;
     }
 

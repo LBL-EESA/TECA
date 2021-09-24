@@ -1,9 +1,9 @@
 #include "array.h"
 #include "teca_binary_stream.h"
 #include "teca_bad_cast.h"
-#include "teca_cuda_mm_allocator.h"
-#include "teca_cpu_allocator.h"
 
+#include <hamm_cuda_mm_memory_resource.h>
+#include <hamm_cpu_memory_resource.h>
 
 #include <utility>
 #include <iostream>
@@ -13,36 +13,36 @@ using std::ostringstream;
 using std::ostream;
 
 // --------------------------------------------------------------------------
-array::array() : extent({0,0}), allocator{nullptr}, data{nullptr}
+array::array() : extent({0,0}), memory_resource{nullptr}, data{nullptr}
 {
-    this->allocator = teca_cpu_allocator::New();
-    this->data = std::make_shared<vector_t<double>>(this->allocator.get());
+    this->memory_resource = hamm_cpu_memory_resource::New();
+    this->data = std::make_shared<hamm_pmr_vector<double>>(this->memory_resource.get());
 }
 
 // --------------------------------------------------------------------------
-array::array(const p_teca_allocator &alloc) :
-    extent({0,0}), allocator{alloc}, data{nullptr}
+array::array(const p_hamm_memory_resource &alloc) :
+    extent({0,0}), memory_resource{alloc}, data{nullptr}
 {
-    this->data = std::make_shared<vector_t<double>>(this->allocator.get());
+    this->data = std::make_shared<hamm_pmr_vector<double>>(this->memory_resource.get());
 
     /*std::cerr << "Created " << this->get_class_name() << " with an "
-        << alloc->get_class_name() << " allocator" << std::endl;*/
+        << alloc->get_class_name() << " memory_resource" << std::endl;*/
 }
 
 // --------------------------------------------------------------------------
 p_array array::new_cpu_accessible()
 {
-    return array::New(teca_cpu_allocator::New());
+    return array::New(hamm_cpu_memory_resource::New());
 }
 
 // --------------------------------------------------------------------------
 p_array array::new_cuda_accessible()
 {
-    return array::New(teca_cuda_mm_allocator::New());
+    return array::New(hamm_cuda_mm_memory_resource::New());
 }
 
 // --------------------------------------------------------------------------
-p_array array::New(const p_teca_allocator &alloc)
+p_array array::New(const p_hamm_memory_resource &alloc)
 {
     return p_array(new array(alloc));
 }
@@ -50,13 +50,13 @@ p_array array::New(const p_teca_allocator &alloc)
 // --------------------------------------------------------------------------
 bool array::cpu_accessible() const
 {
-    return this->allocator->cpu_accessible();
+    return this->memory_resource->cpu_accessible();
 }
 
 // --------------------------------------------------------------------------
 bool array::cuda_accessible() const
 {
-    return this->allocator->cuda_accessible();
+    return this->memory_resource->cuda_accessible();
 }
 
 // --------------------------------------------------------------------------
@@ -102,10 +102,12 @@ void array::copy(const const_p_teca_dataset &other)
 
     this->name = other_a->name;
     this->extent = other_a->extent;
-    // TODO - should we copy the allocator type as well? if so would need
+
+    // TODO - should we copy the memory_resource type as well? if so would need
     // to add API for transfering from device to device.
-    /*this->allocator = other_a->allocator->new_instance();
-    this->data = std::make_shared<vector_t<double>>(this->allocator.get());*/
+    /*this->memory_resource = other_a->memory_resource->new_instance();
+    this->data = std::make_shared<hamm_pmr_vector<double>>(this->memory_resource.get());*/
+
     this->data->assign(other_a->data->begin(), other_a->data->end());
 }
 
@@ -141,7 +143,7 @@ void array::swap(const p_teca_dataset &other)
 
     std::swap(this->name, other_a->name);
     std::swap(this->extent, other_a->extent);
-    std::swap(this->allocator, other_a->allocator);
+    std::swap(this->memory_resource, other_a->memory_resource);
     std::swap(this->data, other_a->data);
 }
 
@@ -174,7 +176,7 @@ int array::to_stream(std::ostream &ostr) const
 {
     ostr << "name=" << this->name
         << " extent=" << this->extent[0] << ", " << this->extent[1]
-        << " allocator=" << this->allocator->get_class_name()
+        << " memory_resource=" << this->memory_resource->get_class_name()
         << " values=";
 
     size_t n_elem = this->size();

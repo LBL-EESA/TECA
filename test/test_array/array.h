@@ -4,20 +4,12 @@
 #include "array.h"
 #include "teca_dataset.h"
 #include "teca_shared_object.h"
-#include "teca_allocator.h"
+
+#include <hamm_memory_resource.h>
+#include <hamm_pmr_vector.h>
 
 #include <string>
 #include <sstream>
-
-#if defined(__clang__)
-#include <experimental/vector>
-template <typename data_t>
-using vector_t = std::experimental::pmr::vector<data_t>;
-#else
-#include <vector>
-template <typename data_t>
-using vector_t = std::pmr::vector<data_t>;
-#endif
 
 TECA_SHARED_OBJECT_FORWARD_DECL(array)
 
@@ -36,8 +28,8 @@ public:
     /// create an array that accessible from CUDA
     static p_array new_cuda_accessible();
 
-    /// create an array dataset with a specific memory allocator.
-    static p_array New(const p_teca_allocator &alloc);
+    /// create an array dataset with a specific memory memory_resource.
+    static p_array New(const p_hamm_memory_resource &alloc);
 
     TECA_DATASET_STATIC_NEW(array);
 
@@ -45,11 +37,11 @@ public:
     TECA_DATASET_PROPERTY(std::string, name)
 
     // set the contained data
-    void set_data(const vector_t<double> &a_data) { *this->data = a_data; }
+    void set_data(const hamm_pmr_vector<double> &a_data) { *this->data = a_data; }
 
     // get the contained data
-    vector_t<double> &get_data() { return *this->data; }
-    const vector_t<double> &get_data() const { return *this->data; }
+    hamm_pmr_vector<double> &get_data() { return *this->data; }
+    const hamm_pmr_vector<double> &get_data() const { return *this->data; }
 
     // get a pointer to the contained data
     double *get() { return this->data->data(); }
@@ -120,7 +112,7 @@ protected:
     array();
 
     /// creates a new array dataset with a specific memory resource
-    array(const p_teca_allocator &alloc);
+    array(const p_hamm_memory_resource &alloc);
 
     array(const array &);
     void operator=(const array &);
@@ -129,8 +121,8 @@ private:
     std::string name;
     std::vector<size_t> extent;
 
-    p_teca_allocator allocator;
-    std::shared_ptr<vector_t<double>> data;
+    p_hamm_memory_resource memory_resource;
+    std::shared_ptr<hamm_pmr_vector<double>> data;
 };
 
 #endif
