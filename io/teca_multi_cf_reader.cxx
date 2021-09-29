@@ -1105,7 +1105,7 @@ int teca_multi_cf_reader::set_input_file(const std::string &input_file)
         teca_file_util::line_buffer lines;
         if (lines.initialize(input_file.c_str()))
         {
-            TECA_ERROR("Failed to read \"" << input_file << "\"")
+            TECA_FATAL_ERROR("Failed to read \"" << input_file << "\"")
             return -1;
         }
 
@@ -1131,7 +1131,7 @@ int teca_multi_cf_reader::set_input_file(const std::string &input_file)
             {
                 if (teca_string_util::extract_value<std::string>(l, g_data_root))
                 {
-                    TECA_ERROR("Failed to parse \"data_root\" specifier on line " << lno)
+                    TECA_FATAL_ERROR("Failed to parse \"data_root\" specifier on line " << lno)
                     return -1;
                 }
             }
@@ -1139,7 +1139,7 @@ int teca_multi_cf_reader::set_input_file(const std::string &input_file)
             {
                 if (teca_string_util::extract_value<std::string>(l, g_regex))
                 {
-                    TECA_ERROR("Failed to parse \"regex\" specifier on line " << lno)
+                    TECA_FATAL_ERROR("Failed to parse \"regex\" specifier on line " << lno)
                     return -1;
                 }
             }
@@ -1154,7 +1154,7 @@ int teca_multi_cf_reader::set_input_file(const std::string &input_file)
                 reader_option_t opts;
                 if (teca_multi_cf_reader_internals::parse_cf_reader_section(lines, opts))
                 {
-                    TECA_ERROR("Failed to parse [cf_reader] section on line " << lno)
+                    TECA_FATAL_ERROR("Failed to parse [cf_reader] section on line " << lno)
                     return -1;
                 }
 
@@ -1202,7 +1202,7 @@ int teca_multi_cf_reader::set_input_file(const std::string &input_file)
 
     if (num_readers < 1)
     {
-        TECA_ERROR("No readers found in \"" << input_file << "\"")
+        TECA_FATAL_ERROR("No readers found in \"" << input_file << "\"")
         return -1;
     }
 
@@ -1223,14 +1223,14 @@ int teca_multi_cf_reader::set_input_file(const std::string &input_file)
 
     if (num_time_readers != 1)
     {
-        TECA_ERROR(<< num_time_readers << " readers provide time."
+        TECA_FATAL_ERROR(<< num_time_readers << " readers provide time."
             " One and only one reader can provide time.")
         return -1;
     }
 
     if (num_geometry_readers != 1)
     {
-        TECA_ERROR(<< num_geometry_readers << " readers provide geometry."
+        TECA_FATAL_ERROR(<< num_geometry_readers << " readers provide geometry."
             " One and only one reader can provide mesh geometry.")
         return -1;
     }
