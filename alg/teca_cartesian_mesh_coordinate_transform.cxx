@@ -415,17 +415,19 @@ teca_metadata teca_cartesian_mesh_coordinate_transform::get_output_metadata(
     // pass the updated coordinate system
     out_md.set("coordinates", this->internals->coordinates_out);
 
-    // get the input coordinate axis attributes
+    // get the input attributes
     teca_metadata atts;
-    if (out_md.get("attributes", atts)
-        || atts.get(x_axis_variable_in, this->internals->x_axis_attributes_out)
-        || atts.get(y_axis_variable_in, this->internals->y_axis_attributes_out)
-        || atts.get(z_axis_variable_in, this->internals->z_axis_attributes_out))
+    if (out_md.get("attributes", atts))
     {
         TECA_FATAL_ERROR("Failed to get the coordinate variables attributes")
         this->internals->clear();
         return teca_metadata();
     }
+
+    // get coordinates attributes. some of these might be empty. that is OK.
+    atts.get(x_axis_variable_in, this->internals->x_axis_attributes_out);
+    atts.get(y_axis_variable_in, this->internals->y_axis_attributes_out);
+    atts.get(z_axis_variable_in, this->internals->z_axis_attributes_out);
 
     // x axis attributes
     // update the description to note the transform
