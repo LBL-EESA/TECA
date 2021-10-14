@@ -607,7 +607,7 @@ int teca_multi_cf_reader_internals::cf_reader_options::parse_line(
 
         return 1;
     }
-    else if (strncmp("t_units", line, 15) == 0)
+    else if (strncmp("t_units", line, 7) == 0)
     {
         if (!t_units.empty())
         {
@@ -623,7 +623,7 @@ int teca_multi_cf_reader_internals::cf_reader_options::parse_line(
 
         return 1;
     }
-    else if (strncmp("filename_time_template", line, 15) == 0)
+    else if (strncmp("filename_time_template", line, 22) == 0)
     {
         if (!filename_time_template.empty())
         {
@@ -2434,7 +2434,7 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
         {
             if (rank == 0)
                 TECA_FATAL_ERROR("Time axis missmatch detected on a managed reader."
-                    " The time axis must be indentical across all managed"
+                    " The time axis must be identical across all managed"
                     " readers. Correctness cannot be assured. " << errorStr)
             return teca_metadata();
         }
@@ -2450,7 +2450,7 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
                 if (rank == 0)
                     TECA_FATAL_ERROR("Spatial coordinate axis missmatch detected on"
                         " managed reader. The spatial coordinate axes must be"
-                        " indentical across all managed readers. Correctness"
+                        " identical across all managed readers. Correctness"
                         " cannot be assured. " << errorStr)
 
                 return teca_metadata();
