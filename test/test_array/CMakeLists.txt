@@ -17,7 +17,6 @@ set(array_test_cxx_srcs
     array_temporal_stats.cxx
     array_temporal_stats_internals.cxx
     array_time_average.cxx
-    array_util.cxx
     array_writer.cxx
     )
 
@@ -32,8 +31,8 @@ if (TECA_HAS_CUDA)
         array_temporal_stats_internals.cu
         array_scalar_multiply_internals.cu
         array_source_internals.cu
-        array_util.cu
         )
+    set_source_files_properties(array.cxx PROPERTIES LANGUAGE CUDA)
 endif()
 
 add_library(teca_test_array ${array_test_cxx_srcs} ${array_test_cuda_srcs})

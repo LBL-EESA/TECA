@@ -172,7 +172,9 @@ const_p_teca_dataset array_add::execute(unsigned int port,
 
 #ifndef TECA_NDEBUG
     cerr << teca_parallel_id()
-        << "array_add::execute " << active_array << endl;
+        << "array_add::execute " << active_array << " a_out = [";
+    a_out->to_stream(std::cerr);
+    std::cerr << "]" << std::endl;
 #endif
     return a_out;
 }

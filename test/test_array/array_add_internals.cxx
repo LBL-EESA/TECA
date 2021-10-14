@@ -1,5 +1,5 @@
 #include "array_add_internals.h"
-#include "array_util.h"
+#include "array.h"
 
 namespace array_add_internals
 {
@@ -13,14 +13,17 @@ int cpu_dispatch(p_array &result, const const_p_array &array_1,
 #endif
 
     // make sure that inputs are on the CPU
-    const_p_array tmp_1 = array_util::cpu_accessible(array_1);
-    const_p_array tmp_2 = array_util::cpu_accessible(array_2);
+    std::shared_ptr<const double> parray_1 = array_1->get_cpu_accessible();
+    std::shared_ptr<const double> parray_2 = array_2->get_cpu_accessible();
 
+    // allocate the result on the CPU
     result = array::new_cpu_accessible();
     result->resize(n_vals);
 
-    array_add_internals::cpu::add(result->get(),
-        array_1->get(), array_2->get(), n_vals);
+    std::shared_ptr<double> presult = result->get_cpu_accessible();
+
+    array_add_internals::cpu::add(presult.get(),
+        parray_1.get(), parray_2.get(), n_vals);
 
     return 0;
 }

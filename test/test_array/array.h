@@ -5,9 +5,6 @@
 #include "teca_dataset.h"
 #include "teca_shared_object.h"
 
-#include <hamm_memory_resource.h>
-#include <hamm_pmr_vector.h>
-
 #include <string>
 #include <sstream>
 
@@ -20,7 +17,7 @@ class teca_binary_stream;
 class array : public teca_dataset
 {
 public:
-    ~array() {}
+    ~array();
 
     /// create an array that accessible on the CPU
     static p_array new_cpu_accessible();
@@ -29,29 +26,37 @@ public:
     static p_array new_cuda_accessible();
 
     /// create an array dataset with a specific memory memory_resource.
-    static p_array New(const p_hamm_memory_resource &alloc);
+    ///static p_array New(const hamr::p_memory_resource &alloc);
+    static p_array New(int alloc);
 
-    TECA_DATASET_STATIC_NEW(array);
+    //TECA_DATASET_STATIC_NEW(array);
 
     TECA_DATASET_PROPERTY(std::vector<size_t>, extent)
     TECA_DATASET_PROPERTY(std::string, name)
 
+/*
     // set the contained data
-    void set_data(const hamm_pmr_vector<double> &a_data) { *this->data = a_data; }
+    void set_data(const hamr::pmr_vector<double> &a_data) { *this->data = a_data; }
 
     // get the contained data
-    hamm_pmr_vector<double> &get_data() { return *this->data; }
-    const hamm_pmr_vector<double> &get_data() const { return *this->data; }
+    hamr::pmr_vector<double> &get_data() { return *this->data; }
+    const hamr::pmr_vector<double> &get_data() const { return *this->data; }
+*/
+    // get a pointer to the contained data that is accessible on the CPU
+    std::shared_ptr<double> get_cpu_accessible();
+    std::shared_ptr<const double> get_cpu_accessible() const;
 
-    // get a pointer to the contained data
-    double *get() { return this->data->data(); }
-    const double *get() const { return this->data->data(); }
+    // get a pointer to the contained data that is accessible from CUDA codes
+    std::shared_ptr<double> get_cuda_accessible();
+    std::shared_ptr<const double> get_cuda_accessible() const;
 
+/*
     // check if the data is accessible from CUDA
     bool cuda_accessible() const;
 
     // check if the data is accessible from the CPU
     bool cpu_accessible() const;
+*/
 
     // return a unique string identifier
     std::string get_class_name() const override
@@ -63,7 +68,7 @@ public:
 
     // return true if the dataset is empty.
     bool empty() const noexcept override
-    { return this->data->empty(); }
+    { return this->size() == 0; }
 
     // return a new dataset of the same type
     p_teca_dataset new_instance() const override
@@ -73,12 +78,12 @@ public:
     p_teca_dataset new_copy() const override;
     p_teca_dataset new_shallow_copy() override;
 
-    size_t size() const
-    { return this->data->size(); }
+    size_t size() const;
 
     void resize(size_t n);
     void clear();
 
+/*
     double &get(size_t i)
     { return this->data->at(i); }
 
@@ -93,6 +98,7 @@ public:
 
     void append(double d)
     { this->data->push_back(d); }
+*/
 
     void copy(const const_p_teca_dataset &) override;
     void shallow_copy(const p_teca_dataset &) override;
@@ -112,7 +118,8 @@ protected:
     array();
 
     /// creates a new array dataset with a specific memory resource
-    array(const p_hamm_memory_resource &alloc);
+    ///array(const hamr::p_memory_resource &alloc);
+    array(int alloc);
 
     array(const array &);
     void operator=(const array &);
@@ -121,8 +128,12 @@ private:
     std::string name;
     std::vector<size_t> extent;
 
-    p_hamm_memory_resource memory_resource;
-    std::shared_ptr<hamm_pmr_vector<double>> data;
+    struct array_internals;
+    array_internals *internals;
+/*
+    hamr::p_memory_resource memory_resource;
+    std::shared_ptr<hamr::pmr_vector<double>> data;
+*/
 };
 
 #endif

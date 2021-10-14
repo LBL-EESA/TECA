@@ -12,7 +12,9 @@ int cpu_dispatch(p_array &a_out, double val, size_t n_vals)
     a_out = array::new_cpu_accessible();
     a_out->resize(n_vals);
 
-    array_source_internals::cpu::initialize(a_out->get(), n_vals, val);
+    std::shared_ptr<double> pa_out = a_out->get_cpu_accessible();
+
+    array_source_internals::cpu::initialize(pa_out.get(), val, n_vals);
 
     return 0;
 }

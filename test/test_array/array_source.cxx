@@ -159,11 +159,13 @@ const_p_teca_dataset array_source::execute(
     a_out->set_name(active_array);
 
 #ifndef TECA_NDEBUG
-    cerr << teca_parallel_id()
+    std::cerr << teca_parallel_id()
         << "array_source::execute array=" << active_array
         << " time_step=" << time_step << " time=" << active_time
         << " extent=[" << active_extent[0] << ", " << active_extent[1]
-        << "]" << endl;
+        << "] a_out=[";
+    a_out->to_stream(std::cerr);
+    std::cerr << "]" << std::endl;
 #endif
 
     return a_out;

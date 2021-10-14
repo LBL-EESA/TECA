@@ -82,6 +82,13 @@ int array_executive::initialize(MPI_Comm comm, const teca_metadata &md)
     //device_ids.push_back(-1);
     int n_devices = device_ids.size();
 
+    // add the CPU
+    if (n_devices < 1)
+    {
+        device_ids.push_back(-1);
+        n_devices = 1;
+    }
+
     // for each time request each array
     size_t n_times = time.size();
     size_t n_arrays = array_names.size();

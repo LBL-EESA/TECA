@@ -1,7 +1,6 @@
 #include "array_scalar_multiply_internals.h"
 
 #include "teca_cuda_util.h"
-#include "array_util.h"
 
 namespace array_scalar_multiply_internals
 {
@@ -41,11 +40,13 @@ int cuda_dispatch(int device_id, p_array &result,
     }
 
     // make sure that inputs are on the GPU
-    const_p_array tmp_in = array_util::cuda_accessible(array_in);
+    std::shared_ptr<const double> parray_in = array_in->get_cuda_accessible();
 
     // allocate the memory
     result = array::new_cuda_accessible();
     result->resize(n_vals);
+
+    std::shared_ptr<double> presult = result->get_cuda_accessible();
 
     // determine kernel launch parameters
     dim3 block_grid;
@@ -61,7 +62,7 @@ int cuda_dispatch(int device_id, p_array &result,
 
     // add the arrays
     array_scalar_multiply_internals::gpu::multiply<<<block_grid, thread_grid>>>(
-        result->get(), tmp_in->get(), scalar, n_vals);
+        presult.get(), parray_in.get(), scalar, n_vals);
 
     // sync
     cudaDeviceSynchronize();

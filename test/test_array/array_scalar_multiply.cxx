@@ -109,10 +109,6 @@ const_p_teca_dataset array_scalar_multiply::execute(
     const std::vector<const_p_teca_dataset> &input_data,
     const teca_metadata &request)
 {
-#ifndef TECA_NDEBUG
-    std::cerr << teca_parallel_id()
-        << "array_scalar_multiply::execute" << std::endl;
-#endif
     (void)port;
     (void)request;
 
@@ -156,6 +152,13 @@ const_p_teca_dataset array_scalar_multiply::execute(
 
     // pass metadata
     a_out->copy_metadata(a_in);
+
+#ifndef TECA_NDEBUG
+    std::cerr << teca_parallel_id()
+        << "array_scalar_multiply::execute a_out=[";
+    a_out->to_stream(std::cerr);
+    std::cerr << "]" << std::endl;
+#endif
 
     return a_out;
 }

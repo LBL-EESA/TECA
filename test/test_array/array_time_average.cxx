@@ -91,24 +91,23 @@ const_p_teca_dataset array_time_average::execute(
     const std::vector<const_p_teca_dataset> &input_data,
     const teca_metadata &request)
 {
-#ifndef TECA_NDEBUG
-    cerr << teca_parallel_id()
-        << "array_time_average::execute" << endl;
-#endif
     (void) port;
     (void) request;
 
-    p_array a_out = array::New();
+    p_array a_out = array::new_cpu_accessible();
+
     const_p_array a_in = std::dynamic_pointer_cast<const array>(input_data[0]);
+
     if (a_in)
-    {
-        a_out->copy_metadata(a_in);
-    }
+        a_out->copy(a_in);
+
     size_t n_elem = a_out->size();
-    double *p_out = a_out->get();
+
+    std::shared_ptr<double> pa_out = a_out->get_cpu_accessible();
+    double *p_out = pa_out.get();
 
     size_t n_times = input_data.size();
-    for (size_t i = 0; i < n_times; ++i)
+    for (size_t i = 1; i < n_times; ++i)
     {
         const_p_array a_in = std::dynamic_pointer_cast<const array>(input_data[i]);
         if (!a_in)
@@ -117,7 +116,8 @@ const_p_teca_dataset array_time_average::execute(
             return p_teca_dataset();
         }
 
-        const double *p_in = a_in->get();
+        std::shared_ptr<const double> pa_in = a_in->get_cpu_accessible();
+        const double *p_in = pa_in.get();
 
         for (size_t j = 0; j < n_elem; ++j)
             p_out[j] += p_in[j];
@@ -127,6 +127,13 @@ const_p_teca_dataset array_time_average::execute(
     {
         p_out[j] /= n_times;
     }
+
+#ifndef TECA_NDEBUG
+    std::cerr << teca_parallel_id()
+        << "array_time_average::execute a_out=[";
+    a_out->to_stream(std::cerr);
+    std::cerr << "]" << std::endl;
+#endif
 
     return a_out;
 }

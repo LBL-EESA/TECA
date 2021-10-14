@@ -1,7 +1,6 @@
 #include "array_add_internals.h"
 
 #include "teca_cuda_util.h"
-#include "array_util.h"
 
 namespace array_add_internals
 {
@@ -41,12 +40,14 @@ int cuda_dispatch(int device_id, p_array &result, const const_p_array &array_1,
     }
 
     // make sure that inputs are on the GPU
-    const_p_array tmp_1 = array_util::cuda_accessible(array_1);
-    const_p_array tmp_2 = array_util::cuda_accessible(array_2);
+    std::shared_ptr<const double> parray_1 = array_1->get_cuda_accessible();
+    std::shared_ptr<const double> parray_2 = array_2->get_cuda_accessible();
 
     // allocate the memory
     result = array::new_cuda_accessible();
     result->resize(n_vals);
+
+    std::shared_ptr<double> presult = result->get_cuda_accessible();
 
     // determine kernel launch parameters
     dim3 block_grid;
@@ -61,7 +62,7 @@ int cuda_dispatch(int device_id, p_array &result, const const_p_array &array_1,
 
     // add the arrays
     array_add_internals::gpu::add<<<block_grid, thread_grid>>>(
-        result->get(), tmp_1->get(), tmp_2->get(), n_vals);
+        presult.get(), parray_1.get(), parray_2.get(), n_vals);
 
     return 0;
 }

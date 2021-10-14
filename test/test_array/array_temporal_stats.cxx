@@ -77,7 +77,7 @@ p_teca_dataset array_temporal_stats::reduce(const const_p_teca_dataset &left,
         return p_teca_dataset();
     }
 
-    // do the calculation
+    // do the calculation of min, max, sum, and count
     p_array a_out;
 
     // check for the input array name to process. if found then new stats
@@ -111,6 +111,38 @@ p_teca_dataset array_temporal_stats::reduce(const const_p_teca_dataset &left,
 
     // pass metadata
     a_out->set_name(this->array_name + "_stats");
+
+    return a_out;
+}
+
+// --------------------------------------------------------------------------
+p_teca_dataset array_temporal_stats::finalize(const const_p_teca_dataset &ds)
+{
+#ifndef TECA_NDEBUG
+    std::cerr << teca_parallel_id()
+        << "array_temporal_stats::finalize" << std::endl;
+#endif
+    const_p_array a_in = std::dynamic_pointer_cast<const array>(ds);
+    if (!a_in)
+    {
+        TECA_ERROR("not an array")
+        return nullptr;
+    }
+
+    std::shared_ptr<const double> pa_in = a_in->get_cpu_accessible();
+
+    p_array a_out = array::new_cpu_accessible();
+    a_out->resize(3);
+    a_out->set_name(this->array_name + "_stats");
+
+    std::shared_ptr<double> pa_out = a_out->get_cpu_accessible();
+
+    const double *pi = pa_in.get();
+    double *po = pa_out.get();
+
+    po[0] = pi[0];          // min
+    po[1] = pi[1];          // max
+    po[2] = pi[2]/pi[3];    // average
 
     return a_out;
 }
