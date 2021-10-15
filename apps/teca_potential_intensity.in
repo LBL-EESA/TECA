@@ -168,6 +168,12 @@ vvm.set_input_connection(head.get_output_port())
 vvm.set_verbose(args.verbose)
 head = vvm
 
+# unpack NetCDF packed data
+upd = teca_unpack_data.New()
+upd.set_input_connection(head.get_output_port())
+upd.set_verbose(args.verbose)
+head = upd
+
 # potential intensity
 pint = teca_potential_intensity.New()
 pint.set_input_connection(head.get_output_port())
