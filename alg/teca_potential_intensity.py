@@ -469,12 +469,25 @@ class teca_potential_intensity(teca_python_algorithm):
                 # compute potential intensity
                 land_mask_q = land_mask[q]
                 if land_mask_q:
-                    vmax[q], pmin[q], ifl[q], to[q], otl[q] = \
-                        tcpi ( sst[q], psl[q], plev, ta_q, mr_q,
-                               CKCD = self.exchange_cooeficient_ratio,
-                               diss_flag = self.dissipative_heating,
-                               ptop = self.upper_pressure_level,
-                               miss_handle = self.handle_missing_data )
+                    try:
+
+                        vmax[q], pmin[q], ifl[q], to[q], otl[q] = \
+                            tcpi ( sst[q], psl[q], plev, ta_q, mr_q,
+                                   CKCD = self.exchange_cooeficient_ratio,
+                                   diss_flag = self.dissipative_heating,
+                                   ptop = self.upper_pressure_level,
+                                   miss_handle = self.handle_missing_data )
+
+                    except Exception as details:
+
+                        sys.stderr.write('ERROR: tcPyPI library call failed\n')
+                        sys.stderr.write('i = %d, j = %d, q = %d\n' % ( i, j, q ) )
+                        sys.stderr.write('sst[q] = %g, psl[q] = %g\n' % ( sst[q], psl[q]) )
+                        sys.stderr.write('plev = %s\n' % ( str(plev) ) )
+                        sys.stderr.write('ta[q] = %s\n' % ( str(ta_q) ) )
+                        sys.stderr.write('mr[q] = %s\n' % ( str(mr_q) ) )
+
+                        raise details
 
                 else:
                     vmax[q], pmin[q], ifl[q], to[q], otl[q] = \
