@@ -327,25 +327,25 @@ class teca_potential_intensity(teca_python_algorithm):
         psl_valid_var = self.sea_level_pressure_variable + '_valid'
         if in_arrays.has(psl_valid_var):
             psl_valid = in_arrays[psl_valid_var]
-            ii = np.where(not psl_valid)[0]
+            ii = np.where(np.logical_not(psl_valid))[0]
             psl[ii] = np.NAN
 
         sst_valid_var = self.sea_surface_temperature_variable + '_valid'
         if in_arrays.has(sst_valid_var):
             sst_valid = in_arrays[sst_valid_var]
-            ii = np.where(not sst_valid)[0]
+            ii = np.where(np.logical_not(sst_valid))[0]
             sst[ii] = np.NAN
 
         ta_valid_var = self.air_temperature_variable + '_valid'
         if in_arrays.has(ta_valid_var):
             ta_valid = in_arrays[ta_valid_var]
-            ii = np.where(not ta_valid)[0]
+            ii = np.where(np.logical_not(ta_valid))[0]
             ta[ii] = np.NAN
 
         mr_valid_var = mr_var + '_valid'
         if in_arrays.has(mr_valid_var):
             mr_valid = in_arrays[mr_valid_var]
-            ii = np.where(not mr_valid)[0]
+            ii = np.where(np.logical_not(mr_valid))[0]
             mr[ii] = np.NAN
 
         # convert pressure coordinate from Pa to hPa
