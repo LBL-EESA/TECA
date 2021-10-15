@@ -35,7 +35,7 @@ subprocess.call('doxygen --version', shell=True)
 # RTD version of Doxygen has a bug that crashes it on our code due to a fixed
 # buffer size. When RTD updates to Ubuntu 20.04 this will be resolved. See
 # issue 613
-resolved_613 = False
+resolved_613 = True
 if resolved_613:
     subprocess.call('doxygen', shell=True)
     subprocess.call('./parse_xml.py', shell=True)
