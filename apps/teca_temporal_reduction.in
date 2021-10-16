@@ -147,8 +147,16 @@ cfr.set_y_axis_variable(y_axis_var)
 cfr.set_z_axis_variable(z_axis_var)
 cfr.set_t_axis_variable(t_axis_var)
 
+vvm = teca_valid_value_mask.New()
+vvm.set_input_connection(cfr.get_output_port())
+vvm.set_verbose(verbose)
+
+upd = teca_unpack_data.New()
+upd.set_input_connection(vvm.get_output_port())
+upd.set_verbose(verbose)
+
 mav = teca_temporal_reduction.New()
-mav.set_input_connection(cfr.get_output_port())
+mav.set_input_connection(upd.get_output_port())
 mav.set_interval(interval)
 mav.set_operator(operator)
 mav.set_fill_value(fill_value)

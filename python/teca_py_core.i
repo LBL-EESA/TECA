@@ -145,10 +145,12 @@ private:
 %shared_ptr(teca_variant_array_impl<double>)
 %shared_ptr(teca_variant_array_impl<float>)
 %shared_ptr(teca_variant_array_impl<char>)
+%shared_ptr(teca_variant_array_impl<short>)
 %shared_ptr(teca_variant_array_impl<int>)
 %shared_ptr(teca_variant_array_impl<long>)
 %shared_ptr(teca_variant_array_impl<long long>)
 %shared_ptr(teca_variant_array_impl<unsigned char>)
+%shared_ptr(teca_variant_array_impl<unsigned short>)
 %shared_ptr(teca_variant_array_impl<unsigned int>)
 %shared_ptr(teca_variant_array_impl<unsigned long>)
 %shared_ptr(teca_variant_array_impl<unsigned long long>)
@@ -172,10 +174,12 @@ class teca_variant_array;
 %template(teca_float_array) teca_variant_array_impl<float>;
 %template(teca_double_array) teca_variant_array_impl<double>;
 %template(teca_char_array) teca_variant_array_impl<char>;
+%template(teca_short_array) teca_variant_array_impl<short>;
 %template(teca_int_array) teca_variant_array_impl<int>;
 %template(teca_long_array) teca_variant_array_impl<long>;
 %template(teca_long_long_array) teca_variant_array_impl<long long>;
 %template(teca_unsigned_char_array) teca_variant_array_impl<unsigned char>;
+%template(teca_unsigned_short_array) teca_variant_array_impl<unsigned short>;
 %template(teca_unsigned_int_array) teca_variant_array_impl<unsigned int>;
 %template(teca_unsigned_long_array) teca_variant_array_impl<unsigned long>;
 %template(teca_unsigned_long_long_array) teca_variant_array_impl<unsigned long long>;
@@ -183,10 +187,12 @@ class teca_variant_array;
 %template(teca_float_array_code) teca_variant_array_code<float>;
 %template(teca_double_array_code) teca_variant_array_code<double>;
 %template(teca_char_array_code) teca_variant_array_code<char>;
+%template(teca_short_array_code) teca_variant_array_code<short>;
 %template(teca_int_array_code) teca_variant_array_code<int>;
 %template(teca_long_array_code) teca_variant_array_code<long>;
 %template(teca_long_long_array_code) teca_variant_array_code<long long>;
 %template(teca_unsigned_char_array_code) teca_variant_array_code<unsigned char>;
+%template(teca_unsigned_short_array_code) teca_variant_array_code<unsigned short>;
 %template(teca_unsigned_int_array_code) teca_variant_array_code<unsigned int>;
 %template(teca_unsigned_long_array_code) teca_variant_array_code<unsigned long>;
 %template(teca_unsigned_long_long_array_code) teca_variant_array_code<unsigned long long>;

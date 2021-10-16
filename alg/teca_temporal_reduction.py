@@ -878,13 +878,17 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
             # convert integer to floating point for averaging operations
             if self.operator_name == 'average':
                 tc = in_atts['type_code']
-                if tc == teca_int_array_code.get()                  \
-                        or tc == teca_char_array_code.get()         \
-                        or tc == teca_unsigned_int_array_code.get() \
-                        or tc == teca_unsigned_char_array_code.get():
+                if ( tc == teca_int_array_code.get() )                        \
+                        or ( tc == teca_char_array_code.get() )               \
+                        or ( tc == teca_short_array_code.get() )              \
+                        or ( tc == teca_unsigned_int_array_code.get() )       \
+                        or ( tc == teca_unsigned_char_array_code.get() )      \
+                        or ( tc == teca_unsigned_short_array_code.get() ):
                     tc = teca_float_array_code.get()
-                elif tc == teca_long_long_array_code.get()          \
-                        or tc == teca_unsigned_long_long_array_code.get():
+                elif ( tc == teca_long_array_code.get() )                     \
+                        or ( tc == teca_long_long_array_code.get() )          \
+                        or ( tc == teca_unsigned_long_array_code.get() )      \
+                        or ( tc == teca_unsigned_long_long_array_code.get() ):
                     tc = teca_double_array_code.get()
                 in_atts['type_code'] = tc
 

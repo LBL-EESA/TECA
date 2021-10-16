@@ -607,7 +607,7 @@ int teca_multi_cf_reader_internals::cf_reader_options::parse_line(
 
         return 1;
     }
-    else if (strncmp("t_units", line, 15) == 0)
+    else if (strncmp("t_units", line, 7) == 0)
     {
         if (!t_units.empty())
         {
@@ -623,7 +623,7 @@ int teca_multi_cf_reader_internals::cf_reader_options::parse_line(
 
         return 1;
     }
-    else if (strncmp("filename_time_template", line, 15) == 0)
+    else if (strncmp("filename_time_template", line, 22) == 0)
     {
         if (!filename_time_template.empty())
         {
@@ -2432,10 +2432,10 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
     {
         if ((errorNo = validator.validate_time_axis(errorStr)))
         {
-            if (rank == 0)
-                TECA_FATAL_ERROR("Time axis missmatch detected on a managed reader."
-                    " The time axis must be indentical across all managed"
-                    " readers. Correctness cannot be assured. " << errorStr)
+            TECA_FATAL_ERROR("Time axis missmatch detected on a managed reader."
+                " The time axis must be identical across all managed"
+                " readers. Correctness cannot be assured. " << errorStr)
+
             return teca_metadata();
         }
     }
@@ -2447,11 +2447,10 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
             if (!applied_coordinate_transform &&
                 (errorNo != teca_coordinate_util::teca_validate_arrays::units_missmatch))
             {
-                if (rank == 0)
-                    TECA_FATAL_ERROR("Spatial coordinate axis missmatch detected on"
-                        " managed reader. The spatial coordinate axes must be"
-                        " indentical across all managed readers. Correctness"
-                        " cannot be assured. " << errorStr)
+                TECA_FATAL_ERROR("Spatial coordinate axis missmatch detected on"
+                    " managed reader. The spatial coordinate axes must be"
+                    " identical across all managed readers. Correctness"
+                    " cannot be assured. " << errorStr)
 
                 return teca_metadata();
             }

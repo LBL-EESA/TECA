@@ -620,7 +620,7 @@ void set_stack_trace_on_error(int enable)
 {
 #if !defined(_WIN32) && !defined(__MINGW32__) && !defined(__CYGWIN__)
     static int sa_orig_valid = 0;
-    static struct sigaction sa_abrt_orig;
+    //static struct sigaction sa_abrt_orig;
     static struct sigaction sa_segv_orig;
     static struct sigaction sa_term_orig;
     static struct sigaction sa_int_orig;
@@ -631,7 +631,7 @@ void set_stack_trace_on_error(int enable)
     if (enable && !sa_orig_valid)
     {
         // save the current actions
-        sigaction(SIGABRT, 0, &sa_abrt_orig);
+        //sigaction(SIGABRT, 0, &sa_abrt_orig);
         sigaction(SIGSEGV, 0, &sa_segv_orig);
         sigaction(SIGTERM, 0, &sa_term_orig);
         sigaction(SIGINT, 0, &sa_int_orig);
@@ -651,7 +651,7 @@ void set_stack_trace_on_error(int enable)
 # endif
         sigemptyset(&sa.sa_mask);
 
-        sigaction(SIGABRT, &sa, 0);
+        //sigaction(SIGABRT, &sa, 0);
         sigaction(SIGSEGV, &sa, 0);
         sigaction(SIGTERM, &sa, 0);
         sigaction(SIGINT, &sa, 0);
@@ -663,7 +663,7 @@ void set_stack_trace_on_error(int enable)
     if (!enable && sa_orig_valid)
     {
         // restore previous actions
-        sigaction(SIGABRT, &sa_abrt_orig, 0);
+        //sigaction(SIGABRT, &sa_abrt_orig, 0);
         sigaction(SIGSEGV, &sa_segv_orig, 0);
         sigaction(SIGTERM, &sa_term_orig, 0);
         sigaction(SIGINT, &sa_int_orig, 0);
