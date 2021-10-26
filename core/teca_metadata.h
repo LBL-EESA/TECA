@@ -8,6 +8,7 @@
 #include <vector>
 #include <set>
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 
 /// A generic container for meta data in the form of name=value pairs.
 /**
@@ -257,7 +258,7 @@ template<typename T>
 int teca_metadata::set(const std::string &name, const T &val)
 {
     p_teca_variant_array prop_val
-        = teca_variant_array_impl<T>::New(&val, 1);
+        = teca_variant_array_impl<T>::New(1, &val);
 
     return this->set(name, prop_val);
 }
@@ -268,7 +269,7 @@ int teca_metadata::set(const std::string &name, const T *vals,
     unsigned int n_vals)
 {
     p_teca_variant_array prop_val
-        = teca_variant_array_impl<T>::New(vals, n_vals);
+        = teca_variant_array_impl<T>::New(n_vals, vals);
 
     return this->set(name, prop_val);
 }
@@ -282,7 +283,7 @@ int teca_metadata::set(const std::string &name, const std::set<T> &vals)
     std::vector<T> tmp(vals.begin(), vals.end());
 
     p_teca_variant_array prop_val
-        = teca_variant_array_impl<T>::New(tmp.data(), n);
+        = teca_variant_array_impl<T>::New(n, tmp.data());
 
     return this->set(name, prop_val);
 }
@@ -303,7 +304,7 @@ int teca_metadata::set(const std::string &name,
     size_t n = vals.size();
 
     p_teca_variant_array prop_val
-        = teca_variant_array_impl<T>::New(vals.data(), n);
+        = teca_variant_array_impl<T>::New(n, vals.data());
 
     return this->set(name, prop_val);
 }
@@ -321,7 +322,7 @@ int teca_metadata::set(const std::string &name,
     for (size_t i = 0; i < n; ++i)
     {
         p_teca_variant_array prop_val
-            = teca_variant_array_impl<T>::New((vals.at(i).data()), vals.at(i).size());
+            = teca_variant_array_impl<T>::New(vals.at(i).size(), vals.at(i).data());
         prop_vals->append(prop_val);
     }
 
@@ -483,7 +484,7 @@ int teca_metadata::get(const std::string &name,
         return -1;
     }
 
-    it->second->get(0, n-1, vals);
+    it->second->get(0, vals, 0, n);
 
     return 0;
 }

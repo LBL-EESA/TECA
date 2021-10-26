@@ -77,6 +77,9 @@ if (TECA_HAS_SHAPELIB)
     list(APPEND teca_io_srcs teca_shape_file_mask.cxx)
 endif()
 
+if (TECA_HAS_CUDA)
+    set_source_files_properties(${teca_io_srcs} PROPERTIES LANGUAGE CUDA)
+endif()
 
 add_library(teca_io ${teca_io_srcs})
 target_link_libraries(teca_io teca_core teca_data teca_alg ${teca_io_link})

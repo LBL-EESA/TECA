@@ -213,6 +213,8 @@ public:
         const std::string &units, const std::string &calendar,
         long first_step, long last_step) override;
 
+    using interval_iterator::initialize;
+
     /** return a pair of time steps bracketing the current season.
      * both returned time steps belong to the current season.
      */
@@ -268,6 +270,8 @@ public:
         const std::string &units, const std::string &calendar,
         long first_step, long last_step) override;
 
+    using interval_iterator::initialize;
+
     /** return a pair of time steps bracketing the current season.
      * both returned time steps belong to the current season.
      */
@@ -303,6 +307,8 @@ public:
     int initialize(const const_p_teca_variant_array &t,
         const std::string &units, const std::string &calendar,
         long first_step, long last_step) override;
+
+    using interval_iterator::initialize;
 
     /** return a pair of time steps bracketing the current season.
      * both returned time steps belong to the current season.
@@ -340,6 +346,8 @@ public:
     int initialize(const const_p_teca_variant_array &t,
         const std::string &units, const std::string &calendar,
         long first_step, long last_step) override;
+
+    using interval_iterator::initialize;
 
     /** return a pair of time steps bracketing the current season.
      * both returned time steps belong to the current season.

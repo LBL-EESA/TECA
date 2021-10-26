@@ -5,6 +5,7 @@
 
 #include "teca_common.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_py_string.h"
 #include "teca_py_integer.h"
 #include <Python.h>

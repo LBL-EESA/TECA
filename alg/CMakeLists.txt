@@ -3,7 +3,7 @@ project(teca_alg)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}
     $<TARGET_PROPERTY:teca_core,INTERFACE_INCLUDE_DIRECTORIES>
     $<TARGET_PROPERTY:teca_data,INTERFACE_INCLUDE_DIRECTORIES>
-    $<TARGET_PROPERTY:teca_io,INTERFACE_INCLUDE_DIRECTORIES>
+    #$<TARGET_PROPERTY:teca_io,INTERFACE_INCLUDE_DIRECTORIES>
     )
 
 set(teca_alg_cxx_srcs
@@ -89,6 +89,11 @@ set(teca_alg_link pthread)
 if (TECA_HAS_BOOST)
     include_directories(SYSTEM ${Boost_INCLUDE_DIR})
     list(APPEND teca_alg_link ${Boost_LIBRARIES})
+endif()
+
+set(teca_alg_cuda_srcs)
+if (TECA_HAS_CUDA)
+    set_source_files_properties(${teca_alg_cxx_srcs} PROPERTIES LANGUAGE CUDA)
 endif()
 
 add_library(teca_alg ${teca_alg_cxx_srcs} ${teca_alg_f90_srcs})

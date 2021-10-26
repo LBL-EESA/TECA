@@ -41,6 +41,8 @@ public:
     const teca_metadata &get_metadata(const elem_t &elem)
     { return elem.second; }
 
+    using teca_dataset::get_metadata;
+
     // given an element extract the time axis
     static
     p_teca_variant_array get_variant_array(elem_t &elem)

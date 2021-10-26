@@ -3,6 +3,7 @@
 #include "teca_table.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 
 #include <algorithm>
@@ -147,7 +148,10 @@ const_p_teca_dataset teca_table_sort::execute(
         index[i] = i;
     TEMPLATE_DISPATCH(const teca_variant_array_impl,
         index_col.get(),
-        const NT *col = static_cast<TT*>(index_col.get())->get();
+
+        auto scol = static_cast<TT*>(index_col.get())->get_cpu_accessible();
+        const NT *col = scol.get();
+
         if (this->stable_sort)
             std::stable_sort(index, index+n_rows, internal::less<NT>(col));
         else
@@ -166,8 +170,13 @@ const_p_teca_dataset teca_table_sort::execute(
         out_col->resize(n_rows);
         TEMPLATE_DISPATCH(teca_variant_array_impl,
             out_col.get(),
-            const NT *p_in_col = static_cast<const TT*>(in_col.get())->get();
-            NT *p_out_col = static_cast<TT*>(out_col.get())->get();
+
+            auto sp_in_col = static_cast<const TT*>(in_col.get())->get_cpu_accessible();
+            const NT *p_in_col = sp_in_col.get();
+
+            auto sp_out_col = static_cast<TT*>(out_col.get())->get_cpu_accessible();
+            NT *p_out_col = sp_out_col.get();
+
             for (unsigned long i = 0; i < n_rows; ++i)
                 p_out_col[i] = p_in_col[index[i]];
             )

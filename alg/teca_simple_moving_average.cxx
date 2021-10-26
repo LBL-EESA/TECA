@@ -3,6 +3,7 @@
 #include "teca_mesh.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 
 #include <algorithm>
@@ -215,8 +216,11 @@ const_p_teca_dataset teca_simple_moving_average::execute(
                 teca_variant_array_impl,
                 out_a.get(),
 
-                const NT *p_in_a = dynamic_cast<const TT*>(in_a.get())->get();
-                NT *p_out_a = dynamic_cast<TT*>(out_a.get())->get();
+                auto sp_in_a = dynamic_cast<const TT*>(in_a.get())->get_cpu_accessible();
+                const NT *p_in_a = sp_in_a.get();
+
+                auto sp_out_a = dynamic_cast<TT*>(out_a.get())->get_cpu_accessible();
+                NT *p_out_a = sp_out_a.get();
 
                 for (size_t q = 0; q < n_elem; ++q)
                     p_out_a[q] += p_in_a[q];
@@ -233,7 +237,9 @@ const_p_teca_dataset teca_simple_moving_average::execute(
             teca_variant_array_impl,
             out_a.get(),
 
-            NT *p_out_a = dynamic_cast<TT*>(out_a.get())->get();
+            auto sp_out_a = dynamic_cast<TT*>(out_a.get())->get_cpu_accessible();
+            NT *p_out_a = sp_out_a.get();
+
             NT fac = static_cast<NT>(n_meshes);
 
             for (size_t q = 0; q < n_elem; ++q)

@@ -3,6 +3,7 @@
 #include "teca_cartesian_mesh.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_coordinate_util.h"
 
@@ -316,21 +317,23 @@ const_p_teca_dataset teca_integrated_water_vapor::execute(
     NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
         p.get(), _COORDS,
 
-        const NT_COORDS *p_p = static_cast<TT_COORDS*>(p.get())->get();
+        auto sp_p = static_cast<TT_COORDS*>(p.get())->get_cpu_accessible();
+        const NT_COORDS *p_p = sp_p.get();
 
         NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
             iwv.get(), _DATA,
 
-            NT_DATA *p_iwv = static_cast<TT_DATA*>(iwv.get())->get();
+            auto sp_iwv = static_cast<TT_DATA*>(iwv.get())->get_cpu_accessible();
+            NT_DATA *p_iwv = sp_iwv.get();
 
-            const NT_DATA *p_q = static_cast<const TT_DATA*>(q.get())->get();
+            auto sp_q = static_cast<const TT_DATA*>(q.get())->get_cpu_accessible();
+            const NT_DATA *p_q = sp_q.get();
 
-            const char *p_q_valid = nullptr;
             if (q_valid)
             {
                 using TT_MASK = teca_char_array;
-
-                p_q_valid = dynamic_cast<const TT_MASK*>(q_valid.get())->get();
+                auto sp_q_valid = dynamic_cast<const TT_MASK*>(q_valid.get())->get_cpu_accessible();
+                const char *p_q_valid = sp_q_valid.get();
 
                 ::cartesian_iwv(nx, ny, nz, p_p, p_q, p_q_valid, p_iwv);
             }

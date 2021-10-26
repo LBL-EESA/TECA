@@ -5,6 +5,7 @@
 
 #include "teca_cartesian_mesh.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_array_attributes.h"
 
@@ -369,17 +370,17 @@ int index_of(const const_p_teca_cartesian_mesh &mesh, T x, T y, T z,
         const teca_variant_array_impl,
         xc.get(),
 
-        const NT *p_xc = std::dynamic_pointer_cast<TT>(xc)->get();
-        const NT *p_yc = std::dynamic_pointer_cast<TT>(yc)->get();
-        const NT *p_zc = std::dynamic_pointer_cast<TT>(zc)->get();
+        auto p_xc = std::dynamic_pointer_cast<TT>(xc)->get_cpu_accessible();
+        auto p_yc = std::dynamic_pointer_cast<TT>(yc)->get_cpu_accessible();
+        auto p_zc = std::dynamic_pointer_cast<TT>(zc)->get_cpu_accessible();
 
         unsigned long nx = xc->size();
         unsigned long ny = yc->size();
         unsigned long nz = zc->size();
 
-        if (teca_coordinate_util::index_of(p_xc, 0, nx-1, x, true, i)
-            || teca_coordinate_util::index_of(p_yc, 0, ny-1, y, true, j)
-            || teca_coordinate_util::index_of(p_zc, 0, nz-1, z, true, k))
+        if (teca_coordinate_util::index_of(p_xc.get(), 0, nx-1, x, true, i)
+            || teca_coordinate_util::index_of(p_yc.get(), 0, ny-1, y, true, j)
+            || teca_coordinate_util::index_of(p_zc.get(), 0, nz-1, z, true, k))
         {
             // out of bounds
             return -1;

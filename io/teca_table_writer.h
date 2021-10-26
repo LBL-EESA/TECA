@@ -65,6 +65,8 @@ protected:
     teca_table_writer();
 
 private:
+    using teca_algorithm::get_output_metadata;
+
     const_p_teca_dataset execute(
         unsigned int port,
         const std::vector<const_p_teca_dataset> &input_data,

@@ -9,6 +9,10 @@ if (TECA_HAS_MPI)
     include_directories(SYSTEM ${MPI_C_INCLUDE_PATH})
 endif()
 
+if (TECA_HAS_CUDA)
+    set_source_files_properties(test_amr_metadata.cpp PROPERTIES LANGUAGE CUDA)
+endif()
+
 add_executable(teca_test_amr test_amr_metadata.cpp)
 target_link_libraries(teca_test_amr teca_core)
 

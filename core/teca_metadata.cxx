@@ -1,4 +1,6 @@
-#include <teca_metadata.h>
+#include "teca_metadata.h"
+#include "teca_variant_array_impl.h"
+
 #include <utility>
 #include <ostream>
 
@@ -122,7 +124,7 @@ int teca_metadata::get(const std::string &name, p_teca_variant_array vals) const
     if (it == this->props.end())
         return -1;
 
-    vals->copy(it->second);
+    vals->assign(it->second);
 
     return 0;
 }
@@ -313,7 +315,7 @@ bool operator==(const teca_metadata &lhs, const teca_metadata &rhs) noexcept
     for (; rit != rend; ++rit)
     {
         teca_metadata::prop_map_t::const_iterator lit = lhs.props.find(rit->first);
-        if ((lit == lend) || !(*lit->second == *rit->second))
+        if ((lit == lend) || !(lit->second->equal(rit->second)))
             return false;
     }
     return true;
@@ -329,7 +331,7 @@ teca_metadata operator&(const teca_metadata &lhs, const teca_metadata &rhs)
     for (; rit != rend; ++rit)
     {
         teca_metadata::prop_map_t::const_iterator lit = lhs.props.find(rit->first);
-        if ((lit != lend) && (*lit->second == *rit->second))
+        if ((lit != lend) && (lit->second->equal(rit->second)))
         {
             isect.set(rit->first, rit->second->new_copy());
         }

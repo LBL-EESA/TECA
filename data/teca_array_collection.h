@@ -145,6 +145,7 @@ public:
 
     /// stream to a human readable representation
     int to_stream(std::ostream &) const override;
+    using teca_dataset::from_stream;
 
 protected:
     teca_array_collection() = default;

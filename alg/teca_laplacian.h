@@ -56,6 +56,8 @@ protected:
     std::string get_laplacian_variable(const teca_metadata &request);
 
 private:
+    using teca_algorithm::get_output_metadata;
+
     teca_metadata get_output_metadata(
         unsigned int port,
         const std::vector<teca_metadata> &input_md) override;

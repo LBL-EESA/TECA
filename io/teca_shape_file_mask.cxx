@@ -3,6 +3,7 @@
 #include "teca_cartesian_mesh.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_array_attributes.h"
 #include "teca_geometry.h"
@@ -244,7 +245,8 @@ const_p_teca_dataset teca_shape_file_mask::execute(
     unsigned long nxy = nx*ny;
 
     p_teca_char_array mask = teca_char_array::New(nxy, 0);
-    char *p_mask = mask->get();
+    auto sp_mask = mask->get_cpu_accessible();
+    char *p_mask = sp_mask.get();
 
     // visit each polygon
     unsigned long np = this->internals->polys.size();
@@ -268,8 +270,11 @@ const_p_teca_dataset teca_shape_file_mask::execute(
         TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
             x.get(),
 
-            const NT *p_x = static_cast<TT*>(x.get())->get();
-            const NT *p_y = static_cast<TT*>(y.get())->get();
+            auto sp_x = static_cast<TT*>(x.get())->get_cpu_accessible();
+            const NT *p_x = sp_x.get();
+
+            auto sp_y = static_cast<TT*>(y.get())->get_cpu_accessible();
+            const NT *p_y = sp_y.get();
 
             for (unsigned long j = extent[2]; j <= extent[3]; ++j)
             {

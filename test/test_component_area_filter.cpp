@@ -7,6 +7,7 @@
 #include "teca_dataset.h"
 #include "teca_cartesian_mesh.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_dataset_source.h"
 
 #include <vector>
@@ -53,13 +54,15 @@ int main(int argc, char **argv)
     using coord_t = double;
     coord_t dx = coord_t(360.)/coord_t(nx - 1);
     p_teca_variant_array_impl<coord_t> x = teca_variant_array_impl<coord_t>::New(nx);
-    coord_t *px = x->get();
+    auto spx = x->get_cpu_accessible();
+    coord_t *px = spx.get();
     for (unsigned long i = 0; i < nx; ++i)
         px[i] = i*dx;
 
     coord_t dy = coord_t(180.)/coord_t(ny - 1);
     p_teca_variant_array_impl<coord_t> y = teca_variant_array_impl<coord_t>::New(ny);
-    coord_t *py = y->get();
+    auto spy = y->get_cpu_accessible();
+    coord_t *py = spy.get();
     for (unsigned long i = 0; i < ny; ++i)
         py[i] = coord_t(-90.) + i*dy;
 
@@ -72,7 +75,8 @@ int main(int argc, char **argv)
     // genrate nxl by nyl tiles
     unsigned long nxy = nx*ny;
     p_teca_int_array cc = teca_int_array::New(nxy);
-    int *p_cc = cc->get();
+    auto sp_cc = cc->get_cpu_accessible();
+    int *p_cc = sp_cc.get();
 
     memset(p_cc,0, nxy*sizeof(int));
 
@@ -187,7 +191,8 @@ int main(int argc, char **argv)
         va.get(),
         _LABEL,
 
-        const NT_LABEL *p_labels_filtered = static_cast<TT_LABEL*>(va.get())->get();
+        auto sp_labels_filtered = static_cast<TT_LABEL*>(va.get())->get_cpu_accessible();
+        const NT_LABEL *p_labels_filtered = sp_labels_filtered.get();
 
         for (size_t i = 0; i < n_filtered; ++i)
         {
@@ -201,7 +206,7 @@ int main(int argc, char **argv)
                 }
             }
         }
-        
+
     )
 
     return 0;

@@ -3,6 +3,7 @@
 #include "teca_cartesian_mesh.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_coordinate_util.h"
 
@@ -581,18 +582,28 @@ const_p_teca_dataset teca_cartesian_mesh_regrid::execute(
             target_xc.get(),
             _TGT,
 
-            const NT_TGT *p_target_xc = std::dynamic_pointer_cast<TT_TGT>(target_xc)->get();
-            const NT_TGT *p_target_yc = std::dynamic_pointer_cast<TT_TGT>(target_yc)->get();
-            const NT_TGT *p_target_zc = std::dynamic_pointer_cast<TT_TGT>(target_zc)->get();
+            auto sp_target_xc = static_cast<TT_TGT*>(target_xc.get())->get_cpu_accessible();
+            const NT_TGT *p_target_xc = sp_target_xc.get();
+
+            auto sp_target_yc = dynamic_cast<TT_TGT*>(target_yc.get())->get_cpu_accessible();
+            const NT_TGT *p_target_yc = sp_target_yc.get();
+
+            auto sp_target_zc = dynamic_cast<TT_TGT*>(target_zc.get())->get_cpu_accessible();
+            const NT_TGT *p_target_zc = sp_target_zc.get();
 
             NESTED_TEMPLATE_DISPATCH_FP(
                 const teca_variant_array_impl,
                 source_xc.get(),
                 _SRC,
 
-                const NT_SRC *p_source_xc = std::dynamic_pointer_cast<TT_SRC>(source_xc)->get();
-                const NT_SRC *p_source_yc = std::dynamic_pointer_cast<TT_SRC>(source_yc)->get();
-                const NT_SRC *p_source_zc = std::dynamic_pointer_cast<TT_SRC>(source_zc)->get();
+                auto sp_source_xc = dynamic_cast<TT_SRC*>(source_xc.get())->get_cpu_accessible();
+                const NT_SRC *p_source_xc = sp_source_xc.get();
+
+                auto sp_source_yc = dynamic_cast<TT_SRC*>(source_yc.get())->get_cpu_accessible();
+                const NT_SRC *p_source_yc = sp_source_yc.get();
+
+                auto sp_source_zc = dynamic_cast<TT_SRC*>(source_zc.get())->get_cpu_accessible();
+                const NT_SRC *p_source_zc = sp_source_zc.get();
 
                 size_t n_arrays = source_arrays.size();
                 for (size_t i = 0; i < n_arrays; ++i)
@@ -606,8 +617,11 @@ const_p_teca_dataset teca_cartesian_mesh_regrid::execute(
                         target_a.get(),
                         _DATA,
 
-                        const NT_DATA *p_source_a = std::static_pointer_cast<const TT_DATA>(source_a)->get();
-                        NT_DATA *p_target_a = std::static_pointer_cast<TT_DATA>(target_a)->get();
+                        auto sp_source_a = static_cast<const TT_DATA*>(source_a.get())->get_cpu_accessible();
+                        const NT_DATA *p_source_a = sp_source_a.get();
+
+                        auto sp_target_a = static_cast<TT_DATA*>(target_a.get())->get_cpu_accessible();
+                        NT_DATA *p_target_a = sp_target_a.get();
 
                         if (interpolate(this->interpolation_mode, target_nx, target_ny, target_nz,
                             p_target_xc, p_target_yc, p_target_zc, p_target_a, p_source_xc,

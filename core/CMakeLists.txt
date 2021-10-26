@@ -27,7 +27,6 @@ set(teca_core_srcs
     teca_threaded_algorithm.cxx
     teca_threaded_programmable_algorithm.cxx
     teca_thread_util.cxx
-    teca_variant_array.cxx
     )
 
 set(teca_core_link hamr)
@@ -37,8 +36,8 @@ if (TECA_HAS_CUDA)
     set(teca_core_cuda_srcs
         teca_cuda_util.cu
         )
+    set_source_files_properties(${teca_core_srcs} PROPERTIES LANGUAGE CUDA)
 endif()
-
 
 if (TECA_HAS_MPI)
     list(APPEND teca_core_link MPI)

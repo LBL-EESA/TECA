@@ -89,6 +89,7 @@ public:
 
     // stream to/from human readable representation
     int to_stream(std::ostream &) const override;
+    using teca_dataset::from_stream;
 
 protected:
     teca_curvilinear_mesh();

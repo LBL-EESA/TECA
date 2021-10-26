@@ -32,7 +32,7 @@ if (TECA_HAS_CUDA)
         array_scalar_multiply_internals.cu
         array_source_internals.cu
         )
-    set_source_files_properties(array.cxx PROPERTIES LANGUAGE CUDA)
+    set_source_files_properties(${array_test_cxx_srcs} PROPERTIES LANGUAGE CUDA)
 endif()
 
 add_library(teca_test_array ${array_test_cxx_srcs} ${array_test_cuda_srcs})

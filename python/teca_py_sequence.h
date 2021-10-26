@@ -5,6 +5,7 @@
 
 #include "teca_common.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_py_object.h"
 #include "teca_py_string.h"
 #include <Python.h>
@@ -201,7 +202,8 @@ PyObject *new_object(const teca_variant_array_impl<NT> *va)
 {
     unsigned long n_elem = va->size();
     PyObject *list = PyList_New(n_elem);
-    const NT *pva = va->get();
+    auto spva = va->get_cpu_accessible();
+    const NT *pva = spva.get();
     for (unsigned long i = 0; i < n_elem; ++i)
         PyList_SetItem(list, i, teca_py_object::py_tt<NT>::new_object(pva[i]));
     return list;

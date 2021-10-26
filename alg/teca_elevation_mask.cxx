@@ -3,6 +3,7 @@
 #include "teca_cartesian_mesh.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_array_attributes.h"
 
@@ -347,21 +348,26 @@ const_p_teca_dataset teca_elevation_mask::execute(
 
     // compute the mask
     p_teca_char_array mask = teca_char_array::New(mesh_height->size());
-    char *p_mask = mask->get();
+    auto sp_mask = mask->get_cpu_accessible();
+    char *p_mask = sp_mask.get();
 
     NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
         surface_elev.get(),
         _SURF,
 
-        const NT_SURF *p_surface_elev =
-            static_cast<const TT_SURF *>(surface_elev.get())->get();
+        auto sp_surface_elev = static_cast<TT_SURF*>
+            (surface_elev.get())->get_cpu_accessible();
+
+        const NT_SURF *p_surface_elev = sp_surface_elev.get();
 
         NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
             mesh_height.get(),
             _MESH,
 
-            const NT_MESH *p_mesh_height =
-                static_cast<const TT_MESH *>(mesh_height.get())->get();
+            auto sp_mesh_height = static_cast<TT_MESH *>
+                (mesh_height.get())->get_cpu_accessible();
+
+            const NT_MESH *p_mesh_height = sp_mesh_height.get();
 
             internals_t::mask_by_surface_elevation(nx, ny, nz,
                 p_mask, p_surface_elev, p_mesh_height);

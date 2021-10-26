@@ -52,7 +52,8 @@ void teca_cartesian_mesh_source::internals_t::initialize_axis(
     unsigned long nx = i1 - i0 + 1;
     x->resize(nx);
 
-    num_t *px = x->get();
+    auto spx = x->get_cpu_accessible();
+    auto px = spx.get();
 
     // avoid divide by zero
     if (nx < 2)
@@ -699,9 +700,9 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
     in_t->get(req_index, t);
 
     // slice axes on the requested extent
-    p_teca_variant_array out_x = in_x->new_copy(req_extent[0], req_extent[1]);
-    p_teca_variant_array out_y = in_y->new_copy(req_extent[2], req_extent[3]);
-    p_teca_variant_array out_z = in_z->new_copy(req_extent[4], req_extent[5]);
+    p_teca_variant_array out_x = in_x->new_copy(req_extent[0], req_extent[1] - req_extent[0] + 1);
+    p_teca_variant_array out_y = in_y->new_copy(req_extent[2], req_extent[3] - req_extent[2] + 1);
+    p_teca_variant_array out_z = in_z->new_copy(req_extent[4], req_extent[5] - req_extent[4] + 1);
 
     // create output dataset
     p_teca_cartesian_mesh mesh = teca_cartesian_mesh::New();

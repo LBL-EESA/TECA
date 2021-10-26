@@ -3,6 +3,7 @@
 #include <sstream>
 #include "teca_array_attributes.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_array_collection.h"
 #include "teca_coordinate_util.h"
 #include "teca_mesh.h"
@@ -534,7 +535,7 @@ TECA_PY_CONST_CAST(teca_table)
             || (varr = teca_py_sequence::new_variant_array(array))
             || (varr = teca_py_iterator::new_variant_array(array)))
         {
-            col->copy(varr);
+            col->assign(varr);
             return Py_None;
         }
 

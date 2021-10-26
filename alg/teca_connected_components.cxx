@@ -3,6 +3,7 @@
 #include "teca_mesh.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_cartesian_mesh.h"
 #include "teca_array_attributes.h"
@@ -164,10 +165,10 @@ void periodic_labeler(unsigned long i0, unsigned long j0, unsigned long k0,
 
 /// 2D/3D connected component labeler driver
 /**
-given a binary segmentation(segments) and buffer(components), both
-with dimensions described by the given exent(ext), compute
-the labeling.
-*/
+ * given a binary segmentation(segments) and buffer(components), both
+ * with dimensions described by the given exent(ext), compute
+ * the labeling.
+ */
 template <typename segment_t, typename component_t>
 void label(unsigned long *ext, int periodic_in_x, int periodic_in_y,
     int periodic_in_z, const segment_t *segments, component_t *components,
@@ -414,13 +415,19 @@ const_p_teca_dataset teca_connected_components::execute(
 
     // do segmentation and component
     size_t n_elem = input_array->size();
+
     p_teca_short_array components = teca_short_array::New(n_elem);
-    short *p_components = components->get();
+    auto sp_components = components->get_cpu_accessible();
+    short *p_components = sp_components.get();
+
     short max_component = 0;
 
     TEMPLATE_DISPATCH(const teca_variant_array_impl,
         input_array.get(),
-        const NT *p_in = static_cast<TT*>(input_array.get())->get();
+
+        auto sp_in = static_cast<TT*>(input_array.get())->get_cpu_accessible();
+        const NT *p_in = sp_in.get();
+
         ::label(extent, periodic_in_x, periodic_in_y,
             periodic_in_z, p_in, p_components, max_component);
         )

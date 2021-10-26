@@ -4,6 +4,7 @@
 #include "teca_table.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_array_attributes.h"
 
@@ -482,25 +483,30 @@ const_p_teca_dataset teca_apply_tempest_remap::execute(
                 _IDX,
 
                 // get the source and target mesh indices
-                const NT_IDX *pr = static_cast<TT_IDX*>(row.get())->get();
-                const NT_IDX *pc = dynamic_cast<TT_IDX*>(col.get())->get();
+                auto spr = static_cast<TT_IDX*>(row.get())->get_cpu_accessible();
+                const NT_IDX *pr = spr.get();
+
+                auto spc = dynamic_cast<TT_IDX*>(col.get())->get_cpu_accessible();
+                const NT_IDX *pc = spc.get();
 
                 NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
                     weights.get(),
                     _WGT,
 
                     // get the weight matrix
-                    const NT_WGT *pw = static_cast<TT_WGT*>(weights.get())->get();
+                    auto spw = static_cast<TT_WGT*>(weights.get())->get_cpu_accessible();
+                    const NT_WGT *pw = spw.get();
 
                     NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
                         tgt_data.get(),
                         _DATA,
 
                         // get the source and target data
-                        const NT_DATA *psrc =
-                            static_cast<const TT_DATA*>(src_data.get())->get();
+                        auto spsrc = static_cast<const TT_DATA*>(src_data.get())->get_cpu_accessible();
+                        const NT_DATA *psrc = spsrc.get();
 
-                        NT_DATA *ptgt = static_cast<TT_DATA*>(tgt_data.get())->get();
+                        auto sptgt = static_cast<TT_DATA*>(tgt_data.get())->get_cpu_accessible();
+                        NT_DATA *ptgt = sptgt.get();
 
                         if (src_valid)
                         {
@@ -516,14 +522,16 @@ const_p_teca_dataset teca_apply_tempest_remap::execute(
 #if defined(CHAR_VALID_VALUE_MASK)
                             // to improve compile times assume valid value masks are char type
                             using NT_SRC_VVM = char;
-                            using TT_SRC_VVM = const teca_char_array;
+                            using TT_SRC_VVM = const teca_variant_array_impl<NT_SRC_VVM>;
 #else
                             NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
                                 src_valid.get(),
                                 _SRC_VVM,
 #endif
-                                const NT_SRC_VVM *psrc_valid =
-                                    static_cast<TT_SRC_VVM*>(src_valid.get())->get();
+                                auto spsrc_valid = static_cast<TT_SRC_VVM*>
+                                    (src_valid.get())->get_cpu_accessible();
+
+                                const NT_SRC_VVM *psrc_valid = spsrc_valid.get();
 
                                 for (unsigned long q = 0; q < n_weights; ++q)
                                     ptgt[pr[q]] = (psrc_valid[pc[q]] ?
@@ -555,14 +563,17 @@ const_p_teca_dataset teca_apply_tempest_remap::execute(
 
 #if defined(CHAR_VALID_VALUE_MASK)
                 // to improve compile times assume valid value masks are char type
-                using TT_MASK = const teca_char_array;
                 using NT_MASK = char;
+                using TT_MASK = const teca_variant_array_impl<NT_MASK>;
 #else
                 NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
                     tgt_valid.get(),
                     _MASK,
 #endif
-                    const NT_MASK *ptgt_valid = static_cast<TT_MASK*>(tgt_valid.get())->get();
+                    auto sptgt_valid = static_cast<TT_MASK*>
+                        (tgt_valid.get())->get_cpu_accessible();
+
+                    const NT_MASK *ptgt_valid = sptgt_valid.get();
 
                     NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
                         tgt_data.get(),
@@ -580,12 +591,13 @@ const_p_teca_dataset teca_apply_tempest_remap::execute(
                             return nullptr;
                         }
 
-                        const NT_DATA *ptgt = static_cast<TT_DATA*>(tgt_data.get())->get();
+                        auto sptgt = static_cast<TT_DATA*>(tgt_data.get())->get_cpu_accessible();
+                        NT_DATA *ptgt = sptgt.get();
 
-                        p_teca_variant_array_impl<NT_DATA> tgt_out =
-                            teca_variant_array_impl<NT_DATA>::New(tgt_nxyz, fill_value);
-
-                        NT_DATA *ptgt_out = tgt_out->get();
+                        using TT_DATA_OUT = teca_variant_array_impl<NT_DATA>;
+                        auto tgt_out = TT_DATA_OUT::New(tgt_nxyz, fill_value);
+                        auto sptgt_out = tgt_out->get_cpu_accessible();
+                        NT_DATA *ptgt_out = sptgt_out.get();
 
                         for (unsigned long q = 0, p = 0; q < tgt_nxyz; ++q)
                         {

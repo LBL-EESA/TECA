@@ -11,6 +11,8 @@
 #include "teca_netcdf_util.h"
 #include "teca_system_util.h"
 #include "teca_calcalcs.h"
+#include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 
 #include <netcdf.h>
 #include <iostream>
@@ -378,11 +380,13 @@ teca_metadata teca_cf_reader::get_output_metadata(
         NC_DISPATCH(x_t,
             size_t x_0 = 0;
             p_teca_variant_array_impl<NC_T> x = teca_variant_array_impl<NC_T>::New(n_x);
+            auto spx = x->get_cpu_accessible();
+            NC_T *px = spx.get();
 #if !defined(HDF5_THREAD_SAFE)
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-            if ((ierr = nc_get_vara(fh.get(), x_id, &x_0, &n_x, x->get())) != NC_NOERR)
+            if ((ierr = nc_get_vara(fh.get(), x_id, &x_0, &n_x, px)) != NC_NOERR)
             {
                 this->clear_cached_metadata();
                 TECA_FATAL_ERROR(
@@ -405,8 +409,8 @@ teca_metadata teca_cf_reader::get_output_metadata(
             TECA_WARNING("Integer x coordinate axes detected in " << x_axis_variable
                 << ". A conversion to float will be made.")
 
-            p_teca_variant_array_impl<float> tmp_x = teca_variant_array_impl<float>::New();
-            tmp_x->copy(*x_axis);
+            p_teca_float_array tmp_x = teca_float_array::New();
+            tmp_x->assign(x_axis);
             x_axis = tmp_x;
 
             x_atts.set("type_code", x_axis->type_code());
@@ -437,11 +441,13 @@ teca_metadata teca_cf_reader::get_output_metadata(
             NC_DISPATCH(y_t,
                 size_t y_0 = 0;
                 p_teca_variant_array_impl<NC_T> y = teca_variant_array_impl<NC_T>::New(n_y);
+                auto spy = y->get_cpu_accessible();
+                NC_T *py = spy.get();
 #if !defined(HDF5_THREAD_SAFE)
                 {
                 std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-                if ((ierr = nc_get_vara(fh.get(), y_id, &y_0, &n_y, y->get())) != NC_NOERR)
+                if ((ierr = nc_get_vara(fh.get(), y_id, &y_0, &n_y, py)) != NC_NOERR)
                 {
                     this->clear_cached_metadata();
                     TECA_FATAL_ERROR(
@@ -465,7 +471,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                    << ". A type conversion will be made.")
 
                p_teca_variant_array tmp_y = x_axis->new_instance();
-               tmp_y->copy(*y_axis);
+               tmp_y->assign(y_axis);
                y_axis = tmp_y;
 
                y_atts.set("type_code", y_axis->type_code());
@@ -505,11 +511,13 @@ teca_metadata teca_cf_reader::get_output_metadata(
             NC_DISPATCH(z_t,
                 size_t z_0 = 0;
                 p_teca_variant_array_impl<NC_T> z = teca_variant_array_impl<NC_T>::New(n_z);
+                auto spz = z->get_cpu_accessible();
+                NC_T *pz = spz.get();
 #if !defined(HDF5_THREAD_SAFE)
                 {
                 std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-                if ((ierr = nc_get_vara(fh.get(), z_id, &z_0, &n_z, z->get())) != NC_NOERR)
+                if ((ierr = nc_get_vara(fh.get(), z_id, &z_0, &n_z, pz)) != NC_NOERR)
                 {
                     this->clear_cached_metadata();
                     TECA_FATAL_ERROR(
@@ -533,7 +541,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                    << ". A type conversion will be made.")
 
                p_teca_variant_array tmp_z = x_axis->new_instance();
-               tmp_z->copy(*z_axis);
+               tmp_z->assign(z_axis);
                z_axis = tmp_z;
 
                z_atts.set("type_code", z_axis->type_code());
@@ -682,8 +690,14 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     // the files are in the same units copy the data
                     TEMPLATE_DISPATCH(teca_variant_array_impl,
                         t_axis.get(),
-                        const NT *p_ti = static_cast<const TT*>(t_i.get())->get();
-                        NT *p_t = static_cast<TT*>(t_axis.get())->get() + n_t;
+
+                        auto sp_ti = static_cast<const TT*>(t_i.get())->get_cpu_accessible();
+                        const NT *p_ti = sp_ti.get();
+
+                        auto sp_t = static_cast<TT*>(t_axis.get())->get_cpu_accessible();
+                        NT *p_t = sp_t.get();
+                        p_t += n_t;
+
                         memcpy(p_t, p_ti, sizeof(NT)*n_ti);
                         )
                 }
@@ -704,8 +718,14 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
                     TEMPLATE_DISPATCH(teca_variant_array_impl,
                         t_axis.get(),
-                        NT *p_ti = static_cast<TT*>(elem_i.first.get())->get();
-                        NT *p_t = static_cast<TT*>(t_axis.get())->get() + n_t;
+
+                        auto sp_ti = static_cast<TT*>(elem_i.first.get())->get_cpu_accessible();
+                        NT *p_ti = sp_ti.get();
+
+                        auto sp_t = static_cast<TT*>(t_axis.get())->get_cpu_accessible();
+                        NT *p_t = sp_t.get();
+                        p_t += n_t;
+
                         for (size_t j = 0; j < n_ti; ++j)
                         {
                             // convert offset from units_i to time
@@ -765,8 +785,8 @@ teca_metadata teca_cf_reader::get_output_metadata(
                     return teca_metadata();
                 }
 
-                p_teca_double_array t =
-                    teca_double_array::New(this->t_values.data(), n_t_vals);
+                p_teca_double_array t = teca_double_array::New
+                    (n_t_vals, this->t_values.data());
 
                 t_axis = t;
             }
@@ -803,9 +823,9 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
             atrs.set("time", time_atts);
 
-            p_teca_variant_array_impl<double> t =
-                teca_variant_array_impl<double>::New(
-                        this->t_values.data(), n_t_vals);
+            p_teca_double_array t =
+                teca_double_array::New
+                    (n_t_vals, this->t_values.data());
 
             step_count.resize(n_t_vals, 1);
 
@@ -893,9 +913,9 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
             // create a teca variant array from the times
             size_t n_t_vals = t_values.size();
-            p_teca_variant_array_impl<double> t =
-                teca_variant_array_impl<double>::New(t_values.data(),
-                        n_t_vals);
+            p_teca_double_array t =
+                teca_double_array::New
+                    (n_t_vals, t_values.data());
 
             // set the number of time steps
             step_count.resize(n_t_vals, 1);
@@ -941,11 +961,11 @@ teca_metadata teca_cf_reader::get_output_metadata(
         }
 
         // convert time axis to floating point
-        if (!std::dynamic_pointer_cast<teca_variant_array_impl<double>>(t_axis) &&
-            !std::dynamic_pointer_cast<teca_variant_array_impl<float>>(t_axis))
+        if (!std::dynamic_pointer_cast<teca_double_array>(t_axis) &&
+            !std::dynamic_pointer_cast<teca_float_array>(t_axis))
         {
-            p_teca_variant_array_impl<float> t = teca_variant_array_impl<float>::New();
-            t->copy(*t_axis);
+            p_teca_float_array t = teca_float_array::New();
+            t->assign(t_axis);
             t_axis = t;
         }
 
@@ -1060,7 +1080,8 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
         TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
             in_t.get(),
 
-            NT *pin_t = dynamic_cast<TT*>(in_t.get())->get();
+            auto spin_t = dynamic_cast<TT*>(in_t.get())->get_cpu_accessible();
+            NT *pin_t = spin_t.get();
 
             if (teca_coordinate_util::index_of(pin_t, 0,
                 in_t->size()-1, static_cast<NT>(t), time_step))
@@ -1174,9 +1195,9 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
     size_t n_arrays = arrays.size();
 
     // slice axes on the requested extent
-    p_teca_variant_array out_x = in_x->new_copy(extent[0], extent[1]);
-    p_teca_variant_array out_y = in_y->new_copy(extent[2], extent[3]);
-    p_teca_variant_array out_z = in_z->new_copy(extent[4], extent[5]);
+    p_teca_variant_array out_x = in_x->new_copy(extent[0], extent[1] - extent[0] + 1);
+    p_teca_variant_array out_y = in_y->new_copy(extent[2], extent[3] - extent[2] + 1);
+    p_teca_variant_array out_z = in_z->new_copy(extent[4], extent[5] - extent[4] + 1);
 
     // locate file with this time step
     std::vector<unsigned long> step_count;
@@ -1401,11 +1422,13 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
         p_teca_variant_array array;
         NC_DISPATCH(type,
             p_teca_variant_array_impl<NC_T> a = teca_variant_array_impl<NC_T>::New(n_vals);
+            auto spa = a->get_cpu_accessible();
+            NC_T *pa = spa.get();
 #if !defined(HDF5_THREAD_SAFE)
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-            if ((ierr = nc_get_vara(file_id,  id, &starts[0], &counts[0], a->get())) != NC_NOERR)
+            if ((ierr = nc_get_vara(file_id,  id, &starts[0], &counts[0], pa)) != NC_NOERR)
             {
                 TECA_FATAL_ERROR("time_step=" << time_step
                     << " Failed to read variable \"" << arrays[i] << "\" "

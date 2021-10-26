@@ -18,6 +18,10 @@ if (TECA_HAS_PYTHON)
 
     PYTHON_ADD_MODULE(_teca_py ${CMAKE_CURRENT_BINARY_DIR}/teca_py.cxx)
 
+    if (TECA_HAS_CUDA)
+        set_source_files_properties(teca_py.cxx PROPERTIES LANGUAGE CUDA)
+    endif()
+
     # include the directory containing _teca_py in the rpath
     # this enables one not to have to set (DY)LD_LIBRARY_PATH
     # prior to importing teca.

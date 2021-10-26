@@ -3,6 +3,7 @@
 #include "teca_cartesian_mesh.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_coordinate_util.h"
 
@@ -123,32 +124,31 @@ void teca_cartesian_mesh_coordinate_transform::internals_t::transform_axes(
     p_teca_variant_array &ax_out, const const_p_teca_variant_array &ax_in,
     const double *tgt_bounds)
 {
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
-        ax_in.get(),
-
         if(!(tgt_bounds[1] < tgt_bounds[0]))
         {
             // allocate output
             size_t ax_size = ax_in->size();
-
             ax_out = ax_in->new_instance(ax_size);
 
-            NT *p_ax_out =
-                dynamic_cast<teca_variant_array_impl<NT>*>(ax_out.get())->get();
+            TEMPLATE_DISPATCH(teca_variant_array_impl,
+                ax_out.get(),
 
-            // transform the axis
-            const NT *p_ax_in =
-                dynamic_cast<const TT*>(ax_in.get())->get();
+                auto sp_ax_out = dynamic_cast<TT*>(ax_out.get())->get_cpu_accessible();
+                NT *p_ax_out = sp_ax_out.get();
 
-            teca_cartesian_mesh_coordinate_transform::internals_t::transform_axis(
-                p_ax_out, p_ax_in, ax_size, NT(tgt_bounds[0]), NT(tgt_bounds[1]));
+                // transform the axis
+                auto sp_ax_in = dynamic_cast<const TT*>(ax_in.get())->get_cpu_accessible();
+                const NT *p_ax_in = sp_ax_in.get();
+
+                teca_cartesian_mesh_coordinate_transform::internals_t::transform_axis(
+                    p_ax_out, p_ax_in, ax_size, NT(tgt_bounds[0]), NT(tgt_bounds[1]));
+            )
         }
         else
         {
             // the requested bounds are invalid, pass the current axis through
             ax_out = ax_in->new_copy();
         }
-        )
 }
 
 
@@ -643,18 +643,30 @@ const_p_teca_dataset teca_cartesian_mesh_coordinate_transform::execute(
     TEMPLATE_DISPATCH(teca_variant_array_impl,
         x_out.get(),
 
-        NT *p_x_out = dynamic_cast<TT*>(x_out.get())->get();
-        NT *p_x_out_sub = dynamic_cast<TT*>(x_out_sub.get())->get();
+        auto sp_x_out = dynamic_cast<TT*>(x_out.get())->get_cpu_accessible();
+        NT *p_x_out = sp_x_out.get();
+
+        auto sp_x_out_sub = dynamic_cast<TT*>(x_out_sub.get())->get_cpu_accessible();
+        NT *p_x_out_sub = sp_x_out_sub.get();
+
         for (unsigned long i = 0; i < nx; ++i)
             p_x_out_sub[i] = p_x_out[extent[0] +i];
 
-        NT *p_y_out = dynamic_cast<TT*>(y_out.get())->get();
-        NT *p_y_out_sub = dynamic_cast<TT*>(y_out_sub.get())->get();
+        auto sp_y_out = dynamic_cast<TT*>(y_out.get())->get_cpu_accessible();
+        NT *p_y_out = sp_y_out.get();
+
+        auto sp_y_out_sub = dynamic_cast<TT*>(y_out_sub.get())->get_cpu_accessible();
+        NT *p_y_out_sub = sp_y_out_sub.get();
+
         for (unsigned long i = 0; i < ny; ++i)
             p_y_out_sub[i] = p_y_out[extent[0] +i];
 
-        NT *p_z_out = dynamic_cast<TT*>(z_out.get())->get();
-        NT *p_z_out_sub = dynamic_cast<TT*>(z_out_sub.get())->get();
+        auto sp_z_out = dynamic_cast<TT*>(z_out.get())->get_cpu_accessible();
+        NT *p_z_out = sp_z_out.get();
+
+        auto sp_z_out_sub = dynamic_cast<TT*>(z_out_sub.get())->get_cpu_accessible();
+        NT *p_z_out_sub = sp_z_out_sub.get();
+
         for (unsigned long i = 0; i < nz; ++i)
             p_z_out_sub[i] = p_z_out[extent[0] +i];
         )

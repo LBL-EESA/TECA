@@ -1,5 +1,7 @@
 #include "teca_wrf_reader.h"
 #include "teca_array_attributes.h"
+#include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_file_util.h"
 #include "teca_arakawa_c_grid.h"
 #include "teca_coordinate_util.h"
@@ -653,7 +655,7 @@ teca_metadata teca_wrf_reader::get_output_metadata(
                 for (size_t i = 1; i < n_files; ++i)
                 {
                     p_teca_variant_array tmp = time_arrays[i];
-                    t_axis->append(*tmp.get());
+                    t_axis->append(tmp);
                     step_count.push_back(tmp->size());
                 }
 
@@ -696,7 +698,7 @@ teca_metadata teca_wrf_reader::get_output_metadata(
                 atrs.set("time", time_atts);
 
                 p_teca_variant_array_impl<double> t =
-                    teca_variant_array_impl<double>::New(this->t_values.data(), n_t_vals);
+                    teca_variant_array_impl<double>::New(n_t_vals, this->t_values.data());
 
                 step_count.resize(n_t_vals, 1);
 
@@ -797,8 +799,7 @@ teca_metadata teca_wrf_reader::get_output_metadata(
                 // create a teca variant array from the times
                 size_t n_t_vals = t_values.size();
                 p_teca_variant_array_impl<double> t =
-                    teca_variant_array_impl<double>::New(t_values.data(),
-                            n_t_vals);
+                    teca_variant_array_impl<double>::New(n_t_vals, t_values.data());
 
                 // set the number of time steps
                 step_count.resize(n_t_vals, 1);
@@ -962,7 +963,8 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
         TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
             in_t.get(),
 
-            NT *pin_t = dynamic_cast<TT*>(in_t.get())->get();
+            auto spin_t = dynamic_cast<TT*>(in_t.get())->get_cpu_accessible();
+            NT *pin_t = spin_t.get();
 
             if (teca_coordinate_util::index_of(pin_t, 0,
                 in_t->size()-1, static_cast<NT>(t), time_step))
@@ -1179,13 +1181,19 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
         NC_DISPATCH_FP(m_x_type,
             // allocate temporary storage
             p_teca_variant_array_impl<NC_T> m_x = teca_variant_array_impl<NC_T>::New(n_m_xy);
+            auto spm_x = m_x->get_cpu_accessible();
+            NC_T *pm_x = spm_x.get();
+
             p_teca_variant_array_impl<NC_T> m_y = teca_variant_array_impl<NC_T>::New(n_m_xy);
+            auto spm_y = m_y->get_cpu_accessible();
+            NC_T *pm_y = spm_y.get();
+
 #if !defined(HDF5_THREAD_SAFE)
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
             // read the data
-            if (((ierr = nc_get_vara(file_id,  m_x_id, m_x_start, m_x_count, m_x->get())) != NC_NOERR))
+            if (((ierr = nc_get_vara(file_id,  m_x_id, m_x_start, m_x_count, pm_x)) != NC_NOERR))
             {
                 TECA_FATAL_ERROR("At time_step " << time_step
                     << " failed to read m_x_axis_variable \"" << m_x_axis_variable << "\" from \""
@@ -1193,7 +1201,7 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
                 return nullptr;
             }
 
-            if (((ierr = nc_get_vara(file_id,  m_y_id, m_x_start, m_x_count, m_y->get())) != NC_NOERR))
+            if (((ierr = nc_get_vara(file_id,  m_y_id, m_x_start, m_x_count, pm_y)) != NC_NOERR))
             {
                 TECA_FATAL_ERROR("At time_step " << time_step
                     << " failed to read m_y_axis_variable \"" << m_y_axis_variable << "\" from \""
@@ -1251,13 +1259,18 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
         NC_DISPATCH_FP(u_x_type,
             // allocate temporary storage
             p_teca_variant_array_impl<NC_T> u_x = teca_variant_array_impl<NC_T>::New(n_u_xy);
+            auto spu_x = u_x->get_cpu_accessible();
+            NC_T *pu_x = spu_x.get();
+
             p_teca_variant_array_impl<NC_T> u_y = teca_variant_array_impl<NC_T>::New(n_u_xy);
+            auto spu_y = u_y->get_cpu_accessible();
+            NC_T *pu_y = spu_y.get();
 #if !defined(HDF5_THREAD_SAFE)
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
             // read the data
-            if (((ierr = nc_get_vara(file_id,  u_x_id, u_x_start, u_x_count, u_x->get())) != NC_NOERR))
+            if (((ierr = nc_get_vara(file_id,  u_x_id, u_x_start, u_x_count, pu_x)) != NC_NOERR))
             {
                 TECA_FATAL_ERROR("At time_step " << time_step
                     << " failed to read u_x_axis_variable \"" << u_x_axis_variable << "\" from \""
@@ -1265,7 +1278,7 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
                 return nullptr;
             }
 
-            if (((ierr = nc_get_vara(file_id,  u_y_id, u_x_start, u_x_count, u_y->get())) != NC_NOERR))
+            if (((ierr = nc_get_vara(file_id,  u_y_id, u_x_start, u_x_count, pu_y)) != NC_NOERR))
             {
                 TECA_FATAL_ERROR("At time_step " << time_step
                     << " failed to read u_y_axis_variable \"" << u_y_axis_variable << "\" from \""
@@ -1323,14 +1336,18 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
         NC_DISPATCH_FP(v_x_type,
             // allocate temporary storage
             p_teca_variant_array_impl<NC_T> v_x = teca_variant_array_impl<NC_T>::New(n_v_xy);
-            p_teca_variant_array_impl<NC_T> v_y = teca_variant_array_impl<NC_T>::New(n_v_xy);
+            auto spv_x = v_x->get_cpu_accessible();
+            NC_T *pv_x = spv_x.get();
 
+            p_teca_variant_array_impl<NC_T> v_y = teca_variant_array_impl<NC_T>::New(n_v_xy);
+            auto spv_y = v_y->get_cpu_accessible();
+            NC_T *pv_y = spv_y.get();
 #if !defined(HDF5_THREAD_SAFE)
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
             // read the data
-            if (((ierr = nc_get_vara(file_id,  v_x_id, v_x_start, v_x_count, v_x->get())) != NC_NOERR))
+            if (((ierr = nc_get_vara(file_id,  v_x_id, v_x_start, v_x_count, pv_x)) != NC_NOERR))
             {
                 TECA_FATAL_ERROR("At time_step " << time_step
                     << " failed to read v_x_axis_variable \"" << v_x_axis_variable << "\" from \""
@@ -1338,7 +1355,7 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
                 return nullptr;
             }
 
-            if (((ierr = nc_get_vara(file_id,  v_y_id, v_x_start, v_x_count, v_y->get())) != NC_NOERR))
+            if (((ierr = nc_get_vara(file_id,  v_y_id, v_x_start, v_x_count, pv_y)) != NC_NOERR))
             {
                 TECA_FATAL_ERROR("At time_step " << time_step
                     << " failed to read v_y_axis_variable \"" << v_y_axis_variable << "\" from \""
@@ -1380,12 +1397,14 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
         NC_DISPATCH_FP(m_z_type,
             // allocate temporary storage
             p_teca_variant_array_impl<NC_T> m_z = teca_variant_array_impl<NC_T>::New(n_m_z);
+            auto spm_z = m_z->get_cpu_accessible();
+            NC_T *pm_z = spm_z.get();
 #if !defined(HDF5_THREAD_SAFE)
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
             // read the data
-            if (((ierr = nc_get_vara(file_id,  m_z_id, m_z_start, m_z_count, m_z->get())) != NC_NOERR))
+            if (((ierr = nc_get_vara(file_id,  m_z_id, m_z_start, m_z_count, pm_z)) != NC_NOERR))
             {
                 TECA_FATAL_ERROR("At time_step " << time_step
                     << " failed to read m_z_axis_variable \""
@@ -1428,12 +1447,14 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
         NC_DISPATCH_FP(w_z_type,
             // allocate temporary storage
             p_teca_variant_array_impl<NC_T> w_z = teca_variant_array_impl<NC_T>::New(n_w_z);
+            auto spw_z = w_z->get_cpu_accessible();
+            NC_T *pw_z = spw_z.get();
 #if !defined(HDF5_THREAD_SAFE)
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
             // read the data
-            if (((ierr = nc_get_vara(file_id,  w_z_id, w_z_start, w_z_count, w_z->get())) != NC_NOERR))
+            if (((ierr = nc_get_vara(file_id,  w_z_id, w_z_start, w_z_count, pw_z)) != NC_NOERR))
             {
                 TECA_FATAL_ERROR("At time_step " << time_step
                     << " failed to read w_z_axis_variable \""
@@ -1569,11 +1590,13 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
             p_teca_variant_array array;
             NC_DISPATCH(type,
                 p_teca_variant_array_impl<NC_T> a = teca_variant_array_impl<NC_T>::New(mesh_size);
+                auto spa = a->get_cpu_accessible();
+                NC_T *pa = spa.get();
 #if !defined(HDF5_THREAD_SAFE)
                 {
                 std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-                if ((ierr = nc_get_vara(file_id,  id, &starts[0], &counts[0], a->get())) != NC_NOERR)
+                if ((ierr = nc_get_vara(file_id,  id, &starts[0], &counts[0], pa)) != NC_NOERR)
                 {
                     TECA_FATAL_ERROR("time_step=" << time_step
                         << " Failed to read variable \"" << arrays[i] << "\" "
@@ -1627,11 +1650,13 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
 
             NC_DISPATCH(type,
                 p_teca_variant_array_impl<NC_T> a = teca_variant_array_impl<NC_T>::New(n_vals);
+                auto spa = a->get_cpu_accessible();
+                NC_T *pa = spa.get();
 #if !defined(HDF5_THREAD_SAFE)
                 {
                 std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-                if ((ierr = nc_get_vara(file_id,  id, &starts[0], &counts[0], a->get())) != NC_NOERR)
+                if ((ierr = nc_get_vara(file_id,  id, &starts[0], &counts[0], pa)) != NC_NOERR)
                 {
                     TECA_FATAL_ERROR("time_step=" << time_step
                         << " Failed to read \"" << arrays[i] << "\" "

@@ -3,6 +3,7 @@
 #include "teca_mesh.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_cartesian_mesh.h"
 
@@ -312,16 +313,22 @@ const_p_teca_dataset teca_2d_component_area::execute(
         _COORD,
         // the calculation is sensative to floating point precision
         // and should be made in double precision
-        using calc_t = double;
+        using NT_CALC = double;
 
-        const NT_COORD *p_xc = static_cast<TT_COORD*>(xc.get())->get();
-        const NT_COORD *p_yc = static_cast<TT_COORD*>(yc.get())->get();
+        auto sp_xc = static_cast<TT_COORD*>(xc.get())->get_cpu_accessible();
+        const NT_COORD *p_xc = sp_xc.get();
+
+        auto sp_yc = static_cast<TT_COORD*>(yc.get())->get_cpu_accessible();
+        const NT_COORD *p_yc = sp_yc.get();
 
         NESTED_TEMPLATE_DISPATCH_I(const teca_variant_array_impl,
             component_array.get(),
             _LABEL,
 
-            const NT_LABEL *p_labels = static_cast<TT_LABEL*>(component_array.get())->get();
+            auto sp_labels = static_cast<TT_LABEL*>
+                (component_array.get())->get_cpu_accessible();
+
+            const NT_LABEL *p_labels = sp_labels.get();
 
             unsigned int n_labels = 0;
 
@@ -340,12 +347,20 @@ const_p_teca_dataset teca_2d_component_area::execute(
                 {
                     NT_LABEL max_component_id = ::get_max_component_id(nxy, p_labels);
                     n_labels = max_component_id + 1;
-                    p_teca_variant_array_impl<NT_LABEL> tmp = teca_variant_array_impl<NT_LABEL>::New(n_labels);
+
+                    p_teca_variant_array_impl<NT_LABEL> tmp =
+                        teca_variant_array_impl<NT_LABEL>::New(n_labels);
+
+                    auto sptmp = tmp->get_cpu_accessible();
+                    NT_LABEL *ptmp = sptmp.get();
+
                     for (unsigned int i = 0; i < n_labels; ++i)
-                        tmp->set(i, NT_LABEL(i));
+                        ptmp[i] = NT_LABEL(i);
+
                     component_id = tmp;
                 }
-                std::vector<calc_t> component_area(n_labels);
+
+                std::vector<NT_CALC> component_area(n_labels);
                 ::component_area(nx,ny, p_xc,p_yc, p_labels, component_area);
 
                 // transfer the result to the output
@@ -357,7 +372,7 @@ const_p_teca_dataset teca_2d_component_area::execute(
             {
                 // use an associative array to handle any labels
                 //std::map<NT_LABEL, NT_COORD> result;
-                decltype(std::map<NT_LABEL, calc_t>()) result;
+                decltype(std::map<NT_LABEL, NT_CALC>()) result;
                 ::component_area(nx,ny, p_xc,p_yc, p_labels, result);
 
                 // transfer the result to the output
@@ -366,15 +381,21 @@ const_p_teca_dataset teca_2d_component_area::execute(
                 p_teca_variant_array_impl<NT_LABEL> component_id =
                     teca_variant_array_impl<NT_LABEL>::New(n_labels);
 
-                p_teca_variant_array_impl<calc_t> component_area =
-                    teca_variant_array_impl<calc_t>::New(n_labels);
+                auto spcomponent_id = component_id->get_cpu_accessible();
+                NT_LABEL *pcomponent_id = spcomponent_id.get();
+
+                p_teca_variant_array_impl<NT_CALC> component_area =
+                    teca_variant_array_impl<NT_CALC>::New(n_labels);
+
+                auto spcomponent_area = component_area->get_cpu_accessible();
+                NT_CALC *pcomponent_area = spcomponent_area.get();
 
                 //std::map<NT_LABEL,NT_COORD>::iterator it = result.begin();
                 auto it = result.begin();
                 for (unsigned int i = 0; i < n_labels; ++i,++it)
                 {
-                    component_id->set(i, it->first);
-                    component_area->set(i, it->second);
+                    pcomponent_id[i] = it->first;
+                    pcomponent_area[i] = it->second;
                 }
 
                 out_metadata.set("number_of_components", n_labels);

@@ -218,6 +218,9 @@ protected:
     teca_cf_writer();
 
 private:
+    using teca_algorithm::get_output_metadata;
+    using teca_algorithm::execute;
+
     const_p_teca_dataset execute(unsigned int port,
         const std::vector<const_p_teca_dataset> &input_data,
         const teca_metadata &request, int streaming) override;

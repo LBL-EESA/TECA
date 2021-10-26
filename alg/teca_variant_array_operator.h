@@ -25,7 +25,8 @@ p_teca_variant_array apply(unsigned long n,
     p_teca_variant_array_impl<nt_out> out =
         teca_variant_array_impl<nt_out>::New(n);
 
-    nt_out *pout = out->get();
+    auto spout = out->get_cpu_accessible();
+    nt_out *pout = spout.get();
 
     for (unsigned long i = 0; i < n; ++i)
         pout[i] = static_cast<nt_out>(op(parg1[i], parg2[i], parg3[i]));
@@ -44,7 +45,8 @@ p_teca_variant_array apply(unsigned long n,
     p_teca_variant_array_impl<nt_out> out =
         teca_variant_array_impl<nt_out>::New(n);
 
-    nt_out *pout = out->get();
+    auto spout = out->get_cpu_accessible();
+    nt_out *pout = spout.get();
 
     for (unsigned long i = 0; i < n; ++i)
         pout[i] = static_cast<nt_out>(op(plarg[i], prarg[i]));
@@ -60,7 +62,8 @@ p_teca_variant_array apply(unsigned long n,
     p_teca_variant_array_impl<nt_arg> out =
         teca_variant_array_impl<nt_arg>::New(n);
 
-    nt_arg *pout = out->get();
+    auto spout = out->get_cpu_accessible();
+    nt_arg *pout = spout.get();
 
     for (unsigned long i = 0; i < n; ++i)
         pout[i] = static_cast<nt_arg>(op(parg[i]));
@@ -78,13 +81,16 @@ p_teca_variant_array apply(const const_p_teca_variant_array &arg1,
 {
     NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
         arg1.get(), _1,
-        const NT_1 *parg1 = std::static_pointer_cast<TT_1>(arg1)->get();
+        auto sparg1 = static_cast<TT_1*>(arg1.get())->get_cpu_accessible();
+        auto parg1 = sparg1.get();
         NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
             arg2.get(), _2,
-            const NT_2 *parg2 = std::static_pointer_cast<TT_2>(arg2)->get();
+            auto sparg2 = static_cast<TT_2*>(arg2.get())->get_cpu_accessible();
+            auto parg2 = sparg2.get();
             NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
                 arg2.get(), _3,
-                const NT_3 *parg3 = std::static_pointer_cast<TT_3>(arg3)->get();
+                auto sparg3 = static_cast<TT_3*>(arg3.get())->get_cpu_accessible();
+                auto parg3 = sparg3.get();
                 return internal::apply(arg1->size(), parg1, parg2, parg3, op);
                 )
             )
@@ -100,10 +106,12 @@ p_teca_variant_array apply_i(const const_p_teca_variant_array &larg,
 {
     NESTED_TEMPLATE_DISPATCH_I(const teca_variant_array_impl,
         larg.get(), _LEFT,
-        const NT_LEFT *plarg = std::static_pointer_cast<TT_LEFT>(larg)->get();
+        auto splarg = static_cast<TT_LEFT*>(larg.get())->get_cpu_accessible();
+        auto plarg = splarg.get();
         NESTED_TEMPLATE_DISPATCH_I(const teca_variant_array_impl,
             rarg.get(), _RIGHT,
-            const NT_RIGHT *prarg = std::static_pointer_cast<TT_RIGHT>(rarg)->get();
+            auto sprarg = static_cast<TT_RIGHT*>(rarg.get())->get_cpu_accessible();
+            auto prarg = sprarg.get();
             return internal::apply(larg->size(), plarg, prarg, op);
             )
         )
@@ -118,10 +126,12 @@ p_teca_variant_array apply(const const_p_teca_variant_array &larg,
 {
     NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
         larg.get(), _LEFT,
-        const NT_LEFT *plarg = std::static_pointer_cast<TT_LEFT>(larg)->get();
+        auto splarg = static_cast<TT_LEFT*>(larg.get())->get_cpu_accessible();
+        auto plarg = splarg.get();
         NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
             rarg.get(), _RIGHT,
-            const NT_RIGHT *prarg = std::static_pointer_cast<TT_RIGHT>(rarg)->get();
+            auto sprarg = static_cast<TT_RIGHT*>(rarg.get())->get_cpu_accessible();
+            auto prarg = sprarg.get();
             return internal::apply(larg->size(), plarg, prarg, op);
             )
         )
@@ -136,7 +146,8 @@ p_teca_variant_array apply(const const_p_teca_variant_array &arg,
 {
     TEMPLATE_DISPATCH(const teca_variant_array_impl,
         arg.get(),
-        const NT *parg = std::static_pointer_cast<TT>(arg)->get();
+        auto sparg = static_cast<TT*>(arg.get())->get_cpu_accessible();
+        auto parg = sparg.get();
         return internal::apply(arg->size(), parg, op);
         )
     TECA_ERROR("failed to apply " << operator_t::name() << ". unsupported type.")

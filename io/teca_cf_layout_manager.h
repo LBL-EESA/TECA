@@ -127,7 +127,7 @@ protected:
 
     std::map<std::string, var_def_t> var_def;
     std::string t_variable;
-    p_teca_double_array t;
+    p_teca_variant_array t;
 };
 
 #endif

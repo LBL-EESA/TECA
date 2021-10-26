@@ -77,6 +77,9 @@ public:
     template <typename T> void unpack(T *val, unsigned long n);
 
     // specializations
+    void pack(const std::string *v, unsigned long n);
+    void unpack(std::string *v, unsigned long n);
+
     void pack(const std::string &str);
     void unpack(std::string &str);
 
@@ -159,6 +162,22 @@ void teca_binary_stream::unpack(T *val, unsigned long n)
     unsigned long nn = n*sizeof(T);
     memcpy(val, m_read_p, nn);
     m_read_p += nn;
+}
+
+//-----------------------------------------------------------------------------
+inline
+void teca_binary_stream::pack(const std::string *v, unsigned long n)
+{
+    for (unsigned long i = 0; i < n; ++i)
+        this->pack(v[i]);
+}
+
+//-----------------------------------------------------------------------------
+inline
+void teca_binary_stream::unpack(std::string *v, unsigned long n)
+{
+    for (unsigned long i = 0; i < n; ++i)
+        this->unpack(v[i]);
 }
 
 //-----------------------------------------------------------------------------

@@ -46,18 +46,18 @@ p_teca_table create_test_table(long step, int tid)
 
         case teca_test_util::break_string_col:
             std::dynamic_pointer_cast<teca_variant_array_impl<std::string>>(
-                t->get_column("name"))->set(2, "Dave");
+                t->get_column("name"))->set(2, std::string("Dave"));
             return t;
             break;
 
         case teca_test_util::break_int_col:
-            std::dynamic_pointer_cast<teca_variant_array_impl<std::string>>(
+            std::dynamic_pointer_cast<teca_variant_array_impl<int>>(
                 t->get_column("age"))->set(2, 6);
             return t;
             break;
 
         case teca_test_util::break_float_col:
-            std::dynamic_pointer_cast<teca_variant_array_impl<std::string>>(
+            std::dynamic_pointer_cast<teca_variant_array_impl<double>>(
                 t->get_column("skill"))->set(2, 2.71828183);
             return t;
     }

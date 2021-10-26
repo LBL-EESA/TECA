@@ -11,6 +11,7 @@
 
 #include "teca_common.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 
 /// Codes for interfacing with numpy arrays
 namespace teca_py_array
@@ -348,7 +349,9 @@ PyArrayObject *new_object(teca_variant_array_impl<NT> *varrt)
     }
 
     // copy the data
-    memcpy(mem, varrt->get(), n_bytes);
+    auto spvarrt = varrt->get_cpu_accessible();
+    NT *pvarrt = spvarrt.get();
+    memcpy(mem, pvarrt, n_bytes);
 
     // put the buffer in to a new numpy object
     PyArrayObject *arr = reinterpret_cast<PyArrayObject*>(

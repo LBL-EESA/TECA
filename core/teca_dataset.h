@@ -4,6 +4,7 @@
 #include "teca_common.h"
 #include "teca_shared_object.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 
 #include <vector>
 #include <iosfwd>

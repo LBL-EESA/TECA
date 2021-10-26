@@ -3,6 +3,7 @@
 #include "teca_mesh.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_array_attributes.h"
 
@@ -343,16 +344,33 @@ const_p_teca_dataset teca_l2_norm::execute(
         teca_variant_array_impl,
         l2_norm.get(),
 
+        auto spc0 = static_cast<const TT*>(c0.get())->get_cpu_accessible();
+        const NT *pc0 = spc0.get();
+
         NT *tmp = static_cast<NT*>(malloc(sizeof(NT)*n));
-        internal::square(tmp, static_cast<const TT*>(c0.get())->get(), n);
+
+        internal::square(tmp, pc0, n);
 
         if (c1)
-            internal::sum_square(tmp, dynamic_cast<const TT*>(c1.get())->get(), n);
+        {
+            auto spc1 = dynamic_cast<const TT*>(c1.get())->get_cpu_accessible();
+            const NT *pc1 = spc1.get();
+
+            internal::sum_square(tmp, pc1, n);
+        }
 
         if (c2)
-            internal::sum_square(tmp, dynamic_cast<const TT*>(c2.get())->get(), n);
+        {
+            auto spc2 = dynamic_cast<const TT*>(c2.get())->get_cpu_accessible();
+            const NT *pc2 = spc2.get();
 
-        internal::square_root(static_cast<TT*>(l2_norm.get())->get(), tmp, n);
+            internal::sum_square(tmp, pc2, n);
+        }
+
+        auto spl2n = static_cast<TT*>(l2_norm.get())->get_cpu_accessible();
+        NT *pl2n = spl2n.get();
+
+        internal::square_root(pl2n, tmp, n);
 
         free(tmp);
         )

@@ -35,6 +35,9 @@ The io module contains readers and writers.
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
+#if defined(__CUDACC__)
+#pragma diag_suppress = set_but_not_used
+#endif
 %}
 
 %include <std_pair.i>

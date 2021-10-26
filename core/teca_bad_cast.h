@@ -3,6 +3,7 @@
 
 #include <exception>
 #include <string>
+#include <typeinfo>
 
 /** @brief
  * An exception that maybe thrown when a conversion between two data types
@@ -26,9 +27,17 @@ private:
  * if the algorithm is a nullptr.
  */
 template <typename class_t>
-const std::string safe_class_name(const class_t &o)
+std::string safe_class_name(const class_t &o)
 {
     return o ? std::string(o->get_class_name()) : std::string("nullptr");
 }
+
+template <typename ptr_t>
+std::string safe_pointer_name(const ptr_t *o)
+{
+    return std::string("pointer of type ") +
+        (o ? std::string(typeid(o).name()) : std::string("nullptr"));
+}
+
 
 #endif

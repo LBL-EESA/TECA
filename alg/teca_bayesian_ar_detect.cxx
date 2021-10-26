@@ -4,6 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_array_attributes.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_cartesian_mesh.h"
 #include "teca_table.h"
@@ -196,7 +197,8 @@ public:
 
             NT num_params = this->parameter_table_size;
 
-            NT *p_ar_prob = std::static_pointer_cast<TT>(ar_prob)->get();
+            auto sp_ar_prob = static_cast<TT*>(ar_prob.get())->get_cpu_accessible();
+            NT *p_ar_prob = sp_ar_prob.get();
 
             for (unsigned long i = 0; i < n_vals; ++i)
                 p_ar_prob[i] /= num_params;
@@ -249,18 +251,23 @@ public:
                 prob_out = prob_0->new_copy();
                 TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
                     prob_out.get(),
-                    const NT *p_prob_1 = std::static_pointer_cast<TT>(prob_1)->get();
-                    NT *p_prob_out = std::static_pointer_cast<TT>(prob_out)->get();
+
+                    auto sp_prob_1 = static_cast<TT*>(prob_1.get())->get_cpu_accessible();
+                    NT *p_prob_1 = sp_prob_1.get();
+
+                    auto sp_prob_out = static_cast<TT*>(prob_out.get())->get_cpu_accessible();
+                    NT *p_prob_out = sp_prob_out.get();
+
                     for (unsigned long i = 0; i < n_vals; ++i)
                         p_prob_out[i] += p_prob_1[i];
                     )
 
                 // concatenate ar couunt and parameter table row
                 n_wvcc_out = n_wvcc_0->new_copy();
-                n_wvcc_out->append(*n_wvcc_1.get());
+                n_wvcc_out->append(n_wvcc_1);
 
                 pt_row_out = pt_row_0->new_copy();
-                pt_row_out->append(*pt_row_1.get());
+                pt_row_out->append(pt_row_1);
             }
             else if (prob_0 || prob_1)
             {
@@ -363,13 +370,15 @@ public:
                     wvcc.get(),
                     _COMP,
 
-                    const NT_COMP *p_wvcc = std::static_pointer_cast<TT_COMP>(wvcc)->get();
+                    auto sp_wvcc = static_cast<TT_COMP*>(wvcc.get())->get_cpu_accessible();
+                    NT_COMP *p_wvcc = sp_wvcc.get();
 
                     NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
                         prob_out.get(),
                         _PROB,
 
-                        NT_PROB *p_prob_out = std::static_pointer_cast<TT_PROB>(prob_out)->get();
+                        auto sp_prob_out = static_cast<TT_PROB*>(prob_out.get())->get_cpu_accessible();
+                        NT_PROB *p_prob_out = sp_prob_out.get();
 
                         for (unsigned long i = 0; i < n_vals; ++i)
                             p_prob_out[i] += (p_wvcc[i] > 0 ? NT_PROB(1) : NT_PROB(0));
@@ -396,13 +405,19 @@ public:
                     wvcc_0.get(),
                     _COMP,
 
-                    const NT_COMP *p_wvcc_0 = std::static_pointer_cast<TT_COMP>(wvcc_0)->get();
-                    const NT_COMP *p_wvcc_1 = std::static_pointer_cast<TT_COMP>(wvcc_1)->get();
+                    auto sp_wvcc_0 = static_cast<TT_COMP*>(wvcc_0.get())->get_cpu_accessible();
+                    NT_COMP *p_wvcc_0 = sp_wvcc_0.get();
+
+                    auto sp_wvcc_1 = static_cast<TT_COMP*>(wvcc_1.get())->get_cpu_accessible();
+                    NT_COMP *p_wvcc_1 = sp_wvcc_1.get();
 
                     NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
                         prob_out.get(),
                         _PROB,
-                        NT_PROB *p_prob_out = std::static_pointer_cast<TT_PROB>(prob_out)->get();
+
+                        auto sp_prob_out = static_cast<TT_PROB*>(prob_out.get())->get_cpu_accessible();
+                        NT_PROB *p_prob_out = sp_prob_out.get();
+
                         for (unsigned long i = 0; i < n_vals; ++i)
                             p_prob_out[i] = (p_wvcc_0[i] > 0 ? NT_PROB(1) : NT_PROB(0)) +
                                  (p_wvcc_1[i] > 0 ? NT_PROB(1) : NT_PROB(0));
@@ -439,7 +454,7 @@ public:
                 wvcc_bg = val == 0 ? 1 : 0;
                 vals[1] -= wvcc_bg;
 
-                n_wvcc_out = teca_int_array::New(vals, 2);
+                n_wvcc_out = teca_int_array::New(2, vals);
 
                 // append param table row
                 if (md_0.get("parameter_table_row", vals[0]) ||
@@ -449,7 +464,7 @@ public:
                     return nullptr;
                 }
 
-                pt_row_out = teca_int_array::New(vals, 2);
+                pt_row_out = teca_int_array::New(2, vals);
             }
         }
         else if (dataset_0 || dataset_1)
@@ -498,13 +513,15 @@ public:
                     wvcc.get(),
                     _COMP,
 
-                    const NT_COMP *p_wvcc = std::static_pointer_cast<TT_COMP>(wvcc)->get();
+                    auto sp_wvcc = static_cast<TT_COMP*>(wvcc.get())->get_cpu_accessible();
+                    NT_COMP *p_wvcc = sp_wvcc.get();
 
                     NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
                         prob_out.get(),
                         _PROB,
 
-                        NT_PROB *p_prob_out = std::static_pointer_cast<TT_PROB>(prob_out)->get();
+                        auto sp_prob_out = static_cast<TT_PROB*>(prob_out.get())->get_cpu_accessible();
+                        NT_PROB *p_prob_out = sp_prob_out.get();
 
                         for (unsigned long i = 0; i < n_vals; ++i)
                             p_prob_out[i] = (p_wvcc[i] > 0 ? NT_PROB(1) : NT_PROB(0));
@@ -533,7 +550,7 @@ public:
 
                 val -= wvcc_bg;
 
-                n_wvcc_out = teca_int_array::New(&val, 1);
+                n_wvcc_out = teca_int_array::New(1, val);
 
                 // get parameter table rows from metadata and pass into the
                 // information arrays
@@ -543,7 +560,7 @@ public:
                     return nullptr;
                 }
 
-                pt_row_out = teca_int_array::New(&val,1);
+                pt_row_out = teca_int_array::New(1, val);
             }
         }
         else

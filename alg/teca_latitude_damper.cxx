@@ -1,6 +1,7 @@
 #include "teca_latitude_damper.h"
 
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_cartesian_mesh.h"
 #include "teca_string_util.h"
@@ -293,7 +294,10 @@ const_p_teca_dataset teca_latitude_damper::execute(
         filter_array.get(),
         _COORD,
 
-        const NT_COORD *p_lat = static_cast<const TT_COORD*>(lat.get())->get();
+        auto sp_lat = static_cast<const TT_COORD*>
+            (lat.get())->get_cpu_accessible();
+
+        const NT_COORD *p_lat = sp_lat.get();
 
         NT_COORD *filter = (NT_COORD*)malloc(n_lat*sizeof(NT_COORD));
         ::get_lat_filter<NT_COORD>(filter, p_lat, n_lat, mu, sigma);
@@ -319,8 +323,15 @@ const_p_teca_dataset teca_latitude_damper::execute(
                 damped_array.get(),
                 _DATA,
 
-                const NT_DATA *p_in = static_cast<const TT_DATA*>(input_array.get())->get();
-                NT_DATA *p_damped_array = static_cast<TT_DATA*>(damped_array.get())->get();
+                auto sp_in = static_cast<const TT_DATA*>
+                    (input_array.get())->get_cpu_accessible();
+
+                const NT_DATA *p_in = sp_in.get();
+
+                auto sp_damped_array = static_cast<TT_DATA*>
+                    (damped_array.get())->get_cpu_accessible();
+
+                NT_DATA *p_damped_array = sp_damped_array.get();
 
                 ::apply_lat_filter(p_damped_array, p_in, filter, n_lat, n_lon);
             )
@@ -339,4 +350,3 @@ const_p_teca_dataset teca_latitude_damper::execute(
 
     return out_mesh;
 }
-

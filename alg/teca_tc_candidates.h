@@ -107,23 +107,22 @@ protected:
 
     // helper that computes the output extent
     int get_active_extent(
-        p_teca_variant_array lat,
-        p_teca_variant_array lon,
+        const const_p_teca_variant_array &lat,
+        const const_p_teca_variant_array &lon,
         std::vector<unsigned long> &extent) const;
 
 private:
-    virtual
+    using teca_algorithm::get_output_metadata;
+
     teca_metadata get_output_metadata(
         unsigned int port,
         const std::vector<teca_metadata> &input_md) override;
 
-    virtual
     std::vector<teca_metadata> get_upstream_request(
         unsigned int port,
         const std::vector<teca_metadata> &input_md,
         const teca_metadata &request) override;
 
-    virtual
     const_p_teca_dataset execute(
         unsigned int port,
         const std::vector<const_p_teca_dataset> &input_data,

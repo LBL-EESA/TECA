@@ -34,6 +34,7 @@ int cuda_dispatch(int device_id, p_array &result,
     const const_p_array &array_1, const const_p_array &array_2,
     size_t n_vals)
 {
+    (void) device_id;
     (void) result;
     (void) array_1;
     (void) array_2;

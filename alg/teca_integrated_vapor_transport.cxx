@@ -3,6 +3,7 @@
 #include "teca_cartesian_mesh.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_coordinate_util.h"
 
@@ -389,28 +390,40 @@ const_p_teca_dataset teca_integrated_vapor_transport::execute(
     NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
         p.get(), _COORDS,
 
-        const NT_COORDS *p_p = static_cast<TT_COORDS*>(p.get())->get();
+        auto sp_p = static_cast<TT_COORDS*>(p.get())->get_cpu_accessible();
+        const NT_COORDS *p_p = sp_p.get();
 
         NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
             ivt_u.get(), _DATA,
 
-            NT_DATA *p_ivt_u = static_cast<TT_DATA*>(ivt_u.get())->get();
-            NT_DATA *p_ivt_v = static_cast<TT_DATA*>(ivt_v.get())->get();
+            auto sp_ivt_u = static_cast<TT_DATA*>(ivt_u.get())->get_cpu_accessible();
+            NT_DATA *p_ivt_u = sp_ivt_u.get();
 
-            const NT_DATA *p_wind_u = static_cast<const TT_DATA*>(wind_u.get())->get();
-            const NT_DATA *p_wind_v = static_cast<const TT_DATA*>(wind_v.get())->get();
-            const NT_DATA *p_q = static_cast<const TT_DATA*>(q.get())->get();
+            auto sp_ivt_v = static_cast<TT_DATA*>(ivt_v.get())->get_cpu_accessible();
+            NT_DATA *p_ivt_v = sp_ivt_v.get();
 
-            const char *p_wind_u_valid = nullptr;
-            const char *p_wind_v_valid = nullptr;
-            const char *p_q_valid = nullptr;
+            auto sp_wind_u = static_cast<const TT_DATA*>(wind_u.get())->get_cpu_accessible();
+            const NT_DATA *p_wind_u = sp_wind_u.get();
+
+            auto sp_wind_v = static_cast<const TT_DATA*>(wind_v.get())->get_cpu_accessible();
+            const NT_DATA *p_wind_v = sp_wind_v.get();
+
+            auto sp_q = dynamic_cast<const TT_DATA*>(q.get())->get_cpu_accessible();
+            const NT_DATA *p_q = sp_q.get();
+
             if (wind_u_valid)
             {
-                using TT_MASK = teca_char_array;
+                using NT_MASK = char;
+                using TT_MASK = const teca_variant_array_impl<NT_MASK>;
 
-                p_wind_u_valid = dynamic_cast<const TT_MASK*>(wind_u_valid.get())->get();
-                p_wind_v_valid = dynamic_cast<const TT_MASK*>(wind_v_valid.get())->get();
-                p_q_valid = dynamic_cast<const TT_MASK*>(q_valid.get())->get();
+                auto sp_wind_u_valid = dynamic_cast<TT_MASK*>(wind_u_valid.get())->get_cpu_accessible();
+                const NT_MASK *p_wind_u_valid = sp_wind_u_valid.get();
+
+                auto sp_wind_v_valid = dynamic_cast<TT_MASK*>(wind_v_valid.get())->get_cpu_accessible();
+                const NT_MASK *p_wind_v_valid = sp_wind_v_valid.get();
+
+                auto sp_q_valid = dynamic_cast<TT_MASK*>(q_valid.get())->get_cpu_accessible();
+                const NT_MASK *p_q_valid = sp_q_valid.get();
 
                 ::cartesian_ivt(nx, ny, nz, p_p, p_wind_u, p_wind_u_valid, p_q, p_q_valid, p_ivt_u);
                 ::cartesian_ivt(nx, ny, nz, p_p, p_wind_v, p_wind_v_valid, p_q, p_q_valid, p_ivt_v);

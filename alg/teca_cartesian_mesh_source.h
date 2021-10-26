@@ -267,6 +267,8 @@ protected:
     teca_cartesian_mesh_source();
 
 private:
+    using teca_algorithm::get_output_metadata;
+
     /// implements the report phase of pipeline execution
     teca_metadata get_output_metadata(unsigned int port,
         const std::vector<teca_metadata> &input_md) override;

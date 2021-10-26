@@ -148,7 +148,7 @@ void array::copy(const const_p_teca_dataset &other)
     this->extent = other_a->extent;
 
     hamr::const_p_buffer<double> tmp = other_a->internals->buffer;
-    this->internals->buffer->copy(tmp);
+    this->internals->buffer->assign(tmp);
 }
 
 // --------------------------------------------------------------------------
@@ -239,7 +239,7 @@ int array::from_stream(teca_binary_stream &s)
 
     // move to the desired location
     hamr::const_p_buffer<double> ctmp = tmp;
-    this->internals->buffer->copy(ctmp);
+    this->internals->buffer->assign(ctmp);
 
     return 0;
 }

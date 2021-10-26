@@ -3,6 +3,7 @@
 #include "teca_mesh.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_array_attributes.h"
 #include "teca_cartesian_mesh.h"
@@ -349,8 +350,12 @@ const_p_teca_dataset teca_binary_segmentation::execute(
 
     TEMPLATE_DISPATCH(const teca_variant_array_impl,
         input_array.get(),
-        const NT *p_in = static_cast<TT*>(input_array.get())->get();
-        char *p_seg = segmentation->get();
+
+        auto sp_in = static_cast<TT*>(input_array.get())->get_cpu_accessible();
+        auto p_in = sp_in.get();
+
+        auto sp_seg = segmentation->get_cpu_accessible();
+        char *p_seg = sp_seg.get();
 
         if (this->threshold_mode == BY_VALUE)
         {

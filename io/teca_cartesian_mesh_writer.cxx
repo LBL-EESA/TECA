@@ -6,6 +6,7 @@
 #include "teca_arakawa_c_grid.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_file_util.h"
 #include "teca_vtk_util.h"
 
@@ -87,7 +88,10 @@ void write_vtk_array_data(FILE *ofile,
         size_t na = a->size();
         TEMPLATE_DISPATCH(const teca_variant_array_impl,
             a.get(),
-            const NT *pa = static_cast<TT*>(a.get())->get();
+
+            auto spa = static_cast<TT*>(a.get())->get_cpu_accessible();
+            const NT *pa = spa.get();
+
             if (binary)
             {
                 // because VTK's legacy file fomrat  requires big endian storage
@@ -234,10 +238,19 @@ int write_vtk_legacy_arakawa_c_grid_header(FILE *ofile,
     p_teca_variant_array xyz = x->new_instance(3*nxyz);
     TEMPLATE_DISPATCH(teca_variant_array_impl,
         xyz.get(),
-        const NT *px = dynamic_cast<const TT*>(x.get())->get();
-        const NT *py = dynamic_cast<const TT*>(y.get())->get();
-        const NT *pz = dynamic_cast<const TT*>(z.get())->get();
-        NT *pxyz = dynamic_cast<TT*>(xyz.get())->get();
+
+        auto spx = dynamic_cast<const TT*>(x.get())->get_cpu_accessible();
+        const NT *px = spx.get();
+
+        auto spy = dynamic_cast<const TT*>(y.get())->get_cpu_accessible();
+        const NT *py = spy.get();
+
+        auto spz = dynamic_cast<const TT*>(z.get())->get_cpu_accessible();
+        const NT *pz = spz.get();
+
+        auto spxyz = dynamic_cast<TT*>(xyz.get())->get_cpu_accessible();
+        NT *pxyz = spxyz.get();
+
         for (size_t k = 0; k < nz; ++k)
         {
             NT z = pz[k];
@@ -318,10 +331,23 @@ int write_vtk_legacy_curvilinear_header(FILE *ofile,
 
     TEMPLATE_DISPATCH(teca_variant_array_impl,
         xyz.get(),
-        const NT *px = dynamic_cast<const TT*>(x.get())->get();
-        const NT *py = dynamic_cast<const TT*>(y.get())->get();
-        const NT *pz = z ? dynamic_cast<const TT*>(z.get())->get() : 0;
-        NT *pxyz = dynamic_cast<TT*>(xyz.get())->get();
+
+        auto spx = dynamic_cast<const TT*>(x.get())->get_cpu_accessible();
+        const NT *px = spx.get();
+
+        auto spy = dynamic_cast<const TT*>(y.get())->get_cpu_accessible();
+        const NT *py = spy.get();
+
+        const NT *pz = nullptr;
+        if (z)
+        {
+            auto spz = dynamic_cast<const TT*>(z.get())->get_cpu_accessible();
+            pz = spz.get();
+        }
+
+        auto spxyz = dynamic_cast<TT*>(xyz.get())->get_cpu_accessible();
+        NT *pxyz = spxyz.get();
+
         for (size_t i = 0; i < nxyz; ++i)
             pxyz[3*i] = px[i];
 
