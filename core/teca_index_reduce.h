@@ -88,6 +88,9 @@ protected:
 // customized pipeline behavior and parallel code.
 // most derived classes won't need to override these.
 
+    using teca_threaded_algorithm::get_output_metadata;
+    using teca_threaded_algorithm::execute;
+
     // generates an upstream request for each timestep. will
     // call initialize_upstream_request and apply the results to
     // all time steps.

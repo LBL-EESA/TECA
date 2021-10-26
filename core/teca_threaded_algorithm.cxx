@@ -29,6 +29,7 @@ p_teca_data_request_queue new_teca_data_request_queue(MPI_Comm comm,
     return std::make_shared<teca_data_request_queue>(
         comm, n_threads, n_threads_per_device, bind, verbose);
 #else
+    (void) n_threads_per_device;
     return std::make_shared<teca_data_request_queue>(
         comm, n_threads, bind, verbose);
 #endif

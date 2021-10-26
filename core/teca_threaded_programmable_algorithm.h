@@ -132,6 +132,9 @@ protected:
     teca_threaded_programmable_algorithm();
 
 private:
+    using teca_algorithm::get_output_metadata;
+    using teca_threaded_algorithm::execute;
+
     teca_metadata get_output_metadata(unsigned int port,
         const std::vector<teca_metadata> &input_md) override;
 
