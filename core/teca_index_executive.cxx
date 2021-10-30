@@ -148,17 +148,17 @@ int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
     }
 
     // determine the available CUDA GPUs
-    std::deque<int> device_ids;
 #if defined(TECA_HAS_CUDA)
+    std::deque<int> device_ids;
     if (teca_cuda_util::get_local_cuda_devices(comm, device_ids))
     {
         TECA_WARNING("Failed to determine the local CUDA device_ids."
             " Falling back to the default device.")
         device_ids.resize(1, 0);
     }
-#endif
-
     int n_devices = device_ids.size();
+    size_t q = 0;
+#endif
 
     // consrtuct base request
     teca_metadata base_req;
@@ -178,15 +178,18 @@ int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
     base_req.set("arrays", this->arrays);
 
     // apply the base request to local indices.
-    for (size_t i = 0, q = 0; i < block_size; ++i)
+    for (size_t i = 0; i < block_size; ++i)
     {
         size_t index = i + block_start + first;
         if ((index % this->stride) == 0)
         {
+#if defined(TECA_HAS_CUDA)
             // assign eaach request a device to execute on
             int device_id = device_ids[q % n_devices];
             ++q;
-
+#else
+            int device_id = -1;
+#endif
             this->requests.push_back(base_req);
             this->requests.back().set("index_request_key", this->index_request_key);
             this->requests.back().set(this->index_request_key, index);
