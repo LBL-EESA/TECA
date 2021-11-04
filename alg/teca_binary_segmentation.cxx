@@ -165,8 +165,8 @@ const_p_teca_dataset teca_binary_segmentation::execute(
     const teca_metadata &request)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_binary_segmentation::execute" << endl;
+    std::cerr << teca_parallel_id()
+        << "teca_binary_segmentation::execute" << std::endl;
 #endif
     (void)port;
 
@@ -234,15 +234,16 @@ const_p_teca_dataset teca_binary_segmentation::execute(
     // do segmentation
     p_teca_variant_array segmentation;
 
-#if defined(TECA_HAS_CUDA)
-    int use_cuda = 1;
-#else
-    int use_cuda = 0;
-#endif
-    if (use_cuda)
+    int device_id = -1;
+    request.get("device_id", device_id);
+
+    if (device_id >= 0)
     {
-        if (teca_binary_segmentation_internals::gpu_dispatch(segmentation,
-            input_array, this->threshold_mode, low, high))
+#ifdef TECA_DEBUG
+        std::cerr << "executing on CUDA device " << device_id << std::endl;
+#endif
+        if (teca_binary_segmentation_internals::cuda_dispatch(device_id,
+            segmentation, input_array, this->threshold_mode, low, high))
         {
             TECA_FATAL_ERROR("Failed to segment on the GPU")
             return nullptr;
@@ -250,6 +251,9 @@ const_p_teca_dataset teca_binary_segmentation::execute(
     }
     else
     {
+#ifdef TECA_DEBUG
+        std::cerr << "executing on the CPU" << std::endl;
+#endif
         if (teca_binary_segmentation_internals::cpu_dispatch(segmentation,
             input_array, this->threshold_mode, low, high))
         {

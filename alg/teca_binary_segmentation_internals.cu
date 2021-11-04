@@ -66,9 +66,10 @@ void value_threshold_kernel(output_t *output, const input_t *input,
 // set locations in the output where the input array
 // has values within the low high range.
 template <typename input_t, typename output_t>
-int value_threshold(output_t *output, const input_t *input,
+int value_threshold(output_t *dev_output, const input_t *dev_input,
     size_t n_vals, input_t low, input_t high)
 {
+/*
     cudaError_t ierr;
     // allocate and send the input to the device
     input_t *dev_input = nullptr;
@@ -89,7 +90,7 @@ int value_threshold(output_t *output, const input_t *input,
             <<  cudaGetErrorString(ierr))
         return -1;
     }
-
+*/
     // determine kernel launch parameters
     dim3 block_grid;
     int n_blocks = 0;
@@ -104,7 +105,7 @@ int value_threshold(output_t *output, const input_t *input,
     // segment using the values
     value_threshold_kernel<<<block_grid, thread_grid>>>(dev_output,
         dev_input, n_vals, low, high);
-
+/*
     // copy the result back
     if ((ierr = cudaMemcpy(output, dev_output, n_vals*sizeof(output_t),
         cudaMemcpyDeviceToHost)))
@@ -117,7 +118,7 @@ int value_threshold(output_t *output, const input_t *input,
     // free buffers
     cudaFree(dev_input);
     cudaFree(dev_output);
-
+*/
     return 0;
 }
 
@@ -167,7 +168,7 @@ void percentile_threshold(output_t *output,
 // set locations in the output where the input array
 // has values within the low high range.
 template <typename input_t, typename output_t>
-int percentile_threshold(output_t *output, const input_t *input,
+int percentile_threshold(output_t *dev_output, const input_t *dev_input,
     unsigned long n_vals, float q_low, float q_high)
 {
     using index_t = unsigned long;
@@ -190,6 +191,7 @@ int percentile_threshold(output_t *output, const input_t *input,
     index_t low_cut_p1 = low_cut+1;
     index_t high_cut_p1 = std::min(high_cut+1, n_vals_m1);
 
+    /*
     cudaError_t ierr;
     // allocate and send the input to the device
     input_t *dev_input = nullptr;
@@ -210,6 +212,7 @@ int percentile_threshold(output_t *output, const input_t *input,
             <<  cudaGetErrorString(ierr))
         return -1;
     }
+    */
 
     // allocate indices and initialize them for the indirect sort
     thrust::device_vector<index_t> ids(n_vals);
@@ -238,6 +241,7 @@ int percentile_threshold(output_t *output, const input_t *input,
         dev_ids, n_vals, low_cut, low_cut_p1, high_cut, high_cut_p1, t_low,
         t_high);
 
+    /*
     // copy the result back
     if ((ierr = cudaMemcpy(output, dev_output, n_vals*sizeof(output_t),
         cudaMemcpyDeviceToHost)))
@@ -250,13 +254,14 @@ int percentile_threshold(output_t *output, const input_t *input,
     // free buffers
     cudaFree(dev_input);
     cudaFree(dev_output);
+    */
 
     return 0;
 }
 }
 
 // **************************************************************************
-int gpu_dispatch(
+int cuda_dispatch(int device_id,
     p_teca_variant_array &output_array,
     const const_p_teca_variant_array &input_array,
     int threshold_mode,
@@ -264,13 +269,18 @@ int gpu_dispatch(
 {
     // do segmentation
     size_t n_elem = input_array->size();
+
     p_teca_char_array segmentation =
-        teca_char_array::New(n_elem);
+        teca_char_array::New(n_elem, teca_variant_array::allocator::cuda);
+
+    auto sp_seg = segmentation->get_cuda_accessible();
+    char *p_seg = sp_seg.get();
 
     TEMPLATE_DISPATCH(const teca_variant_array_impl,
         input_array.get(),
-        const NT *p_in = static_cast<TT*>(input_array.get())->get();
-        char *p_seg = segmentation->get();
+
+        auto sp_in = static_cast<TT*>(input_array.get())->get_cuda_accessible();
+        const NT *p_in = sp_in.get();
 
         if (threshold_mode == teca_binary_segmentation::BY_VALUE)
         {
@@ -289,6 +299,12 @@ int gpu_dispatch(
         }
         )
 
+    //segmentation->debug_print();
+
+/*    p_teca_int_array  tmp  = teca_int_array::New();
+    tmp->assign(p_teca_variant_array(segmentation));
+    tmp->print_buffer<int>();
+*/
     output_array = segmentation;
     return 0;
 }

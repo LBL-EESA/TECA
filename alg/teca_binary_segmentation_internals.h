@@ -125,7 +125,7 @@ int cpu_dispatch(
     double low, double high);
 
 // do the segmentation on the gpu
-int gpu_dispatch(
+int cuda_dispatch(int device_id,
     p_teca_variant_array &output_array,
     const const_p_teca_variant_array &input_array,
     int threshold_mode,

@@ -5,12 +5,13 @@ namespace teca_binary_segmentation_internals
 {
 #if !defined(TECA_HAS_CUDA)
 // **************************************************************************
-int gpu_dispatch(
+int cuda_dispatch(int device_id,
     p_teca_variant_array &output_array,
     const const_p_teca_variant_array &input_array,
     int threshold_mode,
     double low, double high)
 {
+    (void)device_id;
     (void)output_array;
     (void)input_array;
     (void)threshold_mode;
@@ -31,13 +32,16 @@ int cpu_dispatch(
 {
     // do segmentation
     size_t n_elem = input_array->size();
-    p_teca_char_array segmentation =
-        teca_char_array::New(n_elem);
+    p_teca_char_array segmentation = teca_char_array::New(n_elem);
 
     TEMPLATE_DISPATCH(const teca_variant_array_impl,
         input_array.get(),
-        const NT *p_in = static_cast<TT*>(input_array.get())->get();
-        char *p_seg = segmentation->get();
+
+        auto sp_in = static_cast<TT*>(input_array.get())->get_cpu_accessible();
+        const NT *p_in = sp_in.get();
+
+        auto sp_seg = segmentation->get_cpu_accessible();
+        char *p_seg = sp_seg.get();
 
         if (threshold_mode == teca_binary_segmentation::BY_VALUE)
         {

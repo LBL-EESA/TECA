@@ -30,16 +30,16 @@ public:
     TECA_ALGORITHM_CLASS_NAME(teca_binary_segmentation)
     ~teca_binary_segmentation();
 
-    // set the name of the output array to store the resulting segmentation in
     /** @name segmentation_variable
+     * set the name of the output array to store the resulting segmentation in
      */
     ///@{
     TECA_ALGORITHM_PROPERTY(std::string, segmentation_variable)
     ///@}
 
 
-    // set extra metadata for the segmentation variable
     /** @name segmentation_variable_attributes
+     * set extra metadata for the segmentation variable
      */
     ///@{
     TECA_ALGORITHM_PROPERTY(teca_metadata, segmentation_variable_attributes)
