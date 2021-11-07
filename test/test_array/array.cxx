@@ -265,3 +265,9 @@ int array::to_stream(std::ostream &ostr) const
     }
     return 0;
 }
+
+// --------------------------------------------------------------------------
+void array::debug_print() const
+{
+    this->internals->buffer->print();
+}

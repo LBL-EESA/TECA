@@ -113,6 +113,9 @@ public:
     int to_stream(std::ostream &s) const override;
     int from_stream(std::istream &) override { return -1; }
 
+
+    void debug_print() const;
+
 protected:
     /// creates a new array dataset with the default memory resource
     array();
