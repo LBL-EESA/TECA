@@ -56,6 +56,12 @@ int cuda_dispatch(int device_id, p_array &a_out, double val, size_t n_vals)
     // initialize the data
     array_source_internals::gpu::initialize
         <<<block_grid, thread_grid>>>(pa_out.get(), val, n_vals);
+    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to launch the initialize kernel. "
+            << cudaGetErrorString(ierr))
+        return -1;
+    }
 
     return 0;
 }

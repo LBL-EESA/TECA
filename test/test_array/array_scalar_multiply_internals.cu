@@ -59,10 +59,15 @@ int cuda_dispatch(int device_id, p_array &result,
         return -1;
     }
 
-
     // add the arrays
     array_scalar_multiply_internals::gpu::multiply<<<block_grid, thread_grid>>>(
         presult.get(), parray_in.get(), scalar, n_vals);
+    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to launch the multiply kernel. "
+            << cudaGetErrorString(ierr))
+        return -1;
+    }
 
     // sync
     cudaDeviceSynchronize();

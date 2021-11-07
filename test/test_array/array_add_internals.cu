@@ -63,6 +63,12 @@ int cuda_dispatch(int device_id, p_array &result, const const_p_array &array_1,
     // add the arrays
     array_add_internals::gpu::add<<<block_grid, thread_grid>>>(
         presult.get(), parray_1.get(), parray_2.get(), n_vals);
+    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to launch the add kernel. "
+            << cudaGetErrorString(ierr))
+        return -1;
+    }
 
     return 0;
 }
