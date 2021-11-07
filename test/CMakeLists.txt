@@ -560,6 +560,7 @@ teca_add_test(test_bayesian_ar_detect_threads
     "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\\.nc$"
     "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" IVT
     "bayesian_ar_detect_%t%.nc" -1 0 -1
+    FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(test_bayesian_ar_detect_mpi
