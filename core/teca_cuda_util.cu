@@ -37,10 +37,10 @@ int get_local_cuda_devices(MPI_Comm comm, std::deque<int> &local_dev)
     }
 
     // get the number of MPI ranks on this node, and their core id's
+#if defined(TECA_HAS_MPI)
     int n_node_ranks = 1;
     int node_rank = 0;
 
-#if defined(TECA_HAS_MPI)
     int is_init = 0;
     MPI_Initialized(&is_init);
     if (is_init)
