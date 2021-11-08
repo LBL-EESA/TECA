@@ -45,6 +45,7 @@
 #include "teca_tc_trajectory.h"
 #include "teca_tc_wind_radii.h"
 #include "teca_simple_moving_average.h"
+#include "teca_time_axis_convolution.h"
 #include "teca_unpack_data.h"
 #include "teca_valid_value_mask.h"
 #include "teca_vertical_reduction.h"
@@ -485,3 +486,11 @@ struct teca_tc_saffir_simpson
 %shared_ptr(teca_cartesian_mesh_coordinate_transform)
 %ignore teca_cartesian_mesh_coordinate_transform::operator=;
 %include "teca_cartesian_mesh_coordinate_transform.h"
+
+/***************************************************************************
+ time_axis_convolution
+ ***************************************************************************/
+%ignore teca_time_axis_convolution::shared_from_this;
+%shared_ptr(teca_time_axis_convolution)
+%ignore teca_time_axis_convolution::operator=;
+%include "teca_time_axis_convolution.h"
