@@ -60,11 +60,13 @@ p_teca_table
 teca_table_reader::teca_table_reader_internals::read_table(MPI_Comm comm,
     const std::string &file_name, int file_format, bool distribute)
 {
-    teca_binary_stream stream;
 #if !defined(TECA_HAS_MPI)
     (void)comm;
     (void)distribute;
-#else
+#endif
+
+    teca_binary_stream stream;
+
     // dtermine which format we are to read from
     if (file_format == teca_table_reader::format_auto)
     {
@@ -93,6 +95,7 @@ teca_table_reader::teca_table_reader_internals::read_table(MPI_Comm comm,
         return nullptr;
     }
 
+#if defined(TECA_HAS_MPI)
     int init = 0;
     int rank = 0;
     MPI_Initialized(&init);
