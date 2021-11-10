@@ -131,18 +131,18 @@ int teca_array_attributes::from(const teca_metadata &md)
     md.get("long_name", long_name);
     md.get("description", description);
 
+    have_fill_value = 0;
     if (type_code > 0)
     {
         CODE_DISPATCH(type_code,
             NT tmp = NT();
-            have_fill_value = md.get("_FillValue", tmp) == 0;
-            if (have_fill_value)
+            if ((md.get("_FillValue", tmp) == 0) ||
+               (md.get("missing_value", tmp) == 0))
+            {
+                have_fill_value = 1;
                 fill_value = tmp;
+            }
             )
-    }
-    else
-    {
-        have_fill_value = 0;
     }
 
     return 0;
