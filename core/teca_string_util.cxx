@@ -88,7 +88,9 @@ int tokenize(char *istr, char delim, int n_cols, char **ostr)
 // **************************************************************************
 void remove_postfix(std::set<std::string> &arrays, std::string postfix)
 {
-    size_t postfix_len = post_fix.length();
+    std::set<std::string> tmp;
+
+    size_t postfix_len = postfix.length();
 
     std::set<std::string>::iterator arrays_it;
     for (arrays_it=arrays.begin(); arrays_it!=arrays.end(); ++arrays_it)
@@ -98,17 +100,19 @@ void remove_postfix(std::set<std::string> &arrays, std::string postfix)
 
         if (array_var_len > postfix_len)
         {
-            size_t postfix_pos = array_var.find(post_fix,
-                                            array_var_len - postfix_len);
+            size_t postfix_pos =
+                array_var.find(postfix, array_var_len - postfix_len);
+
             if (postfix_pos != std::string::npos)
             {
                 array_var.erase(array_var_len - postfix_len, postfix_len);
-
-                arrays.erase(arrays_it);
-                arrays.insert(array_var);
             }
         }
+
+        tmp.insert(array_var);
     }
+
+    arrays = tmp;
 }
 
 }
