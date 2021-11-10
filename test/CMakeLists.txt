@@ -806,3 +806,14 @@ teca_add_test(test_time_axis_convolution_centered_gaussian_highpass
     gaussian 5 centered 1 0 30 1 prw
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
+
+teca_add_test(test_variant_array_cuda_access
+    SOURCES test_variant_array_cuda_access.cpp
+    LIBS teca_core ${teca_test_link}
+    COMMAND test_variant_array_cuda_access
+    FEATURES ${TECA_HAS_CUDA})
+
+teca_add_test(test_variant_array_cpu_access
+    SOURCES test_variant_array_cpu_access.cpp
+    LIBS teca_core ${teca_test_link}
+    COMMAND test_variant_array_cpu_access)
