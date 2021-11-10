@@ -115,9 +115,11 @@ template <typename task_t, typename data_t>
 void teca_cuda_thread_pool<task_t, data_t>::create_threads(MPI_Comm comm,
     int n_requested, int n_threads_per_device, bool bind, bool verbose)
 {
+#if defined(TECA_HAS_MPI)
     // this rank is excluded from computations
     if (comm == MPI_COMM_NULL)
         return;
+#endif
 
     int n_threads = n_requested;
 
