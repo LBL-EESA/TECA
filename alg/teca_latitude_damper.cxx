@@ -57,7 +57,7 @@ void apply_lat_filter(
 teca_latitude_damper::teca_latitude_damper() :
     center(std::numeric_limits<double>::quiet_NaN()),
     half_width_at_half_max(std::numeric_limits<double>::quiet_NaN()),
-    variable_post_fix("")
+    variable_postfix("")
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -84,7 +84,7 @@ void teca_latitude_damper::get_properties_description(
         TECA_POPTS_MULTI_GET(std::vector<std::string>, prefix, damped_variables,
             "set the variables that will be damped by the inverted "
             "gaussian filter")
-        TECA_POPTS_GET(std::string, prefix, variable_post_fix,
+        TECA_POPTS_GET(std::string, prefix, variable_postfix,
             "set the post-fix that will be attached to the variables "
             "that will be saved in the output")
         ;
@@ -102,7 +102,7 @@ void teca_latitude_damper::set_properties(const std::string &prefix,
     TECA_POPTS_SET(opts, double, prefix, center)
     TECA_POPTS_SET(opts, double, prefix, half_width_at_half_max)
     TECA_POPTS_SET(opts, std::vector<std::string>, prefix, damped_variables)
-    TECA_POPTS_SET(opts, std::string, prefix, variable_post_fix)
+    TECA_POPTS_SET(opts, std::string, prefix, variable_postfix)
 }
 #endif
 
@@ -170,15 +170,15 @@ teca_metadata teca_latitude_damper::get_output_metadata(
     // add in the array we will generate
     teca_metadata out_md(input_md[0]);
 
-    const std::string &var_post_fix = this->variable_post_fix;
-    if (!var_post_fix.empty())
+    const std::string &var_postfix = this->variable_postfix;
+    if (!var_postfix.empty())
     {
         std::vector<std::string> &damped_vars = this->damped_variables;
 
         size_t n_arrays = damped_vars.size();
         for (size_t i = 0; i < n_arrays; ++i)
         {
-            out_md.append("variables", damped_vars[i] + var_post_fix);
+            out_md.append("variables", damped_vars[i] + var_postfix);
         }
     }
 
@@ -221,10 +221,10 @@ std::vector<teca_metadata> teca_latitude_damper::get_upstream_request(
     // For ex a down stream could request "foo_damped" then we'd
     // need to request "foo". also remove "foo_damped" from the
     // request.
-    const std::string &var_post_fix = this->variable_post_fix;
-    if (!var_post_fix.empty())
+    const std::string &var_postfix = this->variable_postfix;
+    if (!var_postfix.empty())
     {
-        teca_string_util::remove_post_fix(arrays, var_post_fix);
+        teca_string_util::remove_postfix(arrays, var_postfix);
     }
 
     req.set("arrays", arrays);
@@ -326,7 +326,7 @@ const_p_teca_dataset teca_latitude_damper::execute(
             )
 
             // set the damped array in the output
-            std::string out_var_name = damped_vars[i] + this->variable_post_fix;
+            std::string out_var_name = damped_vars[i] + this->variable_postfix;
             out_mesh->get_point_arrays()->set(out_var_name, damped_array);
         }
 

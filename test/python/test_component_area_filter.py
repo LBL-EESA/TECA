@@ -56,7 +56,7 @@ for j in range(ny):
 
 wext = [0, nx - 1, 0, ny - 1, 0, 0]
 
-post_fix = "_area_filtered"
+postfix = "_area_filtered"
 
 mesh = teca_cartesian_mesh.New()
 mesh.set_x_coordinates("lon", x)
@@ -93,7 +93,7 @@ caf.set_component_variable("labels")
 caf.set_component_ids_key("component_ids")
 caf.set_component_area_key("component_area")
 caf.set_low_area_threshold(low_threshold_value)
-caf.set_variable_post_fix(post_fix)
+caf.set_variable_postfix(postfix)
 
 cao = teca_dataset_capture.New()
 cao.set_input_connection(caf.get_output_port())
@@ -116,13 +116,13 @@ filtered_label_id = []
 
 out_mesh = teca_cartesian_mesh.New()
 out_mesh.copy(va)
-filtered_labels_all = out_mesh.get_point_arrays().get("labels" + post_fix)
+filtered_labels_all = out_mesh.get_point_arrays().get("labels" + postfix)
 
 component_ids = mdo["component_ids"]
 component_area = mdo["component_area"]
 
-component_ids_filtered = mdo["component_ids" + post_fix]
-component_area_filtered = mdo["component_area" + post_fix]
+component_ids_filtered = mdo["component_ids" + postfix]
+component_area_filtered = mdo["component_area" + postfix]
 
 for i in range(len(component_ids)):
     if component_area[i] < low_threshold_value:

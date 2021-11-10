@@ -89,7 +89,7 @@ int main(int argc, char **argv)
 
     unsigned long wext[] = {0, nx - 1, 0, ny - 1, 0, 0};
 
-    std::string post_fix = "_area_filtered";
+    std::string postfix = "_area_filtered";
 
     p_teca_cartesian_mesh mesh = teca_cartesian_mesh::New();
     mesh->set_x_coordinates("x", x);
@@ -127,7 +127,7 @@ int main(int argc, char **argv)
     caf->set_component_ids_key("component_ids");
     caf->set_component_area_key("component_area");
     caf->set_low_area_threshold(low_threshold_value);
-    caf->set_variable_post_fix(post_fix);
+    caf->set_variable_postfix(postfix);
     caf->set_contiguous_component_ids(consecutive_labels);
 
     p_teca_dataset_capture cao = teca_dataset_capture::New();
@@ -142,7 +142,7 @@ int main(int argc, char **argv)
 
     const_p_teca_dataset ds = cao->get_dataset();
     const_p_teca_cartesian_mesh cds = std::dynamic_pointer_cast<const teca_cartesian_mesh>(ds);
-    const_p_teca_variant_array va = cds->get_point_arrays()->get("labels" + post_fix);
+    const_p_teca_variant_array va = cds->get_point_arrays()->get("labels" + postfix);
 
     teca_metadata mdo = ds->get_metadata();
 
@@ -155,10 +155,10 @@ int main(int argc, char **argv)
     mdo.get("area", area);
 
     std::vector<int> label_id_filtered;
-    mdo.get("label_id" + post_fix, label_id_filtered);
+    mdo.get("label_id" + postfix, label_id_filtered);
 
     std::vector<double> area_filtered;
-    mdo.get("area" + post_fix, area_filtered);
+    mdo.get("area" + postfix, area_filtered);
 
     cerr << "component areas" << endl;
     int n_labels = label_id.size();
