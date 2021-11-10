@@ -60,7 +60,7 @@ teca_component_area_filter::teca_component_area_filter() :
     component_ids_key("component_ids"), component_area_key("component_area"),
     mask_value(-1), low_area_threshold(std::numeric_limits<double>::lowest()),
     high_area_threshold(std::numeric_limits<double>::max()),
-    variable_post_fix(""), contiguous_component_ids(0)
+    variable_postfix(""), contiguous_component_ids(0)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -96,7 +96,7 @@ void teca_component_area_filter::get_properties_description(
         TECA_POPTS_GET(double, prefix, high_area_threshold,
             "set the higher end of the range of areas to pass through. "
             "components larger than this are masked out.")
-        TECA_POPTS_GET(std::string, prefix, variable_post_fix,
+        TECA_POPTS_GET(std::string, prefix, variable_postfix,
             "set a string that will be appended to variable names and "
             "metadata keys in the filter's output")
         TECA_POPTS_GET(int, prefix, contiguous_component_ids,
@@ -122,7 +122,7 @@ void teca_component_area_filter::set_properties(const std::string &prefix,
     TECA_POPTS_SET(opts, int, prefix, mask_value)
     TECA_POPTS_SET(opts, double, prefix, low_area_threshold)
     TECA_POPTS_SET(opts, double, prefix, high_area_threshold)
-    TECA_POPTS_SET(opts, std::string, prefix, variable_post_fix)
+    TECA_POPTS_SET(opts, std::string, prefix, variable_postfix)
 }
 #endif
 
@@ -140,11 +140,11 @@ teca_metadata teca_component_area_filter::get_output_metadata(
     // add in the array we will generate
     teca_metadata out_md(input_md[0]);
 
-    const std::string &var_post_fix = this->variable_post_fix;
-    if (!var_post_fix.empty())
+    const std::string &var_postfix = this->variable_postfix;
+    if (!var_postfix.empty())
     {
         std::string component_var = this->component_variable;
-        out_md.append("variables", component_var + var_post_fix);
+        out_md.append("variables", component_var + var_postfix);
     }
 
     return out_md;
@@ -182,10 +182,10 @@ std::vector<teca_metadata> teca_component_area_filter::get_upstream_request(
 
     // remove the arrays we produce if the post-fix is set,
     // and replace it with the actual requested array.
-    const std::string &var_post_fix = this->variable_post_fix;
-    if (!var_post_fix.empty())
+    const std::string &var_postfix = this->variable_postfix;
+    if (!var_postfix.empty())
     {
-        teca_string_util::remove_post_fix(arrays, var_post_fix);
+        teca_string_util::remove_postfix(arrays, var_postfix);
     }
 
     req.set("arrays", arrays);
@@ -282,8 +282,8 @@ const_p_teca_dataset teca_component_area_filter::execute(
     p_teca_variant_array labels_out = labels_in->new_instance(n_elem);
 
     // pass to the output
-    std::string labels_var_post_fix = this->component_variable + this->variable_post_fix;
-    out_mesh->get_point_arrays()->set(labels_var_post_fix, labels_out);
+    std::string labels_var_postfix = this->component_variable + this->variable_postfix;
+    out_mesh->get_point_arrays()->set(labels_var_postfix, labels_out);
 
     // get the output metadata to add results to after the filter is applied
     teca_metadata &out_metadata = out_mesh->get_metadata();
@@ -369,10 +369,10 @@ const_p_teca_dataset teca_component_area_filter::execute(
 
             // pass the updated set of component ids and their coresponding areas
             // to the output
-            out_metadata.set(this->number_of_components_key + this->variable_post_fix, ids_out.size());
-            out_metadata.set(this->component_ids_key + this->variable_post_fix, ids_out);
-            out_metadata.set(this->component_area_key + this->variable_post_fix, areas_out);
-            out_metadata.set("background_id" + this->variable_post_fix, mask_value);
+            out_metadata.set(this->number_of_components_key + this->variable_postfix, ids_out.size());
+            out_metadata.set(this->component_ids_key + this->variable_postfix, ids_out);
+            out_metadata.set(this->component_area_key + this->variable_postfix, areas_out);
+            out_metadata.set("background_id" + this->variable_postfix, mask_value);
 
             // pass the threshold values used
             out_metadata.set("low_area_threshold_km", low_val);

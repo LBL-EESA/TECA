@@ -56,7 +56,7 @@ public:
     // setting this to an empty string will result in the damped array
     // replacing the input array in the output. default is an empty
     // string ""
-    TECA_ALGORITHM_PROPERTY(std::string, variable_post_fix)
+    TECA_ALGORITHM_PROPERTY(std::string, variable_postfix)
 
 protected:
     teca_latitude_damper();
@@ -89,7 +89,7 @@ private:
     double center;
     double half_width_at_half_max;
     std::vector<std::string> damped_variables;
-    std::string variable_post_fix;
+    std::string variable_postfix;
 };
 
 #endif

@@ -97,7 +97,7 @@ int main(int argc, char **argv)
     damped_comp->set_half_width_at_half_max(hwhm);
     damped_comp->set_center(0.0);
     damped_comp->append_damped_variable("ones_grid");
-    damped_comp->set_variable_post_fix("_damped");
+    damped_comp->set_variable_postfix("_damped");
 
     p_teca_dataset_capture damp_o = teca_dataset_capture::New();
     damp_o->set_input_connection(damped_comp->get_output_port());

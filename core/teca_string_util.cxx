@@ -86,7 +86,7 @@ int tokenize(char *istr, char delim, int n_cols, char **ostr)
 }
 
 // **************************************************************************
-void remove_post_fix(std::set<std::string> &arrays, std::string post_fix)
+void remove_postfix(std::set<std::string> &arrays, std::string postfix)
 {
     size_t postfix_len = post_fix.length();
 
