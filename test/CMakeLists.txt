@@ -817,3 +817,9 @@ teca_add_test(test_variant_array_cpu_access
     SOURCES test_variant_array_cpu_access.cpp
     LIBS teca_core ${teca_test_link}
     COMMAND test_variant_array_cpu_access)
+
+teca_add_test(test_array_collection_cuda_access
+    SOURCES test_array_collection_cuda_access.cpp
+    LIBS teca_core teca_data ${teca_test_link}
+    COMMAND test_array_collection_cuda_access
+    FEATURES ${TECA_HAS_CUDA})
