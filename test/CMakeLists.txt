@@ -833,3 +833,9 @@ teca_add_test(test_l2_norm_threads
     U850 V850 . W850 test_l2_norm_cam5_%t%.nc
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
+
+teca_add_test(test_l2_norm
+    SOURCES test_l2_norm.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_l2_norm "${TECA_DATA_ROOT}/test_l2_norm.bin"
+    REQ_TECA_DATA)
