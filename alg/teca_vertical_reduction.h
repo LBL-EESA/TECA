@@ -17,7 +17,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_vertical_reduction)
  * reduction where a 3D dataset is transformed into a 2D dataset
  * by a reduction along the 3rd spatial dimension.
 */
-class teca_vertical_reduction : public teca_algorithm
+class TECA_EXPORT teca_vertical_reduction : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_vertical_reduction)

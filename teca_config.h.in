@@ -28,4 +28,7 @@
 #cmakedefine TECA_HAS_DATA
 #cmakedefine TECA_DATA_ROOT "@TECA_DATA_ROOT@"
 
+#define TECA_EXPORT __attribute__ ((visibility ("default")))
+#define TECA_PRIVATE __attribute__ ((visibility ("hidden")))
+
 #endif

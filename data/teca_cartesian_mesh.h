@@ -1,13 +1,14 @@
 #ifndef teca_cartesian_mesh_h
 #define teca_cartesian_mesh_h
 
+#include "teca_config.h"
 #include "teca_mesh.h"
 #include "teca_shared_object.h"
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_cartesian_mesh)
 
 /// An object representing data on a stretched Cartesian mesh.
-class teca_cartesian_mesh : public teca_mesh
+class TECA_EXPORT teca_cartesian_mesh : public teca_mesh
 {
 public:
     TECA_DATASET_STATIC_NEW(teca_cartesian_mesh)

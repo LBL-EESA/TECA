@@ -1,6 +1,7 @@
 #ifndef teca_binary_stream_h
 #define teca_binary_stream_h
 
+#include "teca_config.h"
 #include "teca_common.h"
 #include "teca_mpi.h"
 
@@ -12,7 +13,7 @@
 
 
 /// Serialize objects into a binary stream.
-class teca_binary_stream
+class TECA_EXPORT teca_binary_stream
 {
 public:
     // construct

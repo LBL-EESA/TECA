@@ -1,6 +1,8 @@
 #ifndef teca_priority_queue_h
 #define teca_priority_queue_h
 
+#include "teca_config.h"
+
 #include <ostream>
 #include <vector>
 #include <map>
@@ -27,7 +29,7 @@ using contiguous_key_t = std::vector<unsigned long>;
 // for keys that are not ordinals 0 to N, use the mapped_key_priority_t alias
 // for contiguous keys 0 to N (faster), use the contiguous_key_priority_t alias
 template<typename key_t, typename priority_t>
-struct mapped_key_priority
+struct TECA_EXPORT mapped_key_priority
 {
     using key_map_t = mapped_key_t<key_t>;
 
@@ -41,7 +43,7 @@ struct mapped_key_priority
 };
 
 template<typename key_t, typename priority_t>
-struct contiguous_key_priority
+struct TECA_EXPORT contiguous_key_priority
 {
     using key_map_t = contiguous_key_t;
 
@@ -110,7 +112,7 @@ using p_teca_priority_queue = std::shared_ptr<
  */
 template <typename key_t, typename lookup_t,
     typename comp_t, typename key_map_t>
-class teca_priority_queue
+class TECA_EXPORT teca_priority_queue
 {
 public:
 

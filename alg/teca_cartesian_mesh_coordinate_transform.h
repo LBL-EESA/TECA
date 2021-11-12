@@ -26,7 +26,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_cartesian_mesh_coordinate_transform)
  * axis arrays, not the fields defined on the mesh.  The coordinate axes may
  * optionally be renamed and new units provided.
  */
-class teca_cartesian_mesh_coordinate_transform : public teca_algorithm
+class TECA_EXPORT teca_cartesian_mesh_coordinate_transform : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_cartesian_mesh_coordinate_transform)

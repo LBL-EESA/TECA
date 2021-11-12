@@ -1,6 +1,7 @@
 #ifndef array_source_h
 #define array_source_h
 
+#include "teca_config.h"
 #include "teca_shared_object.h"
 #include "teca_algorithm.h"
 #include <vector>
@@ -23,7 +24,7 @@ request keys:
      array_name (required)
      extent (required)
 */
-class array_source : public teca_algorithm
+class TECA_EXPORT array_source : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(array_source)

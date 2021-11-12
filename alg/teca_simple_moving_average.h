@@ -16,7 +16,7 @@ an algorithm that averages data in time. filter_width
 controls the number of time steps to average over.
 all arrays in the input data are processed.
 */
-class teca_simple_moving_average : public teca_algorithm
+class TECA_EXPORT teca_simple_moving_average : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_simple_moving_average)

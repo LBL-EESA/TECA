@@ -11,7 +11,7 @@
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_laplacian)
 
 /// An algorithm that computes the Laplacian from a vector field.
-class teca_laplacian : public teca_algorithm
+class TECA_EXPORT teca_laplacian : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_laplacian)

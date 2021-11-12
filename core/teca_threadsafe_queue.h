@@ -1,13 +1,15 @@
 #ifndef teca_threadsafe_queue_h
 #define teca_threadsafe_queue_h
 
+#include "teca_config.h"
+
 #include <mutex>
 #include <queue>
 #include <condition_variable>
 
 /// A thread safe queue
 template<typename T>
-class teca_threadsafe_queue
+class TECA_EXPORT teca_threadsafe_queue
 {
 public:
     teca_threadsafe_queue() {}

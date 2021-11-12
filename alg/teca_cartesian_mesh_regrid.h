@@ -1,6 +1,7 @@
 #ifndef teca_cartesian_mesh_regrid_h
 #define teca_cartesian_mesh_regrid_h
 
+#include "teca_config.h"
 #include "teca_shared_object.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
@@ -27,7 +28,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_cartesian_mesh_regrid)
  * or in the request key "arrays". this is a spatial regriding operation for
  * temporal regriding see teca_mesh_temporal_regrid.
  */
-class teca_cartesian_mesh_regrid : public teca_algorithm
+class TECA_EXPORT teca_cartesian_mesh_regrid : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_cartesian_mesh_regrid)

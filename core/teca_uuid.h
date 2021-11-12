@@ -1,12 +1,13 @@
 #ifndef teca_uuid_h
 #define teca_uuid_h
 
+#include "teca_config.h"
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 
 
 /// A universally uniquer identifier.
-class teca_uuid : public boost::uuids::uuid
+class TECA_EXPORT teca_uuid : public boost::uuids::uuid
 {
 public:
     teca_uuid() : boost::uuids::uuid(boost::uuids::random_generator()())

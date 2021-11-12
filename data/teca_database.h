@@ -1,6 +1,7 @@
 #ifndef teca_database_h
 #define teca_database_h
 
+#include "teca_config.h"
 #include "teca_dataset.h"
 #include "teca_table.h"
 #include "teca_shared_object.h"
@@ -16,7 +17,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_database)
  * is a thin wrapper around the teca_table_collection implementing
  * the teca_dataset API.
  */
-class teca_database : public teca_dataset
+class TECA_EXPORT teca_database : public teca_dataset
 {
 public:
     TECA_DATASET_STATIC_NEW(teca_database)

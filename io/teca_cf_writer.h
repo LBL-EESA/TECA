@@ -1,6 +1,7 @@
 #ifndef teca_cf_writer_h
 #define teca_cf_writer_h
 
+#include "teca_config.h"
 #include "teca_shared_object.h"
 #include "teca_threaded_algorithm.h"
 #include "teca_metadata.h"
@@ -70,7 +71,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_cf_writer)
  * any algorithm that adds an array should provide this metadata).
  * ~~~~~~~~~~~~
  */
-class teca_cf_writer : public teca_threaded_algorithm
+class TECA_EXPORT teca_cf_writer : public teca_threaded_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_cf_writer)

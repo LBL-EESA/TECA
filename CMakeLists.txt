@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 cmake_policy(SET CMP0028 NEW)
 cmake_policy(SET CMP0053 NEW)
+cmake_policy(SET CMP0063 NEW)
 
 project(teca C CXX Fortran)
 
@@ -11,6 +12,10 @@ set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
 set(CMAKE_CUDA_ARCHITECTURES 75)
+set(CMAKE_CUDA_VISIBILITY_PRESET hidden)
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+set(CMAKE_C_VISIBILITY_PRESET hidden)
+
 
 # set build/install sub dirs for various components
 if (NOT LIB_PREFIX)

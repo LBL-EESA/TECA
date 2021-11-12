@@ -1,6 +1,7 @@
 #ifndef teca_valid_value_mask_h
 #define teca_valid_value_mask_h
 
+#include "teca_config.h"
 #include "teca_shared_object.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
@@ -35,7 +36,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_valid_value_mask)
  * request for "V_valid" would result in the mask being generated for the variable
  * "V".
 */
-class teca_valid_value_mask : public teca_algorithm
+class TECA_EXPORT teca_valid_value_mask : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_valid_value_mask)

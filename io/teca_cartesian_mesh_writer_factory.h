@@ -1,10 +1,11 @@
 #ifndef teca_cartesian_mesh_writer_factory_h
 #define teca_cartesian_mesh_writer_factory_h
 
+#include "teca_config.h"
 #include "teca_algorithm.h"
 
 /// A factory for Cartesian mesh writers
-struct teca_cartesian_mesh_writer_factory
+struct TECA_EXPORT teca_cartesian_mesh_writer_factory
 {
      /** creates and initialized a writer from a given file name
       * or regular expression.  the file extension is examined,

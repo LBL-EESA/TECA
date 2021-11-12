@@ -11,7 +11,7 @@
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_face_to_cell_centering)
 
 /// An  algorithm that transforms from face to cell centering
-class teca_face_to_cell_centering : public teca_algorithm
+class TECA_EXPORT teca_face_to_cell_centering : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_face_to_cell_centering)

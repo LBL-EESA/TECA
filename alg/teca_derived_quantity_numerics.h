@@ -20,7 +20,7 @@ namespace teca_derived_quantity_numerics
  *  for every i
  *  avg[i] = (v0[i] + v1[i])/2
  */
-struct point_wise_average
+struct TECA_EXPORT point_wise_average
 {
     // construct the class with two input array names, v0,v1
     // and the output array name, avg.
@@ -86,7 +86,7 @@ struct point_wise_average
  *  for every i
  *  diff[i] = v1[i] - v0[i]
  */
-struct point_wise_difference
+struct TECA_EXPORT point_wise_difference
 {
     // construct the class with two input array names, v0,v1
     // and the output array name, diff.

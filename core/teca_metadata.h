@@ -1,14 +1,16 @@
 #ifndef teca_metadata_h
 #define teca_metadata_h
 
+#include "teca_config.h"
+#include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
+
 #include <iosfwd>
 #include <map>
 #include <string>
 #include <initializer_list>
 #include <vector>
 #include <set>
-#include "teca_variant_array.h"
-#include "teca_variant_array_impl.h"
 
 /// A generic container for meta data in the form of name=value pairs.
 /**
@@ -16,7 +18,7 @@
  * producer-consumer documentation for
  * information about what names are valid.
  */
-class teca_metadata
+class TECA_EXPORT teca_metadata
 {
 public:
     teca_metadata() noexcept;
@@ -203,11 +205,13 @@ private:
 
 // comparison function so that metadata can be
 // used as a key in std::map.
+TECA_EXPORT
 bool operator<(const teca_metadata &lhs, const teca_metadata &rhs) noexcept;
 
 // compare meta data objects. two objects are considered
 // equal if both have the same set of keys and all of the values
 // are equal
+TECA_EXPORT
 bool operator==(const teca_metadata &lhs, const teca_metadata &rhs) noexcept;
 
 inline
@@ -216,6 +220,7 @@ bool operator!=(const teca_metadata &lhs, const teca_metadata &rhs) noexcept
 
 // intersect two metadata objects. return a new object with
 // common key value pairs
+TECA_EXPORT
 teca_metadata operator&(const teca_metadata &lhs, const teca_metadata &rhs);
 
 // --------------------------------------------------------------------------

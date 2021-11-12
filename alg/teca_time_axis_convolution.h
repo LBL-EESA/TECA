@@ -1,6 +1,7 @@
 #ifndef teca_time_axis_convolution_h
 #define teca_time_axis_convolution_h
 
+#include "teca_config.h"
 #include "teca_shared_object.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
@@ -26,7 +27,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_time_axis_convolution)
  *
  * * The kernel can be generated with explicitly provided kernel parameters.
  */
-class teca_time_axis_convolution : public teca_algorithm
+class TECA_EXPORT teca_time_axis_convolution : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_time_axis_convolution)

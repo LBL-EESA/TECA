@@ -1,6 +1,7 @@
 #ifndef teca_cf_layout_manager_h
 #define teca_cf_layout_manager_h
 
+#include "teca_config.h"
 #include "teca_metadata.h"
 #include "teca_variant_array.h"
 #include "teca_array_collection.h"
@@ -16,7 +17,7 @@ class teca_cf_layout_manager;
 using p_teca_cf_layout_manager = std::shared_ptr<teca_cf_layout_manager>;
 
 /// Puts data on disk using NetCDF CF2 conventions.
-class teca_cf_layout_manager
+class TECA_EXPORT teca_cf_layout_manager
 {
 public:
     // allocate and return a new object. The communicator passed in will be

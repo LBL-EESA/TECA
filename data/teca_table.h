@@ -1,6 +1,7 @@
 #ifndef teca_table_h
 #define teca_table_h
 
+#include "teca_config.h"
 #include "teca_dataset.h"
 #include "teca_variant_array.h"
 #include "teca_array_collection.h"
@@ -16,7 +17,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_table)
  * A collection of columnar data with row based
  * accessors and communication and I/O support.
  */
-class teca_table : public teca_dataset
+class TECA_EXPORT teca_table : public teca_dataset
 {
 public:
     TECA_DATASET_STATIC_NEW(teca_table)

@@ -1,6 +1,7 @@
 #ifndef teca_table_writer_h
 #define teca_table_writer_h
 
+#include "teca_config.h"
 #include "teca_shared_object.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
@@ -24,7 +25,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_table_writer)
  * See TECA CSV format specification in teca_table_reader for more
  * information.
  */
-class teca_table_writer : public teca_algorithm
+class TECA_EXPORT teca_table_writer : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_table_writer)

@@ -1,6 +1,7 @@
 #ifndef teca_threaded_programmable_algorithm_h
 #define teca_threaded_programmable_algorithm_h
 
+#include "teca_config.h"
 #include "teca_metadata.h"
 #include "teca_dataset.h"
 #include "teca_threaded_algorithm.h"
@@ -62,7 +63,7 @@
  * set_request_callback
  * set_execute_callback
  */
-class teca_threaded_programmable_algorithm : public teca_threaded_algorithm
+class TECA_EXPORT teca_threaded_programmable_algorithm : public teca_threaded_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_threaded_programmable_algorithm)

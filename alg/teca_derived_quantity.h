@@ -25,7 +25,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_derived_quantity)
  * context(operation_name) differentiates between multiple instances in the same
 pipeline.
 */
-class teca_derived_quantity : public teca_programmable_algorithm
+class TECA_EXPORT teca_derived_quantity : public teca_programmable_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_derived_quantity)

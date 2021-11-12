@@ -1,6 +1,7 @@
 #ifndef teca_geometry_h
 #define teca_geometry_h
 
+#include "teca_config.h"
 #include "teca_binary_stream.h"
 
 #include <memory>
@@ -14,6 +15,7 @@ namespace teca_geometry
 
 /// tests if a point is Left|On|Right of an infinite line.
 template<typename n_t>
+TECA_EXPORT
 bool left(n_t e0x, n_t e0y, n_t e1x, n_t e1y, n_t px, n_t py)
 {
     // >0 for p left of the line through e0 and e1
@@ -37,6 +39,7 @@ bool left(n_t e0x, n_t e0y, n_t e1x, n_t e1y, n_t px, n_t py)
  *
  */
 template<typename n_t>
+TECA_EXPORT
 bool point_in_poly(n_t px, n_t py,
     n_t *vx, n_t *vy, unsigned long nppts)
 {
@@ -68,7 +71,7 @@ bool point_in_poly(n_t px, n_t py,
  * and last point are required to be the same.
  */
 template <typename coord_t>
-struct polygon
+struct TECA_EXPORT polygon
 {
     polygon() : vx(nullptr), vy(nullptr), n_verts(0) {}
 

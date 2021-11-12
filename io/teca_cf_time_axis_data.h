@@ -1,6 +1,7 @@
 #ifndef teca_cf_time_axis_data_h
 #define teca_cf_time_axis_data_h
 
+#include "teca_config.h"
 #include "teca_dataset.h"
 #include "teca_variant_array.h"
 #include "teca_metadata.h"
@@ -13,7 +14,7 @@
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_cf_time_axis_data)
 
 /// A dataset used to read NetCDF CF2 time and metadata in parallel.
-class teca_cf_time_axis_data : public teca_dataset
+class TECA_EXPORT teca_cf_time_axis_data : public teca_dataset
 {
 public:
     TECA_DATASET_STATIC_NEW(teca_cf_time_axis_data)

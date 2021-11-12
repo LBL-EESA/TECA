@@ -3,6 +3,7 @@
 
 /// @file
 
+#include "teca_config.h"
 #include "teca_common.h"
 #include "teca_metadata.h"
 #include "teca_dataset.h"
@@ -54,7 +55,7 @@ namespace teca_py_algorithm
  *
  * it must return: a teca_metadata object.
 */
-class report_callback
+class TECA_EXPORT report_callback
 {
 public:
     report_callback(PyObject *f)
@@ -123,7 +124,7 @@ private:
  * execution. In addition to holding the callback it handles translation of the
  *input and output arguments.
  */
-class request_callback
+class TECA_EXPORT request_callback
 {
 public:
     request_callback(PyObject *f)
@@ -222,7 +223,7 @@ private:
  *
  * it must return: a teca_dataset object.
  */
-class execute_callback
+class TECA_EXPORT execute_callback
 {
 public:
     execute_callback(PyObject *f)
@@ -316,7 +317,7 @@ private:
  *
  * it must return: a teca_dataset object.
 */
-class threaded_execute_callback
+class TECA_EXPORT threaded_execute_callback
 {
 public:
     threaded_execute_callback(PyObject *f)
@@ -404,7 +405,7 @@ private:
  * the python function must accept the two datasets to reduce and return the
  * reduced data
 */
-class reduce_callback
+class TECA_EXPORT reduce_callback
 {
 public:
     reduce_callback(PyObject *f)
@@ -504,7 +505,7 @@ private:
  * the python function must accept the dataset to finalize and return the
  * finalized data
 */
-class finalize_callback
+class TECA_EXPORT finalize_callback
 {
 public:
     finalize_callback(PyObject *f)

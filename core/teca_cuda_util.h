@@ -3,6 +3,7 @@
 
 /// @file
 
+#include "teca_config.h"
 #include "teca_common.h"
 #include "teca_mpi.h"
 
@@ -29,15 +30,19 @@ namespace teca_cuda_util
  *                       MPI rank.
  * @returns              non-zero on error.
  */
+TECA_EXPORT
 int get_local_cuda_devices(MPI_Comm comm, std::deque<int> &local_dev);
 
 /// set the CUDA device. returns non-zero on error
+TECA_EXPORT
 int set_device(int device_id);
 
 /// stop and wait for previuoiusly launched kernels to complete
+TECA_EXPORT
 int synchronize();
 
 /// querry properties for the named CUDA device. retruns non-zero on error
+TECA_EXPORT
 int get_launch_props(int device_id,
     int *block_grid_max, int &warp_size,
     int &max_warps_per_block);
@@ -95,6 +100,7 @@ int index_is_valid(unsigned long index, unsigned long max_index)
 //
 // returns:
 //      non zero on error
+TECA_EXPORT
 int partition_thread_blocks(int device_id, size_t array_size,
     int warps_per_block, dim3 &block_grid, int &n_blocks,
     dim3 &thread_grid);
@@ -114,6 +120,7 @@ int partition_thread_blocks(int device_id, size_t array_size,
 //
 // returns:
 //      non zero on error
+TECA_EXPORT
 int partition_thread_blocks(size_t array_size,
     int warps_per_block, int warp_size, int *block_grid_max,
     dim3 &block_grid, int &n_blocks, dim3 &thread_grid);

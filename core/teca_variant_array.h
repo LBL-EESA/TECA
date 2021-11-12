@@ -14,6 +14,7 @@
 #include <typeinfo>
 #include <utility>
 
+#include "teca_config.h"
 #include "teca_common.h"
 #include "teca_binary_stream.h"
 #include "teca_bad_cast.h"
@@ -37,7 +38,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_variant_array)
  * See #TEMPLATE_DISPATCH and #NESTED_TEMPLATE_DISPATCH for details on how to
  * apply type specific code to an instance of teca_variant_array.
  */
-class teca_variant_array : public std::enable_shared_from_this<teca_variant_array>
+class TECA_EXPORT teca_variant_array : public std::enable_shared_from_this<teca_variant_array>
 {
 public:
 

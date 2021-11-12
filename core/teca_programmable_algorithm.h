@@ -1,6 +1,7 @@
 #ifndef teca_programmable_algorithm_h
 #define teca_programmable_algorithm_h
 
+#include "teca_config.h"
 #include "teca_algorithm.h"
 #include "teca_shared_object.h"
 #include "teca_metadata.h"
@@ -82,7 +83,7 @@ using threaded_execute_callback_t = std::function<const_p_teca_dataset(
  * set_request_callback
  * set_execute_callback
  */
-class teca_programmable_algorithm : public teca_algorithm
+class TECA_EXPORT teca_programmable_algorithm : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_programmable_algorithm)

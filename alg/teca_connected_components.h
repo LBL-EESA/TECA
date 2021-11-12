@@ -42,7 +42,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_connected_components)
  *  | background_id | the label used for cells outside of the segmentation, |
  *  |               | i.e. the background. always 0. |
 */
-class teca_connected_components : public teca_algorithm
+class TECA_EXPORT teca_connected_components : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_connected_components)

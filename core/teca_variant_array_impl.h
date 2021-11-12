@@ -7,6 +7,7 @@
 #pragma diag_suppress = partial_override
 #endif
 
+#include "teca_config.h"
 #include "teca_variant_array.h"
 #include "teca_common.h"
 #include "teca_binary_stream.h"
@@ -310,7 +311,7 @@ struct pack_object
  * arrays.
  */
 template<typename T>
-class teca_variant_array_impl : public teca_variant_array
+class TECA_EXPORT teca_variant_array_impl : public teca_variant_array
 {
 public:
     /** @name Array constructors
@@ -2449,13 +2450,13 @@ void teca_variant_array_impl<T>::from_ascii(
 
 /// @cond
 template <typename T>
-struct teca_variant_array_code {};
+struct TECA_EXPORT teca_variant_array_code {};
 
 template <unsigned int I>
-struct teca_variant_array_new {};
+struct TECA_EXPORT teca_variant_array_new {};
 
 template <unsigned int I>
-struct teca_variant_array_type {};
+struct TECA_EXPORT teca_variant_array_type {};
 
 #define TECA_VARIANT_ARRAY_TT_SPEC(T, v)            \
 template <>                                         \
@@ -2506,7 +2507,7 @@ TECA_VARIANT_ARRAY_TT_SPEC(p_teca_variant_array, 15)
 /** @brief Creates an instance of teca_variant_array_impl<T> where T is
  * determined from the type code.
  */
-struct teca_variant_array_factory
+struct TECA_EXPORT teca_variant_array_factory
 {
     static p_teca_variant_array New(unsigned int type_code)
     {
@@ -2572,7 +2573,7 @@ struct teca_variant_array_factory
 /// @endcond
 
 // --------------------------------------------------------------------------
-template<typename T>
+template <typename T>
 unsigned int teca_variant_array_impl<T>::type_code() const noexcept
 {
     return teca_variant_array_code<T>::get();
@@ -2580,6 +2581,7 @@ unsigned int teca_variant_array_impl<T>::type_code() const noexcept
 
 // **************************************************************************
 template <typename T>
+TECA_EXPORT
 T min(const const_p_teca_variant_array_impl<T> &a)
 {
     size_t n_elem = a->size();
@@ -2606,6 +2608,7 @@ T min(const const_p_teca_variant_array_impl<T> &a)
 
 // **************************************************************************
 template <typename T>
+TECA_EXPORT
 T min(const p_teca_variant_array_impl<T> &a)
 {
     return min(const_p_teca_variant_array_impl<T>(a));
@@ -2613,6 +2616,7 @@ T min(const p_teca_variant_array_impl<T> &a)
 
 // **************************************************************************
 template <typename T>
+TECA_EXPORT
 T max(const const_p_teca_variant_array_impl<T> &a)
 {
     size_t n_elem = a->size();
@@ -2639,6 +2643,7 @@ T max(const const_p_teca_variant_array_impl<T> &a)
 
 // **************************************************************************
 template <typename T>
+TECA_EXPORT
 T max(const p_teca_variant_array_impl<T> &a)
 {
     return max(const_p_teca_variant_array_impl<T>(a));

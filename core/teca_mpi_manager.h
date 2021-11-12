@@ -1,11 +1,13 @@
 #ifndef teca_mpi_manager_h
 #define teca_mpi_manager_h
 
+#include "teca_config.h"
+
 /// A RAII class to ease MPI initalization and finalization
 // MPI_Init is handled in the constructor, MPI_Finalize is handled in the
 // destructor. Given that this is an application level helper rank and size
 // are reported relative to MPI_COMM_WORLD.
-class teca_mpi_manager
+class TECA_EXPORT teca_mpi_manager
 {
 public:
     teca_mpi_manager() = delete;

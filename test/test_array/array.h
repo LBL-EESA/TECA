@@ -1,7 +1,7 @@
 #ifndef array_h
 #define array_h
 
-#include "array.h"
+#include "teca_config.h"
 #include "teca_dataset.h"
 #include "teca_shared_object.h"
 
@@ -14,7 +14,7 @@ class teca_binary_stream;
 
 // trivial implementation of an array based datatset
 // for testing the pipeline
-class array : public teca_dataset
+class TECA_EXPORT array : public teca_dataset
 {
 public:
     ~array();
@@ -29,19 +29,9 @@ public:
     ///static p_array New(const hamr::p_memory_resource &alloc);
     static p_array New(int alloc);
 
-    //TECA_DATASET_STATIC_NEW(array);
-
     TECA_DATASET_PROPERTY(std::vector<size_t>, extent)
     TECA_DATASET_PROPERTY(std::string, name)
 
-/*
-    // set the contained data
-    void set_data(const hamr::pmr_vector<double> &a_data) { *this->data = a_data; }
-
-    // get the contained data
-    hamr::pmr_vector<double> &get_data() { return *this->data; }
-    const hamr::pmr_vector<double> &get_data() const { return *this->data; }
-*/
     // get a pointer to the contained data that is accessible on the CPU
     std::shared_ptr<double> get_cpu_accessible();
     std::shared_ptr<const double> get_cpu_accessible() const;
@@ -83,23 +73,6 @@ public:
     void resize(size_t n);
     void clear();
 
-/*
-    double &get(size_t i)
-    { return this->data->at(i); }
-
-    const double &get(size_t i) const
-    { return this->data->at(i); }
-
-    double &operator[](size_t i)
-    { return this->data->at(i); }
-
-    const double &operator[](size_t i) const
-    { return this->data->at(i); }
-
-    void append(double d)
-    { this->data->push_back(d); }
-*/
-
     void copy(const const_p_teca_dataset &) override;
     void shallow_copy(const p_teca_dataset &) override;
     void copy_metadata(const const_p_teca_dataset &) override;
@@ -133,10 +106,6 @@ private:
 
     struct array_internals;
     array_internals *internals;
-/*
-    hamr::p_memory_resource memory_resource;
-    std::shared_ptr<hamr::pmr_vector<double>> data;
-*/
 };
 
 #endif

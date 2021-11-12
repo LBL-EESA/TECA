@@ -1,6 +1,7 @@
 #ifndef teca_cuda_thread_pool_h
 #define teca_cuda_thread_pool_h
 
+#include "teca_config.h"
 #include "teca_common.h"
 #include "teca_algorithm.h"
 #include "teca_thread_util.h"
@@ -33,7 +34,7 @@ using p_teca_cuda_thread_pool = std::shared_ptr<teca_cuda_thread_pool<task_t, da
 
 /// A class to manage a fixed size pool of threads that dispatch work.
 template <typename task_t, typename data_t>
-class teca_cuda_thread_pool
+class TECA_EXPORT teca_cuda_thread_pool
 {
 public:
     teca_cuda_thread_pool() = delete;

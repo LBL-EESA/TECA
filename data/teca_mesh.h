@@ -1,6 +1,7 @@
 #ifndef teca_mesh_h
 #define teca_mesh_h
 
+#include "teca_config.h"
 #include "teca_dataset.h"
 #include "teca_metadata.h"
 #include "teca_array_collection.h"
@@ -15,7 +16,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_mesh)
  * the APIs for accessing them. APIs for accessing common metadata such
  * as time related metadata are declared here.
  */
-class teca_mesh : public teca_dataset
+class TECA_EXPORT teca_mesh : public teca_dataset
 {
 public:
     ~teca_mesh() = default;

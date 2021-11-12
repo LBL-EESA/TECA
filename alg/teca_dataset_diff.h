@@ -27,7 +27,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_dataset_diff)
  * input produces the dataset to validate. this is primarilly to support
  * map-reduce implementation where after the reduction only rank 0 has data.
 */
-class teca_dataset_diff : public teca_algorithm
+class TECA_EXPORT teca_dataset_diff : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_dataset_diff)

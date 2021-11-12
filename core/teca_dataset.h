@@ -1,6 +1,7 @@
 #ifndef teca_dataset_h
 #define teca_dataset_h
 
+#include "teca_config.h"
 #include "teca_common.h"
 #include "teca_shared_object.h"
 #include "teca_variant_array.h"
@@ -214,7 +215,7 @@ int get_##key(T *vals) const                            \
 }
 
 /// Interface for TECA datasets.
-class teca_dataset : public std::enable_shared_from_this<teca_dataset>
+class TECA_EXPORT teca_dataset : public std::enable_shared_from_this<teca_dataset>
 {
 public:
     virtual ~teca_dataset();

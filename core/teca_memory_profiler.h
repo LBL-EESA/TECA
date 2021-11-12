@@ -1,6 +1,7 @@
 #ifndef teca_memory_profiler_h
 #define teca_memory_profiler_h
 
+#include "teca_config.h"
 #include "teca_mpi.h"
 #include <string>
 
@@ -14,7 +15,7 @@ extern "C" void *profile(void *argp);
  * Finalization the buffers are written using MPI-I/O to the
  * file name provided.
  */
-class teca_memory_profiler
+class TECA_EXPORT teca_memory_profiler
 {
 public:
     teca_memory_profiler();

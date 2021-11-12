@@ -1,6 +1,7 @@
 #ifndef teca_table_sort_h
 #define teca_table_sort_h
 
+#include "teca_config.h"
 #include "teca_shared_object.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
@@ -11,7 +12,7 @@
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_table_sort)
 
 /// an algorithm that sorts a table in ascending order
-class teca_table_sort : public teca_algorithm
+class TECA_EXPORT teca_table_sort : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_table_sort)

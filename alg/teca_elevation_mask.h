@@ -48,7 +48,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_elevation_mask)
  * pressure fields then use teca_surface_pressure to generate the surface
  * pressure field and use teca_pressure_level_mask instead of this algorithm.
  */
-class teca_elevation_mask : public teca_algorithm
+class TECA_EXPORT teca_elevation_mask : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_elevation_mask)

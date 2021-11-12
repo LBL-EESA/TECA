@@ -1,6 +1,7 @@
 #ifndef teca_shape_file_util_h
 #define teca_shape_file_util_h
 
+#include "teca_config.h"
 #include "teca_binary_stream.h"
 #include "teca_geometry.h"
 #include "teca_mpi.h"
@@ -15,13 +16,16 @@
 namespace teca_shape_file_util
 {
 /// Get a string with the name of the shape type
+TECA_EXPORT
 const char *shape_type_name(int shpt);
 
 /// Send the shape object to the stream in a human readable form
+TECA_EXPORT
 std::ostream &operator<<(std::ostream &os, const SHPObject &obj);
 
 /// Read polygons from the given file.
 template<typename coord_t>
+TECA_EXPORT
 int load_polygons(const std::string &filename,
     std::vector<teca_geometry::polygon<coord_t>> &polys,
     int verbose = 0)
@@ -112,6 +116,7 @@ int load_polygons(const std::string &filename,
  * other ranks in the job
  */
 template<typename coord_t>
+TECA_EXPORT
 int load_polygons(MPI_Comm comm, const std::string &filename,
     std::vector<teca_geometry::polygon<coord_t>> &polys,
     int verbose = 0)

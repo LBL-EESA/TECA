@@ -11,7 +11,7 @@
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_vertical_coordinate_transform)
 
 /// An algorithm that transforms the vertical cooridinates of a mesh
-class teca_vertical_coordinate_transform : public teca_algorithm
+class TECA_EXPORT teca_vertical_coordinate_transform : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_vertical_coordinate_transform)

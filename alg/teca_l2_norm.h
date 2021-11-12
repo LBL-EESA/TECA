@@ -11,7 +11,7 @@
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_l2_norm)
 
 /// An algorithm that computes L2 norm
-class teca_l2_norm : public teca_algorithm
+class TECA_EXPORT teca_l2_norm : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_l2_norm)

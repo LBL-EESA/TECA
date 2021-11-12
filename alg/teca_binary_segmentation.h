@@ -22,7 +22,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_binary_segmentation)
  * the range is given in percentiles and each data point is converted to a
  * percentile before applying the test for inclusion.
 */
-class teca_binary_segmentation : public teca_algorithm
+class TECA_EXPORT teca_binary_segmentation : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_binary_segmentation)

@@ -3,6 +3,8 @@
 
 /// @file
 
+#include "teca_config.h"
+
 #include <vector>
 #include <string>
 
@@ -12,6 +14,7 @@ namespace teca_geography
 /** get the number of cyclone basins. cyclone basin ids are
  * in the range 0 to number of basins - 1.
 */
+TECA_EXPORT
 unsigned long get_number_of_cyclone_basins();
 
 /**
@@ -19,6 +22,7 @@ unsigned long get_number_of_cyclone_basins();
  * the list can be indexed by the ids returned by the
  * get_cyclone_basin/s functions.
 */
+TECA_EXPORT
 void get_cyclone_basin_names(std::vector<std::string> &names,
     std::vector<std::string> &long_names);
 
@@ -36,6 +40,7 @@ void get_cyclone_basin_names(std::vector<std::string> &names,
  * they split over the periodic boundary. hence the ids array
  * is used to identify a basin.
 */
+TECA_EXPORT
 void get_cyclone_basins(std::vector<unsigned long> &sizes,
     std::vector<unsigned long> &starts, std::vector<double> &x_coordinates,
     std::vector<double> &y_coordinates, std::vector<int> &ids,
@@ -44,6 +49,7 @@ void get_cyclone_basins(std::vector<unsigned long> &sizes,
 /** load a cyclone basin by name. Either the short or long name
  * can be used. see get_cyclone_basin_names.
 */
+TECA_EXPORT
 int get_cyclone_basin(const std::string &rname,
     std::vector<unsigned long> &sizes, std::vector<unsigned long> &starts,
     std::vector<double> &x_coordinates, std::vector<double> &y_coordinates,
@@ -53,6 +59,7 @@ int get_cyclone_basin(const std::string &rname,
 /** load a cyclone basin by it's region id. region ids must be in the range
  * of 0 to get_number_of_cyclone_basins() - 1.
 */
+TECA_EXPORT
 int get_cyclone_basin(unsigned int rid,
     std::vector<unsigned long> &sizes, std::vector<unsigned long> &starts,
     std::vector<double> &x_coordinates, std::vector<double> &y_coordinates,

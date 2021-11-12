@@ -1,6 +1,7 @@
 #ifndef teca_programmable_reduce_h
 #define teca_programmable_reduce_h
 
+#include "teca_config.h"
 #include "teca_dataset.h"
 #include "teca_metadata.h"
 #include "teca_shared_object.h"
@@ -34,7 +35,7 @@ using finalize_callback_t = std::function<p_teca_dataset(
  * a parallel operation. See teca_index_reduce for details of
  * parallelization.
  */
-class teca_programmable_reduce : public teca_index_reduce
+class TECA_EXPORT teca_programmable_reduce : public teca_index_reduce
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_programmable_reduce)

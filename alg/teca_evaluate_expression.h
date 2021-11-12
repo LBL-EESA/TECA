@@ -28,7 +28,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_evaluate_expression)
  * short and char respectively. Integer types can be
  * unsigned by including u after the code.
  */
-class teca_evaluate_expression : public teca_algorithm
+class TECA_EXPORT teca_evaluate_expression : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_evaluate_expression)

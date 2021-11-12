@@ -14,7 +14,7 @@
  * Each timed event logs rank, event name, start and end time, and
  * duration.
  */
-class teca_profiler
+class TECA_EXPORT teca_profiler
 {
 public:
     // Initialize logging from environment variables, and/or the timer
@@ -108,7 +108,7 @@ public:
  * the objects life.
  */
 template <int buffer_size>
-class teca_time_event
+class TECA_EXPORT teca_time_event
 {
 public:
     // logs an event named

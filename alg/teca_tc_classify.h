@@ -19,7 +19,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_tc_classify)
  * output is a table where regions is mapped to columns and category is mapped
  * to rows.
  */
-class teca_tc_classify : public teca_algorithm
+class TECA_EXPORT teca_tc_classify : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_tc_classify)

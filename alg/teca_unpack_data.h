@@ -27,7 +27,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_unpack_data)
  * array may be either float or double. Valid value masks may be necessary for
  * correct results, see `teca_valid_value_mask`.
 */
-class teca_unpack_data : public teca_algorithm
+class TECA_EXPORT teca_unpack_data : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_unpack_data)

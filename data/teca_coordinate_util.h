@@ -3,6 +3,7 @@
 
 /// @file
 
+#include "teca_config.h"
 #include "teca_cartesian_mesh.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
@@ -35,7 +36,7 @@ namespace teca_coordinate_util
  *  https://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/
  */
 template <typename n_t>
-struct equal_tt {};
+struct TECA_EXPORT equal_tt {};
 
 #define declare_equal_tt(cpp_t, atol, rtol)                                 \
 /** Specialization for cpp_t with default absTol and relTol */              \
@@ -59,6 +60,7 @@ declare_equal_tt(long double, std::numeric_limits<double>::epsilon(),
  * close to zero.  relTol handles comparing larger values.
  */
 template <typename T>
+TECA_EXPORT
 bool equal(T a, T b,
     T relTol = equal_tt<T>::relTol(), T absTol = equal_tt<T>::absTol(),
     typename std::enable_if<std::is_floating_point<T>::value>::type* = 0)
@@ -79,6 +81,7 @@ bool equal(T a, T b,
 
 /// Compare two integral numbers.
 template <typename T>
+TECA_EXPORT
 bool equal(T a, T b, T relTol = 0, T absTol = 0,
     typename std::enable_if<std::is_integral<T>::value>::type* = 0)
 {
@@ -92,6 +95,7 @@ bool equal(T a, T b, T relTol = 0, T absTol = 0,
  * if the numbers are not equal.
  */
 template <typename T>
+TECA_EXPORT
 bool equal(T a, T b, std::string &diagnostic,
     T relTol = equal_tt<T>::relTol(), T absTol = equal_tt<T>::absTol(),
     typename std::enable_if<std::is_floating_point<T>::value>::type* = 0)
@@ -128,6 +132,7 @@ bool equal(T a, T b, std::string &diagnostic,
  * if the numbers are not equal.
  */
 template <typename T>
+TECA_EXPORT
 bool equal(T a, T b, std::string &diagnostic, T relTol = 0, T absTol = 0,
     typename std::enable_if<std::is_integral<T>::value>::type* = 0)
 {
@@ -154,7 +159,7 @@ bool equal(T a, T b, std::string &diagnostic, T relTol = 0, T absTol = 0,
  * | invalid_value    | invalid value detected (NaN, inf) |
  * | value_missmatch  | a value failed to compare within the tolerance |
  */
-struct equal_error
+struct TECA_EXPORT equal_error
 {
     enum {no_error = 0,
         invalid_value = 1,
@@ -170,6 +175,7 @@ struct equal_error
  * equal_error enumerations and errorStr will conatin a diagnostic message
  * describing the failure.
  */
+TECA_EXPORT
 bool equal(const const_p_teca_variant_array &array1,
     const const_p_teca_variant_array &array2,
     double absTol, double relTol, int &errorNo,
@@ -177,27 +183,27 @@ bool equal(const const_p_teca_variant_array &array1,
 
 /// Less than or equal to predicate
 template<typename data_t>
-struct leq
+struct TECA_EXPORT leq
 { static bool eval(const data_t &l, const data_t &r) { return l <= r; } };
 
 /// Greater than or equal to predicate
 template<typename data_t>
-struct geq
+struct TECA_EXPORT geq
 { static bool eval(const data_t &l, const data_t &r) { return l >= r; } };
 
 /// Less than predicate
 template<typename data_t>
-struct lt
+struct TECA_EXPORT lt
 { static bool eval(const data_t &l, const data_t &r) { return l < r; } };
 
 /// Greater than predicate
 template<typename data_t>
-struct gt
+struct TECA_EXPORT gt
 { static bool eval(const data_t &l, const data_t &r) { return l > r; } };
 
 /// comparator implementing bracket for ascending input arrays
 template<typename data_t>
-struct ascend_bracket
+struct TECA_EXPORT ascend_bracket
 {
     // m_0 is an index into the data, m_1 = m_0 + 1
     // comparitors defining the bracket orientation. for data in
@@ -219,7 +225,7 @@ struct ascend_bracket
 
 /// comparator implementing bracket for descending input arrays
 template<typename data_t>
-struct descend_bracket
+struct TECA_EXPORT descend_bracket
 {
     // m_0 is an index into the data, m_1 = m_0 + 1
     // comparitors defining the bracket orientation. for data in
@@ -246,6 +252,7 @@ struct descend_bracket
  * are set for ascending inputs.
  */
 template <typename data_t, typename bracket_t = ascend_bracket<data_t>>
+TECA_EXPORT
 int index_of(const data_t *data, unsigned long l, unsigned long r,
     data_t val, bool lower, unsigned long &id)
 {
@@ -298,6 +305,7 @@ int index_of(const data_t *data, unsigned long l, unsigned long r,
  * value is found.
  */
 template <typename T>
+TECA_EXPORT
 int index_of(const T *data, size_t l, size_t r, T val, unsigned long &id)
 {
     unsigned long m_0 = (r + l)/2;
@@ -345,13 +353,16 @@ int index_of(const T *data, size_t l, size_t r, T val, unsigned long &id)
 /** Convert bounds to extents.  return non-zero if the requested bounds are
  * not in the given coordinate arrays. coordinate arrays must not be empty.
  */
+TECA_EXPORT
 int bounds_to_extent(const double *bounds,
     const const_p_teca_variant_array &x, const const_p_teca_variant_array &y,
     const const_p_teca_variant_array &z, unsigned long *extent);
 
+TECA_EXPORT
 int bounds_to_extent(const double *bounds,
     const const_p_teca_variant_array &x, unsigned long *extent);
 
+TECA_EXPORT
 int bounds_to_extent(const double *bounds, const teca_metadata &md,
     unsigned long *extent);
 
@@ -359,6 +370,7 @@ int bounds_to_extent(const double *bounds, const teca_metadata &md,
  * successful.
  */
 template<typename T>
+TECA_EXPORT
 int index_of(const const_p_teca_cartesian_mesh &mesh, T x, T y, T z,
         unsigned long &i, unsigned long &j, unsigned long &k)
 {
@@ -400,6 +412,7 @@ int index_of(const const_p_teca_cartesian_mesh &mesh, T x, T y, T z,
  * of lower, if clamp is true then when the date falls outside of the time
  * values either the first or last time step is returned.
  */
+TECA_EXPORT
 int time_step_of(const const_p_teca_variant_array &time,
     bool lower, bool clamp, const std::string &calendar,
     const std::string &units, const std::string &date,
@@ -409,6 +422,7 @@ int time_step_of(const const_p_teca_variant_array &time,
  * (calendar), return a human-readable rendering of the date (date) in a
  * strftime-format (format).  return 0 if successful.
  */
+TECA_EXPORT
 int time_to_string(double val, const std::string &calendar,
     const std::string &units, const std::string &format, std::string &date);
 
@@ -420,6 +434,7 @@ int time_to_string(double val, const std::string &calendar,
  * entity; ids, a new set of ids for the entities starting from 0
  */
 template <typename int_t>
+TECA_EXPORT
 void get_table_offsets(const int_t *index, unsigned long n_rows,
     unsigned long &n_entities, std::vector<unsigned long> &counts,
     std::vector<unsigned long> &offsets, std::vector<unsigned long> &ids)
@@ -469,6 +484,7 @@ void get_table_offsets(const int_t *index, unsigned long n_rows,
  * source coordinate system
  */
 template<typename CT, typename DT>
+TECA_EXPORT
 int interpolate_nearest(CT cx, CT cy, CT cz,
     const CT *p_x, const CT *p_y, const CT *p_z,
     const DT *p_data, unsigned long ihi, unsigned long jhi,
@@ -516,6 +532,7 @@ int interpolate_nearest(CT cx, CT cy, CT cz,
  * source coordinate system
  */
 template<typename coord_t, typename data_t>
+TECA_EXPORT
 int interpolate_nearest(coord_t cx, coord_t cy, const coord_t *p_x,
     const coord_t *p_y, const data_t *p_data, unsigned long ihi,
     unsigned long jhi, unsigned long nx, data_t &val)
@@ -556,6 +573,7 @@ int interpolate_nearest(coord_t cx, coord_t cy, const coord_t *p_x,
  * source coordinate system
  */
 template<typename CT, typename DT>
+TECA_EXPORT
 int interpolate_linear(CT cx, CT cy, CT cz,
     const CT *p_x, const CT *p_y, const CT *p_z,
     const DT *p_data, unsigned long ihi, unsigned long jhi,
@@ -615,6 +633,7 @@ int interpolate_linear(CT cx, CT cy, CT cz,
  * source coordinate system
  */
 template<typename CT, typename DT>
+TECA_EXPORT
 int interpolate_linear(CT cx, CT cy, const CT *p_x, const CT *p_y,
     const DT *p_data, unsigned long ihi, unsigned long jhi,
     unsigned long nx, DT &val)
@@ -651,7 +670,7 @@ int interpolate_linear(CT cx, CT cy, const CT *p_x, const CT *p_y,
 }
 
 /// A functor templated on order of accuracy for above Cartesian mesh interpolants
-template<int> struct interpolate_t;
+template<int> struct TECA_EXPORT interpolate_t;
 
 /// Zero'th order interpolant specialization
 template<> struct interpolate_t<0>
@@ -702,10 +721,12 @@ template<> struct interpolate_t<1>
 };
 
 /// return 0 if the centering is one of the values defined in teca_array_attributes
+TECA_EXPORT
 int validate_centering(int centering);
 
 /// convert from a cell extent to a face, edge or point centered extent
 template <typename num_t>
+TECA_EXPORT
 int convert_cell_extent(num_t *extent, int centering)
 {
     switch (centering)
@@ -756,10 +777,12 @@ int convert_cell_extent(num_t *extent, int centering)
  *  from coordinate arrays. It's an error if whole_extent or coordinate
  *  arrays are not present. return zero if successful.
  */
+TECA_EXPORT
 int get_cartesian_mesh_extent(const teca_metadata &md,
     unsigned long *whole_extent, double *bounds);
 
 /// get the mesh's bounds from the coordinate axis arrays
+TECA_EXPORT
 int get_cartesian_mesh_bounds(const const_p_teca_variant_array x,
     const const_p_teca_variant_array y, const const_p_teca_variant_array z,
     double *bounds);
@@ -768,6 +791,7 @@ int get_cartesian_mesh_bounds(const const_p_teca_variant_array x,
  *  ascending order. assumes that both regions are specified in ascending order.
  */
 template <typename num_t>
+TECA_EXPORT
 int covers_ascending(const num_t *whole, const num_t *part)
 {
     if ((part[0] >= whole[0]) && (part[0] <= whole[1]) &&
@@ -785,6 +809,7 @@ int covers_ascending(const num_t *whole, const num_t *part)
  * orientation.
  */
 template <typename num_t>
+TECA_EXPORT
 int covers(const num_t *whole, const num_t *part)
 {
     bool x_ascend = whole[0] <= whole[1];
@@ -816,6 +841,7 @@ int covers(const num_t *whole, const num_t *part)
  * either both specified in ascending or descending order.
  */
 template <typename num_t>
+TECA_EXPORT
 int same_orientation(const num_t *whole, const num_t *part)
 {
     if ((((whole[0] <= whole[1]) && (part[0] <= part[1])) ||
@@ -834,6 +860,7 @@ int same_orientation(const num_t *whole, const num_t *part)
  * directions. The return is non zero if any direction was clamped and 0
  * otherwise.
  */
+TECA_EXPORT
 int clamp_dimensions_of_one(unsigned long nx_max, unsigned long ny_max,
     unsigned long nz_max, unsigned long *extent, bool verbose);
 
@@ -841,12 +868,13 @@ int clamp_dimensions_of_one(unsigned long nx_max, unsigned long ny_max,
  * nx_max, ny_max, and nz_max.  If verbose is set, an error is reported via
  * TECA_ERROR when the extent would be out of bounds.
  */
+TECA_EXPORT
 int validate_extent(unsigned long nx_max, unsigned long ny_max,
     unsigned long nz_max, unsigned long *extent, bool verbose);
 
 
 /// compares a set of arrays against a reference array
-class teca_validate_arrays
+class TECA_EXPORT teca_validate_arrays
 {
 public:
     /// set the array to which others will be compared to
@@ -893,7 +921,7 @@ private:
 /// Check that cooridnate arrays from different sources match a refrence array
 /** Compares names, units, and values of coordinate axis arrays.
  */
-class teca_coordinate_axis_validator
+class TECA_EXPORT teca_coordinate_axis_validator
 {
 public:
     teca_coordinate_axis_validator() :

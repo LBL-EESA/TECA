@@ -40,7 +40,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_bayesian_ar_detect)
  * TECA-BARD v1.0.1. Geoscientific Model Development, 13(12), 6131–6148.
  * https://doi.org/10.5194/gmd-13-6131-2020
 */
-class teca_bayesian_ar_detect : public teca_algorithm
+class TECA_EXPORT teca_bayesian_ar_detect : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_bayesian_ar_detect)

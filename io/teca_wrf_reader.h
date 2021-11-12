@@ -1,6 +1,7 @@
 #ifndef teca_wrf_reader_h
 #define teca_wrf_reader_h
 
+#include "teca_config.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
 #include "teca_shared_object.h"
@@ -57,7 +58,7 @@ using p_teca_wrf_reader_internals = std::shared_ptr<teca_wrf_reader_internals>;
  * the requested extent with the requested point based arrays and value at this
  * timestep for all time variables.
  */
-class teca_wrf_reader : public teca_algorithm
+class TECA_EXPORT teca_wrf_reader : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_wrf_reader)

@@ -3,6 +3,8 @@
 
 /// @file
 
+#include "teca_config.h"
+
 class teca_metadata;
 
 /// Codes for dealing with teca_metadata
@@ -14,6 +16,7 @@ namespace teca_metadata_util
  * zero if successful. The mesh_dims_active key is required, if not found 1
  * is returned and the array_extent is set to the mesh_extent.
  */
+TECA_EXPORT
 int get_array_extent(const teca_metadata &array_attributes,
     const unsigned long mesh_extent[6], unsigned long array_extent[6]);
 };

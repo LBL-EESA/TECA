@@ -1,6 +1,7 @@
 #ifndef teca_cf_time_axis_data_reduce_h
 #define teca_cf_time_axis_data_reduce_h
 
+#include "teca_config.h"
 #include "teca_shared_object.h"
 #include "teca_dataset.h"
 #include "teca_metadata.h"
@@ -15,7 +16,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_cf_time_axis_data_reduce)
  * Gathers the time axis and metadata from a parallel read of a
  * set of NetCDF CF2 files.
  */
-class teca_cf_time_axis_data_reduce : public teca_index_reduce
+class TECA_EXPORT teca_cf_time_axis_data_reduce : public teca_index_reduce
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_cf_time_axis_data_reduce)

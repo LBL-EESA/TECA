@@ -1,6 +1,7 @@
 #ifndef teca_index_reduce_h
 #define teca_index_reduce_h
 
+#include "teca_config.h"
 #include "teca_dataset.h"
 #include "teca_metadata.h"
 #include "teca_shared_object.h"
@@ -35,7 +36,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_index_reduce)
  *
  *      The key named by index_request_key
  */
-class teca_index_reduce : public teca_threaded_algorithm
+class TECA_EXPORT teca_index_reduce : public teca_threaded_algorithm
 {
 public:
     TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_index_reduce)

@@ -1,6 +1,7 @@
 #ifndef teca_array_collection_h
 #define teca_array_collection_h
 
+#include "teca_config.h"
 #include "teca_dataset.h"
 #include "teca_shared_object.h"
 #include "teca_variant_array.h"
@@ -16,7 +17,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_array_collection)
  * can also be used to process more general data where the arrays have
  * differing lengths or a non-geometric association.
  */
-class teca_array_collection : public teca_dataset
+class TECA_EXPORT teca_array_collection : public teca_dataset
 {
 public:
     TECA_DATASET_STATIC_NEW(teca_array_collection)

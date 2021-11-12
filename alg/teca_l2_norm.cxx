@@ -122,17 +122,6 @@ int cpu_dispatch(p_teca_variant_array &l2_norm,
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 #if defined(TECA_HAS_CUDA)
 // CUDA codes
 namespace cuda
@@ -222,17 +211,19 @@ int cuda_dispatch(int device_id, p_teca_variant_array &l2_norm,
         auto spc0 = static_cast<const TT*>(c0.get())->get_cuda_accessible();
         const NT *pc0 = spc0.get();
 
+        decltype(spc0) spc1 = nullptr;
         const NT *pc1 = nullptr;
         if (c1)
         {
-            auto spc1 = dynamic_cast<const TT*>(c1.get())->get_cuda_accessible();
+            spc1 = dynamic_cast<const TT*>(c1.get())->get_cuda_accessible();
             pc1 = spc1.get();
         }
 
+        decltype(spc0) spc2 = nullptr;
         const NT *pc2 = nullptr;
         if (c2)
         {
-            auto spc2 = dynamic_cast<const TT*>(c2.get())->get_cuda_accessible();
+            spc2 = dynamic_cast<const TT*>(c2.get())->get_cuda_accessible();
             pc2 = spc2.get();
         }
 

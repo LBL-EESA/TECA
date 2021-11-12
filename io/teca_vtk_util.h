@@ -46,7 +46,7 @@ namespace teca_vtk_util
 
 // traits class for naming and/or selecting
 // the VTK type given a C++ type
-template <typename T> struct vtk_tt {};
+template <typename T> struct TECA_EXPORT vtk_tt {};
 #define VTK_TT_SPEC(_ctype, _ctypestr, _vtype, _fmt)    \
 template <>                                             \
 struct vtk_tt <_ctype>                                  \
@@ -75,6 +75,7 @@ VTK_TT_SPEC(unsigned long long, unsigned_long_long, vtkUnsignedLongLongArray, "%
 /// @endcond
 
 /// deep copy input mesh into the VTK object. @returns 0 if successful
+TECA_EXPORT
 int deep_copy(vtkRectilinearGrid *output,
     const_p_teca_cartesian_mesh input);
 

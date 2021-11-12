@@ -1,6 +1,7 @@
 #ifndef teca_threaded_algorithm_h
 #define teca_threaded_algorithm_h
 
+#include "teca_config.h"
 #include "teca_algorithm.h"
 #include "teca_dataset.h"
 #include "teca_shared_object.h"
@@ -47,6 +48,7 @@ using p_teca_data_request_queue = std::shared_ptr<teca_data_request_queue>;
  * @param bind[in]      If set then thread will be bound to a specific core.
  * @param verbose[in]   If set then the mapping is sent to the stderr
  */
+TECA_EXPORT
 p_teca_data_request_queue new_teca_data_request_queue(MPI_Comm comm,
     int n_threads, int n_threads_per_device, bool bind, bool verbose);
 
@@ -55,7 +57,7 @@ p_teca_data_request_queue new_teca_data_request_queue(MPI_Comm comm,
  * The strategy employed is to parallelize over upstream
  * data requests using a thread pool.
  */
-class teca_threaded_algorithm : public teca_algorithm
+class TECA_EXPORT teca_threaded_algorithm : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_threaded_algorithm)

@@ -3,12 +3,14 @@
 
 /// @file
 
+#include <Python.h>
+
+#include "teca_config.h"
 #include "teca_common.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
 #include "teca_py_object.h"
 #include "teca_py_string.h"
-#include <Python.h>
 
 /// @cond
 // this macro is used to build up dispatchers
@@ -51,6 +53,7 @@ namespace teca_py_sequence
  * as the template argument.
  */
 template <typename py_t>
+TECA_EXPORT
 bool is_type(PyObject *seq)
 {
     // nothing to do
@@ -78,6 +81,7 @@ bool is_type(PyObject *seq)
 }
 
 /// Appends values from the sequence into the variant array.
+TECA_EXPORT
 bool append(teca_variant_array *va, PyObject *seq)
 {
     // not a sequence
@@ -120,6 +124,7 @@ bool append(teca_variant_array *va, PyObject *seq)
 }
 
 /// Copies the values from the sequence into the variant array.
+TECA_EXPORT
 bool copy(teca_variant_array *va, PyObject *seq)
 {
     // not a sequence
@@ -165,6 +170,7 @@ bool copy(teca_variant_array *va, PyObject *seq)
 }
 
 /// Returns a new variant array initialized with a copy of the sequence.
+TECA_EXPORT
 p_teca_variant_array new_variant_array(PyObject *seq)
 {
     // not a sequence
@@ -198,6 +204,7 @@ p_teca_variant_array new_variant_array(PyObject *seq)
 
 /// Returns a list initialized with a copy of the variant array.
 template<typename NT>
+TECA_EXPORT
 PyObject *new_object(const teca_variant_array_impl<NT> *va)
 {
     unsigned long n_elem = va->size();
@@ -210,6 +217,7 @@ PyObject *new_object(const teca_variant_array_impl<NT> *va)
 }
 
 /// Returns a list initialized with a copy of the variant array.
+TECA_EXPORT
 PyObject *new_object(const_p_teca_variant_array va)
 {
     TEMPLATE_DISPATCH(const teca_variant_array_impl,

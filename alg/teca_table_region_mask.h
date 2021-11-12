@@ -20,7 +20,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_table_region_mask)
  * otherwise 0's. The invert property
  * can be used to invert the result.
  */
-class teca_table_region_mask : public teca_algorithm
+class TECA_EXPORT teca_table_region_mask : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_table_region_mask)

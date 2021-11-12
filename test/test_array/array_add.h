@@ -1,6 +1,7 @@
 #ifndef array_add_h
 #define array_add_h
 
+#include "teca_config.h"
 #include "teca_shared_object.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
@@ -14,7 +15,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(array_add)
 an example implementation of a teca_algorithm
 that adds two arrays on its inputs
 */
-class array_add : public teca_algorithm
+class TECA_EXPORT array_add : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(array_add)

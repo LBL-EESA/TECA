@@ -1,6 +1,7 @@
 #ifndef teca_bayesian_ar_detect_parameters_h
 #define teca_bayesian_ar_detect_parameters_h
 
+#include "teca_config.h"
 #include "teca_algorithm.h"
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_bayesian_ar_detect_parameters)
@@ -9,7 +10,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_bayesian_ar_detect_parameters)
  * An algorithm that constructs and serves up the parameter
  * table needed to run the Bayesian AR detector.
  */
-class teca_bayesian_ar_detect_parameters : public teca_algorithm
+class TECA_EXPORT teca_bayesian_ar_detect_parameters : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_bayesian_ar_detect_parameters)

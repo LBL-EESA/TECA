@@ -1,6 +1,7 @@
 #ifndef array_scalar_multiply_h
 #define array_scalar_multiply_h
 
+#include "teca_config.h"
 #include "teca_shared_object.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
@@ -22,7 +23,7 @@ meta data keys:
     requests:
         array_name
 */
-class array_scalar_multiply : public teca_algorithm
+class TECA_EXPORT array_scalar_multiply : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(array_scalar_multiply)

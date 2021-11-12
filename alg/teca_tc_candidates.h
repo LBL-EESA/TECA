@@ -1,6 +1,7 @@
 #ifndef teca_tc_candidates_h
 #define teca_tc_candidates_h
 
+#include "teca_config.h"
 #include "teca_shared_object.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
@@ -46,7 +47,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_tc_candidates)
  *                                            core
  *     sthick_lon, sthick_lat - longitude & latitude of max thickness
  */
-class teca_tc_candidates : public teca_algorithm
+class TECA_EXPORT teca_tc_candidates : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_tc_candidates)
