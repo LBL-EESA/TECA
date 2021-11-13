@@ -57,15 +57,43 @@ NT gaussian(NT X, NT a, NT b, NT c)
   NT r2 = x*x;
   return a*exp(-r2/(2.0*c*c));
 }
-}
 
+//*****************************************************************************
+// Converts lowpass weights to highpass weights or vice versa
+template <typename NT>
+void swap_weights_highlow(NT *weights, size_t N, bool high_to_low)
+{
+  // weights - filter weights
+  // N - the number of weights
+  // high_to_low - flags whether to convert from high to low pass
+
+  // calculate the midpoint of the weights
+  size_t nmid = (N-1)/2;
+
+  // subtract 1 from the center weight
+  // to convert to lowpass
+  if (high_to_low)
+    weights[nmid] += 1;
+
+  for (size_t i = 0; i < N; ++i)
+  {
+    // Negate the weights
+    weights[i] = -weights[i];
+  }
+
+  // add 1 to the center weight
+  // to convert to highpass
+  if (! high_to_low)
+    weights[nmid] += 1;
+}
+}
 
 
 
 // --------------------------------------------------------------------------
 teca_time_axis_convolution::teca_time_axis_convolution() :
     stencil_type(centered), kernel_name("user defined"),
-    variable_postfix("_time_convolved")
+    variable_postfix("_time_convolved"), use_highpass(false)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -219,6 +247,10 @@ void teca_time_axis_convolution::set_kernel_weights(const std::string &name,
     {
         TECA_FATAL_ERROR("Invalid kernel \"" << name << "\"")
     }
+
+    // convert to highpass if flagged
+    if (this->use_highpass)
+        internals::swap_weights_highlow(this->kernel_weights.data(), this->kernel_weights.size(), false);
 }
 
 // --------------------------------------------------------------------------

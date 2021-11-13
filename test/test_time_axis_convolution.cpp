@@ -22,7 +22,7 @@ int main(int argc, char **argv)
     {
         std::cerr << std::endl << "Usage error:" << std::endl
             << "test_time_axis_convolution [input regex] [baseline]"
-               " [kernel type] [kernel width] [stencil type]"
+               " [kernel type] [kernel width] [stencil type] [highpass]"
                " [first step] [last step] [n threads] [array]"
                " [array] ..." << std::endl
             << std::endl;
@@ -35,12 +35,13 @@ int main(int argc, char **argv)
     std::string kernel_type = argv[3];
     int kernel_width = atoi(argv[4]);
     std::string stencil_type = argv[5];
-    long first_step = atoi(argv[6]);
-    long last_step = atoi(argv[7]);
-    int n_threads = atoi(argv[8]);
+    int use_highpass = atoi(argv[6]);
+    long first_step = atoi(argv[7]);
+    long last_step = atoi(argv[8]);
+    int n_threads = atoi(argv[9]);
     std::vector<std::string> in_arrays;
-    in_arrays.push_back(argv[9]);
-    for (int i = 10; i < argc; ++i)
+    in_arrays.push_back(argv[10]);
+    for (int i = 11; i < argc; ++i)
         in_arrays.push_back(argv[i]);
 
     // create the cf reader
@@ -56,8 +57,9 @@ int main(int argc, char **argv)
     dsc->set_input_connection(c->get_output_port());
     dsc->set_max_cache_size(2*n_threads*kernel_width);
 
-    // temporal avg
+    // time axis convolution
     p_teca_time_axis_convolution a = teca_time_axis_convolution::New();
+    a->set_use_highpass((bool) use_highpass);
     a->set_input_connection(dsc->get_output_port());
     a->set_stencil_type(stencil_type);
     a->set_kernel_weights(kernel_type, kernel_width);

@@ -779,7 +779,7 @@ teca_add_test(test_time_axis_convolution_backward_constant
     COMMAND test_time_axis_convolution
     "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc$"
     "${TECA_DATA_ROOT}/test_time_axis_convolution_backward_constant"
-    constant 3 backward 0 30 1 prw
+    constant 3 backward 0 0 30 1 prw
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
@@ -787,7 +787,7 @@ teca_add_test(test_time_axis_convolution_forward_constant
     COMMAND test_time_axis_convolution
     "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc$"
     "${TECA_DATA_ROOT}/test_time_axis_convolution_forward_constant"
-    constant 3 forward 0 30 1 prw
+    constant 3 forward 0 0 30 1 prw
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
@@ -795,6 +795,14 @@ teca_add_test(test_time_axis_convolution_centered_gaussian
     COMMAND test_time_axis_convolution
     "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc$"
     "${TECA_DATA_ROOT}/test_time_axis_convolution_centered_gaussian"
-    gaussian 5 centered 0 30 1 prw
+    gaussian 5 centered 0 0 30 1 prw
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_time_axis_convolution_centered_gaussian_highpass
+    COMMAND test_time_axis_convolution
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc$"
+    "${TECA_DATA_ROOT}/test_time_axis_convolution_centered_gaussian_highpass"
+    gaussian 5 centered 1 0 30 1 prw
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)

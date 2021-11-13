@@ -73,7 +73,7 @@ public:
      *
      * @param[in] width the filter width
      * @param[in] a     peak height of the Gaussian
-     * @param[in[ B     center of the Gaussian (note coordinates range from -1 to 1.
+     * @param[in] B     center of the Gaussian (note coordinates range from -1 to 1.
      * @param[in] c     width of the Gaussian
      */
     void set_gaussian_kernel_weights(unsigned int width,
@@ -105,6 +105,14 @@ public:
     TECA_ALGORITHM_PROPERTY(std::string, variable_postfix)
     ///@}
 
+    /** @name use_highpass
+     * flags whether the weights should be converted to a highpass filter
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(bool, use_highpass)
+    ///@}
+
+
 protected:
     teca_time_axis_convolution();
 
@@ -125,6 +133,7 @@ private:
     std::vector<double> kernel_weights;
     std::string kernel_name;
     std::string variable_postfix;
+    bool use_highpass;
 };
 
 #endif
