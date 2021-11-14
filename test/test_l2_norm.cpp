@@ -56,7 +56,7 @@ struct fxyz
                 {
                     for (size_t i = 0; i < nx; ++i)
                     {
-                        NT fval;
+                        NT fval = NT();
                         switch (m_dir)
                         {
                             case 'x':
