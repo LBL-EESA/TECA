@@ -20,7 +20,6 @@
 //#define TECA_DEBUG
 
 
-
 namespace internals
 {
 //*****************************************************************************
@@ -48,43 +47,39 @@ void linspace(const NT &lo, const NT &hi, size_t n, NT *data)
 template <typename NT>
 NT gaussian(NT X, NT a, NT b, NT c)
 {
-  // x - evaluate at this location
-  // a - peak height
-  // b - center
-  // c - width
+    // x - evaluate at this location
+    // a - peak height
+    // b - center
+    // c - width
 
-  NT x = X - b;
-  NT r2 = x*x;
-  return a*exp(-r2/(2.0*c*c));
+    NT x = X - b;
+    NT r2 = x*x;
+    return a*exp(-r2/(2.0*c*c));
 }
 
 //*****************************************************************************
-// Converts lowpass weights to highpass weights or vice versa
 template <typename NT>
-void swap_weights_highlow(NT *weights, size_t N, bool high_to_low)
+void swap_weights_highlow(NT *weights, size_t n_weights, bool high_to_low)
 {
-  // weights - filter weights
-  // N - the number of weights
-  // high_to_low - flags whether to convert from high to low pass
+    // Converts lowpass weights to high_pass weights or vice versa
+    // weights - filter weights
+    // N - the number of weights
+    // high_to_low - flags whether to convert from high to low pass
 
-  // calculate the midpoint of the weights
-  size_t nmid = (N-1)/2;
+    // calculate the midpoint of the weights
+    size_t nmid = (n_weights - 1ul) / 2ul;
 
-  // subtract 1 from the center weight
-  // to convert to lowpass
-  if (high_to_low)
-    weights[nmid] += 1;
+    // subtract 1 from the center weight to convert to lowpass
+    if (high_to_low)
+        weights[nmid] += 1;
 
-  for (size_t i = 0; i < N; ++i)
-  {
     // Negate the weights
-    weights[i] = -weights[i];
-  }
+    for (size_t i = 0; i < n_weights; ++i)
+        weights[i] = -weights[i];
 
-  // add 1 to the center weight
-  // to convert to highpass
-  if (! high_to_low)
-    weights[nmid] += 1;
+    // add 1 to the center weight to convert to high_pass
+    if (! high_to_low)
+        weights[nmid] += 1;
 }
 }
 
@@ -93,7 +88,7 @@ void swap_weights_highlow(NT *weights, size_t N, bool high_to_low)
 // --------------------------------------------------------------------------
 teca_time_axis_convolution::teca_time_axis_convolution() :
     stencil_type(centered), kernel_name("user defined"),
-    variable_postfix("_time_convolved"), use_highpass(false)
+    variable_postfix("_time_convolved"), use_high_pass(0)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -117,7 +112,14 @@ void teca_time_axis_convolution::get_properties_description(
         TECA_POPTS_MULTI_GET(std::vector<double>, prefix, kernel_weights,
             "the kernel weights to apply along the time dimension.")
         TECA_POPTS_GET(std::string, prefix, kernel_name,
-            "a name used in metadata for the user provided kernel.")
+            "the name of the kernel to generate, or a name for"
+            " the user provided kernel. The internally generated"
+            " kernels are \"gaussian\" and \"constant\".")
+        TECA_POPTS_GET(unsigned int, prefix, kernel_width,
+            "sets the number of samples in the kernel.")
+        TECA_POPTS_GET(int, prefix, use_high_pass,
+            "transform kernel weights during generation to construct"
+            " a high_pass filter")
         ;
 
     this->teca_algorithm::get_properties_description(prefix, opts);
@@ -134,16 +136,18 @@ void teca_time_axis_convolution::set_properties(
     TECA_POPTS_SET(opts, int, prefix, stencil_type)
     TECA_POPTS_SET(opts, std::vector<double>, prefix, kernel_weights)
     TECA_POPTS_SET(opts, std::string, prefix, kernel_name)
+    TECA_POPTS_SET(opts, unsigned int, prefix, kernel_width)
+    TECA_POPTS_SET(opts, int, prefix, use_high_pass)
 }
 #endif
 
 // --------------------------------------------------------------------------
-void teca_time_axis_convolution::set_constant_kernel_weights(unsigned int width)
+int teca_time_axis_convolution::set_constant_kernel_weights(unsigned int width)
 {
     if (width < 2)
     {
-        TECA_FATAL_ERROR("Invalid kernel width " << width)
-        return;
+        TECA_ERROR("Invalid kernel width " << width)
+        return -1;
     }
 
     // compute the normalized weights
@@ -154,16 +158,18 @@ void teca_time_axis_convolution::set_constant_kernel_weights(unsigned int width)
     }
 
     this->set_kernel_name("constant");
+
+    return 0;
 }
 
 // --------------------------------------------------------------------------
-void teca_time_axis_convolution::set_gaussian_kernel_weights(
-    unsigned int width, double a, double b, double c)
+int teca_time_axis_convolution::set_gaussian_kernel_weights(
+    unsigned int width, int high_pass, double a, double b, double c)
 {
     if (width < 2)
     {
-        TECA_FATAL_ERROR("Invalid kernel width " << width)
-        return;
+        TECA_ERROR("Invalid kernel width " << width)
+        return -1;
     }
 
     // compute the coordinate axes [-1, to 1]
@@ -186,11 +192,26 @@ void teca_time_axis_convolution::set_gaussian_kernel_weights(
         this->kernel_weights[i] /= norm;
     }
 
-    this->set_kernel_name("gaussian");
+    // convert to high_pass if flagged
+    if (high_pass)
+    {
+        internals::swap_weights_highlow(this->kernel_weights.data(),
+            width, false);
+    }
+
+    // record the settings used for the NetCDF CF metadata
+    this->set_use_high_pass(high_pass);
+
+    std::string name = "gaussian";
+    if (high_pass)
+        name += "_high_pass";
+    this->set_kernel_name(name);
+
+    return 0;
 }
 
 // --------------------------------------------------------------------------
-void teca_time_axis_convolution::set_stencil_type(const std::string &type)
+int teca_time_axis_convolution::set_stencil_type(const std::string &type)
 {
     if (type == "backward")
     {
@@ -206,8 +227,11 @@ void teca_time_axis_convolution::set_stencil_type(const std::string &type)
     }
     else
     {
-        TECA_FATAL_ERROR("Invlaid stencil type \"" << type << "\"")
+        TECA_ERROR("Invlaid stencil type \"" << type << "\"")
+        return -1;
     }
+
+    return 0;
 }
 
 // --------------------------------------------------------------------------
@@ -226,31 +250,38 @@ std::string teca_time_axis_convolution::get_stencil_type_name()
             name = "forward";
             break;
         default:
-            TECA_FATAL_ERROR("Invalid \"stencil_type\" " << this->stencil_type)
+            TECA_ERROR("Invalid \"stencil_type\" " << this->stencil_type)
     }
     return name;
 }
 
 // --------------------------------------------------------------------------
-void teca_time_axis_convolution::set_kernel_weights(const std::string &name,
-    int width)
+int teca_time_axis_convolution::set_kernel_weights(const std::string &name,
+    unsigned int width, int high_pass)
 {
     if (name == "constant")
     {
-        this->set_constant_kernel_weights(width);
+        if (this->set_constant_kernel_weights(width))
+        {
+            TECA_ERROR("Failed to generate constant kernel weights")
+            return -1;
+        }
     }
     else if (name == "gaussian")
     {
-        this->set_gaussian_kernel_weights(width);
+        if (this->set_gaussian_kernel_weights(width, high_pass))
+        {
+            TECA_ERROR("Failed to generate gaussian kernel weights")
+            return -1;
+        }
     }
     else
     {
-        TECA_FATAL_ERROR("Invalid kernel \"" << name << "\"")
+        TECA_ERROR("Invalid kernel name \"" << name << "\"")
+        return -1;
     }
 
-    // convert to highpass if flagged
-    if (this->use_highpass)
-        internals::swap_weights_highlow(this->kernel_weights.data(), this->kernel_weights.size(), false);
+    return 0;
 }
 
 // --------------------------------------------------------------------------
@@ -282,8 +313,22 @@ teca_metadata teca_time_axis_convolution::get_output_metadata(
     int width = this->kernel_weights.size();
     if (width == 0)
     {
-        TECA_FATAL_ERROR("The kernel weights have not been specified")
-        return teca_metadata();
+        // check for user provided parameters
+        if (this->kernel_name.empty() || (this->kernel_width == 0))
+        {
+            TECA_FATAL_ERROR("The kernel has not been specified correctly."
+                " kernel_name=\"" << this->kernel_name << "\" kernel_width="
+                << this->kernel_width << ".")
+            return teca_metadata();
+        }
+
+        // generate the kernel based on user provided parameters
+        if (this->set_kernel_weights(this->kernel_name, this->kernel_width,
+            this->use_high_pass))
+        {
+            TECA_FATAL_ERROR("Failed to generate the kernel weights")
+            return teca_metadata();
+        }
     }
 
     // adjust the size of the time axis to account for incomplete windows of

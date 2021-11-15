@@ -22,7 +22,7 @@ int main(int argc, char **argv)
     {
         std::cerr << std::endl << "Usage error:" << std::endl
             << "test_time_axis_convolution [input regex] [baseline]"
-               " [kernel type] [kernel width] [stencil type] [highpass]"
+               " [kernel type] [kernel width] [stencil type] [high_pass]"
                " [first step] [last step] [n threads] [array]"
                " [array] ..." << std::endl
             << std::endl;
@@ -35,7 +35,7 @@ int main(int argc, char **argv)
     std::string kernel_type = argv[3];
     int kernel_width = atoi(argv[4]);
     std::string stencil_type = argv[5];
-    int use_highpass = atoi(argv[6]);
+    int use_high_pass = atoi(argv[6]);
     long first_step = atoi(argv[7]);
     long last_step = atoi(argv[8]);
     int n_threads = atoi(argv[9]);
@@ -45,24 +45,25 @@ int main(int argc, char **argv)
         in_arrays.push_back(argv[i]);
 
     // create the cf reader
-    p_teca_cf_reader r = teca_cf_reader::New();
-    r->set_files_regex(regex);
+    p_teca_cf_reader reader = teca_cf_reader::New();
+    reader->set_files_regex(regex);
 
     // normalize coords
-    p_teca_normalize_coordinates c = teca_normalize_coordinates::New();
-    c->set_input_connection(r->get_output_port());
+    p_teca_normalize_coordinates coords = teca_normalize_coordinates::New();
+    coords->set_input_connection(reader->get_output_port());
 
     // ds cache
     p_teca_indexed_dataset_cache dsc = teca_indexed_dataset_cache::New();
-    dsc->set_input_connection(c->get_output_port());
+    dsc->set_input_connection(coords->get_output_port());
     dsc->set_max_cache_size(2*n_threads*kernel_width);
 
     // time axis convolution
-    p_teca_time_axis_convolution a = teca_time_axis_convolution::New();
-    a->set_use_highpass((bool) use_highpass);
-    a->set_input_connection(dsc->get_output_port());
-    a->set_stencil_type(stencil_type);
-    a->set_kernel_weights(kernel_type, kernel_width);
+    p_teca_time_axis_convolution conv = teca_time_axis_convolution::New();
+    conv->set_input_connection(dsc->get_output_port());
+    conv->set_stencil_type(stencil_type);
+    conv->set_kernel_name(kernel_type);
+    conv->set_kernel_width(kernel_width);
+    conv->set_use_high_pass(use_high_pass);
 
     int n_arrays = in_arrays.size();
     std::vector<std::string> arrays(2*n_arrays);
@@ -70,7 +71,7 @@ int main(int argc, char **argv)
     {
         int ii = 2*i;
         arrays[ii] = in_arrays[i];
-        arrays[ii+1] = in_arrays[i] + a->get_variable_postfix();
+        arrays[ii+1] = in_arrays[i] + conv->get_variable_postfix();
     }
 
     bool do_test = true;
@@ -92,7 +93,7 @@ int main(int argc, char **argv)
 
         p_teca_dataset_diff diff = teca_dataset_diff::New();
         diff->set_input_connection(0, br->get_output_port());
-        diff->set_input_connection(1, a->get_output_port());
+        diff->set_input_connection(1, conv->get_output_port());
         diff->set_verbose(1);
         diff->set_executive(rex);
         //diff->set_thread_pool_size(n_threads);
@@ -105,16 +106,16 @@ int main(int argc, char **argv)
         baseline += "_%t%.nc";
 
         // writer
-        p_teca_cf_writer w = teca_cf_writer::New();
-        w->set_input_connection(a->get_output_port());
-        w->set_thread_pool_size(n_threads);
-        w->set_point_arrays(arrays);
-        w->set_file_name(baseline);
-        w->set_first_step(first_step);
-        w->set_last_step(last_step);
-        w->set_layout_to_yearly();
+        p_teca_cf_writer writer = teca_cf_writer::New();
+        writer->set_input_connection(conv->get_output_port());
+        writer->set_thread_pool_size(n_threads);
+        writer->set_point_arrays(arrays);
+        writer->set_file_name(baseline);
+        writer->set_first_step(first_step);
+        writer->set_last_step(last_step);
+        writer->set_layout_to_yearly();
 
-        w->update();
+        writer->update();
     }
 
     return 0;
