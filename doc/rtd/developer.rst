@@ -53,7 +53,7 @@ Compilation
 The profiler is not built by default and must be compiled in by adding
 `-DTECA_ENABLE_PROFILER=ON` to the CMake command line. Be sure to build in
 release mode with `-DCMAKE_BUILD_TYPE=Release` and  also add `-DNDEBUG` to the
-`CMAKE_CXX_FLAGS_RELEASE`. Once compiled the built in profilier may be enabled
+`CMAKE_CXX_FLAGS_RELEASE`. Once compiled the built in profiler may be enabled
 at run time via environment variables described below or directly using its
 API.
 
@@ -159,7 +159,7 @@ Tabs, spaces, and indentation
         unsigned long long a_very_lon_name =
             a_long_function_name_that_returns_a_value(foo, bar, baz);
 
-* when wrapping conditionals logical opoerators go on the preceding line.  For
+* when wrapping conditionals logical operators go on the preceding line.  For
   example:
 
     .. code-block:: c++
@@ -187,13 +187,13 @@ Braces
 * use braces on all conditional branches in the same series when any one of the
   branches takes more than one line.
 
-Variable, funciton, and class names
+Variable, function, and class names
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 * use lower case with _ separators. This is often called "snake case"
 
 Macros
 ~~~~~~
-* to be definied in all caps, and do not require a semicolon. For
+* to be defined in all caps, and do not require a semicolon. For
   example :
 
     .. code-block:: c++
@@ -206,7 +206,7 @@ Macros
 
 Templates
 ~~~~~~~~~~~~~~~~~~~~~~~~
-* prefer all captials for template typenames
+* prefer all capitals for template typenames
 * use TEMPLATE_DISPATCH macros for dispatching to templated data structures
 
 Warnings
@@ -217,7 +217,7 @@ Warnings
 Conditionals
 ~~~~~~~~~~~~
 * conditionals may omit braces, in that case the code should be on the
-  following line (ie no one liners). For example :
+  following line (i.e. no one liners). For example :
 
     .. code-block:: c++
 
@@ -242,7 +242,7 @@ Classes
   variable prepended with `m_`
 * use the `this` pointer to call member functions and access member variables
 * use PIMPL idiom
-* use `std::shared_ptr` in place of C style pointers for data structures thaat
+* use `std::shared_ptr` in place of C style pointers for data structures that
   are costly to copy.
 * use TECA's convenience macros where possible
 * use const qualifiers when ever possible
@@ -270,16 +270,16 @@ Reporting errors
 Exceptions and exception safety
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 * the code is NOT designed for exception safety.
-* use execptions only when absolutely necessary and the program
+* throw exceptions only when absolutely necessary and the program
   needs to terminate.
 
 Thread safety and MPI collectives
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 * design algorithms for thread per-pipeline invocation. this means avoiding the
   use of OpenMP for loop level parallelism.
-* algorithms need to be thread safe except for the first invokation of
+* algorithms need to be thread safe except for the first invocation of
   `get_output_metadata`.
-* MPI colectives are safe to use in the first invokation of `get_output_metadata`.
+* MPI collectives are safe to use in the first invocation of `get_output_metadata`.
 
 Testing
 ~~~~~~~
