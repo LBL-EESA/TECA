@@ -12,14 +12,14 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_time_axis_convolution)
 
 /// An algorithm that applies a convolution along the time axis
 /** Supports constant, Gaussian, and explicitly provided convolution kernels of
- * arbitarry width applied over forward, backward, or centered stencils.
+ * arbitrary width applied over forward, backward, or centered stencils.
  *
  * A number of options are provided for specifying kernel weights.
  *
- * * User provided kernels can be explcictly specified via the combination of
+ * * User provided kernels can be explicitly specified via the combination of
  *   ::set_kernel_weights and ::set_kernel_name.
  *
- * * The kernel can be generated at runtime by providing a kernel name, width,
+ * * The kernel can be generated at run time by providing a kernel name, width,
  *   and flag selecting either a high or low pass filter via the combination of
  *   ::set_kernel_name, ::set_kernel_width, and ::set_use_high_pass. In this
  *   case default kernel parameters are used.
@@ -88,7 +88,7 @@ public:
     ///@}
 
     /** @name kernel_weights
-     * Set the kernel weights excplicitly. The number of weights defines the
+     * Set the kernel weights explicitly. The number of weights defines the
      * stencil width and must be odd for a centered stencil.
      */
     ///@{
