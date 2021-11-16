@@ -13,8 +13,14 @@ set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
 set(CMAKE_CUDA_ARCHITECTURES 75)
 set(CMAKE_CUDA_VISIBILITY_PRESET hidden)
-set(CMAKE_CXX_VISIBILITY_PRESET hidden)
-set(CMAKE_C_VISIBILITY_PRESET hidden)
+if ((APPLE) AND ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang"))
+    #TODO -- using hidden visibility on MacOS with clang breaks our Python bindings
+    message(STATUS "Symbol visibility is set to default")
+else ()
+    message(STATUS "Symbol visibility is set to hidden")
+    set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+    set(CMAKE_C_VISIBILITY_PRESET hidden)
+endif()
 
 
 # set build/install sub dirs for various components
