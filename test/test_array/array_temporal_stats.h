@@ -39,7 +39,7 @@ protected:
     p_teca_dataset reduce(const const_p_teca_dataset &left,
         const const_p_teca_dataset &right) override;
 
-    p_teca_dataset finalize(const const_p_teca_dataset &ds);
+    p_teca_dataset finalize(const const_p_teca_dataset &ds) override;
 
     std::vector<teca_metadata> initialize_upstream_request(
         unsigned int port, const std::vector<teca_metadata> &input_md,
