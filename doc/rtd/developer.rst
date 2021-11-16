@@ -127,6 +127,12 @@ and cannot be reused.
     pip3 install --index-url https://test.pypi.org/simple/ teca
 
 
+Python Coding Standard
+----------------------
+Match the C++ coding standard as closely as possible. Deviate from the C++
+coding standard in ways described by PEP8. Use pycodestyle to check the source
+code before committing.
+
 C++ Coding Standard
 -------------------
 TECA has adopted the following code standard in an effort to simplify
