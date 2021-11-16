@@ -12,7 +12,19 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_time_axis_convolution)
 
 /// An algorithm that applies a convolution along the time axis
 /** Supports constant, Gaussian, and explicitly provided convolution kernels of
- * arbitarry width applied over forward, backweard or centered stencils.
+ * arbitrary width applied over forward, backward, or centered stencils.
+ *
+ * A number of options are provided for specifying kernel weights.
+ *
+ * * User provided kernels can be explicitly specified via the combination of
+ *   ::set_kernel_weights and ::set_kernel_name.
+ *
+ * * The kernel can be generated at run time by providing a kernel name, width,
+ *   and flag selecting either a high or low pass filter via the combination of
+ *   ::set_kernel_name, ::set_kernel_width, and ::set_use_high_pass. In this
+ *   case default kernel parameters are used.
+ *
+ * * The kernel can be generated with explicitly provided kernel parameters.
  */
 class teca_time_axis_convolution : public teca_algorithm
 {
@@ -20,10 +32,10 @@ public:
     TECA_ALGORITHM_STATIC_NEW(teca_time_axis_convolution)
     TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_time_axis_convolution)
     TECA_ALGORITHM_CLASS_NAME(teca_time_axis_convolution)
+
     ~teca_time_axis_convolution();
 
-    // report/initialize to/from Boost program options
-    // objects.
+    // report/initialize to/from Boost program options objects.
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
@@ -52,45 +64,64 @@ public:
     { this->stencil_type = centered; }
 
     /// set the stencil type from a string
-    void set_stencil_type(const std::string &type);
+    int set_stencil_type(const std::string &type);
 
     /// get the stencil as a string
     std::string get_stencil_type_name();
     ///@}
 
+    /** @name use_high_pass
+     * When set the internally generated weights will be converted to a
+     * high_pass filter during weight generation. This option has no affect on
+     * user provided kernel weights.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, use_high_pass)
+    ///@}
+
+    /** @name kernel_width
+     * The number of samples to use when generating kernel weights. This option
+     * has no affect on user provided kernel weights.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(unsigned int, kernel_width)
+    ///@}
+
     /** @name kernel_weights
-     * Set the kernel weights excplicitly. The number of weights defines the
+     * Set the kernel weights explicitly. The number of weights defines the
      * stencil width and must be odd for a centered stencil.
      */
     ///@{
     TECA_ALGORITHM_VECTOR_PROPERTY(double, kernel_weight)
 
     /// generate constant convolution kernel weights with the given filter width
-    void set_constant_kernel_weights(unsigned int width);
+    int set_constant_kernel_weights(unsigned int width);
 
     /** generate Gaussian convolution kernel weights with the given filter
      * width.
      *
-     * @param[in] width the filter width
-     * @param[in] a     peak height of the Gaussian
-     * @param[in[ B     center of the Gaussian (note coordinates range from -1 to 1.
-     * @param[in] c     width of the Gaussian
+     * @param[in] width     the number of samples in the generated kernel
+     * @param[in] high_pass transform the weights for use in a high pass filter.
+     * @param[in] a         peak height of the Gaussian
+     * @param[in] B         center of the Gaussian (note coordinates range from -1 to 1.
+     * @param[in] c         width of the Gaussian
      */
-    void set_gaussian_kernel_weights(unsigned int width,
+    int set_gaussian_kernel_weights(unsigned int width, int high_pass = 0,
         double a = 1.0, double B = 0.0, double c = 0.55);
 
     /** set the kernel weights from a string name the kernel type. Default
      * kernel weight generator parameters are used.
      *
-     * @param[in] name  the name of the kernel to generate. (gaussian, or constant)
-     * @param[in] width the width of the kernel.
+     * @param[in] name      the name of the kernel to generate. (gaussian, or constant)
+     * @param[in] width     the width of the kernel.
+     * @param[in] high_pass convert the weights for use as a high pass filter.
      */
-    void set_kernel_weights(const std::string &name, int width);
+    int set_kernel_weights(const std::string &name,
+        unsigned int width, int high_pass);
     ///@}
 
     /** @name kernel_name
-     * set the name of the user provided kernel. May be used in conjunction
-     * with set_kernel_weights to provide additional output metadata.
+     * set the name of the user provided kernel, or the kernel to generate.
      */
     ///@{
     TECA_ALGORITHM_PROPERTY(std::string, kernel_name)
@@ -125,6 +156,8 @@ private:
     std::vector<double> kernel_weights;
     std::string kernel_name;
     std::string variable_postfix;
+    int use_high_pass;
+    unsigned int kernel_width;
 };
 
 #endif
