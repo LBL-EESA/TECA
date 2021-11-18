@@ -30,7 +30,7 @@ set(teca_core_srcs
     teca_variant_array.cxx
     )
 
-set(teca_core_link hamm)
+set(teca_core_link hamr)
 
 set(teca_core_cuda_srcs)
 if (TECA_HAS_CUDA)

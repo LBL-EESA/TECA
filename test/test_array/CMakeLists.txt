@@ -37,7 +37,7 @@ if (TECA_HAS_CUDA)
 endif()
 
 add_library(teca_test_array ${array_test_cxx_srcs} ${array_test_cuda_srcs})
-target_link_libraries(teca_test_array teca_core hamm)
+target_link_libraries(teca_test_array teca_core hamr)
 
 target_include_directories(teca_test_array
     INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}

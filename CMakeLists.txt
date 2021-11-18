@@ -120,9 +120,9 @@ else()
 endif()
 set(TECA_HAS_CUDA ${tmp} CACHE BOOL "CUDA features")
 if (TECA_HAS_CUDA)
-    set(HAMM_ENABLE_CUDA ON)
+    set(HAMR_ENABLE_CUDA ON)
 else()
-    set(HAMM_ENABLE_CUDA OFF)
+    set(HAMR_ENABLE_CUDA OFF)
 endif()
 
 # configure for MPI
@@ -406,7 +406,7 @@ configure_file(teca_config.h.in teca_config.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 # build library components and applications
-add_subdirectory(hamm)
+add_subdirectory(hamr)
 add_subdirectory(core)
 add_subdirectory(data)
 add_subdirectory(io)
