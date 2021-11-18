@@ -60,12 +60,6 @@ list(APPEND teca_core_link pthread)
 add_library(teca_core ${teca_core_srcs} ${teca_core_cuda_srcs})
 target_link_libraries(teca_core PUBLIC ${teca_core_link})
 
-if (TECA_HAS_CUDA)
-    target_compile_features(teca_core PUBLIC cxx_std_17)
-    set_target_properties(teca_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
-    set_target_properties(teca_core PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-endif()
-
 target_include_directories(teca_core
     INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
