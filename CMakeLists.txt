@@ -421,7 +421,7 @@ configure_file(teca_config.h.in teca_config.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 # build library components and applications
-add_subdirectory(hamr)
+add_subdirectory(HAMR)
 add_subdirectory(core)
 add_subdirectory(data)
 add_subdirectory(alg)
