@@ -94,9 +94,15 @@ public:
     // swap internals of the two objects
     void swap(const p_teca_dataset &other) override;
 
+#if defined(SWIG)
 protected:
+#else
+public:
+#endif
+    // NOTE: constructors are public to enable std::make_shared. do not use.
     teca_cf_time_axis_data();
 
+protected:
     teca_cf_time_axis_data(const teca_cf_time_axis_data &other) = delete;
     teca_cf_time_axis_data(teca_cf_time_axis_data &&other) = delete;
     teca_cf_time_axis_data &operator=(const teca_cf_time_axis_data &other) = delete;

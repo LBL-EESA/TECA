@@ -46,7 +46,12 @@ public:
     /// swap internals of the two objects
     void swap(const p_teca_dataset &) override;
 
+#if defined(SWIG)
 protected:
+#else
+public:
+#endif
+    // NOTE: constructors are public to enable std::make_shared. do not use.
     teca_uniform_cartesian_mesh();
 };
 

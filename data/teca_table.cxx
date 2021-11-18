@@ -12,7 +12,7 @@ teca_table::impl_t::impl_t() :
 
 
 // --------------------------------------------------------------------------
-teca_table::teca_table() : m_impl(new teca_table::impl_t())
+teca_table::teca_table() : m_impl(std::make_shared<teca_table::impl_t>())
 {}
 
 // --------------------------------------------------------------------------

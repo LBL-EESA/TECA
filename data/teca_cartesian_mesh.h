@@ -115,7 +115,12 @@ public:
     int to_stream(std::ostream &) const override;
     using teca_dataset::from_stream;
 
+#if defined(SWIG)
 protected:
+#else
+public:
+#endif
+    // NOTE: constructors are public to enable std::make_shared. do not use.
     teca_cartesian_mesh();
 
 private:

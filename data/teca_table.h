@@ -146,9 +146,15 @@ public:
     // is made, else a shallow copy is made.
     void concatenate_cols(const const_p_teca_table &other, bool deep=false);
 
+#if defined(SWIG)
 protected:
+#else
+public:
+#endif
+    // NOTE: constructors are public to enable std::make_shared. do not use.
     teca_table();
 
+protected:
     teca_table(const teca_table &other) = delete;
     teca_table(teca_table &&other) = delete;
     teca_table &operator=(const teca_table &other) = delete;

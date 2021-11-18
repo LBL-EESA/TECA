@@ -142,7 +142,12 @@ public:
     int to_stream(std::ostream &) const override;
     int from_stream(std::istream &) override { return -1; }
 
+#if defined(SWIG)
 protected:
+#else
+public:
+#endif
+    // NOTE: constructors are public to enable std::make_shared. do not use.
     teca_mesh();
 
 public:

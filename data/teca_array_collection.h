@@ -148,8 +148,15 @@ public:
     int to_stream(std::ostream &) const override;
     using teca_dataset::from_stream;
 
+#if defined(SWIG)
 protected:
+#else
+public:
+#endif
+    // NOTE: constructors are public to enable std::make_shared. do not use.
     teca_array_collection() = default;
+
+protected:
     teca_array_collection(const teca_array_collection &) = delete;
     teca_array_collection(const teca_array_collection &&) = delete;
     void operator=(const teca_array_collection &) = delete;

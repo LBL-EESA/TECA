@@ -89,10 +89,16 @@ public:
 
     void debug_print() const;
 
+#if defined(SWIG)
 protected:
+#else
+public:
+#endif
+    // NOTE: constructors are public to enable std::make_shared. do not use.
     /// creates a new array dataset with the default memory resource
     array();
 
+protected:
     /// creates a new array dataset with a specific memory resource
     ///array(const hamr::p_memory_resource &alloc);
     array(int alloc);
