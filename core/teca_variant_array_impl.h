@@ -786,7 +786,10 @@ public:
         return teca_variant_array::allocator(m_data->get_allocator());
     }
 
-protected:
+
+public:
+    // NOTE: constructors are public to enable std::make_shared. DO NOT USE.
+
     /// default construct (the object is unusable)
     teca_variant_array_impl() {}
 
@@ -1616,14 +1619,14 @@ teca_variant_array_impl<T>::~teca_variant_array_impl() noexcept
 template<typename T>
 p_teca_variant_array_impl<T> teca_variant_array_impl<T>::New(allocator alloc)
 {
-    return p_teca_variant_array_impl<T>(new teca_variant_array_impl<T>(alloc));
+    return std::make_shared<teca_variant_array_impl<T>>(alloc);
 }
 
 // --------------------------------------------------------------------------
 template<typename T>
 p_teca_variant_array_impl<T> teca_variant_array_impl<T>::New(size_t n, allocator alloc)
 {
-    return p_teca_variant_array_impl<T>(new teca_variant_array_impl<T>(alloc, n));
+    return std::make_shared<teca_variant_array_impl<T>>(alloc, n);
 }
 
 // --------------------------------------------------------------------------
@@ -1632,8 +1635,7 @@ template<typename U>
 p_teca_variant_array_impl<T> teca_variant_array_impl<T>::New(size_t n,
     const U &v, allocator alloc)
 {
-    return p_teca_variant_array_impl<T>
-        (new teca_variant_array_impl<T>(alloc, n, v));
+    return std::make_shared<teca_variant_array_impl<T>>(alloc, n, v);
 }
 
 // --------------------------------------------------------------------------
@@ -1642,8 +1644,7 @@ template<typename U>
 p_teca_variant_array_impl<T> teca_variant_array_impl<T>::New(size_t n,
     const U *v, allocator alloc)
 {
-    return p_teca_variant_array_impl<T>
-        (new teca_variant_array_impl<T>(alloc, n, v));
+    return std::make_shared<teca_variant_array_impl<T>>(alloc, n, v);
 }
 
 // --------------------------------------------------------------------------
@@ -1653,8 +1654,8 @@ p_teca_variant_array teca_variant_array_impl<T>::new_copy(allocator alloc) const
     if (alloc == allocator::same)
         alloc = static_cast<allocator>(m_data->get_allocator());
 
-    return p_teca_variant_array(new teca_variant_array_impl<T>
-        (alloc, this->shared_from_this()));
+    return std::make_shared<teca_variant_array_impl<T>>
+        (alloc, this->shared_from_this());
 }
 
 // --------------------------------------------------------------------------
@@ -1665,8 +1666,12 @@ p_teca_variant_array teca_variant_array_impl<T>::new_copy(size_t src_start,
     if (alloc == allocator::same)
         alloc = static_cast<allocator>(m_data->get_allocator());
 
-    p_teca_variant_array_impl<T> dest = teca_variant_array_impl<T>::New(n_elem);
+    p_teca_variant_array_impl<T> dest =
+        std::make_shared<teca_variant_array_impl<T>>
+            (alloc, n_elem);
+
     this->get(src_start, dest, 0, n_elem);
+
     return dest;
 }
 
@@ -1677,7 +1682,7 @@ p_teca_variant_array teca_variant_array_impl<T>::new_instance(allocator alloc) c
     if (alloc == allocator::same)
         alloc = static_cast<allocator>(m_data->get_allocator());
 
-    return p_teca_variant_array(new teca_variant_array_impl<T>(alloc));
+    return std::make_shared<teca_variant_array_impl<T>>(alloc);
 }
 
 // --------------------------------------------------------------------------
@@ -1688,7 +1693,7 @@ p_teca_variant_array teca_variant_array_impl<T>::new_instance(size_t n,
     if (alloc == allocator::same)
         alloc = static_cast<allocator>(m_data->get_allocator());
 
-    return p_teca_variant_array(new teca_variant_array_impl<T>(alloc, n));
+    return std::make_shared<teca_variant_array_impl<T>>(alloc, n);
 }
 
 // --------------------------------------------------------------------------
