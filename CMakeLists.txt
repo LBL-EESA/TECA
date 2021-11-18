@@ -119,6 +119,11 @@ else()
     message(STATUS "CUDA features -- not found.")
 endif()
 set(TECA_HAS_CUDA ${tmp} CACHE BOOL "CUDA features")
+if (TECA_HAS_CUDA)
+    set(HAMM_ENABLE_CUDA ON)
+else()
+    set(HAMM_ENABLE_CUDA OFF)
+endif()
 
 # configure for MPI
 if (ENABLE_CRAY_MPICH)
