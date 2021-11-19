@@ -710,16 +710,16 @@ public:
     ///@{
     /// Get a pointer to the data
     std::shared_ptr<T> get_cpu_accessible()
-    { return m_data->get_cpu_accessible(); }
+    { return m_data.get_cpu_accessible(); }
 
     const std::shared_ptr<const T> get_cpu_accessible() const
-    { return m_data->get_cpu_accessible(); }
+    { return m_data.get_cpu_accessible(); }
 
     std::shared_ptr<T> get_cuda_accessible()
-    { return m_data->get_cuda_accessible(); }
+    { return m_data.get_cuda_accessible(); }
 
     const std::shared_ptr<const T> get_cuda_accessible() const
-    { return m_data->get_cuda_accessible(); }
+    { return m_data.get_cuda_accessible(); }
     ///@}
 
     /// Get the current size of the data
@@ -772,7 +772,7 @@ public:
     /// Print the contents of the buffer for debugging
     template <typename U = T>
     void debug_print(typename std::enable_if< std::is_arithmetic<U>::value >::type* = 0) const
-    { m_data->print(); }
+    { m_data.print(); }
 
     /// Print the contents of the buffer for debugging
     template <typename U = T>
@@ -783,49 +783,41 @@ public:
 
     teca_variant_array::allocator get_allocator() const
     {
-        return teca_variant_array::allocator(m_data->get_allocator());
+        return teca_variant_array::allocator(m_data.get_allocator());
     }
 
-
+#if defined(SWIG)
+protected:
+#else
 public:
+#endif
     // NOTE: constructors are public to enable std::make_shared. DO NOT USE.
 
     /// default construct (the object is unusable)
     teca_variant_array_impl() {}
 
     /// construct with a specific allocator
-    teca_variant_array_impl(allocator alloc)
-    {
-        m_data = hamr::buffer<T>::New(static_cast<int>(alloc));
-    }
+    teca_variant_array_impl(allocator alloc) :
+        m_data(static_cast<int>(alloc)) {}
 
     /// construct with preallocated size
-    teca_variant_array_impl(allocator alloc, size_t n_elem)
-    {
-        m_data = hamr::buffer<T>::New(static_cast<int>(alloc), n_elem);
-    }
+    teca_variant_array_impl(allocator alloc, size_t n_elem) :
+        m_data(static_cast<int>(alloc), n_elem) {}
 
     /// construct with preallocated size and initialized to a specific value
-    teca_variant_array_impl(allocator alloc, size_t n_elem, const T &val)
-    {
-        m_data = hamr::buffer<T>::New(static_cast<int>(alloc), n_elem, val);
-    }
+    teca_variant_array_impl(allocator alloc, size_t n_elem, const T &val) :
+        m_data(static_cast<int>(alloc), n_elem, val) {}
 
     /// construct with preallocated size and initialized to a specific value
     template <typename U>
-    teca_variant_array_impl(allocator alloc, size_t n_elem, const U *vals)
-    {
-        m_data = hamr::buffer<T>::New(static_cast<int>(alloc), n_elem, vals);
-    }
+    teca_variant_array_impl(allocator alloc, size_t n_elem, const U *vals) :
+        m_data(static_cast<int>(alloc), n_elem, vals) {}
 
     // copy construct from an instance of different type
     template<typename U>
     teca_variant_array_impl(allocator alloc,
-        const const_p_teca_variant_array_impl<U> &other)
-    {
-        hamr::const_p_buffer<U> other_data = other->m_data;
-        m_data = hamr::buffer<T>::New(static_cast<int>(alloc), other_data);
-    }
+        const const_p_teca_variant_array_impl<U> &other) :
+            m_data(static_cast<int>(alloc), other->m_data) {}
 
 private:
     /// get from objects.
@@ -1054,7 +1046,7 @@ private:
     }
 
 private:
-    hamr::p_buffer<T> m_data;
+    hamr::buffer<T> m_data;
 
     friend class teca_variant_array;
     template<typename U> friend class teca_variant_array_impl;
@@ -1652,7 +1644,7 @@ template<typename T>
 p_teca_variant_array teca_variant_array_impl<T>::new_copy(allocator alloc) const
 {
     if (alloc == allocator::same)
-        alloc = static_cast<allocator>(m_data->get_allocator());
+        alloc = static_cast<allocator>(m_data.get_allocator());
 
     return std::make_shared<teca_variant_array_impl<T>>
         (alloc, this->shared_from_this());
@@ -1664,7 +1656,7 @@ p_teca_variant_array teca_variant_array_impl<T>::new_copy(size_t src_start,
     size_t n_elem, allocator alloc) const
 {
     if (alloc == allocator::same)
-        alloc = static_cast<allocator>(m_data->get_allocator());
+        alloc = static_cast<allocator>(m_data.get_allocator());
 
     p_teca_variant_array_impl<T> dest =
         std::make_shared<teca_variant_array_impl<T>>
@@ -1680,7 +1672,7 @@ template<typename T>
 p_teca_variant_array teca_variant_array_impl<T>::new_instance(allocator alloc) const
 {
     if (alloc == allocator::same)
-        alloc = static_cast<allocator>(m_data->get_allocator());
+        alloc = static_cast<allocator>(m_data.get_allocator());
 
     return std::make_shared<teca_variant_array_impl<T>>(alloc);
 }
@@ -1691,7 +1683,7 @@ p_teca_variant_array teca_variant_array_impl<T>::new_instance(size_t n,
     allocator alloc) const
 {
     if (alloc == allocator::same)
-        alloc = static_cast<allocator>(m_data->get_allocator());
+        alloc = static_cast<allocator>(m_data.get_allocator());
 
     return std::make_shared<teca_variant_array_impl<T>>(alloc, n);
 }
@@ -1705,7 +1697,7 @@ void teca_variant_array_impl<T>::swap(const p_teca_variant_array &other)
 
     if (pt_other)
     {
-        std::swap(m_data, pt_other->m_data);
+        m_data.swap(pt_other->m_data);
     }
 
     TECA_FATAL_ERROR("Operation on incompatible types. The cast from "
@@ -1729,35 +1721,35 @@ std::string teca_variant_array_impl<T>::get_class_name() const
 template<typename T>
 unsigned long teca_variant_array_impl<T>::size() const noexcept
 {
-    return m_data->size();
+    return m_data.size();
 }
 
 // --------------------------------------------------------------------------
 template<typename T>
 void teca_variant_array_impl<T>::resize(unsigned long n)
 {
-    m_data->resize(n);
+    m_data.resize(n);
 }
 
 // --------------------------------------------------------------------------
 template<typename T>
 void teca_variant_array_impl<T>::resize(unsigned long n, const T &val)
 {
-    m_data->resize(n, val);
+    m_data.resize(n, val);
 }
 
 // --------------------------------------------------------------------------
 template<typename T>
 void teca_variant_array_impl<T>::reserve(unsigned long n)
 {
-    m_data->reserve(n);
+    m_data.reserve(n);
 }
 
 // --------------------------------------------------------------------------
 template<typename T>
 void teca_variant_array_impl<T>::clear() noexcept
 {
-    m_data->free();
+    m_data.free();
 }
 
 // --------------------------------------------------------------------------
@@ -1773,7 +1765,7 @@ void teca_variant_array_impl<T>::get_dispatch(size_t src_start,
 
     if (tp_dest)
     {
-        m_data->get(src_start, tp_dest->m_data, dest_start, n_elem);
+        m_data.get(src_start, tp_dest->m_data, dest_start, n_elem);
         return;
     }
 
@@ -1791,7 +1783,7 @@ void teca_variant_array_impl<T>::get_dispatch(size_t src_start,
 {
     assert(dest->size() >= dest_start + n_elem);
     assert(this->size() >= src_start + n_elem);
-    m_data->get(src_start, dest->m_data, dest_start, n_elem);
+    m_data.get(src_start, dest->m_data, dest_start, n_elem);
 }
 
 // --------------------------------------------------------------------------
@@ -1807,8 +1799,7 @@ void teca_variant_array_impl<T>::set_dispatch(size_t dest_start,
 
     if (tp_src)
     {
-        m_data->set(dest_start, hamr::const_p_buffer<T>(tp_src->m_data),
-            src_start, n_elem);
+        m_data.set(dest_start, tp_src->m_data, src_start, n_elem);
 
         return;
     }
@@ -1825,7 +1816,7 @@ void teca_variant_array_impl<T>::set_dispatch(size_t dest_start,
     const const_p_teca_variant_array_impl<U> &src, size_t src_start, size_t n_elem,
     typename std::enable_if<pod_dispatch<U>::value, U>::type*)
 {
-    m_data->set(dest_start, hamr::const_p_buffer<U>(src->m_data), src_start, n_elem);
+    m_data.set(dest_start, src->m_data, src_start, n_elem);
 }
 
 // --------------------------------------------------------------------------
@@ -1841,7 +1832,7 @@ void teca_variant_array_impl<T>::assign_dispatch(
 
     if (tp_src)
     {
-        m_data->assign(hamr::const_p_buffer<U>(tp_src->m_data), src_start, n_elem);
+        m_data.assign(tp_src->m_data, src_start, n_elem);
         return;
     }
 
@@ -1857,7 +1848,7 @@ void teca_variant_array_impl<T>::assign_dispatch(
     const const_p_teca_variant_array_impl<U> &src, size_t src_start, size_t n_elem,
     typename std::enable_if<pod_dispatch<U>::value, U>::type*)
 {
-    m_data->assign(hamr::const_p_buffer<U>(src->m_data), src_start, n_elem);
+    m_data.assign(src->m_data, src_start, n_elem);
 }
 
 // --------------------------------------------------------------------------
@@ -1873,7 +1864,7 @@ void teca_variant_array_impl<T>::append_dispatch(
 
     if (tp_src)
     {
-        m_data->append(hamr::const_p_buffer<U>(tp_src->m_data), src_start, n_elem);
+        m_data.append(tp_src->m_data, src_start, n_elem);
         return;
     }
 
@@ -1889,7 +1880,7 @@ void teca_variant_array_impl<T>::append_dispatch(
     const const_p_teca_variant_array_impl<U> &src, size_t src_start, size_t n_elem,
     typename std::enable_if<pod_dispatch<U>::value, U>::type*)
 {
-    m_data->append(hamr::const_p_buffer<U>(src->m_data), src_start, n_elem);
+    m_data.append(src->m_data, src_start, n_elem);
 }
 
 // --------------------------------------------------------------------------
@@ -2071,7 +2062,7 @@ void teca_variant_array_impl<T>::get_dispatch(size_t src_start,
 
     if (thisu)
     {
-        thisu->m_data->get(src_start, dest, dest_start, n_elem);
+        thisu->m_data.get(src_start, dest, dest_start, n_elem);
         return;
     }
 
@@ -2087,7 +2078,7 @@ void teca_variant_array_impl<T>::get_dispatch(size_t src_start,
     U *dest, size_t dest_start, size_t n_elem,
     typename std::enable_if<pod_dispatch<U>::value, U>::type*) const
 {
-    m_data->get(src_start, dest, dest_start, n_elem);
+    m_data.get(src_start, dest, dest_start, n_elem);
 }
 
 // --------------------------------------------------------------------------
@@ -2103,7 +2094,7 @@ void teca_variant_array_impl<T>::set_dispatch(size_t dest_start,
 
     if (thisu)
     {
-        thisu->m_data->set(dest_start, src, src_start, n_elem);
+        thisu->m_data.set(dest_start, src, src_start, n_elem);
         return;
     }
 
@@ -2119,7 +2110,7 @@ void teca_variant_array_impl<T>::set_dispatch(size_t dest_start,
     const U *src, size_t src_start, size_t n_elem,
     typename std::enable_if<pod_dispatch<U>::value, U>::type*)
 {
-    m_data->set(dest_start, src, src_start, n_elem);
+    m_data.set(dest_start, src, src_start, n_elem);
 }
 
 // --------------------------------------------------------------------------
@@ -2130,12 +2121,12 @@ void teca_variant_array_impl<T>::assign_dispatch(
     typename std::enable_if<object_dispatch<U>::value, U>::type*)
 {
     // only act on arrays of the same type
-    const teca_variant_array_impl<U> *thisu =
-        dynamic_cast<const teca_variant_array_impl<U>*>(this);
+    teca_variant_array_impl<U> *thisu =
+        dynamic_cast<teca_variant_array_impl<U>*>(this);
 
     if (thisu)
     {
-        thisu->m_data->assign(src, src_start, n_elem);
+        thisu->m_data.assign(src, src_start, n_elem);
         return;
     }
 
@@ -2151,7 +2142,7 @@ void teca_variant_array_impl<T>::assign_dispatch(
     const U *src, size_t src_start, size_t n_elem,
     typename std::enable_if<pod_dispatch<U>::value, U>::type*)
 {
-    m_data->assign(src, src_start, n_elem);
+    m_data.assign(src, src_start, n_elem);
 }
 
 // --------------------------------------------------------------------------
@@ -2162,12 +2153,12 @@ void teca_variant_array_impl<T>::append_dispatch(
     typename std::enable_if<object_dispatch<U>::value, U>::type*)
 {
     // only act on arrays of the same type
-    const teca_variant_array_impl<U> *thisu =
-        dynamic_cast<const teca_variant_array_impl<U>*>(this);
+    teca_variant_array_impl<U> *thisu =
+        dynamic_cast<teca_variant_array_impl<U>*>(this);
 
     if (thisu)
     {
-        thisu->m_data->append(src, src_start, n_elem);
+        thisu->m_data.append(src, src_start, n_elem);
         return;
     }
 
@@ -2183,7 +2174,7 @@ void teca_variant_array_impl<T>::append_dispatch(
     const U *src, size_t src_start, size_t n_elem,
     typename std::enable_if<pod_dispatch<U>::value, U>::type*)
 {
-    m_data->append(src, src_start, n_elem);
+    m_data.append(src, src_start, n_elem);
 }
 
 
@@ -2249,17 +2240,14 @@ void teca_variant_array_impl<T>::from_binary(teca_binary_stream &s,
     s.unpack(n_elem);
 
     // allocate a buffer
-    hamr::p_buffer<T> tmp = hamr::buffer<T>::New(hamr::buffer<T>::malloc, n_elem);
-    std::shared_ptr<T> sptmp = tmp->get_cpu_accessible();
+    hamr::buffer<T> tmp(hamr::buffer<T>::malloc, n_elem);
+    std::shared_ptr<T> sptmp = tmp.get_cpu_accessible();
 
     // unpack the elements  into the buffer
     s.unpack(sptmp.get(), n_elem);
 
     // update the array
-    if (m_data->get_allocator() == hamr::buffer<T>::malloc)
-        m_data = tmp;
-    else
-        m_data->assign(hamr::const_p_buffer<T>(tmp), 0, n_elem);
+    m_data = std::move(tmp);
 }
 
 // --------------------------------------------------------------------------
@@ -2300,7 +2288,7 @@ void teca_variant_array_impl<T>::from_binary(
     }
 
     // copy to the active device
-    m_data->assign(tmp.data(), 0, n_elem);
+    m_data.assign(tmp.data(), 0, n_elem);
 }
 
 // --------------------------------------------------------------------------
@@ -2342,7 +2330,7 @@ void teca_variant_array_impl<T>::from_binary(
     }
 
     // copy to the active device
-    m_data->assign(tmp.data(), 0, n_elem);
+    m_data.assign(tmp.data(), 0, n_elem);
 }
 
 #define STR_DELIM(_a, _b) \
@@ -2388,7 +2376,7 @@ void teca_variant_array_impl<T>::to_ascii(
     std::ostream &s,
     typename std::enable_if<pack_object<U>::value, U>::type*) const
 {
-    size_t n_elem = this->m_data->size();
+    size_t n_elem = this->m_data.size();
     if (n_elem)
     {
         // serialize from the CPU
@@ -2424,7 +2412,7 @@ void teca_variant_array_impl<T>::to_ascii(
     std::ostream &s,
     typename std::enable_if<pack_object_ptr<U>::value, U>::type*) const
 {
-    size_t n_elem = this->m_data->size();
+    size_t n_elem = this->m_data.size();
     if (n_elem)
     {
         // serialize from the CPU
