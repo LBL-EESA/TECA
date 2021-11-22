@@ -6,6 +6,7 @@
 #include "teca_normalize_coordinates.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_coordinate_util.h"
 #include "teca_mpi_manager.h"
 #include "teca_system_interface.h"
@@ -236,10 +237,12 @@ int main(int argc, char **argv)
             // convert to double precision
             size_t n = t->size();
             time = teca_double_array::New(n);
-            double *p_time = time->get();
+            auto sp_time = time->get_cpu_accessible();
+            double *p_time = sp_time.get();
             TEMPLATE_DISPATCH(teca_variant_array_impl,
                 t.get(),
-                NT *p_t = std::dynamic_pointer_cast<TT>(t)->get();
+                auto sp_t = std::dynamic_pointer_cast<TT>(t)->get_cpu_accessible();
+                NT *p_t = sp_t.get();
                 for (size_t i = 0; i < n; ++i)
                     p_time[i] = static_cast<double>(p_t[i]);
                 )

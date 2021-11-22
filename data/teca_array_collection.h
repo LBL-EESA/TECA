@@ -1,6 +1,7 @@
 #ifndef teca_array_collection_h
 #define teca_array_collection_h
 
+#include "teca_config.h"
 #include "teca_dataset.h"
 #include "teca_shared_object.h"
 #include "teca_variant_array.h"
@@ -16,7 +17,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_array_collection)
  * can also be used to process more general data where the arrays have
  * differing lengths or a non-geometric association.
  */
-class teca_array_collection : public teca_dataset
+class TECA_EXPORT teca_array_collection : public teca_dataset
 {
 public:
     TECA_DATASET_STATIC_NEW(teca_array_collection)
@@ -145,9 +146,17 @@ public:
 
     /// stream to a human readable representation
     int to_stream(std::ostream &) const override;
+    using teca_dataset::from_stream;
+
+#if defined(SWIG)
+protected:
+#else
+public:
+#endif
+    // NOTE: constructors are public to enable std::make_shared. do not use.
+    teca_array_collection() = default;
 
 protected:
-    teca_array_collection() = default;
     teca_array_collection(const teca_array_collection &) = delete;
     teca_array_collection(const teca_array_collection &&) = delete;
     void operator=(const teca_array_collection &) = delete;

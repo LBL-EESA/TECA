@@ -1,6 +1,7 @@
 #include "teca_component_area_filter.h"
 
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_cartesian_mesh.h"
 #include "teca_string_util.h"
@@ -306,16 +307,16 @@ const_p_teca_dataset teca_component_area_filter::execute(
         _LABEL,
 
         // pointer to input/output labels
-        const NT_LABEL *p_labels_in =
-            static_cast<const TT_LABEL*>(labels_in.get())->get();
+        auto sp_labels_in = static_cast<const TT_LABEL*>(labels_in.get())->get_cpu_accessible();
+        const NT_LABEL *p_labels_in = sp_labels_in.get();
 
-        NT_LABEL *p_labels_out =
-            static_cast<TT_LABEL*>(labels_out.get())->get();
+        auto sp_labels_out = static_cast<TT_LABEL*>(labels_out.get())->get_cpu_accessible();
+        NT_LABEL *p_labels_out = sp_labels_out.get();
 
         // pointer to input ids and a container to hold ids which remain
         // after the filtering operation
-        const NT_LABEL *p_ids_in =
-            static_cast<const TT_LABEL*>(ids_in.get())->get();
+        auto sp_ids_in = static_cast<const TT_LABEL*>(ids_in.get())->get_cpu_accessible();
+        const NT_LABEL *p_ids_in = sp_ids_in.get();
 
         std::vector<NT_LABEL> ids_out;
 
@@ -325,7 +326,8 @@ const_p_teca_dataset teca_component_area_filter::execute(
 
             // pointer to the areas in and a container to hold areas which
             // remain after the filtering operation
-            const NT_AREA *p_areas = static_cast<TT_AREA*>(areas_in.get())->get();
+            auto sp_areas = static_cast<TT_AREA*>(areas_in.get())->get_cpu_accessible();
+            const NT_AREA *p_areas = sp_areas.get();
 
             std::vector<NT_AREA> areas_out;
 

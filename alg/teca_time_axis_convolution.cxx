@@ -537,8 +537,11 @@ const_p_teca_dataset teca_time_axis_convolution::execute(
                 }
 
                 // get the typed instances
-                NT *p_out = dynamic_cast<TT_OUT*>(out_array.get())->get();
-                const NT *p_in = dynamic_cast<TT*>(in_array.get())->get();
+                auto sp_out = dynamic_cast<TT_OUT*>(out_array.get())->get_cpu_accessible();
+                NT *p_out = sp_out.get();
+
+                auto sp_in = dynamic_cast<TT*>(in_array.get())->get_cpu_accessible();
+                const NT *p_in = sp_in.get();
 
                 // apply the kernel weight for this time step
                 NT weight = NT(this->kernel_weights[i]);

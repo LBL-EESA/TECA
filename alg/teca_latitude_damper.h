@@ -1,6 +1,7 @@
 #ifndef teca_latitude_damper_h
 #define teca_latitude_damper_h
 
+#include "teca_config.h"
 #include "teca_shared_object.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
@@ -28,7 +29,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_latitude_damper)
  * User specified values take precedence over request keys. When
  * using request keys be sure to include the variable post-fix.
  */
-class teca_latitude_damper : public teca_algorithm
+class TECA_EXPORT teca_latitude_damper : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_latitude_damper)
@@ -73,6 +74,8 @@ protected:
     int get_damped_variables(std::vector<std::string> &vars);
 
 private:
+    using teca_algorithm::get_output_metadata;
+
     teca_metadata get_output_metadata(
         unsigned int port,
         const std::vector<teca_metadata> &input_md) override;

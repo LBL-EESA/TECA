@@ -1,6 +1,7 @@
 #ifndef teca_cartesian_mesh_source_h
 #define teca_cartesian_mesh_source_h
 
+#include "teca_config.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
 
@@ -22,7 +23,7 @@ using field_generator_callback = std::function<p_teca_variant_array(
 /** An object that bundles field name, the metadata attributes needed for I/O,
  * and a field generator callback. Use this with append_field_generator
  */
-struct field_generator
+struct TECA_EXPORT field_generator
 {
     std::string name;
     teca_metadata attributes;
@@ -62,7 +63,7 @@ bool operator!=(const field_generator &l, const field_generator &r)
  *  x_axis_units,  y_axis_units,  z_axis_units,  calendar,
  * and  time_units.
  */
-class teca_cartesian_mesh_source : public teca_algorithm
+class TECA_EXPORT teca_cartesian_mesh_source : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_cartesian_mesh_source)
@@ -267,6 +268,8 @@ protected:
     teca_cartesian_mesh_source();
 
 private:
+    using teca_algorithm::get_output_metadata;
+
     /// implements the report phase of pipeline execution
     teca_metadata get_output_metadata(unsigned int port,
         const std::vector<teca_metadata> &input_md) override;

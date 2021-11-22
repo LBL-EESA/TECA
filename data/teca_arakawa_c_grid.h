@@ -1,6 +1,7 @@
 #ifndef teca_arakawa_c_grid_h
 #define teca_arakawa_c_grid_h
 
+#include "teca_config.h"
 #include "teca_mesh.h"
 #include "teca_shared_object.h"
 #include "teca_variant_array.h"
@@ -65,7 +66,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_arakawa_c_grid)
  * "Grids in Numerical Weather and Climate Models"
  * http://dx.doi.org/10.5772/55922
  */
-class teca_arakawa_c_grid : public teca_mesh
+class TECA_EXPORT teca_arakawa_c_grid : public teca_mesh
 {
 public:
     TECA_DATASET_STATIC_NEW(teca_arakawa_c_grid)
@@ -193,8 +194,14 @@ public:
 
     // stream to/from human readable representation
     int to_stream(std::ostream &) const override;
+    using teca_dataset::from_stream;
 
+#if defined(SWIG)
 protected:
+#else
+public:
+#endif
+    // NOTE: constructors are public to enable std::make_shared. do not use.
     teca_arakawa_c_grid();
 
 private:

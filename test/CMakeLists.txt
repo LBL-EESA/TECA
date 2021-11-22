@@ -560,6 +560,7 @@ teca_add_test(test_bayesian_ar_detect_threads
     "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\\.nc$"
     "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" IVT
     "bayesian_ar_detect_%t%.nc" -1 0 -1
+    FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(test_bayesian_ar_detect_mpi
@@ -805,4 +806,36 @@ teca_add_test(test_time_axis_convolution_centered_gaussian_highpass
     "${TECA_DATA_ROOT}/test_time_axis_convolution_centered_gaussian_highpass"
     gaussian 5 centered 1 0 30 1 prw
     FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_variant_array_cuda_access
+    SOURCES test_variant_array_cuda_access.cpp
+    LIBS teca_core ${teca_test_link}
+    COMMAND test_variant_array_cuda_access
+    FEATURES ${TECA_HAS_CUDA})
+
+teca_add_test(test_variant_array_cpu_access
+    SOURCES test_variant_array_cpu_access.cpp
+    LIBS teca_core ${teca_test_link}
+    COMMAND test_variant_array_cpu_access)
+
+teca_add_test(test_array_collection_cuda_access
+    SOURCES test_array_collection_cuda_access.cpp
+    LIBS teca_core teca_data ${teca_test_link}
+    COMMAND test_array_collection_cuda_access
+    FEATURES ${TECA_HAS_CUDA})
+
+teca_add_test(test_l2_norm_threads
+    SOURCES test_l2_norm_threads.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_l2_norm_threads
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-[0-9][0-9]-10800\\.nc"
+    U850 V850 . W850 test_l2_norm_cam5_%t%.nc
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_l2_norm
+    SOURCES test_l2_norm.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_l2_norm "${TECA_DATA_ROOT}/test_l2_norm.bin"
     REQ_TECA_DATA)

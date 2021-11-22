@@ -1,6 +1,7 @@
 #ifndef teca_shape_file_mask_h
 #define teca_shape_file_mask_h
 
+#include "teca_config.h"
 #include "teca_shared_object.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
@@ -13,7 +14,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_shape_file_mask)
 /// Generates a valid value mask defined by regions in the given ESRI shape file
 /** This algorithm is a source and has no inputs. A
  */
-class teca_shape_file_mask : public teca_algorithm
+class TECA_EXPORT teca_shape_file_mask : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_shape_file_mask)
@@ -53,6 +54,8 @@ protected:
     teca_metadata get_mask_array_attributes(unsigned long size);
 
 private:
+    using teca_algorithm::get_output_metadata;
+
     teca_metadata get_output_metadata(
         unsigned int port,
         const std::vector<teca_metadata> &input_md) override;

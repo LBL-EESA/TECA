@@ -3,8 +3,10 @@
 
 /// @file
 
+#include "teca_config.h"
 #include "teca_common.h"
 #include "teca_mpi.h"
+
 #include <deque>
 
 /// Codes for dealing with threading
@@ -61,6 +63,7 @@ namespace teca_thread_util
  *
  * @returns 0 on success
  */
+TECA_EXPORT
 int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
     bool bind, bool verbose, int &n_threads, std::deque<int> &affinity);
 };

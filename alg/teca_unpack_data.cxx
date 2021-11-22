@@ -3,6 +3,7 @@
 #include "teca_cartesian_mesh.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_array_attributes.h"
 
@@ -321,18 +322,26 @@ const_p_teca_dataset teca_unpack_data::execute(
         NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
             in_array.get(),
             _IN,
-            NT_IN *p_in = dynamic_cast<TT_IN*>(in_array.get())->get();
+
+            auto sp_in = dynamic_cast<TT_IN*>(in_array.get())->get_cpu_accessible();
+            NT_IN *p_in = sp_in.get();
+
             NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
                 out_array.get(),
                 _OUT,
-                NT_OUT *p_out = dynamic_cast<TT_OUT*>(out_array.get())->get();
+
+                auto sp_out = dynamic_cast<TT_OUT*>(out_array.get())->get_cpu_accessible();
+                NT_OUT *p_out = sp_out.get();
 
                 if (mask)
                 {
                     NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
                         mask.get(),
                         _MASK,
-                        NT_MASK *p_mask = dynamic_cast<TT_MASK*>(mask.get())->get();
+
+                        auto sp_mask = dynamic_cast<TT_MASK*>(mask.get())->get_cpu_accessible();
+                        NT_MASK *p_mask = sp_mask.get();
+
                         ::transform(p_out, p_in, p_mask,
                             n_elem, NT_OUT(scale), NT_OUT(offset), NT_OUT(1e20));
                         )

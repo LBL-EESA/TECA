@@ -8,6 +8,8 @@
 #include "teca_coordinate_util.h"
 #include "teca_dataset_capture.h"
 #include "teca_system_interface.h"
+#include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 
 
 #include <cmath>
@@ -46,11 +48,15 @@ struct function_of_z
         size_t nxy = nx*ny;
 
         p_teca_variant_array_impl<num_t> fz = teca_variant_array_impl<num_t>::New(nx*ny*nz);
-        num_t *pfz = fz->get();
+        auto spfz = fz->get_cpu_accessible();
+        num_t *pfz = spfz.get();
 
         TEMPLATE_DISPATCH(teca_variant_array_impl,
             fz.get(),
-            const NT *pz = dynamic_cast<const TT*>(z.get())->get();
+
+            auto spz = dynamic_cast<const TT*>(z.get())->get_cpu_accessible();
+            const NT *pz = spz.get();
+
             for (size_t k = 0; k < nz; ++k)
             {
                 for (size_t j = 0; j < ny; ++j)

@@ -53,7 +53,7 @@ namespace teca_parser
  * point to a valid token, and copies the token into the buffer
  * (second argument).
 */
-class tokenizer
+class TECA_EXPORT tokenizer
 {
 public:
     static unsigned int get_open_group(const char *s, char *g);

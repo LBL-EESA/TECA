@@ -3,6 +3,7 @@
 #include "teca_arakawa_c_grid.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_array_attributes.h"
 
@@ -285,8 +286,13 @@ const_p_teca_dataset teca_face_to_cell_centering::execute(
         p_teca_variant_array cc = fc->new_instance(nxyz);
         TEMPLATE_DISPATCH(teca_variant_array_impl,
             fc.get(),
-            const NT *pfc = static_cast<TT*>(fc.get())->get();
-            NT *pcc = static_cast<TT*>(cc.get())->get();
+
+            auto spfc = static_cast<TT*>(fc.get())->get_cpu_accessible();
+            NT *pfc = spfc.get();
+
+            auto spcc = static_cast<TT*>(cc.get())->get_cpu_accessible();
+            NT *pcc = spcc.get();
+
             ::x_face_to_cell(nx, ny, nz, nxy, pfc, pcc);
             )
 
@@ -304,8 +310,13 @@ const_p_teca_dataset teca_face_to_cell_centering::execute(
         p_teca_variant_array cc = fc->new_instance(nxyz);
         TEMPLATE_DISPATCH(teca_variant_array_impl,
             fc.get(),
-            const NT *pfc = static_cast<TT*>(fc.get())->get();
-            NT *pcc = static_cast<TT*>(cc.get())->get();
+
+            auto spfc = static_cast<TT*>(fc.get())->get_cpu_accessible();
+            NT *pfc = spfc.get();
+
+            auto spcc = static_cast<TT*>(cc.get())->get_cpu_accessible();
+            NT *pcc = spcc.get();
+
             ::y_face_to_cell(nx, ny, nz, nxy, pfc, pcc);
             )
 
@@ -323,8 +334,13 @@ const_p_teca_dataset teca_face_to_cell_centering::execute(
         p_teca_variant_array cc = fc->new_instance(nxyz);
         TEMPLATE_DISPATCH(teca_variant_array_impl,
             fc.get(),
-            const NT *pfc = static_cast<TT*>(fc.get())->get();
-            NT *pcc = static_cast<TT*>(cc.get())->get();
+
+            auto spfc = static_cast<TT*>(fc.get())->get_cpu_accessible();
+            NT *pfc = spfc.get();
+
+            auto spcc = static_cast<TT*>(cc.get())->get_cpu_accessible();
+            NT *pcc = spcc.get();
+
             ::z_face_to_cell(nx, ny, nz, nxy, pfc, pcc);
             )
 

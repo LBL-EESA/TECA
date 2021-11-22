@@ -3,6 +3,7 @@
 #include "teca_cartesian_mesh.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_array_attributes.h"
 #include "teca_mpi_util.h"
@@ -299,22 +300,31 @@ const_p_teca_dataset teca_apply_binary_mask::execute(
             //output_array->resize(n);
 
             // do the mask calculation
-            NESTED_TEMPLATE_DISPATCH(
-                teca_variant_array_impl,
+            NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
                 output_array.get(), _VAR,
 
-                internal::apply_mask(
-                    dynamic_cast<TT_VAR*>(output_array.get())->get(),
-                    static_cast<const TT_MASK*>(mask_array.get())->get(),
-                    static_cast<const TT_VAR*>(input_array.get())->get(),
-                    n);
+                auto sp_in = static_cast<const TT_VAR*>
+                    (input_array.get())->get_cpu_accessible();
+
+                const NT_VAR *p_in = sp_in.get();
+
+                auto sp_mask = static_cast<TT_MASK*>
+                    (mask_array.get())->get_cpu_accessible();
+
+                const NT_MASK *p_mask = sp_mask.get();
+
+                auto sp_out = static_cast<TT_VAR*>
+                    (output_array.get())->get_cpu_accessible();
+
+                NT_VAR *p_out = sp_out.get();
+
+                internal::apply_mask(p_out, p_mask, p_in, n);
                 )
 
             out_mesh->get_point_arrays()->set(
                 output_var, output_array);
         }
     )
-
 
     return out_mesh;
 }

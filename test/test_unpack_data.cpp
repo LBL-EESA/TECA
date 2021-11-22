@@ -1,4 +1,5 @@
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_cartesian_mesh_source.h"
 #include "teca_valid_value_mask.h"
 #include "teca_unpack_data.h"
@@ -63,16 +64,22 @@ struct packed_data
 
         // allocate f
         p_teca_float_array f = teca_float_array::New(nxyz);
-        float *p_f = f->get();
+        auto sp_f = f->get_cpu_accessible();
+        float *p_f = sp_f.get();
 
         // compute
         // f = cos(z)*sin(x+t)*sin(y+t)
         TEMPLATE_DISPATCH(const teca_variant_array_impl,
             x.get(),
 
-            const NT *p_x = dynamic_cast<const TT*>(x.get())->get();
-            const NT *p_y = dynamic_cast<const TT*>(y.get())->get();
-            const NT *p_z = dynamic_cast<const TT*>(z.get())->get();
+            auto sp_x = dynamic_cast<const TT*>(x.get())->get_cpu_accessible();
+            const NT *p_x = sp_x.get();
+
+            auto sp_y = dynamic_cast<const TT*>(y.get())->get_cpu_accessible();
+            const NT *p_y = sp_y.get();
+
+            auto sp_z = dynamic_cast<const TT*>(z.get())->get_cpu_accessible();
+            const NT *p_z = sp_z.get();
 
             for (size_t k = 0; k < nz; ++k)
             {
@@ -89,7 +96,8 @@ struct packed_data
 
         // allcate q
         p_teca_unsigned_char_array q = teca_unsigned_char_array::New(nxyz);
-        unsigned char *p_q = q->get();
+        auto sp_q = q->get_cpu_accessible();
+        unsigned char *p_q = sp_q.get();
 
         // pack
         for (size_t i = 0; i < nxyz; ++i)

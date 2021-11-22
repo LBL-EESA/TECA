@@ -1,12 +1,15 @@
 #ifndef teca_dataset_h
 #define teca_dataset_h
 
+#include "teca_config.h"
 #include "teca_common.h"
 #include "teca_shared_object.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 
 #include <vector>
 #include <iosfwd>
+#include <type_traits>
 
 class teca_binary_stream;
 class teca_metadata;
@@ -20,7 +23,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_dataset)
                                                     \
 static p_##T New()                                  \
 {                                                   \
-    return p_##T(new T);                            \
+    return std::make_shared<T>();                   \
 }                                                   \
                                                     \
 std::shared_ptr<T> shared_from_this()               \
@@ -36,25 +39,35 @@ std::shared_ptr<T const> shared_from_this() const   \
 }
 
 // convenience macro implementing new_instance method
-#define TECA_DATASET_NEW_INSTANCE()                 \
-virtual p_teca_dataset new_instance() const override\
-{                                                   \
-    return this->New();                             \
+#define TECA_DATASET_NEW_INSTANCE()                     \
+virtual p_teca_dataset new_instance() const override    \
+{                                                       \
+    return std::make_shared                             \
+        <std::remove_const<std::remove_reference        \
+            <decltype(*this)>::type>::type >();         \
 }
 
 // convenience macro implementing new_copy method
 #define TECA_DATASET_NEW_COPY()                     \
 virtual p_teca_dataset new_copy() const override    \
 {                                                   \
-    p_teca_dataset o = this->new_instance();        \
+    p_teca_dataset o = std::make_shared             \
+        <std::remove_const<std::remove_reference    \
+            <decltype(*this)>::type>::type>();      \
+                                                    \
     o->copy(this->shared_from_this());              \
+                                                    \
     return o;                                       \
 }                                                   \
                                                     \
 virtual p_teca_dataset new_shallow_copy() override  \
 {                                                   \
-    p_teca_dataset o = this->new_instance();        \
+    p_teca_dataset o = std::make_shared             \
+        <std::remove_const<std::remove_reference    \
+            <decltype(*this)>::type>::type>();      \
+                                                    \
     o->shallow_copy(this->shared_from_this());      \
+                                                    \
     return o;                                       \
 }
 
@@ -213,7 +226,7 @@ int get_##key(T *vals) const                            \
 }
 
 /// Interface for TECA datasets.
-class teca_dataset : public std::enable_shared_from_this<teca_dataset>
+class TECA_EXPORT teca_dataset : public std::enable_shared_from_this<teca_dataset>
 {
 public:
     virtual ~teca_dataset();

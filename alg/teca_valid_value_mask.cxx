@@ -3,6 +3,7 @@
 #include "teca_mesh.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_array_attributes.h"
 #include "teca_coordinate_util.h"
@@ -345,7 +346,9 @@ const_p_teca_dataset teca_valid_value_mask::execute(
             }
 
             // get a pointer to the values
-            const NT *p_array = static_cast<TT*>(array.get())->get();
+            auto sp_array = static_cast<TT*>(array.get())->get_cpu_accessible();
+            auto p_array = sp_array.get();
+
             size_t n_elem = array->size();
 
             p_teca_char_array mask;
@@ -354,7 +357,8 @@ const_p_teca_dataset teca_valid_value_mask::execute(
             {
                 // allocate and compute the mask
                 mask = teca_char_array::New(n_elem);
-                char *p_mask = mask->get();
+                auto sp_mask = mask->get_cpu_accessible();
+                char *p_mask = sp_mask.get();
                 for (size_t i = 0; i < n_elem; ++i)
                 {
                     p_mask[i] = teca_coordinate_util::equal(p_array[i], fill_value) ? 0 : 1;
@@ -371,7 +375,8 @@ const_p_teca_dataset teca_valid_value_mask::execute(
             {
                 // allocate and compute the mask
                 mask = teca_char_array::New(n_elem);
-                char *p_mask = mask->get();
+                auto sp_mask = mask->get_cpu_accessible();
+                char *p_mask = sp_mask.get();
                 for (size_t i = 0; i < n_elem; ++i)
                 {
                     NT val = p_array[i];

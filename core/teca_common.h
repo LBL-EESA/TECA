@@ -22,18 +22,20 @@ using p_teca_error_handler = void (*) (const char*);
 namespace teca_error
 {
 /// The global error handler instance.
-extern p_teca_error_handler error_handler;
+extern p_teca_error_handler error_handler TECA_EXPORT;
 
 /** An error handler that flushes stdout and stderr streams, and sends msg to
  * the stderr before returing. This implements the behavior up to and including
  * TECA 4.1.0
  */
+TECA_EXPORT
 void error_message(const char *msg);
 
 /** An error handler that flushes stdout and stderr streams, and sends msg to
  * the stderr before aborting. When MPI is in use MPI_Abort is invoked. This
  * implements the behavior after TECA 4.1.0
  */
+TECA_EXPORT
 void error_message_abort(const char *msg);
 
 /** Install a custom error haandler. The error handler must have the following
@@ -42,12 +44,15 @@ void error_message_abort(const char *msg);
  * void error_handler(const char *msg);
  *
  */
+TECA_EXPORT
 void set_error_handler(p_teca_error_handler handler);
 
 /// Install the teca_error::error_message error handler
+TECA_EXPORT
 void set_error_message_handler();
 
 /// Install the teca_error::error_message_abort error handler
+TECA_EXPORT
 void set_error_message_abort_handler();
 };
 
@@ -59,6 +64,7 @@ namespace std
 {
 /// send a vector to a stream
 template <typename T>
+TECA_EXPORT
 std::ostream &operator<<(std::ostream &os, const std::vector<T> &vec)
 {
     if (!vec.empty())
@@ -72,6 +78,7 @@ std::ostream &operator<<(std::ostream &os, const std::vector<T> &vec)
 }
 
 /// send a vector of strings to a stream
+TECA_EXPORT
 std::ostream &operator<<(std::ostream &os, const std::vector<std::string> &vec);
 }
 
@@ -79,6 +86,7 @@ std::ostream &operator<<(std::ostream &os, const std::vector<std::string> &vec);
 /// send a fixed length c-array to the stream
 template <typename num_t, int len,
     typename = typename std::enable_if<!std::is_same<num_t,char>::value,bool>::type>
+TECA_EXPORT
 std::ostream &operator<<(std::ostream &os, const num_t (& data)[len])
 {
     os << data[0];
@@ -91,7 +99,7 @@ std::ostream &operator<<(std::ostream &os, const num_t (& data)[len])
 /** Return true if we are writing to a TTY. If we are not then we should not
  * use ansi color codes.
  */
-int have_tty();
+TECA_EXPORT int have_tty();
 
 
 #define ANSI_RED "\033[1;31;40m"

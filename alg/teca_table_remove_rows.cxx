@@ -3,6 +3,7 @@
 #include "teca_table.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_parser.h"
 #include "teca_variant_array_operator.h"
@@ -169,7 +170,10 @@ const_p_teca_dataset teca_table_remove_rows::execute(
 
     TEMPLATE_DISPATCH(const teca_variant_array_impl,
         mask.get(),
-        const NT *pmask = static_cast<TT*>(mask.get())->get();
+
+        auto spmask = static_cast<TT*>(mask.get())->get_cpu_accessible();
+        auto pmask = spmask.get();
+
         for (unsigned long i = 0; i < n_rows; ++i)
         {
             if (!pmask[i])
@@ -188,8 +192,13 @@ const_p_teca_dataset teca_table_remove_rows::execute(
 
         TEMPLATE_DISPATCH(teca_variant_array_impl,
             out_col.get(),
-            const NT *pin = static_cast<const TT*>(in_col.get())->get();
-            NT *pout = static_cast<TT*>(out_col.get())->get();
+
+            auto spin = static_cast<const TT*>(in_col.get())->get_cpu_accessible();
+            auto pin = spin.get();
+
+            auto spout = static_cast<TT*>(out_col.get())->get_cpu_accessible();
+            auto pout = spout.get();
+
             for (unsigned long i = 0; i < n_valid; ++i)
             {
                 pout[i] = pin[valid_rows[i]];

@@ -1,6 +1,7 @@
 #ifndef teca_table_reader_h
 #define teca_table_reader_h
 
+#include "teca_config.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
 #include "teca_shared_object.h"
@@ -81,7 +82,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_table_reader)
  * floating point types are written with format and precision such that they
  * may be read without introducing rounding error.
  */
-class teca_table_reader : public teca_algorithm
+class TECA_EXPORT teca_table_reader : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_table_reader)
@@ -142,6 +143,8 @@ protected:
     teca_table_reader();
 
 private:
+    using teca_algorithm::get_output_metadata;
+
     teca_metadata get_output_metadata(unsigned int port,
         const std::vector<teca_metadata> &input_md) override;
 

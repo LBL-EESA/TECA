@@ -1,6 +1,7 @@
 #ifndef teca_algorithm_executive_h
 #define teca_algorithm_executive_h
 
+#include "teca_config.h"
 #include "teca_metadata.h"
 #include "teca_mpi.h"
 #include "teca_shared_object.h"
@@ -52,7 +53,7 @@ std::shared_ptr<T const> shared_from_this() const                   \
  * upstream algorithms must fill in the requests further to pull
  * data as needed.
  */
-class teca_algorithm_executive
+class TECA_EXPORT teca_algorithm_executive
     : public std::enable_shared_from_this<teca_algorithm_executive>
 {
 public:

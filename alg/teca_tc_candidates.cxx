@@ -2,6 +2,7 @@
 
 #include "teca_cartesian_mesh.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_table.h"
 #include "teca_database.h"
 #include "teca_coordinate_util.h"
@@ -144,8 +145,8 @@ teca_metadata teca_tc_candidates::get_output_metadata(unsigned int port,
 }
 
 // --------------------------------------------------------------------------
-int teca_tc_candidates::get_active_extent(p_teca_variant_array lat,
-    p_teca_variant_array lon, std::vector<unsigned long> &extent) const
+int teca_tc_candidates::get_active_extent(const const_p_teca_variant_array &lat,
+    const const_p_teca_variant_array &lon, std::vector<unsigned long> &extent) const
 {
     extent = {1, 0, 1, 0, 0, 0};
 
@@ -157,10 +158,11 @@ int teca_tc_candidates::get_active_extent(p_teca_variant_array lat,
     }
     else
     {
-        TEMPLATE_DISPATCH_FP(
-            teca_variant_array_impl,
+        TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
             lon.get(),
-            NT *p_lon = std::dynamic_pointer_cast<TT>(lon)->get();
+
+            auto sp_lon = static_cast<TT*>(lon.get())->get_cpu_accessible();
+            const NT *p_lon = sp_lon.get();
 
             if (teca_coordinate_util::index_of(p_lon, 0, high_i, static_cast<NT>(this->search_lon_low), false, extent[0])
                 || teca_coordinate_util::index_of(p_lon, 0, high_i, static_cast<NT>(this->search_lon_high), true, extent[1]))
@@ -189,10 +191,11 @@ int teca_tc_candidates::get_active_extent(p_teca_variant_array lat,
     }
     else
     {
-        TEMPLATE_DISPATCH_FP(
-            teca_variant_array_impl,
+        TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
             lat.get(),
-            NT *p_lat = std::dynamic_pointer_cast<TT>(lat)->get();
+
+            auto sp_lat = static_cast<TT*>(lat.get())->get_cpu_accessible();
+            const NT *p_lat = sp_lat.get();
 
             if (teca_coordinate_util::index_of(p_lat, 0, high_j, static_cast<NT>(this->search_lat_low), false, extent[2])
                 || teca_coordinate_util::index_of(p_lat, 0, high_j, static_cast<NT>(this->search_lat_high), true, extent[3]))
@@ -401,8 +404,11 @@ const_p_teca_dataset teca_tc_candidates::execute(unsigned int port,
     NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
         x.get(), _COORD,
 
-        const NT_COORD *lon = static_cast<const TT_COORD*>(x.get())->get();
-        const NT_COORD *lat = static_cast<const TT_COORD*>(y.get())->get();
+        auto slon = static_cast<TT_COORD*>(x.get())->get_cpu_accessible();
+        const NT_COORD *lon = slon.get();
+
+        auto slat = static_cast<TT_COORD*>(y.get())->get_cpu_accessible();
+        const NT_COORD *lat = slat.get();
 
         NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
             surface_wind_speed.get(), _VAR,
@@ -414,11 +420,20 @@ const_p_teca_dataset teca_tc_candidates::execute(unsigned int port,
                 "have_core_temp", int(), "have_thickness", int(),
                 "core_temp", NT_VAR(), "thickness", NT_VAR());
 
-            const NT_VAR *v = dynamic_cast<const TT_VAR*>(surface_wind_speed.get())->get();
-            const NT_VAR *w = dynamic_cast<const TT_VAR*>(vorticity_850mb.get())->get();
-            const NT_VAR *P = dynamic_cast<const TT_VAR*>(sea_level_pressure.get())->get();
-            const NT_VAR *T = dynamic_cast<const TT_VAR*>(core_temperature.get())->get();
-            const NT_VAR *th = dynamic_cast<const TT_VAR*>(thickness.get())->get();
+            auto sv = dynamic_cast<TT_VAR*>(surface_wind_speed.get())->get_cpu_accessible();
+            const NT_VAR *v = sv.get();
+
+            auto sw = dynamic_cast<TT_VAR*>(vorticity_850mb.get())->get_cpu_accessible();
+            const NT_VAR *w = sw.get();
+
+            auto sP = dynamic_cast<TT_VAR*>(sea_level_pressure.get())->get_cpu_accessible();
+            const NT_VAR *P = sP.get();
+
+            auto sT = dynamic_cast<TT_VAR*>(core_temperature.get())->get_cpu_accessible();
+            const NT_VAR *T = sT.get();
+
+            auto sth = dynamic_cast<TT_VAR*>(thickness.get())->get_cpu_accessible();
+            const NT_VAR *th = sth.get();
 
             t0 = std::chrono::high_resolution_clock::now();
             // invoke the detector

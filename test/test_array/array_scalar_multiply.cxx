@@ -1,4 +1,5 @@
 #include "array_scalar_multiply.h"
+#include "array_scalar_multiply_internals.h"
 
 #include "array.h"
 
@@ -108,13 +109,10 @@ const_p_teca_dataset array_scalar_multiply::execute(
     const std::vector<const_p_teca_dataset> &input_data,
     const teca_metadata &request)
 {
-#ifndef TECA_NDEBUG
-    cerr << teca_parallel_id()
-        << "array_scalar_multiply::execute" << endl;
-#endif
     (void)port;
     (void)request;
 
+    // get the input array
     const_p_array a_in
         = std::dynamic_pointer_cast<const array>(input_data[0]);
 
@@ -124,14 +122,43 @@ const_p_teca_dataset array_scalar_multiply::execute(
         return p_teca_dataset();
     }
 
-    p_array a_out = array::New();
+    // do the calculation
+    p_array a_out;
+
+#if defined(TECA_HAS_CUDA)
+    int device_id = -1;
+    request.get("device_id", device_id);
+    if (device_id >= 0)
+    {
+        if (array_scalar_multiply_internals::cuda_dispatch(
+            device_id, a_out, a_in, this->scalar, a_in->size()))
+        {
+            TECA_ERROR("Failed to multiply by a scalar on the GPU")
+            return nullptr;
+        }
+    }
+    else
+    {
+#endif
+        if (array_scalar_multiply_internals::cpu_dispatch(
+            a_out, a_in, this->scalar, a_in->size()))
+        {
+            TECA_ERROR("Failed to multiply by a scalar on the CPU")
+            return nullptr;
+        }
+#if defined(TECA_HAS_CUDA)
+    }
+#endif
+
+    // pass metadata
     a_out->copy_metadata(a_in);
 
-    std::transform(
-        a_in->get_data().begin(),
-        a_in->get_data().end(),
-        a_out->get_data().begin(),
-        [this](double d) -> double { return d * this->scalar; });
+#ifndef TECA_NDEBUG
+    std::cerr << teca_parallel_id()
+        << "array_scalar_multiply::execute a_out=[";
+    a_out->to_stream(std::cerr);
+    std::cerr << "]" << std::endl;
+#endif
 
     return a_out;
 }

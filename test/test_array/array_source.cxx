@@ -1,7 +1,7 @@
 #include "array_source.h"
 #include "array.h"
-
-#include "array.h"
+#include "array_source_internals.h"
+#include "teca_config.h"
 
 #include <iostream>
 #include <sstream>
@@ -96,7 +96,8 @@ const_p_teca_dataset array_source::execute(
         TECA_ERROR("request is missing \"time_step\"")
         return nullptr;
     }
-    double active_time = this->time_delta*(time_step + 1);
+
+    double active_time = this->time_delta * (time_step + 1);
 
     // get array request
     string active_array;
@@ -106,38 +107,65 @@ const_p_teca_dataset array_source::execute(
         return nullptr;
     }
 
-    vector<string>::iterator it
-        = std::find(
-            this->array_names.begin(),
-            this->array_names.end(),
-            active_array);
+    vector<string>::iterator it = std::find(
+        this->array_names.begin(), this->array_names.end(), active_array);
 
     if (it == this->array_names.end())
     {
-        TECA_ERROR(
-            << "invalid array \"" << active_array << "\" requested");
+        TECA_ERROR("invalid array \"" << active_array << "\" requested")
         return nullptr;
     }
+
+    // get the index of the current array
     size_t array_id = it - this->array_names.begin();
 
     // get the extent request
-    vector<size_t> active_extent = {0, this->array_size};
+    size_t active_extent[2] = {0, this->array_size};
     request.get("extent", active_extent);
 
-    // generate the a_out array
-    p_array a_out = array::New();
-    a_out->set_extent(active_extent);
+    // create the output dataset
+    p_array a_out;
+
+    // intialize to this value
+    double init_val = array_id + active_time;
+
+#if defined(TECA_HAS_CUDA)
+    int device_id = -1;
+    request.get("device_id", device_id);
+    if (device_id >= 0)
+    {
+        if (array_source_internals::cuda_dispatch(
+            device_id, a_out, init_val, this->array_size))
+        {
+            TECA_ERROR("Failed to initialize the data on the GPU")
+            return nullptr;
+        }
+    }
+    else
+    {
+#endif
+        if (array_source_internals::cpu_dispatch(
+            a_out, init_val, this->array_size))
+        {
+            TECA_ERROR("Failed to initialize the data on the CPU")
+            return nullptr;
+        }
+#if defined(TECA_HAS_CUDA)
+    }
+#endif
+
+    // pass metadata
+    a_out->set_extent({active_extent[0], active_extent[1]});
     a_out->set_name(active_array);
 
-    for (unsigned int i = active_extent[0]; i < active_extent[1]; ++i)
-        a_out->append(array_id + active_time);
-
 #ifndef TECA_NDEBUG
-    cerr << teca_parallel_id()
+    std::cerr << teca_parallel_id()
         << "array_source::execute array=" << active_array
         << " time_step=" << time_step << " time=" << active_time
         << " extent=[" << active_extent[0] << ", " << active_extent[1]
-        << "]" << endl;
+        << "] a_out=[";
+    a_out->to_stream(std::cerr);
+    std::cerr << "]" << std::endl;
 #endif
 
     return a_out;

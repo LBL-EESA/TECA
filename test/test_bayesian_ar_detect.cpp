@@ -114,7 +114,7 @@ int main(int argc, char **argv)
 
     bool do_test = true;
     teca_system_util::get_environment_variable("TECA_DO_TEST", do_test);
-    if (teca_file_util::file_exists(baseline_table.c_str()))
+    if (do_test && teca_file_util::file_exists(baseline_table.c_str()))
     {
         // run the test
         p_teca_table_reader baseline_table_reader = teca_table_reader::New();

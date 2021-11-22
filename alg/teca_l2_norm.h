@@ -11,7 +11,7 @@
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_l2_norm)
 
 /// An algorithm that computes L2 norm
-class teca_l2_norm : public teca_algorithm
+class TECA_EXPORT teca_l2_norm : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_l2_norm)
@@ -58,15 +58,17 @@ public:
 
 protected:
     teca_l2_norm();
-
+/*
     // helpers to get the variable names from either the incoming
     // request or the class member variable.
     std::string get_component_0_variable(const teca_metadata &request);
     std::string get_component_1_variable(const teca_metadata &request);
     std::string get_component_2_variable(const teca_metadata &request);
     std::string get_l2_norm_variable(const teca_metadata &request);
-
+*/
 private:
+    using teca_algorithm::get_output_metadata;
+
     teca_metadata get_output_metadata(
         unsigned int port,
         const std::vector<teca_metadata> &input_md) override;

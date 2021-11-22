@@ -3,10 +3,11 @@
 
 /// @file
 
+#include "teca_config.h"
 #include "teca_algorithm.h"
 
 /// A factory for Cartesian mesh readers
-struct teca_cartesian_mesh_reader_factory
+struct TECA_EXPORT teca_cartesian_mesh_reader_factory
 {
     /** creates and initialized a reader from a given file name or regular
      * expression.  the file extension is examined, to determine the type of

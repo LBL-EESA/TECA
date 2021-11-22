@@ -3,6 +3,7 @@
 #include "teca_table.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_distance_function.h"
 #include "teca_geometry.h"
@@ -181,14 +182,18 @@ const_p_teca_dataset teca_table_region_mask::execute(
     short F = this->invert ? 1 : 0;
 
     p_teca_short_array mask = teca_short_array::New(n_rows, F);
-    short *pmask = mask->get();
+    auto spmask = mask->get_cpu_accessible();
+    short *pmask = spmask.get();
     unsigned int nhit = 0;
 
     TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
         x.get(),
 
-        const NT *px = static_cast<const TT*>(x.get())->get();
-        const NT *py = static_cast<const TT*>(y.get())->get();
+        auto spx = static_cast<const TT*>(x.get())->get_cpu_accessible();
+        auto px = spx.get();
+
+        auto spy = static_cast<const TT*>(y.get())->get_cpu_accessible();
+        auto py = spy.get();
 
         for (unsigned long i = 0; i < n_rows; ++i)
         {

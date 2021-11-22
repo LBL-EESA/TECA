@@ -1,12 +1,14 @@
 #ifndef teca_curvilinear_mesh_h
 #define teca_curvilinear_mesh_h
 
+#include "teca_config.h"
 #include "teca_mesh.h"
 #include "teca_shared_object.h"
+
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_curvilinear_mesh)
 
 /// Data on a physically uniform curvilinear mesh.
-class teca_curvilinear_mesh : public teca_mesh
+class TECA_EXPORT teca_curvilinear_mesh : public teca_mesh
 {
 public:
     TECA_DATASET_STATIC_NEW(teca_curvilinear_mesh)
@@ -89,8 +91,14 @@ public:
 
     // stream to/from human readable representation
     int to_stream(std::ostream &) const override;
+    using teca_dataset::from_stream;
 
+#if defined(SWIG)
 protected:
+#else
+public:
+#endif
+    // NOTE: constructors are public to enable std::make_shared. do not use.
     teca_curvilinear_mesh();
 
 private:

@@ -25,7 +25,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_apply_tempest_remap)
  *   tgt[row[i]] = tgt[ri[i]] + S[i] * src[ci[i]]
  * @endcode
  */
-class teca_apply_tempest_remap : public teca_algorithm
+class TECA_EXPORT teca_apply_tempest_remap : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_apply_tempest_remap)
@@ -81,6 +81,8 @@ protected:
     teca_apply_tempest_remap();
 
 private:
+    using teca_algorithm::get_output_metadata;
+
     teca_metadata get_output_metadata(unsigned int port,
         const std::vector<teca_metadata> &input_md) override;
 

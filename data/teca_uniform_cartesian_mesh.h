@@ -1,13 +1,14 @@
 #ifndef teca_uniform_cartesian_mesh_h
 #define teca_uniform_cartesian_mesh_h
 
+#include "teca_config.h"
 #include "teca_mesh.h"
 #include "teca_shared_object.h"
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_uniform_cartesian_mesh)
 
 /// Data on a uniform cartesian mesh.
-class teca_uniform_cartesian_mesh : public teca_mesh
+class TECA_EXPORT teca_uniform_cartesian_mesh : public teca_mesh
 {
 public:
     TECA_DATASET_STATIC_NEW(teca_uniform_cartesian_mesh)
@@ -45,7 +46,12 @@ public:
     /// swap internals of the two objects
     void swap(const p_teca_dataset &) override;
 
+#if defined(SWIG)
 protected:
+#else
+public:
+#endif
+    // NOTE: constructors are public to enable std::make_shared. do not use.
     teca_uniform_cartesian_mesh();
 };
 

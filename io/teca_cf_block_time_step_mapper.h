@@ -1,6 +1,7 @@
 #ifndef teca_cf_block_time_step_mapper_h
 #define teca_cf_block_time_step_mapper_h
 
+#include "teca_config.h"
 #include "teca_metadata.h"
 #include "teca_cf_layout_manager.h"
 #include "teca_cf_time_step_mapper.h"
@@ -19,7 +20,7 @@ class teca_cf_block_time_step_mapper;
 using p_teca_cf_block_time_step_mapper = std::shared_ptr<teca_cf_block_time_step_mapper>;
 
 /// Maps time steps to files in fixed sized blocks
-class teca_cf_block_time_step_mapper : public teca_cf_time_step_mapper
+class TECA_EXPORT teca_cf_block_time_step_mapper : public teca_cf_time_step_mapper
 {
 public:
 

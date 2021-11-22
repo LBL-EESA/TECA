@@ -1,6 +1,10 @@
 #include "teca_threaded_algorithm.h"
 #include "teca_metadata.h"
-#include "teca_thread_pool.h"
+#if defined(TECA_HAS_CUDA)
+#include "teca_cuda_thread_pool.h"
+#else
+#include "teca_cpu_thread_pool.h"
+#endif
 #include "teca_profiler.h"
 
 #include <memory>
@@ -19,10 +23,16 @@
 
 // **************************************************************************
 p_teca_data_request_queue new_teca_data_request_queue(MPI_Comm comm,
-    int n, bool bind, bool verbose)
+    int n_threads, int n_threads_per_device, bool bind, bool verbose)
 {
+#if defined(TECA_HAS_CUDA)
     return std::make_shared<teca_data_request_queue>(
-        comm, n, bind, verbose);
+        comm, n_threads, n_threads_per_device, bind, verbose);
+#else
+    (void) n_threads_per_device;
+    return std::make_shared<teca_data_request_queue>(
+        comm, n_threads, bind, verbose);
+#endif
 }
 
 // function that executes the data request and returns the
@@ -36,8 +46,14 @@ public:
         m_up_port(up_port), m_up_req(up_req)
     {}
 
-    const_p_teca_dataset operator()()
-    { return m_alg->request_data(m_up_port, m_up_req); }
+    const_p_teca_dataset operator()(int device_id = -1)
+    {
+        // set the device on which to execute this pipeline
+        m_up_req.set("device_id", device_id);
+
+        // execute the pipeline
+        return m_alg->request_data(m_up_port, m_up_req);
+    }
 
 public:
     p_teca_algorithm m_alg;
@@ -52,8 +68,8 @@ class teca_threaded_algorithm_internals
 public:
     teca_threaded_algorithm_internals() {}
 
-    void thread_pool_resize(MPI_Comm comm,
-        int n, bool bind, bool verbose);
+    void thread_pool_resize(MPI_Comm comm, int n_threads,
+        int n_threads_per_device, bool bind, bool verbose);
 
     unsigned int get_thread_pool_size() const noexcept
     { return this->thread_pool ? this->thread_pool->size() : 0; }
@@ -64,10 +80,10 @@ public:
 
 // --------------------------------------------------------------------------
 void teca_threaded_algorithm_internals::thread_pool_resize(MPI_Comm comm,
-    int n, bool bind, bool verbose)
+    int n_threads, int n_threads_per_device, bool bind, bool verbose)
 {
     this->thread_pool = new_teca_data_request_queue(
-        comm, n, bind, verbose);
+        comm, n_threads, n_threads_per_device,  bind, verbose);
 }
 
 
@@ -75,6 +91,7 @@ void teca_threaded_algorithm_internals::thread_pool_resize(MPI_Comm comm,
 // --------------------------------------------------------------------------
 teca_threaded_algorithm::teca_threaded_algorithm() :
     bind_threads(1), stream_size(-1), poll_interval(1000000),
+    threads_per_cuda_device(-1),
     internals(new teca_threaded_algorithm_internals)
 {
 }
@@ -107,6 +124,9 @@ void teca_threaded_algorithm::get_properties_description(
         TECA_POPTS_GET(long, prefix, poll_interval,
             "number of nanoseconds to wait between scans of the thread pool "
             "for completed tasks")
+        TECA_POPTS_GET(int, prefix, threads_per_cuda_device,
+            "Sets the number of threads that service each CUDA GPU. -1 results "
+            "in all threads servicing CUDA GPUs.")
         ;
 
     this->teca_algorithm::get_properties_description(prefix, opts);
@@ -134,7 +154,7 @@ void teca_threaded_algorithm::set_thread_pool_size(int n)
 {
     TECA_PROFILE_METHOD(128, this, "set_thread_pool_size",
         this->internals->thread_pool_resize(this->get_communicator(),
-            n, this->bind_threads, this->verbose);
+            n, this->threads_per_cuda_device, this->bind_threads, this->verbose);
         )
 }
 

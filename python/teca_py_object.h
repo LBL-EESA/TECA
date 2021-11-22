@@ -3,11 +3,14 @@
 
 /// @file
 
+#include <Python.h>
+
+#include "teca_config.h"
 #include "teca_common.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_py_string.h"
 #include "teca_py_integer.h"
-#include <Python.h>
 
 /// Codes dealing with Python objects
 namespace teca_py_object
@@ -26,7 +29,7 @@ namespace teca_py_object
  * int --> PyInt/PyLong, long --> PyInt/PyLong, bool --> PyBool,
  * float --> PyFloat, char* --> PyUnicode/PyString
 */
-template <typename py_t> struct cpp_tt
+template <typename py_t> struct TECA_EXPORT cpp_tt
 {};
 
 /** PY_T -- C-name of python type
@@ -90,7 +93,7 @@ template <> struct cpp_tt<teca_metadata>
  * py_tt is used to take a C++ type and lookup the Python type
  * tag. Then the type tag is used to lookup the function.
 */
-template <typename type> struct py_tt
+template <typename type> struct TECA_EXPORT py_tt
 {};
 
 /**
@@ -281,7 +284,7 @@ bool append(teca_variant_array *varr, PyObject *obj)
 }
 
 /// A container that keeps a reference to a PyObject
-class teca_py_object_ptr
+class TECA_EXPORT teca_py_object_ptr
 {
 public:
     teca_py_object_ptr() : m_obj(nullptr) {}
@@ -332,7 +335,7 @@ private:
 };
 
 /// A container that keeps a reference to a callable object.
-class teca_py_callable : public teca_py_object_ptr
+class TECA_EXPORT teca_py_callable : public teca_py_object_ptr
 {
 public:
     teca_py_callable() : teca_py_object_ptr() {}

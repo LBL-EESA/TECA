@@ -1,6 +1,7 @@
 #ifndef teca_index_executive_h
 #define teca_index_executive_h
 
+#include "teca_config.h"
 #include "teca_shared_object.h"
 #include "teca_algorithm_executive.h"
 #include "teca_metadata.h"
@@ -28,7 +29,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_index_executive)
  *                           upstream algorithm is expected to produce the
  *                           data associated with the given index
 */
-class teca_index_executive : public teca_algorithm_executive
+class TECA_EXPORT teca_index_executive : public teca_algorithm_executive
 {
 public:
     TECA_ALGORITHM_EXECUTIVE_STATIC_NEW(teca_index_executive)

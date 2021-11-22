@@ -25,8 +25,7 @@ The io module contains readers and writers.
 #include <numpy/arrayobject.h>
 #include <Python.h>
 
-// disable some warnings that are present in SWIG
-// generated code.
+/* disable some warnings that are present in SWIG generated code. */
 #if !defined(TECA_DEBUG)
 #if __GNUC__ > 8
 #pragma GCC diagnostic ignored "-Wcast-function-type"
@@ -35,7 +34,13 @@ The io module contains readers and writers.
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
+#if defined(__CUDACC__)
+#pragma diag_suppress = set_but_not_used
+#endif
 %}
+
+/* SWIG doens't understand compiler attriibbutes */
+#define __attribute__(x)
 
 %include <std_pair.i>
 %include <std_string.i>

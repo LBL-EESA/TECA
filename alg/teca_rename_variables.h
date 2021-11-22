@@ -11,7 +11,7 @@
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_rename_variables)
 
 /// An algorithm that renames variables.
-class teca_rename_variables : public teca_algorithm
+class TECA_EXPORT teca_rename_variables : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_rename_variables)
@@ -46,6 +46,8 @@ protected:
     teca_rename_variables();
 
 private:
+    using teca_algorithm::get_output_metadata;
+
     teca_metadata get_output_metadata(
         unsigned int port,
         const std::vector<teca_metadata> &input_md) override;

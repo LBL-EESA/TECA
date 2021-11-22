@@ -1,6 +1,7 @@
 #ifndef teca_integrated_vapor_transport_h
 #define teca_integrated_vapor_transport_h
 
+#include "teca_config.h"
 #include "teca_shared_object.h"
 #include "teca_vertical_reduction.h"
 #include "teca_metadata.h"
@@ -25,7 +26,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_integrated_vapor_transport)
  * This calculation is an instance of a vertical reduction where
  * a 3D mesh is transformed into a 2D one.
  */
-class teca_integrated_vapor_transport : public teca_vertical_reduction
+class TECA_EXPORT teca_integrated_vapor_transport : public teca_vertical_reduction
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_integrated_vapor_transport)
@@ -91,6 +92,8 @@ protected:
     teca_integrated_vapor_transport();
 
 private:
+    using teca_algorithm::get_output_metadata;
+
     teca_metadata get_output_metadata(
         unsigned int port,
         const std::vector<teca_metadata> &input_md) override;

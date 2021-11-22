@@ -27,7 +27,7 @@ export LD_LIBRARY_PATH=${DASHROOT}/build/lib
 export MPLBACKEND=Agg
 mkdir build
 
-ctest -S ${DASHROOT}/test/travis_ci/ctest_linux.cmake --output-on-failure --timeout 180 &
+ctest -S ${DASHROOT}/test/travis_ci/ctest_linux.cmake --output-on-failure --timeout 400 &
 ctest_pid=$!
 
 # this loop prevents travis from killing the job

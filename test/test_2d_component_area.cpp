@@ -11,6 +11,7 @@
 #include "teca_dataset.h"
 #include "teca_cartesian_mesh.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_array_attributes.h"
 
 #define _USE_MATH_DEFINES
@@ -43,16 +44,21 @@ struct tile_labeler
         unsigned long nx = x->size();
         unsigned long ny = y->size();
         unsigned long nxy = nx*ny;
+
         p_teca_int_array cc = teca_int_array::New(nxy);
-        int *pcc = cc->get();
+        auto spcc = cc->get_cpu_accessible();
+        int *pcc = spcc.get();
 
         memset(pcc,0, nxy*sizeof(int));
 
          TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
              x.get(),
 
-             const NT *px = std::static_pointer_cast<TT>(x)->get();
-             const NT *py = std::static_pointer_cast<TT>(y)->get();
+             auto spx = std::static_pointer_cast<TT>(x)->get_cpu_accessible();
+             const NT *px = spx.get();
+
+             auto spy = std::static_pointer_cast<TT>(y)->get_cpu_accessible();
+             const NT *py = spy.get();
 
              for (unsigned long j = 0; j < ny; ++j)
              {

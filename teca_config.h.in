@@ -17,6 +17,7 @@
 #cmakedefine TECA_HAS_UDUNITS
 #cmakedefine TECA_HAS_OPENSSL
 #cmakedefine TECA_HAS_SHAPELIB
+#cmakedefine TECA_HAS_CUDA
 
 #cmakedefine TECA_VERSION_DESCR "@TECA_VERSION_DESCR@"
 #cmakedefine TECA_PYTHON_VERSION @TECA_PYTHON_VERSION@
@@ -26,5 +27,8 @@
 
 #cmakedefine TECA_HAS_DATA
 #cmakedefine TECA_DATA_ROOT "@TECA_DATA_ROOT@"
+
+#define TECA_EXPORT __attribute__ ((visibility ("default")))
+#define TECA_PRIVATE __attribute__ ((visibility ("hidden")))
 
 #endif

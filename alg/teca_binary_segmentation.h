@@ -22,7 +22,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_binary_segmentation)
  * the range is given in percentiles and each data point is converted to a
  * percentile before applying the test for inclusion.
 */
-class teca_binary_segmentation : public teca_algorithm
+class TECA_EXPORT teca_binary_segmentation : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_binary_segmentation)
@@ -30,16 +30,16 @@ public:
     TECA_ALGORITHM_CLASS_NAME(teca_binary_segmentation)
     ~teca_binary_segmentation();
 
-    // set the name of the output array to store the resulting segmentation in
     /** @name segmentation_variable
+     * set the name of the output array to store the resulting segmentation in
      */
     ///@{
     TECA_ALGORITHM_PROPERTY(std::string, segmentation_variable)
     ///@}
 
 
-    // set extra metadata for the segmentation variable
     /** @name segmentation_variable_attributes
+     * set extra metadata for the segmentation variable
      */
     ///@{
     TECA_ALGORITHM_PROPERTY(teca_metadata, segmentation_variable_attributes)
@@ -92,6 +92,8 @@ protected:
     int get_threshold_variable(std::string &threshold_var);
 
 private:
+    using teca_algorithm::get_output_metadata;
+
     teca_metadata get_output_metadata(unsigned int port,
         const std::vector<teca_metadata> &input_md) override;
 

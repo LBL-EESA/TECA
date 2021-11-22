@@ -1,6 +1,7 @@
 #ifndef teca_dataset_util_h
 #define teca_dataset_util_h
 
+#include "teca_config.h"
 #include "teca_dataset.h"
 #include "teca_mesh.h"
 #include "teca_cartesian_mesh.h"
@@ -12,10 +13,10 @@
 
 /// @cond
 template <typename dataset_t>
-struct teca_dataset_tt {};
+struct TECA_EXPORT teca_dataset_tt {};
 
 template <int code>
-struct teca_dataset_new {};
+struct TECA_EXPORT teca_dataset_new {};
 
 #define DECLARE_DATASET_TT(_DST, _TC)   \
 template <>                             \
@@ -60,7 +61,7 @@ DECLARE_DATASET_TT(teca_array_collection, 7)
  * | 7    | teca_array_collection |
  *
  */
-struct teca_dataset_factory
+struct TECA_EXPORT teca_dataset_factory
 {
     static p_teca_dataset New(int code)
     {

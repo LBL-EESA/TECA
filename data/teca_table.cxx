@@ -1,5 +1,6 @@
 #include "teca_table.h"
 
+#include "teca_variant_array_impl.h"
 #include "teca_binary_stream.h"
 #include "teca_dataset_util.h"
 #include "teca_string_util.h"
@@ -11,7 +12,7 @@ teca_table::impl_t::impl_t() :
 
 
 // --------------------------------------------------------------------------
-teca_table::teca_table() : m_impl(new teca_table::impl_t())
+teca_table::teca_table() : m_impl(std::make_shared<teca_table::impl_t>())
 {}
 
 // --------------------------------------------------------------------------
@@ -354,7 +355,9 @@ int teca_table::from_stream(std::istream &s)
         p_teca_variant_array col = cols[j];
         TEMPLATE_DISPATCH(teca_variant_array_impl,
             col.get(),
-            NT *p_col = static_cast<TT*>(col.get())->get();
+            auto ca = std::static_pointer_cast<TT>(col);
+            auto pca = ca->get_cpu_accessible();
+            NT *p_col = pca.get();
             const char *fmt = teca_string_util::scanf_tt<NT>::format();
             for (size_t i = 0; i < n_rows; ++i)
             {
@@ -372,7 +375,9 @@ int teca_table::from_stream(std::istream &s)
             )
         else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
             std::string, col.get(),
-            NT *p_col = static_cast<TT*>(col.get())->get();
+            auto ca = std::static_pointer_cast<TT>(col);
+            auto pca = ca->get_cpu_accessible();
+            NT *p_col = pca.get();
             for (size_t i = 0; i < n_rows; ++i)
             {
                 const char *cell = data[i*n_cols + j];
@@ -435,11 +440,18 @@ void teca_table::copy(const const_p_teca_table &other,
 
     this->teca_dataset::copy(other);
 
+    size_t n_rows = last_row - first_row + 1;
+
     unsigned int n_cols = other->get_number_of_columns();
     for (unsigned int i = 0; i < n_cols; ++i)
     {
-        m_impl->columns->append(other->m_impl->columns->get_name(i),
-            other->m_impl->columns->get(i)->new_copy(first_row, last_row));
+        auto ocol_name = other->m_impl->columns->get_name(i);
+        auto ocol = other->m_impl->columns->get(i);
+
+        p_teca_variant_array ocol_cpy = ocol->new_instance();
+        ocol_cpy->assign(ocol, first_row, n_rows);
+
+        m_impl->columns->append(ocol_name, ocol_cpy);
     }
 }
 
@@ -501,7 +513,7 @@ void teca_table::concatenate_rows(const const_p_teca_table &other)
     }
 
     for (size_t i = 0; i < n_cols; ++i)
-        this->get_column(i)->append(*(other->get_column(i).get()));
+        this->get_column(i)->append(other->get_column(i));
 }
 
 // --------------------------------------------------------------------------
@@ -513,10 +525,10 @@ void teca_table::concatenate_cols(const const_p_teca_table &other, bool deep)
     unsigned int n_cols = other->get_number_of_columns();
     for (unsigned int i=0; i<n_cols; ++i)
     {
-        m_impl->columns->append(
-            other->m_impl->columns->get_name(i),
-            deep ? other->m_impl->columns->get(i)->new_copy()
-                : std::const_pointer_cast<teca_variant_array>(
-                    other->m_impl->columns->get(i)));
+        auto ocol_name = other->m_impl->columns->get_name(i);
+        auto ocol = other->m_impl->columns->get(i);
+
+        m_impl->columns->append(ocol_name, deep ? ocol->new_copy() :
+            std::const_pointer_cast<teca_variant_array>(ocol));
     }
 }

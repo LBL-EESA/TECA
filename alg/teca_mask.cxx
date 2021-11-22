@@ -2,7 +2,7 @@
 
 #include "teca_mesh.h"
 #include "teca_array_collection.h"
-#include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_cartesian_mesh.h"
 
@@ -187,8 +187,11 @@ const_p_teca_dataset teca_mask::execute(
         TEMPLATE_DISPATCH(teca_variant_array_impl,
             mask.get(),
 
-            const NT *p_in = static_cast<const TT*>(input_array.get())->get();
-            NT *p_mask = static_cast<TT*>(mask.get())->get();
+            auto sp_in = static_cast<const TT*>(input_array.get())->get_cpu_accessible();
+            auto p_in = sp_in.get();
+
+            auto sp_mask = static_cast<TT*>(mask.get())->get_cpu_accessible();
+            auto p_mask = sp_mask.get();
 
             ::apply_mask(p_mask, p_in,  n_elem,
                 static_cast<NT>(low_val), static_cast<NT>(high_val),

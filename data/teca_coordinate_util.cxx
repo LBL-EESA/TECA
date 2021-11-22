@@ -42,9 +42,10 @@ bool equal(const const_p_teca_variant_array &array1,
     TEMPLATE_DISPATCH(const teca_variant_array_impl,
         array1.get(),
 
-        // we know the type of array 1 now,
-        // check the type of array 2
-        const TT *a2 = dynamic_cast<const TT*>(array2.get());
+        auto a1 = static_cast<TT*>(array1.get());
+
+        // we know the type of array 1 now, check the type of array 2
+        auto a2 = dynamic_cast<TT*>(array2.get());
         if (!a2)
         {
             oss << "The arrays have different types : "
@@ -58,8 +59,11 @@ bool equal(const const_p_teca_variant_array &array1,
         }
 
         // compare elements
-        const NT *pa1 = static_cast<const TT*>(array1.get())->get();
-        const NT *pa2 = a2->get();
+        auto a1a = a1->get_cpu_accessible();
+        auto a2a = a2->get_cpu_accessible();
+
+        auto pa1 = a1a.get();
+        auto pa2 = a2a.get();
 
         std::string diagnostic;
         for (size_t i = 0; i < n_elem; ++i)
@@ -108,14 +112,17 @@ bool equal(const const_p_teca_variant_array &array1,
         array1.get(),
         if (dynamic_cast<const TT*>(array2.get()))
         {
-            const TT *a1 = static_cast<const TT*>(array1.get());
-            const TT *a2 = static_cast<const TT*>(array2.get());
+            auto a1 = static_cast<TT*>(array1.get())->get_cpu_accessible();
+            auto a2 = static_cast<TT*>(array2.get())->get_cpu_accessible();
+
+            auto pa1 = a1.get();
+            auto pa2 = a2.get();
 
             for (size_t i = 0; i < n_elem; ++i)
             {
                 // compare elements
-                const std::string &v1 = a1->get(i);
-                const std::string &v2 = a2->get(i);
+                const std::string &v1 = pa1[i];
+                const std::string &v2 = pa2[i];
                 if (v1 != v2)
                 {
                     oss << "string element " << i << " not equal. ref value \""
@@ -183,7 +190,11 @@ int time_step_of(const const_p_teca_variant_array &time,
     unsigned long last = time->size() - 1;
     TEMPLATE_DISPATCH_FP_SI(const teca_variant_array_impl,
         time.get(),
-        const NT *p_time = std::dynamic_pointer_cast<const TT>(time)->get();
+
+        auto ta = std::static_pointer_cast<TT>(time);
+        auto pta = ta->get_cpu_accessible();
+        auto p_time = pta.get();
+
         if (clamp && (t <= p_time[0]))
         {
             step = 0;
@@ -198,6 +209,7 @@ int time_step_of(const const_p_teca_variant_array &time,
                 << p_time[0] << ", " << p_time[last] << "]")
             return -1;
         }
+
         return 0;
         )
 
@@ -324,7 +336,9 @@ int bounds_to_extent(const double *bounds,
         unsigned long high_i = nx - 1;
         extent[0] = 0;
         extent[1] = high_i;
-        const NT *px = std::dynamic_pointer_cast<TT>(x)->get();
+        auto xa = std::static_pointer_cast<TT>(x);
+        auto pxa = xa->get_cpu_accessible();
+        const NT *px = pxa.get();
         NT low_x = static_cast<NT>(bounds[0]);
         NT high_x = static_cast<NT>(bounds[1]);
         bool slice_x = equal(low_x, high_x, eps8);
@@ -333,7 +347,9 @@ int bounds_to_extent(const double *bounds,
         unsigned long high_j = ny - 1;
         extent[2] = 0;
         extent[3] = high_j;
-        const NT *py = std::dynamic_pointer_cast<TT>(y)->get();
+        auto ya = std::dynamic_pointer_cast<TT>(y);
+        auto pya = ya->get_cpu_accessible();
+        const NT *py = pya.get();
         NT low_y = static_cast<NT>(bounds[2]);
         NT high_y = static_cast<NT>(bounds[3]);
         bool slice_y = equal(low_y, high_y, eps8);
@@ -342,7 +358,9 @@ int bounds_to_extent(const double *bounds,
         unsigned long high_k = nz - 1;
         extent[4] = 0;
         extent[5] = high_k;
-        const NT *pz = std::dynamic_pointer_cast<TT>(z)->get();
+        auto za = std::dynamic_pointer_cast<TT>(z);
+        auto pza = za->get_cpu_accessible();
+        const NT *pz = pza.get();
         NT low_z = static_cast<NT>(bounds[4]);
         NT high_z = static_cast<NT>(bounds[5]);
         bool slice_z = equal(low_z, high_z, eps8);
@@ -408,7 +426,9 @@ int bounds_to_extent(const double *bounds,
         unsigned long high_i = nx - 1;
         extent[0] = 0;
         extent[1] = high_i;
-        const NT *px = std::dynamic_pointer_cast<TT>(x)->get();
+        auto xa = std::static_pointer_cast<TT>(x);
+        auto pxa = xa->get_cpu_accessible();
+        const NT *px = pxa.get();
         NT low_x = static_cast<NT>(bounds[0]);
         NT high_x = static_cast<NT>(bounds[1]);
         bool slice_x = equal(low_x, high_x, eps8);

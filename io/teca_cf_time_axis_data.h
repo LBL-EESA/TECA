@@ -1,6 +1,7 @@
 #ifndef teca_cf_time_axis_data_h
 #define teca_cf_time_axis_data_h
 
+#include "teca_config.h"
 #include "teca_dataset.h"
 #include "teca_variant_array.h"
 #include "teca_metadata.h"
@@ -13,7 +14,7 @@
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_cf_time_axis_data)
 
 /// A dataset used to read NetCDF CF2 time and metadata in parallel.
-class teca_cf_time_axis_data : public teca_dataset
+class TECA_EXPORT teca_cf_time_axis_data : public teca_dataset
 {
 public:
     TECA_DATASET_STATIC_NEW(teca_cf_time_axis_data)
@@ -40,6 +41,8 @@ public:
     static
     const teca_metadata &get_metadata(const elem_t &elem)
     { return elem.second; }
+
+    using teca_dataset::get_metadata;
 
     // given an element extract the time axis
     static
@@ -91,9 +94,15 @@ public:
     // swap internals of the two objects
     void swap(const p_teca_dataset &other) override;
 
+#if defined(SWIG)
 protected:
+#else
+public:
+#endif
+    // NOTE: constructors are public to enable std::make_shared. do not use.
     teca_cf_time_axis_data();
 
+protected:
     teca_cf_time_axis_data(const teca_cf_time_axis_data &other) = delete;
     teca_cf_time_axis_data(teca_cf_time_axis_data &&other) = delete;
     teca_cf_time_axis_data &operator=(const teca_cf_time_axis_data &other) = delete;

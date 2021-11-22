@@ -36,7 +36,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_component_area_filter)
  * a string that will be appended to the names of the filtered component array
  * and metadata keys.
 */
-class teca_component_area_filter : public teca_algorithm
+class TECA_EXPORT teca_component_area_filter : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_component_area_filter)
@@ -128,6 +128,8 @@ protected:
     teca_component_area_filter();
 
 private:
+    using teca_algorithm::get_output_metadata;
+
     teca_metadata get_output_metadata(
         unsigned int port,
         const std::vector<teca_metadata> &input_md) override;

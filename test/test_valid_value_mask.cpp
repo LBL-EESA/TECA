@@ -8,6 +8,8 @@
 #include "teca_file_util.h"
 #include "teca_system_util.h"
 #include "teca_system_interface.h"
+#include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 
 #include <cmath>
 #include <functional>
@@ -35,9 +37,16 @@ struct cosx_cosy
 
         TEMPLATE_DISPATCH(teca_variant_array_impl,
             f.get(),
-            NT *pf = dynamic_cast<TT*>(f.get())->get();
-            const NT *px = dynamic_cast<const TT*>(x.get())->get();
-            const NT *py = dynamic_cast<const TT*>(y.get())->get();
+
+            auto spf = dynamic_cast<TT*>(f.get())->get_cpu_accessible();
+            NT *pf = spf.get();
+
+            auto spx = dynamic_cast<const TT*>(x.get())->get_cpu_accessible();
+            const NT *px = spx.get();
+
+            auto spy = dynamic_cast<const TT*>(y.get())->get_cpu_accessible();
+            const NT *py = spy.get();
+
             for (size_t j = 0; j < ny; ++j)
             {
                 for (size_t i = 0; i < nx; ++i)

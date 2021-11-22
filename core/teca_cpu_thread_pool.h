@@ -1,6 +1,7 @@
-#ifndef teca_thread_pool_h
-#define teca_thread_pool_h
+#ifndef teca_cpu_thread_pool_h
+#define teca_cpu_thread_pool_h
 
+#include "teca_config.h"
 #include "teca_common.h"
 #include "teca_algorithm.h"
 #include "teca_thread_util.h"
@@ -21,80 +22,80 @@
 #endif
 
 template <typename task_t, typename data_t>
-class teca_thread_pool;
+class teca_cpu_thread_pool;
 
 template <typename task_t, typename data_t>
-using p_teca_thread_pool = std::shared_ptr<teca_thread_pool<task_t, data_t>>;
+using p_teca_cpu_thread_pool = std::shared_ptr<teca_cpu_thread_pool<task_t, data_t>>;
 
-/// A class to manage a fixed size pool of threads that dispatch I/O work.
+/// A class to manage a fixed size pool of threads that dispatch work.
 template <typename task_t, typename data_t>
-class teca_thread_pool
+class TECA_EXPORT teca_cpu_thread_pool
 {
 public:
-    teca_thread_pool() = delete;
+    teca_cpu_thread_pool() = delete;
 
-    // construct/destruct the thread pool.
-    // arguments:
-    //   comm     communicator over which to map threads. Use MPI_COMM_SELF
-    //            for local mapping.
-    //
-    //   n        number of threads to create for the pool. -1 will
-    //            create 1 thread per physical CPU core.  all MPI ranks running
-    //            on the same node are taken into account, resulting in 1
-    //            thread per core node wide.
-    //
-    //   bind     bind each thread to a specific core.
-    //
-    //   verbose  print a report of the thread to core bindings
-    teca_thread_pool(MPI_Comm comm, int n, bool bind, bool verbose);
-    ~teca_thread_pool() noexcept;
+    /** construct/destruct the thread pool.
+     * arguments:
+     *   @param[in] comm     communicator over which to map threads. Use
+     *                       MPI_COMM_SELF for local mapping.
+     *
+     *   @param[in] n        number of threads to create for the pool. -1 will
+     *                       create 1 thread per physical CPU core.  all MPI
+     *                       ranks running on the same node are taken into
+     *                       account, resulting in 1 thread per core node wide.
+     *
+     *   @param[in] bind     bind each thread to a specific core.
+     *
+     *   @param[in] verbose  print a report of the thread to core bindings
+     */
+    teca_cpu_thread_pool(MPI_Comm comm, int n, bool bind, bool verbose);
+    ~teca_cpu_thread_pool() noexcept;
 
     // get rid of copy and asignment
-    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_thread_pool)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_cpu_thread_pool)
 
-    // add a data request task to the queue, returns a future
-    // from which the generated dataset can be accessed.
+    /** add a data request task to the queue, returns a future from which the
+     * generated dataset can be accessed.
+     */
     void push_task(task_t &task);
 
-    // wait for all of the requests to execute and transfer
-    // datasets in the order that corresponding requests
-    // were added to the queue.
+    /** wait for all of the requests to execute and transfer datasets in the
+     * order that corresponding requests were added to the queue.
+     */
     template <template <typename ... > class container_t, typename ... args>
     void wait_all(container_t<data_t, args ...> &data);
 
-    // wait for some of the requests to execute. datasets will be retruned as
-    // they become ready. n_to_wait specifies how many datasets to gather but
-    // there are three cases when the number of datasets returned differs from
-    // n_to_wait.  when n_to_wait is larger than the number of tasks remaining,
-    // datasets from all of the remaining tasks is returned. when n_to_wait is
-    // smaller than the number of datasets ready, all of the currenttly ready
-    // data are returned. finally, when n_to_wait is < 1 the call blocks until
-    // all of the tasks complete and all of the data is returned.
+    /** wait for some of the requests to execute. datasets will be retruned as
+     * they become ready. n_to_wait specifies how many datasets to gather but
+     * there are three cases when the number of datasets returned differs from
+     * n_to_wait.  when n_to_wait is larger than the number of tasks remaining,
+     * datasets from all of the remaining tasks is returned. when n_to_wait is
+     * smaller than the number of datasets ready, all of the currenttly ready
+     * data are returned. finally, when n_to_wait is < 1 the call blocks until
+     * all of the tasks complete and all of the data is returned.
+     */
     template <template <typename ... > class container_t, typename ... args>
     int wait_some(long n_to_wait, long long poll_interval,
         container_t<data_t, args ...> &data);
 
-    // get the number of threads
+    /// get the number of threads
     unsigned int size() const noexcept
     { return m_threads.size(); }
 
 private:
-    // create n threads for the pool
+    /// create n threads for the pool
     void create_threads(MPI_Comm comm, int n_threads, bool bind, bool verbose);
 
 private:
     std::atomic<bool> m_live;
     teca_threadsafe_queue<task_t> m_queue;
-
-    std::vector<std::future<data_t>>
-        m_futures;
-
+    std::vector<std::future<data_t>> m_futures;
     std::vector<std::thread> m_threads;
 };
 
 // --------------------------------------------------------------------------
 template <typename task_t, typename data_t>
-teca_thread_pool<task_t, data_t>::teca_thread_pool(MPI_Comm comm, int n,
+teca_cpu_thread_pool<task_t, data_t>::teca_cpu_thread_pool(MPI_Comm comm, int n,
     bool bind, bool verbose) : m_live(true)
 {
     this->create_threads(comm, n, bind, verbose);
@@ -102,12 +103,14 @@ teca_thread_pool<task_t, data_t>::teca_thread_pool(MPI_Comm comm, int n,
 
 // --------------------------------------------------------------------------
 template <typename task_t, typename data_t>
-void teca_thread_pool<task_t, data_t>::create_threads(MPI_Comm comm,
+void teca_cpu_thread_pool<task_t, data_t>::create_threads(MPI_Comm comm,
     int n_requested, bool bind, bool verbose)
 {
+#if defined(TECA_HAS_MPI)
     // this rank is excluded from computations
     if (comm == MPI_COMM_NULL)
         return;
+#endif
 
     int n_threads = n_requested;
 
@@ -123,7 +126,7 @@ void teca_thread_pool<task_t, data_t>::create_threads(MPI_Comm comm,
         bind = false;
     }
 
-    // allocate the threads
+    // allocate the CPU processing threads
     for (int i = 0; i < n_threads; ++i)
     {
         m_threads.push_back(std::thread([this]()
@@ -133,7 +136,7 @@ void teca_thread_pool<task_t, data_t>::create_threads(MPI_Comm comm,
             {
                 task_t task;
                 if (m_queue.try_pop(task))
-                    task();
+                    task(-1);
                 else
                     std::this_thread::yield();
             }
@@ -161,7 +164,7 @@ void teca_thread_pool<task_t, data_t>::create_threads(MPI_Comm comm,
 
 // --------------------------------------------------------------------------
 template <typename task_t, typename data_t>
-teca_thread_pool<task_t, data_t>::~teca_thread_pool() noexcept
+teca_cpu_thread_pool<task_t, data_t>::~teca_cpu_thread_pool() noexcept
 {
     m_live = false;
     std::for_each(m_threads.begin(), m_threads.end(),
@@ -170,7 +173,7 @@ teca_thread_pool<task_t, data_t>::~teca_thread_pool() noexcept
 
 // --------------------------------------------------------------------------
 template <typename task_t, typename data_t>
-void teca_thread_pool<task_t, data_t>::push_task(task_t &task)
+void teca_cpu_thread_pool<task_t, data_t>::push_task(task_t &task)
 {
     m_futures.push_back(task.get_future());
     m_queue.push(std::move(task));
@@ -179,7 +182,7 @@ void teca_thread_pool<task_t, data_t>::push_task(task_t &task)
 // --------------------------------------------------------------------------
 template <typename task_t, typename data_t>
 template <template <typename ... > class container_t, typename ... args>
-int teca_thread_pool<task_t, data_t>::wait_some(long n_to_wait,
+int teca_cpu_thread_pool<task_t, data_t>::wait_some(long n_to_wait,
     long long poll_interval, container_t<data_t, args ...> &data)
 {
     long n_tasks = m_futures.size();
@@ -229,7 +232,7 @@ int teca_thread_pool<task_t, data_t>::wait_some(long n_to_wait,
 // --------------------------------------------------------------------------
 template <typename task_t, typename data_t>
 template <template <typename ... > class container_t, typename ... args>
-void teca_thread_pool<task_t, data_t>::wait_all(container_t<data_t, args ...> &data)
+void teca_cpu_thread_pool<task_t, data_t>::wait_all(container_t<data_t, args ...> &data)
 {
     // wait on all pending requests and gather the generated
     // datasets

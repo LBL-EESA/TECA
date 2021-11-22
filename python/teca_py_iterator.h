@@ -3,8 +3,10 @@
 
 /// @file
 
+#include "teca_config.h"
 #include "teca_common.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_py_object.h"
 #include "teca_py_string.h"
 #include <Python.h>
@@ -45,6 +47,7 @@ namespace teca_py_iterator
 {
 
 /// Returns true if the object is iterable.
+TECA_EXPORT
 bool is_iterable(PyObject *obj)
 {
     PyObject *iter = nullptr;
@@ -60,6 +63,7 @@ bool is_iterable(PyObject *obj)
 
 /// Returns true if all of the elements of the container match the templated type.
 template <typename py_t>
+TECA_EXPORT
 bool is_type(PyObject *obj)
 {
     // all items must have same type and it must match
@@ -87,6 +91,7 @@ bool is_type(PyObject *obj)
 }
 
 /// Appends values from the object to the variant array
+TECA_EXPORT
 bool append(teca_variant_array *va, PyObject *obj)
 {
     // not a iterator
@@ -131,6 +136,7 @@ bool append(teca_variant_array *va, PyObject *obj)
 }
 
 /// Copies values from the object into the variant array
+TECA_EXPORT
 bool copy(teca_variant_array *va, PyObject *obj)
 {
     // not a iterator
@@ -177,6 +183,7 @@ bool copy(teca_variant_array *va, PyObject *obj)
 }
 
 /// Cretaes a new variant array initialized with a copy of the object.
+TECA_EXPORT
 p_teca_variant_array new_variant_array(PyObject *obj)
 {
     // not a iterator

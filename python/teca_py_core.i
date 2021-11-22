@@ -10,6 +10,7 @@
 #include "teca_thread_util.h"
 #include "teca_index_reduce.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_binary_stream.h"
 #include "teca_parallel_id.h"
 #include "teca_profiler.h"
@@ -162,14 +163,22 @@ class teca_variant_array;
 %include "teca_shared_object.h"
 %ignore teca_variant_array::operator=;
 %ignore teca_variant_array_factory;
-%ignore teca_variant_array::append(const teca_variant_array &other);
-%ignore teca_variant_array::append(const const_p_teca_variant_array &other);
-%ignore copy(const teca_variant_array &other);
+%ignore teca_variant_array::append(const const_p_teca_variant_array &src);
+%ignore teca_variant_array::append(const p_teca_variant_array &src);
+%ignore teca_variant_array::append(const const_p_teca_variant_array &src, size_t src_start, size_t n_elem);
+%ignore teca_variant_array::append(const p_teca_variant_array &src, size_t src_start, size_t n_elem);
+%ignore teca_variant_array::copy(const const_p_teca_variant_array &src);
+%ignore teca_variant_array::copy(const p_teca_variant_array &src);
+%ignore teca_variant_array::copy(const const_p_teca_variant_array &src, size_t src_start, size_t n_elem);
+%ignore teca_variant_array::copy(const p_teca_variant_array &src, size_t src_start, size_t n_elem);
+%ignore teca_variant_array::assign;
 %ignore teca_variant_array::get;
 %ignore teca_variant_array::set;
 %ignore teca_variant_array::swap;
 %ignore teca_variant_array::equal;
+%ignore teca_variant_array::debug_print;
 %include "teca_variant_array.h"
+%include "teca_variant_array_impl.h"
 // named variant arrays
 %template(teca_float_array) teca_variant_array_impl<float>;
 %template(teca_double_array) teca_variant_array_impl<double>;

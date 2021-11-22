@@ -19,7 +19,8 @@ p_teca_variant_array generate_mesh_time(const const_p_teca_variant_array &x,
 
     p_teca_double_array da = teca_double_array::New(nxyz);
 
-    double *pda = da->get();
+    auto spda = da->get_cpu_accessible();
+    double *pda = spda.get();
 
     for (size_t i = 0; i < nxyz; ++i)
         pda[i] = t;

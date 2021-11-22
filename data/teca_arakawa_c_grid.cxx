@@ -239,15 +239,15 @@ void teca_arakawa_c_grid::copy(const const_p_teca_dataset &dataset)
         return;
 
     m_impl = std::make_shared<teca_arakawa_c_grid::impl_t>();
-    m_impl->m_x_coordinates->copy(other->m_impl->m_x_coordinates);
-    m_impl->m_y_coordinates->copy(other->m_impl->m_y_coordinates);
-    m_impl->u_x_coordinates->copy(other->m_impl->u_x_coordinates);
-    m_impl->u_y_coordinates->copy(other->m_impl->u_y_coordinates);
-    m_impl->v_x_coordinates->copy(other->m_impl->v_x_coordinates);
-    m_impl->v_y_coordinates->copy(other->m_impl->v_y_coordinates);
-    m_impl->m_z_coordinates->copy(other->m_impl->m_z_coordinates);
-    m_impl->w_z_coordinates->copy(other->m_impl->w_z_coordinates);
-    m_impl->t_coordinates->copy(other->m_impl->t_coordinates);
+    m_impl->m_x_coordinates->assign(other->m_impl->m_x_coordinates);
+    m_impl->m_y_coordinates->assign(other->m_impl->m_y_coordinates);
+    m_impl->u_x_coordinates->assign(other->m_impl->u_x_coordinates);
+    m_impl->u_y_coordinates->assign(other->m_impl->u_y_coordinates);
+    m_impl->v_x_coordinates->assign(other->m_impl->v_x_coordinates);
+    m_impl->v_y_coordinates->assign(other->m_impl->v_y_coordinates);
+    m_impl->m_z_coordinates->assign(other->m_impl->m_z_coordinates);
+    m_impl->w_z_coordinates->assign(other->m_impl->w_z_coordinates);
+    m_impl->t_coordinates->assign(other->m_impl->t_coordinates);
 }
 
 // --------------------------------------------------------------------------

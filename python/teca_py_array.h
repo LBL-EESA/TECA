@@ -9,8 +9,10 @@
 #include <limits>
 #include <cstdlib>
 
+#include "teca_config.h"
 #include "teca_common.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 
 /// Codes for interfacing with numpy arrays
 namespace teca_py_array
@@ -23,7 +25,7 @@ cpp_tt::type -- get the C++ type given a numpy enum.
 CODE -- numpy type enumeration
 CPP_T -- corresponding C++ type
 */
-template <int numpy_code> struct cpp_tt
+template <int numpy_code> struct TECA_EXPORT cpp_tt
 {};
 
 #define teca_py_array_cpp_tt_declare(CODE, CPP_T)   \
@@ -51,7 +53,7 @@ teca_py_array_cpp_tt_declare(NPY_DOUBLE, double)
 CODE -- numpy type enumeration
 CPP_T -- corresponding C++ type
 */
-template <typename cpp_t> struct numpy_tt
+template <typename cpp_t> struct TECA_EXPORT numpy_tt
 {};
 
 #define teca_py_array_numpy_tt_declare(CODE, CPP_T) \
@@ -118,7 +120,7 @@ CODE -- numpy type enumeration
 STR_CODE -- string part of NumPy typename (see header files)
 CPP_T -- corresponding C++ type
 */
-template <typename cpp_t> struct numpy_scalar_tt
+template <typename cpp_t> struct TECA_EXPORT numpy_scalar_tt
 {
     enum { code = std::numeric_limits<int>::lowest() };
     static bool is_type(PyObject*){ return false; }
@@ -210,6 +212,7 @@ teca_py_array_numpy_scalar_tt_declare(NPY_DOUBLE, Float64, double)
 
 
 /// Append values from the object to the variant array.
+TECA_EXPORT
 bool append(teca_variant_array *varr, PyObject *obj)
 {
     // numpy ndarray
@@ -267,6 +270,7 @@ bool append(teca_variant_array *varr, PyObject *obj)
 }
 
 /// Copy values from the object into variant array.
+TECA_EXPORT
 bool copy(teca_variant_array *varr, PyObject *obj)
 {
     if (PyArray_Check(obj) || PyArray_CheckScalar(obj))
@@ -281,6 +285,7 @@ bool copy(teca_variant_array *varr, PyObject *obj)
 }
 
 /// Set i'th element of the variant array to the value of the object.
+TECA_EXPORT
 bool set(teca_variant_array *varr, unsigned long i, PyObject *obj)
 {
     // numpy scalar
@@ -298,6 +303,7 @@ bool set(teca_variant_array *varr, unsigned long i, PyObject *obj)
 }
 
 /// Construct a new variant array and initialize it with a copy of the object.
+TECA_EXPORT
 p_teca_variant_array new_variant_array(PyObject *obj)
 {
     // not an array
@@ -334,6 +340,7 @@ p_teca_variant_array new_variant_array(PyObject *obj)
 
 /// Construct a new numpy array initialized with the contents of the variant array.
 template <typename NT>
+TECA_EXPORT
 PyArrayObject *new_object(teca_variant_array_impl<NT> *varrt)
 {
     // allocate a buffer
@@ -348,7 +355,9 @@ PyArrayObject *new_object(teca_variant_array_impl<NT> *varrt)
     }
 
     // copy the data
-    memcpy(mem, varrt->get(), n_bytes);
+    auto spvarrt = varrt->get_cpu_accessible();
+    NT *pvarrt = spvarrt.get();
+    memcpy(mem, pvarrt, n_bytes);
 
     // put the buffer in to a new numpy object
     PyArrayObject *arr = reinterpret_cast<PyArrayObject*>(
@@ -359,6 +368,7 @@ PyArrayObject *new_object(teca_variant_array_impl<NT> *varrt)
 }
 
 /// Construct a new numpy array initialized with the contents of the variant array.
+TECA_EXPORT
 PyArrayObject *new_object(teca_variant_array *varr)
 {
     TEMPLATE_DISPATCH(teca_variant_array_impl, varr,

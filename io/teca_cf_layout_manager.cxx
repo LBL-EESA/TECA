@@ -5,6 +5,8 @@
 #include "teca_netcdf_util.h"
 #include "teca_file_util.h"
 #include "teca_array_attributes.h"
+#include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 
 #include <iostream>
 #include <sstream>
@@ -103,10 +105,7 @@ int teca_cf_layout_manager::create(const std::string &file_name,
     // re-construct the time axis
     if (t)
     {
-        this->t = teca_double_array::New(n_indices);
-
-        t->get(this->first_index, this->first_index + n_indices - 1,
-            this->t->get());
+        this->t = t->new_copy(this->first_index, n_indices);
     }
 
     return 0;
@@ -603,7 +602,9 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
         TEMPLATE_DISPATCH(const teca_variant_array_impl,
             coord_arrays[i].get(),
 
-            const NT *pa = static_cast<TT*>(coord_arrays[i].get())->get() + starts[i];
+            auto spa = static_cast<TT*>(coord_arrays[i].get())->get_cpu_accessible();
+            const NT *pa = spa.get();
+            pa += starts[i];
 
 #if !defined(HDF5_THREAD_SAFE)
             {
@@ -697,7 +698,9 @@ int teca_cf_layout_manager::write(long index,
                     return -1;
                 }
 
-                const NT *pa = static_cast<TT*>(array.get())->get();
+                auto spa = static_cast<TT*>(array.get())->get_cpu_accessible();
+                const NT *pa = spa.get();
+
 #if !defined(HDF5_THREAD_SAFE)
                 {
                 std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
@@ -757,7 +760,9 @@ int teca_cf_layout_manager::write(long index,
                     return -1;
                 }
 
-                const NT *pa = static_cast<TT*>(array.get())->get();
+                auto spa = static_cast<TT*>(array.get())->get_cpu_accessible();
+                const NT *pa = spa.get();
+
 #if !defined(HDF5_THREAD_SAFE)
                 {
                 std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());

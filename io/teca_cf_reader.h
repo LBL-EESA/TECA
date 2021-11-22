@@ -1,6 +1,7 @@
 #ifndef teca_cf_reader_h
 #define teca_cf_reader_h
 
+#include "teca_config.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
 #include "teca_shared_object.h"
@@ -73,7 +74,7 @@ using p_teca_cf_reader_internals = std::shared_ptr<teca_cf_reader_internals>;
  * on the requested extent with the requested point based arrays and value at
  * this timestep for all time variables.
  */
-class teca_cf_reader : public teca_algorithm
+class TECA_EXPORT teca_cf_reader : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_cf_reader)
@@ -229,6 +230,8 @@ protected:
     void clear_cached_metadata();
 
 private:
+    using teca_algorithm::get_output_metadata;
+
     teca_metadata get_output_metadata(
         unsigned int port,
         const std::vector<teca_metadata> &input_md) override;

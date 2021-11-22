@@ -38,18 +38,25 @@ void get_expected_extent(bool, unsigned long *extent)
 int check_extent(bool ascending, double *test_bounds,
     p_teca_double_array test_data, unsigned long *test_extent)
 {
-    double result_bounds[2];
+    // do the extent calculation
+    double result_bounds[2] = {0.0, 0.0};
+
     test_data->get(test_extent[0], result_bounds[0]);
     test_data->get(test_extent[1], result_bounds[1]);
+
     std::cerr << "looked for [" << test_bounds[0] << ", "
         << test_bounds[1] << "]" << " in " << std::endl;
+
     test_data->to_stream(std::cerr);
+
     std::cerr << std::endl << "computed extent [" << test_extent[0] << ", "
         << test_extent[1] << "]" << std::endl << "result bounds [" << result_bounds[0]
         << ", " << result_bounds[1] << " ]" << std::endl << std::endl;
 
 
-    unsigned long expect[2];
+    // check against the expected
+    unsigned long expect[2] = {0ul, 0ul};
+
     get_expected_extent(ascending, expect);
 
     if (test_extent[0] != expect[0])

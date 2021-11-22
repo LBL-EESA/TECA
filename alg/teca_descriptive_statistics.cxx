@@ -4,6 +4,7 @@
 #include "teca_table.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_array_attributes.h"
 
@@ -325,7 +326,9 @@ const_p_teca_dataset teca_descriptive_statistics::execute(
             dep_var.get(),
 
             size_t n = dep_var->size();
-            const NT *pv = static_cast<const TT*>(dep_var.get())->get();
+
+            auto spv = static_cast<const TT*>(dep_var.get())->get_cpu_accessible();
+            const NT *pv = spv.get();
 
             // compute stats
             NT mn = internal::min(pv, n);

@@ -3,11 +3,13 @@
 
 #include <Python.h>
 
+#include "teca_config.h"
+
 /// A RAII helper for managing the Python GIL.
 /** The GIL is aquired and held while the object exists. The GIL must be held
  * by C++ code invoking any Python C-API calls.
  */
-class teca_py_gil_state
+class TECA_EXPORT teca_py_gil_state
 {
 public:
     teca_py_gil_state()

@@ -240,7 +240,7 @@ class teca_pytorch_algorithm(teca_python_algorithm):
 
         sd = None
         if rank == 0:
-            sd = torch.load(filename, map_location=self.device)
+            sd = torch.load(filename, map_location='cpu')
 
         sd = comm.bcast(sd, root=0)
 

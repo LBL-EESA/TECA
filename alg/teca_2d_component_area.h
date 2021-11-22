@@ -45,7 +45,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_2d_component_area)
  *  |                      | i.e. the background. This can be used to skip processing |
  *  |                      | of the background when desirable. |
 */
-class teca_2d_component_area : public teca_algorithm
+class TECA_EXPORT teca_2d_component_area : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_2d_component_area)
@@ -94,6 +94,8 @@ protected:
     int get_component_variable(std::string &component_var);
 
 private:
+    using teca_algorithm::get_output_metadata;
+
     teca_metadata get_output_metadata(
         unsigned int port,
         const std::vector<teca_metadata> &input_md) override;

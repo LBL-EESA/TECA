@@ -1,6 +1,7 @@
 #ifndef array_temporal_stats_h
 #define array_temporal_stats_h
 
+#include "teca_config.h"
 #include "teca_shared_object.h"
 #include "array.h"
 
@@ -15,7 +16,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(array_temporal_stats)
 /** example demonstarting a temporal reduction. min, average
  and max are computed over time steps for the named array.
 */
-class array_temporal_stats : public teca_index_reduce
+class TECA_EXPORT array_temporal_stats : public teca_index_reduce
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(array_temporal_stats)
@@ -38,6 +39,8 @@ protected:
     // overrides
     p_teca_dataset reduce(const const_p_teca_dataset &left,
         const const_p_teca_dataset &right) override;
+
+    p_teca_dataset finalize(const const_p_teca_dataset &ds) override;
 
     std::vector<teca_metadata> initialize_upstream_request(
         unsigned int port, const std::vector<teca_metadata> &input_md,
