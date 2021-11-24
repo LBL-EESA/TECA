@@ -201,7 +201,7 @@ Once dependencies are installed, a typical install might proceed as follows.
 
 .. code-block:: bash
 
-   git clone https://github.com/LBL-EESA/TECA.git
+   git clone --recursive https://github.com/LBL-EESA/TECA.git
    svn co svn://svn.code.sf.net/p/teca/TECA_data TECA_data
    cd TECA
    mkdir bin
