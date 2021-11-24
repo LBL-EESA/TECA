@@ -14,7 +14,7 @@
 #include "teca_bad_cast.h"
 #include "teca_shared_object.h"
 
-#include "hamr_buffer.h"
+#include <hamr_buffer.h>
 
 #include <vector>
 #include <string>
@@ -798,26 +798,26 @@ public:
 
     /// construct with a specific allocator
     teca_variant_array_impl(allocator alloc) :
-        m_data(static_cast<int>(alloc)) {}
+        m_data(alloc) {}
 
     /// construct with preallocated size
     teca_variant_array_impl(allocator alloc, size_t n_elem) :
-        m_data(static_cast<int>(alloc), n_elem) {}
+        m_data(alloc, n_elem) {}
 
     /// construct with preallocated size and initialized to a specific value
     teca_variant_array_impl(allocator alloc, size_t n_elem, const T &val) :
-        m_data(static_cast<int>(alloc), n_elem, val) {}
+        m_data(alloc, n_elem, val) {}
 
     /// construct with preallocated size and initialized to a specific value
     template <typename U>
     teca_variant_array_impl(allocator alloc, size_t n_elem, const U *vals) :
-        m_data(static_cast<int>(alloc), n_elem, vals) {}
+        m_data(alloc, n_elem, vals) {}
 
     // copy construct from an instance of different type
     template<typename U>
     teca_variant_array_impl(allocator alloc,
         const const_p_teca_variant_array_impl<U> &other) :
-            m_data(static_cast<int>(alloc), other->m_data) {}
+            m_data(alloc, other->m_data) {}
 
 private:
     /// get from objects.
@@ -2240,7 +2240,7 @@ void teca_variant_array_impl<T>::from_binary(teca_binary_stream &s,
     s.unpack(n_elem);
 
     // allocate a buffer
-    hamr::buffer<T> tmp(hamr::buffer<T>::malloc, n_elem);
+    hamr::buffer<T> tmp(allocator::malloc, n_elem);
     std::shared_ptr<T> sptmp = tmp.get_cpu_accessible();
 
     // unpack the elements  into the buffer
@@ -2265,7 +2265,7 @@ void teca_variant_array_impl<T>::to_binary(teca_binary_stream &s,
     const T *pdata = data.get();
     for (unsigned long long i = 0; i < n_elem; ++i)
     {
-       pdata[i].to_stream(s);
+        pdata[i].to_stream(s);
     }
 }
 
