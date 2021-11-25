@@ -292,11 +292,15 @@ int main(int, char **)
     array_src->set_report_callback([](unsigned int port,
         const std::vector<teca_metadata> &md_in) -> teca_metadata
         {
+            (void) port;
+            (void) md_in;
+
             // setup the execution control keys
             teca_metadata md_out;
             md_out.set("index_initializer_key", std::string("num_passes"));
             md_out.set("num_passes", 1l);
             md_out.set("index_request_key", std::string("pass_no"));
+
             return md_out;
         });
     array_src->set_execute_callback(
@@ -304,6 +308,10 @@ int main(int, char **)
             const std::vector<const_p_teca_dataset> &input_data,
             const teca_metadata &request) -> const_p_teca_dataset
         {
+            (void) port;
+            (void) input_data;
+            (void) request;
+
             std::cerr << "initializing to " << initial_value << std::endl;
 
             p_teca_float_array  cuda_out =
@@ -328,6 +336,9 @@ int main(int, char **)
             const std::vector<const_p_teca_dataset> &input_data,
             const teca_metadata &request) -> const_p_teca_dataset
         {
+            (void) port;
+            (void) request;
+
             std::cerr << "adding " << initial_value << " + " << add_value
                 << " = "  << initial_value + add_value << std::endl;
 
@@ -386,6 +397,9 @@ int main(int, char **)
             const std::vector<const_p_teca_dataset> &input_data,
             const teca_metadata &request) -> const_p_teca_dataset
         {
+            (void) port;
+            (void) request;
+
             std::cerr << "multiplying " << mult_value << " * ("
                 << initial_value << " + " << add_value << ") = "
                 << mult_value * (initial_value + add_value) << std::endl;
@@ -435,6 +449,9 @@ int main(int, char **)
             const std::vector<const_p_teca_dataset> &input_data,
             const teca_metadata &request) -> const_p_teca_dataset
         {
+            (void) port;
+            (void) request;
+
             std::cerr << "compare to " << comp_value << std::endl;
 
             test_status = -1;
