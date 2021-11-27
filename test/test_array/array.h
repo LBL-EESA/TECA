@@ -5,6 +5,8 @@
 #include "teca_dataset.h"
 #include "teca_shared_object.h"
 
+#include <hamr_buffer_allocator.h>
+
 #include <string>
 #include <sstream>
 
@@ -17,6 +19,9 @@ class teca_binary_stream;
 class TECA_EXPORT array : public teca_dataset
 {
 public:
+
+    using allocator = hamr::buffer_allocator;
+
     ~array();
 
     /// create an array that accessible on the CPU
@@ -27,7 +32,7 @@ public:
 
     /// create an array dataset with a specific memory memory_resource.
     ///static p_array New(const hamr::p_memory_resource &alloc);
-    static p_array New(int alloc);
+    static p_array New(allocator alloc);
 
     TECA_DATASET_PROPERTY(std::vector<size_t>, extent)
     TECA_DATASET_PROPERTY(std::string, name)
@@ -40,13 +45,11 @@ public:
     std::shared_ptr<double> get_cuda_accessible();
     std::shared_ptr<const double> get_cuda_accessible() const;
 
-/*
     // check if the data is accessible from CUDA
     bool cuda_accessible() const;
 
     // check if the data is accessible from the CPU
     bool cpu_accessible() const;
-*/
 
     // return a unique string identifier
     std::string get_class_name() const override
@@ -101,7 +104,7 @@ public:
 protected:
     /// creates a new array dataset with a specific memory resource
     ///array(const hamr::p_memory_resource &alloc);
-    array(int alloc);
+    array(allocator alloc);
 
     array(const array &);
     void operator=(const array &);

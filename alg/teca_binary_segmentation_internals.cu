@@ -13,7 +13,7 @@
 
 namespace teca_binary_segmentation_internals
 {
-namespace gpu
+namespace cuda
 {
 // predicate for indirect sort
 template <typename data_t, typename index_t>
@@ -69,28 +69,6 @@ template <typename input_t, typename output_t>
 int value_threshold(output_t *dev_output, const input_t *dev_input,
     size_t n_vals, input_t low, input_t high)
 {
-/*
-    cudaError_t ierr;
-    // allocate and send the input to the device
-    input_t *dev_input = nullptr;
-    if (((ierr = cudaMalloc(&dev_input, n_vals*sizeof(input_t)))) ||
-        ((ierr = cudaMemcpy(dev_input, input, n_vals*sizeof(input_t),
-        cudaMemcpyHostToDevice))))
-    {
-        TECA_ERROR("Failed to move input to the device. "
-            <<  cudaGetErrorString(ierr))
-        return -1;
-    }
-
-    // allocate a buffer for the segmentation
-    output_t *dev_output = nullptr;
-    if ((ierr = cudaMalloc(&dev_output, n_vals*sizeof(output_t))))
-    {
-        TECA_ERROR("Failed to allocate buffer for the output. "
-            <<  cudaGetErrorString(ierr))
-        return -1;
-    }
-*/
     // determine kernel launch parameters
     dim3 block_grid;
     int n_blocks = 0;
@@ -105,20 +83,7 @@ int value_threshold(output_t *dev_output, const input_t *dev_input,
     // segment using the values
     value_threshold_kernel<<<block_grid, thread_grid>>>(dev_output,
         dev_input, n_vals, low, high);
-/*
-    // copy the result back
-    if ((ierr = cudaMemcpy(output, dev_output, n_vals*sizeof(output_t),
-        cudaMemcpyDeviceToHost)))
-    {
-        TECA_ERROR("Failed to move output to host. "
-            << cudaGetErrorString(ierr))
-        return -1;
-    }
 
-    // free buffers
-    cudaFree(dev_input);
-    cudaFree(dev_output);
-*/
     return 0;
 }
 
@@ -191,29 +156,6 @@ int percentile_threshold(output_t *dev_output, const input_t *dev_input,
     index_t low_cut_p1 = low_cut+1;
     index_t high_cut_p1 = std::min(high_cut+1, n_vals_m1);
 
-    /*
-    cudaError_t ierr;
-    // allocate and send the input to the device
-    input_t *dev_input = nullptr;
-    if (((ierr = cudaMalloc(&dev_input, n_vals*sizeof(input_t)))) ||
-        ((ierr = cudaMemcpy(dev_input, input, n_vals*sizeof(input_t),
-        cudaMemcpyHostToDevice))))
-    {
-        TECA_ERROR("Failed to move input to the device. "
-            <<  cudaGetErrorString(ierr))
-        return -1;
-    }
-
-    // allocate a buffer for the segmentation
-    output_t *dev_output = nullptr;
-    if ((ierr = cudaMalloc(&dev_output, n_vals*sizeof(output_t))))
-    {
-        TECA_ERROR("Failed to allocate buffer for the output. "
-            <<  cudaGetErrorString(ierr))
-        return -1;
-    }
-    */
-
     // allocate indices and initialize them for the indirect sort
     thrust::device_vector<index_t> ids(n_vals);
     thrust::sequence(ids.begin(), ids.end());
@@ -241,21 +183,6 @@ int percentile_threshold(output_t *dev_output, const input_t *dev_input,
         dev_ids, n_vals, low_cut, low_cut_p1, high_cut, high_cut_p1, t_low,
         t_high);
 
-    /*
-    // copy the result back
-    if ((ierr = cudaMemcpy(output, dev_output, n_vals*sizeof(output_t),
-        cudaMemcpyDeviceToHost)))
-    {
-        TECA_ERROR("Failed to move output to host. "
-            << cudaGetErrorString(ierr))
-        return -1;
-    }
-
-    // free buffers
-    cudaFree(dev_input);
-    cudaFree(dev_output);
-    */
-
     return 0;
 }
 }
@@ -267,6 +194,12 @@ int cuda_dispatch(int device_id,
     int threshold_mode,
     double low, double high)
 {
+    if (teca_cuda_util::set_device(device_id))
+    {
+        TECA_ERROR("Failed to set the active CUDA device to " << device_id)
+        return -1;
+    }
+
     // do segmentation
     size_t n_elem = input_array->size();
 
@@ -284,12 +217,12 @@ int cuda_dispatch(int device_id,
 
         if (threshold_mode == teca_binary_segmentation::BY_VALUE)
         {
-            gpu::value_threshold(p_seg, p_in, n_elem,
+            cuda::value_threshold(p_seg, p_in, n_elem,
                static_cast<NT>(low), static_cast<NT>(high));
         }
         else if  (threshold_mode == teca_binary_segmentation::BY_PERCENTILE)
         {
-            gpu::percentile_threshold(p_seg, p_in, n_elem,
+            cuda::percentile_threshold(p_seg, p_in, n_elem,
                 static_cast<NT>(low), static_cast<NT>(high));
         }
         else

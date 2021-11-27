@@ -30,10 +30,12 @@ array::~array()
 }
 
 // --------------------------------------------------------------------------
-array::array(int alloc) : extent({0,0})
+array::array(allocator alloc) : extent({0,0})
 {
     this->internals = new array_internals;
-    this->internals->buffer = hamr::buffer<double>::New(alloc);
+
+    this->internals->buffer =
+        std::make_shared<hamr::buffer<double>>(alloc);
 }
 
 // --------------------------------------------------------------------------
@@ -48,34 +50,32 @@ size_t array::size() const
 // --------------------------------------------------------------------------
 p_array array::new_cpu_accessible()
 {
-    return array::New(hamr::buffer<double>::malloc);
+    return array::New(allocator::malloc);
 }
 
 // --------------------------------------------------------------------------
 p_array array::new_cuda_accessible()
 {
-    return array::New(hamr::buffer<double>::cuda);
+    return array::New(allocator::cuda);
 }
 
 // --------------------------------------------------------------------------
-p_array array::New(int alloc)
+p_array array::New(allocator alloc)
 {
     return p_array(new array(alloc));
 }
 
-/*
 // --------------------------------------------------------------------------
 bool array::cpu_accessible() const
 {
-    return this->memory_resource->cpu_accessible();
+    return this->internals->buffer->cpu_accessible();
 }
 
 // --------------------------------------------------------------------------
 bool array::cuda_accessible() const
 {
-    return this->memory_resource->cuda_accessible();
+    return this->internals->buffer->cuda_accessible();
 }
-*/
 
 // --------------------------------------------------------------------------
 p_teca_dataset array::new_copy() const
@@ -147,8 +147,7 @@ void array::copy(const const_p_teca_dataset &other)
     this->name = other_a->name;
     this->extent = other_a->extent;
 
-    hamr::const_p_buffer<double> tmp = other_a->internals->buffer;
-    this->internals->buffer->assign(tmp);
+    this->internals->buffer->assign(ref_to(other_a->internals->buffer));
 }
 
 // --------------------------------------------------------------------------
@@ -231,15 +230,15 @@ int array::from_stream(teca_binary_stream &s)
 
     // always unpack the buffer on the CPU
     hamr::p_buffer<double> tmp =
-        hamr::buffer<double>::New(hamr::buffer<double>::malloc, n_elem);
+        std::make_shared<hamr::buffer<double>>
+            (teca_variant_array::allocator::malloc, n_elem);
 
     std::shared_ptr<double> pTmp = tmp->get_cpu_accessible();
 
     s.unpack(pTmp.get(), n_elem);
 
     // move to the desired location
-    hamr::const_p_buffer<double> ctmp = tmp;
-    this->internals->buffer->assign(ctmp);
+    this->internals->buffer->assign(ref_to(tmp));
 
     return 0;
 }

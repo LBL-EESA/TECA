@@ -181,7 +181,7 @@ int partition_thread_blocks(size_t array_size,
             ++block_grid.y;
         }
 
-        if (block_grid.y > block_grid_max[1])
+        if (block_grid.y > ((unsigned int)block_grid_max[1]))
         {
             // 3d decomp
             unsigned long block_grid_max01 = block_grid_max[0] * block_grid_max[1];
@@ -191,7 +191,7 @@ int partition_thread_blocks(size_t array_size,
             if (n_blocks % block_grid_max01)
                 ++block_grid.z;
 
-            if (block_grid.z > block_grid_max[2])
+            if (block_grid.z > ((unsigned int)block_grid_max[2]))
             {
                 TECA_ERROR("Too many blocks " << n_blocks << " of size " << block_size
                     << " are required for a grid of (" << block_grid_max[0] << ", "

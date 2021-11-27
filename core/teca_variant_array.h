@@ -13,6 +13,7 @@
 #include <type_traits>
 #include <typeinfo>
 #include <utility>
+#include <hamr_buffer_allocator.h>
 
 #include "teca_config.h"
 #include "teca_common.h"
@@ -41,15 +42,8 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_variant_array)
 class TECA_EXPORT teca_variant_array : public std::enable_shared_from_this<teca_variant_array>
 {
 public:
-
     /// allocator types
-    enum struct allocator {
-        same = -1,   /// propagates the exitsing allocator
-        cpp = 0,     /// allocates memory with new
-        malloc = 1,  /// allocates memory with malloc
-        cuda = 2,    /// allocates memory with cudaMalloc
-        cuda_uva = 3 /// allocates memory with cudaMallocManaged
-    };
+    using allocator = hamr::buffer_allocator;
 
     // construct
     teca_variant_array() noexcept = default;

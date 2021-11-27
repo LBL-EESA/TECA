@@ -82,6 +82,28 @@ else()
             CACHE STRING "TECA build defaults"
             FORCE)
     endif()
+    if (NOT CMAKE_CUDA_FLAGS)
+        set(tmp "--default-stream per-thread")
+        if ("${CMAKE_BUILD_TYPE}" MATCHES "Release")
+            set(tmp "${tmp} -Xcompiler -Wall,-Wextra,-O3,-march=native,-mtune=native,-fno-trapping-math,-fno-math-errno")
+            if (NOT "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+                set(tmp "${tmp},-fno-signaling-nans")
+            endif()
+        elseif ("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
+            set(tmp "${tmp} -g -G -Xcompiler -Wall,-Wextra,-O0,-g")
+        endif()
+        set(CMAKE_CUDA_FLAGS "${tmp}"
+            CACHE STRING "TECA build defaults"
+            FORCE)
+        string(REGEX REPLACE "-O[0-9]" "-O3" tmp "${CMAKE_CXX_FLAGS_RELEASE}")
+        set(CMAKE_CXX_FLAGS_RELEASE "${tmp}"
+            CACHE STRING "TECA build defaults"
+            FORCE)
+        string(REGEX REPLACE "-O[0-9]" "-O3" tmp "${CMAKE_CUDA_FLAGS_RELEASE}")
+        set(CMAKE_CUDA_FLAGS_RELEASE "${tmp}"
+            CACHE STRING "TECA build defaults"
+            FORCE)
+    endif()
 endif()
 
 # platform specific compile time feature detection
