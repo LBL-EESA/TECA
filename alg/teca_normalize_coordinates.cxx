@@ -169,7 +169,7 @@ void internals::periodic_shift_x(coord_t *pxo,
     for (unsigned long i = 0; i < nx; ++i)
         pmap[i] = i;
 
-    indirect_less comp(tmp);
+    indirect_less<coord_t> comp(tmp);
     std::sort(pmap, pmap + nx, comp);
 
     // reoder the periodic shifted values
@@ -194,7 +194,7 @@ void internals::inv_periodic_shift_x(unsigned long *pmap,
     for (unsigned long i = 0; i < nx; ++i)
         pmap[i] = i;
 
-    indirect_less comp(tmp);
+    indirect_less<coord_t> comp(tmp);
     std::sort(pmap, pmap + nx, comp);
 
     free(tmp);
