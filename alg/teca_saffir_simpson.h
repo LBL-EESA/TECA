@@ -30,7 +30,6 @@ constexpr double high_wind_bound_kmph[] = {63.0,
 
 /// get the lower bound for the given class of storm
 template<typename n_t>
-TECA_EXPORT
 constexpr n_t get_lower_bound_kmph(int c)
 {
     return low_wind_bound_kmph[++c];
@@ -38,7 +37,6 @@ constexpr n_t get_lower_bound_kmph(int c)
 
 /// get the higher bound for the given class of storm
 template<typename n_t>
-TECA_EXPORT
 constexpr n_t get_upper_bound_kmph(int c)
 {
     return high_wind_bound_kmph[++c];
@@ -51,7 +49,6 @@ constexpr n_t get_upper_bound_kmph(int c)
  *  get the low bound for the given class of storm
  */
 template<typename n_t>
-TECA_EXPORT
 int classify_kmph(n_t w)
 {
     if (w < n_t(high_wind_bound_kmph[0]))
@@ -76,7 +73,6 @@ int classify_kmph(n_t w)
 
 /// get the low bound for the given class of storm
 template<typename n_t>
-TECA_EXPORT
 constexpr n_t get_lower_bound_mps(int c)
 {
     return get_lower_bound_kmph<n_t>(c)/n_t(3.6);
@@ -84,7 +80,6 @@ constexpr n_t get_lower_bound_mps(int c)
 
 /// get the high bound for the given class of storm
 template<typename n_t>
-TECA_EXPORT
 constexpr n_t get_upper_bound_mps(int c)
 {
     return get_upper_bound_kmph<n_t>(c)/n_t(3.6);
@@ -97,7 +92,6 @@ constexpr n_t get_upper_bound_mps(int c)
  *  get the low bound for the given class of storm
  */
 template<typename n_t>
-TECA_EXPORT
 int classify_mps(n_t w)
 {
     // 1 m/s -> 3.6 Km/h
