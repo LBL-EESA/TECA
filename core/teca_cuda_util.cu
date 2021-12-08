@@ -60,10 +60,14 @@ int get_local_cuda_devices(MPI_Comm comm, std::deque<int> &local_dev)
             int n_per_rank = std::max(n_node_dev / n_node_ranks, 1);
             int n_larger = n_node_dev % n_node_ranks;
 
-            int first_dev = n_per_rank * node_rank + (node_rank < n_larger ? node_rank : n_larger);
+            int first_dev = n_per_rank * node_rank
+                + (node_rank < n_larger ? node_rank : n_larger);
+
             first_dev = std::min(max_dev, first_dev);
 
-            int last_dev = first_dev + n_per_rank - 1 + (node_rank < n_larger ? 1 : 0);
+            int last_dev = first_dev + n_per_rank - 1
+                 + (node_rank < n_larger ? 1 : 0);
+
             last_dev = std::min(max_dev, last_dev);
 
             for (int i = first_dev; i <= last_dev; ++i)
@@ -126,17 +130,45 @@ int get_launch_props(int device_id,
 {
     cudaError_t ierr = cudaSuccess;
 
-    if (((ierr = cudaDeviceGetAttribute(&block_grid_max[0], cudaDevAttrMaxGridDimX, device_id)) != cudaSuccess)
-        || ((ierr = cudaDeviceGetAttribute(&block_grid_max[1], cudaDevAttrMaxGridDimY, device_id)) != cudaSuccess)
-        || ((ierr = cudaDeviceGetAttribute(&block_grid_max[2], cudaDevAttrMaxGridDimZ, device_id)) != cudaSuccess))
+    if (device_id < 0)
     {
-        TECA_ERROR("Failed to get CUDA max grid dim. " << cudaGetErrorString(ierr))
+        if ((ierr = cudaGetDevice(&device_id)) != cudaSuccess)
+        {
+            TECA_ERROR("Failed to get the active device id. "
+                << cudaGetErrorString(ierr))
+            return -1;
+        }
+    }
+
+    if ((ierr = cudaDeviceGetAttribute(&block_grid_max[0],
+        cudaDevAttrMaxGridDimX, device_id)) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to get cudaDevAttrMaxGridDimX. "
+            << cudaGetErrorString(ierr))
         return -1;
     }
 
-    if ((ierr = cudaDeviceGetAttribute(&warp_size, cudaDevAttrWarpSize, device_id)) != cudaSuccess)
+    if ((ierr = cudaDeviceGetAttribute(&block_grid_max[1],
+        cudaDevAttrMaxGridDimY, device_id)) != cudaSuccess)
     {
-        TECA_ERROR("Failed to get CUDA warp size. " << cudaGetErrorString(ierr))
+        TECA_ERROR("Failed to get cudaDevAttrMaxGridDimY. "
+            << cudaGetErrorString(ierr))
+        return -1;
+    }
+
+    if ((ierr = cudaDeviceGetAttribute(&block_grid_max[0],
+        cudaDevAttrMaxGridDimZ, device_id)) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to get cudaDevAttrMaxGridDimZ. "
+            << cudaGetErrorString(ierr))
+        return -1;
+    }
+
+    if ((ierr = cudaDeviceGetAttribute(&warp_size,
+        cudaDevAttrWarpSize, device_id)) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to get cudaDevAttrWarpSize. "
+            << cudaGetErrorString(ierr))
         return -1;
     }
 
@@ -145,7 +177,8 @@ int get_launch_props(int device_id,
     if ((ierr = cudaDeviceGetAttribute(&threads_per_block_max,
         cudaDevAttrMaxThreadsPerBlock, device_id)) != cudaSuccess)
     {
-        TECA_ERROR("Failed to get CUDA max threads per block. " << cudaGetErrorString(ierr))
+        TECA_ERROR("Failed to get CUDA max threads per block. "
+            << cudaGetErrorString(ierr))
         return -1;
     }
 
