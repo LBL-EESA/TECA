@@ -6,6 +6,9 @@
 #include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_coordinate_util.h"
+#if defined(TECA_HAS_CUDA)
+#include "teca_cuda_util.h"
+#endif
 
 #include <algorithm>
 #include <iostream>
@@ -16,15 +19,389 @@
 #include <boost/program_options.hpp>
 #endif
 
-using std::string;
-using std::vector;
-using std::cerr;
-using std::endl;
-using std::cos;
-
 //#define TECA_DEBUG
 
-namespace {
+#if defined(TECA_HAS_CUDA)
+namespace cuda
+{
+// **************************************************************************
+__global__
+void compute_mask(char *mask, const char *wind_valid,
+    const char *q_valid, unsigned long n_elem)
+{
+    unsigned long i = teca_cuda_util::thread_id_to_array_index();
+
+    if (i >= n_elem)
+        return;
+
+    mask[i] = (wind_valid[i] && q_valid[i] ? char(1) : char(0));
+}
+
+// **************************************************************************
+template <typename num_t>
+__global__
+void compute_flux(num_t *f, const num_t *wind,
+    const num_t *q, unsigned long n_elem)
+{
+    unsigned long i = teca_cuda_util::thread_id_to_array_index();
+
+    if (i >= n_elem)
+        return;
+
+    f[i] = wind[i]*q[i];
+}
+
+// **************************************************************************
+template <typename num_t>
+__global__
+void compute_flux(num_t *f, const num_t *wind,
+    const num_t *q, const char *mask, unsigned long n_elem)
+{
+    unsigned long i = teca_cuda_util::thread_id_to_array_index();
+
+    if (i >= n_elem)
+        return;
+
+    f[i] = (mask[i] ? wind[i]*q[i] : num_t(0));
+}
+
+// **************************************************************************
+template <typename num_t>
+__global__
+void compute_ivt(num_t *ivt, const num_t *f_k0, const num_t *f_k1,
+    num_t h2, unsigned long n_elem)
+{
+    unsigned long i = teca_cuda_util::thread_id_to_array_index();
+
+    if (i >= n_elem)
+        return;
+
+    ivt[i] += h2 * (f_k0[i] + f_k1[i]);
+}
+
+// **************************************************************************
+template <typename num_t>
+__global__
+void compute_ivt(num_t *ivt, const num_t *f_k0, const num_t *f_k1,
+    const char *mask_k0, const char *mask_k1, num_t h2,
+    unsigned long n_elem)
+{
+    unsigned long i = teca_cuda_util::thread_id_to_array_index();
+
+    if (i >= n_elem)
+        return;
+
+    ivt[i] += (mask_k0[i] && mask_k1[i] ?
+         h2 * (f_k0[i] + f_k1[i]) : num_t(0));
+}
+
+// **************************************************************************
+template <typename num_t>
+__global__
+void scale_ivt(num_t *ivt, num_t m1g, unsigned long n_elem)
+{
+    unsigned long i = teca_cuda_util::thread_id_to_array_index();
+
+    if (i >= n_elem)
+        return;
+
+    ivt[i] *= m1g;
+}
+
+// **************************************************************************
+template <typename coord_t, typename num_t>
+int cartesian_ivt(int device_id, unsigned long nx, unsigned long ny,
+    unsigned long nz, const coord_t *plev, const num_t *wind,
+    const num_t *q, num_t *ivt)
+{
+    unsigned long nxy = nx*ny;
+    unsigned long nxyz = nxy*nz;
+
+    // determine flux kernel launch parameters
+    int n_blocks = 0;
+    dim3 block_grid;
+    dim3 thread_grid;
+    if (teca_cuda_util::partition_thread_blocks(device_id,
+        nxyz, 8, block_grid, n_blocks, thread_grid))
+    {
+        TECA_ERROR("Failed to partition thread blocks")
+        return -1;
+    }
+
+    // compute the integrand
+    hamr::buffer<num_t> flux(hamr::buffer_allocator::cuda, nxyz);
+    num_t *pflux = flux.data();
+
+    cudaError_t ierr = cudaSuccess;
+    compute_flux<<<block_grid,thread_grid>>>(pflux, wind, q, nxyz);
+    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to launch the compute_flux CUDA kernel"
+            << cudaGetErrorString(ierr))
+        return -1;
+    }
+
+    // determine ivt kernel launch parameters
+    if (teca_cuda_util::partition_thread_blocks(device_id,
+        nxy, 8, block_grid, n_blocks, thread_grid))
+    {
+        TECA_ERROR("Failed to partition thread blocks")
+        return -1;
+    }
+
+    // work an x-y slice at  a time
+    unsigned long nzm1 = nz - 1;
+    for (unsigned long k = 0; k < nzm1; ++k)
+    {
+        // dp over the slice
+        num_t h2 = num_t(0.5) * (plev[k+1] - plev[k]);
+
+        // the current two x-y-planes of data
+        unsigned long knxy = k*nxy;
+        num_t *f_k0 = pflux + knxy;
+        num_t *f_k1 = f_k0 + nxy;
+
+        // accumulate this plane of data using trapezoid rule
+        compute_ivt<<<block_grid,thread_grid>>>(ivt, f_k0, f_k1, h2, nxy);
+        if ((ierr = cudaGetLastError()) != cudaSuccess)
+        {
+            TECA_ERROR("Failed to launch the compute_ivt CUDA kernel"
+                << cudaGetErrorString(ierr))
+            return -1;
+        }
+    }
+
+    // check the sign, in this way we can handle both increasing and decreasing
+    // pressure coordinates
+    num_t s = plev[1] - plev[0] < num_t(0) ? num_t(-1) : num_t(1);
+
+    // scale by -1/g
+    num_t m1g = s/num_t(9.80665);
+    scale_ivt<<<block_grid,thread_grid>>>(ivt, m1g, nxy);
+
+    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to launch the scale_ivt CUDA kernel"
+            << cudaGetErrorString(ierr))
+        return -1;
+    }
+
+    return 0;
+}
+
+// **************************************************************************
+template <typename coord_t, typename num_t>
+int cartesian_ivt(int device_id, unsigned long nx, unsigned long ny,
+    unsigned long nz, const coord_t *plev, const num_t *wind,
+    const char *wind_valid, const num_t *q, const char *q_valid,
+    num_t *ivt)
+{
+    unsigned long nxy = nx*ny;
+    unsigned long nxyz = nxy*nz;
+
+    // determine flux kernel launch parameters
+    int n_blocks = 0;
+    dim3 block_grid;
+    dim3 thread_grid;
+    if (teca_cuda_util::partition_thread_blocks(device_id,
+        nxyz, 8, block_grid, n_blocks, thread_grid))
+    {
+        TECA_ERROR("Failed to partition thread blocks")
+        return -1;
+    }
+
+    // compute the mask
+    hamr::buffer<char> mask(hamr::buffer_allocator::cuda, nxyz);
+    char *pmask = mask.data();
+
+    cudaError_t ierr = cudaSuccess;
+    compute_mask<<<block_grid,thread_grid>>>(pmask, wind_valid, q_valid, nxyz);
+    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to launch the compute_mask CUDA kernel"
+            << cudaGetErrorString(ierr))
+        return -1;
+    }
+
+    // compute the integrand
+    hamr::buffer<num_t> flux(hamr::buffer_allocator::cuda, nxyz);
+    num_t *pflux = flux.data();
+
+    compute_flux<<<block_grid,thread_grid>>>(pflux, wind, q, pmask, nxyz);
+    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to launch the flux CUDA kernel"
+            << cudaGetErrorString(ierr))
+        return -1;
+    }
+
+    // determine ivt kernel launch parameters
+    if (teca_cuda_util::partition_thread_blocks(device_id,
+        nxy, 8, block_grid, n_blocks, thread_grid))
+    {
+        TECA_ERROR("Failed to partition thread blocks")
+        return -1;
+    }
+
+    // work an x-y slice at a time
+    unsigned long nzm1 = nz - 1;
+    for (unsigned long k = 0; k < nzm1; ++k)
+    {
+        // dp over the slice
+        num_t h2 = num_t(0.5) * (plev[k+1] - plev[k]);
+
+        // the current two x-y-planes of data
+        unsigned long knxy = k*nxy;
+        num_t *f_k0 = pflux + knxy;
+        num_t *f_k1 = f_k0 + nxy;
+
+        char *mask_k0 = pmask + knxy;
+        char *mask_k1 = mask_k0 + nxy;
+
+        // accumulate this plane of data using trapezoid rule
+        compute_ivt<<<block_grid,thread_grid>>>(ivt,
+            f_k0, f_k1, mask_k0, mask_k1, h2, nxy);
+
+        if ((ierr = cudaGetLastError()) != cudaSuccess)
+        {
+            TECA_ERROR("Failed to launch the compute_ivt CUDA kernel"
+                << cudaGetErrorString(ierr))
+            return -1;
+        }
+    }
+
+    // check the sign, in this way we can handle both increasing and decreasing
+    // pressure coordinates
+    num_t s = plev[1] - plev[0] < num_t(0) ? num_t(-1) : num_t(1);
+
+    // scale by -1/g
+    num_t m1g = s/num_t(9.80665);
+
+    scale_ivt<<<block_grid,thread_grid>>>(ivt, m1g, nxy);
+    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to launch the scale_ivt CUDA kernel"
+            << cudaGetErrorString(ierr))
+        return -1;
+    }
+
+    return 0;
+}
+
+// **************************************************************************
+int dispatch(int device_id, size_t nx, size_t ny, size_t nz,
+    const const_p_teca_variant_array &p,
+    const const_p_teca_variant_array &wind_u,
+    const const_p_teca_variant_array &wind_u_valid,
+    const const_p_teca_variant_array &wind_v,
+    const const_p_teca_variant_array &wind_v_valid,
+    const const_p_teca_variant_array &q,
+    const const_p_teca_variant_array &q_valid,
+    p_teca_variant_array &ivt_u,
+    p_teca_variant_array &ivt_v)
+{
+    // set the CUDA device to run on
+    cudaError_t ierr = cudaSuccess;
+    if ((ierr = cudaSetDevice(device_id)) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to set the CUDA device to " << device_id
+            << ". " << cudaGetErrorString(ierr))
+        return -1;
+    }
+
+    auto alloc = teca_variant_array::allocator::cuda;
+
+    // allocate the output arrays
+    unsigned long nxy = nx*ny;
+    ivt_u = wind_u->new_instance(alloc);
+    ivt_v = wind_u->new_instance(alloc);
+
+    NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
+        p.get(), _COORDS,
+
+        auto sp_p = static_cast<TT_COORDS*>
+            (p.get())->get_cpu_accessible();
+
+        const NT_COORDS *p_p = sp_p.get();
+
+        NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+            ivt_u.get(), _DATA,
+
+            // resize and initialize the ivt output to zero
+            TT_DATA *tivt_u = static_cast<TT_DATA*>(ivt_u.get());
+            TT_DATA *tivt_v = static_cast<TT_DATA*>(ivt_v.get());
+
+            tivt_u->resize(nxy, NT_DATA());
+            tivt_v->resize(nxy, NT_DATA());
+
+            auto sp_tivt_u = tivt_u->get_cuda_accessible();
+            auto sp_tivt_v = tivt_v->get_cuda_accessible();
+
+            auto sp_wind_u = static_cast<const TT_DATA*>
+                (wind_u.get())->get_cuda_accessible();
+
+            auto sp_wind_v = static_cast<const TT_DATA*>
+                (wind_v.get())->get_cuda_accessible();
+
+            auto sp_q = dynamic_cast<const TT_DATA*>
+                (q.get())->get_cuda_accessible();
+
+            NT_DATA *p_tivt_u = sp_tivt_u.get();
+            NT_DATA *p_tivt_v = sp_tivt_v.get();
+            const NT_DATA *p_wind_u = sp_wind_u.get();
+            const NT_DATA *p_wind_v = sp_wind_v.get();
+            const NT_DATA *p_q = sp_q.get();
+
+            if (wind_u_valid)
+            {
+                using NT_MASK = char;
+                using TT_MASK = const teca_variant_array_impl<NT_MASK>;
+
+                auto sp_wind_u_valid = dynamic_cast<TT_MASK*>
+                    (wind_u_valid.get())->get_cuda_accessible();
+
+                auto sp_wind_v_valid = dynamic_cast<TT_MASK*>
+                    (wind_v_valid.get())->get_cuda_accessible();
+
+                auto sp_q_valid = dynamic_cast<TT_MASK*>
+                    (q_valid.get())->get_cuda_accessible();
+
+                const NT_MASK *p_wind_u_valid = sp_wind_u_valid.get();
+                const NT_MASK *p_wind_v_valid = sp_wind_v_valid.get();
+                const NT_MASK *p_q_valid = sp_q_valid.get();
+
+                if (cuda::cartesian_ivt(device_id, nx, ny, nz, p_p,
+                    p_wind_u, p_wind_u_valid, p_q, p_q_valid, p_tivt_u) ||
+                    cuda::cartesian_ivt(device_id, nx, ny, nz, p_p,
+                    p_wind_v, p_wind_v_valid, p_q, p_q_valid, p_tivt_v))
+                {
+                    TECA_ERROR("Failed to compute IVT with valid value mask")
+                    return -1;
+                }
+            }
+            else
+            {
+                if (cuda::cartesian_ivt(device_id, nx,
+                    ny, nz, p_p, p_wind_u, p_q, p_tivt_u) ||
+                    cuda::cartesian_ivt(device_id, nx,
+                    ny, nz, p_p, p_wind_v, p_q, p_tivt_v))
+                {
+                    TECA_ERROR("Failed to compute IVT")
+                    return -1;
+                }
+            }
+            )
+        )
+
+    return 0;
+}
+}
+#endif
+
+namespace cpu
+{
+
+// **************************************************************************
 template <typename coord_t, typename num_t>
 void cartesian_ivt(unsigned long nx, unsigned long ny,
     unsigned long nz, const coord_t *plev, const num_t *wind,
@@ -38,9 +415,6 @@ void cartesian_ivt(unsigned long nx, unsigned long ny,
     for (unsigned long i = 0; i < nxyz; ++i)
         f[i] = wind[i]*q[i];
 
-    // initialize the result
-    memset(ivt, 0, nxy*sizeof(num_t));
-
     // work an x-y slice at  a time
     unsigned long nzm1 = nz - 1;
     for (unsigned long k = 0; k < nzm1; ++k)
@@ -53,7 +427,7 @@ void cartesian_ivt(unsigned long nx, unsigned long ny,
         num_t *f_k0 = f + knxy;
         num_t *f_k1 = f_k0 + nxy;
 
-        // accumulate this plane of data using trapazoid rule
+        // accumulate this plane of data using trapezoid rule
         for (unsigned long q = 0; q < nxy; ++q)
         {
             ivt[q] += h2 * (f_k0[q] + f_k1[q]);
@@ -69,10 +443,14 @@ void cartesian_ivt(unsigned long nx, unsigned long ny,
 
     // scale by -1/g
     num_t m1g = s/num_t(9.80665);
+
     for (unsigned long i = 0; i < nxy; ++i)
+    {
         ivt[i] *= m1g;
+    }
 }
 
+// **************************************************************************
 template <typename coord_t, typename num_t>
 void cartesian_ivt(unsigned long nx, unsigned long ny,
     unsigned long nz, const coord_t *plev, const num_t *wind,
@@ -92,9 +470,6 @@ void cartesian_ivt(unsigned long nx, unsigned long ny,
     for (unsigned long i = 0; i < nxyz; ++i)
         f[i] = wind[i]*q[i];
 
-    // initialize the result
-    memset(ivt, 0, nxy*sizeof(num_t));
-
     // work an x-y slice at a time
     unsigned long nzm1 = nz - 1;
     for (unsigned long k = 0; k < nzm1; ++k)
@@ -110,7 +485,7 @@ void cartesian_ivt(unsigned long nx, unsigned long ny,
         char *mask_k0 = mask + knxy;
         char *mask_k1 = mask_k0 + nxy;
 
-        // accumulate this plane of data using trapazoid rule
+        // accumulate this plane of data using trapezoid rule
         for (unsigned long q = 0; q < nxy; ++q)
         {
             ivt[q] += ((mask_k0[q] && mask_k1[q]) ?
@@ -128,8 +503,97 @@ void cartesian_ivt(unsigned long nx, unsigned long ny,
 
     // scale by -1/g
     num_t m1g = s/num_t(9.80665);
+
     for (unsigned long i = 0; i < nxy; ++i)
+    {
         ivt[i] *= m1g;
+    }
+}
+
+// **************************************************************************
+int dispatch(size_t nx, size_t ny, size_t nz,
+    const const_p_teca_variant_array &p,
+    const const_p_teca_variant_array &wind_u,
+    const const_p_teca_variant_array &wind_u_valid,
+    const const_p_teca_variant_array &wind_v,
+    const const_p_teca_variant_array &wind_v_valid,
+    const const_p_teca_variant_array &q,
+    const const_p_teca_variant_array &q_valid,
+    p_teca_variant_array &ivt_u,
+    p_teca_variant_array &ivt_v)
+{
+    // allocate the output arrays
+    unsigned long nxy = nx*ny;
+    ivt_u = wind_u->new_instance();
+    ivt_v = wind_u->new_instance();
+
+    NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
+        p.get(), _COORDS,
+
+        auto sp_p = static_cast<TT_COORDS*>(p.get())->get_cpu_accessible();
+        const NT_COORDS *p_p = sp_p.get();
+
+        NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+            ivt_u.get(), _DATA,
+
+            // resize and initialize the ivt output to zero
+            TT_DATA *tivt_u = static_cast<TT_DATA*>(ivt_u.get());
+            TT_DATA *tivt_v = static_cast<TT_DATA*>(ivt_v.get());
+
+            tivt_u->resize(nxy, NT_DATA());
+            tivt_v->resize(nxy, NT_DATA());
+
+            auto sp_tivt_u = tivt_u->get_cpu_accessible();
+            auto sp_tivt_v = tivt_v->get_cpu_accessible();
+
+            auto sp_wind_u = static_cast<const TT_DATA*>
+                (wind_u.get())->get_cpu_accessible();
+
+            auto sp_wind_v = static_cast<const TT_DATA*>
+                (wind_v.get())->get_cpu_accessible();
+
+            auto sp_q = dynamic_cast<const TT_DATA*>
+                (q.get())->get_cpu_accessible();
+
+            NT_DATA *p_tivt_u = sp_tivt_u.get();
+            NT_DATA *p_tivt_v = sp_tivt_v.get();
+            const NT_DATA *p_wind_u = sp_wind_u.get();
+            const NT_DATA *p_wind_v = sp_wind_v.get();
+            const NT_DATA *p_q = sp_q.get();
+
+            if (wind_u_valid)
+            {
+                using NT_MASK = char;
+                using TT_MASK = const teca_variant_array_impl<NT_MASK>;
+
+                auto sp_wind_u_valid = dynamic_cast<TT_MASK*>
+                    (wind_u_valid.get())->get_cpu_accessible();
+
+                auto sp_wind_v_valid = dynamic_cast<TT_MASK*>
+                    (wind_v_valid.get())->get_cpu_accessible();
+
+                auto sp_q_valid = dynamic_cast<TT_MASK*>
+                    (q_valid.get())->get_cpu_accessible();
+
+                const NT_MASK *p_wind_u_valid = sp_wind_u_valid.get();
+                const NT_MASK *p_wind_v_valid = sp_wind_v_valid.get();
+                const NT_MASK *p_q_valid = sp_q_valid.get();
+
+                cpu::cartesian_ivt(nx, ny, nz, p_p, p_wind_u,
+                    p_wind_u_valid, p_q, p_q_valid, p_tivt_u);
+
+                cpu::cartesian_ivt(nx, ny, nz, p_p, p_wind_v,
+                    p_wind_v_valid, p_q, p_q_valid, p_tivt_v);
+            }
+            else
+            {
+                cpu::cartesian_ivt(nx, ny, nz, p_p, p_wind_u, p_q, p_tivt_u);
+                cpu::cartesian_ivt(nx, ny, nz, p_p, p_wind_v, p_q, p_tivt_v);
+            }
+            )
+        )
+
+    return 0;
 }
 }
 
@@ -150,7 +614,7 @@ teca_integrated_vapor_transport::~teca_integrated_vapor_transport()
 #if defined(TECA_HAS_BOOST)
 // --------------------------------------------------------------------------
 void teca_integrated_vapor_transport::get_properties_description(
-    const string &prefix, options_description &global_opts)
+    const std::string &prefix, options_description &global_opts)
 {
     options_description opts("Options for "
         + (prefix.empty()?"teca_integrated_vapor_transport":prefix));
@@ -173,7 +637,7 @@ void teca_integrated_vapor_transport::get_properties_description(
 
 // --------------------------------------------------------------------------
 void teca_integrated_vapor_transport::set_properties(
-    const string &prefix, variables_map &opts)
+    const std::string &prefix, variables_map &opts)
 {
     this->teca_algorithm::set_properties(prefix, opts);
 
@@ -377,64 +841,39 @@ const_p_teca_dataset teca_integrated_vapor_transport::execute(
         return nullptr;
     }
 
-    // allocate the output arrays
-    unsigned long nxy = nx*ny;
-    p_teca_variant_array ivt_u = wind_u->new_instance(nxy);
-    p_teca_variant_array ivt_v = wind_u->new_instance(nxy);
+    // calculate IVT
+    p_teca_variant_array ivt_u;
+    p_teca_variant_array ivt_v;
+
+#if defined(TECA_HAS_CUDA)
+    int device_id = -1;
+    request.get("device_id", device_id);
+    if (device_id >= 0)
+    {
+        if (cuda::dispatch(device_id, nx, ny, nz, p, wind_u,
+            wind_u_valid, wind_v, wind_v_valid, q, q_valid,
+            ivt_u, ivt_v))
+        {
+            TECA_ERROR("Failed to compute IVT using CUDA")
+            return nullptr;
+        }
+    }
+    else
+    {
+#endif
+        if (cpu::dispatch(nx, ny, nz, p, wind_u, wind_u_valid,
+                wind_v, wind_v_valid, q, q_valid, ivt_u, ivt_v))
+        {
+            TECA_ERROR("Failed to compute IVT on the CPU")
+            return nullptr;
+        }
+#if defined(TECA_HAS_CUDA)
+    }
+#endif
 
     // store the result
     out_mesh->get_point_arrays()->set(this->ivt_u_variable, ivt_u);
     out_mesh->get_point_arrays()->set(this->ivt_v_variable, ivt_v);
-
-    // calculate IVT
-    NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
-        p.get(), _COORDS,
-
-        auto sp_p = static_cast<TT_COORDS*>(p.get())->get_cpu_accessible();
-        const NT_COORDS *p_p = sp_p.get();
-
-        NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-            ivt_u.get(), _DATA,
-
-            auto sp_ivt_u = static_cast<TT_DATA*>(ivt_u.get())->get_cpu_accessible();
-            NT_DATA *p_ivt_u = sp_ivt_u.get();
-
-            auto sp_ivt_v = static_cast<TT_DATA*>(ivt_v.get())->get_cpu_accessible();
-            NT_DATA *p_ivt_v = sp_ivt_v.get();
-
-            auto sp_wind_u = static_cast<const TT_DATA*>(wind_u.get())->get_cpu_accessible();
-            const NT_DATA *p_wind_u = sp_wind_u.get();
-
-            auto sp_wind_v = static_cast<const TT_DATA*>(wind_v.get())->get_cpu_accessible();
-            const NT_DATA *p_wind_v = sp_wind_v.get();
-
-            auto sp_q = dynamic_cast<const TT_DATA*>(q.get())->get_cpu_accessible();
-            const NT_DATA *p_q = sp_q.get();
-
-            if (wind_u_valid)
-            {
-                using NT_MASK = char;
-                using TT_MASK = const teca_variant_array_impl<NT_MASK>;
-
-                auto sp_wind_u_valid = dynamic_cast<TT_MASK*>(wind_u_valid.get())->get_cpu_accessible();
-                const NT_MASK *p_wind_u_valid = sp_wind_u_valid.get();
-
-                auto sp_wind_v_valid = dynamic_cast<TT_MASK*>(wind_v_valid.get())->get_cpu_accessible();
-                const NT_MASK *p_wind_v_valid = sp_wind_v_valid.get();
-
-                auto sp_q_valid = dynamic_cast<TT_MASK*>(q_valid.get())->get_cpu_accessible();
-                const NT_MASK *p_q_valid = sp_q_valid.get();
-
-                ::cartesian_ivt(nx, ny, nz, p_p, p_wind_u, p_wind_u_valid, p_q, p_q_valid, p_ivt_u);
-                ::cartesian_ivt(nx, ny, nz, p_p, p_wind_v, p_wind_v_valid, p_q, p_q_valid, p_ivt_v);
-            }
-            else
-            {
-                ::cartesian_ivt(nx, ny, nz, p_p, p_wind_u, p_q, p_ivt_u);
-                ::cartesian_ivt(nx, ny, nz, p_p, p_wind_v, p_q, p_ivt_v);
-            }
-            )
-        )
 
     // pass 2D arrays through.
     p_teca_array_collection in_arrays =
@@ -442,6 +881,7 @@ const_p_teca_dataset teca_integrated_vapor_transport::execute(
 
     p_teca_array_collection out_arrays = out_mesh->get_point_arrays();
 
+    unsigned long nxy = nx*ny;
     int n_arrays = in_arrays->size();
     for (int i = 0; i < n_arrays; ++i)
     {

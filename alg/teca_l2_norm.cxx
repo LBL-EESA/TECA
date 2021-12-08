@@ -61,10 +61,9 @@ void square_root(T *rt, const T *c, unsigned long n_elem)
         rt[i] = std::sqrt(c[i]);
     }
 }
-}
 
 // ***************************************************************************
-int cpu_dispatch(p_teca_variant_array &l2_norm,
+int dispatch(p_teca_variant_array &l2_norm,
     const const_p_teca_variant_array &c0, const const_p_teca_variant_array &c1,
     const const_p_teca_variant_array &c2)
 {
@@ -118,6 +117,7 @@ int cpu_dispatch(p_teca_variant_array &l2_norm,
     TECA_ERROR("Unsupported type " << c0->get_class_name() << " for L2 norm")
     return -1;
 }
+}
 
 
 
@@ -131,7 +131,7 @@ template <typename T>
 __global__
 void l2_norm(T *nm, const T *c0, const T *c1, const T *c2, unsigned long n_elem)
 {
-    unsigned long i = hamr::thread_id_to_array_index();
+    unsigned long i = teca_cuda_util::thread_id_to_array_index();
 
     if (i >= n_elem)
         return;
@@ -150,15 +150,6 @@ template <typename T>
 int l2_norm(int device_id, T *pl2n, const T *pc0, const T *pc1,
     const T *pc2, unsigned long n_elem)
 {
-    // set the CUDA device to run on
-    cudaError_t ierr = cudaSuccess;
-    if ((ierr = cudaSetDevice(device_id)) != cudaSuccess)
-    {
-        TECA_ERROR("Failed to set the CUDA device to " << device_id
-            << ". " << cudaGetErrorString(ierr))
-        return -1;
-    }
-
     // determine kernel launch parameters
     int n_blocks = 0;
     dim3 block_grid;
@@ -171,6 +162,7 @@ int l2_norm(int device_id, T *pl2n, const T *pc0, const T *pc1,
     }
 
     // launch the l2 norm kernel
+    cudaError_t ierr = cudaSuccess;
     l2_norm<<<block_grid,thread_grid>>>(pl2n, pc0, pc1, pc2, n_elem);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
@@ -182,13 +174,21 @@ int l2_norm(int device_id, T *pl2n, const T *pc0, const T *pc1,
     return 0;
 }
 
-}
 
 // ***************************************************************************
-int cuda_dispatch(int device_id, p_teca_variant_array &l2_norm,
+int dispatch(int device_id, p_teca_variant_array &l2_norm,
     const const_p_teca_variant_array &c0, const const_p_teca_variant_array &c1,
     const const_p_teca_variant_array &c2)
 {
+    // set the CUDA device to run on
+    cudaError_t ierr = cudaSuccess;
+    if ((ierr = cudaSetDevice(device_id)) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to set the CUDA device to " << device_id
+            << ". " << cudaGetErrorString(ierr))
+        return -1;
+    }
+
     // allocate the output array
     unsigned long n_elem = c0->size();
     if (n_elem < 1)
@@ -235,6 +235,7 @@ int cuda_dispatch(int device_id, p_teca_variant_array &l2_norm,
 
     TECA_ERROR("Unsupported type " << c0->get_class_name() << " for L2 norm")
     return -1;
+}
 }
 #endif
 }
@@ -516,7 +517,7 @@ const_p_teca_dataset teca_l2_norm::execute(unsigned int port,
     request.get("device_id", device_id);
     if (device_id >= 0)
     {
-        if (teca_l2_norm_internals::cuda_dispatch(device_id, l2_norm, c0, c1, c2))
+        if (teca_l2_norm_internals::cuda::dispatch(device_id, l2_norm, c0, c1, c2))
         {
             TECA_ERROR("Failed to compute the L2 norm using CUDA")
             return nullptr;
@@ -525,7 +526,7 @@ const_p_teca_dataset teca_l2_norm::execute(unsigned int port,
     else
     {
 #endif
-        if (teca_l2_norm_internals::cpu_dispatch(l2_norm, c0, c1, c2))
+        if (teca_l2_norm_internals::cpu::dispatch(l2_norm, c0, c1, c2))
         {
             TECA_ERROR("Failed to compute the L2 norm on the CPU")
             return nullptr;
