@@ -161,4 +161,14 @@ bool get_teca_has_tcpypi()
     return false;
 #endif
 }
+
+// return true if TECA was compiled with CUDA support
+bool get_teca_has_cuda()
+{
+#if defined(TECA_HAS_CUDA)
+    return true;
+#else
+    return false;
+#endif
+}
 %}
