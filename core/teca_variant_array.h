@@ -29,11 +29,11 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_variant_array)
 /// A type erasure for array based data.
 /** The variant array supports: set, get, assign, and append. The elements of the
  * array can be stored on different accelerator devices using different
- * technologies and accessed seamless from other accellerator devices and
+ * technologies and accessed seamless from other accelerator devices and
  * technologies.
  *
  * Use the type erasure (this class) to implement collections of arrays and
- * public API.  Use the contrete implementation (::teca_variant_array_impl) for
+ * public API.  Use the concrete implementation (::teca_variant_array_impl) for
  * direct access to the typed data.
  *
  * See #TEMPLATE_DISPATCH and #NESTED_TEMPLATE_DISPATCH for details on how to
