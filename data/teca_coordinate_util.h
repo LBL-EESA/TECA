@@ -16,6 +16,12 @@
 #include <typeinfo>
 #include <iomanip>
 
+#if defined(TECA_HAS_CUDA)
+#define TECA_TARGET __host__ __device__
+#else
+#define TECA_TARGET
+#endif
+
 /// For printing data as ASCII with the maximum supported numerical precision
 #define max_prec(T) \
     std::setprecision(std::numeric_limits<T>::digits10 + 1)
@@ -36,15 +42,15 @@ namespace teca_coordinate_util
  *  https://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/
  */
 template <typename n_t>
-struct TECA_EXPORT equal_tt {};
+struct equal_tt {};
 
 #define declare_equal_tt(cpp_t, atol, rtol)                                 \
 /** Specialization for cpp_t with default absTol and relTol */              \
 template <>                                                                 \
 struct equal_tt<cpp_t>                                                      \
 {                                                                           \
-    static cpp_t absTol() { return atol; }                                  \
-    static cpp_t relTol() { return rtol; }                                  \
+    TECA_TARGET static cpp_t absTol() { return atol; }                      \
+    TECA_TARGET static cpp_t relTol() { return rtol; }                      \
 };
 
 declare_equal_tt(float, 10.0f*std::numeric_limits<float>::epsilon(),
@@ -60,7 +66,7 @@ declare_equal_tt(long double, std::numeric_limits<double>::epsilon(),
  * close to zero.  relTol handles comparing larger values.
  */
 template <typename T>
-TECA_EXPORT
+TECA_TARGET
 bool equal(T a, T b,
     T relTol = equal_tt<T>::relTol(), T absTol = equal_tt<T>::absTol(),
     typename std::enable_if<std::is_floating_point<T>::value>::type* = 0)
@@ -81,7 +87,7 @@ bool equal(T a, T b,
 
 /// Compare two integral numbers.
 template <typename T>
-TECA_EXPORT
+TECA_TARGET
 bool equal(T a, T b, T relTol = 0, T absTol = 0,
     typename std::enable_if<std::is_integral<T>::value>::type* = 0)
 {
@@ -95,7 +101,6 @@ bool equal(T a, T b, T relTol = 0, T absTol = 0,
  * if the numbers are not equal.
  */
 template <typename T>
-TECA_EXPORT
 bool equal(T a, T b, std::string &diagnostic,
     T relTol = equal_tt<T>::relTol(), T absTol = equal_tt<T>::absTol(),
     typename std::enable_if<std::is_floating_point<T>::value>::type* = 0)
@@ -132,7 +137,6 @@ bool equal(T a, T b, std::string &diagnostic,
  * if the numbers are not equal.
  */
 template <typename T>
-TECA_EXPORT
 bool equal(T a, T b, std::string &diagnostic, T relTol = 0, T absTol = 0,
     typename std::enable_if<std::is_integral<T>::value>::type* = 0)
 {
