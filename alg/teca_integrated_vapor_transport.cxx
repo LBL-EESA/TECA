@@ -64,63 +64,46 @@ void compute_flux(num_t *f, const num_t *wind,
 
     f[i] = (mask[i] ? wind[i]*q[i] : num_t(0));
 }
-/*
-// **************************************************************************
-template <typename num_t>
-__global__
-void compute_ivt(num_t *ivt, const num_t *f_k0, const num_t *f_k1,
-    num_t h2, unsigned long n_elem)
-{
-    unsigned long i = teca_cuda_util::thread_id_to_array_index();
-
-    if (i >= n_elem)
-        return;
-
-    ivt[i] += h2 * (f_k0[i] + f_k1[i]);
-}
-
-// **************************************************************************
-template <typename num_t>
-__global__
-void compute_ivt(num_t *ivt, const num_t *f_k0, const num_t *f_k1,
-    const char *mask_k0, const char *mask_k1, num_t h2,
-    unsigned long n_elem)
-{
-    unsigned long i = teca_cuda_util::thread_id_to_array_index();
-
-    if (i >= n_elem)
-        return;
-
-    ivt[i] += (mask_k0[i] && mask_k1[i] ?
-         h2 * (f_k0[i] + f_k1[i]) : num_t(0));
-}
-*/
 
 // **************************************************************************
 template <typename num_t, typename coord_t>
 __global__
 void compute_ivt(num_t *ivt, const num_t *flux,
-    const coord_t *plev, unsigned long nxy)
+    const coord_t *plev, unsigned long nxy, unsigned long nz,
+    unsigned long stride)
 {
-    // index into the 2D output data
-    unsigned long i =  threadIdx.x + blockDim.x*blockIdx.x;
+    // get the index into the data
+    unsigned long i = 0;
+    unsigned long k0 = 0;
+    teca_cuda_util::thread_id_to_array_index_slab(i, k0, stride);
 
-    if (i >= nxy)
+    // check bounds
+    if ((i >= nxy) || (k0 >= nz))
         return;
 
-    // index into the z dim of the input
-    unsigned long k = blockIdx.y;
-    unsigned long k1 = blockIdx.y + 1;
+    // get the upper loop bounds
+    unsigned long k1 = k0 + stride;
 
-    // dp over the slice
-    num_t h2 = num_t(0.5) * (plev[k1] - plev[k]);
+    if (k1 >= nz)
+        k1 = nz - 1;
 
-    // the current two x-y-planes of data
-    unsigned long kk0 = k*nxy + i;
-    unsigned long kk1 = k1*nxy + i;
+    // integrate ivt over the vertical dimension
+    num_t ivt_i = num_t();
 
-    // accumulate this plane of data using trapezoid rule
-    num_t ivt_i = h2 * (flux[kk0] + flux[kk1]);
+    for (unsigned long q = k0; q < k1; ++q)
+    {
+        unsigned long q1 = q + 1;
+
+        // dp over the slice
+        num_t h2 = num_t(0.5) * (plev[q1] - plev[q]);
+
+        // the current two x-y-planes of data
+        unsigned long qq0 = q*nxy + i;
+        unsigned long qq1 = q1*nxy + i;
+
+        // accumulate this plane of data using trapezoid rule
+        ivt_i += h2 * (flux[qq0] + flux[qq1]);
+    }
 
     atomicAdd(&ivt[i], ivt_i);
 }
@@ -128,29 +111,43 @@ void compute_ivt(num_t *ivt, const num_t *flux,
 // **************************************************************************
 template <typename num_t, typename coord_t>
 __global__
-void compute_ivt(num_t *ivt, const num_t *flux,
-    const char *mask, const coord_t *plev, unsigned long nxy)
+void compute_ivt(num_t *ivt, const num_t *flux, const char *mask,
+    const coord_t *plev, unsigned long nxy, unsigned long nz,
+    unsigned long stride)
 {
-    // index into the 2D output data
-    unsigned long i =  threadIdx.x + blockDim.x*blockIdx.x;
+    // get the index into the data
+    unsigned long i = 0;
+    unsigned long k0 = 0;
+    teca_cuda_util::thread_id_to_array_index_slab(i, k0, stride);
 
-    if (i >= nxy)
+    // check bounds
+    if ((i >= nxy) || (k0 >= nz))
         return;
 
-    // index into the z dim of the input
-    unsigned long k = blockIdx.y;
-    unsigned long k1 = blockIdx.y + 1;
+    // get the upper loop bounds
+    unsigned long k1 = k0 + stride;
 
-    // dp over the slice
-    num_t h2 = num_t(0.5) * (plev[k1] - plev[k]);
+    if (k1 >= nz)
+        k1 = nz - 1;
 
-    // the current two x-y-planes of data
-    unsigned long kk0 = k*nxy + i;
-    unsigned long kk1 = k1*nxy + i;
+    // integrate ivt over the vertical dimension
+    num_t ivt_i = num_t();
 
-    // accumulate this plane of data using trapezoid rule
-    num_t ivt_i = (mask[kk0] && mask[kk1] ?
-         h2 * (flux[kk0] + flux[kk1]) : num_t(0));
+    for (unsigned long q = k0; q < k1; ++q)
+    {
+        unsigned long q1 = q + 1;
+
+        // dp over this vertical slice
+        num_t h2 = num_t(0.5) * (plev[q1] - plev[q]);
+
+        // the current two x-y-planes of data
+        unsigned long qq0 = q*nxy + i;
+        unsigned long qq1 = q1*nxy + i;
+
+        // accumulate this plane of data using trapezoid rule
+        ivt_i += (mask[qq0] && mask[qq1] ?
+             h2 * (flux[qq0] + flux[qq1]) : num_t(0));
+    }
 
     atomicAdd(&ivt[i], ivt_i);
 }
@@ -161,7 +158,7 @@ __global__
 void scale_ivt(num_t *ivt, const coord_t *plev, unsigned long nxy)
 {
     // index into the 2D output data
-    unsigned long i =  threadIdx.x + blockDim.x*blockIdx.x;
+    unsigned long i = teca_cuda_util::thread_id_to_array_index();
 
     if (i >= nxy)
         return;
@@ -196,7 +193,7 @@ int cartesian_ivt(int device_id, unsigned long nx, unsigned long ny,
         return -1;
     }
 
-    // compute the integrand
+    // compute the flux
     hamr::buffer<num_t> flux(hamr::buffer_allocator::cuda, nxyz);
     num_t *pflux = flux.data();
 
@@ -209,24 +206,22 @@ int cartesian_ivt(int device_id, unsigned long nx, unsigned long ny,
         return -1;
     }
 
-    // determine ivt kernel launch parameters. the x dimension in the block
-    // grid will apply to one x-y slab  of the input data. the y dimension of
-    // the block grid will apply to the z dimension of the input data
-    if (teca_cuda_util::partition_thread_blocks(device_id,
-        nxy, 8, block_grid, n_blocks, thread_grid))
+    // determine ivt kernel launch parameters.
+    block_grid = 0;
+    thread_grid = 0;
+    int n_blocks_xy = 0;
+    int n_blocks_z = 0;
+    size_t stride = 32;
+    if (teca_cuda_util::partition_thread_blocks_slab(device_id,
+        nxy, nz - 1, stride, 8, block_grid, n_blocks_xy, n_blocks_z,
+        thread_grid))
     {
-        TECA_ERROR("Failed to partition thread blocks")
+        TECA_ERROR("Failed to slab partition thread blocks")
         return -1;
     }
 
-    // check that the partitioner was 1d
-    assert((block_grid.y == 1) && (block_grid.z == 1));
-
-    // correct the y block dimension for 3D field
-    block_grid.y = nz - 1;
-
     // calculate ivt
-    compute_ivt<<<block_grid,thread_grid>>>(ivt, pflux, plev, nxy);
+    compute_ivt<<<block_grid,thread_grid>>>(ivt, pflux, plev, nxy, nz, stride);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
         TECA_ERROR("Failed to launch the compute_ivt CUDA kernel"
@@ -234,7 +229,7 @@ int cartesian_ivt(int device_id, unsigned long nx, unsigned long ny,
         return -1;
     }
 
-    // correct the y block dimension for 2D field
+    // determine scale kernel launch parameters
     block_grid.y = 1;
 
     // scale the result
@@ -259,7 +254,7 @@ int cartesian_ivt(int device_id, unsigned long nx, unsigned long ny,
     unsigned long nxy = nx*ny;
     unsigned long nxyz = nxy*nz;
 
-    // determine flux kernel launch parameters
+    // determine flux and mask kernel launch parameters
     int n_blocks = 0;
     dim3 block_grid;
     dim3 thread_grid;
@@ -283,7 +278,7 @@ int cartesian_ivt(int device_id, unsigned long nx, unsigned long ny,
         return -1;
     }
 
-    // compute the integrand
+    // compute the flux
     hamr::buffer<num_t> flux(hamr::buffer_allocator::cuda, nxyz);
     num_t *pflux = flux.data();
 
@@ -295,24 +290,24 @@ int cartesian_ivt(int device_id, unsigned long nx, unsigned long ny,
         return -1;
     }
 
-    // determine ivt kernel launch parameters. the x dimension in the block
-    // grid will apply to one x-y slab  of the input data. the y dimension of
-    // the block grid will apply to the z dimension of the input data
-    if (teca_cuda_util::partition_thread_blocks(device_id,
-        nxy, 8, block_grid, n_blocks, thread_grid))
+    // determine ivt kernel launch parameters.
+    block_grid = 0;
+    thread_grid = 0;
+    size_t stride = 32;
+    int n_blocks_xy = 0;
+    int n_blocks_z = 0;
+    if (teca_cuda_util::partition_thread_blocks_slab(device_id,
+        nxy, nz - 1, stride, 8, block_grid, n_blocks_xy, n_blocks_z,
+        thread_grid))
     {
-        TECA_ERROR("Failed to partition thread blocks")
+        TECA_ERROR("Failed to slab partition thread blocks")
         return -1;
     }
 
-    // check that the partitioner was 1d
-    assert((block_grid.y == 1) && (block_grid.z == 1));
-
-    // correct the y block dimension for 3D field
-    block_grid.y = nz - 1;
-
     // calculate ivt
-    compute_ivt<<<block_grid,thread_grid>>>(ivt, pflux, pmask, plev, nxy);
+    compute_ivt<<<block_grid,thread_grid>>>(ivt,
+        pflux, pmask, plev, nxy, nz, stride);
+
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
         TECA_ERROR("Failed to launch the compute_ivt CUDA kernel"
@@ -320,7 +315,7 @@ int cartesian_ivt(int device_id, unsigned long nx, unsigned long ny,
         return -1;
     }
 
-    // correct the y block dimension for 2D field
+    // determine scale kernel launch parameters
     block_grid.y = 1;
 
     // scale the result
@@ -460,7 +455,9 @@ void cartesian_ivt(unsigned long nx, unsigned long ny,
     // compute the integrand
     num_t *f = (num_t*)malloc(nxyz*sizeof(num_t));
     for (unsigned long i = 0; i < nxyz; ++i)
+    {
         f[i] = wind[i]*q[i];
+    }
 
     // work an x-y slice at  a time
     unsigned long nzm1 = nz - 1;
@@ -510,12 +507,16 @@ void cartesian_ivt(unsigned long nx, unsigned long ny,
     // compute the mask
     char *mask = (char*)malloc(nxyz);
     for (unsigned long i = 0; i < nxyz; ++i)
-        mask[i] = wind_valid[i] && q_valid[i] ? 1 : 0;
+    {
+        mask[i] = (wind_valid[i] && q_valid[i] ? char(1) : char(0));
+    }
 
     // compute the integrand
     num_t *f = (num_t*)malloc(nxyz*sizeof(num_t));
     for (unsigned long i = 0; i < nxyz; ++i)
-        f[i] = wind[i]*q[i];
+    {
+        f[i] = (mask[i] ? wind[i]*q[i] : num_t(0));
+    }
 
     // work an x-y slice at a time
     unsigned long nzm1 = nz - 1;
