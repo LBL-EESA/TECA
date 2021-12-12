@@ -64,7 +64,7 @@ void compute_flux(num_t *f, const num_t *wind,
 
     f[i] = (mask[i] ? wind[i]*q[i] : num_t(0));
 }
-
+/*
 // **************************************************************************
 template <typename num_t>
 __global__
@@ -94,16 +94,84 @@ void compute_ivt(num_t *ivt, const num_t *f_k0, const num_t *f_k1,
     ivt[i] += (mask_k0[i] && mask_k1[i] ?
          h2 * (f_k0[i] + f_k1[i]) : num_t(0));
 }
+*/
 
 // **************************************************************************
-template <typename num_t>
+template <typename num_t, typename coord_t>
 __global__
-void scale_ivt(num_t *ivt, num_t m1g, unsigned long n_elem)
+void compute_ivt(num_t *ivt, const num_t *flux,
+    const coord_t *plev, unsigned long nxy)
 {
-    unsigned long i = teca_cuda_util::thread_id_to_array_index();
+    // index into the 2D output data
+    unsigned long i =  threadIdx.x + blockDim.x*blockIdx.x;
 
-    if (i >= n_elem)
+    if (i >= nxy)
         return;
+
+    // index into the z dim of the input
+    unsigned long k = blockIdx.y;
+    unsigned long k1 = blockIdx.y + 1;
+
+    // dp over the slice
+    num_t h2 = num_t(0.5) * (plev[k1] - plev[k]);
+
+    // the current two x-y-planes of data
+    unsigned long kk0 = k*nxy + i;
+    unsigned long kk1 = k1*nxy + i;
+
+    // accumulate this plane of data using trapezoid rule
+    num_t ivt_i = h2 * (flux[kk0] + flux[kk1]);
+
+    atomicAdd(&ivt[i], ivt_i);
+}
+
+// **************************************************************************
+template <typename num_t, typename coord_t>
+__global__
+void compute_ivt(num_t *ivt, const num_t *flux,
+    const char *mask, const coord_t *plev, unsigned long nxy)
+{
+    // index into the 2D output data
+    unsigned long i =  threadIdx.x + blockDim.x*blockIdx.x;
+
+    if (i >= nxy)
+        return;
+
+    // index into the z dim of the input
+    unsigned long k = blockIdx.y;
+    unsigned long k1 = blockIdx.y + 1;
+
+    // dp over the slice
+    num_t h2 = num_t(0.5) * (plev[k1] - plev[k]);
+
+    // the current two x-y-planes of data
+    unsigned long kk0 = k*nxy + i;
+    unsigned long kk1 = k1*nxy + i;
+
+    // accumulate this plane of data using trapezoid rule
+    num_t ivt_i = (mask[kk0] && mask[kk1] ?
+         h2 * (flux[kk0] + flux[kk1]) : num_t(0));
+
+    atomicAdd(&ivt[i], ivt_i);
+}
+
+// **************************************************************************
+template <typename num_t, typename coord_t>
+__global__
+void scale_ivt(num_t *ivt, const coord_t *plev, unsigned long nxy)
+{
+    // index into the 2D output data
+    unsigned long i =  threadIdx.x + blockDim.x*blockIdx.x;
+
+    if (i >= nxy)
+        return;
+
+    // check the sign, in this way we can handle both increasing and decreasing
+    // pressure coordinates
+    num_t s = plev[1] - plev[0] < num_t(0) ? num_t(-1) : num_t(1);
+
+    // scale by -1/g
+    num_t m1g = s/num_t(9.80665);
 
     ivt[i] *= m1g;
 }
@@ -141,7 +209,9 @@ int cartesian_ivt(int device_id, unsigned long nx, unsigned long ny,
         return -1;
     }
 
-    // determine ivt kernel launch parameters
+    // determine ivt kernel launch parameters. the x dimension in the block
+    // grid will apply to one x-y slab  of the input data. the y dimension of
+    // the block grid will apply to the z dimension of the input data
     if (teca_cuda_util::partition_thread_blocks(device_id,
         nxy, 8, block_grid, n_blocks, thread_grid))
     {
@@ -149,36 +219,26 @@ int cartesian_ivt(int device_id, unsigned long nx, unsigned long ny,
         return -1;
     }
 
-    // work an x-y slice at  a time
-    unsigned long nzm1 = nz - 1;
-    for (unsigned long k = 0; k < nzm1; ++k)
+    // check that the partitioner was 1d
+    assert((block_grid.y == 1) && (block_grid.z == 1));
+
+    // correct the y block dimension for 3D field
+    block_grid.y = nz - 1;
+
+    // calculate ivt
+    compute_ivt<<<block_grid,thread_grid>>>(ivt, pflux, plev, nxy);
+    if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
-        // dp over the slice
-        num_t h2 = num_t(0.5) * (plev[k+1] - plev[k]);
-
-        // the current two x-y-planes of data
-        unsigned long knxy = k*nxy;
-        num_t *f_k0 = pflux + knxy;
-        num_t *f_k1 = f_k0 + nxy;
-
-        // accumulate this plane of data using trapezoid rule
-        compute_ivt<<<block_grid,thread_grid>>>(ivt, f_k0, f_k1, h2, nxy);
-        if ((ierr = cudaGetLastError()) != cudaSuccess)
-        {
-            TECA_ERROR("Failed to launch the compute_ivt CUDA kernel"
-                << cudaGetErrorString(ierr))
-            return -1;
-        }
+        TECA_ERROR("Failed to launch the compute_ivt CUDA kernel"
+            << cudaGetErrorString(ierr))
+        return -1;
     }
 
-    // check the sign, in this way we can handle both increasing and decreasing
-    // pressure coordinates
-    num_t s = plev[1] - plev[0] < num_t(0) ? num_t(-1) : num_t(1);
+    // correct the y block dimension for 2D field
+    block_grid.y = 1;
 
-    // scale by -1/g
-    num_t m1g = s/num_t(9.80665);
-    scale_ivt<<<block_grid,thread_grid>>>(ivt, m1g, nxy);
-
+    // scale the result
+    scale_ivt<<<block_grid,thread_grid>>>(ivt, plev, nxy);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
         TECA_ERROR("Failed to launch the scale_ivt CUDA kernel"
@@ -235,7 +295,9 @@ int cartesian_ivt(int device_id, unsigned long nx, unsigned long ny,
         return -1;
     }
 
-    // determine ivt kernel launch parameters
+    // determine ivt kernel launch parameters. the x dimension in the block
+    // grid will apply to one x-y slab  of the input data. the y dimension of
+    // the block grid will apply to the z dimension of the input data
     if (teca_cuda_util::partition_thread_blocks(device_id,
         nxy, 8, block_grid, n_blocks, thread_grid))
     {
@@ -243,41 +305,26 @@ int cartesian_ivt(int device_id, unsigned long nx, unsigned long ny,
         return -1;
     }
 
-    // work an x-y slice at a time
-    unsigned long nzm1 = nz - 1;
-    for (unsigned long k = 0; k < nzm1; ++k)
+    // check that the partitioner was 1d
+    assert((block_grid.y == 1) && (block_grid.z == 1));
+
+    // correct the y block dimension for 3D field
+    block_grid.y = nz - 1;
+
+    // calculate ivt
+    compute_ivt<<<block_grid,thread_grid>>>(ivt, pflux, pmask, plev, nxy);
+    if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
-        // dp over the slice
-        num_t h2 = num_t(0.5) * (plev[k+1] - plev[k]);
-
-        // the current two x-y-planes of data
-        unsigned long knxy = k*nxy;
-        num_t *f_k0 = pflux + knxy;
-        num_t *f_k1 = f_k0 + nxy;
-
-        char *mask_k0 = pmask + knxy;
-        char *mask_k1 = mask_k0 + nxy;
-
-        // accumulate this plane of data using trapezoid rule
-        compute_ivt<<<block_grid,thread_grid>>>(ivt,
-            f_k0, f_k1, mask_k0, mask_k1, h2, nxy);
-
-        if ((ierr = cudaGetLastError()) != cudaSuccess)
-        {
-            TECA_ERROR("Failed to launch the compute_ivt CUDA kernel"
-                << cudaGetErrorString(ierr))
-            return -1;
-        }
+        TECA_ERROR("Failed to launch the compute_ivt CUDA kernel"
+            << cudaGetErrorString(ierr))
+        return -1;
     }
 
-    // check the sign, in this way we can handle both increasing and decreasing
-    // pressure coordinates
-    num_t s = plev[1] - plev[0] < num_t(0) ? num_t(-1) : num_t(1);
+    // correct the y block dimension for 2D field
+    block_grid.y = 1;
 
-    // scale by -1/g
-    num_t m1g = s/num_t(9.80665);
-
-    scale_ivt<<<block_grid,thread_grid>>>(ivt, m1g, nxy);
+    // scale the result
+    scale_ivt<<<block_grid,thread_grid>>>(ivt, plev, nxy);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
         TECA_ERROR("Failed to launch the scale_ivt CUDA kernel"
@@ -320,7 +367,7 @@ int dispatch(int device_id, size_t nx, size_t ny, size_t nz,
         p.get(), _COORDS,
 
         auto sp_p = static_cast<TT_COORDS*>
-            (p.get())->get_cpu_accessible();
+            (p.get())->get_cuda_accessible();
 
         const NT_COORDS *p_p = sp_p.get();
 
