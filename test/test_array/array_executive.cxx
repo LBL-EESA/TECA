@@ -1,20 +1,19 @@
 #include "array_executive.h"
 
 #include "teca_common.h"
+#if defined(TECA_HAS_CUDA)
+#include "teca_cuda_util.h"
+#endif
 
 #include <string>
 #include <iostream>
 #include <deque>
 
-namespace teca_cuda_util
-{
-int get_local_cuda_devices(MPI_Comm comm, std::deque<int> &local_dev);
-}
-
 using std::vector;
 using std::string;
 using std::cerr;
 using std::endl;
+
 
 // --------------------------------------------------------------------------
 int array_executive::initialize(MPI_Comm comm, const teca_metadata &md)
@@ -69,7 +68,7 @@ int array_executive::initialize(MPI_Comm comm, const teca_metadata &md)
     }
 
     // determine the available CUDA GPUs
-    std::deque<int> device_ids;
+    std::vector<int> device_ids;
 #if defined(TECA_HAS_CUDA)
     if (teca_cuda_util::get_local_cuda_devices(comm, device_ids))
     {

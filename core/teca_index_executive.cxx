@@ -1,6 +1,9 @@
 #include "teca_index_executive.h"
 #include "teca_config.h"
 #include "teca_common.h"
+#if defined(TECA_HAS_CUDA)
+#include "teca_cuda_util.h"
+#endif
 
 #include <string>
 #include <sstream>
@@ -8,10 +11,6 @@
 #include <utility>
 #include <deque>
 
-namespace teca_cuda_util
-{
-int get_local_cuda_devices(MPI_Comm comm, std::deque<int> &local_dev);
-}
 
 // --------------------------------------------------------------------------
 teca_index_executive::teca_index_executive()
@@ -149,7 +148,7 @@ int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
 
     // determine the available CUDA GPUs
 #if defined(TECA_HAS_CUDA)
-    std::deque<int> device_ids;
+    std::vector<int> device_ids;
     if (teca_cuda_util::get_local_cuda_devices(comm, device_ids))
     {
         TECA_WARNING("Failed to determine the local CUDA device_ids."
