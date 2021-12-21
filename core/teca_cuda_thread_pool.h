@@ -22,18 +22,32 @@
 #include <deque>
 #endif
 
-namespace teca_cuda_util
-{
-int get_local_cuda_devices(MPI_Comm comm, std::deque<int> &local_dev);
-}
 
 template <typename task_t, typename data_t>
 class teca_cuda_thread_pool;
 
+/// a shared pointer managing a teca_cuda_thread_pool instance.
 template <typename task_t, typename data_t>
 using p_teca_cuda_thread_pool = std::shared_ptr<teca_cuda_thread_pool<task_t, data_t>>;
 
+
 /// A class to manage a fixed size pool of threads that dispatch work.
+/** Each thread in the pool services a specific CUDA device or CPU core. During
+ * execution each thread assigns work via the device_id request key to the CUDA
+ * device or CPU which it services. The default number of threads per CUDA
+ * device is 8. This can be overriden via the n_threads_per_device parameter or
+ * the TECA_THREADS_PER_CUDA_DEVICE environment variable. Once a CUDA device
+ * reaches the maximum specified number of threads per device, no more threads
+ * will assign work to it.  Once all available CUDA devices reach the maximum
+ * specified number of threads per device, all remaining threads in the pool
+ * will assign work to the CPU cores to which they are bound.
+ *
+ * Upstream algorithms must examine the device_id field in the request to
+ * determine which CUDA device or CPU they should use for calculations.  The
+ * algorithm should allocate memory and invoke computations only on the
+ * assigned device.  Algorithms that do not support calculation on CUDA GPU
+ * will ignore the assignment and make use of the CPU.
+ */
 template <typename task_t, typename data_t>
 class TECA_EXPORT teca_cuda_thread_pool
 {
@@ -44,7 +58,8 @@ public:
     /** construct/destruct the thread pool.
      *
      *   @param[in] comm      communicator over which to map threads. Use
-     *                        MPI_COMM_SELF for local mapping.
+     *                        MPI_COMM_SELF for local mapping and MPI_COMM_NULL
+     *                        to exclude this process from execution.
      *
      *   @param[in] n_threads number of threads to create for the pool. -1 will
      *                        create 1 thread per physical CPU core.  all MPI
