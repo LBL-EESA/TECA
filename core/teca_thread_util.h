@@ -65,7 +65,8 @@ namespace teca_thread_util
  */
 TECA_EXPORT
 int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
-    bool bind, bool verbose, int &n_threads, std::deque<int> &affinity);
+    int n_threads_per_device, bool bind, bool verbose, int &n_threads,
+    std::deque<int> &affinity, std::vector<int> &device_ids);
 };
 
 #endif

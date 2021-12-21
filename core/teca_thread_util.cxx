@@ -1,4 +1,9 @@
 #include "teca_thread_util.h"
+#include "teca_system_util.h"
+
+#if defined(TECA_HAS_CUDA)
+#include "teca_cuda_util.h"
+#endif
 
 #if defined(_GNU_SOURCE)
 #include <cstring>
@@ -171,7 +176,7 @@ int detect_cpu_topology(int &n_threads, int &n_threads_per_core)
 
 // **************************************************************************
 int generate_report(MPI_Comm comm, int local_proc, int base_id,
-    const std::deque<int> &afin)
+    const std::deque<int> &afin, const std::vector<int> &dev)
 {
 #if !defined(TECA_HAS_MPI)
     (void)comm;
@@ -224,7 +229,6 @@ int generate_report(MPI_Comm comm, int local_proc, int base_id,
 #endif
     }
 
-
     // gather host names
     std::vector<char> hosts;
     if (rank == 0)
@@ -266,6 +270,7 @@ int generate_report(MPI_Comm comm, int local_proc, int base_id,
 #endif
     }
 
+    std::vector<int> devs;
     std::vector<int> afins;
     std::vector<int> displ;
     if (rank == 0)
@@ -277,18 +282,32 @@ int generate_report(MPI_Comm comm, int local_proc, int base_id,
             displ[i] = accum;
             accum += recv_cnt[i];
         }
+
         afins.resize(accum);
         for (int i = 0; i < recv_cnt[0]; ++i)
             afins[i] = afin[i];
+
+        devs.resize(accum);
+        for (int i = 0; i < recv_cnt[0]; ++i)
+            devs[i] = dev[i];
+
 #if defined(TECA_HAS_MPI)
         if (is_init)
+        {
             MPI_Gatherv(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, afins.data(),
                 recv_cnt.data(), displ.data(), MPI_INT, 0, comm);
+
+            MPI_Gatherv(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, devs.data(),
+                recv_cnt.data(), displ.data(), MPI_INT, 0, comm);
+        }
     }
     else
     {
         afins.assign(afin.begin(), afin.end());
         MPI_Gatherv(afins.data(), afins.size(), MPI_INT, nullptr,
+            nullptr, nullptr, MPI_DATATYPE_NULL, 0, comm);
+
+        MPI_Gatherv(dev.data(), dev.size(), MPI_INT, nullptr,
             nullptr, nullptr, MPI_DATATYPE_NULL, 0, comm);
 #endif
     }
@@ -304,7 +323,11 @@ int generate_report(MPI_Comm comm, int local_proc, int base_id,
 
             for (int j = 0; j < recv_cnt[i]; ++j)
             {
-                oss << afins[displ[i]+j] << " ";
+                int q = displ[i]+j;
+                oss << afins[q];
+                if (devs[q] >= 0)
+                    oss << "(" << devs[q] << ")";
+                oss << " ";
             }
             oss << (i<n_ranks-1 ? "\n" : "");
         }
@@ -317,16 +340,58 @@ int generate_report(MPI_Comm comm, int local_proc, int base_id,
 
 // **************************************************************************
 int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
-    bool bind, bool verbose, int &n_threads, std::deque<int> &affinity)
+    int n_per_device, bool bind, bool verbose, int &n_threads,
+    std::deque<int> &affinity, std::vector<int> &device_ids)
 {
+#if !defined(TECA_HAS_CUDA)
+    (void) n_per_device;
+#endif
+
     // this rank is excluded from computations
     if (comm == MPI_COMM_NULL)
         return 0;
+
+#if defined(TECA_HAS_MPI)
+    int is_init = 0;
+    int rank = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
+    {
+        MPI_Comm_rank(comm, &rank);
+    }
+#endif
 
     // initialize to the user provided value. This will be used if
     // the functions needed to set affinity are not present. In that
     // case we set n_threads to 1 and report the failure.
     n_threads = n_requested;
+
+#if defined(TECA_HAS_CUDA)
+    // determine the available CUDA GPUs
+    std::vector<int> cuda_devices;
+    if (teca_cuda_util::get_local_cuda_devices(comm, cuda_devices))
+    {
+        TECA_WARNING("Failed to determine the local CUDA devices."
+            " Falling back to the default device.")
+        cuda_devices.resize(1, 0);
+    }
+
+    int n_cuda_devices = cuda_devices.size();
+
+    // determine the number of threads to service each CUDA GPU
+    int default_per_device = 8;
+
+    if ((n_per_device < 1) &&
+        !teca_system_util::get_environment_variable
+        ("TECA_THREADS_PER_CUDA_DEVICE", n_per_device) &&
+        verbose && (rank == 0))
+    {
+        TECA_STATUS("TECA_THREADS_PER_CUDA_DEVICE = " << n_per_device)
+    }
+
+    int n_device_threads = n_cuda_devices *
+        (n_per_device < 1 ? default_per_device : n_per_device);
+#endif
 
 #if !defined(_GNU_SOURCE)
     // functions we need to set thread affinity are not available on this
@@ -336,13 +401,40 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
     (void)comm;
     (void)base_core_id;
     (void)affinity;
+
     if (n_requested < 1)
     {
         TECA_WARNING("Can not automatically detect threading parameters "
             "on this platform. The default is 1 thread per process.")
         n_threads = 1;
     }
-    return -1;
+
+#if defined(TECA_HAS_CUDA)
+    // assign CUDA device or a CPU core to eqch thread
+    if (verbose && (n_threads < n_cuda_devices))
+    {
+        TECA_WARNING(<< n_threads
+            << " threads is insufficient to service " << n_cuda_devices
+            << " CUDA devices. " << n_cuda_devices - n_threads
+            << " CUDA devices will not be utilized.")
+    }
+
+    device_ids.resize(n_threads);
+    for (int i = 0; i < n_threads; ++i)
+    {
+        // select the CUDA device [0, n_cuda_devices) that this thread will
+        // utilize. Once all devices are assigned a thread the remaining
+        // threads will make use of CPU cores, specfied by a device_id of -1
+        int device_id = -1;
+
+        if (i < n_device_threads)
+            device_id = cuda_devices[i % n_cuda_devices];
+
+        device_ids[i] = device_id;
+    }
+#else
+    device_ids.resize(n_threads, -1);
+#endif
 #else
     // get the core that this rank's main thread is running on. typically MPI
     // ranks land on unqiue cores but if needed one can use the batch system to
@@ -357,8 +449,6 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
     std::vector<int> base_core_ids;
 
 #if defined(TECA_HAS_MPI)
-    int is_init = 0;
-    MPI_Initialized(&is_init);
     if (is_init)
     {
         MPI_Comm node_comm;
@@ -419,9 +509,41 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
 
         n_threads = 1;
         affinity.push_back(base_core_id);
-
+#if defined(TECA_HAS_CUDA)
+        device_ids.push_back(n_cuda_devices < 1 ? -1 : cuda_devices[0]);
+#else
+        device_ids.push_back(-1);
+#endif
         return -1;
     }
+
+    // assign each thread to a CUDA device or CPU core
+#if defined(TECA_HAS_CUDA)
+    if (verbose && (n_threads < n_cuda_devices))
+    {
+        TECA_WARNING(<< n_threads
+            << " threads is insufficient to service " << n_cuda_devices
+            << " CUDA devices. " << n_cuda_devices - n_threads
+            << " CUDA devices will not be utilized.")
+    }
+
+    device_ids.resize(n_threads);
+    for (int i = 0; i < n_threads; ++i)
+    {
+        // select the CUDA device [0, n_cuda_devices) that thread i will
+        // utilize. Once all devices are assigned a thread the remaining
+        // threads will make use of CPU cores, specfied by setting cuda_device
+        // to -1
+        int device_id = -1;
+
+        if (i < n_device_threads)
+            device_id = cuda_devices[i % n_cuda_devices];
+
+        device_ids[i] = device_id;
+    }
+#else
+    device_ids.resize(n_threads, -1);
+#endif
 
     // stop now if we are not binding threads to cores
     if (!bind)
@@ -521,8 +643,7 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
     free(thread_use);
 
     if (verbose)
-        generate_report(comm, proc_id, base_core_id, affinity);
-
+        generate_report(comm, proc_id, base_core_id, affinity, device_ids);
 #endif
     return 0;
 }

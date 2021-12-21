@@ -976,31 +976,39 @@ struct thread_util
 // each thread.
 static
 PyObject *thread_parameters(MPI_Comm comm,
-    int n_requested, int bind, int verbose)
+    int n_requested, int bind, int n_per_device,
+    int verbose)
 {
     teca_py_gil_state gil;
 
     std::deque<int> affinity;
+    std::vector<int> device_ids;
     int n_threads = n_requested;
     if (teca_thread_util::thread_parameters(comm, -1,
-        n_requested, bind, verbose, n_threads, affinity))
+        n_requested, bind, n_per_device, verbose, n_threads,
+        affinity, device_ids))
     {
-        // caller requested automatic load balancing but this,
-        // failed.
+        // caller requested automatic load balancing but this, failed.
         PyErr_Format(PyExc_RuntimeError,
             "Failed to detect thread parameters.");
         return nullptr;
     }
 
     // convert the affinity map to a Python list
-    int len = bind ? n_threads : 0;
+    int len = affinity.size();
     PyObject *py_affinity = PyList_New(len);
     for (int i = 0; i < len; ++i)
         PyList_SET_ITEM(py_affinity, i,
             CIntToPyInteger(affinity[i]));
 
+    // convert the device_id map to a Python list
+    PyObject *py_device_ids = PyList_New(len);
+    for (int i = 0; i < len; ++i)
+        PyList_SET_ITEM(py_device_ids, i,
+            CIntToPyInteger(device_ids[i]));
+
     // return the number of threads and affinity map
-    return Py_BuildValue("(iN)", n_threads, py_affinity);
+    return Py_BuildValue("(iNN)", n_threads, py_affinity, py_device_ids);
 }
 };
 %}

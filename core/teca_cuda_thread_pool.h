@@ -8,6 +8,7 @@
 #include "teca_threadsafe_queue.h"
 #include "teca_mpi.h"
 
+#include <sstream>
 #include <vector>
 #include <thread>
 #include <atomic>
@@ -114,21 +115,17 @@ teca_cuda_thread_pool<task_t, data_t>::teca_cuda_thread_pool(MPI_Comm comm,
 // --------------------------------------------------------------------------
 template <typename task_t, typename data_t>
 void teca_cuda_thread_pool<task_t, data_t>::create_threads(MPI_Comm comm,
-    int n_requested, int n_threads_per_device, bool bind, bool verbose)
+    int n_requested, int n_per_device, bool bind, bool verbose)
 {
-#if defined(TECA_HAS_MPI)
-    // this rank is excluded from computations
-    if (comm == MPI_COMM_NULL)
-        return;
-#endif
-
     int n_threads = n_requested;
 
     // determine available CPU cores
     std::deque<int> core_ids;
+    std::vector<int> device_ids;
 
     if (teca_thread_util::thread_parameters(comm, -1,
-        n_requested, bind, verbose, n_threads, core_ids))
+        n_requested, n_per_device, bind, verbose, n_threads,
+        core_ids, device_ids))
     {
         TECA_WARNING("Failed to detetermine thread parameters."
             " Falling back to 1 thread, affinity disabled.")
@@ -137,57 +134,26 @@ void teca_cuda_thread_pool<task_t, data_t>::create_threads(MPI_Comm comm,
         bind = false;
     }
 
-    // determine the available CUDA GPUs
-#if defined(TECA_HAS_CUDA)
-    std::deque<int> cuda_devices;
-    if (teca_cuda_util::get_local_cuda_devices(comm, cuda_devices))
-    {
-        TECA_WARNING("Failed to determine the local CUDA devices."
-            " Falling back to the default device.")
-        cuda_devices.resize(1, 0);
-    }
-    int n_cuda_devices = cuda_devices.size();
-
-    if (n_threads < n_cuda_devices)
-    {
-        TECA_WARNING(<< n_threads
-            << " threads is insufficient to service " << n_cuda_devices
-            << " CUDA devices. " << n_cuda_devices - n_threads
-            << " CUDA devices will not be utilized.")
-    }
-#endif
-
-    int n_device_threads = n_threads_per_device < 1 ?
-        n_threads : n_cuda_devices * n_threads_per_device;
-
     for (int i = 0; i < n_threads; ++i)
     {
-        // select the CUDA device [0, n_cuda_devices) that this thread will
-        // utilize. Once all devices are assigned a thread the remaining
-        // threads will make use of CPU cores, specfied by setting cuda_device
-        // to -1
-        int device_id = -1;
-        if (i < n_device_threads)
-            device_id = cuda_devices[i % n_cuda_devices];
-
-         m_threads.push_back(std::thread([this, device_id]()
-         {
-             // "main" for each thread in the pool
-             while (m_live.load())
-             {
-                 task_t task;
-                 if (m_queue.try_pop(task))
-                     task(device_id);
-                 else
-                     std::this_thread::yield();
-             }
-         }));
+        int device_id = device_ids[i];
+        m_threads.push_back(std::thread([this, device_id]()
+        {
+            // "main" for each thread in the pool
+            while (m_live.load())
+            {
+                task_t task;
+                if (m_queue.try_pop(task))
+                    task(device_id);
+                else
+                    std::this_thread::yield();
+            }
+        }));
 #if defined(_GNU_SOURCE)
         // bind each to a hyperthread
         if (bind)
         {
-            int core_id = core_ids.front();
-            core_ids.pop_front();
+            int core_id = core_ids[i];
 
             cpu_set_t core_mask;
             CPU_ZERO(&core_mask);

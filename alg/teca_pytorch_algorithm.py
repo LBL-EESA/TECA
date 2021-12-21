@@ -144,8 +144,8 @@ class teca_pytorch_algorithm(teca_python_algorithm):
                 # let the user request a specific number of threads
                 n_threads = self.n_threads
 
-                n_threads, affinity = \
-                    thread_util.thread_parameters(comm, n_threads, 1,
+                n_threads, affinity, device_ids = \
+                    thread_util.thread_parameters(comm, n_threads, 1, -1,
                                                   0 if self.verbose < 2 else 1)
 
                 # let the user request a bound on the number of threads

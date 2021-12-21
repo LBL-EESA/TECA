@@ -183,12 +183,14 @@ int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
         size_t index = i + block_start + first;
         if ((index % this->stride) == 0)
         {
+            int device_id = -1;
+
 #if defined(TECA_HAS_CUDA)
             // assign eaach request a device to execute on
-            int device_id = device_ids[q % n_devices];
+            if (n_devices > 0)
+                device_id = device_ids[q % n_devices];
+
             ++q;
-#else
-            int device_id = -1;
 #endif
             this->requests.push_back(base_req);
             this->requests.back().set("index_request_key", this->index_request_key);
@@ -208,6 +210,10 @@ int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
             << " first=" << this->start_index << " last=" << this->end_index
             << " stride=" << this->stride << " block_start=" << block_start + first
             << " block_size=" << block_size;
+#if defined(TECA_HAS_CUDA)
+        oss << " n_cuda_devices=" << device_ids.size()
+            << " device_ids=" << device_ids;
+#endif
         std::cerr << oss.str() << std::endl;
     }
 
@@ -252,6 +258,12 @@ teca_metadata teca_index_executive::get_next_request()
                 oss << " bounds=" << bds[0] << ", " << bds[1] << ", "
                     << bds[2] << ", " << bds[3] << ", " << bds[4] << ", " << bds[5];
             }
+
+#if defined(TECA_HAS_CUDA)
+            int device_id = -1;
+            req.get("device_id", device_id);
+            oss << " device_id=" << device_id;
+#endif
 
             std::cerr << oss.str() << std::endl;
         }

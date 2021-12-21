@@ -78,8 +78,7 @@ int array_executive::initialize(MPI_Comm comm, const teca_metadata &md)
         device_ids.resize(1, 0);
     }
 #endif
-    // add the CPU
-    //device_ids.push_back(-1);
+
     int n_devices = device_ids.size();
 
     // add the CPU
@@ -113,7 +112,9 @@ int array_executive::initialize(MPI_Comm comm, const teca_metadata &md)
 #ifndef TECA_NDEBUG
     cerr << teca_parallel_id()
         << "array_executive::initialize n_times="
-        << n_times << " n_arrays=" << n_arrays << endl;
+        << n_times << " n_arrays=" << n_arrays
+        << " n_devices=" << device_ids.size()
+        << " device_ids=" << device_ids << endl;
 #endif
 
     return 0;

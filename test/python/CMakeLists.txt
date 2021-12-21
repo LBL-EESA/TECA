@@ -481,16 +481,17 @@ teca_add_test(py_test_config
 
 teca_add_test(py_test_thread_parameters_serial
     COMMAND ${PYTHON_EXECUTABLE}
-    "${CMAKE_CURRENT_SOURCE_DIR}/test_thread_parameters.py")
+    "${CMAKE_CURRENT_SOURCE_DIR}/test_thread_parameters.py"
+    FEATURES ${MPI4Py_FOUND})
 
 teca_add_test(py_test_thread_parameters_mpi
     COMMAND ${MPIEXEC} -n ${TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
-    "${CMAKE_CURRENT_SOURCE_DIR}/test_thread_parameters.py"
+    "${CMAKE_CURRENT_SOURCE_DIR}/test_thread_parameters_mpi.py"
     FEATURES ${MPI4Py_FOUND})
 
 teca_add_test(py_test_thread_parameters_mpi_threads
     COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
-    "${CMAKE_CURRENT_SOURCE_DIR}/test_thread_parameters.py"
+    "${CMAKE_CURRENT_SOURCE_DIR}/test_thread_parameters_mpi.py"
     FEATURES ${MPI4Py_FOUND} ${TEST_MPI_THREADS})
 
 teca_add_test(py_test_calendaring
