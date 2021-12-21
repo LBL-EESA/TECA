@@ -90,41 +90,83 @@ int cpuid(uint64_t leaf, uint64_t level, uint64_t& ra, uint64_t& rb,
 }
 
 // **************************************************************************
+void to_str(char *dest, uint64_t rx)
+{
+    char *crx = (char*)&rx;
+    dest[0] = crx[0];
+    dest[1] = crx[1];
+    dest[2] = crx[2];
+    dest[3] = crx[3];
+}
+
+// **************************************************************************
 int detect_cpu_topology(int &n_threads, int &n_threads_per_core)
 {
-    // TODO: to do this correctly we need to detect number of chips per
-    // board, and if hyperthreading has been enabled. for more info:
-    // https://software.intel.com/en-us/articles/intel-64-architecture-processor-topology-enumeration/
-    // see specifically table A3.
-
     // defaults should cpuid fail on this platform. hyperthreads are
     // treated as cores. this will lead to poor performance but without
     // cpuid we can't distinguish physical cores from hyperthreads.
     n_threads = std::thread::hardware_concurrency();
     n_threads_per_core = 1;
 
-    // check if topology leaf is supported on this processor.
+    // check if we have Intel or AMD
     uint64_t ra = 0, rb = 0, rc = 0, rd = 0;
-    if (teca_thread_util::cpuid(0, 0, ra, rb, rc, rd) || (ra < 0xb))
+    if (teca_thread_util::cpuid(0, 0, ra, rb, rc, rd))
         return -1;
 
-    // this is all Intel specific, AMD uses a different leaf in cpuid
-    // rax=0xb, rcx=i  get's the topology leaf level i
-    uint64_t level = 0;
-    do
+    char vendor[13];
+    to_str(vendor    , rb);
+    to_str(vendor + 4, rd);
+    to_str(vendor + 8, rc);
+    vendor[12] = '\0';
+
+    if (strcmp(vendor, "GenuineIntel") == 0)
     {
-        teca_thread_util::cpuid(0xb, level, ra, rb, rc, rd);
-        n_threads = ((rc&0x0ff00) == 0x200) ? (0xffff&rb) : n_threads;
-        n_threads_per_core = ((rc&0x0ff00) == 0x100) ? (0xffff&rb) : n_threads_per_core;
-        level += 1;
+        // TODO: to do this correctly we need to detect number of chips per
+        // board, and if hyperthreading has been enabled. for more info:
+        // https://software.intel.com/en-us/articles/intel-64-architecture-processor-topology-enumeration/
+        // see specifically table A3.
+
+        // check if topology leaf is supported on this processor.
+        if (teca_thread_util::cpuid(0, 0, ra, rb, rc, rd) || (ra < 0xb))
+            return -1;
+
+        // this is all Intel specific, AMD uses a different leaf in cpuid
+        // rax=0xb, rcx=i  get's the topology leaf level i
+        uint64_t level = 0;
+        do
+        {
+            teca_thread_util::cpuid(0xb, level, ra, rb, rc, rd);
+            n_threads = ((rc&0x0ff00) == 0x200) ? (0xffff&rb) : n_threads;
+            n_threads_per_core = ((rc&0x0ff00) == 0x100) ? (0xffff&rb) : n_threads_per_core;
+            level += 1;
+        }
+        while ((0xff00&rc) && (level < 16));
+
+        // this should ever occur on intel cpu.
+        if (level == 16)
+            return -1;
+
+        return 0;
     }
-    while ((0xff00&rc) && (level < 16));
+    else if (strcmp(vendor, "AuthenticAMD") == 0)
+    {
+        // hyperthreading in bit 28 of edx
+        ra = 0, rb = 0, rc = 0, rd = 0;
+        cpuid(0x01, 0x0, ra, rb, rc, rd);
 
-    // this should ever occur on intel cpu.
-    if (level == 16)
-        return -1;
+        if (rd & 0x010000000)
+            n_threads_per_core = 2;
 
-    return 0;
+        // core count in byte 0 of ecx
+        ra = 0, rb = 0, rc = 0, rd = 0;
+        cpuid(0x80000008, 0x0, ra, rb, rc, rd);
+
+        n_threads = (rc & 0x0ff) + 1;
+
+        return 0;
+    }
+
+    return -1;
 }
 
 // **************************************************************************
