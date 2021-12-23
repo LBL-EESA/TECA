@@ -333,6 +333,18 @@ class teca_variant_array;
     {
         return teca_variant_array___getitem__(self, i);
     }
+
+    PyObject *get_array_interface()
+    {
+        teca_py_gil_state gil;
+        return teca_py_array::new_array_interface(self);
+    }
+
+    %pythoncode
+    {
+    __array_struct__ = property(get_array_interface, None, None, 'Numpy ArrayInterface')
+    }
+
 }
 TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(double, double)
 TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(float, float)

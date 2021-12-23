@@ -13,6 +13,7 @@
 #include "teca_common.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_py_common.h"
 
 /// Codes for interfacing with numpy arrays
 namespace teca_py_array
@@ -56,25 +57,32 @@ CPP_T -- corresponding C++ type
 template <typename cpp_t> struct TECA_EXPORT numpy_tt
 {};
 
-#define teca_py_array_numpy_tt_declare(CODE, CPP_T) \
-template <> struct numpy_tt<CPP_T>                  \
-{                                                   \
-    enum { code = CODE };                           \
-    static bool is_type(PyArrayObject *arr)         \
-    { return PyArray_TYPE(arr) == CODE; }           \
+#define teca_py_array_numpy_tt_declare(CODE, KIND, CPP_T)   \
+template <> struct numpy_tt<CPP_T>                          \
+{                                                           \
+    enum { code = CODE };                                   \
+                                                            \
+    static bool is_type(PyArrayObject *arr)                 \
+    { return PyArray_TYPE(arr) == CODE; }                   \
+                                                            \
+    static constexpr char typekind()                        \
+    { return KIND; }                                        \
+                                                            \
+    static constexpr int itemsize()                         \
+    { return sizeof(CPP_T); }                               \
 };
-teca_py_array_numpy_tt_declare(NPY_INT8, char)
-teca_py_array_numpy_tt_declare(NPY_INT16, short)
-teca_py_array_numpy_tt_declare(NPY_INT32, int)
-teca_py_array_numpy_tt_declare(NPY_LONG, long)
-teca_py_array_numpy_tt_declare(NPY_INT64, long long)
-teca_py_array_numpy_tt_declare(NPY_UINT8, unsigned char)
-teca_py_array_numpy_tt_declare(NPY_UINT16, unsigned short)
-teca_py_array_numpy_tt_declare(NPY_UINT32, unsigned int)
-teca_py_array_numpy_tt_declare(NPY_ULONG, unsigned long)
-teca_py_array_numpy_tt_declare(NPY_UINT64, unsigned long long)
-teca_py_array_numpy_tt_declare(NPY_FLOAT, float)
-teca_py_array_numpy_tt_declare(NPY_DOUBLE, double)
+teca_py_array_numpy_tt_declare(NPY_INT8, 'i', char)
+teca_py_array_numpy_tt_declare(NPY_INT16, 'i', short)
+teca_py_array_numpy_tt_declare(NPY_INT32, 'i', int)
+teca_py_array_numpy_tt_declare(NPY_LONG, 'i', long)
+teca_py_array_numpy_tt_declare(NPY_INT64, 'i', long long)
+teca_py_array_numpy_tt_declare(NPY_UINT8, 'u', unsigned char)
+teca_py_array_numpy_tt_declare(NPY_UINT16, 'u', unsigned short)
+teca_py_array_numpy_tt_declare(NPY_UINT32, 'u', unsigned int)
+teca_py_array_numpy_tt_declare(NPY_ULONG, 'u', unsigned long)
+teca_py_array_numpy_tt_declare(NPY_UINT64, 'u', unsigned long long)
+teca_py_array_numpy_tt_declare(NPY_FLOAT, 'f', float)
+teca_py_array_numpy_tt_declare(NPY_DOUBLE, 'f', double)
 
 // CPP_T - array type to match
 // OBJ - PyArrayObject* instance
@@ -377,6 +385,107 @@ PyArrayObject *new_object(teca_variant_array *varr)
         )
     return nullptr;
 }
-};
 
+/** Delete an instance of Numpy ArrayInterface structure created by
+ * ::new_array_interface
+ */
+template <typename NT>
+TECA_EXPORT
+void delete_array_interface(PyObject *cap)
+{
+    std::cerr << "==== delete_array_interface ====" << std::endl;
+
+    // relerase our vreference to the data
+    std::shared_ptr<NT> *ptr = (std::shared_ptr<NT>*)PyCapsule_GetContext(cap);
+    (*ptr) = nullptr;
+
+    // free the ArrayIntergface
+    PyArrayInterface *nai = (PyArrayInterface*)
+        PyCapsule_GetPointer(cap, nullptr);
+
+    free(nai->shape);
+    free(nai);
+
+    std::cerr << "cap = " << cap << " nai = "  << nai
+        << " ptr = " << (*ptr).get() << std::endl;
+}
+
+/** Creates an instance of Numpy ArrayInterface structure pointing to data
+ * from the passed ::teca_variant_array
+ */
+// **************************************************************************
+TECA_EXPORT
+PyObject *new_array_interface(teca_variant_array *varr)
+{
+    std::cerr << "==== new_array_interface ====" << std::endl;
+
+    TEMPLATE_DISPATCH(teca_variant_array_impl, varr,
+        TT *varrt = static_cast<TT*>(varr);
+
+        // get a pointer to the data
+        std::shared_ptr<NT> *ptr = new std::shared_ptr<NT>();
+        (*ptr) = varrt->get_cpu_accessible();
+
+        // calculate the shape and stride
+        npy_intp nx = varrt->size();
+        npy_intp ny = 1;
+        npy_intp nz = 1;
+
+        int nd = 1 + (ny > 1 ? 1 : 0) + (nz > 1 ? 1 : 0);
+
+        npy_intp *tmp = (npy_intp*)malloc(2*nd*sizeof(npy_intp));
+        npy_intp *shape = tmp;
+        npy_intp *stride = tmp + nd;
+
+        int q = 0;
+        if (nz > 1)
+        {
+            shape[q] = nz;
+            stride[q] = nx*ny*sizeof(NT);
+            ++q;
+        }
+
+        if (ny > 1)
+        {
+            shape[q] = ny;
+            stride[q] = nx*sizeof(NT);
+            ++q;
+        }
+
+        shape[q] = nx;
+        stride[q] = sizeof(NT);
+
+        // construct the array interface
+        PyArrayInterface *nai = (PyArrayInterface*)
+            malloc(sizeof(PyArrayInterface));
+
+        memset(nai, 0, sizeof(PyArrayInterface));
+
+        nai->two = 2;
+        nai->nd = nd;
+        nai->typekind = numpy_tt<NT>::typekind();
+        nai->itemsize = sizeof(NT);
+        nai->shape = shape;
+        nai->strides = stride;
+        nai->data = (*ptr).get();
+        nai->flags = NPY_ARRAY_NOTSWAPPED | NPY_ARRAY_ALIGNED |
+            NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_WRITEABLE;
+
+        // package into a capsule
+        PyObject *cap = PyCapsule_New(nai, nullptr, delete_array_interface<NT>);
+
+        // save the shared pointer to the data which keeps it alive as long
+        // as the capsule.
+        PyCapsule_SetContext(cap, ptr);
+
+        std::cerr << "cap = " << cap << " nai = "  << nai
+            << " ptr = " << (*ptr).get() << std::endl;
+
+        return cap;
+        )
+    TECA_PY_ERROR(PyExc_RuntimeError, "Invalid array type")
+    return nullptr;
+}
+
+}
 #endif

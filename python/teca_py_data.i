@@ -264,6 +264,30 @@ TECA_PY_CONST_CAST(teca_cartesian_mesh)
     TECA_PY_DATASET_METADATA(std::string, y_coordinate_variable)
     TECA_PY_DATASET_METADATA(std::string, z_coordinate_variable)
     TECA_PY_DATASET_METADATA(std::string, t_coordinate_variable)
+
+    %pythoncode
+    %{
+    def get_point_centered_array(self, array_name):
+        """
+        Get the specified point centered array as a Numpy array shaped to the
+        mesh dimensions
+        """
+
+        # get the array
+        va = self.get_point_arrays().get(array_name)
+        vanp = np.array(va)
+
+        # reshape
+        ext = self.get_extent()
+
+        nx = ext[1] - ext[0] + 1
+        ny = ext[3] - ext[2] + 1
+        nz = ext[5] - ext[4] + 1
+
+        vanp = vanp.reshape((nz, ny, nx))
+
+        return vanp
+    %}
 }
 
 /***************************************************************************
