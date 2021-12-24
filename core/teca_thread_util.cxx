@@ -6,79 +6,19 @@
 #endif
 
 #if defined(_GNU_SOURCE)
-#include <cstring>
 #include <utility>
 #include <cstdint>
-#include <sstream>
-#include <iomanip>
 #include <functional>
 #include <limits>
-#include <thread>
-#include <vector>
 #endif
+#include <iomanip>
+#include <thread>
+#include <cstring>
+#include <vector>
+#include <sstream>
 
 namespace teca_thread_util
 {
-
-#if defined(_GNU_SOURCE)
-struct closest_core
-{
-    closest_core(int base_id, int n_cores)
-        : m_base_id(base_id%n_cores) {}
-
-    int operator()(int qq) const
-    { return std::abs(m_base_id-qq); }
-
-    int m_base_id;
-};
-
-struct closest_hyperthread
-{
-    closest_hyperthread(int base_id, int n_cores)
-        : m_base_id(base_id%n_cores), m_n_cores(n_cores) {}
-
-    int operator()(int qq) const
-    { return std::abs(m_base_id-(qq%m_n_cores)); }
-
-    int m_base_id;
-    int m_n_cores;
-};
-
-struct least_used_hyperthread
-{
-    least_used_hyperthread(int *hyperthreads) :
-        m_hyperthreads(hyperthreads) {}
-
-    int operator()(int qq) const
-    { return m_hyperthreads[qq]; }
-
-    int *m_hyperthreads;
-};
-
-// **************************************************************************
-int select(int n_slots, int *slots, bool any_slot,
-    const std::function<int(int)> &dist_to)
-{
-    // scan for empy core, compute the distance, select the closest
-    int q = std::numeric_limits<int>::max();
-    int d = std::numeric_limits<int>::max();
-    for (int qq = 0; qq < n_slots; ++qq)
-    {
-        if (any_slot || !slots[qq])
-        {
-            // this core is empty, prefer the closest
-            int dd = dist_to(qq);
-            if (dd <= d)
-            {
-                d = dd;
-                q = qq;
-            }
-        }
-
-    }
-    return q;
-}
-
 // **************************************************************************
 int cpuid(uint64_t leaf, uint64_t level, uint64_t& ra, uint64_t& rb,
     uint64_t& rc, uint64_t& rd)
@@ -173,6 +113,66 @@ int detect_cpu_topology(int &n_threads, int &n_threads_per_core)
 
     return -1;
 }
+
+#if defined(_GNU_SOURCE)
+struct closest_core
+{
+    closest_core(int base_id, int n_cores)
+        : m_base_id(base_id%n_cores) {}
+
+    int operator()(int qq) const
+    { return std::abs(m_base_id-qq); }
+
+    int m_base_id;
+};
+
+struct closest_hyperthread
+{
+    closest_hyperthread(int base_id, int n_cores)
+        : m_base_id(base_id%n_cores), m_n_cores(n_cores) {}
+
+    int operator()(int qq) const
+    { return std::abs(m_base_id-(qq%m_n_cores)); }
+
+    int m_base_id;
+    int m_n_cores;
+};
+
+struct least_used_hyperthread
+{
+    least_used_hyperthread(int *hyperthreads) :
+        m_hyperthreads(hyperthreads) {}
+
+    int operator()(int qq) const
+    { return m_hyperthreads[qq]; }
+
+    int *m_hyperthreads;
+};
+
+// **************************************************************************
+int select(int n_slots, int *slots, bool any_slot,
+    const std::function<int(int)> &dist_to)
+{
+    // scan for empy core, compute the distance, select the closest
+    int q = std::numeric_limits<int>::max();
+    int d = std::numeric_limits<int>::max();
+    for (int qq = 0; qq < n_slots; ++qq)
+    {
+        if (any_slot || !slots[qq])
+        {
+            // this core is empty, prefer the closest
+            int dd = dist_to(qq);
+            if (dd <= d)
+            {
+                d = dd;
+                q = qq;
+            }
+        }
+
+    }
+    return q;
+}
+#endif
 
 // **************************************************************************
 int generate_report(MPI_Comm comm, int local_proc, int base_id,
@@ -336,7 +336,6 @@ int generate_report(MPI_Comm comm, int local_proc, int base_id,
 
     return 0;
 }
-#endif
 
 // **************************************************************************
 int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
@@ -354,12 +353,24 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
 #if defined(TECA_HAS_MPI)
     int is_init = 0;
     int rank = 0;
+    int n_ranks = 1;
     MPI_Initialized(&is_init);
     if (is_init)
     {
         MPI_Comm_rank(comm, &rank);
+        MPI_Comm_size(comm, &n_ranks);
     }
 #endif
+    // get the number of cores on this cpu
+    int threads_per_chip = 1;
+    int hw_threads_per_core = 1;
+    if (teca_thread_util::detect_cpu_topology(threads_per_chip, hw_threads_per_core))
+    {
+        TECA_WARNING("failed to detect cpu topology. Assuming "
+            << threads_per_chip/hw_threads_per_core << " physical cores.")
+    }
+    int threads_per_node = std::thread::hardware_concurrency();
+    int cores_per_node = threads_per_node / hw_threads_per_core;
 
     // initialize to the user provided value. This will be used if
     // the functions needed to set affinity are not present. In that
@@ -395,18 +406,44 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
 
 #if !defined(_GNU_SOURCE)
     // functions we need to set thread affinity are not available on this
-    // platform. Set 1 thread per rank and if the caller asked us to return the error.
+    // platform. Set 1 thread per rank and if the caller asked us to return the
+    // error.
     (void)bind;
     (void)verbose;
     (void)comm;
     (void)base_core_id;
     (void)affinity;
 
+    int ret = 0;
+
     if (n_requested < 1)
     {
-        TECA_WARNING("Can not automatically detect threading parameters "
-            "on this platform. The default is 1 thread per process.")
-        n_threads = 1;
+#if defined(TECA_HAS_MPI)
+        if (is_init && (n_ranks > 1))
+        {
+            ret = -1;
+            n_threads = 1;
+            if (rank == 0)
+            {
+                TECA_WARNING("Can not automatically detect thread affinity"
+                    " parameters on this platform. The default is 1 thread"
+                    " per MPI rank.")
+            }
+        }
+        else
+        {
+#endif
+            // MPI is not in use, assume we have exclusive access to all CPU
+            // cores
+            n_threads = cores_per_node;
+            affinity.resize(cores_per_node);
+            for (int i = 0; i < n_threads; ++i)
+            {
+                affinity[i] = i;
+            }
+#if defined(TECA_HAS_MPI)
+        }
+#endif
     }
 
 #if defined(TECA_HAS_CUDA)
@@ -435,6 +472,10 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
 #else
     device_ids.resize(n_threads, -1);
 #endif
+    if (!ret && verbose)
+        generate_report(comm, 0, 0, affinity, device_ids);
+
+    return ret;
 #else
     // get the core that this rank's main thread is running on. typically MPI
     // ranks land on unqiue cores but if needed one can use the batch system to
@@ -473,17 +514,6 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
 #else
     base_core_ids.push_back(base_core_id);
 #endif
-
-    // get the number of cores on this cpu
-    int threads_per_chip = 1;
-    int hw_threads_per_core = 1;
-    if (teca_thread_util::detect_cpu_topology(threads_per_chip, hw_threads_per_core))
-    {
-        TECA_WARNING("failed to detect cpu topology. Assuming "
-            << threads_per_chip/hw_threads_per_core << " physical cores.")
-    }
-    int threads_per_node = std::thread::hardware_concurrency();
-    int cores_per_node = threads_per_node/hw_threads_per_core;
 
     // thread pool size is based on core and process count
     int nlg = 0;
