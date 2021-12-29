@@ -397,7 +397,10 @@ void delete_array_interface(PyObject *cap)
 
     // relerase our vreference to the data
     std::shared_ptr<NT> *ptr = (std::shared_ptr<NT>*)PyCapsule_GetContext(cap);
-    (*ptr) = nullptr;
+    ptr->reset();
+    delete ptr;
+
+    //(*ptr) = nullptr;
 
     // free the ArrayIntergface
     PyArrayInterface *nai = (PyArrayInterface*)
@@ -407,7 +410,7 @@ void delete_array_interface(PyObject *cap)
     free(nai);
 
     std::cerr << "cap = " << cap << " nai = "  << nai
-        << " ptr = " << (*ptr).get() << std::endl;
+        << std::endl;
 }
 
 /** Creates an instance of Numpy ArrayInterface structure pointing to data
@@ -422,7 +425,10 @@ PyObject *new_array_interface(teca_variant_array *varr)
     TEMPLATE_DISPATCH(teca_variant_array_impl, varr,
         TT *varrt = static_cast<TT*>(varr);
 
-        // get a pointer to the data
+        // get a pointer to the data. this will ensure that the passed data lives
+        // at least as long as the ArrayInterface structure iteself. However,
+        // Numpy takes a reference to the PyObject providing the ArrayInterface
+        // and it is that reference will keep the data alive.
         std::shared_ptr<NT> *ptr = new std::shared_ptr<NT>();
         (*ptr) = varrt->get_cpu_accessible();
 
@@ -479,7 +485,7 @@ PyObject *new_array_interface(teca_variant_array *varr)
         PyCapsule_SetContext(cap, ptr);
 
         std::cerr << "cap = " << cap << " nai = "  << nai
-            << " ptr = " << (*ptr).get() << std::endl;
+            << " ptr = " << (long long)((*ptr).get()) << std::endl;
 
         return cap;
         )

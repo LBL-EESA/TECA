@@ -334,7 +334,7 @@ class teca_variant_array;
         return teca_variant_array___getitem__(self, i);
     }
 
-    PyObject *get_array_interface()
+    PyObject *get_array_interface_impl()
     {
         teca_py_gil_state gil;
         return teca_py_array::new_array_interface(self);
@@ -342,9 +342,17 @@ class teca_variant_array;
 
     %pythoncode
     {
-    __array_struct__ = property(get_array_interface, None, None, 'Numpy ArrayInterface')
-    }
+    def get_array_interface(self):
+        try:
+            inter = self.inter_ref
+        except AttributeError:
+            inter = self.get_array_interface_impl()
+            self.inter_ref = inter
+        return inter
 
+    __array_struct__ = property(get_array_interface, None,
+                                None, 'Numpy PyArrayInterface')
+    }
 }
 TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(double, double)
 TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(float, float)
