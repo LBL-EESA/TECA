@@ -1,6 +1,9 @@
 #include "teca_index_executive.h"
 #include "teca_config.h"
 #include "teca_common.h"
+#if defined(TECA_HAS_CUDA)
+#include "teca_cuda_util.h"
+#endif
 
 #include <string>
 #include <sstream>
@@ -8,10 +11,6 @@
 #include <utility>
 #include <deque>
 
-namespace teca_cuda_util
-{
-int get_local_cuda_devices(MPI_Comm comm, std::deque<int> &local_dev);
-}
 
 // --------------------------------------------------------------------------
 teca_index_executive::teca_index_executive()
@@ -149,7 +148,7 @@ int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
 
     // determine the available CUDA GPUs
 #if defined(TECA_HAS_CUDA)
-    std::deque<int> device_ids;
+    std::vector<int> device_ids;
     if (teca_cuda_util::get_local_cuda_devices(comm, device_ids))
     {
         TECA_WARNING("Failed to determine the local CUDA device_ids."
@@ -183,12 +182,14 @@ int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
         size_t index = i + block_start + first;
         if ((index % this->stride) == 0)
         {
+            int device_id = -1;
+
 #if defined(TECA_HAS_CUDA)
             // assign eaach request a device to execute on
-            int device_id = device_ids[q % n_devices];
+            if (n_devices > 0)
+                device_id = device_ids[q % n_devices];
+
             ++q;
-#else
-            int device_id = -1;
 #endif
             this->requests.push_back(base_req);
             this->requests.back().set("index_request_key", this->index_request_key);
@@ -208,6 +209,10 @@ int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
             << " first=" << this->start_index << " last=" << this->end_index
             << " stride=" << this->stride << " block_start=" << block_start + first
             << " block_size=" << block_size;
+#if defined(TECA_HAS_CUDA)
+        oss << " n_cuda_devices=" << device_ids.size()
+            << " device_ids=" << device_ids;
+#endif
         std::cerr << oss.str() << std::endl;
     }
 
@@ -252,6 +257,12 @@ teca_metadata teca_index_executive::get_next_request()
                 oss << " bounds=" << bds[0] << ", " << bds[1] << ", "
                     << bds[2] << ", " << bds[3] << ", " << bds[4] << ", " << bds[5];
             }
+
+#if defined(TECA_HAS_CUDA)
+            int device_id = -1;
+            req.get("device_id", device_id);
+            oss << " device_id=" << device_id;
+#endif
 
             std::cerr << oss.str() << std::endl;
         }

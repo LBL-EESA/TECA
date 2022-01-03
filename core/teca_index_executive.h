@@ -13,6 +13,14 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_index_executive)
 
 /// An executive that generates requests using a upstream or user defined index.
 /** An extent or bounds to subset by, and list of arrays can be optionally set.
+ * This executive partitions an index set approximately equally accross the
+ * available MPI ranks. Each rank is assigned a unique set of CUDA devices if
+ * CUDA devices are available.  Within each rank requests are issued to the
+ * assigned CUDA devices by setting the device_id key in the request. Upstream
+ * algorithms should examine the device_id key and use the given device for
+ * calculaitons. A device_id of -1 indicates that the CPU should be used for
+ * calculations. Algorithms that do not have a CUDA implementation will make
+ * use of the CPU and ignore the device_id field.
  *
  * metadata keys:
  *
@@ -28,7 +36,24 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_index_executive)
  *                           name set to a specific index to be processed some
  *                           upstream algorithm is expected to produce the
  *                           data associated with the given index
-*/
+ *
+ * exports:
+ *
+ *      index_request_key -- name of the key holding the requested index
+ *
+ *      <index_request_key> -- the requested index
+ *
+ *      device_id -- the CPU (-1) or CUDA device (0 - n-1 devices) to use for
+ *                   calculations
+ *
+ *      bounds -- the [x0 x1 y0 y1 z0 z1] spatial bounds requested (optional)
+ *
+ *      extent -- the [i0 i1 j0 j1 k0 k1] index space grid extent requested
+ *                (optional)
+ *
+ *      arrays -- a list of arrays requested (optional)
+ *
+ */
 class TECA_EXPORT teca_index_executive : public teca_algorithm_executive
 {
 public:

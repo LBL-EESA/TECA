@@ -1,20 +1,19 @@
 #include "array_executive.h"
 
 #include "teca_common.h"
+#if defined(TECA_HAS_CUDA)
+#include "teca_cuda_util.h"
+#endif
 
 #include <string>
 #include <iostream>
 #include <deque>
 
-namespace teca_cuda_util
-{
-int get_local_cuda_devices(MPI_Comm comm, std::deque<int> &local_dev);
-}
-
 using std::vector;
 using std::string;
 using std::cerr;
 using std::endl;
+
 
 // --------------------------------------------------------------------------
 int array_executive::initialize(MPI_Comm comm, const teca_metadata &md)
@@ -69,7 +68,7 @@ int array_executive::initialize(MPI_Comm comm, const teca_metadata &md)
     }
 
     // determine the available CUDA GPUs
-    std::deque<int> device_ids;
+    std::vector<int> device_ids;
 #if defined(TECA_HAS_CUDA)
     if (teca_cuda_util::get_local_cuda_devices(comm, device_ids))
     {
@@ -78,8 +77,7 @@ int array_executive::initialize(MPI_Comm comm, const teca_metadata &md)
         device_ids.resize(1, 0);
     }
 #endif
-    // add the CPU
-    //device_ids.push_back(-1);
+
     int n_devices = device_ids.size();
 
     // add the CPU
@@ -113,7 +111,9 @@ int array_executive::initialize(MPI_Comm comm, const teca_metadata &md)
 #ifndef TECA_NDEBUG
     cerr << teca_parallel_id()
         << "array_executive::initialize n_times="
-        << n_times << " n_arrays=" << n_arrays << endl;
+        << n_times << " n_arrays=" << n_arrays
+        << " n_devices=" << device_ids.size()
+        << " device_ids=" << device_ids << endl;
 #endif
 
     return 0;

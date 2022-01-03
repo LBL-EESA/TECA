@@ -132,7 +132,7 @@ struct string_tt<_CPP_T>                                                        
 {                                                                                   \
     static const char *type_name() { return # _CPP_T; }                             \
                                                                                     \
-    static int convert(char *str, _CPP_T &val)                                      \
+    static int convert(const char *str, _CPP_T &val)                                \
     {                                                                               \
         errno = 0;                                                                  \
         char *endp = nullptr;                                                       \

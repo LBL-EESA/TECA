@@ -8,6 +8,7 @@
 #include "teca_mpi.h"
 
 #include <deque>
+#include <vector>
 
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -26,12 +27,12 @@ namespace teca_cuda_util
  *
  * @param[in]  comm      MPI communicator defining a set of nodes on which need
  *                       access to the available GPUS
- * @param[out] local_dev a list of device ids that can be used my the calling
+ * @param[out] local_dev a list of device ids that can be used by the calling
  *                       MPI rank.
  * @returns              non-zero on error.
  */
 TECA_EXPORT
-int get_local_cuda_devices(MPI_Comm comm, std::deque<int> &local_dev);
+int get_local_cuda_devices(MPI_Comm comm, std::vector<int> &local_dev);
 
 /// set the CUDA device. returns non-zero on error
 TECA_EXPORT

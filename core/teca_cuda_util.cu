@@ -16,7 +16,7 @@ int synchronize()
 }
 
 // **************************************************************************
-int get_local_cuda_devices(MPI_Comm comm, std::deque<int> &local_dev)
+int get_local_cuda_devices(MPI_Comm comm, std::vector<int> &local_dev)
 {
     cudaError_t ierr = cudaSuccess;
 
@@ -75,8 +75,9 @@ int get_local_cuda_devices(MPI_Comm comm, std::deque<int> &local_dev)
         }
         else
         {
-            // round robbin assignment
-            local_dev.push_back( node_rank % n_node_dev );
+            // assign at most one MPI rank per GPU
+            if (node_rank < n_node_dev)
+                local_dev.push_back( node_rank % n_node_dev );
         }
 
         MPI_Comm_free(&node_comm);
@@ -87,6 +88,7 @@ int get_local_cuda_devices(MPI_Comm comm, std::deque<int> &local_dev)
     // without MPI this process can use all CUDA devices
     for (int i = 0; i < n_node_dev; ++i)
         local_dev.push_back(i);
+
     return 0;
 }
 
