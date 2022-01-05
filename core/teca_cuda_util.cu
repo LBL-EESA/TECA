@@ -92,7 +92,6 @@ int get_local_cuda_devices(MPI_Comm comm, std::vector<int> &local_dev)
     return 0;
 }
 
-
 //-----------------------------------------------------------------------------
 int set_device(int device_id)
 {
@@ -187,6 +186,70 @@ int get_launch_props(int device_id,
     warps_per_block_max = threads_per_block_max / warp_size;
 
     return 0;
+}
+
+// --------------------------------------------------------------------------
+int partition_thread_blocks_slab(size_t nxy, size_t nz,
+    size_t stride, int warps_per_block, int warp_size,
+    int *block_grid_max, dim3 &block_grid, int &n_blocks_xy,
+    int &n_blocks_z, dim3 &thread_grid)
+{
+    unsigned long threads_per_block = warps_per_block * warp_size;
+
+    thread_grid.x = threads_per_block;
+    thread_grid.y = 1;
+    thread_grid.z = 1;
+
+    // get the slab decomp
+    unsigned long block_size = threads_per_block;
+    n_blocks_xy = nxy / block_size;
+
+    if (nxy % block_size)
+        ++n_blocks_xy;
+
+    // get the vertical decomp
+    n_blocks_z = nz / stride;
+
+    if (nz % stride)
+        ++n_blocks_z;
+
+    // validate
+    if ((n_blocks_xy > block_grid_max[0]) || (n_blocks_z > block_grid_max[1]))
+    {
+        // multi-d decomp required
+        TECA_ERROR("Failed to partition in a slab decomposition with nxy = "
+            << nxy << " and nz = " << nz << " and vertical stride " << stride)
+        return -1;
+    }
+    else
+    {
+        // slab decomp
+        block_grid.x = n_blocks_xy;
+        block_grid.y = n_blocks_z;
+        block_grid.z = 1;
+    }
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+int partition_thread_blocks_slab(int device_id, size_t nxy,
+    size_t nz, size_t stride,  int warps_per_block, dim3 &block_grid,
+    int &n_blocks_xy, int &n_blocks_z, dim3 &thread_grid)
+{
+    int block_grid_max[3] = {0};
+    int warp_size = 0;
+    int warps_per_block_max = 0;
+    if (get_launch_props(device_id, block_grid_max,
+        warp_size, warps_per_block_max))
+    {
+        TECA_ERROR("Failed to get launch properties")
+        return -1;
+    }
+
+    return partition_thread_blocks_slab(nxy, nz, stride,
+        warps_per_block, warp_size, block_grid_max, block_grid,
+        n_blocks_xy, n_blocks_z, thread_grid);
 }
 
 // --------------------------------------------------------------------------
