@@ -743,6 +743,12 @@ public:
     { return m_data.get_cuda_accessible(); }
     ///@}
 
+    /// returns true if the data is accessible from CUDA codes
+    int cuda_accessible() const { return m_data.cuda_accessible(); }
+
+    /// returns true if the data is accessible from codes running on the CPU
+    int cpu_accessible() const { return m_data.cpu_accessible(); }
+
     /// Get the current size of the data
     unsigned long size() const noexcept override;
 
