@@ -510,3 +510,22 @@ teca_add_test(py_test_table_from_stream_bin
 teca_add_test(py_test_apply_binary_mask
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_apply_binary_mask.py
         128 128 mask_ 1e-5)
+
+teca_add_test(py_test_variant_array_cupy_cpu
+    COMMAND ${PYTHON_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_variant_array_cupy_cpu.py
+    FEATURES ${TECA_HAS_CUDA} ${TECA_HAS_CUPY})
+
+teca_add_test(py_test_variant_array_cupy_cuda
+    COMMAND ${PYTHON_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_variant_array_cupy_cuda.py
+    FEATURES ${TECA_HAS_CUDA} ${TECA_HAS_CUPY})
+
+teca_add_test(py_test_variant_array_numpy_cpu
+    COMMAND ${PYTHON_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_variant_array_numpy_cpu.py)
+
+teca_add_test(py_test_variant_array_numpy_cuda
+    COMMAND ${PYTHON_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_variant_array_numpy_cuda.py
+    FEATURES ${TECA_HAS_CUDA})

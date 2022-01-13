@@ -8,12 +8,14 @@ if (TECA_HAS_PYTHON)
 
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}
             ${CMAKE_CURRENT_BINARY_DIR}
+            ${CMAKE_CURRENT_BINARY_DIR}/../HAMR
             ${CMAKE_CURRENT_BINARY_DIR}/..
             ${CMAKE_CURRENT_SOURCE_DIR}/../core
             ${CMAKE_CURRENT_SOURCE_DIR}/../data
             ${CMAKE_CURRENT_SOURCE_DIR}/../io
             ${CMAKE_CURRENT_SOURCE_DIR}/../alg
             ${CMAKE_CURRENT_SOURCE_DIR}/../system
+            ${CMAKE_CURRENT_SOURCE_DIR}/../HAMR
             )
 
     PYTHON_ADD_MODULE(_teca_py ${CMAKE_CURRENT_BINARY_DIR}/teca_py.cxx)

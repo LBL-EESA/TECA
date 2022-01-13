@@ -724,6 +724,7 @@ public:
     }
     ///@}
 
+#if !defined(SWIG)
     /** @name get_accessible
      * get's a pointer to the raw data that is accessible on the named
      * accelerator device or technology.
@@ -742,6 +743,7 @@ public:
     const std::shared_ptr<const T> get_cuda_accessible() const
     { return m_data.get_cuda_accessible(); }
     ///@}
+#endif
 
     /// returns true if the data is accessible from CUDA codes
     int cuda_accessible() const { return m_data.cuda_accessible(); }
