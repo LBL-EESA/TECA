@@ -376,6 +376,27 @@ public:
     static std::shared_ptr<teca_variant_array_impl<T>>
     New(size_t n, const U *v, allocator alloc);
 
+    /** construct by directly providing the buffer contents. This can be used
+     * for zero-copy transfer of data.  One must also name the allocator type
+     * and device owning the data.  In addition for new allocations the
+     * allocator type and owner are used internally to know how to
+     * automatically move data during inter technology transfers.
+     *
+     * @param[in] alloc an ::allocator indicating the technology backing the
+     *                  pointer
+     * @param[in] size  the number of elements in the array pointed to by ptr
+     * @param[in] owner the device owning the memory, -1 for CPU. if the
+     *                  allocator is a GPU allocator and -1 is passed the
+     *                  driver API is used to determine the device that
+     *                  allocated the memory.
+     * @param[in] ptr   a pointer to the data
+     * @param[in] df    a function `void df(void*ptr)` used to delete the data
+     *                  when this instance is finished using it.
+     */
+    template <typename delete_func_t>
+    static std::shared_ptr<teca_variant_array_impl<T>>
+    New(size_t n, T *ptr, allocator alloc, int owner, delete_func_t df);
+
     /// Returns a new instance initialized with a deep copy of this one.
     p_teca_variant_array new_copy(allocator alloc = allocator::malloc) const override;
 
@@ -813,11 +834,16 @@ public:
     teca_variant_array_impl(allocator alloc, size_t n_elem, const U *vals) :
         m_data(alloc, n_elem, vals) {}
 
-    // copy construct from an instance of different type
+    /// copy construct from an instance of different type
     template<typename U>
     teca_variant_array_impl(allocator alloc,
         const const_p_teca_variant_array_impl<U> &other) :
             m_data(alloc, other->m_data) {}
+
+    /// zero-copy construct by setting buffer contents directly
+    template <typename delete_func_t>
+    teca_variant_array_impl(allocator alloc, size_t size, int owner,
+        T *ptr, delete_func_t df) : m_data(alloc, size, owner, ptr, df) {}
 
 private:
     /// get from objects.
@@ -1637,6 +1663,16 @@ p_teca_variant_array_impl<T> teca_variant_array_impl<T>::New(size_t n,
     const U *v, allocator alloc)
 {
     return std::make_shared<teca_variant_array_impl<T>>(alloc, n, v);
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
+template <typename delete_func_t>
+p_teca_variant_array_impl<T> teca_variant_array_impl<T>::New(size_t n,
+    T *ptr, allocator alloc, int owner, delete_func_t df)
+{
+    return std::make_shared<teca_variant_array_impl<T>>
+        (alloc, n, owner, ptr, df);
 }
 
 // --------------------------------------------------------------------------
