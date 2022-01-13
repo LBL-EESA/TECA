@@ -122,10 +122,20 @@ bool get_teca_has_openssl()
 #endif
 }
 
-// return true if TECA was compiled with NumPY support
+// return true if TECA was compiled with NumPy support
 bool get_teca_has_numpy()
 {
 #if defined(TECA_HAS_NUMPY)
+    return true;
+#else
+    return false;
+#endif
+}
+
+// return true if TECA was compiled with CuPy support
+bool get_teca_has_cupy()
+{
+#if defined(TECA_HAS_CUPY)
     return true;
 #else
     return false;

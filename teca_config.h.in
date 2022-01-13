@@ -10,6 +10,7 @@
 #cmakedefine TECA_HAS_PARAVIEW
 #cmakedefine TECA_HAS_PYTHON
 #cmakedefine TECA_HAS_NUMPY
+#cmakedefine TECA_HAS_CUPY
 #cmakedefine TECA_HAS_PYTORCH
 #cmakedefine TECA_HAS_MATPLOTLIB
 #cmakedefine TECA_HAS_TCPYPI
