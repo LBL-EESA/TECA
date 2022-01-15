@@ -44,6 +44,10 @@ public:
     template<typename nT, typename cT>
     void declare_column(nT &&col_name, cT col_type);
 
+    /// set the allocator to use with ::declare_column
+    void set_allocator(teca_variant_array::allocator alloc)
+    { m_impl->columns->set_allocator(alloc); }
+
     // get the number of rows/columns
     unsigned int get_number_of_columns() const noexcept;
     unsigned long get_number_of_rows() const noexcept;
