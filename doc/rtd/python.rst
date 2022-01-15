@@ -4,19 +4,19 @@ TECA includes a diverse collection of I/O and analysis algorithms specific to
 climate science and extreme event detection. It's pipeline design allows these
 component algorithms to be quickly coupled together to construct complex data
 processing and analysis pipelines with minimal effort. TECA is written
-primarily in C++11 in order to deliver the highest possible performance and
-scalability. However, for non-computer scientists c+11 development can be
+primarily in modern C++ in order to deliver the highest possible performance and
+scalability. However, for non-computer scientists C++ development can be
 intimidating, error prone, and time consuming. TECA's Python bindings offer a
 more approachable path for custom application and algorithm development.
 
-Python can be viewed as glue for connecting optimized C++11 components. Using
+Python can be viewed as glue for connecting optimized C++ components. Using
 Python as glue gives one all of the convenience and flexibility of Python
-scripting with all of the performance of the native C++11 code. TECA also
-includes a path for fully Python based algorithm development where the
-programmer provides Python callables that implement the desired analysis. In
-this scenario the use of technologies such as NumPy provide reasonable
-performance while allowing the programmer to focus on the algorithm itself
-rather than the technical details of C++11 development.
+scripting with all of the performance of the native C++ code. TECA also
+includes a path for fully Python based algorithm development where scientists
+can implements pipeline stages directly in Python. In this scenario the use of
+technologies such as Cupy, Numpy, and Numba provide good performance while
+allowing the programmer to focus on acheiving their scientific ends rather than
+on the technical details of C++ development.
 
 .. _parallel_exec:
 
@@ -38,35 +38,36 @@ Pipeline Construction, Configuration and Execution
 Building pipelines in TECA is as simple as creating and connecting TECA
 algorithms together in the desired order. Data will flow and be processed
 sequentially from the top of the pipeline to the bottom, and in parallel where
-parallel algorithms are used. All algorithms are created by their static New()
-method. The connections between algorithms are made by calling one algorithm's
+parallel algorithms are used. All TECA pipeline stages are created using their static New()
+method.
+
+The connections between algorithms are made by calling one algorithm's
 set\_input\_connection() method with the return of another algorithm's
-get\_output\_port() method. Arbitrarily branchy pipelines are supported. The
-only limitation on pipeline complexity is that cycles are not allowed. Each
-algorithm represents a stage in the pipeline and has a set of properties that
+get\_output\_port() method. For instance
+
+Pipeline stages may have multiple inputs so that a stage may make use of data from different sources.
+
+Each stage in the pipeline and has a set of properties that
 configure its run time behavior. Properties are accessed by set\_<prop
 name>\(\) and get\_<prop name>\(\) methods. Once a pipeline is created and
 configured it can be run by calling update() on its last algorithm.
 
-.. _py_glue_code:
-
-.. literalinclude:: source/stats.py
+.. code-block::
     :language: python
-    :linenos:
-    :caption: Command line application written in Python. The application constructs, configures, and executes a 4 stage pipeline that computes basic descriptive statistics over the entire lat-lon mesh for a set of variables passed on the command line. The statistic computations have been written in Python, and are shown in listing :numref:`py_devel_code`. When run in parallel, the map-reduce pattern is applied over the time steps in the input dataset. A graphical representation of the pipeline is shown in figure :numref:`parallel_exec`
 
-For example, listing :numref:`py_glue_code` shows a command line application
-written in Python. The application computes a set of descriptive statistics
-over a list of arrays for each time step in the dataset. The results at each
-time step are stored in a row of a table. teca\_table\_reduce is a map-reduce
-implementation that processes time steps in parallel and reduces the tables
-produced at each time step into a single result. One use potential use of this
-code would be to compute a time series of average global temperature. The
-application loads modules and initializes MPI (lines 1-4), parses the command
-line options (lines 6-17),  constructs and configures the pipeline (lines
-22-37), and finally executes the pipeline (line 39). The pipeline constructed
-is shown in figure :numref:`parallel_exec` next to a time line of the
-pipeline's parallel execution on an arbitrary MPI process.
+    cfr = teca_cf_reader.New()
+    # set cfr options here
+
+    nc = teca_normalize_coordinates.New()
+    nc.set_input_connection(cfr.get_output_port())
+    # set nc options here
+
+    cfw = teca_cf_writer.New()
+    cfw.set_input_connection(nc.get_output_port())
+    # set cfw options here
+
+    cfw.update()
+
 
 
 .. _py_devel:
@@ -148,13 +149,6 @@ adapter class that connects the user provided overrides such that they are
 called at the appropriate times during each phase of pipeline execution. Hence
 writing a TECA algorithm purely in Python amounts to providing three
 appropriate overrides.
-
-.. _py_devel_code:
-
-.. literalinclude:: source/stats_callbacks.py
-    :language: python
-    :linenos:
-    :caption: Overrides implementing the calculation of descriptive statistics over a set of variables laid out on a Cartesian lat-lon mesh. The request override requests the variables, the execute override makes the computations and constructs a table to store them in.
 
 
 Python Algorithm Template
@@ -263,6 +257,42 @@ request\_in
 data\_out
      teca\_dataset. the dataset containing the requested data or the result of
      the requested action, if any.
+
+
+
+Examples
+========
+
+Computing Global Statistics
+---------------------------
+
+
+.. _py_glue_code:
+
+.. literalinclude:: source/global_stats.py
+    :language: python
+    :linenos:
+    :caption: Command line application written in Python. The application constructs, configures, and executes a 4 stage pipeline that computes basic descriptive statistics over the entire lat-lon mesh for a set of variables passed on the command line. The statistic computations have been written in Python, and are shown in listing :numref:`py_devel_code`. When run in parallel, the map-reduce pattern is applied over the time steps in the input dataset. A graphical representation of the pipeline is shown in figure :numref:`parallel_exec`
+
+For example, listing :numref:`py_glue_code` shows a command line application
+written in Python. The application computes a set of descriptive statistics
+over a list of arrays for each time step in the dataset. The results at each
+time step are stored in a row of a table. teca\_table\_reduce is a map-reduce
+implementation that processes time steps in parallel and reduces the tables
+produced at each time step into a single result. One use potential use of this
+code would be to compute a time series of average global temperature. The
+application loads modules and initializes MPI (lines 1-4), parses the command
+line options (lines 6-17),  constructs and configures the pipeline (lines
+22-37), and finally executes the pipeline (line 39). The pipeline constructed
+is shown in figure :numref:`parallel_exec` next to a time line of the
+pipeline's parallel execution on an arbitrary MPI process.
+
+.. _py_devel_code:
+
+.. literalinclude:: source/descriptive_stats.py
+    :language: python
+    :linenos:
+    :caption: Overrides implementing the calculation of descriptive statistics over a set of variables laid out on a Cartesian lat-lon mesh. The request override requests the variables, the execute override makes the computations and constructs a table to store them in.
 
 A simple strategy for generating derived quantities having the same
 data layout, for example on a Cartesian mesh or in a table, is to pass the
