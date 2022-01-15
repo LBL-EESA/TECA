@@ -74,6 +74,22 @@ unsigned long thread_id_to_array_index()
         + blockIdx.z * gridDim.x * gridDim.y);
 }
 
+/** convert a CUDA index into a flat array index using the partitioning scheme
+ * defined in ::partition_thread_blocks_slab. This gives the index of the first
+ * element in the vertical column.
+ */
+inline
+__device__
+void thread_id_to_array_index_slab(unsigned long &i, unsigned long &k0,
+    unsigned long stride)
+{
+    // index in the xy slab
+    i = threadIdx.x + blockDim.x * blockIdx.x;
+
+    // first index in the vertical dimension
+    k0 = stride * blockIdx.y;
+}
+
 /// bounds check the flat index
 inline
 __device__
@@ -96,7 +112,11 @@ int get_launch_props(int device_id,
     int *block_grid_max, int &warp_size,
     int &max_warps_per_block);
 
-/** Calculate CUDA launch parameters for an arbitrarily large flat array.
+/** Calculate CUDA launch parameters for an arbitrarily large flat array. The
+ * block grid will be 1d if the device can process the array using a 1d block
+ * grid, otherwise dimensions are added to accomodate the array size up to the
+ * largest grid supported by the device. Use ::thread_id_to_array_index in the
+ * kernel to determine the array index to process.
  *
  * @param[in]  device_id       the CUDA device to query launch parameter limits from.
  *                             Use -1 to query from the currently active device.
@@ -113,9 +133,12 @@ int partition_thread_blocks(int device_id, size_t array_size,
     int warps_per_block, dim3 &block_grid, int &n_blocks,
     dim3 &thread_grid);
 
-/** calculate CUDA launch parameters for an arbitrarily large flat array. See
- * ::get_launch_props for how to query CUDA for block_grid_max and warp_size
- * parameters.
+/** Calculate CUDA launch parameters for an arbitrarily large flat array. The
+ * block grid will be 1d if the device can process the array using a 1d block
+ * grid, otherwise dimensions are added to accomodate the array size up to the
+ * largest grid supported by the device. Use ::thread_id_to_array_index in the
+ * kernel to determine the array index to process.  See ::get_launch_props for
+ * how to query CUDA for block_grid_max and warp_size parameters.
  *
  * @param[in]  array_size      the length of the array being processed
  * @param[in]  warps_per_block the number of warps to use per block (your choice)
@@ -132,7 +155,61 @@ TECA_EXPORT
 int partition_thread_blocks(size_t array_size,
     int warps_per_block, int warp_size, int *block_grid_max,
     dim3 &block_grid, int &n_blocks, dim3 &thread_grid);
-}
 
+/** Calculate CUDA launch parameters for an arbitrarily large 3D array that
+ * will be processed by looping over vertical the vertical dimension.
+ * Partitioning in the first dimension occurs over x-y slab sized sections of
+ * the array. In the second dimension the caller declares the number of
+ * elements (stride) desired in vertical dimension loops.  A 2d block grid will
+ * be generated up to the limits of the selected device. Use
+ * ::thread_id_to_array_index_slab in the kernel to determine the array index
+ * to process.
+ *
+ * @param[in]  device_id       the CUDA device to query launch parameter limits from.
+ *                             Use -1 to query from the currently active device.
+ * @param[in]  nxy             the size in the xy dimension of the array being processed
+ * @param[in]  nz              the size in the vertical dimension of the array being processed
+ * @param[in]  warps_per_block the number of warps to use per block (your choice)
+ * @param[out] block_grid      the block dimension kernel launch control
+ * @param[out] n_blocks_xy     the number of nxy sized blocks
+ * @param[out] n_blocks_z      the number of blocks in the vertical dimension
+ * @param[out] thread_grid     the thread dimension kernel launch control
+ *
+ * @returns zero if successful and non-zero if an error occurred
+ */
+TECA_EXPORT
+int partition_thread_blocks_slab(int device_id, size_t nxy, size_t nz,
+    size_t stride, int warps_per_block, dim3 &block_grid, int &n_blocks_xy,
+    int &n_blocks_z, dim3 &thread_grid);
+
+/** Calculate CUDA launch parameters for an arbitrarily large 3D array that
+ * will be processed by looping over vertical the vertical dimension.
+ * Partitioning in the first dimension occurs over x-y slab sized sections of
+ * the array. In the second dimension the caller declares the number of
+ * elements (stride) desired in vertical dimension loops. Kernels will compute
+ * the loop bounds from the stride and block index.  A 2d block grid will be
+ * generated up to the limits of the selected device. Use
+ * ::thread_id_to_array_index_slab in the kernel to determine the array index
+ * to process.  See ::get_launch_props for how to query CUDA for block_grid_max
+ * and warp_size parameters.
+ *
+ * @param[in]  nxy             the length of the array being processed
+ * @param[in]  warps_per_block the number of warps to use per block (your choice)
+ * @param[in]  warp_size       the number of threads per warp
+ * @param[in]  block_grid_max  the maximum number of blocks in the 3D block
+ *                             grid supported by the CUDA device
+ * @param[out] block_grid      the block dimension kernel launch control parameter
+ * @param[out] n_blocks_xy     the number of nxy sized blocks
+ * @param[out] n_blocks_z      the number of blocks in the vertical direction
+ * @param[out] thread_grid     the thread dimension kernel launch control parameter
+ *
+ * @returns zero if successful and non-zero if an error occurred
+ */
+TECA_EXPORT
+int partition_thread_blocks_slab(size_t nxy, size_t nz, size_t stride,
+    int warps_per_block, int warp_size, int *block_grid_max, dim3 &block_grid,
+    int &n_blocks_xy, int &n_blocks_z,  dim3 &thread_grid);
+
+}
 ///@}
 #endif
