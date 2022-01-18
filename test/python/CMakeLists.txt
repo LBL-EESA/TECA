@@ -529,3 +529,9 @@ teca_add_test(py_test_variant_array_numpy_cuda
     COMMAND ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_variant_array_numpy_cuda.py
     FEATURES ${TECA_HAS_CUDA})
+
+teca_add_test(py_test_cartesian_mesh_multi_dim
+    COMMAND ${PYTHON_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_cartesian_mesh_multi_dim.py 32 32 10
+    test_cartesian_mesh_multi_dim.nc 1
+    FEATURES ${TECA_HAS_CUDA})
