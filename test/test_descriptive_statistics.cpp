@@ -25,9 +25,13 @@ using namespace std;
 
 struct reduce_callback
 {
-    p_teca_dataset operator()(const const_p_teca_dataset &in_data_0,
+    // reduction operator
+    p_teca_dataset operator()(int device_id,
+        const const_p_teca_dataset &in_data_0,
         const const_p_teca_dataset &in_data_1)
     {
+        (void) device_id;
+
         const_p_teca_table table_0 =
             std::dynamic_pointer_cast<const teca_table>(in_data_0);
 

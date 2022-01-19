@@ -69,7 +69,7 @@ teca_metadata teca_programmable_reduce::initialize_output_metadata(
 }
 
 // --------------------------------------------------------------------------
-p_teca_dataset teca_programmable_reduce::reduce(
+p_teca_dataset teca_programmable_reduce::reduce(int device_id,
     const const_p_teca_dataset &left_ds, const const_p_teca_dataset &right_ds)
 {
 #ifdef TECA_DEBUG
@@ -83,11 +83,11 @@ p_teca_dataset teca_programmable_reduce::reduce(
         return nullptr;
     }
 
-    return this->reduce_callback(left_ds, right_ds);
+    return this->reduce_callback(device_id, left_ds, right_ds);
 }
 
 // --------------------------------------------------------------------------
-p_teca_dataset teca_programmable_reduce::finalize(
+p_teca_dataset teca_programmable_reduce::finalize(int device_id,
     const const_p_teca_dataset &ds)
 {
 #ifdef TECA_DEBUG
@@ -96,7 +96,7 @@ p_teca_dataset teca_programmable_reduce::finalize(
 #endif
 
     if (!this->finalize_callback)
-        return this->teca_index_reduce::finalize(ds);
+        return this->teca_index_reduce::finalize(device_id, ds);
 
-    return this->finalize_callback(ds);
+    return this->finalize_callback(device_id, ds);
 }

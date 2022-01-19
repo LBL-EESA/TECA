@@ -79,8 +79,8 @@ class teca_python_reduce(object):
         returns a callback used by the programmable reduce that forwards
         calls to the class method
         """
-        def reduce_callback(left, right):
-            return self.reduce(left, right)
+        def reduce_callback(dev, left, right):
+            return self.reduce(dev, left, right)
         return reduce_callback
 
     def get_finalize_callback(self):
@@ -88,8 +88,8 @@ class teca_python_reduce(object):
         returns a callback used by the programmable reduce that forwards
         calls to the class method
         """
-        def finalize_callback(data):
-            return self.finalize(data)
+        def finalize_callback(dev, data):
+            return self.finalize(dev, data)
         return finalize_callback
 
     def report(self, port, md_in):
@@ -108,7 +108,7 @@ class teca_python_reduce(object):
         """
         return [teca_metadata(req_in)]
 
-    def reduce(self, left, right):
+    def reduce(self, dev, left, right):
         """
         given two input datasets return the reduced data. Override this to customize
         the behavior of the reduction. the default raises an exception, this must be
@@ -116,11 +116,9 @@ class teca_python_reduce(object):
         """
         raise RuntimeError('%s::reduce method was not overridden'%(self.get_class_name()))
 
-    def finalize(self, data_in):
+    def finalize(self, dev, data_in):
         """
         Called after the reduction is complete. Override this method to customize the
         finalization of the reduction. the default passes the dataset through.
         """
-        data_out = data_in.new_instance()
-        data_out.shallow_copy(as_non_const_teca_dataset(data_out))
-        return data_out
+        return data_in

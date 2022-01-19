@@ -171,8 +171,10 @@ public:
 
     // finalize callback
     // completes the reduction by scaling by the number of parameter table rows
-    p_teca_dataset operator()(const const_p_teca_dataset &ds)
+    p_teca_dataset operator()(int device_id, const const_p_teca_dataset &ds)
     {
+        (void) device_id;
+
         p_teca_cartesian_mesh out_mesh =
             std::dynamic_pointer_cast<teca_cartesian_mesh>(ds->new_instance());
 
@@ -214,9 +216,11 @@ public:
     // if the inputs have the probability array this is used, if not the
     // array is computed from the filtered connected components. after the
     // reduction runs, the result will need to be normalized.
-    p_teca_dataset operator()(const const_p_teca_dataset &left,
+    p_teca_dataset operator()(int device_id, const const_p_teca_dataset &left,
         const const_p_teca_dataset &right)
     {
+        (void) device_id;
+
         // the inputs will not be modified. we are going to make shallow
         // copy, and add an array
         p_teca_dataset dataset_0 = std::const_pointer_cast<teca_dataset>(left);

@@ -7,7 +7,9 @@ except:
     rank = 0
     n_ranks = 1
 from teca import *
-import numpy as np
+import numpy
+if get_teca_has_cupy():
+    import cupy
 import sys
 import os
 
@@ -16,7 +18,7 @@ set_stack_trace_on_mpi_error()
 
 if len(sys.argv) < 7:
     sys.stderr.write('test_map_reduce.py [dataset regex] ' \
-        '[out file name] [first step] [last step] [n threads]' \
+        '[out file name] [first step] [last step]' \
         '[array 1] .. [ array n]\n')
     sys.exit(-1)
 
@@ -24,9 +26,11 @@ data_regex = sys.argv[1]
 out_file = sys.argv[2]
 start_index = int(sys.argv[3])
 end_index = int(sys.argv[4])
-n_threads = int(sys.argv[5])
-var_names = sys.argv[6:]
+var_names = sys.argv[5:]
 
+# give each MPI rank a GPU
+n_threads = 1
+os.environ['TECA_RANKS_PER_DEVICE'] = '-1'
 
 class descr_stats(teca_python_algorithm):
 
@@ -68,16 +72,34 @@ class descr_stats(teca_python_algorithm):
 
 
 class table_reduce(teca_python_reduce):
-    def reduce(self, data_in_0, data_in_1):
-        try:
-            rank = MPI.COMM_WORLD.Get_rank()
-        except:
-            rank = 0
-        sys.stderr.write('[%d] reduce\n'%(rank))
+    def __init__(self):
+        if get_teca_has_mpi():
+            self.rank = MPI.COMM_WORLD.Get_rank()
+        else:
+            self.rank = 0
+        if get_teca_has_cuda() and get_teca_has_cupy():
+            self.have_cuda = 1
+        else:
+            self.have_cuda = 0
 
+    def reduce(self, dev, data_in_0, data_in_1):
+        # select CPU or GPU
+        np = numpy
+        alloc = variant_array_allocator_malloc
+        if dev >= 0 and self.have_cuda:
+            alloc = variant_array_allocator_cuda
+            cupy.cuda.Device(dev).use()
+            np = cupy
+
+        # report
+        dev_str = 'CPU' if dev < 0 else 'GPU %d'%(dev)
+        sys.stderr.write('[%d] reduce %s\n'%(self.rank, dev_str))
+
+        # get the input
         table_0 = as_teca_table(data_in_0)
         table_1 = as_teca_table(data_in_1)
 
+        # reduce
         data_out = None
         if table_0 is not None and table_1 is not None:
             data_out = as_teca_table(table_0.new_copy(alloc))
@@ -91,15 +113,10 @@ class table_reduce(teca_python_reduce):
 
         return data_out
 
-    def finalize(self, data):
-        try:
-            rank = MPI.COMM_WORLD.Get_rank()
-        except:
-            rank = 0
-        sys.stderr.write('[%d] finalize\n'%(rank))
-        if data is None:
-            return data
-        return data.new_copy()
+    def finalize(self, dev, data):
+        dev_str = 'CPU' if dev < 0 else 'GPU %d'%(dev)
+        sys.stderr.write('[%d] finalize %s\n'%(self.rank, dev_str))
+        return data
 
 
 if (rank == 0):
@@ -116,6 +133,7 @@ stats.set_input_connection(coords.get_output_port())
 
 mr = table_reduce.New()
 mr.set_input_connection(stats.get_output_port())
+mr.set_verbose(1)
 mr.set_start_index(start_index)
 mr.set_end_index(end_index)
 mr.set_thread_pool_size(n_threads)
@@ -129,17 +147,23 @@ cal.set_input_connection(sort.get_output_port())
 
 do_test = system_util.get_environment_variable_bool('TECA_DO_TEST', True)
 if do_test and os.path.exists(out_file):
-  tr = teca_table_reader.New()
-  tr.set_file_name(out_file)
+    if rank == 0:
+        sys.stderr.write('running the test ... \n')
 
-  diff = teca_dataset_diff.New()
-  diff.set_input_connection(0, tr.get_output_port())
-  diff.set_input_connection(1, cal.get_output_port())
-  diff.update()
+    tr = teca_table_reader.New()
+    tr.set_file_name(out_file)
+
+    diff = teca_dataset_diff.New()
+    diff.set_input_connection(0, tr.get_output_port())
+    diff.set_input_connection(1, cal.get_output_port())
+
+    diff.update()
 else:
-  #write data
-  tw = teca_table_writer.New()
-  tw.set_input_connection(cal.get_output_port())
-  tw.set_file_name(out_file)
+    if rank == 0:
+        sys.stderr.write('writing baseline %s ... \n'%(out_file))
 
-  tw.update()
+    tw = teca_table_writer.New()
+    tw.set_input_connection(cal.get_output_port())
+    tw.set_file_name(out_file)
+
+    tw.update()

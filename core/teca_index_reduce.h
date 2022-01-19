@@ -58,15 +58,37 @@ protected:
     teca_index_reduce();
 
 protected:
-    // override that implements the reduction. given two datasets
-    // a left and right, reduce into a single dataset and return.
-    virtual p_teca_dataset reduce(const const_p_teca_dataset &left,
+
+    /** An override that implements the reduction. given two datasets a left
+     * and right, reduce into a single dataset and return.
+     *
+     * @param[in] device_id The device that should be used for the reduction.
+     *                      A value of -1 indicates the CPU should be used.
+     * @param[in] left a dataset to reduce
+     * @param[in] right a dataset to reduce
+     *
+     * @returns the reduced dataset
+     */
+    virtual p_teca_dataset reduce(int device_id,
+        const const_p_teca_dataset &left,
         const const_p_teca_dataset &right) = 0;
 
-    // override that is called when the reduction is complete.
-    // the default implementation passes data through.
-    virtual p_teca_dataset finalize(const const_p_teca_dataset &ds)
+    /** An override that is called when the reduction is complete.  The default
+     * implementation passes data through. This might be used for instance to
+     * complete an averaging operation where the ::reduce override sums the
+     * data and the ::finalize override scales by 1/N, where N is the number of
+     * datasets summed.
+     *
+     * @param[in] device_id The device that should be used for the reduction.
+     *                      A value of -1 indicates the CPU should be used.
+     * @param[in] ds the reduced dataset
+     *
+     * @returns a dataset that has been finalized.
+     */
+    virtual p_teca_dataset finalize(int device_id,
+        const const_p_teca_dataset &ds)
     {
+        (void) device_id;
         return std::const_pointer_cast<teca_dataset>(ds);
     }
 

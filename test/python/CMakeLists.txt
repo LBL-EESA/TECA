@@ -134,14 +134,7 @@ teca_add_test(py_test_database
 teca_add_test(py_test_programmable_reduce_serial
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_programmable_reduce.py
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
-    "${TECA_DATA_ROOT}/py_test_programmable_reduce.bin" 0 -1 1 TMQ T200 T500
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
-    REQ_TECA_DATA)
-
-teca_add_test(py_test_programmable_reduce_thread
-    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_programmable_reduce.py
-    "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
-    "${TECA_DATA_ROOT}/py_test_programmable_reduce.bin" 0 -1 4 TMQ T200 T500
+    "${TECA_DATA_ROOT}/py_test_programmable_reduce.bin" 0 -1 TMQ T200 T500
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
@@ -149,30 +142,14 @@ teca_add_test(py_test_programmable_reduce_mpi
     COMMAND ${MPIEXEC} -n ${TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
     ${CMAKE_CURRENT_SOURCE_DIR}/test_programmable_reduce.py
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
-    "${TECA_DATA_ROOT}/py_test_programmable_reduce.bin" 0 -1 -1 TMQ T200 T500
+    "${TECA_DATA_ROOT}/py_test_programmable_reduce.bin" 0 -1 TMQ T200 T500
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4Py_FOUND}
-    REQ_TECA_DATA)
-
-teca_add_test(py_test_programmable_reduce_mpi_thread
-    COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_programmable_reduce.py
-    "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
-    "${TECA_DATA_ROOT}/py_test_programmable_reduce.bin" 0 -1 -1 TMQ T200 T500
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI}
-        ${MPI4Py_FOUND} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_python_reduce_serial
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_python_reduce.py
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
-    "${TECA_DATA_ROOT}/py_test_programmable_reduce.bin" 0 -1 1 TMQ T200 T500
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
-    REQ_TECA_DATA)
-
-teca_add_test(py_test_python_reduce_thread
-    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_python_reduce.py
-    "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
-    "${TECA_DATA_ROOT}/py_test_programmable_reduce.bin" 0 -1 4 TMQ T200 T500
+    "${TECA_DATA_ROOT}/py_test_programmable_reduce.bin" 0 -1 TMQ T200 T500
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
@@ -180,17 +157,8 @@ teca_add_test(py_test_python_reduce_mpi
     COMMAND ${MPIEXEC} -n ${TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
     ${CMAKE_CURRENT_SOURCE_DIR}/test_python_reduce.py
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
-    "${TECA_DATA_ROOT}/py_test_programmable_reduce.bin" 0 -1 1 TMQ T200 T500
+    "${TECA_DATA_ROOT}/py_test_programmable_reduce.bin" 0 -1 TMQ T200 T500
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4Py_FOUND}
-    REQ_TECA_DATA)
-
-teca_add_test(py_test_python_reduce_mpi_thread
-    COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_python_reduce.py
-    "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
-    "${TECA_DATA_ROOT}/py_test_programmable_reduce.bin" 0 -1 -1 TMQ T200 T500
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI}
-        ${MPI4Py_FOUND} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_temporal_seasonal_average_thread
