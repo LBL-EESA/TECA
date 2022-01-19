@@ -409,7 +409,7 @@ int teca_table::from_stream(std::istream &s)
 }
 
 // --------------------------------------------------------------------------
-void teca_table::copy(const const_p_teca_dataset &dataset)
+void teca_table::copy(const const_p_teca_dataset &dataset, allocator alloc)
 {
     const_p_teca_table other
         = std::dynamic_pointer_cast<const teca_table>(dataset);
@@ -422,13 +422,13 @@ void teca_table::copy(const const_p_teca_dataset &dataset)
 
     this->clear();
 
-    this->teca_dataset::copy(dataset);
-    m_impl->columns->copy(other->m_impl->columns);
+    this->teca_dataset::copy(dataset, alloc);
+    m_impl->columns->copy(other->m_impl->columns, alloc);
 }
 
 // --------------------------------------------------------------------------
 void teca_table::copy(const const_p_teca_table &other,
-    unsigned long first_row, unsigned long last_row)
+    unsigned long first_row, unsigned long last_row, allocator alloc)
 {
     if (this == other.get())
         return;
@@ -438,7 +438,7 @@ void teca_table::copy(const const_p_teca_table &other,
     if (!other)
         return;
 
-    this->teca_dataset::copy(other);
+    this->teca_dataset::copy(other, alloc);
 
     size_t n_rows = last_row - first_row + 1;
 
@@ -448,7 +448,7 @@ void teca_table::copy(const const_p_teca_table &other,
         auto ocol_name = other->m_impl->columns->get_name(i);
         auto ocol = other->m_impl->columns->get(i);
 
-        p_teca_variant_array ocol_cpy = ocol->new_instance();
+        p_teca_variant_array ocol_cpy = ocol->new_instance(alloc);
         ocol_cpy->assign(ocol, first_row, n_rows);
 
         m_impl->columns->append(ocol_name, ocol_cpy);

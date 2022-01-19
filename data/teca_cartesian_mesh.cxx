@@ -36,9 +36,10 @@ int teca_cartesian_mesh::get_type_code() const
 }
 
 // --------------------------------------------------------------------------
-void teca_cartesian_mesh::copy(const const_p_teca_dataset &dataset)
+void teca_cartesian_mesh::copy(const const_p_teca_dataset &dataset,
+    allocator alloc)
 {
-    this->teca_mesh::copy(dataset);
+    this->teca_mesh::copy(dataset, alloc);
 
     const_p_teca_cartesian_mesh other
         = std::dynamic_pointer_cast<const teca_cartesian_mesh>(dataset);
@@ -46,7 +47,7 @@ void teca_cartesian_mesh::copy(const const_p_teca_dataset &dataset)
     if ((!other) || (this == other.get()))
         return;
 
-    m_coordinate_arrays->copy(other->m_coordinate_arrays);
+    m_coordinate_arrays->copy(other->m_coordinate_arrays, alloc);
 }
 
 // --------------------------------------------------------------------------

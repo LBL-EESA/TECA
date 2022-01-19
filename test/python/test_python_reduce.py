@@ -43,8 +43,10 @@ class descr_stats(teca_python_algorithm):
         sys.stderr.write('[%d] execute\n'%(rank))
 
         mesh = as_teca_cartesian_mesh(data_in[0])
+        alloc = variant_array_allocator_malloc
 
         table = teca_table.New()
+        table.set_default_allocator(alloc)
         table.copy_metadata(mesh)
 
         table.declare_columns(['step','time'], ['ul','d'])
@@ -78,14 +80,14 @@ class table_reduce(teca_python_reduce):
 
         data_out = None
         if table_0 is not None and table_1 is not None:
-            data_out = as_teca_table(table_0.new_copy())
+            data_out = as_teca_table(table_0.new_copy(alloc))
             data_out.concatenate_rows(table_1)
 
         elif table_0 is not None:
-            data_out = table_0.new_copy()
+            data_out = table_0.new_copy(alloc)
 
         elif table_1 is not None:
-            data_out = table_1.new_copy()
+            data_out = table_1.new_copy(alloc)
 
         return data_out
 

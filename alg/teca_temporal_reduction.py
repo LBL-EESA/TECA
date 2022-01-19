@@ -981,6 +981,8 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
         req_id = req_in[request_key]
         ii = self.indices[req_id]
 
+        alloc = variant_array_allocator_malloc
+
         if self.get_verbose() > 0:
             try:
                 rank = self.get_communicator().Get_rank()
@@ -995,7 +997,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
         # copy the first mesh
         mesh_in = as_teca_cartesian_mesh(data_in.pop())
         mesh_out = teca_cartesian_mesh.New()
-        mesh_out.copy(mesh_in)
+        mesh_out.copy(mesh_in, alloc)
         arrays_out = mesh_out.get_point_arrays()
 
         # accumulate incoming values

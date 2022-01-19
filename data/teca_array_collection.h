@@ -48,8 +48,8 @@ public:
     void declare(nT &&a_name, aT a_type);
 
     /// set the allocator to use with ::declare
-    void set_allocator(teca_variant_array::allocator alloc)
-    { this->allocator = alloc; }
+    void set_default_allocator(allocator alloc)
+    { this->default_allocator = alloc; }
 
     /** add, return the index of the new entry,  or -1 if the array name already
      * exists.
@@ -127,10 +127,11 @@ public:
     /// return an integer identifier uniquely naming the dataset type
     int get_type_code() const override;
 
-    /// copy
-    void copy(const const_p_teca_dataset &other) override;
+    /// @copydoc teca_dataset::copy(const const_p_teca_dataset &,allocator)
+    void copy(const const_p_teca_dataset &other,
+        allocator alloc = allocator::malloc) override;
 
-    /// shallow copy
+    /// @copydoc teca_dataset::shallow_copy(const p_teca_dataset &)
     void shallow_copy(const p_teca_dataset &other) override;
 
     /// append
@@ -175,7 +176,7 @@ private:
     name_vector_t m_names;
     array_vector_t m_arrays;
     name_array_map_t m_name_array_map;
-    teca_variant_array::allocator allocator;
+    allocator default_allocator;
 };
 
 // --------------------------------------------------------------------------
@@ -192,7 +193,7 @@ void teca_array_collection::declare(nT &&a_name, aT)
 {
     unsigned int id = m_arrays.size();
     m_names.emplace_back(std::forward<nT>(a_name));
-    m_arrays.emplace_back(teca_variant_array_impl<aT>::New(this->allocator));
+    m_arrays.emplace_back(teca_variant_array_impl<aT>::New(this->default_allocator));
     m_name_array_map.emplace(std::forward<nT>(a_name), id);
 }
 

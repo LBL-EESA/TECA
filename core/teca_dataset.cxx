@@ -55,8 +55,10 @@ int teca_dataset::get_request_index(long &val) const
 }
 
 // --------------------------------------------------------------------------
-void teca_dataset::copy(const const_p_teca_dataset &other)
+void teca_dataset::copy(const const_p_teca_dataset &other,
+    teca_variant_array::allocator alloc)
 {
+    (void) alloc;
     *this->metadata = *(other->metadata);
 }
 

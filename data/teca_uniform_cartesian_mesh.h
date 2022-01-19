@@ -38,10 +38,12 @@ public:
     /// return a unique integer identifier
     int get_type_code() const override;
 
-    /// copy data and metadata. shallow copy uses reference
-    /// counting, while copy duplicates the data.
-    void copy(const const_p_teca_dataset &) override;
-    void shallow_copy(const p_teca_dataset &) override;
+    /// @copydoc teca_dataset::copy(const const_p_teca_dataset &,allocator)
+    void copy(const const_p_teca_dataset &other,
+        allocator alloc = allocator::malloc) override;
+
+    /// @copydoc teca_dataset::shallow_copy(const p_teca_dataset &)
+    void shallow_copy(const p_teca_dataset &other) override;
 
     /// swap internals of the two objects
     void swap(const p_teca_dataset &) override;
