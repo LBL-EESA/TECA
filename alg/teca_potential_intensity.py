@@ -5,6 +5,25 @@ from tcpyPI import pi as tcpi
 
 
 class teca_potential_intensity(teca_python_algorithm):
+    r""" The teca_potential_intensity command line application computes
+    potential intensity (PI) for tropical cyclones using the tcpyPI library
+    [Gil21]. Potential intensity is the maximum speed limit of a tropical
+    cyclone found by modeling the storm as a thermal heat engine. Because there
+    are significant correlations between PI and actual storm wind speeds, PI is
+    a useful diagnostic for evaluating or predicting tropical cyclone intensity
+    climatology and variability. TECA enables massive amounts of data to be
+    processed by the tcpyPI code in parallel. In addition to providing scalable
+    high performance I/O needed for accessing large amounts of data, TECA
+    handles the necessary pre-processing and post processing tasks such as
+    conversions of units, conversions of conventional missing values, and the
+    application of land-sea masks.
+
+    For more information see:
+    D. M. Gilford. Pypi (v1.3): tropical cyclone potential intensity
+    calculations in python. Geoscientific Model Development, 14(5):2351–2369,
+    2021. URL: https://gmd.copernicus.org/articles/14/2351/2021/,
+    doi:10.5194/gmd-14-2351-2021.
+    """
 
     def __init__(self):
 
