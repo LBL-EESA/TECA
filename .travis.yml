@@ -7,7 +7,9 @@ services:
 
 os:
   - linux
-  - osx
+  
+# disable osx
+#  - osx
 
 osx_image:
   - xcode12.2
