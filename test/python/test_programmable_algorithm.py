@@ -37,8 +37,8 @@ class wind_speed:
         out_mesh = teca_cartesian_mesh.New()
         out_mesh.shallow_copy(in_mesh)
         arrays = out_mesh.get_point_arrays()
-        u = arrays[u_var]
-        v = arrays[v_var]
+        u = arrays[u_var].get_cpu_accessible()
+        v = arrays[v_var].get_cpu_accessible()
         w = np.sqrt(u*u + v*v)
         arrays['wind_speed'] = w
         return out_mesh

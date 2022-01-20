@@ -315,9 +315,9 @@ class teca_potential_intensity(teca_python_algorithm):
         # get the input arrays
         in_arrays = in_mesh.get_point_arrays()
 
-        psl = in_arrays[self.sea_level_pressure_variable]
-        sst = in_arrays[self.sea_surface_temperature_variable]
-        ta = in_arrays[self.air_temperature_variable]
+        psl = in_arrays[self.sea_level_pressure_variable].get_cpu_accessible()
+        sst = in_arrays[self.sea_surface_temperature_variable].get_cpu_accessible()
+        ta = in_arrays[self.air_temperature_variable].get_cpu_accessible()
 
         if self.mixing_ratio_variable is not None:
             specific_humidity_to_mixing_ratio = False
@@ -325,11 +325,11 @@ class teca_potential_intensity(teca_python_algorithm):
         else:
             specific_humidity_to_mixing_ratio = True
             mr_var = self.specific_humidity_variable
-        mr = in_arrays[mr_var]
+        mr = in_arrays[mr_var].get_cpu_accessible()
 
         # get the land_mask variable
         if self.land_mask_variable is not None:
-            land_mask = in_arrays[self.land_mask_variable]
+            land_mask = in_arrays[self.land_mask_variable].get_cpu_accessible()
             land_mask = np.where(np.logical_and(land_mask >= 0.9, land_mask <= 1.1),
                                  np.int8(0), np.int8(1))
         else:
@@ -345,25 +345,25 @@ class teca_potential_intensity(teca_python_algorithm):
         # replace _FillValue with NaN
         psl_valid_var = self.sea_level_pressure_variable + '_valid'
         if in_arrays.has(psl_valid_var):
-            psl_valid = in_arrays[psl_valid_var]
+            psl_valid = in_arrays[psl_valid_var].get_cpu_accessible()
             ii = np.where(np.logical_not(psl_valid))[0]
             psl[ii] = np.NAN
 
         sst_valid_var = self.sea_surface_temperature_variable + '_valid'
         if in_arrays.has(sst_valid_var):
-            sst_valid = in_arrays[sst_valid_var]
+            sst_valid = in_arrays[sst_valid_var].get_cpu_accessible()
             ii = np.where(np.logical_not(sst_valid))[0]
             sst[ii] = np.NAN
 
         ta_valid_var = self.air_temperature_variable + '_valid'
         if in_arrays.has(ta_valid_var):
-            ta_valid = in_arrays[ta_valid_var]
+            ta_valid = in_arrays[ta_valid_var].get_cpu_accessible()
             ii = np.where(np.logical_not(ta_valid))[0]
             ta[ii] = np.NAN
 
         mr_valid_var = mr_var + '_valid'
         if in_arrays.has(mr_valid_var):
-            mr_valid = in_arrays[mr_valid_var]
+            mr_valid = in_arrays[mr_valid_var].get_cpu_accessible()
             ii = np.where(np.logical_not(mr_valid))[0]
             mr[ii] = np.NAN
 

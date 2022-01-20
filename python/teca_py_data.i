@@ -157,11 +157,10 @@ TECA_PY_CONST_CAST(teca_array_collection)
     %pythoncode
     {
     def __getitem__(self, name):
-       r""" returns the column by name. The returned array will always be
+       r""" returns the array by name. The returned array will always be
        accessible on the CPU. Use get if you need an array that is accessible
        on the GPU  """
-       varr = self.get(name)
-       return varr.get_cpu_accessible()
+       return self.get(name)
     }
 
     /* handle conversion to variant arrays */

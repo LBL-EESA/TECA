@@ -354,7 +354,7 @@ class teca_pytorch_algorithm(teca_python_algorithm):
             raise RuntimeError('empty input, or not a mesh')
 
         arrays = in_mesh.get_point_arrays()
-        in_va = arrays[self.input_variable]
+        in_va = arrays[self.input_variable].get_cpu_accessible()
 
         ext = in_mesh.get_extent()
         in_va.shape = (ext[3] - ext[2] + 1,

@@ -71,7 +71,7 @@ class max_wind_speed(wind_speed):
         mesh = as_teca_cartesian_mesh(wdata)
         md = mesh.get_metadata()
         arrays = mesh.get_point_arrays()
-        max_ws = np.max(arrays['wind_speed'])
+        max_ws = np.max(arrays['wind_speed'].get_cpu_accessible())
 
         # construct the output
         table = teca_table.New()

@@ -90,7 +90,8 @@ mdo = ds.get_metadata()
 out_mesh = teca_cartesian_mesh.New()
 out_mesh.copy(ds)
 
-damped_array = out_mesh.get_point_arrays().get("ones_grid" + postfix)
+out_arrays = out_mesh.get_point_arrays()
+damped_array = out_arrays['ones_grid' + postfix].get_cpu_accessible()
 
 # find lat index where scalar should be half
 hwhm_index = -1
