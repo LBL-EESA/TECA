@@ -121,6 +121,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
             minimum
             maximum
             average
+            summation
 
         The factory method (operator_collection.New) retruns instances when passed
         a string naming one of them.
@@ -193,6 +194,36 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
                 self.count = None
                 return tmp
 
+        class summation:
+            def __init__(self):
+                self.fill_value = None
+
+            def initialize(self, fill_value):
+                self.fill_value = fill_value
+
+            def update(self, dev, out_array, in_array):
+
+                # select GPU or CPU
+                if dev < 0:
+                    np = numpy
+                else:
+                    np = cupy
+
+                if self.fill_value is not None:
+                    # identify the invalid values
+                    out_is_bad = np.isclose(out_array, self.fill_value)
+                    in_is_bad = np.isclose(in_array, self.fill_value)
+
+                    # accumulate
+                    tmp = np.where(out_is_bad, np.float32(0.0), out_array) \
+                        + np.where(in_is_bad, np.float32(0.0), in_array)
+
+                else:
+                    # accumulate
+                    tmp = out_array + in_array
+
+                return tmp
+
         class minimum:
             def __init__(self):
                 self.fill_value = None
@@ -255,6 +286,12 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
                 return teca_temporal_reduction. \
                     reduction_operator_collection. \
                         maximum()
+
+            elif op_name == 'summation':
+                return teca_temporal_reduction. \
+                    reduction_operator_collection. \
+                        summation()
+
 
             raise RuntimeError('Invalid operator %s' % (op_name))
 
