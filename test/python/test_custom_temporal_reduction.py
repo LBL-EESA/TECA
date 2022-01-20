@@ -32,7 +32,7 @@ class custom_reductions:
         def initialize(self, fill_value):
             self.fill_value = fill_value
 
-        def update(self, out_array, in_array):
+        def update(self, dev, out_array, in_array):
             res = out_array + in_array
             if self.fill_value is not None:
                 in_bad = np.isclose(in_array, self.fill_value)
@@ -42,7 +42,7 @@ class custom_reductions:
                 res = np.where(out_bad, self.fill_value, res)
             return res
 
-        def finalize(self, out_array):
+        def finalize(self, dev, out_array):
             return out_array
 
 
