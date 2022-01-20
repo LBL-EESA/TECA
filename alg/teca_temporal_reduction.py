@@ -332,9 +332,11 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
             monthly
             seasonal
             yearly
+            n_steps
 
         The factory method (interval_iterator_collection.New) retruns instances
-        when passed a string naming one of the above iterators.
+        when passed a string naming one of the above iterators. For the n_steps
+        iterator replace n with the desired number of steps (eg. 8_steps)
         """
 
         class time_point:
@@ -355,6 +357,30 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
                 return '%g (%s, %s) --> %04d-%02d-%02d %02d:%02d:%02g' % (
                     self.t, self.units, self.calendar, self.year, self.month,
                     self.day, self.hour, self.minutes, self.seconds)
+
+        class n_step_iterator:
+            """ An iterator over intervals of N time steps """
+
+            def __init__(self, t, units, calendar, n_steps):
+                self.time = t
+                self.index = 0
+                self.n_steps = n_steps
+
+            def __iter__(self):
+                return self
+
+            def __next__(self):
+
+                i0 = self.index
+                i1 = self.index + self.n_steps
+
+                if i1 >= len(self.time):
+                    raise StopIteration
+
+                self.index = i1
+
+                return teca_temporal_reduction. \
+                    time_interval(self.time[i0], i0, i1)
 
         class season_iterator:
             """
@@ -722,6 +748,14 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
                     interval_iterator_collection. \
                         day_iterator(t, units, calendar)
 
+            elif (pos := interval.rfind('_steps')) > 0:
+
+                n_steps = int(interval[0:pos])
+
+                return teca_temporal_reduction. \
+                    interval_iterator_collection. \
+                        n_steps_iterator(t, units, calendar, n_steps)
+
             else:
 
                 raise RuntimeError('Invlid interval %s' % (interval))
@@ -812,6 +846,12 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
         set the output interval to daily.
         """
         self.interval_name = 'daily'
+
+    def set_interval_to_n_steps(self, n_steps):
+        """
+        set the output interval to n_steps.
+        """
+        self.interval_name = '%d_steps'%(n_steps)
 
     def set_operator(self, operator):
         """
