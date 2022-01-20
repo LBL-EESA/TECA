@@ -41,11 +41,26 @@ def get_request_callback(var_names):
 
 def get_execute_callback(rank, var_names):
     def execute(port, data_in, req):
-        sys.stderr.write('[%d] execute\n'%(rank))
 
-        mesh = as_teca_cartesian_mesh(data_in[0])
+        # select CPU or GPU
+        dev = -1
+        np = numpy
         alloc = variant_array_allocator_malloc
+        if get_teca_has_cuda() and get_teca_has_cupy():
+            dev = req['device_id']
+            if dev >= 0:
+                alloc = variant_array_allocator_cuda
+                cupy.cuda.Device(dev).use()
+                np = cupy
 
+        # report
+        dev_str = 'CPU' if dev < 0 else 'GPU %d'%(dev)
+        sys.stderr.write('[%d] execute %s\n'%(rank, dev_str))
+
+        # get the input
+        mesh = as_teca_mesh(data_in[0])
+
+        # get the output
         table = teca_table.New()
         table.copy_metadata(mesh)
         table.set_default_allocator(alloc)
@@ -55,15 +70,29 @@ def get_execute_callback(rank, var_names):
 
         for var_name in var_names:
 
+            # get data on the CPU or the GPU
+            va = mesh.get_point_arrays().get(var_name)
+            if dev < 0:
+                hva = va.get_cpu_accessible()
+            else:
+                hva = va.get_cuda_accessible()
+
+            # do the calculations.
+            mn = np.min(hva)
+            mx = np.max(hva)
+            av = np.average(hva)
+            dv = np.std(hva)
+            qt = np.percentile(hva, [25.,50.,75.])
+            lq = qt[0]
+            md = qt[1]
+            uq = qt[2]
+
+            # insert the results into the table
             table.declare_columns(['min '+var_name, 'avg '+var_name, \
                 'max '+var_name, 'std '+var_name, 'low_q '+var_name, \
                 'med '+var_name, 'up_q '+var_name], ['d']*7)
 
-            var = mesh.get_point_arrays().get(var_name).as_array()
-
-            table << float(np.min(var)) << float(np.average(var)) \
-                << float(np.max(var)) << float(np.std(var)) \
-                << list(map(float, np.percentile(var, [25.,50.,75.])))
+            table << mn << av << mx << dv << lq << md << uq
 
         return table
     return execute
