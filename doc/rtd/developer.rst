@@ -18,6 +18,32 @@ Class Indices
 .. include:: _build/rst/generated_rtd_core.rst
 .. include:: _build/rst/generated_rtd_data.rst
 
+Environment Variables
+---------------------
+A number of environment variables can be used to modify the runtime behavior of
+the system. Generally these must be set prior to the application starting. In
+some cases these are useful in Python scripts as well.
+
++-------------------------+---------------------------------------------------+
+| Variable                | Description                                       |
++-------------------------+---------------------------------------------------+
+| TECA_THREADS_PER_DEVICE | The number of CPU threads serving data to each    |
+|                         | GPU in the system. The default value is 8.        |
++-------------------------+---------------------------------------------------+
+| TECA_RANKS_PER_DEVICE   | The number of MPI ranks per node allowed to use   |
+|                         | each GPU. The default is 1 MPI rank per GPU. TECA |
+|                         | will use multiple threads within a rank to        |
+|                         | service assigned GPUs. This environment variable  |
+|                         | may be useful when threading cannot be used.      |
++-------------------------+---------------------------------------------------+
+| TECA_INITIALIZE_MPI     | If set to FALSE, or 0, MPI initialization is      |
+|                         | skipped. This can be used to run in serial on     |
+|                         | Cray login nodes.                                 |
++-------------------------+---------------------------------------------------+
+| TECA_DO_TEST            | If set to 0 or FALSE regression tests will update |
+|                         | the associated baseline images.                   |
++-------------------------+---------------------------------------------------+
+
 Testing
 -------
 TECA comes with an extensive regression test suite which can be used to validate
