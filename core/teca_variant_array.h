@@ -134,10 +134,10 @@ public:
      */
     virtual int set_allocator(allocator alloc) = 0;
 
-    // return the name of the class in a human readable form
+    /// return the name of the class in a human readable form
     virtual std::string get_class_name() const = 0;
 
-    // initialize the elements using the default constructor
+    /// initialize the elements using the default constructor
     virtual void initialize() = 0;
 
     /** @name get
@@ -335,34 +335,41 @@ public:
     void append(const T *src, size_t src_start, size_t n_elem);
     ///@}
 
-    // get the number of elements in the array
+    /// get the number of elements in the array
     virtual unsigned long size() const noexcept = 0;
 
-    // resize. allocates new storage and copies in existing values
+    /// resize. allocates new storage and copies in existing values
     virtual void resize(unsigned long i) = 0;
 
-    // reserve. reserves the requested amount of space with out constructing
-    // elements
+    /** reserve. reserves the requested amount of space with out constructing
+     * elements
+     */
     virtual void reserve(unsigned long i) = 0;
 
-    // free all the internal data
+    /// free all the internal data
     virtual void clear() noexcept = 0;
 
-    // swap the contents of this and the other object.  an exception is thrown
-    // when no conversion between the two types exists.
+    /** swap the contents of this and the other object.  an exception is thrown
+     * when no conversion between the two types exists.
+     */
     virtual void swap(const p_teca_variant_array &other) = 0;
 
     /// compare the two arrays element wize for equality
     virtual bool equal(const const_p_teca_variant_array &other) const = 0;
 
-    // serrialize to/from stream
+    /// serrialize to the binary stream in the internal format
     virtual int to_stream(teca_binary_stream &s) const = 0;
+
+    /// derrialize from the binary stream
     virtual int from_stream(teca_binary_stream &s) = 0;
 
+    /// serrialize to the stream in a human readable format
     virtual int to_stream(std::ostream &s) const = 0;
+
+    /// derrialize from the human readable stream
     virtual int from_stream(std::ostream &s) = 0;
 
-    // used for serialization
+    /// a code for the contained data type used for serialization
     virtual unsigned int type_code() const noexcept = 0;
 
 private:
