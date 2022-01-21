@@ -3,9 +3,6 @@
 #include <iostream>
 #include <limits>
 
-using std::cerr;
-using std::endl;
-using std::vector;
 
 // --------------------------------------------------------------------------
 teca_programmable_reduce::teca_programmable_reduce() :
@@ -39,12 +36,12 @@ std::vector<teca_metadata>
     const std::vector<teca_metadata> &input_md, const teca_metadata &request)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_programmable_reduce::initialize_upstream_request" << endl;
+    std::cerr << teca_parallel_id()
+        << "teca_programmable_reduce::initialize_upstream_request" << std::endl;
 #endif
     if (!this->request_callback)
     {
-        vector<teca_metadata> up_reqs(1, request);
+        std::vector<teca_metadata> up_reqs(1, request);
         return up_reqs;
     }
 
@@ -56,8 +53,8 @@ teca_metadata teca_programmable_reduce::initialize_output_metadata(
     unsigned int port, const std::vector<teca_metadata> &input_md)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_programmable_reduce::intialize_output_metadata" << endl;
+    std::cerr << teca_parallel_id()
+        << "teca_programmable_reduce::intialize_output_metadata" << std::endl;
 #endif
     if (!this->report_callback)
     {
@@ -73,8 +70,8 @@ p_teca_dataset teca_programmable_reduce::reduce(int device_id,
     const const_p_teca_dataset &left_ds, const const_p_teca_dataset &right_ds)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_programmable_reduce::reduce" << endl;
+    std::cerr << teca_parallel_id()
+        << "teca_programmable_reduce::reduce" << std::endl;
 #endif
 
     if (!this->reduce_callback)
@@ -91,8 +88,8 @@ p_teca_dataset teca_programmable_reduce::finalize(int device_id,
     const const_p_teca_dataset &ds)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_programmable_reduce::finalize" << endl;
+    std::cerr << teca_parallel_id()
+        << "teca_programmable_reduce::finalize" << std::endl;
 #endif
 
     if (!this->finalize_callback)
