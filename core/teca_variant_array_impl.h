@@ -2513,31 +2513,33 @@ struct TECA_EXPORT teca_variant_array_new {};
 template <unsigned int I>
 struct TECA_EXPORT teca_variant_array_type {};
 
-#define TECA_VARIANT_ARRAY_TT_SPEC(T, v)            \
-template <>                                         \
-struct teca_variant_array_code<T>                   \
-{                                                   \
-    static constexpr unsigned int get()             \
-    { return v; }                                   \
-};                                                  \
-template <>                                         \
-struct teca_variant_array_new<v>                    \
-{                                                   \
-    static p_teca_variant_array_impl<T> New()       \
-    { return teca_variant_array_impl<T>::New(); }   \
-};                                                  \
-template <>                                         \
-struct teca_variant_array_type<v>                   \
-{                                                   \
-    using type = T;                                 \
-                                                    \
-    static constexpr const char *name()             \
-    { return #T; }                                  \
+#define TECA_VARIANT_ARRAY_TT_SPEC(T, v)                        \
+template <>                                                     \
+struct teca_variant_array_code<T>                               \
+{                                                               \
+    static constexpr unsigned int get()                         \
+    { return v; }                                               \
+};                                                              \
+template <>                                                     \
+struct teca_variant_array_new<v>                                \
+{                                                               \
+    using allocator = teca_variant_array::allocator;            \
+                                                                \
+    static p_teca_variant_array_impl<T> New(allocator alloc)    \
+    { return teca_variant_array_impl<T>::New(alloc); }          \
+};                                                              \
+template <>                                                     \
+struct teca_variant_array_type<v>                               \
+{                                                               \
+    using type = T;                                             \
+                                                                \
+    static constexpr const char *name()                         \
+    { return #T; }                                              \
 };
 
-#define TECA_VARIANT_ARRAY_FACTORY_NEW(_v)              \
-        case _v:                                        \
-            return teca_variant_array_new<_v>::New();
+#define TECA_VARIANT_ARRAY_FACTORY_NEW(_v)                  \
+        case _v:                                            \
+            return teca_variant_array_new<_v>::New(alloc);
 
 #include "teca_metadata.h"
 class teca_metadata;
@@ -2564,7 +2566,15 @@ TECA_VARIANT_ARRAY_TT_SPEC(p_teca_variant_array, 15)
  */
 struct TECA_EXPORT teca_variant_array_factory
 {
-    static p_teca_variant_array New(unsigned int type_code)
+    using allocator = teca_variant_array::allocator;
+
+    /** Construct a new variant array.
+     * @param[in] type_code the type of array to construct
+     * @param[in] alloc the allocator to use
+     * @returns a new variant array or a nullptr if the type_code was invalid.
+     */
+    static p_teca_variant_array New(unsigned int type_code,
+        allocator alloc = allocator::malloc)
     {
         switch (type_code)
         {
