@@ -414,6 +414,9 @@ public:
 
     virtual ~teca_variant_array_impl() noexcept;
 
+    /// @copydoc teca_variant_array::set_allocator(allocator)
+    int set_allocator(allocator alloc) override;
+
     /// Returns the name of the class in a human readable form
     std::string get_class_name() const override;
 
@@ -1730,6 +1733,21 @@ p_teca_variant_array teca_variant_array_impl<T>::new_instance(size_t n,
         alloc = static_cast<allocator>(m_data.get_allocator());
 
     return std::make_shared<teca_variant_array_impl<T>>(alloc, n);
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
+int teca_variant_array_impl<T>::set_allocator(allocator alloc)
+{
+    // if the allocator is already in use do nothing
+    if (this->m_data.get_allocator() == alloc)
+        return 0;
+
+    // move the data using the specified allocator
+    hamr::buffer<T> tmp(alloc, m_data);
+    m_data = std::move(tmp);
+
+    return 0;
 }
 
 // --------------------------------------------------------------------------

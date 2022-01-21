@@ -124,6 +124,16 @@ public:
         return new_copy(src_start, n_elem, allocator::malloc);
     }
 
+    /** Set the allocator. If the passed allocator is already in use this is a
+     * NOOP. Otherwise the contents of the variant array are reallocated and
+     * moved using a buffer allocated with the passed allocator. This can be
+     * used to explicitly move the data.
+     *
+     * @param[in] alloc the new ::allocator to use
+     * @returns 0 if successful
+     */
+    virtual int set_allocator(allocator alloc) = 0;
+
     // return the name of the class in a human readable form
     virtual std::string get_class_name() const = 0;
 
