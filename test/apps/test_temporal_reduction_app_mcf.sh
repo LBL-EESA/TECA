@@ -34,7 +34,7 @@ time ${launcher} ${app_prefix}/teca_temporal_reduction                         \
     --interval ${interval} --operator ${operator} --point_arrays ${array_name} \
     --z_axis_variable plev --file_layout yearly                                \
     --steps_per_file ${steps_per_file} --output_file "${output_base}_%t%.nc"   \
-    --n_threads 2 --verbose 1
+    --verbose 1
 
 # don't profile the diff
 unset PROFILER_ENABLE

@@ -118,7 +118,8 @@ verbose = args.verbose
 
 # give each MPI rank a GPU
 n_threads = 1
-os.environ['TECA_RANKS_PER_DEVICE'] = '-1'
+if not 'TECA_RANKS_PER_DEVICE' in os.environ:
+    os.environ['TECA_RANKS_PER_DEVICE'] = '-1'
 
 if verbose and rank == 0:
     sys.stderr.write('running on %d ranks' % (n_ranks))
@@ -147,7 +148,7 @@ cfr.set_t_axis_variable(t_axis_var)
 
 vvm = teca_valid_value_mask.New()
 vvm.set_input_connection(cfr.get_output_port())
-vvm.set_verbose(verbose)
+vvm.set_verbose(1 if verbose > 1 else 0)
 
 upd = teca_unpack_data.New()
 upd.set_input_connection(vvm.get_output_port())
