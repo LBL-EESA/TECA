@@ -35,15 +35,19 @@ namespace teca_py_array_interface
 {
 
 /** Look for the array interface protocol in passed object. */
-int has_array_interface(PyObject *obj)
+int has_cuda_array_interface(PyObject *obj)
 {
-    teca_py_gil_state gil;
-
     if (PyObject_HasAttrString(obj, "__cuda_array_interface__"))
     {
         return 1;
     }
-    else if (PyObject_HasAttrString(obj, "__array_interface__"))
+   return 0;
+}
+
+/** Look for the array interface protocol in passed object. */
+int has_numpy_array_interface(PyObject *obj)
+{
+    if (PyObject_HasAttrString(obj, "__array_interface__"))
     {
         return 1;
     }
@@ -70,8 +74,6 @@ int parse_array_interface(PyObject *obj, int &has_array_interface,
     teca_variant_array::allocator &alloc, const char *&ctypestr,
     size_t &n_elem, size_t &intptr)
 {
-    teca_py_gil_state gil;
-
     /* get the array interface protocol dictionary. the dictionary will
      * have the same keys regardless if it is the Numba CUDA array
      * interface or the Numpy array interface */
@@ -158,7 +160,7 @@ int parse_array_interface(PyObject *obj, int &has_array_interface,
     /* get the typestr and parse to determine the type of data being passed
      * and from this create the buffer using the pointer */
     PyObject *typestr = nullptr;
-   ctypestr = nullptr;
+    ctypestr = nullptr;
     if (((typestr = PyDict_GetItemString(aint, "typestr")) == nullptr) ||
         ((ctypestr = PyUnicode_AsUTF8(typestr)) == nullptr))
     {
@@ -215,6 +217,49 @@ p_teca_variant_array new_variant_array(PyObject *obj)
     return varr;
 }
 
+/// Copy values from the object into variant array.
+TECA_EXPORT
+bool copy(teca_variant_array *varr, PyObject *obj)
+{
+    if (has_cuda_array_interface(obj))
+    {
+        // zero-copy construct an array
+        p_teca_variant_array other = teca_py_array_interface::new_variant_array(obj);
+        if (!other)
+            return false;
+
+        // assign. this api respects the location of the data, and will only
+        // move if neccessary
+        varr->assign(other);
+
+        return true;
+    }
+
+    // unknown object type
+    return false;
 }
 
+/// Copy values from the object into variant array.
+TECA_EXPORT
+bool append(teca_variant_array *varr, PyObject *obj)
+{
+    if (has_cuda_array_interface(obj))
+    {
+        // zero-copy construct an array
+        p_teca_variant_array other = teca_py_array_interface::new_variant_array(obj);
+        if (!other)
+            return false;
+
+        // append. this api respects the location of the data, and will only
+        // move if neccessary
+        varr->append(other);
+
+        return true;
+    }
+
+    // unknown object type
+    return false;
+}
+
+}
 #endif

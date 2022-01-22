@@ -189,32 +189,11 @@ class teca_variant_array;
 %ignore teca_variant_array::debug_print;
 %include "teca_variant_array.h"
 %include "teca_variant_array_impl.h"
-
-%extend teca_variant_array_impl
+%pythoncode
 {
-    /** return an object that can be used on the CPU via the Numpy array
-     * interface protocol */
-    hamr::buffer_handle<T> get_cpu_accessible()
-    {
-        teca_py_gil_state gil;
-
-        hamr::buffer_handle<T> h(self->get_cpu_accessible(), self->size(),
-            0, 1, self->cpu_accessible() && self->cuda_accessible());
-
-        return h;
-    }
-
-    /** return an object that can be used from CUDA via the Numba CUDA array
-     * interface protocol */
-    hamr::buffer_handle<T> get_cuda_accessible()
-    {
-        teca_py_gil_state gil;
-
-        hamr::buffer_handle<T> h(self->get_cuda_accessible(), self->size(),
-            0, self->cpu_accessible() && self->cuda_accessible(), 1);
-
-        return h;
-    }
+from numpy import array as np_array
+if get_teca_has_cupy():
+    from cupy import array as cp_array
 }
 
 // named variant arrays
@@ -252,8 +231,8 @@ class teca_variant_array;
 
         p_teca_variant_array varr;
         if ((varr = teca_py_object::new_variant_array(obj))
+            || (varr = teca_py_array::new_variant_array(obj, false))
             || (varr = teca_py_array_interface::new_variant_array(obj))
-            || (varr = teca_py_array::new_variant_array(obj))
             || (varr = teca_py_sequence::new_variant_array(obj))
             || (varr = teca_py_iterator::new_variant_array(obj)))
             return varr;
@@ -328,90 +307,74 @@ class teca_variant_array;
             teca_py_array::new_object(self));
     }
 
+#if defined(TECA_NUMPY_ARRAY_INTERFACE)
+    /** zero-copy transfer the data to numpy using the array interface protocol. */
+    PyObject *get_cpu_accessible_impl()
+    {
+        teca_py_gil_state gil;
+        TEMPLATE_DISPATCH(teca_variant_array_impl,
+            self,
+
+            TT *tself = static_cast<TT*>(self);
+
+            hamr::buffer_handle<NT> *ph = new hamr::buffer_handle<NT>(
+                tself->get_cpu_accessible(), tself->size(), 0, 1,
+                tself->cpu_accessible() && tself->cuda_accessible());
+
+            return SWIG_NewPointerObj(SWIG_as_voidptr(ph),
+                hamr::buffer_handle_tt<NT>::swig_type(), SWIG_POINTER_OWN);
+            )
+        TECA_PY_ERROR(PyExc_RuntimeError, "Failed to construct a CPU accessible buffer handle")
+        return nullptr;
+    }
+
+    %pythoncode
+    {
+    def get_cpu_accessible(self, as_array=True, shape=None):
+        r""" return a handle exposing the data via the Numpy array interface """
+        hvarr = self.get_cpu_accessible_impl()
+        return np_array(hvarr, copy=False)
+    }
+#else
+    /** zero-copy transfer the data to numpy using the numpy c-api */
+    PyObject *get_cpu_accessible()
+    {
+        teca_py_gil_state gil;
+        bool deep_copy = false;
+        return reinterpret_cast<PyObject*>(
+            teca_py_array::new_object(self, deep_copy));
+    }
+#endif
+
+    /** zero-copy transfer the data to cupy using the numba CUDA array
+     * interface protocol. */
+    PyObject *get_cuda_accessible_impl()
+    {
+        teca_py_gil_state gil;
+        TEMPLATE_DISPATCH(teca_variant_array_impl,
+            self,
+
+            TT *tself = static_cast<TT*>(self);
+
+            hamr::buffer_handle<NT> *ph = new hamr::buffer_handle<NT>(
+                tself->get_cuda_accessible(), tself->size(), 0,
+                tself->cpu_accessible() && tself->cuda_accessible(), 1);
+
+            return SWIG_NewPointerObj(SWIG_as_voidptr(ph),
+                hamr::buffer_handle_tt<NT>::swig_type(), SWIG_POINTER_OWN);
+            )
+
+        TECA_PY_ERROR(PyExc_RuntimeError, "Failed to construct a CUDA accessible buffer handle")
+        return nullptr;
+    }
+
     /** zero-copy data access in Numpy/Cupy/Numba via the array interface protocol */
     %pythoncode
     {
-    def get_cuda_accessible(self, as_array=True, shape=None):
+    def get_cuda_accessible(self):
         r""" return a handle exposing the data via the Numba CUDA array interface. """
-        if not get_teca_has_cuda():
-            raise RuntimeError('CUDA is not available in this build')
-
-        if varr := as_teca_double_array(self):
-            hvarr = varr.get_cuda_accessible()
-        elif varr := as_teca_float_array(self):
-            hvarr = varr.get_cuda_accessible()
-        elif varr := as_teca_long_long_array(self):
-            hvarr = varr.get_cuda_accessible()
-        elif varr := as_teca_long_array(self):
-            hvarr = varr.get_cuda_accessible()
-        elif varr := as_teca_int_array(self):
-            hvarr = varr.get_cuda_accessible()
-        elif varr := as_teca_short_array(self):
-            hvarr = varr.get_cuda_accessible()
-        elif varr := as_teca_char_array(self):
-            hvarr = varr.get_cuda_accessible()
-        elif varr := as_teca_unsigned_long_long_array(self):
-            hvarr = varr.get_cuda_accessible()
-        elif varr := as_teca_unsigned_long_array(self):
-            hvarr = varr.get_cuda_accessible()
-        elif varr := as_teca_unsigned_int_array(self):
-            hvarr = varr.get_cuda_accessible()
-        elif varr := as_teca_unsigned_short_array(self):
-            hvarr = varr.get_cuda_accessible()
-        elif varr := as_teca_unsigned_char_array(self):
-            hvarr = varr.get_cuda_accessible()
-        else:
-            raise TypeError('Unsupported type %s'%(str(type(self))))
-
-        ret = hvarr
-
-        if as_array:
-            from cupy import array as cp_array
-            ret = cp_array(hvarr, copy=False)
-            if shape is not None:
-                ret = ret.reshape(shape)
-
-        return ret
-
-    def get_cpu_accessible(self, as_array=True, shape=None):
-        r""" return a handle exposing the data via the Numpy array interface """
-
-        if varr := as_teca_double_array(self):
-            hvarr = varr.get_cpu_accessible()
-        elif varr := as_teca_float_array(self):
-            hvarr = varr.get_cpu_accessible()
-        elif varr := as_teca_long_long_array(self):
-            hvarr = varr.get_cpu_accessible()
-        elif varr := as_teca_long_array(self):
-            hvarr = varr.get_cpu_accessible()
-        elif varr := as_teca_int_array(self):
-            hvarr = varr.get_cpu_accessible()
-        elif varr := as_teca_short_array(self):
-            hvarr = varr.get_cpu_accessible()
-        elif varr := as_teca_char_array(self):
-            hvarr = varr.get_cpu_accessible()
-        elif varr := as_teca_unsigned_long_long_array(self):
-            hvarr = varr.get_cpu_accessible()
-        elif varr := as_teca_unsigned_long_array(self):
-            hvarr = varr.get_cpu_accessible()
-        elif varr := as_teca_unsigned_int_array(self):
-            hvarr = varr.get_cpu_accessible()
-        elif varr := as_teca_unsigned_short_array(self):
-            hvarr = varr.get_cpu_accessible()
-        elif varr := as_teca_unsigned_char_array(self):
-            hvarr = varr.get_cpu_accessible()
-        else:
-            raise TypeError('Unsupported type %s'%(str(type(self))))
-
-        ret = hvarr
-
-        if as_array:
-            from numpy import array as np_array
-            ret = np_array(hvarr, copy=False)
-            if shape is not None:
-                ret = ret.reshape(shape)
-
-        return ret
+        hvarr = self.get_cuda_accessible_impl()
+        return cp_array(hvarr, copy=False)
     }
 
     PyObject *append(PyObject *obj)
@@ -422,6 +385,7 @@ class teca_variant_array;
 
         if (teca_py_object::append(self, obj)
             || teca_py_array::append(self, obj)
+            || teca_py_array_interface::append(self, obj)
             || teca_py_sequence::append(self, obj))
             return Py_None;
 
@@ -440,6 +404,7 @@ class teca_variant_array;
 
         if (teca_py_object::copy(self, obj)
             || teca_py_array::copy(self, obj)
+            || teca_py_array_interface::copy(self, obj)
             || teca_py_sequence::copy(self, obj))
             return Py_None;
 
@@ -473,6 +438,7 @@ TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned short, unsigned_short)
 TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned int, unsigned_int)
 TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned long, unsigned_long)
 TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned long long, unsigned_long_long)
+
 
 /***************************************************************************
  metadata
@@ -715,7 +681,8 @@ TECA_PY_CONST_CAST(teca_dataset)
         Py_INCREF(Py_None);
 
         p_teca_variant_array varr;
-        if ((varr = teca_py_array::new_variant_array(array))
+        if ((varr = teca_py_object::new_variant_array(array))
+            || (varr = teca_py_array::new_variant_array(array))
             || (varr = teca_py_sequence::new_variant_array(array))
             || (varr = teca_py_iterator::new_variant_array(array)))
         {
@@ -836,7 +803,8 @@ class teca_algorithm;
         Py_INCREF(Py_None);
 
         p_teca_variant_array varr;
-        if ((varr = teca_py_array::new_variant_array(array))
+        if ((varr = teca_py_object::new_variant_array(value))
+            || (varr = teca_py_array::new_variant_array(array))
             || (varr = teca_py_sequence::new_variant_array(array))
             || (varr = teca_py_iterator::new_variant_array(array)))
         {

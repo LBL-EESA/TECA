@@ -673,7 +673,8 @@ TECA_PY_CONST_CAST(teca_table)
         }
 
         // objects exposing the array interface protocol
-        if (teca_py_array_interface::has_array_interface(obj))
+        if (teca_py_array_interface::has_numpy_array_interface(obj) ||
+            teca_py_array_interface::has_cuda_array_interface(obj))
         {
             p_teca_variant_array tmp =
                 teca_py_array_interface::new_variant_array(obj);
@@ -834,6 +835,8 @@ unsigned long time_step_of(PyObject *time, bool lower, bool clamp,
     const std::string &calendar, const std::string &units,
     const std::string &date)
 {
+    teca_py_gil_state gil;
+
     p_teca_variant_array varr;
     if ((varr = teca_py_array_interface::new_variant_array(time))
         || (varr = teca_py_array::new_variant_array(time))
@@ -860,6 +863,7 @@ static
 std::string time_to_string(double val, const std::string &calendar,
     const std::string &units, const std::string &format)
 {
+    teca_py_gil_state gil;
     std::string date;
     if (teca_coordinate_util::time_to_string(val, calendar, units, format, date))
     {
