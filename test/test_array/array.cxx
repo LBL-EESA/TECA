@@ -3,6 +3,7 @@
 #include "teca_bad_cast.h"
 
 #include <hamr_buffer.h>
+#include <hamr_buffer_pointer.h>
 
 #include <utility>
 #include <iostream>
