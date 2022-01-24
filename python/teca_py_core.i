@@ -113,6 +113,8 @@ private:
 
     PyObject *set_data(PyObject *obj)
     {
+        teca_py_gil_state gil;
+
         // not an array
         if (!PyArray_Check(obj))
         {

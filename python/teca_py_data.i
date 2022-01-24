@@ -44,6 +44,8 @@
         unsigned long n, const std::string &un, const std::string &ln,
         const std::string &descr, PyObject *fv)
     {
+        teca_py_gil_state gil;
+
         if (fv != Py_None)
         {
             if (tc < 1)
@@ -72,6 +74,8 @@
 
     void set_fill_value(PyObject *fv)
     {
+        teca_py_gil_state gil;
+
         if (fv != Py_None)
         {
             TECA_PY_OBJECT_DISPATCH_NUM(fv,
