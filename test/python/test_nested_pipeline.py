@@ -9,7 +9,7 @@ num_ranks = comm.Get_size()
 
 # a reduction that writes its inputs to files
 def get_reduce(file_template):
-    def reduce(left, right):
+    def reduce(dev,left, right):
         # construct the nested pipeline
         # serve up both inputs
         source = teca_dataset_source.New()

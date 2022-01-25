@@ -54,13 +54,14 @@ teca_metadata array_temporal_stats::initialize_output_metadata(
 }
 
 // --------------------------------------------------------------------------
-p_teca_dataset array_temporal_stats::reduce(const const_p_teca_dataset &left,
-    const const_p_teca_dataset &right)
+p_teca_dataset array_temporal_stats::reduce(int device_id,
+    const const_p_teca_dataset &left, const const_p_teca_dataset &right)
 {
 #ifndef TECA_NDEBUG
     std::cerr << teca_parallel_id()
         << "array_temporal_stats::reduce" << std::endl;
 #endif
+    (void) device_id;
 
     // validate inputs
     const_p_array l_in = std::dynamic_pointer_cast<const array>(left);
@@ -86,7 +87,6 @@ p_teca_dataset array_temporal_stats::reduce(const const_p_teca_dataset &left,
     bool r_active = r_in->get_name() == this->array_name;
 
 #if defined(TECA_HAS_CUDA)
-    int device_id = 0;
     if (device_id >= 0)
     {
         if (array_temporal_stats_internals::cuda_dispatch(
@@ -116,12 +116,15 @@ p_teca_dataset array_temporal_stats::reduce(const const_p_teca_dataset &left,
 }
 
 // --------------------------------------------------------------------------
-p_teca_dataset array_temporal_stats::finalize(const const_p_teca_dataset &ds)
+p_teca_dataset array_temporal_stats::finalize(int device_id,
+    const const_p_teca_dataset &ds)
 {
 #ifndef TECA_NDEBUG
     std::cerr << teca_parallel_id()
         << "array_temporal_stats::finalize" << std::endl;
 #endif
+    (void) device_id;
+
     const_p_array a_in = std::dynamic_pointer_cast<const array>(ds);
     if (!a_in)
     {

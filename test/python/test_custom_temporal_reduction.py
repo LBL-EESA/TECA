@@ -32,18 +32,26 @@ class custom_reductions:
         def initialize(self, fill_value):
             self.fill_value = fill_value
 
-        def update(self, out_array, in_array):
+        def update(self, dev, out_array, out_valid, in_array, in_valid):
+
             res = out_array + in_array
+            res_valid = None
+
             if self.fill_value is not None:
-                in_bad = np.isclose(in_array, self.fill_value)
-                res = np.where(in_bad, self.fill_value, res)
+                res_valid = np.ones_like(out_array, dtype=np.int8)
 
-                out_bad = np.isclose(out_array, self.fill_value)
-                res = np.where(out_bad, self.fill_value, res)
-            return res
+                in_bad = np.logical_not(in_valid)
+                res[in_bad] = self.fill_value
+                res_valid[out_bad] = np.int8(0)
 
-        def finalize(self, out_array):
-            return out_array
+                out_bad = np.logical_not(out_valid)
+                res[out_bad] = self.fill_value
+                res_valid[in_bad] = np.int8(0)
+
+            return res, out_valid
+
+        def finalize(self, dev, out_array, out_valid):
+            return out_array, out_valid
 
 
 class custom_intervals:
@@ -84,26 +92,21 @@ class custom_intervals:
 
 
 argc = len(sys.argv)
-if argc < 8:
+if argc < 6:
     sys.stderr.write('usage: app [in file regex] [z axis var] [out file base] '
-                     '[steps per file] [n threads] [use fill value] '
-                     '[array name 0] ... [array name n]\n')
+                     '[use fill value] [array name 0] ... [array name n]\n')
     sys.exit(-1)
 
 files = sys.argv[1]
 z_axis = '' if sys.argv[2] == '.' else sys.argv[2]
 out_base = sys.argv[3]
-steps_per_file = int(sys.argv[4])
-n_threads = int(sys.argv[5])
 interval = 'five_steps'
 operator = 'sum'
-use_fill = int(sys.argv[6])
-arrays = sys.argv[7:]
+use_fill = int(sys.argv[4])
+arrays = sys.argv[5:]
 
 if rank == 0:
     sys.stderr.write('testing on %d ranks'%(n_ranks))
-    sys.stderr.write('n_threads=%d\n'%(n_threads))
-    sys.stderr.write('steps_per_file=%d\n'%(steps_per_file))
     sys.stderr.write('interval=%s\n'%(interval))
     sys.stderr.write('operator=%s\n'%(operator))
     sys.stderr.write('arrays=%s\n'%(str(arrays)))
@@ -122,7 +125,7 @@ mav.set_operator(operator)
 mav.set_point_arrays(arrays)
 mav.set_use_fill_value(use_fill)
 mav.set_verbose(1)
-mav.set_thread_pool_size(n_threads)
+mav.set_thread_pool_size(1)
 mav.set_stream_size(2)
 
 do_test = 1

@@ -229,7 +229,8 @@ int teca_cf_time_axis_data::from_stream(std::istream &)
 }
 
 // --------------------------------------------------------------------------
-void teca_cf_time_axis_data::copy(const const_p_teca_dataset &o)
+void teca_cf_time_axis_data::copy(const const_p_teca_dataset &o,
+    allocator alloc)
 {
     const_p_teca_cf_time_axis_data other =
         std::dynamic_pointer_cast<const teca_cf_time_axis_data>(o);
@@ -247,7 +248,7 @@ void teca_cf_time_axis_data::copy(const const_p_teca_dataset &o)
     for (; it != end; ++it)
     {
         p_teca_variant_array va = ::get_variant_array(it) ?
-             ::get_variant_array(it)->new_copy() : nullptr;
+             ::get_variant_array(it)->new_copy(alloc) : nullptr;
 
         this->internals->emplace(std::make_pair(::get_file_id(it),
             std::make_pair(va, ::get_const_metadata(it))));

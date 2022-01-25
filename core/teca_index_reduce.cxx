@@ -110,8 +110,13 @@ void block_decompose(MPI_Comm comm, unsigned long n_indices, unsigned long n_ran
             for (unsigned long i = 0; i < n_ranks; ++i)
             {
                 unsigned long ii = 2*i;
-                oss << i << " : " << decomp[ii] << " - " << decomp[ii] + decomp[ii+1] -1
-                    << (i < n_ranks-1 ? "\n" : "");
+                oss << i << " : ";
+                if (decomp[ii+1])
+                    oss << decomp[ii] << " - " << decomp[ii] + decomp[ii+1] - 1;
+                else
+                    oss << "- - -";
+                if (i < n_ranks - 1)
+                     oss << std::endl;
             }
             TECA_STATUS("map index decomposition:" << std::endl << oss.str())
         }
@@ -260,7 +265,7 @@ teca_metadata teca_index_reduce::get_output_metadata(
     teca_metadata output_md
         = this->initialize_output_metadata(port, input_md);
 
-    // by default the reduction takes a massive dataet, with an index for each
+    // by default the reduction takes a massive dataset, with an index for each
     // representative piece, and reduces it in a single pass to a single output
     // if other behavior is needed implementations will have to override this
     // method
@@ -272,7 +277,7 @@ teca_metadata teca_index_reduce::get_output_metadata(
 }
 
 // --------------------------------------------------------------------------
-const_p_teca_dataset teca_index_reduce::reduce_local(
+const_p_teca_dataset teca_index_reduce::reduce_local(int device_id,
     std::vector<const_p_teca_dataset> input_data) // pass by value is necessary
 {
     unsigned long n_in = input_data.size();
@@ -284,7 +289,7 @@ const_p_teca_dataset teca_index_reduce::reduce_local(
     {
         if (n_in % 2)
             TECA_PROFILE_METHOD(128, this, "reduce",
-                input_data[0] = this->reduce(input_data[0],
+                input_data[0] = this->reduce(device_id, input_data[0],
                     (n_in > 1 ? input_data[n_in-1] : nullptr));
                 )
 
@@ -293,7 +298,7 @@ const_p_teca_dataset teca_index_reduce::reduce_local(
         {
             unsigned long ii = 2*i;
             TECA_PROFILE_METHOD(128, this, "reduce",
-                input_data[i] = this->reduce(input_data[ii],
+                input_data[i] = this->reduce(device_id, input_data[ii],
                     input_data[ii+1]);
                 )
         }
@@ -304,7 +309,7 @@ const_p_teca_dataset teca_index_reduce::reduce_local(
 }
 
 // --------------------------------------------------------------------------
-const_p_teca_dataset teca_index_reduce::reduce_remote(
+const_p_teca_dataset teca_index_reduce::reduce_remote(int device_id,
     const_p_teca_dataset local_data)
 {
 #if defined(TECA_HAS_MPI)
@@ -351,7 +356,7 @@ const_p_teca_dataset teca_index_reduce::reduce_remote(
             }
 
             TECA_PROFILE_METHOD(128, this, "reduce",
-                local_data = this->reduce(local_data, left_data);
+                local_data = this->reduce(device_id, local_data, left_data);
                 )
 
             bstr.resize(0);
@@ -374,7 +379,7 @@ const_p_teca_dataset teca_index_reduce::reduce_remote(
             }
 
             TECA_PROFILE_METHOD(128, this, "reduce",
-                local_data = this->reduce(local_data, right_data);
+                local_data = this->reduce(device_id, local_data, right_data);
                 )
 
             bstr.resize(0);
@@ -419,10 +424,19 @@ const_p_teca_dataset teca_index_reduce::execute(unsigned int port,
     }
 #endif
 
+    // get the device to execute on
+    int device_id = -1;
+    if (request.get("device_id", device_id))
+    {
+        TECA_ERROR("The request is missing the device_id key."
+            " Executing the reduction on the CPU.")
+    }
+
     // note: it is not an error to have no input data.  this can occur if there
     // are fewer indices to process than there are MPI ranks.
 
-    const_p_teca_dataset tmp = this->reduce_local(input_data);
+    // reduce data from threads on this MPI rank
+    const_p_teca_dataset tmp = this->reduce_local(device_id, input_data);
 
     // when streaming execute will be called multiple times with 1 or more
     // input datasets. When all the data has been passed streaming is 0. Only
@@ -430,7 +444,12 @@ const_p_teca_dataset teca_index_reduce::execute(unsigned int port,
     if (streaming)
         return tmp;
 
-    tmp = this->finalize(this->reduce_remote(tmp));
+    // reduce data across MPI ranks
+    tmp = this->reduce_remote(device_id, tmp);
+
+    // finalize the reduction
+    tmp = this->finalize(device_id, tmp);
+
     if (!tmp)
         return nullptr;
 

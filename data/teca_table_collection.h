@@ -15,6 +15,8 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_table_collection)
 class TECA_EXPORT teca_table_collection
 {
 public:
+    using allocator = teca_dataset::allocator;
+
     // construct on heap
     static
     p_teca_table_collection New()
@@ -83,8 +85,11 @@ public:
     int get_type_code() const
     { return -1; }
 
-    // copy
-    void copy(const const_p_teca_table_collection &other);
+    /// deep copy using the passed allocator for new allocations
+    void copy(const const_p_teca_table_collection &other,
+        allocator alloc = allocator::malloc);
+
+    /// shallow copy
     void shallow_copy(const p_teca_table_collection &other);
 
     // swap

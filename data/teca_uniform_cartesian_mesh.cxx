@@ -31,7 +31,8 @@ int teca_uniform_cartesian_mesh::get_type_code() const
 }
 
 // --------------------------------------------------------------------------
-void teca_uniform_cartesian_mesh::copy(const const_p_teca_dataset &dataset)
+void teca_uniform_cartesian_mesh::copy(const const_p_teca_dataset &dataset,
+    allocator alloc)
 {
     const_p_teca_uniform_cartesian_mesh other
         = std::dynamic_pointer_cast<const teca_uniform_cartesian_mesh>(dataset);
@@ -42,7 +43,7 @@ void teca_uniform_cartesian_mesh::copy(const const_p_teca_dataset &dataset)
     if (this == other.get())
         return;
 
-    this->teca_mesh::copy(dataset);
+    this->teca_mesh::copy(dataset, alloc);
 }
 
 // --------------------------------------------------------------------------

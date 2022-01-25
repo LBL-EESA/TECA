@@ -81,14 +81,11 @@ public:
     int to_stream(std::ostream &) const override;
     int from_stream(std::istream &) override;
 
-    // copy data and metadata. shallow copy uses reference
-    // counting, while copy duplicates the data.
-    void copy(const const_p_teca_dataset &other) override;
+    /// @copydoc teca_dataset::copy(const const_p_teca_dataset &,allocator)
+    void copy(const const_p_teca_dataset &other,
+        allocator alloc = allocator::malloc) override;
 
-    // deep copy a subset of row values.
-    void copy(const const_p_teca_cf_time_axis_data &other,
-        unsigned long first_row, unsigned long last_row);
-
+    /// @copydoc teca_dataset::shallow_copy(const p_teca_dataset &)
     void shallow_copy(const p_teca_dataset &other) override;
 
     // swap internals of the two objects

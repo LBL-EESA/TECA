@@ -92,10 +92,6 @@ parser.add_argument('--z_axis_variable', type=str, default='',
 parser.add_argument('--t_axis_variable', type=str, default='time',
                     help='name of the variable to use for t-coordinates')
 
-parser.add_argument('--n_threads', type=int, default=2,
-                    help='Number of threads to use when streaming the '
-                         'reduction')
-
 parser.add_argument('--verbose', type=int, default=0,
                     help='enable verbose mode.')
 
@@ -109,7 +105,6 @@ in_files = args.input_regex
 out_files = args.output_file
 layout = args.file_layout
 steps_per_file = args.steps_per_file
-n_threads = args.n_threads
 interval = args.interval
 operator = args.operator
 point_arrays = args.point_arrays
@@ -121,9 +116,13 @@ z_axis_var = args.z_axis_variable
 t_axis_var = args.t_axis_variable
 verbose = args.verbose
 
+# give each MPI rank a GPU
+n_threads = 1
+if not 'TECA_RANKS_PER_DEVICE' in os.environ:
+    os.environ['TECA_RANKS_PER_DEVICE'] = '-1'
+
 if verbose and rank == 0:
     sys.stderr.write('running on %d ranks' % (n_ranks))
-    sys.stderr.write('n_threads=%d\n' % (n_threads))
     sys.stderr.write('file_layout=%s\n'%(layout))
     sys.stderr.write('steps_per_file=%d\n' % (steps_per_file))
     sys.stderr.write('interval=%s\n' % (interval))
@@ -149,7 +148,7 @@ cfr.set_t_axis_variable(t_axis_var)
 
 vvm = teca_valid_value_mask.New()
 vvm.set_input_connection(cfr.get_output_port())
-vvm.set_verbose(verbose)
+vvm.set_verbose(1 if verbose > 1 else 0)
 
 upd = teca_unpack_data.New()
 upd.set_input_connection(vvm.get_output_port())

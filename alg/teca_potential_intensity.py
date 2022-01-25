@@ -5,6 +5,25 @@ from tcpyPI import pi as tcpi
 
 
 class teca_potential_intensity(teca_python_algorithm):
+    r""" The teca_potential_intensity command line application computes
+    potential intensity (PI) for tropical cyclones using the tcpyPI library
+    [Gil21]. Potential intensity is the maximum speed limit of a tropical
+    cyclone found by modeling the storm as a thermal heat engine. Because there
+    are significant correlations between PI and actual storm wind speeds, PI is
+    a useful diagnostic for evaluating or predicting tropical cyclone intensity
+    climatology and variability. TECA enables massive amounts of data to be
+    processed by the tcpyPI code in parallel. In addition to providing scalable
+    high performance I/O needed for accessing large amounts of data, TECA
+    handles the necessary pre-processing and post processing tasks such as
+    conversions of units, conversions of conventional missing values, and the
+    application of land-sea masks.
+
+    For more information see:
+    D. M. Gilford. Pypi (v1.3): tropical cyclone potential intensity
+    calculations in python. Geoscientific Model Development, 14(5):2351–2369,
+    2021. URL: https://gmd.copernicus.org/articles/14/2351/2021/,
+    doi:10.5194/gmd-14-2351-2021.
+    """
 
     def __init__(self):
 
@@ -296,9 +315,9 @@ class teca_potential_intensity(teca_python_algorithm):
         # get the input arrays
         in_arrays = in_mesh.get_point_arrays()
 
-        psl = in_arrays[self.sea_level_pressure_variable]
-        sst = in_arrays[self.sea_surface_temperature_variable]
-        ta = in_arrays[self.air_temperature_variable]
+        psl = in_arrays[self.sea_level_pressure_variable].get_cpu_accessible()
+        sst = in_arrays[self.sea_surface_temperature_variable].get_cpu_accessible()
+        ta = in_arrays[self.air_temperature_variable].get_cpu_accessible()
 
         if self.mixing_ratio_variable is not None:
             specific_humidity_to_mixing_ratio = False
@@ -306,11 +325,11 @@ class teca_potential_intensity(teca_python_algorithm):
         else:
             specific_humidity_to_mixing_ratio = True
             mr_var = self.specific_humidity_variable
-        mr = in_arrays[mr_var]
+        mr = in_arrays[mr_var].get_cpu_accessible()
 
         # get the land_mask variable
         if self.land_mask_variable is not None:
-            land_mask = in_arrays[self.land_mask_variable]
+            land_mask = in_arrays[self.land_mask_variable].get_cpu_accessible()
             land_mask = np.where(np.logical_and(land_mask >= 0.9, land_mask <= 1.1),
                                  np.int8(0), np.int8(1))
         else:
@@ -326,25 +345,25 @@ class teca_potential_intensity(teca_python_algorithm):
         # replace _FillValue with NaN
         psl_valid_var = self.sea_level_pressure_variable + '_valid'
         if in_arrays.has(psl_valid_var):
-            psl_valid = in_arrays[psl_valid_var]
+            psl_valid = in_arrays[psl_valid_var].get_cpu_accessible()
             ii = np.where(np.logical_not(psl_valid))[0]
             psl[ii] = np.NAN
 
         sst_valid_var = self.sea_surface_temperature_variable + '_valid'
         if in_arrays.has(sst_valid_var):
-            sst_valid = in_arrays[sst_valid_var]
+            sst_valid = in_arrays[sst_valid_var].get_cpu_accessible()
             ii = np.where(np.logical_not(sst_valid))[0]
             sst[ii] = np.NAN
 
         ta_valid_var = self.air_temperature_variable + '_valid'
         if in_arrays.has(ta_valid_var):
-            ta_valid = in_arrays[ta_valid_var]
+            ta_valid = in_arrays[ta_valid_var].get_cpu_accessible()
             ii = np.where(np.logical_not(ta_valid))[0]
             ta[ii] = np.NAN
 
         mr_valid_var = mr_var + '_valid'
         if in_arrays.has(mr_valid_var):
-            mr_valid = in_arrays[mr_valid_var]
+            mr_valid = in_arrays[mr_valid_var].get_cpu_accessible()
             ii = np.where(np.logical_not(mr_valid))[0]
             mr[ii] = np.NAN
 

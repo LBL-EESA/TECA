@@ -1,5 +1,7 @@
 from teca import *
-import numpy as np
+import numpy
+if get_teca_has_cupy():
+    import cupy
 import sys
 
 set_stack_trace_on_error()
@@ -41,13 +43,25 @@ class wind_speed(teca_python_algorithm):
         return [req]
 
     def execute(self, port, data_in, req):
-        sys.stderr.write('wind_speed::execute\n')
-        in_mesh = as_teca_cartesian_mesh(data_in[0])
-        out_mesh = teca_cartesian_mesh.New()
+        dev = -1
+        np = numpy
+        if get_teca_has_cuda() and get_teca_has_cupy():
+            dev = req['device_id']
+            if dev >= 0:
+                cupy.cuda.Device(dev).use()
+                np = cupy
+        dev_str = 'CPU' if dev < 0 else 'GPU %d'%(dev)
+        sys.stderr.write('wind_speed::execute %s\n'%(dev_str))
+        in_mesh = as_teca_mesh(data_in[0])
+        out_mesh = as_teca_mesh(in_mesh.new_instance())
         out_mesh.shallow_copy(in_mesh)
         arrays = out_mesh.get_point_arrays()
-        u = arrays[self.u_var]
-        v = arrays[self.v_var]
+        if dev < 0:
+            u = arrays[self.u_var].get_cpu_accessible()
+            v = arrays[self.v_var].get_cpu_accessible()
+        else:
+            u = arrays[self.u_var].get_cuda_accessible()
+            v = arrays[self.v_var].get_cuda_accessible()
         w = np.sqrt(u*u + v*v)
         arrays['wind_speed'] = w
         return out_mesh
@@ -62,16 +76,31 @@ class max_wind_speed(wind_speed):
         demonstrate the use of super to call the base
         class
         """
-        sys.stderr.write('max_wind_speed::execute\n')
+        # get the device to run on
+        dev = -1
+        np = numpy
+        if get_teca_has_cuda() and get_teca_has_cupy():
+            dev = req['device_id']
+            if dev >= 0:
+                cupy.cuda.Device(dev).use()
+                np = cupy
+
+        # report
+        dev_str = 'CPU' if dev < 0 else 'GPU %d'%(dev)
+        sys.stderr.write('max_wind_speed::execute %s\n'%(dev_str))
 
         # let the base class calculate the wind speed
         wdata = super().execute(port, data_in, req)
 
         # find the max
-        mesh = as_teca_cartesian_mesh(wdata)
+        mesh = as_teca_mesh(wdata)
         md = mesh.get_metadata()
         arrays = mesh.get_point_arrays()
-        max_ws = np.max(arrays['wind_speed'])
+        if dev < 0:
+            ws = arrays['wind_speed'].get_cpu_accessible()
+        else:
+            ws = arrays['wind_speed'].get_cuda_accessible()
+        max_ws = np.max(ws)
 
         # construct the output
         table = teca_table.New()
@@ -113,4 +142,3 @@ tw.set_input_connection(ts.get_output_port())
 tw.set_file_name('test_python_alg.csv')
 
 tw.update()
-

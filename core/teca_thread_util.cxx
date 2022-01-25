@@ -378,13 +378,24 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
     n_threads = n_requested;
 
 #if defined(TECA_HAS_CUDA)
+    // check for an override to the default number of MPI ranks per device
+    int ranks_per_device = 1;
+    int ranks_per_device_set = teca_system_util::get_environment_variable
+        ("TECA_RANKS_PER_DEVICE", ranks_per_device);
+
     // determine the available CUDA GPUs
     std::vector<int> cuda_devices;
-    if (teca_cuda_util::get_local_cuda_devices(comm, cuda_devices))
+    if (teca_cuda_util::get_local_cuda_devices(comm,
+        ranks_per_device, cuda_devices))
     {
         TECA_WARNING("Failed to determine the local CUDA devices."
             " Falling back to the default device.")
         cuda_devices.resize(1, 0);
+    }
+
+    if ((ranks_per_device_set == 0) && verbose && (rank == 0))
+    {
+        TECA_STATUS("TECA_RANKS_PER_DEVICE = " << ranks_per_device)
     }
 
     int n_cuda_devices = cuda_devices.size();
@@ -394,10 +405,10 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
 
     if ((n_per_device < 1) &&
         !teca_system_util::get_environment_variable
-        ("TECA_THREADS_PER_CUDA_DEVICE", n_per_device) &&
+        ("TECA_THREADS_PER_DEVICE", n_per_device) &&
         verbose && (rank == 0))
     {
-        TECA_STATUS("TECA_THREADS_PER_CUDA_DEVICE = " << n_per_device)
+        TECA_STATUS("TECA_THREADS_PER_DEVICE = " << n_per_device)
     }
 
     int n_device_threads = n_cuda_devices *
@@ -448,10 +459,10 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
 
 #if defined(TECA_HAS_CUDA)
     // assign CUDA device or a CPU core to eqch thread
-    if (verbose && (n_threads < n_cuda_devices))
+    if ((verbose > 1) && (n_threads < n_cuda_devices))
     {
         TECA_WARNING(<< n_threads
-            << " threads is insufficient to service " << n_cuda_devices
+            << " threads are insufficient to service " << n_cuda_devices
             << " CUDA devices. " << n_cuda_devices - n_threads
             << " CUDA devices will not be utilized.")
     }

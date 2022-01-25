@@ -11,6 +11,7 @@
 #include "teca_variant_array_impl.h"
 #include "teca_py_string.h"
 #include "teca_py_integer.h"
+#include "teca_py_gil_state.h"
 
 /// Codes dealing with Python objects
 namespace teca_py_object
@@ -292,32 +293,36 @@ public:
     teca_py_object_ptr(PyObject *obj)
         : m_obj(obj) { Py_XINCREF(m_obj); }
 
-     virtual ~teca_py_object_ptr() { Py_XDECREF(m_obj); }
-
-     teca_py_object_ptr(teca_py_object_ptr &&o)
-        : m_obj(o.m_obj) { o.m_obj = nullptr; }
-
-     teca_py_object_ptr &operator=(teca_py_object_ptr &&o)
-     {
-         PyObject *tmp = m_obj;
-         m_obj = o.m_obj;
-         o.m_obj = tmp;
-         return *this;
-     }
-
-     teca_py_object_ptr(const teca_py_object_ptr &o)
-        : m_obj(o.m_obj) { Py_XINCREF(m_obj); }
-
-     teca_py_object_ptr &operator=(const teca_py_object_ptr &o)
-     {
-         Py_XINCREF(o.m_obj);
+    virtual ~teca_py_object_ptr()
+    {
+         teca_py_gil_state gil;
          Py_XDECREF(m_obj);
-         m_obj = o.m_obj;
-         return *this;
-     }
+    }
 
-     explicit operator bool () const
-     { return m_obj != nullptr; }
+    teca_py_object_ptr(teca_py_object_ptr &&o)
+       : m_obj(o.m_obj) { o.m_obj = nullptr; }
+
+    teca_py_object_ptr &operator=(teca_py_object_ptr &&o)
+    {
+        PyObject *tmp = m_obj;
+        m_obj = o.m_obj;
+        o.m_obj = tmp;
+        return *this;
+    }
+
+    teca_py_object_ptr(const teca_py_object_ptr &o)
+       : m_obj(o.m_obj) { Py_XINCREF(m_obj); }
+
+    teca_py_object_ptr &operator=(const teca_py_object_ptr &o)
+    {
+        Py_XINCREF(o.m_obj);
+        Py_XDECREF(m_obj);
+        m_obj = o.m_obj;
+        return *this;
+    }
+
+    explicit operator bool () const
+    { return m_obj != nullptr; }
 
     PyObject *get_object(){ return m_obj; }
 
@@ -339,9 +344,6 @@ class TECA_EXPORT teca_py_callable : public teca_py_object_ptr
 {
 public:
     teca_py_callable() : teca_py_object_ptr() {}
-
-    virtual ~teca_py_callable()
-    { this->teca_py_object_ptr::set_object(nullptr); }
 
     teca_py_callable(PyObject *f) : teca_py_object_ptr()
     { this->teca_py_callable::set_object(f); }

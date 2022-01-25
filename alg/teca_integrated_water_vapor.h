@@ -12,7 +12,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_integrated_water_vapor)
 
 /// An algorithm that computes integrated water vapor (IWV)
 /**
- * Compute integrated vaport transport (IWV) from the specific humidity.
+ * Compute column integrated water vapor (IWV) from the specific humidity.
  *
  * \f[
  * IWV = \frac{1}{g} \int_{p_{sfc}}^{p_{top}} q dp

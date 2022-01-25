@@ -3,6 +3,7 @@
 #include "teca_bad_cast.h"
 
 #include <hamr_buffer.h>
+#include <hamr_buffer_pointer.h>
 
 #include <utility>
 #include <iostream>
@@ -78,9 +79,9 @@ bool array::cuda_accessible() const
 }
 
 // --------------------------------------------------------------------------
-p_teca_dataset array::new_copy() const
+p_teca_dataset array::new_copy(allocator alloc) const
 {
-    p_teca_dataset a(new array());
+    p_teca_dataset a(new array(alloc));
     a->copy(this->shared_from_this());
     return a;
 }
@@ -134,7 +135,7 @@ void array::clear()
 }
 
 // --------------------------------------------------------------------------
-void array::copy(const const_p_teca_dataset &other)
+void array::copy(const const_p_teca_dataset &other, allocator alloc)
 {
     const_p_array other_a = std::dynamic_pointer_cast<const array>(other);
 
@@ -147,7 +148,9 @@ void array::copy(const const_p_teca_dataset &other)
     this->name = other_a->name;
     this->extent = other_a->extent;
 
-    this->internals->buffer->assign(ref_to(other_a->internals->buffer));
+    this->internals->buffer =
+        std::make_shared<hamr::buffer<double>>
+            (alloc, ref_to(other_a->internals->buffer));
 }
 
 // --------------------------------------------------------------------------

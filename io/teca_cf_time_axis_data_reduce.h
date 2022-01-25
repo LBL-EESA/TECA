@@ -28,7 +28,7 @@ protected:
     teca_cf_time_axis_data_reduce();
 
     // overrides
-    p_teca_dataset reduce(const const_p_teca_dataset &left,
+    p_teca_dataset reduce(int device_id, const const_p_teca_dataset &left,
         const const_p_teca_dataset &right) override;
 
     std::vector<teca_metadata> initialize_upstream_request(

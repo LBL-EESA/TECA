@@ -417,7 +417,8 @@ public:
     explicit operator bool() const
     { return static_cast<bool>(m_callback); }
 
-    p_teca_dataset operator()(const const_p_teca_dataset &input_0,
+    p_teca_dataset operator()(int device_id,
+        const const_p_teca_dataset &input_0,
         const const_p_teca_dataset &input_1)
     {
         teca_py_gil_state gil;
@@ -461,7 +462,7 @@ public:
 
         // call the callback
         PyObject *args =
-            Py_BuildValue("NN", py_input_0, py_input_1);
+            Py_BuildValue("iNN", device_id, py_input_0, py_input_1);
 
         PyObject *ret = nullptr;
         if (!(ret = PyObject_CallObject(f, args)) || PyErr_Occurred())
@@ -517,7 +518,7 @@ public:
     explicit operator bool() const
     { return static_cast<bool>(m_callback); }
 
-    p_teca_dataset operator()(const const_p_teca_dataset &ds)
+    p_teca_dataset operator()(int device_id, const const_p_teca_dataset &ds)
     {
         teca_py_gil_state gil;
 
@@ -546,7 +547,7 @@ public:
 
         // call the callback
         PyObject *args =
-            Py_BuildValue("(N)", py_ds);
+            Py_BuildValue("(iN)", device_id, py_ds);
 
         PyObject *ret = nullptr;
         if (!(ret = PyObject_CallObject(f, args)) || PyErr_Occurred())

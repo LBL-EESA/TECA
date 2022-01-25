@@ -37,7 +37,7 @@ bool teca_database::empty() const noexcept
 }
 
 // --------------------------------------------------------------------------
-void teca_database::copy(const const_p_teca_dataset &o)
+void teca_database::copy(const const_p_teca_dataset &o, allocator alloc)
 {
     const_p_teca_database other
         = std::dynamic_pointer_cast<const teca_database>(o);
@@ -48,8 +48,8 @@ void teca_database::copy(const const_p_teca_dataset &o)
         return;
     }
 
-    this->teca_dataset::copy(o);
-    this->tables->copy(other->tables);
+    this->teca_dataset::copy(o, alloc);
+    this->tables->copy(other->tables, alloc);
 }
 
 // --------------------------------------------------------------------------

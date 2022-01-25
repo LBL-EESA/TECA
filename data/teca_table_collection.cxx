@@ -134,7 +134,8 @@ const_p_teca_table teca_table_collection::get(const std::string &name) const
 }
 
 // ----------------------------------------------------------------------------
-void teca_table_collection::copy(const const_p_teca_table_collection &other)
+void teca_table_collection::copy(const const_p_teca_table_collection &other,
+    allocator alloc)
 {
     m_names = other->m_names;
     m_name_array_map = other->m_name_array_map;
@@ -143,7 +144,7 @@ void teca_table_collection::copy(const const_p_teca_table_collection &other)
     for (unsigned int i = 0; i < n; ++i)
         m_tables.push_back(
             std::dynamic_pointer_cast<teca_table>(
-                other->get(i)->new_copy()));
+                other->get(i)->new_copy(alloc)));
 }
 
 // ----------------------------------------------------------------------------

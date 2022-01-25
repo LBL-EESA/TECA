@@ -376,6 +376,27 @@ public:
     static std::shared_ptr<teca_variant_array_impl<T>>
     New(size_t n, const U *v, allocator alloc);
 
+    /** construct by directly providing the buffer contents. This can be used
+     * for zero-copy transfer of data.  One must also name the allocator type
+     * and device owning the data.  In addition for new allocations the
+     * allocator type and owner are used internally to know how to
+     * automatically move data during inter technology transfers.
+     *
+     * @param[in] alloc an ::allocator indicating the technology backing the
+     *                  pointer
+     * @param[in] size  the number of elements in the array pointed to by ptr
+     * @param[in] owner the device owning the memory, -1 for CPU. if the
+     *                  allocator is a GPU allocator and -1 is passed the
+     *                  driver API is used to determine the device that
+     *                  allocated the memory.
+     * @param[in] ptr   a pointer to the data
+     * @param[in] df    a function `void df(void*ptr)` used to delete the data
+     *                  when this instance is finished using it.
+     */
+    template <typename delete_func_t>
+    static std::shared_ptr<teca_variant_array_impl<T>>
+    New(size_t n, T *ptr, allocator alloc, int owner, delete_func_t df);
+
     /// Returns a new instance initialized with a deep copy of this one.
     p_teca_variant_array new_copy(allocator alloc = allocator::malloc) const override;
 
@@ -392,6 +413,9 @@ public:
     ///@}
 
     virtual ~teca_variant_array_impl() noexcept;
+
+    /// @copydoc teca_variant_array::set_allocator(allocator)
+    int set_allocator(allocator alloc) override;
 
     /// Returns the name of the class in a human readable form
     std::string get_class_name() const override;
@@ -703,6 +727,7 @@ public:
     }
     ///@}
 
+#if !defined(SWIG)
     /** @name get_accessible
      * get's a pointer to the raw data that is accessible on the named
      * accelerator device or technology.
@@ -721,6 +746,13 @@ public:
     const std::shared_ptr<const T> get_cuda_accessible() const
     { return m_data.get_cuda_accessible(); }
     ///@}
+#endif
+
+    /// returns true if the data is accessible from CUDA codes
+    int cuda_accessible() const { return m_data.cuda_accessible(); }
+
+    /// returns true if the data is accessible from codes running on the CPU
+    int cpu_accessible() const { return m_data.cpu_accessible(); }
 
     /// Get the current size of the data
     unsigned long size() const noexcept override;
@@ -813,11 +845,16 @@ public:
     teca_variant_array_impl(allocator alloc, size_t n_elem, const U *vals) :
         m_data(alloc, n_elem, vals) {}
 
-    // copy construct from an instance of different type
+    /// copy construct from an instance of different type
     template<typename U>
     teca_variant_array_impl(allocator alloc,
         const const_p_teca_variant_array_impl<U> &other) :
             m_data(alloc, other->m_data) {}
+
+    /// zero-copy construct by setting buffer contents directly
+    template <typename delete_func_t>
+    teca_variant_array_impl(allocator alloc, size_t size, int owner,
+        T *ptr, delete_func_t df) : m_data(alloc, size, owner, ptr, df) {}
 
 private:
     /// get from objects.
@@ -1641,6 +1678,16 @@ p_teca_variant_array_impl<T> teca_variant_array_impl<T>::New(size_t n,
 
 // --------------------------------------------------------------------------
 template<typename T>
+template <typename delete_func_t>
+p_teca_variant_array_impl<T> teca_variant_array_impl<T>::New(size_t n,
+    T *ptr, allocator alloc, int owner, delete_func_t df)
+{
+    return std::make_shared<teca_variant_array_impl<T>>
+        (alloc, n, owner, ptr, df);
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
 p_teca_variant_array teca_variant_array_impl<T>::new_copy(allocator alloc) const
 {
     if (alloc == allocator::same)
@@ -1686,6 +1733,21 @@ p_teca_variant_array teca_variant_array_impl<T>::new_instance(size_t n,
         alloc = static_cast<allocator>(m_data.get_allocator());
 
     return std::make_shared<teca_variant_array_impl<T>>(alloc, n);
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
+int teca_variant_array_impl<T>::set_allocator(allocator alloc)
+{
+    // if the allocator is already in use do nothing
+    if (this->m_data.get_allocator() == alloc)
+        return 0;
+
+    // move the data using the specified allocator
+    hamr::buffer<T> tmp(alloc, m_data);
+    m_data = std::move(tmp);
+
+    return 0;
 }
 
 // --------------------------------------------------------------------------
@@ -2451,31 +2513,33 @@ struct TECA_EXPORT teca_variant_array_new {};
 template <unsigned int I>
 struct TECA_EXPORT teca_variant_array_type {};
 
-#define TECA_VARIANT_ARRAY_TT_SPEC(T, v)            \
-template <>                                         \
-struct teca_variant_array_code<T>                   \
-{                                                   \
-    static constexpr unsigned int get()             \
-    { return v; }                                   \
-};                                                  \
-template <>                                         \
-struct teca_variant_array_new<v>                    \
-{                                                   \
-    static p_teca_variant_array_impl<T> New()       \
-    { return teca_variant_array_impl<T>::New(); }   \
-};                                                  \
-template <>                                         \
-struct teca_variant_array_type<v>                   \
-{                                                   \
-    using type = T;                                 \
-                                                    \
-    static constexpr const char *name()             \
-    { return #T; }                                  \
+#define TECA_VARIANT_ARRAY_TT_SPEC(T, v)                        \
+template <>                                                     \
+struct teca_variant_array_code<T>                               \
+{                                                               \
+    static constexpr unsigned int get()                         \
+    { return v; }                                               \
+};                                                              \
+template <>                                                     \
+struct teca_variant_array_new<v>                                \
+{                                                               \
+    using allocator = teca_variant_array::allocator;            \
+                                                                \
+    static p_teca_variant_array_impl<T> New(allocator alloc)    \
+    { return teca_variant_array_impl<T>::New(alloc); }          \
+};                                                              \
+template <>                                                     \
+struct teca_variant_array_type<v>                               \
+{                                                               \
+    using type = T;                                             \
+                                                                \
+    static constexpr const char *name()                         \
+    { return #T; }                                              \
 };
 
-#define TECA_VARIANT_ARRAY_FACTORY_NEW(_v)              \
-        case _v:                                        \
-            return teca_variant_array_new<_v>::New();
+#define TECA_VARIANT_ARRAY_FACTORY_NEW(_v)                  \
+        case _v:                                            \
+            return teca_variant_array_new<_v>::New(alloc);
 
 #include "teca_metadata.h"
 class teca_metadata;
@@ -2502,7 +2566,15 @@ TECA_VARIANT_ARRAY_TT_SPEC(p_teca_variant_array, 15)
  */
 struct TECA_EXPORT teca_variant_array_factory
 {
-    static p_teca_variant_array New(unsigned int type_code)
+    using allocator = teca_variant_array::allocator;
+
+    /** Construct a new variant array.
+     * @param[in] type_code the type of array to construct
+     * @param[in] alloc the allocator to use
+     * @returns a new variant array or a nullptr if the type_code was invalid.
+     */
+    static p_teca_variant_array New(unsigned int type_code,
+        allocator alloc = allocator::malloc)
     {
         switch (type_code)
         {

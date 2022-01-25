@@ -93,11 +93,12 @@ public:
     /// return an integer identifier uniquely naming the dataset type
     int get_type_code() const override;
 
-    /** Copy data and metadata. Shallow copy uses reference
-     * counting, while copy duplicates the data.
-     */
-    void copy(const const_p_teca_dataset &) override;
-    void shallow_copy(const p_teca_dataset &) override;
+    /// @copydoc teca_dataset::copy(const const_p_teca_dataset &,allocator)
+    void copy(const const_p_teca_dataset &other,
+        allocator alloc = allocator::malloc) override;
+
+    /// @copydoc teca_dataset::shallow_copy(const p_teca_dataset &)
+    void shallow_copy(const p_teca_dataset &other) override;
 
     /// Copy metadata. This is always a deep copy.
     void copy_metadata(const const_p_teca_dataset &other) override;

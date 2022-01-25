@@ -44,6 +44,8 @@
         unsigned long n, const std::string &un, const std::string &ln,
         const std::string &descr, PyObject *fv)
     {
+        teca_py_gil_state gil;
+
         if (fv != Py_None)
         {
             if (tc < 1)
@@ -72,6 +74,8 @@
 
     void set_fill_value(PyObject *fv)
     {
+        teca_py_gil_state gil;
+
         if (fv != Py_None)
         {
             TECA_PY_OBJECT_DISPATCH_NUM(fv,
@@ -138,7 +142,8 @@ TECA_PY_CONST_CAST(teca_array_collection)
         Py_INCREF(Py_None);
 
         p_teca_variant_array varr;
-        if ((varr = teca_py_array::new_variant_array(array))
+        if ((varr = teca_py_array_interface::new_variant_array(array))
+            || (varr = teca_py_array::new_variant_array(array))
             || (varr = teca_py_sequence::new_variant_array(array))
             || (varr = teca_py_iterator::new_variant_array(array)))
         {
@@ -153,30 +158,13 @@ TECA_PY_CONST_CAST(teca_array_collection)
         return nullptr;
     }
 
-    /* return an array using the syntax: col['name'] */
-    PyObject *__getitem__(const std::string &name)
+    %pythoncode
     {
-        teca_py_gil_state gil;
-
-        p_teca_variant_array varr = self->get(name);
-        if (!varr)
-        {
-            TECA_PY_ERROR(PyExc_KeyError,
-                "key \"" << name << "\" not found")
-            return nullptr;
-        }
-
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            varr.get(),
-            TT *varrt = static_cast<TT*>(varr.get());
-            return reinterpret_cast<PyObject*>(
-                teca_py_array::new_object(varrt));
-            )
-
-        TECA_PY_ERROR(PyExc_TypeError,
-            "Failed to convert array for key \"" << name << "\"")
-
-        return nullptr;
+    def __getitem__(self, name):
+       r""" returns the array by name. The returned array will always be
+       accessible on the CPU. Use get if you need an array that is accessible
+       on the GPU  """
+       return self.get(name)
     }
 
     /* handle conversion to variant arrays */
@@ -531,7 +519,8 @@ TECA_PY_CONST_CAST(teca_table)
         Py_INCREF(Py_None);
 
         p_teca_variant_array varr;
-        if ((varr = teca_py_array::new_variant_array(array))
+        if ((varr = teca_py_array_interface::new_variant_array(array))
+            || (varr = teca_py_array::new_variant_array(array))
             || (varr = teca_py_sequence::new_variant_array(array))
             || (varr = teca_py_iterator::new_variant_array(array)))
         {
@@ -687,6 +676,29 @@ TECA_PY_CONST_CAST(teca_table)
             return nullptr;
         }
 
+        // objects exposing the array interface protocol
+        if (teca_py_array_interface::has_numpy_array_interface(obj) ||
+            teca_py_array_interface::has_cuda_array_interface(obj))
+        {
+            p_teca_variant_array tmp =
+                teca_py_array_interface::new_variant_array(obj);
+
+            TEMPLATE_DISPATCH(teca_variant_array_impl,
+                tmp.get(),
+
+                TT *ttmp = static_cast<TT*>(tmp.get());
+
+                auto sptmp = ttmp->get_cpu_accessible();
+                NT *ptmp = sptmp.get();
+
+                size_t n_elem = tmp->size();
+                for (size_t i = 0; i < n_elem; ++i)
+                    self->append(ptmp[i]);
+
+                return Py_None;
+                )
+        }
+
         // numpy ndarrays
         if (PyArray_Check(obj))
         {
@@ -827,8 +839,11 @@ unsigned long time_step_of(PyObject *time, bool lower, bool clamp,
     const std::string &calendar, const std::string &units,
     const std::string &date)
 {
+    teca_py_gil_state gil;
+
     p_teca_variant_array varr;
-    if ((varr = teca_py_array::new_variant_array(time))
+    if ((varr = teca_py_array_interface::new_variant_array(time))
+        || (varr = teca_py_array::new_variant_array(time))
         || (varr = teca_py_sequence::new_variant_array(time))
         || (varr = teca_py_iterator::new_variant_array(time)))
     {
@@ -852,6 +867,7 @@ static
 std::string time_to_string(double val, const std::string &calendar,
     const std::string &units, const std::string &format)
 {
+    teca_py_gil_state gil;
     std::string date;
     if (teca_coordinate_util::time_to_string(val, calendar, units, format, date))
     {

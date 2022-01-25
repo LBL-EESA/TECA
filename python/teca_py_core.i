@@ -22,10 +22,20 @@
 #include "teca_py_object.h"
 #include "teca_py_sequence.h"
 #include "teca_py_array.h"
+#include "teca_py_array_interface.h"
 #include "teca_py_iterator.h"
 #include "teca_py_algorithm.h"
 #include "teca_py_gil_state.h"
 %}
+
+/***************************************************************************
+ HAMR
+ ***************************************************************************/
+%include "hamr_config.h"
+%include "hamr_buffer_handle.i"
+
+%rename(variant_array_allocator) hamr::buffer_allocator;
+%include "hamr_buffer_allocator.i"
 
 /***************************************************************************
  profiler
@@ -103,6 +113,8 @@ private:
 
     PyObject *set_data(PyObject *obj)
     {
+        teca_py_gil_state gil;
+
         // not an array
         if (!PyArray_Check(obj))
         {
@@ -179,6 +191,13 @@ class teca_variant_array;
 %ignore teca_variant_array::debug_print;
 %include "teca_variant_array.h"
 %include "teca_variant_array_impl.h"
+%pythoncode
+{
+from numpy import array as np_array
+if get_teca_has_cupy():
+    from cupy import array as cp_array
+}
+
 // named variant arrays
 %template(teca_float_array) teca_variant_array_impl<float>;
 %template(teca_double_array) teca_variant_array_impl<double>;
@@ -214,7 +233,8 @@ class teca_variant_array;
 
         p_teca_variant_array varr;
         if ((varr = teca_py_object::new_variant_array(obj))
-            || (varr = teca_py_array::new_variant_array(obj))
+            || (varr = teca_py_array::new_variant_array(obj, false))
+            || (varr = teca_py_array_interface::new_variant_array(obj))
             || (varr = teca_py_sequence::new_variant_array(obj))
             || (varr = teca_py_iterator::new_variant_array(obj)))
             return varr;
@@ -280,12 +300,83 @@ class teca_variant_array;
         return nullptr;
     }
 
+    /** make a deep copy to a numpy array */
     PyObject *as_array()
     {
         teca_py_gil_state gil;
 
         return reinterpret_cast<PyObject*>(
             teca_py_array::new_object(self));
+    }
+
+#if defined(TECA_NUMPY_ARRAY_INTERFACE)
+    /** zero-copy transfer the data to numpy using the array interface protocol. */
+    PyObject *get_cpu_accessible_impl()
+    {
+        teca_py_gil_state gil;
+        TEMPLATE_DISPATCH(teca_variant_array_impl,
+            self,
+
+            TT *tself = static_cast<TT*>(self);
+
+            hamr::buffer_handle<NT> *ph = new hamr::buffer_handle<NT>(
+                tself->get_cpu_accessible(), tself->size(), 0, 1,
+                tself->cpu_accessible() && tself->cuda_accessible());
+
+            return SWIG_NewPointerObj(SWIG_as_voidptr(ph),
+                hamr::buffer_handle_tt<NT>::swig_type(), SWIG_POINTER_OWN);
+            )
+        TECA_PY_ERROR(PyExc_RuntimeError, "Failed to construct a CPU accessible buffer handle")
+        return nullptr;
+    }
+
+    %pythoncode
+    {
+    def get_cpu_accessible(self, as_array=True, shape=None):
+        r""" return a handle exposing the data via the Numpy array interface """
+        hvarr = self.get_cpu_accessible_impl()
+        return np_array(hvarr, copy=False)
+    }
+#else
+    /** zero-copy transfer the data to numpy using the numpy c-api */
+    PyObject *get_cpu_accessible()
+    {
+        teca_py_gil_state gil;
+        bool deep_copy = false;
+        return reinterpret_cast<PyObject*>(
+            teca_py_array::new_object(self, deep_copy));
+    }
+#endif
+
+    /** zero-copy transfer the data to cupy using the numba CUDA array
+     * interface protocol. */
+    PyObject *get_cuda_accessible_impl()
+    {
+        teca_py_gil_state gil;
+        TEMPLATE_DISPATCH(teca_variant_array_impl,
+            self,
+
+            TT *tself = static_cast<TT*>(self);
+
+            hamr::buffer_handle<NT> *ph = new hamr::buffer_handle<NT>(
+                tself->get_cuda_accessible(), tself->size(), 0,
+                tself->cpu_accessible() && tself->cuda_accessible(), 1);
+
+            return SWIG_NewPointerObj(SWIG_as_voidptr(ph),
+                hamr::buffer_handle_tt<NT>::swig_type(), SWIG_POINTER_OWN);
+            )
+
+        TECA_PY_ERROR(PyExc_RuntimeError, "Failed to construct a CUDA accessible buffer handle")
+        return nullptr;
+    }
+
+    /** zero-copy data access in Numpy/Cupy/Numba via the array interface protocol */
+    %pythoncode
+    {
+    def get_cuda_accessible(self):
+        r""" return a handle exposing the data via the Numba CUDA array interface. """
+        hvarr = self.get_cuda_accessible_impl()
+        return cp_array(hvarr, copy=False)
     }
 
     PyObject *append(PyObject *obj)
@@ -296,6 +387,7 @@ class teca_variant_array;
 
         if (teca_py_object::append(self, obj)
             || teca_py_array::append(self, obj)
+            || teca_py_array_interface::append(self, obj)
             || teca_py_sequence::append(self, obj))
             return Py_None;
 
@@ -314,6 +406,7 @@ class teca_variant_array;
 
         if (teca_py_object::copy(self, obj)
             || teca_py_array::copy(self, obj)
+            || teca_py_array_interface::copy(self, obj)
             || teca_py_sequence::copy(self, obj))
             return Py_None;
 
@@ -334,16 +427,20 @@ class teca_variant_array;
         return teca_variant_array___getitem__(self, i);
     }
 }
+
 TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(double, double)
 TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(float, float)
 TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(char, char)
+TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(short, short)
 TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(int, int)
 TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(long, long)
 TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(long long, long_long)
 TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned char, unsigned_char)
+TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned short, unsigned_short)
 TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned int, unsigned_int)
 TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned long, unsigned_long)
 TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned long long, unsigned_long_long)
+
 
 /***************************************************************************
  metadata
@@ -586,7 +683,8 @@ TECA_PY_CONST_CAST(teca_dataset)
         Py_INCREF(Py_None);
 
         p_teca_variant_array varr;
-        if ((varr = teca_py_array::new_variant_array(array))
+        if ((varr = teca_py_object::new_variant_array(array))
+            || (varr = teca_py_array::new_variant_array(array))
             || (varr = teca_py_sequence::new_variant_array(array))
             || (varr = teca_py_iterator::new_variant_array(array)))
         {
@@ -707,7 +805,8 @@ class teca_algorithm;
         Py_INCREF(Py_None);
 
         p_teca_variant_array varr;
-        if ((varr = teca_py_array::new_variant_array(array))
+        if ((varr = teca_py_object::new_variant_array(value))
+            || (varr = teca_py_array::new_variant_array(array))
             || (varr = teca_py_sequence::new_variant_array(array))
             || (varr = teca_py_iterator::new_variant_array(array)))
         {

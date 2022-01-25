@@ -20,8 +20,6 @@ class TECA_EXPORT array : public teca_dataset
 {
 public:
 
-    using allocator = hamr::buffer_allocator;
-
     ~array();
 
     /// create an array that accessible on the CPU
@@ -68,7 +66,7 @@ public:
     { return p_teca_dataset(new array()); }
 
     // return a new copy constructed array
-    p_teca_dataset new_copy() const override;
+    p_teca_dataset new_copy(allocator alloc = allocator::malloc) const override;
     p_teca_dataset new_shallow_copy() override;
 
     size_t size() const;
@@ -76,7 +74,7 @@ public:
     void resize(size_t n);
     void clear();
 
-    void copy(const const_p_teca_dataset &) override;
+    void copy(const const_p_teca_dataset &, allocator alloc = allocator::malloc) override;
     void shallow_copy(const p_teca_dataset &) override;
     void copy_metadata(const const_p_teca_dataset &) override;
     void swap(const p_teca_dataset &) override;

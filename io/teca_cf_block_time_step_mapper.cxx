@@ -25,8 +25,14 @@ int teca_cf_block_time_step_mapper::to_stream(std::ostream &os)
             << "rank\tfirst_time_step\tlast_time_step" << std::endl;
 
         for (int i = 0; i < n_ranks; ++i)
-            os << i << "\t" << block_start[i] << "\t"
-                << block_start[i] + block_size[i] - 1 << std::endl;
+        {
+            os << i << "\t";
+            if (block_size[i])
+                os << block_start[i] << "\t" << block_start[i] + block_size[i] - 1;
+            else
+                os << "-\t-";
+            os << std::endl;
+        }
 
         os << "file\tranks" << std::endl;
         for (int i = 0; i < this->n_files; ++i)

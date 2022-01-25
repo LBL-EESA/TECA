@@ -42,6 +42,10 @@ using std::cerr;
 #include <openssl/sha.h>
 #endif
 
+#if defined(TECA_HAS_CUDA)
+#include "teca_cuda_util.h"
+#endif
+
 // internals for the cf reader
 class teca_cf_reader_internals
 {
@@ -1296,6 +1300,12 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
 
     md.set("attributes", out_atrs);
 
+    // get the requested target device
+#if defined(TECA_HAS_CUDA)
+    int device_id = -1;
+    request.get("device_id", device_id);
+#endif
+
     // read requested arrays
     for (size_t i = 0; i < n_arrays; ++i)
     {
@@ -1441,7 +1451,15 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
             array = a;
             )
 
-        // pas it into the output
+#if defined(TECA_HAS_CUDA)
+        // move it to the device where it will most likely be used
+        if (device_id >= 0)
+        {
+            teca_cuda_util::set_device(device_id);
+            array->set_allocator(teca_variant_array::allocator::malloc);
+        }
+#endif
+        // pass it into the output
         mesh->get_arrays(centering)->append(arrays[i], array);
     }
 

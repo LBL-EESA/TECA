@@ -134,14 +134,7 @@ teca_add_test(py_test_database
 teca_add_test(py_test_programmable_reduce_serial
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_programmable_reduce.py
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
-    "${TECA_DATA_ROOT}/py_test_programmable_reduce.bin" 0 -1 1 TMQ T200 T500
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
-    REQ_TECA_DATA)
-
-teca_add_test(py_test_programmable_reduce_thread
-    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_programmable_reduce.py
-    "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
-    "${TECA_DATA_ROOT}/py_test_programmable_reduce.bin" 0 -1 4 TMQ T200 T500
+    "${TECA_DATA_ROOT}/py_test_programmable_reduce.bin" 0 -1 TMQ T200 T500
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
@@ -149,30 +142,14 @@ teca_add_test(py_test_programmable_reduce_mpi
     COMMAND ${MPIEXEC} -n ${TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
     ${CMAKE_CURRENT_SOURCE_DIR}/test_programmable_reduce.py
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
-    "${TECA_DATA_ROOT}/py_test_programmable_reduce.bin" 0 -1 -1 TMQ T200 T500
+    "${TECA_DATA_ROOT}/py_test_programmable_reduce.bin" 0 -1 TMQ T200 T500
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4Py_FOUND}
-    REQ_TECA_DATA)
-
-teca_add_test(py_test_programmable_reduce_mpi_thread
-    COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_programmable_reduce.py
-    "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
-    "${TECA_DATA_ROOT}/py_test_programmable_reduce.bin" 0 -1 -1 TMQ T200 T500
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI}
-        ${MPI4Py_FOUND} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_python_reduce_serial
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_python_reduce.py
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
-    "${TECA_DATA_ROOT}/py_test_programmable_reduce.bin" 0 -1 1 TMQ T200 T500
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
-    REQ_TECA_DATA)
-
-teca_add_test(py_test_python_reduce_thread
-    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_python_reduce.py
-    "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
-    "${TECA_DATA_ROOT}/py_test_programmable_reduce.bin" 0 -1 4 TMQ T200 T500
+    "${TECA_DATA_ROOT}/py_test_programmable_reduce.bin" 0 -1 TMQ T200 T500
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
@@ -180,79 +157,70 @@ teca_add_test(py_test_python_reduce_mpi
     COMMAND ${MPIEXEC} -n ${TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
     ${CMAKE_CURRENT_SOURCE_DIR}/test_python_reduce.py
     "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
-    "${TECA_DATA_ROOT}/py_test_programmable_reduce.bin" 0 -1 1 TMQ T200 T500
+    "${TECA_DATA_ROOT}/py_test_programmable_reduce.bin" 0 -1 TMQ T200 T500
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4Py_FOUND}
     REQ_TECA_DATA)
 
-teca_add_test(py_test_python_reduce_mpi_thread
-    COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_python_reduce.py
-    "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-0[12]-10800\\.nc"
-    "${TECA_DATA_ROOT}/py_test_programmable_reduce.bin" 0 -1 -1 TMQ T200 T500
+teca_add_test(py_test_temporal_seasonal_average
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction.py
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc"
+    "." "${TECA_DATA_ROOT}/test_temporal_reduction_prw"  seasonal average 0 prw
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
+    REQ_TECA_DATA)
+
+teca_add_test(py_test_temporal_seasonal_average_mpi
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction.py
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc"
+    "." "${TECA_DATA_ROOT}/test_temporal_reduction_prw"  seasonal average 0 prw
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI}
         ${MPI4Py_FOUND} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
-teca_add_test(py_test_temporal_seasonal_average_thread
+teca_add_test(py_test_temporal_monthly_average
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction.py
     "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc"
-    "." "${TECA_DATA_ROOT}/test_temporal_reduction_prw" 7 2 seasonal average 0 prw
+    "." "${TECA_DATA_ROOT}/test_temporal_reduction_prw"  monthly average 0 prw
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
-teca_add_test(py_test_temporal_seasonal_average_mpi_thread
-    COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
+teca_add_test(py_test_temporal_monthly_average_mpi
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
     ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction.py
     "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc"
-    "." "${TECA_DATA_ROOT}/test_temporal_reduction_prw" 7 2 seasonal average 0 prw
+    "." "${TECA_DATA_ROOT}/test_temporal_reduction_prw"  monthly average 0 prw
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI}
         ${MPI4Py_FOUND} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
-teca_add_test(py_test_temporal_monthly_average_thread
+teca_add_test(py_test_temporal_monthly_minimum
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction.py
     "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc"
-    "." "${TECA_DATA_ROOT}/test_temporal_reduction_prw" 7 2 monthly average 0 prw
+    "." "${TECA_DATA_ROOT}/test_temporal_reduction_prw"  monthly minimum 0 prw
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
-teca_add_test(py_test_temporal_monthly_average_mpi_thread
-    COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
+teca_add_test(py_test_temporal_monthly_minimum_mpi
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
     ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction.py
     "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc"
-    "." "${TECA_DATA_ROOT}/test_temporal_reduction_prw" 7 2 monthly average 0 prw
+    "." "${TECA_DATA_ROOT}/test_temporal_reduction_prw"  monthly minimum 0 prw
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI}
         ${MPI4Py_FOUND} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
-teca_add_test(py_test_temporal_monthly_minimum_thread
+teca_add_test(py_test_temporal_monthly_maximum
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction.py
     "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc"
-    "." "${TECA_DATA_ROOT}/test_temporal_reduction_prw" 7 2 monthly minimum 0 prw
+    "." "${TECA_DATA_ROOT}/prw"  monthly maximum 0 prw
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
-teca_add_test(py_test_temporal_monthly_minimum_mpi_thread
-    COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
+teca_add_test(py_test_temporal_monthly_maximum_mpi
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
     ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction.py
     "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc"
-    "." "${TECA_DATA_ROOT}/test_temporal_reduction_prw" 7 2 monthly minimum 0 prw
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI}
-        ${MPI4Py_FOUND} ${TEST_MPI_THREADS}
-    REQ_TECA_DATA)
-
-teca_add_test(py_test_temporal_monthly_maximum_thread
-    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction.py
-    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc"
-    "." "${TECA_DATA_ROOT}/prw" 7 2 monthly maximum 0 prw
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
-    REQ_TECA_DATA)
-
-teca_add_test(py_test_temporal_monthly_maximum_mpi_thread
-    COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction.py
-    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc"
-    "." "${TECA_DATA_ROOT}/test_temporal_reduction_prw" 7 2 monthly maximum 0 prw
+    "." "${TECA_DATA_ROOT}/test_temporal_reduction_prw"  monthly maximum 0 prw
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI}
         ${MPI4Py_FOUND} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
@@ -261,7 +229,7 @@ teca_add_test(py_test_temporal_daily_average
     COMMAND ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction.py
     "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_1980012[89]\\.nc" "."
-    "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_ignore_missing_T" 7 2 daily average 0 T H
+    "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_ignore_missing_T"  daily average 0 T H
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
@@ -269,7 +237,7 @@ teca_add_test(py_test_temporal_daily_average_missing_values
     COMMAND ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction.py
     "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_1980012[89]\\.nc" "."
-    "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_T" 7 2 daily average 1 T H
+    "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_T"  daily average 1 T H
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
@@ -277,7 +245,7 @@ teca_add_test(py_test_temporal_daily_maximum
     COMMAND ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction.py
     "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_1980012[89]\\.nc" "."
-    "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_ignore_missing_T" 7 2 daily maximum 0 T H
+    "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_ignore_missing_T"  daily maximum 0 T H
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
@@ -285,7 +253,7 @@ teca_add_test(py_test_temporal_daily_maximum_missing_values
     COMMAND ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction.py
     "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_1980012[89]\\.nc" "."
-    "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_T" 7 2 daily maximum 1 T H
+    "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_T"  daily maximum 1 T H
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
@@ -293,7 +261,7 @@ teca_add_test(py_test_temporal_daily_minimum
     COMMAND ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction.py
     "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_1980012[89]\\.nc" "."
-    "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_ignore_missing_T" 7 2 daily minimum 0 T H
+    "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_ignore_missing_T"  daily minimum 0 T H
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
@@ -301,14 +269,14 @@ teca_add_test(py_test_temporal_daily_minimum_missing_values
     COMMAND ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction.py
     "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_1980012[89]\\.nc" "."
-    "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_T" 7 2 daily minimum 1 T H
+    "${TECA_DATA_ROOT}/MERRA2_100_inst3_3d_asm_Np_crop_T"  daily minimum 1 T H
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
 teca_add_test(py_test_custom_temporal_reduction
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_custom_temporal_reduction.py
     "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc"
-    "." "${TECA_DATA_ROOT}/test_custom_temporal_reduction_prw" 7 2 0 prw
+    "." "${TECA_DATA_ROOT}/test_custom_temporal_reduction_prw"  0 prw
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
@@ -510,3 +478,28 @@ teca_add_test(py_test_table_from_stream_bin
 teca_add_test(py_test_apply_binary_mask
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_apply_binary_mask.py
         128 128 mask_ 1e-5)
+
+teca_add_test(py_test_variant_array_cupy_cpu
+    COMMAND ${PYTHON_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_variant_array_cupy_cpu.py
+    FEATURES ${TECA_HAS_CUDA} ${TECA_HAS_CUPY})
+
+teca_add_test(py_test_variant_array_cupy_cuda
+    COMMAND ${PYTHON_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_variant_array_cupy_cuda.py
+    FEATURES ${TECA_HAS_CUDA} ${TECA_HAS_CUPY})
+
+teca_add_test(py_test_variant_array_numpy_cpu
+    COMMAND ${PYTHON_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_variant_array_numpy_cpu.py)
+
+teca_add_test(py_test_variant_array_numpy_cuda
+    COMMAND ${PYTHON_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_variant_array_numpy_cuda.py
+    FEATURES ${TECA_HAS_CUDA})
+
+teca_add_test(py_test_cartesian_mesh_multi_dim
+    COMMAND ${PYTHON_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_cartesian_mesh_multi_dim.py 32 32 10
+    test_cartesian_mesh_multi_dim.nc 1
+    FEATURES ${TECA_HAS_CUDA})

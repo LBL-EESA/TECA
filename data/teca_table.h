@@ -44,6 +44,10 @@ public:
     template<typename nT, typename cT>
     void declare_column(nT &&col_name, cT col_type);
 
+    /// set the allocator to use with ::declare_column
+    void set_default_allocator(allocator alloc)
+    { m_impl->columns->set_default_allocator(alloc); }
+
     // get the number of rows/columns
     unsigned int get_number_of_columns() const noexcept;
     unsigned long get_number_of_rows() const noexcept;
@@ -121,14 +125,16 @@ public:
     int to_stream(std::ostream &) const override;
     int from_stream(std::istream &) override;
 
-    // copy data and metadata. shallow copy uses reference
-    // counting, while copy duplicates the data.
-    void copy(const const_p_teca_dataset &other) override;
+    /// @copydoc teca_dataset::copy(const const_p_teca_dataset &,allocator)
+    void copy(const const_p_teca_dataset &other,
+        allocator alloc = allocator::malloc) override;
 
-    // deep copy a subset of row values.
+    /// deep copy a subset of row values.
     void copy(const const_p_teca_table &other,
-        unsigned long first_row, unsigned long last_row);
+        unsigned long first_row, unsigned long last_row,
+        allocator alloc = allocator::malloc);
 
+    /// @copydoc teca_dataset::shallow_copy(const p_teca_dataset &)
     void shallow_copy(const p_teca_dataset &other) override;
 
     // copy the column layout and types

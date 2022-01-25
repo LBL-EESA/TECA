@@ -70,7 +70,9 @@ int array_executive::initialize(MPI_Comm comm, const teca_metadata &md)
     // determine the available CUDA GPUs
     std::vector<int> device_ids;
 #if defined(TECA_HAS_CUDA)
-    if (teca_cuda_util::get_local_cuda_devices(comm, device_ids))
+    int ranks_per_device = -1;
+    if (teca_cuda_util::get_local_cuda_devices(comm,
+        ranks_per_device, device_ids))
     {
         TECA_WARNING("Failed to determine the local CUDA device_ids."
             " Falling back to the default device.")

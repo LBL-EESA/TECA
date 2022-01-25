@@ -22,36 +22,35 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_index_executive)
  * calculations. Algorithms that do not have a CUDA implementation will make
  * use of the CPU and ignore the device_id field.
  *
- * metadata keys:
+ * ### Metadata keys:
  *
- * requires:
+ * #### Requires:
  *
- *      index_initializer_key -- holds the name of the key that tells how
- *                               many indices are available. the named key
- *                               must also be present and should contain the
- *                               number of indices available
+ * | Key                    | Description |
+ * | ---------------------- | ----------- |
+ * | index_initializer_key  | holds the name of the key that tells how many |
+ * |                        | indices are available. the named key must also be |
+ * |                        | present and should contain the number of indices |
+ * |                        | available |
+ * | index_request_key      | holds the name of the key used to request a |
+ * |                        | specific index. request are generated with this |
+ * |                        | name set to a specific index to be processed some |
+ * |                        | upstream algorithm is expected to produce the |
+ * |                        | data associated with the given index |
  *
- *      index_request_key -- holds the name of the key used to request
- *                           a specific index. request are generated with this
- *                           name set to a specific index to be processed some
- *                           upstream algorithm is expected to produce the
- *                           data associated with the given index
+ * #### Exports:
  *
- * exports:
- *
- *      index_request_key -- name of the key holding the requested index
- *
- *      <index_request_key> -- the requested index
- *
- *      device_id -- the CPU (-1) or CUDA device (0 - n-1 devices) to use for
- *                   calculations
- *
- *      bounds -- the [x0 x1 y0 y1 z0 z1] spatial bounds requested (optional)
- *
- *      extent -- the [i0 i1 j0 j1 k0 k1] index space grid extent requested
- *                (optional)
- *
- *      arrays -- a list of arrays requested (optional)
+ * | Key                    | Description |
+ * | ---------------------- | ----------- |
+ * | index_request_key      | The name of the key holding the requested index |
+ * | <index_request_key>    | the requested index |
+ * | device_id              | the CPU (-1) or CUDA device (0 - n-1 devices) to |
+ * |                        | use for calculations |
+ * | bounds                 | the [x0 x1 y0 y1 z0 z1] spatial bounds requested |
+ * |                        | (optional) |
+ * | extent                 | the [i0 i1 j0 j1 k0 k1] index space grid extent |
+ * |                        | requested (optional) |
+ * | arrays                 | a list of arrays requested (optional) |
  *
  */
 class TECA_EXPORT teca_index_executive : public teca_algorithm_executive
@@ -79,11 +78,11 @@ public:
     /// Set the extent to process. The default is taken from whole_extent key.
     void set_extent(unsigned long *ext);
 
-    /// @copydoc set_extent
+    /// @copydoc teca_index_executive::set_extent(unsigned long *)
     void set_extent(const std::vector<unsigned long> &ext);
 
     /** Set the bounds to process. If nothing is set then extent as provided by
-     * set_extent is used.
+     * ::set_extent is used.
      */
     void set_bounds(double *bounds);
     void set_bounds(const std::vector<double> &bounds);

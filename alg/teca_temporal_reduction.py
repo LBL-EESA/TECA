@@ -1,5 +1,7 @@
 import sys
-import numpy as np
+import numpy
+if get_teca_has_cupy():
+    import cupy
 
 class teca_temporal_reduction(teca_threaded_python_algorithm):
     """
@@ -41,12 +43,12 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
             the operator should use it to identify missing values in the data
             and handle them approproiately.
 
-        update(self, out_array, in_array) -> numpy ndarray
+        update(self, out_array, out_valid, in_array, in_valid) -> (numpy ndarray, numpy ndarray)
 
             reduces in_array (new data) into out_array (current state) and
             returns the result.
 
-        finalize(self, out_array) -> numpy ndarray
+        finalize(self, out_array, out_valid) -> (numpy ndarray, numpy ndarray)
 
             finalizes out_array (current state) and returns the result.
             if no finalization is needed simpy return out_array.
@@ -121,6 +123,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
             minimum
             maximum
             average
+            summation
 
         The factory method (operator_collection.New) retruns instances when passed
         a string naming one of them.
@@ -133,7 +136,14 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
             def initialize(self, fill_value):
                 self.fill_value = fill_value
 
-            def update(self, out_array, in_array):
+            def update(self, dev, out_array, out_valid, in_array, in_valid):
+
+                # select GPU or CPU
+                if dev < 0:
+                    np = numpy
+                else:
+                    np = cupy
+
                 # don't use integer types for this calculation
                 if in_array.dtype.kind == 'i':
                     in_array = in_array.astype(np.float32) \
@@ -147,51 +157,103 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
 
                 # identify the invalid values
                 if self.fill_value is not None:
-                    out_is_bad = np.isclose(out_array, self.fill_value)
-                    in_is_bad = np.isclose(in_array, self.fill_value)
+                    out_is_good = np.array(out_valid, dtype=np.bool_)
+                    in_is_good = np.array(in_valid, dtype=np.bool_)
 
                 # initialize the count the first time through. this needs to
                 # happen now since before this we don't know where invalid
                 # values are.
                 if self.count is None:
                     if self.fill_value is None:
-                        self.count = 1.0
+                        self.count = np.float32(1)
                     else:
-                        self.count = np.where(out_is_bad, np.float32(0.0),
-                                              np.float32(1.0))
+                        self.count = np.zeros_like(out_array, dtype=np.float32)
+                        self.count[out_is_good] += np.float32(1)
 
                 if self.fill_value is not None:
                     # update the count only where there is valid data
-                    self.count += np.where(in_is_bad, np.float32(0.0),
-                                           np.float32(1.0))
+                    self.count[in_is_good] += np.float32(1)
 
                     # accumulate
-                    tmp = np.where(out_is_bad, np.float32(0.0), out_array) \
-                        + np.where(in_is_bad, np.float32(0.0), in_array)
+                    tmp = np.where(out_is_good, out_array, np.float32(0)) \
+                        + np.where(in_is_good, in_array, np.float32(0))
 
+                    # update the valid value mask
+                    tmp_vv = np.zeros_like(out_array, dtype=np.int8)
+                    tmp_vv[in_is_good] = np.int8(1)
+                    tmp_vv[out_is_good] = np.int8(1)
                 else:
                     # update count
-                    self.count += np.float32(1.0)
+                    self.count += np.float32(1)
 
                     # accumulate
                     tmp = out_array + in_array
+                    tmp_vv = None
 
-                return tmp
+                return tmp, tmp_vv
 
-            def finalize(self, out_array):
+            def finalize(self, dev, out_array, out_valid):
+
+                # select GPU or CPU
+                if dev < 0:
+                    np = numpy
+                else:
+                    np = cupy
+
                 if self.fill_value is not None:
                     # finish the average. We keep track of the invalid
                     # values (these will have a zero count) set them to
                     # the fill value
-                    n = self.count
-                    ii = np.isclose(n, np.float32(0.0))
-                    n[ii] = np.float32(1.0)
-                    tmp = out_array / n
-                    tmp[ii] = self.fill_value
+                    out_is_bad = np.logical_not(out_valid)
+                    out_array[out_is_bad] = np.float32(1)
+                    out_array /= self.count
+                    out_array[out_is_bad] = self.fill_value
                 else:
-                    tmp = out_array / self.count
+                    out_array /= self.count
+
                 self.count = None
-                return tmp
+                return out_array, out_valid
+
+        class summation:
+            def __init__(self):
+                self.fill_value = None
+
+            def initialize(self, fill_value):
+                self.fill_value = fill_value
+
+            def update(self, dev, out_array, out_valid, in_array, in_valid):
+
+                # select GPU or CPU
+                if dev < 0:
+                    np = numpy
+                else:
+                    np = cupy
+
+                if self.fill_value is not None:
+                    # identify the invalid values
+                    out_is_good = np.array(out_valid, dtype=np.bool_)
+                    in_is_good = np.array(in_valid, dtype=np.bool_)
+
+                    # accumulate
+                    tmp = np.where(out_is_good, out_array, np.float32(0)) \
+                        + np.where(in_is_good, in_array, np.float32(0))
+
+                    # update the valid value mask
+                    tmp_vv = np.zeros_like(out_array, dtype=np.int8)
+                    tmp_vv[in_is_good] = np.int8(1)
+                    tmp_vv[out_is_good] = np.int8(1)
+                else:
+                    # accumulate
+                    tmp = out_array + in_array
+                    tmp_vv = None
+
+                return tmp, tmp_vv
+
+            def finalize(self, dev, out_array, out_valid):
+                if self.fill_value is not None:
+                    out_is_bad = np.logical_not(out_valid)
+                    out_array[out_is_bad] = self.fill_value
+                return out_array, out_valid
 
         class minimum:
             def __init__(self):
@@ -200,21 +262,37 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
             def initialize(self, fill_value):
                 self.fill_value = fill_value
 
-            def update(self, out_array, in_array):
+            def update(self, dev, out_array, out_valid, in_array, in_valid):
+
+                # select GPU or CPU
+                if dev < 0:
+                    np = numpy
+                else:
+                    np = cupy
+
+                # reduce
                 tmp = np.minimum(out_array, in_array)
+                tmp_valid = None
+
                 # fix invalid values
                 if self.fill_value is not None:
-                    out_is_bad = np.isclose(out_array, self.fill_value)
-                    out_is_good = np.logical_not(out_is_bad)
-                    in_is_bad = np.isclose(in_array, self.fill_value)
-                    in_is_good = np.logical_not(in_is_bad)
+                    out_is_good = np.array(out_valid, dtype=np.bool_)
+                    out_is_bad = np.logical_not(out_valid)
+                    in_is_good = np.array(in_valid, dtype=np.bool_)
+                    in_is_bad = np.logical_not(in_valid)
                     tmp = np.where(np.logical_and(out_is_bad, in_is_good), in_array, tmp)
                     tmp = np.where(np.logical_and(in_is_bad, out_is_good), out_array, tmp)
-                    tmp = np.where(np.logical_and(in_is_bad, out_is_bad), self.fill_value, tmp)
-                return tmp
+                    tmp_valid = np.zeros_like(out_valid, dtype=np.int8)
+                    tmp_valid[in_is_good] = np.int8(1)
+                    tmp_valid[out_is_good] = np.int8(1)
 
-            def finalize(self, out_array):
-                return out_array
+                return tmp, tmp_valid
+
+            def finalize(self, dev, out_array, out_valid):
+                if self.fill_value is not None:
+                    out_is_bad = np.logical_not(out_valid)
+                    out_array[out_is_bad] = self.fill_value
+                return out_array, out_valid
 
         class maximum:
             def __init__(self):
@@ -223,21 +301,37 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
             def initialize(self, fill_value):
                 self.fill_value = fill_value
 
-            def update(self, out_array, in_array):
+            def update(self, dev, out_array, out_valid, in_array, in_valid):
+                # select GPU or CPU
+                if dev < 0:
+                    np = numpy
+                else:
+                    np = cupy
+
+                # reduce
                 tmp = np.maximum(out_array, in_array)
+                tmp_valid = None
+
                 # fix invalid values
                 if self.fill_value is not None:
-                    out_is_bad = np.isclose(out_array, self.fill_value)
-                    out_is_good = np.logical_not(out_is_bad)
-                    in_is_bad = np.isclose(in_array, self.fill_value)
-                    in_is_good = np.logical_not(in_is_bad)
+                    out_is_good = np.array(out_valid, dtype=np.bool_)
+                    out_is_bad = np.logical_not(out_valid)
+                    in_is_good = np.array(in_valid, dtype=np.bool_)
+                    in_is_bad = np.logical_not(in_valid)
                     tmp = np.where(np.logical_and(out_is_bad, in_is_good), in_array, tmp)
                     tmp = np.where(np.logical_and(in_is_bad, out_is_good), out_array, tmp)
-                    tmp = np.where(np.logical_and(in_is_bad, out_is_bad), self.fill_value, tmp)
-                return tmp
+                    tmp_valid = np.zeros_like(out_valid, dtype=np.int8)
+                    tmp_valid[in_is_good] = np.int8(1)
+                    tmp_valid[out_is_good] = np.int8(1)
 
-            def finalize(self, out_array):
-                return out_array
+                return tmp, tmp_valid
+
+            def finalize(self, dev, out_array, out_valid):
+                if self.fill_value is not None:
+                    out_is_bad = np.logical_not(out_valid)
+                    out_array[out_is_bad] = self.fill_value
+                return out_array, out_valid
+
 
         def New(self, op_name):
             """ factory method that creates an instance from a string """
@@ -255,6 +349,12 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
                 return teca_temporal_reduction. \
                     reduction_operator_collection. \
                         maximum()
+
+            elif op_name == 'summation':
+                return teca_temporal_reduction. \
+                    reduction_operator_collection. \
+                        summation()
+
 
             raise RuntimeError('Invalid operator %s' % (op_name))
 
@@ -295,9 +395,11 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
             monthly
             seasonal
             yearly
+            n_steps
 
         The factory method (interval_iterator_collection.New) retruns instances
-        when passed a string naming one of the above iterators.
+        when passed a string naming one of the above iterators. For the n_steps
+        iterator replace n with the desired number of steps (eg. 8_steps)
         """
 
         class time_point:
@@ -318,6 +420,30 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
                 return '%g (%s, %s) --> %04d-%02d-%02d %02d:%02d:%02g' % (
                     self.t, self.units, self.calendar, self.year, self.month,
                     self.day, self.hour, self.minutes, self.seconds)
+
+        class n_step_iterator:
+            """ An iterator over intervals of N time steps """
+
+            def __init__(self, t, units, calendar, n_steps):
+                self.time = t
+                self.index = 0
+                self.n_steps = n_steps
+
+            def __iter__(self):
+                return self
+
+            def __next__(self):
+
+                i0 = self.index
+                i1 = self.index + self.n_steps
+
+                if i1 >= len(self.time):
+                    raise StopIteration
+
+                self.index = i1
+
+                return teca_temporal_reduction. \
+                    time_interval(self.time[i0], i0, i1)
 
         class season_iterator:
             """
@@ -685,12 +811,21 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
                     interval_iterator_collection. \
                         day_iterator(t, units, calendar)
 
+            elif (pos := interval.rfind('_steps')) > 0:
+
+                n_steps = int(interval[0:pos])
+
+                return teca_temporal_reduction. \
+                    interval_iterator_collection. \
+                        n_steps_iterator(t, units, calendar, n_steps)
+
             else:
 
                 raise RuntimeError('Invlid interval %s' % (interval))
 
 
     def __init__(self):
+        self.have_cuda = get_teca_has_cuda() and get_teca_has_cupy()
         self.indices = []
         self.point_arrays = []
         self.interval_name = None
@@ -776,6 +911,12 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
         """
         self.interval_name = 'daily'
 
+    def set_interval_to_n_steps(self, n_steps):
+        """
+        set the output interval to n_steps.
+        """
+        self.interval_name = '%d_steps'%(n_steps)
+
     def set_operator(self, operator):
         """
         set the reduction operator
@@ -799,6 +940,12 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
         set the reduction operator to average.
         """
         self.operator_name = 'average'
+
+    def set_operator_to_summation(self):
+        """
+        set the reduction operator to summation.
+        """
+        self.operator_name = 'summation'
 
     def set_point_arrays(self, arrays):
         """
@@ -929,28 +1076,47 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
 
         md = md_in[0]
 
-        # initialize a new reduction operator, for the subsequent
-        # execute
+        # get the available arrays
+        vars_in = []
+        if md.has('variables'):
+            vars_in = md['variables']
+            if not isinstance(vars_in, list):
+                vars_in = [vars_in]
+
+        # get the requested arrays
+        req_arrays = []
+        if req_in.has('arrays'):
+            req_arrays = req_in['arrays']
+            if not isinstance(req_arrays, list):
+                req_arrays = [req_arrays]
+
+        # get the array attributes
         atrs = md['attributes']
+
         for array in self.point_arrays:
-            # get the fill value
-            fill_value = self.fill_value
-            if self.use_fill_value and fill_value is None:
+
+            # request the array
+            if array not in req_arrays:
+                req_arrays.append(array)
+
+            fill_value = None
+            vv_mask = array + '_valid'
+            if self.use_fill_value and (vv_mask in vars_in) \
+                    and (vv_mask not in req_arrays):
+                # request the associated valid value mask
+                req_arrays.append(vv_mask)
+
+                # get the fill value
                 array_atrs = atrs[array]
-                if array_atrs.has('_FillValue'):
+                if self.fill_value is not None:
+                    fill_value = self.fill_value
+                elif array_atrs.has('_FillValue'):
                     fill_value = array_atrs['_FillValue']
                 elif array_atrs.has('missing_value'):
                     fill_value = array_atrs['missing_value']
-                else:
-                    raise RuntimeError('Array %s has no fill value. With use_'
-                                       'fill_value arrays must have _FillValue'
-                                       ' or missing_value attribute or you '
-                                       'must set a fill_value explicitly.'%(
-                                       array))
 
             # create and initialize the operator
             op = self.reduction_operator_factory.New(self.operator_name)
-
             op.initialize(fill_value)
 
             # save the operator
@@ -958,13 +1124,13 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
 
         # generate one request for each time step in the interval
         up_reqs = []
-
         request_key = md['index_request_key']
         req_id = req_in[request_key]
         ii = self.indices[req_id]
         i = ii.start_index
         while i <= ii.end_index:
             req = teca_metadata(req_in)
+            req['arrays'] = req_arrays
             req[request_key] = i
             up_reqs.append(req)
             i += 1
@@ -981,38 +1147,103 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
         req_id = req_in[request_key]
         ii = self.indices[req_id]
 
+        # Get the device to execute on
+        dev = -1
+        alloc = variant_array_allocator_malloc
+        if self.have_cuda:
+            dev = req_in['device_id']
+            if dev >= 0:
+                cupy.cuda.Device(dev).use()
+                alloc = variant_array_allocator_cuda
+
         if self.get_verbose() > 0:
             try:
                 rank = self.get_communicator().Get_rank()
             except Exception:
                 rank = 0
-            sys.stderr.write('[%d] teca_temporal_reduction::execute '
-                             'request %d (%d - %d), reducing %d, %d '
-                             'remain\n' % (rank, req_id, ii.start_index,
+            sys.stderr.write('[%d] teca_temporal_reduction::execute dev'
+                             ' %d request %d (%d - %d), reducing %d, %d'
+                             ' remain\n' % (rank, dev, req_id, ii.start_index,
                                            ii.end_index, len(data_in),
                                            streaming))
 
         # copy the first mesh
         mesh_in = as_teca_cartesian_mesh(data_in.pop())
         mesh_out = teca_cartesian_mesh.New()
-        mesh_out.copy(mesh_in)
+        mesh_out.copy(mesh_in, alloc)
         arrays_out = mesh_out.get_point_arrays()
 
         # accumulate incoming values
         while len(data_in):
             mesh_in = as_teca_cartesian_mesh(data_in.pop())
             arrays_in = mesh_in.get_point_arrays()
+
             for array in self.point_arrays:
-                arrays_out[array] = \
-                    self.operator[array].update(arrays_out[array],
-                                                arrays_in[array])
+
+                # the valid value masks
+                valid = array + '_valid'
+                in_valid = None
+                out_valid = None
+
+                # get the data on the device where it will be used
+                if dev < 0:
+                    # arrays
+                    in_array = arrays_in[array].get_cpu_accessible()
+                    out_array = arrays_out[array].get_cpu_accessible()
+                    # valid value masks
+                    if arrays_in.has(valid):
+                        in_valid = arrays_in[valid].get_cpu_accessible()
+                    if arrays_out.has(valid):
+                        out_valid = arrays_out[valid].get_cpu_accessible()
+                else:
+                    # arrays
+                    in_array = arrays_in[array].get_cuda_accessible()
+                    out_array = arrays_out[array].get_cuda_accessible()
+                    # valid value masks
+                    if arrays_in.has(valid):
+                        in_valid = arrays_in[valid].get_cuda_accessible()
+                    if arrays_out.has(valid):
+                        out_valid = arrays_out[valid].get_cuda_accessible()
+
+                # apply the reduction
+                red_array, red_valid = \
+                    self.operator[array].update(dev, out_array, out_valid,
+                                                in_array, in_valid)
+
+                # udpate the output
+                arrays_out[array] = red_array
+
+                if red_valid is not None:
+                    arrays_out[valid] = red_valid
 
         # when all the data is processed
         if not streaming:
-            # finalize reduction
             for array in self.point_arrays:
-                arrays_out[array] = \
-                    self.operator[array].finalize(arrays_out[array])
+
+                # the valid value masks
+                valid = array + '_valid'
+                in_valid = None
+                out_valid = None
+
+                # get the data on the device where it will be used
+                if dev < 0:
+                    out_array = arrays_out[array].get_cpu_accessible()
+                    if arrays_out.has(valid):
+                        out_valid = arrays_out[valid].get_cpu_accessible()
+                else:
+                    out_array = arrays_out[array].get_cuda_accessible()
+                    if arrays_out.has(valid):
+                        out_valid = arrays_out[valid].get_cuda_accessible()
+
+                # finalize the reduction
+                red_array, red_valid = \
+                    self.operator[array].finalize(dev, out_array, out_valid)
+
+                # udpate the output
+                arrays_out[array] = red_array
+
+                if red_valid is not None:
+                    arrays_out[valid] = red_valid
 
             # fix time
             mesh_out.set_time_step(req_id)

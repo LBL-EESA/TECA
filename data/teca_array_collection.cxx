@@ -147,9 +147,10 @@ const_p_teca_variant_array teca_array_collection::get(const std::string &name) c
 }
 
 // ----------------------------------------------------------------------------
-void teca_array_collection::copy(const const_p_teca_dataset &dataset)
+void teca_array_collection::copy(const const_p_teca_dataset &dataset,
+    allocator alloc)
 {
-    this->teca_dataset::copy(dataset);
+    this->teca_dataset::copy(dataset, alloc);
 
     const_p_teca_array_collection other
         = std::dynamic_pointer_cast<const teca_array_collection>(dataset);
@@ -163,7 +164,7 @@ void teca_array_collection::copy(const const_p_teca_dataset &dataset)
 
     unsigned int n = other->size();
     for (unsigned int i = 0; i < n; ++i)
-        m_arrays.push_back(other->get(i)->new_copy());
+        m_arrays.push_back(other->get(i)->new_copy(alloc));
 }
 
 // ----------------------------------------------------------------------------
