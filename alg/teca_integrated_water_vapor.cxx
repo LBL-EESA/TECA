@@ -199,8 +199,8 @@ teca_metadata teca_integrated_water_vapor::get_output_metadata(
 
         teca_array_attributes iwv_atts(
             type_code, teca_array_attributes::point_centering,
-            0, "kg m^{-1} s^{-1}", "longitudinal integrated vapor transport",
-            "the longitudinal component of integrated vapor transport",
+            0, "kg m^{-2}", "integrated water vapor",
+            "vertically integrated " + this->specific_humidity_variable,
             1, this->fill_value);
 
 
