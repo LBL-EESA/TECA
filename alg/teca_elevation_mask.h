@@ -23,7 +23,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_elevation_mask)
  * where it is below.
  *
  * The name of the 3D height field is specified by the  mesh_height_variable
- * property. The name of the 2D height field conntaining elveation of the
+ * property. The name of the 2D height field containing elevation of the
  * Earth's surface is specified by the  surface_elevation_variable property.
  *
  * The 3D mesh height field must be provided on input 0, and the 2D surface
