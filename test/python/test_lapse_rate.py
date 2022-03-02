@@ -1,5 +1,7 @@
 from teca import *
-import numpy as np
+import numpy
+if get_teca_has_cupy():
+    import cupy
 import sys
 
 class generate_data(teca_python_algorithm):
@@ -90,6 +92,17 @@ class generate_data(teca_python_algorithm):
         return md_out
 
     def execute(self, port, data_in, req_in):
+        # get the device to run on
+        dev = -1
+        np = numpy
+        if get_teca_has_cuda() and get_teca_has_cupy():
+            dev = req_in['device_id']
+            if dev >= 0:
+                cupy.cuda.Device(dev).use()
+                np = cupy
+        # report
+        dev_str = 'CPU' if dev < 0 else 'GPU %d'%(dev)
+        sys.stderr.write('generate_data::execute %s\n'%(dev_str))
 
         mesh_in = as_const_teca_cartesian_mesh(data_in[0])
 

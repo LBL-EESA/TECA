@@ -1,4 +1,7 @@
-import numpy as np
+import numpy
+if get_teca_has_cupy():
+    import cupy
+import sys
 
 
 class teca_lapse_rate(teca_python_vertical_reduction):
@@ -135,6 +138,18 @@ class teca_lapse_rate(teca_python_vertical_reduction):
         """Define the TECA execute phase for this algorithm.
            Outputs a 2D array of lapserates. """
 
+        # get the device to run on
+        dev = -1
+        np = numpy
+        if get_teca_has_cuda() and get_teca_has_cupy():
+            dev = req['device_id']
+            if dev >= 0:
+                cupy.cuda.Device(dev).use()
+                np = cupy
+        # report
+        dev_str = 'CPU' if dev < 0 else 'GPU %d'%(dev)
+        sys.stderr.write('teca_lapse_rate::execute %s\n'%(dev_str))
+
         # get the input mesh
         in_mesh = as_const_teca_cartesian_mesh(data_in[0])
 
@@ -155,10 +170,20 @@ class teca_lapse_rate(teca_python_vertical_reduction):
         def reshape2d(in_var):
             return np.reshape(in_var, [len(lat), len(lon)])
 
+        arrays = in_mesh.get_point_arrays()
+        if dev < 0:     
+            in_t = arrays[self.t_var].get_cpu_accessible()
+            in_z = arrays[self.z_var].get_cpu_accessible()
+            in_zs = arrays[self.zs_var].get_cpu_accessible()
+        else:
+            in_t = arrays[self.t_var].get_cuda_accessible()
+            in_z = arrays[self.z_var].get_cuda_accessible()
+            in_zs = arrays[self.zs_var].get_cuda_accessible()
+
         # get temperature, surface geopotential and level geopotential
-        t = reshape3d(in_mesh.get_point_arrays()[self.t_var])
-        z = reshape3d(in_mesh.get_point_arrays()[self.z_var])
-        zs = reshape2d(in_mesh.get_point_arrays()[self.zs_var])
+        t = reshape3d(in_t)
+        z = reshape3d(in_z)
+        zs = reshape2d(in_zs)
 
         # convert to units of meters if needd
         if self.z_is_geopotential:
