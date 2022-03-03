@@ -325,12 +325,12 @@ On Ubuntu 20.04
     $ cd ~
     $ sudo apt-get remove libhdf5-dev
     $ sudo apt-get install libmpich-dev libhdf5-mpich-dev
-    $ wget https://www.unidata.ucar.edu/downloads/netcdf/ftp/netcdf-c-4.7.4.tar.gz
-    $ tar -xvf netcdf-c-4.7.4.tar.gz
-    $ cd netcdf-c-4.7.4
+    $ wget https://downloads.unidata.ucar.edu/netcdf-c/4.8.1/netcdf-c-4.8.1.tar.gz
+    $ tar -xvf netcdf-c-4.8.1.tar.gz
+    $ cd netcdf-c-4.8.1
     $ ./configure CC=mpicc CFLAGS="-O3 -I/usr/include/hdf5/mpich"       \
           LDFLAGS="-L/usr/lib/x86_64-linux-gnu/hdf5/mpich/ -lhdf5"      \
-          --prefix=`pwd`/../netcdf-c-4.7.4-install --enable-parallel4   \
+          --prefix=`pwd`/../netcdf-c-4.8.1-install --enable-parallel4   \
           --disable-dap
     $ make -j install
 
@@ -340,12 +340,12 @@ On Apple Mac OS
 
     $ brew uninstall netcdf hdf5 mpich
     $ brew install mpi hdf5-mpi
-    $ wget https://www.unidata.ucar.edu/downloads/netcdf/ftp/netcdf-c-4.7.4.tar.gz
-    $ tar -xvf netcdf-c-4.7.4.tar.gz
-    $ cd netcdf-c-4.7.4
+    $ wget https://downloads.unidata.ucar.edu/netcdf-c/4.8.1/netcdf-c-4.8.1.tar.gz
+    $ tar -xvf netcdf-c-4.8.1.tar.gz
+    $ cd netcdf-c-4.8.1
     $ ./configure CC=mpicc --enable-shared --enable-static          \
         --enable-fortran --disable-dap --enable-netcdf-4            \
-        --enable-parallel4 --prefix=`pwd`/../netcdf-c-4.7.4-install
+        --enable-parallel4 --prefix=`pwd`/../netcdf-c-4.8.1-install
     $ make -j install
 
 
@@ -428,7 +428,7 @@ build to the local install by passing options on the pip command line.
 .. code-block:: bash
 
    pip install teca --global-option=build_ext \
-       --global-option="--with-netcdf=/Users/bloring/netcdf-c-4.7.4-install/"
+       --global-option="--with-netcdf=/Users/bloring/netcdf-c-4.8.1-install/"
 
 See section :ref:`netcdf-parallel4` for information on compiling NetCDF with
 MPI enabled.
