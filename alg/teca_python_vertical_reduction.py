@@ -1,4 +1,4 @@
-import numpy as np
+import numpy
 
 
 class teca_python_vertical_reduction(teca_python_algorithm):
@@ -63,8 +63,8 @@ class teca_python_vertical_reduction(teca_python_algorithm):
         md = teca_metadata(input_md[0])
 
         # get the whole extent and bounds
-        bounds = np.zeros(6, dtype=np.int32)
-        whole_extent = np.zeros(6, dtype=np.int32)
+        bounds = numpy.zeros(6, dtype=numpy.int32)
+        whole_extent = numpy.zeros(6, dtype=numpy.int32)
         bounds = md["bounds"]
         whole_extent = md["whole_extent"]
 

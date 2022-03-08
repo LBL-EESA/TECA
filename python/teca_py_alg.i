@@ -503,4 +503,4 @@ struct teca_tc_saffir_simpson
 /***************************************************************************
  lapse_rate
  ***************************************************************************/
-%pythoncode "teca_lapse_rate.py"  
+%pythoncode "teca_lapse_rate.py"

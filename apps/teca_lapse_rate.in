@@ -1,0 +1,159 @@
+#!/usr/bin/env python@TECA_PYTHON_VERSION@
+from teca import *
+import argparse
+import sys
+
+# parse the command line
+parser = argparse.ArgumentParser()
+parser.add_argument('--input_file', type=str, required=True,
+                    help="A TECA MCF file containing information \
+                          about the locations of the temperature and \
+                          geopotential height data")
+
+parser.add_argument('--output_file', type=str, required=True,
+                    help="The name of the file to write to disk. \
+                          The output file name must have the time template \
+                          %%t%% somewhere in the string; \
+                          %%t%% is replaced with a human readable date and time \
+                          corresponding to the time of the first time step \
+                          in the file")
+
+parser.add_argument('--verbose',
+                    default=False, action='store_true',
+                    help="Indicates whether to turn on verbose output; \
+                          enable extra terminal output")
+
+parser.add_argument('--t_var',
+                    default="T",
+                    help="The variable name for temperature")
+
+parser.add_argument('--z_var',
+                    default="Z",
+                    help="The variable name for geopotential height")
+
+parser.add_argument('--zs_var',
+                    default="ZS",
+                    help="The variable name for surface geopotential height")
+
+parser.add_argument('--zmax',
+                    default=9000,
+                    help="The maximum height for the lapse rate calculation [m]")
+
+parser.add_argument('--z_is_not_geopotential',
+                    action="store_true", default=False,
+                    help="Flags that height has physical units [m] \
+                          rather than geopotential [m^2/s^2]")
+
+parser.add_argument('--start_month_index',
+                    default=None,
+                    help="The index of the first month to process")
+
+parser.add_argument('--end_month_index',
+                    default=None,
+                    help="The index of the last month to process")
+
+parser.add_argument('--file_layout',
+                    default="yearly",
+                    help="Selects the size and layout of the set of output \
+                          files. May be one of number_of_steps, daily, \
+                          monthly, seasonal, or yearly. Files are structured \
+                          such that each file contains one of the selected \
+                          interval. For the number_of_steps option \
+                          use --steps_per_file")
+
+parser.add_argument('--steps_per_file',
+                    default=12,
+                    help="The number of time steps per output file \
+                          when --file_layout number_of_steps is specified")
+
+parser.add_argument('--no_inline_reduction',
+                    action='store_true', default=False,
+                    help="Flags that a temporal reduction should not be done; \
+                          output raw timesteps.")
+
+args = parser.parse_args()
+
+# set defaults for the start and end months
+if args.start_month_index is None:
+    start_month_index = None
+else:
+    start_month_index = int(args.start_month_index)
+
+if args.end_month_index is None:
+    end_month_index = None
+else:
+    end_month_index = int(args.end_month_index)
+
+mcf_file = args.input_file
+output_filename = args.output_file
+be_verbose = args.verbose
+t_var = args.t_var
+z_var = args.z_var
+zs_var = args.zs_var
+zmax = args.zmax
+z_is_geopotential = not args.z_is_not_geopotential
+start_month_index = start_month_index
+end_month_index = end_month_index
+layout = args.file_layout
+steps_per_file = int(args.steps_per_file)
+inline_reduction = not args.no_inline_reduction
+
+if "%t%" not in output_filename:
+    raise RuntimeError("The output file name must have the time template %t% \
+                        somewhere in the string")
+
+# reader
+cfr = teca_multi_cf_reader.New()
+cfr.set_input_file(mcf_file)
+
+# Normalize coordinates
+norm = teca_normalize_coordinates.New()
+norm.set_input_connection(cfr.get_output_port())
+
+# lapse rate
+lapse = teca_lapse_rate.New()
+lapse.set_input_connection(norm.get_output_port())
+lapse.set_t_var(t_var)
+lapse.set_z_var(z_var)
+lapse.set_zs_var(zs_var)
+lapse.set_zmax(zmax)
+lapse.set_geopotential_flag(z_is_geopotential)
+
+# temporal reduction
+if inline_reduction:
+    tre = teca_temporal_reduction.New()
+    tre.set_input_connection(lapse.get_output_port())
+    tre.set_interval("monthly")
+    tre.set_operator("average")
+    tre.set_point_arrays(lapse.get_point_array_names())
+    tre.set_thread_pool_size(-1)
+    tre.set_stream_size(2)
+    tre.set_verbose(1)
+    tre.set_verbose(int(be_verbose))
+else:
+    if steps_per_file is None:
+        steps_per_file = 10000
+
+# executive
+exe = teca_index_executive.New()
+exe.set_verbose(int(be_verbose))
+
+# writer
+tfw = teca_cf_writer.New()
+if inline_reduction:
+    tfw.set_input_connection(tre.get_output_port())
+else:
+    tfw.set_input_connection(lapse.get_output_port())
+tfw.set_file_name(output_filename)
+tfw.set_point_arrays(lapse.get_point_array_names())
+tfw.set_thread_pool_size(1)
+tfw.set_executive(exe)
+tfw.set_layout(layout)
+tfw.set_steps_per_file(steps_per_file)
+if inline_reduction:
+    if start_month_index is not None:
+        tfw.set_first_step(start_month_index)
+    if end_month_index is not None:
+        tfw.set_last_step(end_month_index)
+tfw.set_verbose(int(be_verbose))
+tfw.update()

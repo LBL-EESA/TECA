@@ -1,15 +1,17 @@
 from teca import *
+import math
 import numpy
 if get_teca_has_cupy():
     import cupy
 import sys
+
 
 class generate_data(teca_python_algorithm):
     """
     This class generates 3D point centered data according to the function:
 
         tt(x,y,z) = t0 + ((-g/cp) * zz) [adiabatic temperature profile in Kelvin]
-        
+
         where -g/cp is adiabatic lapse rate and
 
                     t0 = 288.15
@@ -24,7 +26,7 @@ class generate_data(teca_python_algorithm):
     """
 
     def get_point_array_names(self):
-        return ['tt','zz','zs']
+        return ['tt', 'zz', 'zs']
 
     def report(self, port, md_in):
 
@@ -34,12 +36,12 @@ class generate_data(teca_python_algorithm):
             arrays = md_out['arrays']
         except:
             arrays = []
-        md_out['arrays'] = arrays + ['tt','zz','zs']
+        md_out['arrays'] = arrays + ['tt', 'zz', 'zs']
 
         # get the extent of the dataset
         wext = md_out['whole_extent']
-        ncells = (wext[1] - wext[0] + 1)* \
-                 (wext[3] - wext[2] + 1)*(wext[5] - wext[4] + 1)
+        ncells = (wext[1] - wext[0] + 1) * \
+                 (wext[3] - wext[2] + 1) * (wext[5] - wext[4] + 1)
 
         nt = wext[7] - wext[6] + 1
         md_out['bounds'] = [0., 360., -90., 90., 0., nt, 0., 9000.]
@@ -53,8 +55,8 @@ class generate_data(teca_python_algorithm):
             None)
 
         fatts = faa.to_metadata()
-        fatts['have_mesh_dim'] = [1,1,1,1]
-        fatts['mesh_dim_active'] = [1,1,1,1]
+        fatts['have_mesh_dim'] = [1, 1, 1, 1]
+        fatts['mesh_dim_active'] = [1, 1, 1, 1]
 
         haa = teca_array_attributes(
             teca_double_array_code.get(),
@@ -64,8 +66,8 @@ class generate_data(teca_python_algorithm):
             None)
 
         hatts = haa.to_metadata()
-        hatts['have_mesh_dim'] = [1,1,1,1]
-        hatts['mesh_dim_active'] = [1,1,1,1]
+        hatts['have_mesh_dim'] = [1, 1, 1, 1]
+        hatts['mesh_dim_active'] = [1, 1, 1, 1]
 
         gaa = teca_array_attributes(
             teca_double_array_code.get(),
@@ -75,8 +77,8 @@ class generate_data(teca_python_algorithm):
             None)
 
         gatts = gaa.to_metadata()
-        gatts['have_mesh_dim'] = [1,1,0,1]
-        gatts['mesh_dim_active'] = [1,1,0,1]
+        gatts['have_mesh_dim'] = [1, 1, 0, 1]
+        gatts['mesh_dim_active'] = [1, 1, 0, 1]
 
         # put it in the array attributes
         try:
@@ -84,8 +86,8 @@ class generate_data(teca_python_algorithm):
         except:
             atts = teca_metadata()
 
-        atts['tt']  = fatts
-        atts['zz']  = hatts
+        atts['tt'] = fatts
+        atts['zz'] = hatts
         atts['zs'] = gatts
 
         md_out['attributes'] = atts
@@ -101,8 +103,8 @@ class generate_data(teca_python_algorithm):
                 cupy.cuda.Device(dev).use()
                 np = cupy
         # report
-        dev_str = 'CPU' if dev < 0 else 'GPU %d'%(dev)
-        sys.stderr.write('generate_data::execute %s\n'%(dev_str))
+        dev_str = 'CPU' if dev < 0 else 'GPU %d' % (dev)
+        sys.stderr.write('generate_data::execute %s\n' % (dev_str))
 
         mesh_in = as_const_teca_cartesian_mesh(data_in[0])
 
@@ -118,21 +120,21 @@ class generate_data(teca_python_algorithm):
         t = mesh_in.get_time()
 
         # generate the 3D variable. zz = 0, ..., zmax, zmax = 9000
-        zz = np.empty((nz,ny,nx), dtype=np.float64)
+        zz = np.empty((nz, ny, nx), dtype=np.float64)
         k = 0
         while k < nz:
-            zz[k,:,:] = k * (9000. / (nz - 1))
+            zz[k, :, :] = k * (9000. / (nz - 1))
             k += 1
 
         # generate the 3D variable. tt = t0 + (adiabatic_lapse_rate * zz)
-        tt = np.empty((nz,ny,nx), dtype=np.float64)
+        tt = np.empty((nz, ny, nx), dtype=np.float64)
         k = 0
         while k < nz:
-            tt[k,:,:] = 288.15 - ((9.81 / 1004.) * zz[k]) 
+            tt[k, :, :] = 288.15 - ((9.81 / 1004.) * zz[k])
             k += 1
 
-        # generate the 2D variable. 
-        zs = np.full((ny,nx), 0., dtype=np.float64)
+        # generate the 2D variable.
+        zs = np.full((ny, nx), 0., dtype=np.float64)
 
         # create the output and add in the arrays
         mesh_out = teca_cartesian_mesh.New()
@@ -143,12 +145,11 @@ class generate_data(teca_python_algorithm):
 
         return mesh_out
 
-def isequal(a, b, epsilon):
-    return np.fabs(a - b) < epsilon
 
 # process the command line
 if not len(sys.argv) == 6:
-    sys.stderr.write('usage: test_lapse_rate.py [nx] [ny] [nz] [nt] [out file]\n')
+    sys.stderr.write('usage: test_lapse_rate.py [nx] [ny] [nz] [nt] \
+                             [out file]\n')
     sys.exit(-1)
 
 nx = int(sys.argv[1])
@@ -189,8 +190,8 @@ wri = teca_cartesian_mesh_writer.New()
 wri.set_input_connection(lapse_o.get_output_port())
 wri.set_executive(exe)
 wri.set_file_name(out_file)
-#wri.set_binary(0)
-#wri.set_output_format(1)
+# wri.set_binary(0)
+# wri.set_output_format(1)
 
 wri.update()
 
@@ -202,12 +203,12 @@ out_mesh.copy(ds)
 
 lapse_array = out_mesh.get_point_arrays().get("lapse_rate")
 
-if not isequal(np.abs(lapse_array[0]*1000), 9.77091633, 1e-7):
+if not math.isclose(math.fabs(lapse_array[0]*1000), 9.77091633):
     sys.stderr.write('Value %s is not 9.77091633' % \
-        (np.abs(lapse_array[0]*1000)))
+                     (math.fabs(lapse_array[0]*1000)))
     sys.exit(-1)
 
-if not isequal(np.abs(lapse_array[nx*ny-1]*1000), 9.77091633, 1e-7):
+if not math.isclose(math.fabs(lapse_array[nx*ny-1]*1000), 9.77091633):
     sys.stderr.write('Value %s is not 9.77091633' % \
-        (np.abs(lapse_array[nx*ny-1]*1000)))
+                     (math.fabs(lapse_array[nx*ny-1]*1000)))
     sys.exit(-1)

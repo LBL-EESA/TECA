@@ -44,7 +44,7 @@ class teca_lapse_rate(teca_python_vertical_reduction):
         """ Returns the names of the output arrays """
         return ["lapse_rate"]
 
-    def calculate_lapse_rate(self, t, z, zs, zmax=9000):
+    def calculate_lapse_rate(self, dev, t, z, zs, zmax=9000):
         """ Calculates the mean lapse rate.
 
             input:
@@ -75,33 +75,31 @@ class teca_lapse_rate(teca_python_vertical_reduction):
         """
 
         # check shapes
-        try:
-            assert t.shape == z.shape, "t and z must have the same shape; \
-                   shape(t) = "+str(t.shape)+" but shape(z) = "+str(z.shape)
-        except Exception as e:
-            print(e)
-        try:
-            assert z[0, ...].shape == zs.shape, "All but the first dimension \
-                   of z must match the dimensions of zs; \
-                   shape(z) = "+str(z.shape)+" but shape(zs) = "+str(zs.shape)
-        except Exception as e:
-            print(e)
+        if t.shape != z.shape:
+            raise RuntimeError('ERROR: t and z must have the same shape;'
+                    ' shape(t) = %s but shape(z) = %s' % (str(t.shape),str(z.shape)))
+        if z[0, ...].shape != zs.shape:
+            raise RuntimeError('ERROR: All but the first dimension'
+                   ' of z must match the dimensions of zs;'
+                   ' shape(z) = %s but shape(zs) = %s' % (str(z.shape),str(zs.shape)))
 
-        # get a boolean mask for under-topo values and values
-        # that are above the max height
-        height_mask = np.logical_and(z >= zs[np.newaxis, ...], z < zmax)
+        # select GPU or CPU
+        if dev < 0:
+            np = numpy
+        else:
+            np = cupy
 
         # mask temperature and height
-        t_mask = t[height_mask]
-        z_mask = z[height_mask]
+        # for under-topo values and values that are above the max height
+        t_mask = np.where((z >= zs[np.newaxis, ...]) & (z < zmax), t, np.nan)
+        z_mask = np.where((z >= zs[np.newaxis, ...]) & (z < zmax), z, np.nan)
 
         # calculate the lapse rate between each level
-        new_level = int(len(t_mask)/(t.shape[1]*t.shape[2]))
-        dt = np.diff(t_mask.reshape(new_level,t.shape[1],t.shape[2]), axis=0)
-        dz = np.diff(z_mask.reshape(new_level,z.shape[1],z.shape[2]), axis=0)
- 
+        dt = np.diff(t_mask, axis=0)
+        dz = np.diff(z_mask, axis=0)
+
         # calculate the average lapse rate
-        dtdz = (dt/dz).mean(axis=0)
+        dtdz = np.nanmean((dt/dz), axis=0)
 
         return dtdz
 
@@ -147,8 +145,9 @@ class teca_lapse_rate(teca_python_vertical_reduction):
                 cupy.cuda.Device(dev).use()
                 np = cupy
         # report
-        dev_str = 'CPU' if dev < 0 else 'GPU %d'%(dev)
-        sys.stderr.write('teca_lapse_rate::execute %s\n'%(dev_str))
+        if self.get_verbose():
+            dev_str = 'CPU' if dev < 0 else 'GPU %d' % (dev)
+            sys.stderr.write('teca_lapse_rate::execute %s\n' % (dev_str))
 
         # get the input mesh
         in_mesh = as_const_teca_cartesian_mesh(data_in[0])
@@ -171,7 +170,7 @@ class teca_lapse_rate(teca_python_vertical_reduction):
             return np.reshape(in_var, [len(lat), len(lon)])
 
         arrays = in_mesh.get_point_arrays()
-        if dev < 0:     
+        if dev < 0:
             in_t = arrays[self.t_var].get_cpu_accessible()
             in_z = arrays[self.z_var].get_cpu_accessible()
             in_zs = arrays[self.zs_var].get_cpu_accessible()
@@ -192,10 +191,11 @@ class teca_lapse_rate(teca_python_vertical_reduction):
 
         # calculate cloud base height
         lapse_rate = self.calculate_lapse_rate(
+            dev,
             t.astype(np.float64),
             z.astype(np.float64),
             zs.astype(np.float64),
-            zmax=self.zmax,
+            zmax=self.zmax
         )
 
         out_arrays = out_mesh.get_point_arrays()

@@ -421,6 +421,12 @@ teca_add_app_test(test_potential_intensity_app teca_potential_intensity
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_TCPYPI}
     REQ_TECA_DATA)
 
+
+teca_add_app_test(test_lapse_rate_app teca_lapse_rate
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_lapse_rate_app.sh
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX}
+    REQ_TECA_DATA)
+
 set(app_names
     teca_bayesian_ar_detect
     teca_cf_restripe
@@ -437,7 +443,8 @@ set(app_names
     teca_tc_trajectory_scalars
     teca_tc_wind_radii
     teca_tc_wind_radii_stats
-    teca_temporal_reduction)
+    teca_temporal_reduction
+    teca_lapse_rate)
 
 foreach (app_name ${app_names})
 
