@@ -27,8 +27,8 @@ batch script rather than in your shell.
 +----------------------------------------+--------------------------------------------------+
 | :ref:`teca_deeplab_ar_detect`          | A machine learning based AR detector             |
 +----------------------------------------+--------------------------------------------------+
-| :ref:`teca_temporal_reduction`         | Computes reductions (min, max, average) over     |
-|                                        | the time dimension                               |
+| :ref:`teca_temporal_reduction`         | Computes reductions (min, max, average,          |
+|                                        | summation) over the time dimension               |
 +----------------------------------------+--------------------------------------------------+
 | :ref:`teca_tc_detect`                  | TC detection using GFDL algorithm                |
 +----------------------------------------+--------------------------------------------------+
@@ -2551,9 +2551,9 @@ Example
 teca_temporal_reduction
 -----------------------
 The temporal reduction application applies a reduction operator on the time
-axis of a NetCDF CF2 dataset.  The reduction can be applied over a number of
-specific intervals, for instance daily, monthly, or seasonal intervals.
-Minimum, maximum, and average operators are supported.
+axis of a NetCDF CF2 dataset. The reduction can be applied over a number of
+specific intervals, for instance daily, monthly, seasonal, yearly or n_steps
+intervals. Minimum, maximum, average, and summation operators are supported.
 
 A rule of thumb for when running in parallel one should size the job such that
 there is a rank per interval. For instance, to apply a reduction that computes
@@ -2573,9 +2573,6 @@ A mesh with a reduced temporal resolution.
 
 Command Line Arguments
 ~~~~~~~~~~~~~~~~~~~~~~
---help
-    show this help message and exit
-
 --input_file INPUT_FILE
     a teca_multi_cf_reader configuration file identifying the set of NetCDF CF2 files to process.
     When present data is read using the teca_multi_cf_reader. Use one of either --input_file or
@@ -2586,27 +2583,26 @@ Command Line Arguments
     read using the teca_cf_reader. Use one of either --input_file or --input_regex. (default: None)
 
 --interval INTERVAL
-    interval to reduce the time axis to. One of daily, monthly, or seasonal (default: monthly)
+    interval to reduce the time axis to. One of daily, monthly, seasonal, yearly,
+    or n_steps. For the n_steps option use `--number_of_steps`. (default: monthly)
+
+--number_of_steps NUMBER_OF_STEPS
+    The desired number of steps when `--interval n_steps` is specified. (default: 0)
 
 --operator OPERATOR
-    reduction operator to use. One of minimum, maximum, or average (default: average)
+    reduction operator to use. One of minimum, maximum, average, or summation (default: average)
 
---point_arrays POINT_ARRAYS [POINT_ARRAYS ...]
+--point_arrays POINT_ARRAYS
     list of point centered arrays to process. (default: None)
 
 --fill_value FILL_VALUE
     A value that identifies missing or invalid data. Specifying the fill value on the command line
     overrides array specific fill values stored in the file. (default: None)
 
---ignore_fill_value
-    Boolean flag that enables missing or invalid value handling. When enabled NetCDF CF conventions
-    are used to determine fill value. Alternativley one can explicitly provide a fill value on the
-    command line via the --fill_value argument. (default: False)
-
 --output_file OUTPUT_FILE
     A path and file name pattern for the output NetCDF files. %t% is replaced with a human readable
-    date and time corresponding to the time of the first time step in the file. Use --date_format to
-    change the formatting (default: None)
+    date and time corresponding to the time of the first time step in the file.
+    Use --cf_writer::date_format to change the formatting (default: None)
 
 --file_layout FILE_LAYOUT
     Selects the size and layout of the set of output files. May be one of number_of_steps, daily,
@@ -2615,6 +2611,7 @@ Command Line Arguments
 
 --steps_per_file STEPS_PER_FILE
     The number of time steps per output file when `--file_layout number_of_steps` is specified.
+    (default: 128)
 
 --x_axis_variable X_AXIS_VARIABLE
     name of the variable to use for x-coordinates (default: lon)
@@ -2630,10 +2627,28 @@ Command Line Arguments
     name of the variable to use for t-coordinates (default: time)
 
 --n_threads N_THREADS
-    Number of threads to use when stremaing the reduction (default: 2)
+    sets the thread pool size on each MPI rank.
+    When the default value of -1 is used TECA will coordinate the thread pools across ranks
+    such each thread is bound to a unique physical core (default: -1)
+
+--spatial_partitioning
+    Activates the spatial partitioning engine.
+
+--spatial_partitions SPATIAL_PARTITIONS
+    Sets the number of spatial partitions.
+    Use zero for automatic partitioning and 1 for no partitioning.
 
 --verbose VERBOSE
     enable verbose mode. (default: 0)
+
+--help
+    displays documentation for application specific command line options
+
+--advanced_help
+    displays documentation for algorithm specific command line options
+
+--full_help
+    displays both basic and advanced documentation together
 
 Examples
 ~~~~~~~~
@@ -2678,7 +2693,7 @@ simulated time at quarter degree 3 hourly resolution.
     time srun -N 73 -n 146 \
         teca_temporal_reduction \
             --n_threads 2 --verbose 1 --input_regex ${data_dir}/'.*\.nc$' \
-            --interval daily --operator average --point_arrays TS TMQ --ignore_fill_value \
+            --interval daily --operator average --point_arrays TS TMQ \
             --output_file ${out_dir}/CAM5-1-025degree_All-Hist_est1_v3_daily_avg_%t%.nc \
             --file_layout monthly
 

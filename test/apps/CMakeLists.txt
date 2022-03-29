@@ -322,6 +322,14 @@ teca_add_app_test(test_temporal_reduction_app_daily_minimum_missing_values
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
+teca_add_app_test(test_temporal_reduction_app_n_steps_average_missing_values
+    teca_temporal_reduction
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction_app.sh
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
+    "MERRA2_100_inst3_3d_asm_Np_crop_1980012[89]\\.nc" T 8_steps average 1 0
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
+    REQ_TECA_DATA)
+
 teca_add_app_test(test_temporal_reduction_app_mcf_daily_average
     teca_temporal_reduction
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction_app_mcf.sh
