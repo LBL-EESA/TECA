@@ -19,8 +19,8 @@ if [[ ${REQUIRE_NETCDF_MPI} == TRUE ]]
 then
     apt-get install -qq -y libhdf5-mpich-dev
 
-    wget https://www.unidata.ucar.edu/downloads/netcdf/ftp/netcdf-c-4.7.4.tar.gz
-    tar -xvf netcdf-c-4.7.4.tar.gz && cd netcdf-c-4.7.4
+    wget https://downloads.unidata.ucar.edu/netcdf-c/4.8.1/netcdf-c-4.8.1.tar.gz
+    tar -xzvf netcdf-c-4.8.1.tar.gz && cd netcdf-c-4.8.1
     ./configure CC=mpicc CFLAGS="-O2 -g -I/usr/include/hdf5/mpich" \
         LDFLAGS="-L/usr/lib/x86_64-linux-gnu/hdf5/mpich/ -lhdf5" \
         --enable-parallel-4 --disable-dap
