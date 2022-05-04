@@ -35,7 +35,7 @@ The io module contains readers and writers.
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 #if defined(__CUDACC__)
-#pragma diag_suppress = set_but_not_used
+#pragma nv_diag_suppress = set_but_not_used
 #endif
 %}
 

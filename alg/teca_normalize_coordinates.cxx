@@ -135,13 +135,13 @@ template <typename data_t>
 data_t internals::periodic_shift_x(data_t x)
 {
 #if defined(__CUDACC__)
-#pragma diag_suppress = unsigned_compare_with_zero
+#pragma nv_diag_suppress = unsigned_compare_with_zero
 #endif
     if (x < data_t(0))
         return x + data_t(360);
     return x;
 #if defined(__CUDACC__)
-#pragma diag_default = unsigned_compare_with_zero
+#pragma nv_diag_default = unsigned_compare_with_zero
 #endif
 }
 

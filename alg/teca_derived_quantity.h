@@ -10,7 +10,7 @@
 #include <vector>
 
 #if defined(__CUDACC__)
-#pragma diag_suppress = partial_override
+#pragma nv_diag_suppress = partial_override
 #endif
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_derived_quantity)
@@ -103,6 +103,6 @@ private:
 };
 
 #if defined(__CUDACC__)
-#pragma diag_default = partial_override
+#pragma nv_diag_default = partial_override
 #endif
 #endif

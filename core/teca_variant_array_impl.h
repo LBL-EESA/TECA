@@ -4,7 +4,7 @@
 /// @file
 
 #if defined(__CUDACC__)
-#pragma diag_suppress = partial_override
+#pragma nv_diag_suppress = partial_override
 #endif
 
 #include "teca_config.h"
@@ -2715,6 +2715,6 @@ T max(const p_teca_variant_array_impl<T> &a)
 }
 
 #if defined(__CUDACC__)
-#pragma diag_default = partial_override
+#pragma nv_diag_default = partial_override
 #endif
 #endif
