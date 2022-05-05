@@ -937,7 +937,6 @@ teca_metadata teca_cf_reader::get_output_metadata(
             // set the time axis
             t_axis = t;
             t_axis_var = "time";
-
         }
         else
         {
@@ -1003,6 +1002,9 @@ teca_metadata teca_cf_reader::get_output_metadata(
 
         this->internals->metadata.set(
             "index_request_key", std::string("time_step"));
+
+        this->internals->metadata.set(
+            "index_extent_request_key", std::string("temporal_extent"));
 
         this->internals->metadata.to_stream(stream);
 
@@ -1075,11 +1077,12 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
     coords.get("z_variable", z_axis_var);
     coords.get("t_variable", t_axis_var);
 
-    // get request
-    unsigned long time_step = 0;
-    double t = 0.0;
-    if (!request.get("time", t))
+    // get requested time extent
+    unsigned long temporal_extent[2] = {0ul};
+    double temporal_bounds[2] = {0.0};
+    if (!request.get("time", temporal_bounds[0]))
     {
+        // data for a single time was requested.
         // translate time to a time step
         TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
             in_t.get(),
@@ -1088,36 +1091,71 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
             NT *pin_t = spin_t.get();
 
             if (teca_coordinate_util::index_of(pin_t, 0,
-                in_t->size()-1, static_cast<NT>(t), time_step))
+                in_t->size()-1, static_cast<NT>(temporal_bounds[0]), temporal_extent[0]))
             {
-                TECA_FATAL_ERROR("requested time " << t << " not found")
+                TECA_FATAL_ERROR("The requested time " << temporal_bounds[0]
+                    << " was not found")
                 return nullptr;
             }
             )
+
+        temporal_extent[1] = temporal_extent[0];
+        temporal_bounds[1] = temporal_bounds[0];
+    }
+    else if (!request.get("temporal_bounds", temporal_bounds))
+    {
+        // translate time range to a time step range
+        if (teca_coordinate_util::bounds_to_extent(temporal_bounds, in_t, temporal_extent))
+        {
+            TECA_FATAL_ERROR("The requested time bounds ["
+                << temporal_bounds[0] << ", " << temporal_bounds[1]
+                << "] were not found")
+            return nullptr;
+        }
     }
     else
     {
-        // TODO -- there is currently no error checking here to
-        // support case where only 1 time step is present in a file.
-        request.get("time_step", time_step);
-        if ((in_t) && (time_step < in_t->size()))
+        // get the step number or step range directly
+
+        // note: there is no error checking here to support case where only 1
+        // time step is present in a dataset. In that case the single step is
+        // always served regardless of the request (or lack there of).
+        unsigned long n_steps = in_t->size();
+
+        if (!request.get("time_step", temporal_extent[0]))
         {
-            in_t->get(time_step, t);
+            temporal_extent[1] = temporal_extent[0];
         }
-        else if ((in_t) && in_t->size() != 1)
+        else
         {
-            TECA_FATAL_ERROR("Invalid time step " << time_step
-                << " requested from data set with " << in_t->size()
-                << " steps")
-            return nullptr;
+            request.get("temporal_extent", temporal_extent);
+        }
+
+        if (in_t)
+        {
+            if (in_t->size() == 1)
+            {
+                temporal_extent[0] = temporal_extent[1] = 0;
+            }
+
+            if (!((temporal_extent[0] < n_steps) && (temporal_extent[1] < n_steps)))
+            {
+                TECA_FATAL_ERROR("Invalid time extent [" << temporal_extent
+                    << "] requested from data set with " << in_t->size()
+                    << " steps")
+                return nullptr;
+            }
+
+            in_t->get(temporal_extent[0], temporal_bounds[0]);
+            in_t->get(temporal_extent[1], temporal_bounds[1]);
         }
     }
 
     unsigned long whole_extent[6] = {0};
     if (this->internals->metadata.get("whole_extent", whole_extent, 6))
     {
-        TECA_FATAL_ERROR("time_step=" << time_step
-            << " metadata is missing \"whole_extent\"")
+        TECA_FATAL_ERROR("temporal_extent = [" << temporal_extent
+            << "] metadata is missing \"whole_extent\"")
         return nullptr;
     }
 
@@ -1199,57 +1237,74 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
     size_t n_arrays = arrays.size();
 
     // slice axes on the requested extent
-    p_teca_variant_array out_x = in_x->new_copy(extent[0], extent[1] - extent[0] + 1);
-    p_teca_variant_array out_y = in_y->new_copy(extent[2], extent[3] - extent[2] + 1);
-    p_teca_variant_array out_z = in_z->new_copy(extent[4], extent[5] - extent[4] + 1);
+    unsigned long nx = extent[1] - extent[0] + 1;
+    unsigned long ny = extent[3] - extent[2] + 1;
+    unsigned long nz = extent[5] - extent[4] + 1;
 
-    // locate file with this time step
+    p_teca_variant_array out_x = in_x->new_copy(extent[0], nx);
+    p_teca_variant_array out_y = in_y->new_copy(extent[2], ny);
+    p_teca_variant_array out_z = in_z->new_copy(extent[4], nz);
+
+    // locate files with these time steps
     std::vector<unsigned long> step_count;
     if (this->internals->metadata.get("step_count", step_count))
     {
-        TECA_FATAL_ERROR("time_step=" << time_step
-            << " metadata is missing \"step_count\"")
+        TECA_FATAL_ERROR("temporal_extent = [" << temporal_extent
+            << "] metadata is missing \"step_count\"")
         return nullptr;
     }
 
-    unsigned long idx = 0;
-    unsigned long count = 0;
-    for (unsigned int i = 1;
-        (i < step_count.size()) && ((count + step_count[i-1]) <= time_step);
-        ++idx, ++i)
+    // compute the partial sum of the step counts.
+    unsigned long n_files = step_count.size();
+    std::vector<unsigned long> step_count_sum(n_files);
+    unsigned long ps = 0;
+    for (size_t i = 0; i < n_files; ++i)
     {
-        count += step_count[i-1];
-    }
-    unsigned long offs = time_step - count;
-
-    std::string path;
-    std::string file;
-    if (this->internals->metadata.get("root", path)
-        || this->internals->metadata.get("files", idx, file))
-    {
-        TECA_FATAL_ERROR("time_step=" << time_step
-            << " Failed to locate file for time step " << time_step)
-        return nullptr;
+        ps += step_count[i];
+        step_count_sum[i] = ps - 1;
     }
 
-    // get the file handle for this step
-    int ierr = 0;
-    std::string file_path = path + PATH_SEP + file;
-    teca_netcdf_util::netcdf_handle fh;
-    if (fh.open(file_path, NC_NOWRITE))
+    unsigned long i = 0;
+    unsigned long file_index[2] = {0ul};
+
+    while (step_count_sum[i] < temporal_extent[0])
     {
-        TECA_FATAL_ERROR("time_step=" << time_step << " Failed to open \"" << file << "\"")
-        return nullptr;
+        ++i;
+
+        if (i >= n_files)
+        {
+            TECA_FATAL_ERROR("file not found for the requested step "
+                << temporal_extent[0])
+            return nullptr;
+        }
     }
-    int file_id = fh.get();
+
+    file_index[0] = i;
+
+    while (step_count_sum[i] < temporal_extent[1])
+    {
+        ++i;
+
+        if (i >= n_files)
+        {
+            TECA_FATAL_ERROR("file not found for the requested step "
+                << temporal_extent[1])
+            return nullptr;
+        }
+    }
+
+    file_index[1] = i;
 
     // create output dataset
     p_teca_cartesian_mesh mesh = teca_cartesian_mesh::New();
+
     mesh->set_x_coordinates(x_axis_var, out_x);
     mesh->set_y_coordinates(y_axis_var, out_y);
     mesh->set_z_coordinates(z_axis_var, out_z);
-    mesh->set_time(t);
-    mesh->set_time_step(time_step);
+    mesh->set_time(temporal_bounds[0]);
+    mesh->set_time_step(temporal_extent[0]);
+    mesh->set_temporal_bounds(temporal_bounds);
+    mesh->set_temporal_extent(temporal_extent);
     mesh->set_whole_extent(whole_extent);
     mesh->set_extent(extent);
     mesh->set_bounds(bounds);
@@ -1261,8 +1316,7 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
     teca_metadata atrs;
     if (this->internals->metadata.get("attributes", atrs))
     {
-        TECA_FATAL_ERROR("time_step=" << time_step
-            << " metadata missing \"attributes\"")
+        TECA_FATAL_ERROR("Dataset metadata is missing \"attributes\"")
         return nullptr;
     }
 
@@ -1281,7 +1335,7 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
     // add the pipeline keys
     teca_metadata &md = mesh->get_metadata();
     md.set("index_request_key", std::string("time_step"));
-    md.set("time_step", time_step);
+    md.set("index_extent_request_key", std::string("temporal_extent"));
 
     // pass the attributes for the arrays read
     teca_metadata out_atrs;
@@ -1301,12 +1355,22 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
     md.set("attributes", out_atrs);
 
     // get the requested target device
+    teca_variant_array::allocator alloc = teca_variant_array::allocator::malloc;
 #if defined(TECA_HAS_CUDA)
     int device_id = -1;
     request.get("device_id", device_id);
+    if (device_id >= 0)
+    {
+        // place all data read on the assigned device
+        teca_cuda_util::set_device(device_id);
+        alloc = teca_variant_array::allocator::cuda;
+    }
 #endif
 
-    // read requested arrays
+    // allocate space for the array. this is done in prior to the reads because
+    // when reading multiple time steps we may need to read from multiple files
+    // and we want to pre-allocate space large enough to hold the entire result
+    size_t n_time_steps = temporal_extent[1] - temporal_extent[0] + 1;
     for (size_t i = 0; i < n_arrays; ++i)
     {
         // get metadata
@@ -1332,8 +1396,6 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
 
         size_t n_vals = 1;
         unsigned int n_dims = cf_dims.size();
-        std::vector<size_t> starts;
-        std::vector<size_t> counts;
 
         if (centering == teca_array_attributes::point_centering)
         {
@@ -1342,41 +1404,22 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
             // extent.
             if (have_mesh_dim[3])
             {
-                starts.push_back(mesh_dim_active[3] ? offs : 0);
-                counts.push_back(1);
+                n_vals *= n_time_steps;
             }
 
             if (have_mesh_dim[2])
             {
-                size_t start = mesh_dim_active[2] ? extent[4] : 0;
-                size_t count = mesh_dim_active[2] ? extent[5] - extent[4] + 1 : 1;
-
-                starts.push_back(start);
-                counts.push_back(count);
-
-                n_vals *= count;
+                n_vals *= mesh_dim_active[2] ? extent[5] - extent[4] + 1 : 1;
             }
 
             if (have_mesh_dim[1])
             {
-                size_t start = mesh_dim_active[1] ? extent[2] : 0;
-                size_t count = mesh_dim_active[1] ? extent[3] - extent[2] + 1 : 1;
-
-                starts.push_back(start);
-                counts.push_back(count);
-
-                n_vals *= count;
+                n_vals *= mesh_dim_active[1] ? extent[3] - extent[2] + 1 : 1;
             }
 
             if (have_mesh_dim[0])
             {
-                size_t start = mesh_dim_active[0] ? extent[0] : 0;
-                size_t count = mesh_dim_active[0] ? extent[1] - extent[0] + 1 : 1;
-
-                starts.push_back(start);
-                counts.push_back(count);
-
-                n_vals *= count;
+                n_vals *= mesh_dim_active[0] ? extent[1] - extent[0] + 1 : 1;
             }
         }
         else if (centering == teca_array_attributes::no_centering)
@@ -1399,27 +1442,16 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
             // step. otherwise read the entire thing
             if (!t_axis_variable.empty() && have_mesh_dim[3])
             {
-                starts.push_back(offs);
-                counts.push_back(1);
+                n_vals *= n_time_steps;
             }
             else
             {
-                starts.push_back(0);
-
-                size_t dim_len = cf_dims[0];
-                counts.push_back(dim_len);
-
-                n_vals = dim_len;
+                n_vals *= cf_dims[0];
             }
 
             for (unsigned int ii = 1; ii < n_dims; ++ii)
             {
-                starts.push_back(0);
-
-                size_t dim_len = cf_dims[ii];
-                counts.push_back(dim_len);
-
-                n_vals *= dim_len;
+                n_vals *= cf_dims[ii];
             }
         }
         else
@@ -1428,39 +1460,211 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
             continue;
         }
 
-        // read the array
-        p_teca_variant_array array;
+        // allocate the array and reserve space, later we append data from each
+        // file. save the array in the output mesh.
         NC_DISPATCH(type,
-            p_teca_variant_array_impl<NC_T> a = teca_variant_array_impl<NC_T>::New(n_vals);
-            auto spa = a->get_cpu_accessible();
-            NC_T *pa = spa.get();
-#if !defined(HDF5_THREAD_SAFE)
+            p_teca_variant_array_impl<NC_T> a = teca_variant_array_impl<NC_T>::New(alloc);
+            a->reserve(n_vals);
+            mesh->get_arrays(centering)->append(arrays[i], a);
+            )
+    }
+
+    // get the base path and list of files
+    std::string path;
+    p_teca_string_array files;
+    if (this->internals->metadata.get("root", path)
+        || !(files = std::dynamic_pointer_cast<teca_string_array>(this->internals->metadata.get("files"))))
+    {
+        TECA_FATAL_ERROR("Metadata is missing files")
+        return nullptr;
+    }
+
+    // loop over the list of files to read the requested time range
+    for (unsigned int j = file_index[0]; j <= file_index[1]; ++j)
+    {
+        // assume we'll read all steps in the file, correct for first and last
+        // file in the series
+        size_t first_step = 0;
+        size_t num_steps = step_count[j];
+
+        // correct for the first and last files
+        if (j == file_index[0])
+        {
+            first_step = temporal_extent[0] - (j ? step_count_sum[j - 1] + 1 : 0);
+        }
+
+        if (j == file_index[1])
+        {
+            size_t last_step = temporal_extent[1] - (j ? step_count_sum[j - 1] + 1 : 0);
+            num_steps = last_step - first_step + 1;
+        }
+
+        // get the file
+        std::string file = files->get<std::string>(j);
+
+        // open the handle for this file
+        int ierr = 0;
+        std::string file_path = path + PATH_SEP + file;
+        teca_netcdf_util::netcdf_handle fh;
+        if (fh.open(file_path, NC_NOWRITE))
+        {
+            TECA_FATAL_ERROR("Failed to open \"" << file << "\"")
+            return nullptr;
+        }
+        int file_id = fh.get();
+
+        // read requested arrays
+        for (size_t i = 0; i < n_arrays; ++i)
+        {
+            // get metadata
+            teca_metadata atts;
+            int type = 0;
+            int id = 0;
+            int have_mesh_dim[4] = {0};
+            int mesh_dim_active[4] = {0};
+            unsigned int centering = teca_array_attributes::no_centering;
+            std::vector<size_t> cf_dims;
+
+            if (atrs.get(arrays[i], atts)
+                || atts.get("cf_type_code", 0, type)
+                || atts.get("cf_id", 0, id)
+                || atts.get("cf_dims", cf_dims)
+                || atts.get("centering", centering)
+                || atts.get("have_mesh_dim", have_mesh_dim, 4)
+                || atts.get("mesh_dim_active", mesh_dim_active, 4))
             {
-            std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
-#endif
-            if ((ierr = nc_get_vara(file_id,  id, &starts[0], &counts[0], pa)) != NC_NOERR)
-            {
-                TECA_FATAL_ERROR("time_step=" << time_step
-                    << " Failed to read variable \"" << arrays[i] << "\" "
-                    << file << endl << nc_strerror(ierr))
+                TECA_FATAL_ERROR("metadata issue can't read \"" << arrays[i] << "\"")
                 continue;
             }
-#if !defined(HDF5_THREAD_SAFE)
-            }
-#endif
-            array = a;
-            )
 
-#if defined(TECA_HAS_CUDA)
-        // move it to the device where it will most likely be used
-        if (device_id >= 0)
-        {
-            teca_cuda_util::set_device(device_id);
-            array->set_allocator(teca_variant_array::allocator::malloc);
-        }
+            size_t n_vals = 1;
+            unsigned int n_dims = cf_dims.size();
+            std::vector<size_t> starts;
+            std::vector<size_t> counts;
+
+            if (centering == teca_array_attributes::point_centering)
+            {
+                // select the requested time step
+                // subset point centered variables based on the incoming requested
+                // extent.
+                if (have_mesh_dim[3])
+                {
+                    starts.push_back(mesh_dim_active[3] ? first_step : 0);
+                    counts.push_back(num_steps);
+
+                    n_vals *= num_steps;
+                }
+
+                if (have_mesh_dim[2])
+                {
+                    size_t start = mesh_dim_active[2] ? extent[4] : 0;
+                    size_t count = mesh_dim_active[2] ? extent[5] - extent[4] + 1 : 1;
+
+                    starts.push_back(start);
+                    counts.push_back(count);
+
+                    n_vals *= count;
+                }
+
+                if (have_mesh_dim[1])
+                {
+                    size_t start = mesh_dim_active[1] ? extent[2] : 0;
+                    size_t count = mesh_dim_active[1] ? extent[3] - extent[2] + 1 : 1;
+
+                    starts.push_back(start);
+                    counts.push_back(count);
+
+                    n_vals *= count;
+                }
+
+                if (have_mesh_dim[0])
+                {
+                    size_t start = mesh_dim_active[0] ? extent[0] : 0;
+                    size_t count = mesh_dim_active[0] ? extent[1] - extent[0] + 1 : 1;
+
+                    starts.push_back(start);
+                    counts.push_back(count);
+
+                    n_vals *= count;
+                }
+            }
+            else if (centering == teca_array_attributes::no_centering)
+            {
+                // most of the time this is a user error, forgetting to set z_axis_variable.
+                if (have_mesh_dim[0] || have_mesh_dim[1] || have_mesh_dim[2])
+                {
+                    TECA_WARNING("The variable \"" << arrays[i] << "\" is being treated"
+                        " as an information array. It has dimensions matching those of the mesh"
+                        " in the " << (have_mesh_dim[0] ? "x " : "") << (have_mesh_dim[1] ? "y " : "")
+                        << (have_mesh_dim[2] ? "z " : "") << (have_mesh_dim[3] ? "t " : "")
+                        << "directions but the " << (have_mesh_dim[0] ? "" : "x ")
+                        << (have_mesh_dim[1] ? "" : "y ") << (have_mesh_dim[2] ? "" : "z ")
+                        << (have_mesh_dim[3] ? "" : "t ") << " dimensions of the mesh have been"
+                        " disabled.")
+                }
+
+                // read non-spatial data
+                // if the first dimension is time then select the requested time
+                // step. otherwise read the entire thing
+                if (!t_axis_variable.empty() && have_mesh_dim[3])
+                {
+                    starts.push_back(first_step);
+                    counts.push_back(num_steps);
+
+                    n_vals *= num_steps;
+                }
+                else
+                {
+                    starts.push_back(0);
+
+                    size_t dim_len = cf_dims[0];
+                    counts.push_back(dim_len);
+
+                    n_vals = dim_len;
+                }
+
+                for (unsigned int ii = 1; ii < n_dims; ++ii)
+                {
+                    starts.push_back(0);
+
+                    size_t dim_len = cf_dims[ii];
+                    counts.push_back(dim_len);
+
+                    n_vals *= dim_len;
+                }
+            }
+            else
+            {
+                TECA_FATAL_ERROR("Invalid centering can't read \"" << arrays[i] << "\"")
+                continue;
+            }
+
+            NC_DISPATCH(type,
+                // read the data into a temprary array
+                p_teca_variant_array_impl<NC_T> a = teca_variant_array_impl<NC_T>::New(n_vals);
+                auto spa = a->get_cpu_accessible();
+                NC_T *pa = spa.get();
+#if !defined(HDF5_THREAD_SAFE)
+                {
+                std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-        // pass it into the output
-        mesh->get_arrays(centering)->append(arrays[i], array);
+                if ((ierr = nc_get_vara(file_id,  id, &starts[0], &counts[0], pa)) != NC_NOERR)
+                {
+                    TECA_FATAL_ERROR("Failed to read variable \"" << arrays[i]
+                        << "\" starts = [" << starts << "] counts = [" << counts
+                        << "] " << file << endl << nc_strerror(ierr))
+                    continue;
+                }
+#if !defined(HDF5_THREAD_SAFE)
+                }
+#endif
+                // get the output array
+                p_teca_variant_array array = mesh->get_arrays(centering)->get(arrays[i]);
+
+                // append the temporary to the output
+                std::static_pointer_cast<teca_variant_array_impl<NC_T>>(array)->append(a);
+                )
+        }
     }
 
     return mesh;
