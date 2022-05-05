@@ -14,6 +14,7 @@ teca_dataset::~teca_dataset()
     delete this->metadata;
 }
 
+/*
 // --------------------------------------------------------------------------
 int teca_dataset::set_request_index(const std::string &key, long val)
 {
@@ -53,6 +54,7 @@ int teca_dataset::get_request_index(long &val) const
 
     return this->metadata->get(index_request_key, val);
 }
+*/
 
 // --------------------------------------------------------------------------
 void teca_dataset::copy(const const_p_teca_dataset &other,

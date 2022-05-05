@@ -21,19 +21,32 @@ class TECA_EXPORT teca_mesh : public teca_dataset
 public:
     ~teca_mesh() = default;
 
-    // set/get temporal metadata
+    /// @name temporal metadata
+    /** Specifies the temporal extents of the data and the calendaring system
+     * used to define the time axis.
+     */
+    ///@{
     TECA_DATASET_METADATA(time, double, 1)
+    TECA_DATASET_METADATA(time_step, unsigned long, 1)
+    TECA_DATASET_METADATA(temporal_bounds, double, 2)
+    TECA_DATASET_METADATA(temporal_extent, unsigned long, 2)
     TECA_DATASET_METADATA(calendar, std::string, 1)
     TECA_DATASET_METADATA(time_units, std::string, 1)
-    TECA_DATASET_METADATA(time_step, unsigned long, 1)
+    ///@}
 
-    // set/get attribute metadata
+    /// @name attribute metadata
+    /** Provides access to the array attributes metadata, which contains
+     * information such as dimensions, units, data type, description, etc.
+     */
+    ///@{
     TECA_DATASET_METADATA(attributes, teca_metadata, 1)
+    ///@}
 
-    // get the array collection for the given centering
-    // the centering enumeration is defined in teca_array_attributes
-    // the centering attribute is typically stored in array attribute
-    // metadata
+    /// @name arrays
+    /** get the array collection for the given centering the centering
+     * enumeration is defined in teca_array_attributes the centering attribute
+     * is typically stored in array attribute metadata
+     */
     p_teca_array_collection &get_arrays(int centering);
     const_p_teca_array_collection get_arrays(int centering) const;
 
@@ -149,7 +162,7 @@ protected:
 #else
 public:
 #endif
-    // NOTE: constructors are public to enable std::make_shared. do not use.
+    /// @note constructors are public to enable std::make_shared. do not use.
     teca_mesh();
 
 public:

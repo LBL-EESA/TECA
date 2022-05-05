@@ -237,25 +237,26 @@ public:
 
     // the name of the key that holds the index identifying this dataset
     // this should be set by the algorithm that creates the dataset.
-    TECA_DATASET_METADATA(index_request_key, std::string, 1)
+    /*TECA_DATASET_METADATA(index_request_key, std::string, 1)
 
     // a dataset metadata that uses the value of index_request_key to
     // store the index that identifies this dataset. this should be set
     // by the algorithm that creates the dataset.
     virtual int get_request_index(long &val) const;
     virtual int set_request_index(const std::string &key, long val);
-    virtual int set_request_index(long val);
+    virtual int set_request_index(long val);*/
 
-    // covert to boolean. true if the dataset is not empty.
-    // otherwise false.
+    /** covert to boolean. @returns true if the dataset is not empty, otherwise
+     * false.
+     */
     explicit operator bool() const noexcept
     { return !this->empty(); }
 
-    // return true if the dataset is empty.
+    /// @returns true if the dataset is empty.
     virtual bool empty() const noexcept
     { return true; }
 
-    // virtual constructor. return a new dataset of the same type.
+    /// virtual constructor. return a new dataset of the same type.
     virtual p_teca_dataset new_instance() const = 0;
 
     /** Virtual copy constructor. return a deep copy of this dataset in a new
@@ -294,24 +295,31 @@ public:
      */
     virtual void shallow_copy(const p_teca_dataset &other);
 
-    // copy metadata. always a deep copy.
+    /// copy metadata. always a deep copy.
     virtual void copy_metadata(const const_p_teca_dataset &other);
 
-    // swap internals of the two objects
+    /// swap internals of the two objects
     virtual void swap(const p_teca_dataset &other);
 
-    // access metadata
+    /// get the dataset metadata
     virtual teca_metadata &get_metadata() noexcept;
+
+    /// get the dataset metadata
     virtual const teca_metadata &get_metadata() const noexcept;
+
+    /// set the dataset metadata
     virtual void set_metadata(const teca_metadata &md);
 
-    // serialize the dataset to/from the given stream
-    // for I/O or communication
+    /// serialize the dataset to the given stream for I/O or communication
     virtual int to_stream(teca_binary_stream &) const;
+
+    /// deserialize the dataset from the given stream for I/O or communication
     virtual int from_stream(teca_binary_stream &);
 
-    // stream to/from human readable representation
+    /// send to stream in a human readable representation
     virtual int to_stream(std::ostream &) const;
+
+    /// read from stream in a human readable representation
     virtual int from_stream(std::istream &);
 
 protected:
