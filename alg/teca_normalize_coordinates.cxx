@@ -235,7 +235,7 @@ int internals::periodic_shift_x(p_teca_variant_array &x_out,
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wtype-limits"
 #if defined(__CUDACC__)
-#pragma diag_suppress = unsigned_compare_with_zero
+#pragma nv_diag_suppress = unsigned_compare_with_zero
 #endif
     unsigned long nx = x->size();
     unsigned long x1 = nx - 1;
@@ -300,7 +300,7 @@ int internals::periodic_shift_x(p_teca_variant_array &x_out,
     TECA_ERROR("Unsupported coordinate type " << x->get_class_name())
     return -1;
 #if defined(__CUDACC__)
-#pragma diag_default = unsigned_compare_with_zero
+#pragma nv_diag_default = unsigned_compare_with_zero
 #endif
 #pragma GCC diagnostic pop
 }
