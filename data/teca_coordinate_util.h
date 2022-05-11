@@ -354,18 +354,51 @@ int index_of(const T *data, size_t l, size_t r, T val, unsigned long &id)
     return -1;
 }
 
-/** Convert bounds to extents.  return non-zero if the requested bounds are
- * not in the given coordinate arrays. coordinate arrays must not be empty.
+/** Convert bounds to extents in three dimensions.
+ *
+ * @param[in] bounds the 3D spatial bounding box [x0, x1, y0, y1, z0, z1]
+ * @param[in] x the x-coordinate array
+ * @param[in] y the y-coordinate array
+ * @param[in] z the z-coordinate array
+ * @param[out] extent the resulting 3D extent [i0, i1, j0, j1, k0, k1]
+ *
+ * @returns non-zero if the requested bounds are not in the given coordinate
+ * arrays.
+ *
+ * @note the x,y and z coordinate arrays must not be empty.
  */
 TECA_EXPORT
 int bounds_to_extent(const double *bounds,
     const const_p_teca_variant_array &x, const const_p_teca_variant_array &y,
     const const_p_teca_variant_array &z, unsigned long *extent);
 
+/** Convert bounds to extents in one dimension.
+ *
+ * @param[in] bounds the 1D spatial bounding box [x0, x1]
+ * @param[in] x the x-coordinate array
+ * @param[out] extent the resulting 1Dextent [i0, i1]
+ *
+ * @returns non-zero if the requested bounds are not in the given coordinate
+ * arrays.
+ *
+ * @note the coordinate array must not be empty.
+ */
 TECA_EXPORT
 int bounds_to_extent(const double *bounds,
     const const_p_teca_variant_array &x, unsigned long *extent);
 
+/** Convert bounds to extents in three dimensions.
+ *
+ * @param[in] bounds the 3D spatial bounding box [x0, x1, y0, y1, z0, z1]
+ * @param[in] md a metadata object containing coordinate information as defined
+ *               by the teca_cf_reader
+ * @param[out] extent the resulting 3D extent [i0, i1, j0, j1, k0, k1]
+ *
+ * @returns non-zero if the requested bounds are not in the given coordinate
+ * arrays.
+ *
+ * @note the x,y and z coordinate arrays must not be empty.
+ */
 TECA_EXPORT
 int bounds_to_extent(const double *bounds, const teca_metadata &md,
     unsigned long *extent);
