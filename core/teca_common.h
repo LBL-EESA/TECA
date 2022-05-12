@@ -12,6 +12,7 @@
 #include <cstdio>
 #include <string>
 #include <vector>
+#include <array>
 
 /** The call signature for the error handler. The error handler will be passed
  * a string describing the error.
@@ -80,6 +81,20 @@ std::ostream &operator<<(std::ostream &os, const std::vector<T> &vec)
 /// send a vector of strings to a stream
 TECA_EXPORT
 std::ostream &operator<<(std::ostream &os, const std::vector<std::string> &vec);
+
+/// send an array to a stream
+template <typename T, size_t N>
+TECA_EXPORT
+std::ostream &operator<<(std::ostream &os, const std::array<T,N> &vec)
+{
+    if (N)
+    {
+        os << vec[0];
+        for (size_t i = 1; i < N; ++i)
+            os << ", " << vec[i];
+    }
+    return os;
+}
 }
 
 #ifndef SWIG

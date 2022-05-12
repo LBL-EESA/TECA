@@ -69,6 +69,10 @@ public:
     template<typename T>
     int set(const std::string &name, const std::vector<T> &val);
 
+    // insert or update an array.
+    template<typename T, size_t N>
+    int set(const std::string &name, const std::array<T,N> &val);
+
     template<typename T>
     int set(const std::string &name, std::initializer_list<T> val);
 
@@ -108,6 +112,10 @@ public:
     template<typename T>
     int update(const std::string &name, const std::vector<T> &val);
 
+    // update a vector. Fails if the property isn't already in the collection.
+    template<typename T, size_t N>
+    int update(const std::string &name, const std::array<T,N> &val);
+
     template<typename T>
     int update(const std::string &name, std::initializer_list<T> val);
 
@@ -142,6 +150,11 @@ public:
     // return 0 if successful
     template<typename T>
     int get(const std::string &name, std::vector<T> &val) const;
+
+    // copy prop values from the named prop into the passed in array.
+    // return 0 if successful
+    template<typename T, size_t N>
+    int get(const std::string &name, std::array<T,N> &val) const;
 
     // copy prop values from the named prop into the passed in set.
     // return 0 if successful
@@ -315,6 +328,16 @@ int teca_metadata::set(const std::string &name,
 }
 
 // --------------------------------------------------------------------------
+template<typename T, size_t N>
+int teca_metadata::set(const std::string &name, const std::array<T,N> &vals)
+{
+    p_teca_variant_array prop_val
+        = teca_variant_array_impl<T>::New(N, vals.data());
+
+    return this->set(name, prop_val);
+}
+
+// --------------------------------------------------------------------------
 template<typename T>
 int teca_metadata::set(const std::string &name,
     const std::vector<std::vector<T>> &vals)
@@ -399,6 +422,13 @@ int teca_metadata::update(const std::string &name, const std::vector<T> &vals)
 }
 
 // --------------------------------------------------------------------------
+template<typename T, size_t N>
+int teca_metadata::update(const std::string &name, const std::array<T,N> &vals)
+{
+    return this->update(name, vals.data(), N);
+}
+
+// --------------------------------------------------------------------------
 template<typename T>
 int teca_metadata::update(const std::string &name, std::initializer_list<T> vals)
 {
@@ -457,6 +487,13 @@ int teca_metadata::get(const std::string &name, std::vector<T> &vals) const
     it->second->get(vals);
 
     return 0;
+}
+
+// --------------------------------------------------------------------------
+template<typename T, size_t N>
+int teca_metadata::get(const std::string &name, std::array<T,N> &vals) const
+{
+    return this->get(name, vals.data(), N);
 }
 
 // --------------------------------------------------------------------------
