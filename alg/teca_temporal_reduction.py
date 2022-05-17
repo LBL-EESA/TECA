@@ -421,7 +421,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
                     self.t, self.units, self.calendar, self.year, self.month,
                     self.day, self.hour, self.minutes, self.seconds)
 
-        class n_step_iterator:
+        class n_steps_iterator:
             """ An iterator over intervals of N time steps """
 
             def __init__(self, t, units, calendar, n_steps):
@@ -435,12 +435,12 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
             def __next__(self):
 
                 i0 = self.index
-                i1 = self.index + self.n_steps
+                i1 = self.index + self.n_steps - 1
 
                 if i1 >= len(self.time):
                     raise StopIteration
 
-                self.index = i1
+                self.index = i1 + 1
 
                 return teca_temporal_reduction. \
                     time_interval(self.time[i0], i0, i1)
