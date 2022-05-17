@@ -22,6 +22,7 @@
 #include "teca_descriptive_statistics.h"
 #include "teca_evaluate_expression.h"
 #include "teca_elevation_mask.h"
+#include "teca_gradient.h"
 #include "teca_integrated_vapor_transport.h"
 #include "teca_indexed_dataset_cache.h"
 #include "teca_l2_norm.h"
@@ -142,6 +143,14 @@
 %shared_ptr(teca_vorticity)
 %ignore teca_vorticity::operator=;
 %include "teca_vorticity.h"
+
+/***************************************************************************
+ gradient
+ ***************************************************************************/
+%ignore teca_gradient::shared_from_this;
+%shared_ptr(teca_gradient)
+%ignore teca_gradient::operator=;
+%include "teca_gradient.h"
 
 /***************************************************************************
  derived_quantity
