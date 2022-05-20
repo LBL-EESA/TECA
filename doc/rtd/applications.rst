@@ -3186,3 +3186,77 @@ ranks.
             --output_file "${data_root_out}/${var_out}/${var_out}_6hrPlevPt_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_gr_%t%.nc" \
             --point_arrays ${var_out} --file_layout monthly
     done
+
+
+.. _teca_lapse_rate:
+
+teca_lapse_rate
+----------------
+
+Calculates the mean lapse rate.
+Uses 1st order finite difference to estimate the lapse rate at all
+available levels and then averages. Levels below the surface are
+masked, and levels above zmax are masked.
+It is assumed that the vertical dimension is the first dimension
+e.g., [level, lat, lon]) for both t and z.
+
+Inputs
+~~~~~~
+
+A 3D time dependent mesh in NetCDF CF2 format with temperature and geopotential height data.
+Also a 2D time dependent mesh in NetCDF CF2 format with surface geopotential height data.
+
+Outputs
+~~~~~~~
+
+A 2D mesh in NETCDF CF2 format with lapse rate data.
+
+
+Command Line Arguments
+~~~~~~~~~~~~~~~~~~~~
+
+--input_file arg
+    a TECA MCF file containing information about the locations of the temperature and geopotential height data
+
+--output_file arg
+    The name of the file to write to disk.
+    The output file name must have the time template %t% somewhere in the string;
+    %t% is replaced with a human readable date and time corresponding to the time of the first time step in the file
+
+--t_var arg
+    The variable name for temperature
+
+--z_var arg
+    The variable name for geopotential height
+
+--zs_var arg
+    The variable name for surface geopotential height
+
+--zmax arg
+    The maximum height for the lapse rate calculation [m]
+
+--z_is_not_geopotential
+    Flags that height has physical units [m] rather than geopotential [m^2/s^2]
+
+--start_month_index arg
+    The index of the first month to process
+
+--end_month_index arg
+    The index of the last month to process
+
+--file_layout arg
+    Selects the size and layout of the set of output files. May be one of number_of_steps, daily,
+    monthly, seasonal, or yearly. Files are structured such that each file contains one of the
+    selected interval. For the number_of_steps option use --steps_per_file
+
+--steps_per_file arg
+    The number of time steps per output file when --file_layout number_of_steps is specified
+
+--no_inline_reduction
+    Flags that a temporal reduction should not be done; output raw timesteps
+
+--verbose
+    Indicates whether to turn on verbose output; enable extra terminal output
+
+--help
+    displays documentation for application specific command line options

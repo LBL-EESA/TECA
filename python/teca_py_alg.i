@@ -494,3 +494,13 @@ struct teca_tc_saffir_simpson
 %shared_ptr(teca_time_axis_convolution)
 %ignore teca_time_axis_convolution::operator=;
 %include "teca_time_axis_convolution.h"
+
+/***************************************************************************
+ python_vertical_reduction
+ ***************************************************************************/
+%pythoncode "teca_python_vertical_reduction.py"
+
+/***************************************************************************
+ lapse_rate
+ ***************************************************************************/
+%pythoncode "teca_lapse_rate.py"
