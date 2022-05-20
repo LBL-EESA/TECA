@@ -26,6 +26,7 @@
 #include <type_traits>
 #include <typeinfo>
 #include <utility>
+#include <limits>
 
 #if defined(TECA_HAS_CUDA)
 #include <thrust/device_ptr.h>
