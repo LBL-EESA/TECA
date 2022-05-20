@@ -27,8 +27,8 @@ batch script rather than in your shell.
 +----------------------------------------+--------------------------------------------------+
 | :ref:`teca_deeplab_ar_detect`          | A machine learning based AR detector             |
 +----------------------------------------+--------------------------------------------------+
-| :ref:`teca_temporal_reduction`         | Computes reductions (min, max, average) over     |
-|                                        | the time dimension                               |
+| :ref:`teca_temporal_reduction`         | Computes reductions (min, max, average,          |
+|                                        | summation) over the time dimension               |
 +----------------------------------------+--------------------------------------------------+
 | :ref:`teca_tc_detect`                  | TC detection using GFDL algorithm                |
 +----------------------------------------+--------------------------------------------------+
@@ -2615,9 +2615,6 @@ A mesh with a reduced temporal resolution.
 
 Command Line Arguments
 ~~~~~~~~~~~~~~~~~~~~~~
---help
-    show this help message and exit
-
 --input_file INPUT_FILE
     a teca_multi_cf_reader configuration file identifying the set of NetCDF CF2
     files to process.  When present data is read using the
@@ -2644,7 +2641,7 @@ Command Line Arguments
     Nth_percentile, where N is replaced with a number between 0 and 100
     indicating which percentile is to be computed (default: average)
 
---point_arrays POINT_ARRAYS [POINT_ARRAYS ...]
+--point_arrays POINT_ARRAYS
     list of point centered arrays to process. (default: None)
 
 --fill_value FILL_VALUE
@@ -2700,7 +2697,6 @@ Command Line Arguments
 --verbose VERBOSE
     enable verbose mode. (default: 0)
 
-
 Examples
 ~~~~~~~~
 
@@ -2744,7 +2740,7 @@ simulated time at quarter degree 3 hourly resolution.
     time srun -N 73 -n 146 \
         teca_temporal_reduction \
             --n_threads 2 --verbose 1 --input_regex ${data_dir}/'.*\.nc$' \
-            --interval daily --operator average --point_arrays TS TMQ --ignore_fill_value \
+            --interval daily --operator average --point_arrays TS TMQ \
             --output_file ${out_dir}/CAM5-1-025degree_All-Hist_est1_v3_daily_avg_%t%.nc \
             --file_layout monthly
 

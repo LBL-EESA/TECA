@@ -13,7 +13,15 @@ app_prefix=${1}
 data_root=${2}
 input_file=${3}
 array_name=${4}
-interval=${5}
+if [[ ${5,,} =~ "_steps" ]]
+then
+    interval=n_steps
+    n=$(echo $5 | cut -d "_" -f 1)
+    number_of_steps="--number_of_steps $n"
+else
+    interval=${5}
+fi
+
 operator=${6}
 steps_per_file=${7}
 if [[ ${8} -eq 1 ]]
@@ -44,7 +52,7 @@ time ${launcher} ${app_prefix}/teca_temporal_reduction                         \
     --interval ${interval} --operator ${operator} --point_arrays ${array_name} \
     --z_axis_variable plev --file_layout yearly                                \
     --steps_per_file ${steps_per_file} --output_file "${output_base}_%t%.nc"   \
-    ${spatial_partitioning} --verbose 1
+    ${spatial_partitioning} --verbose 1 ${number_of_steps}
 
 # don't profile the diff
 unset PROFILER_ENABLE

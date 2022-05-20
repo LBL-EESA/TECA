@@ -37,8 +37,36 @@ int main(int argc, char **argv)
             " set of NetCDF CF2 files to process. When present data is read using the"
             " teca_cf_reader. Use one of either --input_file or --input_regex.\n")
 
+        ("interval", value<std::string>()->default_value("monthly"),
+            "\nInterval to reduce the time axis to. One of daily, monthly, seasonal,"
+            " yearly, or n_steps. For the n_steps option use --number_of_steps.\n")
+
+        ("number_of_steps", value<long>()->default_value(0),
+            "\nThe desired number of steps when --interval n_steps is specified.\n")
+
+        ("operator", value<std::string>()->default_value("average"),
+            "\nReduction operator to use. One of summation, minimum, maximum, or average.\n")
+
         ("point_arrays", value<std::vector<std::string>>()->multitoken(),
             "\nA list of point centered arrays to process.\n")
+
+        ("fill_value", value<double>(), "\nA value that identifies missing or invalid data."
+            " Specifying the fill value on the command line"
+            " overrides array specific fill values stored in the file.\n")
+
+        ("output_file", value<std::string>(),
+            "\nA path and file name pattern for the output NetCDF files. %t% is replaced with a"
+            " human readable date and time corresponding to the time of the first time step in"
+            " the file. Use --cf_writer::date_format to change the formatting.\n")
+
+        ("file_layout", value<std::string>()->default_value("yearly"),
+            "\nSelects the size and layout of the set of output files. May be one of"
+            " number_of_steps, daily, monthly, seasonal, or yearly. Files are structured"
+            " such that each file contains one of the selected interval. For the number_of_steps"
+            " option use --steps_per_file.\n")
+
+        ("steps_per_file", value<long>()->default_value(128),
+            "\nThe number of time steps per output file when --file_layout number_of_steps is specified.\n")
 
         ("x_axis_variable", value<std::string>()->default_value("lon"),
             "\nName of the variable to use for x-coordinates.\n")
@@ -54,40 +82,17 @@ int main(int argc, char **argv)
         ("t_axis_variable", value<std::string>()->default_value("time"),
             "\nName of the variable to use for t-coordinates.\n")
 
-        ("fill_value", value<double>()->default_value(-1),
-            "\nA value that identifies missing or invalid data."
-            " Specifying the fill value on the command line"
-            " overrides array specific fill values stored in the file.\n")
+        ("n_threads", value<int>()->default_value(-1), "\nSets the thread pool size on each"
+            " MPI rank. When the default value of -1 is used TECA will coordinate the thread"
+            " pools across ranks such each thread is bound to a unique physical core.\n")
 
-        ("ignore_fill_value", value<int>()->default_value(0),
-            "\nBoolean flag that enables missing or invalid"
-            " value handling. When enabled NetCDF CF conventions"
-            " are used to determine fill value. Alternativley one"
-            " can explicitly provide a fill value on the command"
-            " line via the --fill_value argument.\n")
+        ("spatial_partitioning", "\nActivates the spatial partitioning engine.\n")
 
-        ("interval", value<std::string>()->default_value("monthly"),
-            "\nInterval to reduce the time axis to. One of daily, monthly, seasonal,"
-            " yearly, or n_step.\n")
+        ("spatial_partitions", value<int>()->default_value(0), "\nSets the number of spatial partitions."
+            " Use zero for automatic partitioning and 1 for no partitioning\n")
 
-        ("operator", value<std::string>()->default_value("summation"),
-            "\nReduction operator to use. One of summation, minimum, maximum, or average.\n")
-
-        ("output_file", value<std::string>(),
-            "\nA path and file name pattern for the output NetCDF files. %t% is replaced with a"
-            " human readable date and time corresponding to the time of the first time step in"
-            " the file. Use --cf_writer::date_format to change the formatting.\n")
-
-        ("steps_per_file", value<long>()->default_value(128),
-            "\nThe number of time steps to write to each output file.\n")
-
-        ("file_layout", value<std::string>()->default_value("yearly"),
-            "\nSelects the size and layout of the set of output files. May be one of"
-            " number_of_steps, daily, monthly, seasonal, or yearly. Files are structured"
-            " such that each file contains one of the selected interval. For the number_of_steps"
-            " option use --steps_per_file.\n")
-
-        ("verbose", value<int>()->default_value(0), "\nEnable verbose mode.\n")
+        ("verbose", value<int>()->default_value(0), "\nUse 1 to enable verbose mode,"
+            " otherwise 0.\n")
         ("help", "\ndisplays documentation for application specific command line options\n")
         ("advanced_help", "\ndisplays documentation for algorithm specific command line options\n")
         ("full_help", "\ndisplays both basic and advanced documentation together\n")
@@ -106,14 +111,14 @@ int main(int argc, char **argv)
     p_teca_cf_reader cf_reader = teca_cf_reader::New();
     p_teca_valid_value_mask vv_mask = teca_valid_value_mask::New();
     p_teca_unpack_data unpack = teca_unpack_data::New();
-    p_teca_temporal_reduction mav = teca_temporal_reduction::New();
+    p_teca_temporal_reduction red = teca_temporal_reduction::New();
     p_teca_cf_writer cf_writer = teca_cf_writer::New();
 
     cf_reader->get_properties_description("cf_reader", advanced_opt_defs);
-    mcf_reader->get_properties_description("mcf_reader", advanced_opt_defs);
-    vv_mask->get_properties_description("vv_mask", advanced_opt_defs);
-    unpack->get_properties_description("unpack", advanced_opt_defs);
-    mav->get_properties_description("mav", advanced_opt_defs);
+    mcf_reader->get_properties_description("multi_cf_reader", advanced_opt_defs);
+    vv_mask->get_properties_description("valid_value_mask", advanced_opt_defs);
+    unpack->get_properties_description("unpack_data", advanced_opt_defs);
+    red->get_properties_description("temporal_reduction", advanced_opt_defs);
     cf_writer->get_properties_description("cf_writer", advanced_opt_defs);
 
     // package basic and advanced options for display
@@ -140,15 +145,13 @@ int main(int argc, char **argv)
        std::cerr << "interval=" << opt_vals["interval"].as<string>() << std::endl;
        std::cerr << "operator=" << opt_vals["operator"].as<string>() << std::endl;
        std::cerr << "point_arrays=" << opt_vals["point_arrays"].as<std::vector<std::string>>()<< std::endl;
-       std::cerr << "ignore_fill_value=" << opt_vals["ignore_fill_value"].as<int>() << std::endl;
-       std::cerr << "fill_value=" << opt_vals["fill_value"].as<double>() << std::endl;
     }
 
-    mcf_reader->set_properties("mcf_reader", opt_vals);
+    mcf_reader->set_properties("multi_cf_reader", opt_vals);
     cf_reader->set_properties("cf_reader", opt_vals);
-    vv_mask->set_properties("vv_mask", opt_vals);
-    unpack->set_properties("unpack", opt_vals);
-    mav->set_properties("mav", opt_vals);
+    vv_mask->set_properties("valid_value_mask", opt_vals);
+    unpack->set_properties("unpack_data", opt_vals);
+    red->set_properties("temporal_reduction", opt_vals);
     cf_writer->set_properties("cf_writer", opt_vals);
 
     bool have_file = opt_vals.count("input_file");
@@ -157,7 +160,7 @@ int main(int argc, char **argv)
     {
         if (mpi_man.get_comm_rank() == 0)
         {
-            TECA_FATAL_ERROR("Extacly one of --input_file or --input_regex can be specified. "
+            TECA_FATAL_ERROR("Exactly one of --input_file or --input_regex can be specified. "
                 "Use --input_file to activate the multi_cf_reader "
                 "and --input_regex to activate the cf_reader")
         }
@@ -201,45 +204,47 @@ int main(int argc, char **argv)
 
     unpack->set_input_connection(vv_mask->get_output_port());
 
-    mav->set_input_connection(unpack->get_output_port());
-    mav->set_thread_pool_size(1);
-    mav->set_stream_size(2);
+    red->set_input_connection(unpack->get_output_port());
+    red->set_stream_size(2);
+    red->set_thread_pool_size(1);
 
     if (!opt_vals["interval"].defaulted())
     {
-        mav->set_interval(opt_vals["interval"].as<string>());
+        red->set_interval(opt_vals["interval"].as<string>());
+        if (opt_vals["interval"].as<string>() == "n_steps" &&
+           !opt_vals["number_of_steps"].defaulted())
+        {
+            red->set_number_of_steps(opt_vals["number_of_steps"].as<long>());
+        }
     }
 
     if (!opt_vals["operator"].defaulted())
     {
-        mav->set_operator(opt_vals["operator"].as<string>());
+        red->set_operator(opt_vals["operator"].as<string>());
+    }
+
+    if (opt_vals.count("point_arrays"))
+    {
+        red->set_point_arrays(opt_vals["point_arrays"].as<std::vector<std::string>>());
     }
 
     if (opt_vals.count("fill_value"))
     {
-        mav->set_fill_value(opt_vals["fill_value"].as<double>());
+        red->set_fill_value(opt_vals["fill_value"].as<double>());
     }
 
-    if (opt_vals["ignore_fill_value"].as<int>() == 0)
-    {
-        mav->set_use_fill_value(1);
-    }
-    else
-    {
-        mav->set_use_fill_value(0);
-    }
-
-    if (opt_vals.count("point_arrays"))
-        mav->set_point_arrays(opt_vals["point_arrays"].as<std::vector<std::string>>());
-
-    cf_writer->set_input_connection(mav->get_output_port());
+    cf_writer->set_input_connection(red->get_output_port());
     cf_writer->set_thread_pool_size(1);
 
     if (opt_vals.count("output_file"))
+    {
        cf_writer->set_file_name(opt_vals["output_file"].as<string>());
+    }
 
     if (!opt_vals["steps_per_file"].defaulted())
+    {
         cf_writer->set_steps_per_file(opt_vals["steps_per_file"].as<long>());
+    }
 
     if (!opt_vals["file_layout"].defaulted() &&
         cf_writer->set_layout(opt_vals["file_layout"].as<std::string>()))
@@ -250,7 +255,20 @@ int main(int argc, char **argv)
     }
 
     if (opt_vals.count("point_arrays"))
+    {
         cf_writer->set_point_arrays(opt_vals["point_arrays"].as<std::vector<std::string>>());
+    }
+
+    cf_writer->set_index_executive_compatability(1);
+    cf_writer->set_number_of_spatial_partitions(opt_vals["spatial_partitions"].as<int>());
+    if (opt_vals.count("spatial_partitioning"))
+    {
+        cf_writer->set_partitioner(teca_cf_writer::space_time);
+    }
+    else
+    {
+        cf_writer->set_partitioner(teca_cf_writer::temporal);
+    }
 
     if (!opt_vals["verbose"].defaulted())
     {
@@ -259,7 +277,7 @@ int main(int argc, char **argv)
         else
            vv_mask->set_verbose(0);
         unpack->set_verbose(opt_vals["verbose"].as<int>());
-        mav->set_verbose(opt_vals["verbose"].as<int>());
+        red->set_verbose(opt_vals["verbose"].as<int>());
         cf_writer->set_verbose(opt_vals["verbose"].as<int>());
     }
 
