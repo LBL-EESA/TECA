@@ -8,6 +8,7 @@
 #include "teca_parser.h"
 #include "teca_variant_array_operator.h"
 #include "teca_variant_array_operand.h"
+#include "teca_array_attributes.h"
 
 #include <iostream>
 #include <string>
@@ -32,7 +33,10 @@ using operand_resolver_t = teca_variant_array_operand::resolver;
 
 // --------------------------------------------------------------------------
 teca_evaluate_expression::teca_evaluate_expression() :
-    remove_dependent_variables(0)
+    remove_dependent_variables(0),
+    units(""),
+    long_name(""),
+    description("")
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -55,6 +59,12 @@ void teca_evaluate_expression::get_properties_description(
             "the expression to evaluate")
         TECA_POPTS_GET(std::string, prefix, result_variable,
             "name of the variable to store the result in")
+        TECA_POPTS_GET(std::string, prefix, units,
+            "the units of the resulting variable")
+        TECA_POPTS_GET(std::string, prefix, long_name,
+            "the long_name of the resulting variable")
+        TECA_POPTS_GET(std::string, prefix, description,
+            "the description of the resulting variable")
         TECA_POPTS_GET(int, prefix, remove_dependent_variables,
             "when set columns used in the calculation are removed from output")
         ;
@@ -72,9 +82,76 @@ void teca_evaluate_expression::set_properties(
 
     TECA_POPTS_SET(opts, std::string, prefix, expression)
     TECA_POPTS_SET(opts, std::string, prefix, result_variable)
+    TECA_POPTS_SET(opts, std::string, prefix, units)
+    TECA_POPTS_SET(opts, std::string, prefix, long_name)
+    TECA_POPTS_SET(opts, std::string, prefix, description)
     TECA_POPTS_SET(opts, int, prefix, remove_dependent_variables)
 }
 #endif
+
+// --------------------------------------------------------------------------
+std::string teca_evaluate_expression::get_result_variable(
+    const teca_metadata &request)
+{
+    std::string result_variable_var = this->result_variable;
+
+    if (result_variable.empty() &&
+        request.has("teca_evaluate_expression::result_variable"))
+            request.get("teca_gradient::scalar_field", result_variable_var);
+    if (result_variable.empty() &&
+        !request.has("teca_evaluate_expression::result_variable"))
+            result_variable_var = "teca_evaluate_expression_result";
+
+    return result_variable_var;
+}
+
+// --------------------------------------------------------------------------
+std::string teca_evaluate_expression::get_units(
+    const teca_metadata &request)
+{
+    std::string units_var = this->units;
+
+    if (units.empty() &&
+        request.has("teca_evaluate_expression::units"))
+            request.get("teca_gradient::scalar_field", units_var);
+    if (units.empty() &&
+        !request.has("teca_evaluate_expression::units"))
+            units_var = "unknown";
+
+    return units_var;
+}
+
+// --------------------------------------------------------------------------
+std::string teca_evaluate_expression::get_long_name(
+    const teca_metadata &request)
+{
+    std::string long_name_var = this->long_name;
+
+    if (long_name.empty() &&
+        request.has("teca_evaluate_expression::long_name"))
+            request.get("teca_gradient::scalar_field", long_name_var);
+    if (long_name.empty() &&
+        !request.has("teca_evaluate_expression::long_name"))
+            long_name_var = "teca_evaluate_expression_result";
+
+    return long_name_var;
+}
+
+// --------------------------------------------------------------------------
+std::string teca_evaluate_expression::get_description(
+    const teca_metadata &request)
+{
+    std::string description_var = this->description;
+
+    if (description.empty() &&
+        request.has("teca_evaluate_expression::description"))
+            request.get("teca_gradient::scalar_field", description_var);
+    if (description.empty() &&
+        !request.has("teca_evaluate_expression::description"))
+            description_var = "result of " + this->get_expression();
+
+    return description_var;
+}
 
 // --------------------------------------------------------------------------
 void teca_evaluate_expression::set_expression(const std::string &expr)
@@ -113,6 +190,44 @@ teca_metadata teca_evaluate_expression::get_output_metadata(unsigned int port,
     // add in the array we will generate
     teca_metadata out_md(input_md[0]);
     out_md.append("variables", this->result_variable);
+
+    // insert attributes to enable this to be written by the CF writer
+    teca_metadata attributes;
+    out_md.get("attributes", attributes);
+
+    teca_metadata depvar0_atts;
+    auto it = this->dependent_variables.begin();
+
+    // make sure that dependent variables actually has
+    // something
+    std::string depvar0 = "";
+    if (this->dependent_variables.size() != 0)
+        depvar0 = *it;
+    else
+        TECA_WARNING("No dependent variables found in expression.")
+
+    if (attributes.get(depvar0, depvar0_atts))
+    {
+        TECA_WARNING("Failed to get \"" << depvar0 << "\" attributes. "
+            "Writing the result will not be possible")
+    }
+    else
+    {
+        // copy the attributes from one of the input variables.
+        // this will capture the data type, size, units, etc.
+        teca_array_attributes result_atts(depvar0_atts);
+
+        // update units, long_name, and description
+        result_atts.units = this->get_units();
+        result_atts.long_name = this->get_long_name();
+        result_atts.description = this->get_description();
+
+        attributes.set(this->get_result_variable(out_md),
+            (teca_metadata)result_atts);
+
+        out_md.set("attributes", attributes);
+    }
+
 
     return out_md;
 }
