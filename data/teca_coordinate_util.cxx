@@ -890,4 +890,182 @@ int teca_coordinate_axis_validator::validate_time_axis(std::string &errorStr)
         m_absolute_tolerance, m_relative_tolerance, errorStr);
 }
 
-};
+// --------------------------------------------------------------------------
+int split(spatial_extent_t &block_1, spatial_extent_t &block_2, int d)
+{
+    // compute length in this direction
+    int i0 = 2*d;
+    int i1 = i0 + 1;
+
+    unsigned long ni = block_1[i1] - block_1[i0] + 1;
+
+    // can't split in this direction
+    if (ni < 2)
+        return 0;
+
+    // compute the new length
+    unsigned long no = ni/2;
+
+    // copy input
+    block_2 = block_1;
+
+    // split
+    block_1[i1] = block_1[i0] + no;
+    block_2[i0] = std::min(block_2[i1], block_1[i1] + 1);
+
+    return 1;
+}
+
+// --------------------------------------------------------------------------
+int partition(const spatial_extent_t &ext, unsigned int n_blocks,
+    std::deque<spatial_extent_t> &blocks)
+{
+    // get the length in each direction
+    unsigned long nx = ext[1] - ext[0] + 1;
+    unsigned long ny = ext[3] - ext[2] + 1;
+    unsigned long nz = ext[5] - ext[4] + 1;
+    unsigned long nxyz = nx*ny*nz;
+
+    // check that it is possible to generate the requested number of blocks
+    if (nxyz < n_blocks)
+    {
+        TECA_ERROR("Can't split " << nxyz << " cells into " << n_blocks)
+        return -1;
+    }
+
+    // which directions can we split in?
+    std::vector<int> dirs;
+    if (nx > 1)
+        dirs.push_back(0);
+    if (ny > 1)
+        dirs.push_back(1);
+    if (nz > 1)
+        dirs.push_back(2);
+
+    int n_dirs = dirs.size();
+
+    // start with the full extent
+    blocks.push_back(ext);
+
+    // split each block until the desired number is reached.
+    while (blocks.size() < n_blocks)
+    {
+        // alternate splitable directions
+        for (int d = 0; d < n_dirs; ++d)
+        {
+            // make a pass overt each block split it into 2 until the
+            // desired number is realized
+            unsigned long n = blocks.size();
+            for (unsigned long i = 0; i < n; ++i)
+            {
+                // take the next block from the front
+                spatial_extent_t b2;
+                spatial_extent_t b1 = blocks.front();
+                blocks.pop_front();
+
+                // add the new blocks to the back
+                if (split(b1, b2, dirs[d]))
+                    blocks.push_back(b2);
+                blocks.push_back(b1);
+
+                // are we there yet?
+                if (blocks.size() == n_blocks)
+                    return 0;
+            }
+        }
+    }
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+int partition(const temporal_extent_t &temporal_extent,
+    long n_temporal_blocks, long temporal_block_size,
+    std::vector<temporal_extent_t> &temporal_blocks)
+{
+    size_t n_steps = temporal_extent[1] - temporal_extent[0] + 1;
+
+    // partition the time axis
+    size_t n_time = 1;
+    size_t t_block_size = n_steps;
+    size_t t_block_rem = 0;
+
+    if (temporal_block_size >= 1)
+    {
+        // partition using a specified block size
+        t_block_size = temporal_block_size;
+        t_block_rem = n_steps % temporal_block_size;
+        n_time = n_steps / temporal_block_size;
+    }
+    else if (n_temporal_blocks >= 1)
+    {
+        // partition into specified number of blocks
+        t_block_size = n_steps / n_temporal_blocks;
+        t_block_rem =  n_steps % n_temporal_blocks;
+        n_time = n_temporal_blocks;
+    }
+
+    for (size_t i = 0; i < n_time; ++i)
+    {
+        unsigned long i0 = temporal_extent[0] + i*t_block_size;
+        unsigned long i1 = i0 + t_block_size - 1;
+        temporal_blocks.push_back({i0, i1});
+    }
+
+    // add a last potentially smaller block to capture the remaining steps
+    if (t_block_rem)
+    {
+        unsigned long i0 = temporal_extent[0] + n_time*t_block_size;
+        unsigned long i1 = i0 + t_block_rem - 1;
+        temporal_blocks.push_back({i0, i1});
+    }
+
+    return 0;
+}
+
+// **************************************************************************
+int find_extent_containing_step(long step,
+    const std::vector<std::pair<long, long>> &step_extents,
+    size_t l, size_t r, long &i)
+{
+    size_t m = (l + r) / 2;
+
+    const std::pair<long, long> &br = step_extents[m];
+
+    if ((step >= br.first) && (step <= br.second))
+    {
+        // found
+        i = m;
+        return 0;
+    }
+    else if (l == r)
+    {
+        // not found
+        return -1;
+    }
+    else if (step < br.first)
+    {
+        // search left
+        return find_extent_containing_step(step, step_extents, l, m, i);
+    }
+    else if (step > br.second)
+    {
+        // search right
+        if (m == l) m = r;
+        return find_extent_containing_step(step, step_extents, m, r, i);
+    }
+
+    // not found
+    return -1;
+}
+
+// **************************************************************************
+int find_extent_containing_step(long step,
+    const std::vector<std::pair<long, long>> &step_extents,
+    long &index)
+{
+    return find_extent_containing_step(step,
+        step_extents, 0, step_extents.size() - 1, index);
+}
+
+}
