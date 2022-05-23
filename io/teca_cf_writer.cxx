@@ -10,6 +10,8 @@
 #include "teca_cf_time_step_mapper.h"
 #include "teca_cf_block_time_step_mapper.h"
 #include "teca_cf_interval_time_step_mapper.h"
+#include "teca_cf_spatial_time_step_mapper.h"
+#include "teca_cf_space_time_time_step_mapper.h"
 #include "teca_cf_layout_manager.h"
 #include "teca_coordinate_util.h"
 
@@ -26,6 +28,7 @@
 #endif
 
 
+
 class teca_cf_writer::internals_t
 {
 public:
@@ -40,9 +43,12 @@ public:
 
 // --------------------------------------------------------------------------
 teca_cf_writer::teca_cf_writer() :
-    file_name(""), date_format("%F-%HZ"), first_step(0), last_step(-1),
-    layout(monthly), steps_per_file(128), mode_flags(NC_CLOBBER|NC_NETCDF4),
-    use_unlimited_dim(0), compression_level(-1), flush_files(0)
+    file_name(""), date_format("%F-%HZ"), number_of_spatial_partitions(1),
+    number_of_temporal_partitions(0), temporal_partition_size(0), first_step(0),
+    last_step(-1), layout(monthly), partitioner(temporal),
+    index_executive_compatability(0), steps_per_file(128),
+    mode_flags(NC_CLOBBER|NC_NETCDF4), use_unlimited_dim(0),
+    compression_level(-1), flush_files(0)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -158,6 +164,72 @@ int teca_cf_writer::set_layout(const std::string &mode)
 }
 
 // --------------------------------------------------------------------------
+const char *teca_cf_writer::get_layout_name() const
+{
+    const char *ret = "unknown";
+    switch (this->layout)
+    {
+        case teca_cf_writer::number_of_steps:
+            ret = "number_of_steps";
+            break;
+        case teca_cf_writer::daily:
+            ret = "daily";
+            break;
+        case teca_cf_writer::monthly:
+            ret = "monthly";
+            break;
+        case teca_cf_writer::seasonal:
+            ret = "seasonal";
+            break;
+        case teca_cf_writer::yearly:
+            ret = "yearly";
+            break;
+    }
+    return ret;
+}
+
+// --------------------------------------------------------------------------
+const char *teca_cf_writer::get_partitioner_name() const
+{
+    const char *ret = "unknown";
+    switch (this->partitioner)
+    {
+        case teca_cf_writer::temporal:
+            ret = "temporal";
+            break;
+        case teca_cf_writer::spatial:
+            ret = "spatial";
+            break;
+        case teca_cf_writer::space_time:
+            ret = "space_time";
+            break;
+    }
+    return ret;
+}
+
+// --------------------------------------------------------------------------
+void teca_cf_writer::set_partitioner(const std::string &part)
+{
+    if (part == "temporal")
+    {
+        this->set_partitioner_to_temporal();
+    }
+    else if (part == "spatial")
+    {
+        this->set_partitioner_to_spatial();
+    }
+    else if (part == "space_time")
+    {
+        this->set_partitioner_to_space_time();
+    }
+    else
+    {
+        TECA_FATAL_ERROR("Failed to set the partitioner."
+            " There is no partitioner named \"" << part << "\"")
+    }
+}
+
+// --------------------------------------------------------------------------
 int teca_cf_writer::flush()
 {
     // flush the set of files
@@ -235,31 +307,19 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
 #endif
     (void) port;
 
+    int rank = 0;
+    int n_ranks = 1;
+#if defined(TECA_HAS_MPI)
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
+    {
+        MPI_Comm_rank(this->get_communicator(), &rank);
+        MPI_Comm_size(this->get_communicator(), &n_ranks);
+    }
+#endif
+
     std::vector<teca_metadata> up_reqs;
-
-    // get the executive control keys for the upstream.
-    const teca_metadata &md_in = input_md[0];
-
-    std::string up_initializer_key;
-    if (md_in.get("index_initializer_key", up_initializer_key))
-    {
-        TECA_FATAL_ERROR("Failed to locate index_initializer_key")
-        return up_reqs;
-    }
-
-    std::string up_request_key;
-    if (md_in.get("index_request_key", up_request_key))
-    {
-        TECA_FATAL_ERROR("Failed to locate index_request_key")
-        return up_reqs;
-    }
-
-    long n_indices_up = 0;
-    if (md_in.get(up_initializer_key, n_indices_up))
-    {
-        TECA_FATAL_ERROR("Missing index initializer \"" << up_initializer_key << "\"")
-        return up_reqs;
-    }
 
     // check that the user hadn't forgotten to specify arrays to write.
     if ((this->point_arrays.size() == 0) &&
@@ -268,6 +328,54 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
         TECA_FATAL_ERROR("The arrays to write have not been specified")
         return up_reqs;
     }
+
+    // get the executive control keys for the upstream.
+    const teca_metadata &md_in = input_md[0];
+
+    // locate the keys that enable us to know how many
+    // requests we need to make and what key to use
+    std::string index_initializer_key;
+    if (md_in.get("index_initializer_key", index_initializer_key))
+    {
+        TECA_FATAL_ERROR("No index_initializer_key has been specified")
+        return up_reqs;
+    }
+
+    long n_time_steps = 0;
+    if (md_in.get(index_initializer_key, n_time_steps))
+    {
+        TECA_FATAL_ERROR("Missing index initializer \""
+            << index_initializer_key << "\"")
+        return up_reqs;
+    }
+
+    std::string index_request_key;
+    if (md_in.get("index_request_key", index_request_key))
+    {
+        if ((this->partitioner == temporal) ||
+            ((this->partitioner != temporal) && this->index_executive_compatability))
+        {
+            TECA_FATAL_ERROR("No index_request_key has been specified")
+            return up_reqs;
+        }
+    }
+
+    std::string index_extent_request_key;
+    if (md_in.get("index_extent_request_key", index_extent_request_key))
+    {
+        if ((this->partitioner != temporal) && !this->index_executive_compatability)
+        {
+            TECA_FATAL_ERROR("No index_extent_request_key has been specified")
+            return up_reqs;
+        }
+    }
+
+    // apply restriction
+    long last_time_step = this->last_step >= 0 ?
+         this->last_step : n_time_steps - 1;
+
+    long first_time_step = ((this->first_step >= 0) &&
+        (this->first_step <= last_time_step)) ? this->first_step : 0;
 
     // get the extent describing the size of the output file
     // this can come from a few places: the request takes precedence,
@@ -309,8 +417,8 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
         p_teca_cf_block_time_step_mapper bmap =
             teca_cf_block_time_step_mapper::New();
 
-        if (bmap->initialize(comm, this->first_step,
-            this->last_step, this->steps_per_file, md_in))
+        if (bmap->initialize(comm, first_time_step,
+            last_time_step, this->steps_per_file, index_request_key))
         {
             TECA_FATAL_ERROR("Failed to initialize the block mapper")
             return up_reqs;
@@ -331,22 +439,105 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
             return up_reqs;
         }
 
-        // initialize the layout mapper
-        p_teca_cf_interval_time_step_mapper imap =
-            teca_cf_interval_time_step_mapper::New();
-
-        if (imap->initialize(comm,
-            this->first_step, this->last_step, it, md_in))
+        // initialize the iterator
+        if (it->initialize(md_in, first_time_step, last_time_step))
         {
-            TECA_FATAL_ERROR("Failed to initialize the interval mapper")
+            TECA_FATAL_ERROR("Failed to initialize the interval iterator")
             return up_reqs;
         }
 
-        this->internals->mapper = imap;
+        // initialize the layout mapper
+        if (this->partitioner == temporal)
+        {
+            p_teca_cf_interval_time_step_mapper imap =
+                teca_cf_interval_time_step_mapper::New();
+
+            if (imap->initialize(comm, first_time_step, last_time_step,
+                it, index_request_key))
+            {
+                TECA_FATAL_ERROR("Failed to initialize the interval mapper")
+                return up_reqs;
+            }
+
+            this->internals->mapper = imap;
+        }
+        else if (this->partitioner == space_time)
+        {
+            long n_temporal_partitions = (this->index_executive_compatability ?
+                0 : this->number_of_temporal_partitions);
+
+            long temporal_partition_size = (this->index_executive_compatability ?
+                1 : this->temporal_partition_size);
+
+            p_teca_cf_space_time_time_step_mapper imap =
+                teca_cf_space_time_time_step_mapper::New();
+
+            if (imap->initialize(comm, first_time_step, last_time_step,
+                n_temporal_partitions, temporal_partition_size, extent,
+                this->number_of_spatial_partitions, it,
+                this->index_executive_compatability, index_request_key,
+                index_extent_request_key))
+            {
+                TECA_FATAL_ERROR("Failed to initialize the interval mapper")
+                return up_reqs;
+            }
+
+            imap->write_partitions();
+
+            this->internals->mapper = imap;
+        }
+        else if (this->partitioner == spatial)
+        {
+            long n_temporal_partitions = (this->index_executive_compatability ?
+                0 : this->number_of_temporal_partitions);
+
+            long temporal_partition_size = (this->index_executive_compatability ?
+                1 : this->temporal_partition_size);
+
+            p_teca_cf_spatial_time_step_mapper imap =
+                teca_cf_spatial_time_step_mapper::New();
+
+            if (imap->initialize(comm, first_time_step, last_time_step,
+                n_temporal_partitions, temporal_partition_size, extent,
+                this->number_of_spatial_partitions, it,
+                this->index_executive_compatability, index_request_key,
+                index_extent_request_key))
+            {
+                TECA_FATAL_ERROR("Failed to initialize the interval mapper")
+                return up_reqs;
+            }
+
+            imap->write_partitions();
+
+            this->internals->mapper = imap;
+        }
+        else
+        {
+            TECA_FATAL_ERROR("Unknown partitioner mode " << this->partitioner)
+            return up_reqs;
+        }
     }
 
     if (this->get_verbose())
+    {
+        if (rank == 0)
+        {
+            std::ostringstream oss;
+            oss << "Configuring the writer for " << this->get_partitioner_name()
+                << " partitioning";
+            if (this->partitioner != temporal)
+            {
+                if (this->index_executive_compatability)
+                {
+                    oss << " in compatability mode";
+                }
+            }
+            oss << " with " << this->get_layout_name() << " layout";
+            TECA_STATUS(<< oss.str())
+        }
+
         this->internals->mapper->to_stream(std::cerr);
+    }
 
     // create and define the set of files
     if (this->internals->mapper->file_table_apply([&](MPI_Comm comm,
@@ -387,7 +578,17 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
     arrays.insert(this->information_arrays.begin(), this->information_arrays.end());
     base_req.set("arrays", arrays);
     base_req.remove("writer_id");
-    base_req.set("index_request_key", up_request_key);
+
+    if ((this->partitioner == temporal) ||
+        ((this->partitioner != temporal) && this->index_executive_compatability))
+    {
+        base_req.set("index_request_key", index_request_key);
+    }
+    else
+    {
+        base_req.set("index_extent_request_key", index_extent_request_key);
+    }
+
     if (this->internals->mapper->get_upstream_requests(base_req, up_reqs))
     {
         TECA_FATAL_ERROR("Failed to create upstream requests")
@@ -437,33 +638,65 @@ const_p_teca_dataset teca_cf_writer::execute(unsigned int port,
             return nullptr;
         }
 
-        unsigned long time_step = 0;
-        in_mesh->get_time_step(time_step);
-
-        // get the layout manager for this time step, repsonsible for putting the
-        // data on disk.
-        p_teca_cf_layout_manager layout_mgr =
-            this->internals->mapper->get_layout_manager(time_step);
-
-        if (!layout_mgr)
+        // get the spatial extent of the incoming data
+        unsigned long extent[6] = {0ul};
+        if (in_mesh->get_extent(extent))
         {
-            TECA_FATAL_ERROR("No layout manager found for time step " << time_step)
+            TECA_FATAL_ERROR("Failed to determine the spatial extent to be written")
             return nullptr;
         }
 
-        // write the arrays
-        if (layout_mgr->write(time_step, in_mesh->get_point_arrays(),
-            in_mesh->get_information_arrays()))
+        // get the temporal extent of the incoming data
+        unsigned long temporal_extent[2] = {0l};
+        if ((this->partitioner == temporal) ||
+            ((this->partitioner != temporal) && this->index_executive_compatability))
         {
-            TECA_FATAL_ERROR("Write time step " << time_step << " failed for time step")
+            if (in_mesh->get_time_step(temporal_extent[0]))
+            {
+                TECA_FATAL_ERROR("Failed to determine the time step to be written")
+                return nullptr;
+            }
+            temporal_extent[1] = temporal_extent[0];
+        }
+        else if (in_mesh->get_temporal_extent(temporal_extent))
+        {
+            TECA_FATAL_ERROR("Failed to determine the temporal extent to be written")
             return nullptr;
         }
 
-        if (this->verbose > 1)
+        // get the layout managers needed to write this extent
+        std::vector<p_teca_cf_layout_manager> managers;
+        if (this->internals->mapper->get_layout_manager(temporal_extent, managers))
         {
-            std::ostringstream oss;
-            layout_mgr->to_stream(oss);
-            TECA_STATUS(<< oss.str())
+            TECA_FATAL_ERROR("No layout manager found for temporal extent ["
+                << temporal_extent << "]")
+            return nullptr;
+        }
+
+        // give each manager a chance to write the steps it is responsble for
+        int n_managers = managers.size();
+        for (int j = 0; j < n_managers; ++j)
+        {
+            const p_teca_cf_layout_manager &layout_mgr = managers[j];
+
+            // write the arrays
+            if (layout_mgr->write(extent, temporal_extent,
+                in_mesh->get_point_arrays(), in_mesh->get_information_arrays()))
+            {
+                TECA_FATAL_ERROR("Manager " << j << " of " << n_managers
+                    << " failed to write temporal extent [" << temporal_extent
+                    << "]")
+                return nullptr;
+            }
+
+            if (this->verbose > 1)
+            {
+                std::ostringstream oss;
+                oss << "Wrote: extent = [" << extent << "], temporal_extent = ["
+                    << temporal_extent << "].";
+                //layout_mgr->to_stream(oss);
+                TECA_STATUS(<< oss.str())
+            }
         }
     }
 

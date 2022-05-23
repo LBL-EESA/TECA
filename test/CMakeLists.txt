@@ -861,3 +861,45 @@ teca_add_test(test_spatial_executive_size_par
     COMMAND ${MPIEXEC} -n ${TEST_CORES} test_spatial_executive
     256 256 7 512 size 128
     FEATURES ${TECA_HAS_MPI})
+
+teca_add_test(test_cf_writer_temporal_partition
+    SOURCES test_cf_writer_partitions.cpp
+    EXEC_NAME test_cf_writer_partitions
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_cf_writer_partitions 129 64 1 257 monthly temporal 0 0
+        ${TECA_DATA_ROOT} test_cf_writer_partitons
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_writer_temporal_partition_mpi
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_writer_partitions 129 64 1 257
+        monthly temporal 0 0 ${TECA_DATA_ROOT} test_cf_writer_partitons
+    FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_writer_space_time_partition
+    COMMAND test_cf_writer_partitions 129 64 1 257 monthly space_time 17 32
+        ${TECA_DATA_ROOT} test_cf_writer_partitons
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_writer_space_time_partition_blocking_mpi
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_writer_partitions 129 64 1 257
+        monthly space_time 17 32 ${TECA_DATA_ROOT} test_cf_writer_partitons
+    FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_writer_space_time_partition_single_mpi
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_writer_partitions 129 64 1 257
+        monthly space_time 257 32 ${TECA_DATA_ROOT} test_cf_writer_partitons
+    FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_writer_spatial_partition
+    COMMAND test_cf_writer_partitions 129 64 1 257 monthly spatial 17 32
+        ${TECA_DATA_ROOT} test_cf_writer_partitons
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_writer_spatial_partition_mpi
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_writer_partitions 129 64 1 257
+        monthly spatial 17 32 ${TECA_DATA_ROOT} test_cf_writer_partitons
+    FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
