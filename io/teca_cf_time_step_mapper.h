@@ -36,18 +36,28 @@ public:
     virtual int get_upstream_requests(teca_metadata base_req,
         std::vector<teca_metadata> &up_reqs);
 
+    /// given a time step returns the associated layout manager
+    virtual p_teca_cf_layout_manager get_layout_manager(long time_step)
+    { (void) time_step; return nullptr; }
+
     /** given an inclusive range of time steps, get the corresponding layout
      * managers that can be used to create, define and write the data to disk.
      * When more than one manager is returned, each should be passed the data,
      * giving it a chance to write the subset it is responsible for to disk.
      *
-     * @param[in] time_extent the first and last step that will be written
-     * @param[out] manager    a vector of teca_cf_layout_manager instances
-     *                        that need to be called to write the data.
+     * @param[in] temporal_extent the first and last step that will be written
+     * @param[out] manager        a vector of teca_cf_layout_manager instances
+     *                            that need to be called to write the data.
      *
      * @returns zero if successful.
      */
-    virtual p_teca_cf_layout_manager get_layout_manager(long time_step) = 0;
+    virtual int get_layout_manager(const unsigned long temporal_extent[2],
+        std::vector<p_teca_cf_layout_manager> &managers)
+    {
+        // forward to the single step implentation
+        managers.push_back(this->get_layout_manager(temporal_extent[0]));
+        return managers.back() ? 0 : -1;
+    }
 
     /// print a summary to the stream
     virtual int to_stream(std::ostream &os) = 0;
