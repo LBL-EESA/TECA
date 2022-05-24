@@ -113,7 +113,7 @@ int teca_cf_layout_manager::create(const std::string &file_name,
 
 // --------------------------------------------------------------------------
 int teca_cf_layout_manager::define(const teca_metadata &md_in,
-    unsigned long *extent, const std::vector<std::string> &point_arrays,
+    unsigned long *wextent, const std::vector<std::string> &point_arrays,
     const std::vector<std::string> &info_arrays, int compression_level)
 {
     if (this->defined())
@@ -190,27 +190,28 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
         this->dims[i] = 0;
 
     // check for bad bounds request on dataset with y axis in descending order.
-    if (extent[2] > extent[3])
+    if (wextent[2] > wextent[3])
     {
-        TECA_ERROR("Bad y-axis extent [" << extent[2] << ", " << extent[3] << "]")
+        TECA_ERROR("Bad y-axis wextent [" << wextent[2] << ", " << wextent[3] << "]")
         return -1;
     }
+
+    // cache the whole_extent to offset the incoming data if this was a subset
+    memcpy(this->whole_extent, wextent, 6*sizeof(unsigned long));
 
     // the cf reader always creates 4D data, but some other tools choke
     // on it, notably ParView. All dimensions of 1 are safe to skip, unless
     // we are writing a variable with 1 value.
-    size_t nx = extent[1] - extent[0] + 1;
-    size_t ny = extent[3] - extent[2] + 1;
-    size_t nz = extent[5] - extent[4] + 1;
+    size_t nx = wextent[1] - wextent[0] + 1;
+    size_t ny = wextent[3] - wextent[2] + 1;
+    size_t nz = wextent[5] - wextent[4] + 1;
 
     unsigned long skip_dim_of_1 = (x && nx > 1 ? 1 : 0) +
         (y && ny > 1 ? 1 : 0) + (z && nz > 1 ? 1 : 0);
 
-
     // record the mesh axis id 0:x, 1:y, 2:z, 3:t
-    int mesh_axis[4] = {0};
     for (int i = 0; i < 4; ++i)
-        mesh_axis[i] = 0;
+        this->mesh_axis[i] = 0;
 
     if (this->t)
     {
@@ -222,7 +223,7 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
         if (this->dims[this->n_dims] == NC_UNLIMITED)
             unlimited_dim_actual_size = this->t->size();
 
-        mesh_axis[this->n_dims] = 3;
+        this->mesh_axis[this->n_dims] = 3;
 
         ++this->n_dims;
     }
@@ -237,12 +238,12 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
             this->dims[this->n_dims] = this->n_dims == 0 &&
                 use_unlimited_dim ? NC_UNLIMITED : nz;
 
-            starts[this->n_dims] = extent[4];
+            starts[this->n_dims] = wextent[4];
 
             if (this->dims[this->n_dims] == NC_UNLIMITED)
                 unlimited_dim_actual_size = nz;
 
-            mesh_axis[this->n_dims] = 2;
+            this->mesh_axis[this->n_dims] = 2;
 
             ++this->n_dims;
         }
@@ -257,12 +258,12 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
             this->dims[this->n_dims] = this->n_dims == 0 &&
                 use_unlimited_dim ? NC_UNLIMITED : ny;
 
-            starts[this->n_dims] = extent[2];
+            starts[this->n_dims] = wextent[2];
 
             if (this->dims[this->n_dims] == NC_UNLIMITED)
                 unlimited_dim_actual_size = ny;
 
-            mesh_axis[this->n_dims] = 1;
+            this->mesh_axis[this->n_dims] = 1;
 
             ++this->n_dims;
         }
@@ -277,12 +278,12 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
             this->dims[this->n_dims] = this->n_dims == 0 &&
                  use_unlimited_dim ? NC_UNLIMITED : nx;
 
-            starts[this->n_dims] = extent[0];
+            starts[this->n_dims] = wextent[0];
 
             if (this->dims[this->n_dims] == NC_UNLIMITED)
                 unlimited_dim_actual_size = nx;
 
-            mesh_axis[this->n_dims] = 0;
+            this->mesh_axis[this->n_dims] = 0;
 
             ++this->n_dims;
         }
@@ -384,7 +385,7 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
         int active_dim_ids[4] = {-1};
         for (int j = 0; j < this->n_dims; ++j)
         {
-            int active = dim_active[mesh_axis[j]];
+            int active = dim_active[this->mesh_axis[j]];
             adims[j] = active;
             if (active)
             {
@@ -782,6 +783,194 @@ int teca_cf_layout_manager::write(long index,
 
     // keep track of what's been done
     this->n_written += 1;
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+int teca_cf_layout_manager::write(const unsigned long extent[6],
+    const unsigned long temporal_extent[2],
+    const const_p_teca_array_collection &point_arrays,
+    const const_p_teca_array_collection &info_arrays)
+{
+    if (!this->opened())
+    {
+        TECA_ERROR("Write failed. invalid file handle")
+        return -1;
+    }
+
+    if (!this->defined())
+    {
+        TECA_ERROR("Write failed. file layout has not been defined")
+        return -1;
+    }
+
+    int ierr = NC_NOERR;
+
+    unsigned long temporal_extent_size = temporal_extent[1] - temporal_extent[0] + 1;
+
+    // intersect the teporal extent of the passed arrays and the file
+    unsigned long active_extent[2];
+    active_extent[0] = std::max<unsigned long>(this->first_index, temporal_extent[0]);
+    active_extent[1] = std::min<unsigned long>(this->first_index + this->n_indices - 1, temporal_extent[1]);
+
+    // write point arrays
+    if (unsigned int n_arrays = point_arrays->size())
+    {
+        size_t starts[4] = {0, 0, 0, 0};
+        size_t counts[4] = {0, 0, 0, 0};
+
+        // get this data's position in the file
+        starts[0] = active_extent[0] - this->first_index;
+        counts[0] = active_extent[1] - active_extent[0] + 1;
+
+        for (unsigned int i = 0; i < n_arrays; ++i)
+        {
+            std::string array_name = point_arrays->get_name(i);
+            const_p_teca_variant_array array = point_arrays->get(i);
+
+            // look up the var id
+            std::map<std::string, var_def_t>::iterator it = this->var_def.find(array_name);
+            if (it == this->var_def.end())
+            {
+                // skip arrays we don't know about. if we want to make this an error
+                // we will need the cf writer to subset the point arrays collection
+                continue;
+                //TECA_ERROR("No var id for \"" << array_name << "\"")
+                //return -1;
+            }
+            int var_id = it->second.var_id;
+            unsigned int declared_type_code = it->second.type_code;
+            const std::array<int,4> &active_dims = it->second.active_dims;
+
+            // make space for the time dimension
+            int j0 = this->t && active_dims[0] ? 1 : 0;
+            int n_active = j0;
+
+            // compute the start and count for this chunk of data, taking into
+            // account any runtime specified subsetting
+            for (int j = j0; j < this->n_dims; ++j)
+            {
+                if (active_dims[j])
+                {
+                    int q = 2*this->mesh_axis[j];
+
+                    starts[n_active] = extent[q] - this->whole_extent[q];
+                    counts[n_active] = extent[q + 1] - extent[q] + 1;
+
+                    ++n_active;
+                }
+            }
+
+            TEMPLATE_DISPATCH(const teca_variant_array_impl,
+                array.get(),
+
+                unsigned int actual_type_code = teca_variant_array_code<NT>::get();
+                if (actual_type_code != declared_type_code)
+                {
+                    TECA_ERROR("The declared type (" << declared_type_code
+                        << ") of point centered array \"" << array_name
+                        << "\" does not match the actual type ("
+                        << actual_type_code << ")")
+                    return -1;
+                }
+
+                auto spa = static_cast<TT*>(array.get())->get_cpu_accessible();
+                const NT *pa = spa.get();
+
+                // advance the pointer to the first time step that will be
+                // written by this manager
+                size_t step_size = array->size() / temporal_extent_size;
+                pa += (active_extent[0] - temporal_extent[0]) * step_size;
+
+#if !defined(HDF5_THREAD_SAFE)
+                {
+                std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+                if ((ierr = nc_put_vara(this->handle.get(), var_id, starts, counts, pa)) != NC_NOERR)
+                {
+                    TECA_ERROR("failed to write point array \"" << array_name << "\". "
+                        << nc_strerror(ierr))
+                    return -1;
+                }
+#if !defined(HDF5_THREAD_SAFE)
+                }
+#endif
+                )
+        }
+    }
+
+    // write the information arrays
+    if (unsigned int n_arrays = info_arrays->size())
+    {
+        size_t starts[2] = {0, 0};
+        size_t counts[2] = {0, 0};
+
+        // get this data's position in the file
+        starts[0] = active_extent[0] - this->first_index;
+        counts[0] = active_extent[1] - active_extent[0] + 1;
+
+        for (unsigned int i = 0; i < n_arrays; ++i)
+        {
+            std::string array_name = info_arrays->get_name(i);
+            const_p_teca_variant_array array = info_arrays->get(i);
+
+            // look up the var id
+            std::map<std::string, var_def_t>::iterator it = this->var_def.find(array_name);
+            if (it  == this->var_def.end())
+            {
+                // skip arrays we don't know about. if we want to make this an error
+                // we will need the cf writer to subset the information arrays collection
+                continue;
+                //TECA_ERROR("No var id for \"" << array_name << "\"")
+                //return -1;
+            }
+            int var_id = it->second.var_id;
+            unsigned int declared_type_code = it->second.type_code;
+
+            TEMPLATE_DISPATCH(const teca_variant_array_impl,
+                array.get(),
+
+                unsigned int actual_type_code = teca_variant_array_code<NT>::get();
+                if (actual_type_code != declared_type_code)
+                {
+                    TECA_ERROR("The declared type (" << declared_type_code
+                        << ") of information array \"" << array_name
+                        << "\" does not match the actual type ("
+                        << actual_type_code << ")")
+                    return -1;
+                }
+
+                auto spa = static_cast<TT*>(array.get())->get_cpu_accessible();
+                const NT *pa = spa.get();
+
+                // advance the pointer to the first time step that will be
+                // written by this manager
+                size_t step_size = array->size() / temporal_extent_size;
+                pa += (active_extent[0] - temporal_extent[0]) * step_size;
+
+                // get the size of the subset of the array actually written
+                counts[1] = (active_extent[1] - active_extent[0] + 1) * step_size;
+
+#if !defined(HDF5_THREAD_SAFE)
+                {
+                std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+                if ((ierr = nc_put_vara(this->handle.get(), var_id, starts, counts, pa)) != NC_NOERR)
+                {
+                    TECA_ERROR("failed to write information array \"" << array_name << "\". "
+                        << nc_strerror(ierr))
+                    return -1;
+                }
+#if !defined(HDF5_THREAD_SAFE)
+                }
+#endif
+                )
+        }
+    }
+
+    // keep track of what's been done
+    this->n_written += active_extent[1] - active_extent[0] + 1;
 
     return 0;
 }
