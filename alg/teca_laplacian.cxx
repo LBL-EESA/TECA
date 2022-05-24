@@ -5,6 +5,7 @@
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
+#include "teca_array_attributes.h"
 
 #include <algorithm>
 #include <iostream>
@@ -280,6 +281,37 @@ teca_metadata teca_laplacian::get_output_metadata(
     // add in the array we will generate
     teca_metadata out_md(input_md[0]);
     out_md.append("variables", this->laplacian_variable);
+
+    // insert attributes to enable this to be written by the CF writer
+    teca_metadata attributes;
+    out_md.get("attributes", attributes);
+
+    teca_metadata scalar_field_atts;
+    if (attributes.get(this->scalar_field_name, scalar_field_atts))
+    {
+        TECA_WARNING("Failed to get scalar field \"" << 
+            this->scalar_field_name << "\" attributes. "
+            "Writing the result will not be possible")
+    }
+    else
+    {
+        // copy the attributes from the input. this will capture the
+        // data type, size, units, etc.
+        teca_array_attributes lap_atts(scalar_field_atts);
+
+        // update units, long_name, and description.
+        lap_atts.units += " m-2";
+        lap_atts.long_name += " laplacian";
+
+        lap_atts.description =
+            std::string("The laplacian of ");
+        lap_atts.description += this->laplacian_variable;
+
+        attributes.set(this->laplacian_variable,
+            (teca_metadata)lap_atts);
+
+        out_md.set("attributes", attributes);
+    }
 
     return out_md;
 }

@@ -10,7 +10,7 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_laplacian)
 
-/// An algorithm that computes the Laplacian from a vector field.
+/// An algorithm that computes the Laplacian from a scalar field.
 class TECA_EXPORT teca_laplacian : public teca_algorithm
 {
 public:
@@ -25,7 +25,7 @@ public:
     TECA_SET_ALGORITHM_PROPERTIES()
 
     /** @name scalar_field_name
-     * Set the arrays that contain the vector components to compute laplacian
+     * Set the name of the scalar array to compute the laplacian
      * from.
      */
     ///@{
