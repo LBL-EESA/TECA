@@ -70,8 +70,8 @@ teca_metadata teca_binary_segmentation::get_output_metadata(
     const std::vector<teca_metadata> &input_md)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_binary_segmentation::get_output_metadata" << endl;
+    std::cerr << teca_parallel_id()
+        << "teca_binary_segmentation::get_output_metadata" << std::endl;
 #endif
     (void) port;
 
@@ -122,8 +122,8 @@ std::vector<teca_metadata> teca_binary_segmentation::get_upstream_request(
     const teca_metadata &request)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_binary_segmentation::get_upstream_request" << endl;
+    std::cerr << teca_parallel_id()
+        << "teca_binary_segmentation::get_upstream_request" << std::endl;
 #endif
     (void) port;
     (void) input_md;

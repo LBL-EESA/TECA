@@ -1009,8 +1009,9 @@ teca_metadata teca_bayesian_ar_detect_parameters::get_output_metadata(
     unsigned int port, const std::vector<teca_metadata> &input_md)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_bayesian_ar_detect_parameters::get_output_metadata" << endl;
+    std::cerr << teca_parallel_id()
+        << "teca_bayesian_ar_detect_parameters::get_output_metadata" 
+        << std::endl;
 #endif
     (void)port;
     (void)input_md;
@@ -1024,8 +1025,8 @@ const_p_teca_dataset teca_bayesian_ar_detect_parameters::execute(unsigned int po
     const teca_metadata &request)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_bayesian_ar_detect_parameters::execute" << endl;
+    std::cerr << teca_parallel_id()
+        << "teca_bayesian_ar_detect_parameters::execute" << std::endl;
 #endif
     (void)port;
     (void)input_data;

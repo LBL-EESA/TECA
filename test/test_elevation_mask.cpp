@@ -94,12 +94,12 @@ int main(int argc, char **argv)
     regrid->set_input_connection(1, elev_coords->get_output_port());
 
     p_teca_algorithm head = regrid;
-#ifdef TECA_DEBUG
-    p_teca_cartesian_mesh_writer vtkwr = teca_cartesian_mesh_writer::New();
-    vtkwr->set_input_connection(regrid->get_output_port());
-    vtkwr->set_file_name("out_%t%.vtk");
-    head = vtkwr;
-#endif
+// #ifdef TECA_DEBUG
+//     p_teca_cartesian_mesh_writer vtkwr = teca_cartesian_mesh_writer::New();
+//     vtkwr->set_input_connection(regrid->get_output_port());
+//     vtkwr->set_file_name("out_%t%.vtk");
+//     head = vtkwr;
+// #endif
 
     p_teca_indexed_dataset_cache elev_cache = teca_indexed_dataset_cache::New();
     elev_cache->set_input_connection(head->get_output_port());
