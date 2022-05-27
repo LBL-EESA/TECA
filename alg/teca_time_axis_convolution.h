@@ -96,7 +96,7 @@ public:
     TECA_ALGORITHM_VECTOR_PROPERTY(double, kernel_weight)
 
     /// generate constant convolution kernel weights with the given filter width
-    int set_constant_kernel_weights(unsigned int width);
+    int set_constant_kernel_weights(unsigned int width, int high_pass = 0);
 
     /** generate Gaussian convolution kernel weights with the given filter
      * width.
