@@ -129,4 +129,150 @@ int deep_copy(vtkRectilinearGrid *output,
 #endif
     return 0;
 }
-};
+
+
+// --------------------------------------------------------------------------
+void partition_writer::write()
+{
+    int nc = m_types.size();
+    int np = 8*nc;
+
+    FILE *fh = fopen(m_file_name.c_str(), "w");
+
+    fputs("# vtk DataFile Version 2.0\n", fh);
+    fputs("TECA spatial parallel partitioning\n", fh);
+    fputs("ASCII\n", fh);
+    fputs("DATASET UNSTRUCTURED_GRID\n\n", fh);
+
+    fprintf(fh, "POINTS %d double\n", 8*nc);
+    for (int i = 0; i < np; ++i)
+    {
+        int ii = 3*i;
+        fprintf(fh, "%g %g %g", m_points[ii], m_points[ii + 1], m_points[ii + 2]);
+        if ((i + 1) % 8 == 0)
+        {
+            fputs("\n", fh);
+        }
+        else
+        {
+            fputs("  ", fh);
+        }
+    }
+    if (np % 8)
+    {
+        fputs("\n", fh);
+    }
+
+    fprintf(fh, "\nCELLS %d %d\n", nc, int(m_cells.size()));
+    for (int i = 0; i < nc; ++i)
+    {
+        int ii = 9*i;
+        for (int j = 0; j < 9; ++j)
+        {
+            fprintf(fh, "%ld ", m_cells[ii + j]);
+        }
+        fputs("\n", fh);
+    }
+
+    fprintf(fh, "\nCELL_TYPES %d\n", nc);
+    for (int i = 0; i < nc; ++i)
+    {
+        fprintf(fh, "%d\n", m_types[i]);
+    }
+
+    fprintf(fh, "\nCELL_DATA %d\n", nc);
+    fputs("SCALARS owner float 1\n", fh);
+    fputs("LOOKUP_TABLE default\n", fh);
+    for (int i = 0; i < nc; ++i)
+    {
+        fprintf(fh, "%d ", m_owner[i]);
+        if ((i + 1) % 18 == 0)
+        {
+            fputs("\n", fh);
+        }
+    }
+    if (nc % 18)
+    {
+        fputs("\n", fh);
+    }
+
+    fclose(fh);
+}
+
+// --------------------------------------------------------------------------
+void partition_writer::add_partition(const unsigned long extent[6],
+    const unsigned long temporal_extent[2], int owner)
+{
+   /* VTK hexahedron cell winding
+       7  +-------------------+ 6
+         /|                  /|
+        / |                 / |
+       /  |                /  |
+    4 +------------------+/5  |
+      |   |              |    |
+      | 3 +--------------|--- + 2
+    Y |  /               |   /
+      | /                |  /  T
+      |/                 | /
+    0 +------------------+/ 1
+               X
+    */
+    int cid = m_types.size();
+
+    m_owner.push_back(owner);
+
+    m_types.push_back(12); // VTK hexahedron
+
+    int pid = 8*cid;
+    m_cells.push_back(8);
+    m_cells.push_back(pid    );
+    m_cells.push_back(pid + 1);
+    m_cells.push_back(pid + 2);
+    m_cells.push_back(pid + 3);
+    m_cells.push_back(pid + 4);
+    m_cells.push_back(pid + 5);
+    m_cells.push_back(pid + 6);
+    m_cells.push_back(pid + 7);
+
+    // 0
+    m_points.push_back(m_x0 + m_dx*extent[0]);
+    m_points.push_back(m_y0 + m_dy*extent[2]);
+    m_points.push_back(m_t0 + m_dt*temporal_extent[0]);
+
+    // 1
+    m_points.push_back(m_x0 + m_dx*extent[1]);
+    m_points.push_back(m_y0 + m_dy*extent[2]);
+    m_points.push_back(m_t0 + m_dt*temporal_extent[0]);
+
+    // 2
+    m_points.push_back(m_x0 + m_dx*extent[1]);
+    m_points.push_back(m_y0 + m_dy*extent[2]);
+    m_points.push_back(m_t0 + m_dt*temporal_extent[1]);
+
+    // 3
+    m_points.push_back(m_x0 + m_dx*extent[0]);
+    m_points.push_back(m_y0 + m_dy*extent[2]);
+    m_points.push_back(m_t0 + m_dt*temporal_extent[1]);
+
+    // 4
+    m_points.push_back(m_x0 + m_dx*extent[0]);
+    m_points.push_back(m_y0 + m_dy*extent[3]);
+    m_points.push_back(m_t0 + m_dt*temporal_extent[0]);
+
+    // 5
+    m_points.push_back(m_x0 + m_dx*extent[1]);
+    m_points.push_back(m_y0 + m_dy*extent[3]);
+    m_points.push_back(m_t0 + m_dt*temporal_extent[0]);
+
+    // 6
+    m_points.push_back(m_x0 + m_dx*extent[1]);
+    m_points.push_back(m_y0 + m_dy*extent[3]);
+    m_points.push_back(m_t0 + m_dt*temporal_extent[1]);
+
+    // 7
+    m_points.push_back(m_x0 + m_dx*extent[0]);
+    m_points.push_back(m_y0 + m_dy*extent[3]);
+    m_points.push_back(m_t0 + m_dt*temporal_extent[1]);
+}
+
+}
