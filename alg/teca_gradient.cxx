@@ -30,7 +30,7 @@ template <typename num_t>
 constexpr num_t deg_to_rad() { return num_t(M_PI)/num_t(180); }
 
 template <typename num_t>
-constexpr num_t earth_radius() { return num_t(6371.0e3); }
+constexpr num_t earth_radius() { return num_t(6371.0); } // Earth's radius in km
 
 // compute the gradient using second-order, centered finite difference
 // assumes fixed mesh spacing. here we add periodic bc in lon
@@ -301,7 +301,7 @@ teca_metadata teca_gradient::get_output_metadata(
         teca_array_attributes grad_x_atts(scalar_field_atts);
 
         // update units, long_name, and description.
-        grad_x_atts.units += " m-1";
+        grad_x_atts.units += " km-1";
         grad_x_atts.long_name += " gradient";
 
         grad_x_atts.description =
@@ -317,7 +317,7 @@ teca_metadata teca_gradient::get_output_metadata(
         teca_array_attributes grad_y_atts(scalar_field_atts);
 
         // update units, long_name, and description.
-        grad_y_atts.units += " m-1";
+        grad_y_atts.units += " km-1";
         grad_y_atts.long_name += " gradient";
 
         grad_y_atts.description =

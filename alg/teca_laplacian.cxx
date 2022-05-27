@@ -31,7 +31,7 @@ template <typename num_t>
 constexpr num_t deg_to_rad() { return num_t(M_PI)/num_t(180); }
 
 template <typename num_t>
-constexpr num_t earth_radius() { return num_t(6371.0e3); }
+constexpr num_t earth_radius() { return num_t(6371.0); } // Earth's radius in km
 
 // compute the laplacian. This  assumes fixed mesh spacing. Here we add periodic
 // bc in lon and apply unit stride vector optimization strategy to loops
@@ -300,7 +300,7 @@ teca_metadata teca_laplacian::get_output_metadata(
         teca_array_attributes lap_atts(scalar_field_atts);
 
         // update units, long_name, and description.
-        lap_atts.units += " m-2";
+        lap_atts.units += " km-2";
         lap_atts.long_name += " laplacian";
 
         lap_atts.description =
