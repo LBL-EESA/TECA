@@ -50,6 +50,7 @@ set(teca_alg_cxx_srcs
     teca_tc_trajectory.cxx
     teca_time_axis_convolution.cxx
     teca_simple_moving_average.cxx
+    teca_space_time_executive.cxx
     teca_spatial_executive.cxx
     teca_unpack_data.cxx
     teca_valid_value_mask.cxx

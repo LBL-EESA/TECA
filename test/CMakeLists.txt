@@ -843,6 +843,25 @@ teca_add_test(test_l2_norm
     COMMAND test_l2_norm "${TECA_DATA_ROOT}/test_l2_norm.bin"
     REQ_TECA_DATA)
 
+teca_add_test(test_space_time_executive_size
+    SOURCES test_space_time_executive.cpp
+    EXEC_NAME test_space_time_executive
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_space_time_executive 256 256 7 512 8 size 128)
+
+teca_add_test(test_space_time_executive_number
+    COMMAND test_space_time_executive 256 256 7 512 8 number 2)
+
+teca_add_test(test_space_time_executive_number_par
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_space_time_executive
+    256 256 7 512 8 number 2
+    FEATURES ${TECA_HAS_MPI})
+
+teca_add_test(test_space_time_executive_size_par
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_space_time_executive
+    256 256 7 512 8 size 128
+    FEATURES ${TECA_HAS_MPI})
+
 teca_add_test(test_spatial_executive_size
     SOURCES test_spatial_executive.cpp
     EXEC_NAME test_spatial_executive
