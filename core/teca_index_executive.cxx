@@ -251,13 +251,11 @@ teca_metadata teca_index_executive::get_next_request()
             if (bds.empty())
             {
                 if (!ext.empty())
-                    oss << " extent=" << ext[0] << ", " << ext[1] << ", "
-                        << ext[2] << ", " << ext[3] << ", " << ext[4] << ", " << ext[5];
+                    oss << " extent=[" << ext << "]";
             }
             else
             {
-                oss << " bounds=" << bds[0] << ", " << bds[1] << ", "
-                    << bds[2] << ", " << bds[3] << ", " << bds[4] << ", " << bds[5];
+                oss << " bounds=[" << bds << "]";
             }
 
 #if defined(TECA_HAS_CUDA)
