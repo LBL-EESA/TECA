@@ -135,6 +135,7 @@ teca_metadata teca_dataset_diff::get_output_metadata(
     teca_metadata omd(input_md[0]);
     omd.set("index_initializer_key", std::string("number_of_tests"));
     omd.set("index_request_key", std::string("test_id"));
+    omd.set("index_extent_request_key", std::string("test_ids"));
     omd.set("number_of_tests", n_indices_0);
 
     return omd;
@@ -150,39 +151,86 @@ std::vector<teca_metadata> teca_dataset_diff::get_upstream_request(
     std::vector<teca_metadata> up_reqs;
 
     // get the current index
-    unsigned long test_id = 0;
-    if (request.get("test_id", test_id))
+    unsigned long test_ids[2];
+    if (request.get("test_ids", test_ids))
     {
-        TECA_FATAL_ERROR("Request is missing the index_request_key test_id")
-        return up_reqs;
+        if (request.get("test_id", test_ids[0]))
+        {
+            TECA_FATAL_ERROR("Request is missing the index_request_key test_id")
+            return up_reqs;
+        }
+        test_ids[1] = test_ids[0];
     }
 
+    unsigned long n_tests = test_ids[1] - test_ids[0] + 1;
+
     // get input 0 request key
-    std::string request_key;
-    if (input_md[0].get("index_request_key", request_key))
+    std::string request_key_0;
+    std::string extent_request_key_0;
+    if (input_md[0].get("index_extent_request_key", extent_request_key_0))
     {
-        TECA_FATAL_ERROR("Input 0 metadata is missing index_request_key")
-        return up_reqs;
+        if (input_md[0].get("index_request_key", request_key_0))
+        {
+            TECA_FATAL_ERROR("Input 0 metadata is missing index_request_key")
+            return up_reqs;
+        }
+
+        if (n_tests > 1)
+        {
+            TECA_FATAL_ERROR(<< n_tests << " indices to request but input 0"
+                " doesn't provide and index_extent_request_key")
+            return up_reqs;
+        }
     }
 
     // make the request for input 0
     teca_metadata req_0(request);
-    req_0.set("index_request_key", request_key);
-    req_0.set(request_key, test_id);
+    if (extent_request_key_0.empty())
+    {
+        req_0.set("index_request_key", request_key_0);
+        req_0.set(request_key_0, test_ids[0]);
+    }
+    else
+    {
+        req_0.set("index_extent_request_key", extent_request_key_0);
+        req_0.set(extent_request_key_0, test_ids);
+    }
     req_0.remove("test_id");
+    req_0.remove("test_ids");
 
     // get input 1 request key
-    if (input_md[1].get("index_request_key", request_key))
+    std::string request_key_1;
+    std::string extent_request_key_1;
+    if (input_md[1].get("index_extent_request_key", extent_request_key_1))
     {
-        TECA_FATAL_ERROR("Input 1 metadata is missing index_request_key")
-        return up_reqs;
+        if (input_md[1].get("index_request_key", request_key_1))
+        {
+            TECA_FATAL_ERROR("Input 1 metadata is missing index_request_key")
+            return up_reqs;
+        }
+
+        if (n_tests > 1)
+        {
+            TECA_FATAL_ERROR(<< n_tests << " indices to request but input 1"
+                " doesn't provide and index_extent_request_key")
+            return up_reqs;
+        }
     }
 
     // make the request for input 1
     teca_metadata req_1(request);
-    req_1.set("index_request_key", request_key);
-    req_1.set(request_key, test_id);
+    if (extent_request_key_1.empty())
+    {
+        req_1.set("index_request_key", request_key_1);
+        req_1.set(request_key_1, test_ids[0]);
+    }
+    else
+    {
+        req_1.set("index_extent_request_key", extent_request_key_1);
+        req_1.set(extent_request_key_1, test_ids);
+    }
     req_1.remove("test_id");
+    req_1.remove("test_ids");
 
     // send them upstream
     up_reqs.push_back(req_0);
@@ -427,7 +475,8 @@ int teca_dataset_diff::compare_array_collections(
         if (this->verbose && (rank == 0))
         {
             TEST_STATUS("    comparing array \"" << name
-                << "\" absTol=" << max_prec(double) << absTol
+                << "\" size=" << a1->size() << " absTol="
+                << max_prec(double) << absTol
                 << " relTol=" << max_prec(double) << relTol)
         }
 
@@ -593,7 +642,14 @@ int teca_dataset_diff::compare_cartesian_meshes(
     // compare base class elements
     if (this->verbose && (rank == 0))
     {
-        TEST_STATUS("comparing cartesian meshes")
+        unsigned long temporal_extent[2];
+        reference_mesh->get_temporal_extent(temporal_extent);
+
+        unsigned long extent[6];
+        reference_mesh->get_extent(extent);
+
+        TEST_STATUS("comparing cartesian meshes. extent=[" << extent
+            << "] temporal_extent=[" << temporal_extent << "]")
     }
     if (this->compare_meshes(reference_mesh, data_mesh))
     {
