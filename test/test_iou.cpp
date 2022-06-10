@@ -151,7 +151,6 @@ int main(int argc, char **argv)
     double dFillValue = -1e20;
     if (do_place_missing) p_grid_0[0] = dFillValue;
 
-#define DEBUG 1
 // print out the tables
 #ifdef DEBUG
     // print the block in grid 0
