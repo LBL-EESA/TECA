@@ -32,6 +32,7 @@ set(teca_alg_cxx_srcs
     teca_indexed_dataset_cache.cxx
     teca_integrated_vapor_transport.cxx
     teca_integrated_water_vapor.cxx
+    teca_iou.cxx
     teca_l2_norm.cxx
     teca_latitude_damper.cxx
     teca_laplacian.cxx

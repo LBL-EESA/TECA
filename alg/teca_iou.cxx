@@ -40,8 +40,8 @@ void iou(double *p_iou, const num0_t *infield0, const num1_t *infield1,
     {
 
         unsigned long jj = j*n_lon;
-        num0_t *i0 = infield0 + jj;
-        num1_t *i1 = infield1 + jj;
+        const num0_t *i0 = infield0 + jj;
+        const num1_t *i1 = infield1 + jj;
 
         for (unsigned long i = 0; i < n_lon; ++i)
         {
@@ -454,7 +454,10 @@ const_p_teca_dataset teca_iou::execute(
     out_table->set_time_units(time_units);
 
     // add a row to the table
-    out_table->declare_columns("step", long(), "time", double());
+    out_table->declare_columns(
+        "step", long(),
+        "time", double(), 
+        iou_variable, double());
     out_table << time_step << time_offset << iou_val;
 
     return out_table;

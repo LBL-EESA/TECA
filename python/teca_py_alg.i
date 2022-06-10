@@ -25,6 +25,7 @@
 #include "teca_gradient.h"
 #include "teca_integrated_vapor_transport.h"
 #include "teca_indexed_dataset_cache.h"
+#include "teca_iou.h"
 #include "teca_l2_norm.h"
 #include "teca_laplacian.h"
 #include "teca_latitude_damper.h"
@@ -513,3 +514,11 @@ struct teca_tc_saffir_simpson
  lapse_rate
  ***************************************************************************/
 %pythoncode "teca_lapse_rate.py"
+
+/***************************************************************************
+ iou
+ ***************************************************************************/
+%ignore teca_iou::shared_from_this;
+%shared_ptr(teca_iou)
+%ignore teca_iou::operator=;
+%include "teca_iou.h"
