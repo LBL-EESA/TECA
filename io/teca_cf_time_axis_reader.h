@@ -1,6 +1,7 @@
 #ifndef teca_cf_time_axis_reader_h
 #define teca_cf_time_axis_reader_h
 
+#include "teca_config.h"
 #include "teca_shared_object.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
@@ -12,7 +13,7 @@
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_cf_time_axis_reader)
 
 /// An algorithm to read time axis and its attributes in parallel.
-class teca_cf_time_axis_reader : public teca_algorithm
+class TECA_EXPORT teca_cf_time_axis_reader : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_cf_time_axis_reader)
@@ -41,6 +42,8 @@ protected:
     teca_cf_time_axis_reader();
 
     void set_modified() override;
+
+    using teca_algorithm::get_output_metadata;
 
     teca_metadata get_output_metadata(unsigned int port,
         const std::vector<teca_metadata> &input_md) override;

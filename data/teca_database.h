@@ -1,6 +1,7 @@
 #ifndef teca_database_h
 #define teca_database_h
 
+#include "teca_config.h"
 #include "teca_dataset.h"
 #include "teca_table.h"
 #include "teca_shared_object.h"
@@ -16,7 +17,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_database)
  * is a thin wrapper around the teca_table_collection implementing
  * the teca_dataset API.
  */
-class teca_database : public teca_dataset
+class TECA_EXPORT teca_database : public teca_dataset
 {
 public:
     TECA_DATASET_STATIC_NEW(teca_database)
@@ -88,16 +89,17 @@ public:
     // return true if the dataset is empty.
     bool empty() const noexcept override;
 
-    // copy data and metadata. shallow copy uses reference
-    // counting, while copy duplicates the data.
-    void copy(const const_p_teca_dataset &other) override;
+    /// @copydoc teca_dataset::copy(const const_p_teca_dataset &,allocator)
+    void copy(const const_p_teca_dataset &other, allocator alloc) override;
+
+    /// @copydoc teca_dataset::shallow_copy(const p_teca_dataset &)
     void shallow_copy(const p_teca_dataset &other) override;
 
     // copy metadata. always a deep copy.
     void copy_metadata(const const_p_teca_dataset &other) override;
 
     // swap internals of the two objects
-    void swap(p_teca_dataset &other) override;
+    void swap(const p_teca_dataset &other) override;
 
     // serialize the dataset to/from the given stream
     // for I/O or communication
@@ -108,7 +110,12 @@ public:
     int to_stream(std::ostream &) const override;
     int from_stream(std::istream &) override { return -1; }
 
+#if defined(SWIG)
 protected:
+#else
+public:
+#endif
+    // NOTE: constructors are public to enable std::make_shared. do not use.
     teca_database();
 
 private:

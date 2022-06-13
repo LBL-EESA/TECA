@@ -1,6 +1,7 @@
 #ifndef array_time_average_h
 #define array_time_average_h
 
+#include "teca_config.h"
 #include "teca_shared_object.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
@@ -14,7 +15,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(array_time_average)
 an example implementation of a teca_algorithm
 that avergaes n timesteps
 */
-class array_time_average : public teca_algorithm
+class TECA_EXPORT array_time_average : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(array_time_average)

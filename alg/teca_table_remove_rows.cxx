@@ -3,6 +3,7 @@
 #include "teca_table.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_parser.h"
 #include "teca_variant_array_operator.h"
@@ -84,7 +85,7 @@ void teca_table_remove_rows::set_mask_expression(const std::string &expr)
     char *pfix_expr = teca_parser::infix_to_postfix(expr.c_str(), &dep_vars);
     if (!pfix_expr)
     {
-        TECA_ERROR("failed to convert \"" << expr << "\" to postfix")
+        TECA_FATAL_ERROR("failed to convert \"" << expr << "\" to postfix")
         return;
     }
 
@@ -123,7 +124,7 @@ const_p_teca_dataset teca_table_remove_rows::execute(
     {
         if (rank == 0)
         {
-            TECA_ERROR("Input is empty or not a table")
+            TECA_FATAL_ERROR("Input is empty or not a table")
         }
         return nullptr;
     }
@@ -139,7 +140,7 @@ const_p_teca_dataset teca_table_remove_rows::execute(
     // verify that we have a valid expression
     if (this->postfix_expression.empty())
     {
-        TECA_ERROR("An expression was not provided.")
+        TECA_FATAL_ERROR("An expression was not provided.")
         return nullptr;
     }
 
@@ -150,7 +151,7 @@ const_p_teca_dataset teca_table_remove_rows::execute(
         operator_resolver_t>(mask, this->postfix_expression.c_str(),
             operand_resolver))
     {
-        TECA_ERROR("failed to evaluate the mask expression \""
+        TECA_FATAL_ERROR("failed to evaluate the mask expression \""
             << this->mask_expression << "\"")
         return nullptr;
     }
@@ -169,7 +170,10 @@ const_p_teca_dataset teca_table_remove_rows::execute(
 
     TEMPLATE_DISPATCH(const teca_variant_array_impl,
         mask.get(),
-        const NT *pmask = static_cast<TT*>(mask.get())->get();
+
+        auto spmask = static_cast<TT*>(mask.get())->get_cpu_accessible();
+        auto pmask = spmask.get();
+
         for (unsigned long i = 0; i < n_rows; ++i)
         {
             if (!pmask[i])
@@ -188,8 +192,13 @@ const_p_teca_dataset teca_table_remove_rows::execute(
 
         TEMPLATE_DISPATCH(teca_variant_array_impl,
             out_col.get(),
-            const NT *pin = static_cast<const TT*>(in_col.get())->get();
-            NT *pout = static_cast<TT*>(out_col.get())->get();
+
+            auto spin = static_cast<const TT*>(in_col.get())->get_cpu_accessible();
+            auto pin = spin.get();
+
+            auto spout = static_cast<TT*>(out_col.get())->get_cpu_accessible();
+            auto pout = spout.get();
+
             for (unsigned long i = 0; i < n_valid; ++i)
             {
                 pout[i] = pin[valid_rows[i]];

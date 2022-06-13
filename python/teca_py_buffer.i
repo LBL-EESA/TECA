@@ -10,7 +10,7 @@
     if(PyObject_AsReadBuffer($input,
         reinterpret_cast<const void**>(&buf), &buf_size))
     {
-        TECA_ERROR("Failed to convert to buffer")
+        TECA_PY_ERROR(PyExc_TypeError, "Failed to convert to buffer")
         return NULL;
     }
     $1 = new std::vector<c_type>(buf, buf+(buf_size/sizeof(c_type)));
@@ -34,7 +34,7 @@ but not arrays.
         Py_buffer buf;
         if (PyObject_GetBuffer($input, &buf, PyBUF_SIMPLE))
         {
-            TECA_ERROR("conversion to buffer failed")
+            TECA_PY_ERROR(PyExc_TypeError, "conversion to buffer failed")
             return NULL;
         }
         int *pbuf = static_cast<int*>(buf.buf);
@@ -42,7 +42,7 @@ but not arrays.
     }
     else
     {
-        TECA_ERROR("input doesn't support buffer protocol")
+        TECA_PY_ERROR(PyExc_TypeError, "input doesn't support buffer protocol")
         return NULL;
     }
 }*/

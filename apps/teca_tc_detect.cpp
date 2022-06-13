@@ -369,7 +369,7 @@ int main(int argc, char **argv)
     {
         if (mpi_man.get_comm_rank() == 0)
         {
-            TECA_ERROR("Extacly one of --input_file or --input_regex can be specified. "
+            TECA_FATAL_ERROR("Extacly one of --input_file or --input_regex can be specified. "
                 "Use --input_file to activate the multi_cf_reader (HighResMIP datasets) "
                 "and --input_regex to activate the cf_reader (CAM like datasets)")
         }
@@ -381,7 +381,7 @@ int main(int argc, char **argv)
     size_t n_var = core_temp->get_number_of_dependent_variables();
     if (n_var != 2)
     {
-        TECA_ERROR("core temperature calculation requires 2 "
+        TECA_FATAL_ERROR("core temperature calculation requires 2 "
             "variables. given " << n_var)
         return -1;
     }
@@ -394,7 +394,7 @@ int main(int argc, char **argv)
     n_var = thickness->get_number_of_dependent_variables();
     if (n_var != 2)
     {
-        TECA_ERROR("thickness calculation requires 2 "
+        TECA_FATAL_ERROR("thickness calculation requires 2 "
             "variables. given " << n_var)
         return -1;
     }
@@ -421,7 +421,7 @@ int main(int argc, char **argv)
         teca_metadata atrs;
         if (md.get("attributes", atrs))
         {
-            TECA_ERROR("metadata mising attributes")
+            TECA_FATAL_ERROR("metadata mising attributes")
             return -1;
         }
 
@@ -432,7 +432,7 @@ int main(int argc, char **argv)
            || time_atts.get("calendar", calendar)
            || time_atts.get("units", units))
         {
-            TECA_ERROR("failed to determine the calendaring parameters")
+            TECA_FATAL_ERROR("failed to determine the calendaring parameters")
             return -1;
         }
 
@@ -440,7 +440,7 @@ int main(int argc, char **argv)
         p_teca_variant_array time;
         if (md.get("coordinates", coords) || !(time = coords.get("t")))
         {
-            TECA_ERROR("failed to determine time coordinate")
+            TECA_FATAL_ERROR("failed to determine time coordinate")
             return -1;
         }
 
@@ -452,7 +452,7 @@ int main(int argc, char **argv)
             if (teca_coordinate_util::time_step_of(time, true, true, calendar,
                  units, start_date, first_step))
             {
-                TECA_ERROR("Failed to lcoate time step for start date \""
+                TECA_FATAL_ERROR("Failed to lcoate time step for start date \""
                     <<  start_date << "\"")
                 return -1;
             }
@@ -467,7 +467,7 @@ int main(int argc, char **argv)
             if (teca_coordinate_util::time_step_of(time, false, true, calendar,
                  units, end_date, last_step))
             {
-                TECA_ERROR("Failed to lcoate time step for end date \""
+                TECA_FATAL_ERROR("Failed to lcoate time step for end date \""
                     <<  end_date << "\"")
                 return -1;
             }

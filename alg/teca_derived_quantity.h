@@ -9,6 +9,10 @@
 #include <string>
 #include <vector>
 
+#if defined(__CUDACC__)
+#pragma nv_diag_suppress = partial_override
+#endif
+
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_derived_quantity)
 
 /// a programmable algorithm specialized for simple array based computations
@@ -21,7 +25,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_derived_quantity)
  * context(operation_name) differentiates between multiple instances in the same
 pipeline.
 */
-class teca_derived_quantity : public teca_programmable_algorithm
+class TECA_EXPORT teca_derived_quantity : public teca_programmable_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_derived_quantity)
@@ -61,6 +65,8 @@ protected:
     teca_derived_quantity();
 
 private:
+    //using teca_algorithm::get_output_metadata;
+
     // specialized report and request implementations that
     // process the input and output array lists in a standardized
     // manner.
@@ -96,4 +102,7 @@ private:
     std::string derived_variable;
 };
 
+#if defined(__CUDACC__)
+#pragma nv_diag_default = partial_override
+#endif
 #endif

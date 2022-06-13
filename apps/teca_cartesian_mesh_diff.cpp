@@ -41,7 +41,7 @@ int main(int argc, char **argv)
     p_teca_algorithm test_reader = teca_cartesian_mesh_reader_factory::New(test_file);
     if (!test_reader)
     {
-        TECA_ERROR("the test file format was not recognized from \""
+        TECA_FATAL_ERROR("the test file format was not recognized from \""
             << test_file << "\"")
         return -1;
     }
@@ -56,7 +56,7 @@ int main(int argc, char **argv)
 
     if (!ref_reader && !ref_writer)
     {
-        TECA_ERROR("the refence file format was not recognized from \""
+        TECA_FATAL_ERROR("the refence file format was not recognized from \""
             << ref_file << "\"")
         return -1;
     }
@@ -180,7 +180,7 @@ int main(int argc, char **argv)
     {
         if (mpi_man.get_comm_rank() == 0)
         {
-           TECA_ERROR("Error parsing command line options. See --help "
+           TECA_FATAL_ERROR("Error parsing command line options. See --help "
                "for a list of supported options. " << e.what())
         }
         return -1;

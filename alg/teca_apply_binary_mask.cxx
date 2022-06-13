@@ -3,6 +3,7 @@
 #include "teca_cartesian_mesh.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_array_attributes.h"
 #include "teca_mpi_util.h"
@@ -184,7 +185,7 @@ std::vector<teca_metadata> teca_apply_binary_mask::get_upstream_request(
     // get the name of the mask array
     if (this->mask_variable.empty())
     {
-        TECA_ERROR("A mask variable was not specified")
+        TECA_FATAL_ERROR("A mask variable was not specified")
         return up_reqs;
     }
 
@@ -245,7 +246,7 @@ const_p_teca_dataset teca_apply_binary_mask::execute(
         = std::dynamic_pointer_cast<const teca_mesh>(input_data[0]);
     if (!in_mesh)
     {
-        TECA_ERROR("Failed to apply mask. Dataset is not a teca_mesh")
+        TECA_FATAL_ERROR("Failed to apply mask. Dataset is not a teca_mesh")
         return nullptr;
     }
 
@@ -258,7 +259,7 @@ const_p_teca_dataset teca_apply_binary_mask::execute(
     // check that a masking variable has been provided
     if (this->mask_variable.empty())
     {
-        TECA_ERROR("The mask_variable name was not specified")
+        TECA_FATAL_ERROR("The mask_variable name was not specified")
         return nullptr;
     }
 
@@ -267,7 +268,7 @@ const_p_teca_dataset teca_apply_binary_mask::execute(
         = in_mesh->get_point_arrays()->get(this->mask_variable);
     if (!mask_array)
     {
-        TECA_ERROR("The mask_variable \"" << this->mask_variable
+        TECA_FATAL_ERROR("The mask_variable \"" << this->mask_variable
             << "\" was requested but is not present in the input data.")
         return nullptr;
     }
@@ -286,7 +287,7 @@ const_p_teca_dataset teca_apply_binary_mask::execute(
                 = in_mesh->get_point_arrays()->get(input_var);
             if (!input_array)
             {
-                TECA_ERROR("The masked_variable \"" << input_var
+                TECA_FATAL_ERROR("The masked_variable \"" << input_var
                     << "\" was requested but is not present in the input data.")
                 return nullptr;
             }
@@ -299,22 +300,31 @@ const_p_teca_dataset teca_apply_binary_mask::execute(
             //output_array->resize(n);
 
             // do the mask calculation
-            NESTED_TEMPLATE_DISPATCH(
-                teca_variant_array_impl,
+            NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
                 output_array.get(), _VAR,
 
-                internal::apply_mask(
-                    dynamic_cast<TT_VAR*>(output_array.get())->get(),
-                    static_cast<const TT_MASK*>(mask_array.get())->get(),
-                    static_cast<const TT_VAR*>(input_array.get())->get(),
-                    n);
+                auto sp_in = static_cast<const TT_VAR*>
+                    (input_array.get())->get_cpu_accessible();
+
+                const NT_VAR *p_in = sp_in.get();
+
+                auto sp_mask = static_cast<TT_MASK*>
+                    (mask_array.get())->get_cpu_accessible();
+
+                const NT_MASK *p_mask = sp_mask.get();
+
+                auto sp_out = static_cast<TT_VAR*>
+                    (output_array.get())->get_cpu_accessible();
+
+                NT_VAR *p_out = sp_out.get();
+
+                internal::apply_mask(p_out, p_mask, p_in, n);
                 )
 
             out_mesh->get_point_arrays()->set(
                 output_var, output_array);
         }
     )
-
 
     return out_mesh;
 }

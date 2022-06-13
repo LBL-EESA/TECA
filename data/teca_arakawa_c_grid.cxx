@@ -24,6 +24,24 @@ teca_arakawa_c_grid::teca_arakawa_c_grid()
 {}
 
 // --------------------------------------------------------------------------
+unsigned long teca_arakawa_c_grid::get_number_of_points() const
+{
+    unsigned long ext[6];
+    this->get_extent(ext);
+
+    return (ext[1] - ext[0] + 1) * (ext[3] - ext[2] + 1) * (ext[5] - ext[4] + 1);
+}
+
+// --------------------------------------------------------------------------
+unsigned long teca_arakawa_c_grid::get_number_of_cells() const
+{
+    unsigned long ext[6];
+    this->get_extent(ext);
+
+    return (ext[1] - ext[0]) * (ext[3] - ext[2]) * (ext[5] - ext[4]);
+}
+
+// --------------------------------------------------------------------------
 int teca_arakawa_c_grid::get_type_code() const
 {
     return teca_dataset_tt<teca_arakawa_c_grid>::type_code;
@@ -210,38 +228,39 @@ const_p_teca_variant_array teca_arakawa_c_grid::get_t_coordinates() const
 }
 
 // --------------------------------------------------------------------------
-void teca_arakawa_c_grid::copy(const const_p_teca_dataset &dataset)
+void teca_arakawa_c_grid::copy(const const_p_teca_dataset &dataset,
+    allocator alloc)
 {
-    this->teca_mesh::copy(dataset);
-
     const_p_teca_arakawa_c_grid other
         = std::dynamic_pointer_cast<const teca_arakawa_c_grid>(dataset);
 
     if (!other || (this == other.get()))
         return;
 
+    this->teca_mesh::copy(dataset, alloc);
+
     m_impl = std::make_shared<teca_arakawa_c_grid::impl_t>();
-    m_impl->m_x_coordinates->copy(other->m_impl->m_x_coordinates);
-    m_impl->m_y_coordinates->copy(other->m_impl->m_y_coordinates);
-    m_impl->u_x_coordinates->copy(other->m_impl->u_x_coordinates);
-    m_impl->u_y_coordinates->copy(other->m_impl->u_y_coordinates);
-    m_impl->v_x_coordinates->copy(other->m_impl->v_x_coordinates);
-    m_impl->v_y_coordinates->copy(other->m_impl->v_y_coordinates);
-    m_impl->m_z_coordinates->copy(other->m_impl->m_z_coordinates);
-    m_impl->w_z_coordinates->copy(other->m_impl->w_z_coordinates);
-    m_impl->t_coordinates->copy(other->m_impl->t_coordinates);
+    m_impl->m_x_coordinates = other->m_impl->m_x_coordinates->new_copy(alloc);
+    m_impl->m_y_coordinates = other->m_impl->m_y_coordinates->new_copy(alloc);
+    m_impl->u_x_coordinates = other->m_impl->u_x_coordinates->new_copy(alloc);
+    m_impl->u_y_coordinates = other->m_impl->u_y_coordinates->new_copy(alloc);
+    m_impl->v_x_coordinates = other->m_impl->v_x_coordinates->new_copy(alloc);
+    m_impl->v_y_coordinates = other->m_impl->v_y_coordinates->new_copy(alloc);
+    m_impl->m_z_coordinates = other->m_impl->m_z_coordinates->new_copy(alloc);
+    m_impl->w_z_coordinates = other->m_impl->w_z_coordinates->new_copy(alloc);
+    m_impl->t_coordinates = other->m_impl->t_coordinates->new_copy(alloc);
 }
 
 // --------------------------------------------------------------------------
 void teca_arakawa_c_grid::shallow_copy(const p_teca_dataset &dataset)
 {
-    this->teca_mesh::shallow_copy(dataset);
-
     const_p_teca_arakawa_c_grid other
         = std::dynamic_pointer_cast<const teca_arakawa_c_grid>(dataset);
 
     if (!other || (this == other.get()))
         return;
+
+    this->teca_mesh::shallow_copy(dataset);
 
     m_impl = std::make_shared<teca_arakawa_c_grid::impl_t>();
     m_impl->m_x_coordinates = other->m_impl->m_x_coordinates;
@@ -268,7 +287,7 @@ void teca_arakawa_c_grid::copy_metadata(const const_p_teca_dataset &dataset)
 }
 
 // --------------------------------------------------------------------------
-void teca_arakawa_c_grid::swap(p_teca_dataset &dataset)
+void teca_arakawa_c_grid::swap(const p_teca_dataset &dataset)
 {
     this->teca_mesh::swap(dataset);
 

@@ -27,6 +27,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 /// @file
 
+#include "teca_config.h"
+
 #define CALCALCS_VERSION_NUMBER	1.0
 
 
@@ -227,12 +229,14 @@ char *ccs_err_str(int ccs_errno);
  * to use in subsequent calls.
  * return 0 upon success
  */
+TECA_EXPORT
 int set_current_calendar( const char *calendar, const char *units );
 
 /** Determine if the specified year is a leap year in the specified calendar.
  * this wraps ccs_isleap such that initialization is automatically handled and
  * optimizes for repeat calls. @returns 0 if successful.
  */
+TECA_EXPORT
 int is_leap_year( const char *calendar, const char *units,
                   int year, int &leap );
 
@@ -242,12 +246,14 @@ int is_leap_year( const char *calendar, const char *units,
  * wraps ccs_dpm such that initialization is automatically handled and
  * optimizes for repeat calls. returns 0 on success.
  */
+TECA_EXPORT
 int days_in_month( const char *calendar, const char *units,
                    int year, int month, int &dpm );
 
 /** Given a floating point offset in the given calendar return
  * year, month, day, hour, minute, seconds. returns 0 upon success.
  */
+TECA_EXPORT
 int date( double val, int *year, int *month, int *day, int *hour,
           int *minute, double *second, const char *dataunits,
           const char *calendar_name );
@@ -256,6 +262,7 @@ int date( double val, int *year, int *month, int *day, int *hour,
 /** given a year, month, day, hour, minute, second and calendar find
  * the floating point offset. returns 0 upon success.
  */
+TECA_EXPORT
 int coordinate( int year, int month, int day, int hour, int minute,
                 double second, const char *user_unit, const char *calendar_name,
                 double *value );

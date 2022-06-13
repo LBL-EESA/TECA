@@ -3,6 +3,7 @@
 #include "teca_cartesian_mesh.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_array_attributes.h"
 
@@ -117,7 +118,7 @@ teca_metadata teca_elevation_mask::get_output_metadata(
     unsigned int n_mask_vars = this->mask_variables.size();
     if (n_mask_vars == 0)
     {
-        TECA_ERROR("The names of the mask_variables were not provided")
+        TECA_FATAL_ERROR("The names of the mask_variables were not provided")
         return teca_metadata();
     }
 
@@ -179,13 +180,13 @@ std::vector<teca_metadata> teca_elevation_mask::get_upstream_request(
     // get the names of the arrays we need to request
     if (this->mesh_height_variable.empty())
     {
-        TECA_ERROR("The mesh_height_variable was not specified")
+        TECA_FATAL_ERROR("The mesh_height_variable was not specified")
         return up_reqs;
     }
 
     if (this->surface_elevation_variable.empty())
     {
-        TECA_ERROR("The surface_elevation_variable was not specified")
+        TECA_FATAL_ERROR("The surface_elevation_variable was not specified")
         return up_reqs;
     }
 
@@ -197,7 +198,7 @@ std::vector<teca_metadata> teca_elevation_mask::get_upstream_request(
         unsigned long req_extent[6];
         if (request.get("extent", req_extent, 6))
         {
-            TECA_ERROR("Neither bounds nor extent were specified in the request")
+            TECA_FATAL_ERROR("Neither bounds nor extent were specified in the request")
             return up_reqs;
         }
 
@@ -209,7 +210,7 @@ std::vector<teca_metadata> teca_elevation_mask::get_upstream_request(
         if (md.get("coordinates", coords) ||
             !(x = coords.get("x")) || !(y = coords.get("y")))
         {
-            TECA_ERROR("Failed to get mesh coordinates")
+            TECA_FATAL_ERROR("Failed to get mesh coordinates")
             return up_reqs;
         }
 
@@ -245,7 +246,7 @@ std::vector<teca_metadata> teca_elevation_mask::get_upstream_request(
     std::string req_key;
     if (elev_md.get("index_request_key", req_key))
     {
-        TECA_ERROR("Metadata is missing \"index_request_key\"")
+        TECA_FATAL_ERROR("Metadata is missing \"index_request_key\"")
         return up_reqs;
     }
 
@@ -285,7 +286,7 @@ const_p_teca_dataset teca_elevation_mask::execute(
     // check for an error upstream
     if ((input_data.size() != 2) || !input_data[0] || !input_data[1])
     {
-        TECA_ERROR("Invalid inputs detected")
+        TECA_FATAL_ERROR("Invalid inputs detected")
         return nullptr;
     }
 
@@ -295,7 +296,7 @@ const_p_teca_dataset teca_elevation_mask::execute(
 
     if (!in_mesh)
     {
-        TECA_ERROR("Data to mask on input port 0 is not a"
+        TECA_FATAL_ERROR("Data to mask on input port 0 is not a"
             " teca_cartesian_mesh. Got " << input_data[0]->get_class_name())
         return nullptr;
     }
@@ -315,7 +316,7 @@ const_p_teca_dataset teca_elevation_mask::execute(
 
     if (!mesh_height)
     {
-        TECA_ERROR("Mesh to mask is missing the height field \""
+        TECA_FATAL_ERROR("Mesh to mask is missing the height field \""
             << this->mesh_height_variable << "\"")
         return nullptr;
     }
@@ -326,7 +327,7 @@ const_p_teca_dataset teca_elevation_mask::execute(
 
     if (!in_elev)
     {
-        TECA_ERROR("Data to mask on input port 0 is not a"
+        TECA_FATAL_ERROR("Data to mask on input port 0 is not a"
             " teca_cartesian_mesh. Got " << input_data[0]->get_class_name())
         return nullptr;
     }
@@ -340,28 +341,33 @@ const_p_teca_dataset teca_elevation_mask::execute(
 
     if (!surface_elev)
     {
-        TECA_ERROR("Surface elevation data has no array \""
+        TECA_FATAL_ERROR("Surface elevation data has no array \""
             << this->surface_elevation_variable << "\"")
         return nullptr;
     }
 
     // compute the mask
     p_teca_char_array mask = teca_char_array::New(mesh_height->size());
-    char *p_mask = mask->get();
+    auto sp_mask = mask->get_cpu_accessible();
+    char *p_mask = sp_mask.get();
 
     NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
         surface_elev.get(),
         _SURF,
 
-        const NT_SURF *p_surface_elev =
-            static_cast<const TT_SURF *>(surface_elev.get())->get();
+        auto sp_surface_elev = static_cast<TT_SURF*>
+            (surface_elev.get())->get_cpu_accessible();
+
+        const NT_SURF *p_surface_elev = sp_surface_elev.get();
 
         NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
             mesh_height.get(),
             _MESH,
 
-            const NT_MESH *p_mesh_height =
-                static_cast<const TT_MESH *>(mesh_height.get())->get();
+            auto sp_mesh_height = static_cast<TT_MESH *>
+                (mesh_height.get())->get_cpu_accessible();
+
+            const NT_MESH *p_mesh_height = sp_mesh_height.get();
 
             internals_t::mask_by_surface_elevation(nx, ny, nz,
                 p_mask, p_surface_elev, p_mesh_height);

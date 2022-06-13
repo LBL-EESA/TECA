@@ -71,7 +71,7 @@ int teca_derived_quantity::set_name(const std::string &name)
         "teca_derived_quantity(%s)", name.c_str()) >=
         static_cast<int>(sizeof(this->class_name)))
     {
-        TECA_ERROR("name is too long for the current buffer size "
+        TECA_FATAL_ERROR("name is too long for the current buffer size "
             << sizeof(this->class_name))
         return -1;
     }

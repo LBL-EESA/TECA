@@ -1,6 +1,7 @@
 #ifndef teca_dataset_source_h
 #define teca_dataset_source_h
 
+#include "teca_config.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
 #include "teca_dataset.h"
@@ -15,7 +16,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_dataset_source)
  * This algorithm can be used to inject a dataset constructed
  * on outside of TECA into a TECA pipeline.
  */
-class teca_dataset_source : public teca_algorithm
+class TECA_EXPORT teca_dataset_source : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_dataset_source)
@@ -41,6 +42,8 @@ protected:
     teca_dataset_source();
 
 private:
+    using teca_algorithm::get_output_metadata;
+
     teca_metadata get_output_metadata(unsigned int port,
         const std::vector<teca_metadata> &input_md) override;
 

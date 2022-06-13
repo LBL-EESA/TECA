@@ -6,6 +6,7 @@
 #include "teca_normalize_coordinates.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_coordinate_util.h"
 #include "teca_mpi_manager.h"
 #include "teca_system_interface.h"
@@ -152,7 +153,7 @@ int main(int argc, char **argv)
     {
         if (rank == 0)
         {
-            TECA_ERROR("Extacly one of --input_file or --input_regex can be specified. "
+            TECA_FATAL_ERROR("Extacly one of --input_file or --input_regex can be specified. "
                 "Use --input_file to activate the multi_cf_reader (CMIP6 datasets) "
                 "and --input_regex to activate the cf_reader (CAM like datasets)")
         }
@@ -205,7 +206,7 @@ int main(int argc, char **argv)
         teca_metadata atrs;
         if (md.get("attributes", atrs))
         {
-            TECA_ERROR("metadata mising attributes")
+            TECA_FATAL_ERROR("metadata mising attributes")
             return -1;
         }
 
@@ -216,7 +217,7 @@ int main(int argc, char **argv)
            || time_atts.get("calendar", calendar)
            || time_atts.get("units", units))
         {
-            TECA_ERROR("failed to determine the calendaring parameters")
+            TECA_FATAL_ERROR("failed to determine the calendaring parameters")
             return -1;
         }
 
@@ -224,7 +225,7 @@ int main(int argc, char **argv)
         p_teca_variant_array t;
         if (md.get("coordinates", coords) || !(t = coords.get("t")))
         {
-            TECA_ERROR("failed to determine time coordinate")
+            TECA_FATAL_ERROR("failed to determine time coordinate")
             return -1;
         }
 
@@ -236,10 +237,12 @@ int main(int argc, char **argv)
             // convert to double precision
             size_t n = t->size();
             time = teca_double_array::New(n);
-            double *p_time = time->get();
+            auto sp_time = time->get_cpu_accessible();
+            double *p_time = sp_time.get();
             TEMPLATE_DISPATCH(teca_variant_array_impl,
                 t.get(),
-                NT *p_t = std::dynamic_pointer_cast<TT>(t)->get();
+                auto sp_t = std::dynamic_pointer_cast<TT>(t)->get_cpu_accessible();
+                NT *p_t = sp_t.get();
                 for (size_t i = 0; i < n; ++i)
                     p_time[i] = static_cast<double>(p_t[i]);
                 )
@@ -248,7 +251,7 @@ int main(int argc, char **argv)
         unsigned long n_time_steps = 0;
         if (md.get("number_of_time_steps", n_time_steps))
         {
-            TECA_ERROR("failed to deermine the number of steps")
+            TECA_FATAL_ERROR("failed to deermine the number of steps")
             return -1;
         }
 
@@ -262,11 +265,11 @@ int main(int argc, char **argv)
         if (teca_calcalcs::date(time->get(i0), &Y, &M, &D, &h, &m, &s,
             units.c_str(), calendar.c_str()))
         {
-            TECA_ERROR("failed to detmine the first available time in the file")
+            TECA_FATAL_ERROR("failed to detmine the first available time in the file")
             return -1;
         }
 #else
-        TECA_ERROR("UDUnits is required for human readable dates")
+        TECA_FATAL_ERROR("UDUnits is required for human readable dates")
 #endif
         std::ostringstream oss;
         oss << Y << "-" << M << "-" << D << " " << h << ":" << m << ":" << s;
@@ -278,7 +281,7 @@ int main(int argc, char **argv)
         if (teca_calcalcs::date(time->get(i1), &Y, &M, &D, &h, &m, &s,
             units.c_str(), calendar.c_str()))
         {
-            TECA_ERROR("failed to detmine the last available time in the file")
+            TECA_FATAL_ERROR("failed to detmine the last available time in the file")
             return -1;
         }
 #endif
@@ -292,7 +295,7 @@ int main(int argc, char **argv)
             if (teca_coordinate_util::time_step_of(
                  time, true, true, calendar, units, time_i, i0))
             {
-                TECA_ERROR("Failed to locate time step for start date \""
+                TECA_FATAL_ERROR("Failed to locate time step for start date \""
                     << time_i << "\"")
                 return -1;
             }
@@ -304,7 +307,7 @@ int main(int argc, char **argv)
             if (teca_coordinate_util::time_step_of(
                  time, false, true, calendar, units, time_j, i1))
             {
-                TECA_ERROR("Failed to locate time step for end date \""
+                TECA_FATAL_ERROR("Failed to locate time step for end date \""
                     << time_j << "\"")
                 return -1;
             }
@@ -431,7 +434,7 @@ int main(int argc, char **argv)
                 || !(dim_names = std::dynamic_pointer_cast<teca_string_array>(atts.get("cf_dim_names"))))
             {
                 // TODO -- Michael's CAM5 sometimes triggers this with an empty array name
-                //TECA_ERROR("metadata issue in array " << i << "\"" << array << "\"")
+                //TECA_FATAL_ERROR("metadata issue in array " << i << "\"" << array << "\"")
                 continue;
             }
 

@@ -1,6 +1,7 @@
 #ifndef teca_dataset_util_h
 #define teca_dataset_util_h
 
+#include "teca_config.h"
 #include "teca_dataset.h"
 #include "teca_mesh.h"
 #include "teca_cartesian_mesh.h"
@@ -12,10 +13,10 @@
 
 /// @cond
 template <typename dataset_t>
-struct teca_dataset_tt {};
+struct TECA_EXPORT teca_dataset_tt {};
 
 template <int code>
-struct teca_dataset_new {};
+struct TECA_EXPORT teca_dataset_new {};
 
 #define DECLARE_DATASET_TT(_DST, _TC)   \
 template <>                             \
@@ -37,6 +38,7 @@ DECLARE_DATASET_TT(teca_cartesian_mesh, 3)
 DECLARE_DATASET_TT(teca_uniform_cartesian_mesh, 4)
 DECLARE_DATASET_TT(teca_arakawa_c_grid, 5)
 DECLARE_DATASET_TT(teca_curvilinear_mesh, 6)
+DECLARE_DATASET_TT(teca_array_collection, 7)
 
 #define DATASET_FACTORY_NEW_CASE(_code)         \
     case _code:                                 \
@@ -56,9 +58,10 @@ DECLARE_DATASET_TT(teca_curvilinear_mesh, 6)
  * | 4    | teca_uniform_cartesian_mesh |
  * | 5    | teca_arakawa_c_grid |
  * | 6    | teca_curvilinear_mesh |
+ * | 7    | teca_array_collection |
  *
  */
-struct teca_dataset_factory
+struct TECA_EXPORT teca_dataset_factory
 {
     static p_teca_dataset New(int code)
     {
@@ -70,6 +73,7 @@ struct teca_dataset_factory
             DATASET_FACTORY_NEW_CASE(4)
             DATASET_FACTORY_NEW_CASE(5)
             DATASET_FACTORY_NEW_CASE(6)
+            DATASET_FACTORY_NEW_CASE(7)
             default:
                 TECA_ERROR("Invalid dataset code " << code )
         }

@@ -1,6 +1,7 @@
 #ifndef teca_binary_stream_h
 #define teca_binary_stream_h
 
+#include "teca_config.h"
 #include "teca_common.h"
 #include "teca_mpi.h"
 
@@ -12,7 +13,7 @@
 
 
 /// Serialize objects into a binary stream.
-class teca_binary_stream
+class TECA_EXPORT teca_binary_stream
 {
 public:
     // construct
@@ -77,6 +78,9 @@ public:
     template <typename T> void unpack(T *val, unsigned long n);
 
     // specializations
+    void pack(const std::string *v, unsigned long n);
+    void unpack(std::string *v, unsigned long n);
+
     void pack(const std::string &str);
     void unpack(std::string &str);
 
@@ -159,6 +163,22 @@ void teca_binary_stream::unpack(T *val, unsigned long n)
     unsigned long nn = n*sizeof(T);
     memcpy(val, m_read_p, nn);
     m_read_p += nn;
+}
+
+//-----------------------------------------------------------------------------
+inline
+void teca_binary_stream::pack(const std::string *v, unsigned long n)
+{
+    for (unsigned long i = 0; i < n; ++i)
+        this->pack(v[i]);
+}
+
+//-----------------------------------------------------------------------------
+inline
+void teca_binary_stream::unpack(std::string *v, unsigned long n)
+{
+    for (unsigned long i = 0; i < n; ++i)
+        this->unpack(v[i]);
 }
 
 //-----------------------------------------------------------------------------

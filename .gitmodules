@@ -1,0 +1,3 @@
+[submodule "HAMR"]
+	path = HAMR
+	url = https://github.com/LBL-EESA/HAMR.git

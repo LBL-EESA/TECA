@@ -4,6 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_array_attributes.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_cartesian_mesh.h"
 #include "teca_table.h"
@@ -18,8 +19,13 @@
 #include "teca_programmable_reduce.h"
 #include "teca_dataset_capture.h"
 #include "teca_index_executive.h"
-#include "teca_thread_pool.h"
 #include "teca_mpi.h"
+
+#if defined(TECA_HAS_CUDA)
+#include "teca_cuda_thread_pool.h"
+#else
+#include "teca_cpu_thread_pool.h"
+#endif
 
 #include <algorithm>
 #include <iostream>
@@ -165,8 +171,10 @@ public:
 
     // finalize callback
     // completes the reduction by scaling by the number of parameter table rows
-    p_teca_dataset operator()(const const_p_teca_dataset &ds)
+    p_teca_dataset operator()(int device_id, const const_p_teca_dataset &ds)
     {
+        (void) device_id;
+
         p_teca_cartesian_mesh out_mesh =
             std::dynamic_pointer_cast<teca_cartesian_mesh>(ds->new_instance());
 
@@ -191,7 +199,8 @@ public:
 
             NT num_params = this->parameter_table_size;
 
-            NT *p_ar_prob = std::static_pointer_cast<TT>(ar_prob)->get();
+            auto sp_ar_prob = static_cast<TT*>(ar_prob.get())->get_cpu_accessible();
+            NT *p_ar_prob = sp_ar_prob.get();
 
             for (unsigned long i = 0; i < n_vals; ++i)
                 p_ar_prob[i] /= num_params;
@@ -207,9 +216,11 @@ public:
     // if the inputs have the probability array this is used, if not the
     // array is computed from the filtered connected components. after the
     // reduction runs, the result will need to be normalized.
-    p_teca_dataset operator()(const const_p_teca_dataset &left,
+    p_teca_dataset operator()(int device_id, const const_p_teca_dataset &left,
         const const_p_teca_dataset &right)
     {
+        (void) device_id;
+
         // the inputs will not be modified. we are going to make shallow
         // copy, and add an array
         p_teca_dataset dataset_0 = std::const_pointer_cast<teca_dataset>(left);
@@ -244,18 +255,23 @@ public:
                 prob_out = prob_0->new_copy();
                 TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
                     prob_out.get(),
-                    const NT *p_prob_1 = std::static_pointer_cast<TT>(prob_1)->get();
-                    NT *p_prob_out = std::static_pointer_cast<TT>(prob_out)->get();
+
+                    auto sp_prob_1 = static_cast<TT*>(prob_1.get())->get_cpu_accessible();
+                    NT *p_prob_1 = sp_prob_1.get();
+
+                    auto sp_prob_out = static_cast<TT*>(prob_out.get())->get_cpu_accessible();
+                    NT *p_prob_out = sp_prob_out.get();
+
                     for (unsigned long i = 0; i < n_vals; ++i)
                         p_prob_out[i] += p_prob_1[i];
                     )
 
                 // concatenate ar couunt and parameter table row
                 n_wvcc_out = n_wvcc_0->new_copy();
-                n_wvcc_out->append(*n_wvcc_1.get());
+                n_wvcc_out->append(n_wvcc_1);
 
                 pt_row_out = pt_row_0->new_copy();
-                pt_row_out->append(*pt_row_1.get());
+                pt_row_out->append(pt_row_1);
             }
             else if (prob_0 || prob_1)
             {
@@ -358,13 +374,15 @@ public:
                     wvcc.get(),
                     _COMP,
 
-                    const NT_COMP *p_wvcc = std::static_pointer_cast<TT_COMP>(wvcc)->get();
+                    auto sp_wvcc = static_cast<TT_COMP*>(wvcc.get())->get_cpu_accessible();
+                    NT_COMP *p_wvcc = sp_wvcc.get();
 
                     NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
                         prob_out.get(),
                         _PROB,
 
-                        NT_PROB *p_prob_out = std::static_pointer_cast<TT_PROB>(prob_out)->get();
+                        auto sp_prob_out = static_cast<TT_PROB*>(prob_out.get())->get_cpu_accessible();
+                        NT_PROB *p_prob_out = sp_prob_out.get();
 
                         for (unsigned long i = 0; i < n_vals; ++i)
                             p_prob_out[i] += (p_wvcc[i] > 0 ? NT_PROB(1) : NT_PROB(0));
@@ -391,13 +409,19 @@ public:
                     wvcc_0.get(),
                     _COMP,
 
-                    const NT_COMP *p_wvcc_0 = std::static_pointer_cast<TT_COMP>(wvcc_0)->get();
-                    const NT_COMP *p_wvcc_1 = std::static_pointer_cast<TT_COMP>(wvcc_1)->get();
+                    auto sp_wvcc_0 = static_cast<TT_COMP*>(wvcc_0.get())->get_cpu_accessible();
+                    NT_COMP *p_wvcc_0 = sp_wvcc_0.get();
+
+                    auto sp_wvcc_1 = static_cast<TT_COMP*>(wvcc_1.get())->get_cpu_accessible();
+                    NT_COMP *p_wvcc_1 = sp_wvcc_1.get();
 
                     NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
                         prob_out.get(),
                         _PROB,
-                        NT_PROB *p_prob_out = std::static_pointer_cast<TT_PROB>(prob_out)->get();
+
+                        auto sp_prob_out = static_cast<TT_PROB*>(prob_out.get())->get_cpu_accessible();
+                        NT_PROB *p_prob_out = sp_prob_out.get();
+
                         for (unsigned long i = 0; i < n_vals; ++i)
                             p_prob_out[i] = (p_wvcc_0[i] > 0 ? NT_PROB(1) : NT_PROB(0)) +
                                  (p_wvcc_1[i] > 0 ? NT_PROB(1) : NT_PROB(0));
@@ -434,7 +458,7 @@ public:
                 wvcc_bg = val == 0 ? 1 : 0;
                 vals[1] -= wvcc_bg;
 
-                n_wvcc_out = teca_int_array::New(vals, 2);
+                n_wvcc_out = teca_int_array::New(2, vals);
 
                 // append param table row
                 if (md_0.get("parameter_table_row", vals[0]) ||
@@ -444,7 +468,7 @@ public:
                     return nullptr;
                 }
 
-                pt_row_out = teca_int_array::New(vals, 2);
+                pt_row_out = teca_int_array::New(2, vals);
             }
         }
         else if (dataset_0 || dataset_1)
@@ -493,13 +517,15 @@ public:
                     wvcc.get(),
                     _COMP,
 
-                    const NT_COMP *p_wvcc = std::static_pointer_cast<TT_COMP>(wvcc)->get();
+                    auto sp_wvcc = static_cast<TT_COMP*>(wvcc.get())->get_cpu_accessible();
+                    NT_COMP *p_wvcc = sp_wvcc.get();
 
                     NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
                         prob_out.get(),
                         _PROB,
 
-                        NT_PROB *p_prob_out = std::static_pointer_cast<TT_PROB>(prob_out)->get();
+                        auto sp_prob_out = static_cast<TT_PROB*>(prob_out.get())->get_cpu_accessible();
+                        NT_PROB *p_prob_out = sp_prob_out.get();
 
                         for (unsigned long i = 0; i < n_vals; ++i)
                             p_prob_out[i] = (p_wvcc[i] > 0 ? NT_PROB(1) : NT_PROB(0));
@@ -528,7 +554,7 @@ public:
 
                 val -= wvcc_bg;
 
-                n_wvcc_out = teca_int_array::New(&val, 1);
+                n_wvcc_out = teca_int_array::New(1, val);
 
                 // get parameter table rows from metadata and pass into the
                 // information arrays
@@ -538,7 +564,7 @@ public:
                     return nullptr;
                 }
 
-                pt_row_out = teca_int_array::New(&val,1);
+                pt_row_out = teca_int_array::New(1, val);
             }
         }
         else
@@ -694,7 +720,7 @@ void teca_bayesian_ar_detect::set_modified()
 void teca_bayesian_ar_detect::set_thread_pool_size(int n)
 {
     this->internals->queue = new_teca_data_request_queue(
-        this->get_communicator(), n, true, this->get_verbose());
+        this->get_communicator(), n, -1, true, this->get_verbose());
 }
 
 // --------------------------------------------------------------------------
@@ -755,21 +781,21 @@ teca_metadata teca_bayesian_ar_detect::get_output_metadata(
 
             if (!parameter_table)
             {
-                TECA_ERROR("metadata pipeline failure")
+                TECA_FATAL_ERROR("metadata pipeline failure")
             }
             else if (!parameter_table->has_column(this->min_ivt_variable))
             {
-                TECA_ERROR("metadata missing percentile column \""
+                TECA_FATAL_ERROR("metadata missing percentile column \""
                     << this->min_ivt_variable << "\"")
             }
             else if (!parameter_table->get_column(this->min_component_area_variable))
             {
-                TECA_ERROR("metadata missing area column \""
+                TECA_FATAL_ERROR("metadata missing area column \""
                     << this->min_component_area_variable << "\"")
             }
             else if (!parameter_table->get_column(this->hwhm_latitude_variable))
             {
-                TECA_ERROR("metadata missing hwhm column \""
+                TECA_FATAL_ERROR("metadata missing hwhm column \""
                     << this->hwhm_latitude_variable << "\"")
             }
             else
@@ -805,7 +831,7 @@ teca_metadata teca_bayesian_ar_detect::get_output_metadata(
 
         if (num_params < 1)
         {
-            TECA_ERROR("Invalid parameter table, must have at least one row")
+            TECA_FATAL_ERROR("Invalid parameter table, must have at least one row")
             return teca_metadata();
         }
     }
@@ -872,7 +898,7 @@ std::vector<teca_metadata> teca_bayesian_ar_detect::get_upstream_request(
     // get the name of the array to request
     if (this->ivt_variable.empty())
     {
-        TECA_ERROR("A water vapor variable was not specified")
+        TECA_FATAL_ERROR("A water vapor variable was not specified")
         return up_reqs;
     }
 
@@ -911,7 +937,7 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
     // check the thread pool
     if (!this->internals->queue)
     {
-        TECA_ERROR("thread pool has not been created. Did you forget "
+        TECA_FATAL_ERROR("thread pool has not been created. Did you forget "
             "to call set_thread_pool_size?")
         return nullptr;
     }
@@ -919,7 +945,7 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
     // check the parameter table
     if (!this->internals->parameter_table)
     {
-        TECA_ERROR("empty parameter table input")
+        TECA_FATAL_ERROR("empty parameter table input")
         return nullptr;
     }
 
@@ -931,7 +957,7 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
         std::dynamic_pointer_cast<teca_cartesian_mesh>(in_data);
     if (!in_mesh)
     {
-        TECA_ERROR("empty mesh input, or not a cartesian_mesh")
+        TECA_FATAL_ERROR("empty mesh input, or not a cartesian_mesh")
         return nullptr;
     }
 
@@ -940,14 +966,14 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
     std::string index_request_key;
     if (in_md.get("index_request_key", index_request_key))
     {
-        TECA_ERROR("Dataset metadata is missing the index_request_key key")
+        TECA_FATAL_ERROR("Dataset metadata is missing the index_request_key key")
         return nullptr;
     }
 
     unsigned long index = 0;
     if (in_md.get(index_request_key, index))
     {
-        TECA_ERROR("Dataset metadata is missing the \""
+        TECA_FATAL_ERROR("Dataset metadata is missing the \""
             << index_request_key << "\" key")
         return nullptr;
     }
@@ -956,7 +982,7 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
     if (in_mesh->get_time(time) &&
         request.get("time", time))
     {
-        TECA_ERROR("request missing \"time\"")
+        TECA_FATAL_ERROR("request missing \"time\"")
         return nullptr;
     }
 
@@ -1077,7 +1103,7 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
 
     if (!out_mesh)
     {
-        TECA_ERROR("Pipeline execution failed")
+        TECA_FATAL_ERROR("Pipeline execution failed")
         return nullptr;
     }
 

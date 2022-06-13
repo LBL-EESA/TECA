@@ -18,7 +18,7 @@ export PATH=$(brew --prefix)/opt/curl/bin:$PATH
 export DYLD_LIBRARY_PATH=$(brew --prefix)/opt/curl/lib:$DYLD_LIBRARY_PATH
 
 mkdir build
-ctest -S ${DASHROOT}/test/travis_ci/ctest_osx.cmake --output-on-failure --timeout 180 &
+ctest -S ${DASHROOT}/test/travis_ci/ctest_osx.cmake --output-on-failure --timeout 400 &
 ctest_pid=$!
 
 # this loop prevents travis from killing the job

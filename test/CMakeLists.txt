@@ -30,6 +30,9 @@ if (TECA_HAS_DATA)
 
     configure_file(${TECA_DATA_ROOT}/HighResMIP_TC_test.mcf.in
          ${CMAKE_CURRENT_BINARY_DIR}/HighResMIP_TC_test.mcf)
+
+    configure_file(${TECA_DATA_ROOT}/ERA5_lapse_rate_test.mcf.in
+         ${CMAKE_CURRENT_BINARY_DIR}/ERA5_lapse_rate_test.mcf)
 endif()
 
 teca_add_test(test_pipeline_time_average
@@ -560,6 +563,7 @@ teca_add_test(test_bayesian_ar_detect_threads
     "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\\.nc$"
     "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" IVT
     "bayesian_ar_detect_%t%.nc" -1 0 -1
+    FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(test_bayesian_ar_detect_mpi
@@ -754,4 +758,87 @@ teca_add_test(test_rename_variables
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_rename_variables "${TECA_DATA_ROOT}/test_rename_variables.nc"
     FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_shape_file_mask
+    SOURCES test_shape_file_mask.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_shape_file_mask ${TECA_DATA_ROOT}/GMBAMountainInventory_v1.2-World.shp
+        mountain_mask 360 180 ${TECA_DATA_ROOT}/GMBAMountainInventory_v1.2-World.nc
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_SHAPELIB}
+    REQ_TECA_DATA)
+
+teca_add_test(test_cartesian_mesh_coordinate_transform
+    SOURCES test_cartesian_mesh_coordinate_transform.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_cartesian_mesh_coordinate_transform
+        "${TECA_DATA_ROOT}/test_cartesian_mesh_coordinate_transform.nc"
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_time_axis_convolution_backward_constant
+    EXEC_NAME test_time_axis_convolution
+    SOURCES test_time_axis_convolution.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_time_axis_convolution
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc$"
+    "${TECA_DATA_ROOT}/test_time_axis_convolution_backward_constant"
+    constant 3 backward 0 0 30 1 prw
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_time_axis_convolution_forward_constant
+    COMMAND test_time_axis_convolution
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc$"
+    "${TECA_DATA_ROOT}/test_time_axis_convolution_forward_constant"
+    constant 3 forward 0 0 30 1 prw
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_time_axis_convolution_centered_gaussian
+    COMMAND test_time_axis_convolution
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc$"
+    "${TECA_DATA_ROOT}/test_time_axis_convolution_centered_gaussian"
+    gaussian 5 centered 0 0 30 1 prw
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_time_axis_convolution_centered_gaussian_highpass
+    COMMAND test_time_axis_convolution
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc$"
+    "${TECA_DATA_ROOT}/test_time_axis_convolution_centered_gaussian_highpass"
+    gaussian 5 centered 1 0 30 1 prw
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_variant_array_cuda_access
+    SOURCES test_variant_array_cuda_access.cpp
+    LIBS teca_core ${teca_test_link}
+    COMMAND test_variant_array_cuda_access
+    FEATURES ${TECA_HAS_CUDA})
+
+teca_add_test(test_variant_array_cpu_access
+    SOURCES test_variant_array_cpu_access.cpp
+    LIBS teca_core ${teca_test_link}
+    COMMAND test_variant_array_cpu_access)
+
+teca_add_test(test_array_collection_cuda_access
+    SOURCES test_array_collection_cuda_access.cpp
+    LIBS teca_core teca_data ${teca_test_link}
+    COMMAND test_array_collection_cuda_access
+    FEATURES ${TECA_HAS_CUDA})
+
+teca_add_test(test_l2_norm_threads
+    SOURCES test_l2_norm_threads.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_l2_norm_threads
+    "${TECA_DATA_ROOT}/cam5_1_amip_run2\\.cam2\\.h2\\.1991-10-[0-9][0-9]-10800\\.nc"
+    U850 V850 . W850 test_l2_norm_cam5_%t%.nc
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_l2_norm
+    SOURCES test_l2_norm.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_l2_norm "${TECA_DATA_ROOT}/test_l2_norm.bin"
     REQ_TECA_DATA)

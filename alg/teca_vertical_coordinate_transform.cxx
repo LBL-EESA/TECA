@@ -127,7 +127,7 @@ teca_metadata teca_vertical_coordinate_transform::get_output_metadata(
     teca_metadata coords;
     if (out_md.get("coordinates", coords))
     {
-        TECA_ERROR("metadata issue, missing coordinate metadata")
+        TECA_FATAL_ERROR("metadata issue, missing coordinate metadata")
         return teca_metadata();
     }
 
@@ -135,7 +135,7 @@ teca_metadata teca_vertical_coordinate_transform::get_output_metadata(
     teca_metadata atrs;
     if (out_md.get("attributes", atrs))
     {
-        TECA_ERROR("failed to get array attributes")
+        TECA_FATAL_ERROR("failed to get array attributes")
         return teca_metadata();
     }
 
@@ -152,7 +152,7 @@ teca_metadata teca_vertical_coordinate_transform::get_output_metadata(
             teca_metadata ps_atts;
             if (atrs.get("PSFC", ps_atts))
             {
-                TECA_ERROR("failed to get PSFC attributes")
+                TECA_FATAL_ERROR("failed to get PSFC attributes")
                 return teca_metadata();
             }
             atrs.set("ZPDM", ps_atts);
@@ -161,7 +161,7 @@ teca_metadata teca_vertical_coordinate_transform::get_output_metadata(
         }
         default:
         {
-            TECA_ERROR("Invlaid mode " << this->mode)
+            TECA_FATAL_ERROR("Invlaid mode " << this->mode)
             return teca_metadata();
         }
     }
@@ -201,7 +201,7 @@ teca_vertical_coordinate_transform::get_upstream_request(
             break;
         }
         default:
-            TECA_ERROR("Invlaid mode " << this->mode)
+            TECA_FATAL_ERROR("Invlaid mode " << this->mode)
             return up_reqs;
     }
 
@@ -237,7 +237,7 @@ const_p_teca_dataset teca_vertical_coordinate_transform::execute(
 
     if (!in_mesh)
     {
-        TECA_ERROR("teca_arakawa_c_grid is required")
+        TECA_FATAL_ERROR("teca_arakawa_c_grid is required")
         return nullptr;
     }
 
@@ -266,14 +266,14 @@ const_p_teca_dataset teca_vertical_coordinate_transform::execute(
             const_p_teca_variant_array pt = in_mesh->get_information_arrays()->get("P_TOP");
             if (!pt)
             {
-                TECA_ERROR("Failed to get P_TOP")
+                TECA_FATAL_ERROR("Failed to get P_TOP")
                 return nullptr;
             }
 
             const_p_teca_variant_array ps = in_mesh->get_cell_arrays()->get("PSFC");
             if (!ps)
             {
-                TECA_ERROR("Failed to get PSFC")
+                TECA_FATAL_ERROR("Failed to get PSFC")
                 return nullptr;
             }
 
@@ -295,15 +295,29 @@ const_p_teca_dataset teca_vertical_coordinate_transform::execute(
             TEMPLATE_DISPATCH(teca_variant_array_impl,
                 xo.get(),
 
-                const NT *ppt = dynamic_cast<const TT*>(pt.get())->get();
-                const NT *pps = dynamic_cast<const TT*>(ps.get())->get();
-                const NT *pxi = dynamic_cast<const TT*>(xi.get())->get();
-                const NT *pyi = dynamic_cast<const TT*>(yi.get())->get();
-                const NT *peta = dynamic_cast<const TT*>(eta.get())->get();
+                auto sppt = dynamic_cast<const TT*>(pt.get())->get_cpu_accessible();
+                auto ppt = sppt.get();
 
-                NT *pxo = dynamic_cast<TT*>(xo.get())->get();
-                NT *pyo = dynamic_cast<TT*>(yo.get())->get();
-                NT *pph = dynamic_cast<TT*>(ph.get())->get();
+                auto spps = dynamic_cast<const TT*>(ps.get())->get_cpu_accessible();
+                auto pps = spps.get();
+
+                auto spxi = dynamic_cast<const TT*>(xi.get())->get_cpu_accessible();
+                auto pxi = spxi.get();
+
+                auto spyi = dynamic_cast<const TT*>(yi.get())->get_cpu_accessible();
+                auto pyi = spyi.get();
+
+                auto speta = dynamic_cast<const TT*>(eta.get())->get_cpu_accessible();
+                auto peta = speta.get();
+
+                auto spxo = dynamic_cast<TT*>(xo.get())->get_cpu_accessible();
+                auto pxo = spxo.get();
+
+                auto spyo = dynamic_cast<TT*>(yo.get())->get_cpu_accessible();
+                auto pyo = spyo.get();
+
+                auto spph = dynamic_cast<TT*>(ph.get())->get_cpu_accessible();
+                auto pph = spph.get();
 
                 ::transform_wrf_v3(nx, ny, nz, nxy, pxi, pyi,
                     peta, pps, ppt[0], pxo, pyo, pph);
@@ -323,7 +337,7 @@ const_p_teca_dataset teca_vertical_coordinate_transform::execute(
         }
         default:
         {
-            TECA_ERROR("Invlaid mode " << this->mode)
+            TECA_FATAL_ERROR("Invlaid mode " << this->mode)
             return nullptr;
         }
     }

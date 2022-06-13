@@ -3,6 +3,7 @@
 #include "teca_cartesian_mesh.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 
 #include <algorithm>
@@ -254,14 +255,14 @@ std::vector<teca_metadata> teca_vorticity::get_upstream_request(
     std::string comp_0_var = this->get_component_0_variable(request);
     if (comp_0_var.empty())
     {
-        TECA_ERROR("component 0 array was not specified")
+        TECA_FATAL_ERROR("component 0 array was not specified")
         return up_reqs;
     }
 
     std::string comp_1_var = this->get_component_1_variable(request);
     if (comp_1_var.empty())
     {
-        TECA_ERROR("component 0 array was not specified")
+        TECA_FATAL_ERROR("component 0 array was not specified")
         return up_reqs;
     }
 
@@ -305,7 +306,7 @@ const_p_teca_dataset teca_vorticity::execute(
 
     if (!in_mesh)
     {
-        TECA_ERROR("teca_cartesian_mesh is required")
+        TECA_FATAL_ERROR("teca_cartesian_mesh is required")
         return nullptr;
     }
 
@@ -314,7 +315,7 @@ const_p_teca_dataset teca_vorticity::execute(
 
     if (comp_0_var.empty())
     {
-        TECA_ERROR("component_0_variable was not specified")
+        TECA_FATAL_ERROR("component_0_variable was not specified")
         return nullptr;
     }
 
@@ -323,7 +324,7 @@ const_p_teca_dataset teca_vorticity::execute(
 
     if (!comp_0)
     {
-        TECA_ERROR("requested array \"" << comp_0_var << "\" not present.")
+        TECA_FATAL_ERROR("requested array \"" << comp_0_var << "\" not present.")
         return nullptr;
     }
 
@@ -332,7 +333,7 @@ const_p_teca_dataset teca_vorticity::execute(
 
     if (comp_1_var.empty())
     {
-        TECA_ERROR("component_1_variable was not specified")
+        TECA_FATAL_ERROR("component_1_variable was not specified")
         return nullptr;
     }
 
@@ -341,7 +342,7 @@ const_p_teca_dataset teca_vorticity::execute(
 
     if (!comp_1)
     {
-        TECA_ERROR("requested array \"" << comp_1_var << "\" not present.")
+        TECA_FATAL_ERROR("requested array \"" << comp_1_var << "\" not present.")
         return nullptr;
     }
 
@@ -351,7 +352,7 @@ const_p_teca_dataset teca_vorticity::execute(
 
     if (!lon || !lat)
     {
-        TECA_ERROR("lat lon mesh cooridinates not present.")
+        TECA_FATAL_ERROR("lat lon mesh cooridinates not present.")
         return nullptr;
     }
 
@@ -364,16 +365,24 @@ const_p_teca_dataset teca_vorticity::execute(
         const teca_variant_array_impl,
         lon.get(), 1,
 
-        const NT1 *p_lon = dynamic_cast<const TT1*>(lon.get())->get();
-        const NT1 *p_lat = dynamic_cast<const TT1*>(lat.get())->get();
+        auto sp_lon = dynamic_cast<TT1*>(lon.get())->get_cpu_accessible();
+        const NT1 *p_lon = sp_lon.get();
+
+        auto sp_lat = dynamic_cast<TT1*>(lat.get())->get_cpu_accessible();
+        const NT1 *p_lat = sp_lat.get();
 
         NESTED_TEMPLATE_DISPATCH_FP(
             teca_variant_array_impl,
             vort.get(), 2,
 
-            const NT2 *p_comp_0 = dynamic_cast<const TT2*>(comp_0.get())->get();
-            const NT2 *p_comp_1 = dynamic_cast<const TT2*>(comp_1.get())->get();
-            NT2 *p_vort = dynamic_cast<TT2*>(vort.get())->get();
+            auto sp_comp_0 = dynamic_cast<const TT2*>(comp_0.get())->get_cpu_accessible();
+            const NT2 *p_comp_0 = sp_comp_0.get();
+
+            auto sp_comp_1 = dynamic_cast<const TT2*>(comp_1.get())->get_cpu_accessible();
+            const NT2 *p_comp_1 = sp_comp_1.get();
+
+            auto sp_vort = dynamic_cast<TT2*>(vort.get())->get_cpu_accessible();
+            NT2 *p_vort = sp_vort.get();
 
             ::vorticity(p_vort, p_lon, p_lat,
                 p_comp_0, p_comp_1, lon->size(), lat->size());

@@ -24,7 +24,7 @@ The [TECA examples](https://github.com/LBL-EESA/TECA_examples) repository contai
 The [TECA Python package]() is available on PyPi or by installing from sources. For more information see the [TECA User's Guide](https://teca.readthedocs.io/en/latest/) sections on [installing TECA](https://teca.readthedocs.io/en/latest/installation.html) and [Python development](https://teca.readthedocs.io/en/latest/python.html).
 
 ### CI and Testing
-For the latest regression suite results see the [TECA CDash project site](https://cdash.nersc.gov/index.php?project=TECA).
+For the latest regression suite results see the [TECA CDash project site](https://my.cdash.org/index.php?project=TECA).
 
 ## Copyright Notice
 TECA, Copyright (c) 2015, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Dept. of Energy).  All rights reserved.

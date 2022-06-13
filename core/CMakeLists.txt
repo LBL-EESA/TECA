@@ -27,10 +27,17 @@ set(teca_core_srcs
     teca_threaded_algorithm.cxx
     teca_threaded_programmable_algorithm.cxx
     teca_thread_util.cxx
-    teca_variant_array.cxx
     )
 
-set(teca_core_link)
+set(teca_core_link hamr)
+
+set(teca_core_cuda_srcs)
+if (TECA_HAS_CUDA)
+    set(teca_core_cuda_srcs
+        teca_cuda_util.cu
+        )
+    set_source_files_properties(${teca_core_srcs} PROPERTIES LANGUAGE CUDA)
+endif()
 
 if (TECA_HAS_MPI)
     list(APPEND teca_core_link MPI)
@@ -49,7 +56,7 @@ endif()
 
 list(APPEND teca_core_link pthread)
 
-add_library(teca_core ${teca_core_srcs})
+add_library(teca_core ${teca_core_srcs} ${teca_core_cuda_srcs})
 target_link_libraries(teca_core PUBLIC ${teca_core_link})
 
 target_include_directories(teca_core

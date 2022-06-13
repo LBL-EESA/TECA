@@ -67,10 +67,20 @@ int teca_cf_interval_time_step_mapper::to_stream(std::ostream &os)
             << std::endl;
 
         for (int i = 0; i < n_ranks; ++i)
-            os << std::left << std::setw(8) << i
-                << std::left << std::setw(12) << block_start[i]
-                << std::left << std::setw(12) << block_start[i] + block_size[i] - 1
-                << std::endl;
+        {
+            if (block_size[i])
+            {
+                os << std::left << std::setw(8) << i
+                    << std::left << std::setw(12) << block_start[i]
+                    << std::left << std::setw(12) << block_start[i] + block_size[i] - 1
+                    << std::endl;
+            }
+            else
+            {
+                os << std::left << std::setw(8) << i << std::left << std::setw(12) << "-"
+                    << std::left << std::setw(12) << "-" << std::endl;
+            }
+        }
 
         os << std::endl
             << std::left << std::setw(8) << "file"

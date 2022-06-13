@@ -8,6 +8,8 @@
 #include "teca_coordinate_util.h"
 #include "teca_dataset_capture.h"
 #include "teca_system_interface.h"
+#include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 
 
 #include <cmath>
@@ -51,11 +53,13 @@ struct function_of_z
         size_t nxy = nx*ny;
 
         p_teca_variant_array_impl<num_t> fz = teca_variant_array_impl<num_t>::New(nx*ny*nz);
-        num_t *pfz = fz->get();
+        auto spfz = fz->get_cpu_accessible();
+        num_t *pfz = spfz.get();
 
         TEMPLATE_DISPATCH(teca_variant_array_impl,
             fz.get(),
-            const NT *pz = dynamic_cast<const TT*>(z.get())->get();
+            auto spz = dynamic_cast<const TT*>(z.get())->get_cpu_accessible();
+            const NT *pz = spz.get();
             for (size_t k = 0; k < nz; ++k)
             {
                 for (size_t j = 0; j < ny; ++j)
@@ -193,13 +197,14 @@ int main(int argc, char **argv)
         head = mask;
     }
 
+    // we need to use the index executive here to enable GPU processing
+    p_teca_index_executive exec = teca_index_executive::New();
+
     // write the test input dataset
     if (write_input)
     {
         std::string fn = std::string("test_integrated_vapor_transport_input_") +
             std::string(vv_mask ? "vv_mask" : "elev_mask") + std::string("_%t%.nc");
-
-        p_teca_index_executive exec = teca_index_executive::New();
 
         p_teca_cf_writer w = teca_cf_writer::New();
         w->set_input_connection(head->get_output_port());
@@ -220,6 +225,7 @@ int main(int argc, char **argv)
     ivt->set_wind_v_variable("v");
     ivt->set_specific_humidity_variable("q");
 
+
     // write the result
     if (write_output)
     {
@@ -228,6 +234,7 @@ int main(int argc, char **argv)
 
         p_teca_cf_writer w = teca_cf_writer::New();
         w->set_input_connection(ivt->get_output_port());
+        w->set_executive(exec);
         w->set_file_name(fn);
         w->set_thread_pool_size(1);
         w->set_point_arrays({"ivt_u", "ivt_v"});
@@ -237,6 +244,7 @@ int main(int argc, char **argv)
     // capture the result
     p_teca_dataset_capture dsc = teca_dataset_capture::New();
     dsc->set_input_connection(ivt->get_output_port());
+    dsc->set_executive(exec);
     dsc->update();
 
     const_p_teca_cartesian_mesh m =

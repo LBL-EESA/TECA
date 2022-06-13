@@ -3,6 +3,7 @@
 #include "teca_cartesian_mesh.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_coordinate_util.h"
 #include "teca_metadata_util.h"
@@ -98,19 +99,23 @@ int internals::reorder(p_teca_variant_array &x_out,
     NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
         x.get(), _C,
 
-        const NT_C *px = dynamic_cast<TT_C*>(x.get())->get();
+        auto spx = dynamic_cast<TT_C*>(x.get())->get_cpu_accessible();
+        const NT_C *px = spx.get();
 
         // if comp(x0, x1) reverse the axis.
         // when comp is less than the output will be ascending
         // when comp is greater than the output will be descending
-        compare_t compare;
+        compare_t<NT_C> compare;
         do_reorder = compare(px[x1], px[0]);
 
         if (!do_reorder)
             return 0;
 
-        p_teca_variant_array xo = x->new_instance(nx);
-        NT_C *pxo = static_cast<teca_variant_array_impl<NT_C>*>(xo.get())->get();
+        using TT_C_OUT = teca_variant_array_impl<NT_C>;
+        std::shared_ptr<TT_C_OUT> xo = TT_C_OUT::New(nx);
+
+        auto spxo = xo->get_cpu_accessible();
+        NT_C *pxo = spxo.get();
 
         pxo += x1;
         for (unsigned long i = 0; i < nx; ++i)
@@ -129,9 +134,15 @@ int internals::reorder(p_teca_variant_array &x_out,
 template <typename data_t>
 data_t internals::periodic_shift_x(data_t x)
 {
+#if defined(__CUDACC__)
+#pragma nv_diag_suppress = unsigned_compare_with_zero
+#endif
     if (x < data_t(0))
         return x + data_t(360);
     return x;
+#if defined(__CUDACC__)
+#pragma nv_diag_default = unsigned_compare_with_zero
+#endif
 }
 
 // --------------------------------------------------------------------------
@@ -158,7 +169,7 @@ void internals::periodic_shift_x(coord_t *pxo,
     for (unsigned long i = 0; i < nx; ++i)
         pmap[i] = i;
 
-    indirect_less comp(tmp);
+    indirect_less<coord_t> comp(tmp);
     std::sort(pmap, pmap + nx, comp);
 
     // reoder the periodic shifted values
@@ -183,7 +194,7 @@ void internals::inv_periodic_shift_x(unsigned long *pmap,
     for (unsigned long i = 0; i < nx; ++i)
         pmap[i] = i;
 
-    indirect_less comp(tmp);
+    indirect_less<coord_t> comp(tmp);
     std::sort(pmap, pmap + nx, comp);
 
     free(tmp);
@@ -198,10 +209,12 @@ int internals::inv_periodic_shift_x(p_teca_unsigned_long_array &map,
     NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
         x.get(), _C,
 
-        const NT_C *px = dynamic_cast<TT_C*>(x.get())->get();
+        auto spx = dynamic_cast<TT_C*>(x.get())->get_cpu_accessible();
+        const NT_C *px = spx.get();
 
         map = teca_unsigned_long_array::New(nx);
-        unsigned long *pmap = map->get();
+        auto spmap = map->get_cpu_accessible();
+        unsigned long *pmap = spmap.get();
 
         inv_periodic_shift_x(pmap, px, nx);
 
@@ -221,13 +234,17 @@ int internals::periodic_shift_x(p_teca_variant_array &x_out,
 // the periodic shift and the code will ignore them.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wtype-limits"
+#if defined(__CUDACC__)
+#pragma nv_diag_suppress = unsigned_compare_with_zero
+#endif
     unsigned long nx = x->size();
     unsigned long x1 = nx - 1;
 
     NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
         x.get(), _C,
 
-        const NT_C *px = dynamic_cast<TT_C*>(x.get())->get();
+        auto spx = dynamic_cast<TT_C*>(x.get())->get_cpu_accessible();
+        const NT_C *px = spx.get();
 
         // check that the shift is needed.
         shifted_x = (px[0] < NT_C(0));
@@ -263,11 +280,15 @@ int internals::periodic_shift_x(p_teca_variant_array &x_out,
         }
 
         p_teca_variant_array xo = x->new_instance(nx);
-        NT_C *pxo = static_cast<teca_variant_array_impl<NT_C>*>
-            (xo.get())->get();
+
+        using TT_C_OUT = teca_variant_array_impl<NT_C>;
+        auto spxo = static_cast<TT_C_OUT*>(xo.get())->get_cpu_accessible();
+        NT_C *pxo = spxo.get();
 
         map = teca_unsigned_long_array::New(nx);
-        unsigned long *pmap = map->get();
+
+        auto spmap = map->get_cpu_accessible();
+        unsigned long *pmap = spmap.get();
 
         periodic_shift_x(pxo, pmap, px, nx);
 
@@ -278,6 +299,9 @@ int internals::periodic_shift_x(p_teca_variant_array &x_out,
 
     TECA_ERROR("Unsupported coordinate type " << x->get_class_name())
     return -1;
+#if defined(__CUDACC__)
+#pragma nv_diag_default = unsigned_compare_with_zero
+#endif
 #pragma GCC diagnostic pop
 }
 
@@ -300,7 +324,8 @@ int internals::periodic_shift_x(p_teca_array_collection data,
     const unsigned long *extent_out)
 {
     // apply periodic shift in the x-direction
-    const unsigned long *pmap = shift_map->get();
+    auto spmap = shift_map->get_cpu_accessible();
+    const unsigned long *pmap = spmap.get();
 
     unsigned int n_arrays = data->size();
     for (unsigned int l = 0; l < n_arrays; ++l)
@@ -340,8 +365,13 @@ int internals::periodic_shift_x(p_teca_array_collection data,
         p_teca_variant_array ao = a->new_instance(nxyzo);
         NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
             a.get(), _A,
-            NT_A *pa = static_cast<TT_A*>(a.get())->get();
-            NT_A *pao = static_cast<TT_A*>(ao.get())->get();
+
+            auto spa = static_cast<TT_A*>(a.get())->get_cpu_accessible();
+            NT_A *pa = spa.get();
+
+            auto spao = static_cast<TT_A*>(ao.get())->get_cpu_accessible();
+            NT_A *pao = spao.get();
+
             for (unsigned long k = 0; k < nzo; ++k)
             {
                 unsigned long kki = k*nxyi;
@@ -407,8 +437,13 @@ int internals::ascending_order_y(p_teca_array_collection data,
         p_teca_variant_array ao = a->new_instance(nxyz);
         NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
             a.get(), _A,
-            NT_A *pa = static_cast<TT_A*>(a.get())->get();
-            NT_A *pao = static_cast<TT_A*>(ao.get())->get();
+
+            auto spa = static_cast<TT_A*>(a.get())->get_cpu_accessible();
+            NT_A *pa = spa.get();
+
+            auto spao = static_cast<TT_A*>(ao.get())->get_cpu_accessible();
+            NT_A *pao = spao.get();
+
             for (unsigned long k = 0; k < nz; ++k)
             {
                 unsigned long kk = k*nxy;
@@ -491,7 +526,7 @@ teca_metadata teca_normalize_coordinates::get_output_metadata(
     teca_metadata coords;
     if (out_md.get("coordinates", coords))
     {
-        TECA_ERROR("metadata is missing coordinates");
+        TECA_FATAL_ERROR("metadata is missing coordinates");
         return teca_metadata();
     }
 
@@ -499,7 +534,7 @@ teca_metadata teca_normalize_coordinates::get_output_metadata(
     if (!(in_x = coords.get("x")) || !(in_y = coords.get("y"))
         || !(in_z = coords.get("z")))
     {
-        TECA_ERROR("coordinates metadata is missing axes arrays")
+        TECA_FATAL_ERROR("coordinates metadata is missing axes arrays")
         return teca_metadata();
     }
 
@@ -510,7 +545,7 @@ teca_metadata teca_normalize_coordinates::get_output_metadata(
     if (this->enable_periodic_shift_x &&
         internals::periodic_shift_x(out_x, shift_map, in_x, shifted_x))
     {
-        TECA_ERROR("Failed to apply periodic shift to the x-axis")
+        TECA_FATAL_ERROR("Failed to apply periodic shift to the x-axis")
         return teca_metadata();
     }
 
@@ -520,7 +555,7 @@ teca_metadata teca_normalize_coordinates::get_output_metadata(
     if (this->enable_y_axis_ascending &&
         internals::ascending_order_y(out_y, in_y, reordered_y))
     {
-        TECA_ERROR("Failed to put the y-axis in ascending order")
+        TECA_FATAL_ERROR("Failed to put the y-axis in ascending order")
         return teca_metadata();
     }
 
@@ -535,7 +570,7 @@ teca_metadata teca_normalize_coordinates::get_output_metadata(
             unsigned long whole_extent[6];
             if (out_md.get("whole_extent", whole_extent, 6))
             {
-                TECA_ERROR("Failed to get the input whole_extent")
+                TECA_FATAL_ERROR("Failed to get the input whole_extent")
                 return teca_metadata();
             }
             whole_extent[1] -= 1;
@@ -591,7 +626,7 @@ std::vector<teca_metadata> teca_normalize_coordinates::get_upstream_request(
     teca_metadata coords;
     if (input_md[0].get("coordinates", coords))
     {
-        TECA_ERROR("metadata is missing \"coordinates\"")
+        TECA_FATAL_ERROR("metadata is missing \"coordinates\"")
         return up_reqs;
     }
 
@@ -599,7 +634,7 @@ std::vector<teca_metadata> teca_normalize_coordinates::get_upstream_request(
     if (!(in_x = coords.get("x")) || !(in_y = coords.get("y"))
         || !(z = coords.get("z")))
     {
-        TECA_ERROR("metadata is missing coordinate arrays")
+        TECA_FATAL_ERROR("metadata is missing coordinate arrays")
         return up_reqs;
     }
 
@@ -610,7 +645,7 @@ std::vector<teca_metadata> teca_normalize_coordinates::get_upstream_request(
     if (this->enable_periodic_shift_x &&
         internals::periodic_shift_x(out_x, shift_map, in_x, shifted_x))
     {
-        TECA_ERROR("Failed to apply periodic shift to the x-axis")
+        TECA_FATAL_ERROR("Failed to apply periodic shift to the x-axis")
         return up_reqs;
     }
 
@@ -618,7 +653,7 @@ std::vector<teca_metadata> teca_normalize_coordinates::get_upstream_request(
     p_teca_unsigned_long_array inv_shift_map;
     if (shifted_x && internals::inv_periodic_shift_x(inv_shift_map, out_x))
     {
-        TECA_ERROR("Failed to compute the inverse shifty map")
+        TECA_FATAL_ERROR("Failed to compute the inverse shifty map")
         return up_reqs;
     }
 
@@ -628,7 +663,7 @@ std::vector<teca_metadata> teca_normalize_coordinates::get_upstream_request(
     if (this->enable_y_axis_ascending &&
         internals::ascending_order_y(out_y, in_y, reordered_y))
     {
-        TECA_ERROR("Failed to put the y-axis in ascending order")
+        TECA_FATAL_ERROR("Failed to put the y-axis in ascending order")
         return up_reqs;
     }
 
@@ -643,7 +678,7 @@ std::vector<teca_metadata> teca_normalize_coordinates::get_upstream_request(
     unsigned long whole_extent[6] = {0};
     if (input_md[0].get("whole_extent", whole_extent, 6))
     {
-        TECA_ERROR("metadata is missing \"whole_extent\"")
+        TECA_FATAL_ERROR("metadata is missing \"whole_extent\"")
         return up_reqs;
     }
 
@@ -683,7 +718,7 @@ std::vector<teca_metadata> teca_normalize_coordinates::get_upstream_request(
     if (!teca_coordinate_util::same_orientation(bounds, req_bounds) ||
         !teca_coordinate_util::covers(bounds, req_bounds))
     {
-        TECA_ERROR("Invalid request. The requested bounds ["
+        TECA_FATAL_ERROR("Invalid request. The requested bounds ["
             <<  req_bounds[0] << ", " << req_bounds[1] << ", "
             <<  req_bounds[2] << ", " << req_bounds[3] << ", "
             <<  req_bounds[4] << ", " << req_bounds[5]
@@ -743,7 +778,7 @@ std::vector<teca_metadata> teca_normalize_coordinates::get_upstream_request(
         teca_coordinate_util::validate_extent(in_x->size(),
             in_y->size(), z->size(), extent_out, true))
     {
-        TECA_ERROR("invalid bounds requested.")
+        TECA_FATAL_ERROR("invalid bounds requested.")
         return up_reqs;
     }
 
@@ -791,7 +826,7 @@ const_p_teca_dataset teca_normalize_coordinates::execute(unsigned int port,
 
     if (!in_mesh)
     {
-        TECA_ERROR("The input dataset is not a teca_cartesian_mesh")
+        TECA_FATAL_ERROR("The input dataset is not a teca_cartesian_mesh")
         return nullptr;
     }
 
@@ -818,7 +853,7 @@ const_p_teca_dataset teca_normalize_coordinates::execute(unsigned int port,
     if (this->enable_periodic_shift_x &&
         internals::periodic_shift_x(out_x, shift_map, in_x, shifted_x))
     {
-        TECA_ERROR("Failed to apply periodic shift to the x-axis")
+        TECA_FATAL_ERROR("Failed to apply periodic shift to the x-axis")
         return nullptr;
     }
 
@@ -860,7 +895,7 @@ const_p_teca_dataset teca_normalize_coordinates::execute(unsigned int port,
         if (internals::periodic_shift_x(out_mesh->get_point_arrays(),
             attributes, shift_map, extent_in, extent_out))
         {
-            TECA_ERROR("Failed to apply periodic shift in the x direction")
+            TECA_FATAL_ERROR("Failed to apply periodic shift in the x direction")
             return nullptr;
         }
     }
@@ -871,7 +906,7 @@ const_p_teca_dataset teca_normalize_coordinates::execute(unsigned int port,
     if (this->enable_y_axis_ascending &&
         internals::ascending_order_y(out_y, in_y, reordered_y))
     {
-        TECA_ERROR("Failed to put the y-axis in ascending order")
+        TECA_FATAL_ERROR("Failed to put the y-axis in ascending order")
         return nullptr;
     }
 
@@ -893,7 +928,7 @@ const_p_teca_dataset teca_normalize_coordinates::execute(unsigned int port,
         if (internals::ascending_order_y(out_mesh->get_point_arrays(),
             attributes, extent_out))
         {
-            TECA_ERROR("Failed to put point arrays into ascending order")
+            TECA_FATAL_ERROR("Failed to put point arrays into ascending order")
             return nullptr;
         }
     }

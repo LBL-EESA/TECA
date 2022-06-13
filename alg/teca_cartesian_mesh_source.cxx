@@ -52,7 +52,8 @@ void teca_cartesian_mesh_source::internals_t::initialize_axis(
     unsigned long nx = i1 - i0 + 1;
     x->resize(nx);
 
-    num_t *px = x->get();
+    auto spx = x->get_cpu_accessible();
+    auto px = spx.get();
 
     // avoid divide by zero
     if (nx < 2)
@@ -500,13 +501,13 @@ teca_metadata teca_cartesian_mesh_source::get_output_metadata(
 
     if (this->whole_extents.size() != 8)
     {
-        TECA_ERROR("invalid whole extents were specified")
+        TECA_FATAL_ERROR("invalid whole extents were specified")
         return teca_metadata();
     }
 
     if (this->bounds.size() != 8)
     {
-        TECA_ERROR("invalid bounds were specified")
+        TECA_FATAL_ERROR("invalid bounds were specified")
         return teca_metadata();
     }
 
@@ -622,7 +623,7 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
     teca_metadata coords;
     if (this->internals->metadata.get("coordinates", coords))
     {
-        TECA_ERROR("metadata is missing \"coordinates\"")
+        TECA_FATAL_ERROR("metadata is missing \"coordinates\"")
         return nullptr;
     }
 
@@ -630,7 +631,7 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
     if (!(in_x = coords.get("x")) || !(in_y = coords.get("y"))
         || !(in_z = coords.get("z")) || !(in_t = coords.get("t")))
     {
-        TECA_ERROR("metadata is missing coordinate arrays")
+        TECA_FATAL_ERROR("metadata is missing coordinate arrays")
         return nullptr;
     }
 
@@ -638,7 +639,7 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
     unsigned long md_whole_extent[6] = {0};
     if (this->internals->metadata.get("whole_extent", md_whole_extent, 6))
     {
-        TECA_ERROR("metadata is missing \"whole_extent\"")
+        TECA_FATAL_ERROR("metadata is missing \"whole_extent\"")
         return nullptr;
     }
 
@@ -664,7 +665,7 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
             teca_coordinate_util::validate_extent(in_x->size(),
                 in_y->size(), in_z->size(), req_extent, true))
         {
-            TECA_ERROR("invalid bounds requested.")
+            TECA_FATAL_ERROR("invalid bounds requested.")
             return nullptr;
         }
     }
@@ -675,21 +676,21 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
     std::string request_key;
     if (request.get("index_request_key", request_key))
     {
-        TECA_ERROR("Request is missing the \"index_request_key\"")
+        TECA_FATAL_ERROR("Request is missing the \"index_request_key\"")
         return nullptr;
     }
 
     unsigned long req_index = 0;
     if (request.get(request_key, req_index))
     {
-        TECA_ERROR("Request is missing \"" << request_key << "\"")
+        TECA_FATAL_ERROR("Request is missing \"" << request_key << "\"")
         return nullptr;
     }
 
     // check that the we have a time value for the requested index.
     if (req_index >= in_t->size())
     {
-        TECA_ERROR("The requested index " << req_index
+        TECA_FATAL_ERROR("The requested index " << req_index
             << " is out of bounds [0, " << in_t->size() << "]")
         return nullptr;
     }
@@ -699,9 +700,9 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
     in_t->get(req_index, t);
 
     // slice axes on the requested extent
-    p_teca_variant_array out_x = in_x->new_copy(req_extent[0], req_extent[1]);
-    p_teca_variant_array out_y = in_y->new_copy(req_extent[2], req_extent[3]);
-    p_teca_variant_array out_z = in_z->new_copy(req_extent[4], req_extent[5]);
+    p_teca_variant_array out_x = in_x->new_copy(req_extent[0], req_extent[1] - req_extent[0] + 1);
+    p_teca_variant_array out_y = in_y->new_copy(req_extent[2], req_extent[3] - req_extent[2] + 1);
+    p_teca_variant_array out_z = in_z->new_copy(req_extent[4], req_extent[5] - req_extent[4] + 1);
 
     // create output dataset
     p_teca_cartesian_mesh mesh = teca_cartesian_mesh::New();

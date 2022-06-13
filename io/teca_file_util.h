@@ -3,6 +3,8 @@
 
 /// @file
 
+#include "teca_config.h"
+
 #include <vector>
 #include <deque>
 #include <string>
@@ -27,6 +29,7 @@ namespace teca_file_util
  * indicates whether or not an error is reported if opening the file fails. All
  * other errors are always reported.
  */
+TECA_EXPORT
 int read_stream(const char *file_name, const char *header,
     teca_binary_stream &stream, bool verbose=true);
 
@@ -36,66 +39,83 @@ int read_stream(const char *file_name, const char *header,
  * verbose flag indicates whether or not an error is reported if creating the
  * file fails. All other errors are reported.
  */
+TECA_EXPORT
 int write_stream(const char *file_name, int flags, const char *header,
     const teca_binary_stream &stream, bool verbose=true);
 
 /// replace %t% with the given value
+TECA_EXPORT
 void replace_timestep(std::string &file_name, unsigned long time_step, int width = 6);
 
 /// replace %t% with the time t in calendar with units in the strftime format
+TECA_EXPORT
 int replace_time(std::string &file_name, double t,
     const std::string &calendar, const std::string &units,
     const std::string &format);
 
 /// replace %e% with the given string
+TECA_EXPORT
 void replace_extension(std::string &file_name, const std::string &ext);
 
 /// replace %s% with the given string
+TECA_EXPORT
 void replace_identifier(std::string &file_name, const std::string &id);
 
 /// return string converted to lower case
+TECA_EXPORT
 void to_lower(std::string &in);
 
 /// return 0 if the file does not exist
+TECA_EXPORT
 int file_exists(const char *path);
 
 /// return 0 if the file/directory is not writeable
+TECA_EXPORT
 int file_writable(const char *path);
 
 /** Returns the path not including the file name and not including the final
  * PATH_SEP. If PATH_SEP isn't found then ".PATH_SEP" is returned.
  */
+TECA_EXPORT
 std::string path(const std::string &filename);
 
 /** Returns the file name not including the extension (ie what ever is after
  * the last ".". If there is no "." then the filename is returned unmodified.
  */
+TECA_EXPORT
 std::string base_filename(const std::string &filename);
 
 /** Returns the file name from the given path. If PATH_SEP isn't found
  * then the filename is returned unmodified.
  */
+TECA_EXPORT
 std::string filename(const std::string &filename);
 
 /// Returns the extension from the given filename.
+TECA_EXPORT
 std::string extension(const std::string &filename);
 
 /// read the lines of the ascii file into a vector
+TECA_EXPORT
 size_t load_lines(const char *filename, std::vector<std::string> &lines);
 
 /// read the file into a string
+TECA_EXPORT
 size_t load_text(const std::string &filename, std::string &text);
 
 /// write the string to the named file
+TECA_EXPORT
 int write_text(std::string &filename, std::string &text);
 
 /// Search and replace with in a string of text.
+TECA_EXPORT
 int search_and_replace(
     const std::string &search_for,
     const std::string &replace_with,
     std::string &in_text);
 
 /// Locate files in path that match a regular expression.
+TECA_EXPORT
 int locate_files(
     const std::string &path,
     const std::string &re,
@@ -103,6 +123,7 @@ int locate_files(
 
 /// Load a binary file into memory
 template<typename T>
+TECA_EXPORT
 size_t load_bin(const char *filename, size_t dlen, T *buffer)
 {
   std::ifstream file(filename,std::ios::binary);
@@ -136,6 +157,7 @@ size_t load_bin(const char *filename, size_t dlen, T *buffer)
 
 /// extract a name-value pair from the given set of lines.
 template<typename T>
+TECA_EXPORT
 int name_value(std::vector<std::string> &lines, std::string name, T &value)
 {
   size_t n_lines=lines.size();
@@ -159,6 +181,7 @@ int name_value(std::vector<std::string> &lines, std::string name, T &value)
  * following the key is returned.
 */
 template <typename T>
+TECA_EXPORT
 size_t parse_value(std::string &in,size_t at, std::string key, T &value)
 {
   size_t p=in.find(key,at);
@@ -184,7 +207,7 @@ size_t parse_value(std::string &in,size_t at, std::string key, T &value)
 /** a stack of lines. lines can be popped as they are processed and the current
  * line number is recorded.
  */
-struct line_buffer
+struct TECA_EXPORT line_buffer
 {
     line_buffer() : m_buffer(nullptr), m_line_number(0) {}
     ~line_buffer() { free(m_buffer); }

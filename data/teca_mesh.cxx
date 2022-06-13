@@ -21,7 +21,7 @@ teca_mesh::teca_mesh()
 {}
 
 // --------------------------------------------------------------------------
-void teca_mesh::copy(const const_p_teca_dataset &dataset)
+void teca_mesh::copy(const const_p_teca_dataset &dataset, allocator alloc)
 {
     const_p_teca_mesh other
         = std::dynamic_pointer_cast<const teca_mesh>(dataset);
@@ -32,18 +32,18 @@ void teca_mesh::copy(const const_p_teca_dataset &dataset)
     if (this == other.get())
         return;
 
-    this->teca_dataset::copy(dataset);
+    this->teca_dataset::copy(dataset, alloc);
 
     m_impl = std::make_shared<teca_mesh::impl_t>();
-    m_impl->point_arrays->copy(other->m_impl->point_arrays);
-    m_impl->cell_arrays->copy(other->m_impl->cell_arrays);
-    m_impl->x_edge_arrays->copy(other->m_impl->x_edge_arrays);
-    m_impl->y_edge_arrays->copy(other->m_impl->y_edge_arrays);
-    m_impl->z_edge_arrays->copy(other->m_impl->z_edge_arrays);
-    m_impl->x_face_arrays->copy(other->m_impl->x_face_arrays);
-    m_impl->y_face_arrays->copy(other->m_impl->y_face_arrays);
-    m_impl->z_face_arrays->copy(other->m_impl->z_face_arrays);
-    m_impl->info_arrays->copy(other->m_impl->info_arrays);
+    m_impl->point_arrays->copy(other->m_impl->point_arrays, alloc);
+    m_impl->cell_arrays->copy(other->m_impl->cell_arrays, alloc);
+    m_impl->x_edge_arrays->copy(other->m_impl->x_edge_arrays, alloc);
+    m_impl->y_edge_arrays->copy(other->m_impl->y_edge_arrays, alloc);
+    m_impl->z_edge_arrays->copy(other->m_impl->z_edge_arrays, alloc);
+    m_impl->x_face_arrays->copy(other->m_impl->x_face_arrays, alloc);
+    m_impl->y_face_arrays->copy(other->m_impl->y_face_arrays, alloc);
+    m_impl->z_face_arrays->copy(other->m_impl->z_face_arrays, alloc);
+    m_impl->info_arrays->copy(other->m_impl->info_arrays, alloc);
 }
 
 // --------------------------------------------------------------------------
@@ -107,7 +107,7 @@ void teca_mesh::shallow_append_arrays(const p_teca_mesh &other)
 }
 
 // --------------------------------------------------------------------------
-void teca_mesh::swap(p_teca_dataset &dataset)
+void teca_mesh::swap(const p_teca_dataset &dataset)
 {
     p_teca_mesh other
         = std::dynamic_pointer_cast<teca_mesh>(dataset);

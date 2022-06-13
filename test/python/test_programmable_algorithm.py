@@ -1,5 +1,7 @@
 from teca import *
-import numpy as np
+import numpy
+if get_teca_has_cupy():
+    import cupy
 import sys
 
 set_stack_trace_on_error()
@@ -33,12 +35,23 @@ class wind_speed:
     @staticmethod
     def execute(port, data_in, req):
         global u_var, v_var
-        in_mesh = as_teca_cartesian_mesh(data_in[0])
-        out_mesh = teca_cartesian_mesh.New()
+        dev = -1
+        np = numpy
+        if get_teca_has_cuda() and get_teca_has_cupy():
+            dev = req['device_id']
+            if dev >= 0:
+                cupy.cuda.Device(dev).use()
+                np = cupy
+        in_mesh = as_teca_mesh(data_in[0])
+        out_mesh = as_teca_mesh(in_mesh.new_instance())
         out_mesh.shallow_copy(in_mesh)
         arrays = out_mesh.get_point_arrays()
-        u = arrays[u_var]
-        v = arrays[v_var]
+        if dev < 0:
+            u = arrays[u_var].get_cpu_accessible()
+            v = arrays[v_var].get_cpu_accessible()
+        else:
+            u = arrays[u_var].get_cuda_accessible()
+            v = arrays[v_var].get_cuda_accessible()
         w = np.sqrt(u*u + v*v)
         arrays['wind_speed'] = w
         return out_mesh

@@ -3,6 +3,7 @@
 
 /// @file
 
+#include "teca_config.h"
 #include "teca_variant_array.h"
 #include "teca_array_collection.h"
 
@@ -14,7 +15,7 @@ namespace teca_variant_array_operand
  * Handles conversion of literals to variant_arrays and the name resolution of
  * variables.
  */
-class resolver
+class TECA_EXPORT resolver
 {
 public:
     /**  given a text representation of a numeric value in s convert and

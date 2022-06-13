@@ -1,6 +1,7 @@
 #ifndef teca_algorithm_executive_h
 #define teca_algorithm_executive_h
 
+#include "teca_config.h"
 #include "teca_metadata.h"
 #include "teca_mpi.h"
 #include "teca_shared_object.h"
@@ -37,22 +38,19 @@ std::shared_ptr<T const> shared_from_this() const                   \
 
 /// Base class and default implementation for executives.
 /**
- * Algorithm executives can control pipeline execution by providing
- * a series of requests. this allows for the executive to act as a load
- * balancer. the executive can for example partition requests across
- * spatial data, time steps, or file names. in an MPI parallel
- * setting the executive could coordinate this partitioning amongst
- * the ranks. However, the only requirement of an algorithm executive
- * is that it provide at least one non-empty request.
+ * Algorithm executives can control pipeline execution by providing a series of
+ * requests. this allows for the executive to act as a load balancer. the
+ * executive can for example partition requests across spatial data, time
+ * steps, or file names. in an MPI parallel setting the executive could
+ * coordinate this partitioning amongst the ranks. However, the only
+ * requirement of an algorithm executive is that it provide at least one
+ * non-empty request.
  *
- * The default implementation creates a single trivially non-empty
- * request containing the key "__request_empty = 0". This will cause
- * the pipeline to be executed once but will result in no data being
- * requested. Therefore when the default implementation is used
- * upstream algorithms must fill in the requests further to pull
- * data as needed.
+ * The default implementation creates a single request for the first index
+ * specified by the "index_initializer_key" using the "index_request_key" with
+ * "device_id" set to execute on the CPU or GPU (if GPU's are available).
  */
-class teca_algorithm_executive
+class TECA_EXPORT teca_algorithm_executive
     : public std::enable_shared_from_this<teca_algorithm_executive>
 {
 public:

@@ -164,7 +164,7 @@ int main(int argc, char **argv)
     {
         if (mpi_man.get_comm_rank() == 0)
         {
-            TECA_ERROR("A file with previously calculated storm tracks must be "
+            TECA_FATAL_ERROR("A file with previously calculated storm tracks must be "
                 "specified with --track_file")
         }
         return -1;
@@ -180,7 +180,7 @@ int main(int argc, char **argv)
     {
         if (mpi_man.get_comm_rank() == 0)
         {
-            TECA_ERROR("Extacly one of --input_file or --input_regex can be specified. "
+            TECA_FATAL_ERROR("Extacly one of --input_file or --input_regex can be specified. "
                 "Use --input_file to activate the multi_cf_reader (HighResMIP datasets) "
                 "and --input_regex to activate the cf_reader (CAM like datasets)")
         }
@@ -242,7 +242,7 @@ int main(int argc, char **argv)
         }
         else
         {
-            TECA_ERROR("invalid profile_type " << profile_type)
+            TECA_FATAL_ERROR("invalid profile_type " << profile_type)
             return -1;
         }
     }

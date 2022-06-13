@@ -3,6 +3,8 @@
 
 /// @file
 
+#include "teca_config.h"
+
 #include <limits>
 
 /// Codes dealing with the Saffir-Simpson scale

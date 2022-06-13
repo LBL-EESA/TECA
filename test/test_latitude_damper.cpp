@@ -7,6 +7,7 @@
 #include "teca_dataset.h"
 #include "teca_cartesian_mesh.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_dataset_source.h"
 
 #define _USE_MATH_DEFINES
@@ -42,13 +43,15 @@ int main(int argc, char **argv)
     using coord_t = double;
     coord_t dx = coord_t(360.)/coord_t(nx - 1);
     p_teca_variant_array_impl<coord_t> x = teca_variant_array_impl<coord_t>::New(nx);
-    coord_t *px = x->get();
+    auto spx = x->get_cpu_accessible();
+    coord_t *px = spx.get();
     for (unsigned long i = 0; i < nx; ++i)
         px[i] = i*dx;
 
     coord_t dy = coord_t(180.)/coord_t(ny - 1);
     p_teca_variant_array_impl<coord_t> y = teca_variant_array_impl<coord_t>::New(ny);
-    coord_t *py = y->get();
+    auto spy = y->get_cpu_accessible();
+    coord_t *py = spy.get();
     for (unsigned long i = 0; i < ny; ++i)
         py[i] = coord_t(-90.) + i*dy;
 
@@ -60,7 +63,8 @@ int main(int argc, char **argv)
 
     unsigned long nxy = nx * ny;
     p_teca_double_array ones_grid = teca_double_array::New(nxy);
-    double *p_ones_grid = ones_grid->get();
+    auto sp_ones_grid = ones_grid->get_cpu_accessible();
+    double *p_ones_grid = sp_ones_grid.get();
 
     for (unsigned int i = 0; i < nxy; ++i)
     {
@@ -97,7 +101,7 @@ int main(int argc, char **argv)
     damped_comp->set_half_width_at_half_max(hwhm);
     damped_comp->set_center(0.0);
     damped_comp->append_damped_variable("ones_grid");
-    damped_comp->set_variable_post_fix("_damped");
+    damped_comp->set_variable_postfix("_damped");
 
     p_teca_dataset_capture damp_o = teca_dataset_capture::New();
     damp_o->set_input_connection(damped_comp->get_output_port());
@@ -120,7 +124,8 @@ int main(int argc, char **argv)
     using TT = teca_variant_array_impl<double>;
     using NT = double;
 
-    const NT *p_damped_array = dynamic_cast<const TT*>(va.get())->get();
+    auto sp_damped_array = dynamic_cast<const TT*>(va.get())->get_cpu_accessible();
+    const NT *p_damped_array = sp_damped_array.get();
 
     // find lat index where scalar should be half
     long hwhm_index = -1;

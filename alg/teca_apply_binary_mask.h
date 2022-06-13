@@ -30,7 +30,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_apply_binary_mask)
  * to 'ar_', and the variable being masked is 'precip', then the output array
  * name is 'ar_precip'.
  */
-class teca_apply_binary_mask : public teca_algorithm
+class TECA_EXPORT teca_apply_binary_mask : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_apply_binary_mask)
@@ -77,6 +77,8 @@ protected:
     teca_apply_binary_mask();
 
 private:
+    using teca_algorithm::get_output_metadata;
+
     teca_metadata get_output_metadata(
         unsigned int port,
         const std::vector<teca_metadata> &input_md) override;

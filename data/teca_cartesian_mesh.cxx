@@ -12,15 +12,34 @@ teca_cartesian_mesh::teca_cartesian_mesh()
 {}
 
 // --------------------------------------------------------------------------
+unsigned long teca_cartesian_mesh::get_number_of_points() const
+{
+    unsigned long ext[6];
+    this->get_extent(ext);
+
+    return (ext[1] - ext[0] + 1) * (ext[3] - ext[2] + 1) * (ext[5] - ext[4] + 1);
+}
+
+// --------------------------------------------------------------------------
+unsigned long teca_cartesian_mesh::get_number_of_cells() const
+{
+    unsigned long ext[6];
+    this->get_extent(ext);
+
+    return (ext[1] - ext[0]) * (ext[3] - ext[2]) * (ext[5] - ext[4]);
+}
+
+// --------------------------------------------------------------------------
 int teca_cartesian_mesh::get_type_code() const
 {
     return teca_dataset_tt<teca_cartesian_mesh>::type_code;
 }
 
 // --------------------------------------------------------------------------
-void teca_cartesian_mesh::copy(const const_p_teca_dataset &dataset)
+void teca_cartesian_mesh::copy(const const_p_teca_dataset &dataset,
+    allocator alloc)
 {
-    this->teca_mesh::copy(dataset);
+    this->teca_mesh::copy(dataset, alloc);
 
     const_p_teca_cartesian_mesh other
         = std::dynamic_pointer_cast<const teca_cartesian_mesh>(dataset);
@@ -28,7 +47,7 @@ void teca_cartesian_mesh::copy(const const_p_teca_dataset &dataset)
     if ((!other) || (this == other.get()))
         return;
 
-    m_coordinate_arrays->copy(other->m_coordinate_arrays);
+    m_coordinate_arrays->copy(other->m_coordinate_arrays, alloc);
 }
 
 // --------------------------------------------------------------------------
@@ -60,7 +79,7 @@ void teca_cartesian_mesh::copy_metadata(const const_p_teca_dataset &dataset)
 }
 
 // --------------------------------------------------------------------------
-void teca_cartesian_mesh::swap(p_teca_dataset &dataset)
+void teca_cartesian_mesh::swap(const p_teca_dataset &dataset)
 {
     this->teca_mesh::swap(dataset);
 
@@ -97,6 +116,24 @@ void teca_cartesian_mesh::set_z_coordinates(const std::string &var,
     const p_teca_variant_array &array)
 {
     this->set_z_coordinate_variable(var);
+    m_coordinate_arrays->set("z", array);
+}
+
+// --------------------------------------------------------------------------
+void teca_cartesian_mesh::update_x_coordinates(const p_teca_variant_array &array)
+{
+    m_coordinate_arrays->set("x", array);
+}
+
+// --------------------------------------------------------------------------
+void teca_cartesian_mesh::update_y_coordinates(const p_teca_variant_array &array)
+{
+    m_coordinate_arrays->set("y", array);
+}
+
+// --------------------------------------------------------------------------
+void teca_cartesian_mesh::update_z_coordinates(const p_teca_variant_array &array)
+{
     m_coordinate_arrays->set("z", array);
 }
 

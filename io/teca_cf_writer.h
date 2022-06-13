@@ -1,6 +1,7 @@
 #ifndef teca_cf_writer_h
 #define teca_cf_writer_h
 
+#include "teca_config.h"
 #include "teca_shared_object.h"
 #include "teca_threaded_algorithm.h"
 #include "teca_metadata.h"
@@ -70,7 +71,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_cf_writer)
  * any algorithm that adds an array should provide this metadata).
  * ~~~~~~~~~~~~
  */
-class teca_cf_writer : public teca_threaded_algorithm
+class TECA_EXPORT teca_cf_writer : public teca_threaded_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_cf_writer)
@@ -218,6 +219,9 @@ protected:
     teca_cf_writer();
 
 private:
+    using teca_algorithm::get_output_metadata;
+    using teca_algorithm::execute;
+
     const_p_teca_dataset execute(unsigned int port,
         const std::vector<const_p_teca_dataset> &input_data,
         const teca_metadata &request, int streaming) override;

@@ -1,6 +1,7 @@
 #ifndef teca_arakawa_c_grid_h
 #define teca_arakawa_c_grid_h
 
+#include "teca_config.h"
 #include "teca_mesh.h"
 #include "teca_shared_object.h"
 #include "teca_variant_array.h"
@@ -65,7 +66,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_arakawa_c_grid)
  * "Grids in Numerical Weather and Climate Models"
  * http://dx.doi.org/10.5772/55922
  */
-class teca_arakawa_c_grid : public teca_mesh
+class TECA_EXPORT teca_arakawa_c_grid : public teca_mesh
 {
 public:
     TECA_DATASET_STATIC_NEW(teca_arakawa_c_grid)
@@ -83,6 +84,12 @@ public:
     TECA_DATASET_METADATA(periodic_in_x, int, 1)
     TECA_DATASET_METADATA(periodic_in_y, int, 1)
     TECA_DATASET_METADATA(periodic_in_z, int, 1)
+
+    /// get the number of points in the mesh
+    unsigned long get_number_of_points() const override;
+
+    /// get the number of cells in the mesh
+    unsigned long get_number_of_cells() const override;
 
     // get the names of the m, and v horizontal coordinate arrays
     // these should not need to be modified
@@ -166,16 +173,18 @@ public:
     // return the type code
     int get_type_code() const override;
 
-    // copy data and metadata. shallow copy uses reference
-    // counting, while copy duplicates the data.
-    void copy(const const_p_teca_dataset &) override;
-    void shallow_copy(const p_teca_dataset &) override;
+    /// @copydoc teca_dataset::copy(const const_p_teca_dataset &,allocator)
+    void copy(const const_p_teca_dataset &other,
+        allocator alloc = allocator::malloc) override;
+
+    /// @copydoc teca_dataset::shallow_copy(const p_teca_dataset &)
+    void shallow_copy(const p_teca_dataset &other) override;
 
     // copy metadata. always a deep copy.
     void copy_metadata(const const_p_teca_dataset &other) override;
 
     // swap internals of the two objects
-    void swap(p_teca_dataset &) override;
+    void swap(const p_teca_dataset &) override;
 
     // return true if the dataset is empty.
     bool empty() const noexcept override;
@@ -187,8 +196,14 @@ public:
 
     // stream to/from human readable representation
     int to_stream(std::ostream &) const override;
+    using teca_dataset::from_stream;
 
+#if defined(SWIG)
 protected:
+#else
+public:
+#endif
+    // NOTE: constructors are public to enable std::make_shared. do not use.
     teca_arakawa_c_grid();
 
 private:

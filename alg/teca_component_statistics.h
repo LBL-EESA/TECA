@@ -11,7 +11,7 @@
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_component_statistics)
 
 /// compute statistics about connected components
-class teca_component_statistics : public teca_algorithm
+class TECA_EXPORT teca_component_statistics : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_component_statistics)

@@ -933,13 +933,13 @@ teca_bayesian_ar_detect_parameters::internals_t::initialize_parameter_table(
 {
     // put the arrays into the table
     p_teca_variant_array_impl<parameter_t> min_water_vapor =
-        teca_variant_array_impl<parameter_t>::New(quantile_array, number_of_rows);
+        teca_variant_array_impl<parameter_t>::New(number_of_rows, quantile_array);
 
     p_teca_variant_array_impl<parameter_t> filter_lat_width =
-        teca_variant_array_impl<parameter_t>::New(filter_lat_width_array, number_of_rows);
+        teca_variant_array_impl<parameter_t>::New(number_of_rows, filter_lat_width_array);
 
     p_teca_variant_array_impl<parameter_t> min_area_kmsq =
-        teca_variant_array_impl<parameter_t>::New(min_area_kmsq_array, number_of_rows);
+        teca_variant_array_impl<parameter_t>::New(number_of_rows, min_area_kmsq_array);
 
     this->parameter_table = teca_table::New();
     this->parameter_table->append_column("hwhm_latitude", filter_lat_width);

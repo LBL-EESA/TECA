@@ -1,8 +1,9 @@
 #include "teca_wrf_reader.h"
 #include "teca_array_attributes.h"
+#include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_file_util.h"
 #include "teca_arakawa_c_grid.h"
-#include "teca_thread_pool.h"
 #include "teca_coordinate_util.h"
 #include "teca_netcdf_util.h"
 #include "teca_calcalcs.h"
@@ -253,7 +254,7 @@ teca_metadata teca_wrf_reader::get_output_metadata(
 
             if (teca_file_util::locate_files(path, regex, files))
             {
-                TECA_ERROR(
+                TECA_FATAL_ERROR(
                     << "Failed to locate any files" << endl
                     << this->files_regex << endl
                     << path << endl
@@ -331,7 +332,7 @@ teca_metadata teca_wrf_reader::get_output_metadata(
             teca_netcdf_util::netcdf_handle fh;
             if (fh.open(file.c_str(), NC_NOWRITE))
             {
-                TECA_ERROR("Failed to open " << file << endl << nc_strerror(ierr))
+                TECA_FATAL_ERROR("Failed to open " << file << endl << nc_strerror(ierr))
                 return teca_metadata();
             }
 
@@ -348,7 +349,7 @@ teca_metadata teca_wrf_reader::get_output_metadata(
                 || ((ierr = nc_inq_dimlen(fh.get(), x_dims[1], &n_y)) != NC_NOERR))
             {
                 this->clear_cached_metadata();
-                TECA_ERROR(
+                TECA_FATAL_ERROR(
                     << "Failed to query x axis variable \"" << m_x_axis_variable
                     << "\" in file \"" << file << "\"" << endl
                     << nc_strerror(ierr))
@@ -367,7 +368,7 @@ teca_metadata teca_wrf_reader::get_output_metadata(
                 || ((ierr = nc_inq_dimlen(fh.get(), z_dims[1], &n_z)) != NC_NOERR))
             {
                 this->clear_cached_metadata();
-                TECA_ERROR(
+                TECA_FATAL_ERROR(
                     << "Failed to query mass_vertical_coordinate variable \""
                     << m_z_axis_variable << "\" in file \""
                     << file << "\"" << endl << nc_strerror(ierr))
@@ -393,7 +394,7 @@ teca_metadata teca_wrf_reader::get_output_metadata(
             if (((ierr = nc_inq_nvars(fh.get(), &n_vars)) != NC_NOERR))
             {
                 this->clear_cached_metadata();
-                TECA_ERROR(
+                TECA_FATAL_ERROR(
                     << "Failed to get the number of variables in file \""
                     << file << "\"" << endl
                     << nc_strerror(ierr))
@@ -420,7 +421,7 @@ teca_metadata teca_wrf_reader::get_output_metadata(
                         &var_nc_type, &n_dims, dim_id, &n_atts)) != NC_NOERR)
                 {
                     this->clear_cached_metadata();
-                    TECA_ERROR(
+                    TECA_FATAL_ERROR(
                         << "Failed to query " << i << "th variable, "
                         << file << endl << nc_strerror(ierr))
                     return teca_metadata();
@@ -450,7 +451,7 @@ teca_metadata teca_wrf_reader::get_output_metadata(
                     if ((ierr = nc_inq_dim(fh.get(), dim_id[ii], dim_name, &dim)) != NC_NOERR)
                     {
                         this->clear_cached_metadata();
-                        TECA_ERROR(
+                        TECA_FATAL_ERROR(
                             << "Failed to query " << ii << "th dimension of variable, "
                             << var_name << ", " << file << endl << nc_strerror(ierr))
                         return teca_metadata();
@@ -485,7 +486,7 @@ teca_metadata teca_wrf_reader::get_output_metadata(
                         || ((ierr = nc_inq_att(fh.get(), i, att_name, &att_type, &att_len)) != NC_NOERR))
                     {
                         this->clear_cached_metadata();
-                        TECA_ERROR("Failed to query " << ii << "th attribute of variable, "
+                        TECA_FATAL_ERROR("Failed to query " << ii << "th attribute of variable, "
                             << var_name << ", " << file << endl << nc_strerror(ierr))
                         free(att_buffer);
                         return teca_metadata();
@@ -591,7 +592,7 @@ teca_metadata teca_wrf_reader::get_output_metadata(
                         else
                         {
                             // handle edge and node if/when they arrise.
-                            TECA_ERROR(<< stagger << " stagger is not implemented")
+                            TECA_FATAL_ERROR(<< stagger << " stagger is not implemented")
                             return teca_metadata();
                         }
                     }
@@ -646,7 +647,7 @@ teca_metadata teca_wrf_reader::get_output_metadata(
                 t_axis = time_arrays[0];
                 if (!t_axis)
                 {
-                    TECA_ERROR("Failed to read time axis")
+                    TECA_FATAL_ERROR("Failed to read time axis")
                     return teca_metadata();
                 }
                 step_count.push_back(time_arrays[0]->size());
@@ -654,7 +655,7 @@ teca_metadata teca_wrf_reader::get_output_metadata(
                 for (size_t i = 1; i < n_files; ++i)
                 {
                     p_teca_variant_array tmp = time_arrays[i];
-                    t_axis->append(*tmp.get());
+                    t_axis->append(tmp);
                     step_count.push_back(tmp->size());
                 }
 
@@ -676,7 +677,7 @@ teca_metadata teca_wrf_reader::get_output_metadata(
             {
                 if (this->calendar.empty() || this->t_units.empty())
                 {
-                    TECA_ERROR("calendar and units has to be specified"
+                    TECA_FATAL_ERROR("calendar and units has to be specified"
                         " for the time variable")
                     return teca_metadata();
                 }
@@ -685,7 +686,7 @@ teca_metadata teca_wrf_reader::get_output_metadata(
                 size_t n_t_vals = this->t_values.size();
                 if (n_t_vals != files.size())
                 {
-                    TECA_ERROR("Number of files choosen doesn't match the"
+                    TECA_FATAL_ERROR("Number of files choosen doesn't match the"
                         " number of time values provided")
                     return teca_metadata();
                 }
@@ -697,7 +698,7 @@ teca_metadata teca_wrf_reader::get_output_metadata(
                 atrs.set("time", time_atts);
 
                 p_teca_variant_array_impl<double> t =
-                    teca_variant_array_impl<double>::New(this->t_values.data(), n_t_vals);
+                    teca_variant_array_impl<double>::New(n_t_vals, this->t_values.data());
 
                 step_count.resize(n_t_vals, 1);
 
@@ -739,7 +740,7 @@ teca_metadata teca_wrf_reader::get_output_metadata(
                     // check whether the conversion failed
                     if(ss.fail())
                     {
-                        TECA_ERROR("Failed to infer time from filename \"" <<
+                        TECA_FATAL_ERROR("Failed to infer time from filename \"" <<
                             files[i] << "\" using format \"" <<
                             this->filename_time_template << "\"")
                         return teca_metadata();
@@ -757,7 +758,7 @@ teca_metadata teca_wrf_reader::get_output_metadata(
                         if (strftime(tmp, sizeof(tmp), t_units_fmt.c_str(),
                               &current_tm) == 0)
                         {
-                            TECA_ERROR(
+                            TECA_FATAL_ERROR(
                                 "failed to convert the time as a string with \""
                                 << t_units_fmt << "\"")
                             return teca_metadata();
@@ -777,14 +778,14 @@ teca_metadata teca_wrf_reader::get_output_metadata(
                     if (teca_calcalcs::coordinate(year, mon, day, hour, minute,
                         second, t_units.c_str(), calendar.c_str(), &current_time))
                     {
-                        TECA_ERROR("conversion of date inferred from "
+                        TECA_FATAL_ERROR("conversion of date inferred from "
                             "filename failed");
                         return teca_metadata();
                     }
                     // add the current time to the list
                     t_values.push_back(current_time);
 #else
-                    TECA_ERROR("The UDUnits package is required for this operation")
+                    TECA_FATAL_ERROR("The UDUnits package is required for this operation")
                     return teca_metadata();
 #endif
                 }
@@ -798,8 +799,7 @@ teca_metadata teca_wrf_reader::get_output_metadata(
                 // create a teca variant array from the times
                 size_t n_t_vals = t_values.size();
                 p_teca_variant_array_impl<double> t =
-                    teca_variant_array_impl<double>::New(t_values.data(),
-                            n_t_vals);
+                    teca_variant_array_impl<double>::New(n_t_vals, t_values.data());
 
                 // set the number of time steps
                 step_count.resize(n_t_vals, 1);
@@ -821,7 +821,7 @@ teca_metadata teca_wrf_reader::get_output_metadata(
                 if (((ierr = nc_inq_varid(fh.get(), m_x_axis_variable.c_str(), &x_id)) != NC_NOERR)
                     || ((ierr = nc_inq_vartype(fh.get(), x_id, &x_t)) != NC_NOERR))
                 {
-                    TECA_ERROR("Failed to deduce the time axis type from "
+                    TECA_FATAL_ERROR("Failed to deduce the time axis type from "
                         << m_x_axis_variable << endl << nc_strerror(ierr))
                     return teca_metadata();
                 }
@@ -898,7 +898,7 @@ teca_metadata teca_wrf_reader::get_output_metadata(
             }
             if (!cached_metadata)
             {
-                TECA_ERROR("failed to create a metadata cache")
+                TECA_FATAL_ERROR("failed to create a metadata cache")
             }
 #endif
         }
@@ -943,14 +943,14 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
     teca_metadata coords;
     if (this->internals->metadata.get("coordinates", coords))
     {
-        TECA_ERROR("metadata is missing \"coordinates\"")
+        TECA_FATAL_ERROR("metadata is missing \"coordinates\"")
         return nullptr;
     }
 
     p_teca_variant_array in_t;
     if (!(in_t = coords.get("t")))
     {
-        TECA_ERROR("coordinate metadata is missing time axis")
+        TECA_FATAL_ERROR("coordinate metadata is missing time axis")
         return nullptr;
     }
 
@@ -963,12 +963,13 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
         TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
             in_t.get(),
 
-            NT *pin_t = dynamic_cast<TT*>(in_t.get())->get();
+            auto spin_t = dynamic_cast<TT*>(in_t.get())->get_cpu_accessible();
+            NT *pin_t = spin_t.get();
 
             if (teca_coordinate_util::index_of(pin_t, 0,
                 in_t->size()-1, static_cast<NT>(t), time_step))
             {
-                TECA_ERROR("requested time " << t << " not found")
+                TECA_FATAL_ERROR("requested time " << t << " not found")
                 return nullptr;
             }
             )
@@ -985,7 +986,7 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
     unsigned long whole_extent[6] = {0};
     if (this->internals->metadata.get("whole_extent", whole_extent, 6))
     {
-        TECA_ERROR("time_step=" << time_step
+        TECA_FATAL_ERROR("time_step=" << time_step
             << " metadata is missing \"whole_extent\"")
         return nullptr;
     }
@@ -1007,14 +1008,14 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
         // axes, then scan for the bounding indices in the 2d lat, lon, and 3d pd
         // arrays, and then finally apply the subset. this would need to move
         // below since at this point we haven't read the coordinate axes.
-        TECA_ERROR("bounds_to_extent not implemented for curvilinear meshes")
+        TECA_FATAL_ERROR("bounds_to_extent not implemented for curvilinear meshes")
         return nullptr;
         // bounds key was present, convert the bounds to an
         // an extent that covers them.
         /*if (teca_coordinate_util::bounds_to_extent(
             bounds, in_x, in_y, in_z, extent))
         {
-            TECA_ERROR("invalid bounds requested.")
+            TECA_FATAL_ERROR("invalid bounds requested.")
             return nullptr;
         }*/
     }
@@ -1023,7 +1024,7 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
     teca_metadata atrs;
     if (this->internals->metadata.get("attributes", atrs))
     {
-        TECA_ERROR("time_step=" << time_step
+        TECA_FATAL_ERROR("time_step=" << time_step
             << " metadata missing \"attributes\"")
         return nullptr;
     }
@@ -1032,7 +1033,7 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
     std::vector<unsigned long> step_count;
     if (this->internals->metadata.get("step_count", step_count))
     {
-        TECA_ERROR("time_step=" << time_step
+        TECA_FATAL_ERROR("time_step=" << time_step
             << " metadata is missing \"step_count\"")
         return nullptr;
     }
@@ -1052,7 +1053,7 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
     if (this->internals->metadata.get("root", path)
         || this->internals->metadata.get("files", idx, file))
     {
-        TECA_ERROR("time_step=" << time_step
+        TECA_FATAL_ERROR("time_step=" << time_step
             << " Failed to locate file for time step " << time_step)
         return nullptr;
     }
@@ -1063,7 +1064,7 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
     teca_netcdf_util::netcdf_handle fh;
     if (fh.open(file_path, NC_NOWRITE))
     {
-        TECA_ERROR("time_step=" << time_step << " Failed to open \"" << file << "\"")
+        TECA_FATAL_ERROR("time_step=" << time_step << " Failed to open \"" << file << "\"")
         return nullptr;
     }
     int file_id = fh.get();
@@ -1092,7 +1093,7 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
             || atts.get("mesh_dimension", mesh_dim)
             || atts.get("centering", centering))
         {
-            TECA_ERROR("metadata issue can't read \"" << arrays[i] << "\"")
+            TECA_FATAL_ERROR("metadata issue can't read \"" << arrays[i] << "\"")
             continue;
         }
 
@@ -1119,7 +1120,7 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
                 continue;
                 break;
             default:
-                TECA_ERROR("Invalid centering " << centering
+                TECA_FATAL_ERROR("Invalid centering " << centering
                     << " array " << i << " \"" << arrays[i])
         }
 
@@ -1152,7 +1153,7 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
             m_x_atts.get("cf_type_code", 0, m_x_type) ||
             m_x_atts.get("cf_id", 0, m_x_id))
         {
-            TECA_ERROR("metadata issue with m_x_axis_variable \""
+            TECA_FATAL_ERROR("metadata issue with m_x_axis_variable \""
                 << m_x_axis_variable << "\"")
             return nullptr;
         }
@@ -1164,7 +1165,7 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
             m_y_atts.get("cf_type_code", 0, m_y_type) ||
             m_y_atts.get("cf_id", 0, m_y_id))
         {
-            TECA_ERROR("metadata issue with m_y_axis_variable \""
+            TECA_FATAL_ERROR("metadata issue with m_y_axis_variable \""
                 << m_y_axis_variable << "\"")
             return nullptr;
         }
@@ -1180,23 +1181,29 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
         NC_DISPATCH_FP(m_x_type,
             // allocate temporary storage
             p_teca_variant_array_impl<NC_T> m_x = teca_variant_array_impl<NC_T>::New(n_m_xy);
+            auto spm_x = m_x->get_cpu_accessible();
+            NC_T *pm_x = spm_x.get();
+
             p_teca_variant_array_impl<NC_T> m_y = teca_variant_array_impl<NC_T>::New(n_m_xy);
+            auto spm_y = m_y->get_cpu_accessible();
+            NC_T *pm_y = spm_y.get();
+
 #if !defined(HDF5_THREAD_SAFE)
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
             // read the data
-            if (((ierr = nc_get_vara(file_id,  m_x_id, m_x_start, m_x_count, m_x->get())) != NC_NOERR))
+            if (((ierr = nc_get_vara(file_id,  m_x_id, m_x_start, m_x_count, pm_x)) != NC_NOERR))
             {
-                TECA_ERROR("At time_step " << time_step
+                TECA_FATAL_ERROR("At time_step " << time_step
                     << " failed to read m_x_axis_variable \"" << m_x_axis_variable << "\" from \""
                     << file << "\"" << endl << nc_strerror(ierr))
                 return nullptr;
             }
 
-            if (((ierr = nc_get_vara(file_id,  m_y_id, m_x_start, m_x_count, m_y->get())) != NC_NOERR))
+            if (((ierr = nc_get_vara(file_id,  m_y_id, m_x_start, m_x_count, pm_y)) != NC_NOERR))
             {
-                TECA_ERROR("At time_step " << time_step
+                TECA_FATAL_ERROR("At time_step " << time_step
                     << " failed to read m_y_axis_variable \"" << m_y_axis_variable << "\" from \""
                     << file << "\"" << endl << nc_strerror(ierr))
                 return nullptr;
@@ -1222,7 +1229,7 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
             u_x_atts.get("cf_type_code", 0, u_x_type) ||
             u_x_atts.get("cf_id", 0, u_x_id))
         {
-            TECA_ERROR("metadata issue with u_x_axis_variable \""
+            TECA_FATAL_ERROR("metadata issue with u_x_axis_variable \""
                 << u_x_axis_variable << "\"")
             return nullptr;
         }
@@ -1234,7 +1241,7 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
             u_y_atts.get("cf_type_code", 0, u_y_type) ||
             u_y_atts.get("cf_id", 0, u_y_id))
         {
-            TECA_ERROR("metadata issue with u_y_axis_variable \""
+            TECA_FATAL_ERROR("metadata issue with u_y_axis_variable \""
                 << u_y_axis_variable << "\"")
             return nullptr;
         }
@@ -1252,23 +1259,28 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
         NC_DISPATCH_FP(u_x_type,
             // allocate temporary storage
             p_teca_variant_array_impl<NC_T> u_x = teca_variant_array_impl<NC_T>::New(n_u_xy);
+            auto spu_x = u_x->get_cpu_accessible();
+            NC_T *pu_x = spu_x.get();
+
             p_teca_variant_array_impl<NC_T> u_y = teca_variant_array_impl<NC_T>::New(n_u_xy);
+            auto spu_y = u_y->get_cpu_accessible();
+            NC_T *pu_y = spu_y.get();
 #if !defined(HDF5_THREAD_SAFE)
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
             // read the data
-            if (((ierr = nc_get_vara(file_id,  u_x_id, u_x_start, u_x_count, u_x->get())) != NC_NOERR))
+            if (((ierr = nc_get_vara(file_id,  u_x_id, u_x_start, u_x_count, pu_x)) != NC_NOERR))
             {
-                TECA_ERROR("At time_step " << time_step
+                TECA_FATAL_ERROR("At time_step " << time_step
                     << " failed to read u_x_axis_variable \"" << u_x_axis_variable << "\" from \""
                     << file << "\"" << endl << nc_strerror(ierr))
                 return nullptr;
             }
 
-            if (((ierr = nc_get_vara(file_id,  u_y_id, u_x_start, u_x_count, u_y->get())) != NC_NOERR))
+            if (((ierr = nc_get_vara(file_id,  u_y_id, u_x_start, u_x_count, pu_y)) != NC_NOERR))
             {
-                TECA_ERROR("At time_step " << time_step
+                TECA_FATAL_ERROR("At time_step " << time_step
                     << " failed to read u_y_axis_variable \"" << u_y_axis_variable << "\" from \""
                     << file << "\"" << endl << nc_strerror(ierr))
                 return nullptr;
@@ -1294,7 +1306,7 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
             v_x_atts.get("cf_type_code", 0, v_x_type) ||
             v_x_atts.get("cf_id", 0, v_x_id))
         {
-            TECA_ERROR("metadata issue with v_x_axis_variable \""
+            TECA_FATAL_ERROR("metadata issue with v_x_axis_variable \""
                 << v_x_axis_variable << "\"")
             return nullptr;
         }
@@ -1306,7 +1318,7 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
             v_y_atts.get("cf_type_code", 0, v_y_type) ||
             v_y_atts.get("cf_id", 0, v_y_id))
         {
-            TECA_ERROR("metadata issue with v_y_axis_variable \""
+            TECA_FATAL_ERROR("metadata issue with v_y_axis_variable \""
                 << v_y_axis_variable << "\"")
             return nullptr;
         }
@@ -1324,24 +1336,28 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
         NC_DISPATCH_FP(v_x_type,
             // allocate temporary storage
             p_teca_variant_array_impl<NC_T> v_x = teca_variant_array_impl<NC_T>::New(n_v_xy);
-            p_teca_variant_array_impl<NC_T> v_y = teca_variant_array_impl<NC_T>::New(n_v_xy);
+            auto spv_x = v_x->get_cpu_accessible();
+            NC_T *pv_x = spv_x.get();
 
+            p_teca_variant_array_impl<NC_T> v_y = teca_variant_array_impl<NC_T>::New(n_v_xy);
+            auto spv_y = v_y->get_cpu_accessible();
+            NC_T *pv_y = spv_y.get();
 #if !defined(HDF5_THREAD_SAFE)
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
             // read the data
-            if (((ierr = nc_get_vara(file_id,  v_x_id, v_x_start, v_x_count, v_x->get())) != NC_NOERR))
+            if (((ierr = nc_get_vara(file_id,  v_x_id, v_x_start, v_x_count, pv_x)) != NC_NOERR))
             {
-                TECA_ERROR("At time_step " << time_step
+                TECA_FATAL_ERROR("At time_step " << time_step
                     << " failed to read v_x_axis_variable \"" << v_x_axis_variable << "\" from \""
                     << file << "\"" << endl << nc_strerror(ierr))
                 return nullptr;
             }
 
-            if (((ierr = nc_get_vara(file_id,  v_y_id, v_x_start, v_x_count, v_y->get())) != NC_NOERR))
+            if (((ierr = nc_get_vara(file_id,  v_y_id, v_x_start, v_x_count, pv_y)) != NC_NOERR))
             {
-                TECA_ERROR("At time_step " << time_step
+                TECA_FATAL_ERROR("At time_step " << time_step
                     << " failed to read v_y_axis_variable \"" << v_y_axis_variable << "\" from \""
                     << file << "\"" << endl << nc_strerror(ierr))
                 return nullptr;
@@ -1366,7 +1382,7 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
             m_z_atts.get("cf_type_code", 0, m_z_type) ||
             m_z_atts.get("cf_id", 0, m_z_id))
         {
-            TECA_ERROR("mm_zdata issue with m_z_axis_variable \""
+            TECA_FATAL_ERROR("mm_zdata issue with m_z_axis_variable \""
                 << m_z_axis_variable << "\"")
             return nullptr;
         }
@@ -1381,14 +1397,16 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
         NC_DISPATCH_FP(m_z_type,
             // allocate temporary storage
             p_teca_variant_array_impl<NC_T> m_z = teca_variant_array_impl<NC_T>::New(n_m_z);
+            auto spm_z = m_z->get_cpu_accessible();
+            NC_T *pm_z = spm_z.get();
 #if !defined(HDF5_THREAD_SAFE)
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
             // read the data
-            if (((ierr = nc_get_vara(file_id,  m_z_id, m_z_start, m_z_count, m_z->get())) != NC_NOERR))
+            if (((ierr = nc_get_vara(file_id,  m_z_id, m_z_start, m_z_count, pm_z)) != NC_NOERR))
             {
-                TECA_ERROR("At time_step " << time_step
+                TECA_FATAL_ERROR("At time_step " << time_step
                     << " failed to read m_z_axis_variable \""
                     << m_z_axis_variable << "\" from \""
                     << file << "\"" << endl << nc_strerror(ierr))
@@ -1413,7 +1431,7 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
             w_z_atts.get("cf_type_code", 0, w_z_type) ||
             w_z_atts.get("cf_id", 0, w_z_id))
         {
-            TECA_ERROR("mw_zdata issue with w_z_axis_variable \""
+            TECA_FATAL_ERROR("mw_zdata issue with w_z_axis_variable \""
                 << w_z_axis_variable << "\"")
             return nullptr;
         }
@@ -1429,14 +1447,16 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
         NC_DISPATCH_FP(w_z_type,
             // allocate temporary storage
             p_teca_variant_array_impl<NC_T> w_z = teca_variant_array_impl<NC_T>::New(n_w_z);
+            auto spw_z = w_z->get_cpu_accessible();
+            NC_T *pw_z = spw_z.get();
 #if !defined(HDF5_THREAD_SAFE)
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
             // read the data
-            if (((ierr = nc_get_vara(file_id,  w_z_id, w_z_start, w_z_count, w_z->get())) != NC_NOERR))
+            if (((ierr = nc_get_vara(file_id,  w_z_id, w_z_start, w_z_count, pw_z)) != NC_NOERR))
             {
-                TECA_ERROR("At time_step " << time_step
+                TECA_FATAL_ERROR("At time_step " << time_step
                     << " failed to read w_z_axis_variable \""
                     << w_z_axis_variable << "\" from \""
                     << file << "\"" << endl << nc_strerror(ierr))
@@ -1515,7 +1535,7 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
             || teca_coordinate_util::validate_centering(centering)
             || !(dims = std::dynamic_pointer_cast<teca_size_t_array>(atts.get("cf_dims"))))
         {
-            TECA_ERROR("metadata issue can't read \"" << arrays[i] << "\"")
+            TECA_FATAL_ERROR("metadata issue can't read \"" << arrays[i] << "\"")
             continue;
         }
 
@@ -1528,7 +1548,7 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
             if ((centering != teca_array_attributes::point_centering) &&
                 teca_coordinate_util::convert_cell_extent(var_extent, centering))
             {
-                TECA_ERROR("Failed to convert the extent for \""
+                TECA_FATAL_ERROR("Failed to convert the extent for \""
                     << arrays[i] << "\"")
                 continue;
             }
@@ -1570,13 +1590,15 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
             p_teca_variant_array array;
             NC_DISPATCH(type,
                 p_teca_variant_array_impl<NC_T> a = teca_variant_array_impl<NC_T>::New(mesh_size);
+                auto spa = a->get_cpu_accessible();
+                NC_T *pa = spa.get();
 #if !defined(HDF5_THREAD_SAFE)
                 {
                 std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-                if ((ierr = nc_get_vara(file_id,  id, &starts[0], &counts[0], a->get())) != NC_NOERR)
+                if ((ierr = nc_get_vara(file_id,  id, &starts[0], &counts[0], pa)) != NC_NOERR)
                 {
-                    TECA_ERROR("time_step=" << time_step
+                    TECA_FATAL_ERROR("time_step=" << time_step
                         << " Failed to read variable \"" << arrays[i] << "\" "
                         << file << endl << nc_strerror(ierr))
                     continue;
@@ -1600,7 +1622,7 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
             std::string dim_0_name;
             if (atts.get("cf_dim_names", 0, dim_0_name))
             {
-                TECA_ERROR("Failed to get dim 0 name")
+                TECA_FATAL_ERROR("Failed to get dim 0 name")
                 return nullptr;
             }
             size_t n_vals = 1;
@@ -1628,13 +1650,15 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
 
             NC_DISPATCH(type,
                 p_teca_variant_array_impl<NC_T> a = teca_variant_array_impl<NC_T>::New(n_vals);
+                auto spa = a->get_cpu_accessible();
+                NC_T *pa = spa.get();
 #if !defined(HDF5_THREAD_SAFE)
                 {
                 std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-                if ((ierr = nc_get_vara(file_id,  id, &starts[0], &counts[0], a->get())) != NC_NOERR)
+                if ((ierr = nc_get_vara(file_id,  id, &starts[0], &counts[0], pa)) != NC_NOERR)
                 {
-                    TECA_ERROR("time_step=" << time_step
+                    TECA_FATAL_ERROR("time_step=" << time_step
                         << " Failed to read \"" << arrays[i] << "\" "
                         << file << endl << nc_strerror(ierr))
                     continue;

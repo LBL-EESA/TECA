@@ -3,6 +3,7 @@
 #include "teca_table.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_distance_function.h"
 #include "teca_geometry.h"
@@ -101,7 +102,7 @@ int teca_table_region_mask::load_cyclone_basin(const std::string &name)
         this->region_starts, this->region_x_coordinates,
         this->region_y_coordinates, tmpi, tmps, tmps))
     {
-        TECA_ERROR("invalid basin name \"" << name << "\"")
+        TECA_FATAL_ERROR("invalid basin name \"" << name << "\"")
         return -1;
     }
     return 0;
@@ -134,7 +135,7 @@ const_p_teca_dataset teca_table_region_mask::execute(
     {
         if (rank == 0)
         {
-            TECA_ERROR("Input is empty or not a table")
+            TECA_FATAL_ERROR("Input is empty or not a table")
         }
         return nullptr;
     }
@@ -143,7 +144,7 @@ const_p_teca_dataset teca_table_region_mask::execute(
     unsigned long n_regions = this->region_sizes.size();
     if (!n_regions)
     {
-        TECA_ERROR("no regions to filter by specified")
+        TECA_FATAL_ERROR("no regions to filter by specified")
         return nullptr;
     }
 
@@ -152,7 +153,7 @@ const_p_teca_dataset teca_table_region_mask::execute(
         in_table->get_column(this->x_coordinate_column);
     if (!x)
     {
-        TECA_ERROR("x coordinate column \"" << this->x_coordinate_column
+        TECA_FATAL_ERROR("x coordinate column \"" << this->x_coordinate_column
             << "\" is not in the table")
         return nullptr;
     }
@@ -161,7 +162,7 @@ const_p_teca_dataset teca_table_region_mask::execute(
         in_table->get_column(this->y_coordinate_column);
     if (!y)
     {
-        TECA_ERROR("y coordinate column \"" << this->y_coordinate_column
+        TECA_FATAL_ERROR("y coordinate column \"" << this->y_coordinate_column
             << "\" is not in the table")
         return nullptr;
     }
@@ -181,14 +182,18 @@ const_p_teca_dataset teca_table_region_mask::execute(
     short F = this->invert ? 1 : 0;
 
     p_teca_short_array mask = teca_short_array::New(n_rows, F);
-    short *pmask = mask->get();
+    auto spmask = mask->get_cpu_accessible();
+    short *pmask = spmask.get();
     unsigned int nhit = 0;
 
     TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
         x.get(),
 
-        const NT *px = static_cast<const TT*>(x.get())->get();
-        const NT *py = static_cast<const TT*>(y.get())->get();
+        auto spx = static_cast<const TT*>(x.get())->get_cpu_accessible();
+        auto px = spx.get();
+
+        auto spy = static_cast<const TT*>(y.get())->get_cpu_accessible();
+        auto py = spy.get();
 
         for (unsigned long i = 0; i < n_rows; ++i)
         {

@@ -6,7 +6,6 @@
 #include "teca_arakawa_c_grid.h"
 #include "teca_array_collection.h"
 #include "teca_metadata.h"
-#include "teca_file_util.h"
 #include "teca_coordinate_util.h"
 #include "teca_mpi.h"
 
@@ -99,14 +98,14 @@ teca_metadata teca_dataset_diff::get_output_metadata(
     std::string initializer_key;
     if (input_md[0].get("index_initializer_key", initializer_key))
     {
-        TECA_ERROR("Input 0 metadata is missing index_initializer_key")
+        TECA_FATAL_ERROR("Input 0 metadata is missing index_initializer_key")
         return teca_metadata();
     }
 
     unsigned long n_indices_0 = 0;
     if (input_md[0].get(initializer_key, n_indices_0))
     {
-        TECA_ERROR("Input 0 metadata is missing its intializer \""
+        TECA_FATAL_ERROR("Input 0 metadata is missing its intializer \""
             << initializer_key << "\"")
         return teca_metadata();
     }
@@ -119,14 +118,14 @@ teca_metadata teca_dataset_diff::get_output_metadata(
     // get input 1 initializer
     if (input_md[1].get("index_initializer_key", initializer_key))
     {
-        TECA_ERROR("Input 1 metadata is missing index_initializer_key")
+        TECA_FATAL_ERROR("Input 1 metadata is missing index_initializer_key")
         return teca_metadata();
     }
 
     unsigned long n_indices_1 = 0;
     if (input_md[1].get(initializer_key, n_indices_1))
     {
-        TECA_ERROR("Input 0 metadata is missing its intializer \""
+        TECA_FATAL_ERROR("Input 0 metadata is missing its intializer \""
             << initializer_key << "\"")
         return teca_metadata();
     }
@@ -154,7 +153,7 @@ std::vector<teca_metadata> teca_dataset_diff::get_upstream_request(
     unsigned long test_id = 0;
     if (request.get("test_id", test_id))
     {
-        TECA_ERROR("Request is missing the index_request_key test_id")
+        TECA_FATAL_ERROR("Request is missing the index_request_key test_id")
         return up_reqs;
     }
 
@@ -162,7 +161,7 @@ std::vector<teca_metadata> teca_dataset_diff::get_upstream_request(
     std::string request_key;
     if (input_md[0].get("index_request_key", request_key))
     {
-        TECA_ERROR("Input 0 metadata is missing index_request_key")
+        TECA_FATAL_ERROR("Input 0 metadata is missing index_request_key")
         return up_reqs;
     }
 
@@ -175,7 +174,7 @@ std::vector<teca_metadata> teca_dataset_diff::get_upstream_request(
     // get input 1 request key
     if (input_md[1].get("index_request_key", request_key))
     {
-        TECA_ERROR("Input 1 metadata is missing index_request_key")
+        TECA_FATAL_ERROR("Input 1 metadata is missing index_request_key")
         return up_reqs;
     }
 
@@ -221,26 +220,26 @@ const_p_teca_dataset teca_dataset_diff::execute(
     // We need exactly two non-NULL inputs to compute a difference.
     if (!ds0)
     {
-        TECA_ERROR("Input dataset 1 is NULL.")
+        TECA_FATAL_ERROR("Input dataset 1 is NULL.")
         return nullptr;
     }
 
     if (!ds1)
     {
-        TECA_ERROR("Input dataset 2 is NULL.")
+        TECA_FATAL_ERROR("Input dataset 2 is NULL.")
         return nullptr;
     }
 
     // If one dataset is empty but not the other, the datasets differ.
     if (ds0->empty() && !ds1->empty())
     {
-        TECA_ERROR("dataset 1 is empty, 2 is not.")
+        TECA_FATAL_ERROR("dataset 1 is empty, 2 is not.")
         return nullptr;
     }
 
     if (!ds0->empty() && ds1->empty())
     {
-        TECA_ERROR("dataset 2 is empty, 1 is not.")
+        TECA_FATAL_ERROR("dataset 2 is empty, 1 is not.")
         return nullptr;
     }
 
@@ -249,7 +248,7 @@ const_p_teca_dataset teca_dataset_diff::execute(
     {
         if (rank == 0)
         {
-            TECA_ERROR("Both the reference and test datasets are empty")
+            TECA_FATAL_ERROR("Both the reference and test datasets are empty")
         }
         return nullptr;
     }
@@ -262,7 +261,7 @@ const_p_teca_dataset teca_dataset_diff::execute(
             std::dynamic_pointer_cast<const teca_table>(ds0),
             std::dynamic_pointer_cast<const teca_table>(ds1)))
         {
-            TECA_ERROR("Failed to compare tables.");
+            TECA_FATAL_ERROR("Failed to compare tables.");
             return nullptr;
         }
     }
@@ -272,7 +271,7 @@ const_p_teca_dataset teca_dataset_diff::execute(
             std::dynamic_pointer_cast<const teca_cartesian_mesh>(ds0),
             std::dynamic_pointer_cast<const teca_cartesian_mesh>(ds1)))
         {
-            TECA_ERROR("Failed to compare cartesian_meshes.");
+            TECA_FATAL_ERROR("Failed to compare cartesian_meshes.");
             return nullptr;
         }
     }
@@ -282,7 +281,7 @@ const_p_teca_dataset teca_dataset_diff::execute(
             std::dynamic_pointer_cast<const teca_curvilinear_mesh>(ds0),
             std::dynamic_pointer_cast<const teca_curvilinear_mesh>(ds1)))
         {
-            TECA_ERROR("Failed to compare curvilinear_meshes.");
+            TECA_FATAL_ERROR("Failed to compare curvilinear_meshes.");
             return nullptr;
         }
     }
@@ -292,13 +291,13 @@ const_p_teca_dataset teca_dataset_diff::execute(
             std::dynamic_pointer_cast<const teca_arakawa_c_grid>(ds0),
             std::dynamic_pointer_cast<const teca_arakawa_c_grid>(ds1)))
         {
-            TECA_ERROR("Failed to compare arakawa_c_grids.");
+            TECA_FATAL_ERROR("Failed to compare arakawa_c_grids.");
             return nullptr;
         }
     }
     else
     {
-        TECA_ERROR("Unsupported dataset type \""
+        TECA_FATAL_ERROR("Unsupported dataset type \""
             << ds0->get_class_name() << "\"")
         return nullptr;
     }
@@ -341,7 +340,7 @@ int teca_dataset_diff::compare_tables(
                 oss << (oss.tellp()?", \"":"\"") << colname << "\"";
         }
 
-        TECA_ERROR("The baseline table has " << ncols1
+        TECA_FATAL_ERROR("The baseline table has " << ncols1
             << " columns while test table has " << ncols2
             << " columns. Columns " << oss.str() << " are missing")
         return -1;
@@ -349,7 +348,7 @@ int teca_dataset_diff::compare_tables(
 
     if (table1->get_number_of_rows() != table2->get_number_of_rows())
     {
-        TECA_ERROR("The baseline table has " << table1->get_number_of_rows()
+        TECA_FATAL_ERROR("The baseline table has " << table1->get_number_of_rows()
             << " rows while test table has " << table2->get_number_of_rows()
             << " rows.")
         return -1;
@@ -374,110 +373,19 @@ int teca_dataset_diff::compare_tables(
                 << " relTol=" << max_prec(double) << relTol)
         }
 
-        if (compare_arrays(col1, col2, absTol, relTol))
-        {
+        int errorNo = 0;
+        std::string errorStr;
 
-            TECA_ERROR("difference in column " << col << " \"" << col_name << "\"")
+        if (!teca_coordinate_util::equal(col1, col2,
+            absTol, relTol, errorNo, errorStr))
+        {
+            TECA_FATAL_ERROR("difference in column " << col << " \""
+                << col_name << "\". " << errorStr)
             return -1;
         }
     }
 
     return 0;
-}
-
-// --------------------------------------------------------------------------
-int teca_dataset_diff::compare_arrays(
-    const_p_teca_variant_array array1,
-    const_p_teca_variant_array array2,
-    double absTol, double relTol)
-{
-    // Arrays of different sizes are different.
-    size_t n_elem = array1->size();
-    if (n_elem != array2->size())
-    {
-        TECA_ERROR("arrays have different sizes "
-            << n_elem << " and " << array2->size())
-        return -1;
-    }
-
-    // handle POD arrays
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
-        array1.get(),
-
-        // we know the type of array 1 now,
-        // check the type of array 2
-        const TT *a2 = dynamic_cast<const TT*>(array2.get());
-        if (!a2)
-        {
-            TECA_ERROR("arrays have different element types.")
-            return -1;
-        }
-
-        // compare elements
-        const NT *pa1 = static_cast<const TT*>(array1.get())->get();
-        const NT *pa2 = a2->get();
-
-        std::string diagnostic;
-        for (size_t i = 0; i < n_elem; ++i)
-        {
-            if (std::isinf(pa1[i]) && std::isinf(pa2[i]))
-            {
-                // the GFDL TC tracker returns inf for some fields in some cases.
-                // warn about it so that it may be addressed in other algorithms.
-                if (this->verbose)
-                {
-                    TECA_WARNING("Inf detected in element " << i)
-                }
-            }
-            else if (std::isnan(pa1[i]) || std::isnan(pa2[i]))
-            {
-                // for the time being, don't allow NaN.
-                TECA_ERROR("NaN detected in element " << i)
-                return -1;
-            }
-            else if (!teca_coordinate_util::equal<double>(pa1[i], pa2[i],
-                diagnostic, relTol, absTol))
-            {
-                TECA_ERROR("difference above the prescribed tolerance detected"
-                    " in element " << i << ". " << diagnostic)
-                return -1;
-            }
-        }
-
-        // we are here, arrays are the same
-        return 0;
-        )
-    // handle arrays of strings
-    TEMPLATE_DISPATCH_CASE(
-        const teca_variant_array_impl, std::string,
-        array1.get(),
-        if (dynamic_cast<const TT*>(array2.get()))
-        {
-            const TT *a1 = static_cast<const TT*>(array1.get());
-            const TT *a2 = static_cast<const TT*>(array2.get());
-
-            for (size_t i = 0; i < n_elem; ++i)
-            {
-                // compare elements
-                const std::string &v1 = a1->get(i);
-                const std::string &v2 = a2->get(i);
-                if (v1 != v2)
-                {
-                    TECA_ERROR("string element " << i << " not equal. ref value \""
-                        << v1 << "\" is not equal to test value \"" << v2 << "\"")
-                    return -1;
-                }
-            }
-
-            // we are here, arrays are the same
-            return 0;
-        }
-        )
-
-    // we are here, array 1 type is not handled
-    TECA_ERROR("diff for the element type of "
-        "array1 is not implemented.")
-    return -1;
 }
 
 // --------------------------------------------------------------------------
@@ -498,7 +406,7 @@ int teca_dataset_diff::compare_array_collections(
     {
         if (!data_arrays->has(reference_arrays->get_name(i)))
         {
-            TECA_ERROR("data array collection does not have array \""
+            TECA_FATAL_ERROR("data array collection does not have array \""
                  << reference_arrays->get_name(i)
                  << "\" from the reference array collection.")
             return -1;
@@ -523,9 +431,14 @@ int teca_dataset_diff::compare_array_collections(
                 << " relTol=" << max_prec(double) << relTol)
         }
 
-        if (this->compare_arrays(a1, a2, absTol, relTol))
+        int errorNo = 0;
+        std::string errorStr;
+
+        if (!teca_coordinate_util::equal(a1, a2,
+            absTol, relTol, errorNo, errorStr))
         {
-            TECA_ERROR("difference in array " << i << " \"" << name << "\"")
+            TECA_FATAL_ERROR("Difference in array " << i << " \"" << name << "\". "
+                << errorStr)
             return -1;
         }
     }
@@ -557,7 +470,7 @@ int teca_dataset_diff::compare_meshes(
     }
     if (this->compare_array_collections(arrays1, arrays2))
     {
-        TECA_ERROR("difference in point arrays")
+        TECA_FATAL_ERROR("difference in point arrays")
         return -1;
     }
 
@@ -570,7 +483,7 @@ int teca_dataset_diff::compare_meshes(
     }
     if (this->compare_array_collections(arrays1, arrays2))
     {
-        TECA_ERROR("difference in cell arrays")
+        TECA_FATAL_ERROR("difference in cell arrays")
         return -1;
     }
 
@@ -583,7 +496,7 @@ int teca_dataset_diff::compare_meshes(
     }
     if (this->compare_array_collections(arrays1, arrays2))
     {
-        TECA_ERROR("difference in x-edge arrays")
+        TECA_FATAL_ERROR("difference in x-edge arrays")
         return -1;
     }
 
@@ -595,7 +508,7 @@ int teca_dataset_diff::compare_meshes(
     }
     if (this->compare_array_collections(arrays1, arrays2))
     {
-        TECA_ERROR("difference in y-edge arrays")
+        TECA_FATAL_ERROR("difference in y-edge arrays")
         return -1;
     }
 
@@ -607,7 +520,7 @@ int teca_dataset_diff::compare_meshes(
     }
     if (this->compare_array_collections(arrays1, arrays2))
     {
-        TECA_ERROR("difference in z-edge arrays")
+        TECA_FATAL_ERROR("difference in z-edge arrays")
         return -1;
     }
 
@@ -620,7 +533,7 @@ int teca_dataset_diff::compare_meshes(
     }
     if (this->compare_array_collections(arrays1, arrays2))
     {
-        TECA_ERROR("difference in x-face arrays")
+        TECA_FATAL_ERROR("difference in x-face arrays")
         return -1;
     }
 
@@ -632,7 +545,7 @@ int teca_dataset_diff::compare_meshes(
     }
     if (this->compare_array_collections(arrays1, arrays2))
     {
-        TECA_ERROR("difference in y-face arrays")
+        TECA_FATAL_ERROR("difference in y-face arrays")
         return -1;
     }
 
@@ -644,7 +557,7 @@ int teca_dataset_diff::compare_meshes(
     }
     if (this->compare_array_collections(arrays1, arrays2))
     {
-        TECA_ERROR("difference in z-face arrays")
+        TECA_FATAL_ERROR("difference in z-face arrays")
         return -1;
     }
 
@@ -657,7 +570,7 @@ int teca_dataset_diff::compare_meshes(
     }
     if (this->compare_array_collections(arrays1, arrays2))
     {
-        TECA_ERROR("difference in information arrays")
+        TECA_FATAL_ERROR("difference in information arrays")
         return -1;
     }
 
@@ -684,7 +597,7 @@ int teca_dataset_diff::compare_cartesian_meshes(
     }
     if (this->compare_meshes(reference_mesh, data_mesh))
     {
-        TECA_ERROR("Difference in mesh")
+        TECA_FATAL_ERROR("Difference in mesh")
         return -1;
     }
 
@@ -701,9 +614,14 @@ int teca_dataset_diff::compare_cartesian_meshes(
             << " absTol=" << max_prec(double) << absTol
             << " relTol=" << max_prec(double) << relTol)
     }
-    if (this->compare_arrays(coord1, data_mesh->get_x_coordinates(), absTol, relTol))
+
+    int errorNo = 0;
+    std::string errorStr;
+
+    if (!teca_coordinate_util::equal(coord1,
+        data_mesh->get_x_coordinates(), absTol, relTol, errorNo, errorStr))
     {
-        TECA_ERROR("difference in x coordinates")
+        TECA_FATAL_ERROR("difference in x coordinates. " << errorStr)
         return -1;
     }
 
@@ -715,9 +633,11 @@ int teca_dataset_diff::compare_cartesian_meshes(
             << " absTol=" << max_prec(double) << absTol
             << " relTol=" << max_prec(double) << relTol)
     }
-    if (this->compare_arrays(coord1, data_mesh->get_y_coordinates(), absTol, relTol))
+
+    if (!teca_coordinate_util::equal(coord1,
+        data_mesh->get_y_coordinates(), absTol, relTol, errorNo, errorStr))
     {
-        TECA_ERROR("difference in y coordinates")
+        TECA_FATAL_ERROR("difference in y coordinates. " << errorStr)
         return -1;
     }
 
@@ -729,10 +649,11 @@ int teca_dataset_diff::compare_cartesian_meshes(
             << " absTol=" << max_prec(double) << absTol
             << " relTol=" << max_prec(double) << relTol)
     }
-    if (this->compare_arrays(coord1,
-        data_mesh->get_z_coordinates(), absTol, relTol))
+
+    if (!teca_coordinate_util::equal(coord1,
+        data_mesh->get_z_coordinates(), absTol, relTol, errorNo, errorStr))
     {
-        TECA_ERROR("difference in z coordinates")
+        TECA_FATAL_ERROR("difference in z coordinates. " << errorStr)
         return -1;
     }
 
@@ -759,7 +680,7 @@ int teca_dataset_diff::compare_curvilinear_meshes(
     }
     if (this->compare_meshes(reference_mesh, data_mesh))
     {
-        TECA_ERROR("Difference in mesh")
+        TECA_FATAL_ERROR("Difference in mesh")
         return -1;
     }
 
@@ -773,10 +694,14 @@ int teca_dataset_diff::compare_curvilinear_meshes(
             << " absTol=" << max_prec(double) << absTol
             << " relTol=" << max_prec(double) << relTol)
     }
-    if (this->compare_arrays(reference_mesh->get_x_coordinates(),
-        data_mesh->get_x_coordinates(), absTol, relTol))
+
+    int errorNo = 0;
+    std::string errorStr;
+
+    if (!teca_coordinate_util::equal(reference_mesh->get_x_coordinates(),
+        data_mesh->get_x_coordinates(), absTol, relTol, errorNo, errorStr))
     {
-        TECA_ERROR("difference in x coordinates")
+        TECA_FATAL_ERROR("difference in x coordinates. " << errorStr)
         return -1;
     }
 
@@ -786,10 +711,11 @@ int teca_dataset_diff::compare_curvilinear_meshes(
             << " absTol=" << max_prec(double) << absTol
             << " relTol=" << max_prec(double) << relTol)
     }
-    if (this->compare_arrays(reference_mesh->get_y_coordinates(),
-        data_mesh->get_y_coordinates(), absTol, relTol))
+
+    if (!teca_coordinate_util::equal(reference_mesh->get_y_coordinates(),
+        data_mesh->get_y_coordinates(), absTol, relTol, errorNo, errorStr))
     {
-        TECA_ERROR("difference in y coordinates")
+        TECA_FATAL_ERROR("difference in y coordinates. " << errorStr)
         return -1;
     }
 
@@ -799,10 +725,11 @@ int teca_dataset_diff::compare_curvilinear_meshes(
             << " absTol=" << max_prec(double) << absTol
             << " relTol=" << max_prec(double) << relTol)
     }
-    if (this->compare_arrays(reference_mesh->get_z_coordinates(),
-        data_mesh->get_z_coordinates(), absTol, relTol))
+
+    if (!teca_coordinate_util::equal(reference_mesh->get_z_coordinates(),
+        data_mesh->get_z_coordinates(), absTol, relTol, errorNo, errorStr))
     {
-        TECA_ERROR("difference in z coordinates")
+        TECA_FATAL_ERROR("difference in z coordinates. " << errorStr)
         return -1;
     }
 
@@ -829,7 +756,7 @@ int teca_dataset_diff::compare_arakawa_c_grids(
     }
     if (this->compare_meshes(reference_mesh, data_mesh))
     {
-        TECA_ERROR("Difference in mesh")
+        TECA_FATAL_ERROR("Difference in mesh")
         return -1;
     }
 
@@ -843,10 +770,14 @@ int teca_dataset_diff::compare_arakawa_c_grids(
             << " absTol=" << max_prec(double) << absTol
             << " relTol=" << max_prec(double) << relTol)
     }
-    if (this->compare_arrays(reference_mesh->get_m_x_coordinates(),
-        data_mesh->get_m_x_coordinates(), absTol, relTol))
+
+    int errorNo = 0;
+    std::string errorStr;
+
+    if (!teca_coordinate_util::equal(reference_mesh->get_m_x_coordinates(),
+        data_mesh->get_m_x_coordinates(), absTol, relTol, errorNo, errorStr))
     {
-        TECA_ERROR("difference in m_x coordinates")
+        TECA_FATAL_ERROR("difference in m_x coordinates. " << errorStr)
         return -1;
     }
 
@@ -856,10 +787,11 @@ int teca_dataset_diff::compare_arakawa_c_grids(
             << " absTol=" << max_prec(double) << absTol
             << " relTol=" << max_prec(double) << relTol)
     }
-    if (this->compare_arrays(reference_mesh->get_m_y_coordinates(),
-        data_mesh->get_m_y_coordinates(), absTol, relTol))
+
+    if (!teca_coordinate_util::equal(reference_mesh->get_m_y_coordinates(),
+        data_mesh->get_m_y_coordinates(), absTol, relTol, errorNo, errorStr))
     {
-        TECA_ERROR("difference in m_y coordinates")
+        TECA_FATAL_ERROR("difference in m_y coordinates. " << errorStr)
         return -1;
     }
 
@@ -869,10 +801,11 @@ int teca_dataset_diff::compare_arakawa_c_grids(
             << " absTol=" << max_prec(double) << absTol
             << " relTol=" << max_prec(double) << relTol)
     }
-    if (this->compare_arrays(reference_mesh->get_u_x_coordinates(),
-        data_mesh->get_u_x_coordinates(), absTol, relTol))
+
+    if (!teca_coordinate_util::equal(reference_mesh->get_u_x_coordinates(),
+        data_mesh->get_u_x_coordinates(), absTol, relTol, errorNo, errorStr))
     {
-        TECA_ERROR("difference in u_x coordinates")
+        TECA_FATAL_ERROR("difference in u_x coordinates. " << errorStr)
         return -1;
     }
 
@@ -882,10 +815,11 @@ int teca_dataset_diff::compare_arakawa_c_grids(
             << " absTol=" << max_prec(double) << absTol
             << " relTol=" << max_prec(double) << relTol)
     }
-    if (this->compare_arrays(reference_mesh->get_u_y_coordinates(),
-        data_mesh->get_u_y_coordinates(), absTol, relTol))
+
+    if (!teca_coordinate_util::equal(reference_mesh->get_u_y_coordinates(),
+        data_mesh->get_u_y_coordinates(), absTol, relTol, errorNo, errorStr))
     {
-        TECA_ERROR("difference in u_y coordinates")
+        TECA_FATAL_ERROR("difference in u_y coordinates. " << errorStr)
         return -1;
     }
 
@@ -895,10 +829,11 @@ int teca_dataset_diff::compare_arakawa_c_grids(
             << " absTol=" << max_prec(double) << absTol
             << " relTol=" << max_prec(double) << relTol)
     }
-    if (this->compare_arrays(reference_mesh->get_v_x_coordinates(),
-        data_mesh->get_v_x_coordinates(), absTol, relTol))
+
+    if (!teca_coordinate_util::equal(reference_mesh->get_v_x_coordinates(),
+        data_mesh->get_v_x_coordinates(), absTol, relTol, errorNo, errorStr))
     {
-        TECA_ERROR("difference in v_x coordinates")
+        TECA_FATAL_ERROR("difference in v_x coordinates. " << errorStr)
         return -1;
     }
 
@@ -908,10 +843,11 @@ int teca_dataset_diff::compare_arakawa_c_grids(
             << " absTol=" << max_prec(double) << absTol
             << " relTol=" << max_prec(double) << relTol)
     }
-    if (this->compare_arrays(reference_mesh->get_v_y_coordinates(),
-        data_mesh->get_v_y_coordinates(), absTol, relTol))
+
+    if (!teca_coordinate_util::equal(reference_mesh->get_v_y_coordinates(),
+        data_mesh->get_v_y_coordinates(), absTol, relTol, errorNo, errorStr))
     {
-        TECA_ERROR("difference in v_y coordinates")
+        TECA_FATAL_ERROR("difference in v_y coordinates. " << errorStr)
         return -1;
     }
 
@@ -921,10 +857,11 @@ int teca_dataset_diff::compare_arakawa_c_grids(
             << " absTol=" << max_prec(double) << absTol
             << " relTol=" << max_prec(double) << relTol)
     }
-    if (this->compare_arrays(reference_mesh->get_m_z_coordinates(),
-        data_mesh->get_m_z_coordinates(), absTol, relTol))
+
+    if (!teca_coordinate_util::equal(reference_mesh->get_m_z_coordinates(),
+        data_mesh->get_m_z_coordinates(), absTol, relTol, errorNo, errorStr))
     {
-        TECA_ERROR("difference in m_z coordinates")
+        TECA_FATAL_ERROR("difference in m_z coordinates. " << errorStr)
         return -1;
     }
 
@@ -934,10 +871,11 @@ int teca_dataset_diff::compare_arakawa_c_grids(
             << " absTol=" << max_prec(double) << absTol
             << " relTol=" << max_prec(double) << relTol)
     }
-    if (this->compare_arrays(reference_mesh->get_w_z_coordinates(),
-        data_mesh->get_w_z_coordinates(), absTol, relTol))
+
+    if (!teca_coordinate_util::equal(reference_mesh->get_w_z_coordinates(),
+        data_mesh->get_w_z_coordinates(), absTol, relTol, errorNo, errorStr))
     {
-        TECA_ERROR("difference in w_z coordinates")
+        TECA_FATAL_ERROR("difference in w_z coordinates. " << errorStr)
         return -1;
     }
 

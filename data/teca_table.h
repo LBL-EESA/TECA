@@ -1,6 +1,7 @@
 #ifndef teca_table_h
 #define teca_table_h
 
+#include "teca_config.h"
 #include "teca_dataset.h"
 #include "teca_variant_array.h"
 #include "teca_array_collection.h"
@@ -16,7 +17,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_table)
  * A collection of columnar data with row based
  * accessors and communication and I/O support.
  */
-class teca_table : public teca_dataset
+class TECA_EXPORT teca_table : public teca_dataset
 {
 public:
     TECA_DATASET_STATIC_NEW(teca_table)
@@ -42,6 +43,10 @@ public:
     // add a column definition to the table.
     template<typename nT, typename cT>
     void declare_column(nT &&col_name, cT col_type);
+
+    /// set the allocator to use with ::declare_column
+    void set_default_allocator(allocator alloc)
+    { m_impl->columns->set_default_allocator(alloc); }
 
     // get the number of rows/columns
     unsigned int get_number_of_columns() const noexcept;
@@ -120,21 +125,23 @@ public:
     int to_stream(std::ostream &) const override;
     int from_stream(std::istream &) override;
 
-    // copy data and metadata. shallow copy uses reference
-    // counting, while copy duplicates the data.
-    void copy(const const_p_teca_dataset &other) override;
+    /// @copydoc teca_dataset::copy(const const_p_teca_dataset &,allocator)
+    void copy(const const_p_teca_dataset &other,
+        allocator alloc = allocator::malloc) override;
 
-    // deep copy a subset of row values.
+    /// deep copy a subset of row values.
     void copy(const const_p_teca_table &other,
-        unsigned long first_row, unsigned long last_row);
+        unsigned long first_row, unsigned long last_row,
+        allocator alloc = allocator::malloc);
 
+    /// @copydoc teca_dataset::shallow_copy(const p_teca_dataset &)
     void shallow_copy(const p_teca_dataset &other) override;
 
     // copy the column layout and types
     void copy_structure(const const_p_teca_table &other);
 
     // swap internals of the two objects
-    void swap(p_teca_dataset &other) override;
+    void swap(const p_teca_dataset &other) override;
 
     // append rows from the passed in table which must have identical
     // columns.
@@ -145,9 +152,15 @@ public:
     // is made, else a shallow copy is made.
     void concatenate_cols(const const_p_teca_table &other, bool deep=false);
 
+#if defined(SWIG)
 protected:
+#else
+public:
+#endif
+    // NOTE: constructors are public to enable std::make_shared. do not use.
     teca_table();
 
+protected:
     teca_table(const teca_table &other) = delete;
     teca_table(teca_table &&other) = delete;
     teca_table &operator=(const teca_table &other) = delete;

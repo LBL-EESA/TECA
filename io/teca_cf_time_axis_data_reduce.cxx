@@ -57,13 +57,14 @@ teca_metadata teca_cf_time_axis_data_reduce::initialize_output_metadata(
 }
 
 // --------------------------------------------------------------------------
-p_teca_dataset teca_cf_time_axis_data_reduce::reduce(const const_p_teca_dataset &l_ds,
-    const const_p_teca_dataset &r_ds)
+p_teca_dataset teca_cf_time_axis_data_reduce::reduce(int device_id,
+    const const_p_teca_dataset &l_ds, const const_p_teca_dataset &r_ds)
 {
 #ifdef TECA_DEBUG
     cerr << teca_parallel_id()
         << "teca_cf_time_axis_data_reduce::reduce" << endl;
 #endif
+    (void) device_id;
 
     p_teca_cf_time_axis_data l_axis_data =
         std::dynamic_pointer_cast<teca_cf_time_axis_data>

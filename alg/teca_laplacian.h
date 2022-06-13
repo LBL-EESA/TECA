@@ -11,7 +11,7 @@
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_laplacian)
 
 /// An algorithm that computes the Laplacian from a vector field.
-class teca_laplacian : public teca_algorithm
+class TECA_EXPORT teca_laplacian : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_laplacian)
@@ -56,6 +56,8 @@ protected:
     std::string get_laplacian_variable(const teca_metadata &request);
 
 private:
+    using teca_algorithm::get_output_metadata;
+
     teca_metadata get_output_metadata(
         unsigned int port,
         const std::vector<teca_metadata> &input_md) override;

@@ -1,6 +1,7 @@
 #ifndef teca_table_reduce_h
 #define teca_table_reduce_h
 
+#include "teca_config.h"
 #include "teca_shared_object.h"
 #include "teca_dataset.h"
 #include "teca_metadata.h"
@@ -16,7 +17,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_table_reduce)
  * Tabular data from each time step is collected and
  * concatenated into a big table.
  */
-class teca_table_reduce : public teca_index_reduce
+class TECA_EXPORT teca_table_reduce : public teca_index_reduce
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_table_reduce)
@@ -28,7 +29,7 @@ protected:
     teca_table_reduce();
 
     // overrides
-    p_teca_dataset reduce(const const_p_teca_dataset &left,
+    p_teca_dataset reduce(int device_id, const const_p_teca_dataset &left,
         const const_p_teca_dataset &right) override;
 
     std::vector<teca_metadata> initialize_upstream_request(

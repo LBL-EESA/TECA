@@ -2,6 +2,7 @@
 
 #include "teca_common.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_coordinate_util.h"
 #include "teca_calcalcs.h"
 
@@ -177,7 +178,10 @@ int season_iterator::initialize(const const_p_teca_variant_array &t,
     TEMPLATE_DISPATCH(const teca_variant_array_impl,
         t.get(),
 
-        const NT *p_t = dynamic_cast<const TT*>(t.get())->get();
+        // the calendaring code is CPU only
+        auto ta = std::static_pointer_cast<TT>(t);
+        auto pta =ta->get_cpu_accessible();
+        const NT *p_t = pta.get();
 
         this->begin = time_point(first_step, p_t[first_step], this->units, this->calendar);
         this->end = time_point(last_step, p_t[last_step], this->units, this->calendar);
@@ -420,7 +424,10 @@ int year_iterator::initialize(const const_p_teca_variant_array &t,
     TEMPLATE_DISPATCH(const teca_variant_array_impl,
         t.get(),
 
-        const NT *p_t = dynamic_cast<const TT*>(t.get())->get();
+        // the calendaring code is CPU only
+        auto ta = std::static_pointer_cast<TT>(t);
+        auto pta = ta->get_cpu_accessible();
+        const NT *p_t = pta.get();
 
         this->begin = time_point(first_step, p_t[first_step], this->units, this->calendar);
         this->end = time_point(last_step, p_t[last_step], this->units, this->calendar);
@@ -545,7 +552,10 @@ int month_iterator::initialize(const const_p_teca_variant_array &t,
     TEMPLATE_DISPATCH(const teca_variant_array_impl,
         t.get(),
 
-        const NT *p_t = dynamic_cast<const TT*>(t.get())->get();
+        // the calendaring code is CPU only
+        auto ta = std::static_pointer_cast<TT>(t);
+        auto pta =ta->get_cpu_accessible();
+        const NT *p_t = pta.get();
 
         this->begin = time_point(first_step, p_t[first_step], this->units, this->calendar);
         this->end = time_point(last_step, p_t[last_step], this->units, this->calendar);
@@ -679,7 +689,10 @@ int day_iterator::initialize(const const_p_teca_variant_array &t,
     TEMPLATE_DISPATCH(const teca_variant_array_impl,
         t.get(),
 
-        const NT *p_t = dynamic_cast<const TT*>(t.get())->get();
+        // the calendaring code is CPU only
+        auto ta = std::static_pointer_cast<TT>(t);
+        auto pta =ta->get_cpu_accessible();
+        const NT *p_t = pta.get();
 
         this->begin = time_point(first_step, p_t[first_step], this->units, this->calendar);
         this->end = time_point(last_step, p_t[last_step], this->units, this->calendar);
@@ -782,21 +795,24 @@ int interval_iterator::initialize(const teca_metadata &md,
 {
     // get the time axis and calendar
     teca_metadata attributes;
+    std::string t_var;
     teca_metadata t_atts;
     std::string calendar;
     std::string units;
     teca_metadata coords;
     p_teca_variant_array t;
-    if (md.get("attributes", attributes) || attributes.get("time", t_atts) ||
-        t_atts.get("calendar", calendar) || t_atts.get("units", units) ||
-        md.get("coordinates", coords) || !(t = coords.get("t")))
+    if (md.get("attributes", attributes) || md.get("coordinates", coords) ||
+        !(t = coords.get("t")) || coords.get("t_variable", t_var) ||
+        attributes.get(t_var, t_atts) || t_atts.get("calendar", calendar) ||
+        t_atts.get("units", units))
     {
         TECA_ERROR("Failed to get the time axis from the available metadata."
             << (attributes.empty() ? "missing" : "has") << " attributes. "
+            << (coords.empty() ? "missing" : "has") << " coordinates. "
+            << (t_var.empty() ? "missing" : "has") << " t_variable. "
             << (t_atts.empty() ? "missing" : "has") << " time attributes. "
             << (calendar.empty() ? "missing" : "has") << " calendar ."
             << (units.empty() ? "missing" : "has") << " time units. "
-            << (coords.empty() ? "missing" : "has") << " coordinates. "
             << (t ? "has" : "missing") << " time values.")
         return -1;
     }

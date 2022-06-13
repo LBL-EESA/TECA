@@ -1,6 +1,7 @@
 #ifndef teca_array_attributes_h
 #define teca_array_attributes_h
 
+#include "teca_config.h"
 #include "teca_metadata.h"
 
 #include <ostream>
@@ -25,7 +26,7 @@
  * |                 | provided.                                                  |
  * | fill_value      | value used to identify missing or invalid data             |
  */
-struct teca_array_attributes
+struct TECA_EXPORT teca_array_attributes
 {
     teca_array_attributes() : type_code(0),
         centering(0), size(0), units(), long_name(), description(),

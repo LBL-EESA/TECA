@@ -16,7 +16,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_mask)
 /** An algorithm to mask a range of values in an array. Values
  * in the range are replaced with the mask value.
 */
-class teca_mask : public teca_algorithm
+class TECA_EXPORT teca_mask : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_mask)

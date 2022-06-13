@@ -6,7 +6,7 @@
 #include "teca_config.h"
 #include "teca_mpi.h"
 #include "teca_metadata.h"
-#include "teca_thread_pool.h"
+#include "teca_cpu_thread_pool.h"
 
 #include <mutex>
 #include <string>
@@ -61,10 +61,10 @@ namespace teca_netcdf_util
 {
 
 /// A traits class mapping to netcdf from C++
-template<typename num_t> class netcdf_tt {};
+template<typename num_t> class TECA_EXPORT netcdf_tt {};
 
 /// A traits class mapping to C++ from netcdf
-template<int nc_enum> class cpp_tt {};
+template<int nc_enum> class TECA_EXPORT cpp_tt {};
 
 #define DECLARE_NETCDF_TT(cpp_t_, nc_c_)                                 \
 /** A traits class mapping to NetCDF from C++, specialized for cpp_t_ */ \
@@ -123,7 +123,7 @@ void crtrim(char *s, long n);
 std::mutex &get_netcdf_mutex();
 
 /// A RAII class for managing NETCDF files. The file is kept open while the object exists.
-class netcdf_handle
+class TECA_EXPORT netcdf_handle
 {
 public:
     netcdf_handle() : m_handle(0)
@@ -212,6 +212,7 @@ private:
  * Its value is stored in the metadata object
  * return is non-zero if an error occurred.
  */
+TECA_EXPORT
 int read_attribute(netcdf_handle &fh, int var_id,
     const std::string &att_name, teca_metadata &atts);
 
@@ -220,6 +221,7 @@ int read_attribute(netcdf_handle &fh, int var_id,
  * Its value is stored in the metadata object
  * return is non-zero if an error occurred.
  */
+TECA_EXPORT
 int read_attribute(netcdf_handle &fh, int var_id,
     int att_id, teca_metadata &atts);
 
@@ -228,6 +230,8 @@ int read_attribute(netcdf_handle &fh, int var_id,
  * NetCDF attributes into the metadata object. Additionally the following
  * key/value pairs are added and useful for subsequent I/O and processing
  *
+ * <H4 ID="cf_atts">CF Attributes</H4>
+ *
  *  | Key             | Description                                          |
  *  | ----            | -----------                                          |
  *  | cf_id           | The NetCDF variable id that can be used to read the  |
@@ -251,6 +255,7 @@ int read_attribute(netcdf_handle &fh, int var_id,
  *
  * returns non-zero if an error occurred.
  */
+TECA_EXPORT
 int read_variable_attributes(netcdf_handle &fh, int var_id,
     const std::string &x_variable, const std::string &y_variable,
     const std::string &z_variable, const std::string &t_variable,
@@ -258,37 +263,33 @@ int read_variable_attributes(netcdf_handle &fh, int var_id,
 
 /**
  * Read the specified variable's name, dimensions, and it's associated
- * NetCDF attributes into the metadata object. Additionally the following
- * key/value pairs are added and useful for subsequent I/O and processing
- *
- *  | Key             | Description                                          |
- *  | ----            | -----------                                          |
- *  | cf_id           | The NetCDF variable id that can be used to read the  |
- *  |                 | variable.                                            |
- *  | cf_dims         | A vector of the NetCDF dimension lengths (i.e. the   |
- *  |                 | variable's shape).                                   |
- *  | cf_dim_names    | A vector of the names of the NetCDF dimensions.      |
- *  | cf_type_code    | The NetCDF type code.                                |
- *  | type_code       | The teca_variant_array::code type code.              |
- *  | centering       | The mesh centering, point_centering or no_centering  |
- *  | have_mesh_dim   | Flags indicating the presence of the x,y,z, and t    |
- *  |                 | mesh dimensions                                      |
- *  | mesh_dim_active | Flags indicating if the x,y,z, and t dimension is    |
- *  |                 | active.                                              |
- *
- * In order for centering and have_mesh_dim flags to be set, the x_variable,
- * y_variable, z_variable, and t_variable must be specified.
- *
- * If dimension is 1 and clamp_dimensions_of_one is set then the dimension is
- * marked as inactive.
- *
- * returns non-zero if an error occurred.
+ * NetCDF attributes into the metadata object. See <A HREF="#cf_atts">CF Attributes</A>
+ * for details of attributes returned. returns non-zero if an error occurred.
  */
+TECA_EXPORT
+int read_variable_attributes(netcdf_handle &fh, int var_id,
+    std::string &name, teca_metadata &atts);
+
+/**
+ * Read the specified variable's dimensions, and it's associated
+ * NetCDF attributes into the metadata object. See <A HREF="#cf_atts">CF Attributes</A>
+ * for details of attributes returned. returns non-zero if an error occurred.
+ */
+TECA_EXPORT
 int read_variable_attributes(netcdf_handle &fh,
     const std::string &name,
     const std::string &x_variable, const std::string &y_variable,
     const std::string &z_variable, const std::string &t_variable,
     int clamp_dimensions_of_one, teca_metadata &atts);
+
+/**
+ * Read the specified variable's dimensions, and it's associated
+ * NetCDF attributes into the metadata object. See <A HREF="#cf_atts">CF Attributes</A>
+ * for details of attributes returned. returns non-zero if an error occurred.
+ */
+TECA_EXPORT
+int read_variable_attributes(netcdf_handle &fh,
+    const std::string &var_name, teca_metadata &atts);
 
 /// Functional that reads and returns a variable from the named file.
 /**
@@ -304,14 +305,14 @@ int read_variable_attributes(netcdf_handle &fh,
  * in NetCDF 4 backed by HDF5 necessary locking eliminates any
  * speed up.
  */
-class read_variable_and_attributes
+class TECA_EXPORT read_variable_and_attributes
 {
 public:
     /** Data and task types. */
     using data_elem_t = std::pair<p_teca_variant_array, teca_metadata>;
     using data_t = std::pair<unsigned long, data_elem_t>;
     using task_t = std::packaged_task<data_t()>;
-    using queue_t = teca_thread_pool<task_t, data_t>;
+    using queue_t = teca_cpu_thread_pool<task_t, data_t>;
     using p_queue_t = std::shared_ptr<queue_t>;
 
     read_variable_and_attributes(const std::string &path, const std::string &file,
@@ -327,7 +328,7 @@ public:
         return std::make_pair(id, std::make_pair(var, md));
     }
 
-    data_t operator()();
+    data_t operator()(int device_id = -1);
 
 private:
     std::string m_path;
@@ -350,13 +351,13 @@ private:
  * in NetCDF 4 backed by HDF5 necessary locking eliminates any
  * speed up.
  */
-class read_variable
+class TECA_EXPORT read_variable
 {
 public:
     /** Data and task types. */
     using data_t = std::pair<unsigned long, p_teca_variant_array>;
-    using task_t = std::packaged_task<data_t()>;
-    using queue_t = teca_thread_pool<task_t, data_t>;
+    using task_t = std::packaged_task<data_t(int)>;
+    using queue_t = teca_cpu_thread_pool<task_t, data_t>;
     using p_queue_t = std::shared_ptr<queue_t>;
 
 
@@ -372,7 +373,7 @@ public:
         return std::make_pair(id, var);
     }
 
-    data_t operator()();
+    data_t operator()(int device_id = -1);
 
 private:
     std::string m_path;
@@ -386,6 +387,7 @@ private:
  * Write the attributes in array_atts to the variable identified by var_id the
  * name is used in error messages. Returns zero of successful.
  */
+TECA_EXPORT
 int write_variable_attributes(netcdf_handle &fh, int var_id,
     teca_metadata &array_atts);
 

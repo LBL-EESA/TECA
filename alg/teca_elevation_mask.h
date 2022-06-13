@@ -23,7 +23,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_elevation_mask)
  * where it is below.
  *
  * The name of the 3D height field is specified by the  mesh_height_variable
- * property. The name of the 2D height field conntaining elveation of the
+ * property. The name of the 2D height field containing elevation of the
  * Earth's surface is specified by the  surface_elevation_variable property.
  *
  * The 3D mesh height field must be provided on input 0, and the 2D surface
@@ -48,7 +48,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_elevation_mask)
  * pressure fields then use teca_surface_pressure to generate the surface
  * pressure field and use teca_pressure_level_mask instead of this algorithm.
  */
-class teca_elevation_mask : public teca_algorithm
+class TECA_EXPORT teca_elevation_mask : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_elevation_mask)
@@ -91,6 +91,8 @@ protected:
     teca_elevation_mask();
 
 private:
+    using teca_algorithm::get_output_metadata;
+
     teca_metadata get_output_metadata(
         unsigned int port,
         const std::vector<teca_metadata> &input_md) override;

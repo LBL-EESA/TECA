@@ -31,7 +31,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_normalize_coordinates)
  * If data point opn the periodic boundary is duplicated, the data at 180 is
  * dropped and a warning is issued.g
  */
-class teca_normalize_coordinates : public teca_algorithm
+class TECA_EXPORT teca_normalize_coordinates : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_normalize_coordinates)
@@ -72,6 +72,8 @@ protected:
     teca_normalize_coordinates();
 
 private:
+    using teca_algorithm::get_output_metadata;
+
     teca_metadata get_output_metadata(unsigned int port,
         const std::vector<teca_metadata> &input_md) override;
 

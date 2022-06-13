@@ -3,6 +3,7 @@
 
 /// @file
 
+#include "teca_config.h"
 #include "teca_variant_array.h"
 #include "teca_metadata.h"
 
@@ -31,6 +32,7 @@ namespace teca_calendar_util
  * > d : 2 digit day
  *
  */
+TECA_EXPORT
 long gregorian_number(long y, long m, long d);
 
 /** input:
@@ -44,6 +46,7 @@ long gregorian_number(long y, long m, long d);
  * > d : 2 digit day
  *
  */
+TECA_EXPORT
 void date_from_gregorian_number(long g, long &y, long &m, long &d);
 
 /**
@@ -58,18 +61,20 @@ void date_from_gregorian_number(long g, long &y, long &m, long &d);
  * true if the date is valid in the gregorian calendar and our conversion
  * algorithm.
 */
+TECA_EXPORT
 bool valid_gregorian_date(long y, long m, long d);
 ///@}
 
 
 /// returns one of DJF,MAM,JJA,SON based on the month passed in
+TECA_EXPORT
 const char *get_season_name(int month);
 
 /** brief
  * A floating point time value and its corresponding year, month day, hour
  * minute and second
  */
-struct time_point
+struct TECA_EXPORT time_point
 {
     time_point() : index(-1), time(0.0), year(0), month(1), day(1),
         hour(0), minute(0), second(0.0)
@@ -113,7 +118,7 @@ struct time_point
 };
 
 /// An iterator over a series of time intervals
-class interval_iterator
+class TECA_EXPORT interval_iterator
 {
 public:
 
@@ -192,7 +197,7 @@ protected:
  * first full season, and the data from the end of the last full season to the
  * end is skipped.
  */
-class season_iterator : public interval_iterator
+class TECA_EXPORT season_iterator : public interval_iterator
 {
 public:
     season_iterator() : year(-1), month(-1) {}
@@ -212,6 +217,8 @@ public:
     int initialize(const const_p_teca_variant_array &t,
         const std::string &units, const std::string &calendar,
         long first_step, long last_step) override;
+
+    using interval_iterator::initialize;
 
     /** return a pair of time steps bracketing the current season.
      * both returned time steps belong to the current season.
@@ -247,7 +254,7 @@ protected:
  * of time steps bracketing the current month are returned at
  * each iteration.
  */
-class year_iterator : public interval_iterator
+class TECA_EXPORT year_iterator : public interval_iterator
 {
 public:
     year_iterator() : year(-1) {}
@@ -268,6 +275,8 @@ public:
         const std::string &units, const std::string &calendar,
         long first_step, long last_step) override;
 
+    using interval_iterator::initialize;
+
     /** return a pair of time steps bracketing the current season.
      * both returned time steps belong to the current season.
      */
@@ -283,7 +292,7 @@ protected:
  * of time steps bracketing the current month are returned at
  * each iteration.
  */
-class month_iterator : public interval_iterator
+class TECA_EXPORT month_iterator : public interval_iterator
 {
 public:
     month_iterator() : year(-1), month(-1) {}
@@ -304,6 +313,8 @@ public:
         const std::string &units, const std::string &calendar,
         long first_step, long last_step) override;
 
+    using interval_iterator::initialize;
+
     /** return a pair of time steps bracketing the current season.
      * both returned time steps belong to the current season.
      */
@@ -320,7 +331,7 @@ protected:
  * of time steps bracketing the current day are returned at
  * each iteration.
  */
-class day_iterator : public interval_iterator
+class TECA_EXPORT day_iterator : public interval_iterator
 {
 public:
     day_iterator() : year(-1), month(-1), day(-1) {}
@@ -341,6 +352,8 @@ public:
         const std::string &units, const std::string &calendar,
         long first_step, long last_step) override;
 
+    using interval_iterator::initialize;
+
     /** return a pair of time steps bracketing the current season.
      * both returned time steps belong to the current season.
      */
@@ -357,7 +370,7 @@ protected:
 using p_interval_iterator = std::shared_ptr<interval_iterator>;
 
 /// A factory for interval_iterator
-class interval_iterator_factory
+class TECA_EXPORT interval_iterator_factory
 {
 public:
     /** Allocate and return an instance of the named iterator
@@ -381,6 +394,7 @@ public:
 }
 
 /// send the time_point to a stream in humnan readable form
+TECA_EXPORT
 std::ostream &operator<<(std::ostream &os,
     const teca_calendar_util::time_point &tpt);
 

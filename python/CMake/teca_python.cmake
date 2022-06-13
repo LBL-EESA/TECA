@@ -9,12 +9,14 @@ function(depend_swig input output)
             ${swig_cmd} -c++ -python -MM
             -I${MPI4Py_INCLUDE_DIR}
             -I${CMAKE_CURRENT_BINARY_DIR}
+            -I${CMAKE_CURRENT_BINARY_DIR}/../HAMR
             -I${CMAKE_CURRENT_BINARY_DIR}/..
             -I${CMAKE_CURRENT_SOURCE_DIR}/../core
             -I${CMAKE_CURRENT_SOURCE_DIR}/../data
             -I${CMAKE_CURRENT_SOURCE_DIR}/../io
             -I${CMAKE_CURRENT_SOURCE_DIR}/../alg
             -I${CMAKE_CURRENT_SOURCE_DIR}/../system
+            -I${CMAKE_CURRENT_SOURCE_DIR}/../HAMR
             ${input_file} | sed -e 's/[[:space:]\\]\\{1,\\}//g' -e '1,2d' -e '/teca_config\\.h/d' > ${output_file}
         MAIN_DEPENDENCY ${input_file}
         COMMENT "Generating dependency file for ${input}...")
@@ -26,12 +28,14 @@ function(depend_swig input output)
             ${swig_cmd} -c++ -python -MM
             -I${MPI4Py_INCLUDE_DIR}
             -I${CMAKE_CURRENT_BINARY_DIR}
+            -I${CMAKE_CURRENT_BINARY_DIR}/../HAMR
             -I${CMAKE_CURRENT_BINARY_DIR}/..
             -I${CMAKE_CURRENT_SOURCE_DIR}/../core
             -I${CMAKE_CURRENT_SOURCE_DIR}/../data
             -I${CMAKE_CURRENT_SOURCE_DIR}/../io
             -I${CMAKE_CURRENT_SOURCE_DIR}/../alg
             -I${CMAKE_CURRENT_SOURCE_DIR}/../system
+            -I${CMAKE_CURRENT_SOURCE_DIR}/../HAMR
             ${input_file}
        COMMAND sed -e s/[[:space:]\\]\\{1,\\}//g -e 1,2d -e /teca_config\\.h/d
        OUTPUT_VARIABLE cpp_deps)
@@ -83,12 +87,14 @@ function(wrap_swig input output)
             -DSWIG_TYPE_TABLE=teca_py
             -I${MPI4Py_INCLUDE_DIR}
             -I${CMAKE_CURRENT_BINARY_DIR}
+            -I${CMAKE_CURRENT_BINARY_DIR}/../HAMR
             -I${CMAKE_CURRENT_BINARY_DIR}/..
             -I${CMAKE_CURRENT_SOURCE_DIR}/../core
             -I${CMAKE_CURRENT_SOURCE_DIR}/../data
             -I${CMAKE_CURRENT_SOURCE_DIR}/../io
             -I${CMAKE_CURRENT_SOURCE_DIR}/../alg
             -I${CMAKE_CURRENT_SOURCE_DIR}/../system
+            -I${CMAKE_CURRENT_SOURCE_DIR}/../HAMR
             -o ${output_file} ${input_file}
         MAIN_DEPENDENCY ${input_file}
         DEPENDS ${depend_files} ${depends}

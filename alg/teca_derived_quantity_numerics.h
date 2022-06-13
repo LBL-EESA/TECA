@@ -4,6 +4,9 @@
 /// @file
 
 #include "teca_mesh.h"
+#include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
+
 #include <string>
 #include <vector>
 
@@ -17,7 +20,7 @@ namespace teca_derived_quantity_numerics
  *  for every i
  *  avg[i] = (v0[i] + v1[i])/2
  */
-struct point_wise_average
+struct TECA_EXPORT point_wise_average
 {
     // construct the class with two input array names, v0,v1
     // and the output array name, avg.
@@ -50,9 +53,15 @@ struct point_wise_average
 
         TEMPLATE_DISPATCH(teca_variant_array_impl,
             avg.get(),
-            const NT *p_v0 = static_cast<const TT*>(v0.get())->get();
-            const NT *p_v1 = dynamic_cast<const TT*>(v1.get())->get();
-            NT *p_avg = static_cast<TT*>(avg.get())->get();
+            auto sp_v0 = static_cast<const TT*>(v0.get())->get_cpu_accessible();
+            const NT *p_v0 = sp_v0.get();
+
+            auto sp_v1 = dynamic_cast<const TT*>(v1.get())->get_cpu_accessible();
+            const NT *p_v1 = sp_v1.get();
+
+            auto sp_avg = static_cast<TT*>(avg.get())->get_cpu_accessible();
+            NT *p_avg = sp_avg.get();
+
             for (unsigned long i = 0; i < n_pts; ++i)
                 p_avg[i] = (p_v0[i] + p_v1[i])/NT(2);
             )
@@ -77,7 +86,7 @@ struct point_wise_average
  *  for every i
  *  diff[i] = v1[i] - v0[i]
  */
-struct point_wise_difference
+struct TECA_EXPORT point_wise_difference
 {
     // construct the class with two input array names, v0,v1
     // and the output array name, diff.
@@ -111,9 +120,15 @@ struct point_wise_difference
 
         TEMPLATE_DISPATCH(teca_variant_array_impl,
             diff.get(),
-            const NT *p_v0 = static_cast<const TT*>(v0.get())->get();
-            const NT *p_v1 = dynamic_cast<const TT*>(v1.get())->get();
-            NT *p_diff = static_cast<TT*>(diff.get())->get();
+            auto sp_v0 = static_cast<const TT*>(v0.get())->get_cpu_accessible();
+            const NT *p_v0 = sp_v0.get();
+
+            auto sp_v1 = dynamic_cast<const TT*>(v1.get())->get_cpu_accessible();
+            const NT *p_v1 = sp_v1.get();
+
+            auto sp_diff = static_cast<TT*>(diff.get())->get_cpu_accessible();
+            NT *p_diff = sp_diff.get();
+
             for (unsigned long i = 0; i < n_pts; ++i)
                 p_diff[i] = p_v1[i] - p_v0[i];
             )
@@ -131,5 +146,5 @@ struct point_wise_difference
     std::string m_v1; // input variable name 2
     std::string m_diff; // output variable name
 };
-};
+}
 #endif

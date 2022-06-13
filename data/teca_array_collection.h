@@ -1,6 +1,8 @@
 #ifndef teca_array_collection_h
 #define teca_array_collection_h
 
+#include "teca_config.h"
+#include "teca_dataset.h"
 #include "teca_shared_object.h"
 #include "teca_variant_array.h"
 #include <map>
@@ -10,14 +12,26 @@
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_array_collection)
 
 /// A collection of named arrays.
-class teca_array_collection
+/**
+ * The array collection is used internally in other mesh based datasets. It
+ * can also be used to process more general data where the arrays have
+ * differing lengths or a non-geometric association.
+ */
+class TECA_EXPORT teca_array_collection : public teca_dataset
 {
 public:
+    TECA_DATASET_STATIC_NEW(teca_array_collection)
+    TECA_DATASET_NEW_INSTANCE()
+    TECA_DATASET_NEW_COPY()
 
-    /// construct on heap
-    static
-    p_teca_array_collection New()
-    { return p_teca_array_collection(new teca_array_collection()); }
+    // set/get temporal metadata
+    TECA_DATASET_METADATA(time, double, 1)
+    TECA_DATASET_METADATA(calendar, std::string, 1)
+    TECA_DATASET_METADATA(time_units, std::string, 1)
+    TECA_DATASET_METADATA(time_step, unsigned long, 1)
+
+    // set/get attribute metadata
+    TECA_DATASET_METADATA(attributes, teca_metadata, 1)
 
     /// reset to empty state
     void clear();
@@ -32,6 +46,10 @@ public:
     /// declare a single array
     template<typename nT, typename aT>
     void declare(nT &&a_name, aT a_type);
+
+    /// set the allocator to use with ::declare
+    void set_default_allocator(allocator alloc)
+    { this->default_allocator = alloc; }
 
     /** add, return the index of the new entry,  or -1 if the array name already
      * exists.
@@ -103,18 +121,18 @@ public:
     { return m_names; }
 
     /// Return the name of the class
-    std::string get_class_name() const
+    std::string get_class_name() const override
     { return "teca_array_collection"; }
 
     /// return an integer identifier uniquely naming the dataset type
-    int get_type_code() const
-    { return -1; }
+    int get_type_code() const override;
 
-    /// copy
-    void copy(const const_p_teca_array_collection &other);
+    /// @copydoc teca_dataset::copy(const const_p_teca_dataset &,allocator)
+    void copy(const const_p_teca_dataset &other,
+        allocator alloc = allocator::malloc) override;
 
-    /// shallow copy
-    void shallow_copy(const p_teca_array_collection &other);
+    /// @copydoc teca_dataset::shallow_copy(const p_teca_dataset &)
+    void shallow_copy(const p_teca_dataset &other) override;
 
     /// append
     int append(const const_p_teca_array_collection &other);
@@ -123,19 +141,27 @@ public:
     int shallow_append(const p_teca_array_collection &other);
 
     /// swap
-    void swap(p_teca_array_collection &other);
+    void swap(const p_teca_dataset &other) override;
 
     /// serialize the data to the given stream for I/O or communication
-    int to_stream(teca_binary_stream &s) const;
+    int to_stream(teca_binary_stream &s) const override;
 
     /// serialize the data from the given stream for I/O or communication
-    int from_stream(teca_binary_stream &s);
+    int from_stream(teca_binary_stream &s) override;
 
     /// stream to a human readable representation
-    int to_stream(std::ostream &) const;
+    int to_stream(std::ostream &) const override;
+    using teca_dataset::from_stream;
+
+#if defined(SWIG)
+protected:
+#else
+public:
+#endif
+    // NOTE: constructors are public to enable std::make_shared. do not use.
+    teca_array_collection() = default;
 
 protected:
-    teca_array_collection() = default;
     teca_array_collection(const teca_array_collection &) = delete;
     teca_array_collection(const teca_array_collection &&) = delete;
     void operator=(const teca_array_collection &) = delete;
@@ -150,6 +176,7 @@ private:
     name_vector_t m_names;
     array_vector_t m_arrays;
     name_array_map_t m_name_array_map;
+    allocator default_allocator;
 };
 
 // --------------------------------------------------------------------------
@@ -166,7 +193,7 @@ void teca_array_collection::declare(nT &&a_name, aT)
 {
     unsigned int id = m_arrays.size();
     m_names.emplace_back(std::forward<nT>(a_name));
-    m_arrays.emplace_back(teca_variant_array_impl<aT>::New());
+    m_arrays.emplace_back(teca_variant_array_impl<aT>::New(this->default_allocator));
     m_name_array_map.emplace(std::forward<nT>(a_name), id);
 }
 

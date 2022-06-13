@@ -1,6 +1,7 @@
 #ifndef teca_cf_reader_h
 #define teca_cf_reader_h
 
+#include "teca_config.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
 #include "teca_shared_object.h"
@@ -13,10 +14,16 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_cf_reader)
 class teca_cf_reader_internals;
 using p_teca_cf_reader_internals = std::shared_ptr<teca_cf_reader_internals>;
 
-/// A reader for data stored in NetCDF CF format.
+/// A reader for Cartesian mesh based data stored in NetCDF CF format.
 /**
- * Reads a set of arrays from  single time step into a cartesian mesh. the mesh
- * is optionally subset.
+ * Reads a set of arrays from  single time step into a teca_cartesian_mesh
+ * dataset. The reader responds to requests for specific arrays and the data
+ * may be optionally subset via extent and bounds request keys.
+ *
+ * The time varying dataset to read is identified by a regular expression
+ * identifying a set of files. Note, regular expressions are similar and more
+ * powerful than the more familiar shell glob but the control characters have
+ * different meanings.
  *
  * ### metadata keys:
  *
@@ -31,6 +38,7 @@ using p_teca_cf_reader_internals = std::shared_ptr<teca_cf_reader_internals>;
  *  | number_of_time_steps  | total number of time steps in all files |
  *  | index_request_key     | time_step |
  *  | whole_extent          | index space extent describing (nodal) dimensions of the mesh |
+ *  | bounds                | world coordinate space bounding box covered by the mesh |
  *
  * ### attribute metadata:
  *
@@ -59,13 +67,14 @@ using p_teca_cf_reader_internals = std::shared_ptr<teca_cf_reader_internals>;
  *  | time_step | the time step to read |
  *  | arrays    | list of arrays to read |
  *  | extent    | index space extents describing the subset of data to read |
+ *  | bounds    | world space bounds describing the subset of data to read |
  *
  * ### output:
  * The reader generates a 1,2 or 3D cartesian mesh for the requested timestep
  * on the requested extent with the requested point based arrays and value at
  * this timestep for all time variables.
  */
-class teca_cf_reader : public teca_algorithm
+class TECA_EXPORT teca_cf_reader : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_cf_reader)
@@ -221,6 +230,8 @@ protected:
     void clear_cached_metadata();
 
 private:
+    using teca_algorithm::get_output_metadata;
+
     teca_metadata get_output_metadata(
         unsigned int port,
         const std::vector<teca_metadata> &input_md) override;

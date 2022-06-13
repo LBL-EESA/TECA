@@ -16,8 +16,10 @@ exec_program("${PYTHON_EXECUTABLE}"
 set(PyTorch_VERSION_FOUND FALSE)
 if(NOT _TMP_PY_RETURN)
   set(PyTorch_VERSION_FOUND TRUE)
+  message(STATUS "Looking for Python package pytorch ... found version ${_TMP_PY_OUTPUT}")
 else()
   set(_TMP_PY_OUTPUT)
+  message(STATUS "Looking for Python package pytorch ... not found")
 endif()
 set(PyTorch_VERSION "${_TMP_PY_OUTPUT}")
 

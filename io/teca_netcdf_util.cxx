@@ -3,6 +3,7 @@
 #include "teca_system_interface.h"
 #include "teca_file_util.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_array_attributes.h"
 
 #include <cstring>
@@ -529,6 +530,14 @@ int read_variable_attributes(netcdf_handle &fh, const std::string &var_name,
 
 // **************************************************************************
 int read_variable_attributes(netcdf_handle &fh, int var_id,
+    std::string &name, teca_metadata &atts)
+{
+    return teca_netcdf_util::read_variable_attributes(fh,
+        var_id, "", "", "", "", 0, name, atts);
+}
+
+// **************************************************************************
+int read_variable_attributes(netcdf_handle &fh, int var_id,
     const std::string &x_axis_variable, const std::string &y_axis_variable,
     const std::string &z_axis_variable, const std::string &t_axis_variable,
     int clamp_dimensions_of_one, std::string &name, teca_metadata &atts)
@@ -668,8 +677,11 @@ int read_variable_attributes(netcdf_handle &fh, int var_id,
 }
 
 // --------------------------------------------------------------------------
-read_variable_and_attributes::data_t read_variable_and_attributes::operator()()
+read_variable_and_attributes::data_t
+read_variable_and_attributes::operator()(int device_id)
 {
+    (void) device_id;
+
     p_teca_variant_array var;
 
     // get a handle to the file. managed by the reader
@@ -712,7 +724,8 @@ read_variable_and_attributes::data_t read_variable_and_attributes::operator()()
     size_t start[NC_MAX_DIMS] = {0};
     size_t count[NC_MAX_DIMS] = {0};
     int n_dims = dims->size();
-    size_t *p_dims = dims->get();
+    auto spdims = dims->get_cpu_accessible();
+    size_t *p_dims = spdims.get();
     for (int i = 0; i < n_dims; ++i)
     {
         var_size *= p_dims[i];
@@ -722,14 +735,15 @@ read_variable_and_attributes::data_t read_variable_and_attributes::operator()()
     // allocate a buffer and read the variable.
     NC_DISPATCH(var_type,
 
-        p_teca_variant_array_impl<NC_T> var =
-            teca_variant_array_impl<NC_T>::New(var_size);
+        p_teca_variant_array_impl<NC_T> var = teca_variant_array_impl<NC_T>::New(var_size);
+        auto spvar = var->get_cpu_accessible();
+        NC_T *pvar = spvar.get();
 
 #if !defined(HDF5_THREAD_SAFE)
         {
         std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-        if ((ierr = nc_get_vara(fh.get(), var_id, start, count , var->get())) != NC_NOERR)
+        if ((ierr = nc_get_vara(fh.get(), var_id, start, count, pvar)) != NC_NOERR)
         {
             TECA_ERROR("Failed to read variable \"" << m_variable  << "\" from \""
                 << m_file << "\". " << nc_strerror(ierr))
@@ -751,8 +765,10 @@ read_variable_and_attributes::data_t read_variable_and_attributes::operator()()
 }
 
 // --------------------------------------------------------------------------
-read_variable::data_t read_variable::operator()()
+read_variable::data_t read_variable::operator()(int device_id)
 {
+    (void) device_id;
+
     p_teca_variant_array var;
 
     // get a handle to the file. managed by the reader
@@ -799,13 +815,14 @@ read_variable::data_t read_variable::operator()()
     // allocate a buffer and read the variable.
     NC_DISPATCH(var_type,
         size_t start = 0;
-        p_teca_variant_array_impl<NC_T> var = teca_variant_array_impl<NC_T>::New();
-        var->resize(var_size);
+        p_teca_variant_array_impl<NC_T> var = teca_variant_array_impl<NC_T>::New(var_size);
+        auto spvar = var->get_cpu_accessible();
+        NC_T *pvar = spvar.get();
 #if !defined(HDF5_THREAD_SAFE)
         {
         std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-        if ((ierr = nc_get_vara(file_id, var_id, &start, &var_size, var->get())) != NC_NOERR)
+        if ((ierr = nc_get_vara(file_id, var_id, &start, &var_size, pvar)) != NC_NOERR)
         {
             TECA_ERROR("Failed to read variable \"" << m_variable  << "\" from \""
                 << m_file << "\". " << nc_strerror(ierr))
@@ -859,7 +876,8 @@ int write_variable_attributes(netcdf_handle &fh, int var_id,
             att_values.get(),
             if (att_values->size() > 1)
                 continue;
-            const std::string att_val = static_cast<const TT*>(att_values.get())->get(0);
+            std::string att_val;
+            static_cast<const TT*>(att_values.get())->get(0, att_val);
 #if !defined(HDF5_THREAD_SAFE)
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
@@ -879,7 +897,8 @@ int write_variable_attributes(netcdf_handle &fh, int var_id,
             att_values.get(),
 
             int type = teca_netcdf_util::netcdf_tt<NT>::type_code;
-            const NT *pvals = static_cast<TT*>(att_values.get())->get();
+            auto spvals = static_cast<TT*>(att_values.get())->get_cpu_accessible();
+            const NT *pvals = spvals.get();
             unsigned long n_vals = att_values->size();
 
 #if !defined(HDF5_THREAD_SAFE)

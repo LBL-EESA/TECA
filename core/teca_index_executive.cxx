@@ -1,11 +1,15 @@
 #include "teca_index_executive.h"
 #include "teca_config.h"
 #include "teca_common.h"
+#if defined(TECA_HAS_CUDA)
+#include "teca_cuda_util.h"
+#endif
 
 #include <string>
 #include <sstream>
 #include <iostream>
 #include <utility>
+#include <deque>
 
 
 // --------------------------------------------------------------------------
@@ -82,13 +86,13 @@ int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
     // requests we need to make and what key to use
     if (md.get("index_initializer_key", this->index_initializer_key))
     {
-        TECA_ERROR("No index initializer key has been specified")
+        TECA_FATAL_ERROR("No index initializer key has been specified")
         return -1;
     }
 
     if (md.get("index_request_key", this->index_request_key))
     {
-        TECA_ERROR("No index request key has been specified")
+        TECA_FATAL_ERROR("No index request key has been specified")
         return -1;
     }
 
@@ -96,7 +100,7 @@ int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
     long n_indices = 0;
     if (md.get(this->index_initializer_key, n_indices))
     {
-        TECA_ERROR("metadata is missing the initializer key \""
+        TECA_FATAL_ERROR("metadata is missing the initializer key \""
             << this->index_initializer_key << "\"")
         return -1;
     }
@@ -142,6 +146,21 @@ int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
         block_start = block_size*rank + n_big_blocks;
     }
 
+    // determine the available CUDA GPUs
+#if defined(TECA_HAS_CUDA)
+    int ranks_per_device = -1;
+    std::vector<int> device_ids;
+    if (teca_cuda_util::get_local_cuda_devices(comm,
+        ranks_per_device, device_ids))
+    {
+        TECA_WARNING("Failed to determine the local CUDA device_ids."
+            " Falling back to the default device.")
+        device_ids.resize(1, 0);
+    }
+    int n_devices = device_ids.size();
+    size_t q = 0;
+#endif
+
     // consrtuct base request
     teca_metadata base_req;
     if (this->bounds.empty())
@@ -165,9 +184,19 @@ int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
         size_t index = i + block_start + first;
         if ((index % this->stride) == 0)
         {
+            int device_id = -1;
+
+#if defined(TECA_HAS_CUDA)
+            // assign eaach request a device to execute on
+            if (n_devices > 0)
+                device_id = device_ids[q % n_devices];
+
+            ++q;
+#endif
             this->requests.push_back(base_req);
             this->requests.back().set("index_request_key", this->index_request_key);
             this->requests.back().set(this->index_request_key, index);
+            this->requests.back().set("device_id", device_id);
         }
     }
 
@@ -182,6 +211,10 @@ int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
             << " first=" << this->start_index << " last=" << this->end_index
             << " stride=" << this->stride << " block_start=" << block_start + first
             << " block_size=" << block_size;
+#if defined(TECA_HAS_CUDA)
+        oss << " n_cuda_devices=" << device_ids.size()
+            << " device_ids=" << device_ids;
+#endif
         std::cerr << oss.str() << std::endl;
     }
 
@@ -226,6 +259,12 @@ teca_metadata teca_index_executive::get_next_request()
                 oss << " bounds=" << bds[0] << ", " << bds[1] << ", "
                     << bds[2] << ", " << bds[3] << ", " << bds[4] << ", " << bds[5];
             }
+
+#if defined(TECA_HAS_CUDA)
+            int device_id = -1;
+            req.get("device_id", device_id);
+            oss << " device_id=" << device_id;
+#endif
 
             std::cerr << oss.str() << std::endl;
         }

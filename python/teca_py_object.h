@@ -3,11 +3,15 @@
 
 /// @file
 
+#include <Python.h>
+
+#include "teca_config.h"
 #include "teca_common.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_py_string.h"
 #include "teca_py_integer.h"
-#include <Python.h>
+#include "teca_py_gil_state.h"
 
 /// Codes dealing with Python objects
 namespace teca_py_object
@@ -26,7 +30,7 @@ namespace teca_py_object
  * int --> PyInt/PyLong, long --> PyInt/PyLong, bool --> PyBool,
  * float --> PyFloat, char* --> PyUnicode/PyString
 */
-template <typename py_t> struct cpp_tt
+template <typename py_t> struct TECA_EXPORT cpp_tt
 {};
 
 /** PY_T -- C-name of python type
@@ -90,7 +94,7 @@ template <> struct cpp_tt<teca_metadata>
  * py_tt is used to take a C++ type and lookup the Python type
  * tag. Then the type tag is used to lookup the function.
 */
-template <typename type> struct py_tt
+template <typename type> struct TECA_EXPORT py_tt
 {};
 
 /**
@@ -281,7 +285,7 @@ bool append(teca_variant_array *varr, PyObject *obj)
 }
 
 /// A container that keeps a reference to a PyObject
-class teca_py_object_ptr
+class TECA_EXPORT teca_py_object_ptr
 {
 public:
     teca_py_object_ptr() : m_obj(nullptr) {}
@@ -289,32 +293,36 @@ public:
     teca_py_object_ptr(PyObject *obj)
         : m_obj(obj) { Py_XINCREF(m_obj); }
 
-     virtual ~teca_py_object_ptr() { Py_XDECREF(m_obj); }
-
-     teca_py_object_ptr(teca_py_object_ptr &&o)
-        : m_obj(o.m_obj) { o.m_obj = nullptr; }
-
-     teca_py_object_ptr &operator=(teca_py_object_ptr &&o)
-     {
-         PyObject *tmp = m_obj;
-         m_obj = o.m_obj;
-         o.m_obj = tmp;
-         return *this;
-     }
-
-     teca_py_object_ptr(const teca_py_object_ptr &o)
-        : m_obj(o.m_obj) { Py_XINCREF(m_obj); }
-
-     teca_py_object_ptr &operator=(const teca_py_object_ptr &o)
-     {
-         Py_XINCREF(o.m_obj);
+    virtual ~teca_py_object_ptr()
+    {
+         teca_py_gil_state gil;
          Py_XDECREF(m_obj);
-         m_obj = o.m_obj;
-         return *this;
-     }
+    }
 
-     explicit operator bool () const
-     { return m_obj != nullptr; }
+    teca_py_object_ptr(teca_py_object_ptr &&o)
+       : m_obj(o.m_obj) { o.m_obj = nullptr; }
+
+    teca_py_object_ptr &operator=(teca_py_object_ptr &&o)
+    {
+        PyObject *tmp = m_obj;
+        m_obj = o.m_obj;
+        o.m_obj = tmp;
+        return *this;
+    }
+
+    teca_py_object_ptr(const teca_py_object_ptr &o)
+       : m_obj(o.m_obj) { Py_XINCREF(m_obj); }
+
+    teca_py_object_ptr &operator=(const teca_py_object_ptr &o)
+    {
+        Py_XINCREF(o.m_obj);
+        Py_XDECREF(m_obj);
+        m_obj = o.m_obj;
+        return *this;
+    }
+
+    explicit operator bool () const
+    { return m_obj != nullptr; }
 
     PyObject *get_object(){ return m_obj; }
 
@@ -332,13 +340,10 @@ private:
 };
 
 /// A container that keeps a reference to a callable object.
-class teca_py_callable : public teca_py_object_ptr
+class TECA_EXPORT teca_py_callable : public teca_py_object_ptr
 {
 public:
     teca_py_callable() : teca_py_object_ptr() {}
-
-    virtual ~teca_py_callable()
-    { this->teca_py_object_ptr::set_object(nullptr); }
 
     teca_py_callable(PyObject *f) : teca_py_object_ptr()
     { this->teca_py_callable::set_object(f); }

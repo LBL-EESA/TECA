@@ -32,11 +32,11 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_component_area_filter)
  * The filtered coomponent ids are put in the output dataset along with the
  * updated lists of valid component ids and component area metadata keys. By
  * default the filtered data replaces the input data in the output. However,
- * the input data can be retained by setting the 'variable_post_fix' property,
+ * the input data can be retained by setting the 'variable_postfix' property,
  * a string that will be appended to the names of the filtered component array
  * and metadata keys.
 */
-class teca_component_area_filter : public teca_algorithm
+class TECA_EXPORT teca_component_area_filter : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_component_area_filter)
@@ -107,13 +107,13 @@ public:
     TECA_ALGORITHM_PROPERTY(double, high_area_threshold)
     ///@}
 
-    /** @name variable_post_fix
+    /** @name variable_postfix
      * a string to be appended to the name of the output variable.  setting
      * this to an empty string will result in the masked array replacing the
      * input array in the output. default is an empty string ""
      */
     ///@{
-    TECA_ALGORITHM_PROPERTY(std::string, variable_post_fix)
+    TECA_ALGORITHM_PROPERTY(std::string, variable_postfix)
     ///@}
 
     /** @name contiguous_component_ids
@@ -128,6 +128,8 @@ protected:
     teca_component_area_filter();
 
 private:
+    using teca_algorithm::get_output_metadata;
+
     teca_metadata get_output_metadata(
         unsigned int port,
         const std::vector<teca_metadata> &input_md) override;
@@ -150,7 +152,7 @@ private:
     long mask_value;
     double low_area_threshold;
     double high_area_threshold;
-    std::string variable_post_fix;
+    std::string variable_postfix;
     int contiguous_component_ids;
 };
 

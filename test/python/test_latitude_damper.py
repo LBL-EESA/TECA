@@ -39,7 +39,7 @@ ones_grid = teca_variant_array.New(np.ones(nxy))
 
 wext = [0, nx - 1, 0, ny - 1, 0, 0]
 
-post_fix = "_damped"
+postfix = "_damped"
 
 mesh = teca_cartesian_mesh.New()
 mesh.set_x_coordinates("lon", x)
@@ -68,7 +68,7 @@ damped_comp.set_input_connection(source.get_output_port())
 damped_comp.set_half_width_at_half_max(hwhm)
 damped_comp.set_center(0.0)
 damped_comp.append_damped_variable("ones_grid")
-damped_comp.set_variable_post_fix(post_fix)
+damped_comp.set_variable_postfix(postfix)
 
 damp_o = teca_dataset_capture.New()
 damp_o.set_input_connection(damped_comp.get_output_port())
@@ -90,7 +90,8 @@ mdo = ds.get_metadata()
 out_mesh = teca_cartesian_mesh.New()
 out_mesh.copy(ds)
 
-damped_array = out_mesh.get_point_arrays().get("ones_grid" + post_fix)
+out_arrays = out_mesh.get_point_arrays()
+damped_array = out_arrays['ones_grid' + postfix].get_cpu_accessible()
 
 # find lat index where scalar should be half
 hwhm_index = -1

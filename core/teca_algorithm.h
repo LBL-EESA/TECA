@@ -234,7 +234,7 @@ T &get_##NAME()                                     \
 /**
  * All sources/readers filters, sinks/writers will implement this interface.
  */
-class teca_algorithm : public std::enable_shared_from_this<teca_algorithm>
+class TECA_EXPORT teca_algorithm : public std::enable_shared_from_this<teca_algorithm>
 {
 public:
     // construct/destruct

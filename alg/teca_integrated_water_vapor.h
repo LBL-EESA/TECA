@@ -12,7 +12,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_integrated_water_vapor)
 
 /// An algorithm that computes integrated water vapor (IWV)
 /**
- * Compute integrated vaport transport (IWV) from the specific humidity.
+ * Compute column integrated water vapor (IWV) from the specific humidity.
  *
  * \f[
  * IWV = \frac{1}{g} \int_{p_{sfc}}^{p_{top}} q dp
@@ -23,7 +23,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_integrated_water_vapor)
  * This calculation is an instance of a vertical reduction where
  * a 3D mesh is transformed into a 2D one.
  */
-class teca_integrated_water_vapor : public teca_vertical_reduction
+class TECA_EXPORT teca_integrated_water_vapor : public teca_vertical_reduction
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_integrated_water_vapor)
@@ -62,6 +62,8 @@ protected:
     teca_integrated_water_vapor();
 
 private:
+    using teca_algorithm::get_output_metadata;
+
     teca_metadata get_output_metadata(
         unsigned int port,
         const std::vector<teca_metadata> &input_md) override;

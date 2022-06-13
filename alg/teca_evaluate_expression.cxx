@@ -173,7 +173,7 @@ const_p_teca_dataset teca_evaluate_expression::execute(
     {
         if (rank == 0)
         {
-            TECA_ERROR("Input is empty or not a table")
+            TECA_FATAL_ERROR("Input is empty or not a table")
         }
         return nullptr;
     }
@@ -193,7 +193,7 @@ const_p_teca_dataset teca_evaluate_expression::execute(
 
     if (!variables)
     {
-        TECA_ERROR("input was not a table nor a mesh")
+        TECA_FATAL_ERROR("input was not a table nor a mesh")
         return nullptr;
     }
 
@@ -205,7 +205,7 @@ const_p_teca_dataset teca_evaluate_expression::execute(
     // verify that we have a valid expression
     if (this->postfix_expression.empty())
     {
-        TECA_ERROR("An expression was not provided.")
+        TECA_FATAL_ERROR("An expression was not provided.")
         return nullptr;
     }
 
@@ -216,7 +216,7 @@ const_p_teca_dataset teca_evaluate_expression::execute(
         operator_resolver_t>(result, this->postfix_expression.c_str(),
             operand_resolver))
     {
-        TECA_ERROR("failed to evaluate the expression \""
+        TECA_FATAL_ERROR("failed to evaluate the expression \""
             << this->expression << "\"")
         return nullptr;
     }
@@ -233,7 +233,7 @@ const_p_teca_dataset teca_evaluate_expression::execute(
     // verify that we have the name to store the result
     if (this->result_variable.empty())
     {
-        TECA_ERROR("A name for the result was not provided.")
+        TECA_FATAL_ERROR("A name for the result was not provided.")
         return nullptr;
     }
 

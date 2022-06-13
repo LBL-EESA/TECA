@@ -12,7 +12,7 @@
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_table_to_stream)
 
 /// An algorithm that serializes a table to a C++ stream object.
-class teca_table_to_stream : public teca_algorithm
+class TECA_EXPORT teca_table_to_stream : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_table_to_stream)

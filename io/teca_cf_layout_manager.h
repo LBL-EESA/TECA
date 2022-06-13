@@ -1,6 +1,7 @@
 #ifndef teca_cf_layout_manager_h
 #define teca_cf_layout_manager_h
 
+#include "teca_config.h"
 #include "teca_metadata.h"
 #include "teca_variant_array.h"
 #include "teca_array_collection.h"
@@ -10,12 +11,13 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <array>
 
 class teca_cf_layout_manager;
 using p_teca_cf_layout_manager = std::shared_ptr<teca_cf_layout_manager>;
 
 /// Puts data on disk using NetCDF CF2 conventions.
-class teca_cf_layout_manager
+class TECA_EXPORT teca_cf_layout_manager
 {
 public:
     // allocate and return a new object. The communicator passed in will be
@@ -72,7 +74,8 @@ public:
 
 protected:
     teca_cf_layout_manager() : comm(MPI_COMM_SELF), file_id(-1),
-        first_index(-1), n_indices(-1)
+        first_index(-1), n_indices(-1), n_written(0), n_dims(0),
+        dims{0}
     {}
 
     teca_cf_layout_manager(MPI_Comm fcomm,
@@ -107,10 +110,25 @@ protected:
     int use_unlimited_dim;
     int n_dims;
     size_t dims[4];
-    using var_def_t = std::pair<int,unsigned int>;
+
+    struct var_def_t
+    {
+        var_def_t() : var_id(0), type_code(0), active_dims{0,0,0,0} {}
+
+        var_def_t(int aid, unsigned int atc, const std::array<int,4> &ada) :
+            var_id(aid), type_code(atc), active_dims(ada) {}
+
+        var_def_t(int aid, unsigned int atc) :
+            var_id(aid), type_code(atc), active_dims{0,0,0,0} {}
+
+        int var_id;
+        unsigned int type_code;
+        std::array<int,4> active_dims;
+    };
+
     std::map<std::string, var_def_t> var_def;
     std::string t_variable;
-    p_teca_double_array t;
+    p_teca_variant_array t;
 };
 
 #endif

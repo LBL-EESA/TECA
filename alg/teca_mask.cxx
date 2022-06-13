@@ -2,7 +2,7 @@
 
 #include "teca_mesh.h"
 #include "teca_array_collection.h"
-#include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_cartesian_mesh.h"
 
@@ -86,7 +86,7 @@ std::vector<teca_metadata> teca_mask::get_upstream_request(
     std::vector<std::string> mask_vars = this->get_mask_variables(request);
     if (mask_vars.empty())
     {
-        TECA_ERROR("A threshold variable was not specified")
+        TECA_FATAL_ERROR("A threshold variable was not specified")
         return up_reqs;
     }
 
@@ -122,7 +122,7 @@ const_p_teca_dataset teca_mask::execute(
 
     if (!in_mesh)
     {
-        TECA_ERROR("empty input, or not a mesh")
+        TECA_FATAL_ERROR("empty input, or not a mesh")
         return nullptr;
     }
 
@@ -137,7 +137,7 @@ const_p_teca_dataset teca_mask::execute(
     std::vector<std::string> mask_vars = this->get_mask_variables(request);
     if (mask_vars.empty())
     {
-        TECA_ERROR("A mask variable was not specified")
+        TECA_FATAL_ERROR("A mask variable was not specified")
         return nullptr;
     }
 
@@ -163,7 +163,7 @@ const_p_teca_dataset teca_mask::execute(
 
     if (std::isnan(mask_val))
     {
-        TECA_ERROR("A mask value was not specified")
+        TECA_FATAL_ERROR("A mask value was not specified")
         return nullptr;
     }
 
@@ -175,7 +175,7 @@ const_p_teca_dataset teca_mask::execute(
             = out_mesh->get_point_arrays()->get(mask_vars[i]);
         if (!input_array)
         {
-            TECA_ERROR("mask variable \"" << mask_vars[i]
+            TECA_FATAL_ERROR("mask variable \"" << mask_vars[i]
                 << "\" is not in the input")
             return nullptr;
         }
@@ -187,8 +187,11 @@ const_p_teca_dataset teca_mask::execute(
         TEMPLATE_DISPATCH(teca_variant_array_impl,
             mask.get(),
 
-            const NT *p_in = static_cast<const TT*>(input_array.get())->get();
-            NT *p_mask = static_cast<TT*>(mask.get())->get();
+            auto sp_in = static_cast<const TT*>(input_array.get())->get_cpu_accessible();
+            auto p_in = sp_in.get();
+
+            auto sp_mask = static_cast<TT*>(mask.get())->get_cpu_accessible();
+            auto p_mask = sp_mask.get();
 
             ::apply_mask(p_mask, p_in,  n_elem,
                 static_cast<NT>(low_val), static_cast<NT>(high_val),

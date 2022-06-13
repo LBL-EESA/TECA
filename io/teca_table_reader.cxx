@@ -4,6 +4,8 @@
 #include "teca_coordinate_util.h"
 #include "teca_file_util.h"
 #include "teca_common.h"
+#include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 
 #include <algorithm>
 #include <cstring>
@@ -58,11 +60,13 @@ p_teca_table
 teca_table_reader::teca_table_reader_internals::read_table(MPI_Comm comm,
     const std::string &file_name, int file_format, bool distribute)
 {
-    teca_binary_stream stream;
 #if !defined(TECA_HAS_MPI)
     (void)comm;
     (void)distribute;
-#else
+#endif
+
+    teca_binary_stream stream;
+
     // dtermine which format we are to read from
     if (file_format == teca_table_reader::format_auto)
     {
@@ -91,6 +95,7 @@ teca_table_reader::teca_table_reader_internals::read_table(MPI_Comm comm,
         return nullptr;
     }
 
+#if defined(TECA_HAS_MPI)
     int init = 0;
     int rank = 0;
     MPI_Initialized(&init);
@@ -277,7 +282,7 @@ teca_metadata teca_table_reader::get_output_metadata(unsigned int port,
     if (!index)
     {
         this->clear_cached_metadata();
-        TECA_ERROR("Table is missing the index array \""
+        TECA_FATAL_ERROR("Table is missing the index array \""
             << this->index_column << "\"")
         return teca_metadata();
     }
@@ -285,7 +290,8 @@ teca_metadata teca_table_reader::get_output_metadata(unsigned int port,
     TEMPLATE_DISPATCH_I(teca_variant_array_impl,
         index.get(),
 
-        NT *pindex = dynamic_cast<TT*>(index.get())->get();
+        auto spindex = dynamic_cast<TT*>(index.get())->get_cpu_accessible();
+        NT *pindex = spindex.get();
 
         teca_coordinate_util::get_table_offsets(pindex,
             this->internals->table->get_number_of_rows(),
@@ -297,7 +303,7 @@ teca_metadata teca_table_reader::get_output_metadata(unsigned int port,
     if (this->internals->number_of_indices < 1)
     {
         this->clear_cached_metadata();
-        TECA_ERROR("Invalid index \"" << this->index_column << "\"")
+        TECA_FATAL_ERROR("Invalid index \"" << this->index_column << "\"")
         return teca_metadata();
     }
 
@@ -320,7 +326,7 @@ teca_metadata teca_table_reader::get_output_metadata(unsigned int port,
             p_teca_variant_array md_col = this->internals->table->get_column(md_col_name);
             if (!md_col)
             {
-                TECA_ERROR("metadata column \"" << md_col_name << "\" not found")
+                TECA_FATAL_ERROR("metadata column \"" << md_col_name << "\" not found")
                 continue;
             }
             md.set(this->metadata_column_keys[i], md_col);
@@ -350,7 +356,7 @@ const_p_teca_dataset teca_table_reader::execute(unsigned int port,
         MPI_Comm_rank(this->get_communicator(), &rank);
     if ((rank == 0) && !this->internals->table)
     {
-        TECA_ERROR("Failed to read data")
+        TECA_FATAL_ERROR("Failed to read data")
         return nullptr;
     }
 #endif
@@ -402,8 +408,13 @@ const_p_teca_dataset teca_table_reader::execute(unsigned int port,
 
         TEMPLATE_DISPATCH(teca_variant_array_impl,
             out_col.get(),
-            NT *pin_col = static_cast<TT*>(in_col.get())->get();
-            NT *pout_col = static_cast<TT*>(out_col.get())->get();
+
+            auto spin_col = static_cast<TT*>(in_col.get())->get_cpu_accessible();
+            NT *pin_col = spin_col.get();
+
+            auto spout_col = static_cast<TT*>(out_col.get())->get_cpu_accessible();
+            NT *pout_col = spout_col.get();
+
             memcpy(pout_col, pin_col+first_row, nrows*sizeof(NT));
             )
     }
@@ -411,9 +422,12 @@ const_p_teca_dataset teca_table_reader::execute(unsigned int port,
     if (this->generate_original_ids)
     {
         p_teca_unsigned_long_array ids = teca_unsigned_long_array::New(nrows);
-        unsigned long *pids = ids->get();
+        auto spids = ids->get_cpu_accessible();
+        unsigned long *pids = spids.get();
+
         for (unsigned long i = 0, q = first_row; i < nrows; ++i, ++q)
             pids[i] = q;
+
         out_table->append_column("original_ids", ids);
     }
 

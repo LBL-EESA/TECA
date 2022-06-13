@@ -3,6 +3,7 @@
 #include <sstream>
 #include "teca_array_attributes.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_array_collection.h"
 #include "teca_coordinate_util.h"
 #include "teca_mesh.h"
@@ -43,6 +44,8 @@
         unsigned long n, const std::string &un, const std::string &ln,
         const std::string &descr, PyObject *fv)
     {
+        teca_py_gil_state gil;
+
         if (fv != Py_None)
         {
             if (tc < 1)
@@ -68,6 +71,31 @@
         TECA_PY_ERROR_NOW(PyExc_RuntimeError, "unspecified error")
         return nullptr;
     }
+
+    void set_fill_value(PyObject *fv)
+    {
+        teca_py_gil_state gil;
+
+        if (fv != Py_None)
+        {
+            TECA_PY_OBJECT_DISPATCH_NUM(fv,
+                self->have_fill_value = 1;
+                self->fill_value = teca_py_object::cpp_tt<OT>::value(fv);
+                return;
+                )
+            TECA_PY_ARRAY_SCALAR_DISPATCH(fv,
+                self->have_fill_value = 1;
+                self->fill_value = teca_py_array::numpy_scalar_tt<ST>::value(fv);
+                return;
+                )
+            TECA_PY_ERROR(PyExc_TypeError, "Unsupported type of fill_value")
+        }
+        else
+        {
+            self->have_fill_value = 0;
+            self->fill_value = 1e20f;
+        }
+    }
 }
 
 /***************************************************************************
@@ -77,10 +105,34 @@
 %shared_ptr(teca_array_collection)
 %ignore teca_array_collection::operator=;
 %ignore teca_array_collection::operator[];
+%ignore teca_array_collection::get_time(double *) const;
+%ignore teca_array_collection::get_time_step(unsigned long *) const;
+%ignore teca_array_collection::set_calendar(std::string const *);
+%ignore teca_array_collection::set_time_units(std::string const *);
+%ignore teca_array_collection::set_attributes(teca_metadata const *);
+%ignore teca_array_collection::get_attributes(teca_metadata *) const;
+%ignore teca_array_collection::get_arrays(int) const;
 %include "teca_array_collection.h"
+TECA_PY_DYNAMIC_CAST(teca_array_collection, teca_dataset)
+TECA_PY_CONST_CAST(teca_array_collection)
 %extend teca_array_collection
 {
     TECA_PY_STR()
+
+    TECA_PY_DATASET_METADATA(double, time)
+    TECA_PY_DATASET_METADATA(unsigned long, time_step)
+    TECA_PY_DATASET_METADATA(std::string, calendar)
+    TECA_PY_DATASET_METADATA(std::string, time_units)
+
+    teca_metadata get_attributes()
+    {
+        teca_py_gil_state gil;
+
+        teca_metadata atts;
+        self->get_attributes(atts);
+
+        return atts;
+    }
 
     /* add or replace an array using syntax: col['name'] = array */
     PyObject *__setitem__(const std::string &name, PyObject *array)
@@ -90,7 +142,8 @@
         Py_INCREF(Py_None);
 
         p_teca_variant_array varr;
-        if ((varr = teca_py_array::new_variant_array(array))
+        if ((varr = teca_py_array_interface::new_variant_array(array))
+            || (varr = teca_py_array::new_variant_array(array))
             || (varr = teca_py_sequence::new_variant_array(array))
             || (varr = teca_py_iterator::new_variant_array(array)))
         {
@@ -105,30 +158,13 @@
         return nullptr;
     }
 
-    /* return an array using the syntax: col['name'] */
-    PyObject *__getitem__(const std::string &name)
+    %pythoncode
     {
-        teca_py_gil_state gil;
-
-        p_teca_variant_array varr = self->get(name);
-        if (!varr)
-        {
-            TECA_PY_ERROR(PyExc_KeyError,
-                "key \"" << name << "\" not found")
-            return nullptr;
-        }
-
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            varr.get(),
-            TT *varrt = static_cast<TT*>(varr.get());
-            return reinterpret_cast<PyObject*>(
-                teca_py_array::new_object(varrt));
-            )
-
-        TECA_PY_ERROR(PyExc_TypeError,
-            "Failed to convert array for key \"" << name << "\"")
-
-        return nullptr;
+    def __getitem__(self, name):
+       r""" returns the array by name. The returned array will always be
+       accessible on the CPU. Use get if you need an array that is accessible
+       on the GPU  """
+       return self.get(name)
     }
 
     /* handle conversion to variant arrays */
@@ -483,11 +519,12 @@ TECA_PY_CONST_CAST(teca_table)
         Py_INCREF(Py_None);
 
         p_teca_variant_array varr;
-        if ((varr = teca_py_array::new_variant_array(array))
+        if ((varr = teca_py_array_interface::new_variant_array(array))
+            || (varr = teca_py_array::new_variant_array(array))
             || (varr = teca_py_sequence::new_variant_array(array))
             || (varr = teca_py_iterator::new_variant_array(array)))
         {
-            col->copy(varr);
+            col->assign(varr);
             return Py_None;
         }
 
@@ -639,6 +676,29 @@ TECA_PY_CONST_CAST(teca_table)
             return nullptr;
         }
 
+        // objects exposing the array interface protocol
+        if (teca_py_array_interface::has_numpy_array_interface(obj) ||
+            teca_py_array_interface::has_cuda_array_interface(obj))
+        {
+            p_teca_variant_array tmp =
+                teca_py_array_interface::new_variant_array(obj);
+
+            TEMPLATE_DISPATCH(teca_variant_array_impl,
+                tmp.get(),
+
+                TT *ttmp = static_cast<TT*>(tmp.get());
+
+                auto sptmp = ttmp->get_cpu_accessible();
+                NT *ptmp = sptmp.get();
+
+                size_t n_elem = tmp->size();
+                for (size_t i = 0; i < n_elem; ++i)
+                    self->append(ptmp[i]);
+
+                return Py_None;
+                )
+        }
+
         // numpy ndarrays
         if (PyArray_Check(obj))
         {
@@ -779,8 +839,11 @@ unsigned long time_step_of(PyObject *time, bool lower, bool clamp,
     const std::string &calendar, const std::string &units,
     const std::string &date)
 {
+    teca_py_gil_state gil;
+
     p_teca_variant_array varr;
-    if ((varr = teca_py_array::new_variant_array(time))
+    if ((varr = teca_py_array_interface::new_variant_array(time))
+        || (varr = teca_py_array::new_variant_array(time))
         || (varr = teca_py_sequence::new_variant_array(time))
         || (varr = teca_py_iterator::new_variant_array(time)))
     {
@@ -804,6 +867,7 @@ static
 std::string time_to_string(double val, const std::string &calendar,
     const std::string &units, const std::string &format)
 {
+    teca_py_gil_state gil;
     std::string date;
     if (teca_coordinate_util::time_to_string(val, calendar, units, format, date))
     {

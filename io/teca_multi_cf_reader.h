@@ -1,6 +1,7 @@
 #ifndef teca_multi_cf_reader_h
 #define teca_multi_cf_reader_h
 
+#include "teca_config.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
 #include "teca_shared_object.h"
@@ -62,7 +63,7 @@ using p_teca_multi_cf_reader_internals = std::shared_ptr<teca_multi_cf_reader_in
  * variables = ua
  * ```
  */
-class teca_multi_cf_reader : public teca_algorithm
+class TECA_EXPORT teca_multi_cf_reader : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_multi_cf_reader)
@@ -239,11 +240,96 @@ public:
     int get_clamp_dimensions_of_one() const;
     ///@}
 
+    /** @name target_bounds
+     * If set a teca_cartesian_mesh_coordinate_transform will be added to the
+     * internal pipeline of each managed reader. There must always be 6 values
+     * provided in the form  "X0, x1, y0, y1, z0, z1" that define the bounds to
+     * which each axis will be transformed. Use "1, 0" for axis that should be
+     * passed through without applying the transform.
+     */
+    ///@{
+    void set_target_bounds(const std::vector<double> &bounds);
+    const std::vector<double> &get_target_bounds() const;
+    ///@}
+
+    /** @name target_x_axis_variable
+     * Set the name of the variable to use for the transformed x-coordinate
+     * axis. If not set the name is passed through.
+     */
+    ///@{
+    void set_target_x_axis_variable(const std::string &flag);
+    std::string get_target_x_axis_variable() const;
+    ///@}
+
+    /** @name target_y_axis_variable
+     * Set the name of the variable to use for the transformed y-coordinate
+     * axis.. If not set the name is passed through.
+     */
+    ///@{
+    void set_target_y_axis_variable(const std::string &flag);
+    std::string get_target_y_axis_variable() const;
+    ///@}
+    /** @name target_z_axis_variable
+     * Set the name of the variable to use for the transformed z-coordinate
+     * axis.. If not set the name is passed through.
+     */
+    ///@{
+    void set_target_z_axis_variable(const std::string &flag);
+    std::string get_target_z_axis_variable() const;
+    ///@}
+
+    /** @name target_x_axis_units
+     * set/get the units for the transformed x-coordinate axis. If not set the
+     * units are passed through.
+     */
+    ///@{
+    void set_target_x_axis_units(const std::string &flag);
+    std::string get_target_x_axis_units() const;
+    ///@}
+
+    /** @name target_y_axis_units
+     * set/get the units for the transformed y-coordinate axis. If not set the
+     * units are passed through.
+     */
+    ///@{
+    void set_target_y_axis_units(const std::string &flag);
+    std::string get_target_y_axis_units() const;
+    ///@}
+
+    /** @name target_z_axis_units
+     * set/get the units for the transformed z-coordinate axis. If not set the
+     * units are passed through.
+     */
+    ///@{
+    void set_target_z_axis_units(const std::string &flag);
+    std::string get_target_z_axis_units() const;
+    ///@}
+
+    /** @name validate_time_axis
+     * If set consistency checks are made to ensure that time axis from managed
+     * readers match each other. Names, calendar, units, and values of each array
+     * are verified.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, validate_time_axis)
+    ///@}
+
+    /** @name validate_spatial_coordinates
+     * If set consistency checks are made to ensure that spatial axes from managed
+     * readers match each other. Names, units, and values of each array
+     * are verified.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, validate_spatial_coordinates)
+    ///@}
+
 protected:
     teca_multi_cf_reader();
 
 private:
     void clear_cached_metadata();
+
+    using teca_algorithm::get_output_metadata;
 
     teca_metadata get_output_metadata(unsigned int port,
         const std::vector<teca_metadata> &input_md) override;
@@ -264,9 +350,18 @@ private:
     std::string t_units;
     std::string filename_time_template;
     std::vector<double> t_values;
+    std::vector<double> target_bounds;
+    std::string target_x_axis_variable;
+    std::string target_y_axis_variable;
+    std::string target_z_axis_variable;
+    std::string target_x_axis_units;
+    std::string target_y_axis_units;
+    std::string target_z_axis_units;
     int periodic_in_x;
     int max_metadata_ranks;
     int clamp_dimensions_of_one;
+    int validate_time_axis;
+    int validate_spatial_coordinates;
 
     p_teca_multi_cf_reader_internals internals;
 };

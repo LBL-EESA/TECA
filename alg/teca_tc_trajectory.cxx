@@ -4,6 +4,7 @@
 #include "teca_table.h"
 
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 
 #include "teca_coordinate_util.h"
@@ -340,7 +341,7 @@ const_p_teca_dataset teca_tc_trajectory::execute(
     {
         if (rank == 0)
         {
-            TECA_ERROR("empty input or not a table")
+            TECA_FATAL_ERROR("empty input or not a table")
         }
         return nullptr;
     }
@@ -356,23 +357,26 @@ const_p_teca_dataset teca_tc_trajectory::execute(
     {
         if (!candidates->has_column(req_cols[i]))
         {
-            TECA_ERROR("Candidate table missing \"" << req_cols[i] << "\"")
+            TECA_FATAL_ERROR("Candidate table missing \"" << req_cols[i] << "\"")
             return nullptr;
         }
     }
 
     // get the candidate storm properties
-    const long *p_step =
-        dynamic_cast<const teca_variant_array_impl<long>*>(
-        candidates->get_column("step").get())->get();
+    auto sp_step = dynamic_cast<const teca_long_array*>
+        (candidates->get_column("step").get())->get_cpu_accessible();
 
-    const double *p_time =
-        dynamic_cast<const teca_variant_array_impl<double>*>(
-        candidates->get_column("time").get())->get();
+    const long *p_step = sp_step.get();
 
-    const int *p_storm_id =
-        dynamic_cast<const teca_variant_array_impl<int>*>(
-        candidates->get_column("storm_id").get())->get();
+    auto sp_time = dynamic_cast<const teca_double_array*>
+        (candidates->get_column("time").get())->get_cpu_accessible();
+
+    const double *p_time = sp_time.get();
+
+    auto sp_storm_id = dynamic_cast<const teca_int_array*>
+        (candidates->get_column("storm_id").get())->get_cpu_accessible();
+
+    const int *p_storm_id = sp_storm_id.get();
 
     const_p_teca_variant_array lon = candidates->get_column("lon");
     const_p_teca_variant_array lat = candidates->get_column("lat");
@@ -386,13 +390,15 @@ const_p_teca_dataset teca_tc_trajectory::execute(
     const_p_teca_variant_array psl_min =
         candidates->get_column("sea_level_pressure");
 
-    const int *p_have_twc =
-        dynamic_cast<const teca_variant_array_impl<int>*>(
-        candidates->get_column("have_core_temp").get())->get();
+    auto sp_have_twc = dynamic_cast<const teca_int_array*>
+        (candidates->get_column("have_core_temp").get())->get_cpu_accessible();
 
-    const int *p_have_thick =
-        dynamic_cast<const teca_variant_array_impl<int>*>(
-        candidates->get_column("have_thickness").get())->get();
+    const int *p_have_twc = sp_have_twc.get();
+
+    auto sp_have_thick = dynamic_cast<const teca_int_array*>
+        (candidates->get_column("have_thickness").get())->get_cpu_accessible();
+
+    const int *p_have_thick = sp_have_thick.get();
 
     const_p_teca_variant_array twc_max =
         candidates->get_column("core_temp");
@@ -408,7 +414,7 @@ const_p_teca_dataset teca_tc_trajectory::execute(
     storm_tracks->get_time_units(time_units);
     if (time_units.find("days since") == std::string::npos)
     {
-        TECA_ERROR("Conversion for \"" << time_units << "\" not implemented")
+        TECA_FATAL_ERROR("Conversion for \"" << time_units << "\" not implemented")
         return nullptr;
     }
 
@@ -417,7 +423,7 @@ const_p_teca_dataset teca_tc_trajectory::execute(
     // check that there are some candidates to work with.
     if (n_rows < 1)
     {
-        TECA_ERROR("Failed to form TC tracks because there were no candiates")
+        TECA_FATAL_ERROR("Failed to form TC tracks because there were no candiates")
         return nullptr;
     }
 
@@ -429,11 +435,11 @@ const_p_teca_dataset teca_tc_trajectory::execute(
     NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
         lon.get(), _COORD,
 
-        const NT_COORD *p_lon =
-            static_cast<const TT_COORD*>(lon.get())->get();
+        auto sp_lon = static_cast<TT_COORD*>(lon.get())->get_cpu_accessible();
+        const NT_COORD *p_lon = sp_lon.get();
 
-        const NT_COORD *p_lat =
-            static_cast<const TT_COORD*>(lat.get())->get();
+        auto sp_lat = static_cast<TT_COORD*>(lat.get())->get_cpu_accessible();
+        const NT_COORD *p_lat = sp_lat.get();
 
         NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
             wind_max.get(), _VAR,
@@ -448,20 +454,20 @@ const_p_teca_dataset teca_tc_trajectory::execute(
                 "core_temp", NT_VAR(), "thickness", NT_VAR(),
                 "storm_speed", NT_COORD());
 
-            const NT_VAR *p_wind_max =
-                dynamic_cast<const TT_VAR*>(wind_max.get())->get();
+            auto sp_wind_max = dynamic_cast<TT_VAR*>(wind_max.get())->get_cpu_accessible();
+            const NT_VAR *p_wind_max = sp_wind_max.get();
 
-            const NT_VAR *p_vort_max =
-                dynamic_cast<const TT_VAR*>(vort_max.get())->get();
+            auto sp_vort_max = dynamic_cast<TT_VAR*>(vort_max.get())->get_cpu_accessible();
+            const NT_VAR *p_vort_max = sp_vort_max.get();
 
-            const NT_VAR *p_psl_min =
-                dynamic_cast<const TT_VAR*>(psl_min.get())->get();
+            auto sp_psl_min = dynamic_cast<TT_VAR*>(psl_min.get())->get_cpu_accessible();
+            const NT_VAR *p_psl_min = sp_psl_min.get();
 
-            const NT_VAR *p_twc_max =
-                dynamic_cast<const TT_VAR*>(twc_max.get())->get();
+            auto sp_twc_max = dynamic_cast<TT_VAR*>(twc_max.get())->get_cpu_accessible();
+            const NT_VAR *p_twc_max = sp_twc_max.get();
 
-            const NT_VAR *p_thick_max =
-                dynamic_cast<const TT_VAR*>(thick_max.get())->get();
+            auto sp_thick_max = dynamic_cast<TT_VAR*>(thick_max.get())->get_cpu_accessible();
+            const NT_VAR *p_thick_max = sp_thick_max.get();
 
             // invoke the track finder
             if (internal::teca_tc_trajectory(
@@ -471,7 +477,7 @@ const_p_teca_dataset teca_tc_trajectory::execute(
                 p_wind_max, p_vort_max, p_psl_min, p_have_twc, p_have_thick,
                 p_twc_max, p_thick_max, n_rows, storm_tracks, n_tracks))
             {
-                TECA_ERROR("Failed to form tracks")
+                TECA_FATAL_ERROR("Failed to form tracks")
                 return nullptr;
             }
             )

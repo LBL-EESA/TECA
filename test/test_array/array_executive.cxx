@@ -1,14 +1,19 @@
 #include "array_executive.h"
 
 #include "teca_common.h"
+#if defined(TECA_HAS_CUDA)
+#include "teca_cuda_util.h"
+#endif
 
 #include <string>
 #include <iostream>
+#include <deque>
 
 using std::vector;
 using std::string;
 using std::cerr;
 using std::endl;
+
 
 // --------------------------------------------------------------------------
 int array_executive::initialize(MPI_Comm comm, const teca_metadata &md)
@@ -62,18 +67,45 @@ int array_executive::initialize(MPI_Comm comm, const teca_metadata &md)
         return -3;
     }
 
+    // determine the available CUDA GPUs
+    std::vector<int> device_ids;
+#if defined(TECA_HAS_CUDA)
+    int ranks_per_device = -1;
+    if (teca_cuda_util::get_local_cuda_devices(comm,
+        ranks_per_device, device_ids))
+    {
+        TECA_WARNING("Failed to determine the local CUDA device_ids."
+            " Falling back to the default device.")
+        device_ids.resize(1, 0);
+    }
+#endif
+
+    int n_devices = device_ids.size();
+
+    // add the CPU
+    if (n_devices < 1)
+    {
+        device_ids.push_back(-1);
+        n_devices = 1;
+    }
+
     // for each time request each array
     size_t n_times = time.size();
     size_t n_arrays = array_names.size();
-    for (size_t i = 0; i < n_times; ++i)
+    for (size_t i = 0, q = 0; i < n_times; ++i)
     {
         for (size_t j = 0; j < n_arrays; ++j)
         {
+            int device_id = device_ids[q % n_devices];
+            ++q;
+
             teca_metadata req;
             req.set("time_step", i);
             req.set("time", time[i]);
             req.set("array_name", array_names[j]);
             req.set("extent", extent);
+            req.set("device_id", device_id);
+
             this->requests.push_back(req);
         }
     }
@@ -81,7 +113,9 @@ int array_executive::initialize(MPI_Comm comm, const teca_metadata &md)
 #ifndef TECA_NDEBUG
     cerr << teca_parallel_id()
         << "array_executive::initialize n_times="
-        << n_times << " n_arrays=" << n_arrays << endl;
+        << n_times << " n_arrays=" << n_arrays
+        << " n_devices=" << device_ids.size()
+        << " device_ids=" << device_ids << endl;
 #endif
 
     return 0;

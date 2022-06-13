@@ -45,7 +45,7 @@ else
         --test_dataset test_integrated_vapor_transport_app_packed_data_output'.*\.nc'                   \
         --test_reader::x_axis_variable longitude --test_reader::y_axis_variable latitude                \
         --ref_reader::x_axis_variable longitude --ref_reader::y_axis_variable latitude                  \
-        --arrays IVT_U IVT_V IVT --verbose
+        --arrays IVT_U IVT_V IVT --absolute_tolerance 1e-6 --verbose
 
     # clean up
     rm test_integrated_vapor_transport_app_packed_data_output*.nc

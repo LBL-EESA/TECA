@@ -3,6 +3,7 @@
 
 /// @file
 
+#include "teca_config.h"
 #include "teca_common.h"
 
 #include <cstdlib>
@@ -19,6 +20,7 @@ namespace teca_string_util
  * quote to a std::string. Escaped characters are skipped. Return
  * 0 if successful.
  */
+TECA_EXPORT
 int extract_string(const char *istr, std::string &field);
 
 /** Scan the input string (istr) for the given a delimiter (delim). push a pointer
@@ -26,6 +28,7 @@ int extract_string(const char *istr, std::string &field);
  * instance of the delimiter.  return zero if successful. when successful there
  * will be at least one value.
  */
+TECA_EXPORT
 int tokenize(char *istr, char delim, int n_cols, char **ostr);
 
 
@@ -35,6 +38,7 @@ int tokenize(char *istr, char delim, int n_cols, char **ostr);
  * will be at least one value.
  */
 template <typename container_t = std::vector<char*>>
+TECA_EXPORT
 int tokenize(char *istr, char delim, container_t &ostr)
 {
     // skip delim at the beginning
@@ -93,7 +97,7 @@ int is_comment(char *buf)
 
 /// A traits class for scanf conversion codes.
 template <typename num_t>
-struct scanf_tt {};
+struct TECA_EXPORT scanf_tt {};
 
 #define DECLARE_SCANF_TT(_CPP_T, _FMT_STR)                              \
 template<>                                                              \
@@ -119,7 +123,7 @@ DECLARE_SCANF_TT(std::string, " \"%128s")
 
 /// A traits class for conversion from text to numbers
 template <typename T>
-struct string_tt {};
+struct TECA_EXPORT string_tt {};
 
 #define DECLARE_STR_CONVERSION_I(_CPP_T, _FUNC)                                     \
 /** A traits class for conversion from text to numbers, specialized for _CPP_T */   \
@@ -128,7 +132,7 @@ struct string_tt<_CPP_T>                                                        
 {                                                                                   \
     static const char *type_name() { return # _CPP_T; }                             \
                                                                                     \
-    static int convert(char *str, _CPP_T &val)                                      \
+    static int convert(const char *str, _CPP_T &val)                                \
     {                                                                               \
         errno = 0;                                                                  \
         char *endp = nullptr;                                                       \
@@ -253,6 +257,7 @@ struct string_tt<char*>
  * or if the conversion to val_t fails. returns 0 if successful.
  */
 template <typename val_t>
+TECA_EXPORT
 int extract_value(char *l, val_t &val)
 {
     std::vector<char*> tmp;
@@ -277,9 +282,11 @@ int extract_value(char *l, val_t &val)
  * substring, the post-fix, this function visits each string in the collection
  * and removes the post-fix from each string that it is found in.
  */
-void remove_post_fix(std::set<std::string> &names, std::string post_fix);
+TECA_EXPORT
+void remove_postfix(std::set<std::string> &names, std::string postfix);
 
 /// When passed the string "" return empty string otherwise return the passed string
+TECA_EXPORT
 inline std::string emptystr(const std::string &in)
 {
     return (in == "\"\"" ? std::string() : in);

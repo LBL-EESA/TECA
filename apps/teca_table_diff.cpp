@@ -44,13 +44,13 @@ int main(int argc, char **argv)
 
     if (!teca_file_util::file_exists(ref_file.c_str()))
     {
-        TECA_ERROR("no reference file to compare to");
+        TECA_FATAL_ERROR("no reference file to compare to");
         return -1;
     }
 
     if (!teca_file_util::file_exists(t_file.c_str()))
     {
-        TECA_ERROR("test file doesn't exist");
+        TECA_FATAL_ERROR("test file doesn't exist");
         return -1;
     }
 

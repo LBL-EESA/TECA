@@ -3,9 +3,11 @@
 #include "teca_2d_component_area.h"
 #include "teca_algorithm.h"
 #include "teca_apply_binary_mask.h"
+#include "teca_apply_tempest_remap.h"
 #include "teca_bayesian_ar_detect.h"
 #include "teca_bayesian_ar_detect_parameters.h"
 #include "teca_binary_segmentation.h"
+#include "teca_cartesian_mesh_coordinate_transform.h"
 #include "teca_cartesian_mesh_source.h"
 #include "teca_cartesian_mesh_subset.h"
 #include "teca_cartesian_mesh_regrid.h"
@@ -21,6 +23,7 @@
 #include "teca_evaluate_expression.h"
 #include "teca_elevation_mask.h"
 #include "teca_integrated_vapor_transport.h"
+#include "teca_indexed_dataset_cache.h"
 #include "teca_l2_norm.h"
 #include "teca_laplacian.h"
 #include "teca_latitude_damper.h"
@@ -28,6 +31,9 @@
 #include "teca_normalize_coordinates.h"
 #include "teca_rename_variables.h"
 #include "teca_saffir_simpson.h"
+#if defined(TECA_HAS_SHAPELIB)
+#include "teca_shape_file_mask.h"
+#endif
 #include "teca_table_calendar.h"
 #include "teca_table_sort.h"
 #include "teca_table_reduce.h"
@@ -39,6 +45,7 @@
 #include "teca_tc_trajectory.h"
 #include "teca_tc_wind_radii.h"
 #include "teca_simple_moving_average.h"
+#include "teca_time_axis_convolution.h"
 #include "teca_unpack_data.h"
 #include "teca_valid_value_mask.h"
 #include "teca_vertical_reduction.h"
@@ -438,3 +445,62 @@ struct teca_tc_saffir_simpson
 %shared_ptr(teca_rename_variables)
 %ignore teca_rename_variables::operator=;
 %include "teca_rename_variables.h"
+
+/***************************************************************************
+ shape_file_mask
+ ***************************************************************************/
+#if defined(TECA_HAS_SHAPELIB)
+%ignore teca_shape_file_mask::shared_from_this;
+%shared_ptr(teca_shape_file_mask)
+%ignore teca_shape_file_mask::operator=;
+%include "teca_shape_file_mask.h"
+#endif
+
+/***************************************************************************
+ indexed_dataset_cache
+ ***************************************************************************/
+%ignore teca_indexed_dataset_cache::shared_from_this;
+%shared_ptr(teca_indexed_dataset_cache)
+%ignore teca_indexed_dataset_cache::operator=;
+%include "teca_indexed_dataset_cache.h"
+
+/***************************************************************************
+ apply_tempest_remap
+ ***************************************************************************/
+%ignore teca_apply_tempest_remap::shared_from_this;
+%shared_ptr(teca_apply_tempest_remap)
+%ignore teca_apply_tempest_remap::operator=;
+%include "teca_apply_tempest_remap.h"
+
+/***************************************************************************
+ potential_intensity
+ ***************************************************************************/
+#if defined(TECA_HAS_TCPYPI)
+%pythoncode "teca_potential_intensity.py"
+#endif
+
+/***************************************************************************
+ cartesian_mesh_coordinate_transform
+ ***************************************************************************/
+%ignore teca_cartesian_mesh_coordinate_transform::shared_from_this;
+%shared_ptr(teca_cartesian_mesh_coordinate_transform)
+%ignore teca_cartesian_mesh_coordinate_transform::operator=;
+%include "teca_cartesian_mesh_coordinate_transform.h"
+
+/***************************************************************************
+ time_axis_convolution
+ ***************************************************************************/
+%ignore teca_time_axis_convolution::shared_from_this;
+%shared_ptr(teca_time_axis_convolution)
+%ignore teca_time_axis_convolution::operator=;
+%include "teca_time_axis_convolution.h"
+
+/***************************************************************************
+ python_vertical_reduction
+ ***************************************************************************/
+%pythoncode "teca_python_vertical_reduction.py"
+
+/***************************************************************************
+ lapse_rate
+ ***************************************************************************/
+%pythoncode "teca_lapse_rate.py"

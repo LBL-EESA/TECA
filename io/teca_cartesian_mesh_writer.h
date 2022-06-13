@@ -1,6 +1,7 @@
 #ifndef teca_cartesian_mesh_writer_h
 #define teca_cartesian_mesh_writer_h
 
+#include "teca_config.h"
 #include "teca_shared_object.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
@@ -16,7 +17,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_cartesian_mesh_writer)
  * XML formats. Otherwise legacy format is used. Can be
  * written as raw binary (default) or as ASCII.
  */
-class teca_cartesian_mesh_writer : public teca_algorithm
+class TECA_EXPORT teca_cartesian_mesh_writer : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_cartesian_mesh_writer)

@@ -17,7 +17,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_indexed_dataset_cache)
  * served from the cache. When more than N unique datasets have been requested
  * the cache is modified such that the least recently used dataset is replaced.
  */
-class teca_indexed_dataset_cache : public teca_algorithm
+class TECA_EXPORT teca_indexed_dataset_cache : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_indexed_dataset_cache)

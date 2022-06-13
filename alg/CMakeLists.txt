@@ -3,15 +3,18 @@ project(teca_alg)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}
     $<TARGET_PROPERTY:teca_core,INTERFACE_INCLUDE_DIRECTORIES>
     $<TARGET_PROPERTY:teca_data,INTERFACE_INCLUDE_DIRECTORIES>
-    $<TARGET_PROPERTY:teca_io,INTERFACE_INCLUDE_DIRECTORIES>
+    #$<TARGET_PROPERTY:teca_io,INTERFACE_INCLUDE_DIRECTORIES>
     )
 
 set(teca_alg_cxx_srcs
     gfdl_tc_candidates.cxx
     teca_apply_binary_mask.cxx
+    teca_apply_tempest_remap.cxx
     teca_binary_segmentation.cxx
+    teca_binary_segmentation_internals.cxx
     teca_bayesian_ar_detect.cxx
     teca_bayesian_ar_detect_parameters.cxx
+    teca_cartesian_mesh_coordinate_transform.cxx
     teca_cartesian_mesh_source.cxx
     teca_cartesian_mesh_subset.cxx
     teca_cartesian_mesh_regrid.cxx
@@ -45,6 +48,7 @@ set(teca_alg_cxx_srcs
     teca_tc_classify.cxx
     teca_tc_wind_radii.cxx
     teca_tc_trajectory.cxx
+    teca_time_axis_convolution.cxx
     teca_simple_moving_average.cxx
     teca_unpack_data.cxx
     teca_valid_value_mask.cxx
@@ -54,6 +58,13 @@ set(teca_alg_cxx_srcs
     teca_vorticity.cxx
     teca_dataset_diff.cxx
     )
+
+set(teca_alg_cuda_srcs)
+if (TECA_HAS_CUDA)
+    set(teca_alg_cuda_srcs
+        teca_binary_segmentation_internals.cu
+        )
+endif()
 
 set(teca_alg_f90_srcs)
 
@@ -88,8 +99,13 @@ if (TECA_HAS_BOOST)
     list(APPEND teca_alg_link ${Boost_LIBRARIES})
 endif()
 
-add_library(teca_alg ${teca_alg_cxx_srcs} ${teca_alg_f90_srcs})
-target_link_libraries(teca_alg teca_io teca_data teca_core ${teca_alg_link})
+if (TECA_HAS_CUDA)
+    set_source_files_properties(${teca_alg_cxx_srcs} PROPERTIES LANGUAGE CUDA)
+endif()
+
+add_library(teca_alg ${teca_alg_cxx_srcs} ${teca_alg_cuda_srcs} ${teca_alg_f90_srcs})
+
+target_link_libraries(teca_alg teca_data teca_core ${teca_alg_link})
 
 target_include_directories(teca_alg
     INTERFACE

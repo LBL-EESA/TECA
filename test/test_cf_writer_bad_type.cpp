@@ -19,7 +19,8 @@ p_teca_variant_array generate_mesh_time(const const_p_teca_variant_array &x,
 
     p_teca_double_array da = teca_double_array::New(nxyz);
 
-    double *pda = da->get();
+    auto spda = da->get_cpu_accessible();
+    double *pda = spda.get();
 
     for (size_t i = 0; i < nxyz; ++i)
         pda[i] = t;
@@ -29,6 +30,9 @@ p_teca_variant_array generate_mesh_time(const const_p_teca_variant_array &x,
 
 int main(int, char **)
 {
+    // set the error handler to print and return
+    teca_error::set_error_message_handler();
+
     // this test intentionally declares a mesh array using the
     // wrong type code. this will test the error handling feature
     // in the cf_weriter.

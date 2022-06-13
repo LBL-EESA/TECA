@@ -3,6 +3,8 @@
 
 /// @file
 
+#include "teca_config.h"
+#include "teca_common.h"
 #include "teca_metadata.h"
 #include "teca_dataset.h"
 #include "teca_py_object.h"
@@ -16,19 +18,25 @@
  * verbose in an effort to help the user debug their code. package this up for
  * use in all the callbacks.
  */
-#define TECA_PY_CALLBACK_ERROR(_phase, _cb_obj)             \
-    {                                                       \
-    PyObject *cb_str = PyObject_Str(_cb_obj);               \
-    const char *cb_c_str = PyStringToCString(cb_str);       \
-                                                            \
-    TECA_ERROR("An exception ocurred when invoking the "    \
-    "user supplied Python callback \"" << cb_c_str << "\""  \
-    "for the " #_phase " execution phase. The exception "   \
-    "that occurred is:")                                    \
-                                                            \
-    PyErr_Print();                                          \
-                                                            \
-    Py_XDECREF(cb_str);                                     \
+#define TECA_PY_CALLBACK_ERROR(_phase, _cb_obj)                 \
+    {                                                           \
+    PyObject *cb_str = PyObject_Str(_cb_obj);                   \
+    const char *cb_c_str = PyStringToCString(cb_str);           \
+                                                                \
+    TECA_MESSAGE_RAW(std::cerr, "ERROR:", "An exception "       \
+    "ocurred  when invoking the user supplied Python callback " \
+    "\"" << cb_c_str << "\" for the " #_phase " execution "     \
+    "phase. The exception that occurred is:")                   \
+                                                                \
+    PyErr_Print();                                              \
+                                                                \
+    PyObject *sys_stderr = PySys_GetObject("stderr");           \
+    PyObject_CallMethod(sys_stderr, "flush", nullptr);          \
+                                                                \
+    PyObject *sys_stdout = PySys_GetObject("stdout");           \
+    PyObject_CallMethod(sys_stdout, "flush", nullptr);          \
+                                                                \
+    Py_XDECREF(cb_str);                                         \
     }
 
 /// Codes for briding teca_algorithm to Python
@@ -47,7 +55,7 @@ namespace teca_py_algorithm
  *
  * it must return: a teca_metadata object.
 */
-class report_callback
+class TECA_EXPORT report_callback
 {
 public:
     report_callback(PyObject *f)
@@ -116,7 +124,7 @@ private:
  * execution. In addition to holding the callback it handles translation of the
  *input and output arguments.
  */
-class request_callback
+class TECA_EXPORT request_callback
 {
 public:
     request_callback(PyObject *f)
@@ -215,7 +223,7 @@ private:
  *
  * it must return: a teca_dataset object.
  */
-class execute_callback
+class TECA_EXPORT execute_callback
 {
 public:
     execute_callback(PyObject *f)
@@ -309,7 +317,7 @@ private:
  *
  * it must return: a teca_dataset object.
 */
-class threaded_execute_callback
+class TECA_EXPORT threaded_execute_callback
 {
 public:
     threaded_execute_callback(PyObject *f)
@@ -397,7 +405,7 @@ private:
  * the python function must accept the two datasets to reduce and return the
  * reduced data
 */
-class reduce_callback
+class TECA_EXPORT reduce_callback
 {
 public:
     reduce_callback(PyObject *f)
@@ -409,7 +417,8 @@ public:
     explicit operator bool() const
     { return static_cast<bool>(m_callback); }
 
-    p_teca_dataset operator()(const const_p_teca_dataset &input_0,
+    p_teca_dataset operator()(int device_id,
+        const const_p_teca_dataset &input_0,
         const const_p_teca_dataset &input_1)
     {
         teca_py_gil_state gil;
@@ -453,7 +462,7 @@ public:
 
         // call the callback
         PyObject *args =
-            Py_BuildValue("NN", py_input_0, py_input_1);
+            Py_BuildValue("iNN", device_id, py_input_0, py_input_1);
 
         PyObject *ret = nullptr;
         if (!(ret = PyObject_CallObject(f, args)) || PyErr_Occurred())
@@ -497,7 +506,7 @@ private:
  * the python function must accept the dataset to finalize and return the
  * finalized data
 */
-class finalize_callback
+class TECA_EXPORT finalize_callback
 {
 public:
     finalize_callback(PyObject *f)
@@ -509,7 +518,7 @@ public:
     explicit operator bool() const
     { return static_cast<bool>(m_callback); }
 
-    p_teca_dataset operator()(const const_p_teca_dataset &ds)
+    p_teca_dataset operator()(int device_id, const const_p_teca_dataset &ds)
     {
         teca_py_gil_state gil;
 
@@ -538,7 +547,7 @@ public:
 
         // call the callback
         PyObject *args =
-            Py_BuildValue("(N)", py_ds);
+            Py_BuildValue("(iN)", device_id, py_ds);
 
         PyObject *ret = nullptr;
         if (!(ret = PyObject_CallObject(f, args)) || PyErr_Occurred())

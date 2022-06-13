@@ -18,6 +18,32 @@ Class Indices
 .. include:: _build/rst/generated_rtd_core.rst
 .. include:: _build/rst/generated_rtd_data.rst
 
+Environment Variables
+---------------------
+A number of environment variables can be used to modify the runtime behavior of
+the system. Generally these must be set prior to the application starting. In
+some cases these are useful in Python scripts as well.
+
++-------------------------+---------------------------------------------------+
+| Variable                | Description                                       |
++-------------------------+---------------------------------------------------+
+| TECA_THREADS_PER_DEVICE | The number of CPU threads serving data to each    |
+|                         | GPU in the system. The default value is 8.        |
++-------------------------+---------------------------------------------------+
+| TECA_RANKS_PER_DEVICE   | The number of MPI ranks per node allowed to use   |
+|                         | each GPU. The default is 1 MPI rank per GPU. TECA |
+|                         | will use multiple threads within a rank to        |
+|                         | service assigned GPUs. This environment variable  |
+|                         | may be useful when threading cannot be used.      |
++-------------------------+---------------------------------------------------+
+| TECA_INITIALIZE_MPI     | If set to FALSE, or 0, MPI initialization is      |
+|                         | skipped. This can be used to run in serial on     |
+|                         | Cray login nodes.                                 |
++-------------------------+---------------------------------------------------+
+| TECA_DO_TEST            | If set to 0 or FALSE regression tests will update |
+|                         | the associated baseline images.                   |
++-------------------------+---------------------------------------------------+
+
 Testing
 -------
 TECA comes with an extensive regression test suite which can be used to validate
@@ -53,7 +79,7 @@ Compilation
 The profiler is not built by default and must be compiled in by adding
 `-DTECA_ENABLE_PROFILER=ON` to the CMake command line. Be sure to build in
 release mode with `-DCMAKE_BUILD_TYPE=Release` and  also add `-DNDEBUG` to the
-`CMAKE_CXX_FLAGS_RELEASE`. Once compiled the built in profilier may be enabled
+`CMAKE_CXX_FLAGS_RELEASE`. Once compiled the built in profiler may be enabled
 at run time via environment variables described below or directly using its
 API.
 
@@ -126,3 +152,164 @@ and cannot be reused.
     python3 -m twine upload --repository-url https://test.pypi.org/legacy/ dist/*
     pip3 install --index-url https://test.pypi.org/simple/ teca
 
+
+Python Coding Standard
+----------------------
+Match the C++ coding standard as closely as possible. Deviate from the C++
+coding standard in ways described by PEP8. Use pycodestyle to check the source
+code before committing.
+
+C++ Coding Standard
+-------------------
+TECA has adopted the following code standard in an effort to simplify
+maintenance and reduce bugs. The TECA source code ideally will look the same no
+matter who wrote it. The following partial description is incomplete. When in
+doubt refer to the existing code and follow the conventions there in.
+
+Tabs, spaces, and indentation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* use no tab `\t` chars
+* leave no trailing white space at the end of lines and files
+* indent 4 spaces
+* use a single space between operators. For example:
+
+    .. code-block:: c++
+
+        a < b
+
+* wrap lines at or before 80 characters.
+* when wrapping assignments the = goes on the preceding line. For example:
+
+    .. code-block:: c++
+
+        unsigned long long a_very_lon_name =
+            a_long_function_name_that_returns_a_value(foo, bar, baz);
+
+* when wrapping conditionals logical operators go on the preceding line.  For
+  example:
+
+    .. code-block:: c++
+
+        if (first_long_condition || second_long_condition ||
+            third_long_condition)
+        {
+            // more code here
+        }
+
+Braces
+~~~~~~
+* use standard C++ bracing, braces go on the previous indentation level. For
+  example :
+
+    .. code-block:: c++
+
+        if (a < b)
+        {
+            foo(a,b);
+        }
+
+* use braces when conditional branch takes more than one line, including when
+  wrapped.
+* use braces on all conditional branches in the same series when any one of the
+  branches takes more than one line.
+
+Variable, function, and class names
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* use lower case with _ separators. This is often called "snake case"
+
+Macros
+~~~~~~
+* to be defined in all caps, and do not require a semicolon. For
+  example :
+
+    .. code-block:: c++
+
+        DO_SOMETHING(blah, blah)
+
+* write macros so that they may be safely used in single line conditional
+  branches.
+
+
+Templates
+~~~~~~~~~~~~~~~~~~~~~~~~
+* prefer all capitals for template typenames
+* use TEMPLATE_DISPATCH macros for dispatching to templated data structures
+
+Warnings
+~~~~~~~~
+* treat warnings as errors, developers should use -Wall or
+  the compiler equivalent ( -Weverything, /W4, etc)
+
+Conditionals
+~~~~~~~~~~~~
+* conditionals may omit braces, in that case the code should be on the
+  following line (i.e. no one liners). For example :
+
+    .. code-block:: c++
+
+        if (a < b)
+            foo(a,b);
+
+Headers
+~~~~~~~
+* don't include using directives
+* use include guards of the format. For example :
+
+    .. code-block:: c++
+
+        #ifndef file_name_h
+        #define file_name_h
+        // header file code here
+        #endif
+
+Classes
+~~~~~~~
+* use this pointer to access member variables, unless it's a private member
+  variable prepended with `m_`
+* use the `this` pointer to call member functions and access member variables
+* use PIMPL idiom
+* use `std::shared_ptr` in place of C style pointers for data structures that
+  are costly to copy.
+* use TECA's convenience macros where possible
+* use const qualifiers when ever possible
+
+Reporting errors
+~~~~~~~~~~~~~~~~
+* from functions return a non-zero value to indicate an error. return zero when
+  the function succeeds
+* use the TECA\_ERROR macro to report internals errors where it useful to
+  include the call stack as context. The call stack is almost always useful
+  when inside internal implementation and/or utility functions.. For example :
+
+    .. code-block:: c++
+
+        TECA_ERROR("message " << var)
+
+* use the TECA\_FATAL\_ERROR macro from the `teca_algorithm` overrides.
+  This macro invokes the error handler which by default aborts execution hence
+  no contextual information about the call stack will be reported.. For example :
+
+    .. code-block:: c++
+
+        TECA_FATAL_ERROR("message " << var)
+
+Exceptions and exception safety
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* the code is NOT designed for exception safety.
+* throw exceptions only when absolutely necessary and the program
+  needs to terminate.
+
+Thread safety and MPI collectives
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* design algorithms for thread per-pipeline invocation. this means avoiding the
+  use of OpenMP for loop level parallelism.
+* algorithms need to be thread safe except for the first invocation of
+  `get_output_metadata`.
+* MPI collectives are safe to use in the first invocation of `get_output_metadata`.
+
+Testing
+~~~~~~~
+* New code will not be accepted without an accompanying regression test
+* New code will not be accepted when existing tests fail
+* Regression tests should prefer analytic solutions when practical
+* Test data should be as small as possible.

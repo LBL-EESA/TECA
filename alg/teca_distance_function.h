@@ -1,10 +1,13 @@
 #ifndef teca_distance_function_h
 #define teca_distance_function_h
 
+#include "teca_config.h"
+
 #include <cmath>
 
 // --------------------------------------------------------------------------
 template<typename coord_t>
+TECA_EXPORT
 coord_t teca_distance(coord_t r_lon_0, coord_t r_lat_0,
     coord_t r_lon_i, coord_t r_lat_i)
 {

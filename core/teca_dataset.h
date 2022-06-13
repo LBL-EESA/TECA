@@ -1,12 +1,15 @@
 #ifndef teca_dataset_h
 #define teca_dataset_h
 
+#include "teca_config.h"
 #include "teca_common.h"
 #include "teca_shared_object.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 
 #include <vector>
 #include <iosfwd>
+#include <type_traits>
 
 class teca_binary_stream;
 class teca_metadata;
@@ -20,7 +23,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_dataset)
                                                     \
 static p_##T New()                                  \
 {                                                   \
-    return p_##T(new T);                            \
+    return std::make_shared<T>();                   \
 }                                                   \
                                                     \
 std::shared_ptr<T> shared_from_this()               \
@@ -36,26 +39,38 @@ std::shared_ptr<T const> shared_from_this() const   \
 }
 
 // convenience macro implementing new_instance method
-#define TECA_DATASET_NEW_INSTANCE()                 \
-virtual p_teca_dataset new_instance() const override\
-{                                                   \
-    return this->New();                             \
+#define TECA_DATASET_NEW_INSTANCE()                     \
+virtual p_teca_dataset new_instance() const override    \
+{                                                       \
+    return std::make_shared                             \
+        <std::remove_const<std::remove_reference        \
+            <decltype(*this)>::type>::type >();         \
 }
 
 // convenience macro implementing new_copy method
-#define TECA_DATASET_NEW_COPY()                     \
-virtual p_teca_dataset new_copy() const override    \
-{                                                   \
-    p_teca_dataset o = this->new_instance();        \
-    o->copy(this->shared_from_this());              \
-    return o;                                       \
-}                                                   \
-                                                    \
-virtual p_teca_dataset new_shallow_copy() override  \
-{                                                   \
-    p_teca_dataset o = this->new_instance();        \
-    o->shallow_copy(this->shared_from_this());      \
-    return o;                                       \
+#define TECA_DATASET_NEW_COPY()                         \
+/** @copydoc teca_dataset::new_copy(allocator) */       \
+virtual p_teca_dataset new_copy(allocator alloc =       \
+    allocator::malloc) const override                   \
+{                                                       \
+    p_teca_dataset o = std::make_shared                 \
+        <std::remove_const<std::remove_reference        \
+            <decltype(*this)>::type>::type>();          \
+                                                        \
+    o->copy(this->shared_from_this(), alloc);           \
+                                                        \
+    return o;                                           \
+}                                                       \
+                                                        \
+virtual p_teca_dataset new_shallow_copy() override      \
+{                                                       \
+    p_teca_dataset o = std::make_shared                 \
+        <std::remove_const<std::remove_reference        \
+            <decltype(*this)>::type>::type>();          \
+                                                        \
+    o->shallow_copy(this->shared_from_this());          \
+                                                        \
+    return o;                                           \
 }
 
 // convenience macro for adding properties to dataset
@@ -213,9 +228,11 @@ int get_##key(T *vals) const                            \
 }
 
 /// Interface for TECA datasets.
-class teca_dataset : public std::enable_shared_from_this<teca_dataset>
+class TECA_EXPORT teca_dataset : public std::enable_shared_from_this<teca_dataset>
 {
 public:
+    using allocator = teca_variant_array::allocator;
+
     virtual ~teca_dataset();
 
     // the name of the key that holds the index identifying this dataset
@@ -241,9 +258,18 @@ public:
     // virtual constructor. return a new dataset of the same type.
     virtual p_teca_dataset new_instance() const = 0;
 
-    // virtual copy constructor. return a shallow/deep copy of this
-    // dataset in a new instance.
-    virtual p_teca_dataset new_copy() const = 0;
+    /** Virtual copy constructor. return a deep copy of this dataset in a new
+     * instance.
+     *
+     * @param[in] alloc The allocator to use for alloctions of data structures
+     *                  to hold the copy. The default is a CPU based allocator.
+     */
+    virtual p_teca_dataset new_copy(allocator alloc = allocator::malloc) const = 0;
+
+    /** Virtual shallow copy constructor. return a shallow copy of this dataset
+     * in a new instance. References to source data structures are taken, but
+     * metadata is always deep copied.
+     */
     virtual p_teca_dataset new_shallow_copy() = 0;
 
     // return a string identifier uniquely naming the dataset type
@@ -252,16 +278,27 @@ public:
     // return an integer identifier uniquely naming the dataset type
     virtual int get_type_code() const = 0;
 
-    // copy data and metadata. shallow copy uses reference
-    // counting, while copy duplicates the data.
-    virtual void copy(const const_p_teca_dataset &other);
+    /** Deep copy data and metdata.
+     *
+     * @param[in] other The dataset to copy.
+     * @param[in] alloc The allocator to use for alloctions of data structures
+     *                  to hold the copy. The default is a CPU based allocator.
+     */
+    virtual void copy(const const_p_teca_dataset &other,
+        allocator alloc = allocator::malloc);
+
+    /** Shallow copy data and metadata. The shallow copy takes references to
+     * the source data structures. Metadata is always deep copied.
+     *
+     * @param[in] other The dataset to copy.
+     */
     virtual void shallow_copy(const p_teca_dataset &other);
 
     // copy metadata. always a deep copy.
     virtual void copy_metadata(const const_p_teca_dataset &other);
 
     // swap internals of the two objects
-    virtual void swap(p_teca_dataset &other);
+    virtual void swap(const p_teca_dataset &other);
 
     // access metadata
     virtual teca_metadata &get_metadata() noexcept;

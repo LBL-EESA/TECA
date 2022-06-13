@@ -1,6 +1,7 @@
 #ifndef teca_programmable_reduce_h
 #define teca_programmable_reduce_h
 
+#include "teca_config.h"
 #include "teca_dataset.h"
 #include "teca_metadata.h"
 #include "teca_shared_object.h"
@@ -19,11 +20,11 @@ typedef void* finalize_callback_t;
 #else
 /// A callable that can reduce two datasets into one.
 using reduce_callback_t = std::function<p_teca_dataset(
-    const const_p_teca_dataset &, const const_p_teca_dataset &)>;
+    int, const const_p_teca_dataset &, const const_p_teca_dataset &)>;
 
 /// A callable that can finalize the reduction.
 using finalize_callback_t = std::function<p_teca_dataset(
-    const const_p_teca_dataset &)>;
+    int, const const_p_teca_dataset &)>;
 #endif
 
 /// Callbacks implement a user defined reduction over time steps.
@@ -34,7 +35,7 @@ using finalize_callback_t = std::function<p_teca_dataset(
  * a parallel operation. See teca_index_reduce for details of
  * parallelization.
  */
-class teca_programmable_reduce : public teca_index_reduce
+class TECA_EXPORT teca_programmable_reduce : public teca_index_reduce
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_programmable_reduce)
@@ -91,10 +92,11 @@ protected:
     teca_programmable_reduce();
 
     // overrides
-    p_teca_dataset reduce(const const_p_teca_dataset &left,
+    p_teca_dataset reduce(int device_id, const const_p_teca_dataset &left,
         const const_p_teca_dataset &right) override;
 
-    p_teca_dataset finalize(const const_p_teca_dataset &input) override;
+    p_teca_dataset finalize(int device_id,
+        const const_p_teca_dataset &input) override;
 
     std::vector<teca_metadata> initialize_upstream_request(
         unsigned int port, const std::vector<teca_metadata> &input_md,

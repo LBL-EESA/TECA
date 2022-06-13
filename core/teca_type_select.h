@@ -3,6 +3,8 @@
 
 /// @file
 
+#include "teca_config.h"
+
 /// Select a type based on input type(s)
 namespace teca_type_select
 {
@@ -15,7 +17,7 @@ namespace teca_type_select
  * @tparam t2 second input type
  */
 template <typename t1, typename t2>
-struct elevate {};
+struct TECA_EXPORT elevate {};
 
 /// Select the lower precision type.
 /** Given two arguments, a decay cast, selects the type of or casts to the lower
@@ -26,7 +28,7 @@ struct elevate {};
  * @tparam t2 second input type
  */
 template <typename t1, typename t2>
-struct decay {};
+struct TECA_EXPORT decay {};
 
 #define teca_type_select(_class, _ret, _t1, _t2)    \
 /** Given _t1 and _t2 _class to _ret */             \

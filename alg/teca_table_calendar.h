@@ -28,7 +28,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_table_calendar)
  * package loads an XML file in each instance. The
  * CalCalcs package also has thread safety issues.
  */
-class teca_table_calendar : public teca_algorithm
+class TECA_EXPORT teca_table_calendar : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_table_calendar)

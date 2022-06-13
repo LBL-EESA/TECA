@@ -35,7 +35,7 @@ ${launcher} ${app_prefix}/teca_integrated_vapor_transport               \
 ${app_prefix}/teca_cartesian_mesh_diff                                                      \
     --reference_dataset ${data_root}/test_integrated_vapor_transport_app_mcf_ref'.*\.nc'    \
     --test_dataset test_integrated_vapor_transport_app_mcf_output'.*\.nc'                   \
-    --arrays IVT_U IVT_V IVT --verbose
+    --arrays IVT_U IVT_V IVT --absolute_tolerance 5e-5 --verbose
 
 # clean up
 rm test_integrated_vapor_transport_app_mcf_output*.nc

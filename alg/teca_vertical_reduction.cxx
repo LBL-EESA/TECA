@@ -66,7 +66,7 @@ teca_metadata teca_vertical_reduction::get_output_metadata(
 
     if (this->derived_variables.empty())
     {
-        TECA_ERROR("A derived variable was not specififed")
+        TECA_FATAL_ERROR("A derived variable was not specififed")
         return teca_metadata();
     }
 
@@ -90,7 +90,7 @@ teca_metadata teca_vertical_reduction::get_output_metadata(
     unsigned long whole_extent[6] = {0};
     if (out_md.get("whole_extent", whole_extent, 6))
     {
-        TECA_ERROR("Metadata is missing whole_whole_extent")
+        TECA_FATAL_ERROR("Metadata is missing whole_whole_extent")
         return teca_metadata();
     }
 
@@ -132,7 +132,7 @@ std::vector<teca_metadata> teca_vertical_reduction::get_upstream_request(
     if (teca_coordinate_util::get_cartesian_mesh_extent(md,
         whole_extent, bounds))
     {
-        TECA_ERROR("Failed to get input data set extent")
+        TECA_FATAL_ERROR("Failed to get input data set extent")
         return up_reqs;
     }
 
@@ -167,7 +167,7 @@ std::vector<teca_metadata> teca_vertical_reduction::get_upstream_request(
     std::set<std::string> variables;
     if (md.get("variables", variables))
     {
-        TECA_ERROR("Metadata issue. variables is missing")
+        TECA_FATAL_ERROR("Metadata issue. variables is missing")
         return up_reqs;
     }
 
@@ -222,7 +222,7 @@ const_p_teca_dataset teca_vertical_reduction::execute(
 
     if (!in_mesh)
     {
-        TECA_ERROR("teca_mesh is required")
+        TECA_FATAL_ERROR("teca_mesh is required")
         return nullptr;
     }
 

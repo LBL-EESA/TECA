@@ -114,8 +114,10 @@ mdo = ds.get_metadata()
 out_mesh = teca_cartesian_mesh.New()
 out_mesh.copy(ds)
 
-masked_ones_array = out_mesh.get_point_arrays().get(prefix + "ones_grid")
-masked_zeros_array = out_mesh.get_point_arrays().get(prefix + "zeros_grid")
+out_arrays = out_mesh.get_point_arrays()
+
+masked_ones_array = out_arrays[prefix + "ones_grid"].get_cpu_accessible()
+masked_zeros_array = out_arrays[prefix + "zeros_grid"].get_cpu_accessible()
 
 # check that the sum of ones times the mask is equal to 1
 sum_difference = np.sum(masked_ones_array) - 1

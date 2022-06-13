@@ -1,10 +1,10 @@
 #*****************************************************************************
 # FindMatplotlib
 #
-# Check if matplotlib is installed and configure c-api includes
+# Check if matplotlib is installed
 #
 # This module defines
-#  Matplotlib_FOUND, set TRUE if matplotlib and c-api are available
+#  Matplotlib_FOUND, set TRUE if matplotlib
 #  Matplotlib_VERSION, matplotlib release version
 
 set(_TMP_PY_OUTPUT)
@@ -16,8 +16,10 @@ exec_program("${PYTHON_EXECUTABLE}"
 set(Matplotlib_VERSION_FOUND FALSE)
 if(NOT _TMP_PY_RETURN)
   set(Matplotlib_VERSION_FOUND TRUE)
+  message(STATUS "Looking for Python package matplotlib ... found version ${_TMP_PY_OUTPUT}")
 else()
   set(_TMP_PY_OUTPUT)
+  message(STATUS "Looking for Python package matplotlib ... not found")
 endif()
 set(Matplotlib_VERSION "${_TMP_PY_OUTPUT}")
 

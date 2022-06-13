@@ -121,4 +121,64 @@ bool get_teca_has_openssl()
     return false;
 #endif
 }
+
+// return true if TECA was compiled with NumPy support
+bool get_teca_has_numpy()
+{
+#if defined(TECA_HAS_NUMPY)
+    return true;
+#else
+    return false;
+#endif
+}
+
+// return true if TECA was compiled with CuPy support
+bool get_teca_has_cupy()
+{
+#if defined(TECA_HAS_CUPY)
+    return true;
+#else
+    return false;
+#endif
+}
+
+// return true if TECA was compiled with PyTorch support
+bool get_teca_has_pytorch()
+{
+#if defined(TECA_HAS_PYTORCH)
+    return true;
+#else
+    return false;
+#endif
+}
+
+// return true if TECA was compiled with matplotlib support
+bool get_teca_has_matplotlib()
+{
+#if defined(TECA_HAS_MATPLOTLIB)
+    return true;
+#else
+    return false;
+#endif
+}
+
+// return true if TECA was compiled with tcpyPI support
+bool get_teca_has_tcpypi()
+{
+#if defined(TECA_HAS_TCPYPI)
+    return true;
+#else
+    return false;
+#endif
+}
+
+// return true if TECA was compiled with CUDA support
+bool get_teca_has_cuda()
+{
+#if defined(TECA_HAS_CUDA)
+    return true;
+#else
+    return false;
+#endif
+}
 %}

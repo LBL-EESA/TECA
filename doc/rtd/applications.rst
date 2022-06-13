@@ -36,6 +36,9 @@ batch script rather than in your shell.
 +----------------------------------------+--------------------------------------------------+
 | :ref:`teca_tc_wind_radii`              | Computes storm size from a set of TC tracks      |
 +----------------------------------------+--------------------------------------------------+
+| :ref:`teca_potential_intensity`        | Computes thermodynamic potentiel intensity of    |
+|                                        | tropical cyclones                                |
++----------------------------------------+--------------------------------------------------+
 | :ref:`teca_tc_stats`                   | Computes descriptive statistics from a set       |
 |                                        | of TC tracks                                     |
 +----------------------------------------+--------------------------------------------------+
@@ -459,6 +462,31 @@ properties are supported:
 |                         | around to enable loading 2D data with a vertical  |
 |                         | dimension of 1, into a 3D mesh and should be used |
 |                         | with caution.                                     |
++-------------------------+---------------------------------------------------+
+| target_bounds           | An optional axis aligned bounding box specified   |
+|                         | as a 6-tuple in the order [x0, x1, y0, y1, z0,    |
+|                         | z1] that defines a transform to apply to the      |
+|                         | mesh coordinate axes. If any of the axis          |
+|                         | directions are set to [1, 0] then no transform is |
+|                         | applied in that direction.                        |
++-------------------------+---------------------------------------------------+
+| target_x_axis_variable  | The name of the transformed x axis variable. If   |
+|                         | not specified then the name is passed through.    |
++-------------------------+---------------------------------------------------+
+| target_y_axis_variable  | The name of the transformed y axis variable. If   |
+|                         | not specified then the name is passed through.    |
++-------------------------+---------------------------------------------------+
+| target_z_axis_variable  | The name of the transformed z axis variable. If   |
+|                         | not specified then the name is passed through.    |
++-------------------------+---------------------------------------------------+
+| target_x_axis_units     | The units of the transformed x axis units. If     |
+|                         | not specified then the units are passed through.  |
++-------------------------+---------------------------------------------------+
+| target_y_axis_units     | The units of the transformed y axis units. If     |
+|                         | not specified then the units are passed through.  |
++-------------------------+---------------------------------------------------+
+| target_z_axis_units     | The units of the transformed z axis units. If     |
+|                         | not specified then the units are passed through.  |
 +-------------------------+---------------------------------------------------+
 
 .. _rearranging_data:
@@ -1912,6 +1940,267 @@ CAM5 data
 This script shows computing the radial wind profiles for the 1448 tracks that
 were detected in the run shown in the :ref:`teca_tc_detect`, :ref:`example<tc_cam5>` above.
 
+.. _teca_potential_intensity:
+
+teca_potential_intensity
+------------------------
+
+.. _tcpypi_output:
+
+.. figure:: images/CMCC-CM2-VHR4_highres-future_r1i1p1f1_6hrPlevPt_V_max_0290.png
+    :width: 100%
+    :align: center
+
+    A time step of pontential intensity (V_max) calculated on a 45 year, 6
+    hourly, 1/2 degree, CMCC high res future CMIP6 dataset.  Masked areas where
+    the calculation was not possible either due to being over land or invalid
+    inputs data are shown in shaded gray color.
+
+The `teca_potential_intensity` command line application computes
+potential intensity (PI) for tropical cyclones using the tcpyPI library
+:cite:`tcpypi`.
+Potential intensity is the maximum speed limit of a tropical cyclone found
+by modeling the storm as a thermal heat engine. Because there are significant
+correlations between PI and actual storm wind speeds, PI is a useful diagnostic
+for evaluating or predicting tropical cyclone intensity climatology and
+variability.
+TECA enables massive amounts of data to be processed by the `tcpyPI` code in
+parallel. In addition to providing scalable high performance I/O needed for
+accessing large amounts of data, TECA handles the necessary pre-processing and
+post processing tasks such as conversions of units, conversions of conventional
+missing values, and the application of land-sea masks.
+
+.. note::
+
+   The `teca_potential_intensity` features depend on the `tcpyPI` Python
+   library and are available when the `tcpyPI` package is detected during the
+   TECA build.
+
+Inputs
+~~~~~~
+The following mesh based fields are required.
+
+1. sea surface temperature defined on [lat, lon] grid points
+2. air temperature defined on [plev, lat, lon,] grid points
+3. sea level pressure defined on [lat, lon] grid points
+4. specific humidity or mixing ratio defined on [plev, lat, lon] grid points
+5. an optional land sea mask defined on [lat lon] grid points. The mesh
+   resolution need not match that of the other fields. as a nearest neighbor
+   remeshing operator is applied in line.
+
+More information on valid ranges for the fields and additional control
+parameters can be found in the `tcpyPI Users Guide`_ section 3.1 and table 1.
+
+.. _tcpyPI Users Guide: https://github.com/dgilford/tcpyPI/raw/master/pyPI_Users_Guide_v1.3.pdf
+
+Outputs
+~~~~~~~
+The following mesh based fields are generated.
+
+1. maximum near surface potential intensity of a tropical cyclone, V_max
+2. minimum central pressure, P_min
+3. status flag, IFL, (0 : invalid input, 1 : success, 2 : failed to converge, 3 : missing values)
+4. outflow temperature, T_o
+5. outflow temperature level, OTL
+
+A detailed description of the output fields and their units can be found in the
+`tcpyPI Users Guide`_ section 3.1 and table 1.
+
+Command Line Arguments
+~~~~~~~~~~~~~~~~~~~~~~
+
+--output_file OUTPUT_FILE
+    A path and file name pattern for the output NetCDF files. %t% is replaced with a human readable
+    date and time corresponding to the time of the first time step in the file. Use `--date_format` to
+    change the formatting (default: None)
+
+--file_layout FILE_LAYOUT
+    Selects the size and layout of the set of output files. May be one of number_of_steps, daily,
+    monthly, seasonal, or yearly. Files are structured such that each file contains one of the
+    selected interval. For the number_of_steps option use `--steps_per_file`. (default: monthly)
+
+--point_arrays POINT_ARRAYS [POINT_ARRAYS ...]
+    A list of point arrays to write with the results (default: ['V_max', 'P_min', 'IFL', 'T_o',
+    'OTL'])
+
+--steps_per_file STEPS_PER_FILE
+    number of time steps per output file (default: 128)
+
+--input_file INPUT_FILE
+    a teca_multi_cf_reader configuration file identifying the set of NetCDF CF2 files to process.
+    When present data is read using the teca_multi_cf_reader. Use one of either `--input_file` or
+    `--input_regex`. (default: None)
+
+--validate_time_axis VALIDATE_TIME_AXIS
+    Enable consistency checks on of the time axis returned by internally managed MCF readers.
+    (default: 1)
+
+--validate_spatial_coordinates VALIDATE_SPATIAL_COORDINATES
+    Enable consistency checks on of the spatial coordinate axes returned by internally managed MCF
+    readers. (default: 1)
+
+--input_regex INPUT_REGEX
+    a teca_cf_reader regex identifying the set of NetCDF CF2 files to process. When present data is
+    read using the teca_cf_reader. Use one of either `--input_file` or `--input_regex`. (default: None)
+
+--land_mask_file LAND_MASK_FILE
+    A regex identifying the land mask file. (default: None)
+
+--land_mask_variable LAND_MASK_VARIABLE
+    the name of the land mask variable. Values of this variable should be in 0 to 1. Calculations
+    will be skipped where the land mask is 1. (default: None)
+
+--psl_variable PSL_VARIABLE
+    the name of sea level pressure variable (default: None)
+
+--sst_variable SST_VARIABLE
+    the name of sea surface temperature variable (default: None)
+
+--air_temperature_variable AIR_TEMPERATURE_VARIABLE
+    the name of the air temperature variable (default: None)
+
+--mixing_ratio_variable MIXING_RATIO_VARIABLE
+    the name of the mixing ratio variable (default: None)
+
+--specific_humidity_variable SPECIFIC_HUMIDITY_VARIABLE
+    the name of the specific humidity variable (default: None)
+
+--x_axis_variable X_AXIS_VARIABLE
+    name of x coordinate variable (default: lon)
+
+--y_axis_variable Y_AXIS_VARIABLE
+    name of y coordinate variable (default: lat)
+
+--z_axis_variable Z_AXIS_VARIABLE
+    name of z coordinate variable (default: plev)
+
+--t_axis_variable T_AXIS_VARIABLE
+    time dimension name (default: time)
+
+--calendar CALENDAR
+    time calendar (default: None)
+
+--t_units T_UNITS
+    time unit (default: None)
+
+--first_step FIRST_STEP
+    first time step to process (default: 0)
+
+--last_step LAST_STEP
+    last time step to process (default: -1)
+
+--start_date START_DATE
+    first time to process in "YYYY-MM-DD hh:mm:ss" format (default: None)
+
+--end_date END_DATE
+    end time to process in "YYYY-MM-DD hh:mm:ss" format (default: None)
+
+--verbose VERBOSE
+    Enable verbose output (default: 0)
+
+Examples
+~~~~~~~~
+
+CMIP6 data
+^^^^^^^^^^
+This example illustrates running the `teca_potential_intensity` command line
+application in parallel on a 45 year, 52560 time step, 6 hourly, 1/2 degree,
+CMIP6 dataset.  This run processed 1.6 TB of input data (hus, tas, ta, psl) and
+produced 867 GB of output data (V_max, P_min, OTL, T_o, IFL) in 15 minutes and
+23 seconds on 822 KNL nodes on NERSC's Cori supercomputer. This example
+illustrates using a land-sea mask to avoid calculating PI over land. The
+potential intensity field (V_max) from one time step of the run is shown in
+figure :numref:`tcpypi_output`.
+
+The TECA MCF file identifying the input dataset is shown here:
+
+.. code-block:: bash
+
+    # TECA multi cf reader config
+    # Test runs for Potential Intensity
+    # Fri Aug 13 12:18:00 PDT 2021
+
+    data_root = /global/cfs/cdirs/m3522/cmip6/CMIP6_hrmcol/HighResMIP/CMIP6/HighResMIP/CMCC/CMCC-CM2-VHR4/highres-future/r1i1p1f1/6hrPlevPt
+    regex = 6hrPlevPt_CMCC-CM2-VHR4_highres-future_r1i1p1f1_gn_.*\.nc$
+
+    [cf_reader]
+    variables = hus
+    regex = %data_root%/hus/gn/v20190509/hus_%regex%
+    z_axis_variable = plev
+    provides_time
+    provides_geometry
+
+    [cf_reader]
+    variables = psl
+    regex = %data_root%/psl/gn/v20190509/psl_%regex%
+    clamp_dimensions_of_one = 1
+
+    [cf_reader]
+    variables = ta
+    regex = %data_root%/ta/gn/v20190509/ta_%regex%
+    z_axis_variable = plev
+
+    [cf_reader]
+    variables = ts
+    regex = %data_root%/ts/gn/v20190509/ts_%regex%
+    clamp_dimensions_of_one = 1
+
+The batch script used in the run is shown here:
+
+.. code-block:: bash
+
+    #!/bin/bash
+    #SBATCH -q regular
+    #SBATCH -N 822
+    #SBATCH -C knl
+    #SBATCH -t 02:00:00
+    #SBATCH -A m1517
+
+    module switch PrgEnv-intel/6.0.5 PrgEnv-gnu
+    module use /global/cscratch1/sd/loring/teca_testing/installs/develop-53291486-deps/modulefiles/
+    module load teca
+    source /global/cscratch1/sd/loring/teca_testing/teca_tcpypi_env/bin/activate
+
+    export PATH=/global/cscratch1/sd/loring/teca_testing/TECA/bin/bin/:$PATH
+    export LD_LIBRARY_PATH=/global/cscratch1/sd/loring/teca_testing/TECA/bin/lib/:$LD_LIBRARY_PATH
+    export PYTHONPATH=/global/cscratch1/sd/loring/teca_testing/TECA/bin/lib/:$PYTHONPATH
+
+    set -x
+
+    output_dir=data/CMCC-CM2-VHR4_highres-future_r1i1p1f1_6hrPlevPt_ym
+    rm -rf ${output_dir}/
+    mkdir -p ${output_dir}
+
+    time srun -n 13140  -N 822 teca_potential_intensity                                                              \
+        --input_file CMCC-CM2-VHR4_highres-future_r1i1p1f1_6hrPlevPt.mcf                                             \
+        --psl_variable psl --sst_variable ts --air_temperature_variable ta                                           \
+        --specific_humidity_variable hus --file_layout yearly                                                        \
+        --output_file ${output_dir}/CMCC-CM2-VHR4_highres-future_r1i1p1f1_6hrPlevPt_TCPI_%t%.nc                      \
+        --land_mask_variable LANDFRAC                                                                                \
+        --land_mask_file /global/cscratch1/sd/loring/teca_testing/topography/USGS_gtopo30_0.23x0.31_remap_c061107.nc \
+        --verbose 1
+
+
+tcpyPI Sample Data
+^^^^^^^^^^^^^^^^^^
+
+This example shows processing the sample dataset included in the `tcpyPI` repo
+in parallel on a 10 core development workstation. This dataset does not follow
+typical calendaring conventions and hence the command line is atypical in that
+calendaring info must be provided.
+
+.. code-block:: bash
+
+    time mpiexec -n 10 ./bin/teca_potential_intensity                               \
+        --input_regex /work2/data/teca/potential_intensity/sample_data.nc           \
+        --psl_variable msl --sst_variable sst --air_temperature_variable t          \
+        --mixing_ratio q --t_axis_variable month --z_axis_variable p                \
+        --output_file tcpi_sample_otuput_%t%.nc  --file_layout number_of_steps      \
+        --steps_per_file 12 --calendar standard --t_units 'months since 1980-01-01' \
+        --verbose 1
+
+The data is processed in 8 seconds.
+
 .. _teca_tc_stats:
 
 teca_tc_stats
@@ -2897,3 +3186,77 @@ ranks.
             --output_file "${data_root_out}/${var_out}/${var_out}_6hrPlevPt_ECMWF-IFS-HR_highresSST-present_r1i1p1f1_gr_%t%.nc" \
             --point_arrays ${var_out} --file_layout monthly
     done
+
+
+.. _teca_lapse_rate:
+
+teca_lapse_rate
+----------------
+
+Calculates the mean lapse rate.
+Uses 1st order finite difference to estimate the lapse rate at all
+available levels and then averages. Levels below the surface are
+masked, and levels above zmax are masked.
+It is assumed that the vertical dimension is the first dimension
+e.g., [level, lat, lon]) for both t and z.
+
+Inputs
+~~~~~~
+
+A 3D time dependent mesh in NetCDF CF2 format with temperature and geopotential height data.
+Also a 2D time dependent mesh in NetCDF CF2 format with surface geopotential height data.
+
+Outputs
+~~~~~~~
+
+A 2D mesh in NETCDF CF2 format with lapse rate data.
+
+
+Command Line Arguments
+~~~~~~~~~~~~~~~~~~~~
+
+--input_file arg
+    a TECA MCF file containing information about the locations of the temperature and geopotential height data
+
+--output_file arg
+    The name of the file to write to disk.
+    The output file name must have the time template %t% somewhere in the string;
+    %t% is replaced with a human readable date and time corresponding to the time of the first time step in the file
+
+--t_var arg
+    The variable name for temperature
+
+--z_var arg
+    The variable name for geopotential height
+
+--zs_var arg
+    The variable name for surface geopotential height
+
+--zmax arg
+    The maximum height for the lapse rate calculation [m]
+
+--z_is_not_geopotential
+    Flags that height has physical units [m] rather than geopotential [m^2/s^2]
+
+--start_month_index arg
+    The index of the first month to process
+
+--end_month_index arg
+    The index of the last month to process
+
+--file_layout arg
+    Selects the size and layout of the set of output files. May be one of number_of_steps, daily,
+    monthly, seasonal, or yearly. Files are structured such that each file contains one of the
+    selected interval. For the number_of_steps option use --steps_per_file
+
+--steps_per_file arg
+    The number of time steps per output file when --file_layout number_of_steps is specified
+
+--no_inline_reduction
+    Flags that a temporal reduction should not be done; output raw timesteps
+
+--verbose
+    Indicates whether to turn on verbose output; enable extra terminal output
+
+--help
+    displays documentation for application specific command line options

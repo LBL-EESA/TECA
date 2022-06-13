@@ -15,6 +15,145 @@ namespace teca_coordinate_util
 {
 
 // **************************************************************************
+bool equal(const const_p_teca_variant_array &array1,
+    const const_p_teca_variant_array &array2,
+    double aAbsTol, double aRelTol, int &errorNo,
+    std::string &errorStr)
+{
+    std::ostringstream oss;
+
+    errorNo = equal_error::no_error;
+    errorStr = "";
+
+    // Arrays of different sizes are different.
+    size_t n_elem = array1->size();
+    if (n_elem != array2->size())
+    {
+        oss << "The arrays have different sizes "
+            << n_elem << " and " << array2->size();
+
+        errorStr = oss.str();
+        errorNo = equal_error::length_missmatch;
+
+        return false;
+    }
+
+    // handle POD arrays
+    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+        array1.get(),
+
+        auto a1 = static_cast<TT*>(array1.get());
+
+        // we know the type of array 1 now, check the type of array 2
+        auto a2 = dynamic_cast<TT*>(array2.get());
+        if (!a2)
+        {
+            oss << "The arrays have different types : "
+                << array1->get_class_name() << " and "
+                << array2->get_class_name();
+
+            errorStr = oss.str();
+            errorNo = equal_error::type_missmatch;
+
+            return false;
+        }
+
+        // compare elements
+        auto a1a = a1->get_cpu_accessible();
+        auto a2a = a2->get_cpu_accessible();
+
+        auto pa1 = a1a.get();
+        auto pa2 = a2a.get();
+
+        std::string diagnostic;
+        for (size_t i = 0; i < n_elem; ++i)
+        {
+            if (std::isinf(pa1[i]) && std::isinf(pa2[i]))
+            {
+                // the GFDL TC tracker returns inf for some fields in some cases.
+                // warn about it so that it may be addressed in other algorithms.
+                oss << "Inf detected in element " << i;
+
+                errorStr = oss.str();
+                errorNo = equal_error::invalid_value;
+            }
+            else if (std::isnan(pa1[i]) || std::isnan(pa2[i]))
+            {
+                // for the time being, don't allow NaN.
+                oss << "NaN detected in element " << i;
+
+                errorStr = oss.str();
+                errorNo = equal_error::invalid_value;
+
+                return false;
+            }
+            else if (!teca_coordinate_util::equal<double>(pa1[i], pa2[i],
+                diagnostic, aRelTol, aAbsTol))
+            {
+                oss << "difference above the prescribed tolerance detected"
+                       " in element " << i << ". " << diagnostic;
+
+                errorStr = oss.str();
+                errorNo = equal_error::value_missmatch;
+
+                return false;
+            }
+        }
+
+        // we are here, arrays are the same
+        errorStr = "The arrays are equal";
+        errorNo = equal_error::no_error;
+
+        return true;
+        )
+    // handle arrays of strings
+    TEMPLATE_DISPATCH_CASE(
+        const teca_variant_array_impl, std::string,
+        array1.get(),
+        if (dynamic_cast<const TT*>(array2.get()))
+        {
+            auto a1 = static_cast<TT*>(array1.get())->get_cpu_accessible();
+            auto a2 = static_cast<TT*>(array2.get())->get_cpu_accessible();
+
+            auto pa1 = a1.get();
+            auto pa2 = a2.get();
+
+            for (size_t i = 0; i < n_elem; ++i)
+            {
+                // compare elements
+                const std::string &v1 = pa1[i];
+                const std::string &v2 = pa2[i];
+                if (v1 != v2)
+                {
+                    oss << "string element " << i << " not equal. ref value \""
+                        << v1 << "\" is not equal to test value \"" << v2 << "\"";
+
+                    errorStr = oss.str();
+                    errorNo = equal_error::value_missmatch;
+
+                    return false;
+                }
+            }
+
+            // we are here, arrays are the same
+            errorStr = "The arrays are equal";
+            errorNo = equal_error::no_error;
+
+            return true;
+        }
+        )
+
+    // we are here, array type is not handled
+    oss << "The array type " << array1->get_class_name()
+        << " is not supported.";
+
+    errorStr = oss.str();
+    errorNo = equal_error::unsupported_type;
+
+    return false;
+}
+
+// **************************************************************************
 int time_step_of(const const_p_teca_variant_array &time,
     bool lower, bool clamp, const std::string &calendar,
     const std::string &units, const std::string &date,
@@ -51,7 +190,11 @@ int time_step_of(const const_p_teca_variant_array &time,
     unsigned long last = time->size() - 1;
     TEMPLATE_DISPATCH_FP_SI(const teca_variant_array_impl,
         time.get(),
-        const NT *p_time = std::dynamic_pointer_cast<const TT>(time)->get();
+
+        auto ta = std::static_pointer_cast<TT>(time);
+        auto pta = ta->get_cpu_accessible();
+        auto p_time = pta.get();
+
         if (clamp && (t <= p_time[0]))
         {
             step = 0;
@@ -66,6 +209,7 @@ int time_step_of(const const_p_teca_variant_array &time,
                 << p_time[0] << ", " << p_time[last] << "]")
             return -1;
         }
+
         return 0;
         )
 
@@ -192,7 +336,9 @@ int bounds_to_extent(const double *bounds,
         unsigned long high_i = nx - 1;
         extent[0] = 0;
         extent[1] = high_i;
-        const NT *px = std::dynamic_pointer_cast<TT>(x)->get();
+        auto xa = std::static_pointer_cast<TT>(x);
+        auto pxa = xa->get_cpu_accessible();
+        const NT *px = pxa.get();
         NT low_x = static_cast<NT>(bounds[0]);
         NT high_x = static_cast<NT>(bounds[1]);
         bool slice_x = equal(low_x, high_x, eps8);
@@ -201,7 +347,9 @@ int bounds_to_extent(const double *bounds,
         unsigned long high_j = ny - 1;
         extent[2] = 0;
         extent[3] = high_j;
-        const NT *py = std::dynamic_pointer_cast<TT>(y)->get();
+        auto ya = std::dynamic_pointer_cast<TT>(y);
+        auto pya = ya->get_cpu_accessible();
+        const NT *py = pya.get();
         NT low_y = static_cast<NT>(bounds[2]);
         NT high_y = static_cast<NT>(bounds[3]);
         bool slice_y = equal(low_y, high_y, eps8);
@@ -210,7 +358,9 @@ int bounds_to_extent(const double *bounds,
         unsigned long high_k = nz - 1;
         extent[4] = 0;
         extent[5] = high_k;
-        const NT *pz = std::dynamic_pointer_cast<TT>(z)->get();
+        auto za = std::dynamic_pointer_cast<TT>(z);
+        auto pza = za->get_cpu_accessible();
+        const NT *pz = pza.get();
         NT low_z = static_cast<NT>(bounds[4]);
         NT high_z = static_cast<NT>(bounds[5]);
         bool slice_z = equal(low_z, high_z, eps8);
@@ -276,7 +426,9 @@ int bounds_to_extent(const double *bounds,
         unsigned long high_i = nx - 1;
         extent[0] = 0;
         extent[1] = high_i;
-        const NT *px = std::dynamic_pointer_cast<TT>(x)->get();
+        auto xa = std::static_pointer_cast<TT>(x);
+        auto pxa = xa->get_cpu_accessible();
+        const NT *px = pxa.get();
         NT low_x = static_cast<NT>(bounds[0]);
         NT high_x = static_cast<NT>(bounds[1]);
         bool slice_x = equal(low_x, high_x, eps8);
@@ -494,4 +646,248 @@ int clamp_dimensions_of_one(unsigned long nx_max, unsigned long ny_max,
 
     return clamped;
 }
+
+
+// --------------------------------------------------------------------------
+void teca_validate_arrays::set_reference_array(const std::string &a_source,
+    const std::string &a_name, const std::string a_units,
+    const const_p_teca_variant_array &a_array)
+{
+    m_reference = a_array;
+    m_reference_source = a_source;
+    m_reference_name = a_name;
+    m_reference_units = a_units;
+}
+
+// --------------------------------------------------------------------------
+void teca_validate_arrays::append_array(const std::string &a_source,
+    const std::string &a_name, const std::string &a_units,
+    const const_p_teca_variant_array &a_array)
+{
+    m_arrays.push_back(a_array);
+    m_array_sources.push_back(a_source);
+    m_array_names.push_back(a_name);
+    m_array_units.push_back(a_units);
+}
+
+// --------------------------------------------------------------------------
+int teca_validate_arrays::validate(const std::string &a_descriptor,
+    double a_abs_tol, double a_rel_tol, std::string &errorStr)
+{
+    std::ostringstream oss;
+
+    size_t n_arrays = m_arrays.size();
+    for (size_t i = 0; i < n_arrays; ++i)
+    {
+        // check values
+        int eNo = 0;
+        std::string eStr;
+
+        if (!teca_coordinate_util::equal(m_reference,
+            m_arrays[i], a_abs_tol, a_rel_tol, eNo, eStr))
+        {
+            oss << "The " << a_descriptor << " array \"" << m_array_names[i]
+                << "\" from source \"" << m_array_sources[i]
+                << "\" does not match the reference " << a_descriptor
+                << " array \"" << m_reference_name << "\" from source \""
+                << m_reference_source << "\". " << eStr;
+
+            errorStr = oss.str();
+
+            return eNo;
+        }
+
+        // check names
+        /*if (m_reference_name != m_array_names[i])
+        {
+            oss << "The " << a_descriptor << " array name " << m_array_names[i]
+                << " from source " << m_array_sources[i]
+                << " does not match the reference array name " << m_reference_name
+                << " from source " << m_reference_source;
+
+            errorStr = oss.str();
+
+            return = -1;
+        }*/
+
+        // check units
+        if (m_reference_units != m_array_units[i])
+        {
+            oss << "The " << a_descriptor << " array \"" << m_array_names[i]
+                << "\" from source \"" << m_array_sources[i]
+                << "\" units \"" << m_array_units[i]
+                << "\" does not match the reference " << a_descriptor
+                << " array \"" << m_reference_name << "\" from source \""
+                << m_reference_source << "\" units \""
+                << m_reference_units << "\"";
+
+            errorStr = oss.str();
+
+            return teca_validate_arrays::units_missmatch;
+        }
+    }
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+int teca_coordinate_axis_validator::add_time_axis(const std::string &source,
+    const teca_metadata &coords, const teca_metadata &atts, bool provides_time)
+{
+    // get the name and values
+    std::string t_variable;
+    const_p_teca_variant_array t;
+    if (coords.get("t_variable", t_variable) || !(t = coords.get("t")))
+    {
+        TECA_ERROR("Failed to get attributes for the time axis  \"" << t_variable
+            << "\" from source \"" << source << ". A validation is not possible.")
+        return -1;
+    }
+
+    // get calendaring info, but don't error out if it's not present
+    teca_metadata t_atts;
+    atts.get(t_variable, t_atts);
+
+    std::string t_units;
+    std::string calendar;
+    t_atts.get("calendar", calendar);
+    t_atts.get("units", t_units);
+
+    // save it for the validation step
+    if (provides_time)
+    {
+        m_t.set_reference_array(source, t_variable, t_units + " " + calendar, t);
+    }
+    else
+    {
+        m_t.append_array(source, t_variable, t_units + " " + calendar, t);
+    }
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+int teca_coordinate_axis_validator::add_x_coordinate_axis(const std::string &source,
+    const teca_metadata &coords, const teca_metadata &atts, bool provides_geometry)
+{
+    // get the name and values
+    std::string x_variable;
+    const_p_teca_variant_array x;
+    if (coords.get("x_variable", x_variable) || !(x = coords.get("x")))
+    {
+        TECA_ERROR("Failed to get attributes for the x-coordinate axis  \"" << x_variable
+            << "\" from source \"" << source << ". A validation is not possible.")
+        return -1;
+    }
+
+    // get the units, not an error if they are not present
+    teca_metadata x_atts;
+    std::string x_units;
+    atts.get(x_variable, x_atts);
+    x_atts.get("units", x_units);
+
+    // save for later validation
+    if (provides_geometry)
+    {
+        m_x.set_reference_array(source, x_variable, x_units, x);
+    }
+    else
+    {
+        m_x.append_array(source, x_variable, x_units, x);
+    }
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+int teca_coordinate_axis_validator::add_y_coordinate_axis(const std::string &source,
+    const teca_metadata &coords, const teca_metadata &atts, bool provides_geometry)
+{
+    // get the name and values
+    std::string y_variable;
+    const_p_teca_variant_array y;
+    if (coords.get("y_variable", y_variable) || !(y = coords.get("y")))
+    {
+        TECA_ERROR("Failed to get attributes for the y-coordinate axis  \"" << y_variable
+            << "\" from source \"" << source << ". A validation is not possible.")
+        return -1;
+    }
+
+    // get the units
+    teca_metadata y_atts;
+    std::string y_units;
+    atts.get(y_variable, y_atts);
+    y_atts.get("units", y_units);
+
+    // save for later validation
+    if (provides_geometry)
+    {
+        m_y.set_reference_array(source, y_variable, y_units, y);
+    }
+    else
+    {
+        m_y.append_array(source, y_variable, y_units, y);
+    }
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+int teca_coordinate_axis_validator::add_z_coordinate_axis(const std::string &source,
+    const teca_metadata &coords, const teca_metadata &atts, bool provides_geometry)
+{
+    // get the name and values
+    std::string z_variable;
+    const_p_teca_variant_array z;
+    if (coords.get("z_variable", z_variable) || !(z = coords.get("z")))
+    {
+        TECA_ERROR("Failed to get attributes for the z-coordinate axis  \"" << z_variable
+            << "\" from source \"" << source << ". A validation is not possible.")
+        return -1;
+    }
+
+    // get the untis
+    teca_metadata z_atts;
+    std::string z_units;
+
+    atts.get(z_variable, z_atts);
+    z_atts.get("units", z_units);
+
+    // save for later validation
+    if (provides_geometry)
+    {
+        m_z.set_reference_array(source, z_variable, z_units, z);
+    }
+    else
+    {
+        m_z.append_array(source, z_variable, z_units, z);
+    }
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+int teca_coordinate_axis_validator::validate_spatial_coordinate_axes(std::string &errorStr)
+{
+    int errorNo = 0;
+
+    if ((errorNo = m_x.validate("x-coordinate axis",
+        m_absolute_tolerance, m_relative_tolerance, errorStr)) ||
+        (errorNo = m_y.validate("y-coordinate axis",
+        m_absolute_tolerance, m_relative_tolerance, errorStr)) ||
+        (errorNo = m_z.validate("z-coordinate axis",
+        m_absolute_tolerance, m_relative_tolerance, errorStr)))
+    {
+        return errorNo;
+    }
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+int teca_coordinate_axis_validator::validate_time_axis(std::string &errorStr)
+{
+    return m_t.validate("time axis",
+        m_absolute_tolerance, m_relative_tolerance, errorStr);
+}
+
 };

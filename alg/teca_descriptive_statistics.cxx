@@ -4,6 +4,7 @@
 #include "teca_table.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_array_attributes.h"
 
@@ -215,7 +216,7 @@ const_p_teca_dataset teca_descriptive_statistics::execute(
 
     if (!in_mesh)
     {
-        TECA_ERROR("dataset is not a teca_cartesian_mesh")
+        TECA_FATAL_ERROR("dataset is not a teca_cartesian_mesh")
         return nullptr;
     }
     // dependent variables
@@ -316,7 +317,7 @@ const_p_teca_dataset teca_descriptive_statistics::execute(
             = in_mesh->get_point_arrays()->get(dep_var_name);
         if (!dep_var)
         {
-            TECA_ERROR("dependent variable " << i << " \""
+            TECA_FATAL_ERROR("dependent variable " << i << " \""
                 << dep_var_name << "\" not present.")
             return nullptr;
         }
@@ -325,7 +326,9 @@ const_p_teca_dataset teca_descriptive_statistics::execute(
             dep_var.get(),
 
             size_t n = dep_var->size();
-            const NT *pv = static_cast<const TT*>(dep_var.get())->get();
+
+            auto spv = static_cast<const TT*>(dep_var.get())->get_cpu_accessible();
+            const NT *pv = spv.get();
 
             // compute stats
             NT mn = internal::min(pv, n);

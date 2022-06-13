@@ -3,6 +3,7 @@
 #include "teca_cartesian_mesh.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_coordinate_util.h"
 
@@ -173,7 +174,7 @@ teca_metadata teca_integrated_water_vapor::get_output_metadata(
         teca_metadata attributes;
         if (md.get("attributes", attributes))
         {
-            TECA_ERROR("Failed to determine output data type "
+            TECA_FATAL_ERROR("Failed to determine output data type "
                 "because attributes are misisng")
             return teca_metadata();
         }
@@ -181,7 +182,7 @@ teca_metadata teca_integrated_water_vapor::get_output_metadata(
         teca_metadata hus_atts;
         if (attributes.get(this->specific_humidity_variable, hus_atts))
         {
-            TECA_ERROR("Failed to determine output data type "
+            TECA_FATAL_ERROR("Failed to determine output data type "
                 "because attributes for \"" << this->specific_humidity_variable
                 << "\" are misisng")
             return teca_metadata();
@@ -190,7 +191,7 @@ teca_metadata teca_integrated_water_vapor::get_output_metadata(
         int type_code = 0;
         if (hus_atts.get("type_code", type_code))
         {
-            TECA_ERROR("Failed to determine output data type "
+            TECA_FATAL_ERROR("Failed to determine output data type "
                 "because attributes for \"" << this->specific_humidity_variable
                 << "\" is misisng a \"type_code\"")
             return teca_metadata();
@@ -198,8 +199,8 @@ teca_metadata teca_integrated_water_vapor::get_output_metadata(
 
         teca_array_attributes iwv_atts(
             type_code, teca_array_attributes::point_centering,
-            0, "kg m^{-1} s^{-1}", "longitudinal integrated vapor transport",
-            "the longitudinal component of integrated vapor transport",
+            0, "kg m^{-2}", "integrated water vapor",
+            "vertically integrated " + this->specific_humidity_variable,
             1, this->fill_value);
 
 
@@ -247,7 +248,7 @@ const_p_teca_dataset teca_integrated_water_vapor::execute(
 
     if (!in_mesh)
     {
-        TECA_ERROR("Failed to compute IWV because a cartesian mesh is required.")
+        TECA_FATAL_ERROR("Failed to compute IWV because a cartesian mesh is required.")
         return nullptr;
     }
 
@@ -255,7 +256,7 @@ const_p_teca_dataset teca_integrated_water_vapor::execute(
     unsigned long extent[6] = {0};
     if (in_mesh->get_extent(extent))
     {
-        TECA_ERROR("Failed to compute IWV because mesh extent is missing.")
+        TECA_FATAL_ERROR("Failed to compute IWV because mesh extent is missing.")
         return nullptr;
     }
 
@@ -267,13 +268,13 @@ const_p_teca_dataset teca_integrated_water_vapor::execute(
     const_p_teca_variant_array p = in_mesh->get_z_coordinates();
     if (!p)
     {
-        TECA_ERROR("Failed to compute IWV because pressure coordinates are missing")
+        TECA_FATAL_ERROR("Failed to compute IWV because pressure coordinates are missing")
         return nullptr;
     }
 
     if (p->size() < 2)
     {
-        TECA_ERROR("Failed to compute IWV because z dimensions "
+        TECA_FATAL_ERROR("Failed to compute IWV because z dimensions "
             << p->size() << " < 2 as required by the integration method")
         return nullptr;
     }
@@ -284,7 +285,7 @@ const_p_teca_dataset teca_integrated_water_vapor::execute(
 
     if (!q)
     {
-        TECA_ERROR("Failed to compute IWV because specific humidity \""
+        TECA_FATAL_ERROR("Failed to compute IWV because specific humidity \""
             << this->specific_humidity_variable << "\" is missing")
         return nullptr;
     }
@@ -300,7 +301,7 @@ const_p_teca_dataset teca_integrated_water_vapor::execute(
 
     if (!out_mesh)
     {
-        TECA_ERROR("Failed to compute IWV because the output mesh was "
+        TECA_FATAL_ERROR("Failed to compute IWV because the output mesh was "
             "not constructed")
         return nullptr;
     }
@@ -316,21 +317,23 @@ const_p_teca_dataset teca_integrated_water_vapor::execute(
     NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
         p.get(), _COORDS,
 
-        const NT_COORDS *p_p = static_cast<TT_COORDS*>(p.get())->get();
+        auto sp_p = static_cast<TT_COORDS*>(p.get())->get_cpu_accessible();
+        const NT_COORDS *p_p = sp_p.get();
 
         NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
             iwv.get(), _DATA,
 
-            NT_DATA *p_iwv = static_cast<TT_DATA*>(iwv.get())->get();
+            auto sp_iwv = static_cast<TT_DATA*>(iwv.get())->get_cpu_accessible();
+            NT_DATA *p_iwv = sp_iwv.get();
 
-            const NT_DATA *p_q = static_cast<const TT_DATA*>(q.get())->get();
+            auto sp_q = static_cast<const TT_DATA*>(q.get())->get_cpu_accessible();
+            const NT_DATA *p_q = sp_q.get();
 
-            const char *p_q_valid = nullptr;
             if (q_valid)
             {
                 using TT_MASK = teca_char_array;
-
-                p_q_valid = dynamic_cast<const TT_MASK*>(q_valid.get())->get();
+                auto sp_q_valid = dynamic_cast<const TT_MASK*>(q_valid.get())->get_cpu_accessible();
+                const char *p_q_valid = sp_q_valid.get();
 
                 ::cartesian_iwv(nx, ny, nz, p_p, p_q, p_q_valid, p_iwv);
             }

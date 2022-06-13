@@ -9,6 +9,8 @@
 #include "teca_system_interface.h"
 #include "teca_array_attributes.h"
 #include "teca_metadata.h"
+#include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
 
 #include <cmath>
 #include <functional>
@@ -32,7 +34,8 @@ struct index_function
 
         TEMPLATE_DISPATCH(teca_variant_array_impl,
             f.get(),
-            NT *pf = dynamic_cast<TT*>(f.get())->get();
+            auto spf = dynamic_cast<TT*>(f.get())->get_cpu_accessible();
+            NT *pf = spf.get();
             for (size_t i = 0; i < nxyz; ++i)
             {
                 pf[i] = i;

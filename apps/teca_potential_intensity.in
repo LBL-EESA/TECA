@@ -1,0 +1,212 @@
+#!/usr/bin/env python@TECA_PYTHON_VERSION@
+try:
+    from mpi4py import MPI
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+except ImportError:
+    rank = 0
+from teca import *
+import sys, time
+import argparse
+
+# parse the command line
+parser = argparse.ArgumentParser(
+    formatter_class=lambda prog: argparse.ArgumentDefaultsHelpFormatter(
+                       prog, max_help_position=4, width=100))
+
+parser.add_argument('--output_file', type=str, required=True,
+    help='A path and file name pattern for the output NetCDF files. %%t%% is'
+         ' replaced with a human readable date and time corresponding to the'
+         ' time of the first time step in the file. Use --date_format to change'
+         ' the formatting')
+
+parser.add_argument('--file_layout', type=str, default='monthly',
+    help='Selects the size and layout of the set of output files. May be one'
+         ' of number_of_steps, daily, monthly, seasonal, or yearly. Files'
+         ' are structured such that each file contains one of the selected'
+         ' interval. For the number_of_steps option use --steps_per_file.')
+
+parser.add_argument('--point_arrays', type=str, nargs='+', required=False,
+    default=['V_max', 'P_min', 'IFL', 'T_o', 'OTL'],
+    help='A list of point arrays to write with the results')
+
+parser.add_argument('--steps_per_file', type=int, required=False, default=128,
+    help='number of time steps per output file')
+
+parser.add_argument('--input_file', type=str, required=False,
+    help='a teca_multi_cf_reader configuration file identifying the set'
+         ' of NetCDF CF2 files to process. When present data is read'
+         ' using the teca_multi_cf_reader. Use one of either --input_file'
+         ' or --input_regex.')
+
+parser.add_argument('--validate_time_axis', type=int, required=False, default=1,
+    help='Enable consistency checks on of the time axis returned by'
+         ' internally managed MCF readers.')
+
+parser.add_argument('--validate_spatial_coordinates', type=int, required=False,
+    default=1, help='Enable consistency checks on of the spatial coordinate axes'
+                    ' returned by internally managed MCF readers.')
+
+parser.add_argument('--input_regex', type=str, required=False,
+    help='a teca_cf_reader regex identifying the'
+         ' set of NetCDF CF2 files to process. When present data is read'
+         ' using the teca_cf_reader. Use one of either --input_file or '
+         ' --input_regex.')
+
+parser.add_argument('--land_mask_file', type=str, required=False,
+    help='A regex identifying the land mask file.')
+
+parser.add_argument('--land_mask_variable', type=str, required=False,
+    help='the name of the land mask variable. Values of this variable'
+         ' should be in 0 to 1. Calculations will be skipped where the'
+         ' land mask is 1.')
+
+parser.add_argument('--psl_variable', type=str, required=True,
+    help='the name of sea level pressure variable')
+
+parser.add_argument('--sst_variable', type=str, required=True,
+    help='the name of sea surface temperature variable')
+
+parser.add_argument('--air_temperature_variable', type=str, required=True,
+    help='the name of the air temperature variable')
+
+parser.add_argument('--mixing_ratio_variable', type=str, required=False,
+    help='the name of the mixing ratio variable')
+
+parser.add_argument('--specific_humidity_variable', type=str, required=False,
+    help='the name of the specific humidity variable')
+
+parser.add_argument('--x_axis_variable', type=str, default='lon',
+    required=False, help='name of x coordinate variable')
+
+parser.add_argument('--y_axis_variable', type=str, default='lat',
+     required=False, help='name of y coordinate variable')
+
+parser.add_argument('--z_axis_variable', type=str, default='plev',
+     required=False, help='name of z coordinate variable')
+
+parser.add_argument('--t_axis_variable', type=str, default='time',
+    required=False, help='time dimension name')
+
+parser.add_argument('--calendar', type=str, required=False,
+    help='time calendar')
+
+parser.add_argument('--t_units', type=str, required=False,
+    help='time unit')
+
+parser.add_argument('--first_step', type=int, default=0, required=False,
+    help='first time step to process')
+
+parser.add_argument('--last_step', type=int, default=-1, required=False,
+    help='last time step to process')
+parser.add_argument('--start_date', type=str, required=False,
+    help='first time to process in "YYYY-MM-DD hh:mm:ss" format')
+
+parser.add_argument('--end_date', type=str, required=False,
+    help='end time to process in "YYYY-MM-DD hh:mm:ss" format')
+
+parser.add_argument('--verbose', type=int, default=0,
+    help='Enable verbose output')
+
+
+try:
+    args = parser.parse_args()
+except Exception:
+    if rank == 0: raise
+
+# configure the reader
+if args.input_file and not args.input_regex:
+    reader = teca_multi_cf_reader.New()
+    reader.set_input_file(args.input_file)
+    reader.set_validate_time_axis(args.validate_time_axis)
+    reader.set_validate_spatial_coordinates(args.validate_spatial_coordinates)
+elif args.input_regex and not args.input_file:
+    reader = teca_cf_reader.New()
+    reader.set_files_regex(args.input_regex)
+    reader.set_x_axis_variable(args.x_axis_variable)
+    reader.set_y_axis_variable(args.y_axis_variable)
+    reader.set_z_axis_variable(args.z_axis_variable)
+    reader.set_t_axis_variable(args.t_axis_variable)
+else:
+    if rank == 0:
+        raise RuntimeError('One of --input_file or --input_regex'
+                           ' must be provided')
+if args.calendar:
+    reader.set_calendar(args.calendar)
+
+if args.t_units:
+    reader.set_t_units(args.t_units)
+
+# coordinate normalization
+coords = teca_normalize_coordinates.New()
+coords.set_input_connection(reader.get_output_port())
+
+head = coords
+if args.land_mask_file:
+    if not args.land_mask_variable:
+        raise RuntimeError('No --land_mask_variable was specified')
+    mask_reader = teca_cf_reader.New()
+    mask_reader.set_t_axis_variable('')
+    mask_reader.set_files_regex(args.land_mask_file)
+
+    mask_coords = teca_normalize_coordinates.New()
+    mask_coords.set_input_connection(mask_reader.get_output_port())
+
+    mask_cache = teca_indexed_dataset_cache.New()
+    mask_cache.set_input_connection(mask_coords.get_output_port())
+    mask_cache.set_max_cache_size(1)
+
+    mask_regrid = teca_cartesian_mesh_regrid.New()
+    mask_regrid.set_input_connection(0, coords.get_output_port())
+    mask_regrid.set_input_connection(1, mask_cache.get_output_port())
+
+    head = mask_regrid
+
+# valid value mask
+vvm = teca_valid_value_mask.New()
+vvm.set_input_connection(head.get_output_port())
+vvm.set_verbose(args.verbose)
+head = vvm
+
+# unpack NetCDF packed data
+upd = teca_unpack_data.New()
+upd.set_input_connection(head.get_output_port())
+upd.set_verbose(args.verbose)
+head = upd
+
+# potential intensity
+pint = teca_potential_intensity.New()
+pint.set_input_connection(head.get_output_port())
+pint.set_verbose(args.verbose)
+pint.set_sea_level_pressure_variable(args.psl_variable)
+pint.set_sea_surface_temperature_variable(args.sst_variable)
+pint.set_air_temperature_variable(args.air_temperature_variable)
+if args.mixing_ratio_variable and not args.specific_humidity_variable:
+    pint.set_mixing_ratio_variable(args.mixing_ratio_variable)
+elif not args.mixing_ratio_variable and args.specific_humidity_variable:
+    pint.set_specific_humidity_variable(args.specific_humidity_variable)
+else:
+    raise RuntimeError('One of --mixing_ratio_variable or'
+                       ' --specific_humidity_variable must be provided')
+if args.land_mask_variable:
+    pint.set_land_mask_variable(args.land_mask_variable)
+
+# configure the writer
+exe = teca_index_executive.New()
+writer = teca_cf_writer.New()
+writer.set_input_connection(pint.get_output_port())
+writer.set_executive(exe)
+writer.set_thread_pool_size(1)
+writer.set_file_name(args.output_file)
+writer.set_layout(args.file_layout)
+writer.set_steps_per_file(args.steps_per_file)
+writer.set_first_step(args.first_step)
+writer.set_last_step(args.last_step)
+if args.verbose > 1:
+    writer.set_verbose(1)
+
+point_arrays = args.point_arrays
+writer.set_point_arrays(point_arrays)
+
+# run the pipeline
+writer.update()

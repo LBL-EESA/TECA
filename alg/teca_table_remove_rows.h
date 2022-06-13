@@ -1,6 +1,7 @@
 #ifndef teca_table_remove_rows_h
 #define teca_table_remove_rows_h
 
+#include "teca_config.h"
 #include "teca_shared_object.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
@@ -28,7 +29,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_table_remove_rows)
  * short and char respectively. Integer types can be
  * unsigned by including u after the code.
  */
-class teca_table_remove_rows : public teca_algorithm
+class TECA_EXPORT teca_table_remove_rows : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(teca_table_remove_rows)

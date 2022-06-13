@@ -1,6 +1,7 @@
 #ifndef array_source_h
 #define array_source_h
 
+#include "teca_config.h"
 #include "teca_shared_object.h"
 #include "teca_algorithm.h"
 #include <vector>
@@ -23,7 +24,7 @@ request keys:
      array_name (required)
      extent (required)
 */
-class array_source : public teca_algorithm
+class TECA_EXPORT array_source : public teca_algorithm
 {
 public:
     TECA_ALGORITHM_STATIC_NEW(array_source)
@@ -49,6 +50,8 @@ protected:
     array_source();
 
 private:
+    using teca_algorithm::get_output_metadata;
+
     teca_metadata get_output_metadata(
         unsigned int port,
         const std::vector<teca_metadata> &input_md) override;

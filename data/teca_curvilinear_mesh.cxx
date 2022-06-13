@@ -11,15 +11,34 @@ teca_curvilinear_mesh::teca_curvilinear_mesh()
 {}
 
 // --------------------------------------------------------------------------
+unsigned long teca_curvilinear_mesh::get_number_of_points() const
+{
+    unsigned long ext[6];
+    this->get_extent(ext);
+
+    return (ext[1] - ext[0] + 1) * (ext[3] - ext[2] + 1) * (ext[5] - ext[4] + 1);
+}
+
+// --------------------------------------------------------------------------
+unsigned long teca_curvilinear_mesh::get_number_of_cells() const
+{
+    unsigned long ext[6];
+    this->get_extent(ext);
+
+    return (ext[1] - ext[0]) * (ext[3] - ext[2]) * (ext[5] - ext[4]);
+}
+
+// --------------------------------------------------------------------------
 int teca_curvilinear_mesh::get_type_code() const
 {
     return teca_dataset_tt<teca_curvilinear_mesh>::type_code;
 }
 
 // --------------------------------------------------------------------------
-void teca_curvilinear_mesh::copy(const const_p_teca_dataset &dataset)
+void teca_curvilinear_mesh::copy(const const_p_teca_dataset &dataset,
+    allocator alloc)
 {
-    this->teca_mesh::copy(dataset);
+    this->teca_mesh::copy(dataset, alloc);
 
     const_p_teca_curvilinear_mesh other
         = std::dynamic_pointer_cast<const teca_curvilinear_mesh>(dataset);
@@ -27,7 +46,7 @@ void teca_curvilinear_mesh::copy(const const_p_teca_dataset &dataset)
     if ((!other) || (this == other.get()))
         return;
 
-    m_coordinate_arrays->copy(other->m_coordinate_arrays);
+    m_coordinate_arrays->copy(other->m_coordinate_arrays, alloc);
 }
 
 // --------------------------------------------------------------------------
@@ -59,7 +78,7 @@ void teca_curvilinear_mesh::copy_metadata(const const_p_teca_dataset &dataset)
 }
 
 // --------------------------------------------------------------------------
-void teca_curvilinear_mesh::swap(p_teca_dataset &dataset)
+void teca_curvilinear_mesh::swap(const p_teca_dataset &dataset)
 {
     this->teca_mesh::swap(dataset);
 
