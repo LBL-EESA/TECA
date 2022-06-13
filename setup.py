@@ -12,7 +12,14 @@ from distutils.version import LooseVersion
 # when compiled outside of the git repo we must set the version
 # manually. Also note that these must be unique per upload to PyPi
 # so be sure to use an 'rcX' for testing
-teca_version = "4.1.0"
+teca_version = "5.0.0"
+
+# Pre-release test procedure:
+# python3 setup.py build_ext
+# python3 setup.py install
+# python3 setup.py sdist
+# python3 -m twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+# python3 -mpip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple teca==X.Y.ZrcW
 
 class CMakeExtension(Extension):
     def __init__(self, name, sourcedir=''):
@@ -25,6 +32,7 @@ class CMakeBuild(build_ext):
         ('without-mpi', None, 'Disables MPI parallel features'),
         ('without-netcdf-mpi', None, 'Disables NetCDF "parallel 4" features'),
         ('with-cray-mpich', None, 'Sets the build up to use Cray MPICH'),
+        ('with-cuda', None, 'Sets the build up to use CUDA'),
         ('with-teca-data=', None, 'Path to the TECA_data subversion repo'),
         ('with-netcdf=', None, 'Sets the path to a NetCDF install. This may be '
                                'necessary on MacOS, Ubuntu, and other systems '
@@ -41,6 +49,7 @@ class CMakeBuild(build_ext):
         self.without_mpi = False
         self.without_netcdf_mpi = False
         self.with_cray_mpich = False
+        self.with_cuda = False
         self.with_teca_data = ''
         self.with_netcdf = ''
 
@@ -105,6 +114,7 @@ class CMakeBuild(build_ext):
                       '-DREQUIRE_MPI=%s' % ('FALSE' if self.without_mpi else 'TRUE'),
                       '-DENABLE_CRAY_MPICH=%s' % ('TRUE' if self.with_cray_mpich else 'FALSE'),
                       '-DREQUIRE_NETCDF_MPI=%s' % ('FALSE' if self.without_netcdf_mpi else 'TRUE'),
+                      '-DREQUIRE_CUDA=%s' % ('TRUE' if self.with_cuda else 'FALSE'),
                       '-DREQUIRE_TECA_DATA=%s' % ('TRUE' if self.with_teca_data else 'FALSE'),
                       '-DTECA_VERSION=%s(PyPi)'%(teca_version)]
 
