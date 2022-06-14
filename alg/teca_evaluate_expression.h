@@ -60,6 +60,27 @@ public:
     TECA_ALGORITHM_PROPERTY(std::string, result_variable)
     ///@}
 
+    /** @name units
+     * set the units of the resulting variable
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(std::string, units)
+    ///@}
+
+    /** @name long_name
+     * set the long_name of the resulting variable
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(std::string, long_name)
+    ///@}
+
+    /** @name description
+     * set the description of the resulting variable
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(std::string, description)
+    ///@}
+
     /** @name remove_dependent_variables
      * when set columns used in the calculation are removed from the output.
      * default off.
@@ -70,6 +91,11 @@ public:
 
 protected:
     teca_evaluate_expression();
+
+    std::string get_result_variable(const teca_metadata &request);
+    std::string get_units(const teca_metadata &request);
+    std::string get_long_name(const teca_metadata &request);
+    std::string get_description(const teca_metadata &request);
 
 private:
     using teca_algorithm::get_output_metadata;
@@ -88,6 +114,9 @@ private:
 private:
     std::string expression;
     std::string result_variable;
+    std::string units;
+    std::string long_name;
+    std::string description;
     std::string postfix_expression;
     std::set<std::string> dependent_variables;
     int remove_dependent_variables;

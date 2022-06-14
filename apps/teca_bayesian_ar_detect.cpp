@@ -487,7 +487,7 @@ int main(int argc, char **argv)
         ar_tag->set_threshold_variable(
             ar_detect->get_ar_probability_variable());
 
-        if (!opt_vals["segement_variable"].defaulted())
+        if (!opt_vals["segment_variable"].defaulted())
             ar_tag->set_segmentation_variable(
                 opt_vals["segment_variable"].as<std::string>());
 

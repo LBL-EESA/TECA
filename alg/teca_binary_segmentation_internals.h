@@ -5,6 +5,7 @@
 #include "teca_variant_array.h"
 
 #include <algorithm>
+#include <cmath> // for isnan
 
 namespace teca_binary_segmentation_internals
 {
@@ -19,6 +20,17 @@ struct indirect_lt
 
     bool operator()(const index_t &a, const index_t &b)
     {
+        // deal with the possibility of NaN's
+        // (e.g., if teca_evaluate_expression is upstream
+        // and there is the possibility of bad results in points)
+        if (std::isnan(p_data[b]))
+        {
+            return false;
+        }
+        if (std::isnan(p_data[a]))
+        {
+            return true;
+        }
         return p_data[a] < p_data[b];
     }
 
@@ -112,6 +124,36 @@ void percentile_threshold(out_t *output, const in_t *input,
     // apply thresholds
     for (size_t i = 0; i < n_vals; ++i)
         output[i] = ((input[i] >= low_percentile) && (input[i] <= high_percentile)) ? 1 : 0;
+
+    // count how many segmentation cells there are
+    size_t num_seg = 0;
+    auto min_in = 1e20;
+    auto max_in = -1e20;
+    for (size_t i = 0; i < n_vals; i++)
+    {
+        num_seg += output[i];
+        if (input[i] > max_in)
+            max_in = input[i];
+        if (input[i] < min_in)
+            min_in = input[i];
+    }
+    if (num_seg == 0)
+    {
+        // print statistics
+        std::cout 
+            << "Segmentation count: " << num_seg 
+            << "\tmin_in: " << min_in
+            << "\tmax_in: " << max_in
+            << "\tlow_percentile: " << low_percentile
+            << "\thigh_percentile: " << high_percentile
+            << "\tids[high_cut_p1]: " << ids[high_cut_p1]
+            << "\tn_vals: " << n_vals
+            << "\ty1: " << y1
+            << std::endl;
+    }
+
+
+
 
     free(ids);
 }

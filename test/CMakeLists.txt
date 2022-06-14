@@ -842,3 +842,22 @@ teca_add_test(test_l2_norm
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_l2_norm "${TECA_DATA_ROOT}/test_l2_norm.bin"
     REQ_TECA_DATA)
+
+teca_add_test(test_iou_full_overlap
+    EXEC_NAME test_iou
+    SOURCES test_iou.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_iou 2 2 0 0 1 1 0 0 1 1 1.0 0)
+
+teca_add_test(test_iou_partial_overlap
+    COMMAND test_iou 5 5 0 0 3 3 1 1 3 3 0.5625 0)
+
+teca_add_test(test_iou_partial_with_fill_value
+    COMMAND test_iou 4 4 0 0 2 2 2 2 3 3 0.0909091 1 )
+
+teca_add_test(test_iou_no_overlap
+    COMMAND test_iou 8 8 1 3 2 4 5 5 6 6 0 0)
+
+teca_add_test(test_iou_no_overlap_with_fill_value
+    COMMAND test_iou 8 8 1 3 2 4 5 5 6 6 0 1)
+

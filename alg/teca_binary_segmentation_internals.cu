@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <iostream>
+#include <cmath>
 
 namespace teca_binary_segmentation_internals
 {
@@ -25,6 +26,17 @@ struct indirect_lt
     __device__
     bool operator()(const index_t &a, const index_t &b)
     {
+        // deal with the possibility of NaN's
+        // (e.g., if teca_evaluate_expression is upstream
+        // and there is the possibility of bad results in points)
+        if (std::isnan(p_data[b]))
+        {
+            return false;
+        }
+        if (std::isnan(p_data[a]))
+        {
+            return true;
+        }
         return p_data[a] < p_data[b];
     }
 

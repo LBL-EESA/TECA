@@ -142,7 +142,8 @@ void teca_time_axis_convolution::set_properties(
 #endif
 
 // --------------------------------------------------------------------------
-int teca_time_axis_convolution::set_constant_kernel_weights(unsigned int width)
+int teca_time_axis_convolution::set_constant_kernel_weights(
+    unsigned int width, int high_pass)
 {
     if (width < 2)
     {
@@ -157,7 +158,21 @@ int teca_time_axis_convolution::set_constant_kernel_weights(unsigned int width)
         this->kernel_weights[i] = 1.0 / double(width);
     }
 
-    this->set_kernel_name("constant");
+    // convert to high_pass if flagged
+    if (high_pass)
+    {
+        internals::swap_weights_highlow(this->kernel_weights.data(),
+            width, false);
+    }
+
+    // record the settings used for the NetCDF CF metadata
+    this->set_use_high_pass(high_pass);
+
+    std::string name = "constant";
+    if (high_pass)
+        name += "_high_pass";
+    this->set_kernel_name(name);
+
 
     return 0;
 }
@@ -261,7 +276,7 @@ int teca_time_axis_convolution::set_kernel_weights(const std::string &name,
 {
     if (name == "constant")
     {
-        if (this->set_constant_kernel_weights(width))
+        if (this->set_constant_kernel_weights(width, high_pass))
         {
             TECA_ERROR("Failed to generate constant kernel weights")
             return -1;

@@ -10,7 +10,7 @@
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_laplacian)
 
-/// An algorithm that computes the Laplacian from a vector field.
+/// An algorithm that computes the Laplacian from a scalar field.
 class TECA_EXPORT teca_laplacian : public teca_algorithm
 {
 public:
@@ -24,20 +24,12 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    /** @name component_0_variable
-     * Set the arrays that contain the vector components to compute laplacian
+    /** @name scalar_field_name
+     * Set the name of the scalar array to compute the laplacian
      * from.
      */
     ///@{
-    TECA_ALGORITHM_PROPERTY(std::string, component_0_variable)
-    ///@}
-
-    /** @name component_1_variable
-     * Set the arrays that contain the vector components to compute laplacian
-     * from.
-     */
-    ///@{
-    TECA_ALGORITHM_PROPERTY(std::string, component_1_variable)
+    TECA_ALGORITHM_PROPERTY(std::string, scalar_field_name)
     ///@}
 
     /** @name laplacian_variable
@@ -51,8 +43,7 @@ public:
 protected:
     teca_laplacian();
 
-    std::string get_component_0_variable(const teca_metadata &request);
-    std::string get_component_1_variable(const teca_metadata &request);
+    std::string get_scalar_field_name(const teca_metadata &request);
     std::string get_laplacian_variable(const teca_metadata &request);
 
 private:
@@ -73,8 +64,7 @@ private:
         const teca_metadata &request) override;
 
 private:
-    std::string component_0_variable;
-    std::string component_1_variable;
+    std::string scalar_field_name;
     std::string laplacian_variable;
 };
 

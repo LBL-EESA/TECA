@@ -109,8 +109,8 @@ teca_metadata teca_elevation_mask::get_output_metadata(
     const std::vector<teca_metadata> &input_md)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_elevation_mask::get_output_metadata" << endl;
+    std::cerr << teca_parallel_id()
+        << "teca_elevation_mask::get_output_metadata" << std::endl;
 #endif
     (void)port;
 
@@ -278,7 +278,8 @@ const_p_teca_dataset teca_elevation_mask::execute(
     const teca_metadata &request)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id() << "teca_elevation_mask::execute" << endl;
+    std::cerr << teca_parallel_id() 
+        << "teca_elevation_mask::execute" << std::endl;
 #endif
     (void)port;
     (void)request;

@@ -118,7 +118,7 @@ void vorticity(num_t *w, const pt_t *lon, const pt_t *lat,
     num_t *dest = w;
     num_t *src = w + n_lon;
     for (unsigned long i = 0; i < n_lon; ++i)
-        dest[i] = src[i+n_lon];
+        dest[i] = src[i];
 
     dest = w + max_j*n_lon;
     src = dest - n_lon;

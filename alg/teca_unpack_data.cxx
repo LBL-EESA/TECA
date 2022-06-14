@@ -340,7 +340,7 @@ teca_metadata teca_unpack_data::get_output_metadata(
 {
 #ifdef TECA_DEBUG
     std::cerr << teca_parallel_id()
-        << "teca_unpack_data::get_output_metadata" << endl;
+        << "teca_unpack_data::get_output_metadata" << std::endl;
 #endif
     (void)port;
 
@@ -482,7 +482,7 @@ const_p_teca_dataset teca_unpack_data::execute(
     const teca_metadata &request)
 {
 #ifdef TECA_DEBUG
-    std::cerr << teca_parallel_id() << "teca_unpack_data::execute" << endl;
+    std::cerr << teca_parallel_id() << "teca_unpack_data::execute" << std::endl;
 #endif
     (void)port;
     (void)request;
