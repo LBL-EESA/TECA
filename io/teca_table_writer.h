@@ -77,7 +77,6 @@ private:
         const std::vector<teca_metadata> &input_md) override;
 
 private:
-    std::string index_request_key;
     std::string file_name;
     std::string row_dim_name;
     int output_format;

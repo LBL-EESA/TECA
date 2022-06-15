@@ -100,7 +100,8 @@ int array_executive::initialize(MPI_Comm comm, const teca_metadata &md)
             ++q;
 
             teca_metadata req;
-            req.set("time_step", i);
+            req.set("index_request_key", std::string("time_step"));
+            req.set("time_step", {i, i});
             req.set("time", time[i]);
             req.set("array_name", array_names[j]);
             req.set("extent", extent);

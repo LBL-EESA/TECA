@@ -235,16 +235,60 @@ public:
 
     virtual ~teca_dataset();
 
-    // the name of the key that holds the index identifying this dataset
-    // this should be set by the algorithm that creates the dataset.
-    /*TECA_DATASET_METADATA(index_request_key, std::string, 1)
+    /** @name index_request_key
+     * The name of the key that holds the index identifying this dataset's
+     * location in the index set.
+     */
+    ///@{
+    TECA_DATASET_METADATA(index_request_key, std::string, 1)
+    ///@}
 
-    // a dataset metadata that uses the value of index_request_key to
-    // store the index that identifies this dataset. this should be set
-    // by the algorithm that creates the dataset.
-    virtual int get_request_index(long &val) const;
-    virtual int set_request_index(const std::string &key, long val);
-    virtual int set_request_index(long val);*/
+    /** Set the name of the index_request_key and a key with that name set to an
+     * inclusive range of indices [i0, i1].
+     *
+     * @param[in] request_key the name of the index_request_key will be stored
+     *                        in the dataset metadata index_request_key
+     * @param[in] ids an inclusive range of indices that will be stored in a
+     *                key named by the value of request_key
+     *
+     * @returns zero if successful
+     */
+    virtual int set_request_indices(const std::string &request_key,
+        const unsigned long ids[2]);
+
+    /** Looks for an index_request_key and uses the value to get the inclusive
+     * range of indices stored in this dataset. The call can fail if the
+     * index_request_key has not been set.
+     *
+     * @param[out] ids the inclusive range of indices stored in this dataset.
+     *
+     * @returns zero if successful.
+     */
+    virtual int get_request_indices(unsigned long ids[2]) const;
+
+    /** Looks for an index_request_key and uses the value to get the single index
+     * stored in this dataset. The call can fail if the index_request_key has
+     * not been set or if the dataset holds more than one index.
+     *
+     * @param[out] ids the inclusive range of indices stored in this dataset.
+     *
+     * @returns zero if successful.
+     */
+    //
+    virtual int get_request_index(unsigned long &index) const;
+
+    /** Set the name of the index_request_key and a key with that name set to an
+     * inclusive range of indices [i0, i0] i.e. a single index.
+     *
+     * @param[in] request_key the name of the index_request_key will be stored
+     *                        in the dataset metadata index_request_key
+     * @param[in] ids an inclusive range of indices that will be stored in a
+     *                key named by the value of request_key
+     *
+     * @returns zero if successful
+     */
+    virtual int set_request_index(const std::string &request_key,
+        unsigned long index);
 
     /** covert to boolean. @returns true if the dataset is not empty, otherwise
      * false.

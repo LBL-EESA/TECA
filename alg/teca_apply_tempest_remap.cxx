@@ -291,7 +291,7 @@ teca_apply_tempest_remap::get_upstream_request(unsigned int port,
         tgt_md.get("index_request_key", tgt_idx_req_key);
 
         tgt_req.set("index_request_key", tgt_idx_req_key);
-        tgt_req.set(tgt_idx_req_key, 0);
+        tgt_req.set(tgt_idx_req_key, {0ul, 0ul});
     }
 
     // request the remap weights and indices
@@ -306,7 +306,7 @@ teca_apply_tempest_remap::get_upstream_request(unsigned int port,
     rmp_md.get("index_request_key", rmp_idx_req_key);
 
     rmp_req.set("index_request_key", rmp_idx_req_key);
-    rmp_req.set(rmp_idx_req_key, 0);
+    rmp_req.set(rmp_idx_req_key, {0ul, 0ul});
 
     // package the requests and send upstream
     up_reqs.push_back(src_req);

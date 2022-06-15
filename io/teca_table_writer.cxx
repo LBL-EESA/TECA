@@ -341,18 +341,9 @@ teca_metadata teca_table_writer::get_output_metadata(
     (void)port;
 
     const teca_metadata &md = input_md[0];
-
-    if (this->index_request_key.empty())
-    {
-        if (md.get("index_request_key", this->index_request_key))
-        {
-            TECA_FATAL_ERROR("Failed to identify the index key")
-            return teca_metadata();
-        }
-    }
-
     return md;
 }
+
 // --------------------------------------------------------------------------
 const_p_teca_dataset teca_table_writer::execute(
     unsigned int port,
@@ -380,20 +371,10 @@ const_p_teca_dataset teca_table_writer::execute(
     }
 
     // get the current index
-    const teca_metadata &md = input_data[0]->get_metadata();
-
-    std::string index_request_key;
-    if (md.get("index_request_key", index_request_key))
-    {
-        TECA_FATAL_ERROR("Dataset metadata is missing the index_request_key key")
-        return nullptr;
-    }
-
     unsigned long index = 0;
-    if (md.get(index_request_key, index))
+    if (input_data[0]->get_request_index(index))
     {
-        TECA_FATAL_ERROR("Dataset metadata is missing the \""
-            << index_request_key << "\" key")
+        TECA_FATAL_ERROR("Failed to get the request index of the input data")
         return nullptr;
     }
 

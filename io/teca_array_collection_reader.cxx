@@ -903,9 +903,8 @@ const_p_teca_dataset teca_array_collection_reader::execute(unsigned int port,
 
     // create output dataset
     p_teca_array_collection col = teca_array_collection::New();
-
+    col->set_request_index("time_step", time_step);
     col->set_time(t);
-    col->set_time_step(time_step);
 
     // get the array attributes
     teca_metadata atrs;
@@ -928,11 +927,6 @@ const_p_teca_dataset teca_array_collection_reader::execute(unsigned int port,
         col->set_time_units(units);
     }
 
-    // add the pipeline keys
-    teca_metadata &md = col->get_metadata();
-    md.set("index_request_key", std::string("time_step"));
-    md.set("time_step", time_step);
-
     // pass the attributes for the arrays read
     teca_metadata out_atrs;
     for (unsigned int i = 0; i < n_arrays; ++i)
@@ -942,6 +936,7 @@ const_p_teca_dataset teca_array_collection_reader::execute(unsigned int port,
     if (!time_atts.empty())
         out_atrs.set(t_axis_var, time_atts);
 
+    teca_metadata &md = col->get_metadata();
     md.set("attributes", out_atrs);
 
     // read requested arrays

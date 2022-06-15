@@ -602,9 +602,6 @@ teca_metadata teca_cartesian_mesh_source::get_output_metadata(
         std::string("number_of_time_steps"));
 
     this->internals->metadata.set("index_request_key",
-        std::string("time_step"));
-
-    this->internals->metadata.set("index_extent_request_key",
         std::string("temporal_extent"));
 
     return this->internals->metadata;
@@ -678,7 +675,6 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
     double temporal_bounds[2] = {0.0};
     if (!request.get("time", temporal_bounds[0]))
     {
-        // data for a single time was requested.
         // translate time to a time step
         TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
             in_t.get(),
@@ -689,12 +685,10 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
             if (teca_coordinate_util::index_of(pin_t, 0,
                 in_t->size()-1, static_cast<NT>(temporal_bounds[0]), temporal_extent[0]))
             {
-                TECA_FATAL_ERROR("The requested time " << temporal_bounds[0]
-                    << " was not found")
+                TECA_FATAL_ERROR("requested time " << temporal_bounds[0] << " not found")
                 return nullptr;
             }
             )
-
         temporal_extent[1] = temporal_extent[0];
         temporal_bounds[1] = temporal_bounds[0];
     }
@@ -703,9 +697,8 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
         // translate time range to a time step range
         if (teca_coordinate_util::bounds_to_extent(temporal_bounds, in_t, temporal_extent))
         {
-            TECA_FATAL_ERROR("The requested time bounds ["
-                << temporal_bounds[0] << ", " << temporal_bounds[1]
-                << "] were not found")
+            TECA_FATAL_ERROR("The requested temporal_bounds ["
+                << temporal_bounds << "] was not found")
             return nullptr;
         }
     }
@@ -718,13 +711,11 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
         // always served regardless of the request (or lack there of).
         unsigned long n_steps = in_t->size();
 
-        if (!request.get("time_step", temporal_extent[0]))
+        if (request.get("temporal_extent", temporal_extent))
         {
-            temporal_extent[1] = temporal_extent[0];
-        }
-        else
-        {
-            request.get("temporal_extent", temporal_extent);
+           TECA_WARNING("request is missing the index request key"
+            " \"temporal_extent\" step 0 will be returned.")
+           temporal_extent[0] = temporal_extent[1] = 0;
         }
 
         if (in_t)
@@ -736,7 +727,7 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
 
             if (!((temporal_extent[0] < n_steps) && (temporal_extent[1] < n_steps)))
             {
-                TECA_FATAL_ERROR("Invalid time extent [" << temporal_extent
+                TECA_FATAL_ERROR("Invalid time range [" << temporal_extent
                     << "] requested from data set with " << in_t->size()
                     << " steps")
                 return nullptr;
@@ -774,16 +765,13 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
     // set metadata
     mesh->set_whole_extent(md_whole_extent);
     mesh->set_extent(req_extent);
-    mesh->set_time(temporal_bounds[0]);
-    mesh->set_time_step(temporal_extent[0]);
     mesh->set_temporal_bounds(temporal_bounds);
     mesh->set_temporal_extent(temporal_extent);
     mesh->set_calendar(calendar);
     mesh->set_time_units(units);
 
     teca_metadata &mesh_md = mesh->get_metadata();
-    mesh_md.set("index_request_key", std::string("time_step"));
-    mesh_md.set("index_extent_request_key", std::string("temporal_extent"));
+    mesh_md.set("index_request_key", std::string("temporal_extent"));
 
     std::ostringstream oss;
     if (this->get_verbose())

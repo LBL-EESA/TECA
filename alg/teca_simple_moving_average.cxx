@@ -5,6 +5,7 @@
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
+#include "teca_metadata_util.h"
 
 #include <algorithm>
 #include <iostream>
@@ -92,19 +93,23 @@ std::vector<teca_metadata> teca_simple_moving_average::get_upstream_request(
 
     vector<teca_metadata> up_reqs;
 
-    // get the time values required to compute the average
-    // centered on the requested time
-    long active_step;
-    if (request.get("time_step", active_step))
+    // get the time values required to compute the average centered on the
+    // requested time
+    long active_step = 0;
+    std::string request_key;
+    if (teca_metadata_util::get_requested_index(request, request_key, active_step))
     {
-        TECA_FATAL_ERROR("request is missing \"time_step\"")
+        TECA_FATAL_ERROR("Failed to determine the requested index")
         return up_reqs;
     }
 
+    // get the number of time steps available
     long num_steps;
-    if (input_md[0].get("number_of_time_steps", num_steps))
+    std::string initializer_key;
+    if (input_md[0].get("index_initializer_key", initializer_key) ||
+        input_md[0].get(initializer_key, num_steps))
     {
-        TECA_FATAL_ERROR("input is missing \"number_of_time_steps\"")
+        TECA_FATAL_ERROR("Failed to determine the number of time steps available")
         return up_reqs;
     }
 
@@ -136,12 +141,11 @@ std::vector<teca_metadata> teca_simple_moving_average::get_upstream_request(
     first = std::max(0l, first);
     last = std::min(num_steps - 1, last);
 
-    // make a request for each time that will be used in the
-    // average
+    // make a request for each time that will be used in the average
     for (long i = first; i <= last; ++i)
     {
         teca_metadata up_req(request);
-        up_req.set("time_step", i);
+        up_req.set(request_key, {i, i});
         up_reqs.push_back(up_req);
     }
 
@@ -248,10 +252,12 @@ const_p_teca_dataset teca_simple_moving_average::execute(
     }
 
     // get active time step
+    std::string request_key;
     unsigned long active_step;
-    if (request.get("time_step", active_step))
+    if (teca_metadata_util::get_requested_index(request,
+        request_key, active_step))
     {
-        TECA_FATAL_ERROR("request is missing \"time_step\"")
+        TECA_FATAL_ERROR("Failed to determine the requested time step")
         return nullptr;
     }
 
@@ -262,7 +268,7 @@ const_p_teca_dataset teca_simple_moving_average::execute(
         in_mesh = std::dynamic_pointer_cast<const teca_mesh>(input_data[i]);
 
         unsigned long step;
-        if (in_mesh->get_metadata().get("time_step", step))
+        if (in_mesh->get_time_step(step))
         {
             TECA_FATAL_ERROR("input dataset metadata missing \"time_step\"")
             return nullptr;

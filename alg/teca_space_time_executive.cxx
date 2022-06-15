@@ -17,7 +17,7 @@ using teca_coordinate_util::spatial_extent_t;
 teca_space_time_executive::teca_space_time_executive() : first_step(0),
     last_step(-1), number_of_spatial_partitions(0),
     number_of_temporal_partitions(1), temporal_partition_size(0),
-    use_index_request_key(0)
+    index_executive_compatability(0)
 {
 }
 
@@ -178,21 +178,10 @@ int teca_space_time_executive::initialize(MPI_Comm comm, const teca_metadata &md
         return -1;
     }
 
-    if (this->use_index_request_key)
+    if (md.get("index_request_key", this->index_request_key))
     {
-        if (md.get("index_request_key", this->index_request_key))
-        {
-            TECA_ERROR("No index request key has been specified")
-            return -1;
-        }
-    }
-    else
-    {
-        if (md.get("index_extent_request_key", this->index_extent_request_key))
-        {
-            TECA_ERROR("No index extent request key has been specified")
-            return -1;
-        }
+        TECA_ERROR("No index request key has been specified")
+        return -1;
     }
 
     // get the number of time steps
@@ -240,7 +229,7 @@ int teca_space_time_executive::initialize(MPI_Comm comm, const teca_metadata &md
     // request a single index rather than an extent so that this executive
     // can be used with algorithms written for the teca_index_executive
     // to parallelize over space and time.
-    if (this->use_index_request_key && (n_time != (last - first + 1)))
+    if (this->index_executive_compatability && (n_time != (last - first + 1)))
     {
         TECA_ERROR("index executive compatability failed because the"
             " temporal block size is greater than 1")
@@ -264,13 +253,8 @@ int teca_space_time_executive::initialize(MPI_Comm comm, const teca_metadata &md
         // request a spatial subset
         req.set("extent", spatial_partition[i]);
 
-        // use the index request key if the temporal block size is 1 algorithms
-        // developed for use with teca_index_executive can be used unmodified
-        // with this executive enabling parallelization over space
-        if (this->use_index_request_key)
-            req.set(this->index_request_key, temporal_partition[j][0]);
-        else
-            req.set(this->index_extent_request_key, temporal_partition[j]);
+        // request a temporal subset
+        req.set(this->index_request_key, temporal_partition[j]);
 
         this->requests.emplace_back(std::move(req));
     }
@@ -282,7 +266,7 @@ int teca_space_time_executive::initialize(MPI_Comm comm, const teca_metadata &md
         oss << teca_parallel_id()
             << " teca_space_time_executive::initialize index_initializer_key="
             << this->index_initializer_key << " " << this->index_initializer_key
-            << "=" << n_indices << " index_extent_request_key=" << this->index_extent_request_key
+            << "=" << n_indices << " index_request_key=" << this->index_request_key
             << " first=" << this->first_step << " last=" << this->last_step
             << " block_start=" << block_start + first << " block_size=" << block_size;
         std::cerr << oss.str() << std::endl;
@@ -307,13 +291,13 @@ teca_metadata teca_space_time_executive::get_next_request()
             std::vector<unsigned long> extent;
             req.get("extent", extent);
 
-            unsigned long t_extent[2] = {0};
-            req.get(this->index_extent_request_key, t_extent, 2);
+            unsigned long temporal_extent[2] = {0};
+            req.get(this->index_request_key, temporal_extent, 2);
 
             std::ostringstream oss;
             oss << teca_parallel_id()
                << " teca_space_time_executive::get_next_request "
-               << this->index_extent_request_key << " = [" << t_extent
+               << this->index_request_key << " = [" << temporal_extent
                << "] extent = [" << extent << "]";
 
             std::cerr << oss.str() << std::endl;

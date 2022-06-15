@@ -3,7 +3,7 @@
 #include "teca_spatial_executive.h"
 #include "teca_mpi_manager.h"
 
-#define VISUALIZE_PARTITIONS
+//#define VISUALIZE_PARTITIONS
 #if defined(VISUALIZE_PARTITIONS)
 #include "teca_vtk_util.h"
 #include <stdio.h>
@@ -83,7 +83,6 @@ int main(int argc, char **argv)
     md.set("index_initializer_key", std::string("n_steps"));
     md.set("n_steps", number_of_steps);
     md.set("index_request_key", std::string("step"));
-    md.set("index_extent_request_key", std::string("step_extent"));
     md.set("whole_extent", whole_extent);
 
     // create the executive and have it partition the data
@@ -104,11 +103,8 @@ int main(int argc, char **argv)
     while ((req = exec->get_next_request()))
     {
         // get the requested subset
-        unsigned long step = 0ul;
-        int have_step = req.get("step", step) == 0;
-
         unsigned long step_extent[2] = {0ul};
-        req.get("step_extent", step_extent);
+        req.get("step", step_extent);
 
         unsigned long extent[6] = {0l};
         req.get("extent", extent);
@@ -116,16 +112,12 @@ int main(int argc, char **argv)
         // record the number of cells processed
         n_cells += (extent[1] - extent[0] + 1) *
             (extent[3] - extent[2] + 1) * (extent[5] - extent[4] + 1) *
-            (have_step ? 1 : step_extent[1] - step_extent[0] + 1);
+            (step_extent[1] - step_extent[0] + 1);
 
         // dump the requested extent for inspection
         std::ostringstream oss;
-        oss << rank;
-        if (have_step)
-            oss << " step = " << step;
-        else
-            oss << " step_extent = [" << step_extent << "]";
-        oss << " extent = [" << extent << "]";
+        oss << rank << " step_extent = [" << step_extent << "]"
+            << " extent = [" << extent << "]";
         std::cerr << oss.str() << std::endl;
 
 #if defined(VISUALIZE_PARTITIONS)

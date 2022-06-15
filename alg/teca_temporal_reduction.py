@@ -1126,12 +1126,12 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
         up_reqs = []
         request_key = md['index_request_key']
         req_id = req_in[request_key]
-        ii = self.indices[req_id]
+        ii = self.indices[req_id[0]]
         i = ii.start_index
         while i <= ii.end_index:
             req = teca_metadata(req_in)
             req['arrays'] = req_arrays
-            req[request_key] = i
+            req[request_key] = [i, i]
             up_reqs.append(req)
             i += 1
 
@@ -1145,7 +1145,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
         # get the requested index
         request_key = req_in['index_request_key']
         req_id = req_in[request_key]
-        ii = self.indices[req_id]
+        ii = self.indices[req_id[0]]
 
         # Get the device to execute on
         dev = -1
@@ -1163,7 +1163,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
                 rank = 0
             sys.stderr.write('[%d] teca_temporal_reduction::execute dev'
                              ' %d request %d (%d - %d), reducing %d, %d'
-                             ' remain\n' % (rank, dev, req_id, ii.start_index,
+                             ' remain\n' % (rank, dev, req_id[0], ii.start_index,
                                            ii.end_index, len(data_in),
                                            streaming))
 
@@ -1246,7 +1246,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
                     arrays_out[valid] = red_valid
 
             # fix time
-            mesh_out.set_time_step(req_id)
+            mesh_out.set_time_step(req_id[0])
             mesh_out.set_time(ii.time)
 
         return mesh_out

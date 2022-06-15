@@ -37,6 +37,22 @@ public:
      * for the local rank. After this call one can access file managers to
      * create, define and write local datasets to the NetCDF files in cf
      * format.
+     *
+     * @param[in] comm the MPI communicator to parallelize execution across
+     * @param[in] first_step the first step to process
+     * @param[in] last_step the last step to process
+     * @param[in] number_of_temporal_partitons the number of temporal
+     *                                         partitions or zero to use the
+     *                                         temporal_partiton_size parameter
+     * @param[in] temporal_partition_size number of time steps per partition or
+     *                                    zero to use the number_of_temporal
+     *                                    partitons parameter.
+     * @param[in] it a teca_interval_iterator used to define the temporal layout
+     *                                        of the files
+     * @param[in] index_executive_compatability forces temporal_partion_size to 1
+     * @param[in] index_request_key the name of the key to use when making requests
+     *
+     * @returns zero if successful
      */
     int initialize(MPI_Comm comm,
         unsigned long first_step, unsigned long last_step,
@@ -44,8 +60,7 @@ public:
         unsigned long temporal_partition_size, unsigned long *extent,
         unsigned long number_of_spatial_partitions,
         const teca_calendar_util::p_interval_iterator &it,
-        int use_index_request_key, const std::string &index_request_key,
-        const std::string &index_extent_request_key);
+        int index_executive_compatability, const std::string &index_request_key);
 
     int get_upstream_requests(teca_metadata base_req,
         std::vector<teca_metadata> &up_reqs) override;
@@ -76,8 +91,8 @@ protected:
     using temporal_extent_t = teca_coordinate_util::temporal_extent_t;
     using spatial_extent_t = teca_coordinate_util::spatial_extent_t;
 
-    int use_index_request_key;
-    std::string index_extent_request_key;
+    int index_executive_compatability;
+    std::string index_request_key;
     std::vector<step_bracket_t> file_steps;
     spatial_extent_t whole_extent;
     std::vector<temporal_extent_t> temporal_partitions;

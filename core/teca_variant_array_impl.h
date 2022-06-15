@@ -430,6 +430,7 @@ public:
     // silence some warning from nvcc
     using teca_variant_array::append;
     using teca_variant_array::assign;
+    using teca_variant_array::copy;
     using teca_variant_array::set;
     using teca_variant_array::get;
 

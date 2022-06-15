@@ -1,7 +1,7 @@
 #include "teca_cf_spatial_time_step_mapper.h"
 #include "teca_coordinate_util.h"
 
-#define VISUALIZE_PARTITIONS
+//#define VISUALIZE_PARTITIONS
 #if defined(VISUALIZE_PARTITIONS)
 #include "teca_vtk_util.h"
 #endif
@@ -170,8 +170,7 @@ int teca_cf_spatial_time_step_mapper::initialize(MPI_Comm comm,
     unsigned long temporal_partition_size, unsigned long *wextent,
     unsigned long number_of_spatial_partitions,
     const teca_calendar_util::p_interval_iterator &it,
-    int use_index_request_key, const std::string &index_request_key,
-    const std::string &index_extent_request_key)
+    int index_executive_compatability, const std::string &index_request_key)
 {
 #if !defined(TECA_HAS_MPI)
     (void)comm;
@@ -179,9 +178,8 @@ int teca_cf_spatial_time_step_mapper::initialize(MPI_Comm comm,
     this->comm = comm;
     this->start_time_step = first_step;
     this->end_time_step = last_step;
-    this->use_index_request_key = use_index_request_key;
+    this->index_executive_compatability = index_executive_compatability;
     this->index_request_key = index_request_key;
-    this->index_extent_request_key = index_extent_request_key;
     this->whole_extent = as_spatial_extent(wextent);
 
     // partition work across MPI ranks. each rank will end up with a
@@ -322,22 +320,18 @@ int teca_cf_spatial_time_step_mapper::get_upstream_requests(teca_metadata base_r
             req.set("extent", this->spatial_partitions[s]);
 
             // request a temporal subset
-            const temporal_extent_t &t_extent = this->temporal_partitions[t];
-            if (this->use_index_request_key)
+            const temporal_extent_t &temporal_extent = this->temporal_partitions[t];
+            if (this->index_executive_compatability)
             {
-                if (t_extent[0] != t_extent[1])
+                if (temporal_extent[0] != temporal_extent[1])
                 {
-                    TECA_ERROR("Can't request multiple time steps [" << t_extent
-                        << "] using the index_request_key")
+                    TECA_ERROR("Can't request multiple time steps [" << temporal_extent
+                        << "] in index_executive_compatability mode")
                     return -1;
                 }
-                req.set(this->index_request_key, t_extent[0]);
-            }
-            else
-            {
-                req.set(this->index_extent_request_key, t_extent);
             }
 
+            req.set(this->index_request_key, temporal_extent);
             up_reqs.emplace_back(std::move(req));
         }
     }

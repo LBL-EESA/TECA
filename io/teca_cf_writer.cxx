@@ -352,22 +352,8 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
     std::string index_request_key;
     if (md_in.get("index_request_key", index_request_key))
     {
-        if ((this->partitioner == temporal) ||
-            ((this->partitioner != temporal) && this->index_executive_compatability))
-        {
-            TECA_FATAL_ERROR("No index_request_key has been specified")
-            return up_reqs;
-        }
-    }
-
-    std::string index_extent_request_key;
-    if (md_in.get("index_extent_request_key", index_extent_request_key))
-    {
-        if ((this->partitioner != temporal) && !this->index_executive_compatability)
-        {
-            TECA_FATAL_ERROR("No index_extent_request_key has been specified")
-            return up_reqs;
-        }
+        TECA_FATAL_ERROR("No index_request_key has been specified")
+        return up_reqs;
     }
 
     // apply restriction
@@ -392,7 +378,9 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
             {
                 if (md_in.get("whole_extent", extent, 6))
                 {
-                    TECA_FATAL_ERROR("Failed to determine extent to write")
+                    TECA_FATAL_ERROR("Failed to determine extent to write"
+                        " from the requested bounds [" << bounds << "] and "
+                        " failed to locate extent and whole_extent metadata")
                     return up_reqs;
                 }
             }
@@ -404,7 +392,9 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
         {
             if (md_in.get("whole_extent", extent, 6))
             {
-                TECA_FATAL_ERROR("Failed to determine extent to write")
+                TECA_FATAL_ERROR("Failed to determine extent to write from"
+                    " the request bounds and extent keys and failed to"
+                    " locate extent and whole_extent metadata")
                 return up_reqs;
             }
         }
@@ -475,8 +465,7 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
             if (imap->initialize(comm, first_time_step, last_time_step,
                 n_temporal_partitions, temporal_partition_size, extent,
                 this->number_of_spatial_partitions, it,
-                this->index_executive_compatability, index_request_key,
-                index_extent_request_key))
+                this->index_executive_compatability, index_request_key))
             {
                 TECA_FATAL_ERROR("Failed to initialize the interval mapper")
                 return up_reqs;
@@ -500,8 +489,7 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
             if (imap->initialize(comm, first_time_step, last_time_step,
                 n_temporal_partitions, temporal_partition_size, extent,
                 this->number_of_spatial_partitions, it,
-                this->index_executive_compatability, index_request_key,
-                index_extent_request_key))
+                this->index_executive_compatability, index_request_key))
             {
                 TECA_FATAL_ERROR("Failed to initialize the interval mapper")
                 return up_reqs;
@@ -578,16 +566,7 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
     arrays.insert(this->information_arrays.begin(), this->information_arrays.end());
     base_req.set("arrays", arrays);
     base_req.remove("writer_id");
-
-    if ((this->partitioner == temporal) ||
-        ((this->partitioner != temporal) && this->index_executive_compatability))
-    {
-        base_req.set("index_request_key", index_request_key);
-    }
-    else
-    {
-        base_req.set("index_extent_request_key", index_extent_request_key);
-    }
+    base_req.set("index_request_key", index_request_key);
 
     if (this->internals->mapper->get_upstream_requests(base_req, up_reqs))
     {

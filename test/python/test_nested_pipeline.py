@@ -17,13 +17,13 @@ def get_reduce(file_template):
         if ltab is not None:
             md = ltab.get_metadata()
             sys.stderr.write('%s writing table %d\n'%( \
-                teca_parallel_id(), md[md['index_request_key']]))
+                teca_parallel_id(), md[md['index_request_key']][0]))
             source.set_dataset(ltab)
         rtab = as_teca_table(right)
         if rtab is not None:
             md = rtab.get_metadata()
             sys.stderr.write('%s writing table %d\n'%( \
-                teca_parallel_id(), md[md['index_request_key']]))
+                teca_parallel_id(), md[md['index_request_key']][0]))
             source.set_dataset(rtab)
         # write data
         writer = teca_table_writer.New()

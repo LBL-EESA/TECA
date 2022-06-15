@@ -2,6 +2,7 @@
 #include "teca_common.h"
 #include "teca_programmable_algorithm.h"
 #include "teca_metadata.h"
+#include "teca_metadata_util.h"
 
 #include <string>
 #include <vector>
@@ -90,16 +91,15 @@ struct generate_test_tables
         const teca_metadata &req)
     {
         long table_id = 0;
-        if (req.get("table_id", table_id))
+        std::string request_key;
+        if (teca_metadata_util::get_requested_index(req, request_key, table_id))
         {
-            TECA_ERROR("request is missing \"table_id\"")
+            TECA_FATAL_ERROR("Failed to determine the requested index")
             return nullptr;
         }
 
         p_teca_dataset ods = teca_test_util::create_test_table(table_id);
-
-        ods->get_metadata().set("index_request_key", std::string("table_id"));
-        ods->get_metadata().set("table_id", table_id);
+        ods->set_request_index("table_id", table_id);
 
         return ods;
     }

@@ -253,7 +253,7 @@ std::vector<teca_metadata> teca_elevation_mask::get_upstream_request(
     // surface elevations don't change over the timescale of concern
     // always request index 0
     teca_metadata req_1;
-    req_1.set(req_key, 0ul);
+    req_1.set(req_key, {0ul, 0ul});
     req_1.set("index_request_key", req_key);
 
     // request the surface elevation

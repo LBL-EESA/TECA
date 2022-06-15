@@ -25,19 +25,13 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_space_time_executive)
  *     | ^                      | many indices are available. the named key |
  *     | ^                      | must also be present and should conatin the |
  *     | ^                      | number of indices available |
- *     | index_request_key | holds the name of the key used to request a |
- *     | ^                 | specific index. When the temporal partition size is 1 |
- *     | ^                 | requests are generated with this name set to |
- *     | ^                 | a specific index to be processed. An upstream |
- *     | ^                 | algorithm is expected to produce the data associated |
- *     | ^                 | with the requested index. |
- *     | index_extent_request_key | holds the name of the key used to request |
- *     | ^                        | a specific inclusive range of indices. |
- *     | ^                        | request are generated with this name set to |
- *     | ^                        | a specific inclusive range of indices to be |
- *     | ^                        | processed. Some upstream algorithm is |
- *     | ^                        | expected to produce the data associated |
- *     | ^                        | with the requested extent. |
+ *     | index_request_key | holds the name of the key used to request |
+ *     | ^                 | a specific inclusive range of indices [i0, i1]. |
+ *     | ^                 | Requests are generated with this name set to |
+ *     | ^                 | a specific inclusive range of indices to be |
+ *     | ^                 | processed. Some upstream algorithm is |
+ *     | ^                 | expected to produce the data associated |
+ *     | ^                 | with the requested index extent. |
  *
  */
 class TECA_EXPORT teca_space_time_executive : public teca_algorithm_executive
@@ -111,7 +105,7 @@ public:
     {
         this->number_of_temporal_partitions = 0;
         this->temporal_partition_size = 1;
-        this->use_index_request_key = 1;
+        this->index_executive_compatability = 1;
     }
 
 protected:
@@ -121,13 +115,12 @@ private:
     std::vector<teca_metadata> requests;
     std::string index_initializer_key;
     std::string index_request_key;
-    std::string index_extent_request_key;
     long first_step;
     long last_step;
     long number_of_spatial_partitions;
     long number_of_temporal_partitions;
     long temporal_partition_size;
-    int use_index_request_key;
+    int index_executive_compatability;
     std::vector<unsigned long> extent;
     std::vector<double> bounds;
     std::vector<std::string> arrays;

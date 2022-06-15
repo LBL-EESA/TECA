@@ -6,6 +6,7 @@
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
+#include "teca_metadata_util.h"
 #include "teca_cartesian_mesh.h"
 #include "teca_table.h"
 #include "teca_binary_stream.h"
@@ -963,18 +964,11 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
 
     const teca_metadata &in_md = in_mesh->get_metadata();
 
-    std::string index_request_key;
-    if (in_md.get("index_request_key", index_request_key))
-    {
-        TECA_FATAL_ERROR("Dataset metadata is missing the index_request_key key")
-        return nullptr;
-    }
-
     unsigned long index = 0;
-    if (in_md.get(index_request_key, index))
+    std::string index_request_key;
+    if (teca_metadata_util::get_requested_index(in_md, index_request_key, index))
     {
-        TECA_FATAL_ERROR("Dataset metadata is missing the \""
-            << index_request_key << "\" key")
+        TECA_FATAL_ERROR("Failed to determine the requested index")
         return nullptr;
     }
 
@@ -1113,7 +1107,7 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
     // reset the pipeline control keys
     teca_metadata &out_md = out_mesh->get_metadata();
     out_md.set("index_request_key", index_request_key);
-    out_md.set(index_request_key, index);
+    out_md.set(index_request_key, {index, index});
     out_md.set("time", time);
 
     return out_mesh;

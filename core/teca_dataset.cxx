@@ -14,22 +14,15 @@ teca_dataset::~teca_dataset()
     delete this->metadata;
 }
 
-/*
 // --------------------------------------------------------------------------
-int teca_dataset::set_request_index(const std::string &key, long val)
+int teca_dataset::set_request_index(const std::string &key, unsigned long val)
 {
-    if (this->metadata->set("index_request_key", key)  ||
-        this->metadata->set(key, val))
-    {
-        TECA_ERROR("failed to set the index_request_key \""
-            << key << "\" to " << val)
-        return -1;
-    }
-    return 0;
+    unsigned long ids[2] = {val, val};
+    return this->set_request_indices(key, ids);
 }
 
 // --------------------------------------------------------------------------
-int teca_dataset::set_request_index(long val)
+int teca_dataset::get_request_index(unsigned long &val) const
 {
     std::string index_request_key;
     if (this->metadata->get("index_request_key", index_request_key))
@@ -38,12 +31,43 @@ int teca_dataset::set_request_index(long val)
         return -1;
     }
 
-    this->metadata->set(index_request_key, val);
+    unsigned long ids[2] = {0};
+    if (this->metadata->get(index_request_key, ids))
+    {
+        TECA_ERROR("Failed to get the value of the index_request_key \""
+            << index_request_key <<"\"")
+        return -1;
+    }
+
+    unsigned long n_ids = ids[1] - ids[0] + 1;
+    if (n_ids != 1)
+    {
+        TECA_ERROR(<< n_ids << " indices requested but this algorithm"
+            " handles only a single index")
+        return -1;
+    }
+
+    val = ids[0];
+
     return 0;
 }
 
 // --------------------------------------------------------------------------
-int teca_dataset::get_request_index(long &val) const
+int teca_dataset::set_request_indices(const std::string &key,
+    const unsigned long val[2])
+{
+    if (this->metadata->set("index_request_key", key)  ||
+        this->metadata->set(key, val, 2))
+    {
+        TECA_ERROR("failed to set the index_request_key \""
+            << key << "\" to [" << val << "]")
+        return -1;
+    }
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+int teca_dataset::get_request_indices(unsigned long val[2]) const
 {
     std::string index_request_key;
     if (this->metadata->get("index_request_key", index_request_key))
@@ -54,7 +78,6 @@ int teca_dataset::get_request_index(long &val) const
 
     return this->metadata->get(index_request_key, val);
 }
-*/
 
 // --------------------------------------------------------------------------
 void teca_dataset::copy(const const_p_teca_dataset &other,

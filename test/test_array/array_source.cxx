@@ -2,6 +2,7 @@
 #include "array.h"
 #include "array_source_internals.h"
 #include "teca_config.h"
+#include "teca_metadata_util.h"
 
 #include <iostream>
 #include <sstream>
@@ -90,10 +91,11 @@ const_p_teca_dataset array_source::execute(
     (void) input_data;
 
     // get the time request
-    unsigned long time_step;
-    if (request.get("time_step", time_step))
+    std::string request_key;
+    unsigned long time_step = 0;
+    if (teca_metadata_util::get_requested_index(request, request_key, time_step))
     {
-        TECA_ERROR("request is missing \"time_step\"")
+        TECA_ERROR("Failed to determine the requested index")
         return nullptr;
     }
 

@@ -13,6 +13,7 @@
 #include "teca_calcalcs.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_metadata_util.h"
 
 #include <netcdf.h>
 #include <iostream>
@@ -1001,10 +1002,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
             "index_initializer_key", std::string("number_of_time_steps"));
 
         this->internals->metadata.set(
-            "index_request_key", std::string("time_step"));
-
-        this->internals->metadata.set(
-            "index_extent_request_key", std::string("temporal_extent"));
+            "index_request_key", std::string("temporal_extent"));
 
         this->internals->metadata.to_stream(stream);
 
@@ -1082,7 +1080,6 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
     double temporal_bounds[2] = {0.0};
     if (!request.get("time", temporal_bounds[0]))
     {
-        // data for a single time was requested.
         // translate time to a time step
         TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
             in_t.get(),
@@ -1093,12 +1090,10 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
             if (teca_coordinate_util::index_of(pin_t, 0,
                 in_t->size()-1, static_cast<NT>(temporal_bounds[0]), temporal_extent[0]))
             {
-                TECA_FATAL_ERROR("The requested time " << temporal_bounds[0]
-                    << " was not found")
+                TECA_FATAL_ERROR("requested time " << temporal_bounds[0] << " not found")
                 return nullptr;
             }
             )
-
         temporal_extent[1] = temporal_extent[0];
         temporal_bounds[1] = temporal_bounds[0];
     }
@@ -1107,9 +1102,8 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
         // translate time range to a time step range
         if (teca_coordinate_util::bounds_to_extent(temporal_bounds, in_t, temporal_extent))
         {
-            TECA_FATAL_ERROR("The requested time bounds ["
-                << temporal_bounds[0] << ", " << temporal_bounds[1]
-                << "] were not found")
+            TECA_FATAL_ERROR("The requested temporal_bounds ["
+                << temporal_bounds << "] was not found")
             return nullptr;
         }
     }
@@ -1122,14 +1116,7 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
         // always served regardless of the request (or lack there of).
         unsigned long n_steps = in_t->size();
 
-        if (!request.get("time_step", temporal_extent[0]))
-        {
-            temporal_extent[1] = temporal_extent[0];
-        }
-        else
-        {
-            request.get("temporal_extent", temporal_extent);
-        }
+        request.get("temporal_extent", temporal_extent);
 
         if (in_t)
         {
@@ -1298,11 +1285,10 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
     // create output dataset
     p_teca_cartesian_mesh mesh = teca_cartesian_mesh::New();
 
+    mesh->set_index_request_key("temporal_extent");
     mesh->set_x_coordinates(x_axis_var, out_x);
     mesh->set_y_coordinates(y_axis_var, out_y);
     mesh->set_z_coordinates(z_axis_var, out_z);
-    mesh->set_time(temporal_bounds[0]);
-    mesh->set_time_step(temporal_extent[0]);
     mesh->set_temporal_bounds(temporal_bounds);
     mesh->set_temporal_extent(temporal_extent);
     mesh->set_whole_extent(whole_extent);
@@ -1332,11 +1318,6 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
         mesh->set_time_units(units);
     }
 
-    // add the pipeline keys
-    teca_metadata &md = mesh->get_metadata();
-    md.set("index_request_key", std::string("time_step"));
-    md.set("index_extent_request_key", std::string("temporal_extent"));
-
     // pass the attributes for the arrays read
     teca_metadata out_atrs;
     for (unsigned int i = 0; i < n_arrays; ++i)
@@ -1352,7 +1333,7 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
     if (!time_atts.empty())
         out_atrs.set(t_axis_var, time_atts);
 
-    md.set("attributes", out_atrs);
+    mesh->set_attributes(out_atrs);
 
     // get the requested target device
     teca_variant_array::allocator alloc = teca_variant_array::allocator::malloc;

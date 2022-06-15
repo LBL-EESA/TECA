@@ -187,9 +187,7 @@ const_p_teca_dataset teca_cartesian_mesh_reader::execute(unsigned int port,
 
     p_teca_dataset ds = this->internals->mesh->new_instance();
     ds->shallow_copy(this->internals->mesh);
-
-    ds->get_metadata().set("index_request_key", std::string("mesh_id"));
-    ds->get_metadata().set("mesh_id", 0l);
+    ds->set_request_index("mesh_id", 0l);
 
     return ds;
 }
