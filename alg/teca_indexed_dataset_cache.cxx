@@ -1,6 +1,7 @@
 #include "teca_indexed_dataset_cache.h"
 
 #include "teca_metadata.h"
+#include "teca_metadata_util.h"
 #include "teca_priority_queue.h"
 
 #include <algorithm>
@@ -138,18 +139,11 @@ std::vector<teca_metadata> teca_indexed_dataset_cache::get_upstream_request(
     }
 
     // get the requested index
-    std::string request_key;
-    if (request.get("index_request_key", request_key))
-    {
-        TECA_FATAL_ERROR("Failed to locate the index_request_key")
-        return up_reqs;
-    }
-
     index_t index = 0;
-    if (request.get(request_key, index))
+    std::string request_key;
+    if (teca_metadata_util::get_requested_index(request, request_key, index))
     {
-        TECA_FATAL_ERROR("Failed to get the requested index using the"
-            " index_request_key \"" << request_key << "\"")
+        TECA_FATAL_ERROR("Failed to get the requested index")
         return up_reqs;
     }
 
@@ -211,18 +205,11 @@ const_p_teca_dataset teca_indexed_dataset_cache::execute(
     (void)port;
 
     // get the requested index
-    std::string request_key;
-    if (request.get("index_request_key", request_key))
-    {
-        TECA_FATAL_ERROR("Failed to locate the index_request_key")
-        return nullptr;
-    }
-
     index_t index = 0;
-    if (request.get(request_key, index))
+    std::string request_key;
+    if (teca_metadata_util::get_requested_index(request, request_key, index))
     {
-        TECA_FATAL_ERROR("Failed to get the requested index using the"
-            " index_request_key \"" << request_key << "\"")
+        TECA_FATAL_ERROR("Failed to get the requested index")
         return nullptr;
     }
 

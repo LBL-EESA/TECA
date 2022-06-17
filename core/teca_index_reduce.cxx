@@ -246,7 +246,7 @@ std::vector<teca_metadata> teca_index_reduce::get_upstream_request(
         for (unsigned long j = 0; j < n_reqs; ++j)
         {
             teca_metadata tmp(base_req[j]);
-            tmp.set(request_key, index);
+            tmp.set(request_key, {index, index});
             tmp.set("index_request_key", request_key);
             up_req.emplace_back(std::move(tmp));
         }
@@ -456,10 +456,7 @@ const_p_teca_dataset teca_index_reduce::execute(unsigned int port,
     // make a shallow copy, metadata is always deep copied
     p_teca_dataset output_ds = tmp->new_instance();
     output_ds->shallow_copy(std::const_pointer_cast<teca_dataset>(tmp));
-
-    // set up pipeline executive control keys.
-    output_ds->get_metadata().set("index_request_key", std::string("pass_number"));
-    output_ds->get_metadata().set("pass_number", 0l);
+    output_ds->set_request_index("pass_number", 0ul);
 
     return output_ds;
 }

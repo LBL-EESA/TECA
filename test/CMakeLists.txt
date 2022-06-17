@@ -842,3 +842,119 @@ teca_add_test(test_l2_norm
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_l2_norm "${TECA_DATA_ROOT}/test_l2_norm.bin"
     REQ_TECA_DATA)
+
+teca_add_test(test_space_time_executive_size
+    SOURCES test_space_time_executive.cpp
+    EXEC_NAME test_space_time_executive
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_space_time_executive 256 256 7 512 8 size 128)
+
+teca_add_test(test_space_time_executive_number
+    COMMAND test_space_time_executive 256 256 7 512 8 number 2)
+
+teca_add_test(test_space_time_executive_number_par
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_space_time_executive
+    256 256 7 512 8 number 2
+    FEATURES ${TECA_HAS_MPI})
+
+teca_add_test(test_space_time_executive_size_par
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_space_time_executive
+    256 256 7 512 8 size 128
+    FEATURES ${TECA_HAS_MPI})
+
+teca_add_test(test_spatial_executive_size
+    SOURCES test_spatial_executive.cpp
+    EXEC_NAME test_spatial_executive
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_spatial_executive 256 256 7 512 size 128)
+
+teca_add_test(test_spatial_executive_number
+    COMMAND test_spatial_executive 256 256 7 512 number 2)
+
+teca_add_test(test_spatial_executive_number_par
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_spatial_executive
+    256 256 7 512 number 2
+    FEATURES ${TECA_HAS_MPI})
+
+teca_add_test(test_spatial_executive_size_par
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_spatial_executive
+    256 256 7 512 size 128
+    FEATURES ${TECA_HAS_MPI})
+
+teca_add_test(test_cf_writer_temporal_partition
+    SOURCES test_cf_writer_partitions.cpp
+    EXEC_NAME test_cf_writer_partitions
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_cf_writer_partitions 129 64 1 257 monthly temporal 0 0
+        ${TECA_DATA_ROOT} test_cf_writer_partitons
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_writer_temporal_partition_mpi
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_writer_partitions 129 64 1 257
+        monthly temporal 0 0 ${TECA_DATA_ROOT} test_cf_writer_partitons
+    FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_writer_space_time_partition
+    COMMAND test_cf_writer_partitions 129 64 1 257 monthly space_time 17 32
+        ${TECA_DATA_ROOT} test_cf_writer_partitons
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_writer_space_time_partition_blocking_mpi
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_writer_partitions 129 64 1 257
+        monthly space_time 17 32 ${TECA_DATA_ROOT} test_cf_writer_partitons
+    FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_writer_space_time_partition_single_mpi
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_writer_partitions 129 64 1 257
+        monthly space_time 257 32 ${TECA_DATA_ROOT} test_cf_writer_partitons
+    FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_writer_spatial_partition
+    COMMAND test_cf_writer_partitions 129 64 1 257 monthly spatial 17 32
+        ${TECA_DATA_ROOT} test_cf_writer_partitons
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_writer_spatial_partition_mpi
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_writer_partitions 129 64 1 257
+        monthly spatial 17 32 ${TECA_DATA_ROOT} test_cf_writer_partitons
+    FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_reader_temporal_partition
+    SOURCES test_cf_reader_partitions.cpp
+    EXEC_NAME test_cf_reader_partitions
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_cf_reader_partitions "${TECA_DATA_ROOT}/test_cf_writer_partitons\\.nc$"
+        temporal 0 0 0 U V R
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_reader_temporal_partition_mpi
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_reader_partitions
+        "${TECA_DATA_ROOT}/test_cf_writer_partitons\\.nc$" temporal 0 0 0 U V R
+    FEATURES ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_reader_space_time_partition
+    COMMAND test_cf_reader_partitions "${TECA_DATA_ROOT}/test_cf_writer_partitons\\.nc$"
+        space_time 8 8 0 U V R
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_reader_space_time_partition_mpi
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_reader_partitions
+        "${TECA_DATA_ROOT}/test_cf_writer_partitons\\.nc$" space_time 8 8 0 U V R
+    FEATURES ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_reader_spatial_partition
+    COMMAND test_cf_reader_partitions "${TECA_DATA_ROOT}/test_cf_writer_partitons\\.nc$"
+        spatial 8 8 0 U V R
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_reader_spatial_partition_mpi
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_reader_partitions
+        "${TECA_DATA_ROOT}/test_cf_writer_partitons\\.nc$" spatial 8 8 0 U V R
+    FEATURES ${TECA_HAS_MPI}
+    REQ_TECA_DATA)

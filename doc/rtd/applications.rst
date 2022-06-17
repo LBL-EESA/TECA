@@ -3213,7 +3213,7 @@ A 2D mesh in NETCDF CF2 format with lapse rate data.
 
 
 Command Line Arguments
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
 
 --input_file arg
     a TECA MCF file containing information about the locations of the temperature and geopotential height data

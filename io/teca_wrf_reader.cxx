@@ -1483,7 +1483,7 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
 
     p_teca_double_array t_out = teca_double_array::New(1, t);
     mesh->set_t_coordinates(t_axis_variable, t_out);
-
+    mesh->set_request_index("time_step", time_step);
     mesh->set_time(t);
     mesh->set_time_step(time_step);
     mesh->set_whole_extent(whole_extent);
@@ -1505,16 +1505,11 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
         mesh->set_time_units(units);
     }
 
-    // add the pipeline keys
-    teca_metadata &md = mesh->get_metadata();
-    md.set("index_request_key", std::string("time_step"));
-    md.set("time_step", time_step);
-
     // pass the attributes for the arrays read
     for (unsigned int i = 0; i < n_arrays; ++i)
         out_atrs.set(arrays[i], atrs.get(arrays[i]));
 
-    md.set("attributes", out_atrs);
+    mesh->set_attributes(out_atrs);
 
     // read requested arrays
     for (size_t i = 0; i < n_arrays; ++i)

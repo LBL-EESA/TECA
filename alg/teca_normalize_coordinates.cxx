@@ -839,6 +839,13 @@ const_p_teca_dataset teca_normalize_coordinates::execute(unsigned int port,
     const_p_teca_variant_array in_y = in_mesh->get_y_coordinates();
     const_p_teca_variant_array in_z = in_mesh->get_z_coordinates();
 
+    // get the whole extent
+    unsigned long whole_extent_in[6];
+    in_mesh->get_whole_extent(whole_extent_in);
+
+    unsigned long whole_extent_out[6];
+    memcpy(whole_extent_out, whole_extent_in, 6*sizeof(unsigned long));
+
     // get the extent
     unsigned long extent_in[6];
     in_mesh->get_extent(extent_in);
@@ -883,13 +890,7 @@ const_p_teca_dataset teca_normalize_coordinates::execute(unsigned int port,
             }
 
             extent_out[1] -= 1;
-            out_mesh->set_extent(extent_out);
-
-            unsigned long whole_extent[6];
-            in_mesh->get_whole_extent(whole_extent);
-            whole_extent[1] -= 1;
-
-            out_mesh->set_whole_extent(whole_extent);
+            whole_extent_out[1] -= 1;
         }
 
         if (internals::periodic_shift_x(out_mesh->get_point_arrays(),
@@ -931,6 +932,17 @@ const_p_teca_dataset teca_normalize_coordinates::execute(unsigned int port,
             TECA_FATAL_ERROR("Failed to put point arrays into ascending order")
             return nullptr;
         }
+
+        // flip the y axis extent
+        unsigned long whole_ny = whole_extent_in[3] - whole_extent_in[2] + 1;
+        extent_out[2] = whole_ny - extent_in[3] - 1;
+        extent_out[3] = whole_ny - extent_in[2] - 1;
+    }
+
+    if (shifted_x || reordered_y)
+    {
+        out_mesh->set_extent(extent_out);
+        out_mesh->set_whole_extent(whole_extent_out);
     }
 
     return out_mesh;

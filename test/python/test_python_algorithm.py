@@ -94,7 +94,6 @@ class max_wind_speed(wind_speed):
 
         # find the max
         mesh = as_teca_mesh(wdata)
-        md = mesh.get_metadata()
         arrays = mesh.get_point_arrays()
         if dev < 0:
             ws = arrays['wind_speed'].get_cpu_accessible()
@@ -109,7 +108,7 @@ class max_wind_speed(wind_speed):
         table.declare_columns(['time_step', 'time', 'max_wind'], \
             ['l', 'd', 'd'])
 
-        table << md['time_step'] << md['time'] << max_ws
+        table << mesh.get_time_step() << mesh.get_time() << max_ws
 
         return table
 

@@ -33,6 +33,8 @@ if (TECA_HAS_NETCDF)
         teca_cf_time_step_mapper.cxx
         teca_cf_block_time_step_mapper.cxx
         teca_cf_interval_time_step_mapper.cxx
+        teca_cf_space_time_time_step_mapper.cxx
+        teca_cf_spatial_time_step_mapper.cxx
         teca_cf_time_axis_data.cxx
         teca_cf_time_axis_data_reduce.cxx
         teca_cf_time_axis_reader.cxx

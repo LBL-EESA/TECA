@@ -14,7 +14,7 @@ int teca_algorithm_executive::initialize(MPI_Comm comm, const teca_metadata &md)
     }
 
     m_request.set("index_request_key", request_key);
-    m_request.set(request_key, 0);
+    m_request.set(request_key, {0ul, 0ul});
 
     // set the default device to execute on
 #if defined(TECA_HAS_CUDA)

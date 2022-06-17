@@ -9,6 +9,7 @@
 #include "teca_variant_array_impl.h"
 #include "teca_file_util.h"
 #include "teca_vtk_util.h"
+#include "teca_metadata_util.h"
 
 
 #if defined(TECA_HAS_VTK) || defined(TECA_HAS_PARAVIEW)
@@ -762,28 +763,17 @@ const_p_teca_dataset teca_cartesian_mesh_writer::execute(
         return nullptr;
     }
 
-    const teca_metadata &md = mesh->get_metadata();
-
-    std::string index_request_key;
-    if (md.get("index_request_key", index_request_key))
-    {
-        TECA_FATAL_ERROR("Dataset metadata is missing the index_request_key key")
-        return nullptr;
-    }
-
     unsigned long index = 0;
-    if (md.get(index_request_key, index))
+    if (mesh->get_request_index(index))
     {
-        TECA_FATAL_ERROR("Dataset metadata is missing the \""
-            << index_request_key << "\" key")
+        TECA_FATAL_ERROR("Failed to determine the requested index")
         return nullptr;
     }
 
     double time = 0.0;
-    if (mesh->get_time(time) &&
-        request.get("time", time))
+    if (mesh->get_time(time) && request.get("time", time))
     {
-        TECA_FATAL_ERROR("request missing \"time\"")
+        TECA_FATAL_ERROR("Failed to determine the time of index " << index)
         return nullptr;
     }
 

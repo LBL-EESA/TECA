@@ -15,6 +15,8 @@
 #include <type_traits>
 #include <typeinfo>
 #include <iomanip>
+#include <deque>
+#include <vector>
 
 #if defined(TECA_HAS_CUDA)
 #define TECA_TARGET __host__ __device__
@@ -354,18 +356,51 @@ int index_of(const T *data, size_t l, size_t r, T val, unsigned long &id)
     return -1;
 }
 
-/** Convert bounds to extents.  return non-zero if the requested bounds are
- * not in the given coordinate arrays. coordinate arrays must not be empty.
+/** Convert bounds to extents in three dimensions.
+ *
+ * @param[in] bounds the 3D spatial bounding box [x0, x1, y0, y1, z0, z1]
+ * @param[in] x the x-coordinate array
+ * @param[in] y the y-coordinate array
+ * @param[in] z the z-coordinate array
+ * @param[out] extent the resulting 3D extent [i0, i1, j0, j1, k0, k1]
+ *
+ * @returns non-zero if the requested bounds are not in the given coordinate
+ * arrays.
+ *
+ * @note the x,y and z coordinate arrays must not be empty.
  */
 TECA_EXPORT
 int bounds_to_extent(const double *bounds,
     const const_p_teca_variant_array &x, const const_p_teca_variant_array &y,
     const const_p_teca_variant_array &z, unsigned long *extent);
 
+/** Convert bounds to extents in one dimension.
+ *
+ * @param[in] bounds the 1D spatial bounding box [x0, x1]
+ * @param[in] x the x-coordinate array
+ * @param[out] extent the resulting 1Dextent [i0, i1]
+ *
+ * @returns non-zero if the requested bounds are not in the given coordinate
+ * arrays.
+ *
+ * @note the coordinate array must not be empty.
+ */
 TECA_EXPORT
 int bounds_to_extent(const double *bounds,
     const const_p_teca_variant_array &x, unsigned long *extent);
 
+/** Convert bounds to extents in three dimensions.
+ *
+ * @param[in] bounds the 3D spatial bounding box [x0, x1, y0, y1, z0, z1]
+ * @param[in] md a metadata object containing coordinate information as defined
+ *               by the teca_cf_reader
+ * @param[out] extent the resulting 3D extent [i0, i1, j0, j1, k0, k1]
+ *
+ * @returns non-zero if the requested bounds are not in the given coordinate
+ * arrays.
+ *
+ * @note the x,y and z coordinate arrays must not be empty.
+ */
 TECA_EXPORT
 int bounds_to_extent(const double *bounds, const teca_metadata &md,
     unsigned long *extent);
@@ -990,5 +1025,118 @@ private:
     teca_validate_arrays m_t;
 };
 
-};
+/** a copy-assignable type for 3D Cartesian index space extents of the form:
+ * [i0, i1, j0, j1, k0, k1]
+ */
+using spatial_extent_t = std::array<unsigned long, 6>;
+
+/** a copy-assignable type for temporal index space extents of the form:
+ * [t0, t1]
+ */
+using temporal_extent_t = std::array<unsigned long, 2>;
+
+/// converts a std::array to a std:vector
+template <typename T, size_t N>
+std::vector<T> as_vector(const std::array<T,N> &arr)
+{
+    return std::vector<T>(arr.begin(), arr.end());
+}
+
+/// converts a std::vector to a std::array
+template <typename T, size_t N>
+std::array<T,N> as_array(const std::vector<T> &vec)
+{
+    std::array<T,N> arr;
+    size_t m = vec.size();
+    for (size_t i = 0; i < N && i < m; ++i)
+        arr[i] = vec[i];
+    return arr;
+}
+
+/** converts a vector holding a Cartesian index space extent of the form
+ * [i0, i1, j0, j1, k0, k1] to a spatial_extent_t
+ */
+template <typename T>
+spatial_extent_t as_spatial_extent(const std::vector<T> &vec)
+{
+    return as_array<T,6>(vec);
+}
+
+/** converts a vector holding a time extent of the form
+ * [t0, t1] to a temporal_extent_t
+ */
+template <typename T>
+spatial_extent_t as_temporal_extent(const std::vector<T> &vec)
+{
+    return as_array<T,2>(vec);
+}
+
+/** converts an array holding a Cartesian index space extent of the form
+ * [i0, i1, j0, j1, k0, k1] to a spatial_extent_t
+ */
+template <typename T>
+spatial_extent_t as_spatial_extent(const T arr[6])
+{
+    return {arr[0], arr[1], arr[2], arr[3], arr[4], arr[5]};
+}
+
+
+/** split block 1 into 2 blocks in the d direction. block1 is modified in place
+ * and the new block is returned in block 2. return 1 if the split succeeded
+ * and 0 if it failed.
+ */
+TECA_EXPORT
+int split(spatial_extent_t &block_1, spatial_extent_t &block_2, int d);
+
+/** given an input extent, partition it in into a set of n disjoint blocks of
+ * approximately the same size covering the input extent.
+ *
+ * @param[in] extent   the Cartesian iondex space extent top partition
+ * @param[in] n_blocks the desired numberof partitions
+ * @param[out] blocks  the set of n blocks covering the input extent
+ *
+ * @returns 0 if the input extent could be partitioned into the requested
+ * number of blocks.
+ */
+TECA_EXPORT
+int partition(const spatial_extent_t &extent, unsigned int n_blocks,
+    std::deque<spatial_extent_t> &blocks);
+
+/** Given an inclusive range of time steps [step_0 step_1] partition it into a
+ * set of disjoint blocks covering the input range. The partitioning algorithm
+ * is controled by either specifying the number of blocks or the block size.
+ * Set one of these parameters to the desired value and the other parameter to
+ * 0.
+ *
+ * @param[in] temporal_extent   the temporal extent to partition
+ * @param[in] n_temporal_blocks the desired number of blocks or 0 if specifying
+ *                              the block size. Note: the block size that was
+ *                              used is returned by the block_size argument.
+ * @param[in] temporal_block_size the desired size of the blocks or 0 if
+ *                                specifying the number of blocks.
+ * @param[out] temporal_blocks  the partitioning
+ *
+ * @retruns 0 if the partitioning was successful.
+ */
+TECA_EXPORT
+int partition(const temporal_extent_t &temporal_extent,
+    long n_temporal_blocks, long temporal_block_size,
+    std::vector<temporal_extent_t> &temporal_blocks);
+
+/** Given a time step and a vector of step extents find the index of the extent
+ * that contains the step.
+ *
+ * @param[in]  step the step to find
+ * @param[in]  step_extents an ordered list of time step extents [t0, t1]
+ * @param[out] index the index into the vector pointing to the extent that
+ *             contains the step.
+
+ * @returns non-zero if the step was not contained by any of the extents
+ */
+TECA_EXPORT
+int find_extent_containing_step(long step,
+    const std::vector<std::pair<long, long>> &step_extents,
+    long &index);
+
+}
 #endif

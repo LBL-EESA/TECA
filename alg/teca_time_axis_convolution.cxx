@@ -6,6 +6,7 @@
 #include "teca_metadata.h"
 #include "teca_array_attributes.h"
 #include "teca_string_util.h"
+#include "teca_metadata_util.h"
 
 #include <algorithm>
 #include <iostream>
@@ -435,11 +436,11 @@ std::vector<teca_metadata> teca_time_axis_convolution::get_upstream_request(
     // requested time
     std::string request_key;
     long active_index = 0;
-    if (request.get("index_request_key", request_key) ||
-        request.get(request_key, active_index))
+    if (teca_metadata_util::get_requested_index(request,
+        request_key, active_index))
     {
         TECA_FATAL_ERROR("Invalid execution control metadata."
-            " Missing the index request.")
+            " Failed to get the requested index.")
         return up_reqs;
     }
 
@@ -456,9 +457,10 @@ std::vector<teca_metadata> teca_time_axis_convolution::get_upstream_request(
     // make a request for each time that will be used in the average
     for (long i = 0; i < width; ++i)
     {
+        unsigned long ii = active_index + i;
         teca_metadata up_req(request);
         up_req.set("arrays", arrays);
-        up_req.set(request_key, active_index + i);
+        up_req.set(request_key, {ii, ii});
         up_reqs.push_back(up_req);
     }
 
@@ -556,11 +558,11 @@ const_p_teca_dataset teca_time_axis_convolution::execute(
     // get active time step
     std::string request_key;
     long out_index = 0;
-    if (request.get("index_request_key", request_key) ||
-        request.get(request_key, out_index))
+    if (teca_metadata_util::get_requested_index(request,
+        request_key, out_index))
     {
         TECA_FATAL_ERROR("Invalid execution control metadata."
-            " Missing the index request.")
+            " Failed to get the requested index.")
         return nullptr;
     }
 
@@ -587,7 +589,7 @@ const_p_teca_dataset teca_time_axis_convolution::execute(
 
     // copy the metadata and fix the time step
     out_mesh->copy_metadata(active_mesh);
-    out_mesh->get_metadata().set("time_step", out_index);
+    out_mesh->set_time_step(out_index);
 
     // copy information arrays
     out_mesh->get_information_arrays()->shallow_copy

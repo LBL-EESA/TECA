@@ -240,9 +240,8 @@ Apple Mac OS
 
 .. code-block:: bash
 
-    brew update
-    brew unlink python@2
-    brew install netcdf mpich swig svn udunits openssl python
+    brew update && brew upgrade
+    brew install open-mpi hdf5-mpi swig svn udunits openssl python3
 
 Ubuntu 20.04
 ^^^^^^^^^^^^
@@ -280,8 +279,8 @@ Python environment
 TECA's Python dependencies can be easily installed via pip.
 
 .. code-block:: bash
-    
-    $ pip3 install numpy mpi4py matplotlib torch
+
+    $ python3 -mpip install numpy mpi4py matplotlib torch
 
 However, when building TECA from sources it can be useful to setup a virtual
 environment.  Creating the virtual environment is something that you do once,
@@ -293,7 +292,7 @@ setup the venv will need to be activated each time you use TECA.
     $ cd ~
     $ python3 -mvenv teca-py3k
     $ source teca-py3k/bin/activate
-    $ pip3 install numpy matplotlib mpi4py torch  
+    $ python3 -mpip install numpy matplotlib mpi4py torch
 
 Before building TECA, and every time you use TECA be sure to activate the same venv.
 
@@ -339,7 +338,7 @@ On Apple Mac OS
 .. code-block:: bash
 
     $ brew uninstall netcdf hdf5 mpich
-    $ brew install mpi hdf5-mpi
+    $ brew install open-mpi hdf5-mpi
     $ wget https://downloads.unidata.ucar.edu/netcdf-c/4.8.1/netcdf-c-4.8.1.tar.gz
     $ tar -xvf netcdf-c-4.8.1.tar.gz
     $ cd netcdf-c-4.8.1
@@ -347,6 +346,9 @@ On Apple Mac OS
         --enable-fortran --disable-dap --enable-netcdf-4            \
         --enable-parallel4 --prefix=`pwd`/../netcdf-c-4.8.1-install
     $ make -j install
+
+When configuring the TECA build pass the location of your NetCDF install on
+the CMake command line `-DNETCDF_DIR=<path to the install>`.
 
 
 .. _post-install:

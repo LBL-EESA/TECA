@@ -235,3 +235,43 @@ bool teca_mesh::empty() const noexcept
         || m_impl->z_face_arrays->size()
         || m_impl->info_arrays->size());
 }
+
+// --------------------------------------------------------------------------
+void teca_mesh::set_time_step(const unsigned long & val)
+{
+    unsigned long extent[2] = {val, val};
+    this->get_metadata().set<unsigned long>("temporal_extent", extent);
+}
+
+// --------------------------------------------------------------------------
+int teca_mesh::get_time_step(unsigned long &val) const
+{
+    unsigned long extent[2] = {0ul};
+
+    int ierr = this->get_metadata().get<unsigned long>(
+        "temporal_extent", extent);
+
+    val = extent[0];
+
+    return ierr;
+}
+
+// --------------------------------------------------------------------------
+void teca_mesh::set_time(const double & val)
+{
+    double bounds[2] = {val, val};
+    this->get_metadata().set<double>("temporal_bounds", bounds);
+}
+
+// --------------------------------------------------------------------------
+int teca_mesh::get_time(double &val) const
+{
+    double bounds[2] = {double()};
+
+    int ierr = this->get_metadata().get<double>(
+        "temporal_bounds", bounds);
+
+    val = bounds[0];
+
+    return ierr;
+}

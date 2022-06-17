@@ -1,5 +1,6 @@
 #include "teca_dataset_source.h"
 #include "teca_dataset.h"
+#include "teca_metadata_util.h"
 
 #include <string>
 #include <vector>
@@ -77,24 +78,10 @@ const_p_teca_dataset teca_dataset_source::execute(unsigned int port,
     (void)input_data;
 
     std::string request_key;
-    if (this->metadata.empty())
-    {
-        request_key = "dataset_id";
-    }
-    else
-    {
-        if (this->metadata.get("index_request_key", request_key))
-        {
-            TECA_FATAL_ERROR("The provided metadata is missing index_request_key")
-            return nullptr;
-        }
-    }
-
-    // figure out which dataset is being requested
     unsigned long index = 0;
-    if (request.get(request_key, index))
+    if (teca_metadata_util::get_requested_index(request, request_key, index))
     {
-        TECA_FATAL_ERROR("Request is missing index_request_key \"" << request_key << "\"")
+        TECA_FATAL_ERROR("Failed to determine the requested index")
         return nullptr;
     }
 
@@ -108,9 +95,7 @@ const_p_teca_dataset teca_dataset_source::execute(unsigned int port,
 
     // serve it up
     p_teca_dataset ds = this->datasets[index];
-
-    ds->get_metadata().set("index_request_key", std::string(request_key));
-    ds->get_metadata().set(request_key, index);
+    ds->set_request_index(request_key, index);
 
     return ds;
 }

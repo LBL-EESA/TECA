@@ -1,10 +1,11 @@
 #!/bin/bash
 
-if [[ $# < 7 ]]
+if [[ $# -lt 8 ]]
 then
     echo "usage: test_temporal_reduction_app.sh [app prefix] " \
          "[data root] [input regex] [array name] [interval] " \
-         "[operator] [steps per file] [mpi exec] [test cores]"
+         "[operator] [steps per file] [spatial partitioning] " \
+         "[mpi exec] [test cores] $#"
     exit -1
 fi
 
@@ -15,11 +16,20 @@ array_name=${4}
 interval=${5}
 operator=${6}
 steps_per_file=${7}
-
-if [[ $# -eq 9 ]]
+if [[ ${8} -eq 1 ]]
 then
-    mpi_exec=${8}
-    test_cores=${9}
+    if [[ $# -eq 10 ]]
+    then
+        spatial_partitioning=--spatial_partitioning
+    else
+        spatial_partitioning="--spatial_partitioning --spatial_partitions 7"
+    fi
+fi
+
+if [[ $# -eq 10 ]]
+then
+    mpi_exec=${9}
+    test_cores=${10}
     launcher="${mpi_exec} -n ${test_cores}"
 fi
 
@@ -34,7 +44,7 @@ time ${launcher} ${app_prefix}/teca_temporal_reduction                  \
     --operator ${operator} --point_arrays ${array_name}                 \
     --file_layout yearly --steps_per_file ${steps_per_file}             \
     --output_file "${output_base}_%t%.nc"                               \
-    --verbose 1
+    ${spatial_partitioning} --verbose 1
 
 # don't profile the diff
 unset PROFILER_ENABLE

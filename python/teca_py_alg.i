@@ -29,6 +29,7 @@
 #include "teca_latitude_damper.h"
 #include "teca_mask.h"
 #include "teca_normalize_coordinates.h"
+#include "teca_spatial_executive.h"
 #include "teca_rename_variables.h"
 #include "teca_saffir_simpson.h"
 #if defined(TECA_HAS_SHAPELIB)
@@ -504,3 +505,11 @@ struct teca_tc_saffir_simpson
  lapse_rate
  ***************************************************************************/
 %pythoncode "teca_lapse_rate.py"
+
+/***************************************************************************
+ spatial_executive
+ ***************************************************************************/
+%ignore teca_spatial_executive::shared_from_this;
+%shared_ptr(teca_spatial_executive)
+%ignore teca_spatial_executive::operator=;
+%include "teca_spatial_executive.h"
