@@ -36,7 +36,7 @@ batch script rather than in your shell.
 +----------------------------------------+--------------------------------------------------+
 | :ref:`teca_tc_wind_radii`              | Computes storm size from a set of TC tracks      |
 +----------------------------------------+--------------------------------------------------+
-| :ref:`teca_potential_intensity`        | Computes thermodynamic potentiel intensity of    |
+| :ref:`teca_potential_intensity`        | Computes thermodynamic potential intensity of    |
 |                                        | tropical cyclones                                |
 +----------------------------------------+--------------------------------------------------+
 | :ref:`teca_tc_stats`                   | Computes descriptive statistics from a set       |
@@ -87,7 +87,7 @@ Cray systems requires loading the modulefile.
 .. code-block:: bash
 
     module swap PrgEnv-intel PrgEnv-gnu
-    module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles/
+    module use /global/common/software/m1517/teca/cori/develop/modulefiles
     module load teca
 
 The first line loads the GCC compiler environment and must occur prior to
@@ -99,25 +99,39 @@ configuring the environment for use with TECA.
 
 m1517 CASCADE installs
 ~~~~~~~~~~~~~~~~~~~~~~
-Members of the CASCADE project m1517 can access rolling installs on Cori. These
-are located on the common file system. At least two installs will be available:
+Members of the CASCADE project m1517 can access rolling installs on Cori and
+Perlmutter. These are located on NERSC's common file system. The installs are
+grouped by system. For each install group least two installs will be available:
 `stable` and `develop`. The `stable` install contains the latest official
 release.  See `releases`_ page of the TECA github repo for an up to date list
 of releases.  The `develop` install points to a rolling release of TECA with
 new as of yet unreleased features and code. The `develop` install is used to
 deliver updates to the team on an as needed basis.
 
-In order to use the `develp` install one would issue the following shell commands
-at the top of their batch scripts.
+The following install groups are located in `/global/common/software/m1517/`:
+
++-------------------+----------------------------------------------------------+
+| **Install group** | **Description**                                          |
++-------------------+----------------------------------------------------------+
+| cori              | Installs for NERSC Cori Haswell and KNL CPU partitions   |
++-------------------+----------------------------------------------------------+
+| perlmutter_gpu    | Installs for NERSC Perlmutter NVIDIA GPU partition       |
++-------------------+----------------------------------------------------------+
+| perlmutter_cpu    | Installs for NERSC Perlmutter Millan Milan CPU partition |
++-------------------+----------------------------------------------------------+
+
+In order to use the `develp` install one would include commands similar to the
+following at the top of their batch scripts.
 
 .. code-block:: bash
 
    module swap PrgEnv-intel PrgEnv-gnu
-   module use /global/common/software/m1517/teca/develop/modulefiles
+   module use /global/common/software/m1517/teca/<GROUP>/develop/modulefiles
    module load teca
 
-In order to make use of the `stable` release install swap `develop` for
-`stable` in the second of these commands.
+Where `<GROUP>` is replaced with one of: `cori`, `perlmutter_cpu`, or
+`perlmutter_gpu`.  In order to make use of the latest official release install
+swap `develop` for `stable` in the second of these commands.
 
 .. _releases: https://github.com/LBL-EESA/TECA/releases
 
@@ -727,7 +741,7 @@ own directory. In this case we use the :ref:`MCF file<HighResMIPMCF>`.
     $ salloc -N 17 -C knl -q interactive -t 01:00:00
 
     $ module swap PrgEnv-intel PrgEnv-gnu
-    $ module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles/
+    $ module use /global/common/software/m1517/teca/cori/develop/modulefiles
     $ module load teca
 
     $ time srun -N 17 -n 1024 teca_metadata_probe --z_axis_variable plev \
@@ -790,7 +804,7 @@ and time was encoded in the file name.
     $ salloc -N 10 -C knl -q interactive -t 01:00:00
 
     $ module swap PrgEnv-intel PrgEnv-gnu
-    $ module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles/
+    $ module use /global/common/software/m1517/teca/cori/develop/modulefiles
     $ module load teca
 
     $ year=1980
@@ -1162,7 +1176,7 @@ dataset using TECA's BARD(Bayesian AR detector) detector.
     module swap PrgEnv-intel PrgEnv-gnu
 
     # load the TECA module
-    module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles/
+    module use /global/common/software/m1517/teca/cori/develop/modulefiles
     module load teca
 
     # make a directory for the output files
@@ -1220,7 +1234,7 @@ minutes on the Cori KNL supercomputer at NERSC.
     module swap PrgEnv-intel PrgEnv-gnu
 
     # bring a TECA install into your environment
-    module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles/
+    module use /global/common/software/m1517/teca/cori/develop/modulefiles
     module load teca
 
     WORKDIR=$SCRATCH/teca_bard_merra2_artmip
@@ -1407,7 +1421,7 @@ HighResMIP dataset using TECA.
     module swap PrgEnv-intel PrgEnv-gnu
 
     # bring a TECA install into your environment
-    module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles/
+    module use /global/common/software/m1517/teca/cori/develop/modulefiles
     module load teca
 
     # make a directory for the output files
@@ -1723,7 +1737,7 @@ CAM5 data
     module swap PrgEnv-intel PrgEnv-gnu
 
     # load the TECA module
-    module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles/
+    module use /global/common/software/m1517/teca/cori/develop/modulefiles
     module load teca
 
     data_dir=/global/cscratch1/sd/mwehner/machine_learning_climate_data/All-Hist/CAM5-1-0.25degree_All-Hist_est1_v3_run1/h2
@@ -1923,7 +1937,7 @@ CAM5 data
 
     module swap PrgEnv-intel PrgEnv-gnu
 
-    module use  /global/cscratch1/sd/loring/teca_testing/deps/cf_reader_performance/modulefiles/
+    module use /global/common/software/m1517/teca/cori/develop/modulefiles
     module load teca/cf_reader_performance
 
     # if on KNL. avoid an error about too many cores in OpenBLAS (used by numpy)
@@ -2156,14 +2170,9 @@ The batch script used in the run is shown here:
     #SBATCH -t 02:00:00
     #SBATCH -A m1517
 
-    module switch PrgEnv-intel/6.0.5 PrgEnv-gnu
-    module use /global/cscratch1/sd/loring/teca_testing/installs/develop-53291486-deps/modulefiles/
+    module switch PrgEnv-intel PrgEnv-gnu
+    module use /global/common/software/m1517/teca/cori/develop/modulefiles
     module load teca
-    source /global/cscratch1/sd/loring/teca_testing/teca_tcpypi_env/bin/activate
-
-    export PATH=/global/cscratch1/sd/loring/teca_testing/TECA/bin/bin/:$PATH
-    export LD_LIBRARY_PATH=/global/cscratch1/sd/loring/teca_testing/TECA/bin/lib/:$LD_LIBRARY_PATH
-    export PYTHONPATH=/global/cscratch1/sd/loring/teca_testing/TECA/bin/lib/:$PYTHONPATH
 
     set -x
 
@@ -2650,7 +2659,7 @@ simulated time at quarter degree 3 hourly resolution.
     module swap PrgEnv-intel PrgEnv-gnu
 
     # bring a TECA install into your environment
-    module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles
+    module use /global/common/software/m1517/teca/cori/develop/modulefiles
     module load teca
 
     # print the commands as they execute, and error out if any one command fails
@@ -2695,7 +2704,7 @@ degree, 1 hourly resolution.
     module swap PrgEnv-intel PrgEnv-gnu
 
     # bring a TECA install into your environment
-    module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles
+    module use /global/common/software/m1517/teca/cori/develop/modulefiles
     module load teca
 
     # print the commands as they execute, and error out if any one command fails
@@ -2901,7 +2910,7 @@ ref:`cmip6_ex_desc<teca_bayesian_ar_detect examples>`.
     module swap PrgEnv-intel PrgEnv-gnu
 
     # bring a TECA install into your environment
-    module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles
+    module use /global/common/software/m1517/teca/cori/develop/modulefiles
     module load teca
 
     # print the commands aas the execute, and error out if any one command fails
@@ -3145,7 +3154,7 @@ ranks.
     module swap PrgEnv-intel PrgEnv-gnu
 
     # bring a TECA install into your environment.
-    module use /global/common/software/m1517/teca/develop/modulefiles
+    module use /global/common/software/m1517/teca/cori/develop/modulefiles
     module load teca
 
     # run with 4 MPI ranks per node
