@@ -34,6 +34,9 @@ parser.add_argument('--input_regex', type=str, required=False,
                          ' using the teca_cf_reader. Use one of either'
                          ' --input_file or --input_regex.')
 
+parser.add_argument('--time_index_file', type = str, required=False,
+                    help='a text file containing specific time indices to use in the average; each row should have a single integer time value that is within the bounds of the input dataset.')
+
 parser.add_argument('--interval', type=str, default='monthly',
                     help='interval to reduce the time axis to. One of '
                          'daily, monthly, or seasonal')
@@ -127,6 +130,7 @@ else:
     partitioner = teca_cf_writer.temporal
 spatial_partitions = args.spatial_partitions
 verbose = args.verbose
+time_index_file = args.time_index_file
 
 # give each MPI rank a GPU
 n_threads = 1
@@ -192,7 +196,7 @@ else:
     upstream = cfr
 
 vvm = teca_valid_value_mask.New()
-vvm.set_input_connection(cfr.get_output_port())
+vvm.set_input_connection(upstream.get_output_port())
 vvm.set_verbose(1 if verbose > 1 else 0)
 
 upd = teca_unpack_data.New()
