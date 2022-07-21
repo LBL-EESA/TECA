@@ -187,11 +187,7 @@ if time_index_file != "" and time_index_file is not None:
     # add the temporal index selection pipeline stage
     select = teca_temporal_index_select.New()
     select.set_input_connection(cfr.get_output_port())
-    # set the indices based on what was read in the file
-    # TODO: revise this when the API is modified to allow set_indices() to
-    # accept a list
-    for i in indices:
-        select.append_indice(i)
+    select.set_indices(indices)
 
     # insert this into the pipeline
     upstream = select
