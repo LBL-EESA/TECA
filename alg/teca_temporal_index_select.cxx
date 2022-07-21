@@ -47,7 +47,7 @@ void teca_temporal_index_select::get_properties_description(
         + (prefix.empty()?"teca_temporal_index_select":prefix));
 
     opts.add_options()
-        TECA_POPTS_MULTI_GET(std::vector<size_t>, prefix, indices,
+        TECA_POPTS_MULTI_GET(std::vector<long long>, prefix, indices,
             "a list of the time indices to select")
         ;
 
@@ -62,7 +62,7 @@ void teca_temporal_index_select::set_properties(
 {
     this->teca_algorithm::set_properties(prefix, opts);
 
-    TECA_POPTS_SET(opts, std::vector<size_t>, prefix, indices)
+    TECA_POPTS_SET(opts, std::vector<long long>, prefix, indices)
 }
 #endif
 

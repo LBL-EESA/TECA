@@ -28,7 +28,7 @@ public:
      * Set the time axis inidices to select
      */
     ///@{
-    TECA_ALGORITHM_VECTOR_PROPERTY(size_t, indice)
+    TECA_ALGORITHM_VECTOR_PROPERTY(long long, indice)
     ///@}
 
     // set indices from a file
@@ -56,7 +56,7 @@ private:
         const teca_metadata &request) override;
 
 private:
-    std::vector<size_t> indices;
+    std::vector<long long> indices;
 };
 
 #endif

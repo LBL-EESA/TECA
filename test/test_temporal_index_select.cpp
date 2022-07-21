@@ -48,7 +48,7 @@ int main(int argc, char **argv)
     std::string baseline = argv[2];
     std::vector<std::string> point_arrays = {argv[3]};
     int partitioning = atoi(argv[4]);
-    std::vector<size_t> indices;
+    std::vector<long long> indices;
     indices.push_back(atoi(argv[5]));
     for (auto i = 6; i < argc; ++i)
     {
