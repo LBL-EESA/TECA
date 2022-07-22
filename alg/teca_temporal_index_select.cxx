@@ -92,22 +92,26 @@ teca_metadata teca_temporal_index_select::get_output_metadata(unsigned int port,
             return md_out;
         }
         // get the incoming time values
-        p_teca_variant_array t_out = t_in->new_copy();
+        p_teca_variant_array t_out = t_in->new_instance();
         // create the output times by selecting times at the given indices
         t_out->resize(this->indices.size());
-        for ( size_t i = 0; i < this->indices.size(); ++i )
-        {
-            NESTED_TEMPLATE_DISPATCH_FP(
-                const teca_variant_array_impl,
-                t_in.get(), 1,
-                auto sp_t_in = dynamic_cast<TT1*>
-                    (t_in.get())->get_cpu_accessible();
+        NESTED_TEMPLATE_DISPATCH_FP(
+            teca_variant_array_impl,
+            t_in.get(), 1,
+            auto sp_t_in = dynamic_cast<TT1*>
+                (t_in.get())->get_cpu_accessible();
+            auto sp_t_out = dynamic_cast<TT1*>
+                (t_out.get())->get_cpu_accessible();
 
-                const NT1 *p_t_in = sp_t_in.get();
+            const NT1 *p_t_in = sp_t_in.get();
+            NT1 *p_t_out = sp_t_out.get();
+
+            for ( size_t i = 0; i < this->indices.size(); ++i )
+            {
                 // set this time value
-                t_out->set(i, p_t_in[this->indices[i]]);
-            )
-        }
+                p_t_out[i] = p_t_in[this->indices[i]];
+            }
+        )
 
         // overwrite the coordinates
         coords.set("t", t_out);
@@ -160,9 +164,13 @@ std::vector<teca_metadata> teca_temporal_index_select::get_upstream_request(
             // check that this index is valid
             if ( i >= this->indices.size() )
             {
-                std::cerr << "index_request_key: " << 
-                    index_extent[0] << ":" << index_extent[1];
-                TECA_FATAL_ERROR("Bad request: list index " << i << " is out of bounds of the index list of size " << this->indices.size())
+                TECA_FATAL_ERROR(
+                    << "index_request_key: " << 
+                    index_extent[0] << ":" << index_extent[1]
+                    << std::endl
+                    << "Bad request: list index " << i 
+                    << " is out of bounds of the index list of size "
+                    << this->indices.size())
             }
 
             // copy the incoming request
@@ -198,6 +206,9 @@ const_p_teca_dataset teca_temporal_index_select::execute(unsigned int port,
     (void)port;
     (void)request;
 
+    std::ostringstream oss;
+
+
     // check for valid incoming data
     if (input_data.size() == 0)
     {
@@ -215,6 +226,30 @@ const_p_teca_dataset teca_temporal_index_select::execute(unsigned int port,
         return nullptr;
     }
 
+    // get the key for the time indices requested
+    std::string key;
+    if (request.get("index_request_key", key))
+    {
+        TECA_FATAL_ERROR("failed to get index request key")
+        return nullptr;
+    }
+
+    size_t index_extent[2];
+    request.get(key, index_extent);
+    if ( this->get_verbose() )
+    {
+        std::vector<long long> ind_request;
+        for (size_t i = index_extent[0]; i <= index_extent[1]; ++i)
+        {
+            ind_request.push_back(this->indices[i]);
+        }
+        oss << "Mapping request " << index_extent[0] << ":" << index_extent[1]
+            << " to indices " << ind_request;
+        
+        TECA_STATUS(<< oss.str())
+
+    }
+
     // create the output mesh
     p_teca_mesh out_mesh = std::static_pointer_cast<teca_mesh>
         (std::const_pointer_cast<teca_mesh>(in_mesh)->new_shallow_copy());
@@ -226,8 +261,7 @@ const_p_teca_dataset teca_temporal_index_select::execute(unsigned int port,
 
         // get the arrays and their names
         p_teca_array_collection arrays = out_mesh->get_point_arrays();
-        std::vector<std::string> array_names;
-        request.get("arrays", array_names);
+        std::vector<std::string> array_names = arrays->get_names();
         // pass the output mesh through if there are no arrays
         if ( array_names.size() == 0 ) return out_mesh;
 
@@ -244,7 +278,31 @@ const_p_teca_dataset teca_temporal_index_select::execute(unsigned int port,
             size_t nxyzt = nxyz * input_data.size();
 
             // pre-allocate the output array
-            p_teca_variant_array array_out = array_in->new_instance();
+            p_teca_variant_array array_out;
+            int device_id = -1;
+#if defined(TECA_HAS_CUDA)
+            request.get("device_id",device_id);
+
+            // set the CUDA device to run on
+            cudaError_t ierr = cudaSuccess;
+            if (( ierr = cudaSetDevice(device_id)) != cudaSuccess )
+            {
+                TECA_ERROR("Failed to set the CUDA device to " << device_id
+                    << ". " << cudaGetErrorString(ierr))
+                return out_mesh;   
+            }
+#endif
+            if (device_id == -1)
+            {
+                array_out = array_in->new_instance();
+            }
+#if defined(TECA_HAS_CUDA)
+            else
+            {
+                array_out = array_in->new_instance(
+                    teca_variant_array::allocator::cuda);
+            }
+#endif
             // resize the output array so it can accommodate all timesteps
             array_out->resize(nxyzt);
             
@@ -254,8 +312,7 @@ const_p_teca_dataset teca_temporal_index_select::execute(unsigned int port,
                 // get the current timestep's data
                 p_teca_mesh tmp_data = std::static_pointer_cast<teca_mesh>
                     (std::const_pointer_cast<teca_mesh>(
-                    std::dynamic_pointer_cast<const teca_mesh>(input_data[i]))
-                    ->new_shallow_copy());
+                    std::dynamic_pointer_cast<const teca_mesh>(input_data[i])));
 
                 // get the current timestep's array
                 p_teca_variant_array tmp_array = 
@@ -268,24 +325,10 @@ const_p_teca_dataset teca_temporal_index_select::execute(unsigned int port,
             arrays->set(array_name, array_out);
         }
 
-        // override the report of this slab
-        teca_metadata md_out = out_mesh->get_metadata();
-        // get the key for the time indices requested
-        std::string key;
-        if (request.get("index_request_key", key))
-        {
-            TECA_FATAL_ERROR("failed to get index request key")
-            return out_mesh;
-        }
-
         // set the reported time extent to be the same as the request
-        std::vector<size_t> index_extent;
-        request.get(key, index_extent);
-        md_out.set(key, index_extent);
-
-        // update the metadata
-        out_mesh->set_metadata(md_out);
+        out_mesh->set_request_indices(key, index_extent);
     }
+
 
     // return the modifed dataset
     return out_mesh;

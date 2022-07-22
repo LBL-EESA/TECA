@@ -188,6 +188,7 @@ if time_index_file != "" and time_index_file is not None:
     select = teca_temporal_index_select.New()
     select.set_input_connection(cfr.get_output_port())
     select.set_indices(indices)
+    select.set_verbose(1 if verbose > 1 else 0)
 
     # insert this into the pipeline
     upstream = select
