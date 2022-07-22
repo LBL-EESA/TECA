@@ -226,6 +226,28 @@ const_p_teca_dataset teca_temporal_index_select::execute(unsigned int port,
         return nullptr;
     }
 
+    // default to CPU operations
+    int device_id = -1;
+    teca_variant_array::allocator allocator = 
+        teca_variant_array::allocator::malloc;
+#if defined(TECA_HAS_CUDA)
+    request.get("device_id",device_id);
+
+    // set the CUDA device to run on
+    cudaError_t ierr = cudaSuccess;
+    if (( ierr = cudaSetDevice(device_id)) != cudaSuccess )
+    {
+        TECA_ERROR("Failed to set the CUDA device to " << device_id
+            << ". " << cudaGetErrorString(ierr))
+        return nullptr;   
+    }
+    // set the allocator to CUDA if that's the device the data are already on
+    if ( device_id >= 0 )
+    {
+        allocator = teca_variant_array::allocator::cuda;
+    }
+#endif
+
     // get the key for the time indices requested
     std::string key;
     if (request.get("index_request_key", key))
@@ -243,7 +265,8 @@ const_p_teca_dataset teca_temporal_index_select::execute(unsigned int port,
         {
             ind_request.push_back(this->indices[i]);
         }
-        oss << "Mapping request " << index_extent[0] << ":" << index_extent[1]
+        oss << "(device_id=" << device_id << "): "
+            << "Mapping request " << index_extent[0] << ":" << index_extent[1]
             << " to indices " << ind_request;
         
         TECA_STATUS(<< oss.str())
@@ -277,32 +300,10 @@ const_p_teca_dataset teca_temporal_index_select::execute(unsigned int port,
             // set the shape of the output array
             size_t nxyzt = nxyz * input_data.size();
 
-            // pre-allocate the output array
-            p_teca_variant_array array_out;
-            int device_id = -1;
-#if defined(TECA_HAS_CUDA)
-            request.get("device_id",device_id);
+            // pre-allocate the output array on the specified device
+            p_teca_variant_array array_out = 
+                array_in->new_instance(allocator);
 
-            // set the CUDA device to run on
-            cudaError_t ierr = cudaSuccess;
-            if (( ierr = cudaSetDevice(device_id)) != cudaSuccess )
-            {
-                TECA_ERROR("Failed to set the CUDA device to " << device_id
-                    << ". " << cudaGetErrorString(ierr))
-                return out_mesh;   
-            }
-#endif
-            if (device_id == -1)
-            {
-                array_out = array_in->new_instance();
-            }
-#if defined(TECA_HAS_CUDA)
-            else
-            {
-                array_out = array_in->new_instance(
-                    teca_variant_array::allocator::cuda);
-            }
-#endif
             // resize the output array so it can accommodate all timesteps
             array_out->resize(nxyzt);
             
@@ -329,6 +330,7 @@ const_p_teca_dataset teca_temporal_index_select::execute(unsigned int port,
         out_mesh->set_request_indices(key, index_extent);
     }
 
+    TECA_STATUS("Mapping complete.")
 
     // return the modifed dataset
     return out_mesh;
