@@ -182,6 +182,8 @@ TECA_PY_CONST_CAST(teca_array_collection)
 %ignore teca_mesh::operator=;
 %ignore teca_mesh::get_time(double *) const;
 %ignore teca_mesh::get_time_step(unsigned long *) const;
+%ignore teca_mesh::get_temporal_bounds(double *) const;
+%ignore teca_mesh::get_temporal_extent(unsigned long *) const;
 %ignore teca_mesh::set_calendar(std::string const *);
 %ignore teca_mesh::set_time_units(std::string const *);
 %ignore teca_mesh::set_attributes(teca_metadata const *);
@@ -205,6 +207,8 @@ TECA_PY_CONST_CAST(teca_mesh)
 
     TECA_PY_DATASET_METADATA(double, time)
     TECA_PY_DATASET_METADATA(unsigned long, time_step)
+    TECA_PY_DATASET_VECTOR_METADATA(double, temporal_bounds)
+    TECA_PY_DATASET_VECTOR_METADATA(unsigned long, temporal_extent)
     TECA_PY_DATASET_METADATA(std::string, calendar)
     TECA_PY_DATASET_METADATA(std::string, time_units)
 
