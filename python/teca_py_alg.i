@@ -45,7 +45,6 @@
 #include "teca_tc_classify.h"
 #include "teca_tc_trajectory.h"
 #include "teca_tc_wind_radii.h"
-#include "teca_temporal_index_select.h"
 #include "teca_simple_moving_average.h"
 #include "teca_time_axis_convolution.h"
 #include "teca_unpack_data.h"
@@ -514,11 +513,3 @@ struct teca_tc_saffir_simpson
 %shared_ptr(teca_spatial_executive)
 %ignore teca_spatial_executive::operator=;
 %include "teca_spatial_executive.h"
-
-/***************************************************************************
- temporal_index_select
- ***************************************************************************/
-%ignore teca_temporal_index_select::shared_from_this;
-%shared_ptr(teca_temporal_index_select)
-%ignore teca_temporal_index_select::operator=;
-%include "teca_temporal_index_select.h"

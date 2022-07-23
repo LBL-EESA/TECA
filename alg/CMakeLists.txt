@@ -48,7 +48,6 @@ set(teca_alg_cxx_srcs
     teca_tc_classify.cxx
     teca_tc_wind_radii.cxx
     teca_tc_trajectory.cxx
-    teca_temporal_index_select.cxx
     teca_time_axis_convolution.cxx
     teca_simple_moving_average.cxx
     teca_space_time_executive.cxx

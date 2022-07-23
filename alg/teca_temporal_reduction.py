@@ -8,7 +8,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
     Reduce a mesh across the time dimensions by a defined increment using
     a defined operation.
 
-        time increments: daily, monthly, seasonal, all
+        time increments: daily, monthly, seasonal
         reduction operators: average, min, max
 
     The output time axis will be defined using the selected increment.
@@ -445,29 +445,6 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
                 return teca_temporal_reduction. \
                     time_interval(self.time[i0], i0, i1)
 
-        class all_iterator:
-            """ An iterator over all time steps """
-
-            def __init__(self, t, units, calendar):
-                self.time = t
-                self.index = 0
-
-            def __iter__(self):
-                return self
-
-            def __next__(self):
-
-                i0 = self.index
-                i1 = self.index + len(self.time) - 1
-
-                if i0 != 0:
-                    raise StopIteration
-
-                self.index = i1
-
-                return teca_temporal_reduction. \
-                    time_interval(self.time[i0], i0, i1)
-
         class season_iterator:
             """
             An iterator over seasons (DJF, MAM, JJA, SON) between 2
@@ -822,7 +799,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
                     interval_iterator_collection. \
                         season_iterator(t, units, calendar)
 
-            elif interval == 'monthly':
+            if interval == 'monthly':
 
                 return teca_temporal_reduction. \
                     interval_iterator_collection. \
@@ -834,13 +811,6 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
                     interval_iterator_collection. \
                         day_iterator(t, units, calendar)
 
-            elif interval == 'all':
-
-                return teca_temporal_reduction. \
-                    interval_iterator_collection. \
-                        all_iterator(t, units, calendar)
-
-
             elif (pos := interval.rfind('_steps')) > 0:
 
                 n_steps = int(interval[0:pos])
@@ -851,7 +821,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
 
             else:
 
-                raise RuntimeError('Invalid interval %s' % (interval))
+                raise RuntimeError('Invlid interval %s' % (interval))
 
 
     def __init__(self):
