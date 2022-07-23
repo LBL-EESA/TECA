@@ -232,6 +232,8 @@ TECA_PY_CONST_CAST(teca_mesh)
 %ignore teca_cartesian_mesh::set_y_coordinate_variable(std::string const *);
 %ignore teca_cartesian_mesh::set_z_coordinate_variable(std::string const *);
 %ignore teca_cartesian_mesh::set_t_coordinate_variable(std::string const *);
+%ignore teca_cartesian_mesh::get_array_extent(const char *, unsigned long [8]);
+%ignore teca_cartesian_mesh::get_array_shape(const char *, unsigned long [4]);
 %include "teca_cartesian_mesh.h"
 TECA_PY_DYNAMIC_CAST(teca_cartesian_mesh, teca_dataset)
 TECA_PY_CONST_CAST(teca_cartesian_mesh)
@@ -252,6 +254,46 @@ TECA_PY_CONST_CAST(teca_cartesian_mesh)
     TECA_PY_DATASET_METADATA(std::string, y_coordinate_variable)
     TECA_PY_DATASET_METADATA(std::string, z_coordinate_variable)
     TECA_PY_DATASET_METADATA(std::string, t_coordinate_variable)
+
+    // returns a tuple containing the extent
+    PyObject *get_array_extent(const char *name)
+    {
+        teca_py_gil_state gil;
+
+        unsigned long extent[8] = {0lu};
+        if (self->get_array_extent(name, extent) < 0)
+        {
+            TECA_PY_ERROR(PyExc_RuntimeError,
+                "Failed to get the extent for array \"" << name << "\"")
+            return nullptr;
+        }
+
+        PyObject *extent_out = PyTuple_New(8);
+        for (int i = 0; i < 8; ++i)
+            PyTuple_SET_ITEM(extent_out, i, PyLong_FromLong(extent[i]));
+
+        return extent_out;
+    }
+
+    // returns a tuple containing the shape
+    PyObject *get_array_shape(const char *name)
+    {
+        teca_py_gil_state gil;
+
+        unsigned long shape[4] = {0lu};
+        if (self->get_array_shape(name, shape) < 0)
+        {
+            TECA_PY_ERROR(PyExc_RuntimeError,
+                "Failed to get the shape for array \"" << name << "\"")
+            return nullptr;
+        }
+
+        PyObject *shape_out = PyTuple_New(4);
+        for (int i = 0; i < 4; ++i)
+            PyTuple_SET_ITEM(shape_out, i, PyLong_FromLong(shape[i]));
+
+        return shape_out;
+    }
 }
 
 /***************************************************************************

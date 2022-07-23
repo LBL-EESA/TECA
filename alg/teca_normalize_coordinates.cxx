@@ -340,11 +340,11 @@ int internals::periodic_shift_x(p_teca_array_collection data,
             return -1;
         }
 
-        unsigned long array_extent_in[6] = {0ul};
+        unsigned long array_extent_in[8] = {0ul};
         teca_metadata_util::get_array_extent(array_attributes,
             extent_in, array_extent_in);
 
-        unsigned long array_extent_out[6] = {0ul};
+        unsigned long array_extent_out[8] = {0ul};
         teca_metadata_util::get_array_extent(array_attributes,
             extent_out, array_extent_out);
 
@@ -410,7 +410,7 @@ int internals::ascending_order_y(p_teca_array_collection data,
         const std::string &array_name = data->get_name(l);
 
         // get the extent of the array
-        unsigned long array_extent[6] = {0ul};
+        unsigned long array_extent[8] = {0ul};
 
         teca_metadata array_attributes;
         if (attributes.get(array_name, array_attributes))

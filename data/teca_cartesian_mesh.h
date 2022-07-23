@@ -36,7 +36,16 @@ public:
      * have_mesh_dims flag is missing. The latter is not necessarily an error.
      */
     int get_array_extent(const std::string &array_name,
-        unsigned long array_extent[6]);
+        unsigned long array_extent[8]);
+
+    /** Get the shape of the named array, taking into account the variable's
+     * dimensions as opposed to the mesh's dimensions.  For instance the mesh
+     * extent may represent a volume while a variables extent may represent a
+     * slice. returns 0 if successful, -1 if an error occurred, 1 if the
+     * have_mesh_dims flag is missing. The latter is not necessarily an error.
+     */
+    int get_array_shape(const std::string &array_name,
+        unsigned long array_shape[4]);
 
     /// get the number of points in the mesh
     unsigned long get_number_of_points() const override;
