@@ -14,6 +14,13 @@
 
 #if defined(TECA_HAS_UDUNITS)
 #include "teca_calcalcs.h"
+
+#include "teca_calendar_util.h"
+
+using teca_calendar_util::day_iterator;
+using teca_calendar_util::month_iterator;
+using teca_calendar_util::season_iterator;
+using teca_calendar_util::year_iterator;
 #endif
 
 #include <vector>
@@ -26,6 +33,29 @@
 
 using namespace std;
 using boost::program_options::value;
+
+#if defined(TECA_HAS_UDUNITS)
+// --------------------------------------------------------------------------
+template <typename it_t>
+long count(const const_p_teca_variant_array &time,
+    const std::string &calendar, const std::string &units, long i0, long i1)
+{
+    it_t it;
+
+    if (it.initialize(time, units, calendar, i0, i1))
+        return -1;
+
+    long n_int = 0;
+    while (it)
+    {
+        teca_calendar_util::time_point p0, p1;
+        it.get_next_interval(p0, p1);
+        ++n_int;
+    }
+
+    return n_int;
+}
+#endif
 
 // --------------------------------------------------------------------------
 int main(int argc, char **argv)
@@ -325,8 +355,23 @@ int main(int argc, char **argv)
         {
             oss << " The requested range contains " << i1 - i0 + 1 << " time steps and ranges from "
                 << time_i << " (" << time->get(i0) << ") to " << time_j << " (" << time->get(i1) << ") "
-                << "), starts at time step " << i0 << " and goes to time step " << i1;
+                << "), starts at time step " << i0 << " and goes to time step " << i1 << ".";
         }
+
+#if defined(TECA_HAS_UDUNITS)
+        oss << " The available data contains:";
+        if (long ny = count<year_iterator>(time, calendar, units, i0, i1))
+            oss << " " << ny << " years;";
+
+        if (long ns = count<season_iterator>(time, calendar, units, i0, i1))
+            oss << " " << ns << " seasons;";
+
+        if (long nm = count<month_iterator>(time, calendar, units, i0, i1))
+            oss << " " << nm << " months;";
+
+        if (long nd = count<day_iterator>(time, calendar, units, i0, i1))
+            oss << " " << nd << " days;";
+#endif
 
         std::string report(oss.str());
 
