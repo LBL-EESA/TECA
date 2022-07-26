@@ -34,6 +34,9 @@ parser.add_argument('--input_regex', type=str, required=False,
                          ' using the teca_cf_reader. Use one of either'
                          ' --input_file or --input_regex.')
 
+parser.add_argument('--time_index_file', type = str, required=False,
+                    help='a text file containing specific time indices to use in the average; each row should have a single integer time value that is within the bounds of the input dataset.')
+
 parser.add_argument('--interval', type=str, default='monthly',
                     help='interval to reduce the time axis to. One of '
                          'daily, monthly, or seasonal')
@@ -127,6 +130,7 @@ else:
     partitioner = teca_cf_writer.temporal
 spatial_partitions = args.spatial_partitions
 verbose = args.verbose
+time_index_file = args.time_index_file
 
 # give each MPI rank a GPU
 n_threads = 1
@@ -158,8 +162,41 @@ cfr.set_y_axis_variable(y_axis_var)
 cfr.set_z_axis_variable(z_axis_var)
 cfr.set_t_axis_variable(t_axis_var)
 
+if time_index_file != "" and time_index_file is not None:
+    if not os.path.exists(time_index_file):
+        if rank == 0:
+            raise RuntimeError(f"Could not find file {time_index_file}")
+
+    if rank == 0:
+        # read the time index file
+        with open(time_index_file) as fin:
+            file_lines = [ l.rstrip() for l in fin.readlines()]
+        
+        # convert the time indices to a list of integers
+        try:
+            indices = [int(l) for l in file_lines]
+        except:
+            raise RuntimeError(f"Failed to parse {time_index_file}; "
+                "the file should have a single integer index per row")
+    else:
+        indices = []
+
+    # broadcast the time indices
+    indices = MPI.COMM_WORLD.bcast(indices, root = 0)
+
+    # add the temporal index selection pipeline stage
+    select = teca_temporal_index_select.New()
+    select.set_input_connection(cfr.get_output_port())
+    select.set_indices(indices)
+    select.set_verbose(1 if verbose > 1 else 0)
+
+    # insert this into the pipeline
+    upstream = select
+else:
+    upstream = cfr
+
 vvm = teca_valid_value_mask.New()
-vvm.set_input_connection(cfr.get_output_port())
+vvm.set_input_connection(upstream.get_output_port())
 vvm.set_verbose(1 if verbose > 1 else 0)
 
 upd = teca_unpack_data.New()
