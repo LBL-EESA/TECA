@@ -536,3 +536,8 @@ struct teca_tc_saffir_simpson
  temporal_percentile
  ***************************************************************************/
 %pythoncode "teca_temporal_percentile.py"
+
+/***************************************************************************
+ spectral_filter
+ ***************************************************************************/
+%pythoncode "teca_spectral_filter.py"
