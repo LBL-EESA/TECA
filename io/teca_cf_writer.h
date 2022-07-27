@@ -280,7 +280,7 @@ public:
 
     /** @name temporal_partition_size
      * Set the size of the temporal partitions. If set to less than one then the
-     * number_of_temporal_partition proerty is used instead. The default value is
+     * number_of_temporal_partition property is used instead. The default value is
      * zero.
      */
     ///@{
