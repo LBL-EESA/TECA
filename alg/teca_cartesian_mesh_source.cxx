@@ -756,11 +756,10 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
 
     // get the calendar
     std::string calendar;
+    this->t_axis_attributes.get("calendar", calendar);
+
     std::string units;
-    teca_metadata atts;
-    this->internals->metadata.get("attributes", atts);
-    atts.get("calendar", calendar);
-    atts.get("units", units);
+    this->t_axis_attributes.get("units", units);
 
     // set metadata
     mesh->set_whole_extent(md_whole_extent);
@@ -816,6 +815,8 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
     }
 
     // pass the attributes
+    teca_metadata atts;
+    this->internals->metadata.get("attributes", atts);
     mesh_md.set("attributes", atts);
 
     if (this->get_verbose())
