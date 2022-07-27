@@ -280,6 +280,35 @@ teca_add_test(py_test_custom_temporal_reduction
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
+teca_add_test(py_test_temporal_monthly_percentile
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_percentile.py
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc"
+    "." "${TECA_DATA_ROOT}/test_temporal_reduction_prw" monthly 50 0 prw
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
+    REQ_TECA_DATA)
+
+teca_add_test(py_test_temporal_monthly_percentile_vv
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_percentile.py
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc"
+    "." "${TECA_DATA_ROOT}/test_temporal_reduction_prw" monthly 50 1 prw
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
+    REQ_TECA_DATA)
+
+teca_add_test(py_test_temporal_monthly_percentile_mpi
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_percentile.py
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc"
+    "." "${TECA_DATA_ROOT}/test_temporal_reduction_prw" monthly 50 0 prw
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(py_test_temporal_monthly_percentile_vv_mpi
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_percentile.py
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc"
+    "." "${TECA_DATA_ROOT}/test_temporal_reduction_prw" monthly 50 1 prw
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
 
 teca_add_test(py_test_tc_candidates_serial
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_candidates.py

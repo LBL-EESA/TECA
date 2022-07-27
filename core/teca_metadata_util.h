@@ -21,7 +21,7 @@ namespace teca_metadata_util
  */
 TECA_EXPORT
 int get_array_extent(const teca_metadata &array_attributes,
-    const unsigned long mesh_extent[6], unsigned long array_extent[6]);
+    const unsigned long mesh_extent[8], unsigned long array_extent[8]);
 
 /** Get the requested index extent from the request.
  *

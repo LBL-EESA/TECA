@@ -522,3 +522,8 @@ struct teca_tc_saffir_simpson
 %shared_ptr(teca_temporal_index_select)
 %ignore teca_temporal_index_select::operator=;
 %include "teca_temporal_index_select.h"
+
+/***************************************************************************
+ temporal_percentile
+ ***************************************************************************/
+%pythoncode "teca_temporal_percentile.py"

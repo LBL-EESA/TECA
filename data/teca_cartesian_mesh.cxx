@@ -139,16 +139,16 @@ void teca_cartesian_mesh::update_z_coordinates(const p_teca_variant_array &array
 
 // --------------------------------------------------------------------------
 int teca_cartesian_mesh::get_array_extent(const std::string &array_name,
-    unsigned long array_extent[6])
+    unsigned long array_extent[8])
 {
     teca_metadata atts;
     teca_metadata array_atts;
-    unsigned long mesh_extent[6] = {0};
-    if (this->get_extent(mesh_extent) || this->get_attributes(atts) ||
-        atts.get(array_name, array_atts))
+    unsigned long mesh_extent[8] = {0};
+    if (this->get_extent(mesh_extent) || this->get_temporal_extent(mesh_extent+6)
+        || this->get_attributes(atts) || atts.get(array_name, array_atts))
     {
-        TECA_ERROR("Cartesian mesh dataset metadata issue. extent,"
-            "attributes, and array attributes for \""
+        TECA_ERROR("Cartesian mesh dataset metadata issue. extent, "
+            "temporal_extent, attributes, and array attributes for \""
             << array_name << "\" are required")
         return -1;
     }
@@ -159,6 +159,25 @@ int teca_cartesian_mesh::get_array_extent(const std::string &array_name,
         // not necessarily an error
         return 1;
     }
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+int teca_cartesian_mesh::get_array_shape(const std::string &array_name,
+    unsigned long array_shape[4])
+{
+    unsigned long array_extent[8] = {0};
+    if (this->get_array_extent(array_name, array_extent) < 0)
+    {
+        TECA_ERROR("Failed to get the shape of \"" << array_name << "\"")
+        return -1;
+    }
+
+    array_shape[0] = array_extent[1] - array_extent[0] + 1;
+    array_shape[1] = array_extent[3] - array_extent[2] + 1;
+    array_shape[2] = array_extent[5] - array_extent[4] + 1;
+    array_shape[3] = array_extent[7] - array_extent[6] + 1;
 
     return 0;
 }
