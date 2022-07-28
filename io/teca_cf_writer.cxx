@@ -87,6 +87,39 @@ void teca_cf_writer::get_properties_description(
         TECA_POPTS_GET(long, prefix, last_step,
             "Set the last time step to process. A value less than 0 results"
             " in all steps being processed.")
+        TECA_POPTS_GET(int, prefix, partitioner,
+            "Selects the partitioner to use. May be one of: \"temporal\","
+            " \"spatial\", or \"space_time\"")
+        TECA_POPTS_GET(int, prefix, index_executive_compatability,
+            "If set and spatial partitioner is enabled, the writer will make"
+            " one request per time step using the index_request_key as the"
+            " teca_index_executive would. This could be used parallelize"
+            " existing algorithms over space and time.")
+        TECA_POPTS_GET(long, prefix, number_of_spatial_partitions,
+            "Sets the number of spatial partitions to create. Use -1 to create one"
+            " partition per MPI rank")
+        TECA_POPTS_GET(int, prefix, partition_x,
+            "Enables/disables spatial partitioning in the x-direction")
+        TECA_POPTS_GET(int, prefix, partition_y,
+            "Enables/disables spatial partitioning in the y-direction")
+        TECA_POPTS_GET(int, prefix, partition_z,
+            "Enables/disables spatial partitioning in the z-direction")
+        TECA_POPTS_GET(long, prefix, minimum_block_size_x,
+            "Sets the minimum block size in the x-direction when partitioning"
+            " spatially.")
+        TECA_POPTS_GET(long, prefix, minimum_block_size_y,
+            "Sets the minimum block size in the y-direction when partitioning"
+            " spatially.")
+        TECA_POPTS_GET(long, prefix, minimum_block_size_z,
+            "Sets the minimum block size in the z-direction when partitioning"
+            " spatially.")
+        TECA_POPTS_GET(long, prefix, number_of_temporal_partitions,
+            "Set the number of temporal partitions. If set to less than one then the"
+            " number of time steps is used. The temporal_partition_size property"
+            " takes precedence, if it is set then the this property is ignored.")
+        TECA_POPTS_GET(long, prefix, temporal_partition_size,
+            "Set the size of the temporal partitions. If set to less than one then"
+            " the number_of_temporal_partition property is used instead.")
         TECA_POPTS_GET(int, prefix, layout,
             "Set the layout for writing files. May be one of : number_of_steps(1),"
             "  daily(2), monthly(3), seasonal(4), or yearly(5)")
@@ -123,6 +156,17 @@ void teca_cf_writer::set_properties(
     TECA_POPTS_SET(opts, std::string, prefix, date_format)
     TECA_POPTS_SET(opts, long, prefix, first_step)
     TECA_POPTS_SET(opts, long, prefix, last_step)
+    TECA_POPTS_SET(opts, int, prefix, partitioner)
+    TECA_POPTS_SET(opts, int, prefix, index_executive_compatability)
+    TECA_POPTS_SET(opts, long, prefix, number_of_spatial_partitions)
+    TECA_POPTS_SET(opts, int, prefix, partition_x)
+    TECA_POPTS_SET(opts, int, prefix, partition_y)
+    TECA_POPTS_SET(opts, int, prefix, partition_z)
+    TECA_POPTS_SET(opts, long, prefix, minimum_block_size_x)
+    TECA_POPTS_SET(opts, long, prefix, minimum_block_size_y)
+    TECA_POPTS_SET(opts, long, prefix, minimum_block_size_z)
+    TECA_POPTS_SET(opts, long, prefix, number_of_temporal_partitions)
+    TECA_POPTS_SET(opts, long, prefix, temporal_partition_size)
     TECA_POPTS_SET(opts, int, prefix, layout)
     TECA_POPTS_SET(opts, unsigned int, prefix, steps_per_file)
     TECA_POPTS_SET(opts, int, prefix, mode_flags)
