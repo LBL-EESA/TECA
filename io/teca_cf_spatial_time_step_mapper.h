@@ -47,6 +47,14 @@ public:
      * @param[in] temporal_partition_size number of time steps per partition or
      *                                    zero to use the number_of_temporal
      *                                    partitons parameter.
+     * @param[in] extent the spatial extent to partition [i0, i1, j0, j1, k0, k1]
+     * @param[in] number_of_spatial_partitons the number of spatial partitons
+     * @param[in] partition_x if zero skip splitting in the x-direction
+     * @param[in] partition_y if zero skip splitting in the y-direction
+     * @param[in] partition_z if zero skip splitting in the z-direction
+     * @param[in] min_block_size_x sets the minimum block size in the x-direction
+     * @param[in] min_block_size_y sets the minimum block size in the y-direction
+     * @param[in] min_block_size_z sets the minimum block size in the z-direction
      * @param[in] it a teca_interval_iterator used to define the temporal layout
      *                                        of the files
      * @param[in] index_executive_compatability forces temporal_partion_size to 1
@@ -59,6 +67,9 @@ public:
         unsigned long number_of_temporal_partitions,
         unsigned long temporal_partition_size, unsigned long *extent,
         unsigned long number_of_spatial_partitions,
+        int partition_x, int partition_y, int partition_z,
+        unsigned long min_block_size_x, unsigned long min_block_size_y,
+        unsigned long min_block_size_z,
         const teca_calendar_util::p_interval_iterator &it,
         int index_executive_compatability, const std::string &index_request_key);
 
