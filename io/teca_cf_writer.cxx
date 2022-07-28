@@ -44,8 +44,10 @@ public:
 // --------------------------------------------------------------------------
 teca_cf_writer::teca_cf_writer() :
     file_name(""), date_format("%F-%HZ"), number_of_spatial_partitions(1),
-    number_of_temporal_partitions(0), temporal_partition_size(0), first_step(0),
-    last_step(-1), layout(monthly), partitioner(temporal),
+    partition_x(0), partition_y(1), partition_z(1),
+    minimum_block_size_x(1), minimum_block_size_y(1), minimum_block_size_z(1),
+    number_of_temporal_partitions(0), temporal_partition_size(0),
+    first_step(0), last_step(-1), layout(monthly), partitioner(temporal),
     index_executive_compatability(0), steps_per_file(128),
     mode_flags(NC_CLOBBER|NC_NETCDF4), use_unlimited_dim(0),
     compression_level(-1), flush_files(0)
@@ -464,7 +466,10 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
 
             if (imap->initialize(comm, first_time_step, last_time_step,
                 n_temporal_partitions, temporal_partition_size, extent,
-                this->number_of_spatial_partitions, it,
+                this->number_of_spatial_partitions,
+                this->partition_x, this->partition_y, this->partition_z,
+                this->minimum_block_size_x, this->minimum_block_size_y,
+                this->minimum_block_size_z, it,
                 this->index_executive_compatability, index_request_key))
             {
                 TECA_FATAL_ERROR("Failed to initialize the interval mapper")
@@ -488,7 +493,10 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
 
             if (imap->initialize(comm, first_time_step, last_time_step,
                 n_temporal_partitions, temporal_partition_size, extent,
-                this->number_of_spatial_partitions, it,
+                this->number_of_spatial_partitions,
+                this->partition_x, this->partition_y, this->partition_z,
+                this->minimum_block_size_x, this->minimum_block_size_y,
+                this->minimum_block_size_z, it,
                 this->index_executive_compatability, index_request_key))
             {
                 TECA_FATAL_ERROR("Failed to initialize the interval mapper")

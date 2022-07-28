@@ -268,8 +268,50 @@ public:
     TECA_ALGORITHM_PROPERTY(long, number_of_spatial_partitions)
     ///@}
 
+    /** @name partition_x
+     * enables/disables spatial partitioning in the x-direction
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, partition_x)
+    ///@}
+
+    /** @name partition_y
+     * enables/disables spatial partitioning in the y-direction
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, partition_y)
+    ///@}
+
+    /** @name partition_z
+     * enables/disables spatial partitioning in the z-direction
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, partition_z)
+    ///@}
+
+    /** @name minimum_block_size_x
+     * Sets the minimum block size for spatial partitioning in the x-direction
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(long, minimum_block_size_x)
+    ///@}
+
+    /** @name minimum_block_size_y
+     * Sets the minimum block size for spatial partitioning in the y-direction
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(long, minimum_block_size_y)
+    ///@}
+
+    /** @name minimum_block_size_z
+     * Sets the minimum block size for spatial partitioning in the z-direction
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(long, minimum_block_size_z)
+    ///@}
+    //
     /** @name number_of_temporal_partitions
-     * Set the number of temoral partitions. If set to less than one then the
+     * Set the number of temporal partitions. If set to less than one then the
      * number of time steps is used. The temporal_partition_size property takes
      * precedence, if it is set then the this property is ignored. The default
      * value is zero.
@@ -287,10 +329,10 @@ public:
     TECA_ALGORITHM_PROPERTY(long, temporal_partition_size)
     ///@}
 
-    /** @name index_executive_compatability
+    /** @name index_executive_compatibility
      * If set and spatial partitioner is enabled, the writer will make one
      * request per time step using the index_request_key as the
-     * teca_index_executive would. This could be used parallelize exsiting
+     * teca_index_executive would. This could be used parallelize existing
      * algorithms over space and time.
      */
     ///@{
@@ -323,6 +365,12 @@ private:
     std::string file_name;
     std::string date_format;
     long number_of_spatial_partitions;
+    int partition_x;
+    int partition_y;
+    int partition_z;
+    long minimum_block_size_x;
+    long minimum_block_size_y;
+    long minimum_block_size_z;
     long number_of_temporal_partitions;
     long temporal_partition_size;
     long first_step;
