@@ -100,6 +100,27 @@ public:
         this->index_executive_compatability = 1;
     }
 
+    /// A flag that enables/disables partitioning in the x-direction
+    void set_partition_x(int val) { this->partition_x = val; }
+
+    /// A flag that enables/disables partitioning in the y-direction
+    void set_partition_y(int val) { this->partition_y = val; }
+
+    /// A flag that enables/disables partitioning in the z-direction
+    void set_partition_z(int val) { this->partition_z = val; }
+
+    /// Sets the minimum block size in the x-direction
+    void set_minimum_block_size_x(unsigned long val)
+    { this->minimum_block_size_x = std::max(1ul, val); }
+
+    /// Sets the minimum block size in the y-direction
+    void set_minimum_block_size_y(unsigned long val)
+    { this->minimum_block_size_y = std::max(1ul, val); }
+
+    /// Sets the minimum block size in the z-direction
+    void set_minimum_block_size_z(unsigned long val)
+    { this->minimum_block_size_z = std::max(1ul, val); }
+
 protected:
     teca_spatial_executive();
 
@@ -112,6 +133,12 @@ private:
     long number_of_temporal_partitions;
     long temporal_partition_size;
     int index_executive_compatability;
+    int partition_x;
+    int partition_y;
+    int partition_z;
+    unsigned long minimum_block_size_x;
+    unsigned long minimum_block_size_y;
+    unsigned long minimum_block_size_z;
     std::vector<unsigned long> extent;
     std::vector<double> bounds;
     std::vector<std::string> arrays;
