@@ -30,10 +30,6 @@ class teca_spectral_filter(teca_python_algorithm):
             raise ValueError('Invalid filter type %s. The filter type may be '
                              'low_pass or high_pass') % (ftype)
 
-        if order < 1 or order > 6:
-            raise ValueError('The filter order should be between 1 and 6 but '
-                             'is %f' % (order))
-
         self.filter_type = ftype
         self.filter_order = order
 
@@ -97,10 +93,8 @@ class teca_spectral_filter(teca_python_algorithm):
         """
         fs2 = sample_rate / 2.
         f = npmod.linspace(-fs2, fs2, n_samples)
-        if high_pass:
-            h =  1. - 1. / npmod.sqrt( 1. + npmod.power( f / critical_freq, 2*order ) )
-        else:
-            h =  1. / npmod.sqrt( 1. + npmod.power( f / critical_freq, 2*order ) )
+        o2 = -2.*order if high_pass else 2.*order
+        h =  1. / npmod.sqrt( 1. + npmod.power( f / critical_freq, o2 ) )
         return h
 
     def report(self, port, rep_in):
