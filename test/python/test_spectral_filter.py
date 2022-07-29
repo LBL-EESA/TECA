@@ -163,8 +163,85 @@ class generate_data(teca_python_algorithm):
 
 
 
+
+
+class plot_data(teca_python_algorithm):
+
+    def __init__(self):
+        self.filter_type = ''
+        self.critical_freq = 0.
+        self.filter_order = 0
+
+    def set_filter_type(self, ftype, fcrit, forder):
+        self.filter_type = ftype
+        self.critical_freq = fcrit
+        self.filter_order = int(forder)
+
+    def execute(self, port, data_in, req_in):
+
+        # get the device to execute on
+        dev = -1
+        npmod = numpy
+        if have_cuda:
+            dev = req_in['device_id']
+            if dev >= 0:
+                npmod = cupy
+                cupy.cuda.Device(dev).use()
+
+        # get the input
+        mesh_in = as_const_teca_cartesian_mesh(data_in[0])
+
+        # allocate the output and copy
+        mesh_out = teca_cartesian_mesh.New()
+        mesh_out.shallow_copy(mesh_in)
+
+        #plot the original and transformed signal
+        t_ext = mesh_out.get_temporal_extent()
+        t_bds = mesh_out.get_temporal_bounds()
+
+        nx,ny,nz,nt = mesh_out.get_array_shape('f_t')
+
+        f_t_in = mesh_out.get_point_arrays().get('f_t').get_cpu_accessible()
+        f_t_in.shape = (nt,nz,ny,nx)
+
+        f_t_out = mesh_out.get_point_arrays().get('f_t_%s'%(ftype)).get_cpu_accessible()
+        f_t_out.shape = (nt,nz,ny,nx)
+
+        t = np.linspace(t_bds[0], t_bds[1], nt)
+
+        plt.figure(figsize=(15,10))
+
+        plt.subplot(2, 1, 1)
+        plt.plot(t, f_t_in[:,0,0,0], 'r-')
+        plt.ylabel('degrees F')
+        plt.xlabel('%s'%(units))
+        plt.title('Temperature', fontweight='bold')
+        plt.grid(True)
+        plt.xlim((t_bds[0], t_bds[1]))
+
+        plt.subplot(2, 1, 2)
+        plt.plot(t, f_t_out[:,0,0,0], 'g-', linewidth=2)
+        plt.ylabel('degrees F')
+        plt.xlabel('%s)'%(units))
+        plt.title('%s(Temperature) order=%d f_c=%.2e Hz'%(self.filter_type, self.filter_order, self.critical_freq), fontweight='bold')
+        plt.grid(True)
+        plt.xlim((t_bds[0], t_bds[1]))
+
+        plt.subplots_adjust(hspace=0.55, left=0.1, right=0.95)
+
+        plt.savefig('test_spectral_filter_%s_%d-%d.png'%(ftype, t_ext[0], t_ext[1]), dpi=150)
+
+        return mesh_out
+
+
+
+
+
+
+
+
 # process the command line
-if not len(sys.argv) == 17:
+if not len(sys.argv) == 18:
     sys.stderr.write('usage: a.out [nx] [ny] [nz] [nt] [t1] '
                      '[A0] [A1] [B] [T0] [T1] [TC] [units] '
                      '[filter type] [test type] [out file] [verbose]\n\n'
@@ -189,9 +266,10 @@ T1 = float(sys.argv[10])
 TC = float(sys.argv[11])
 units = sys.argv[12]
 ftype = sys.argv[13]
-ttype = sys.argv[14]
-out_file = sys.argv[15]
-vrb = int(sys.argv[16])
+order = float(sys.argv[14])
+ttype = sys.argv[15]
+out_file = sys.argv[16]
+vrb = int(sys.argv[17])
 
 seconds_per = get_number_of_seconds(units)
 f0 = 1. / ( T0 * seconds_per )
@@ -220,9 +298,14 @@ gd.set_bias(B)
 filt = teca_spectral_filter.New()
 filt.set_input_connection(gd.get_output_port())
 filt.set_critical_frequency(fc)
-filt.set_filter_type(ftype, 2)
+filt.set_filter_type(ftype, order)
 filt.set_verbose(vrb)
 filt.set_point_arrays(['f_t'])
+
+# plot
+plot = plot_data.New()
+plot.set_input_connection(filt.get_output_port())
+
 
 do_test = 1
 if do_test:
@@ -237,47 +320,20 @@ if do_test:
         exe.set_temporal_partition_size(nt)
 
         dsc_out = teca_dataset_capture.New()
-        dsc_out.set_input_connection(filt.get_output_port())
+        dsc_out.set_input_connection(plot.get_output_port())
         dsc_out.set_executive(exe)
         dsc_out.update()
 
         mesh_out = as_teca_cartesian_mesh(dsc_out.get_dataset())
 
-        f_t_in = mesh_out.get_point_arrays().get('f_t').get_cpu_accessible()
-        f_t_in.shape = (nt,nz,ny,nx)
-
         f_t_out = mesh_out.get_point_arrays().get('f_t_%s'%(ftype)).get_cpu_accessible()
         f_t_out.shape = (nt,nz,ny,nx)
 
         t = np.linspace( 0., t1, nt)
-
-        plt.figure(figsize=(15,10))
-
-        plt.subplot(2, 1, 1)
-        plt.plot(t, f_t_in[:,0,0,0], 'r-')
-        plt.ylabel('degrees F')
-        plt.xlabel('%s'%(units))
-        plt.title('Temperature', fontweight='bold')
-        plt.grid(True)
-        plt.xlim((0., t1))
-
-        plt.subplot(2, 1, 2)
-        plt.plot(t, f_t_out[:,0,0,0], 'g-', linewidth=2)
         if ftype == 'low_pass':
             Y = A0 * np.sin( 2.*pi*f0*t*seconds_per ) + B
         else:
             Y = A1 * np.sin( 2.*pi*f1*t*seconds_per )
-        plt.plot(t, Y, 'k--')
-        plt.ylabel('degrees F')
-        plt.xlabel('%s)'%(units))
-        plt.title('%s(Temperature) f_c=%.2e Hz'%(ftype, fc), fontweight='bold')
-        plt.grid(True)
-        plt.xlim((0., t1))
-
-        plt.subplots_adjust(hspace=0.55, left=0.1, right=0.95)
-
-        plt.savefig('test_spectral_filter_%s.png'%(ftype), dpi=150)
-        #plt.show()
 
         mse = np.sum( (Y - f_t_out[:,0,0,0])**2 ) / nt
         sys.stderr.write('MSE = %g\n' % (mse))
@@ -301,7 +357,7 @@ if do_test:
 
         diff = teca_dataset_diff.New()
         diff.set_input_connection(0, baseline_reader.get_output_port())
-        diff.set_input_connection(1, filt.get_output_port())
+        diff.set_input_connection(1, plot.get_output_port())
         diff.set_executive(exe)
         diff.set_verbose(vrb)
         diff.update()
@@ -310,14 +366,14 @@ if do_test:
 else:
     # make a baseline
     if rank == 0:
-        sys.stdout.write('generating baseline %s...\n'%(baseline))
+        sys.stdout.write('generating baseline %s...\n'%(out_file))
 
     # write the data
     wex = teca_index_executive.New()
     wex.set_verbose(vrb)
 
     cfw = teca_cf_writer.New()
-    cfw.set_input_connection(filt.get_output_port())
+    cfw.set_input_connection(plot.get_output_port())
     cfw.set_partitioner_to_spatial()
     cfw.set_temporal_partition_size(nt//2)
     cfw.set_verbose(1)
