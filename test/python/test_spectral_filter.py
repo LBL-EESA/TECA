@@ -1,14 +1,19 @@
+import sys,os
 try:
     from mpi4py import MPI
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
 except ImportError:
     rank = 0
+
+# give each MPI rank a GPU
+if not 'TECA_RANKS_PER_DEVICE' in os.environ:
+    os.environ['TECA_RANKS_PER_DEVICE'] = '-1'
+
 from teca import *
 
 import matplotlib as mpl
 mpl.use('Agg')
-
 import matplotlib.pyplot as plt
 
 have_cuda = get_teca_has_cuda() and get_teca_has_cupy()
@@ -238,8 +243,6 @@ class plot_data(teca_python_algorithm):
 
 
 
-
-
 # process the command line
 if not len(sys.argv) == 18:
     sys.stderr.write('usage: a.out [nx] [ny] [nz] [nt] [t1] '
@@ -297,8 +300,7 @@ gd.set_bias(B)
 # filter
 filt = teca_spectral_filter.New()
 filt.set_input_connection(gd.get_output_port())
-filt.set_critical_frequency(fc)
-filt.set_filter_type(ftype, order)
+filt.set_filter_parameters(ftype, order, TC, units)
 filt.set_verbose(vrb)
 filt.set_point_arrays(['f_t'])
 

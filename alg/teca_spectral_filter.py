@@ -21,10 +21,11 @@ class teca_spectral_filter(teca_python_algorithm):
         self.point_arrays = []
         self.pass_input_arrays = True
 
-    def set_filter_type(self, ftype, order):
-        """ set the filter type. The filter type can be low_pass or high_pass.
-        The order is typically a ordinal between 1 and 6.  A ValueError is
-        raised when unsupported filter type is encountered """
+    def set_filter_parameters(self, ftype, order, period, units):
+        """ set the filter type, order, and critical frequency. The frequnecy
+        is computed from a period and units specification. The filter type can
+        be low_pass or high_pass. The units can be days, hours, minutes, or
+        seconds """
 
         if ftype != 'low_pass' and ftype != 'high_pass':
             raise ValueError('Invalid filter type %s. The filter type may be '
@@ -32,18 +33,19 @@ class teca_spectral_filter(teca_python_algorithm):
 
         self.filter_type = ftype
         self.filter_order = order
-
-    def set_critical_period(self, period, units):
-        """ Set the filter's critical frequency from a period given in the
-        specified units. The units may be seconds, minutes, hours or days. This
-        could be used to filter on scales of familiar units. Eg. 3 days """
-
         self.critical_frequency = 1. / ( period * self.get_number_of_seconds(units) )
 
-    def set_critical_frequency(self, freq):
-        """ Set the filter's critical frequency in units of Hz """
+    def set_filter_parameters_hz(self, ftype, order, fcrit):
+        """ set the filter type, order, and critical frequency in Hz. The
+        filter type can be low_pass or high_pass. """
 
-        self.critical_frequency = freq
+        if ftype != 'low_pass' and ftype != 'high_pass':
+            raise ValueError('Invalid filter type %s. The filter type may be '
+                             'low_pass or high_pass') % (ftype)
+
+        self.filter_type = ftype
+        self.filter_order = order
+        self.critical_frequency = fcrit
 
     def set_pass_input_arrays(self, pass_in):
         """ When set to True the input arrays will be included in the output.
@@ -110,7 +112,9 @@ class teca_spectral_filter(teca_python_algorithm):
 
             # add filter parameters to the description
             array_atts = attributes[array_in]
-            array_atts['description'] += '(%s filtered f_crit = %g)' % (
+
+            descr = array_atts['description'] if array_atts.has('descritpion') else ''
+            array_atts['description'] = descr + '(%s filtered f_crit = %g)' % (
                                          self.filter_type, self.critical_frequency)
 
             # rename if passing the input through
@@ -198,8 +202,8 @@ class teca_spectral_filter(teca_python_algorithm):
         high_pass = 1 if self.filter_type == 'high_pass' else 0
 
         H = self.butterworth(npmod, win_size, sample_rate,
-                        self.critical_frequency, self.filter_order,
-                        high_pass)
+                             self.critical_frequency, self.filter_order,
+                             high_pass)
 
         # reshape so that numpy broadcasting works
         H.shape = [win_size, 1, 1, 1]
@@ -230,7 +234,7 @@ class teca_spectral_filter(teca_python_algorithm):
             array_name_out = array_name_in + '_' + self.filter_type
 
             arrays_out[array_name_out] = npmod.ravel( npmod.array(
-                                            array_out.real, copy=True) )
+                array_out.real, copy=True, dtype=array_in.dtype ) )
 
         # report what was done
         if self.get_verbose() and rank == 0:
