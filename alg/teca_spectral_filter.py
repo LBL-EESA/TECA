@@ -6,17 +6,16 @@ if get_teca_has_cuda() and get_teca_has_cupy():
 
 
 class teca_spectral_filter(teca_python_algorithm):
-    """
-    Filters data point-wise in the time domain using spectral analysis.
-    Enable spatial parallelism and set an appropriate window size.
-    """
+    """ Apply a low or high-pass Butterworth filter point-wise. The window size
+    should be set to the entire time domain to avoid edge affects. Use spatial
+    parallelism and more MPI ranks for larger data.  """
 
     def __init__(self):
         """ initialize the class with defaults """
 
         self.have_cuda = get_teca_has_cuda() and get_teca_has_cupy()
         self.filter_type = 'low_pass'
-        self.filter_order = 2.
+        self.filter_order = 0
         self.critical_frequency = 0.
         self.point_arrays = []
         self.pass_input_arrays = True
@@ -82,21 +81,41 @@ class teca_spectral_filter(teca_python_algorithm):
 
     @staticmethod
     def butterworth(npmod, n_samples, sample_rate, critical_freq, order, high_pass):
-        """
-        Generate a Butterworth filter that can be multiplied with a signal in
-        the frequency domain.
+        """ Generate the frequency response for a Butterworth filter of the given
+        order.
 
         npmod - the compute module (numpy or cupy)
         n_samples - filter size in number of samples
         sample_rate - sample rate in Hz
         critical_freq - cut off frequency in Hz
         order - filter order
-        high_pass - if true the high pass version is generated
-        """
+        high_pass - if true the high pass version is generated """
         fs2 = sample_rate / 2.
-        f = npmod.linspace(-fs2, fs2, n_samples)
+        f = npmod.linspace(-fs2, fs2, n_samples, dtype=npmod.float64)
         o2 = -2.*order if high_pass else 2.*order
         h =  1. / npmod.sqrt( 1. + npmod.power( f / critical_freq, o2 ) )
+        return h
+
+    @staticmethod
+    def butterworth_ideal(npmod, n_samples, sample_rate, critical_freq, high_pass):
+        """ Generate the frequency response for a Butterworth filter of
+        infinite order.
+
+        npmod - the compute module (numpy or cupy)
+        n_samples - filter size in number of samples
+        sample_rate - sample rate in Hz
+        critical_freq - cut off frequency in Hz
+        order - filter order
+        high_pass - if true the high pass version is generated """
+        fs2 = sample_rate / 2.
+        f = npmod.linspace(-fs2, fs2, n_samples, dtype=npmod.float64)
+        h = npmod.zeros(n_samples, dtype=npmod.float64)
+        modf = npmod.abs(f)
+        if high_pass:
+            mask = npmod.where(modf > critical_freq, True, False)
+        else:
+            mask = npmod.where(modf < critical_freq, True, False)
+        h[mask] = 1.
         return h
 
     def report(self, port, rep_in):
@@ -115,7 +134,7 @@ class teca_spectral_filter(teca_python_algorithm):
 
             descr = array_atts['description'] if array_atts.has('descritpion') else ''
             array_atts['description'] = descr + '(%s filtered f_crit = %g)' % (
-                                         self.filter_type, self.critical_frequency)
+                                        self.filter_type, self.critical_frequency)
 
             # rename if passing the input through
             array_out = array_in
@@ -201,9 +220,13 @@ class teca_spectral_filter(teca_python_algorithm):
         # generate the filter kernel
         high_pass = 1 if self.filter_type == 'high_pass' else 0
 
-        H = self.butterworth(npmod, win_size, sample_rate,
-                             self.critical_frequency, self.filter_order,
-                             high_pass)
+        if self.filter_order < 1:
+            H = self.butterworth_ideal(npmod, win_size, sample_rate,
+                                       self.critical_frequency, high_pass)
+        else:
+            H = self.butterworth(npmod, win_size, sample_rate,
+                                 self.critical_frequency, self.filter_order,
+                                 high_pass)
 
         # reshape so that numpy broadcasting works
         H.shape = [win_size, 1, 1, 1]

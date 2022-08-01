@@ -539,40 +539,10 @@ teca_add_test(py_test_lapse_rate
 
 teca_add_test(py_test_spectral_filter_low_pass_analytic
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_spectral_filter.py
-    90 45 2 1000 364 35 15 50 365 1 100 days low_pass 8 analytic
+    90 45 2 1000 364 35 15 50 365 1 100 days low_pass 0 analytic
     "${TECA_DATA_ROOT}/test_spectral_filter_low_pass" 1)
 
 teca_add_test(py_test_spectral_filter_high_pass_analytic
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_spectral_filter.py
-    90 45 2 1000 364 35 15 50 365 1 100 days high_pass 8 analytic
+    90 45 2 1000 364 35 15 50 365 1 100 days high_pass 0 analytic
     "${TECA_DATA_ROOT}/test_spectral_filter_high_pass" 1)
-
-teca_add_test(py_test_spectral_filter_low_pass_emperic
-    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_spectral_filter.py
-    90 45 2 1000 364 35 15 50 365 1 100 days low_pass 8 emperic
-    "${TECA_DATA_ROOT}/test_spectral_filter_low_pass" 1
-    FEATURES ${TECA_HAS_NETCDF}
-    REQ_TECA_DATA)
-
-teca_add_test(py_test_spectral_filter_high_pass_emperic
-    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_spectral_filter.py
-    90 45 2 1000 364 35 15 50 365 1 100 days high_pass 8 emperic
-    "${TECA_DATA_ROOT}/test_spectral_filter_high_pass" 1
-    FEATURES ${TECA_HAS_NETCDF}
-    REQ_TECA_DATA)
-
-teca_add_test(py_test_spectral_filter_low_pass_emperic_mpi
-    COMMAND ${MPIEXEC} -n ${TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_spectral_filter.py
-    90 45 2 1000 364 35 15 50 365 1 100 days low_pass 8 emperic
-    "${TECA_DATA_ROOT}/test_spectral_filter_low_pass" 1
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
-    REQ_TECA_DATA)
-
-teca_add_test(py_test_spectral_filter_high_pass_emperic_mpi
-    COMMAND ${MPIEXEC} -n ${TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_spectral_filter.py
-    90 45 2 1000 364 35 15 50 365 1 100 days high_pass 8 emperic
-    "${TECA_DATA_ROOT}/test_spectral_filter_high_pass" 1
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
-    REQ_TECA_DATA)
