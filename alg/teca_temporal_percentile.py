@@ -223,9 +223,6 @@ class teca_temporal_percentile(teca_python_algorithm):
             atts['description'] = '%s %dth percentile of %s' % (
                 self.interval_name, self.percentile, array)
 
-            # update the type, numpy always uses float64
-            atts['type_code'] = teca_double_array_code.get()
-
             out_atts[array] = atts
 
         # update time axis
@@ -284,14 +281,12 @@ class teca_temporal_percentile(teca_python_algorithm):
             if array not in req_arrays:
                 req_arrays.append(array)
 
-            fill_value = None
-            vv_mask = array + '_valid'
-
-            if (vv_mask in vars_in) \
-                and (vv_mask not in req_arrays):
-                # request the associated valid value mask
-                req_arrays.append(vv_mask)
-
+            # request the associated valid value mask
+            if self.use_fill_value:
+                vv_mask = array + '_valid'
+                if (vv_mask in vars_in) \
+                    and (vv_mask not in req_arrays):
+                    req_arrays.append(vv_mask)
 
         # generate a request for the range of time steps in the interval
         up_reqs = []
@@ -389,8 +384,8 @@ class teca_temporal_percentile(teca_python_algorithm):
 
                 array_out = cupy.percentile(array_in, self.percentile, axis=0)
 
-            # save the result
-            arrays_out[array] = array_out
+            # save the result. Numpy uses float64 so a type conversion may be needed
+            arrays_out[array] = array_out.astype( array_in.dtype )
 
         # fix time
         mesh_out.set_time_step(req_id[0])

@@ -106,6 +106,9 @@ parser.add_argument('--spatial_partitions', type=int, default=0,
                     help='Sets the number of spatial partitions. Use zero for'
                          ' automatic partitioning and 1 for no partitioning')
 
+parser.add_argument('--partition_x', default=False, action='store_true',
+                    help='Partition spatially in the x-direction')
+
 parser.add_argument('--verbose', type=int, default=0,
                     help='enable verbose mode.')
 
@@ -133,6 +136,7 @@ if args.spatial_partitioning:
 else:
     partitioner = teca_cf_writer.temporal
 spatial_partitions = args.spatial_partitions
+partition_x = 1 if args.partition_x else 0
 verbose = args.verbose
 time_index_file = args.time_index_file
 
@@ -150,6 +154,9 @@ if verbose and rank == 0:
     sys.stderr.write('point_arrays=%s\n' % (str(point_arrays)))
     sys.stderr.write('ignore_fill_value=%d\n' % (ignore_fill_value))
     sys.stderr.write('fill_value=%s\n' % (str(fill_value)))
+    sys.stderr.write('spatial_partitioning=%d\n'%(args.spatial_partitioning))
+    sys.stderr.write('spatial_partitions=%d\n' % (spatial_partitions))
+    sys.stderr.write('partition_x=%d\n' % (partition_x))
 
 if args.input_regex:
     cfr = teca_cf_reader.New()
@@ -175,7 +182,7 @@ if time_index_file != "" and time_index_file is not None:
         # read the time index file
         with open(time_index_file) as fin:
             file_lines = [ l.rstrip() for l in fin.readlines()]
-        
+
         # convert the time indices to a list of integers
         try:
             indices = [int(l) for l in file_lines]
@@ -241,6 +248,7 @@ cfw.set_point_arrays(point_arrays)
 cfw.set_index_executive_compatability(1)
 cfw.set_partitioner(partitioner)
 cfw.set_number_of_spatial_partitions(spatial_partitions)
+cfw.set_partition_x(partition_x)
 cfw.update()
 
 teca_profiler.end_event('temporal_reduction')
