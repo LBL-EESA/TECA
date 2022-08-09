@@ -180,8 +180,6 @@ class teca_spectral_filter(teca_python_algorithm):
 
     def execute(self, port, data_in, req):
         """ TECA execute override """
-        exec_start = time.monotonic_ns()
-
         try:
             rank = self.get_communicator().Get_rank()
         except Exception:
@@ -236,6 +234,7 @@ class teca_spectral_filter(teca_python_algorithm):
         arrays_out = mesh_out.get_point_arrays()
 
         for array_name_in in self.point_arrays:
+            wct_0 = time.monotonic_ns()
 
             # get the input array
             if dev < 0:
@@ -259,16 +258,16 @@ class teca_spectral_filter(teca_python_algorithm):
             arrays_out[array_name_out] = npmod.ravel( npmod.array(
                 array_out.real, copy=True, dtype=array_in.dtype ) )
 
-        # report what was done
-        if self.get_verbose() and rank == 0:
-
-            exec_end = time.monotonic_ns()
-
-            sys.stderr.write('[%d] STATUS: teca_spectral_filter::execute '
-                             'win_size=%d sample_rate=%g f_crit=%g order=%f dev=%s'
-                             ' %f sec\n' % (rank, win_size, sample_rate,
-                             self.critical_frequency, self.filter_order,
-                             'CPU' if dev < 0 else 'GPU %d' % (dev),
-                             (exec_end - exec_start) / 1.0e9))
+            # report what was done
+            if self.get_verbose():
+                nc = nx*ny*nz
+                wct_1 = time.monotonic_ns()
+                sys.stderr.write('[%d] STATUS: teca_spectral_filter::execute %s '
+                                 'win_size=%d sample_rate=%g f_crit=%g order=%.0f '
+                                 'n_cells=%d dev=%s completed in %.3f sec\n' % (rank,
+                                 array_name_in, win_size, sample_rate,
+                                 self.critical_frequency, self.filter_order,
+                                 nc, 'CPU' if dev < 0 else 'GPU %d' % (dev),
+                                 (wct_1 - wct_0) / 1.0e9))
 
         return mesh_out
