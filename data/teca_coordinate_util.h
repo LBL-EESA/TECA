@@ -1086,20 +1086,29 @@ spatial_extent_t as_spatial_extent(const T arr[6])
  * and 0 if it failed.
  */
 TECA_EXPORT
-int split(spatial_extent_t &block_1, spatial_extent_t &block_2, int d);
+int split(spatial_extent_t &block_1, spatial_extent_t &block_2,
+    int split_dir, unsigned long min_size);
 
 /** given an input extent, partition it in into a set of n disjoint blocks of
  * approximately the same size covering the input extent.
  *
- * @param[in] extent   the Cartesian iondex space extent top partition
- * @param[in] n_blocks the desired numberof partitions
- * @param[out] blocks  the set of n blocks covering the input extent
+ * @param[in] extent     the Cartesian iondex space extent top partition
+ * @param[in] n_blocks   the desired numberof partitions
+ * @param[in] split_x    if zero skip splitting in the x-direction
+ * @param[in] split_y    if zero skip splitting in the y-direction
+ * @param[in] split_z    if zero skip splitting in the z-direction
+ * @param[in] min_size_x sets the minimum block size in the x-direction
+ * @param[in] min_size_y sets the minimum block size in the y-direction
+ * @param[in] min_size_z sets the minimum block size in the z-direction
+ * @param[out] blocks    the set of n blocks covering the input extent
  *
  * @returns 0 if the input extent could be partitioned into the requested
  * number of blocks.
  */
 TECA_EXPORT
 int partition(const spatial_extent_t &extent, unsigned int n_blocks,
+    int split_x, int split_y, int split_z, unsigned long min_size_x,
+    unsigned long min_size_y, unsigned long min_size_z,
     std::deque<spatial_extent_t> &blocks);
 
 /** Given an inclusive range of time steps [step_0 step_1] partition it into a

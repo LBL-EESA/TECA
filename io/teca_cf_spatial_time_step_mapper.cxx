@@ -169,6 +169,9 @@ int teca_cf_spatial_time_step_mapper::initialize(MPI_Comm comm,
     unsigned long number_of_temporal_partitions,
     unsigned long temporal_partition_size, unsigned long *wextent,
     unsigned long number_of_spatial_partitions,
+    int partition_x, int partition_y, int partition_z,
+    unsigned long min_block_size_x, unsigned long min_block_size_y,
+    unsigned long min_block_size_z,
     const teca_calendar_util::p_interval_iterator &it,
     int index_executive_compatability, const std::string &index_request_key)
 {
@@ -236,8 +239,9 @@ int teca_cf_spatial_time_step_mapper::initialize(MPI_Comm comm,
         number_of_spatial_partitions = n_ranks;
     }
 
-    if (partition(this->whole_extent,
-        number_of_spatial_partitions, this->spatial_partitions))
+    if (partition(this->whole_extent, number_of_spatial_partitions,
+        partition_x, partition_y, partition_z, min_block_size_x,
+        min_block_size_y, min_block_size_z, this->spatial_partitions))
     {
         TECA_ERROR("Failed to partition the spatial domain")
         return -1;

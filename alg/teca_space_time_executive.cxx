@@ -2,6 +2,9 @@
 #include "teca_config.h"
 #include "teca_common.h"
 #include "teca_coordinate_util.h"
+#if defined(TECA_HAS_CUDA)
+#include "teca_cuda_util.h"
+#endif
 
 #include <string>
 #include <sstream>
@@ -17,7 +20,9 @@ using teca_coordinate_util::spatial_extent_t;
 teca_space_time_executive::teca_space_time_executive() : first_step(0),
     last_step(-1), number_of_spatial_partitions(0),
     number_of_temporal_partitions(1), temporal_partition_size(0),
-    index_executive_compatability(0)
+    index_executive_compatability(0), partition_x(1), partition_y(1),
+    partition_z(1), minimum_block_size_x(1), minimum_block_size_y(1),
+    minimum_block_size_z(1)
 {
 }
 
@@ -165,7 +170,10 @@ int teca_space_time_executive::initialize(MPI_Comm comm, const teca_metadata &md
         this->number_of_spatial_partitions : n_ranks);
 
     std::deque<spatial_extent_t> spatial_partition;
-    if (teca_coordinate_util::partition(working_extent, n_spatial, spatial_partition))
+    if (teca_coordinate_util::partition(working_extent, n_spatial,
+        this->partition_x, this->partition_y, this->partition_z,
+        this->minimum_block_size_x, this->minimum_block_size_y,
+        this->minimum_block_size_z, spatial_partition))
     {
         TECA_ERROR("Failed to partition the spatial domain")
         return -1;
@@ -236,6 +244,21 @@ int teca_space_time_executive::initialize(MPI_Comm comm, const teca_metadata &md
         return -1;
     }
 
+    // determine the available CUDA GPUs
+#if defined(TECA_HAS_CUDA)
+    int ranks_per_device = -1;
+    std::vector<int> device_ids;
+    if (teca_cuda_util::get_local_cuda_devices(comm,
+        ranks_per_device, device_ids))
+    {
+        TECA_WARNING("Failed to determine the local CUDA device_ids."
+            " Falling back to the default device.")
+        device_ids.resize(1, 0);
+    }
+    int n_devices = device_ids.size();
+    size_t qq = 0;
+#endif
+
     // consrtuct base request
     teca_metadata base_req;
     base_req.set("arrays", this->arrays);
@@ -248,6 +271,14 @@ int teca_space_time_executive::initialize(MPI_Comm comm, const teca_metadata &md
         size_t j = index / n_spatial;
         size_t i = index % n_spatial;
 
+        int device_id = -1;
+#if defined(TECA_HAS_CUDA)
+        // assign eaach request a device to execute on
+        if (n_devices > 0)
+            device_id = device_ids[qq % n_devices];
+
+        ++qq;
+#endif
         teca_metadata req(base_req);
 
         // request a spatial subset
@@ -255,6 +286,9 @@ int teca_space_time_executive::initialize(MPI_Comm comm, const teca_metadata &md
 
         // request a temporal subset
         req.set(this->index_request_key, temporal_partition[j]);
+
+        // assign a GPU
+        req.set("device_id", device_id);
 
         this->requests.emplace_back(std::move(req));
     }

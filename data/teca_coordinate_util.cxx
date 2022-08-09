@@ -891,16 +891,17 @@ int teca_coordinate_axis_validator::validate_time_axis(std::string &errorStr)
 }
 
 // --------------------------------------------------------------------------
-int split(spatial_extent_t &block_1, spatial_extent_t &block_2, int d)
+int split(spatial_extent_t &block_1, spatial_extent_t &block_2,
+    int split_dir, unsigned long min_size)
 {
     // compute length in this direction
-    int i0 = 2*d;
+    int i0 = 2*split_dir;
     int i1 = i0 + 1;
 
     unsigned long ni = block_1[i1] - block_1[i0] + 1;
 
     // can't split in this direction
-    if (ni < 2)
+    if (ni < 2*min_size)
         return 0;
 
     // compute the new length
@@ -918,29 +919,53 @@ int split(spatial_extent_t &block_1, spatial_extent_t &block_2, int d)
 
 // --------------------------------------------------------------------------
 int partition(const spatial_extent_t &ext, unsigned int n_blocks,
-    std::deque<spatial_extent_t> &blocks)
+    int split_x, int split_y, int split_z,
+    unsigned long min_size_x, unsigned long min_size_y,
+    unsigned long min_size_z, std::deque<spatial_extent_t> &blocks)
 {
     // get the length in each direction
     unsigned long nx = ext[1] - ext[0] + 1;
     unsigned long ny = ext[3] - ext[2] + 1;
     unsigned long nz = ext[5] - ext[4] + 1;
-    unsigned long nxyz = nx*ny*nz;
 
     // check that it is possible to generate the requested number of blocks
-    if (nxyz < n_blocks)
+    unsigned long nbx_max = split_x ? nx / min_size_x + (nx % min_size_x ? 1 : 0) : 1;
+    unsigned long nby_max = split_y ? ny / min_size_y + (ny % min_size_y ? 1 : 0) : 1;
+    unsigned long nbz_max = split_z ? nz / min_size_z + (nz % min_size_z ? 1 : 0) : 1;
+    unsigned long nb_max = nbx_max*nby_max*nbz_max;
+
+    if (nb_max < n_blocks)
     {
-        TECA_ERROR("Can't split " << nxyz << " cells into " << n_blocks)
+        TECA_ERROR("Given the constraints, "
+            << " split_x=" << split_x << " min_size_x=" << min_size_x
+            << " split_y=" << split_y << " min_size_y=" << min_size_y
+            << " split_z=" << split_z << " min_size_z=" << min_size_z
+            << ", it is not possible to partition [" << ext << " into "
+            << n_blocks << " blocks. At most " << nb_max << " can be created")
         return -1;
     }
 
     // which directions can we split in?
     std::vector<int> dirs;
-    if (nx > 1)
-        dirs.push_back(0);
-    if (ny > 1)
-        dirs.push_back(1);
-    if (nz > 1)
+    std::vector<unsigned long> min_size;
+
+    if (split_z && (nz > min_size_z))
+    {
         dirs.push_back(2);
+        min_size.push_back(min_size_z);
+    }
+
+    if (split_y && (ny > min_size_y))
+    {
+        dirs.push_back(1);
+        min_size.push_back(min_size_y);
+    }
+
+    if (split_x && (nx > min_size_x))
+    {
+        dirs.push_back(0);
+        min_size.push_back(min_size_x);
+    }
 
     int n_dirs = dirs.size();
 
@@ -950,6 +975,9 @@ int partition(const spatial_extent_t &ext, unsigned int n_blocks,
     // split each block until the desired number is reached.
     while (blocks.size() < n_blocks)
     {
+        // at least on block should be split in each pass
+        int split_one = 0;
+
         // alternate splitable directions
         for (int d = 0; d < n_dirs; ++d)
         {
@@ -964,14 +992,29 @@ int partition(const spatial_extent_t &ext, unsigned int n_blocks,
                 blocks.pop_front();
 
                 // add the new blocks to the back
-                if (split(b1, b2, dirs[d]))
+                if (split(b1, b2, dirs[d], min_size[d]))
+                {
                     blocks.push_back(b2);
+                    split_one = 1;
+                }
                 blocks.push_back(b1);
 
                 // are we there yet?
                 if (blocks.size() == n_blocks)
                     return 0;
             }
+        }
+
+        // catch infinite loop
+        if (!split_one)
+        {
+            TECA_ERROR("Failed to create any new blocks."
+                << " split_x=" << split_x << " min_size_x=" << min_size_x
+                << " split_y=" << split_y << " min_size_y=" << min_size_y
+                << " split_z=" << split_z << " min_size_z=" << min_size_z
+                << " while partitioning [" << ext << " into " << n_blocks
+                << " blocks")
+            return -1;
         }
     }
 

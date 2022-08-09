@@ -2552,16 +2552,24 @@ teca_temporal_reduction
 -----------------------
 The temporal reduction application applies a reduction operator on the time
 axis of a NetCDF CF2 dataset.  The reduction can be applied over a number of
-specific intervals, for instance daily, monthly, or seasonal intervals.
-Minimum, maximum, and average operators are supported.
+specific intervals, for instance daily, monthly, seasonal, yearly, n_steps, and
+all steps intervals. Minimum, maximum, summation, average, and percentile
+operators are supported.
 
 A rule of thumb for when running in parallel one should size the job such that
-there is a rank per interval. For instance, to apply a reduction that computes
-a monthly time series from a 6 hourly time series spanning 10 years one would
-use 120 ranks. In this case the reduction interval is monthly and one arrives
-at 120 MPI ranks by multiplying: 12 months/year * 10 years. The procedure for
-selecting the number of MPI ranks for other intervals and datasets with
-different time spans is similar.
+there is a rank per output interval. For instance, to apply a reduction that
+computes a monthly time series from a 6 hourly time series spanning 10 years
+one would use 120 ranks. In this case the reduction interval is monthly and one
+arrives at 120 MPI ranks by multiplying: 12 months/year * 10 years. The
+procedure for selecting the number of MPI ranks for other intervals and
+datasets with different time spans is similar.
+
+TECA's Spatial parallelism features allow one to partition the spatial domain
+to increase parallelism. This can be helpful when processing high spatial
+resolution data over long time intervals. With spatial partitioning enabled,
+run the application with a factor N > 1 more MPI ranks than output time
+intervals. In that case the partitioner will create N spatial partitions, one
+per MPI rank.
 
 Inputs
 ~~~~~~
@@ -2577,44 +2585,59 @@ Command Line Arguments
     show this help message and exit
 
 --input_file INPUT_FILE
-    a teca_multi_cf_reader configuration file identifying the set of NetCDF CF2 files to process.
-    When present data is read using the teca_multi_cf_reader. Use one of either --input_file or
-    --input_regex. (default: None)
+    a teca_multi_cf_reader configuration file identifying the set of NetCDF CF2
+    files to process.  When present data is read using the
+    teca_multi_cf_reader. Use one of either --input_file or --input_regex.
+    (default: None)
 
 --input_regex INPUT_REGEX
-    a teca_cf_reader regex identifying the set of NetCDF CF2 files to process. When present data is
-    read using the teca_cf_reader. Use one of either --input_file or --input_regex. (default: None)
+    a teca_cf_reader regex identifying the set of NetCDF CF2 files to process.
+    When present data is read using the teca_cf_reader. Use one of either
+    --input_file or --input_regex. (default: None)
+
+--time_index_file TIME_INDEX_FILE
+    a text file containing specific time indices to use in the average; each
+    row should have a single integer time value that is within the bounds of
+    the input dataset. (default: None)
 
 --interval INTERVAL
-    interval to reduce the time axis to. One of daily, monthly, or seasonal (default: monthly)
+    interval to reduce the time axis to. One of daily, monthly, seasonal,
+    yearly, all, or N_steps where N is replaced with the desired number of
+    steps (default: monthly)
 
 --operator OPERATOR
-    reduction operator to use. One of minimum, maximum, or average (default: average)
+    reduction operator to use. One of minimum, maximum, average, summation, or
+    Nth_percentile, where N is replaced with a number between 0 and 100
+    indicating which percentile is to be computed (default: average)
 
 --point_arrays POINT_ARRAYS [POINT_ARRAYS ...]
     list of point centered arrays to process. (default: None)
 
 --fill_value FILL_VALUE
-    A value that identifies missing or invalid data. Specifying the fill value on the command line
-    overrides array specific fill values stored in the file. (default: None)
+    A value that identifies missing or invalid data. Specifying the fill value
+    on the command line overrides array specific fill values stored in the
+    file. (default: None)
 
 --ignore_fill_value
-    Boolean flag that enables missing or invalid value handling. When enabled NetCDF CF conventions
-    are used to determine fill value. Alternativley one can explicitly provide a fill value on the
-    command line via the --fill_value argument. (default: False)
+    Boolean flag that enables missing or invalid value handling. When enabled
+    NetCDF CF conventions are used to determine fill value. Alternatively one
+    can explicitly provide a fill value on the command line via the
+    --fill_value argument. (default: False)
 
 --output_file OUTPUT_FILE
-    A path and file name pattern for the output NetCDF files. %t% is replaced with a human readable
-    date and time corresponding to the time of the first time step in the file. Use --date_format to
-    change the formatting (default: None)
+    A path and file name pattern for the output NetCDF files. %t% is replaced
+    with a human readable date and time corresponding to the time of the first
+    time step in the file. Use --date_format to change the formatting (default:
+    None)
 
 --file_layout FILE_LAYOUT
-    Selects the size and layout of the set of output files. May be one of number_of_steps, daily,
-    monthly, seasonal, or yearly. Files are structured such that each file contains one of the
-    selected interval. For the number_of_steps option use `--steps_per_file`. (default: yearly)
+    Selects the size and layout of the set of output files. May be one of
+    number_of_steps, daily, monthly, seasonal, or yearly. Files are structured
+    such that each file contains one of the selected interval. For the
+    number_of_steps option use --steps_per_file. (default: yearly)
 
 --steps_per_file STEPS_PER_FILE
-    The number of time steps per output file when `--file_layout number_of_steps` is specified.
+    number of time steps to write to each output file (default: 128)
 
 --x_axis_variable X_AXIS_VARIABLE
     name of the variable to use for x-coordinates (default: lon)
@@ -2623,17 +2646,26 @@ Command Line Arguments
     name of the variable to use for y-coordinates (default: lat)
 
 --z_axis_variable Z_AXIS_VARIABLE
-    name of z coordinate variable. When processing 3D set this to the variable containing vertical
-    coordinates. When empty the data will be treated as 2D. (default: )
+    name of z coordinate variable. When processing 3D set this to the variable
+    containing vertical coordinates. When empty the data will be treated as 2D.
+    (default: )
 
 --t_axis_variable T_AXIS_VARIABLE
     name of the variable to use for t-coordinates (default: time)
 
---n_threads N_THREADS
-    Number of threads to use when stremaing the reduction (default: 2)
+--spatial_partitioning
+    Activates the spatial partitioning engine (default: False)
+
+--spatial_partitions SPATIAL_PARTITIONS
+    Sets the number of spatial partitions. Use zero for automatic partitioning
+    and 1 for no partitioning (default: 0)
+
+--partition_x
+    Partition spatially in the x-direction (default: False)
 
 --verbose VERBOSE
     enable verbose mode. (default: 0)
+
 
 Examples
 ~~~~~~~~
