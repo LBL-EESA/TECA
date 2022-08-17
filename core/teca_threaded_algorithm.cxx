@@ -250,10 +250,10 @@ const_p_teca_dataset teca_threaded_algorithm::request_data(
             int n_tasks_remaining = 0;
             do
             {
-               // get the requested data. will block until it's ready.
-               std::vector<const_p_teca_dataset> input_data;
+                // get the requested data. will block until it's ready.
+                std::vector<const_p_teca_dataset> input_data;
 
-               n_tasks_remaining = this->internals->thread_pool->wait_some(
+                n_tasks_remaining = this->internals->thread_pool->wait_some(
                     this->stream_size, this->poll_interval, input_data);
 
                 // when streaming recycle last round's output, this is
