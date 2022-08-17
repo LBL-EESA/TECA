@@ -1961,10 +1961,12 @@ teca_metadata teca_temporal_reduction::get_output_metadata(
     unsigned int port,
     const std::vector<teca_metadata> &md_in)
 {
-#ifdef TECA_DEBUG
-    std::cerr << teca_parallel_id()
-        << "teca_temporal_reduction::get_output_metadata" << std::endl;
-#endif
+    if (this->get_verbose() > 1)
+    {
+        std::cerr << teca_parallel_id()
+            << "teca_temporal_reduction::get_output_metadata" << std::endl;
+    }
+
     (void)port;
 
     // sanity checks
@@ -2155,10 +2157,12 @@ std::vector<teca_metadata> teca_temporal_reduction::get_upstream_request(
     const std::vector<teca_metadata> &md_in,
     const teca_metadata &req_in)
 {
-#ifdef TECA_DEBUG
-    std::cerr << teca_parallel_id()
-        << "teca_temporal_reduction::get_upstream_request" << std::endl;
-#endif
+    if (this->get_verbose() > 1)
+    {
+        std::cerr << teca_parallel_id()
+            << "teca_temporal_reduction::get_upstream_request" << std::endl;
+    }
+
     (void)port;
 
     const teca_metadata md = md_in[0];
@@ -2271,15 +2275,16 @@ const_p_teca_dataset teca_temporal_reduction::execute(
     int device_id = -1;
     req_in.get("device_id", device_id);
 
-#ifdef TECA_DEBUG
-    std::cerr << teca_parallel_id()
-        << "teca_temporal_reduction::execute request "
-        << req_id[0] << " device " << device_id
-        << " (" << this->internals->indices[req_id[0]].start_index
-        << " - " << this->internals->indices[req_id[0]].end_index
-        << "), reducing " << data_in.size() << ", "
-        << streaming << " remain" << std::endl;
-#endif
+    if (this->get_verbose())
+    {
+        std::cerr << teca_parallel_id()
+            << "teca_temporal_reduction::execute request "
+            << req_id[0] << " device " << device_id
+            << " (" << this->internals->indices[req_id[0]].start_index
+            << " - " << this->internals->indices[req_id[0]].end_index
+            << "), reducing " << data_in.size() << ", "
+            << streaming << " remain" << std::endl;
+    }
 
     size_t n_data = data_in.size();
 
