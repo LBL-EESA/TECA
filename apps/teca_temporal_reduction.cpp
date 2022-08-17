@@ -82,9 +82,10 @@ int main(int argc, char **argv)
         ("t_axis_variable", value<std::string>()->default_value("time"),
             "\nName of the variable to use for t-coordinates.\n")
 
-        ("n_threads", value<int>()->default_value(-1), "\nSets the thread pool size on each"
-            " MPI rank. When the default value of -1 is used TECA will coordinate the thread"
-            " pools across ranks such each thread is bound to a unique physical core.\n")
+        ("n_threads", value<int>()->default_value(-1), "\nSets the thread pool"
+            " size on each MPI rank. When the default value of -1 is used TECA"
+            " will coordinate the thread pools across ranks such each thread"
+            " is bound to a unique physical core.\n")
 
         ("spatial_partitioning", "\nActivates the spatial partitioning engine.\n")
 
@@ -201,12 +202,18 @@ int main(int argc, char **argv)
         cf_reader->set_files_regex(opt_vals["input_regex"].as<string>());
         vv_mask->set_input_connection(cf_reader->get_output_port());
     }
+    if (opt_vals["verbose"].as<int>() > 1)
+       vv_mask->set_verbose(1);
+    else
+       vv_mask->set_verbose(0);
 
     unpack->set_input_connection(vv_mask->get_output_port());
+    unpack->set_verbose(opt_vals["verbose"].as<int>());
 
     red->set_input_connection(unpack->get_output_port());
     red->set_stream_size(2);
-    red->set_thread_pool_size(1);
+    red->set_verbose(opt_vals["verbose"].as<int>());
+    red->set_thread_pool_size(opt_vals["n_threads"].as<int>());
 
     if (!opt_vals["interval"].defaulted())
     {
@@ -234,7 +241,9 @@ int main(int argc, char **argv)
     }
 
     cf_writer->set_input_connection(red->get_output_port());
-    cf_writer->set_thread_pool_size(1);
+    cf_writer->set_stream_size(2);
+    cf_writer->set_verbose(opt_vals["verbose"].as<int>());
+    cf_writer->set_thread_pool_size(opt_vals["n_threads"].as<int>());
 
     if (opt_vals.count("output_file"))
     {
@@ -268,17 +277,6 @@ int main(int argc, char **argv)
     else
     {
         cf_writer->set_partitioner(teca_cf_writer::temporal);
-    }
-
-    if (!opt_vals["verbose"].defaulted())
-    {
-        if (opt_vals["verbose"].as<int>() > 1)
-           vv_mask->set_verbose(1);
-        else
-           vv_mask->set_verbose(0);
-        unpack->set_verbose(opt_vals["verbose"].as<int>());
-        red->set_verbose(opt_vals["verbose"].as<int>());
-        cf_writer->set_verbose(opt_vals["verbose"].as<int>());
     }
 
     cf_writer->update();
