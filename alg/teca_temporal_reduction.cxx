@@ -1937,7 +1937,7 @@ void teca_temporal_reduction::get_properties_description(
             "the value of the NetCDF _FillValue attribute")
         ;
 
-    this->teca_algorithm::get_properties_description(prefix, opts);
+    this->teca_threaded_algorithm::get_properties_description(prefix, opts);
 
     global_opts.add(opts);
 }
@@ -1946,7 +1946,7 @@ void teca_temporal_reduction::get_properties_description(
 void teca_temporal_reduction::set_properties(
     const std::string &prefix, variables_map &opts)
 {
-    this->teca_algorithm::set_properties(prefix, opts);
+    this->teca_threaded_algorithm::set_properties(prefix, opts);
 
     TECA_POPTS_SET(opts, std::vector<std::string>, prefix, point_arrays)
     TECA_POPTS_SET(opts, int, prefix, op)
