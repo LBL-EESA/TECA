@@ -562,6 +562,56 @@ template <typename T>
 __global__
 void finalize(
      T *p_out_array, const char *p_out_valid,
+     double fill_value,
+     unsigned long n_elem)
+{
+    unsigned long i = teca_cuda_util::thread_id_to_array_index();
+
+    if (i >= n_elem)
+        return;
+
+    if (!p_out_valid[i])
+    {
+        p_out_array[i] = fill_value;
+    }
+}
+
+// --------------------------------------------------------------------------
+template <typename T>
+int finalize(
+    int device_id,
+    T *p_out_array, const char *p_out_valid,
+    double fill_value,
+    unsigned long n_elem)
+{
+    // determine kernel launch parameters
+    int n_blocks = 0;
+    dim3 block_grid;
+    dim3 thread_grid;
+    if (teca_cuda_util::partition_thread_blocks(device_id,
+        n_elem, 8, block_grid, n_blocks, thread_grid))
+    {
+        TECA_ERROR("Failed to partition thread blocks")
+        return -1;
+    }
+
+    // launch the finalize kernel
+    cudaError_t ierr = cudaSuccess;
+    finalize<<<block_grid,thread_grid>>>(p_out_array, p_out_valid,
+          fill_value, n_elem);
+    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to launch the finalize CUDA kernel"
+            << cudaGetErrorString(ierr))
+        return -1;
+    }
+    return 0;
+}
+// --------------------------------------------------------------------------
+template <typename T>
+__global__
+void average_finalize(
+     T *p_out_array, const char *p_out_valid,
      T *p_red_array,
      const T *p_count,
      double fill_value,
@@ -585,7 +635,7 @@ void finalize(
 
 // --------------------------------------------------------------------------
 template <typename T>
-int finalize(
+int average_finalize(
     int device_id,
     T *p_out_array, const char *p_out_valid,
     T *p_red_array,
@@ -606,7 +656,7 @@ int finalize(
 
     // launch the finalize kernel
     cudaError_t ierr = cudaSuccess;
-    finalize<<<block_grid,thread_grid>>>(p_out_array, p_out_valid,
+    average_finalize<<<block_grid,thread_grid>>>(p_out_array, p_out_valid,
           p_red_array, p_count, fill_value, n_elem);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
@@ -1582,7 +1632,9 @@ int teca_temporal_reduction::internals_t::reduction_operator::finalize(
     const std::string &array,
     p_teca_array_collection &arrays_out)
 {
+#if !defined(TECA_HAS_CUDA)
     (void)device_id;
+#endif
 
     p_teca_variant_array out_array = arrays_out->get(array);
 
@@ -1599,22 +1651,38 @@ int teca_temporal_reduction::internals_t::reduction_operator::finalize(
 
             unsigned long n_elem = out_array->size();
 
-            auto sp_out_array = static_cast<TT*>(out_array.get())->get_cpu_accessible();
-            NT *p_out_array = sp_out_array.get();
-
             using NT_MASK = char;
             using TT_MASK = teca_variant_array_impl<NT_MASK>;
 
-            auto sp_out_valid = static_cast<const TT_MASK*>(out_valid.get())->get_cpu_accessible();
-            const NT_MASK *p_out_valid = sp_out_valid.get();
-
-            NT fill_value = NT(this->fill_value);
-
-            for (unsigned int i = 0; i < n_elem; ++i)
+#if defined(TECA_HAS_CUDA)
+            if (device_id >= 0)
             {
-                if (!p_out_valid[i])
+                auto sp_out_array = static_cast<TT*>(out_array.get())->get_cuda_accessible();
+                NT *p_out_array = sp_out_array.get();
+
+                auto sp_out_valid = static_cast<const TT_MASK*>(out_valid.get())->get_cuda_accessible();
+                const NT_MASK *p_out_valid = sp_out_valid.get();
+
+                cuda::finalize(device_id, p_out_array, p_out_valid,
+                    this->fill_value, n_elem);
+            }
+            else
+            {
+#endif
+                auto sp_out_array = static_cast<TT*>(out_array.get())->get_cpu_accessible();
+                NT *p_out_array = sp_out_array.get();
+
+                auto sp_out_valid = static_cast<const TT_MASK*>(out_valid.get())->get_cpu_accessible();
+                const NT_MASK *p_out_valid = sp_out_valid.get();
+
+                NT fill_value = NT(this->fill_value);
+
+                for (unsigned int i = 0; i < n_elem; ++i)
                 {
-                    p_out_array[i] = fill_value;
+                    if (!p_out_valid[i])
+                    {
+                        p_out_array[i] = fill_value;
+                    }
                 }
             }
         )
@@ -1636,20 +1704,6 @@ int teca_temporal_reduction::internals_t::average_operator::finalize(
 {
 #if !defined(TECA_HAS_CUDA)
     (void)device_id;
-#endif
-
-#if defined(TECA_HAS_CUDA)
-    if (device_id >= 0)
-    {
-        // set the CUDA device to run on
-        cudaError_t ierr = cudaSuccess;
-        if ((ierr = cudaSetDevice(device_id)) != cudaSuccess)
-        {
-            TECA_ERROR("Failed to set the CUDA device to " << device_id
-                << ". " << cudaGetErrorString(ierr))
-            return -1;
-        }
-    }
 #endif
 
     p_teca_variant_array out_array = arrays_out->get(array);
@@ -1701,14 +1755,14 @@ int teca_temporal_reduction::internals_t::average_operator::finalize(
                 auto sp_out_valid = static_cast<const TT_MASK*>(out_valid.get())->get_cuda_accessible();
                 const NT_MASK *p_out_valid = sp_out_valid.get();
 
-                cuda::finalize(device_id, p_out_array, p_out_valid,
+                cuda::average_finalize(device_id, p_out_array, p_out_valid,
                     p_red_array, p_count, this->fill_value, n_elem);
             }
             else
             {
                 const NT_MASK *p_out_valid = nullptr;
 
-                cuda::finalize(device_id, p_out_array, p_out_valid,
+                cuda::average_finalize(device_id, p_out_array, p_out_valid,
                     p_red_array, p_count, this->fill_value, n_elem);
             }
         }
@@ -2360,6 +2414,19 @@ const_p_teca_dataset teca_temporal_reduction::execute(
         {
             const std::string &array = this->point_arrays[i];
 
+#if defined(TECA_HAS_CUDA)
+            if (device_id >= 0)
+            {
+                // set the CUDA device to run on
+                cudaError_t ierr = cudaSuccess;
+                if ((ierr = cudaSetDevice(device_id)) != cudaSuccess)
+                {
+                    TECA_ERROR("Failed to set the CUDA device to " << device_id
+                        << ". " << cudaGetErrorString(ierr))
+                    return nullptr;
+                }
+            }
+#endif
             // finalize the reduction
             this->internals->op[array]->finalize(
                 device_id, array, arrays_out);
