@@ -131,6 +131,9 @@ private:
         const teca_metadata &req_in,
         int streaming) override;
 
+    using teca_algorithm::get_output_metadata;
+    using teca_threaded_algorithm::execute;
+
 private:
     std::vector<std::string> point_arrays;
     int op;
