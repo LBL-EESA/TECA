@@ -1,11 +1,11 @@
 #!/bin/bash
 
-if [[ $# -lt 8 ]]
+if [[ $# -lt 9 ]]
 then
     echo "usage: test_temporal_reduction_app.sh [app prefix] " \
          "[data root] [input file] [array name] [interval] " \
-         "[operator] [steps per file] [spatial partitioning] " \
-         "[mpi exec] [test cores]"
+         "[operator] [steps per file] [n threads] " \
+         "[spatial partitioning] [mpi exec] [test cores]"
     exit -1
 fi
 
@@ -24,9 +24,10 @@ fi
 
 operator=${6}
 steps_per_file=${7}
-if [[ ${8} -eq 1 ]]
+n_threads=${8}
+if [[ ${9} -eq 1 ]]
 then
-    if [[ $# -eq 10 ]]
+    if [[ $# -eq 11 ]]
     then
         spatial_partitioning=--spatial_partitioning
     else
@@ -34,10 +35,10 @@ then
     fi
 fi
 
-if [[ $# -eq 10 ]]
+if [[ $# -eq 11 ]]
 then
-    mpi_exec=${9}
-    test_cores=${10}
+    mpi_exec=${10}
+    test_cores=${11}
     launcher="${mpi_exec} -n ${test_cores}"
 fi
 
@@ -52,7 +53,8 @@ time ${launcher} ${app_prefix}/teca_temporal_reduction                         \
     --interval ${interval} --operator ${operator} --point_arrays ${array_name} \
     --z_axis_variable plev --file_layout yearly                                \
     --steps_per_file ${steps_per_file} --output_file "${output_base}_%t%.nc"   \
-    ${spatial_partitioning} --verbose 1 ${number_of_steps}
+    ${spatial_partitioning} ${number_of_steps} --n_threads ${n_threads}        \
+    --verbose 1
 
 # don't profile the diff
 unset PROFILER_ENABLE

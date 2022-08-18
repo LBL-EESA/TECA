@@ -231,17 +231,27 @@ teca_add_app_test(test_temporal_reduction_app_seasonal_average
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
     "prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc" prw
-    seasonal average 7 0
+    seasonal average 7 -1 0
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
-teca_add_app_test(test_temporal_reduction_app_seasonal_average_mpi
+teca_add_app_test(test_temporal_reduction_app_seasonal_average_mpi_threads
     teca_temporal_reduction
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
     "prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc" prw
-    seasonal average 7 0 ${MPIEXEC} ${TEST_CORES}
+    seasonal average 7 -1 0 ${MPIEXEC} ${HALF_TEST_CORES}
     FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4Py_FOUND}
+    REQ_TECA_DATA)
+
+
+teca_add_app_test(test_temporal_reduction_app_monthly_average_serial
+    teca_temporal_reduction
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction_app.sh
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
+    "prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc" prw
+    monthly average 7 1 0
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
 teca_add_app_test(test_temporal_reduction_app_monthly_average
@@ -249,7 +259,7 @@ teca_add_app_test(test_temporal_reduction_app_monthly_average
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
     "prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc" prw
-    monthly average 7 0
+    monthly average 7 -1 0
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
@@ -258,7 +268,16 @@ teca_add_app_test(test_temporal_reduction_app_monthly_average_mpi
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
     "prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc" prw
-    monthly average 7 0 ${MPIEXEC} ${TEST_CORES}
+    monthly average 7 1 0 ${MPIEXEC} ${TEST_CORES}
+    FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4Py_FOUND}
+    REQ_TECA_DATA)
+
+teca_add_app_test(test_temporal_reduction_app_monthly_average_mpi_threads
+    teca_temporal_reduction
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction_app.sh
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
+    "prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc" prw
+    monthly average 7 -1 0 ${MPIEXEC} ${HALF_TEST_CORES}
     FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4Py_FOUND}
     REQ_TECA_DATA)
 
@@ -267,16 +286,16 @@ teca_add_app_test(test_temporal_reduction_app_monthly_minimum
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
     "prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc" prw
-    monthly minimum 7 0
+    monthly minimum 7 -1 0
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
-teca_add_app_test(test_temporal_reduction_app_monthly_minimum_mpi
+teca_add_app_test(test_temporal_reduction_app_monthly_minimum_mpi_threads
     teca_temporal_reduction
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
     "prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc" prw
-    monthly minimum 7 0 ${MPIEXEC} ${TEST_CORES}
+    monthly minimum 7 -1 0 ${MPIEXEC} ${HALF_TEST_CORES}
     FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4Py_FOUND}
     REQ_TECA_DATA)
 
@@ -285,16 +304,16 @@ teca_add_app_test(test_temporal_reduction_app_monthly_maximum
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
     "prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc" prw
-    monthly maximum 7 0
+    monthly maximum -1 7 0
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
-teca_add_app_test(test_temporal_reduction_app_monthly_maximum_mpi
+teca_add_app_test(test_temporal_reduction_app_monthly_maximum_mpi_threads
     teca_temporal_reduction
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
     "prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc" prw
-    monthly maximum 7 0 ${MPIEXEC} ${TEST_CORES}
+    monthly maximum 7 -1 0 ${MPIEXEC} ${HALF_TEST_CORES}
     FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4Py_FOUND}
     REQ_TECA_DATA)
 
@@ -302,7 +321,7 @@ teca_add_app_test(test_temporal_reduction_app_daily_average_missing_values
     teca_temporal_reduction
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
-    "MERRA2_100_inst3_3d_asm_Np_crop_1980012[89]\\.nc" T daily average 1 0
+    "MERRA2_100_inst3_3d_asm_Np_crop_1980012[89]\\.nc" T daily average 1 -1 0
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
@@ -310,7 +329,7 @@ teca_add_app_test(test_temporal_reduction_app_daily_maximum_missing_values
     teca_temporal_reduction
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
-    "MERRA2_100_inst3_3d_asm_Np_crop_1980012[89]\\.nc" T daily maximum 1 0
+    "MERRA2_100_inst3_3d_asm_Np_crop_1980012[89]\\.nc" T daily maximum 1 -1 0
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
@@ -318,7 +337,7 @@ teca_add_app_test(test_temporal_reduction_app_daily_minimum_missing_values
     teca_temporal_reduction
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
-    "MERRA2_100_inst3_3d_asm_Np_crop_1980012[89]\\.nc" T daily minimum 1 0
+    "MERRA2_100_inst3_3d_asm_Np_crop_1980012[89]\\.nc" T daily minimum 1 -1 0
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
@@ -326,7 +345,7 @@ teca_add_app_test(test_temporal_reduction_app_n_steps_average_missing_values
     teca_temporal_reduction
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
-    "MERRA2_100_inst3_3d_asm_Np_crop_1980012[89]\\.nc" T 8_steps average 1 0
+    "MERRA2_100_inst3_3d_asm_Np_crop_1980012[89]\\.nc" T 8_steps average 1 -1 0
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
@@ -335,16 +354,16 @@ teca_add_app_test(test_temporal_reduction_app_mcf_daily_average
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction_app_mcf.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
     "${CMAKE_BINARY_DIR}/${BIN_PREFIX}/../test/ECMWF-IFS-HR-SST-present.mcf" hus
-    daily average 7 0
+    daily average 7 -1 0
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
-teca_add_app_test(test_temporal_reduction_app_mcf_daily_average_mpi
+teca_add_app_test(test_temporal_reduction_app_mcf_daily_average_mpi_threads
     teca_temporal_reduction
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction_app_mcf.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
     "${CMAKE_BINARY_DIR}/${BIN_PREFIX}/../test/ECMWF-IFS-HR-SST-present.mcf" hus
-    daily average 7 0 ${MPIEXEC} ${TEST_CORES}
+    daily average 7 -1 0 ${MPIEXEC} ${HALF_TEST_CORES}
     FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4Py_FOUND}
     REQ_TECA_DATA)
 
@@ -353,16 +372,16 @@ teca_add_app_test(test_temporal_reduction_app_spatial_partitioning
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
     "prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc" prw
-    seasonal average 7 1
+    seasonal average 7 -1 1
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
-teca_add_app_test(test_temporal_reduction_app_spatial_partitioning_mpi
+teca_add_app_test(test_temporal_reduction_app_spatial_partitioning_mpi_threads
     teca_temporal_reduction
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_reduction_app.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
     "prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc" prw
-    seasonal average 7 1 ${MPIEXEC} ${TEST_CORES}
+    seasonal average 7 -1 1 ${MPIEXEC} ${HALF_TEST_CORES}
     FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4Py_FOUND}
     REQ_TECA_DATA)
 
