@@ -3,7 +3,7 @@ import numpy
 if get_teca_has_cupy():
     import cupy
 
-class teca_temporal_reduction(teca_threaded_python_algorithm):
+class teca_python_temporal_reduction(teca_threaded_python_algorithm):
     """
     Reduce a mesh across the time dimensions by a defined increment using
     a defined operation.
@@ -34,7 +34,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
 
     User defined reductions:
     ------------------------
-    A reduction_operator compatible with teca_temporal_reduction must implement
+    A reduction_operator compatible with teca_python_temporal_reduction must implement
     3 class methods: initialize, update, and finalize.
 
         initialize(self, fill_value) -> None
@@ -53,7 +53,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
             finalizes out_array (current state) and returns the result.
             if no finalization is needed simpy return out_array.
 
-    A reduction_operator_factory compatible with teca_temporal_reduction
+    A reduction_operator_factory compatible with teca_python_temporal_reduction
     must implement a factory method named New that takes a string and returns
     a reduction_operator.
 
@@ -66,11 +66,11 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
 
     To use a user defined custom reduction operator, one must install the
     factory that creates it by passing a factory instance to
-    teca_temporal_reduction.set_reduction_operator_factory.
+    teca_python_temporal_reduction.set_reduction_operator_factory.
 
     User defined time intervals:
     ----------------------------
-    An interval_iterator compatible with teca_temporal_reduction must implement
+    An interval_iterator compatible with teca_python_temporal_reduction must implement
     the Python iterator methods : __init__, __iter__ and __next__. The __init__
     method will be passed a floating point array of time values to iterate over
     and calendaring metadata (calendar name and time units strings) needed to
@@ -97,7 +97,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
             returns the next time_interval in the series and raises
             StopIteration when the series in complete.
 
-    An interval_iterator_factory compatible with teca_temporal_reduction
+    An interval_iterator_factory compatible with teca_python_temporal_reduction
     must implement a factory method named New that takes a string naming
     the type of the interval iterator to create, the floating point time
     values to iterate over, and calendaring metadata. The factory will
@@ -115,7 +115,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
     class reduction_operator_collection:
         """
         A collection of reduction_operators compatible with
-        teca_temporal_reduction, and a factory method that creates one on demand
+        teca_python_temporal_reduction, and a factory method that creates one on demand
         from a runtime provided string.
 
         This collection implements the following operators:
@@ -336,22 +336,22 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
         def New(self, op_name):
             """ factory method that creates an instance from a string """
             if op_name == 'average':
-                return teca_temporal_reduction. \
+                return teca_python_temporal_reduction. \
                     reduction_operator_collection. \
                         average()
 
             elif op_name == 'minimum':
-                return teca_temporal_reduction. \
+                return teca_python_temporal_reduction. \
                     reduction_operator_collection. \
                         minimum()
 
             elif op_name == 'maximum':
-                return teca_temporal_reduction. \
+                return teca_python_temporal_reduction. \
                     reduction_operator_collection. \
                         maximum()
 
             elif op_name == 'summation':
-                return teca_temporal_reduction. \
+                return teca_python_temporal_reduction. \
                     reduction_operator_collection. \
                         summation()
 
@@ -386,7 +386,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
     class interval_iterator_collection:
         """
         A collection of interval_iterators compatible with
-        teca_temporal_reduction and a factory method that creates ionstances
+        teca_python_temporal_reduction and a factory method that creates ionstances
         from a string that names the type.
 
         This collectiond implements the following interval_iterators
@@ -442,7 +442,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
 
                 self.index = i1 + 1
 
-                return teca_temporal_reduction. \
+                return teca_python_temporal_reduction. \
                     time_interval(self.time[i0], i0, i1)
 
         class season_iterator:
@@ -467,11 +467,11 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
                 self.calendar = calendar
 
                 # time point's to iterate between
-                self.t0 = teca_temporal_reduction. \
+                self.t0 = teca_python_temporal_reduction. \
                     interval_iterator_collection. \
                         time_point(t[0], units, calendar)
 
-                self.t1 = teca_temporal_reduction. \
+                self.t1 = teca_python_temporal_reduction. \
                     interval_iterator_collection. \
                         time_point(t[-1], units, calendar)
 
@@ -606,7 +606,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
                 self.year, self.month = \
                      self.get_next_season(sy, sm)
 
-                return teca_temporal_reduction.time_interval(
+                return teca_python_temporal_reduction.time_interval(
                     self.t[i0], i0, i1, year=sy, month=sm, day=1)
 
 
@@ -630,11 +630,11 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
                 self.calendar = calendar
 
                 # time point's to iterate between
-                self.t0 = teca_temporal_reduction. \
+                self.t0 = teca_python_temporal_reduction. \
                     interval_iterator_collection. \
                         time_point(t[0], units, calendar)
 
-                self.t1 = teca_temporal_reduction. \
+                self.t1 = teca_python_temporal_reduction. \
                     interval_iterator_collection. \
                         time_point(t[-1], units, calendar)
 
@@ -693,7 +693,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
                     self.month = 1
                     self.year += 1
 
-                return teca_temporal_reduction.time_interval(
+                return teca_python_temporal_reduction.time_interval(
                     self.t[i0], i0, i1, year=year, month=month, day=1)
 
         class day_iterator:
@@ -717,11 +717,11 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
                 self.calendar = calendar
 
                 # time point's to iterate between
-                self.t0 = teca_temporal_reduction. \
+                self.t0 = teca_python_temporal_reduction. \
                     interval_iterator_collection. \
                         time_point(t[0], units, calendar)
 
-                self.t1 = teca_temporal_reduction. \
+                self.t1 = teca_python_temporal_reduction. \
                     interval_iterator_collection. \
                         time_point(t[-1], units, calendar)
 
@@ -789,25 +789,25 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
                     self.month = 1
                     self.year += 1
 
-                return teca_temporal_reduction.time_interval(
+                return teca_python_temporal_reduction.time_interval(
                     self.t[i0], i0, i1, year=year, month=month, day=day)
 
         def New(self, interval, t, units, calendar):
             if interval == 'seasonal':
 
-                return teca_temporal_reduction. \
+                return teca_python_temporal_reduction. \
                     interval_iterator_collection. \
                         season_iterator(t, units, calendar)
 
             if interval == 'monthly':
 
-                return teca_temporal_reduction. \
+                return teca_python_temporal_reduction. \
                     interval_iterator_collection. \
                         month_iterator(t, units, calendar)
 
             elif interval == 'daily':
 
-                return teca_temporal_reduction. \
+                return teca_python_temporal_reduction. \
                     interval_iterator_collection. \
                         day_iterator(t, units, calendar)
 
@@ -815,7 +815,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
 
                 n_steps = int(interval[0:pos])
 
-                return teca_temporal_reduction. \
+                return teca_python_temporal_reduction. \
                     interval_iterator_collection. \
                         n_steps_iterator(t, units, calendar, n_steps)
 
@@ -835,10 +835,10 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
         self.operator = {}
 
         self.reduction_operator_factory = \
-            teca_temporal_reduction.reduction_operator_collection()
+            teca_python_temporal_reduction.reduction_operator_collection()
 
         self.interval_iterator_factory = \
-            teca_temporal_reduction.interval_iterator_collection()
+            teca_python_temporal_reduction.interval_iterator_collection()
 
     def set_reduction_operator_factory(self, factory):
         """
@@ -964,7 +964,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
                 rank = self.get_communicator().Get_rank()
             except Exception:
                 rank = 0
-            sys.stderr.write('[%d] teca_temporal_reduction::report\n' % (rank))
+            sys.stderr.write('[%d] teca_python_temporal_reduction::report\n' % (rank))
 
         # sanity checks
         if self.interval_name is None:
@@ -1072,7 +1072,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
                 rnk = self.get_communicator().Get_rank()
             except Exception:
                 rnk = 0
-            sys.stderr.write('[%d] teca_temporal_reduction::request\n' % (rnk))
+            sys.stderr.write('[%d] teca_python_temporal_reduction::request\n' % (rnk))
 
         md = md_in[0]
 
@@ -1161,7 +1161,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
                 rank = self.get_communicator().Get_rank()
             except Exception:
                 rank = 0
-            sys.stderr.write('[%d] teca_temporal_reduction::execute dev'
+            sys.stderr.write('[%d] teca_python_temporal_reduction::execute dev'
                              ' %d request %d (%d - %d), reducing %d, %d'
                              ' remain\n' % (rank, dev, req_id[0], ii.start_index,
                                            ii.end_index, len(data_in),
