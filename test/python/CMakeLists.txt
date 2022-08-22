@@ -535,5 +535,4 @@ teca_add_test(py_test_cartesian_mesh_multi_dim
 
 teca_add_test(py_test_lapse_rate
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_lapse_rate.py
-    32 32 10 1 "py_test_lapse_rate_%t%.%e%"
-    FEATURES ${TECA_HAS_CUDA} ${TECA_HAS_CUPY})
+    32 32 10 1 "py_test_lapse_rate_%t%.%e%")
