@@ -145,9 +145,14 @@ head = coords
 if args.land_mask_file:
     if not args.land_mask_variable:
         raise RuntimeError('No --land_mask_variable was specified')
-    mask_reader = teca_cf_reader.New()
-    mask_reader.set_t_axis_variable('')
-    mask_reader.set_files_regex(args.land_mask_file)
+
+    if args.land_mask_file[-4:] == '.mcf':
+        mask_reader = teca_multi_cf_reader.New()
+        mask_reader.set_input_file(args.land_mask_file)
+    else:
+        mask_reader = teca_cf_reader.New()
+        mask_reader.set_files_regex(args.land_mask_file)
+        mask_reader.set_t_axis_variable('')
 
     mask_coords = teca_normalize_coordinates.New()
     mask_coords.set_input_connection(mask_reader.get_output_port())
