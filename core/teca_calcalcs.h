@@ -205,7 +205,7 @@ int ccs_get_xition_date( const char *country_code, int *year, int *month, int *d
 /*--------------------------------------------------------------------------
  * calcalcs_err_str: return a static char * to an error string, given the error nmmber
  */
-char *ccs_err_str(int ccs_errno);
+const char *ccs_err_str(int ccs_errno);
 
 #define CALCALCS_ERR_NO_YEAR_ZERO		-10
 #define CALCALCS_ERR_DATE_NOT_IN_CALENDAR	-11
