@@ -453,10 +453,21 @@ teca_add_app_test(test_cf_restripe_app_mpi teca_cf_restripe
 
 teca_add_app_test(test_potential_intensity_app teca_potential_intensity
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_potential_intensity_app.sh
-    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} 0
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_TCPYPI}
     REQ_TECA_DATA)
 
+teca_add_app_test(test_potential_intensity_app_mpi teca_potential_intensity
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_potential_intensity_app.sh
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} 0 ${MPIEXEC} ${TEST_CORES}
+    FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI} ${TECA_HAS_TCPYPI}
+    REQ_TECA_DATA)
+
+teca_add_app_test(test_potential_intensity_app_mpi_spatial_par teca_potential_intensity
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_potential_intensity_app.sh
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} 1 ${MPIEXEC} ${TEST_CORES}
+    FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI} ${TECA_HAS_TCPYPI}
+    REQ_TECA_DATA)
 
 teca_add_app_test(test_lapse_rate_app teca_lapse_rate
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_lapse_rate_app.sh
