@@ -47,6 +47,7 @@ public:
      *                         including runtime specified subsetting.
      * @param[in] point_arrays a list of point centered array names to write
      * @param[in] info_arrays a list of point centered array names to write
+     * @param[in] collective_buffer set to zero to disable collective buffering
      * @param[in] compression_level set greater than 1 to enable compression.
      *            this is incomatible with MPI parallel I/O and cannot be used
      *            in a parallel setting.
@@ -55,7 +56,8 @@ public:
      */
     int define(const teca_metadata &md, unsigned long *whole_extent,
         const std::vector<std::string> &point_arrays,
-        const std::vector<std::string> &info_arrays, int compression_level);
+        const std::vector<std::string> &info_arrays,
+        int collective_buffer, int compression_level);
 
     /// writes the collection of arrays to the NetCDF file in the correct spot.
     int write(long index,

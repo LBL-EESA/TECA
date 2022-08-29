@@ -886,41 +886,47 @@ teca_add_test(test_cf_writer_temporal_partition
     SOURCES test_cf_writer_partitions.cpp
     EXEC_NAME test_cf_writer_partitions
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
-    COMMAND test_cf_writer_partitions 129 64 1 257 monthly temporal 0 0
+    COMMAND test_cf_writer_partitions 129 64 1 257 monthly temporal 0 0 -1
         ${TECA_DATA_ROOT} test_cf_writer_partitons
     REQ_TECA_DATA)
 
 teca_add_test(test_cf_writer_temporal_partition_mpi
     COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_writer_partitions 129 64 1 257
-        monthly temporal 0 0 ${TECA_DATA_ROOT} test_cf_writer_partitons
+        monthly temporal 0 0 -1 ${TECA_DATA_ROOT} test_cf_writer_partitons
     FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
 teca_add_test(test_cf_writer_space_time_partition
-    COMMAND test_cf_writer_partitions 129 64 1 257 monthly space_time 17 32
+    COMMAND test_cf_writer_partitions 129 64 1 257 monthly space_time 17 32 -1
         ${TECA_DATA_ROOT} test_cf_writer_partitons
     REQ_TECA_DATA)
 
 teca_add_test(test_cf_writer_space_time_partition_blocking_mpi
     COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_writer_partitions 129 64 1 257
-        monthly space_time 17 32 ${TECA_DATA_ROOT} test_cf_writer_partitons
+        monthly space_time 17 32 -1 ${TECA_DATA_ROOT} test_cf_writer_partitons
     FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
 teca_add_test(test_cf_writer_space_time_partition_single_mpi
     COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_writer_partitions 129 64 1 257
-        monthly space_time 257 32 ${TECA_DATA_ROOT} test_cf_writer_partitons
+        monthly space_time 257 32 -1 ${TECA_DATA_ROOT} test_cf_writer_partitons
     FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
 teca_add_test(test_cf_writer_spatial_partition
-    COMMAND test_cf_writer_partitions 129 64 1 257 monthly spatial 17 32
+    COMMAND test_cf_writer_partitions 129 64 1 257 monthly spatial 17 32 -1
         ${TECA_DATA_ROOT} test_cf_writer_partitons
     REQ_TECA_DATA)
 
 teca_add_test(test_cf_writer_spatial_partition_mpi
     COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_writer_partitions 129 64 1 257
-        monthly spatial 17 32 ${TECA_DATA_ROOT} test_cf_writer_partitons
+        monthly spatial 17 32 -1 ${TECA_DATA_ROOT} test_cf_writer_partitons
+    FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_writer_spatial_partition_mpi_cb
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_writer_partitions 129 64 1 257
+        monthly spatial 17 0 1 ${TECA_DATA_ROOT} test_cf_writer_partitons
     FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
@@ -965,28 +971,28 @@ teca_add_test(test_temporal_index_select_nompi
     SOURCES test_temporal_index_select.cpp
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_temporal_index_select
-        "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc$" 
+        "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc$"
         "${TECA_DATA_ROOT}/test_temporal_index_select_prw_monthly" "prw" 0 2 181 363
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_test(test_temporal_index_select_mpi
     COMMAND ${MPIEXEC} -n ${TEST_CORES} test_temporal_index_select
-        "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc$" 
+        "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc$"
         "${TECA_DATA_ROOT}/test_temporal_index_select_prw_monthly" "prw" 0 2 181 363
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
 teca_add_test(test_temporal_index_select_mpi_spatial_partition
     COMMAND ${MPIEXEC} -n ${TEST_CORES} test_temporal_index_select
-        "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc$" 
+        "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc$"
         "${TECA_DATA_ROOT}/test_temporal_index_select_prw_monthly" "prw" 1 2 181 363
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
 teca_add_test(test_temporal_index_select_mpi_space_time_partition
     COMMAND ${MPIEXEC} -n ${TEST_CORES} test_temporal_index_select
-        "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc$" 
+        "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc$"
         "${TECA_DATA_ROOT}/test_temporal_index_select_prw_monthly" "prw" 2 2 181 363
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
     REQ_TECA_DATA)

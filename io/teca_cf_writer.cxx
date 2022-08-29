@@ -50,7 +50,7 @@ teca_cf_writer::teca_cf_writer() :
     first_step(0), last_step(-1), layout(monthly), partitioner(temporal),
     index_executive_compatability(0), steps_per_file(128),
     mode_flags(NC_CLOBBER|NC_NETCDF4), use_unlimited_dim(0),
-    compression_level(-1), flush_files(0)
+    collective_buffer(-1), compression_level(-1), flush_files(0)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -130,6 +130,12 @@ void teca_cf_writer::get_properties_description(
         TECA_POPTS_GET(int, prefix, use_unlimited_dim,
             "if set the slowest varying dimension is specified to be "
             "NC_UNLIMITED.")
+        TECA_POPTS_GET(int, prefix, collective_buffer,
+            "When set, enables colective buffering. This can only be used with"
+            " the spatial partitoner when the number of MPI ranks is equal to the"
+            " number of spatial partitons. A value of -1 can be used to"
+            " automatically enbable collective buffering when it is safe to do"
+            " so.")
         TECA_POPTS_GET(int, prefix, compression_level,
             "sets the zlib compression level used for each variable;"
             " does nothing if the value is less than or equal to 0.")
@@ -558,25 +564,29 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
         }
     }
 
-    if (this->get_verbose())
-    {
-        if (rank == 0)
-        {
-            std::ostringstream oss;
-            oss << "Configuring the writer for " << this->get_partitioner_name()
-                << " partitioning";
-            if (this->partitioner != temporal)
-            {
-                if (this->index_executive_compatability)
-                {
-                    oss << " in compatability mode";
-                }
-            }
-            oss << " with " << this->get_layout_name() << " layout";
-            TECA_STATUS(<< oss.str())
-        }
+    // validate the collective buffer setting. this will cause a dead lock if
+    // it is enabled at the wrong configuration.
+    int use_collective_buffer = this->collective_buffer;
 
-        this->internals->mapper->to_stream(std::cerr);
+    int collective_buffer_valid = ((this->partitioner == spatial) &&
+        ((this->number_of_spatial_partitions < 1) ||
+        this->number_of_spatial_partitions == n_ranks));
+
+    if ((this->collective_buffer > 0) && !collective_buffer_valid)
+    {
+        TECA_FATAL_ERROR("Collective buffering has been enabled for an invalid"
+            " configuration. Collective buffering can be safely used when the"
+            " spatial partitioner is enabled and the number of MPI ranks is"
+            " equal to the number of spatial partitions")
+        return up_reqs;
+    }
+
+    // automatically enable collective buffering when using the spatial
+    // partitioner and the number of spatial partitons is equal to the
+    // number of ranks
+    if (this->collective_buffer < 0)
+    {
+        use_collective_buffer = (collective_buffer_valid ? 1 : 0);
     }
 
     // create and define the set of files
@@ -597,7 +607,8 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
             // operation and the global view of the data must be passed.It is assumed
             // that each time step has the same global view.
             if (layout_mgr->define(md_in, extent, this->point_arrays,
-                this->information_arrays, this->compression_level))
+                this->information_arrays, use_collective_buffer,
+                this->compression_level))
             {
                 TECA_FATAL_ERROR("failed to define file " << file_id)
                 return -1;
@@ -608,6 +619,31 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
     {
         return up_reqs;
     }
+
+    if (this->get_verbose())
+    {
+        if (rank == 0)
+        {
+            std::ostringstream oss;
+            oss << "Configuring the writer for " << this->get_partitioner_name()
+                << " partitioning and " << (use_collective_buffer ?
+                "collective buffering" : "independent access");
+
+            if (this->partitioner != temporal)
+            {
+                if (this->index_executive_compatability)
+                {
+                    oss << " in compatability mode";
+                }
+            }
+
+            oss << " with a " << this->get_layout_name() << " layout";
+
+            TECA_STATUS(<< oss.str())
+        }
+        this->internals->mapper->to_stream(std::cerr);
+    }
+
 
     // construct the base request, pass through incoming request for bounds,
     // arrays, etc...  reset executive control keys

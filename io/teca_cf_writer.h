@@ -168,7 +168,6 @@ public:
     TECA_ALGORITHM_PROPERTY(int, mode_flags)
     ///@}
 
-
     /** @name use_unlimited_dim
      * if set the slowest varying dimension is specified to be NC_UNLIMITED.
      * This has a negative impact on performance when reading the values in a
@@ -190,6 +189,17 @@ public:
      */
     ///@{
     TECA_ALGORITHM_PROPERTY(int, compression_level)
+    ///@}
+
+    /** @name collective_buffer
+     * Enables MPI I/O colective buffering. Collective buffering is only valid
+     * when the spatial partitioner is enabled and the number of spatial
+     * partitions is equal to  the number of MPI ranks. If set to -1 (the
+     * default) collective buffering will automatically enabled when it is
+     * possible to do so.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, collective_buffer)
     ///@}
 
     /** @name flush_files
@@ -381,6 +391,7 @@ private:
     unsigned int steps_per_file;
     int mode_flags;
     int use_unlimited_dim;
+    int collective_buffer;
     int compression_level;
     int flush_files;
 
