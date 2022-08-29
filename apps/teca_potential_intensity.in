@@ -94,6 +94,16 @@ parser.add_argument('--calendar', type=str, required=False,
 parser.add_argument('--t_units', type=str, required=False,
     help='time unit')
 
+parser.add_argument('--spatial_partitioning', default=False,
+    action='store_true', help='Activates the spatial partitioning engine')
+
+parser.add_argument('--spatial_partitions', type=int, default=0,
+    help='Sets the number of spatial partitions. Use zero for'
+         ' automatic partitioning and 1 for no partitioning')
+
+parser.add_argument('--partition_x', default=False, action='store_true',
+    help='Partition spatially in the x-direction')
+
 parser.add_argument('--first_step', type=int, default=0, required=False,
     help='first time step to process')
 
@@ -197,7 +207,13 @@ if args.land_mask_variable:
     pint.set_land_mask_variable(args.land_mask_variable)
 
 # configure the writer
+if args.spatial_partitioning:
+    partitioner = teca_cf_writer.space_time
+else:
+    partitioner = teca_cf_writer.temporal
+
 exe = teca_index_executive.New()
+
 writer = teca_cf_writer.New()
 writer.set_input_connection(pint.get_output_port())
 writer.set_executive(exe)
@@ -205,6 +221,11 @@ writer.set_thread_pool_size(1)
 writer.set_file_name(args.output_file)
 writer.set_layout(args.file_layout)
 writer.set_steps_per_file(args.steps_per_file)
+writer.set_index_executive_compatability(1)
+writer.set_partitioner(partitioner)
+writer.set_number_of_spatial_partitions(args.spatial_partitions)
+writer.set_partition_x(1 if args.partition_x else 0)
+writer.set_partition_z(0)
 writer.set_first_step(args.first_step)
 writer.set_last_step(args.last_step)
 if args.verbose > 1:
