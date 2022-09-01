@@ -77,6 +77,7 @@ teca_cf_reader::teca_cf_reader() :
     periodic_in_z(0),
     max_metadata_ranks(1024),
     clamp_dimensions_of_one(0),
+    collective_buffer(0),
     internals(new teca_cf_reader_internals)
 {}
 
@@ -147,6 +148,10 @@ void teca_cf_reader::get_properties_description(
         TECA_POPTS_GET(int, prefix, clamp_dimensions_of_one,
             "If set clamp requested axis extent in where the request is out of"
             " bounds and the coordinate array dimension is 1.")
+        TECA_POPTS_GET(int, prefix, collective_buffer,
+            "When set, enables colective buffering. This can only be used with"
+            " the spatial partitoner when the number of MPI ranks is equal to the"
+            " number of spatial partitons and running with a single thread.")
         ;
 
     this->teca_algorithm::get_properties_description(prefix, opts);
@@ -175,6 +180,7 @@ void teca_cf_reader::set_properties(const std::string &prefix,
     TECA_POPTS_SET(opts, int, prefix, periodic_in_z)
     TECA_POPTS_SET(opts, int, prefix, max_metadata_ranks)
     TECA_POPTS_SET(opts, int, prefix, clamp_dimensions_of_one)
+    TECA_POPTS_SET(opts, int, prefix, collective_buffer)
 }
 #endif
 
@@ -1034,6 +1040,18 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
     (void)port;
     (void)input_data;
 
+    int rank = 0;
+#if defined(TECA_HAS_MPI)
+    MPI_Comm comm = this->get_communicator();
+
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
+    {
+        MPI_Comm_rank(comm, &rank);
+    }
+#endif
+
     // get coordinates
     teca_metadata coords;
     if (this->internals->metadata.get("coordinates", coords))
@@ -1520,6 +1538,30 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
 
             if (centering == teca_array_attributes::point_centering)
             {
+#if defined(TECA_HAS_NETCDF_MPI)
+#if !defined(HDF5_THREAD_SAFE)
+                {
+                std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+                // enable collective buffering. the writer uses -1 for
+                // automatic, but the reader can't determine when it's safe, so
+                // the setting must be explicit
+                if ((this->collective_buffer > 0) && is_init)
+                {
+                    if ((ierr = nc_var_par_access(file_id, id, NC_COLLECTIVE)) != NC_NOERR)
+                    {
+                        TECA_ERROR("Failed to set collective access mode"
+                            " on variable \"" << arrays[i] << "\"")
+                    }
+                    else if (this->verbose && (rank == 0))
+                    {
+                        TECA_STATUS("Enabled collective read on \"" << arrays[i]  << "\"")
+                    }
+                }
+#if !defined(HDF5_THREAD_SAFE)
+                }
+#endif
+#endif
                 // select the requested time step
                 // subset point centered variables based on the incoming requested
                 // extent.

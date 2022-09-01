@@ -220,14 +220,6 @@ public:
     TECA_ALGORITHM_PROPERTY(int, max_metadata_ranks)
     ///@}
 
-    /** @name periodic_in_x
-     * Set to indicate the presence of a periodic boundary in the x direction.
-     * If set this will override the corresponding setting from the MCF file
-     * for all internal readers.
-     */
-    ///@{
-    ///@}
-
     /** @name clamp_dimensions_of_one
      * If set the requested extent will be clamped in a given direction if the
      * coorinate axis in that direction has a length of 1 and the requested
@@ -238,6 +230,17 @@ public:
     ///@{
     void set_clamp_dimensions_of_one(int flag);
     int get_clamp_dimensions_of_one() const;
+    ///@}
+
+    /** @name collective_buffer
+     * Enables MPI I/O colective buffering. Collective buffering is only valid
+     * when the spatial partitioner is enabled and the number of spatial
+     * partitions is equal to the number of MPI ranks, and the code is single
+     * threaded. This is an experimental feature.
+     */
+    ///@{
+    void set_collective_buffer(int flag);
+    int get_collective_buffer() const;
     ///@}
 
     /** @name target_bounds
@@ -360,6 +363,7 @@ private:
     int periodic_in_x;
     int max_metadata_ranks;
     int clamp_dimensions_of_one;
+    int collective_buffer;
     int validate_time_axis;
     int validate_spatial_coordinates;
 
