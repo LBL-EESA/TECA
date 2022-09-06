@@ -139,7 +139,7 @@ void teca_cartesian_mesh::update_z_coordinates(const p_teca_variant_array &array
 
 // --------------------------------------------------------------------------
 int teca_cartesian_mesh::get_array_extent(const std::string &array_name,
-    unsigned long array_extent[8])
+    unsigned long array_extent[8]) const
 {
     unsigned long mesh_extent[8] = {0};
     if (this->get_extent(mesh_extent) || this->get_temporal_extent(mesh_extent+6))
@@ -177,7 +177,7 @@ int teca_cartesian_mesh::get_array_extent(const std::string &array_name,
 
 // --------------------------------------------------------------------------
 int teca_cartesian_mesh::get_array_shape(const std::string &array_name,
-    unsigned long array_shape[4])
+    unsigned long array_shape[4]) const
 {
     unsigned long array_extent[8] = {0};
     if (this->get_array_extent(array_name, array_extent) < 0)
