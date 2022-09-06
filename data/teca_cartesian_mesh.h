@@ -36,7 +36,7 @@ public:
      * have_mesh_dims flag is missing. The latter is not necessarily an error.
      */
     int get_array_extent(const std::string &array_name,
-        unsigned long array_extent[8]);
+        unsigned long array_extent[8]) const;
 
     /** Get the shape of the named array, taking into account the variable's
      * dimensions as opposed to the mesh's dimensions.  For instance the mesh
@@ -45,7 +45,7 @@ public:
      * have_mesh_dims flag is missing. The latter is not necessarily an error.
      */
     int get_array_shape(const std::string &array_name,
-        unsigned long array_shape[4]);
+        unsigned long array_shape[4]) const;
 
     /// get the number of points in the mesh
     unsigned long get_number_of_points() const override;
