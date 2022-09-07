@@ -78,12 +78,12 @@ public:
     virtual int update_cpu(int device_id,
           const std::string &array,
           p_teca_array_collection &arrays_out,
-          const_p_teca_array_collection &arrays_in) = 0;
+          p_teca_array_collection &arrays_in) = 0;
 
     virtual int update_gpu(int device_id,
           const std::string &array,
           p_teca_array_collection &arrays_out,
-          const_p_teca_array_collection &arrays_in) = 0;
+          p_teca_array_collection &arrays_in) = 0;
 
     virtual int finalize(int device_id,
           const std::string &array,
@@ -103,12 +103,12 @@ public:
     int update_cpu(int device_id,
           const std::string &array,
           p_teca_array_collection &arrays_out,
-          const_p_teca_array_collection &arrays_in) override;
+          p_teca_array_collection &arrays_in) override;
 
     int update_gpu(int device_id,
           const std::string &array,
           p_teca_array_collection &arrays_out,
-          const_p_teca_array_collection &arrays_in) override;
+          p_teca_array_collection &arrays_in) override;
 
     int finalize(int device_id,
           const std::string &array,
@@ -122,12 +122,12 @@ public:
     int update_cpu(int device_id,
           const std::string &array,
           p_teca_array_collection &arrays_out,
-          const_p_teca_array_collection &arrays_in) override;
+          p_teca_array_collection &arrays_in) override;
 
     int update_gpu(int device_id,
           const std::string &array,
           p_teca_array_collection &arrays_out,
-          const_p_teca_array_collection &arrays_in) override;
+          p_teca_array_collection &arrays_in) override;
 
 };
 
@@ -138,12 +138,12 @@ public:
     int update_cpu(int device_id,
           const std::string &array,
           p_teca_array_collection &arrays_out,
-          const_p_teca_array_collection &arrays_in) override;
+          p_teca_array_collection &arrays_in) override;
 
     int update_gpu(int device_id,
           const std::string &array,
           p_teca_array_collection &arrays_out,
-          const_p_teca_array_collection &arrays_in) override;
+          p_teca_array_collection &arrays_in) override;
 };
 
 class teca_temporal_reduction::internals_t::maximum_operator :
@@ -153,12 +153,12 @@ public:
     int update_cpu(int device_id,
           const std::string &array,
           p_teca_array_collection &arrays_out,
-          const_p_teca_array_collection &arrays_in) override;
+          p_teca_array_collection &arrays_in) override;
 
     int update_gpu(int device_id,
           const std::string &array,
           p_teca_array_collection &arrays_out,
-          const_p_teca_array_collection &arrays_in) override;
+          p_teca_array_collection &arrays_in) override;
 };
 
 class teca_temporal_reduction::internals_t::reduction_operator_factory
@@ -724,7 +724,7 @@ int teca_temporal_reduction::internals_t::average_operator::update_cpu(
     int device_id,
     const std::string &array,
     p_teca_array_collection &arrays_out,
-    const_p_teca_array_collection &arrays_in)
+    p_teca_array_collection &arrays_in)
 {
     // arrays
     const_p_teca_variant_array in_array = arrays_in->get(array);
@@ -908,7 +908,7 @@ int teca_temporal_reduction::internals_t::average_operator::update_gpu(
     int device_id,
     const std::string &array,
     p_teca_array_collection &arrays_out,
-    const_p_teca_array_collection &arrays_in)
+    p_teca_array_collection &arrays_in)
 {
 #if defined(TECA_HAS_CUDA)
     // arrays
@@ -1078,7 +1078,7 @@ int teca_temporal_reduction::internals_t::summation_operator::update_cpu(
     int device_id,
     const std::string &array,
     p_teca_array_collection &arrays_out,
-    const_p_teca_array_collection &arrays_in)
+    p_teca_array_collection &arrays_in)
 {
     (void)device_id;
 
@@ -1174,7 +1174,7 @@ int teca_temporal_reduction::internals_t::summation_operator::update_gpu(
     int device_id,
     const std::string &array,
     p_teca_array_collection &arrays_out,
-    const_p_teca_array_collection &arrays_in)
+    p_teca_array_collection &arrays_in)
 {
 #if defined(TECA_HAS_CUDA)
     // arrays
@@ -1261,7 +1261,7 @@ int teca_temporal_reduction::internals_t::minimum_operator::update_cpu(
     int device_id,
     const std::string &array,
     p_teca_array_collection &arrays_out,
-    const_p_teca_array_collection &arrays_in)
+    p_teca_array_collection &arrays_in)
 {
     (void)device_id;
 
@@ -1359,7 +1359,7 @@ int teca_temporal_reduction::internals_t::minimum_operator::update_gpu(
     int device_id,
     const std::string &array,
     p_teca_array_collection &arrays_out,
-    const_p_teca_array_collection &arrays_in)
+    p_teca_array_collection &arrays_in)
 {
 #if defined(TECA_HAS_CUDA)
     // arrays
@@ -1446,7 +1446,7 @@ int teca_temporal_reduction::internals_t::maximum_operator::update_cpu(
     int device_id,
     const std::string &array,
     p_teca_array_collection &arrays_out,
-    const_p_teca_array_collection &arrays_in)
+    p_teca_array_collection &arrays_in)
 {
     (void)device_id;
 
@@ -1544,7 +1544,7 @@ int teca_temporal_reduction::internals_t::maximum_operator::update_gpu(
     int device_id,
     const std::string &array,
     p_teca_array_collection &arrays_out,
-    const_p_teca_array_collection &arrays_in)
+    p_teca_array_collection &arrays_in)
 {
 #if defined(TECA_HAS_CUDA)
     // arrays
@@ -2343,7 +2343,21 @@ const_p_teca_dataset teca_temporal_reduction::execute(
             << streaming << " remain" << std::endl;
     }
 
-    size_t n_data = data_in.size();
+#if defined(TECA_HAS_CUDA)
+    if (device_id >= 0)
+    {
+       // set the CUDA device to run on
+       cudaError_t ierr = cudaSuccess;
+       if ((ierr = cudaSetDevice(device_id)) != cudaSuccess)
+       {
+          TECA_ERROR("Failed to set the CUDA device to " << device_id
+                << ". " << cudaGetErrorString(ierr))
+             return nullptr;
+       }
+    }
+#endif
+
+    long n_data = data_in.size();
 
     // We are processing data_in in reverse order
     // because of the average operator,
@@ -2355,21 +2369,85 @@ const_p_teca_dataset teca_temporal_reduction::execute(
     // The order matters only for average operator.
 
     // copy the first mesh
-    const_p_teca_cartesian_mesh mesh_in
-      = std::dynamic_pointer_cast<const teca_cartesian_mesh>(data_in[n_data-1]);
+    p_teca_cartesian_mesh mesh_in
+      = std::dynamic_pointer_cast<teca_cartesian_mesh>(
+      std::const_pointer_cast<teca_dataset>(data_in[n_data-1]));
     p_teca_cartesian_mesh mesh_out = teca_cartesian_mesh::New();
     mesh_out->shallow_copy(
       std::const_pointer_cast<teca_cartesian_mesh>(mesh_in));
     p_teca_array_collection arrays_out = mesh_out->get_point_arrays();
+    p_teca_array_collection arrays_in;
 
     size_t n_array = this->point_arrays.size();
 
-    // accumulate incoming values
-    for (int i = n_data-2; i >= 0; --i)
+    // Handle the case where the number of inputs < 2.
+    // The arrays_in is to all zero or the fill_value if one is provided.
+    if (n_data < 2)
     {
-        mesh_in
-           = std::dynamic_pointer_cast<const teca_cartesian_mesh>(data_in[i]);
-        const_p_teca_array_collection arrays_in = mesh_in->get_point_arrays();
+        arrays_in = mesh_in->get_point_arrays();
+
+        for (size_t j = 0; j < n_array; ++j)
+        {
+            const std::string &array = this->point_arrays[j];
+
+            const_p_teca_variant_array in_array = arrays_in->get(array);
+            unsigned long n_elem = in_array->size();
+            p_teca_variant_array red_array;
+
+#if defined(TECA_HAS_CUDA)
+            if (device_id >= 0)
+            {
+                red_array = in_array->new_instance(n_elem, teca_variant_array::allocator::cuda);
+            }
+            else
+            {
+#endif
+                red_array = in_array->new_instance(n_elem);
+#if defined(TECA_HAS_CUDA)
+            }
+#endif
+            TEMPLATE_DISPATCH(
+                teca_variant_array_impl,
+                red_array.get(),
+
+#if defined(TECA_HAS_CUDA)
+                if (device_id >= 0)
+                {
+                    auto sp_red_array = static_cast<TT*>(red_array.get())->get_cuda_accessible();
+                    NT *p_red_array = sp_red_array.get();
+
+                    for (unsigned int i = 0; i < n_elem; ++i)
+                        p_red_array[i] = (this->fill_value != -1) ? this->fill_value : 0.;
+                }
+                else
+                {
+#endif
+                    auto sp_red_array = static_cast<TT*>(red_array.get())->get_cpu_accessible();
+                    NT *p_red_array = sp_red_array.get();
+
+                    for (unsigned int i = 0; i < n_elem; ++i)
+                        p_red_array[i] = (this->fill_value != -1) ? this->fill_value : 0.;
+#if defined(TECA_HAS_CUDA)
+                }
+#endif
+            )
+            arrays_in->set(array, red_array);
+        }
+    }
+
+    bool firstIter = true;
+
+    // accumulate incoming values
+    for (long i = n_data-2; i >= 0 || firstIter; --i)
+    {
+        firstIter = false;
+
+        if (n_data >= 2)
+        {
+            mesh_in = std::dynamic_pointer_cast<teca_cartesian_mesh>(
+              std::const_pointer_cast<teca_dataset>(data_in[i]));
+            arrays_in = mesh_in->get_point_arrays();
+        }
 
         for (size_t j = 0; j < n_array; ++j)
         {
@@ -2380,19 +2458,9 @@ const_p_teca_dataset teca_temporal_reduction::execute(
                 TECA_ERROR("array \"" << array << "\" not found")
                 return nullptr;
             }
-
 #if defined(TECA_HAS_CUDA)
             if (device_id >= 0)
             {
-                // set the CUDA device to run on
-                cudaError_t ierr = cudaSuccess;
-                if ((ierr = cudaSetDevice(device_id)) != cudaSuccess)
-                {
-                    TECA_ERROR("Failed to set the CUDA device to " << device_id
-                        << ". " << cudaGetErrorString(ierr))
-                    return nullptr;
-                }
-
                 // apply the reduction
                 this->internals->op[array]->update_gpu(
                     device_id, array, arrays_out, arrays_in);
