@@ -46,8 +46,13 @@ class teca_deeplab_ar_detect(teca_pytorch_algorithm):
             import teca_deeplab_ar_detect_internals
 
         # create an instance of the model
-        model = teca_deeplab_ar_detect_internals.DeepLabv3_plus(
-            n_classes=1, _print=False)
+        if 'mobilenet' in filename:
+            from modeling import deeplab
+            model = deeplab.DeepLab(num_classes=1, backbone='mobilenet', output_stride=16, sync_bn=False, freeze_bn=False)
+
+        else:
+            model = teca_deeplab_ar_detect_internals.DeepLabv3_plus(
+                n_classes=1, _print=False)
 
         # load model weights from state on disk
         super().load_model(filename, model)
