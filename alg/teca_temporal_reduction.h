@@ -1,5 +1,5 @@
-#ifndef teca_temporal_reduction_h
-#define teca_temporal_reduction_h
+#ifndef teca_cpp_temporal_reduction_h
+#define teca_cpp_temporal_reduction_h
 
 #include "teca_shared_object.h"
 #include "teca_threaded_algorithm.h"
@@ -10,7 +10,7 @@
 #include <vector>
 #include <map>
 
-TECA_SHARED_OBJECT_FORWARD_DECL(teca_temporal_reduction)
+TECA_SHARED_OBJECT_FORWARD_DECL(teca_cpp_temporal_reduction)
 
 /**
  * Reduce a mesh across the time dimensions by a defined increment using
@@ -36,13 +36,13 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_temporal_reduction)
  * maintained and used in the average. Grid points with no valid values over
  * the interval are set to the fill value.
  */
-class TECA_EXPORT teca_temporal_reduction : public teca_threaded_algorithm
+class TECA_EXPORT teca_cpp_temporal_reduction : public teca_threaded_algorithm
 {
 public:
-    TECA_ALGORITHM_STATIC_NEW(teca_temporal_reduction)
-    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_temporal_reduction)
-    TECA_ALGORITHM_CLASS_NAME(teca_temporal_reduction)
-    ~teca_temporal_reduction();
+    TECA_ALGORITHM_STATIC_NEW(teca_cpp_temporal_reduction)
+    TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_cpp_temporal_reduction)
+    TECA_ALGORITHM_CLASS_NAME(teca_cpp_temporal_reduction)
+    ~teca_cpp_temporal_reduction();
 
     // report/initialize to/from Boost program options
     // objects.
@@ -113,7 +113,7 @@ public:
     ///@}
 
 protected:
-    teca_temporal_reduction();
+    teca_cpp_temporal_reduction();
 
 private:
     teca_metadata get_output_metadata(

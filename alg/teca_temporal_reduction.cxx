@@ -30,7 +30,7 @@ using std::cos;
 
 // PIMPL idiom hides internals
 // defines the API for reduction operators
-class teca_temporal_reduction::internals_t
+class teca_cpp_temporal_reduction::internals_t
 {
 public:
     internals_t() {}
@@ -52,7 +52,7 @@ public:
     std::map<std::string, p_reduction_operator> op;
 };
 
-class teca_temporal_reduction::internals_t::reduction_operator
+class teca_cpp_temporal_reduction::internals_t::reduction_operator
 {
 public:
     /** reduction_operator implements 4 class methods:
@@ -93,8 +93,8 @@ public:
     double fill_value;
 };
 
-class teca_temporal_reduction::internals_t::average_operator :
-      public teca_temporal_reduction::internals_t::reduction_operator
+class teca_cpp_temporal_reduction::internals_t::average_operator :
+      public teca_cpp_temporal_reduction::internals_t::reduction_operator
 {
 public:
 
@@ -115,8 +115,8 @@ public:
           p_teca_array_collection &arrays_out) override;
 };
 
-class teca_temporal_reduction::internals_t::summation_operator :
-      public teca_temporal_reduction::internals_t::reduction_operator
+class teca_cpp_temporal_reduction::internals_t::summation_operator :
+      public teca_cpp_temporal_reduction::internals_t::reduction_operator
 {
 public:
     int update_cpu(int device_id,
@@ -131,8 +131,8 @@ public:
 
 };
 
-class teca_temporal_reduction::internals_t::minimum_operator :
-      public teca_temporal_reduction::internals_t::reduction_operator
+class teca_cpp_temporal_reduction::internals_t::minimum_operator :
+      public teca_cpp_temporal_reduction::internals_t::reduction_operator
 {
 public:
     int update_cpu(int device_id,
@@ -146,8 +146,8 @@ public:
           p_teca_array_collection &arrays_in) override;
 };
 
-class teca_temporal_reduction::internals_t::maximum_operator :
-      public teca_temporal_reduction::internals_t::reduction_operator
+class teca_cpp_temporal_reduction::internals_t::maximum_operator :
+      public teca_cpp_temporal_reduction::internals_t::reduction_operator
 {
 public:
     int update_cpu(int device_id,
@@ -161,7 +161,7 @@ public:
           p_teca_array_collection &arrays_in) override;
 };
 
-class teca_temporal_reduction::internals_t::reduction_operator_factory
+class teca_cpp_temporal_reduction::internals_t::reduction_operator_factory
 {
 public:
     /** Allocate and return an instance of the named operator
@@ -170,11 +170,11 @@ public:
      *                                              maximum
      * @returns an instance of reduction_operator
      */
-    static teca_temporal_reduction::internals_t::p_reduction_operator New(
+    static teca_cpp_temporal_reduction::internals_t::p_reduction_operator New(
                                                                    int op);
 };
 
-struct teca_temporal_reduction::internals_t::time_interval
+struct teca_cpp_temporal_reduction::internals_t::time_interval
 {
     time_interval(double t, long start, long end) : time(t),
         start_index(start), end_index(end)
@@ -186,7 +186,7 @@ struct teca_temporal_reduction::internals_t::time_interval
 };
 
 // --------------------------------------------------------------------------
-void teca_temporal_reduction::internals_t::reduction_operator::initialize(
+void teca_cpp_temporal_reduction::internals_t::reduction_operator::initialize(
      double fill_value)
 {
     this->fill_value = fill_value;
@@ -670,7 +670,7 @@ int average_finalize(
 #endif
 
 // --------------------------------------------------------------------------
-void teca_temporal_reduction::internals_t::average_operator::i2f(
+void teca_cpp_temporal_reduction::internals_t::average_operator::i2f(
      int device_id,
      const_p_teca_variant_array &array)
 {
@@ -720,7 +720,7 @@ void teca_temporal_reduction::internals_t::average_operator::i2f(
 }
 
 // --------------------------------------------------------------------------
-int teca_temporal_reduction::internals_t::average_operator::update_cpu(
+int teca_cpp_temporal_reduction::internals_t::average_operator::update_cpu(
     int device_id,
     const std::string &array,
     p_teca_array_collection &arrays_out,
@@ -904,7 +904,7 @@ int teca_temporal_reduction::internals_t::average_operator::update_cpu(
 }
 
 // --------------------------------------------------------------------------
-int teca_temporal_reduction::internals_t::average_operator::update_gpu(
+int teca_cpp_temporal_reduction::internals_t::average_operator::update_gpu(
     int device_id,
     const std::string &array,
     p_teca_array_collection &arrays_out,
@@ -1074,7 +1074,7 @@ int teca_temporal_reduction::internals_t::average_operator::update_gpu(
 }
 
 // --------------------------------------------------------------------------
-int teca_temporal_reduction::internals_t::summation_operator::update_cpu(
+int teca_cpp_temporal_reduction::internals_t::summation_operator::update_cpu(
     int device_id,
     const std::string &array,
     p_teca_array_collection &arrays_out,
@@ -1170,7 +1170,7 @@ int teca_temporal_reduction::internals_t::summation_operator::update_cpu(
 }
 
 // --------------------------------------------------------------------------
-int teca_temporal_reduction::internals_t::summation_operator::update_gpu(
+int teca_cpp_temporal_reduction::internals_t::summation_operator::update_gpu(
     int device_id,
     const std::string &array,
     p_teca_array_collection &arrays_out,
@@ -1257,7 +1257,7 @@ int teca_temporal_reduction::internals_t::summation_operator::update_gpu(
 }
 
 // --------------------------------------------------------------------------
-int teca_temporal_reduction::internals_t::minimum_operator::update_cpu(
+int teca_cpp_temporal_reduction::internals_t::minimum_operator::update_cpu(
     int device_id,
     const std::string &array,
     p_teca_array_collection &arrays_out,
@@ -1355,7 +1355,7 @@ int teca_temporal_reduction::internals_t::minimum_operator::update_cpu(
 }
 
 // --------------------------------------------------------------------------
-int teca_temporal_reduction::internals_t::minimum_operator::update_gpu(
+int teca_cpp_temporal_reduction::internals_t::minimum_operator::update_gpu(
     int device_id,
     const std::string &array,
     p_teca_array_collection &arrays_out,
@@ -1442,7 +1442,7 @@ int teca_temporal_reduction::internals_t::minimum_operator::update_gpu(
 }
 
 // --------------------------------------------------------------------------
-int teca_temporal_reduction::internals_t::maximum_operator::update_cpu(
+int teca_cpp_temporal_reduction::internals_t::maximum_operator::update_cpu(
     int device_id,
     const std::string &array,
     p_teca_array_collection &arrays_out,
@@ -1540,7 +1540,7 @@ int teca_temporal_reduction::internals_t::maximum_operator::update_cpu(
 }
 
 // --------------------------------------------------------------------------
-int teca_temporal_reduction::internals_t::maximum_operator::update_gpu(
+int teca_cpp_temporal_reduction::internals_t::maximum_operator::update_gpu(
     int device_id,
     const std::string &array,
     p_teca_array_collection &arrays_out,
@@ -1627,7 +1627,7 @@ int teca_temporal_reduction::internals_t::maximum_operator::update_gpu(
 }
 
 // --------------------------------------------------------------------------
-int teca_temporal_reduction::internals_t::reduction_operator::finalize(
+int teca_cpp_temporal_reduction::internals_t::reduction_operator::finalize(
     int device_id,
     const std::string &array,
     p_teca_array_collection &arrays_out)
@@ -1699,7 +1699,7 @@ int teca_temporal_reduction::internals_t::reduction_operator::finalize(
 }
 
 // --------------------------------------------------------------------------
-int teca_temporal_reduction::internals_t::average_operator::finalize(
+int teca_cpp_temporal_reduction::internals_t::average_operator::finalize(
     int device_id,
     const std::string &array,
     p_teca_array_collection &arrays_out)
@@ -1819,8 +1819,8 @@ int teca_temporal_reduction::internals_t::average_operator::finalize(
 }
 
 // --------------------------------------------------------------------------
-teca_temporal_reduction::internals_t::p_reduction_operator
-    teca_temporal_reduction::internals_t::reduction_operator_factory::New(
+teca_cpp_temporal_reduction::internals_t::p_reduction_operator
+    teca_cpp_temporal_reduction::internals_t::reduction_operator_factory::New(
     int op)
 {
     if (op == summation)
@@ -1845,7 +1845,7 @@ teca_temporal_reduction::internals_t::p_reduction_operator
 }
 
 // --------------------------------------------------------------------------
-int teca_temporal_reduction::set_operator(const std::string &op)
+int teca_cpp_temporal_reduction::set_operator(const std::string &op)
 {
     if (op == "average")
     {
@@ -1872,7 +1872,7 @@ int teca_temporal_reduction::set_operator(const std::string &op)
 }
 
 // --------------------------------------------------------------------------
-std::string teca_temporal_reduction::get_operator_name()
+std::string teca_cpp_temporal_reduction::get_operator_name()
 {
     std::string name;
     switch(this->op)
@@ -1896,7 +1896,7 @@ std::string teca_temporal_reduction::get_operator_name()
 }
 
 // --------------------------------------------------------------------------
-int teca_temporal_reduction::set_interval(const std::string &interval)
+int teca_cpp_temporal_reduction::set_interval(const std::string &interval)
 {
     if (interval == "daily")
     {
@@ -1927,7 +1927,7 @@ int teca_temporal_reduction::set_interval(const std::string &interval)
 }
 
 // --------------------------------------------------------------------------
-std::string teca_temporal_reduction::get_interval_name()
+std::string teca_cpp_temporal_reduction::get_interval_name()
 {
     std::string name;
     switch(this->interval)
@@ -1954,7 +1954,7 @@ std::string teca_temporal_reduction::get_interval_name()
 }
 
 // --------------------------------------------------------------------------
-teca_temporal_reduction::teca_temporal_reduction() :
+teca_cpp_temporal_reduction::teca_cpp_temporal_reduction() :
     op(average), interval(monthly), number_of_steps(0), fill_value(-1)
 {
     this->set_number_of_input_connections(1);
@@ -1962,22 +1962,22 @@ teca_temporal_reduction::teca_temporal_reduction() :
 
     this->set_stream_size(2);
 
-    this->internals = new teca_temporal_reduction::internals_t;
+    this->internals = new teca_cpp_temporal_reduction::internals_t;
 }
 
 // --------------------------------------------------------------------------
-teca_temporal_reduction::~teca_temporal_reduction()
+teca_cpp_temporal_reduction::~teca_cpp_temporal_reduction()
 {
     delete this->internals;
 }
 
 #if defined(TECA_HAS_BOOST)
 // --------------------------------------------------------------------------
-void teca_temporal_reduction::get_properties_description(
+void teca_cpp_temporal_reduction::get_properties_description(
     const std::string &prefix, options_description &global_opts)
 {
     options_description opts("Options for "
-        + (prefix.empty()?"teca_temporal_reduction":prefix));
+        + (prefix.empty()?"teca_cpp_temporal_reduction":prefix));
 
     opts.add_options()
         TECA_POPTS_GET(std::vector<std::string>, prefix, point_arrays,
@@ -2000,7 +2000,7 @@ void teca_temporal_reduction::get_properties_description(
 }
 
 // --------------------------------------------------------------------------
-void teca_temporal_reduction::set_properties(
+void teca_cpp_temporal_reduction::set_properties(
     const std::string &prefix, variables_map &opts)
 {
     this->teca_threaded_algorithm::set_properties(prefix, opts);
@@ -2014,14 +2014,14 @@ void teca_temporal_reduction::set_properties(
 #endif
 
 // --------------------------------------------------------------------------
-teca_metadata teca_temporal_reduction::get_output_metadata(
+teca_metadata teca_cpp_temporal_reduction::get_output_metadata(
     unsigned int port,
     const std::vector<teca_metadata> &md_in)
 {
     if (this->get_verbose() > 1)
     {
         std::cerr << teca_parallel_id()
-            << "teca_temporal_reduction::get_output_metadata" << std::endl;
+            << "teca_cpp_temporal_reduction::get_output_metadata" << std::endl;
     }
 
     (void)port;
@@ -2106,7 +2106,7 @@ teca_metadata teca_temporal_reduction::get_output_metadata(
         it->get_next_interval(first_step, last_step);
 
         this->internals->indices.push_back(
-            teca_temporal_reduction::internals_t::time_interval(
+            teca_cpp_temporal_reduction::internals_t::time_interval(
             first_step.time, first_step.index, last_step.index));
     }
 
@@ -2209,7 +2209,7 @@ teca_metadata teca_temporal_reduction::get_output_metadata(
 }
 
 // --------------------------------------------------------------------------
-std::vector<teca_metadata> teca_temporal_reduction::get_upstream_request(
+std::vector<teca_metadata> teca_cpp_temporal_reduction::get_upstream_request(
     unsigned int port,
     const std::vector<teca_metadata> &md_in,
     const teca_metadata &req_in)
@@ -2217,7 +2217,7 @@ std::vector<teca_metadata> teca_temporal_reduction::get_upstream_request(
     if (this->get_verbose() > 1)
     {
         std::cerr << teca_parallel_id()
-            << "teca_temporal_reduction::get_upstream_request" << std::endl;
+            << "teca_cpp_temporal_reduction::get_upstream_request" << std::endl;
     }
 
     (void)port;
@@ -2274,8 +2274,8 @@ std::vector<teca_metadata> teca_temporal_reduction::get_upstream_request(
         }
 
         // create and initialize the operator
-        teca_temporal_reduction::internals_t::p_reduction_operator op
-             = teca_temporal_reduction::internals_t::reduction_operator_factory::New(
+        teca_cpp_temporal_reduction::internals_t::p_reduction_operator op
+             = teca_cpp_temporal_reduction::internals_t::reduction_operator_factory::New(
                                                                  this->op);
         op->initialize(fill_value);
 
@@ -2315,7 +2315,7 @@ std::vector<teca_metadata> teca_temporal_reduction::get_upstream_request(
 }
 
 // --------------------------------------------------------------------------
-const_p_teca_dataset teca_temporal_reduction::execute(
+const_p_teca_dataset teca_cpp_temporal_reduction::execute(
     unsigned int port,
     const std::vector<const_p_teca_dataset> &data_in,
     const teca_metadata &req_in,
@@ -2335,7 +2335,7 @@ const_p_teca_dataset teca_temporal_reduction::execute(
     if (this->get_verbose())
     {
         std::cerr << teca_parallel_id()
-            << "teca_temporal_reduction::execute request "
+            << "teca_cpp_temporal_reduction::execute request "
             << req_id[0] << " device " << device_id
             << " (" << this->internals->indices[req_id[0]].start_index
             << " - " << this->internals->indices[req_id[0]].end_index

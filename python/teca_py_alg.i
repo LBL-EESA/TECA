@@ -397,11 +397,11 @@ struct teca_tc_saffir_simpson
 %include "teca_cartesian_mesh_source.h"
 
 /***************************************************************************
- temporal_reduction
+ cpp_temporal_reduction
  ***************************************************************************/
-%ignore teca_temporal_reduction::shared_from_this;
-%shared_ptr(teca_temporal_reduction)
-%ignore teca_temporal_reduction::operator=;
+%ignore teca_cpp_temporal_reduction::shared_from_this;
+%shared_ptr(teca_cpp_temporal_reduction)
+%ignore teca_cpp_temporal_reduction::operator=;
 %include "teca_temporal_reduction.h"
 
 /***************************************************************************

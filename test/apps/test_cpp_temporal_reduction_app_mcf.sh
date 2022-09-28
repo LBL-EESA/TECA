@@ -2,7 +2,7 @@
 
 if [[ $# -lt 9 ]]
 then
-    echo "usage: test_temporal_reduction_app.sh [app prefix] " \
+    echo "usage: test_cpp_temporal_reduction_app.sh [app prefix] " \
          "[data root] [input file] [array name] [interval] " \
          "[operator] [steps per file] [n threads] " \
          "[spatial partitioning] [mpi exec] [test cores]"
@@ -48,7 +48,7 @@ test_name=test_temporal_reduction
 output_base=${test_name}_${array_name}_${interval}_${operator}
 
 # run the app
-time ${launcher} ${app_prefix}/teca_temporal_reduction                         \
+time ${launcher} ${app_prefix}/teca_cpp_temporal_reduction                         \
     --input_file "${app_prefix}/../test/ECMWF-IFS-HR-SST-present.mcf"          \
     --interval ${interval} --operator ${operator} --point_arrays ${array_name} \
     --z_axis_variable plev --file_layout yearly                                \

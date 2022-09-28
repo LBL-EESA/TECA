@@ -112,14 +112,14 @@ int main(int argc, char **argv)
     p_teca_cf_reader cf_reader = teca_cf_reader::New();
     p_teca_valid_value_mask vv_mask = teca_valid_value_mask::New();
     p_teca_unpack_data unpack = teca_unpack_data::New();
-    p_teca_temporal_reduction red = teca_temporal_reduction::New();
+    p_teca_cpp_temporal_reduction red = teca_cpp_temporal_reduction::New();
     p_teca_cf_writer cf_writer = teca_cf_writer::New();
 
     cf_reader->get_properties_description("cf_reader", advanced_opt_defs);
     mcf_reader->get_properties_description("multi_cf_reader", advanced_opt_defs);
     vv_mask->get_properties_description("valid_value_mask", advanced_opt_defs);
     unpack->get_properties_description("unpack_data", advanced_opt_defs);
-    red->get_properties_description("temporal_reduction", advanced_opt_defs);
+    red->get_properties_description("cpp_temporal_reduction", advanced_opt_defs);
     cf_writer->get_properties_description("cf_writer", advanced_opt_defs);
 
     // package basic and advanced options for display
@@ -152,7 +152,7 @@ int main(int argc, char **argv)
     cf_reader->set_properties("cf_reader", opt_vals);
     vv_mask->set_properties("valid_value_mask", opt_vals);
     unpack->set_properties("unpack_data", opt_vals);
-    red->set_properties("temporal_reduction", opt_vals);
+    red->set_properties("cpp_temporal_reduction", opt_vals);
     cf_writer->set_properties("cf_writer", opt_vals);
 
     bool have_file = opt_vals.count("input_file");

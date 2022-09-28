@@ -46,7 +46,7 @@ teca_add_app(teca_table_diff LIBS ${teca_app_link}
 teca_add_app(teca_cartesian_mesh_diff LIBS ${teca_app_link}
     FEATURES ${TECA_HAS_NETCDF})
 
-teca_add_app(teca_temporal_reduction LIBS ${teca_app_link}
+teca_add_app(teca_cpp_temporal_reduction LIBS ${teca_app_link}
     FEATURES ${TECA_HAS_NETCDF})
 
 teca_add_python_app(teca_convert_table)
