@@ -85,7 +85,7 @@ class custom_intervals:
 
             self.index += 5
 
-            return teca_python_temporal_reduction. \
+            return teca_temporal_reduction. \
                 time_interval(self.time[i0], i0, i1)
 
 
@@ -116,7 +116,7 @@ cfr = teca_cf_reader.New()
 cfr.set_files_regex(files)
 cfr.set_z_axis_variable(z_axis)
 
-mav = teca_python_temporal_reduction.New()
+mav = teca_temporal_reduction.New()
 mav.set_input_connection(cfr.get_output_port())
 mav.set_interval_iterator_factory(custom_intervals())
 mav.set_reduction_operator_factory(custom_reductions())

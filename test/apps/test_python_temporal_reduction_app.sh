@@ -2,7 +2,7 @@
 
 if [[ $# -lt 8 ]]
 then
-    echo "usage: test_python_temporal_reduction_app.sh [app prefix] " \
+    echo "usage: test_temporal_reduction_app.sh [app prefix] " \
          "[data root] [input regex] [array name] [interval] " \
          "[operator] [steps per file] [spatial partitioning] " \
          "[mpi exec] [test cores] $#"
@@ -39,7 +39,7 @@ test_name=test_temporal_reduction
 output_base=${test_name}_${array_name}_${interval}_${operator}
 
 # run the app
-time ${launcher} ${app_prefix}/teca_python_temporal_reduction           \
+time ${launcher} ${app_prefix}/teca_temporal_reduction           \
     --input_regex "${data_root}/${input_regex}" --interval ${interval}  \
     --operator ${operator} --point_arrays ${array_name}                 \
     --file_layout yearly --steps_per_file ${steps_per_file}             \

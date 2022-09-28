@@ -407,7 +407,7 @@ struct teca_tc_saffir_simpson
 /***************************************************************************
  python_temporal_reduction
  ***************************************************************************/
-%pythoncode "teca_python_temporal_reduction.py"
+%pythoncode "teca_temporal_reduction.py"
 
 /***************************************************************************
  vertical_reduction

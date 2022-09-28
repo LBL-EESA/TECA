@@ -55,7 +55,7 @@ teca_add_python_app(teca_dataset_metadata FEATURES ${TECA_HAS_NETCDF})
 teca_add_python_app(teca_deeplab_ar_detect
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_PYTORCH})
 
-teca_add_python_app(teca_python_temporal_reduction FEATURES ${TECA_HAS_NETCDF})
+teca_add_python_app(teca_temporal_reduction FEATURES ${TECA_HAS_NETCDF})
 teca_add_python_app(teca_event_filter)
 teca_add_python_app(teca_profile_explorer)
 teca_add_python_app(teca_tc_stats)
