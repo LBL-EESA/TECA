@@ -109,6 +109,9 @@ parser.add_argument('--spatial_partitions', type=int, default=0,
 parser.add_argument('--partition_x', default=False, action='store_true',
                     help='Partition spatially in the x-direction')
 
+parser.add_argument('--python_version', default=False, action='store_true',
+                    help='Use the Python implemetantion instead of the C++ implementation')
+
 parser.add_argument('--verbose', type=int, default=0,
                     help='enable verbose mode.')
 
@@ -141,7 +144,6 @@ verbose = args.verbose
 time_index_file = args.time_index_file
 
 # give each MPI rank a GPU
-n_threads = 1
 if not 'TECA_RANKS_PER_DEVICE' in os.environ:
     os.environ['TECA_RANKS_PER_DEVICE'] = '-1'
 
@@ -214,6 +216,7 @@ upd = teca_unpack_data.New()
 upd.set_input_connection(vvm.get_output_port())
 upd.set_verbose(verbose)
 
+cpp_version = False
 loc = operator.rfind('th_percentile')
 if loc > 0:
     percentile = float(operator[:loc])
@@ -226,21 +229,43 @@ if loc > 0:
     red.set_percentile(percentile)
     red.set_verbose(verbose)
 else:
-    red = teca_temporal_reduction.New()
-    red.set_input_connection(upd.get_output_port())
-    red.set_interval(interval)
-    red.set_operator(operator)
-    red.set_fill_value(fill_value)
-    red.set_use_fill_value( 0 if ignore_fill_value else 1 )
-    red.set_point_arrays(point_arrays)
-    red.set_verbose(verbose)
-    red.set_thread_pool_size(n_threads)
-    red.set_stream_size(2)
+    if not args.python_version \
+        and operator in ['minimum', 'maximum', 'summation', 'average'] \
+        and (interval in ['daily', 'monthly', 'seasonal', 'yearly'] or 'steps' in interval) \
+        and upstream == cfr:
+        cpp_version = True
+        red = teca_cpp_temporal_reduction.New()
+        red.set_input_connection(upd.get_output_port())
+        if 'steps' in interval:
+           red.set_interval('n_steps')
+           pos = interval.rfind('_steps')
+           n_steps = int(interval[0:pos])
+           red.set_number_of_steps(n_steps)
+        else:
+           red.set_interval(interval)
+        red.set_operator(operator)
+        if fill_value is not None:
+            red.set_fill_value(fill_value)
+        red.set_point_arrays(point_arrays)
+        red.set_verbose(verbose)
+        red.set_thread_pool_size(-1)
+        red.set_stream_size(2)
+    else:
+        red = teca_temporal_reduction.New()
+        red.set_input_connection(upd.get_output_port())
+        red.set_interval(interval)
+        red.set_operator(operator)
+        red.set_fill_value(fill_value)
+        red.set_use_fill_value( 0 if ignore_fill_value else 1 )
+        red.set_point_arrays(point_arrays)
+        red.set_verbose(verbose)
+        red.set_thread_pool_size(1)
+        red.set_stream_size(2)
 
 cfw = teca_cf_writer.New()
 cfw.set_input_connection(red.get_output_port())
 cfw.set_verbose(verbose)
-cfw.set_thread_pool_size(1)
+cfw.set_thread_pool_size(-1 if cpp_version else 1)
 cfw.set_layout(layout)
 cfw.set_steps_per_file(steps_per_file)
 cfw.set_file_name(out_files)
