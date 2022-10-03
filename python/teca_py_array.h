@@ -326,59 +326,66 @@ bool set(teca_variant_array *varr, unsigned long i, PyObject *obj)
 TECA_EXPORT
 p_teca_variant_array new_variant_array(PyObject *obj, bool deep_copy = false)
 {
-    // not an array
-    if (!PyArray_Check(obj))
-        return nullptr;
+    if (PyArray_Check(obj))
+    {
+        // numpy array
+        PyArrayObject *arr = reinterpret_cast<PyArrayObject*>(obj);
 
-    PyArrayObject *arr = reinterpret_cast<PyArrayObject*>(obj);
+        // verify that zero-copy is possible, force a deep copy if it is not
+        if (!deep_copy &&
+            !((PyArray_CHKFLAGS(arr, NPY_ARRAY_C_CONTIGUOUS) ||
+            PyArray_CHKFLAGS(arr, NPY_ARRAY_F_CONTIGUOUS)) &&
+            PyArray_CHKFLAGS(arr, NPY_ARRAY_ALIGNED)))
+            deep_copy = true;
 
-    // verify that zero-copy is possible, force a deep copy if it is not
-    if (!deep_copy &&
-        !((PyArray_CHKFLAGS(arr, NPY_ARRAY_C_CONTIGUOUS) ||
-        PyArray_CHKFLAGS(arr, NPY_ARRAY_F_CONTIGUOUS)) &&
-        PyArray_CHKFLAGS(arr, NPY_ARRAY_ALIGNED)))
-        deep_copy = true;
+        TECA_PY_ARRAY_DISPATCH(arr,
+            size_t n_elem = PyArray_SIZE(arr);
 
-    TECA_PY_ARRAY_DISPATCH(arr,
-        size_t n_elem = PyArray_SIZE(arr);
+            p_teca_variant_array_impl<AT> varrt;
 
-        p_teca_variant_array_impl<AT> varrt;
-
-        if (deep_copy)
-        {
-#if defined(TECA_DEBUG)
-            std::cerr << "teca_py_array::new_variant_array deep copy" << std::endl;
-#endif
-            // make a deep copy of the data
-            varrt = teca_variant_array_impl<AT>::New();
-            varrt->reserve(n_elem);
-
-            NpyIter *it = NpyIter_New(arr, NPY_ITER_READONLY,
-                    NPY_KEEPORDER, NPY_NO_CASTING, nullptr);
-            NpyIter_IterNextFunc *next = NpyIter_GetIterNext(it, nullptr);
-            AT **ptrptr = reinterpret_cast<AT**>(NpyIter_GetDataPtrArray(it));
-            do
+            if (deep_copy)
             {
-                varrt->append(**ptrptr);
-            }
-            while (next(it));
-            NpyIter_Deallocate(it);
-        }
-        else
-        {
 #if defined(TECA_DEBUG)
-            std::cerr << "teca_py_array::new_variant_array zero copy" << std::endl;
+                std::cerr << "teca_py_array::new_variant_array deep copy" << std::endl;
 #endif
-            // pass by zero-copy and hold a reference to obj
-            AT *ptr = (AT*)PyArray_DATA(arr);
-            varrt = teca_variant_array_impl<AT>::New(n_elem,
-                ptr, teca_variant_array::allocator::malloc,
-                -1, hamr::python_deleter(ptr, n_elem, obj));
-        }
+                // make a deep copy of the data
+                varrt = teca_variant_array_impl<AT>::New();
+                varrt->reserve(n_elem);
 
-        return varrt;
-        )
+                NpyIter *it = NpyIter_New(arr, NPY_ITER_READONLY,
+                        NPY_KEEPORDER, NPY_NO_CASTING, nullptr);
+                NpyIter_IterNextFunc *next = NpyIter_GetIterNext(it, nullptr);
+                AT **ptrptr = reinterpret_cast<AT**>(NpyIter_GetDataPtrArray(it));
+                do
+                {
+                    varrt->append(**ptrptr);
+                }
+                while (next(it));
+                NpyIter_Deallocate(it);
+            }
+            else
+            {
+#if defined(TECA_DEBUG)
+                std::cerr << "teca_py_array::new_variant_array zero copy" << std::endl;
+#endif
+                // pass by zero-copy and hold a reference to obj
+                AT *ptr = (AT*)PyArray_DATA(arr);
+                varrt = teca_variant_array_impl<AT>::New(n_elem,
+                    ptr, teca_variant_array::allocator::malloc,
+                    -1, hamr::python_deleter(ptr, n_elem, obj));
+            }
 
+            return varrt;
+            )
+    }
+    else if (PyArray_CheckScalar(obj))
+    {
+        // numpy scalar
+        TECA_PY_ARRAY_SCALAR_DISPATCH(obj,
+            return teca_variant_array_impl<ST>::New(1,
+                teca_py_array::numpy_scalar_tt<ST>::value(obj));
+            )
+    }
     // unknown type
     return nullptr;
 }
