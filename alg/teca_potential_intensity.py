@@ -397,7 +397,7 @@ class teca_potential_intensity(teca_python_algorithm):
         elif plev_units != 'hPa':
 
             if rank == 0:
-                sys.stderr.write('[%d] WARNING: unsupported units %s for pressure'
+                sys.stderr.write('[%d] ERROR: unsupported units %s for pressure'
                                  ' coordinate %s. Pressure must be specified in'
                                  ' either Pa or hPa\n' % (rank, plev_units, plev_var))
 
@@ -414,7 +414,7 @@ class teca_potential_intensity(teca_python_algorithm):
         elif psl_units != 'hPa':
 
             if rank == 0:
-                sys.stderr.write('[%d] WARNING: unsupported units %s for sea surface'
+                sys.stderr.write('[%d] ERROR: unsupported units %s for sea surface'
                                  'pressure %s. Pressure must be specified in'
                                  ' either Pa or hPa\n' % (rank, psl_units,
                                  self.sea_level_pressure_variable))
@@ -433,12 +433,12 @@ class teca_potential_intensity(teca_python_algorithm):
         elif ta_units != 'C' and ta_units != 'degrees C':
 
             if rank == 0:
-                sys.stderr.write('[%d] WARNING: unrecognized units %s for %s.'
+                sys.stderr.write('[%d] ERROR: unrecognized units %s for %s.'
                                  ' Temperature must be specified in either C'
                                  ' or K\n' % (rank, ta_units,
                                  self.air_temperature_variable))
 
-        # convert ea surface emperature from Kelvin to Celcius
+        # convert sea surface temperature from Kelvin to Celcius
         sst_atts = atts[self.sea_surface_temperature_variable]
         sst_units = sst_atts['units']
         if sst_units == 'K' or sst_units == 'degrees K':
@@ -452,7 +452,7 @@ class teca_potential_intensity(teca_python_algorithm):
         elif sst_units != 'C' and sst_units != 'degrees C':
 
             if rank == 0:
-                sys.stderr.write('[%d] WARNING: unrecognized units %s for %s.'
+                sys.stderr.write('[%d] ERROR: unrecognized units %s for %s.'
                                  ' Temperature must be specified in either C'
                                  ' or K\n' % (rank, sst_units,
                                  self.sea_surface_temperature_variable))
@@ -460,12 +460,35 @@ class teca_potential_intensity(teca_python_algorithm):
         # convert specific humidity to mixing ratio
         if specific_humidity_to_mixing_ratio:
 
+            # check the units
+            hus_atts = atts[self.specific_humidity_variable]
+            hus_units = hus_atts['units']
+            if hus_units != 'g/kg':
+
+                if rank == 0:
+                    sys.stderr.write('[%d] ERROR: unrecognized units %s for %s.'
+                                     ' Specific humidity must be specified in units'
+                                     ' of g/kg' % (rank, hus_units,
+                                     self.specific_humidity_variable))
+
             if rank == 0 and verbose > 1:
                 sys.stderr.write('[%d] STATUS: converting specific humidity %s to a'
                                  ' mixing ratio\n' % (rank, self.specific_humidity_variable))
 
-            mr = mr / (1.0 - mr) * 1000.0
+            mr = mr / (1.0 - mr)
 
+        else:
+
+            # check the units
+            mr_atts = atts[self.mixing_ratio_variable]
+            mr_units = mr_atts['units']
+            if mr_units != 'g/kg':
+
+                if rank == 0:
+                    sys.stderr.write('[%d] ERROR: unrecognized units %s for %s.'
+                                     ' Mixing ratio must be specified in units'
+                                     ' of g/kg' % (rank, mr_units,
+                                     self.mixing_ratio_variable))
 
         # report min/max for debug
         if verbose > 2:
