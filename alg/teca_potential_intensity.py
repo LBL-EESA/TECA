@@ -153,56 +153,73 @@ class teca_potential_intensity(teca_python_algorithm):
         # type, size and _FillValue.
         attributes = rep["attributes"]
 
-        base_atts = teca_array_attributes(
-            attributes[self.sea_level_pressure_variable])
+        psl_atts = attributes[self.sea_level_pressure_variable]
 
-        # set a fill value if none was provided.
-        if not base_atts.have_fill_value:
-            base_atts.set_fill_value(np.float32(1e20))
+        out_tc = psl_atts['type_code']
+        #out_size = psl_atts['size']
+
+        # get a fill value
+        if psl_atts.has('_FillValue'):
+            out_fill = psl_atts['_FillValue']
+        elif psl_atts.has('missing_value'):
+            out_fill = psl_atts['missing_value']
+        else:
+            out_fill = get_default_fill_value(out_tc)
+
+        base_atts = teca_metadata()
+        #base_atts['size'] = out_size
+        base_atts['type_code'] = out_tc
+        base_atts['_FillValue'] = out_fill
+        base_atts['mesh_dim_active'] = [1, 1, 0, 1]
 
         # create attributes for NetCDF CF I/O
         # V_max
-        out_atts = teca_array_attributes(base_atts)
-        out_atts.units = 'm.s-1'
-        out_atts.long_name = 'potential intensity'
-        out_atts.description = ''
+        out_atts = teca_metadata(base_atts)
 
-        attributes['V_max'] = out_atts.to_metadata()
+        out_atts['units'] = 'm.s-1'
+        out_atts['long_name'] = 'potential intensity'
+
+        attributes['V_max'] = out_atts
 
         # P_min
-        out_atts = teca_array_attributes(base_atts)
-        out_atts.units = 'hPa'
-        out_atts.long_name =  'minimum central pressure'
-        out_atts.description = ''
+        out_atts = teca_metadata(base_atts)
 
-        attributes['P_min'] = out_atts.to_metadata()
+        out_atts['units'] = 'hPa'
+        out_atts['long_name'] =  'minimum central pressure'
+
+        attributes['P_min'] = out_atts
 
         # IFL
-        out_atts = teca_array_attributes(base_atts)
-        out_atts.type_code = teca_int_array_code.get()
-        out_atts.set_fill_value(np.iinfo(np.int32).max)
-        out_atts.units = 'unitless'
-        out_atts.long_name = 'algorithm status flag'
-        out_atts.description = \
+        out_atts = teca_metadata()
+
+        ifl_tc = teca_int_array_code.get()
+
+        out_atts['type_code'] = ifl_tc
+        out_atts['_FillValue'] = get_default_fill_value(ifl_tc)
+        out_atts['units'] = 'unitless'
+        out_atts['long_name']= 'algorithm status flag'
+        out_atts['mesh_dim_active'] = [1, 1, 0, 1]
+
+        out_atts['description'] = \
             '0 = bad input, 1 = success, 2 = fail to converge, 3 = missng value'
 
-        attributes['IFL'] = out_atts.to_metadata()
+        attributes['IFL'] = out_atts
 
         # T_o
-        out_atts = teca_array_attributes(base_atts)
-        out_atts.units = 'K'
-        out_atts.long_name = 'outflow temperature'
-        out_atts.description =  ''
+        out_atts = teca_metadata(base_atts)
 
-        attributes['T_o'] = out_atts.to_metadata()
+        out_atts['units'] = 'K'
+        out_atts['long_name'] = 'outflow temperature'
+
+        attributes['T_o'] = out_atts
 
         # OTL
-        out_atts = teca_array_attributes(base_atts)
-        out_atts.units = 'hPa'
-        out_atts.long_name = 'outflow temperature level'
-        out_atts.description = ''
+        out_atts = teca_metadata(base_atts)
 
-        attributes['OTL'] = out_atts.to_metadata()
+        out_atts['units'] = 'hPa'
+        out_atts['long_name'] = 'outflow temperature level'
+
+        attributes['OTL'] = out_atts
 
         # update the attributes collection
         rep["attributes"] = attributes
@@ -518,12 +535,14 @@ class teca_potential_intensity(teca_python_algorithm):
             # next lat
             j += 1
 
-        # replace nan with fill value
+        # replace nan with fill value.
         # set a fill value if none was provided.
-        fill_value = np.float32(1e20)
-
         if psl_atts.has('_FillValue'):
             fill_value = psl_atts['_FillValue']
+        elif psl_atts.has('missing_value'):
+            fill_value = psl_atts['missing_value']
+        else:
+            fill_value = get_default_fill_value(psl_atts['type_code'])
 
         ii = np.isnan(vmax)
         vmax[ii] = fill_value
