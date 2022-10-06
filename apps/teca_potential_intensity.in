@@ -39,6 +39,12 @@ parser.add_argument('--input_file', type=str, required=False,
          ' using the teca_multi_cf_reader. Use one of either --input_file'
          ' or --input_regex.')
 
+parser.add_argument('--input_regex', type=str, required=False,
+    help='a teca_cf_reader regex identifying the'
+         ' set of NetCDF CF2 files to process. When present data is read'
+         ' using the teca_cf_reader. Use one of either --input_file or '
+         ' --input_regex.')
+
 parser.add_argument('--validate_time_axis', type=int, required=False, default=1,
     help='Enable consistency checks on of the time axis returned by'
          ' internally managed MCF readers.')
@@ -46,12 +52,6 @@ parser.add_argument('--validate_time_axis', type=int, required=False, default=1,
 parser.add_argument('--validate_spatial_coordinates', type=int, required=False,
     default=1, help='Enable consistency checks on of the spatial coordinate axes'
                     ' returned by internally managed MCF readers.')
-
-parser.add_argument('--input_regex', type=str, required=False,
-    help='a teca_cf_reader regex identifying the'
-         ' set of NetCDF CF2 files to process. When present data is read'
-         ' using the teca_cf_reader. Use one of either --input_file or '
-         ' --input_regex.')
 
 parser.add_argument('--land_mask_file', type=str, required=False,
     help='A regex identifying the land mask file.')
@@ -72,6 +72,10 @@ parser.add_argument('--air_temperature_variable', type=str, required=True,
 
 parser.add_argument('--mixing_ratio_variable', type=str, required=False,
     help='the name of the mixing ratio variable')
+
+parser.add_argument('--ignore_bad_units', default=False,
+    action='store_true', help='Force the program to run even if'
+                              ' bad units are detected')
 
 parser.add_argument('--specific_humidity_variable', type=str, required=False,
     help='the name of the specific humidity variable')
@@ -205,6 +209,10 @@ else:
                        ' --specific_humidity_variable must be provided')
 if args.land_mask_variable:
     pint.set_land_mask_variable(args.land_mask_variable)
+if args.ignore_bad_units:
+    pint.set_bad_units_abort_off()
+else:
+    pint.set_bad_units_abort_on()
 
 # configure the writer
 if args.spatial_partitioning:
