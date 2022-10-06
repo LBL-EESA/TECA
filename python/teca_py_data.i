@@ -923,3 +923,83 @@ std::string time_to_string(double val, const std::string &calendar,
 }
 };
 %}
+
+%pythoncode
+%{
+def get_typed_scalar(type_code, value):
+    """ Given a teca_variant_array type_code and a value, return a numpy scalar
+    of the mathcing type initialized with the value """
+    if type_code == 11:
+        return np.float32(value)
+    elif type_code == 12:
+        return np.float64(value)
+    elif type_code == 1:
+        return np.int8(value)
+    elif type_code == 2:
+        return np.uint8(value)
+    elif type_code == 3:
+        return np.int32(value)
+    elif type_code == 4:
+        return np.uint32(value)
+    elif type_code == 5:
+        return np.int16(value)
+    elif type_code == 6:
+        return np.uint16(value)
+    elif type_code == 7:
+        return np.int64(value)
+    elif type_code == 8:
+        return np.uint64(value)
+    elif type_code == 9:
+        return np.int64(value)
+    elif type_code == 10:
+        return np.uint64(value)
+    raise ValueError('Urecognized type code %d'%(type_code))
+%}
+
+%inline
+%{
+#define default_fill_value_impl(_VA_TC, _CPP_T, _NP_T, _VAL)    \
+    {                                                           \
+    _CPP_T val(_VAL);                                           \
+    PyArray_Descr *dtype = PyArray_DescrFromType(_NP_T);        \
+    PyObject *scalar = PyArray_Scalar(&val, dtype, nullptr);    \
+    Py_XDECREF(dtype);                                          \
+    return scalar;                                              \
+    }
+
+#define default_fill_value_case(_VA_TC, _CPP_T, _NP_T, _VAL)    \
+    case _VA_TC:                                                \
+    default_fill_value_impl(_VA_TC, _CPP_T, _NP_T, _VAL)        \
+    break;
+
+/** Given a teca_variant_array type code return a new a Numpy scalar instance
+ * intitalized to an appropriate fill value determined from numeric_limits::min
+ * for signed integers. numeric_limits::max for unsigned integers, and
+ * numeric_limits::lowest for floating point types. Note that for double
+ * precision floating point type we use the lowest single precision value work
+ * around a bug in ncview.
+ */
+PyObject *get_default_fill_value(int type_code)
+{
+    switch (type_code)
+    {
+        default_fill_value_case(1, char, NPY_INT8, std::numeric_limits<char>::min())
+        default_fill_value_case(2, unsigned char, NPY_UINT8, std::numeric_limits<unsigned char>::max())
+        default_fill_value_case(3, int, NPY_INT32, std::numeric_limits<int>::min())
+        default_fill_value_case(4, unsigned int, NPY_UINT32, std::numeric_limits<unsigned int>::max())
+        default_fill_value_case(5, short, NPY_INT16, std::numeric_limits<short>::min())
+        default_fill_value_case(6, unsigned short, NPY_UINT16, std::numeric_limits<unsigned short>::max())
+        default_fill_value_case(7, long, NPY_LONG, std::numeric_limits<long>::min())
+        default_fill_value_case(8, unsigned long, NPY_ULONG, std::numeric_limits<unsigned long>::max())
+        default_fill_value_case(9, long long, NPY_LONGLONG, std::numeric_limits<long long>::min())
+        default_fill_value_case(10, unsigned long long, NPY_ULONGLONG, std::numeric_limits<unsigned long long>::max())
+        default_fill_value_case(11, float, NPY_FLOAT32, std::numeric_limits<float>::lowest())
+        default_fill_value_case(12, double, NPY_FLOAT64, std::numeric_limits<float>::lowest())
+    }
+
+    // we were passed an invlaid variant array type code
+    TECA_PY_ERROR(PyExc_ValueError,
+        "Invalid variant array type code " << type_code)
+    return nullptr;
+}
+%}

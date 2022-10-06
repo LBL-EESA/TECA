@@ -180,7 +180,7 @@ if args.land_mask_file:
 # valid value mask
 vvm = teca_valid_value_mask.New()
 vvm.set_input_connection(head.get_output_port())
-vvm.set_verbose(args.verbose)
+vvm.set_verbose(1 if args.verbose > 1 else 0)
 head = vvm
 
 # unpack NetCDF packed data

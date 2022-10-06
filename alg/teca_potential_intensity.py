@@ -153,56 +153,73 @@ class teca_potential_intensity(teca_python_algorithm):
         # type, size and _FillValue.
         attributes = rep["attributes"]
 
-        base_atts = teca_array_attributes(
-            attributes[self.sea_level_pressure_variable])
+        psl_atts = attributes[self.sea_level_pressure_variable]
 
-        # set a fill value if none was provided.
-        if not base_atts.have_fill_value:
-            base_atts.set_fill_value(np.float32(1e20))
+        out_tc = psl_atts['type_code']
+        #out_size = psl_atts['size']
+
+        # get a fill value
+        if psl_atts.has('_FillValue'):
+            out_fill = psl_atts['_FillValue']
+        elif psl_atts.has('missing_value'):
+            out_fill = psl_atts['missing_value']
+        else:
+            out_fill = get_default_fill_value(out_tc)
+
+        base_atts = teca_metadata()
+        #base_atts['size'] = out_size
+        base_atts['type_code'] = out_tc
+        base_atts['_FillValue'] = out_fill
+        base_atts['mesh_dim_active'] = [1, 1, 0, 1]
 
         # create attributes for NetCDF CF I/O
         # V_max
-        out_atts = teca_array_attributes(base_atts)
-        out_atts.units = 'm.s-1'
-        out_atts.long_name = 'potential intensity'
-        out_atts.description = ''
+        out_atts = teca_metadata(base_atts)
 
-        attributes['V_max'] = out_atts.to_metadata()
+        out_atts['units'] = 'm.s-1'
+        out_atts['long_name'] = 'potential intensity'
+
+        attributes['V_max'] = out_atts
 
         # P_min
-        out_atts = teca_array_attributes(base_atts)
-        out_atts.units = 'hPa'
-        out_atts.long_name =  'minimum central pressure'
-        out_atts.description = ''
+        out_atts = teca_metadata(base_atts)
 
-        attributes['P_min'] = out_atts.to_metadata()
+        out_atts['units'] = 'hPa'
+        out_atts['long_name'] =  'minimum central pressure'
+
+        attributes['P_min'] = out_atts
 
         # IFL
-        out_atts = teca_array_attributes(base_atts)
-        out_atts.type_code = teca_int_array_code.get()
-        out_atts.set_fill_value(np.iinfo(np.int32).max)
-        out_atts.units = 'unitless'
-        out_atts.long_name = 'algorithm status flag'
-        out_atts.description = \
+        out_atts = teca_metadata()
+
+        ifl_tc = teca_int_array_code.get()
+
+        out_atts['type_code'] = ifl_tc
+        out_atts['_FillValue'] = get_default_fill_value(ifl_tc)
+        out_atts['units'] = 'unitless'
+        out_atts['long_name']= 'algorithm status flag'
+        out_atts['mesh_dim_active'] = [1, 1, 0, 1]
+
+        out_atts['description'] = \
             '0 = bad input, 1 = success, 2 = fail to converge, 3 = missng value'
 
-        attributes['IFL'] = out_atts.to_metadata()
+        attributes['IFL'] = out_atts
 
         # T_o
-        out_atts = teca_array_attributes(base_atts)
-        out_atts.units = 'K'
-        out_atts.long_name = 'outflow temperature'
-        out_atts.description =  ''
+        out_atts = teca_metadata(base_atts)
 
-        attributes['T_o'] = out_atts.to_metadata()
+        out_atts['units'] = 'K'
+        out_atts['long_name'] = 'outflow temperature'
+
+        attributes['T_o'] = out_atts
 
         # OTL
-        out_atts = teca_array_attributes(base_atts)
-        out_atts.units = 'hPa'
-        out_atts.long_name = 'outflow temperature level'
-        out_atts.description = ''
+        out_atts = teca_metadata(base_atts)
 
-        attributes['OTL'] = out_atts.to_metadata()
+        out_atts['units'] = 'hPa'
+        out_atts['long_name'] = 'outflow temperature level'
+
+        attributes['OTL'] = out_atts
 
         # update the attributes collection
         rep["attributes"] = attributes
@@ -380,7 +397,7 @@ class teca_potential_intensity(teca_python_algorithm):
         elif plev_units != 'hPa':
 
             if rank == 0:
-                sys.stderr.write('[%d] WARNING: unsupported units %s for pressure'
+                sys.stderr.write('[%d] ERROR: unsupported units %s for pressure'
                                  ' coordinate %s. Pressure must be specified in'
                                  ' either Pa or hPa\n' % (rank, plev_units, plev_var))
 
@@ -397,7 +414,7 @@ class teca_potential_intensity(teca_python_algorithm):
         elif psl_units != 'hPa':
 
             if rank == 0:
-                sys.stderr.write('[%d] WARNING: unsupported units %s for sea surface'
+                sys.stderr.write('[%d] ERROR: unsupported units %s for sea surface'
                                  'pressure %s. Pressure must be specified in'
                                  ' either Pa or hPa\n' % (rank, psl_units,
                                  self.sea_level_pressure_variable))
@@ -416,12 +433,12 @@ class teca_potential_intensity(teca_python_algorithm):
         elif ta_units != 'C' and ta_units != 'degrees C':
 
             if rank == 0:
-                sys.stderr.write('[%d] WARNING: unrecognized units %s for %s.'
+                sys.stderr.write('[%d] ERROR: unrecognized units %s for %s.'
                                  ' Temperature must be specified in either C'
                                  ' or K\n' % (rank, ta_units,
                                  self.air_temperature_variable))
 
-        # convert ea surface emperature from Kelvin to Celcius
+        # convert sea surface temperature from Kelvin to Celcius
         sst_atts = atts[self.sea_surface_temperature_variable]
         sst_units = sst_atts['units']
         if sst_units == 'K' or sst_units == 'degrees K':
@@ -435,7 +452,7 @@ class teca_potential_intensity(teca_python_algorithm):
         elif sst_units != 'C' and sst_units != 'degrees C':
 
             if rank == 0:
-                sys.stderr.write('[%d] WARNING: unrecognized units %s for %s.'
+                sys.stderr.write('[%d] ERROR: unrecognized units %s for %s.'
                                  ' Temperature must be specified in either C'
                                  ' or K\n' % (rank, sst_units,
                                  self.sea_surface_temperature_variable))
@@ -443,12 +460,35 @@ class teca_potential_intensity(teca_python_algorithm):
         # convert specific humidity to mixing ratio
         if specific_humidity_to_mixing_ratio:
 
+            # check the units
+            hus_atts = atts[self.specific_humidity_variable]
+            hus_units = hus_atts['units']
+            if hus_units != 'g/kg':
+
+                if rank == 0:
+                    sys.stderr.write('[%d] ERROR: unrecognized units %s for %s.'
+                                     ' Specific humidity must be specified in units'
+                                     ' of g/kg' % (rank, hus_units,
+                                     self.specific_humidity_variable))
+
             if rank == 0 and verbose > 1:
                 sys.stderr.write('[%d] STATUS: converting specific humidity %s to a'
                                  ' mixing ratio\n' % (rank, self.specific_humidity_variable))
 
-            mr = mr / (1.0 - mr) * 1000.0
+            mr = mr / (1.0 - mr)
 
+        else:
+
+            # check the units
+            mr_atts = atts[self.mixing_ratio_variable]
+            mr_units = mr_atts['units']
+            if mr_units != 'g/kg':
+
+                if rank == 0:
+                    sys.stderr.write('[%d] ERROR: unrecognized units %s for %s.'
+                                     ' Mixing ratio must be specified in units'
+                                     ' of g/kg' % (rank, mr_units,
+                                     self.mixing_ratio_variable))
 
         # report min/max for debug
         if verbose > 2:
@@ -518,12 +558,14 @@ class teca_potential_intensity(teca_python_algorithm):
             # next lat
             j += 1
 
-        # replace nan with fill value
+        # replace nan with fill value.
         # set a fill value if none was provided.
-        fill_value = np.float32(1e20)
-
         if psl_atts.has('_FillValue'):
             fill_value = psl_atts['_FillValue']
+        elif psl_atts.has('missing_value'):
+            fill_value = psl_atts['missing_value']
+        else:
+            fill_value = get_default_fill_value(psl_atts['type_code'])
 
         ii = np.isnan(vmax)
         vmax[ii] = fill_value
