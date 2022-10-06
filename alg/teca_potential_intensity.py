@@ -1,6 +1,6 @@
-import sys, time
+import os, sys, time
 import argparse
-import numpy as np
+import numpy
 from tcpyPI import pi as tcpi
 
 
@@ -16,7 +16,8 @@ class teca_potential_intensity(teca_python_algorithm):
     high performance I/O needed for accessing large amounts of data, TECA
     handles the necessary pre-processing and post processing tasks such as
     conversions of units, conversions of conventional missing values, and the
-    application of land-sea masks.
+    application of land-sea masks(LSM). The LSM should be zero over the ocean
+    and 1 over the land.
 
     For more information see:
     D. M. Gilford. Pypi (v1.3): tropical cyclone potential intensity
@@ -42,6 +43,7 @@ class teca_potential_intensity(teca_python_algorithm):
         self.gradient_wind_reduction = 0.8
         self.upper_pressure_level = 50
         self.handle_missing_data = 0
+        self.bad_units_abort = 1
 
     def set_land_mask_variable(self, var):
         """ set the name of the optional land sea land_mask variable. If specified
@@ -68,38 +70,50 @@ class teca_potential_intensity(teca_python_algorithm):
         """ set the name of the mixing ratio variable """
         self.specific_humidity_variable = var
 
-    def exchange_cooeficient_ratio(self, val):
+    def set_exchange_cooeficient_ratio(self, val):
         """ set the exchange coefficient ratio Ck/Cd """
         self.exchange_cooeficient_ratio = val
 
-    def ascent_process_proportion(self, val):
+    def set_ascent_process_proportion(self, val):
         """
         select reversible adiabatic ascent (0) or pseudoadiabatic
         ascent (1)
         """
         self.ascent_process_proportion = val
 
-    def dissipative_heating(self, val):
+    def set_dissipative_heating(self, val):
         """ account for dissapitive heating """
         self.dissipative_heating = val
 
-    def gradient_wind_reduction(self, val):
+    def set_gradient_wind_reduction(self, val):
         """ scale gradient wind terms by this amount """
         self.gradient_wind_reduction = val
 
-    def upper_pressure_level(self, val):
+    def set_upper_pressure_level(self, val):
         """
         set the bound below which the input profile is ignored during
         calculation
         """
         self.upper_pressure_level = val
 
-    def handle_missing_data(self, val):
+    def set_handle_missing_data(self, val):
         """
         select missing value handling. calculate above missing values (0),
         skip columns with missing values (1)
         """
         self.handle_missing_data = val
+
+    def set_bad_units_abort(self, val):
+        """ When set to 1 the program will abort if bad units are detected """
+        self.bad_units_abort = val
+
+    def set_bad_units_abort_on(self):
+        """ Cause the program to abort if bad units are detected """
+        self.bad_units_abort = 1
+
+    def set_bad_units_abort_off(self):
+        """ Cause the program to run even if bad units are detected """
+        self.bad_units_abort = 0
 
     def report(self, port, rep_in):
         """ TECA report override """
@@ -314,6 +328,8 @@ class teca_potential_intensity(teca_python_algorithm):
 
     def execute(self, port, data_in, req):
         """ TECA execute override """
+        np = numpy
+
         exec_start = time.monotonic_ns()
         rank = self.get_communicator().Get_rank()
         verbose = self.get_verbose()
@@ -344,11 +360,11 @@ class teca_potential_intensity(teca_python_algorithm):
             mr_var = self.specific_humidity_variable
         mr = in_arrays[mr_var].get_cpu_accessible()
 
-        # get the land_mask variable
+        # get the land_mask variable. the land mask is expected to be zero over
+        # the ocean and greater than zero over land.
         if self.land_mask_variable is not None:
             land_mask = in_arrays[self.land_mask_variable].get_cpu_accessible()
-            land_mask = np.where(np.logical_and(land_mask >= 0.9, land_mask <= 1.1),
-                                 np.int8(0), np.int8(1))
+            land_mask = np.where(land_mask > 1e-4, np.int8(0), np.int8(1))
         else:
             land_mask = np.ones(nxy, dtype=np.int8)
 
@@ -389,7 +405,7 @@ class teca_potential_intensity(teca_python_algorithm):
         plev_units = plev_atts['units']
         if plev_units == 'Pa':
 
-            if rank == 0 and verbose > 1:
+            if rank == 0 and verbose:
                 sys.stderr.write('[%d] STATUS: converting pressure coordinate %s'
                                  ' from Pa to hPa\n' % (rank, plev_var))
             plev /= 100.0
@@ -401,12 +417,16 @@ class teca_potential_intensity(teca_python_algorithm):
                                  ' coordinate %s. Pressure must be specified in'
                                  ' either Pa or hPa\n' % (rank, plev_units, plev_var))
 
+            if self.bad_units_abort:
+                sys.stderr.flush()
+                os.abort()
+
         # convert sea surface pressure from Pa to hPa
         psl_atts = atts[self.sea_level_pressure_variable]
         psl_units = psl_atts['units']
         if psl_units == 'Pa':
 
-            if rank == 0 and verbose > 1:
+            if rank == 0 and verbose:
                 sys.stderr.write('[%d] STATUS: converting seal level pressure %s from'
                                  ' Pa to hPa\n' % (rank, self.sea_level_pressure_variable))
             psl /= 100.0
@@ -419,12 +439,16 @@ class teca_potential_intensity(teca_python_algorithm):
                                  ' either Pa or hPa\n' % (rank, psl_units,
                                  self.sea_level_pressure_variable))
 
+            if self.bad_units_abort:
+                sys.stderr.flush()
+                os.abort()
+
         # convert air temperature from Kelvin to Celcius
         ta_atts = atts[self.air_temperature_variable]
         ta_units = ta_atts['units']
         if ta_units == 'K' or ta_units == 'degrees K':
 
-            if rank == 0 and verbose > 1:
+            if rank == 0 and verbose:
                 sys.stderr.write('[%d] STATUS: converting air temperature %s from'
                                  ' degrees K to degrees C\n' % (rank,
                                  self.air_temperature_variable))
@@ -438,12 +462,16 @@ class teca_potential_intensity(teca_python_algorithm):
                                  ' or K\n' % (rank, ta_units,
                                  self.air_temperature_variable))
 
+            if self.bad_units_abort:
+                sys.stderr.flush()
+                os.abort()
+
         # convert sea surface temperature from Kelvin to Celcius
         sst_atts = atts[self.sea_surface_temperature_variable]
         sst_units = sst_atts['units']
         if sst_units == 'K' or sst_units == 'degrees K':
 
-            if rank == 0 and verbose > 1:
+            if rank == 0 and verbose:
                 sys.stderr.write('[%d] STATUS: converting sea surface temperature %s from'
                                  ' degrees K to degrees C\n' % (rank,
                                  self.sea_surface_temperature_variable))
@@ -457,21 +485,40 @@ class teca_potential_intensity(teca_python_algorithm):
                                  ' or K\n' % (rank, sst_units,
                                  self.sea_surface_temperature_variable))
 
+            if self.bad_units_abort:
+                sys.stderr.flush()
+                os.abort()
+
         # convert specific humidity to mixing ratio
         if specific_humidity_to_mixing_ratio:
 
             # check the units
             hus_atts = atts[self.specific_humidity_variable]
             hus_units = hus_atts['units']
-            if hus_units != 'g/kg':
+
+            if hus_units == 'kg/kg' or hus_units == 'kg.kg^-1' \
+                or hus_units == 'kg kg^-1'or hus_units == 'kg.kg**-1' \
+                or hus_units == 'kg kg**-1' or hus_units == '1':
+
+                if rank == 0 and verbose:
+                    sys.stderr.write('[%d] STATUS: converting specific humidity %s from'
+                                     ' %s to g/kg\n' % (rank,
+                                     self.specific_humidity_variable, hus_units))
+                mr *= 1.0e3
+
+            elif hus_units != 'g/kg':
 
                 if rank == 0:
                     sys.stderr.write('[%d] ERROR: unrecognized units %s for %s.'
                                      ' Specific humidity must be specified in units'
-                                     ' of g/kg' % (rank, hus_units,
+                                     ' of g/kg\n' % (rank, hus_units,
                                      self.specific_humidity_variable))
 
-            if rank == 0 and verbose > 1:
+                if self.bad_units_abort:
+                    sys.stderr.flush()
+                    os.abort()
+
+            if rank == 0 and verbose:
                 sys.stderr.write('[%d] STATUS: converting specific humidity %s to a'
                                  ' mixing ratio\n' % (rank, self.specific_humidity_variable))
 
@@ -482,27 +529,42 @@ class teca_potential_intensity(teca_python_algorithm):
             # check the units
             mr_atts = atts[self.mixing_ratio_variable]
             mr_units = mr_atts['units']
-            if mr_units != 'g/kg':
+
+            if mr_units == 'kg/kg' or mr_units == 'kg.kg^-1' \
+                or mr_units == 'kg kg^-1'or mr_units == 'kg.kg**-1' \
+                or mr_units == 'kg kg**-1' or mr_units == '1':
+
+                if rank == 0 and verbose:
+                    sys.stderr.write('[%d] STATUS: converting mixing ratio %s from'
+                                     ' %s to g/kg\n' % (rank,
+                                     self.mixing_ratio_variable, mr_units))
+                mr *= 1.0e3
+
+            elif mr_units != 'g/kg':
 
                 if rank == 0:
                     sys.stderr.write('[%d] ERROR: unrecognized units %s for %s.'
                                      ' Mixing ratio must be specified in units'
-                                     ' of g/kg' % (rank, mr_units,
+                                     ' of g/kg\n' % (rank, mr_units,
                                      self.mixing_ratio_variable))
+
+                if self.bad_units_abort:
+                    sys.stderr.flush()
+                    os.abort()
 
         # report min/max for debug
         if verbose > 2:
             sys.stderr.write('%s range [%g, %g]\n' % (
                              self.sea_level_pressure_variable,
-                             np.min(psl), np.max(psl)))
+                             np.nanmin(psl), np.nanmax(psl)))
             sys.stderr.write('%s range [%g, %g]\n' % (
                              self.sea_surface_temperature_variable,
-                             np.min(sst), np.max(sst)))
+                             np.nanmin(sst), np.nanmax(sst)))
             sys.stderr.write('%s range [%g, %g]\n' % (
                              self.air_temperature_variable,
-                             np.min(ta), np.max(ta)))
+                             np.nanmin(ta), np.nanmax(ta)))
             sys.stderr.write('%s range [%g, %g]\n' % (
-                             mr_var, np.min(mr), np.max(mr)))
+                             mr_var, np.nanmin(mr), np.nanmax(mr)))
 
         # allocate output arrays
         vmax = np.empty(nxy, dtype=psl.dtype)

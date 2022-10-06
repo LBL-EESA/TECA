@@ -1994,16 +1994,33 @@ Inputs
 ~~~~~~
 The following mesh based fields are required.
 
-1. sea surface temperature defined on [lat, lon] grid points
-2. air temperature defined on [plev, lat, lon,] grid points
-3. sea level pressure defined on [lat, lon] grid points
-4. specific humidity or mixing ratio defined on [plev, lat, lon] grid points
-5. an optional land sea mask defined on [lat lon] grid points. The mesh
-   resolution need not match that of the other fields. as a nearest neighbor
-   remeshing operator is applied in line.
+1. sea surface temperature in units of degrees Celsius defined on [lat, lon]
+   grid points
+2. air temperature in units of degrees Celsius defined on [plev, lat, lon,]
+   grid points
+3. sea level pressure in units of hecto-Pascals defined on [lat, lon] grid points
+4. specific humidity or mixing ratio in units of grams per kilogram defined on
+   [plev, lat, lon] grid points
+5. an optional land sea mask defined on [lat lon] grid points. The mask must be
+   zero over the ocean and greater than zero over land. The mesh resolution
+   need not match that of the other fields as a nearest neighbor remeshing
+   operator is applied.
 
-More information on valid ranges for the fields and additional control
-parameters can be found in the `tcpyPI Users Guide`_ section 3.1 and table 1.
+Getting the input units correct is particularly important and can be
+problematic given the wide range of conventions found in climate datasets. In
+an effort to help users detect such situations, the `teca_potential_intensity`
+application will by default abort if the units are found to be incorrect. A few
+automatic conversions are implemented for common scenarios such as conversions
+between degrees Kelvin and degrees Celsius and between Pascals and
+hecto-Pascals.  If such a conversion is applied there will be a `STATUS`
+message written to the stderr stream.  One can force the program to continue in
+the face of incorrect units by passing the `--ignore_bad_units` flag. Of course
+in the case that the input is not in the expected units the output will not be
+correct.
+
+More information on the expected units and valid ranges for the fields and
+additional control parameters can be found in the `tcpyPI Users Guide`_ section
+3.1 and table 1.
 
 .. _tcpyPI Users Guide: https://github.com/dgilford/tcpyPI/raw/master/pyPI_Users_Guide_v1.3.pdf
 
@@ -2031,7 +2048,7 @@ Command Line Arguments
 --file_layout FILE_LAYOUT
     Selects the size and layout of the set of output files. May be one of number_of_steps, daily,
     monthly, seasonal, or yearly. Files are structured such that each file contains one of the
-    selected interval. For the number_of_steps option use `--steps_per_file`. (default: monthly)
+    selected interval. For the number_of_steps option use --steps_per_file. (default: monthly)
 
 --point_arrays POINT_ARRAYS [POINT_ARRAYS ...]
     A list of point arrays to write with the results (default: ['V_max', 'P_min', 'IFL', 'T_o',
@@ -2043,7 +2060,11 @@ Command Line Arguments
 --input_file INPUT_FILE
     a teca_multi_cf_reader configuration file identifying the set of NetCDF CF2 files to process.
     When present data is read using the teca_multi_cf_reader. Use one of either `--input_file` or
-    `--input_regex`. (default: None)
+    --input_regex. (default: None)
+
+--input_regex INPUT_REGEX
+    a teca_cf_reader regex identifying the set of NetCDF CF2 files to process. When present data is
+    read using the teca_cf_reader. Use one of either `--input_file` or `--input_regex`. (default: None)
 
 --validate_time_axis VALIDATE_TIME_AXIS
     Enable consistency checks on of the time axis returned by internally managed MCF readers.
@@ -2052,10 +2073,6 @@ Command Line Arguments
 --validate_spatial_coordinates VALIDATE_SPATIAL_COORDINATES
     Enable consistency checks on of the spatial coordinate axes returned by internally managed MCF
     readers. (default: 1)
-
---input_regex INPUT_REGEX
-    a teca_cf_reader regex identifying the set of NetCDF CF2 files to process. When present data is
-    read using the teca_cf_reader. Use one of either `--input_file` or `--input_regex`. (default: None)
 
 --land_mask_file LAND_MASK_FILE
     A regex identifying the land mask file. (default: None)
@@ -2075,6 +2092,9 @@ Command Line Arguments
 
 --mixing_ratio_variable MIXING_RATIO_VARIABLE
     the name of the mixing ratio variable (default: None)
+
+--ignore_bad_units
+    Force the program to run even if bad units are detected (default: False)
 
 --specific_humidity_variable SPECIFIC_HUMIDITY_VARIABLE
     the name of the specific humidity variable (default: None)
@@ -2096,6 +2116,16 @@ Command Line Arguments
 
 --t_units T_UNITS
     time unit (default: None)
+
+--spatial_partitioning
+    Activates the spatial partitioning engine (default: False)
+
+--spatial_partitions SPATIAL_PARTITIONS
+    Sets the number of spatial partitions. Use zero for automatic partitioning and 1 for no
+    partitioning (default: 0)
+
+--partition_x
+    Partition spatially in the x-direction (default: False)
 
 --first_step FIRST_STEP
     first time step to process (default: 0)
