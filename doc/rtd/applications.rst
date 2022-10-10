@@ -2081,6 +2081,10 @@ Command Line Arguments
     the name of the land mask variable. Values of this variable should be in 0 to 1. Calculations
     will be skipped where the land mask is 1. (default: None)
 
+--land_mask_threshold LAND_MASK_THRESHOLD
+    the value above which the land mask variable represents land. The calculations of cells over
+    land are skipped. (default: 0.5)
+
 --psl_variable PSL_VARIABLE
     the name of sea level pressure variable (default: None)
 

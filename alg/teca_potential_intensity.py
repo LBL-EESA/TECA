@@ -44,6 +44,7 @@ class teca_potential_intensity(teca_python_algorithm):
         self.upper_pressure_level = 50
         self.handle_missing_data = 0
         self.bad_units_abort = 1
+        self.land_mask_threshold = 0.5
 
     def set_land_mask_variable(self, var):
         """ set the name of the optional land sea land_mask variable. If specified
@@ -114,6 +115,13 @@ class teca_potential_intensity(teca_python_algorithm):
     def set_bad_units_abort_off(self):
         """ Cause the program to run even if bad units are detected """
         self.bad_units_abort = 0
+
+    def set_land_mask_threshold(self, val):
+        """
+        set the threshold above which is cell is considered over land and a
+        solution is not computed for
+        """
+        self.land_mask_threshold = val
 
     def report(self, port, rep_in):
         """ TECA report override """
@@ -364,7 +372,8 @@ class teca_potential_intensity(teca_python_algorithm):
         # the ocean and greater than zero over land.
         if self.land_mask_variable is not None:
             land_mask = in_arrays[self.land_mask_variable].get_cpu_accessible()
-            land_mask = np.where(land_mask > 1e-4, np.int8(0), np.int8(1))
+            land_mask = np.where(land_mask > self.land_mask_threshold,
+                                 np.int8(0), np.int8(1))
         else:
             land_mask = np.ones(nxy, dtype=np.int8)
 
