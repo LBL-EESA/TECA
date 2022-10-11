@@ -61,6 +61,10 @@ parser.add_argument('--land_mask_variable', type=str, required=False,
          ' should be in 0 to 1. Calculations will be skipped where the'
          ' land mask is 1.')
 
+parser.add_argument('--land_mask_threshold', type=float, default=0.5, required=False,
+    help='the value above which the land mask variable represents land.'
+         ' The calculations of cells over land are skipped.')
+
 parser.add_argument('--psl_variable', type=str, required=True,
     help='the name of sea level pressure variable')
 
@@ -209,6 +213,7 @@ else:
                        ' --specific_humidity_variable must be provided')
 if args.land_mask_variable:
     pint.set_land_mask_variable(args.land_mask_variable)
+    pint.set_land_mask_threshold(args.land_mask_threshold)
 if args.ignore_bad_units:
     pint.set_bad_units_abort_off()
 else:
