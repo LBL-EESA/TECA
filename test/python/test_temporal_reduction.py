@@ -45,7 +45,7 @@ cfr.set_z_axis_variable(z_axis)
 vvm = teca_valid_value_mask.New()
 vvm.set_input_connection(cfr.get_output_port())
 
-mav = teca_temporal_reduction.New()
+mav = teca_python_temporal_reduction.New()
 mav.set_input_connection(vvm.get_output_port())
 mav.set_interval(interval)
 mav.set_operator(operator)

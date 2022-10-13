@@ -13,7 +13,7 @@ import sys
 import os
 
 teca_profiler.initialize()
-teca_profiler.start_event('temporal_reduction')
+teca_profiler.start_event('python_temporal_reduction')
 
 # parse the command line
 parser = argparse.ArgumentParser(
@@ -251,5 +251,5 @@ cfw.set_number_of_spatial_partitions(spatial_partitions)
 cfw.set_partition_x(partition_x)
 cfw.update()
 
-teca_profiler.end_event('temporal_reduction')
+teca_profiler.end_event('python_temporal_reduction')
 teca_profiler.finalize()
