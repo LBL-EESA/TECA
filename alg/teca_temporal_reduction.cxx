@@ -1955,7 +1955,7 @@ std::string teca_temporal_reduction::get_interval_name()
 
 // --------------------------------------------------------------------------
 teca_temporal_reduction::teca_temporal_reduction() :
-    op(average), interval(monthly), fill_value(-1), number_of_steps(0)
+    op(average), interval(monthly), number_of_steps(0), fill_value(-1)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
