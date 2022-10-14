@@ -2694,6 +2694,13 @@ Command Line Arguments
 --partition_x
     Partition spatially in the x-direction (default: False)
 
+--python_version
+    Use the Python implemetantion instead of the C++ implementation (default: False)
+
+--number_of_threads NUMBER_OF_THREADS
+    Sets the number of threads per MPI rank when the C++ implementation is active. Use -1 for
+    automatic sizing such that each core has a single thread node-wide. (default: -1)
+
 --verbose VERBOSE
     enable verbose mode. (default: 0)
 
