@@ -875,6 +875,84 @@ int n_steps_iterator::get_next_interval(time_point &first_step,
 }
 
 // --------------------------------------------------------------------------
+bool all_iterator::is_valid() const
+{
+    if (!this->valid)
+        return false;
+
+    if (this->index != 0)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+// --------------------------------------------------------------------------
+int all_iterator::initialize(const const_p_teca_variant_array &t,
+    const std::string &units, const std::string &calendar,
+    long first_step, long last_step)
+{
+    (void)units;
+    (void)calendar;
+
+    this->time = t;
+    this->index = 0;
+
+    if (t->size() == 0)
+    {
+        TECA_ERROR("The array of time values can't be empty")
+        return -1;
+    }
+
+    if (first_step >= (long)t->size())
+    {
+        TECA_ERROR("first_step " << first_step
+            << " output of bounds with " << t->size() << " time values")
+        return -1;
+    }
+
+    if (last_step < 0)
+        last_step = t->size() - 1;
+
+    if ((last_step < first_step) || (last_step >= (long)t->size()))
+    {
+        TECA_ERROR("invalid last_step " << last_step << " with first_step "
+            << first_step << " and " << t->size() << " time values")
+        return -1;
+    }
+
+    this->valid = true;
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+int all_iterator::get_next_interval(time_point &first_step,
+    time_point &last_step)
+{
+    if (!this->is_valid())
+        return -1;
+
+    unsigned long i0 = this->index;
+    unsigned long i1 = this->index + this->time->size() - 1;
+
+    double ti = 0.0;
+    this->time->get(i0, ti);
+    first_step = time_point(i0, ti);
+
+    this->time->get(i1, ti);
+    last_step = time_point(i1, ti);
+
+    this->index = i1;
+
+    if (!this->is_valid())
+        this->valid = false;
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
 int interval_iterator::initialize(const teca_metadata &md)
 {
     return this->initialize(md, 0, -1);
@@ -934,6 +1012,10 @@ p_interval_iterator interval_iterator_factory::New(const std::string &interval)
     {
         return std::make_shared<n_steps_iterator>();
     }
+    else if (interval == "all")
+    {
+        return std::make_shared<all_iterator>();
+    }
 
     TECA_ERROR("Failed to construct a \""
         << interval << "\" interval iterator")
@@ -962,6 +1044,10 @@ p_interval_iterator interval_iterator_factory::New(int interval)
     else if (interval == n_steps)
     {
         return std::make_shared<n_steps_iterator>();
+    }
+    else if (interval == all)
+    {
+        return std::make_shared<all_iterator>();
     }
 
     TECA_ERROR("Failed to construct a \""
