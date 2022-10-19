@@ -152,7 +152,7 @@ protected:
     report_callback_t report_callback;
     request_callback_t request_callback;
     threaded_execute_callback_t execute_callback;
-    char class_name[64];
+    char class_name[96];
 };
 
 #endif

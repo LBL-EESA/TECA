@@ -32,6 +32,7 @@
 #include "teca_spatial_executive.h"
 #include "teca_rename_variables.h"
 #include "teca_saffir_simpson.h"
+#include "teca_temporal_reduction.h"
 #if defined(TECA_HAS_SHAPELIB)
 #include "teca_shape_file_mask.h"
 #endif
@@ -396,7 +397,15 @@ struct teca_tc_saffir_simpson
 %include "teca_cartesian_mesh_source.h"
 
 /***************************************************************************
- temporal_reduction
+ cpp_temporal_reduction
+ ***************************************************************************/
+%ignore teca_cpp_temporal_reduction::shared_from_this;
+%shared_ptr(teca_cpp_temporal_reduction)
+%ignore teca_cpp_temporal_reduction::operator=;
+%include "teca_temporal_reduction.h"
+
+/***************************************************************************
+ python_temporal_reduction
  ***************************************************************************/
 %pythoncode "teca_temporal_reduction.py"
 

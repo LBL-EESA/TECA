@@ -5,7 +5,7 @@ then
     echo "usage: test_temporal_reduction_app.sh [app prefix] " \
          "[data root] [input regex] [array name] [interval] " \
          "[operator] [steps per file] [spatial partitioning] " \
-         "[mpi exec] [test cores] $#"
+         "[python impl] [mpi exec] [test cores] $#"
     exit -1
 fi
 
@@ -16,20 +16,26 @@ array_name=${4}
 interval=${5}
 operator=${6}
 steps_per_file=${7}
-if [[ ${8} -eq 1 ]]
+spatial_part=${8}
+if [[ ${spatial_part} -eq 1 ]]
 then
-    if [[ $# -eq 10 ]]
+    if [[ $# -eq 11 ]]
     then
         spatial_partitioning=--spatial_partitioning
     else
         spatial_partitioning="--spatial_partitioning --spatial_partitions 7"
     fi
 fi
-
-if [[ $# -eq 10 ]]
+python_impl=${9}
+if [[ ${python_impl} -eq 1 ]]
 then
-    mpi_exec=${9}
-    test_cores=${10}
+    version=--python_version
+fi
+
+if [[ $# -eq 11 ]]
+then
+    mpi_exec=${10}
+    test_cores=${11}
     launcher="${mpi_exec} -n ${test_cores}"
 fi
 
@@ -39,12 +45,12 @@ test_name=test_temporal_reduction
 output_base=${test_name}_${array_name}_${interval}_${operator}
 
 # run the app
-time ${launcher} ${app_prefix}/teca_temporal_reduction                  \
+time ${launcher} ${app_prefix}/teca_temporal_reduction           \
     --input_regex "${data_root}/${input_regex}" --interval ${interval}  \
     --operator ${operator} --point_arrays ${array_name}                 \
     --file_layout yearly --steps_per_file ${steps_per_file}             \
     --output_file "${output_base}_%t%.nc"                               \
-    ${spatial_partitioning} --verbose 1
+    ${spatial_partitioning} ${version} --verbose 1
 
 # don't profile the diff
 unset PROFILER_ENABLE
