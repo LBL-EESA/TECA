@@ -254,6 +254,15 @@ teca_add_app_test(test_python_temporal_reduction_app_monthly_average_py
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
+teca_add_app_test(test_python_temporal_reduction_app_all_average_py
+    teca_temporal_reduction
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_python_temporal_reduction_app.sh
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
+    "prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19500131.nc" prw
+    all average 7 0 1
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
+    REQ_TECA_DATA)
+
 teca_add_app_test(test_python_temporal_reduction_app_monthly_average_py_mpi
     teca_temporal_reduction
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_python_temporal_reduction_app.sh
@@ -384,6 +393,15 @@ teca_add_app_test(test_python_temporal_reduction_app_monthly_average
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
     "prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc" prw
     monthly average 7 0 0
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
+    REQ_TECA_DATA)
+
+teca_add_app_test(test_python_temporal_reduction_app_all_average
+    teca_temporal_reduction
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_python_temporal_reduction_app.sh
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
+    "prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19500131.nc" prw
+    all average 7 0 0
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
