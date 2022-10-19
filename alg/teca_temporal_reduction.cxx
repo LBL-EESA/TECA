@@ -1918,6 +1918,10 @@ int teca_cpp_temporal_reduction::set_interval(const std::string &interval)
     {
         this->interval = n_steps;
     }
+    else if (interval == "all")
+    {
+        this->interval = all;
+    }
     else
     {
         TECA_ERROR("Invalid interval name \"" << interval << "\"")
@@ -1946,6 +1950,9 @@ std::string teca_cpp_temporal_reduction::get_interval_name()
             break;
         case n_steps:
             name = "n_steps";
+            break;
+        case all:
+            name = "all";
             break;
         default:
             TECA_ERROR("Invalid \"interval\" " << this->interval)
@@ -1987,7 +1994,7 @@ void teca_cpp_temporal_reduction::get_properties_description(
             " (summation, minimum, maximum, or average)")
         TECA_POPTS_GET(int, prefix, interval,
             "interval to reduce the time axis to"
-            " (daily, monthly, seasonal, yearly, or n_steps)")
+            " (daily, monthly, seasonal, yearly, n_steps, all)")
         TECA_POPTS_GET(long, prefix, number_of_steps,
             "desired number of steps for the n_steps interval")
         TECA_POPTS_GET(double, prefix, fill_value,

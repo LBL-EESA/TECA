@@ -227,8 +227,7 @@ if loc > 0:
 else:
     if not args.python_version \
         and operator in ['minimum', 'maximum', 'summation', 'average'] \
-        and (interval in ['daily', 'monthly', 'seasonal', 'yearly'] or 'steps' in interval) \
-        and upstream == cfr:
+        and (interval in ['daily', 'monthly', 'seasonal', 'yearly', 'all'] or 'steps' in interval):
         cpp_version = True
         red = teca_cpp_temporal_reduction.New()
         red.set_input_connection(upd.get_output_port())
