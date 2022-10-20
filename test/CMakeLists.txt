@@ -340,7 +340,7 @@ teca_add_test(test_descriptive_statistics_mpi_threads
 teca_add_test(test_streaming_reduce_threads
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_descriptive_statistics 0
-    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3.*\\.nc"
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3.historical_r1i1p1_19500101-19501231\\.nc"
     "${TECA_DATA_ROOT}/test_streaming_reduce.bin" 0 -1 ${TWICE_TEST_CORES}
     prw
     FEATURES ${TECA_HAS_UDUNITS} ${TECA_HAS_NETCDF}
