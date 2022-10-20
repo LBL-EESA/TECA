@@ -277,8 +277,8 @@ public:
 
     using interval_iterator::initialize;
 
-    /** return a pair of time steps bracketing the current season.
-     * both returned time steps belong to the current season.
+    /** Return a pair of time steps bracketing the current year.
+     * Both returned time steps belong to the current year.
      */
     int get_next_interval(time_point &first_step,
         time_point &last_step) override;
@@ -315,8 +315,8 @@ public:
 
     using interval_iterator::initialize;
 
-    /** return a pair of time steps bracketing the current season.
-     * both returned time steps belong to the current season.
+    /** Return a pair of time steps bracketing the current month.
+     * Both returned time steps belong to the current season.
      */
     int get_next_interval(time_point &first_step,
         time_point &last_step) override;
@@ -354,8 +354,8 @@ public:
 
     using interval_iterator::initialize;
 
-    /** return a pair of time steps bracketing the current season.
-     * both returned time steps belong to the current season.
+    /** Return a pair of time steps bracketing the current day
+     * Both returned time steps belong to the current day.
      */
     int get_next_interval(time_point &first_step,
         time_point &last_step) override;
@@ -389,8 +389,8 @@ public:
 
     using interval_iterator::initialize;
 
-    /** return a pair of time steps bracketing the current season.
-     * both returned time steps belong to the current season.
+    /** Return a pair of time steps bracketing the current block of n steps.
+     * Both returned time steps belong to the current block of steps.
      */
     int get_next_interval(time_point &first_step,
         time_point &last_step) override;
@@ -425,8 +425,8 @@ public:
 
     using interval_iterator::initialize;
 
-    /** return a pair of time steps bracketing the current season.
-     * both returned time steps belong to the current season.
+    /** Return a pair of time steps bracketing the current and only block of
+     * steps.  Both returned time steps belong to the current block of steps.
      */
     int get_next_interval(time_point &first_step,
         time_point &last_step) override;
