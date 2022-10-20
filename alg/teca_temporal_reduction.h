@@ -16,7 +16,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_cpp_temporal_reduction)
  * Reduce a mesh across the time dimensions by a defined increment using
  * a defined operation.
  *
- *     time increments: daily, monthly, seasonal, yearly, n_steps
+ *     time increments: daily, monthly, seasonal, yearly, n_steps, all
  *     reduction operators: average, summation, minimum, maximum
  *
  * The output time axis will be defined using the selected increment.
@@ -85,7 +85,8 @@ public:
         monthly = 3, ///< Set the time increment to be monthly
         seasonal = 4, ///< Set the time increment to be seasonal
         yearly = 5, ///< Set the time increment to be yearly
-        n_steps = 6 ///< Set the time increment to be n steps
+        n_steps = 6, ///< Set the time increment to be n steps
+        all = 7 ///< Set the time increment to be all
     };
 
     TECA_ALGORITHM_PROPERTY(int, interval)
