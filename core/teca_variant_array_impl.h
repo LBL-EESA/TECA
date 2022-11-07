@@ -750,6 +750,18 @@ public:
     ///@}
 #endif
 
+    /** direct access to the internal memory. Use this when you are certain
+     * that the data is already accessible in the location where you will
+     * access it to save the cost of the std::shared_ptr copy constructor.
+     */
+    const T *data() const { return m_data.data(); }
+
+    /** direct access to the internal memory. Use this when you are certain
+     * that the data is already accessible in the location where you will
+     * access it to save the cost of the std::shared_ptr copy constructor.
+     */
+    T *data() { return m_data.data(); }
+
     /// returns true if the data is accessible from CUDA codes
     int cuda_accessible() const { return m_data.cuda_accessible(); }
 
