@@ -9,6 +9,12 @@
 #include <string>
 #include <vector>
 
+/// The valid value mask array elements will be of this type
+using NT_MASK = char;
+
+/// The valid value mask array will be of this type
+using TT_MASK = teca_variant_array_impl<NT_MASK>;
+
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_valid_value_mask)
 
 /// an algorithm that computes a mask identifying valid values
