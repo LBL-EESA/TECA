@@ -6,6 +6,7 @@
 #include "teca_variant_array_impl.h"
 #include "teca_metadata.h"
 #include "teca_calendar_util.h"
+#include "teca_valid_value_mask.h"
 
 #include <algorithm>
 #include <iostream>
@@ -22,11 +23,9 @@
 
 //#define TECA_DEBUG
 
-using std::string;
-using std::vector;
-using std::cerr;
-using std::endl;
-using std::cos;
+using allocator = teca_variant_array::allocator;
+
+
 
 // PIMPL idiom hides internals
 // defines the API for reduction operators
@@ -35,6 +34,15 @@ class teca_cpp_temporal_reduction::internals_t
 public:
     internals_t() {}
     ~internals_t() {}
+
+    /** check if the passed array contains integer data, if so deep-copy to
+     * floating point type. 32(64) bit integers will be copied to 32(64) bit
+     * floating point.
+     * @param[in] alloc the allocator to use for the new array if a deep-copy is made
+     * @param[inout] array the array to check and convert from integer to floating point
+     */
+    static
+    void ensure_floating_point(allocator alloc, const_p_teca_variant_array &array);
 
 public:
     class reduction_operator;
@@ -52,24 +60,58 @@ public:
     std::map<std::string, p_reduction_operator> op;
 };
 
+// --------------------------------------------------------------------------
+void teca_cpp_temporal_reduction::internals_t::ensure_floating_point(
+     allocator alloc, const_p_teca_variant_array &array)
+{
+    if (std::dynamic_pointer_cast<const teca_variant_array_impl<double>>(array)  ||
+        std::dynamic_pointer_cast<const teca_variant_array_impl<float>>(array))
+    {
+        // the data is already floating point type
+        return;
+    }
+    else if (std::dynamic_pointer_cast<const teca_variant_array_impl<long>>(array) ||
+        std::dynamic_pointer_cast<const teca_variant_array_impl<long long>>(array) ||
+        std::dynamic_pointer_cast<const teca_variant_array_impl<unsigned long>>(array) ||
+        std::dynamic_pointer_cast<const teca_variant_array_impl<unsigned long long>>(array))
+    {
+        // convert from a 64 bit integer to a 64 bit floating point
+        size_t n_elem = array->size();
+        p_teca_double_array tmp = teca_double_array::New(n_elem, alloc);
+        tmp->set(0, array, 0, n_elem);
+        array = tmp;
+    }
+    else
+    {
+        // convert from a 32 bit integer to a 32 bit floating point
+        size_t n_elem = array->size();
+        p_teca_float_array tmp = teca_float_array::New(n_elem, alloc);
+        tmp->set(0, array, 0, n_elem);
+        array = tmp;
+    }
+}
+
+
+/** defines the API for operators implementing reduction calculations.
+ *
+ * implements 4 class methods: initialize, update_cpu, update_gpu, and
+ * finalize.
+ *
+ *  initialize:
+ *      initializes the reduction. If a fill value is passed
+ *      the operator should use it to identify missing values in the
+ *      data and handle them appropriately.
+ *  update:
+ *      reduces arrays_in (new data) into arrays_out (current state) and
+ *      returns the result. For update_cpu, the target device is cpu;
+ *      and for update_gpu, the target device is gpu (cuda).
+ *  finalize:
+ *      finalizes arrays_out (current state) and returns the result.
+ *      If no finalization is needed simply return arrays_out.
+ */
 class teca_cpp_temporal_reduction::internals_t::reduction_operator
 {
 public:
-    /** reduction_operator implements 4 class methods:
-     *                    initialize, update_cpu, update_gpu, and finalize.
-     *
-     *  initialize:
-     *      initializes the reduction. If a fill value is passed
-     *      the operator should use it to identify missing values in the
-     *      data and handle them appropriately.
-     *  update:
-     *      reduces arrays_in (new data) into arrays_out (current state) and
-     *      returns the result. For update_cpu, the target device is cpu;
-     *      and for update_gpu, the target device is gpu (cuda).
-     *  finalize:
-     *      finalizes arrays_out (current state) and returns the result.
-     *      If no finalization is needed simply return arrays_out.
-     */
 
     reduction_operator() : fill_value(-1) {}
 
@@ -93,12 +135,12 @@ public:
     double fill_value;
 };
 
+
+/// implements time average
 class teca_cpp_temporal_reduction::internals_t::average_operator :
       public teca_cpp_temporal_reduction::internals_t::reduction_operator
 {
 public:
-
-    void i2f(int device_id, const_p_teca_variant_array &array);
 
     int update_cpu(int device_id,
           const std::string &array,
@@ -115,6 +157,8 @@ public:
           p_teca_array_collection &arrays_out) override;
 };
 
+
+/// implements sum over time
 class teca_cpp_temporal_reduction::internals_t::summation_operator :
       public teca_cpp_temporal_reduction::internals_t::reduction_operator
 {
@@ -131,6 +175,8 @@ public:
 
 };
 
+
+/// implements minimum over time
 class teca_cpp_temporal_reduction::internals_t::minimum_operator :
       public teca_cpp_temporal_reduction::internals_t::reduction_operator
 {
@@ -146,6 +192,8 @@ public:
           p_teca_array_collection &arrays_in) override;
 };
 
+
+/// implements maximum over time
 class teca_cpp_temporal_reduction::internals_t::maximum_operator :
       public teca_cpp_temporal_reduction::internals_t::reduction_operator
 {
@@ -161,6 +209,8 @@ public:
           p_teca_array_collection &arrays_in) override;
 };
 
+
+/// constructs reduction_operator
 class teca_cpp_temporal_reduction::internals_t::reduction_operator_factory
 {
 public:
@@ -174,6 +224,8 @@ public:
                                                                    int op);
 };
 
+
+/// A time interval defined by a sart and end time step
 struct teca_cpp_temporal_reduction::internals_t::time_interval
 {
     time_interval(double t, long start, long end) : time(t),
@@ -184,6 +236,7 @@ struct teca_cpp_temporal_reduction::internals_t::time_interval
     long start_index;
     long end_index;
 };
+
 
 // --------------------------------------------------------------------------
 void teca_cpp_temporal_reduction::internals_t::reduction_operator::initialize(
@@ -670,103 +723,46 @@ int average_finalize(
 #endif
 
 // --------------------------------------------------------------------------
-void teca_cpp_temporal_reduction::internals_t::average_operator::i2f(
-     int device_id,
-     const_p_teca_variant_array &array)
-{
-#if !defined(TECA_HAS_CUDA)
-    (void)device_id;
-#endif
-
-    if (std::dynamic_pointer_cast<const teca_variant_array_impl<long>>(array) ||
-        std::dynamic_pointer_cast<const teca_variant_array_impl<long long>>(array) ||
-        std::dynamic_pointer_cast<const teca_variant_array_impl<unsigned long>>(array) ||
-        std::dynamic_pointer_cast<const teca_variant_array_impl<unsigned long long>>(array))
-    {
-        p_teca_double_array t;
-#if defined(TECA_HAS_CUDA)
-        if (device_id >= 0)
-        {
-            t = teca_double_array::New(teca_double_array::allocator::cuda);
-        }
-        else
-        {
-#endif
-            t = teca_double_array::New();
-#if defined(TECA_HAS_CUDA)
-        }
-#endif
-        t->assign(array);
-        array = t;
-    }
-    else
-    {
-        p_teca_float_array t;
-#if defined(TECA_HAS_CUDA)
-        if (device_id >= 0)
-        {
-            t = teca_float_array::New(teca_double_array::allocator::cuda);
-        }
-        else
-        {
-#endif
-            t = teca_float_array::New();
-#if defined(TECA_HAS_CUDA)
-        }
-#endif
-        t->assign(array);
-        array = t;
-    }
-}
-
-// --------------------------------------------------------------------------
 int teca_cpp_temporal_reduction::internals_t::average_operator::update_cpu(
     int device_id,
     const std::string &array,
     p_teca_array_collection &arrays_out,
     p_teca_array_collection &arrays_in)
 {
-    // arrays
+    (void)device_id;
+
+    // get the input and output arrays
     const_p_teca_variant_array in_array = arrays_in->get(array);
     const_p_teca_variant_array out_array = arrays_out->get(array);
 
     unsigned long n_elem = out_array->size();
 
     // don't use integer types for this calculation
-    if (!std::dynamic_pointer_cast<const teca_variant_array_impl<double>>(in_array) &&
-        !std::dynamic_pointer_cast<const teca_variant_array_impl<float>>(in_array))
-    {
-        i2f(device_id, in_array);
-    }
-    if (!std::dynamic_pointer_cast<const teca_variant_array_impl<double>>(out_array) &&
-        !std::dynamic_pointer_cast<const teca_variant_array_impl<float>>(out_array))
-    {
-        i2f(device_id, out_array);
-    }
+    internals_t::ensure_floating_point(allocator::malloc, in_array);
+    internals_t::ensure_floating_point(allocator::malloc, out_array);
 
-    // the valid value masks
-    // returns a nullptr if the array is not in the collection
+    // get the valid value masks
     std::string valid = array + "_valid";
     const_p_teca_variant_array in_valid = arrays_in->get(valid);
     const_p_teca_variant_array out_valid = arrays_out->get(valid);
 
+    // allocate space for the calculation
     p_teca_variant_array red_array = out_array->new_instance(n_elem);
+
+    // allocate space for the output mask which is a function of the current
+    // input and previous state
+    size_t n_elem_count = 1;
     p_teca_variant_array red_valid = nullptr;
-    if (out_valid != nullptr)
+    if (out_valid)
     {
         red_valid = out_valid->new_instance(n_elem);
+        n_elem_count = n_elem;
     }
 
-    p_teca_variant_array red_count = nullptr;
-    if (out_valid != nullptr)
-    {
-        red_count = out_array->new_instance(n_elem);
-    }
-    else
-    {
-        red_count = teca_int_array::New(1);
-    }
+    // allocate space for the output count
+    p_teca_variant_array red_count = out_array->new_instance(n_elem_count);
 
+    // get the current count
     p_teca_variant_array count;
     if (arrays_out->has(array + "_count"))
     {
@@ -774,38 +770,24 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::update_cpu(
     }
     else
     {
-        if (out_valid != nullptr)
-        {
-            count = out_array->new_instance(n_elem);
-        }
-        else
-        {
-            count = teca_int_array::New(1);
-        }
+        count = out_array->new_instance(n_elem_count);
 
         TEMPLATE_DISPATCH(
             teca_variant_array_impl,
             count.get(),
 
-            using NT_MASK = char;
-            using TT_MASK = teca_variant_array_impl<NT_MASK>;
+            NT *p_count = static_cast<TT*>(count.get())->data();
 
-            if (out_valid != nullptr)
+            if (out_valid)
             {
-                auto sp_count = static_cast<TT*>(count.get())->get_cpu_accessible();
-                NT *p_count = sp_count.get();
-
                 auto sp_out_valid = static_cast<const TT_MASK*>(out_valid.get())->get_cpu_accessible();
                 const NT_MASK *p_out_valid = sp_out_valid.get();
 
                 for (unsigned int i = 0; i < n_elem; ++i)
-                    p_count[i] = (p_out_valid[i]) ? 1. : 0.;
+                    p_count[i] = (p_out_valid[i]) ? NT(1) : NT(0);
             }
             else
             {
-                auto sp_count = static_cast<TT*>(count.get())->get_cpu_accessible();
-                NT *p_count = sp_count.get();
-
                 p_count[0] = 1.;
             }
         )
@@ -815,53 +797,46 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::update_cpu(
         teca_variant_array_impl,
         red_array.get(),
 
-        using NT_MASK = char;
-        using TT_MASK = teca_variant_array_impl<NT_MASK>;
-
         auto sp_in_array = static_cast<const TT*>(in_array.get())->get_cpu_accessible();
         const NT *p_in_array = sp_in_array.get();
 
         auto sp_out_array = static_cast<const TT*>(out_array.get())->get_cpu_accessible();
         const NT *p_out_array = sp_out_array.get();
 
-        auto sp_red_array = static_cast<TT*>(red_array.get())->get_cpu_accessible();
-        NT *p_red_array = sp_red_array.get();
+        NT *p_red_array = static_cast<TT*>(red_array.get())->data();
 
-        auto sp_count = static_cast<TT*>(count.get())->get_cpu_accessible();
-        NT *p_count = sp_count.get();
+        NT *p_count = static_cast<TT*>(count.get())->data();
 
-        auto sp_red_count = static_cast<TT*>(red_count.get())->get_cpu_accessible();
-        NT *p_red_count = sp_red_count.get();
+        NT *p_red_count = static_cast<TT*>(red_count.get())->data();
 
-        // fix invalid values
         if (out_valid != nullptr)
         {
+            // update, respecting missing data
+
             auto sp_in_valid = static_cast<const TT_MASK*>(in_valid.get())->get_cpu_accessible();
             const NT_MASK *p_in_valid = sp_in_valid.get();
 
             auto sp_out_valid = static_cast<const TT_MASK*>(out_valid.get())->get_cpu_accessible();
             const NT_MASK *p_out_valid = sp_out_valid.get();
 
-            auto sp_red_valid = static_cast<TT_MASK*>(red_valid.get())->get_cpu_accessible();
-            NT_MASK *p_red_valid = sp_red_valid.get();
+            NT_MASK *p_red_valid = static_cast<TT_MASK*>(red_valid.get())->data();
 
             for (unsigned int i = 0; i < n_elem; ++i)
             {
-                //update the count only where there is valid data
+                // count where there is valid data, otherwise pass the current count through
                 if (p_in_valid[i])
                 {
-                    p_red_count[i] = p_count[i] + 1.;
+                    p_red_count[i] = p_count[i] + NT(1);
                 }
                 else
                 {
                     p_red_count[i] = p_count[i];
                 }
 
-                // update the valid value mask
-                p_red_valid[i] = char(1);
+                // update, respecting missing data
+                p_red_valid[i] = NT_MASK(1);
                 if (p_in_valid[i] && p_out_valid[i])
                 {
-                    // accumulate
                     p_red_array[i] = p_out_array[i] + p_in_array[i];
                 }
                 else if (p_in_valid[i] && !p_out_valid[i])
@@ -874,15 +849,18 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::update_cpu(
                 }
                 else
                 {
-                    p_red_array[i] = this->fill_value;
-                    p_red_valid[i] = char(0);
+                    p_red_array[i] = NT(this->fill_value);
+                    p_red_valid[i] = NT_MASK(0);
                 }
             }
         }
         else
         {
+            // update , no misisng data
+
             // update count
-            p_red_count[0] = p_count[0] + 1.;
+            p_red_count[0] = p_count[0] + NT(1);
+
             for (unsigned int i = 0; i < n_elem; ++i)
             {
                 // accumulate
@@ -911,47 +889,42 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::update_gpu(
     p_teca_array_collection &arrays_in)
 {
 #if defined(TECA_HAS_CUDA)
-    // arrays
+    // get the input and output arrays
     const_p_teca_variant_array in_array = arrays_in->get(array);
     const_p_teca_variant_array out_array = arrays_out->get(array);
 
     unsigned long n_elem = out_array->size();
 
     // don't use integer types for this calculation
-    if (!std::dynamic_pointer_cast<const teca_variant_array_impl<double>>(in_array) &&
-        !std::dynamic_pointer_cast<const teca_variant_array_impl<float>>(in_array))
-    {
-        i2f(device_id, in_array);
-    }
-    if (!std::dynamic_pointer_cast<const teca_variant_array_impl<double>>(out_array) &&
-        !std::dynamic_pointer_cast<const teca_variant_array_impl<float>>(out_array))
-    {
-        i2f(device_id, out_array);
-    }
+    internals_t::ensure_floating_point(allocator::cuda, in_array);
+    internals_t::ensure_floating_point(allocator::cuda, out_array);
 
-    // the valid value masks
-    // returns a nullptr if the array is not in the collection
+    // get the valid value masks
     std::string valid = array + "_valid";
     const_p_teca_variant_array in_valid = arrays_in->get(valid);
     const_p_teca_variant_array out_valid = arrays_out->get(valid);
 
-    p_teca_variant_array red_array = out_array->new_instance(n_elem, teca_variant_array::allocator::cuda);
+    // allocate space for the calculation
+    p_teca_variant_array red_array = out_array->new_instance(n_elem, allocator::cuda);
+
+    // allocate space for the output mask which is a function of the current
+    // input and previous state and size and place the count array
+    size_t n_elem_count = 1;
+    allocator alloc_count = allocator::malloc;
     p_teca_variant_array red_valid = nullptr;
-    if (out_valid != nullptr)
+    if (out_valid)
     {
-        red_valid = out_valid->new_instance(n_elem, teca_variant_array::allocator::cuda);
+        red_valid = out_valid->new_instance(n_elem, allocator::cuda);
+
+        // when we have the valid value mask we need a per-mesh element count
+        n_elem_count = n_elem;
+        alloc_count = allocator::cuda;
     }
 
-    p_teca_variant_array red_count = nullptr;
-    if (out_valid != nullptr)
-    {
-        red_count = out_array->new_instance(n_elem, teca_variant_array::allocator::cuda);
-    }
-    else
-    {
-        red_count = teca_int_array::New(1);
-    }
+    // allocate space for the output count
+    p_teca_variant_array red_count = out_array->new_instance(n_elem_count, alloc_count);
 
+    // get the current count
     p_teca_variant_array count;
     if (arrays_out->has(array + "_count"))
     {
@@ -959,38 +932,24 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::update_gpu(
     }
     else
     {
-        if (out_valid != nullptr)
-        {
-            count = out_array->new_instance(n_elem, teca_variant_array::allocator::cuda);
-        }
-        else
-        {
-            count = teca_int_array::New(1);
-        }
+        count = out_array->new_instance(n_elem_count, alloc_count);
 
         TEMPLATE_DISPATCH(
             teca_variant_array_impl,
             count.get(),
 
-            using NT_MASK = char;
-            using TT_MASK = teca_variant_array_impl<NT_MASK>;
+            NT *p_count = static_cast<TT*>(count.get())->data();
 
-            if (out_valid != nullptr)
+            if (out_valid)
             {
-                auto sp_count = static_cast<TT*>(count.get())->get_cuda_accessible();
-                NT *p_count = sp_count.get();
-
                 auto sp_out_valid = static_cast<const TT_MASK*>(out_valid.get())->get_cuda_accessible();
                 const NT_MASK *p_out_valid = sp_out_valid.get();
 
-                cuda::count_init(device_id, p_out_valid, p_count, n_elem);
+                cuda::count_init(device_id, p_out_valid, p_count, n_elem_count);
             }
             else
             {
-                auto sp_count = static_cast<TT*>(count.get())->get_cpu_accessible();
-                NT *p_count = sp_count.get();
-
-                p_count[0] = 1.;
+                p_count[0] = NT(1);
             }
         )
     }
@@ -999,56 +958,41 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::update_gpu(
         teca_variant_array_impl,
         red_array.get(),
 
-        using NT_MASK = char;
-        using TT_MASK = teca_variant_array_impl<NT_MASK>;
-
         auto sp_in_array = static_cast<const TT*>(in_array.get())->get_cuda_accessible();
         const NT *p_in_array = sp_in_array.get();
 
         auto sp_out_array = static_cast<const TT*>(out_array.get())->get_cuda_accessible();
         const NT *p_out_array = sp_out_array.get();
 
-        auto sp_red_array = static_cast<TT*>(red_array.get())->get_cuda_accessible();
-        NT *p_red_array = sp_red_array.get();
+        NT *p_red_array = static_cast<TT*>(red_array.get())->data();
 
-        // fix invalid values
+        NT *p_count = static_cast<TT*>(count.get())->data();
+
+        NT *p_red_count = static_cast<TT*>(red_count.get())->data();
+
         if (out_valid != nullptr)
         {
+            // update while respecting invalid/missing data
             auto sp_in_valid = static_cast<const TT_MASK*>(in_valid.get())->get_cuda_accessible();
             const NT_MASK *p_in_valid = sp_in_valid.get();
 
             auto sp_out_valid = static_cast<const TT_MASK*>(out_valid.get())->get_cuda_accessible();
             const NT_MASK *p_out_valid = sp_out_valid.get();
 
-            auto sp_red_valid = static_cast<TT_MASK*>(red_valid.get())->get_cuda_accessible();
-            NT_MASK *p_red_valid = sp_red_valid.get();
-
-            auto sp_count = static_cast<TT*>(count.get())->get_cuda_accessible();
-            NT *p_count = sp_count.get();
-
-            auto sp_red_count = static_cast<TT*>(red_count.get())->get_cuda_accessible();
-            NT *p_red_count = sp_red_count.get();
+            NT_MASK *p_red_valid = static_cast<TT_MASK*>(red_valid.get())->data();
 
             cuda::average(device_id, p_out_array, p_out_valid,
-                p_in_array, p_in_valid, p_count, p_red_count, p_red_array, p_red_valid, n_elem);
+                p_in_array, p_in_valid, p_count, p_red_count,
+                p_red_array, p_red_valid, n_elem);
         }
         else
         {
-            auto sp_count = static_cast<TT*>(count.get())->get_cpu_accessible();
-            NT *p_count = sp_count.get();
-
-            auto sp_red_count = static_cast<TT*>(red_count.get())->get_cpu_accessible();
-            NT *p_red_count = sp_red_count.get();
-
-            // update count
+            // update, no missing data
             p_red_count[0] = p_count[0] + 1.;
 
-            const NT_MASK *p_in_valid = nullptr;
-            const NT_MASK *p_out_valid = nullptr;
-            NT_MASK *p_red_valid = nullptr;
-
-            cuda::summation(device_id, p_out_array, p_out_valid,
-                p_in_array, p_in_valid, p_red_array, p_red_valid, n_elem);
+            cuda::summation(device_id, p_out_array, nullptr,
+                p_in_array, nullptr, p_red_array, nullptr,
+                n_elem);
         }
     )
 
@@ -1104,9 +1048,6 @@ int teca_cpp_temporal_reduction::internals_t::summation_operator::update_cpu(
     TEMPLATE_DISPATCH(
         teca_variant_array_impl,
         red_array.get(),
-
-        using NT_MASK = char;
-        using TT_MASK = teca_variant_array_impl<NT_MASK>;
 
         auto sp_in_array = static_cast<const TT*>(in_array.get())->get_cpu_accessible();
         const NT *p_in_array = sp_in_array.get();
@@ -1200,9 +1141,6 @@ int teca_cpp_temporal_reduction::internals_t::summation_operator::update_gpu(
         teca_variant_array_impl,
         red_array.get(),
 
-        using NT_MASK = char;
-        using TT_MASK = teca_variant_array_impl<NT_MASK>;
-
         auto sp_in_array = static_cast<const TT*>(in_array.get())->get_cuda_accessible();
         const NT *p_in_array = sp_in_array.get();
 
@@ -1287,9 +1225,6 @@ int teca_cpp_temporal_reduction::internals_t::minimum_operator::update_cpu(
     TEMPLATE_DISPATCH(
         teca_variant_array_impl,
         red_array.get(),
-
-        using NT_MASK = char;
-        using TT_MASK = teca_variant_array_impl<NT_MASK>;
 
         auto sp_in_array = static_cast<const TT*>(in_array.get())->get_cpu_accessible();
         const NT *p_in_array = sp_in_array.get();
@@ -1385,9 +1320,6 @@ int teca_cpp_temporal_reduction::internals_t::minimum_operator::update_gpu(
         teca_variant_array_impl,
         red_array.get(),
 
-        using NT_MASK = char;
-        using TT_MASK = teca_variant_array_impl<NT_MASK>;
-
         auto sp_in_array = static_cast<const TT*>(in_array.get())->get_cuda_accessible();
         const NT *p_in_array = sp_in_array.get();
 
@@ -1472,9 +1404,6 @@ int teca_cpp_temporal_reduction::internals_t::maximum_operator::update_cpu(
     TEMPLATE_DISPATCH(
         teca_variant_array_impl,
         red_array.get(),
-
-        using NT_MASK = char;
-        using TT_MASK = teca_variant_array_impl<NT_MASK>;
 
         auto sp_in_array = static_cast<const TT*>(in_array.get())->get_cpu_accessible();
         const NT *p_in_array = sp_in_array.get();
@@ -1570,9 +1499,6 @@ int teca_cpp_temporal_reduction::internals_t::maximum_operator::update_gpu(
         teca_variant_array_impl,
         red_array.get(),
 
-        using NT_MASK = char;
-        using TT_MASK = teca_variant_array_impl<NT_MASK>;
-
         auto sp_in_array = static_cast<const TT*>(in_array.get())->get_cuda_accessible();
         const NT *p_in_array = sp_in_array.get();
 
@@ -1650,9 +1576,6 @@ int teca_cpp_temporal_reduction::internals_t::reduction_operator::finalize(
             out_array.get(),
 
             unsigned long n_elem = out_array->size();
-
-            using NT_MASK = char;
-            using TT_MASK = teca_variant_array_impl<NT_MASK>;
 
 #if defined(TECA_HAS_CUDA)
             if (device_id >= 0)
@@ -1737,22 +1660,17 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::finalize(
         teca_variant_array_impl,
         red_array.get(),
 
-        using NT_MASK = char;
-        using TT_MASK = teca_variant_array_impl<NT_MASK>;
-
 #if defined(TECA_HAS_CUDA)
         if (device_id >= 0)
         {
             auto sp_out_array = static_cast<TT*>(out_array.get())->get_cuda_accessible();
             NT *p_out_array = sp_out_array.get();
 
-            auto sp_red_array = static_cast<TT*>(red_array.get())->get_cuda_accessible();
-            NT *p_red_array = sp_red_array.get();
+            NT *p_red_array = static_cast<TT*>(red_array.get())->data();
 
-            auto sp_count = static_cast<const TT*>(count.get())->get_cuda_accessible();
-            const NT *p_count = sp_count.get();
+            const NT *p_count = static_cast<const TT*>(count.get())->data();
 
-            if (out_valid != nullptr)
+            if (out_valid)
             {
                 auto sp_out_valid = static_cast<const TT_MASK*>(out_valid.get())->get_cuda_accessible();
                 const NT_MASK *p_out_valid = sp_out_valid.get();
@@ -1762,9 +1680,7 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::finalize(
             }
             else
             {
-                const NT_MASK *p_out_valid = nullptr;
-
-                cuda::average_finalize(device_id, p_out_array, p_out_valid,
+                cuda::average_finalize(device_id, p_out_array, nullptr,
                     p_red_array, p_count, this->fill_value, n_elem);
             }
         }
@@ -1774,13 +1690,11 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::finalize(
             auto sp_out_array = static_cast<TT*>(out_array.get())->get_cpu_accessible();
             NT *p_out_array = sp_out_array.get();
 
-            auto sp_red_array = static_cast<TT*>(red_array.get())->get_cpu_accessible();
-            NT *p_red_array = sp_red_array.get();
+            NT *p_red_array = static_cast<TT*>(red_array.get())->data();
 
-            auto sp_count = static_cast<const TT*>(count.get())->get_cpu_accessible();
-            const NT *p_count = sp_count.get();
+            const NT *p_count = static_cast<const TT*>(count.get())->data();
 
-            if (out_valid != nullptr)
+            if (out_valid)
             {
                 // finish the average. We keep track of the invalid
                 // values (these will have a zero count) set them to
@@ -2331,11 +2245,17 @@ const_p_teca_dataset teca_cpp_temporal_reduction::execute(
     (void)port;
 
     // get the requested ind
+    unsigned long req_id[2] = {0};
     std::string request_key;
-    req_in.get("index_request_key", request_key);
-    unsigned long req_id[2];
-    req_in.get(request_key, req_id);
 
+    if (req_in.get("index_request_key", request_key) ||
+        req_in.get(request_key, req_id))
+    {
+        TECA_ERROR("metadata issue. failed to get the requested indices")
+        return nullptr;
+    }
+
+    // get the assigned GPU or CPU
     int device_id = -1;
     req_in.get("device_id", device_id);
 
@@ -2350,45 +2270,52 @@ const_p_teca_dataset teca_cpp_temporal_reduction::execute(
             << streaming << " remain" << std::endl;
     }
 
+    allocator alloc = allocator::malloc;
 #if defined(TECA_HAS_CUDA)
     if (device_id >= 0)
     {
-       // set the CUDA device to run on
-       cudaError_t ierr = cudaSuccess;
-       if ((ierr = cudaSetDevice(device_id)) != cudaSuccess)
-       {
-          TECA_ERROR("Failed to set the CUDA device to " << device_id
-                << ". " << cudaGetErrorString(ierr))
-             return nullptr;
-       }
+       alloc = allocator::cuda;
+
+       if (teca_cuda_util::set_device(device_id))
+           return nullptr;
     }
 #endif
 
     long n_data = data_in.size();
 
-    // We are processing data_in in reverse order
-    // because of the average operator,
-    // more precisely because of its count variable.
-    // If we process in ascending order,
-    // the count variable is erroneously initialized many times.
-    // This is due to the fact that the partial sum and the count variable
-    // from the previous execute call is located in the last position of data_in.
-    // The order matters only for average operator.
+    // We are processing data_in in reverse order because of the average
+    // operator, more precisely because of its count variable.
+    //
+    // Note: the dependence on the last input dataset containing the previous result
+    // is a private implementation detail of the streaming implementation and
+    // should not be relied upon. The reason we currently do it this is that
+    // we need per-thread cache and the output dataset does the trick. To access
+    // this cache we need to know which of the incoming datasets is the
+    // intermediate result.
 
-    // copy the first mesh
-    p_teca_cartesian_mesh mesh_in
-      = std::dynamic_pointer_cast<teca_cartesian_mesh>(
-      std::const_pointer_cast<teca_dataset>(data_in[n_data-1]));
+    // get the last mesh, when streaming the will hold the previous results.
+    p_teca_cartesian_mesh mesh_in =
+        std::dynamic_pointer_cast<teca_cartesian_mesh>(
+            std::const_pointer_cast<teca_dataset>(data_in[n_data-1]));
+
+    p_teca_array_collection arrays_in;
+
+    // make a shallow copy to hold the results of this pass
     p_teca_cartesian_mesh mesh_out = teca_cartesian_mesh::New();
+
     mesh_out->shallow_copy(
       std::const_pointer_cast<teca_cartesian_mesh>(mesh_in));
+
     p_teca_array_collection arrays_out = mesh_out->get_point_arrays();
-    p_teca_array_collection arrays_in;
 
     size_t n_array = this->point_arrays.size();
 
-    // Handle the case where the number of inputs < 2.
-    // The arrays_in is to all zero or the fill_value if one is provided.
+    // Handle the case where the number of inputs < 2. Another intended private
+    // implementation detail of teca's streaming is that the only time the
+    // number of inputs will be less than 2 is when the current input interval
+    // has only 1 time step. Hence in teca's current implementation this is an
+    // edge case. In this case we'll set the result to the _FillValue. This
+    // output is invalid and should not be used.
     if (n_data < 2)
     {
         arrays_in = mesh_in->get_point_arrays();
@@ -2397,64 +2324,58 @@ const_p_teca_dataset teca_cpp_temporal_reduction::execute(
         {
             const std::string &array = this->point_arrays[j];
 
+            // get the input array
             const_p_teca_variant_array in_array = arrays_in->get(array);
             unsigned long n_elem = in_array->size();
-            p_teca_variant_array red_array;
 
-#if defined(TECA_HAS_CUDA)
-            if (device_id >= 0)
-            {
-                red_array = in_array->new_instance(n_elem, teca_variant_array::allocator::cuda);
-            }
-            else
-            {
-#endif
-                red_array = in_array->new_instance(n_elem);
-#if defined(TECA_HAS_CUDA)
-            }
-#endif
+            bool have_vv_mask = arrays_in->has(array + "_valid");
+
             TEMPLATE_DISPATCH(
-                teca_variant_array_impl,
-                red_array.get(),
+                const teca_variant_array_impl,
+                in_array.get(),
 
-#if defined(TECA_HAS_CUDA)
-                if (device_id >= 0)
+                if (this->op == average)
                 {
-                    auto sp_red_array = static_cast<TT*>(red_array.get())->get_cuda_accessible();
-                    NT *p_red_array = sp_red_array.get();
+                    // the average requires a floating point type due to truncation
+                    // that occurs with integer division.
+                    internals_t::ensure_floating_point(alloc, in_array);
 
-                    for (unsigned int i = 0; i < n_elem; ++i)
-                        p_red_array[i] = (this->fill_value != -1) ? this->fill_value : 0.;
-                }
-                else
-                {
-#endif
-                    auto sp_red_array = static_cast<TT*>(red_array.get())->get_cpu_accessible();
-                    NT *p_red_array = sp_red_array.get();
+                    // the average requires the count of valid values at each
+                    // grid point (or mesh wide) is used.
+                    size_t n_elem_count = 1;
+                    allocator alloc_count = allocator::malloc;
+                    if (have_vv_mask)
+                    {
+                        n_elem_count = n_elem;
+                        alloc_count = (device_id >= 0 ? allocator::cuda : allocator::malloc);
+                    }
 
-                    for (unsigned int i = 0; i < n_elem; ++i)
-                        p_red_array[i] = (this->fill_value != -1) ? this->fill_value : 0.;
-#if defined(TECA_HAS_CUDA)
+                    p_teca_variant_array_impl<NT> count =
+                        teca_variant_array_impl<NT>::New(n_elem_count, NT(1), alloc_count);
+
+                    arrays_out->set(array + "_count", count);
                 }
-#endif
-            )
-            arrays_in->set(array, red_array);
+
+                // this output is invalid so mark all points with the _FillValue
+                /*p_teca_variant_array_impl<NT> out_array =
+                    teca_variant_array_impl<NT>::New(n_elem, NT(this->fill_value), alloc);
+                arrays_out->set(array, out_array);*/
+
+                p_teca_variant_array_impl<NT_MASK> out_mask =
+                    teca_variant_array_impl<NT_MASK>::New(n_elem, NT_MASK(0), alloc);
+
+                arrays_out->set(array + "_valid", out_mask);
+                )
         }
     }
 
-    bool firstIter = true;
-
-    // accumulate incoming values
-    for (long i = n_data-2; i >= 0 || firstIter; --i)
+    // accumulate incoming values, in reverse order.
+    for (long i = n_data - 2; i >= 0; --i)
     {
-        firstIter = false;
+        mesh_in = std::dynamic_pointer_cast<teca_cartesian_mesh>(
+          std::const_pointer_cast<teca_dataset>(data_in[i]));
 
-        if (n_data >= 2)
-        {
-            mesh_in = std::dynamic_pointer_cast<teca_cartesian_mesh>(
-              std::const_pointer_cast<teca_dataset>(data_in[i]));
-            arrays_in = mesh_in->get_point_arrays();
-        }
+        arrays_in = mesh_in->get_point_arrays();
 
         for (size_t j = 0; j < n_array; ++j)
         {
@@ -2465,6 +2386,7 @@ const_p_teca_dataset teca_cpp_temporal_reduction::execute(
                 TECA_ERROR("array \"" << array << "\" not found")
                 return nullptr;
             }
+
 #if defined(TECA_HAS_CUDA)
             if (device_id >= 0)
             {
@@ -2491,19 +2413,6 @@ const_p_teca_dataset teca_cpp_temporal_reduction::execute(
         {
             const std::string &array = this->point_arrays[i];
 
-#if defined(TECA_HAS_CUDA)
-            if (device_id >= 0)
-            {
-                // set the CUDA device to run on
-                cudaError_t ierr = cudaSuccess;
-                if ((ierr = cudaSetDevice(device_id)) != cudaSuccess)
-                {
-                    TECA_ERROR("Failed to set the CUDA device to " << device_id
-                        << ". " << cudaGetErrorString(ierr))
-                    return nullptr;
-                }
-            }
-#endif
             // finalize the reduction
             this->internals->op[array]->finalize(
                 device_id, array, arrays_out);
