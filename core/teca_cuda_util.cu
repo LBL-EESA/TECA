@@ -110,8 +110,8 @@ int get_local_cuda_devices(MPI_Comm comm, int &ranks_per_device,
 //-----------------------------------------------------------------------------
 int set_device(int device_id)
 {
+    /*
     int n_devices = 0;
-
     cudaError_t ierr = cudaGetDeviceCount(&n_devices);
     if (ierr != cudaSuccess)
     {
@@ -120,16 +120,16 @@ int set_device(int device_id)
         return -1;
     }
 
-
     if (device_id >= n_devices)
     {
         TECA_ERROR("Attempt to select invalid device "
             << device_id << " of " << n_devices)
         return -1;
     }
+    */
 
-    ierr = cudaSetDevice(device_id);
-    if (ierr)
+    cudaError_t ierr = cudaSetDevice(device_id);
+    if (ierr != cudaSuccess)
     {
         TECA_ERROR("Failed to select device " << device_id << ". "
             <<  cudaGetErrorString(ierr))
