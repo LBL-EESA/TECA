@@ -358,10 +358,10 @@ int dispatch(int device_id, size_t nx, size_t ny, size_t nz,
     ivt_u = wind_u->new_instance(alloc);
     ivt_v = wind_u->new_instance(alloc);
 
-    NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
+    NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
         p.get(), _COORDS,
 
-        auto sp_p = static_cast<TT_COORDS*>
+        auto sp_p = static_cast<const TT_COORDS*>
             (p.get())->get_cuda_accessible();
 
         const NT_COORDS *p_p = sp_p.get();
@@ -575,14 +575,14 @@ int dispatch(size_t nx, size_t ny, size_t nz,
     ivt_u = wind_u->new_instance();
     ivt_v = wind_u->new_instance();
 
-    NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
+    NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
         p.get(), _COORDS,
 
-        auto sp_p = static_cast<TT_COORDS*>(p.get())->get_cpu_accessible();
+        auto sp_p = static_cast<const TT_COORDS*>(p.get())->get_cpu_accessible();
         const NT_COORDS *p_p = sp_p.get();
 
         NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-            ivt_u.get(), _DATA,
+            wind_u.get(), _DATA,
 
             // resize and initialize the ivt output to zero
             TT_DATA *tivt_u = static_cast<TT_DATA*>(ivt_u.get());

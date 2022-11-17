@@ -267,13 +267,13 @@ const_p_teca_dataset teca_shape_file_mask::execute(
         }
 
         // test each point in the extent for intersection with the polygon
-        TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
+        TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
             x.get(),
 
-            auto sp_x = static_cast<TT*>(x.get())->get_cpu_accessible();
+            auto sp_x = static_cast<const TT*>(x.get())->get_cpu_accessible();
             const NT *p_x = sp_x.get();
 
-            auto sp_y = static_cast<TT*>(y.get())->get_cpu_accessible();
+            auto sp_y = static_cast<const TT*>(y.get())->get_cpu_accessible();
             const NT *p_y = sp_y.get();
 
             for (unsigned long j = extent[2]; j <= extent[3]; ++j)

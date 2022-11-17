@@ -34,10 +34,10 @@ int cpu_dispatch(
     size_t n_elem = input_array->size();
     p_teca_char_array segmentation = teca_char_array::New(n_elem);
 
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
         input_array.get(),
 
-        auto sp_in = static_cast<TT*>(input_array.get())->get_cpu_accessible();
+        auto sp_in = static_cast<const TT*>(input_array.get())->get_cpu_accessible();
         const NT *p_in = sp_in.get();
 
         auto sp_seg = segmentation->get_cpu_accessible();

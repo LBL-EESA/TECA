@@ -209,7 +209,7 @@ int cuda_dispatch(int device_id,
     auto sp_seg = segmentation->get_cuda_accessible();
     char *p_seg = sp_seg.get();
 
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
         input_array.get(),
 
         auto sp_in = static_cast<TT*>(input_array.get())->get_cuda_accessible();

@@ -69,7 +69,7 @@ struct packed_data
 
         // compute
         // f = cos(z)*sin(x+t)*sin(y+t)
-        TEMPLATE_DISPATCH(const teca_variant_array_impl,
+        TEMPLATE_DISPATCH(teca_variant_array_impl,
             x.get(),
 
             auto sp_x = dynamic_cast<const TT*>(x.get())->get_cpu_accessible();

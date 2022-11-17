@@ -186,7 +186,7 @@ const_p_teca_dataset teca_table_region_mask::execute(
     short *pmask = spmask.get();
     unsigned int nhit = 0;
 
-    TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
         x.get(),
 
         auto spx = static_cast<const TT*>(x.get())->get_cpu_accessible();

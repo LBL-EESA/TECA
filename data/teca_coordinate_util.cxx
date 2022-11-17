@@ -39,13 +39,13 @@ bool equal(const const_p_teca_variant_array &array1,
     }
 
     // handle POD arrays
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
         array1.get(),
 
-        auto a1 = static_cast<TT*>(array1.get());
+        auto a1 = static_cast<const TT*>(array1.get());
 
         // we know the type of array 1 now, check the type of array 2
-        auto a2 = dynamic_cast<TT*>(array2.get());
+        auto a2 = dynamic_cast<const TT*>(array2.get());
         if (!a2)
         {
             oss << "The arrays have different types : "
@@ -108,12 +108,12 @@ bool equal(const const_p_teca_variant_array &array1,
         )
     // handle arrays of strings
     TEMPLATE_DISPATCH_CASE(
-        const teca_variant_array_impl, std::string,
+        teca_variant_array_impl, std::string,
         array1.get(),
         if (dynamic_cast<const TT*>(array2.get()))
         {
-            auto a1 = static_cast<TT*>(array1.get())->get_cpu_accessible();
-            auto a2 = static_cast<TT*>(array2.get())->get_cpu_accessible();
+            auto a1 = static_cast<const TT*>(array1.get())->get_cpu_accessible();
+            auto a2 = static_cast<const TT*>(array2.get())->get_cpu_accessible();
 
             auto pa1 = a1.get();
             auto pa2 = a2.get();
@@ -188,10 +188,10 @@ int time_step_of(const const_p_teca_variant_array &time,
 
     // locate the nearest time value in the time axis
     unsigned long last = time->size() - 1;
-    TEMPLATE_DISPATCH_FP_SI(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH_FP_SI(teca_variant_array_impl,
         time.get(),
 
-        auto ta = std::static_pointer_cast<TT>(time);
+        auto ta = std::static_pointer_cast<const TT>(time);
         auto pta = ta->get_cpu_accessible();
         auto p_time = pta.get();
 
@@ -316,7 +316,7 @@ int bounds_to_extent(const double *bounds,
     const const_p_teca_variant_array &z, unsigned long *extent)
 {
     TEMPLATE_DISPATCH_FP(
-        const teca_variant_array_impl,
+        teca_variant_array_impl,
         x.get(),
 
         // in the following, for each side (low, high) of the bounds in
@@ -336,7 +336,7 @@ int bounds_to_extent(const double *bounds,
         unsigned long high_i = nx - 1;
         extent[0] = 0;
         extent[1] = high_i;
-        auto xa = std::static_pointer_cast<TT>(x);
+        auto xa = std::static_pointer_cast<const TT>(x);
         auto pxa = xa->get_cpu_accessible();
         const NT *px = pxa.get();
         NT low_x = static_cast<NT>(bounds[0]);
@@ -347,7 +347,7 @@ int bounds_to_extent(const double *bounds,
         unsigned long high_j = ny - 1;
         extent[2] = 0;
         extent[3] = high_j;
-        auto ya = std::dynamic_pointer_cast<TT>(y);
+        auto ya = std::dynamic_pointer_cast<const TT>(y);
         auto pya = ya->get_cpu_accessible();
         const NT *py = pya.get();
         NT low_y = static_cast<NT>(bounds[2]);
@@ -358,7 +358,7 @@ int bounds_to_extent(const double *bounds,
         unsigned long high_k = nz - 1;
         extent[4] = 0;
         extent[5] = high_k;
-        auto za = std::dynamic_pointer_cast<TT>(z);
+        auto za = std::dynamic_pointer_cast<const TT>(z);
         auto pza = za->get_cpu_accessible();
         const NT *pz = pza.get();
         NT low_z = static_cast<NT>(bounds[4]);
@@ -406,7 +406,7 @@ int bounds_to_extent(const double *bounds,
     const const_p_teca_variant_array &x, unsigned long *extent)
 {
     TEMPLATE_DISPATCH_FP(
-        const teca_variant_array_impl,
+        teca_variant_array_impl,
         x.get(),
 
         // in the following, for each side (low, high) of the bounds in
@@ -426,7 +426,7 @@ int bounds_to_extent(const double *bounds,
         unsigned long high_i = nx - 1;
         extent[0] = 0;
         extent[1] = high_i;
-        auto xa = std::static_pointer_cast<TT>(x);
+        auto xa = std::static_pointer_cast<const TT>(x);
         auto pxa = xa->get_cpu_accessible();
         const NT *px = pxa.get();
         NT low_x = static_cast<NT>(bounds[0]);

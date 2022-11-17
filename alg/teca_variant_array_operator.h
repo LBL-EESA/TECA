@@ -79,17 +79,17 @@ p_teca_variant_array apply(const const_p_teca_variant_array &arg1,
     const const_p_teca_variant_array &arg2, const const_p_teca_variant_array &arg3,
     const operator_t &op)
 {
-    NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
         arg1.get(), _1,
-        auto sparg1 = static_cast<TT_1*>(arg1.get())->get_cpu_accessible();
+        auto sparg1 = static_cast<const TT_1*>(arg1.get())->get_cpu_accessible();
         auto parg1 = sparg1.get();
-        NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
+        NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
             arg2.get(), _2,
-            auto sparg2 = static_cast<TT_2*>(arg2.get())->get_cpu_accessible();
+            auto sparg2 = static_cast<const TT_2*>(arg2.get())->get_cpu_accessible();
             auto parg2 = sparg2.get();
-            NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
+            NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
                 arg2.get(), _3,
-                auto sparg3 = static_cast<TT_3*>(arg3.get())->get_cpu_accessible();
+                auto sparg3 = static_cast<const TT_3*>(arg3.get())->get_cpu_accessible();
                 auto parg3 = sparg3.get();
                 return internal::apply(arg1->size(), parg1, parg2, parg3, op);
                 )
@@ -104,13 +104,13 @@ template <typename operator_t>
 p_teca_variant_array apply_i(const const_p_teca_variant_array &larg,
     const const_p_teca_variant_array &rarg, const operator_t &op)
 {
-    NESTED_TEMPLATE_DISPATCH_I(const teca_variant_array_impl,
+    NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
         larg.get(), _LEFT,
-        auto splarg = static_cast<TT_LEFT*>(larg.get())->get_cpu_accessible();
+        auto splarg = static_cast<const TT_LEFT*>(larg.get())->get_cpu_accessible();
         auto plarg = splarg.get();
-        NESTED_TEMPLATE_DISPATCH_I(const teca_variant_array_impl,
+        NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
             rarg.get(), _RIGHT,
-            auto sprarg = static_cast<TT_RIGHT*>(rarg.get())->get_cpu_accessible();
+            auto sprarg = static_cast<const TT_RIGHT*>(rarg.get())->get_cpu_accessible();
             auto prarg = sprarg.get();
             return internal::apply(larg->size(), plarg, prarg, op);
             )
@@ -124,13 +124,13 @@ template <typename operator_t>
 p_teca_variant_array apply(const const_p_teca_variant_array &larg,
     const const_p_teca_variant_array &rarg, const operator_t &op)
 {
-    NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
         larg.get(), _LEFT,
-        auto splarg = static_cast<TT_LEFT*>(larg.get())->get_cpu_accessible();
+        auto splarg = static_cast<const TT_LEFT*>(larg.get())->get_cpu_accessible();
         auto plarg = splarg.get();
-        NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
+        NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
             rarg.get(), _RIGHT,
-            auto sprarg = static_cast<TT_RIGHT*>(rarg.get())->get_cpu_accessible();
+            auto sprarg = static_cast<const TT_RIGHT*>(rarg.get())->get_cpu_accessible();
             auto prarg = sprarg.get();
             return internal::apply(larg->size(), plarg, prarg, op);
             )
@@ -144,9 +144,9 @@ template <typename operator_t>
 p_teca_variant_array apply(const const_p_teca_variant_array &arg,
     const operator_t &op)
 {
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
         arg.get(),
-        auto sparg = static_cast<TT*>(arg.get())->get_cpu_accessible();
+        auto sparg = static_cast<const TT*>(arg.get())->get_cpu_accessible();
         auto parg = sparg.get();
         return internal::apply(arg->size(), parg, op);
         )

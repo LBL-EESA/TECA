@@ -146,10 +146,10 @@ const_p_teca_dataset teca_table_sort::execute(
         malloc(n_rows*sizeof(unsigned long)));
     for (unsigned long i = 0; i < n_rows; ++i)
         index[i] = i;
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
         index_col.get(),
 
-        auto scol = static_cast<TT*>(index_col.get())->get_cpu_accessible();
+        auto scol = static_cast<const TT*>(index_col.get())->get_cpu_accessible();
         const NT *col = scol.get();
 
         if (this->stable_sort)

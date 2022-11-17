@@ -362,13 +362,13 @@ const_p_teca_dataset teca_vorticity::execute(
 
     // compute vorticity
     NESTED_TEMPLATE_DISPATCH_FP(
-        const teca_variant_array_impl,
+        teca_variant_array_impl,
         lon.get(), 1,
 
-        auto sp_lon = dynamic_cast<TT1*>(lon.get())->get_cpu_accessible();
+        auto sp_lon = dynamic_cast<const TT1*>(lon.get())->get_cpu_accessible();
         const NT1 *p_lon = sp_lon.get();
 
-        auto sp_lat = dynamic_cast<TT1*>(lat.get())->get_cpu_accessible();
+        auto sp_lat = dynamic_cast<const TT1*>(lat.get())->get_cpu_accessible();
         const NT1 *p_lat = sp_lat.get();
 
         NESTED_TEMPLATE_DISPATCH_FP(

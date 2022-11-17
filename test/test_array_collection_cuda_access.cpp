@@ -414,15 +414,15 @@ int main(int, char **)
             p_teca_variant_array cuda_out;
             p_teca_variant_array cpu_out;
 
-            TEMPLATE_DISPATCH(const teca_variant_array_impl,
+            TEMPLATE_DISPATCH(teca_variant_array_impl,
                 cuda_in.get(),
 
                 // mult data already acccessible in CUDA
-                auto pcuda_in = std::dynamic_pointer_cast<TT>(cuda_in);
+                auto pcuda_in = std::dynamic_pointer_cast<const TT>(cuda_in);
                 cuda_out = multiply_scalar_cuda(pcuda_in, mult_value);
 
                 // mult data accessible in the CPU
-                auto pcpu_in = std::dynamic_pointer_cast<TT>(cpu_in);
+                auto pcpu_in = std::dynamic_pointer_cast<const TT>(cpu_in);
                 auto tmp = multiply_scalar_cuda(pcpu_in, mult_value);
 
                 // move back to the CPU
@@ -465,11 +465,11 @@ int main(int, char **)
             const_p_teca_variant_array cpu_in = col_in->get("cpu_array");
 
 
-            TEMPLATE_DISPATCH(const teca_variant_array_impl,
+            TEMPLATE_DISPATCH(teca_variant_array_impl,
                 cuda_in.get(),
 
                 // compare data already acccessible in CUDA
-                auto pcuda_in = std::dynamic_pointer_cast<TT>(cuda_in);
+                auto pcuda_in = std::dynamic_pointer_cast<const TT>(cuda_in);
                 if (compare_int(pcuda_in, comp_value))
                 {
                     TECA_ERROR("The CUDA array was not equal to the expected"
@@ -480,7 +480,7 @@ int main(int, char **)
                 }
 
                 // compare data already acccessible in CPU
-                auto pcpu_in = std::dynamic_pointer_cast<TT>(cpu_in);
+                auto pcpu_in = std::dynamic_pointer_cast<const TT>(cpu_in);
                 if (compare_int(pcpu_in, comp_value))
                 {
                     TECA_ERROR("The CPU array was not equal to the expected"

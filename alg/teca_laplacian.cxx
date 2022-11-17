@@ -375,20 +375,19 @@ const_p_teca_dataset teca_laplacian::execute(
     }
 
     // allocate the output array
-    p_teca_variant_array lapl = comp_0->new_instance();
-    lapl->resize(comp_0->size());
+    p_teca_variant_array lapl = comp_0->new_instance(comp_0->size());
 
     // compute laplacian
     NESTED_TEMPLATE_DISPATCH_FP(
-        const teca_variant_array_impl,
+        teca_variant_array_impl,
         lon.get(), 1,
 
-        auto sp_lon = dynamic_cast<TT1*>
+        auto sp_lon = dynamic_cast<const TT1*>
             (lon.get())->get_cpu_accessible();
 
         const NT1 *p_lon = sp_lon.get();
 
-        auto sp_lat = dynamic_cast<TT1*>
+        auto sp_lat = dynamic_cast<const TT1*>
             (lat.get())->get_cpu_accessible();
 
         const NT1 *p_lat = sp_lat.get();
@@ -397,7 +396,7 @@ const_p_teca_dataset teca_laplacian::execute(
             teca_variant_array_impl,
             lapl.get(), 2,
 
-            auto sp_comp_0 = dynamic_cast<const TT2*>
+            auto sp_comp_0 = static_cast<const TT2*>
                 (comp_0.get())->get_cpu_accessible();
 
             const NT2 *p_comp_0 = sp_comp_0.get();

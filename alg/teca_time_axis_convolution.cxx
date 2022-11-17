@@ -519,7 +519,7 @@ const_p_teca_dataset teca_time_axis_convolution::execute(
             const_p_teca_array_collection in_arrays = in_mesh->get_point_arrays();
             const_p_teca_variant_array in_array = in_arrays->get(j);
 
-            TEMPLATE_DISPATCH(const teca_variant_array_impl,
+            TEMPLATE_DISPATCH(teca_variant_array_impl,
                 in_array.get(),
 
                 using TT_OUT = teca_variant_array_impl<NT>;
@@ -542,7 +542,7 @@ const_p_teca_dataset teca_time_axis_convolution::execute(
                 auto sp_out = dynamic_cast<TT_OUT*>(out_array.get())->get_cpu_accessible();
                 NT *p_out = sp_out.get();
 
-                auto sp_in = dynamic_cast<TT*>(in_array.get())->get_cpu_accessible();
+                auto sp_in = dynamic_cast<const TT*>(in_array.get())->get_cpu_accessible();
                 const NT *p_in = sp_in.get();
 
                 // apply the kernel weight for this time step

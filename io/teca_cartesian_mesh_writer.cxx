@@ -87,10 +87,10 @@ void write_vtk_array_data(FILE *ofile,
     if (a)
     {
         size_t na = a->size();
-        TEMPLATE_DISPATCH(const teca_variant_array_impl,
+        TEMPLATE_DISPATCH(teca_variant_array_impl,
             a.get(),
 
-            auto spa = static_cast<TT*>(a.get())->get_cpu_accessible();
+            auto spa = static_cast<const TT*>(a.get())->get_cpu_accessible();
             const NT *pa = spa.get();
 
             if (binary)
@@ -157,7 +157,7 @@ int write_vtk_legacy_rectilinear_header(FILE *ofile,
     size_t nz = (z ? z->size() : 1);
 
     const char *coord_type_str = nullptr;
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
         (x ? x.get() : (y ? y.get() : (z ? z.get() : nullptr))),
         coord_type_str = teca_vtk_util::vtk_tt<NT>::str();
         )
@@ -223,7 +223,7 @@ int write_vtk_legacy_arakawa_c_grid_header(FILE *ofile,
     }
 
     const char *coord_type_str = nullptr;
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
         (x ? x.get() : (y ? y.get() : (z ? z.get() : nullptr))),
         coord_type_str = teca_vtk_util::vtk_tt<NT>::str();
         )
@@ -315,7 +315,7 @@ int write_vtk_legacy_curvilinear_header(FILE *ofile,
     }
 
     const char *coord_type_str = nullptr;
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
         (x ? x.get() : (y ? y.get() : (z ? z.get() : nullptr))),
         coord_type_str = teca_vtk_util::vtk_tt<NT>::str();
         )
@@ -401,7 +401,7 @@ int write_vtk_legacy_attribute(FILE *ofile, unsigned long n_vals,
         else
             fprintf(ofile, "%s 1 %zu ", array_name.c_str(), n_elem);
 
-        TEMPLATE_DISPATCH(const teca_variant_array_impl,
+        TEMPLATE_DISPATCH(teca_variant_array_impl,
             array.get(), fprintf(ofile, "%s\n",
             teca_vtk_util::vtk_tt<NT>::str());
             )

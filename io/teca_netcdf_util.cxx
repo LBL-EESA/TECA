@@ -872,7 +872,7 @@ int write_variable_attributes(netcdf_handle &fh, int var_id,
 
         // handle string type
         TEMPLATE_DISPATCH_CASE(
-            const teca_variant_array_impl, std::string,
+            teca_variant_array_impl, std::string,
             att_values.get(),
             if (att_values->size() > 1)
                 continue;
@@ -893,11 +893,11 @@ int write_variable_attributes(netcdf_handle &fh, int var_id,
 #endif
             )
         // handle POD types
-        else TEMPLATE_DISPATCH(const teca_variant_array_impl,
+        else TEMPLATE_DISPATCH(teca_variant_array_impl,
             att_values.get(),
 
             int type = teca_netcdf_util::netcdf_tt<NT>::type_code;
-            auto spvals = static_cast<TT*>(att_values.get())->get_cpu_accessible();
+            auto spvals = static_cast<const TT*>(att_values.get())->get_cpu_accessible();
             const NT *pvals = spvals.get();
             unsigned long n_vals = att_values->size();
 

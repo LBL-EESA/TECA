@@ -432,16 +432,16 @@ const_p_teca_dataset teca_tc_trajectory::execute(
     std::chrono::high_resolution_clock::time_point t0, t1;
     t0 = std::chrono::high_resolution_clock::now();
 
-    NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
+    NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
         lon.get(), _COORD,
 
-        auto sp_lon = static_cast<TT_COORD*>(lon.get())->get_cpu_accessible();
+        auto sp_lon = static_cast<const TT_COORD*>(lon.get())->get_cpu_accessible();
         const NT_COORD *p_lon = sp_lon.get();
 
-        auto sp_lat = static_cast<TT_COORD*>(lat.get())->get_cpu_accessible();
+        auto sp_lat = static_cast<const TT_COORD*>(lat.get())->get_cpu_accessible();
         const NT_COORD *p_lat = sp_lat.get();
 
-        NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
+        NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
             wind_max.get(), _VAR,
 
             // configure the output
@@ -454,19 +454,19 @@ const_p_teca_dataset teca_tc_trajectory::execute(
                 "core_temp", NT_VAR(), "thickness", NT_VAR(),
                 "storm_speed", NT_COORD());
 
-            auto sp_wind_max = dynamic_cast<TT_VAR*>(wind_max.get())->get_cpu_accessible();
+            auto sp_wind_max = dynamic_cast<const TT_VAR*>(wind_max.get())->get_cpu_accessible();
             const NT_VAR *p_wind_max = sp_wind_max.get();
 
-            auto sp_vort_max = dynamic_cast<TT_VAR*>(vort_max.get())->get_cpu_accessible();
+            auto sp_vort_max = dynamic_cast<const TT_VAR*>(vort_max.get())->get_cpu_accessible();
             const NT_VAR *p_vort_max = sp_vort_max.get();
 
-            auto sp_psl_min = dynamic_cast<TT_VAR*>(psl_min.get())->get_cpu_accessible();
+            auto sp_psl_min = dynamic_cast<const TT_VAR*>(psl_min.get())->get_cpu_accessible();
             const NT_VAR *p_psl_min = sp_psl_min.get();
 
-            auto sp_twc_max = dynamic_cast<TT_VAR*>(twc_max.get())->get_cpu_accessible();
+            auto sp_twc_max = dynamic_cast<const TT_VAR*>(twc_max.get())->get_cpu_accessible();
             const NT_VAR *p_twc_max = sp_twc_max.get();
 
-            auto sp_thick_max = dynamic_cast<TT_VAR*>(thick_max.get())->get_cpu_accessible();
+            auto sp_thick_max = dynamic_cast<const TT_VAR*>(thick_max.get())->get_cpu_accessible();
             const NT_VAR *p_thick_max = sp_thick_max.get();
 
             // invoke the track finder

@@ -759,10 +759,10 @@ teca_metadata teca_tc_wind_radii::teca_tc_wind_radii::get_output_metadata(
     const_p_teca_variant_array storm_ids =
         this->internals->storm_table->get_column(this->storm_id_column);
 
-    TEMPLATE_DISPATCH_I(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH_I(teca_variant_array_impl,
         storm_ids.get(),
 
-        auto spstorm_ids = dynamic_cast<TT*>(storm_ids.get())->get_cpu_accessible();
+        auto spstorm_ids = dynamic_cast<const TT*>(storm_ids.get())->get_cpu_accessible();
         auto pstorm_ids = spstorm_ids.get();
 
         teca_coordinate_util::get_table_offsets(pstorm_ids,
@@ -852,14 +852,14 @@ std::vector<teca_metadata> teca_tc_wind_radii::get_upstream_request(
     // request the tile of dimension search radius centered on the
     // storm at this instant
     unsigned long n_incomplete = 0;
-    TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
         x_coordinates.get(),
         // for each point in track compute the bounding box needed
         // for the wind profile
-        auto spx = static_cast<TT*>(x_coordinates.get())->get_cpu_accessible();
+        auto spx = static_cast<const TT*>(x_coordinates.get())->get_cpu_accessible();
         auto px = spx.get();
 
-        auto spy = static_cast<TT*>(y_coordinates.get())->get_cpu_accessible();
+        auto spy = static_cast<const TT*>(y_coordinates.get())->get_cpu_accessible();
         auto py = spy.get();
 
         for (unsigned long i = 0; i < n_ids; ++i)
@@ -903,9 +903,9 @@ std::vector<teca_metadata> teca_tc_wind_radii::get_upstream_request(
     }
 
     // request the specific time needed
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
         times.get(),
-        auto spt = static_cast<TT*>(times.get())->get_cpu_accessible();
+        auto spt = static_cast<const TT*>(times.get())->get_cpu_accessible();
         auto pt = spt.get();
         for (unsigned long i = 0; i < n_ids; ++i)
             up_reqs[i].set("time", pt[i+id_ofs]);
@@ -966,14 +966,14 @@ const_p_teca_dataset teca_tc_wind_radii::execute(unsigned int port,
     p_teca_double_array peak_wind = teca_double_array::New(npts, 0.0);
 
     // compute radius at each point in time along the storm track
-    NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
+    NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
         storm_x.get(), _STORM,
 
         // get the storm centers
-        auto spstorm_x = static_cast<TT_STORM*>(storm_x.get())->get_cpu_accessible();
+        auto spstorm_x = static_cast<const TT_STORM*>(storm_x.get())->get_cpu_accessible();
         auto pstorm_x = spstorm_x.get();
 
-        auto spstorm_y = static_cast<TT_STORM*>(storm_y.get())->get_cpu_accessible();
+        auto spstorm_y = static_cast<const TT_STORM*>(storm_y.get())->get_cpu_accessible();
         auto pstorm_y = spstorm_y.get();
 
         // for each time instance in the storm compute the storm radius
@@ -996,13 +996,13 @@ const_p_teca_dataset teca_tc_wind_radii::execute(unsigned int port,
             double t = 0.0;
             mesh->get_time(t);
 
-            NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
+            NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
                 mesh_x.get(), _MESH,
 
-                auto spmesh_x = static_cast<TT_MESH*>(mesh_x.get())->get_cpu_accessible();
+                auto spmesh_x = static_cast<const TT_MESH*>(mesh_x.get())->get_cpu_accessible();
                 auto pmesh_x = spmesh_x.get();
 
-                auto spmesh_y = static_cast<TT_MESH*>(mesh_y.get())->get_cpu_accessible();
+                auto spmesh_y = static_cast<const TT_MESH*>(mesh_y.get())->get_cpu_accessible();
                 auto pmesh_y = spmesh_y.get();
 
                 unsigned long nx = mesh_x->size();
@@ -1030,13 +1030,13 @@ const_p_teca_dataset teca_tc_wind_radii::execute(unsigned int port,
                 const_p_teca_variant_array wind_v =
                     mesh->get_point_arrays()->get(this->wind_v_variable);
 
-                NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
+                NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
                     wind_u.get(), _WIND,
 
-                    auto spwu = static_cast<TT_WIND*>(wind_u.get())->get_cpu_accessible();
+                    auto spwu = static_cast<const TT_WIND*>(wind_u.get())->get_cpu_accessible();
                     auto pwu = spwu.get();
 
-                    auto spwv = static_cast<TT_WIND*>(wind_v.get())->get_cpu_accessible();
+                    auto spwv = static_cast<const TT_WIND*>(wind_v.get())->get_cpu_accessible();
                     auto pwv = spwv.get();
 
                     // get the kth storm center

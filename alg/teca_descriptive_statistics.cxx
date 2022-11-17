@@ -322,7 +322,7 @@ const_p_teca_dataset teca_descriptive_statistics::execute(
             return nullptr;
         }
 
-        TEMPLATE_DISPATCH(const teca_variant_array_impl,
+        TEMPLATE_DISPATCH(teca_variant_array_impl,
             dep_var.get(),
 
             size_t n = dep_var->size();

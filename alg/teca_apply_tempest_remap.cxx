@@ -478,23 +478,23 @@ const_p_teca_dataset teca_apply_tempest_remap::execute(
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wchar-subscripts"
-            NESTED_TEMPLATE_DISPATCH_I(const teca_variant_array_impl,
+            NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
                 row.get(),
                 _IDX,
 
                 // get the source and target mesh indices
-                auto spr = static_cast<TT_IDX*>(row.get())->get_cpu_accessible();
+                auto spr = static_cast<const TT_IDX*>(row.get())->get_cpu_accessible();
                 const NT_IDX *pr = spr.get();
 
-                auto spc = dynamic_cast<TT_IDX*>(col.get())->get_cpu_accessible();
+                auto spc = dynamic_cast<const TT_IDX*>(col.get())->get_cpu_accessible();
                 const NT_IDX *pc = spc.get();
 
-                NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
+                NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
                     weights.get(),
                     _WGT,
 
                     // get the weight matrix
-                    auto spw = static_cast<TT_WGT*>(weights.get())->get_cpu_accessible();
+                    auto spw = static_cast<const TT_WGT*>(weights.get())->get_cpu_accessible();
                     const NT_WGT *pw = spw.get();
 
                     NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
@@ -522,13 +522,13 @@ const_p_teca_dataset teca_apply_tempest_remap::execute(
 #if defined(CHAR_VALID_VALUE_MASK)
                             // to improve compile times assume valid value masks are char type
                             using NT_SRC_VVM = char;
-                            using TT_SRC_VVM = const teca_variant_array_impl<NT_SRC_VVM>;
+                            using TT_SRC_VVM = teca_variant_array_impl<NT_SRC_VVM>;
 #else
-                            NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
+                            NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
                                 src_valid.get(),
                                 _SRC_VVM,
 #endif
-                                auto spsrc_valid = static_cast<TT_SRC_VVM*>
+                                auto spsrc_valid = static_cast<const TT_SRC_VVM*>
                                     (src_valid.get())->get_cpu_accessible();
 
                                 const NT_SRC_VVM *psrc_valid = spsrc_valid.get();
@@ -564,13 +564,13 @@ const_p_teca_dataset teca_apply_tempest_remap::execute(
 #if defined(CHAR_VALID_VALUE_MASK)
                 // to improve compile times assume valid value masks are char type
                 using NT_MASK = char;
-                using TT_MASK = const teca_variant_array_impl<NT_MASK>;
+                using TT_MASK = teca_variant_array_impl<NT_MASK>;
 #else
-                NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
+                NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
                     tgt_valid.get(),
                     _MASK,
 #endif
-                    auto sptgt_valid = static_cast<TT_MASK*>
+                    auto sptgt_valid = static_cast<const TT_MASK*>
                         (tgt_valid.get())->get_cpu_accessible();
 
                     const NT_MASK *ptgt_valid = sptgt_valid.get();

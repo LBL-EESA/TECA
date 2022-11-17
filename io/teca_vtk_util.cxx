@@ -45,7 +45,7 @@ int deep_copy(vtkRectilinearGrid *output,
 
     // transfer coordinates
     const_p_teca_variant_array x = input->get_x_coordinates();
-    TEMPLATE_DISPATCH(const teca_variant_array_impl, x.get(),
+    TEMPLATE_DISPATCH(teca_variant_array_impl, x.get(),
         const TT *xx = static_cast<const TT*>(x.get());
         auto spxx = xx->get_cpu_accessible();
         const NT *pxx = spxx.get();
@@ -58,7 +58,7 @@ int deep_copy(vtkRectilinearGrid *output,
         );
 
     const_p_teca_variant_array y = input->get_y_coordinates();
-    TEMPLATE_DISPATCH(const teca_variant_array_impl, y.get(),
+    TEMPLATE_DISPATCH(teca_variant_array_impl, y.get(),
         const TT *yy = static_cast<const TT*>(y.get());
         auto spyy = yy->get_cpu_accessible();
         const NT *pyy = spyy.get();
@@ -71,7 +71,7 @@ int deep_copy(vtkRectilinearGrid *output,
         )
 
     const_p_teca_variant_array z = input->get_z_coordinates();
-    TEMPLATE_DISPATCH( const teca_variant_array_impl, z.get(),
+    TEMPLATE_DISPATCH(teca_variant_array_impl, z.get(),
         const TT *zz = static_cast<const TT*>(z.get());
         auto spzz = zz->get_cpu_accessible();
         const NT *pzz = spzz.get();
@@ -91,7 +91,7 @@ int deep_copy(vtkRectilinearGrid *output,
         const_p_teca_variant_array a = pd->get(i);
         std::string name = pd->get_name(i);
 
-        TEMPLATE_DISPATCH(const teca_variant_array_impl, a.get(),
+        TEMPLATE_DISPATCH(teca_variant_array_impl, a.get(),
             const TT *aa = static_cast<const TT*>(a.get());
             auto spaa = aa->get_cpu_accessible();
             const NT *paa = spaa.get();

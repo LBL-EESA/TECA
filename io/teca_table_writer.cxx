@@ -117,7 +117,7 @@ int write_netcdf(const_p_teca_table table, const std::string &file_name,
         {
         std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-        TEMPLATE_DISPATCH(const teca_variant_array_impl,
+        TEMPLATE_DISPATCH(teca_variant_array_impl,
             col.get(),
             if ((ierr = nc_def_var(fh.get(), col_name.c_str(),
                 teca_netcdf_util::netcdf_tt<NT>::type_code, 1,
@@ -128,7 +128,7 @@ int write_netcdf(const_p_teca_table table, const std::string &file_name,
                 return -1;
             }
             )
-        else TEMPLATE_DISPATCH_CASE(const teca_variant_array_impl,
+        else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
             std::string, col.get(),
             if ((ierr = nc_def_var(fh.get(), col_name.c_str(),
                 NC_STRING, 1, &row_dim_id, &var_id)) != NC_NOERR)
@@ -185,9 +185,9 @@ int write_netcdf(const_p_teca_table table, const std::string &file_name,
         size_t starts = 0;
         size_t counts = n_rows;
 
-        TEMPLATE_DISPATCH(const teca_variant_array_impl,
+        TEMPLATE_DISPATCH(teca_variant_array_impl,
             col.get(),
-            auto sp_col = static_cast<TT*>(col.get())->get_cpu_accessible();
+            auto sp_col = static_cast<const TT*>(col.get())->get_cpu_accessible();
             const NT *p_col = sp_col.get();
 #if !defined(HDF5_THREAD_SAFE)
             {
@@ -203,9 +203,9 @@ int write_netcdf(const_p_teca_table table, const std::string &file_name,
             }
 #endif
             )
-        else TEMPLATE_DISPATCH_CASE(const teca_variant_array_impl,
+        else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
             std::string, col.get(),
-            auto sp_col = static_cast<TT*>(col.get())->get_cpu_accessible();
+            auto sp_col = static_cast<const TT*>(col.get())->get_cpu_accessible();
             const NT *p_col = sp_col.get();
             // put the strings into a buffer for netcdf
             const char **string_data = (const char **)malloc(n_rows*sizeof(char*));
@@ -258,14 +258,14 @@ int write_xlsx(const_p_teca_table table, lxw_worksheet *worksheet)
     {
         for (unsigned int i = 0; i < n_cols; ++i)
         {
-            TEMPLATE_DISPATCH(const teca_variant_array_impl,
+            TEMPLATE_DISPATCH(teca_variant_array_impl,
                 table->get_column(i).get(),
                 const TT *a = dynamic_cast<const TT*>(table->get_column(i).get());
                 NT v = NT();
                 a->get(j, v);
                 worksheet_write_number(worksheet, j+1, i, static_cast<double>(v), NULL);
                 )
-            else TEMPLATE_DISPATCH_CASE(const teca_variant_array_impl,
+            else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
                 std::string,
                 table->get_column(i).get(),
                 const TT *a = dynamic_cast<const TT*>(table->get_column(i).get());

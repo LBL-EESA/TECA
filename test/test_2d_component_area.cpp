@@ -51,13 +51,13 @@ struct tile_labeler
 
         memset(pcc,0, nxy*sizeof(int));
 
-         TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
+         TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
              x.get(),
 
-             auto spx = std::static_pointer_cast<TT>(x)->get_cpu_accessible();
+             auto spx = std::static_pointer_cast<const TT>(x)->get_cpu_accessible();
              const NT *px = spx.get();
 
-             auto spy = std::static_pointer_cast<TT>(y)->get_cpu_accessible();
+             auto spy = std::static_pointer_cast<const TT>(y)->get_cpu_accessible();
              const NT *py = spy.get();
 
              for (unsigned long j = 0; j < ny; ++j)

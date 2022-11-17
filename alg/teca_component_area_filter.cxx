@@ -320,13 +320,13 @@ const_p_teca_dataset teca_component_area_filter::execute(
 
         std::vector<NT_LABEL> ids_out;
 
-        NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
+        NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
             areas_in.get(),
             _AREA,
 
             // pointer to the areas in and a container to hold areas which
             // remain after the filtering operation
-            auto sp_areas = static_cast<TT_AREA*>(areas_in.get())->get_cpu_accessible();
+            auto sp_areas = static_cast<const TT_AREA*>(areas_in.get())->get_cpu_accessible();
             const NT_AREA *p_areas = sp_areas.get();
 
             std::vector<NT_AREA> areas_out;

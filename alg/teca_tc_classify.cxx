@@ -555,10 +555,10 @@ const_p_teca_dataset teca_tc_classify::execute(
     // sustained wind speed in knots.
     p_teca_variant_array ACE = surface_wind->new_instance(n_tracks);
 
-    NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
+    NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
         time.get(), _T,
 
-        auto sptime = static_cast<TT_T*>(time.get())->get_cpu_accessible();
+        auto sptime = static_cast<const TT_T*>(time.get())->get_cpu_accessible();
         const NT_T *ptime = sptime.get();
 
         NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
@@ -606,10 +606,10 @@ const_p_teca_dataset teca_tc_classify::execute(
     // KERRY EMANUEL, 15 NOVEMBER 2007, JOURNAL OF CLIMATE
     p_teca_variant_array PDI = surface_wind->new_instance(n_tracks);
 
-    NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
+    NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
         time.get(), _T,
 
-        auto sptime = static_cast<TT_T*>(time.get())->get_cpu_accessible();
+        auto sptime = static_cast<const TT_T*>(time.get())->get_cpu_accessible();
         const NT_T *ptime = sptime.get();
 
         NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
@@ -711,7 +711,7 @@ const_p_teca_dataset teca_tc_classify::execute(
     auto spregion_long_name = region_long_name->get_cpu_accessible();
     std::string *pregion_long_name = spregion_long_name.get();
 
-    TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
         x.get(),
 
         auto spx = static_cast<const TT*>(x.get())->get_cpu_accessible();

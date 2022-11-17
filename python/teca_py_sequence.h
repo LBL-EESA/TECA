@@ -220,11 +220,11 @@ PyObject *new_object(const teca_variant_array_impl<NT> *va)
 TECA_EXPORT
 PyObject *new_object(const_p_teca_variant_array va)
 {
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
         va.get(),
         return teca_py_sequence::new_object(static_cast<const TT*>(va.get()));
         )
-    else TEMPLATE_DISPATCH_CASE(const teca_variant_array_impl,
+    else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
         std::string, va.get(),
         return teca_py_sequence::new_object(static_cast<const TT*>(va.get()));
         )

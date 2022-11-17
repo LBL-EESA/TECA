@@ -168,10 +168,10 @@ const_p_teca_dataset teca_table_remove_rows::execute(
     std::vector<unsigned long> valid_rows;
     valid_rows.reserve(n_rows);
 
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
         mask.get(),
 
-        auto spmask = static_cast<TT*>(mask.get())->get_cpu_accessible();
+        auto spmask = static_cast<const TT*>(mask.get())->get_cpu_accessible();
         auto pmask = spmask.get();
 
         for (unsigned long i = 0; i < n_rows; ++i)

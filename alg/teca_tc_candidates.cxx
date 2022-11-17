@@ -158,10 +158,10 @@ int teca_tc_candidates::get_active_extent(const const_p_teca_variant_array &lat,
     }
     else
     {
-        TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
+        TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
             lon.get(),
 
-            auto sp_lon = static_cast<TT*>(lon.get())->get_cpu_accessible();
+            auto sp_lon = static_cast<const TT*>(lon.get())->get_cpu_accessible();
             const NT *p_lon = sp_lon.get();
 
             if (teca_coordinate_util::index_of(p_lon, 0, high_i, static_cast<NT>(this->search_lon_low), false, extent[0])
@@ -191,10 +191,10 @@ int teca_tc_candidates::get_active_extent(const const_p_teca_variant_array &lat,
     }
     else
     {
-        TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
+        TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
             lat.get(),
 
-            auto sp_lat = static_cast<TT*>(lat.get())->get_cpu_accessible();
+            auto sp_lat = static_cast<const TT*>(lat.get())->get_cpu_accessible();
             const NT *p_lat = sp_lat.get();
 
             if (teca_coordinate_util::index_of(p_lat, 0, high_j, static_cast<NT>(this->search_lat_low), false, extent[2])
@@ -401,16 +401,16 @@ const_p_teca_dataset teca_tc_candidates::execute(unsigned int port,
 
     std::chrono::high_resolution_clock::time_point t0, t1;
 
-    NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
+    NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
         x.get(), _COORD,
 
-        auto slon = static_cast<TT_COORD*>(x.get())->get_cpu_accessible();
+        auto slon = static_cast<const TT_COORD*>(x.get())->get_cpu_accessible();
         const NT_COORD *lon = slon.get();
 
-        auto slat = static_cast<TT_COORD*>(y.get())->get_cpu_accessible();
+        auto slat = static_cast<const TT_COORD*>(y.get())->get_cpu_accessible();
         const NT_COORD *lat = slat.get();
 
-        NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
+        NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
             surface_wind_speed.get(), _VAR,
 
             // configure the candidate table
@@ -420,19 +420,19 @@ const_p_teca_dataset teca_tc_candidates::execute(unsigned int port,
                 "have_core_temp", int(), "have_thickness", int(),
                 "core_temp", NT_VAR(), "thickness", NT_VAR());
 
-            auto sv = dynamic_cast<TT_VAR*>(surface_wind_speed.get())->get_cpu_accessible();
+            auto sv = dynamic_cast<const TT_VAR*>(surface_wind_speed.get())->get_cpu_accessible();
             const NT_VAR *v = sv.get();
 
-            auto sw = dynamic_cast<TT_VAR*>(vorticity_850mb.get())->get_cpu_accessible();
+            auto sw = dynamic_cast<const TT_VAR*>(vorticity_850mb.get())->get_cpu_accessible();
             const NT_VAR *w = sw.get();
 
-            auto sP = dynamic_cast<TT_VAR*>(sea_level_pressure.get())->get_cpu_accessible();
+            auto sP = dynamic_cast<const TT_VAR*>(sea_level_pressure.get())->get_cpu_accessible();
             const NT_VAR *P = sP.get();
 
-            auto sT = dynamic_cast<TT_VAR*>(core_temperature.get())->get_cpu_accessible();
+            auto sT = dynamic_cast<const TT_VAR*>(core_temperature.get())->get_cpu_accessible();
             const NT_VAR *T = sT.get();
 
-            auto sth = dynamic_cast<TT_VAR*>(thickness.get())->get_cpu_accessible();
+            auto sth = dynamic_cast<const TT_VAR*>(thickness.get())->get_cpu_accessible();
             const NT_VAR *th = sth.get();
 
             t0 = std::chrono::high_resolution_clock::now();

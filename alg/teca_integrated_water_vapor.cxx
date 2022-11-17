@@ -314,10 +314,10 @@ const_p_teca_dataset teca_integrated_water_vapor::execute(
     out_mesh->get_point_arrays()->set(this->iwv_variable, iwv);
 
     // calculate IWV
-    NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
+    NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
         p.get(), _COORDS,
 
-        auto sp_p = static_cast<TT_COORDS*>(p.get())->get_cpu_accessible();
+        auto sp_p = static_cast<const TT_COORDS*>(p.get())->get_cpu_accessible();
         const NT_COORDS *p_p = sp_p.get();
 
         NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,

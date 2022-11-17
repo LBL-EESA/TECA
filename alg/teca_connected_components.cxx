@@ -422,10 +422,10 @@ const_p_teca_dataset teca_connected_components::execute(
 
     short max_component = 0;
 
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
         input_array.get(),
 
-        auto sp_in = static_cast<TT*>(input_array.get())->get_cpu_accessible();
+        auto sp_in = static_cast<const TT*>(input_array.get())->get_cpu_accessible();
         const NT *p_in = sp_in.get();
 
         ::label(extent, periodic_in_x, periodic_in_y,

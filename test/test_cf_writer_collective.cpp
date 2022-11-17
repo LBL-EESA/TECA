@@ -195,7 +195,7 @@ const_p_teca_dataset generate_test_data::execute(unsigned int port,
 
     unsigned long n_above = 0;
 
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
         x_in.get(),
 
         auto spx_in = std::static_pointer_cast<const TT>(x_in)->get_cpu_accessible();

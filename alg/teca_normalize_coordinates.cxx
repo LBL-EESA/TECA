@@ -96,10 +96,10 @@ int internals::reorder(p_teca_variant_array &x_out,
     unsigned long nx = x->size();
     unsigned long x1 = nx - 1;
 
-    NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
         x.get(), _C,
 
-        auto spx = dynamic_cast<TT_C*>(x.get())->get_cpu_accessible();
+        auto spx = dynamic_cast<const TT_C*>(x.get())->get_cpu_accessible();
         const NT_C *px = spx.get();
 
         // if comp(x0, x1) reverse the axis.
@@ -206,10 +206,10 @@ int internals::inv_periodic_shift_x(p_teca_unsigned_long_array &map,
 {
     unsigned long nx = x->size();
 
-    NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
         x.get(), _C,
 
-        auto spx = dynamic_cast<TT_C*>(x.get())->get_cpu_accessible();
+        auto spx = dynamic_cast<const TT_C*>(x.get())->get_cpu_accessible();
         const NT_C *px = spx.get();
 
         map = teca_unsigned_long_array::New(nx);
@@ -240,10 +240,10 @@ int internals::periodic_shift_x(p_teca_variant_array &x_out,
     unsigned long nx = x->size();
     unsigned long x1 = nx - 1;
 
-    NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
         x.get(), _C,
 
-        auto spx = dynamic_cast<TT_C*>(x.get())->get_cpu_accessible();
+        auto spx = dynamic_cast<const TT_C*>(x.get())->get_cpu_accessible();
         const NT_C *px = spx.get();
 
         // check that the shift is needed.

@@ -187,11 +187,11 @@ int main(int argc, char **argv)
     size_t n_filtered = filtered_label_id.size();
     size_t n_labels_total = va->size();
 
-    NESTED_TEMPLATE_DISPATCH_I(const teca_variant_array_impl,
+    NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
         va.get(),
         _LABEL,
 
-        auto sp_labels_filtered = static_cast<TT_LABEL*>(va.get())->get_cpu_accessible();
+        auto sp_labels_filtered = static_cast<const TT_LABEL*>(va.get())->get_cpu_accessible();
         const NT_LABEL *p_labels_filtered = sp_labels_filtered.get();
 
         for (size_t i = 0; i < n_filtered; ++i)

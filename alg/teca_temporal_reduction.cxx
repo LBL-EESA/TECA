@@ -2331,7 +2331,7 @@ const_p_teca_dataset teca_cpp_temporal_reduction::execute(
             bool have_vv_mask = arrays_in->has(array + "_valid");
 
             TEMPLATE_DISPATCH(
-                const teca_variant_array_impl,
+                teca_variant_array_impl,
                 in_array.get(),
 
                 if (this->op == average)

@@ -351,20 +351,20 @@ const_p_teca_dataset teca_elevation_mask::execute(
     auto sp_mask = mask->get_cpu_accessible();
     char *p_mask = sp_mask.get();
 
-    NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
         surface_elev.get(),
         _SURF,
 
-        auto sp_surface_elev = static_cast<TT_SURF*>
+        auto sp_surface_elev = static_cast<const TT_SURF*>
             (surface_elev.get())->get_cpu_accessible();
 
         const NT_SURF *p_surface_elev = sp_surface_elev.get();
 
-        NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
+        NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
             mesh_height.get(),
             _MESH,
 
-            auto sp_mesh_height = static_cast<TT_MESH *>
+            auto sp_mesh_height = static_cast<const TT_MESH *>
                 (mesh_height.get())->get_cpu_accessible();
 
             const NT_MESH *p_mesh_height = sp_mesh_height.get();

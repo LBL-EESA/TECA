@@ -274,7 +274,7 @@ const_p_teca_dataset teca_apply_binary_mask::execute(
     }
 
     // apply the mask
-    NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
         mask_array.get(), _MASK,
 
         // loop over input variables
@@ -308,7 +308,7 @@ const_p_teca_dataset teca_apply_binary_mask::execute(
 
                 const NT_VAR *p_in = sp_in.get();
 
-                auto sp_mask = static_cast<TT_MASK*>
+                auto sp_mask = static_cast<const TT_MASK*>
                     (mask_array.get())->get_cpu_accessible();
 
                 const NT_MASK *p_mask = sp_mask.get();

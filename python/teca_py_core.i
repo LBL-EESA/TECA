@@ -513,14 +513,14 @@ TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned long long, unsigned_long_long)
                 TT *varrt = static_cast<TT*>(varr.get());
                 return teca_py_object::py_tt<NT>::new_object(varrt->get(0));
                 )
-            else TEMPLATE_DISPATCH_CASE(const teca_variant_array_impl,
+            else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
                 std::string, varr.get(),
-                TT *varrt = static_cast<TT*>(varr.get());
+                const TT *varrt = static_cast<const TT*>(varr.get());
                 return teca_py_object::py_tt<NT>::new_object(varrt->get(0));
                 )
-            else TEMPLATE_DISPATCH_CASE(const teca_variant_array_impl,
+            else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
                 teca_metadata, varr.get(),
-                TT *varrt = static_cast<TT*>(varr.get());
+                const TT *varrt = static_cast<const TT*>(varr.get());
                 return teca_py_object::py_tt<NT>::new_object(varrt->get(0));
                 )
         }
@@ -532,9 +532,9 @@ TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned long long, unsigned_long_long)
                 return reinterpret_cast<PyObject*>(
                     teca_py_array::new_object(varrt));
                 )
-            else TEMPLATE_DISPATCH_CASE(const teca_variant_array_impl,
+            else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
                 std::string, varr.get(),
-                TT *varrt = static_cast<TT*>(varr.get());
+                const TT *varrt = static_cast<const TT*>(varr.get());
                 PyObject *list = PyList_New(n_elem);
                 for (size_t i = 0; i < n_elem; ++i)
                 {
@@ -543,9 +543,9 @@ TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned long long, unsigned_long_long)
                 }
                 return list;
                 )
-            else TEMPLATE_DISPATCH_CASE(const teca_variant_array_impl,
+            else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
                 teca_metadata, varr.get(),
-                TT *varrt = static_cast<TT*>(varr.get());
+                const TT *varrt = static_cast<const TT*>(varr.get());
                 PyObject *list = PyList_New(n_elem);
                 for (size_t i = 0; i < n_elem; ++i)
                 {

@@ -308,24 +308,24 @@ const_p_teca_dataset teca_2d_component_area::execute(
     out_metadata.set("background_id", bg_id);
 
     // calculate area of components
-    NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
+    NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
         xc.get(),
         _COORD,
         // the calculation is sensative to floating point precision
         // and should be made in double precision
         using NT_CALC = double;
 
-        auto sp_xc = static_cast<TT_COORD*>(xc.get())->get_cpu_accessible();
+        auto sp_xc = static_cast<const TT_COORD*>(xc.get())->get_cpu_accessible();
         const NT_COORD *p_xc = sp_xc.get();
 
-        auto sp_yc = static_cast<TT_COORD*>(yc.get())->get_cpu_accessible();
+        auto sp_yc = static_cast<const TT_COORD*>(yc.get())->get_cpu_accessible();
         const NT_COORD *p_yc = sp_yc.get();
 
-        NESTED_TEMPLATE_DISPATCH_I(const teca_variant_array_impl,
+        NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
             component_array.get(),
             _LABEL,
 
-            auto sp_labels = static_cast<TT_LABEL*>
+            auto sp_labels = static_cast<const TT_LABEL*>
                 (component_array.get())->get_cpu_accessible();
 
             const NT_LABEL *p_labels = sp_labels.get();

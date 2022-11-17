@@ -317,7 +317,7 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
         // define variable for the axis
         int var_id = -1;
         unsigned int var_type_code = 0;
-        TEMPLATE_DISPATCH(const teca_variant_array_impl,
+        TEMPLATE_DISPATCH(teca_variant_array_impl,
             coord_arrays[i].get(),
             var_type_code = teca_variant_array_code<NT>::get();
             int var_nc_type = teca_netcdf_util::netcdf_tt<NT>::type_code;
@@ -600,10 +600,10 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
         size_t count = rank == 0 ? (this->dims[i] == NC_UNLIMITED ?
             unlimited_dim_actual_size : this->dims[i]) : 0;
 
-        TEMPLATE_DISPATCH(const teca_variant_array_impl,
+        TEMPLATE_DISPATCH(teca_variant_array_impl,
             coord_arrays[i].get(),
 
-            auto spa = static_cast<TT*>(coord_arrays[i].get())->get_cpu_accessible();
+            auto spa = static_cast<const TT*>(coord_arrays[i].get())->get_cpu_accessible();
             const NT *pa = spa.get();
             pa += starts[i];
 
@@ -686,7 +686,7 @@ int teca_cf_layout_manager::write(long index,
                 }
             }
 
-            TEMPLATE_DISPATCH(const teca_variant_array_impl,
+            TEMPLATE_DISPATCH(teca_variant_array_impl,
                 array.get(),
 
                 unsigned int actual_type_code = teca_variant_array_code<NT>::get();
@@ -699,7 +699,7 @@ int teca_cf_layout_manager::write(long index,
                     return -1;
                 }
 
-                auto spa = static_cast<TT*>(array.get())->get_cpu_accessible();
+                auto spa = static_cast<const TT*>(array.get())->get_cpu_accessible();
                 const NT *pa = spa.get();
 
 #if !defined(HDF5_THREAD_SAFE)
@@ -748,7 +748,7 @@ int teca_cf_layout_manager::write(long index,
 
             size_t counts[2] = {1, array->size()};
 
-            TEMPLATE_DISPATCH(const teca_variant_array_impl,
+            TEMPLATE_DISPATCH(teca_variant_array_impl,
                 array.get(),
 
                 unsigned int actual_type_code = teca_variant_array_code<NT>::get();
@@ -761,7 +761,7 @@ int teca_cf_layout_manager::write(long index,
                     return -1;
                 }
 
-                auto spa = static_cast<TT*>(array.get())->get_cpu_accessible();
+                auto spa = static_cast<const TT*>(array.get())->get_cpu_accessible();
                 const NT *pa = spa.get();
 
 #if !defined(HDF5_THREAD_SAFE)
@@ -862,7 +862,7 @@ int teca_cf_layout_manager::write(const unsigned long extent[6],
                 }
             }
 
-            TEMPLATE_DISPATCH(const teca_variant_array_impl,
+            TEMPLATE_DISPATCH(teca_variant_array_impl,
                 array.get(),
 
                 unsigned int actual_type_code = teca_variant_array_code<NT>::get();
@@ -875,7 +875,7 @@ int teca_cf_layout_manager::write(const unsigned long extent[6],
                     return -1;
                 }
 
-                auto spa = static_cast<TT*>(array.get())->get_cpu_accessible();
+                auto spa = static_cast<const TT*>(array.get())->get_cpu_accessible();
                 const NT *pa = spa.get();
 
                 // advance the pointer to the first time step that will be
@@ -928,7 +928,7 @@ int teca_cf_layout_manager::write(const unsigned long extent[6],
             int var_id = it->second.var_id;
             unsigned int declared_type_code = it->second.type_code;
 
-            TEMPLATE_DISPATCH(const teca_variant_array_impl,
+            TEMPLATE_DISPATCH(teca_variant_array_impl,
                 array.get(),
 
                 unsigned int actual_type_code = teca_variant_array_code<NT>::get();
@@ -941,7 +941,7 @@ int teca_cf_layout_manager::write(const unsigned long extent[6],
                     return -1;
                 }
 
-                auto spa = static_cast<TT*>(array.get())->get_cpu_accessible();
+                auto spa = static_cast<const TT*>(array.get())->get_cpu_accessible();
                 const NT *pa = spa.get();
 
                 // advance the pointer to the first time step that will be

@@ -593,31 +593,31 @@ const_p_teca_dataset teca_cartesian_mesh_regrid::execute(
             }
 
             NESTED_TEMPLATE_DISPATCH_FP(
-                const teca_variant_array_impl,
+                teca_variant_array_impl,
                 target_xc.get(),
                 _TGT,
 
-                auto sp_target_xc = static_cast<TT_TGT*>(target_xc.get())->get_cpu_accessible();
+                auto sp_target_xc = static_cast<const TT_TGT*>(target_xc.get())->get_cpu_accessible();
                 const NT_TGT *p_target_xc = sp_target_xc.get();
 
-                auto sp_target_yc = dynamic_cast<TT_TGT*>(target_yc.get())->get_cpu_accessible();
+                auto sp_target_yc = dynamic_cast<const TT_TGT*>(target_yc.get())->get_cpu_accessible();
                 const NT_TGT *p_target_yc = sp_target_yc.get();
 
-                auto sp_target_zc = dynamic_cast<TT_TGT*>(target_zc.get())->get_cpu_accessible();
+                auto sp_target_zc = dynamic_cast<const TT_TGT*>(target_zc.get())->get_cpu_accessible();
                 const NT_TGT *p_target_zc = sp_target_zc.get();
 
                 NESTED_TEMPLATE_DISPATCH_FP(
-                    const teca_variant_array_impl,
+                    teca_variant_array_impl,
                     source_xc.get(),
                     _SRC,
 
-                    auto sp_source_xc = dynamic_cast<TT_SRC*>(source_xc.get())->get_cpu_accessible();
+                    auto sp_source_xc = dynamic_cast<const TT_SRC*>(source_xc.get())->get_cpu_accessible();
                     const NT_SRC *p_source_xc = sp_source_xc.get();
 
-                    auto sp_source_yc = dynamic_cast<TT_SRC*>(source_yc.get())->get_cpu_accessible();
+                    auto sp_source_yc = dynamic_cast<const TT_SRC*>(source_yc.get())->get_cpu_accessible();
                     const NT_SRC *p_source_yc = sp_source_yc.get();
 
-                    auto sp_source_zc = dynamic_cast<TT_SRC*>(source_zc.get())->get_cpu_accessible();
+                    auto sp_source_zc = dynamic_cast<const TT_SRC*>(source_zc.get())->get_cpu_accessible();
                     const NT_SRC *p_source_zc = sp_source_zc.get();
 
                     const_p_teca_variant_array source_a = source_ac->get(source_arrays[i]);

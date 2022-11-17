@@ -260,10 +260,10 @@ const_p_teca_dataset teca_table_calendar::execute(
     out_table->get_metadata().set("attributes", atrs);
 
     // make the date computations
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
         time.get(),
 
-        auto scurr_time = static_cast<TT*>(time.get())->get_cpu_accessible();
+        auto scurr_time = static_cast<const TT*>(time.get())->get_cpu_accessible();
         const NT *curr_time = scurr_time.get();
 
         for (unsigned long i = 0; i < n_rows; ++i)

@@ -418,12 +418,12 @@ int index_of(const const_p_teca_cartesian_mesh &mesh, T x, T y, T z,
     const_p_teca_variant_array zc = mesh->get_z_coordinates();
 
     TEMPLATE_DISPATCH_FP(
-        const teca_variant_array_impl,
+        teca_variant_array_impl,
         xc.get(),
 
-        auto p_xc = std::dynamic_pointer_cast<TT>(xc)->get_cpu_accessible();
-        auto p_yc = std::dynamic_pointer_cast<TT>(yc)->get_cpu_accessible();
-        auto p_zc = std::dynamic_pointer_cast<TT>(zc)->get_cpu_accessible();
+        auto p_xc = std::dynamic_pointer_cast<const TT>(xc)->get_cpu_accessible();
+        auto p_yc = std::dynamic_pointer_cast<const TT>(yc)->get_cpu_accessible();
+        auto p_zc = std::dynamic_pointer_cast<const TT>(zc)->get_cpu_accessible();
 
         unsigned long nx = xc->size();
         unsigned long ny = yc->size();
