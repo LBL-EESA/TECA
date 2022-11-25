@@ -4,6 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 
 #include <algorithm>
@@ -20,6 +21,9 @@ using std::vector;
 using std::cerr;
 using std::endl;
 using std::cos;
+
+using namespace teca_variant_array_util;
+using allocator = teca_variant_array::allocator;
 
 //#define TECA_DEBUG
 
@@ -361,28 +365,21 @@ const_p_teca_dataset teca_vorticity::execute(
     vort->resize(comp_0->size());
 
     // compute vorticity
-    NESTED_TEMPLATE_DISPATCH_FP(
-        teca_variant_array_impl,
+    NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
         lon.get(), 1,
 
-        auto sp_lon = dynamic_cast<const TT1*>(lon.get())->get_cpu_accessible();
-        const NT1 *p_lon = sp_lon.get();
+        assert_type<TT1>(lat);
+        auto [sp_lon, p_lon, sp_lat, p_lat] = get_cpu_accessible<CTT1>(lon, lat);
 
-        auto sp_lat = dynamic_cast<const TT1*>(lat.get())->get_cpu_accessible();
-        const NT1 *p_lat = sp_lat.get();
+        NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+            comp_0.get(), 2,
 
-        NESTED_TEMPLATE_DISPATCH_FP(
-            teca_variant_array_impl,
-            vort.get(), 2,
+            assert_type<TT2>(comp_1);
 
-            auto sp_comp_0 = dynamic_cast<const TT2*>(comp_0.get())->get_cpu_accessible();
-            const NT2 *p_comp_0 = sp_comp_0.get();
+            auto [sp_comp_0, p_comp_0,
+                  sp_comp_1, p_comp_1] = get_cpu_accessible<CTT2>(comp_0, comp_1);
 
-            auto sp_comp_1 = dynamic_cast<const TT2*>(comp_1.get())->get_cpu_accessible();
-            const NT2 *p_comp_1 = sp_comp_1.get();
-
-            auto sp_vort = dynamic_cast<TT2*>(vort.get())->get_cpu_accessible();
-            NT2 *p_vort = sp_vort.get();
+            auto [p_vort] = data<TT2>(vort);
 
             ::vorticity(p_vort, p_lon, p_lat,
                 p_comp_0, p_comp_1, lon->size(), lat->size());

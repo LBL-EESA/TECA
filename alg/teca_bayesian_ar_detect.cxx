@@ -5,6 +5,7 @@
 #include "teca_array_attributes.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_metadata_util.h"
 #include "teca_cartesian_mesh.h"
@@ -38,6 +39,9 @@
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
 #endif
+
+using namespace teca_variant_array_util;
+using allocator = teca_variant_array::allocator;
 
 namespace {
 
@@ -200,8 +204,7 @@ public:
 
             NT num_params = this->parameter_table_size;
 
-            auto sp_ar_prob = static_cast<TT*>(ar_prob.get())->get_cpu_accessible();
-            NT *p_ar_prob = sp_ar_prob.get();
+            auto [p_ar_prob] = data<TT>(ar_prob);
 
             for (unsigned long i = 0; i < n_vals; ++i)
                 p_ar_prob[i] /= num_params;
@@ -221,6 +224,9 @@ public:
         const const_p_teca_dataset &right)
     {
         (void) device_id;
+
+        using NT_PROB = float;
+        using TT_PROB = teca_variant_array_impl<float>;
 
         // the inputs will not be modified. we are going to make shallow
         // copy, and add an array
@@ -257,11 +263,7 @@ public:
                 TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
                     prob_out.get(),
 
-                    auto sp_prob_1 = static_cast<TT*>(prob_1.get())->get_cpu_accessible();
-                    NT *p_prob_1 = sp_prob_1.get();
-
-                    auto sp_prob_out = static_cast<TT*>(prob_out.get())->get_cpu_accessible();
-                    NT *p_prob_out = sp_prob_out.get();
+                    auto [p_prob_out, p_prob_1] = data<TT>(prob_out, prob_1);
 
                     for (unsigned long i = 0; i < n_vals; ++i)
                         p_prob_out[i] += p_prob_1[i];
@@ -372,22 +374,13 @@ public:
                 prob_out = prob->new_copy();
 
                 NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
-                    wvcc.get(),
-                    _COMP,
+                    wvcc.get(), _COMP,
 
-                    auto sp_wvcc = static_cast<TT_COMP*>(wvcc.get())->get_cpu_accessible();
-                    NT_COMP *p_wvcc = sp_wvcc.get();
+                    auto [sp_wvcc, p_wvcc] = get_cpu_accessible<TT_COMP>(wvcc);
+                    auto [p_prob_out] = data<TT_PROB>(prob_out);
 
-                    NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-                        prob_out.get(),
-                        _PROB,
-
-                        auto sp_prob_out = static_cast<TT_PROB*>(prob_out.get())->get_cpu_accessible();
-                        NT_PROB *p_prob_out = sp_prob_out.get();
-
-                        for (unsigned long i = 0; i < n_vals; ++i)
-                            p_prob_out[i] += (p_wvcc[i] > 0 ? NT_PROB(1) : NT_PROB(0));
-                        )
+                    for (unsigned long i = 0; i < n_vals; ++i)
+                        p_prob_out[i] += (p_wvcc[i] > 0 ? NT_PROB(1) : NT_PROB(0));
                     )
             }
             else
@@ -403,30 +396,20 @@ public:
 
                 unsigned long n_vals = wvcc_0->size();
 
-                prob_out = teca_float_array::New();
-                prob_out->resize(n_vals);
+                NT_PROB *p_prob_out = nullptr;
+                std::tie(prob_out, p_prob_out) = ::New<TT_PROB>(n_vals);
 
                 NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
-                    wvcc_0.get(),
-                    _COMP,
+                    wvcc_0.get(), _COMP,
 
-                    auto sp_wvcc_0 = static_cast<TT_COMP*>(wvcc_0.get())->get_cpu_accessible();
-                    NT_COMP *p_wvcc_0 = sp_wvcc_0.get();
+                    auto [sp_wvcc_0, p_wvcc_0] = get_cpu_accessible<TT_COMP>(wvcc_0);
+                    auto [sp_wvcc_1, p_wvcc_1] = get_cpu_accessible<TT_COMP>(wvcc_1);
 
-                    auto sp_wvcc_1 = static_cast<TT_COMP*>(wvcc_1.get())->get_cpu_accessible();
-                    NT_COMP *p_wvcc_1 = sp_wvcc_1.get();
-
-                    NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-                        prob_out.get(),
-                        _PROB,
-
-                        auto sp_prob_out = static_cast<TT_PROB*>(prob_out.get())->get_cpu_accessible();
-                        NT_PROB *p_prob_out = sp_prob_out.get();
-
-                        for (unsigned long i = 0; i < n_vals; ++i)
-                            p_prob_out[i] = (p_wvcc_0[i] > 0 ? NT_PROB(1) : NT_PROB(0)) +
-                                 (p_wvcc_1[i] > 0 ? NT_PROB(1) : NT_PROB(0));
-                        )
+                    for (unsigned long i = 0; i < n_vals; ++i)
+                    {
+                        p_prob_out[i] = (p_wvcc_0[i] > 0 ? NT_PROB(1) : NT_PROB(0)) +
+                             (p_wvcc_1[i] > 0 ? NT_PROB(1) : NT_PROB(0));
+                    }
                     )
 
                 // append ar count
@@ -511,26 +494,16 @@ public:
 
                 unsigned long n_vals = wvcc->size();
 
-                prob_out = teca_float_array::New();
-                prob_out->resize(n_vals);
+                NT_PROB *p_prob_out = nullptr;
+                std::tie(prob_out, p_prob_out) = ::New<TT_PROB>(n_vals);
 
                 NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
-                    wvcc.get(),
-                    _COMP,
+                    wvcc.get(), _COMP,
 
-                    auto sp_wvcc = static_cast<TT_COMP*>(wvcc.get())->get_cpu_accessible();
-                    NT_COMP *p_wvcc = sp_wvcc.get();
+                    auto [sp_wvcc, p_wvcc] = get_cpu_accessible<TT_COMP>(wvcc);
 
-                    NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-                        prob_out.get(),
-                        _PROB,
-
-                        auto sp_prob_out = static_cast<TT_PROB*>(prob_out.get())->get_cpu_accessible();
-                        NT_PROB *p_prob_out = sp_prob_out.get();
-
-                        for (unsigned long i = 0; i < n_vals; ++i)
-                            p_prob_out[i] = (p_wvcc[i] > 0 ? NT_PROB(1) : NT_PROB(0));
-                        )
+                    for (unsigned long i = 0; i < n_vals; ++i)
+                        p_prob_out[i] = (p_wvcc[i] > 0 ? NT_PROB(1) : NT_PROB(0));
                     )
 
                 // get ar counts from metadata and pass into the information

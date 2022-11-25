@@ -4,7 +4,11 @@
 /// @file
 
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_type_select.h"
+
+using namespace teca_variant_array_util;
 
 /// Codes dealing with run time specified operations on teca_variant_arrays
 namespace teca_variant_array_operator
@@ -25,8 +29,7 @@ p_teca_variant_array apply(unsigned long n,
     p_teca_variant_array_impl<nt_out> out =
         teca_variant_array_impl<nt_out>::New(n);
 
-    auto spout = out->get_cpu_accessible();
-    nt_out *pout = spout.get();
+    nt_out *pout = out->data();
 
     for (unsigned long i = 0; i < n; ++i)
         pout[i] = static_cast<nt_out>(op(parg1[i], parg2[i], parg3[i]));
@@ -45,8 +48,7 @@ p_teca_variant_array apply(unsigned long n,
     p_teca_variant_array_impl<nt_out> out =
         teca_variant_array_impl<nt_out>::New(n);
 
-    auto spout = out->get_cpu_accessible();
-    nt_out *pout = spout.get();
+    nt_out *pout = out->data();
 
     for (unsigned long i = 0; i < n; ++i)
         pout[i] = static_cast<nt_out>(op(plarg[i], prarg[i]));
@@ -62,8 +64,7 @@ p_teca_variant_array apply(unsigned long n,
     p_teca_variant_array_impl<nt_arg> out =
         teca_variant_array_impl<nt_arg>::New(n);
 
-    auto spout = out->get_cpu_accessible();
-    nt_arg *pout = spout.get();
+    nt_arg *pout = out->data();
 
     for (unsigned long i = 0; i < n; ++i)
         pout[i] = static_cast<nt_arg>(op(parg[i]));
@@ -81,16 +82,13 @@ p_teca_variant_array apply(const const_p_teca_variant_array &arg1,
 {
     NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
         arg1.get(), _1,
-        auto sparg1 = static_cast<const TT_1*>(arg1.get())->get_cpu_accessible();
-        auto parg1 = sparg1.get();
+        auto [sparg1, parg1] = get_cpu_accessible<CTT_1>(arg1);
         NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
             arg2.get(), _2,
-            auto sparg2 = static_cast<const TT_2*>(arg2.get())->get_cpu_accessible();
-            auto parg2 = sparg2.get();
+            auto [sparg2, parg2] = get_cpu_accessible<CTT_2>(arg2);
             NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
                 arg2.get(), _3,
-                auto sparg3 = static_cast<const TT_3*>(arg3.get())->get_cpu_accessible();
-                auto parg3 = sparg3.get();
+                auto [sparg3, parg3] = get_cpu_accessible<CTT_3>(arg3);
                 return internal::apply(arg1->size(), parg1, parg2, parg3, op);
                 )
             )
@@ -106,12 +104,10 @@ p_teca_variant_array apply_i(const const_p_teca_variant_array &larg,
 {
     NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
         larg.get(), _LEFT,
-        auto splarg = static_cast<const TT_LEFT*>(larg.get())->get_cpu_accessible();
-        auto plarg = splarg.get();
+        auto [splarg, plarg] = get_cpu_accessible<CTT_LEFT>(larg);
         NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
             rarg.get(), _RIGHT,
-            auto sprarg = static_cast<const TT_RIGHT*>(rarg.get())->get_cpu_accessible();
-            auto prarg = sprarg.get();
+            auto [sprarg, prarg] = get_cpu_accessible<CTT_RIGHT>(rarg);
             return internal::apply(larg->size(), plarg, prarg, op);
             )
         )
@@ -126,12 +122,10 @@ p_teca_variant_array apply(const const_p_teca_variant_array &larg,
 {
     NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
         larg.get(), _LEFT,
-        auto splarg = static_cast<const TT_LEFT*>(larg.get())->get_cpu_accessible();
-        auto plarg = splarg.get();
+        auto [splarg, plarg] = get_cpu_accessible<CTT_LEFT>(larg);
         NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
             rarg.get(), _RIGHT,
-            auto sprarg = static_cast<const TT_RIGHT*>(rarg.get())->get_cpu_accessible();
-            auto prarg = sprarg.get();
+            auto [sprarg, prarg] = get_cpu_accessible<CTT_RIGHT>(rarg);
             return internal::apply(larg->size(), plarg, prarg, op);
             )
         )
@@ -146,8 +140,7 @@ p_teca_variant_array apply(const const_p_teca_variant_array &arg,
 {
     TEMPLATE_DISPATCH(teca_variant_array_impl,
         arg.get(),
-        auto sparg = static_cast<const TT*>(arg.get())->get_cpu_accessible();
-        auto parg = sparg.get();
+        auto [sparg, parg] = get_cpu_accessible<CTT>(arg);
         return internal::apply(arg->size(), parg, op);
         )
     TECA_ERROR("failed to apply " << operator_t::name() << ". unsupported type.")

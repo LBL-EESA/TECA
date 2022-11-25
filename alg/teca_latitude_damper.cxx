@@ -2,6 +2,7 @@
 
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_cartesian_mesh.h"
 #include "teca_string_util.h"
@@ -17,6 +18,8 @@
 
 using std::cerr;
 using std::endl;
+
+using namespace teca_variant_array_util;
 
 //#define TECA_DEBUG
 namespace {
@@ -291,13 +294,9 @@ const_p_teca_dataset teca_latitude_damper::execute(
 
     // Get the gaussian filter
     NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-        filter_array.get(),
-        _COORD,
+        lat.get(), _COORD,
 
-        auto sp_lat = static_cast<const TT_COORD*>
-            (lat.get())->get_cpu_accessible();
-
-        const NT_COORD *p_lat = sp_lat.get();
+        auto [sp_lat, p_lat] = get_cpu_accessible<TT_COORD>(lat);
 
         NT_COORD *filter = (NT_COORD*)malloc(n_lat*sizeof(NT_COORD));
         ::get_lat_filter<NT_COORD>(filter, p_lat, n_lat, mu, sigma);
@@ -320,18 +319,10 @@ const_p_teca_dataset teca_latitude_damper::execute(
             p_teca_variant_array damped_array = input_array->new_instance(n_elem);
 
             NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
-                damped_array.get(),
-                _DATA,
+                input_array.get(), _DATA,
 
-                auto sp_in = static_cast<const TT_DATA*>
-                    (input_array.get())->get_cpu_accessible();
-
-                const NT_DATA *p_in = sp_in.get();
-
-                auto sp_damped_array = static_cast<TT_DATA*>
-                    (damped_array.get())->get_cpu_accessible();
-
-                NT_DATA *p_damped_array = sp_damped_array.get();
+                auto [sp_in, p_in] = get_cpu_accessible<CTT_DATA>(input_array);
+                auto [p_damped_array] = data<TT_DATA>(damped_array);
 
                 ::apply_lat_filter(p_damped_array, p_in, filter, n_lat, n_lon);
             )

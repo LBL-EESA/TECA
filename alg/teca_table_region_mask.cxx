@@ -4,6 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_distance_function.h"
 #include "teca_geometry.h"
@@ -26,6 +27,7 @@
 
 using std::cerr;
 using std::endl;
+using namespace teca_variant_array_util;
 
 // --------------------------------------------------------------------------
 teca_table_region_mask::teca_table_region_mask() :
@@ -181,19 +183,14 @@ const_p_teca_dataset teca_table_region_mask::execute(
     short T = this->invert ? 0 : 1;
     short F = this->invert ? 1 : 0;
 
-    p_teca_short_array mask = teca_short_array::New(n_rows, F);
-    auto spmask = mask->get_cpu_accessible();
-    short *pmask = spmask.get();
+    auto [mask, pmask] = ::New<teca_short_array>(n_rows, F);
     unsigned int nhit = 0;
 
     TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
         x.get(),
 
-        auto spx = static_cast<const TT*>(x.get())->get_cpu_accessible();
-        auto px = spx.get();
-
-        auto spy = static_cast<const TT*>(y.get())->get_cpu_accessible();
-        auto py = spy.get();
+        assert_type<CTT>(y);
+        auto [spx, px, spy, py] = get_cpu_accessible<CTT>(x, y);
 
         for (unsigned long i = 0; i < n_rows; ++i)
         {

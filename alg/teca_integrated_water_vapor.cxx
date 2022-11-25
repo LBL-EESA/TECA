@@ -4,8 +4,10 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_coordinate_util.h"
+#include "teca_valid_value_mask.h"
 
 #include <algorithm>
 #include <iostream>
@@ -21,6 +23,8 @@ using std::vector;
 using std::cerr;
 using std::endl;
 using std::cos;
+
+using namespace teca_variant_array_util;
 
 //#define TECA_DEBUG
 
@@ -317,24 +321,17 @@ const_p_teca_dataset teca_integrated_water_vapor::execute(
     NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
         p.get(), _COORDS,
 
-        auto sp_p = static_cast<const TT_COORDS*>(p.get())->get_cpu_accessible();
-        const NT_COORDS *p_p = sp_p.get();
+        auto [sp_p, p_p] = get_cpu_accessible<CTT_COORDS>(p);
 
         NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
             iwv.get(), _DATA,
 
-            auto sp_iwv = static_cast<TT_DATA*>(iwv.get())->get_cpu_accessible();
-            NT_DATA *p_iwv = sp_iwv.get();
-
-            auto sp_q = static_cast<const TT_DATA*>(q.get())->get_cpu_accessible();
-            const NT_DATA *p_q = sp_q.get();
+            auto [sp_q, p_q] = get_cpu_accessible<CTT_DATA>(q);
+            auto [p_iwv] = data<TT_DATA>(iwv);
 
             if (q_valid)
             {
-                using TT_MASK = teca_char_array;
-                auto sp_q_valid = dynamic_cast<const TT_MASK*>(q_valid.get())->get_cpu_accessible();
-                const char *p_q_valid = sp_q_valid.get();
-
+                auto [spqv, p_q_valid] = get_cpu_accessible<CTT_MASK>(q_valid);
                 ::cartesian_iwv(nx, ny, nz, p_p, p_q, p_q_valid, p_iwv);
             }
             else

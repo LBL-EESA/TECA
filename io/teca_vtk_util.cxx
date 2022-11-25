@@ -3,6 +3,7 @@
 #include "teca_common.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 
 #include <vector>
 #include <string>
@@ -14,6 +15,8 @@
 #include "vtkInformation.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 #endif
+
+using namespace teca_variant_array_util;
 
 namespace teca_vtk_util
 {
@@ -46,39 +49,33 @@ int deep_copy(vtkRectilinearGrid *output,
     // transfer coordinates
     const_p_teca_variant_array x = input->get_x_coordinates();
     TEMPLATE_DISPATCH(teca_variant_array_impl, x.get(),
-        const TT *xx = static_cast<const TT*>(x.get());
-        auto spxx = xx->get_cpu_accessible();
-        const NT *pxx = spxx.get();
+        auto [spx, px] = get_cpu_accessible<CTT>(x);
         vtk_tt<NT>::type *a = vtk_tt<NT>::type::New();
-        a->SetNumberOfTuples(xx->size());
+        a->SetNumberOfTuples(x->size());
         NT *p_a = a->GetPointer(0);
-        memcpy(p_a, pxx, sizeof(NT)*xx->size());
+        memcpy(p_a, px, sizeof(NT)*x->size());
         output->SetXCoordinates(a);
         a->Delete();
         );
 
     const_p_teca_variant_array y = input->get_y_coordinates();
     TEMPLATE_DISPATCH(teca_variant_array_impl, y.get(),
-        const TT *yy = static_cast<const TT*>(y.get());
-        auto spyy = yy->get_cpu_accessible();
-        const NT *pyy = spyy.get();
-         vtk_tt<NT>::type *a = vtk_tt<NT>::type::New();
-        a->SetNumberOfTuples(yy->size());
+        auto [spy, py] = get_cpu_accessible<CTT>(y);
+        vtk_tt<NT>::type *a = vtk_tt<NT>::type::New();
+        a->SetNumberOfTuples(y->size());
         NT *p_a = a->GetPointer(0);
-        memcpy(p_a, pyy, sizeof(NT)*yy->size());
+        memcpy(p_a, py, sizeof(NT)*y->size());
         output->SetYCoordinates(a);
         a->Delete();
         )
 
     const_p_teca_variant_array z = input->get_z_coordinates();
     TEMPLATE_DISPATCH(teca_variant_array_impl, z.get(),
-        const TT *zz = static_cast<const TT*>(z.get());
-        auto spzz = zz->get_cpu_accessible();
-        const NT *pzz = spzz.get();
+        auto [spz, pz] = get_cpu_accessible<CTT>(z);
         vtk_tt<NT>::type *a = vtk_tt<NT>::type::New();
-        a->SetNumberOfTuples(zz->size());
+        a->SetNumberOfTuples(z->size());
         NT *p_a = a->GetPointer(0);
-        memcpy(p_a, pzz, sizeof(NT)*zz->size());
+        memcpy(p_a, pzz, sizeof(NT)*z->size());
         output->SetZCoordinates(a);
         a->Delete();
         )
@@ -92,14 +89,12 @@ int deep_copy(vtkRectilinearGrid *output,
         std::string name = pd->get_name(i);
 
         TEMPLATE_DISPATCH(teca_variant_array_impl, a.get(),
-            const TT *aa = static_cast<const TT*>(a.get());
-            auto spaa = aa->get_cpu_accessible();
-            const NT *paa = spaa.get();
+            auto [spa, pa] = get_cpu_accessible<CTT>(a);
             vtk_tt<NT>::type *b = vtk_tt<NT>::type::New();
-            b->SetNumberOfTuples(aa->size());
+            b->SetNumberOfTuples(a->size());
             b->SetName(name.c_str());
             NT *p_b = b->GetPointer(0);
-            memcpy(p_b, paa, sizeof(NT)*aa->size());
+            memcpy(p_b, pa, sizeof(NT)*a->size());
             output->GetPointData()->AddArray(b);
             b->Delete();
             )

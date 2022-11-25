@@ -16,6 +16,7 @@
 #include "teca_calcalcs.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 
 #include <netcdf.h>
 #include <iostream>
@@ -42,6 +43,8 @@
 #if defined(TECA_HAS_MPI)
 #include <mpi.h>
 #endif
+
+using namespace teca_variant_array_util;
 
 // PIMPL idiom
 struct teca_array_collection_reader::teca_array_collection_reader_internals
@@ -454,11 +457,9 @@ teca_metadata teca_array_collection_reader::get_output_metadata(unsigned int por
                     TEMPLATE_DISPATCH(teca_variant_array_impl,
                         t_axis.get(),
 
-                        auto sp_ti = static_cast<const TT*>(t_i.get())->get_cpu_accessible();
-                        const NT *p_ti = sp_ti.get();
+                        auto [p_t] = data<TT>(t_axis);
+                        auto [p_ti] = data<CTT>(t_i);
 
-                        auto sp_t = static_cast<TT*>(t_axis.get())->get_cpu_accessible();
-                        NT *p_t = sp_t.get();
                         p_t += n_t;
 
                         memcpy(p_t, p_ti, sizeof(NT)*n_ti);
@@ -482,11 +483,9 @@ teca_metadata teca_array_collection_reader::get_output_metadata(unsigned int por
                     TEMPLATE_DISPATCH(teca_variant_array_impl,
                         t_axis.get(),
 
-                        auto sp_ti = static_cast<TT*>(elem_i.first.get())->get_cpu_accessible();
-                        NT *p_ti = sp_ti.get();
+                        auto [p_t] = data<TT>(t_axis);
+                        auto [p_ti] = data<CTT>(t_i);
 
-                        auto sp_t = static_cast<TT*>(t_axis.get())->get_cpu_accessible();
-                        NT *p_t = sp_t.get();
                         p_t += n_t;
 
                         for (size_t j = 0; j < n_ti; ++j)
@@ -811,6 +810,9 @@ const_p_teca_dataset teca_array_collection_reader::execute(unsigned int port,
         return nullptr;
     }
 
+    // assume the data is on the CPU
+    assert(in_t->cpu_accessible());
+
     // get names, need to be careful since some of these depend
     // on run time information. eg: user can specify a time axis
     // via algorithm properties
@@ -825,10 +827,7 @@ const_p_teca_dataset teca_array_collection_reader::execute(unsigned int port,
         // translate time to a time step
         TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
             in_t.get(),
-
-            auto spin_t = dynamic_cast<TT*>(in_t.get())->get_cpu_accessible();
-            NT *pin_t = spin_t.get();
-
+            auto [pin_t] = data<CTT>(in_t);
             if (teca_coordinate_util::index_of(pin_t, 0,
                 in_t->size()-1, static_cast<NT>(t), time_step))
             {
@@ -999,9 +998,7 @@ const_p_teca_dataset teca_array_collection_reader::execute(unsigned int port,
         // read the array
         p_teca_variant_array array;
         NC_DISPATCH(type,
-            p_teca_variant_array_impl<NC_T> a = teca_variant_array_impl<NC_T>::New(n_vals);
-            auto spa = a->get_cpu_accessible();
-            NC_T *pa = spa.get();
+            auto [a, pa] = ::New<NC_TT>(n_vals);
 #if !defined(HDF5_THREAD_SAFE)
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());

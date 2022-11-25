@@ -6,15 +6,12 @@
 #include "teca_common.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 
 #include <algorithm>
 #include <cstring>
 #include <cstdio>
 #include <errno.h>
-
-using std::string;
-using std::endl;
-using std::cerr;
 
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
@@ -23,6 +20,12 @@ using std::cerr;
 #if defined(TECA_HAS_MPI)
 #include <mpi.h>
 #endif
+
+using std::string;
+using std::endl;
+using std::cerr;
+
+using namespace teca_variant_array_util;
 
 // PIMPL idiom
 struct teca_table_reader::teca_table_reader_internals
@@ -290,8 +293,7 @@ teca_metadata teca_table_reader::get_output_metadata(unsigned int port,
     TEMPLATE_DISPATCH_I(teca_variant_array_impl,
         index.get(),
 
-        auto spindex = dynamic_cast<TT*>(index.get())->get_cpu_accessible();
-        NT *pindex = spindex.get();
+        auto [pindex] = data<CTT>(index);
 
         teca_coordinate_util::get_table_offsets(pindex,
             this->internals->table->get_number_of_rows(),
@@ -404,11 +406,7 @@ const_p_teca_dataset teca_table_reader::execute(unsigned int port,
         TEMPLATE_DISPATCH(teca_variant_array_impl,
             out_col.get(),
 
-            auto spin_col = static_cast<TT*>(in_col.get())->get_cpu_accessible();
-            NT *pin_col = spin_col.get();
-
-            auto spout_col = static_cast<TT*>(out_col.get())->get_cpu_accessible();
-            NT *pout_col = spout_col.get();
+            auto [pin_col, pout_col] = data<TT>(in_col, out_col);
 
             memcpy(pout_col, pin_col+first_row, nrows*sizeof(NT));
             )
@@ -416,9 +414,7 @@ const_p_teca_dataset teca_table_reader::execute(unsigned int port,
 
     if (this->generate_original_ids)
     {
-        p_teca_unsigned_long_array ids = teca_unsigned_long_array::New(nrows);
-        auto spids = ids->get_cpu_accessible();
-        unsigned long *pids = spids.get();
+        auto [ids, pids] = ::New<teca_unsigned_long_array>(nrows);
 
         for (unsigned long i = 0, q = first_row; i < nrows; ++i, ++q)
             pids[i] = q;

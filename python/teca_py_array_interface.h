@@ -8,6 +8,7 @@
 #include "teca_py_gil_state.h"
 
 #include <hamr_python_deleter.h>
+#include <hamr_stream.h>
 
 #define ARRAY_INTERFACE_DISPATCH_CASE(_type, _size, _cpp_type, _typestr, _code) \
 if ((_typestr[0] != '>') && (_typestr[1] == _type) && (_typestr[2] == _size))   \
@@ -72,7 +73,7 @@ int has_numpy_array_interface(PyObject *obj)
  */
 int parse_array_interface(PyObject *obj, int &has_array_interface,
     teca_variant_array::allocator &alloc, const char *&ctypestr,
-    size_t &n_elem, size_t &intptr)
+    size_t &n_elem, size_t &intptr, size_t &istream)
 {
     /* get the array interface protocol dictionary. the dictionary will
      * have the same keys regardless if it is the Numba CUDA array
@@ -82,7 +83,7 @@ int parse_array_interface(PyObject *obj, int &has_array_interface,
     {
         has_array_interface = 1;
         aint = PyObject_GetAttrString(obj, "__cuda_array_interface__");
-        alloc = teca_variant_array::allocator::cuda;
+        alloc = teca_variant_array::allocator::cuda_async;
     }
     else if (PyObject_HasAttrString(obj, "__array_interface__"))
     {
@@ -169,6 +170,17 @@ int parse_array_interface(PyObject *obj, int &has_array_interface,
         return -1;
     }
 
+    /* get the stream from the Numba CUDA array interface */
+    PyObject *stream = nullptr;
+    if ((stream = PyDict_GetItemString(aint, "stream")) != nullptr)
+    {
+        istream = PyLong_AsSize_t(stream);
+    }
+    else
+    {
+        istream = hamr::stream();
+    }
+
     return 0;
 }
 
@@ -181,10 +193,19 @@ p_teca_variant_array new_variant_array(PyObject *obj)
     const char *ctypestr = nullptr;
     size_t n_elem = 0;
     size_t intptr = 0;
+    size_t istream = 0;
 
     if (parse_array_interface(obj, has_interface,
-        alloc, ctypestr, n_elem, intptr) || !has_interface)
+        alloc, ctypestr, n_elem, intptr, istream) || !has_interface)
         return nullptr;
+
+    // if the data is using a different stream than we are, synchronize here
+#if defined(TECA_HAS_CUDA)
+    if (istream != ((size_t)cudaStreamPerThread))
+    {
+        cudaStreamSynchronize((cudaStream_t)istream);
+    }
+#endif
 
     // zero-copy construct the teca_variant_array passing the pointer
     // to the shared data. the deleter holds a reference to the object

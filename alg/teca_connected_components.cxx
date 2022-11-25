@@ -4,6 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_cartesian_mesh.h"
 #include "teca_array_attributes.h"
@@ -16,6 +17,7 @@
 
 using std::cerr;
 using std::endl;
+using namespace teca_variant_array_util;
 
 //#define TECA_DEBUG
 namespace {
@@ -414,19 +416,14 @@ const_p_teca_dataset teca_connected_components::execute(
         periodic_in_z = 1;
 
     // do segmentation and component
-    size_t n_elem = input_array->size();
-
-    p_teca_short_array components = teca_short_array::New(n_elem);
-    auto sp_components = components->get_cpu_accessible();
-    short *p_components = sp_components.get();
-
     short max_component = 0;
+    size_t n_elem = input_array->size();
+    auto [components, p_components] = ::New<teca_short_array>(n_elem);
 
     TEMPLATE_DISPATCH(teca_variant_array_impl,
         input_array.get(),
 
-        auto sp_in = static_cast<const TT*>(input_array.get())->get_cpu_accessible();
-        const NT *p_in = sp_in.get();
+        auto [sp_in, p_in] = get_cpu_accessible<CTT>(input_array);
 
         ::label(extent, periodic_in_x, periodic_in_y,
             periodic_in_z, p_in, p_components, max_component);
@@ -439,8 +436,9 @@ const_p_teca_dataset teca_connected_components::execute(
     // put the component ids in the metadata
     short num_components = max_component + 1;
     p_teca_short_array component_id = teca_short_array::New(num_components);
+    short *p_component_id = component_id->data();
     for (short i = 0; i < num_components; ++i)
-        component_id->set(i, i);
+        p_component_id[i] = i;
 
     teca_metadata &omd = out_mesh->get_metadata();
     omd.set("component_ids", component_id);

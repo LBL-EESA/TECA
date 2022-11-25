@@ -4,6 +4,8 @@
 #include "teca_curvilinear_mesh.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 
 #include <algorithm>
@@ -20,6 +22,8 @@ using std::vector;
 using std::cerr;
 using std::endl;
 using std::cos;
+
+using namespace teca_variant_array_util;
 
 //#define TECA_DEBUG
 
@@ -288,39 +292,30 @@ const_p_teca_dataset teca_vertical_coordinate_transform::execute(
             unsigned long nxyz = nxy*nz;
 
             // allocate the output coordinates
-            p_teca_variant_array xo = xi->new_instance(nxyz);
-            p_teca_variant_array yo = xi->new_instance(nxyz);
-            p_teca_variant_array ph = xi->new_instance(nxyz);
+            p_teca_variant_array xo;
+            p_teca_variant_array yo;
+            p_teca_variant_array ph;
 
             TEMPLATE_DISPATCH(teca_variant_array_impl,
-                xo.get(),
+                xi.get(),
 
-                auto sppt = dynamic_cast<const TT*>(pt.get())->get_cpu_accessible();
-                auto ppt = sppt.get();
+                auto [tmp_xo, pxo] = ::New<TT>(nxyz);
+                auto [tmp_yo, pyo] = ::New<TT>(nxyz);
+                auto [tmp_ph, pph] = ::New<TT>(nxyz);
 
-                auto spps = dynamic_cast<const TT*>(ps.get())->get_cpu_accessible();
-                auto pps = spps.get();
-
-                auto spxi = dynamic_cast<const TT*>(xi.get())->get_cpu_accessible();
-                auto pxi = spxi.get();
-
-                auto spyi = dynamic_cast<const TT*>(yi.get())->get_cpu_accessible();
-                auto pyi = spyi.get();
-
-                auto speta = dynamic_cast<const TT*>(eta.get())->get_cpu_accessible();
-                auto peta = speta.get();
-
-                auto spxo = dynamic_cast<TT*>(xo.get())->get_cpu_accessible();
-                auto pxo = spxo.get();
-
-                auto spyo = dynamic_cast<TT*>(yo.get())->get_cpu_accessible();
-                auto pyo = spyo.get();
-
-                auto spph = dynamic_cast<TT*>(ph.get())->get_cpu_accessible();
-                auto pph = spph.get();
+                assert_type<CTT>(pt, ps, xi, yi, eta);
+                auto [sppt, ppt] = get_cpu_accessible<CTT>(pt);
+                auto [spps, pps] = get_cpu_accessible<CTT>(ps);
+                auto [spxi, pxi] = get_cpu_accessible<CTT>(xi);
+                auto [spyi, pyi] = get_cpu_accessible<CTT>(yi);
+                auto [speta, peta] = get_cpu_accessible<CTT>(eta);
 
                 ::transform_wrf_v3(nx, ny, nz, nxy, pxi, pyi,
                     peta, pps, ppt[0], pxo, pyo, pph);
+
+                xo = tmp_xo;
+                yo = tmp_yo;
+                ph = tmp_ph;
                 )
 
             // pass coordinates to output

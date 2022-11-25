@@ -1,12 +1,15 @@
 #include "teca_cartesian_mesh_source.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_cartesian_mesh.h"
 #include "teca_array_collection.h"
 #include "teca_programmable_algorithm.h"
 #include "teca_cf_writer.h"
 #include "teca_array_attributes.h"
 #include "teca_index_executive.h"
+
+using namespace teca_variant_array_util;
 
 // this function returns a double array initialized with time
 // values.
@@ -20,10 +23,7 @@ p_teca_variant_array generate_mesh_time(const const_p_teca_variant_array &x,
 
     size_t nxyz = nx*ny*nz;
 
-    p_teca_double_array da = teca_double_array::New(nxyz);
-
-    auto spda = da->get_cpu_accessible();
-    double *pda = spda.get();
+    auto [da, pda] = ::New<teca_double_array>(nxyz);
 
     for (size_t i = 0; i < nxyz; ++i)
         pda[i] = t;

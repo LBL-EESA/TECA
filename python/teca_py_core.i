@@ -319,9 +319,12 @@ if get_teca_has_cupy():
 
             TT *tself = static_cast<TT*>(self);
 
+            hamr::stream stream;
+
             hamr::buffer_handle<NT> *ph = new hamr::buffer_handle<NT>(
                 tself->get_cpu_accessible(), tself->size(), 0, 1,
-                tself->cpu_accessible() && tself->cuda_accessible());
+                tself->cpu_accessible() && tself->cuda_accessible(),
+                stream);
 
             return SWIG_NewPointerObj(SWIG_as_voidptr(ph),
                 hamr::buffer_handle_tt<NT>::swig_type(), SWIG_POINTER_OWN);
@@ -358,9 +361,12 @@ if get_teca_has_cupy():
 
             TT *tself = static_cast<TT*>(self);
 
+            hamr::stream stream;
+
             hamr::buffer_handle<NT> *ph = new hamr::buffer_handle<NT>(
                 tself->get_cuda_accessible(), tself->size(), 0,
-                tself->cpu_accessible() && tself->cuda_accessible(), 1);
+                tself->cpu_accessible() && tself->cuda_accessible(), 1,
+                stream);
 
             return SWIG_NewPointerObj(SWIG_as_voidptr(ph),
                 hamr::buffer_handle_tt<NT>::swig_type(), SWIG_POINTER_OWN);

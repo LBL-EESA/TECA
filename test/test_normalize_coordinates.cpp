@@ -11,6 +11,7 @@
 #include "teca_cartesian_mesh.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_file_util.h"
 #include "teca_system_util.h"
 
@@ -21,6 +22,7 @@
 #include <string>
 
 using namespace std;
+using namespace teca_variant_array_util;
 
 // genrates a distance field centered on x0,y0,z0
 struct distance_field
@@ -48,21 +50,13 @@ struct distance_field
         unsigned long nz = z->size();
         unsigned long nxy = nx*ny;
 
-        p_teca_double_array d = teca_double_array::New(nxy*nz);
-        auto spd = d->get_cpu_accessible();
-        double *pd = spd.get();
+        auto [d, pd] = ::New<teca_double_array>(nxy*nz);
 
         TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
             x.get(),
 
-            auto spx = std::static_pointer_cast<const TT>(x)->get_cpu_accessible();
-            const NT *px = spx.get();
-
-            auto spy = std::static_pointer_cast<const TT>(y)->get_cpu_accessible();
-            const NT *py = spy.get();
-
-            auto spz = std::static_pointer_cast<const TT>(z)->get_cpu_accessible();
-            const NT *pz = spz.get();
+            assert_type<TT>(y,z);
+            auto [spx, px, spy, py, spz, pz] = get_cpu_accessible<CTT>(x, y, z);
 
             for (unsigned long k = 0; k < nz; ++k)
             {

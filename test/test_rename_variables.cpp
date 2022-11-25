@@ -11,9 +11,12 @@
 #include "teca_metadata.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 
 #include <cmath>
 #include <functional>
+
+using namespace teca_variant_array_util;
 
 
 // generates f = k*nxy + j*nx + i
@@ -34,8 +37,7 @@ struct index_function
 
         TEMPLATE_DISPATCH(teca_variant_array_impl,
             f.get(),
-            auto spf = dynamic_cast<TT*>(f.get())->get_cpu_accessible();
-            NT *pf = spf.get();
+            auto [pf] = data<TT>(f);
             for (size_t i = 0; i < nxyz; ++i)
             {
                 pf[i] = i;

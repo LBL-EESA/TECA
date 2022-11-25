@@ -4,6 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_array_attributes.h"
 #include "teca_coordinate_util.h"
@@ -22,6 +23,9 @@
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
 #endif
+
+using namespace teca_variant_array_util;
+using allocator = teca_variant_array::allocator;
 
 namespace
 {
@@ -68,8 +72,9 @@ void compute_mask(const T *array, T valid_range_0,
 }
 
 // **************************************************************************
-template <typename NT, typename TT = teca_variant_array_impl<NT>>
-int dispatch(int device_id, const TT *array, NT fill_value, p_teca_char_array &mask)
+template <typename NT, typename CTT = const teca_variant_array_impl<NT>>
+int dispatch(int device_id, const const_p_teca_variant_array &array,
+    NT fill_value,  PT_MASK &mask)
 {
     // set the CUDA device to run on
     cudaError_t ierr = cudaSuccess;
@@ -80,17 +85,13 @@ int dispatch(int device_id, const TT *array, NT fill_value, p_teca_char_array &m
         return -1;
     }
 
-    // get a pointer to the values
-    auto sp_array = array->get_cuda_accessible();
-    auto p_array = sp_array.get();
+    // get the input
+    auto [sp_array, p_array] = get_cuda_accessible<CTT>(array);
 
     // allocate the mask
     size_t n_elem = array->size();
-
-    mask = teca_char_array::New(n_elem, teca_variant_array::allocator::cuda);
-
-    auto sp_mask = mask->get_cuda_accessible();
-    char *p_mask = sp_mask.get();
+    mask = TT_MASK::New(n_elem, allocator::cuda_async);
+    NT_MASK *p_mask = mask->data();
 
     // determine kernel launch parameters
     int n_blocks = 0;
@@ -116,8 +117,9 @@ int dispatch(int device_id, const TT *array, NT fill_value, p_teca_char_array &m
 }
 
 // **************************************************************************
-template <typename NT, typename TT = teca_variant_array_impl<NT>>
-int dispatch(int device_id, const TT *array, const NT *valid_range, p_teca_char_array &mask)
+template <typename NT, typename CTT = const teca_variant_array_impl<NT>>
+int dispatch(int device_id, const const_p_teca_variant_array &array,
+    const NT *valid_range, PT_MASK &mask)
 {
     // set the CUDA device to run on
     cudaError_t ierr = cudaSuccess;
@@ -129,16 +131,12 @@ int dispatch(int device_id, const TT *array, const NT *valid_range, p_teca_char_
     }
 
     // get a pointer to the values
-    auto sp_array = array->get_cuda_accessible();
-    auto p_array = sp_array.get();
+    auto [sp_array, p_array] = get_cuda_accessible<CTT>(array);
 
     // allocate the mask
     size_t n_elem = array->size();
-
-    mask = teca_char_array::New(n_elem, teca_variant_array::allocator::cuda);
-
-    auto sp_mask = mask->get_cuda_accessible();
-    char *p_mask = sp_mask.get();
+    mask = TT_MASK::New(n_elem, allocator::cuda_async);
+    NT_MASK *p_mask = mask->data();
 
     // determine kernel launch parameters
     int n_blocks = 0;
@@ -170,19 +168,19 @@ int dispatch(int device_id, const TT *array, const NT *valid_range, p_teca_char_
 namespace cpu
 {
 // **************************************************************************
-template <typename NT, typename TT = teca_variant_array_impl<NT>>
-int dispatch(const TT *array, NT fill_value, p_teca_char_array &mask)
+template <typename NT, typename CTT = const teca_variant_array_impl<NT>>
+int dispatch(const const_p_teca_variant_array &array, NT fill_value, PT_MASK &mask)
 {
     // get a pointer to the values
-    auto sp_array = array->get_cpu_accessible();
-    auto p_array = sp_array.get();
+    auto [sp_array, p_array] = get_cpu_accessible<CTT>(array);
 
     size_t n_elem = array->size();
 
-    // allocate and compute the mask
-    mask = teca_char_array::New(n_elem);
-    auto sp_mask = mask->get_cpu_accessible();
-    char *p_mask = sp_mask.get();
+    // allocate the output
+    mask = TT_MASK::New(n_elem);
+    NT_MASK *p_mask = mask->data();
+
+    // compute the mask
     for (size_t i = 0; i < n_elem; ++i)
     {
         p_mask[i] = teca_coordinate_util::equal(p_array[i], fill_value) ? 0 : 1;
@@ -192,19 +190,20 @@ int dispatch(const TT *array, NT fill_value, p_teca_char_array &mask)
 }
 
 // **************************************************************************
-template <typename NT, typename TT = teca_variant_array_impl<NT>>
-int dispatch(const TT *array, const NT *valid_range, p_teca_char_array &mask)
+template <typename NT, typename CTT = const teca_variant_array_impl<NT>>
+int dispatch(const const_p_teca_variant_array &array, const NT *valid_range,
+    PT_MASK &mask)
 {
     // get a pointer to the values
-    auto sp_array = array->get_cpu_accessible();
-    auto p_array = sp_array.get();
+    auto [sp_array, p_array] = get_cpu_accessible<CTT>(array);
 
     size_t n_elem = array->size();
 
-    // allocate and compute the mask
-    mask = teca_char_array::New(n_elem);
-    auto sp_mask = mask->get_cpu_accessible();
-    char *p_mask = sp_mask.get();
+    // allocate the output
+    mask = TT_MASK::New(n_elem);
+    NT_MASK *p_mask = mask->data();
+
+    // compute the mask
     for (size_t i = 0; i < n_elem; ++i)
     {
         NT val = p_array[i];
@@ -539,8 +538,7 @@ const_p_teca_dataset teca_valid_value_mask::execute(
 #if defined(TECA_HAS_CUDA)
                 if (device_id >= 0)
                 {
-                    if (::cuda::dispatch<NT>(device_id,
-                        static_cast<TT*>(array.get()), fill_value, mask))
+                    if (::cuda::dispatch<NT>(device_id, array, fill_value, mask))
                     {
                         TECA_ERROR("Failed to compute the valid value mask using CUDA")
                         return nullptr;
@@ -549,8 +547,7 @@ const_p_teca_dataset teca_valid_value_mask::execute(
                 else
                 {
 #endif
-                    if (::cpu::dispatch<NT>(static_cast<TT*>(array.get()),
-                        fill_value, mask))
+                    if (::cpu::dispatch<NT>(array, fill_value, mask))
                     {
                         TECA_ERROR("Failed to compute the valid value mask on the CPU")
                         return nullptr;
@@ -570,8 +567,7 @@ const_p_teca_dataset teca_valid_value_mask::execute(
 #if defined(TECA_HAS_CUDA)
                 if (device_id >= 0)
                 {
-                    if (::cuda::dispatch<NT>(device_id,
-                        static_cast<TT*>(array.get()), valid_range, mask))
+                    if (::cuda::dispatch<NT>(device_id, array, valid_range, mask))
                     {
                         TECA_ERROR("Failed to compute the valid value mask using CUDA")
                         return nullptr;
@@ -580,8 +576,7 @@ const_p_teca_dataset teca_valid_value_mask::execute(
                 else
                 {
 #endif
-                    if (::cpu::dispatch<NT>(static_cast<TT*>(array.get()),
-                        valid_range, mask))
+                    if (::cpu::dispatch<NT>(array, valid_range, mask))
                     {
                         TECA_ERROR("Failed to compute the valid value mask on the CPU")
                         return nullptr;

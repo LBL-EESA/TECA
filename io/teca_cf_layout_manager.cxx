@@ -7,6 +7,7 @@
 #include "teca_array_attributes.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 
 #include <iostream>
 #include <sstream>
@@ -14,7 +15,9 @@
 #include <cerrno>
 #include <string>
 
-// --------------------------------------------------------------------------
+using namespace teca_variant_array_util;
+
+// -------------------------------------/-------------------------------------
 int teca_cf_layout_manager::create(const std::string &file_name,
     const std::string &date_format, const teca_metadata &md_in,
     int mode_flags, int use_unlimited_dim)
@@ -603,8 +606,8 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
         TEMPLATE_DISPATCH(teca_variant_array_impl,
             coord_arrays[i].get(),
 
-            auto spa = static_cast<const TT*>(coord_arrays[i].get())->get_cpu_accessible();
-            const NT *pa = spa.get();
+            auto [spa, pa] = get_cpu_accessible<CTT>(coord_arrays[i]);
+
             pa += starts[i];
 
 #if !defined(HDF5_THREAD_SAFE)
@@ -699,8 +702,7 @@ int teca_cf_layout_manager::write(long index,
                     return -1;
                 }
 
-                auto spa = static_cast<const TT*>(array.get())->get_cpu_accessible();
-                const NT *pa = spa.get();
+                auto [spa, pa] = get_cpu_accessible<CTT>(array);
 
 #if !defined(HDF5_THREAD_SAFE)
                 {
@@ -761,8 +763,7 @@ int teca_cf_layout_manager::write(long index,
                     return -1;
                 }
 
-                auto spa = static_cast<const TT*>(array.get())->get_cpu_accessible();
-                const NT *pa = spa.get();
+                auto [spa, pa] = get_cpu_accessible<CTT>(array);
 
 #if !defined(HDF5_THREAD_SAFE)
                 {
@@ -875,8 +876,7 @@ int teca_cf_layout_manager::write(const unsigned long extent[6],
                     return -1;
                 }
 
-                auto spa = static_cast<const TT*>(array.get())->get_cpu_accessible();
-                const NT *pa = spa.get();
+                auto [spa, pa] = get_cpu_accessible<CTT>(array);
 
                 // advance the pointer to the first time step that will be
                 // written by this manager
@@ -941,8 +941,7 @@ int teca_cf_layout_manager::write(const unsigned long extent[6],
                     return -1;
                 }
 
-                auto spa = static_cast<const TT*>(array.get())->get_cpu_accessible();
-                const NT *pa = spa.get();
+                auto [spa, pa] = get_cpu_accessible<CTT>(array);
 
                 // advance the pointer to the first time step that will be
                 // written by this manager

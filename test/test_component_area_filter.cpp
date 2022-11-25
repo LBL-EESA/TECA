@@ -8,6 +8,7 @@
 #include "teca_cartesian_mesh.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_dataset_source.h"
 
 #include <vector>
@@ -15,6 +16,7 @@
 #include <string>
 
 using namespace std;
+using namespace teca_variant_array_util;
 
 // 64 random integers between 1000 and 10000 for use as non consecutive labels
 int labels[] = {9345, 2548, 5704, 5132, 9786, 8329, 3667, 4332, 6232,
@@ -52,34 +54,24 @@ int main(int argc, char **argv)
     // allocate a mesh
     // coordinate axes
     using coord_t = double;
+    using array_t = teca_variant_array_impl<double>;
+
     coord_t dx = coord_t(360.)/coord_t(nx - 1);
-    p_teca_variant_array_impl<coord_t> x = teca_variant_array_impl<coord_t>::New(nx);
-    auto spx = x->get_cpu_accessible();
-    coord_t *px = spx.get();
+    auto [x, px] = ::New<array_t>(nx);
     for (unsigned long i = 0; i < nx; ++i)
         px[i] = i*dx;
 
     coord_t dy = coord_t(180.)/coord_t(ny - 1);
-    p_teca_variant_array_impl<coord_t> y = teca_variant_array_impl<coord_t>::New(ny);
-    auto spy = y->get_cpu_accessible();
-    coord_t *py = spy.get();
+    auto [y, py] = ::New<array_t>(ny);
     for (unsigned long i = 0; i < ny; ++i)
         py[i] = coord_t(-90.) + i*dy;
 
-    p_teca_variant_array_impl<coord_t> z = teca_variant_array_impl<coord_t>::New(1);
-    z->set(0, 0.f);
-
-    p_teca_variant_array_impl<coord_t> t = teca_variant_array_impl<coord_t>::New(1);
-    t->set(0, 1.f);
+    auto z = array_t::New(1, coord_t(0));
+    auto t = array_t::New(1, coord_t(1));
 
     // genrate nxl by nyl tiles
     unsigned long nxy = nx*ny;
-    p_teca_int_array cc = teca_int_array::New(nxy);
-    auto sp_cc = cc->get_cpu_accessible();
-    int *p_cc = sp_cc.get();
-
-    memset(p_cc,0, nxy*sizeof(int));
-
+    auto [cc, pcc] = ::New<teca_int_array>(nxy, int(0));
     for (unsigned long j = 0; j < ny; ++j)
     {
         int yl = int((py[j] + coord_t(90.)) / (coord_t(180.) / nyl)) % nyl;
@@ -87,7 +79,7 @@ int main(int argc, char **argv)
         {
             int xl = int(px[i] / (coord_t(360.) / nxl)) % nxl;
             int lab = yl*nxl + xl;
-            p_cc[j*nx + i] = consecutive_labels ? lab : labels[lab];
+            pcc[j*nx + i] = consecutive_labels ? lab : labels[lab];
         }
     }
 
@@ -188,16 +180,12 @@ int main(int argc, char **argv)
     size_t n_labels_total = va->size();
 
     NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
-        va.get(),
-        _LABEL,
-
-        auto sp_labels_filtered = static_cast<const TT_LABEL*>(va.get())->get_cpu_accessible();
-        const NT_LABEL *p_labels_filtered = sp_labels_filtered.get();
-
+        va.get(), _LABEL,
+        auto [splf, p_labels_filtered] = get_cpu_accessible<CTT_LABEL>(va);
         for (size_t i = 0; i < n_filtered; ++i)
         {
             NT_LABEL label = filtered_label_id[i];
-            for (size_t j = 0; j < n_labels_total; j++)
+            for (size_t j = 0; j < n_labels_total; ++j)
             {
                 if (label == p_labels_filtered[j])
                 {
@@ -206,8 +194,7 @@ int main(int argc, char **argv)
                 }
             }
         }
-
-    )
+        )
 
     return 0;
 }

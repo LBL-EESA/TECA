@@ -3,6 +3,7 @@
 #include "teca_cartesian_mesh.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_table.h"
 #include "teca_database.h"
 #include "teca_coordinate_util.h"
@@ -26,6 +27,7 @@
 using std::cerr;
 using std::endl;
 using seconds_t = std::chrono::duration<double, std::chrono::seconds::period>;
+using namespace teca_variant_array_util;
 
 // --------------------------------------------------------------------------
 teca_tc_candidates::teca_tc_candidates() :
@@ -161,8 +163,7 @@ int teca_tc_candidates::get_active_extent(const const_p_teca_variant_array &lat,
         TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
             lon.get(),
 
-            auto sp_lon = static_cast<const TT*>(lon.get())->get_cpu_accessible();
-            const NT *p_lon = sp_lon.get();
+            auto [sp_lon, p_lon] = get_cpu_accessible<CTT>(lon);
 
             if (teca_coordinate_util::index_of(p_lon, 0, high_i, static_cast<NT>(this->search_lon_low), false, extent[0])
                 || teca_coordinate_util::index_of(p_lon, 0, high_i, static_cast<NT>(this->search_lon_high), true, extent[1]))
@@ -194,8 +195,7 @@ int teca_tc_candidates::get_active_extent(const const_p_teca_variant_array &lat,
         TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
             lat.get(),
 
-            auto sp_lat = static_cast<const TT*>(lat.get())->get_cpu_accessible();
-            const NT *p_lat = sp_lat.get();
+            auto [sp_lat, p_lat] = get_cpu_accessible<CTT>(lat);
 
             if (teca_coordinate_util::index_of(p_lat, 0, high_j, static_cast<NT>(this->search_lat_low), false, extent[2])
                 || teca_coordinate_util::index_of(p_lat, 0, high_j, static_cast<NT>(this->search_lat_high), true, extent[3]))
@@ -404,11 +404,8 @@ const_p_teca_dataset teca_tc_candidates::execute(unsigned int port,
     NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
         x.get(), _COORD,
 
-        auto slon = static_cast<const TT_COORD*>(x.get())->get_cpu_accessible();
-        const NT_COORD *lon = slon.get();
-
-        auto slat = static_cast<const TT_COORD*>(y.get())->get_cpu_accessible();
-        const NT_COORD *lat = slat.get();
+        assert_type<CTT_COORD>(y);
+        auto [slon, lon, slat, lat] = get_cpu_accessible<CTT_COORD>(x, y);
 
         NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
             surface_wind_speed.get(), _VAR,
@@ -420,22 +417,18 @@ const_p_teca_dataset teca_tc_candidates::execute(unsigned int port,
                 "have_core_temp", int(), "have_thickness", int(),
                 "core_temp", NT_VAR(), "thickness", NT_VAR());
 
-            auto sv = dynamic_cast<const TT_VAR*>(surface_wind_speed.get())->get_cpu_accessible();
-            const NT_VAR *v = sv.get();
+            // get the inputs
+            assert_type<CTT_VAR>(vorticity_850mb,
+                sea_level_pressure, core_temperature, thickness);
 
-            auto sw = dynamic_cast<const TT_VAR*>(vorticity_850mb.get())->get_cpu_accessible();
-            const NT_VAR *w = sw.get();
-
-            auto sP = dynamic_cast<const TT_VAR*>(sea_level_pressure.get())->get_cpu_accessible();
-            const NT_VAR *P = sP.get();
-
-            auto sT = dynamic_cast<const TT_VAR*>(core_temperature.get())->get_cpu_accessible();
-            const NT_VAR *T = sT.get();
-
-            auto sth = dynamic_cast<const TT_VAR*>(thickness.get())->get_cpu_accessible();
-            const NT_VAR *th = sth.get();
+            auto [sv, v] = get_cpu_accessible<CTT_VAR>(surface_wind_speed);
+            auto [sw, w] = get_cpu_accessible<CTT_VAR>(vorticity_850mb);
+            auto [sP, P] = get_cpu_accessible<CTT_VAR>(sea_level_pressure);
+            auto [sT, T] = get_cpu_accessible<CTT_VAR>(core_temperature);
+            auto [sth, th] = get_cpu_accessible<CTT_VAR>(thickness);
 
             t0 = std::chrono::high_resolution_clock::now();
+
             // invoke the detector
             if (teca_gfdl::tc_candidates(this->max_core_radius,
                 this->min_vorticity_850mb, this->vorticity_850mb_window,
@@ -448,6 +441,7 @@ const_p_teca_dataset teca_tc_candidates::execute(unsigned int port,
                 TECA_FATAL_ERROR("GFDL TC detector encountered an error")
                 return nullptr;
             }
+
             t1 = std::chrono::high_resolution_clock::now();
             )
         )

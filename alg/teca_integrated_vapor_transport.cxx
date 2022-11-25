@@ -4,8 +4,10 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_coordinate_util.h"
+#include "teca_valid_value_mask.h"
 #if defined(TECA_HAS_CUDA)
 #include "teca_cuda_util.h"
 #endif
@@ -18,6 +20,9 @@
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
 #endif
+
+using namespace teca_variant_array_util;
+using allocator = teca_variant_array::allocator;
 
 //#define TECA_DEBUG
 
@@ -194,7 +199,7 @@ int cartesian_ivt(int device_id, unsigned long nx, unsigned long ny,
     }
 
     // compute the flux
-    hamr::buffer<num_t> flux(hamr::buffer_allocator::cuda, nxyz);
+    hamr::buffer<num_t> flux(hamr::buffer_allocator::cuda_async, nxyz);
     num_t *pflux = flux.data();
 
     cudaError_t ierr = cudaSuccess;
@@ -266,7 +271,7 @@ int cartesian_ivt(int device_id, unsigned long nx, unsigned long ny,
     }
 
     // compute the mask
-    hamr::buffer<char> mask(hamr::buffer_allocator::cuda, nxyz);
+    hamr::buffer<char> mask(hamr::buffer_allocator::cuda_async, nxyz);
     char *pmask = mask.data();
 
     cudaError_t ierr = cudaSuccess;
@@ -279,7 +284,7 @@ int cartesian_ivt(int device_id, unsigned long nx, unsigned long ny,
     }
 
     // compute the flux
-    hamr::buffer<num_t> flux(hamr::buffer_allocator::cuda, nxyz);
+    hamr::buffer<num_t> flux(hamr::buffer_allocator::cuda_async, nxyz);
     num_t *pflux = flux.data();
 
     compute_flux<<<block_grid,thread_grid>>>(pflux, wind, q, pmask, nxyz);
@@ -351,71 +356,39 @@ int dispatch(int device_id, size_t nx, size_t ny, size_t nz,
         return -1;
     }
 
-    auto alloc = teca_variant_array::allocator::cuda;
-
-    // allocate the output arrays
-    unsigned long nxy = nx*ny;
-    ivt_u = wind_u->new_instance(alloc);
-    ivt_v = wind_u->new_instance(alloc);
-
     NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
         p.get(), _COORDS,
 
-        auto sp_p = static_cast<const TT_COORDS*>
-            (p.get())->get_cuda_accessible();
-
-        const NT_COORDS *p_p = sp_p.get();
+        auto [sp_p, p_p] = get_cuda_accessible<CTT_COORDS>(p);
 
         NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-            ivt_u.get(), _DATA,
+            wind_u.get(), _DATA,
 
-            // resize and initialize the ivt output to zero
-            TT_DATA *tivt_u = static_cast<TT_DATA*>(ivt_u.get());
-            TT_DATA *tivt_v = static_cast<TT_DATA*>(ivt_v.get());
+            // allocate and initialize the ivt output to zero
+            unsigned long nxy = nx*ny;
 
-            tivt_u->resize(nxy, NT_DATA());
-            tivt_v->resize(nxy, NT_DATA());
+            NT_DATA *p_ivt_u = nullptr;
+            std::tie(ivt_u, p_ivt_u) = ::New<TT_DATA>(nxy, NT_DATA(), allocator::cuda_async);
 
-            auto sp_tivt_u = tivt_u->get_cuda_accessible();
-            auto sp_tivt_v = tivt_v->get_cuda_accessible();
+            NT_DATA *p_ivt_v = nullptr;
+            std::tie(ivt_v, p_ivt_v) = ::New<TT_DATA>(nxy, NT_DATA(), allocator::cuda_async);
 
-            auto sp_wind_u = static_cast<const TT_DATA*>
-                (wind_u.get())->get_cuda_accessible();
-
-            auto sp_wind_v = static_cast<const TT_DATA*>
-                (wind_v.get())->get_cuda_accessible();
-
-            auto sp_q = dynamic_cast<const TT_DATA*>
-                (q.get())->get_cuda_accessible();
-
-            NT_DATA *p_tivt_u = sp_tivt_u.get();
-            NT_DATA *p_tivt_v = sp_tivt_v.get();
-            const NT_DATA *p_wind_u = sp_wind_u.get();
-            const NT_DATA *p_wind_v = sp_wind_v.get();
-            const NT_DATA *p_q = sp_q.get();
+            // get the inputs
+            assert_type<CTT_DATA>(wind_v, q);
+            auto [sp_wu, p_wind_u] = get_cuda_accessible<CTT_DATA>(wind_u);
+            auto [sp_wv, p_wind_v] = get_cuda_accessible<CTT_DATA>(wind_v);
+            auto [sp_q, p_q] = get_cuda_accessible<CTT_DATA>(q);
 
             if (wind_u_valid)
             {
-                using NT_MASK = char;
-                using TT_MASK = const teca_variant_array_impl<NT_MASK>;
-
-                auto sp_wind_u_valid = dynamic_cast<TT_MASK*>
-                    (wind_u_valid.get())->get_cuda_accessible();
-
-                auto sp_wind_v_valid = dynamic_cast<TT_MASK*>
-                    (wind_v_valid.get())->get_cuda_accessible();
-
-                auto sp_q_valid = dynamic_cast<TT_MASK*>
-                    (q_valid.get())->get_cuda_accessible();
-
-                const NT_MASK *p_wind_u_valid = sp_wind_u_valid.get();
-                const NT_MASK *p_wind_v_valid = sp_wind_v_valid.get();
-                const NT_MASK *p_q_valid = sp_q_valid.get();
+                auto [sp_wuv, p_wind_u_valid] = get_cuda_accessible<CTT_MASK>(wind_u_valid);
+                auto [sp_wvv, p_wind_v_valid] = get_cuda_accessible<CTT_MASK>(wind_v_valid);
+                auto [sp_qv, p_q_valid] = get_cuda_accessible<CTT_MASK>(q_valid);
 
                 if (cuda::cartesian_ivt(device_id, nx, ny, nz, p_p,
-                    p_wind_u, p_wind_u_valid, p_q, p_q_valid, p_tivt_u) ||
+                    p_wind_u, p_wind_u_valid, p_q, p_q_valid, p_ivt_u) ||
                     cuda::cartesian_ivt(device_id, nx, ny, nz, p_p,
-                    p_wind_v, p_wind_v_valid, p_q, p_q_valid, p_tivt_v))
+                    p_wind_v, p_wind_v_valid, p_q, p_q_valid, p_ivt_v))
                 {
                     TECA_ERROR("Failed to compute IVT with valid value mask")
                     return -1;
@@ -424,9 +397,9 @@ int dispatch(int device_id, size_t nx, size_t ny, size_t nz,
             else
             {
                 if (cuda::cartesian_ivt(device_id, nx,
-                    ny, nz, p_p, p_wind_u, p_q, p_tivt_u) ||
+                    ny, nz, p_p, p_wind_u, p_q, p_ivt_u) ||
                     cuda::cartesian_ivt(device_id, nx,
-                    ny, nz, p_p, p_wind_v, p_q, p_tivt_v))
+                    ny, nz, p_p, p_wind_v, p_q, p_ivt_v))
                 {
                     TECA_ERROR("Failed to compute IVT")
                     return -1;
@@ -570,73 +543,44 @@ int dispatch(size_t nx, size_t ny, size_t nz,
     p_teca_variant_array &ivt_u,
     p_teca_variant_array &ivt_v)
 {
-    // allocate the output arrays
-    unsigned long nxy = nx*ny;
-    ivt_u = wind_u->new_instance();
-    ivt_v = wind_u->new_instance();
-
     NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
         p.get(), _COORDS,
 
-        auto sp_p = static_cast<const TT_COORDS*>(p.get())->get_cpu_accessible();
-        const NT_COORDS *p_p = sp_p.get();
+        auto [sp_p, p_p] = get_cpu_accessible<CTT_COORDS>(p);
 
         NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
             wind_u.get(), _DATA,
 
-            // resize and initialize the ivt output to zero
-            TT_DATA *tivt_u = static_cast<TT_DATA*>(ivt_u.get());
-            TT_DATA *tivt_v = static_cast<TT_DATA*>(ivt_v.get());
+            // allocate and initialize the ivt output to zero
+            unsigned long nxy = nx*ny;
 
-            tivt_u->resize(nxy, NT_DATA());
-            tivt_v->resize(nxy, NT_DATA());
+            NT_DATA *p_ivt_u = nullptr;
+            std::tie(ivt_u, p_ivt_u) = ::New<TT_DATA>(nxy, NT_DATA());
 
-            auto sp_tivt_u = tivt_u->get_cpu_accessible();
-            auto sp_tivt_v = tivt_v->get_cpu_accessible();
+            NT_DATA *p_ivt_v = nullptr;
+            std::tie(ivt_v, p_ivt_v) = ::New<TT_DATA>(nxy, NT_DATA());
 
-            auto sp_wind_u = static_cast<const TT_DATA*>
-                (wind_u.get())->get_cpu_accessible();
-
-            auto sp_wind_v = static_cast<const TT_DATA*>
-                (wind_v.get())->get_cpu_accessible();
-
-            auto sp_q = dynamic_cast<const TT_DATA*>
-                (q.get())->get_cpu_accessible();
-
-            NT_DATA *p_tivt_u = sp_tivt_u.get();
-            NT_DATA *p_tivt_v = sp_tivt_v.get();
-            const NT_DATA *p_wind_u = sp_wind_u.get();
-            const NT_DATA *p_wind_v = sp_wind_v.get();
-            const NT_DATA *p_q = sp_q.get();
+            auto [sp_wu, p_wind_u] = get_cpu_accessible<CTT_DATA>(wind_u);
+            auto [sp_wv, p_wind_v] = get_cpu_accessible<CTT_DATA>(wind_v);
+            auto [sp_q, p_q] = get_cpu_accessible<CTT_DATA>(q);
 
             if (wind_u_valid)
             {
-                using NT_MASK = char;
-                using TT_MASK = const teca_variant_array_impl<NT_MASK>;
-
-                auto sp_wind_u_valid = dynamic_cast<TT_MASK*>
-                    (wind_u_valid.get())->get_cpu_accessible();
-
-                auto sp_wind_v_valid = dynamic_cast<TT_MASK*>
-                    (wind_v_valid.get())->get_cpu_accessible();
-
-                auto sp_q_valid = dynamic_cast<TT_MASK*>
-                    (q_valid.get())->get_cpu_accessible();
-
-                const NT_MASK *p_wind_u_valid = sp_wind_u_valid.get();
-                const NT_MASK *p_wind_v_valid = sp_wind_v_valid.get();
-                const NT_MASK *p_q_valid = sp_q_valid.get();
+                assert_type<CTT_MASK>(wind_u_valid, wind_v_valid, q_valid);
+                auto [sp_wuv, p_wind_u_valid] = get_cpu_accessible<CTT_MASK>(wind_u_valid);
+                auto [sp_wvv, p_wind_v_valid] = get_cpu_accessible<CTT_MASK>(wind_v_valid);
+                auto [sp_qv, p_q_valid] = get_cpu_accessible<CTT_MASK>(q_valid);
 
                 cpu::cartesian_ivt(nx, ny, nz, p_p, p_wind_u,
-                    p_wind_u_valid, p_q, p_q_valid, p_tivt_u);
+                    p_wind_u_valid, p_q, p_q_valid, p_ivt_u);
 
                 cpu::cartesian_ivt(nx, ny, nz, p_p, p_wind_v,
-                    p_wind_v_valid, p_q, p_q_valid, p_tivt_v);
+                    p_wind_v_valid, p_q, p_q_valid, p_ivt_v);
             }
             else
             {
-                cpu::cartesian_ivt(nx, ny, nz, p_p, p_wind_u, p_q, p_tivt_u);
-                cpu::cartesian_ivt(nx, ny, nz, p_p, p_wind_v, p_q, p_tivt_v);
+                cpu::cartesian_ivt(nx, ny, nz, p_p, p_wind_u, p_q, p_ivt_u);
+                cpu::cartesian_ivt(nx, ny, nz, p_p, p_wind_v, p_q, p_ivt_v);
             }
             )
         )

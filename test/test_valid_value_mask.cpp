@@ -10,9 +10,12 @@
 #include "teca_system_interface.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 
 #include <cmath>
 #include <functional>
+
+using namespace teca_variant_array_util;
 
 // generates f = cos(x)*cos(y) where f >= m_threshold and m_fill otherwise
 struct cosx_cosy
@@ -36,17 +39,10 @@ struct cosx_cosy
         p_teca_variant_array f = x->new_instance(nxy);
 
         TEMPLATE_DISPATCH(teca_variant_array_impl,
-            f.get(),
-
-            auto spf = dynamic_cast<TT*>(f.get())->get_cpu_accessible();
-            NT *pf = spf.get();
-
-            auto spx = dynamic_cast<const TT*>(x.get())->get_cpu_accessible();
-            const NT *px = spx.get();
-
-            auto spy = dynamic_cast<const TT*>(y.get())->get_cpu_accessible();
-            const NT *py = spy.get();
-
+            x.get(),
+            assert_type<CTT>(y);
+            auto [pf] = data<TT>(f);
+            auto [spx, px, spy, py] = get_cpu_accessible<CTT>(x, y);
             for (size_t j = 0; j < ny; ++j)
             {
                 for (size_t i = 0; i < nx; ++i)

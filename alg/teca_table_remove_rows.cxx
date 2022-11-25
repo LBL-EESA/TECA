@@ -4,6 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_parser.h"
 #include "teca_variant_array_operator.h"
@@ -29,6 +30,8 @@ using std::endl;
 
 using operator_resolver_t = teca_variant_array_operator::resolver;
 using operand_resolver_t = teca_variant_array_operand::resolver;
+
+using namespace teca_variant_array_util;
 
 // --------------------------------------------------------------------------
 teca_table_remove_rows::teca_table_remove_rows() :
@@ -171,8 +174,7 @@ const_p_teca_dataset teca_table_remove_rows::execute(
     TEMPLATE_DISPATCH(teca_variant_array_impl,
         mask.get(),
 
-        auto spmask = static_cast<const TT*>(mask.get())->get_cpu_accessible();
-        auto pmask = spmask.get();
+        auto [spmask, pmask] = get_cpu_accessible<CTT>(mask);
 
         for (unsigned long i = 0; i < n_rows; ++i)
         {
@@ -193,11 +195,8 @@ const_p_teca_dataset teca_table_remove_rows::execute(
         TEMPLATE_DISPATCH(teca_variant_array_impl,
             out_col.get(),
 
-            auto spin = static_cast<const TT*>(in_col.get())->get_cpu_accessible();
-            auto pin = spin.get();
-
-            auto spout = static_cast<TT*>(out_col.get())->get_cpu_accessible();
-            auto pout = spout.get();
+            auto [pout] = data<TT>(out_col);
+            auto [spin, pin] = get_cpu_accessible<CTT>(in_col);
 
             for (unsigned long i = 0; i < n_valid; ++i)
             {

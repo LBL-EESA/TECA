@@ -4,6 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_coordinate_util.h"
 #include "teca_table.h"
@@ -26,6 +27,7 @@
 using std::cout;
 using std::cerr;
 using std::endl;
+using namespace teca_variant_array_util;
 
 //#define TECA_DEBUG
 
@@ -158,33 +160,33 @@ public:
     bin_average(int nbins) : m_nbins(nbins)
     {
         m_vals = teca_variant_array_impl<NT>::New(nbins, NT());
-        m_pvals = m_vals->get_cpu_accessible();
+        m_pvals = m_vals->data();
 
         m_count = teca_int_array::New(nbins, 0);
-        m_pcount = m_count->get_cpu_accessible();
+        m_pcount = m_count->data();
     }
 
     void operator()(int bin, NT val)
     {
-        m_pvals.get()[bin] += val;
-        m_pcount.get()[bin] += 1;
+        m_pvals[bin] += val;
+        m_pcount[bin] += 1;
     }
 
     p_teca_variant_array_impl<NT> get_bin_values()
     {
         for (int i = 0; i < m_nbins; ++i)
         {
-            m_pvals.get()[i] = m_pcount.get()[i] ?
-                m_pvals.get()[i]/m_pcount.get()[i] : m_pvals.get()[i];
+            m_pvals[i] = m_pcount[i] ?
+                m_pvals[i]/m_pcount[i] : m_pvals[i];
         }
         return m_vals;
     }
 
 private:
     p_teca_variant_array_impl<NT> m_vals;
-    std::shared_ptr<NT> m_pvals;
+    NT *m_pvals;
     p_teca_int_array m_count;
-    std::shared_ptr<int> m_pcount;
+    int *m_pcount;
     int m_nbins;
 };
 
@@ -197,18 +199,18 @@ public:
     bin_max(int nbins)
     {
         m_vals = teca_variant_array_impl<NT>::New(nbins, NT());
-        m_pvals = m_vals->get_cpu_accessible();
+        m_pvals = m_vals->data();
     }
 
     void operator()(int bin, NT val)
-    { m_pvals.get()[bin] = std::max(m_pvals.get()[bin], val); }
+    { m_pvals[bin] = std::max(m_pvals[bin], val); }
 
     p_teca_variant_array_impl<NT> get_bin_values()
     { return m_vals; }
 
 private:
     p_teca_variant_array_impl<NT> m_vals;
-    std::shared_ptr<NT> m_pvals;
+    NT *m_pvals;
 };
 
 
@@ -762,8 +764,7 @@ teca_metadata teca_tc_wind_radii::teca_tc_wind_radii::get_output_metadata(
     TEMPLATE_DISPATCH_I(teca_variant_array_impl,
         storm_ids.get(),
 
-        auto spstorm_ids = dynamic_cast<const TT*>(storm_ids.get())->get_cpu_accessible();
-        auto pstorm_ids = spstorm_ids.get();
+        auto [spstorm_ids, pstorm_ids] = get_cpu_accessible<CTT>(storm_ids);
 
         teca_coordinate_util::get_table_offsets(pstorm_ids,
             this->internals->storm_table->get_number_of_rows(),
@@ -854,13 +855,12 @@ std::vector<teca_metadata> teca_tc_wind_radii::get_upstream_request(
     unsigned long n_incomplete = 0;
     TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
         x_coordinates.get(),
+
+        assert_type<CTT>(y_coordinates);
+
         // for each point in track compute the bounding box needed
         // for the wind profile
-        auto spx = static_cast<const TT*>(x_coordinates.get())->get_cpu_accessible();
-        auto px = spx.get();
-
-        auto spy = static_cast<const TT*>(y_coordinates.get())->get_cpu_accessible();
-        auto py = spy.get();
+        auto [spx, px, spy, py] = get_cpu_accessible<CTT>(x_coordinates, y_coordinates);
 
         for (unsigned long i = 0; i < n_ids; ++i)
         {
@@ -905,8 +905,7 @@ std::vector<teca_metadata> teca_tc_wind_radii::get_upstream_request(
     // request the specific time needed
     TEMPLATE_DISPATCH(teca_variant_array_impl,
         times.get(),
-        auto spt = static_cast<const TT*>(times.get())->get_cpu_accessible();
-        auto pt = spt.get();
+        auto [spt, pt] = get_cpu_accessible<CTT>(times);
         for (unsigned long i = 0; i < n_ids; ++i)
             up_reqs[i].set("time", pt[i+id_ofs]);
         )
@@ -958,23 +957,21 @@ const_p_teca_dataset teca_tc_wind_radii::execute(unsigned int port,
     // allocate output columns
     unsigned int n_crit_vals = this->critical_wind_speeds.size();
     std::vector<p_teca_double_array> crit_radii(n_crit_vals);
+    std::vector<double*> pcrit_radii(n_crit_vals);
 
     for (unsigned int i = 0; i < n_crit_vals; ++i)
-        crit_radii[i] = teca_double_array::New(npts, 0.0);
+        std::tie(crit_radii[i], pcrit_radii[i]) = ::New<teca_double_array>(npts, 0.0);
 
-    p_teca_double_array peak_radius = teca_double_array::New(npts, 0.0);
-    p_teca_double_array peak_wind = teca_double_array::New(npts, 0.0);
+    auto [peak_radius, ppeak_radius] = ::New<teca_double_array>(npts, 0.0);
+    auto [peak_wind, ppeak_wind] = ::New<teca_double_array>(npts, 0.0);
 
     // compute radius at each point in time along the storm track
     NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
         storm_x.get(), _STORM,
 
         // get the storm centers
-        auto spstorm_x = static_cast<const TT_STORM*>(storm_x.get())->get_cpu_accessible();
-        auto pstorm_x = spstorm_x.get();
-
-        auto spstorm_y = static_cast<const TT_STORM*>(storm_y.get())->get_cpu_accessible();
-        auto pstorm_y = spstorm_y.get();
+        assert_type<CTT_STORM>(storm_y);
+        auto [spsx, pstorm_x, spsy, pstorm_y] = get_cpu_accessible<CTT_STORM>(storm_x, storm_y);
 
         // for each time instance in the storm compute the storm radius
         for (unsigned long k = 0; k < npts; ++k)
@@ -999,21 +996,14 @@ const_p_teca_dataset teca_tc_wind_radii::execute(unsigned int port,
             NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
                 mesh_x.get(), _MESH,
 
-                auto spmesh_x = static_cast<const TT_MESH*>(mesh_x.get())->get_cpu_accessible();
-                auto pmesh_x = spmesh_x.get();
-
-                auto spmesh_y = static_cast<const TT_MESH*>(mesh_y.get())->get_cpu_accessible();
-                auto pmesh_y = spmesh_y.get();
+                assert_type<CTT_MESH>(mesh_y);
+                auto [spmx, pmesh_x, spmy, pmesh_y] = get_cpu_accessible<CTT_MESH>(mesh_x, mesh_y);
 
                 unsigned long nx = mesh_x->size();
                 unsigned long ny = mesh_y->size();
 
                 // construct radial discretization
-                p_teca_variant_array_impl<NT_MESH> radius =
-                    teca_variant_array_impl<NT_MESH>::New(this->number_of_radial_bins);
-
-                auto spr = radius->get_cpu_accessible();
-                auto pr = spr.get();
+                auto [radius, pr] = ::New<TT_MESH>(this->number_of_radial_bins);
 
                 NT_MESH max_radius = static_cast<NT_MESH>(this->search_radius);
 
@@ -1033,11 +1023,8 @@ const_p_teca_dataset teca_tc_wind_radii::execute(unsigned int port,
                 NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
                     wind_u.get(), _WIND,
 
-                    auto spwu = static_cast<const TT_WIND*>(wind_u.get())->get_cpu_accessible();
-                    auto pwu = spwu.get();
-
-                    auto spwv = static_cast<const TT_WIND*>(wind_v.get())->get_cpu_accessible();
-                    auto pwv = spwv.get();
+                    assert_type<CTT_WIND>(wind_v);
+                    auto [spwu, pwu, spwv, pwv] = get_cpu_accessible<TT_WIND>(wind_u, wind_v);
 
                     // get the kth storm center
                     NT_MESH sx = static_cast<NT_MESH>(pstorm_x[k+ofs]);
@@ -1075,8 +1062,7 @@ const_p_teca_dataset teca_tc_wind_radii::execute(unsigned int port,
                         this->critical_wind_speeds.end());
 
                     // compute the offsets of the critical radii
-                    auto spw = wind->get_cpu_accessible();
-                    auto pw = spw.get();
+                    NT_WIND *pw = wind->data();
 
                     teca_tc_wind_radii::internals_t::locate_critical_ids(
                         pr, pw, this->number_of_radial_bins,
@@ -1085,26 +1071,22 @@ const_p_teca_dataset teca_tc_wind_radii::execute(unsigned int port,
                         peak_id);
 
                     // compute the intercepts with the critical wind speeds
-                    p_teca_variant_array_impl<NT_MESH> rcross =
-                        teca_variant_array_impl<NT_MESH>::New(n_crit_vals, NT_MESH());
-
-                    auto sprcross = rcross->get_cpu_accessible();
-                    auto prcross = sprcross.get();
+                    auto [rcross, prcross] = ::New<TT_MESH>(n_crit_vals, NT_MESH());
 
                     teca_tc_wind_radii::internals_t::compute_crossings(pr, pw,
                         crit_wind.data(), n_crit_vals, crit_ids.data(), prcross);
 
                     // record critical radii
                     for (unsigned int i = 0; i < n_crit_vals; ++i)
-                        crit_radii[i]->set(k, prcross[i]);
+                        pcrit_radii[i][k] = prcross[i];
 
                     // record peak radius and peak wind speed
-                    peak_radius->set(k,
-                        peak_id == std::numeric_limits<unsigned int>::max() ?
+                    ppeak_radius[k] =
+                        (peak_id == std::numeric_limits<unsigned int>::max() ?
                         0 : pr[peak_id]);
 
-                    peak_wind->set(k,
-                        peak_id == std::numeric_limits<unsigned int>::max() ?
+                    ppeak_wind[k] =
+                        (peak_id == std::numeric_limits<unsigned int>::max() ?
                         0 : pw[peak_id]);
 
 #if defined(TECA_DEBUG)

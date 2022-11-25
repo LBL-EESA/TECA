@@ -10,10 +10,13 @@
 #include "teca_system_interface.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 
 
 #include <cmath>
 #include <functional>
+
+using namespace teca_variant_array_util;
 
 
 // ivt = - \frac{1}{g} \int_{p_{sfc}}^{p_{top}} q \vec{v} dp
@@ -52,14 +55,12 @@ struct function_of_z
         size_t nz = z->size();
         size_t nxy = nx*ny;
 
-        p_teca_variant_array_impl<num_t> fz = teca_variant_array_impl<num_t>::New(nx*ny*nz);
-        auto spfz = fz->get_cpu_accessible();
-        num_t *pfz = spfz.get();
+        auto [fz, pfz] = New<teca_variant_array_impl<num_t>>(nx*ny*nz);
 
         TEMPLATE_DISPATCH(teca_variant_array_impl,
             fz.get(),
-            auto spz = dynamic_cast<const TT*>(z.get())->get_cpu_accessible();
-            const NT *pz = spz.get();
+            assert_type<CTT>(z);
+            auto [spz, pz] = get_cpu_accessible<CTT>(z);
             for (size_t k = 0; k < nz; ++k)
             {
                 for (size_t j = 0; j < ny; ++j)

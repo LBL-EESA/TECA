@@ -4,6 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_coordinate_util.h"
 
@@ -16,6 +17,9 @@
 
 using std::cerr;
 using std::endl;
+
+using namespace teca_variant_array_util;
+using allocator = teca_variant_array::allocator;
 
 //#define TECA_DEBUG
 
@@ -592,48 +596,36 @@ const_p_teca_dataset teca_cartesian_mesh_regrid::execute(
                 TECA_STATUS("Interpolating data from \"" << source_arrays[i] << "\"")
             }
 
-            NESTED_TEMPLATE_DISPATCH_FP(
-                teca_variant_array_impl,
-                target_xc.get(),
-                _TGT,
+            NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+                target_xc.get(), _TGT,
 
-                auto sp_target_xc = static_cast<const TT_TGT*>(target_xc.get())->get_cpu_accessible();
-                const NT_TGT *p_target_xc = sp_target_xc.get();
+                // get the target cooridnates
+                assert_type<CTT_TGT>(target_yc, target_zc);
+                auto [sp_target_xc, p_target_xc] = get_cpu_accessible<CTT_TGT>(target_xc);
+                auto [sp_target_yc, p_target_yc] = get_cpu_accessible<CTT_TGT>(target_yc);
+                auto [sp_target_zc, p_target_zc] = get_cpu_accessible<CTT_TGT>(target_zc);
 
-                auto sp_target_yc = dynamic_cast<const TT_TGT*>(target_yc.get())->get_cpu_accessible();
-                const NT_TGT *p_target_yc = sp_target_yc.get();
+                NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+                    source_xc.get(), _SRC,
 
-                auto sp_target_zc = dynamic_cast<const TT_TGT*>(target_zc.get())->get_cpu_accessible();
-                const NT_TGT *p_target_zc = sp_target_zc.get();
+                    // get the target cooridnates
+                    assert_type<CTT_SRC>(source_yc, source_zc);
+                    auto [sp_source_xc, p_source_xc] = get_cpu_accessible<CTT_SRC>(source_xc);
+                    auto [sp_source_yc, p_source_yc] = get_cpu_accessible<CTT_SRC>(source_yc);
+                    auto [sp_source_zc, p_source_zc] = get_cpu_accessible<CTT_SRC>(source_zc);
 
-                NESTED_TEMPLATE_DISPATCH_FP(
-                    teca_variant_array_impl,
-                    source_xc.get(),
-                    _SRC,
-
-                    auto sp_source_xc = dynamic_cast<const TT_SRC*>(source_xc.get())->get_cpu_accessible();
-                    const NT_SRC *p_source_xc = sp_source_xc.get();
-
-                    auto sp_source_yc = dynamic_cast<const TT_SRC*>(source_yc.get())->get_cpu_accessible();
-                    const NT_SRC *p_source_yc = sp_source_yc.get();
-
-                    auto sp_source_zc = dynamic_cast<const TT_SRC*>(source_zc.get())->get_cpu_accessible();
-                    const NT_SRC *p_source_zc = sp_source_zc.get();
-
+                    // get the source array
                     const_p_teca_variant_array source_a = source_ac->get(source_arrays[i]);
-                    p_teca_variant_array target_a = source_a->new_instance();
-                    target_a->resize(target_size);
 
-                    NESTED_TEMPLATE_DISPATCH(
-                        teca_variant_array_impl,
-                        target_a.get(),
-                        _DATA,
+                    // allocate the target array
+                    p_teca_variant_array target_a = source_a->new_instance(target_size);
 
-                        auto sp_source_a = static_cast<const TT_DATA*>(source_a.get())->get_cpu_accessible();
-                        const NT_DATA *p_source_a = sp_source_a.get();
+                    NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
+                        target_a.get(), _DATA,
 
-                        auto sp_target_a = static_cast<TT_DATA*>(target_a.get())->get_cpu_accessible();
-                        NT_DATA *p_target_a = sp_target_a.get();
+                        // interpolate
+                        auto [sp_source_a, p_source_a] = get_cpu_accessible<CTT_DATA>(source_a);
+                        auto [p_target_a] = data<TT_DATA>(target_a);
 
                         if (interpolate(this->interpolation_mode, target_nx, target_ny, target_nz,
                             p_target_xc, p_target_yc, p_target_zc, p_target_a, p_source_xc,

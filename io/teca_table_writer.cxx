@@ -8,6 +8,7 @@
 #include "teca_mpi.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 
 #include <iostream>
 #include <sstream>
@@ -33,6 +34,8 @@
 #include <netcdf.h>
 #include "teca_netcdf_util.h"
 #endif
+
+using namespace teca_variant_array_util;
 
 namespace internal
 {
@@ -187,8 +190,7 @@ int write_netcdf(const_p_teca_table table, const std::string &file_name,
 
         TEMPLATE_DISPATCH(teca_variant_array_impl,
             col.get(),
-            auto sp_col = static_cast<const TT*>(col.get())->get_cpu_accessible();
-            const NT *p_col = sp_col.get();
+            auto [sp_col, p_col] = get_cpu_accessible<CTT>(col);
 #if !defined(HDF5_THREAD_SAFE)
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
@@ -205,8 +207,7 @@ int write_netcdf(const_p_teca_table table, const std::string &file_name,
             )
         else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
             std::string, col.get(),
-            auto sp_col = static_cast<const TT*>(col.get())->get_cpu_accessible();
-            const NT *p_col = sp_col.get();
+            auto [sp_col, p_col] = get_cpu_accessible<CTT>(col);
             // put the strings into a buffer for netcdf
             const char **string_data = (const char **)malloc(n_rows*sizeof(char*));
             for (size_t j = 0; j < n_rows; ++j)

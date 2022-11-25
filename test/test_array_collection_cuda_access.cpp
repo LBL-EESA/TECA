@@ -1,5 +1,6 @@
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_cuda_util.h"
 #include "teca_programmable_algorithm.h"
 #include "teca_metadata.h"
@@ -10,6 +11,9 @@
 #include <iostream>
 
 #include "teca_cartesian_mesh.h"
+
+using namespace teca_variant_array_util;
+using allocator = teca_variant_array::allocator;
 
 
 // **************************************************************************
@@ -26,17 +30,11 @@ void initialize_cuda(NT *data, double val, size_t n_vals)
 }
 
 // **************************************************************************
-template <typename NT>
-p_teca_variant_array_impl<NT> initialize_cuda(size_t n_vals, const NT &val)
+template <typename NT, typename TT = teca_variant_array_impl<NT>>
+std::shared_ptr<TT> initialize_cuda(size_t n_vals, const NT &val)
 {
     // allocate the memory
-    p_teca_variant_array_impl<NT> ao =
-        teca_variant_array_impl<NT>::New(teca_variant_array::allocator::cuda);
-
-    ao->resize(n_vals);
-
-    auto spao = ao->get_cuda_accessible();
-    NT *pao = spao.get();
+    auto [ao, pao] = ::New<TT>(n_vals, allocator::cuda_async);
 
     // determine kernel launch parameters
     int n_blocks = 0;
@@ -98,25 +96,15 @@ p_teca_variant_array_impl<NT1> add_cuda(const const_p_teca_variant_array_impl<NT
     const const_p_teca_variant_array_impl<NT2> &a2)
 {
     using TT1 = teca_variant_array_impl<NT1>;
-    using PTT1 = std::shared_ptr<TT1>;
-
     using TT2 = teca_variant_array_impl<NT2>;
-    using PTT2 = std::shared_ptr<TT2>;
 
     // get the inputs
-    auto spa1 = a1->get_cuda_accessible();
-    const NT1 *pa1 = spa1.get();
-
-    auto spa2 = a2->get_cuda_accessible();
-    const NT2 *pa2 = spa2.get();
+    auto [spa1, pa1] = get_cuda_accessible<TT1>(a1);
+    auto [spa2, pa2] = get_cuda_accessible<TT2>(a2);
 
     // allocate the memory
     size_t n_vals = a1->size();
-    PTT1 ao = TT1::New(teca_variant_array::allocator::cuda);
-    ao->resize(n_vals, NT1(0));
-
-    auto spao = ao->get_cuda_accessible();
-    NT1 *pao = spao.get();
+    auto [ao, pao] = ::New<TT1>(n_vals, NT1(0), allocator::cuda_async);
 
     // determine kernel launch parameters
     int n_blocks = 0;
@@ -178,22 +166,13 @@ p_teca_variant_array_impl<NT1> multiply_scalar_cuda(
     const const_p_teca_variant_array_impl<NT1> &ain, const NT2 &val)
 {
     using TT1 = teca_variant_array_impl<NT1>;
-    using PTT1 = std::shared_ptr<TT1>;
-
-    using TT2 = teca_variant_array_impl<NT2>;
-    using PTT2 = std::shared_ptr<TT2>;
 
     // get the inputs
-    auto spain = ain->get_cuda_accessible();
-    const NT1 *pain = spain.get();
+    auto [spain, pain] = get_cuda_accessible<TT1>(ain);
 
     // allocate the memory
     size_t n_vals = ain->size();
-    PTT1 ao = TT1::New(teca_variant_array::allocator::cuda);
-    ao->resize(n_vals, NT1(0));
-
-    auto spao = ao->get_cuda_accessible();
-    NT1 *pao = spao.get();
+    auto [ao, pao] = ::New<TT1>(n_vals, NT1(0), allocator::cuda_async);
 
     // determine kernel launch parameters
     int n_blocks = 0;
@@ -243,8 +222,7 @@ int compare_int(const const_p_teca_variant_array_impl<NT> &ain, int val)
     std::cerr << "comparing array with " << n_vals
         << " elements to " << val << std::endl;
 
-    p_teca_int_array ai = teca_int_array::New(ain->get_allocator());
-    ai->resize(n_vals);
+    p_teca_int_array ai = teca_int_array::New(n_vals, ain->get_allocator());
     ain->get(ai);
 
     if (n_vals < 33)
@@ -252,8 +230,7 @@ int compare_int(const const_p_teca_variant_array_impl<NT> &ain, int val)
         ai->debug_print();
     }
 
-    auto spai = ai->get_cpu_accessible();
-    int *pai = spai.get();
+    auto [spai, pai] = get_cpu_accessible<teca_int_array>(ai);
 
     for (size_t i = 0; i < n_vals; ++i)
     {
@@ -274,8 +251,8 @@ int compare_int(const const_p_teca_variant_array_impl<NT> &ain, int val)
 
 int main(int, char **)
 {
-    teca_variant_array::allocator cuda_alloc = teca_variant_array::allocator::cuda;
-    teca_variant_array::allocator cpu_alloc = teca_variant_array::allocator::malloc;
+    allocator cuda_alloc = allocator::cuda_async;
+    allocator cpu_alloc = allocator::malloc;
 
     size_t n_vals = 100000;
 

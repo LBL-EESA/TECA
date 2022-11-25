@@ -7,10 +7,10 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_file_util.h"
 #include "teca_vtk_util.h"
 #include "teca_metadata_util.h"
-
 
 #if defined(TECA_HAS_VTK) || defined(TECA_HAS_PARAVIEW)
 #include "vtkRectilinearGrid.h"
@@ -29,6 +29,8 @@
 #if defined(TECA_HAS_MPI)
 #include <mpi.h>
 #endif
+
+using namespace teca_variant_array_util;
 
 namespace internals {
 
@@ -89,10 +91,7 @@ void write_vtk_array_data(FILE *ofile,
         size_t na = a->size();
         TEMPLATE_DISPATCH(teca_variant_array_impl,
             a.get(),
-
-            auto spa = static_cast<const TT*>(a.get())->get_cpu_accessible();
-            const NT *pa = spa.get();
-
+            auto [spa, pa] = get_cpu_accessible<CTT>(a);
             if (binary)
             {
                 // because VTK's legacy file fomrat  requires big endian storage
@@ -238,19 +237,11 @@ int write_vtk_legacy_arakawa_c_grid_header(FILE *ofile,
     // convert the WRF coordinate arrays into VTK layout
     p_teca_variant_array xyz = x->new_instance(3*nxyz);
     TEMPLATE_DISPATCH(teca_variant_array_impl,
-        xyz.get(),
+        x.get(),
 
-        auto spx = dynamic_cast<const TT*>(x.get())->get_cpu_accessible();
-        const NT *px = spx.get();
-
-        auto spy = dynamic_cast<const TT*>(y.get())->get_cpu_accessible();
-        const NT *py = spy.get();
-
-        auto spz = dynamic_cast<const TT*>(z.get())->get_cpu_accessible();
-        const NT *pz = spz.get();
-
-        auto spxyz = dynamic_cast<TT*>(xyz.get())->get_cpu_accessible();
-        NT *pxyz = spxyz.get();
+        assert_type<CTT>(y, z);
+        auto [pxyz] = data<TT>(xyz);
+        auto [spx, px, spy, py, spz, pz] = get_cpu_accessible<CTT>(x, y, z);
 
         for (size_t k = 0; k < nz; ++k)
         {
@@ -331,23 +322,17 @@ int write_vtk_legacy_curvilinear_header(FILE *ofile,
     p_teca_variant_array xyz = x->new_instance(3*nxyz);
 
     TEMPLATE_DISPATCH(teca_variant_array_impl,
-        xyz.get(),
+        x.get(),
 
-        auto spx = dynamic_cast<const TT*>(x.get())->get_cpu_accessible();
-        const NT *px = spx.get();
+        assert_type<CTT>(y, z);
 
-        auto spy = dynamic_cast<const TT*>(y.get())->get_cpu_accessible();
-        const NT *py = spy.get();
+        auto [pxyz] = data<TT>(xyz);
+        auto [spx, px, spy, py] = get_cpu_accessible<CTT>(x, y);
 
+        CSP spz;
         const NT *pz = nullptr;
         if (z)
-        {
-            auto spz = dynamic_cast<const TT*>(z.get())->get_cpu_accessible();
-            pz = spz.get();
-        }
-
-        auto spxyz = dynamic_cast<TT*>(xyz.get())->get_cpu_accessible();
-        NT *pxyz = spxyz.get();
+            std::tie(spz, pz) = get_cpu_accessible<CTT>(z);
 
         for (size_t i = 0; i < nxyz; ++i)
             pxyz[3*i] = px[i];

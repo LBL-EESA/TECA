@@ -4,6 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_array_attributes.h"
 
@@ -21,6 +22,7 @@ using std::vector;
 using std::cerr;
 using std::endl;
 using std::cos;
+using namespace teca_variant_array_util;
 
 //#define TECA_DEBUG
 
@@ -287,11 +289,8 @@ const_p_teca_dataset teca_face_to_cell_centering::execute(
         TEMPLATE_DISPATCH(teca_variant_array_impl,
             fc.get(),
 
-            auto spfc = static_cast<TT*>(fc.get())->get_cpu_accessible();
-            NT *pfc = spfc.get();
-
-            auto spcc = static_cast<TT*>(cc.get())->get_cpu_accessible();
-            NT *pcc = spcc.get();
+            auto [spfc, pfc] = get_cpu_accessible<CTT>(fc);
+            auto [pcc] = data<TT>(cc);
 
             ::x_face_to_cell(nx, ny, nz, nxy, pfc, pcc);
             )
@@ -311,11 +310,8 @@ const_p_teca_dataset teca_face_to_cell_centering::execute(
         TEMPLATE_DISPATCH(teca_variant_array_impl,
             fc.get(),
 
-            auto spfc = static_cast<TT*>(fc.get())->get_cpu_accessible();
-            NT *pfc = spfc.get();
-
-            auto spcc = static_cast<TT*>(cc.get())->get_cpu_accessible();
-            NT *pcc = spcc.get();
+            auto [spfc, pfc] = get_cpu_accessible<CTT>(fc);
+            auto [pcc] = data<TT>(cc);
 
             ::y_face_to_cell(nx, ny, nz, nxy, pfc, pcc);
             )
@@ -335,11 +331,8 @@ const_p_teca_dataset teca_face_to_cell_centering::execute(
         TEMPLATE_DISPATCH(teca_variant_array_impl,
             fc.get(),
 
-            auto spfc = static_cast<TT*>(fc.get())->get_cpu_accessible();
-            NT *pfc = spfc.get();
-
-            auto spcc = static_cast<TT*>(cc.get())->get_cpu_accessible();
-            NT *pcc = spcc.get();
+            auto [spfc, pfc] = get_cpu_accessible<CTT>(fc);
+            auto [pcc] = data<TT>(cc);
 
             ::z_face_to_cell(nx, ny, nz, nxy, pfc, pcc);
             )
