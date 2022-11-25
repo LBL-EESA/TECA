@@ -83,8 +83,7 @@ void teca_cartesian_mesh_source::internals_t::initialize_axes(int type_code,
     z_axis = x_axis->new_instance();
     t_axis = x_axis->new_instance();
 
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        x_axis.get(),
+    VARIANT_ARRAY_DISPATCH(x_axis.get(),
 
         internals_t::initialize_axis<NT>(std::static_pointer_cast<TT>(x_axis),
             extent[0], extent[1], bounds[0], bounds[1]);
@@ -110,8 +109,7 @@ void teca_cartesian_mesh_source::internals_t::initialize_axes(int type_code,
     y_axis = x_axis->new_instance();
     z_axis = x_axis->new_instance();
 
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        x_axis.get(),
+    VARIANT_ARRAY_DISPATCH(x_axis.get(),
 
         internals_t::initialize_axis<NT>(std::static_pointer_cast<TT>(x_axis),
             extent[0], extent[1], bounds[0], bounds[1]);
@@ -684,7 +682,7 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
     if (!request.get("time", temporal_bounds[0]))
     {
         // translate time to a time step
-        TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+        VARIANT_ARRAY_DISPATCH_FP(
             in_t.get(),
             auto [pin_t] = data<CTT>(in_t);
             if (teca_coordinate_util::index_of(pin_t, 0,

@@ -333,8 +333,7 @@ int main(int, char **)
             p_teca_variant_array cuda_out;
             p_teca_variant_array cpu_out;
 
-            TEMPLATE_DISPATCH(teca_variant_array_impl,
-                add_val.get(),
+            VARIANT_ARRAY_DISPATCH(add_val.get(),
 
                 // add data already acccessible in CUDA
                 auto pcuda_in = std::dynamic_pointer_cast<const TT>(cuda_in);
@@ -391,8 +390,7 @@ int main(int, char **)
             p_teca_variant_array cuda_out;
             p_teca_variant_array cpu_out;
 
-            TEMPLATE_DISPATCH(teca_variant_array_impl,
-                cuda_in.get(),
+            VARIANT_ARRAY_DISPATCH(cuda_in.get(),
 
                 // mult data already acccessible in CUDA
                 auto pcuda_in = std::dynamic_pointer_cast<const TT>(cuda_in);
@@ -442,8 +440,7 @@ int main(int, char **)
             const_p_teca_variant_array cpu_in = col_in->get("cpu_array");
 
 
-            TEMPLATE_DISPATCH(teca_variant_array_impl,
-                cuda_in.get(),
+            VARIANT_ARRAY_DISPATCH(cuda_in.get(),
 
                 // compare data already acccessible in CUDA
                 auto pcuda_in = std::dynamic_pointer_cast<const TT>(cuda_in);

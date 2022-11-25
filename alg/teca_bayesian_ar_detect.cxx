@@ -199,8 +199,7 @@ public:
 
         unsigned long n_vals = ar_prob->size();
 
-        TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-            ar_prob.get(),
+        VARIANT_ARRAY_DISPATCH_FP(ar_prob.get(),
 
             NT num_params = this->parameter_table_size;
 
@@ -260,8 +259,7 @@ public:
                 // their sum
                 unsigned long n_vals = prob_0->size();
                 prob_out = prob_0->new_copy();
-                TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-                    prob_out.get(),
+                VARIANT_ARRAY_DISPATCH_FP(prob_out.get(),
 
                     auto [p_prob_out, p_prob_1] = data<TT>(prob_out, prob_1);
 
@@ -373,7 +371,7 @@ public:
                 unsigned long n_vals = prob->size();
                 prob_out = prob->new_copy();
 
-                NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
+                NESTED_VARIANT_ARRAY_DISPATCH_I(
                     wvcc.get(), _COMP,
 
                     auto [sp_wvcc, p_wvcc] = get_cpu_accessible<TT_COMP>(wvcc);
@@ -399,7 +397,7 @@ public:
                 NT_PROB *p_prob_out = nullptr;
                 std::tie(prob_out, p_prob_out) = ::New<TT_PROB>(n_vals);
 
-                NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
+                NESTED_VARIANT_ARRAY_DISPATCH_I(
                     wvcc_0.get(), _COMP,
 
                     auto [sp_wvcc_0, p_wvcc_0] = get_cpu_accessible<TT_COMP>(wvcc_0);
@@ -497,7 +495,7 @@ public:
                 NT_PROB *p_prob_out = nullptr;
                 std::tie(prob_out, p_prob_out) = ::New<TT_PROB>(n_vals);
 
-                NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
+                NESTED_VARIANT_ARRAY_DISPATCH_I(
                     wvcc.get(), _COMP,
 
                     auto [sp_wvcc, p_wvcc] = get_cpu_accessible<TT_COMP>(wvcc);

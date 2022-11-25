@@ -293,7 +293,7 @@ const_p_teca_dataset teca_latitude_damper::execute(
     p_teca_variant_array filter_array = lat->new_instance(n_lat);
 
     // Get the gaussian filter
-    NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH_FP(
         lat.get(), _COORD,
 
         auto [sp_lat, p_lat] = get_cpu_accessible<TT_COORD>(lat);
@@ -318,7 +318,7 @@ const_p_teca_dataset teca_latitude_damper::execute(
             size_t n_elem = input_array->size();
             p_teca_variant_array damped_array = input_array->new_instance(n_elem);
 
-            NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
+            NESTED_VARIANT_ARRAY_DISPATCH(
                 input_array.get(), _DATA,
 
                 auto [sp_in, p_in] = get_cpu_accessible<CTT_DATA>(input_array);

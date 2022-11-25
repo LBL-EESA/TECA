@@ -49,8 +49,7 @@ struct tile_labeler
 
         auto [cc, pcc] = ::New<teca_int_array>(nxy, int(0));
 
-         TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-             x.get(),
+         VARIANT_ARRAY_DISPATCH_FP(x.get(),
 
              assert_type<TT>(y);
              auto [spx, px, spy, py] = get_cpu_accessible<CTT>(x, y);

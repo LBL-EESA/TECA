@@ -198,8 +198,7 @@ const_p_teca_dataset generate_test_data::execute(unsigned int port,
 
     unsigned long n_above = 0;
 
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        x_in.get(),
+    VARIANT_ARRAY_DISPATCH(x_in.get(),
 
         assert_type<CTT>(y_in);
 

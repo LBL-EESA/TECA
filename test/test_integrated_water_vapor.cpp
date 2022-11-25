@@ -50,8 +50,7 @@ struct function_of_z
 
         auto [fz, pfz] = ::New<array_t>(nx*ny*nz);
 
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            z.get(),
+        VARIANT_ARRAY_DISPATCH(z.get(),
             auto [spz, pz] = get_cpu_accessible<CTT>(z);
             for (size_t k = 0; k < nz; ++k)
             {

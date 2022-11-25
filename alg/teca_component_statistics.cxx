@@ -146,8 +146,7 @@ const_p_teca_dataset teca_component_statistics::execute(
     // compute a glonbal id, from the time step and component id
     auto [global_component_ids, pgcid] = ::New<teca_unsigned_long_array>(n_comps);
 
-    TEMPLATE_DISPATCH_I(teca_variant_array_impl,
-        component_ids.get(),
+    VARIANT_ARRAY_DISPATCH_I(component_ids.get(),
 
         auto [spcid, pcid] = get_cpu_accessible<CTT>(component_ids);
 

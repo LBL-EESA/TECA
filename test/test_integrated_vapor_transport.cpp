@@ -57,8 +57,7 @@ struct function_of_z
 
         auto [fz, pfz] = New<teca_variant_array_impl<num_t>>(nx*ny*nz);
 
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            fz.get(),
+        VARIANT_ARRAY_DISPATCH(fz.get(),
             assert_type<CTT>(z);
             auto [spz, pz] = get_cpu_accessible<CTT>(z);
             for (size_t k = 0; k < nz; ++k)

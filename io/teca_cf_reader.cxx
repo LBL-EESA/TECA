@@ -692,8 +692,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 if (!this->t_units.empty() || (units_i == base_units))
                 {
                     // the files are in the same units copy the data
-                    TEMPLATE_DISPATCH(teca_variant_array_impl,
-                        t_axis.get(),
+                    VARIANT_ARRAY_DISPATCH(t_axis.get(),
 
                         auto [p_ti] = data<CTT>(t_i);
                         auto [p_t] = data<TT>(t_axis);
@@ -718,8 +717,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                         << units_i << "\" differs from base units \"" << base_units
                         << "\" a conversion will be made.")
 
-                    TEMPLATE_DISPATCH(teca_variant_array_impl,
-                        t_axis.get(),
+                    VARIANT_ARRAY_DISPATCH(t_axis.get(),
 
                         auto [p_ti] = data<CTT>(t_i);
                         auto [p_t] = data<TT>(t_axis);
@@ -1080,8 +1078,7 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
     if (!request.get("time", temporal_bounds[0]))
     {
         // translate time to a time step
-        TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-            in_t.get(),
+        VARIANT_ARRAY_DISPATCH_FP(in_t.get(),
             auto [pin_t] = data<TT>(in_t);
             if (teca_coordinate_util::index_of(pin_t, 0,
                 in_t->size()-1, static_cast<NT>(temporal_bounds[0]), temporal_extent[0]))

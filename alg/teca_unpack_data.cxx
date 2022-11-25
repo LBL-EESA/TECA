@@ -69,19 +69,19 @@ int dispatch(const p_teca_variant_array &in_array,
     out_array->resize(n_elem);
 
     // transform arrays
-    NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH(
         in_array.get(), _IN,
 
         auto [sp_in, p_in] = get_cpu_accessible<TT_IN>(in_array);
 
-        NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+        NESTED_VARIANT_ARRAY_DISPATCH_FP(
             out_array.get(), _OUT,
 
             auto [p_out] = data<TT_OUT>(out_array);
 
             if (mask)
             {
-                NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
+                NESTED_VARIANT_ARRAY_DISPATCH_I(
                     mask.get(), _MASK,
 
                     auto [sp_mask, p_mask] = get_cpu_accessible<TT_MASK>(mask);
@@ -219,19 +219,19 @@ int dispatch(int device_id, const p_teca_variant_array &in_array,
     out_array->resize(n_elem);
 
     // transform arrays
-    NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH(
         in_array.get(), _IN,
 
         auto [sp_in, p_in] = get_cuda_accessible<TT_IN>(in_array);
 
-        NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+        NESTED_VARIANT_ARRAY_DISPATCH_FP(
             out_array.get(), _OUT,
 
             auto [p_out] = data<TT_OUT>(out_array);
 
             if (mask)
             {
-                NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
+                NESTED_VARIANT_ARRAY_DISPATCH_I(
                     mask.get(), _MASK,
 
                     auto [sp_mask, p_mask] = get_cuda_accessible<TT_MASK>(mask);

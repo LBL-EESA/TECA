@@ -761,8 +761,7 @@ teca_metadata teca_tc_wind_radii::teca_tc_wind_radii::get_output_metadata(
     const_p_teca_variant_array storm_ids =
         this->internals->storm_table->get_column(this->storm_id_column);
 
-    TEMPLATE_DISPATCH_I(teca_variant_array_impl,
-        storm_ids.get(),
+    VARIANT_ARRAY_DISPATCH_I(storm_ids.get(),
 
         auto [spstorm_ids, pstorm_ids] = get_cpu_accessible<CTT>(storm_ids);
 
@@ -853,8 +852,7 @@ std::vector<teca_metadata> teca_tc_wind_radii::get_upstream_request(
     // request the tile of dimension search radius centered on the
     // storm at this instant
     unsigned long n_incomplete = 0;
-    TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-        x_coordinates.get(),
+    VARIANT_ARRAY_DISPATCH_FP(x_coordinates.get(),
 
         assert_type<CTT>(y_coordinates);
 
@@ -903,7 +901,7 @@ std::vector<teca_metadata> teca_tc_wind_radii::get_upstream_request(
     }
 
     // request the specific time needed
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
+    VARIANT_ARRAY_DISPATCH(
         times.get(),
         auto [spt, pt] = get_cpu_accessible<CTT>(times);
         for (unsigned long i = 0; i < n_ids; ++i)
@@ -966,7 +964,7 @@ const_p_teca_dataset teca_tc_wind_radii::execute(unsigned int port,
     auto [peak_wind, ppeak_wind] = ::New<teca_double_array>(npts, 0.0);
 
     // compute radius at each point in time along the storm track
-    NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH_FP(
         storm_x.get(), _STORM,
 
         // get the storm centers
@@ -993,7 +991,7 @@ const_p_teca_dataset teca_tc_wind_radii::execute(unsigned int port,
             double t = 0.0;
             mesh->get_time(t);
 
-            NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+            NESTED_VARIANT_ARRAY_DISPATCH_FP(
                 mesh_x.get(), _MESH,
 
                 assert_type<CTT_MESH>(mesh_y);
@@ -1020,7 +1018,7 @@ const_p_teca_dataset teca_tc_wind_radii::execute(unsigned int port,
                 const_p_teca_variant_array wind_v =
                     mesh->get_point_arrays()->get(this->wind_v_variable);
 
-                NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+                NESTED_VARIANT_ARRAY_DISPATCH_FP(
                     wind_u.get(), _WIND,
 
                     assert_type<CTT_WIND>(wind_v);

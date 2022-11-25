@@ -596,7 +596,7 @@ const_p_teca_dataset teca_cartesian_mesh_regrid::execute(
                 TECA_STATUS("Interpolating data from \"" << source_arrays[i] << "\"")
             }
 
-            NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+            NESTED_VARIANT_ARRAY_DISPATCH_FP(
                 target_xc.get(), _TGT,
 
                 // get the target cooridnates
@@ -605,7 +605,7 @@ const_p_teca_dataset teca_cartesian_mesh_regrid::execute(
                 auto [sp_target_yc, p_target_yc] = get_cpu_accessible<CTT_TGT>(target_yc);
                 auto [sp_target_zc, p_target_zc] = get_cpu_accessible<CTT_TGT>(target_zc);
 
-                NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+                NESTED_VARIANT_ARRAY_DISPATCH_FP(
                     source_xc.get(), _SRC,
 
                     // get the target cooridnates
@@ -620,7 +620,7 @@ const_p_teca_dataset teca_cartesian_mesh_regrid::execute(
                     // allocate the target array
                     p_teca_variant_array target_a = source_a->new_instance(target_size);
 
-                    NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
+                    NESTED_VARIANT_ARRAY_DISPATCH(
                         target_a.get(), _DATA,
 
                         // interpolate

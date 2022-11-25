@@ -305,7 +305,7 @@ const_p_teca_dataset teca_component_area_filter::execute(
     }
 
     // apply the filter
-    NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH_I(
         labels_out.get(), _LABEL,
 
         // pointer to input/output labels
@@ -318,7 +318,7 @@ const_p_teca_dataset teca_component_area_filter::execute(
 
         std::vector<NT_LABEL> ids_out;
 
-        NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+        NESTED_VARIANT_ARRAY_DISPATCH_FP(
             areas_in.get(), _AREA,
 
             // pointer to the areas in and a container to hold areas which

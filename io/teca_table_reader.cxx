@@ -290,8 +290,7 @@ teca_metadata teca_table_reader::get_output_metadata(unsigned int port,
         return teca_metadata();
     }
 
-    TEMPLATE_DISPATCH_I(teca_variant_array_impl,
-        index.get(),
+    VARIANT_ARRAY_DISPATCH_I(index.get(),
 
         auto [pindex] = data<CTT>(index);
 
@@ -403,8 +402,7 @@ const_p_teca_dataset teca_table_reader::execute(unsigned int port,
 
         out_col->resize(nrows);
 
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            out_col.get(),
+        VARIANT_ARRAY_DISPATCH(out_col.get(),
 
             auto [pin_col, pout_col] = data<TT>(in_col, out_col);
 

@@ -286,8 +286,7 @@ const_p_teca_dataset teca_face_to_cell_centering::execute(
         std::string &array_name = x_face_arrays->get_name(i);
         p_teca_variant_array fc = x_face_arrays->get(i);
         p_teca_variant_array cc = fc->new_instance(nxyz);
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            fc.get(),
+        VARIANT_ARRAY_DISPATCH(fc.get(),
 
             auto [spfc, pfc] = get_cpu_accessible<CTT>(fc);
             auto [pcc] = data<TT>(cc);
@@ -307,8 +306,7 @@ const_p_teca_dataset teca_face_to_cell_centering::execute(
         std::string &array_name = y_face_arrays->get_name(i);
         p_teca_variant_array fc = y_face_arrays->get(i);
         p_teca_variant_array cc = fc->new_instance(nxyz);
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            fc.get(),
+        VARIANT_ARRAY_DISPATCH(fc.get(),
 
             auto [spfc, pfc] = get_cpu_accessible<CTT>(fc);
             auto [pcc] = data<TT>(cc);
@@ -328,8 +326,7 @@ const_p_teca_dataset teca_face_to_cell_centering::execute(
         std::string &array_name = z_face_arrays->get_name(i);
         p_teca_variant_array fc = z_face_arrays->get(i);
         p_teca_variant_array cc = fc->new_instance(nxyz);
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            fc.get(),
+        VARIANT_ARRAY_DISPATCH(fc.get(),
 
             auto [spfc, pfc] = get_cpu_accessible<CTT>(fc);
             auto [pcc] = data<TT>(cc);

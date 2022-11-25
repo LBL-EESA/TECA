@@ -1,6 +1,8 @@
 #ifndef teca_variant_array_util_h
 #define teca_variant_array_util_h
 
+/// @file
+
 #include <tuple>
 
 /// some functions helping us manipulate teca_variant_array

@@ -55,8 +55,7 @@ struct TECA_EXPORT point_wise_average
         p_teca_variant_array avg = v0->new_instance();
         avg->resize(n_pts);
 
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            v0.get(),
+        VARIANT_ARRAY_DISPATCH(v0.get(),
 
             assert_type<CTT>(v1);
             auto [sp_v0, p_v0, sp_v1, p_v1] = get_cpu_accessible<CTT>(v0, v1);
@@ -118,8 +117,7 @@ struct TECA_EXPORT point_wise_difference
         p_teca_variant_array diff = v0->new_instance();
         diff->resize(n_pts);
 
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            v1.get(),
+        VARIANT_ARRAY_DISPATCH(v1.get(),
 
             assert_type<CTT>(v1);
             auto [sp_v0, p_v0, sp_v1, p_v1] = get_cpu_accessible<CTT>(v0, v1);

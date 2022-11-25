@@ -38,8 +38,7 @@ struct cosx_cosy
 
         p_teca_variant_array f = x->new_instance(nxy);
 
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            x.get(),
+        VARIANT_ARRAY_DISPATCH(x.get(),
             assert_type<CTT>(y);
             auto [pf] = data<TT>(f);
             auto [spx, px, spy, py] = get_cpu_accessible<CTT>(x, y);

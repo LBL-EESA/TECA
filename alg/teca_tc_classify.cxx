@@ -251,8 +251,7 @@ const_p_teca_dataset teca_tc_classify::execute(
 
     // record track start time
     p_teca_variant_array start_time = time->new_instance(n_tracks);
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        time.get(),
+    VARIANT_ARRAY_DISPATCH(time.get(),
 
         auto [pstart_time] = data<TT>(start_time);
         auto [sptime, ptime] = get_cpu_accessible<CTT>(time);
@@ -265,8 +264,7 @@ const_p_teca_dataset teca_tc_classify::execute(
     p_teca_variant_array start_x = x->new_instance(n_tracks);
     p_teca_variant_array start_y = x->new_instance(n_tracks);
 
-    TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-        x.get(),
+    VARIANT_ARRAY_DISPATCH_FP(x.get(),
 
         assert_type<CTT>(y);
         auto [spx, px, spy, py] = get_cpu_accessible<CTT>(x, y);
@@ -283,8 +281,7 @@ const_p_teca_dataset teca_tc_classify::execute(
 
     // compute the storm duration
     p_teca_variant_array duration = time->new_instance(n_tracks);
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        time.get(),
+    VARIANT_ARRAY_DISPATCH(time.get(),
 
         auto [sptime, ptime] = get_cpu_accessible<CTT>(time);
         auto [pduration] = data<TT>(duration);
@@ -300,8 +297,7 @@ const_p_teca_dataset teca_tc_classify::execute(
     // compute the distance traveled
     p_teca_variant_array length = x->new_instance(n_tracks);
 
-    TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-        x.get(),
+    VARIANT_ARRAY_DISPATCH_FP(x.get(),
 
         assert_type<CTT>(y);
         auto [spx, px, spy, py] = get_cpu_accessible<CTT>(x, y);
@@ -333,8 +329,7 @@ const_p_teca_dataset teca_tc_classify::execute(
 
     p_teca_variant_array max_surface_wind;
 
-    TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-        surface_wind.get(),
+    VARIANT_ARRAY_DISPATCH_FP(surface_wind.get(),
 
         NT *pmax_surface_wind = nullptr;
         std::tie(max_surface_wind, pmax_surface_wind) = ::New<TT>(n_tracks);
@@ -367,8 +362,7 @@ const_p_teca_dataset teca_tc_classify::execute(
     // location of the max surface wind
     p_teca_variant_array max_surface_wind_x = x->new_instance(n_tracks);
     p_teca_variant_array max_surface_wind_y = x->new_instance(n_tracks);
-    TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-        x.get(),
+    VARIANT_ARRAY_DISPATCH_FP(x.get(),
 
         assert_type<CTT>(y);
         auto [spx, px, spy, py] = get_cpu_accessible<CTT>(x, y);
@@ -387,8 +381,7 @@ const_p_teca_dataset teca_tc_classify::execute(
 
     // time of max surface wind
     p_teca_variant_array max_surface_wind_t = time->new_instance(n_tracks);
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        time.get(),
+    VARIANT_ARRAY_DISPATCH(time.get(),
 
         auto [sptime, ptime] = get_cpu_accessible<CTT>(time);
         auto [pmax_surface_wind_t] = data<TT>(max_surface_wind_t);
@@ -406,8 +399,7 @@ const_p_teca_dataset teca_tc_classify::execute(
     auto [min_sea_level_pressure_id,
           pmin_sea_level_pressure_id] = ::New<teca_unsigned_long_array>(n_tracks);
 
-    TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-        sea_level_pressure.get(),
+    VARIANT_ARRAY_DISPATCH_FP(sea_level_pressure.get(),
 
         auto [spsea_level_pressure,
               psea_level_pressure] = get_cpu_accessible<CTT>(sea_level_pressure);
@@ -439,8 +431,7 @@ const_p_teca_dataset teca_tc_classify::execute(
     // location of the min sea level pressure
     p_teca_variant_array min_sea_level_pressure_x = x->new_instance(n_tracks);
     p_teca_variant_array min_sea_level_pressure_y = x->new_instance(n_tracks);
-    TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-        x.get(),
+    VARIANT_ARRAY_DISPATCH_FP(x.get(),
 
         assert_type<CTT>(y);
         auto [spx, px, spy, py] = get_cpu_accessible<CTT>(x, y);
@@ -459,8 +450,7 @@ const_p_teca_dataset teca_tc_classify::execute(
 
     // time of min sea level pressure
     p_teca_variant_array min_sea_level_pressure_t = time->new_instance(n_tracks);
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        time.get(),
+    VARIANT_ARRAY_DISPATCH(time.get(),
 
         auto [sptime, ptime] = get_cpu_accessible<CTT>(time);
         auto [pmin_sea_level_pressure_t] = data<TT>(min_sea_level_pressure_t);
@@ -487,12 +477,12 @@ const_p_teca_dataset teca_tc_classify::execute(
     // sustained wind speed in knots.
     p_teca_variant_array ACE = surface_wind->new_instance(n_tracks);
 
-    NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH_FP(
         time.get(), _T,
 
         auto [sptime, ptime] = get_cpu_accessible<CTT_T>(time);
 
-        NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+        NESTED_VARIANT_ARRAY_DISPATCH_FP(
             ACE.get(), _W,
 
             auto [spsw, psurface_wind] = get_cpu_accessible<CTT_W>(surface_wind);
@@ -532,12 +522,12 @@ const_p_teca_dataset teca_tc_classify::execute(
     // KERRY EMANUEL, 15 NOVEMBER 2007, JOURNAL OF CLIMATE
     p_teca_variant_array PDI = surface_wind->new_instance(n_tracks);
 
-    NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH_FP(
         time.get(), _T,
 
         auto [sptime, ptime] = get_cpu_accessible<CTT_T>(time);
 
-        NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+        NESTED_VARIANT_ARRAY_DISPATCH_FP(
             PDI.get(), _W,
 
             auto [spsw, psurface_wind] = get_cpu_accessible<CTT_W>(surface_wind);
@@ -623,8 +613,7 @@ const_p_teca_dataset teca_tc_classify::execute(
     auto [region_name, pregion_name] = ::New<teca_string_array>(n_tracks);
     auto [region_long_name, pregion_long_name] = ::New<teca_string_array>(n_tracks);
 
-    TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-        x.get(),
+    VARIANT_ARRAY_DISPATCH_FP(x.get(),
 
         assert_type<CTT>(y);
         auto [spx, px, spy, py] = get_cpu_accessible<CTT>(x, y);

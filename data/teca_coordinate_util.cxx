@@ -44,8 +44,7 @@ bool equal(const const_p_teca_variant_array &array1,
     }
 
     // handle POD arrays
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        array1.get(),
+    VARIANT_ARRAY_DISPATCH(array1.get(),
 
         // we know the type of array 1 now, check the type of array 2
         if (!dynamic_cast<CTT*>(array2.get()))
@@ -106,8 +105,7 @@ bool equal(const const_p_teca_variant_array &array1,
         return true;
         )
     // handle arrays of strings
-    TEMPLATE_DISPATCH_CASE(
-        teca_variant_array_impl, std::string,
+    VARIANT_ARRAY_DISPATCH_CASE(std::string,
         array1.get(),
         // we know the type of array 1 now, check the type of array 2
         if (!dynamic_cast<CTT*>(array2.get()))
@@ -194,8 +192,7 @@ int time_step_of(const const_p_teca_variant_array &time,
 
     // locate the nearest time value in the time axis
     unsigned long last = time->size() - 1;
-    TEMPLATE_DISPATCH_FP_SI(teca_variant_array_impl,
-        time.get(),
+    VARIANT_ARRAY_DISPATCH_FP_SI(time.get(),
 
         auto [sp_time, p_time] = get_cpu_accessible<CTT>(time);
 
@@ -319,8 +316,7 @@ int bounds_to_extent(const double *bounds,
     const const_p_teca_variant_array &x, const const_p_teca_variant_array &y,
     const const_p_teca_variant_array &z, unsigned long *extent)
 {
-    TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-        x.get(),
+    VARIANT_ARRAY_DISPATCH_FP(x.get(),
 
         assert_type<TT>(y,z);
 
@@ -404,9 +400,7 @@ int bounds_to_extent(const double *bounds,
 int bounds_to_extent(const double *bounds,
     const const_p_teca_variant_array &x, unsigned long *extent)
 {
-    TEMPLATE_DISPATCH_FP(
-        teca_variant_array_impl,
-        x.get(),
+    VARIANT_ARRAY_DISPATCH_FP(x.get(),
 
         // in the following, for each side (low, high) of the bounds in
         // each cooridnate direction we are searching for the index that

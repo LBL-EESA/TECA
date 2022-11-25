@@ -421,8 +421,7 @@ int index_of(const const_p_teca_cartesian_mesh &mesh, T x, T y, T z,
     const_p_teca_variant_array yc = mesh->get_y_coordinates();
     const_p_teca_variant_array zc = mesh->get_z_coordinates();
 
-    TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-        xc.get(),
+    VARIANT_ARRAY_DISPATCH_FP(xc.get(),
 
         assert_type<TT>(yc, zc);
 

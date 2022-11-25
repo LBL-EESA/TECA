@@ -365,13 +365,13 @@ const_p_teca_dataset teca_vorticity::execute(
     vort->resize(comp_0->size());
 
     // compute vorticity
-    NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH_FP(
         lon.get(), 1,
 
         assert_type<TT1>(lat);
         auto [sp_lon, p_lon, sp_lat, p_lat] = get_cpu_accessible<CTT1>(lon, lat);
 
-        NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+        NESTED_VARIANT_ARRAY_DISPATCH_FP(
             comp_0.get(), 2,
 
             assert_type<TT2>(comp_1);

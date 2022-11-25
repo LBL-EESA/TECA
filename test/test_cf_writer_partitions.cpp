@@ -43,8 +43,7 @@ struct fxyz
 
         p_teca_variant_array f = x->new_instance(nxyz);
 
-        TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-            x.get(),
+        VARIANT_ARRAY_DISPATCH_FP(x.get(),
 
             assert_type<CTT>(y, z);
 

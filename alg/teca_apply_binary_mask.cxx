@@ -277,7 +277,7 @@ const_p_teca_dataset teca_apply_binary_mask::execute(
     }
 
     // apply the mask
-    NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH(
         mask_array.get(), _MASK,
 
         auto [sp_mask, p_mask] = get_cpu_accessible<CTT_MASK>(mask_array);
@@ -302,7 +302,7 @@ const_p_teca_dataset teca_apply_binary_mask::execute(
             p_teca_variant_array output_array = input_array->new_instance(n);
 
             // do the mask calculation
-            NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
+            NESTED_VARIANT_ARRAY_DISPATCH(
                 output_array.get(), _VAR,
 
                 auto [sp_in, p_in] = get_cpu_accessible<CTT_VAR>(input_array);

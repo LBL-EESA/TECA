@@ -523,8 +523,7 @@ const_p_teca_dataset teca_time_axis_convolution::execute(
             const_p_teca_array_collection in_arrays = in_mesh->get_point_arrays();
             const_p_teca_variant_array in_array = in_arrays->get(j);
 
-            TEMPLATE_DISPATCH(teca_variant_array_impl,
-                in_array.get(),
+            VARIANT_ARRAY_DISPATCH(in_array.get(),
 
                 // allocate and initialize the output
                 if (i == 0)

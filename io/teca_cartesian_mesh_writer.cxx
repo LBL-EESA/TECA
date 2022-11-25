@@ -89,8 +89,7 @@ void write_vtk_array_data(FILE *ofile,
     if (a)
     {
         size_t na = a->size();
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            a.get(),
+        VARIANT_ARRAY_DISPATCH(a.get(),
             auto [spa, pa] = get_cpu_accessible<CTT>(a);
             if (binary)
             {
@@ -156,7 +155,7 @@ int write_vtk_legacy_rectilinear_header(FILE *ofile,
     size_t nz = (z ? z->size() : 1);
 
     const char *coord_type_str = nullptr;
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
+    VARIANT_ARRAY_DISPATCH(
         (x ? x.get() : (y ? y.get() : (z ? z.get() : nullptr))),
         coord_type_str = teca_vtk_util::vtk_tt<NT>::str();
         )
@@ -222,7 +221,7 @@ int write_vtk_legacy_arakawa_c_grid_header(FILE *ofile,
     }
 
     const char *coord_type_str = nullptr;
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
+    VARIANT_ARRAY_DISPATCH(
         (x ? x.get() : (y ? y.get() : (z ? z.get() : nullptr))),
         coord_type_str = teca_vtk_util::vtk_tt<NT>::str();
         )
@@ -236,8 +235,7 @@ int write_vtk_legacy_arakawa_c_grid_header(FILE *ofile,
 
     // convert the WRF coordinate arrays into VTK layout
     p_teca_variant_array xyz = x->new_instance(3*nxyz);
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        x.get(),
+    VARIANT_ARRAY_DISPATCH(x.get(),
 
         assert_type<CTT>(y, z);
         auto [pxyz] = data<TT>(xyz);
@@ -306,7 +304,7 @@ int write_vtk_legacy_curvilinear_header(FILE *ofile,
     }
 
     const char *coord_type_str = nullptr;
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
+    VARIANT_ARRAY_DISPATCH(
         (x ? x.get() : (y ? y.get() : (z ? z.get() : nullptr))),
         coord_type_str = teca_vtk_util::vtk_tt<NT>::str();
         )
@@ -321,8 +319,7 @@ int write_vtk_legacy_curvilinear_header(FILE *ofile,
     // convert the WRF arrays into VTK layout
     p_teca_variant_array xyz = x->new_instance(3*nxyz);
 
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        x.get(),
+    VARIANT_ARRAY_DISPATCH(x.get(),
 
         assert_type<CTT>(y, z);
 
@@ -386,9 +383,8 @@ int write_vtk_legacy_attribute(FILE *ofile, unsigned long n_vals,
         else
             fprintf(ofile, "%s 1 %zu ", array_name.c_str(), n_elem);
 
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            array.get(), fprintf(ofile, "%s\n",
-            teca_vtk_util::vtk_tt<NT>::str());
+        VARIANT_ARRAY_DISPATCH(array.get(),
+            fprintf(ofile, "%s\n", teca_vtk_util::vtk_tt<NT>::str());
             )
         else
         {

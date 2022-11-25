@@ -755,8 +755,8 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::update_cpu(
     if (!count)
     {
         // allocate and initialize the count
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            out_array.get(),
+        VARIANT_ARRAY_DISPATCH(out_array.get(),
+
             auto [tmp, p_tmp] = ::New<TT>(n_elem_count);
             if (out_valid)
             {
@@ -778,8 +778,7 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::update_cpu(
     p_teca_variant_array red_valid;
     p_teca_variant_array red_count;
 
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        out_array.get(),
+    VARIANT_ARRAY_DISPATCH(out_array.get(),
 
         auto [res_array, p_res_array] = ::New<TT>(n_elem);
         auto [res_count, p_res_count] = ::New<TT>(n_elem_count);
@@ -896,8 +895,8 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::update_gpu(
     if (!count)
     {
         // allocate and initialize the count
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            out_array.get(),
+        VARIANT_ARRAY_DISPATCH(out_array.get(),
+
             auto [tmp, p_tmp] = ::New<TT>(n_elem_count, alloc_count);
             if (out_valid)
             {
@@ -917,22 +916,18 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::update_gpu(
     p_teca_variant_array red_count;
     p_teca_variant_array red_valid;
 
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        out_array.get(),
+    VARIANT_ARRAY_DISPATCH(out_array.get(),
 
         auto [res_array, p_res_array] = ::New<TT>(n_elem, allocator::cuda_async);
         auto [res_count, p_res_count] = ::New<TT>(n_elem_count, alloc_count);
-
         auto [sp_in_array, p_in_array] = get_cuda_accessible<CTT>(in_array);
         auto [sp_out_array, p_out_array] = get_cuda_accessible<CTT>(out_array);
-
         auto [p_count] = data<TT>(count);
 
         if (out_valid)
         {
             // update while respecting invalid/missing data
             auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem, allocator::cuda_async);
-
             auto [sp_in_valid, p_in_valid] = get_cuda_accessible<CTT_MASK>(in_valid);
             auto [sp_out_valid, p_out_valid] = get_cuda_accessible<CTT_MASK>(out_valid);
 
@@ -1000,19 +995,16 @@ int teca_cpp_temporal_reduction::internals_t::summation_operator::update_cpu(
     p_teca_variant_array red_array;
     p_teca_variant_array red_valid;
 
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        out_array.get(),
+    VARIANT_ARRAY_DISPATCH(out_array.get(),
 
         auto [sp_in_array, p_in_array] = get_cpu_accessible<CTT>(in_array);
         auto [sp_out_array, p_out_array] = get_cpu_accessible<CTT>(out_array);
-
         auto [res_array, p_res_array] = ::New<TT>(n_elem);
 
         if (out_valid)
         {
             // update, respect missing values
             auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem);
-
             auto [sp_in_valid, p_in_valid] = get_cpu_accessible<CTT_MASK>(in_valid);
             auto [sp_out_valid, p_out_valid] = get_cpu_accessible<CTT_MASK>(out_valid);
 
@@ -1084,11 +1076,9 @@ int teca_cpp_temporal_reduction::internals_t::summation_operator::update_gpu(
     p_teca_variant_array red_array;
     p_teca_variant_array red_valid;
 
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        out_array.get(),
+    VARIANT_ARRAY_DISPATCH(out_array.get(),
 
         auto [res_array, p_res_array] = ::New<TT>(n_elem, allocator::cuda_async);
-
         auto [sp_in_array, p_in_array] = get_cuda_accessible<CTT>(in_array);
         auto [sp_out_array, p_out_array] = get_cuda_accessible<CTT>(out_array);
 
@@ -1096,7 +1086,6 @@ int teca_cpp_temporal_reduction::internals_t::summation_operator::update_gpu(
         {
             // update, respect missing values
             auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem, allocator::cuda_async);
-
             auto [sp_in_valid, p_in_valid] = get_cuda_accessible<CTT_MASK>(in_valid);
             auto [sp_out_valid, p_out_valid] = get_cuda_accessible<CTT_MASK>(out_valid);
 
@@ -1157,11 +1146,9 @@ int teca_cpp_temporal_reduction::internals_t::minimum_operator::update_cpu(
     p_teca_variant_array red_array;
     p_teca_variant_array red_valid;
 
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        out_array.get(),
+    VARIANT_ARRAY_DISPATCH(out_array.get(),
 
         auto [res_array, p_res_array] = ::New<TT>(n_elem);
-
         auto [sp_in_array, p_in_array] = get_cpu_accessible<TT>(in_array);
         auto [sp_out_array, p_out_array] = get_cpu_accessible<TT>(out_array);
 
@@ -1169,7 +1156,6 @@ int teca_cpp_temporal_reduction::internals_t::minimum_operator::update_cpu(
         {
             // update, respect missing values
             auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem);
-
             auto [sp_in_valid, p_in_valid] = get_cpu_accessible<CTT_MASK>(in_valid);
             auto [sp_out_valid, p_out_valid] = get_cpu_accessible<CTT_MASK>(out_valid);
 
@@ -1243,8 +1229,7 @@ int teca_cpp_temporal_reduction::internals_t::minimum_operator::update_gpu(
     p_teca_variant_array red_array;
     p_teca_variant_array red_valid;
 
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        out_array.get(),
+    VARIANT_ARRAY_DISPATCH(out_array.get(),
 
         auto [res_array, p_res_array] = ::New<TT>(n_elem, allocator::cuda_async);
         auto [sp_in_array, p_in_array] = get_cuda_accessible<TT>(in_array);
@@ -1313,11 +1298,9 @@ int teca_cpp_temporal_reduction::internals_t::maximum_operator::update_cpu(
     p_teca_variant_array red_array;
     p_teca_variant_array red_valid;
 
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        out_array.get(),
+    VARIANT_ARRAY_DISPATCH(out_array.get(),
 
         auto [res_array, p_res_array] = ::New<TT>(n_elem);
-
         auto [sp_in_array, p_in_array] = get_cpu_accessible<CTT>(in_array);
         auto [sp_out_array, p_out_array] = get_cpu_accessible<CTT>(out_array);
 
@@ -1325,7 +1308,6 @@ int teca_cpp_temporal_reduction::internals_t::maximum_operator::update_cpu(
         {
             // update, respect missing values
             auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem);
-
             auto [sp_in_valid, p_in_valid] = get_cpu_accessible<CTT_MASK>(in_valid);
             auto [sp_out_valid, p_out_valid] = get_cpu_accessible<CTT_MASK>(out_valid);
 
@@ -1399,8 +1381,7 @@ int teca_cpp_temporal_reduction::internals_t::maximum_operator::update_gpu(
     p_teca_variant_array red_array;
     p_teca_variant_array red_valid;
 
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        out_array.get(),
+    VARIANT_ARRAY_DISPATCH(out_array.get(),
 
         auto [res_array, p_res_array] = ::New<TT>(n_elem, allocator::cuda_async);
         auto [sp_in_array, p_in_array] = get_cuda_accessible<CTT>(in_array);
@@ -1464,8 +1445,7 @@ int teca_cpp_temporal_reduction::internals_t::reduction_operator::finalize(
 
     if (out_valid)
     {
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            out_array.get(),
+        VARIANT_ARRAY_DISPATCH(out_array.get(),
 
             NT fill_value = NT(this->fill_value);
             unsigned long n_elem = out_array->size();
@@ -1525,8 +1505,7 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::finalize(
 
     p_teca_variant_array red_array;
 
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        out_array.get(),
+    VARIANT_ARRAY_DISPATCH(out_array.get(),
 
         NT fill_val = NT(this->fill_value);
 
@@ -2184,9 +2163,7 @@ const_p_teca_dataset teca_cpp_temporal_reduction::execute(
 
             bool have_vv_mask = arrays_in->has(array + "_valid");
 
-            TEMPLATE_DISPATCH(
-                teca_variant_array_impl,
-                in_array.get(),
+            VARIANT_ARRAY_DISPATCH(in_array.get(),
 
                 if (this->op == average)
                 {

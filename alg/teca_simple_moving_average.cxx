@@ -221,8 +221,7 @@ const_p_teca_dataset teca_simple_moving_average::execute(
             const_p_teca_variant_array in_a = in_arrays->get(j);
             p_teca_variant_array out_a = out_arrays->get(j);
 
-            TEMPLATE_DISPATCH(teca_variant_array_impl,
-                in_a.get(),
+            VARIANT_ARRAY_DISPATCH(in_a.get(),
 
                 auto [sp_in_a, p_in_a] = get_cpu_accessible<CTT>(in_a);
                 auto [p_out_a] = data<TT>(out_a);
@@ -238,8 +237,7 @@ const_p_teca_dataset teca_simple_moving_average::execute(
     {
         p_teca_variant_array out_a = out_arrays->get(j);
 
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            out_a.get(),
+        VARIANT_ARRAY_DISPATCH(out_a.get(),
 
             auto [p_out_a] = data<TT>(out_a);
 

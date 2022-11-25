@@ -78,8 +78,7 @@ int dispatch(p_teca_variant_array &l2_norm,
     p_teca_variant_array tmp = c0->new_instance(n_elem);
 
     // compute l2 norm
-    TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-        l2_norm.get(),
+    VARIANT_ARRAY_DISPATCH_FP(l2_norm.get(),
 
         auto [ptmp, pl2n] = data<TT>(tmp, l2_norm);
         auto [spc0, pc0] = get_cpu_accessible<CTT>(c0);
@@ -190,8 +189,7 @@ int dispatch(int device_id, p_teca_variant_array &l2_norm,
     l2_norm = c0->new_instance(n_elem, allocator::cuda_async);
 
     // compute l2 norm
-    TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-        l2_norm.get(),
+    VARIANT_ARRAY_DISPATCH_FP(l2_norm.get(),
 
         auto [pl2n] = data<TT>(l2_norm);
         auto [spc0, pc0] = get_cuda_accessible<CTT>(c0);

@@ -171,8 +171,7 @@ const_p_teca_dataset teca_table_remove_rows::execute(
     std::vector<unsigned long> valid_rows;
     valid_rows.reserve(n_rows);
 
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        mask.get(),
+    VARIANT_ARRAY_DISPATCH(mask.get(),
 
         auto [spmask, pmask] = get_cpu_accessible<CTT>(mask);
 
@@ -192,8 +191,7 @@ const_p_teca_dataset teca_table_remove_rows::execute(
         p_teca_variant_array out_col = out_table->get_column(j);
         out_col->resize(n_valid);
 
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            out_col.get(),
+        VARIANT_ARRAY_DISPATCH(out_col.get(),
 
             auto [pout] = data<TT>(out_col);
             auto [spin, pin] = get_cpu_accessible<CTT>(in_col);

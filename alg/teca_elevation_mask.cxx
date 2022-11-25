@@ -354,12 +354,12 @@ const_p_teca_dataset teca_elevation_mask::execute(
     p_teca_char_array mask = teca_char_array::New(mesh_height->size());
     char *p_mask = mask->data();
 
-    NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH(
         surface_elev.get(), _SURF,
 
         auto [sp_se, p_surface_elev] = get_cpu_accessible<CTT_SURF>(surface_elev);
 
-        NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
+        NESTED_VARIANT_ARRAY_DISPATCH(
             mesh_height.get(), _MESH,
 
             auto [sp_mh, p_mesh_height] = get_cpu_accessible<CTT_MESH>(mesh_height);

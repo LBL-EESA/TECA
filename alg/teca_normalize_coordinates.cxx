@@ -99,7 +99,7 @@ int internals::reorder(p_teca_variant_array &x_out,
     unsigned long nx = x->size();
     unsigned long x1 = nx - 1;
 
-    NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH(
         x.get(), _C,
 
         auto [spx, px] = get_cpu_accessible<CTT_C>(x);
@@ -206,7 +206,7 @@ int internals::inv_periodic_shift_x(p_teca_unsigned_long_array &map,
 {
     unsigned long nx = x->size();
 
-    NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH(
         x.get(), _C,
 
         auto [spx, px] = get_cpu_accessible<CTT_C>(x);
@@ -238,7 +238,7 @@ int internals::periodic_shift_x(p_teca_variant_array &x_out,
     unsigned long nx = x->size();
     unsigned long x1 = nx - 1;
 
-    NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH(
         x.get(), _C,
 
         auto [spx, px] = get_cpu_accessible<CTT_C>(x);
@@ -354,7 +354,7 @@ int internals::periodic_shift_x(p_teca_array_collection arrays,
         p_teca_variant_array a = arrays->get(l);
 
         p_teca_variant_array ao = a->new_instance(nxyzo);
-        NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
+        NESTED_VARIANT_ARRAY_DISPATCH(
             a.get(), _A,
 
             auto [spa, pa] = get_cpu_accessible<CTT_A>(a);
@@ -423,7 +423,7 @@ int internals::ascending_order_y(p_teca_array_collection arrays,
         // apply the transform
         p_teca_variant_array a = arrays->get(l);
         p_teca_variant_array ao = a->new_instance(nxyz);
-        NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
+        NESTED_VARIANT_ARRAY_DISPATCH(
             a.get(), _A,
 
             auto [spa, pa] = get_cpu_accessible<CTT_A>(a);

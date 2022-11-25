@@ -179,7 +179,7 @@ int main(int argc, char **argv)
     size_t n_filtered = filtered_label_id.size();
     size_t n_labels_total = va->size();
 
-    NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH_I(
         va.get(), _LABEL,
         auto [splf, p_labels_filtered] = get_cpu_accessible<CTT_LABEL>(va);
         for (size_t i = 0; i < n_filtered; ++i)

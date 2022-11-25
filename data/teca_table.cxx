@@ -180,14 +180,14 @@ int teca_table::to_stream(std::ostream &s) const
     {
         if (n_cols)
         {
-            TEMPLATE_DISPATCH(teca_variant_array_impl,
+            VARIANT_ARRAY_DISPATCH(
                 m_impl->columns->get(0).get(),
                 TT *a = dynamic_cast<TT*>(m_impl->columns->get(0).get());
                 NT v = NT();
                 a->get(j, v);
                 s << v;
                 )
-            else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
+            else VARIANT_ARRAY_DISPATCH_CASE(
                 std::string,
                 m_impl->columns->get(0).get(),
                 TT *a = dynamic_cast<TT*>(m_impl->columns->get(0).get());
@@ -197,14 +197,14 @@ int teca_table::to_stream(std::ostream &s) const
                 )
             for (unsigned int i = 1; i < n_cols; ++i)
             {
-                TEMPLATE_DISPATCH(teca_variant_array_impl,
+                VARIANT_ARRAY_DISPATCH(
                     m_impl->columns->get(i).get(),
                     TT *a = dynamic_cast<TT*>(m_impl->columns->get(i).get());
                     NT v = NT();
                     a->get(j, v);
                     s << ", " << v;
                     )
-                else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
+                else VARIANT_ARRAY_DISPATCH_CASE(
                     std::string,
                     m_impl->columns->get(i).get(),
                     TT *a = dynamic_cast<TT*>(m_impl->columns->get(i).get());
@@ -357,7 +357,7 @@ int teca_table::from_stream(std::istream &s)
     {
         // deserialize the column
         p_teca_variant_array col = cols[j];
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
+        VARIANT_ARRAY_DISPATCH(
             col.get(),
             auto [p_col] = teca_variant_array_util::data<TT>(col);
             const char *fmt = teca_string_util::scanf_tt<NT>::format();
@@ -375,7 +375,7 @@ int teca_table::from_stream(std::istream &s)
 
             }
             )
-        else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
+        else VARIANT_ARRAY_DISPATCH_CASE(
             std::string, col.get(),
             auto [p_col] = teca_variant_array_util::data<TT>(col);
             for (size_t i = 0; i < n_rows; ++i)

@@ -80,13 +80,13 @@ p_teca_variant_array apply(const const_p_teca_variant_array &arg1,
     const const_p_teca_variant_array &arg2, const const_p_teca_variant_array &arg3,
     const operator_t &op)
 {
-    NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH(
         arg1.get(), _1,
         auto [sparg1, parg1] = get_cpu_accessible<CTT_1>(arg1);
-        NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
+        NESTED_VARIANT_ARRAY_DISPATCH(
             arg2.get(), _2,
             auto [sparg2, parg2] = get_cpu_accessible<CTT_2>(arg2);
-            NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
+            NESTED_VARIANT_ARRAY_DISPATCH(
                 arg2.get(), _3,
                 auto [sparg3, parg3] = get_cpu_accessible<CTT_3>(arg3);
                 return internal::apply(arg1->size(), parg1, parg2, parg3, op);
@@ -102,10 +102,10 @@ template <typename operator_t>
 p_teca_variant_array apply_i(const const_p_teca_variant_array &larg,
     const const_p_teca_variant_array &rarg, const operator_t &op)
 {
-    NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH_I(
         larg.get(), _LEFT,
         auto [splarg, plarg] = get_cpu_accessible<CTT_LEFT>(larg);
-        NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
+        NESTED_VARIANT_ARRAY_DISPATCH_I(
             rarg.get(), _RIGHT,
             auto [sprarg, prarg] = get_cpu_accessible<CTT_RIGHT>(rarg);
             return internal::apply(larg->size(), plarg, prarg, op);
@@ -120,10 +120,10 @@ template <typename operator_t>
 p_teca_variant_array apply(const const_p_teca_variant_array &larg,
     const const_p_teca_variant_array &rarg, const operator_t &op)
 {
-    NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH(
         larg.get(), _LEFT,
         auto [splarg, plarg] = get_cpu_accessible<CTT_LEFT>(larg);
-        NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
+        NESTED_VARIANT_ARRAY_DISPATCH(
             rarg.get(), _RIGHT,
             auto [sprarg, prarg] = get_cpu_accessible<CTT_RIGHT>(rarg);
             return internal::apply(larg->size(), plarg, prarg, op);
@@ -138,7 +138,7 @@ template <typename operator_t>
 p_teca_variant_array apply(const const_p_teca_variant_array &arg,
     const operator_t &op)
 {
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
+    VARIANT_ARRAY_DISPATCH(
         arg.get(),
         auto [sparg, parg] = get_cpu_accessible<CTT>(arg);
         return internal::apply(arg->size(), parg, op);

@@ -186,8 +186,7 @@ const_p_teca_dataset teca_table_region_mask::execute(
     auto [mask, pmask] = ::New<teca_short_array>(n_rows, F);
     unsigned int nhit = 0;
 
-    TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-        x.get(),
+    VARIANT_ARRAY_DISPATCH_FP(x.get(),
 
         assert_type<CTT>(y);
         auto [spx, px, spy, py] = get_cpu_accessible<CTT>(x, y);

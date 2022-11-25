@@ -94,7 +94,7 @@ bool append(teca_variant_array *va, PyObject *seq)
         return true;
 
     // append number objects
-    TEMPLATE_DISPATCH(teca_variant_array_impl, va,
+    VARIANT_ARRAY_DISPATCH(va,
         TT *vat = static_cast<TT*>(va);
         TECA_PY_SEQUENCE_DISPATCH_NUM(seq,
             for (long i = 0; i < n_items; ++i)
@@ -106,8 +106,7 @@ bool append(teca_variant_array *va, PyObject *seq)
             )
         )
     // append strings
-    else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
-        std::string, va,
+    else VARIANT_ARRAY_DISPATCH_CASE(std::string, va,
         TT *vat = static_cast<TT*>(va);
         TECA_PY_SEQUENCE_DISPATCH_STR(seq,
             for (long i = 0; i < n_items; ++i)
@@ -137,7 +136,7 @@ bool copy(teca_variant_array *va, PyObject *seq)
         return true;
 
     // copy numeric types
-    TEMPLATE_DISPATCH(teca_variant_array_impl, va,
+    VARIANT_ARRAY_DISPATCH(va,
         TT *vat = static_cast<TT*>(va);
         TECA_PY_SEQUENCE_DISPATCH_NUM(seq,
             vat->resize(n_items);
@@ -151,8 +150,7 @@ bool copy(teca_variant_array *va, PyObject *seq)
         )
 
     // copy strings
-    else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
-        std::string, va,
+    else VARIANT_ARRAY_DISPATCH_CASE(std::string, va,
         TT *vat = static_cast<TT*>(va);
         TECA_PY_SEQUENCE_DISPATCH_STR(seq,
             vat->resize(n_items);
@@ -220,12 +218,10 @@ PyObject *new_object(const teca_variant_array_impl<NT> *va)
 TECA_EXPORT
 PyObject *new_object(const_p_teca_variant_array va)
 {
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        va.get(),
+    VARIANT_ARRAY_DISPATCH(va.get(),
         return teca_py_sequence::new_object(static_cast<const TT*>(va.get()));
         )
-    else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
-        std::string, va.get(),
+    else VARIANT_ARRAY_DISPATCH_CASE(std::string, va.get(),
         return teca_py_sequence::new_object(static_cast<const TT*>(va.get()));
         )
 

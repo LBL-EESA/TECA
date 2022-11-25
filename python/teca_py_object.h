@@ -195,7 +195,7 @@ p_teca_variant_array new_variant_array(PyObject *obj)
 /// Copies values from the object into the variant array.
 bool copy(teca_variant_array *varr, PyObject *obj)
 {
-    TEMPLATE_DISPATCH(teca_variant_array_impl, varr,
+    VARIANT_ARRAY_DISPATCH(varr,
         TT *varrt = static_cast<TT*>(varr);
         TECA_PY_OBJECT_DISPATCH_NUM(obj,
             varrt->resize(1);
@@ -203,7 +203,7 @@ bool copy(teca_variant_array *varr, PyObject *obj)
             return true;
             )
         )
-    else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
+    else VARIANT_ARRAY_DISPATCH_CASE(
         std::string, varr,
         TT *varrt = static_cast<TT*>(varr);
         TECA_PY_OBJECT_DISPATCH_STR(obj,
@@ -212,7 +212,7 @@ bool copy(teca_variant_array *varr, PyObject *obj)
             return true;
             )
         )
-    else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
+    else VARIANT_ARRAY_DISPATCH_CASE(
         teca_metadata, varr,
         TT *varrt = static_cast<TT*>(varr);
         TECA_PY_OBJECT_DISPATCH_MD(obj,
@@ -228,14 +228,14 @@ bool copy(teca_variant_array *varr, PyObject *obj)
 /// Sets the i'th element of the variant array to the value of the object.
 bool set(teca_variant_array *varr, unsigned long i, PyObject *obj)
 {
-    TEMPLATE_DISPATCH(teca_variant_array_impl, varr,
+    VARIANT_ARRAY_DISPATCH(varr,
         TT *varrt = static_cast<TT*>(varr);
         TECA_PY_OBJECT_DISPATCH_NUM(obj,
             varrt->set(i, cpp_tt<OT>::value(obj));
             return true;
             )
         )
-    else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
+    else VARIANT_ARRAY_DISPATCH_CASE(
         std::string, varr,
         TT *varrt = static_cast<TT*>(varr);
         TECA_PY_OBJECT_DISPATCH_STR(obj,
@@ -243,7 +243,7 @@ bool set(teca_variant_array *varr, unsigned long i, PyObject *obj)
             return true;
             )
         )
-    else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
+    else VARIANT_ARRAY_DISPATCH_CASE(
         teca_metadata, varr,
         TT *varrt = static_cast<TT*>(varr);
         TECA_PY_OBJECT_DISPATCH_MD(obj,
@@ -258,14 +258,14 @@ bool set(teca_variant_array *varr, unsigned long i, PyObject *obj)
 /// Appends values from the object at the end of the variant array.
 bool append(teca_variant_array *varr, PyObject *obj)
 {
-    TEMPLATE_DISPATCH(teca_variant_array_impl, varr,
+    VARIANT_ARRAY_DISPATCH(varr,
         TT *varrt = static_cast<TT*>(varr);
         TECA_PY_OBJECT_DISPATCH_NUM(obj,
             varrt->append(static_cast<NT>(cpp_tt<OT>::value(obj)));
             return true;
             )
         )
-    else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
+    else VARIANT_ARRAY_DISPATCH_CASE(
         std::string, varr,
         TT *varrt = static_cast<TT*>(varr);
         TECA_PY_OBJECT_DISPATCH_STR(obj,
@@ -273,7 +273,7 @@ bool append(teca_variant_array *varr, PyObject *obj)
             return true;
             )
          )
-    else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
+    else VARIANT_ARRAY_DISPATCH_CASE(
         teca_metadata, varr,
         TT *varrt = static_cast<TT*>(varr);
         TECA_PY_OBJECT_DISPATCH_MD(obj,

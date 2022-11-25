@@ -420,8 +420,7 @@ const_p_teca_dataset teca_connected_components::execute(
     size_t n_elem = input_array->size();
     auto [components, p_components] = ::New<teca_short_array>(n_elem);
 
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        input_array.get(),
+    VARIANT_ARRAY_DISPATCH(input_array.get(),
 
         auto [sp_in, p_in] = get_cpu_accessible<CTT>(input_array);
 

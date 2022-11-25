@@ -160,8 +160,7 @@ int teca_tc_candidates::get_active_extent(const const_p_teca_variant_array &lat,
     }
     else
     {
-        TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-            lon.get(),
+        VARIANT_ARRAY_DISPATCH_FP(lon.get(),
 
             auto [sp_lon, p_lon] = get_cpu_accessible<CTT>(lon);
 
@@ -192,8 +191,7 @@ int teca_tc_candidates::get_active_extent(const const_p_teca_variant_array &lat,
     }
     else
     {
-        TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-            lat.get(),
+        VARIANT_ARRAY_DISPATCH_FP(lat.get(),
 
             auto [sp_lat, p_lat] = get_cpu_accessible<CTT>(lat);
 
@@ -401,13 +399,13 @@ const_p_teca_dataset teca_tc_candidates::execute(unsigned int port,
 
     std::chrono::high_resolution_clock::time_point t0, t1;
 
-    NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH_FP(
         x.get(), _COORD,
 
         assert_type<CTT_COORD>(y);
         auto [slon, lon, slat, lat] = get_cpu_accessible<CTT_COORD>(x, y);
 
-        NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+        NESTED_VARIANT_ARRAY_DISPATCH_FP(
             surface_wind_speed.get(), _VAR,
 
             // configure the candidate table

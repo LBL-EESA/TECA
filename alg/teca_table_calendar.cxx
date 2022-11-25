@@ -263,8 +263,7 @@ const_p_teca_dataset teca_table_calendar::execute(
     out_table->get_metadata().set("attributes", atrs);
 
     // make the date computations
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        time.get(),
+    VARIANT_ARRAY_DISPATCH(time.get(),
 
         auto [spct, curr_time] = get_cpu_accessible<CTT>(time);
 

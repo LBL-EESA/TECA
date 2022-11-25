@@ -479,20 +479,20 @@ const_p_teca_dataset teca_apply_tempest_remap::execute(
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wchar-subscripts"
-            NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
+            NESTED_VARIANT_ARRAY_DISPATCH_I(
                 row.get(), _IDX,
 
                 // get the source and target mesh indices
                 auto [spr, pr] = get_cpu_accessible<CTT_IDX>(row);
                 auto [spc, pc] = get_cpu_accessible<CTT_IDX>(col);
 
-                NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+                NESTED_VARIANT_ARRAY_DISPATCH_FP(
                     weights.get(), _WGT,
 
                     // get the weight matrix
                     auto [spw, pw] = get_cpu_accessible<CTT_WGT>(weights);
 
-                    NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
+                    NESTED_VARIANT_ARRAY_DISPATCH(
                         src_data.get(), _DATA,
 
                         // get the source and target data
@@ -538,7 +538,7 @@ const_p_teca_dataset teca_apply_tempest_remap::execute(
 
                 auto [sptgt_valid, ptgt_valid] = get_cpu_accessible<CTT_MASK>(tgt_valid);
 
-                NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
+                NESTED_VARIANT_ARRAY_DISPATCH(
                     tgt_data.get(), _DATA,
 
                     // get the _FillValue from the source (that's what will be declared in the

@@ -303,6 +303,35 @@ struct object_dispatch :
     NESTED_TEMPLATE_DISPATCH_FP(t, p, i, __VA_ARGS__)      \
     else NESTED_TEMPLATE_DISPATCH_I(t, p, i, __VA_ARGS__)
 
+/** shortcuts for NESTED_TEMPLATE_DISPATCH macros */
+#define NESTED_VARIANT_ARRAY_DISPATCH(p, i, ...) \
+    NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl, p, i, __VA_ARGS__)
+
+#define NESTED_VARIANT_ARRAY_DISPATCH_FP(p, i, ...) \
+    NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl, p, i, __VA_ARGS__)
+
+#define NESTED_VARIANT_ARRAY_DISPATCH_I(p, i, ...) \
+    NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl, p, i, __VA_ARGS__)
+
+#define NESTED_VARIANT_ARRAY_DISPATCH_CASE(nt, p, i, ...) \
+    TEMPLATE_DISPATCH_CASE(teca_variant_array_impl, nt, p, i, __VA_ARGS__)
+
+/** shortcuts for TEMPLATE_DISPATCH macros */
+#define VARIANT_ARRAY_DISPATCH(p, ...) \
+    TEMPLATE_DISPATCH(teca_variant_array_impl, p, __VA_ARGS__)
+
+#define VARIANT_ARRAY_DISPATCH_FP(p, ...) \
+    TEMPLATE_DISPATCH_FP(teca_variant_array_impl, p, __VA_ARGS__)
+
+#define VARIANT_ARRAY_DISPATCH_I(p, ...) \
+    TEMPLATE_DISPATCH_I(teca_variant_array_impl, p, __VA_ARGS__)
+
+#define VARIANT_ARRAY_DISPATCH_FP_SI(p, ...) \
+    TEMPLATE_DISPATCH_FP_SI(teca_variant_array_impl, p, __VA_ARGS__)
+
+#define VARIANT_ARRAY_DISPATCH_CASE(nt, p, ...) \
+    TEMPLATE_DISPATCH_CASE(teca_variant_array_impl, nt, p, __VA_ARGS__)
+
 /// @cond
 // tag for contiguous arrays, and objects that have
 // overrides in teca_binary_stream

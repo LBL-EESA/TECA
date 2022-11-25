@@ -270,8 +270,7 @@ int main(int argc, char **argv)
             size_t n = t->size();
             double *p_time = nullptr;
             std::tie(time, p_time) = ::New<teca_double_array>(n);
-            TEMPLATE_DISPATCH(teca_variant_array_impl,
-                t.get(),
+            VARIANT_ARRAY_DISPATCH(t.get(),
                 auto [sp_t, p_t] = get_cpu_accessible<CTT>(t);
                 for (size_t i = 0; i < n; ++i)
                     p_time[i] = static_cast<double>(p_t[i]);

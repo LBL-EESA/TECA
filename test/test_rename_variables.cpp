@@ -35,8 +35,7 @@ struct index_function
 
         p_teca_variant_array f = x->new_instance(nxyz);
 
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            f.get(),
+        VARIANT_ARRAY_DISPATCH(f.get(),
             auto [pf] = data<TT>(f);
             for (size_t i = 0; i < nxyz; ++i)
             {

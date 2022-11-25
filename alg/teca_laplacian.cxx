@@ -381,15 +381,13 @@ const_p_teca_dataset teca_laplacian::execute(
     p_teca_variant_array lapl = comp_0->new_instance(comp_0->size());
 
     // compute laplacian
-    NESTED_TEMPLATE_DISPATCH_FP(
-        teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH_FP(
         lon.get(), 1,
 
         assert_type<CTT1>(lat);
         auto [splo, p_lon, spla, p_lat] = get_cpu_accessible<CTT1>(lon, lat);
 
-        NESTED_TEMPLATE_DISPATCH_FP(
-            teca_variant_array_impl,
+        NESTED_VARIANT_ARRAY_DISPATCH_FP(
             lapl.get(), 2,
 
             auto [sp_comp_0, p_comp_0] = get_cpu_accessible<CTT2>(comp_0);

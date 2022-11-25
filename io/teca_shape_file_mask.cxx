@@ -264,8 +264,7 @@ const_p_teca_dataset teca_shape_file_mask::execute(
         }
 
         // test each point in the extent for intersection with the polygon
-        TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-            x.get(),
+        VARIANT_ARRAY_DISPATCH_FP(x.get(),
 
             assert_type<CTT>(y);
 

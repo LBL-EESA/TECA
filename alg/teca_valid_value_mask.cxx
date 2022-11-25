@@ -495,8 +495,7 @@ const_p_teca_dataset teca_valid_value_mask::execute(
             return nullptr;
         }
 
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            array.get(),
+        VARIANT_ARRAY_DISPATCH(array.get(),
 
             // look for a _FillValue
             bool have_fill_value = false;

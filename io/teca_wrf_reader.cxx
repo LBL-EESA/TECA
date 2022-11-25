@@ -961,8 +961,7 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
     if (!request.get("time", t))
     {
         // translate time to a time step
-        TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-            in_t.get(),
+        VARIANT_ARRAY_DISPATCH_FP(in_t.get(),
             auto [pin_t] = data<TT>(in_t);
             if (teca_coordinate_util::index_of(pin_t, 0,
                 in_t->size()-1, static_cast<NT>(t), time_step))

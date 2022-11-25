@@ -133,8 +133,7 @@ void teca_cartesian_mesh_coordinate_transform::internals_t::transform_axes(
             size_t ax_size = ax_in->size();
             ax_out = ax_in->new_instance(ax_size);
 
-            TEMPLATE_DISPATCH(teca_variant_array_impl,
-                ax_out.get(),
+            VARIANT_ARRAY_DISPATCH(ax_out.get(),
 
                 auto [sp_ax_in, p_ax_in] = get_cpu_accessible<CTT>(ax_in);
                 auto [p_ax_out] = data<TT>(ax_out);
@@ -640,8 +639,7 @@ const_p_teca_dataset teca_cartesian_mesh_coordinate_transform::execute(
     p_teca_variant_array z_out_sub = z_in->new_instance(nz);
 
     // copy the subset
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        x_out.get(),
+    VARIANT_ARRAY_DISPATCH(x_out.get(),
 
         auto [p_xo, p_yo, p_zo] = data<TT>(x_out, y_out, z_out);
         auto [p_xos, p_yos, p_zos] = data<TT>(x_out_sub, y_out_sub, z_out_sub);

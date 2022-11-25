@@ -149,8 +149,7 @@ const_p_teca_dataset teca_table_sort::execute(
     for (unsigned long i = 0; i < n_rows; ++i)
         index[i] = i;
 
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        index_col.get(),
+    VARIANT_ARRAY_DISPATCH(index_col.get(),
 
         auto [scol, col] = get_cpu_accessible<CTT>(index_col);
 
@@ -170,8 +169,7 @@ const_p_teca_dataset teca_table_sort::execute(
         const_p_teca_variant_array in_col = in_table->get_column(j);
         p_teca_variant_array out_col = out_table->get_column(j);
         out_col->resize(n_rows);
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            out_col.get(),
+        VARIANT_ARRAY_DISPATCH(out_col.get(),
 
             auto [sp_in_col, p_in_col] = get_cpu_accessible<CTT>(in_col);
             auto [p_out_col] = data<TT>(out_col);

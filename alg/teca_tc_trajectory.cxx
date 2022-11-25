@@ -416,13 +416,13 @@ const_p_teca_dataset teca_tc_trajectory::execute(
     std::chrono::high_resolution_clock::time_point t0, t1;
     t0 = std::chrono::high_resolution_clock::now();
 
-    NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH_FP(
         lon.get(), _COORD,
 
         assert_type<CTT_COORD>(lat);
         auto [sp_lon, p_lon, sp_lat, p_lat] = get_cpu_accessible<CTT_COORD>(lon, lat);
 
-        NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+        NESTED_VARIANT_ARRAY_DISPATCH_FP(
             wind_max.get(), _VAR,
 
             // configure the output

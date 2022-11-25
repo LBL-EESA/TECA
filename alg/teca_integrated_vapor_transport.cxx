@@ -356,12 +356,12 @@ int dispatch(int device_id, size_t nx, size_t ny, size_t nz,
         return -1;
     }
 
-    NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH_FP(
         p.get(), _COORDS,
 
         auto [sp_p, p_p] = get_cuda_accessible<CTT_COORDS>(p);
 
-        NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+        NESTED_VARIANT_ARRAY_DISPATCH_FP(
             wind_u.get(), _DATA,
 
             // allocate and initialize the ivt output to zero
@@ -543,12 +543,12 @@ int dispatch(size_t nx, size_t ny, size_t nz,
     p_teca_variant_array &ivt_u,
     p_teca_variant_array &ivt_v)
 {
-    NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH_FP(
         p.get(), _COORDS,
 
         auto [sp_p, p_p] = get_cpu_accessible<CTT_COORDS>(p);
 
-        NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+        NESTED_VARIANT_ARRAY_DISPATCH_FP(
             wind_u.get(), _DATA,
 
             // allocate and initialize the ivt output to zero

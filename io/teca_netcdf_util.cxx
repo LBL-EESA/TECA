@@ -875,9 +875,7 @@ int write_variable_attributes(netcdf_handle &fh, int var_id,
         assert(att_values->cpu_accessible());
 
         // handle string type
-        TEMPLATE_DISPATCH_CASE(
-            teca_variant_array_impl, std::string,
-            att_values.get(),
+        VARIANT_ARRAY_DISPATCH_CASE(std::string, att_values.get(),
             if (att_values->size() > 1)
                 continue;
             auto [patt] = data<CTT>(att_values);
@@ -897,8 +895,7 @@ int write_variable_attributes(netcdf_handle &fh, int var_id,
 #endif
             )
         // handle POD types
-        else TEMPLATE_DISPATCH(teca_variant_array_impl,
-            att_values.get(),
+        else VARIANT_ARRAY_DISPATCH(att_values.get(),
 
             size_t n_vals = att_values->size();
             int type = teca_netcdf_util::netcdf_tt<NT>::type_code;

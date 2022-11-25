@@ -296,8 +296,7 @@ const_p_teca_dataset teca_vertical_coordinate_transform::execute(
             p_teca_variant_array yo;
             p_teca_variant_array ph;
 
-            TEMPLATE_DISPATCH(teca_variant_array_impl,
-                xi.get(),
+            VARIANT_ARRAY_DISPATCH(xi.get(),
 
                 auto [tmp_xo, pxo] = ::New<TT>(nxyz);
                 auto [tmp_yo, pyo] = ::New<TT>(nxyz);

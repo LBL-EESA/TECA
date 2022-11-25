@@ -313,7 +313,7 @@ const_p_teca_dataset teca_2d_component_area::execute(
     out_metadata.set("background_id", bg_id);
 
     // calculate area of components
-    NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH_FP(
         xc.get(), _COORD,
 
         // the calculation is sensative to floating point precision
@@ -325,7 +325,7 @@ const_p_teca_dataset teca_2d_component_area::execute(
         assert_type<CTT_COORD>(yc);
         auto [sp_xc, p_xc, sp_yc, p_yc] = get_cpu_accessible<CTT_COORD>(xc, yc);
 
-        NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
+        NESTED_VARIANT_ARRAY_DISPATCH_I(
             component_array.get(), _LABEL,
 
             auto [sp_labels, p_labels] = get_cpu_accessible<CTT_LABEL>(component_array);

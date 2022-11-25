@@ -70,8 +70,7 @@ struct packed_data
 
         // compute
         // f = cos(z)*sin(x+t)*sin(y+t)
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            x.get(),
+        VARIANT_ARRAY_DISPATCH(x.get(),
 
             assert_type<CTT>(y, z);
 

@@ -39,8 +39,7 @@ int cpu_dispatch(
     size_t n_elem = input_array->size();
     auto [segmentation, p_seg] = ::New<teca_char_array>(n_elem);
 
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        input_array.get(),
+    VARIANT_ARRAY_DISPATCH(input_array.get(),
 
         auto [sp_in, p_in] = get_cpu_accessible<CTT>(input_array);
 

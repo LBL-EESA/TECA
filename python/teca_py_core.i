@@ -285,12 +285,11 @@ if get_teca_has_cupy():
             return nullptr;
         }
 
-        TEMPLATE_DISPATCH(teca_variant_array_impl, self,
+        VARIANT_ARRAY_DISPATCH(self,
             TT *varrt = static_cast<TT*>(self);
             return teca_py_object::py_tt<NT>::new_object(varrt->get(i));
             )
-        else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
-            std::string, self,
+        else VARIANT_ARRAY_DISPATCH_CASE(std::string, self,
             TT *varrt = static_cast<TT*>(self);
             return teca_py_object::py_tt<NT>::new_object(varrt->get(i));
             )
@@ -314,8 +313,7 @@ if get_teca_has_cupy():
     PyObject *get_cpu_accessible_impl()
     {
         teca_py_gil_state gil;
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            self,
+        VARIANT_ARRAY_DISPATCH(self,
 
             TT *tself = static_cast<TT*>(self);
 
@@ -356,8 +354,7 @@ if get_teca_has_cupy():
     PyObject *get_cuda_accessible_impl()
     {
         teca_py_gil_state gil;
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            self,
+        VARIANT_ARRAY_DISPATCH(self,
 
             TT *tself = static_cast<TT*>(self);
 
@@ -514,32 +511,27 @@ TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned long long, unsigned_long_long)
         }
         else if (n_elem == 1)
         {
-            TEMPLATE_DISPATCH(teca_variant_array_impl,
-                varr.get(),
+            VARIANT_ARRAY_DISPATCH(varr.get(),
                 TT *varrt = static_cast<TT*>(varr.get());
                 return teca_py_object::py_tt<NT>::new_object(varrt->get(0));
                 )
-            else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
-                std::string, varr.get(),
+            else VARIANT_ARRAY_DISPATCH_CASE(std::string, varr.get(),
                 const TT *varrt = static_cast<const TT*>(varr.get());
                 return teca_py_object::py_tt<NT>::new_object(varrt->get(0));
                 )
-            else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
-                teca_metadata, varr.get(),
+            else VARIANT_ARRAY_DISPATCH_CASE(teca_metadata, varr.get(),
                 const TT *varrt = static_cast<const TT*>(varr.get());
                 return teca_py_object::py_tt<NT>::new_object(varrt->get(0));
                 )
         }
         else if (n_elem > 1)
         {
-            TEMPLATE_DISPATCH(teca_variant_array_impl,
-                varr.get(),
+            VARIANT_ARRAY_DISPATCH(varr.get(),
                 TT *varrt = static_cast<TT*>(varr.get());
                 return reinterpret_cast<PyObject*>(
                     teca_py_array::new_object(varrt));
                 )
-            else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
-                std::string, varr.get(),
+            else VARIANT_ARRAY_DISPATCH_CASE(std::string, varr.get(),
                 const TT *varrt = static_cast<const TT*>(varr.get());
                 PyObject *list = PyList_New(n_elem);
                 for (size_t i = 0; i < n_elem; ++i)
@@ -549,8 +541,7 @@ TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned long long, unsigned_long_long)
                 }
                 return list;
                 )
-            else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
-                teca_metadata, varr.get(),
+            else VARIANT_ARRAY_DISPATCH_CASE(teca_metadata, varr.get(),
                 const TT *varrt = static_cast<const TT*>(varr.get());
                 PyObject *list = PyList_New(n_elem);
                 for (size_t i = 0; i < n_elem; ++i)
