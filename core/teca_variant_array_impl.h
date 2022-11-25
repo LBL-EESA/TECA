@@ -39,6 +39,12 @@ class teca_metadata;
 TECA_SHARED_OBJECT_TEMPLATE_FORWARD_DECL(teca_variant_array_impl)
 
 #ifndef SWIG
+template<typename T>
+using p_teca_variant_array_impl = std::shared_ptr<teca_variant_array_impl<T>>;
+
+template<typename T>
+using const_p_teca_variant_array_impl = std::shared_ptr<const teca_variant_array_impl<T>>;
+
 using teca_string_array = teca_variant_array_impl<std::string>;
 using p_teca_string_array = std::shared_ptr<teca_variant_array_impl<std::string>>;
 using const_p_teca_string_array = std::shared_ptr<const teca_variant_array_impl<std::string>>;
@@ -134,10 +140,11 @@ struct object_dispatch :
  *
  *      using NT = nt;
  *      using TT = tt<nt>;
+ *      using CTT = const tt<nt>;
  *      using PT = std::shared_ptr<tt<nt>>;
  *      using CPT = std::shared_ptr<const tt<nt>>;
- *      using SPT = std::shared_ptr<nt>;
- *      using CSPT = std::shared_ptr<const nt>;
+ *      using SP = std::shared_ptr<nt>;
+ *      using CSP = std::shared_ptr<const nt>;
  *
  */
 #define TEMPLATE_DISPATCH_CASE(tt, nt, p, ...)      \
@@ -145,10 +152,11 @@ struct object_dispatch :
     {                                               \
         using NT = nt;                              \
         using TT = tt<nt>;                          \
+        using CTT = const tt<nt>;                   \
         using PT = std::shared_ptr<tt<nt>>;         \
         using CPT = std::shared_ptr<const tt<nt>>;  \
-        using SPT = std::shared_ptr<nt>;            \
-        using CSPT = std::shared_ptr<const nt>;     \
+        using SP = std::shared_ptr<nt>;             \
+        using CSP = std::shared_ptr<const nt>;      \
         __VA_ARGS__                                 \
     }
 
@@ -165,10 +173,11 @@ struct object_dispatch :
  *
  *      using NT##i = nt;
  *      using TT##i = tt<nt>;
+ *      using CTT##i = const tt<nt>;
  *      using PT##i = std::shared_ptr<tt<nt>>;
  *      using CPT##i = std::shared_ptr<const tt<nt>>;
- *      using SPT##i = std::shared_ptr<nt>;
- *      using CSPT##i = std::shared_ptr<const nt>;
+ *      using SP##i = std::shared_ptr<nt>;
+ *      using CSP##i = std::shared_ptr<const nt>;
  *
  */
 #define NESTED_TEMPLATE_DISPATCH_CASE(tt, nt, p, i, ...)    \
@@ -176,10 +185,11 @@ struct object_dispatch :
     {                                                       \
         using NT##i = nt;                                   \
         using TT##i = tt<nt>;                               \
+        using CTT##i = const tt<nt>;                        \
         using PT##i = std::shared_ptr<tt<nt>>;              \
         using CPT##i = std::shared_ptr<const tt<nt>>;       \
-        using SPT##i = std::shared_ptr<nt>;                 \
-        using CSPT##i = std::shared_ptr<const nt>;          \
+        using SP##i = std::shared_ptr<nt>;                  \
+        using CSP##i = std::shared_ptr<const nt>;           \
         __VA_ARGS__                                         \
     }
 

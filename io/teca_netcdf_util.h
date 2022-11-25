@@ -17,43 +17,49 @@
 #endif
 
 /// macro to help with netcdf floating point data types
-#define NC_DISPATCH_FP(tc_, code_)                          \
-    switch (tc_)                                            \
-    {                                                       \
-    NC_DISPATCH_CASE(NC_FLOAT, float, code_)                \
-    NC_DISPATCH_CASE(NC_DOUBLE, double, code_)              \
-    default:                                                \
-        TECA_ERROR("netcdf type code_ " << tc_              \
-            << " is not a floating point type")             \
+#define NC_DISPATCH_FP(tc_, ...)                                \
+    switch (tc_)                                                \
+    {                                                           \
+    NC_DISPATCH_CASE(NC_FLOAT, float, __VA_ARGS__)              \
+    NC_DISPATCH_CASE(NC_DOUBLE, double, __VA_ARGS__)            \
+    default:                                                    \
+        TECA_ERROR("netcdf type __VA_ARGS__ " << tc_            \
+            << " is not a floating point type")                 \
     }
 
 /// macro to help with netcdf data types
-#define NC_DISPATCH(tc_, code_)                             \
-    switch (tc_)                                            \
-    {                                                       \
-    NC_DISPATCH_CASE(NC_BYTE, char, code_)                  \
-    NC_DISPATCH_CASE(NC_UBYTE, unsigned char, code_)        \
-    NC_DISPATCH_CASE(NC_CHAR, char, code_)                  \
-    NC_DISPATCH_CASE(NC_SHORT, short int, code_)            \
-    NC_DISPATCH_CASE(NC_USHORT, unsigned short int, code_)  \
-    NC_DISPATCH_CASE(NC_INT, int, code_)                    \
-    NC_DISPATCH_CASE(NC_UINT, unsigned int, code_)          \
-    NC_DISPATCH_CASE(NC_INT64, long long, code_)            \
-    NC_DISPATCH_CASE(NC_UINT64, unsigned long long, code_)  \
-    NC_DISPATCH_CASE(NC_FLOAT, float, code_)                \
-    NC_DISPATCH_CASE(NC_DOUBLE, double, code_)              \
-    default:                                                \
-        TECA_ERROR("netcdf type code " << tc_               \
-            << " is not supported")                         \
+#define NC_DISPATCH(tc_, ...)                                     \
+    switch (tc_)                                                  \
+    {                                                             \
+    NC_DISPATCH_CASE(NC_BYTE, char, __VA_ARGS__)                  \
+    NC_DISPATCH_CASE(NC_UBYTE, unsigned char, __VA_ARGS__)        \
+    NC_DISPATCH_CASE(NC_CHAR, char, __VA_ARGS__)                  \
+    NC_DISPATCH_CASE(NC_SHORT, short int, __VA_ARGS__)            \
+    NC_DISPATCH_CASE(NC_USHORT, unsigned short int, __VA_ARGS__)  \
+    NC_DISPATCH_CASE(NC_INT, int, __VA_ARGS__)                    \
+    NC_DISPATCH_CASE(NC_UINT, unsigned int, __VA_ARGS__)          \
+    NC_DISPATCH_CASE(NC_INT64, long long, __VA_ARGS__)            \
+    NC_DISPATCH_CASE(NC_UINT64, unsigned long long, __VA_ARGS__)  \
+    NC_DISPATCH_CASE(NC_FLOAT, float, __VA_ARGS__)                \
+    NC_DISPATCH_CASE(NC_DOUBLE, double, __VA_ARGS__)              \
+    default:                                                      \
+        TECA_ERROR("netcdf type code " << tc_                     \
+            << " is not supported")                               \
     }
 
 /// macro that executes code when the type code is matched.
-#define NC_DISPATCH_CASE(cc_, tt_, code_)   \
-    case cc_:                               \
-    {                                       \
-        using NC_T = tt_;                   \
-        code_                               \
-        break;                              \
+#define NC_DISPATCH_CASE(cc_, tt_, ...)                                     \
+    case cc_:                                                               \
+    {                                                                       \
+        using NC_NT = tt_;                                                  \
+        using NC_TT = teca_variant_array_impl<tt_>;                         \
+        using NC_CTT = const teca_variant_array_impl<tt_>;                  \
+        using NC_PT = std::shared_ptr<teca_variant_array_impl<tt_>>;        \
+        using NC_CPT = std::shared_ptr<const teca_variant_array_impl<tt_>>; \
+        using NC_SP = std::shared_ptr<tt_>;                                 \
+        using NC_CSP = std::shared_ptr<const tt_>;                          \
+        __VA_ARGS__                                                         \
+        break;                                                              \
     }
 
 /// Codes dealing with NetCDF I/O calls
