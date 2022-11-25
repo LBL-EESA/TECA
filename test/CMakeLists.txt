@@ -349,7 +349,7 @@ teca_add_test(test_streaming_reduce_threads
 teca_add_test(test_streaming_reduce_mpi_threads
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} test_descriptive_statistics 0
-    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3.*\\.nc"
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3.historical_r1i1p1_19500101-19501231\\.nc"
     "${TECA_DATA_ROOT}/test_streaming_reduce.bin" 0 -1 4 prw
     FEATURES ${TECA_HAS_UDUNITS} ${TECA_HAS_NETCDF} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
@@ -542,7 +542,8 @@ teca_add_test(test_event_filter
 teca_add_test(test_binary_segmentation
     SOURCES test_binary_segmentation.cpp
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
-    COMMAND test_binary_segmentation "${TECA_DATA_ROOT}/prw_hus_day_MRI.*\\.nc$"
+    COMMAND test_binary_segmentation
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3.historical_r1i1p1_19500101-19501231\\.nc"
     prw 50 75 "prw_segmentation_50-75_%t%.%e%"
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
