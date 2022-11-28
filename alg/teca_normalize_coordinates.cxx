@@ -4,6 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_coordinate_util.h"
 #include "teca_metadata_util.h"
@@ -17,6 +18,8 @@
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
 #endif
+
+using namespace teca_variant_array_util;
 
 //#define TECA_DEBUG
 
@@ -96,11 +99,10 @@ int internals::reorder(p_teca_variant_array &x_out,
     unsigned long nx = x->size();
     unsigned long x1 = nx - 1;
 
-    NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH(
         x.get(), _C,
 
-        auto spx = dynamic_cast<TT_C*>(x.get())->get_cpu_accessible();
-        const NT_C *px = spx.get();
+        auto [spx, px] = get_cpu_accessible<CTT_C>(x);
 
         // if comp(x0, x1) reverse the axis.
         // when comp is less than the output will be ascending
@@ -113,9 +115,7 @@ int internals::reorder(p_teca_variant_array &x_out,
 
         using TT_C_OUT = teca_variant_array_impl<NT_C>;
         std::shared_ptr<TT_C_OUT> xo = TT_C_OUT::New(nx);
-
-        auto spxo = xo->get_cpu_accessible();
-        NT_C *pxo = spxo.get();
+        NT_C *pxo = xo->data();
 
         pxo += x1;
         for (unsigned long i = 0; i < nx; ++i)
@@ -206,15 +206,13 @@ int internals::inv_periodic_shift_x(p_teca_unsigned_long_array &map,
 {
     unsigned long nx = x->size();
 
-    NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH(
         x.get(), _C,
 
-        auto spx = dynamic_cast<TT_C*>(x.get())->get_cpu_accessible();
-        const NT_C *px = spx.get();
+        auto [spx, px] = get_cpu_accessible<CTT_C>(x);
 
         map = teca_unsigned_long_array::New(nx);
-        auto spmap = map->get_cpu_accessible();
-        unsigned long *pmap = spmap.get();
+        unsigned long *pmap = map->data();
 
         inv_periodic_shift_x(pmap, px, nx);
 
@@ -240,11 +238,10 @@ int internals::periodic_shift_x(p_teca_variant_array &x_out,
     unsigned long nx = x->size();
     unsigned long x1 = nx - 1;
 
-    NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH(
         x.get(), _C,
 
-        auto spx = dynamic_cast<TT_C*>(x.get())->get_cpu_accessible();
-        const NT_C *px = spx.get();
+        auto [spx, px] = get_cpu_accessible<CTT_C>(x);
 
         // check that the shift is needed.
         shifted_x = (px[0] < NT_C(0));
@@ -280,15 +277,10 @@ int internals::periodic_shift_x(p_teca_variant_array &x_out,
         }
 
         p_teca_variant_array xo = x->new_instance(nx);
-
-        using TT_C_OUT = teca_variant_array_impl<NT_C>;
-        auto spxo = static_cast<TT_C_OUT*>(xo.get())->get_cpu_accessible();
-        NT_C *pxo = spxo.get();
+        auto [pxo] = data<TT_C>(xo);
 
         map = teca_unsigned_long_array::New(nx);
-
-        auto spmap = map->get_cpu_accessible();
-        unsigned long *pmap = spmap.get();
+        unsigned long *pmap = map->data();
 
         periodic_shift_x(pxo, pmap, px, nx);
 
@@ -317,21 +309,20 @@ int internals::ascending_order_y(
 }
 
 // --------------------------------------------------------------------------
-int internals::periodic_shift_x(p_teca_array_collection data,
+int internals::periodic_shift_x(p_teca_array_collection arrays,
     const teca_metadata &attributes,
     const const_p_teca_unsigned_long_array &shift_map,
     const unsigned long *extent_in,
     const unsigned long *extent_out)
 {
     // apply periodic shift in the x-direction
-    auto spmap = shift_map->get_cpu_accessible();
-    const unsigned long *pmap = spmap.get();
+    const unsigned long *pmap = shift_map->data();
 
-    unsigned int n_arrays = data->size();
+    unsigned int n_arrays = arrays->size();
     for (unsigned int l = 0; l < n_arrays; ++l)
     {
         // get the extent of the input/output array
-        const std::string &array_name = data->get_name(l);
+        const std::string &array_name = arrays->get_name(l);
         teca_metadata array_attributes;
         if (attributes.get(array_name, array_attributes))
         {
@@ -360,17 +351,14 @@ int internals::periodic_shift_x(p_teca_array_collection data,
         unsigned long nxyo = nxo*nyo;
         unsigned long nxyzo = nxyo*nzo;
 
-        p_teca_variant_array a = data->get(l);
+        p_teca_variant_array a = arrays->get(l);
 
         p_teca_variant_array ao = a->new_instance(nxyzo);
-        NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
+        NESTED_VARIANT_ARRAY_DISPATCH(
             a.get(), _A,
 
-            auto spa = static_cast<TT_A*>(a.get())->get_cpu_accessible();
-            NT_A *pa = spa.get();
-
-            auto spao = static_cast<TT_A*>(ao.get())->get_cpu_accessible();
-            NT_A *pao = spao.get();
+            auto [spa, pa] = get_cpu_accessible<CTT_A>(a);
+            auto [pao] = data<TT_A>(ao);
 
             for (unsigned long k = 0; k < nzo; ++k)
             {
@@ -381,7 +369,7 @@ int internals::periodic_shift_x(p_teca_array_collection data,
                     unsigned long jji = kki + j*nxi;
                     unsigned long jjo = kko + j*nxo;
 
-                    NT_A *par = pa + jji;
+                    const NT_A *par = pa + jji;
                     NT_A *paor = pao + jjo;
 
                     for (unsigned long i = 0; i < nxo; ++i)
@@ -392,22 +380,22 @@ int internals::periodic_shift_x(p_teca_array_collection data,
             }
             )
 
-        data->set(l, ao);
+        arrays->set(l, ao);
     }
 
     return 0;
 }
 
 // --------------------------------------------------------------------------
-int internals::ascending_order_y(p_teca_array_collection data,
+int internals::ascending_order_y(p_teca_array_collection arrays,
     const teca_metadata &attributes, const unsigned long *mesh_extent)
 {
     // for any coodinate axes that have been transformed from descending order
     // into ascending order, apply the same transform to the scalar data arrays
-    unsigned int n_arrays = data->size();
+    unsigned int n_arrays = arrays->size();
     for (unsigned int l = 0; l < n_arrays; ++l)
     {
-        const std::string &array_name = data->get_name(l);
+        const std::string &array_name = arrays->get_name(l);
 
         // get the extent of the array
         unsigned long array_extent[8] = {0ul};
@@ -433,16 +421,13 @@ int internals::ascending_order_y(p_teca_array_collection data,
         unsigned long y1 = ny - 1;
 
         // apply the transform
-        p_teca_variant_array a = data->get(l);
+        p_teca_variant_array a = arrays->get(l);
         p_teca_variant_array ao = a->new_instance(nxyz);
-        NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
+        NESTED_VARIANT_ARRAY_DISPATCH(
             a.get(), _A,
 
-            auto spa = static_cast<TT_A*>(a.get())->get_cpu_accessible();
-            NT_A *pa = spa.get();
-
-            auto spao = static_cast<TT_A*>(ao.get())->get_cpu_accessible();
-            NT_A *pao = spao.get();
+            auto [spa, pa] = get_cpu_accessible<CTT_A>(a);
+            auto [pao] = ::data<TT_A>(ao);
 
             for (unsigned long k = 0; k < nz; ++k)
             {
@@ -451,14 +436,14 @@ int internals::ascending_order_y(p_teca_array_collection data,
                 {
                     unsigned long jj = kk + j*nx;
                     unsigned long jjo = kk + (y1 - j)*nx;
-                    NT_A *par = pa + jj;
+                    const NT_A *par = pa + jj;
                     NT_A *paor = pao + jjo;
                     for (unsigned long i = 0; i < nx; ++i)
                         paor[i] = par[i];
                 }
             }
             )
-        data->set(l, ao);
+        arrays->set(l, ao);
     }
 
     return 0;

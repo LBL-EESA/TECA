@@ -5,6 +5,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_array_attributes.h"
 
@@ -17,6 +18,8 @@
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
 #endif
+
+using namespace teca_variant_array_util;
 
 using std::string;
 using std::vector;
@@ -322,13 +325,11 @@ const_p_teca_dataset teca_descriptive_statistics::execute(
             return nullptr;
         }
 
-        TEMPLATE_DISPATCH(const teca_variant_array_impl,
-            dep_var.get(),
+        VARIANT_ARRAY_DISPATCH(dep_var.get(),
 
             size_t n = dep_var->size();
 
-            auto spv = static_cast<const TT*>(dep_var.get())->get_cpu_accessible();
-            const NT *pv = spv.get();
+            auto [spv, pv] = get_cpu_accessible<CTT>(dep_var);
 
             // compute stats
             NT mn = internal::min(pv, n);

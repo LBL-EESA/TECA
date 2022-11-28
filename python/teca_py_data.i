@@ -433,8 +433,7 @@ TECA_PY_CONST_CAST(teca_table)
         // numpy scalars
         TECA_PY_ARRAY_SCALAR_DISPATCH(obj,
             ST val = teca_py_array::numpy_scalar_tt<ST>::value(obj);
-            TEMPLATE_DISPATCH(teca_variant_array_impl,
-                col.get(),
+            VARIANT_ARRAY_DISPATCH(col.get(),
                 TT *arr = static_cast<TT*>(col.get());
                 arr->set(r, val);
                 return Py_None;
@@ -444,9 +443,7 @@ TECA_PY_CONST_CAST(teca_table)
         TECA_PY_OBJECT_DISPATCH_NUM(obj,
             teca_py_object::cpp_tt<OT>::type val
                 = teca_py_object::cpp_tt<OT>::value(obj);
-            TEMPLATE_DISPATCH(
-                teca_variant_array_impl,
-                col.get(),
+            VARIANT_ARRAY_DISPATCH(col.get(),
                 TT *arr = static_cast<TT*>(col.get());
                 arr->set(r, val);
                 return Py_None;
@@ -455,10 +452,7 @@ TECA_PY_CONST_CAST(teca_table)
         TECA_PY_OBJECT_DISPATCH_STR(obj,
             teca_py_object::cpp_tt<OT>::type val
                 = teca_py_object::cpp_tt<OT>::value(obj);
-            TEMPLATE_DISPATCH_CASE(
-                teca_variant_array_impl,
-                std::string,
-                col.get(),
+            VARIANT_ARRAY_DISPATCH_CASE(std::string, col.get(),
                 TT *arr = static_cast<TT*>(col.get());
                 arr->set(r, val);
                 return Py_None;
@@ -506,15 +500,12 @@ TECA_PY_CONST_CAST(teca_table)
         }
 
 
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            col.get(),
+        VARIANT_ARRAY_DISPATCH(col.get(),
             TT *arr = static_cast<TT*>(col.get());
             return reinterpret_cast<PyObject*>(
                 teca_py_object::py_tt<NT>::new_object(arr->get(r)));
             )
-        TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
-            std::string,
-            col.get(),
+        VARIANT_ARRAY_DISPATCH_CASE(std::string, col.get(),
             TT *arr = static_cast<TT*>(col.get());
             return reinterpret_cast<PyObject*>(
                 teca_py_object::py_tt<NT>::new_object(arr->get(r)));
@@ -729,8 +720,7 @@ TECA_PY_CONST_CAST(teca_table)
             p_teca_variant_array tmp =
                 teca_py_array_interface::new_variant_array(obj);
 
-            TEMPLATE_DISPATCH(teca_variant_array_impl,
-                tmp.get(),
+            VARIANT_ARRAY_DISPATCH(tmp.get(),
 
                 TT *ttmp = static_cast<TT*>(tmp.get());
 

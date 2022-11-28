@@ -57,7 +57,7 @@ p_array array::new_cpu_accessible()
 // --------------------------------------------------------------------------
 p_array array::new_cuda_accessible()
 {
-    return array::New(allocator::cuda);
+    return array::New(allocator::cuda_async);
 }
 
 // --------------------------------------------------------------------------

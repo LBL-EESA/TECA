@@ -1,10 +1,14 @@
 #include "teca_table.h"
 
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_binary_stream.h"
 #include "teca_dataset_util.h"
 #include "teca_string_util.h"
 #include "teca_bad_cast.h"
+
+using namespace teca_variant_array_util;
+
 
 teca_table::impl_t::impl_t() :
     columns(teca_array_collection::New()), active_column(0)
@@ -176,14 +180,14 @@ int teca_table::to_stream(std::ostream &s) const
     {
         if (n_cols)
         {
-            TEMPLATE_DISPATCH(teca_variant_array_impl,
+            VARIANT_ARRAY_DISPATCH(
                 m_impl->columns->get(0).get(),
                 TT *a = dynamic_cast<TT*>(m_impl->columns->get(0).get());
                 NT v = NT();
                 a->get(j, v);
                 s << v;
                 )
-            else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
+            else VARIANT_ARRAY_DISPATCH_CASE(
                 std::string,
                 m_impl->columns->get(0).get(),
                 TT *a = dynamic_cast<TT*>(m_impl->columns->get(0).get());
@@ -193,14 +197,14 @@ int teca_table::to_stream(std::ostream &s) const
                 )
             for (unsigned int i = 1; i < n_cols; ++i)
             {
-                TEMPLATE_DISPATCH(teca_variant_array_impl,
+                VARIANT_ARRAY_DISPATCH(
                     m_impl->columns->get(i).get(),
                     TT *a = dynamic_cast<TT*>(m_impl->columns->get(i).get());
                     NT v = NT();
                     a->get(j, v);
                     s << ", " << v;
                     )
-                else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
+                else VARIANT_ARRAY_DISPATCH_CASE(
                     std::string,
                     m_impl->columns->get(i).get(),
                     TT *a = dynamic_cast<TT*>(m_impl->columns->get(i).get());
@@ -353,11 +357,9 @@ int teca_table::from_stream(std::istream &s)
     {
         // deserialize the column
         p_teca_variant_array col = cols[j];
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
+        VARIANT_ARRAY_DISPATCH(
             col.get(),
-            auto ca = std::static_pointer_cast<TT>(col);
-            auto pca = ca->get_cpu_accessible();
-            NT *p_col = pca.get();
+            auto [p_col] = teca_variant_array_util::data<TT>(col);
             const char *fmt = teca_string_util::scanf_tt<NT>::format();
             for (size_t i = 0; i < n_rows; ++i)
             {
@@ -373,11 +375,9 @@ int teca_table::from_stream(std::istream &s)
 
             }
             )
-        else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
+        else VARIANT_ARRAY_DISPATCH_CASE(
             std::string, col.get(),
-            auto ca = std::static_pointer_cast<TT>(col);
-            auto pca = ca->get_cpu_accessible();
-            NT *p_col = pca.get();
+            auto [p_col] = teca_variant_array_util::data<TT>(col);
             for (size_t i = 0; i < n_rows; ++i)
             {
                 const char *cell = data[i*n_cols + j];

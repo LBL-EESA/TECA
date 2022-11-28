@@ -4,6 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 
 #include <algorithm>
@@ -21,6 +22,8 @@ using std::cerr;
 using std::endl;
 using std::cos;
 using std::tan;
+
+using namespace teca_variant_array_util;
 
 //#define TECA_DEBUG
 
@@ -375,37 +378,20 @@ const_p_teca_dataset teca_laplacian::execute(
     }
 
     // allocate the output array
-    p_teca_variant_array lapl = comp_0->new_instance();
-    lapl->resize(comp_0->size());
+    p_teca_variant_array lapl = comp_0->new_instance(comp_0->size());
 
     // compute laplacian
-    NESTED_TEMPLATE_DISPATCH_FP(
-        const teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH_FP(
         lon.get(), 1,
 
-        auto sp_lon = dynamic_cast<TT1*>
-            (lon.get())->get_cpu_accessible();
+        assert_type<CTT1>(lat);
+        auto [splo, p_lon, spla, p_lat] = get_cpu_accessible<CTT1>(lon, lat);
 
-        const NT1 *p_lon = sp_lon.get();
-
-        auto sp_lat = dynamic_cast<TT1*>
-            (lat.get())->get_cpu_accessible();
-
-        const NT1 *p_lat = sp_lat.get();
-
-        NESTED_TEMPLATE_DISPATCH_FP(
-            teca_variant_array_impl,
+        NESTED_VARIANT_ARRAY_DISPATCH_FP(
             lapl.get(), 2,
 
-            auto sp_comp_0 = dynamic_cast<const TT2*>
-                (comp_0.get())->get_cpu_accessible();
-
-            const NT2 *p_comp_0 = sp_comp_0.get();
-
-            auto sp_lapl = dynamic_cast<TT2*>
-                (lapl.get())->get_cpu_accessible();
-
-            NT2 *p_lapl = sp_lapl.get();
+            auto [sp_comp_0, p_comp_0] = get_cpu_accessible<CTT2>(comp_0);
+            auto [p_lapl] = data<TT2>(lapl);
 
             ::laplacian(p_lapl, p_lon, p_lat,
                 p_comp_0, lon->size(), lat->size());

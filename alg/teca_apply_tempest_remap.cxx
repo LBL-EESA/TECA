@@ -5,8 +5,10 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_array_attributes.h"
+#include "teca_valid_value_mask.h"
 
 #include <algorithm>
 #include <iostream>
@@ -18,11 +20,10 @@
 #include <boost/program_options.hpp>
 #endif
 
-//#define TECA_DEBUG
+using namespace teca_variant_array_util;
+using allocator = teca_variant_array::allocator;
 
-// this improves compile times, but the code will only work with
-// valid value masks that arr of type teca_char_array
-#define CHAR_VALID_VALUE_MASK
+//#define TECA_DEBUG
 
 // --------------------------------------------------------------------------
 teca_apply_tempest_remap::teca_apply_tempest_remap() :
@@ -478,35 +479,25 @@ const_p_teca_dataset teca_apply_tempest_remap::execute(
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wchar-subscripts"
-            NESTED_TEMPLATE_DISPATCH_I(const teca_variant_array_impl,
-                row.get(),
-                _IDX,
+            NESTED_VARIANT_ARRAY_DISPATCH_I(
+                row.get(), _IDX,
 
                 // get the source and target mesh indices
-                auto spr = static_cast<TT_IDX*>(row.get())->get_cpu_accessible();
-                const NT_IDX *pr = spr.get();
+                auto [spr, pr] = get_cpu_accessible<CTT_IDX>(row);
+                auto [spc, pc] = get_cpu_accessible<CTT_IDX>(col);
 
-                auto spc = dynamic_cast<TT_IDX*>(col.get())->get_cpu_accessible();
-                const NT_IDX *pc = spc.get();
-
-                NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
-                    weights.get(),
-                    _WGT,
+                NESTED_VARIANT_ARRAY_DISPATCH_FP(
+                    weights.get(), _WGT,
 
                     // get the weight matrix
-                    auto spw = static_cast<TT_WGT*>(weights.get())->get_cpu_accessible();
-                    const NT_WGT *pw = spw.get();
+                    auto [spw, pw] = get_cpu_accessible<CTT_WGT>(weights);
 
-                    NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
-                        tgt_data.get(),
-                        _DATA,
+                    NESTED_VARIANT_ARRAY_DISPATCH(
+                        src_data.get(), _DATA,
 
                         // get the source and target data
-                        auto spsrc = static_cast<const TT_DATA*>(src_data.get())->get_cpu_accessible();
-                        const NT_DATA *psrc = spsrc.get();
-
-                        auto sptgt = static_cast<TT_DATA*>(tgt_data.get())->get_cpu_accessible();
-                        NT_DATA *ptgt = sptgt.get();
+                        auto [ptgt] = data<TT_DATA>(tgt_data);
+                        auto [spsrc, psrc] = get_cpu_accessible<CTT_DATA>(src_data);
 
                         if (src_valid)
                         {
@@ -519,26 +510,11 @@ const_p_teca_dataset teca_apply_tempest_remap::execute(
                                 TECA_FATAL_ERROR("Failed to get the _FillValue for \"" << array << "\"")
                                 return nullptr;
                             }
-#if defined(CHAR_VALID_VALUE_MASK)
-                            // to improve compile times assume valid value masks are char type
-                            using NT_SRC_VVM = char;
-                            using TT_SRC_VVM = const teca_variant_array_impl<NT_SRC_VVM>;
-#else
-                            NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
-                                src_valid.get(),
-                                _SRC_VVM,
-#endif
-                                auto spsrc_valid = static_cast<TT_SRC_VVM*>
-                                    (src_valid.get())->get_cpu_accessible();
+                            auto [spsv, psrc_valid] = get_cpu_accessible<CTT_MASK>(src_valid);
 
-                                const NT_SRC_VVM *psrc_valid = spsrc_valid.get();
-
-                                for (unsigned long q = 0; q < n_weights; ++q)
-                                    ptgt[pr[q]] = (psrc_valid[pc[q]] ?
-                                        (ptgt[pr[q]] + pw[q] * psrc[pc[q]]) : src_fill_value);
-#if !defined(CHAR_VALID_VALUE_MASK)
-                                )
-#endif
+                            for (unsigned long q = 0; q < n_weights; ++q)
+                                ptgt[pr[q]] = (psrc_valid[pc[q]] ?
+                                    (ptgt[pr[q]] + pw[q] * psrc[pc[q]]) : src_fill_value);
                         }
                         else
                         {
@@ -551,7 +527,6 @@ const_p_teca_dataset teca_apply_tempest_remap::execute(
                     )
                 )
 #pragma GCC diagnostic pop
-
             // un-pack the result. TempestRemap packs the result one value per valid
             // mesh point. In the GOES data some mesh points are invalid. To put the
             // mapped data back into the GOES mesh we'll need to un-pack the result.
@@ -561,61 +536,41 @@ const_p_teca_dataset teca_apply_tempest_remap::execute(
                 if (!src_valid)
                     tgt_atts.get(this->target_mask_variable, tgt_mask_atts);
 
-#if defined(CHAR_VALID_VALUE_MASK)
-                // to improve compile times assume valid value masks are char type
-                using NT_MASK = char;
-                using TT_MASK = const teca_variant_array_impl<NT_MASK>;
-#else
-                NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
-                    tgt_valid.get(),
-                    _MASK,
-#endif
-                    auto sptgt_valid = static_cast<TT_MASK*>
-                        (tgt_valid.get())->get_cpu_accessible();
+                auto [sptgt_valid, ptgt_valid] = get_cpu_accessible<CTT_MASK>(tgt_valid);
 
-                    const NT_MASK *ptgt_valid = sptgt_valid.get();
+                NESTED_VARIANT_ARRAY_DISPATCH(
+                    tgt_data.get(), _DATA,
 
-                    NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
-                        tgt_data.get(),
-                        _DATA,
+                    // get the _FillValue from the source (that's what will be declared in the
+                    // NetCDF variable attriibutes), but if it is not present get it from the
+                    // mask variable's attributes.
+                    NT_DATA fill_value = NT_DATA(0);
+                    if (src_array_atts.get("_FillValue", fill_value) &&
+                        tgt_mask_atts.get("_FillValue", fill_value))
+                    {
+                        TECA_FATAL_ERROR("Failed to get the _FillValue from \"" << array
+                            << "\" and \"" << this->target_mask_variable << "\"")
+                        return nullptr;
+                    }
 
-                        // get the _FillValue from the source (that's what will be declared in the
-                        // NetCDF variable attriibutes), but if it is not present get it from the
-                        // mask variable's attributes.
-                        NT_DATA fill_value = NT_DATA(0);
-                        if (src_array_atts.get("_FillValue", fill_value) &&
-                            tgt_mask_atts.get("_FillValue", fill_value))
+                    // get the target data, and allocate the output
+                    auto [ptgt] = data<TT_DATA>(tgt_data);
+                    auto [tgt_out, ptgt_out] = ::New<TT_DATA>(tgt_nxyz, fill_value);
+
+                    for (unsigned long q = 0, p = 0; q < tgt_nxyz; ++q)
+                    {
+                        if (ptgt_valid[q])
                         {
-                            TECA_FATAL_ERROR("Failed to get the _FillValue from \"" << array
-                                << "\" and \"" << this->target_mask_variable << "\"")
-                            return nullptr;
+                            // copy the packed data into the correct location in the output
+                            ptgt_out[q] = ptgt[p];
+
+                            // queue up the next packed location
+                            ++p;
                         }
+                    }
 
-                        auto sptgt = static_cast<TT_DATA*>(tgt_data.get())->get_cpu_accessible();
-                        NT_DATA *ptgt = sptgt.get();
-
-                        using TT_DATA_OUT = teca_variant_array_impl<NT_DATA>;
-                        auto tgt_out = TT_DATA_OUT::New(tgt_nxyz, fill_value);
-                        auto sptgt_out = tgt_out->get_cpu_accessible();
-                        NT_DATA *ptgt_out = sptgt_out.get();
-
-                        for (unsigned long q = 0, p = 0; q < tgt_nxyz; ++q)
-                        {
-                            if (ptgt_valid[q])
-                            {
-                                // copy the packed data into the correct location in the output
-                                ptgt_out[q] = ptgt[p];
-
-                                // queue up the next packed location
-                                ++p;
-                            }
-                        }
-
-                        tgt_data = tgt_out;
-                        )
-#if !defined(CHAR_VALID_VALUE_MASK)
+                    tgt_data = tgt_out;
                     )
-#endif
             }
 
             // store the result in the output mesh

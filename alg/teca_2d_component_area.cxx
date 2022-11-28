@@ -4,6 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_cartesian_mesh.h"
 
@@ -17,6 +18,10 @@
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
 #endif
+
+using namespace teca_variant_array_util;
+using allocator = teca_variant_array::allocator;
+
 
 namespace {
 
@@ -308,27 +313,22 @@ const_p_teca_dataset teca_2d_component_area::execute(
     out_metadata.set("background_id", bg_id);
 
     // calculate area of components
-    NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
-        xc.get(),
-        _COORD,
+    NESTED_VARIANT_ARRAY_DISPATCH_FP(
+        xc.get(), _COORD,
+
         // the calculation is sensative to floating point precision
         // and should be made in double precision
         using NT_CALC = double;
+        using TT_CALC = teca_double_array;
 
-        auto sp_xc = static_cast<TT_COORD*>(xc.get())->get_cpu_accessible();
-        const NT_COORD *p_xc = sp_xc.get();
+        // get the cooridnate arrays
+        assert_type<CTT_COORD>(yc);
+        auto [sp_xc, p_xc, sp_yc, p_yc] = get_cpu_accessible<CTT_COORD>(xc, yc);
 
-        auto sp_yc = static_cast<TT_COORD*>(yc.get())->get_cpu_accessible();
-        const NT_COORD *p_yc = sp_yc.get();
+        NESTED_VARIANT_ARRAY_DISPATCH_I(
+            component_array.get(), _LABEL,
 
-        NESTED_TEMPLATE_DISPATCH_I(const teca_variant_array_impl,
-            component_array.get(),
-            _LABEL,
-
-            auto sp_labels = static_cast<TT_LABEL*>
-                (component_array.get())->get_cpu_accessible();
-
-            const NT_LABEL *p_labels = sp_labels.get();
+            auto [sp_labels, p_labels] = get_cpu_accessible<CTT_LABEL>(component_array);
 
             unsigned int n_labels = 0;
 
@@ -348,11 +348,7 @@ const_p_teca_dataset teca_2d_component_area::execute(
                     NT_LABEL max_component_id = ::get_max_component_id(nxy, p_labels);
                     n_labels = max_component_id + 1;
 
-                    p_teca_variant_array_impl<NT_LABEL> tmp =
-                        teca_variant_array_impl<NT_LABEL>::New(n_labels);
-
-                    auto sptmp = tmp->get_cpu_accessible();
-                    NT_LABEL *ptmp = sptmp.get();
+                    auto [tmp, ptmp] = ::New<TT_LABEL>(n_labels);
 
                     for (unsigned int i = 0; i < n_labels; ++i)
                         ptmp[i] = NT_LABEL(i);
@@ -371,26 +367,15 @@ const_p_teca_dataset teca_2d_component_area::execute(
             else
             {
                 // use an associative array to handle any labels
-                //std::map<NT_LABEL, NT_COORD> result;
-                decltype(std::map<NT_LABEL, NT_CALC>()) result;
+                std::map<NT_LABEL, NT_CALC> result;
                 ::component_area(nx,ny, p_xc,p_yc, p_labels, result);
 
                 // transfer the result to the output
                 n_labels = result.size();
 
-                p_teca_variant_array_impl<NT_LABEL> component_id =
-                    teca_variant_array_impl<NT_LABEL>::New(n_labels);
+                auto [component_id, pcomponent_id] = ::New<TT_LABEL>(n_labels);
+                auto [component_area, pcomponent_area] = ::New<TT_CALC>(n_labels);
 
-                auto spcomponent_id = component_id->get_cpu_accessible();
-                NT_LABEL *pcomponent_id = spcomponent_id.get();
-
-                p_teca_variant_array_impl<NT_CALC> component_area =
-                    teca_variant_array_impl<NT_CALC>::New(n_labels);
-
-                auto spcomponent_area = component_area->get_cpu_accessible();
-                NT_CALC *pcomponent_area = spcomponent_area.get();
-
-                //std::map<NT_LABEL,NT_COORD>::iterator it = result.begin();
                 auto it = result.begin();
                 for (unsigned int i = 0; i < n_labels; ++i,++it)
                 {

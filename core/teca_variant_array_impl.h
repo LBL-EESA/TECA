@@ -39,6 +39,12 @@ class teca_metadata;
 TECA_SHARED_OBJECT_TEMPLATE_FORWARD_DECL(teca_variant_array_impl)
 
 #ifndef SWIG
+template<typename T>
+using p_teca_variant_array_impl = std::shared_ptr<teca_variant_array_impl<T>>;
+
+template<typename T>
+using const_p_teca_variant_array_impl = std::shared_ptr<const teca_variant_array_impl<T>>;
+
 using teca_string_array = teca_variant_array_impl<std::string>;
 using p_teca_string_array = std::shared_ptr<teca_variant_array_impl<std::string>>;
 using const_p_teca_string_array = std::shared_ptr<const teca_variant_array_impl<std::string>>;
@@ -132,16 +138,26 @@ struct object_dispatch :
  *
  * The following aliases are provided to know the type within the code to execute.
  *
- *     using TT = tt<nt>;
- *     using NT = nt;
+ *      using NT = nt;
+ *      using TT = tt<nt>;
+ *      using CTT = const tt<nt>;
+ *      using PT = std::shared_ptr<tt<nt>>;
+ *      using CPT = std::shared_ptr<const tt<nt>>;
+ *      using SP = std::shared_ptr<nt>;
+ *      using CSP = std::shared_ptr<const nt>;
  *
  */
-#define TEMPLATE_DISPATCH_CASE(tt, nt, p, body) \
-    if (dynamic_cast<tt<nt>*>(p))               \
-    {                                           \
-        using TT = tt<nt>;                      \
-        using NT = nt;                          \
-        body                                    \
+#define TEMPLATE_DISPATCH_CASE(tt, nt, p, ...)      \
+    if (dynamic_cast<const tt<nt>*>(p))             \
+    {                                               \
+        using NT = nt;                              \
+        using TT = tt<nt>;                          \
+        using CTT = const tt<nt>;                   \
+        using PT = std::shared_ptr<tt<nt>>;         \
+        using CPT = std::shared_ptr<const tt<nt>>;  \
+        using SP = std::shared_ptr<nt>;             \
+        using CSP = std::shared_ptr<const nt>;      \
+        __VA_ARGS__                                 \
     }
 
 /** Executes the code in body if p is a tt<nt> an idnetifier disambiguates type
@@ -155,49 +171,59 @@ struct object_dispatch :
  *
  * The following aliases are provided to know the type within the code to execute.
  *
- *     using TT##i = tt<nt>;
- *     using NT##i = nt;
+ *      using NT##i = nt;
+ *      using TT##i = tt<nt>;
+ *      using CTT##i = const tt<nt>;
+ *      using PT##i = std::shared_ptr<tt<nt>>;
+ *      using CPT##i = std::shared_ptr<const tt<nt>>;
+ *      using SP##i = std::shared_ptr<nt>;
+ *      using CSP##i = std::shared_ptr<const nt>;
  *
  */
-#define NESTED_TEMPLATE_DISPATCH_CASE(tt, nt, p, i, body)   \
-    if (dynamic_cast<tt<nt>*>(p))                           \
+#define NESTED_TEMPLATE_DISPATCH_CASE(tt, nt, p, i, ...)    \
+    if (dynamic_cast<const tt<nt>*>(p))                     \
     {                                                       \
-        using TT##i = tt<nt>;                               \
         using NT##i = nt;                                   \
-        body                                                \
+        using TT##i = tt<nt>;                               \
+        using CTT##i = const tt<nt>;                        \
+        using PT##i = std::shared_ptr<tt<nt>>;              \
+        using CPT##i = std::shared_ptr<const tt<nt>>;       \
+        using SP##i = std::shared_ptr<nt>;                  \
+        using CSP##i = std::shared_ptr<const nt>;           \
+        __VA_ARGS__                                         \
     }
 
 /// Executes the code in body if p is a t<nt> where nt is a floating point type
-#define TEMPLATE_DISPATCH_FP(t, p, body)        \
-    TEMPLATE_DISPATCH_CASE(t, float, p, body)   \
-    else TEMPLATE_DISPATCH_CASE(t, double, p, body)
+#define TEMPLATE_DISPATCH_FP(t, p, ...)                 \
+    TEMPLATE_DISPATCH_CASE(t, float, p, __VA_ARGS__)    \
+    else TEMPLATE_DISPATCH_CASE(t, double, p, __VA_ARGS__)
 
 /// Executes the code in body if p is a t<nt> where nt is a signed inetegral type
-#define TEMPLATE_DISPATCH_SI(t, p, body)                        \
-    TEMPLATE_DISPATCH_CASE(t, long long, p, body)               \
-    else TEMPLATE_DISPATCH_CASE(t, long, p, body)               \
-    else TEMPLATE_DISPATCH_CASE(t, int, p, body)                \
-    else TEMPLATE_DISPATCH_CASE(t, short int, p, body)          \
-    else TEMPLATE_DISPATCH_CASE(t, char, p, body)
+#define TEMPLATE_DISPATCH_SI(t, p, ...)                         \
+    TEMPLATE_DISPATCH_CASE(t, long long, p, __VA_ARGS__)        \
+    else TEMPLATE_DISPATCH_CASE(t, long, p, __VA_ARGS__)        \
+    else TEMPLATE_DISPATCH_CASE(t, int, p, __VA_ARGS__)         \
+    else TEMPLATE_DISPATCH_CASE(t, short int, p, __VA_ARGS__)   \
+    else TEMPLATE_DISPATCH_CASE(t, char, p, __VA_ARGS__)
 
 /// Executes the code in body if p is a t<nt> where nt is either a signed integral or floating point type
-#define TEMPLATE_DISPATCH_FP_SI(t, p, body)             \
-    TEMPLATE_DISPATCH_CASE(t, float, p, body)           \
-    else TEMPLATE_DISPATCH_CASE(t, double, p, body)     \
-    else TEMPLATE_DISPATCH_SI(t, p, body)
+#define TEMPLATE_DISPATCH_FP_SI(t, p, ...)                  \
+    TEMPLATE_DISPATCH_CASE(t, float, p, __VA_ARGS__)        \
+    else TEMPLATE_DISPATCH_CASE(t, double, p, __VA_ARGS__)  \
+    else TEMPLATE_DISPATCH_SI(t, p, __VA_ARGS__)
 
 /// Executes the code in body if p is a t<nt> where nt is an integral type
-#define TEMPLATE_DISPATCH_I(t, p, body)                         \
-    TEMPLATE_DISPATCH_CASE(t, long long, p, body)               \
-    else TEMPLATE_DISPATCH_CASE(t, unsigned long long, p, body) \
-    else TEMPLATE_DISPATCH_CASE(t, long, p, body)               \
-    else TEMPLATE_DISPATCH_CASE(t, int, p, body)                \
-    else TEMPLATE_DISPATCH_CASE(t, unsigned int, p, body)       \
-    else TEMPLATE_DISPATCH_CASE(t, unsigned long, p, body)      \
-    else TEMPLATE_DISPATCH_CASE(t, short int, p, body)          \
-    else TEMPLATE_DISPATCH_CASE(t, short unsigned int, p, body) \
-    else TEMPLATE_DISPATCH_CASE(t, char, p, body)               \
-    else TEMPLATE_DISPATCH_CASE(t, unsigned char, p, body)
+#define TEMPLATE_DISPATCH_I(t, p, ...)                                 \
+    TEMPLATE_DISPATCH_CASE(t, long long, p, __VA_ARGS__)               \
+    else TEMPLATE_DISPATCH_CASE(t, unsigned long long, p, __VA_ARGS__) \
+    else TEMPLATE_DISPATCH_CASE(t, long, p, __VA_ARGS__)               \
+    else TEMPLATE_DISPATCH_CASE(t, int, p, __VA_ARGS__)                \
+    else TEMPLATE_DISPATCH_CASE(t, unsigned int, p, __VA_ARGS__)       \
+    else TEMPLATE_DISPATCH_CASE(t, unsigned long, p, __VA_ARGS__)      \
+    else TEMPLATE_DISPATCH_CASE(t, short int, p, __VA_ARGS__)          \
+    else TEMPLATE_DISPATCH_CASE(t, short unsigned int, p, __VA_ARGS__) \
+    else TEMPLATE_DISPATCH_CASE(t, char, p, __VA_ARGS__)               \
+    else TEMPLATE_DISPATCH_CASE(t, unsigned char, p, __VA_ARGS__)
 
 /** A macro for accessing the typed contents of a teca_variant_array
  * @param t    container type
@@ -206,9 +232,9 @@ struct object_dispatch :
  *
  * See #TEMPLATE_DISPATCH_CASE for details.
  */
-#define TEMPLATE_DISPATCH(t, p, body)       \
-    TEMPLATE_DISPATCH_FP(t, p, body)        \
-    else TEMPLATE_DISPATCH_I(t, p, body)
+#define TEMPLATE_DISPATCH(t, p, ...)            \
+    TEMPLATE_DISPATCH_FP(t, p, __VA_ARGS__)     \
+    else TEMPLATE_DISPATCH_I(t, p, __VA_ARGS__)
 
 /** A macro for accessing the typed contents of a teca_variant_array
  * @param t    container type
@@ -217,9 +243,9 @@ struct object_dispatch :
  *
  * See #TEMPLATE_DISPATCH_CASE for details.
  */
-#define TEMPLATE_DISPATCH_OBJ(t, p, body)                               \
-    TEMPLATE_DISPATCH_CASE(t, std::string, p, body)                     \
-    else TEMPLATE_DISPATCH_CASE(t, teca_metadata, p, body)
+#define TEMPLATE_DISPATCH_OBJ(t, p, ...)                            \
+    TEMPLATE_DISPATCH_CASE(t, std::string, p, __VA_ARGS__)          \
+    else TEMPLATE_DISPATCH_CASE(t, teca_metadata, p, __VA_ARGS__)
 
 /** A macro for accessing the typed contents of a teca_variant_array
  * @param t    container type
@@ -228,9 +254,9 @@ struct object_dispatch :
  *
  * See #TEMPLATE_DISPATCH_CASE for details.
  */
-#define TEMPLATE_DISPATCH_PTR(t, p, body)                           \
-    TEMPLATE_DISPATCH_CASE(t, const_p_teca_variant_array, p, body)  \
-    else TEMPLATE_DISPATCH_CASE(t, p_teca_variant_array, p, body)
+#define TEMPLATE_DISPATCH_PTR(t, p, ...)                                    \
+    TEMPLATE_DISPATCH_CASE(t, const_p_teca_variant_array, p, __VA_ARGS__)   \
+    else TEMPLATE_DISPATCH_CASE(t, p_teca_variant_array, p, __VA_ARGS__)
 
 /** A macro for accessing the floating point typed contents of a teca_variant_array
  * @param t    container type
@@ -240,9 +266,9 @@ struct object_dispatch :
  *
  * See #NESTED_TEMPLATE_DISPATCH_CASE for details.
  */
-#define NESTED_TEMPLATE_DISPATCH_FP(t, p, i, body)              \
-    NESTED_TEMPLATE_DISPATCH_CASE(t, float, p, i, body)         \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, double, p, i, body)
+#define NESTED_TEMPLATE_DISPATCH_FP(t, p, i, ...)                       \
+    NESTED_TEMPLATE_DISPATCH_CASE(t, float, p, i, __VA_ARGS__)          \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, double, p, i, __VA_ARGS__)
 
 /** A macro for accessing the inetgral typed contents of a teca_variant_array
  * @param t    container type
@@ -252,17 +278,17 @@ struct object_dispatch :
  *
  * See #NESTED_TEMPLATE_DISPATCH_CASE for details.
  */
-#define NESTED_TEMPLATE_DISPATCH_I(t, p, i, body)                         \
-    NESTED_TEMPLATE_DISPATCH_CASE(t, long long, p, i, body)               \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, unsigned long long, p, i, body) \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, long, p, i, body)               \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, int, p, i, body)                \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, unsigned int, p, i, body)       \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, unsigned long, p, i, body)      \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, short int, p, i, body)          \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, short unsigned int, p, i, body) \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, char, p, i, body)               \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, unsigned char, p, i, body)
+#define NESTED_TEMPLATE_DISPATCH_I(t, p, i, ...)                                 \
+    NESTED_TEMPLATE_DISPATCH_CASE(t, long long, p, i, __VA_ARGS__)               \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, unsigned long long, p, i, __VA_ARGS__) \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, long, p, i, __VA_ARGS__)               \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, int, p, i, __VA_ARGS__)                \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, unsigned int, p, i, __VA_ARGS__)       \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, unsigned long, p, i, __VA_ARGS__)      \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, short int, p, i, __VA_ARGS__)          \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, short unsigned int, p, i, __VA_ARGS__) \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, char, p, i, __VA_ARGS__)               \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, unsigned char, p, i, __VA_ARGS__)
 
 /** \def NESTED_TEMPLATE_DISPATCH(t, p, i, body)
  * A macro for accessing the typed contents of a teca_variant_array
@@ -273,9 +299,38 @@ struct object_dispatch :
  *
  * See #NESTED_TEMPLATE_DISPATCH_CASE for details.
  */
-#define NESTED_TEMPLATE_DISPATCH(t, p, i, body)     \
-    NESTED_TEMPLATE_DISPATCH_FP(t, p, i, body)      \
-    else NESTED_TEMPLATE_DISPATCH_I(t, p, i, body)
+#define NESTED_TEMPLATE_DISPATCH(t, p, i, ...)             \
+    NESTED_TEMPLATE_DISPATCH_FP(t, p, i, __VA_ARGS__)      \
+    else NESTED_TEMPLATE_DISPATCH_I(t, p, i, __VA_ARGS__)
+
+/** shortcuts for NESTED_TEMPLATE_DISPATCH macros */
+#define NESTED_VARIANT_ARRAY_DISPATCH(p, i, ...) \
+    NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl, p, i, __VA_ARGS__)
+
+#define NESTED_VARIANT_ARRAY_DISPATCH_FP(p, i, ...) \
+    NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl, p, i, __VA_ARGS__)
+
+#define NESTED_VARIANT_ARRAY_DISPATCH_I(p, i, ...) \
+    NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl, p, i, __VA_ARGS__)
+
+#define NESTED_VARIANT_ARRAY_DISPATCH_CASE(nt, p, i, ...) \
+    TEMPLATE_DISPATCH_CASE(teca_variant_array_impl, nt, p, i, __VA_ARGS__)
+
+/** shortcuts for TEMPLATE_DISPATCH macros */
+#define VARIANT_ARRAY_DISPATCH(p, ...) \
+    TEMPLATE_DISPATCH(teca_variant_array_impl, p, __VA_ARGS__)
+
+#define VARIANT_ARRAY_DISPATCH_FP(p, ...) \
+    TEMPLATE_DISPATCH_FP(teca_variant_array_impl, p, __VA_ARGS__)
+
+#define VARIANT_ARRAY_DISPATCH_I(p, ...) \
+    TEMPLATE_DISPATCH_I(teca_variant_array_impl, p, __VA_ARGS__)
+
+#define VARIANT_ARRAY_DISPATCH_FP_SI(p, ...) \
+    TEMPLATE_DISPATCH_FP_SI(teca_variant_array_impl, p, __VA_ARGS__)
+
+#define VARIANT_ARRAY_DISPATCH_CASE(nt, p, ...) \
+    TEMPLATE_DISPATCH_CASE(teca_variant_array_impl, nt, p, __VA_ARGS__)
 
 /// @cond
 // tag for contiguous arrays, and objects that have
@@ -315,6 +370,9 @@ template<typename T>
 class TECA_EXPORT teca_variant_array_impl : public teca_variant_array
 {
 public:
+    using element_type = T;
+    using pointer_type = std::shared_ptr<T>;
+
     /** @name Array constructors
      * Constructs a new instance containing the templated type.
      */
@@ -763,10 +821,10 @@ public:
     T *data() { return m_data.data(); }
 
     /// returns true if the data is accessible from CUDA codes
-    int cuda_accessible() const { return m_data.cuda_accessible(); }
+    int cuda_accessible() const noexcept override { return m_data.cuda_accessible(); }
 
     /// returns true if the data is accessible from codes running on the CPU
-    int cpu_accessible() const { return m_data.cpu_accessible(); }
+    int cpu_accessible() const noexcept override { return m_data.cpu_accessible(); }
 
     /// Get the current size of the data
     unsigned long size() const noexcept override;
@@ -1223,9 +1281,9 @@ void teca_variant_array::get_dispatch(unsigned long i, T &val,
     typename std::enable_if<pod_dispatch<T>::value, T>::type*) const
 {
     // apply on POD types
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
         this,
-        TT *ptthis = dynamic_cast<TT*>(this);
+        const TT *ptthis = dynamic_cast<const TT*>(this);
         ptthis->get(i, val);
         return;
         )
@@ -1264,9 +1322,9 @@ void teca_variant_array::get_dispatch(std::vector<T> &vals,
     typename std::enable_if<pod_dispatch<T>::value, T>::type*) const
 {
     // apply on POD types
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
         this,
-        TT *ptthis = dynamic_cast<TT*>(this);
+        const TT *ptthis = dynamic_cast<const TT*>(this);
         ptthis->get(vals);
         return;
         )
@@ -1305,9 +1363,9 @@ void teca_variant_array::get_dispatch(size_t src_start, T *dest, size_t dest_sta
     typename std::enable_if<pod_dispatch<T>::value, T>::type*) const
 {
     // apply on POD types
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
         this,
-        TT *ptthis = dynamic_cast<TT*>(this);
+        const TT *ptthis = dynamic_cast<const TT*>(this);
         ptthis->get(src_start, dest, dest_start, n_elem);
         return;
         )
@@ -2029,7 +2087,7 @@ void teca_variant_array_impl<T>::set_dispatch(size_t dest_start,
     const const_p_teca_variant_array &src, size_t src_start, size_t n_elem,
     typename std::enable_if<pod_dispatch<U>::value, U>::type*)
 {
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
         src.get(),
         const_p_teca_variant_array_impl<NT> tp_src =
             std::static_pointer_cast<const teca_variant_array_impl<NT>>(src);
@@ -2072,9 +2130,9 @@ void teca_variant_array_impl<T>::assign_dispatch(
     const const_p_teca_variant_array &src, size_t src_start, size_t n_elem,
     typename std::enable_if<pod_dispatch<U>::value, U>::type*)
 {
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
         src.get(),
-        std::shared_ptr<TT> tp_src = std::static_pointer_cast<TT>(src);
+        std::shared_ptr<const TT> tp_src = std::static_pointer_cast<const TT>(src);
         this->assign_dispatch(tp_src, src_start, n_elem);
         return;
         )
@@ -2113,9 +2171,9 @@ void teca_variant_array_impl<T>::append_dispatch(
     const const_p_teca_variant_array &src, size_t src_start, size_t n_elem,
     typename std::enable_if<pod_dispatch<U>::value, U>::type*)
 {
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
         src.get(),
-        std::shared_ptr<TT> tp_src = std::static_pointer_cast<TT>(src);
+        std::shared_ptr<const TT> tp_src = std::static_pointer_cast<const TT>(src);
         this->append_dispatch(tp_src, src_start, n_elem);
         return;
         )

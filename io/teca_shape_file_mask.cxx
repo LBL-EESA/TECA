@@ -4,6 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_array_attributes.h"
 #include "teca_geometry.h"
@@ -25,11 +26,9 @@
 #include <boost/program_options.hpp>
 #endif
 
-//#define TECA_DEBUG
+using namespace teca_variant_array_util;
 
-namespace internal
-{
-}
+//#define TECA_DEBUG
 
 using poly_coord_t = double;
 
@@ -244,9 +243,7 @@ const_p_teca_dataset teca_shape_file_mask::execute(
     unsigned long ny = y->size();
     unsigned long nxy = nx*ny;
 
-    p_teca_char_array mask = teca_char_array::New(nxy, 0);
-    auto sp_mask = mask->get_cpu_accessible();
-    char *p_mask = sp_mask.get();
+    auto [mask, p_mask] = ::New<teca_char_array>(nxy, char(0));
 
     // visit each polygon
     unsigned long np = this->internals->polys.size();
@@ -267,14 +264,11 @@ const_p_teca_dataset teca_shape_file_mask::execute(
         }
 
         // test each point in the extent for intersection with the polygon
-        TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
-            x.get(),
+        VARIANT_ARRAY_DISPATCH_FP(x.get(),
 
-            auto sp_x = static_cast<TT*>(x.get())->get_cpu_accessible();
-            const NT *p_x = sp_x.get();
+            assert_type<CTT>(y);
 
-            auto sp_y = static_cast<TT*>(y.get())->get_cpu_accessible();
-            const NT *p_y = sp_y.get();
+            auto [sp_x, p_x, sp_y, p_y] = get_cpu_accessible<CTT>(x, y);
 
             for (unsigned long j = extent[2]; j <= extent[3]; ++j)
             {

@@ -18,6 +18,367 @@ Class Indices
 .. include:: _build/rst/generated_rtd_core.rst
 .. include:: _build/rst/generated_rtd_data.rst
 
+
+Data Model
+----------
+TECA's data model is an essential part of its pipeline based design. The data
+model enables normalized transfer of data in between pipeline stages. All data
+that flows through TECA's pipeline is stored in arrays.  Datasets are high
+level collections of arrays that provide context for structured access.
+Metadata is stored in dictionary like data structure that associates names with
+values or arrays.
+
+Data sets
+~~~~~~~~~
+Datasets are collections of arrays that have specific meaning when grouped
+together.
+
+Metadata
+~~~~~~~~
+Metadata is dictionary like structure that maps names to values or arrays.
+
+
+Arrays
+~~~~~~
+All data in TECA is stored in arrays. Both data sets and metadata are
+collections of arrays.
+The core data structure in TECA is the `teca_variant_array`_. This is
+a polymorphic base class that defines core API for dealing with array
+based data. It also serves as a type erasure that is the basis for
+collections of arrays of different data types. Type specific derived classes are templated
+instantiations of the `teca_variant_array_impl`_ class.
+
+A design goal of TECA is to achieve high performance to that end TECA does not
+typically restrict or prescribe the type of data to be processed. Instead the
+native data type is used. For instance if data loaded from disk has a single
+precision floating point data type, this data type is maintained as the data
+moves through a pipeline and this data type is used for the results of
+calculations. In some situations a high or low precision is useful or necessary
+in those circumstances TECA may change the data type as needed.
+For these reasons when writing data processing code one must not hard code
+for a specic type and instead write generic code that can handle any of the
+supported types.
+
+TECA's load balancing system dynamically executes codes on both the CPU and
+GPU. Thus one must make assumptions about the location of data input to a
+pipeline stage. Instead one must write generic code that can process data on
+either the CPU or GPU.
+
+The following subsections describe some of the details of how one achieves
+generic type and device agnostic pipeline stage implementations.
+
+Determining the type of an array
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Once an array is retrieved from a dataset its type must be determined and it
+must be cast into the appropriate type before its elements may be accessed. The
+approach we take is to try the polymorphic cast to each supported type, when
+the cast succeeds we know the type, and then array elements may be accessed.
+The approach is illustrated in the following code defining a function that adds
+two arrays and returns the result.
+
+.. code-block:: c++
+   :linenos:
+   :caption: Manual type selection.
+
+    p_teca_variant_array add_cpu(const const_p_teca_variant_array &a1,
+                                 const const_p_teca_variant_array &a2)
+    {
+        size_t n_elem = a1->size();
+
+        // allocate the output
+        p_teca_variant_array ao = a1->new_instance(n_elem);
+
+        if (dynamic_cast<teca_double_array*>(a1.get())
+        {
+            // cast output and get pointer to its elements
+            ...
+            // cast inputs and get pointers to their elements
+            ...
+
+            // do the calculation
+            for (size_t i = 0; i < n_elem; ++i)
+                pao[i] = pa1[i] + pa2[i];
+
+            // return the result
+            return ao;
+        }
+        else if (dynamic_cast<teca_float_array*>(a1.get())
+        {
+            // cast output and get pointer to its elements
+            ...
+            // cast inputs and get pointers to their elements
+            ...
+
+            // do the calculation
+            for (size_t i = 0; i < n_elem; ++i)
+                pao[i] = pa1[i] + pa2[i];
+
+            // return the result
+            return ao;
+        }
+        else if (dynamic_cast<teca_long_array*>(a1.get())
+        {
+            // cast output and get pointer to its elements
+            ...
+            // cast inputs and get pointers to their elements
+            ...
+
+            // do the calculation
+            for (size_t i = 0; i < n_elem; ++i)
+                pao[i] = pa1[i] + pa2[i];
+
+            // return the result
+            return ao;
+        }
+        // additional cases for all supported types
+        ...
+
+        TECA_ERROR("Failed to add the arrays unsupported type")
+        return nullptr;
+    }
+
+
+We've left some of the details out for now to keep the snippet short. We'll
+fill these details in shortly. Once the inputs' types are known we down cast,
+access the elements, and perform the calculation.
+
+Notice that the code is nearly idential for each different type. Because TECA
+supports all ISO C++ floating point and integer types as well as a numbr of
+higher level types such as std::string, this approach would be quite cumbersome
+to use in practice if it could not be automated. TECA provides the
+`VARIANT_ARRAY_DISPATCH` macro to automate type selection and apply a snippet
+of code for each supprted type. Here is the example modified to use
+the dispatch macros.
+
+
+.. code-block:: c++
+   :linenos:
+   :caption: Automatine type selection with the VARIANT_ARRAY_DISPATCH macro.
+
+    p_teca_variant_array add_cpu(const const_p_teca_variant_array &a1,
+                                 const const_p_teca_variant_array &a2)
+    {
+        size_t n_elem = a1->size();
+
+        // allocate the output
+        p_teca_variant_array ao = a1->new_instance(n_elem);
+
+        // select array type and apply code to each supported type
+        VARIANT_ARRAY_DISPATCH(a1.get(),
+
+            // cast output and get pointer to its elements
+            // cast inputs and get pointers to their elements
+            ...
+
+            // do the calculation
+            for (size_t i = 0; i < n_elem; ++i)
+                pao[i] = pa1[i] + pa2[i];
+
+            // return the result
+            return ao;
+            )
+
+        TECA_ERROR("Failed to add the arrays unsupported type")
+        return nullptr;
+    }
+
+
+The dispatch macros have substantially simplified the type selection process.
+The macro expands into a sequnce of conditions one for each supported type with
+the user provided code applied to each type.
+
+To perfrom the casts and declare pointers we need to know the array's type Not
+shown yet is how inside the user provided code one can know the type that was
+found. This is done through a sieries of type aliases that are defined inside
+each expansion. The aliases defined in the following table are used to know the
+detected element type as well as a number of other useful compound types
+derived from it.
+
++-----------+---------------------------------------------------+
+| **Alias** | **Description**                                   |
++-----------+---------------------------------------------------+
+| NT        | The array's element type                          |
++-----------+---------------------------------------------------+
+| TT        | The variant array type                            |
++-----------+---------------------------------------------------+
+| CTT       | The const form of the variant array type          |
++-----------+---------------------------------------------------+
+| PT        | The type of variant array pointer                 |
++-----------+---------------------------------------------------+
+| CPT       | The const form type of variant array pointer      |
++-----------+---------------------------------------------------+
+| SP        | The element shared pointer type                   |
++-----------+---------------------------------------------------+
+| CSP       | The const form of the element shared pointer type |
++-----------+---------------------------------------------------+
+
+Accessing the elements of input arrays
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Once the type of the array is known, the array will be cast to that type, and
+its elements will be accessed and the calculations made.  The variant array
+implements so called accessiblilty methods that are used to access an array's
+elements when the location of the data, either CPU or GPU, is unknown.  The
+accessibility methods declare where, either CPU or GPU, we intend to perform the
+calculations and internally will move data if it is not
+already present. When data is moved
+temporary buffers are used. This has two important consequences. First,
+accessibility functions return smart pointers. The returned smart point must be
+held for as long as we need access to the array's elements. Once the smart
+pointer is released, th array's elements are no longer safe to access. Doing so
+may result in a nasty crash. Second, data accessed through the accessibility
+methods should not be modified. This is because it may or may not be modifying
+the array's contents, depending on if a temporary buffer was used or not.
+Modifying an array's contents is discussed below.
+
+TECA provides a number of conveneince functions simplifing use of the
+accessibility methods these functions do the following: perform a cast to a
+typed variant array, call array's the accessibility method, and get a raw
+pointer to th array's elemnts for use in calculations.
+
+
+.. code-block:: c++
+   :linenos:
+   :caption: Accessing inputs with read access.
+
+    p_teca_variant_array add_cpu(const const_p_teca_variant_array &a1,
+                                 const const_p_teca_variant_array &a2)
+    {
+        size_t n_elem = a1->size();
+
+        // allocate the output
+        p_teca_variant_array ao = a1->new_instance(n_elem);
+
+        // select array type and apply code to each supported type
+        VARIANT_ARRAY_DISPATCH(a1.get(),
+
+            // cast output and get pointer to its elements
+            ...
+
+            // cast inputs and get pointers to their elements
+            assert_type<TT>(a2);
+            auto [spa1, pa1] = get_cpu_accessible<TT>(a1);
+            auto [spa2, pa1] = get_cpu_accessible<TT>(a2);
+
+            // do the calculation
+            for (size_t i = 0; i < n_elem; ++i)
+                pao[i] = pa1[i] + pa2[i];
+
+            // return the result
+            return ao;
+            )
+
+        TECA_ERROR("Failed to add the arrays unsupported type")
+        return nullptr;
+    }
+
+
+Note here that because we are assuming that the input arrays are the same type
+we've also called the convenience method to check the type of the second array.
+It is often the case that we will need to deal with multiple input types. This
+is described below.
+
+Accessing the elements of output arrays
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The results of our calculations are returned in arrays we allocate. Accessing
+output array's elements is  handled differently than for the inputs. This is
+because when we allocate the array ourselves, we must declare where(CPU or GPU)
+it will be allocated, and hence there is no need for temporary buffers. The
+smart pointers used to manage temporary buffers are relatively cheap but not
+free. Overheads include smart poiinter's constructor calls to malloc which
+synchronize threads.  When we know the array's location we can skip this step
+and access internal data directly.
+
+
+.. code-block:: c++
+   :linenos:
+   :caption: Accessing outputs with write access.
+
+    p_teca_variant_array add_cpu(const const_p_teca_variant_array &a1,
+                                 const const_p_teca_variant_array &a2)
+    {
+        size_t n_elem = a1->size();
+
+        // allocate the output
+        p_teca_variant_array ao = a1->new_instance(n_elem);
+
+        // select array type and apply code to each supported type
+        VARIANT_ARRAY_DISPATCH(a1.get(),
+
+            // cast output and get pointer to its elements
+            auto [pao] = data<TT>(ao);
+
+            // cast inputs and get pointers to their elements
+            assert_type<CTT>(a2);
+            auto [spa1, pa1] = get_cpu_accessible<CTT>(a1);
+            auto [spa2, pa1] = get_cpu_accessible<CTT>(a2);
+
+            // do the calculation
+            for (size_t i = 0; i < n_elem; ++i)
+                pao[i] = pa1[i] + pa2[i];
+
+            // return the result
+            return ao;
+            )
+
+        TECA_ERROR("Failed to add the arrays unsupported type")
+        return nullptr;
+    }
+
+
+Accessing data for use on the GPU
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TECA's load balancers automatically assign each thread a CPU core or a CPU core
+and a GPU. When assigned a GPU it is important that calculations be made using
+the assigend device. Here we show the changes needed to calculate on the GPU.
+Generally speaking the steps needed to access data on the GPU are to:
+
+# Activate the assigned device.
+# Declare that we will access input data on the GPU. Data will be moved for us if needed.
+# Allocate the output data on the assigned device and get a raw pointer to it.
+# launch the kernel that perfroms the calculation.
+
+Here is the example modified for calculation on the GPU.
+
+
+.. code-block:: c++
+   :linenos:
+   :caption: Accessing data on the GPU.
+
+    p_teca_variant_array add_cuda(const const_p_teca_variant_array &a1,
+                                  const const_p_teca_variant_array &a2)
+    {
+        size_t n_elem = a1->size();
+
+        // allocate the output
+        p_teca_variant_array ao = a1->new_instance(n_elem, allocator::cuda_async);
+
+        // select array type and apply code to each supported type
+        VARIANT_ARRAY_DISPATCH(a1.get(),
+
+            // cast output and get pointer to its elements
+            auto [pao] = data<TT>(ao);
+
+            // cast inputs and get pointers to their elements
+            assert_type<CTT>(a2);
+            auto [spa1, pa1] = get_cuda_accessible<CTT>(a1);
+            auto [spa2, pa1] = get_cuda_accessible<CTT>(a2);
+
+            // launch the kernel to do the calculation
+            ...
+
+            // return the result
+            return ao;
+            )
+
+        TECA_ERROR("Failed to add the arrays unsupported type")
+        return nullptr;
+    }
+
+
+The main changes here are specifying a GPU allocator, calling the GPU
+accessibility methods, and launching a CUDA kernel.
+
+
 Environment Variables
 ---------------------
 A number of environment variables can be used to modify the runtime behavior of
@@ -43,6 +404,7 @@ some cases these are useful in Python scripts as well.
 | TECA_DO_TEST            | If set to 0 or FALSE regression tests will update |
 |                         | the associated baseline images.                   |
 +-------------------------+---------------------------------------------------+
+
 
 Testing
 -------

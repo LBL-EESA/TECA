@@ -4,6 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_array_attributes.h"
 #include "teca_mpi_util.h"
@@ -22,6 +23,8 @@
 
 using std::cerr;
 using std::endl;
+
+using namespace teca_variant_array_util;
 
 namespace internal
 {
@@ -274,8 +277,10 @@ const_p_teca_dataset teca_apply_binary_mask::execute(
     }
 
     // apply the mask
-    NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH(
         mask_array.get(), _MASK,
+
+        auto [sp_mask, p_mask] = get_cpu_accessible<CTT_MASK>(mask_array);
 
         // loop over input variables
         for (auto& input_var : masked_variables)
@@ -294,29 +299,14 @@ const_p_teca_dataset teca_apply_binary_mask::execute(
 
             // allocate the output array
             size_t n = input_array->size();
-
             p_teca_variant_array output_array = input_array->new_instance(n);
 
-            //output_array->resize(n);
-
             // do the mask calculation
-            NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
+            NESTED_VARIANT_ARRAY_DISPATCH(
                 output_array.get(), _VAR,
 
-                auto sp_in = static_cast<const TT_VAR*>
-                    (input_array.get())->get_cpu_accessible();
-
-                const NT_VAR *p_in = sp_in.get();
-
-                auto sp_mask = static_cast<TT_MASK*>
-                    (mask_array.get())->get_cpu_accessible();
-
-                const NT_MASK *p_mask = sp_mask.get();
-
-                auto sp_out = static_cast<TT_VAR*>
-                    (output_array.get())->get_cpu_accessible();
-
-                NT_VAR *p_out = sp_out.get();
+                auto [sp_in, p_in] = get_cpu_accessible<CTT_VAR>(input_array);
+                auto [p_out] = data<TT_VAR>(output_array);
 
                 internal::apply_mask(p_out, p_mask, p_in, n);
                 )

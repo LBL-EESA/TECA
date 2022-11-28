@@ -230,7 +230,7 @@ bool append(teca_variant_array *varr, PyObject *obj)
             return true;
 
         // append
-        TEMPLATE_DISPATCH(teca_variant_array_impl, varr,
+        VARIANT_ARRAY_DISPATCH( varr,
             TT *varrt = static_cast<TT*>(varr);
             varrt->reserve(n_elem);
             TECA_PY_ARRAY_DISPATCH(arr,
@@ -267,7 +267,7 @@ bool append(teca_variant_array *varr, PyObject *obj)
     // numpy scalar
     if (PyArray_CheckScalar(obj))
     {
-        TEMPLATE_DISPATCH(teca_variant_array_impl, varr,
+        VARIANT_ARRAY_DISPATCH( varr,
             TT *varrt = static_cast<TT*>(varr);
             varrt->reserve(1);
 
@@ -307,7 +307,7 @@ bool set(teca_variant_array *varr, unsigned long i, PyObject *obj)
     // numpy scalar
     if (PyArray_CheckScalar(obj))
     {
-        TEMPLATE_DISPATCH(teca_variant_array_impl, varr,
+        VARIANT_ARRAY_DISPATCH( varr,
             TT *varrt = static_cast<TT*>(varr);
             TECA_PY_ARRAY_SCALAR_DISPATCH(obj,
                 varrt->set(i, teca_py_array::numpy_scalar_tt<ST>::value(obj));
@@ -476,7 +476,7 @@ PyArrayObject *new_object(teca_variant_array_impl<NT> *varrt, bool deep_copy = f
 TECA_EXPORT
 PyArrayObject *new_object(teca_variant_array *varr, bool deep_copy = false)
 {
-    TEMPLATE_DISPATCH(teca_variant_array_impl, varr,
+    VARIANT_ARRAY_DISPATCH(varr,
         TT *varrt = static_cast<TT*>(varr);
         return new_object(varrt);
         )

@@ -36,8 +36,8 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_variant_array)
  * public API.  Use the concrete implementation (::teca_variant_array_impl) for
  * direct access to the typed data.
  *
- * See #TEMPLATE_DISPATCH and #NESTED_TEMPLATE_DISPATCH for details on how to
- * apply type specific code to an instance of teca_variant_array.
+ * See #VARIANT_ARRAY_DISPATCH and #NESTED_VARIANT_ARRAY_DISPATCH for details
+ * on how to apply type specific code to an instance of teca_variant_array.
  */
 class TECA_EXPORT teca_variant_array : public std::enable_shared_from_this<teca_variant_array>
 {
@@ -371,6 +371,12 @@ public:
 
     /// a code for the contained data type used for serialization
     virtual unsigned int type_code() const noexcept = 0;
+
+    /// @returns true if the contents are accesisble from the CPU
+    virtual int cpu_accessible() const noexcept = 0;
+
+    /// @returns true if the contents are accesisble from CUDA
+    virtual int cuda_accessible() const noexcept = 0;
 
 private:
     template<typename T>

@@ -4,6 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_distance_function.h"
 #include "teca_saffir_simpson.h"
@@ -26,6 +27,8 @@
 
 using std::cerr;
 using std::endl;
+
+using namespace teca_variant_array_util;
 
 // --------------------------------------------------------------------------
 teca_tc_classify::teca_tc_classify() :
@@ -231,8 +234,7 @@ const_p_teca_dataset teca_tc_classify::execute(
     std::vector<unsigned long> track_starts(1, 0);
     size_t n_rows = track_ids->size();
 
-    auto spids = track_ids->get_cpu_accessible();
-    const int *pids = spids.get();
+    auto [spids, pids] = get_cpu_accessible<teca_int_array>(track_ids);
 
     for (size_t i = 1; i < n_rows; ++i)
         if (pids[i] != pids[i-1])
@@ -242,24 +244,17 @@ const_p_teca_dataset teca_tc_classify::execute(
     size_t n_tracks = track_starts.size() - 1;
 
     // record track id
-    p_teca_long_array out_ids = teca_long_array::New(n_tracks);
-
-    auto spout_ids = out_ids->get_cpu_accessible();
-    long *pout_ids = spout_ids.get();
+    auto [out_ids, pout_ids] = ::New<teca_long_array>(n_tracks);
 
     for (size_t i =0; i < n_tracks; ++i)
         pout_ids[i] = pids[track_starts[i]];
 
     // record track start time
     p_teca_variant_array start_time = time->new_instance(n_tracks);
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        start_time.get(),
+    VARIANT_ARRAY_DISPATCH(time.get(),
 
-        auto sptime = static_cast<const TT*>(time.get())->get_cpu_accessible();
-        const NT *ptime = sptime.get();
-
-        auto spstart_time = static_cast<TT*>(start_time.get())->get_cpu_accessible();
-        NT *pstart_time = spstart_time.get();
+        auto [pstart_time] = data<TT>(start_time);
+        auto [sptime, ptime] = get_cpu_accessible<CTT>(time);
 
         for (size_t i = 0; i < n_tracks; ++i)
             pstart_time[i] = ptime[track_starts[i]];
@@ -269,20 +264,11 @@ const_p_teca_dataset teca_tc_classify::execute(
     p_teca_variant_array start_x = x->new_instance(n_tracks);
     p_teca_variant_array start_y = x->new_instance(n_tracks);
 
-    TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-        start_x.get(),
+    VARIANT_ARRAY_DISPATCH_FP(x.get(),
 
-        auto spx = static_cast<const TT*>(x.get())->get_cpu_accessible();
-        const NT *px = spx.get();
-
-        auto spy = static_cast<const TT*>(y.get())->get_cpu_accessible();
-        const NT *py = spy.get();
-
-        auto spstart_x = static_cast<TT*>(start_x.get())->get_cpu_accessible();
-        NT *pstart_x = spstart_x.get();
-
-        auto spstart_y = static_cast<TT*>(start_y.get())->get_cpu_accessible();
-        NT *pstart_y = spstart_y.get();
+        assert_type<CTT>(y);
+        auto [spx, px, spy, py] = get_cpu_accessible<CTT>(x, y);
+        auto [pstart_x, pstart_y] = data<TT>(start_x, start_y);
 
         for (size_t i = 0; i < n_tracks; ++i)
         {
@@ -295,14 +281,10 @@ const_p_teca_dataset teca_tc_classify::execute(
 
     // compute the storm duration
     p_teca_variant_array duration = time->new_instance(n_tracks);
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        duration.get(),
+    VARIANT_ARRAY_DISPATCH(time.get(),
 
-        auto sptime = static_cast<const TT*>(time.get())->get_cpu_accessible();
-        const NT *ptime = sptime.get();
-
-        auto spduration = static_cast<TT*>(duration.get())->get_cpu_accessible();
-        NT *pduration = spduration.get();
+        auto [sptime, ptime] = get_cpu_accessible<CTT>(time);
+        auto [pduration] = data<TT>(duration);
 
         for (size_t i = 0; i < n_tracks; ++i)
         {
@@ -315,17 +297,11 @@ const_p_teca_dataset teca_tc_classify::execute(
     // compute the distance traveled
     p_teca_variant_array length = x->new_instance(n_tracks);
 
-    TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-        length.get(),
+    VARIANT_ARRAY_DISPATCH_FP(x.get(),
 
-        auto spx = static_cast<const TT*>(x.get())->get_cpu_accessible();
-        const NT *px = spx.get();
-
-        auto spy = static_cast<const TT*>(y.get())->get_cpu_accessible();
-        const NT *py = spy.get();
-
-        auto splength = static_cast<TT*>(length.get())->get_cpu_accessible();
-        NT *plength = splength.get();
+        assert_type<CTT>(y);
+        auto [spx, px, spy, py] = get_cpu_accessible<CTT>(x, y);
+        auto [plength] = data<TT>(length);
 
         for (size_t i = 0; i < n_tracks; ++i)
         {
@@ -346,31 +322,19 @@ const_p_teca_dataset teca_tc_classify::execute(
 
     // rank the track on Saphir-Simpson scale
     // record the max wind speed, and position of it
-    p_teca_int_array category = teca_int_array::New(n_tracks);
-    auto spcategory = category->get_cpu_accessible();
-    int *pcategory = spcategory.get();
+    auto [category, pcategory] = ::New<teca_int_array>(n_tracks);
 
-    p_teca_variant_array max_surface_wind
-        = surface_wind->new_instance(n_tracks);
+    auto [max_surface_wind_id,
+          pmax_surface_wind_id] = ::New<teca_unsigned_long_array>(n_tracks);
 
-    p_teca_unsigned_long_array max_surface_wind_id
-        = teca_unsigned_long_array::New(n_tracks);
+    p_teca_variant_array max_surface_wind;
 
-    auto spmax_surface_wind_id = max_surface_wind_id->get_cpu_accessible();
-    unsigned long *pmax_surface_wind_id = spmax_surface_wind_id.get();
+    VARIANT_ARRAY_DISPATCH_FP(surface_wind.get(),
 
-    TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-        max_surface_wind.get(),
+        NT *pmax_surface_wind = nullptr;
+        std::tie(max_surface_wind, pmax_surface_wind) = ::New<TT>(n_tracks);
 
-        auto spsurface_wind = static_cast<const TT*>
-            (surface_wind.get())->get_cpu_accessible();
-
-        const NT *psurface_wind = spsurface_wind.get();
-
-        auto spmax_surface_wind = static_cast<TT*>
-            (max_surface_wind.get())->get_cpu_accessible();
-
-        NT *pmax_surface_wind = spmax_surface_wind.get();
+        auto [spsw, psurface_wind] = get_cpu_accessible<CTT>(surface_wind);
 
         for (size_t i = 0; i < n_tracks; ++i)
         {
@@ -398,24 +362,14 @@ const_p_teca_dataset teca_tc_classify::execute(
     // location of the max surface wind
     p_teca_variant_array max_surface_wind_x = x->new_instance(n_tracks);
     p_teca_variant_array max_surface_wind_y = x->new_instance(n_tracks);
-    TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-        start_x.get(),
+    VARIANT_ARRAY_DISPATCH_FP(x.get(),
 
-        auto spx = static_cast<const TT*>(x.get())->get_cpu_accessible();
-        const NT *px = spx.get();
+        assert_type<CTT>(y);
+        auto [spx, px, spy, py] = get_cpu_accessible<CTT>(x, y);
 
-        auto spy = static_cast<const TT*>(y.get())->get_cpu_accessible();
-        const NT *py = spy.get();
-
-        auto spmax_surface_wind_x = static_cast<TT*>
-            (max_surface_wind_x.get())->get_cpu_accessible();
-
-        NT *pmax_surface_wind_x = spmax_surface_wind_x.get();
-
-        auto spmax_surface_wind_y = static_cast<TT*>
-            (max_surface_wind_y.get())->get_cpu_accessible();
-
-        NT *pmax_surface_wind_y = spmax_surface_wind_y.get();
+        auto [pmax_surface_wind_x,
+              pmax_surface_wind_y] = data<TT>(max_surface_wind_x,
+                                              max_surface_wind_y);
 
         for (size_t i = 0; i < n_tracks; ++i)
         {
@@ -427,15 +381,10 @@ const_p_teca_dataset teca_tc_classify::execute(
 
     // time of max surface wind
     p_teca_variant_array max_surface_wind_t = time->new_instance(n_tracks);
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        max_surface_wind_t.get(),
-        auto sptime = static_cast<const TT*>(time.get())->get_cpu_accessible();
-        const NT *ptime = sptime.get();
+    VARIANT_ARRAY_DISPATCH(time.get(),
 
-        auto spmax_surface_wind_t = static_cast<TT*>
-            (max_surface_wind_t.get())->get_cpu_accessible();
-
-        NT *pmax_surface_wind_t = spmax_surface_wind_t.get();
+        auto [sptime, ptime] = get_cpu_accessible<CTT>(time);
+        auto [pmax_surface_wind_t] = data<TT>(max_surface_wind_t);
 
         for (size_t i = 0; i < n_tracks; ++i)
         {
@@ -445,29 +394,17 @@ const_p_teca_dataset teca_tc_classify::execute(
         )
 
     // record the min sea level pressure
-    p_teca_variant_array min_sea_level_pressure =
-        sea_level_pressure->new_instance(n_tracks);
+    auto min_sea_level_pressure = sea_level_pressure->new_instance(n_tracks);
 
-    p_teca_unsigned_long_array min_sea_level_pressure_id
-        = teca_unsigned_long_array::New(n_tracks);
+    auto [min_sea_level_pressure_id,
+          pmin_sea_level_pressure_id] = ::New<teca_unsigned_long_array>(n_tracks);
 
-    auto spmin_sea_level_pressure_id =
-        min_sea_level_pressure_id->get_cpu_accessible();
+    VARIANT_ARRAY_DISPATCH_FP(sea_level_pressure.get(),
 
-    unsigned long *pmin_sea_level_pressure_id =
-        spmin_sea_level_pressure_id.get();
+        auto [spsea_level_pressure,
+              psea_level_pressure] = get_cpu_accessible<CTT>(sea_level_pressure);
 
-    TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-        min_sea_level_pressure.get(),
-        auto spsea_level_pressure = static_cast<const TT*>
-            (sea_level_pressure.get())->get_cpu_accessible();
-
-        const NT *psea_level_pressure = spsea_level_pressure.get();
-
-        auto spmin_sea_level_pressure = static_cast<TT*>
-            (min_sea_level_pressure.get())->get_cpu_accessible();
-
-        NT *pmin_sea_level_pressure = spmin_sea_level_pressure.get();
+        auto [pmin_sea_level_pressure] = data<TT>(min_sea_level_pressure);
 
         for (size_t i = 0; i < n_tracks; ++i)
         {
@@ -494,24 +431,14 @@ const_p_teca_dataset teca_tc_classify::execute(
     // location of the min sea level pressure
     p_teca_variant_array min_sea_level_pressure_x = x->new_instance(n_tracks);
     p_teca_variant_array min_sea_level_pressure_y = x->new_instance(n_tracks);
-    TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-        start_x.get(),
+    VARIANT_ARRAY_DISPATCH_FP(x.get(),
 
-        auto spx = static_cast<const TT*>(x.get())->get_cpu_accessible();
-        const NT *px = spx.get();
+        assert_type<CTT>(y);
+        auto [spx, px, spy, py] = get_cpu_accessible<CTT>(x, y);
 
-        auto spy = static_cast<const TT*>(y.get())->get_cpu_accessible();
-        const NT *py = spy.get();
-
-        auto spmin_sea_level_pressure_x = static_cast<TT*>
-            (min_sea_level_pressure_x.get())->get_cpu_accessible();
-
-        NT *pmin_sea_level_pressure_x = spmin_sea_level_pressure_x.get();
-
-        auto spmin_sea_level_pressure_y = static_cast<TT*>
-            (min_sea_level_pressure_y.get())->get_cpu_accessible();
-
-        NT *pmin_sea_level_pressure_y = spmin_sea_level_pressure_y.get();
+        auto [pmin_sea_level_pressure_x,
+              pmin_sea_level_pressure_y] = data<TT>(min_sea_level_pressure_x,
+                                                    min_sea_level_pressure_y);
 
         for (size_t i = 0; i < n_tracks; ++i)
         {
@@ -523,15 +450,10 @@ const_p_teca_dataset teca_tc_classify::execute(
 
     // time of min sea level pressure
     p_teca_variant_array min_sea_level_pressure_t = time->new_instance(n_tracks);
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        min_sea_level_pressure_t.get(),
-        auto sptime = static_cast<const TT*>(time.get())->get_cpu_accessible();
-        const NT *ptime = sptime.get();
+    VARIANT_ARRAY_DISPATCH(time.get(),
 
-        auto spmin_sea_level_pressure_t = static_cast<TT*>
-            (min_sea_level_pressure_t.get())->get_cpu_accessible();
-
-        NT *pmin_sea_level_pressure_t = spmin_sea_level_pressure_t.get();
+        auto [sptime, ptime] = get_cpu_accessible<CTT>(time);
+        auto [pmin_sea_level_pressure_t] = data<TT>(min_sea_level_pressure_t);
 
         for (size_t i = 0; i < n_tracks; ++i)
         {
@@ -555,22 +477,16 @@ const_p_teca_dataset teca_tc_classify::execute(
     // sustained wind speed in knots.
     p_teca_variant_array ACE = surface_wind->new_instance(n_tracks);
 
-    NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH_FP(
         time.get(), _T,
 
-        auto sptime = static_cast<TT_T*>(time.get())->get_cpu_accessible();
-        const NT_T *ptime = sptime.get();
+        auto [sptime, ptime] = get_cpu_accessible<CTT_T>(time);
 
-        NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+        NESTED_VARIANT_ARRAY_DISPATCH_FP(
             ACE.get(), _W,
 
-            auto spACE = static_cast<TT_W*>(ACE.get())->get_cpu_accessible();
-            NT_W *pACE = spACE.get();
-
-            auto spsurface_wind = static_cast<const TT_W*>
-                (surface_wind.get())->get_cpu_accessible();
-
-            const NT_W *psurface_wind = spsurface_wind.get();
+            auto [spsw, psurface_wind] = get_cpu_accessible<CTT_W>(surface_wind);
+            auto [pACE] = data<TT_W>(ACE);
 
             for (size_t i = 0; i < n_tracks; ++i)
             {
@@ -606,22 +522,16 @@ const_p_teca_dataset teca_tc_classify::execute(
     // KERRY EMANUEL, 15 NOVEMBER 2007, JOURNAL OF CLIMATE
     p_teca_variant_array PDI = surface_wind->new_instance(n_tracks);
 
-    NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH_FP(
         time.get(), _T,
 
-        auto sptime = static_cast<TT_T*>(time.get())->get_cpu_accessible();
-        const NT_T *ptime = sptime.get();
+        auto [sptime, ptime] = get_cpu_accessible<CTT_T>(time);
 
-        NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+        NESTED_VARIANT_ARRAY_DISPATCH_FP(
             PDI.get(), _W,
 
-            auto spPDI = static_cast<TT_W*>(PDI.get())->get_cpu_accessible();
-            NT_W *pPDI = spPDI.get();
-
-            auto spsurface_wind = static_cast<const TT_W*>
-                (surface_wind.get())->get_cpu_accessible();
-
-            const NT_W *psurface_wind = spsurface_wind.get();
+            auto [spsw, psurface_wind] = get_cpu_accessible<CTT_W>(surface_wind);
+            auto [pPDI] = data<TT_W>(PDI);
 
             for (size_t i = 0; i < n_tracks; ++i)
             {
@@ -699,26 +609,14 @@ const_p_teca_dataset teca_tc_classify::execute(
         }
     }
 
-    p_teca_int_array region_id = teca_int_array::New(n_tracks, -1);
-    auto spregion_id = region_id->get_cpu_accessible();
-    int *pregion_id = spregion_id.get();
+    auto [region_id, pregion_id] = ::New<teca_int_array>(n_tracks, -1);
+    auto [region_name, pregion_name] = ::New<teca_string_array>(n_tracks);
+    auto [region_long_name, pregion_long_name] = ::New<teca_string_array>(n_tracks);
 
-    p_teca_string_array region_name = teca_string_array::New(n_tracks);
-    auto spregion_name = region_name->get_cpu_accessible();
-    std::string *pregion_name = spregion_name.get();
+    VARIANT_ARRAY_DISPATCH_FP(x.get(),
 
-    p_teca_string_array region_long_name = teca_string_array::New(n_tracks);
-    auto spregion_long_name = region_long_name->get_cpu_accessible();
-    std::string *pregion_long_name = spregion_long_name.get();
-
-    TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
-        x.get(),
-
-        auto spx = static_cast<const TT*>(x.get())->get_cpu_accessible();
-        const NT *px = spx.get();
-
-        auto spy = static_cast<const TT*>(y.get())->get_cpu_accessible();
-        const NT *py = spy.get();
+        assert_type<CTT>(y);
+        auto [spx, px, spy, py] = get_cpu_accessible<CTT>(x, y);
 
         for (size_t i = 0; i < n_tracks; ++i)
         {

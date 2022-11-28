@@ -7,6 +7,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_coordinate_util.h"
 #include "teca_mpi_manager.h"
 #include "teca_system_interface.h"
@@ -33,6 +34,7 @@ using teca_calendar_util::year_iterator;
 
 using namespace std;
 using boost::program_options::value;
+using namespace teca_variant_array_util;
 
 #if defined(TECA_HAS_UDUNITS)
 // --------------------------------------------------------------------------
@@ -266,13 +268,10 @@ int main(int argc, char **argv)
         {
             // convert to double precision
             size_t n = t->size();
-            time = teca_double_array::New(n);
-            auto sp_time = time->get_cpu_accessible();
-            double *p_time = sp_time.get();
-            TEMPLATE_DISPATCH(teca_variant_array_impl,
-                t.get(),
-                auto sp_t = std::dynamic_pointer_cast<TT>(t)->get_cpu_accessible();
-                NT *p_t = sp_t.get();
+            double *p_time = nullptr;
+            std::tie(time, p_time) = ::New<teca_double_array>(n);
+            VARIANT_ARRAY_DISPATCH(t.get(),
+                auto [sp_t, p_t] = get_cpu_accessible<CTT>(t);
                 for (size_t i = 0; i < n; ++i)
                     p_time[i] = static_cast<double>(p_t[i]);
                 )
@@ -493,7 +492,7 @@ int main(int argc, char **argv)
 
             // type
             NC_DISPATCH(type,
-                at.push_back(teca_netcdf_util::netcdf_tt<NC_T>::name());
+                at.push_back(teca_netcdf_util::netcdf_tt<NC_NT>::name());
                 )
             atw = std::max<int>(atw, at.back().size() + 4);
 

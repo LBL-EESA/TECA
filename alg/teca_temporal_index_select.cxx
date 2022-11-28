@@ -4,6 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_array_attributes.h"
 
@@ -23,6 +24,9 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #endif
+
+using namespace teca_variant_array_util;
+using allocator = teca_variant_array::allocator;
 
 //#define TECA_DEBUG
 
@@ -80,8 +84,10 @@ teca_metadata teca_temporal_index_select::get_output_metadata(unsigned int port,
     // copy the incoming metadata
     teca_metadata md_out = teca_metadata(md_in[0]);
 
+    size_t n_elem = this->indices.size();
+
     // skip modifying the coordinates if no indices have been requested
-    if (! (this->indices.size() == 0) )
+    if (n_elem)
     {
         // revise the time coordinate to be the subset that was requested
         teca_metadata coords;
@@ -91,26 +97,21 @@ teca_metadata teca_temporal_index_select::get_output_metadata(unsigned int port,
             TECA_FATAL_ERROR("failed to locate target mesh coordinates")
             return md_out;
         }
-        // get the incoming time values
-        p_teca_variant_array t_out = t_in->new_instance();
+
         // create the output times by selecting times at the given indices
-        t_out->resize(this->indices.size());
-        NESTED_TEMPLATE_DISPATCH_FP(
-            teca_variant_array_impl,
-            t_in.get(), 1,
-            auto sp_t_in = dynamic_cast<TT1*>
-                (t_in.get())->get_cpu_accessible();
-            auto sp_t_out = dynamic_cast<TT1*>
-                (t_out.get())->get_cpu_accessible();
+        p_teca_variant_array t_out;
+        VARIANT_ARRAY_DISPATCH_FP(t_in.get(),
 
-            const NT1 *p_t_in = sp_t_in.get();
-            NT1 *p_t_out = sp_t_out.get();
+            auto [tmp, p_tmp] = ::New<TT>(n_elem);
+            auto [sp_t_in, p_t_in] = get_cpu_accessible<CTT>(t_in);
 
-            for ( size_t i = 0; i < this->indices.size(); ++i )
+            for ( size_t i = 0; i < n_elem; ++i )
             {
                 // set this time value
-                p_t_out[i] = p_t_in[this->indices[i]];
+                p_tmp[i] = p_t_in[this->indices[i]];
             }
+
+            t_out = tmp;
         )
 
         // overwrite the coordinates
@@ -126,8 +127,7 @@ teca_metadata teca_temporal_index_select::get_output_metadata(unsigned int port,
         }
 
         // reset the length of the time coordinate
-        md_out.set(init_key, this->indices.size());
-
+        md_out.set(init_key, n_elem);
     }
 
     // return the output metadata
@@ -165,10 +165,10 @@ std::vector<teca_metadata> teca_temporal_index_select::get_upstream_request(
             if ( i >= this->indices.size() )
             {
                 TECA_FATAL_ERROR(
-                    << "index_request_key: " << 
+                    << "index_request_key: " <<
                     index_extent[0] << ":" << index_extent[1]
                     << std::endl
-                    << "Bad request: list index " << i 
+                    << "Bad request: list index " << i
                     << " is out of bounds of the index list of size "
                     << this->indices.size())
             }
@@ -208,7 +208,6 @@ const_p_teca_dataset teca_temporal_index_select::execute(unsigned int port,
 
     std::ostringstream oss;
 
-
     // check for valid incoming data
     if (input_data.size() == 0)
     {
@@ -228,25 +227,16 @@ const_p_teca_dataset teca_temporal_index_select::execute(unsigned int port,
 
     // default to CPU operations
     int device_id = -1;
-    teca_variant_array::allocator allocator = 
-        teca_variant_array::allocator::malloc;
+    allocator alloc = allocator::malloc;
 #if defined(TECA_HAS_CUDA)
+    // if we are assigned a gpu, put the output on that device
     request.get("device_id",device_id);
-
-    // set the allocator to CUDA if that's the device the data are already on
     if ( device_id >= 0 )
     {
-        // set the CUDA device to run on
-        cudaError_t ierr = cudaSuccess;
-        if (( ierr = cudaSetDevice(device_id)) != cudaSuccess )
-        {
-            TECA_ERROR("Failed to set the CUDA device to " << device_id
-                << ". " << cudaGetErrorString(ierr))
-            return nullptr;   
-        }
+        if (teca_cuda_util::set_device(device_id))
+            return nullptr;
 
-        // set the allocator
-        allocator = teca_variant_array::allocator::cuda;
+        alloc = allocator::cuda_async;
     }
 #endif
 
@@ -270,9 +260,8 @@ const_p_teca_dataset teca_temporal_index_select::execute(unsigned int port,
         oss << "(device_id=" << device_id << "): "
             << "Mapping request " << index_extent[0] << ":" << index_extent[1]
             << " to indices " << ind_request;
-        
-        TECA_STATUS(<< oss.str())
 
+        TECA_STATUS(<< oss.str())
     }
 
     // create the output mesh
@@ -283,18 +272,17 @@ const_p_teca_dataset teca_temporal_index_select::execute(unsigned int port,
     // proceed if there are indices to remap; otherwise pass data along
     if ( this->indices.size() > 0 )
     {
-
         // get the arrays and their names
         p_teca_array_collection arrays = out_mesh->get_point_arrays();
         std::vector<std::string> array_names = arrays->get_names();
-        // pass the output mesh through if there are no arrays
-        if ( array_names.size() == 0 ) return out_mesh;
 
+        // pass the output mesh through if there are no arrays
+        if ( array_names.size() == 0 )
+            return out_mesh;
 
         // loop over the point arrays
         for ( auto& array_name : array_names)
         {
-
             // get the shape of one timestep of this array
             const_p_teca_variant_array array_in = arrays->get(array_name);
             size_t nxyz = array_in->size();
@@ -302,15 +290,13 @@ const_p_teca_dataset teca_temporal_index_select::execute(unsigned int port,
             // set the shape of the output array
             size_t nxyzt = nxyz * input_data.size();
 
-            // pre-allocate the output array on the specified device
-            p_teca_variant_array array_out = 
-                array_in->new_instance(allocator);
+            // pre-allocate the output array on the specified device sized so
+            // it can accommodate all timesteps.
+            p_teca_variant_array array_out = array_in->new_instance(nxyzt, alloc);
 
-            // resize the output array so it can accommodate all timesteps
-            array_out->resize(nxyzt);
-            
             // loop over the requests
-            for ( size_t i = 0; i < input_data.size(); ++i )
+            size_t n_steps = input_data.size();
+            for ( size_t i = 0; i < n_steps; ++i )
             {
                 // get the current timestep's data
                 p_teca_mesh tmp_data = std::static_pointer_cast<teca_mesh>
@@ -318,7 +304,7 @@ const_p_teca_dataset teca_temporal_index_select::execute(unsigned int port,
                     std::dynamic_pointer_cast<const teca_mesh>(input_data[i])));
 
                 // get the current timestep's array
-                p_teca_variant_array tmp_array = 
+                p_teca_variant_array tmp_array =
                     tmp_data->get_point_arrays()->get(array_name);
 
                 // insert data into the output array

@@ -3,12 +3,16 @@
 #include "teca_common.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_coordinate_util.h"
 #include "teca_calcalcs.h"
 
 #include <algorithm>
 
 #include <string>
+
+using namespace teca_variant_array_util;
+
 
 // TODO - With 23:59:59, sometimes we select the next day.  What is the right
 // end-of-day time so that all use cases are satisfied without selecting the
@@ -177,14 +181,8 @@ int season_iterator::initialize(const const_p_teca_variant_array &t,
     }
 
     // initialize the time range to iterate over
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
-        t.get(),
-
-        // the calendaring code is CPU only
-        auto ta = std::static_pointer_cast<TT>(t);
-        auto pta =ta->get_cpu_accessible();
-        const NT *p_t = pta.get();
-
+    VARIANT_ARRAY_DISPATCH(t.get(),
+        auto [sp_t, p_t] = get_cpu_accessible<CTT>(t);
         this->begin = time_point(first_step, p_t[first_step], this->units, this->calendar);
         this->end = time_point(last_step, p_t[last_step], this->units, this->calendar);
         )
@@ -423,14 +421,8 @@ int year_iterator::initialize(const const_p_teca_variant_array &t,
     }
 
     // current time state
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
-        t.get(),
-
-        // the calendaring code is CPU only
-        auto ta = std::static_pointer_cast<TT>(t);
-        auto pta = ta->get_cpu_accessible();
-        const NT *p_t = pta.get();
-
+    VARIANT_ARRAY_DISPATCH(t.get(),
+        auto [sp_t, p_t] = get_cpu_accessible<CTT>(t);
         this->begin = time_point(first_step, p_t[first_step], this->units, this->calendar);
         this->end = time_point(last_step, p_t[last_step], this->units, this->calendar);
         )
@@ -551,14 +543,8 @@ int month_iterator::initialize(const const_p_teca_variant_array &t,
     }
 
     // time point's to iterate between
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
-        t.get(),
-
-        // the calendaring code is CPU only
-        auto ta = std::static_pointer_cast<TT>(t);
-        auto pta =ta->get_cpu_accessible();
-        const NT *p_t = pta.get();
-
+    VARIANT_ARRAY_DISPATCH(t.get(),
+        auto [sp_t, p_t] = get_cpu_accessible<CTT>(t);
         this->begin = time_point(first_step, p_t[first_step], this->units, this->calendar);
         this->end = time_point(last_step, p_t[last_step], this->units, this->calendar);
         )
@@ -688,14 +674,8 @@ int day_iterator::initialize(const const_p_teca_variant_array &t,
     }
 
     // current time state
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
-        t.get(),
-
-        // the calendaring code is CPU only
-        auto ta = std::static_pointer_cast<TT>(t);
-        auto pta =ta->get_cpu_accessible();
-        const NT *p_t = pta.get();
-
+    VARIANT_ARRAY_DISPATCH(t.get(),
+        auto [sp_t, p_t] = get_cpu_accessible<CTT>(t);
         this->begin = time_point(first_step, p_t[first_step], this->units, this->calendar);
         this->end = time_point(last_step, p_t[last_step], this->units, this->calendar);
         )

@@ -2,6 +2,7 @@
 
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_cartesian_mesh.h"
 #include "teca_string_util.h"
@@ -12,6 +13,8 @@
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
 #endif
+
+using namespace teca_variant_array_util;
 
 namespace {
 
@@ -302,32 +305,25 @@ const_p_teca_dataset teca_component_area_filter::execute(
     }
 
     // apply the filter
-    NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
-        labels_out.get(),
-        _LABEL,
+    NESTED_VARIANT_ARRAY_DISPATCH_I(
+        labels_out.get(), _LABEL,
 
         // pointer to input/output labels
-        auto sp_labels_in = static_cast<const TT_LABEL*>(labels_in.get())->get_cpu_accessible();
-        const NT_LABEL *p_labels_in = sp_labels_in.get();
-
-        auto sp_labels_out = static_cast<TT_LABEL*>(labels_out.get())->get_cpu_accessible();
-        NT_LABEL *p_labels_out = sp_labels_out.get();
+        auto [sp_labels_in, p_labels_in] = get_cpu_accessible<CTT_LABEL>(labels_in);
+        auto [p_labels_out] = data<TT_LABEL>(labels_out);
 
         // pointer to input ids and a container to hold ids which remain
         // after the filtering operation
-        auto sp_ids_in = static_cast<const TT_LABEL*>(ids_in.get())->get_cpu_accessible();
-        const NT_LABEL *p_ids_in = sp_ids_in.get();
+        auto [sp_ids_in, p_ids_in] = get_cpu_accessible<CTT_LABEL>(ids_in);
 
         std::vector<NT_LABEL> ids_out;
 
-        NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
-            areas_in.get(),
-            _AREA,
+        NESTED_VARIANT_ARRAY_DISPATCH_FP(
+            areas_in.get(), _AREA,
 
             // pointer to the areas in and a container to hold areas which
             // remain after the filtering operation
-            auto sp_areas = static_cast<TT_AREA*>(areas_in.get())->get_cpu_accessible();
-            const NT_AREA *p_areas = sp_areas.get();
+            auto [sp_areas, p_areas] = get_cpu_accessible<CTT_AREA>(areas_in);
 
             std::vector<NT_AREA> areas_out;
 
@@ -356,7 +352,7 @@ const_p_teca_dataset teca_component_area_filter::execute(
             }
             else
             {
-                decltype(std::map<NT_LABEL, NT_LABEL>()) label_map;
+                std::map<NT_LABEL, NT_LABEL> label_map;
 
                 // construct the map from input label to output label.
                 // removing a lable from the output ammounts to applying

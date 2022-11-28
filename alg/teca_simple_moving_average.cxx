@@ -4,6 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_metadata_util.h"
 
@@ -19,6 +20,9 @@ using std::string;
 using std::vector;
 using std::cerr;
 using std::endl;
+
+using namespace teca_variant_array_util;
+using allocator = teca_variant_array::allocator;
 
 //#define TECA_DEBUG
 
@@ -200,7 +204,8 @@ const_p_teca_dataset teca_simple_moving_average::execute(
     p_teca_array_collection out_arrays = out_mesh->get_point_arrays();
 
     // initialize with a copy of the first dataset
-    out_arrays->copy(in_mesh->get_point_arrays());
+    out_arrays->copy(in_mesh->get_point_arrays(), allocator::malloc);
+
     size_t n_arrays = out_arrays->size();
     size_t n_elem = n_arrays ? out_arrays->get(0)->size() : 0;
 
@@ -216,15 +221,10 @@ const_p_teca_dataset teca_simple_moving_average::execute(
             const_p_teca_variant_array in_a = in_arrays->get(j);
             p_teca_variant_array out_a = out_arrays->get(j);
 
-            TEMPLATE_DISPATCH(
-                teca_variant_array_impl,
-                out_a.get(),
+            VARIANT_ARRAY_DISPATCH(in_a.get(),
 
-                auto sp_in_a = dynamic_cast<const TT*>(in_a.get())->get_cpu_accessible();
-                const NT *p_in_a = sp_in_a.get();
-
-                auto sp_out_a = dynamic_cast<TT*>(out_a.get())->get_cpu_accessible();
-                NT *p_out_a = sp_out_a.get();
+                auto [sp_in_a, p_in_a] = get_cpu_accessible<CTT>(in_a);
+                auto [p_out_a] = data<TT>(out_a);
 
                 for (size_t q = 0; q < n_elem; ++q)
                     p_out_a[q] += p_in_a[q];
@@ -237,12 +237,9 @@ const_p_teca_dataset teca_simple_moving_average::execute(
     {
         p_teca_variant_array out_a = out_arrays->get(j);
 
-        TEMPLATE_DISPATCH(
-            teca_variant_array_impl,
-            out_a.get(),
+        VARIANT_ARRAY_DISPATCH(out_a.get(),
 
-            auto sp_out_a = dynamic_cast<TT*>(out_a.get())->get_cpu_accessible();
-            NT *p_out_a = sp_out_a.get();
+            auto [p_out_a] = data<TT>(out_a);
 
             NT fac = static_cast<NT>(n_meshes);
 

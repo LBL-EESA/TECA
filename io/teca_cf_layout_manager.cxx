@@ -7,6 +7,7 @@
 #include "teca_array_attributes.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 
 #include <iostream>
 #include <sstream>
@@ -14,7 +15,9 @@
 #include <cerrno>
 #include <string>
 
-// --------------------------------------------------------------------------
+using namespace teca_variant_array_util;
+
+// -------------------------------------/-------------------------------------
 int teca_cf_layout_manager::create(const std::string &file_name,
     const std::string &date_format, const teca_metadata &md_in,
     int mode_flags, int use_unlimited_dim)
@@ -317,8 +320,7 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
         // define variable for the axis
         int var_id = -1;
         unsigned int var_type_code = 0;
-        TEMPLATE_DISPATCH(const teca_variant_array_impl,
-            coord_arrays[i].get(),
+        VARIANT_ARRAY_DISPATCH(coord_arrays[i].get(),
             var_type_code = teca_variant_array_code<NT>::get();
             int var_nc_type = teca_netcdf_util::netcdf_tt<NT>::type_code;
 #if !defined(HDF5_THREAD_SAFE)
@@ -600,11 +602,10 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
         size_t count = rank == 0 ? (this->dims[i] == NC_UNLIMITED ?
             unlimited_dim_actual_size : this->dims[i]) : 0;
 
-        TEMPLATE_DISPATCH(const teca_variant_array_impl,
-            coord_arrays[i].get(),
+        VARIANT_ARRAY_DISPATCH(coord_arrays[i].get(),
 
-            auto spa = static_cast<TT*>(coord_arrays[i].get())->get_cpu_accessible();
-            const NT *pa = spa.get();
+            auto [spa, pa] = get_cpu_accessible<CTT>(coord_arrays[i]);
+
             pa += starts[i];
 
 #if !defined(HDF5_THREAD_SAFE)
@@ -686,8 +687,7 @@ int teca_cf_layout_manager::write(long index,
                 }
             }
 
-            TEMPLATE_DISPATCH(const teca_variant_array_impl,
-                array.get(),
+            VARIANT_ARRAY_DISPATCH(array.get(),
 
                 unsigned int actual_type_code = teca_variant_array_code<NT>::get();
                 if (actual_type_code != declared_type_code)
@@ -699,8 +699,7 @@ int teca_cf_layout_manager::write(long index,
                     return -1;
                 }
 
-                auto spa = static_cast<TT*>(array.get())->get_cpu_accessible();
-                const NT *pa = spa.get();
+                auto [spa, pa] = get_cpu_accessible<CTT>(array);
 
 #if !defined(HDF5_THREAD_SAFE)
                 {
@@ -748,8 +747,7 @@ int teca_cf_layout_manager::write(long index,
 
             size_t counts[2] = {1, array->size()};
 
-            TEMPLATE_DISPATCH(const teca_variant_array_impl,
-                array.get(),
+            VARIANT_ARRAY_DISPATCH(array.get(),
 
                 unsigned int actual_type_code = teca_variant_array_code<NT>::get();
                 if (actual_type_code != declared_type_code)
@@ -761,8 +759,7 @@ int teca_cf_layout_manager::write(long index,
                     return -1;
                 }
 
-                auto spa = static_cast<TT*>(array.get())->get_cpu_accessible();
-                const NT *pa = spa.get();
+                auto [spa, pa] = get_cpu_accessible<CTT>(array);
 
 #if !defined(HDF5_THREAD_SAFE)
                 {
@@ -862,8 +859,7 @@ int teca_cf_layout_manager::write(const unsigned long extent[6],
                 }
             }
 
-            TEMPLATE_DISPATCH(const teca_variant_array_impl,
-                array.get(),
+            VARIANT_ARRAY_DISPATCH(array.get(),
 
                 unsigned int actual_type_code = teca_variant_array_code<NT>::get();
                 if (actual_type_code != declared_type_code)
@@ -875,8 +871,7 @@ int teca_cf_layout_manager::write(const unsigned long extent[6],
                     return -1;
                 }
 
-                auto spa = static_cast<TT*>(array.get())->get_cpu_accessible();
-                const NT *pa = spa.get();
+                auto [spa, pa] = get_cpu_accessible<CTT>(array);
 
                 // advance the pointer to the first time step that will be
                 // written by this manager
@@ -928,8 +923,7 @@ int teca_cf_layout_manager::write(const unsigned long extent[6],
             int var_id = it->second.var_id;
             unsigned int declared_type_code = it->second.type_code;
 
-            TEMPLATE_DISPATCH(const teca_variant_array_impl,
-                array.get(),
+            VARIANT_ARRAY_DISPATCH(array.get(),
 
                 unsigned int actual_type_code = teca_variant_array_code<NT>::get();
                 if (actual_type_code != declared_type_code)
@@ -941,8 +935,7 @@ int teca_cf_layout_manager::write(const unsigned long extent[6],
                     return -1;
                 }
 
-                auto spa = static_cast<TT*>(array.get())->get_cpu_accessible();
-                const NT *pa = spa.get();
+                auto [spa, pa] = get_cpu_accessible<CTT>(array);
 
                 // advance the pointer to the first time step that will be
                 // written by this manager

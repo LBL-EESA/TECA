@@ -3,6 +3,8 @@
 #include "teca_mesh.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
+#include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_array_attributes.h"
 #include "teca_string_util.h"
@@ -17,6 +19,8 @@
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
 #endif
+
+using namespace teca_variant_array_util;
 
 //#define TECA_DEBUG
 
@@ -519,17 +523,14 @@ const_p_teca_dataset teca_time_axis_convolution::execute(
             const_p_teca_array_collection in_arrays = in_mesh->get_point_arrays();
             const_p_teca_variant_array in_array = in_arrays->get(j);
 
-            TEMPLATE_DISPATCH(const teca_variant_array_impl,
-                in_array.get(),
-
-                using TT_OUT = teca_variant_array_impl<NT>;
+            VARIANT_ARRAY_DISPATCH(in_array.get(),
 
                 // allocate and initialize the output
                 if (i == 0)
                 {
                     // allocate the output array
                     n_elem = in_array->size();
-                    out_array = TT_OUT::New(n_elem, NT(0));
+                    out_array = TT::New(n_elem, NT(0));
 
                     // store it in the output mesh
                     std::string array_name =
@@ -539,11 +540,8 @@ const_p_teca_dataset teca_time_axis_convolution::execute(
                 }
 
                 // get the typed instances
-                auto sp_out = dynamic_cast<TT_OUT*>(out_array.get())->get_cpu_accessible();
-                NT *p_out = sp_out.get();
-
-                auto sp_in = dynamic_cast<TT*>(in_array.get())->get_cpu_accessible();
-                const NT *p_in = sp_in.get();
+                auto [sp_in, p_in] = get_cpu_accessible<CTT>(in_array);
+                auto [p_out] = data<TT>(out_array);
 
                 // apply the kernel weight for this time step
                 NT weight = NT(this->kernel_weights[i]);

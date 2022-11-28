@@ -2,6 +2,8 @@
 #include "teca_dataset.h"
 #include "teca_cartesian_mesh.h"
 #include "teca_coordinate_util.h"
+#include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 
 #include <string>
 #include <vector>
@@ -10,6 +12,7 @@
 #include <boost/program_options.hpp>
 #endif
 
+using namespace teca_variant_array_util;
 
 struct teca_cartesian_mesh_source::internals_t
 {
@@ -46,12 +49,13 @@ void teca_cartesian_mesh_source::internals_t::initialize_axis(
     p_teca_variant_array_impl<num_t> x, unsigned long i0, unsigned long i1,
     num_t x0, num_t x1)
 {
+    assert(x->cpu_accessible());
+
     // generate an equally spaced coordinate axes
     unsigned long nx = i1 - i0 + 1;
     x->resize(nx);
 
-    auto spx = x->get_cpu_accessible();
-    auto px = spx.get();
+    num_t *px = x->data();
 
     // avoid divide by zero
     if (nx < 2)
@@ -79,8 +83,7 @@ void teca_cartesian_mesh_source::internals_t::initialize_axes(int type_code,
     z_axis = x_axis->new_instance();
     t_axis = x_axis->new_instance();
 
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        x_axis.get(),
+    VARIANT_ARRAY_DISPATCH(x_axis.get(),
 
         internals_t::initialize_axis<NT>(std::static_pointer_cast<TT>(x_axis),
             extent[0], extent[1], bounds[0], bounds[1]);
@@ -106,8 +109,7 @@ void teca_cartesian_mesh_source::internals_t::initialize_axes(int type_code,
     y_axis = x_axis->new_instance();
     z_axis = x_axis->new_instance();
 
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        x_axis.get(),
+    VARIANT_ARRAY_DISPATCH(x_axis.get(),
 
         internals_t::initialize_axis<NT>(std::static_pointer_cast<TT>(x_axis),
             extent[0], extent[1], bounds[0], bounds[1]);
@@ -635,6 +637,10 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
         return nullptr;
     }
 
+    // assume coordinate data is on the CPU
+    assert(in_x->cpu_accessible() && in_y->cpu_accessible() &&
+        in_z->cpu_accessible() && in_t->cpu_accessible());
+
     // get the extent of the dataset we could generate
     unsigned long md_whole_extent[6] = {0};
     if (this->internals->metadata.get("whole_extent", md_whole_extent, 6))
@@ -676,12 +682,9 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
     if (!request.get("time", temporal_bounds[0]))
     {
         // translate time to a time step
-        TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+        VARIANT_ARRAY_DISPATCH_FP(
             in_t.get(),
-
-            auto spin_t = dynamic_cast<TT*>(in_t.get())->get_cpu_accessible();
-            NT *pin_t = spin_t.get();
-
+            auto [pin_t] = data<CTT>(in_t);
             if (teca_coordinate_util::index_of(pin_t, 0,
                 in_t->size()-1, static_cast<NT>(temporal_bounds[0]), temporal_extent[0]))
             {

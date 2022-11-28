@@ -1,6 +1,8 @@
 #include "teca_coordinate_util.h"
 
 #include "teca_common.h"
+#include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #if defined(TECA_HAS_UDUNITS)
 #include "teca_calcalcs.h"
 #endif
@@ -10,6 +12,9 @@
 #include <ctime>
 #include <sstream>
 #include <iomanip>
+
+using namespace teca_variant_array_util;
+using allocator = teca_variant_array::allocator;
 
 namespace teca_coordinate_util
 {
@@ -39,14 +44,10 @@ bool equal(const const_p_teca_variant_array &array1,
     }
 
     // handle POD arrays
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
-        array1.get(),
-
-        auto a1 = static_cast<TT*>(array1.get());
+    VARIANT_ARRAY_DISPATCH(array1.get(),
 
         // we know the type of array 1 now, check the type of array 2
-        auto a2 = dynamic_cast<TT*>(array2.get());
-        if (!a2)
+        if (!dynamic_cast<CTT*>(array2.get()))
         {
             oss << "The arrays have different types : "
                 << array1->get_class_name() << " and "
@@ -59,11 +60,8 @@ bool equal(const const_p_teca_variant_array &array1,
         }
 
         // compare elements
-        auto a1a = a1->get_cpu_accessible();
-        auto a2a = a2->get_cpu_accessible();
-
-        auto pa1 = a1a.get();
-        auto pa2 = a2a.get();
+        auto [spa1, pa1] = get_cpu_accessible<CTT>(array1);
+        auto [spa2, pa2] = get_cpu_accessible<CTT>(array2);
 
         std::string diagnostic;
         for (size_t i = 0; i < n_elem; ++i)
@@ -107,40 +105,46 @@ bool equal(const const_p_teca_variant_array &array1,
         return true;
         )
     // handle arrays of strings
-    TEMPLATE_DISPATCH_CASE(
-        const teca_variant_array_impl, std::string,
+    VARIANT_ARRAY_DISPATCH_CASE(std::string,
         array1.get(),
-        if (dynamic_cast<const TT*>(array2.get()))
+        // we know the type of array 1 now, check the type of array 2
+        if (!dynamic_cast<CTT*>(array2.get()))
         {
-            auto a1 = static_cast<TT*>(array1.get())->get_cpu_accessible();
-            auto a2 = static_cast<TT*>(array2.get())->get_cpu_accessible();
+            oss << "The arrays have different types : "
+                << array1->get_class_name() << " and "
+                << array2->get_class_name();
 
-            auto pa1 = a1.get();
-            auto pa2 = a2.get();
+            errorStr = oss.str();
+            errorNo = equal_error::type_missmatch;
 
-            for (size_t i = 0; i < n_elem; ++i)
-            {
-                // compare elements
-                const std::string &v1 = pa1[i];
-                const std::string &v2 = pa2[i];
-                if (v1 != v2)
-                {
-                    oss << "string element " << i << " not equal. ref value \""
-                        << v1 << "\" is not equal to test value \"" << v2 << "\"";
-
-                    errorStr = oss.str();
-                    errorNo = equal_error::value_missmatch;
-
-                    return false;
-                }
-            }
-
-            // we are here, arrays are the same
-            errorStr = "The arrays are equal";
-            errorNo = equal_error::no_error;
-
-            return true;
+            return false;
         }
+
+        auto [spa1, pa1] = get_cpu_accessible<CTT>(array1);
+        auto [spa2, pa2] = get_cpu_accessible<CTT>(array2);
+
+        for (size_t i = 0; i < n_elem; ++i)
+        {
+            // compare elements
+            const std::string &v1 = pa1[i];
+            const std::string &v2 = pa2[i];
+            if (v1 != v2)
+            {
+                oss << "string element " << i << " not equal. ref value \""
+                    << v1 << "\" is not equal to test value \"" << v2 << "\"";
+
+                errorStr = oss.str();
+                errorNo = equal_error::value_missmatch;
+
+                return false;
+            }
+        }
+
+        // we are here, arrays are the same
+        errorStr = "The arrays are equal";
+        errorNo = equal_error::no_error;
+
+        return true;
         )
 
     // we are here, array type is not handled
@@ -188,12 +192,9 @@ int time_step_of(const const_p_teca_variant_array &time,
 
     // locate the nearest time value in the time axis
     unsigned long last = time->size() - 1;
-    TEMPLATE_DISPATCH_FP_SI(const teca_variant_array_impl,
-        time.get(),
+    VARIANT_ARRAY_DISPATCH_FP_SI(time.get(),
 
-        auto ta = std::static_pointer_cast<TT>(time);
-        auto pta = ta->get_cpu_accessible();
-        auto p_time = pta.get();
+        auto [sp_time, p_time] = get_cpu_accessible<CTT>(time);
 
         if (clamp && (t <= p_time[0]))
         {
@@ -315,9 +316,9 @@ int bounds_to_extent(const double *bounds,
     const const_p_teca_variant_array &x, const const_p_teca_variant_array &y,
     const const_p_teca_variant_array &z, unsigned long *extent)
 {
-    TEMPLATE_DISPATCH_FP(
-        const teca_variant_array_impl,
-        x.get(),
+    VARIANT_ARRAY_DISPATCH_FP(x.get(),
+
+        assert_type<TT>(y,z);
 
         // in the following, for each side (low, high) of the bounds in
         // each cooridnate direction we are searching for the index that
@@ -336,9 +337,7 @@ int bounds_to_extent(const double *bounds,
         unsigned long high_i = nx - 1;
         extent[0] = 0;
         extent[1] = high_i;
-        auto xa = std::static_pointer_cast<TT>(x);
-        auto pxa = xa->get_cpu_accessible();
-        const NT *px = pxa.get();
+        auto [spx, px] = get_cpu_accessible<CTT>(x);
         NT low_x = static_cast<NT>(bounds[0]);
         NT high_x = static_cast<NT>(bounds[1]);
         bool slice_x = equal(low_x, high_x, eps8);
@@ -347,9 +346,7 @@ int bounds_to_extent(const double *bounds,
         unsigned long high_j = ny - 1;
         extent[2] = 0;
         extent[3] = high_j;
-        auto ya = std::dynamic_pointer_cast<TT>(y);
-        auto pya = ya->get_cpu_accessible();
-        const NT *py = pya.get();
+        auto [spy, py] = get_cpu_accessible<CTT>(y);
         NT low_y = static_cast<NT>(bounds[2]);
         NT high_y = static_cast<NT>(bounds[3]);
         bool slice_y = equal(low_y, high_y, eps8);
@@ -358,9 +355,7 @@ int bounds_to_extent(const double *bounds,
         unsigned long high_k = nz - 1;
         extent[4] = 0;
         extent[5] = high_k;
-        auto za = std::dynamic_pointer_cast<TT>(z);
-        auto pza = za->get_cpu_accessible();
-        const NT *pz = pza.get();
+        auto [spz, pz] = get_cpu_accessible<CTT>(z);
         NT low_z = static_cast<NT>(bounds[4]);
         NT high_z = static_cast<NT>(bounds[5]);
         bool slice_z = equal(low_z, high_z, eps8);
@@ -405,9 +400,7 @@ int bounds_to_extent(const double *bounds,
 int bounds_to_extent(const double *bounds,
     const const_p_teca_variant_array &x, unsigned long *extent)
 {
-    TEMPLATE_DISPATCH_FP(
-        const teca_variant_array_impl,
-        x.get(),
+    VARIANT_ARRAY_DISPATCH_FP(x.get(),
 
         // in the following, for each side (low, high) of the bounds in
         // each cooridnate direction we are searching for the index that
@@ -426,9 +419,7 @@ int bounds_to_extent(const double *bounds,
         unsigned long high_i = nx - 1;
         extent[0] = 0;
         extent[1] = high_i;
-        auto xa = std::static_pointer_cast<TT>(x);
-        auto pxa = xa->get_cpu_accessible();
-        const NT *px = pxa.get();
+        auto [spx, px] = get_cpu_accessible<CTT>(x);
         NT low_x = static_cast<NT>(bounds[0]);
         NT high_x = static_cast<NT>(bounds[1]);
         bool slice_x = equal(low_x, high_x, eps8);

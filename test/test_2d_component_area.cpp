@@ -12,6 +12,7 @@
 #include "teca_cartesian_mesh.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_array_attributes.h"
 
 #define _USE_MATH_DEFINES
@@ -21,6 +22,7 @@
 #include <string>
 
 using namespace std;
+using namespace teca_variant_array_util;
 
 // genrates a field with nxl by nyl tiles, each having a unique integer id
 struct tile_labeler
@@ -45,20 +47,12 @@ struct tile_labeler
         unsigned long ny = y->size();
         unsigned long nxy = nx*ny;
 
-        p_teca_int_array cc = teca_int_array::New(nxy);
-        auto spcc = cc->get_cpu_accessible();
-        int *pcc = spcc.get();
+        auto [cc, pcc] = ::New<teca_int_array>(nxy, int(0));
 
-        memset(pcc,0, nxy*sizeof(int));
+         VARIANT_ARRAY_DISPATCH_FP(x.get(),
 
-         TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
-             x.get(),
-
-             auto spx = std::static_pointer_cast<TT>(x)->get_cpu_accessible();
-             const NT *px = spx.get();
-
-             auto spy = std::static_pointer_cast<TT>(y)->get_cpu_accessible();
-             const NT *py = spy.get();
+             assert_type<TT>(y);
+             auto [spx, px, spy, py] = get_cpu_accessible<CTT>(x, y);
 
              for (unsigned long j = 0; j < ny; ++j)
              {

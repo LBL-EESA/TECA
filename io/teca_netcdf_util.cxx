@@ -4,10 +4,13 @@
 #include "teca_file_util.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_array_attributes.h"
 
 #include <cstring>
 #include <vector>
+
+using namespace teca_variant_array_util;
 
 static std::mutex g_netcdf_mutex;
 
@@ -353,7 +356,7 @@ int read_attribute(netcdf_handle &fh, int var_id, int att_id, teca_metadata &att
     else
     {
         NC_DISPATCH(att_type,
-            NC_T *tmp = static_cast<NC_T*>(malloc(sizeof(NC_T)*att_len));
+            NC_NT *tmp = static_cast<NC_NT*>(malloc(sizeof(NC_NT)*att_len));
 #if !defined(HDF5_THREAD_SAFE)
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
@@ -424,7 +427,7 @@ int read_variable_attributes(netcdf_handle &fh, const std::string &var_name,
 
     // convert from the netcdf type code
     NC_DISPATCH(var_nc_type,
-       var_type = teca_variant_array_code<NC_T>::get();
+       var_type = teca_variant_array_code<NC_NT>::get();
        )
 
     // read attributes
@@ -573,7 +576,7 @@ int read_variable_attributes(netcdf_handle &fh, int var_id,
 
     // convert from the netcdf type code
     NC_DISPATCH(var_nc_type,
-       var_type = teca_variant_array_code<NC_T>::get();
+       var_type = teca_variant_array_code<NC_NT>::get();
        )
 
     // read attributes
@@ -719,13 +722,15 @@ read_variable_and_attributes::operator()(int device_id)
         return this->package(m_id);
     }
 
+    // assume data is on the CPU
+    assert(dims->cpu_accessible());
+
     // get the size
     size_t var_size = 1;
     size_t start[NC_MAX_DIMS] = {0};
     size_t count[NC_MAX_DIMS] = {0};
     int n_dims = dims->size();
-    auto spdims = dims->get_cpu_accessible();
-    size_t *p_dims = spdims.get();
+    size_t *p_dims = dims->data();
     for (int i = 0; i < n_dims; ++i)
     {
         var_size *= p_dims[i];
@@ -735,9 +740,7 @@ read_variable_and_attributes::operator()(int device_id)
     // allocate a buffer and read the variable.
     NC_DISPATCH(var_type,
 
-        p_teca_variant_array_impl<NC_T> var = teca_variant_array_impl<NC_T>::New(var_size);
-        auto spvar = var->get_cpu_accessible();
-        NC_T *pvar = spvar.get();
+        auto [var, pvar] = ::New<NC_TT>(var_size);
 
 #if !defined(HDF5_THREAD_SAFE)
         {
@@ -815,9 +818,7 @@ read_variable::data_t read_variable::operator()(int device_id)
     // allocate a buffer and read the variable.
     NC_DISPATCH(var_type,
         size_t start = 0;
-        p_teca_variant_array_impl<NC_T> var = teca_variant_array_impl<NC_T>::New(var_size);
-        auto spvar = var->get_cpu_accessible();
-        NC_T *pvar = spvar.get();
+        auto [var, pvar] = ::New<NC_TT>(var_size);
 #if !defined(HDF5_THREAD_SAFE)
         {
         std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
@@ -870,14 +871,15 @@ int write_variable_attributes(netcdf_handle &fh, int var_id,
         // get the attribute value
         const_p_teca_variant_array att_values = array_atts.get(att_name);
 
+        // assume the data is on the CPU
+        assert(att_values->cpu_accessible());
+
         // handle string type
-        TEMPLATE_DISPATCH_CASE(
-            const teca_variant_array_impl, std::string,
-            att_values.get(),
+        VARIANT_ARRAY_DISPATCH_CASE(std::string, att_values.get(),
             if (att_values->size() > 1)
                 continue;
-            std::string att_val;
-            static_cast<const TT*>(att_values.get())->get(0, att_val);
+            auto [patt] = data<CTT>(att_values);
+            std::string att_val(patt[0]);
 #if !defined(HDF5_THREAD_SAFE)
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
@@ -893,13 +895,11 @@ int write_variable_attributes(netcdf_handle &fh, int var_id,
 #endif
             )
         // handle POD types
-        else TEMPLATE_DISPATCH(const teca_variant_array_impl,
-            att_values.get(),
+        else VARIANT_ARRAY_DISPATCH(att_values.get(),
 
+            size_t n_vals = att_values->size();
             int type = teca_netcdf_util::netcdf_tt<NT>::type_code;
-            auto spvals = static_cast<TT*>(att_values.get())->get_cpu_accessible();
-            const NT *pvals = spvals.get();
-            unsigned long n_vals = att_values->size();
+            auto [pvals] = data<CTT>(att_values);
 
 #if !defined(HDF5_THREAD_SAFE)
             {

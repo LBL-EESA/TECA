@@ -4,6 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_calendar_util.h"
 #include "teca_valid_value_mask.h"
@@ -23,6 +24,7 @@
 
 //#define TECA_DEBUG
 
+using namespace teca_variant_array_util;
 using allocator = teca_variant_array::allocator;
 
 
@@ -746,137 +748,109 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::update_cpu(
     const_p_teca_variant_array in_valid = arrays_in->get(valid);
     const_p_teca_variant_array out_valid = arrays_out->get(valid);
 
-    // allocate space for the calculation
-    p_teca_variant_array red_array = out_array->new_instance(n_elem);
-
-    // allocate space for the output mask which is a function of the current
-    // input and previous state
-    size_t n_elem_count = 1;
-    p_teca_variant_array red_valid = nullptr;
-    if (out_valid)
-    {
-        red_valid = out_valid->new_instance(n_elem);
-        n_elem_count = n_elem;
-    }
-
-    // allocate space for the output count
-    p_teca_variant_array red_count = out_array->new_instance(n_elem_count);
-
     // get the current count
-    p_teca_variant_array count;
-    if (arrays_out->has(array + "_count"))
+    size_t n_elem_count = out_valid ? n_elem : 1;
+    std::string count_name = array + "_count";
+    p_teca_variant_array count = arrays_out->get(count_name);
+    if (!count)
     {
-        count = arrays_out->get(array + "_count");
-    }
-    else
-    {
-        count = out_array->new_instance(n_elem_count);
+        // allocate and initialize the count
+        VARIANT_ARRAY_DISPATCH(out_array.get(),
 
-        TEMPLATE_DISPATCH(
-            teca_variant_array_impl,
-            count.get(),
-
-            NT *p_count = static_cast<TT*>(count.get())->data();
-
+            auto [tmp, p_tmp] = ::New<TT>(n_elem_count);
             if (out_valid)
             {
-                auto sp_out_valid = static_cast<const TT_MASK*>(out_valid.get())->get_cpu_accessible();
-                const NT_MASK *p_out_valid = sp_out_valid.get();
+                auto [sp_out_valid, p_out_valid] = get_cpu_accessible<CTT_MASK>(out_valid);
 
                 for (unsigned int i = 0; i < n_elem; ++i)
-                    p_count[i] = (p_out_valid[i]) ? NT(1) : NT(0);
+                    p_tmp[i] = (p_out_valid[i]) ? NT(1) : NT(0);
             }
             else
             {
-                p_count[0] = 1.;
+                p_tmp[0] = 1.;
             }
+            count = tmp;
         )
     }
 
-    TEMPLATE_DISPATCH(
-        teca_variant_array_impl,
-        red_array.get(),
+    // the result of this pass
+    p_teca_variant_array red_array;
+    p_teca_variant_array red_valid;
+    p_teca_variant_array red_count;
 
-        auto sp_in_array = static_cast<const TT*>(in_array.get())->get_cpu_accessible();
-        const NT *p_in_array = sp_in_array.get();
+    VARIANT_ARRAY_DISPATCH(out_array.get(),
 
-        auto sp_out_array = static_cast<const TT*>(out_array.get())->get_cpu_accessible();
-        const NT *p_out_array = sp_out_array.get();
+        auto [res_array, p_res_array] = ::New<TT>(n_elem);
+        auto [res_count, p_res_count] = ::New<TT>(n_elem_count);
 
-        NT *p_red_array = static_cast<TT*>(red_array.get())->data();
+        auto [sp_in_array, p_in_array] = get_cpu_accessible<CTT>(in_array);
+        auto [sp_out_array, p_out_array] = get_cpu_accessible<CTT>(out_array);
 
-        NT *p_count = static_cast<TT*>(count.get())->data();
+        auto [p_count] = data<TT>(count);
 
-        NT *p_red_count = static_cast<TT*>(red_count.get())->data();
-
-        if (out_valid != nullptr)
+        if (out_valid)
         {
             // update, respecting missing data
 
-            auto sp_in_valid = static_cast<const TT_MASK*>(in_valid.get())->get_cpu_accessible();
-            const NT_MASK *p_in_valid = sp_in_valid.get();
+            auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem);
 
-            auto sp_out_valid = static_cast<const TT_MASK*>(out_valid.get())->get_cpu_accessible();
-            const NT_MASK *p_out_valid = sp_out_valid.get();
-
-            NT_MASK *p_red_valid = static_cast<TT_MASK*>(red_valid.get())->data();
+            auto [sp_in_valid, p_in_valid] = get_cpu_accessible<CTT_MASK>(in_valid);
+            auto [sp_out_valid, p_out_valid] = get_cpu_accessible<CTT_MASK>(out_valid);
 
             for (unsigned int i = 0; i < n_elem; ++i)
             {
                 // count where there is valid data, otherwise pass the current count through
                 if (p_in_valid[i])
                 {
-                    p_red_count[i] = p_count[i] + NT(1);
+                    p_res_count[i] = p_count[i] + NT(1);
                 }
                 else
                 {
-                    p_red_count[i] = p_count[i];
+                    p_res_count[i] = p_count[i];
                 }
 
                 // update, respecting missing data
-                p_red_valid[i] = NT_MASK(1);
+                p_res_valid[i] = NT_MASK(1);
                 if (p_in_valid[i] && p_out_valid[i])
                 {
-                    p_red_array[i] = p_out_array[i] + p_in_array[i];
+                    p_res_array[i] = p_out_array[i] + p_in_array[i];
                 }
                 else if (p_in_valid[i] && !p_out_valid[i])
                 {
-                    p_red_array[i] = p_in_array[i];
+                    p_res_array[i] = p_in_array[i];
                 }
                 else if (!p_in_valid[i] && p_out_valid[i])
                 {
-                    p_red_array[i] = p_out_array[i];
+                    p_res_array[i] = p_out_array[i];
                 }
                 else
                 {
-                    p_red_array[i] = NT(this->fill_value);
-                    p_red_valid[i] = NT_MASK(0);
+                    p_res_array[i] = NT(this->fill_value);
+                    p_res_valid[i] = NT_MASK(0);
                 }
             }
+
+            red_valid = res_valid;
         }
         else
         {
             // update , no misisng data
-
-            // update count
-            p_red_count[0] = p_count[0] + NT(1);
+            p_res_count[0] = p_count[0] + NT(1);
 
             for (unsigned int i = 0; i < n_elem; ++i)
-            {
-                // accumulate
-                p_red_array[i] = p_out_array[i] + p_in_array[i];
-            }
+                p_res_array[i] = p_out_array[i] + p_in_array[i];
         }
+
+        red_array = res_array;
+        red_count = res_count;
     )
 
     // update the output
     arrays_out->set(array, red_array);
+    arrays_out->set(count_name, red_count);
 
-    if (red_valid != nullptr)
+    if (out_valid)
         arrays_out->set(valid, red_valid);
-
-    if (red_count != nullptr)
-        arrays_out->set(array + "_count", red_count);
 
     return 0;
 }
@@ -896,114 +870,93 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::update_gpu(
     unsigned long n_elem = out_array->size();
 
     // don't use integer types for this calculation
-    internals_t::ensure_floating_point(allocator::cuda, in_array);
-    internals_t::ensure_floating_point(allocator::cuda, out_array);
+    internals_t::ensure_floating_point(allocator::cuda_async, in_array);
+    internals_t::ensure_floating_point(allocator::cuda_async, out_array);
 
     // get the valid value masks
     std::string valid = array + "_valid";
     const_p_teca_variant_array in_valid = arrays_in->get(valid);
     const_p_teca_variant_array out_valid = arrays_out->get(valid);
 
-    // allocate space for the calculation
-    p_teca_variant_array red_array = out_array->new_instance(n_elem, allocator::cuda);
-
     // allocate space for the output mask which is a function of the current
     // input and previous state and size and place the count array
     size_t n_elem_count = 1;
     allocator alloc_count = allocator::malloc;
-    p_teca_variant_array red_valid = nullptr;
     if (out_valid)
     {
-        red_valid = out_valid->new_instance(n_elem, allocator::cuda);
-
         // when we have the valid value mask we need a per-mesh element count
         n_elem_count = n_elem;
-        alloc_count = allocator::cuda;
+        alloc_count = allocator::cuda_async;
     }
-
-    // allocate space for the output count
-    p_teca_variant_array red_count = out_array->new_instance(n_elem_count, alloc_count);
 
     // get the current count
-    p_teca_variant_array count;
-    if (arrays_out->has(array + "_count"))
+    std::string count_name = array + "_count";
+    p_teca_variant_array count = arrays_out->get(count_name);
+    if (!count)
     {
-        count = arrays_out->get(array + "_count");
-    }
-    else
-    {
-        count = out_array->new_instance(n_elem_count, alloc_count);
+        // allocate and initialize the count
+        VARIANT_ARRAY_DISPATCH(out_array.get(),
 
-        TEMPLATE_DISPATCH(
-            teca_variant_array_impl,
-            count.get(),
-
-            NT *p_count = static_cast<TT*>(count.get())->data();
-
+            auto [tmp, p_tmp] = ::New<TT>(n_elem_count, alloc_count);
             if (out_valid)
             {
-                auto sp_out_valid = static_cast<const TT_MASK*>(out_valid.get())->get_cuda_accessible();
-                const NT_MASK *p_out_valid = sp_out_valid.get();
-
-                cuda::count_init(device_id, p_out_valid, p_count, n_elem_count);
+                auto [sp_out_valid, p_out_valid] = get_cuda_accessible<CTT_MASK>(out_valid);
+                cuda::count_init(device_id, p_out_valid, p_tmp, n_elem_count);
             }
             else
             {
-                p_count[0] = NT(1);
+                p_tmp[0] = NT(1);
             }
+            count = tmp;
         )
     }
 
-    TEMPLATE_DISPATCH(
-        teca_variant_array_impl,
-        red_array.get(),
+    // results of the calc
+    p_teca_variant_array red_array;
+    p_teca_variant_array red_count;
+    p_teca_variant_array red_valid;
 
-        auto sp_in_array = static_cast<const TT*>(in_array.get())->get_cuda_accessible();
-        const NT *p_in_array = sp_in_array.get();
+    VARIANT_ARRAY_DISPATCH(out_array.get(),
 
-        auto sp_out_array = static_cast<const TT*>(out_array.get())->get_cuda_accessible();
-        const NT *p_out_array = sp_out_array.get();
+        auto [res_array, p_res_array] = ::New<TT>(n_elem, allocator::cuda_async);
+        auto [res_count, p_res_count] = ::New<TT>(n_elem_count, alloc_count);
+        auto [sp_in_array, p_in_array] = get_cuda_accessible<CTT>(in_array);
+        auto [sp_out_array, p_out_array] = get_cuda_accessible<CTT>(out_array);
+        auto [p_count] = data<TT>(count);
 
-        NT *p_red_array = static_cast<TT*>(red_array.get())->data();
-
-        NT *p_count = static_cast<TT*>(count.get())->data();
-
-        NT *p_red_count = static_cast<TT*>(red_count.get())->data();
-
-        if (out_valid != nullptr)
+        if (out_valid)
         {
             // update while respecting invalid/missing data
-            auto sp_in_valid = static_cast<const TT_MASK*>(in_valid.get())->get_cuda_accessible();
-            const NT_MASK *p_in_valid = sp_in_valid.get();
-
-            auto sp_out_valid = static_cast<const TT_MASK*>(out_valid.get())->get_cuda_accessible();
-            const NT_MASK *p_out_valid = sp_out_valid.get();
-
-            NT_MASK *p_red_valid = static_cast<TT_MASK*>(red_valid.get())->data();
+            auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem, allocator::cuda_async);
+            auto [sp_in_valid, p_in_valid] = get_cuda_accessible<CTT_MASK>(in_valid);
+            auto [sp_out_valid, p_out_valid] = get_cuda_accessible<CTT_MASK>(out_valid);
 
             cuda::average(device_id, p_out_array, p_out_valid,
-                p_in_array, p_in_valid, p_count, p_red_count,
-                p_red_array, p_red_valid, n_elem);
+                p_in_array, p_in_valid, p_count, p_res_count,
+                p_res_array, p_res_valid, n_elem);
+
+            red_valid = res_valid;
         }
         else
         {
             // update, no missing data
-            p_red_count[0] = p_count[0] + 1.;
+            p_res_count[0] = p_count[0] + 1.;
 
             cuda::summation(device_id, p_out_array, nullptr,
-                p_in_array, nullptr, p_red_array, nullptr,
+                p_in_array, nullptr, p_res_array, nullptr,
                 n_elem);
         }
+
+        red_array = res_array;
+        red_count = res_count;
     )
 
     // update the output
     arrays_out->set(array, red_array);
+    arrays_out->set(count_name, red_count);
 
-    if (red_valid != nullptr)
+    if (out_valid)
         arrays_out->set(valid, red_valid);
-
-    if (red_count != nullptr)
-        arrays_out->set(array + "_count", red_count);
 
     return 0;
 #else
@@ -1038,73 +991,62 @@ int teca_cpp_temporal_reduction::internals_t::summation_operator::update_cpu(
     const_p_teca_variant_array in_valid = arrays_in->get(valid);
     const_p_teca_variant_array out_valid = arrays_out->get(valid);
 
-    p_teca_variant_array red_array = out_array->new_instance(n_elem);
-    p_teca_variant_array red_valid = nullptr;
-    if (out_valid != nullptr)
-    {
-        red_valid = out_valid->new_instance(n_elem);
-    }
+    // update reduction
+    p_teca_variant_array red_array;
+    p_teca_variant_array red_valid;
 
-    TEMPLATE_DISPATCH(
-        teca_variant_array_impl,
-        red_array.get(),
+    VARIANT_ARRAY_DISPATCH(out_array.get(),
 
-        auto sp_in_array = static_cast<const TT*>(in_array.get())->get_cpu_accessible();
-        const NT *p_in_array = sp_in_array.get();
+        auto [sp_in_array, p_in_array] = get_cpu_accessible<CTT>(in_array);
+        auto [sp_out_array, p_out_array] = get_cpu_accessible<CTT>(out_array);
+        auto [res_array, p_res_array] = ::New<TT>(n_elem);
 
-        auto sp_out_array = static_cast<const TT*>(out_array.get())->get_cpu_accessible();
-        const NT *p_out_array = sp_out_array.get();
-
-        auto sp_red_array = static_cast<TT*>(red_array.get())->get_cpu_accessible();
-        NT *p_red_array = sp_red_array.get();
-
-        // fix invalid values
-        if (out_valid != nullptr)
+        if (out_valid)
         {
-            auto sp_in_valid = static_cast<const TT*>(in_valid.get())->get_cpu_accessible();
-            const NT *p_in_valid = sp_in_valid.get();
-
-            auto sp_out_valid = static_cast<const TT*>(out_valid.get())->get_cpu_accessible();
-            const NT *p_out_valid = sp_out_valid.get();
-
-            auto sp_red_valid = static_cast<TT_MASK*>(red_valid.get())->get_cpu_accessible();
-            NT_MASK *p_red_valid = sp_red_valid.get();
+            // update, respect missing values
+            auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem);
+            auto [sp_in_valid, p_in_valid] = get_cpu_accessible<CTT_MASK>(in_valid);
+            auto [sp_out_valid, p_out_valid] = get_cpu_accessible<CTT_MASK>(out_valid);
 
             for (unsigned int i = 0; i < n_elem; ++i)
             {
-                p_red_valid[i] = char(1);
+                p_res_valid[i] = NT_MASK(1);
                 if (p_in_valid[i] && p_out_valid[i])
                 {
-                    // accumulate
-                    p_red_array[i] = p_out_array[i] + p_in_array[i];
+                    p_res_array[i] = p_out_array[i] + p_in_array[i];
                 }
                 else if (p_in_valid[i] && !p_out_valid[i])
                 {
-                    p_red_array[i] = p_in_array[i];
+                    p_res_array[i] = p_in_array[i];
                 }
                 else if (!p_in_valid[i] && p_out_valid[i])
                 {
-                    p_red_array[i] = p_out_array[i];
+                    p_res_array[i] = p_out_array[i];
                 }
                 else
                 {
-                    p_red_valid[i] = char(0);
+                    p_res_valid[i] = NT_MASK(0);
                 }
             }
+
+            red_valid = res_valid;
         }
         else
         {
+            // update, no misisng values
             for (unsigned int i = 0; i < n_elem; ++i)
             {
-                p_red_array[i] = p_out_array[i] + p_in_array[i];
+                p_res_array[i] = p_out_array[i] + p_in_array[i];
             }
         }
+
+        red_array = res_array;
     )
 
     // update the output
     arrays_out->set(array, red_array);
 
-    if (red_valid != nullptr)
+    if (out_valid)
         arrays_out->set(valid, red_valid);
 
     return 0;
@@ -1130,56 +1072,41 @@ int teca_cpp_temporal_reduction::internals_t::summation_operator::update_gpu(
     const_p_teca_variant_array in_valid = arrays_in->get(valid);
     const_p_teca_variant_array out_valid = arrays_out->get(valid);
 
-    p_teca_variant_array red_array = out_array->new_instance(n_elem, teca_variant_array::allocator::cuda);
-    p_teca_variant_array red_valid = nullptr;
-    if (out_valid != nullptr)
-    {
-        red_valid = out_valid->new_instance(n_elem, teca_variant_array::allocator::cuda);
-    }
+    // partial update the reduction
+    p_teca_variant_array red_array;
+    p_teca_variant_array red_valid;
 
-    TEMPLATE_DISPATCH(
-        teca_variant_array_impl,
-        red_array.get(),
+    VARIANT_ARRAY_DISPATCH(out_array.get(),
 
-        auto sp_in_array = static_cast<const TT*>(in_array.get())->get_cuda_accessible();
-        const NT *p_in_array = sp_in_array.get();
+        auto [res_array, p_res_array] = ::New<TT>(n_elem, allocator::cuda_async);
+        auto [sp_in_array, p_in_array] = get_cuda_accessible<CTT>(in_array);
+        auto [sp_out_array, p_out_array] = get_cuda_accessible<CTT>(out_array);
 
-        auto sp_out_array = static_cast<const TT*>(out_array.get())->get_cuda_accessible();
-        const NT *p_out_array = sp_out_array.get();
-
-        auto sp_red_array = static_cast<TT*>(red_array.get())->get_cuda_accessible();
-        NT *p_red_array = sp_red_array.get();
-
-        // fix invalid values
-        if (out_valid != nullptr)
+        if (out_valid)
         {
-            auto sp_in_valid = static_cast<const TT_MASK*>(in_valid.get())->get_cuda_accessible();
-            const NT_MASK *p_in_valid = sp_in_valid.get();
-
-            auto sp_out_valid = static_cast<const TT_MASK*>(out_valid.get())->get_cuda_accessible();
-            const NT_MASK *p_out_valid = sp_out_valid.get();
-
-            auto sp_red_valid = static_cast<TT_MASK*>(red_valid.get())->get_cuda_accessible();
-            NT_MASK *p_red_valid = sp_red_valid.get();
+            // update, respect missing values
+            auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem, allocator::cuda_async);
+            auto [sp_in_valid, p_in_valid] = get_cuda_accessible<CTT_MASK>(in_valid);
+            auto [sp_out_valid, p_out_valid] = get_cuda_accessible<CTT_MASK>(out_valid);
 
             cuda::summation(device_id, p_out_array, p_out_valid,
-                p_in_array, p_in_valid, p_red_array, p_red_valid, n_elem);
+                p_in_array, p_in_valid, p_res_array, p_res_valid, n_elem);
+
+            red_valid = res_valid;
         }
         else
         {
-            const NT_MASK *p_in_valid = nullptr;
-            const NT_MASK *p_out_valid = nullptr;
-            NT_MASK *p_red_valid = nullptr;
-
-            cuda::summation(device_id, p_out_array, p_out_valid,
-                p_in_array, p_in_valid, p_red_array, p_red_valid, n_elem);
+            cuda::summation(device_id, p_out_array, nullptr,
+                p_in_array, nullptr, p_res_array, nullptr, n_elem);
         }
+
+        red_array = res_array;
     )
 
     // update the output
     arrays_out->set(array, red_array);
 
-    if (red_valid != nullptr)
+    if (out_valid)
         arrays_out->set(valid, red_valid);
 
     return 0;
@@ -1215,75 +1142,64 @@ int teca_cpp_temporal_reduction::internals_t::minimum_operator::update_cpu(
     const_p_teca_variant_array in_valid = arrays_in->get(valid);
     const_p_teca_variant_array out_valid = arrays_out->get(valid);
 
-    p_teca_variant_array red_array = out_array->new_instance(n_elem);
-    p_teca_variant_array red_valid = nullptr;
-    if (out_valid != nullptr)
-    {
-        red_valid = out_valid->new_instance(n_elem);
-    }
+    // partial update the reduction
+    p_teca_variant_array red_array;
+    p_teca_variant_array red_valid;
 
-    TEMPLATE_DISPATCH(
-        teca_variant_array_impl,
-        red_array.get(),
+    VARIANT_ARRAY_DISPATCH(out_array.get(),
 
-        auto sp_in_array = static_cast<const TT*>(in_array.get())->get_cpu_accessible();
-        const NT *p_in_array = sp_in_array.get();
+        auto [res_array, p_res_array] = ::New<TT>(n_elem);
+        auto [sp_in_array, p_in_array] = get_cpu_accessible<TT>(in_array);
+        auto [sp_out_array, p_out_array] = get_cpu_accessible<TT>(out_array);
 
-        auto sp_out_array = static_cast<const TT*>(out_array.get())->get_cpu_accessible();
-        const NT *p_out_array = sp_out_array.get();
-
-        auto sp_red_array = static_cast<TT*>(red_array.get())->get_cpu_accessible();
-        NT *p_red_array = sp_red_array.get();
-
-        // fix invalid values
-        if (out_valid != nullptr)
+        if (out_valid)
         {
-            auto sp_in_valid = static_cast<const TT_MASK*>(in_valid.get())->get_cpu_accessible();
-            const NT_MASK *p_in_valid = sp_in_valid.get();
-
-            auto sp_out_valid = static_cast<const TT_MASK*>(out_valid.get())->get_cpu_accessible();
-            const NT_MASK *p_out_valid = sp_out_valid.get();
-
-            auto sp_red_valid = static_cast<TT_MASK*>(red_valid.get())->get_cpu_accessible();
-            NT_MASK *p_red_valid = sp_red_valid.get();
+            // update, respect missing values
+            auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem);
+            auto [sp_in_valid, p_in_valid] = get_cpu_accessible<CTT_MASK>(in_valid);
+            auto [sp_out_valid, p_out_valid] = get_cpu_accessible<CTT_MASK>(out_valid);
 
             for (unsigned int i = 0; i < n_elem; ++i)
             {
-                // update the valid value mask
-                p_red_valid[i] = char(1);
+                p_res_valid[i] = NT_MASK(1);
                 if (p_in_valid[i] && p_out_valid[i])
-                    // reduce
-                    p_red_array[i] = (p_in_array[i] < p_out_array[i]) ?
+                {
+                    p_res_array[i] = (p_in_array[i] < p_out_array[i]) ?
                                                     p_in_array[i] : p_out_array[i];
+                }
                 else if (p_in_valid[i] && !p_out_valid[i])
                 {
-                    p_red_array[i] = p_in_array[i];
+                    p_res_array[i] = p_in_array[i];
                 }
                 else if (!p_in_valid[i] && p_out_valid[i])
                 {
-                    p_red_array[i] = p_out_array[i];
+                    p_res_array[i] = p_out_array[i];
                 }
                 else
                 {
-                    p_red_valid[i] = char(0);
+                    p_res_valid[i] = NT_MASK(0);
                 }
             }
+
+            red_valid = res_valid;
         }
         else
         {
+            // update, no missing values
             for (unsigned int i = 0; i < n_elem; ++i)
             {
-                // reduce
-                p_red_array[i] = p_in_array[i] < p_out_array[i] ?
+                p_res_array[i] = p_in_array[i] < p_out_array[i] ?
                                                p_in_array[i] : p_out_array[i];
             }
         }
+
+        red_array = res_array;
     )
 
     // update the output
     arrays_out->set(array, red_array);
 
-    if (red_valid != nullptr)
+    if (out_valid)
         arrays_out->set(valid, red_valid);
 
     return 0;
@@ -1309,50 +1225,34 @@ int teca_cpp_temporal_reduction::internals_t::minimum_operator::update_gpu(
     const_p_teca_variant_array in_valid = arrays_in->get(valid);
     const_p_teca_variant_array out_valid = arrays_out->get(valid);
 
-    p_teca_variant_array red_array = out_array->new_instance(n_elem, teca_variant_array::allocator::cuda);
-    p_teca_variant_array red_valid = nullptr;
-    if (out_valid != nullptr)
-    {
-        red_valid = out_valid->new_instance(n_elem, teca_variant_array::allocator::cuda);
-    }
+    // partial update of the reduction
+    p_teca_variant_array red_array;
+    p_teca_variant_array red_valid;
 
-    TEMPLATE_DISPATCH(
-        teca_variant_array_impl,
-        red_array.get(),
+    VARIANT_ARRAY_DISPATCH(out_array.get(),
 
-        auto sp_in_array = static_cast<const TT*>(in_array.get())->get_cuda_accessible();
-        const NT *p_in_array = sp_in_array.get();
+        auto [res_array, p_res_array] = ::New<TT>(n_elem, allocator::cuda_async);
+        auto [sp_in_array, p_in_array] = get_cuda_accessible<TT>(in_array);
+        auto [sp_out_array, p_out_array] = get_cuda_accessible<TT>(out_array);
 
-        auto sp_out_array = static_cast<const TT*>(out_array.get())->get_cuda_accessible();
-        const NT *p_out_array = sp_out_array.get();
-
-        auto sp_red_array = static_cast<TT*>(red_array.get())->get_cuda_accessible();
-        NT *p_red_array = sp_red_array.get();
-
-        // fix invalid values
-        if (out_valid != nullptr)
+        if (out_valid)
         {
-            auto sp_in_valid = static_cast<const TT_MASK*>(in_valid.get())->get_cuda_accessible();
-            const NT_MASK *p_in_valid = sp_in_valid.get();
-
-            auto sp_out_valid = static_cast<const TT_MASK*>(out_valid.get())->get_cuda_accessible();
-            const NT_MASK *p_out_valid = sp_out_valid.get();
-
-            auto sp_red_valid = static_cast<TT_MASK*>(red_valid.get())->get_cuda_accessible();
-            NT_MASK *p_red_valid = sp_red_valid.get();
+            auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem, allocator::cuda_async);
+            auto [sp_in_valid, p_in_valid] = get_cuda_accessible<CTT_MASK>(in_valid);
+            auto [sp_out_valid, p_out_valid] = get_cuda_accessible<CTT_MASK>(out_valid);
 
             cuda::minimum(device_id, p_out_array, p_out_valid,
-                p_in_array, p_in_valid, p_red_array, p_red_valid, n_elem);
+                p_in_array, p_in_valid, p_res_array, p_res_valid, n_elem);
+
+            red_valid = res_valid;
         }
         else
         {
-            const NT_MASK *p_in_valid = nullptr;
-            const NT_MASK *p_out_valid = nullptr;
-            NT_MASK *p_red_valid = nullptr;
-
-            cuda::minimum(device_id, p_out_array, p_out_valid,
-                p_in_array, p_in_valid, p_red_array, p_red_valid, n_elem);
+            cuda::minimum(device_id, p_out_array, nullptr,
+                p_in_array, nullptr, p_res_array, nullptr, n_elem);
         }
+
+        red_array = res_array;
     )
 
     // update the output
@@ -1394,75 +1294,64 @@ int teca_cpp_temporal_reduction::internals_t::maximum_operator::update_cpu(
     const_p_teca_variant_array in_valid = arrays_in->get(valid);
     const_p_teca_variant_array out_valid = arrays_out->get(valid);
 
-    p_teca_variant_array red_array = out_array->new_instance(n_elem);
-    p_teca_variant_array red_valid = nullptr;
-    if (out_valid != nullptr)
-    {
-        red_valid = out_valid->new_instance(n_elem);
-    }
+    // partial update of the reduction
+    p_teca_variant_array red_array;
+    p_teca_variant_array red_valid;
 
-    TEMPLATE_DISPATCH(
-        teca_variant_array_impl,
-        red_array.get(),
+    VARIANT_ARRAY_DISPATCH(out_array.get(),
 
-        auto sp_in_array = static_cast<const TT*>(in_array.get())->get_cpu_accessible();
-        const NT *p_in_array = sp_in_array.get();
+        auto [res_array, p_res_array] = ::New<TT>(n_elem);
+        auto [sp_in_array, p_in_array] = get_cpu_accessible<CTT>(in_array);
+        auto [sp_out_array, p_out_array] = get_cpu_accessible<CTT>(out_array);
 
-        auto sp_out_array = static_cast<const TT*>(out_array.get())->get_cpu_accessible();
-        const NT *p_out_array = sp_out_array.get();
-
-        auto sp_red_array = static_cast<TT*>(red_array.get())->get_cpu_accessible();
-        NT *p_red_array = sp_red_array.get();
-
-        // fix invalid values
-        if (out_valid != nullptr)
+        if (out_valid)
         {
-            auto sp_in_valid = static_cast<const TT_MASK*>(in_valid.get())->get_cpu_accessible();
-            const NT_MASK *p_in_valid = sp_in_valid.get();
-
-            auto sp_out_valid = static_cast<const TT_MASK*>(out_valid.get())->get_cpu_accessible();
-            const NT_MASK *p_out_valid = sp_out_valid.get();
-
-            auto sp_red_valid = static_cast<TT_MASK*>(red_valid.get())->get_cpu_accessible();
-            NT_MASK *p_red_valid = sp_red_valid.get();
+            // update, respect missing values
+            auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem);
+            auto [sp_in_valid, p_in_valid] = get_cpu_accessible<CTT_MASK>(in_valid);
+            auto [sp_out_valid, p_out_valid] = get_cpu_accessible<CTT_MASK>(out_valid);
 
             for (unsigned int i = 0; i < n_elem; ++i)
             {
-                // update the valid value mask
-                p_red_valid[i] = char(1);
+                p_res_valid[i] = NT_MASK(1);
                 if (p_in_valid[i] && p_out_valid[i])
-                    // reduce
-                    p_red_array[i] = (p_in_array[i] > p_out_array[i]) ?
+                {
+                    p_res_array[i] = (p_in_array[i] > p_out_array[i]) ?
                                                     p_in_array[i] : p_out_array[i];
+                }
                 else if (p_in_valid[i] && !p_out_valid[i])
                 {
-                    p_red_array[i] = p_in_array[i];
+                    p_res_array[i] = p_in_array[i];
                 }
                 else if (!p_in_valid[i] && p_out_valid[i])
                 {
-                    p_red_array[i] = p_out_array[i];
+                    p_res_array[i] = p_out_array[i];
                 }
                 else
                 {
-                    p_red_valid[i] = char(0);
+                    p_res_valid[i] = NT_MASK(0);
                 }
             }
+
+            red_valid = res_valid;
         }
         else
         {
+            // update, no missing values
             for (unsigned int i = 0; i < n_elem; ++i)
             {
-                // reduce
-                p_red_array[i] = p_in_array[i] > p_out_array[i] ?
+                p_res_array[i] = p_in_array[i] > p_out_array[i] ?
                                                p_in_array[i] : p_out_array[i];
             }
         }
+
+        red_array = res_array;
     )
 
     // update the output
     arrays_out->set(array, red_array);
 
-    if (red_valid != nullptr)
+    if (out_valid)
         arrays_out->set(valid, red_valid);
 
     return 0;
@@ -1488,56 +1377,42 @@ int teca_cpp_temporal_reduction::internals_t::maximum_operator::update_gpu(
     const_p_teca_variant_array in_valid = arrays_in->get(valid);
     const_p_teca_variant_array out_valid = arrays_out->get(valid);
 
-    p_teca_variant_array red_array = out_array->new_instance(n_elem, teca_variant_array::allocator::cuda);
-    p_teca_variant_array red_valid = nullptr;
-    if (out_valid != nullptr)
-    {
-        red_valid = out_valid->new_instance(n_elem, teca_variant_array::allocator::cuda);
-    }
+    // partial update of the reduction
+    p_teca_variant_array red_array;
+    p_teca_variant_array red_valid;
 
-    TEMPLATE_DISPATCH(
-        teca_variant_array_impl,
-        red_array.get(),
+    VARIANT_ARRAY_DISPATCH(out_array.get(),
 
-        auto sp_in_array = static_cast<const TT*>(in_array.get())->get_cuda_accessible();
-        const NT *p_in_array = sp_in_array.get();
+        auto [res_array, p_res_array] = ::New<TT>(n_elem, allocator::cuda_async);
+        auto [sp_in_array, p_in_array] = get_cuda_accessible<CTT>(in_array);
+        auto [sp_out_array, p_out_array] = get_cuda_accessible<CTT>(out_array);
 
-        auto sp_out_array = static_cast<const TT*>(out_array.get())->get_cuda_accessible();
-        const NT *p_out_array = sp_out_array.get();
-
-        auto sp_red_array = static_cast<TT*>(red_array.get())->get_cuda_accessible();
-        NT *p_red_array = sp_red_array.get();
-
-        // fix invalid values
-        if (out_valid != nullptr)
+        if (out_valid)
         {
-            auto sp_in_valid = static_cast<const TT_MASK*>(in_valid.get())->get_cuda_accessible();
-            const NT_MASK *p_in_valid = sp_in_valid.get();
-
-            auto sp_out_valid = static_cast<const TT_MASK*>(out_valid.get())->get_cuda_accessible();
-            const NT_MASK *p_out_valid = sp_out_valid.get();
-
-            auto sp_red_valid = static_cast<TT_MASK*>(red_valid.get())->get_cuda_accessible();
-            NT_MASK *p_red_valid = sp_red_valid.get();
+            // update, respect missing values
+           auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem, allocator::cuda_async);
+           auto [sp_in_valid, p_in_valid] = get_cuda_accessible<CTT_MASK>(in_valid);
+           auto [sp_out_valid, p_out_valid] = get_cuda_accessible<CTT_MASK>(out_valid);
 
             cuda::maximum(device_id, p_out_array, p_out_valid,
-                p_in_array, p_in_valid, p_red_array, p_red_valid, n_elem);
+                p_in_array, p_in_valid, p_res_array, p_res_valid, n_elem);
+
+            red_valid = res_valid;
         }
         else
         {
-            const NT_MASK *p_in_valid = nullptr;
-            const NT_MASK *p_out_valid = nullptr;
-            NT_MASK *p_red_valid = nullptr;
-
-            cuda::maximum(device_id, p_out_array, p_out_valid,
-                p_in_array, p_in_valid, p_red_array, p_red_valid, n_elem);
+            // update, no misisng values
+            cuda::maximum(device_id, p_out_array, nullptr,
+                p_in_array, nullptr, p_res_array, nullptr, n_elem);
         }
+
+        red_array = res_array;
     )
 
     // update the output
     arrays_out->set(array, red_array);
 
-    if (red_valid != nullptr)
+    if (out_valid)
         arrays_out->set(valid, red_valid);
 
     return 0;
@@ -1565,59 +1440,40 @@ int teca_cpp_temporal_reduction::internals_t::reduction_operator::finalize(
     p_teca_variant_array out_array = arrays_out->get(array);
 
     // the valid value masks
-    // returns a nullptr if the array is not in the collection
     std::string valid = array + "_valid";
     p_teca_variant_array out_valid = arrays_out->get(valid);
 
-    if (out_valid != nullptr)
+    if (out_valid)
     {
-        TEMPLATE_DISPATCH(
-            teca_variant_array_impl,
-            out_array.get(),
+        VARIANT_ARRAY_DISPATCH(out_array.get(),
 
+            NT fill_value = NT(this->fill_value);
             unsigned long n_elem = out_array->size();
+
+            auto [p_out_array] = data<TT>(out_array);
 
 #if defined(TECA_HAS_CUDA)
             if (device_id >= 0)
             {
-                auto sp_out_array = static_cast<TT*>(out_array.get())->get_cuda_accessible();
-                NT *p_out_array = sp_out_array.get();
-
-                auto sp_out_valid = static_cast<const TT_MASK*>(out_valid.get())->get_cuda_accessible();
-                const NT_MASK *p_out_valid = sp_out_valid.get();
-
-                cuda::finalize(device_id, p_out_array, p_out_valid,
-                    this->fill_value, n_elem);
+                auto [sp_out_valid, p_out_valid] = get_cuda_accessible<CTT_MASK>(out_valid);
+                cuda::finalize(device_id, p_out_array, p_out_valid, fill_value, n_elem);
             }
             else
             {
 #endif
-                auto sp_out_array = static_cast<TT*>(out_array.get())->get_cpu_accessible();
-                NT *p_out_array = sp_out_array.get();
-
-                auto sp_out_valid = static_cast<const TT_MASK*>(out_valid.get())->get_cpu_accessible();
-                const NT_MASK *p_out_valid = sp_out_valid.get();
-
-                NT fill_value = NT(this->fill_value);
-
+                auto [sp_out_valid, p_out_valid] = get_cpu_accessible<CTT_MASK>(out_valid);
                 for (unsigned int i = 0; i < n_elem; ++i)
                 {
-                    if (!p_out_valid[i])
-                    {
-                        p_out_array[i] = fill_value;
-                    }
+                    p_out_array[i] = p_out_valid[i] ? p_out_array[i] : fill_value;
                 }
 #if defined(TECA_HAS_CUDA)
             }
 #endif
-        )
-
         // update the output
         arrays_out->set(array, out_array);
-
-        if (out_valid != nullptr)
-           arrays_out->set(valid, out_valid);
+        )
     }
+
     return 0;
 }
 
@@ -1633,91 +1489,71 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::finalize(
 
     p_teca_variant_array out_array = arrays_out->get(array);
 
-    // the valid value masks
-    // returns a nullptr if the array is not in the collection
+    // get the valid value masks
     std::string valid = array + "_valid";
     p_teca_variant_array out_valid = arrays_out->get(valid);
 
+    // get the count, always have it, but it will be per point when dealing
+    // with valid value masks
+    p_teca_variant_array count = arrays_out->get(array + "_count");
+
+    // finalize the reduciton by scaling by 1 / count
+                // finish the average. We keep track of the invalid
+                // values (these will have a zero count) set them to
+                // the fill value
     unsigned long n_elem = out_array->size();
 
     p_teca_variant_array red_array;
-#if defined(TECA_HAS_CUDA)
-    if (device_id >= 0)
-    {
-        red_array = out_array->new_instance(n_elem, teca_variant_array::allocator::cuda);
-    }
-    else
-    {
-#endif
-        red_array = out_array->new_instance(n_elem);
-#if defined(TECA_HAS_CUDA)
-    }
-#endif
 
-    p_teca_variant_array count = arrays_out->get(array + "_count");
+    VARIANT_ARRAY_DISPATCH(out_array.get(),
 
-    TEMPLATE_DISPATCH(
-        teca_variant_array_impl,
-        red_array.get(),
+        NT fill_val = NT(this->fill_value);
+
+        auto [p_out_array] = data<TT>(out_array);
+        auto [p_count] = data<TT>(count);
 
 #if defined(TECA_HAS_CUDA)
         if (device_id >= 0)
         {
-            auto sp_out_array = static_cast<TT*>(out_array.get())->get_cuda_accessible();
-            NT *p_out_array = sp_out_array.get();
-
-            NT *p_red_array = static_cast<TT*>(red_array.get())->data();
-
-            const NT *p_count = static_cast<const TT*>(count.get())->data();
-
+            // GPU
+            auto [res_array, p_res_array] = ::New<TT>(n_elem, allocator::cuda_async);
             if (out_valid)
             {
-                auto sp_out_valid = static_cast<const TT_MASK*>(out_valid.get())->get_cuda_accessible();
-                const NT_MASK *p_out_valid = sp_out_valid.get();
+                auto [sp_out_valid, p_out_valid] = get_cuda_accessible<CTT_MASK>(out_valid);
 
                 cuda::average_finalize(device_id, p_out_array, p_out_valid,
-                    p_red_array, p_count, this->fill_value, n_elem);
+                    p_res_array, p_count, fill_val, n_elem);
             }
             else
             {
                 cuda::average_finalize(device_id, p_out_array, nullptr,
-                    p_red_array, p_count, this->fill_value, n_elem);
+                    p_res_array, p_count, fill_val, n_elem);
             }
+            red_array = res_array;
         }
         else
         {
 #endif
-            auto sp_out_array = static_cast<TT*>(out_array.get())->get_cpu_accessible();
-            NT *p_out_array = sp_out_array.get();
-
-            NT *p_red_array = static_cast<TT*>(red_array.get())->data();
-
-            const NT *p_count = static_cast<const TT*>(count.get())->data();
-
+            // CPU
+            auto [res_array, p_res_array] = ::New<TT>(n_elem);
             if (out_valid)
             {
-                // finish the average. We keep track of the invalid
-                // values (these will have a zero count) set them to
-                // the fill value
-
-                auto sp_out_valid = static_cast<const TT_MASK*>(out_valid.get())->get_cpu_accessible();
-                const NT_MASK *p_out_valid = sp_out_valid.get();
-
-                NT fill_value = NT(this->fill_value);
-
+                auto [sp_out_valid, p_out_valid] = get_cpu_accessible<CTT_MASK>(out_valid);
                 for (unsigned int i = 0; i < n_elem; ++i)
                 {
-                    p_red_array[i] = (!p_out_valid[i]) ?
-                                      fill_value : p_out_array[i]/p_count[i];
+                    p_res_array[i] = (!p_out_valid[i]) ?
+                                      fill_val : p_out_array[i]/p_count[i];
                 }
             }
             else
             {
                 for (unsigned int i = 0; i < n_elem; ++i)
                 {
-                    p_red_array[i] = p_out_array[i]/p_count[0];
+                    p_res_array[i] = p_out_array[i]/p_count[0];
                 }
             }
+
+            red_array = res_array;
 #if defined(TECA_HAS_CUDA)
         }
 #endif
@@ -1725,9 +1561,6 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::finalize(
 
     // update the output
     arrays_out->set(array, red_array);
-
-    if (out_valid != nullptr)
-       arrays_out->set(valid, out_valid);
 
     return 0;
 }
@@ -2274,7 +2107,7 @@ const_p_teca_dataset teca_cpp_temporal_reduction::execute(
 #if defined(TECA_HAS_CUDA)
     if (device_id >= 0)
     {
-       alloc = allocator::cuda;
+       alloc = allocator::cuda_async;
 
        if (teca_cuda_util::set_device(device_id))
            return nullptr;
@@ -2330,9 +2163,7 @@ const_p_teca_dataset teca_cpp_temporal_reduction::execute(
 
             bool have_vv_mask = arrays_in->has(array + "_valid");
 
-            TEMPLATE_DISPATCH(
-                const teca_variant_array_impl,
-                in_array.get(),
+            VARIANT_ARRAY_DISPATCH(in_array.get(),
 
                 if (this->op == average)
                 {
@@ -2347,7 +2178,7 @@ const_p_teca_dataset teca_cpp_temporal_reduction::execute(
                     if (have_vv_mask)
                     {
                         n_elem_count = n_elem;
-                        alloc_count = (device_id >= 0 ? allocator::cuda : allocator::malloc);
+                        alloc_count = (device_id >= 0 ? allocator::cuda_async : allocator::malloc);
                     }
 
                     p_teca_variant_array_impl<NT> count =

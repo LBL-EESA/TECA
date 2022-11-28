@@ -31,10 +31,6 @@ public:
     TECA_ALGORITHM_VECTOR_PROPERTY(long long, indice)
     ///@}
 
-    // set indices from a file
-    
-
-
 protected:
     teca_temporal_index_select();
 

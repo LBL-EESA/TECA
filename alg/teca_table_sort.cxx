@@ -4,6 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 
 #include <algorithm>
@@ -25,6 +26,7 @@ using std::vector;
 using std::set;
 using std::cerr;
 using std::endl;
+using namespace teca_variant_array_util;
 
 //#define TECA_DEBUG
 
@@ -146,11 +148,10 @@ const_p_teca_dataset teca_table_sort::execute(
         malloc(n_rows*sizeof(unsigned long)));
     for (unsigned long i = 0; i < n_rows; ++i)
         index[i] = i;
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
-        index_col.get(),
 
-        auto scol = static_cast<TT*>(index_col.get())->get_cpu_accessible();
-        const NT *col = scol.get();
+    VARIANT_ARRAY_DISPATCH(index_col.get(),
+
+        auto [scol, col] = get_cpu_accessible<CTT>(index_col);
 
         if (this->stable_sort)
             std::stable_sort(index, index+n_rows, internal::less<NT>(col));
@@ -168,14 +169,10 @@ const_p_teca_dataset teca_table_sort::execute(
         const_p_teca_variant_array in_col = in_table->get_column(j);
         p_teca_variant_array out_col = out_table->get_column(j);
         out_col->resize(n_rows);
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            out_col.get(),
+        VARIANT_ARRAY_DISPATCH(out_col.get(),
 
-            auto sp_in_col = static_cast<const TT*>(in_col.get())->get_cpu_accessible();
-            const NT *p_in_col = sp_in_col.get();
-
-            auto sp_out_col = static_cast<TT*>(out_col.get())->get_cpu_accessible();
-            NT *p_out_col = sp_out_col.get();
+            auto [sp_in_col, p_in_col] = get_cpu_accessible<CTT>(in_col);
+            auto [p_out_col] = data<TT>(out_col);
 
             for (unsigned long i = 0; i < n_rows; ++i)
                 p_out_col[i] = p_in_col[index[i]];

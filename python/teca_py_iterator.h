@@ -99,7 +99,7 @@ bool append(teca_variant_array *va, PyObject *obj)
         return false;
 
     // append numeric types
-    TEMPLATE_DISPATCH(teca_variant_array_impl, va,
+    VARIANT_ARRAY_DISPATCH(va,
         TT *vat = static_cast<TT*>(va);
         TECA_PY_ITERATOR_DISPATCH_NUM(obj,
             PyObject *iter = PyObject_GetIter(obj);
@@ -115,7 +115,7 @@ bool append(teca_variant_array *va, PyObject *obj)
         )
 
     // append strings
-    else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
+    else VARIANT_ARRAY_DISPATCH_CASE(
         std::string, va,
         TT *vat = static_cast<TT*>(va);
         TECA_PY_ITERATOR_DISPATCH_STR(obj,
@@ -144,7 +144,7 @@ bool copy(teca_variant_array *va, PyObject *obj)
         return false;
 
     // copy numeric types
-    TEMPLATE_DISPATCH(teca_variant_array_impl, va,
+    VARIANT_ARRAY_DISPATCH(va,
         TT *vat = static_cast<TT*>(va);
         TECA_PY_ITERATOR_DISPATCH_NUM(obj,
             vat->clear();
@@ -161,7 +161,7 @@ bool copy(teca_variant_array *va, PyObject *obj)
         )
 
     // copy strings
-    else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
+    else VARIANT_ARRAY_DISPATCH_CASE(
         std::string, va,
         TT *vat = static_cast<TT*>(va);
         TECA_PY_ITERATOR_DISPATCH_STR(obj,

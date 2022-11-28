@@ -371,8 +371,7 @@ int vtkTECATCTrackTableReader::RequestData(
     {
     p_teca_variant_array ar = this->Table->get_column(i);
 
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-      ar.get(),
+    VARIANT_ARRAY_DISPATCH(ar.get(),
 
       vtk_tt<NT>::VTK_TT *da = vtk_tt<NT>::VTK_TT::New();
       da->SetName(this->Table->get_column_name(i).c_str());

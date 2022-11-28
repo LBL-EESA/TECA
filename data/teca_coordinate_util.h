@@ -7,6 +7,7 @@
 #include "teca_cartesian_mesh.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_array_attributes.h"
 
@@ -17,6 +18,9 @@
 #include <iomanip>
 #include <deque>
 #include <vector>
+
+using namespace teca_variant_array_util;
+using allocator = teca_variant_array::allocator;
 
 #if defined(TECA_HAS_CUDA)
 #define TECA_TARGET __host__ __device__
@@ -417,21 +421,21 @@ int index_of(const const_p_teca_cartesian_mesh &mesh, T x, T y, T z,
     const_p_teca_variant_array yc = mesh->get_y_coordinates();
     const_p_teca_variant_array zc = mesh->get_z_coordinates();
 
-    TEMPLATE_DISPATCH_FP(
-        const teca_variant_array_impl,
-        xc.get(),
+    VARIANT_ARRAY_DISPATCH_FP(xc.get(),
 
-        auto p_xc = std::dynamic_pointer_cast<TT>(xc)->get_cpu_accessible();
-        auto p_yc = std::dynamic_pointer_cast<TT>(yc)->get_cpu_accessible();
-        auto p_zc = std::dynamic_pointer_cast<TT>(zc)->get_cpu_accessible();
+        assert_type<TT>(yc, zc);
+
+        auto [sp_xc, p_xc,
+              sp_yc, p_yc,
+              sp_zc, p_zc] = get_cpu_accessible<CTT>(xc, yc, zc);
 
         unsigned long nx = xc->size();
         unsigned long ny = yc->size();
         unsigned long nz = zc->size();
 
-        if (teca_coordinate_util::index_of(p_xc.get(), 0, nx-1, x, true, i)
-            || teca_coordinate_util::index_of(p_yc.get(), 0, ny-1, y, true, j)
-            || teca_coordinate_util::index_of(p_zc.get(), 0, nz-1, z, true, k))
+        if (teca_coordinate_util::index_of(p_xc, 0, nx-1, x, true, i)
+            || teca_coordinate_util::index_of(p_yc, 0, ny-1, y, true, j)
+            || teca_coordinate_util::index_of(p_zc, 0, nz-1, z, true, k))
         {
             // out of bounds
             return -1;

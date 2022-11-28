@@ -9,10 +9,14 @@
 #include "teca_system_interface.h"
 #include "teca_index_executive.h"
 #include "teca_array_attributes.h"
+#include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 
 #include <vector>
 #include <string>
 #include <iostream>
+
+using namespace teca_variant_array_util;
 
 // generates : f(x,y,z) = x - t; or f(x,y,z) = y; or f(x,y,z) = z depending on
 // the value of m_dir. this is used to generate a vector field whose magnitude
@@ -35,20 +39,12 @@ struct fxyz
 
         p_teca_variant_array f = x->new_instance(nxyz);
 
-        TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-            f.get(),
+        VARIANT_ARRAY_DISPATCH_FP(f.get(),
 
-            auto spf = dynamic_cast<TT*>(f.get())->get_cpu_accessible();
-            NT *pf = spf.get();
+            assert_type<CTT>(y, z);
 
-            auto spx = dynamic_cast<const TT*>(x.get())->get_cpu_accessible();
-            const NT *px = spx.get();
-
-            auto spy = dynamic_cast<const TT*>(y.get())->get_cpu_accessible();
-            const NT *py = spy.get();
-
-            auto spz = dynamic_cast<const TT*>(z.get())->get_cpu_accessible();
-            const NT *pz = spz.get();
+            auto [pf] = data<TT>(f);
+            auto [spx, px, spy, py, spz, pz] = get_cpu_accessible<CTT>(x, y, z);
 
             for (size_t k = 0; k < nz; ++k)
             {
