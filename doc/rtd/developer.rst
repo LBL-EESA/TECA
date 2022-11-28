@@ -53,14 +53,14 @@ typically restrict or prescribe the type of data to be processed. Instead the
 native data type is used. For instance if data loaded from disk has a single
 precision floating point data type, this data type is maintained as the data
 moves through a pipeline and this data type is used for the results of
-calculations. In some situations a high or low precision is useful or necessary
-in those circumstances TECA may change the data type as needed.
+calculations. However, in some situations a high or low precision is useful and/or necessary.
+In those circumstances TECA may change the data type as needed.
 For these reasons when writing data processing code one must not hard code
 for a specic type and instead write generic code that can handle any of the
 supported types.
 
-TECA's load balancing system dynamically executes codes on both the CPU and
-GPU. Thus one must make assumptions about the location of data input to a
+Additionally, TECA's load balancing system dynamically executes codes on both the CPU and
+GPU. Thus one must not make assumptions about the location of data input to a
 pipeline stage. Instead one must write generic code that can process data on
 either the CPU or GPU.
 
@@ -153,7 +153,7 @@ the dispatch macros.
 
 .. code-block:: c++
    :linenos:
-   :caption: Automatine type selection with the VARIANT_ARRAY_DISPATCH macro.
+   :caption: Automating type selection with the VARIANT_ARRAY_DISPATCH macro.
 
     p_teca_variant_array add_cpu(const const_p_teca_variant_array &a1,
                                  const const_p_teca_variant_array &a2)
@@ -167,6 +167,7 @@ the dispatch macros.
         VARIANT_ARRAY_DISPATCH(a1.get(),
 
             // cast output and get pointer to its elements
+            ...
             // cast inputs and get pointers to their elements
             ...
 
@@ -183,16 +184,15 @@ the dispatch macros.
     }
 
 
-The dispatch macros have substantially simplified the type selection process.
-The macro expands into a sequnce of conditions one for each supported type with
-the user provided code applied to each type.
+Notice, that the dispatch macros have substantially simplified the type
+selection process. The macro expands into a sequence of conditions one for
+each supported type with the user provided code applied to each type.
 
-To perfrom the casts and declare pointers we need to know the array's type Not
-shown yet is how inside the user provided code one can know the type that was
-found. This is done through a sieries of type aliases that are defined inside
-each expansion. The aliases defined in the following table are used to know the
-detected element type as well as a number of other useful compound types
-derived from it.
+When using the dispatch macros, in order to perfrom the casts and declare
+pointers we need to know the array's type.  This is done through a sieries of
+type aliases that are defined inside each expansion of the macro. The following
+aliases give us the detected element type as well as a number of other
+useful compound types derived from it.
 
 +-----------+---------------------------------------------------+
 | **Alias** | **Description**                                   |
@@ -212,33 +212,38 @@ derived from it.
 | CSP       | The const form of the element shared pointer type |
 +-----------+---------------------------------------------------+
 
-Accessing the elements of input arrays
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Once the type of the array is known, the array will be cast to that type, and
-its elements will be accessed and the calculations made.  The variant array
-implements so called accessiblilty methods that are used to access an array's
-elements when the location of the data, either CPU or GPU, is unknown.  The
-accessibility methods declare where, either CPU or GPU, we intend to perform the
-calculations and internally will move data if it is not
-already present. When data is moved
-temporary buffers are used. This has two important consequences. First,
-accessibility functions return smart pointers. The returned smart point must be
-held for as long as we need access to the array's elements. Once the smart
-pointer is released, th array's elements are no longer safe to access. Doing so
-may result in a nasty crash. Second, data accessed through the accessibility
-methods should not be modified. This is because it may or may not be modifying
-the array's contents, depending on if a temporary buffer was used or not.
-Modifying an array's contents is discussed below.
+Read only access to an array's elements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Once the type of the array is known, the array will be cast to that type, its
+elements will be accessed, and the calculations made. The variant array
+implements so called `accessiblilty` methods that are used to access an array's
+elements when the location of the data, either CPU or GPU, is unknown. This is
+the case when dealing with the inputs to a pipeline stage.  The accessibility
+methods declare where, either CPU or GPU, we intend to perform the calculations
+and internally will move data if it is not already present in the declared
+location. The accessibility methods are
+`teca_variant_array_impl::get_cpu_accessible` and
+`teca_variant_array_impl::get_cuda_accessible`.
 
-TECA provides a number of conveneince functions simplifing use of the
-accessibility methods these functions do the following: perform a cast to a
-typed variant array, call array's the accessibility method, and get a raw
-pointer to th array's elemnts for use in calculations.
+When data is moved by the accessibility methods, temporary buffers are
+employed. The use of temporaries has two important consequences when writing
+data processing code. First, the accessibility functions return smart pointers.
+The returned smart pointer must be held for as long as we need access to the
+array's elements. Once the smart pointer is released, the array's elements are
+no longer safe to access, and doing so may result in a nasty crash. Second,
+data accessed through the accessibility methods should not be modified. This is
+because when a temprary has been used the changes will be lost. Getting write
+access to an array's elements is discussed below.
+
+The `teca_variant_array_util` defines conveneince accessibility functions that
+simplify use in the most common scenarios.  These functions do the following:
+perform a cast to a typed variant array, call array's the accessibility method,
+and get a read only pointer to the array's elemnts for use in calculations.
 
 
 .. code-block:: c++
    :linenos:
-   :caption: Accessing inputs with read access.
+   :caption: Read only access to input arrays through the accessibility functions.
 
     p_teca_variant_array add_cpu(const const_p_teca_variant_array &a1,
                                  const const_p_teca_variant_array &a2)
@@ -271,22 +276,30 @@ pointer to th array's elemnts for use in calculations.
         return nullptr;
     }
 
+Here we've added calls to `get_cpu_accessible` function which ensures the data
+as accessible on the CPU and retruns a smart pointer managing the life span of
+any temporaries that were needed, as well as a naked pointer which can be used
+to access the array's elements.  Because we are assuming that both of the input
+arrays have the same type we've also called the convenience method,
+`aseert_type`,  to verify that the type of the second array is indeed the same
+as the first.  It is often the case that we will need to deal with multiple
+input types. This is described below.
 
-Note here that because we are assuming that the input arrays are the same type
-we've also called the convenience method to check the type of the second array.
-It is often the case that we will need to deal with multiple input types. This
-is described below.
+Write access to an array's elements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The results of our calculations are returned in arrays we allocate.  Because we
+have allocated the array ourselves, and have declared where it will be
+allocated (CPU or GPU), there is no need for data movement or temporary
+buffers. Instead we can access the pointer to the array's memory directly
+using the `teca_variant_array_impl::data` method.
 
-Accessing the elements of output arrays
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-The results of our calculations are returned in arrays we allocate. Accessing
-output array's elements is  handled differently than for the inputs. This is
-because when we allocate the array ourselves, we must declare where(CPU or GPU)
-it will be allocated, and hence there is no need for temporary buffers. The
-smart pointers used to manage temporary buffers are relatively cheap but not
-free. Overheads include smart poiinter's constructor calls to malloc which
-synchronize threads.  When we know the array's location we can skip this step
-and access internal data directly.
+Direct access should be prefered when ever we are certain of an
+array's location. This is because while the smart pointers returned by the
+accessibility methods used to manage the life span of temporaries are relatively
+cheap, they have overheads including the smart pointer's constructor
+calls to malloc, which synchronizes threads due to use of locks in many
+malloc implementations. Note: Google's tcmalloc library can provide increased
+performance for multithreaded codes such as TECA and is recommended.
 
 
 .. code-block:: c++
@@ -324,6 +337,9 @@ and access internal data directly.
         return nullptr;
     }
 
+We've added the `data` calls to get writable pointer to the output array's
+elements. With this the code is finally complete. The above example serves as a
+template for new data processing implementations.
 
 Accessing data for use on the GPU
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -377,6 +393,55 @@ Here is the example modified for calculation on the GPU.
 
 The main changes here are specifying a GPU allocator, calling the GPU
 accessibility methods, and launching a CUDA kernel.
+
+Dealing with multiple input array types
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+In many cases a calculation will need to access multiple arrays, all of which
+could potentially have a different data type. One common scenario is needing
+to access mesh coordinates as well as node centered data.
+The `NESTED_VARIANT_ARRAY_DISPATCH` macros can be used in these situations.
+The nested dispatch macros use token pasting so that the aliases are given
+unique names such that the macros can be nested. The following code snippet taken
+from the `teca_vorticity` algorithm illustrates.
+
+
+.. code-block:: c++
+   :linenos:
+   :caption: Accessing data with multiple types.
+
+    // allocate the output array
+    p_teca_variant_array vort = comp_0->new_instance(comp_0->size());
+
+    // compute vorticity
+    NESTED_VARIANT_ARRAY_DISPATCH_FP(
+        lon.get(), _COORD,
+
+        assert_type<TT_COORD>(lat);
+
+        auto [sp_lon, p_lon,
+              sp_lat, p_lat] = get_cpu_accessible<CTT_COORD>(lon, lat);
+
+        NESTED_VARIANT_ARRAY_DISPATCH_FP(
+            comp_0.get(), _DATA,
+
+            assert_type<TT_DATA>(comp_1);
+
+            auto [sp_comp_0, p_comp_0,
+                  sp_comp_1, p_comp_1] = get_cpu_accessible<CTT_DATA>(comp_0, comp_1);
+
+            auto [p_vort] = data<TT_DATA>(vort);
+
+            ::vorticity(p_vort, p_lon, p_lat,
+                p_comp_0, p_comp_1, lon->size(), lat->size());
+            )
+        )
+
+
+In the nested dispatch macros an additional parameter specifying an identifier
+that is pasted onto the usual aliases must be provided. The identifier `_COORD` is passed to
+the first dispatch macro where we select the data type of
+mesh coordinate arrays. The identifier `_DATA` is is passed to the second dispatch macro where
+we select the data type of the wind variable.
 
 
 Environment Variables
