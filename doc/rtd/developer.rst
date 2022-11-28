@@ -56,7 +56,7 @@ moves through a pipeline and this data type is used for the results of
 calculations. However, in some situations a high or low precision is useful and/or necessary.
 In those circumstances TECA may change the data type as needed.
 For these reasons when writing data processing code one must not hard code
-for a specic type and instead write generic code that can handle any of the
+for a specific type and instead write generic code that can handle any of the
 supported types.
 
 Additionally, TECA's load balancing system dynamically executes codes on both the CPU and
@@ -142,12 +142,12 @@ We've left some of the details out for now to keep the snippet short. We'll
 fill these details in shortly. Once the inputs' types are known we down cast,
 access the elements, and perform the calculation.
 
-Notice that the code is nearly idential for each different type. Because TECA
-supports all ISO C++ floating point and integer types as well as a numbr of
+Notice that the code is nearly identical for each different type. Because TECA
+supports all ISO C++ floating point and integer types as well as a number of
 higher level types such as std::string, this approach would be quite cumbersome
 to use in practice if it could not be automated. TECA provides the
 `VARIANT_ARRAY_DISPATCH` macro to automate type selection and apply a snippet
-of code for each supprted type. Here is the example modified to use
+of code for each supported type. Here is the example modified to use
 the dispatch macros.
 
 
@@ -188,8 +188,8 @@ Notice, that the dispatch macros have substantially simplified the type
 selection process. The macro expands into a sequence of conditions one for
 each supported type with the user provided code applied to each type.
 
-When using the dispatch macros, in order to perfrom the casts and declare
-pointers we need to know the array's type.  This is done through a sieries of
+When using the dispatch macros, in order to perform the casts and declare
+pointers we need to know the array's type.  This is done through a series of
 type aliases that are defined inside each expansion of the macro. The following
 aliases give us the detected element type as well as a number of other
 useful compound types derived from it.
@@ -216,7 +216,7 @@ Read only access to an array's elements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Once the type of the array is known, the array will be cast to that type, its
 elements will be accessed, and the calculations made. The variant array
-implements so called `accessiblilty` methods that are used to access an array's
+implements so called `accessibility` methods that are used to access an array's
 elements when the location of the data, either CPU or GPU, is unknown. This is
 the case when dealing with the inputs to a pipeline stage.  The accessibility
 methods declare where, either CPU or GPU, we intend to perform the calculations
@@ -232,13 +232,13 @@ The returned smart pointer must be held for as long as we need access to the
 array's elements. Once the smart pointer is released, the array's elements are
 no longer safe to access, and doing so may result in a nasty crash. Second,
 data accessed through the accessibility methods should not be modified. This is
-because when a temprary has been used the changes will be lost. Getting write
+because when a temporary has been used the changes will be lost. Getting write
 access to an array's elements is discussed below.
 
-The `teca_variant_array_util` defines conveneince accessibility functions that
+The `teca_variant_array_util` defines convenience accessibility functions that
 simplify use in the most common scenarios.  These functions do the following:
 perform a cast to a typed variant array, call array's the accessibility method,
-and get a read only pointer to the array's elemnts for use in calculations.
+and get a read only pointer to the array's elements for use in calculations.
 
 
 .. code-block:: c++
@@ -277,11 +277,11 @@ and get a read only pointer to the array's elemnts for use in calculations.
     }
 
 Here we've added calls to `get_cpu_accessible` function which ensures the data
-as accessible on the CPU and retruns a smart pointer managing the life span of
+as accessible on the CPU and returns a smart pointer managing the life span of
 any temporaries that were needed, as well as a naked pointer which can be used
 to access the array's elements.  Because we are assuming that both of the input
 arrays have the same type we've also called the convenience method,
-`aseert_type`,  to verify that the type of the second array is indeed the same
+`assert_type`,  to verify that the type of the second array is indeed the same
 as the first.  It is often the case that we will need to deal with multiple
 input types. This is described below.
 
@@ -293,7 +293,7 @@ allocated (CPU or GPU), there is no need for data movement or temporary
 buffers. Instead we can access the pointer to the array's memory directly
 using the `teca_variant_array_impl::data` method.
 
-Direct access should be prefered when ever we are certain of an
+Direct access should be preferred when ever we are certain of an
 array's location. This is because while the smart pointers returned by the
 accessibility methods used to manage the life span of temporaries are relatively
 cheap, they have overheads including the smart pointer's constructor
@@ -345,13 +345,13 @@ Accessing data for use on the GPU
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 TECA's load balancers automatically assign each thread a CPU core or a CPU core
 and a GPU. When assigned a GPU it is important that calculations be made using
-the assigend device. Here we show the changes needed to calculate on the GPU.
+the assigned device. Here we show the changes needed to calculate on the GPU.
 Generally speaking the steps needed to access data on the GPU are to:
 
 # Activate the assigned device.
 # Declare that we will access input data on the GPU. Data will be moved for us if needed.
 # Allocate the output data on the assigned device and get a raw pointer to it.
-# launch the kernel that perfroms the calculation.
+# launch the kernel that performs the calculation.
 
 Here is the example modified for calculation on the GPU.
 
