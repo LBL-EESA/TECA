@@ -361,25 +361,24 @@ const_p_teca_dataset teca_vorticity::execute(
     }
 
     // allocate the output array
-    p_teca_variant_array vort = comp_0->new_instance();
-    vort->resize(comp_0->size());
+    p_teca_variant_array vort = comp_0->new_instance(comp_0->size());
 
     // compute vorticity
     NESTED_VARIANT_ARRAY_DISPATCH_FP(
-        lon.get(), 1,
+        lon.get(), _COORD,
 
-        assert_type<TT1>(lat);
-        auto [sp_lon, p_lon, sp_lat, p_lat] = get_cpu_accessible<CTT1>(lon, lat);
+        assert_type<TT_COORD>(lat);
+        auto [sp_lon, p_lon, sp_lat, p_lat] = get_cpu_accessible<CTT_COORD>(lon, lat);
 
         NESTED_VARIANT_ARRAY_DISPATCH_FP(
-            comp_0.get(), 2,
+            comp_0.get(), _DATA,
 
-            assert_type<TT2>(comp_1);
+            assert_type<TT_DATA>(comp_1);
 
             auto [sp_comp_0, p_comp_0,
-                  sp_comp_1, p_comp_1] = get_cpu_accessible<CTT2>(comp_0, comp_1);
+                  sp_comp_1, p_comp_1] = get_cpu_accessible<CTT_DATA>(comp_0, comp_1);
 
-            auto [p_vort] = data<TT2>(vort);
+            auto [p_vort] = data<TT_DATA>(vort);
 
             ::vorticity(p_vort, p_lon, p_lat,
                 p_comp_0, p_comp_1, lon->size(), lat->size());
