@@ -20,9 +20,7 @@ int cpu_dispatch(p_array &result, const const_p_array &array_1,
     result = array::new_cpu_accessible();
     result->resize(n_vals);
 
-    std::shared_ptr<double> presult = result->get_cpu_accessible();
-
-    array_add_internals::cpu::add(presult.get(),
+    array_add_internals::cpu::add(result->data(),
         parray_1.get(), parray_2.get(), n_vals);
 
     return 0;

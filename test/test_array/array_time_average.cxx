@@ -103,8 +103,7 @@ const_p_teca_dataset array_time_average::execute(
 
     size_t n_elem = a_out->size();
 
-    std::shared_ptr<double> pa_out = a_out->get_cpu_accessible();
-    double *p_out = pa_out.get();
+    double *p_out = a_out->data();
 
     size_t n_times = input_data.size();
     for (size_t i = 1; i < n_times; ++i)

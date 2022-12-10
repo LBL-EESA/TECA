@@ -46,8 +46,6 @@ int cuda_dispatch(int device_id, p_array &result,
     result = array::new_cuda_accessible();
     result->resize(n_vals);
 
-    std::shared_ptr<double> presult = result->get_cuda_accessible();
-
     // determine kernel launch parameters
     dim3 block_grid;
     int n_blocks = 0;
@@ -61,7 +59,7 @@ int cuda_dispatch(int device_id, p_array &result,
 
     // add the arrays
     array_scalar_multiply_internals::gpu::multiply<<<block_grid, thread_grid>>>(
-        presult.get(), parray_in.get(), scalar, n_vals);
+        result->data(), parray_in.get(), scalar, n_vals);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
         TECA_ERROR("Failed to launch the multiply kernel. "

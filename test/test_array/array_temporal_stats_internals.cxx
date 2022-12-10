@@ -13,9 +13,7 @@ p_array allocate_and_initialize_stats(const std::string &array_name)
     results->set_name(array_name + "_stats");
     results->resize(4);
 
-    std::shared_ptr<double> presults = results->get_cpu_accessible();
-
-    array_temporal_stats_internals::cpu::initialize_stats(presults.get());
+    array_temporal_stats_internals::cpu::initialize_stats(results->data());
 
     return results;
 }
@@ -33,8 +31,6 @@ int cpu_dispatch(p_array &results, const const_p_array &l_in,
     results = array::new_cpu_accessible();
     results->resize(4);
 
-    std::shared_ptr<double> presults = results->get_cpu_accessible();
-
     // cases:
     if (l_active && r_active)
     {
@@ -45,10 +41,8 @@ int cpu_dispatch(p_array &results, const const_p_array &l_in,
         p_array res_l = array::new_cpu_accessible();
         res_l->resize(4);
 
-        std::shared_ptr<double> pres_l = res_l->get_cpu_accessible();
-
         array_temporal_stats_internals::cpu::compute_stats(
-            pres_l.get(), pl_in.get(), l_in->size());
+            res_l->data(), pl_in.get(), l_in->size());
 
         // compute stats from right
         std::shared_ptr<const double> pr_in = r_in->get_cpu_accessible();
@@ -56,14 +50,12 @@ int cpu_dispatch(p_array &results, const const_p_array &l_in,
         p_array res_r = array::new_cpu_accessible();
         res_r->resize(4);
 
-        std::shared_ptr<double> pres_r = res_r->get_cpu_accessible();
-
         array_temporal_stats_internals::cpu::compute_stats(
-            pres_r.get(), pr_in.get(), r_in->size());
+            res_r->data(), pr_in.get(), r_in->size());
 
         // reduce stats
         array_temporal_stats_internals::cpu::reduce_stats(
-            presults.get(), pres_l.get(), pres_r.get());
+            results->data(), res_l->data(), res_r->data());
     }
     else
     if (l_active)
@@ -76,17 +68,15 @@ int cpu_dispatch(p_array &results, const const_p_array &l_in,
         p_array res_l = array::new_cpu_accessible();
         res_l->resize(4);
 
-        std::shared_ptr<double> pres_l = res_l->get_cpu_accessible();
-
         array_temporal_stats_internals::cpu::compute_stats(
-            pres_l.get(), pl_in.get(), l_in->size());
+            res_l->data(), pl_in.get(), l_in->size());
 
         // existing stats from right
         std::shared_ptr<const double> pr_in = r_in->get_cpu_accessible();
 
         // reduce stats
         array_temporal_stats_internals::cpu::reduce_stats(
-            presults.get(), pres_l.get(), pr_in.get());
+            results->data(), res_l->data(), pr_in.get());
     }
     else
     if (r_active)
@@ -99,17 +89,15 @@ int cpu_dispatch(p_array &results, const const_p_array &l_in,
         p_array res_r = array::new_cpu_accessible();
         res_r->resize(4);
 
-        std::shared_ptr<double> pres_r = res_r->get_cpu_accessible();
-
         array_temporal_stats_internals::cpu::compute_stats(
-            pres_r.get(), pr_in.get(), r_in->size());
+            res_r->data(), pr_in.get(), r_in->size());
 
         // existing stats from left
         std::shared_ptr<const double> pl_in = l_in->get_cpu_accessible();
 
         // reduce stats from the left (always on CPU)
         array_temporal_stats_internals::cpu::reduce_stats(
-            presults.get(), pl_in.get(), pres_r.get());
+            results->data(), pl_in.get(), res_r->data());
     }
     else
     {
@@ -121,7 +109,7 @@ int cpu_dispatch(p_array &results, const const_p_array &l_in,
 
         // both left and right contain stats
         array_temporal_stats_internals::cpu::reduce_stats(
-            presults.get(), pl_in.get(), pr_in.get());
+            results->data(), pl_in.get(), pr_in.get());
     }
 
     return 0;

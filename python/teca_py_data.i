@@ -722,10 +722,8 @@ TECA_PY_CONST_CAST(teca_table)
 
             VARIANT_ARRAY_DISPATCH(tmp.get(),
 
-                TT *ttmp = static_cast<TT*>(tmp.get());
-
-                auto sptmp = ttmp->get_cpu_accessible();
-                NT *ptmp = sptmp.get();
+                using namespace teca_variant_array_util;
+                auto [sptmp, ptmp] = get_cpu_accessible<TT>(tmp);
 
                 size_t n_elem = tmp->size();
                 for (size_t i = 0; i < n_elem; ++i)

@@ -309,7 +309,8 @@ if get_teca_has_cupy():
     }
 
 #if defined(TECA_NUMPY_ARRAY_INTERFACE)
-    /** zero-copy transfer the data to numpy using the array interface protocol. */
+    /** zero-copy transfer the data to numpy using the array interface
+     * protocol. read only access */
     PyObject *get_cpu_accessible_impl()
     {
         teca_py_gil_state gil;
@@ -320,7 +321,7 @@ if get_teca_has_cupy():
             hamr::stream stream;
 
             hamr::buffer_handle<NT> *ph = new hamr::buffer_handle<NT>(
-                tself->get_cpu_accessible(), tself->size(), 0, 1,
+                tself->get_cpu_accessible(), tself->size(), 1,
                 tself->cpu_accessible() && tself->cuda_accessible(),
                 stream);
 
@@ -350,7 +351,7 @@ if get_teca_has_cupy():
 #endif
 
     /** zero-copy transfer the data to cupy using the numba CUDA array
-     * interface protocol. */
+     * interface protocol. read only access */
     PyObject *get_cuda_accessible_impl()
     {
         teca_py_gil_state gil;
@@ -361,7 +362,7 @@ if get_teca_has_cupy():
             hamr::stream stream;
 
             hamr::buffer_handle<NT> *ph = new hamr::buffer_handle<NT>(
-                tself->get_cuda_accessible(), tself->size(), 0,
+                tself->get_cuda_accessible(), tself->size(),
                 tself->cpu_accessible() && tself->cuda_accessible(), 1,
                 stream);
 
@@ -373,13 +374,52 @@ if get_teca_has_cupy():
         return nullptr;
     }
 
-    /** zero-copy data access in Numpy/Cupy/Numba via the array interface protocol */
+    /** zero-copy data access in Numpy/Cupy/Numba via the array interface
+     * protocol. read only access. */
     %pythoncode
     {
     def get_cuda_accessible(self):
         r""" return a handle exposing the data via the Numba CUDA array interface. """
         hvarr = self.get_cuda_accessible_impl()
         return cp_array(hvarr, copy=False)
+    }
+
+    /** zero-copy transfer the data to cupy using the numba CUDA array
+     * interface protocol. read/write access. */
+    PyObject *data_impl()
+    {
+        teca_py_gil_state gil;
+        VARIANT_ARRAY_DISPATCH(self,
+
+            TT *tself = static_cast<TT*>(self);
+
+            hamr::stream stream;
+
+            hamr::buffer_handle<NT> *ph = new hamr::buffer_handle<NT>(
+                tself->pointer(), tself->size(), 0,
+                tself->cpu_accessible(), tself->cuda_accessible(),
+                stream);
+
+            return SWIG_NewPointerObj(SWIG_as_voidptr(ph),
+                hamr::buffer_handle_tt<NT>::swig_type(), SWIG_POINTER_OWN);
+            )
+
+        TECA_PY_ERROR(PyExc_RuntimeError, "Failed to construct a read/write accessible buffer handle")
+        return nullptr;
+    }
+
+    /** zero-copy data access in Numpy/Cupy/Numba via the array interface protocol */
+    %pythoncode
+    {
+    def data(self):
+        r""" return a handle giving read/write access to the data via either
+        the Numba CUDA array interface or the Numpy array interface protocol.
+        Use this only when you know the data is safe to access in place. """
+        hvarr = self.data_impl()
+        if self.cuda_accessible():
+            return cp_array(hvarr, copy=False)
+        else:
+            return np_array(hvarr, copy=False)
     }
 
     PyObject *append(PyObject *obj)

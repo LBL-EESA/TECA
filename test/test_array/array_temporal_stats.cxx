@@ -138,10 +138,9 @@ p_teca_dataset array_temporal_stats::finalize(int device_id,
     a_out->resize(3);
     a_out->set_name(this->array_name + "_stats");
 
-    std::shared_ptr<double> pa_out = a_out->get_cpu_accessible();
 
     const double *pi = pa_in.get();
-    double *po = pa_out.get();
+    double *po = a_out->data();
 
     po[0] = pi[0];          // min
     po[1] = pi[1];          // max
