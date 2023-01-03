@@ -1550,8 +1550,12 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
                 {
                     if ((ierr = nc_var_par_access(file_id, id, NC_COLLECTIVE)) != NC_NOERR)
                     {
-                        TECA_ERROR("Failed to set collective access mode"
-                            " on variable \"" << arrays[i] << "\"")
+                        if (rank == 0)
+                        {
+                            TECA_ERROR("Failed to set collective access mode"
+                                " on variable \"" << arrays[i] << "\"" << std::endl
+                                << nc_strerror(ierr))
+                        }
                     }
                     else if (this->verbose && (rank == 0))
                     {
