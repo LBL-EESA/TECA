@@ -1500,11 +1500,18 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
         int ierr = 0;
         std::string file_path = path + PATH_SEP + file;
         teca_netcdf_util::netcdf_handle fh;
-        if (fh.open(file_path, NC_NOWRITE))
+
+        if ((this->collective_buffer > 0) && is_init)
+            ierr = fh.open(comm, file_path, NC_NOWRITE);
+        else
+            ierr = fh.open(file_path, NC_NOWRITE);
+
+        if (ierr)
         {
             TECA_FATAL_ERROR("Failed to open \"" << file << "\"")
             return nullptr;
         }
+
         int file_id = fh.get();
 
         // read requested arrays
