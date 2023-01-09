@@ -575,9 +575,12 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
     if ((this->collective_buffer > 0) && !collective_buffer_valid)
     {
         TECA_FATAL_ERROR("Collective buffering has been enabled for an invalid"
-            " configuration. Collective buffering can be safely used when the"
-            " spatial partitioner is enabled and the number of MPI ranks is"
-            " equal to the number of spatial partitions")
+            " configuration (spatial partitioner "
+            << (this->partitioner == spatial ? "on" : "off")
+            << " " << this->number_of_spatial_partitions << " partitions "
+            << n_ranks << " MPI ranks). Collective buffering can be safely used"
+            " when the spatial partitioner is enabled and the number of MPI"
+            " ranks is equal to the number of spatial partitions")
         return up_reqs;
     }
 
