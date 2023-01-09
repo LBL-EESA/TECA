@@ -67,8 +67,11 @@ public:
      *                        ranks running on the same node are taken into
      *                        account, resulting in 1 thread per core node wide.
      *
-     *   @param[in[ n_threads_per_device number of threads to assign to each CUDA
-     *                                   device. -1 for all threads assigned.
+     *   @param[in] n_threads_per_device number of threads to assign to each CUDA
+     *                                   device. If 0 no threads will service
+     *                                   CUDA devices, this is CPU only mode.
+     *                                   If -1 the default of 8 threads per
+     *                                   device will be used.
      *
      *   @param[in] bind      bind each thread to a specific core.
      *

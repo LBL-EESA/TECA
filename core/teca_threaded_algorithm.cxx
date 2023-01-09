@@ -125,8 +125,9 @@ void teca_threaded_algorithm::get_properties_description(
             "number of nanoseconds to wait between scans of the thread pool "
             "for completed tasks")
         TECA_POPTS_GET(int, prefix, threads_per_cuda_device,
-            "Sets the number of threads that service each CUDA GPU. -1 results "
-            "in all threads servicing CUDA GPUs.")
+            "Sets the number of threads that service each CUDA GPU. If -1 the"
+            "default of 8 threads per CUDA GPU is used. If 0 no threads will"
+            "service GPUs (CPU only mode)")
         ;
 
     this->teca_algorithm::get_properties_description(prefix, opts);

@@ -40,6 +40,14 @@ namespace teca_thread_util
  *                        rather than one per physical core. In this case the
  *                        affinity map is also constructed.
  *
+ * @param[in] n_threads_per_device the number of threads that should service
+ *                                 GPUs. If 0 no threads will service GPUs the
+ *                                 run will be CPU only.  If -1 the default
+ *                                 setting (8 threads per GPU) will be used.
+ *                                 This can be overriden at runtime with the
+ *                                 TECA_THREADS_PER_DEVICE environment
+ *                                 variable.
+ *
  * @param[in] bind if true extra work is done to determine an affinity map such
  *                 that each thread can be bound to a unique core on the node.
  *
