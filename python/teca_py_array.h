@@ -427,9 +427,9 @@ PyArrayObject *new_object(teca_variant_array_impl<NT> *varrt, bool deep_copy = f
             return nullptr;
         }
 
-        // copy the data
+        // deep copy the data
         auto spvarrt = varrt->get_cpu_accessible();
-        NT *pvarrt = spvarrt.get();
+        const NT *pvarrt = spvarrt.get();
         memcpy(mem, pvarrt, n_bytes);
 
         // put the buffer in to a new numpy object
@@ -443,7 +443,7 @@ PyArrayObject *new_object(teca_variant_array_impl<NT> *varrt, bool deep_copy = f
     }
     else
     {
-        using ptr_t = std::shared_ptr<NT>;
+        using ptr_t = std::shared_ptr<const NT>;
 
         // get a pointer to the data
         ptr_t *ptr = new ptr_t(std::move(varrt->get_cpu_accessible()));
@@ -453,15 +453,15 @@ PyArrayObject *new_object(teca_variant_array_impl<NT> *varrt, bool deep_copy = f
         npy_intp n_elem = varrt->size();
 
         obj = reinterpret_cast<PyArrayObject*>(
-            PyArray_SimpleNewFromData(1, &n_elem, numpy_tt<NT>::code, ptr->get()));
+            PyArray_SimpleNewFromData(1, &n_elem, numpy_tt<NT>::code, (void*)ptr->get()));
 
         // package in a capsule. this holds the reference to keep it alive while
         // Numpy is using it.
-        PyObject *cap = PyCapsule_New(ptr, nullptr, variant_array_capsule_destrcutor<NT>);
+        PyObject *cap = PyCapsule_New(ptr, nullptr, variant_array_capsule_destrcutor<const NT>);
 
         PyArray_SetBaseObject(obj, cap);
 
-        PyArray_ENABLEFLAGS(obj, NPY_ARRAY_WRITEABLE | NPY_ARRAY_NOTSWAPPED |
+        PyArray_ENABLEFLAGS(obj, NPY_ARRAY_NOTSWAPPED |
             NPY_ARRAY_ALIGNED | NPY_ARRAY_C_CONTIGUOUS);
 
 #if defined(TECA_DEBUG)

@@ -13,7 +13,7 @@ tab = teca_table.New()
 tab.declare_columns(['A(f)','B(d)','C(i)','D(l)'],['f','d','i','l'])
 tab << np.float32(1.1) << np.float64(2.1) << np.int8(31) << np.int16(41) \
     << np.int32(12) << np.int64(22) << np.uint8(32) << np.uint16(42) \
-    << np.uint32(13) << np.uint64(23) << np.long(33) << np.byte(43) \
+    << np.uint32(13) << np.uint64(23) << np.int64(33) << np.byte(43) \
     << -14 << -24 << -34 << -44 \
     << (-.15, -2.5, -35, -45) \
     << [1.6, 2.6, 36, 46] \

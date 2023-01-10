@@ -139,6 +139,7 @@ struct object_dispatch :
  * The following aliases are provided to know the type within the code to execute.
  *
  *      using NT = nt;
+ *      using CNT = const nt;
  *      using TT = tt<nt>;
  *      using CTT = const tt<nt>;
  *      using PT = std::shared_ptr<tt<nt>>;
@@ -151,6 +152,7 @@ struct object_dispatch :
     if (dynamic_cast<const tt<nt>*>(p))             \
     {                                               \
         using NT = nt;                              \
+        using CNT = const nt;                       \
         using TT = tt<nt>;                          \
         using CTT = const tt<nt>;                   \
         using PT = std::shared_ptr<tt<nt>>;         \
@@ -172,6 +174,7 @@ struct object_dispatch :
  * The following aliases are provided to know the type within the code to execute.
  *
  *      using NT##i = nt;
+ *      using CNT##i = const nt;
  *      using TT##i = tt<nt>;
  *      using CTT##i = const tt<nt>;
  *      using PT##i = std::shared_ptr<tt<nt>>;
@@ -184,6 +187,7 @@ struct object_dispatch :
     if (dynamic_cast<const tt<nt>*>(p))                     \
     {                                                       \
         using NT##i = nt;                                   \
+        using CNT##i = const nt;                            \
         using TT##i = tt<nt>;                               \
         using CTT##i = const tt<nt>;                        \
         using PT##i = std::shared_ptr<tt<nt>>;              \
@@ -793,16 +797,11 @@ public:
      * accelerator device or technology.
      */
     ///@{
-    /// Get a pointer to the data
-    std::shared_ptr<T> get_cpu_accessible()
-    { return m_data.get_cpu_accessible(); }
-
+    /// Get a pointer to the data accessible on the CPU
     const std::shared_ptr<const T> get_cpu_accessible() const
     { return m_data.get_cpu_accessible(); }
 
-    std::shared_ptr<T> get_cuda_accessible()
-    { return m_data.get_cuda_accessible(); }
-
+    /// Get a pointer to the data accessible within CUDA
     const std::shared_ptr<const T> get_cuda_accessible() const
     { return m_data.get_cuda_accessible(); }
     ///@}
@@ -819,6 +818,18 @@ public:
      * access it to save the cost of the std::shared_ptr copy constructor.
      */
     T *data() { return m_data.data(); }
+
+    /** direct access to the internal memory. Use this when you are certain
+     * that the data is already accessible in the location where you will
+     * access it.
+     */
+    const std::shared_ptr<T> &pointer() const { return m_data.pointer(); }
+
+    /** direct access to the internal memory. Use this when you are certain
+     * that the data is already accessible in the location where you will
+     * access it.
+     */
+    std::shared_ptr<T> &pointer() { return m_data.pointer(); }
 
     /// returns true if the data is accessible from CUDA codes
     int cuda_accessible() const noexcept override { return m_data.cuda_accessible(); }
@@ -2375,7 +2386,7 @@ void teca_variant_array_impl<T>::from_binary(teca_binary_stream &s,
 
     // allocate a buffer
     hamr::buffer<T> tmp(allocator::malloc, n_elem);
-    std::shared_ptr<T> sptmp = tmp.get_cpu_accessible();
+    std::shared_ptr<T> sptmp = tmp.pointer();
 
     // unpack the elements  into the buffer
     s.unpack(sptmp.get(), n_elem);

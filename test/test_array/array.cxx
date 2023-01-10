@@ -95,22 +95,9 @@ p_teca_dataset array::new_shallow_copy()
 }
 
 // --------------------------------------------------------------------------
-std::shared_ptr<double> array::get_cpu_accessible()
-{
-    return this->internals->buffer->get_cpu_accessible();
-}
-
-// --------------------------------------------------------------------------
 std::shared_ptr<const double> array::get_cpu_accessible() const
 {
     return this->internals->buffer->get_cpu_accessible();
-}
-
-
-// --------------------------------------------------------------------------
-std::shared_ptr<double> array::get_cuda_accessible()
-{
-    return this->internals->buffer->get_cuda_accessible();
 }
 
 // --------------------------------------------------------------------------
@@ -118,6 +105,13 @@ std::shared_ptr<const double> array::get_cuda_accessible() const
 {
     return this->internals->buffer->get_cuda_accessible();
 }
+
+// --------------------------------------------------------------------------
+double *array::data()
+{
+    return this->internals->buffer->data();
+}
+
 
 // --------------------------------------------------------------------------
 void array::resize(size_t n)
@@ -209,7 +203,7 @@ int array::to_stream(teca_binary_stream &s) const
     s.pack(n_elem);
 
     // always pack the data on the CPU
-    std::shared_ptr<double> d = this->internals->buffer->get_cpu_accessible();
+    std::shared_ptr<const double> d = this->internals->buffer->get_cpu_accessible();
     s.pack(d.get(), n_elem);
 
     return 0;
@@ -236,9 +230,7 @@ int array::from_stream(teca_binary_stream &s)
         std::make_shared<hamr::buffer<double>>
             (teca_variant_array::allocator::malloc, n_elem);
 
-    std::shared_ptr<double> pTmp = tmp->get_cpu_accessible();
-
-    s.unpack(pTmp.get(), n_elem);
+    s.unpack(tmp->data(), n_elem);
 
     // move to the desired location
     this->internals->buffer->assign(ref_to(tmp));
