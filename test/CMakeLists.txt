@@ -1035,3 +1035,8 @@ teca_add_test(test_cpp_temporal_reduction_io
     monthly average 1 # TODO -- more than 1 step per req.
     ./test_cpp_temporal_reduction_io_%t%.nc yearly
     ${TEST_CORES} ${TEST_CORES} ${TEST_CORES} 1 1)
+
+teca_add_test(test_regional_moisture_flux
+    SOURCES test_regional_moisture_flux.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_regional_moisture_flux 512 0.002)
