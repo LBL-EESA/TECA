@@ -577,7 +577,6 @@ teca_metadata teca_cartesian_mesh_source::get_output_metadata(
     this->internals->metadata.set("coordinates", coords);
 
     size_t nxyz = nx*ny*nz;
-    int dim_active[4] = {1,1,1,1};
     std::vector<std::string> vars;
     std::vector<field_generator_t>::iterator it = this->field_generators.begin();
     std::vector<field_generator_t>::iterator end = this->field_generators.end();
@@ -585,10 +584,9 @@ teca_metadata teca_cartesian_mesh_source::get_output_metadata(
     {
         vars.push_back(it->name);
 
-        teca_metadata var_atts = it->attributes;
         // correct size
+        teca_metadata var_atts = it->attributes;
         var_atts.set("size", nxyz);
-        var_atts.set("mesh_dim_active", dim_active);
 
         atts.set(it->name, var_atts);
     }

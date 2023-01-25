@@ -8,6 +8,7 @@
 #include "teca_metadata.h"
 #include "teca_coordinate_util.h"
 #include "teca_valid_value_mask.h"
+#include "teca_array_attributes.h"
 #if defined(TECA_HAS_CUDA)
 #include "teca_cuda_util.h"
 #endif
@@ -689,13 +690,15 @@ teca_metadata teca_integrated_vapor_transport::get_output_metadata(
 
         teca_array_attributes ivt_u_atts(
             type_code, teca_array_attributes::point_centering,
-            0, "kg m^{-1} s^{-1}", "longitudinal integrated vapor transport",
+            0, teca_array_attributes::xyt_active(), "kg m^{-1} s^{-1}",
+            "longitudinal integrated vapor transport",
             "the longitudinal component of integrated vapor transport",
             1, this->fill_value);
 
         teca_array_attributes ivt_v_atts(
             type_code, teca_array_attributes::point_centering,
-            0, "kg m^{-1} s^{-1}", "latitudinal integrated vapor transport",
+            0, teca_array_attributes::xyt_active(), "kg m^{-1} s^{-1}",
+            "latitudinal integrated vapor transport",
             "the latitudinal component of integrated vapor transport",
             this->fill_value);
 

@@ -41,7 +41,7 @@ struct packed_data
     {
         teca_array_attributes aa(teca_variant_array_code<unsigned char>::get(),
            teca_array_attributes::point_centering,
-           0, "unitless", "packed data", "cos(z)*sin(x+t)*sin(x+t)",
+           0, {1,1,1,1}, "unitless", "packed data", "cos(z)*sin(x+t)*sin(x+t)",
            1, m_fill);
 
         teca_metadata atts((teca_metadata)aa);

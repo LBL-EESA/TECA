@@ -315,10 +315,13 @@ teca_metadata teca_valid_value_mask::get_output_metadata(
         unsigned long size = 0;
         array_atts.get("size", size);
 
+        auto dim_active = teca_array_attributes::xyzt_active();
+        array_atts.get("mesh_dim_active", dim_active);
+
         // construct attributes
         teca_array_attributes mask_atts(
-            teca_variant_array_code<char>::get(),
-            centering, size, "none", "", "valid value mask");
+            teca_variant_array_code<char>::get(), centering,
+            size, dim_active, "none", "", "valid value mask");
 
         std::string mask_name = array_name + "_valid";
 
@@ -468,7 +471,6 @@ const_p_teca_dataset teca_valid_value_mask::execute(
             return nullptr;
         }
 
-
         // get the centering
         unsigned int centering = 0;
         if (array_atts.get("centering", centering))
@@ -495,6 +497,9 @@ const_p_teca_dataset teca_valid_value_mask::execute(
             return nullptr;
         }
 
+        // get the mask name
+        std::string mask_name = array_name + "_valid";
+
         VARIANT_ARRAY_DISPATCH(array.get(),
 
             // look for a _FillValue
@@ -505,7 +510,7 @@ const_p_teca_dataset teca_valid_value_mask::execute(
             have_fill_value = ((array_atts.get("_FillValue", fill_value) == 0) ||
                 (array_atts.get("missing_value", fill_value) == 0));
 
-            // look for some combination of valid rnage attributes.
+            // look for some combination of valid range attributes.
             bool have_valid_range = false;
             bool have_valid_min = false;
             bool have_valid_max = false;
@@ -604,10 +609,30 @@ const_p_teca_dataset teca_valid_value_mask::execute(
             }
 
             // save the mask in the output
-            std::string mask_name = array_name + "_valid";
             arrays->set(mask_name, mask);
             )
+
+        // copy attributes
+        unsigned long size = 0;
+        array_atts.get("size", size);
+
+        unsigned long dim_active[4] = {0ul};
+        array_atts.get("mesh_dim_active", dim_active, 4);
+
+        teca_metadata mask_atts;
+        mask_atts.set("long name", mask_name);
+        mask_atts.set("description", std::string("valid value mask"));
+        mask_atts.set("units", std::string("none"));
+        mask_atts.set("type_code", teca_variant_array_code<char>::get());
+        mask_atts.set("centering", centering);
+        mask_atts.set("size", size);
+        mask_atts.set("mesh_dim_active", dim_active);
+
+        attributes.set(mask_name, mask_atts);
     }
+
+    // update the attributes
+    out_mesh->set_attributes(attributes);
 
     return out_mesh;
 }

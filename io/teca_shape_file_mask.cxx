@@ -97,22 +97,10 @@ teca_metadata teca_shape_file_mask::get_mask_array_attributes(unsigned long size
     // construct output attributes
     teca_array_attributes mask_atts(
         teca_variant_array_code<char>::get(),
-        centering, size, "none", "", "Mask array generated from "
+        centering, size, {1,1,0,0}, "none", "", "Mask array generated from "
         + teca_file_util::filename(this->shape_file));
 
-    teca_metadata array_atts((teca_metadata)mask_atts);
-
-    int have_mesh_dim[4] = {1, 1, 0, 0};
-    int mesh_dim_active[4] = {1, 1, 0, 0};
-    int n_mesh_dims = 2;
-    int n_active_dims = 2;
-
-    array_atts.set("have_mesh_dim", have_mesh_dim, 4);
-    array_atts.set("mesh_dim_active", mesh_dim_active, 4);
-    array_atts.set("n_mesh_dims", n_mesh_dims);
-    array_atts.set("n_active_dims", n_active_dims);
-
-    return array_atts;
+    return mask_atts;
 }
 
 // --------------------------------------------------------------------------

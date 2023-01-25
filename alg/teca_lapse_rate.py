@@ -121,11 +121,9 @@ class teca_lapse_rate(teca_python_vertical_reduction):
         md = teca_metadata(md_in[0])
 
         lapse_atts = teca_array_attributes(
-            teca_double_array_code.get(),
-            teca_array_attributes.point_centering,
-            0, 'k/m', 'Average Lapse Rate', "Average lapse rate \
-            below {self.zmax} m", self.fill_value,
-        )
+            teca_double_array_code.get(), teca_array_attributes.point_centering,
+            0, teca_array_attributes.xyt_active(), 'k/m', 'Average Lapse Rate',
+            "Average lapse rate below {self.zmax} m", self.fill_value)
 
         # add the variables
         self.add_derived_variable_and_attributes("lapse_rate", lapse_atts)

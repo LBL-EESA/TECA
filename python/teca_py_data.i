@@ -20,6 +20,7 @@
 /***************************************************************************
  array_attributes
  ***************************************************************************/
+%template(std_array_i4) std::array<int,4>;
 %ignore teca_array_attributes::operator=;
 %rename(from_metadata) teca_array_attributes::from;
 %rename(to_metadata) teca_array_attributes::to;
@@ -41,8 +42,8 @@
     // a numerical object of the appropriate type or None to indicate no
     // fill value.
     teca_array_attributes(unsigned int tc, unsigned int cen,
-        unsigned long n, const std::string &un, const std::string &ln,
-        const std::string &descr, PyObject *fv)
+        unsigned long n, const std::array<int,4> &mda, const std::string &un,
+        const std::string &ln, const std::string &descr, PyObject *fv)
     {
         teca_py_gil_state gil;
 
@@ -56,7 +57,7 @@
             }
 
             TECA_PY_OBJECT_DISPATCH_NUM(fv,
-                return new teca_array_attributes(tc, cen, n, un, ln, descr,
+                return new teca_array_attributes(tc, cen, n, mda, un, ln, descr,
                     1, teca_py_object::cpp_tt<OT>::value(fv));
                 )
 
@@ -64,7 +65,7 @@
         }
         else
         {
-            return new teca_array_attributes(tc, cen, n, un, ln, descr);
+            return new teca_array_attributes(tc, cen, n, mda, un, ln, descr);
         }
 
         // the following two statements should never be executed.

@@ -821,7 +821,7 @@ teca_metadata teca_bayesian_ar_detect::get_output_metadata(
     teca_array_attributes prob_atts(
         teca_variant_array_code<float>::get(),
         teca_array_attributes::point_centering,
-        0, "unitless", "posterior AR flag",
+        0, teca_array_attributes::xyt_active(), "unitless", "posterior AR flag",
         "the posterior probability of the presence of an atmospheric river");
 
     atts.set(this->ar_probability_variable, (teca_metadata)prob_atts);
@@ -831,8 +831,8 @@ teca_metadata teca_bayesian_ar_detect::get_output_metadata(
 
     teca_array_attributes count_atts(
         teca_variant_array_code<int>::get(),
-        teca_array_attributes::no_centering,
-        num_params, "detections", "number of AR detections",
+        teca_array_attributes::no_centering, num_params,
+        teca_array_attributes::none_active(), "detections", "number of AR detections",
         "number of detections for the parameter table row at the same index in "
         "parameter_table_row");
 
@@ -840,8 +840,8 @@ teca_metadata teca_bayesian_ar_detect::get_output_metadata(
 
     teca_array_attributes row_atts(
         teca_variant_array_code<int>::get(),
-        teca_array_attributes::no_centering,
-        num_params, "row index", "parameter_table_row",
+        teca_array_attributes::no_centering, num_params,
+        teca_array_attributes::none_active(), "row index", "parameter_table_row",
         "the parameter table row corresponding to the value at the same index "
         "in ar_count");
 

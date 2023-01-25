@@ -12,6 +12,7 @@
 #include "teca_mpi_manager.h"
 #include "teca_system_interface.h"
 #include "teca_app_util.h"
+#include "teca_array_attributes.h"
 
 #if defined(TECA_HAS_UDUNITS)
 #include "teca_calcalcs.h"

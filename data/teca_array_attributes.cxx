@@ -58,6 +58,11 @@ int teca_array_attributes::to(teca_metadata &md) const
     if (size > 0)
         md.set("size", size);
 
+    if ((centering > 0) &&
+        ((mesh_dim_active[0] > 0) || (mesh_dim_active[1] > 0) ||
+         (mesh_dim_active[2] > 0) || (mesh_dim_active[3] > 0)))
+        md.set("mesh_dim_active", mesh_dim_active);
+
     if (!units.empty())
         md.set("units", units);
 
@@ -96,6 +101,11 @@ int teca_array_attributes::merge_to(teca_metadata &md) const
     if (size > 0)
         md.set("size", size);
 
+    if ((centering > 0) &&
+        ((mesh_dim_active[0] > 0) || (mesh_dim_active[1] > 0) ||
+         (mesh_dim_active[2] > 0) || (mesh_dim_active[3] > 0)))
+        md.set("mesh_dim_active", mesh_dim_active);
+
     // preserve any existing values in these
     if (!units.empty() && !md.has("units"))
         md.set("units", units);
@@ -127,6 +137,7 @@ int teca_array_attributes::from(const teca_metadata &md)
     md.get("type_code", type_code);
     md.get("centering", centering);
     md.get("size", size);
+    md.get("mesh_dim_active", mesh_dim_active);
     md.get("units", units);
     md.get("long_name", long_name);
     md.get("description", description);
@@ -152,9 +163,9 @@ int teca_array_attributes::from(const teca_metadata &md)
 void teca_array_attributes::to_stream(std::ostream &os) const
 {
     os << "type_code=" << type_code << ", centering=" << centering
-        << ", size=" << size << ", units=\"" << units
-        << "\", long_name=\"" << long_name << "\" description=\""
-        << description << "\", fill_value=";
+        << ", size=" << size << ", mesh_dim_active=" << mesh_dim_active
+        << ", units=\"" << units << "\", long_name=\"" << long_name
+        << "\" description=\"" << description << "\", fill_value=";
 
     if (have_fill_value)
     {

@@ -113,20 +113,18 @@ teca_metadata generate_test_data::get_output_metadata(unsigned int port,
     teca_array_attributes z_atts(
         teca_variant_array_code<double>::get(),
         teca_array_attributes::point_centering,
-        ncells, "meters", "height",
+        ncells, teca_array_attributes::xyzt_active(), "meters", "height",
         "height is defined by the function z=sin^2(x*y + t)");
 
     teca_array_attributes zt_atts(
         teca_variant_array_code<double>::get(),
-        teca_array_attributes::no_centering,
-        1, "meters", "threshold height",
-        "value of height used to segment the z data");
+        teca_array_attributes::no_centering, 1, teca_array_attributes::none_active(),
+        "meters", "threshold height", "value of height used to segment the z data");
 
     teca_array_attributes count_atts(
         teca_variant_array_code<int>::get(),
-        teca_array_attributes::no_centering,
-        2, "cells", "number of cells",
-        "number of cells above and below the threshold value");
+        teca_array_attributes::no_centering, 2, teca_array_attributes::none_active(),
+        "cells", "number of cells", "number of cells above and below the threshold value");
 
     // put it in the array attributes
     teca_metadata atts;

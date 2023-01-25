@@ -37,8 +37,8 @@ struct distance_field
         oss << "distance to (" << m_x0 << ", " << m_y0 << ", " << m_z0 << ")";
 
         return teca_array_attributes(teca_variant_array_code<double>::get(),
-            teca_array_attributes::point_centering, 0, "degrees", "distance",
-            oss.str().c_str());
+            teca_array_attributes::point_centering, 0, {1,1,1,1}, "degrees",
+            "distance", oss.str().c_str());
     }
 
     p_teca_variant_array operator()(const const_p_teca_variant_array &x,

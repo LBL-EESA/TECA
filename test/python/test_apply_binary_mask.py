@@ -71,14 +71,14 @@ md["index_request_key"] = "time_step"
 ones_atts = teca_array_attributes(
     teca_double_array_code.get(),
     teca_array_attributes.no_centering,
-    2, 'ones', 'unitless',
+    2, (0,0,0,0), 'ones', 'unitless',
     'an array full of ones',
     None)
 
 zeros_atts = teca_array_attributes(
     teca_double_array_code.get(),
     teca_array_attributes.no_centering,
-    2, 'zeros', 'unitless',
+    2, (0,0,0,0), 'zeros', 'unitless',
     'an array full of zeros',
     None)
 

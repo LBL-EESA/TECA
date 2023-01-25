@@ -4,7 +4,6 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_metadata.h"
-#include "teca_array_attributes.h"
 
 #include <algorithm>
 #include <iostream>

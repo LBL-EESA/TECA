@@ -7,7 +7,6 @@
 #include "teca_variant_array_impl.h"
 #include "teca_variant_array_util.h"
 #include "teca_metadata.h"
-#include "teca_array_attributes.h"
 #include "teca_valid_value_mask.h"
 
 #include <algorithm>

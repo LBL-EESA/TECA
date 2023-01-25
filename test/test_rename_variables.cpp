@@ -69,8 +69,8 @@ int main(int argc, char **argv)
 
     src->append_field_generator({"index",
         teca_array_attributes(teca_variant_array_code<double>::get(),
-            teca_array_attributes::point_centering, 0, "unitless",
-            "index", "some test data"),
+            teca_array_attributes::point_centering, 0, {1,1,0,1},
+            "unitless", "index", "some test data"),
         func});
 
     p_teca_rename_variables ren = teca_rename_variables::New();
