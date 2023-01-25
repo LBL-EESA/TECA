@@ -113,7 +113,7 @@ int main(int argc, char **argv)
     p_teca_derived_quantity core_temp = teca_derived_quantity::New();
     core_temp->set_input_connection(vort_850mb->get_output_port());
     core_temp->set_dependent_variables({T_500mb, T_200mb});
-    core_temp->set_derived_variable("core_temperature");
+    core_temp->set_derived_variables({"core_temperature"}, {{}});
     core_temp->set_execute_callback(
         point_wise_average(T_500mb, T_200mb, "core_temperature"));
 
@@ -121,7 +121,7 @@ int main(int argc, char **argv)
     p_teca_derived_quantity thickness = teca_derived_quantity::New();
     thickness->set_input_connection(core_temp->get_output_port());
     thickness->set_dependent_variables({z_1000mb, z_200mb});
-    thickness->set_derived_variable("thickness");
+    thickness->set_derived_variables({"thickness"},{{}});
     thickness->set_execute_callback(
         point_wise_difference(z_1000mb, z_200mb, "thickness"));
 
