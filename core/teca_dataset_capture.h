@@ -33,6 +33,12 @@ public:
     // set/get the dataset from the last pipeline update
     TECA_ALGORITHM_PROPERTY(const_p_teca_dataset, dataset)
 
+    template <typename dataset_t = teca_dataset>
+    std::shared_ptr<const dataset_t> get_dataset_as()
+    {
+        return std::dynamic_pointer_cast<const dataset_t>(this->dataset);
+    }
+
 protected:
     teca_dataset_capture();
 

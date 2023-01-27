@@ -79,16 +79,36 @@ public:
     unsigned int size() const noexcept
     { return m_arrays.size(); }
 
-    /// access an array by its by id
+    /// access an array by its id
     p_teca_variant_array get(unsigned int i)
     { return m_arrays[i]; }
 
-    /// access an array by its by id
+    /// access an array by its id
     const_p_teca_variant_array get(unsigned int i) const
     { return m_arrays[i]; }
 
+    /// access a typed array by id
+    template <typename array_t>
+    std::shared_ptr<array_t> get_as(unsigned int i)
+    { return std::dynamic_pointer_cast<array_t>(m_arrays[i]); }
+
+    /// access a typed array by id
+    template <typename array_t>
+    std::shared_ptr<const array_t> get_as(unsigned int i) const
+    { return std::dynamic_pointer_cast<const array_t>(m_arrays[i]); }
+
     /// test for array
     bool has(const std::string &name) const;
+
+    /// access a typed array by name
+    template <typename array_t>
+    std::shared_ptr<array_t> get_as(const std::string &name)
+    { return std::dynamic_pointer_cast<array_t>(this->get(name)); }
+
+    /// access a typed array by name
+    template <typename array_t>
+    std::shared_ptr<const array_t> get_as(const std::string &name) const
+    { return std::dynamic_pointer_cast<const array_t>(this->get(name)); }
 
     /// access an array by name
     p_teca_variant_array get(const std::string &name);

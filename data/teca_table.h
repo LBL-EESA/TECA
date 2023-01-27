@@ -60,8 +60,39 @@ public:
     /// get a specific column. return a nullptr if the column doesn't exist.
     p_teca_variant_array get_column(const std::string &col_name);
 
+    /// get a specific column. return a nullptr if the column doesn't exist.
     const_p_teca_variant_array get_column(unsigned int i) const;
+
+    /// get a specific column. return a nullptr if the column doesn't exist.
     const_p_teca_variant_array get_column(const std::string &col_name) const;
+
+    /// get a specific column. return a nullptr if the column doesn't exist.
+    template <typename array_t>
+    std::shared_ptr<array_t> get_column_as(unsigned int i)
+    {
+        return std::dynamic_pointer_cast<array_t>(this->get_column(i));
+    }
+
+    /// get a specific column. return a nullptr if the column doesn't exist.
+    template <typename array_t>
+    std::shared_ptr<array_t> get_column_as(const std::string &col_name)
+    {
+        return std::dynamic_pointer_cast<array_t>(this->get_column(col_name));
+    }
+
+    /// get a specific column. return a nullptr if the column doesn't exist.
+    template <typename array_t>
+    std::shared_ptr<const array_t> get_column_as(unsigned int i) const
+    {
+        return std::dynamic_pointer_cast<const array_t>(this->get_column(i));
+    }
+
+    /// get a specific column. return a nullptr if the column doesn't exist.
+    template <typename array_t>
+    std::shared_ptr<const array_t> get_column_as(const std::string &col_name) const
+    {
+        return std::dynamic_pointer_cast<const array_t>(this->get_column(col_name));
+    }
 
     /// test for the existence of a specific column
     bool has_column(const std::string &col_name) const
