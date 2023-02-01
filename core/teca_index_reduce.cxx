@@ -9,6 +9,8 @@
 #include <boost/program_options.hpp>
 #endif
 
+
+
 namespace internal {
 
 #if defined(TECA_HAS_MPI)
@@ -126,8 +128,9 @@ void block_decompose(MPI_Comm comm, unsigned long n_indices, unsigned long n_ran
 };
 
 // --------------------------------------------------------------------------
-teca_index_reduce::teca_index_reduce()
-    : start_index(0), end_index(-1)
+teca_index_reduce::teca_index_reduce() :
+    extent{0,-1,0,0,0,0}, bounds{0.,-1.,0.,0.,0.,0.}, arrays{},
+    start_index(0), end_index(-1)
 {
     this->set_stream_size(2);
 }
@@ -143,6 +146,14 @@ void teca_index_reduce::get_properties_description(const std::string &prefix,
         + (prefix.empty()?"teca_index_reduce":prefix));
 
     opts.add_options()
+        TECA_POPTS_MULTI_GET(extent_type, prefix, extent,
+            "an index space spatial subset of the data to request"
+            " [i0, i1, j0, j1, k0, k1] (optional)")
+        TECA_POPTS_MULTI_GET(bounds_type, prefix, bounds,
+            "a world space subset of the data to request"
+            " [x0, x1, y0, y1, z0, z1] (optional)")
+        TECA_POPTS_MULTI_GET(std::vector<std::string>, prefix, arrays,
+            "the set of arrays to request (optional)")
         TECA_POPTS_GET(long, prefix, start_index, "first index to process")
         TECA_POPTS_GET(long, prefix, end_index, "last index to process. "
             "If set to -1 all indices are processed.")
@@ -157,10 +168,89 @@ void teca_index_reduce::set_properties(const std::string &prefix,
 {
     this->teca_threaded_algorithm::set_properties(prefix, opts);
 
+
+
+    TECA_POPTS_SET(opts, extent_type, prefix, extent)
+    TECA_POPTS_SET(opts, bounds_type, prefix, bounds)
+    TECA_POPTS_SET(opts, std::vector<std::string>, prefix, arrays)
     TECA_POPTS_SET(opts, long, prefix, start_index)
     TECA_POPTS_SET(opts, long, prefix, end_index)
 }
 #endif
+
+// --------------------------------------------------------------------------
+std::vector<teca_metadata> teca_index_reduce::initialize_upstream_request(
+    unsigned int port,
+    const std::vector<teca_metadata> &input_md,
+    const teca_metadata &request_in)
+{
+#ifdef TECA_DEBUG
+    std::cerr << teca_parallel_id()
+        << "teca_index_reduce::initialize_upstream_request" << std::endl;
+#endif
+    (void) port;
+
+    teca_metadata request(request_in);
+
+    if (!request.has("bounds") && !request.has("extent"))
+    {
+        // if there are bounds or extent already in the request, leave them
+        // alone. otherwise use the runtime provided values, or implement the
+        // default behavior
+
+        if (this->bounds[1] < this->bounds[0])
+        {
+            // no bounds provided, fall back to extents
+            if (this->extent[1] < this->extent[0])
+            {
+                // no extent provided
+                const teca_metadata &md = input_md[0];
+                std::array<long,6> whole_extent{0,0,0,0,0,0};
+                if (!md.get("whole_extent", whole_extent))
+                {
+                    // fall back to whole extent
+                    request.set("extent", whole_extent);
+                }
+            }
+            else
+            {
+                // use extent specified
+                request.set("extent", this->extent);
+            }
+        }
+        else
+        {
+            // use bounds specifed
+            request.set("bounds", this->bounds);
+        }
+    }
+
+    if (!request.has("arrays"))
+    {
+        // if the request already has arrays do not modify. otherwise use the
+        // runtime provided values
+
+       if (!this->arrays.empty())
+           request.set("arrays", this->arrays);
+    }
+
+    return {request};
+}
+
+// --------------------------------------------------------------------------
+teca_metadata teca_index_reduce::initialize_output_metadata(
+    unsigned int port,
+    const std::vector<teca_metadata> &input_md)
+{
+#ifdef TECA_DEBUG
+    std::cerr << teca_parallel_id()
+        << "teca_index_reduce::intialize_output_metadata" << std::endl;
+#endif
+    (void) port;
+
+    teca_metadata output_md(input_md[0]);
+    return output_md;
+}
 
 // --------------------------------------------------------------------------
 std::vector<teca_metadata> teca_index_reduce::get_upstream_request(
