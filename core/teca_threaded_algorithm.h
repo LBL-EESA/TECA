@@ -53,9 +53,16 @@ p_teca_data_request_queue new_teca_data_request_queue(MPI_Comm comm,
     int n_threads, int n_threads_per_device, bool bind, bool verbose);
 
 /// This is the base class defining a threaded algorithm.
-/**
- * The strategy employed is to parallelize over upstream
- * data requests using a thread pool.
+/** The strategy employed is to parallelize over upstream data requests using a
+ * thread pool. Implementations override teca_algorithm::get_output_metadata,
+ * teca_algorithm::get_upstream_request, and teca_algorithm::execute.  Pipeline
+ * execution is parallelized over the set of requests returned from the
+ * teca_algorithm::get_upstream_request override. The generated data is then
+ * fed incrementally to the teca_algorithm::execute override as it arrives in
+ * at least stream_size increments.  Alternatively the generated data can be
+ * collected and fed to the execute override in one call. However, processing
+ * the data in one call is both slower and has a higher memory footprint making
+ * it prohibitive in many situations.
  */
 class TECA_EXPORT teca_threaded_algorithm : public teca_algorithm
 {
