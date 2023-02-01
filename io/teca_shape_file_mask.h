@@ -12,7 +12,7 @@
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_shape_file_mask)
 
 /// Generates a valid value mask defined by regions in the given ESRI shape file
-/** This algorithm is a source and has no inputs. A
+/** This algorithm is a source and has no inputs.
  */
 class TECA_EXPORT teca_shape_file_mask : public teca_algorithm
 {
@@ -43,6 +43,13 @@ public:
     TECA_ALGORITHM_VECTOR_PROPERTY(std::string, mask_variable)
     ///@}
 
+    /** @name normalize_coordinates
+     * set this flag to transform the x coordinates such that they are in [0,
+     * 360] and the y coordinates are in [-90, 90]
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, normalize_coordinates)
+    ///@}
 
 protected:
     teca_shape_file_mask();
@@ -73,6 +80,7 @@ private:
 private:
     std::string shape_file;
     std::vector<std::string> mask_variables;
+    int normalize_coordinates;
 
     struct internals_t;
     internals_t *internals;
