@@ -3,11 +3,14 @@
 
 /// @file
 
+#if defined(TECA_HAS_BOOST) && !defined(SWIG)
 #include "teca_config.h"
 #include "teca_common.h"
 #include "teca_mpi_util.h"
 
-#if defined(TECA_HAS_BOOST) && !defined(SWIG)
+#include <iostream>
+#include <boost/array.hpp>
+
 namespace boost
 {
     namespace program_options
@@ -19,6 +22,36 @@ namespace boost
 
 using options_description = boost::program_options::options_description;
 using variables_map = boost::program_options::variables_map;
+
+// the following allows std::array to work with boost::program_options
+namespace std
+{
+template <typename T, size_t N>
+std::istream& operator>>(std::istream& str, std::array<T,N>& arr)
+{
+    for (size_t i = 0; i < N; ++i)
+        str >> std::skipws >> arr[i];
+    return str;
+}
+}
+namespace boost
+{
+template <typename T, size_t N>
+std::istream& operator>>(std::istream& str, boost::array<T,N>& arr)
+{
+    for (size_t i = 0; i < N; ++i)
+        str >> std::skipws >> arr[i];
+    return str;
+}
+template <typename T, size_t N>
+std::ostream& operator<<(std::ostream& str, const boost::array<T,N>& arr)
+{
+    str << arr[0];
+    for (size_t i = 1; i < N; ++i)
+        str << " " << arr[i];
+    return str;
+}
+}
 
 /// initialize the given options description with algorithm's properties
 #define TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()                         \
