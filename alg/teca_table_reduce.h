@@ -13,9 +13,9 @@
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_table_reduce)
 
 /// A reduction on tabular data over time steps.
-/**
- * Tabular data from each time step is collected and
- * concatenated into a big table.
+/** Tabular data from is concatenated into a single table. Threading results in
+ * out of order execution/concatenation, hence it may be necessary to sort the
+ * data to regain order of the requests. See teca_table_sort.
  */
 class TECA_EXPORT teca_table_reduce : public teca_index_reduce
 {
@@ -31,13 +31,6 @@ protected:
     // overrides
     p_teca_dataset reduce(int device_id, const const_p_teca_dataset &left,
         const const_p_teca_dataset &right) override;
-
-    std::vector<teca_metadata> initialize_upstream_request(
-        unsigned int port, const std::vector<teca_metadata> &input_md,
-        const teca_metadata &request) override;
-
-    teca_metadata initialize_output_metadata(unsigned int port,
-        const std::vector<teca_metadata> &input_md) override;
 };
 
 #endif
