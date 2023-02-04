@@ -409,6 +409,58 @@ TECA_EXPORT
 int bounds_to_extent(const double *bounds, const teca_metadata &md,
     unsigned long *extent);
 
+
+/** Convert bounds to extents in one dimension.
+ *
+ * @param[in] bounds the 1D spatial bounding box [x0, x1]
+ * @param[in] px pointer to the coordinate array
+ * @param[in] nx the size of the coordinate array
+ * @param[out] extent the resulting 1D extent [i0, i1]
+ *
+ * @returns non-zero if the requested bounds are not in the given coordinate
+ * arrays.
+ */
+template <typename coord_t>
+TECA_EXPORT
+int bounds_to_extent(const double *bounds,
+    const coord_t *px, unsigned long nx, unsigned long *extent)
+{
+    // in the following, for each side (low, high) of the bounds in
+    // each cooridnate direction we are searching for the index that
+    // is either just below, just above, or exactly at the given value.
+    // special cases include:
+    //   * x,y,z in descending order. we check for that and
+    //     invert the compare functions that define the bracket
+    //   * bounds describing a plane. we test for this and
+    //     so that both high and low extent return the same value.
+    //   * x,y,z are length 1. we can skip the search in that
+    //     case.
+
+    const coord_t eps8 = coord_t(8)*std::numeric_limits<coord_t>::epsilon();
+
+    unsigned long high_i = nx - 1;
+    extent[0] = 0;
+    extent[1] = high_i;
+    coord_t low_x = static_cast<coord_t>(bounds[0]);
+    coord_t high_x = static_cast<coord_t>(bounds[1]);
+    bool slice_x = equal(low_x, high_x, eps8);
+
+    if (((nx > 1) && (((px[high_i] > px[0]) &&
+        (teca_coordinate_util::index_of(px, 0, high_i, low_x, true, extent[0])
+        || teca_coordinate_util::index_of(px, 0, high_i, high_x, slice_x, extent[1]))) ||
+        ((px[high_i] < px[0]) &&
+        (teca_coordinate_util::index_of<coord_t,descend_bracket<coord_t>>(px, 0, high_i, low_x, false, extent[0])
+        || teca_coordinate_util::index_of<coord_t,descend_bracket<coord_t>>(px, 0, high_i, high_x, !slice_x, extent[1]))))))
+    {
+        TECA_ERROR(<< "requested subset [" << bounds[0] << ", " << bounds[1] << ", "
+            << "] is not contained in the current dataset bounds [" << px[0] << ", "
+            << px[high_i] << "]")
+        return -1;
+    }
+
+    return 0;
+}
+
 /** Get the i,j,k cell index of point x,y,z in the given mesh.  return 0 if
  * successful.
  */
@@ -1150,6 +1202,38 @@ TECA_EXPORT
 int find_extent_containing_step(long step,
     const std::vector<std::pair<long, long>> &step_extents,
     long &index);
+
+/** Computes the intersection of two 2D Cartesian tiles. If the intersection is
+ * empty the low coordinate is above the high coordinate. The tiles are specified
+ * in the form [i0, i1, j0, j1].
+ *
+ * @param[out] int_tile the intersection
+ * @param[in] left_tile the first of the tiles to intersect
+ * @param[in] right_tile the second of the tiles to intersect
+ *
+ * @returns a reference to the intersection
+ */
+template <typename coord_t>
+TECA_EXPORT
+coord_t &intersect_tiles(coord_t &int_tile,
+    const coord_t &left_tile, const coord_t &right_tile)
+{
+    int_tile[0] = std::max(left_tile[0], right_tile[0]);
+    int_tile[1] = std::min(left_tile[1], right_tile[1]);
+    int_tile[2] = std::max(left_tile[2], right_tile[2]);
+    int_tile[3] = std::min(left_tile[3], right_tile[3]);
+    return int_tile;
+}
+
+/** returns true if the 2D Cartesian tile is empty. An empty tile has for any
+ * dimension the low coordinate larger than the high coordinate
+ */
+template <typename coord_t>
+TECA_EXPORT
+bool empty_tile(const coord_t &tile)
+{
+    return (tile[0] > tile[1]) || (tile[2] > tile[3]);
+}
 
 }
 #endif
