@@ -350,4 +350,58 @@ int partition_thread_blocks(int device_id, size_t array_size,
         thread_grid);
 }
 
+
+
+// --------------------------------------------------------------------------
+cuda_stream_vector::~cuda_stream_vector()
+{
+    this->resize(0);
+}
+
+// --------------------------------------------------------------------------
+int cuda_stream_vector::resize(size_t new_n)
+{
+    cudaError_t ierr;
+    cudaStream_t strm;
+
+    new_n = std::max(size_t(1), new_n);
+
+    size_t cur_n = m_vec.size();
+
+    if (new_n < cur_n)
+    {
+        // deallocate streams
+        for (size_t i = new_n; i < cur_n; ++i)
+        {
+            if ((ierr = cudaStreamDestroy(m_vec[i])) != cudaSuccess)
+            {
+                TECA_ERROR("Failed to destroy stream " << i << " of " << cur_n)
+                return -1;
+            }
+        }
+        // shrink
+        m_vec.resize(new_n);
+    }
+    else if (new_n > cur_n)
+    {
+        // grow
+        m_vec.resize(new_n);
+
+        // allocate streams
+        for (size_t i = cur_n; i < new_n; ++i)
+        {
+            if ((ierr = cudaStreamCreate(&strm)) != cudaSuccess)
+            {
+                TECA_ERROR("Failed to create a CUDA stream. "
+                    << cudaGetErrorString(ierr))
+                return -1;
+            }
+
+            m_vec[i] = strm;
+        }
+    }
+
+    return 0;
+}
+
 }

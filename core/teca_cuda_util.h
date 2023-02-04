@@ -215,6 +215,40 @@ int partition_thread_blocks_slab(size_t nxy, size_t nz, size_t stride,
     int warps_per_block, int warp_size, int *block_grid_max, dim3 &block_grid,
     int &n_blocks_xy, int &n_blocks_z,  dim3 &thread_grid);
 
-}
 ///@}
+
+
+/// A collection of CUDA streams.
+/** This container always has as its first element the cudaStreamPerThread
+ * stream. If more than one stream is desired one can call ::resize to add
+ * new streams to the collection. For simplicity copying the container is
+ * disabled, but this feature could be added if needed.
+ */
+class TECA_EXPORT cuda_stream_vector
+{
+public:
+    cuda_stream_vector() : m_vec(1, cudaStreamPerThread) {}
+    ~cuda_stream_vector();
+
+    /// prevent copies, OK to enable these if needed
+    cuda_stream_vector(const cuda_stream_vector &) = delete;
+    void operator=(const cuda_stream_vector &) = delete;
+
+    /// resize the collection. creates and destroys streams as needed
+    int resize(size_t n);
+
+    /// get the number of available cuda streams
+    size_t size() const { return m_vec.size(); }
+
+    /// get the ith cuda stream
+    cudaStream_t &operator[](size_t i) { return m_vec[i]; }
+
+    /// get the ith cuda stream
+    const cudaStream_t &operator[](size_t i) const { return m_vec[i]; }
+
+private:
+    std::vector<cudaStream_t> m_vec;
+};
+
+}
 #endif
