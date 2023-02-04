@@ -12,7 +12,13 @@
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_shape_file_mask)
 
 /// Generates a valid value mask defined by regions in the given ESRI shape file
-/** This algorithm is a source and has no inputs.
+/** The teca_shape_file_mask generates a mask on a 2D mesh where mesh points
+ * are assigned a value of 1 where they fall inside any one of the polygons
+ * defined in the named ESRI shape file, and 0 everywhere else. The input mesh
+ * is passed through to the output with the mask added. By default a transform
+ * on the x coordinates of the polygons from [-180, 180] to [0, 360] is
+ * applied.  If this is undesirable it can be disabled by setting the
+ * normalize_coordinates property to 0.
  */
 class TECA_EXPORT teca_shape_file_mask : public teca_algorithm
 {
@@ -44,11 +50,19 @@ public:
     ///@}
 
     /** @name normalize_coordinates
-     * set this flag to transform the x coordinates such that they are in [0,
-     * 360] and the y coordinates are in [-90, 90]
+     * set this flag to transform the x coordinates from [-180, 180] to
+     * [0, 360]
      */
     ///@{
     TECA_ALGORITHM_PROPERTY(int, normalize_coordinates)
+    ///@}
+
+    /** @name number_of_cuda_streams
+     * sets the number of streams to use when searching the mesh for polygon
+     * intersections.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, number_of_cuda_streams)
     ///@}
 
 protected:
@@ -81,6 +95,7 @@ private:
     std::string shape_file;
     std::vector<std::string> mask_variables;
     int normalize_coordinates;
+    int number_of_cuda_streams;
 
     struct internals_t;
     internals_t *internals;
