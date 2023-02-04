@@ -4,6 +4,15 @@
 #include "teca_config.h"
 #include "teca_binary_stream.h"
 
+#if defined(TECA_HAS_CUDA)
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include <hamr_cuda_malloc_async_allocator.h>
+#else
+#define __host__
+#define __device__
+#endif
+
 #include <memory>
 #include <limits>
 
@@ -16,6 +25,7 @@ namespace teca_geometry
 /// tests if a point is Left|On|Right of an infinite line.
 template<typename n_t>
 TECA_EXPORT
+__host__ __device__
 bool left(n_t e0x, n_t e0y, n_t e1x, n_t e1y, n_t px, n_t py)
 {
     // >0 for p left of the line through e0 and e1
@@ -40,8 +50,9 @@ bool left(n_t e0x, n_t e0y, n_t e1x, n_t e1y, n_t px, n_t py)
  */
 template<typename n_t>
 TECA_EXPORT
+__host__ __device__
 bool point_in_poly(n_t px, n_t py,
-    n_t *vx, n_t *vy, unsigned long nppts)
+    const n_t *vx, const n_t *vy, unsigned long nppts)
 {
     int wn = 0;
     // loop through all edges of the polygon
@@ -73,6 +84,8 @@ bool point_in_poly(n_t px, n_t py,
 template <typename coord_t>
 struct TECA_EXPORT polygon
 {
+    using element_type = coord_t;
+
     polygon() : vx(nullptr), vy(nullptr), n_verts(0) {}
 
     /// deep copy the vertices of the polygon.
@@ -84,15 +97,15 @@ struct TECA_EXPORT polygon
     void normalize_coordinates();
 
     /// returns true if a point is inside the polygon
-    bool inside(coord_t px, coord_t py);
+    bool inside(coord_t px, coord_t py) const;
 
     /** compute an axis aligned bounding box around the polygon
      * with the layout [x0 x1 y0 y1].
      */
-    void get_bounds(coord_t *bounds);
+    void get_bounds(coord_t *bounds) const;
 
     /// serialize to the given stream
-    void to_stream(teca_binary_stream &bs);
+    void to_stream(teca_binary_stream &bs) const;
 
     /// deseriealize from the given stream
     int from_stream(teca_binary_stream &bs);
@@ -131,14 +144,14 @@ void polygon<coord_t>::normalize_coordinates()
 
 // --------------------------------------------------------------------------
 template <typename coord_t>
-bool polygon<coord_t>::inside(coord_t px, coord_t py)
+bool polygon<coord_t>::inside(coord_t px, coord_t py) const
 {
     return teca_geometry::point_in_poly(px, py, vx.get(), vy.get(), n_verts);
 }
 
 // --------------------------------------------------------------------------
 template <typename coord_t>
-void polygon<coord_t>::get_bounds(coord_t *bounds)
+void polygon<coord_t>::get_bounds(coord_t *bounds) const
 {
     const coord_t *pvx = vx.get();
     const coord_t *pvy = vy.get();
@@ -162,7 +175,7 @@ void polygon<coord_t>::get_bounds(coord_t *bounds)
 
 // --------------------------------------------------------------------------
 template <typename coord_t>
-void polygon<coord_t>::to_stream(teca_binary_stream &bs)
+void polygon<coord_t>::to_stream(teca_binary_stream &bs) const
 {
     bs.pack(n_verts);
     bs.pack(vx.get(), n_verts);
@@ -186,5 +199,4 @@ int polygon<coord_t>::from_stream(teca_binary_stream &bs)
 }
 
 };
-
 #endif
