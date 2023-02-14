@@ -996,3 +996,8 @@ teca_add_test(test_temporal_index_select_mpi_space_time_partition
         "${TECA_DATA_ROOT}/test_temporal_index_select_prw_monthly" "prw" 2 2 181 363
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
+
+teca_add_test(test_table_join
+    SOURCES test_table_join.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_table_join)

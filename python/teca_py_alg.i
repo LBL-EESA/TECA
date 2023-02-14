@@ -36,6 +36,7 @@
 #include "teca_shape_file_mask.h"
 #endif
 #include "teca_table_calendar.h"
+#include "teca_table_join.h"
 #include "teca_table_sort.h"
 #include "teca_table_reduce.h"
 #include "teca_table_region_mask.h"
@@ -548,3 +549,11 @@ struct teca_tc_saffir_simpson
 %shared_ptr(teca_dataset_source)
 %ignore teca_dataset_source::operator=;
 %include "teca_dataset_source.h"
+
+/***************************************************************************
+ table_join
+ ***************************************************************************/
+%ignore teca_table_join::shared_from_this;
+%shared_ptr(teca_table_join)
+%ignore teca_table_join::operator=;
+%include "teca_table_join.h"

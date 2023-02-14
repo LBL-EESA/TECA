@@ -40,6 +40,7 @@ set(teca_alg_cxx_srcs
     teca_parser.cxx
     teca_rename_variables.cxx
     teca_table_calendar.cxx
+    teca_table_join.cxx
     teca_table_reduce.cxx
     teca_table_region_mask.cxx
     teca_table_remove_rows.cxx
