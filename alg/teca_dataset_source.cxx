@@ -1,5 +1,7 @@
 #include "teca_dataset_source.h"
 #include "teca_dataset.h"
+#include "teca_table.h"
+#include "teca_mesh.h"
 #include "teca_metadata_util.h"
 
 #include <string>
@@ -8,9 +10,6 @@
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
 #endif
-
-using std::cerr;
-using std::endl;
 
 // --------------------------------------------------------------------------
 teca_dataset_source::teca_dataset_source()
@@ -46,8 +45,8 @@ teca_metadata teca_dataset_source::get_output_metadata(unsigned int port,
     const std::vector<teca_metadata> &input_md)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_dataset_source::get_output_metadata" << endl;
+    std::cerr << teca_parallel_id()
+        << "teca_dataset_source::get_output_metadata" << std::endl;
 #endif
     (void)port;
     (void)input_md;
@@ -56,11 +55,44 @@ teca_metadata teca_dataset_source::get_output_metadata(unsigned int port,
     if (!this->metadata.empty())
         return this->metadata;
 
+    unsigned int n_datasets = this->datasets.size();
+
     // handle pipeline mechanics for them
     teca_metadata omd;
     omd.set("index_initializer_key", std::string("num_datasets"));
-    omd.set("num_datasets", this->datasets.size());
+    omd.set("num_datasets", n_datasets);
     omd.set("index_request_key", std::string("dataset_id"));
+
+    // report the variables
+
+    const_p_teca_mesh mesh = std::dynamic_pointer_cast
+        <const teca_mesh>(n_datasets ? this->datasets[0] : nullptr);
+
+    const_p_teca_table tab = std::dynamic_pointer_cast
+        <const teca_table>(n_datasets ? this->datasets[0] : nullptr);
+
+    if (mesh)
+    {
+        // report point centered arrays of the mesh
+        std::vector<std::string> vars;
+        unsigned int n_arrays = mesh->get_point_arrays()->size();
+        for (unsigned int i = 0; i < n_arrays; ++i)
+        {
+            vars.push_back(mesh->get_point_arrays()->get_name(i));
+        }
+        omd.set("variables", vars);
+    }
+    else if (tab)
+    {
+        // report columns of the table
+        std::vector<std::string> vars;
+        unsigned int n_cols = tab->get_number_of_columns();
+        for (unsigned int i = 0; i < n_cols; ++i)
+        {
+            vars.push_back(tab->get_column_name(i));
+        }
+        omd.set("variables", vars);
+    }
 
     return omd;
 }
@@ -71,8 +103,8 @@ const_p_teca_dataset teca_dataset_source::execute(unsigned int port,
     const teca_metadata &request)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_dataset_source::execute" << endl;
+    std::cerr << teca_parallel_id()
+        << "teca_dataset_source::execute" << std::endl;
 #endif
     (void)port;
     (void)input_data;
