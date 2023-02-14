@@ -15,7 +15,6 @@
 #include "teca_component_statistics.h"
 #include "teca_component_area_filter.h"
 #include "teca_dataset_diff.h"
-#include "teca_dataset_capture.h"
 #include "teca_dataset_source.h"
 #include "teca_derived_quantity.h"
 #include "teca_derived_quantity_numerics.h"
@@ -541,3 +540,11 @@ struct teca_tc_saffir_simpson
  spectral_filter
  ***************************************************************************/
 %pythoncode "teca_spectral_filter.py"
+
+/***************************************************************************
+ dataset_source
+ ***************************************************************************/
+%ignore teca_dataset_source::shared_from_this;
+%shared_ptr(teca_dataset_source)
+%ignore teca_dataset_source::operator=;
+%include "teca_dataset_source.h"
