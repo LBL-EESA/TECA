@@ -690,14 +690,14 @@ teca_metadata teca_integrated_vapor_transport::get_output_metadata(
 
         teca_array_attributes ivt_u_atts(
             type_code, teca_array_attributes::point_centering,
-            0, teca_array_attributes::xyt_active(), "kg m^{-1} s^{-1}",
+            0, teca_array_attributes::xyt_active(), "kg m-1 s-1",
             "longitudinal integrated vapor transport",
             "the longitudinal component of integrated vapor transport",
             1, this->fill_value);
 
         teca_array_attributes ivt_v_atts(
             type_code, teca_array_attributes::point_centering,
-            0, teca_array_attributes::xyt_active(), "kg m^{-1} s^{-1}",
+            0, teca_array_attributes::xyt_active(), "kg m-1 s-1",
             "latitudinal integrated vapor transport",
             "the latitudinal component of integrated vapor transport",
             this->fill_value);
