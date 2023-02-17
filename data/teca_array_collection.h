@@ -212,8 +212,8 @@ template<typename nT, typename aT>
 void teca_array_collection::declare(nT &&a_name, aT)
 {
     unsigned int id = m_arrays.size();
-    m_names.emplace_back(std::forward<nT>(a_name));
-    m_arrays.emplace_back(teca_variant_array_impl<aT>::New(this->default_allocator));
+    m_names.push_back(a_name);
+    m_arrays.push_back(teca_variant_array_impl<aT>::New(this->default_allocator));
     m_name_array_map.emplace(std::forward<nT>(a_name), id);
 }
 
