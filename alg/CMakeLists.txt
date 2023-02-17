@@ -40,6 +40,7 @@ set(teca_alg_cxx_srcs
     teca_parser.cxx
     teca_rename_variables.cxx
     teca_regional_moisture_flux.cxx
+    teca_surface_integral.cxx
     teca_table_calendar.cxx
     teca_table_join.cxx
     teca_table_reduce.cxx

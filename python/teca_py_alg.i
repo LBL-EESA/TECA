@@ -30,6 +30,7 @@
 #include "teca_normalize_coordinates.h"
 #include "teca_spatial_executive.h"
 #include "teca_regional_moisture_flux.h"
+#include "teca_surface_integral.h"
 #include "teca_rename_variables.h"
 #include "teca_saffir_simpson.h"
 #include "teca_temporal_reduction.h"
@@ -566,3 +567,11 @@ struct teca_tc_saffir_simpson
 %shared_ptr(teca_regional_moisture_flux)
 %ignore teca_regional_moisture_flux::operator=;
 %include "teca_regional_moisture_flux.h"
+
+/***************************************************************************
+ surface_integral
+ ***************************************************************************/
+%ignore teca_surface_integral::shared_from_this;
+%shared_ptr(teca_surface_integral)
+%ignore teca_surface_integral::operator=;
+%include "teca_surface_integral.h"
