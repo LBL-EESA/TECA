@@ -205,7 +205,7 @@ std::vector<teca_metadata> teca_index_reduce::initialize_upstream_request(
             {
                 // no extent provided
                 const teca_metadata &md = input_md[0];
-                std::array<long,6> whole_extent{0,0,0,0,0,0};
+                extent_type whole_extent{0,0,0,0,0,0};
                 if (!md.get("whole_extent", whole_extent))
                 {
                     // fall back to whole extent

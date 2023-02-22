@@ -8,7 +8,6 @@
 #include "teca_threaded_algorithm.h"
 
 #include <vector>
-#include <array>
 
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_index_reduce)
 
@@ -51,8 +50,8 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_index_reduce)
 class TECA_EXPORT teca_index_reduce : public teca_threaded_algorithm
 {
 public:
-    using extent_type = std::array<long,6>;
-    using bounds_type = std::array<double,6>;
+    using extent_type = std::vector<long>;
+    using bounds_type = std::vector<double>;
 
 
     TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_index_reduce)
