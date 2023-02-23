@@ -114,6 +114,7 @@ void teca_cpp_temporal_reduction::internals_t::ensure_floating_point(
 class teca_cpp_temporal_reduction::internals_t::reduction_operator
 {
 public:
+    virtual ~reduction_operator() {}
 
     reduction_operator() : fill_value(-1) {}
 
@@ -228,8 +229,9 @@ public:
 
 
 /// A time interval defined by a sart and end time step
-struct teca_cpp_temporal_reduction::internals_t::time_interval
+class teca_cpp_temporal_reduction::internals_t::time_interval
 {
+public:
     time_interval(double t, long start, long end) : time(t),
         start_index(start), end_index(end)
     {}
