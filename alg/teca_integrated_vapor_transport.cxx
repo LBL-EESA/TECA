@@ -28,7 +28,7 @@ using allocator = teca_variant_array::allocator;
 //#define TECA_DEBUG
 
 #if defined(TECA_HAS_CUDA)
-namespace cuda
+namespace cuda_gpu
 {
 // **************************************************************************
 __global__
@@ -386,9 +386,9 @@ int dispatch(int device_id, size_t nx, size_t ny, size_t nz,
                 auto [sp_wvv, p_wind_v_valid] = get_cuda_accessible<CTT_MASK>(wind_v_valid);
                 auto [sp_qv, p_q_valid] = get_cuda_accessible<CTT_MASK>(q_valid);
 
-                if (cuda::cartesian_ivt(device_id, nx, ny, nz, p_p,
+                if (cuda_gpu::cartesian_ivt(device_id, nx, ny, nz, p_p,
                     p_wind_u, p_wind_u_valid, p_q, p_q_valid, p_ivt_u) ||
-                    cuda::cartesian_ivt(device_id, nx, ny, nz, p_p,
+                    cuda_gpu::cartesian_ivt(device_id, nx, ny, nz, p_p,
                     p_wind_v, p_wind_v_valid, p_q, p_q_valid, p_ivt_v))
                 {
                     TECA_ERROR("Failed to compute IVT with valid value mask")
@@ -397,9 +397,9 @@ int dispatch(int device_id, size_t nx, size_t ny, size_t nz,
             }
             else
             {
-                if (cuda::cartesian_ivt(device_id, nx,
+                if (cuda_gpu::cartesian_ivt(device_id, nx,
                     ny, nz, p_p, p_wind_u, p_q, p_ivt_u) ||
-                    cuda::cartesian_ivt(device_id, nx,
+                    cuda_gpu::cartesian_ivt(device_id, nx,
                     ny, nz, p_p, p_wind_v, p_q, p_ivt_v))
                 {
                     TECA_ERROR("Failed to compute IVT")
@@ -845,7 +845,7 @@ const_p_teca_dataset teca_integrated_vapor_transport::execute(
     request.get("device_id", device_id);
     if (device_id >= 0)
     {
-        if (cuda::dispatch(device_id, nx, ny, nz, p, wind_u,
+        if (cuda_gpu::dispatch(device_id, nx, ny, nz, p, wind_u,
             wind_u_valid, wind_v, wind_v_valid, q, q_valid,
             ivt_u, ivt_v))
         {

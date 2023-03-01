@@ -84,7 +84,7 @@ int compute_mask(mask_t *mask, const coord_t *x, const coord_t *y,
 }
 
 #if defined(TECA_HAS_CUDA)
-namespace cuda
+namespace cuda_gpu
 {
 // **************************************************************************
 template <typename mask_t, typename coord_t, typename poly_coord_t>
@@ -516,7 +516,7 @@ const_p_teca_dataset teca_shape_file_mask::execute(
                 // use a stream to overlap this iteration with the others
                 cudaStream_t strm = streams[ p % n_streams ];
 
-                if (::cuda::compute_mask(device_id, strm, p_mask, dp_x, dp_y,
+                if (::cuda_gpu::compute_mask(device_id, strm, p_mask, dp_x, dp_y,
                     int_extent, nx, this->internals->polys[p]))
                 {
                     TECA_ERROR("Failed to compute the mask using CUDA")

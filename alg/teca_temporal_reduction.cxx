@@ -250,7 +250,7 @@ void teca_cpp_temporal_reduction::internals_t::reduction_operator::initialize(
 }
 
 #if defined(TECA_HAS_CUDA)
-namespace cuda
+namespace cuda_gpu
 {
 // --------------------------------------------------------------------------
 template <typename T>
@@ -903,7 +903,7 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::update_gpu(
             if (out_valid)
             {
                 auto [sp_out_valid, p_out_valid] = get_cuda_accessible<CTT_MASK>(out_valid);
-                cuda::count_init(device_id, p_out_valid, p_tmp, n_elem_count);
+                cuda_gpu::count_init(device_id, p_out_valid, p_tmp, n_elem_count);
             }
             else
             {
@@ -933,7 +933,7 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::update_gpu(
             auto [sp_in_valid, p_in_valid] = get_cuda_accessible<CTT_MASK>(in_valid);
             auto [sp_out_valid, p_out_valid] = get_cuda_accessible<CTT_MASK>(out_valid);
 
-            cuda::average(device_id, p_out_array, p_out_valid,
+            cuda_gpu::average(device_id, p_out_array, p_out_valid,
                 p_in_array, p_in_valid, p_count, p_res_count,
                 p_res_array, p_res_valid, n_elem);
 
@@ -944,7 +944,7 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::update_gpu(
             // update, no missing data
             p_res_count[0] = p_count[0] + 1.;
 
-            cuda::summation(device_id, p_out_array, nullptr,
+            cuda_gpu::summation(device_id, p_out_array, nullptr,
                 p_in_array, nullptr, p_res_array, nullptr,
                 n_elem);
         }
@@ -1091,14 +1091,14 @@ int teca_cpp_temporal_reduction::internals_t::summation_operator::update_gpu(
             auto [sp_in_valid, p_in_valid] = get_cuda_accessible<CTT_MASK>(in_valid);
             auto [sp_out_valid, p_out_valid] = get_cuda_accessible<CTT_MASK>(out_valid);
 
-            cuda::summation(device_id, p_out_array, p_out_valid,
+            cuda_gpu::summation(device_id, p_out_array, p_out_valid,
                 p_in_array, p_in_valid, p_res_array, p_res_valid, n_elem);
 
             red_valid = res_valid;
         }
         else
         {
-            cuda::summation(device_id, p_out_array, nullptr,
+            cuda_gpu::summation(device_id, p_out_array, nullptr,
                 p_in_array, nullptr, p_res_array, nullptr, n_elem);
         }
 
@@ -1243,14 +1243,14 @@ int teca_cpp_temporal_reduction::internals_t::minimum_operator::update_gpu(
             auto [sp_in_valid, p_in_valid] = get_cuda_accessible<CTT_MASK>(in_valid);
             auto [sp_out_valid, p_out_valid] = get_cuda_accessible<CTT_MASK>(out_valid);
 
-            cuda::minimum(device_id, p_out_array, p_out_valid,
+            cuda_gpu::minimum(device_id, p_out_array, p_out_valid,
                 p_in_array, p_in_valid, p_res_array, p_res_valid, n_elem);
 
             red_valid = res_valid;
         }
         else
         {
-            cuda::minimum(device_id, p_out_array, nullptr,
+            cuda_gpu::minimum(device_id, p_out_array, nullptr,
                 p_in_array, nullptr, p_res_array, nullptr, n_elem);
         }
 
@@ -1396,7 +1396,7 @@ int teca_cpp_temporal_reduction::internals_t::maximum_operator::update_gpu(
            auto [sp_in_valid, p_in_valid] = get_cuda_accessible<CTT_MASK>(in_valid);
            auto [sp_out_valid, p_out_valid] = get_cuda_accessible<CTT_MASK>(out_valid);
 
-            cuda::maximum(device_id, p_out_array, p_out_valid,
+            cuda_gpu::maximum(device_id, p_out_array, p_out_valid,
                 p_in_array, p_in_valid, p_res_array, p_res_valid, n_elem);
 
             red_valid = res_valid;
@@ -1404,7 +1404,7 @@ int teca_cpp_temporal_reduction::internals_t::maximum_operator::update_gpu(
         else
         {
             // update, no misisng values
-            cuda::maximum(device_id, p_out_array, nullptr,
+            cuda_gpu::maximum(device_id, p_out_array, nullptr,
                 p_in_array, nullptr, p_res_array, nullptr, n_elem);
         }
 
@@ -1458,7 +1458,7 @@ int teca_cpp_temporal_reduction::internals_t::reduction_operator::finalize(
             if (device_id >= 0)
             {
                 auto [sp_out_valid, p_out_valid] = get_cuda_accessible<CTT_MASK>(out_valid);
-                cuda::finalize(device_id, p_out_array, p_out_valid, fill_value, n_elem);
+                cuda_gpu::finalize(device_id, p_out_array, p_out_valid, fill_value, n_elem);
             }
             else
             {
@@ -1523,12 +1523,12 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::finalize(
             {
                 auto [sp_out_valid, p_out_valid] = get_cuda_accessible<CTT_MASK>(out_valid);
 
-                cuda::average_finalize(device_id, p_out_array, p_out_valid,
+                cuda_gpu::average_finalize(device_id, p_out_array, p_out_valid,
                     p_res_array, p_count, fill_val, n_elem);
             }
             else
             {
-                cuda::average_finalize(device_id, p_out_array, nullptr,
+                cuda_gpu::average_finalize(device_id, p_out_array, nullptr,
                     p_res_array, p_count, fill_val, n_elem);
             }
             red_array = res_array;

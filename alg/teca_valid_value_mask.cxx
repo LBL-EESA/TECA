@@ -41,7 +41,7 @@ bool is_mask_array(const std::string &array)
 }
 
 #if defined(TECA_HAS_CUDA)
-namespace cuda
+namespace cuda_gpu
 {
 // **************************************************************************
 template <typename T>
@@ -542,7 +542,7 @@ const_p_teca_dataset teca_valid_value_mask::execute(
 #if defined(TECA_HAS_CUDA)
                 if (device_id >= 0)
                 {
-                    if (::cuda::dispatch<NT>(device_id, array, fill_value, mask))
+                    if (::cuda_gpu::dispatch<NT>(device_id, array, fill_value, mask))
                     {
                         TECA_ERROR("Failed to compute the valid value mask using CUDA")
                         return nullptr;
@@ -571,7 +571,7 @@ const_p_teca_dataset teca_valid_value_mask::execute(
 #if defined(TECA_HAS_CUDA)
                 if (device_id >= 0)
                 {
-                    if (::cuda::dispatch<NT>(device_id, array, valid_range, mask))
+                    if (::cuda_gpu::dispatch<NT>(device_id, array, valid_range, mask))
                     {
                         TECA_ERROR("Failed to compute the valid value mask using CUDA")
                         return nullptr;

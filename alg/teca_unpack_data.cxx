@@ -102,7 +102,7 @@ int dispatch(const p_teca_variant_array &in_array,
 }
 
 #if defined(TECA_HAS_CUDA)
-namespace cuda
+namespace cuda_gpu
 {
 // **************************************************************************
 template <typename input_t, typename output_t>
@@ -152,7 +152,7 @@ int transform(int device_id, output_t *p_out, input_t *p_in,
 
     // unpack the data
     cudaError_t ierr = cudaSuccess;
-    cuda::transform<<<block_grid,thread_grid>>>(p_out,
+    cuda_gpu::transform<<<block_grid,thread_grid>>>(p_out,
         p_in, p_mask, n_elem, scale, offset, fill);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
@@ -182,7 +182,7 @@ int transform(int device_id, output_t *p_out, input_t *p_in,
 
     // unpack the data
     cudaError_t ierr = cudaSuccess;
-    cuda::transform<<<block_grid,thread_grid>>>(p_out,
+    cuda_gpu::transform<<<block_grid,thread_grid>>>(p_out,
         p_in, n_elem, scale, offset);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
@@ -236,7 +236,7 @@ int dispatch(int device_id, const p_teca_variant_array &in_array,
                     auto [sp_mask, p_mask] = get_cuda_accessible<TT_MASK>(mask);
 
                     // unpack the data
-                    if (cuda::transform(device_id, p_out, p_in, p_mask,
+                    if (cuda_gpu::transform(device_id, p_out, p_in, p_mask,
                         n_elem, NT_OUT(scale), NT_OUT(offset), NT_OUT(1e20)))
                         return -1;
                     )
@@ -244,7 +244,7 @@ int dispatch(int device_id, const p_teca_variant_array &in_array,
             else
             {
                 // unpack the data
-                if (cuda::transform(device_id, p_out, p_in,
+                if (cuda_gpu::transform(device_id, p_out, p_in,
                     n_elem, NT_OUT(scale), NT_OUT(offset)))
                     return -1;
             }
@@ -528,7 +528,7 @@ const_p_teca_dataset teca_unpack_data::execute(
     request.get("device_id", device_id);
     if (device_id >= 0)
     {
-        if (cuda::dispatch(device_id, in_array, mask, scale,
+        if (cuda_gpu::dispatch(device_id, in_array, mask, scale,
             offset, out_array, this->output_data_type))
         {
             TECA_ERROR("Failed to compute unpack data on the CPU")

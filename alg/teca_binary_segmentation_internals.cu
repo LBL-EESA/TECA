@@ -18,7 +18,7 @@ using allocator = teca_variant_array::allocator;
 
 namespace teca_binary_segmentation_internals
 {
-namespace cuda
+namespace cuda_gpu
 {
 // predicate for indirect sort
 template <typename data_t, typename index_t>
@@ -215,12 +215,12 @@ int cuda_dispatch(int device_id,
 
         if (threshold_mode == teca_binary_segmentation::BY_VALUE)
         {
-            cuda::value_threshold(p_seg, p_in, n_elem,
+            cuda_gpu::value_threshold(p_seg, p_in, n_elem,
                static_cast<NT>(low), static_cast<NT>(high));
         }
         else if  (threshold_mode == teca_binary_segmentation::BY_PERCENTILE)
         {
-            cuda::percentile_threshold(p_seg, p_in, n_elem,
+            cuda_gpu::percentile_threshold(p_seg, p_in, n_elem,
                 static_cast<NT>(low), static_cast<NT>(high));
         }
         else
