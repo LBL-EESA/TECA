@@ -22,6 +22,10 @@ else ()
     set(CMAKE_C_VISIBILITY_PRESET hidden)
 endif()
 
+# this prevents a relink when a shared library's implementation changes
+set(CMAKE_LINK_DEPENDS_NO_SHARED ON)
+
+
 
 # set build/install sub dirs for various components
 if (NOT LIB_PREFIX)
