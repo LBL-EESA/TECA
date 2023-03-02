@@ -204,7 +204,7 @@ teca_metadata teca_integrated_water_vapor::get_output_metadata(
 
         teca_array_attributes iwv_atts(
             type_code, teca_array_attributes::point_centering,
-            0, teca_array_attributes::xyt_active(), "kg m^{-2}",
+            0, teca_array_attributes::xyt_active(), "kg m-2",
             "integrated water vapor",
             "vertically integrated " + this->specific_humidity_variable,
             1, this->fill_value);
