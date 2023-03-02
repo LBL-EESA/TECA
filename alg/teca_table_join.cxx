@@ -232,6 +232,10 @@ const_p_teca_dataset teca_table_join::execute(
     p_teca_table target = teca_table::New();
     target->shallow_copy(in_target);
 
+    // get the attributes
+    teca_metadata target_atts;
+    target->get_attributes(target_atts);
+
     unsigned long n_rows = target->get_number_of_rows();
 
     // get the list of arrays to move
@@ -274,7 +278,16 @@ const_p_teca_dataset teca_table_join::execute(
                             << " rows is inconsistent with a table with " << n_rows)
                     }
 
+                    // pass the column
                     target->append_column(*it, col);
+
+                    // pass the attributes
+                    teca_metadata source_atts;
+                    source->get_attributes(source_atts);
+
+                    teca_metadata array_atts;
+                    if (!source_atts.get(*it, array_atts))
+                        target_atts.set(*it, array_atts);
 
                     col_found = true;
                     break;
@@ -290,22 +303,8 @@ const_p_teca_dataset teca_table_join::execute(
         }
     }
 
-    // move the array attributes
-    /* teca_metadata source_atts;
-    source->get_attributes(source_atts);
-
-    teca_metadata target_atts;
-    target->get_attributes(target_atts);
-
-    size_t n_arrays = source_arrays.size();
-    for (size_t i = 0; i < n_arrays; ++i)
-    {
-        teca_metadata array_atts;
-        source_atts.get(source_arrays[i], array_atts);
-        target_atts.set(source_arrays[i], array_atts);
-    }
-
-    target->set_attributes(target_atts);*/
+    // update the attributes
+    target->set_attributes(target_atts);
 
     return target;
 }
