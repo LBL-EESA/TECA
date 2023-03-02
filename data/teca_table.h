@@ -26,11 +26,24 @@ public:
 
     virtual ~teca_table() = default;
 
-    // set/get metadata
+    /// @name temporal metadata
+    /** Specifies the temporal extents of the data and the calendaring system
+     * used to define the time axis.
+     */
+    ///@{
     TECA_DATASET_METADATA(calendar, std::string, 1)
     TECA_DATASET_METADATA(time_units, std::string, 1)
+    ///@}
 
-    // remove all column definitions and data
+    /// @name attribute metadata
+    /** Provides access to the array attributes metadata, which contains
+     * information such as dimensions, units, data type, description, etc.
+     */
+    ///@{
+    TECA_DATASET_METADATA(attributes, teca_metadata, 1)
+    ///@}
+
+    /// remove all column definitions and data
     void clear();
 
     /** Define the table columns. requires name,type pairs. For example,
