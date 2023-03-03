@@ -19,6 +19,10 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_shape_file_mask)
  * on the x coordinates of the polygons from [-180, 180] to [0, 360] is
  * applied.  If this is undesirable it can be disabled by setting the
  * normalize_coordinates property to 0.
+ *
+ * @attention Currently there is no check on the coordinate system specified in
+ * the shapefile. This could result in a mask of all zeros when the shapefile
+ * and input mesh use a different coodinate system.
  */
 class TECA_EXPORT teca_shape_file_mask : public teca_algorithm
 {
