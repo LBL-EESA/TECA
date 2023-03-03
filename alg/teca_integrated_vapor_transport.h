@@ -17,14 +17,16 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_integrated_vapor_transport)
  * specific humidity.
  *
  * \f[
- * IVT = \frac{1}{g} \int_{p_{sfc}}^{p_{top}} \vec{v} q dp
+ * \vec{IVT} = \frac{1}{g} \int_{p_{sfc}}^{p_{top}} \vec{v} \, q \; dp
  * \f]
  *
- * where q is the specific humidity, and \f$\vec{v} = (u, v)\f$ are the
+ * where \f$q\f$ is the specific humidity, and \f$\vec{v} = (u, v)\f$ are the
  * longitudinal and latitudinal components of wind.
  *
  * This calculation is an instance of a vertical reduction where
  * a 3D mesh is transformed into a 2D one.
+ *
+ * This algorithm handles missing values.
  */
 class TECA_EXPORT teca_integrated_vapor_transport : public teca_vertical_reduction
 {
