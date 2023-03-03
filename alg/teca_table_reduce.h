@@ -13,9 +13,10 @@
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_table_reduce)
 
 /// A reduction on tabular data over time steps.
-/** Tabular data from is concatenated into a single table. Threading results in
- * out of order execution/concatenation, hence it may be necessary to sort the
- * data to regain order of the requests. See teca_table_sort.
+/** Tabular data from the inputs is concatenated by row into a single table.
+ * Threading results in out of order execution and generation of the inputs. It
+ * may be necessary to sort the data to regain order of the requests. See
+ * teca_table_sort.
  */
 class TECA_EXPORT teca_table_reduce : public teca_index_reduce
 {
