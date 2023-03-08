@@ -6,6 +6,8 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
     #$<TARGET_PROPERTY:teca_io,INTERFACE_INCLUDE_DIRECTORIES>
     )
 
+include_directories("${CMAKE_SOURCE_DIR}/alg/third_party/tempestextremes/src/base" "${CMAKE_SOURCE_DIR}/alg/third_party/tempestextremes/src/nodes" "${CMAKE_SOURCE_DIR}/alg/third_party/tempestextremes/src/netcdf-cxx-4.2")
+
 set(teca_alg_cxx_srcs
     gfdl_tc_candidates.cxx
     teca_apply_binary_mask.cxx
@@ -61,7 +63,9 @@ set(teca_alg_cxx_srcs
     teca_vorticity.cxx
     teca_dataset_diff.cxx
     teca_temporal_reduction.cxx
+    teca_detect_nodes.cxx
     )
+
 
 set(teca_alg_cuda_srcs)
 if (TECA_HAS_CUDA)
@@ -109,7 +113,7 @@ endif()
 
 add_library(teca_alg ${teca_alg_cxx_srcs} ${teca_alg_cuda_srcs} ${teca_alg_f90_srcs})
 
-target_link_libraries(teca_alg teca_data teca_core ${teca_alg_link})
+target_link_libraries(teca_alg teca_data teca_core ${teca_alg_link} "${CMAKE_SOURCE_DIR}/alg/third_party/tempestextremes/src/base/libextremesbase.a" "${CMAKE_SOURCE_DIR}/alg/third_party/tempestextremes/src/netcdf-cxx-4.2/libnetcdf_c++.a" ${NETCDF_LIBRARIES})
 
 target_include_directories(teca_alg
     INTERFACE
