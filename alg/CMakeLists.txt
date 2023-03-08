@@ -66,7 +66,9 @@ set(teca_alg_cxx_srcs
     teca_vorticity.cxx
     teca_dataset_diff.cxx
     teca_temporal_reduction.cxx
+    teca_detect_nodes.cxx
     )
+
 
 set(teca_alg_cuda_srcs)
 if (TECA_HAS_CUDA)
@@ -106,6 +108,10 @@ set(teca_alg_link pthread)
 if (TECA_HAS_BOOST)
     include_directories(SYSTEM ${Boost_INCLUDE_DIR})
     list(APPEND teca_alg_link ${Boost_LIBRARIES})
+endif()
+
+if (TECA_HAS_TELITE)
+    list(APPEND teca_alg_link TELite)
 endif()
 
 if (TECA_HAS_CUDA)

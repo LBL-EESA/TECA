@@ -16,6 +16,11 @@ if (TECA_HAS_BOOST)
     list(APPEND teca_app_link ${Boost_LIBRARIES})
 endif()
 
+if (TECA_HAS_TELITE)
+    include_directories(SYSTEM ${TELITE_INCLUDE_DIR})
+    list(APPEND teca_app_link ${TELITE_LIBRARY})
+endif()
+
 teca_add_app(teca_bayesian_ar_detect LIBS ${teca_app_link}
     FEATURES ${TECA_HAS_BOOST} ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS})
 
@@ -52,6 +57,9 @@ teca_add_app(teca_cpp_temporal_reduction LIBS ${teca_app_link}
 teca_add_app(teca_regional_moisture_flux LIBS ${teca_app_link}
     FEATURES ${TECA_HAS_BOOST} ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
              ${TECA_HAS_SHAPELIB})
+
+teca_add_app(teca_detect_nodes LIBS ${teca_app_link}
+    FEATURES ${TECA_HAS_BOOST} ${TECA_HAS_TELITE} ${TECA_HAS_NETCDF})
 
 teca_add_python_app(teca_convert_table)
 teca_add_python_app(teca_dataset_metadata FEATURES ${TECA_HAS_NETCDF})
