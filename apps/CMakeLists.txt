@@ -9,6 +9,8 @@ include_directories(
     $<TARGET_PROPERTY:teca_io,INTERFACE_INCLUDE_DIRECTORIES>
     )
 
+include_directories("${CMAKE_SOURCE_DIR}/alg/third_party/tempestextremes/src/base" "${CMAKE_SOURCE_DIR}/alg/third_party/tempestextremes/src/nodes" "${CMAKE_SOURCE_DIR}/alg/third_party/tempestextremes/src/netcdf-cxx-4.2")
+
 set(teca_app_link)
 
 if (TECA_HAS_BOOST)
@@ -52,6 +54,9 @@ teca_add_app(teca_cpp_temporal_reduction LIBS ${teca_app_link}
 teca_add_app(teca_regional_moisture_flux LIBS ${teca_app_link}
     FEATURES ${TECA_HAS_BOOST} ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
              ${TECA_HAS_SHAPELIB})
+
+teca_add_app(teca_detect_nodes LIBS ${teca_app_link}
+    FEATURES ${TECA_HAS_NETCDF})
 
 teca_add_python_app(teca_convert_table)
 teca_add_python_app(teca_dataset_metadata FEATURES ${TECA_HAS_NETCDF})
