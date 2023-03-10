@@ -7,8 +7,9 @@
 # Rules for compiling object files
 
 # Compilation directories
-DEPDIR= $(CURDIR)/depend
-BUILDDIR= $(CURDIR)/build
+
+DEPDIR= $(BUILDTEDIR)/$(notdir $(CURDIR))/depend
+BUILDDIR= $(BUILDTEDIR)/$(notdir $(CURDIR))/build
 
 # Dependency file construction
 MAKEDEPENDCPP= \
