@@ -29,7 +29,7 @@ FILES= SimpleGrid.cpp \
        MeshUtilities.cpp
 
 
-LIB_TARGET= libextremesbase.a
+LIB_TARGET= $(BUILDTEDIR)/libextremesbase.a
 
 .PHONY: all clean
 
@@ -38,7 +38,7 @@ all: $(LIB_TARGET)
 
 $(LIB_TARGET): $(FILES:%.cpp=$(BUILDDIR)/%.o)
 	rm -f $(LIB_TARGET)
-	ar -cqs $(LIB_TARGET) build/*.o
+	ar -cqs $(LIB_TARGET) $(BUILDDIR)/*.o
 
 # Clean rules.
 clean:

@@ -113,7 +113,14 @@ endif()
 
 add_library(teca_alg ${teca_alg_cxx_srcs} ${teca_alg_cuda_srcs} ${teca_alg_f90_srcs})
 
-target_link_libraries(teca_alg teca_data teca_core ${teca_alg_link} "${CMAKE_SOURCE_DIR}/alg/third_party/tempestextremes/src/base/libextremesbase.a" "${CMAKE_SOURCE_DIR}/alg/third_party/tempestextremes/src/netcdf-cxx-4.2/libnetcdf_c++.a" ${NETCDF_LIBRARIES})
+add_custom_target(tempestextremes
+   COMMAND make BUILDTEDIR=${CMAKE_BINARY_DIR}/tempestextremes -f ${CMAKE_SOURCE_DIR}/alg/third_party/tempestextremes/Makefile
+   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/alg/third_party/tempestextremes
+   COMMENT "Building target tempestextremes")
+
+add_dependencies(teca_alg tempestextremes)
+
+target_link_libraries(teca_alg teca_data teca_core ${teca_alg_link} "${CMAKE_BINARY_DIR}/tempestextremes/libextremesbase.a" "${CMAKE_BINARY_DIR}/tempestextremes/libnetcdf_c++.a" ${NETCDF_LIBRARIES})
 
 target_include_directories(teca_alg
     INTERFACE

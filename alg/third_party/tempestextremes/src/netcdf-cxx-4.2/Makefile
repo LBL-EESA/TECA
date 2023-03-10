@@ -12,7 +12,7 @@ include $(TEMPESTEXTREMESDIR)/mk/framework.make
 
 FILES= ncvalues.cpp netcdf.cpp
 
-LIB_TARGET= libnetcdf_c++.a
+LIB_TARGET= $(BUILDTEDIR)/libnetcdf_c++.a
 
 .PHONY: all clean
 
@@ -21,7 +21,7 @@ all: $(LIB_TARGET)
 
 $(LIB_TARGET): $(FILES:%.cpp=$(BUILDDIR)/%.o)
 	rm -f $(LIB_TARGET)
-	ar -cqs $(LIB_TARGET) build/*.o
+	ar -cqs $(LIB_TARGET) $(BUILDDIR)/*.o
 
 # Clean rules.
 clean:
