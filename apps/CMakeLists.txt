@@ -9,7 +9,7 @@ include_directories(
     $<TARGET_PROPERTY:teca_io,INTERFACE_INCLUDE_DIRECTORIES>
     )
 
-include_directories("${CMAKE_SOURCE_DIR}/alg/third_party/tempestextremes/src/base" "${CMAKE_SOURCE_DIR}/alg/third_party/tempestextremes/src/nodes" "${CMAKE_SOURCE_DIR}/alg/third_party/tempestextremes/src/netcdf-cxx-4.2")
+include_directories("${CMAKE_SOURCE_DIR}/alg/third_party/tempestextremes/src/base" "${CMAKE_SOURCE_DIR}/alg/third_party/tempestextremes/src/nodes")
 
 set(teca_app_link)
 
