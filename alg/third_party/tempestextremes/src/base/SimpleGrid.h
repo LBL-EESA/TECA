@@ -19,18 +19,7 @@
 
 #include "DataArray1D.h"
 
-#include <cstdlib>
-#include <cmath>
-#include <iostream>
-#include <fstream>
 #include <vector>
-
-#include "netcdfcpp.h"
-
-///////////////////////////////////////////////////////////////////////////////
-
-class kdtree;
-class Mesh;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -42,17 +31,9 @@ class SimpleGrid {
 
 public:
 	///	<summary>
-	///		A identifying the connectivity file format.
-	///	</summary>
-	static const char * c_szFileIdentifier;
-
-public:
-	///	<summary>
 	///		Constructor.
 	///	</summary>
-	SimpleGrid() :
-		m_kdtree(NULL)
-	{ }
+	SimpleGrid() { }
 
 	///	<summary>
 	///		Destructor.
@@ -63,28 +44,6 @@ public:
 	///		Determine if the SimpleGrid is initialized.
 	///	</summary>
 	bool IsInitialized() const;
-
-	///	<summary>
-	///		Determine if the SimpleGrid has calculated areas.
-	///	</summary>
-	bool HasAreas() const {
-		if (m_dArea.GetRows() == 0) {
-			return false;
-		}
-		_ASSERT(m_dArea.GetRows() == m_dLon.GetRows());
-		return true;
-	}
-
-	///	<summary>
-	///		Determine if the SimpleGrid has connectivity information.
-	///	</summary>
-	bool HasConnectivity() const {
-		if (m_vecConnectivity.size() == 0) {
-			return false;
-		}
-		_ASSERT(m_vecConnectivity.size() == m_dLon.GetRows());
-		return true;
-	}
 
 public:
 	///	<summary>
@@ -110,155 +69,12 @@ public:
 	);
 
 	///	<summary>
-	///		Try to automatically generate the SimpleGrid from a NetCDF
-	///		file with latitude/longitude coordinates.
-	///	</summary>
-	void GenerateLatitudeLongitude(
-		NcFile * ncFile,
-		const std::string & strLatitudeName,
-		const std::string & strLongitudeName,
-		bool fRegional,
-		bool fDiagonalConnectivity
-	);
-
-	///	<summary>
-	///		Try to automatically generate the SimpleGrid from a NetCDF
-	///		file with latitude/longitude coordinates.
-	///	</summary>
-	void GenerateLatitudeLongitude(
-		NcFile * ncFile,
-		bool fRegional,
-		bool fDiagonalConnectivity
-	);
-
-	///	<summary>
-	///		Generate the unstructured grid information for a
-	///		longitude-latitude grid.
-	///	</summary>
-	void GenerateRegionalLatitudeLongitude(
-		double dLatRad1,
-		double dLatRad2,
-		double dLonRad1,
-		double dLonRad2,
-		int nLat,
-		int nLon,
-		bool fDiagonalConnectivity
-	);
-
-	///	<summary>
-	///		Generate the unstructured grid information for a rectilinear
-	///		stereographic grid at the given point.
-	///	</summary>
-	void GenerateRectilinearStereographic(
-		double dLonRad0,
-		double dLatRad0,
-		int nX,
-		double dDeltaXRad,
-		bool fFlipSouthernHemisphere,
-		bool fCalculateArea
-	);
-
-	///	<summary>
-	///		Generate the unstructured grid information for a radial
-	///		stereographic grid at the given point.
-	///	</summary>
-	void GenerateRadialStereographic(
-		double dLonRad0,
-		double dLatRad0,
-		int nR,
-		int nA,
-		double dDeltaRRad,
-		bool fCalculateArea
-	);
-
-	///	<summary>
-	///		Initialize the SimpleGrid from a Mesh assuming the mesh is a finite
-	///		volume mesh.
-	///	</summary>
-	void FromMeshFV(
-		const Mesh & mesh
-	);
-
-	///	<summary>
-	///		Initialize the SimpleGrid from a Mesh assuming the mesh is a finite
-	///		element mesh.
-	///	</summary>
-	void FromMeshFE(
-		const Mesh & mesh,
-		bool fCGLL,
-		int nP
-	);
-
-	///	<summary>
-	///		Read the grid information from a file.
-	///	</summary>
-	void FromFile(
-		const std::string & strConnectivityFile
-	);
-
-	///	<summary>
-	///		Write the grid information to a file.
-	///	</summary>
-	void ToFile(
-		const std::string & strConnectivityFile
-	) const;
-
-	///	<summary>
-	///		Read the coordinate information from a data file (note that connectivity
-	///		information won't be available in this case).
-	///	</summary>
-	void FromUnstructuredDataFile(
-		const std::string & strDataFile,
-		const std::string & strLatitudeName,
-		const std::string & strLongitudeName
-	);
-
-	///	<summary>
-	///		Get the number of dimensions of the SimpleGrid.
-	///	</summary>
-	size_t DimCount() const {
-		return (m_nGridDim.size());
-	}
-
-	///	<summary>
 	///		Get the size of the SimpleGrid (number of points).
 	///	</summary>
 	size_t GetSize() const {
 		_ASSERT(m_dLat.GetRows() == m_dLon.GetRows());
 		return (m_dLon.GetRows());
 	}
-
-	///	<summary>
-	///		Convert a coordinate to an index.
-	///	</summary>
-	int CoordinateVectorToIndex(
-		const std::vector<int> & coordvec
-	) const;
-
-public:
-	///	<summary>
-	///		Build a kdtree using this SimpleGrid.
-	///	</summary>
-	void BuildKDTree();
-
-	///	<summary>
-	///		Find the nearest node to the given coordinate.
-	///	</summary>
-	size_t NearestNode(
-		double dLonRad,
-		double dLatRad
-	) const;
-
-	///	<summary>
-	///		Find the set of nodes within the specified distance (degrees great circle distance)
-	///		of the given coordinate.
-	///	</summary>
-	void NearestNodes(
-		double dLonRad,
-		double dLatRad,
-		double dDistDegGCD,
-		std::vector<size_t> & vecNodeIxs
-	) const;
 
 public:
 	///	<summary>
@@ -286,12 +102,6 @@ public:
 	///		Connectivity of each grid point (optionally initialized).
 	///	</summary>
 	std::vector< std::vector<int> > m_vecConnectivity;
-
-private:
-	///	<summary>
-	///		kd tree used for quick lookup of grid points (optionally initialized).
-	///	</summary>
-	kdtree * m_kdtree;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

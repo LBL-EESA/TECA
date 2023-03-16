@@ -20,8 +20,6 @@
 
 #include "Announce.h"
 
-#include <cstdio>
-#include <cstring>
 #include <cstdarg>
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -54,11 +52,6 @@ static const int AnnouncementBufferSize = 1024;
 static const int MaximumIndentationLevel = 16;
 
 ///	<summary>
-///		Banner size.
-///	</summary>
-static const int BannerSize = 60;
-
-///	<summary>
 ///		Current indentation level.
 ///	</summary>
 static int s_nIndentationLevel = 0;
@@ -67,36 +60,6 @@ static int s_nIndentationLevel = 0;
 ///		Flag indicating whether a start block is still dangling.
 ///	</summary>
 static bool s_fBlockFlag = false;
-
-///////////////////////////////////////////////////////////////////////////////
-
-FILE * AnnounceGetOutputBuffer() {
-	return g_fpAnnounceOutput;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void AnnounceSetOutputBuffer(FILE * fpAnnounceOutput) {
-	g_fpAnnounceOutput = fpAnnounceOutput;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void AnnounceSetVerbosityLevel(int iVerbosityLevel) {
-	g_iVerbosityLevel = iVerbosityLevel;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void AnnounceOnlyOutputOnRankZero() {
-	g_fOnlyOutputOnRankZero = true;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void AnnounceOutputOnAllRanks() {
-	g_fOnlyOutputOnRankZero = false;
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -371,56 +334,6 @@ void Announce(
 	fprintf(g_fpAnnounceOutput, "%s", szBuffer);
 	fprintf(g_fpAnnounceOutput, "\n");
 
-	fflush(g_fpAnnounceOutput);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void AnnounceBanner(const char * szText) {
-
-#ifdef TEMPEST_MPIOMP
-	// Only output on rank zero
-	if (g_fOnlyOutputOnRankZero) {
-		int nRank;
-
-		MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
-
-		if (nRank > 0) {
-			return;
-		}
-	}
-#endif
-
-	// Turn off the block flag
-	if (s_fBlockFlag) {
-		fprintf(g_fpAnnounceOutput, "\n");
-		s_fBlockFlag = false;
-	}
-
-	// No text in banner
-	int i;
-	if (szText == NULL) {
-		for (i = 0; i < BannerSize; i++) {
-			printf("-");
-		}
-		fprintf(g_fpAnnounceOutput, "\n");
-		fflush(g_fpAnnounceOutput);
-		return;
-	}
-
-	// Text in banner
-	int nLen = strlen(szText) + 2;
-	printf("--");
-	if (nLen > BannerSize - 2) {
-		fprintf(g_fpAnnounceOutput, "%s", szText);
-		fprintf(g_fpAnnounceOutput, "--");
-	} else {
-		fprintf(g_fpAnnounceOutput, " %s ", szText);
-		for (i = 0; i < BannerSize - nLen - 2; i++) {
-			fprintf(g_fpAnnounceOutput, "-");
-		}
-	}
-	fprintf(g_fpAnnounceOutput, "\n");
 	fflush(g_fpAnnounceOutput);
 }
 

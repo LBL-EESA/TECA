@@ -6,7 +6,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
     #$<TARGET_PROPERTY:teca_io,INTERFACE_INCLUDE_DIRECTORIES>
     )
 
-include_directories("${CMAKE_SOURCE_DIR}/alg/third_party/tempestextremes/src/base" "${CMAKE_SOURCE_DIR}/alg/third_party/tempestextremes/src/nodes" "${CMAKE_SOURCE_DIR}/alg/third_party/tempestextremes/src/netcdf-cxx-4.2")
+include_directories("${CMAKE_SOURCE_DIR}/alg/third_party/tempestextremes/src/base" "${CMAKE_SOURCE_DIR}/alg/third_party/tempestextremes/src/nodes")
 
 set(teca_alg_cxx_srcs
     gfdl_tc_candidates.cxx
@@ -124,7 +124,7 @@ add_custom_target(tempestextremes
 
 add_dependencies(teca_alg tempestextremes)
 
-target_link_libraries(teca_alg teca_data teca_core ${teca_alg_link} "${CMAKE_BINARY_DIR}/tempestextremes/libextremesbase.a" "${CMAKE_BINARY_DIR}/tempestextremes/libnetcdf_c++.a" ${NETCDF_LIBRARIES})
+target_link_libraries(teca_alg teca_data teca_core ${teca_alg_link} "${CMAKE_BINARY_DIR}/tempestextremes/libextremesbase.a" ${NETCDF_LIBRARIES})
 
 target_include_directories(teca_alg
     INTERFACE

@@ -14,19 +14,7 @@ FILES= SimpleGrid.cpp \
        Variable.cpp \
        kdtree.cpp \
        SimpleGridUtilities.cpp \
-       Announce.cpp \
-       TimeObj.cpp \
-       NetCDFUtilities.cpp \
-       GridElements.cpp \
-       FiniteElementTools.cpp \
-       GaussLobattoQuadrature.cpp \
-       GaussQuadrature.cpp \
-       MeshUtilitiesFuzzy.cpp \
-       PolynomialInterp.cpp \
-       LegendrePolynomial.cpp \
-       DataOp.cpp \
-       NcFileVector.cpp \
-       MeshUtilities.cpp
+       Announce.cpp
 
 
 LIB_TARGET= $(BUILDTEDIR)/libextremesbase.a
