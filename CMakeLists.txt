@@ -424,7 +424,7 @@ if (NOT DEFINED TECA_VERSION)
 else()
     set(tmp ${TECA_VERSION})
 endif()
-set(TECA_VERSION_DESCR ${tmp} CACHE STRING "TECA version descriptor")
+set(TECA_VERSION_DESCR ${tmp} CACHE STRING "TECA version descriptor" FORCE)
 message(STATUS "TECA version ${TECA_VERSION_DESCR}")
 
 # do we have access to a checkout of TECA_data?
