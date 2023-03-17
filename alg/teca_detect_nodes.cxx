@@ -10,10 +10,7 @@
 #include <SimpleGridUtilities.h>
 #include <kdtree.h>
 
-#include <algorithm>
-#include <iostream>
 #include <string>
-#include <cmath>
 #include <set>
 #include <queue>
 
@@ -383,7 +380,7 @@ int teca_detect_nodes::DetectCyclonesUnstructured(
        else
        {
           TECA_ERROR("Loading grid data from connectivity file"
-              "is not supported yet")
+              "is not supported")
           return -1;
        }
     )
@@ -817,23 +814,18 @@ int teca_detect_nodes::DetectCyclonesUnstructured(
 // --------------------------------------------------------------------------
 teca_detect_nodes::teca_detect_nodes() :
     in_connect(""),
-//    searchbymin("T"),
-    searchbymin("MSL"),
+    searchbymin(""),
     searchbymax(""),
     closedcontourcmd(""),
-//    noclosedcontourcmd("T,200.0,2.0,0"),
-    noclosedcontourcmd("MSL,200.0,5.5,0"),
-//    noclosedcontourcmd("MSL,200.0,5.5,0;_DIFF(Z(300hPa),Z(500hPa)),-6.0,6.5,1.0"),
+    noclosedcontourcmd(""),
     thresholdcmd(""),
-//    thresholdcmd("T,>=,200.0,10"),
-//    outputcmd("T,min,20"),
-    outputcmd("MSL,min,0"),
+    outputcmd(""),
 //    outputcmd("MSL,min,0;_VECMAG(VAR_10U,VAR_10V),max,2;ZS,min,0"),
     searchbythreshold(""),
     minlon(0.0),
     maxlon(10.0),
-    minlat(0.0),
-    maxlat(9.0),
+    minlat(-20.0),
+    maxlat(20.0),
     minabslat(0.0),
     mergedist(6.0),
     diag_connect(false),
@@ -1084,7 +1076,16 @@ std::vector<teca_metadata> teca_detect_nodes::get_upstream_request(
              Variable & var =
                 this->internals->varreg.Get(
                         this->internals->vecClosedContourOp[iNextOp].m_varix);
-             req_arrays.insert(var.GetName());
+             // Get the data directly from a variable
+             if (!var.IsOp())
+             {
+                req_arrays.insert(var.GetName());
+             }
+             // Evaluate a data operator to get the contents of this variable
+             else
+             {
+                TECA_ERROR("Data operator is not supported")
+             }
 
              iLast = i + 1;
           }
@@ -1113,7 +1114,16 @@ std::vector<teca_metadata> teca_detect_nodes::get_upstream_request(
              Variable & var =
                 this->internals->varreg.Get(
                       this->internals->vecNoClosedContourOp[iNextOp].m_varix);
-             req_arrays.insert(var.GetName());
+             // Get the data directly from a variable
+             if (!var.IsOp())
+             {
+                req_arrays.insert(var.GetName());
+             }
+             // Evaluate a data operator to get the contents of this variable
+             else
+             {
+                TECA_ERROR("Data operator is not supported")
+             }
 
              iLast = i + 1;
           }
@@ -1142,7 +1152,16 @@ std::vector<teca_metadata> teca_detect_nodes::get_upstream_request(
              Variable & var =
                 this->internals->varreg.Get(
                             this->internals->vecThresholdOp[iNextOp].m_varix);
-             req_arrays.insert(var.GetName());
+             // Get the data directly from a variable
+             if (!var.IsOp())
+             {
+                req_arrays.insert(var.GetName());
+             }
+             // Evaluate a data operator to get the contents of this variable
+             else
+             {
+                TECA_ERROR("Data operator is not supported")
+             }
 
              iLast = i + 1;
           }
@@ -1170,7 +1189,16 @@ std::vector<teca_metadata> teca_detect_nodes::get_upstream_request(
              Variable & var =
                 this->internals->varreg.Get(
                                this->internals->vecOutputOp[iNextOp].m_varix);
-             req_arrays.insert(var.GetName());
+             // Get the data directly from a variable
+             if (!var.IsOp())
+             {
+                req_arrays.insert(var.GetName());
+             }
+             // Evaluate a data operator to get the contents of this variable
+             else
+             {
+                TECA_ERROR("Data operator is not supported")
+             }
 
              iLast = i + 1;
           }
@@ -1198,6 +1226,7 @@ const_p_teca_dataset teca_detect_nodes::execute(
     }
 
     (void)port;
+    (void)req_in;
 
     if (!input_data.size())
     {

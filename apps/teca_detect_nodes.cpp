@@ -1,28 +1,28 @@
-#include "teca_config.h"
+//#include "teca_config.h"
 #include "teca_cf_reader.h"
 #include "teca_multi_cf_reader.h"
 #include "teca_normalize_coordinates.h"
 #include "teca_l2_norm.h"
-#include "teca_vorticity.h"
+//#include "teca_vorticity.h"
 #include "teca_derived_quantity.h"
 #include "teca_derived_quantity_numerics.h"
-#include "teca_tc_candidates.h"
-#include "teca_tc_trajectory.h"
-#include "teca_array_collection.h"
-#include "teca_variant_array.h"
-#include "teca_metadata.h"
-#include "teca_table_reader.h"
-#include "teca_table_reduce.h"
-#include "teca_table_sort.h"
-#include "teca_table_calendar.h"
-#include "teca_table_writer.h"
+//#include "teca_tc_candidates.h"
+//#include "teca_tc_trajectory.h"
+//#include "teca_array_collection.h"
+//#include "teca_variant_array.h"
+//#include "teca_metadata.h"
+//#include "teca_table_reader.h"
+//#include "teca_table_reduce.h"
+//#include "teca_table_sort.h"
+//#include "teca_table_calendar.h"
+//#include "teca_table_writer.h"
 #include "teca_mpi_manager.h"
-#include "teca_coordinate_util.h"
+//#include "teca_coordinate_util.h"
 #include "teca_app_util.h"
-#include "teca_calcalcs.h"
+//#include "teca_calcalcs.h"
 #include "teca_detect_nodes.h"
 
-#include <vector>
+//#include <vector>
 #include <string>
 #include <iostream>
 #include <boost/program_options.hpp>
@@ -66,23 +66,31 @@ int main(int argc, char **argv)
             "\nName of the variable to use for y-coordinates.\n")
 
         ("in_connect", value<string>()->default_value(""), "\nConnectivity file\n")
-        ("searchbymin", value<string>()->default_value("MSL"), "\nVariable to search for the minimum\n")
+        ("searchbymin", value<string>()->default_value(""), "\nVariable to search for the minimum\n")
         ("searchbymax", value<string>()->default_value(""), "\nVariable to search for the maximum\n")
         ("closedcontourcmd", value<string>()->default_value(""), "\nClosed contour commands [var,delta,dist,minmaxdist;...]\n")
-        ("noclosedcontourcmd", value<string>()->default_value("MSL,200.0,5.5,0"), "\nClosed contour commands [var,delta,dist,minmaxdist;...]\n")
+        ("noclosedcontourcmd", value<string>()->default_value(""), "\nClosed contour commands [var,delta,dist,minmaxdist;...]\n")
         ("thresholdcmd", value<string>()->default_value(""), "\nThreshold commands [var,op,value,dist;...]\n")
-        ("outputcmd", value<string>()->default_value("MSL,min,0"), "\nOutput commands [var,op,dist;...]\n")
+        ("outputcmd", value<string>()->default_value(""), "\nOutput commands [var,op,dist;...]\n")
         ("searchbythreshold", value<string>()->default_value(""), "\nThreshold for search operation\n")
         ("minlon", value<double>()->default_value(0.0), "\nMinimum longitude in degrees for detection\n")
         ("maxlon", value<double>()->default_value(10.0), "\nMaximum longitude in degrees for detection\n")
-        ("minlat", value<double>()->default_value(0.0), "\nMinimum latitude in degrees for detection\n")
-        ("maxlat", value<double>()->default_value(9.0), "\nMaximum latitude in degrees for detection\n")
+        ("minlat", value<double>()->default_value(-20.0), "\nMinimum latitude in degrees for detection\n")
+        ("maxlat", value<double>()->default_value(20.0), "\nMaximum latitude in degrees for detection\n")
         ("minabslat", value<double>()->default_value(0.0), "\nMinimum absolute value of latitude in degrees for detection\n")
-        ("mergedist", value<double>()->default_value(6.0), "\nMerge distance in degrees\n")
+        ("mergedist", value<double>()->default_value(6.0), "\nMinimum allowable distance between two candidates in degrees\n")
         ("diag_connect", value<bool>()->default_value(false), "\nDiagonal connectivity for RLL grids\n")
         ("regional", value<bool>()->default_value(true), "\nRegional (do not wrap longitudinal boundaries)\n")
         ("out_header", value<bool>()->default_value(true), "\nOutput header\n")
 
+        ("sea_level_pressure", value<string>()->default_value(""), "\nname of variable with sea level pressure\n")
+        ("500mb_height", value<string>()->default_value(""), "\nname of variable with 500mb height for thickness calc\n")
+        ("300mb_height", value<string>()->default_value(""), "\nname of variable with 300mb height for thickness calc\n")
+        ("surface_wind_u", value<string>()->default_value(""), "\nname of variable with surface wind x-component\n")
+        ("surface_wind_v", value<string>()->default_value(""), "\nname of variable with surface wind y-component\n")
+
+        ("verbose", value<int>()->default_value(0), "\nUse 1 to enable verbose mode,"
+            " otherwise 0.\n")
         ("help", "\ndisplays documentation for application specific command line options\n")
         ("advanced_help", "\ndisplays documentation for algorithm specific command line options\n")
         ("full_help", "\ndisplays both basic and advanced documentation together\n")
@@ -114,6 +122,17 @@ int main(int argc, char **argv)
     p_teca_detect_nodes candidates = teca_detect_nodes::New();
     candidates->get_properties_description("candidates", advanced_opt_defs);
 
+    p_teca_derived_quantity thickness = teca_derived_quantity::New();
+    thickness->set_dependent_variables({"Z1000", "Z200"});
+    thickness->set_derived_variable("thickness");
+    thickness->get_properties_description("thickness", advanced_opt_defs);
+
+    p_teca_l2_norm surf_wind = teca_l2_norm::New();
+    surf_wind->set_component_0_variable("UBOT");
+    surf_wind->set_component_1_variable("VBOT");
+    surf_wind->set_l2_norm_variable("surface_wind");
+    surf_wind->get_properties_description("surface_wind_speed", advanced_opt_defs);
+
     // package basic and advanced options for display
     options_description all_opt_defs(help_width, help_width - 4);
     all_opt_defs.add(basic_opt_defs).add(advanced_opt_defs);
@@ -136,6 +155,8 @@ int main(int argc, char **argv)
     cf_reader->set_properties("cf_reader", opt_vals);
     mcf_reader->set_properties("mcf_reader", opt_vals);
     candidates->set_properties("candidates", opt_vals);
+    thickness->set_properties("thickness", opt_vals);
+    surf_wind->set_properties("surface_wind_speed", opt_vals);
 
     // now pass in the basic options, these are processed
     // last so that they will take precedence
@@ -183,9 +204,42 @@ int main(int argc, char **argv)
        candidates->set_searchbymax(opt_vals["searchbymax"].as<string>());
     }
 
+    if (opt_vals["searchbymin"].as<string>() == "" && opt_vals["searchbymax"].as<string>() == "")
+    {
+       if (opt_vals["sea_level_pressure"].as<string>() == "")
+          TECA_FATAL_ERROR("Missing name of variable with sea level pressure")
+       else
+          candidates->set_searchbymin(opt_vals["sea_level_pressure"].as<string>());
+    }
+
     if (!opt_vals["closedcontourcmd"].defaulted())
     {
        candidates->set_closedcontourcmd(opt_vals["closedcontourcmd"].as<string>());
+    }
+    else
+    {
+       if (opt_vals["500mb_height"].as<string>() == "")
+          TECA_FATAL_ERROR("Missing name of variable with 500mb height for thickness calc")
+       else
+          thickness->set_dependent_variable(0, opt_vals["500mb_height"].as<string>());
+
+       if (opt_vals["300mb_height"].as<string>() == "")
+          TECA_FATAL_ERROR("Missing name of variable with 300mb height for thickness calc")
+       else
+          thickness->set_dependent_variable(1, opt_vals["300mb_height"].as<string>());
+
+       size_t n_var = thickness->get_number_of_dependent_variables();
+       if (n_var != 2)
+       {
+          TECA_FATAL_ERROR("thickness calculation requires 2 "
+                "variables. given " << n_var)
+          return -1;
+       }
+       thickness->set_execute_callback(point_wise_difference(thickness->get_dependent_variable(0),
+                                                             thickness->get_dependent_variable(1),
+                                                             thickness->get_derived_variable()));
+       std::string text = opt_vals["sea_level_pressure"].as<string>()+",200.0,5.5,0;"+thickness->get_derived_variable()+",-6.0,6.5,1.0";
+       candidates->set_closedcontourcmd(text);
     }
 
     if (!opt_vals["noclosedcontourcmd"].defaulted())
@@ -201,6 +255,21 @@ int main(int argc, char **argv)
     if (!opt_vals["outputcmd"].defaulted())
     {
        candidates->set_outputcmd(opt_vals["outputcmd"].as<string>());
+    }
+    else
+    {
+       if (opt_vals["surface_wind_u"].as<string>() == "")
+          TECA_FATAL_ERROR("Missing name of variable with surface wind x-component")
+       else
+          surf_wind->set_component_0_variable(opt_vals["surface_wind_u"].as<string>());
+
+       if (opt_vals["surface_wind_v"].as<string>() == "")
+          TECA_FATAL_ERROR("Missing name of variable with surface wind y-component")
+       else
+          surf_wind->set_component_1_variable(opt_vals["surface_wind_v"].as<string>());
+
+       std::string text = opt_vals["sea_level_pressure"].as<string>()+",min,0;"+surf_wind->get_l2_norm_variable()+",max,2";
+       candidates->set_outputcmd(text);
     }
 
     if (!opt_vals["searchbythreshold"].defaulted())
@@ -252,6 +321,7 @@ int main(int argc, char **argv)
     {
        candidates->set_out_header(opt_vals["out_header"].as<bool>());
     }
+    candidates->set_verbose(opt_vals["verbose"].as<int>());
 
     // some minimal check for missing options
     if ((have_file && have_regex) || !(have_file || have_regex))
@@ -267,7 +337,9 @@ int main(int argc, char **argv)
 
     // connect all the stages
     sim_coords->set_input_connection(reader->get_output_port());
-    candidates->set_input_connection(sim_coords->get_output_port());
+    thickness->set_input_connection(sim_coords->get_output_port());
+    surf_wind->set_input_connection(thickness->get_output_port());
+    candidates->set_input_connection(surf_wind->get_output_port());
 
     // run the pipeline
     candidates->update();
