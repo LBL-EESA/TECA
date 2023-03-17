@@ -31,6 +31,22 @@ using allocator = teca_variant_array::allocator;
 namespace cuda_gpu
 {
 // **************************************************************************
+template <typename coord_t>
+__global__
+void plev_interfaces(coord_t *plev_int, const coord_t *plev,
+    unsigned long nz, coord_t p_surf, coord_t p_top)
+{
+    unsigned long i = teca_cuda_util::thread_id_to_array_index();
+
+    if (i == 0)
+        plev_int[i] = p_surf;
+    else if (i == nz)
+        plev_int[i] = p_top;
+    else if (i < nz)
+        plev_int[i] = (plev[i-1] + plev[i]) / coord_t(2);
+}
+
+// **************************************************************************
 __global__
 void compute_mask(char *mask, const char *wind_valid,
     const char *q_valid, unsigned long n_elem)
@@ -78,6 +94,87 @@ void compute_ivt(num_t *ivt, const num_t *flux,
     const coord_t *plev, unsigned long nxy, unsigned long nz,
     unsigned long stride)
 {
+    // NOTE: plev is specified at the level interfaces and the array is one element longer.
+
+    // get the index into the data
+    unsigned long i = 0;
+    unsigned long k0 = 0;
+    teca_cuda_util::thread_id_to_array_index_slab(i, k0, stride);
+
+    // check bounds
+    if ((i >= nxy) || (k0 >= nz))
+        return;
+
+    // get the upper loop bounds
+    unsigned long k1 = k0 + stride;
+
+    if (k1 > nz)
+        k1 = nz;
+
+    // integrate ivt over the vertical dimension
+    num_t ivt_i = num_t();
+
+    for (unsigned long q = k0; q < k1; ++q)
+    {
+        // dp over the slice
+        num_t dp = plev[q + 1] - plev[q];
+
+        // accumulate this partial column of data
+        ivt_i += dp * flux[q*nxy + i];
+    }
+
+    atomicAdd(&ivt[i], ivt_i);
+}
+
+// **************************************************************************
+template <typename num_t, typename coord_t>
+__global__
+void compute_ivt(num_t *ivt, const num_t *flux, const char *mask,
+    const coord_t *plev, unsigned long nxy, unsigned long nz,
+    unsigned long stride)
+{
+    // NOTE: plev is specified at the level interfaces and the array is one element longer.
+
+    // get the index into the data
+    unsigned long i = 0;
+    unsigned long k0 = 0;
+    teca_cuda_util::thread_id_to_array_index_slab(i, k0, stride);
+
+    // check bounds
+    if ((i >= nxy) || (k0 >= nz))
+        return;
+
+    // get the upper loop bounds
+    unsigned long k1 = k0 + stride;
+
+    if (k1 > nz)
+        k1 = nz;
+
+    // integrate ivt over the vertical dimension
+    num_t ivt_i = num_t();
+
+    for (unsigned long q = k0; q < k1; ++q)
+    {
+        // layer thickness
+        num_t dp = plev[q + 1] - plev[q];
+
+        // index into the column above i
+        unsigned long qq = q*nxy + i;
+
+        // accumulate
+        ivt_i += (mask[qq] ? dp * flux[qq] : num_t(0));
+    }
+
+    atomicAdd(&ivt[i], ivt_i);
+}
+
+// **************************************************************************
+template <typename num_t, typename coord_t>
+__global__
+void compute_ivt_trap(num_t *ivt, const num_t *flux,
+    const coord_t *plev, unsigned long nxy, unsigned long nz,
+    unsigned long stride)
+{
     // get the index into the data
     unsigned long i = 0;
     unsigned long k0 = 0;
@@ -117,7 +214,7 @@ void compute_ivt(num_t *ivt, const num_t *flux,
 // **************************************************************************
 template <typename num_t, typename coord_t>
 __global__
-void compute_ivt(num_t *ivt, const num_t *flux, const char *mask,
+void compute_ivt_trap(num_t *ivt, const num_t *flux, const char *mask,
     const coord_t *plev, unsigned long nxy, unsigned long nz,
     unsigned long stride)
 {
@@ -181,9 +278,9 @@ void scale_ivt(num_t *ivt, const coord_t *plev, unsigned long nxy)
 
 // **************************************************************************
 template <typename coord_t, typename num_t>
-int cartesian_ivt(int device_id, unsigned long nx, unsigned long ny,
-    unsigned long nz, const coord_t *plev, const num_t *wind,
-    const num_t *q, num_t *ivt)
+int cartesian_ivt_trap(int device_id, unsigned long nx, unsigned long ny,
+    unsigned long nz, const coord_t *plev, const num_t *wind, const num_t *q,
+    num_t *ivt)
 {
     unsigned long nxy = nx*ny;
     unsigned long nxyz = nxy*nz;
@@ -227,7 +324,104 @@ int cartesian_ivt(int device_id, unsigned long nx, unsigned long ny,
     }
 
     // calculate ivt
-    compute_ivt<<<block_grid,thread_grid>>>(ivt, pflux, plev, nxy, nz, stride);
+    compute_ivt_trap<<<block_grid,thread_grid>>>(ivt, pflux, plev, nxy, nz, stride);
+    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to launch the compute_ivt CUDA kernel"
+            << cudaGetErrorString(ierr))
+        return -1;
+    }
+
+    // determine scale kernel launch parameters
+    block_grid.y = 1;
+
+    // scale the result
+    scale_ivt<<<block_grid,thread_grid>>>(ivt, plev, nxy);
+    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to launch the scale_ivt CUDA kernel"
+            << cudaGetErrorString(ierr))
+        return -1;
+    }
+
+    return 0;
+}
+
+
+// **************************************************************************
+template <typename coord_t, typename num_t>
+int cartesian_ivt(int device_id, unsigned long nx, unsigned long ny,
+    unsigned long nz, const coord_t *plev, const num_t *wind,
+    const num_t *q, num_t *ivt, coord_t p_surf, coord_t p_top)
+{
+    unsigned long nxy = nx*ny;
+    unsigned long nxyz = nxy*nz;
+    unsigned long nz1 = nz + 1;
+
+    // determine plev interface kernel launch parameters
+    int n_blocks = 0;
+    dim3 block_grid;
+    dim3 thread_grid;
+    if (teca_cuda_util::partition_thread_blocks(device_id,
+        nz1, 8, block_grid, n_blocks, thread_grid))
+    {
+        TECA_ERROR("Failed to partition thread blocks")
+        return -1;
+    }
+
+    // compute pressure level interfaces
+    hamr::buffer<coord_t> plev_int(hamr::buffer_allocator::cuda_async, nz1);
+    coord_t *pplev_int = plev_int.data();
+
+    cudaError_t ierr = cudaSuccess;
+    plev_interfaces<<<block_grid,thread_grid>>>(pplev_int, plev, nz, p_surf, p_top);
+    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to launch the plev_interfaces CUDA kernel"
+            << cudaGetErrorString(ierr))
+        return -1;
+    }
+
+    // determine flux kernel launch parameters
+    n_blocks = 0;
+    block_grid = 0;
+    thread_grid = 0;
+    if (teca_cuda_util::partition_thread_blocks(device_id,
+        nxyz, 8, block_grid, n_blocks, thread_grid))
+    {
+        TECA_ERROR("Failed to partition thread blocks")
+        return -1;
+    }
+
+    // compute the flux
+    hamr::buffer<num_t> flux(hamr::buffer_allocator::cuda_async, nxyz);
+    num_t *pflux = flux.data();
+
+    ierr = cudaSuccess;
+    compute_flux<<<block_grid,thread_grid>>>(pflux, wind, q, nxyz);
+    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to launch the compute_flux CUDA kernel"
+            << cudaGetErrorString(ierr))
+        return -1;
+    }
+
+    // determine ivt kernel launch parameters.
+    block_grid = 0;
+    thread_grid = 0;
+    int n_blocks_xy = 0;
+    int n_blocks_z = 0;
+    size_t stride = 32;
+    if (teca_cuda_util::partition_thread_blocks_slab(device_id,
+        nxy, nz, stride, 8, block_grid, n_blocks_xy, n_blocks_z,
+        thread_grid))
+    {
+        TECA_ERROR("Failed to slab partition thread blocks")
+        return -1;
+    }
+
+    // calculate ivt
+    compute_ivt<<<block_grid,thread_grid>>>(ivt, pflux, pplev_int, nxy, nz, stride);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
         TECA_ERROR("Failed to launch the compute_ivt CUDA kernel"
@@ -253,6 +447,116 @@ int cartesian_ivt(int device_id, unsigned long nx, unsigned long ny,
 // **************************************************************************
 template <typename coord_t, typename num_t>
 int cartesian_ivt(int device_id, unsigned long nx, unsigned long ny,
+    unsigned long nz, const coord_t *plev, const num_t *wind,
+    const char *wind_valid, const num_t *q, const char *q_valid,
+    num_t *ivt, coord_t p_surf, coord_t p_top)
+{
+    unsigned long nxy = nx*ny;
+    unsigned long nxyz = nxy*nz;
+    unsigned long nz1 = nz + 1;
+
+    // determine plev interface kernel launch parameters
+    int n_blocks = 0;
+    dim3 block_grid;
+    dim3 thread_grid;
+    if (teca_cuda_util::partition_thread_blocks(device_id,
+        nz1, 8, block_grid, n_blocks, thread_grid))
+    {
+        TECA_ERROR("Failed to partition thread blocks")
+        return -1;
+    }
+
+    // compute pressure level interfaces
+    hamr::buffer<coord_t> plev_int(hamr::buffer_allocator::cuda_async, nz1);
+    coord_t *pplev_int = plev_int.data();
+
+    cudaError_t ierr = cudaSuccess;
+    plev_interfaces<<<block_grid,thread_grid>>>(pplev_int, plev, nz, p_surf, p_top);
+    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to launch the plev_interfaces CUDA kernel"
+            << cudaGetErrorString(ierr))
+        return -1;
+    }
+
+    // determine flux and mask kernel launch parameters
+    block_grid = 0;
+    thread_grid = 0;
+    n_blocks = 0;
+    if (teca_cuda_util::partition_thread_blocks(device_id,
+        nxyz, 8, block_grid, n_blocks, thread_grid))
+    {
+        TECA_ERROR("Failed to partition thread blocks")
+        return -1;
+    }
+
+    // compute the mask
+    hamr::buffer<char> mask(hamr::buffer_allocator::cuda_async, nxyz);
+    char *pmask = mask.data();
+
+    compute_mask<<<block_grid,thread_grid>>>(pmask, wind_valid, q_valid, nxyz);
+    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to launch the compute_mask CUDA kernel"
+            << cudaGetErrorString(ierr))
+        return -1;
+    }
+
+    // compute the flux
+    hamr::buffer<num_t> flux(hamr::buffer_allocator::cuda_async, nxyz);
+    num_t *pflux = flux.data();
+
+    compute_flux<<<block_grid,thread_grid>>>(pflux, wind, q, pmask, nxyz);
+    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to launch the flux CUDA kernel"
+            << cudaGetErrorString(ierr))
+        return -1;
+    }
+
+    // determine ivt kernel launch parameters.
+    block_grid = 0;
+    thread_grid = 0;
+    size_t stride = 32;
+    int n_blocks_xy = 0;
+    int n_blocks_z = 0;
+    if (teca_cuda_util::partition_thread_blocks_slab(device_id,
+        nxy, nz, stride, 8, block_grid, n_blocks_xy, n_blocks_z,
+        thread_grid))
+    {
+        TECA_ERROR("Failed to slab partition thread blocks")
+        return -1;
+    }
+
+    // calculate ivt
+    compute_ivt<<<block_grid,thread_grid>>>(ivt,
+        pflux, pmask, pplev_int, nxy, nz, stride);
+
+    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to launch the compute_ivt CUDA kernel"
+            << cudaGetErrorString(ierr))
+        return -1;
+    }
+
+    // determine scale kernel launch parameters
+    block_grid.y = 1;
+
+    // scale the result
+    scale_ivt<<<block_grid,thread_grid>>>(ivt, plev, nxy);
+    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to launch the scale_ivt CUDA kernel"
+            << cudaGetErrorString(ierr))
+        return -1;
+    }
+
+    return 0;
+}
+
+// **************************************************************************
+template <typename coord_t, typename num_t>
+int cartesian_ivt_trap(int device_id, unsigned long nx, unsigned long ny,
     unsigned long nz, const coord_t *plev, const num_t *wind,
     const char *wind_valid, const num_t *q, const char *q_valid,
     num_t *ivt)
@@ -311,7 +615,7 @@ int cartesian_ivt(int device_id, unsigned long nx, unsigned long ny,
     }
 
     // calculate ivt
-    compute_ivt<<<block_grid,thread_grid>>>(ivt,
+    compute_ivt_trap<<<block_grid,thread_grid>>>(ivt,
         pflux, pmask, plev, nxy, nz, stride);
 
     if ((ierr = cudaGetLastError()) != cudaSuccess)
@@ -346,7 +650,9 @@ int dispatch(int device_id, size_t nx, size_t ny, size_t nz,
     const const_p_teca_variant_array &q,
     const const_p_teca_variant_array &q_valid,
     p_teca_variant_array &ivt_u,
-    p_teca_variant_array &ivt_v)
+    p_teca_variant_array &ivt_v,
+    double p_surf, double p_top,
+    int use_trapezoid_rule)
 {
     // set the CUDA device to run on
     cudaError_t ierr = cudaSuccess;
@@ -386,10 +692,27 @@ int dispatch(int device_id, size_t nx, size_t ny, size_t nz,
                 auto [sp_wvv, p_wind_v_valid] = get_cuda_accessible<CTT_MASK>(wind_v_valid);
                 auto [sp_qv, p_q_valid] = get_cuda_accessible<CTT_MASK>(q_valid);
 
-                if (cuda_gpu::cartesian_ivt(device_id, nx, ny, nz, p_p,
-                    p_wind_u, p_wind_u_valid, p_q, p_q_valid, p_ivt_u) ||
-                    cuda_gpu::cartesian_ivt(device_id, nx, ny, nz, p_p,
-                    p_wind_v, p_wind_v_valid, p_q, p_q_valid, p_ivt_v))
+                int ierr_u = 0, ierr_v = 0;
+                if (use_trapezoid_rule)
+                {
+                    ierr_u = cuda_gpu::cartesian_ivt_trap(device_id, nx, ny, nz,
+                        p_p, p_wind_u, p_wind_u_valid, p_q, p_q_valid, p_ivt_u);
+
+                    ierr_v = cuda_gpu::cartesian_ivt_trap(device_id, nx, ny, nz,
+                        p_p, p_wind_v, p_wind_v_valid, p_q, p_q_valid, p_ivt_v);
+                }
+                else
+                {
+                    ierr_u = cuda_gpu::cartesian_ivt(device_id, nx, ny, nz,
+                        p_p, p_wind_u, p_wind_u_valid, p_q, p_q_valid, p_ivt_u,
+                        NT_COORDS(p_surf), NT_COORDS(p_top));
+
+                    ierr_v = cuda_gpu::cartesian_ivt(device_id, nx, ny, nz,
+                        p_p, p_wind_v, p_wind_v_valid, p_q, p_q_valid, p_ivt_v,
+                        NT_COORDS(p_surf), NT_COORDS(p_top));
+                }
+
+                if (ierr_u || ierr_v)
                 {
                     TECA_ERROR("Failed to compute IVT with valid value mask")
                     return -1;
@@ -397,10 +720,27 @@ int dispatch(int device_id, size_t nx, size_t ny, size_t nz,
             }
             else
             {
-                if (cuda_gpu::cartesian_ivt(device_id, nx,
-                    ny, nz, p_p, p_wind_u, p_q, p_ivt_u) ||
-                    cuda_gpu::cartesian_ivt(device_id, nx,
-                    ny, nz, p_p, p_wind_v, p_q, p_ivt_v))
+                int ierr_u = 0, ierr_v = 0;
+                if (use_trapezoid_rule)
+                {
+                    ierr_u = cuda_gpu::cartesian_ivt_trap(device_id,
+                        nx, ny, nz, p_p, p_wind_u, p_q, p_ivt_u);
+
+                    ierr_v = cuda_gpu::cartesian_ivt_trap(device_id,
+                        nx, ny, nz, p_p, p_wind_v, p_q, p_ivt_v);
+                }
+                else
+                {
+                    ierr_u = cuda_gpu::cartesian_ivt(device_id,
+                        nx, ny, nz, p_p, p_wind_u, p_q, p_ivt_u,
+                        NT_COORDS(p_surf), NT_COORDS(p_top));
+
+                    ierr_v = cuda_gpu::cartesian_ivt(device_id,
+                        nx, ny, nz, p_p, p_wind_v, p_q, p_ivt_v,
+                        NT_COORDS(p_surf), NT_COORDS(p_top));
+                }
+
+                if (ierr_u || ierr_v)
                 {
                     TECA_ERROR("Failed to compute IVT")
                     return -1;
@@ -416,10 +756,148 @@ int dispatch(int device_id, size_t nx, size_t ny, size_t nz,
 
 namespace cpu
 {
+// **************************************************************************
+template <typename coord_t>
+void plev_interfaces(coord_t *p_int, const coord_t *p_cell,
+    unsigned long nz, coord_t p_surf, coord_t p_top)
+{
+    p_int[0] = p_surf;
+
+    ++p_int;
+
+    unsigned long nzm1 = nz - 1;
+    for (unsigned long i = 0; i < nzm1; ++i)
+    {
+        p_int[i] = (p_cell[i] + p_cell[i + 1]) / coord_t(2);
+    }
+
+    p_int[nzm1] = p_top;
+
+}
 
 // **************************************************************************
 template <typename coord_t, typename num_t>
 void cartesian_ivt(unsigned long nx, unsigned long ny,
+    unsigned long nz, const coord_t *plev, const num_t *wind,
+    const num_t *q, num_t *ivt, coord_t p_surf, coord_t p_top)
+{
+    unsigned long nxy = nx*ny;
+    unsigned long nxyz = nxy*nz;
+    unsigned long nz1 = nz + 1;
+
+    // compute pressure level interfaces
+    coord_t *plev_int = (coord_t*)malloc(nz1*sizeof(coord_t));
+    plev_interfaces(plev_int, plev, nz, p_surf, p_top);
+
+    // compute the integrand
+    num_t *f = (num_t*)malloc(nxyz*sizeof(num_t));
+    for (unsigned long i = 0; i < nxyz; ++i)
+    {
+        f[i] = wind[i]*q[i];
+    }
+
+    // work an x-y slice at  a time
+    for (unsigned long k = 0; k < nz; ++k)
+    {
+        // pressure level thickness
+        num_t dp = plev_int[k+1] - plev_int[k];
+
+        // the current x-y-plane of data
+        unsigned long knxy = k*nxy;
+        num_t *f_k = f + knxy;
+
+        // accumulate this plane of data
+        for (unsigned long q = 0; q < nxy; ++q)
+        {
+            ivt[q] += dp * f_k[q];
+        }
+    }
+
+    // check the sign, in this way we can handle both increasing and decreasing
+    // pressure coordinates
+    num_t s = plev[1] - plev[0] < num_t(0) ? num_t(-1) : num_t(1);
+
+    // scale by -1/g
+    num_t m1g = s/num_t(9.80665);
+
+    for (unsigned long i = 0; i < nxy; ++i)
+    {
+        ivt[i] *= m1g;
+    }
+
+    // free up the integrand and coordinates
+    free(f);
+    free(plev_int);
+}
+
+// **************************************************************************
+template <typename coord_t, typename num_t>
+void cartesian_ivt(unsigned long nx, unsigned long ny,
+    unsigned long nz, const coord_t *plev, const num_t *wind,
+    const char *wind_valid, const num_t *q, const char *q_valid,
+    num_t *ivt, coord_t p_surf, coord_t p_top)
+{
+    unsigned long nxy = nx*ny;
+    unsigned long nxyz = nxy*nz;
+    unsigned long nz1 = nz + 1;
+
+    // compute pressure level interfaces
+    coord_t *plev_int = (coord_t*)malloc(nz1*sizeof(coord_t));
+    plev_interfaces(plev_int, plev, nz, p_surf, p_top);
+
+    // compute the mask
+    char *mask = (char*)malloc(nxyz);
+    for (unsigned long i = 0; i < nxyz; ++i)
+    {
+        mask[i] = (wind_valid[i] && q_valid[i] ? char(1) : char(0));
+    }
+
+    // compute the integrand
+    num_t *f = (num_t*)malloc(nxyz*sizeof(num_t));
+    for (unsigned long i = 0; i < nxyz; ++i)
+    {
+        f[i] = (mask[i] ? wind[i]*q[i] : num_t(0));
+    }
+
+    // work an x-y slice at a time
+    for (unsigned long k = 0; k < nz; ++k)
+    {
+        // dp over the slice
+        num_t dp = plev_int[k+1] - plev_int[k];
+
+        // the current x-y-plane of data
+        unsigned long knxy = k*nxy;
+        char *mask_k = mask + knxy;
+        num_t *f_k = f + knxy;
+
+        // accumulate this plane of data
+        for (unsigned long q = 0; q < nxy; ++q)
+        {
+            ivt[q] += (mask_k[q] ?  dp * f_k[q] : num_t(0));
+        }
+    }
+
+    // check the sign, in this way we can handle both increasing and decreasing
+    // pressure coordinates
+    num_t s = plev[1] - plev[0] < num_t(0) ? num_t(-1) : num_t(1);
+
+    // scale by -1/g
+    num_t m1g = s/num_t(9.80665);
+
+    for (unsigned long i = 0; i < nxy; ++i)
+    {
+        ivt[i] *= m1g;
+    }
+
+    // free up the integrand, coordinates, and mask
+    free(mask);
+    free(plev_int);
+    free(f);
+}
+
+// **************************************************************************
+template <typename coord_t, typename num_t>
+void cartesian_ivt_trap(unsigned long nx, unsigned long ny,
     unsigned long nz, const coord_t *plev, const num_t *wind,
     const num_t *q, num_t *ivt)
 {
@@ -470,7 +948,7 @@ void cartesian_ivt(unsigned long nx, unsigned long ny,
 
 // **************************************************************************
 template <typename coord_t, typename num_t>
-void cartesian_ivt(unsigned long nx, unsigned long ny,
+void cartesian_ivt_trap(unsigned long nx, unsigned long ny,
     unsigned long nz, const coord_t *plev, const num_t *wind,
     const char *wind_valid, const num_t *q, const char *q_valid,
     num_t *ivt)
@@ -542,7 +1020,9 @@ int dispatch(size_t nx, size_t ny, size_t nz,
     const const_p_teca_variant_array &q,
     const const_p_teca_variant_array &q_valid,
     p_teca_variant_array &ivt_u,
-    p_teca_variant_array &ivt_v)
+    p_teca_variant_array &ivt_v,
+    double p_surf, double p_top,
+    int use_trapezoid_rule)
 {
     NESTED_VARIANT_ARRAY_DISPATCH_FP(
         p.get(), _COORDS,
@@ -572,16 +1052,40 @@ int dispatch(size_t nx, size_t ny, size_t nz,
                 auto [sp_wvv, p_wind_v_valid] = get_cpu_accessible<CTT_MASK>(wind_v_valid);
                 auto [sp_qv, p_q_valid] = get_cpu_accessible<CTT_MASK>(q_valid);
 
-                cpu::cartesian_ivt(nx, ny, nz, p_p, p_wind_u,
-                    p_wind_u_valid, p_q, p_q_valid, p_ivt_u);
+                if (use_trapezoid_rule)
+                {
+                    cpu::cartesian_ivt_trap(nx, ny, nz, p_p,
+                        p_wind_u, p_wind_u_valid, p_q, p_q_valid, p_ivt_u);
 
-                cpu::cartesian_ivt(nx, ny, nz, p_p, p_wind_v,
-                    p_wind_v_valid, p_q, p_q_valid, p_ivt_v);
+                    cpu::cartesian_ivt_trap(nx, ny, nz, p_p,
+                        p_wind_v, p_wind_v_valid, p_q, p_q_valid, p_ivt_v);
+                }
+                else
+                {
+                    cpu::cartesian_ivt(nx, ny, nz, p_p, p_wind_u,
+                        p_wind_u_valid, p_q, p_q_valid, p_ivt_u,
+                        NT_COORDS(p_surf), NT_COORDS(p_top));
+
+                    cpu::cartesian_ivt(nx, ny, nz, p_p, p_wind_v,
+                        p_wind_v_valid, p_q, p_q_valid, p_ivt_v,
+                        NT_COORDS(p_surf), NT_COORDS(p_top));
+                }
             }
             else
             {
-                cpu::cartesian_ivt(nx, ny, nz, p_p, p_wind_u, p_q, p_ivt_u);
-                cpu::cartesian_ivt(nx, ny, nz, p_p, p_wind_v, p_q, p_ivt_v);
+                if (use_trapezoid_rule)
+                {
+                    cpu::cartesian_ivt_trap(nx, ny, nz, p_p, p_wind_u, p_q, p_ivt_u);
+                    cpu::cartesian_ivt_trap(nx, ny, nz, p_p, p_wind_v, p_q, p_ivt_v);
+                }
+                else
+                {
+                    cpu::cartesian_ivt(nx, ny, nz, p_p, p_wind_u, p_q, p_ivt_u,
+                        NT_COORDS(p_surf), NT_COORDS(p_top));
+
+                    cpu::cartesian_ivt(nx, ny, nz, p_p, p_wind_v, p_q, p_ivt_v,
+                        NT_COORDS(p_surf), NT_COORDS(p_top));
+                }
             }
             )
         )
@@ -594,7 +1098,8 @@ int dispatch(size_t nx, size_t ny, size_t nz,
 teca_integrated_vapor_transport::teca_integrated_vapor_transport() :
     wind_u_variable("ua"), wind_v_variable("va"),
     specific_humidity_variable("hus"), ivt_u_variable("ivt_u"),
-    ivt_v_variable("ivt_v"), fill_value(1.0e20)
+    ivt_v_variable("ivt_v"), fill_value(1.0e20), surface_pressure(101325),
+    top_pressure(0), use_trapezoid_rule(1)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -619,6 +1124,12 @@ void teca_integrated_vapor_transport::get_properties_description(
             "name of the variable containg the lat component of the wind vector")
         TECA_POPTS_GET(std::string, prefix, specific_humidity_variable,
             "name of the variable containg the specific humidity")
+        TECA_POPTS_GET(int, prefix, use_trapezoid_rule,
+            "selects between trapezoid rule and a first order scheme.")
+        TECA_POPTS_GET(double, prefix, surface_pressure,
+            "set the surface pressure for first order integration")
+        TECA_POPTS_GET(double, prefix, top_pressure,
+            "set the top pressure for first order integration")
         TECA_POPTS_GET(double, prefix, fill_value,
             "the value of the NetCDF _FillValue attribute")
         ;
@@ -637,6 +1148,9 @@ void teca_integrated_vapor_transport::set_properties(
     TECA_POPTS_SET(opts, std::string, prefix, wind_u_variable)
     TECA_POPTS_SET(opts, std::string, prefix, wind_v_variable)
     TECA_POPTS_SET(opts, std::string, prefix, specific_humidity_variable)
+    TECA_POPTS_SET(opts, int, prefix, use_trapezoid_rule)
+    TECA_POPTS_SET(opts, double, prefix, surface_pressure)
+    TECA_POPTS_SET(opts, double, prefix, top_pressure)
     TECA_POPTS_SET(opts, double, prefix, fill_value)
 }
 #endif
@@ -846,8 +1360,9 @@ const_p_teca_dataset teca_integrated_vapor_transport::execute(
     if (device_id >= 0)
     {
         if (cuda_gpu::dispatch(device_id, nx, ny, nz, p, wind_u,
-            wind_u_valid, wind_v, wind_v_valid, q, q_valid,
-            ivt_u, ivt_v))
+            wind_u_valid, wind_v, wind_v_valid, q, q_valid, ivt_u,
+            ivt_v, this->surface_pressure, this->top_pressure,
+            this->use_trapezoid_rule))
         {
             TECA_ERROR("Failed to compute IVT using CUDA")
             return nullptr;
@@ -857,7 +1372,9 @@ const_p_teca_dataset teca_integrated_vapor_transport::execute(
     {
 #endif
         if (cpu::dispatch(nx, ny, nz, p, wind_u, wind_u_valid,
-                wind_v, wind_v_valid, q, q_valid, ivt_u, ivt_v))
+                wind_v, wind_v_valid, q, q_valid, ivt_u, ivt_v,
+                this->surface_pressure, this->top_pressure,
+                this->use_trapezoid_rule))
         {
             TECA_ERROR("Failed to compute IVT on the CPU")
             return nullptr;

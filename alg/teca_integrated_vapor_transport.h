@@ -90,6 +90,31 @@ public:
     TECA_ALGORITHM_PROPERTY(double, fill_value)
     ///@}
 
+    /** @name surface_pressure
+     * set the surface pressure, default 101235. only used when not using
+     * trapezoid integration. See set_use_trapezoid_rule.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(double, surface_pressure)
+    ///@}
+
+    /** @name top_pressure
+     * set the top pressure, default 0. only used when not using
+     * trapezoid integration. See set_use_trapezoid_rule.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(double, top_pressure)
+    ///@}
+
+    /** @name use_trapezoid_rule
+     * if set then trapezoid rule is used for integration. This is a higher
+     * order scheme than the default but the pressure level thickness is
+     * calculated between cell centers.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, use_trapezoid_rule)
+    ///@}
+
 protected:
     teca_integrated_vapor_transport();
 
@@ -117,6 +142,9 @@ private:
     std::string ivt_u_variable;
     std::string ivt_v_variable;
     double fill_value;
+    double surface_pressure;
+    double top_pressure;
+    int use_trapezoid_rule;
 };
 
 #endif
