@@ -4,6 +4,7 @@
 #include "teca_shared_object.h"
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
+#include "teca_array_attributes.h"
 
 #include <string>
 #include <vector>
@@ -60,6 +61,14 @@ public:
     TECA_ALGORITHM_PROPERTY(std::string, result_variable)
     ///@}
 
+    /** @name result_attributes
+     * set the NetCDF attributes of the result. This is needed for
+     * teca_cf_writer and is otherwise optional.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(teca_array_attributes, result_attributes)
+    ///@}
+
     /** @name remove_dependent_variables
      * when set columns used in the calculation are removed from the output.
      * default off.
@@ -88,6 +97,8 @@ private:
 private:
     std::string expression;
     std::string result_variable;
+    teca_array_attributes result_attributes;
+
     std::string postfix_expression;
     std::set<std::string> dependent_variables;
     int remove_dependent_variables;
