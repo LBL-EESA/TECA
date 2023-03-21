@@ -1260,6 +1260,17 @@ const_p_teca_dataset teca_integrated_vapor_transport::execute(
 #endif
     (void)port;
 
+    int rank = 0;
+
+#if defined(TECA_HAS_MPI)
+    MPI_Comm comm = this->get_communicator();
+
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
+        MPI_Comm_rank(comm, &rank);
+#endif
+
     // get the input mesh
     const_p_teca_cartesian_mesh in_mesh
         = std::dynamic_pointer_cast<const teca_cartesian_mesh>(input_data[0]);
@@ -1295,6 +1306,32 @@ const_p_teca_dataset teca_integrated_vapor_transport::execute(
         TECA_FATAL_ERROR("Failed to compute IVT because z dimensions "
             << p->size() << " < 2 as required by the integration method")
         return nullptr;
+    }
+
+    // get the attributes
+    teca_metadata in_atts;
+    in_mesh->get_attributes(in_atts);
+
+    // verify that units of the vertical axis are Pa
+    if (rank == 0)
+    {
+        teca_metadata z_axis_atts;
+        std::string z_axis_variable, z_axis_units;
+        if (in_mesh->get_z_coordinate_variable(z_axis_variable) ||
+            in_atts.get(z_axis_variable, z_axis_atts)   ||
+            z_axis_atts.get("units", z_axis_units))
+        {
+            TECA_WARNING("Metadata issue, failed to get attributes"
+                " for the z_axis_variable \"" << z_axis_variable
+                << "\". Units check will be skipped.")
+        }
+        else if (z_axis_units != "Pa")
+        {
+            TECA_WARNING("Invalid vertical coordinate units. \""
+                << z_axis_variable << "\" has units \"" << z_axis_units
+                << "\" but units of Pa are required. IVT will be"
+                " calculated but the result may be incorrect.")
+        }
     }
 
     // gather the input arrays
