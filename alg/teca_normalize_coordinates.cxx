@@ -73,10 +73,16 @@ struct internals
     static int ascending_order_y(p_teca_array_collection data,
         const teca_metadata &attributes, const unsigned long *extent);
 
+    /// scale the input by fac
+    static void scale(p_teca_variant_array &out,
+        const const_p_teca_variant_array &in, double fac);
+
 
     template <typename data_t>
     struct indirect_less;
 };
+
+
 
 template <typename data_t>
 struct internals::indirect_less
@@ -449,11 +455,29 @@ int internals::ascending_order_y(p_teca_array_collection arrays,
     return 0;
 }
 
+// --------------------------------------------------------------------------
+void internals::scale(p_teca_variant_array &out,
+    const const_p_teca_variant_array &in, double fac)
+{
+    unsigned long n_elem = in->size();
+
+    VARIANT_ARRAY_DISPATCH(in.get(),
+        NT *pout = nullptr;
+        std::tie(out, pout) = New<TT>(n_elem);
+
+        auto [spin, pin] = get_cpu_accessible<CTT>(in);
+
+        for (unsigned long i = 0; i < n_elem; ++i)
+            pout[i] = pin[i] * fac;
+        )
+}
+
 
 
 // --------------------------------------------------------------------------
 teca_normalize_coordinates::teca_normalize_coordinates() :
-    enable_periodic_shift_x(0), enable_y_axis_ascending(1)
+    enable_periodic_shift_x(0), enable_y_axis_ascending(1),
+    enable_unit_conversions(0)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -478,6 +502,8 @@ void teca_normalize_coordinates::get_properties_description(
         TECA_POPTS_GET(int, prefix, enable_y_axis_ascending,
             "Enables transformtion the ensures the y-axis is in"
             " ascending order.")
+        TECA_POPTS_GET(int, prefix, enable_unit_conversions,
+            "Enables conversions of the axis units")
         ;
 
     this->teca_algorithm::get_properties_description(prefix, opts);
@@ -493,6 +519,7 @@ void teca_normalize_coordinates::set_properties(
 
     TECA_POPTS_SET(opts, int, prefix, enable_periodic_shift_x)
     TECA_POPTS_SET(opts, int, prefix, enable_y_axis_ascending)
+    TECA_POPTS_SET(opts, int, prefix, enable_unit_conversions)
 }
 #endif
 
@@ -544,6 +571,46 @@ teca_metadata teca_normalize_coordinates::get_output_metadata(
         return teca_metadata();
     }
 
+    // check for units of Pa on the z-axis
+    bool z_axis_unit_conv = false;
+    double z_axis_conv_fac = 1.0;
+    p_teca_variant_array out_z;
+    if (this->enable_unit_conversions)
+    {
+        teca_metadata attributes;
+        std::string z_variable;
+        teca_metadata z_attributes;
+        std::string z_units;
+        if (coords.get("z_variable", z_variable) ||
+            out_md.get("attributes", attributes) ||
+            attributes.get(z_variable, z_attributes) ||
+            z_attributes.get("units", z_units))
+        {
+            TECA_FATAL_ERROR("Units check failed. Failed to get"
+                " z-axis attributes or units")
+            return teca_metadata();
+        }
+
+        if ((z_units == "hPa") || (z_units.compare(0,8,"millibar") == 0))
+        {
+            z_axis_unit_conv = true;
+            z_axis_conv_fac = 100.0;
+
+            internals::scale(out_z, in_z, z_axis_conv_fac);
+
+            z_attributes.set("units", std::string("Pa"));
+            attributes.set(z_variable, z_attributes);
+
+            out_md.set("attributes", attributes);
+        }
+        else if (z_units != "Pa")
+        {
+            TECA_FATAL_ERROR("z-axis has unsupported units \""
+                << z_units << "\"")
+            return teca_metadata();
+        }
+    }
+
     // pass normalized coordinates
     if (out_x)
     {
@@ -566,11 +633,14 @@ teca_metadata teca_normalize_coordinates::get_output_metadata(
     if (out_y)
         coords.set("y", out_y);
 
-    if (out_x || out_y)
+    if (out_z)
+        coords.set("z", out_z);
+
+    if (out_x || out_y || out_z)
     {
         double bounds[6] = {0.0};
         teca_coordinate_util::get_cartesian_mesh_bounds(
-            out_x ? out_x : in_x, out_y ? out_y : in_y, in_z,
+            out_x ? out_x : in_x, out_y ? out_y : in_y, out_z ? out_z : in_z,
             bounds);
         out_md.set("coordinates", coords);
         out_md.set("bounds", bounds);
@@ -584,6 +654,9 @@ teca_metadata teca_normalize_coordinates::get_output_metadata(
 
         if (shifted_x)
             TECA_STATUS("The x-axis will be transformed from [-180, 180] to [0, 360].")
+
+        if (z_axis_unit_conv)
+            TECA_STATUS("The z-axis units were scaled by " << z_axis_conv_fac)
     }
 
     return out_md;
@@ -615,9 +688,9 @@ std::vector<teca_metadata> teca_normalize_coordinates::get_upstream_request(
         return up_reqs;
     }
 
-    p_teca_variant_array in_x, in_y, z;
+    p_teca_variant_array in_x, in_y, in_z;
     if (!(in_x = coords.get("x")) || !(in_y = coords.get("y"))
-        || !(z = coords.get("z")))
+        || !(in_z = coords.get("z")))
     {
         TECA_FATAL_ERROR("metadata is missing coordinate arrays")
         return up_reqs;
@@ -638,7 +711,7 @@ std::vector<teca_metadata> teca_normalize_coordinates::get_upstream_request(
     p_teca_unsigned_long_array inv_shift_map;
     if (shifted_x && internals::inv_periodic_shift_x(inv_shift_map, out_x))
     {
-        TECA_FATAL_ERROR("Failed to compute the inverse shifty map")
+        TECA_FATAL_ERROR("Failed to compute the inverse shift map")
         return up_reqs;
     }
 
@@ -652,9 +725,34 @@ std::vector<teca_metadata> teca_normalize_coordinates::get_upstream_request(
         return up_reqs;
     }
 
+    // check for units of Pa on the z-axis
+    bool z_axis_unit_conv = false;
+    double z_axis_conv_fac = 1.0;
+    p_teca_variant_array out_z;
+    if (this->enable_unit_conversions)
+    {
+        teca_metadata attributes;
+        std::string z_variable;
+        teca_metadata z_attributes;
+        std::string z_units;
+
+        coords.get("z_variable", z_variable);
+        input_md[0].get("attributes", attributes);
+        attributes.get(z_variable, z_attributes);
+        z_attributes.get("units", z_units);
+
+        if ((z_units == "hPa") || (z_units.compare(0,8,"millibar") == 0))
+        {
+            z_axis_unit_conv = true;
+            z_axis_conv_fac = 100.0;
+            internals::scale(out_z, in_z, z_axis_conv_fac);
+        }
+    }
+
     // get the transformed bounds
     const_p_teca_variant_array x = out_x ? out_x : in_x;
     const_p_teca_variant_array y = out_y ? out_y : in_y;
+    const_p_teca_variant_array z = out_z ? out_z : in_z;
 
     double bounds[6] = {0.0};
     teca_coordinate_util::get_cartesian_mesh_bounds(x, y, z, bounds);
@@ -753,15 +851,21 @@ std::vector<teca_metadata> teca_normalize_coordinates::get_upstream_request(
         std::swap(tfm_bounds[2], tfm_bounds[3]);
     }
 
+    if (z_axis_unit_conv)
+    {
+        tfm_bounds[4] /= z_axis_conv_fac;
+        tfm_bounds[5] /= z_axis_conv_fac;
+    }
+
     // convert the transformed bounds to an
     // an extent that covers them in the upstream coordinate system
     unsigned long extent_out[6];
     memcpy(extent_out, extent_in, 6*sizeof(unsigned long));
 
     if (teca_coordinate_util::bounds_to_extent(tfm_bounds,
-            in_x, in_y, z, extent_out) ||
+            in_x, in_y, in_z, extent_out) ||
         teca_coordinate_util::validate_extent(in_x->size(),
-            in_y->size(), z->size(), extent_out, true))
+            in_y->size(), in_z->size(), extent_out, true))
     {
         TECA_FATAL_ERROR("invalid bounds requested.")
         return up_reqs;
@@ -838,6 +942,13 @@ const_p_teca_dataset teca_normalize_coordinates::execute(unsigned int port,
     unsigned long extent_out[6];
     memcpy(extent_out, extent_in, 6*sizeof(unsigned long));
 
+    // get the bounds
+    double bounds_in[6];
+    in_mesh->get_bounds(bounds_in);
+
+    double bounds_out[6];
+    memcpy(bounds_out, bounds_in, 6*sizeof(double));
+
     // ensure x-axis is in 0 to 360
     bool shifted_x = false;
     p_teca_variant_array out_x;
@@ -861,6 +972,7 @@ const_p_teca_dataset teca_normalize_coordinates::execute(unsigned int port,
             TECA_STATUS("The x-axis will be transformed from [-180, 180] to [0, 360].")
         }
 
+        // update the mesh coordinates
         std::string var;
         in_mesh->get_x_coordinate_variable(var);
         out_mesh->set_x_coordinates(var, out_x);
@@ -878,6 +990,11 @@ const_p_teca_dataset teca_normalize_coordinates::execute(unsigned int port,
             whole_extent_out[1] -= 1;
         }
 
+        // correct the bounds
+        out_x->get(extent_out[0], bounds_out[0]);
+        out_x->get(extent_out[1], bounds_out[1]);
+
+        // shift the data arrays
         if (internals::periodic_shift_x(out_mesh->get_point_arrays(),
             attributes, shift_map, extent_in, extent_out))
         {
@@ -907,10 +1024,12 @@ const_p_teca_dataset teca_normalize_coordinates::execute(unsigned int port,
             TECA_STATUS("The y-axis will be transformed to be in ascending order.")
         }
 
+        // update the mesh coordinates
         std::string var;
         in_mesh->get_y_coordinate_variable(var);
         out_mesh->set_y_coordinates(var, out_y);
 
+        // reorder the data arrays
         if (internals::ascending_order_y(out_mesh->get_point_arrays(),
             attributes, extent_out))
         {
@@ -922,12 +1041,57 @@ const_p_teca_dataset teca_normalize_coordinates::execute(unsigned int port,
         unsigned long whole_ny = whole_extent_in[3] - whole_extent_in[2] + 1;
         extent_out[2] = whole_ny - extent_in[3] - 1;
         extent_out[3] = whole_ny - extent_in[2] - 1;
+
+        // flip the y-axis bounds
+        bounds_out[2] = bounds_in[3];
+        bounds_out[3] = bounds_in[2];
     }
 
-    if (shifted_x || reordered_y)
+    // check for units of Pa on the z-axis
+    bool z_axis_unit_conv = false;
+    double z_axis_conv_fac = 1.0;
+    p_teca_variant_array out_z;
+    if (this->enable_unit_conversions)
+    {
+        if (attributes.empty())
+            in_mesh->get_attributes(attributes);
+
+        std::string z_var, z_units;
+        teca_metadata z_attributes;
+
+        in_mesh->get_z_coordinate_variable(z_var);
+        attributes.get(z_var, z_attributes);
+        z_attributes.get("units", z_units);
+
+        if ((z_units == "hPa") || (z_units.compare(0,8,"millibar") == 0))
+        {
+            z_axis_unit_conv = true;
+            z_axis_conv_fac = 100.0;
+            internals::scale(out_z, in_z, z_axis_conv_fac);
+
+            z_attributes.set("units", std::string("Pa"));
+            attributes.set(z_var, z_attributes);
+
+            out_mesh->set_attributes(attributes);
+            out_mesh->set_z_coordinates(z_var, out_z);
+
+            bounds_out[4] *= z_axis_conv_fac;
+            bounds_out[5] *= z_axis_conv_fac;
+        }
+
+        if (this->verbose && z_axis_unit_conv &&
+            teca_mpi_util::mpi_rank_0(this->get_communicator()))
+        {
+            TECA_STATUS("The z-axis units were scaled by " << z_axis_conv_fac)
+        }
+    }
+
+    // update the mesh extent
+    if (shifted_x || reordered_y || z_axis_unit_conv)
     {
         out_mesh->set_extent(extent_out);
         out_mesh->set_whole_extent(whole_extent_out);
+        out_mesh->set_bounds(bounds_out);
     }
 
     return out_mesh;
