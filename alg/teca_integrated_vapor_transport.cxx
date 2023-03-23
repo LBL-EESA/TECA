@@ -759,9 +759,9 @@ namespace cpu
 // **************************************************************************
 template <typename coord_t>
 void plev_interfaces(coord_t *p_int, const coord_t *p_cell,
-    unsigned long nz, coord_t p_surf, coord_t p_top)
+    unsigned long nz, coord_t p0, coord_t p1)
 {
-    p_int[0] = p_surf;
+    p_int[0] = p0;
 
     ++p_int;
 
@@ -771,15 +771,27 @@ void plev_interfaces(coord_t *p_int, const coord_t *p_cell,
         p_int[i] = (p_cell[i] + p_cell[i + 1]) / coord_t(2);
     }
 
-    p_int[nzm1] = p_top;
+    p_int[nzm1] = p1;
 
+#if defined(TECA_DEBUG)
+    std::cerr << "p_int = [";
+    --p_int;
+    for (unsigned long i = 0; i <= nz; ++i)
+        std::cerr << p_int[i] << ", ";
+    std::cerr << "]" << std::endl;
+
+    std::cerr << "dp = [";
+    for (unsigned long i = 0; i < nz; ++i)
+        std::cerr << p_int[i+1] - p_int[i]  << ", ";
+    std::cerr << "]" << std::endl;
+#endif
 }
 
 // **************************************************************************
 template <typename coord_t, typename num_t>
 void cartesian_ivt(unsigned long nx, unsigned long ny,
     unsigned long nz, const coord_t *plev, const num_t *wind,
-    const num_t *q, num_t *ivt, coord_t p_surf, coord_t p_top)
+    const num_t *q, num_t *ivt, coord_t p0, coord_t p1)
 {
     unsigned long nxy = nx*ny;
     unsigned long nxyz = nxy*nz;
@@ -787,7 +799,7 @@ void cartesian_ivt(unsigned long nx, unsigned long ny,
 
     // compute pressure level interfaces
     coord_t *plev_int = (coord_t*)malloc(nz1*sizeof(coord_t));
-    plev_interfaces(plev_int, plev, nz, p_surf, p_top);
+    plev_interfaces(plev_int, plev, nz, p0, p1);
 
     // compute the integrand
     num_t *f = (num_t*)malloc(nxyz*sizeof(num_t));
@@ -835,7 +847,7 @@ template <typename coord_t, typename num_t>
 void cartesian_ivt(unsigned long nx, unsigned long ny,
     unsigned long nz, const coord_t *plev, const num_t *wind,
     const char *wind_valid, const num_t *q, const char *q_valid,
-    num_t *ivt, coord_t p_surf, coord_t p_top)
+    num_t *ivt, coord_t p0, coord_t p1)
 {
     unsigned long nxy = nx*ny;
     unsigned long nxyz = nxy*nz;
@@ -843,7 +855,7 @@ void cartesian_ivt(unsigned long nx, unsigned long ny,
 
     // compute pressure level interfaces
     coord_t *plev_int = (coord_t*)malloc(nz1*sizeof(coord_t));
-    plev_interfaces(plev_int, plev, nz, p_surf, p_top);
+    plev_interfaces(plev_int, plev, nz, p0, p1);
 
     // compute the mask
     char *mask = (char*)malloc(nxyz);
@@ -1021,7 +1033,7 @@ int dispatch(size_t nx, size_t ny, size_t nz,
     const const_p_teca_variant_array &q_valid,
     p_teca_variant_array &ivt_u,
     p_teca_variant_array &ivt_v,
-    double p_surf, double p_top,
+    double p0, double p1,
     int use_trapezoid_rule)
 {
     NESTED_VARIANT_ARRAY_DISPATCH_FP(
@@ -1064,11 +1076,11 @@ int dispatch(size_t nx, size_t ny, size_t nz,
                 {
                     cpu::cartesian_ivt(nx, ny, nz, p_p, p_wind_u,
                         p_wind_u_valid, p_q, p_q_valid, p_ivt_u,
-                        NT_COORDS(p_surf), NT_COORDS(p_top));
+                        NT_COORDS(p0), NT_COORDS(p1));
 
                     cpu::cartesian_ivt(nx, ny, nz, p_p, p_wind_v,
                         p_wind_v_valid, p_q, p_q_valid, p_ivt_v,
-                        NT_COORDS(p_surf), NT_COORDS(p_top));
+                        NT_COORDS(p0), NT_COORDS(p1));
                 }
             }
             else
@@ -1081,10 +1093,10 @@ int dispatch(size_t nx, size_t ny, size_t nz,
                 else
                 {
                     cpu::cartesian_ivt(nx, ny, nz, p_p, p_wind_u, p_q, p_ivt_u,
-                        NT_COORDS(p_surf), NT_COORDS(p_top));
+                        NT_COORDS(p0), NT_COORDS(p1));
 
                     cpu::cartesian_ivt(nx, ny, nz, p_p, p_wind_v, p_q, p_ivt_v,
-                        NT_COORDS(p_surf), NT_COORDS(p_top));
+                        NT_COORDS(p0), NT_COORDS(p1));
                 }
             }
             )
@@ -1308,6 +1320,29 @@ const_p_teca_dataset teca_integrated_vapor_transport::execute(
         return nullptr;
     }
 
+    // assume descending vertical coordinates. the integral is coded to handle
+    // either however when using the first order method the surface and top
+    // level pressures must be switched when the coordinates are ascending.
+    double p0 = this->surface_pressure;
+    double p1 = this->top_pressure;
+    if (!this->use_trapezoid_rule)
+    {
+        double z0 = 0.0;
+        double z1 = 0.0;
+
+        p->get(0, z0);
+        p->get(nz - 1, z1);
+
+        // check for ascendinig or descending vertical axis.
+        // flip the surface and top level pressures to handle ascending
+        // vertical coordinates
+        if (z1 > z0)
+        {
+            p0 = this->top_pressure;
+            p1 = this->surface_pressure;
+        }
+    }
+
     // get the attributes
     teca_metadata in_atts;
     in_mesh->get_attributes(in_atts);
@@ -1398,8 +1433,7 @@ const_p_teca_dataset teca_integrated_vapor_transport::execute(
     {
         if (cuda_gpu::dispatch(device_id, nx, ny, nz, p, wind_u,
             wind_u_valid, wind_v, wind_v_valid, q, q_valid, ivt_u,
-            ivt_v, this->surface_pressure, this->top_pressure,
-            this->use_trapezoid_rule))
+            ivt_v, p0, p1, this->use_trapezoid_rule))
         {
             TECA_ERROR("Failed to compute IVT using CUDA")
             return nullptr;
@@ -1409,9 +1443,8 @@ const_p_teca_dataset teca_integrated_vapor_transport::execute(
     {
 #endif
         if (cpu::dispatch(nx, ny, nz, p, wind_u, wind_u_valid,
-                wind_v, wind_v_valid, q, q_valid, ivt_u, ivt_v,
-                this->surface_pressure, this->top_pressure,
-                this->use_trapezoid_rule))
+            wind_v, wind_v_valid, q, q_valid, ivt_u, ivt_v,
+            p0, p1, this->use_trapezoid_rule))
         {
             TECA_ERROR("Failed to compute IVT on the CPU")
             return nullptr;
