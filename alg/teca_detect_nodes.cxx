@@ -41,13 +41,13 @@ public:
 public:
     VariableRegistry varreg;
 
-    std::vector<ClosedContourOp> vecClosedContourOp;
-    std::vector<ClosedContourOp> vecNoClosedContourOp;
-    std::vector<ThresholdOp> vecThresholdOp;
-    std::vector<NodeOutputOp> vecOutputOp;
+    std::vector<ClosedContourOp> vec_closed_contour_op;
+    std::vector<ClosedContourOp> vec_no_closed_contour_op;
+    std::vector<ThresholdOp> vec_threshold_op;
+    std::vector<NodeOutputOp> vec_output_op;
 
-    std::string strSearchBy;
-    bool fSearchByMinima;
+    std::string str_search_by;
+    bool f_search_by_minima;
 };
 
 // --------------------------------------------------------------------------
@@ -55,7 +55,7 @@ public:
  * Determine if the given field has a closed contour about this point.
  */
 template <typename real>
-bool HasClosedContour(
+bool has_closed_contour(
     const SimpleGrid & grid,
     const DataArray1D<real> & dataState,
     const int ix0,
@@ -198,7 +198,7 @@ bool HasClosedContour(
  * Determine if the given field satisfies the threshold.
  */
 template <typename real>
-bool SatisfiesThreshold(
+bool satisfies_threshold(
     const SimpleGrid & grid,
     const DataArray1D<real> & dataState,
     const int ix0,
@@ -332,10 +332,10 @@ bool SatisfiesThreshold(
 }
 
 // --------------------------------------------------------------------------
-int teca_detect_nodes::DetectCyclonesUnstructured(
+int teca_detect_nodes::detect_cyclones_unstructured(
     const_p_teca_cartesian_mesh mesh,
     SimpleGrid & grid,
-    std::set<int> & setCandidates)
+    std::set<int> & set_candidates)
 {
     // get coordinate arrays
     const_p_teca_variant_array y = mesh->get_y_coordinates();
@@ -349,23 +349,23 @@ int teca_detect_nodes::DetectCyclonesUnstructured(
 
     VARIANT_ARRAY_DISPATCH_FP(y.get(),
 
-       DataArray1D<double> vecLat(y->size(), false);
+       DataArray1D<double> vec_lat(y->size(), false);
        auto [sp_y, p_y] = get_cpu_accessible<CTT>(y);
-       vecLat.AttachToData((void*)p_y);
+       vec_lat.AttachToData((void*)p_y);
 
        for (int j = 0; j < y->size(); j++)
        {
-          vecLat[j] *= M_PI / 180.0;
+          vec_lat[j] *= M_PI / 180.0;
        }
 
        assert_type<CTT>(x);
-       DataArray1D<double> vecLon(x->size(), false);
+       DataArray1D<double> vec_lon(x->size(), false);
        auto [sp_x, p_x] = get_cpu_accessible<CTT>(x);
-       vecLon.AttachToData((void*)p_x);
+       vec_lon.AttachToData((void*)p_x);
 
        for (int i = 0; i < x->size(); i++)
        {
-          vecLon[i] *= M_PI / 180.0;
+          vec_lon[i] *= M_PI / 180.0;
        }
 
        // No connectivity file; check for latitude/longitude dimension
@@ -373,7 +373,7 @@ int teca_detect_nodes::DetectCyclonesUnstructured(
        {
           AnnounceStartBlock("Generating RLL grid data");
           grid.GenerateLatitudeLongitude(
-                    vecLat, vecLon, this->regional, this->diag_connect, true);
+                    vec_lat, vec_lon, this->regional, this->diag_connect, true);
           AnnounceEndBlock("Done");
        }
        // Check for connectivity file
@@ -385,58 +385,58 @@ int teca_detect_nodes::DetectCyclonesUnstructured(
        }
     )
 
-    this->minlon *= M_PI / 180.0;
-    this->maxlon *= M_PI / 180.0;
-    this->minlat *= M_PI / 180.0;
-    this->maxlat *= M_PI / 180.0;
-    this->minabslat *= M_PI / 180.0;
+    this->min_lon *= M_PI / 180.0;
+    this->max_lon *= M_PI / 180.0;
+    this->min_lat *= M_PI / 180.0;
+    this->max_lat *= M_PI / 180.0;
+    this->min_abs_lat *= M_PI / 180.0;
 
-    // get SearchBy array
-    const_p_teca_variant_array SearchBy =
-       mesh->get_point_arrays()->get(this->internals->strSearchBy);
+    // get search_by array
+    const_p_teca_variant_array search_by =
+       mesh->get_point_arrays()->get(this->internals->str_search_by);
 
-    if (!SearchBy)
+    if (!search_by)
     {
-       TECA_FATAL_ERROR("Dataset missing SearchBy variable \""
-           << this->internals->strSearchBy << "\"")
+       TECA_FATAL_ERROR("Dataset missing search_by variable \""
+           << this->internals->str_search_by << "\"")
        return -1;
     }
 
-    int nRejectedMerge = 0;
-    VARIANT_ARRAY_DISPATCH_FP(SearchBy.get(),
+    int n_rejected_merge = 0;
+    VARIANT_ARRAY_DISPATCH_FP(search_by.get(),
 
-       DataArray1D<float> dataSearch(SearchBy->size(), false);
-       auto [sp_SearchBy, p_SearchBy] = get_cpu_accessible<CTT>(SearchBy);
-       dataSearch.AttachToData((void*)p_SearchBy);
+       DataArray1D<float> data_search(search_by->size(), false);
+       auto [sp_search_by, p_search_by] = get_cpu_accessible<CTT>(search_by);
+       data_search.AttachToData((void*)p_search_by);
 
        // Tag all minima
        AnnounceStartBlock("FindAllLocalMinMax");
-       if (this->searchbythreshold == "")
+       if (this->search_by_threshold == "")
        {
-          if (this->internals->fSearchByMinima)
-             FindAllLocalMinima<float>(grid, dataSearch, setCandidates);
+          if (this->internals->f_search_by_minima)
+             FindAllLocalMinima<float>(grid, data_search, set_candidates);
           else
-             FindAllLocalMaxima<float>(grid, dataSearch, setCandidates);
+             FindAllLocalMaxima<float>(grid, data_search, set_candidates);
        }
        else
        {
           FindAllLocalMinMaxWithThreshold<float>(
                                               grid,
-                                              dataSearch,
-                                              this->internals->fSearchByMinima,
-                                              this->searchbythreshold,
-                                              setCandidates);
+                                              data_search,
+                                              this->internals->f_search_by_minima,
+                                              this->search_by_threshold,
+                                              set_candidates);
        }
        AnnounceEndBlock("Done");
 
        // Eliminate based on merge distance
        AnnounceStartBlock("Eliminate based on merge distance");
-       if (this->mergedist != 0.0)
+       if (this->merge_dist != 0.0)
        {
-          std::set<int> setNewCandidates;
+          std::set<int> set_new_candidates;
 
           // Calculate chord distance
-          double dSphDist = 2.0 * sin(0.5 * this->mergedist / 180.0 * M_PI);
+          double d_sph_dist = 2.0 * sin(0.5 * this->merge_dist / 180.0 * M_PI);
 
           // Create a new KD Tree containing all nodes
           kdtree * kdMerge = kd_create(3);
@@ -445,82 +445,82 @@ int teca_detect_nodes::DetectCyclonesUnstructured(
              _EXCEPTIONT("kd_create(3) failed");
           }
 
-          std::set<int>::const_iterator iterCandidate = setCandidates.begin();
-          for (; iterCandidate != setCandidates.end(); iterCandidate++)
+          std::set<int>::const_iterator iter_candidate = set_candidates.begin();
+          for (; iter_candidate != set_candidates.end(); iter_candidate++)
           {
-             double dLat = grid.m_dLat[*iterCandidate];
-             double dLon = grid.m_dLon[*iterCandidate];
+             double d_lat = grid.m_dLat[*iter_candidate];
+             double d_lon = grid.m_dLon[*iter_candidate];
 
-             double dX = cos(dLon) * cos(dLat);
-             double dY = sin(dLon) * cos(dLat);
-             double dZ = sin(dLat);
+             double dx = cos(d_lon) * cos(d_lat);
+             double dy = sin(d_lon) * cos(d_lat);
+             double dz = sin(d_lat);
 
-             kd_insert3(kdMerge, dX, dY, dZ, (void*)(&(*iterCandidate)));
+             kd_insert3(kdMerge, dx, dy, dz, (void*)(&(*iter_candidate)));
           }
 
           // Loop through all candidates find set of nearest neighbors
-          iterCandidate = setCandidates.begin();
-          for (; iterCandidate != setCandidates.end(); iterCandidate++)
+          iter_candidate = set_candidates.begin();
+          for (; iter_candidate != set_candidates.end(); iter_candidate++)
           {
-             double dLat = grid.m_dLat[*iterCandidate];
-             double dLon = grid.m_dLon[*iterCandidate];
+             double d_lat = grid.m_dLat[*iter_candidate];
+             double d_lon = grid.m_dLon[*iter_candidate];
 
-             double dX = cos(dLon) * cos(dLat);
-             double dY = sin(dLon) * cos(dLat);
-             double dZ = sin(dLat);
+             double dx = cos(d_lon) * cos(d_lat);
+             double dy = sin(d_lon) * cos(d_lat);
+             double dz = sin(d_lat);
 
-             // Find all neighbors within dSphDist
+             // Find all neighbors within d_sph_dist
              kdres * kdresMerge =
-                kd_nearest_range3(kdMerge, dX, dY, dZ, dSphDist);
+                kd_nearest_range3(kdMerge, dx, dy, dz, d_sph_dist);
 
              // Number of neighbors
-             int nNeighbors = kd_res_size(kdresMerge);
-             if (nNeighbors == 0)
+             int n_neighbors = kd_res_size(kdresMerge);
+             if (n_neighbors == 0)
              {
-                setNewCandidates.insert(*iterCandidate);
+                set_new_candidates.insert(*iter_candidate);
              }
              else
              {
-                double dValue =
-                   static_cast<double>(dataSearch[*iterCandidate]);
+                double d_value =
+                   static_cast<double>(data_search[*iter_candidate]);
 
-                bool fExtrema = true;
+                bool f_extrema = true;
                 for (;;)
                 {
                    int * ppr = (int *)(kd_res_item_data(kdresMerge));
 
-                   if (this->internals->fSearchByMinima)
+                   if (this->internals->f_search_by_minima)
                    {
-                      if (static_cast<double>(dataSearch[*ppr]) < dValue)
+                      if (static_cast<double>(data_search[*ppr]) < d_value)
                       {
-                         fExtrema = false;
+                         f_extrema = false;
                          break;
                       }
 
                    }
                    else
                    {
-                      if (static_cast<double>(dataSearch[*ppr]) > dValue)
+                      if (static_cast<double>(data_search[*ppr]) > d_value)
                       {
-                         fExtrema = false;
+                         f_extrema = false;
                          break;
                       }
                    }
 
-                   int iHasMore = kd_res_next(kdresMerge);
-                   if (!iHasMore)
+                   int i_has_more = kd_res_next(kdresMerge);
+                   if (!i_has_more)
                    {
                       break;
                    }
                 }
 
-                if (fExtrema)
+                if (f_extrema)
                 {
-                   setNewCandidates.insert(*iterCandidate);
+                   set_new_candidates.insert(*iter_candidate);
                 }
                 else
                 {
-                   nRejectedMerge++;
+                   n_rejected_merge++;
                 }
              }
 
@@ -531,281 +531,281 @@ int teca_detect_nodes::DetectCyclonesUnstructured(
           kd_free(kdMerge);
 
           // Update set of pressure minima
-          setCandidates = setNewCandidates;
+          set_candidates = set_new_candidates;
        }
        AnnounceEndBlock("Done");
     )
 
     // Eliminate based on interval
     AnnounceStartBlock("Eliminate based on interval");
-    int nRejectedLocation = 0;
-    if ((this->minlat != this->maxlat) ||
-        (this->minlon != this->maxlon) ||
-	     (this->minabslat != 0.0))
+    int n_rejected_location = 0;
+    if ((this->min_lat != this->max_lat) ||
+        (this->min_lon != this->max_lon) ||
+	     (this->min_abs_lat != 0.0))
     {
-       std::set<int> setNewCandidates;
+       std::set<int> set_new_candidates;
 
-       std::set<int>::const_iterator iterCandidate = setCandidates.begin();
-       for (; iterCandidate != setCandidates.end(); iterCandidate++)
+       std::set<int>::const_iterator iter_candidate = set_candidates.begin();
+       for (; iter_candidate != set_candidates.end(); iter_candidate++)
        {
-          double dLat = grid.m_dLat[*iterCandidate];
-          double dLon = grid.m_dLon[*iterCandidate];
+          double d_lat = grid.m_dLat[*iter_candidate];
+          double d_lon = grid.m_dLon[*iter_candidate];
 
-          if (this->minlat != this->maxlat)
+          if (this->min_lat != this->max_lat)
           {
-             if (dLat < this->minlat)
+             if (d_lat < this->min_lat)
              {
-                nRejectedLocation++;
+                n_rejected_location++;
                 continue;
              }
-             if (dLat > this->maxlat)
+             if (d_lat > this->max_lat)
              {
-                nRejectedLocation++;
+                n_rejected_location++;
                 continue;
              }
           }
-          if (this->minlon != this->maxlon)
+          if (this->min_lon != this->max_lon)
           {
-             if (dLon < 0.0)
+             if (d_lon < 0.0)
              {
-                int iLonShift = static_cast<int>(dLon / (2.0 * M_PI));
-                dLon += static_cast<double>(iLonShift + 1) * 2.0 * M_PI;
+                int i_lon_shift = static_cast<int>(d_lon / (2.0 * M_PI));
+                d_lon += static_cast<double>(i_lon_shift + 1) * 2.0 * M_PI;
              }
-             if (dLon >= 2.0 * M_PI)
+             if (d_lon >= 2.0 * M_PI)
              {
-                int iLonShift = static_cast<int>(dLon / (2.0 * M_PI));
-                dLon -= static_cast<double>(iLonShift - 1) * 2.0 * M_PI;
+                int i_lon_shift = static_cast<int>(d_lon / (2.0 * M_PI));
+                d_lon -= static_cast<double>(i_lon_shift - 1) * 2.0 * M_PI;
              }
-             if (this->minlon < this->maxlon)
+             if (this->min_lon < this->max_lon)
              {
-                if (dLon < this->minlon)
+                if (d_lon < this->min_lon)
                 {
-                   nRejectedLocation++;
+                   n_rejected_location++;
                    continue;
                 }
-                if (dLon > this->maxlon)
+                if (d_lon > this->max_lon)
                 {
-                   nRejectedLocation++;
+                   n_rejected_location++;
                    continue;
                 }
              }
              else
              {
-                if ((dLon > this->maxlon) &&
-                    (dLon < this->minlon))
+                if ((d_lon > this->max_lon) &&
+                    (d_lon < this->min_lon))
                 {
-                   nRejectedLocation++;
+                   n_rejected_location++;
                    continue;
                 }
              }
           }
-          if (this->minabslat != 0.0)
+          if (this->min_abs_lat != 0.0)
           {
-             if (fabs(dLat) < this->minabslat)
+             if (fabs(d_lat) < this->min_abs_lat)
              {
-                nRejectedLocation++;
+                n_rejected_location++;
                 continue;
              }
           }
-          setNewCandidates.insert(*iterCandidate);
+          set_new_candidates.insert(*iter_candidate);
        }
-       setCandidates = setNewCandidates;
+       set_candidates = set_new_candidates;
     }
     AnnounceEndBlock("Done");
 
     // Eliminate based on thresholds
     AnnounceStartBlock("Eliminate based on thresholds");
-    DataArray1D<int> vecRejectedThreshold(
-                                       this->internals->vecThresholdOp.size());
-    for (int tc = 0; tc < this->internals->vecThresholdOp.size(); tc++)
+    DataArray1D<int> vec_rejected_threshold(
+                                       this->internals->vec_threshold_op.size());
+    for (int tc = 0; tc < this->internals->vec_threshold_op.size(); tc++)
     {
-       std::set<int> setNewCandidates;
+       std::set<int> set_new_candidates;
 
        // Load the search variable data
        Variable & var =
           this->internals->varreg.Get(
-                                 this->internals->vecThresholdOp[tc].m_varix);
-       const_p_teca_variant_array ThresholdVar =
+                                 this->internals->vec_threshold_op[tc].m_varix);
+       const_p_teca_variant_array threshold_var =
           mesh->get_point_arrays()->get(var.GetName());
 
-       if (!ThresholdVar)
+       if (!threshold_var)
        {
           TECA_FATAL_ERROR("Dataset missing variable \""
               << var.GetName() << "\"")
           return -1;
        }
 
-       VARIANT_ARRAY_DISPATCH_FP(ThresholdVar.get(),
+       VARIANT_ARRAY_DISPATCH_FP(threshold_var.get(),
 
-          DataArray1D<float> dataState(ThresholdVar->size(), false);
-          auto [sp_ThresholdVar, p_ThresholdVar] = get_cpu_accessible<CTT>(ThresholdVar);
-          dataState.AttachToData((void*)p_ThresholdVar);
+          DataArray1D<float> data_state(threshold_var->size(), false);
+          auto [sp_threshold_var, p_threshold_var] = get_cpu_accessible<CTT>(threshold_var);
+          data_state.AttachToData((void*)p_threshold_var);
 
           // Loop through all pressure minima
-          std::set<int>::const_iterator iterCandidate = setCandidates.begin();
-          for (; iterCandidate != setCandidates.end(); iterCandidate++)
+          std::set<int>::const_iterator iter_candidate = set_candidates.begin();
+          for (; iter_candidate != set_candidates.end(); iter_candidate++)
           {
               // Determine if the threshold is satisfied
-              bool fSatisfiesThreshold = SatisfiesThreshold<float>(
-                       grid, dataState, *iterCandidate,
-                       this->internals->vecThresholdOp[tc].m_eOp,
-                       this->internals->vecThresholdOp[tc].m_dValue,
-                       this->internals->vecThresholdOp[tc].m_dDistance);
+              bool f_satisfies_threshold = satisfies_threshold<float>(
+                       grid, data_state, *iter_candidate,
+                       this->internals->vec_threshold_op[tc].m_eOp,
+                       this->internals->vec_threshold_op[tc].m_dValue,
+                       this->internals->vec_threshold_op[tc].m_dDistance);
 
               // If not rejected, add to new pressure minima array
-              if (fSatisfiesThreshold)
+              if (f_satisfies_threshold)
               {
-                 setNewCandidates.insert(*iterCandidate);
+                 set_new_candidates.insert(*iter_candidate);
               }
               else
               {
-                 vecRejectedThreshold[tc]++;
+                 vec_rejected_threshold[tc]++;
               }
           }
 
-          setCandidates = setNewCandidates;
+          set_candidates = set_new_candidates;
        )
     }
     AnnounceEndBlock("Done");
 
     // Eliminate based on closed contours
     AnnounceStartBlock("Eliminate based on closed contours");
-    DataArray1D<int> vecRejectedClosedContour(
-                                   this->internals->vecClosedContourOp.size());
-    for (int ccc = 0; ccc < this->internals->vecClosedContourOp.size(); ccc++)
+    DataArray1D<int> vec_rejected_closed_contour(
+                                   this->internals->vec_closed_contour_op.size());
+    for (int ccc = 0; ccc < this->internals->vec_closed_contour_op.size(); ccc++)
     {
-       std::set<int> setNewCandidates;
+       std::set<int> set_new_candidates;
 
        // Load the search variable data
        Variable & var =
           this->internals->varreg.Get(
-                            this->internals->vecClosedContourOp[ccc].m_varix);
-       const_p_teca_variant_array ClosedContourVar =
+                            this->internals->vec_closed_contour_op[ccc].m_varix);
+       const_p_teca_variant_array closed_contour_var =
           mesh->get_point_arrays()->get(var.GetName());
 
-       if (!ClosedContourVar)
+       if (!closed_contour_var)
        {
           TECA_FATAL_ERROR("Dataset missing variable \""
               << var.GetName() << "\"")
           return -1;
        }
 
-       VARIANT_ARRAY_DISPATCH_FP(ClosedContourVar.get(),
+       VARIANT_ARRAY_DISPATCH_FP(closed_contour_var.get(),
 
-          DataArray1D<float> dataState(ClosedContourVar->size(), false);
-          auto [sp_ClosedContourVar, p_ClosedContourVar] = get_cpu_accessible<CTT>(ClosedContourVar);
-          dataState.AttachToData((void*)p_ClosedContourVar);
+          DataArray1D<float> data_state(closed_contour_var->size(), false);
+          auto [sp_closed_contour_var, p_closed_contour_var] = get_cpu_accessible<CTT>(closed_contour_var);
+          data_state.AttachToData((void*)p_closed_contour_var);
 
           // Loop through all pressure minima
-          std::set<int>::const_iterator iterCandidate = setCandidates.begin();
-          for (; iterCandidate != setCandidates.end(); iterCandidate++)
+          std::set<int>::const_iterator iter_candidate = set_candidates.begin();
+          for (; iter_candidate != set_candidates.end(); iter_candidate++)
           {
              // Determine if a closed contour is present
-             bool fHasClosedContour = HasClosedContour<float>(
-                    grid, dataState, *iterCandidate,
-                    this->internals->vecClosedContourOp[ccc].m_dDeltaAmount,
-                    this->internals->vecClosedContourOp[ccc].m_dDistance,
-                    this->internals->vecClosedContourOp[ccc].m_dMinMaxDist);
+             bool f_has_closed_contour = has_closed_contour<float>(
+                    grid, data_state, *iter_candidate,
+                    this->internals->vec_closed_contour_op[ccc].m_dDeltaAmount,
+                    this->internals->vec_closed_contour_op[ccc].m_dDistance,
+                    this->internals->vec_closed_contour_op[ccc].m_dMinMaxDist);
 
              // If not rejected, add to new pressure minima array
-             if (fHasClosedContour)
+             if (f_has_closed_contour)
              {
-                setNewCandidates.insert(*iterCandidate);
+                set_new_candidates.insert(*iter_candidate);
              }
              else
              {
-                vecRejectedClosedContour[ccc]++;
+                vec_rejected_closed_contour[ccc]++;
              }
           }
 
-          setCandidates = setNewCandidates;
+          set_candidates = set_new_candidates;
        )
     }
     AnnounceEndBlock("Done");
 
     // Eliminate based on no closed contours
     AnnounceStartBlock("Eliminate based on no closed contours");
-    DataArray1D<int> vecRejectedNoClosedContour(
-                                 this->internals->vecNoClosedContourOp.size());
-    for (int ccc = 0; ccc < this->internals->vecNoClosedContourOp.size(); ccc++)
+    DataArray1D<int> vec_rejected_no_closed_contour(
+                                 this->internals->vec_no_closed_contour_op.size());
+    for (int ccc = 0; ccc < this->internals->vec_no_closed_contour_op.size(); ccc++)
     {
-       std::set<int> setNewCandidates;
+       std::set<int> set_new_candidates;
 
        // Load the search variable data
        Variable & var =
           this->internals->varreg.Get(
-                          this->internals->vecNoClosedContourOp[ccc].m_varix);
-       const_p_teca_variant_array NoClosedContourVar =
+                          this->internals->vec_no_closed_contour_op[ccc].m_varix);
+       const_p_teca_variant_array no_closed_contour_var =
           mesh->get_point_arrays()->get(var.GetName());
 
-       if (!NoClosedContourVar)
+       if (!no_closed_contour_var)
        {
           TECA_FATAL_ERROR("Dataset missing variable \""
               << var.GetName() << "\"")
           return -1;
        }
 
-       VARIANT_ARRAY_DISPATCH_FP(NoClosedContourVar.get(),
+       VARIANT_ARRAY_DISPATCH_FP(no_closed_contour_var.get(),
 
-          DataArray1D<float> dataState(NoClosedContourVar->size(), false);
-          auto [sp_NoClosedContourVar, p_NoClosedContourVar] = get_cpu_accessible<CTT>(NoClosedContourVar);
-          dataState.AttachToData((void*)p_NoClosedContourVar);
+          DataArray1D<float> data_state(no_closed_contour_var->size(), false);
+          auto [sp_no_closed_contour_var, p_no_closed_contour_var] = get_cpu_accessible<CTT>(no_closed_contour_var);
+          data_state.AttachToData((void*)p_no_closed_contour_var);
 
           // Loop through all pressure minima
-          std::set<int>::const_iterator iterCandidate = setCandidates.begin();
-          for (; iterCandidate != setCandidates.end(); iterCandidate++)
+          std::set<int>::const_iterator iter_candidate = set_candidates.begin();
+          for (; iter_candidate != set_candidates.end(); iter_candidate++)
           {
              // Determine if a closed contour is present
-             bool fHasClosedContour = HasClosedContour<float>(
+             bool f_has_closed_contour = has_closed_contour<float>(
                    grid,
-                   dataState,
-                   *iterCandidate,
-                   this->internals->vecNoClosedContourOp[ccc].m_dDeltaAmount,
-                   this->internals->vecNoClosedContourOp[ccc].m_dDistance,
-                   this->internals->vecNoClosedContourOp[ccc].m_dMinMaxDist);
+                   data_state,
+                   *iter_candidate,
+                   this->internals->vec_no_closed_contour_op[ccc].m_dDeltaAmount,
+                   this->internals->vec_no_closed_contour_op[ccc].m_dDistance,
+                   this->internals->vec_no_closed_contour_op[ccc].m_dMinMaxDist);
 
              // If a closed contour is present, reject this candidate
-             if (fHasClosedContour)
+             if (f_has_closed_contour)
              {
-                vecRejectedNoClosedContour[ccc]++;
+                vec_rejected_no_closed_contour[ccc]++;
              }
              else
              {
-                setNewCandidates.insert(*iterCandidate);
+                set_new_candidates.insert(*iter_candidate);
              }
           }
 
-          setCandidates = setNewCandidates;
+          set_candidates = set_new_candidates;
        )
     }
     AnnounceEndBlock("Done");
 
-    Announce("Total candidates: %i", setCandidates.size());
-    Announce("Rejected (  location): %i", nRejectedLocation);
-    Announce("Rejected (    merged): %i", nRejectedMerge);
+    Announce("Total candidates: %i", set_candidates.size());
+    Announce("Rejected (  location): %i", n_rejected_location);
+    Announce("Rejected (    merged): %i", n_rejected_merge);
 
-    for (int tc = 0; tc < vecRejectedThreshold.GetRows(); tc++)
+    for (int tc = 0; tc < vec_rejected_threshold.GetRows(); tc++)
     {
        Announce("Rejected (thresh. %s): %i",
           this->internals->varreg.GetVariableString(
-                          this->internals->vecThresholdOp[tc].m_varix).c_str(),
-                                                     vecRejectedThreshold[tc]);
+                          this->internals->vec_threshold_op[tc].m_varix).c_str(),
+                                                     vec_rejected_threshold[tc]);
     }
 
-    for (int ccc = 0; ccc < vecRejectedClosedContour.GetRows(); ccc++)
+    for (int ccc = 0; ccc < vec_rejected_closed_contour.GetRows(); ccc++)
     {
        Announce("Rejected (contour %s): %i",
           this->internals->varreg.GetVariableString(
-                     this->internals->vecClosedContourOp[ccc].m_varix).c_str(),
-                                                vecRejectedClosedContour[ccc]);
+                     this->internals->vec_closed_contour_op[ccc].m_varix).c_str(),
+                                                vec_rejected_closed_contour[ccc]);
     }
 
-    for (int ccc = 0; ccc < vecRejectedNoClosedContour.GetRows(); ccc++)
+    for (int ccc = 0; ccc < vec_rejected_no_closed_contour.GetRows(); ccc++)
     {
        Announce("Rejected (nocontour %s): %i",
           this->internals->varreg.GetVariableString(
-                   this->internals->vecNoClosedContourOp[ccc].m_varix).c_str(),
-                                              vecRejectedNoClosedContour[ccc]);
+                   this->internals->vec_no_closed_contour_op[ccc].m_varix).c_str(),
+                                              vec_rejected_no_closed_contour[ccc]);
     }
 
     return 0;
@@ -814,20 +814,20 @@ int teca_detect_nodes::DetectCyclonesUnstructured(
 // --------------------------------------------------------------------------
 teca_detect_nodes::teca_detect_nodes() :
     in_connect(""),
-    searchbymin(""),
-    searchbymax(""),
-    closedcontourcmd(""),
-    noclosedcontourcmd(""),
-    thresholdcmd(""),
-    outputcmd(""),
-//    outputcmd("MSL,min,0;_VECMAG(VAR_10U,VAR_10V),max,2;ZS,min,0"),
-    searchbythreshold(""),
-    minlon(0.0),
-    maxlon(10.0),
-    minlat(-20.0),
-    maxlat(20.0),
-    minabslat(0.0),
-    mergedist(6.0),
+    search_by_min(""),
+    search_by_max(""),
+    closed_contour_cmd(""),
+    no_closed_contour_cmd(""),
+    threshold_cmd(""),
+    output_cmd(""),
+//    output_cmd("MSL,min,0;_VECMAG(VAR_10U,VAR_10V),max,2;ZS,min,0"),
+    search_by_threshold(""),
+    min_lon(0.0),
+    max_lon(10.0),
+    min_lat(-20.0),
+    max_lat(20.0),
+    min_abs_lat(0.0),
+    merge_dist(6.0),
     diag_connect(false),
     regional(true),
     out_header(true)
@@ -854,19 +854,19 @@ void teca_detect_nodes::get_properties_description(
 
     ard_opts.add_options()
         TECA_POPTS_GET(std::string, prefix, in_connect, "")
-        TECA_POPTS_GET(std::string, prefix, searchbymin, "")
-        TECA_POPTS_GET(std::string, prefix, searchbymax, "")
-        TECA_POPTS_GET(std::string, prefix, closedcontourcmd, "")
-        TECA_POPTS_GET(std::string, prefix, noclosedcontourcmd, "")
-        TECA_POPTS_GET(std::string, prefix, thresholdcmd, "")
-        TECA_POPTS_GET(std::string, prefix, outputcmd, "")
-        TECA_POPTS_GET(std::string, prefix, searchbythreshold, "")
-        TECA_POPTS_GET(double, prefix, minlon, "")
-        TECA_POPTS_GET(double, prefix, maxlon, "")
-        TECA_POPTS_GET(double, prefix, minlat, "")
-        TECA_POPTS_GET(double, prefix, maxlat, "")
-        TECA_POPTS_GET(double, prefix, minabslat, "")
-        TECA_POPTS_GET(double, prefix, mergedist, "")
+        TECA_POPTS_GET(std::string, prefix, search_by_min, "")
+        TECA_POPTS_GET(std::string, prefix, search_by_max, "")
+        TECA_POPTS_GET(std::string, prefix, closed_contour_cmd, "")
+        TECA_POPTS_GET(std::string, prefix, no_closed_contour_cmd, "")
+        TECA_POPTS_GET(std::string, prefix, threshold_cmd, "")
+        TECA_POPTS_GET(std::string, prefix, output_cmd, "")
+        TECA_POPTS_GET(std::string, prefix, search_by_threshold, "")
+        TECA_POPTS_GET(double, prefix, min_lon, "")
+        TECA_POPTS_GET(double, prefix, max_lon, "")
+        TECA_POPTS_GET(double, prefix, min_lat, "")
+        TECA_POPTS_GET(double, prefix, max_lat, "")
+        TECA_POPTS_GET(double, prefix, min_abs_lat, "")
+        TECA_POPTS_GET(double, prefix, merge_dist, "")
         TECA_POPTS_GET(bool, prefix, diag_connect, "")
         TECA_POPTS_GET(bool, prefix, regional, "")
         TECA_POPTS_GET(bool, prefix, out_header, "")
@@ -884,19 +884,19 @@ void teca_detect_nodes::set_properties(
     this->teca_algorithm::set_properties(prefix, opts);
 
     TECA_POPTS_SET(opts, std::string, prefix, in_connect)
-    TECA_POPTS_SET(opts, std::string, prefix, searchbymin)
-    TECA_POPTS_SET(opts, std::string, prefix, searchbymax)
-    TECA_POPTS_SET(opts, std::string, prefix, closedcontourcmd)
-    TECA_POPTS_SET(opts, std::string, prefix, noclosedcontourcmd)
-    TECA_POPTS_SET(opts, std::string, prefix, thresholdcmd)
-    TECA_POPTS_SET(opts, std::string, prefix, outputcmd)
-    TECA_POPTS_SET(opts, std::string, prefix, searchbythreshold)
-    TECA_POPTS_SET(opts, double, prefix, minlon)
-    TECA_POPTS_SET(opts, double, prefix, maxlon)
-    TECA_POPTS_SET(opts, double, prefix, minlat)
-    TECA_POPTS_SET(opts, double, prefix, maxlat)
-    TECA_POPTS_SET(opts, double, prefix, minabslat)
-    TECA_POPTS_SET(opts, double, prefix, mergedist)
+    TECA_POPTS_SET(opts, std::string, prefix, search_by_min)
+    TECA_POPTS_SET(opts, std::string, prefix, search_by_max)
+    TECA_POPTS_SET(opts, std::string, prefix, closed_contour_cmd)
+    TECA_POPTS_SET(opts, std::string, prefix, no_closed_contour_cmd)
+    TECA_POPTS_SET(opts, std::string, prefix, threshold_cmd)
+    TECA_POPTS_SET(opts, std::string, prefix, output_cmd)
+    TECA_POPTS_SET(opts, std::string, prefix, search_by_threshold)
+    TECA_POPTS_SET(opts, double, prefix, min_lon)
+    TECA_POPTS_SET(opts, double, prefix, max_lon)
+    TECA_POPTS_SET(opts, double, prefix, min_lat)
+    TECA_POPTS_SET(opts, double, prefix, max_lat)
+    TECA_POPTS_SET(opts, double, prefix, min_abs_lat)
+    TECA_POPTS_SET(opts, double, prefix, merge_dist)
     TECA_POPTS_SET(opts, bool, prefix, diag_connect)
     TECA_POPTS_SET(opts, bool, prefix, regional)
     TECA_POPTS_SET(opts, bool, prefix, out_header)
@@ -910,7 +910,7 @@ int teca_detect_nodes::get_active_extent(const const_p_teca_variant_array &lat,
     extent = {1, 0, 1, 0, 0, 0};
 
     unsigned long high_i = lon->size() - 1;
-    if (this->minlon > this->maxlon)
+    if (this->min_lon > this->max_lon)
     {
        extent[0] = 0l;
        extent[1] = high_i;
@@ -921,12 +921,12 @@ int teca_detect_nodes::get_active_extent(const const_p_teca_variant_array &lat,
 
           auto [sp_lon, p_lon] = get_cpu_accessible<CTT>(lon);
 
-          if (teca_coordinate_util::index_of(p_lon, 0, high_i, static_cast<NT>(this->minlon), false, extent[0]) ||
-              teca_coordinate_util::index_of(p_lon, 0, high_i, static_cast<NT>(this->maxlon), true, extent[1]))
+          if (teca_coordinate_util::index_of(p_lon, 0, high_i, static_cast<NT>(this->min_lon), false, extent[0]) ||
+              teca_coordinate_util::index_of(p_lon, 0, high_i, static_cast<NT>(this->max_lon), true, extent[1]))
           {
               TECA_ERROR(
                   << "requested longitude ["
-                  << this->minlon << ", " << this->maxlon << ", "
+                  << this->min_lon << ", " << this->max_lon << ", "
                   << "] is not contained in the current dataset bounds ["
                   << p_lon[0] << ", " << p_lon[high_i] << "]")
               return -1;
@@ -940,7 +940,7 @@ int teca_detect_nodes::get_active_extent(const const_p_teca_variant_array &lat,
     }
 
     unsigned long high_j = lat->size() - 1;
-    if (this->minlat > this->maxlat)
+    if (this->min_lat > this->max_lat)
     {
        extent[2] = 0l;
        extent[3] = high_j;
@@ -951,12 +951,12 @@ int teca_detect_nodes::get_active_extent(const const_p_teca_variant_array &lat,
 
           auto [sp_lat, p_lat] = get_cpu_accessible<CTT>(lat);
 
-          if (teca_coordinate_util::index_of(p_lat, 0, high_j, static_cast<NT>(this->minlat), false, extent[2]) ||
-              teca_coordinate_util::index_of(p_lat, 0, high_j, static_cast<NT>(this->maxlat), true, extent[3]))
+          if (teca_coordinate_util::index_of(p_lat, 0, high_j, static_cast<NT>(this->min_lat), false, extent[2]) ||
+              teca_coordinate_util::index_of(p_lat, 0, high_j, static_cast<NT>(this->max_lat), true, extent[3]))
           {
              TECA_ERROR(
                    << "requested latitude ["
-                   << this->minlat << ", " << this->maxlat
+                   << this->min_lat << ", " << this->max_lat
                    << "] is not contained in the current dataset bounds ["
                    << p_lat[0] << ", " << p_lat[high_j] << "]")
              return -1;
@@ -1017,8 +1017,8 @@ std::vector<teca_metadata> teca_detect_nodes::get_upstream_request(
 
 #if TECA_DEBUG > 1
     cerr << teca_parallel_id() << "active_bound = "
-        << this->minlon<< ", " << this->maxlon
-        << ", " << this->minlat << ", " << this->maxlat
+        << this->min_lon<< ", " << this->max_lon
+        << ", " << this->min_lat << ", " << this->max_lat
         << endl;
     cerr << teca_parallel_id() << "active_extent = "
         << extent[0] << ", " << extent[1] << ", " << extent[2] << ", "
@@ -1030,52 +1030,52 @@ std::vector<teca_metadata> teca_detect_nodes::get_upstream_request(
     req_in.get("arrays", req_arrays);
 
     // Only one of search by min or search by max should be specified
-    if ((this->searchbymin == "") && (this->searchbymax == ""))
+    if ((this->search_by_min == "") && (this->search_by_max == ""))
     {
-    	 this->internals->strSearchBy = "PSL";
+    	 this->internals->str_search_by = "PSL";
     }
-    if ((this->searchbymin != "") && (this->searchbymax != ""))
+    if ((this->search_by_min != "") && (this->search_by_max != ""))
     {
     	 TECA_ERROR("Only one of --searchbymin or --searchbymax can"
     		" be specified");
        return up_reqs;
     }
 
-    this->internals->fSearchByMinima = true;
-    if (this->searchbymin != "")
+    this->internals->f_search_by_minima = true;
+    if (this->search_by_min != "")
     {
-       this->internals->strSearchBy = this->searchbymin;
-    	 this->internals->fSearchByMinima = true;
+       this->internals->str_search_by = this->search_by_min;
+    	 this->internals->f_search_by_minima = true;
     }
-    if (this->searchbymax != "")
+    if (this->search_by_max != "")
     {
-       this->internals->strSearchBy = this->searchbymax;
-    	 this->internals->fSearchByMinima = false;
+       this->internals->str_search_by = this->search_by_max;
+    	 this->internals->f_search_by_minima = false;
     }
-    req_arrays.insert(this->internals->strSearchBy);
+    req_arrays.insert(this->internals->str_search_by);
 
     // Parse the closed contour command string
-    if (this->closedcontourcmd != "")
+    if (this->closed_contour_cmd != "")
     {
-       int iLast = 0;
-       for (int i = 0; i <= this->closedcontourcmd.length(); i++)
+       int i_last = 0;
+       for (int i = 0; i <= this->closed_contour_cmd.length(); i++)
        {
-          if ((i == this->closedcontourcmd.length()) ||
-              (this->closedcontourcmd[i] == ';') ||
-              (this->closedcontourcmd[i] == ':'))
+          if ((i == this->closed_contour_cmd.length()) ||
+              (this->closed_contour_cmd[i] == ';') ||
+              (this->closed_contour_cmd[i] == ':'))
           {
              std::string strSubStr =
-                this->closedcontourcmd.substr(iLast, i - iLast);
+                this->closed_contour_cmd.substr(i_last, i - i_last);
 
-             int iNextOp = (int)(this->internals->vecClosedContourOp.size());
-             this->internals->vecClosedContourOp.resize(iNextOp + 1);
-             this->internals->vecClosedContourOp[iNextOp].Parse(
+             int i_next_op = (int)(this->internals->vec_closed_contour_op.size());
+             this->internals->vec_closed_contour_op.resize(i_next_op + 1);
+             this->internals->vec_closed_contour_op[i_next_op].Parse(
                                           this->internals->varreg, strSubStr);
 
              // Load the search variable data
              Variable & var =
                 this->internals->varreg.Get(
-                        this->internals->vecClosedContourOp[iNextOp].m_varix);
+                        this->internals->vec_closed_contour_op[i_next_op].m_varix);
              // Get the data directly from a variable
              if (!var.IsOp())
              {
@@ -1087,33 +1087,33 @@ std::vector<teca_metadata> teca_detect_nodes::get_upstream_request(
                 TECA_ERROR("Data operator is not supported")
              }
 
-             iLast = i + 1;
+             i_last = i + 1;
           }
        }
     }
 
     // Parse the no closed contour command string
-    if (this->noclosedcontourcmd != "")
+    if (this->no_closed_contour_cmd != "")
     {
-       int iLast = 0;
-       for (int i = 0; i <= noclosedcontourcmd.length(); i++)
+       int i_last = 0;
+       for (int i = 0; i <= this->no_closed_contour_cmd.length(); i++)
        {
-          if ((i == this->noclosedcontourcmd.length()) ||
-              (noclosedcontourcmd[i] == ';') ||
-              (noclosedcontourcmd[i] == ':'))
+          if ((i == this->no_closed_contour_cmd.length()) ||
+              (this->no_closed_contour_cmd[i] == ';') ||
+              (this->no_closed_contour_cmd[i] == ':'))
           {
              std::string strSubStr =
-                this->noclosedcontourcmd.substr(iLast, i - iLast);
+                this->no_closed_contour_cmd.substr(i_last, i - i_last);
 
-             int iNextOp = (int)(this->internals->vecNoClosedContourOp.size());
-             this->internals->vecNoClosedContourOp.resize(iNextOp + 1);
-             this->internals->vecNoClosedContourOp[iNextOp].Parse(
+             int i_next_op = (int)(this->internals->vec_no_closed_contour_op.size());
+             this->internals->vec_no_closed_contour_op.resize(i_next_op + 1);
+             this->internals->vec_no_closed_contour_op[i_next_op].Parse(
                                           this->internals->varreg, strSubStr);
 
              // Load the search variable data
              Variable & var =
                 this->internals->varreg.Get(
-                      this->internals->vecNoClosedContourOp[iNextOp].m_varix);
+                      this->internals->vec_no_closed_contour_op[i_next_op].m_varix);
              // Get the data directly from a variable
              if (!var.IsOp())
              {
@@ -1125,33 +1125,33 @@ std::vector<teca_metadata> teca_detect_nodes::get_upstream_request(
                 TECA_ERROR("Data operator is not supported")
              }
 
-             iLast = i + 1;
+             i_last = i + 1;
           }
        }
     }
 
     // Parse the threshold operator command string
-    if (this->thresholdcmd != "")
+    if (this->threshold_cmd != "")
     {
-       int iLast = 0;
-       for (int i = 0; i <= this->thresholdcmd.length(); i++)
+       int i_last = 0;
+       for (int i = 0; i <= this->threshold_cmd.length(); i++)
        {
-          if ((i == this->thresholdcmd.length()) ||
-              (this->thresholdcmd[i] == ';') ||
-              (this->thresholdcmd[i] == ':'))
+          if ((i == this->threshold_cmd.length()) ||
+              (this->threshold_cmd[i] == ';') ||
+              (this->threshold_cmd[i] == ':'))
           {
              std::string strSubStr =
-                this->thresholdcmd.substr(iLast, i - iLast);
+                this->threshold_cmd.substr(i_last, i - i_last);
 
-             int iNextOp = (int)(this->internals->vecThresholdOp.size());
-             this->internals->vecThresholdOp.resize(iNextOp + 1);
-             this->internals->vecThresholdOp[iNextOp].Parse(
+             int i_next_op = (int)(this->internals->vec_threshold_op.size());
+             this->internals->vec_threshold_op.resize(i_next_op + 1);
+             this->internals->vec_threshold_op[i_next_op].Parse(
                                           this->internals->varreg, strSubStr);
 
              // Load the search variable data
              Variable & var =
                 this->internals->varreg.Get(
-                            this->internals->vecThresholdOp[iNextOp].m_varix);
+                            this->internals->vec_threshold_op[i_next_op].m_varix);
              // Get the data directly from a variable
              if (!var.IsOp())
              {
@@ -1163,32 +1163,32 @@ std::vector<teca_metadata> teca_detect_nodes::get_upstream_request(
                 TECA_ERROR("Data operator is not supported")
              }
 
-             iLast = i + 1;
+             i_last = i + 1;
           }
        }
     }
 
     // Parse the output operator command string
-    if (outputcmd != "")
+    if (this->output_cmd != "")
     {
-       int iLast = 0;
-       for (int i = 0; i <= this->outputcmd.length(); i++)
+       int i_last = 0;
+       for (int i = 0; i <= this->output_cmd.length(); i++)
        {
-          if ((i == this->outputcmd.length()) ||
-              (this->outputcmd[i] == ';') ||
-              (this->outputcmd[i] == ':'))
+          if ((i == this->output_cmd.length()) ||
+              (this->output_cmd[i] == ';') ||
+              (this->output_cmd[i] == ':'))
           {
-             std::string strSubStr = this->outputcmd.substr(iLast, i - iLast);
+             std::string strSubStr = this->output_cmd.substr(i_last, i - i_last);
 
-             int iNextOp = (int)(this->internals->vecOutputOp.size());
-             this->internals->vecOutputOp.resize(iNextOp + 1);
-             this->internals->vecOutputOp[iNextOp].Parse(
+             int i_next_op = (int)(this->internals->vec_output_op.size());
+             this->internals->vec_output_op.resize(i_next_op + 1);
+             this->internals->vec_output_op[i_next_op].Parse(
                                           this->internals->varreg, strSubStr);
 
              // Load the search variable data
              Variable & var =
                 this->internals->varreg.Get(
-                               this->internals->vecOutputOp[iNextOp].m_varix);
+                               this->internals->vec_output_op[i_next_op].m_varix);
              // Get the data directly from a variable
              if (!var.IsOp())
              {
@@ -1200,7 +1200,7 @@ std::vector<teca_metadata> teca_detect_nodes::get_upstream_request(
                 TECA_ERROR("Data operator is not supported")
              }
 
-             iLast = i + 1;
+             i_last = i + 1;
           }
        }
     }
@@ -1259,91 +1259,91 @@ const_p_teca_dataset teca_detect_nodes::execute(
     std::string calendar;
     mesh->get_calendar(calendar);
 
-    std::set<int> setCandidates;
+    std::set<int> set_candidates;
 
     SimpleGrid grid;
 
-    if (this->DetectCyclonesUnstructured(mesh, grid, setCandidates))
+    if (this->detect_cyclones_unstructured(mesh, grid, set_candidates))
     {
        TECA_FATAL_ERROR("TC detector encountered an error")
        return nullptr;
     }
 
     // Write candidate information
-    int iCandidateIx = 0;
+    int i_candidate_ix = 0;
 
     // Apply output operators
-    std::vector< std::vector<std::string> > vecOutputValue;
-    vecOutputValue.resize(setCandidates.size());
-    for (int i = 0; i < setCandidates.size(); i++)
+    std::vector< std::vector<std::string> > vec_output_value;
+    vec_output_value.resize(set_candidates.size());
+    for (int i = 0; i < set_candidates.size(); i++)
     {
-       vecOutputValue[i].resize(this->internals->vecOutputOp.size());
+       vec_output_value[i].resize(this->internals->vec_output_op.size());
     }
 
-    for (int outc = 0; outc < this->internals->vecOutputOp.size(); outc++)
+    for (int outc = 0; outc < this->internals->vec_output_op.size(); outc++)
     {
        Variable & var =
           this->internals->varreg.Get(
-                                  this->internals->vecOutputOp[outc].m_varix);
-       const_p_teca_variant_array OutputVar =
+                                  this->internals->vec_output_op[outc].m_varix);
+       const_p_teca_variant_array output_var =
           mesh->get_point_arrays()->get(var.GetName());
 
-       if (!OutputVar)
+       if (!output_var)
        {
           TECA_FATAL_ERROR("Dataset missing variable \"" <<
               var.GetName() << "\"")
           return nullptr;
        }
 
-       VARIANT_ARRAY_DISPATCH_FP(OutputVar.get(),
+       VARIANT_ARRAY_DISPATCH_FP(output_var.get(),
 
-          DataArray1D<float> dataState(OutputVar->size(), false);
-          auto [sp_OutputVar, p_OutputVar] = get_cpu_accessible<CTT>(OutputVar);
-          dataState.AttachToData((void*)p_OutputVar);
+          DataArray1D<float> data_state(output_var->size(), false);
+          auto [sp_output_var, p_output_var] = get_cpu_accessible<CTT>(output_var);
+          data_state.AttachToData((void*)p_output_var);
 
           // Loop through all pressure minima
-          iCandidateIx = 0;
-          std::set<int>::const_iterator iterCandidate = setCandidates.begin();
-          for (; iterCandidate != setCandidates.end(); iterCandidate++)
+          i_candidate_ix = 0;
+          std::set<int>::const_iterator iter_candidate = set_candidates.begin();
+          for (; iter_candidate != set_candidates.end(); iter_candidate++)
           {
              ApplyNodeOutputOp<float>(
-                    this->internals->vecOutputOp[outc],
+                    this->internals->vec_output_op[outc],
                     grid,
-                    dataState,
-                    *iterCandidate,
-                    vecOutputValue[iCandidateIx][outc]);
+                    data_state,
+                    *iter_candidate,
+                    vec_output_value[i_candidate_ix][outc]);
 
-             iCandidateIx++;
+             i_candidate_ix++;
           }
        )
     }
 
     // Output all candidates
-    iCandidateIx = 0;
+    i_candidate_ix = 0;
 
-    double lat_array[setCandidates.size()];
-    double lon_array[setCandidates.size()];
-    int i_array[setCandidates.size()];
-    int j_array[setCandidates.size()];
+    double lat_array[set_candidates.size()];
+    double lon_array[set_candidates.size()];
+    int i_array[set_candidates.size()];
+    int j_array[set_candidates.size()];
 
-    std::set<int>::const_iterator iterCandidate = setCandidates.begin();
-    for (; iterCandidate != setCandidates.end(); iterCandidate++)
+    std::set<int>::const_iterator iter_candidate = set_candidates.begin();
+    for (; iter_candidate != set_candidates.end(); iter_candidate++)
     {
        if (grid.m_nGridDim.size() == 1)
        {
-          i_array[iCandidateIx] = *iterCandidate;
+          i_array[i_candidate_ix] = *iter_candidate;
        }
        else if (grid.m_nGridDim.size() == 2)
        {
-          i_array[iCandidateIx] =
-             (*iterCandidate) % static_cast<int>(grid.m_nGridDim[1]);
-          j_array[iCandidateIx] =
-             (*iterCandidate) / static_cast<int>(grid.m_nGridDim[1]);
+          i_array[i_candidate_ix] =
+             (*iter_candidate) % static_cast<int>(grid.m_nGridDim[1]);
+          j_array[i_candidate_ix] =
+             (*iter_candidate) / static_cast<int>(grid.m_nGridDim[1]);
        }
-       lat_array[iCandidateIx] = grid.m_dLat[*iterCandidate] * 180.0 / M_PI;
-       lon_array[iCandidateIx] = grid.m_dLon[*iterCandidate] * 180.0 / M_PI;
+       lat_array[i_candidate_ix] = grid.m_dLat[*iter_candidate] * 180.0 / M_PI;
+       lon_array[i_candidate_ix] = grid.m_dLon[*iter_candidate] * 180.0 / M_PI;
 
-       iCandidateIx++;
+       i_candidate_ix++;
     }
 
     // build the output
@@ -1353,44 +1353,44 @@ const_p_teca_dataset teca_detect_nodes::execute(
 
     // add time stamp
     out_table->declare_columns("step", long(), "time", double());
-    for (unsigned long i = 0; i < setCandidates.size(); ++i)
+    for (unsigned long i = 0; i < set_candidates.size(); ++i)
        out_table << time_step << time_offset;
 
     // put the arrays into the table
     p_teca_variant_array_impl<double> latitude =
-       teca_variant_array_impl<double>::New(setCandidates.size(), lat_array);
+       teca_variant_array_impl<double>::New(set_candidates.size(), lat_array);
     p_teca_variant_array_impl<double> longitude =
-       teca_variant_array_impl<double>::New(setCandidates.size(), lon_array);
+       teca_variant_array_impl<double>::New(set_candidates.size(), lon_array);
     p_teca_variant_array_impl<int> i =
-       teca_variant_array_impl<int>::New(setCandidates.size(), i_array);
+       teca_variant_array_impl<int>::New(set_candidates.size(), i_array);
 
     out_table->append_column("i", i);
     if (grid.m_nGridDim.size() == 2)
     {
        p_teca_variant_array_impl<int> j =
-          teca_variant_array_impl<int>::New(setCandidates.size(), j_array);
+          teca_variant_array_impl<int>::New(set_candidates.size(), j_array);
        out_table->append_column("j", j);
     }
     out_table->append_column("lat", latitude);
     out_table->append_column("lon", longitude);
 
-    for (int outc = 0; outc < this->internals->vecOutputOp.size(); outc++)
+    for (int outc = 0; outc < this->internals->vec_output_op.size(); outc++)
     {
-       iCandidateIx = 0;
-       std::string output_array[setCandidates.size()];
-       std::set<int>::const_iterator iterCandidate = setCandidates.begin();
-       for (; iterCandidate != setCandidates.end(); iterCandidate++)
+       i_candidate_ix = 0;
+       std::string output_array[set_candidates.size()];
+       std::set<int>::const_iterator iter_candidate = set_candidates.begin();
+       for (; iter_candidate != set_candidates.end(); iter_candidate++)
        {
-          output_array[iCandidateIx] = vecOutputValue[iCandidateIx][outc];
-          iCandidateIx++;
+          output_array[i_candidate_ix] = vec_output_value[i_candidate_ix][outc];
+          i_candidate_ix++;
        }
 
        p_teca_variant_array_impl<std::string> output =
-          teca_variant_array_impl<std::string>::New(setCandidates.size(),
+          teca_variant_array_impl<std::string>::New(set_candidates.size(),
                                                                 output_array);
 
        Variable & var = this->internals->varreg.Get(
-          this->internals->vecOutputOp[outc].m_varix);
+          this->internals->vec_output_op[outc].m_varix);
        out_table->append_column(var.ToString(this->internals->varreg).c_str(),
                                                                       output);
     }
