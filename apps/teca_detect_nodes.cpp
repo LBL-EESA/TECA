@@ -66,19 +66,19 @@ int main(int argc, char **argv)
             "\nName of the variable to use for y-coordinates.\n")
 
         ("in_connect", value<string>()->default_value(""), "\nConnectivity file\n")
-        ("searchbymin", value<string>()->default_value(""), "\nVariable to search for the minimum\n")
-        ("searchbymax", value<string>()->default_value(""), "\nVariable to search for the maximum\n")
-        ("closedcontourcmd", value<string>()->default_value(""), "\nClosed contour commands [var,delta,dist,minmaxdist;...]\n")
-        ("noclosedcontourcmd", value<string>()->default_value(""), "\nClosed contour commands [var,delta,dist,minmaxdist;...]\n")
-        ("thresholdcmd", value<string>()->default_value(""), "\nThreshold commands [var,op,value,dist;...]\n")
-        ("outputcmd", value<string>()->default_value(""), "\nOutput commands [var,op,dist;...]\n")
-        ("searchbythreshold", value<string>()->default_value(""), "\nThreshold for search operation\n")
-        ("minlon", value<double>()->default_value(0.0), "\nMinimum longitude in degrees for detection\n")
-        ("maxlon", value<double>()->default_value(10.0), "\nMaximum longitude in degrees for detection\n")
-        ("minlat", value<double>()->default_value(-20.0), "\nMinimum latitude in degrees for detection\n")
-        ("maxlat", value<double>()->default_value(20.0), "\nMaximum latitude in degrees for detection\n")
-        ("minabslat", value<double>()->default_value(0.0), "\nMinimum absolute value of latitude in degrees for detection\n")
-        ("mergedist", value<double>()->default_value(6.0), "\nMinimum allowable distance between two candidates in degrees\n")
+        ("search_by_min", value<string>()->default_value(""), "\nVariable to search for the minimum\n")
+        ("search_by_max", value<string>()->default_value(""), "\nVariable to search for the maximum\n")
+        ("closed_contour_cmd", value<string>()->default_value(""), "\nClosed contour commands [var,delta,dist,minmaxdist;...]\n")
+        ("no_closed_contour_cmd", value<string>()->default_value(""), "\nClosed contour commands [var,delta,dist,minmaxdist;...]\n")
+        ("threshold_cmd", value<string>()->default_value(""), "\nThreshold commands [var,op,value,dist;...]\n")
+        ("output_cmd", value<string>()->default_value(""), "\nOutput commands [var,op,dist;...]\n")
+        ("search_by_threshold", value<string>()->default_value(""), "\nThreshold for search operation\n")
+        ("min_lon", value<double>()->default_value(0.0), "\nMinimum longitude in degrees for detection\n")
+        ("max_lon", value<double>()->default_value(10.0), "\nMaximum longitude in degrees for detection\n")
+        ("min_lat", value<double>()->default_value(-20.0), "\nMinimum latitude in degrees for detection\n")
+        ("max_lat", value<double>()->default_value(20.0), "\nMaximum latitude in degrees for detection\n")
+        ("min_abs_lat", value<double>()->default_value(0.0), "\nMinimum absolute value of latitude in degrees for detection\n")
+        ("merge_dist", value<double>()->default_value(6.0), "\nMinimum allowable distance between two candidates in degrees\n")
         ("diag_connect", value<bool>()->default_value(false), "\nDiagonal connectivity for RLL grids\n")
         ("regional", value<bool>()->default_value(true), "\nRegional (do not wrap longitudinal boundaries)\n")
         ("out_header", value<bool>()->default_value(true), "\nOutput header\n")
@@ -194,27 +194,27 @@ int main(int argc, char **argv)
         candidates->set_in_connect(opt_vals["in_connect"].as<string>());
     }
 
-    if (!opt_vals["searchbymin"].defaulted())
+    if (!opt_vals["search_by_min"].defaulted())
     {
-       candidates->set_searchbymin(opt_vals["searchbymin"].as<string>());
+       candidates->set_search_by_min(opt_vals["search_by_min"].as<string>());
     }
 
-    if (!opt_vals["searchbymax"].defaulted())
+    if (!opt_vals["search_by_max"].defaulted())
     {
-       candidates->set_searchbymax(opt_vals["searchbymax"].as<string>());
+       candidates->set_search_by_max(opt_vals["search_by_max"].as<string>());
     }
 
-    if (opt_vals["searchbymin"].as<string>() == "" && opt_vals["searchbymax"].as<string>() == "")
+    if (opt_vals["search_by_min"].as<string>() == "" && opt_vals["search_by_max"].as<string>() == "")
     {
        if (opt_vals["sea_level_pressure"].as<string>() == "")
           TECA_FATAL_ERROR("Missing name of variable with sea level pressure")
        else
-          candidates->set_searchbymin(opt_vals["sea_level_pressure"].as<string>());
+          candidates->set_search_by_min(opt_vals["sea_level_pressure"].as<string>());
     }
 
-    if (!opt_vals["closedcontourcmd"].defaulted())
+    if (!opt_vals["closed_contour_cmd"].defaulted())
     {
-       candidates->set_closedcontourcmd(opt_vals["closedcontourcmd"].as<string>());
+       candidates->set_closed_contour_cmd(opt_vals["closed_contour_cmd"].as<string>());
     }
     else
     {
@@ -239,22 +239,22 @@ int main(int argc, char **argv)
                                                              thickness->get_dependent_variable(1),
                                                              thickness->get_derived_variable()));
        std::string text = opt_vals["sea_level_pressure"].as<string>()+",200.0,5.5,0;"+thickness->get_derived_variable()+",-6.0,6.5,1.0";
-       candidates->set_closedcontourcmd(text);
+       candidates->set_closed_contour_cmd(text);
     }
 
-    if (!opt_vals["noclosedcontourcmd"].defaulted())
+    if (!opt_vals["no_closed_contour_cmd"].defaulted())
     {
-       candidates->set_noclosedcontourcmd(opt_vals["noclosedcontourcmd"].as<string>());
+       candidates->set_no_closed_contour_cmd(opt_vals["no_closed_contour_cmd"].as<string>());
     }
 
-    if (!opt_vals["thresholdcmd"].defaulted())
+    if (!opt_vals["threshold_cmd"].defaulted())
     {
-       candidates->set_thresholdcmd(opt_vals["thresholdcmd"].as<string>());
+       candidates->set_threshold_cmd(opt_vals["threshold_cmd"].as<string>());
     }
 
-    if (!opt_vals["outputcmd"].defaulted())
+    if (!opt_vals["output_cmd"].defaulted())
     {
-       candidates->set_outputcmd(opt_vals["outputcmd"].as<string>());
+       candidates->set_output_cmd(opt_vals["output_cmd"].as<string>());
     }
     else
     {
@@ -269,42 +269,42 @@ int main(int argc, char **argv)
           surf_wind->set_component_1_variable(opt_vals["surface_wind_v"].as<string>());
 
        std::string text = opt_vals["sea_level_pressure"].as<string>()+",min,0;"+surf_wind->get_l2_norm_variable()+",max,2";
-       candidates->set_outputcmd(text);
+       candidates->set_output_cmd(text);
     }
 
-    if (!opt_vals["searchbythreshold"].defaulted())
+    if (!opt_vals["search_by_threshold"].defaulted())
     {
-       candidates->set_searchbythreshold(opt_vals["searchbythreshold"].as<string>());
+       candidates->set_search_by_threshold(opt_vals["search_by_threshold"].as<string>());
     }
 
-    if (!opt_vals["minlon"].defaulted())
+    if (!opt_vals["min_lon"].defaulted())
     {
-       candidates->set_minlon(opt_vals["minlon"].as<double>());
+       candidates->set_min_lon(opt_vals["min_lon"].as<double>());
     }
 
-    if (!opt_vals["maxlon"].defaulted())
+    if (!opt_vals["max_lon"].defaulted())
     {
-       candidates->set_maxlon(opt_vals["maxlon"].as<double>());
+       candidates->set_max_lon(opt_vals["max_lon"].as<double>());
     }
 
-    if (!opt_vals["minlat"].defaulted())
+    if (!opt_vals["min_lat"].defaulted())
     {
-       candidates->set_minlat(opt_vals["minlat"].as<double>());
+       candidates->set_min_lat(opt_vals["min_lat"].as<double>());
     }
 
-    if (!opt_vals["maxlat"].defaulted())
+    if (!opt_vals["max_lat"].defaulted())
     {
-       candidates->set_maxlat(opt_vals["maxlat"].as<double>());
+       candidates->set_max_lat(opt_vals["max_lat"].as<double>());
     }
 
-    if (!opt_vals["minabslat"].defaulted())
+    if (!opt_vals["min_abs_lat"].defaulted())
     {
-       candidates->set_minabslat(opt_vals["minabslat"].as<double>());
+       candidates->set_min_abs_lat(opt_vals["min_abs_lat"].as<double>());
     }
 
-    if (!opt_vals["mergedist"].defaulted())
+    if (!opt_vals["merge_dist"].defaulted())
     {
-       candidates->set_mergedist(opt_vals["mergedist"].as<double>());
+       candidates->set_merge_dist(opt_vals["merge_dist"].as<double>());
     }
 
     if (!opt_vals["diag_connect"].defaulted())

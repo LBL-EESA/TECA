@@ -33,19 +33,19 @@ public:
     TECA_SET_ALGORITHM_PROPERTIES()
 
     TECA_ALGORITHM_PROPERTY(std::string, in_connect)
-    TECA_ALGORITHM_PROPERTY(std::string, searchbymin)
-    TECA_ALGORITHM_PROPERTY(std::string, searchbymax)
-    TECA_ALGORITHM_PROPERTY(std::string, closedcontourcmd)
-    TECA_ALGORITHM_PROPERTY(std::string, noclosedcontourcmd)
-    TECA_ALGORITHM_PROPERTY(std::string, thresholdcmd)
-    TECA_ALGORITHM_PROPERTY(std::string, outputcmd)
-    TECA_ALGORITHM_PROPERTY(std::string, searchbythreshold)
-    TECA_ALGORITHM_PROPERTY(double, minlon)
-    TECA_ALGORITHM_PROPERTY(double, maxlon)
-    TECA_ALGORITHM_PROPERTY(double, minlat)
-    TECA_ALGORITHM_PROPERTY(double, maxlat)
-    TECA_ALGORITHM_PROPERTY(double, minabslat)
-    TECA_ALGORITHM_PROPERTY(double, mergedist)
+    TECA_ALGORITHM_PROPERTY(std::string, search_by_min)
+    TECA_ALGORITHM_PROPERTY(std::string, search_by_max)
+    TECA_ALGORITHM_PROPERTY(std::string, closed_contour_cmd)
+    TECA_ALGORITHM_PROPERTY(std::string, no_closed_contour_cmd)
+    TECA_ALGORITHM_PROPERTY(std::string, threshold_cmd)
+    TECA_ALGORITHM_PROPERTY(std::string, output_cmd)
+    TECA_ALGORITHM_PROPERTY(std::string, search_by_threshold)
+    TECA_ALGORITHM_PROPERTY(double, min_lon)
+    TECA_ALGORITHM_PROPERTY(double, max_lon)
+    TECA_ALGORITHM_PROPERTY(double, min_lat)
+    TECA_ALGORITHM_PROPERTY(double, max_lat)
+    TECA_ALGORITHM_PROPERTY(double, min_abs_lat)
+    TECA_ALGORITHM_PROPERTY(double, merge_dist)
     TECA_ALGORITHM_PROPERTY(bool, diag_connect)
     TECA_ALGORITHM_PROPERTY(bool, regional)
     TECA_ALGORITHM_PROPERTY(bool, out_header)
@@ -59,7 +59,7 @@ protected:
         const const_p_teca_variant_array &lon,
         std::vector<unsigned long> &extent) const;
 
-    int DetectCyclonesUnstructured(
+    int detect_cyclones_unstructured(
         const_p_teca_cartesian_mesh mesh,
         SimpleGrid & grid,
         std::set<int> & setCandidates);
@@ -76,19 +76,19 @@ protected:
 
 private:
     std::string in_connect;
-    std::string searchbymin;
-    std::string searchbymax;
-    std::string closedcontourcmd;
-    std::string noclosedcontourcmd;
-    std::string thresholdcmd;
-    std::string outputcmd;
-    std::string searchbythreshold;
-    double minlon;
-    double maxlon;
-    double minlat;
-    double maxlat;
-    double minabslat;
-    double mergedist;
+    std::string search_by_min;
+    std::string search_by_max;
+    std::string closed_contour_cmd;
+    std::string no_closed_contour_cmd;
+    std::string threshold_cmd;
+    std::string output_cmd;
+    std::string search_by_threshold;
+    double min_lon;
+    double max_lon;
+    double min_lat;
+    double max_lat;
+    double min_abs_lat;
+    double merge_dist;
     bool diag_connect;
     bool regional;
     bool out_header;
