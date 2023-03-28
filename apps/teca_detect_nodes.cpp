@@ -322,6 +322,7 @@ int main(int argc, char **argv)
        candidates->set_out_header(opt_vals["out_header"].as<bool>());
     }
     candidates->set_verbose(opt_vals["verbose"].as<int>());
+    candidates->initialize();
 
     // some minimal check for missing options
     if ((have_file && have_regex) || !(have_file || have_regex))

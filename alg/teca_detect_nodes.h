@@ -32,6 +32,8 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
+    int initialize();
+
     TECA_ALGORITHM_PROPERTY(std::string, in_connect)
     TECA_ALGORITHM_PROPERTY(std::string, search_by_min)
     TECA_ALGORITHM_PROPERTY(std::string, search_by_max)
