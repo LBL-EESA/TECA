@@ -13,6 +13,10 @@
 ///		Public License.  This software is provided "as is" without express
 ///		or implied warranty.
 ///	</remarks>
+///
+///   Amanda Dufek
+///   March 28, 2023
+///   Removed the FindAllLocalMinMaxWithGraphDistance function.
 
 #ifndef _SIMPLEGRIDUTILITIES_H_
 #define _SIMPLEGRIDUTILITIES_H_

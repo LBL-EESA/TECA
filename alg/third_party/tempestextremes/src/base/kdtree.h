@@ -23,7 +23,16 @@ INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
 CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
 IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
 OF SUCH DAMAGE.
+
+Amanda Dufek
+March 28, 2023
+Removed some functions (kd_data_destructor, kd_insert, kd_insertf,
+kd_insert3f, kd_nearest, kd_nearestf, kd_nearest3, kd_nearest3f,
+kd_nearest_n, kd_nearest_nf, kd_nearest_n3, kd_nearest_n3f,
+kd_nearest_range, kd_nearest_rangef, kd_nearest_range3f, kd_res_end,
+kd_res_itemf, kd_res_item3, kd_res_item3f)
 */
+
 #ifndef _KDTREE_H_
 #define _KDTREE_H_
 

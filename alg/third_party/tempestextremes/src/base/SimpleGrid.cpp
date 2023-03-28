@@ -13,6 +13,15 @@
 ///		Public License.  This software is provided "as is" without express
 ///		or implied warranty.
 ///	</remarks>
+///
+///   Amanda Dufek
+///   March 28, 2023
+///   Removed some functions (HasAreas, HasConnectivity,
+///   GenerateLatitudeLongitude, GenerateRegionalLatitudeLongitude,
+///   GenerateRectilinearStereographic, FromMeshFV, FromMeshFE, FromFile,
+///   ToFile, FromUnstructuredDataFile, DimCount, CoordinateVectorToIndex,
+///   BuildKDTree, NearestNode, NearestNodes)
+///   and m_kdtree and c_szFileIdentifier variables.
 
 #include "SimpleGrid.h"
 #include "CoordTransforms.h"

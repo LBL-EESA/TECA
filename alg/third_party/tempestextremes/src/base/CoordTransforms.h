@@ -13,6 +13,16 @@
 ///		Public License.  This software is provided "as is" without express
 ///		or implied warranty.
 ///	</remarks>
+///
+///   Amanda Dufek
+///   March 28, 2023
+///   Removed some functions (StereographicProjectionInv,
+///   StereographicProjection, GreatCircleDistanceXYZ_Deg,
+///   GreatCircleDistanceXYZ_Rad, VecTransRLL2DtoXYZ_Rad,
+///   XYZtoRLL_Rad, XYZtoRLL_Deg, RLLtoXYZ_Deg, RLLtoXYZ_Rad,
+///   GreatCircleDistanceFromChordLength_Rad,
+///   ChordLengthFromGreatCircleDistance_Deg, LonRadToStandardRange,
+///   LonDegToStandardRange, DegToRad)
 
 #ifndef _COORDTRANSFORMS_H_
 #define _COORDTRANSFORMS_H_
