@@ -13,6 +13,26 @@
 ///		Public License.  This software is provided "as is" without express
 ///		or implied warranty.
 ///	</remarks>
+///
+///   Amanda Dufek
+///   March 28, 2023
+///   Removed some classes (DimInfo, DimInfoVector, VariableAuxIndexIterator),
+///   some functions (FindOrRegister, UnloadAllGridData,
+///   GetDependentVariableIndicesRecurse, GetDependentVariableIndices,
+///   GetDependentVariableNames, GetAuxiliaryDimInfo,
+///   GetAuxiliaryDimInfoAndVerifyConsistency, GetAuxiliaryDimInfo,
+///   AssignAuxiliaryIndicesRecursive, ClearProcessingQueue,
+///   AppendVariableToProcessingQueue, GetProcessingQueueVarPos,
+///   GetProcessingQueueVarIx, GetProcessingQueueVariable,
+///   GetProcessingQueueAuxIx, GetProcessingQueueAuxSize,
+///   GetProcessingQueueOffset, AdvanceProcessingQueue, ResetProcessingQueue,
+///   GetDataOp, GetArgumentCount, GetArgumentStrings, GetArgumentVarIxs,
+///   GetFillValueFloat, GetNcVarFromNcFileVector, LoadGridData,
+///   UnloadGridData, GetData), some variables (m_domDataOp,
+///   m_sProcessingQueueVarPos, m_vecProcessingQueue, m_dFillValueFloat,
+///   m_strUnits, m_vecAuxDimNames, m_iTimeDimIx, m_iVerticalDimIx,
+///   m_nVerticalDimOrder, m_fNoTimeInNcFile, m_timeStored, m_data), and
+///   some typedef (VariableDimIndex, VariableAuxIndex, DataMap).
 
 #include "Variable.h"
 #include "STLStringHelper.h"

@@ -17,6 +17,12 @@
 ///		Public License.  This software is provided "as is" without express
 ///		or implied warranty.
 ///	</remarks>
+///
+///   Amanda Dufek
+///   March 28, 2023
+///   Removed some functions (AnnounceGetOutputBuffer, AnnounceSetOutputBuffer,
+///   AnnounceSetVerbosityLevel, AnnounceOnlyOutputOnRankZero,
+///   AnnounceOutputOnAllRanks, AnnounceBanner)
 
 #ifndef _ANNOUNCE_H_
 #define _ANNOUNCE_H_

@@ -13,6 +13,11 @@
 ///		Public License.  This software is provided "as is" without express
 ///		or implied warranty.
 ///	</remarks>
+///
+///   Amanda Dufek
+///   March 28, 2023
+///   Changed the arguments of the ApplyNodeOutputOp function
+///   to load data outside the function.
 
 #ifndef _NODEOUTPUTOP_H_
 #define _NODEOUTPUTOP_H_

@@ -13,6 +13,11 @@
 ///		Public License.  This software is provided "as is" without express
 ///		or implied warranty.
 ///	</remarks>
+///
+///   Amanda Dufek
+///   March 28, 2023
+///   Removed some functions (ConcatenateStringVector, ParseVariableList,
+///   RemoveWhitespaceInPlace, IsInteger, IsIntegerIndex, ToUpper, ToLower)
 
 #ifndef _STLSTRINGHELPER_H_
 #define _STLSTRINGHELPER_H_
