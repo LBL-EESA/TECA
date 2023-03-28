@@ -10,6 +10,7 @@
 #include <SimpleGridUtilities.h>
 #include <kdtree.h>
 
+#include <iostream>
 #include <string>
 #include <set>
 #include <queue>
@@ -38,6 +39,13 @@ public:
     internals_t() {}
     ~internals_t() {}
 
+    template<typename T>
+    static
+    int string_parsing(std::set<std::string> &req_arrays,
+                        VariableRegistry &varreg,
+                        std::string &cmd,
+                        std::vector<T> &vec);
+
 public:
     VariableRegistry varreg;
 
@@ -48,6 +56,8 @@ public:
 
     std::string str_search_by;
     bool f_search_by_minima;
+
+    std::set<std::string> dependent_variables;
 };
 
 // --------------------------------------------------------------------------
@@ -56,15 +66,13 @@ public:
  */
 template <typename real>
 bool has_closed_contour(
-    const SimpleGrid & grid,
-    const DataArray1D<real> & dataState,
+    const SimpleGrid &grid,
+    const DataArray1D<real> &dataState,
     const int ix0,
     double dDeltaAmt,
     double dDeltaDist,
     double dMinMaxDist)
 {
-//   dDeltaAmt = 0.0;
-
     // Verify arguments
     if (dDeltaAmt == 0.0)
     {
@@ -199,8 +207,8 @@ bool has_closed_contour(
  */
 template <typename real>
 bool satisfies_threshold(
-    const SimpleGrid & grid,
-    const DataArray1D<real> & dataState,
+    const SimpleGrid &grid,
+    const DataArray1D<real> &dataState,
     const int ix0,
     const ThresholdOp::Operation op,
     const double dTargetValue,
@@ -334,8 +342,8 @@ bool satisfies_threshold(
 // --------------------------------------------------------------------------
 int teca_detect_nodes::detect_cyclones_unstructured(
     const_p_teca_cartesian_mesh mesh,
-    SimpleGrid & grid,
-    std::set<int> & set_candidates)
+    SimpleGrid &grid,
+    std::set<int> &set_candidates)
 {
     // get coordinate arrays
     const_p_teca_variant_array y = mesh->get_y_coordinates();
@@ -622,7 +630,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
        std::set<int> set_new_candidates;
 
        // Load the search variable data
-       Variable & var =
+       Variable &var =
           this->internals->varreg.Get(
                                  this->internals->vec_threshold_op[tc].m_varix);
        const_p_teca_variant_array threshold_var =
@@ -677,7 +685,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
        std::set<int> set_new_candidates;
 
        // Load the search variable data
-       Variable & var =
+       Variable &var =
           this->internals->varreg.Get(
                             this->internals->vec_closed_contour_op[ccc].m_varix);
        const_p_teca_variant_array closed_contour_var =
@@ -732,7 +740,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
        std::set<int> set_new_candidates;
 
        // Load the search variable data
-       Variable & var =
+       Variable &var =
           this->internals->varreg.Get(
                           this->internals->vec_no_closed_contour_op[ccc].m_varix);
        const_p_teca_variant_array no_closed_contour_var =
@@ -820,7 +828,6 @@ teca_detect_nodes::teca_detect_nodes() :
     no_closed_contour_cmd(""),
     threshold_cmd(""),
     output_cmd(""),
-//    output_cmd("MSL,min,0;_VECMAG(VAR_10U,VAR_10V),max,2;ZS,min,0"),
     search_by_threshold(""),
     min_lon(0.0),
     max_lon(10.0),
@@ -973,6 +980,113 @@ int teca_detect_nodes::get_active_extent(const const_p_teca_variant_array &lat,
 }
 
 // --------------------------------------------------------------------------
+template<typename T>
+int teca_detect_nodes::internals_t::string_parsing(
+   std::set<std::string> &dep_vars,
+   VariableRegistry &varreg,
+   std::string &cmd,
+   std::vector<T> &vec)
+{
+   int i_last = 0;
+   for (int i = 0; i <= cmd.length(); i++)
+   {
+      if ((i == cmd.length()) ||
+          (cmd[i] == ';') ||
+          (cmd[i] == ':'))
+      {
+         std::string strSubStr = cmd.substr(i_last, i - i_last);
+
+         int i_next_op = (int)(vec.size());
+         vec.resize(i_next_op + 1);
+         vec[i_next_op].Parse(varreg, strSubStr);
+
+         // Load the search variable data
+         Variable &var = varreg.Get(vec[i_next_op].m_varix);
+         // Get the data directly from a variable
+         if (!var.IsOp())
+         {
+            dep_vars.insert(var.GetName());
+         }
+         // Evaluate a data operator to get the contents of this variable
+         else
+         {
+            TECA_ERROR("Data operator is not supported")
+            return -1;
+         }
+
+         i_last = i + 1;
+      }
+   }
+   return 0;
+}
+
+// --------------------------------------------------------------------------
+int teca_detect_nodes::initialize()
+{
+    std::set<std::string> dep_vars;
+
+    // Only one of search by min or search by max should be specified
+    if ((this->search_by_min == "") && (this->search_by_max == ""))
+    {
+    	 this->internals->str_search_by = "PSL";
+    }
+    if ((this->search_by_min != "") && (this->search_by_max != ""))
+    {
+    	 TECA_ERROR("Only one of --searchbymin or --searchbymax can"
+    		" be specified");
+       return -1;
+    }
+
+    this->internals->f_search_by_minima = true;
+    if (this->search_by_min != "")
+    {
+       this->internals->str_search_by = this->search_by_min;
+    	 this->internals->f_search_by_minima = true;
+    }
+    if (this->search_by_max != "")
+    {
+       this->internals->str_search_by = this->search_by_max;
+    	 this->internals->f_search_by_minima = false;
+    }
+    dep_vars.insert(this->internals->str_search_by);
+
+    // Parse the closed contour command string
+    if (this->closed_contour_cmd != "")
+    {
+       if (internals_t::string_parsing(dep_vars, this->internals->varreg,
+           this->closed_contour_cmd, this->internals->vec_closed_contour_op))
+          return -1;
+    }
+
+    // Parse the no closed contour command string
+    if (this->no_closed_contour_cmd != "")
+    {
+       if (internals_t::string_parsing(dep_vars, this->internals->varreg,
+           this->no_closed_contour_cmd, this->internals->vec_no_closed_contour_op))
+          return -1;
+    }
+
+    // Parse the threshold operator command string
+    if (this->threshold_cmd != "")
+    {
+       if (internals_t::string_parsing(dep_vars, this->internals->varreg,
+           this->threshold_cmd, this->internals->vec_threshold_op))
+          return -1;
+    }
+
+    // Parse the output operator command string
+    if (this->output_cmd != "")
+    {
+       if (internals_t::string_parsing(dep_vars, this->internals->varreg,
+           this->output_cmd, this->internals->vec_output_op))
+          return -1;
+    }
+
+    this->internals->dependent_variables = std::move(dep_vars);
+    return 0;
+}
+
+// --------------------------------------------------------------------------
 std::vector<teca_metadata> teca_detect_nodes::get_upstream_request(
     unsigned int port,
     const std::vector<teca_metadata> &md_in,
@@ -1015,195 +1129,23 @@ std::vector<teca_metadata> teca_detect_nodes::get_upstream_request(
        return up_reqs;
     }
 
-#if TECA_DEBUG > 1
-    cerr << teca_parallel_id() << "active_bound = "
-        << this->min_lon<< ", " << this->max_lon
-        << ", " << this->min_lat << ", " << this->max_lat
-        << endl;
-    cerr << teca_parallel_id() << "active_extent = "
-        << extent[0] << ", " << extent[1] << ", " << extent[2] << ", "
-        << extent[3] << ", " << extent[4] << ", " << extent[5] << endl;
-#endif
+    if (this->get_verbose() > 1)
+    {
+       cerr << teca_parallel_id() << "active_bound = "
+           << this->min_lon<< ", " << this->max_lon
+           << ", " << this->min_lat << ", " << this->max_lat
+           << endl;
+       cerr << teca_parallel_id() << "active_extent = "
+           << extent[0] << ", " << extent[1] << ", " << extent[2] << ", "
+           << extent[3] << ", " << extent[4] << ", " << extent[5] << endl;
+    }
 
     // get the requested arrays
     std::set<std::string> req_arrays;
     req_in.get("arrays", req_arrays);
 
-    // Only one of search by min or search by max should be specified
-    if ((this->search_by_min == "") && (this->search_by_max == ""))
-    {
-    	 this->internals->str_search_by = "PSL";
-    }
-    if ((this->search_by_min != "") && (this->search_by_max != ""))
-    {
-    	 TECA_ERROR("Only one of --searchbymin or --searchbymax can"
-    		" be specified");
-       return up_reqs;
-    }
-
-    this->internals->f_search_by_minima = true;
-    if (this->search_by_min != "")
-    {
-       this->internals->str_search_by = this->search_by_min;
-    	 this->internals->f_search_by_minima = true;
-    }
-    if (this->search_by_max != "")
-    {
-       this->internals->str_search_by = this->search_by_max;
-    	 this->internals->f_search_by_minima = false;
-    }
-    req_arrays.insert(this->internals->str_search_by);
-
-    // Parse the closed contour command string
-    if (this->closed_contour_cmd != "")
-    {
-       int i_last = 0;
-       for (int i = 0; i <= this->closed_contour_cmd.length(); i++)
-       {
-          if ((i == this->closed_contour_cmd.length()) ||
-              (this->closed_contour_cmd[i] == ';') ||
-              (this->closed_contour_cmd[i] == ':'))
-          {
-             std::string strSubStr =
-                this->closed_contour_cmd.substr(i_last, i - i_last);
-
-             int i_next_op = (int)(this->internals->vec_closed_contour_op.size());
-             this->internals->vec_closed_contour_op.resize(i_next_op + 1);
-             this->internals->vec_closed_contour_op[i_next_op].Parse(
-                                          this->internals->varreg, strSubStr);
-
-             // Load the search variable data
-             Variable & var =
-                this->internals->varreg.Get(
-                        this->internals->vec_closed_contour_op[i_next_op].m_varix);
-             // Get the data directly from a variable
-             if (!var.IsOp())
-             {
-                req_arrays.insert(var.GetName());
-             }
-             // Evaluate a data operator to get the contents of this variable
-             else
-             {
-                TECA_ERROR("Data operator is not supported")
-             }
-
-             i_last = i + 1;
-          }
-       }
-    }
-
-    // Parse the no closed contour command string
-    if (this->no_closed_contour_cmd != "")
-    {
-       int i_last = 0;
-       for (int i = 0; i <= this->no_closed_contour_cmd.length(); i++)
-       {
-          if ((i == this->no_closed_contour_cmd.length()) ||
-              (this->no_closed_contour_cmd[i] == ';') ||
-              (this->no_closed_contour_cmd[i] == ':'))
-          {
-             std::string strSubStr =
-                this->no_closed_contour_cmd.substr(i_last, i - i_last);
-
-             int i_next_op = (int)(this->internals->vec_no_closed_contour_op.size());
-             this->internals->vec_no_closed_contour_op.resize(i_next_op + 1);
-             this->internals->vec_no_closed_contour_op[i_next_op].Parse(
-                                          this->internals->varreg, strSubStr);
-
-             // Load the search variable data
-             Variable & var =
-                this->internals->varreg.Get(
-                      this->internals->vec_no_closed_contour_op[i_next_op].m_varix);
-             // Get the data directly from a variable
-             if (!var.IsOp())
-             {
-                req_arrays.insert(var.GetName());
-             }
-             // Evaluate a data operator to get the contents of this variable
-             else
-             {
-                TECA_ERROR("Data operator is not supported")
-             }
-
-             i_last = i + 1;
-          }
-       }
-    }
-
-    // Parse the threshold operator command string
-    if (this->threshold_cmd != "")
-    {
-       int i_last = 0;
-       for (int i = 0; i <= this->threshold_cmd.length(); i++)
-       {
-          if ((i == this->threshold_cmd.length()) ||
-              (this->threshold_cmd[i] == ';') ||
-              (this->threshold_cmd[i] == ':'))
-          {
-             std::string strSubStr =
-                this->threshold_cmd.substr(i_last, i - i_last);
-
-             int i_next_op = (int)(this->internals->vec_threshold_op.size());
-             this->internals->vec_threshold_op.resize(i_next_op + 1);
-             this->internals->vec_threshold_op[i_next_op].Parse(
-                                          this->internals->varreg, strSubStr);
-
-             // Load the search variable data
-             Variable & var =
-                this->internals->varreg.Get(
-                            this->internals->vec_threshold_op[i_next_op].m_varix);
-             // Get the data directly from a variable
-             if (!var.IsOp())
-             {
-                req_arrays.insert(var.GetName());
-             }
-             // Evaluate a data operator to get the contents of this variable
-             else
-             {
-                TECA_ERROR("Data operator is not supported")
-             }
-
-             i_last = i + 1;
-          }
-       }
-    }
-
-    // Parse the output operator command string
-    if (this->output_cmd != "")
-    {
-       int i_last = 0;
-       for (int i = 0; i <= this->output_cmd.length(); i++)
-       {
-          if ((i == this->output_cmd.length()) ||
-              (this->output_cmd[i] == ';') ||
-              (this->output_cmd[i] == ':'))
-          {
-             std::string strSubStr = this->output_cmd.substr(i_last, i - i_last);
-
-             int i_next_op = (int)(this->internals->vec_output_op.size());
-             this->internals->vec_output_op.resize(i_next_op + 1);
-             this->internals->vec_output_op[i_next_op].Parse(
-                                          this->internals->varreg, strSubStr);
-
-             // Load the search variable data
-             Variable & var =
-                this->internals->varreg.Get(
-                               this->internals->vec_output_op[i_next_op].m_varix);
-             // Get the data directly from a variable
-             if (!var.IsOp())
-             {
-                req_arrays.insert(var.GetName());
-             }
-             // Evaluate a data operator to get the contents of this variable
-             else
-             {
-                TECA_ERROR("Data operator is not supported")
-             }
-
-             i_last = i + 1;
-          }
-       }
-    }
+    req_arrays.insert(this->internals->dependent_variables.begin(),
+         this->internals->dependent_variables.end());
 
     teca_metadata req(req_in);
     req.set("arrays", req_arrays);
@@ -1282,7 +1224,7 @@ const_p_teca_dataset teca_detect_nodes::execute(
 
     for (int outc = 0; outc < this->internals->vec_output_op.size(); outc++)
     {
-       Variable & var =
+       Variable &var =
           this->internals->varreg.Get(
                                   this->internals->vec_output_op[outc].m_varix);
        const_p_teca_variant_array output_var =
@@ -1389,7 +1331,7 @@ const_p_teca_dataset teca_detect_nodes::execute(
           teca_variant_array_impl<std::string>::New(set_candidates.size(),
                                                                 output_array);
 
-       Variable & var = this->internals->varreg.Get(
+       Variable &var = this->internals->varreg.Get(
           this->internals->vec_output_op[outc].m_varix);
        out_table->append_column(var.ToString(this->internals->varreg).c_str(),
                                                                       output);
