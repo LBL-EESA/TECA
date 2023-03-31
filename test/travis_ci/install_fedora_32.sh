@@ -37,3 +37,11 @@ pip3 install "numpy<2.0" mpi4py matplotlib torch
 
 # install data files.
 svn co svn://svn.code.sf.net/p/teca/TECA_data@${TECA_DATA_REVISION} TECA_data
+
+# install TELite library
+git clone https://github.com/LBL-EESA/TELite.git
+cd TELite
+mkdir build
+cd build
+cmake ..
+make && make install

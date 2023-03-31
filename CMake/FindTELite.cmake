@@ -42,6 +42,10 @@ find_path (TELITE_INCLUDE_DIR SimpleGrid.h
   PATHS "${TELITE_LIBRARY_DIR}/../include"
   NO_DEFAULT_PATH)
 
+# look in system location
+find_path (TELITE_INCLUDE_DIR SimpleGrid.h
+  PATHS "/usr/include" NO_DEFAULT_PATH)
+
 # finally CMake can look
 find_path (TELITE_INCLUDE_DIR SimpleGrid.h)
 
