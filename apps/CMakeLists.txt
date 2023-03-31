@@ -9,13 +9,16 @@ include_directories(
     $<TARGET_PROPERTY:teca_io,INTERFACE_INCLUDE_DIRECTORIES>
     )
 
-include_directories("${CMAKE_SOURCE_DIR}/alg/third_party/tempestextremes/src/base" "${CMAKE_SOURCE_DIR}/alg/third_party/tempestextremes/src/nodes")
-
 set(teca_app_link)
 
 if (TECA_HAS_BOOST)
     include_directories(SYSTEM ${Boost_INCLUDE_DIR})
     list(APPEND teca_app_link ${Boost_LIBRARIES})
+endif()
+
+if (TECA_HAS_TELITE)
+    include_directories(SYSTEM ${TELITE_INCLUDE_DIR})
+    list(APPEND teca_app_link ${TELITE_LIBRARY})
 endif()
 
 teca_add_app(teca_bayesian_ar_detect LIBS ${teca_app_link}
@@ -52,7 +55,7 @@ teca_add_app(teca_cpp_temporal_reduction LIBS ${teca_app_link}
     FEATURES ${TECA_HAS_NETCDF})
 
 teca_add_app(teca_detect_nodes LIBS ${teca_app_link}
-    FEATURES ${TECA_HAS_NETCDF})
+    FEATURES ${TECA_HAS_BOOST} ${TECA_HAS_TELITE} ${TECA_HAS_NETCDF})
 
 teca_add_python_app(teca_convert_table)
 teca_add_python_app(teca_dataset_metadata FEATURES ${TECA_HAS_NETCDF})

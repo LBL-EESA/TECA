@@ -6,8 +6,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
     #$<TARGET_PROPERTY:teca_io,INTERFACE_INCLUDE_DIRECTORIES>
     )
 
-include_directories("${CMAKE_SOURCE_DIR}/alg/third_party/tempestextremes/src/base" "${CMAKE_SOURCE_DIR}/alg/third_party/tempestextremes/src/nodes")
-
 set(teca_alg_cxx_srcs
     gfdl_tc_candidates.cxx
     teca_apply_binary_mask.cxx
@@ -107,20 +105,18 @@ if (TECA_HAS_BOOST)
     list(APPEND teca_alg_link ${Boost_LIBRARIES})
 endif()
 
+if (TECA_HAS_TELITE)
+    include_directories(SYSTEM ${TELITE_INCLUDE_DIR})
+    list(APPEND teca_alg_link ${TELITE_LIBRARY})
+endif()
+
 if (TECA_HAS_CUDA)
     set_source_files_properties(${teca_alg_cxx_srcs} PROPERTIES LANGUAGE CUDA)
 endif()
 
 add_library(teca_alg ${teca_alg_cxx_srcs} ${teca_alg_cuda_srcs} ${teca_alg_f90_srcs})
 
-add_custom_target(tempestextremes
-   COMMAND make BUILDTEDIR=${CMAKE_BINARY_DIR}/tempestextremes -f ${CMAKE_SOURCE_DIR}/alg/third_party/tempestextremes/Makefile
-   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/alg/third_party/tempestextremes
-   COMMENT "Building target tempestextremes")
-
-add_dependencies(teca_alg tempestextremes)
-
-target_link_libraries(teca_alg teca_data teca_core ${teca_alg_link} "${CMAKE_BINARY_DIR}/tempestextremes/libextremesbase.a" ${NETCDF_LIBRARIES})
+target_link_libraries(teca_alg teca_data teca_core ${teca_alg_link} ${NETCDF_LIBRARIES})
 
 target_include_directories(teca_alg
     INTERFACE
