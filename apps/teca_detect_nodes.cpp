@@ -1,11 +1,15 @@
-//#include "teca_config.h"
 #include "teca_cf_reader.h"
 #include "teca_multi_cf_reader.h"
 #include "teca_normalize_coordinates.h"
 #include "teca_l2_norm.h"
-//#include "teca_vorticity.h"
 #include "teca_derived_quantity.h"
 #include "teca_derived_quantity_numerics.h"
+#include "teca_mpi_manager.h"
+#include "teca_app_util.h"
+#include "teca_detect_nodes.h"
+
+//#include "teca_config.h"
+//#include "teca_vorticity.h"
 //#include "teca_tc_candidates.h"
 //#include "teca_tc_trajectory.h"
 //#include "teca_array_collection.h"
@@ -16,20 +20,17 @@
 //#include "teca_table_sort.h"
 //#include "teca_table_calendar.h"
 //#include "teca_table_writer.h"
-#include "teca_mpi_manager.h"
 //#include "teca_coordinate_util.h"
-#include "teca_app_util.h"
 //#include "teca_calcalcs.h"
-#include "teca_detect_nodes.h"
-
 //#include <vector>
+
 #include <string>
 #include <iostream>
 #include <boost/program_options.hpp>
 
-
 using namespace std;
 using namespace teca_derived_quantity_numerics;
+
 
 using boost::program_options::value;
 
@@ -65,32 +66,58 @@ int main(int argc, char **argv)
         ("y_axis_variable", value<std::string>()->default_value("lat"),
             "\nName of the variable to use for y-coordinates.\n")
 
+        ("n_threads", value<int>()->default_value(-1), "\nSets the thread pool"
+            " size on each MPI rank. When the default value of -1 is used TECA"
+            " will coordinate the thread pools across ranks such each thread"
+            " is bound to a unique physical core.\n")
+
         ("in_connect", value<string>()->default_value(""), "\nConnectivity file\n")
-        ("search_by_min", value<string>()->default_value(""), "\nVariable to search for the minimum\n")
-        ("search_by_max", value<string>()->default_value(""), "\nVariable to search for the maximum\n")
-        ("closed_contour_cmd", value<string>()->default_value(""), "\nClosed contour commands [var,delta,dist,minmaxdist;...]\n")
-        ("no_closed_contour_cmd", value<string>()->default_value(""), "\nClosed contour commands [var,delta,dist,minmaxdist;...]\n")
-        ("threshold_cmd", value<string>()->default_value(""), "\nThreshold commands [var,op,value,dist;...]\n")
-        ("output_cmd", value<string>()->default_value(""), "\nOutput commands [var,op,dist;...]\n")
-        ("search_by_threshold", value<string>()->default_value(""), "\nThreshold for search operation\n")
-        ("min_lon", value<double>()->default_value(0.0), "\nMinimum longitude in degrees for detection\n")
-        ("max_lon", value<double>()->default_value(10.0), "\nMaximum longitude in degrees for detection\n")
-        ("min_lat", value<double>()->default_value(-20.0), "\nMinimum latitude in degrees for detection\n")
-        ("max_lat", value<double>()->default_value(20.0), "\nMaximum latitude in degrees for detection\n")
-        ("min_abs_lat", value<double>()->default_value(0.0), "\nMinimum absolute value of latitude in degrees for detection\n")
-        ("merge_dist", value<double>()->default_value(6.0), "\nMinimum allowable distance between two candidates in degrees\n")
-        ("diag_connect", value<bool>()->default_value(false), "\nDiagonal connectivity for RLL grids\n")
-        ("regional", value<bool>()->default_value(true), "\nRegional (do not wrap longitudinal boundaries)\n")
-        ("out_header", value<bool>()->default_value(true), "\nOutput header\n")
+        ("search_by_min", value<string>()->default_value(""),
+            "\nVariable to search for the minimum\n")
+        ("search_by_max", value<string>()->default_value(""),
+            "\nVariable to search for the maximum\n")
+        ("closed_contour_cmd", value<string>()->default_value(""),
+            "\nClosed contour commands [var,delta,dist,minmaxdist;...]\n")
+        ("no_closed_contour_cmd", value<string>()->default_value(""),
+            "\nClosed contour commands [var,delta,dist,minmaxdist;...]\n")
+        ("threshold_cmd", value<string>()->default_value(""),
+            "\nThreshold commands [var,op,value,dist;...]\n")
+        ("output_cmd", value<string>()->default_value(""),
+            "\nOutput commands [var,op,dist;...]\n")
+        ("search_by_threshold", value<string>()->default_value(""),
+            "\nThreshold for search operation\n")
+        ("min_lon", value<double>()->default_value(0.0),
+            "\nMinimum longitude in degrees for detection\n")
+        ("max_lon", value<double>()->default_value(10.0),
+            "\nMaximum longitude in degrees for detection\n")
+        ("min_lat", value<double>()->default_value(-20.0),
+            "\nMinimum latitude in degrees for detection\n")
+        ("max_lat", value<double>()->default_value(20.0),
+            "\nMaximum latitude in degrees for detection\n")
+        ("min_abs_lat", value<double>()->default_value(0.0),
+            "\nMinimum absolute value of latitude in degrees for detection\n")
+        ("merge_dist", value<double>()->default_value(6.0),
+            "\nMinimum allowable distance between two candidates in degrees\n")
+        ("diag_connect", value<bool>()->default_value(false),
+            "\nDiagonal connectivity for RLL grids\n")
+        ("regional", value<bool>()->default_value(true),
+            "\nRegional (do not wrap longitudinal boundaries)\n")
+        ("out_header", value<bool>()->default_value(true),
+            "\nOutput header\n")
 
-        ("sea_level_pressure", value<string>()->default_value(""), "\nname of variable with sea level pressure\n")
-        ("500mb_height", value<string>()->default_value(""), "\nname of variable with 500mb height for thickness calc\n")
-        ("300mb_height", value<string>()->default_value(""), "\nname of variable with 300mb height for thickness calc\n")
-        ("surface_wind_u", value<string>()->default_value(""), "\nname of variable with surface wind x-component\n")
-        ("surface_wind_v", value<string>()->default_value(""), "\nname of variable with surface wind y-component\n")
+        ("sea_level_pressure", value<string>()->default_value(""),
+            "\nname of variable with sea level pressure\n")
+        ("500mb_height", value<string>()->default_value(""),
+            "\nname of variable with 500mb height for thickness calc\n")
+        ("300mb_height", value<string>()->default_value(""),
+            "\nname of variable with 300mb height for thickness calc\n")
+        ("surface_wind_u", value<string>()->default_value(""),
+            "\nname of variable with surface wind x-component\n")
+        ("surface_wind_v", value<string>()->default_value(""),
+            "\nname of variable with surface wind y-component\n")
 
-        ("verbose", value<int>()->default_value(0), "\nUse 1 to enable verbose mode,"
-            " otherwise 0.\n")
+        ("verbose", value<int>()->default_value(0),
+            "\nUse 1 to enable verbose mode, otherwise 0.\n")
         ("help", "\ndisplays documentation for application specific command line options\n")
         ("advanced_help", "\ndisplays documentation for algorithm specific command line options\n")
         ("full_help", "\ndisplays both basic and advanced documentation together\n")
@@ -321,6 +348,7 @@ int main(int argc, char **argv)
     {
        candidates->set_out_header(opt_vals["out_header"].as<bool>());
     }
+    //candidates->set_thread_pool_size(opt_vals["n_threads"].as<int>());
     candidates->set_verbose(opt_vals["verbose"].as<int>());
     candidates->initialize();
 
