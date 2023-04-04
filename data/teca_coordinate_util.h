@@ -6,6 +6,7 @@
 
 #include <vector>
 #include <cmath>
+#include <limits>
 
 namespace teca_coordinate_util
 {

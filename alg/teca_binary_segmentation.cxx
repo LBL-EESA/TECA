@@ -10,6 +10,7 @@
 #include <iostream>
 #include <set>
 #include <iomanip>
+#include <limits>
 
 //#define TECA_DEBUG
 namespace {

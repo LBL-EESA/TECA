@@ -11,6 +11,7 @@
 #include <deque>
 #include <set>
 #include <cmath>
+#include <limits>
 
 using std::deque;
 using std::vector;
