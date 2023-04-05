@@ -110,8 +110,7 @@ if (TECA_HAS_BOOST)
 endif()
 
 if (TECA_HAS_TELITE)
-    include_directories(SYSTEM ${TELITE_INCLUDE_DIR})
-    list(APPEND teca_alg_link ${TELITE_LIBRARY})
+    list(APPEND teca_alg_link TELite)
 endif()
 
 if (TECA_HAS_CUDA)
@@ -120,7 +119,7 @@ endif()
 
 add_library(teca_alg ${teca_alg_cxx_srcs} ${teca_alg_cuda_srcs} ${teca_alg_f90_srcs})
 
-target_link_libraries(teca_alg teca_data teca_core ${teca_alg_link} ${NETCDF_LIBRARIES})
+target_link_libraries(teca_alg teca_data teca_core ${teca_alg_link})
 
 target_include_directories(teca_alg
     INTERFACE
