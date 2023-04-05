@@ -36,6 +36,7 @@ echo ${DOCKER_IMAGE}
 echo ${IMAGE_VERSION}
 echo ${TECA_PYTHON_VERSION}
 echo ${TECA_DATA_REVISION}
+echo ${TECA_TELITE_REVISION}
 
 python3 -mvenv `pwd`/../tci
 set +x
@@ -49,7 +50,8 @@ svn co svn://svn.code.sf.net/p/teca/TECA_data@${TECA_DATA_REVISION} TECA_data
 # install TELite library
 git clone https://github.com/LBL-EESA/TELite.git
 cd TELite
+git checkout ${TECA_TELITE_REVISION}
 mkdir build
 cd build
 cmake ..
-make && make install
+make -j2 && make -j2 install
