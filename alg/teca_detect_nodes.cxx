@@ -357,7 +357,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
 
     VARIANT_ARRAY_DISPATCH_FP(y.get(),
 
-       DataArray1D<double> vec_lat(y->size(), false);
+       DataArray1D<NT> vec_lat(y->size(), false);
        auto [sp_y, p_y] = get_cpu_accessible<CTT>(y);
        vec_lat.AttachToData((void*)p_y);
 
@@ -367,7 +367,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
        }
 
        assert_type<CTT>(x);
-       DataArray1D<double> vec_lon(x->size(), false);
+       DataArray1D<NT> vec_lon(x->size(), false);
        auto [sp_x, p_x] = get_cpu_accessible<CTT>(x);
        vec_lon.AttachToData((void*)p_x);
 
@@ -380,7 +380,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
        if (this->in_connect == "")
        {
           AnnounceStartBlock("Generating RLL grid data");
-          grid.GenerateLatitudeLongitude(
+          grid.GenerateLatitudeLongitude<NT>(
                     vec_lat, vec_lon, this->regional, this->diag_connect, true);
           AnnounceEndBlock("Done");
        }
@@ -407,7 +407,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
     int n_rejected_merge = 0;
     VARIANT_ARRAY_DISPATCH_FP(search_by.get(),
 
-       DataArray1D<float> data_search(search_by->size(), false);
+       DataArray1D<NT> data_search(search_by->size(), false);
        auto [sp_search_by, p_search_by] = get_cpu_accessible<CTT>(search_by);
        data_search.AttachToData((void*)p_search_by);
 
@@ -416,13 +416,13 @@ int teca_detect_nodes::detect_cyclones_unstructured(
        if (this->search_by_threshold == "")
        {
           if (this->internals->f_search_by_minima)
-             FindAllLocalMinima<float>(grid, data_search, set_candidates);
+             FindAllLocalMinima<NT>(grid, data_search, set_candidates);
           else
-             FindAllLocalMaxima<float>(grid, data_search, set_candidates);
+             FindAllLocalMaxima<NT>(grid, data_search, set_candidates);
        }
        else
        {
-          FindAllLocalMinMaxWithThreshold<float>(
+          FindAllLocalMinMaxWithThreshold<NT>(
                                               grid,
                                               data_search,
                                               this->internals->f_search_by_minima,
@@ -639,7 +639,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
 
        VARIANT_ARRAY_DISPATCH_FP(threshold_var.get(),
 
-          DataArray1D<float> data_state(threshold_var->size(), false);
+          DataArray1D<NT> data_state(threshold_var->size(), false);
           auto [sp_threshold_var, p_threshold_var] = get_cpu_accessible<CTT>(threshold_var);
           data_state.AttachToData((void*)p_threshold_var);
 
@@ -648,7 +648,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
           for (; iter_candidate != set_candidates.end(); ++iter_candidate)
           {
               // Determine if the threshold is satisfied
-              bool f_satisfies_threshold = satisfies_threshold<float>(
+              bool f_satisfies_threshold = satisfies_threshold<NT>(
                        grid, data_state, *iter_candidate,
                        this->internals->vec_threshold_op[tc].m_eOp,
                        this->internals->vec_threshold_op[tc].m_dValue,
@@ -694,7 +694,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
 
        VARIANT_ARRAY_DISPATCH_FP(closed_contour_var.get(),
 
-          DataArray1D<float> data_state(closed_contour_var->size(), false);
+          DataArray1D<NT> data_state(closed_contour_var->size(), false);
           auto [sp_closed_contour_var, p_closed_contour_var] = get_cpu_accessible<CTT>(closed_contour_var);
           data_state.AttachToData((void*)p_closed_contour_var);
 
@@ -703,7 +703,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
           for (; iter_candidate != set_candidates.end(); ++iter_candidate)
           {
              // Determine if a closed contour is present
-             bool f_has_closed_contour = has_closed_contour<float>(
+             bool f_has_closed_contour = has_closed_contour<NT>(
                     grid, data_state, *iter_candidate,
                     this->internals->vec_closed_contour_op[ccc].m_dDeltaAmount,
                     this->internals->vec_closed_contour_op[ccc].m_dDistance,
@@ -749,7 +749,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
 
        VARIANT_ARRAY_DISPATCH_FP(no_closed_contour_var.get(),
 
-          DataArray1D<float> data_state(no_closed_contour_var->size(), false);
+          DataArray1D<NT> data_state(no_closed_contour_var->size(), false);
           auto [sp_no_closed_contour_var, p_no_closed_contour_var] = get_cpu_accessible<CTT>(no_closed_contour_var);
           data_state.AttachToData((void*)p_no_closed_contour_var);
 
@@ -758,7 +758,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
           for (; iter_candidate != set_candidates.end(); ++iter_candidate)
           {
              // Determine if a closed contour is present
-             bool f_has_closed_contour = has_closed_contour<float>(
+             bool f_has_closed_contour = has_closed_contour<NT>(
                    grid,
                    data_state,
                    *iter_candidate,
@@ -1179,7 +1179,7 @@ const_p_teca_dataset teca_detect_nodes::execute(
 
        VARIANT_ARRAY_DISPATCH_FP(output_var.get(),
 
-          DataArray1D<float> data_state(output_var->size(), false);
+          DataArray1D<NT> data_state(output_var->size(), false);
           auto [sp_output_var, p_output_var] = get_cpu_accessible<CTT>(output_var);
           data_state.AttachToData((void*)p_output_var);
 
@@ -1188,7 +1188,7 @@ const_p_teca_dataset teca_detect_nodes::execute(
           std::set<int>::const_iterator iter_candidate = set_candidates.begin();
           for (; iter_candidate != set_candidates.end(); ++iter_candidate)
           {
-             ApplyNodeOutputOp<float>(
+             ApplyNodeOutputOp<NT>(
                     this->internals->vec_output_op[outc],
                     grid,
                     data_state,
