@@ -1031,8 +1031,6 @@ std::vector<teca_metadata> teca_detect_nodes::get_upstream_request(
     }
 
     (void)port;
-    (void)md_in;
-    (void)req_in;
 
     std::vector<teca_metadata> up_reqs;
     teca_metadata md = md_in[0];

@@ -8,22 +8,6 @@
 #include "teca_app_util.h"
 #include "teca_detect_nodes.h"
 
-//#include "teca_config.h"
-//#include "teca_vorticity.h"
-//#include "teca_tc_candidates.h"
-//#include "teca_tc_trajectory.h"
-//#include "teca_array_collection.h"
-//#include "teca_variant_array.h"
-//#include "teca_metadata.h"
-//#include "teca_table_reader.h"
-//#include "teca_table_reduce.h"
-//#include "teca_table_sort.h"
-//#include "teca_table_calendar.h"
-//#include "teca_table_writer.h"
-//#include "teca_coordinate_util.h"
-//#include "teca_calcalcs.h"
-//#include <vector>
-
 #include <string>
 #include <iostream>
 #include <boost/program_options.hpp>
