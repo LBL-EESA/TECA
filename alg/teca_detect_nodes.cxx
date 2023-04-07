@@ -189,7 +189,7 @@ bool has_closed_contour(
        }
 
        // Add all neighbors of this point
-       for (int n = 0; n < grid.m_vecConnectivity[ix].size(); n++)
+       for (int n = 0; n < grid.m_vecConnectivity[ix].size(); ++n)
        {
           queueToVisit.push(grid.m_vecConnectivity[ix][n]);
        }
@@ -330,7 +330,7 @@ bool satisfies_threshold(
        }
 
        // Add all neighbors of this point
-       for (int n = 0; n < grid.m_vecConnectivity[ix].size(); n++)
+       for (int n = 0; n < grid.m_vecConnectivity[ix].size(); ++n)
        {
           queueNodes.push(grid.m_vecConnectivity[ix][n]);
        }
@@ -361,7 +361,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
        auto [sp_y, p_y] = get_cpu_accessible<CTT>(y);
        vec_lat.AttachToData((void*)p_y);
 
-       for (int j = 0; j < y->size(); j++)
+       for (int j = 0; j < y->size(); ++j)
        {
           vec_lat[j] *= M_PI / 180.0;
        }
@@ -371,7 +371,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
        auto [sp_x, p_x] = get_cpu_accessible<CTT>(x);
        vec_lon.AttachToData((void*)p_x);
 
-       for (int i = 0; i < x->size(); i++)
+       for (int i = 0; i < x->size(); ++i)
        {
           vec_lon[i] *= M_PI / 180.0;
        }
@@ -454,7 +454,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
           }
 
           std::set<int>::const_iterator iter_candidate = set_candidates.begin();
-          for (; iter_candidate != set_candidates.end(); iter_candidate++)
+          for (; iter_candidate != set_candidates.end(); ++iter_candidate)
           {
              double d_lat = grid.m_dLat[*iter_candidate];
              double d_lon = grid.m_dLon[*iter_candidate];
@@ -468,7 +468,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
 
           // Loop through all candidates find set of nearest neighbors
           iter_candidate = set_candidates.begin();
-          for (; iter_candidate != set_candidates.end(); iter_candidate++)
+          for (; iter_candidate != set_candidates.end(); ++iter_candidate)
           {
              double d_lat = grid.m_dLat[*iter_candidate];
              double d_lon = grid.m_dLon[*iter_candidate];
@@ -554,7 +554,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
        std::set<int> set_new_candidates;
 
        std::set<int>::const_iterator iter_candidate = set_candidates.begin();
-       for (; iter_candidate != set_candidates.end(); iter_candidate++)
+       for (; iter_candidate != set_candidates.end(); ++iter_candidate)
        {
           double d_lat = grid.m_dLat[*iter_candidate];
           double d_lon = grid.m_dLon[*iter_candidate];
@@ -625,7 +625,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
     AnnounceStartBlock("Eliminate based on thresholds");
     DataArray1D<int> vec_rejected_threshold(
                                        this->internals->vec_threshold_op.size());
-    for (int tc = 0; tc < this->internals->vec_threshold_op.size(); tc++)
+    for (int tc = 0; tc < this->internals->vec_threshold_op.size(); ++tc)
     {
        std::set<int> set_new_candidates;
 
@@ -651,7 +651,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
 
           // Loop through all pressure minima
           std::set<int>::const_iterator iter_candidate = set_candidates.begin();
-          for (; iter_candidate != set_candidates.end(); iter_candidate++)
+          for (; iter_candidate != set_candidates.end(); ++iter_candidate)
           {
               // Determine if the threshold is satisfied
               bool f_satisfies_threshold = satisfies_threshold<float>(
@@ -680,7 +680,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
     AnnounceStartBlock("Eliminate based on closed contours");
     DataArray1D<int> vec_rejected_closed_contour(
                                    this->internals->vec_closed_contour_op.size());
-    for (int ccc = 0; ccc < this->internals->vec_closed_contour_op.size(); ccc++)
+    for (int ccc = 0; ccc < this->internals->vec_closed_contour_op.size(); ++ccc)
     {
        std::set<int> set_new_candidates;
 
@@ -706,7 +706,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
 
           // Loop through all pressure minima
           std::set<int>::const_iterator iter_candidate = set_candidates.begin();
-          for (; iter_candidate != set_candidates.end(); iter_candidate++)
+          for (; iter_candidate != set_candidates.end(); ++iter_candidate)
           {
              // Determine if a closed contour is present
              bool f_has_closed_contour = has_closed_contour<float>(
@@ -735,7 +735,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
     AnnounceStartBlock("Eliminate based on no closed contours");
     DataArray1D<int> vec_rejected_no_closed_contour(
                                  this->internals->vec_no_closed_contour_op.size());
-    for (int ccc = 0; ccc < this->internals->vec_no_closed_contour_op.size(); ccc++)
+    for (int ccc = 0; ccc < this->internals->vec_no_closed_contour_op.size(); ++ccc)
     {
        std::set<int> set_new_candidates;
 
@@ -761,7 +761,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
 
           // Loop through all pressure minima
           std::set<int>::const_iterator iter_candidate = set_candidates.begin();
-          for (; iter_candidate != set_candidates.end(); iter_candidate++)
+          for (; iter_candidate != set_candidates.end(); ++iter_candidate)
           {
              // Determine if a closed contour is present
              bool f_has_closed_contour = has_closed_contour<float>(
@@ -792,7 +792,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
     Announce("Rejected (  location): %i", n_rejected_location);
     Announce("Rejected (    merged): %i", n_rejected_merge);
 
-    for (int tc = 0; tc < vec_rejected_threshold.GetRows(); tc++)
+    for (int tc = 0; tc < vec_rejected_threshold.GetRows(); ++tc)
     {
        Announce("Rejected (thresh. %s): %i",
           this->internals->varreg.GetVariableString(
@@ -800,7 +800,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
                                                      vec_rejected_threshold[tc]);
     }
 
-    for (int ccc = 0; ccc < vec_rejected_closed_contour.GetRows(); ccc++)
+    for (int ccc = 0; ccc < vec_rejected_closed_contour.GetRows(); ++ccc)
     {
        Announce("Rejected (contour %s): %i",
           this->internals->varreg.GetVariableString(
@@ -808,7 +808,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
                                                 vec_rejected_closed_contour[ccc]);
     }
 
-    for (int ccc = 0; ccc < vec_rejected_no_closed_contour.GetRows(); ccc++)
+    for (int ccc = 0; ccc < vec_rejected_no_closed_contour.GetRows(); ++ccc)
     {
        Announce("Rejected (nocontour %s): %i",
           this->internals->varreg.GetVariableString(
@@ -988,7 +988,7 @@ int teca_detect_nodes::internals_t::string_parsing(
    std::vector<T> &vec)
 {
    int i_last = 0;
-   for (int i = 0; i <= cmd.length(); i++)
+   for (int i = 0; i <= cmd.length(); ++i)
    {
       if ((i == cmd.length()) ||
           (cmd[i] == ';') ||
@@ -1217,12 +1217,12 @@ const_p_teca_dataset teca_detect_nodes::execute(
     // Apply output operators
     std::vector< std::vector<std::string> > vec_output_value;
     vec_output_value.resize(set_candidates.size());
-    for (int i = 0; i < set_candidates.size(); i++)
+    for (int i = 0; i < set_candidates.size(); ++i)
     {
        vec_output_value[i].resize(this->internals->vec_output_op.size());
     }
 
-    for (int outc = 0; outc < this->internals->vec_output_op.size(); outc++)
+    for (int outc = 0; outc < this->internals->vec_output_op.size(); ++outc)
     {
        Variable &var =
           this->internals->varreg.Get(
@@ -1246,7 +1246,7 @@ const_p_teca_dataset teca_detect_nodes::execute(
           // Loop through all pressure minima
           i_candidate_ix = 0;
           std::set<int>::const_iterator iter_candidate = set_candidates.begin();
-          for (; iter_candidate != set_candidates.end(); iter_candidate++)
+          for (; iter_candidate != set_candidates.end(); ++iter_candidate)
           {
              ApplyNodeOutputOp<float>(
                     this->internals->vec_output_op[outc],
@@ -1269,7 +1269,7 @@ const_p_teca_dataset teca_detect_nodes::execute(
     int j_array[set_candidates.size()];
 
     std::set<int>::const_iterator iter_candidate = set_candidates.begin();
-    for (; iter_candidate != set_candidates.end(); iter_candidate++)
+    for (; iter_candidate != set_candidates.end(); ++iter_candidate)
     {
        if (grid.m_nGridDim.size() == 1)
        {
@@ -1316,12 +1316,12 @@ const_p_teca_dataset teca_detect_nodes::execute(
     out_table->append_column("lat", latitude);
     out_table->append_column("lon", longitude);
 
-    for (int outc = 0; outc < this->internals->vec_output_op.size(); outc++)
+    for (int outc = 0; outc < this->internals->vec_output_op.size(); ++outc)
     {
        i_candidate_ix = 0;
        std::string output_array[set_candidates.size()];
        std::set<int>::const_iterator iter_candidate = set_candidates.begin();
-       for (; iter_candidate != set_candidates.end(); iter_candidate++)
+       for (; iter_candidate != set_candidates.end(); ++iter_candidate)
        {
           output_array[i_candidate_ix] = vec_output_value[i_candidate_ix][outc];
           i_candidate_ix++;
