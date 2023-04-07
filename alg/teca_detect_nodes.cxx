@@ -393,12 +393,6 @@ int teca_detect_nodes::detect_cyclones_unstructured(
        }
     )
 
-    this->min_lon *= M_PI / 180.0;
-    this->max_lon *= M_PI / 180.0;
-    this->min_lat *= M_PI / 180.0;
-    this->max_lat *= M_PI / 180.0;
-    this->min_abs_lat *= M_PI / 180.0;
-
     // get search_by array
     const_p_teca_variant_array search_by =
        mesh->get_point_arrays()->get(this->internals->str_search_by);
@@ -911,75 +905,6 @@ void teca_detect_nodes::set_properties(
 #endif
 
 // --------------------------------------------------------------------------
-int teca_detect_nodes::get_active_extent(const const_p_teca_variant_array &lat,
-    const const_p_teca_variant_array &lon, std::vector<unsigned long> &extent) const
-{
-    extent = {1, 0, 1, 0, 0, 0};
-
-    unsigned long high_i = lon->size() - 1;
-    if (this->min_lon > this->max_lon)
-    {
-       extent[0] = 0l;
-       extent[1] = high_i;
-    }
-    else
-    {
-       VARIANT_ARRAY_DISPATCH_FP(lon.get(),
-
-          auto [sp_lon, p_lon] = get_cpu_accessible<CTT>(lon);
-
-          if (teca_coordinate_util::index_of(p_lon, 0, high_i, static_cast<NT>(this->min_lon), false, extent[0]) ||
-              teca_coordinate_util::index_of(p_lon, 0, high_i, static_cast<NT>(this->max_lon), true, extent[1]))
-          {
-              TECA_ERROR(
-                  << "requested longitude ["
-                  << this->min_lon << ", " << this->max_lon << ", "
-                  << "] is not contained in the current dataset bounds ["
-                  << p_lon[0] << ", " << p_lon[high_i] << "]")
-              return -1;
-          }
-       )
-    }
-    if (extent[0] > extent[1])
-    {
-       TECA_ERROR("invalid longitude coordinate array type")
-       return -1;
-    }
-
-    unsigned long high_j = lat->size() - 1;
-    if (this->min_lat > this->max_lat)
-    {
-       extent[2] = 0l;
-       extent[3] = high_j;
-    }
-    else
-    {
-       VARIANT_ARRAY_DISPATCH_FP(lat.get(),
-
-          auto [sp_lat, p_lat] = get_cpu_accessible<CTT>(lat);
-
-          if (teca_coordinate_util::index_of(p_lat, 0, high_j, static_cast<NT>(this->min_lat), false, extent[2]) ||
-              teca_coordinate_util::index_of(p_lat, 0, high_j, static_cast<NT>(this->max_lat), true, extent[3]))
-          {
-             TECA_ERROR(
-                   << "requested latitude ["
-                   << this->min_lat << ", " << this->max_lat
-                   << "] is not contained in the current dataset bounds ["
-                   << p_lat[0] << ", " << p_lat[high_j] << "]")
-             return -1;
-          }
-       )
-    }
-    if (extent[2] > extent[3])
-    {
-       TECA_ERROR("invalid latitude coordinate array type")
-       return -1;
-    }
-
-    return 0;
-}
-
-// --------------------------------------------------------------------------
 template<typename T>
 int teca_detect_nodes::internals_t::string_parsing(
    std::set<std::string> &dep_vars,
@@ -1083,6 +1008,13 @@ int teca_detect_nodes::initialize()
     }
 
     this->internals->dependent_variables = std::move(dep_vars);
+
+    this->min_lon *= M_PI / 180.0;
+    this->max_lon *= M_PI / 180.0;
+    this->min_lat *= M_PI / 180.0;
+    this->max_lat *= M_PI / 180.0;
+    this->min_abs_lat *= M_PI / 180.0;
+
     return 0;
 }
 
@@ -1114,16 +1046,26 @@ std::vector<teca_metadata> teca_detect_nodes::get_upstream_request(
        return up_reqs;
     }
 
-    p_teca_variant_array lat;
-    p_teca_variant_array lon;
-    if (!(lat = coords.get("y")) || !(lon = coords.get("x")))
+    p_teca_variant_array in_x, in_y, in_z;
+    if (!(in_x = coords.get("x")) ||
+        !(in_y = coords.get("y")) ||
+        !(in_z = coords.get("z")))
     {
-       TECA_FATAL_ERROR("metadata missing lat lon coordinates")
+       TECA_FATAL_ERROR("metadata missing coordinate arrays")
        return up_reqs;
     }
 
-    std::vector<unsigned long> extent(6, 0l);
-    if (this->get_active_extent(lat, lon, extent))
+    unsigned long extent[6] = {0};
+    double req_bounds[6] = {0.0};
+    req_bounds[0] = this->min_lon * 180.0 / M_PI;
+    req_bounds[1] = this->max_lon * 180.0 / M_PI;
+    req_bounds[2] = this->min_lat * 180.0 / M_PI;
+    req_bounds[3] = this->max_lat * 180.0 / M_PI;
+
+    if (teca_coordinate_util::bounds_to_extent(req_bounds,
+            in_x, in_y, in_z, extent) ||
+        teca_coordinate_util::validate_extent(in_x->size(),
+            in_y->size(), in_z->size(), extent, true))
     {
        TECA_FATAL_ERROR("failed to determine the active extent")
        return up_reqs;
