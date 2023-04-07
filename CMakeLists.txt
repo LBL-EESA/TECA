@@ -290,7 +290,7 @@ if (TELite_FOUND AND ((DEFINED TECA_HAS_TELITE AND TECA_HAS_TELITE) OR (NOT DEFI
 elseif (REQUIRE_TELITE)
     message(FATAL_ERROR "TELite features -- required but not found. set TELite_DIR to enable.")
 else()
-    message(STATUS "TELite features -- not found. set TELiteDIR to enable.")
+    message(STATUS "TELite features -- not found. set TELite_DIR to enable.")
 endif()
 set(TECA_HAS_TELITE ${tmp} CACHE BOOL "TELite features")
 
