@@ -1155,7 +1155,7 @@ const_p_teca_dataset teca_detect_nodes::execute(
     int i_candidate_ix = 0;
 
     // Apply output operators
-    std::vector< std::vector<std::string> > vec_output_value;
+    std::vector<std::vector<std::string>> vec_output_value;
     vec_output_value.resize(set_candidates.size());
     for (int i = 0; i < set_candidates.size(); ++i)
     {
@@ -1203,10 +1203,10 @@ const_p_teca_dataset teca_detect_nodes::execute(
     // Output all candidates
     i_candidate_ix = 0;
 
-    double lat_array[set_candidates.size()];
-    double lon_array[set_candidates.size()];
-    int i_array[set_candidates.size()];
-    int j_array[set_candidates.size()];
+    double * lat_array = new double[set_candidates.size()];
+    double * lon_array = new double[set_candidates.size()];
+    int * i_array = new int[set_candidates.size()];
+    int * j_array = new int[set_candidates.size()];
 
     std::set<int>::const_iterator iter_candidate = set_candidates.begin();
     for (; iter_candidate != set_candidates.end(); ++iter_candidate)
@@ -1259,7 +1259,7 @@ const_p_teca_dataset teca_detect_nodes::execute(
     for (int outc = 0; outc < this->internals->vec_output_op.size(); ++outc)
     {
        i_candidate_ix = 0;
-       std::string output_array[set_candidates.size()];
+       std::string * output_array = new std::string[set_candidates.size()];
        std::set<int>::const_iterator iter_candidate = set_candidates.begin();
        for (; iter_candidate != set_candidates.end(); ++iter_candidate)
        {
@@ -1275,12 +1275,18 @@ const_p_teca_dataset teca_detect_nodes::execute(
           this->internals->vec_output_op[outc].m_varix);
        out_table->append_column(var.ToString(this->internals->varreg).c_str(),
                                                                       output);
+       delete [] output_array;
     }
 
 #if TECA_DEBUG > 1
     out_table->to_stream(cerr);
     cerr << std::endl;
 #endif
+
+    delete [] lat_array;
+    delete [] lon_array;
+    delete [] i_array;
+    delete [] j_array;
 
     return out_table;
 }
