@@ -34,23 +34,133 @@ public:
 
     int initialize();
 
+    /** @name in_connet
+     * Set the connectivity file
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, in_connect)
+    ///@}
+
+    /** @name search_by_min
+     * Set variable to search for the minimum
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, search_by_min)
+    ///@}
+
+    /** @name search_by_max
+     * Set variable to search for the maximum
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, search_by_max)
+    ///@}
+
+    /** @name closed_contour_cmd
+     * Set the closed contour commands
+     * [var,delta,dist,minmaxdist;...]
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, closed_contour_cmd)
+    ///@}
+
+    /** @name no_closed_contour_cmd
+     * Set the no closed contour commands
+     * [var,delta,dist,minmaxdist;...]
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, no_closed_contour_cmd)
+    ///@}
+
+    /** @name threshold_cmd
+     * Set the threshold commands
+     * [var,op,value,dist;...]
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, threshold_cmd)
+    ///@}
+
+    /** @name output_cmd
+     * Set the output commands
+     * [var,op,dist;...]
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, output_cmd)
+    ///@}
+
+    /** @name search_by_threshold
+     * Set threshold for search operation
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, search_by_threshold)
+    ///@}
+
+    /** @name min_lon
+     * Set minimum longitude in degrees for detection
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, min_lon)
+    ///@}
+
+    /** @name max_lon
+     * Set maximum longitude in degrees for detection
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, max_lon)
+    ///@}
+
+    /** @name min_lat
+     * Set minimum latitude in degrees for detection
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, min_lat)
+    ///@}
+
+    /** @name max_lat
+     * Set maximum latitude in degrees for detection
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, max_lat)
+    ///@}
+
+    /** @name min_abs_lat
+     * Set minimum absolute value of latitude in degrees for detection
+     * default 0.0
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, min_abs_lat)
+    ///@}
+
+    /** @name merge_dist
+     * Set minimum allowable distance between two candidates in degrees
+     * default 6.0
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, merge_dist)
+    ///@}
+
+    /** @name diag_connect
+     * Set diagonal connectivity for RLL grids
+     * default false
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(bool, diag_connect)
+    ///@}
+
+    /** @name regional
+     * Set regional (do not wrap longitudinal boundaries)
+     * default true
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(bool, regional)
+    ///@}
+
+    /** @name out_header
+     * Set output header
+     * default true
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(bool, out_header)
+    ///@}
 
 protected:
     teca_detect_nodes();
