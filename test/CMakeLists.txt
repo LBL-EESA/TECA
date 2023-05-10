@@ -990,3 +990,15 @@ teca_add_test(test_temporal_index_select_mpi_space_time_partition
         "${TECA_DATA_ROOT}/test_temporal_index_select_prw_monthly" "prw" 2 2 181 363
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
+
+teca_add_test(test_mesh_join
+    EXEC_NAME test_mesh_join
+    SOURCES test_mesh_join.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_mesh_join
+        -i "${TECA_DATA_ROOT}/HighResMIP/TC_test/PSL/PSL.*\.nc"
+        "${TECA_DATA_ROOT}/HighResMIP/TC_test/U850/U850.*\.nc"
+        "${TECA_DATA_ROOT}/HighResMIP/TC_test/V850/V850.*\.nc"
+        -o "test_mesh_join.nc" -s 0,-1 -x lon -y lat -t time -c 4 -n 1 -p PSL U850 V850
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
