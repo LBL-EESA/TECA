@@ -1,4 +1,5 @@
 #include "teca_detect_nodes.h"
+
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
 
