@@ -165,6 +165,7 @@ public:
 protected:
     teca_detect_nodes();
 
+private:
     int detect_cyclones_unstructured(
         const_p_teca_cartesian_mesh mesh,
         SimpleGrid & grid,
