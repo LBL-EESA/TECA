@@ -6,6 +6,13 @@
 #include "teca_derived_quantity_numerics.h"
 #include "teca_mpi_manager.h"
 #include "teca_app_util.h"
+#include "teca_table_reduce.h"
+#include "teca_table_sort.h"
+#include "teca_table_writer.h"
+#include "teca_cartesian_mesh_regrid.h"
+#include "teca_cartesian_mesh_source.h"
+#include "teca_rename_variables.h"
+#include "teca_mesh_join.h"
 #include "teca_detect_nodes.h"
 
 #include <string>
@@ -14,7 +21,6 @@
 
 using namespace std;
 using namespace teca_derived_quantity_numerics;
-
 
 using boost::program_options::value;
 
@@ -44,11 +50,18 @@ int main(int argc, char **argv)
             " set of NetCDF CF2 files to process. When present data is read using the"
             " teca_cf_reader. Use one of either --input_file or --input_regex.\n")
 
+        ("candidate_file", value<string>()->default_value("candidates.csv"),
+            "\nfile path to write the storm candidates to. The extension determines"
+            " the file format. May be one of `.nc`, `.csv`, or `.bin`\n")
+
         ("x_axis_variable", value<std::string>()->default_value("lon"),
             "\nName of the variable to use for x-coordinates.\n")
 
         ("y_axis_variable", value<std::string>()->default_value("lat"),
             "\nName of the variable to use for y-coordinates.\n")
+
+        ("z_axis_variable", value<std::string>()->default_value("level"),
+            "\nName of the variable to use for z-coordinates.\n")
 
         ("n_threads", value<int>()->default_value(-1), "\nSets the thread pool"
             " size on each MPI rank. When the default value of -1 is used TECA"
@@ -63,7 +76,7 @@ int main(int argc, char **argv)
         ("closed_contour_cmd", value<string>()->default_value(""),
             "\nClosed contour commands [var,delta,dist,minmaxdist;...]\n")
         ("no_closed_contour_cmd", value<string>()->default_value(""),
-            "\nClosed contour commands [var,delta,dist,minmaxdist;...]\n")
+            "\nNo closed contour commands [var,delta,dist,minmaxdist;...]\n")
         ("threshold_cmd", value<string>()->default_value(""),
             "\nThreshold commands [var,op,value,dist;...]\n")
         ("output_cmd", value<string>()->default_value(""),
@@ -91,6 +104,11 @@ int main(int argc, char **argv)
 
         ("sea_level_pressure", value<string>()->default_value(""),
             "\nname of variable with sea level pressure\n")
+        ("geopotential_at_surface", value<string>()->default_value(""),
+            "\nname of variable with geopotential at the surface\n")
+        ("geopotential", value<string>()->default_value(""),
+            "\nname of variable with geopotential (or geopotential height)"
+            " for thickness calc\n")
         ("500mb_height", value<string>()->default_value(""),
             "\nname of variable with 500mb height for thickness calc\n")
         ("300mb_height", value<string>()->default_value(""),
@@ -99,6 +117,15 @@ int main(int argc, char **argv)
             "\nname of variable with surface wind x-component\n")
         ("surface_wind_v", value<string>()->default_value(""),
             "\nname of variable with surface wind y-component\n")
+
+        ("first_step", value<long>()->default_value(0),
+            "\nfirst time step to process\n")
+        ("last_step", value<long>()->default_value(-1),
+            "\nlast time step to process\n")
+        ("n_threads", value<int>()->default_value(-1),
+            "\nSets the thread pool size on each MPI rank."
+            " When the default value of -1 is used TECA will coordinate the thread"
+            " pools across ranks such each thread is bound to a unique physical core.\n")
 
         ("verbose", value<int>()->default_value(0),
             "\nUse 1 to enable verbose mode, otherwise 0.\n")
@@ -123,26 +150,43 @@ int main(int argc, char **argv)
     // set default options here so that command line options override
     // them. while we are at it connect the pipeline
     p_teca_cf_reader cf_reader = teca_cf_reader::New();
-    cf_reader->get_properties_description("cf_reader", advanced_opt_defs);
-
     p_teca_multi_cf_reader mcf_reader = teca_multi_cf_reader::New();
-    mcf_reader->get_properties_description("mcf_reader", advanced_opt_defs);
-
     p_teca_normalize_coordinates sim_coords = teca_normalize_coordinates::New();
-
-    p_teca_detect_nodes candidates = teca_detect_nodes::New();
-    candidates->get_properties_description("candidates", advanced_opt_defs);
-
+    p_teca_cartesian_mesh_source regrid_src_1 = teca_cartesian_mesh_source::New();
+    p_teca_cartesian_mesh_source regrid_src_2 = teca_cartesian_mesh_source::New();
+    p_teca_cartesian_mesh_regrid regrid_1 = teca_cartesian_mesh_regrid::New();
+    p_teca_cartesian_mesh_regrid regrid_2 = teca_cartesian_mesh_regrid::New();
+    p_teca_rename_variables rename_1 = teca_rename_variables::New();
+    p_teca_rename_variables rename_2 = teca_rename_variables::New();
+    p_teca_mesh_join join = teca_mesh_join::New();
     p_teca_derived_quantity thickness = teca_derived_quantity::New();
-    thickness->set_dependent_variables({"Z1000", "Z200"});
-    thickness->set_derived_variable("thickness");
-    thickness->get_properties_description("thickness", advanced_opt_defs);
-
     p_teca_l2_norm surf_wind = teca_l2_norm::New();
-    surf_wind->set_component_0_variable("UBOT");
-    surf_wind->set_component_1_variable("VBOT");
+    p_teca_detect_nodes candidates = teca_detect_nodes::New();
+    p_teca_table_reduce map_reduce = teca_table_reduce::New();
+    p_teca_table_sort sort = teca_table_sort::New();
+    p_teca_table_writer candidate_writer = teca_table_writer::New();
+
+    thickness->set_dependent_variables({"Z500", "Z300"});
+    thickness->set_derived_variable("thickness");
+    surf_wind->set_component_0_variable("VAR_10U");
+    surf_wind->set_component_1_variable("VAR_10V");
     surf_wind->set_l2_norm_variable("surface_wind");
+
+    cf_reader->get_properties_description("cf_reader", advanced_opt_defs);
+    mcf_reader->get_properties_description("mcf_reader", advanced_opt_defs);
+    regrid_src_1->get_properties_description("regrid_source_1", advanced_opt_defs);
+    regrid_src_2->get_properties_description("regrid_source_2", advanced_opt_defs);
+    regrid_1->get_properties_description("regrid_1", advanced_opt_defs);
+    regrid_2->get_properties_description("regrid_2", advanced_opt_defs);
+    rename_1->get_properties_description("rename_1", advanced_opt_defs);
+    rename_2->get_properties_description("rename_2", advanced_opt_defs);
+    join->get_properties_description("join", advanced_opt_defs);
+    thickness->get_properties_description("thickness", advanced_opt_defs);
     surf_wind->get_properties_description("surface_wind_speed", advanced_opt_defs);
+    candidates->get_properties_description("candidates", advanced_opt_defs);
+    map_reduce->get_properties_description("map_reduce", advanced_opt_defs);
+    sort->get_properties_description("sort", advanced_opt_defs);
+    candidate_writer->get_properties_description("candidate_writer", advanced_opt_defs);
 
     // package basic and advanced options for display
     options_description all_opt_defs(help_width, help_width - 4);
@@ -165,9 +209,19 @@ int main(int argc, char **argv)
     // options will override them
     cf_reader->set_properties("cf_reader", opt_vals);
     mcf_reader->set_properties("mcf_reader", opt_vals);
-    candidates->set_properties("candidates", opt_vals);
+    regrid_src_1->set_properties("regrid_source_1", opt_vals);
+    regrid_src_2->set_properties("regrid_source_2", opt_vals);
+    regrid_1->set_properties("regrid_1", opt_vals);
+    regrid_2->set_properties("regrid_2", opt_vals);
+    rename_1->set_properties("rename_1", opt_vals);
+    rename_2->set_properties("rename_2", opt_vals);
+    join->set_properties("join", opt_vals);
     thickness->set_properties("thickness", opt_vals);
     surf_wind->set_properties("surface_wind_speed", opt_vals);
+    candidates->set_properties("candidates", opt_vals);
+    map_reduce->set_properties("map_reduce", opt_vals);
+    sort->set_properties("sort", opt_vals);
+    candidate_writer->set_properties("candidate_writer", opt_vals);
 
     // now pass in the basic options, these are processed
     // last so that they will take precedence
@@ -175,6 +229,17 @@ int main(int argc, char **argv)
     // configure the reader
     bool have_file = opt_vals.count("input_file");
     bool have_regex = opt_vals.count("input_regex");
+    // some minimal check for missing options
+    if ((have_file && have_regex) || !(have_file || have_regex))
+    {
+        if (mpi_man.get_comm_rank() == 0)
+        {
+            TECA_FATAL_ERROR("Exactly one of --input_file or --input_regex can be specified. "
+                "Use --input_file to activate the multi_cf_reader (HighResMIP datasets) "
+                "and --input_regex to activate the cf_reader (CAM like datasets)")
+        }
+        return -1;
+    }
 
     if (!opt_vals["x_axis_variable"].defaulted())
     {
@@ -188,17 +253,24 @@ int main(int argc, char **argv)
         mcf_reader->set_y_axis_variable(opt_vals["y_axis_variable"].as<string>());
     }
 
-    p_teca_algorithm reader;
+    if (!opt_vals["z_axis_variable"].defaulted())
+    {
+        cf_reader->set_z_axis_variable(opt_vals["z_axis_variable"].as<string>());
+        mcf_reader->set_z_axis_variable(opt_vals["z_axis_variable"].as<string>());
+    }
+
     if (opt_vals.count("input_file"))
     {
         mcf_reader->set_input_file(opt_vals["input_file"].as<string>());
-        reader = mcf_reader;
+        mcf_reader->set_validate_time_axis(0);
+        sim_coords->set_input_connection(mcf_reader->get_output_port());
     }
     else if (opt_vals.count("input_regex"))
     {
         cf_reader->set_files_regex(opt_vals["input_regex"].as<string>());
-        reader = cf_reader;
+        sim_coords->set_input_connection(cf_reader->get_output_port());
     }
+    p_teca_algorithm head = sim_coords;
 
     if (!opt_vals["in_connect"].defaulted())
     {
@@ -229,15 +301,71 @@ int main(int argc, char **argv)
     }
     else
     {
-       if (opt_vals["500mb_height"].as<string>() == "")
-          TECA_FATAL_ERROR("Missing name of variable with 500mb height for thickness calc")
+       if (opt_vals["geopotential"].as<string>() == "")
+       {
+          if (opt_vals["300mb_height"].as<string>() == "")
+          {
+             TECA_FATAL_ERROR("Missing name of variable with 500mb height"
+                   " or with geopotential for thickness calc")
+          }
+          else
+          {
+             thickness->set_dependent_variable(1, opt_vals["300mb_height"].as<string>());
+          }
+          if (opt_vals["500mb_height"].as<string>() == "")
+          {
+             TECA_FATAL_ERROR("Missing name of variable with 300mb height"
+                   " or with geopotential for thickness calc")
+          }
+          else
+          {
+             thickness->set_dependent_variable(0, opt_vals["500mb_height"].as<string>());
+          }
+       }
        else
-          thickness->set_dependent_variable(0, opt_vals["500mb_height"].as<string>());
+       {
+          teca_metadata md = sim_coords->update_metadata();
+          teca_metadata coords;
+          md.get("coordinates", coords);
+          const_p_teca_variant_array x = coords.get("x");
+          const_p_teca_variant_array y = coords.get("y");
+          double bounds[6] = {0.0};
+          md.get("bounds", bounds, 6);
 
-       if (opt_vals["300mb_height"].as<string>() == "")
-          TECA_FATAL_ERROR("Missing name of variable with 300mb height for thickness calc")
-       else
-          thickness->set_dependent_variable(1, opt_vals["300mb_height"].as<string>());
+          //slice variables at pressure level of 300mb
+          regrid_src_1->set_bounds({bounds[0], bounds[1], bounds[2], bounds[3], 300, 300, 0, 0});
+          regrid_src_1->set_whole_extents({0lu, x->size() - 1lu, 0lu, y->size() - 1lu, 0lu, 0lu, 0lu, 0lu});
+          regrid_src_1->set_t_axis_variable(md);
+          regrid_src_1->set_t_axis(md);
+
+          regrid_1->set_interpolation_mode_linear();
+          regrid_1->set_input_connection(0, regrid_src_1->get_output_port());
+          regrid_1->set_input_connection(1, sim_coords->get_output_port());
+
+          rename_1->set_original_variable_names({opt_vals["geopotential"].as<string>()});
+          rename_1->set_new_variable_names({"Z300"});
+          rename_1->set_input_connection(regrid_1->get_output_port());
+
+          //slice variables at pressure level of 500mb
+          regrid_src_2->set_bounds({bounds[0], bounds[1], bounds[2], bounds[3], 500, 500, 0, 0});
+          regrid_src_2->set_whole_extents({0lu, x->size() - 1lu, 0lu, y->size() - 1lu, 0lu, 0lu, 0lu, 0lu});
+          regrid_src_2->set_t_axis_variable(md);
+          regrid_src_2->set_t_axis(md);
+
+          regrid_2->set_interpolation_mode_linear();
+          regrid_2->set_input_connection(0, regrid_src_2->get_output_port());
+          regrid_2->set_input_connection(1, sim_coords->get_output_port());
+
+          rename_2->set_original_variable_names({opt_vals["geopotential"].as<string>()});
+          rename_2->set_new_variable_names({"Z500"});
+          rename_2->set_input_connection(regrid_2->get_output_port());
+
+          //join the two new meshes
+          join->set_number_of_input_connections(2);
+          join->set_input_connection(0, rename_1->get_output_port());
+          join->set_input_connection(1, rename_2->get_output_port());
+          head = join;
+       }
 
        size_t n_var = thickness->get_number_of_dependent_variables();
        if (n_var != 2)
@@ -279,7 +407,10 @@ int main(int argc, char **argv)
        else
           surf_wind->set_component_1_variable(opt_vals["surface_wind_v"].as<string>());
 
-       std::string text = opt_vals["sea_level_pressure"].as<string>()+",min,0;"+surf_wind->get_l2_norm_variable()+",max,2";
+       if (opt_vals["geopotential_at_surface"].as<string>() == "")
+          TECA_FATAL_ERROR("Missing name of variable with geopotential at the surface")
+
+       std::string text = opt_vals["sea_level_pressure"].as<string>()+",min,0;"+surf_wind->get_l2_norm_variable()+",max,2;"+opt_vals["geopotential_at_surface"].as<string>()+",min,0";
        candidates->set_output_cmd(text);
     }
 
@@ -332,30 +463,35 @@ int main(int argc, char **argv)
     {
        candidates->set_out_header(opt_vals["out_header"].as<bool>());
     }
-    //candidates->set_thread_pool_size(opt_vals["n_threads"].as<int>());
     candidates->set_verbose(opt_vals["verbose"].as<int>());
     candidates->initialize();
 
-    // some minimal check for missing options
-    if ((have_file && have_regex) || !(have_file || have_regex))
-    {
-        if (mpi_man.get_comm_rank() == 0)
-        {
-            TECA_FATAL_ERROR("Extacly one of --input_file or --input_regex can be specified. "
-                "Use --input_file to activate the multi_cf_reader (HighResMIP datasets) "
-                "and --input_regex to activate the cf_reader (CAM like datasets)")
-        }
-        return -1;
-    }
+    if (!opt_vals["first_step"].defaulted())
+        map_reduce->set_start_index(opt_vals["first_step"].as<long>());
+
+    if (!opt_vals["last_step"].defaulted())
+        map_reduce->set_end_index(opt_vals["last_step"].as<long>());
+
+    if (!opt_vals["n_threads"].defaulted())
+        map_reduce->set_thread_pool_size(opt_vals["n_threads"].as<int>());
+    else
+        map_reduce->set_thread_pool_size(-1);
+
+    candidate_writer->set_file_name(opt_vals["candidate_file"].as<string>());
+    candidate_writer->set_output_format_auto();
+
+    sort->set_index_column("storm_id");
 
     // connect all the stages
-    sim_coords->set_input_connection(reader->get_output_port());
-    thickness->set_input_connection(sim_coords->get_output_port());
+    thickness->set_input_connection(head->get_output_port());
     surf_wind->set_input_connection(thickness->get_output_port());
     candidates->set_input_connection(surf_wind->get_output_port());
+    map_reduce->set_input_connection(candidates->get_output_port());
+    candidate_writer->set_input_connection(map_reduce->get_output_port());
+    sort->set_input_connection(candidate_writer->get_output_port());
 
     // run the pipeline
-    candidates->update();
+    candidate_writer->update();
 
     return 0;
 }
