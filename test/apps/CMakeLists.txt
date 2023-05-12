@@ -134,12 +134,6 @@ teca_add_app_test(test_tc_trajectory_app
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
     REQ_TECA_DATA)
 
-teca_add_app_test(test_detect_nodes_app teca_detect_nodes
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_detect_nodes_app.sh
-    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
-    FEATURES ${TECA_HAS_TELITE} ${TECA_HAS_NETCDF}
-    REQ_TECA_DATA)
-
 teca_add_app_test(test_detect_nodes_app_mcf teca_detect_nodes
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_detect_nodes_app_mcf.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
