@@ -33,6 +33,9 @@ if (TECA_HAS_DATA)
 
     configure_file(${TECA_DATA_ROOT}/ERA5_lapse_rate_test.mcf.in
          ${CMAKE_CURRENT_BINARY_DIR}/ERA5_lapse_rate_test.mcf)
+
+    configure_file(${TECA_DATA_ROOT}/ERA5/ERA5_TC_test.mcf.in
+         ${CMAKE_CURRENT_BINARY_DIR}/ERA5_TC_test.mcf)
 endif()
 
 teca_add_test(test_pipeline_time_average
