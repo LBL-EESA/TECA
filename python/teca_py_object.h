@@ -376,6 +376,40 @@ public:
     }
 };
 
+
+/**converts a squence into a fixed length C array. The length and type of the
+ * sequence must be as expected.
+ */
+template <typename py_t, typename cpp_t>
+int sequence_to_array(PyObject *input, cpp_t *ptr, int n_elem)
+{
+    // check the number of elements
+    if (!PySequence_Check(input) || (PyObject_Length(input) != n_elem))
+    {
+        TECA_PY_ERROR_NOW(PyExc_TypeError,
+            "Expecting a sequence with " << n_elem << " elements");
+        return -1;
+    }
+
+    // convert each element
+    for (int i = 0; i < n_elem; ++i)
+    {
+        PyObject *o = PySequence_GetItem(input, i);
+        if (!teca_py_object::cpp_tt<py_t>::is_type(o))
+        {
+            Py_XDECREF(o);
+            TECA_PY_ERROR_NOW(PyExc_ValueError,
+                "Expecting a sequence of " << typeid(cpp_t).name() << sizeof(cpp_t))
+            return -1;
+        }
+
+        ptr[i] = teca_py_object::cpp_tt<py_t>::value(o);
+        Py_DECREF(o);
+    }
+
+    return 0;
+}
+
 };
 
 #endif
