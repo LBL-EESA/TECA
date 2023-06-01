@@ -26,7 +26,7 @@ set +x
 while [ -n "$(ps -p $ctest_pid -o pid=)" ]
 do
   echo "ctest pid=$ctest_pid alive"
-  sleep 30s
+  sleep 30
 done
 
 # return the exit code from ctest
