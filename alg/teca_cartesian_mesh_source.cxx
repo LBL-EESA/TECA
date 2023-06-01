@@ -674,6 +674,15 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
         }
     }
 
+    // get the actual bounds
+    double bounds[6] = {0.0};
+    in_x->get(req_extent[0], bounds[0]);
+    in_x->get(req_extent[1], bounds[1]);
+    in_y->get(req_extent[2], bounds[2]);
+    in_y->get(req_extent[3], bounds[3]);
+    in_z->get(req_extent[4], bounds[4]);
+    in_z->get(req_extent[5], bounds[5]);
+
     // get requested time extent
     unsigned long temporal_extent[2] = {0ul};
     double temporal_bounds[2] = {0.0};
@@ -765,6 +774,7 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
     // set metadata
     mesh->set_whole_extent(md_whole_extent);
     mesh->set_extent(req_extent);
+    mesh->set_bounds(bounds);
     mesh->set_temporal_bounds(temporal_bounds);
     mesh->set_temporal_extent(temporal_extent);
     mesh->set_calendar(calendar);
