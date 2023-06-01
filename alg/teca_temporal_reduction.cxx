@@ -1783,7 +1783,7 @@ teca_metadata teca_cpp_temporal_reduction::get_output_metadata(
     // sanity checks
     if (this->point_arrays.empty())
     {
-        TECA_ERROR("No arrays specified")
+        TECA_FATAL_ERROR("No point arrays were specified.")
         return teca_metadata();
     }
 
@@ -1812,7 +1812,7 @@ teca_metadata teca_cpp_temporal_reduction::get_output_metadata(
     std::string t_units;
     if (t_atts.get("units", t_units))
     {
-        TECA_ERROR("Failed to get units")
+        TECA_FATAL_ERROR("Failed to get units")
         return teca_metadata();
     }
 
@@ -1822,7 +1822,7 @@ teca_metadata teca_cpp_temporal_reduction::get_output_metadata(
 
     if (!it)
     {
-        TECA_ERROR("Failed to allocate an instance of the \""
+        TECA_FATAL_ERROR("Failed to allocate an instance of the \""
             << this->interval << "\" iterator")
         return teca_metadata();
     }
@@ -1837,14 +1837,14 @@ teca_metadata teca_cpp_temporal_reduction::get_output_metadata(
         }
         else
         {
-            TECA_ERROR("Failed to set the number of steps")
+            TECA_FATAL_ERROR("Failed to set the number of steps")
             return teca_metadata();
         }
     }
 
     if (it->initialize(t, t_units, cal, 0, -1))
     {
-        TECA_ERROR("Failed to initialize the \""
+        TECA_FATAL_ERROR("Failed to initialize the \""
             << this->interval << "\" iterator")
         return teca_metadata();
     }
@@ -1900,7 +1900,7 @@ teca_metadata teca_cpp_temporal_reduction::get_output_metadata(
         teca_metadata in_atts;
         if (atts.get(array, in_atts))
         {
-            TECA_ERROR("Failed to get the attributes for \""
+            TECA_FATAL_ERROR("Failed to get the attributes for \""
                 << array << "\"")
             return teca_metadata();
         }
@@ -1911,7 +1911,7 @@ teca_metadata teca_cpp_temporal_reduction::get_output_metadata(
             int tc;
             if (in_atts.get("type_code", tc))
             {
-                TECA_ERROR("Failed to get type_code")
+                TECA_FATAL_ERROR("Failed to get type_code")
                 return teca_metadata();
             }
 

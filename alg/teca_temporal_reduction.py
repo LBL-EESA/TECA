@@ -997,13 +997,13 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
             sys.stderr.write('[%d] teca_temporal_reduction::report\n' % (rank))
 
         # sanity checks
-        if self.interval_name is None:
+        if not self.interval_name:
             raise RuntimeError('No interval specified')
 
-        if self.operator_name is None:
+        if not self.operator_name:
             raise RuntimeError('No operator specified')
 
-        if self.point_arrays is None:
+        if not self.point_arrays:
             raise RuntimeError('No arrays specified')
 
         md_out = md_in[0]

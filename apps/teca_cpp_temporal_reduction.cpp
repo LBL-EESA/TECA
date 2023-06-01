@@ -138,16 +138,6 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    if (mpi_man.get_comm_rank() == 0 && opt_vals["verbose"].as<int>())
-    {
-       std::cerr << "running on " << mpi_man.get_comm_size() << " ranks" << std::endl;
-       std::cerr << "file_layout=" << opt_vals["file_layout"].as<string>() << std::endl;
-       std::cerr << "steps_per_file=" << opt_vals["steps_per_file"].as<long>() << std::endl;
-       std::cerr << "interval=" << opt_vals["interval"].as<string>() << std::endl;
-       std::cerr << "operator=" << opt_vals["operator"].as<string>() << std::endl;
-       std::cerr << "point_arrays=" << opt_vals["point_arrays"].as<std::vector<std::string>>()<< std::endl;
-    }
-
     mcf_reader->set_properties("multi_cf_reader", opt_vals);
     cf_reader->set_properties("cf_reader", opt_vals);
     vv_mask->set_properties("valid_value_mask", opt_vals);
@@ -263,10 +253,13 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    if (opt_vals.count("point_arrays"))
+    if (!opt_vals.count("point_arrays"))
     {
-        cf_writer->set_point_arrays(opt_vals["point_arrays"].as<std::vector<std::string>>());
+        TECA_FATAL_ERROR("The following command line arguments are required: --point_arrays")
+        return -1;
     }
+
+    cf_writer->set_point_arrays(opt_vals["point_arrays"].as<std::vector<std::string>>());
 
     cf_writer->set_index_executive_compatability(1);
     cf_writer->set_number_of_spatial_partitions(opt_vals["spatial_partitions"].as<int>());
@@ -277,6 +270,16 @@ int main(int argc, char **argv)
     else
     {
         cf_writer->set_partitioner(teca_cf_writer::temporal);
+    }
+
+    if (mpi_man.get_comm_rank() == 0 && opt_vals["verbose"].as<int>())
+    {
+       std::cerr << "running on " << mpi_man.get_comm_size() << " ranks" << std::endl;
+       std::cerr << "file_layout=" << opt_vals["file_layout"].as<string>() << std::endl;
+       std::cerr << "steps_per_file=" << opt_vals["steps_per_file"].as<long>() << std::endl;
+       std::cerr << "interval=" << opt_vals["interval"].as<string>() << std::endl;
+       std::cerr << "operator=" << opt_vals["operator"].as<string>() << std::endl;
+       std::cerr << "point_arrays=" << opt_vals["point_arrays"].as<std::vector<std::string>>()<< std::endl;
     }
 
     cf_writer->update();
