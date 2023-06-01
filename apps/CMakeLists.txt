@@ -66,3 +66,4 @@ teca_add_python_app(teca_potential_intensity
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_TCPYPI})
 
 teca_add_python_app(teca_lapse_rate)
+teca_add_python_app(teca_spectral_filter FEATURES ${TECA_HAS_NETCDF})

@@ -117,7 +117,8 @@ int teca_cf_layout_manager::create(const std::string &file_name,
 // --------------------------------------------------------------------------
 int teca_cf_layout_manager::define(const teca_metadata &md_in,
     unsigned long *wextent, const std::vector<std::string> &point_arrays,
-    const std::vector<std::string> &info_arrays, int compression_level)
+    const std::vector<std::string> &info_arrays,
+    int collective_buffer, int compression_level)
 {
     if (this->defined())
         return 0;
@@ -435,10 +436,13 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
         }
 
 #if defined(TECA_HAS_NETCDF_MPI)
+        int access_mode = collective_buffer ? NC_COLLECTIVE : NC_INDEPENDENT;
         if (is_init && ((ierr = nc_var_par_access(this->handle.get(),
-            var_id, NC_INDEPENDENT)) != NC_NOERR))
+            var_id, access_mode)) != NC_NOERR))
         {
-            TECA_ERROR("Failed to set inidependant mode on variable \"" << name << "\"")
+            TECA_ERROR("Failed to set "
+                << (collective_buffer ? "collective" : "independant")
+                << " access  mode on variable \"" << name << "\"")
             return -1;
         }
 #endif

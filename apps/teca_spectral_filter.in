@@ -1,0 +1,228 @@
+#!/usr/bin/env python@TECA_PYTHON_VERSION@
+try:
+    from mpi4py import MPI
+    rank = MPI.COMM_WORLD.Get_rank()
+    n_ranks = MPI.COMM_WORLD.Get_size()
+except ImportError:
+    rank = 0
+    n_ranks = 1
+from teca import *
+import argparse
+import sys
+import os
+
+teca_profiler.initialize()
+teca_profiler.start_event('spectral_filter')
+
+# parse the command line
+parser = argparse.ArgumentParser(
+    description='Reduce the time axis of a NetcCDF CF2 dataset '
+                'using a predfined interval and reduction operator',
+    formatter_class=lambda prog: argparse.ArgumentDefaultsHelpFormatter(
+                        prog, max_help_position=4, width=100))
+
+parser.add_argument('--input_file', type=str, required=False,
+                    help='a teca_multi_cf_reader configuration file identifying'
+                         ' the set of NetCDF CF2 files to process. When present'
+                         ' data is read using the teca_multi_cf_reader. Use one'
+                         ' of either --input_file or --input_regex.')
+
+parser.add_argument('--input_regex', type=str, required=False,
+                    help='a teca_cf_reader regex identifying the set of NetCDF'
+                         ' CF2 files to process. When present data is read'
+                         ' using the teca_cf_reader. Use one of either'
+                         ' --input_file or --input_regex.')
+
+parser.add_argument('--point_arrays', nargs='+', required=True,
+                    help='list of point centered arrays to process.')
+
+parser.add_argument('--output_file', type=str, required=True,
+                    help='A path and file name pattern for the output NetCDF'
+                         ' files. %%t%% is replaced with a human readable date'
+                         ' and time corresponding to the time of the first time'
+                         ' step in the file. Use --date_format to change'
+                         ' the formatting')
+
+parser.add_argument('--file_layout', type=str, default='yearly',
+                    help='Selects the size and layout of the set of output'
+                         ' files. May be one of number_of_steps, daily,'
+                         ' monthly, seasonal, or yearly. Files are structured'
+                         ' such that each file contains one of the selected'
+                         ' interval. For the number_of_steps option use'
+                         ' --steps_per_file.')
+
+parser.add_argument('--filter_type', type=str, default='low_pass',
+                    help='Set the filter type. Can be one of \'low_pass\''
+                         ' or \'high_pass\'')
+
+parser.add_argument('--filter_order', type=float, default=8,
+                    help='Set the order of the filter used.')
+
+parser.add_argument('--critical_frequency', type=float, required=False,
+                    help='the critical frequency of the filter in Hz')
+
+parser.add_argument('--critical_period', type=float, required=False,
+                    help='the critical frequency of the filter in Hz is'
+                         ' calculated from this period. See also'
+                         ' --critial_period_units')
+
+parser.add_argument('--critical_period_units', type=str, required=False,
+                    help='the time units (seconds, minutes, hours, days) to use'
+                         ' when calculating the critical frequency from the'
+                         ' critical period. See also --critical_period')
+
+parser.add_argument('--steps_per_file', type=int, default=128,
+                    help='number of time steps to write to each output '
+                         'file')
+
+parser.add_argument('--x_axis_variable', type=str, default='lon',
+                    help='name of the variable to use for x-coordinates')
+
+parser.add_argument('--y_axis_variable', type=str, default='lat',
+                    help='name of the variable to use for y-coordinates')
+
+parser.add_argument('--z_axis_variable', type=str, default='',
+                    help='name of z coordinate variable. When processing 3D set this to'
+                         ' the variable containing vertical coordinates. When empty the'
+                         ' data will be treated as 2D.')
+
+parser.add_argument('--t_axis_variable', type=str, default='time',
+                    help='name of the variable to use for t-coordinates')
+
+parser.add_argument('--spatial_partitions', type=int, default=0,
+                    help='Sets the number of spatial partitions. Use zero for'
+                         ' automatic partitioning and 1 for no partitioning')
+
+parser.add_argument('--partition_x', default=False, action='store_true',
+                    help='Partition spatially in the x-direction')
+
+parser.add_argument('--collective_buffer', type=int, default=-1,
+                    help='enables collective buffering during write. Use -1'
+                         ' to enable automatically, 0 to disable, and 1 to'
+                         ' enable')
+
+parser.add_argument('--verbose', type=int, default=0,
+                    help='enable verbose mode.')
+
+# prevent spew when running under mpi
+try:
+    args = parser.parse_args()
+except Exception:
+    if rank == 0: raise
+
+in_files = args.input_regex
+out_files = args.output_file
+layout = args.file_layout
+steps_per_file = args.steps_per_file
+
+x_axis_var = args.x_axis_variable
+y_axis_var = args.y_axis_variable
+z_axis_var = args.z_axis_variable
+t_axis_var = args.t_axis_variable
+
+partitioner = teca_cf_writer.spatial
+
+spatial_partitions = args.spatial_partitions
+
+if args.partition_x:
+    partition_x = 1
+else:
+    partition_x = 0
+
+temporal_partitions = 1
+collective_buffer = args.collective_buffer
+
+verbose = args.verbose
+
+filter_type = args.filter_type
+filter_order = args.filter_order
+critical_frequency = args.critical_frequency
+critical_period = args.critical_period
+critical_period_units = args.critical_period_units
+
+point_arrays = args.point_arrays
+if not isinstance(point_arrays, list):
+    point_arrays = list(point_arrays)
+
+out_arrays = []
+for array in point_arrays:
+    out_arrays.append( array )
+    out_arrays.append( array + '_%s' % (filter_type) )
+
+
+# give each MPI rank a GPU
+n_threads = 1
+if not 'TECA_RANKS_PER_DEVICE' in os.environ:
+    os.environ['TECA_RANKS_PER_DEVICE'] = '-1'
+
+
+
+if verbose and rank == 0:
+    sys.stderr.write('running on %d ranks' % (n_ranks))
+    sys.stderr.write('file_layout=%s\n'%(layout))
+    sys.stderr.write('steps_per_file=%d\n' % (steps_per_file))
+    sys.stderr.write('point_arrays=%s\n' % (str(point_arrays)))
+    sys.stderr.write('out_arrays=%s\n' % (str(out_arrays)))
+    sys.stderr.write('spatial_partitions=%d\n' % (spatial_partitions))
+    sys.stderr.write('partition_x=%d\n' % (partition_x))
+    sys.stderr.write('temporal_parititons=%d\n' % (temporal_partitions))
+    sys.stderr.write('collective_buffer=%d\n' % (collective_buffer))
+    sys.stderr.write('filter_type=%s\n' % (filter_type))
+    sys.stderr.write('filter_order=%d\n' % (int(filter_order)))
+    sys.stderr.write('critical_frequency=%s\n' % (str(critical_frequency)))
+    sys.stderr.write('critical_period=%s\n' % (str(critical_period)))
+    sys.stderr.write('critical_period_units=%s\n' % (critical_period_units))
+
+if args.input_regex:
+    cfr = teca_cf_reader.New()
+    cfr.set_files_regex(args.input_regex)
+elif args.input_file:
+    cfr = teca_multi_cf_reader.New()
+    cfr.set_input_file(args.input_file)
+else:
+    if rank == 0:
+        raise RuntimeError('Missing one of --input_file or --input_regex')
+
+cfr.set_x_axis_variable(x_axis_var)
+cfr.set_y_axis_variable(y_axis_var)
+cfr.set_z_axis_variable(z_axis_var)
+cfr.set_t_axis_variable(t_axis_var)
+cfr.set_collective_buffer(collective_buffer)
+cfr.set_verbose(verbose)
+
+#vvm = teca_valid_value_mask.New()
+#vvm.set_input_connection(cfr.get_output_port())
+#vvm.set_verbose(1 if verbose > 1 else 0)
+
+upd = teca_unpack_data.New()
+upd.set_input_connection(cfr.get_output_port())
+upd.set_verbose(verbose)
+
+filt = teca_spectral_filter.New()
+filt.set_input_connection(upd.get_output_port())
+if critical_period is None:
+    filt.set_filter_parameters_hz(filter_type, filter_order,
+                                  critical_frequency)
+else:
+    filt.set_filter_parameters(filter_type, filter_order,
+                               critical_period, critical_period_units)
+filt.set_verbose(verbose)
+filt.set_point_arrays(point_arrays)
+
+cfw = teca_cf_writer.New()
+cfw.set_input_connection(filt.get_output_port())
+cfw.set_verbose(verbose)
+cfw.set_thread_pool_size(1)
+cfw.set_layout(layout)
+cfw.set_steps_per_file(steps_per_file)
+cfw.set_file_name(out_files)
+cfw.set_point_arrays(out_arrays)
+cfw.set_partitioner(partitioner)
+cfw.set_number_of_spatial_partitions(spatial_partitions)
+cfw.set_number_of_temporal_partitions(1)
+cfw.set_partition_x(partition_x)
+cfw.set_collective_buffer(collective_buffer)
+cfw.update()
+
+teca_profiler.end_event('spectral_filter')
+teca_profiler.finalize()

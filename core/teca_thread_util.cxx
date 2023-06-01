@@ -403,8 +403,7 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
     // determine the number of threads to service each CUDA GPU
     int default_per_device = 8;
 
-    if ((n_per_device < 1) &&
-        !teca_system_util::get_environment_variable
+    if (!teca_system_util::get_environment_variable
         ("TECA_THREADS_PER_DEVICE", n_per_device) &&
         verbose && (rank == 0))
     {
@@ -412,7 +411,8 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
     }
 
     int n_device_threads = n_cuda_devices *
-        (n_per_device < 1 ? default_per_device : n_per_device);
+        (n_per_device < 0 ? default_per_device : n_per_device);
+
 #endif
 
 #if !defined(_GNU_SOURCE)
@@ -458,7 +458,7 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
     }
 
 #if defined(TECA_HAS_CUDA)
-    // assign CUDA device or a CPU core to eqch thread
+    // assign CUDA device or a CPU core to each thread
     if ((verbose > 1) && (n_threads < n_cuda_devices))
     {
         TECA_WARNING(<< n_threads

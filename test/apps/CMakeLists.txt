@@ -785,6 +785,25 @@ teca_add_app_test(test_lapse_rate_app teca_lapse_rate
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX}
     REQ_TECA_DATA)
 
+teca_add_app_test(test_spectral_filter_app
+    teca_spectral_filter
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_spectral_filter_app.sh
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
+    "prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc"
+    prw high_pass 0 5 days
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
+    REQ_TECA_DATA)
+
+teca_add_app_test(test_spectral_filter_app_mpi
+    teca_spectral_filter
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_spectral_filter_app.sh
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT}
+    "prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc"
+    prw high_pass 0 5 days ${MPIEXEC} ${TEST_CORES}
+    FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${MPI4Py_FOUND}
+    REQ_TECA_DATA)
+
+
 set(app_names
     teca_bayesian_ar_detect
     teca_cf_restripe
@@ -792,9 +811,11 @@ set(app_names
     teca_deeplab_ar_detect
     teca_event_filter
     teca_integrated_vapor_transport
+    teca_lapse_rate
     teca_metadata_probe
     teca_potential_intensity
     teca_profile_explorer
+    teca_spectral_filter
     teca_tc_detect
     teca_tc_stats
     teca_tc_trajectory
@@ -802,8 +823,7 @@ set(app_names
     teca_tc_wind_radii
     teca_tc_wind_radii_stats
     teca_temporal_reduction
-    teca_cpp_temporal_reduction
-    teca_lapse_rate)
+    teca_cpp_temporal_reduction)
 
 foreach (app_name ${app_names})
 

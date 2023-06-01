@@ -536,3 +536,13 @@ teca_add_test(py_test_cartesian_mesh_multi_dim
 teca_add_test(py_test_lapse_rate
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_lapse_rate.py
     32 32 10 1 "py_test_lapse_rate_%t%.%e%")
+
+teca_add_test(py_test_spectral_filter_low_pass_analytic
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_spectral_filter.py
+    90 45 2 1000 364 35 15 50 365 1 100 days low_pass 0 analytic
+    "${TECA_DATA_ROOT}/test_spectral_filter_low_pass" 1)
+
+teca_add_test(py_test_spectral_filter_high_pass_analytic
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_spectral_filter.py
+    90 45 2 1000 364 35 15 50 365 1 100 days high_pass 0 analytic
+    "${TECA_DATA_ROOT}/test_spectral_filter_high_pass" 1)

@@ -42,7 +42,7 @@ public:
             variables(), x_axis_variable(), y_axis_variable(),
             z_axis_variable(), t_axis_variable(), periodic_in_x(-1),
             calendar(), t_units(), filename_time_template(),
-            clamp_dimensions_of_one(-1)
+            clamp_dimensions_of_one(-1), collective_buffer(-1)
             {}
 
         /**
@@ -85,6 +85,9 @@ public:
 
         /// return the internal value if set otherwise the default
         int get_clamp_dimensions_of_one(int default_val) const;
+
+        /// return the internal value if set otherwise the default
+        int get_collective_buffer(int default_val) const;
 
         /// return the internal value if set otherwise the default
         const std::vector<double> &get_target_bounds(
@@ -133,6 +136,7 @@ public:
         std::string t_units;                /// time axis units
         std::string filename_time_template; /// for deriving time from the filename
         int clamp_dimensions_of_one;        /// ignore out of bounds requests if dim is 1
+        int collective_buffer;              /// use collective buffering for read
         std::vector<double> target_bounds;  /// transformed coordinate axis bounds
         std::string target_x_axis_variable; /// name of the transformed x-axis
         std::string target_y_axis_variable; /// name of the transformed x-axis
@@ -287,6 +291,16 @@ int teca_multi_cf_reader_internals::cf_reader_options::get_clamp_dimensions_of_o
 }
 
 // --------------------------------------------------------------------------
+int teca_multi_cf_reader_internals::cf_reader_options::get_collective_buffer(
+    int default_val) const
+{
+    if (collective_buffer < 0)
+        return default_val;
+
+    return collective_buffer;
+}
+
+// --------------------------------------------------------------------------
 const std::vector<double> &
 teca_multi_cf_reader_internals::cf_reader_options::get_target_bounds(
     const std::vector<double> &default_val) const
@@ -382,6 +396,7 @@ void teca_multi_cf_reader_internals::cf_reader_options::to_stream(
     bs.pack(t_units);
     bs.pack(filename_time_template);
     bs.pack(clamp_dimensions_of_one);
+    bs.pack(collective_buffer);
     bs.pack(target_bounds);
     bs.pack(target_x_axis_variable);
     bs.pack(target_y_axis_variable);
@@ -409,6 +424,7 @@ void teca_multi_cf_reader_internals::cf_reader_options::from_stream(
     bs.unpack(t_units);
     bs.unpack(filename_time_template);
     bs.unpack(clamp_dimensions_of_one);
+    bs.unpack(collective_buffer);
     bs.unpack(target_bounds);
     bs.unpack(target_x_axis_variable);
     bs.unpack(target_y_axis_variable);
@@ -657,6 +673,27 @@ int teca_multi_cf_reader_internals::cf_reader_options::parse_line(
         }
 
         clamp_dimensions_of_one = val ? 1 : 0;
+
+        return 1;
+    }
+    else if (strncmp("collective_buffer", line, 17) == 0)
+    {
+        if (!(collective_buffer < 0))
+        {
+            TECA_ERROR("Duplicate collective_buffer label found on line " << line_no)
+            return -1;
+        }
+
+        std::string tmp;
+        bool val = false;
+        if (teca_string_util::extract_value<std::string>(line, tmp)
+            || teca_string_util::string_tt<bool>::convert(tmp.c_str(), val))
+        {
+            TECA_ERROR("Syntax error when parsing collective_buffer on line " << line_no)
+            return -1;
+        }
+
+        collective_buffer = val ? 1 : 0;
 
         return 1;
     }
@@ -951,6 +988,7 @@ teca_multi_cf_reader::teca_multi_cf_reader() :
     periodic_in_x(0),
     max_metadata_ranks(-1),
     clamp_dimensions_of_one(0),
+    collective_buffer(0),
     validate_time_axis(1),
     validate_spatial_coordinates(1),
     internals(new teca_multi_cf_reader_internals)
@@ -1011,6 +1049,10 @@ void teca_multi_cf_reader::get_properties_description(
         TECA_POPTS_GET(int, prefix, clamp_dimensions_of_one,
             "If set clamp requested axis extent in where the request is out of"
             " bounds and the coordinate array dimension is 1.")
+        TECA_POPTS_GET(int, prefix, collective_buffer,
+            "When set, enables colective buffering. This can only be used with"
+            " the spatial partitoner when the number of MPI ranks is equal to the"
+            " number of spatial partitons and running with a single thread.")
         TECA_POPTS_MULTI_GET(std::vector<double>, prefix, target_bounds,
             "6 double precision values that define the output coordinate axis"
             " bounds, specified in the following order : [x0 x1 y0 y1 z0 z1]."
@@ -1066,6 +1108,7 @@ void teca_multi_cf_reader::set_properties(const std::string &prefix,
     TECA_POPTS_SET(opts, int, prefix, periodic_in_x)
     TECA_POPTS_SET(opts, int, prefix, max_metadata_ranks)
     TECA_POPTS_SET(opts, int, prefix, clamp_dimensions_of_one)
+    TECA_POPTS_SET(opts, int, prefix, collective_buffer)
     TECA_POPTS_SET(opts, std::vector<double>, prefix, target_bounds)
     TECA_POPTS_SET(opts, std::string, prefix, target_x_axis_variable)
     TECA_POPTS_SET(opts, std::string, prefix, target_y_axis_variable)
@@ -1643,6 +1686,49 @@ int teca_multi_cf_reader::get_clamp_dimensions_of_one() const
 }
 
 // --------------------------------------------------------------------------
+void teca_multi_cf_reader::set_collective_buffer(int var)
+{
+    if (this->collective_buffer != var)
+    {
+        this->collective_buffer = var;
+        this->set_modified();
+    }
+}
+
+// --------------------------------------------------------------------------
+int teca_multi_cf_reader::get_collective_buffer() const
+{
+    // settings from the MCF file should override algorithm properties
+    // however, this may be called any time before or after the readers
+    // are set up.
+
+    if (this->internals->geometry_reader.empty())
+    {
+        // the geometry reader wasn't established yet, fall back to
+        // the current property value
+        return this->collective_buffer;
+    }
+
+    // get the geometry reader instance
+    teca_multi_cf_reader_internals::reader_map_t::iterator it =
+        this->internals->readers.find(this->internals->geometry_reader);
+
+    if (it == this->internals->readers.end())
+    {
+        TECA_ERROR("No reader named \""
+            << this->internals->geometry_reader << "\" found")
+        return -1;
+    }
+
+    // values in the configuration file take precedence over the member variable
+    // with in the configuration file, section options take precedence over
+    // globally scoped options
+    return it->second->options.get_collective_buffer(
+        this->internals->global_options.get_collective_buffer(
+            this->collective_buffer));
+}
+
+// --------------------------------------------------------------------------
 void teca_multi_cf_reader::set_target_bounds(const std::vector<double> &val)
 {
     if (this->target_bounds != val)
@@ -2142,6 +2228,11 @@ teca_metadata teca_multi_cf_reader::get_output_metadata(
             inst->options.get_clamp_dimensions_of_one(
                 global_options.get_clamp_dimensions_of_one(
                     this->clamp_dimensions_of_one)));
+
+        inst->reader->set_collective_buffer(
+            inst->options.get_collective_buffer(
+                global_options.get_collective_buffer(
+                    this->collective_buffer)));
 
         if (!this->t_values.empty())
             inst->reader->set_t_values(this->t_values);
