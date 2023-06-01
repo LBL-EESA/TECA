@@ -881,6 +881,28 @@ TECA_PY_CONST_CAST(teca_database)
 %{
 struct coordinate_util
 {
+static
+PyObject *bounds_to_extent(const double bounds[6],
+    const const_p_teca_variant_array &x, const const_p_teca_variant_array &y,
+    const const_p_teca_variant_array &z)
+{
+    unsigned long extent[6] = {0ul};
+    if (teca_coordinate_util::bounds_to_extent(bounds, x, y, z, extent))
+    {
+        TECA_PY_ERROR_NOW(PyExc_RuntimeError,
+            "Failed to get extent from bounds " << bounds)
+        return nullptr;
+    }
+
+    teca_py_gil_state gil;
+
+    PyObject *extent_tup = PyTuple_New(6);
+    for (int i = 0; i < 6; ++i)
+        PyTuple_SET_ITEM(extent_tup, i, PyLong_FromUnsignedLong(extent[i]));
+
+    return extent_tup;
+}
+
 // given a human readable date string in YYYY-MM-DD hh:mm:ss format
 // amd a list of floating point offset times in the specified calendar
 // and units find the closest time step. return 0 if successful
