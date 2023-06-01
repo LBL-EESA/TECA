@@ -331,7 +331,9 @@ teca_metadata teca_cf_writer::get_output_metadata(unsigned int port,
     std::string up_initializer_key;
     if (md_in.get("index_initializer_key", up_initializer_key))
     {
-        TECA_FATAL_ERROR("Failed to locate index_initializer_key")
+        TECA_FATAL_ERROR("Invalid metadata. Failed to locate the"
+            " index_initializer_key. This indicates a failure in the"
+            " upstream execution.")
         return teca_metadata();
     }
 

@@ -2600,10 +2600,12 @@ datasets with different time spans is similar.
 
 TECA's Spatial parallelism features allow one to partition the spatial domain
 to increase parallelism. This can be helpful when processing high spatial
-resolution data over long time intervals. With spatial partitioning enabled,
-run the application with a factor N > 1 more MPI ranks than output time
-intervals. In that case the partitioner will create N spatial partitions, one
-per MPI rank.
+resolution data over long time intervals since these result in increased memory
+usage per MPI rank. If the application experiences an OOM condition when
+processing a long reduction interval on high spatial resolution grids, spatial
+parallelism can help.  With spatial partitioning enabled, run the application
+with a factor N > 1 more MPI ranks than output time intervals. In that case the
+partitioner will create N spatial partitions, one per MPI rank.
 
 Inputs
 ~~~~~~
