@@ -107,8 +107,8 @@ int main(int argc, char **argv)
 
     source->append_field_generator({"labels",
         teca_array_attributes(teca_variant_array_code<int>::get(),
-            teca_array_attributes::point_centering, 0, "unitless",
-            "labeled data", "the labels define rectangular tiles"),
+            teca_array_attributes::point_centering, 0, {1,1,0,1},
+            "unitless", "labeled data", "the labels define rectangular tiles"),
         labeler});
 
     p_teca_normalize_coordinates norm_coord = teca_normalize_coordinates::New();

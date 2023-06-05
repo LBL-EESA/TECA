@@ -36,6 +36,8 @@ int main(int argc, char **argv)
     mask->set_input_connection(src->get_output_port());
     mask->set_shape_file(shape_file);
     mask->set_mask_variables({mask_name});
+    mask->set_normalize_coordinates(0);
+    mask->set_verbose(1);
 
     p_teca_normalize_coordinates coords = teca_normalize_coordinates::New();
     coords->set_input_connection(mask->get_output_port());

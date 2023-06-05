@@ -11,6 +11,7 @@
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
 #include "teca_variant_array_util.h"
+#include "teca_array_attributes.h"
 
 #include <cmath>
 #include <functional>
@@ -110,8 +111,8 @@ int main(int argc, char **argv)
 
     mesh->append_field_generator({"q",
         teca_array_attributes(teca_variant_array_code<double>::get(),
-            teca_array_attributes::point_centering, 0, "g kg^-1",
-            "specific humidty", "test data where q = sin(p)",
+            teca_array_attributes::point_centering, 0, {1,1,1,1},
+            "g kg^-1", "specific humidty", "test data where q = sin(p)",
             1, fill_value),
             q});
 
@@ -139,7 +140,7 @@ int main(int argc, char **argv)
 
         mesh->append_field_generator({"zg",
             teca_array_attributes(teca_variant_array_code<double>::get(),
-                teca_array_attributes::point_centering, 0, "m",
+                teca_array_attributes::point_centering, 0, {1,1,1,1}, "m",
                 "mesh height", "test data where zg = p",
                 1, fill_value),
                 zg});
@@ -152,7 +153,7 @@ int main(int argc, char **argv)
 
         elev->append_field_generator({"z",
             teca_array_attributes(teca_variant_array_code<double>::get(),
-                teca_array_attributes::point_centering, 0, "m",
+                teca_array_attributes::point_centering, 0, {1,1,0,1}, "m",
                 "surface elevation", "test data where z = p",
                 1, fill_value),
                 zg});

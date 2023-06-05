@@ -11,6 +11,7 @@
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
 #include "teca_variant_array_util.h"
+#include "teca_array_attributes.h"
 
 #include <cmath>
 #include <functional>
@@ -86,7 +87,7 @@ int main(int argc, char **argv)
 
     s->append_field_generator({"func",
         teca_array_attributes(teca_variant_array_code<double>::get(),
-            teca_array_attributes::point_centering, 0, "unitless",
+            teca_array_attributes::point_centering, 0, {1,1,0,1}, "unitless",
             "func", "test data where z = cos(x)*cos(y) where z >= 0.5",
             1, func.m_fill),
             func});

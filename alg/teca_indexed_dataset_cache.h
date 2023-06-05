@@ -40,6 +40,14 @@ public:
     /// clear any cached data.
     void clear_cache();
 
+    /** @name override_request_index
+     * When set the request is modified to always request index 0. This can be
+     * used to cache data that doesn't change.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, override_request_index)
+    ///@}
+
 protected:
     teca_indexed_dataset_cache();
 
@@ -57,6 +65,7 @@ private:
 
 private:
     unsigned long max_cache_size;
+    int override_request_index;
 
     struct internals_t;
     internals_t *internals;

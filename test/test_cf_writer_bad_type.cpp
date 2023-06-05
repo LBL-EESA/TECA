@@ -90,7 +90,7 @@ int main(int, char **)
     ms->set_calendar("standard", "days since 07-14-2020");
     ms->append_field_generator({"mesh_time",
         teca_array_attributes(teca_variant_array_code<int>::get(), // this is the wrong type code!
-            teca_array_attributes::point_centering, 0, "days since 01-01-1980",
+            teca_array_attributes::point_centering, 0, {1,1,0,1}, "days since 01-01-1980",
             "mesh time values", "a mesh sized array filled in with the current time"),
         generate_mesh_time});
 

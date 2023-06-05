@@ -530,8 +530,7 @@ teca_add_test(py_test_variant_array_numpy_cuda
 teca_add_test(py_test_cartesian_mesh_multi_dim
     COMMAND ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_cartesian_mesh_multi_dim.py 32 32 10
-    test_cartesian_mesh_multi_dim.nc 1
-    FEATURES ${TECA_HAS_CUDA})
+    test_cartesian_mesh_multi_dim.nc 1)
 
 teca_add_test(py_test_lapse_rate
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_lapse_rate.py
@@ -546,3 +545,8 @@ teca_add_test(py_test_spectral_filter_high_pass_analytic
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_spectral_filter.py
     90 45 2 1000 364 35 15 50 365 1 100 days high_pass 0 analytic
     "${TECA_DATA_ROOT}/test_spectral_filter_high_pass" 1)
+
+teca_add_test(py_normalize_coordinates_z_axis_units
+    COMMAND ${PYTHON_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_normalize_coords_z_axis_units.py ${TECA_DATA_ROOT}
+    REQ_TECA_DATA)

@@ -286,14 +286,19 @@ teca_metadata teca_connected_components::get_output_metadata(
     teca_metadata atts;
     md.get("attributes", atts);
 
+    teca_metadata seg_var_atts;
+    atts.get(this->segmentation_variable, seg_var_atts);
+
+    auto dim_active = teca_array_attributes::xyzt_active();
+    seg_var_atts.get("mesh_dim_active", dim_active);
+
     std::ostringstream oss;
     oss << "the connected components of " << this->segmentation_variable;
 
     teca_array_attributes cc_atts(
         teca_variant_array_code<short>::get(),
-        teca_array_attributes::point_centering,
-        0, "unitless", component_var,
-        oss.str().c_str());
+        teca_array_attributes::point_centering, 0, dim_active,
+        "unitless", component_var, oss.str().c_str());
 
     atts.set(component_var, (teca_metadata)cc_atts);
 

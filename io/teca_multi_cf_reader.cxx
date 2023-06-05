@@ -1,5 +1,4 @@
 #include "teca_multi_cf_reader.h"
-#include "teca_array_attributes.h"
 #include "teca_file_util.h"
 #include "teca_string_util.h"
 #include "teca_cartesian_mesh.h"

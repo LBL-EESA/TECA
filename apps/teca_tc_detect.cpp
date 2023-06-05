@@ -152,12 +152,12 @@ int main(int argc, char **argv)
 
     p_teca_derived_quantity core_temp = teca_derived_quantity::New();
     core_temp->set_dependent_variables({"T500", "T200"});
-    core_temp->set_derived_variable("core_temperature");
+    core_temp->set_derived_variables({"core_temperature"}, {{}});
     core_temp->get_properties_description("core_temperature", advanced_opt_defs);
 
     p_teca_derived_quantity thickness = teca_derived_quantity::New();
     thickness->set_dependent_variables({"Z1000", "Z200"});
-    thickness->set_derived_variable("thickness");
+    thickness->set_derived_variables({"thickness"}, {{}});
     thickness->get_properties_description("thickness", advanced_opt_defs);
 
     p_teca_tc_candidates candidates = teca_tc_candidates::New();
@@ -389,7 +389,7 @@ int main(int argc, char **argv)
         point_wise_average(
             core_temp->get_dependent_variable(0),
             core_temp->get_dependent_variable(1),
-            core_temp->get_derived_variable()));
+            core_temp->get_derived_variable(0)));
 
     n_var = thickness->get_number_of_dependent_variables();
     if (n_var != 2)
@@ -402,13 +402,13 @@ int main(int argc, char **argv)
         point_wise_difference(
             thickness->get_dependent_variable(0),
             thickness->get_dependent_variable(1),
-            thickness->get_derived_variable()));
+            thickness->get_derived_variable(0)));
 
     // and tell the candidate stage what variables the functors produce
     candidates->set_surface_wind_speed_variable(surf_wind->get_l2_norm_variable());
     candidates->set_vorticity_850mb_variable(vort_850mb->get_vorticity_variable());
-    candidates->set_core_temperature_variable(core_temp->get_derived_variable());
-    candidates->set_thickness_variable(thickness->get_derived_variable());
+    candidates->set_core_temperature_variable(core_temp->get_derived_variable(0));
+    candidates->set_thickness_variable(thickness->get_derived_variable(0));
 
     // look for requested time step range, start
     bool parse_start_date = opt_vals.count("start_date");

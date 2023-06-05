@@ -663,16 +663,23 @@ teca_add_test(test_integrated_water_vapor_elev_mask
     COMMAND test_integrated_water_vapor 1 0 0
     FEATURES ${TECA_HAS_NETCDF})
 
-teca_add_test(test_integrated_vapor_transport_vv_mask
+teca_add_test(test_integrated_vapor_transport_no_mask_fo
     SOURCES test_integrated_vapor_transport.cpp
     EXEC_NAME test_integrated_vapor_transport
     LIBS teca_core teca_data teca_alg teca_io ${teca_test_link}
-    COMMAND test_integrated_vapor_transport 0 0 0
+    COMMAND test_integrated_vapor_transport 2 256 0 0 0 0
     FEATURES ${TECA_HAS_NETCDF})
 
-teca_add_test(test_integrated_vapor_transport_elev_mask
-    LIBS teca_core teca_data teca_alg teca_io ${teca_test_link}
-    COMMAND test_integrated_vapor_transport 1 0 0
+teca_add_test(test_integrated_vapor_transport_no_mask_trap
+    COMMAND test_integrated_vapor_transport 2 256 0 0 0 1
+    FEATURES ${TECA_HAS_NETCDF})
+
+teca_add_test(test_integrated_vapor_transport_vv_mask_trap
+    COMMAND test_integrated_vapor_transport 2 256 1 0 0 1
+    FEATURES ${TECA_HAS_NETCDF})
+
+teca_add_test(test_integrated_vapor_transport_elev_mask_trap
+    COMMAND test_integrated_vapor_transport 2 256 2 0 0 1
     FEATURES ${TECA_HAS_NETCDF})
 
 teca_add_test(test_cf_time_axis_reader
@@ -996,3 +1003,8 @@ teca_add_test(test_temporal_index_select_mpi_space_time_partition
         "${TECA_DATA_ROOT}/test_temporal_index_select_prw_monthly" "prw" 2 2 181 363
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
+
+teca_add_test(test_table_join
+    SOURCES test_table_join.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_table_join)

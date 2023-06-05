@@ -56,24 +56,20 @@ class generate_data(teca_python_algorithm):
         faa = teca_array_attributes(
             teca_double_array_code.get(),
             teca_array_attributes.point_centering,
-            int(ncells), 'none', 'f(x,y,z,t)',
+            int(ncells), (1,1,1,1), 'none', 'f(x,y,z,t)',
             'sin(x + t) * sin(y + t) * sin(z + t)',
             None)
 
         fatts = faa.to_metadata()
-        fatts['have_mesh_dim'] = [1,1,1,1]
-        fatts['mesh_dim_active'] = [1,1,1,1]
 
         gaa = teca_array_attributes(
             teca_double_array_code.get(),
             teca_array_attributes.point_centering,
-            int(ncells), 'none', 'g(x,y,t)',
+            int(ncells), (1,1,0,1), 'none', 'g(x,y,t)',
             'sin(x + t) * cos(x + t)',
             None)
 
         gatts = gaa.to_metadata()
-        gatts['have_mesh_dim'] = [1,1,0,1]
-        gatts['mesh_dim_active'] = [1,1,0,1]
 
         # put it in the array attributes
         try:

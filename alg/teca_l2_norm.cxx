@@ -113,7 +113,7 @@ int dispatch(p_teca_variant_array &l2_norm,
 
 #if defined(TECA_HAS_CUDA)
 // CUDA codes
-namespace cuda
+namespace cuda_gpu
 {
 // ***************************************************************************
 template <typename T>
@@ -204,7 +204,7 @@ int dispatch(int device_id, p_teca_variant_array &l2_norm,
         if (c2)
             std::tie(spc2, pc2) = get_cuda_accessible<CTT>(c2);
 
-        if (cuda::l2_norm(device_id, pl2n, pc0, pc1, pc2, n_elem))
+        if (cuda_gpu::l2_norm(device_id, pl2n, pc0, pc1, pc2, n_elem))
             return -1;
 
         return 0;
@@ -494,7 +494,7 @@ const_p_teca_dataset teca_l2_norm::execute(unsigned int port,
     request.get("device_id", device_id);
     if (device_id >= 0)
     {
-        if (teca_l2_norm_internals::cuda::dispatch(device_id, l2_norm, c0, c1, c2))
+        if (teca_l2_norm_internals::cuda_gpu::dispatch(device_id, l2_norm, c0, c1, c2))
         {
             TECA_ERROR("Failed to compute the L2 norm using CUDA")
             return nullptr;

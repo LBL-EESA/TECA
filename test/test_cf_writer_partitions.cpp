@@ -125,19 +125,19 @@ int main(int argc, char **argv)
 
     src->append_field_generator({"U",
         teca_array_attributes(teca_variant_array_code<double>::get(),
-            teca_array_attributes::point_centering, 0, "meters",
+            teca_array_attributes::point_centering, 0, {1,1,1,1}, "meters",
             "distance", "distance from x=0"),
             fxyz('x')});
 
     src->append_field_generator({"V",
         teca_array_attributes(teca_variant_array_code<double>::get(),
-            teca_array_attributes::point_centering, 0, "meters",
+            teca_array_attributes::point_centering, 0, {1,1,1,1}, "meters",
             "distance", "distance from y = 0"),
             fxyz('y')});
 
     src->append_field_generator({"W",
         teca_array_attributes(teca_variant_array_code<double>::get(),
-            teca_array_attributes::point_centering, 0, "meters",
+            teca_array_attributes::point_centering, 0, {1,1,1,1}, "meters",
             "distance", "distance from z = 0"),
             fxyz('z')});
 

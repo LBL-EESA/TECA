@@ -77,8 +77,8 @@ teca_metadata teca_binary_segmentation::get_output_metadata(
 
     if (this->threshold_variable.empty())
     {
-        TECA_FATAL_ERROR("a threshold_variable has not been set")
-        return teca_metadata();
+        TECA_FATAL_ERROR("Threshold variable is not set")
+        return {};
     }
 
     std::string segmentation_var;
@@ -92,6 +92,12 @@ teca_metadata teca_binary_segmentation::get_output_metadata(
     teca_metadata attributes;
     md.get("attributes", attributes);
 
+    teca_metadata thresh_atts;
+    attributes.get(this->threshold_variable, thresh_atts);
+
+    auto dim_active = teca_array_attributes::xyzt_active();
+    thresh_atts.get("mesh_dim_active", dim_active);
+
     std::ostringstream oss;
     oss << "a binary mask non-zero where " << this->low_threshold_value
         << (this->threshold_mode == BY_VALUE ? "" : "th percentile")
@@ -101,8 +107,8 @@ teca_metadata teca_binary_segmentation::get_output_metadata(
 
     teca_array_attributes default_atts(
         teca_variant_array_code<char>::get(),
-        teca_array_attributes::point_centering,
-        0, "unitless", segmentation_var, oss.str());
+        teca_array_attributes::point_centering, 0, dim_active,
+        "unitless", segmentation_var, oss.str());
 
     // start with user provided attributes, provide default values
     // where user attributes are missing

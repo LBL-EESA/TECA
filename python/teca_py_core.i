@@ -3,6 +3,7 @@
 
 #include "teca_calcalcs.h"
 #include "teca_algorithm_executive.h"
+#include "teca_dataset_capture.h"
 #include "teca_index_executive.h"
 #include "teca_metadata.h"
 #include "teca_algorithm.h"
@@ -1009,14 +1010,6 @@ class teca_algorithm;
  python_reduce
  ***************************************************************************/
 %pythoncode "teca_python_reduce.py"
-
-/***************************************************************************
- dataset_source
- ***************************************************************************/
-%ignore teca_dataset_source::shared_from_this;
-%shared_ptr(teca_dataset_source)
-%ignore teca_dataset_source::operator=;
-%include "teca_dataset_source.h"
 
 /***************************************************************************
  dataset_capture

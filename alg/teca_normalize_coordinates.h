@@ -19,10 +19,11 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_normalize_coordinates)
  *
  * 1. the x-axis coordinates are in the range of 0 to 360.
  * 2. the y-axis coordinate are in ascending order.
+ * 3. the z-axis units are in Pa. Conversion from hPa is supported.
  *
  * These transformations are automatically applied and can be enabled or
- * disbaled as needed. The properties enable_periodic_shift and
- * enable_y_axis_ascending provide a way to enable/disable the transforms.
+ * disbaled as needed. The properties enable_unit_conversions, enable_periodic_shift
+ * and enable_y_axis_ascending provide a way to enable/disable the transforms.
  *
  * Subset requests are not implemented when the periodic shift is enabled. When
  * a request is made for data that crosses the periodic boundary, the request
@@ -68,6 +69,13 @@ public:
     TECA_ALGORITHM_PROPERTY(int, enable_y_axis_ascending)
     ///@}
 
+    /** @name enable_unit_conversions
+     * If set, this enables an automatic conversions of units of the axes.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, enable_unit_conversions)
+    ///@}
+
 protected:
     teca_normalize_coordinates();
 
@@ -88,6 +96,7 @@ private:
 private:
     int enable_periodic_shift_x;
     int enable_y_axis_ascending;
+    int enable_unit_conversions;
 };
 
 #endif

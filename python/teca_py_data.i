@@ -20,6 +20,7 @@
 /***************************************************************************
  array_attributes
  ***************************************************************************/
+%template(std_array_i4) std::array<int,4>;
 %ignore teca_array_attributes::operator=;
 %rename(from_metadata) teca_array_attributes::from;
 %rename(to_metadata) teca_array_attributes::to;
@@ -41,8 +42,8 @@
     // a numerical object of the appropriate type or None to indicate no
     // fill value.
     teca_array_attributes(unsigned int tc, unsigned int cen,
-        unsigned long n, const std::string &un, const std::string &ln,
-        const std::string &descr, PyObject *fv)
+        unsigned long n, const std::array<int,4> &mda, const std::string &un,
+        const std::string &ln, const std::string &descr, PyObject *fv)
     {
         teca_py_gil_state gil;
 
@@ -56,7 +57,7 @@
             }
 
             TECA_PY_OBJECT_DISPATCH_NUM(fv,
-                return new teca_array_attributes(tc, cen, n, un, ln, descr,
+                return new teca_array_attributes(tc, cen, n, mda, un, ln, descr,
                     1, teca_py_object::cpp_tt<OT>::value(fv));
                 )
 
@@ -64,7 +65,7 @@
         }
         else
         {
-            return new teca_array_attributes(tc, cen, n, un, ln, descr);
+            return new teca_array_attributes(tc, cen, n, mda, un, ln, descr);
         }
 
         // the following two statements should never be executed.
@@ -236,8 +237,10 @@ TECA_PY_CONST_CAST(teca_mesh)
 %ignore teca_cartesian_mesh::set_y_coordinate_variable(std::string const *);
 %ignore teca_cartesian_mesh::set_z_coordinate_variable(std::string const *);
 %ignore teca_cartesian_mesh::set_t_coordinate_variable(std::string const *);
-%ignore teca_cartesian_mesh::get_array_extent(const char *, unsigned long [8]);
-%ignore teca_cartesian_mesh::get_array_shape(const char *, unsigned long [4]);
+%ignore teca_cartesian_mesh::get_array_extent(const std::string &, unsigned long [8]) const;
+%ignore teca_cartesian_mesh::get_array_shape(const std::string &, unsigned long [4]) const;
+%ignore teca_cartesian_mesh::get_array_extent(const std::string &) const;
+%ignore teca_cartesian_mesh::get_array_shape(const std::string &) const;
 %include "teca_cartesian_mesh.h"
 TECA_PY_DYNAMIC_CAST(teca_cartesian_mesh, teca_dataset)
 TECA_PY_CONST_CAST(teca_cartesian_mesh)
@@ -388,6 +391,8 @@ TECA_PY_CONST_CAST(teca_arakawa_c_grid)
 %ignore teca_table::operator=;
 %ignore teca_table::set_calendar(std::string const *);
 %ignore teca_table::set_time_units(std::string const *);
+%ignore teca_table::set_attributes(teca_metadata const *);
+%ignore teca_table::get_attributes(teca_metadata *) const;
 %include "teca_table.h"
 TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
 TECA_PY_CONST_CAST(teca_table)
@@ -806,6 +811,17 @@ TECA_PY_CONST_CAST(teca_table)
         teca_table_append(self, obj);
         return self->shared_from_this();
     }
+
+    /* attribute metadata */
+    teca_metadata get_attributes()
+    {
+        teca_py_gil_state gil;
+
+        teca_metadata atts;
+        self->get_attributes(atts);
+
+        return atts;
+    }
 }
 
 /***************************************************************************
@@ -865,6 +881,28 @@ TECA_PY_CONST_CAST(teca_database)
 %{
 struct coordinate_util
 {
+static
+PyObject *bounds_to_extent(const double bounds[6],
+    const const_p_teca_variant_array &x, const const_p_teca_variant_array &y,
+    const const_p_teca_variant_array &z)
+{
+    unsigned long extent[6] = {0ul};
+    if (teca_coordinate_util::bounds_to_extent(bounds, x, y, z, extent))
+    {
+        TECA_PY_ERROR_NOW(PyExc_RuntimeError,
+            "Failed to get extent from bounds " << bounds)
+        return nullptr;
+    }
+
+    teca_py_gil_state gil;
+
+    PyObject *extent_tup = PyTuple_New(6);
+    for (int i = 0; i < 6; ++i)
+        PyTuple_SET_ITEM(extent_tup, i, PyLong_FromUnsignedLong(extent[i]));
+
+    return extent_tup;
+}
+
 // given a human readable date string in YYYY-MM-DD hh:mm:ss format
 // amd a list of floating point offset times in the specified calendar
 // and units find the closest time step. return 0 if successful

@@ -401,42 +401,9 @@ int bounds_to_extent(const double *bounds,
     const const_p_teca_variant_array &x, unsigned long *extent)
 {
     VARIANT_ARRAY_DISPATCH_FP(x.get(),
-
-        // in the following, for each side (low, high) of the bounds in
-        // each cooridnate direction we are searching for the index that
-        // is either just below, just above, or exactly at the given value.
-        // special cases include:
-        //   * x,y,z in descending order. we check for that and
-        //     invert the compare functions that define the bracket
-        //   * bounds describing a plane. we test for this and
-        //     so that both high and low extent return the same value.
-        //   * x,y,z are length 1. we can skip the search in that
-        //     case.
-
-        const NT eps8 = NT(8)*std::numeric_limits<NT>::epsilon();
-
         unsigned long nx = x->size();
-        unsigned long high_i = nx - 1;
-        extent[0] = 0;
-        extent[1] = high_i;
         auto [spx, px] = get_cpu_accessible<CTT>(x);
-        NT low_x = static_cast<NT>(bounds[0]);
-        NT high_x = static_cast<NT>(bounds[1]);
-        bool slice_x = equal(low_x, high_x, eps8);
-
-        if (((nx > 1) && (((px[high_i] > px[0]) &&
-            (teca_coordinate_util::index_of(px, 0, high_i, low_x, true, extent[0])
-            || teca_coordinate_util::index_of(px, 0, high_i, high_x, slice_x, extent[1]))) ||
-            ((px[high_i] < px[0]) &&
-            (teca_coordinate_util::index_of<NT,descend_bracket<NT>>(px, 0, high_i, low_x, false, extent[0])
-            || teca_coordinate_util::index_of<NT,descend_bracket<NT>>(px, 0, high_i, high_x, !slice_x, extent[1]))))))
-        {
-            TECA_ERROR(<< "requested subset [" << bounds[0] << ", " << bounds[1] << ", "
-                << "] is not contained in the current dataset bounds [" << px[0] << ", "
-                << px[high_i] << "]")
-            return -1;
-        }
-        return 0;
+        return bounds_to_extent(bounds, px, nx, extent);
         )
 
     TECA_ERROR("invalid coordinate array type \"" << x->get_class_name() << "\"")

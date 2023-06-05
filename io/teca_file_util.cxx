@@ -451,11 +451,11 @@ int read_stream(const char *file_name, const char *header,
 
         if (strncmp(file_header, header, header_len))
         {
-            fclose(fd);
-            free(file_header);
             TECA_ERROR("Header missmatch in \""
                  << file_name << "\". Expected \"" << header
                  << "\" found \"" << file_header << "\"")
+            fclose(fd);
+            free(file_header);
             return -1;
         }
 

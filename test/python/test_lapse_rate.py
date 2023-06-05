@@ -50,35 +50,29 @@ class generate_data(teca_python_algorithm):
         faa = teca_array_attributes(
             teca_double_array_code.get(),
             teca_array_attributes.point_centering,
-            int(ncells), 'Kelvin', 'temperature [tt(x,y,z)]',
+            int(ncells), (1,1,1,1), 'Kelvin', 'temperature [tt(x,y,z)]',
             't0 + ((-g / cp) * zz)',
             None)
 
         fatts = faa.to_metadata()
-        fatts['have_mesh_dim'] = [1, 1, 1, 1]
-        fatts['mesh_dim_active'] = [1, 1, 1, 1]
 
         haa = teca_array_attributes(
             teca_double_array_code.get(),
             teca_array_attributes.point_centering,
-            int(ncells), 'meters', 'height [zz(x,y,z)]',
+            int(ncells), (1,1,1,1), 'meters', 'height [zz(x,y,z)]',
             'none',
             None)
 
         hatts = haa.to_metadata()
-        hatts['have_mesh_dim'] = [1, 1, 1, 1]
-        hatts['mesh_dim_active'] = [1, 1, 1, 1]
 
         gaa = teca_array_attributes(
             teca_double_array_code.get(),
             teca_array_attributes.point_centering,
-            int(ncells), 'meters', 'surface height [zs(x,y)]',
+            int(ncells), (1,1,1,1), 'meters', 'surface height [zs(x,y)]',
             'none',
             None)
 
         gatts = gaa.to_metadata()
-        gatts['have_mesh_dim'] = [1, 1, 0, 1]
-        gatts['mesh_dim_active'] = [1, 1, 0, 1]
 
         # put it in the array attributes
         try:

@@ -17,14 +17,16 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_integrated_vapor_transport)
  * specific humidity.
  *
  * \f[
- * IVT = \frac{1}{g} \int_{p_{sfc}}^{p_{top}} \vec{v} q dp
+ * \vec{IVT} = \frac{1}{g} \int_{p_{sfc}}^{p_{top}} \vec{v} \, q \; dp
  * \f]
  *
- * where q is the specific humidity, and \f$\vec{v} = (u, v)\f$ are the
+ * where \f$q\f$ is the specific humidity, and \f$\vec{v} = (u, v)\f$ are the
  * longitudinal and latitudinal components of wind.
  *
  * This calculation is an instance of a vertical reduction where
  * a 3D mesh is transformed into a 2D one.
+ *
+ * This algorithm handles missing values.
  */
 class TECA_EXPORT teca_integrated_vapor_transport : public teca_vertical_reduction
 {
@@ -88,6 +90,31 @@ public:
     TECA_ALGORITHM_PROPERTY(double, fill_value)
     ///@}
 
+    /** @name surface_pressure
+     * set the surface pressure, default 101235. only used when not using
+     * trapezoid integration. See set_use_trapezoid_rule.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(double, surface_pressure)
+    ///@}
+
+    /** @name top_pressure
+     * set the top pressure, default 0. only used when not using
+     * trapezoid integration. See set_use_trapezoid_rule.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(double, top_pressure)
+    ///@}
+
+    /** @name use_trapezoid_rule
+     * if set then trapezoid rule is used for integration. This is a higher
+     * order scheme than the default but the pressure level thickness is
+     * calculated between cell centers.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, use_trapezoid_rule)
+    ///@}
+
 protected:
     teca_integrated_vapor_transport();
 
@@ -115,6 +142,9 @@ private:
     std::string ivt_u_variable;
     std::string ivt_v_variable;
     double fill_value;
+    double surface_pressure;
+    double top_pressure;
+    int use_trapezoid_rule;
 };
 
 #endif

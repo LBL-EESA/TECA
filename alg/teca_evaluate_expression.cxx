@@ -110,9 +110,34 @@ teca_metadata teca_evaluate_expression::get_output_metadata(unsigned int port,
 #endif
     (void)port;
 
-    // add in the array we will generate
     teca_metadata out_md(input_md[0]);
+
+    // add in the array we will generate
     out_md.append("variables", this->result_variable);
+
+    // get the output size
+    unsigned long ext[6] = {0};
+    out_md.get("extent", ext);
+
+    unsigned long nx = ext[1] - ext[0] + 1;
+    unsigned long ny = ext[3] - ext[2] + 1;
+    unsigned long nz = ext[5] - ext[4] + 1;
+    unsigned long nxyz = nx*ny*nz;
+
+    // copy attributes and correct size
+    teca_array_attributes atts = this->result_attributes;
+    atts.size = nxyz;
+
+    // TODO -- use dependent variables to determine the result type
+    // correct type in attributes. until then you have know the result
+    // type and set correctly
+
+    teca_metadata attributes;
+    out_md.get("attributes", attributes);
+
+    attributes.set(this->result_variable, (teca_metadata)atts);
+
+    out_md.set("attributes", attributes);
 
     return out_md;
 }

@@ -18,10 +18,12 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_integrated_water_vapor)
  * IWV = \frac{1}{g} \int_{p_{sfc}}^{p_{top}} q dp
  * \f]
  *
- * where q is the specific humidity.
+ * where \f$q\f$ is the specific humidity.
  *
  * This calculation is an instance of a vertical reduction where
  * a 3D mesh is transformed into a 2D one.
+ *
+ * This algorithm handles missing values.
  */
 class TECA_EXPORT teca_integrated_water_vapor : public teca_vertical_reduction
 {

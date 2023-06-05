@@ -525,8 +525,24 @@ const_p_teca_dataset teca_cartesian_mesh_regrid::execute(
     const_p_teca_variant_array source_zc = source->get_z_coordinates();
     const_p_teca_array_collection source_ac = source->get_point_arrays();
 
-    // move the arrays
+    // move the array attributes
+    teca_metadata source_atts;
+    source->get_attributes(source_atts);
+
+    teca_metadata target_atts;
+    target->get_attributes(target_atts);
+
     size_t n_arrays = source_arrays.size();
+    for (size_t i = 0; i < n_arrays; ++i)
+    {
+        teca_metadata array_atts;
+        source_atts.get(source_arrays[i], array_atts);
+        target_atts.set(source_arrays[i], array_atts);
+    }
+
+    target->set_attributes(target_atts);
+
+    // move the arrays
     for (size_t i = 0; i < n_arrays; ++i)
     {
         // use the array's active dimensions to compute the output array size and

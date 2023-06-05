@@ -22,6 +22,10 @@ else ()
     set(CMAKE_C_VISIBILITY_PRESET hidden)
 endif()
 
+# this prevents a relink when a shared library's implementation changes
+set(CMAKE_LINK_DEPENDS_NO_SHARED ON)
+
+
 
 # set build/install sub dirs for various components
 if (NOT LIB_PREFIX)
@@ -420,7 +424,7 @@ if (NOT DEFINED TECA_VERSION)
 else()
     set(tmp ${TECA_VERSION})
 endif()
-set(TECA_VERSION_DESCR ${tmp} CACHE STRING "TECA version descriptor")
+set(TECA_VERSION_DESCR ${tmp} CACHE STRING "TECA version descriptor" FORCE)
 message(STATUS "TECA version ${TECA_VERSION_DESCR}")
 
 # do we have access to a checkout of TECA_data?

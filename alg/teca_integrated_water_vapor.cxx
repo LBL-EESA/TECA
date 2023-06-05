@@ -8,6 +8,7 @@
 #include "teca_metadata.h"
 #include "teca_coordinate_util.h"
 #include "teca_valid_value_mask.h"
+#include "teca_array_attributes.h"
 
 #include <algorithm>
 #include <iostream>
@@ -203,7 +204,8 @@ teca_metadata teca_integrated_water_vapor::get_output_metadata(
 
         teca_array_attributes iwv_atts(
             type_code, teca_array_attributes::point_centering,
-            0, "kg m^{-2}", "integrated water vapor",
+            0, teca_array_attributes::xyt_active(), "kg m-2",
+            "integrated water vapor",
             "vertically integrated " + this->specific_humidity_variable,
             1, this->fill_value);
 

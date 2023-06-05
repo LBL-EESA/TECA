@@ -22,6 +22,7 @@ set(teca_alg_cxx_srcs
     teca_2d_component_area.cxx
     teca_component_area_filter.cxx
     teca_component_statistics.cxx
+    teca_dataset_source.cxx
     teca_derived_quantity.cxx
     teca_descriptive_statistics.cxx
     teca_elevation_mask.cxx
@@ -39,6 +40,7 @@ set(teca_alg_cxx_srcs
     teca_parser.cxx
     teca_rename_variables.cxx
     teca_table_calendar.cxx
+    teca_table_join.cxx
     teca_table_reduce.cxx
     teca_table_region_mask.cxx
     teca_table_remove_rows.cxx

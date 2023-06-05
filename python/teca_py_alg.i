@@ -15,7 +15,6 @@
 #include "teca_component_statistics.h"
 #include "teca_component_area_filter.h"
 #include "teca_dataset_diff.h"
-#include "teca_dataset_capture.h"
 #include "teca_dataset_source.h"
 #include "teca_derived_quantity.h"
 #include "teca_derived_quantity_numerics.h"
@@ -37,6 +36,7 @@
 #include "teca_shape_file_mask.h"
 #endif
 #include "teca_table_calendar.h"
+#include "teca_table_join.h"
 #include "teca_table_sort.h"
 #include "teca_table_reduce.h"
 #include "teca_table_region_mask.h"
@@ -541,3 +541,19 @@ struct teca_tc_saffir_simpson
  spectral_filter
  ***************************************************************************/
 %pythoncode "teca_spectral_filter.py"
+
+/***************************************************************************
+ dataset_source
+ ***************************************************************************/
+%ignore teca_dataset_source::shared_from_this;
+%shared_ptr(teca_dataset_source)
+%ignore teca_dataset_source::operator=;
+%include "teca_dataset_source.h"
+
+/***************************************************************************
+ table_join
+ ***************************************************************************/
+%ignore teca_table_join::shared_from_this;
+%shared_ptr(teca_table_join)
+%ignore teca_table_join::operator=;
+%include "teca_table_join.h"

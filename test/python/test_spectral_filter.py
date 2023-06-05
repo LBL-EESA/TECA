@@ -93,13 +93,9 @@ class generate_data(teca_python_algorithm):
         faa = teca_array_attributes(
             teca_double_array_code.get(),
             teca_array_attributes.point_centering,
-            int(ncells), 'none', 'f(t)',
+            int(ncells), (1,1,1,1), 'none', 'f(t)',
             'function of time',
             None)
-
-        fatts = faa.to_metadata()
-        fatts['have_mesh_dim'] = [1,1,1,1]
-        fatts['mesh_dim_active'] = [1,1,1,1]
 
         # put it in the array attributes
         try:
@@ -107,7 +103,7 @@ class generate_data(teca_python_algorithm):
         except:
             atts = teca_metadata()
 
-        atts['f_t'] = fatts
+        atts['f_t'] = faa.to_metadata()
 
         md_out['attributes'] = atts
         return md_out

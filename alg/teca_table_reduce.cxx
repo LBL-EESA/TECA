@@ -16,38 +16,6 @@ teca_table_reduce::teca_table_reduce()
 }
 
 // --------------------------------------------------------------------------
-std::vector<teca_metadata> teca_table_reduce::initialize_upstream_request(
-    unsigned int port,
-    const std::vector<teca_metadata> &input_md,
-    const teca_metadata &request)
-{
-#ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_table_reduce::initialize_upstream_request" << endl;
-#endif
-    (void) port;
-    (void) input_md;
-
-    vector<teca_metadata> up_reqs(1, request);
-    return up_reqs;
-}
-
-// --------------------------------------------------------------------------
-teca_metadata teca_table_reduce::initialize_output_metadata(
-    unsigned int port,
-    const std::vector<teca_metadata> &input_md)
-{
-#ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_table_reduce::intialize_output_metadata" << endl;
-#endif
-    (void) port;
-
-    teca_metadata output_md(input_md[0]);
-    return output_md;
-}
-
-// --------------------------------------------------------------------------
 p_teca_dataset teca_table_reduce::reduce(int device_id,
     const const_p_teca_dataset &left_ds, const const_p_teca_dataset &right_ds)
 {

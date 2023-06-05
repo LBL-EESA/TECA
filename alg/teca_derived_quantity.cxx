@@ -8,10 +8,6 @@
 #include <boost/program_options.hpp>
 #endif
 
-using std::cerr;
-using std::endl;
-using std::string;
-using std::vector;
 
 // --------------------------------------------------------------------------
 teca_derived_quantity::teca_derived_quantity() :
@@ -30,13 +26,6 @@ void teca_derived_quantity::get_properties_description(
     options_description opts("Options for "
         + (prefix.empty()?"teca_derived_quantity":prefix));
 
-    opts.add_options()
-        TECA_POPTS_MULTI_GET(std::vector<std::string>, prefix, dependent_variables,
-            "list of arrays needed to compute the derived quantity")
-        TECA_POPTS_GET(std::string, prefix, derived_variable,
-            "name of the derived quantity")
-        ;
-
     this->teca_algorithm::get_properties_description(prefix, opts);
 
     global_opts.add(opts);
@@ -47,9 +36,6 @@ void teca_derived_quantity::set_properties(
     const std::string &prefix, variables_map &opts)
 {
     this->teca_algorithm::set_properties(prefix, opts);
-
-    TECA_POPTS_SET(opts, std::vector<std::string>, prefix, dependent_variables)
-    TECA_POPTS_SET(opts, std::string, prefix, derived_variable)
 }
 #endif
 
@@ -78,6 +64,7 @@ int teca_derived_quantity::set_name(const std::string &name)
     return 0;
 }
 
+/*
 // --------------------------------------------------------------------------
 void teca_derived_quantity::get_dependent_variables(
     const teca_metadata &request, std::vector<std::string> &dep_vars)
@@ -109,21 +96,51 @@ std::string teca_derived_quantity::get_derived_variable(
 
     return derived_var;
 }
+*/
 
 // --------------------------------------------------------------------------
 teca_metadata teca_derived_quantity::get_output_metadata(
     unsigned int port, const std::vector<teca_metadata> &input_md)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_derived_quantity::get_output_metadata" << endl;
+    std::cerr << teca_parallel_id()
+        << "teca_derived_quantity::get_output_metadata" << std::endl;
 #endif
     (void)port;
 
-    // report the arrays we will generate
+    if (this->derived_variables.empty())
+    {
+        TECA_FATAL_ERROR("The name of the derived variable was not provided")
+        return {};
+    }
+
     teca_metadata out_md(input_md[0]);
 
-    out_md.append("variables", this->derived_variable);
+    // get the array attributes collection
+    teca_metadata atts;
+    out_md.get("attributes", atts);
+
+    unsigned int n_vars = this->derived_variables.size();
+    for (unsigned int i = 0; i < n_vars; ++i)
+    {
+        // report the arrays we will generate
+        out_md.append("variables", this->derived_variables[i]);
+
+        // add the array attributes
+        if (i < this->derived_variable_attributes.size())
+        {
+            atts.append(this->derived_variables[i],
+                (teca_metadata)this->derived_variable_attributes[i]);
+        }
+        else
+        {
+            TECA_WARNING("No attributes were provided for "
+                << this->derived_variables[i])
+        }
+    }
+
+    // update the report
+    out_md.set("attributes", atts);
 
     return out_md;
 }
@@ -135,13 +152,13 @@ teca_derived_quantity::get_upstream_request(
     const teca_metadata &request)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_derived_quantity::get_upstream_request" << endl;
+    std::cerr << teca_parallel_id()
+        << "teca_derived_quantity::get_upstream_request" << std::endl;
 #endif
     (void)port;
     (void)input_md;
 
-    vector<teca_metadata> up_reqs;
+    std::vector<teca_metadata> up_reqs;
 
     // copy the incoming request to preserve the downstream
     // requirements and add the arrays we need
@@ -152,15 +169,16 @@ teca_derived_quantity::get_upstream_request(
         req.get("arrays", arrays);
 
     // intercept request for our output
-    arrays.erase(this->get_derived_variable(request));
+    unsigned int n_vars = this->derived_variables.size();
+    for (unsigned int i = 0; i < n_vars; ++i)
+    {
+        arrays.erase(this->derived_variables[i]);
+    }
 
-    // get the names of the arrays we need to request
-    std::vector<std::string> dep_vars;
-    this->get_dependent_variables(req, dep_vars);
-
-    size_t n = dependent_variables.size();
+    // request the arrays we need
+    size_t n = this->dependent_variables.size();
     for (size_t i = 0; i < n; ++i)
-        arrays.insert(dep_vars[i]);
+        arrays.insert(this->dependent_variables[i]);
 
     req.set("arrays", arrays);
     up_reqs.push_back(req);

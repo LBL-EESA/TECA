@@ -154,10 +154,13 @@ teca_metadata teca_elevation_mask::get_output_metadata(
         unsigned long size = 0;
         mesh_height_atts.get("size", size);
 
+        auto dim_active = teca_array_attributes::xyzt_active();
+        mesh_height_atts.get("mesh_dim_active", dim_active);
+
         // construct output attributes
         teca_array_attributes mask_atts(
-            teca_variant_array_code<char>::get(),
-            centering, size, "none", "", "elevation mask");
+            teca_variant_array_code<char>::get(), centering, size,
+            dim_active, "none", "", "elevation mask");
 
         // add one for each output
         for (unsigned int i = 0; i < n_mask_vars; ++i)

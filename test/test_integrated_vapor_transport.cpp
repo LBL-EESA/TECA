@@ -11,7 +11,7 @@
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
 #include "teca_variant_array_util.h"
-
+#include "teca_array_attributes.h"
 
 #include <cmath>
 #include <functional>
@@ -25,15 +25,15 @@ using namespace teca_variant_array_util;
 // q, u, and v and evaluate numerically using our implementation and analytically
 // and compare the results as a check
 //
-// let q = sin p , u = cos p, and v = p.
+// let q = sin a p , u = cos a p, and v = a p.
 //
 // we can then validate our implementation against the analyitic solutions:
 //
-// ivt_u = - \frac{1}{g} \int_{p_{sfc}}^{p_{top}} p sin p dp
-//       = - \frac{1}{g} [ -p cos p + sin p + c ]
+// ivt_u = - \frac{1}{g} \int_{p_{sfc}}^{p_{top}} cos a p sin a p dp
+//       = - \frac{1}{g} [ \frac{1}{2 a} sin^2 a p + c ]
 //
-// ivt_v = - \frac{1}{g} \int_{p_{sfc}}^{p_{top}} cos p sin p dp
-//       = - \frac{1}{g} [ \frac{1}{2} sin^2 p + c ]
+// ivt_v = - \frac{1}{g} \int_{p_{sfc}}^{p_{top}} a p sin a p dp
+//       = - \frac{1}{a^2 g} [ - a^2 p cos a p + sin a p + c ]
 //
 
 template <typename num_t>
@@ -91,62 +91,100 @@ int main(int argc, char **argv)
 
     teca_system_interface::set_stack_trace_on_error();
 
-    unsigned long i1 = 1024;
-    double p_sfc = 92500e-4;
-    double p_top = 5000e-4;
-    double fill_value = 1.0e14;
-    int vv_mask = (argc > 0 ? atoi(argv[1]) : 1);
-    int write_input = (argc > 1 ? atoi(argv[2]) : 0);
-    int write_output = (argc > 2 ? atoi(argv[3]) : 0);
+    if (argc < 7)
+    {
+        std::cerr << "test_integrated_vapor_transport [nx] [nz]"
+            " [mask : 0 - none, 1 valid value, 2 elevation]"
+            " [write_input] [write_output] [trapezoid integrator]"
+            << std::endl;
+        return -1;
+    }
 
-    // double the z axis, but hit all of the original points.  if we set the
-    // integrand to the fill_value where p > p_sfc and apply the valid value
-    // mask then the integral should have the value as if integrated from p_sfc
-    // to p_top. This lets us verify that the integrator works correctly in
-    // the presence of missing values
-    double p_sfc_2 = 2.0*p_sfc - p_top;
-    unsigned long j1 = 2*i1;
+    unsigned int nx = atoi(argv[1]);
+    unsigned int nz = atoi(argv[2]);
+    int mask = atoi(argv[3]); // 0 - no mask, 1 - vv mask, 2 - elev mask
+    int write_input = atoi(argv[4]);
+    int write_output = atoi(argv[5]);
+    int trapezoid_int = atoi(argv[6]);
+
+
+    double fill_value = 1.0e14;
+    double g = 9.80665;
+    double a = 1e-5;
+    double p_sfc = 92500.;
+    double p_top = 5000.;
+
+    // adjust the lowest and highest pressure level. if we don't do this then
+    // the first order integrator error is dominated by the thinkness of the
+    // top and bottom layer and is independent of number of points.
+    if (!trapezoid_int)
+    {
+        double dp = 101325.0 / nz;
+        p_sfc = 101325.0 + dp;
+        p_top = dp;
+    }
+
+    // extend the z-axis below the surface to p_bel. Construct the extension to
+    // explicitly include the point p_sfc. Set the integrand to the fill_value
+    // where p > p_sfc, masking out the points below the surface.  In that case
+    // the result is as if we integrated from p_sfc to p_top. This lets us
+    // verify that the integrator works correctly in the presence of missing
+    // values
+    // NOTE: This doesn't currently work with the first order integrator
+    // because the integration limits are off. It doesn't hit 101325 exactly.
+    double p_bel = p_top + 2. * (p_sfc - p_top) * (double(nz) - 1.) / double(nz);
 
     p_teca_cartesian_mesh_source mesh = teca_cartesian_mesh_source::New();
-    mesh->set_whole_extents({0, 2, 0, 2, 0, j1, 0, 0});
-    mesh->set_bounds({-1.0, 1.0, -1.0, 1.0, p_sfc_2, p_top, 0.0, 0.0});
+    mesh->set_whole_extents({0, nx - 1, 0, nx - 1, 0, nz - 1, 0, 0});
+
+    if (mask)
+        mesh->set_bounds({-1.0, 1.0, -1.0, 1.0, p_bel, p_top, 0.0, 0.0});
+    else
+        mesh->set_bounds({-1.0, 1.0, -1.0, 1.0, p_sfc, p_top, 0.0, 0.0});
+
     mesh->set_calendar("standard", "days since 2020-09-30 00:00:00");
 
-    // let q = sin(p)
-    function_of_z<double> q([](double p) -> double { return sin(p); },
+    std::cerr << "nx = " << nx << " nz = " << nz << std::endl
+        << "p_sfc = " << p_sfc << " p_top = " << p_top << " p_bel = " << p_bel  << std::endl
+        << "mask type = " << mask << std::endl
+        << "write_input = " << write_input << " write_output = " << write_output << std::endl
+        << "trapezoid integrator = " << trapezoid_int << std::endl;
+
+    // let q = sin(a p)
+    function_of_z<double> q([&a](double p) -> double { return sin(a*p); },
         p_sfc, fill_value);
 
     mesh->append_field_generator({"q",
         teca_array_attributes(teca_variant_array_code<double>::get(),
-            teca_array_attributes::point_centering, 0, "g kg^-1",
-            "specific humidty", "test data where q = sin(p)",
-            1, fill_value),
+            teca_array_attributes::point_centering, 0,
+            teca_array_attributes::xyzt_active(), "kg kg-1", "specific humidty",
+            "test data where q = sin(a p)", 1, fill_value),
             q});
 
-    // let u = cos(p)
-    function_of_z<double> u([](double p) -> double { return cos(p); },
+    // let u = cos(a p)
+    function_of_z<double> u([&a](double p) -> double { return cos(a*p); },
         p_sfc, fill_value);
 
     mesh->append_field_generator({"u",
         teca_array_attributes(teca_variant_array_code<double>::get(),
-            teca_array_attributes::point_centering, 0, "m s^-1",
-            "longitudinal wind velocity", "test data where u = cos(p)",
-            1, fill_value),
+            teca_array_attributes::point_centering, 0,
+            teca_array_attributes::xyzt_active(), "m s^-1", "longitudinal wind velocity",
+            "test data where u = cos(a p)", 1, fill_value),
             u});
 
-    // let v = p
-    function_of_z<double> v([](double z) -> double { return z; },
+    // let v = a p
+    function_of_z<double> v([&a](double p) -> double { return a*p; },
         p_sfc, fill_value);
 
     mesh->append_field_generator({"v",
         teca_array_attributes(teca_variant_array_code<double>::get(),
-            teca_array_attributes::point_centering, 0, "m s^-1",
-            "latiitudinal wind velocity", "test data where v = p",
-            1, fill_value),
+            teca_array_attributes::point_centering, 0,
+            teca_array_attributes::xyzt_active(), "m s^-1", "latitudinal wind velocity",
+            "test data where v = a p", 1, fill_value),
             v});
 
-    p_teca_algorithm head;
-    if (vv_mask)
+    p_teca_algorithm head = mesh;
+    if (mask == 1)
     {
         // generate the valid value mask
         std::cerr << "Testing with the valid_value_mask" << std::endl;
@@ -157,7 +195,7 @@ int main(int argc, char **argv)
 
         head = mask;
     }
-    else
+    else if (mask == 2)
     {
         // generate the elevation mask
         std::cerr << "Testing with the elevation_mask" << std::endl;
@@ -169,7 +207,7 @@ int main(int argc, char **argv)
 
         mesh->append_field_generator({"zg",
             teca_array_attributes(teca_variant_array_code<double>::get(),
-                teca_array_attributes::point_centering, 0, "m",
+                teca_array_attributes::point_centering, 0, {1,1,1,1}, "m",
                 "mesh height", "test data where zg = p",
                 1, fill_value),
                 zg});
@@ -182,7 +220,7 @@ int main(int argc, char **argv)
 
         elev->append_field_generator({"z",
             teca_array_attributes(teca_variant_array_code<double>::get(),
-                teca_array_attributes::point_centering, 0, "m",
+                teca_array_attributes::point_centering, 0, {1,1,0,1}, "m",
                 "surface elevation", "test data where z = p",
                 1, fill_value),
                 zg});
@@ -203,16 +241,30 @@ int main(int argc, char **argv)
     // write the test input dataset
     if (write_input)
     {
-        std::string fn = std::string("test_integrated_vapor_transport_input_") +
-            std::string(vv_mask ? "vv_mask" : "elev_mask") + std::string("_%t%.nc");
+        std::string fn("test_integrated_vapor_transport_input_");
+        if (mask == 1)
+            fn += "vv_mask";
+        else if (mask == 2)
+            fn += "elev_mask";
+        else
+            fn += "none";
+        fn += "_%t%.nc";
 
         p_teca_cf_writer w = teca_cf_writer::New();
         w->set_input_connection(head->get_output_port());
         w->set_file_name(fn);
         w->set_thread_pool_size(1);
-        w->set_point_arrays({"q", "u", "v", "q_valid", "u_valid", "v_valid"});
-        if (!vv_mask)
+        w->set_point_arrays({"q", "u", "v"});
+        if (mask)
+        {
+            w->append_point_array("q_valid");
+            w->append_point_array("u_valid");
+            w->append_point_array("v_valid");
+        }
+        if (mask == 2)
+        {
             w->append_point_array("zg");
+        }
         w->set_executive(exec);
 
         w->update();
@@ -224,13 +276,19 @@ int main(int argc, char **argv)
     ivt->set_wind_u_variable("u");
     ivt->set_wind_v_variable("v");
     ivt->set_specific_humidity_variable("q");
+    ivt->set_use_trapezoid_rule(trapezoid_int);
+
+    if (trapezoid_int)
+        std::cerr << "using trapezoid integrator" << std::endl;
+    else
+        std::cerr << "using first order integrator" << std::endl;
 
 
     // write the result
     if (write_output)
     {
         std::string fn = std::string("test_integrated_vapor_transport_output_") +
-            std::string(vv_mask ? "vv_mask" : "elev_mask") + std::string("_%t%.nc");
+            std::string(mask ? "vv_mask" : "elev_mask") + std::string("_%t%.nc");
 
         p_teca_cf_writer w = teca_cf_writer::New();
         w->set_input_connection(ivt->get_output_port());
@@ -262,13 +320,22 @@ int main(int argc, char **argv)
     double test_ivt_v = ivt_v->get(0);
 
     // calculate the analytic solution
-    double g = 9.80665;
+    if (!trapezoid_int)
+    {
+        p_top = 0.0;
+        p_sfc = 101325.0;
+    }
 
-    double base_ivt_u = -(1./g) * (1./2.) * (sin(p_top)*sin(p_top)
-                                           - sin(p_sfc)*sin(p_sfc));
+    double base_ivt_u = -1./ (2. * a * g) * (
+            sin(a * p_top)*sin(a * p_top)
+          - sin(a * p_sfc)*sin(a * p_sfc)
+        );
 
-    double base_ivt_v = -(1./g) * ((-p_top * cos(p_top) + sin(p_top))
-                                 - (-p_sfc * cos(p_sfc) + sin(p_sfc)));
+    double base_ivt_v =  1./ (a * g) * (
+            (a * p_top * cos(a * p_top) - sin(a * p_top))
+          - (a * p_sfc * cos(a * p_sfc) - sin(a * p_sfc))
+        );
+
 
     // display
     std::cerr << "base_ivt_u = " << base_ivt_u << std::endl;
