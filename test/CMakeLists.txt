@@ -1008,3 +1008,9 @@ teca_add_test(test_table_join
     SOURCES test_table_join.cpp
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_table_join)
+
+teca_add_test(test_ha4_connected_components
+    SOURCES test_ha4_connected_components.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_ha4_connected_components
+    FEATURES ${TECA_HAS_CUDA})
