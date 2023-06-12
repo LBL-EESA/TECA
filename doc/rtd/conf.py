@@ -25,9 +25,14 @@ author = "Burlen Loring, Travis O'Brien & Abdelrahman Elbashandy"
 
 # -- General configuration ---------------------------------------------------
 
+try:
+    odir = os.environ['READTHEDOCS_OUTPUT']
+except:
+    os.environ['READTHEDOCS_OUTPUT'] = '_build'
+    odir = os.environ['READTHEDOCS_OUTPUT']
 
-if not os.path.exists('_build/html'):
-    os.makedirs('_build/html')
+if not os.path.exists(odir + '/html'):
+    os.makedirs(odir + '/html')
 
 subprocess.call('cat /etc/issue', shell=True)
 subprocess.call('doxygen --version', shell=True)
@@ -39,6 +44,8 @@ resolved_613 = True
 if resolved_613:
     subprocess.call('doxygen', shell=True)
     subprocess.call('./parse_xml.py', shell=True)
+    subprocess.call('ls -lah $READTHEDOCS_OUTPUT', shell=True)
+    subprocess.call('ls -lah $READTHEDOCS_OUTPUT/html', shell=True)
 else:
     subprocess.call('svn checkout svn://svn.code.sf.net/p/teca/rtd_extras/doxygen _build/html/doxygen', shell=True)
     subprocess.call('svn checkout svn://svn.code.sf.net/p/teca/rtd_extras/rst _build/rst', shell=True)
