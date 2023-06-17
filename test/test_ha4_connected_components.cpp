@@ -77,32 +77,31 @@ void label_strip(int *image, int *labels, int nx, int ny)
     int y = blockDim.y * blockIdx.y + threadIdx.y;
     int x = blockDim.x * blockIdx.x + threadIdx.x;
 
-    /* TODO - early exit is incompatibile with syncthreads. images must be multiples
-     * of block wid and ht
-    if ((x > nx) || (y > ny))
-        return; */
-
     int line_base = y * nx + threadIdx.x;
 
     int dy = 0;
     int dy1 = 0;
 
-    for (int i = 0; i < nx; i += 32)
+    int maxI = nx % 32 ? (nx / 32 + 1) * 32 : nx;
+    for (int i = 0; i < maxI; i += 32)
     {
+        bool threadActive = (x + i < nx) && (y < ny);
+        unsigned int activeMask = __ballot_sync(0xffffffff, threadActive);
+
         int k_yx = line_base + i;
-        int p_yx = image[k_yx];
-        int pix_y = __ballot_sync(0xffffffff, p_yx);
+        int p_yx = threadActive ? image[k_yx] : 0;
+        int pix_y = __ballot_sync(activeMask, p_yx);
         int s_dy = start_distance(pix_y, threadIdx.x);
 
-        if (p_yx && s_dy == 0)
+        if (threadActive && p_yx && (s_dy == 0))
             labels[k_yx] = threadIdx.x == 0 ? k_yx - dy : k_yx;
 
-        if (threadIdx.x == 0)
+        if (threadActive && (threadIdx.x == 0))
             shared_pix[threadIdx.y] = pix_y;
 
         __syncthreads();
 
-        int pix_y1 = threadIdx.y == 0 ? 0 : shared_pix[threadIdx.y - 1];
+        int pix_y1 = !threadActive || (threadIdx.y == 0) ? 0 : shared_pix[threadIdx.y - 1];
         int p_y1x = pix_y1 & (1 << threadIdx.x);
         int s_dy1 = start_distance(pix_y1, threadIdx.x);
 
@@ -133,10 +132,10 @@ void merge_strip(int *image, int  *labels, int nx, int ny)
     int y = blockDim.y * blockIdx.y + threadIdx.y;
     int x = blockDim.x * blockIdx.x + threadIdx.x;
 
-    if ((x > nx) || (y > ny))
-        return;
+    bool threadActive = (x < nx) && (y < ny) && (y > 0);
+    unsigned int activeMask = __ballot_sync(0xffffffff, threadActive);
 
-    if (y > 0)
+    if (threadActive)
     {
         int k_yx = y * nx + x;
         int k_y1x = k_yx - nx;
@@ -144,8 +143,8 @@ void merge_strip(int *image, int  *labels, int nx, int ny)
         int p_yx = image[k_yx];
         int p_y1x = image[k_y1x];
 
-        int pix_y = __ballot_sync(0xffffffff, p_yx);
-        int pix_y1 = __ballot_sync(0xffffffff, p_y1x);
+        int pix_y = __ballot_sync(activeMask, p_yx);
+        int pix_y1 = __ballot_sync(activeMask, p_y1x);
 
         if (p_yx && p_y1x)
         {
@@ -165,30 +164,30 @@ void relabel(int *image, int *labels, int nx, int ny)
     int y = blockDim.y * blockIdx.y + threadIdx.y;
     int x = blockDim.x * blockIdx.x + threadIdx.x;
 
-    if ((x > nx) || (y > ny))
-        return;
+    bool threadActive = (x < nx) && (y < ny);
+    unsigned int activeMask = __ballot_sync(0xffffffff, threadActive);
 
-    int k_yx = y * nx + x;
-    int p_yx = image[k_yx];
-
-    int pix = __ballot_sync(0xffffffff, p_yx);
-
-    int s_d = start_distance(pix, threadIdx.x);
-    int label = 0;
-
-    if (p_yx && (s_d == 0))
+    if (threadActive)
     {
-        label = labels[k_yx];
-        while (label != labels[label])
+        int k_yx = y * nx + x;
+        int p_yx = image[k_yx];
+
+        int pix_y = __ballot_sync(activeMask, p_yx);
+        int s_dy = start_distance(pix_y, threadIdx.x);
+
+        int label = 0;
+        if (p_yx && (s_dy == 0))
         {
-            label = labels[label];
+            label = labels[k_yx];
+            while (label != labels[label])
+                label = labels[label];
         }
+
+        label = __shfl_sync(activeMask, label, threadIdx.x - s_dy);
+
+        if (p_yx)
+            labels[k_yx] = label;
     }
-
-    label = __shfl_sync(0xffffffff, label, threadIdx.x - s_d);
-
-    if (p_yx)
-        labels[k_yx] = label;
 }
 
 void print(const hamr::buffer<int> img, int nx, int ny)
@@ -208,6 +207,31 @@ void print(const hamr::buffer<int> img, int nx, int ny)
     }
 }
 
+void print(const hamr::buffer<int> &img, const hamr::buffer<int> &lab, int nx, int ny)
+{
+    auto [spimg, pimg] = hamr::get_cpu_accessible(img);
+    auto [splab, plab] = hamr::get_cpu_accessible(lab);
+
+    for (int j = 0; j < ny; ++j)
+    {
+        for (int i = 0; i < nx; ++i)
+        {
+            if (pimg[j*nx + i])
+            {
+                if (plab[j*nx + i])
+                    std::cerr << std::setw(4) << plab[j*nx + i];
+                else
+                    std::cerr << std::setw(4) << "***";
+            }
+            else
+            {
+                std::cerr << std::setw(4) << " ";
+            }
+        }
+        std::cerr << std::endl;
+    }
+}
+
 
 
 int main(int argc, char **argv)
@@ -215,26 +239,26 @@ int main(int argc, char **argv)
     auto cpu_alloc = hamr::buffer_allocator::malloc;
     auto dev_alloc = hamr::buffer_allocator::cuda;
 
-    int nx = 32;
+    int nx = 37;
     int ny = 16;
 
     int pixels[] = {
-        0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0,
-        0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1,
-        0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1,
-        1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1,
-        1, 1, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1,
-        0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1,
-        0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 1,
-        0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1,
-        0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0,
-        0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0,
-        0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0,
-        0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1,
-        1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0,
-        1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0
+        0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1,
+        0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1,
+        0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1,
+        1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 1,
+        1, 1, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 1,
+        0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0,
+        0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0,
+        0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 0,
+        0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 0,
+        0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0,
+        1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0,
+        1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0,
+        1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1,
+        1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1
     };
 
     hamr::buffer<int> image(dev_alloc, nx*ny, pixels);
@@ -244,7 +268,7 @@ int main(int argc, char **argv)
     print(image, nx, ny);
     std::cerr << std::endl;
 
-    if (nx % NUM_THREADS_X)
+    /*if (nx % NUM_THREADS_X)
     {
         TECA_FATAL_ERROR("The mesh width " << nx
             << " must be a multiple of " << NUM_THREADS_X)
@@ -254,27 +278,36 @@ int main(int argc, char **argv)
     {
         TECA_FATAL_ERROR("The mesh height " << ny
             << " must be a multiple of " << STRIP_HEIGHT)
-    }
+    }*/
 
-    int num_strips = ny / STRIP_HEIGHT;
+    int num_strips = ny / STRIP_HEIGHT + (ny % STRIP_HEIGHT ? 1 : 0);
 
     dim3 blocks(1, num_strips);
     dim3 threads(NUM_THREADS_X, STRIP_HEIGHT);
 
     label_strip<<<blocks, threads>>>(image.data(), labels.data(), nx, ny);
+    //cudaDeviceSynchronize();
+
     std::cerr << "labels:" << std::endl;
-    print(labels, nx, ny);
+    print(image, labels, nx, ny);
     std::cerr << std::endl;
 
+    int num_tiles = nx / NUM_THREADS_X + (nx % NUM_THREADS_X ? 1 : 0);
+    blocks = dim3(num_tiles, num_strips);
+
     merge_strip<<<blocks, threads>>>(image.data(), labels.data(), nx, ny);
+    //cudaDeviceSynchronize();
+
     std::cerr << "merged:" << std::endl;
     std::cerr.width(3);
-    print(labels, nx, ny);
+    print(image, labels, nx, ny);
     std::cerr << std::endl;
 
     relabel<<<blocks, threads>>>(image.data(), labels.data(), nx, ny);
+    //cudaDeviceSynchronize();
+
     std::cerr << "relabel:" << std::endl;
-    print(labels, nx, ny);
+    print(image, labels, nx, ny);
     std::cerr << std::endl;
 
     return 0;
