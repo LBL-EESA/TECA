@@ -70,7 +70,7 @@ void merge(int *labels, int l1, int l2)
 #define STRIP_HEIGHT 4
 
 __global__
-void label_strip(int *image, int *labels, int nx, int ny)
+void label_strip(int *image, int *labels, int nx, int ny, bool periodic)
 {
     __shared__ int shared_pix[STRIP_HEIGHT];
 
@@ -85,7 +85,7 @@ void label_strip(int *image, int *labels, int nx, int ny)
     int maxI = nx % 32 ? (nx / 32 + 1) * 32 : nx;
     for (int i = 0; i < maxI; i += 32)
     {
-        bool threadActive = (x + i < nx) && (y < ny);
+        bool threadActive = ((x + i) < nx) && (y < ny);
         unsigned int activeMask = __ballot_sync(0xffffffff, threadActive);
 
         int k_yx = line_base + i;
@@ -123,6 +123,18 @@ void label_strip(int *image, int *labels, int nx, int ny)
 
         d = start_distance(pix_y, 32);
         dy = d == 32 ? d + dy : d;
+    }
+
+    if (periodic)
+    {
+        bool threadActive = (threadIdx.x == 0) &&  (x < nx) && (y < ny);
+        int nx1 = nx - 1;
+        if (threadActive && image[line_base] && image[line_base + nx1])
+        {
+            int pix_y = shared_pix[threadIdx.y];
+            int s_dy = start_distance(pix_y, nx1 % 32);
+            merge(labels, line_base, line_base + nx1 - s_dy);
+        }
     }
 }
 
@@ -236,11 +248,13 @@ void print(const hamr::buffer<int> &img, const hamr::buffer<int> &lab, int nx, i
 
 int main(int argc, char **argv)
 {
+    bool periodicBc = true;
+
     auto cpu_alloc = hamr::buffer_allocator::malloc;
     auto dev_alloc = hamr::buffer_allocator::cuda;
 
     int nx = 37;
-    int ny = 16;
+    int ny = 18;
 
     int pixels[] = {
         0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1,
@@ -258,7 +272,9 @@ int main(int argc, char **argv)
         1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0,
         1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0,
         1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1,
-        1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1
+        1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1,
+        0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1,
+        0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1
     };
 
     hamr::buffer<int> image(dev_alloc, nx*ny, pixels);
@@ -285,7 +301,7 @@ int main(int argc, char **argv)
     dim3 blocks(1, num_strips);
     dim3 threads(NUM_THREADS_X, STRIP_HEIGHT);
 
-    label_strip<<<blocks, threads>>>(image.data(), labels.data(), nx, ny);
+    label_strip<<<blocks, threads>>>(image.data(), labels.data(), nx, ny, periodicBc);
     //cudaDeviceSynchronize();
 
     std::cerr << "labels:" << std::endl;
