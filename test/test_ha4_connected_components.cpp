@@ -69,8 +69,9 @@ void merge(int *labels, int l1, int l2)
 #define NUM_THREADS_X 32
 #define STRIP_HEIGHT 4
 
+template <typename image_t>
 __global__
-void label_strip(int *image, int *labels, int nx, int ny, bool periodic)
+void label_strip(const image_t *image, int *labels, int nx, int ny, bool periodic)
 {
     __shared__ int shared_pix[STRIP_HEIGHT];
 
@@ -138,8 +139,9 @@ void label_strip(int *image, int *labels, int nx, int ny, bool periodic)
     }
 }
 
+template <typename image_t>
 __global__
-void merge_strip(int *image, int  *labels, int nx, int ny)
+void merge_strip(const image_t *image, int  *labels, int nx, int ny)
 {
     int y = blockDim.y * blockIdx.y + threadIdx.y;
     int x = blockDim.x * blockIdx.x + threadIdx.x;
@@ -152,8 +154,8 @@ void merge_strip(int *image, int  *labels, int nx, int ny)
         int k_yx = y * nx + x;
         int k_y1x = k_yx - nx;
 
-        int p_yx = image[k_yx];
-        int p_y1x = image[k_y1x];
+        image_t p_yx = image[k_yx];
+        image_t p_y1x = image[k_y1x];
 
         int pix_y = __ballot_sync(activeMask, p_yx);
         int pix_y1 = __ballot_sync(activeMask, p_y1x);
@@ -170,8 +172,9 @@ void merge_strip(int *image, int  *labels, int nx, int ny)
 }
 
 
+template <typename image_t>
 __global__
-void relabel(int *image, int *labels, int nx, int ny)
+void relabel(const image_t *image, const int *labels, int *label_id, int nx, int ny)
 {
     int y = blockDim.y * blockIdx.y + threadIdx.y;
     int x = blockDim.x * blockIdx.x + threadIdx.x;
@@ -181,8 +184,9 @@ void relabel(int *image, int *labels, int nx, int ny)
 
     if (threadActive)
     {
+        // get the root of the equivalence tree for this pixel
         int k_yx = y * nx + x;
-        int p_yx = image[k_yx];
+        image_t p_yx = image[k_yx];
 
         int pix_y = __ballot_sync(activeMask, p_yx);
         int s_dy = start_distance(pix_y, threadIdx.x);
@@ -197,12 +201,56 @@ void relabel(int *image, int *labels, int nx, int ny)
 
         label = __shfl_sync(activeMask, label, threadIdx.x - s_dy);
 
+        // update label to the root
         if (p_yx)
-            labels[k_yx] = label;
+            label_id[k_yx] = label_id[label];
     }
 }
 
-void print(const hamr::buffer<int> img, int nx, int ny)
+
+/** count the number of equivalence trees and save their roots.
+ *
+ * @param[in] labels the equivalence trees
+ * @param[in] n_elem the image size
+ * @param[inout] ulabels pre-allocated memory at least
+ *               n_elem / 2 + n_elem % 2 : 1 0 elements long where
+ *               tree roots are stored
+ * @param[inout] n_ulabels the number of trees found
+ *
+ * note: ulabels[0] can be set 0 and n_ulabels set to 1 before calling to
+ * include the background label.
+ */
+__global__
+void enumerate_equivalences(const int *labels, int *label_ids, int nx, int ny,
+                            int *ulabels, int *n_ulabels)
+{
+    int y = blockDim.y * blockIdx.y + threadIdx.y;
+    int x = blockDim.x * blockIdx.x + threadIdx.x;
+
+    bool threadActive = (x < nx) && (y < ny);
+
+    if (threadActive)
+    {
+        int k_yx = y * nx + x;
+        int label = labels[k_yx];
+
+        // find root in equivalence tree
+        if (label && (label == k_yx))
+        {
+            // add to the list of unique labels
+            int idx = atomicAdd(n_ulabels, 1);
+            ulabels[idx] = label;
+
+            // save the label id
+            label_ids[label] = idx;
+        }
+    }
+}
+
+
+
+template <typename image_t>
+void print(const hamr::buffer<image_t> img, int nx, int ny)
 {
     auto [spimg, pimg] = hamr::get_cpu_accessible(img);
 
@@ -211,15 +259,16 @@ void print(const hamr::buffer<int> img, int nx, int ny)
         for (int i = 0; i < nx; ++i)
         {
             if (pimg[j*nx + i])
-                std::cerr << std::setw(4) << pimg[j*nx + i];
+                std::cerr << std::setw(4) << (int)pimg[j*nx + i];
             else
-                std::cerr << std::setw(4) << " ";;
+                std::cerr << std::setw(4) << " ";
         }
         std::cerr << std::endl;
     }
 }
 
-void print(const hamr::buffer<int> &img, const hamr::buffer<int> &lab, int nx, int ny)
+template <typename image_t>
+void print(const hamr::buffer<image_t> &img, const hamr::buffer<int> &lab, int nx, int ny)
 {
     auto [spimg, pimg] = hamr::get_cpu_accessible(img);
     auto [splab, plab] = hamr::get_cpu_accessible(lab);
@@ -248,15 +297,18 @@ void print(const hamr::buffer<int> &img, const hamr::buffer<int> &lab, int nx, i
 
 int main(int argc, char **argv)
 {
+    (void)argc;
+    (void)argv;
+
     bool periodicBc = true;
 
-    auto cpu_alloc = hamr::buffer_allocator::malloc;
+    auto host_alloc = hamr::buffer_allocator::cuda_host;
     auto dev_alloc = hamr::buffer_allocator::cuda;
 
     int nx = 37;
     int ny = 18;
 
-    int pixels[] = {
+    char pixels[] = {
         0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1,
         0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1,
         0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1,
@@ -277,8 +329,14 @@ int main(int argc, char **argv)
         0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1
     };
 
-    hamr::buffer<int> image(dev_alloc, nx*ny, pixels);
-    hamr::buffer<int> labels(dev_alloc, nx*ny, 0);
+
+    long nxy = nx*ny;
+
+    hamr::buffer<char> image(dev_alloc, nxy, pixels);
+    hamr::buffer<int> labels(dev_alloc, nxy, 0);
+    hamr::buffer<int> label_ids(dev_alloc, nxy, 0);
+    hamr::buffer<int> ulabels(dev_alloc, nxy / 2 + (nxy % 2 ? 1 : 0), 0);
+    hamr::buffer<int> nulabels(dev_alloc, 1, 1);
 
     std::cerr << "input:" << std::endl;
     print(image, nx, ny);
@@ -302,7 +360,6 @@ int main(int argc, char **argv)
     dim3 threads(NUM_THREADS_X, STRIP_HEIGHT);
 
     label_strip<<<blocks, threads>>>(image.data(), labels.data(), nx, ny, periodicBc);
-    //cudaDeviceSynchronize();
 
     std::cerr << "labels:" << std::endl;
     print(image, labels, nx, ny);
@@ -312,19 +369,34 @@ int main(int argc, char **argv)
     blocks = dim3(num_tiles, num_strips);
 
     merge_strip<<<blocks, threads>>>(image.data(), labels.data(), nx, ny);
-    //cudaDeviceSynchronize();
 
     std::cerr << "merged:" << std::endl;
     std::cerr.width(3);
     print(image, labels, nx, ny);
     std::cerr << std::endl;
 
-    relabel<<<blocks, threads>>>(image.data(), labels.data(), nx, ny);
-    //cudaDeviceSynchronize();
+    enumerate_equivalences<<<blocks, threads>>>(labels.data(), label_ids.data(), nx, ny, ulabels.data(), nulabels.data());
+
+    relabel<<<blocks, threads>>>(image.data(), labels.data(), label_ids.data(), nx, ny);
 
     std::cerr << "relabel:" << std::endl;
-    print(image, labels, nx, ny);
+    print(image, label_ids, nx, ny);
     std::cerr << std::endl;
+
+
+
+    cudaStreamSynchronize(cudaStreamPerThread);
+
+    int nu = 0;
+    nulabels.get(0, &nu, 0, 1);
+
+    ulabels.resize(nu);
+    ulabels.move(host_alloc);
+    ulabels.synchronize();
+
+    ulabels.print();
+
+
 
     return 0;
 }
