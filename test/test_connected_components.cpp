@@ -89,6 +89,7 @@ int main(int argc, char **argv)
     cc->set_input_connection(bs->get_output_port());
     cc->set_segmentation_variable("wind_speed_seg");
     cc->set_component_variable("con_comps");
+    cc->set_verbose(1);
 
     p_teca_2d_component_area ca = teca_2d_component_area::New();
     ca->set_input_connection(cc->get_output_port());
@@ -100,6 +101,7 @@ int main(int argc, char **argv)
     p_teca_index_executive exe = teca_index_executive::New();
     exe->set_start_index(first_step);
     exe->set_end_index(end_index);
+    exe->set_verbose(1);
 
     p_teca_cartesian_mesh_writer wri = teca_cartesian_mesh_writer::New();
     wri->set_input_connection(cao->get_output_port());
