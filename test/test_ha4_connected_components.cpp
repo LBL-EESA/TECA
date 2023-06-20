@@ -68,6 +68,7 @@ void merge(int *labels, int l1, int l2)
 #define ALL_THREADS 0xffffffff
 #define NUM_THREADS_X 32
 #define STRIP_HEIGHT 4
+#define EIGHT_CONNECTED
 
 template <typename image_t>
 __global__
@@ -103,20 +104,61 @@ void label_strip(const image_t *image, int *labels, int nx, int ny, bool periodi
         __syncthreads();
 
         int pix_y1 = !threadActive || (threadIdx.y == 0) ? 0 : shared_pix[threadIdx.y - 1];
-        int p_y1x = pix_y1 & (1 << threadIdx.x);
-        int s_dy1 = start_distance(pix_y1, threadIdx.x);
+
+        int p_y1x1 = pix_y1 & (1 << threadIdx.x);
+        int s_dy11 = start_distance(pix_y1, threadIdx.x);
 
         if (threadIdx.x == 0)
         {
             s_dy = dy;
-            s_dy1 = dy1;
+            s_dy11 = dy1;
         }
 
-        if (p_yx && p_y1x && ((s_dy == 0) || (s_dy1 == 0)))
+        if (p_yx)
         {
             int label_1 = k_yx - s_dy;
-            int label_2 = k_yx - nx - s_dy1;
-            merge(labels, label_1, label_2);
+
+            // *  1  *
+            // *  1  *
+            if (p_y1x1)
+            {
+                if ((s_dy == 0) || (s_dy11 == 0))
+                {
+                    int label_2 = k_yx - nx - s_dy11;
+                    merge(labels, label_1, label_2);
+                }
+            }
+#if defined(EIGHT_CONNECTED)
+            else
+            {
+                // 1  0  *
+                // *  1  *
+                if (threadIdx.x > 0)
+                {
+                    int p_y1x0 = pix_y1 & (1 << (threadIdx.x - 1));
+                    int s_dy10 = start_distance(pix_y1, threadIdx.x - 1);
+                    if (p_y1x0 && ((s_dy == 0) || (s_dy10 == 0)))
+                    {
+                        int label_2 = k_yx - nx - s_dy10 - 1;
+                        merge(labels, label_1, label_2);
+                    }
+                }
+
+                // *  0  1
+                // *  1  *
+                if (threadIdx.x < 31)
+                {
+                    int p_y1x2 = pix_y1 & (1 << (threadIdx.x + 1));
+                    int s_dy12 = start_distance(pix_y1, threadIdx.x + 1);
+
+                    if (p_y1x2 && ((s_dy == 0) || (s_dy12 == 0)))
+                    {
+                        int label_2 = k_yx - nx - s_dy12 + 1;
+                        merge(labels, label_1, label_2);
+                    }
+                }
+            }
+#endif
         }
 
         int d = start_distance(pix_y1, 32);
