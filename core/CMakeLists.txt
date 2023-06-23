@@ -8,6 +8,7 @@ set(teca_core_srcs
     teca_bad_cast.cxx
     teca_binary_stream.cxx
     teca_common.cxx
+    teca_core_init.cxx
     teca_dataset.cxx
     teca_dataset_capture.cxx
     teca_index_executive.cxx
