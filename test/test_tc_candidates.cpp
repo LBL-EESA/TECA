@@ -21,6 +21,7 @@
 #include "teca_system_interface.h"
 #include "teca_system_util.h"
 #include "teca_mpi.h"
+#include "teca_thread_util.h"
 
 #include <vector>
 #include <string>
@@ -45,7 +46,7 @@ int main(int argc, char **argv)
     int have_baseline = 0;
     long start_index = 0;
     long end_index = -1;
-    unsigned int n_threads = 1;
+    int n_threads = -1;
     string ux_850mb;
     string uy_850mb;
     string ux_surf;
@@ -153,7 +154,7 @@ int main(int argc, char **argv)
     map_reduce->set_start_index(start_index);
     map_reduce->set_end_index(end_index);
     map_reduce->set_verbose(1);
-    map_reduce->set_thread_pool_size(n_threads);
+    map_reduce->set_thread_pool_size(1); //n_threads);
 
     // sort results in time
     p_teca_table_sort sort = teca_table_sort::New();

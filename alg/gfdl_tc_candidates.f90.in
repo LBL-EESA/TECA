@@ -262,6 +262,16 @@ integer(c_int) function gfdl_tc_candidates_@decorator@( &
   call splie3_@decorator@(rlon, thick, thick_dx)
 
   ! loop over grid & look for storms
+  !$omp parallel do schedule(dynamic) default(none) &
+  !$omp&  shared(tc_table,can_id,storm_id,nx,nx2,ix,jx,ixp6, &
+  !$omp&         jxp6, max_core_radius,min_vort,vort_win_size,max_psl_dy,max_psl_dr, &
+  !$omp&         max_twc_dy,max_twc_dr,max_thick_dy,max_thick_dr,Gwind,Gvort,Gtbar,Gpsl, &
+  !$omp&         Gthick,Grlat,Grlon,Gnlat,Gnlon,frprm_itmax,time_step,rlon,rlat, &
+  !$omp&         vort,wind,psl,psl_dx,psl_dy,tbar,tbar_dx,tbar_dy,thick,thick_dx,thick_dy) &
+  !$omp&  private(im,ip,jm,jp,ierr_pos,ierr_mag,wind_max,psl_min,twc_max,thick_max,lon_vort, &
+  !$omp&          lon_psl,lon_twc,lon_thick,lat_vort,lat_psl,lat_twc,lat_thick,exist_twc, &
+  !$omp&          exist_thick,p,xx,yy,rr,fret,have_thick,have_twc,can_ij,w_msg) &
+  !$omp& firstprivate(nxp1,jxp3,ixp3)
   do j = nxp1,jxp3
     do i = nxp1,ixp3
 
@@ -276,6 +286,7 @@ integer(c_int) function gfdl_tc_candidates_@decorator@( &
         .or. (vort(i,j) .lt. min_vort)) &
         cycle
 
+      !$omp atomic
       can_id = can_id + 1
 
       lon_vort = rlon(i)
@@ -337,7 +348,9 @@ integer(c_int) function gfdl_tc_candidates_@decorator@( &
       endif
 
       ! --- we have strom a candidate
+      !$omp atomic
       storm_id = storm_id + 1
+      !$omp end atomic
 
       ! --- step 3: check for presence of a warm core
       exist_twc = .false.
@@ -422,13 +435,16 @@ integer(c_int) function gfdl_tc_candidates_@decorator@( &
 
       wind_max = maxval(wind(im:ip,jm:jp))
 
+      !$omp critical
       call teca_tc_append_candidate_@decorator@( &
         storm_id, lon_psl, lat_psl, wind_max, vort(i,j), &
         psl_min, have_twc, have_thick, twc_max, thick_max, &
         tc_table)
+      !$omp end critical
 
     end do
   end do
+  !$omp end parallel do
 
   deallocate(rlon)
   deallocate(rlat)
