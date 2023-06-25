@@ -10,24 +10,24 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
-
-// mask - mask with bits set where input is 1
-// tx - cuda thread id
+/// locate the offset from tx to the first connected pixel to the left.
 __device__
-int start_distance(int mask, int tx)
+unsigned int start_distance(unsigned int mask, int tx)
 {
-    return __clz(~(mask << (32 - tx)));
+    int sd =  __clz(~(mask << (32 - tx)));
+    if (sd > 32)
+        asm("trap;");
+    return sd;
 }
 
-
-// mask - mask with bits set where input is 1
-// tx - cuda thread id
+/// locate the offset from tx to the last connected pixel to the right.
 __device__
 int end_distance(int mask, int tx)
 {
     return __ffs(~(mask >> (tx + 1)));
 }
 
+/// swap two values
 template <typename T>
 __device__
 void swap(T &a, T &b)
@@ -37,19 +37,46 @@ void swap(T &a, T &b)
     b = c;
 }
 
+#if !defined(NDEBUG)
+/// abort if an invalid label / label address is used
+__device__
+void assert_valid_label(const int *labels, int l1, int l2)
+{
+    if (!((l1 >= 0) && (l2 >= 0) && (labels[l1] >=0 ) && (labels[l2] >= 0)))
+        asm("trap;");
+}
 
-/** this works by finding
-the root of the two equivalence trees the labels are belonging
-to and writing the minimum root index to the root with the
-maximum index.*/
+/// abort if an invalid label / label address is used
+__device__
+void assert_valid_label(const int *labels, int l1)
+{
+    if (!((l1 >= 0) && (labels[l1] >=0 )))
+        asm("trap;");
+}
+#endif
+
+/** Equate two components. find the root of the two equivalence trees the
+ * labels are belonging to and writing the minimum root index to the root with
+ * the maximum index.
+ */
 __device__
 void merge(int *labels, int l1, int l2)
 {
     while ((l1 != l2) && (l1 != labels[l1]))
+    {
+#if !defined(NDEBUG)
+        assert_valid_label(labels, l1);
+#endif
         l1 = labels[l1];
+    }
 
     while ((l1 != l2) && (l2 != labels[l2]))
+    {
+#if !defined(NDEBUG)
+        assert_valid_label(labels, l2);
+#endif
         l2 = labels[l2];
+    }
 
     while (l1 != l2)
     {
@@ -62,121 +89,188 @@ void merge(int *labels, int l1, int l2)
     }
 }
 
+/** 8-connected component labeler, based on the 32 bit implementation of the
+ * 4-connected labeler HA4 (https://hal.science/hal-01923784)
+ *
+ * Detects connected components in horizontal strips of a fixed height
+ * STRIP_HEIGHT. The inputs are a bit map where region of interest is defined
+ * by mesh cells set to 1 and 0 elsewhere. The output will be an initial
+ * labeling of components inside each horizontal strip.  A second pass is
+ * needed to resolve equivalences across strips (see merge_strips).  Note that
+ * components are labeled with the first flat index of the component. 0 may
+ * belong to a label, and does not represent the background in the lables. For
+ * this reason labels should be initialized to -1 before calling. For efficiency
+ * only the first cell of each horizontal run will be labeled. The label identifies
+ * the parent component/node address in the equivalence table. Follow these
+ * back to the component/tree root node, labels[addr] == addr.
+ *
+ * @param[in] image bit map with cells of interest set to 1
+ * @param[inout] labels the equivalence table. initialized to -1
+ * @param[in] nx the number of cells in the x-direction
+ * @param[in] ny the number of cells in the y-direction
+ * @param[in] periodic apply a periodic boundary condition in the x-direction.
+ *
+ */
 
-// requires block height shared memory elements
-
-#define ALL_THREADS 0xffffffff
 #define NUM_THREADS_X 32
 #define STRIP_HEIGHT 4
-#define EIGHT_CONNECTED
 
 template <typename image_t>
 __global__
 void label_strip(const image_t *image, int *labels, int nx, int ny, bool periodic)
 {
-    __shared__ int shared_pix[STRIP_HEIGHT];
+    // notation: (c,r) c: 1 is the current pixel, 0 is to its left, 2 is to its right.
+    //                 r: 1 is the current pixel, 0 is below it
+
+    __shared__ int s_bts_1[STRIP_HEIGHT];
+    __shared__ int s_bts_0[STRIP_HEIGHT];
+    __shared__ int s_bts_2[STRIP_HEIGHT];
 
     int y = blockDim.y * blockIdx.y + threadIdx.y;
     int x = blockDim.x * blockIdx.x + threadIdx.x;
 
-    int line_base = y * nx + threadIdx.x;
+    // initialize bit masks
+    for (int i = 0; i < STRIP_HEIGHT; ++i)
+        s_bts_1[i] = 0;
 
-    int dy = 0;
-    int dy1 = 0;
+    int line_base = y * nx + x;
+
+    int dist_l1 = 0; // distance from last pixel in the previous iteration to the last connected pixel on its left this line
+    int dist_l0 = 0; // distance from last pixel in the previous iteration to the last connected pixel on its left previous line
 
     int maxI = nx % 32 ? (nx / 32 + 1) * 32 : nx;
     for (int i = 0; i < maxI; i += 32)
     {
-        bool threadActive = ((x + i) < nx) && (y < ny);
-        unsigned int activeMask = __ballot_sync(0xffffffff, threadActive);
+        int q11 = line_base + i; // the flat address of the current pixel. notation: q(col)(row)
 
-        int k_yx = line_base + i;
-        int p_yx = threadActive ? image[k_yx] : 0;
-        int pix_y = __ballot_sync(activeMask, p_yx);
-        int s_dy = start_distance(pix_y, threadIdx.x);
+        // compute masks for warp collectives
+        int active_q1 = ((x + i) < nx) && (y < ny);
+        int active_q2 = ((x + i + 32) < nx) && (y < ny);
 
-        if (threadActive && p_yx && (s_dy == 0))
-            labels[k_yx] = threadIdx.x == 0 ? k_yx - dy : k_yx;
+        int img_q11 = active_q1 ? image[q11] : 0;           // the image value at q11
+        int bts_q11 = __ballot_sync(0xffffffff, img_q11);   // bit mask w. image values around q11 for all 32 thread in this warp
 
-        if (threadActive && (threadIdx.x == 0))
-            shared_pix[threadIdx.y] = pix_y;
+        int img_q21 = active_q2 ? image[q11 + 32] : 0;      // the image value at q21
+        int bts_q21 = __ballot_sync(0xffffffff, img_q21);   // bit mask w. image values around q21 for all 32 thread in previous warp
 
-        __syncthreads();
+        // initialize row wise equivalence tree roots to their flat address
+        int start_q11 = start_distance(bts_q11, threadIdx.x);  // distance from q11 to the last connected pixel on its left
+        if (active_q1 && img_q11 && (start_q11 == 0))
+            labels[q11] = threadIdx.x == 0 ? q11 - dist_l1 : q11;
 
-        int pix_y1 = !threadActive || (threadIdx.y == 0) ? 0 : shared_pix[threadIdx.y - 1];
-
-        int p_y1x1 = pix_y1 & (1 << threadIdx.x);
-        int s_dy11 = start_distance(pix_y1, threadIdx.x);
-
+        // store the bit masks so that we may later look at masks in other rows in the strip
         if (threadIdx.x == 0)
         {
-            s_dy = dy;
-            s_dy11 = dy1;
+            s_bts_0[threadIdx.y] = s_bts_1[threadIdx.y]; // get the left side bit masks from the previous iteration
+            s_bts_1[threadIdx.y] = bts_q11;
+            s_bts_2[threadIdx.y] = bts_q21;
         }
 
-        if (p_yx)
-        {
-            int label_1 = k_yx - s_dy;
+        // wait for other row's masks to become available
+        __syncthreads();
 
-            // *  1  *
-            // *  1  *
-            if (p_y1x1)
+        int bts_q10 = threadIdx.y ? s_bts_1[threadIdx.y - 1] : 0; // the mask of the warp directly below
+
+        if (img_q11)
+        {
+            int firstThread = threadIdx.x == 0;
+            int secondThread = threadIdx.x == 1;
+            int lastThread = threadIdx.x == 31;
+
+            int img_q10 = bts_q10 & (1 << threadIdx.x);             // the pixel directly below
+            int start_q10 = start_distance(bts_q10, threadIdx.x);   // offset to q10's equivalence tree node
+
+            if (firstThread)
             {
-                if ((s_dy == 0) || (s_dy11 == 0))
+                start_q11 = dist_l1; // look left into the pixels from the previous iteration, this row
+                start_q10 = dist_l0; // look left into the pixels from the previous iteration, row below
+            }
+
+            // if pixel directly below is set, sufficient to look there
+            // otherwise 2 cases to consider: below left and below right
+            if (img_q10)
+            {
+                if ((start_q11 == 0) || (start_q10 == 0))
                 {
-                    int label_2 = k_yx - nx - s_dy11;
-                    merge(labels, label_1, label_2);
+                    // equate these two components
+                    merge(labels,
+                        q11 - start_q11,        // start of the component in this row
+                        q11 - nx - start_q10);  // start of the component in the previous row
                 }
             }
-#if defined(EIGHT_CONNECTED)
             else
             {
-                // 1  0  *
-                // *  1  *
-                if (threadIdx.x > 0)
+                // look below and left
+                int bts_q00 = !firstThread ? bts_q10 :
+                              (threadIdx.y ? s_bts_0[threadIdx.y - 1] : 0); // mask below and left
+
+                int img_q00 = bts_q00 & (firstThread ? 0x80000000 : (1 << (threadIdx.x - 1)));   // pixel below and left
+                if (img_q00)
                 {
-                    int p_y1x0 = pix_y1 & (1 << (threadIdx.x - 1));
-                    int s_dy10 = start_distance(pix_y1, threadIdx.x - 1);
-                    if (p_y1x0 && ((s_dy == 0) || (s_dy10 == 0)))
-                    {
-                        int label_2 = k_yx - nx - s_dy10 - 1;
-                        merge(labels, label_1, label_2);
-                    }
+                    int start_q00 = secondThread ? dist_l0 :
+                                    start_distance(bts_q00, firstThread ? 31 : threadIdx.x - 1); // distance to q00 equivalence tree node
+
+                    // equate these two components
+                    if ((start_q11 == 0) || (start_q00 == 0))
+                        merge(labels, q11 - start_q11, q11 - nx - 1 - start_q00);
                 }
 
-                // *  0  1
-                // *  1  *
-                if (threadIdx.x < 31)
-                {
-                    int p_y1x2 = pix_y1 & (1 << (threadIdx.x + 1));
-                    int s_dy12 = start_distance(pix_y1, threadIdx.x + 1);
+                // look below and right
+                int bts_q20 = !lastThread ? bts_q10 :
+                              (((x + i + 1) < nx) && threadIdx.y ? s_bts_2[threadIdx.y - 1] : 0); // mask below and right
 
-                    if (p_y1x2 && ((s_dy == 0) || (s_dy12 == 0)))
-                    {
-                        int label_2 = k_yx - nx - s_dy12 + 1;
-                        merge(labels, label_1, label_2);
-                    }
+                int img_q20 = bts_q20 & (lastThread ? 0x1 : (1 << (threadIdx.x + 1)));           // pixel below and right
+                if (img_q20)
+                {
+                    // by construction (!img_q10 && img_q20) we know q20 is a
+                    // node in an equivalence tree.
+                    int q20 =  q11 - nx + 1;
+
+                    // initialize the lable at q20 since we work left to right
+                    // sequentially it might not have been initialized at this
+                    // point.
+                    if (lastThread)
+                        atomicExch(&labels[q20], q20);
+
+                    // equate these two components
+                    merge(labels, q11 - start_q11, q20);
                 }
             }
-#endif
         }
 
-        int d = start_distance(pix_y1, 32);
-        dy1 = d == 32 ? d + dy1 : d;
+        // store the start of the run for this row and previous row. used by
+        // thread 0 if set to locate parent node in the equivalence table.
+        int d = start_distance(bts_q10, 32);
+        dist_l0 = d == 32 ? d + dist_l0 : d;
 
-        d = start_distance(pix_y, 32);
-        dy = d == 32 ? d + dy : d;
+        d = start_distance(bts_q11, 32);
+        dist_l1 = d == 32 ? d + dist_l1 : d;
     }
 
-    if (periodic)
+    // apply the periodic boundary condition in the x-direction
+    int q11 = line_base;            // address of the current pixel
+    if (periodic && (threadIdx.x == 0) && (x < nx) && (y < ny) && image[q11])
     {
-        bool threadActive = (threadIdx.x == 0) &&  (x < nx) && (y < ny);
-        int nx1 = nx - 1;
-        if (threadActive && image[line_base] && image[line_base + nx1])
+        int nx1 = nx - 1;           // offset to last element in this row
+        int bit_nx1 = nx1 % 32;     // bit containing info about this element
+
+        int bts_qn1 = s_bts_1[threadIdx.y];
+        int img_qn1 = bts_qn1 & (1 << bit_nx1); // the value of the pixel at the far end of this row
+
+        int bts_qn0 = threadIdx.y ? s_bts_1[threadIdx.y - 1] : 0;
+        int img_qn0 = bts_qn0 & (1 << bit_nx1); // the value of the pixel at the far end of the previous row
+
+        if (img_qn1)
         {
-            int pix_y = shared_pix[threadIdx.y];
-            int s_dy = start_distance(pix_y, nx1 % 32);
-            merge(labels, line_base, line_base + nx1 - s_dy);
+            // equate this pixel and the one at the far end of the row
+            int start_qn1 = start_distance(bts_qn1, bit_nx1);
+            merge(labels, q11, q11 + nx1 - start_qn1);
+        }
+        else if (img_qn0)
+        {
+            // equate this pixel and the one at the far end of the previous row
+            int start_qn0 = start_distance(bts_qn0, bit_nx1);
+            merge(labels, q11, q11 - 1 - start_qn0);
         }
     }
 }
@@ -185,38 +279,77 @@ template <typename image_t>
 __global__
 void merge_strip(const image_t *image, int  *labels, int nx, int ny)
 {
-    int y = blockDim.y * blockIdx.y + threadIdx.y;
+    // notation: (c,r) c: 1 is the current pixel, 0 is to its left, 2 is to its right.
+    //                 r: 1 is the current pixel, 0 is below it
+
+    int y = STRIP_HEIGHT * (blockDim.y * blockIdx.y + threadIdx.y);
     int x = blockDim.x * blockIdx.x + threadIdx.x;
 
-    bool threadActive = (x < nx) && (y < ny) && (y > 0);
-    unsigned int activeMask = __ballot_sync(0xffffffff, threadActive);
+    bool active_q11 = (x < nx) && (y < ny) && (y > 0);
+    bool active_q00 = ((x - 32) >= 0) && ((x - 32) < nx) && (y < ny) && (y > 0);
+    bool active_q20 = ((x + 32) < nx) && (y < ny) && (y > 0);
 
-    if (threadActive)
+    int q11 = y * nx + x; // the flat address of the current pixel
+    int q10 = q11 - nx;   // the falt address of the pixel directly below
+
+    image_t img_q11 = active_q11 ? image[q11] : 0;
+    image_t img_q10 = active_q11 ? image[q10] : 0;
+
+    int bts_q11 = __ballot_sync(0xffffffff, img_q11);
+    int bts_q10 = __ballot_sync(0xffffffff, img_q10);
+
+    int start_q11 = start_distance(bts_q11, threadIdx.x);
+
+    image_t img_q00 = active_q00 ? image[q10 - 32] : 0;
+    image_t img_q20 = active_q20 ? image[q10 + 32] : 0;
+
+    int bts_q00 = __ballot_sync(0xffffffff, img_q00);
+    int bts_q20 = __ballot_sync(0xffffffff, img_q20);
+
+    if (img_q11)
     {
-        int k_yx = y * nx + x;
-        int k_y1x = k_yx - nx;
-
-        image_t p_yx = image[k_yx];
-        image_t p_y1x = image[k_y1x];
-
-        int pix_y = __ballot_sync(activeMask, p_yx);
-        int pix_y1 = __ballot_sync(activeMask, p_y1x);
-
-        if (p_yx && p_y1x)
+        // directly below
+        if (img_q10)
         {
-            int s_dy = start_distance(pix_y, threadIdx.x);
-            int s_dy1 = start_distance(pix_y1, threadIdx.x);
+            int start_q10 = start_distance(bts_q10, threadIdx.x);
 
-            if ((s_dy == 0) || (s_dy1 == 0))
-                merge(labels, k_yx - s_dy, k_y1x - s_dy1);
+            if ((start_q11 == 0) || (start_q10 == 0))
+                merge(labels, q11 - start_q11, q10 - start_q10);
+        }
+        else
+        {
+            int firstThread = threadIdx.x == 0;
+            int lastThread = (threadIdx.x == 31);
+
+            // below and left
+            int img_q00 = firstThread ? (bts_q00 & 0x80000000) : (bts_q10 & (1 << (threadIdx.x - 1)));
+            if (img_q00)
+            {
+                int start_q00 = start_distance(firstThread ? bts_q00 : bts_q10,
+                                               firstThread ? 31 : threadIdx.x - 1);
+
+                if ((start_q11 == 0) || (start_q00 == 0))
+                    merge(labels, q11 - start_q11, q10 - 1 - start_q00);
+            }
+
+            // below and right.  note that if (!img_q10 && img_q20) q20 is a
+            // node in the equivalence tree. equate q11 and q20
+            int img_q20 = lastThread ? (bts_q20 & 0x1) : (bts_q10 & (1 << (threadIdx.x + 1)));
+            if (img_q20)
+                merge(labels, q11 - start_q11, q10 + 1);
         }
     }
 }
 
 
-template <typename image_t>
+/** visit each pixel and if set fill in with its final label.
+ * @param[in] image bit map with regions of interest set
+ * @param[in] labels equivalence table identifying the connected components
+ * @param[inout] label_ids table with equivalence tree roots set to their final label
+ */
+template <typename image_t, typename label_id_t>
 __global__
-void relabel(const image_t *image, const int *labels, int *label_id, int nx, int ny)
+void relabel(const image_t *image, const int *labels, label_id_t *label_ids, int nx, int ny)
 {
     int y = blockDim.y * blockIdx.y + threadIdx.y;
     int x = blockDim.x * blockIdx.x + threadIdx.x;
@@ -226,26 +359,31 @@ void relabel(const image_t *image, const int *labels, int *label_id, int nx, int
 
     if (threadActive)
     {
+        int q11 = y * nx + x;
+        image_t img_q11 = image[q11]; // value of the current pixel
+
+        int bts_q11 = __ballot_sync(activeMask, img_q11);
+        int start_q11 = start_distance(bts_q11, threadIdx.x); // offset to first set pixel to the left in this row
+
         // get the root of the equivalence tree for this pixel
-        int k_yx = y * nx + x;
-        image_t p_yx = image[k_yx];
-
-        int pix_y = __ballot_sync(activeMask, p_yx);
-        int s_dy = start_distance(pix_y, threadIdx.x);
-
         int label = 0;
-        if (p_yx && (s_dy == 0))
+        if (img_q11 && (start_q11 == 0))
         {
-            label = labels[k_yx];
+            label = labels[q11];
             while (label != labels[label])
+            {
+#if !defined(NDEBUG)
+                assert_valid_label(labels, label);
+#endif
                 label = labels[label];
+            }
         }
 
-        label = __shfl_sync(activeMask, label, threadIdx.x - s_dy);
+        label = __shfl_sync(activeMask, label, threadIdx.x - start_q11);
 
         // update label to the root
-        if (p_yx)
-            label_id[k_yx] = label_id[label];
+        if (img_q11)
+            label_ids[q11] = label_ids[label];
     }
 }
 
@@ -273,11 +411,11 @@ void enumerate_equivalences(const int *labels, int *label_ids, int nx, int ny,
 
     if (threadActive)
     {
-        int k_yx = y * nx + x;
-        int label = labels[k_yx];
+        int q11 = y * nx + x;
+        int label = labels[q11];
 
         // find root in equivalence tree
-        if (label && (label == k_yx))
+        if ((label >= 0) && (label == q11))
         {
             // add to the list of unique labels
             int idx = atomicAdd(n_ulabels, 1);
@@ -321,7 +459,7 @@ void print(const hamr::buffer<image_t> &img, const hamr::buffer<int> &lab, int n
         {
             if (pimg[j*nx + i])
             {
-                if (plab[j*nx + i])
+                if (plab[j*nx + i] >= 0)
                     std::cerr << std::setw(4) << plab[j*nx + i];
                 else
                     std::cerr << std::setw(4) << "***";
@@ -336,65 +474,139 @@ void print(const hamr::buffer<image_t> &img, const hamr::buffer<int> &lab, int n
 }
 
 
+hamr::buffer<char> generate_image(hamr::buffer_allocator alloc)
+{
+    int nx = 37;
+    int ny = 18;
+
+    char pixels[] = {
+        0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1,
+        0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1,
+        0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1,
+        0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1,
+        0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1,
+        0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0,
+        0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0,
+        0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 0,
+        1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0,
+        1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0,
+        1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0,
+        1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1,
+        1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1,
+        0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1,
+        0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1
+    };
+
+    long nxy = nx*ny;
+    hamr::buffer<char> image(alloc, nxy, pixels);
+
+    return image;
+}
+
+hamr::buffer<char> generate_image(int nx, int ny, int max_len, int seed, int n_blobs)
+{
+    long nxy = nx*ny;
+    hamr::buffer<char> image(hamr::buffer_allocator::cuda_host, nxy, '\0');
+    char *p_image = image.data();
+
+    srand(seed);
+
+    for (int q = 0; q < n_blobs; ++q)
+    {
+        int i0 = rand() % nx;
+        int j0 = rand() % ny;
+
+        int i_len = rand() % max_len;
+        int j_len = rand() % max_len;
+
+        int i1 = std::min(nx - 1, i0 + i_len);
+        int j1 = std::min(ny - 1, j0 + j_len);
+
+        int c = 1;
+
+        for (int j = j0; j <= j1; ++j)
+        {
+            for (int i = i0; i <= i1; ++i)
+            {
+                p_image[ j * nx + i ] = c;
+            }
+        }
+    }
+
+    image.move(hamr::buffer_allocator::cuda);
+
+    return image;
+}
+
+template <typename T>
+void write_image(const char *fn, const hamr::buffer<T> &image)
+{
+    FILE *fh = fopen(fn, "wb");
+
+    auto [spi, pi] = hamr::get_cpu_accessible(image);
+    image.synchronize();
+
+    fwrite(pi, image.size(), sizeof(T), fh);
+    fclose(fh);
+}
+
+
+
 
 int main(int argc, char **argv)
 {
+    auto host_alloc = hamr::buffer_allocator::cuda_host;
+    auto dev_alloc = hamr::buffer_allocator::cuda;
+
+#if defined(TEST)
     (void)argc;
     (void)argv;
 
     bool periodicBc = true;
 
-    auto host_alloc = hamr::buffer_allocator::cuda_host;
-    auto dev_alloc = hamr::buffer_allocator::cuda;
-
     int nx = 37;
     int ny = 18;
 
-    char pixels[] = {
-        0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1,
-        0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1,
-        0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1,
-        1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 1,
-        1, 1, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 1,
-        0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0,
-        0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0,
-        0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 0,
-        0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 0,
-        0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0,
-        1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0,
-        1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0,
-        1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1,
-        1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1,
-        0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1,
-        0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1
-    };
+    long nxy = nx*ny;
 
+    hamr::buffer<char> image = generate_image(dev_alloc);
+#else
+    if (argc != 7)
+    {
+        std::cerr << "usage: a.out [nx] [ny] [max len] [seed] [num blobs] [periodic]" << std::endl;
+        return -1;
+    }
+
+    int nx = atoi(argv[1]);
+    int ny = atoi(argv[2]);
+    int max_len = atoi(argv[3]);
+    int seed = atoi(argv[4]);
+    int n_blobs = atoi(argv[5]);
+    bool periodicBc = atoi(argv[6]);
 
     long nxy = nx*ny;
 
-    hamr::buffer<char> image(dev_alloc, nxy, pixels);
-    hamr::buffer<int> labels(dev_alloc, nxy, 0);
+    hamr::buffer<char> image = generate_image(nx, ny, max_len, seed, n_blobs);
+#endif
+
+    hamr::buffer<int> labels(dev_alloc, nxy, -1);
     hamr::buffer<int> label_ids(dev_alloc, nxy, 0);
     hamr::buffer<int> ulabels(dev_alloc, nxy / 2 + (nxy % 2 ? 1 : 0), 0);
     hamr::buffer<int> nulabels(dev_alloc, 1, 1);
 
-    std::cerr << "input:" << std::endl;
-    print(image, nx, ny);
-    std::cerr << std::endl;
-
-    /*if (nx % NUM_THREADS_X)
+    if (nx < 64)
     {
-        TECA_FATAL_ERROR("The mesh width " << nx
-            << " must be a multiple of " << NUM_THREADS_X)
+        std::cerr << "input:" << std::endl;
+        print(image, nx, ny);
+        std::cerr << std::endl;
     }
-
-    if (ny % STRIP_HEIGHT)
+    else
     {
-        TECA_FATAL_ERROR("The mesh height " << ny
-            << " must be a multiple of " << STRIP_HEIGHT)
-    }*/
+        write_image("image.raw", image);
+    }
 
     int num_strips = ny / STRIP_HEIGHT + (ny % STRIP_HEIGHT ? 1 : 0);
 
@@ -403,29 +615,51 @@ int main(int argc, char **argv)
 
     label_strip<<<blocks, threads>>>(image.data(), labels.data(), nx, ny, periodicBc);
 
-    std::cerr << "labels:" << std::endl;
-    print(image, labels, nx, ny);
-    std::cerr << std::endl;
+    if (nx < 64)
+    {
+        std::cerr << "labels:" << std::endl;
+        print(image, labels, nx, ny);
+        std::cerr << std::endl;
+    }
+    else
+    {
+        write_image("labels.raw", labels);
+    }
 
     int num_tiles = nx / NUM_THREADS_X + (nx % NUM_THREADS_X ? 1 : 0);
     blocks = dim3(num_tiles, num_strips);
+    threads = dim3(NUM_THREADS_X, 1);
 
     merge_strip<<<blocks, threads>>>(image.data(), labels.data(), nx, ny);
 
-    std::cerr << "merged:" << std::endl;
-    std::cerr.width(3);
-    print(image, labels, nx, ny);
-    std::cerr << std::endl;
+    if (nx < 64)
+    {
+        std::cerr << "merged:" << std::endl;
+        std::cerr.width(3);
+        print(image, labels, nx, ny);
+        std::cerr << std::endl;
+    }
+    else
+    {
+        write_image("merged.raw", labels);
+    }
+
+    threads = dim3(NUM_THREADS_X, STRIP_HEIGHT);
 
     enumerate_equivalences<<<blocks, threads>>>(labels.data(), label_ids.data(), nx, ny, ulabels.data(), nulabels.data());
 
     relabel<<<blocks, threads>>>(image.data(), labels.data(), label_ids.data(), nx, ny);
 
-    std::cerr << "relabel:" << std::endl;
-    print(image, label_ids, nx, ny);
-    std::cerr << std::endl;
-
-
+    if (nx < 64)
+    {
+       std::cerr << "relabel:" << std::endl;
+       print(image, label_ids, nx, ny);
+       std::cerr << std::endl;
+    }
+    else
+    {
+        write_image("relabel.raw", label_ids);
+    }
 
     cudaStreamSynchronize(cudaStreamPerThread);
 
@@ -437,8 +671,6 @@ int main(int argc, char **argv)
     ulabels.synchronize();
 
     ulabels.print();
-
-
 
     return 0;
 }
