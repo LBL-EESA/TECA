@@ -145,7 +145,7 @@ void append_##NAME(const T &v)                                            \
     this->set_modified();                                                 \
 }                                                                         \
                                                                           \
-/** set the  NAME algorithm vector property to a single value */          \
+/** set the NAME algorithm vector property to a single value */          \
 void set_##NAME(const T &v)                                               \
 {                                                                         \
     this->set_##NAME##s({v});                                             \
