@@ -11,6 +11,7 @@
 #include "teca_dataset_source.h"
 #include "teca_dataset_diff.h"
 #include "teca_table_reader.h"
+#include "teca_table_sort.h"
 #include "teca_table_writer.h"
 #include "teca_cartesian_mesh_writer.h"
 #include "teca_index_executive.h"
@@ -125,6 +126,12 @@ int main(int argc, char **argv)
     p_teca_dataset_source dss = teca_dataset_source::New();
     dss->set_dataset(test_data);
 
+    // sort by area since the GPU and CPU versions generate different label ids
+    p_teca_table_sort sort = teca_table_sort::New();
+    sort->set_input_connection(dss->get_output_port());
+    sort->set_index_column("comp_area");
+    sort->set_ascending_order(1);
+
     // regression test
     bool do_test = true;
     teca_system_util::get_environment_variable("TECA_DO_TEST", do_test);
@@ -136,7 +143,7 @@ int main(int argc, char **argv)
 
         p_teca_dataset_diff diff = teca_dataset_diff::New();
         diff->set_input_connection(0, table_reader->get_output_port());
-        diff->set_input_connection(1, dss->get_output_port());
+        diff->set_input_connection(1, sort->get_output_port());
 
         diff->update();
     }
@@ -145,7 +152,7 @@ int main(int argc, char **argv)
         // make a baseline
         cerr << "generating baseline image " << baseline << endl;
         p_teca_table_writer table_writer = teca_table_writer::New();
-        table_writer->set_input_connection(dss->get_output_port());
+        table_writer->set_input_connection(sort->get_output_port());
         table_writer->set_file_name(baseline.c_str());
 
         table_writer->update();
