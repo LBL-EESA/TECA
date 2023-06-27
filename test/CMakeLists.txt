@@ -1012,5 +1012,9 @@ teca_add_test(test_table_join
 teca_add_test(test_ha4_connected_components
     SOURCES test_ha4_connected_components.cpp
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
-    COMMAND test_ha4_connected_components
+    COMMAND test_ha4_connected_components 256 256 14 1 1024 0
+    FEATURES ${TECA_HAS_CUDA})
+
+teca_add_test(test_ha4_connected_components_periodic
+    COMMAND test_ha4_connected_components 256 256 14 1 1024 1
     FEATURES ${TECA_HAS_CUDA})
