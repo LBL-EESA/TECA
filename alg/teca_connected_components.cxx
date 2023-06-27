@@ -973,8 +973,8 @@ const_p_teca_dataset teca_connected_components::execute(
     short *p_components = nullptr;
     short num_components = 0;
 
-#if defined(TECA_HAS_CUDA)
     int device_id = -1;
+#if defined(TECA_HAS_CUDA)
     request.get("device_id", device_id);
 
     if (device_id >= 0)
