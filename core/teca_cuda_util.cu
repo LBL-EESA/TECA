@@ -101,8 +101,11 @@ int get_local_cuda_devices(MPI_Comm comm, int &ranks_per_device,
     }
 #endif
     // without MPI this process can use all CUDA devices
-    for (int i = 0; i < n_node_dev; ++i)
-        local_dev.push_back(i);
+    if (ranks_per_device != 0)
+    {
+        for (int i = 0; i < n_node_dev; ++i)
+            local_dev.push_back(i);
+    }
 
     return 0;
 }

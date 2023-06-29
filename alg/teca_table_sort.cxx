@@ -46,12 +46,27 @@ public:
 private:
     const num_t *m_data;
 };
+
+template<typename num_t>
+class greater
+{
+public:
+    greater() : m_data(nullptr) {}
+    greater(const num_t *data) : m_data(data) {}
+
+    bool operator()(const size_t &l, const size_t &r)
+    {
+        return m_data[l] > m_data[r];
+    }
+private:
+    const num_t *m_data;
+};
 };
 
 
 // --------------------------------------------------------------------------
 teca_table_sort::teca_table_sort() :
-    index_column(""), index_column_id(0), stable_sort(0)
+    index_column(""), index_column_id(0), stable_sort(0), ascending_order(0)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -77,6 +92,8 @@ void teca_table_sort::get_properties_description(
             "place of an index_column name")
         TECA_POPTS_GET(int, prefix, stable_sort,
             "if set a stable sort will be used")
+        TECA_POPTS_GET(int, prefix, ascending_order,
+            "if set the table is sorted in ascending order")
         ;
 
     this->teca_algorithm::get_properties_description(prefix, opts);
@@ -93,6 +110,7 @@ void teca_table_sort::set_properties(
     TECA_POPTS_SET(opts, std::string, prefix, index_column)
     TECA_POPTS_SET(opts, int, prefix, index_column_id)
     TECA_POPTS_SET(opts, int, prefix, stable_sort)
+    TECA_POPTS_SET(opts, int, prefix, ascending_order)
 }
 #endif
 
@@ -154,9 +172,19 @@ const_p_teca_dataset teca_table_sort::execute(
         auto [scol, col] = get_cpu_accessible<CTT>(index_col);
 
         if (this->stable_sort)
-            std::stable_sort(index, index+n_rows, internal::less<NT>(col));
+        {
+            if (this->ascending_order)
+                std::stable_sort(index, index+n_rows, internal::greater<NT>(col));
+            else
+                std::stable_sort(index, index+n_rows, internal::less<NT>(col));
+        }
         else
-            std::sort(index, index+n_rows, internal::less<NT>(col));
+        {
+            if (this->ascending_order)
+                std::sort(index, index+n_rows, internal::greater<NT>(col));
+            else
+                std::sort(index, index+n_rows, internal::less<NT>(col));
+        }
         )
 
     // transfer data and reorder

@@ -1,6 +1,7 @@
 #include "teca_index_executive.h"
 #include "teca_config.h"
 #include "teca_common.h"
+#include "teca_system_util.h"
 #if defined(TECA_HAS_CUDA)
 #include "teca_cuda_util.h"
 #endif
@@ -148,7 +149,11 @@ int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
 
     // determine the available CUDA GPUs
 #if defined(TECA_HAS_CUDA)
-    int ranks_per_device = -1;
+    // check for an override to the default number of MPI ranks per device
+    int ranks_per_device = 1;
+    int ranks_per_device_set = teca_system_util::get_environment_variable
+        ("TECA_RANKS_PER_DEVICE", ranks_per_device);
+
     std::vector<int> device_ids;
     if (teca_cuda_util::get_local_cuda_devices(comm,
         ranks_per_device, device_ids))
