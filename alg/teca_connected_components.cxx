@@ -35,8 +35,6 @@ __device__
 unsigned int start_distance(unsigned int mask, int tx)
 {
     int sd =  __clz(~(mask << (32 - tx)));
-    if (sd > 32)
-        asm("trap;");
     return sd;
 }
 
@@ -60,18 +58,14 @@ void swap(T &a, T &b)
 #if !defined(NDEBUG)
 /// abort if an invalid label / label address is used
 __device__
-void assert_valid_label(const int *labels, int l1, int l2)
-{
-    if (!((l1 >= 0) && (l2 >= 0) && (labels[l1] >=0 ) && (labels[l2] >= 0)))
-        asm("trap;");
-}
-
-/// abort if an invalid label / label address is used
-__device__
-void assert_valid_label(const int *labels, int l1)
+int assert_valid_label(const int *labels, int l1)
 {
     if (!((l1 >= 0) && (labels[l1] >=0 )))
-        asm("trap;");
+    {
+        printf("ERROR: label[%d] = %d\n", l1, labels[l1]);
+        return -1;
+    }
+    return 0;
 }
 #endif
 
@@ -85,7 +79,7 @@ void merge(int *labels, int l1, int l2)
     while ((l1 != l2) && (l1 != labels[l1]))
     {
 #if !defined(NDEBUG)
-        assert_valid_label(labels, l1);
+        if (assert_valid_label(labels, l1)) asm("trap;");
 #endif
         l1 = labels[l1];
     }
@@ -93,7 +87,7 @@ void merge(int *labels, int l1, int l2)
     while ((l1 != l2) && (l2 != labels[l2]))
     {
 #if !defined(NDEBUG)
-        assert_valid_label(labels, l2);
+        if (assert_valid_label(labels, l2)) asm("trap;");
 #endif
         l2 = labels[l2];
     }
@@ -150,8 +144,8 @@ void label_strip(const image_t *image, int *labels, int nx, int ny, bool periodi
     int x = blockDim.x * blockIdx.x + threadIdx.x;
 
     // initialize bit masks
-    for (int i = 0; i < STRIP_HEIGHT; ++i)
-        s_bts_1[i] = 0;
+    if (threadIdx.x == 0)
+        s_bts_1[threadIdx.y] = 0;
 
     int line_base = y * nx + x;
 
@@ -164,8 +158,8 @@ void label_strip(const image_t *image, int *labels, int nx, int ny, bool periodi
         int q11 = line_base + i; // the flat address of the current pixel. notation: q(col)(row)
 
         // compute masks for warp collectives
-        int active_q1 = ((x + i) < nx) && (y < ny);
-        int active_q2 = ((x + i + 32) < nx) && (y < ny);
+        int active_q1 = (((x + i) < nx) && (y < ny)) ? 1 : 0;
+        int active_q2 = (((x + i + 32) < nx) && (y < ny)) ? 1 : 0;
 
         int img_q11 = active_q1 ? image[q11] : 0;           // the image value at q11
         int bts_q11 = __ballot_sync(0xffffffff, img_q11);   // bit mask w. image values around q11 for all 32 thread in this warp
@@ -176,7 +170,9 @@ void label_strip(const image_t *image, int *labels, int nx, int ny, bool periodi
         // initialize row wise equivalence tree roots to their flat address
         int start_q11 = start_distance(bts_q11, threadIdx.x);  // distance from q11 to the last connected pixel on its left
         if (active_q1 && img_q11 && (start_q11 == 0))
+        {
             labels[q11] = threadIdx.x == 0 ? q11 - dist_l1 : q11;
+        }
 
         // store the bit masks so that we may later look at masks in other rows in the strip
         if (threadIdx.x == 0)
@@ -190,6 +186,12 @@ void label_strip(const image_t *image, int *labels, int nx, int ny, bool periodi
         __syncthreads();
 
         int bts_q10 = threadIdx.y ? s_bts_1[threadIdx.y - 1] : 0; // the mask of the warp directly below
+        int bts_q00 = threadIdx.y ? s_bts_0[threadIdx.y - 1] : 0; // mask below and left
+        int bts_q20 = threadIdx.y ? s_bts_2[threadIdx.y - 1] : 0; // mask below and right
+
+        // prevent a race between the above conditional read and theee next loop iteration.
+        // in particular trheadIdx.y == 0 has less work and can continue the loop sooner
+        __syncthreads();
 
         if (img_q11)
         {
@@ -220,26 +222,24 @@ void label_strip(const image_t *image, int *labels, int nx, int ny, bool periodi
             }
             else
             {
-                // look below and left
-                int bts_q00 = !firstThread ? bts_q10 :
-                              (threadIdx.y ? s_bts_0[threadIdx.y - 1] : 0); // mask below and left
-
-                int img_q00 = bts_q00 & (firstThread ? 0x80000000 : (1 << (threadIdx.x - 1)));   // pixel below and left
+                // look below and left, threadIdx.y == 0 never does this
+                int bts = firstThread ? bts_q00 : bts_q10;
+                int img_q00 = bts & (firstThread ? 0x80000000 : (1 << (threadIdx.x - 1)));   // pixel below and left
                 if (img_q00)
                 {
                     int start_q00 = secondThread ? dist_l0 :
-                                    start_distance(bts_q00, firstThread ? 31 : threadIdx.x - 1); // distance to q00 equivalence tree node
+                                    start_distance(bts, firstThread ? 31 : threadIdx.x - 1); // distance to q00 equivalence tree node
 
                     // equate these two components
                     if ((start_q11 == 0) || (start_q00 == 0))
+                    {
                         merge(labels, q11 - start_q11, q11 - nx - 1 - start_q00);
+                    }
                 }
 
-                // look below and right
-                int bts_q20 = !lastThread ? bts_q10 :
-                              (((x + i + 1) < nx) && threadIdx.y ? s_bts_2[threadIdx.y - 1] : 0); // mask below and right
-
-                int img_q20 = bts_q20 & (lastThread ? 0x1 : (1 << (threadIdx.x + 1)));           // pixel below and right
+                // look below and right. threadIdx.y == 0 never does this
+                bts  = lastThread ? bts_q20 : bts_q10;
+                int img_q20 = bts & (lastThread ? 0x1 : (1 << (threadIdx.x + 1)));           // pixel below and right
                 if (img_q20)
                 {
                     // by construction (!img_q10 && img_q20) we know q20 is a
@@ -917,6 +917,9 @@ const_p_teca_dataset teca_connected_components::execute(
         return nullptr;
     }
 
+    unsigned long step = 0;
+    in_mesh->get_time_step(step);
+
     // create output and copy metadata, coordinates, etc
     p_teca_cartesian_mesh out_mesh = teca_cartesian_mesh::New();
 
@@ -1056,8 +1059,8 @@ const_p_teca_dataset teca_connected_components::execute(
 
     if (this->get_verbose() && (rank == 0))
     {
-        TECA_STATUS("connected component labeling computed on "
-            << (device_id >= 0 ? "CUDA device" : "the host")
+        TECA_STATUS("connected component labeling for step " << step
+            << " computed on " << (device_id >= 0 ? "CUDA device" : "the host")
             << "(" << device_id << ") " << num_components
             << " labels in " << dt.count() << "(" << dtcc.count()
             << " cc) seconds")
