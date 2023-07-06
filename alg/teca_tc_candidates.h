@@ -109,6 +109,21 @@ public:
     TECA_ALGORITHM_PROPERTY(double, search_lon_high)
     ///@}
 
+    /** @name omp_num_threads
+     * Set the number of OpenMP threads.
+     *
+     * @warning This is an experimaental setting and it is recommended to use
+     * this when running only 1 MPI rank per node.
+     *
+     * Using multiple OpenMP threads can speed up single step processing times
+     * but may interfere with TECA's MPI+threads pipeline execution.  We
+     * haven't yet found a way to make OpenMP play nicely with our own internal
+     * threading.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, omp_num_threads)
+    ///@}
+
     /// send human readable representation to the stream
     virtual void to_stream(std::ostream &os) const override;
 
@@ -161,6 +176,8 @@ private:
     double search_lon_high;
 
     int minimizer_iterations;
+
+    int omp_num_threads;
 };
 
 #endif

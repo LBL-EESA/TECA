@@ -27,7 +27,6 @@
 #include <string>
 #include <iostream>
 
-using namespace std;
 using namespace teca_derived_quantity_numerics;
 
 
@@ -41,31 +40,33 @@ int main(int argc, char **argv)
     teca_system_interface::set_stack_trace_on_mpi_error();
 
     // parse command line
-    string regex;
-    string baseline;
+    std::string regex;
+    std::string baseline;
     int have_baseline = 0;
     long start_index = 0;
     long end_index = -1;
     int n_threads = -1;
-    string ux_850mb;
-    string uy_850mb;
-    string ux_surf;
-    string uy_surf;
-    string P_surf;
-    string T_500mb;
-    string T_200mb;
-    string z_1000mb;
-    string z_200mb;
+    int n_omp_threads = 1;
+    std::string ux_850mb;
+    std::string uy_850mb;
+    std::string ux_surf;
+    std::string uy_surf;
+    std::string P_surf;
+    std::string T_500mb;
+    std::string T_200mb;
+    std::string z_1000mb;
+    std::string z_200mb;
     double low_lat = 0;
     double high_lat = -1;
 
-    if (argc != 17)
+    if (argc != 18)
     {
-        cerr << endl << "Usage error:" << endl
+        std::cerr << std::endl << "Usage error:" << std::endl
             << "test_tc_candidates [input regex] [output] [first step] [last step] [n threads] "
-               "[850 mb wind x] [850 mb wind y] [surface wind x] [surface wind y] [surface pressure] "
-               "[500 mb temp] [200 mb temp] [1000 mb z] [200 mb z] [low lat] [high lat]"
-            << endl << endl;
+               "[n_omp_threads] [850 mb wind x] [850 mb wind y] [surface wind x] [surface wind y] "
+               "[surface pressure] [500 mb temp] [200 mb temp] [1000 mb z] [200 mb z] [low lat] "
+               "[high lat]"
+            << std::endl << std::endl;
         return -1;
     }
 
@@ -77,17 +78,18 @@ int main(int argc, char **argv)
     start_index = atoi(argv[3]);
     end_index = atoi(argv[4]);
     n_threads = atoi(argv[5]);
-    ux_850mb = argv[6];
-    uy_850mb = argv[7];
-    ux_surf = argv[8];
-    uy_surf = argv[9];
-    P_surf = argv[10];
-    T_500mb = argv[11];
-    T_200mb = argv[12];
-    z_1000mb = argv[13];
-    z_200mb = argv[14];
-    low_lat = atof(argv[15]);
-    high_lat = atof(argv[16]);
+    n_omp_threads = atoi(argv[6]);
+    ux_850mb = argv[7];
+    uy_850mb = argv[8];
+    ux_surf = argv[9];
+    uy_surf = argv[10];
+    P_surf = argv[11];
+    T_500mb = argv[12];
+    T_200mb = argv[13];
+    z_1000mb = argv[14];
+    z_200mb = argv[15];
+    low_lat = atof(argv[16]);
+    high_lat = atof(argv[17]);
 
     // create the pipeline objects
     p_teca_cf_reader cf_reader = teca_cf_reader::New();
@@ -147,6 +149,7 @@ int main(int argc, char **argv)
     cand->set_search_lat_high(high_lat);
     //cand->set_search_lon_low();
     //cand->set_search_lon_high();
+    cand->set_omp_num_threads(n_omp_threads);
 
     // map-reduce
     p_teca_table_reduce map_reduce = teca_table_reduce::New();
@@ -154,12 +157,12 @@ int main(int argc, char **argv)
     map_reduce->set_start_index(start_index);
     map_reduce->set_end_index(end_index);
     map_reduce->set_verbose(1);
-    map_reduce->set_thread_pool_size(1); //n_threads);
+    map_reduce->set_thread_pool_size(n_threads);
 
     // sort results in time
     p_teca_table_sort sort = teca_table_sort::New();
     sort->set_input_connection(map_reduce->get_output_port());
-    sort->set_index_column("storm_id");
+    sort->set_index_column("surface_wind");
 
     // compute dates
     p_teca_table_calendar cal = teca_table_calendar::New();
@@ -171,12 +174,19 @@ int main(int argc, char **argv)
     if (do_test && have_baseline)
     {
         // run the test
+        if (rank == 0)
+            std::cerr << "running the test ... " << std::endl;
+
         p_teca_table_reader table_reader = teca_table_reader::New();
         table_reader->set_file_name(baseline);
 
         p_teca_dataset_diff diff = teca_dataset_diff::New();
         diff->set_input_connection(0, table_reader->get_output_port());
         diff->set_input_connection(1, cal->get_output_port());
+        diff->set_verbose(1);
+
+        // storm id is non-deterministic when OpenMP threading is used
+        diff->set_skip_array("storm_id");
 
         diff->update();
     }
@@ -184,7 +194,8 @@ int main(int argc, char **argv)
     {
         // make a baseline
         if (rank == 0)
-            cerr << "generating baseline image " << baseline << endl;
+            std::cerr << "generating baseline image " << baseline << std::endl;
+
         p_teca_table_writer table_writer = teca_table_writer::New();
         table_writer->set_input_connection(cal->get_output_port());
         table_writer->set_file_name(baseline.c_str());

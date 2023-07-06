@@ -59,33 +59,35 @@ def get_point_difference_execute(rank, v0_name, v1_name, res_name):
         return out_mesh
     return execute
 
-if (len(sys.argv) != 17):
+if (len(sys.argv) != 18):
     sys.stderr.write('\n\nUsage error:\n' \
         'test_tc_candidates [input regex] [output] [first step] [last step] [n threads] ' \
-        '[850 mb wind x] [850 mb wind y] [surface wind x] [surface wind y] [surface pressure] ' \
-        '[500 mb temp] [200 mb temp] [1000 mb z] [200 mb z] [low lat] [high lat]\n\n')
+        '[n_omp_threads] [850 mb wind x] [850 mb wind y] [surface wind x] [surface wind y] ' \
+        '[surface pressure] [500 mb temp] [200 mb temp] [1000 mb z] [200 mb z] [low lat] ' \
+        '[high lat]\n\n')
     sys.exit(-1)
 
 # parse command line
-regex = sys.argv[1];
-baseline = sys.argv[2];
-start_index = int(sys.argv[3]);
-end_index = int(sys.argv[4]);
-n_threads = int(sys.argv[5]);
-ux_850mb = sys.argv[6];
-uy_850mb = sys.argv[7];
-ux_surf = sys.argv[8];
-uy_surf = sys.argv[9];
-P_surf = sys.argv[10];
-T_500mb = sys.argv[11];
-T_200mb = sys.argv[12];
-z_1000mb = sys.argv[13];
-z_200mb = sys.argv[14];
-low_lat = float(sys.argv[15]);
-high_lat = float(sys.argv[16]);
+regex = sys.argv[1]
+baseline = sys.argv[2]
+start_index = int(sys.argv[3])
+end_index = int(sys.argv[4])
+n_threads = int(sys.argv[5])
+n_omp_threads = int(sys.argv[6])
+ux_850mb = sys.argv[7]
+uy_850mb = sys.argv[8]
+ux_surf = sys.argv[9]
+uy_surf = sys.argv[10]
+P_surf = sys.argv[11]
+T_500mb = sys.argv[12]
+T_200mb = sys.argv[13]
+z_1000mb = sys.argv[14]
+z_200mb = sys.argv[15]
+low_lat = float(sys.argv[16])
+high_lat = float(sys.argv[17])
 
 if (rank == 0):
-    sys.stderr.write('Testing on %d MPI processes %d threads\n'%(n_ranks, n_threads))
+    sys.stderr.write('Testing on %d MPI processes %d threads %d omp threads\n'%(n_ranks, n_threads, n_omp_threads))
 
 
 # create the pipeline objects
@@ -146,6 +148,7 @@ cand.set_search_lat_low(low_lat)
 cand.set_search_lat_high(high_lat)
 #cand.set_search_lon_low()
 #cand.set_search_lon_high()
+cand.set_omp_num_threads(n_omp_threads)
 
 # map-reduce
 map_reduce = teca_table_reduce.New()
@@ -155,10 +158,11 @@ map_reduce.set_end_index(end_index)
 map_reduce.set_verbose(1)
 map_reduce.set_thread_pool_size(n_threads)
 
-# sort results in time
+# sort results by wind speed, this is gives the test output a deterministic
+# order independent of how many OpenMP threads are used
 sort = teca_table_sort.New()
 sort.set_input_connection(map_reduce.get_output_port())
-sort.set_index_column('storm_id')
+sort.set_index_column('surface_wind')
 
 # compute dates
 cal = teca_table_calendar.New()
@@ -166,14 +170,26 @@ cal.set_input_connection(sort.get_output_port())
 
 do_test = system_util.get_environment_variable_bool('TECA_DO_TEST', True)
 if do_test and os.path.exists(baseline):
+  # run the test
+  sys.stderr.write('running the test ... \n')
+
   table_reader = teca_table_reader.New()
   table_reader.set_file_name(baseline)
+
   diff = teca_dataset_diff.New()
   diff.set_input_connection(0, table_reader.get_output_port())
   diff.set_input_connection(1, cal.get_output_port())
+  diff.set_verbose(1)
+
+ # depends on the number of OpenMP threads
+  diff.set_skip_array('storm_id')
+
   diff.update()
+
 else:
   # write the data
+  sys.stderr.write('generating the baseling "%s"\n'%(baseline))
+
   table_writer = teca_table_writer.New()
   table_writer.set_input_connection(cal.get_output_port())
   table_writer.set_file_name(baseline)
