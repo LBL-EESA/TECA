@@ -60,19 +60,26 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
-    // set/get the name of input variables
+    /** @name input_variables
+     * Set the names of the variables that are required for TC detection.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, surface_wind_speed_variable)
     TECA_ALGORITHM_PROPERTY(std::string, vorticity_850mb_variable)
     TECA_ALGORITHM_PROPERTY(std::string, sea_level_pressure_variable)
     TECA_ALGORITHM_PROPERTY(std::string, core_temperature_variable)
     TECA_ALGORITHM_PROPERTY(std::string, thickness_variable)
+    ///@}
 
-    // a candidate is defined as having:
-    // 1) a local maximum in vorticity above vorticty_850mb_threshold,
-    //    centered on a window of vorticty_850mb_window degrees
-    // 2) a local minimum in pressure within max_core_radius degrees
-    // 3) having max pressure delta within max_pressure_radius at
-    //    that location
+    /** @name detector_controls
+     * Set the thresholds controling detector behavior.  A TC candidate is
+     * defined as having:
+     * 1. a local maximum in vorticity above vorticty_850mb_threshold, centered
+     *    on a window of vorticty_850mb_window degrees
+     * 2. a local minimum in pressure within max_core_radius degrees
+     * 3. having max pressure delta within max_pressure_radius at that location
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, max_core_radius)
     TECA_ALGORITHM_PROPERTY(double, min_vorticity_850mb)
     TECA_ALGORITHM_PROPERTY(double, vorticity_850mb_window)
@@ -86,21 +93,23 @@ public:
     TECA_ALGORITHM_PROPERTY(double, max_thickness_delta)
     TECA_ALGORITHM_PROPERTY(double, max_thickness_radius)
 
-    // set/get the bounding box to search for storms
-    // in units of degrees lat,lon
+    // set/get the number of iterations to search for the storm local minimum.
+    // raising this parameter might increase detections but the detector will
+    // run slower. default is 50.
+    TECA_ALGORITHM_PROPERTY(int, minimizer_iterations)
+    ///@}
+
+    /** @name spatial_subset
+     * Set/get the bounding box to search for storms in units of degrees lat,lon
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(double, search_lat_low)
     TECA_ALGORITHM_PROPERTY(double, search_lat_high)
     TECA_ALGORITHM_PROPERTY(double, search_lon_low)
     TECA_ALGORITHM_PROPERTY(double, search_lon_high)
+    ///@}
 
-    // set/get the number of iterations to search for the
-    // storm local minimum. raising this parameter might increase
-    // detections but the detector will run slower. default is
-    // 50.
-    TECA_ALGORITHM_PROPERTY(int, minimizer_iterations)
-
-    // send human readable representation to the
-    // stream
+    /// send human readable representation to the stream
     virtual void to_stream(std::ostream &os) const override;
 
 protected:
