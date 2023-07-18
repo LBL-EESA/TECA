@@ -394,6 +394,8 @@ set(ignore ${REQUIRE_MPI} ${REQUIRE_NETCDF} ${REQUIRE_LIBXLSXWRITE}
 
 # configure library type
 set(CMAKE_MACOSX_RPATH 1)
+# ensure binaries can access linked libraries w/o LD_LIBRARY_PATH
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libraries")
 if (TECA_HAS_PYTHON)
     # SWIG RTTI system requires libs when multiple modules
