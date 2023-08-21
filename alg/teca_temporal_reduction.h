@@ -113,6 +113,14 @@ public:
     TECA_ALGORITHM_PROPERTY(double, fill_value)
     ///@}
 
+    /** @step_per_request
+     * Set the number of time steps per request
+     * default 1
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(long, steps_per_request)
+    ///@}
+
 protected:
     teca_cpp_temporal_reduction();
 
@@ -141,6 +149,7 @@ private:
     int interval;
     long number_of_steps;
     double fill_value;
+    long steps_per_request;
 
     class internals_t;
     internals_t *internals;

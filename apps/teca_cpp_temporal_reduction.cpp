@@ -87,6 +87,8 @@ int main(int argc, char **argv)
             " will coordinate the thread pools across ranks such each thread"
             " is bound to a unique physical core.\n")
 
+        ("steps_per_request", value<int>()->default_value(1), "\n\n")
+
         ("spatial_partitioning", "\nActivates the spatial partitioning engine.\n")
 
         ("spatial_partitions", value<int>()->default_value(0), "\nSets the number of spatial partitions."
@@ -230,10 +232,15 @@ int main(int argc, char **argv)
         red->set_fill_value(opt_vals["fill_value"].as<double>());
     }
 
+    if (!opt_vals["steps_per_request"].defaulted())
+    {
+        red->set_steps_per_request(opt_vals["steps_per_request"].as<int>());
+    }
+
     cf_writer->set_input_connection(red->get_output_port());
     cf_writer->set_stream_size(2);
     cf_writer->set_verbose(opt_vals["verbose"].as<int>());
-    cf_writer->set_thread_pool_size(opt_vals["n_threads"].as<int>());
+    cf_writer->set_thread_pool_size(1);
 
     if (opt_vals.count("output_file"))
     {
