@@ -106,7 +106,7 @@ public:
     ///@}
 
     /** @name fill_value
-     * Set the _fillValue attribute for the output data
+     * Set the _FillValue attribute for the output data
      * default -1
      */
     ///@{
