@@ -17,7 +17,7 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_cpp_temporal_reduction)
  * a defined operation.
  *
  *     time increments: daily, monthly, seasonal, yearly, n_steps, all
- *     reduction operators: average, summation, minimum, maximum
+ *     reduction operations: average, summation, minimum, maximum
  *
  * The output time axis will be defined using the selected increment.
  * The output data will be accumulated/reduced using the selected
@@ -56,23 +56,23 @@ public:
     TECA_ALGORITHM_VECTOR_PROPERTY(std::string, point_array)
     ///@}
 
-    /** @name op
-     * Set the reduction operator
+    /** @name operation
+     * Set the reduction operation
      * default average
      */
     ///@{
     enum {
-        average, ///< Set the reduction operator to be average
-        summation, ///< Set the reduction operator to be summation
-        minimum, ///< Set the reduction operator to be minimum
-        maximum ///< Set the reduction operator to be maximum
+        average, ///< Set the reduction operation to average
+        summation, ///< Set the reduction operation to summation
+        minimum, ///< Set the reduction operation to minimum
+        maximum ///< Set the reduction operation to maximum
     };
 
-    TECA_ALGORITHM_PROPERTY(int, op)
+    TECA_ALGORITHM_PROPERTY(int, operation)
 
-    int set_operator(const std::string &op);
+    int set_operation(const std::string &operation);
 
-    std::string get_operator_name();
+    std::string get_operation_name();
     ///@}
 
     /** @name interval
@@ -81,12 +81,12 @@ public:
      */
     ///@{
     enum {
-        daily = 2, ///< Set the time increment to be daily
-        monthly = 3, ///< Set the time increment to be monthly
-        seasonal = 4, ///< Set the time increment to be seasonal
-        yearly = 5, ///< Set the time increment to be yearly
-        n_steps = 6, ///< Set the time increment to be n steps
-        all = 7 ///< Set the time increment to be all
+        daily = 2, ///< Set the time increment to daily
+        monthly = 3, ///< Set the time increment to monthly
+        seasonal = 4, ///< Set the time increment to seasonal
+        yearly = 5, ///< Set the time increment to yearly
+        n_steps = 6, ///< Set the time increment to n steps
+        all = 7 ///< Set the time increment to all
     };
 
     TECA_ALGORITHM_PROPERTY(int, interval)
@@ -145,7 +145,7 @@ private:
 
 private:
     std::vector<std::string> point_arrays;
-    int op;
+    int operation;
     int interval;
     long number_of_steps;
     double fill_value;

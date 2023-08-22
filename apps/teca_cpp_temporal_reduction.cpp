@@ -194,6 +194,8 @@ int main(int argc, char **argv)
         cf_reader->set_files_regex(opt_vals["input_regex"].as<string>());
         vv_mask->set_input_connection(cf_reader->get_output_port());
     }
+
+
     if (opt_vals["verbose"].as<int>() > 1)
        vv_mask->set_verbose(1);
     else
@@ -219,7 +221,7 @@ int main(int argc, char **argv)
 
     if (!opt_vals["operator"].defaulted())
     {
-        red->set_operator(opt_vals["operator"].as<string>());
+        red->set_operation(opt_vals["operator"].as<string>());
     }
 
     if (opt_vals.count("point_arrays"))

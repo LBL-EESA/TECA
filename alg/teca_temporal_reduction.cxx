@@ -46,6 +46,8 @@ public:
     static
     void ensure_floating_point(allocator alloc, const_p_teca_variant_array &array);
 
+
+
 public:
     class reduction_operator;
     class average_operator;
@@ -57,10 +59,34 @@ public:
 
     using p_reduction_operator = std::shared_ptr<reduction_operator>;
 
+    void set_operation(const std::string &array, const p_reduction_operator &op);
+    p_reduction_operator &get_operation(const std::string &array);
+
+
 public:
+    std::mutex m_mutex;
+    teca_metadata metadata;
     std::vector<time_interval> indices;
-    std::map<std::string, p_reduction_operator> op;
+    std::map<std::thread::id, std::map<std::string, p_reduction_operator>> operation;
 };
+
+// --------------------------------------------------------------------------
+void teca_cpp_temporal_reduction::internals_t::set_operation(
+    const std::string &array, const p_reduction_operator &op)
+{
+    auto tid = std::this_thread::get_id();
+    std::lock_guard<std::mutex> lock(m_mutex);
+    this->operation[tid][array] = op;
+}
+
+// --------------------------------------------------------------------------
+teca_cpp_temporal_reduction::internals_t::p_reduction_operator &
+teca_cpp_temporal_reduction::internals_t::get_operation(const std::string &array)
+{
+    auto tid = std::this_thread::get_id();
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return this->operation[tid][array];
+}
 
 // --------------------------------------------------------------------------
 void teca_cpp_temporal_reduction::internals_t::ensure_floating_point(
@@ -2193,23 +2219,23 @@ teca_cpp_temporal_reduction::internals_t::p_reduction_operator
 }
 
 // --------------------------------------------------------------------------
-int teca_cpp_temporal_reduction::set_operator(const std::string &op)
+int teca_cpp_temporal_reduction::set_operation(const std::string &op)
 {
     if (op == "average")
     {
-        this->op = average;
+        this->operation = average;
     }
     else if (op == "summation")
     {
-        this->op = summation;
+        this->operation = summation;
     }
     else if (op == "minimum")
     {
-        this->op = minimum;
+        this->operation = minimum;
     }
     else if (op == "maximum")
     {
-        this->op = maximum;
+        this->operation = maximum;
     }
     else
     {
@@ -2220,10 +2246,10 @@ int teca_cpp_temporal_reduction::set_operator(const std::string &op)
 }
 
 // --------------------------------------------------------------------------
-std::string teca_cpp_temporal_reduction::get_operator_name()
+std::string teca_cpp_temporal_reduction::get_operation_name()
 {
     std::string name;
-    switch(this->op)
+    switch(this->operation)
     {
         case average:
             name = "average";
@@ -2238,7 +2264,7 @@ std::string teca_cpp_temporal_reduction::get_operator_name()
             name = "maximum";
             break;
         default:
-            TECA_FATAL_ERROR("Invalid \"operator\" " << this->op)
+            TECA_FATAL_ERROR("Invalid \"operator\" " << this->operation)
     }
     return name;
 }
@@ -2310,7 +2336,7 @@ std::string teca_cpp_temporal_reduction::get_interval_name()
 
 // --------------------------------------------------------------------------
 teca_cpp_temporal_reduction::teca_cpp_temporal_reduction() :
-    op(average), interval(monthly), number_of_steps(0), fill_value(-1),
+    operation(average), interval(monthly), number_of_steps(0), fill_value(-1),
     steps_per_request(1)
 {
     this->set_number_of_input_connections(1);
@@ -2338,7 +2364,7 @@ void teca_cpp_temporal_reduction::get_properties_description(
     opts.add_options()
         TECA_POPTS_GET(std::vector<std::string>, prefix, point_arrays,
             "list of point centered arrays to process")
-        TECA_POPTS_GET(int, prefix, op,
+        TECA_POPTS_GET(int, prefix, operation,
             "reduction operator to use"
             " (summation, minimum, maximum, or average)")
         TECA_POPTS_GET(int, prefix, interval,
@@ -2364,7 +2390,7 @@ void teca_cpp_temporal_reduction::set_properties(
     this->teca_threaded_algorithm::set_properties(prefix, opts);
 
     TECA_POPTS_SET(opts, std::vector<std::string>, prefix, point_arrays)
-    TECA_POPTS_SET(opts, int, prefix, op)
+    TECA_POPTS_SET(opts, int, prefix, operation)
     TECA_POPTS_SET(opts, int, prefix, interval)
     TECA_POPTS_SET(opts, long, prefix, number_of_steps)
     TECA_POPTS_SET(opts, double, prefix, fill_value)
@@ -2384,6 +2410,12 @@ teca_metadata teca_cpp_temporal_reduction::get_output_metadata(
     }
 
     (void)port;
+
+    // use cached the metadata. the first pass is always a single thread.  if
+    // we were to generate the metadata at each pass, the code below will have
+    // to be serialized.
+    if (!this->internals->metadata.empty())
+        return this->internals->metadata;
 
     // sanity checks
     if (this->point_arrays.empty())
@@ -2511,7 +2543,7 @@ teca_metadata teca_cpp_temporal_reduction::get_output_metadata(
         }
 
         // convert integer to floating point for averaging operations
-        if (this->op == average)
+        if (this->operation == average)
         {
             int tc;
             if (in_atts.get("type_code", tc))
@@ -2543,7 +2575,7 @@ teca_metadata teca_cpp_temporal_reduction::get_output_metadata(
         // document the transformation
         std::ostringstream oss;
         oss << this->get_interval_name() << " "
-            << this->get_operator_name() << " of " << array;
+            << this->get_operation_name() << " of " << array;
         in_atts.set("description", oss.str());
 
         out_atts.set(array, in_atts);
@@ -2560,9 +2592,12 @@ teca_metadata teca_cpp_temporal_reduction::get_output_metadata(
 
     out_atts.set(t_var, t_atts);
 
-    // package it all up and return
+    // package it all up
     md_out.set("variables", out_vars);
     md_out.set("attributes", out_atts);
+
+    // cache the metadata
+    this->internals->metadata = md_out;
 
     return md_out;
 }
@@ -2609,8 +2644,7 @@ std::vector<teca_metadata> teca_cpp_temporal_reduction::get_upstream_request(
 
         double fill_value = -1;
         std::string vv_mask = array + "_valid";
-        if (vars_in.count(vv_mask) &&
-            !req_arrays.count(vv_mask))
+        if (vars_in.count(vv_mask) && !req_arrays.count(vv_mask))
         {
             // request the associated valid value mask
             req_arrays.insert(vv_mask);
@@ -2634,12 +2668,12 @@ std::vector<teca_metadata> teca_cpp_temporal_reduction::get_upstream_request(
 
         // create and initialize the operator
         internals_t::p_reduction_operator op
-             = internals_t::reduction_operator_factory::New(this->op);
+             = internals_t::reduction_operator_factory::New(this->operation);
 
         op->initialize(fill_value, this->steps_per_request);
 
         // save the operator
-        this->internals->op[array] = op;
+        this->internals->set_operation(array, op);
     }
 
     // generate one request for each time step in the interval
@@ -2786,7 +2820,7 @@ const_p_teca_dataset teca_cpp_temporal_reduction::execute(
 
             VARIANT_ARRAY_DISPATCH(in_array.get(),
 
-                if (this->op == average)
+                if (this->operation == average)
                 {
                     // the average requires a floating point type due to truncation
                     // that occurs with integer division.
@@ -2842,35 +2876,31 @@ const_p_teca_dataset teca_cpp_temporal_reduction::execute(
                 return nullptr;
             }
 
+            // apply the reduction
+            auto &op = this->internals->get_operation(array);
 #if defined(TECA_HAS_CUDA)
             if (device_id >= 0)
             {
-                // apply the reduction
-                this->internals->op[array]->update_gpu(
-                    device_id, array, arrays_out, arrays_in);
+                op->update_gpu(device_id, array, arrays_out, arrays_in);
             }
             else
             {
 #endif
-                // apply the reduction
-                this->internals->op[array]->update_cpu(
-                    device_id, array, arrays_out, arrays_in);
+                op->update_cpu(device_id, array, arrays_out, arrays_in);
 #if defined(TECA_HAS_CUDA)
             }
 #endif
         }
     }
 
-    // when all the data is processed
+    // when all the data is processed finalize the reduction
     if (!streaming)
     {
         for (size_t i = 0; i < n_array; ++i)
         {
             const std::string &array = this->point_arrays[i];
-
-            // finalize the reduction
-            this->internals->op[array]->finalize(
-                device_id, array, arrays_out);
+            auto &op = this->internals->get_operation(array);
+            op->finalize(device_id, array, arrays_out);
         }
 
         // fix time
