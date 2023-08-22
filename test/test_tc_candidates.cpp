@@ -58,14 +58,15 @@ int main(int argc, char **argv)
     std::string z_200mb;
     double low_lat = 0;
     double high_lat = -1;
+    int max_it = 50;
 
-    if (argc != 18)
+    if (argc != 19)
     {
         std::cerr << std::endl << "Usage error:" << std::endl
             << "test_tc_candidates [input regex] [output] [first step] [last step] [n threads] "
                "[n_omp_threads] [850 mb wind x] [850 mb wind y] [surface wind x] [surface wind y] "
                "[surface pressure] [500 mb temp] [200 mb temp] [1000 mb z] [200 mb z] [low lat] "
-               "[high lat]"
+               "[high lat] [max it]"
             << std::endl << std::endl;
         return -1;
     }
@@ -90,6 +91,7 @@ int main(int argc, char **argv)
     z_200mb = argv[15];
     low_lat = atof(argv[16]);
     high_lat = atof(argv[17]);
+    max_it = atoi(argv[18]);
 
     // create the pipeline objects
     p_teca_cf_reader cf_reader = teca_cf_reader::New();
@@ -150,6 +152,7 @@ int main(int argc, char **argv)
     //cand->set_search_lon_low();
     //cand->set_search_lon_high();
     cand->set_omp_num_threads(n_omp_threads);
+    cand->set_minimizer_iterations(max_it);
 
     // map-reduce
     p_teca_table_reduce map_reduce = teca_table_reduce::New();

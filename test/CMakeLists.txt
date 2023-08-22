@@ -369,7 +369,7 @@ teca_add_test(test_tc_candidates_serial
     COMMAND test_tc_candidates
     "${TECA_DATA_ROOT}/test_tc_candidates_1990_07_0[12]\\.nc"
     "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 1 1
-    U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
+    U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20 50
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_SERIAL_TESTS}
     REQ_TECA_DATA)
 
@@ -377,7 +377,7 @@ teca_add_test(test_tc_candidates_omp
     COMMAND test_tc_candidates
     "${TECA_DATA_ROOT}/test_tc_candidates_1990_07_0[12]\\.nc"
     "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 1 ${TEST_CORES}
-    U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
+    U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20 50
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 set_property(TEST test_tc_candidates_omp APPEND PROPERTY ENVIRONMENT
@@ -387,7 +387,7 @@ teca_add_test(test_tc_candidates_mpi
     COMMAND ${MPIEXEC} -n ${TEST_CORES} test_tc_candidates
     "${TECA_DATA_ROOT}/test_tc_candidates_1990_07_0[12]\\.nc"
     "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 1 1
-    U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
+    U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20 50
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
 
@@ -398,7 +398,7 @@ teca_add_test(test_tc_candidates_threads
     COMMAND test_tc_candidates
     "${TECA_DATA_ROOT}/test_tc_candidates_1990_07_0[12]\\.nc"
     "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 ${TEST_CORES} 1
-    U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
+    U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20 50
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
@@ -406,7 +406,7 @@ teca_add_test(test_tc_candidates_mpi_threads
     COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} test_tc_candidates
     "${TECA_DATA_ROOT}/test_tc_candidates_1990_07_0[12]\\.nc"
     "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 2 1
-    U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
+    U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20 50
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI}
         ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
