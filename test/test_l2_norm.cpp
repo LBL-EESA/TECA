@@ -27,7 +27,7 @@ struct fxyz
 
     char m_dir;
 
-    p_teca_variant_array operator()(const const_p_teca_variant_array &x,
+    p_teca_variant_array operator()(int, const const_p_teca_variant_array &x,
         const const_p_teca_variant_array &y, const const_p_teca_variant_array &z,
         double t)
     {

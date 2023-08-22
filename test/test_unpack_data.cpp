@@ -52,7 +52,7 @@ struct packed_data
         return atts;
     }
 
-    p_teca_variant_array operator()(
+    p_teca_variant_array operator()(int,
         const const_p_teca_variant_array &x,
         const const_p_teca_variant_array &y,
         const const_p_teca_variant_array &z,

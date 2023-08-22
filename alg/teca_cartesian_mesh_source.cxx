@@ -12,6 +12,10 @@
 #include <boost/program_options.hpp>
 #endif
 
+#if defined(TECA_HAS_CUDA)
+#include "teca_cuda_util.h"
+#endif
+
 using namespace teca_variant_array_util;
 
 struct teca_cartesian_mesh_source::internals_t
@@ -619,6 +623,19 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
     (void)port;
     (void)input_data;
 
+    // get the requested target device
+    int device_id = -1;
+    allocator alloc = allocator::malloc;
+#if defined(TECA_HAS_CUDA)
+    request.get("device_id", device_id);
+    if (device_id >= 0)
+    {
+        // place generated data on the assigned device
+        teca_cuda_util::set_device(device_id);
+        alloc = allocator::cuda_async;
+    }
+#endif
+
     // get coordinates
     teca_metadata coords;
     if (this->internals->metadata.get("coordinates", coords))
@@ -804,7 +821,7 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
             return nullptr;
         }
 
-        p_teca_variant_array f_xyzt = teca_variant_array_factory::New(type_code);
+        p_teca_variant_array f_xyzt = teca_variant_array_factory::New(type_code, alloc);
 
         // generate data for each of the requested time steps
         for (unsigned long q = temporal_extent[0]; q <= temporal_extent[1]; ++q)
@@ -814,7 +831,7 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
             in_t->get(q, t);
 
             // append this time step's data
-            f_xyzt->append(it->generator(out_x, out_y, out_z, t));
+            f_xyzt->append(it->generator(device_id, out_x, out_y, out_z, t));
         }
 
         mesh->get_point_arrays()->append(it->name, f_xyzt);
