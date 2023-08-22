@@ -683,7 +683,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 }
 
                 // we assume data is on the CPU
-                assert(t_i->cpu_accessible());
+                assert(t_i->host_accessible());
 
                 // update the step map
                 size_t n_ti = t_i->size();
@@ -1069,9 +1069,9 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
     }
 
     // assume coordinate data is on the CPU
-    assert(in_x->cpu_accessible());
-    assert(in_y->cpu_accessible());
-    assert(in_z->cpu_accessible());
+    assert(in_x->host_accessible());
+    assert(in_y->host_accessible());
+    assert(in_z->host_accessible());
 
     // the requested extents must not exceed these limits
     unsigned long nx_max = in_x->size();

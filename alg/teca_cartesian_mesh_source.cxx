@@ -53,7 +53,7 @@ void teca_cartesian_mesh_source::internals_t::initialize_axis(
     p_teca_variant_array_impl<num_t> x, unsigned long i0, unsigned long i1,
     num_t x0, num_t x1)
 {
-    assert(x->cpu_accessible());
+    assert(x->host_accessible());
 
     // generate an equally spaced coordinate axes
     unsigned long nx = i1 - i0 + 1;
@@ -653,8 +653,8 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
     }
 
     // assume coordinate data is on the CPU
-    assert(in_x->cpu_accessible() && in_y->cpu_accessible() &&
-        in_z->cpu_accessible() && in_t->cpu_accessible());
+    assert(in_x->host_accessible() && in_y->host_accessible() &&
+        in_z->host_accessible() && in_t->host_accessible());
 
     // get the extent of the dataset we could generate
     unsigned long md_whole_extent[6] = {0};

@@ -148,7 +148,7 @@ const_p_teca_dataset teca_component_statistics::execute(
 
     VARIANT_ARRAY_DISPATCH_I(component_ids.get(),
 
-        auto [spcid, pcid] = get_cpu_accessible<CTT>(component_ids);
+        auto [spcid, pcid] = get_host_accessible<CTT>(component_ids);
 
         unsigned long base = s*1000000;
         for (unsigned long i = 0; i < n_comps; ++i)

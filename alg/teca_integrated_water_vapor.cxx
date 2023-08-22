@@ -323,17 +323,17 @@ const_p_teca_dataset teca_integrated_water_vapor::execute(
     NESTED_VARIANT_ARRAY_DISPATCH_FP(
         p.get(), _COORDS,
 
-        auto [sp_p, p_p] = get_cpu_accessible<CTT_COORDS>(p);
+        auto [sp_p, p_p] = get_host_accessible<CTT_COORDS>(p);
 
         NESTED_VARIANT_ARRAY_DISPATCH_FP(
             iwv.get(), _DATA,
 
-            auto [sp_q, p_q] = get_cpu_accessible<CTT_DATA>(q);
+            auto [sp_q, p_q] = get_host_accessible<CTT_DATA>(q);
             auto [p_iwv] = data<TT_DATA>(iwv);
 
             if (q_valid)
             {
-                auto [spqv, p_q_valid] = get_cpu_accessible<CTT_MASK>(q_valid);
+                auto [spqv, p_q_valid] = get_host_accessible<CTT_MASK>(q_valid);
                 ::cartesian_iwv(nx, ny, nz, p_p, p_q, p_q_valid, p_iwv);
             }
             else

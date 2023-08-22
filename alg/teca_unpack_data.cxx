@@ -71,7 +71,7 @@ int dispatch(const p_teca_variant_array &in_array,
     NESTED_VARIANT_ARRAY_DISPATCH(
         in_array.get(), _IN,
 
-        auto [sp_in, p_in] = get_cpu_accessible<TT_IN>(in_array);
+        auto [sp_in, p_in] = get_host_accessible<TT_IN>(in_array);
 
         NESTED_VARIANT_ARRAY_DISPATCH_FP(
             out_array.get(), _OUT,
@@ -83,7 +83,7 @@ int dispatch(const p_teca_variant_array &in_array,
                 NESTED_VARIANT_ARRAY_DISPATCH_I(
                     mask.get(), _MASK,
 
-                    auto [sp_mask, p_mask] = get_cpu_accessible<TT_MASK>(mask);
+                    auto [sp_mask, p_mask] = get_host_accessible<TT_MASK>(mask);
 
                     cpu::transform(p_out, p_in, p_mask,
                         n_elem, NT_OUT(scale), NT_OUT(offset), NT_OUT(1e20));

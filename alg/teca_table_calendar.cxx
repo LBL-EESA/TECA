@@ -265,7 +265,7 @@ const_p_teca_dataset teca_table_calendar::execute(
     // make the date computations
     VARIANT_ARRAY_DISPATCH(time.get(),
 
-        auto [spct, curr_time] = get_cpu_accessible<CTT>(time);
+        auto [spct, curr_time] = get_host_accessible<CTT>(time);
 
         for (unsigned long i = 0; i < n_rows; ++i)
         {

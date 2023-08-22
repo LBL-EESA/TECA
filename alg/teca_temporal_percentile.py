@@ -354,12 +354,12 @@ class teca_temporal_percentile(teca_python_algorithm):
 
             if dev < 0 or have_vvm:
                 # Compute the percentile on the CPU
-                array_in = arrays_in[array].get_cpu_accessible()
+                array_in = arrays_in[array].get_host_accessible()
                 array_in.shape = (nt,nz,ny,nx)
 
                 if have_vvm:
                     # get the input array on the CPU
-                    valid_in = arrays_in[valid].get_cpu_accessible()
+                    valid_in = arrays_in[valid].get_host_accessible()
                     valid_in.shape = (nt,nz,ny,nx)
 
                     # convert the missing values to NaN as required by Numpy

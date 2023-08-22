@@ -189,7 +189,7 @@ const_p_teca_dataset teca_table_region_mask::execute(
     VARIANT_ARRAY_DISPATCH_FP(x.get(),
 
         assert_type<CTT>(y);
-        auto [spx, px, spy, py] = get_cpu_accessible<CTT>(x, y);
+        auto [spx, px, spy, py] = get_host_accessible<CTT>(x, y);
 
         for (unsigned long i = 0; i < n_rows; ++i)
         {

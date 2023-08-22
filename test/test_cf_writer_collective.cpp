@@ -201,7 +201,7 @@ const_p_teca_dataset generate_test_data::execute(unsigned int port,
         assert_type<CTT>(y_in);
 
         auto [spx_in, px_in,
-              spy_in, py_in] = get_cpu_accessible<CTT>(x_in, y_in);
+              spy_in, py_in] = get_host_accessible<CTT>(x_in, y_in);
 
         // deg to rad
         for (unsigned long i = 0; i < nx; ++i)

@@ -1066,7 +1066,7 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::update_cpu(
             auto [tmp, p_tmp] = ::New<TT>(n_elem_count);
             if (out_valid)
             {
-                auto [sp_out_valid, p_out_valid] = get_cpu_accessible<CTT_MASK>(out_valid);
+                auto [sp_out_valid, p_out_valid] = get_host_accessible<CTT_MASK>(out_valid);
 
                 for (unsigned int i = 0; i < n_elem/this->steps_per_request; ++i)
                 {
@@ -1098,8 +1098,8 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::update_cpu(
         auto [res_array, p_res_array] = ::New<TT>(n_elem);
         auto [res_count, p_res_count] = ::New<TT>(n_elem_count);
 
-        auto [sp_in_array, p_in_array] = get_cpu_accessible<CTT>(in_array);
-        auto [sp_out_array, p_out_array] = get_cpu_accessible<CTT>(out_array);
+        auto [sp_in_array, p_in_array] = get_host_accessible<CTT>(in_array);
+        auto [sp_out_array, p_out_array] = get_host_accessible<CTT>(out_array);
 
         auto [p_count] = data<TT>(count);
 
@@ -1109,8 +1109,8 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::update_cpu(
 
             auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem);
 
-            auto [sp_in_valid, p_in_valid] = get_cpu_accessible<CTT_MASK>(in_valid);
-            auto [sp_out_valid, p_out_valid] = get_cpu_accessible<CTT_MASK>(out_valid);
+            auto [sp_in_valid, p_in_valid] = get_host_accessible<CTT_MASK>(in_valid);
+            auto [sp_out_valid, p_out_valid] = get_host_accessible<CTT_MASK>(out_valid);
 
             for (unsigned int i = 0; i < n_elem/this->steps_per_request; ++i)
             {
@@ -1326,16 +1326,16 @@ int teca_cpp_temporal_reduction::internals_t::summation_operator::update_cpu(
 
     VARIANT_ARRAY_DISPATCH(out_array.get(),
 
-        auto [sp_in_array, p_in_array] = get_cpu_accessible<CTT>(in_array);
-        auto [sp_out_array, p_out_array] = get_cpu_accessible<CTT>(out_array);
+        auto [sp_in_array, p_in_array] = get_host_accessible<CTT>(in_array);
+        auto [sp_out_array, p_out_array] = get_host_accessible<CTT>(out_array);
         auto [res_array, p_res_array] = ::New<TT>(n_elem);
 
         if (out_valid)
         {
             // update, respect missing values
             auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem);
-            auto [sp_in_valid, p_in_valid] = get_cpu_accessible<CTT_MASK>(in_valid);
-            auto [sp_out_valid, p_out_valid] = get_cpu_accessible<CTT_MASK>(out_valid);
+            auto [sp_in_valid, p_in_valid] = get_host_accessible<CTT_MASK>(in_valid);
+            auto [sp_out_valid, p_out_valid] = get_host_accessible<CTT_MASK>(out_valid);
 
             for (unsigned int i = 0; i < n_elem/this->steps_per_request; ++i)
             {
@@ -1492,15 +1492,15 @@ int teca_cpp_temporal_reduction::internals_t::minimum_operator::update_cpu(
     VARIANT_ARRAY_DISPATCH(out_array.get(),
 
         auto [res_array, p_res_array] = ::New<TT>(n_elem);
-        auto [sp_in_array, p_in_array] = get_cpu_accessible<TT>(in_array);
-        auto [sp_out_array, p_out_array] = get_cpu_accessible<TT>(out_array);
+        auto [sp_in_array, p_in_array] = get_host_accessible<TT>(in_array);
+        auto [sp_out_array, p_out_array] = get_host_accessible<TT>(out_array);
 
         if (out_valid)
         {
             // update, respect missing values
             auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem);
-            auto [sp_in_valid, p_in_valid] = get_cpu_accessible<CTT_MASK>(in_valid);
-            auto [sp_out_valid, p_out_valid] = get_cpu_accessible<CTT_MASK>(out_valid);
+            auto [sp_in_valid, p_in_valid] = get_host_accessible<CTT_MASK>(in_valid);
+            auto [sp_out_valid, p_out_valid] = get_host_accessible<CTT_MASK>(out_valid);
 
             for (unsigned int i = 0; i < n_elem/this->steps_per_request; ++i)
             {
@@ -1656,15 +1656,15 @@ int teca_cpp_temporal_reduction::internals_t::maximum_operator::update_cpu(
     VARIANT_ARRAY_DISPATCH(out_array.get(),
 
         auto [res_array, p_res_array] = ::New<TT>(n_elem);
-        auto [sp_in_array, p_in_array] = get_cpu_accessible<CTT>(in_array);
-        auto [sp_out_array, p_out_array] = get_cpu_accessible<CTT>(out_array);
+        auto [sp_in_array, p_in_array] = get_host_accessible<CTT>(in_array);
+        auto [sp_out_array, p_out_array] = get_host_accessible<CTT>(out_array);
 
         if (out_valid)
         {
             // update, respect missing values
             auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem);
-            auto [sp_in_valid, p_in_valid] = get_cpu_accessible<CTT_MASK>(in_valid);
-            auto [sp_out_valid, p_out_valid] = get_cpu_accessible<CTT_MASK>(out_valid);
+            auto [sp_in_valid, p_in_valid] = get_host_accessible<CTT_MASK>(in_valid);
+            auto [sp_out_valid, p_out_valid] = get_host_accessible<CTT_MASK>(out_valid);
 
             for (unsigned int i = 0; i < n_elem/this->steps_per_request; ++i)
             {
@@ -1847,7 +1847,7 @@ int teca_cpp_temporal_reduction::internals_t::maximum_operator::finalize(
             auto [res_array, p_res_array] = ::New<TT>(n_elem/this->steps_per_request);
             if (out_valid)
             {
-                auto [sp_out_valid, p_out_valid] = get_cpu_accessible<CTT_MASK>(out_valid);
+                auto [sp_out_valid, p_out_valid] = get_host_accessible<CTT_MASK>(out_valid);
                 for (unsigned int i = 0; i < n_elem/this->steps_per_request; ++i)
                 {
                     p_res_array[i] = (!p_out_valid[i]) ? fill_val : p_out_array[i];
@@ -1949,7 +1949,7 @@ int teca_cpp_temporal_reduction::internals_t::minimum_operator::finalize(
             auto [res_array, p_res_array] = ::New<TT>(n_elem/this->steps_per_request);
             if (out_valid)
             {
-                auto [sp_out_valid, p_out_valid] = get_cpu_accessible<CTT_MASK>(out_valid);
+                auto [sp_out_valid, p_out_valid] = get_host_accessible<CTT_MASK>(out_valid);
                 for (unsigned int i = 0; i < n_elem/this->steps_per_request; ++i)
                 {
                     p_res_array[i] = (!p_out_valid[i]) ? fill_val : p_out_array[i];
@@ -2052,7 +2052,7 @@ int teca_cpp_temporal_reduction::internals_t::summation_operator::finalize(
             auto [res_array, p_res_array] = ::New<TT>(n_elem/this->steps_per_request);
             if (out_valid)
             {
-                auto [sp_out_valid, p_out_valid] = get_cpu_accessible<CTT_MASK>(out_valid);
+                auto [sp_out_valid, p_out_valid] = get_host_accessible<CTT_MASK>(out_valid);
                 for (unsigned int i = 0; i < n_elem/this->steps_per_request; ++i)
                 {
                     p_res_array[i] = 0.;
@@ -2154,7 +2154,7 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::finalize(
             auto [res_array, p_res_array] = ::New<TT>(n_elem/this->steps_per_request);
             if (out_valid)
             {
-                auto [sp_out_valid, p_out_valid] = get_cpu_accessible<CTT_MASK>(out_valid);
+                auto [sp_out_valid, p_out_valid] = get_host_accessible<CTT_MASK>(out_valid);
                 for (unsigned int i = 0; i < n_elem/this->steps_per_request; ++i)
                 {
                     p_res_array[i] = 0.;

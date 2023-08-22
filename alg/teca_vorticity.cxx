@@ -368,7 +368,7 @@ const_p_teca_dataset teca_vorticity::execute(
         lon.get(), _COORD,
 
         assert_type<TT_COORD>(lat);
-        auto [sp_lon, p_lon, sp_lat, p_lat] = get_cpu_accessible<CTT_COORD>(lon, lat);
+        auto [sp_lon, p_lon, sp_lat, p_lat] = get_host_accessible<CTT_COORD>(lon, lat);
 
         NESTED_VARIANT_ARRAY_DISPATCH_FP(
             comp_0.get(), _DATA,
@@ -376,7 +376,7 @@ const_p_teca_dataset teca_vorticity::execute(
             assert_type<TT_DATA>(comp_1);
 
             auto [sp_comp_0, p_comp_0,
-                  sp_comp_1, p_comp_1] = get_cpu_accessible<CTT_DATA>(comp_0, comp_1);
+                  sp_comp_1, p_comp_1] = get_host_accessible<CTT_DATA>(comp_0, comp_1);
 
             auto [p_vort] = data<TT_DATA>(vort);
 

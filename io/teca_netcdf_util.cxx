@@ -723,7 +723,7 @@ read_variable_and_attributes::operator()(int device_id)
     }
 
     // assume data is on the CPU
-    assert(dims->cpu_accessible());
+    assert(dims->host_accessible());
 
     // get the size
     size_t var_size = 1;
@@ -872,7 +872,7 @@ int write_variable_attributes(netcdf_handle &fh, int var_id,
         const_p_teca_variant_array att_values = array_atts.get(att_name);
 
         // assume the data is on the CPU
-        assert(att_values->cpu_accessible());
+        assert(att_values->host_accessible());
 
         // handle string type
         VARIANT_ARRAY_DISPATCH_CASE(std::string, att_values.get(),

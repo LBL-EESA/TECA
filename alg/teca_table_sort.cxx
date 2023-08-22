@@ -169,7 +169,7 @@ const_p_teca_dataset teca_table_sort::execute(
 
     VARIANT_ARRAY_DISPATCH(index_col.get(),
 
-        auto [scol, col] = get_cpu_accessible<CTT>(index_col);
+        auto [scol, col] = get_host_accessible<CTT>(index_col);
 
         if (this->stable_sort)
         {
@@ -199,7 +199,7 @@ const_p_teca_dataset teca_table_sort::execute(
         out_col->resize(n_rows);
         VARIANT_ARRAY_DISPATCH(out_col.get(),
 
-            auto [sp_in_col, p_in_col] = get_cpu_accessible<CTT>(in_col);
+            auto [sp_in_col, p_in_col] = get_host_accessible<CTT>(in_col);
             auto [p_out_col] = data<TT>(out_col);
 
             for (unsigned long i = 0; i < n_rows; ++i)

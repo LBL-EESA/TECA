@@ -8,7 +8,7 @@ namespace cpu
 p_array allocate_and_initialize_stats(const std::string &array_name)
 {
     // imnportant! results are always alollocated on the CPU
-    p_array results = array::new_cpu_accessible();
+    p_array results = array::new_host_accessible();
 
     results->set_name(array_name + "_stats");
     results->resize(4);
@@ -28,7 +28,7 @@ int cpu_dispatch(p_array &results, const const_p_array &l_in,
         << "array_temporal_stats_internals::cpu_dispatch" << std::endl;
 #endif
 
-    results = array::new_cpu_accessible();
+    results = array::new_host_accessible();
     results->resize(4);
 
     // cases:
@@ -36,18 +36,18 @@ int cpu_dispatch(p_array &results, const const_p_array &l_in,
     {
         // both left and right contain new data
         // compute stats from left
-        std::shared_ptr<const double> pl_in = l_in->get_cpu_accessible();
+        std::shared_ptr<const double> pl_in = l_in->get_host_accessible();
 
-        p_array res_l = array::new_cpu_accessible();
+        p_array res_l = array::new_host_accessible();
         res_l->resize(4);
 
         array_temporal_stats_internals::cpu::compute_stats(
             res_l->data(), pl_in.get(), l_in->size());
 
         // compute stats from right
-        std::shared_ptr<const double> pr_in = r_in->get_cpu_accessible();
+        std::shared_ptr<const double> pr_in = r_in->get_host_accessible();
 
-        p_array res_r = array::new_cpu_accessible();
+        p_array res_r = array::new_host_accessible();
         res_r->resize(4);
 
         array_temporal_stats_internals::cpu::compute_stats(
@@ -63,16 +63,16 @@ int cpu_dispatch(p_array &results, const const_p_array &l_in,
         // left contains new data, right contains result
 
         // compute stats from left
-        std::shared_ptr<const double> pl_in = l_in->get_cpu_accessible();
+        std::shared_ptr<const double> pl_in = l_in->get_host_accessible();
 
-        p_array res_l = array::new_cpu_accessible();
+        p_array res_l = array::new_host_accessible();
         res_l->resize(4);
 
         array_temporal_stats_internals::cpu::compute_stats(
             res_l->data(), pl_in.get(), l_in->size());
 
         // existing stats from right
-        std::shared_ptr<const double> pr_in = r_in->get_cpu_accessible();
+        std::shared_ptr<const double> pr_in = r_in->get_host_accessible();
 
         // reduce stats
         array_temporal_stats_internals::cpu::reduce_stats(
@@ -84,16 +84,16 @@ int cpu_dispatch(p_array &results, const const_p_array &l_in,
         // right contains data, left contains result
 
         // compute stats from right
-        std::shared_ptr<const double> pr_in = r_in->get_cpu_accessible();
+        std::shared_ptr<const double> pr_in = r_in->get_host_accessible();
 
-        p_array res_r = array::new_cpu_accessible();
+        p_array res_r = array::new_host_accessible();
         res_r->resize(4);
 
         array_temporal_stats_internals::cpu::compute_stats(
             res_r->data(), pr_in.get(), r_in->size());
 
         // existing stats from left
-        std::shared_ptr<const double> pl_in = l_in->get_cpu_accessible();
+        std::shared_ptr<const double> pl_in = l_in->get_host_accessible();
 
         // reduce stats from the left (always on CPU)
         array_temporal_stats_internals::cpu::reduce_stats(
@@ -102,10 +102,10 @@ int cpu_dispatch(p_array &results, const const_p_array &l_in,
     else
     {
         // existing stats from left
-        std::shared_ptr<const double> pl_in = l_in->get_cpu_accessible();
+        std::shared_ptr<const double> pl_in = l_in->get_host_accessible();
 
         // existing stats from right
-        std::shared_ptr<const double> pr_in = r_in->get_cpu_accessible();
+        std::shared_ptr<const double> pr_in = r_in->get_host_accessible();
 
         // both left and right contain stats
         array_temporal_stats_internals::cpu::reduce_stats(

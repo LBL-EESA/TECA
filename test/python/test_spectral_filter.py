@@ -202,10 +202,10 @@ class plot_data(teca_python_algorithm):
 
         nx,ny,nz,nt = mesh_out.get_array_shape('f_t')
 
-        f_t_in = mesh_out.get_point_arrays().get('f_t').get_cpu_accessible()
+        f_t_in = mesh_out.get_point_arrays().get('f_t').get_host_accessible()
         f_t_in.shape = (nt,nz,ny,nx)
 
-        f_t_out = mesh_out.get_point_arrays().get('f_t_%s'%(ftype)).get_cpu_accessible()
+        f_t_out = mesh_out.get_point_arrays().get('f_t_%s'%(ftype)).get_host_accessible()
         f_t_out.shape = (nt,nz,ny,nx)
 
         t = np.linspace(t_bds[0], t_bds[1], nt)
@@ -324,7 +324,7 @@ if do_test:
 
         mesh_out = as_teca_cartesian_mesh(dsc_out.get_dataset())
 
-        f_t_out = mesh_out.get_point_arrays().get('f_t_%s'%(ftype)).get_cpu_accessible()
+        f_t_out = mesh_out.get_point_arrays().get('f_t_%s'%(ftype)).get_host_accessible()
         f_t_out.shape = (nt,nz,ny,nx)
 
         t = np.linspace( 0., t1, nt)

@@ -58,7 +58,7 @@ struct TECA_EXPORT point_wise_average
         VARIANT_ARRAY_DISPATCH(v0.get(),
 
             assert_type<CTT>(v1);
-            auto [sp_v0, p_v0, sp_v1, p_v1] = get_cpu_accessible<CTT>(v0, v1);
+            auto [sp_v0, p_v0, sp_v1, p_v1] = get_host_accessible<CTT>(v0, v1);
             auto [p_avg] = data<TT>(avg);
 
             for (unsigned long i = 0; i < n_pts; ++i)
@@ -120,7 +120,7 @@ struct TECA_EXPORT point_wise_difference
         VARIANT_ARRAY_DISPATCH(v1.get(),
 
             assert_type<CTT>(v1);
-            auto [sp_v0, p_v0, sp_v1, p_v1] = get_cpu_accessible<CTT>(v0, v1);
+            auto [sp_v0, p_v0, sp_v1, p_v1] = get_host_accessible<CTT>(v0, v1);
             auto [p_diff] = data<TT>(diff);
 
             for (unsigned long i = 0; i < n_pts; ++i)

@@ -52,7 +52,7 @@ struct tile_labeler
          VARIANT_ARRAY_DISPATCH_FP(x.get(),
 
              assert_type<TT>(y);
-             auto [spx, px, spy, py] = get_cpu_accessible<CTT>(x, y);
+             auto [spx, px, spy, py] = get_host_accessible<CTT>(x, y);
 
              for (unsigned long j = 0; j < ny; ++j)
              {

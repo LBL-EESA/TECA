@@ -108,7 +108,7 @@ int internals::reorder(p_teca_variant_array &x_out,
     NESTED_VARIANT_ARRAY_DISPATCH(
         x.get(), _C,
 
-        auto [spx, px] = get_cpu_accessible<CTT_C>(x);
+        auto [spx, px] = get_host_accessible<CTT_C>(x);
 
         // if comp(x0, x1) reverse the axis.
         // when comp is less than the output will be ascending
@@ -215,7 +215,7 @@ int internals::inv_periodic_shift_x(p_teca_unsigned_long_array &map,
     NESTED_VARIANT_ARRAY_DISPATCH(
         x.get(), _C,
 
-        auto [spx, px] = get_cpu_accessible<CTT_C>(x);
+        auto [spx, px] = get_host_accessible<CTT_C>(x);
 
         map = teca_unsigned_long_array::New(nx);
         unsigned long *pmap = map->data();
@@ -247,7 +247,7 @@ int internals::periodic_shift_x(p_teca_variant_array &x_out,
     NESTED_VARIANT_ARRAY_DISPATCH(
         x.get(), _C,
 
-        auto [spx, px] = get_cpu_accessible<CTT_C>(x);
+        auto [spx, px] = get_host_accessible<CTT_C>(x);
 
         // check that the shift is needed.
         shifted_x = (px[0] < NT_C(0));
@@ -363,7 +363,7 @@ int internals::periodic_shift_x(p_teca_array_collection arrays,
         NESTED_VARIANT_ARRAY_DISPATCH(
             a.get(), _A,
 
-            auto [spa, pa] = get_cpu_accessible<CTT_A>(a);
+            auto [spa, pa] = get_host_accessible<CTT_A>(a);
             auto [pao] = data<TT_A>(ao);
 
             for (unsigned long k = 0; k < nzo; ++k)
@@ -432,7 +432,7 @@ int internals::ascending_order_y(p_teca_array_collection arrays,
         NESTED_VARIANT_ARRAY_DISPATCH(
             a.get(), _A,
 
-            auto [spa, pa] = get_cpu_accessible<CTT_A>(a);
+            auto [spa, pa] = get_host_accessible<CTT_A>(a);
             auto [pao] = ::data<TT_A>(ao);
 
             for (unsigned long k = 0; k < nz; ++k)
@@ -465,7 +465,7 @@ void internals::scale(p_teca_variant_array &out,
         NT *pout = nullptr;
         std::tie(out, pout) = New<TT>(n_elem);
 
-        auto [spin, pin] = get_cpu_accessible<CTT>(in);
+        auto [spin, pin] = get_host_accessible<CTT>(in);
 
         for (unsigned long i = 0; i < n_elem; ++i)
             pout[i] = pin[i] * fac;

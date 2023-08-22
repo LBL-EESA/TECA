@@ -225,7 +225,7 @@ int compare_int(const const_p_teca_variant_array_impl<NT> &ain, int val)
         ai->debug_print();
     }
 
-    auto [spai, pai] = get_cpu_accessible<teca_int_array>(ai);
+    auto [spai, pai] = get_host_accessible<teca_int_array>(ai);
 
     for (size_t i = 0; i < n_vals; ++i)
     {

@@ -763,7 +763,7 @@ teca_metadata teca_tc_wind_radii::teca_tc_wind_radii::get_output_metadata(
 
     VARIANT_ARRAY_DISPATCH_I(storm_ids.get(),
 
-        auto [spstorm_ids, pstorm_ids] = get_cpu_accessible<CTT>(storm_ids);
+        auto [spstorm_ids, pstorm_ids] = get_host_accessible<CTT>(storm_ids);
 
         teca_coordinate_util::get_table_offsets(pstorm_ids,
             this->internals->storm_table->get_number_of_rows(),
@@ -858,7 +858,7 @@ std::vector<teca_metadata> teca_tc_wind_radii::get_upstream_request(
 
         // for each point in track compute the bounding box needed
         // for the wind profile
-        auto [spx, px, spy, py] = get_cpu_accessible<CTT>(x_coordinates, y_coordinates);
+        auto [spx, px, spy, py] = get_host_accessible<CTT>(x_coordinates, y_coordinates);
 
         for (unsigned long i = 0; i < n_ids; ++i)
         {
@@ -903,7 +903,7 @@ std::vector<teca_metadata> teca_tc_wind_radii::get_upstream_request(
     // request the specific time needed
     VARIANT_ARRAY_DISPATCH(
         times.get(),
-        auto [spt, pt] = get_cpu_accessible<CTT>(times);
+        auto [spt, pt] = get_host_accessible<CTT>(times);
         for (unsigned long i = 0; i < n_ids; ++i)
             up_reqs[i].set("time", pt[i+id_ofs]);
         )
@@ -969,7 +969,7 @@ const_p_teca_dataset teca_tc_wind_radii::execute(unsigned int port,
 
         // get the storm centers
         assert_type<CTT_STORM>(storm_y);
-        auto [spsx, pstorm_x, spsy, pstorm_y] = get_cpu_accessible<CTT_STORM>(storm_x, storm_y);
+        auto [spsx, pstorm_x, spsy, pstorm_y] = get_host_accessible<CTT_STORM>(storm_x, storm_y);
 
         // for each time instance in the storm compute the storm radius
         for (unsigned long k = 0; k < npts; ++k)
@@ -995,7 +995,7 @@ const_p_teca_dataset teca_tc_wind_radii::execute(unsigned int port,
                 mesh_x.get(), _MESH,
 
                 assert_type<CTT_MESH>(mesh_y);
-                auto [spmx, pmesh_x, spmy, pmesh_y] = get_cpu_accessible<CTT_MESH>(mesh_x, mesh_y);
+                auto [spmx, pmesh_x, spmy, pmesh_y] = get_host_accessible<CTT_MESH>(mesh_x, mesh_y);
 
                 unsigned long nx = mesh_x->size();
                 unsigned long ny = mesh_y->size();
@@ -1022,7 +1022,7 @@ const_p_teca_dataset teca_tc_wind_radii::execute(unsigned int port,
                     wind_u.get(), _WIND,
 
                     assert_type<CTT_WIND>(wind_v);
-                    auto [spwu, pwu, spwv, pwv] = get_cpu_accessible<TT_WIND>(wind_u, wind_v);
+                    auto [spwu, pwu, spwv, pwv] = get_host_accessible<TT_WIND>(wind_u, wind_v);
 
                     // get the kth storm center
                     NT_MESH sx = static_cast<NT_MESH>(pstorm_x[k+ofs]);

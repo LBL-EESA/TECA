@@ -366,13 +366,13 @@ const_p_teca_dataset teca_tc_trajectory::execute(
 
     // get the candidate storm properties
     auto step = candidates->get_column("step");
-    auto [sp_step, p_step] = get_cpu_accessible<const teca_long_array>(step);
+    auto [sp_step, p_step] = get_host_accessible<const teca_long_array>(step);
 
     auto time = candidates->get_column("time");
-    auto [sp_time, p_time] = get_cpu_accessible<const teca_double_array>(time);
+    auto [sp_time, p_time] = get_host_accessible<const teca_double_array>(time);
 
     auto storm_id = candidates->get_column("storm_id");
-    auto [sp_storm_id, p_storm_id] = get_cpu_accessible<const teca_int_array>(storm_id);
+    auto [sp_storm_id, p_storm_id] = get_host_accessible<const teca_int_array>(storm_id);
 
     const_p_teca_variant_array lon = candidates->get_column("lon");
     const_p_teca_variant_array lat = candidates->get_column("lat");
@@ -382,10 +382,10 @@ const_p_teca_dataset teca_tc_trajectory::execute(
     const_p_teca_variant_array psl_min = candidates->get_column("sea_level_pressure");
 
     auto have_twc = candidates->get_column("have_core_temp");
-    auto [sp_have_twc, p_have_twc] = get_cpu_accessible<const teca_int_array>(have_twc);
+    auto [sp_have_twc, p_have_twc] = get_host_accessible<const teca_int_array>(have_twc);
 
     auto have_thick = candidates->get_column("have_thickness");
-    auto [sp_have_tick, p_have_thick] = get_cpu_accessible<const teca_int_array>(have_thick);
+    auto [sp_have_tick, p_have_thick] = get_host_accessible<const teca_int_array>(have_thick);
 
     const_p_teca_variant_array twc_max = candidates->get_column("core_temp");
     const_p_teca_variant_array thick_max = candidates->get_column("thickness");
@@ -420,7 +420,7 @@ const_p_teca_dataset teca_tc_trajectory::execute(
         lon.get(), _COORD,
 
         assert_type<CTT_COORD>(lat);
-        auto [sp_lon, p_lon, sp_lat, p_lat] = get_cpu_accessible<CTT_COORD>(lon, lat);
+        auto [sp_lon, p_lon, sp_lat, p_lat] = get_host_accessible<CTT_COORD>(lon, lat);
 
         NESTED_VARIANT_ARRAY_DISPATCH_FP(
             wind_max.get(), _VAR,
@@ -437,11 +437,11 @@ const_p_teca_dataset teca_tc_trajectory::execute(
 
             // get the inputs
             assert_type<CTT_VAR>(vort_max, psl_min, twc_max, thick_max);
-            auto [sp_wind_max, p_wind_max] = get_cpu_accessible<CTT_VAR>(wind_max);
-            auto [sp_vort_max, p_vort_max] = get_cpu_accessible<CTT_VAR>(vort_max);
-            auto [sp_psl_min, p_psl_min] = get_cpu_accessible<CTT_VAR>(psl_min);
-            auto [sp_twc_max, p_twc_max] = get_cpu_accessible<CTT_VAR>(twc_max);
-            auto [sp_thick_max, p_thick_max] = get_cpu_accessible<CTT_VAR>(thick_max);
+            auto [sp_wind_max, p_wind_max] = get_host_accessible<CTT_VAR>(wind_max);
+            auto [sp_vort_max, p_vort_max] = get_host_accessible<CTT_VAR>(vort_max);
+            auto [sp_psl_min, p_psl_min] = get_host_accessible<CTT_VAR>(psl_min);
+            auto [sp_twc_max, p_twc_max] = get_host_accessible<CTT_VAR>(twc_max);
+            auto [sp_thick_max, p_thick_max] = get_host_accessible<CTT_VAR>(thick_max);
 
             // invoke the track finder
             if (internal::teca_tc_trajectory(

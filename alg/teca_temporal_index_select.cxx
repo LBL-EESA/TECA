@@ -102,7 +102,7 @@ teca_metadata teca_temporal_index_select::get_output_metadata(unsigned int port,
         VARIANT_ARRAY_DISPATCH_FP(t_in.get(),
 
             auto [tmp, p_tmp] = ::New<TT>(n_elem);
-            auto [sp_t_in, p_t_in] = get_cpu_accessible<CTT>(t_in);
+            auto [sp_t_in, p_t_in] = get_host_accessible<CTT>(t_in);
 
             for ( size_t i = 0; i < n_elem; ++i )
             {

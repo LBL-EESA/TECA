@@ -617,18 +617,18 @@ const_p_teca_dataset teca_cartesian_mesh_regrid::execute(
 
                 // get the target cooridnates
                 assert_type<CTT_TGT>(target_yc, target_zc);
-                auto [sp_target_xc, p_target_xc] = get_cpu_accessible<CTT_TGT>(target_xc);
-                auto [sp_target_yc, p_target_yc] = get_cpu_accessible<CTT_TGT>(target_yc);
-                auto [sp_target_zc, p_target_zc] = get_cpu_accessible<CTT_TGT>(target_zc);
+                auto [sp_target_xc, p_target_xc] = get_host_accessible<CTT_TGT>(target_xc);
+                auto [sp_target_yc, p_target_yc] = get_host_accessible<CTT_TGT>(target_yc);
+                auto [sp_target_zc, p_target_zc] = get_host_accessible<CTT_TGT>(target_zc);
 
                 NESTED_VARIANT_ARRAY_DISPATCH_FP(
                     source_xc.get(), _SRC,
 
                     // get the target cooridnates
                     assert_type<CTT_SRC>(source_yc, source_zc);
-                    auto [sp_source_xc, p_source_xc] = get_cpu_accessible<CTT_SRC>(source_xc);
-                    auto [sp_source_yc, p_source_yc] = get_cpu_accessible<CTT_SRC>(source_yc);
-                    auto [sp_source_zc, p_source_zc] = get_cpu_accessible<CTT_SRC>(source_zc);
+                    auto [sp_source_xc, p_source_xc] = get_host_accessible<CTT_SRC>(source_xc);
+                    auto [sp_source_yc, p_source_yc] = get_host_accessible<CTT_SRC>(source_yc);
+                    auto [sp_source_zc, p_source_zc] = get_host_accessible<CTT_SRC>(source_zc);
 
                     // get the source array
                     const_p_teca_variant_array source_a = source_ac->get(source_arrays[i]);
@@ -640,7 +640,7 @@ const_p_teca_dataset teca_cartesian_mesh_regrid::execute(
                         target_a.get(), _DATA,
 
                         // interpolate
-                        auto [sp_source_a, p_source_a] = get_cpu_accessible<CTT_DATA>(source_a);
+                        auto [sp_source_a, p_source_a] = get_host_accessible<CTT_DATA>(source_a);
                         auto [p_target_a] = data<TT_DATA>(target_a);
 
                         if (interpolate(this->interpolation_mode, target_nx, target_ny, target_nz,

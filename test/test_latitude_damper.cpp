@@ -111,7 +111,7 @@ int main(int argc, char **argv)
     const_p_teca_cartesian_mesh cds = std::dynamic_pointer_cast<const teca_cartesian_mesh>(ds);
     const_p_teca_variant_array va = cds->get_point_arrays()->get("ones_grid_damped");
 
-    auto [spda, p_damped_array] = get_cpu_accessible<const array_t>(va);
+    auto [spda, p_damped_array] = get_host_accessible<const array_t>(va);
 
     // find lat index where scalar should be half
     long hwhm_index = -1;

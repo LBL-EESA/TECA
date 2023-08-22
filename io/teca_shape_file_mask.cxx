@@ -452,7 +452,7 @@ const_p_teca_dataset teca_shape_file_mask::execute(
 
         // get the coordinate arrays. always needed on the CPU. maybe needed on
         // the GPU if we are assigned to run there.
-        auto [sp_x, p_x, sp_y, p_y] = get_cpu_accessible<CTT>(x, y);
+        auto [sp_x, p_x, sp_y, p_y] = get_host_accessible<CTT>(x, y);
 
 #if defined(TECA_HAS_CUDA)
         CSP dsp_x, dsp_y;

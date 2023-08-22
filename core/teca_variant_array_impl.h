@@ -798,8 +798,8 @@ public:
      */
     ///@{
     /// Get a pointer to the data accessible on the CPU
-    const std::shared_ptr<const T> get_cpu_accessible() const
-    { return m_data.get_cpu_accessible(); }
+    const std::shared_ptr<const T> get_host_accessible() const
+    { return m_data.get_host_accessible(); }
 
     /// Get a pointer to the data accessible within CUDA
     const std::shared_ptr<const T> get_cuda_accessible() const
@@ -835,7 +835,7 @@ public:
     int cuda_accessible() const noexcept override { return m_data.cuda_accessible(); }
 
     /// returns true if the data is accessible from codes running on the CPU
-    int cpu_accessible() const noexcept override { return m_data.cpu_accessible(); }
+    int host_accessible() const noexcept override { return m_data.host_accessible(); }
 
     /// Get the current size of the data
     unsigned long size() const noexcept override;
@@ -2339,10 +2339,10 @@ bool teca_variant_array_impl<T>::equal(const const_p_teca_variant_array &other) 
         if (n_elem != other_t->size())
             return false;
 
-        auto spthis = this->get_cpu_accessible();
+        auto spthis = this->get_host_accessible();
         const NT *pthis = spthis.get();
 
-        auto spother = other_t->get_cpu_accessible();
+        auto spother = other_t->get_host_accessible();
         const NT *pother = spother.get();
 
         for (size_t i = 0; i < n_elem; ++i)
@@ -2370,7 +2370,7 @@ void teca_variant_array_impl<T>::to_binary(teca_binary_stream &s,
     s.pack(n_elem);
 
     // pack the data from the CPU
-    std::shared_ptr<const T> pdata = this->get_cpu_accessible();
+    std::shared_ptr<const T> pdata = this->get_host_accessible();
     s.pack(pdata.get(), n_elem);
 }
 
@@ -2406,7 +2406,7 @@ void teca_variant_array_impl<T>::to_binary(teca_binary_stream &s,
     s.pack(n_elem);
 
     // pack the data from the CPU
-    std::shared_ptr<const T> data = this->get_cpu_accessible();
+    std::shared_ptr<const T> data = this->get_host_accessible();
     const T *pdata = data.get();
     for (unsigned long long i = 0; i < n_elem; ++i)
     {
@@ -2448,7 +2448,7 @@ void teca_variant_array_impl<T>::to_binary(
     s.pack(n_elem);
 
     // pack the data from the CPU
-    std::shared_ptr<const T> data = this->get_cpu_accessible();
+    std::shared_ptr<const T> data = this->get_host_accessible();
     const T *pdata = data.get();
     for (unsigned long long i = 0; i < n_elem; ++i)
     {
@@ -2492,7 +2492,7 @@ void teca_variant_array_impl<T>::to_ascii(
     if (n_elem)
     {
         // serialize from the CPU
-        std::shared_ptr<const T> data = this->get_cpu_accessible();
+        std::shared_ptr<const T> data = this->get_host_accessible();
         const T *pdata = data.get();
 
         s << STR_DELIM("\"", "") << pdata[0] << STR_DELIM("\"", "");
@@ -2525,7 +2525,7 @@ void teca_variant_array_impl<T>::to_ascii(
     if (n_elem)
     {
         // serialize from the CPU
-        std::shared_ptr<const T> data = this->get_cpu_accessible();
+        std::shared_ptr<const T> data = this->get_host_accessible();
         const T *pdata = data.get();
 
         s << "{";
@@ -2561,7 +2561,7 @@ void teca_variant_array_impl<T>::to_ascii(
     if (n_elem)
     {
         // serialize from the CPU
-        std::shared_ptr<const T> data = this->get_cpu_accessible();
+        std::shared_ptr<const T> data = this->get_host_accessible();
         const T *pdata = data.get();
 
         s << "{";

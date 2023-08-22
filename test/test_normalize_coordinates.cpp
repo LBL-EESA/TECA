@@ -55,7 +55,7 @@ struct distance_field
         VARIANT_ARRAY_DISPATCH_FP(x.get(),
 
             assert_type<TT>(y,z);
-            auto [spx, px, spy, py, spz, pz] = get_cpu_accessible<CTT>(x, y, z);
+            auto [spx, px, spy, py, spz, pz] = get_host_accessible<CTT>(x, y, z);
 
             for (unsigned long k = 0; k < nz; ++k)
             {

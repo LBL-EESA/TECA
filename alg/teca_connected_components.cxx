@@ -1024,7 +1024,7 @@ const_p_teca_dataset teca_connected_components::execute(
         std::tie(components, p_components) = ::New<teca_short_array>(n_elem);
         VARIANT_ARRAY_DISPATCH(input_array.get(),
 
-            auto [sp_in, p_in] = get_cpu_accessible<CTT>(input_array);
+            auto [sp_in, p_in] = get_host_accessible<CTT>(input_array);
 
             tcc0 = std::chrono::high_resolution_clock::now();
 

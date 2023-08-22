@@ -135,7 +135,7 @@ void teca_cartesian_mesh_coordinate_transform::internals_t::transform_axes(
 
             VARIANT_ARRAY_DISPATCH(ax_out.get(),
 
-                auto [sp_ax_in, p_ax_in] = get_cpu_accessible<CTT>(ax_in);
+                auto [sp_ax_in, p_ax_in] = get_host_accessible<CTT>(ax_in);
                 auto [p_ax_out] = data<TT>(ax_out);
 
                 // transform the axis

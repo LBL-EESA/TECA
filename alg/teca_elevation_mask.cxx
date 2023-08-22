@@ -360,12 +360,12 @@ const_p_teca_dataset teca_elevation_mask::execute(
     NESTED_VARIANT_ARRAY_DISPATCH(
         surface_elev.get(), _SURF,
 
-        auto [sp_se, p_surface_elev] = get_cpu_accessible<CTT_SURF>(surface_elev);
+        auto [sp_se, p_surface_elev] = get_host_accessible<CTT_SURF>(surface_elev);
 
         NESTED_VARIANT_ARRAY_DISPATCH(
             mesh_height.get(), _MESH,
 
-            auto [sp_mh, p_mesh_height] = get_cpu_accessible<CTT_MESH>(mesh_height);
+            auto [sp_mh, p_mesh_height] = get_host_accessible<CTT_MESH>(mesh_height);
 
             internals_t::mask_by_surface_elevation(nx, ny, nz,
                 p_mask, p_surface_elev, p_mesh_height);
