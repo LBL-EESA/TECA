@@ -2213,7 +2213,7 @@ int teca_cpp_temporal_reduction::set_operator(const std::string &op)
     }
     else
     {
-        TECA_ERROR("Invalid operator name \"" << op << "\"")
+        TECA_FATAL_ERROR("Invalid operator name \"" << op << "\"")
         return -1;
     }
     return 0;
@@ -2238,7 +2238,7 @@ std::string teca_cpp_temporal_reduction::get_operator_name()
             name = "maximum";
             break;
         default:
-            TECA_ERROR("Invalid \"operator\" " << this->op)
+            TECA_FATAL_ERROR("Invalid \"operator\" " << this->op)
     }
     return name;
 }
@@ -2272,7 +2272,7 @@ int teca_cpp_temporal_reduction::set_interval(const std::string &interval)
     }
     else
     {
-        TECA_ERROR("Invalid interval name \"" << interval << "\"")
+        TECA_FATAL_ERROR("Invalid interval name \"" << interval << "\"")
         return -1;
     }
     return 0;
@@ -2303,7 +2303,7 @@ std::string teca_cpp_temporal_reduction::get_interval_name()
             name = "all";
             break;
         default:
-            TECA_ERROR("Invalid \"interval\" " << this->interval)
+            TECA_FATAL_ERROR("Invalid \"interval\" " << this->interval)
     }
     return name;
 }
@@ -2633,9 +2633,9 @@ std::vector<teca_metadata> teca_cpp_temporal_reduction::get_upstream_request(
         }
 
         // create and initialize the operator
-        teca_cpp_temporal_reduction::internals_t::p_reduction_operator op
-             = teca_cpp_temporal_reduction::internals_t::reduction_operator_factory::New(
-                                                                 this->op);
+        internals_t::p_reduction_operator op
+             = internals_t::reduction_operator_factory::New(this->op);
+
         op->initialize(fill_value, this->steps_per_request);
 
         // save the operator
@@ -2648,15 +2648,23 @@ std::vector<teca_metadata> teca_cpp_temporal_reduction::get_upstream_request(
     std::string request_key;
     if (md.get("index_request_key", request_key))
     {
-        TECA_ERROR("Failed to locate the index_request_key")
+        TECA_FATAL_ERROR("Failed to locate the index_request_key")
         return up_reqs;
     }
 
     unsigned long req_id[2];
     if (req_in.get(request_key, req_id))
     {
-        TECA_ERROR("Failed to get the requested index using the"
+        TECA_FATAL_ERROR("Failed to get the requested index using the"
             " index_request_key \"" << request_key << "\"")
+        return up_reqs;
+    }
+
+    if (req_id[0] >= this->internals->indices.size())
+    {
+        TECA_FATAL_ERROR("Request for step " << req_id[0]
+            << " is out of bounds in output with "
+            << this->internals->indices.size() << " steps")
         return up_reqs;
     }
 
@@ -2697,7 +2705,7 @@ const_p_teca_dataset teca_cpp_temporal_reduction::execute(
     if (req_in.get("index_request_key", request_key) ||
         req_in.get(request_key, req_id))
     {
-        TECA_ERROR("metadata issue. failed to get the requested indices")
+        TECA_FATAL_ERROR("metadata issue. failed to get the requested indices")
         return nullptr;
     }
 
@@ -2830,7 +2838,7 @@ const_p_teca_dataset teca_cpp_temporal_reduction::execute(
 
             if (!(arrays_in->has(array)) || !(arrays_out->has(array)))
             {
-                TECA_ERROR("array \"" << array << "\" not found")
+                TECA_FATAL_ERROR("array \"" << array << "\" not found")
                 return nullptr;
             }
 
