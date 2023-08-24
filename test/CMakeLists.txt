@@ -1019,10 +1019,8 @@ teca_add_test(test_ha4_connected_components_periodic
     COMMAND test_ha4_connected_components 256 256 14 1 1024 1
     FEATURES ${TECA_HAS_CUDA})
 
-
-teca_add_test(test_cpp_temporal_reduction
-    EXEC_NAME test_temporal_reduction
-    SOURCES test_temporal_reduction.cpp
+teca_add_test(test_cpp_temporal_reduction_inmem
+    SOURCES test_cpp_temporal_reduction_inmem.cpp
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
-    COMMAND test_temporal_reduction
+    COMMAND test_cpp_temporal_reduction_inmem
     360 180 5 24 1 1 1 monthly average 1 test_cpp_temporal_reduction_%t%.nc yearly 1 1 1 1)
