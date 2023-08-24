@@ -1025,4 +1025,4 @@ teca_add_test(test_cpp_temporal_reduction
     SOURCES test_temporal_reduction.cpp
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_temporal_reduction
-    360 180 5 24 1 1 1 monthly average test_cpp_temporal_reduction_%t%.nc yearly 1 1 1 1)
+    360 180 5 24 1 1 1 monthly average 1 test_cpp_temporal_reduction_%t%.nc yearly 1 1 1 1)
