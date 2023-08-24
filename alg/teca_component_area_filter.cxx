@@ -309,12 +309,12 @@ const_p_teca_dataset teca_component_area_filter::execute(
         labels_out.get(), _LABEL,
 
         // pointer to input/output labels
-        auto [sp_labels_in, p_labels_in] = get_cpu_accessible<CTT_LABEL>(labels_in);
+        auto [sp_labels_in, p_labels_in] = get_host_accessible<CTT_LABEL>(labels_in);
         auto [p_labels_out] = data<TT_LABEL>(labels_out);
 
         // pointer to input ids and a container to hold ids which remain
         // after the filtering operation
-        auto [sp_ids_in, p_ids_in] = get_cpu_accessible<CTT_LABEL>(ids_in);
+        auto [sp_ids_in, p_ids_in] = get_host_accessible<CTT_LABEL>(ids_in);
 
         std::vector<NT_LABEL> ids_out;
 
@@ -323,7 +323,7 @@ const_p_teca_dataset teca_component_area_filter::execute(
 
             // pointer to the areas in and a container to hold areas which
             // remain after the filtering operation
-            auto [sp_areas, p_areas] = get_cpu_accessible<CTT_AREA>(areas_in);
+            auto [sp_areas, p_areas] = get_host_accessible<CTT_AREA>(areas_in);
 
             std::vector<NT_AREA> areas_out;
 

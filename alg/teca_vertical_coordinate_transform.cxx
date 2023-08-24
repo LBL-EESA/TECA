@@ -303,11 +303,11 @@ const_p_teca_dataset teca_vertical_coordinate_transform::execute(
                 auto [tmp_ph, pph] = ::New<TT>(nxyz);
 
                 assert_type<CTT>(pt, ps, xi, yi, eta);
-                auto [sppt, ppt] = get_cpu_accessible<CTT>(pt);
-                auto [spps, pps] = get_cpu_accessible<CTT>(ps);
-                auto [spxi, pxi] = get_cpu_accessible<CTT>(xi);
-                auto [spyi, pyi] = get_cpu_accessible<CTT>(yi);
-                auto [speta, peta] = get_cpu_accessible<CTT>(eta);
+                auto [sppt, ppt] = get_host_accessible<CTT>(pt);
+                auto [spps, pps] = get_host_accessible<CTT>(ps);
+                auto [spxi, pxi] = get_host_accessible<CTT>(xi);
+                auto [spyi, pyi] = get_host_accessible<CTT>(yi);
+                auto [speta, peta] = get_host_accessible<CTT>(eta);
 
                 ::transform_wrf_v3(nx, ny, nz, nxy, pxi, pyi,
                     peta, pps, ppt[0], pxo, pyo, pph);

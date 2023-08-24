@@ -608,7 +608,7 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
 
         VARIANT_ARRAY_DISPATCH(coord_arrays[i].get(),
 
-            auto [spa, pa] = get_cpu_accessible<CTT>(coord_arrays[i]);
+            auto [spa, pa] = get_host_accessible<CTT>(coord_arrays[i]);
 
             pa += starts[i];
 
@@ -703,7 +703,7 @@ int teca_cf_layout_manager::write(long index,
                     return -1;
                 }
 
-                auto [spa, pa] = get_cpu_accessible<CTT>(array);
+                auto [spa, pa] = get_host_accessible<CTT>(array);
 
 #if !defined(HDF5_THREAD_SAFE)
                 {
@@ -763,7 +763,7 @@ int teca_cf_layout_manager::write(long index,
                     return -1;
                 }
 
-                auto [spa, pa] = get_cpu_accessible<CTT>(array);
+                auto [spa, pa] = get_host_accessible<CTT>(array);
 
 #if !defined(HDF5_THREAD_SAFE)
                 {
@@ -875,7 +875,7 @@ int teca_cf_layout_manager::write(const unsigned long extent[6],
                     return -1;
                 }
 
-                auto [spa, pa] = get_cpu_accessible<CTT>(array);
+                auto [spa, pa] = get_host_accessible<CTT>(array);
 
                 // advance the pointer to the first time step that will be
                 // written by this manager
@@ -939,7 +939,7 @@ int teca_cf_layout_manager::write(const unsigned long extent[6],
                     return -1;
                 }
 
-                auto [spa, pa] = get_cpu_accessible<CTT>(array);
+                auto [spa, pa] = get_host_accessible<CTT>(array);
 
                 // advance the pointer to the first time step that will be
                 // written by this manager

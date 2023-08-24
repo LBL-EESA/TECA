@@ -809,7 +809,7 @@ const_p_teca_dataset teca_array_collection_reader::execute(unsigned int port,
     }
 
     // assume the data is on the CPU
-    assert(in_t->cpu_accessible());
+    assert(in_t->host_accessible());
 
     // get names, need to be careful since some of these depend
     // on run time information. eg: user can specify a time axis

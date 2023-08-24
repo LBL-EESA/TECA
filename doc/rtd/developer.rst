@@ -222,7 +222,7 @@ the case when dealing with the inputs to a pipeline stage.  The accessibility
 methods declare where, either CPU or GPU, we intend to perform the calculations
 and internally will move data if it is not already present in the declared
 location. The accessibility methods are
-`teca_variant_array_impl::get_cpu_accessible` and
+`teca_variant_array_impl::get_host_accessible` and
 `teca_variant_array_impl::get_cuda_accessible`.
 
 When data is moved by the accessibility methods, temporary buffers are
@@ -261,8 +261,8 @@ and get a read only pointer to the array's elements for use in calculations.
 
             // cast inputs and get pointers to their elements
             assert_type<TT>(a2);
-            auto [spa1, pa1] = get_cpu_accessible<TT>(a1);
-            auto [spa2, pa1] = get_cpu_accessible<TT>(a2);
+            auto [spa1, pa1] = get_host_accessible<TT>(a1);
+            auto [spa2, pa1] = get_host_accessible<TT>(a2);
 
             // do the calculation
             for (size_t i = 0; i < n_elem; ++i)
@@ -276,7 +276,7 @@ and get a read only pointer to the array's elements for use in calculations.
         return nullptr;
     }
 
-Here we've added calls to `get_cpu_accessible` function which ensures the data
+Here we've added calls to `get_host_accessible` function which ensures the data
 as accessible on the CPU and returns a smart pointer managing the life span of
 any temporaries that were needed, as well as a naked pointer which can be used
 to access the array's elements.  Because we are assuming that both of the input
@@ -322,8 +322,8 @@ performance for multithreaded codes such as TECA and is recommended.
 
             // cast inputs and get pointers to their elements
             assert_type<CTT>(a2);
-            auto [spa1, pa1] = get_cpu_accessible<CTT>(a1);
-            auto [spa2, pa1] = get_cpu_accessible<CTT>(a2);
+            auto [spa1, pa1] = get_host_accessible<CTT>(a1);
+            auto [spa2, pa1] = get_host_accessible<CTT>(a2);
 
             // do the calculation
             for (size_t i = 0; i < n_elem; ++i)
@@ -419,7 +419,7 @@ from the `teca_vorticity` algorithm illustrates.
         assert_type<TT_COORD>(lat);
 
         auto [sp_lon, p_lon,
-              sp_lat, p_lat] = get_cpu_accessible<CTT_COORD>(lon, lat);
+              sp_lat, p_lat] = get_host_accessible<CTT_COORD>(lon, lat);
 
         NESTED_VARIANT_ARRAY_DISPATCH_FP(
             comp_0.get(), _DATA,
@@ -427,7 +427,7 @@ from the `teca_vorticity` algorithm illustrates.
             assert_type<TT_DATA>(comp_1);
 
             auto [sp_comp_0, p_comp_0,
-                  sp_comp_1, p_comp_1] = get_cpu_accessible<CTT_DATA>(comp_0, comp_1);
+                  sp_comp_1, p_comp_1] = get_host_accessible<CTT_DATA>(comp_0, comp_1);
 
             auto [p_vort] = data<TT_DATA>(vort);
 

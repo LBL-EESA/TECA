@@ -238,7 +238,7 @@ class teca_spectral_filter(teca_python_algorithm):
 
             # get the input array
             if dev < 0:
-                array_in = arrays_in[array_name_in].get_cpu_accessible()
+                array_in = arrays_in[array_name_in].get_host_accessible()
             else:
                 array_in = arrays_in[array_name_in].get_cuda_accessible()
 

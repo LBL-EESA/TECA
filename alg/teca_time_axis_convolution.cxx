@@ -540,7 +540,7 @@ const_p_teca_dataset teca_time_axis_convolution::execute(
                 }
 
                 // get the typed instances
-                auto [sp_in, p_in] = get_cpu_accessible<CTT>(in_array);
+                auto [sp_in, p_in] = get_host_accessible<CTT>(in_array);
                 auto [p_out] = data<TT>(out_array);
 
                 // apply the kernel weight for this time step

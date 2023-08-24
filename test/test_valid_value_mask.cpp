@@ -26,7 +26,7 @@ struct cosx_cosy
     cosx_cosy(double threshold, double fill) :
         m_threshold(threshold), m_fill(fill) {}
 
-    p_teca_variant_array operator()(const const_p_teca_variant_array &x,
+    p_teca_variant_array operator()(int, const const_p_teca_variant_array &x,
         const const_p_teca_variant_array &y, const const_p_teca_variant_array &z,
         double t)
     {
@@ -42,7 +42,7 @@ struct cosx_cosy
         VARIANT_ARRAY_DISPATCH(x.get(),
             assert_type<CTT>(y);
             auto [pf] = data<TT>(f);
-            auto [spx, px, spy, py] = get_cpu_accessible<CTT>(x, y);
+            auto [spx, px, spy, py] = get_host_accessible<CTT>(x, y);
             for (size_t j = 0; j < ny; ++j)
             {
                 for (size_t i = 0; i < nx; ++i)

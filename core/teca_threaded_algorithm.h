@@ -122,7 +122,7 @@ public:
      * set the number of threads to service each CUDA device.
      */
     ///@{
-    TECA_ALGORITHM_PROPERTY(int, threads_per_cuda_device)
+    TECA_ALGORITHM_PROPERTY(int, threads_per_device)
     ///@}
 
     /// explicitly set the thread pool to submit requests to
@@ -155,7 +155,7 @@ private:
     int bind_threads;
     int stream_size;
     long long poll_interval;
-    int threads_per_cuda_device;
+    int threads_per_device;
 
     teca_threaded_algorithm_internals *internals;
 };

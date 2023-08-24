@@ -96,9 +96,9 @@ class generate_data(teca_python_algorithm):
         ny = ext[1] - ext[0] + 1
         nz = ext[5] - ext[4] + 1
 
-        x = mesh_in.get_x_coordinates().get_cpu_accessible()
-        y = mesh_in.get_y_coordinates().get_cpu_accessible()
-        z = mesh_in.get_z_coordinates().get_cpu_accessible()
+        x = mesh_in.get_x_coordinates().get_host_accessible()
+        y = mesh_in.get_y_coordinates().get_host_accessible()
+        z = mesh_in.get_z_coordinates().get_host_accessible()
         t = mesh_in.get_time()
 
         # generate the 3D variable. f = sin^2(x*y*z + t)

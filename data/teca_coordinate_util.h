@@ -479,7 +479,7 @@ int index_of(const const_p_teca_cartesian_mesh &mesh, T x, T y, T z,
 
         auto [sp_xc, p_xc,
               sp_yc, p_yc,
-              sp_zc, p_zc] = get_cpu_accessible<CTT>(xc, yc, zc);
+              sp_zc, p_zc] = get_host_accessible<CTT>(xc, yc, zc);
 
         unsigned long nx = xc->size();
         unsigned long ny = yc->size();

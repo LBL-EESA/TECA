@@ -47,8 +47,8 @@ class wind_speed:
         out_mesh.shallow_copy(in_mesh)
         arrays = out_mesh.get_point_arrays()
         if dev < 0:
-            u = arrays[u_var].get_cpu_accessible()
-            v = arrays[v_var].get_cpu_accessible()
+            u = arrays[u_var].get_host_accessible()
+            v = arrays[v_var].get_host_accessible()
         else:
             u = arrays[u_var].get_cuda_accessible()
             v = arrays[v_var].get_cuda_accessible()

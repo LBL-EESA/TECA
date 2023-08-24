@@ -1039,7 +1039,7 @@ int dispatch(size_t nx, size_t ny, size_t nz,
     NESTED_VARIANT_ARRAY_DISPATCH_FP(
         p.get(), _COORDS,
 
-        auto [sp_p, p_p] = get_cpu_accessible<CTT_COORDS>(p);
+        auto [sp_p, p_p] = get_host_accessible<CTT_COORDS>(p);
 
         NESTED_VARIANT_ARRAY_DISPATCH_FP(
             wind_u.get(), _DATA,
@@ -1053,16 +1053,16 @@ int dispatch(size_t nx, size_t ny, size_t nz,
             NT_DATA *p_ivt_v = nullptr;
             std::tie(ivt_v, p_ivt_v) = ::New<TT_DATA>(nxy, NT_DATA());
 
-            auto [sp_wu, p_wind_u] = get_cpu_accessible<CTT_DATA>(wind_u);
-            auto [sp_wv, p_wind_v] = get_cpu_accessible<CTT_DATA>(wind_v);
-            auto [sp_q, p_q] = get_cpu_accessible<CTT_DATA>(q);
+            auto [sp_wu, p_wind_u] = get_host_accessible<CTT_DATA>(wind_u);
+            auto [sp_wv, p_wind_v] = get_host_accessible<CTT_DATA>(wind_v);
+            auto [sp_q, p_q] = get_host_accessible<CTT_DATA>(q);
 
             if (wind_u_valid)
             {
                 assert_type<CTT_MASK>(wind_u_valid, wind_v_valid, q_valid);
-                auto [sp_wuv, p_wind_u_valid] = get_cpu_accessible<CTT_MASK>(wind_u_valid);
-                auto [sp_wvv, p_wind_v_valid] = get_cpu_accessible<CTT_MASK>(wind_v_valid);
-                auto [sp_qv, p_q_valid] = get_cpu_accessible<CTT_MASK>(q_valid);
+                auto [sp_wuv, p_wind_u_valid] = get_host_accessible<CTT_MASK>(wind_u_valid);
+                auto [sp_wvv, p_wind_v_valid] = get_host_accessible<CTT_MASK>(wind_v_valid);
+                auto [sp_qv, p_q_valid] = get_host_accessible<CTT_MASK>(q_valid);
 
                 if (use_trapezoid_rule)
                 {

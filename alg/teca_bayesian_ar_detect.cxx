@@ -374,7 +374,7 @@ public:
                 NESTED_VARIANT_ARRAY_DISPATCH_I(
                     wvcc.get(), _COMP,
 
-                    auto [sp_wvcc, p_wvcc] = get_cpu_accessible<TT_COMP>(wvcc);
+                    auto [sp_wvcc, p_wvcc] = get_host_accessible<TT_COMP>(wvcc);
                     auto [p_prob_out] = data<TT_PROB>(prob_out);
 
                     for (unsigned long i = 0; i < n_vals; ++i)
@@ -400,8 +400,8 @@ public:
                 NESTED_VARIANT_ARRAY_DISPATCH_I(
                     wvcc_0.get(), _COMP,
 
-                    auto [sp_wvcc_0, p_wvcc_0] = get_cpu_accessible<TT_COMP>(wvcc_0);
-                    auto [sp_wvcc_1, p_wvcc_1] = get_cpu_accessible<TT_COMP>(wvcc_1);
+                    auto [sp_wvcc_0, p_wvcc_0] = get_host_accessible<TT_COMP>(wvcc_0);
+                    auto [sp_wvcc_1, p_wvcc_1] = get_host_accessible<TT_COMP>(wvcc_1);
 
                     for (unsigned long i = 0; i < n_vals; ++i)
                     {
@@ -498,7 +498,7 @@ public:
                 NESTED_VARIANT_ARRAY_DISPATCH_I(
                     wvcc.get(), _COMP,
 
-                    auto [sp_wvcc, p_wvcc] = get_cpu_accessible<TT_COMP>(wvcc);
+                    auto [sp_wvcc, p_wvcc] = get_host_accessible<TT_COMP>(wvcc);
 
                     for (unsigned long i = 0; i < n_vals; ++i)
                         p_prob_out[i] = (p_wvcc[i] > 0 ? NT_PROB(1) : NT_PROB(0));

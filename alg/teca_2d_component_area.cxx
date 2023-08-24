@@ -323,12 +323,12 @@ const_p_teca_dataset teca_2d_component_area::execute(
 
         // get the cooridnate arrays
         assert_type<CTT_COORD>(yc);
-        auto [sp_xc, p_xc, sp_yc, p_yc] = get_cpu_accessible<CTT_COORD>(xc, yc);
+        auto [sp_xc, p_xc, sp_yc, p_yc] = get_host_accessible<CTT_COORD>(xc, yc);
 
         NESTED_VARIANT_ARRAY_DISPATCH_I(
             component_array.get(), _LABEL,
 
-            auto [sp_labels, p_labels] = get_cpu_accessible<CTT_LABEL>(component_array);
+            auto [sp_labels, p_labels] = get_host_accessible<CTT_LABEL>(component_array);
 
             unsigned int n_labels = 0;
 

@@ -14,9 +14,10 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_cartesian_mesh_source)
 /** The signature of the callback used to specify user defined fields.
  * f(x, y, z, t) -> w
  * Given spatial coordinate axes x,y,z and the time t, return the
- * 3D field w.
+ * 3D field w. The first argument specifies what device the data should
+ * be placed on.
  */
-using field_generator_callback = std::function<p_teca_variant_array(
+using field_generator_callback = std::function<p_teca_variant_array(int,
     const const_p_teca_variant_array &, const const_p_teca_variant_array &,
     const const_p_teca_variant_array &, double)>;
 
@@ -136,7 +137,7 @@ public:
     /** set the name of the t_axis_variable */
     void set_x_axis_variable(const std::string &name);
 
-    /** Set the name of the variable and its attributes. See 
+    /** Set the name of the variable and its attributes. See
      * teca_array_attributes for more information.
      */
     void set_x_axis_variable(const std::string &name, const teca_metadata &atts);
@@ -157,7 +158,7 @@ public:
     /** set the name of the y_axis_variable */
     void set_y_axis_variable(const std::string &name);
 
-    /** Set the name of the variable and its attributes. See 
+    /** Set the name of the variable and its attributes. See
      * teca_array_attributes for more information.
      */
     void set_y_axis_variable(const std::string &name, const teca_metadata &atts);
@@ -178,7 +179,7 @@ public:
     /** set the name of the z_axis_variable */
     void set_z_axis_variable(const std::string &name);
 
-    /** Set the name of the variable and its attributes. See 
+    /** Set the name of the variable and its attributes. See
      * teca_array_attributes for more information.
      */
     void set_z_axis_variable(const std::string &name, const teca_metadata &atts);
@@ -202,7 +203,7 @@ public:
     /** Set the calendar, and time units of the t_axis_variable */
     void set_calendar(const std::string &calendar, const std::string &units);
 
-    /** Set the name of the variable and its attributes. See 
+    /** Set the name of the variable and its attributes. See
      * teca_array_attributes for more information.
      */
     void set_t_axis_variable(const std::string &name,
@@ -215,7 +216,7 @@ public:
      */
     int set_t_axis_variable(const teca_metadata &md);
 
-    /** Set the time axis using coordinate conventions defined by the 
+    /** Set the time axis using coordinate conventions defined by the
      * teca_cf_reader. When a time axis is provided values are served up from
      * the array rather than being generated. Execution control keys are also
      * made use of if present. Returns zero if successful and non-zero if the

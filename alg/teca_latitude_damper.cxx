@@ -296,7 +296,7 @@ const_p_teca_dataset teca_latitude_damper::execute(
     NESTED_VARIANT_ARRAY_DISPATCH_FP(
         lat.get(), _COORD,
 
-        auto [sp_lat, p_lat] = get_cpu_accessible<TT_COORD>(lat);
+        auto [sp_lat, p_lat] = get_host_accessible<TT_COORD>(lat);
 
         NT_COORD *filter = (NT_COORD*)malloc(n_lat*sizeof(NT_COORD));
         ::get_lat_filter<NT_COORD>(filter, p_lat, n_lat, mu, sigma);
@@ -321,7 +321,7 @@ const_p_teca_dataset teca_latitude_damper::execute(
             NESTED_VARIANT_ARRAY_DISPATCH(
                 input_array.get(), _DATA,
 
-                auto [sp_in, p_in] = get_cpu_accessible<CTT_DATA>(input_array);
+                auto [sp_in, p_in] = get_host_accessible<CTT_DATA>(input_array);
                 auto [p_damped_array] = data<TT_DATA>(damped_array);
 
                 ::apply_lat_filter(p_damped_array, p_in, filter, n_lat, n_lon);

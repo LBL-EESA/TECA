@@ -428,7 +428,7 @@ PyArrayObject *new_object(teca_variant_array_impl<NT> *varrt, bool deep_copy = f
         }
 
         // deep copy the data
-        auto spvarrt = varrt->get_cpu_accessible();
+        auto spvarrt = varrt->get_host_accessible();
         const NT *pvarrt = spvarrt.get();
         memcpy(mem, pvarrt, n_bytes);
 
@@ -446,7 +446,7 @@ PyArrayObject *new_object(teca_variant_array_impl<NT> *varrt, bool deep_copy = f
         using ptr_t = std::shared_ptr<const NT>;
 
         // get a pointer to the data
-        ptr_t *ptr = new ptr_t(std::move(varrt->get_cpu_accessible()));
+        ptr_t *ptr = new ptr_t(std::move(varrt->get_host_accessible()));
 
 
         // create a new numpy array passing the pointer to the data to share

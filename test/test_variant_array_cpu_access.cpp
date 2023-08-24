@@ -67,8 +67,8 @@ p_teca_variant_array_impl<NT1> add_cpu(
     using TT2 = teca_variant_array_impl<NT2>;
 
     // get the inputs
-    auto [spa1, pa1] = get_cpu_accessible<const TT1>(a1);
-    auto [spa2, pa2] = get_cpu_accessible<const TT2>(a2);
+    auto [spa1, pa1] = get_host_accessible<const TT1>(a1);
+    auto [spa2, pa2] = get_host_accessible<const TT2>(a2);
 
     // allocate the memory
     size_t n_vals = a1->size();
@@ -112,7 +112,7 @@ p_teca_variant_array_impl<NT1> multiply_scalar_cpu(
     using TT1 = teca_variant_array_impl<NT1>;
 
     // get the inputs
-    auto [spain, pain] = get_cpu_accessible<TT1>(ain);
+    auto [spain, pain] = get_host_accessible<TT1>(ain);
 
     // allocate the memory
     size_t n_vals = ain->size();
@@ -155,7 +155,7 @@ int compare_int(const const_p_teca_variant_array_impl<T> &ain, int val)
         ai->debug_print();
     }
 
-    auto [spai, pai] = get_cpu_accessible<teca_int_array>(ai);
+    auto [spai, pai] = get_host_accessible<teca_int_array>(ai);
 
     for (size_t i = 0; i < n_vals; ++i)
     {

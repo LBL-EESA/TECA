@@ -172,7 +172,7 @@ template <typename NT, typename CTT = const teca_variant_array_impl<NT>>
 int dispatch(const const_p_teca_variant_array &array, NT fill_value, PT_MASK &mask)
 {
     // get a pointer to the values
-    auto [sp_array, p_array] = get_cpu_accessible<CTT>(array);
+    auto [sp_array, p_array] = get_host_accessible<CTT>(array);
 
     size_t n_elem = array->size();
 
@@ -195,7 +195,7 @@ int dispatch(const const_p_teca_variant_array &array, const NT *valid_range,
     PT_MASK &mask)
 {
     // get a pointer to the values
-    auto [sp_array, p_array] = get_cpu_accessible<CTT>(array);
+    auto [sp_array, p_array] = get_host_accessible<CTT>(array);
 
     size_t n_elem = array->size();
 

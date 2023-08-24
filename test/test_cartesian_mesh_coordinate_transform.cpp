@@ -22,7 +22,7 @@ using namespace teca_variant_array_util;
 // generates f = k*nxy + j*nx + i
 struct index_function
 {
-    p_teca_variant_array operator()(const const_p_teca_variant_array &x,
+    p_teca_variant_array operator()(int, const const_p_teca_variant_array &x,
         const const_p_teca_variant_array &y, const const_p_teca_variant_array &z,
         double t)
     {

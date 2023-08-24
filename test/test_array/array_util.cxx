@@ -8,40 +8,40 @@ namespace teca_cuda_util { int synchronize(); }
 namespace array_util
 {
 // **************************************************************************
-p_array cpu_accessible(const p_array &a)
+p_array host_accessible(const p_array &a)
 {
-    if (a->cpu_accessible())
+    if (a->host_accessible())
         return a;
 
     std::cerr
-        << "array_util::cpu_accessible moving data to the CPU" << std::endl;
+        << "array_util::host_accessible moving data to the CPU" << std::endl;
 
 #if defined(TECA_HAS_CUDA)
     if (a->cuda_accessible())
        teca_cuda_util::synchronize();
 #endif
 
-    p_array tmp = array::new_cpu_accessible();
+    p_array tmp = array::new_host_accessible();
     tmp->copy(a);
 
     return tmp;
 }
 
 // **************************************************************************
-const_p_array cpu_accessible(const const_p_array &a)
+const_p_array host_accessible(const const_p_array &a)
 {
-    if (a->cpu_accessible())
+    if (a->host_accessible())
         return a;
 
     std::cerr
-        << "array_util::cpu_accessible moving data to the CPU" << std::endl;
+        << "array_util::host_accessible moving data to the CPU" << std::endl;
 
 #if defined(TECA_HAS_CUDA)
     if (a->cuda_accessible())
        teca_cuda_util::synchronize();
 #endif
 
-    p_array tmp = array::new_cpu_accessible();
+    p_array tmp = array::new_host_accessible();
     tmp->copy(a);
 
     return tmp;

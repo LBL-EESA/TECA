@@ -312,7 +312,7 @@ if get_teca_has_cupy():
 #if defined(TECA_NUMPY_ARRAY_INTERFACE)
     /** zero-copy transfer the data to numpy using the array interface
      * protocol. read only access */
-    PyObject *get_cpu_accessible_impl()
+    PyObject *get_host_accessible_impl()
     {
         teca_py_gil_state gil;
         VARIANT_ARRAY_DISPATCH(self,
@@ -322,8 +322,8 @@ if get_teca_has_cupy():
             hamr::stream stream;
 
             hamr::buffer_handle<NT> *ph = new hamr::buffer_handle<NT>(
-                tself->get_cpu_accessible(), tself->size(), 1,
-                tself->cpu_accessible() && tself->cuda_accessible(),
+                tself->get_host_accessible(), tself->size(), 1,
+                tself->host_accessible() && tself->cuda_accessible(),
                 stream);
 
             return SWIG_NewPointerObj(SWIG_as_voidptr(ph),
@@ -335,14 +335,14 @@ if get_teca_has_cupy():
 
     %pythoncode
     {
-    def get_cpu_accessible(self, as_array=True, shape=None):
+    def get_host_accessible(self, as_array=True, shape=None):
         r""" return a handle exposing the data via the Numpy array interface """
-        hvarr = self.get_cpu_accessible_impl()
+        hvarr = self.get_host_accessible_impl()
         return np_array(hvarr, copy=False)
     }
 #else
     /** zero-copy transfer the data to numpy using the numpy c-api */
-    PyObject *get_cpu_accessible()
+    PyObject *get_host_accessible()
     {
         teca_py_gil_state gil;
         bool deep_copy = false;
@@ -364,7 +364,7 @@ if get_teca_has_cupy():
 
             hamr::buffer_handle<NT> *ph = new hamr::buffer_handle<NT>(
                 tself->get_cuda_accessible(), tself->size(),
-                tself->cpu_accessible() && tself->cuda_accessible(), 1,
+                tself->host_accessible() && tself->cuda_accessible(), 1,
                 stream);
 
             return SWIG_NewPointerObj(SWIG_as_voidptr(ph),
@@ -398,7 +398,7 @@ if get_teca_has_cupy():
 
             hamr::buffer_handle<NT> *ph = new hamr::buffer_handle<NT>(
                 tself->pointer(), tself->size(), 0,
-                tself->cpu_accessible(), tself->cuda_accessible(),
+                tself->host_accessible(), tself->cuda_accessible(),
                 stream);
 
             return SWIG_NewPointerObj(SWIG_as_voidptr(ph),

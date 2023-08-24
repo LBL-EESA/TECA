@@ -28,7 +28,7 @@ struct fxyz
 
     char m_dir;
 
-    p_teca_variant_array operator()(const const_p_teca_variant_array &x,
+    p_teca_variant_array operator()(int, const const_p_teca_variant_array &x,
         const const_p_teca_variant_array &y, const const_p_teca_variant_array &z,
         double t)
     {
@@ -48,7 +48,7 @@ struct fxyz
             assert_type<CTT>(y, z);
 
             auto [pf] = data<TT>(f);
-            auto [spx, px, spy, py, spz, pz] = get_cpu_accessible<CTT>(x, y, z);
+            auto [spx, px, spy, py, spz, pz] = get_host_accessible<CTT>(x, y, z);
 
             for (size_t k = 0; k < nz; ++k)
             {

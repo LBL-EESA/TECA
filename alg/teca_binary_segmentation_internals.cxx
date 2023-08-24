@@ -41,7 +41,7 @@ int cpu_dispatch(
 
     VARIANT_ARRAY_DISPATCH(input_array.get(),
 
-        auto [sp_in, p_in] = get_cpu_accessible<CTT>(input_array);
+        auto [sp_in, p_in] = get_host_accessible<CTT>(input_array);
 
         if (threshold_mode == teca_binary_segmentation::BY_VALUE)
         {

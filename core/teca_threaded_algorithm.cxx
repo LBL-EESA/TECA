@@ -91,7 +91,7 @@ void teca_threaded_algorithm_internals::thread_pool_resize(MPI_Comm comm,
 // --------------------------------------------------------------------------
 teca_threaded_algorithm::teca_threaded_algorithm() :
     bind_threads(1), stream_size(-1), poll_interval(1000000),
-    threads_per_cuda_device(-1),
+    threads_per_device(-1),
     internals(new teca_threaded_algorithm_internals)
 {
 }
@@ -124,7 +124,7 @@ void teca_threaded_algorithm::get_properties_description(
         TECA_POPTS_GET(long, prefix, poll_interval,
             "number of nanoseconds to wait between scans of the thread pool "
             "for completed tasks")
-        TECA_POPTS_GET(int, prefix, threads_per_cuda_device,
+        TECA_POPTS_GET(int, prefix, threads_per_device,
             "Sets the number of threads that service each CUDA GPU. If -1 the"
             "default of 8 threads per CUDA GPU is used. If 0 no threads will"
             "service GPUs (CPU only mode)")
@@ -155,7 +155,7 @@ void teca_threaded_algorithm::set_thread_pool_size(int n)
 {
     TECA_PROFILE_METHOD(128, this, "set_thread_pool_size",
         this->internals->thread_pool_resize(this->get_communicator(),
-            n, this->threads_per_cuda_device, this->bind_threads, this->verbose);
+            n, this->threads_per_device, this->bind_threads, this->verbose);
         )
 }
 

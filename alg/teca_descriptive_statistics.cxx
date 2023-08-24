@@ -329,7 +329,7 @@ const_p_teca_dataset teca_descriptive_statistics::execute(
 
             size_t n = dep_var->size();
 
-            auto [spv, pv] = get_cpu_accessible<CTT>(dep_var);
+            auto [spv, pv] = get_host_accessible<CTT>(dep_var);
 
             // compute stats
             NT mn = internal::min(pv, n);

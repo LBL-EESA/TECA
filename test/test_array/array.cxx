@@ -49,7 +49,7 @@ size_t array::size() const
 }
 
 // --------------------------------------------------------------------------
-p_array array::new_cpu_accessible()
+p_array array::new_host_accessible()
 {
     return array::New(allocator::malloc);
 }
@@ -67,9 +67,9 @@ p_array array::New(allocator alloc)
 }
 
 // --------------------------------------------------------------------------
-bool array::cpu_accessible() const
+bool array::host_accessible() const
 {
-    return this->internals->buffer->cpu_accessible();
+    return this->internals->buffer->host_accessible();
 }
 
 // --------------------------------------------------------------------------
@@ -95,9 +95,9 @@ p_teca_dataset array::new_shallow_copy()
 }
 
 // --------------------------------------------------------------------------
-std::shared_ptr<const double> array::get_cpu_accessible() const
+std::shared_ptr<const double> array::get_host_accessible() const
 {
-    return this->internals->buffer->get_cpu_accessible();
+    return this->internals->buffer->get_host_accessible();
 }
 
 // --------------------------------------------------------------------------
@@ -203,7 +203,7 @@ int array::to_stream(teca_binary_stream &s) const
     s.pack(n_elem);
 
     // always pack the data on the CPU
-    std::shared_ptr<const double> d = this->internals->buffer->get_cpu_accessible();
+    std::shared_ptr<const double> d = this->internals->buffer->get_host_accessible();
     s.pack(d.get(), n_elem);
 
     return 0;
@@ -242,7 +242,7 @@ int array::from_stream(teca_binary_stream &s)
 int array::to_stream(std::ostream &ostr) const
 {
     // get the data on the CPU
-    std::shared_ptr<const double> d = this->internals->buffer->get_cpu_accessible();
+    std::shared_ptr<const double> d = this->internals->buffer->get_host_accessible();
 
 
     ostr << "name=" << this->name

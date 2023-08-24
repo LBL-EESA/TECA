@@ -241,7 +241,7 @@ else:
            red.set_number_of_steps(n_steps)
         else:
            red.set_interval(interval)
-        red.set_operator(operator)
+        red.set_operation(operator)
         red.set_point_arrays(point_arrays)
         if fill_value is not None:
             red.set_fill_value(fill_value)

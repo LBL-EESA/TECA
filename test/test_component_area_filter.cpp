@@ -181,7 +181,7 @@ int main(int argc, char **argv)
 
     NESTED_VARIANT_ARRAY_DISPATCH_I(
         va.get(), _LABEL,
-        auto [splf, p_labels_filtered] = get_cpu_accessible<CTT_LABEL>(va);
+        auto [splf, p_labels_filtered] = get_host_accessible<CTT_LABEL>(va);
         for (size_t i = 0; i < n_filtered; ++i)
         {
             NT_LABEL label = filtered_label_id[i];

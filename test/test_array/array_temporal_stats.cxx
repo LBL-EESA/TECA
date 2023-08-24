@@ -132,9 +132,9 @@ p_teca_dataset array_temporal_stats::finalize(int device_id,
         return nullptr;
     }
 
-    std::shared_ptr<const double> pa_in = a_in->get_cpu_accessible();
+    std::shared_ptr<const double> pa_in = a_in->get_host_accessible();
 
-    p_array a_out = array::new_cpu_accessible();
+    p_array a_out = array::new_host_accessible();
     a_out->resize(3);
     a_out->set_name(this->array_name + "_stats");
 

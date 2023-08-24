@@ -207,7 +207,7 @@ PyObject *new_object(const teca_variant_array_impl<NT> *va)
 {
     unsigned long n_elem = va->size();
     PyObject *list = PyList_New(n_elem);
-    auto spva = va->get_cpu_accessible();
+    auto spva = va->get_host_accessible();
     const NT *pva = spva.get();
     for (unsigned long i = 0; i < n_elem; ++i)
         PyList_SetItem(list, i, teca_py_object::py_tt<NT>::new_object(pva[i]));

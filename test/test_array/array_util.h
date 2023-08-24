@@ -9,10 +9,10 @@ namespace array_util
 
 /// ensure access on the CPU. Data is copied if needed.
 TECA_EXPORT
-p_array cpu_accessible(const p_array &a);
+p_array host_accessible(const p_array &a);
 
 TECA_EXPORT
-const_p_array cpu_accessible(const const_p_array &a);
+const_p_array host_accessible(const const_p_array &a);
 
 /// ensure access from code CUDA code. Data is copied if needed.
 TECA_EXPORT
