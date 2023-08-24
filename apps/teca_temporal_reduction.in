@@ -231,6 +231,9 @@ else:
         cpp_version = True
         red = teca_cpp_temporal_reduction.New()
         red.set_input_connection(upd.get_output_port())
+        red.set_stream_size(2)
+        red.set_verbose(verbose)
+        red.set_thread_pool_size(n_threads)
         if 'steps' in interval:
            red.set_interval('n_steps')
            pos = interval.rfind('_steps')
@@ -239,12 +242,9 @@ else:
         else:
            red.set_interval(interval)
         red.set_operator(operator)
+        red.set_point_arrays(point_arrays)
         if fill_value is not None:
             red.set_fill_value(fill_value)
-        red.set_point_arrays(point_arrays)
-        red.set_verbose(verbose)
-        red.set_thread_pool_size(n_threads)
-        red.set_stream_size(2)
     else:
         red = teca_temporal_reduction.New()
         red.set_input_connection(upd.get_output_port())
@@ -260,18 +260,18 @@ else:
 cfw = teca_cf_writer.New()
 cfw.set_input_connection(red.get_output_port())
 cfw.set_verbose(verbose)
-cfw.set_thread_pool_size( n_threads if cpp_version else 1 )
-cfw.set_layout(layout)
-cfw.set_steps_per_file(steps_per_file)
+cfw.set_thread_pool_size(1)
 cfw.set_file_name(out_files)
+cfw.set_steps_per_file(steps_per_file)
+cfw.set_layout(layout)
 cfw.set_point_arrays(point_arrays)
 cfw.set_index_executive_compatability(1)
-cfw.set_partitioner(partitioner)
 cfw.set_number_of_spatial_partitions(spatial_partitions)
+cfw.set_partitioner(partitioner)
 cfw.set_partition_x(partition_x)
 
 if verbose and rank == 0:
-    sys.stderr.write('running on %d ranks' % (n_ranks))
+    sys.stderr.write('running on %d ranks\n' % (n_ranks))
     sys.stderr.write('file_layout=%s\n'%(layout))
     sys.stderr.write('steps_per_file=%d\n' % (steps_per_file))
     sys.stderr.write('interval=%s\n' % (interval))
