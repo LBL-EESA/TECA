@@ -1023,4 +1023,15 @@ teca_add_test(test_cpp_temporal_reduction_inmem
     SOURCES test_cpp_temporal_reduction_inmem.cpp
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_cpp_temporal_reduction_inmem
-    360 180 5 24 1 1 1 monthly average 1 test_cpp_temporal_reduction_%t%.nc yearly 1 1 1 1)
+    360 180 5 24 1 ${TEST_CORES} ${TEST_CORES} monthly average 1 #TODO -- more than 1 step per req
+    test_cpp_temporal_reduction_inmem_%t%.nc yearly ${TEST_CORES} 1 1 1)
+
+teca_add_test(test_cpp_temporal_reduction_io
+    SOURCES test_cpp_temporal_reduction_io.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_cpp_temporal_reduction_io
+    ${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\.nc
+    lon lat . time prw 0 -1 ${TEST_CORES} ${TEST_CORES} ${TEST_CORES} 4 1 0
+    monthly average 1 # TODO -- more than 1 step per req.
+    ./test_cpp_temporal_reduction_io_%t%.nc yearly
+    ${TEST_CORES} ${TEST_CORES} ${TEST_CORES} 1 1)
