@@ -156,6 +156,9 @@ void teca_threaded_algorithm::set_properties(const std::string &prefix,
     this->teca_algorithm::set_properties(prefix, opts);
 
     TECA_POPTS_SET(opts, int, prefix, bind_threads)
+    TECA_POPTS_SET(opts, int, prefix, stream_size)
+    TECA_POPTS_SET(opts, long long, prefix, poll_interval)
+    TECA_POPTS_SET(opts, int, prefix, threads_per_device)
     TECA_POPTS_SET(opts, int, prefix, ranks_per_device)
     TECA_POPTS_SET(opts, int, prefix, propagate_device_assignment)
 

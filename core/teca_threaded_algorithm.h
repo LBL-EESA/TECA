@@ -88,13 +88,6 @@ public:
     /// Get the number of threads in the pool.
     unsigned int get_thread_pool_size() const noexcept;
 
-    /** @name verbose
-     * set/get the verbosity level.
-     */
-    ///@{
-    TECA_ALGORITHM_PROPERTY(int, verbose)
-    ///@}
-
     /** @name bind_threads
      * set/get thread affinity mode. When 0 threads are not bound CPU cores,
      * allowing for migration among all cores. This will likely degrade
@@ -121,8 +114,9 @@ public:
     TECA_ALGORITHM_PROPERTY(long long, poll_interval)
     ///@}
 
-    /** @name threads_per_cuda_device
-     * set the number of threads to service each CUDA device.
+    /** @name threads_per_device
+     * Set the number of threads to service each GPU/device. Other threads will
+     * use the CPU.
      */
     ///@{
     TECA_ALGORITHM_PROPERTY(int, threads_per_device)
