@@ -147,7 +147,7 @@ void teca_cf_writer::get_properties_description(
             "the list of non-geometric arrays to write")
         ;
 
-    this->teca_algorithm::get_properties_description(prefix, opts);
+    this->teca_threaded_algorithm::get_properties_description(prefix, opts);
 
     global_opts.add(opts);
 }
