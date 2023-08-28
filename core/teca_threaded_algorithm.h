@@ -40,17 +40,20 @@ using teca_data_request_queue =
 using p_teca_data_request_queue = std::shared_ptr<teca_data_request_queue>;
 
 /** Allocate and initialize a new thread pool.
+ *
  * @param comm[in]      The communicator to allocate thread across
  * @param n_threads[in] The number of threads to create per MPI rank. Use -1 to
  *                      map one thread per physical core on each node.
- * @param n_threads_per_device[in] The number of threads to assign to servicing
- *                                 each CUDA device. -1 for all threads.
+ * @param threads_per_device[in] The number of threads to assign to servicing
+ *                               each GPU/device.
+ * @param ranks_per_device[in] The number of ranks allowed to access each GPU/device.
  * @param bind[in]      If set then thread will be bound to a specific core.
  * @param verbose[in]   If set then the mapping is sent to the stderr
  */
 TECA_EXPORT
 p_teca_data_request_queue new_teca_data_request_queue(MPI_Comm comm,
-    int n_threads, int n_threads_per_device, bool bind, bool verbose);
+    int n_threads, int threads_per_device, int ranks_per_device, bool bind,
+    bool verbose);
 
 /// This is the base class defining a threaded algorithm.
 /** The strategy employed is to parallelize over upstream data requests using a
@@ -125,6 +128,14 @@ public:
     TECA_ALGORITHM_PROPERTY(int, threads_per_device)
     ///@}
 
+    /** @name ranks_per_device
+     * Set the number of ranks that have access to each GPU/device. Other ranks
+     * will use the CPU.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, ranks_per_device)
+    ///@}
+
     /// explicitly set the thread pool to submit requests to
     void set_data_request_queue(const p_teca_data_request_queue &queue);
 
@@ -156,6 +167,7 @@ private:
     int stream_size;
     long long poll_interval;
     int threads_per_device;
+    int ranks_per_device;
 
     teca_threaded_algorithm_internals *internals;
 };

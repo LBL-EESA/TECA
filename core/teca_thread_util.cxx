@@ -339,11 +339,12 @@ int generate_report(MPI_Comm comm, int local_proc, int base_id,
 
 // **************************************************************************
 int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
-    int n_per_device, bool bind, bool verbose, int &n_threads,
-    std::deque<int> &affinity, std::vector<int> &device_ids)
+    int threads_per_device, int ranks_per_device, bool bind, bool verbose,
+    int &n_threads, std::deque<int> &affinity, std::vector<int> &device_ids)
 {
 #if !defined(TECA_HAS_CUDA)
-    (void) n_per_device;
+    (void) threads_per_device;
+    (void) ranks_per_device;
 #endif
 
     // this rank is excluded from computations
@@ -379,7 +380,6 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
 
 #if defined(TECA_HAS_CUDA)
     // check for an override to the default number of MPI ranks per device
-    int ranks_per_device = 1;
     int ranks_per_device_set = teca_system_util::get_environment_variable
         ("TECA_RANKS_PER_DEVICE", ranks_per_device);
 
@@ -404,14 +404,14 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
     int default_per_device = 8;
 
     if (!teca_system_util::get_environment_variable
-        ("TECA_THREADS_PER_DEVICE", n_per_device) &&
+        ("TECA_THREADS_PER_DEVICE", threads_per_device) &&
         verbose && (rank == 0))
     {
-        TECA_STATUS("TECA_THREADS_PER_DEVICE = " << n_per_device)
+        TECA_STATUS("TECA_THREADS_PER_DEVICE = " << threads_per_device)
     }
 
     int n_device_threads = n_cuda_devices *
-        (n_per_device < 0 ? default_per_device : n_per_device);
+        (threads_per_device < 0 ? default_per_device : threads_per_device);
 
 #endif
 

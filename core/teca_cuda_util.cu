@@ -97,12 +97,12 @@ int get_local_cuda_devices(MPI_Comm comm, int &ranks_per_device,
 
         MPI_Comm_free(&node_comm);
 
-        return 0;
     }
+    else
 #endif
-    // without MPI this process can use all CUDA devices
     if (ranks_per_device != 0)
     {
+        // without MPI this process can use all CUDA devices
         for (int i = 0; i < n_node_dev; ++i)
             local_dev.push_back(i);
     }

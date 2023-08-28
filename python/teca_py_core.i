@@ -1105,8 +1105,8 @@ struct thread_util
 // each thread.
 static
 PyObject *thread_parameters(MPI_Comm comm,
-    int n_requested, int bind, int n_per_device,
-    int verbose)
+    int n_requested, int bind, int threads_per_device,
+    int ranks_per_device, int verbose)
 {
     teca_py_gil_state gil;
 
@@ -1114,8 +1114,8 @@ PyObject *thread_parameters(MPI_Comm comm,
     std::vector<int> device_ids;
     int n_threads = n_requested;
     if (teca_thread_util::thread_parameters(comm, -1,
-        n_requested, bind, n_per_device, verbose, n_threads,
-        affinity, device_ids))
+        n_requested, bind, threads_per_device, ranks_per_device,
+        verbose, n_threads, affinity, device_ids))
     {
         // caller requested automatic load balancing but this, failed.
         PyErr_Format(PyExc_RuntimeError,
