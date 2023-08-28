@@ -45,12 +45,16 @@ class teca_data_request
 public:
     teca_data_request(const p_teca_algorithm &alg,
         const teca_algorithm_output_port up_port,
-        const teca_metadata &up_req) : m_alg(alg),
-        m_up_port(up_port), m_up_req(up_req)
+        const teca_metadata &up_req, int pass_dev) : m_alg(alg),
+        m_up_port(up_port), m_up_req(up_req), m_pass_dev(pass_dev)
     {}
 
     const_p_teca_dataset operator()(int device_id = -1)
     {
+        // use the device assigned downstream
+        if (m_pass_dev)
+            m_up_req.get("device_id", device_id);
+
         // set the device on which to execute this pipeline
         m_up_req.set("device_id", device_id);
 
@@ -62,6 +66,7 @@ public:
     p_teca_algorithm m_alg;
     teca_algorithm_output_port m_up_port;
     teca_metadata m_up_req;
+    int m_pass_dev;
 };
 
 
@@ -96,7 +101,7 @@ void teca_threaded_algorithm_internals::thread_pool_resize(MPI_Comm comm,
 // --------------------------------------------------------------------------
 teca_threaded_algorithm::teca_threaded_algorithm() :
     bind_threads(1), stream_size(-1), poll_interval(1000000),
-    threads_per_device(-1), ranks_per_device(1),
+    threads_per_device(-1), ranks_per_device(1), propagate_device_assignment(0),
     internals(new teca_threaded_algorithm_internals)
 {
 }
@@ -133,6 +138,10 @@ void teca_threaded_algorithm::get_properties_description(
         TECA_POPTS_GET(int, prefix, ranks_per_device,
             "Sets the number of threads that service each CUDA GPU. If -1 the "
             "default of ranks allowed to access each GPU.")
+        TECA_POPTS_GET(int, prefix, propagate_device_assignment,
+            "When set device assignment is taken from the in coming request. "
+            "Otherwise the thread executing the upstream pipeline provides the "
+            "device assignment.")
         ;
 
     this->teca_algorithm::get_properties_description(prefix, opts);
@@ -148,6 +157,7 @@ void teca_threaded_algorithm::set_properties(const std::string &prefix,
 
     TECA_POPTS_SET(opts, int, prefix, bind_threads)
     TECA_POPTS_SET(opts, int, prefix, ranks_per_device)
+    TECA_POPTS_SET(opts, int, prefix, propagate_device_assignment)
 
     // force update the the thread pool settings
     std::string opt_name = (prefix.empty()?"":prefix+"::") + "thread_pool_size";
@@ -246,10 +256,12 @@ const_p_teca_dataset teca_threaded_algorithm::request_data(
                 if (!up_reqs[i].empty())
                 {
                     teca_algorithm_output_port &up_port
-                        = alg->get_input_connection(i%n_inputs);
+                        = alg->get_input_connection( i % n_inputs );
 
-                    teca_data_request dreq(get_algorithm(up_port), up_port, up_reqs[i]);
-                    teca_data_request_task task(dreq);
+                    teca_data_request_task task(
+                        teca_data_request(get_algorithm(up_port), up_port,
+                                          up_reqs[i], this->propagate_device_assignment)
+                        );
 
                     this->internals->thread_pool->push_task(task);
                 }

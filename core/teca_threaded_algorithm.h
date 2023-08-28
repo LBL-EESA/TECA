@@ -139,6 +139,14 @@ public:
     /// explicitly set the thread pool to submit requests to
     void set_data_request_queue(const p_teca_data_request_queue &queue);
 
+    /** @name propagate_device_assignment
+     * When set device assignment is taken from down stream request.
+     * Otherwise the thread executing the pipeline will provide the assignment.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, propagate_device_assignment)
+    ///@}
+
 protected:
     teca_threaded_algorithm();
 
@@ -168,6 +176,7 @@ private:
     long long poll_interval;
     int threads_per_device;
     int ranks_per_device;
+    int propagate_device_assignment;
 
     teca_threaded_algorithm_internals *internals;
 };
