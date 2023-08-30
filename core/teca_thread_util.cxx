@@ -528,16 +528,22 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
 
     // thread pool size is based on core and process count
     int nlg = 0;
+    // map threads to physical cores
+    nlg = cores_per_node % n_procs;
+    n_threads = cores_per_node / n_procs + (proc_id < nlg ? 1 : 0);
     if (n_requested > 0)
     {
-        // user specified override
+        // use exactly this many
         n_threads = n_requested;
+    }
+    else if (n_requested < -1)
+    {
+        // use at most this many
+        n_threads = std::min(-n_requested, n_threads);
+        n_requested = n_threads;
     }
     else
     {
-        // map threads to physical cores
-        nlg = cores_per_node % n_procs;
-        n_threads = cores_per_node/n_procs + (proc_id < nlg ? 1 : 0);
     }
 
     // if the user runs more MPI ranks than cores some of the ranks

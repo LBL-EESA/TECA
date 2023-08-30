@@ -37,8 +37,10 @@ namespace teca_thread_util
  *                        be bound to to acheive this. Passing n_requested >= 1
  *                        specifies a run time override. This indicates that
  *                        caller wants to use a specific number of threads,
- *                        rather than one per physical core. In this case the
- *                        affinity map is also constructed.
+ *                        rather than one per physical core. Passing
+ *                        n_requested < -1 specifies a maximum to use if
+ *                        sufficient cores are available.  In all cases the
+ *                        affinity map is constructed.
  *
  * @param[in] n_threads_per_device the number of threads that should service
  *                                 GPUs. If 0 the run will be CPU only.  If -1
@@ -60,10 +62,11 @@ namespace teca_thread_util
  *                          of threads one can use such that there is one
  *                          thread per phycial core taking into account all
  *                          ranks running on the node. if n_requested is >= 1
- *                          n_threads will be set to n_requested. This allows a
- *                          run time override for cases when the caller knows
- *                          how she wants to schedule things. if an error
- *                          occurs and n_requested is -1 this will be set to 1.
+ *                          n_threads will explicitly be set to n_requested.  If
+ *                          n_requested < -1 at most -n_requested threads will
+ *                          be used. Fewer threads will be used if there are
+ *                          insufficient cores available.  if an error occurs
+ *                          and n_requested is -1 this will be set to 1.
  *
  * @param[out] affinity an affinity map, describing for each of n_threads,
  *                      a core id that the thread can be bound to. if
