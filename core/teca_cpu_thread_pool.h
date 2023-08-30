@@ -123,7 +123,7 @@ void teca_cpu_thread_pool<task_t, data_t>::create_threads(MPI_Comm comm,
     std::vector<int> device_ids;
 
     if (teca_thread_util::thread_parameters(comm, -1,
-        n_requested, bind, -1, -1, verbose, n_threads, core_ids,
+        n_requested, -1, -1, bind, verbose, n_threads, core_ids,
         device_ids))
     {
         TECA_WARNING("Failed to detetermine thread parameters."
