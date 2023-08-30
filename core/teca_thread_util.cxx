@@ -590,7 +590,7 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
     if (!bind)
     {
         if (verbose)
-            TECA_STATUS("thread to core binding disabled")
+            TECA_STATUS("thread to core binding disabled. n_threads=" << n_threads)
 
         return 0;
     }
