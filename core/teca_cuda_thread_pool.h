@@ -235,7 +235,7 @@ int teca_cuda_thread_pool<task_t, data_t>::wait_some(long n_to_wait,
 
     // gather the requested number of datasets
     size_t thread_valid = 1;
-    while (thread_valid)
+    while (thread_valid && ((data.size() < static_cast<unsigned int>(n_to_wait))))
     {
         {
         thread_valid = 0;
@@ -259,9 +259,12 @@ int teca_cuda_thread_pool<task_t, data_t>::wait_some(long n_to_wait,
         }
         }
 
-        // if we have not accumulated the requested number of datasets
+        // we have the requested number of datasets
+        if (data.size() >= static_cast<unsigned int>(n_to_wait))
+            break;
+
         // wait for the user supplied duration before re-scanning
-        if (thread_valid && (data.size() < static_cast<unsigned int>(n_to_wait)))
+        if (thread_valid)
             std::this_thread::sleep_for(std::chrono::nanoseconds(poll_interval));
     }
 
