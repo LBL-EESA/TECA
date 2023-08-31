@@ -145,7 +145,7 @@ generate(size_t nx, size_t ny, size_t nz, size_t nt,
     size_t nxyzt = nxyz*nt;
 
     double *pf_xyzt;
-    std::tie(f_xyzt, pf_xyzt) = ::New<teca_double_array>(nxyzt, 0.0, allocator::malloc);
+    std::tie(f_xyzt, pf_xyzt) = ::New<teca_double_array>(nxyzt, allocator::malloc);
 
     double pi = 3.14159235658979;
 
@@ -365,12 +365,12 @@ int main(int argc, char **argv)
     teca_system_interface::set_stack_trace_on_error();
     teca_system_interface::set_stack_trace_on_mpi_error();
 
-    if (argc != 16)
+    if (argc != 17)
     {
         std::cerr << "test_temporal_reduction [nx in] [ny in] [nz in]"
             " [steps per day] [num years]"
             " [num reduction threads] [threads per device]"
-            " [reduction interval] [reduction operator]"
+            " [reduction interval] [reduction operator] [steps per request]"
             " [out file] [file layout] [num writer threads]"
             " [nx out] [ny out] [nz out]" << std::endl;
         return -1;
@@ -389,14 +389,15 @@ int main(int argc, char **argv)
     int threads_per_dev = atoi(argv[7]);
     std::string red_int = argv[8];
     std::string red_op = argv[9];
+    int steps_per_req = atoi(argv[10]);
 
-    std::string ofile_name = argv[10];
-    std::string layout = argv[11];
-    int n_wri_threads = atoi(argv[12]);
+    std::string ofile_name = argv[11];
+    std::string layout = argv[12];
+    int n_wri_threads = atoi(argv[13]);
 
-    unsigned long nx_out = atoi(argv[13]);
-    unsigned long ny_out = atoi(argv[14]);
-    unsigned long nz_out = atoi(argv[15]);
+    unsigned long nx_out = atoi(argv[14]);
+    unsigned long ny_out = atoi(argv[15]);
+    unsigned long nz_out = atoi(argv[16]);
 
     double T0 = 360.0; // period of 1 year
     double T1 = 1.0;   // period of 1 day
@@ -413,6 +414,7 @@ int main(int argc, char **argv)
         << "  nt=" << nt << "  reduce_threads=" << n_red_threads
         << "  threads_per_dev=" << threads_per_dev
         << "  red_int=" << red_int << "  red_op=" << red_op
+        << "  steps_per_req=" << steps_per_req
         << "  layout=" << layout << "  writer_threads=" << n_wri_threads
         << "  nx_out=" << nx_out << "  ny_out=" << ny_out << "  nz_out=" << nz_out
         << std::endl;
@@ -439,7 +441,7 @@ int main(int argc, char **argv)
     reduc->set_interval(red_int);
     reduc->set_operation(red_op);
     reduc->set_point_arrays({"f_t"});
-
+    reduc->set_steps_per_request(steps_per_req);
 
     // low res output mesh
     auto md = reduc->update_metadata();

@@ -306,8 +306,6 @@ const_p_teca_dataset teca_descriptive_statistics::execute(
         atrs.set("step", (teca_metadata)step_atts);
 
         table->get_metadata().set("attributes", atrs);
-
-        atrs.to_stream(std::cerr);
     }
 
     // for each variable

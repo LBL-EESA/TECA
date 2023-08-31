@@ -19,18 +19,17 @@ namespace teca_cuda_util
 {
 /** Query the system for the locally available(on this rank) CUDA device count.
  * this is an MPI collective call which returns a set of device ids that can be
- * used locally. If there are as many (or more than) devices on the node than
- * the number of MPI ranks assigned to the node the list of device ids will be
- * unique across MPI ranks on the node. Otherwise devices are assigned round
- * robin fashion.
+ * used locally. Node wide coordination assures that one can put a limit on the
+ * number of ranks per node.
  *
  * @param[in]  comm MPI communicator defining a set of nodes on which need
  *                  access to the available GPUS
  * @param[in,out] ranks_per_device The number of MPI ranks to use per CUDA
- *                                 device. Passing -1 will assign all MPI
- *                                 ranks a GPU up to a maximum of 8 ranks
- *                                 per GPU. The number of ranks per GPU
- *                                 used is returned through this argument.
+ *                                 device. When set to 0 no GPUs are used. When
+ *                                 set to -1 all ranks are assigned a GPU but
+ *                                 multiple ranks will share a GPU when there
+ *                                 are more ranks than devices.
+ *
  * @param[out] local_dev a list of device ids that can be used by the calling
  *                       MPI rank.
  * @returns              non-zero on error.

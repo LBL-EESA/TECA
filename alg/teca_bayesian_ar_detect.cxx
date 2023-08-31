@@ -692,7 +692,7 @@ void teca_bayesian_ar_detect::set_modified()
 void teca_bayesian_ar_detect::set_thread_pool_size(int n)
 {
     this->internals->queue = new_teca_data_request_queue(
-        this->get_communicator(), n, -1, true, this->get_verbose());
+        this->get_communicator(), n, -1, -1, true, this->get_verbose());
 }
 
 // --------------------------------------------------------------------------

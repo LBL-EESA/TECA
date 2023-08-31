@@ -1019,10 +1019,19 @@ teca_add_test(test_ha4_connected_components_periodic
     COMMAND test_ha4_connected_components 256 256 14 1 1024 1
     FEATURES ${TECA_HAS_CUDA})
 
-
-teca_add_test(test_cpp_temporal_reduction
-    EXEC_NAME test_temporal_reduction
-    SOURCES test_temporal_reduction.cpp
+teca_add_test(test_cpp_temporal_reduction_inmem
+    SOURCES test_cpp_temporal_reduction_inmem.cpp
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
-    COMMAND test_temporal_reduction
-    360 180 5 24 1 1 1 monthly average test_cpp_temporal_reduction_%t%.nc yearly 1 1 1 1)
+    COMMAND test_cpp_temporal_reduction_inmem
+    360 180 5 24 1 ${TEST_CORES} ${TEST_CORES} monthly average 1 #TODO -- more than 1 step per req
+    test_cpp_temporal_reduction_inmem_%t%.nc yearly ${TEST_CORES} 1 1 1)
+
+teca_add_test(test_cpp_temporal_reduction_io
+    SOURCES test_cpp_temporal_reduction_io.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_cpp_temporal_reduction_io
+    ${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\.nc
+    lon lat . time prw 0 -1 ${TEST_CORES} ${TEST_CORES} ${TEST_CORES} 4 1 0
+    monthly average 1 # TODO -- more than 1 step per req.
+    ./test_cpp_temporal_reduction_io_%t%.nc yearly
+    ${TEST_CORES} ${TEST_CORES} ${TEST_CORES} 1 1)

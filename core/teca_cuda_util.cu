@@ -20,6 +20,10 @@ int synchronize()
 int get_local_cuda_devices(MPI_Comm comm, int &ranks_per_device,
     std::vector<int> &local_dev)
 {
+    // if ranks per device is zero this is a CPU only run
+    if (ranks_per_device == 0)
+        return 0;
+
     cudaError_t ierr = cudaSuccess;
 
     // get the number of CUDA GPU's available on this node
@@ -55,54 +59,43 @@ int get_local_cuda_devices(MPI_Comm comm, int &ranks_per_device,
         MPI_Comm_size(node_comm, &n_node_ranks);
         MPI_Comm_rank(node_comm, &node_rank);
 
-        // adjust the number of devices such that multiple ranks may share a
-        // device.
-        if (ranks_per_device < 0)
+        if (n_node_ranks < n_node_dev)
         {
-            ranks_per_device = n_node_ranks / n_node_dev +
-                (n_node_ranks % n_node_dev ? 1 : 0);
-
-            // limit to at most 8 MPI ranks per GPU
-            ranks_per_device = std::min(ranks_per_device, 8);
-        }
-
-        int n_node_dev_use = n_node_dev * ranks_per_device;
-
-        if (n_node_dev_use >= n_node_ranks)
-        {
+            // more devices than ranks,
             // assign devices evenly between ranks
-            int max_dev = n_node_dev_use - 1;
-            int n_per_rank = std::max(n_node_dev_use / n_node_ranks, 1);
-            int n_larger = n_node_dev_use % n_node_ranks;
+            int n_per_rank = n_node_dev / n_node_ranks;
+            int n_larger = n_node_dev % n_node_ranks;
+            int n_local = n_per_rank + (node_rank < n_larger ? 1 : 0);
 
             int first_dev = n_per_rank * node_rank
                 + (node_rank < n_larger ? node_rank : n_larger);
 
-            first_dev = std::min(max_dev, first_dev);
-
-            int last_dev = first_dev + n_per_rank - 1
-                 + (node_rank < n_larger ? 1 : 0);
-
-            last_dev = std::min(max_dev, last_dev);
-
-            for (int i = first_dev; i <= last_dev; ++i)
-                local_dev.push_back( i % n_node_dev );
+            for (int i = 0; i < n_local; ++i)
+                local_dev.push_back(first_dev + i);
         }
         else
         {
-            // assign at most one MPI rank per GPU
-            if (node_rank < n_node_dev_use)
+            // TODO -- automatic settings
+            if (ranks_per_device < 0)
+                ranks_per_device *= -1;
+
+            // more ranks than devices. round robin assignment such that at
+            // most each device has ranks_per_device. the remaining ranks will
+            // be CPU only.
+            if (node_rank < ranks_per_device * n_node_dev)
+            {
                 local_dev.push_back( node_rank % n_node_dev );
+            }
         }
 
         MPI_Comm_free(&node_comm);
 
-        return 0;
     }
+    else
 #endif
-    // without MPI this process can use all CUDA devices
     if (ranks_per_device != 0)
     {
+        // without MPI this process can use all CUDA devices
         for (int i = 0; i < n_node_dev; ++i)
             local_dev.push_back(i);
     }

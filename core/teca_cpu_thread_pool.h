@@ -123,7 +123,7 @@ void teca_cpu_thread_pool<task_t, data_t>::create_threads(MPI_Comm comm,
     std::vector<int> device_ids;
 
     if (teca_thread_util::thread_parameters(comm, -1,
-        n_requested, bind, -1, verbose, n_threads, core_ids,
+        n_requested, -1, -1, bind, verbose, n_threads, core_ids,
         device_ids))
     {
         TECA_WARNING("Failed to detetermine thread parameters."
@@ -229,9 +229,12 @@ int teca_cpu_thread_pool<task_t, data_t>::wait_some(long n_to_wait,
         }
         }
 
-        // if we have not accumulated the requested number of datasets
+        // we have the requested number of datasets
+        if (data.size() >= static_cast<unsigned int>(n_to_wait))
+            break;
+
         // wait for the user supplied duration before re-scanning
-        if (thread_valid && (data.size() < static_cast<unsigned int>(n_to_wait)))
+        if (thread_valid)
             std::this_thread::sleep_for(std::chrono::nanoseconds(poll_interval));
     }
 
