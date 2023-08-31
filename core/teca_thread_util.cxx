@@ -566,7 +566,7 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
 
     // assign each thread to a CUDA device or CPU core
 #if defined(TECA_HAS_CUDA)
-    if (verbose && (n_threads < n_cuda_devices))
+    if (verbose && (n_ranks < 2) && (n_threads < n_cuda_devices))
     {
         TECA_WARNING(<< n_threads
             << " threads is insufficient to service " << n_cuda_devices
