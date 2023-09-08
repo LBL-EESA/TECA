@@ -1357,7 +1357,8 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
         // place all data read on the assigned device
         teca_cuda_util::set_device(device_id);
         alloc = allocator::cuda_async;
-        tmp_alloc = allocator::cuda_host;
+        // using the cuda host allocator slowed things down on Perlmutter
+        //tmp_alloc = allocator::cuda_host;
     }
 #endif
 
