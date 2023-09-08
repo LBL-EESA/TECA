@@ -21,6 +21,11 @@
 #include <iostream>
 #include <string>
 
+#if defined(TECA_HAS_CUDA)
+#include <cuda.h>
+#include <cuda_runtime.h>
+#endif
+
 using namespace std;
 using namespace teca_variant_array_util;
 
@@ -138,6 +143,10 @@ int main(int argc, char **argv)
 
     const_p_teca_dataset ds = cao->get_dataset();
     teca_metadata mdo = ds->get_metadata();
+
+#if defined(TECA_HAS_CUDA)
+    cudaStreamSynchronize(cudaStreamPerThread);
+#endif
 
     std::vector<int> label_id;
     mdo.get("component_ids", label_id);
