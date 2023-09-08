@@ -13,6 +13,7 @@
 #include <iostream>
 #include <string>
 #include <cmath>
+#include <typeinfo>
 
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
@@ -175,24 +176,23 @@ class teca_cpp_temporal_reduction::internals_t::reduction_operator
 public:
     virtual ~reduction_operator() {}
 
-    reduction_operator() : fill_value(-1) {}
+    reduction_operator() : fill_value(-1), result(nullptr),
+                           valid(nullptr), count(nullptr) {}
 
     virtual void initialize(double fill_value);
 
     virtual int init(int device_id,
           const std::string &array,
-          p_teca_array_collection &arrays_out,
+          p_teca_array_collection &arrays_in,
           unsigned long steps_per_request) = 0;
 
     virtual int update_cpu(int device_id,
           const std::string &array,
-          p_teca_array_collection &arrays_out,
           p_teca_array_collection &arrays_in,
           unsigned long steps_per_request) = 0;
 
     virtual int update_gpu(int device_id,
           const std::string &array,
-          p_teca_array_collection &arrays_out,
           p_teca_array_collection &arrays_in,
           unsigned long steps_per_request) = 0;
 
@@ -202,6 +202,9 @@ public:
 
 public:
     double fill_value;
+    p_teca_variant_array result;
+    p_teca_variant_array valid;
+    p_teca_variant_array count;
 };
 
 
@@ -212,18 +215,16 @@ class teca_cpp_temporal_reduction::internals_t::average_operator :
 public:
     int init(int device_id,
           const std::string &array,
-          p_teca_array_collection &arrays_out,
+          p_teca_array_collection &arrays_in,
           unsigned long steps_per_request) override;
 
     int update_cpu(int device_id,
           const std::string &array,
-          p_teca_array_collection &arrays_out,
           p_teca_array_collection &arrays_in,
           unsigned long steps_per_request) override;
 
     int update_gpu(int device_id,
           const std::string &array,
-          p_teca_array_collection &arrays_out,
           p_teca_array_collection &arrays_in,
           unsigned long steps_per_request) override;
 
@@ -240,18 +241,16 @@ class teca_cpp_temporal_reduction::internals_t::summation_operator :
 public:
     int init(int device_id,
           const std::string &array,
-          p_teca_array_collection &arrays_out,
+          p_teca_array_collection &arrays_in,
           unsigned long steps_per_request) override;
 
     int update_cpu(int device_id,
           const std::string &array,
-          p_teca_array_collection &arrays_out,
           p_teca_array_collection &arrays_in,
           unsigned long steps_per_request) override;
 
     int update_gpu(int device_id,
           const std::string &array,
-          p_teca_array_collection &arrays_out,
           p_teca_array_collection &arrays_in,
           unsigned long steps_per_request) override;
 };
@@ -264,18 +263,16 @@ class teca_cpp_temporal_reduction::internals_t::minimum_operator :
 public:
     int init(int device_id,
           const std::string &array,
-          p_teca_array_collection &arrays_out,
+          p_teca_array_collection &arrays_in,
           unsigned long steps_per_request) override;
 
     int update_cpu(int device_id,
           const std::string &array,
-          p_teca_array_collection &arrays_out,
           p_teca_array_collection &arrays_in,
           unsigned long steps_per_request) override;
 
     int update_gpu(int device_id,
           const std::string &array,
-          p_teca_array_collection &arrays_out,
           p_teca_array_collection &arrays_in,
           unsigned long steps_per_request) override;
 };
@@ -288,18 +285,16 @@ class teca_cpp_temporal_reduction::internals_t::maximum_operator :
 public:
     int init(int device_id,
           const std::string &array,
-          p_teca_array_collection &arrays_out,
+          p_teca_array_collection &arrays_in,
           unsigned long steps_per_request) override;
 
     int update_cpu(int device_id,
           const std::string &array,
-          p_teca_array_collection &arrays_out,
           p_teca_array_collection &arrays_in,
           unsigned long steps_per_request) override;
 
     int update_gpu(int device_id,
           const std::string &array,
-          p_teca_array_collection &arrays_out,
           p_teca_array_collection &arrays_in,
           unsigned long steps_per_request) override;
 };
@@ -348,9 +343,9 @@ namespace cuda_gpu
 template <typename T>
 __global__
 void average_initialize(
-     const T *p_out_array, const char *p_out_valid,
-     T *p_red_array, char *p_red_valid,
-     T *p_count,
+     const T *p_in_array, const char *p_in_valid,
+     T *p_res_array, char *p_res_valid,
+     T *p_res_count,
      unsigned long n_elem,
      unsigned long steps_per_request)
 {
@@ -359,27 +354,23 @@ void average_initialize(
     if (i >= n_elem)
         return;
 
-    if (p_out_valid == nullptr)
+    if (p_in_valid == nullptr)
     {
-        p_red_array[i] = 0.;
         for (unsigned int j = 0; j < steps_per_request; ++j)
         {
-            p_red_array[i] += p_out_array[i+j*n_elem];
+            p_res_array[i] += p_in_array[i+j*n_elem];
         }
-        p_count[0] = steps_per_request;
+        p_res_count[0] = steps_per_request;
     }
     else
     {
-        p_red_array[i] = 0.;
-        p_red_valid[i] = char(0);
-        p_count[i] = 0;
         for (unsigned int j = 0; j < steps_per_request; ++j)
         {
-            if (p_out_valid[i+j*n_elem])
+            if (p_in_valid[i+j*n_elem])
             {
-                p_red_array[i] += p_out_array[i+j*n_elem];
-                p_red_valid[i] = char(1);
-                p_count[i] += 1;
+                p_res_array[i] += p_in_array[i+j*n_elem];
+                p_res_valid[i] = char(1);
+                p_res_count[i] += 1;
             }
         }
     }
@@ -389,9 +380,9 @@ void average_initialize(
 template <typename T>
 int average_initialize(
     int device_id,
-    const T *p_out_array, const char *p_out_valid,
-    T *p_red_array, char *p_red_valid,
-    T *p_count,
+    const T *p_in_array, const char *p_in_valid,
+    T *p_res_array, char *p_res_valid,
+    T *p_res_count,
     unsigned long n_elem,
     unsigned long steps_per_request)
 {
@@ -407,8 +398,8 @@ int average_initialize(
     }
 
     cudaError_t ierr = cudaSuccess;
-    average_initialize<<<block_grid,thread_grid>>>(p_out_array, p_out_valid,
-                                                 p_red_array, p_red_valid, p_count,
+    average_initialize<<<block_grid,thread_grid>>>(p_in_array, p_in_valid,
+                                                 p_res_array, p_res_valid, p_res_count,
                                                  n_elem, steps_per_request);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
@@ -423,51 +414,34 @@ int average_initialize(
 template <typename T>
 __global__
 void average(
-     const T *p_out_array, const char *p_out_valid,
      const T *p_in_array, const char *p_in_valid,
-     T *p_count, T *p_red_count,
-     T *p_red_array, char *p_red_valid,
-     unsigned long n_elem,
-     unsigned long steps_per_request)
+     T *p_res_count, T *p_res_array, char *p_res_valid,
+     unsigned long n_elem, unsigned long steps_per_request)
 {
     unsigned long i = teca_cuda_util::thread_id_to_array_index();
 
     if (i >= n_elem)
         return;
 
-    if (p_out_valid == nullptr)
+    if (p_res_valid == nullptr)
     {
         // accumulate
-        p_red_array[i] = p_out_array[i];
+        if (i == 0) p_res_count[0] += steps_per_request;
         for (unsigned int j = 0; j < steps_per_request; ++j)
         {
-            p_red_array[i] += p_in_array[i+j*n_elem];
+            p_res_array[i] += p_in_array[i+j*n_elem];
         }
-        p_red_count[0] = p_count[0] + steps_per_request;
     }
     else
     {
-        p_red_count[i] = p_count[i];
-
-        if (p_out_valid[i])
-        {
-            p_red_array[i] = p_out_array[i];
-            p_red_valid[i] = char(1);
-        }
-        else
-        {
-            p_red_array[i] = 0.;
-            p_red_valid[i] = char(0);
-        }
-
         for (unsigned int j = 0; j < steps_per_request; ++j)
         {
             //update the count only where there is valid data
             if (p_in_valid[i+j*n_elem])
             {
-                p_red_array[i] += p_in_array[i+j*n_elem];
-                p_red_count[i] += 1;
-                p_red_valid[i] = char(1);
+                p_res_array[i] += p_in_array[i+j*n_elem];
+                p_res_count[i] += 1;
+                p_res_valid[i] = char(1);
             }
         }
     }
@@ -477,12 +451,9 @@ void average(
 template <typename T>
 int average(
     int device_id,
-    const T *p_out_array, const char *p_out_valid,
     const T *p_in_array, const char *p_in_valid,
-    T *p_count, T *p_red_count,
-    T *p_red_array, char *p_red_valid,
-    unsigned long n_elem,
-    unsigned long steps_per_request)
+    T *p_res_count, T *p_res_array, char *p_res_valid,
+    unsigned long n_elem, unsigned long steps_per_request)
 {
     // determine kernel launch parameters
     int n_blocks = 0;
@@ -496,10 +467,8 @@ int average(
     }
 
     cudaError_t ierr = cudaSuccess;
-    average<<<block_grid,thread_grid>>>(p_out_array, p_out_valid,
-                                        p_in_array, p_in_valid,
-                                        p_count, p_red_count,
-                                        p_red_array, p_red_valid,
+    average<<<block_grid,thread_grid>>>(p_in_array, p_in_valid,
+                                        p_res_count, p_res_array, p_res_valid,
                                         n_elem, steps_per_request);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
@@ -514,8 +483,8 @@ int average(
 template <typename T>
 __global__
 void summation_initialize(
-     const T *p_out_array, const char *p_out_valid,
-     T *p_red_array, char *p_red_valid,
+     const T *p_in_array, const char *p_in_valid,
+     T *p_res_array, char *p_res_valid,
      unsigned long n_elem,
      unsigned long steps_per_request)
 {
@@ -524,24 +493,21 @@ void summation_initialize(
     if (i >= n_elem)
         return;
 
-    if (p_out_valid == nullptr)
+    if (p_in_valid == nullptr)
     {
-        p_red_array[i] = 0.;
         for (unsigned int j = 0; j < steps_per_request; ++j)
         {
-            p_red_array[i] += p_out_array[i+j*n_elem];
+            p_res_array[i] += p_in_array[i+j*n_elem];
         }
     }
     else
     {
-        p_red_array[i] = 0.;
-        p_red_valid[i] = char(0);
         for (unsigned int j = 0; j < steps_per_request; ++j)
         {
-            if (p_out_valid[i+j*n_elem])
+            if (p_in_valid[i+j*n_elem])
             {
-                p_red_array[i] += p_out_array[i+j*n_elem];
-                p_red_valid[i] = char(1);
+                p_res_array[i] += p_in_array[i+j*n_elem];
+                p_res_valid[i] = char(1);
             }
         }
     }
@@ -551,8 +517,8 @@ void summation_initialize(
 template <typename T>
 int summation_initialize(
     int device_id,
-    const T *p_out_array, const char *p_out_valid,
-    T *p_red_array, char *p_red_valid,
+    const T *p_in_array, const char *p_in_valid,
+    T *p_res_array, char *p_res_valid,
     unsigned long n_elem,
     unsigned long steps_per_request)
 {
@@ -568,8 +534,8 @@ int summation_initialize(
     }
 
     cudaError_t ierr = cudaSuccess;
-    summation_initialize<<<block_grid,thread_grid>>>(p_out_array, p_out_valid,
-                                                   p_red_array, p_red_valid,
+    summation_initialize<<<block_grid,thread_grid>>>(p_in_array, p_in_valid,
+                                                   p_res_array, p_res_valid,
                                                    n_elem, steps_per_request);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
@@ -584,45 +550,31 @@ int summation_initialize(
 template <typename T>
 __global__
 void summation(
-     const T *p_out_array, const char *p_out_valid,
      const T *p_in_array, const char *p_in_valid,
-     T *p_red_array, char *p_red_valid,
-     unsigned long n_elem,
-     unsigned long steps_per_request)
+     T *p_res_array, char *p_res_valid,
+     unsigned long n_elem, unsigned long steps_per_request)
 {
     unsigned long i = teca_cuda_util::thread_id_to_array_index();
 
     if (i >= n_elem)
         return;
 
-    if (p_out_valid == nullptr)
+    if (p_res_valid == nullptr)
     {
         // accumulate
-        p_red_array[i] = p_out_array[i];
         for (unsigned int j = 0; j < steps_per_request; ++j)
         {
-            p_red_array[i] += p_in_array[i+j*n_elem];
+            p_res_array[i] += p_in_array[i+j*n_elem];
         }
     }
     else
     {
-        if (p_out_valid[i])
-        {
-            p_red_array[i] = p_out_array[i];
-            p_red_valid[i] = char(1);
-        }
-        else
-        {
-            p_red_array[i] = 0.;
-            p_red_valid[i] = char(0);
-        }
-
         for (unsigned int j = 0; j < steps_per_request; ++j)
         {
             if (p_in_valid[i+j*n_elem])
             {
-                p_red_array[i] += p_in_array[i+j*n_elem];
-                p_red_valid[i] = char(1);
+                p_res_array[i] += p_in_array[i+j*n_elem];
+                p_res_valid[i] = char(1);
             }
         }
     }
@@ -632,9 +584,8 @@ void summation(
 template <typename T>
 int summation(
     int device_id,
-    const T *p_out_array, const char *p_out_valid,
     const T *p_in_array, const char *p_in_valid,
-    T *p_red_array, char *p_red_valid,
+    T *p_res_array, char *p_res_valid,
     unsigned long n_elem,
     unsigned long steps_per_request)
 {
@@ -650,9 +601,8 @@ int summation(
     }
 
     cudaError_t ierr = cudaSuccess;
-    summation<<<block_grid,thread_grid>>>(p_out_array, p_out_valid,
-                                          p_in_array, p_in_valid,
-                                          p_red_array, p_red_valid,
+    summation<<<block_grid,thread_grid>>>(p_in_array, p_in_valid,
+                                          p_res_array, p_res_valid,
                                           n_elem, steps_per_request);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
@@ -667,8 +617,8 @@ int summation(
 template <typename T>
 __global__
 void minimum_initialize(
-     const T *p_out_array, const char *p_out_valid,
-     T *p_red_array, char *p_red_valid,
+     const T *p_in_array, const char *p_in_valid,
+     T *p_res_array, char *p_res_valid,
      unsigned long n_elem,
      unsigned long steps_per_request)
 {
@@ -677,32 +627,32 @@ void minimum_initialize(
     if (i >= n_elem)
         return;
 
-    if (p_out_valid == nullptr)
+    if (p_in_valid == nullptr)
     {
-        p_red_array[i] = p_out_array[i];
+        p_res_array[i] = p_in_array[i];
         for (unsigned int j = 1; j < steps_per_request; ++j)
         {
-            p_red_array[i] =
-                  (p_out_array[i+j*n_elem] < p_red_array[i]) ?
-                   p_out_array[i+j*n_elem] : p_red_array[i];
+            p_res_array[i] =
+                  (p_in_array[i+j*n_elem] < p_res_array[i]) ?
+                   p_in_array[i+j*n_elem] : p_res_array[i];
         }
     }
     else
     {
-        p_red_array[i] = p_out_array[i];
-        p_red_valid[i] = (!p_out_valid[i]) ? char(0) : char(1);
+        p_res_array[i] = p_in_array[i];
+        p_res_valid[i] = (!p_in_valid[i]) ? char(0) : char(1);
         for (unsigned int j = 1; j < steps_per_request; ++j)
         {
-            if (p_out_valid[i+j*n_elem] && p_red_valid[i])
+            if (p_in_valid[i+j*n_elem] && p_res_valid[i])
             {
-                p_red_array[i] =
-                      (p_out_array[i+j*n_elem] < p_red_array[i]) ?
-                       p_out_array[i+j*n_elem] : p_red_array[i];
+                p_res_array[i] =
+                      (p_in_array[i+j*n_elem] < p_res_array[i]) ?
+                       p_in_array[i+j*n_elem] : p_res_array[i];
             }
-            else if (p_out_valid[i+j*n_elem] && !p_red_valid[i])
+            else if (p_in_valid[i+j*n_elem] && !p_res_valid[i])
             {
-                p_red_array[i] = p_out_array[i+j*n_elem];
-                p_red_valid[i] = char(1);
+                p_res_array[i] = p_in_array[i+j*n_elem];
+                p_res_valid[i] = char(1);
             }
         }
     }
@@ -712,8 +662,8 @@ void minimum_initialize(
 template <typename T>
 int minimum_initialize(
     int device_id,
-    const T *p_out_array, const char *p_out_valid,
-    T *p_red_array, char *p_red_valid,
+    const T *p_in_array, const char *p_in_valid,
+    T *p_res_array, char *p_res_valid,
     unsigned long n_elem,
     unsigned long steps_per_request)
 {
@@ -728,10 +678,9 @@ int minimum_initialize(
         return -1;
     }
 
-    // launch the finalize kernel
     cudaError_t ierr = cudaSuccess;
-    minimum_initialize<<<block_grid,thread_grid>>>(p_out_array, p_out_valid,
-                                             p_red_array, p_red_valid,
+    minimum_initialize<<<block_grid,thread_grid>>>(p_in_array, p_in_valid,
+                                             p_res_array, p_res_valid,
                                              n_elem, steps_per_request);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
@@ -746,9 +695,8 @@ int minimum_initialize(
 template <typename T>
 __global__
 void minimum(
-     const T *p_out_array, const char *p_out_valid,
      const T *p_in_array, const char *p_in_valid,
-     T *p_red_array, char *p_red_valid,
+     T *p_res_array, char *p_res_valid,
      unsigned long n_elem,
      unsigned long steps_per_request)
 {
@@ -757,32 +705,28 @@ void minimum(
     if (i >= n_elem)
         return;
 
-    if (p_out_valid == nullptr)
+    if (p_res_valid == nullptr)
     {
         // reduce
-        p_red_array[i] = p_out_array[i];
         for (unsigned int j = 0; j < steps_per_request; ++j)
         {
-            p_red_array[i] = (p_in_array[i+j*n_elem] < p_red_array[i]) ?
-                              p_in_array[i+j*n_elem] : p_red_array[i];
+            p_res_array[i] = (p_in_array[i+j*n_elem] < p_res_array[i]) ?
+                              p_in_array[i+j*n_elem] : p_res_array[i];
         }
     }
     else
     {
-        p_red_array[i] = p_out_array[i];
-        p_red_valid[i] = (!p_out_valid[i]) ? char(0) : char(1);
         for (unsigned int j = 0; j < steps_per_request; ++j)
         {
-            if (p_in_valid[i+j*n_elem] && p_red_valid[i])
+            if (p_in_valid[i+j*n_elem] && p_res_valid[i])
             {
-                // reduce
-                p_red_array[i] = (p_in_array[i+j*n_elem] < p_red_array[i]) ?
-                                  p_in_array[i+j*n_elem] : p_red_array[i];
+                p_res_array[i] = (p_in_array[i+j*n_elem] < p_res_array[i]) ?
+                                  p_in_array[i+j*n_elem] : p_res_array[i];
             }
-            else if (p_in_valid[i+j*n_elem] && !p_red_valid[i])
+            else if (p_in_valid[i+j*n_elem] && !p_res_valid[i])
             {
-                p_red_array[i] = p_in_array[i+j*n_elem];
-                p_red_valid[i] = char(1);
+                p_res_array[i] = p_in_array[i+j*n_elem];
+                p_res_valid[i] = char(1);
             }
         }
     }
@@ -792,9 +736,8 @@ void minimum(
 template <typename T>
 int minimum(
     int device_id,
-    const T *p_out_array, const char *p_out_valid,
     const T *p_in_array, const char *p_in_valid,
-    T *p_red_array, char *p_red_valid,
+    T *p_res_array, char *p_res_valid,
     unsigned long n_elem,
     unsigned long steps_per_request)
 {
@@ -810,9 +753,8 @@ int minimum(
     }
 
     cudaError_t ierr = cudaSuccess;
-    minimum<<<block_grid,thread_grid>>>(p_out_array, p_out_valid,
-                                        p_in_array, p_in_valid,
-                                        p_red_array, p_red_valid,
+    minimum<<<block_grid,thread_grid>>>(p_in_array, p_in_valid,
+                                        p_res_array, p_res_valid,
                                         n_elem, steps_per_request);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
@@ -827,8 +769,8 @@ int minimum(
 template <typename T>
 __global__
 void maximum_initialize(
-     const T *p_out_array, const char *p_out_valid,
-     T *p_red_array, char *p_red_valid,
+     const T *p_in_array, const char *p_in_valid,
+     T *p_res_array, char *p_res_valid,
      unsigned long n_elem,
      unsigned long steps_per_request)
 {
@@ -837,32 +779,32 @@ void maximum_initialize(
     if (i >= n_elem)
         return;
 
-    if (p_out_valid == nullptr)
+    if (p_in_valid == nullptr)
     {
-        p_red_array[i] = p_out_array[i];
+        p_res_array[i] = p_in_array[i];
         for (unsigned int j = 1; j < steps_per_request; ++j)
         {
-            p_red_array[i] =
-                  (p_out_array[i+j*n_elem] > p_red_array[i]) ?
-                   p_out_array[i+j*n_elem] : p_red_array[i];
+            p_res_array[i] =
+                  (p_in_array[i+j*n_elem] > p_res_array[i]) ?
+                   p_in_array[i+j*n_elem] : p_res_array[i];
         }
     }
     else
     {
-        p_red_array[i] = p_out_array[i];
-        p_red_valid[i] = (!p_out_valid[i]) ? char(0) : char(1);
+        p_res_array[i] = p_in_array[i];
+        p_res_valid[i] = (!p_in_valid[i]) ? char(0) : char(1);
         for (unsigned int j = 1; j < steps_per_request; ++j)
         {
-            if (p_out_valid[i+j*n_elem] && p_red_valid[i])
+            if (p_in_valid[i+j*n_elem] && p_res_valid[i])
             {
-                p_red_array[i] =
-                      (p_out_array[i+j*n_elem] > p_red_array[i]) ?
-                       p_out_array[i+j*n_elem] : p_red_array[i];
+                p_res_array[i] =
+                      (p_in_array[i+j*n_elem] > p_res_array[i]) ?
+                       p_in_array[i+j*n_elem] : p_res_array[i];
             }
-            else if (p_out_valid[i+j*n_elem] && !p_red_valid[i])
+            else if (p_in_valid[i+j*n_elem] && !p_res_valid[i])
             {
-                p_red_array[i] = p_out_array[i+j*n_elem];
-                p_red_valid[i] = char(1);
+                p_res_array[i] = p_in_array[i+j*n_elem];
+                p_res_valid[i] = char(1);
             }
         }
     }
@@ -872,8 +814,8 @@ void maximum_initialize(
 template <typename T>
 int maximum_initialize(
     int device_id,
-    const T *p_out_array, const char *p_out_valid,
-    T *p_red_array, char *p_red_valid,
+    const T *p_in_array, const char *p_in_valid,
+    T *p_res_array, char *p_res_valid,
     unsigned long n_elem,
     unsigned long steps_per_request)
 {
@@ -888,10 +830,9 @@ int maximum_initialize(
         return -1;
     }
 
-    // launch the finalize kernel
     cudaError_t ierr = cudaSuccess;
-    maximum_initialize<<<block_grid,thread_grid>>>(p_out_array, p_out_valid,
-                                                 p_red_array, p_red_valid,
+    maximum_initialize<<<block_grid,thread_grid>>>(p_in_array, p_in_valid,
+                                                 p_res_array, p_res_valid,
                                                  n_elem, steps_per_request);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
@@ -906,9 +847,8 @@ int maximum_initialize(
 template <typename T>
 __global__
 void maximum(
-     const T *p_out_array, const char *p_out_valid,
      const T *p_in_array, const char *p_in_valid,
-     T *p_red_array, char *p_red_valid,
+     T *p_res_array, char *p_res_valid,
      unsigned long n_elem,
      unsigned long steps_per_request)
 {
@@ -917,32 +857,28 @@ void maximum(
     if (i >= n_elem)
         return;
 
-    if (p_out_valid == nullptr)
+    if (p_res_valid == nullptr)
     {
         // reduce
-        p_red_array[i] = p_out_array[i];
         for (unsigned int j = 0; j < steps_per_request; ++j)
         {
-            p_red_array[i] = (p_in_array[i+j*n_elem] > p_red_array[i]) ?
-                              p_in_array[i+j*n_elem] : p_red_array[i];
+            p_res_array[i] = (p_in_array[i+j*n_elem] > p_res_array[i]) ?
+                              p_in_array[i+j*n_elem] : p_res_array[i];
         }
     }
     else
     {
-        p_red_array[i] = p_out_array[i];
-        p_red_valid[i] = (!p_out_valid[i]) ? char(0) : char(1);
         for (unsigned int j = 0; j < steps_per_request; ++j)
         {
-            if (p_in_valid[i+j*n_elem] && p_red_valid[i])
+            if (p_in_valid[i+j*n_elem] && p_res_valid[i])
             {
-                // reduce
-                p_red_array[i] = (p_in_array[i+j*n_elem] > p_red_array[i]) ?
-                                  p_in_array[i+j*n_elem] : p_red_array[i];
+                p_res_array[i] = (p_in_array[i+j*n_elem] > p_res_array[i]) ?
+                                  p_in_array[i+j*n_elem] : p_res_array[i];
             }
-            else if (p_in_valid[i+j*n_elem] && !p_red_valid[i])
+            else if (p_in_valid[i+j*n_elem] && !p_res_valid[i])
             {
-                p_red_array[i] = p_in_array[i+j*n_elem];
-                p_red_valid[i] = char(1);
+                p_res_array[i] = p_in_array[i+j*n_elem];
+                p_res_valid[i] = char(1);
             }
         }
     }
@@ -952,9 +888,8 @@ void maximum(
 template <typename T>
 int maximum(
     int device_id,
-    const T *p_out_array, const char *p_out_valid,
     const T *p_in_array, const char *p_in_valid,
-    T *p_red_array, char *p_red_valid,
+    T *p_res_array, char *p_res_valid,
     unsigned long n_elem,
     unsigned long steps_per_request)
 {
@@ -970,9 +905,8 @@ int maximum(
     }
 
     cudaError_t ierr = cudaSuccess;
-    maximum<<<block_grid,thread_grid>>>(p_out_array, p_out_valid,
-                                        p_in_array, p_in_valid,
-                                        p_red_array, p_red_valid,
+    maximum<<<block_grid,thread_grid>>>(p_in_array, p_in_valid,
+                                        p_res_array, p_res_valid,
                                         n_elem, steps_per_request);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
@@ -987,7 +921,7 @@ int maximum(
 template <typename T>
 __global__
 void finalize(
-     T *p_out_array, const char *p_out_valid,
+     T *p_res_array, const char *p_res_valid,
      double fill_value,
      unsigned long n_elem)
 {
@@ -996,9 +930,9 @@ void finalize(
     if (i >= n_elem)
         return;
 
-    if (!p_out_valid[i])
+    if (!p_res_valid[i])
     {
-        p_out_array[i] = fill_value;
+        p_res_array[i] = fill_value;
     }
 }
 
@@ -1006,7 +940,7 @@ void finalize(
 template <typename T>
 int finalize(
     int device_id,
-    T *p_out_array, const char *p_out_valid,
+    T *p_res_array, const char *p_res_valid,
     double fill_value,
     unsigned long n_elem)
 {
@@ -1022,7 +956,7 @@ int finalize(
     }
 
     cudaError_t ierr = cudaSuccess;
-    finalize<<<block_grid,thread_grid>>>(p_out_array, p_out_valid,
+    finalize<<<block_grid,thread_grid>>>(p_res_array, p_res_valid,
                                          fill_value, n_elem);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
@@ -1037,9 +971,8 @@ int finalize(
 template <typename T>
 __global__
 void average_finalize(
-     T *p_out_array, const char *p_out_valid,
-     T *p_red_array,
-     const T *p_count,
+     T *p_res_array, const char *p_res_valid,
+     const T *p_res_count,
      double fill_value,
      unsigned long n_elem)
 {
@@ -1048,14 +981,14 @@ void average_finalize(
     if (i >= n_elem)
         return;
 
-    if (p_out_valid == nullptr)
+    if (p_res_valid == nullptr)
     {
-        p_red_array[i] = p_out_array[i]/p_count[0];
+        p_res_array[i] = p_res_array[i]/p_res_count[0];
     }
     else
     {
-        p_red_array[i] = (!p_out_valid[i]) ?
-                                fill_value : p_out_array[i]/p_count[i];
+        p_res_array[i] = (!p_res_valid[i]) ?
+                                fill_value : p_res_array[i]/p_res_count[i];
     }
 }
 
@@ -1063,9 +996,8 @@ void average_finalize(
 template <typename T>
 int average_finalize(
     int device_id,
-    T *p_out_array, const char *p_out_valid,
-    T *p_red_array,
-    const T *p_count,
+    T *p_res_array, const char *p_res_valid,
+    const T *p_res_count,
     double fill_value,
     unsigned long n_elem)
 {
@@ -1081,9 +1013,8 @@ int average_finalize(
     }
 
     cudaError_t ierr = cudaSuccess;
-    average_finalize<<<block_grid,thread_grid>>>(p_out_array, p_out_valid,
-                                                 p_red_array, p_count,
-                                                 fill_value, n_elem);
+    average_finalize<<<block_grid,thread_grid>>>(p_res_array, p_res_valid,
+                                                 p_res_count, fill_value, n_elem);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
         TECA_ERROR("Failed to launch the average_finalize CUDA kernel: "
@@ -1099,117 +1030,107 @@ int average_finalize(
 int teca_cpp_temporal_reduction::internals_t::average_operator::init(
     int device_id,
     const std::string &array,
-    p_teca_array_collection &arrays_out,
+    p_teca_array_collection &arrays_in,
     unsigned long steps_per_request)
 {
 #if !defined(TECA_HAS_CUDA)
     (void)device_id;
 #endif
 
-    const_p_teca_variant_array out_array = arrays_out->get(array);
-
-    unsigned long n_elem = out_array->size();
-    unsigned long n_elem_per_timestep = n_elem/steps_per_request;
+    const_p_teca_variant_array in_array = arrays_in->get(array);
 
     // get the valid value masks
     std::string valid = array + "_valid";
-    p_teca_variant_array out_valid = arrays_out->get(valid);
+    const_p_teca_variant_array in_valid = arrays_in->get(valid);
+
+    unsigned long n_elem = in_array->size();
+    unsigned long n_elem_per_timestep = n_elem/steps_per_request;
 
     // get the current count
-    size_t n_elem_count = out_valid ? n_elem_per_timestep : 1;
-    std::string count_name = array + "_count";
+    size_t n_elem_count = in_valid ? n_elem_per_timestep : 1;
 
-    p_teca_variant_array red_array;
-    p_teca_variant_array red_valid;
-    p_teca_variant_array red_count;
-
-    VARIANT_ARRAY_DISPATCH(out_array.get(),
+    VARIANT_ARRAY_DISPATCH(in_array.get(),
 
 #if defined(TECA_HAS_CUDA)
         if (device_id >= 0)
         {
             // GPU
-            auto [res_array, p_res_array] = ::New<TT>(n_elem_per_timestep,
-                                                      allocator::cuda_async);
-            auto [res_count, p_res_count] = ::New<TT>(n_elem_count,
-                                                      allocator::cuda_async);
-            auto [sp_out_array, p_out_array] = get_cuda_accessible<CTT>(out_array);
+            auto [sp_in_array, p_in_array] = get_cuda_accessible<CTT>(in_array);
 
-            if (out_valid)
+            this->result = teca_variant_array_impl<NT>::New(n_elem_per_timestep, 0.,
+                                                      allocator::cuda_async);
+            this->count = teca_long_array::New(n_elem_count, NT(0),
+                                                      allocator::cuda_async);
+
+            auto [p_res_array] = data<TT>(this->result);
+            auto [p_res_count] = data<TT>(this->count);
+
+            if (in_valid)
             {
-                auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem_per_timestep,
-                                                               allocator::cuda_async);
-                auto [sp_out_valid, p_out_valid] = get_cuda_accessible<CTT_MASK>(out_valid);
+                auto [sp_in_valid, p_in_valid] = get_cuda_accessible<CTT_MASK>(in_valid);
 
-                cuda_gpu::average_initialize(device_id, p_out_array, p_out_valid,
+                this->valid = teca_variant_array_impl<NT_MASK>::New(n_elem_per_timestep, NT_MASK(0),
+                                                               allocator::cuda_async);
+                auto [p_res_valid] = data<TT_MASK>(this->valid);
+
+                cuda_gpu::average_initialize(device_id, p_in_array, p_in_valid,
                                            p_res_array, p_res_valid, p_res_count,
                                            n_elem_per_timestep, steps_per_request);
-                red_valid = res_valid;
             }
             else
             {
-                cuda_gpu::average_initialize(device_id, p_out_array, nullptr,
+                cuda_gpu::average_initialize(device_id, p_in_array, nullptr,
                                            p_res_array, nullptr, p_res_count,
                                            n_elem_per_timestep, steps_per_request);
             }
-            red_array = res_array;
-            red_count = res_count;
         }
         else
         {
 #endif
             // CPU
-            auto [res_array, p_res_array] = ::New<TT>(n_elem_per_timestep);
-            auto [res_count, p_res_count] = ::New<TT>(n_elem_count);
-            auto [sp_out_array, p_out_array] = get_host_accessible<CTT>(out_array);
+            auto [sp_in_array, p_in_array] = get_host_accessible<CTT>(in_array);
 
-            if (out_valid)
+            this->result = teca_variant_array_impl<NT>::New(n_elem_per_timestep, 0.);
+            this->count = teca_long_array::New(n_elem_count, NT(0));
+
+            auto [p_res_array] = data<TT>(this->result);
+            auto [p_res_count] = data<TT>(this->count);
+
+            if (in_valid)
             {
-                auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem_per_timestep);
-                auto [sp_out_valid, p_out_valid] = get_host_accessible<CTT_MASK>(out_valid);
+                auto [sp_in_valid, p_in_valid] = get_host_accessible<CTT_MASK>(in_valid);
+
+                this->valid = teca_variant_array_impl<NT_MASK>::New(n_elem_per_timestep, NT_MASK(0));
+                auto [p_res_valid] = data<TT_MASK>(this->valid);
 
                 for (unsigned int i = 0; i < n_elem_per_timestep; ++i)
                 {
-                    p_res_array[i] = 0.;
-                    p_res_valid[i] = NT_MASK(0);
-                    p_res_count[i] = NT(0);
                     for (unsigned int j = 0; j < steps_per_request; ++j)
                     {
-                        if (p_out_valid[i+j*n_elem_per_timestep])
+                        if (p_in_valid[i+j*n_elem_per_timestep])
                         {
-                            p_res_array[i] += p_out_array[i+j*n_elem_per_timestep];
+                            p_res_array[i] += p_in_array[i+j*n_elem_per_timestep];
                             p_res_valid[i] = NT_MASK(1);
                             p_res_count[i] += NT(1);
                         }
                     }
                 }
-                red_valid = res_valid;
             }
             else
             {
                 p_res_count[0] = NT(steps_per_request);
                 for (unsigned int i = 0; i < n_elem_per_timestep; ++i)
                 {
-                    p_res_array[i] = 0.;
                     for (unsigned int j = 0; j < steps_per_request; ++j)
                     {
-                        p_res_array[i] += p_out_array[i+j*n_elem_per_timestep];
+                        p_res_array[i] += p_in_array[i+j*n_elem_per_timestep];
                     }
                 }
             }
-            red_array = res_array;
-            red_count = res_count;
 #if defined(TECA_HAS_CUDA)
         }
 #endif
     )
-
-    // update the output
-    arrays_out->set(array, red_array);
-    arrays_out->set(count_name, red_count);
-
-    if (out_valid)
-        arrays_out->set(valid, red_valid);
 
     return 0;
 }
@@ -1218,7 +1139,6 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::init(
 int teca_cpp_temporal_reduction::internals_t::average_operator::update_cpu(
     int device_id,
     const std::string &array,
-    p_teca_array_collection &arrays_out,
     p_teca_array_collection &arrays_in,
     unsigned long steps_per_request)
 {
@@ -1226,98 +1146,60 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::update_cpu(
 
     // get the input and output arrays
     const_p_teca_variant_array in_array = arrays_in->get(array);
-    const_p_teca_variant_array out_array = arrays_out->get(array);
-
-    unsigned long n_elem = out_array->size();
 
     // don't use integer types for this calculation
     internals_t::ensure_floating_point(allocator::malloc, in_array);
-    internals_t::ensure_floating_point(allocator::malloc, out_array);
 
     // get the valid value masks
     std::string valid = array + "_valid";
     const_p_teca_variant_array in_valid = arrays_in->get(valid);
-    const_p_teca_variant_array out_valid = arrays_out->get(valid);
+
+    unsigned long n_elem = this->result->size();
 
     // get the current count
-    size_t n_elem_count = out_valid ? n_elem : 1;
-    std::string count_name = array + "_count";
-    p_teca_variant_array count = arrays_out->get(count_name);
+    size_t n_elem_count = in_valid ? n_elem : 1;
 
-    // the result of this pass
-    p_teca_variant_array red_array;
-    p_teca_variant_array red_valid;
-    p_teca_variant_array red_count;
+    VARIANT_ARRAY_DISPATCH(in_array.get(),
 
-    VARIANT_ARRAY_DISPATCH(out_array.get(),
-
-        auto [res_array, p_res_array] = ::New<TT>(n_elem);
-        auto [res_count, p_res_count] = ::New<TT>(n_elem_count);
         auto [sp_in_array, p_in_array] = get_host_accessible<CTT>(in_array);
-        auto [p_out_array] = data<CTT>(out_array);
-        auto [p_count] = data<TT>(count);
+        auto [p_res_array] = data<TT>(this->result);
+        auto [p_res_count] = data<TT>(this->count);
 
-        if (out_valid)
+        if (this->valid)
         {
             // update, respecting missing data
-
-            auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem);
             auto [sp_in_valid, p_in_valid] = get_host_accessible<CTT_MASK>(in_valid);
-            auto [sp_out_valid, p_out_valid] = get_host_accessible<CTT_MASK>(out_valid);
+            auto [p_res_valid] = data<TT_MASK>(this->valid);
 
             for (unsigned int i = 0; i < n_elem; ++i)
             {
-                p_res_count[i] = p_count[i];
-
-                if (p_out_valid[i])
-                {
-                   p_res_array[i] = p_out_array[i];
-                   p_res_valid[i] = NT_MASK(1);
-                }
-                else
-                {
-                   p_res_array[i] = 0.;
-                   p_res_valid[i] = NT_MASK(0);
-                }
-
                 for (unsigned int j = 0; j < steps_per_request; ++j)
                 {
-                     // update, respecting missing data
-                     // count where there is valid data,
-                     // otherwise pass the current count through
-                     if (p_in_valid[i+j*n_elem])
-                     {
-                         p_res_array[i] += p_in_array[i+j*n_elem];
-                         p_res_count[i] += NT(1);
-                         p_res_valid[i] = NT_MASK(1);
-                     }
-               }
+                    // update, respecting missing data
+                    // count where there is valid data,
+                    // otherwise pass the current count through
+                    if (p_in_valid[i+j*n_elem])
+                    {
+                        p_res_array[i] += p_in_array[i+j*n_elem];
+                        p_res_count[i] += NT(1);
+                        p_res_valid[i] = NT_MASK(1);
+                    }
+                }
             }
-            red_valid = res_valid;
         }
         else
         {
             // update, no missing data
-            p_res_count[0] = p_count[0] + NT(steps_per_request);
+            p_res_count[0] += NT(steps_per_request);
             for (unsigned int i = 0; i < n_elem; ++i)
             {
-                p_res_array[i] = p_out_array[i];
                 for (unsigned int j = 0; j < steps_per_request; ++j)
                 {
                     p_res_array[i] += p_in_array[i+j*n_elem];
                 }
             }
         }
-        red_array = res_array;
-        red_count = res_count;
     )
-
-    // update the output
-    arrays_out->set(array, red_array);
-    arrays_out->set(count_name, red_count);
-
-    if (out_valid)
-        arrays_out->set(valid, red_valid);
 
     return 0;
 }
@@ -1326,89 +1208,54 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::update_cpu(
 int teca_cpp_temporal_reduction::internals_t::average_operator::update_gpu(
     int device_id,
     const std::string &array,
-    p_teca_array_collection &arrays_out,
     p_teca_array_collection &arrays_in,
     unsigned long steps_per_request)
 {
 #if defined(TECA_HAS_CUDA)
+
     // get the input and output arrays
     const_p_teca_variant_array in_array = arrays_in->get(array);
-    const_p_teca_variant_array out_array = arrays_out->get(array);
-
-    unsigned long n_elem = out_array->size();
 
     // don't use integer types for this calculation
     internals_t::ensure_floating_point(allocator::cuda_async, in_array);
-    internals_t::ensure_floating_point(allocator::cuda_async, out_array);
 
     // get the valid value masks
     std::string valid = array + "_valid";
     const_p_teca_variant_array in_valid = arrays_in->get(valid);
-    const_p_teca_variant_array out_valid = arrays_out->get(valid);
+
+    unsigned long n_elem = this->result->size();
 
     // allocate space for the output mask which is a function of the current
     // input and previous state and size and place the count array
-    size_t n_elem_count = 1;
-    allocator alloc_count = allocator::cuda_async;
-    if (out_valid)
-    {
-        // when we have the valid value mask we need a per-mesh element count
-        n_elem_count = n_elem;
-    }
+    size_t n_elem_count = in_valid ? n_elem : 1;
 
-    // get the current count
-    std::string count_name = array + "_count";
-    p_teca_variant_array count = arrays_out->get(count_name);
+    VARIANT_ARRAY_DISPATCH(in_array.get(),
 
-    // results of the calc
-    p_teca_variant_array red_array;
-    p_teca_variant_array red_count;
-    p_teca_variant_array red_valid;
-
-    VARIANT_ARRAY_DISPATCH(out_array.get(),
-
-        auto [res_array, p_res_array] = ::New<TT>(n_elem, allocator::cuda_async);
-        auto [res_count, p_res_count] = ::New<TT>(n_elem_count, alloc_count);
         auto [sp_in_array, p_in_array] = get_cuda_accessible<CTT>(in_array);
-        auto [p_out_array] = data<CTT>(out_array);
-        auto [p_count] = data<TT>(count);
+        auto [p_res_array] = data<TT>(this->result);
+        auto [p_res_count] = data<TT>(this->count);
 
-        if (out_valid)
+        if (this->valid)
         {
             // update while respecting invalid/missing data
-            auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem, allocator::cuda_async);
             auto [sp_in_valid, p_in_valid] = get_cuda_accessible<CTT_MASK>(in_valid);
-            auto [sp_out_valid, p_out_valid] = get_cuda_accessible<CTT_MASK>(out_valid);
+            auto [p_res_valid] = data<TT_MASK>(this->valid);
 
-            cuda_gpu::average(device_id, p_out_array, p_out_valid,
-                p_in_array, p_in_valid, p_count, p_res_count,
+            cuda_gpu::average(device_id, p_in_array, p_in_valid, p_res_count,
                 p_res_array, p_res_valid, n_elem, steps_per_request);
-
-            red_valid = res_valid;
         }
         else
         {
             // update, no missing data
-            cuda_gpu::average(device_id, p_out_array, nullptr,
-                p_in_array, nullptr, p_count, p_res_count,
+            cuda_gpu::average(device_id, p_in_array, nullptr, p_res_count,
                 p_res_array, nullptr, n_elem, steps_per_request);
         }
-        red_array = res_array;
-        red_count = res_count;
     )
-
-    // update the output
-    arrays_out->set(array, red_array);
-    arrays_out->set(count_name, red_count);
-
-    if (out_valid)
-        arrays_out->set(valid, red_valid);
 
     return 0;
 #else
     (void)device_id;
     (void)array;
-    (void)arrays_out;
     (void)arrays_in;
 
     TECA_ERROR("CUDA support is not available")
@@ -1420,103 +1267,95 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::update_gpu(
 int teca_cpp_temporal_reduction::internals_t::summation_operator::init(
     int device_id,
     const std::string &array,
-    p_teca_array_collection &arrays_out,
+    p_teca_array_collection &arrays_in,
     unsigned long steps_per_request)
 {
 #if !defined(TECA_HAS_CUDA)
     (void)device_id;
 #endif
 
-    const_p_teca_variant_array out_array = arrays_out->get(array);
-
-    unsigned long n_elem = out_array->size();
-    unsigned long n_elem_per_timestep = n_elem/steps_per_request;
+    const_p_teca_variant_array in_array = arrays_in->get(array);
 
     // the valid value masks
     std::string valid = array + "_valid";
-    p_teca_variant_array out_valid = arrays_out->get(valid);
+    const_p_teca_variant_array in_valid = arrays_in->get(valid);
 
-    p_teca_variant_array red_array;
-    p_teca_variant_array red_valid;
+    unsigned long n_elem = in_array->size();
+    unsigned long n_elem_per_timestep = n_elem/steps_per_request;
 
-    VARIANT_ARRAY_DISPATCH(out_array.get(),
+    VARIANT_ARRAY_DISPATCH(in_array.get(),
 
 #if defined(TECA_HAS_CUDA)
         if (device_id >= 0)
         {
             // GPU
-            auto [res_array, p_res_array] = ::New<TT>(n_elem_per_timestep,
+            auto [sp_in_array, p_in_array] = get_cuda_accessible<CTT>(in_array);
+
+            this->result = teca_variant_array_impl<NT>::New(n_elem_per_timestep, 0.,
                                                       allocator::cuda_async);
-            auto [sp_out_array, p_out_array] = get_cuda_accessible<CTT>(out_array);
+            auto [p_res_array] = data<TT>(this->result);
 
-            if (out_valid)
+            if (in_valid)
             {
-                auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem_per_timestep,
-                                                               allocator::cuda_async);
-                auto [sp_out_valid, p_out_valid] = get_cuda_accessible<CTT_MASK>(out_valid);
+                auto [sp_in_valid, p_in_valid] = get_cuda_accessible<CTT_MASK>(in_valid);
 
-                cuda_gpu::summation_initialize(device_id, p_out_array, p_out_valid,
+                this->valid = teca_variant_array_impl<NT_MASK>::New(n_elem_per_timestep, NT_MASK(0),
+                                                               allocator::cuda_async);
+                auto [p_res_valid] = data<TT_MASK>(this->valid);
+
+                cuda_gpu::summation_initialize(device_id, p_in_array, p_in_valid,
                                            p_res_array, p_res_valid,
                                            n_elem_per_timestep, steps_per_request);
-                red_valid = res_valid;
             }
             else
             {
-                cuda_gpu::summation_initialize(device_id, p_out_array, nullptr,
+                cuda_gpu::summation_initialize(device_id, p_in_array, nullptr,
                                            p_res_array, nullptr,
                                            n_elem_per_timestep, steps_per_request);
             }
-            red_array = res_array;
         }
         else
         {
 #endif
             // CPU
-            auto [res_array, p_res_array] = ::New<TT>(n_elem_per_timestep);
-            auto [sp_out_array, p_out_array] = get_host_accessible<CTT>(out_array);
+            auto [sp_in_array, p_in_array] = get_host_accessible<CTT>(in_array);
 
-            if (out_valid)
+            this->result = teca_variant_array_impl<NT>::New(n_elem_per_timestep, 0.);
+            auto [p_res_array] = data<TT>(this->result);
+
+            if (in_valid)
             {
-                auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem_per_timestep);
-                auto [sp_out_valid, p_out_valid] = get_host_accessible<CTT_MASK>(out_valid);
+                auto [sp_in_valid, p_in_valid] = get_host_accessible<CTT_MASK>(in_valid);
+
+                this->valid = teca_variant_array_impl<NT_MASK>::New(n_elem_per_timestep, NT_MASK(0));
+                auto [p_res_valid] = data<TT_MASK>(this->valid);
 
                 for (unsigned int i = 0; i < n_elem_per_timestep; ++i)
                 {
-                    p_res_array[i] = 0.;
-                    p_res_valid[i] = NT_MASK(0);
                     for (unsigned int j = 0; j < steps_per_request; ++j)
                     {
-                        if (p_out_valid[i+j*n_elem_per_timestep])
+                        if (p_in_valid[i+j*n_elem_per_timestep])
                         {
-                            p_res_array[i] += p_out_array[i+j*n_elem_per_timestep];
+                            p_res_array[i] += p_in_array[i+j*n_elem_per_timestep];
                             p_res_valid[i] = NT_MASK(1);
                         }
                     }
                 }
-                red_valid = res_valid;
             }
             else
             {
                 for (unsigned int i = 0; i < n_elem_per_timestep; ++i)
                 {
-                    p_res_array[i] = 0.;
                     for (unsigned int j = 0; j < steps_per_request; ++j)
                     {
-                        p_res_array[i] += p_out_array[i+j*n_elem_per_timestep];
+                        p_res_array[i] += p_in_array[i+j*n_elem_per_timestep];
                     }
                 }
             }
-            red_array = res_array;
 #if defined(TECA_HAS_CUDA)
         }
 #endif
     )
-
-    // update the output
-    arrays_out->set(array, red_array);
-
-    if (out_valid)
-        arrays_out->set(valid, red_valid);
 
     return 0;
 }
@@ -1525,7 +1364,6 @@ int teca_cpp_temporal_reduction::internals_t::summation_operator::init(
 int teca_cpp_temporal_reduction::internals_t::summation_operator::update_cpu(
     int device_id,
     const std::string &array,
-    p_teca_array_collection &arrays_out,
     p_teca_array_collection &arrays_in,
     unsigned long steps_per_request)
 {
@@ -1533,78 +1371,50 @@ int teca_cpp_temporal_reduction::internals_t::summation_operator::update_cpu(
 
     // arrays
     const_p_teca_variant_array in_array = arrays_in->get(array);
-    const_p_teca_variant_array out_array = arrays_out->get(array);
-
-    unsigned long n_elem = out_array->size();
 
     // the valid value masks
     // returns a nullptr if the array is not in the collection
     std::string valid = array + "_valid";
     const_p_teca_variant_array in_valid = arrays_in->get(valid);
-    const_p_teca_variant_array out_valid = arrays_out->get(valid);
 
-    // update reduction
-    p_teca_variant_array red_array;
-    p_teca_variant_array red_valid;
+    unsigned long n_elem = this->result->size();
 
-    VARIANT_ARRAY_DISPATCH(out_array.get(),
+    VARIANT_ARRAY_DISPATCH(in_array.get(),
 
-        auto [res_array, p_res_array] = ::New<TT>(n_elem);
         auto [sp_in_array, p_in_array] = get_host_accessible<CTT>(in_array);
-        auto [p_out_array] = data<CTT>(out_array);
+        auto [p_res_array] = data<TT>(this->result);
 
-        if (out_valid)
+        if (this->valid)
         {
-            // update, respect missing values
-            auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem);
+            // update, respecting missing data
             auto [sp_in_valid, p_in_valid] = get_host_accessible<CTT_MASK>(in_valid);
-            auto [sp_out_valid, p_out_valid] = get_host_accessible<CTT_MASK>(out_valid);
+            auto [p_res_valid] = data<TT_MASK>(this->valid);
 
             for (unsigned int i = 0; i < n_elem; ++i)
             {
-                if (p_out_valid[i])
-                {
-                   p_res_array[i] = p_out_array[i];
-                   p_res_valid[i] = NT_MASK(1);
-                }
-                else
-                {
-                   p_res_array[i] = 0.;
-                   p_res_valid[i] = NT_MASK(0);
-                }
-
                 for (unsigned int j = 0; j < steps_per_request; ++j)
                 {
-                     // update, respecting missing data
-                     if (p_in_valid[i+j*n_elem])
-                     {
-                         p_res_array[i] += p_in_array[i+j*n_elem];
-                         p_res_valid[i] = NT_MASK(1);
-                     }
-               }
+                    // update, respecting missing data
+                    if (p_in_valid[i+j*n_elem])
+                    {
+                        p_res_array[i] += p_in_array[i+j*n_elem];
+                        p_res_valid[i] = NT_MASK(1);
+                    }
+                }
             }
-            red_valid = res_valid;
         }
         else
         {
             // update, no missing data
             for (unsigned int i = 0; i < n_elem; ++i)
             {
-                p_res_array[i] = p_out_array[i];
                 for (unsigned int j = 0; j < steps_per_request; ++j)
                 {
                     p_res_array[i] += p_in_array[i+j*n_elem];
                 }
             }
         }
-        red_array = res_array;
     )
-
-    // update the output
-    arrays_out->set(array, red_array);
-
-    if (out_valid)
-        arrays_out->set(valid, red_valid);
 
     return 0;
 }
@@ -1613,66 +1423,46 @@ int teca_cpp_temporal_reduction::internals_t::summation_operator::update_cpu(
 int teca_cpp_temporal_reduction::internals_t::summation_operator::update_gpu(
     int device_id,
     const std::string &array,
-    p_teca_array_collection &arrays_out,
     p_teca_array_collection &arrays_in,
     unsigned long steps_per_request)
 {
 #if defined(TECA_HAS_CUDA)
+
     // arrays
     const_p_teca_variant_array in_array = arrays_in->get(array);
-    const_p_teca_variant_array out_array = arrays_out->get(array);
-
-    unsigned long n_elem = out_array->size();
 
     // the valid value masks
     // returns a nullptr if the array is not in the collection
     std::string valid = array + "_valid";
     const_p_teca_variant_array in_valid = arrays_in->get(valid);
-    const_p_teca_variant_array out_valid = arrays_out->get(valid);
 
-    // partial update the reduction
-    p_teca_variant_array red_array;
-    p_teca_variant_array red_valid;
+    unsigned long n_elem = this->result->size();
 
-    VARIANT_ARRAY_DISPATCH(out_array.get(),
+    VARIANT_ARRAY_DISPATCH(in_array.get(),
 
-        auto [res_array, p_res_array] = ::New<TT>(n_elem, allocator::cuda_async);
         auto [sp_in_array, p_in_array] = get_cuda_accessible<CTT>(in_array);
-        auto [p_out_array] = data<CTT>(out_array);
+        auto [p_res_array] = data<TT>(this->result);
 
-        if (out_valid)
+        if (this->valid)
         {
-            // update, respect missing values
-            auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem, allocator::cuda_async);
+            // update while respecting invalid/missing data
             auto [sp_in_valid, p_in_valid] = get_cuda_accessible<CTT_MASK>(in_valid);
-            auto [sp_out_valid, p_out_valid] = get_cuda_accessible<CTT_MASK>(out_valid);
+            auto [p_res_valid] = data<TT_MASK>(this->valid);
 
-            cuda_gpu::summation(device_id, p_out_array, p_out_valid,
-                p_in_array, p_in_valid, p_res_array, p_res_valid,
-                n_elem, steps_per_request);
-
-            red_valid = res_valid;
+            cuda_gpu::summation(device_id, p_in_array, p_in_valid,
+                p_res_array, p_res_valid, n_elem, steps_per_request);
         }
         else
         {
-            cuda_gpu::summation(device_id, p_out_array, nullptr,
-                p_in_array, nullptr, p_res_array, nullptr,
-                n_elem, steps_per_request);
+            cuda_gpu::summation(device_id, p_in_array, nullptr,
+                p_res_array, nullptr, n_elem, steps_per_request);
         }
-        red_array = res_array;
     )
-
-    // update the output
-    arrays_out->set(array, red_array);
-
-    if (out_valid)
-        arrays_out->set(valid, red_valid);
 
     return 0;
 #else
     (void)device_id;
     (void)array;
-    (void)arrays_out;
     (void)arrays_in;
 
     TECA_ERROR("CUDA support is not available")
@@ -1684,112 +1474,107 @@ int teca_cpp_temporal_reduction::internals_t::summation_operator::update_gpu(
 int teca_cpp_temporal_reduction::internals_t::minimum_operator::init(
     int device_id,
     const std::string &array,
-    p_teca_array_collection &arrays_out,
+    p_teca_array_collection &arrays_in,
     unsigned long steps_per_request)
 {
 #if !defined(TECA_HAS_CUDA)
     (void)device_id;
 #endif
 
-    const_p_teca_variant_array out_array = arrays_out->get(array);
-
-    unsigned long n_elem = out_array->size();
-    unsigned long n_elem_per_timestep = n_elem/steps_per_request;
+    const_p_teca_variant_array in_array = arrays_in->get(array);
 
     // the valid value masks
     std::string valid = array + "_valid";
-    p_teca_variant_array out_valid = arrays_out->get(valid);
+    const_p_teca_variant_array in_valid = arrays_in->get(valid);
 
-    p_teca_variant_array red_array;
-    p_teca_variant_array red_valid;
+    unsigned long n_elem = in_array->size();
+    unsigned long n_elem_per_timestep = n_elem/steps_per_request;
 
-    VARIANT_ARRAY_DISPATCH(out_array.get(),
+    VARIANT_ARRAY_DISPATCH(in_array.get(),
 
 #if defined(TECA_HAS_CUDA)
         if (device_id >= 0)
         {
-            auto [res_array, p_res_array] = ::New<TT>(n_elem_per_timestep,
+            auto [sp_in_array, p_in_array] = get_cuda_accessible<CTT>(in_array);
+
+            this->result = teca_variant_array_impl<NT>::New(n_elem_per_timestep,
                                                       allocator::cuda_async);
-            auto [sp_out_array, p_out_array] = get_cuda_accessible<CTT>(out_array);
+            auto [p_res_array] = data<TT>(this->result);
 
-            if (out_valid)
+            if (in_valid)
             {
-                auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem_per_timestep,
-                                                               allocator::cuda_async);
-                auto [sp_out_valid, p_out_valid] = get_cuda_accessible<CTT_MASK>(out_valid);
+                auto [sp_in_valid, p_in_valid] = get_cuda_accessible<CTT_MASK>(in_valid);
 
-                cuda_gpu::minimum_initialize(device_id, p_out_array, p_out_valid,
+                this->valid = teca_variant_array_impl<NT_MASK>::New(n_elem_per_timestep,
+                                                               allocator::cuda_async);
+                auto [p_res_valid] = data<TT_MASK>(this->valid);
+
+                cuda_gpu::minimum_initialize(device_id, p_in_array, p_in_valid,
                                            p_res_array, p_res_valid,
                                            n_elem_per_timestep, steps_per_request);
-                red_valid = res_valid;
             }
             else
             {
-                cuda_gpu::minimum_initialize(device_id, p_out_array, nullptr,
+                cuda_gpu::minimum_initialize(device_id, p_in_array, nullptr,
                                            p_res_array, nullptr,
                                            n_elem_per_timestep, steps_per_request);
             }
-            red_array = res_array;
         }
         else
         {
 #endif
             // CPU
-            auto [res_array, p_res_array] = ::New<TT>(n_elem_per_timestep);
-            auto [sp_out_array, p_out_array] = get_host_accessible<CTT>(out_array);
+            auto [sp_in_array, p_in_array] = get_host_accessible<CTT>(in_array);
 
-            if (out_valid)
+            this->result = teca_variant_array_impl<NT>::New(n_elem_per_timestep);
+            auto [p_res_array] = data<TT>(this->result);
+
+            if (in_valid)
             {
-                auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem_per_timestep);
-                auto [sp_out_valid, p_out_valid] = get_host_accessible<CTT_MASK>(out_valid);
+                auto [sp_in_valid, p_in_valid] = get_host_accessible<CTT_MASK>(in_valid);
+
+                this->valid = teca_variant_array_impl<NT_MASK>::New(n_elem_per_timestep);
+                auto [p_res_valid] = data<TT_MASK>(this->valid);
 
                 for (unsigned int i = 0; i < n_elem_per_timestep; ++i)
                 {
-                    p_res_array[i] = p_out_array[i];
-                    p_res_valid[i] = (!p_out_valid[i]) ? NT_MASK(0) : NT_MASK(1);
+                    p_res_array[i] = p_in_array[i];
+                    p_res_valid[i] = (!p_in_valid[i]) ? NT_MASK(0) : NT_MASK(1);
                     for (unsigned int j = 1; j < steps_per_request; ++j)
                     {
-                        if (p_out_valid[i+j*n_elem_per_timestep] &&
+                        if (p_in_valid[i+j*n_elem_per_timestep] &&
                             p_res_valid[i])
                         {
                             p_res_array[i] =
-                              (p_out_array[i+j*n_elem_per_timestep] < p_res_array[i]) ?
-                               p_out_array[i+j*n_elem_per_timestep] : p_res_array[i];
+                              (p_in_array[i+j*n_elem_per_timestep] < p_res_array[i]) ?
+                               p_in_array[i+j*n_elem_per_timestep] : p_res_array[i];
                         }
-                        else if (p_out_valid[i+j*n_elem_per_timestep] &&
+                        else if (p_in_valid[i+j*n_elem_per_timestep] &&
                                 !p_res_valid[i])
                         {
-                            p_res_array[i] = p_out_array[i+j*n_elem_per_timestep];
+                            p_res_array[i] = p_in_array[i+j*n_elem_per_timestep];
                             p_res_valid[i] = NT_MASK(1);
                         }
                     }
                 }
-                red_valid = res_valid;
             }
             else
             {
                 for (unsigned int i = 0; i < n_elem_per_timestep; ++i)
                 {
-                    p_res_array[i] = p_out_array[i];
+                    p_res_array[i] = p_in_array[i];
                     for (unsigned int j = 1; j < steps_per_request; ++j)
                     {
                         p_res_array[i] =
-                          (p_out_array[i+j*n_elem_per_timestep] < p_res_array[i]) ?
-                           p_out_array[i+j*n_elem_per_timestep] : p_res_array[i];
+                          (p_in_array[i+j*n_elem_per_timestep] < p_res_array[i]) ?
+                           p_in_array[i+j*n_elem_per_timestep] : p_res_array[i];
                     }
                 }
             }
-            red_array = res_array;
 #if defined(TECA_HAS_CUDA)
         }
 #endif
     )
-
-    // update the output
-    arrays_out->set(array, red_array);
-
-    if (out_valid)
-        arrays_out->set(valid, red_valid);
 
     return 0;
 }
@@ -1798,7 +1583,6 @@ int teca_cpp_temporal_reduction::internals_t::minimum_operator::init(
 int teca_cpp_temporal_reduction::internals_t::minimum_operator::update_cpu(
     int device_id,
     const std::string &array,
-    p_teca_array_collection &arrays_out,
     p_teca_array_collection &arrays_in,
     unsigned long steps_per_request)
 {
@@ -1806,37 +1590,27 @@ int teca_cpp_temporal_reduction::internals_t::minimum_operator::update_cpu(
 
     // arrays
     const_p_teca_variant_array in_array = arrays_in->get(array);
-    const_p_teca_variant_array out_array = arrays_out->get(array);
-
-    unsigned long n_elem = out_array->size();
 
     // the valid value masks
     // returns a nullptr if the array is not in the collection
     std::string valid = array + "_valid";
     const_p_teca_variant_array in_valid = arrays_in->get(valid);
-    const_p_teca_variant_array out_valid = arrays_out->get(valid);
 
-    // partial update the reduction
-    p_teca_variant_array red_array;
-    p_teca_variant_array red_valid;
+    unsigned long n_elem = this->result->size();
 
-    VARIANT_ARRAY_DISPATCH(out_array.get(),
+    VARIANT_ARRAY_DISPATCH(in_array.get(),
 
-        auto [res_array, p_res_array] = ::New<TT>(n_elem);
-        auto [sp_in_array, p_in_array] = get_host_accessible<TT>(in_array);
-        auto [p_out_array] = data<CTT>(out_array);
+        auto [sp_in_array, p_in_array] = get_host_accessible<CTT>(in_array);
+        auto [p_res_array] = data<TT>(this->result);
 
-        if (out_valid)
+        if (this->valid)
         {
-            // update, respect missing values
-            auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem);
+            // update, respecting missing data
             auto [sp_in_valid, p_in_valid] = get_host_accessible<CTT_MASK>(in_valid);
-            auto [sp_out_valid, p_out_valid] = get_host_accessible<CTT_MASK>(out_valid);
+            auto [p_res_valid] = data<TT_MASK>(this->valid);
 
             for (unsigned int i = 0; i < n_elem; ++i)
             {
-                p_res_array[i] = p_out_array[i];
-                p_res_valid[i] = (!p_out_valid[i]) ? NT_MASK(0) : NT_MASK(1);
                 for (unsigned int j = 0; j < steps_per_request; ++j)
                 {
                     if (p_in_valid[i+j*n_elem] && p_res_valid[i])
@@ -1851,14 +1625,12 @@ int teca_cpp_temporal_reduction::internals_t::minimum_operator::update_cpu(
                     }
                 }
             }
-            red_valid = res_valid;
         }
         else
         {
             // update, no missing values
             for (unsigned int i = 0; i < n_elem; ++i)
             {
-                p_res_array[i] = p_out_array[i];
                 for (unsigned int j = 0; j < steps_per_request; ++j)
                 {
                     p_res_array[i] = p_in_array[i+j*n_elem] < p_res_array[i] ?
@@ -1866,14 +1638,7 @@ int teca_cpp_temporal_reduction::internals_t::minimum_operator::update_cpu(
                 }
             }
         }
-        red_array = res_array;
     )
-
-    // update the output
-    arrays_out->set(array, red_array);
-
-    if (out_valid)
-        arrays_out->set(valid, red_valid);
 
     return 0;
 }
@@ -1882,65 +1647,46 @@ int teca_cpp_temporal_reduction::internals_t::minimum_operator::update_cpu(
 int teca_cpp_temporal_reduction::internals_t::minimum_operator::update_gpu(
     int device_id,
     const std::string &array,
-    p_teca_array_collection &arrays_out,
     p_teca_array_collection &arrays_in,
     unsigned long steps_per_request)
 {
 #if defined(TECA_HAS_CUDA)
     // arrays
     const_p_teca_variant_array in_array = arrays_in->get(array);
-    const_p_teca_variant_array out_array = arrays_out->get(array);
-
-    unsigned long n_elem = out_array->size();
 
     // the valid value masks
     // returns a nullptr if the array is not in the collection
     std::string valid = array + "_valid";
     const_p_teca_variant_array in_valid = arrays_in->get(valid);
-    const_p_teca_variant_array out_valid = arrays_out->get(valid);
 
-    // partial update of the reduction
-    p_teca_variant_array red_array;
-    p_teca_variant_array red_valid;
+    unsigned long n_elem = this->result->size();
 
-    VARIANT_ARRAY_DISPATCH(out_array.get(),
+    VARIANT_ARRAY_DISPATCH(in_array.get(),
 
-        auto [res_array, p_res_array] = ::New<TT>(n_elem, allocator::cuda_async);
-        auto [sp_in_array, p_in_array] = get_cuda_accessible<TT>(in_array);
-        auto [p_out_array] = data<CTT>(out_array);
+        auto [sp_in_array, p_in_array] = get_cuda_accessible<CTT>(in_array);
+        auto [p_res_array] = data<TT>(this->result);
 
-        if (out_valid)
+        if (this->valid)
         {
-            auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem, allocator::cuda_async);
+            // update while respecting invalid/missing data
             auto [sp_in_valid, p_in_valid] = get_cuda_accessible<CTT_MASK>(in_valid);
-            auto [sp_out_valid, p_out_valid] = get_cuda_accessible<CTT_MASK>(out_valid);
+            auto [p_res_valid] = data<TT_MASK>(this->valid);
 
-            cuda_gpu::minimum(device_id, p_out_array, p_out_valid,
-                p_in_array, p_in_valid, p_res_array, p_res_valid,
-                n_elem, steps_per_request);
+            cuda_gpu::minimum(device_id, p_in_array, p_in_valid,
+                p_res_array, p_res_valid, n_elem, steps_per_request);
 
-            red_valid = res_valid;
         }
         else
         {
-            cuda_gpu::minimum(device_id, p_out_array, nullptr,
-                p_in_array, nullptr, p_res_array, nullptr,
-                n_elem, steps_per_request);
+            cuda_gpu::minimum(device_id, p_in_array, nullptr,
+                p_res_array, nullptr, n_elem, steps_per_request);
         }
-        red_array = res_array;
     )
-
-    // update the output
-    arrays_out->set(array, red_array);
-
-    if (out_valid)
-        arrays_out->set(valid, red_valid);
 
     return 0;
 #else
     (void)device_id;
     (void)array;
-    (void)arrays_out;
     (void)arrays_in;
 
     TECA_ERROR("CUDA support is not available")
@@ -1952,112 +1698,107 @@ int teca_cpp_temporal_reduction::internals_t::minimum_operator::update_gpu(
 int teca_cpp_temporal_reduction::internals_t::maximum_operator::init(
     int device_id,
     const std::string &array,
-    p_teca_array_collection &arrays_out,
+    p_teca_array_collection &arrays_in,
     unsigned long steps_per_request)
 {
 #if !defined(TECA_HAS_CUDA)
     (void)device_id;
 #endif
 
-    p_teca_variant_array out_array = arrays_out->get(array);
-
-    unsigned long n_elem = out_array->size();
-    unsigned long n_elem_per_timestep = n_elem/steps_per_request;
+    const_p_teca_variant_array in_array = arrays_in->get(array);
 
     // the valid value masks
     std::string valid = array + "_valid";
-    p_teca_variant_array out_valid = arrays_out->get(valid);
+    const_p_teca_variant_array in_valid = arrays_in->get(valid);
 
-    p_teca_variant_array red_array;
-    p_teca_variant_array red_valid;
+    unsigned long n_elem = in_array->size();
+    unsigned long n_elem_per_timestep = n_elem/steps_per_request;
 
-    VARIANT_ARRAY_DISPATCH(out_array.get(),
+    VARIANT_ARRAY_DISPATCH(in_array.get(),
 
 #if defined(TECA_HAS_CUDA)
         if (device_id >= 0)
         {
-            auto [res_array, p_res_array] = ::New<TT>(n_elem_per_timestep,
+            auto [sp_in_array, p_in_array] = get_cuda_accessible<CTT>(in_array);
+
+            this->result = teca_variant_array_impl<NT>::New(n_elem_per_timestep,
                                                       allocator::cuda_async);
-            auto [sp_out_array, p_out_array] = get_cuda_accessible<CTT>(out_array);
+            auto [p_res_array] = data<TT>(this->result);
 
-            if (out_valid)
+            if (in_valid)
             {
-                auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem_per_timestep,
-                                                               allocator::cuda_async);
-                auto [sp_out_valid, p_out_valid] = get_cuda_accessible<CTT_MASK>(out_valid);
+                auto [sp_in_valid, p_in_valid] = get_cuda_accessible<CTT_MASK>(in_valid);
 
-                cuda_gpu::maximum_initialize(device_id, p_out_array, p_out_valid,
+                this->valid = teca_variant_array_impl<NT_MASK>::New(n_elem_per_timestep,
+                                                               allocator::cuda_async);
+                auto [p_res_valid] = data<TT_MASK>(this->valid);
+
+                cuda_gpu::maximum_initialize(device_id, p_in_array, p_in_valid,
                                            p_res_array, p_res_valid,
                                            n_elem_per_timestep, steps_per_request);
-                red_valid = res_valid;
             }
             else
             {
-                cuda_gpu::maximum_initialize(device_id, p_out_array, nullptr,
+                cuda_gpu::maximum_initialize(device_id, p_in_array, nullptr,
                                            p_res_array, nullptr,
                                            n_elem_per_timestep, steps_per_request);
             }
-            red_array = res_array;
         }
         else
         {
 #endif
             // CPU
-            auto [res_array, p_res_array] = ::New<TT>(n_elem_per_timestep);
-            auto [sp_out_array, p_out_array] = get_host_accessible<CTT>(out_array);
+            auto [sp_in_array, p_in_array] = get_host_accessible<CTT>(in_array);
 
-            if (out_valid)
+            this->result = teca_variant_array_impl<NT>::New(n_elem_per_timestep);
+            auto [p_res_array] = data<TT>(this->result);
+
+            if (in_valid)
             {
-                auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem_per_timestep);
-                auto [sp_out_valid, p_out_valid] = get_host_accessible<CTT_MASK>(out_valid);
+                auto [sp_in_valid, p_in_valid] = get_host_accessible<CTT_MASK>(in_valid);
+
+                this->valid = teca_variant_array_impl<NT_MASK>::New(n_elem_per_timestep);
+                auto [p_res_valid] = data<TT_MASK>(this->valid);
 
                 for (unsigned int i = 0; i < n_elem_per_timestep; ++i)
                 {
-                    p_res_array[i] = p_out_array[i];
-                    p_res_valid[i] = (!p_out_valid[i]) ? NT_MASK(0) : NT_MASK(1);
+                    p_res_array[i] = p_in_array[i];
+                    p_res_valid[i] = (!p_in_valid[i]) ? NT_MASK(0) : NT_MASK(1);
                     for (unsigned int j = 1; j < steps_per_request; ++j)
                     {
-                        if (p_out_valid[i+j*n_elem_per_timestep] &&
+                        if (p_in_valid[i+j*n_elem_per_timestep] &&
                             p_res_valid[i])
                         {
                             p_res_array[i] =
-                              (p_out_array[i+j*n_elem_per_timestep] > p_res_array[i]) ?
-                               p_out_array[i+j*n_elem_per_timestep] : p_res_array[i];
+                              (p_in_array[i+j*n_elem_per_timestep] > p_res_array[i]) ?
+                               p_in_array[i+j*n_elem_per_timestep] : p_res_array[i];
                         }
-                        else if (p_out_valid[i+j*n_elem_per_timestep] &&
+                        else if (p_in_valid[i+j*n_elem_per_timestep] &&
                                 !p_res_valid[i])
                         {
-                            p_res_array[i] = p_out_array[i+j*n_elem_per_timestep];
+                            p_res_array[i] = p_in_array[i+j*n_elem_per_timestep];
                             p_res_valid[i] = NT_MASK(1);
                         }
                     }
                 }
-                red_valid = res_valid;
             }
             else
             {
                 for (unsigned int i = 0; i < n_elem_per_timestep; ++i)
                 {
-                    p_res_array[i] = p_out_array[i];
+                    p_res_array[i] = p_in_array[i];
                     for (unsigned int j = 1; j < steps_per_request; ++j)
                     {
                         p_res_array[i] =
-                          (p_out_array[i+j*n_elem_per_timestep] > p_res_array[i]) ?
-                           p_out_array[i+j*n_elem_per_timestep] : p_res_array[i];
+                          (p_in_array[i+j*n_elem_per_timestep] > p_res_array[i]) ?
+                           p_in_array[i+j*n_elem_per_timestep] : p_res_array[i];
                     }
                 }
             }
-            red_array = res_array;
 #if defined(TECA_HAS_CUDA)
         }
 #endif
     )
-
-    // update the output
-    arrays_out->set(array, red_array);
-
-    if (out_valid)
-        arrays_out->set(valid, red_valid);
 
     return 0;
 }
@@ -2066,7 +1807,6 @@ int teca_cpp_temporal_reduction::internals_t::maximum_operator::init(
 int teca_cpp_temporal_reduction::internals_t::maximum_operator::update_cpu(
     int device_id,
     const std::string &array,
-    p_teca_array_collection &arrays_out,
     p_teca_array_collection &arrays_in,
     unsigned long steps_per_request)
 {
@@ -2074,37 +1814,27 @@ int teca_cpp_temporal_reduction::internals_t::maximum_operator::update_cpu(
 
     // arrays
     const_p_teca_variant_array in_array = arrays_in->get(array);
-    const_p_teca_variant_array out_array = arrays_out->get(array);
-
-    unsigned long n_elem = out_array->size();
 
     // the valid value masks
     // returns a nullptr if the array is not in the collection
     std::string valid = array + "_valid";
     const_p_teca_variant_array in_valid = arrays_in->get(valid);
-    const_p_teca_variant_array out_valid = arrays_out->get(valid);
 
-    // partial update of the reduction
-    p_teca_variant_array red_array;
-    p_teca_variant_array red_valid;
+    unsigned long n_elem = this->result->size();
 
-    VARIANT_ARRAY_DISPATCH(out_array.get(),
+    VARIANT_ARRAY_DISPATCH(in_array.get(),
 
-        auto [res_array, p_res_array] = ::New<TT>(n_elem);
         auto [sp_in_array, p_in_array] = get_host_accessible<CTT>(in_array);
-        auto [p_out_array] = data<CTT>(out_array);
+        auto [p_res_array] = data<TT>(this->result);
 
-        if (out_valid)
+        if (this->valid)
         {
-            // update, respect missing values
-            auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem);
+            // update, respecting missing data
             auto [sp_in_valid, p_in_valid] = get_host_accessible<CTT_MASK>(in_valid);
-            auto [sp_out_valid, p_out_valid] = get_host_accessible<CTT_MASK>(out_valid);
+            auto [p_res_valid] = data<TT_MASK>(this->valid);
 
             for (unsigned int i = 0; i < n_elem; ++i)
             {
-                p_res_array[i] = p_out_array[i];
-                p_res_valid[i] = (!p_out_valid[i]) ? NT_MASK(0) : NT_MASK(1);
                 for (unsigned int j = 0; j < steps_per_request; ++j)
                 {
                     if (p_in_valid[i+j*n_elem] && p_res_valid[i])
@@ -2119,14 +1849,12 @@ int teca_cpp_temporal_reduction::internals_t::maximum_operator::update_cpu(
                     }
                 }
             }
-            red_valid = res_valid;
         }
         else
         {
             // update, no missing values
             for (unsigned int i = 0; i < n_elem; ++i)
             {
-                p_res_array[i] = p_out_array[i];
                 for (unsigned int j = 0; j < steps_per_request; ++j)
                 {
                     p_res_array[i] = p_in_array[i+j*n_elem] > p_res_array[i] ?
@@ -2134,14 +1862,7 @@ int teca_cpp_temporal_reduction::internals_t::maximum_operator::update_cpu(
                 }
             }
         }
-        red_array = res_array;
     )
-
-    // update the output
-    arrays_out->set(array, red_array);
-
-    if (out_valid)
-        arrays_out->set(valid, red_valid);
 
     return 0;
 }
@@ -2150,67 +1871,46 @@ int teca_cpp_temporal_reduction::internals_t::maximum_operator::update_cpu(
 int teca_cpp_temporal_reduction::internals_t::maximum_operator::update_gpu(
     int device_id,
     const std::string &array,
-    p_teca_array_collection &arrays_out,
     p_teca_array_collection &arrays_in,
     unsigned long steps_per_request)
 {
 #if defined(TECA_HAS_CUDA)
     // arrays
     const_p_teca_variant_array in_array = arrays_in->get(array);
-    const_p_teca_variant_array out_array = arrays_out->get(array);
-
-    unsigned long n_elem = out_array->size();
 
     // the valid value masks
     // returns a nullptr if the array is not in the collection
     std::string valid = array + "_valid";
     const_p_teca_variant_array in_valid = arrays_in->get(valid);
-    const_p_teca_variant_array out_valid = arrays_out->get(valid);
 
-    // partial update of the reduction
-    p_teca_variant_array red_array;
-    p_teca_variant_array red_valid;
+    unsigned long n_elem = this->result->size();
 
-    VARIANT_ARRAY_DISPATCH(out_array.get(),
+    VARIANT_ARRAY_DISPATCH(in_array.get(),
 
-        auto [res_array, p_res_array] = ::New<TT>(n_elem, allocator::cuda_async);
         auto [sp_in_array, p_in_array] = get_cuda_accessible<CTT>(in_array);
-        auto [p_out_array] = data<CTT>(out_array);
+        auto [p_res_array] = data<TT>(this->result);
 
-        if (out_valid)
+        if (this->valid)
         {
-            // update, respect missing values
-           auto [res_valid, p_res_valid] = ::New<TT_MASK>(n_elem, allocator::cuda_async);
-           auto [sp_in_valid, p_in_valid] = get_cuda_accessible<CTT_MASK>(in_valid);
-           auto [sp_out_valid, p_out_valid] = get_cuda_accessible<CTT_MASK>(out_valid);
+            // update while respecting invalid/missing data
+            auto [sp_in_valid, p_in_valid] = get_cuda_accessible<CTT_MASK>(in_valid);
+            auto [p_res_valid] = data<TT_MASK>(this->valid);
 
-            cuda_gpu::maximum(device_id, p_out_array, p_out_valid,
-                p_in_array, p_in_valid, p_res_array, p_res_valid,
-                n_elem, steps_per_request);
+            cuda_gpu::maximum(device_id, p_in_array, p_in_valid,
+                p_res_array, p_res_valid, n_elem, steps_per_request);
 
-            red_valid = res_valid;
         }
         else
         {
-            // update, no missing values
-            cuda_gpu::maximum(device_id, p_out_array, nullptr,
-                p_in_array, nullptr, p_res_array, nullptr,
-                n_elem, steps_per_request);
+            cuda_gpu::maximum(device_id, p_in_array, nullptr,
+                p_res_array, nullptr, n_elem, steps_per_request);
         }
-        red_array = res_array;
     )
-
-    // update the output
-    arrays_out->set(array, red_array);
-
-    if (out_valid)
-        arrays_out->set(valid, red_valid);
 
     return 0;
 #else
     (void)device_id;
     (void)array;
-    (void)arrays_out;
     (void)arrays_in;
 
     TECA_ERROR("CUDA support is not available")
@@ -2228,44 +1928,43 @@ int teca_cpp_temporal_reduction::internals_t::reduction_operator::finalize(
     (void)device_id;
 #endif
 
-    p_teca_variant_array out_array = arrays_out->get(array);
+    unsigned long n_elem = this->result->size();
 
-    // the valid value masks
-    std::string valid = array + "_valid";
-    p_teca_variant_array out_valid = arrays_out->get(valid);
-
-    unsigned long n_elem = out_array->size();
-
-    if (out_valid)
+    if (this->valid)
     {
-        VARIANT_ARRAY_DISPATCH(out_array.get(),
+        VARIANT_ARRAY_DISPATCH(this->result.get(),
 
             NT fill_value = NT(this->fill_value);
 
-            auto [p_out_array] = data<TT>(out_array);
+            auto [p_res_array] = data<TT>(this->result);
 
 #if defined(TECA_HAS_CUDA)
             if (device_id >= 0)
             {
-                auto [sp_out_valid, p_out_valid] = get_cuda_accessible<CTT_MASK>(out_valid);
-                cuda_gpu::finalize(device_id, p_out_array, p_out_valid,
+                auto [p_res_valid] = data<TT_MASK>(this->valid);
+
+                cuda_gpu::finalize(device_id, p_res_array, p_res_valid,
                                    fill_value, n_elem);
+
+                auto [sp_res_array, p_res_array] = get_host_accessible<CTT>(this->result);
             }
             else
             {
 #endif
-                auto [sp_out_valid, p_out_valid] = get_host_accessible<CTT_MASK>(out_valid);
+                auto [p_res_valid] = data<TT_MASK>(this->valid);
+
                 for (unsigned int i = 0; i < n_elem; ++i)
                 {
-                    p_out_array[i] = p_out_valid[i] ? p_out_array[i] : fill_value;
+                    p_res_array[i] = p_res_valid[i] ? p_res_array[i] : fill_value;
                 }
 #if defined(TECA_HAS_CUDA)
             }
 #endif
-        // update the output
-        arrays_out->set(array, out_array);
         )
     }
+
+    // update the output
+    arrays_out->set(array, this->result);
 
     return 0;
 }
@@ -2280,79 +1979,61 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::finalize(
     (void)device_id;
 #endif
 
-    p_teca_variant_array out_array = arrays_out->get(array);
+    unsigned long n_elem = this->result->size();
 
-    // get the valid value masks
-    std::string valid = array + "_valid";
-    p_teca_variant_array out_valid = arrays_out->get(valid);
-
-    // get the count, always have it, but it will be per point when dealing
-    // with valid value masks
-    p_teca_variant_array count = arrays_out->get(array + "_count");
-
-    // finalize the reduciton by scaling by 1 / count
-                // finish the average. We keep track of the invalid
-                // values (these will have a zero count) set them to
-                // the fill value
-    unsigned long n_elem = out_array->size();
-
-    p_teca_variant_array red_array;
-
-    VARIANT_ARRAY_DISPATCH(out_array.get(),
+    VARIANT_ARRAY_DISPATCH(this->result.get(),
 
         NT fill_value = NT(this->fill_value);
 
-        auto [p_out_array] = data<TT>(out_array);
-        auto [p_count] = data<TT>(count);
+        auto [p_res_array] = data<TT>(this->result);
+        auto [p_res_count] = data<TT>(this->count);
 
 #if defined(TECA_HAS_CUDA)
         if (device_id >= 0)
         {
             // GPU
-            auto [res_array, p_res_array] = ::New<TT>(n_elem, allocator::cuda_async);
-            if (out_valid)
+            if (this->valid)
             {
-                auto [sp_out_valid, p_out_valid] = get_cuda_accessible<CTT_MASK>(out_valid);
+                auto [p_res_valid] = data<TT_MASK>(this->valid);
 
-                cuda_gpu::average_finalize(device_id, p_out_array, p_out_valid,
-                                           p_res_array, p_count, fill_value, n_elem);
+                cuda_gpu::average_finalize(device_id, p_res_array, p_res_valid,
+                                           p_res_count, fill_value, n_elem);
             }
             else
             {
-                cuda_gpu::average_finalize(device_id, p_out_array, nullptr,
-                                           p_res_array, p_count, fill_value, n_elem);
+                cuda_gpu::average_finalize(device_id, p_res_array, nullptr,
+                                           p_res_count, fill_value, n_elem);
             }
-            red_array = res_array;
+            auto [sp_res_array, p_res_array] = get_host_accessible<CTT>(this->result);
         }
         else
         {
 #endif
             // CPU
-            auto [res_array, p_res_array] = ::New<TT>(n_elem);
-            if (out_valid)
+            if (this->valid)
             {
-                auto [sp_out_valid, p_out_valid] = get_host_accessible<CTT_MASK>(out_valid);
+                auto [p_res_valid] = data<TT_MASK>(this->valid);
+
                 for (unsigned int i = 0; i < n_elem; ++i)
                 {
-                    p_res_array[i] = (!p_out_valid[i]) ?
-                                      fill_value : p_out_array[i]/p_count[i];
+                    p_res_array[i] = (!p_res_valid[i]) ?
+                                      fill_value : p_res_array[i]/p_res_count[i];
                 }
             }
             else
             {
                 for (unsigned int i = 0; i < n_elem; ++i)
                 {
-                    p_res_array[i] = p_out_array[i]/p_count[0];
+                    p_res_array[i] = p_res_array[i]/p_res_count[0];
                 }
             }
-            red_array = res_array;
 #if defined(TECA_HAS_CUDA)
         }
 #endif
     )
 
     // update the output
-    arrays_out->set(array, red_array);
+    arrays_out->set(array, this->result);
 
     return 0;
 }
@@ -2943,22 +2624,13 @@ const_p_teca_dataset teca_cpp_temporal_reduction::execute(
     // intermediate result.
 
     // get the last mesh, when streaming the will hold the previous results.
-    p_teca_cartesian_mesh mesh_in =
+    p_teca_cartesian_mesh mesh =
         std::dynamic_pointer_cast<teca_cartesian_mesh>(
             std::const_pointer_cast<teca_dataset>(data_in[n_data-1]));
-
-    p_teca_array_collection arrays_in;
-
-    // make a shallow copy to hold the results of this pass
-    p_teca_cartesian_mesh mesh_out = teca_cartesian_mesh::New();
-
-    mesh_out->shallow_copy(
-      std::const_pointer_cast<teca_cartesian_mesh>(mesh_in));
-
-    p_teca_array_collection arrays_out = mesh_out->get_point_arrays();
+    p_teca_array_collection arrays_in = mesh->get_point_arrays();
 
     unsigned long t_ext[2];
-    mesh_out->get_temporal_extent(t_ext);
+    mesh->get_temporal_extent(t_ext);
     unsigned long steps_per_request = t_ext[1] - t_ext[0] + 1;
 
     size_t n_array = this->point_arrays.size();
@@ -2967,7 +2639,11 @@ const_p_teca_dataset teca_cpp_temporal_reduction::execute(
     {
         const std::string &array = this->point_arrays[i];
         auto &op = this->internals->get_operation(array);
-        op->init(device_id, array, arrays_out, steps_per_request);
+
+        if (op->result == nullptr)
+        {
+           op->init(device_id, array, arrays_in, steps_per_request);
+        }
     }
 
     // Handle the case where the number of inputs < 2. Another intended private
@@ -2978,11 +2654,12 @@ const_p_teca_dataset teca_cpp_temporal_reduction::execute(
     // output is invalid and should not be used.
     if (n_data < 2 && steps_per_request == 1)
     {
-        arrays_in = mesh_in->get_point_arrays();
+        arrays_in = mesh->get_point_arrays();
 
         for (size_t j = 0; j < n_array; ++j)
         {
             const std::string &array = this->point_arrays[j];
+            auto &op = this->internals->get_operation(array);
 
             // get the input array
             const_p_teca_variant_array in_array = arrays_in->get(array);
@@ -2991,14 +2668,10 @@ const_p_teca_dataset teca_cpp_temporal_reduction::execute(
             VARIANT_ARRAY_DISPATCH(in_array.get(),
 
                 // this output is invalid so mark all points with the _FillValue
-                /*p_teca_variant_array_impl<NT> out_array =
-                    teca_variant_array_impl<NT>::New(n_elem, NT(this->fill_value), alloc);
-                arrays_out->set(array, out_array);*/
+                // op->result =
+                //    teca_variant_array_impl<NT>::New(n_elem, NT(this->fill_value), alloc);
 
-                p_teca_variant_array_impl<NT_MASK> out_mask =
-                    teca_variant_array_impl<NT_MASK>::New(n_elem, NT_MASK(0), alloc);
-
-                arrays_out->set(array + "_valid", out_mask);
+                op->valid = teca_variant_array_impl<NT_MASK>::New(n_elem, NT_MASK(0), alloc);
             )
         }
     }
@@ -3006,18 +2679,18 @@ const_p_teca_dataset teca_cpp_temporal_reduction::execute(
     // accumulate incoming values, in reverse order.
     for (long i = n_data - 2; i >= 0; --i)
     {
-        mesh_in = std::dynamic_pointer_cast<teca_cartesian_mesh>(
+        mesh = std::dynamic_pointer_cast<teca_cartesian_mesh>(
           std::const_pointer_cast<teca_dataset>(data_in[i]));
-        arrays_in = mesh_in->get_point_arrays();
+        arrays_in = mesh->get_point_arrays();
 
-        mesh_in->get_temporal_extent(t_ext);
+        mesh->get_temporal_extent(t_ext);
         steps_per_request = t_ext[1] - t_ext[0] + 1;
 
         for (size_t j = 0; j < n_array; ++j)
         {
             const std::string &array = this->point_arrays[j];
 
-            if (!(arrays_in->has(array)) || !(arrays_out->has(array)))
+            if (!(arrays_in->has(array)))
             {
                 TECA_FATAL_ERROR("array \"" << array << "\" not found")
                 return nullptr;
@@ -3028,12 +2701,12 @@ const_p_teca_dataset teca_cpp_temporal_reduction::execute(
 #if defined(TECA_HAS_CUDA)
             if (device_id >= 0)
             {
-                op->update_gpu(device_id, array, arrays_out, arrays_in, steps_per_request);
+                op->update_gpu(device_id, array, arrays_in, steps_per_request);
             }
             else
             {
 #endif
-                op->update_cpu(device_id, array, arrays_out, arrays_in, steps_per_request);
+                op->update_cpu(device_id, array, arrays_in, steps_per_request);
 #if defined(TECA_HAS_CUDA)
             }
 #endif
@@ -3047,13 +2720,13 @@ const_p_teca_dataset teca_cpp_temporal_reduction::execute(
         {
             const std::string &array = this->point_arrays[i];
             auto &op = this->internals->get_operation(array);
-            op->finalize(device_id, array, arrays_out);
+            op->finalize(device_id, array, arrays_in);
         }
 
         // fix time
-        mesh_out->set_time_step(req_id[0]);
-        mesh_out->set_time(this->internals->indices[req_id[0]].time);
+        mesh->set_time_step(req_id[0]);
+        mesh->set_time(this->internals->indices[req_id[0]].time);
     }
 
-    return mesh_out;
+    return mesh;
 }
