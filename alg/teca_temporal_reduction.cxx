@@ -1828,8 +1828,6 @@ int teca_cpp_temporal_reduction::internals_t::reduction_operator::finalize(
 
                 cuda_gpu::finalize(device_id, p_res_array, p_res_valid,
                                    fill_value, n_elem);
-
-                auto [sp_res_array, p_res_array] = get_host_accessible<CTT>(this->result);
             }
             else
             {
