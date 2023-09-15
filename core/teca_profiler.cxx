@@ -238,7 +238,7 @@ int teca_profiler::initialize()
     // look for overrides in the environment
     char *tmp = nullptr;
     if ((tmp = getenv("PROFILER_ENABLE")))
-        impl::logging_enabled = atoi(tmp);
+        impl::logging_enabled = (int)strtol(tmp, NULL, 0);
 
     if ((tmp = getenv("PROFILER_LOG_FILE")))
         impl::timer_log_file = tmp;
