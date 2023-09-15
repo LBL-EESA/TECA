@@ -115,7 +115,7 @@ parser.add_argument('--partition_x', default=False, action='store_true',
 parser.add_argument('--python_version', default=False, action='store_true',
                     help='Use the Python implemetantion instead of the C++ implementation')
 
-parser.add_argument('--number_of_threads', type=int, default=-1,
+parser.add_argument('--n_threads', type=int, default=-1,
                     help='Sets the number of threads per MPI rank when the C++'
                          ' implementation is active. Use -1 for automatic sizing'
                          ' such that each core has a single thread node-wide.')
@@ -150,7 +150,7 @@ spatial_partitions = args.spatial_partitions
 partition_x = 1 if args.partition_x else 0
 verbose = args.verbose
 time_index_file = args.time_index_file
-n_threads = args.number_of_threads
+number_of_threads = args.n_threads
 
 # give each MPI rank a GPU
 if not 'TECA_RANKS_PER_DEVICE' in os.environ:
@@ -231,9 +231,9 @@ else:
         cpp_version = True
         red = teca_cpp_temporal_reduction.New()
         red.set_input_connection(upd.get_output_port())
-        red.set_stream_size(2)
+        red.set_stream_size(1)
         red.set_verbose(verbose)
-        red.set_thread_pool_size(n_threads)
+        red.set_thread_pool_size(number_of_threads)
         if 'steps' in interval:
            red.set_interval('n_steps')
            pos = interval.rfind('_steps')
@@ -260,7 +260,7 @@ else:
 cfw = teca_cf_writer.New()
 cfw.set_input_connection(red.get_output_port())
 cfw.set_verbose(verbose)
-cfw.set_thread_pool_size(1)
+cfw.set_thread_pool_size(number_of_threads if cpp_version else 1)
 cfw.set_file_name(out_files)
 cfw.set_steps_per_file(steps_per_file)
 cfw.set_layout(layout)
@@ -283,7 +283,7 @@ if verbose and rank == 0:
     sys.stderr.write('spatial_partitions=%d\n' % (spatial_partitions))
     sys.stderr.write('partition_x=%d\n' % (partition_x))
     sys.stderr.write('implementation=%s\n' % (red.get_class_name()))
-    sys.stderr.write('number_of_threads=%d\n' % (n_threads))
+    sys.stderr.write('number_of_threads=%d\n' % (number_of_threads))
 
 cfw.update()
 
