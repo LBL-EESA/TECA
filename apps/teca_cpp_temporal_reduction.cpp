@@ -87,7 +87,8 @@ int main(int argc, char **argv)
             " will coordinate the thread pools across ranks such each thread"
             " is bound to a unique physical core.\n")
 
-        ("steps_per_request", value<int>()->default_value(1), "\n\n")
+        ("steps_per_request", value<int>()->default_value(1), "\nSets the number"
+         " of time steps per request\n")
 
         ("spatial_partitioning", "\nActivates the spatial partitioning engine.\n")
 
