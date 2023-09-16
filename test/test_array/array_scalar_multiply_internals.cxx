@@ -12,10 +12,10 @@ int cpu_dispatch(p_array &result, const const_p_array &array_in,
         << "array_scalar_multiply_internals::cpu_dispatch" << std::endl;
 #endif
     // ensure the data is accessible on the CPU
-    std::shared_ptr<const double> parray_in = array_in->get_cpu_accessible();
+    std::shared_ptr<const double> parray_in = array_in->get_host_accessible();
 
     // allocate the result
-    result = array::new_cpu_accessible();
+    result = array::new_host_accessible();
     result->resize(n_vals);
 
     // do the calculation

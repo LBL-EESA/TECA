@@ -115,10 +115,13 @@ parser.add_argument('--partition_x', default=False, action='store_true',
 parser.add_argument('--python_version', default=False, action='store_true',
                     help='Use the Python implemetantion instead of the C++ implementation')
 
-parser.add_argument('--number_of_threads', type=int, default=-1,
+parser.add_argument('--n_threads', type=int, default=-1,
                     help='Sets the number of threads per MPI rank when the C++'
                          ' implementation is active. Use -1 for automatic sizing'
                          ' such that each core has a single thread node-wide.')
+
+parser.add_argument('--steps_per_request', type=int, default=1,
+                    help='Sets the number of time steps per request.')
 
 parser.add_argument('--verbose', type=int, default=0,
                     help='enable verbose mode.')
@@ -136,6 +139,7 @@ steps_per_file = args.steps_per_file
 interval = args.interval
 operator = args.operator
 point_arrays = args.point_arrays
+steps_per_request = args.steps_per_request
 fill_value = args.fill_value
 ignore_fill_value = args.ignore_fill_value
 x_axis_var = args.x_axis_variable
@@ -150,7 +154,7 @@ spatial_partitions = args.spatial_partitions
 partition_x = 1 if args.partition_x else 0
 verbose = args.verbose
 time_index_file = args.time_index_file
-n_threads = args.number_of_threads
+number_of_threads = args.n_threads
 
 # give each MPI rank a GPU
 if not 'TECA_RANKS_PER_DEVICE' in os.environ:
@@ -224,6 +228,7 @@ if loc > 0:
     red.set_point_arrays(point_arrays)
     red.set_percentile(percentile)
     red.set_verbose(verbose)
+    steps_per_request = 1
 else:
     if not args.python_version \
         and operator in ['minimum', 'maximum', 'summation', 'average'] \
@@ -231,6 +236,9 @@ else:
         cpp_version = True
         red = teca_cpp_temporal_reduction.New()
         red.set_input_connection(upd.get_output_port())
+        red.set_stream_size(1)
+        red.set_verbose(verbose)
+        red.set_thread_pool_size(number_of_threads)
         if 'steps' in interval:
            red.set_interval('n_steps')
            pos = interval.rfind('_steps')
@@ -238,13 +246,11 @@ else:
            red.set_number_of_steps(n_steps)
         else:
            red.set_interval(interval)
-        red.set_operator(operator)
+        red.set_operation(operator)
+        red.set_point_arrays(point_arrays)
+        red.set_steps_per_request(steps_per_request)
         if fill_value is not None:
             red.set_fill_value(fill_value)
-        red.set_point_arrays(point_arrays)
-        red.set_verbose(verbose)
-        red.set_thread_pool_size(n_threads)
-        red.set_stream_size(2)
     else:
         red = teca_temporal_reduction.New()
         red.set_input_connection(upd.get_output_port())
@@ -256,24 +262,26 @@ else:
         red.set_verbose(verbose)
         red.set_thread_pool_size(1)
         red.set_stream_size(2)
+        steps_per_request = 1
 
 cfw = teca_cf_writer.New()
 cfw.set_input_connection(red.get_output_port())
 cfw.set_verbose(verbose)
-cfw.set_thread_pool_size( n_threads if cpp_version else 1 )
-cfw.set_layout(layout)
-cfw.set_steps_per_file(steps_per_file)
+cfw.set_thread_pool_size(number_of_threads if cpp_version else 1)
 cfw.set_file_name(out_files)
+cfw.set_steps_per_file(steps_per_file)
+cfw.set_layout(layout)
 cfw.set_point_arrays(point_arrays)
 cfw.set_index_executive_compatability(1)
-cfw.set_partitioner(partitioner)
 cfw.set_number_of_spatial_partitions(spatial_partitions)
+cfw.set_partitioner(partitioner)
 cfw.set_partition_x(partition_x)
 
 if verbose and rank == 0:
-    sys.stderr.write('running on %d ranks' % (n_ranks))
+    sys.stderr.write('running on %d ranks\n' % (n_ranks))
     sys.stderr.write('file_layout=%s\n'%(layout))
     sys.stderr.write('steps_per_file=%d\n' % (steps_per_file))
+    sys.stderr.write('steps_per_request=%d\n' % (steps_per_request))
     sys.stderr.write('interval=%s\n' % (interval))
     sys.stderr.write('operator=%s\n' % (operator))
     sys.stderr.write('point_arrays=%s\n' % (str(point_arrays)))
@@ -283,7 +291,7 @@ if verbose and rank == 0:
     sys.stderr.write('spatial_partitions=%d\n' % (spatial_partitions))
     sys.stderr.write('partition_x=%d\n' % (partition_x))
     sys.stderr.write('implementation=%s\n' % (red.get_class_name()))
-    sys.stderr.write('number_of_threads=%d\n' % (n_threads))
+    sys.stderr.write('number_of_threads=%d\n' % (number_of_threads))
 
 cfw.update()
 

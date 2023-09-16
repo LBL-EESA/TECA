@@ -5,7 +5,8 @@ then
     echo "usage: test_cpp_temporal_reduction_app.sh [app prefix] " \
          "[data root] [input file] [array name] [interval] " \
          "[operator] [steps per file] [n threads] " \
-         "[spatial partitioning] [mpi exec] [test cores]"
+         "[spatial partitioning] [steps_per_request] " \
+         "[mpi exec] [test cores]"
     exit -1
 fi
 
@@ -27,7 +28,7 @@ steps_per_file=${7}
 n_threads=${8}
 if [[ ${9} -eq 1 ]]
 then
-    if [[ $# -eq 11 ]]
+    if [[ $# -eq 12 ]]
     then
         spatial_partitioning=--spatial_partitioning
     else
@@ -35,10 +36,12 @@ then
     fi
 fi
 
-if [[ $# -eq 11 ]]
+steps_per_request=${10}
+
+if [[ $# -eq 12 ]]
 then
-    mpi_exec=${10}
-    test_cores=${11}
+    mpi_exec=${11}
+    test_cores=${12}
     launcher="${mpi_exec} -n ${test_cores}"
 fi
 
@@ -48,13 +51,13 @@ test_name=test_temporal_reduction
 output_base=${test_name}_${array_name}_${interval}_${operator}
 
 # run the app
-time ${launcher} ${app_prefix}/teca_cpp_temporal_reduction                         \
+time ${launcher} ${app_prefix}/teca_cpp_temporal_reduction                     \
     --input_file "${app_prefix}/../test/ECMWF-IFS-HR-SST-present.mcf"          \
     --interval ${interval} --operator ${operator} --point_arrays ${array_name} \
     --z_axis_variable plev --file_layout yearly                                \
     --steps_per_file ${steps_per_file} --output_file "${output_base}_%t%.nc"   \
     ${spatial_partitioning} ${number_of_steps} --n_threads ${n_threads}        \
-    --verbose 1
+    --verbose 1 --steps_per_request ${steps_per_request}
 
 # don't profile the diff
 unset PROFILER_ENABLE
@@ -76,4 +79,3 @@ else
     # clean up
     rm ${output_base}_*.nc
 fi
-

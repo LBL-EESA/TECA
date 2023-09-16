@@ -280,7 +280,7 @@ const_p_teca_dataset teca_apply_binary_mask::execute(
     NESTED_VARIANT_ARRAY_DISPATCH(
         mask_array.get(), _MASK,
 
-        auto [sp_mask, p_mask] = get_cpu_accessible<CTT_MASK>(mask_array);
+        auto [sp_mask, p_mask] = get_host_accessible<CTT_MASK>(mask_array);
 
         // loop over input variables
         for (auto& input_var : masked_variables)
@@ -305,7 +305,7 @@ const_p_teca_dataset teca_apply_binary_mask::execute(
             NESTED_VARIANT_ARRAY_DISPATCH(
                 output_array.get(), _VAR,
 
-                auto [sp_in, p_in] = get_cpu_accessible<CTT_VAR>(input_array);
+                auto [sp_in, p_in] = get_host_accessible<CTT_VAR>(input_array);
                 auto [p_out] = data<TT_VAR>(output_array);
 
                 internal::apply_mask(p_out, p_mask, p_in, n);

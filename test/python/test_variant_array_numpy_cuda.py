@@ -20,7 +20,7 @@ stderr.write('varr = %s\n'%(str(varr)))
 stderr.write('TEST: creating a teca_variant_array w. CUDA ... OK!\n\n')
 
 stderr.write('TEST: get a handle to the data ... \n')
-h = varr.get_cpu_accessible()
+h = varr.get_host_accessible()
 stderr.write('TEST: get a handle to the data ... OK!\n\n')
 
 stderr.write('TEST: share the data with Numpy ... \n')

@@ -67,18 +67,21 @@ public:
      *                        ranks running on the same node are taken into
      *                        account, resulting in 1 thread per core node wide.
      *
-     *   @param[in] n_threads_per_device number of threads to assign to each CUDA
-     *                                   device. If 0 no threads will service
-     *                                   CUDA devices, this is CPU only mode.
-     *                                   If -1 the default of 8 threads per
-     *                                   device will be used.
+     *   @param[in] threads_per_device number of threads to assign to each
+     *                                 GPU/device. If 0 only CPUs will be used.
+     *                                 If -1 the default of 8 threads per device
+     *                                 will be used.
+     *
+     *   @param[in] ranks_per_device the number of MPI ranks to allow access to
+     *                               to each device/GPU.
      *
      *   @param[in] bind      bind each thread to a specific core.
      *
      *   @param[in] verbose   print a report of the thread to core bindings
      */
     teca_cuda_thread_pool(MPI_Comm comm, int n_threads,
-        int n_threads_per_device, bool bind, bool verbose);
+        int threads_per_device, int ranks_per_device, bool bind,
+        bool verbose);
 
     // get rid of copy and asignment
     TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_cuda_thread_pool)
@@ -114,7 +117,8 @@ public:
 private:
     /// create n threads for the pool
     void create_threads(MPI_Comm comm, int n_threads,
-        int n_threads_per_device, bool bind, bool verbose);
+        int threads_per_device, int ranks_per_device, bool bind,
+        bool verbose);
 
 private:
     long m_num_futures;
@@ -128,15 +132,18 @@ private:
 // --------------------------------------------------------------------------
 template <typename task_t, typename data_t>
 teca_cuda_thread_pool<task_t, data_t>::teca_cuda_thread_pool(MPI_Comm comm,
-    int n_threads, int n_threads_per_device, bool bind, bool verbose) : m_live(true)
+    int n_threads, int threads_per_device, int ranks_per_device, bool bind,
+    bool verbose) : m_live(true)
 {
-    this->create_threads(comm, n_threads, n_threads_per_device, bind, verbose);
+    this->create_threads(comm, n_threads, threads_per_device,
+                         ranks_per_device, bind, verbose);
 }
 
 // --------------------------------------------------------------------------
 template <typename task_t, typename data_t>
 void teca_cuda_thread_pool<task_t, data_t>::create_threads(MPI_Comm comm,
-    int n_requested, int n_per_device, bool bind, bool verbose)
+    int n_requested, int threads_per_device, int ranks_per_device, bool bind,
+    bool verbose)
 {
     m_num_futures = 0;
 
@@ -146,8 +153,8 @@ void teca_cuda_thread_pool<task_t, data_t>::create_threads(MPI_Comm comm,
     std::deque<int> core_ids;
     std::vector<int> device_ids;
 
-    if (teca_thread_util::thread_parameters(comm, -1,
-        n_requested, n_per_device, bind, verbose, n_threads,
+    if (teca_thread_util::thread_parameters(comm, -1, n_requested,
+        threads_per_device, ranks_per_device, bind, verbose, n_threads,
         core_ids, device_ids))
     {
         TECA_WARNING("Failed to detetermine thread parameters."
@@ -228,7 +235,7 @@ int teca_cuda_thread_pool<task_t, data_t>::wait_some(long n_to_wait,
 
     // gather the requested number of datasets
     size_t thread_valid = 1;
-    while (thread_valid)
+    while (thread_valid && ((data.size() < static_cast<unsigned int>(n_to_wait))))
     {
         {
         thread_valid = 0;
@@ -252,9 +259,12 @@ int teca_cuda_thread_pool<task_t, data_t>::wait_some(long n_to_wait,
         }
         }
 
-        // if we have not accumulated the requested number of datasets
+        // we have the requested number of datasets
+        if (data.size() >= static_cast<unsigned int>(n_to_wait))
+            break;
+
         // wait for the user supplied duration before re-scanning
-        if (thread_valid && (data.size() < static_cast<unsigned int>(n_to_wait)))
+        if (thread_valid)
             std::this_thread::sleep_for(std::chrono::nanoseconds(poll_interval));
     }
 

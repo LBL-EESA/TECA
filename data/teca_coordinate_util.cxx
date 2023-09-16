@@ -60,8 +60,8 @@ bool equal(const const_p_teca_variant_array &array1,
         }
 
         // compare elements
-        auto [spa1, pa1] = get_cpu_accessible<CTT>(array1);
-        auto [spa2, pa2] = get_cpu_accessible<CTT>(array2);
+        auto [spa1, pa1] = get_host_accessible<CTT>(array1);
+        auto [spa2, pa2] = get_host_accessible<CTT>(array2);
 
         std::string diagnostic;
         for (size_t i = 0; i < n_elem; ++i)
@@ -120,8 +120,8 @@ bool equal(const const_p_teca_variant_array &array1,
             return false;
         }
 
-        auto [spa1, pa1] = get_cpu_accessible<CTT>(array1);
-        auto [spa2, pa2] = get_cpu_accessible<CTT>(array2);
+        auto [spa1, pa1] = get_host_accessible<CTT>(array1);
+        auto [spa2, pa2] = get_host_accessible<CTT>(array2);
 
         for (size_t i = 0; i < n_elem; ++i)
         {
@@ -194,7 +194,7 @@ int time_step_of(const const_p_teca_variant_array &time,
     unsigned long last = time->size() - 1;
     VARIANT_ARRAY_DISPATCH_FP_SI(time.get(),
 
-        auto [sp_time, p_time] = get_cpu_accessible<CTT>(time);
+        auto [sp_time, p_time] = get_host_accessible<CTT>(time);
 
         if (clamp && (t <= p_time[0]))
         {
@@ -337,7 +337,7 @@ int bounds_to_extent(const double *bounds,
         unsigned long high_i = nx - 1;
         extent[0] = 0;
         extent[1] = high_i;
-        auto [spx, px] = get_cpu_accessible<CTT>(x);
+        auto [spx, px] = get_host_accessible<CTT>(x);
         NT low_x = static_cast<NT>(bounds[0]);
         NT high_x = static_cast<NT>(bounds[1]);
         bool slice_x = equal(low_x, high_x, eps8);
@@ -346,7 +346,7 @@ int bounds_to_extent(const double *bounds,
         unsigned long high_j = ny - 1;
         extent[2] = 0;
         extent[3] = high_j;
-        auto [spy, py] = get_cpu_accessible<CTT>(y);
+        auto [spy, py] = get_host_accessible<CTT>(y);
         NT low_y = static_cast<NT>(bounds[2]);
         NT high_y = static_cast<NT>(bounds[3]);
         bool slice_y = equal(low_y, high_y, eps8);
@@ -355,7 +355,7 @@ int bounds_to_extent(const double *bounds,
         unsigned long high_k = nz - 1;
         extent[4] = 0;
         extent[5] = high_k;
-        auto [spz, pz] = get_cpu_accessible<CTT>(z);
+        auto [spz, pz] = get_host_accessible<CTT>(z);
         NT low_z = static_cast<NT>(bounds[4]);
         NT high_z = static_cast<NT>(bounds[5]);
         bool slice_z = equal(low_z, high_z, eps8);
@@ -402,7 +402,7 @@ int bounds_to_extent(const double *bounds,
 {
     VARIANT_ARRAY_DISPATCH_FP(x.get(),
         unsigned long nx = x->size();
-        auto [spx, px] = get_cpu_accessible<CTT>(x);
+        auto [spx, px] = get_host_accessible<CTT>(x);
         return bounds_to_extent(bounds, px, nx, extent);
         )
 

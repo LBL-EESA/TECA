@@ -38,7 +38,7 @@ struct function_of_z
     function_of_z(const f_type &a_f, num_t max_z, num_t fill_value) :
         m_max_z(max_z), m_fill_value(fill_value), m_f(a_f)  {}
 
-    p_teca_variant_array operator()(const const_p_teca_variant_array &x,
+    p_teca_variant_array operator()(int, const const_p_teca_variant_array &x,
         const const_p_teca_variant_array &y, const const_p_teca_variant_array &z,
         double t)
     {
@@ -52,7 +52,7 @@ struct function_of_z
         auto [fz, pfz] = ::New<array_t>(nx*ny*nz);
 
         VARIANT_ARRAY_DISPATCH(z.get(),
-            auto [spz, pz] = get_cpu_accessible<CTT>(z);
+            auto [spz, pz] = get_host_accessible<CTT>(z);
             for (size_t k = 0; k < nz; ++k)
             {
                 for (size_t j = 0; j < ny; ++j)

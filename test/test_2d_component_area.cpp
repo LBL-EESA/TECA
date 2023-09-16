@@ -31,7 +31,7 @@ struct tile_labeler
     unsigned long m_nyl;
     int m_consecutive_labels;
 
-    p_teca_variant_array operator()(const const_p_teca_variant_array &x,
+    p_teca_variant_array operator()(int, const const_p_teca_variant_array &x,
         const const_p_teca_variant_array &y, const const_p_teca_variant_array &,
         double)
     {
@@ -52,7 +52,7 @@ struct tile_labeler
          VARIANT_ARRAY_DISPATCH_FP(x.get(),
 
              assert_type<TT>(y);
-             auto [spx, px, spy, py] = get_cpu_accessible<CTT>(x, y);
+             auto [spx, px, spy, py] = get_host_accessible<CTT>(x, y);
 
              for (unsigned long j = 0; j < ny; ++j)
              {

@@ -151,7 +151,7 @@ int main(int argc, char **argv)
     p_teca_cf_writer cf_writer = teca_cf_writer::New();
     cf_writer->get_properties_description("cf_writer", advanced_opt_defs);
     cf_writer->set_layout(teca_cf_writer::monthly);
-    cf_writer->set_threads_per_cuda_device(0); // CPU only
+    cf_writer->set_threads_per_device(0); // CPU only
 
     // Add an executive for the writer
     p_teca_index_executive exec = teca_index_executive::New();

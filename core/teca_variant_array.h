@@ -373,7 +373,7 @@ public:
     virtual unsigned int type_code() const noexcept = 0;
 
     /// @returns true if the contents are accesisble from the CPU
-    virtual int cpu_accessible() const noexcept = 0;
+    virtual int host_accessible() const noexcept = 0;
 
     /// @returns true if the contents are accesisble from CUDA
     virtual int cuda_accessible() const noexcept = 0;

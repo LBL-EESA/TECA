@@ -49,7 +49,7 @@ int deep_copy(vtkRectilinearGrid *output,
     // transfer coordinates
     const_p_teca_variant_array x = input->get_x_coordinates();
     VARIANT_ARRAY_DISPATCH(x.get(),
-        auto [spx, px] = get_cpu_accessible<CTT>(x);
+        auto [spx, px] = get_host_accessible<CTT>(x);
         vtk_tt<NT>::type *a = vtk_tt<NT>::type::New();
         a->SetNumberOfTuples(x->size());
         NT *p_a = a->GetPointer(0);
@@ -60,7 +60,7 @@ int deep_copy(vtkRectilinearGrid *output,
 
     const_p_teca_variant_array y = input->get_y_coordinates();
     VARIANT_ARRAY_DISPATCH(y.get(),
-        auto [spy, py] = get_cpu_accessible<CTT>(y);
+        auto [spy, py] = get_host_accessible<CTT>(y);
         vtk_tt<NT>::type *a = vtk_tt<NT>::type::New();
         a->SetNumberOfTuples(y->size());
         NT *p_a = a->GetPointer(0);
@@ -71,7 +71,7 @@ int deep_copy(vtkRectilinearGrid *output,
 
     const_p_teca_variant_array z = input->get_z_coordinates();
     VARIANT_ARRAY_DISPATCH(z.get(),
-        auto [spz, pz] = get_cpu_accessible<CTT>(z);
+        auto [spz, pz] = get_host_accessible<CTT>(z);
         vtk_tt<NT>::type *a = vtk_tt<NT>::type::New();
         a->SetNumberOfTuples(z->size());
         NT *p_a = a->GetPointer(0);
@@ -89,7 +89,7 @@ int deep_copy(vtkRectilinearGrid *output,
         std::string name = pd->get_name(i);
 
         VARIANT_ARRAY_DISPATCH(a.get(),
-            auto [spa, pa] = get_cpu_accessible<CTT>(a);
+            auto [spa, pa] = get_host_accessible<CTT>(a);
             vtk_tt<NT>::type *b = vtk_tt<NT>::type::New();
             b->SetNumberOfTuples(a->size());
             b->SetName(name.c_str());

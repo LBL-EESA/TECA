@@ -87,6 +87,9 @@ int main(int argc, char **argv)
             " will coordinate the thread pools across ranks such each thread"
             " is bound to a unique physical core.\n")
 
+        ("steps_per_request", value<int>()->default_value(1), "\nSets the number"
+         " of time steps per request\n")
+
         ("spatial_partitioning", "\nActivates the spatial partitioning engine.\n")
 
         ("spatial_partitions", value<int>()->default_value(0), "\nSets the number of spatial partitions."
@@ -192,6 +195,8 @@ int main(int argc, char **argv)
         cf_reader->set_files_regex(opt_vals["input_regex"].as<string>());
         vv_mask->set_input_connection(cf_reader->get_output_port());
     }
+
+
     if (opt_vals["verbose"].as<int>() > 1)
        vv_mask->set_verbose(1);
     else
@@ -217,7 +222,7 @@ int main(int argc, char **argv)
 
     if (!opt_vals["operator"].defaulted())
     {
-        red->set_operator(opt_vals["operator"].as<string>());
+        red->set_operation(opt_vals["operator"].as<string>());
     }
 
     if (opt_vals.count("point_arrays"))
@@ -230,10 +235,15 @@ int main(int argc, char **argv)
         red->set_fill_value(opt_vals["fill_value"].as<double>());
     }
 
+    if (!opt_vals["steps_per_request"].defaulted())
+    {
+        red->set_steps_per_request(opt_vals["steps_per_request"].as<int>());
+    }
+
     cf_writer->set_input_connection(red->get_output_port());
     cf_writer->set_stream_size(2);
     cf_writer->set_verbose(opt_vals["verbose"].as<int>());
-    cf_writer->set_thread_pool_size(opt_vals["n_threads"].as<int>());
+    cf_writer->set_thread_pool_size(1);
 
     if (opt_vals.count("output_file"))
     {

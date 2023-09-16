@@ -169,9 +169,9 @@ class teca_lapse_rate(teca_python_vertical_reduction):
 
         arrays = in_mesh.get_point_arrays()
         if dev < 0:
-            in_t = arrays[self.t_var].get_cpu_accessible()
-            in_z = arrays[self.z_var].get_cpu_accessible()
-            in_zs = arrays[self.zs_var].get_cpu_accessible()
+            in_t = arrays[self.t_var].get_host_accessible()
+            in_z = arrays[self.z_var].get_host_accessible()
+            in_zs = arrays[self.zs_var].get_host_accessible()
         else:
             in_t = arrays[self.t_var].get_cuda_accessible()
             in_z = arrays[self.z_var].get_cuda_accessible()

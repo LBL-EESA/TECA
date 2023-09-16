@@ -1218,13 +1218,13 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
                 # get the data on the device where it will be used
                 if dev < 0:
                     # arrays
-                    in_array = arrays_in[array].get_cpu_accessible()
-                    out_array = arrays_out[array].get_cpu_accessible()
+                    in_array = arrays_in[array].get_host_accessible()
+                    out_array = arrays_out[array].get_host_accessible()
                     # valid value masks
                     if arrays_in.has(valid):
-                        in_valid = arrays_in[valid].get_cpu_accessible()
+                        in_valid = arrays_in[valid].get_host_accessible()
                     if arrays_out.has(valid):
-                        out_valid = arrays_out[valid].get_cpu_accessible()
+                        out_valid = arrays_out[valid].get_host_accessible()
                 else:
                     # arrays
                     in_array = arrays_in[array].get_cuda_accessible()
@@ -1257,9 +1257,9 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
 
                 # get the data on the device where it will be used
                 if dev < 0:
-                    out_array = arrays_out[array].get_cpu_accessible()
+                    out_array = arrays_out[array].get_host_accessible()
                     if arrays_out.has(valid):
-                        out_valid = arrays_out[valid].get_cpu_accessible()
+                        out_valid = arrays_out[valid].get_host_accessible()
                 else:
                     out_array = arrays_out[array].get_cuda_accessible()
                     if arrays_out.has(valid):

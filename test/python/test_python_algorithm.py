@@ -57,8 +57,8 @@ class wind_speed(teca_python_algorithm):
         out_mesh.shallow_copy(in_mesh)
         arrays = out_mesh.get_point_arrays()
         if dev < 0:
-            u = arrays[self.u_var].get_cpu_accessible()
-            v = arrays[self.v_var].get_cpu_accessible()
+            u = arrays[self.u_var].get_host_accessible()
+            v = arrays[self.v_var].get_host_accessible()
         else:
             u = arrays[self.u_var].get_cuda_accessible()
             v = arrays[self.v_var].get_cuda_accessible()
@@ -96,7 +96,7 @@ class max_wind_speed(wind_speed):
         mesh = as_teca_mesh(wdata)
         arrays = mesh.get_point_arrays()
         if dev < 0:
-            ws = arrays['wind_speed'].get_cpu_accessible()
+            ws = arrays['wind_speed'].get_host_accessible()
         else:
             ws = arrays['wind_speed'].get_cuda_accessible()
         max_ws = np.max(ws)

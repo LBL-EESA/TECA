@@ -432,7 +432,7 @@ void enumerate_equivalences(const int *labels, int *label_ids, int nx, int ny,
 template <typename image_t>
 void print(const hamr::buffer<image_t> img, int nx, int ny)
 {
-    auto [spimg, pimg] = hamr::get_cpu_accessible(img);
+    auto [spimg, pimg] = hamr::get_host_accessible(img);
 
     for (int j = 0; j < ny; ++j)
     {
@@ -450,8 +450,8 @@ void print(const hamr::buffer<image_t> img, int nx, int ny)
 template <typename image_t>
 void print(const hamr::buffer<image_t> &img, const hamr::buffer<int> &lab, int nx, int ny)
 {
-    auto [spimg, pimg] = hamr::get_cpu_accessible(img);
-    auto [splab, plab] = hamr::get_cpu_accessible(lab);
+    auto [spimg, pimg] = hamr::get_host_accessible(img);
+    auto [splab, plab] = hamr::get_host_accessible(lab);
 
     for (int j = 0; j < ny; ++j)
     {
@@ -546,7 +546,7 @@ void write_image(const char *fn, const hamr::buffer<T> &image)
 {
     FILE *fh = fopen(fn, "wb");
 
-    auto [spi, pi] = hamr::get_cpu_accessible(image);
+    auto [spi, pi] = hamr::get_host_accessible(image);
     image.synchronize();
 
     fwrite(pi, image.size(), sizeof(T), fh);

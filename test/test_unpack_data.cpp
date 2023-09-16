@@ -52,7 +52,7 @@ struct packed_data
         return atts;
     }
 
-    p_teca_variant_array operator()(
+    p_teca_variant_array operator()(int,
         const const_p_teca_variant_array &x,
         const const_p_teca_variant_array &y,
         const const_p_teca_variant_array &z,
@@ -76,7 +76,7 @@ struct packed_data
 
             auto [sp_x, p_x,
                   sp_y, p_y,
-                  sp_z, p_z] = get_cpu_accessible<CTT>(x, y, z);
+                  sp_z, p_z] = get_host_accessible<CTT>(x, y, z);
 
             for (size_t k = 0; k < nz; ++k)
             {

@@ -482,21 +482,21 @@ const_p_teca_dataset teca_apply_tempest_remap::execute(
                 row.get(), _IDX,
 
                 // get the source and target mesh indices
-                auto [spr, pr] = get_cpu_accessible<CTT_IDX>(row);
-                auto [spc, pc] = get_cpu_accessible<CTT_IDX>(col);
+                auto [spr, pr] = get_host_accessible<CTT_IDX>(row);
+                auto [spc, pc] = get_host_accessible<CTT_IDX>(col);
 
                 NESTED_VARIANT_ARRAY_DISPATCH_FP(
                     weights.get(), _WGT,
 
                     // get the weight matrix
-                    auto [spw, pw] = get_cpu_accessible<CTT_WGT>(weights);
+                    auto [spw, pw] = get_host_accessible<CTT_WGT>(weights);
 
                     NESTED_VARIANT_ARRAY_DISPATCH(
                         src_data.get(), _DATA,
 
                         // get the source and target data
                         auto [ptgt] = data<TT_DATA>(tgt_data);
-                        auto [spsrc, psrc] = get_cpu_accessible<CTT_DATA>(src_data);
+                        auto [spsrc, psrc] = get_host_accessible<CTT_DATA>(src_data);
 
                         if (src_valid)
                         {
@@ -509,7 +509,7 @@ const_p_teca_dataset teca_apply_tempest_remap::execute(
                                 TECA_FATAL_ERROR("Failed to get the _FillValue for \"" << array << "\"")
                                 return nullptr;
                             }
-                            auto [spsv, psrc_valid] = get_cpu_accessible<CTT_MASK>(src_valid);
+                            auto [spsv, psrc_valid] = get_host_accessible<CTT_MASK>(src_valid);
 
                             for (unsigned long q = 0; q < n_weights; ++q)
                                 ptgt[pr[q]] = (psrc_valid[pc[q]] ?
@@ -535,7 +535,7 @@ const_p_teca_dataset teca_apply_tempest_remap::execute(
                 if (!src_valid)
                     tgt_atts.get(this->target_mask_variable, tgt_mask_atts);
 
-                auto [sptgt_valid, ptgt_valid] = get_cpu_accessible<CTT_MASK>(tgt_valid);
+                auto [sptgt_valid, ptgt_valid] = get_host_accessible<CTT_MASK>(tgt_valid);
 
                 NESTED_VARIANT_ARRAY_DISPATCH(
                     tgt_data.get(), _DATA,

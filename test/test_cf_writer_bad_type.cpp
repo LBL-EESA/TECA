@@ -13,9 +13,9 @@ using namespace teca_variant_array_util;
 
 // this function returns a double array initialized with time
 // values.
-p_teca_variant_array generate_mesh_time(const const_p_teca_variant_array &x,
-    const const_p_teca_variant_array &y, const const_p_teca_variant_array &z,
-    double t)
+p_teca_variant_array generate_mesh_time(int,
+    const const_p_teca_variant_array &x, const const_p_teca_variant_array &y,
+    const const_p_teca_variant_array &z, double t)
 {
     size_t nx = x->size();
     size_t ny = y->size();

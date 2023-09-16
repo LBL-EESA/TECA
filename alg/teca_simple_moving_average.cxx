@@ -223,7 +223,7 @@ const_p_teca_dataset teca_simple_moving_average::execute(
 
             VARIANT_ARRAY_DISPATCH(in_a.get(),
 
-                auto [sp_in_a, p_in_a] = get_cpu_accessible<CTT>(in_a);
+                auto [sp_in_a, p_in_a] = get_host_accessible<CTT>(in_a);
                 auto [p_out_a] = data<TT>(out_a);
 
                 for (size_t q = 0; q < n_elem; ++q)

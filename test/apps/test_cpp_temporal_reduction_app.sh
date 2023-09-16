@@ -5,7 +5,7 @@ then
     echo "usage: test_cpp_temporal_reduction_app.sh [app prefix] " \
          "[data root] [input regex] [array name] [interval] " \
          "[operator] [steps per file] [n threads] [spatial partitioning] " \
-         "[mpi exec] [test cores] $#"
+         "[steps per request] [mpi exec] [test cores] $#"
     exit -1
 fi
 
@@ -27,7 +27,7 @@ steps_per_file=${7}
 n_threads=${8}
 if [[ ${9} -eq 1 ]]
 then
-    if [[ $# -eq 11 ]]
+    if [[ $# -eq 12 ]]
     then
         # with MPI let the partitioner decide
         spatial_partitioning=--spatial_partitioning
@@ -37,11 +37,13 @@ then
     fi
 fi
 
+steps_per_request=${10}
+
 # use mpi for this run
-if [[ $# -eq 11 ]]
+if [[ $# -eq 12 ]]
 then
-    mpi_exec=${10}
-    test_cores=${11}
+    mpi_exec=${11}
+    test_cores=${12}
     launcher="${mpi_exec} -n ${test_cores}"
 fi
 
@@ -51,12 +53,13 @@ test_name=test_temporal_reduction
 output_base=${test_name}_${array_name}_${interval}_${operator}
 
 # run the app
-time ${launcher} ${app_prefix}/teca_cpp_temporal_reduction                  \
+time ${launcher} ${app_prefix}/teca_cpp_temporal_reduction              \
     --input_regex "${data_root}/${input_regex}" --interval ${interval}  \
     --operator ${operator} --point_arrays ${array_name}                 \
     --file_layout yearly --steps_per_file ${steps_per_file}             \
     --output_file "${output_base}_%t%.nc" --n_threads ${n_threads}      \
-    ${spatial_partitioning} --verbose 1 ${number_of_steps}
+    ${spatial_partitioning} --verbose 1 ${number_of_steps}              \
+    --steps_per_request ${steps_per_request}
 
 # don't profile the diff
 unset PROFILER_ENABLE

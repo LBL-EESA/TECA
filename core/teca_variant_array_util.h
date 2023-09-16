@@ -68,12 +68,12 @@ void assert_type(const const_p_teca_variant_array &va, PP &&... args)
 
 /// terminates recursion
 template <typename TT>
-auto get_cpu_accessible()
+auto get_host_accessible()
 {
     return std::make_tuple();
 }
 
-/** Calls teca_varaint_array_impl<NT>::get_cpu_accessible on a number of
+/** Calls teca_varaint_array_impl<NT>::get_host_accessible on a number of
  * p_teca_variant_array instances. The instances are first static_cast to
  * teca_variant_array_impl<NT>*. One should only use this method when one is
  * certain that this static_cast is appropriate. See va_assert_type for one
@@ -87,15 +87,15 @@ auto get_cpu_accessible()
  *          p_teca_variant_array passed in.
  */
 template <typename TT, typename... PP>
-auto get_cpu_accessible(const std::shared_ptr<const TT> &va, PP &&... args)
+auto get_host_accessible(const std::shared_ptr<const TT> &va, PP &&... args)
 {
     auto tva = static_cast<const TT*>(va.get());
-    auto spva = tva->get_cpu_accessible();
+    auto spva = tva->get_host_accessible();
     return std::tuple_cat(std::make_tuple
-        (spva, spva.get()), get_cpu_accessible<TT>(args...));
+        (spva, spva.get()), get_host_accessible<TT>(args...));
 }
 
-/** Calls teca_varaint_array_impl<NT>::get_cpu_accessible on a number of
+/** Calls teca_varaint_array_impl<NT>::get_host_accessible on a number of
  * p_teca_variant_array instances. The instances are first static_cast to
  * teca_variant_array_impl<NT>*. One should only use this method when one is
  * certain that this static_cast is appropriate. See va_assert_type for one
@@ -109,15 +109,15 @@ auto get_cpu_accessible(const std::shared_ptr<const TT> &va, PP &&... args)
  *          p_teca_variant_array passed in.
  */
 template <typename TT, typename... V>
-auto get_cpu_accessible(const std::shared_ptr<TT> &va, V &&... args)
+auto get_host_accessible(const std::shared_ptr<TT> &va, V &&... args)
 {
     auto tva = static_cast<TT*>(va.get());
-    auto spva = tva->get_cpu_accessible();
+    auto spva = tva->get_host_accessible();
     return std::tuple_cat(std::make_tuple
-        (spva, spva.get()), get_cpu_accessible<TT>(args...));
+        (spva, spva.get()), get_host_accessible<TT>(args...));
 }
 
-/** Calls teca_varaint_array_impl<NT>::get_cpu_accessible on a number of
+/** Calls teca_varaint_array_impl<NT>::get_host_accessible on a number of
  * p_teca_variant_array instances. The instances are first static_cast to
  * teca_variant_array_impl<NT>*. One should only use this method when one is
  * certain that this static_cast is appropriate. See va_assert_type for one
@@ -131,15 +131,15 @@ auto get_cpu_accessible(const std::shared_ptr<TT> &va, V &&... args)
  *          p_teca_variant_array passed in.
  */
 template <typename TT, typename... PP>
-auto get_cpu_accessible(const const_p_teca_variant_array &va, PP &&... args)
+auto get_host_accessible(const const_p_teca_variant_array &va, PP &&... args)
 {
     auto tva = static_cast<const TT*>(va.get());
-    auto spva = tva->get_cpu_accessible();
+    auto spva = tva->get_host_accessible();
     return std::tuple_cat(std::make_tuple
-        (spva, spva.get()), get_cpu_accessible<TT>(args...));
+        (spva, spva.get()), get_host_accessible<TT>(args...));
 }
 
-/** Calls teca_varaint_array_impl<NT>::get_cpu_accessible on a number of
+/** Calls teca_varaint_array_impl<NT>::get_host_accessible on a number of
  * p_teca_variant_array instances. The instances are first static_cast to
  * teca_variant_array_impl<NT>*. One should only use this method when one is
  * certain that this static_cast is appropriate. See va_assert_type for one
@@ -153,12 +153,12 @@ auto get_cpu_accessible(const const_p_teca_variant_array &va, PP &&... args)
  *          p_teca_variant_array passed in.
  */
 template <typename TT, typename... V>
-auto get_cpu_accessible(const p_teca_variant_array &va, V &&... args)
+auto get_host_accessible(const p_teca_variant_array &va, V &&... args)
 {
     auto tva = static_cast<TT*>(va.get());
-    auto spva = tva->get_cpu_accessible();
+    auto spva = tva->get_host_accessible();
     return std::tuple_cat(std::make_tuple
-        (spva, spva.get()), get_cpu_accessible<TT>(args...));
+        (spva, spva.get()), get_host_accessible<TT>(args...));
 }
 
 /// terminates recursion

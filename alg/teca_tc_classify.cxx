@@ -234,7 +234,7 @@ const_p_teca_dataset teca_tc_classify::execute(
     std::vector<unsigned long> track_starts(1, 0);
     size_t n_rows = track_ids->size();
 
-    auto [spids, pids] = get_cpu_accessible<teca_int_array>(track_ids);
+    auto [spids, pids] = get_host_accessible<teca_int_array>(track_ids);
 
     for (size_t i = 1; i < n_rows; ++i)
         if (pids[i] != pids[i-1])
@@ -254,7 +254,7 @@ const_p_teca_dataset teca_tc_classify::execute(
     VARIANT_ARRAY_DISPATCH(time.get(),
 
         auto [pstart_time] = data<TT>(start_time);
-        auto [sptime, ptime] = get_cpu_accessible<CTT>(time);
+        auto [sptime, ptime] = get_host_accessible<CTT>(time);
 
         for (size_t i = 0; i < n_tracks; ++i)
             pstart_time[i] = ptime[track_starts[i]];
@@ -267,7 +267,7 @@ const_p_teca_dataset teca_tc_classify::execute(
     VARIANT_ARRAY_DISPATCH_FP(x.get(),
 
         assert_type<CTT>(y);
-        auto [spx, px, spy, py] = get_cpu_accessible<CTT>(x, y);
+        auto [spx, px, spy, py] = get_host_accessible<CTT>(x, y);
         auto [pstart_x, pstart_y] = data<TT>(start_x, start_y);
 
         for (size_t i = 0; i < n_tracks; ++i)
@@ -283,7 +283,7 @@ const_p_teca_dataset teca_tc_classify::execute(
     p_teca_variant_array duration = time->new_instance(n_tracks);
     VARIANT_ARRAY_DISPATCH(time.get(),
 
-        auto [sptime, ptime] = get_cpu_accessible<CTT>(time);
+        auto [sptime, ptime] = get_host_accessible<CTT>(time);
         auto [pduration] = data<TT>(duration);
 
         for (size_t i = 0; i < n_tracks; ++i)
@@ -300,7 +300,7 @@ const_p_teca_dataset teca_tc_classify::execute(
     VARIANT_ARRAY_DISPATCH_FP(x.get(),
 
         assert_type<CTT>(y);
-        auto [spx, px, spy, py] = get_cpu_accessible<CTT>(x, y);
+        auto [spx, px, spy, py] = get_host_accessible<CTT>(x, y);
         auto [plength] = data<TT>(length);
 
         for (size_t i = 0; i < n_tracks; ++i)
@@ -334,7 +334,7 @@ const_p_teca_dataset teca_tc_classify::execute(
         NT *pmax_surface_wind = nullptr;
         std::tie(max_surface_wind, pmax_surface_wind) = ::New<TT>(n_tracks);
 
-        auto [spsw, psurface_wind] = get_cpu_accessible<CTT>(surface_wind);
+        auto [spsw, psurface_wind] = get_host_accessible<CTT>(surface_wind);
 
         for (size_t i = 0; i < n_tracks; ++i)
         {
@@ -365,7 +365,7 @@ const_p_teca_dataset teca_tc_classify::execute(
     VARIANT_ARRAY_DISPATCH_FP(x.get(),
 
         assert_type<CTT>(y);
-        auto [spx, px, spy, py] = get_cpu_accessible<CTT>(x, y);
+        auto [spx, px, spy, py] = get_host_accessible<CTT>(x, y);
 
         auto [pmax_surface_wind_x,
               pmax_surface_wind_y] = data<TT>(max_surface_wind_x,
@@ -383,7 +383,7 @@ const_p_teca_dataset teca_tc_classify::execute(
     p_teca_variant_array max_surface_wind_t = time->new_instance(n_tracks);
     VARIANT_ARRAY_DISPATCH(time.get(),
 
-        auto [sptime, ptime] = get_cpu_accessible<CTT>(time);
+        auto [sptime, ptime] = get_host_accessible<CTT>(time);
         auto [pmax_surface_wind_t] = data<TT>(max_surface_wind_t);
 
         for (size_t i = 0; i < n_tracks; ++i)
@@ -402,7 +402,7 @@ const_p_teca_dataset teca_tc_classify::execute(
     VARIANT_ARRAY_DISPATCH_FP(sea_level_pressure.get(),
 
         auto [spsea_level_pressure,
-              psea_level_pressure] = get_cpu_accessible<CTT>(sea_level_pressure);
+              psea_level_pressure] = get_host_accessible<CTT>(sea_level_pressure);
 
         auto [pmin_sea_level_pressure] = data<TT>(min_sea_level_pressure);
 
@@ -434,7 +434,7 @@ const_p_teca_dataset teca_tc_classify::execute(
     VARIANT_ARRAY_DISPATCH_FP(x.get(),
 
         assert_type<CTT>(y);
-        auto [spx, px, spy, py] = get_cpu_accessible<CTT>(x, y);
+        auto [spx, px, spy, py] = get_host_accessible<CTT>(x, y);
 
         auto [pmin_sea_level_pressure_x,
               pmin_sea_level_pressure_y] = data<TT>(min_sea_level_pressure_x,
@@ -452,7 +452,7 @@ const_p_teca_dataset teca_tc_classify::execute(
     p_teca_variant_array min_sea_level_pressure_t = time->new_instance(n_tracks);
     VARIANT_ARRAY_DISPATCH(time.get(),
 
-        auto [sptime, ptime] = get_cpu_accessible<CTT>(time);
+        auto [sptime, ptime] = get_host_accessible<CTT>(time);
         auto [pmin_sea_level_pressure_t] = data<TT>(min_sea_level_pressure_t);
 
         for (size_t i = 0; i < n_tracks; ++i)
@@ -480,12 +480,12 @@ const_p_teca_dataset teca_tc_classify::execute(
     NESTED_VARIANT_ARRAY_DISPATCH_FP(
         time.get(), _T,
 
-        auto [sptime, ptime] = get_cpu_accessible<CTT_T>(time);
+        auto [sptime, ptime] = get_host_accessible<CTT_T>(time);
 
         NESTED_VARIANT_ARRAY_DISPATCH_FP(
             ACE.get(), _W,
 
-            auto [spsw, psurface_wind] = get_cpu_accessible<CTT_W>(surface_wind);
+            auto [spsw, psurface_wind] = get_host_accessible<CTT_W>(surface_wind);
             auto [pACE] = data<TT_W>(ACE);
 
             for (size_t i = 0; i < n_tracks; ++i)
@@ -525,12 +525,12 @@ const_p_teca_dataset teca_tc_classify::execute(
     NESTED_VARIANT_ARRAY_DISPATCH_FP(
         time.get(), _T,
 
-        auto [sptime, ptime] = get_cpu_accessible<CTT_T>(time);
+        auto [sptime, ptime] = get_host_accessible<CTT_T>(time);
 
         NESTED_VARIANT_ARRAY_DISPATCH_FP(
             PDI.get(), _W,
 
-            auto [spsw, psurface_wind] = get_cpu_accessible<CTT_W>(surface_wind);
+            auto [spsw, psurface_wind] = get_host_accessible<CTT_W>(surface_wind);
             auto [pPDI] = data<TT_W>(PDI);
 
             for (size_t i = 0; i < n_tracks; ++i)
@@ -616,7 +616,7 @@ const_p_teca_dataset teca_tc_classify::execute(
     VARIANT_ARRAY_DISPATCH_FP(x.get(),
 
         assert_type<CTT>(y);
-        auto [spx, px, spy, py] = get_cpu_accessible<CTT>(x, y);
+        auto [spx, px, spy, py] = get_host_accessible<CTT>(x, y);
 
         for (size_t i = 0; i < n_tracks; ++i)
         {

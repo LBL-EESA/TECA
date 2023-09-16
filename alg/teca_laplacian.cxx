@@ -385,12 +385,12 @@ const_p_teca_dataset teca_laplacian::execute(
         lon.get(), 1,
 
         assert_type<CTT1>(lat);
-        auto [splo, p_lon, spla, p_lat] = get_cpu_accessible<CTT1>(lon, lat);
+        auto [splo, p_lon, spla, p_lat] = get_host_accessible<CTT1>(lon, lat);
 
         NESTED_VARIANT_ARRAY_DISPATCH_FP(
             lapl.get(), 2,
 
-            auto [sp_comp_0, p_comp_0] = get_cpu_accessible<CTT2>(comp_0);
+            auto [sp_comp_0, p_comp_0] = get_host_accessible<CTT2>(comp_0);
             auto [p_lapl] = data<TT2>(lapl);
 
             ::laplacian(p_lapl, p_lon, p_lat,

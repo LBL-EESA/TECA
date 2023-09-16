@@ -245,7 +245,7 @@ teca_metadata teca_index_executive::get_next_request()
             std::vector<double> bds;
             req.get("bounds", bds);
 
-            unsigned long index;
+            unsigned long index = 0;
             req.get(this->index_request_key, index);
 
             std::ostringstream oss;
