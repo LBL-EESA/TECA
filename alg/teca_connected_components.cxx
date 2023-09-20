@@ -297,7 +297,7 @@ void label_strip(const image_t *image, int *labels, int nx, int ny, bool periodi
 
 template <typename image_t>
 __global__
-void merge_strip(const image_t *image, int  *labels, int nx, int ny)
+void merge_strip(const image_t *image, int *labels, int nx, int ny)
 {
     // notation: (c,r) c: 1 is the current pixel, 0 is to its left, 2 is to its right.
     //                 r: 1 is the current pixel, 0 is below it
@@ -886,6 +886,7 @@ const_p_teca_dataset teca_connected_components::execute(
         << "teca_connected_components::execute" << std::endl;
 #endif
     (void)port;
+    (void)request;
 
     std::chrono::high_resolution_clock::time_point t0, t1, tcc0, tcc1;
     t0 = std::chrono::high_resolution_clock::now();
