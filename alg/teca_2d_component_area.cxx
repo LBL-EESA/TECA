@@ -35,8 +35,8 @@ namespace cuda_impl
 template<typename coord_t, typename label_t>
 __global__
 void component_area(size_t nx, size_t ny,
-    const coord_t *deg_lon, const coord_t *deg_lat,
-    const label_t *labels, size_t n_labels, double *area)
+    const coord_t * __restrict__ deg_lon, const coord_t * __restrict__ deg_lat,
+    const label_t * __restrict__ labels, size_t n_labels, double *area)
 {
     // initialize shared memory to use for the calculations
     extern __shared__ double sarea[];
@@ -186,8 +186,8 @@ component_t get_max_component_id(unsigned long n, const component_t *labels)
 //
 template<typename coord_t, typename component_t, typename container_t>
 void component_area(unsigned long nlon, unsigned long nlat,
-    const coord_t *deg_lon, const coord_t *deg_lat, const component_t *labels,
-    container_t &area)
+    const coord_t * __restrict__ deg_lon, const coord_t * __restrict__ deg_lat,
+    const component_t * __restrict__ labels, container_t &area)
 {
     // This calculation is sensative to floating point precision and
     // should be done in double precision
