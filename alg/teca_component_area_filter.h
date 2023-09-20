@@ -90,7 +90,7 @@ public:
      * `background_id`. Use -2 to specify no background label.
      */
     ///@{
-    TECA_ALGORITHM_PROPERTY(long, mask_value)
+    TECA_ALGORITHM_PROPERTY(long long, mask_value)
     ///@}
 
     /** @name low_area_threshold
@@ -149,7 +149,7 @@ private:
     std::string number_of_components_key;
     std::string component_ids_key;
     std::string component_area_key;
-    long mask_value;
+    long long mask_value;
     double low_area_threshold;
     double high_area_threshold;
     std::string variable_postfix;
