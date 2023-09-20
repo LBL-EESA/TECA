@@ -142,59 +142,71 @@ int main(int argc, char **argv)
 
     teca_metadata mdo = ds->get_metadata();
 
-    std::vector<int> filtered_label_id;
-
-    std::vector<int> label_id;
-    mdo.get("label_id", label_id);
+    std::vector<int> comp_ids;
+    if (mdo.get("component_ids", comp_ids))
+        std::cerr << "ERROR: failed to get component_ids" << std::endl;
 
     std::vector<double> area;
-    mdo.get("area", area);
+    if (mdo.get("component_area", area))
+        std::cerr << "ERROR: failed to get component areas" << std::endl;
 
-    std::vector<int> label_id_filtered;
-    mdo.get("label_id" + postfix, label_id_filtered);
+    std::vector<int> comp_ids_filtered;
+    if (mdo.get("component_ids" + postfix, comp_ids_filtered))
+        std::cerr << "ERROR: failed to get filtered component_ids" << std::endl;
 
     std::vector<double> area_filtered;
-    mdo.get("area" + postfix, area_filtered);
+    if (mdo.get("component_area" + postfix, area_filtered))
+        std::cerr << "ERROR: failed to get filtered component areas" << std::endl;
 
-    cerr << "component areas" << endl;
-    int n_labels = label_id.size();
+#if defined(TECA_HAS_CUDA)
+    cudaStreamSynchronize(cudaStreamPerThread);
+#endif
+
+
+    // get the output and check against the solution that we computed ourselves
+    // below.
+    std::set<int> base_in;
+    std::set<int> base_out;
+
+    // print the inputs
+    int n_labels = comp_ids.size();
+
+    std::cerr << "component areas" << std::endl;
+    for (int i = 0; i < n_labels; ++i)
+        std::cerr << "label " << comp_ids[i] << " = " << area[i] << std::endl;
+    std::cerr << std::endl;
+
+    // sort the inputs
     for (int i = 0; i < n_labels; ++i)
     {
-        cerr << "label " << label_id[i] << " = " << area[i] << endl;
         if (area[i] < low_threshold_value)
-        {
-            filtered_label_id.push_back(label_id[i]);
-        }
+            base_out.insert(comp_ids[i]);
+        else
+            base_in.insert(comp_ids[i]);
     }
-    cerr << endl;
 
-    cerr << "component areas filtered with low thershold area = " << low_threshold_value;
-    cerr << endl;
-    int n_labels_filtered = label_id_filtered.size();
+    // print the output
+    int n_labels_filtered = comp_ids_filtered.size();
+
+    std::cerr << "component areas filtered with low thershold area = "
+        << low_threshold_value << std::endl;
+
+    for (int i = 0; i < n_labels_filtered; ++i)
+        std::cerr << "label " << comp_ids_filtered[i] << " = " << area_filtered[i] << std::endl;
+    std::cerr << std::endl;
+
+    // sort the output
     for (int i = 0; i < n_labels_filtered; ++i)
     {
-        cerr << "label " << label_id_filtered[i] << " = " << area_filtered[i] << endl;
+        int label = comp_ids_filtered[i];
+        if (!base_in.count(label) || base_out.count(label))
+        {
+            std::cerr << "ERROR: label " << i << " : " << comp_ids_filtered[i]
+                << " was filtered incorrectly" << std::endl;
+        }
     }
 
-    size_t n_filtered = filtered_label_id.size();
-    size_t n_labels_total = va->size();
-
-    NESTED_VARIANT_ARRAY_DISPATCH_I(
-        va.get(), _LABEL,
-        auto [splf, p_labels_filtered] = get_host_accessible<CTT_LABEL>(va);
-        for (size_t i = 0; i < n_filtered; ++i)
-        {
-            NT_LABEL label = filtered_label_id[i];
-            for (size_t j = 0; j < n_labels_total; ++j)
-            {
-                if (label == p_labels_filtered[j])
-                {
-                    TECA_ERROR("Area filter failed!")
-                    return -1;
-                }
-            }
-        }
-        )
+    std::cerr << base_out.size() << " removed. " << base_in.size() << " kept." << std::endl;
 
     return 0;
 }

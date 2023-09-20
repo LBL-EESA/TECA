@@ -189,7 +189,7 @@ void label_strip(const image_t *image, int *labels, int nx, int ny, bool periodi
         int bts_q00 = threadIdx.y ? s_bts_0[threadIdx.y - 1] : 0; // mask below and left
         int bts_q20 = threadIdx.y ? s_bts_2[threadIdx.y - 1] : 0; // mask below and right
 
-        // prevent a race between the above conditional read and theee next loop iteration.
+        // prevent a race between the above conditional read and the next loop iteration.
         // in particular trheadIdx.y == 0 has less work and can continue the loop sooner
         __syncthreads();
 
@@ -297,7 +297,7 @@ void label_strip(const image_t *image, int *labels, int nx, int ny, bool periodi
 
 template <typename image_t>
 __global__
-void merge_strip(const image_t *image, int  *labels, int nx, int ny)
+void merge_strip(const image_t *image, int *labels, int nx, int ny)
 {
     // notation: (c,r) c: 1 is the current pixel, 0 is to its left, 2 is to its right.
     //                 r: 1 is the current pixel, 0 is below it
@@ -456,13 +456,13 @@ void enumerate_equivalences(const int *labels, label_id_t *label_ids,
  * Conference on Design and Architectures for Signal and Image Processing
  * (DASIP), Oct 2018, Porto, Portugal.
  *
- * modifications:
+ * Modifications:
  * 1. handles inputs that are not multiples of CUDA warp size.
  * 2. labels correctly across a periodic boundary in the x-direction
  * 3. generates label ids from 1 to num labels
  * 4. 8-connected labeling is implemented rather than 4-connected
  *
- * notes:
+ * Notes:
  * 1. this is a 2D implementation
  * 2. this is a 32 bit implementation, and can only handle images of total size
  *    2**32-1 Cconversion to 64 bit in order to support larger images would be
@@ -471,6 +471,15 @@ void enumerate_equivalences(const int *labels, label_id_t *label_ids,
  *    64 bit instructions
  * 3. label ids are not deterministic, meaning the same blob can have a different
  *    id in different runs.
+ *
+ * @param[in] strm          the CUDA stream to submit work on
+ * @param[in] ext           the image extents [i0, i1, j0, j1]
+ * @param[in] periodic_in_x a flag the denotes a periodic boundary at the
+ *                          left/right edge of the image
+ * @param[in] segments      the segmented image to label
+ * @param[out] components   the labeled image
+ * @param[out] n_components the number of connected components
+ * @returns 0 if successful
  */
 template <typename segment_t, typename component_t>
 int label(cudaStream_t strm, unsigned long *ext, int periodic_in_x,
@@ -762,35 +771,23 @@ teca_connected_components::~teca_connected_components()
 {}
 
 // --------------------------------------------------------------------------
-std::string teca_connected_components::get_component_variable(
-    const teca_metadata &request)
+void teca_connected_components::get_component_variable(std::string &var) const
 {
-    std::string component_var = this->component_variable;
-    if (component_var.empty())
+    var = this->component_variable;
+    if (var.empty())
     {
-        if (request.has("component_variable"))
-            request.get("component_variable", component_var);
-        else if (this->segmentation_variable.empty())
-            component_var = "components";
-        else
-            component_var = this->segmentation_variable + "_components";
+        var = this->get_segmentation_variable() + "_components";
     }
-    return component_var;
 }
 
-
 // --------------------------------------------------------------------------
-std::string teca_connected_components::get_segmentation_variable(
-    const teca_metadata &request)
+void teca_connected_components::get_segmentation_variable(std::string &var) const
 {
-    std::string segmentation_var = this->segmentation_variable;
-
-    if (segmentation_var.empty() &&
-        request.has("segmentation_variable"))
-            request.get("segmentation_variable",
-                segmentation_var);
-
-    return segmentation_var;
+    var = this->segmentation_variable;
+    if (var.empty())
+    {
+        TECA_FATAL_ERROR("The segmentation_variable was not specified")
+    }
 }
 
 // --------------------------------------------------------------------------
@@ -804,14 +801,11 @@ teca_metadata teca_connected_components::get_output_metadata(
 #endif
     (void) port;
 
-    std::string component_var = this->component_variable;
-    if (component_var.empty())
-    {
-        if (this->segmentation_variable.empty())
-            component_var = "components";
-        else
-            component_var = this->segmentation_variable + "_components";
-    }
+    std::string segmentation_var;
+    std::string component_var;
+
+    this->get_segmentation_variable(segmentation_var);
+    this->get_component_variable(component_var);
 
     // tell the downstream about the variable we produce
     teca_metadata md = input_md[0];
@@ -828,7 +822,7 @@ teca_metadata teca_connected_components::get_output_metadata(
     seg_var_atts.get("mesh_dim_active", dim_active);
 
     std::ostringstream oss;
-    oss << "the connected components of " << this->segmentation_variable;
+    oss << "the connected components of " << segmentation_var;
 
     teca_array_attributes cc_atts(
         teca_variant_array_code<short>::get(),
@@ -858,12 +852,8 @@ std::vector<teca_metadata> teca_connected_components::get_upstream_request(
     std::vector<teca_metadata> up_reqs;
 
     // get the name of the array to request
-    std::string segmentation_var = this->get_segmentation_variable(request);
-    if (segmentation_var.empty())
-    {
-        TECA_FATAL_ERROR("A segmentation variable was not specified")
-        return up_reqs;
-    }
+    std::string segmentation_var;
+    this->get_segmentation_variable(segmentation_var);
 
     // pass the incoming request upstream, and
     // add in what we need
@@ -874,7 +864,8 @@ std::vector<teca_metadata> teca_connected_components::get_upstream_request(
     arrays.insert(segmentation_var);
 
     // remove fromt the request what we generate
-    std::string component_var = this->get_component_variable(request);
+    std::string component_var;
+    this->get_component_variable(component_var);
     arrays.erase(component_var);
 
     req.set("arrays", arrays);
@@ -895,6 +886,7 @@ const_p_teca_dataset teca_connected_components::execute(
         << "teca_connected_components::execute" << std::endl;
 #endif
     (void)port;
+    (void)request;
 
     std::chrono::high_resolution_clock::time_point t0, t1, tcc0, tcc1;
     t0 = std::chrono::high_resolution_clock::now();
@@ -927,12 +919,8 @@ const_p_teca_dataset teca_connected_components::execute(
         std::const_pointer_cast<teca_cartesian_mesh>(in_mesh));
 
     // get the input array
-    std::string segmentation_var = this->get_segmentation_variable(request);
-    if (segmentation_var.empty())
-    {
-        TECA_FATAL_ERROR("A segmentation variable was not specified")
-        return nullptr;
-    }
+    std::string segmentation_var;
+    this->get_segmentation_variable(segmentation_var);
 
     const_p_teca_variant_array input_array
         = out_mesh->get_point_arrays()->get(segmentation_var);
@@ -1039,7 +1027,8 @@ const_p_teca_dataset teca_connected_components::execute(
 #endif
 
     // put components in output
-    std::string component_var = this->get_component_variable(request);
+    std::string component_var;
+    this->get_component_variable(component_var);
     out_mesh->get_point_arrays()->set(component_var, components);
 
     // put the component ids in the metadata

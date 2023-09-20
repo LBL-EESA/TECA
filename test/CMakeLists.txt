@@ -218,25 +218,25 @@ teca_add_test(test_2d_component_area
     SOURCES test_2d_component_area.cpp
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_2d_component_area 720 360 0 8 8 0
-    "test_2d_component_area_%t%.%e%")
+    "test_2d_component_area_%t%.bin")
 
 teca_add_test(test_2d_component_area_contiguous_labels
     COMMAND test_2d_component_area 720 360 0 8 8 1
-    "test_2d_component_area_contiguous_labels_%t%.%e%")
+    "test_2d_component_area_contiguous_labels_%t%.bin")
 
 teca_add_test(test_2d_component_area_negative_area
     COMMAND test_2d_component_area 720 360 1 8 8 1
-    "test_2d_component_area_contiguous_labels_%t%.%e%")
+    "test_2d_component_area_contiguous_labels_%t%.bin")
 
 teca_add_test(test_component_area_filter
     SOURCES test_component_area_filter.cpp
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_component_area_filter 720 360 8 8 10000000 0
-    "test_component_area_filter_%t%.%e%")
+    "test_component_area_filter_%t%.bin")
 
 teca_add_test(test_component_area_filter_contiguous_labels
     COMMAND test_component_area_filter 720 360 8 8 10000000 1
-    "test_component_area_filter_%t%.%e%")
+    "test_component_area_filter_%t%.bin")
 
 teca_add_test(test_cartesian_mesh_regrid
     SOURCES test_cartesian_mesh_regrid.cpp

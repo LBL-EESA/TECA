@@ -17,6 +17,15 @@
 /// A collection of utility classes and functions for integrating with CUDA
 namespace teca_cuda_util
 {
+/** a wrapper for using dynamic sized shared memory in a template function.
+ */
+template <typename T>
+__device__ T* shared_memory_proxy()
+{
+    extern __shared__ unsigned char memory[];
+    return reinterpret_cast<T*>(memory);
+}
+
 /** Query the system for the locally available(on this rank) CUDA device count.
  * this is an MPI collective call which returns a set of device ids that can be
  * used locally. Node wide coordination assures that one can put a limit on the
