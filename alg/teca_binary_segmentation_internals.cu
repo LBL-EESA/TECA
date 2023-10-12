@@ -121,14 +121,11 @@ void percentile_threshold(output_t *output,
     /*std::cerr << q_low << "th percentile is " <<  std::setprecision(10) << low_percentile << std::endl
         << q_high << "th percentile is " <<  std::setprecision(9) << high_percentile << std::endl;*/
 
-    // get a tuple from the current flat index in the output
-    // index space
-    unsigned long i = teca_cuda_util::thread_id_to_array_index();
-
-    if (i >= n_vals)
-        return;
-
-    output[i] = ((input[i] >= low_percentile) && (input[i] <= high_percentile)) ? 1 : 0;
+    for (size_t i = threadIdx.x + blockIdx.x * blockDim.x;
+         i < n_vals; i += blockDim.x * gridDim.x)
+    {
+        output[i] = ((input[i] >= low_percentile) && (input[i] <= high_percentile)) ? 1 : 0;
+    }
 }
 
 
@@ -162,31 +159,36 @@ int percentile_threshold(output_t *dev_output, const input_t *dev_input,
     index_t high_cut_p1 = std::min(high_cut+1, n_vals_m1);
 
     // allocate indices and initialize them for the indirect sort
-    thrust::device_vector<index_t> ids(n_vals);
-    thrust::sequence(ids.begin(), ids.end());
+    hamr::buffer<index_t> ids(allocator::cuda_async, n_vals);
+
+    index_t *p_ids = ids.data();
+    index_t *p_ids_end = p_ids + n_vals;
+
+    auto ep = thrust::cuda::par.on(cudaStreamPerThread);
+
+    thrust::sequence(ep, p_ids, p_ids_end);
 
     // sort the input field
     // use an indirect comparison that leaves the input data unmodified
     indirect_lt<input_t,index_t>  comp(dev_input);
-    thrust::sort(ids.begin(), ids.end(), comp);
 
-    index_t *dev_ids = thrust::raw_pointer_cast(ids.data());
+    thrust::sort(ep, p_ids, p_ids_end, comp);
+    index_t *dev_ids = ids.data();
 
     // determine kernel launch parameters
-    dim3 block_grid;
-    int n_blocks = 0;
-    dim3 thread_grid;
-    if (teca_cuda_util::partition_thread_blocks(0, n_vals,
-        8, block_grid, n_blocks, thread_grid))
-    {
-        TECA_ERROR("Failed to partition thread blocks")
-
-    }
+    auto [blks, thrs] = teca_cuda_util::partition_thread_blocks_1d(256, n_vals);
 
     // segment using the percentiles
-    percentile_threshold<<<block_grid, thread_grid>>>(dev_output, dev_input,
+    percentile_threshold<<<blks, thrs>>>(dev_output, dev_input,
         dev_ids, n_vals, low_cut, low_cut_p1, high_cut, high_cut_p1, t_low,
         t_high);
+
+    cudaError_t ierr = cudaSuccess;
+    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to segment using percentile. " << cudaGetErrorString(ierr))
+        return -1;
+    }
 
     return 0;
 }
