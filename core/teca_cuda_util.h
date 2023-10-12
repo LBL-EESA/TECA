@@ -9,6 +9,7 @@
 
 #include <deque>
 #include <vector>
+#include <tuple>
 
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -223,7 +224,19 @@ int partition_thread_blocks_slab(size_t nxy, size_t nz, size_t stride,
     int warps_per_block, int warp_size, int *block_grid_max, dim3 &block_grid,
     int &n_blocks_xy, int &n_blocks_z,  dim3 &thread_grid);
 
+/** Calculate CUDA launch parameters for an arbitrarily large 1D array.
+ * @param[in] nt the number of threads per block
+ * @param[in] n_vals the size of the 1D array
+ * @returns a tuple containing the number of thread blocks and the number of
+ *          threads per block
+ */
+inline
+auto partition_thread_blocks_1d(unsigned int nt, size_t n_vals)
+{
+    return std::make_tuple((n_vals / nt + (n_vals % nt ? 1 : 0)), nt);
+}
 ///@}
+
 
 
 /// A collection of CUDA streams.
