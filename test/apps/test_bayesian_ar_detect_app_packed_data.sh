@@ -26,7 +26,7 @@ ${launcher} ${app_prefix}/teca_bayesian_ar_detect                               
     --x_axis_variable longitude --y_axis_variable latitude --z_axis_variable level \
     --wind_u uwnd --wind_v vwnd --specific_humidity shum --segment_ar_probability  \
     --compute_ivt --write_ivt --write_ivt_magnitude --steps_per_file 256           \
-    --n_threads ${n_threads} --verbose                                             \
+    --n_threads ${n_threads} --verbose 1                                           \
     --output_file test_bayesian_ar_detect_app_packed_data_output_%t%.nc
 
 do_test=1

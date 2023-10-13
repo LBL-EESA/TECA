@@ -149,7 +149,7 @@ int main(int argc, char **argv)
             " MPI rank. When the default value of -1 is used TECA will coordinate the thread"
             " pools across ranks such each thread is bound to a unique physical core.\n")
 
-        ("verbose", "\nenable extra terminal output\n")
+        ("verbose", value<int>()->default_value(0), "\nenable extra terminal output\n")
         ("help", "\ndisplays documentation for application specific command line options\n")
         ("advanced_help", "\ndisplays documentation for algorithm specific command line options\n")
         ("full_help", "\ndisplays both basic and advanced documentation together\n")
@@ -253,8 +253,6 @@ int main(int argc, char **argv)
     // Add the writer
     p_teca_cf_writer cf_writer = teca_cf_writer::New();
     cf_writer->get_properties_description("cf_writer", advanced_opt_defs);
-    cf_writer->set_verbose(0);
-    cf_writer->set_thread_pool_size(1);
     cf_writer->set_steps_per_file(128);
     cf_writer->set_layout(teca_cf_writer::monthly);
 
@@ -578,17 +576,22 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    if (opt_vals.count("verbose"))
+    if (!opt_vals["verbose"].defaulted())
     {
-        ar_detect->set_verbose(1);
-        cf_writer->set_verbose(1);
-        exec->set_verbose(1);
+        int val = opt_vals["verbose"].as<int>();
+        ar_detect->set_verbose(val);
+        cf_writer->set_verbose(val);
+        exec->set_verbose(val);
     }
 
+    // size the detector thread pool
     if (!opt_vals["n_threads"].defaulted())
         ar_detect->set_thread_pool_size(opt_vals["n_threads"].as<int>());
     else
         ar_detect->set_thread_pool_size(-1);
+
+    // size the writer thread pool
+    cf_writer->set_thread_pool_size(1);
 
     if (cf_writer->get_file_name().empty())
     {

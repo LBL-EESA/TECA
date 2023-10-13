@@ -27,7 +27,7 @@ ${launcher} ${app_prefix}/teca_bayesian_ar_detect                       \
     --segment_ar_probability --write_ivt --write_ivt_magnitude          \
     --output_file test_bayesian_ar_detect_app_mcf_output_%t%.nc         \
     --steps_per_file 365 --first_step 8 --last_step 23                  \
-    --n_threads ${n_threads} --verbose
+    --n_threads ${n_threads} --verbose 1
 
 
 # run the diff
