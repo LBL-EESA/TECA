@@ -21,32 +21,37 @@ env:
     - TECA_PYTHON_VERSION=3
     - TECA_DATA_REVISION=157
   jobs:
-    - DOCKER_IMAGE=ubuntu IMAGE_VERSION=20.04 IMAGE_NAME=ubuntu_20_04 REQUIRE_NETCDF_MPI=TRUE
-    - DOCKER_IMAGE=ubuntu IMAGE_VERSION=20.04 IMAGE_NAME=ubuntu_20_04 REQUIRE_NETCDF_MPI=FALSE
-    - DOCKER_IMAGE=fedora IMAGE_VERSION=32 IMAGE_NAME=fedora_32 REQUIRE_NETCDF_MPI=TRUE
-    - DOCKER_IMAGE=fedora IMAGE_VERSION=32 IMAGE_NAME=fedora_32 REQUIRE_NETCDF_MPI=FALSE
+    - DOCKER_IMAGE=ubuntu IMAGE_VERSION=22.04 IMAGE_NAME=ubuntu_22_04 REQUIRE_NETCDF_MPI=TRUE
+    - DOCKER_IMAGE=ubuntu IMAGE_VERSION=22.04 IMAGE_NAME=ubuntu_22_04 REQUIRE_NETCDF_MPI=FALSE
+    - DOCKER_IMAGE=fedora IMAGE_VERSION=37 IMAGE_NAME=fedora_37 REQUIRE_NETCDF_MPI=TRUE
+    - DOCKER_IMAGE=fedora IMAGE_VERSION=37 IMAGE_NAME=fedora_37 REQUIRE_NETCDF_MPI=FALSE
     - NO_DOCKER=TRUE
 
 jobs:
   exclude:
     - os: osx
-      env: DOCKER_IMAGE=ubuntu IMAGE_VERSION=20.04 IMAGE_NAME=ubuntu_20_04 REQUIRE_NETCDF_MPI=TRUE
+      env: DOCKER_IMAGE=ubuntu IMAGE_VERSION=20.04 IMAGE_NAME=ubuntu_22_04 REQUIRE_NETCDF_MPI=TRUE
     - os: osx
-      env: DOCKER_IMAGE=ubuntu IMAGE_VERSION=20.04 IMAGE_NAME=ubuntu_20_04 REQUIRE_NETCDF_MPI=FALSE
+      env: DOCKER_IMAGE=ubuntu IMAGE_VERSION=20.04 IMAGE_NAME=ubuntu_22_04 REQUIRE_NETCDF_MPI=FALSE
     - os: osx
-      env: DOCKER_IMAGE=fedora IMAGE_VERSION=32 IMAGE_NAME=fedora_32 REQUIRE_NETCDF_MPI=TRUE
+      env: DOCKER_IMAGE=fedora IMAGE_VERSION=32 IMAGE_NAME=fedora_37 REQUIRE_NETCDF_MPI=TRUE
     - os: osx
-      env: DOCKER_IMAGE=fedora IMAGE_VERSION=32 IMAGE_NAME=fedora_32 REQUIRE_NETCDF_MPI=FALSE
+      env: DOCKER_IMAGE=fedora IMAGE_VERSION=32 IMAGE_NAME=fedora_37 REQUIRE_NETCDF_MPI=FALSE
     - os: linux
       env: NO_DOCKER=TRUE
 
 before_install:
   - >
+    sudo systemctl stop docker.service && sudo systemctl stop docker.socket
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+    yes | sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+    sudo apt-get update
+    sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
     echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin;
     if [[ "${TRAVIS_OS_NAME}" == "linux" ]];
     then
     docker pull ${DOCKER_IMAGE}:${IMAGE_VERSION} &&
-    docker run -t -v ${TRAVIS_BUILD_DIR}:${TECA_DIR} -w ${TECA_DIR}
+    docker run -t -v ${TRAVIS_BUILD_DIR}:${TECA_DIR} -w ${TECA_DIR} --security-opt seccomp=unconfined
     --name teca_${DOCKER_IMAGE}_${IMAGE_VERSION} -d ${DOCKER_IMAGE}:${IMAGE_VERSION};
     fi
 
