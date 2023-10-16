@@ -145,9 +145,13 @@ int main(int argc, char **argv)
             " format. Note: There must be a space between the date and time specification\n")
         ("end_date", value<std::string>(), "\nThe last time to process in 'Y-M-D h:m:s' format\n")
 
-        ("n_threads", value<int>()->default_value(-1), "\nSets the thread pool size on each"
-            " MPI rank. When the default value of -1 is used TECA will coordinate the thread"
+        ("n_bard_threads", value<int>()->default_value(-1), "\nSets the detector thread pool size on"
+            " each MPI rank. When the default value of -1 is used TECA will coordinate the thread"
             " pools across ranks such each thread is bound to a unique physical core.\n")
+
+        ("n_writer_threads", value<int>()->default_value(1), "\nSets the writer thread pool size"
+            " on each MPI rank. When the default value of -1 is used TECA will coordinate the"
+            " thread pools across ranks such each thread is bound to a unique physical core.\n")
 
         ("verbose", value<int>()->default_value(0), "\nenable extra terminal output\n")
         ("help", "\ndisplays documentation for application specific command line options\n")
@@ -585,13 +589,10 @@ int main(int argc, char **argv)
     }
 
     // size the detector thread pool
-    if (!opt_vals["n_threads"].defaulted())
-        ar_detect->set_thread_pool_size(opt_vals["n_threads"].as<int>());
-    else
-        ar_detect->set_thread_pool_size(-1);
+    ar_detect->set_thread_pool_size(opt_vals["n_bard_threads"].as<int>());
 
     // size the writer thread pool
-    cf_writer->set_thread_pool_size(1);
+    cf_writer->set_thread_pool_size(opt_vals["n_writer_threads"].as<int>());
 
     if (cf_writer->get_file_name().empty())
     {

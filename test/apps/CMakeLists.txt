@@ -58,14 +58,14 @@ teca_add_app_test(test_deeplab_ar_detect_app_mcf_mpi_threads
 teca_add_app_test(test_bayesian_ar_detect_app_threads
     teca_bayesian_ar_detect
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_bayesian_ar_detect_app.sh
-    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1 2
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_app_test(test_bayesian_ar_detect_app_mpi
     teca_bayesian_ar_detect
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_bayesian_ar_detect_app.sh
-    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1 2
     ${MPIEXEC} ${TEST_CORES}
     FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
@@ -73,7 +73,7 @@ teca_add_app_test(test_bayesian_ar_detect_app_mpi
 teca_add_app_test(test_bayesian_ar_detect_app_mpi_threads
     teca_bayesian_ar_detect
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_bayesian_ar_detect_app.sh
-    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1 2
     ${MPIEXEC} ${HALF_TEST_CORES}
     FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
@@ -81,14 +81,14 @@ teca_add_app_test(test_bayesian_ar_detect_app_mpi_threads
 teca_add_app_test(test_bayesian_ar_detect_app_mcf_threads
     teca_bayesian_ar_detect
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_bayesian_ar_detect_app_mcf.sh
-    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1 2
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
 teca_add_app_test(test_bayesian_ar_detect_app_mcf_mpi
     teca_bayesian_ar_detect
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_bayesian_ar_detect_app_mcf.sh
-    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1 2
     ${MPIEXEC} ${TEST_CORES}
     FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
@@ -96,7 +96,7 @@ teca_add_app_test(test_bayesian_ar_detect_app_mcf_mpi
 teca_add_app_test(test_bayesian_ar_detect_app_mcf_mpi_threads
     teca_bayesian_ar_detect
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_bayesian_ar_detect_app_mcf.sh
-    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1 2
     ${MPIEXEC} ${HALF_TEST_CORES}
     FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
@@ -104,14 +104,14 @@ teca_add_app_test(test_bayesian_ar_detect_app_mcf_mpi_threads
 teca_add_app_test(test_bayesian_ar_detect_app_packed_data_mpi
     teca_bayesian_ar_detect
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_bayesian_ar_detect_app_packed_data.sh
-    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1 2
     ${MPIEXEC} ${TEST_CORES}
     FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
 teca_add_app_test(test_integrated_water_vapor_app_threads
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_integrated_water_vapor_app.sh
-    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1 2
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
