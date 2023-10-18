@@ -27,17 +27,21 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <chrono>
 #include <boost/program_options.hpp>
 
 using namespace std;
-
 using boost::program_options::value;
+using microseconds_t = std::chrono::duration<double, std::chrono::microseconds::period>;
 
 // --------------------------------------------------------------------------
 int main(int argc, char **argv)
 {
+    auto t0 = std::chrono::high_resolution_clock::now();
+
     // initialize mpi
     teca_mpi_manager mpi_man(argc, argv);
+    int rank = mpi_man.get_comm_rank();
 
     // initialize command line options description
     // set up some common options to simplify use for most
@@ -268,7 +272,7 @@ int main(int argc, char **argv)
     int ierr = 0;
     variables_map opt_vals;
     if ((ierr = teca_app_util::process_command_line_help(
-        mpi_man.get_comm_rank(), argc, argv, basic_opt_defs,
+        rank, argc, argv, basic_opt_defs,
         advanced_opt_defs, all_opt_defs, opt_vals)))
     {
         if (ierr == 1)
@@ -307,7 +311,7 @@ int main(int argc, char **argv)
 
     if ((have_file && have_regex) || !(have_file || have_regex))
     {
-        if (mpi_man.get_comm_rank() == 0)
+        if (rank == 0)
         {
             TECA_FATAL_ERROR("Extacly one of --input_file or --input_regex can be specified. "
                 "Use --input_file to activate the multi_cf_reader (HighResMIP datasets) "
@@ -396,7 +400,7 @@ int main(int argc, char **argv)
 
     if (do_ivt && do_ivt_magnitude)
     {
-        if (mpi_man.get_comm_rank() == 0)
+        if (rank == 0)
         {
             TECA_FATAL_ERROR("Only one of --compute_ivt and compute_ivt_magnitude can "
                 "be specified. --compute_ivt implies --compute_ivt_magnitude")
@@ -417,7 +421,7 @@ int main(int argc, char **argv)
         // add the elevation mask stages
         if (opt_vals.count("dem"))
         {
-            if (mpi_man.get_comm_rank() == 0)
+            if (rank == 0)
                 TECA_STATUS("Generating elevation mask")
 
             elev_reader->set_files_regex(opt_vals["dem"].as<string>());
@@ -596,7 +600,7 @@ int main(int argc, char **argv)
 
     if (cf_writer->get_file_name().empty())
     {
-        if (mpi_man.get_comm_rank() == 0)
+        if (rank == 0)
         {
             TECA_FATAL_ERROR("missing file name pattern for netcdf writer. "
                 "See --help for a list of command line options.")
@@ -674,6 +678,13 @@ int main(int argc, char **argv)
     // run the pipeline
     cf_writer->set_executive(exec);
     cf_writer->update();
+
+    if (rank == 0)
+    {
+        auto t1 = std::chrono::high_resolution_clock::now();
+        microseconds_t dt(t1 - t0);
+        std::cerr << "total runtime : " << (dt.count() / 1e6) << std::endl;
+    }
 
     return 0;
 }
