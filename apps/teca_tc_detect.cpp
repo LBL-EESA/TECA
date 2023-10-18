@@ -101,6 +101,9 @@ int main(int argc, char **argv)
         ("n_threads", value<int>()->default_value(-1), "\nSets the thread pool size on each"
             " MPI rank. When the default value of -1 is used TECA will coordinate the thread"
             " pools across ranks such each thread is bound to a unique physical core.\n")
+        ("n_omp_threads", value<int>()->default_value(1), "\nSets the number of OpenMP threads\n"
+            " to use in the main detector loop. WARNING: This is experimental, see\n"
+            " teca_tc_candidates Doxygen documentation for details\n")
 
         ("help", "\ndisplays documentation for application specific command line options\n")
         ("advanced_help", "\ndisplays documentation for algorithm specific command line options\n")
@@ -177,6 +180,7 @@ int main(int argc, char **argv)
     candidates->set_max_thickness_radius(4.0);
     candidates->set_search_lat_low(-80.0);
     candidates->set_search_lat_high(80.0);
+    candidates->set_omp_num_threads(1);
     candidates->get_properties_description("candidates", advanced_opt_defs);
 
     p_teca_table_reduce map_reduce = teca_table_reduce::New();
@@ -334,6 +338,10 @@ int main(int argc, char **argv)
     if (!opt_vals["highest_lat"].defaulted())
         candidates->set_search_lat_high(
             opt_vals["highest_lat"].as<double>());
+
+    if (!opt_vals["n_omp_threads"].defaulted())
+        candidates->set_omp_num_threads(
+            opt_vals["n_omp_threads"].as<int>());
 
     if (!opt_vals["first_step"].defaulted())
         map_reduce->set_start_index(opt_vals["first_step"].as<long>());

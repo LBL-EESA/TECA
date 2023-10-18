@@ -313,16 +313,26 @@ teca_add_test(py_test_temporal_monthly_percentile_vv_mpi
 teca_add_test(py_test_tc_candidates_serial
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_candidates.py
     "${TECA_DATA_ROOT}/test_tc_candidates_1990_07_0[12]\\.nc"
-    "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 1
+    "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 1 1
     U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_SERIAL_TESTS}
     REQ_TECA_DATA)
+
+teca_add_test(py_test_tc_candidates_omp
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_candidates.py
+    "${TECA_DATA_ROOT}/test_tc_candidates_1990_07_0[12]\\.nc"
+    "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 1 ${TEST_CORES}
+    U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
+    REQ_TECA_DATA)
+set_property(TEST py_test_tc_candidates_omp APPEND PROPERTY ENVIRONMENT
+    "OMP_DISPLAY_ENV=true;OMP_DISPLAY_AFFINITY=true;OMP_PLACES=cores;OMP_PROC_BIND=true")
 
 teca_add_test(py_test_tc_candidates_mpi
     COMMAND ${MPIEXEC} -n ${TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
     ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_candidates.py
     "${TECA_DATA_ROOT}/test_tc_candidates_1990_07_0[12]\\.nc"
-    "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 1
+    "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 1 1
     U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
@@ -330,7 +340,7 @@ teca_add_test(py_test_tc_candidates_mpi
 teca_add_test(py_test_tc_candidates_threads
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_candidates.py
     "${TECA_DATA_ROOT}/test_tc_candidates_1990_07_0[12]\\.nc"
-    "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 ${TEST_CORES}
+    "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 ${TEST_CORES} 1
     U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI}
     REQ_TECA_DATA)
@@ -339,7 +349,7 @@ teca_add_test(py_test_tc_candidates_mpi_threads
     COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
     ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_candidates.py
     "${TECA_DATA_ROOT}/test_tc_candidates_1990_07_0[12]\\.nc"
-    "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 2
+    "${TECA_DATA_ROOT}/test_tc_candidates_20.bin" 0 3 2 1
     U850 V850 UBOT VBOT PSL T500 T200 Z1000 Z200 -20 20
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)

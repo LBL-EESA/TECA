@@ -25,10 +25,9 @@ else ()
     set(CMAKE_C_VISIBILITY_PRESET hidden)
 endif()
 
+
 # this prevents a relink when a shared library's implementation changes
 set(CMAKE_LINK_DEPENDS_NO_SHARED ON)
-
-
 
 # set build/install sub dirs for various components
 if (NOT LIB_PREFIX)
@@ -133,6 +132,7 @@ include(teca_interface_library)
 # out if these are not found. for those times when you don't set the corresponding
 # REQUIRE variable to FALSE
 set(REQUIRE_CUDA FALSE CACHE BOOL "Forces build failure when CUDA is missing")
+set(REQUIRE_OPENMP FALSE CACHE BOOL "Forces build failure when OpenMP is missing")
 set(REQUIRE_MPI TRUE CACHE BOOL "Forces build failure when MPI is missing")
 set(REQUIRE_NETCDF TRUE CACHE BOOL "Forces build failure when NetCDF is missing")
 set(REQUIRE_NETCDF_MPI TRUE CACHE BOOL "Forces build failure when NetCDF_MPI is missing")
@@ -169,6 +169,20 @@ if (TECA_HAS_CUDA)
 else()
     set(HAMR_ENABLE_CUDA OFF CACHE BOOL "")
 endif()
+
+# configure for OpenMP
+set(tmp OFF)
+find_package(OpenMP COMPONENTS Fortran)
+if (OpenMP_Fortran_FOUND AND ((DEFINED TECA_HAS_OPENMP AND TECA_HAS_OPENMP)
+    OR (NOT DEFINED TECA_HAS_OPENMP)))
+    message(STATUS "OpenMP features (${OpenMP_Fortran_VERSION}) -- enabled")
+    set(tmp ON)
+elseif (REQUIRE_OPENMP)
+    message(STATUS "OpenMP features -- required but not found.")
+else()
+    message(STATUS "OpenMP features -- not found.")
+endif()
+set(TECA_HAS_OPENMP ${tmp} CACHE BOOL "OpenMP features")
 
 # configure for MPI
 if (ENABLE_CRAY_MPICH)

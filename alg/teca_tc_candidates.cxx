@@ -44,7 +44,8 @@ teca_tc_candidates::teca_tc_candidates() :
     search_lat_high(0.0),
     search_lon_low(1.0),
     search_lon_high(0.0),
-    minimizer_iterations(50)
+    minimizer_iterations(50),
+    omp_num_threads(1)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -99,6 +100,8 @@ void teca_tc_candidates::get_properties_description(
             "lowest longitude in degrees to search for stroms")
         TECA_POPTS_GET(double, prefix, search_lon_high,
             "highest longitude in degrees to search for storms")
+        TECA_POPTS_GET(int, prefix, omp_num_threads,
+            "the number of OpenMP threads to use in the main detector loop")
         ;
 
     this->teca_algorithm::get_properties_description(prefix, opts);
@@ -129,6 +132,7 @@ void teca_tc_candidates::set_properties(
     TECA_POPTS_SET(opts, double, prefix, search_lat_low)
     TECA_POPTS_SET(opts, double, prefix, search_lon_high)
     TECA_POPTS_SET(opts, double, prefix, search_lon_low)
+    TECA_POPTS_SET(opts, int, prefix, omp_num_threads)
 }
 #endif
 
@@ -434,7 +438,7 @@ const_p_teca_dataset teca_tc_candidates::execute(unsigned int port,
                 this->max_core_temperature_delta, this->max_core_temperature_radius,
                 this->max_thickness_delta, this->max_thickness_radius, v, w,
                 T, P, th, lat, lon, nlat, nlon, this->minimizer_iterations,
-                time_step, candidates.get()))
+                this->omp_num_threads, time_step, candidates.get()))
             {
                 TECA_FATAL_ERROR("GFDL TC detector encountered an error")
                 return nullptr;
