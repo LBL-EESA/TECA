@@ -100,39 +100,6 @@ void initialize_probs(NT_PROB *probs, const NT_WVCC *wvcc_0,
 
 namespace {
 
-// This routine appends the contents of dataset_0.get_metadata.get(property_name)
-// onto that from dataset_0 and overwrites the contents `property_name' in the
-// metadata of mesh_out.
-//
-//   property_name : (std::string) the key of the metadata property in
-//                   dataset_* on which to do the reduction
-//
-//   dataset_0     : (p_teca_dataset) the LHS dataset in the reduction
-//
-//   dataset_1     : (p_teca_dataset) the RHS dataset in the reduction
-//
-//   mesh_out      : (p_teca_cartesian_mesh) the output of the reduction
-/*void property_reduce(std::string property_name,
-    p_teca_dataset dataset_0, p_teca_dataset dataset_1,
-    p_teca_cartesian_mesh mesh_out)
-{
-    // declare the LHS and RHS property vectors
-    std::vector<double> property_vector_0;
-    std::vector<double> property_vector_1;
-
-    // get the property vectors from the metadata of the LHS and RHS datasets
-    dataset_0->get_metadata().get(property_name, property_vector_0);
-    dataset_1->get_metadata().get(property_name, property_vector_1);
-
-    // construct the output property vector by concatenating LHS and RHS vectors
-    std::vector<double> property_vector(property_vector_0);
-    property_vector.insert(property_vector.end(), property_vector_1.begin(),
-        property_vector_1.end());
-
-    // Overwrite the concatenated property vector in the output dataset
-    mesh_out->get_metadata().set(property_name, property_vector);
-}*/
-
 // drive the pipeline execution once for each parameter table row
 // injects the parameter values into the upstream requests
 class parameter_table_request_generator
@@ -731,9 +698,190 @@ private:
     std::string probability_array_name; // output
 };
 
+
+// serves data to the internal pipeline
+class parameter_table_reduction_source
+{
+public:
+    parameter_table_reduction_source(const teca_metadata &md,
+                                     const p_teca_cartesian_mesh &mesh) :
+                                     m_md(md), m_mesh(mesh) {}
+
+    // metadata phase, pass the incoming metadata through
+    teca_metadata operator()(unsigned int,
+                             const std::vector<teca_metadata>&)
+    {
+        return m_md;
+    }
+
+    // exetute phase, serve the mesh for this pass. one pass per parammeter
+    // table row. store the parameter table row to idnetify this pass
+    const_p_teca_dataset operator()(unsigned int,
+                                    const std::vector<const_p_teca_dataset> &,
+                                    const teca_metadata &req)
+    {
+         int row_id = 0;
+         if (req.get("row_id", row_id))
+         {
+             TECA_ERROR("failed to get parameter table row")
+             return nullptr;
+         }
+
+         p_teca_dataset out_mesh = m_mesh->new_instance();
+         out_mesh->shallow_copy(m_mesh);
+         out_mesh->get_metadata().set("parameter_table_row", row_id);
+
+         return out_mesh;
+     }
+
+private:
+    teca_metadata m_md;           // control metadata
+    p_teca_cartesian_mesh m_mesh; // incoming dataset
+
+};
+
+// the detector pipeline. this lets us construct the pipeline once per thread
+// and update per-step data structures during the run.
+struct bard_pipeline
+{
+    // pipeline stages
+    p_teca_programmable_algorithm m_dss;
+    p_teca_latitude_damper m_latf;
+    p_teca_binary_segmentation m_seg;
+    p_teca_connected_components m_cc;
+    p_teca_2d_component_area m_ca;
+    p_teca_component_area_filter m_caf;
+    p_teca_programmable_algorithm m_rgen;
+    p_teca_programmable_reduce m_red;
+    p_teca_dataset_capture m_dc;
+    teca_metadata m_exec_md;
+
+    // build the pipeline. call this once per thread.
+    // NOTE: this is not thread safe because of MPI collectives
+    void build(int device_id,
+               const p_teca_data_request_queue &queue,
+               unsigned int parameter_table_size,
+               const const_p_teca_variant_array &hwhm_latitude,
+               const const_p_teca_variant_array &min_ivt,
+               const const_p_teca_variant_array &min_component_area,
+               const std::string &ivt_variable,
+               const std::string &ar_probability_variable)
+    {
+        m_dss = teca_programmable_algorithm::New();
+        m_dss->set_name("dataset_source");
+        m_dss->set_communicator(MPI_COMM_SELF);
+        m_dss->set_number_of_input_connections(0);
+        m_dss->set_number_of_output_ports(1);
+
+        // set up the filtering stages. these extract control parameters
+        // which are served up from the parameter table from the incoming request
+        m_latf = teca_latitude_damper::New();
+        m_latf->set_communicator(MPI_COMM_SELF);
+        m_latf->set_input_connection(m_dss->get_output_port());
+        m_latf->set_damped_variables({ivt_variable});
+
+        m_seg = teca_binary_segmentation::New();
+        m_seg->set_communicator(MPI_COMM_SELF);
+        m_seg->set_input_connection(m_latf->get_output_port());
+        m_seg->set_threshold_variable(ivt_variable);
+        m_seg->set_segmentation_variable("wv_seg");
+        m_seg->set_threshold_by_percentile();
+
+        m_cc = teca_connected_components::New();
+        m_cc->set_communicator(MPI_COMM_SELF);
+        m_cc->set_input_connection(m_seg->get_output_port());
+        m_cc->set_segmentation_variable("wv_seg");
+        m_cc->set_component_variable("wv_cc");
+
+        m_ca = teca_2d_component_area::New();
+        m_ca->set_communicator(MPI_COMM_SELF);
+        m_ca->set_input_connection(m_cc->get_output_port());
+        m_ca->set_component_variable("wv_cc");
+        m_ca->set_contiguous_component_ids(1);
+
+        m_caf = teca_component_area_filter::New();
+        m_caf->set_communicator(MPI_COMM_SELF);
+        m_caf->set_input_connection(m_ca->get_output_port());
+        m_caf->set_component_variable("wv_cc");
+        m_caf->set_contiguous_component_ids(1);
+
+        // the executive will loop over table rows, the top of the pipeline
+        // will ignore the incoming request which is for a specific table row
+        // and always pass the input mesh down stream
+        parameter_table_request_generator request_gen(parameter_table_size,
+                                                      hwhm_latitude, min_ivt,
+                                                      min_component_area);
+
+        request_gen.initialize_index_executive(m_exec_md);
+
+        // set up the request generator. 1 request per parameter table row is
+        // generated. the request is populated with values in columns of that row
+        m_rgen = teca_programmable_algorithm::New();
+        m_rgen->set_name("request_generator");
+        m_rgen->set_communicator(MPI_COMM_SELF);
+        m_rgen->set_number_of_input_connections(1);
+        m_rgen->set_number_of_output_ports(1);
+        m_rgen->set_input_connection(m_caf->get_output_port());
+        m_rgen->set_request_callback(request_gen);
+
+        // set up the reduction which computes the average over runs of all control
+        // parameter combinations provided in the parameter table
+        ::parameter_table_reduction reduce(parameter_table_size,
+                                           "wv_cc", ar_probability_variable);
+
+        m_red = teca_programmable_reduce::New();
+        m_red->set_name("parameter_table_reduce");
+        m_red->set_communicator(MPI_COMM_SELF);
+        m_red->set_input_connection(m_rgen->get_output_port());
+        m_red->set_stream_size(2);
+        m_red->set_verbose(0);
+        m_red->set_data_request_queue(queue);
+        m_red->set_reduce_callback(reduce);
+        m_red->set_finalize_callback(reduce);
+
+        // pipeline control
+        auto exec = teca_index_executive::New();
+        exec->set_device_ids({device_id});
+
+        // extract the result
+        m_dc = teca_dataset_capture::New();
+        m_dc->set_communicator(MPI_COMM_SELF);
+        m_dc->set_input_connection(m_red->get_output_port());
+        m_dc->set_executive(exec);
+    }
+
+    // update step/thread data structures
+    void set_input_data(const p_teca_cartesian_mesh &mesh)
+    {
+        parameter_table_reduction_source source(m_exec_md, mesh);
+        m_dss->set_report_callback(source);
+        m_dss->set_execute_callback(source);
+    }
+
+    // run the pipeline
+    p_teca_cartesian_mesh execute()
+    {
+        m_dc->update();
+        return std::dynamic_pointer_cast<teca_cartesian_mesh>(
+            std::const_pointer_cast<teca_dataset>(m_dc->get_dataset()));
+    }
+
+    // set the verbosity level of the pipeline
+    void set_verbose(int val)
+    {
+        m_dss->set_verbose(val);
+        m_latf->set_verbose(val);
+        m_seg->set_verbose(val);
+        m_cc->set_verbose(val);
+        m_ca->set_verbose(val);
+        m_caf->set_verbose(val);
+        m_rgen->set_verbose(val);
+        m_red->set_verbose(val);
+        m_dc->set_verbose(val);
+        m_dc->get_executive()->set_verbose(val);
+    }
+};
 }
-
-
 
 // PIMPL idiom hides internals
 struct teca_bayesian_ar_detect::internals_t
@@ -747,7 +895,10 @@ struct teca_bayesian_ar_detect::internals_t
     const_p_teca_table parameter_table;                 // parameter table
     teca_metadata metadata;                             // cached metadata
     p_teca_data_request_queue queue;                    // thread pool (CUDA or CPU)
+    std::map<std::thread::id, bard_pipeline> pipelines; // a pipeline for each thread
+    std::mutex pipeline_mutex;                          // protects the pipeline collection
 };
+
 
 // --------------------------------------------------------------------------
 teca_bayesian_ar_detect::internals_t::internals_t()
@@ -762,6 +913,7 @@ void teca_bayesian_ar_detect::internals_t::clear()
 {
     this->metadata.clear();
     this->parameter_table = nullptr;
+    pipelines.clear();
 }
 
 // --------------------------------------------------------------------------
@@ -1146,136 +1298,40 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
         return nullptr;
     }
 
-    // build the parameter table reduction pipeline
-    unsigned long parameter_table_size =
-        this->internals->parameter_table->get_number_of_rows();
+    // get the assigned device
+    int device_id = -1;
+#if defined(TECA_HAS_CUDA)
+    request.get("device_id", device_id);
+#endif
 
-    // the executive will loop over table rows, the top of the pipeline
-    // will ignore the incoming request which is for a specific table row
-    // and always pass the input mesh down stream
-    ::parameter_table_request_generator request_gen(parameter_table_size,
+    // each thread maintains a pipeline. initialize before use.
+    auto tid = std::this_thread::get_id();
+
+    using iterator_t = std::map<std::thread::id, ::bard_pipeline>::iterator;
+    std::pair<iterator_t, bool> res;
+    {
+    std::lock_guard<std::mutex> lock(this->internals->pipeline_mutex);
+    res = this->internals->pipelines.insert({tid, {}});
+    if (res.second)
+    {
+        // build the parameter table reduction pipeline
+        res.first->second.build(device_id, this->internals->queue,
+            this->internals->parameter_table->get_number_of_rows(),
             this->internals->parameter_table->get_column(this->hwhm_latitude_variable),
             this->internals->parameter_table->get_column(this->min_ivt_variable),
-            this->internals->parameter_table->get_column(this->min_component_area_variable));
+            this->internals->parameter_table->get_column(this->min_component_area_variable),
+            this->ivt_variable, this->ar_probability_variable);
 
-    teca_metadata exec_md;
-    request_gen.initialize_index_executive(exec_md);
+        if (this->get_verbose() > 1)
+            res.first->second.set_verbose(1);
+    }
+    }
 
-    // set up the pipeline source
-    p_teca_programmable_algorithm dss = teca_programmable_algorithm::New();
-    dss->set_name("dataset_source");
-    dss->set_communicator(MPI_COMM_SELF);
-    dss->set_number_of_input_connections(0);
-    dss->set_number_of_output_ports(1);
-    dss->set_report_callback(
-        [&exec_md](unsigned int, const std::vector<teca_metadata>&) -> teca_metadata
-        {
-            return exec_md;
-        });
-    dss->set_execute_callback(
-        [& in_mesh] (unsigned int, const std::vector<const_p_teca_dataset> &,
-     const teca_metadata &req) -> const_p_teca_dataset
-     {
-         int row_id = 0;
-         if (req.get("row_id", row_id))
-         {
-             TECA_ERROR("failed to get parameter table row")
-             return nullptr;
-         }
-
-         p_teca_dataset out_mesh = in_mesh->new_instance();
-         out_mesh->shallow_copy(in_mesh);
-         out_mesh->get_metadata().set("parameter_table_row", row_id);
-
-         return out_mesh;
-     });
-
-    // set up the filtering stages. these extract control parameters
-    // which are served up from the parameter table from the incoming request
-    p_teca_latitude_damper damp = teca_latitude_damper::New();
-    damp->set_communicator(MPI_COMM_SELF);
-    damp->set_input_connection(dss->get_output_port());
-    damp->set_damped_variables({this->ivt_variable});
-    if (this->get_verbose() > 1)
-        damp->set_verbose(1);
-
-    p_teca_binary_segmentation seg = teca_binary_segmentation::New();
-    seg->set_communicator(MPI_COMM_SELF);
-    seg->set_input_connection(damp->get_output_port());
-    seg->set_threshold_variable(this->ivt_variable);
-    seg->set_segmentation_variable("wv_seg");
-    seg->set_threshold_by_percentile();
-    if (this->get_verbose() > 1)
-        seg->set_verbose(1);
-
-    p_teca_connected_components cc = teca_connected_components::New();
-    cc->set_communicator(MPI_COMM_SELF);
-    cc->set_input_connection(seg->get_output_port());
-    cc->set_segmentation_variable("wv_seg");
-    cc->set_component_variable("wv_cc");
-    if (this->get_verbose() > 1)
-        cc->set_verbose(1);
-
-    p_teca_2d_component_area ca = teca_2d_component_area::New();
-    ca->set_communicator(MPI_COMM_SELF);
-    ca->set_input_connection(cc->get_output_port());
-    ca->set_component_variable("wv_cc");
-    ca->set_contiguous_component_ids(1);
-    if (this->get_verbose() > 1)
-        ca->set_verbose(1);
-
-    p_teca_component_area_filter caf = teca_component_area_filter::New();
-    caf->set_communicator(MPI_COMM_SELF);
-    caf->set_input_connection(ca->get_output_port());
-    caf->set_component_variable("wv_cc");
-    caf->set_contiguous_component_ids(1);
-    if (this->get_verbose() > 1)
-        caf->set_verbose(1);
-
-    // set up the request generator. 1 request per parameter table row is
-    // generated. the request is populated with values in columns of that row
-    p_teca_programmable_algorithm pa = teca_programmable_algorithm::New();
-    pa->set_name("request_generator");
-    pa->set_communicator(MPI_COMM_SELF);
-    pa->set_number_of_input_connections(1);
-    pa->set_number_of_output_ports(1);
-    pa->set_input_connection(caf->get_output_port());
-    pa->set_request_callback(request_gen);
-    if (this->get_verbose() > 1)
-        pa->set_verbose(1);
-
-    // set up the reduction which computes the average over runs of all control
-    // parameter combinations provided in the parameter table
-    ::parameter_table_reduction reduce(parameter_table_size,
-        "wv_cc", this->ar_probability_variable);
-
-    p_teca_programmable_reduce pr = teca_programmable_reduce::New();
-    pr->set_name("parameter_table_reduce");
-    pr->set_communicator(MPI_COMM_SELF);
-    pr->set_input_connection(pa->get_output_port());
-    pr->set_reduce_callback(reduce);
-    pr->set_finalize_callback(reduce);
-    pr->set_stream_size(2);
-    pr->set_verbose(0);
-    pr->set_data_request_queue(this->internals->queue);
-    if (this->get_verbose() > 1)
-        pr->set_verbose(1);
-
-    // extract the result
-    p_teca_dataset_capture dc = teca_dataset_capture::New();
-    dc->set_communicator(MPI_COMM_SELF);
-    dc->set_input_connection(pr->get_output_port());
-    dc->set_executive(teca_index_executive::New());
-    if (this->get_verbose() > 1)
-        dc->set_verbose(1);
+    // update the pipeline source
+    res.first->second.set_input_data(in_mesh);
 
     // run the pipeline
-    dc->update();
-
-    // get the pipeline output and normalize the probabilty field
-    p_teca_cartesian_mesh out_mesh =
-        std::dynamic_pointer_cast<teca_cartesian_mesh>(
-            std::const_pointer_cast<teca_dataset>(dc->get_dataset()));
+    auto out_mesh = res.first->second.execute();
 
     if (!out_mesh)
     {
