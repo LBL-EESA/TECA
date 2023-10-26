@@ -544,7 +544,10 @@ std::string symbol_properties::demangle(const char *symbol) const
     {
         result = demangled_symbol;
     }
-    free(buffer);
+    if (demangled_symbol)
+        free(demangled_symbol); // might realloc for a long symbol name
+    else
+        free(buffer);
 #else
     (void)symbol;
 #endif
