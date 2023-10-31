@@ -552,7 +552,7 @@ teca_add_test(test_bayesian_ar_detect_serial
     COMMAND test_bayesian_ar_detect
     "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\\.nc$"
     "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" IVT
-    "bayesian_ar_detect_%t%.nc" 1 0 -1
+    "bayesian_ar_detect_%t%.nc" 1 0 -1 1
     FEATURES ${TECA_HAS_NETCDF} ${TECA_SERIAL_TESTS}
     REQ_TECA_DATA)
 
@@ -563,7 +563,7 @@ teca_add_test(test_bayesian_ar_detect_threads
     COMMAND test_bayesian_ar_detect
     "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\\.nc$"
     "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" IVT
-    "bayesian_ar_detect_%t%.nc" -1 0 -1
+    "bayesian_ar_detect_%t%.nc" -1 0 -1 1
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
@@ -571,7 +571,7 @@ teca_add_test(test_bayesian_ar_detect_mpi
     COMMAND ${MPIEXEC} -n ${TEST_CORES} test_bayesian_ar_detect
     "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\\.nc$"
     "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" IVT
-    "bayesian_ar_detect_%t%.nc" -1 0 -1
+    "bayesian_ar_detect_%t%.nc" -1 0 -1 1
     FEATURES ${TECA_HAS_MPI} ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
@@ -579,7 +579,7 @@ teca_add_test(test_bayesian_ar_detect_mpi_threads
     COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} test_bayesian_ar_detect
     "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\\.nc$"
     "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" IVT
-    "bayesian_ar_detect_%t%.nc" -1 0 -1
+    "bayesian_ar_detect_%t%.nc" -1 0 -1 1
     FEATURES ${TECA_HAS_MPI} ${TECA_HAS_NETCDF} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
