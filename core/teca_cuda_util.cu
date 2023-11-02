@@ -4,12 +4,25 @@
 namespace teca_cuda_util
 {
 // **************************************************************************
-int synchronize()
+int synchronize_device()
 {
     cudaError_t ierr = cudaSuccess;
     if ((ierr = cudaDeviceSynchronize()) != cudaSuccess)
     {
-        TECA_ERROR("Failed to synchronize CUDA execution. "
+        TECA_ERROR("Failed to synchronize the device. "
+            << cudaGetErrorString(ierr))
+        return -1;
+    }
+    return 0;
+}
+
+// **************************************************************************
+int synchronize_stream()
+{
+    cudaError_t ierr = cudaSuccess;
+    if ((ierr = cudaStreamSynchronize(cudaStreamPerThread)) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to synchronize the per-thread stream. "
             << cudaGetErrorString(ierr))
         return -1;
     }

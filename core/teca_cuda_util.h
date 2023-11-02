@@ -52,9 +52,13 @@ int get_local_cuda_devices(MPI_Comm comm, int &ranks_per_device,
 TECA_EXPORT
 int set_device(int device_id);
 
-/// stop and wait for previously launched kernels to complete
+/// device wide synchronize
 TECA_EXPORT
-int synchronize();
+int synchronize_device();
+
+/// synchronize the default stream
+TECA_EXPORT
+int synchronize_stream();
 
 /** A flat array is broken into blocks of number of threads where each adjacent
  * thread accesses adjacent memory locations. To accomplish this we might need
