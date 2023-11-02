@@ -91,6 +91,7 @@ void write_vtk_array_data(FILE *ofile,
         size_t na = a->size();
         VARIANT_ARRAY_DISPATCH(a.get(),
             auto [spa, pa] = get_host_accessible<CTT>(a);
+            sync_host_access_any(a);
             if (binary)
             {
                 // because VTK's legacy file fomrat  requires big endian storage
@@ -238,8 +239,11 @@ int write_vtk_legacy_arakawa_c_grid_header(FILE *ofile,
     VARIANT_ARRAY_DISPATCH(x.get(),
 
         assert_type<CTT>(y, z);
+
         auto [pxyz] = data<TT>(xyz);
         auto [spx, px, spy, py, spz, pz] = get_host_accessible<CTT>(x, y, z);
+
+        sync_host_access_any(x, y, z);
 
         for (size_t k = 0; k < nz; ++k)
         {
@@ -330,6 +334,8 @@ int write_vtk_legacy_curvilinear_header(FILE *ofile,
         const NT *pz = nullptr;
         if (z)
             std::tie(spz, pz) = get_host_accessible<CTT>(z);
+
+        sync_host_access_any(x, y);
 
         for (size_t i = 0; i < nxyz; ++i)
             pxyz[3*i] = px[i];

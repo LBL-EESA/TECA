@@ -329,6 +329,8 @@ const_p_teca_dataset teca_descriptive_statistics::execute(
 
             auto [spv, pv] = get_host_accessible<CTT>(dep_var);
 
+            sync_host_access_any(dep_var);
+
             // compute stats
             NT mn = internal::min(pv, n);
             NT mx = internal::max(pv, n);

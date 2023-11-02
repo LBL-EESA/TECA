@@ -191,6 +191,7 @@ int write_netcdf(const_p_teca_table table, const std::string &file_name,
         VARIANT_ARRAY_DISPATCH(
             col.get(),
             auto [sp_col, p_col] = get_host_accessible<CTT>(col);
+            sync_host_access_any(col);
 #if !defined(HDF5_THREAD_SAFE)
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
@@ -208,6 +209,7 @@ int write_netcdf(const_p_teca_table table, const std::string &file_name,
         else VARIANT_ARRAY_DISPATCH_CASE(
             std::string, col.get(),
             auto [sp_col, p_col] = get_host_accessible<CTT>(col);
+            sync_host_access_any(col);
             // put the strings into a buffer for netcdf
             const char **string_data = (const char **)malloc(n_rows*sizeof(char*));
             for (size_t j = 0; j < n_rows; ++j)

@@ -59,6 +59,8 @@ struct tile_labeler
              assert_type<TT>(y);
              auto [spx, px, spy, py] = get_host_accessible<CTT>(x, y);
 
+             sync_host_access_any(x, y);
+
              for (unsigned long j = 0; j < ny; ++j)
              {
                  int yl = int((py[j] + NT(90.)) / (NT(180.) / m_nyl)) % m_nyl;

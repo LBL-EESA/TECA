@@ -57,6 +57,8 @@ struct distance_field
             assert_type<TT>(y,z);
             auto [spx, px, spy, py, spz, pz] = get_host_accessible<CTT>(x, y, z);
 
+            sync_host_access_any(x, y, z);
+
             for (unsigned long k = 0; k < nz; ++k)
             {
                 NT dz2 = pz[k] - m_z0;

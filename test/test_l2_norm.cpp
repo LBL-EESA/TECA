@@ -46,6 +46,8 @@ struct fxyz
             auto [pf] = data<TT>(f);
             auto [spx, px, spy, py, spz, pz] = get_host_accessible<CTT>(x, y, z);
 
+            sync_host_access_any(x, y, z);
+
             for (size_t k = 0; k < nz; ++k)
             {
                 for (size_t j = 0; j < ny; ++j)

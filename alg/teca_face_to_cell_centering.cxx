@@ -291,6 +291,8 @@ const_p_teca_dataset teca_face_to_cell_centering::execute(
             auto [spfc, pfc] = get_host_accessible<CTT>(fc);
             auto [pcc] = data<TT>(cc);
 
+            sync_host_access_any(fc);
+
             ::x_face_to_cell(nx, ny, nz, nxy, pfc, pcc);
             )
 
@@ -311,6 +313,8 @@ const_p_teca_dataset teca_face_to_cell_centering::execute(
             auto [spfc, pfc] = get_host_accessible<CTT>(fc);
             auto [pcc] = data<TT>(cc);
 
+            sync_host_access_any(fc);
+
             ::y_face_to_cell(nx, ny, nz, nxy, pfc, pcc);
             )
 
@@ -330,6 +334,8 @@ const_p_teca_dataset teca_face_to_cell_centering::execute(
 
             auto [spfc, pfc] = get_host_accessible<CTT>(fc);
             auto [pcc] = data<TT>(cc);
+
+            sync_host_access_any(fc);
 
             ::z_face_to_cell(nx, ny, nz, nxy, pfc, pcc);
             )

@@ -180,6 +180,8 @@ int dispatch(const const_p_teca_variant_array &array, NT fill_value, PT_MASK &ma
     mask = TT_MASK::New(n_elem);
     NT_MASK *p_mask = mask->data();
 
+    sync_host_access_any(array);
+
     // compute the mask
     for (size_t i = 0; i < n_elem; ++i)
     {
@@ -202,6 +204,8 @@ int dispatch(const const_p_teca_variant_array &array, const NT *valid_range,
     // allocate the output
     mask = TT_MASK::New(n_elem);
     NT_MASK *p_mask = mask->data();
+
+    sync_host_access_any(array);
 
     // compute the mask
     for (size_t i = 0; i < n_elem; ++i)

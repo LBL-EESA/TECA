@@ -547,6 +547,9 @@ const_p_teca_dataset teca_2d_component_area::execute(
                     }
 
                     std::vector<NT_CALC> component_area(n_labels);
+
+                    sync_host_access_any(xc, yc, component_array);
+
                     host_impl::component_area(nx,ny, p_xc,p_yc, p_labels, component_area);
 
                     // transfer the result to the output
@@ -558,6 +561,9 @@ const_p_teca_dataset teca_2d_component_area::execute(
                 {
                     // use an associative array to handle any labels
                     std::map<NT_LABEL, NT_CALC> result;
+
+                    sync_host_access_any(xc, yc, component_array);
+
                     host_impl::component_area(nx,ny, p_xc,p_yc, p_labels, result);
 
                     // transfer the result to the output

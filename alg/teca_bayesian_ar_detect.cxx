@@ -236,6 +236,7 @@ public:
 #if defined(TECA_HAS_CUDA)
             if (device_id >= 0)
             {
+                assert(ar_prob->cuda_accessible());
                 auto [nb, nt] = teca_cuda_util::partition_thread_blocks_1d(256, n_vals);
                 cuda_impl::finalize_probs<<<nb,nt>>>(p_ar_prob, num_params, n_vals);
                 if ((ierr = cudaGetLastError()) != cudaSuccess)
@@ -317,6 +318,7 @@ public:
 #if defined(TECA_HAS_CUDA)
                     if (device_id >= 0)
                     {
+                        assert(prob_0->cuda_accessible() && prob_1->cuda_accessible());
                         auto [nb, nt] = teca_cuda_util::partition_thread_blocks_1d(256, n_vals);
                         cuda_impl::reduce_probs<<<nb,nt>>>(p_prob_out, p_prob_1, n_vals);
                         if ((ierr = cudaGetLastError()) != cudaSuccess)
@@ -329,6 +331,7 @@ public:
                     else
                     {
 #endif
+                        assert(prob_0->host_accessible() && prob_1->host_accessible());
                         for (unsigned long i = 0; i < n_vals; ++i)
                         {
                             p_prob_out[i] += p_prob_1[i];
@@ -464,6 +467,9 @@ public:
                     {
 #endif
                         auto [sp_wvcc, p_wvcc] = get_host_accessible<TT_COMP>(wvcc);
+
+                        sync_host_access_any(wvcc);
+
                         for (unsigned long i = 0; i < n_vals; ++i)
                         {
                             p_prob_out[i] += (p_wvcc[i] > 0 ? NT_PROB(1) : NT_PROB(0));
@@ -510,6 +516,9 @@ public:
 #endif
                         auto [sp_wvcc_0, p_wvcc_0] = get_host_accessible<TT_COMP>(wvcc_0);
                         auto [sp_wvcc_1, p_wvcc_1] = get_host_accessible<TT_COMP>(wvcc_1);
+
+                        sync_host_access_any(wvcc_0, wvcc_1);
+
                         for (unsigned long i = 0; i < n_vals; ++i)
                         {
                             p_prob_out[i] = (p_wvcc_0[i] > 0 ? NT_PROB(1) : NT_PROB(0)) +
@@ -624,6 +633,9 @@ public:
                     {
 #endif
                         auto [sp_wvcc, p_wvcc] = get_host_accessible<TT_COMP>(wvcc);
+
+                        sync_host_access_any(wvcc);
+
                         for (unsigned long i = 0; i < n_vals; ++i)
                         {
                             p_prob_out[i] = (p_wvcc[i] > 0 ? NT_PROB(1) : NT_PROB(0));

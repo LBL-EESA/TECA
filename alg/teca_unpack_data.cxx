@@ -85,6 +85,8 @@ int dispatch(const p_teca_variant_array &in_array,
 
                     auto [sp_mask, p_mask] = get_host_accessible<TT_MASK>(mask);
 
+                    sync_host_access_any(in_array, mask);
+
                     cpu::transform(p_out, p_in, p_mask,
                         n_elem, NT_OUT(scale), NT_OUT(offset), NT_OUT(1e20));
                     )
@@ -92,6 +94,7 @@ int dispatch(const p_teca_variant_array &in_array,
             }
             else
             {
+                sync_host_access_any(in_array);
                 cpu::transform(p_out, p_in, n_elem, NT_OUT(scale), NT_OUT(offset));
             }
             )

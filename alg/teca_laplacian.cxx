@@ -393,6 +393,8 @@ const_p_teca_dataset teca_laplacian::execute(
             auto [sp_comp_0, p_comp_0] = get_host_accessible<CTT2>(comp_0);
             auto [p_lapl] = data<TT2>(lapl);
 
+            sync_host_access_any(lon, lat, comp_0);
+
             ::laplacian(p_lapl, p_lon, p_lat,
                 p_comp_0, lon->size(), lat->size());
             )

@@ -13,6 +13,7 @@
 #include "teca_binary_stream.h"
 #include "teca_bad_cast.h"
 #include "teca_shared_object.h"
+#include "teca_variant_array_util.h"
 
 #include <hamr_buffer.h>
 
@@ -34,11 +35,15 @@
 #include <thrust/reduce.h>
 #endif
 
+#if !defined(SWIG)
+using namespace teca_variant_array_util;
+#endif
+
 class teca_metadata;
 
 TECA_SHARED_OBJECT_TEMPLATE_FORWARD_DECL(teca_variant_array_impl)
 
-#ifndef SWIG
+#if !defined(SWIG)
 template<typename T>
 using p_teca_variant_array_impl = std::shared_ptr<teca_variant_array_impl<T>>;
 
@@ -2345,6 +2350,8 @@ bool teca_variant_array_impl<T>::equal(const const_p_teca_variant_array &other) 
         auto spother = other_t->get_host_accessible();
         const NT *pother = spother.get();
 
+        sync_host_access_any(this, other);
+
         for (size_t i = 0; i < n_elem; ++i)
         {
             if (pthis[i] != pother[i])
@@ -2365,12 +2372,15 @@ template<typename T>
 void teca_variant_array_impl<T>::to_binary(teca_binary_stream &s,
     typename std::enable_if<pack_array<U>::value, U>::type*) const
 {
+    // access the data on the host
+    std::shared_ptr<const T> pdata = this->get_host_accessible();
+    sync_host_access_any(this);
+
     // pack the size
     unsigned long long n_elem = this->size();
     s.pack(n_elem);
 
-    // pack the data from the CPU
-    std::shared_ptr<const T> pdata = this->get_host_accessible();
+    // pack the data
     s.pack(pdata.get(), n_elem);
 }
 
@@ -2408,6 +2418,9 @@ void teca_variant_array_impl<T>::to_binary(teca_binary_stream &s,
     // pack the data from the CPU
     std::shared_ptr<const T> data = this->get_host_accessible();
     const T *pdata = data.get();
+
+    sync_host_access_any(this);
+
     for (unsigned long long i = 0; i < n_elem; ++i)
     {
         pdata[i].to_stream(s);
@@ -2450,6 +2463,9 @@ void teca_variant_array_impl<T>::to_binary(
     // pack the data from the CPU
     std::shared_ptr<const T> data = this->get_host_accessible();
     const T *pdata = data.get();
+
+    sync_host_access_any(this);
+
     for (unsigned long long i = 0; i < n_elem; ++i)
     {
        pdata[i]->to_stream(s);
@@ -2495,6 +2511,8 @@ void teca_variant_array_impl<T>::to_ascii(
         std::shared_ptr<const T> data = this->get_host_accessible();
         const T *pdata = data.get();
 
+        sync_host_access_any(this);
+
         s << STR_DELIM("\"", "") << pdata[0] << STR_DELIM("\"", "");
 
         for (size_t i = 1; i < n_elem; ++i)
@@ -2527,6 +2545,8 @@ void teca_variant_array_impl<T>::to_ascii(
         // serialize from the CPU
         std::shared_ptr<const T> data = this->get_host_accessible();
         const T *pdata = data.get();
+
+        sync_host_access_any(this);
 
         s << "{";
         pdata[0].to_stream(s);
@@ -2563,6 +2583,8 @@ void teca_variant_array_impl<T>::to_ascii(
         // serialize from the CPU
         std::shared_ptr<const T> data = this->get_host_accessible();
         const T *pdata = data.get();
+
+        sync_host_access_any(this);
 
         s << "{";
         pdata[0]->to_stream(s);

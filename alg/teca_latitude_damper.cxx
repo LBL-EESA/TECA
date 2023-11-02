@@ -470,6 +470,8 @@ const_p_teca_dataset teca_latitude_damper::execute(
             // construct the gaussian filter
             auto [sp_lat, p_lat] = get_host_accessible<TT_COORD>(lat);
 
+            sync_host_access_any(lat);
+
             NT_COORD *filter = (NT_COORD*)malloc(n_lat*sizeof(NT_COORD));
             host_impl::get_lat_filter<NT_COORD>(filter, p_lat, n_lat, mu, sigma);
 
@@ -496,6 +498,8 @@ const_p_teca_dataset teca_latitude_damper::execute(
 
                     auto [sp_in, p_in] = get_host_accessible<CTT_DATA>(input_array);
                     auto [p_damped_array] = data<TT_DATA>(damped_array);
+
+                    sync_host_access_any(input_array);
 
                     // apply the filter
                     host_impl::apply_lat_filter(p_damped_array, p_in, filter, n_lat, n_lon);

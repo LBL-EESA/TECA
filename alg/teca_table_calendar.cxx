@@ -267,6 +267,8 @@ const_p_teca_dataset teca_table_calendar::execute(
 
         auto [spct, curr_time] = get_host_accessible<CTT>(time);
 
+        sync_host_access_any(time);
+
         for (unsigned long i = 0; i < n_rows; ++i)
         {
             int curr_year = 0;

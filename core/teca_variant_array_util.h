@@ -5,9 +5,37 @@
 
 #include <tuple>
 
+#if defined(TECA_HAS_CUDA)
+#include "teca_cuda_util.h"
+#endif
+
 /// some functions helping us manipulate teca_variant_array
 namespace teca_variant_array_util
 {
+/// synchronize the default stream.
+inline
+void synchronize_stream()
+{
+#if defined(TECA_HAS_CUDA)
+    teca_cuda_util::synchronize_stream();
+#endif
+}
+
+/** synchronize the default stream once if any of the passed arrays are not
+ * accessible on the host. this should be done after all get_host_accessible
+ * are issued and before the data is accessed.
+ */
+template <typename... array_t>
+void sync_host_access_any(const array_t &... arrays)
+{
+    if ((!arrays->host_accessible() || ...))
+    {
+#if defined(TECA_HAS_CUDA)
+        teca_cuda_util::synchronize_stream();
+#endif
+    }
+}
+
 /** static_cast a number of p_teca_variant_array into their derived type
  * teca_variant_array_impl<NT>*. Can be used with p_const_teca_variant_array as
  * well.

@@ -326,6 +326,9 @@ if get_teca_has_cupy():
                 tself->host_accessible() && tself->cuda_accessible(),
                 stream);
 
+            if (!tself->host_accessible())
+                tself->syncronize();
+
             return SWIG_NewPointerObj(SWIG_as_voidptr(ph),
                 hamr::buffer_handle_tt<NT>::swig_type(), SWIG_POINTER_OWN);
             )

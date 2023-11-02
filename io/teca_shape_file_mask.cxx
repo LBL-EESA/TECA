@@ -462,6 +462,8 @@ const_p_teca_dataset teca_shape_file_mask::execute(
             std::tie(dsp_x, dp_x, dsp_y, dp_y) = get_cuda_accessible<CTT>(x, y);
 #endif
 
+        sync_host_access_any(x, y);
+
         // get the mesh bounds. we'll skip polygons the do not intersect the
         // mesh.
         poly_coord_t mesh_bounds[6] = {p_x[0], p_x[nx-1], p_y[0], p_y[ny-1], 0., 0.};

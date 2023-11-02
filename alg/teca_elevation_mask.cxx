@@ -367,6 +367,8 @@ const_p_teca_dataset teca_elevation_mask::execute(
 
             auto [sp_mh, p_mesh_height] = get_host_accessible<CTT_MESH>(mesh_height);
 
+            sync_host_access_any(surface_elev, mesh_height);
+
             internals_t::mask_by_surface_elevation(nx, ny, nz,
                 p_mask, p_surface_elev, p_mesh_height);
 

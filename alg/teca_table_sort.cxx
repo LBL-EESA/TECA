@@ -171,6 +171,8 @@ const_p_teca_dataset teca_table_sort::execute(
 
         auto [scol, col] = get_host_accessible<CTT>(index_col);
 
+        sync_host_access_any(index_col);
+
         if (this->stable_sort)
         {
             if (this->ascending_order)
@@ -201,6 +203,8 @@ const_p_teca_dataset teca_table_sort::execute(
 
             auto [sp_in_col, p_in_col] = get_host_accessible<CTT>(in_col);
             auto [p_out_col] = data<TT>(out_col);
+
+            sync_host_access_any(in_col);
 
             for (unsigned long i = 0; i < n_rows; ++i)
                 p_out_col[i] = p_in_col[index[i]];

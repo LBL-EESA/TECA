@@ -74,6 +74,8 @@ p_teca_variant_array_impl<NT1> add_cpu(
     size_t n_vals = a1->size();
     auto [ao, pao] = ::New<TT1>(n_vals, NT1(0), allocator::malloc);
 
+    sync_host_access_any(a1, a2);
+
     // initialize the data
     add_cpu(pao, pa1, pa2, n_vals);
 

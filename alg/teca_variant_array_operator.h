@@ -89,6 +89,7 @@ p_teca_variant_array apply(const const_p_teca_variant_array &arg1,
             NESTED_VARIANT_ARRAY_DISPATCH(
                 arg2.get(), _3,
                 auto [sparg3, parg3] = get_host_accessible<CTT_3>(arg3);
+                sync_host_access_any(arg1, arg2, arg3);
                 return internal::apply(arg1->size(), parg1, parg2, parg3, op);
                 )
             )
@@ -108,6 +109,7 @@ p_teca_variant_array apply_i(const const_p_teca_variant_array &larg,
         NESTED_VARIANT_ARRAY_DISPATCH_I(
             rarg.get(), _RIGHT,
             auto [sprarg, prarg] = get_host_accessible<CTT_RIGHT>(rarg);
+            sync_host_access_any(larg, rarg);
             return internal::apply(larg->size(), plarg, prarg, op);
             )
         )
@@ -126,6 +128,7 @@ p_teca_variant_array apply(const const_p_teca_variant_array &larg,
         NESTED_VARIANT_ARRAY_DISPATCH(
             rarg.get(), _RIGHT,
             auto [sprarg, prarg] = get_host_accessible<CTT_RIGHT>(rarg);
+            sync_host_access_any(larg, rarg);
             return internal::apply(larg->size(), plarg, prarg, op);
             )
         )
@@ -141,6 +144,7 @@ p_teca_variant_array apply(const const_p_teca_variant_array &arg,
     VARIANT_ARRAY_DISPATCH(
         arg.get(),
         auto [sparg, parg] = get_host_accessible<CTT>(arg);
+        sync_host_access_any(arg);
         return internal::apply(arg->size(), parg, op);
         )
     TECA_ERROR("failed to apply " << operator_t::name() << ". unsupported type.")

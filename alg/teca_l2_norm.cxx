@@ -82,18 +82,21 @@ int dispatch(p_teca_variant_array &l2_norm,
 
         auto [ptmp, pl2n] = data<TT>(tmp, l2_norm);
         auto [spc0, pc0] = get_host_accessible<CTT>(c0);
+
+        sync_host_access_any(c0);
         cpu::square(ptmp, pc0, n_elem);
 
         if (c1)
         {
             auto [spc1, pc1] = get_host_accessible<CTT>(c1);
+            sync_host_access_any(c1);
             cpu::sum_square(ptmp, pc1, n_elem);
         }
 
         if (c2)
         {
-
             auto [spc2, pc2] = get_host_accessible<CTT>(c2);
+            sync_host_access_any(c2);
             cpu::sum_square(ptmp, pc2, n_elem);
         }
 

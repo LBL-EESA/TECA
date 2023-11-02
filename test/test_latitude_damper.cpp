@@ -115,6 +115,8 @@ int main(int argc, char **argv)
 
     auto [spda, p_damped_array] = get_host_accessible<const array_t>(va);
 
+    sync_host_access_any(va);
+
     // find lat index where scalar should be half
     long hwhm_index = -1;
     for (long j = 0; j < long(ny); ++j)

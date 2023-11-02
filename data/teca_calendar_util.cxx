@@ -183,6 +183,7 @@ int season_iterator::initialize(const const_p_teca_variant_array &t,
     // initialize the time range to iterate over
     VARIANT_ARRAY_DISPATCH(t.get(),
         auto [sp_t, p_t] = get_host_accessible<CTT>(t);
+        sync_host_access_any(t);
         this->begin = time_point(first_step, p_t[first_step], this->units, this->calendar);
         this->end = time_point(last_step, p_t[last_step], this->units, this->calendar);
         )
@@ -423,6 +424,7 @@ int year_iterator::initialize(const const_p_teca_variant_array &t,
     // current time state
     VARIANT_ARRAY_DISPATCH(t.get(),
         auto [sp_t, p_t] = get_host_accessible<CTT>(t);
+        sync_host_access_any(t);
         this->begin = time_point(first_step, p_t[first_step], this->units, this->calendar);
         this->end = time_point(last_step, p_t[last_step], this->units, this->calendar);
         )
@@ -545,6 +547,7 @@ int month_iterator::initialize(const const_p_teca_variant_array &t,
     // time point's to iterate between
     VARIANT_ARRAY_DISPATCH(t.get(),
         auto [sp_t, p_t] = get_host_accessible<CTT>(t);
+        sync_host_access_any(t);
         this->begin = time_point(first_step, p_t[first_step], this->units, this->calendar);
         this->end = time_point(last_step, p_t[last_step], this->units, this->calendar);
         )
@@ -676,6 +679,7 @@ int day_iterator::initialize(const const_p_teca_variant_array &t,
     // current time state
     VARIANT_ARRAY_DISPATCH(t.get(),
         auto [sp_t, p_t] = get_host_accessible<CTT>(t);
+        sync_host_access_any(t);
         this->begin = time_point(first_step, p_t[first_step], this->units, this->calendar);
         this->end = time_point(last_step, p_t[last_step], this->units, this->calendar);
         )

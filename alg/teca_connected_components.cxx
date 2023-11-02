@@ -1014,6 +1014,8 @@ const_p_teca_dataset teca_connected_components::execute(
 
             auto [sp_in, p_in] = get_host_accessible<CTT>(input_array);
 
+            sync_host_access_any(input_array);
+
             tcc0 = std::chrono::high_resolution_clock::now();
 
             host_impl::label(extent, periodic_in_x, periodic_in_y,

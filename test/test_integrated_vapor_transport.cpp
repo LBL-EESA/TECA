@@ -60,6 +60,7 @@ struct function_of_z
         VARIANT_ARRAY_DISPATCH(fz.get(),
             assert_type<CTT>(z);
             auto [spz, pz] = get_host_accessible<CTT>(z);
+            sync_host_access_any(z);
             for (size_t k = 0; k < nz; ++k)
             {
                 for (size_t j = 0; j < ny; ++j)

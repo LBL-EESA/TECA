@@ -481,6 +481,8 @@ int index_of(const const_p_teca_cartesian_mesh &mesh, T x, T y, T z,
               sp_yc, p_yc,
               sp_zc, p_zc] = get_host_accessible<CTT>(xc, yc, zc);
 
+        sync_host_access_any(xc, yc, zc);
+
         unsigned long nx = xc->size();
         unsigned long ny = yc->size();
         unsigned long nz = zc->size();

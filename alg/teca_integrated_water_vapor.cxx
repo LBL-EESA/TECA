@@ -334,10 +334,12 @@ const_p_teca_dataset teca_integrated_water_vapor::execute(
             if (q_valid)
             {
                 auto [spqv, p_q_valid] = get_host_accessible<CTT_MASK>(q_valid);
+                sync_host_access_any(p, q, q_valid);
                 ::cartesian_iwv(nx, ny, nz, p_p, p_q, p_q_valid, p_iwv);
             }
             else
             {
+                sync_host_access_any(p, q);
                 ::cartesian_iwv(nx, ny, nz, p_p, p_q, p_iwv);
             }
             )

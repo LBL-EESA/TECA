@@ -226,6 +226,8 @@ const_p_teca_dataset teca_simple_moving_average::execute(
                 auto [sp_in_a, p_in_a] = get_host_accessible<CTT>(in_a);
                 auto [p_out_a] = data<TT>(out_a);
 
+                sync_host_access_any(in_a);
+
                 for (size_t q = 0; q < n_elem; ++q)
                     p_out_a[q] += p_in_a[q];
                 )

@@ -78,6 +78,8 @@ struct packed_data
                   sp_y, p_y,
                   sp_z, p_z] = get_host_accessible<CTT>(x, y, z);
 
+            sync_host_access_any(x, y, z);
+
             for (size_t k = 0; k < nz; ++k)
             {
                 for (size_t j = 0; j < ny; ++j)

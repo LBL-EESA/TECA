@@ -443,6 +443,10 @@ const_p_teca_dataset teca_tc_trajectory::execute(
             auto [sp_twc_max, p_twc_max] = get_host_accessible<CTT_VAR>(twc_max);
             auto [sp_thick_max, p_thick_max] = get_host_accessible<CTT_VAR>(thick_max);
 
+            sync_host_access_any(step, time, storm_id, have_thick, have_twc,
+                                 lon, lat, wind_max, vort_max, psl_min, twc_max,
+                                 thick_max);
+
             // invoke the track finder
             if (internal::teca_tc_trajectory(
                 static_cast<NT_VAR>(this->max_daily_distance),

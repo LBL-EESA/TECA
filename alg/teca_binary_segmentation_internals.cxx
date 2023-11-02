@@ -43,6 +43,8 @@ int cpu_dispatch(
 
         auto [sp_in, p_in] = get_host_accessible<CTT>(input_array);
 
+        sync_host_access_any(input_array);
+
         if (threshold_mode == teca_binary_segmentation::BY_VALUE)
         {
             cpu::value_threshold(p_seg, p_in, n_elem,

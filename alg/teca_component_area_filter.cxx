@@ -462,6 +462,8 @@ const_p_teca_dataset teca_component_area_filter::execute(
                 auto [sp_ids_in, p_ids_in] = get_host_accessible<CTT_LABEL>(ids_in);
                 auto [sp_areas_in, p_areas_in] = get_host_accessible<CTT_AREA>(areas_in);
 
+                sync_host_access_any(labels_in, ids_in, areas_in);
+
                 // if we have labels with small values we can speed the calculation by
                 // using a contiguous buffer to hold the map. otherwise we need to
                 // use an associative container

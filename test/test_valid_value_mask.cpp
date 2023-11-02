@@ -40,9 +40,14 @@ struct cosx_cosy
         p_teca_variant_array f = x->new_instance(nxy);
 
         VARIANT_ARRAY_DISPATCH(x.get(),
+
             assert_type<CTT>(y);
+
             auto [pf] = data<TT>(f);
             auto [spx, px, spy, py] = get_host_accessible<CTT>(x, y);
+
+            sync_host_access_any(x, y);
+
             for (size_t j = 0; j < ny; ++j)
             {
                 for (size_t i = 0; i < nx; ++i)

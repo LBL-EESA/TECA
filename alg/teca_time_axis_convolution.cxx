@@ -543,6 +543,8 @@ const_p_teca_dataset teca_time_axis_convolution::execute(
                 auto [sp_in, p_in] = get_host_accessible<CTT>(in_array);
                 auto [p_out] = data<TT>(out_array);
 
+                sync_host_access_any(in_array);
+
                 // apply the kernel weight for this time step
                 NT weight = NT(this->kernel_weights[i]);
                 for (size_t q = 0; q < n_elem; ++q)

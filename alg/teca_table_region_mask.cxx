@@ -191,6 +191,8 @@ const_p_teca_dataset teca_table_region_mask::execute(
         assert_type<CTT>(y);
         auto [spx, px, spy, py] = get_host_accessible<CTT>(x, y);
 
+        sync_host_access_any(x, y);
+
         for (unsigned long i = 0; i < n_rows; ++i)
         {
             double ptx = px[i];

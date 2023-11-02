@@ -123,6 +123,8 @@ int internals::reorder(p_teca_variant_array &x_out,
         std::shared_ptr<TT_C_OUT> xo = TT_C_OUT::New(nx);
         NT_C *pxo = xo->data();
 
+        sync_host_access_any(x);
+
         pxo += x1;
         for (unsigned long i = 0; i < nx; ++i)
             pxo[-i] = px[i];
@@ -220,6 +222,8 @@ int internals::inv_periodic_shift_x(p_teca_unsigned_long_array &map,
         map = teca_unsigned_long_array::New(nx);
         unsigned long *pmap = map->data();
 
+        sync_host_access_any(x);
+
         inv_periodic_shift_x(pmap, px, nx);
 
         return 0;
@@ -248,6 +252,8 @@ int internals::periodic_shift_x(p_teca_variant_array &x_out,
         x.get(), _C,
 
         auto [spx, px] = get_host_accessible<CTT_C>(x);
+
+        sync_host_access_any(x);
 
         // check that the shift is needed.
         shifted_x = (px[0] < NT_C(0));
@@ -366,6 +372,8 @@ int internals::periodic_shift_x(p_teca_array_collection arrays,
             auto [spa, pa] = get_host_accessible<CTT_A>(a);
             auto [pao] = data<TT_A>(ao);
 
+            sync_host_access_any(a);
+
             for (unsigned long k = 0; k < nzo; ++k)
             {
                 unsigned long kki = k*nxyi;
@@ -435,6 +443,8 @@ int internals::ascending_order_y(p_teca_array_collection arrays,
             auto [spa, pa] = get_host_accessible<CTT_A>(a);
             auto [pao] = ::data<TT_A>(ao);
 
+            sync_host_access_any(a);
+
             for (unsigned long k = 0; k < nz; ++k)
             {
                 unsigned long kk = k*nxy;
@@ -466,6 +476,8 @@ void internals::scale(p_teca_variant_array &out,
         std::tie(out, pout) = New<TT>(n_elem);
 
         auto [spin, pin] = get_host_accessible<CTT>(in);
+
+        sync_host_access_any(in);
 
         for (unsigned long i = 0; i < n_elem; ++i)
             pout[i] = pin[i] * fac;

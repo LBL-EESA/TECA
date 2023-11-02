@@ -236,6 +236,8 @@ const_p_teca_dataset teca_tc_classify::execute(
 
     auto [spids, pids] = get_host_accessible<teca_int_array>(track_ids);
 
+    sync_host_access_any(track_ids);
+
     for (size_t i = 1; i < n_rows; ++i)
         if (pids[i] != pids[i-1])
             track_starts.push_back(i);
@@ -256,6 +258,8 @@ const_p_teca_dataset teca_tc_classify::execute(
         auto [pstart_time] = data<TT>(start_time);
         auto [sptime, ptime] = get_host_accessible<CTT>(time);
 
+        sync_host_access_any(time);
+
         for (size_t i = 0; i < n_tracks; ++i)
             pstart_time[i] = ptime[track_starts[i]];
         )
@@ -269,6 +273,8 @@ const_p_teca_dataset teca_tc_classify::execute(
         assert_type<CTT>(y);
         auto [spx, px, spy, py] = get_host_accessible<CTT>(x, y);
         auto [pstart_x, pstart_y] = data<TT>(start_x, start_y);
+
+        sync_host_access_any(x, y);
 
         for (size_t i = 0; i < n_tracks; ++i)
         {
@@ -286,6 +292,8 @@ const_p_teca_dataset teca_tc_classify::execute(
         auto [sptime, ptime] = get_host_accessible<CTT>(time);
         auto [pduration] = data<TT>(duration);
 
+        sync_host_access_any(time);
+
         for (size_t i = 0; i < n_tracks; ++i)
         {
             unsigned long first = track_starts[i];
@@ -302,6 +310,8 @@ const_p_teca_dataset teca_tc_classify::execute(
         assert_type<CTT>(y);
         auto [spx, px, spy, py] = get_host_accessible<CTT>(x, y);
         auto [plength] = data<TT>(length);
+
+        sync_host_access_any(x, y);
 
         for (size_t i = 0; i < n_tracks; ++i)
         {
@@ -335,6 +345,8 @@ const_p_teca_dataset teca_tc_classify::execute(
         std::tie(max_surface_wind, pmax_surface_wind) = ::New<TT>(n_tracks);
 
         auto [spsw, psurface_wind] = get_host_accessible<CTT>(surface_wind);
+
+        sync_host_access_any(surface_wind);
 
         for (size_t i = 0; i < n_tracks; ++i)
         {
@@ -370,6 +382,7 @@ const_p_teca_dataset teca_tc_classify::execute(
         auto [pmax_surface_wind_x,
               pmax_surface_wind_y] = data<TT>(max_surface_wind_x,
                                               max_surface_wind_y);
+        sync_host_access_any(x, y);
 
         for (size_t i = 0; i < n_tracks; ++i)
         {
@@ -385,6 +398,8 @@ const_p_teca_dataset teca_tc_classify::execute(
 
         auto [sptime, ptime] = get_host_accessible<CTT>(time);
         auto [pmax_surface_wind_t] = data<TT>(max_surface_wind_t);
+
+        sync_host_access_any(time);
 
         for (size_t i = 0; i < n_tracks; ++i)
         {
@@ -405,6 +420,8 @@ const_p_teca_dataset teca_tc_classify::execute(
               psea_level_pressure] = get_host_accessible<CTT>(sea_level_pressure);
 
         auto [pmin_sea_level_pressure] = data<TT>(min_sea_level_pressure);
+
+        sync_host_access_any(sea_level_pressure);
 
         for (size_t i = 0; i < n_tracks; ++i)
         {
@@ -440,6 +457,8 @@ const_p_teca_dataset teca_tc_classify::execute(
               pmin_sea_level_pressure_y] = data<TT>(min_sea_level_pressure_x,
                                                     min_sea_level_pressure_y);
 
+        sync_host_access_any(x, y);
+
         for (size_t i = 0; i < n_tracks; ++i)
         {
             unsigned long q = pmin_sea_level_pressure_id[i];
@@ -454,6 +473,8 @@ const_p_teca_dataset teca_tc_classify::execute(
 
         auto [sptime, ptime] = get_host_accessible<CTT>(time);
         auto [pmin_sea_level_pressure_t] = data<TT>(min_sea_level_pressure_t);
+
+        sync_host_access_any(time);
 
         for (size_t i = 0; i < n_tracks; ++i)
         {
@@ -487,6 +508,8 @@ const_p_teca_dataset teca_tc_classify::execute(
 
             auto [spsw, psurface_wind] = get_host_accessible<CTT_W>(surface_wind);
             auto [pACE] = data<TT_W>(ACE);
+
+            sync_host_access_any(time, surface_wind);
 
             for (size_t i = 0; i < n_tracks; ++i)
             {
@@ -532,6 +555,8 @@ const_p_teca_dataset teca_tc_classify::execute(
 
             auto [spsw, psurface_wind] = get_host_accessible<CTT_W>(surface_wind);
             auto [pPDI] = data<TT_W>(PDI);
+
+            sync_host_access_any(time, surface_wind);
 
             for (size_t i = 0; i < n_tracks; ++i)
             {
@@ -617,6 +642,8 @@ const_p_teca_dataset teca_tc_classify::execute(
 
         assert_type<CTT>(y);
         auto [spx, px, spy, py] = get_host_accessible<CTT>(x, y);
+
+        sync_host_access_any(x, y);
 
         for (size_t i = 0; i < n_tracks; ++i)
         {

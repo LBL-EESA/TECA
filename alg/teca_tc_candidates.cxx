@@ -164,6 +164,8 @@ int teca_tc_candidates::get_active_extent(const const_p_teca_variant_array &lat,
 
             auto [sp_lon, p_lon] = get_host_accessible<CTT>(lon);
 
+            sync_host_access_any(lon);
+
             if (teca_coordinate_util::index_of(p_lon, 0, high_i, static_cast<NT>(this->search_lon_low), false, extent[0])
                 || teca_coordinate_util::index_of(p_lon, 0, high_i, static_cast<NT>(this->search_lon_high), true, extent[1]))
             {
@@ -194,6 +196,8 @@ int teca_tc_candidates::get_active_extent(const const_p_teca_variant_array &lat,
         VARIANT_ARRAY_DISPATCH_FP(lat.get(),
 
             auto [sp_lat, p_lat] = get_host_accessible<CTT>(lat);
+
+            sync_host_access_any(lat);
 
             if (teca_coordinate_util::index_of(p_lat, 0, high_j, static_cast<NT>(this->search_lat_low), false, extent[2])
                 || teca_coordinate_util::index_of(p_lat, 0, high_j, static_cast<NT>(this->search_lat_high), true, extent[3]))
@@ -408,6 +412,12 @@ const_p_teca_dataset teca_tc_candidates::execute(unsigned int port,
         NESTED_VARIANT_ARRAY_DISPATCH_FP(
             surface_wind_speed.get(), _VAR,
 
+            auto [sv, v] = get_host_accessible<CTT_VAR>(surface_wind_speed);
+            auto [sw, w] = get_host_accessible<CTT_VAR>(vorticity_850mb);
+            auto [sP, P] = get_host_accessible<CTT_VAR>(sea_level_pressure);
+            auto [sT, T] = get_host_accessible<CTT_VAR>(core_temperature);
+            auto [sth, th] = get_host_accessible<CTT_VAR>(thickness);
+
             // configure the candidate table
             candidates->declare_columns("storm_id", int(),
                 "lon", NT_COORD(), "lat", NT_COORD(), "surface_wind", NT_VAR(),
@@ -419,11 +429,8 @@ const_p_teca_dataset teca_tc_candidates::execute(unsigned int port,
             assert_type<CTT_VAR>(vorticity_850mb,
                 sea_level_pressure, core_temperature, thickness);
 
-            auto [sv, v] = get_host_accessible<CTT_VAR>(surface_wind_speed);
-            auto [sw, w] = get_host_accessible<CTT_VAR>(vorticity_850mb);
-            auto [sP, P] = get_host_accessible<CTT_VAR>(sea_level_pressure);
-            auto [sT, T] = get_host_accessible<CTT_VAR>(core_temperature);
-            auto [sth, th] = get_host_accessible<CTT_VAR>(thickness);
+            sync_host_access_any(x, y, surface_wind_speed, vorticity_850mb,
+                                 sea_level_pressure, core_temperature, thickness);
 
             t0 = std::chrono::high_resolution_clock::now();
 
