@@ -73,6 +73,12 @@ void teca_index_executive::set_arrays(const std::vector<std::string> &v)
 {
     this->arrays = v;
 }
+// --------------------------------------------------------------------------
+void teca_index_executive::set_device_ids(const std::vector<int> &ids)
+{
+    this->device_ids = ids;
+}
+
 
 // --------------------------------------------------------------------------
 int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
@@ -154,15 +160,18 @@ int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
     int ranks_per_device_set = teca_system_util::get_environment_variable
         ("TECA_RANKS_PER_DEVICE", ranks_per_device);
 
-    std::vector<int> device_ids;
-    if (teca_cuda_util::get_local_cuda_devices(comm,
-        ranks_per_device, device_ids))
+    std::vector<int> devices(this->device_ids);
+    if (devices.empty())
     {
-        TECA_WARNING("Failed to determine the local CUDA device_ids."
-            " Falling back to the default device.")
-        device_ids.resize(1, 0);
+        if (teca_cuda_util::get_local_cuda_devices(comm,
+            ranks_per_device, devices))
+        {
+            TECA_WARNING("Failed to determine the local CUDA device_ids."
+                " Falling back to the default device.")
+            devices.resize(1, 0);
+        }
     }
-    int n_devices = device_ids.size();
+    int n_devices = devices.size();
     size_t q = 0;
 #endif
 
@@ -194,7 +203,7 @@ int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
 #if defined(TECA_HAS_CUDA)
             // assign eaach request a device to execute on
             if (n_devices > 0)
-                device_id = device_ids[q % n_devices];
+                device_id = devices[q % n_devices];
 
             ++q;
 #endif
@@ -217,8 +226,8 @@ int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
             << " stride=" << this->stride << " block_start=" << block_start + first
             << " block_size=" << block_size;
 #if defined(TECA_HAS_CUDA)
-        oss << " n_cuda_devices=" << device_ids.size()
-            << " device_ids=" << device_ids;
+        oss << " n_cuda_devices=" << devices.size()
+            << " device_ids=" << devices;
 #endif
         std::cerr << oss.str() << std::endl;
     }
