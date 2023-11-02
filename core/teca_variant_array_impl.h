@@ -812,6 +812,9 @@ public:
     ///@}
 #endif
 
+    /// Sycnhronize the stream used for data movement
+    void synchronize() const override { m_data.synchronize(); }
+
     /** direct access to the internal memory. Use this when you are certain
      * that the data is already accessible in the location where you will
      * access it to save the cost of the std::shared_ptr copy constructor.
