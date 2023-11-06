@@ -452,7 +452,7 @@ const_p_teca_dataset teca_2d_component_area::execute(
     // our GPU implementation requires contiguous component ids
     if ((device_id >= 0) && !(has_component_ids || this->contiguous_component_ids))
     {
-        TECA_WARNING("Requested executiong on device " << device_id
+        TECA_WARNING("Requested execution on device " << device_id
             << ". Execution moved to host because of non-contiguous"
             " component ids.")
         device_id = -1;
@@ -495,15 +495,16 @@ const_p_teca_dataset teca_2d_component_area::execute(
                 }
                 else
                 {
-                    NT_LABEL max_component_id = thrust::reduce(thrust::device, p_labels, p_labels + nxy,
-                                                               std::numeric_limits<double>::lowest(),
-                                                               thrust::maximum<double>());
+                    auto ep = thrust::cuda::par.on(cudaStreamPerThread);
 
+                    NT_LABEL max_component_id = thrust::reduce(ep, p_labels, p_labels + nxy,
+                                                               std::numeric_limits<NT_LABEL>::lowest(),
+                                                               thrust::maximum<NT_LABEL>());
                     n_labels = max_component_id + 1;
 
                     auto [tmp, ptmp] = ::New<TT_LABEL>(n_labels, allocator::cuda_async);
 
-                    thrust::sequence(thrust::device, ptmp, ptmp + n_labels, NT_LABEL(0), NT_LABEL(1));
+                    thrust::sequence(ep, ptmp, ptmp + n_labels, NT_LABEL(0), NT_LABEL(1));
 
                     component_id = tmp;
                 }
