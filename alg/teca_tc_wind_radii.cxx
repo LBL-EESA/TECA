@@ -765,6 +765,8 @@ teca_metadata teca_tc_wind_radii::teca_tc_wind_radii::get_output_metadata(
 
         auto [spstorm_ids, pstorm_ids] = get_host_accessible<CTT>(storm_ids);
 
+        sync_host_access_any(storm_ids);
+
         teca_coordinate_util::get_table_offsets(pstorm_ids,
             this->internals->storm_table->get_number_of_rows(),
             this->internals->number_of_storms, this->internals->storm_counts,
@@ -860,6 +862,8 @@ std::vector<teca_metadata> teca_tc_wind_radii::get_upstream_request(
         // for the wind profile
         auto [spx, px, spy, py] = get_host_accessible<CTT>(x_coordinates, y_coordinates);
 
+        sync_host_access_any(x_coordinates, y_coordinates);
+
         for (unsigned long i = 0; i < n_ids; ++i)
         {
             // TODO account for poleward longitude convergence
@@ -904,6 +908,7 @@ std::vector<teca_metadata> teca_tc_wind_radii::get_upstream_request(
     VARIANT_ARRAY_DISPATCH(
         times.get(),
         auto [spt, pt] = get_host_accessible<CTT>(times);
+        sync_host_access_any(times);
         for (unsigned long i = 0; i < n_ids; ++i)
             up_reqs[i].set("time", pt[i+id_ofs]);
         )
@@ -1023,6 +1028,9 @@ const_p_teca_dataset teca_tc_wind_radii::execute(unsigned int port,
 
                     assert_type<CTT_WIND>(wind_v);
                     auto [spwu, pwu, spwv, pwv] = get_host_accessible<TT_WIND>(wind_u, wind_v);
+
+                    sync_host_access_any(storm_x, storm_y,
+                                         mesh_x, mesh_y, wind_u, wind_v);
 
                     // get the kth storm center
                     NT_MESH sx = static_cast<NT_MESH>(pstorm_x[k+ofs]);

@@ -175,6 +175,8 @@ const_p_teca_dataset teca_table_remove_rows::execute(
 
         auto [spmask, pmask] = get_host_accessible<CTT>(mask);
 
+        sync_host_access_any(mask);
+
         for (unsigned long i = 0; i < n_rows; ++i)
         {
             if (!pmask[i])
@@ -193,8 +195,10 @@ const_p_teca_dataset teca_table_remove_rows::execute(
 
         VARIANT_ARRAY_DISPATCH(out_col.get(),
 
-            auto [pout] = data<TT>(out_col);
             auto [spin, pin] = get_host_accessible<CTT>(in_col);
+            auto [pout] = data<TT>(out_col);
+
+            sync_host_access_any(in_col);
 
             for (unsigned long i = 0; i < n_valid; ++i)
             {

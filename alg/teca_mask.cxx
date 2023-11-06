@@ -189,8 +189,10 @@ const_p_teca_dataset teca_mask::execute(
 
         VARIANT_ARRAY_DISPATCH(input_array.get(),
 
-            auto [p_mask] = data<TT>(mask);
             auto [sp_in, p_in] = get_host_accessible<CTT>(input_array);
+            auto [p_mask] = data<TT>(mask);
+
+            sync_host_access_any(input_array);
 
             ::apply_mask(p_mask, p_in,  n_elem,
                 static_cast<NT>(low_val), static_cast<NT>(high_val),

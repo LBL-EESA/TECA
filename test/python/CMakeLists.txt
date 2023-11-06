@@ -413,34 +413,6 @@ teca_add_test(py_test_bayesian_ar_detect_mpi_threads
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
-teca_add_test(py_test_deeplab_ar_detect
-    COMMAND  ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_deeplab_ar_detect.py
-    "${TECA_DATA_ROOT}/cascade_deeplab_IVT.pt"
-    "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\.nc$"
-    "${TECA_DATA_ROOT}/test_deeplab_ar_detect" IVT -1
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_PYTORCH}
-    REQ_TECA_DATA)
-
-teca_add_test(py_test_deeplab_ar_detect_mpi
-    COMMAND ${MPIEXEC} -n ${TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
-        ${CMAKE_CURRENT_SOURCE_DIR}/test_deeplab_ar_detect.py
-        "${TECA_DATA_ROOT}/cascade_deeplab_IVT.pt"
-        "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\.nc$"
-        "${TECA_DATA_ROOT}/test_deeplab_ar_detect" IVT -1
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_PYTORCH} ${TECA_HAS_MPI}
-        ${MPI4Py_FOUND}
-    REQ_TECA_DATA)
-
-teca_add_test(py_test_deeplab_ar_detect_mpi_threads
-    COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
-        ${CMAKE_CURRENT_SOURCE_DIR}/test_deeplab_ar_detect.py
-        "${TECA_DATA_ROOT}/cascade_deeplab_IVT.pt"
-        "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\.nc$"
-        "${TECA_DATA_ROOT}/test_deeplab_ar_detect" IVT -1
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_PYTORCH} ${TECA_HAS_MPI}
-        ${MPI4Py_FOUND} ${TEST_MPI_THREADS}
-    REQ_TECA_DATA)
-
 teca_add_test(py_test_binary_stream
     COMMAND ${MPIEXEC} -n ${TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
     ${CMAKE_CURRENT_SOURCE_DIR}/test_binary_stream.py

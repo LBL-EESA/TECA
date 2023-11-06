@@ -1069,6 +1069,8 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::init(
                 this->valid = teca_variant_array_impl<NT_MASK>::New(n_elem_per_timestep, NT_MASK(0));
                 auto [p_res_valid] = data<TT_MASK>(this->valid);
 
+                sync_host_access_any(in_array, in_valid);
+
                 for (unsigned int i = 0; i < n_elem_per_timestep; ++i)
                 {
                     for (unsigned int j = 0; j < steps_per_request; ++j)
@@ -1084,6 +1086,8 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::init(
             }
             else
             {
+                sync_host_access_any(in_array);
+
                 p_res_count[0] = NT(steps_per_request);
                 for (unsigned int i = 0; i < n_elem_per_timestep; ++i)
                 {
@@ -1126,6 +1130,8 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::update_cpu(
                 auto [sp_in_valid, p_in_valid] = get_host_accessible<CTT_MASK>(in_valid);
                 auto [p_res_valid] = data<TT_MASK>(this->valid);
 
+                sync_host_access_any(in_array, in_valid);
+
                 for (unsigned int i = 0; i < n_elem; ++i)
                 {
                     for (unsigned int j = 0; j < steps_per_request; ++j)
@@ -1144,6 +1150,8 @@ int teca_cpp_temporal_reduction::internals_t::average_operator::update_cpu(
             }
             else
             {
+                sync_host_access_any(in_array);
+
                 // update, no missing data
                 p_res_count[0] += NT_RES(steps_per_request);
                 for (unsigned int i = 0; i < n_elem; ++i)
@@ -1272,6 +1280,8 @@ int teca_cpp_temporal_reduction::internals_t::summation_operator::init(
                 this->valid = teca_variant_array_impl<NT_MASK>::New(n_elem_per_timestep, NT_MASK(0));
                 auto [p_res_valid] = data<TT_MASK>(this->valid);
 
+                sync_host_access_any(in_array, in_valid);
+
                 for (unsigned int i = 0; i < n_elem_per_timestep; ++i)
                 {
                     for (unsigned int j = 0; j < steps_per_request; ++j)
@@ -1286,6 +1296,8 @@ int teca_cpp_temporal_reduction::internals_t::summation_operator::init(
             }
             else
             {
+                sync_host_access_any(in_array);
+
                 for (unsigned int i = 0; i < n_elem_per_timestep; ++i)
                 {
                     for (unsigned int j = 0; j < steps_per_request; ++j)
@@ -1324,6 +1336,8 @@ int teca_cpp_temporal_reduction::internals_t::summation_operator::update_cpu(
             auto [sp_in_valid, p_in_valid] = get_host_accessible<CTT_MASK>(in_valid);
             auto [p_res_valid] = data<TT_MASK>(this->valid);
 
+            sync_host_access_any(in_array, in_valid);
+
             for (unsigned int i = 0; i < n_elem; ++i)
             {
                 for (unsigned int j = 0; j < steps_per_request; ++j)
@@ -1339,6 +1353,8 @@ int teca_cpp_temporal_reduction::internals_t::summation_operator::update_cpu(
         }
         else
         {
+            sync_host_access_any(in_array);
+
             // update, no missing data
             for (unsigned int i = 0; i < n_elem; ++i)
             {
@@ -1457,6 +1473,8 @@ int teca_cpp_temporal_reduction::internals_t::minimum_operator::init(
                 this->valid = teca_variant_array_impl<NT_MASK>::New(n_elem_per_timestep);
                 auto [p_res_valid] = data<TT_MASK>(this->valid);
 
+                sync_host_access_any(in_array, in_valid);
+
                 for (unsigned int i = 0; i < n_elem_per_timestep; ++i)
                 {
                     p_res_array[i] = p_in_array[i];
@@ -1481,6 +1499,8 @@ int teca_cpp_temporal_reduction::internals_t::minimum_operator::init(
             }
             else
             {
+                sync_host_access_any(in_array);
+
                 for (unsigned int i = 0; i < n_elem_per_timestep; ++i)
                 {
                     p_res_array[i] = p_in_array[i];
@@ -1522,6 +1542,8 @@ int teca_cpp_temporal_reduction::internals_t::minimum_operator::update_cpu(
             auto [sp_in_valid, p_in_valid] = get_host_accessible<CTT_MASK>(in_valid);
             auto [p_res_valid] = data<TT_MASK>(this->valid);
 
+            sync_host_access_any(in_array, in_valid);
+
             for (unsigned int i = 0; i < n_elem; ++i)
             {
                 for (unsigned int j = 0; j < steps_per_request; ++j)
@@ -1541,6 +1563,8 @@ int teca_cpp_temporal_reduction::internals_t::minimum_operator::update_cpu(
         }
         else
         {
+            sync_host_access_any(in_array);
+
             // update, no missing values
             for (unsigned int i = 0; i < n_elem; ++i)
             {
@@ -1661,6 +1685,8 @@ int teca_cpp_temporal_reduction::internals_t::maximum_operator::init(
                 this->valid = teca_variant_array_impl<NT_MASK>::New(n_elem_per_timestep);
                 auto [p_res_valid] = data<TT_MASK>(this->valid);
 
+                sync_host_access_any(in_array, in_valid);
+
                 for (unsigned int i = 0; i < n_elem_per_timestep; ++i)
                 {
                     p_res_array[i] = p_in_array[i];
@@ -1685,6 +1711,8 @@ int teca_cpp_temporal_reduction::internals_t::maximum_operator::init(
             }
             else
             {
+                sync_host_access_any(in_array);
+
                 for (unsigned int i = 0; i < n_elem_per_timestep; ++i)
                 {
                     p_res_array[i] = p_in_array[i];
@@ -1726,6 +1754,8 @@ int teca_cpp_temporal_reduction::internals_t::maximum_operator::update_cpu(
             auto [sp_in_valid, p_in_valid] = get_host_accessible<CTT_MASK>(in_valid);
             auto [p_res_valid] = data<TT_MASK>(this->valid);
 
+            sync_host_access_any(in_array, in_valid);
+
             for (unsigned int i = 0; i < n_elem; ++i)
             {
                 for (unsigned int j = 0; j < steps_per_request; ++j)
@@ -1745,6 +1775,8 @@ int teca_cpp_temporal_reduction::internals_t::maximum_operator::update_cpu(
         }
         else
         {
+            sync_host_access_any(in_array);
+
             // update, no missing values
             for (unsigned int i = 0; i < n_elem; ++i)
             {

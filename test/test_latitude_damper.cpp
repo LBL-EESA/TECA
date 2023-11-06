@@ -86,32 +86,36 @@ int main(int argc, char **argv)
     source->set_metadata(md);
     source->set_dataset(mesh);
 
-    p_teca_latitude_damper damped_comp = teca_latitude_damper::New();
-    damped_comp->set_input_connection(source->get_output_port());
-    damped_comp->set_half_width_at_half_max(hwhm);
-    damped_comp->set_center(0.0);
-    damped_comp->append_damped_variable("ones_grid");
-    damped_comp->set_variable_postfix("_damped");
+    p_teca_latitude_damper ld = teca_latitude_damper::New();
+    ld->set_input_connection(source->get_output_port());
+    ld->set_half_width_at_half_max(hwhm);
+    ld->set_center(0.0);
+    ld->append_damped_variable("ones_grid");
+    ld->set_variable_postfix("_damped");
+    ld->set_verbose(1);
 
-    p_teca_dataset_capture damp_o = teca_dataset_capture::New();
-    damp_o->set_input_connection(damped_comp->get_output_port());
+    p_teca_dataset_capture dsc = teca_dataset_capture::New();
+    dsc->set_input_connection(ld->get_output_port());
 
     p_teca_index_executive exe = teca_index_executive::New();
+    exe->set_verbose(1);
     exe->set_start_index(0);
     exe->set_end_index(0);
 
     p_teca_cartesian_mesh_writer wri = teca_cartesian_mesh_writer::New();
-    wri->set_input_connection(damp_o->get_output_port());
+    wri->set_input_connection(dsc->get_output_port());
     wri->set_executive(exe);
     wri->set_file_name(out_file);
 
     wri->update();
 
-    const_p_teca_dataset ds = damp_o->get_dataset();
+    const_p_teca_dataset ds = dsc->get_dataset();
     const_p_teca_cartesian_mesh cds = std::dynamic_pointer_cast<const teca_cartesian_mesh>(ds);
     const_p_teca_variant_array va = cds->get_point_arrays()->get("ones_grid_damped");
 
     auto [spda, p_damped_array] = get_host_accessible<const array_t>(va);
+
+    sync_host_access_any(va);
 
     // find lat index where scalar should be half
     long hwhm_index = -1;

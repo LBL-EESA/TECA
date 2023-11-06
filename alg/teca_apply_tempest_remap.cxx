@@ -511,12 +511,16 @@ const_p_teca_dataset teca_apply_tempest_remap::execute(
                             }
                             auto [spsv, psrc_valid] = get_host_accessible<CTT_MASK>(src_valid);
 
+                            sync_host_access_any(row, col, weights, src_data, src_valid);
+
                             for (unsigned long q = 0; q < n_weights; ++q)
                                 ptgt[pr[q]] = (psrc_valid[pc[q]] ?
                                     (ptgt[pr[q]] + pw[q] * psrc[pc[q]]) : src_fill_value);
                         }
                         else
                         {
+                            sync_host_access_any(row, col, weights, src_data);
+
                             // the source array didn't provide a _FillValue or
                             // valid value mask. move all of the data
                             for (unsigned long q = 0; q < n_weights; ++q)
@@ -555,6 +559,8 @@ const_p_teca_dataset teca_apply_tempest_remap::execute(
                     // get the target data, and allocate the output
                     auto [ptgt] = data<TT_DATA>(tgt_data);
                     auto [tgt_out, ptgt_out] = ::New<TT_DATA>(tgt_nxyz, fill_value);
+
+                    sync_host_access_any(tgt_valid);
 
                     for (unsigned long q = 0, p = 0; q < tgt_nxyz; ++q)
                     {

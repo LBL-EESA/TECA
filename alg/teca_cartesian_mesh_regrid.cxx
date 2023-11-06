@@ -643,6 +643,10 @@ const_p_teca_dataset teca_cartesian_mesh_regrid::execute(
                         auto [sp_source_a, p_source_a] = get_host_accessible<CTT_DATA>(source_a);
                         auto [p_target_a] = data<TT_DATA>(target_a);
 
+                        sync_host_access_any(target_xc, target_yc, target_zc,
+                                             source_xc, source_yc, source_zc,
+                                             source_a);
+
                         if (interpolate(this->interpolation_mode, target_nx, target_ny, target_nz,
                             p_target_xc, p_target_yc, p_target_zc, p_target_a, p_source_xc,
                             p_source_yc, p_source_zc, p_source_a, source_ihi, source_jhi,

@@ -1064,6 +1064,9 @@ int dispatch(size_t nx, size_t ny, size_t nz,
                 auto [sp_wvv, p_wind_v_valid] = get_host_accessible<CTT_MASK>(wind_v_valid);
                 auto [sp_qv, p_q_valid] = get_host_accessible<CTT_MASK>(q_valid);
 
+                sync_host_access_any(p, wind_u, wind_v, q,
+                                     wind_u_valid, wind_v_valid, q_valid);
+
                 if (use_trapezoid_rule)
                 {
                     cpu::cartesian_ivt_trap(nx, ny, nz, p_p,
@@ -1085,6 +1088,8 @@ int dispatch(size_t nx, size_t ny, size_t nz,
             }
             else
             {
+                sync_host_access_any(p, wind_u, wind_v, q);
+
                 if (use_trapezoid_rule)
                 {
                     cpu::cartesian_ivt_trap(nx, ny, nz, p_p, p_wind_u, p_q, p_ivt_u);

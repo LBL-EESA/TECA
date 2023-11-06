@@ -433,6 +433,7 @@ template <typename image_t>
 void print(const hamr::buffer<image_t> img, int nx, int ny)
 {
     auto [spimg, pimg] = hamr::get_host_accessible(img);
+    img.synchronize();
 
     for (int j = 0; j < ny; ++j)
     {
@@ -452,6 +453,8 @@ void print(const hamr::buffer<image_t> &img, const hamr::buffer<int> &lab, int n
 {
     auto [spimg, pimg] = hamr::get_host_accessible(img);
     auto [splab, plab] = hamr::get_host_accessible(lab);
+
+    img.synchronize();
 
     for (int j = 0; j < ny; ++j)
     {

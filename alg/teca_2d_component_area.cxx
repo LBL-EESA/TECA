@@ -452,7 +452,7 @@ const_p_teca_dataset teca_2d_component_area::execute(
     // our GPU implementation requires contiguous component ids
     if ((device_id >= 0) && !(has_component_ids || this->contiguous_component_ids))
     {
-        TECA_WARNING("Requested executiong on device " << device_id
+        TECA_WARNING("Requested execution on device " << device_id
             << ". Execution moved to host because of non-contiguous"
             " component ids.")
         device_id = -1;
@@ -477,6 +477,9 @@ const_p_teca_dataset teca_2d_component_area::execute(
 #if defined(TECA_HAS_CUDA)
             if (device_id >= 0)
             {
+                if (teca_cuda_util::set_device(device_id))
+                    return nullptr;
+
                 auto [sp_xc, p_xc, sp_yc, p_yc] = get_cuda_accessible<CTT_COORD>(xc, yc);
                 auto [sp_labels, p_labels] = get_cuda_accessible<CTT_LABEL>(component_array);
 
@@ -492,15 +495,16 @@ const_p_teca_dataset teca_2d_component_area::execute(
                 }
                 else
                 {
-                    NT_LABEL max_component_id = thrust::reduce(thrust::device, p_labels, p_labels + nxy,
-                                                               std::numeric_limits<double>::lowest(),
-                                                               thrust::maximum<double>());
+                    auto ep = thrust::cuda::par.on(cudaStreamPerThread);
 
+                    NT_LABEL max_component_id = thrust::reduce(ep, p_labels, p_labels + nxy,
+                                                               std::numeric_limits<NT_LABEL>::lowest(),
+                                                               thrust::maximum<NT_LABEL>());
                     n_labels = max_component_id + 1;
 
                     auto [tmp, ptmp] = ::New<TT_LABEL>(n_labels, allocator::cuda_async);
 
-                    thrust::sequence(thrust::device, ptmp, ptmp + n_labels, NT_LABEL(0), NT_LABEL(1));
+                    thrust::sequence(ep, ptmp, ptmp + n_labels, NT_LABEL(0), NT_LABEL(1));
 
                     component_id = tmp;
                 }
@@ -547,6 +551,9 @@ const_p_teca_dataset teca_2d_component_area::execute(
                     }
 
                     std::vector<NT_CALC> component_area(n_labels);
+
+                    sync_host_access_any(xc, yc, component_array);
+
                     host_impl::component_area(nx,ny, p_xc,p_yc, p_labels, component_area);
 
                     // transfer the result to the output
@@ -558,6 +565,9 @@ const_p_teca_dataset teca_2d_component_area::execute(
                 {
                     // use an associative array to handle any labels
                     std::map<NT_LABEL, NT_CALC> result;
+
+                    sync_host_access_any(xc, yc, component_array);
+
                     host_impl::component_area(nx,ny, p_xc,p_yc, p_labels, result);
 
                     // transfer the result to the output

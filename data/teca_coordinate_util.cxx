@@ -63,6 +63,8 @@ bool equal(const const_p_teca_variant_array &array1,
         auto [spa1, pa1] = get_host_accessible<CTT>(array1);
         auto [spa2, pa2] = get_host_accessible<CTT>(array2);
 
+        sync_host_access_any(array1, array2);
+
         std::string diagnostic;
         for (size_t i = 0; i < n_elem; ++i)
         {
@@ -122,6 +124,8 @@ bool equal(const const_p_teca_variant_array &array1,
 
         auto [spa1, pa1] = get_host_accessible<CTT>(array1);
         auto [spa2, pa2] = get_host_accessible<CTT>(array2);
+
+        sync_host_access_any(array1, array2);
 
         for (size_t i = 0; i < n_elem; ++i)
         {
@@ -195,6 +199,7 @@ int time_step_of(const const_p_teca_variant_array &time,
     VARIANT_ARRAY_DISPATCH_FP_SI(time.get(),
 
         auto [sp_time, p_time] = get_host_accessible<CTT>(time);
+        sync_host_access_any(time);
 
         if (clamp && (t <= p_time[0]))
         {
@@ -360,6 +365,8 @@ int bounds_to_extent(const double *bounds,
         NT high_z = static_cast<NT>(bounds[5]);
         bool slice_z = equal(low_z, high_z, eps8);
 
+        sync_host_access_any(x, y, z);
+
         if (((nx > 1) && (((px[high_i] > px[0]) &&
             (teca_coordinate_util::index_of(px, 0, high_i, low_x, true, extent[0])
             || teca_coordinate_util::index_of(px, 0, high_i, high_x, slice_x, extent[1]))) ||
@@ -403,6 +410,7 @@ int bounds_to_extent(const double *bounds,
     VARIANT_ARRAY_DISPATCH_FP(x.get(),
         unsigned long nx = x->size();
         auto [spx, px] = get_host_accessible<CTT>(x);
+        sync_host_access_any(x);
         return bounds_to_extent(bounds, px, nx, extent);
         )
 

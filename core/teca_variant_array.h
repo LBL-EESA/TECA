@@ -378,6 +378,9 @@ public:
     /// @returns true if the contents are accesisble from CUDA
     virtual int cuda_accessible() const noexcept = 0;
 
+    /// synchronize on the associated stream
+    virtual void synchronize() const = 0;
+
 private:
     template<typename T>
     void get_dispatch(unsigned long i, T &val,

@@ -35,14 +35,14 @@ int main(int argc, char **argv)
     teca_system_interface::set_stack_trace_on_mpi_error();
 
     // parse command line
-    if (argc != 8)
+    if (argc != 9)
     {
         if (rank == 0)
         {
             cerr << endl << "Usage error:" << endl
                 << "test_bayesian_ar_detect [mesh data regex] "
                    "[baseline table] [water vapor var] [out file name] [num threads] "
-                   "[first step] [last step]" << endl << endl;
+                   "[first step] [last step] [verbose]" << endl << endl;
         }
         return -1;
     }
@@ -54,6 +54,7 @@ int main(int argc, char **argv)
     int n_threads = atoi(argv[5]);
     int first_step =  atoi(argv[6]);
     int last_step = atoi(argv[7]);
+    int verbose = atoi(argv[8]);
 
     // create the pipeline
     p_teca_bayesian_ar_detect_parameters parameter_table =
@@ -67,7 +68,7 @@ int main(int argc, char **argv)
     ar_detect->set_input_connection(0, parameter_table->get_output_port());
     ar_detect->set_input_connection(1, mesh_data_reader->get_output_port());
     ar_detect->set_ivt_variable(ivt_var);
-    ar_detect->set_verbose(1);
+    ar_detect->set_verbose(verbose);
     ar_detect->set_thread_pool_size(n_threads);
 
     p_teca_binary_segmentation seg = teca_binary_segmentation::New();
@@ -107,10 +108,14 @@ int main(int argc, char **argv)
     map_reduce->set_verbose(0);
     map_reduce->set_thread_pool_size(1);
 
-    // sort results in time
+    // sort by area since the GPU and CPU versions generate different label ids
     p_teca_table_sort sort = teca_table_sort::New();
     sort->set_input_connection(map_reduce->get_output_port());
-    sort->set_index_column("global_component_ids");
+    sort->set_index_column("component_area");
+    //sort->set_ascending_order(1);
+
+    p_teca_table_to_stream tts = teca_table_to_stream::New();
+    tts->set_input_connection(sort->get_output_port());
 
     bool do_test = true;
     teca_system_util::get_environment_variable("TECA_DO_TEST", do_test);
@@ -120,9 +125,16 @@ int main(int argc, char **argv)
         p_teca_table_reader baseline_table_reader = teca_table_reader::New();
         baseline_table_reader->set_file_name(baseline_table);
 
+        p_teca_table_sort baseline_sort = teca_table_sort::New();
+        baseline_sort->set_input_connection(baseline_table_reader->get_output_port());
+        baseline_sort->set_index_column("component_area");
+
+        p_teca_table_to_stream baseline_tts = teca_table_to_stream::New();
+        baseline_tts->set_input_connection(baseline_sort->get_output_port());
+
         p_teca_dataset_diff diff = teca_dataset_diff::New();
-        diff->set_input_connection(0, baseline_table_reader->get_output_port());
-        diff->set_input_connection(1, sort->get_output_port());
+        diff->set_input_connection(0, baseline_tts->get_output_port());
+        diff->set_input_connection(1, tts->get_output_port());
 
         diff->update();
     }
@@ -131,9 +143,6 @@ int main(int argc, char **argv)
         // make a baseline
         if (rank == 0)
             cerr << "generating baseline image " << baseline_table << endl;
-
-        p_teca_table_to_stream tts = teca_table_to_stream::New();
-        tts->set_input_connection(sort->get_output_port());
 
         p_teca_table_writer table_writer = teca_table_writer::New();
         table_writer->set_input_connection(tts->get_output_port());

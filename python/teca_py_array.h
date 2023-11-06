@@ -429,6 +429,10 @@ PyArrayObject *new_object(teca_variant_array_impl<NT> *varrt, bool deep_copy = f
 
         // deep copy the data
         auto spvarrt = varrt->get_host_accessible();
+
+        if (!varrt->host_accessible())
+            varrt->synchronize();
+
         const NT *pvarrt = spvarrt.get();
         memcpy(mem, pvarrt, n_bytes);
 
@@ -448,7 +452,6 @@ PyArrayObject *new_object(teca_variant_array_impl<NT> *varrt, bool deep_copy = f
         // get a pointer to the data
         ptr_t *ptr = new ptr_t(std::move(varrt->get_host_accessible()));
 
-
         // create a new numpy array passing the pointer to the data to share
         npy_intp n_elem = varrt->size();
 
@@ -463,6 +466,9 @@ PyArrayObject *new_object(teca_variant_array_impl<NT> *varrt, bool deep_copy = f
 
         PyArray_ENABLEFLAGS(obj, NPY_ARRAY_NOTSWAPPED |
             NPY_ARRAY_ALIGNED | NPY_ARRAY_C_CONTIGUOUS);
+
+        if (!varrt->host_accessible())
+            varrt->synchronize();
 
 #if defined(TECA_DEBUG)
         std::cerr << "new_object (zero copy) " << size_t(ptr->get()) << std::endl;

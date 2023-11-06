@@ -309,6 +309,8 @@ const_p_teca_dataset teca_vertical_coordinate_transform::execute(
                 auto [spyi, pyi] = get_host_accessible<CTT>(yi);
                 auto [speta, peta] = get_host_accessible<CTT>(eta);
 
+                sync_host_access_any(pt, ps, xi, yi, eta);
+
                 ::transform_wrf_v3(nx, ny, nz, nxy, pxi, pyi,
                     peta, pps, ppt[0], pxo, pyo, pph);
 

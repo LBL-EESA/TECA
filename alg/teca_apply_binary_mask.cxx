@@ -308,6 +308,8 @@ const_p_teca_dataset teca_apply_binary_mask::execute(
                 auto [sp_in, p_in] = get_host_accessible<CTT_VAR>(input_array);
                 auto [p_out] = data<TT_VAR>(output_array);
 
+                sync_host_access_any(mask_array, input_array);
+
                 internal::apply_mask(p_out, p_mask, p_in, n);
                 )
 

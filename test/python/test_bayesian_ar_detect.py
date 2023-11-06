@@ -76,10 +76,13 @@ map_reduce.set_end_index(last_step)
 map_reduce.set_verbose(0)
 map_reduce.set_thread_pool_size(1)
 
-# sort results in time
+# sort by area since the GPU and CPU versions generate different label ids
 sort = teca_table_sort.New()
 sort.set_input_connection(map_reduce.get_output_port())
-sort.set_index_column('global_component_ids')
+sort.set_index_column("component_area")
+
+tts = teca_table_to_stream.New()
+tts.set_input_connection(sort.get_output_port())
 
 do_test = system_util.get_environment_variable_bool('TECA_DO_TEST', True)
 if do_test and os.path.exists(baseline_table):
@@ -87,18 +90,24 @@ if do_test and os.path.exists(baseline_table):
     baseline_table_reader = teca_table_reader.New()
     baseline_table_reader.set_file_name(baseline_table)
 
+    baseline_sort = teca_table_sort.New()
+    baseline_sort.set_input_connection(baseline_table_reader.get_output_port())
+    baseline_sort.set_index_column("component_area")
+
+    baseline_tts = teca_table_to_stream.New()
+    baseline_tts.set_input_connection(baseline_sort.get_output_port())
+
     diff = teca_dataset_diff.New()
-    diff.set_input_connection(0, baseline_table_reader.get_output_port())
-    diff.set_input_connection(1, sort.get_output_port())
+    diff.set_input_connection(0, baseline_tts.get_output_port())
+    diff.set_input_connection(1, tts.get_output_port())
+
     diff.update()
+
 else:
     # make a baseline
     if rank == 0:
         sys.stderr.write('generating baseline image ' + baseline_table + '\n')
         sys.stderr.flush()
-
-    tts = teca_table_to_stream.New()
-    tts.set_input_connection(sort.get_output_port())
 
     table_writer = teca_table_writer.New()
     table_writer.set_input_connection(tts.get_output_port())

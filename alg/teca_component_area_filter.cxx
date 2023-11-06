@@ -361,7 +361,8 @@ const_p_teca_dataset teca_component_area_filter::execute(
         }
     }
 
-    // get threshold values
+    // get threshold values. these may be passed from a downstream algorithm
+    // as in the case of the TECA BARD
     double low_val = this->low_area_threshold;
     if (low_val == std::numeric_limits<double>::lowest()
         && request.has("low_area_threshold"))
@@ -430,6 +431,9 @@ const_p_teca_dataset teca_component_area_filter::execute(
 #if defined(TECA_HAS_CUDA)
             if (device_id >= 0)
             {
+                if (teca_cuda_util::set_device(device_id))
+                    return nullptr;
+
                 // get the inputs
                 auto [sp_labels_in, p_labels_in] = get_cuda_accessible<CTT_LABEL>(labels_in);
                 auto [sp_ids_in, p_ids_in] = get_cuda_accessible<CTT_LABEL>(ids_in);
@@ -460,6 +464,8 @@ const_p_teca_dataset teca_component_area_filter::execute(
                 auto [sp_labels_in, p_labels_in] = get_host_accessible<CTT_LABEL>(labels_in);
                 auto [sp_ids_in, p_ids_in] = get_host_accessible<CTT_LABEL>(ids_in);
                 auto [sp_areas_in, p_areas_in] = get_host_accessible<CTT_AREA>(areas_in);
+
+                sync_host_access_any(labels_in, ids_in, areas_in);
 
                 // if we have labels with small values we can speed the calculation by
                 // using a contiguous buffer to hold the map. otherwise we need to
@@ -504,20 +510,21 @@ const_p_teca_dataset teca_component_area_filter::execute(
             )
         )
 
-        // correct the size of the output
-        ids_out->resize(n_ids_out);
-        areas_out->resize(n_ids_out);
+    // correct the size of the output
+    ids_out->resize(n_ids_out);
+    areas_out->resize(n_ids_out);
 
-        // pass the updated set of component ids and their coresponding areas
-        // to the output
-        out_metadata.set(this->number_of_components_key + this->variable_postfix, n_ids_out);
-        out_metadata.set(this->component_ids_key + this->variable_postfix, ids_out);
-        out_metadata.set(this->component_area_key + this->variable_postfix, areas_out);
-        out_metadata.set("background_id" + this->variable_postfix, mask_value);
+    // pass the updated set of component ids and their coresponding areas
+    // to the output
+    out_metadata.set(this->number_of_components_key + this->variable_postfix, n_ids_out);
+    out_metadata.set(this->component_ids_key + this->variable_postfix, ids_out);
+    out_metadata.set(this->component_area_key + this->variable_postfix, areas_out);
+    out_metadata.set("background_id" + this->variable_postfix, mask_value);
 
-        // pass the threshold values used
-        out_metadata.set("low_area_threshold_km", low_val);
-        out_metadata.set("high_area_threshold_km", high_val);
+    // pass the threshold values used
+    out_metadata.set("low_area_threshold_km", low_val);
+    out_metadata.set("high_area_threshold_km", high_val);
+
 
     return out_mesh;
 }

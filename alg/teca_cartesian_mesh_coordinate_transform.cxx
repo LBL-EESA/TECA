@@ -138,6 +138,8 @@ void teca_cartesian_mesh_coordinate_transform::internals_t::transform_axes(
                 auto [sp_ax_in, p_ax_in] = get_host_accessible<CTT>(ax_in);
                 auto [p_ax_out] = data<TT>(ax_out);
 
+                sync_host_access_any(ax_in);
+
                 // transform the axis
                 teca_cartesian_mesh_coordinate_transform::internals_t::transform_axis(
                     p_ax_out, p_ax_in, ax_size, NT(tgt_bounds[0]), NT(tgt_bounds[1]));

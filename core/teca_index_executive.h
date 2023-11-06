@@ -90,6 +90,9 @@ public:
     /// Set the list of arrays to process
     void set_arrays(const std::vector<std::string> &arrays);
 
+    /// Set the list of devices to assign work to
+    void set_device_ids(const std::vector<int> &device_ids);
+
 protected:
     teca_index_executive();
 
@@ -103,6 +106,7 @@ private:
     std::vector<unsigned long> extent;
     std::vector<double> bounds;
     std::vector<std::string> arrays;
+    std::vector<int> device_ids;
 };
 
 #endif

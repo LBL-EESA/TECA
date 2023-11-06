@@ -85,6 +85,8 @@ int dispatch(const p_teca_variant_array &in_array,
 
                     auto [sp_mask, p_mask] = get_host_accessible<TT_MASK>(mask);
 
+                    sync_host_access_any(in_array, mask);
+
                     cpu::transform(p_out, p_in, p_mask,
                         n_elem, NT_OUT(scale), NT_OUT(offset), NT_OUT(1e20));
                     )
@@ -92,6 +94,7 @@ int dispatch(const p_teca_variant_array &in_array,
             }
             else
             {
+                sync_host_access_any(in_array);
                 cpu::transform(p_out, p_in, n_elem, NT_OUT(scale), NT_OUT(offset));
             }
             )
@@ -528,6 +531,9 @@ const_p_teca_dataset teca_unpack_data::execute(
     request.get("device_id", device_id);
     if (device_id >= 0)
     {
+        if (teca_cuda_util::set_device(device_id))
+            return nullptr;
+
         if (cuda_gpu::dispatch(device_id, in_array, mask, scale,
             offset, out_array, this->output_data_type))
         {

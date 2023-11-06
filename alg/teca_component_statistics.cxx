@@ -150,6 +150,8 @@ const_p_teca_dataset teca_component_statistics::execute(
 
         auto [spcid, pcid] = get_host_accessible<CTT>(component_ids);
 
+        sync_host_access_any(component_ids);
+
         unsigned long base = s*1000000;
         for (unsigned long i = 0; i < n_comps; ++i)
             pgcid[i] = base + pcid[i];

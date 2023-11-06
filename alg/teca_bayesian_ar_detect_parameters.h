@@ -23,6 +23,13 @@ public:
     TECA_GET_ALGORITHM_PROPERTIES_DESCRIPTION()
     TECA_SET_ALGORITHM_PROPERTIES()
 
+    /** @name row_offset
+     * control the first row in the parameter table. default 0.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(long, row_offset)
+    ///@}
+
     /** @name number_of_rows
      * control the number of rows copied into the table.  The rows are copied
      * in sequential order starting from row zero. The default value of -1 is
@@ -51,6 +58,7 @@ private:
     void set_modified() override;
 
 private:
+    long row_offset;
     long number_of_rows;
 
     struct internals_t;

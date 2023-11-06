@@ -25,6 +25,9 @@
 
 #if defined(TECA_HAS_CUDA)
 #include "teca_cuda_thread_pool.h"
+#include "teca_cuda_util.h"
+#include <cuda.h>
+#include <cuda_runtime.h>
 #else
 #include "teca_cpu_thread_pool.h"
 #endif
@@ -43,40 +46,59 @@
 using namespace teca_variant_array_util;
 using allocator = teca_variant_array::allocator;
 
-namespace {
-
-// This routine appends the contents of dataset_0.get_metadata.get(property_name)
-// onto that from dataset_0 and overwrites the contents `property_name' in the
-// metadata of mesh_out.
-//
-//   property_name : (std::string) the key of the metadata property in
-//                   dataset_* on which to do the reduction
-//
-//   dataset_0     : (p_teca_dataset) the LHS dataset in the reduction
-//
-//   dataset_1     : (p_teca_dataset) the RHS dataset in the reduction
-//
-//   mesh_out      : (p_teca_cartesian_mesh) the output of the reduction
-/*void property_reduce(std::string property_name,
-    p_teca_dataset dataset_0, p_teca_dataset dataset_1,
-    p_teca_cartesian_mesh mesh_out)
+#if defined(TECA_HAS_CUDA)
+namespace cuda_impl
 {
-    // declare the LHS and RHS property vectors
-    std::vector<double> property_vector_0;
-    std::vector<double> property_vector_1;
+template <typename NT_PROB>
+__global__
+void finalize_probs(NT_PROB *probs, NT_PROB num_params, size_t n_elem)
+{
+    for (int i = threadIdx.x + blockIdx.x * blockDim.x;
+         i < n_elem; i += blockDim.x * gridDim.x)
+    {
+        probs[i] /= num_params;
+    }
+}
 
-    // get the property vectors from the metadata of the LHS and RHS datasets
-    dataset_0->get_metadata().get(property_name, property_vector_0);
-    dataset_1->get_metadata().get(property_name, property_vector_1);
+template <typename NT_PROB>
+__global__
+void reduce_probs(NT_PROB *probs, const NT_PROB *probs_1, size_t n_elem)
+{
+    for (int i = threadIdx.x + blockIdx.x * blockDim.x;
+         i < n_elem; i += blockDim.x * gridDim.x)
+    {
+        probs[i] += probs_1[i];
+    }
+}
 
-    // construct the output property vector by concatenating LHS and RHS vectors
-    std::vector<double> property_vector(property_vector_0);
-    property_vector.insert(property_vector.end(), property_vector_1.begin(),
-        property_vector_1.end());
+template <typename NT_PROB, typename NT_WVCC>
+__global__
+void initialize_probs(NT_PROB *probs, const NT_WVCC *wvcc, size_t n_elem)
+{
+    for (int i = threadIdx.x + blockIdx.x * blockDim.x;
+         i < n_elem; i += blockDim.x * gridDim.x)
+    {
+        probs[i] += (wvcc[i] > 0 ? NT_PROB(1) : NT_PROB(0));
+    }
+}
 
-    // Overwrite the concatenated property vector in the output dataset
-    mesh_out->get_metadata().set(property_name, property_vector);
-}*/
+
+template <typename NT_PROB, typename NT_WVCC>
+__global__
+void initialize_probs(NT_PROB *probs, const NT_WVCC *wvcc_0,
+                      const NT_WVCC *wvcc_1, size_t n_elem)
+{
+    for (int i = threadIdx.x + blockIdx.x * blockDim.x;
+         i < n_elem; i += blockDim.x * gridDim.x)
+    {
+        probs[i] = ((wvcc_0[i] > 0 ? NT_PROB(1) : NT_PROB(0))
+                    + (wvcc_1[i] > 0 ? NT_PROB(1) : NT_PROB(0)));
+    }
+}
+}
+#endif
+
+namespace {
 
 // drive the pipeline execution once for each parameter table row
 // injects the parameter values into the upstream requests
@@ -157,6 +179,7 @@ public:
     }
 };
 
+
 // does the reduction of each pipeline execution over each parameter
 // table row
 class parameter_table_reduction
@@ -179,7 +202,17 @@ public:
     p_teca_dataset operator()(int device_id, const const_p_teca_dataset &ds)
     {
         (void) device_id;
+        allocator alloc = allocator::malloc;
+#if defined(TECA_HAS_CUDA)
+        if (device_id >= 0)
+        {
+            alloc = allocator::cuda_async;
 
+            if (teca_cuda_util::set_device(device_id))
+                return nullptr;
+        }
+        cudaError_t ierr;
+#endif
         p_teca_cartesian_mesh out_mesh =
             std::dynamic_pointer_cast<teca_cartesian_mesh>(ds->new_instance());
 
@@ -195,7 +228,7 @@ public:
             return nullptr;
         }
 
-        p_teca_variant_array ar_prob = ar_prob_in->new_copy();
+        p_teca_variant_array ar_prob = ar_prob_in->new_copy(alloc);
 
         unsigned long n_vals = ar_prob->size();
 
@@ -205,8 +238,29 @@ public:
 
             auto [p_ar_prob] = data<TT>(ar_prob);
 
-            for (unsigned long i = 0; i < n_vals; ++i)
-                p_ar_prob[i] /= num_params;
+#if defined(TECA_HAS_CUDA)
+            if (device_id >= 0)
+            {
+                assert(ar_prob->cuda_accessible());
+                auto [nb, nt] = teca_cuda_util::partition_thread_blocks_1d(256, n_vals);
+                cuda_impl::finalize_probs<<<nb,nt>>>(p_ar_prob, num_params, n_vals);
+                if ((ierr = cudaGetLastError()) != cudaSuccess)
+                {
+                    TECA_FATAL_ERROR("Failed to launch the finalize kernel. "
+                        << cudaGetErrorString(ierr))
+                    return nullptr;
+                }
+            }
+            else
+            {
+#endif
+                for (unsigned long i = 0; i < n_vals; ++i)
+                {
+                    p_ar_prob[i] /= num_params;
+                }
+#if defined(TECA_HAS_CUDA)
+            }
+#endif
             )
 
         out_mesh->get_point_arrays()->set(
@@ -223,10 +277,18 @@ public:
         const const_p_teca_dataset &right)
     {
         (void) device_id;
-
         using NT_PROB = float;
         using TT_PROB = teca_variant_array_impl<float>;
-
+        allocator alloc = allocator::malloc;
+#if defined(TECA_HAS_CUDA)
+        cudaError_t ierr = cudaSuccess;
+        if (device_id >= 0)
+        {
+            alloc = allocator::cuda_async;
+            if (teca_cuda_util::set_device(device_id))
+                return nullptr;
+        }
+#endif
         // the inputs will not be modified. we are going to make shallow
         // copy, and add an array
         p_teca_dataset dataset_0 = std::const_pointer_cast<teca_dataset>(left);
@@ -258,13 +320,34 @@ public:
                 // both inputs already have probablilty computed, reduction takes
                 // their sum
                 unsigned long n_vals = prob_0->size();
-                prob_out = prob_0->new_copy();
+                prob_out = prob_0->new_copy(alloc);
                 VARIANT_ARRAY_DISPATCH_FP(prob_out.get(),
 
                     auto [p_prob_out, p_prob_1] = data<TT>(prob_out, prob_1);
-
-                    for (unsigned long i = 0; i < n_vals; ++i)
-                        p_prob_out[i] += p_prob_1[i];
+#if defined(TECA_HAS_CUDA)
+                    if (device_id >= 0)
+                    {
+                        assert(prob_0->cuda_accessible() && prob_1->cuda_accessible());
+                        auto [nb, nt] = teca_cuda_util::partition_thread_blocks_1d(256, n_vals);
+                        cuda_impl::reduce_probs<<<nb,nt>>>(p_prob_out, p_prob_1, n_vals);
+                        if ((ierr = cudaGetLastError()) != cudaSuccess)
+                        {
+                            TECA_FATAL_ERROR("Failed to launch reduce kernel. "
+                              << cudaGetErrorString(ierr))
+                            return nullptr;
+                        }
+                    }
+                    else
+                    {
+#endif
+                        assert(prob_0->host_accessible() && prob_1->host_accessible());
+                        for (unsigned long i = 0; i < n_vals; ++i)
+                        {
+                            p_prob_out[i] += p_prob_1[i];
+                        }
+#if defined(TECA_HAS_CUDA)
+                    }
+#endif
                     )
 
                 // concatenate ar couunt and parameter table row
@@ -369,16 +452,40 @@ public:
 
                 // do the calculation
                 unsigned long n_vals = prob->size();
-                prob_out = prob->new_copy();
+                prob_out = prob->new_copy(alloc);
 
                 NESTED_VARIANT_ARRAY_DISPATCH_I(
                     wvcc.get(), _COMP,
 
-                    auto [sp_wvcc, p_wvcc] = get_host_accessible<TT_COMP>(wvcc);
                     auto [p_prob_out] = data<TT_PROB>(prob_out);
 
-                    for (unsigned long i = 0; i < n_vals; ++i)
-                        p_prob_out[i] += (p_wvcc[i] > 0 ? NT_PROB(1) : NT_PROB(0));
+#if defined(TECA_HAS_CUDA)
+                    if (device_id >= 0)
+                    {
+                        auto [sp_wvcc, p_wvcc] = get_cuda_accessible<TT_COMP>(wvcc);
+                        auto [nb, nt] = teca_cuda_util::partition_thread_blocks_1d(256, n_vals);
+                        cuda_impl::initialize_probs<<<nb,nt>>>(p_prob_out, p_wvcc, n_vals);
+                        if ((ierr = cudaGetLastError()) != cudaSuccess)
+                        {
+                            TECA_FATAL_ERROR("Failed to launch the initialize kernel. "
+                              << cudaGetErrorString(ierr))
+                            return nullptr;
+                        }
+                    }
+                    else
+                    {
+#endif
+                        auto [sp_wvcc, p_wvcc] = get_host_accessible<TT_COMP>(wvcc);
+
+                        sync_host_access_any(wvcc);
+
+                        for (unsigned long i = 0; i < n_vals; ++i)
+                        {
+                            p_prob_out[i] += (p_wvcc[i] > 0 ? NT_PROB(1) : NT_PROB(0));
+                        }
+#if defined(TECA_HAS_CUDA)
+                    }
+#endif
                     )
             }
             else
@@ -395,19 +502,40 @@ public:
                 unsigned long n_vals = wvcc_0->size();
 
                 NT_PROB *p_prob_out = nullptr;
-                std::tie(prob_out, p_prob_out) = ::New<TT_PROB>(n_vals);
+                std::tie(prob_out, p_prob_out) = ::New<TT_PROB>(n_vals, alloc);
 
                 NESTED_VARIANT_ARRAY_DISPATCH_I(
                     wvcc_0.get(), _COMP,
-
-                    auto [sp_wvcc_0, p_wvcc_0] = get_host_accessible<TT_COMP>(wvcc_0);
-                    auto [sp_wvcc_1, p_wvcc_1] = get_host_accessible<TT_COMP>(wvcc_1);
-
-                    for (unsigned long i = 0; i < n_vals; ++i)
+#if defined(TECA_HAS_CUDA)
+                    if (device_id >= 0)
                     {
-                        p_prob_out[i] = (p_wvcc_0[i] > 0 ? NT_PROB(1) : NT_PROB(0)) +
-                             (p_wvcc_1[i] > 0 ? NT_PROB(1) : NT_PROB(0));
+                        auto [sp_wvcc_0, p_wvcc_0] = get_cuda_accessible<TT_COMP>(wvcc_0);
+                        auto [sp_wvcc_1, p_wvcc_1] = get_cuda_accessible<TT_COMP>(wvcc_1);
+                        auto [nb, nt] = teca_cuda_util::partition_thread_blocks_1d(256, n_vals);
+                        cuda_impl::initialize_probs<<<nb,nt>>>(p_prob_out, p_wvcc_0, p_wvcc_1, n_vals);
+                        if ((ierr = cudaGetLastError()) != cudaSuccess)
+                        {
+                            TECA_FATAL_ERROR("Failed to launch the initialize kernel. "
+                                << cudaGetErrorString(ierr))
+                            return nullptr;
+                        }
                     }
+                    else
+                    {
+#endif
+                        auto [sp_wvcc_0, p_wvcc_0] = get_host_accessible<TT_COMP>(wvcc_0);
+                        auto [sp_wvcc_1, p_wvcc_1] = get_host_accessible<TT_COMP>(wvcc_1);
+
+                        sync_host_access_any(wvcc_0, wvcc_1);
+
+                        for (unsigned long i = 0; i < n_vals; ++i)
+                        {
+                            p_prob_out[i] = (p_wvcc_0[i] > 0 ? NT_PROB(1) : NT_PROB(0)) +
+                                 (p_wvcc_1[i] > 0 ? NT_PROB(1) : NT_PROB(0));
+                        }
+#if defined(TECA_HAS_CUDA)
+                    }
+#endif
                     )
 
                 // append ar count
@@ -493,15 +621,37 @@ public:
                 unsigned long n_vals = wvcc->size();
 
                 NT_PROB *p_prob_out = nullptr;
-                std::tie(prob_out, p_prob_out) = ::New<TT_PROB>(n_vals);
+                std::tie(prob_out, p_prob_out) = ::New<TT_PROB>(n_vals, alloc);
 
                 NESTED_VARIANT_ARRAY_DISPATCH_I(
                     wvcc.get(), _COMP,
+#if defined(TECA_HAS_CUDA)
+                    if (device_id >= 0)
+                    {
+                        auto [sp_wvcc, p_wvcc] = get_cuda_accessible<TT_COMP>(wvcc);
+                        auto [nb, nt] = teca_cuda_util::partition_thread_blocks_1d(256, n_vals);
+                        cuda_impl::initialize_probs<<<nb,nt>>>(p_prob_out, p_wvcc, n_vals);
+                        if ((ierr = cudaGetLastError()) != cudaSuccess)
+                        {
+                            TECA_FATAL_ERROR("Failed to launch the initialize kernel. "
+                                << cudaGetErrorString(ierr))
+                            return nullptr;
+                        }
+                    }
+                    else
+                    {
+#endif
+                        auto [sp_wvcc, p_wvcc] = get_host_accessible<TT_COMP>(wvcc);
 
-                    auto [sp_wvcc, p_wvcc] = get_host_accessible<TT_COMP>(wvcc);
+                        sync_host_access_any(wvcc);
 
-                    for (unsigned long i = 0; i < n_vals; ++i)
-                        p_prob_out[i] = (p_wvcc[i] > 0 ? NT_PROB(1) : NT_PROB(0));
+                        for (unsigned long i = 0; i < n_vals; ++i)
+                        {
+                            p_prob_out[i] = (p_wvcc[i] > 0 ? NT_PROB(1) : NT_PROB(0));
+                        }
+#if defined(TECA_HAS_CUDA)
+                    }
+#endif
                     )
 
                 // get ar counts from metadata and pass into the information
@@ -569,9 +719,190 @@ private:
     std::string probability_array_name; // output
 };
 
+
+// serves data to the internal pipeline
+class parameter_table_reduction_source
+{
+public:
+    parameter_table_reduction_source(const teca_metadata &md,
+                                     const p_teca_cartesian_mesh &mesh) :
+                                     m_md(md), m_mesh(mesh) {}
+
+    // metadata phase, pass the incoming metadata through
+    teca_metadata operator()(unsigned int,
+                             const std::vector<teca_metadata>&)
+    {
+        return m_md;
+    }
+
+    // exetute phase, serve the mesh for this pass. one pass per parammeter
+    // table row. store the parameter table row to idnetify this pass
+    const_p_teca_dataset operator()(unsigned int,
+                                    const std::vector<const_p_teca_dataset> &,
+                                    const teca_metadata &req)
+    {
+         int row_id = 0;
+         if (req.get("row_id", row_id))
+         {
+             TECA_ERROR("failed to get parameter table row")
+             return nullptr;
+         }
+
+         p_teca_dataset out_mesh = m_mesh->new_instance();
+         out_mesh->shallow_copy(m_mesh);
+         out_mesh->get_metadata().set("parameter_table_row", row_id);
+
+         return out_mesh;
+     }
+
+private:
+    teca_metadata m_md;           // control metadata
+    p_teca_cartesian_mesh m_mesh; // incoming dataset
+
+};
+
+// the detector pipeline. this lets us construct the pipeline once per thread
+// and update per-step data structures during the run.
+struct bard_pipeline
+{
+    // pipeline stages
+    p_teca_programmable_algorithm m_dss;
+    p_teca_latitude_damper m_latf;
+    p_teca_binary_segmentation m_seg;
+    p_teca_connected_components m_cc;
+    p_teca_2d_component_area m_ca;
+    p_teca_component_area_filter m_caf;
+    p_teca_programmable_algorithm m_rgen;
+    p_teca_programmable_reduce m_red;
+    p_teca_dataset_capture m_dc;
+    teca_metadata m_exec_md;
+
+    // build the pipeline. call this once per thread.
+    // NOTE: this is not thread safe because of MPI collectives
+    void build(int device_id,
+               const p_teca_data_request_queue &queue,
+               unsigned int parameter_table_size,
+               const const_p_teca_variant_array &hwhm_latitude,
+               const const_p_teca_variant_array &min_ivt,
+               const const_p_teca_variant_array &min_component_area,
+               const std::string &ivt_variable,
+               const std::string &ar_probability_variable)
+    {
+        m_dss = teca_programmable_algorithm::New();
+        m_dss->set_name("dataset_source");
+        m_dss->set_communicator(MPI_COMM_SELF);
+        m_dss->set_number_of_input_connections(0);
+        m_dss->set_number_of_output_ports(1);
+
+        // set up the filtering stages. these extract control parameters
+        // which are served up from the parameter table from the incoming request
+        m_latf = teca_latitude_damper::New();
+        m_latf->set_communicator(MPI_COMM_SELF);
+        m_latf->set_input_connection(m_dss->get_output_port());
+        m_latf->set_damped_variables({ivt_variable});
+
+        m_seg = teca_binary_segmentation::New();
+        m_seg->set_communicator(MPI_COMM_SELF);
+        m_seg->set_input_connection(m_latf->get_output_port());
+        m_seg->set_threshold_variable(ivt_variable);
+        m_seg->set_segmentation_variable("wv_seg");
+        m_seg->set_threshold_by_percentile();
+
+        m_cc = teca_connected_components::New();
+        m_cc->set_communicator(MPI_COMM_SELF);
+        m_cc->set_input_connection(m_seg->get_output_port());
+        m_cc->set_segmentation_variable("wv_seg");
+        m_cc->set_component_variable("wv_cc");
+
+        m_ca = teca_2d_component_area::New();
+        m_ca->set_communicator(MPI_COMM_SELF);
+        m_ca->set_input_connection(m_cc->get_output_port());
+        m_ca->set_component_variable("wv_cc");
+        m_ca->set_contiguous_component_ids(1);
+
+        m_caf = teca_component_area_filter::New();
+        m_caf->set_communicator(MPI_COMM_SELF);
+        m_caf->set_input_connection(m_ca->get_output_port());
+        m_caf->set_component_variable("wv_cc");
+        m_caf->set_contiguous_component_ids(1);
+
+        // the executive will loop over table rows, the top of the pipeline
+        // will ignore the incoming request which is for a specific table row
+        // and always pass the input mesh down stream
+        parameter_table_request_generator request_gen(parameter_table_size,
+                                                      hwhm_latitude, min_ivt,
+                                                      min_component_area);
+
+        request_gen.initialize_index_executive(m_exec_md);
+
+        // set up the request generator. 1 request per parameter table row is
+        // generated. the request is populated with values in columns of that row
+        m_rgen = teca_programmable_algorithm::New();
+        m_rgen->set_name("request_generator");
+        m_rgen->set_communicator(MPI_COMM_SELF);
+        m_rgen->set_number_of_input_connections(1);
+        m_rgen->set_number_of_output_ports(1);
+        m_rgen->set_input_connection(m_caf->get_output_port());
+        m_rgen->set_request_callback(request_gen);
+
+        // set up the reduction which computes the average over runs of all control
+        // parameter combinations provided in the parameter table
+        ::parameter_table_reduction reduce(parameter_table_size,
+                                           "wv_cc", ar_probability_variable);
+
+        m_red = teca_programmable_reduce::New();
+        m_red->set_name("parameter_table_reduce");
+        m_red->set_communicator(MPI_COMM_SELF);
+        m_red->set_input_connection(m_rgen->get_output_port());
+        m_red->set_stream_size(2);
+        m_red->set_verbose(0);
+        m_red->set_data_request_queue(queue);
+        m_red->set_reduce_callback(reduce);
+        m_red->set_finalize_callback(reduce);
+
+        // pipeline control
+        auto exec = teca_index_executive::New();
+        exec->set_device_ids({device_id});
+
+        // extract the result
+        m_dc = teca_dataset_capture::New();
+        m_dc->set_communicator(MPI_COMM_SELF);
+        m_dc->set_input_connection(m_red->get_output_port());
+        m_dc->set_executive(exec);
+    }
+
+    // update step/thread data structures
+    void set_input_data(const p_teca_cartesian_mesh &mesh)
+    {
+        parameter_table_reduction_source source(m_exec_md, mesh);
+        m_dss->set_report_callback(source);
+        m_dss->set_execute_callback(source);
+    }
+
+    // run the pipeline
+    p_teca_cartesian_mesh execute()
+    {
+        m_dc->update();
+        return std::dynamic_pointer_cast<teca_cartesian_mesh>(
+            std::const_pointer_cast<teca_dataset>(m_dc->get_dataset()));
+    }
+
+    // set the verbosity level of the pipeline
+    void set_verbose(int val)
+    {
+        m_dss->set_verbose(val);
+        m_latf->set_verbose(val);
+        m_seg->set_verbose(val);
+        m_cc->set_verbose(val);
+        m_ca->set_verbose(val);
+        m_caf->set_verbose(val);
+        m_rgen->set_verbose(val);
+        m_red->set_verbose(val);
+        m_dc->set_verbose(val);
+        m_dc->get_executive()->set_verbose(val);
+    }
+};
 }
-
-
 
 // PIMPL idiom hides internals
 struct teca_bayesian_ar_detect::internals_t
@@ -584,8 +915,11 @@ struct teca_bayesian_ar_detect::internals_t
     teca_algorithm_output_port parameter_pipeline_port; // pipeline that serves up tracks
     const_p_teca_table parameter_table;                 // parameter table
     teca_metadata metadata;                             // cached metadata
-    p_teca_data_request_queue queue;                    // thread pool
+    p_teca_data_request_queue queue;                    // thread pool (CUDA or CPU)
+    std::map<std::thread::id, bard_pipeline> pipelines; // a pipeline for each thread
+    std::mutex pipeline_mutex;                          // protects the pipeline collection
 };
+
 
 // --------------------------------------------------------------------------
 teca_bayesian_ar_detect::internals_t::internals_t()
@@ -600,6 +934,7 @@ void teca_bayesian_ar_detect::internals_t::clear()
 {
     this->metadata.clear();
     this->parameter_table = nullptr;
+    pipelines.clear();
 }
 
 // --------------------------------------------------------------------------
@@ -608,7 +943,9 @@ teca_bayesian_ar_detect::teca_bayesian_ar_detect() :
     min_ivt_variable("min_water_vapor"),
     hwhm_latitude_variable("hwhm_latitude"),
     ar_probability_variable("ar_probability"),
-    thread_pool_size(1),
+    thread_pool_size(-1),
+    bind_threads(1), stream_size(2), poll_interval(1000000),
+    threads_per_device(-1), ranks_per_device(1), propagate_device_assignment(0),
     internals(new internals_t)
 {
     this->set_number_of_input_connections(1);
@@ -644,8 +981,27 @@ void teca_bayesian_ar_detect::get_properties_description(
             "half width at half max latitude mask value.")
         TECA_POPTS_GET(std::string, prefix, ar_probability_variable,
             "Set the name of the variable to store the computed AR probability in.")
+        TECA_POPTS_GET(int, prefix, bind_threads,
+            "bind software threads to hardware cores")
         TECA_POPTS_GET(int, prefix, thread_pool_size,
-            "Set the number of threads to parallelize execution over.")
+            "number of threads in pool. When n == -1, 1 thread per core is "
+            "created")
+        TECA_POPTS_GET(int, prefix, stream_size,
+            "number of datasests to pass per execute call. -1 means wait "
+            "for all.")
+        TECA_POPTS_GET(long long, prefix, poll_interval,
+            "number of nanoseconds to wait between scans of the thread pool "
+            "for completed tasks")
+        TECA_POPTS_GET(int, prefix, threads_per_device,
+            "Sets the number of threads that service each CUDA GPU. If -1 the "
+            "default of 8 threads per CUDA GPU is used. If 0 only the CPU is used.")
+        TECA_POPTS_GET(int, prefix, ranks_per_device,
+            "Sets the number of threads that service each CUDA GPU. If -1 the "
+            "default of ranks allowed to access each GPU.")
+        TECA_POPTS_GET(int, prefix, propagate_device_assignment,
+            "When set device assignment is taken from the in coming request. "
+            "Otherwise the thread executing the upstream pipeline provides the "
+            "device assignment.")
         ;
 
     this->teca_algorithm::get_properties_description(prefix, opts);
@@ -664,8 +1020,18 @@ void teca_bayesian_ar_detect::set_properties(const std::string &prefix,
     TECA_POPTS_SET(opts, std::string, prefix, min_ivt_variable)
     TECA_POPTS_SET(opts, std::string, prefix, hwhm_latitude_variable)
     TECA_POPTS_SET(opts, std::string, prefix, ar_probability_variable)
-    TECA_POPTS_SET(opts, int, prefix, thread_pool_size)
+    TECA_POPTS_SET(opts, int, prefix, bind_threads)
+    TECA_POPTS_SET(opts, int, prefix, stream_size)
+    TECA_POPTS_SET(opts, long long, prefix, poll_interval)
+    TECA_POPTS_SET(opts, int, prefix, threads_per_device)
+    TECA_POPTS_SET(opts, int, prefix, ranks_per_device)
+    TECA_POPTS_SET(opts, int, prefix, propagate_device_assignment)
     TECA_POPTS_SET(opts, int, prefix, verbose)
+
+    // force update the the thread pool settings
+    std::string opt_name = (prefix.empty()?"":prefix+"::") + "thread_pool_size";
+    if (opts.count(opt_name))
+        this->set_thread_pool_size(opts[opt_name].as<int>());
 }
 #endif
 
@@ -691,8 +1057,10 @@ void teca_bayesian_ar_detect::set_modified()
 // --------------------------------------------------------------------------
 void teca_bayesian_ar_detect::set_thread_pool_size(int n)
 {
-    this->internals->queue = new_teca_data_request_queue(
-        this->get_communicator(), n, -1, -1, true, this->get_verbose());
+    this->internals->queue =
+        new_teca_data_request_queue(this->get_communicator(), n,
+                                    this->threads_per_device, this->ranks_per_device,
+                                    this->bind_threads, this->verbose);
 }
 
 // --------------------------------------------------------------------------
@@ -951,120 +1319,40 @@ const_p_teca_dataset teca_bayesian_ar_detect::execute(
         return nullptr;
     }
 
-    // build the parameter table reduction pipeline
-    unsigned long parameter_table_size =
-        this->internals->parameter_table->get_number_of_rows();
+    // get the assigned device
+    int device_id = -1;
+#if defined(TECA_HAS_CUDA)
+    request.get("device_id", device_id);
+#endif
 
-    // the executive will loop over table rows, the top of the pipeline
-    // will ignore the incoming request which is for a specific table row
-    // and always pass the input mesh down stream
-    ::parameter_table_request_generator request_gen(parameter_table_size,
+    // each thread maintains a pipeline. initialize before use.
+    auto tid = std::this_thread::get_id();
+
+    using iterator_t = std::map<std::thread::id, ::bard_pipeline>::iterator;
+    std::pair<iterator_t, bool> res;
+    {
+    std::lock_guard<std::mutex> lock(this->internals->pipeline_mutex);
+    res = this->internals->pipelines.insert({tid, {}});
+    if (res.second)
+    {
+        // build the parameter table reduction pipeline
+        res.first->second.build(device_id, this->internals->queue,
+            this->internals->parameter_table->get_number_of_rows(),
             this->internals->parameter_table->get_column(this->hwhm_latitude_variable),
             this->internals->parameter_table->get_column(this->min_ivt_variable),
-            this->internals->parameter_table->get_column(this->min_component_area_variable));
+            this->internals->parameter_table->get_column(this->min_component_area_variable),
+            this->ivt_variable, this->ar_probability_variable);
 
-    teca_metadata exec_md;
-    request_gen.initialize_index_executive(exec_md);
+        if (this->get_verbose() > 1)
+            res.first->second.set_verbose(1);
+    }
+    }
 
-    // set up the pipeline source
-    p_teca_programmable_algorithm dss = teca_programmable_algorithm::New();
-    dss->set_name("dataset_source");
-    dss->set_communicator(MPI_COMM_SELF);
-    dss->set_number_of_input_connections(0);
-    dss->set_number_of_output_ports(1);
-    dss->set_report_callback(
-        [&exec_md](unsigned int, const std::vector<teca_metadata>&) -> teca_metadata
-        {
-            return exec_md;
-        });
-    dss->set_execute_callback(
-        [& in_mesh] (unsigned int, const std::vector<const_p_teca_dataset> &,
-     const teca_metadata &req) -> const_p_teca_dataset
-     {
-         int row_id = 0;
-         if (req.get("row_id", row_id))
-         {
-             TECA_ERROR("failed to get parameter table row")
-             return nullptr;
-         }
-
-         p_teca_dataset out_mesh = in_mesh->new_instance();
-         out_mesh->shallow_copy(in_mesh);
-         out_mesh->get_metadata().set("parameter_table_row", row_id);
-
-         return out_mesh;
-     });
-
-    // set up the filtering stages. these extract control parameters
-    // which are served up from the parameter table from the incoming request
-    p_teca_latitude_damper damp = teca_latitude_damper::New();
-    damp->set_communicator(MPI_COMM_SELF);
-    damp->set_input_connection(dss->get_output_port());
-    damp->set_damped_variables({this->ivt_variable});
-
-    p_teca_binary_segmentation seg = teca_binary_segmentation::New();
-    seg->set_communicator(MPI_COMM_SELF);
-    seg->set_input_connection(damp->get_output_port());
-    seg->set_threshold_variable(this->ivt_variable);
-    seg->set_segmentation_variable("wv_seg");
-    seg->set_threshold_by_percentile();
-
-    p_teca_connected_components cc = teca_connected_components::New();
-    cc->set_communicator(MPI_COMM_SELF);
-    cc->set_input_connection(seg->get_output_port());
-    cc->set_segmentation_variable("wv_seg");
-    cc->set_component_variable("wv_cc");
-
-    p_teca_2d_component_area ca = teca_2d_component_area::New();
-    ca->set_communicator(MPI_COMM_SELF);
-    ca->set_input_connection(cc->get_output_port());
-    ca->set_component_variable("wv_cc");
-    ca->set_contiguous_component_ids(1);
-
-    p_teca_component_area_filter caf = teca_component_area_filter::New();
-    caf->set_communicator(MPI_COMM_SELF);
-    caf->set_input_connection(ca->get_output_port());
-    caf->set_component_variable("wv_cc");
-    caf->set_contiguous_component_ids(1);
-
-    // set up the request generator. 1 request per parameter table row is
-    // generated. the request is populated with values in columns of that row
-    p_teca_programmable_algorithm pa = teca_programmable_algorithm::New();
-    pa->set_name("request_generator");
-    pa->set_communicator(MPI_COMM_SELF);
-    pa->set_number_of_input_connections(1);
-    pa->set_number_of_output_ports(1);
-    pa->set_input_connection(caf->get_output_port());
-    pa->set_request_callback(request_gen);
-
-    // set up the reduction which computes the average over runs of all control
-    // parameter combinations provided in the parameter table
-    ::parameter_table_reduction reduce(parameter_table_size,
-        "wv_cc", this->ar_probability_variable);
-
-    p_teca_programmable_reduce pr = teca_programmable_reduce::New();
-    pr->set_name("parameter_table_reduce");
-    pr->set_communicator(MPI_COMM_SELF);
-    pr->set_input_connection(pa->get_output_port());
-    pr->set_reduce_callback(reduce);
-    pr->set_finalize_callback(reduce);
-    pr->set_stream_size(2);
-    pr->set_verbose(0);
-    pr->set_data_request_queue(this->internals->queue);
-
-    // extract the result
-    p_teca_dataset_capture dc = teca_dataset_capture::New();
-    dc->set_communicator(MPI_COMM_SELF);
-    dc->set_input_connection(pr->get_output_port());
-    dc->set_executive(teca_index_executive::New());
+    // update the pipeline source
+    res.first->second.set_input_data(in_mesh);
 
     // run the pipeline
-    dc->update();
-
-    // get the pipeline output and normalize the probabilty field
-    p_teca_cartesian_mesh out_mesh =
-        std::dynamic_pointer_cast<teca_cartesian_mesh>(
-            std::const_pointer_cast<teca_dataset>(dc->get_dataset()));
+    auto out_mesh = res.first->second.execute();
 
     if (!out_mesh)
     {

@@ -612,6 +612,8 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
 
             pa += starts[i];
 
+            sync_host_access_any(coord_arrays[i]);
+
 #if !defined(HDF5_THREAD_SAFE)
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
@@ -693,6 +695,8 @@ int teca_cf_layout_manager::write(long index,
 
             VARIANT_ARRAY_DISPATCH(array.get(),
 
+                auto [spa, pa] = get_host_accessible<CTT>(array);
+
                 unsigned int actual_type_code = teca_variant_array_code<NT>::get();
                 if (actual_type_code != declared_type_code)
                 {
@@ -703,7 +707,7 @@ int teca_cf_layout_manager::write(long index,
                     return -1;
                 }
 
-                auto [spa, pa] = get_host_accessible<CTT>(array);
+                sync_host_access_any(array);
 
 #if !defined(HDF5_THREAD_SAFE)
                 {
@@ -753,6 +757,8 @@ int teca_cf_layout_manager::write(long index,
 
             VARIANT_ARRAY_DISPATCH(array.get(),
 
+                auto [spa, pa] = get_host_accessible<CTT>(array);
+
                 unsigned int actual_type_code = teca_variant_array_code<NT>::get();
                 if (actual_type_code != declared_type_code)
                 {
@@ -763,7 +769,7 @@ int teca_cf_layout_manager::write(long index,
                     return -1;
                 }
 
-                auto [spa, pa] = get_host_accessible<CTT>(array);
+                sync_host_access_any(array);
 
 #if !defined(HDF5_THREAD_SAFE)
                 {
@@ -865,6 +871,8 @@ int teca_cf_layout_manager::write(const unsigned long extent[6],
 
             VARIANT_ARRAY_DISPATCH(array.get(),
 
+                auto [spa, pa] = get_host_accessible<CTT>(array);
+
                 unsigned int actual_type_code = teca_variant_array_code<NT>::get();
                 if (actual_type_code != declared_type_code)
                 {
@@ -875,7 +883,7 @@ int teca_cf_layout_manager::write(const unsigned long extent[6],
                     return -1;
                 }
 
-                auto [spa, pa] = get_host_accessible<CTT>(array);
+                sync_host_access_any(array);
 
                 // advance the pointer to the first time step that will be
                 // written by this manager
@@ -929,6 +937,8 @@ int teca_cf_layout_manager::write(const unsigned long extent[6],
 
             VARIANT_ARRAY_DISPATCH(array.get(),
 
+                auto [spa, pa] = get_host_accessible<CTT>(array);
+
                 unsigned int actual_type_code = teca_variant_array_code<NT>::get();
                 if (actual_type_code != declared_type_code)
                 {
@@ -939,8 +949,6 @@ int teca_cf_layout_manager::write(const unsigned long extent[6],
                     return -1;
                 }
 
-                auto [spa, pa] = get_host_accessible<CTT>(array);
-
                 // advance the pointer to the first time step that will be
                 // written by this manager
                 size_t step_size = array->size() / temporal_extent_size;
@@ -948,6 +956,8 @@ int teca_cf_layout_manager::write(const unsigned long extent[6],
 
                 // get the size of the subset of the array actually written
                 counts[1] = (active_extent[1] - active_extent[0] + 1) * step_size;
+
+                sync_host_access_any(array);
 
 #if !defined(HDF5_THREAD_SAFE)
                 {

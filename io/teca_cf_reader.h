@@ -109,14 +109,14 @@ public:
     ///@}
 
     /** @name periodic_in_x
-     * A flag that indicates a periodic bondary in the z direction
+     * A flag that indicates a periodic bondary in the x direction
      */
     ///@{
     TECA_ALGORITHM_PROPERTY(int, periodic_in_x)
     ///@}
 
     /** @name periodic_in_y
-     * A flag that indicates a periodic bondary in the z direction
+     * A flag that indicates a periodic bondary in the y direction
      */
     ///@{
     TECA_ALGORITHM_PROPERTY(int, periodic_in_y)

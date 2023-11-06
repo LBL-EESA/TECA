@@ -280,6 +280,9 @@ void label_strip(const image_t *image, int *labels, int nx, int ny, bool periodi
         int bts_qn0 = threadIdx.y ? s_bts_1[threadIdx.y - 1] : 0;
         int img_qn0 = bts_qn0 & (1 << bit_nx1); // the value of the pixel at the far end of the previous row
 
+        int bts_qn2 = threadIdx.y < STRIP_HEIGHT - 2 ? s_bts_1[threadIdx.y + 1] : 0;
+        int img_qn2 = bts_qn2 & (1 << bit_nx1); // the value of the pixel at the far end of the next row
+
         if (img_qn1)
         {
             // equate this pixel and the one at the far end of the row
@@ -291,6 +294,12 @@ void label_strip(const image_t *image, int *labels, int nx, int ny, bool periodi
             // equate this pixel and the one at the far end of the previous row
             int start_qn0 = start_distance(bts_qn0, bit_nx1);
             merge(labels, q11, q11 - 1 - start_qn0);
+        }
+        else if (img_qn2)
+        {
+            // equate this pixel and the one at the far end of the next row
+            int start_qn2 = start_distance(bts_qn2, bit_nx1);
+            merge(labels, q11, q11 + nx + nx1 - start_qn2);
         }
     }
 }
@@ -986,6 +995,9 @@ const_p_teca_dataset teca_connected_components::execute(
 
     if (device_id >= 0)
     {
+        if (teca_cuda_util::set_device(device_id))
+            return nullptr;
+
         std::tie(components, p_components) =
             ::New<teca_short_array>(n_elem, 0, allocator::cuda_async);
 
@@ -996,7 +1008,7 @@ const_p_teca_dataset teca_connected_components::execute(
             tcc0 = std::chrono::high_resolution_clock::now();
 
             if (cuda_impl::label(cudaStreamPerThread, extent, periodic_in_x,
-                             p_in, p_components, num_components))
+                                 p_in, p_components, num_components))
             {
                 TECA_FATAL_ERROR("Failed to compute connected component labeling")
                 return nullptr;
@@ -1013,6 +1025,8 @@ const_p_teca_dataset teca_connected_components::execute(
         VARIANT_ARRAY_DISPATCH(input_array.get(),
 
             auto [sp_in, p_in] = get_host_accessible<CTT>(input_array);
+
+            sync_host_access_any(input_array);
 
             tcc0 = std::chrono::high_resolution_clock::now();
 

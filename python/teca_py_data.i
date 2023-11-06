@@ -730,6 +730,8 @@ TECA_PY_CONST_CAST(teca_table)
                 using namespace teca_variant_array_util;
                 auto [sptmp, ptmp] = get_host_accessible<TT>(tmp);
 
+                sync_host_access_any(tmp);
+
                 size_t n_elem = tmp->size();
                 for (size_t i = 0; i < n_elem; ++i)
                     self->append(ptmp[i]);

@@ -380,6 +380,8 @@ const_p_teca_dataset teca_vorticity::execute(
 
             auto [p_vort] = data<TT_DATA>(vort);
 
+            sync_host_access_any(lon, lat, comp_0, comp_1);
+
             ::vorticity(p_vort, p_lon, p_lat,
                 p_comp_0, p_comp_1, lon->size(), lat->size());
             )

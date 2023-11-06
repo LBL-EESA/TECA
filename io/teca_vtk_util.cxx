@@ -53,6 +53,7 @@ int deep_copy(vtkRectilinearGrid *output,
         vtk_tt<NT>::type *a = vtk_tt<NT>::type::New();
         a->SetNumberOfTuples(x->size());
         NT *p_a = a->GetPointer(0);
+        sync_host_access_any(x);
         memcpy(p_a, px, sizeof(NT)*x->size());
         output->SetXCoordinates(a);
         a->Delete();
@@ -64,6 +65,7 @@ int deep_copy(vtkRectilinearGrid *output,
         vtk_tt<NT>::type *a = vtk_tt<NT>::type::New();
         a->SetNumberOfTuples(y->size());
         NT *p_a = a->GetPointer(0);
+        sync_host_access_any(y);
         memcpy(p_a, py, sizeof(NT)*y->size());
         output->SetYCoordinates(a);
         a->Delete();
@@ -75,6 +77,7 @@ int deep_copy(vtkRectilinearGrid *output,
         vtk_tt<NT>::type *a = vtk_tt<NT>::type::New();
         a->SetNumberOfTuples(z->size());
         NT *p_a = a->GetPointer(0);
+        sync_host_access_any(z);
         memcpy(p_a, pzz, sizeof(NT)*z->size());
         output->SetZCoordinates(a);
         a->Delete();
@@ -94,6 +97,7 @@ int deep_copy(vtkRectilinearGrid *output,
             b->SetNumberOfTuples(a->size());
             b->SetName(name.c_str());
             NT *p_b = b->GetPointer(0);
+            sync_host_access_any(a);
             memcpy(p_b, pa, sizeof(NT)*a->size());
             output->GetPointData()->AddArray(b);
             b->Delete();
