@@ -531,6 +531,9 @@ const_p_teca_dataset teca_unpack_data::execute(
     request.get("device_id", device_id);
     if (device_id >= 0)
     {
+        if (teca_cuda_util::set_device(device_id))
+            return nullptr;
+
         if (cuda_gpu::dispatch(device_id, in_array, mask, scale,
             offset, out_array, this->output_data_type))
         {
