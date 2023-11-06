@@ -986,6 +986,9 @@ const_p_teca_dataset teca_connected_components::execute(
 
     if (device_id >= 0)
     {
+        if (teca_cuda_util::set_device(device_id))
+            return nullptr;
+
         std::tie(components, p_components) =
             ::New<teca_short_array>(n_elem, 0, allocator::cuda_async);
 
