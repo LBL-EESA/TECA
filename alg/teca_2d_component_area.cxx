@@ -477,6 +477,9 @@ const_p_teca_dataset teca_2d_component_area::execute(
 #if defined(TECA_HAS_CUDA)
             if (device_id >= 0)
             {
+                if (teca_cuda_util::set_device(device_id))
+                    return nullptr;
+
                 auto [sp_xc, p_xc, sp_yc, p_yc] = get_cuda_accessible<CTT_COORD>(xc, yc);
                 auto [sp_labels, p_labels] = get_cuda_accessible<CTT_LABEL>(component_array);
 
