@@ -205,7 +205,12 @@ public:
         allocator alloc = allocator::malloc;
 #if defined(TECA_HAS_CUDA)
         if (device_id >= 0)
+        {
             alloc = allocator::cuda_async;
+
+            if (teca_cuda_util::set_device(device_id))
+                return nullptr;
+        }
         cudaError_t ierr;
 #endif
         p_teca_cartesian_mesh out_mesh =
@@ -271,14 +276,18 @@ public:
     p_teca_dataset operator()(int device_id, const const_p_teca_dataset &left,
         const const_p_teca_dataset &right)
     {
+        (void) device_id;
         using NT_PROB = float;
         using TT_PROB = teca_variant_array_impl<float>;
-#if defined(TECA_HAS_CUDA)
-        allocator alloc = device_id >= 0 ? allocator::cuda_async : allocator::malloc;
-        cudaError_t ierr = cudaSuccess;
-#else
-        (void) device_id;
         allocator alloc = allocator::malloc;
+#if defined(TECA_HAS_CUDA)
+        cudaError_t ierr = cudaSuccess;
+        if (device_id >= 0)
+        {
+            alloc = allocator::cuda_async;
+            if (teca_cuda_util::set_device(device_id))
+                return nullptr;
+        }
 #endif
         // the inputs will not be modified. we are going to make shallow
         // copy, and add an array
