@@ -384,6 +384,9 @@ const_p_teca_dataset teca_latitude_damper::execute(
     request.get("device_id", device_id);
     if (device_id >= 0)
     {
+        if (teca_cuda_util::set_device(device_id))
+            return nullptr;
+
         cudaError_t ierr = cudaSuccess;
 
         // domain decomp for the gpu
