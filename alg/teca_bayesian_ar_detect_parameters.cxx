@@ -901,7 +901,7 @@ struct teca_bayesian_ar_detect_parameters::internals_t
 {
     internals_t();
 
-    void initialize_parameter_table(unsigned long number_of_rows);
+    void initialize_parameter_table(unsigned long row_offset, unsigned long number_of_rows);
     void initialize_control_metadata();
 
     unsigned long parameter_table_size;
@@ -929,17 +929,17 @@ teca_bayesian_ar_detect_parameters::internals_t::initialize_control_metadata()
 // --------------------------------------------------------------------------
 void
 teca_bayesian_ar_detect_parameters::internals_t::initialize_parameter_table(
-    unsigned long number_of_rows)
+    unsigned long row_offset, unsigned long number_of_rows)
 {
     // put the arrays into the table
     p_teca_variant_array_impl<parameter_t> min_water_vapor =
-        teca_variant_array_impl<parameter_t>::New(number_of_rows, quantile_array);
+        teca_variant_array_impl<parameter_t>::New(number_of_rows, quantile_array + row_offset);
 
     p_teca_variant_array_impl<parameter_t> filter_lat_width =
-        teca_variant_array_impl<parameter_t>::New(number_of_rows, filter_lat_width_array);
+        teca_variant_array_impl<parameter_t>::New(number_of_rows, filter_lat_width_array + row_offset);
 
     p_teca_variant_array_impl<parameter_t> min_area_kmsq =
-        teca_variant_array_impl<parameter_t>::New(number_of_rows, min_area_kmsq_array);
+        teca_variant_array_impl<parameter_t>::New(number_of_rows, min_area_kmsq_array + row_offset);
 
     this->parameter_table = teca_table::New();
     this->parameter_table->append_column("hwhm_latitude", filter_lat_width);
@@ -949,7 +949,7 @@ teca_bayesian_ar_detect_parameters::internals_t::initialize_parameter_table(
 
 // --------------------------------------------------------------------------
 teca_bayesian_ar_detect_parameters::teca_bayesian_ar_detect_parameters() :
-    number_of_rows(-1), internals(new internals_t)
+    row_offset(0), number_of_rows(-1), internals(new internals_t)
 {
     this->set_number_of_input_connections(0);
     this->set_number_of_output_ports(1);
@@ -972,6 +972,8 @@ void teca_bayesian_ar_detect_parameters::get_properties_description(
         + (prefix.empty()?"teca_bayesian_ar_detect_parameters":prefix));
 
     opts.add_options()
+        TECA_POPTS_GET(long, prefix, row_offset,
+            "the first table row to serve")
         TECA_POPTS_GET(long, prefix, number_of_rows,
             "the number of parameter table rows to serve")
         ;
@@ -987,6 +989,7 @@ void teca_bayesian_ar_detect_parameters::set_properties(const std::string &prefi
 {
     this->teca_algorithm::set_properties(prefix, opts);
 
+    TECA_POPTS_SET(opts, long, prefix, row_offset)
     TECA_POPTS_SET(opts, long, prefix, number_of_rows)
 }
 #endif
@@ -1033,7 +1036,7 @@ const_p_teca_dataset teca_bayesian_ar_detect_parameters::execute(unsigned int po
 
     if (!this->internals->parameter_table)
     {
-        this->internals->initialize_parameter_table(
+        this->internals->initialize_parameter_table(this->row_offset,
             this->number_of_rows > 0 ? this->number_of_rows :
                  this->internals->parameter_table_size);
     }
