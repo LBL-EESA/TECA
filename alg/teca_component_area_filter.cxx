@@ -431,6 +431,9 @@ const_p_teca_dataset teca_component_area_filter::execute(
 #if defined(TECA_HAS_CUDA)
             if (device_id >= 0)
             {
+                if (teca_cuda_util::set_device(device_id))
+                    return nullptr;
+
                 // get the inputs
                 auto [sp_labels_in, p_labels_in] = get_cuda_accessible<CTT_LABEL>(labels_in);
                 auto [sp_ids_in, p_ids_in] = get_cuda_accessible<CTT_LABEL>(ids_in);
