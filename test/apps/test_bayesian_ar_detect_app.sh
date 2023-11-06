@@ -23,12 +23,13 @@ fi
 set -x
 
 # run the app
-${launcher} ${app_prefix}/teca_bayesian_ar_detect                \
-    --input_regex "${data_root}/ARTMIP_MERRA_2D_2017-05.*\.nc$"  \
-    --ar_weighted_variables IVT --segment_ar_probability         \
-    --output_file test_bayesian_ar_detect_app_output_%t%.nc      \
-    --steps_per_file 365 --n_bard_threads ${n_bard_threads}      \
-    --n_writer_threads ${n_writer_threads}  --verbose 1
+${launcher} ${app_prefix}/teca_bayesian_ar_detect                       \
+    --input_regex "${data_root}/ARTMIP_MERRA_2D_2017-05.*\.nc$"         \
+    --ar_weighted_variables IVT --segment_ar_probability                \
+    --output_file test_bayesian_ar_detect_app_output_%t%.nc             \
+    --steps_per_file 365 --n_bard_threads ${n_bard_threads}             \
+    --n_writer_threads ${n_writer_threads} --cf_reader::periodic_in_x 0 \
+    --verbose 1
 
 do_test=1
 if [[ $do_test -eq 0 ]]
