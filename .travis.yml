@@ -7,12 +7,10 @@ services:
 
 os:
   - linux
-
-# disable osx
-#  - osx
+  - osx
 
 osx_image:
-  - xcode12.2
+  - xcode14.2
 
 env:
   global:
