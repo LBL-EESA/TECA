@@ -1035,3 +1035,21 @@ teca_add_test(test_cpp_temporal_reduction_io
     monthly average 1 # TODO -- more than 1 step per req.
     ./test_cpp_temporal_reduction_io_%t%.nc yearly
     ${TEST_CORES} ${TEST_CORES} ${TEST_CORES} 1 1)
+
+teca_add_test(test_regional_moisture_flux
+    SOURCES test_regional_moisture_flux.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_regional_moisture_flux 512 0.002)
+
+teca_add_test(test_regional_surface_flux
+    SOURCES test_regional_surface_flux.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_regional_surface_flux 512 0.009)
+
+teca_add_test(test_regional_surface_area
+    SOURCES test_regional_surface_area.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_regional_surface_area
+         512 "${TECA_DATA_ROOT}/vc965bq8111" 17814000.0 3e3
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_SHAPELIB}
+    REQ_TECA_DATA)
