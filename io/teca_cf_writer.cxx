@@ -22,21 +22,23 @@
 #include <string>
 #include <unordered_map>
 #include <set>
+#include <chrono>
 
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
 #endif
 
+using microseconds_t = std::chrono::duration<double, std::chrono::microseconds::period>;
 
 
 class teca_cf_writer::internals_t
 {
 public:
-    internals_t() : mapper(), layout_defined(0)
-    {}
+    internals_t() : mapper(), layout_defined(0), m_runtime(0) {}
 
     p_teca_cf_time_step_mapper mapper;
     int layout_defined;
+    std::atomic<long> m_runtime;
 };
 
 
@@ -681,6 +683,9 @@ const_p_teca_dataset teca_cf_writer::execute(unsigned int port,
     (void)port;
     (void)request;
 
+    std::chrono::high_resolution_clock::time_point t0, t1;
+    t0 = std::chrono::high_resolution_clock::now();
+
     int rank = 0;
 #if defined(TECA_HAS_MPI)
     int n_ranks = 1;
@@ -696,6 +701,7 @@ const_p_teca_dataset teca_cf_writer::execute(unsigned int port,
 
     // get the number of datasets in hand. these will be written to one of
     // the files, depending on its time step
+    long n_steps_total = 0;
     long n_indices = input_data.size();
     for (long i = 0; i < n_indices; ++i)
     {
@@ -735,6 +741,8 @@ const_p_teca_dataset teca_cf_writer::execute(unsigned int port,
             TECA_FATAL_ERROR("Failed to determine the temporal extent to be written")
             return nullptr;
         }
+
+        n_steps_total += temporal_extent[1] - temporal_extent[0] + 1;
 
         // get the layout managers needed to write this extent
         std::vector<p_teca_cf_layout_manager> managers;
@@ -781,6 +789,39 @@ const_p_teca_dataset teca_cf_writer::execute(unsigned int port,
             TECA_FATAL_ERROR("Failed to finalize I/O")
             return nullptr;
         }
+    }
+
+    // get the requested ind
+    unsigned long req_id[2] = {0};
+    std::string request_key;
+
+    if (request.get("index_request_key", request_key) ||
+        request.get(request_key, req_id))
+    {
+        TECA_FATAL_ERROR("metadata issue. failed to get the requested indices")
+        return nullptr;
+    }
+
+    t1 = std::chrono::high_resolution_clock::now();
+    microseconds_t dt(t1 - t0);
+
+    this->internals->m_runtime.fetch_add( dt.count(), std::memory_order_relaxed);
+
+    if (this->get_verbose())
+    {
+        std::ostringstream oss;
+        oss << teca_parallel_id()
+            << "teca_cf_writer::execute request " << req_id[0] << " wrote "
+            << n_steps_total << " steps " << streaming << " remain ("
+            << ( dt.count() / 1e6 ) << "s)";
+        if (!streaming)
+        {
+            oss << " runtime: "
+                << this->internals->m_runtime.load(std::memory_order_relaxed) / 1e6 << "s";
+
+            this->internals->m_runtime.store(0, std::memory_order_relaxed);
+        }
+        std::cerr << oss.str() << std::endl;
     }
 
     return nullptr;

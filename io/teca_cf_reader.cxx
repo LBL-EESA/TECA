@@ -28,6 +28,7 @@
 #include <utility>
 #include <memory>
 #include <iomanip>
+#include <chrono>
 
 #if defined(TECA_HAS_MPI)
 #include <mpi.h>
@@ -50,6 +51,8 @@ using std::cerr;
 
 using namespace teca_variant_array_util;
 using allocator = teca_variant_array::allocator;
+
+using microseconds_t = std::chrono::duration<double, std::chrono::microseconds::period>;
 
 // internals for the cf reader
 class teca_cf_reader_internals
@@ -1040,6 +1043,9 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
     (void)port;
     (void)input_data;
 
+    std::chrono::high_resolution_clock::time_point t0, t1;
+    t0 = std::chrono::high_resolution_clock::now();
+
     int rank = 0;
 #if defined(TECA_HAS_MPI)
     MPI_Comm comm = this->get_communicator();
@@ -1349,8 +1355,8 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
     // get the requested target device
     allocator alloc = allocator::malloc;
     allocator tmp_alloc = allocator::malloc;
-#if defined(TECA_HAS_CUDA)
     int device_id = -1;
+#if defined(TECA_HAS_CUDA)
     request.get("device_id", device_id);
     if (device_id >= 0)
     {
@@ -1693,6 +1699,17 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
                 static_cast<NC_TT*>(array.get())->append(a);
                 )
         }
+    }
+
+    t1 = std::chrono::high_resolution_clock::now();
+    microseconds_t dt(t1 - t0);
+
+    if (this->get_verbose())
+    {
+        std::cerr << teca_parallel_id()
+            << "teca_cf_reader::execute device_id " << device_id << " steps ["
+            << temporal_extent << "] extent [" << extent << "] " << ( dt.count() / 1e6 )
+            << "s" << std::endl;
     }
 
     return mesh;
