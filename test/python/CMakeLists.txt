@@ -280,6 +280,35 @@ teca_add_test(py_test_custom_temporal_reduction
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
     REQ_TECA_DATA)
 
+teca_add_test(py_test_temporal_monthly_percentile
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_percentile.py
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc"
+    "." "${TECA_DATA_ROOT}/test_temporal_reduction_prw" monthly 50 0 prw
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
+    REQ_TECA_DATA)
+
+teca_add_test(py_test_temporal_monthly_percentile_vv
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_percentile.py
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc"
+    "." "${TECA_DATA_ROOT}/test_temporal_reduction_prw" monthly 50 1 prw
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS}
+    REQ_TECA_DATA)
+
+teca_add_test(py_test_temporal_monthly_percentile_mpi
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_percentile.py
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc"
+    "." "${TECA_DATA_ROOT}/test_temporal_reduction_prw" monthly 50 0 prw
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(py_test_temporal_monthly_percentile_vv_mpi
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_temporal_percentile.py
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc"
+    "." "${TECA_DATA_ROOT}/test_temporal_reduction_prw" monthly 50 1 prw
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_UDUNITS} ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
 
 teca_add_test(py_test_tc_candidates_serial
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_tc_candidates.py
@@ -384,34 +413,6 @@ teca_add_test(py_test_bayesian_ar_detect_mpi_threads
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
-teca_add_test(py_test_deeplab_ar_detect
-    COMMAND  ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_deeplab_ar_detect.py
-    "${TECA_DATA_ROOT}/cascade_deeplab_IVT.pt"
-    "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\.nc$"
-    "${TECA_DATA_ROOT}/test_deeplab_ar_detect" IVT -1
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_PYTORCH}
-    REQ_TECA_DATA)
-
-teca_add_test(py_test_deeplab_ar_detect_mpi
-    COMMAND ${MPIEXEC} -n ${TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
-        ${CMAKE_CURRENT_SOURCE_DIR}/test_deeplab_ar_detect.py
-        "${TECA_DATA_ROOT}/cascade_deeplab_IVT.pt"
-        "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\.nc$"
-        "${TECA_DATA_ROOT}/test_deeplab_ar_detect" IVT -1
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_PYTORCH} ${TECA_HAS_MPI}
-        ${MPI4Py_FOUND}
-    REQ_TECA_DATA)
-
-teca_add_test(py_test_deeplab_ar_detect_mpi_threads
-    COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
-        ${CMAKE_CURRENT_SOURCE_DIR}/test_deeplab_ar_detect.py
-        "${TECA_DATA_ROOT}/cascade_deeplab_IVT.pt"
-        "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\.nc$"
-        "${TECA_DATA_ROOT}/test_deeplab_ar_detect" IVT -1
-    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_PYTORCH} ${TECA_HAS_MPI}
-        ${MPI4Py_FOUND} ${TEST_MPI_THREADS}
-    REQ_TECA_DATA)
-
 teca_add_test(py_test_binary_stream
     COMMAND ${MPIEXEC} -n ${TEST_CORES} ${PYTHON_EXECUTABLE} -m mpi4py
     ${CMAKE_CURRENT_SOURCE_DIR}/test_binary_stream.py
@@ -501,10 +502,23 @@ teca_add_test(py_test_variant_array_numpy_cuda
 teca_add_test(py_test_cartesian_mesh_multi_dim
     COMMAND ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_cartesian_mesh_multi_dim.py 32 32 10
-    test_cartesian_mesh_multi_dim.nc 1
-    FEATURES ${TECA_HAS_CUDA})
+    test_cartesian_mesh_multi_dim.nc 1)
 
 teca_add_test(py_test_lapse_rate
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_lapse_rate.py
-    32 32 10 1 "py_test_lapse_rate_%t%.%e%"
-    FEATURES ${TECA_HAS_CUDA} ${TECA_HAS_CUPY})
+    32 32 10 1 "py_test_lapse_rate_%t%.%e%")
+
+teca_add_test(py_test_spectral_filter_low_pass_analytic
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_spectral_filter.py
+    90 45 2 1000 364 35 15 50 365 1 100 days low_pass 0 analytic
+    "${TECA_DATA_ROOT}/test_spectral_filter_low_pass" 1)
+
+teca_add_test(py_test_spectral_filter_high_pass_analytic
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_spectral_filter.py
+    90 45 2 1000 364 35 15 50 365 1 100 days high_pass 0 analytic
+    "${TECA_DATA_ROOT}/test_spectral_filter_high_pass" 1)
+
+teca_add_test(py_normalize_coordinates_z_axis_units
+    COMMAND ${PYTHON_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_normalize_coords_z_axis_units.py ${TECA_DATA_ROOT}
+    REQ_TECA_DATA)

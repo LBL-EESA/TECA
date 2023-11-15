@@ -6,6 +6,7 @@
 #include "teca_algorithm.h"
 #include "teca_thread_util.h"
 #include "teca_threadsafe_queue.h"
+#include "teca_owned_future.h"
 #include "teca_mpi.h"
 
 #include <sstream>
@@ -66,15 +67,21 @@ public:
      *                        ranks running on the same node are taken into
      *                        account, resulting in 1 thread per core node wide.
      *
-     *   @param[in[ n_threads_per_device number of threads to assign to each CUDA
-     *                                   device. -1 for all threads assigned.
+     *   @param[in] threads_per_device number of threads to assign to each
+     *                                 GPU/device. If 0 only CPUs will be used.
+     *                                 If -1 the default of 8 threads per device
+     *                                 will be used.
+     *
+     *   @param[in] ranks_per_device the number of MPI ranks to allow access to
+     *                               to each device/GPU.
      *
      *   @param[in] bind      bind each thread to a specific core.
      *
      *   @param[in] verbose   print a report of the thread to core bindings
      */
     teca_cuda_thread_pool(MPI_Comm comm, int n_threads,
-        int n_threads_per_device, bool bind, bool verbose);
+        int threads_per_device, int ranks_per_device, bool bind,
+        bool verbose);
 
     // get rid of copy and asignment
     TECA_ALGORITHM_DELETE_COPY_ASSIGN(teca_cuda_thread_pool)
@@ -110,36 +117,44 @@ public:
 private:
     /// create n threads for the pool
     void create_threads(MPI_Comm comm, int n_threads,
-        int n_threads_per_device, bool bind, bool verbose);
+        int threads_per_device, int ranks_per_device, bool bind,
+        bool verbose);
 
 private:
+    long m_num_futures;
+    std::mutex m_mutex;
     std::atomic<bool> m_live;
     teca_threadsafe_queue<task_t> m_queue;
-    std::vector<std::future<data_t>> m_futures;
+    std::vector<owned_future<data_t>> m_futures;
     std::vector<std::thread> m_threads;
 };
 
 // --------------------------------------------------------------------------
 template <typename task_t, typename data_t>
 teca_cuda_thread_pool<task_t, data_t>::teca_cuda_thread_pool(MPI_Comm comm,
-    int n_threads, int n_threads_per_device, bool bind, bool verbose) : m_live(true)
+    int n_threads, int threads_per_device, int ranks_per_device, bool bind,
+    bool verbose) : m_live(true)
 {
-    this->create_threads(comm, n_threads, n_threads_per_device, bind, verbose);
+    this->create_threads(comm, n_threads, threads_per_device,
+                         ranks_per_device, bind, verbose);
 }
 
 // --------------------------------------------------------------------------
 template <typename task_t, typename data_t>
 void teca_cuda_thread_pool<task_t, data_t>::create_threads(MPI_Comm comm,
-    int n_requested, int n_per_device, bool bind, bool verbose)
+    int n_requested, int threads_per_device, int ranks_per_device, bool bind,
+    bool verbose)
 {
+    m_num_futures = 0;
+
     int n_threads = n_requested;
 
     // determine available CPU cores
     std::deque<int> core_ids;
     std::vector<int> device_ids;
 
-    if (teca_thread_util::thread_parameters(comm, -1,
-        n_requested, n_per_device, bind, verbose, n_threads,
+    if (teca_thread_util::thread_parameters(comm, -1, n_requested,
+        threads_per_device, ranks_per_device, bind, verbose, n_threads,
         core_ids, device_ids))
     {
         TECA_WARNING("Failed to detetermine thread parameters."
@@ -197,6 +212,10 @@ teca_cuda_thread_pool<task_t, data_t>::~teca_cuda_thread_pool() noexcept
 template <typename task_t, typename data_t>
 void teca_cuda_thread_pool<task_t, data_t>::push_task(task_t &task)
 {
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    ++m_num_futures;
+
     m_futures.push_back(task.get_future());
     m_queue.push(std::move(task));
 }
@@ -207,48 +226,58 @@ template <template <typename ... > class container_t, typename ... args>
 int teca_cuda_thread_pool<task_t, data_t>::wait_some(long n_to_wait,
     long long poll_interval, container_t<data_t, args ...> &data)
 {
-    long n_tasks = m_futures.size();
-
     // wait for all
     if (n_to_wait < 1)
     {
         this->wait_all(data);
         return 0;
     }
-    // wait for at most the number of queued tasks
-    else if (n_to_wait > n_tasks)
-        n_to_wait = n_tasks;
-
 
     // gather the requested number of datasets
-    while (1)
+    size_t thread_valid = 1;
+    while (thread_valid && ((data.size() < static_cast<unsigned int>(n_to_wait))))
     {
-        // scan the tasks once. capture any data that is ready
-        auto it = m_futures.begin();
-        while (it != m_futures.end())
         {
-            std::future_status stat = it->wait_for(std::chrono::seconds::zero());
-            if (stat == std::future_status::ready)
+        thread_valid = 0;
+        std::lock_guard<std::mutex> lock(m_mutex);
+        // scan the tasks once. capture any data that is ready
+        for (auto it = m_futures.begin(); it != m_futures.end(); ++it)
+        {
+            if (it->owner() && it->m_future.valid())
             {
-                data.push_back(it->get());
-                it = m_futures.erase(it);
-            }
-            else
-            {
-                ++it;
+                if ((it->m_future.wait_for(std::chrono::seconds::zero())
+                    == std::future_status::ready))
+                {
+                    data.push_back(it->m_future.get());
+                    --m_num_futures;
+                }
+                else
+                {
+                    ++thread_valid;
+                }
             }
         }
+        }
 
-        // if we have not accumulated the requested number of datasets
-        // wait for the user supplied duration before re-scanning
-        if (data.size() < static_cast<unsigned int>(n_to_wait))
-            std::this_thread::sleep_for(std::chrono::nanoseconds(poll_interval));
-        else
+        // we have the requested number of datasets
+        if (data.size() >= static_cast<unsigned int>(n_to_wait))
             break;
+
+        // wait for the user supplied duration before re-scanning
+        if (thread_valid)
+            std::this_thread::sleep_for(std::chrono::nanoseconds(poll_interval));
+    }
+
+    // last one finished clears the futures
+    if (!m_num_futures)
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (!m_num_futures)
+            m_futures.clear();
     }
 
     // return the number of tasks remaining
-    return m_futures.size();
+    return thread_valid;
 }
 
 // --------------------------------------------------------------------------
@@ -256,14 +285,27 @@ template <typename task_t, typename data_t>
 template <template <typename ... > class container_t, typename ... args>
 void teca_cuda_thread_pool<task_t, data_t>::wait_all(container_t<data_t, args ...> &data)
 {
-    // wait on all pending requests and gather the generated
-    // datasets
+    {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    // wait on all pending requests and gather the generated datasets
     std::for_each(m_futures.begin(), m_futures.end(),
-        [&data] (std::future<data_t> &f)
+        [&data,this] (owned_future<data_t> &f)
         {
-            data.push_back(f.get());
+            if (f.owner())
+            {
+                data.push_back(f.m_future.get());
+                --m_num_futures;
+            }
         });
-    m_futures.clear();
+    }
+
+    // last one finished clears the futures
+    if (!m_num_futures)
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (!m_num_futures)
+            m_futures.clear();
+    }
 }
 
 #endif

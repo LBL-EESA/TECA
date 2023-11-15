@@ -195,7 +195,7 @@ p_teca_variant_array new_variant_array(PyObject *obj)
 /// Copies values from the object into the variant array.
 bool copy(teca_variant_array *varr, PyObject *obj)
 {
-    TEMPLATE_DISPATCH(teca_variant_array_impl, varr,
+    VARIANT_ARRAY_DISPATCH(varr,
         TT *varrt = static_cast<TT*>(varr);
         TECA_PY_OBJECT_DISPATCH_NUM(obj,
             varrt->resize(1);
@@ -203,7 +203,7 @@ bool copy(teca_variant_array *varr, PyObject *obj)
             return true;
             )
         )
-    else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
+    else VARIANT_ARRAY_DISPATCH_CASE(
         std::string, varr,
         TT *varrt = static_cast<TT*>(varr);
         TECA_PY_OBJECT_DISPATCH_STR(obj,
@@ -212,7 +212,7 @@ bool copy(teca_variant_array *varr, PyObject *obj)
             return true;
             )
         )
-    else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
+    else VARIANT_ARRAY_DISPATCH_CASE(
         teca_metadata, varr,
         TT *varrt = static_cast<TT*>(varr);
         TECA_PY_OBJECT_DISPATCH_MD(obj,
@@ -228,14 +228,14 @@ bool copy(teca_variant_array *varr, PyObject *obj)
 /// Sets the i'th element of the variant array to the value of the object.
 bool set(teca_variant_array *varr, unsigned long i, PyObject *obj)
 {
-    TEMPLATE_DISPATCH(teca_variant_array_impl, varr,
+    VARIANT_ARRAY_DISPATCH(varr,
         TT *varrt = static_cast<TT*>(varr);
         TECA_PY_OBJECT_DISPATCH_NUM(obj,
             varrt->set(i, cpp_tt<OT>::value(obj));
             return true;
             )
         )
-    else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
+    else VARIANT_ARRAY_DISPATCH_CASE(
         std::string, varr,
         TT *varrt = static_cast<TT*>(varr);
         TECA_PY_OBJECT_DISPATCH_STR(obj,
@@ -243,7 +243,7 @@ bool set(teca_variant_array *varr, unsigned long i, PyObject *obj)
             return true;
             )
         )
-    else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
+    else VARIANT_ARRAY_DISPATCH_CASE(
         teca_metadata, varr,
         TT *varrt = static_cast<TT*>(varr);
         TECA_PY_OBJECT_DISPATCH_MD(obj,
@@ -258,14 +258,14 @@ bool set(teca_variant_array *varr, unsigned long i, PyObject *obj)
 /// Appends values from the object at the end of the variant array.
 bool append(teca_variant_array *varr, PyObject *obj)
 {
-    TEMPLATE_DISPATCH(teca_variant_array_impl, varr,
+    VARIANT_ARRAY_DISPATCH(varr,
         TT *varrt = static_cast<TT*>(varr);
         TECA_PY_OBJECT_DISPATCH_NUM(obj,
             varrt->append(static_cast<NT>(cpp_tt<OT>::value(obj)));
             return true;
             )
         )
-    else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
+    else VARIANT_ARRAY_DISPATCH_CASE(
         std::string, varr,
         TT *varrt = static_cast<TT*>(varr);
         TECA_PY_OBJECT_DISPATCH_STR(obj,
@@ -273,7 +273,7 @@ bool append(teca_variant_array *varr, PyObject *obj)
             return true;
             )
          )
-    else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
+    else VARIANT_ARRAY_DISPATCH_CASE(
         teca_metadata, varr,
         TT *varrt = static_cast<TT*>(varr);
         TECA_PY_OBJECT_DISPATCH_MD(obj,
@@ -375,6 +375,40 @@ public:
         return nullptr;
     }
 };
+
+
+/**converts a squence into a fixed length C array. The length and type of the
+ * sequence must be as expected.
+ */
+template <typename py_t, typename cpp_t>
+int sequence_to_array(PyObject *input, cpp_t *ptr, int n_elem)
+{
+    // check the number of elements
+    if (!PySequence_Check(input) || (PyObject_Length(input) != n_elem))
+    {
+        TECA_PY_ERROR_NOW(PyExc_TypeError,
+            "Expecting a sequence with " << n_elem << " elements");
+        return -1;
+    }
+
+    // convert each element
+    for (int i = 0; i < n_elem; ++i)
+    {
+        PyObject *o = PySequence_GetItem(input, i);
+        if (!teca_py_object::cpp_tt<py_t>::is_type(o))
+        {
+            Py_XDECREF(o);
+            TECA_PY_ERROR_NOW(PyExc_ValueError,
+                "Expecting a sequence of " << typeid(cpp_t).name() << sizeof(cpp_t))
+            return -1;
+        }
+
+        ptr[i] = teca_py_object::cpp_tt<py_t>::value(o);
+        Py_DECREF(o);
+    }
+
+    return 0;
+}
 
 };
 

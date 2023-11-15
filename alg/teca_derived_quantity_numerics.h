@@ -6,6 +6,10 @@
 #include "teca_mesh.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#if !defined(SWIG)
+#include "teca_variant_array_util.h"
+using namespace teca_variant_array_util;
+#endif
 
 #include <string>
 #include <vector>
@@ -51,16 +55,14 @@ struct TECA_EXPORT point_wise_average
         p_teca_variant_array avg = v0->new_instance();
         avg->resize(n_pts);
 
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            avg.get(),
-            auto sp_v0 = static_cast<const TT*>(v0.get())->get_cpu_accessible();
-            const NT *p_v0 = sp_v0.get();
+        VARIANT_ARRAY_DISPATCH(v0.get(),
 
-            auto sp_v1 = dynamic_cast<const TT*>(v1.get())->get_cpu_accessible();
-            const NT *p_v1 = sp_v1.get();
+            assert_type<CTT>(v1);
 
-            auto sp_avg = static_cast<TT*>(avg.get())->get_cpu_accessible();
-            NT *p_avg = sp_avg.get();
+            auto [sp_v0, p_v0, sp_v1, p_v1] = get_host_accessible<CTT>(v0, v1);
+            auto [p_avg] = data<TT>(avg);
+
+            sync_host_access_any(v0, v1);
 
             for (unsigned long i = 0; i < n_pts; ++i)
                 p_avg[i] = (p_v0[i] + p_v1[i])/NT(2);
@@ -118,16 +120,14 @@ struct TECA_EXPORT point_wise_difference
         p_teca_variant_array diff = v0->new_instance();
         diff->resize(n_pts);
 
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            diff.get(),
-            auto sp_v0 = static_cast<const TT*>(v0.get())->get_cpu_accessible();
-            const NT *p_v0 = sp_v0.get();
+        VARIANT_ARRAY_DISPATCH(v1.get(),
 
-            auto sp_v1 = dynamic_cast<const TT*>(v1.get())->get_cpu_accessible();
-            const NT *p_v1 = sp_v1.get();
+            assert_type<CTT>(v1);
 
-            auto sp_diff = static_cast<TT*>(diff.get())->get_cpu_accessible();
-            NT *p_diff = sp_diff.get();
+            auto [sp_v0, p_v0, sp_v1, p_v1] = get_host_accessible<CTT>(v0, v1);
+            auto [p_diff] = data<TT>(diff);
+
+            sync_host_access_any(v0, v1);
 
             for (unsigned long i = 0; i < n_pts; ++i)
                 p_diff[i] = p_v1[i] - p_v0[i];

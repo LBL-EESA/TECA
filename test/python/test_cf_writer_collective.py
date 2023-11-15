@@ -80,21 +80,21 @@ class generate_data(teca_python_algorithm):
         z_atts = teca_array_attributes(
             teca_double_array_code.get(),
             teca_array_attributes.point_centering,
-            int(ncells), 'meters', 'height',
+            int(ncells), (1,1,0,1), 'meters', 'height',
             'height is defined by the function z=sin^2(x*y + t)',
             None)
 
         zt_atts = teca_array_attributes(
             teca_double_array_code.get(),
             teca_array_attributes.no_centering,
-            1, 'meters', 'threshold height',
+            1, (0,0,0,0), 'meters', 'threshold height',
             'value of height used to segment the z data',
             None)
 
         count_atts = teca_array_attributes(
             teca_int_array_code.get(),
             teca_array_attributes.no_centering,
-            2, 'cells', 'number of cells',
+            2, (0,0,0,0), 'cells', 'number of cells',
             'number of cells above and below the threshold value',
             None)
 

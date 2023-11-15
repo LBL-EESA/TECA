@@ -3,19 +3,23 @@
 if [[ $# < 3 ]]
 then
     echo "usage: test_potential_intensity_app.sh [app prefix] "   \
-         "[data root] [num threads] [mpiexec] [num ranks]"
+         "[data root] [spatial parallel] [mpiexec] [num ranks]"
     exit -1
 fi
 
 app_prefix=${1}
 data_root=${2}
-n_threads=${3}
+spatial_partitioning=${3}
 
 if [[ $# -eq 5 ]]
 then
     mpi_exec=${4}
     test_cores=${5}
     launcher="${mpi_exec} -n ${test_cores}"
+    if [[ spatial_partitioning -eq 1 ]]
+    then
+        partitioning_flags="--spatial_partitioning --spatial_partitions 2"
+    fi
 fi
 
 set -x
@@ -27,7 +31,7 @@ ${launcher} ${app_prefix}/teca_potential_intensity                              
     --psl_variable msl --sst_variable sst --air_temperature_variable t          \
     --mixing_ratio_variable q --t_axis_variable month --z_axis_variable p       \
     --output_file test_potential_intensity_app_%t%.nc                           \
-    --file_layout number_of_steps --steps_per_file 12 --verbose 2
+    ${partitioning_flags} --file_layout yearly --verbose 2
 
 # run the diff
 ${app_prefix}/teca_cartesian_mesh_diff                                          \

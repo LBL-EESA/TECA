@@ -90,6 +90,9 @@ public:
     template<typename T> void pack(const std::vector<T> &v);
     template<typename T> void unpack(std::vector<T> &v);
 
+    template<typename T, size_t N> void pack(const std::array<T,N> &v);
+    template<typename T, size_t N> void unpack(std::array<T,N> &v);
+
     template<typename KT, typename VT> void pack(const std::map<KT, VT> &v);
     template<typename KT, typename VT> void unpack(std::map<KT, VT> &v);
 
@@ -243,6 +246,24 @@ void teca_binary_stream::unpack(std::vector<T> &v)
 
     v.resize(vlen);
     this->unpack(v.data(), vlen);
+}
+
+//-----------------------------------------------------------------------------
+template<typename T, size_t N>
+void teca_binary_stream::pack(const std::array<T,N> &v)
+{
+    this->pack(N);
+    this->pack(v.data(), N);
+}
+
+//-----------------------------------------------------------------------------
+template<typename T, size_t N>
+void teca_binary_stream::unpack(std::array<T,N> &v)
+{
+    unsigned long vlen;
+    this->unpack(vlen);
+
+    this->unpack(v.data(), N);
 }
 
 //-----------------------------------------------------------------------------

@@ -8,6 +8,7 @@
 #include "teca_mpi.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 
 #include <iostream>
 #include <sstream>
@@ -33,6 +34,8 @@
 #include <netcdf.h>
 #include "teca_netcdf_util.h"
 #endif
+
+using namespace teca_variant_array_util;
 
 namespace internal
 {
@@ -117,7 +120,7 @@ int write_netcdf(const_p_teca_table table, const std::string &file_name,
         {
         std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-        TEMPLATE_DISPATCH(const teca_variant_array_impl,
+        VARIANT_ARRAY_DISPATCH(
             col.get(),
             if ((ierr = nc_def_var(fh.get(), col_name.c_str(),
                 teca_netcdf_util::netcdf_tt<NT>::type_code, 1,
@@ -128,7 +131,7 @@ int write_netcdf(const_p_teca_table table, const std::string &file_name,
                 return -1;
             }
             )
-        else TEMPLATE_DISPATCH_CASE(const teca_variant_array_impl,
+        else VARIANT_ARRAY_DISPATCH_CASE(
             std::string, col.get(),
             if ((ierr = nc_def_var(fh.get(), col_name.c_str(),
                 NC_STRING, 1, &row_dim_id, &var_id)) != NC_NOERR)
@@ -185,10 +188,10 @@ int write_netcdf(const_p_teca_table table, const std::string &file_name,
         size_t starts = 0;
         size_t counts = n_rows;
 
-        TEMPLATE_DISPATCH(const teca_variant_array_impl,
+        VARIANT_ARRAY_DISPATCH(
             col.get(),
-            auto sp_col = static_cast<TT*>(col.get())->get_cpu_accessible();
-            const NT *p_col = sp_col.get();
+            auto [sp_col, p_col] = get_host_accessible<CTT>(col);
+            sync_host_access_any(col);
 #if !defined(HDF5_THREAD_SAFE)
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
@@ -203,10 +206,10 @@ int write_netcdf(const_p_teca_table table, const std::string &file_name,
             }
 #endif
             )
-        else TEMPLATE_DISPATCH_CASE(const teca_variant_array_impl,
+        else VARIANT_ARRAY_DISPATCH_CASE(
             std::string, col.get(),
-            auto sp_col = static_cast<TT*>(col.get())->get_cpu_accessible();
-            const NT *p_col = sp_col.get();
+            auto [sp_col, p_col] = get_host_accessible<CTT>(col);
+            sync_host_access_any(col);
             // put the strings into a buffer for netcdf
             const char **string_data = (const char **)malloc(n_rows*sizeof(char*));
             for (size_t j = 0; j < n_rows; ++j)
@@ -258,14 +261,14 @@ int write_xlsx(const_p_teca_table table, lxw_worksheet *worksheet)
     {
         for (unsigned int i = 0; i < n_cols; ++i)
         {
-            TEMPLATE_DISPATCH(const teca_variant_array_impl,
+            VARIANT_ARRAY_DISPATCH(
                 table->get_column(i).get(),
                 const TT *a = dynamic_cast<const TT*>(table->get_column(i).get());
                 NT v = NT();
                 a->get(j, v);
                 worksheet_write_number(worksheet, j+1, i, static_cast<double>(v), NULL);
                 )
-            else TEMPLATE_DISPATCH_CASE(const teca_variant_array_impl,
+            else VARIANT_ARRAY_DISPATCH_CASE(
                 std::string,
                 table->get_column(i).get(),
                 const TT *a = dynamic_cast<const TT*>(table->get_column(i).get());
@@ -341,18 +344,9 @@ teca_metadata teca_table_writer::get_output_metadata(
     (void)port;
 
     const teca_metadata &md = input_md[0];
-
-    if (this->index_request_key.empty())
-    {
-        if (md.get("index_request_key", this->index_request_key))
-        {
-            TECA_FATAL_ERROR("Failed to identify the index key")
-            return teca_metadata();
-        }
-    }
-
     return md;
 }
+
 // --------------------------------------------------------------------------
 const_p_teca_dataset teca_table_writer::execute(
     unsigned int port,
@@ -380,20 +374,10 @@ const_p_teca_dataset teca_table_writer::execute(
     }
 
     // get the current index
-    const teca_metadata &md = input_data[0]->get_metadata();
-
-    std::string index_request_key;
-    if (md.get("index_request_key", index_request_key))
-    {
-        TECA_FATAL_ERROR("Dataset metadata is missing the index_request_key key")
-        return nullptr;
-    }
-
     unsigned long index = 0;
-    if (md.get(index_request_key, index))
+    if (input_data[0]->get_request_index(index))
     {
-        TECA_FATAL_ERROR("Dataset metadata is missing the \""
-            << index_request_key << "\" key")
+        TECA_FATAL_ERROR("Failed to get the request index of the input data")
         return nullptr;
     }
 

@@ -9,6 +9,7 @@
 
 #include <deque>
 #include <vector>
+#include <tuple>
 
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -17,20 +18,28 @@
 /// A collection of utility classes and functions for integrating with CUDA
 namespace teca_cuda_util
 {
+/** a wrapper for using dynamic sized shared memory in a template function.
+ */
+template <typename T>
+__device__ T* shared_memory_proxy()
+{
+    extern __shared__ unsigned char memory[];
+    return reinterpret_cast<T*>(memory);
+}
+
 /** Query the system for the locally available(on this rank) CUDA device count.
  * this is an MPI collective call which returns a set of device ids that can be
- * used locally. If there are as many (or more than) devices on the node than
- * the number of MPI ranks assigned to the node the list of device ids will be
- * unique across MPI ranks on the node. Otherwise devices are assigned round
- * robin fashion.
+ * used locally. Node wide coordination assures that one can put a limit on the
+ * number of ranks per node.
  *
  * @param[in]  comm MPI communicator defining a set of nodes on which need
  *                  access to the available GPUS
  * @param[in,out] ranks_per_device The number of MPI ranks to use per CUDA
- *                                 device. Passing -1 will assign all MPI
- *                                 ranks a GPU up to a maximum of 8 ranks
- *                                 per GPU. The number of ranks per GPU
- *                                 used is returned through this argument.
+ *                                 device. When set to 0 no GPUs are used. When
+ *                                 set to -1 all ranks are assigned a GPU but
+ *                                 multiple ranks will share a GPU when there
+ *                                 are more ranks than devices.
+ *
  * @param[out] local_dev a list of device ids that can be used by the calling
  *                       MPI rank.
  * @returns              non-zero on error.
@@ -43,9 +52,13 @@ int get_local_cuda_devices(MPI_Comm comm, int &ranks_per_device,
 TECA_EXPORT
 int set_device(int device_id);
 
-/// stop and wait for previously launched kernels to complete
+/// device wide synchronize
 TECA_EXPORT
-int synchronize();
+int synchronize_device();
+
+/// synchronize the default stream
+TECA_EXPORT
+int synchronize_stream();
 
 /** A flat array is broken into blocks of number of threads where each adjacent
  * thread accesses adjacent memory locations. To accomplish this we might need
@@ -215,6 +228,52 @@ int partition_thread_blocks_slab(size_t nxy, size_t nz, size_t stride,
     int warps_per_block, int warp_size, int *block_grid_max, dim3 &block_grid,
     int &n_blocks_xy, int &n_blocks_z,  dim3 &thread_grid);
 
+/** Calculate CUDA launch parameters for an arbitrarily large 1D array.
+ * @param[in] nt the number of threads per block
+ * @param[in] n_vals the size of the 1D array
+ * @returns a tuple containing the number of thread blocks and the number of
+ *          threads per block
+ */
+inline
+auto partition_thread_blocks_1d(unsigned int nt, size_t n_vals)
+{
+    return std::make_tuple((n_vals / nt + (n_vals % nt ? 1 : 0)), nt);
 }
 ///@}
+
+
+
+/// A collection of CUDA streams.
+/** This container always has as its first element the cudaStreamPerThread
+ * stream. If more than one stream is desired one can call ::resize to add
+ * new streams to the collection. For simplicity copying the container is
+ * disabled, but this feature could be added if needed.
+ */
+class TECA_EXPORT cuda_stream_vector
+{
+public:
+    cuda_stream_vector() : m_vec(1, cudaStreamPerThread) {}
+    ~cuda_stream_vector();
+
+    /// prevent copies, OK to enable these if needed
+    cuda_stream_vector(const cuda_stream_vector &) = delete;
+    void operator=(const cuda_stream_vector &) = delete;
+
+    /// resize the collection. creates and destroys streams as needed
+    int resize(size_t n);
+
+    /// get the number of available cuda streams
+    size_t size() const { return m_vec.size(); }
+
+    /// get the ith cuda stream
+    cudaStream_t &operator[](size_t i) { return m_vec[i]; }
+
+    /// get the ith cuda stream
+    const cudaStream_t &operator[](size_t i) const { return m_vec[i]; }
+
+private:
+    std::vector<cudaStream_t> m_vec;
+};
+
+}
 #endif

@@ -32,9 +32,6 @@ public:
     // set/get the dataset to insert into the pipeline
     TECA_ALGORITHM_VECTOR_PROPERTY(p_teca_dataset, dataset)
 
-    void set_dataset(const p_teca_dataset &ds)
-    { this->set_datasets({ds}); }
-
     // set/get the metadata to insert into the pipeline
     TECA_ALGORITHM_PROPERTY(teca_metadata, metadata)
 

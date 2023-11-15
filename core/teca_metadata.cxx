@@ -275,22 +275,19 @@ int teca_metadata::to_stream(ostream &os) const
     for (; it != end; ++it)
     {
         os << it->first << " = " << "{";
-        TEMPLATE_DISPATCH_CASE(
-            teca_variant_array_impl, std::string, it->second.get(),
+        VARIANT_ARRAY_DISPATCH_CASE(std::string, it->second.get(),
             const TT *val = static_cast<const TT*>(it->second.get());
             val->to_stream(os);
             )
-        TEMPLATE_DISPATCH_CASE(
-            teca_variant_array_impl, teca_metadata, it->second.get(),
+        VARIANT_ARRAY_DISPATCH_CASE(teca_metadata, it->second.get(),
             const TT *val = static_cast<const TT*>(it->second.get());
             val->to_stream(os);
             )
-        TEMPLATE_DISPATCH_CASE(
-            teca_variant_array_impl, p_teca_variant_array, it->second.get(),
+        VARIANT_ARRAY_DISPATCH_CASE(p_teca_variant_array, it->second.get(),
             const TT *val = static_cast<const TT*>(it->second.get());
             val->to_stream(os);
             )
-        TEMPLATE_DISPATCH(teca_variant_array_impl, it->second.get(),
+        VARIANT_ARRAY_DISPATCH(it->second.get(),
             const TT *val = static_cast<const TT*>(it->second.get());
             val->to_stream(os);
             )

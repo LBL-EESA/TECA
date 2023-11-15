@@ -1,6 +1,7 @@
 #include "teca_indexed_dataset_cache.h"
 
 #include "teca_metadata.h"
+#include "teca_metadata_util.h"
 #include "teca_priority_queue.h"
 
 #include <algorithm>
@@ -60,7 +61,7 @@ struct teca_indexed_dataset_cache::internals_t
 
 // --------------------------------------------------------------------------
 teca_indexed_dataset_cache::teca_indexed_dataset_cache() :
-    max_cache_size(0), internals(new internals_t)
+    max_cache_size(0), override_request_index(0), internals(new internals_t)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -81,10 +82,10 @@ void teca_indexed_dataset_cache::get_properties_description(
         + (prefix.empty()?"teca_indexed_dataset_cache":prefix));
 
     opts.add_options()
-
         TECA_POPTS_GET(unsigned long, prefix, max_cache_size,
             "Sets the maximum number of datasets to cache.")
-
+        TECA_POPTS_GET(unsigned long, prefix, override_request_index,
+            "When set always request index 0.")
         ;
 
     this->teca_algorithm::get_properties_description(prefix, opts);
@@ -99,6 +100,7 @@ void teca_indexed_dataset_cache::set_properties(
     this->teca_algorithm::set_properties(prefix, opts);
 
     TECA_POPTS_SET(opts, unsigned long, prefix, max_cache_size)
+    TECA_POPTS_SET(opts, unsigned long, prefix, override_request_index)
 }
 #endif
 
@@ -138,20 +140,17 @@ std::vector<teca_metadata> teca_indexed_dataset_cache::get_upstream_request(
     }
 
     // get the requested index
+    index_t index = 0;
     std::string request_key;
-    if (request.get("index_request_key", request_key))
+    if (teca_metadata_util::get_requested_index(request, request_key, index))
     {
-        TECA_FATAL_ERROR("Failed to locate the index_request_key")
+        TECA_FATAL_ERROR("Failed to get the requested index")
         return up_reqs;
     }
 
-    index_t index = 0;
-    if (request.get(request_key, index))
-    {
-        TECA_FATAL_ERROR("Failed to get the requested index using the"
-            " index_request_key \"" << request_key << "\"")
-        return up_reqs;
-    }
+    // apply the override
+    if (this->override_request_index)
+        index = 0;
 
     {
     std::lock_guard<std::mutex> lock(this->internals->m_mutex);
@@ -176,6 +175,9 @@ std::vector<teca_metadata> teca_indexed_dataset_cache::get_upstream_request(
         std::cerr << teca_parallel_id() << "update entry " << index
             << " keep=" << elem->m_keep << std::endl;
 #endif
+        if (this->get_verbose())
+            TECA_STATUS("Cache hit on index " << index)
+
         return up_reqs;
     }
 
@@ -194,6 +196,9 @@ std::vector<teca_metadata> teca_indexed_dataset_cache::get_upstream_request(
     }
 
     // generate the request for this index
+    if (this->get_verbose())
+        TECA_STATUS("Cache miss requesting index " << index)
+
     up_reqs.push_back(request);
     return up_reqs;
 }
@@ -211,20 +216,17 @@ const_p_teca_dataset teca_indexed_dataset_cache::execute(
     (void)port;
 
     // get the requested index
+    index_t index = 0;
     std::string request_key;
-    if (request.get("index_request_key", request_key))
+    if (teca_metadata_util::get_requested_index(request, request_key, index))
     {
-        TECA_FATAL_ERROR("Failed to locate the index_request_key")
+        TECA_FATAL_ERROR("Failed to get the requested index")
         return nullptr;
     }
 
-    index_t index = 0;
-    if (request.get(request_key, index))
-    {
-        TECA_FATAL_ERROR("Failed to get the requested index using the"
-            " index_request_key \"" << request_key << "\"")
-        return nullptr;
-    }
+    // apply the override
+    if (this->override_request_index)
+        index = 0;
 
     const_p_teca_dataset data_out;
 

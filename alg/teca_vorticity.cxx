@@ -4,6 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 
 #include <algorithm>
@@ -20,6 +21,9 @@ using std::vector;
 using std::cerr;
 using std::endl;
 using std::cos;
+
+using namespace teca_variant_array_util;
+using allocator = teca_variant_array::allocator;
 
 //#define TECA_DEBUG
 
@@ -357,32 +361,26 @@ const_p_teca_dataset teca_vorticity::execute(
     }
 
     // allocate the output array
-    p_teca_variant_array vort = comp_0->new_instance();
-    vort->resize(comp_0->size());
+    p_teca_variant_array vort = comp_0->new_instance(comp_0->size());
 
     // compute vorticity
-    NESTED_TEMPLATE_DISPATCH_FP(
-        const teca_variant_array_impl,
-        lon.get(), 1,
+    NESTED_VARIANT_ARRAY_DISPATCH_FP(
+        lon.get(), _COORD,
 
-        auto sp_lon = dynamic_cast<TT1*>(lon.get())->get_cpu_accessible();
-        const NT1 *p_lon = sp_lon.get();
+        assert_type<TT_COORD>(lat);
+        auto [sp_lon, p_lon, sp_lat, p_lat] = get_host_accessible<CTT_COORD>(lon, lat);
 
-        auto sp_lat = dynamic_cast<TT1*>(lat.get())->get_cpu_accessible();
-        const NT1 *p_lat = sp_lat.get();
+        NESTED_VARIANT_ARRAY_DISPATCH_FP(
+            comp_0.get(), _DATA,
 
-        NESTED_TEMPLATE_DISPATCH_FP(
-            teca_variant_array_impl,
-            vort.get(), 2,
+            assert_type<TT_DATA>(comp_1);
 
-            auto sp_comp_0 = dynamic_cast<const TT2*>(comp_0.get())->get_cpu_accessible();
-            const NT2 *p_comp_0 = sp_comp_0.get();
+            auto [sp_comp_0, p_comp_0,
+                  sp_comp_1, p_comp_1] = get_host_accessible<CTT_DATA>(comp_0, comp_1);
 
-            auto sp_comp_1 = dynamic_cast<const TT2*>(comp_1.get())->get_cpu_accessible();
-            const NT2 *p_comp_1 = sp_comp_1.get();
+            auto [p_vort] = data<TT_DATA>(vort);
 
-            auto sp_vort = dynamic_cast<TT2*>(vort.get())->get_cpu_accessible();
-            NT2 *p_vort = sp_vort.get();
+            sync_host_access_any(lon, lat, comp_0, comp_1);
 
             ::vorticity(p_vort, p_lon, p_lat,
                 p_comp_0, p_comp_1, lon->size(), lat->size());

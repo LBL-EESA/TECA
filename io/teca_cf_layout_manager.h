@@ -32,21 +32,52 @@ public:
                 first_index, n_indices));
     }
 
-    // creates the NetCDF file. This is an MPI collective call.
+    /// creates the NetCDF file. This is an MPI collective call.
     int create(const std::string &file_name, const std::string &date_format,
         const teca_metadata &md_in, int mode_flags, int use_unlimited_dim);
 
-    // defines the NetCDF file layout. This is an MPI collective call. The
-    // metadata object must contain global view of coordinates, whole_extent,
-    // and for each array to be written there must be type code in the
-    // corresponding array attributes.
-    int define(const teca_metadata &md, unsigned long *extent,
+    /** defines the NetCDF file layout. This is an MPI collective call. The
+     * metadata object must contain global view of coordinates, whole_extent,
+     * and for each array to be written there must be type code in the
+     * corresponding array attributes.
+     *
+     * @param[in] md a metadata object compatible with that provided by the
+     *               teca_cf_reader
+     * @param[in] whole_extent the extent of data that will be written to disk,
+     *                         including runtime specified subsetting.
+     * @param[in] point_arrays a list of point centered array names to write
+     * @param[in] info_arrays a list of point centered array names to write
+     * @param[in] collective_buffer set to zero to disable collective buffering
+     * @param[in] compression_level set greater than 1 to enable compression.
+     *            this is incomatible with MPI parallel I/O and cannot be used
+     *            in a parallel setting.
+     *
+     * @returns zero if successful
+     */
+    int define(const teca_metadata &md, unsigned long *whole_extent,
         const std::vector<std::string> &point_arrays,
-        const std::vector<std::string> &info_arrays, int compression_level);
+        const std::vector<std::string> &info_arrays,
+        int collective_buffer, int compression_level);
 
-    // writes the collection of arrays to the NetCDF file
-    // in the correct spot.
+    /// writes the collection of arrays to the NetCDF file in the correct spot.
     int write(long index,
+        const const_p_teca_array_collection &point_arrays,
+        const const_p_teca_array_collection &info_arrays);
+
+    /** Writes the collection of arrays defined over a spatio-temporal extent
+     * to the NetCDF file in the correct location in the file.
+     *
+     * @param[in] extent       the spatial extent of the arrays
+     * @param[in] temporal_extent the temporal extent of the arrays
+     * @param[in] point_arrays a collection of point centered data arrays to
+     *                         write
+     * @param[in] info_arrays  a collection of non-geometrically oriented arrays
+     *                         to write
+     *
+     * @returns zero if successful
+     */
+    int write(const unsigned long extent[6],
+        const unsigned long temporal_extent[2],
         const const_p_teca_array_collection &point_arrays,
         const const_p_teca_array_collection &info_arrays);
 
@@ -110,6 +141,8 @@ protected:
     int use_unlimited_dim;
     int n_dims;
     size_t dims[4];
+    int mesh_axis[4];
+    unsigned long whole_extent[6];
 
     struct var_def_t
     {

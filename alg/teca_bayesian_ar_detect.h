@@ -91,11 +91,63 @@ public:
     /** Set the number of threads in the pool. Setting to -1 results in a
      * thread per core factoring in all MPI ranks running on the node. the
      * default is -1.
+     * @note this constructs the thread pool. properties that affect the thread
+     * pool must be set before construction.
      */
     void set_thread_pool_size(int n_threads);
 
     /// Get the number of threads in the pool.
     unsigned int get_thread_pool_size() const noexcept;
+
+    /** @name bind_threads
+     * set/get thread affinity mode. When 0 threads are not bound CPU cores,
+     * allowing for migration among all cores. This will likely degrade
+     * performance. Default is 1.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, bind_threads)
+    ///@}
+
+    /** @name stream_size
+     * set the smallest number of datasets to gather per call to execute. the
+     * default (-1) results in all datasets being gathered. In practice more
+     * datasets will be returned if ready
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, stream_size)
+    ///@}
+
+    /** @name poll_interval
+     * set the duration in nanoseconds to wait between checking for completed
+     * tasks
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(long long, poll_interval)
+    ///@}
+
+    /** @name threads_per_device
+     * Set the number of threads to service each GPU/device. Other threads will
+     * use the CPU.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, threads_per_device)
+    ///@}
+
+    /** @name ranks_per_device
+     * Set the number of ranks that have access to each GPU/device. Other ranks
+     * will use the CPU.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, ranks_per_device)
+    ///@}
+
+    /** @name propagate_device_assignment
+     * When set device assignment is taken from down stream request.
+     * Otherwise the thread executing the pipeline will provide the assignment.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, propagate_device_assignment)
+    ///@}
 
     /** override the input connections because we are going to take the first
      * input and use it to generate metadata.  the second input then becomes
@@ -132,6 +184,12 @@ private:
     std::string hwhm_latitude_variable;
     std::string ar_probability_variable;
     int thread_pool_size;
+    int bind_threads;
+    int stream_size;
+    long long poll_interval;
+    int threads_per_device;
+    int ranks_per_device;
+    int propagate_device_assignment;
 
     struct internals_t;
     internals_t *internals;

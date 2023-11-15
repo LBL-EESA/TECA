@@ -40,8 +40,6 @@ int cuda_dispatch(int device_id, p_array &a_out, double val, size_t n_vals)
     a_out = array::new_cuda_accessible();
     a_out->resize(n_vals);
 
-    std::shared_ptr<double> pa_out = a_out->get_cuda_accessible();
-
     // determine kernel launch parameters
     dim3 block_grid;
     int n_blocks = 0;
@@ -55,7 +53,7 @@ int cuda_dispatch(int device_id, p_array &a_out, double val, size_t n_vals)
 
     // initialize the data
     array_source_internals::gpu::initialize
-        <<<block_grid, thread_grid>>>(pa_out.get(), val, n_vals);
+        <<<block_grid, thread_grid>>>(a_out->data(), val, n_vals);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
         TECA_ERROR("Failed to launch the initialize kernel. "

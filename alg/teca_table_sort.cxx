@@ -4,6 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 
 #include <algorithm>
@@ -25,6 +26,7 @@ using std::vector;
 using std::set;
 using std::cerr;
 using std::endl;
+using namespace teca_variant_array_util;
 
 //#define TECA_DEBUG
 
@@ -44,12 +46,27 @@ public:
 private:
     const num_t *m_data;
 };
+
+template<typename num_t>
+class greater
+{
+public:
+    greater() : m_data(nullptr) {}
+    greater(const num_t *data) : m_data(data) {}
+
+    bool operator()(const size_t &l, const size_t &r)
+    {
+        return m_data[l] > m_data[r];
+    }
+private:
+    const num_t *m_data;
+};
 };
 
 
 // --------------------------------------------------------------------------
 teca_table_sort::teca_table_sort() :
-    index_column(""), index_column_id(0), stable_sort(0)
+    index_column(""), index_column_id(0), stable_sort(0), ascending_order(0)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -75,6 +92,8 @@ void teca_table_sort::get_properties_description(
             "place of an index_column name")
         TECA_POPTS_GET(int, prefix, stable_sort,
             "if set a stable sort will be used")
+        TECA_POPTS_GET(int, prefix, ascending_order,
+            "if set the table is sorted in ascending order")
         ;
 
     this->teca_algorithm::get_properties_description(prefix, opts);
@@ -91,6 +110,7 @@ void teca_table_sort::set_properties(
     TECA_POPTS_SET(opts, std::string, prefix, index_column)
     TECA_POPTS_SET(opts, int, prefix, index_column_id)
     TECA_POPTS_SET(opts, int, prefix, stable_sort)
+    TECA_POPTS_SET(opts, int, prefix, ascending_order)
 }
 #endif
 
@@ -146,16 +166,27 @@ const_p_teca_dataset teca_table_sort::execute(
         malloc(n_rows*sizeof(unsigned long)));
     for (unsigned long i = 0; i < n_rows; ++i)
         index[i] = i;
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
-        index_col.get(),
 
-        auto scol = static_cast<TT*>(index_col.get())->get_cpu_accessible();
-        const NT *col = scol.get();
+    VARIANT_ARRAY_DISPATCH(index_col.get(),
+
+        auto [scol, col] = get_host_accessible<CTT>(index_col);
+
+        sync_host_access_any(index_col);
 
         if (this->stable_sort)
-            std::stable_sort(index, index+n_rows, internal::less<NT>(col));
+        {
+            if (this->ascending_order)
+                std::stable_sort(index, index+n_rows, internal::greater<NT>(col));
+            else
+                std::stable_sort(index, index+n_rows, internal::less<NT>(col));
+        }
         else
-            std::sort(index, index+n_rows, internal::less<NT>(col));
+        {
+            if (this->ascending_order)
+                std::sort(index, index+n_rows, internal::greater<NT>(col));
+            else
+                std::sort(index, index+n_rows, internal::less<NT>(col));
+        }
         )
 
     // transfer data and reorder
@@ -168,14 +199,12 @@ const_p_teca_dataset teca_table_sort::execute(
         const_p_teca_variant_array in_col = in_table->get_column(j);
         p_teca_variant_array out_col = out_table->get_column(j);
         out_col->resize(n_rows);
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            out_col.get(),
+        VARIANT_ARRAY_DISPATCH(out_col.get(),
 
-            auto sp_in_col = static_cast<const TT*>(in_col.get())->get_cpu_accessible();
-            const NT *p_in_col = sp_in_col.get();
+            auto [sp_in_col, p_in_col] = get_host_accessible<CTT>(in_col);
+            auto [p_out_col] = data<TT>(out_col);
 
-            auto sp_out_col = static_cast<TT*>(out_col.get())->get_cpu_accessible();
-            NT *p_out_col = sp_out_col.get();
+            sync_host_access_any(in_col);
 
             for (unsigned long i = 0; i < n_rows; ++i)
                 p_out_col[i] = p_in_col[index[i]];

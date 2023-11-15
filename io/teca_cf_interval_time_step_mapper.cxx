@@ -1,44 +1,9 @@
 #include "teca_cf_interval_time_step_mapper.h"
+#include "teca_coordinate_util.h"
 
 #include <iomanip>
 
-namespace {
-// **************************************************************************
-int locate(long step, const std::vector<std::pair<long, long>> &brackets,
-    size_t l, size_t r, long &i)
-{
-    size_t m = (l + r) / 2;
-
-    const std::pair<long, long> &br = brackets[m];
-
-    if ((step >= br.first) && (step <= br.second))
-    {
-        // found
-        i = m;
-        return 0;
-    }
-    else if (l == r)
-    {
-        // not found
-        return -1;
-    }
-    else if (step < br.first)
-    {
-        // search left
-        return locate(step, brackets, l, m, i);
-    }
-    else if (step > br.second)
-    {
-        // search right
-        if (m == l) m = r;
-        return locate(step, brackets, m, r, i);
-    }
-
-    // not found
-    return -1;
-}
-}
-
+using namespace teca_coordinate_util;
 
 // --------------------------------------------------------------------------
 int teca_cf_interval_time_step_mapper::to_stream(std::ostream &os)
@@ -134,7 +99,7 @@ int teca_cf_interval_time_step_mapper::to_stream(std::ostream &os)
 int teca_cf_interval_time_step_mapper::get_file_id(long time_step, long &file_id)
 {
     file_id = -1;
-    if (::locate(time_step, this->file_steps, 0, this->n_files - 1, file_id))
+    if (find_extent_containing_step(time_step, this->file_steps,  file_id))
     {
         TECA_ERROR("Failed to locate the file id for time step " << time_step)
         return -1;
@@ -143,11 +108,11 @@ int teca_cf_interval_time_step_mapper::get_file_id(long time_step, long &file_id
 }
 
 // --------------------------------------------------------------------------
-p_teca_cf_layout_manager teca_cf_interval_time_step_mapper::get_layout_manager(
-    long time_step)
+p_teca_cf_layout_manager
+teca_cf_interval_time_step_mapper::get_layout_manager(long time_step)
 {
     long file_id = -1;
-    if (locate(time_step, this->file_steps, 0, this->n_files - 1, file_id))
+    if (find_extent_containing_step(time_step, this->file_steps,  file_id))
     {
         TECA_ERROR("Failed to locate the file id for time step " << time_step)
         return nullptr;
@@ -167,7 +132,7 @@ p_teca_cf_layout_manager teca_cf_interval_time_step_mapper::get_layout_manager(
 int teca_cf_interval_time_step_mapper::initialize(MPI_Comm comm,
     long first_step, long last_step,
     const teca_calendar_util::p_interval_iterator &it,
-    const teca_metadata &md)
+    const std::string &request_key)
 {
 #if !defined(TECA_HAS_MPI)
     (void)comm;
@@ -175,66 +140,29 @@ int teca_cf_interval_time_step_mapper::initialize(MPI_Comm comm,
     this->comm = comm;
     this->start_time_step = first_step;
     this->end_time_step = last_step;
-
-    // locate the keys that enable us to know how many
-    // requests we need to make and what key to use
-    if (md.get("index_initializer_key", this->index_initializer_key))
-    {
-        TECA_ERROR("No time_step initializer key has been specified")
-        return -1;
-    }
-
-    if (md.get("index_request_key", this->index_request_key))
-    {
-        TECA_ERROR("No time_step request key has been specified")
-        return -1;
-    }
-
-    // locate available time_steps
-    this->n_time_steps = 0;
-    if (md.get(this->index_initializer_key, n_time_steps))
-    {
-        TECA_ERROR("metadata is missing the initializer key \""
-            << this->index_initializer_key << "\"")
-        return -1;
-    }
-
-    // apply restriction
-    long last
-        = this->end_time_step >= 0 ? this->end_time_step : n_time_steps - 1;
-
-    long first
-        = ((this->start_time_step >= 0) && (this->start_time_step <= last))
-            ? this->start_time_step : 0;
+    this->index_request_key = request_key;
 
     // enumerate the steps in each file
-    if (it->initialize(md, first, last))
-    {
-        TECA_ERROR("Failed to initialize the interval iterator")
-        return -1;
-    }
-
     this->file_steps.clear();
     while (*it)
     {
-        teca_calendar_util::time_point first_step;
-        teca_calendar_util::time_point last_step;
+        teca_calendar_util::time_point step[2];
 
-        it->get_next_interval(first_step, last_step);
+        it->get_next_interval(step[0], step[1]);
 
         // apply subset on a bracket that intersects it
-        first_step.index = first > first_step.index ? first : first_step.index;
-        last_step.index = last < last_step.index ? last : last_step.index;
+        step[0].index = first_step > step[0].index ? first_step : step[0].index;
+        step[1].index = last_step < step[1].index ? last_step : step[1].index;
 
         this->file_steps.emplace_back(
-            std::make_pair(first_step.index, last_step.index));
+            std::make_pair(step[0].index, step[1].index));
     }
 
     // make a correction to the restriction because the seasonal iterator only
     // works on full seasons.
-    first = this->file_steps[0].first;
-    last = this->file_steps.back().second;
-    this->n_time_steps = last - first + 1;
+    first_step = this->file_steps[0].first;
+    last_step = this->file_steps.back().second;
+    this->n_time_steps = last_step - first_step + 1;
 
     // partition time_steps across MPI ranks. each rank
     // will end up with a unique block of time_steps
@@ -252,23 +180,23 @@ int teca_cf_interval_time_step_mapper::initialize(MPI_Comm comm,
 #endif
 
     // map time_steps to ranks
-    long n_big_blocks = this->n_time_steps % n_ranks;
+    long n_reg = this->n_time_steps / n_ranks;
+    long n_big = this->n_time_steps % n_ranks;
+
+    if ((rank == 0) && (n_reg == 1) && n_big)
+    {
+        TECA_WARNING("Potential load imbalance with " << n_ranks << " ranks and "
+            << this->n_time_steps << " time steps " << n_ranks - n_big
+            << " ranks will be idle during the final pipeline pass")
+    }
+
     this->block_size.resize(n_ranks);
     this->block_start.resize(n_ranks);
     for (int i = 0; i < n_ranks; ++i)
     {
-        this->block_size[i] = 1;
-        this->block_start[i] = 0;
-        if (i < n_big_blocks)
-        {
-            this->block_size[i] = this->n_time_steps / n_ranks + 1;
-            this->block_start[i] = first + this->block_size[i]*i;
-        }
-        else
-        {
-            this->block_size[i] = this->n_time_steps / n_ranks;
-            this->block_start[i] = first + this->block_size[i]*i + n_big_blocks;
-        }
+        // compute rank i's work assignment
+        this->block_size[i] = n_reg + (i < n_big ? 1 : 0);
+        this->block_start[i] = first_step + this->block_size[i]*i + (i < n_big ? 0 : n_big);
     }
 
     // get the number of files to write
@@ -323,12 +251,12 @@ int teca_cf_interval_time_step_mapper::initialize(MPI_Comm comm,
         {
             // this rank will write to this file, create a layout
             // manager that will do the work of putting data on disk
-            long first_step = this->file_steps[i].first;
-            long last_step = this->file_steps[i].second;
+            long first = this->file_steps[i].first;
+            long last = this->file_steps[i].second;
 
-            long n_steps = last_step - first_step + 1;
+            long n_steps = last - first + 1;
 
-            this->file_table[i] = teca_cf_layout_manager::New(comm_i, i, first_step, n_steps);
+            this->file_table[i] = teca_cf_layout_manager::New(comm_i, i, first, n_steps);
         }
     }
 

@@ -36,7 +36,32 @@ public:
      * have_mesh_dims flag is missing. The latter is not necessarily an error.
      */
     int get_array_extent(const std::string &array_name,
-        unsigned long array_extent[6]);
+        unsigned long array_extent[8]) const;
+
+    /** Get the shape of the named array, taking into account the variable's
+     * dimensions as opposed to the mesh's dimensions.  For instance the mesh
+     * extent may represent a volume while a variables extent may represent a
+     * slice. returns 0 if successful, -1 if an error occurred, 1 if the
+     * have_mesh_dims flag is missing. The latter is not necessarily an error.
+     */
+    int get_array_shape(const std::string &array_name,
+        unsigned long array_shape[4]) const;
+
+    /** Get the shape of the named array, taking into account the variable's
+     * dimensions as opposed to the mesh's dimensions. If the call fails,
+     * an error is reported to the stderr stream.
+     */
+    std::tuple<unsigned long, unsigned long, unsigned long, unsigned long>
+    get_array_shape(const std::string &array_name) const
+    {
+        unsigned long array_shape[4] = {0};
+        if (this->get_array_shape(array_name, array_shape) < 0)
+        {
+            TECA_ERROR("Failed to get shape for \"" << array_name << "\"")
+        }
+        return std::make_tuple(array_shape[0], array_shape[1],
+                               array_shape[2], array_shape[3]);
+    }
 
     /// get the number of points in the mesh
     unsigned long get_number_of_points() const override;

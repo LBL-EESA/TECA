@@ -150,16 +150,16 @@ std::vector<teca_metadata> teca_dataset_diff::get_upstream_request(
     std::vector<teca_metadata> up_reqs;
 
     // get the current index
-    unsigned long test_id = 0;
-    if (request.get("test_id", test_id))
+    unsigned long test_ids[2];
+    if (request.get("test_id", test_ids))
     {
         TECA_FATAL_ERROR("Request is missing the index_request_key test_id")
         return up_reqs;
     }
 
     // get input 0 request key
-    std::string request_key;
-    if (input_md[0].get("index_request_key", request_key))
+    std::string request_key_0;
+    if (input_md[0].get("index_request_key", request_key_0))
     {
         TECA_FATAL_ERROR("Input 0 metadata is missing index_request_key")
         return up_reqs;
@@ -167,12 +167,13 @@ std::vector<teca_metadata> teca_dataset_diff::get_upstream_request(
 
     // make the request for input 0
     teca_metadata req_0(request);
-    req_0.set("index_request_key", request_key);
-    req_0.set(request_key, test_id);
+    req_0.set("index_request_key", request_key_0);
+    req_0.set(request_key_0, test_ids);
     req_0.remove("test_id");
 
     // get input 1 request key
-    if (input_md[1].get("index_request_key", request_key))
+    std::string request_key_1;
+    if (input_md[1].get("index_request_key", request_key_1))
     {
         TECA_FATAL_ERROR("Input 1 metadata is missing index_request_key")
         return up_reqs;
@@ -180,8 +181,8 @@ std::vector<teca_metadata> teca_dataset_diff::get_upstream_request(
 
     // make the request for input 1
     teca_metadata req_1(request);
-    req_1.set("index_request_key", request_key);
-    req_1.set(request_key, test_id);
+    req_1.set("index_request_key", request_key_1);
+    req_1.set(request_key_1, test_ids);
     req_1.remove("test_id");
 
     // send them upstream
@@ -359,6 +360,8 @@ int teca_dataset_diff::compare_tables(
     double absTol = this->get_abs_tol();
     double relTol = this->get_rel_tol();
 
+    std::set<std::string> skip_set(this->skip_arrays.begin(), this->skip_arrays.end());
+
     for (unsigned int col = 0; col < ncols1; ++col)
     {
         const_p_teca_variant_array col1 = table1->get_column(col);
@@ -366,12 +369,24 @@ int teca_dataset_diff::compare_tables(
 
         const std::string &col_name = table1->get_column_name(col);
 
+        int skip = skip_set.count(col_name);
+
         if (this->verbose && (rank == 0))
         {
-            TEST_STATUS("  comparing collumn \"" << col_name
-                << "\" absTol=" << max_prec(double) << absTol
-                << " relTol=" << max_prec(double) << relTol)
+            if (skip)
+            {
+                TEST_STATUS("  skipping \"" << col_name << "\"")
+            }
+            else
+            {
+                TEST_STATUS("  comparing collumn \"" << col_name
+                    << "\" absTol=" << max_prec(double) << absTol
+                    << " relTol=" << max_prec(double) << relTol)
+            }
         }
+
+        if (skip)
+            continue;
 
         int errorNo = 0;
         std::string errorStr;
@@ -417,6 +432,8 @@ int teca_dataset_diff::compare_array_collections(
     double absTol = this->get_abs_tol();
     double relTol = this->get_rel_tol();
 
+    std::set<std::string> skip_set(this->skip_arrays.begin(), this->skip_arrays.end());
+
     for (unsigned int i = 0; i < reference_arrays->size(); ++i)
     {
         const_p_teca_variant_array a1 = reference_arrays->get(i);
@@ -424,12 +441,25 @@ int teca_dataset_diff::compare_array_collections(
 
         const_p_teca_variant_array a2 = data_arrays->get(name);
 
+        int skip = skip_set.count(name);
+
         if (this->verbose && (rank == 0))
         {
-            TEST_STATUS("    comparing array \"" << name
-                << "\" absTol=" << max_prec(double) << absTol
-                << " relTol=" << max_prec(double) << relTol)
+            if (skip)
+            {
+                TEST_STATUS("  skipping \"" << name << "\"")
+            }
+            else
+            {
+                TEST_STATUS("    comparing array \"" << name
+                    << "\" size=" << a1->size() << " absTol="
+                    << max_prec(double) << absTol
+                    << " relTol=" << max_prec(double) << relTol)
+            }
         }
+
+        if (skip)
+            continue;
 
         int errorNo = 0;
         std::string errorStr;
@@ -593,7 +623,14 @@ int teca_dataset_diff::compare_cartesian_meshes(
     // compare base class elements
     if (this->verbose && (rank == 0))
     {
-        TEST_STATUS("comparing cartesian meshes")
+        unsigned long temporal_extent[2];
+        reference_mesh->get_temporal_extent(temporal_extent);
+
+        unsigned long extent[6];
+        reference_mesh->get_extent(extent);
+
+        TEST_STATUS("comparing cartesian meshes. extent=[" << extent
+            << "] temporal_extent=[" << temporal_extent << "]")
     }
     if (this->compare_meshes(reference_mesh, data_mesh))
     {

@@ -3,6 +3,7 @@
 #include "teca_mesh.h"
 #include "teca_array_collection.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_cartesian_mesh.h"
 
@@ -17,6 +18,8 @@ using std::vector;
 using std::set;
 using std::cerr;
 using std::endl;
+
+using namespace teca_variant_array_util;
 
 //#define TECA_DEBUG
 namespace {
@@ -184,14 +187,12 @@ const_p_teca_dataset teca_mask::execute(
         size_t n_elem = input_array->size();
         p_teca_variant_array mask = input_array->new_instance(n_elem);
 
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            mask.get(),
+        VARIANT_ARRAY_DISPATCH(input_array.get(),
 
-            auto sp_in = static_cast<const TT*>(input_array.get())->get_cpu_accessible();
-            auto p_in = sp_in.get();
+            auto [sp_in, p_in] = get_host_accessible<CTT>(input_array);
+            auto [p_mask] = data<TT>(mask);
 
-            auto sp_mask = static_cast<TT*>(mask.get())->get_cpu_accessible();
-            auto p_mask = sp_mask.get();
+            sync_host_access_any(input_array);
 
             ::apply_mask(p_mask, p_in,  n_elem,
                 static_cast<NT>(low_val), static_cast<NT>(high_val),

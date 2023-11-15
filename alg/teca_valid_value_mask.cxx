@@ -4,6 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_array_attributes.h"
 #include "teca_coordinate_util.h"
@@ -23,6 +24,9 @@
 #include <boost/program_options.hpp>
 #endif
 
+using namespace teca_variant_array_util;
+using allocator = teca_variant_array::allocator;
+
 namespace
 {
 bool is_mask_array(const std::string &array)
@@ -37,7 +41,7 @@ bool is_mask_array(const std::string &array)
 }
 
 #if defined(TECA_HAS_CUDA)
-namespace cuda
+namespace cuda_gpu
 {
 // **************************************************************************
 template <typename T>
@@ -68,8 +72,9 @@ void compute_mask(const T *array, T valid_range_0,
 }
 
 // **************************************************************************
-template <typename NT, typename TT = teca_variant_array_impl<NT>>
-int dispatch(int device_id, const TT *array, NT fill_value, p_teca_char_array &mask)
+template <typename NT, typename CTT = const teca_variant_array_impl<NT>>
+int dispatch(int device_id, const const_p_teca_variant_array &array,
+    NT fill_value,  PT_MASK &mask)
 {
     // set the CUDA device to run on
     cudaError_t ierr = cudaSuccess;
@@ -80,17 +85,13 @@ int dispatch(int device_id, const TT *array, NT fill_value, p_teca_char_array &m
         return -1;
     }
 
-    // get a pointer to the values
-    auto sp_array = array->get_cuda_accessible();
-    auto p_array = sp_array.get();
+    // get the input
+    auto [sp_array, p_array] = get_cuda_accessible<CTT>(array);
 
     // allocate the mask
     size_t n_elem = array->size();
-
-    mask = teca_char_array::New(n_elem, teca_variant_array::allocator::cuda);
-
-    auto sp_mask = mask->get_cuda_accessible();
-    char *p_mask = sp_mask.get();
+    mask = TT_MASK::New(n_elem, allocator::cuda_async);
+    NT_MASK *p_mask = mask->data();
 
     // determine kernel launch parameters
     int n_blocks = 0;
@@ -116,8 +117,9 @@ int dispatch(int device_id, const TT *array, NT fill_value, p_teca_char_array &m
 }
 
 // **************************************************************************
-template <typename NT, typename TT = teca_variant_array_impl<NT>>
-int dispatch(int device_id, const TT *array, const NT *valid_range, p_teca_char_array &mask)
+template <typename NT, typename CTT = const teca_variant_array_impl<NT>>
+int dispatch(int device_id, const const_p_teca_variant_array &array,
+    const NT *valid_range, PT_MASK &mask)
 {
     // set the CUDA device to run on
     cudaError_t ierr = cudaSuccess;
@@ -129,16 +131,12 @@ int dispatch(int device_id, const TT *array, const NT *valid_range, p_teca_char_
     }
 
     // get a pointer to the values
-    auto sp_array = array->get_cuda_accessible();
-    auto p_array = sp_array.get();
+    auto [sp_array, p_array] = get_cuda_accessible<CTT>(array);
 
     // allocate the mask
     size_t n_elem = array->size();
-
-    mask = teca_char_array::New(n_elem, teca_variant_array::allocator::cuda);
-
-    auto sp_mask = mask->get_cuda_accessible();
-    char *p_mask = sp_mask.get();
+    mask = TT_MASK::New(n_elem, allocator::cuda_async);
+    NT_MASK *p_mask = mask->data();
 
     // determine kernel launch parameters
     int n_blocks = 0;
@@ -170,19 +168,21 @@ int dispatch(int device_id, const TT *array, const NT *valid_range, p_teca_char_
 namespace cpu
 {
 // **************************************************************************
-template <typename NT, typename TT = teca_variant_array_impl<NT>>
-int dispatch(const TT *array, NT fill_value, p_teca_char_array &mask)
+template <typename NT, typename CTT = const teca_variant_array_impl<NT>>
+int dispatch(const const_p_teca_variant_array &array, NT fill_value, PT_MASK &mask)
 {
     // get a pointer to the values
-    auto sp_array = array->get_cpu_accessible();
-    auto p_array = sp_array.get();
+    auto [sp_array, p_array] = get_host_accessible<CTT>(array);
 
     size_t n_elem = array->size();
 
-    // allocate and compute the mask
-    mask = teca_char_array::New(n_elem);
-    auto sp_mask = mask->get_cpu_accessible();
-    char *p_mask = sp_mask.get();
+    // allocate the output
+    mask = TT_MASK::New(n_elem);
+    NT_MASK *p_mask = mask->data();
+
+    sync_host_access_any(array);
+
+    // compute the mask
     for (size_t i = 0; i < n_elem; ++i)
     {
         p_mask[i] = teca_coordinate_util::equal(p_array[i], fill_value) ? 0 : 1;
@@ -192,19 +192,22 @@ int dispatch(const TT *array, NT fill_value, p_teca_char_array &mask)
 }
 
 // **************************************************************************
-template <typename NT, typename TT = teca_variant_array_impl<NT>>
-int dispatch(const TT *array, const NT *valid_range, p_teca_char_array &mask)
+template <typename NT, typename CTT = const teca_variant_array_impl<NT>>
+int dispatch(const const_p_teca_variant_array &array, const NT *valid_range,
+    PT_MASK &mask)
 {
     // get a pointer to the values
-    auto sp_array = array->get_cpu_accessible();
-    auto p_array = sp_array.get();
+    auto [sp_array, p_array] = get_host_accessible<CTT>(array);
 
     size_t n_elem = array->size();
 
-    // allocate and compute the mask
-    mask = teca_char_array::New(n_elem);
-    auto sp_mask = mask->get_cpu_accessible();
-    char *p_mask = sp_mask.get();
+    // allocate the output
+    mask = TT_MASK::New(n_elem);
+    NT_MASK *p_mask = mask->data();
+
+    sync_host_access_any(array);
+
+    // compute the mask
     for (size_t i = 0; i < n_elem; ++i)
     {
         NT val = p_array[i];
@@ -316,10 +319,13 @@ teca_metadata teca_valid_value_mask::get_output_metadata(
         unsigned long size = 0;
         array_atts.get("size", size);
 
+        auto dim_active = teca_array_attributes::xyzt_active();
+        array_atts.get("mesh_dim_active", dim_active);
+
         // construct attributes
         teca_array_attributes mask_atts(
-            teca_variant_array_code<char>::get(),
-            centering, size, "none", "", "valid value mask");
+            teca_variant_array_code<char>::get(), centering,
+            size, dim_active, "none", "", "valid value mask");
 
         std::string mask_name = array_name + "_valid";
 
@@ -469,7 +475,6 @@ const_p_teca_dataset teca_valid_value_mask::execute(
             return nullptr;
         }
 
-
         // get the centering
         unsigned int centering = 0;
         if (array_atts.get("centering", centering))
@@ -496,8 +501,10 @@ const_p_teca_dataset teca_valid_value_mask::execute(
             return nullptr;
         }
 
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            array.get(),
+        // get the mask name
+        std::string mask_name = array_name + "_valid";
+
+        VARIANT_ARRAY_DISPATCH(array.get(),
 
             // look for a _FillValue
             bool have_fill_value = false;
@@ -507,7 +514,7 @@ const_p_teca_dataset teca_valid_value_mask::execute(
             have_fill_value = ((array_atts.get("_FillValue", fill_value) == 0) ||
                 (array_atts.get("missing_value", fill_value) == 0));
 
-            // look for some combination of valid rnage attributes.
+            // look for some combination of valid range attributes.
             bool have_valid_range = false;
             bool have_valid_min = false;
             bool have_valid_max = false;
@@ -539,8 +546,7 @@ const_p_teca_dataset teca_valid_value_mask::execute(
 #if defined(TECA_HAS_CUDA)
                 if (device_id >= 0)
                 {
-                    if (::cuda::dispatch<NT>(device_id,
-                        static_cast<TT*>(array.get()), fill_value, mask))
+                    if (::cuda_gpu::dispatch<NT>(device_id, array, fill_value, mask))
                     {
                         TECA_ERROR("Failed to compute the valid value mask using CUDA")
                         return nullptr;
@@ -549,8 +555,7 @@ const_p_teca_dataset teca_valid_value_mask::execute(
                 else
                 {
 #endif
-                    if (::cpu::dispatch<NT>(static_cast<TT*>(array.get()),
-                        fill_value, mask))
+                    if (::cpu::dispatch<NT>(array, fill_value, mask))
                     {
                         TECA_ERROR("Failed to compute the valid value mask on the CPU")
                         return nullptr;
@@ -570,8 +575,7 @@ const_p_teca_dataset teca_valid_value_mask::execute(
 #if defined(TECA_HAS_CUDA)
                 if (device_id >= 0)
                 {
-                    if (::cuda::dispatch<NT>(device_id,
-                        static_cast<TT*>(array.get()), valid_range, mask))
+                    if (::cuda_gpu::dispatch<NT>(device_id, array, valid_range, mask))
                     {
                         TECA_ERROR("Failed to compute the valid value mask using CUDA")
                         return nullptr;
@@ -580,8 +584,7 @@ const_p_teca_dataset teca_valid_value_mask::execute(
                 else
                 {
 #endif
-                    if (::cpu::dispatch<NT>(static_cast<TT*>(array.get()),
-                        valid_range, mask))
+                    if (::cpu::dispatch<NT>(array, valid_range, mask))
                     {
                         TECA_ERROR("Failed to compute the valid value mask on the CPU")
                         return nullptr;
@@ -610,10 +613,30 @@ const_p_teca_dataset teca_valid_value_mask::execute(
             }
 
             // save the mask in the output
-            std::string mask_name = array_name + "_valid";
             arrays->set(mask_name, mask);
             )
+
+        // copy attributes
+        unsigned long size = 0;
+        array_atts.get("size", size);
+
+        unsigned long dim_active[4] = {0ul};
+        array_atts.get("mesh_dim_active", dim_active, 4);
+
+        teca_metadata mask_atts;
+        mask_atts.set("long name", mask_name);
+        mask_atts.set("description", std::string("valid value mask"));
+        mask_atts.set("units", std::string("none"));
+        mask_atts.set("type_code", teca_variant_array_code<char>::get());
+        mask_atts.set("centering", centering);
+        mask_atts.set("size", size);
+        mask_atts.set("mesh_dim_active", dim_active);
+
+        attributes.set(mask_name, mask_atts);
     }
+
+    // update the attributes
+    out_mesh->set_attributes(attributes);
 
     return out_mesh;
 }

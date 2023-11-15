@@ -4,6 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_array_attributes.h"
 
@@ -23,6 +24,9 @@
 #endif
 
 //#define TECA_DEBUG
+
+using namespace teca_variant_array_util;
+
 
 struct teca_elevation_mask::internals_t
 {
@@ -150,10 +154,13 @@ teca_metadata teca_elevation_mask::get_output_metadata(
         unsigned long size = 0;
         mesh_height_atts.get("size", size);
 
+        auto dim_active = teca_array_attributes::xyzt_active();
+        mesh_height_atts.get("mesh_dim_active", dim_active);
+
         // construct output attributes
         teca_array_attributes mask_atts(
-            teca_variant_array_code<char>::get(),
-            centering, size, "none", "", "elevation mask");
+            teca_variant_array_code<char>::get(), centering, size,
+            dim_active, "none", "", "elevation mask");
 
         // add one for each output
         for (unsigned int i = 0; i < n_mask_vars; ++i)
@@ -253,7 +260,7 @@ std::vector<teca_metadata> teca_elevation_mask::get_upstream_request(
     // surface elevations don't change over the timescale of concern
     // always request index 0
     teca_metadata req_1;
-    req_1.set(req_key, 0ul);
+    req_1.set(req_key, {0ul, 0ul});
     req_1.set("index_request_key", req_key);
 
     // request the surface elevation
@@ -348,26 +355,19 @@ const_p_teca_dataset teca_elevation_mask::execute(
 
     // compute the mask
     p_teca_char_array mask = teca_char_array::New(mesh_height->size());
-    auto sp_mask = mask->get_cpu_accessible();
-    char *p_mask = sp_mask.get();
+    char *p_mask = mask->data();
 
-    NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
-        surface_elev.get(),
-        _SURF,
+    NESTED_VARIANT_ARRAY_DISPATCH(
+        surface_elev.get(), _SURF,
 
-        auto sp_surface_elev = static_cast<TT_SURF*>
-            (surface_elev.get())->get_cpu_accessible();
+        auto [sp_se, p_surface_elev] = get_host_accessible<CTT_SURF>(surface_elev);
 
-        const NT_SURF *p_surface_elev = sp_surface_elev.get();
+        NESTED_VARIANT_ARRAY_DISPATCH(
+            mesh_height.get(), _MESH,
 
-        NESTED_TEMPLATE_DISPATCH(const teca_variant_array_impl,
-            mesh_height.get(),
-            _MESH,
+            auto [sp_mh, p_mesh_height] = get_host_accessible<CTT_MESH>(mesh_height);
 
-            auto sp_mesh_height = static_cast<TT_MESH *>
-                (mesh_height.get())->get_cpu_accessible();
-
-            const NT_MESH *p_mesh_height = sp_mesh_height.get();
+            sync_host_access_any(surface_elev, mesh_height);
 
             internals_t::mask_by_surface_elevation(nx, ny, nz,
                 p_mask, p_surface_elev, p_mesh_height);

@@ -6,6 +6,7 @@
 
 #include <ostream>
 #include <variant>
+#include <array>
 
 /** @brief
  * A convenience container for conventional array attributes necessary and/or
@@ -19,6 +20,7 @@
  * | centering       | one of: no_centering, point_centering, cell_centering,     |
  * |                 | edge_centering, or face_centering                          |
  * | size            | number of elements in the array                            |
+ * | mesh_dim_active | a 4 tuple x,y,z,t set to 1 if the dimension is used.       |
  * | units           | string describing the units that the variable is in.       |
  * | long name       | a more descriptive name                                    |
  * | description     | text describing the data                                   |
@@ -29,16 +31,18 @@
 struct TECA_EXPORT teca_array_attributes
 {
     teca_array_attributes() : type_code(0),
-        centering(0), size(0), units(), long_name(), description(),
-        have_fill_value(0), fill_value(1e20f)
+        centering(0), size(0), mesh_dim_active{},
+        units(), long_name(), description(), have_fill_value(0),
+        fill_value(1e20f)
     {}
 
     template <typename fv_t = float>
     teca_array_attributes(unsigned int tc, unsigned int cen,
-        unsigned long n, const std::string &un, const std::string &ln,
-        const std::string &descr, const int &have_fv=0, const fv_t &fv=fv_t(1e20f)) :
-        type_code(tc), centering(cen), size(n), units(un), long_name(ln),
-        description(descr), have_fill_value(have_fv), fill_value(fv)
+        unsigned long n, const std::array<int,4> &mda, const std::string &un,
+        const std::string &ln, const std::string &descr, const int &have_fv=0,
+        const fv_t &fv=fv_t(1e20f)) :
+        type_code(tc), centering(cen), size(n), mesh_dim_active(mda), units(un),
+        long_name(ln), description(descr), have_fill_value(have_fv), fill_value(fv)
     {}
 
     teca_array_attributes(const teca_array_attributes &) = default;
@@ -46,8 +50,9 @@ struct TECA_EXPORT teca_array_attributes
 
     /// Convert a from metadata object.
     teca_array_attributes(const teca_metadata &md) :
-        type_code(0), centering(0), size(0), units(), long_name(),
-        description(), have_fill_value(0), fill_value(1.e20f)
+        type_code(0), centering(0), size(0), mesh_dim_active{{}},
+        units(), long_name(), description(), have_fill_value(0),
+        fill_value(1.e20f)
     {
         from(md);
     }
@@ -110,6 +115,21 @@ struct TECA_EXPORT teca_array_attributes
     /// convert the centering code to a string
     static const char *centering_to_string(int cen);
 
+    /// flags for non-mesh based arrays
+    static constexpr std::array<int,4> none_active() { return {0,0,0,0}; }
+
+    /// flags for time varying 3D arrays
+    static constexpr std::array<int,4> xyzt_active() { return {1,1,1,1}; }
+
+    /// flags for time varying 2D arrays
+    static constexpr std::array<int,4> xyt_active() { return {1,1,0,1}; }
+
+    /// flags for non-time varying 3D arrays
+    static constexpr std::array<int,4> xyz_active() { return {1,1,1,0}; }
+
+    /// flags for non-time varying 2D arrays
+    static constexpr std::array<int,4> xy_active() { return {1,1,0,0}; }
+
     using fill_value_t =
         std::variant<char, unsigned char, short, unsigned short,
             int, unsigned int, long, unsigned long, long long,
@@ -118,6 +138,7 @@ struct TECA_EXPORT teca_array_attributes
     unsigned int type_code;
     unsigned int centering;
     unsigned long size;
+    std::array<int,4> mesh_dim_active;
     std::string units;
     std::string long_name;
     std::string description;

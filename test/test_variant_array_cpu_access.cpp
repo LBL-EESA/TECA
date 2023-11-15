@@ -1,7 +1,14 @@
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 
 #include <iostream>
+#include <tuple>
+#include <memory>
+
+using namespace teca_variant_array_util;
+using allocator = teca_variant_array::allocator;
+
 
 // **************************************************************************
 template<typename NT>
@@ -17,15 +24,10 @@ void initialize_cpu(NT *data, double val, size_t n_vals)
 template <typename NT>
 p_teca_variant_array_impl<NT> initialize_cpu(size_t n_vals, const NT &val)
 {
-    // allocate the memory
     using TT = teca_variant_array_impl<NT>;
-    using PTT = std::shared_ptr<TT>;
 
-    PTT ao  = TT::New(teca_variant_array::allocator::malloc);
-    ao->resize(n_vals);
-
-    auto spao = ao->get_cpu_accessible();
-    NT *pao = spao.get();
+    // allocate the memory
+    auto [ao, pao] = ::New<TT>(n_vals, allocator::malloc);
 
     // initialize the data
     initialize_cpu(pao, val, n_vals);
@@ -62,25 +64,17 @@ p_teca_variant_array_impl<NT1> add_cpu(
     const const_p_teca_variant_array_impl<NT2> &a2)
 {
     using TT1 = teca_variant_array_impl<NT1>;
-    using PTT1 = std::shared_ptr<TT1>;
-
     using TT2 = teca_variant_array_impl<NT2>;
-    using PTT2 = std::shared_ptr<TT2>;
 
     // get the inputs
-    auto spa1 = a1->get_cpu_accessible();
-    const NT1 *pa1 = spa1.get();
-
-    auto spa2 = a2->get_cpu_accessible();
-    const NT2 *pa2 = spa2.get();
+    auto [spa1, pa1] = get_host_accessible<const TT1>(a1);
+    auto [spa2, pa2] = get_host_accessible<const TT2>(a2);
 
     // allocate the memory
     size_t n_vals = a1->size();
-    auto ao = TT1::New(teca_variant_array::allocator::malloc);
-    ao->resize(n_vals, NT1(0));
+    auto [ao, pao] = ::New<TT1>(n_vals, NT1(0), allocator::malloc);
 
-    auto spao = ao->get_cpu_accessible();
-    NT1 *pao = spao.get();
+    sync_host_access_any(a1, a2);
 
     // initialize the data
     add_cpu(pao, pa1, pa2, n_vals);
@@ -118,22 +112,13 @@ p_teca_variant_array_impl<NT1> multiply_scalar_cpu(
     const const_p_teca_variant_array_impl<NT1> &ain, const NT2 &val)
 {
     using TT1 = teca_variant_array_impl<NT1>;
-    using PTT1 = std::shared_ptr<TT1>;
-
-    using TT2 = teca_variant_array_impl<NT2>;
-    using PTT2 = std::shared_ptr<TT2>;
 
     // get the inputs
-    auto spain = ain->get_cpu_accessible();
-    const NT1 *pain = spain.get();
+    auto [spain, pain] = get_host_accessible<TT1>(ain);
 
     // allocate the memory
     size_t n_vals = ain->size();
-    PTT1 ao = TT1::New(teca_variant_array::allocator::malloc);
-    ao->resize(n_vals, NT1(0));
-
-    auto spao = ao->get_cpu_accessible();
-    NT1 *pao = spao.get();
+    auto [ao, pao] = ::New<TT1>(n_vals, NT1(0), allocator::malloc);
 
     // initialize the data
     multiply_scalar_cpu(pao, pain, val, n_vals);
@@ -157,13 +142,14 @@ p_teca_variant_array_impl<NT1> multiply_scalar_cpu(
 template <typename T>
 int compare_int(const const_p_teca_variant_array_impl<T> &ain, int val)
 {
+    using TT = teca_variant_array_impl<T>;
+
     size_t n_vals = ain->size();
 
     std::cerr << "comparing array with " << n_vals
          << " elements to " << val << std::endl;
 
-    p_teca_int_array ai = teca_int_array::New(ain->get_allocator());
-    ai->resize(n_vals);
+    p_teca_int_array ai = teca_int_array::New(n_vals, ain->get_allocator());
     ain->get(ai);
 
     if (n_vals < 33)
@@ -171,8 +157,7 @@ int compare_int(const const_p_teca_variant_array_impl<T> &ain, int val)
         ai->debug_print();
     }
 
-    auto spai = ai->get_cpu_accessible();
-    int *pai = spai.get();
+    auto [spai, pai] = get_host_accessible<teca_int_array>(ai);
 
     for (size_t i = 0; i < n_vals; ++i)
     {

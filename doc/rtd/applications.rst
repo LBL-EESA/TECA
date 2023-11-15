@@ -27,8 +27,8 @@ batch script rather than in your shell.
 +----------------------------------------+--------------------------------------------------+
 | :ref:`teca_deeplab_ar_detect`          | A machine learning based AR detector             |
 +----------------------------------------+--------------------------------------------------+
-| :ref:`teca_temporal_reduction`         | Computes reductions (min, max, average) over     |
-|                                        | the time dimension                               |
+| :ref:`teca_temporal_reduction`         | Computes reductions (min, max, average,          |
+|                                        | summation) over the time dimension               |
 +----------------------------------------+--------------------------------------------------+
 | :ref:`teca_tc_detect`                  | TC detection using GFDL algorithm                |
 +----------------------------------------+--------------------------------------------------+
@@ -36,7 +36,7 @@ batch script rather than in your shell.
 +----------------------------------------+--------------------------------------------------+
 | :ref:`teca_tc_wind_radii`              | Computes storm size from a set of TC tracks      |
 +----------------------------------------+--------------------------------------------------+
-| :ref:`teca_potential_intensity`        | Computes thermodynamic potentiel intensity of    |
+| :ref:`teca_potential_intensity`        | Computes thermodynamic potential intensity of    |
 |                                        | tropical cyclones                                |
 +----------------------------------------+--------------------------------------------------+
 | :ref:`teca_tc_stats`                   | Computes descriptive statistics from a set       |
@@ -87,7 +87,7 @@ Cray systems requires loading the modulefile.
 .. code-block:: bash
 
     module swap PrgEnv-intel PrgEnv-gnu
-    module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles/
+    module use /global/common/software/m1517/teca/cori/develop/modulefiles
     module load teca
 
 The first line loads the GCC compiler environment and must occur prior to
@@ -99,25 +99,39 @@ configuring the environment for use with TECA.
 
 m1517 CASCADE installs
 ~~~~~~~~~~~~~~~~~~~~~~
-Members of the CASCADE project m1517 can access rolling installs on Cori. These
-are located on the common file system. At least two installs will be available:
+Members of the CASCADE project m1517 can access rolling installs on Cori and
+Perlmutter. These are located on NERSC's common file system. The installs are
+grouped by system. For each install group least two installs will be available:
 `stable` and `develop`. The `stable` install contains the latest official
 release.  See `releases`_ page of the TECA github repo for an up to date list
 of releases.  The `develop` install points to a rolling release of TECA with
 new as of yet unreleased features and code. The `develop` install is used to
 deliver updates to the team on an as needed basis.
 
-In order to use the `develp` install one would issue the following shell commands
-at the top of their batch scripts.
+The following install groups are located in `/global/common/software/m1517/`:
+
++-------------------+----------------------------------------------------------+
+| **Install group** | **Description**                                          |
++-------------------+----------------------------------------------------------+
+| cori              | Installs for NERSC Cori Haswell and KNL CPU partitions   |
++-------------------+----------------------------------------------------------+
+| perlmutter_gpu    | Installs for NERSC Perlmutter NVIDIA GPU partition       |
++-------------------+----------------------------------------------------------+
+| perlmutter_cpu    | Installs for NERSC Perlmutter Millan Milan CPU partition |
++-------------------+----------------------------------------------------------+
+
+In order to use the `develp` install one would include commands similar to the
+following at the top of their batch scripts.
 
 .. code-block:: bash
 
    module swap PrgEnv-intel PrgEnv-gnu
-   module use /global/common/software/m1517/teca/develop/modulefiles
+   module use /global/common/software/m1517/teca/<GROUP>/develop/modulefiles
    module load teca
 
-In order to make use of the `stable` release install swap `develop` for
-`stable` in the second of these commands.
+Where `<GROUP>` is replaced with one of: `cori`, `perlmutter_cpu`, or
+`perlmutter_gpu`.  In order to make use of the latest official release install
+swap `develop` for `stable` in the second of these commands.
 
 .. _releases: https://github.com/LBL-EESA/TECA/releases
 
@@ -727,7 +741,7 @@ own directory. In this case we use the :ref:`MCF file<HighResMIPMCF>`.
     $ salloc -N 17 -C knl -q interactive -t 01:00:00
 
     $ module swap PrgEnv-intel PrgEnv-gnu
-    $ module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles/
+    $ module use /global/common/software/m1517/teca/cori/develop/modulefiles
     $ module load teca
 
     $ time srun -N 17 -n 1024 teca_metadata_probe --z_axis_variable plev \
@@ -790,7 +804,7 @@ and time was encoded in the file name.
     $ salloc -N 10 -C knl -q interactive -t 01:00:00
 
     $ module swap PrgEnv-intel PrgEnv-gnu
-    $ module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles/
+    $ module use /global/common/software/m1517/teca/cori/develop/modulefiles
     $ module load teca
 
     $ year=1980
@@ -1162,7 +1176,7 @@ dataset using TECA's BARD(Bayesian AR detector) detector.
     module swap PrgEnv-intel PrgEnv-gnu
 
     # load the TECA module
-    module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles/
+    module use /global/common/software/m1517/teca/cori/develop/modulefiles
     module load teca
 
     # make a directory for the output files
@@ -1220,7 +1234,7 @@ minutes on the Cori KNL supercomputer at NERSC.
     module swap PrgEnv-intel PrgEnv-gnu
 
     # bring a TECA install into your environment
-    module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles/
+    module use /global/common/software/m1517/teca/cori/develop/modulefiles
     module load teca
 
     WORKDIR=$SCRATCH/teca_bard_merra2_artmip
@@ -1407,7 +1421,7 @@ HighResMIP dataset using TECA.
     module swap PrgEnv-intel PrgEnv-gnu
 
     # bring a TECA install into your environment
-    module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles/
+    module use /global/common/software/m1517/teca/cori/develop/modulefiles
     module load teca
 
     # make a directory for the output files
@@ -1723,7 +1737,7 @@ CAM5 data
     module swap PrgEnv-intel PrgEnv-gnu
 
     # load the TECA module
-    module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles/
+    module use /global/common/software/m1517/teca/cori/develop/modulefiles
     module load teca
 
     data_dir=/global/cscratch1/sd/mwehner/machine_learning_climate_data/All-Hist/CAM5-1-0.25degree_All-Hist_est1_v3_run1/h2
@@ -1923,7 +1937,7 @@ CAM5 data
 
     module swap PrgEnv-intel PrgEnv-gnu
 
-    module use  /global/cscratch1/sd/loring/teca_testing/deps/cf_reader_performance/modulefiles/
+    module use /global/common/software/m1517/teca/cori/develop/modulefiles
     module load teca/cf_reader_performance
 
     # if on KNL. avoid an error about too many cores in OpenBLAS (used by numpy)
@@ -1980,16 +1994,33 @@ Inputs
 ~~~~~~
 The following mesh based fields are required.
 
-1. sea surface temperature defined on [lat, lon] grid points
-2. air temperature defined on [plev, lat, lon,] grid points
-3. sea level pressure defined on [lat, lon] grid points
-4. specific humidity or mixing ratio defined on [plev, lat, lon] grid points
-5. an optional land sea mask defined on [lat lon] grid points. The mesh
-   resolution need not match that of the other fields. as a nearest neighbor
-   remeshing operator is applied in line.
+1. sea surface temperature in units of degrees Celsius defined on [lat, lon]
+   grid points
+2. air temperature in units of degrees Celsius defined on [plev, lat, lon,]
+   grid points
+3. sea level pressure in units of hecto-Pascals defined on [lat, lon] grid points
+4. specific humidity or mixing ratio in units of grams per kilogram defined on
+   [plev, lat, lon] grid points
+5. an optional land sea mask defined on [lat lon] grid points. The mask must be
+   zero over the ocean and greater than zero over land. The mesh resolution
+   need not match that of the other fields as a nearest neighbor remeshing
+   operator is applied.
 
-More information on valid ranges for the fields and additional control
-parameters can be found in the `tcpyPI Users Guide`_ section 3.1 and table 1.
+Getting the input units correct is particularly important and can be
+problematic given the wide range of conventions found in climate datasets. In
+an effort to help users detect such situations, the `teca_potential_intensity`
+application will by default abort if the units are found to be incorrect. A few
+automatic conversions are implemented for common scenarios such as conversions
+between degrees Kelvin and degrees Celsius and between Pascals and
+hecto-Pascals.  If such a conversion is applied there will be a `STATUS`
+message written to the stderr stream.  One can force the program to continue in
+the face of incorrect units by passing the `--ignore_bad_units` flag. Of course
+in the case that the input is not in the expected units the output will not be
+correct.
+
+More information on the expected units and valid ranges for the fields and
+additional control parameters can be found in the `tcpyPI Users Guide`_ section
+3.1 and table 1.
 
 .. _tcpyPI Users Guide: https://github.com/dgilford/tcpyPI/raw/master/pyPI_Users_Guide_v1.3.pdf
 
@@ -2017,7 +2048,7 @@ Command Line Arguments
 --file_layout FILE_LAYOUT
     Selects the size and layout of the set of output files. May be one of number_of_steps, daily,
     monthly, seasonal, or yearly. Files are structured such that each file contains one of the
-    selected interval. For the number_of_steps option use `--steps_per_file`. (default: monthly)
+    selected interval. For the number_of_steps option use --steps_per_file. (default: monthly)
 
 --point_arrays POINT_ARRAYS [POINT_ARRAYS ...]
     A list of point arrays to write with the results (default: ['V_max', 'P_min', 'IFL', 'T_o',
@@ -2029,7 +2060,11 @@ Command Line Arguments
 --input_file INPUT_FILE
     a teca_multi_cf_reader configuration file identifying the set of NetCDF CF2 files to process.
     When present data is read using the teca_multi_cf_reader. Use one of either `--input_file` or
-    `--input_regex`. (default: None)
+    --input_regex. (default: None)
+
+--input_regex INPUT_REGEX
+    a teca_cf_reader regex identifying the set of NetCDF CF2 files to process. When present data is
+    read using the teca_cf_reader. Use one of either `--input_file` or `--input_regex`. (default: None)
 
 --validate_time_axis VALIDATE_TIME_AXIS
     Enable consistency checks on of the time axis returned by internally managed MCF readers.
@@ -2039,16 +2074,16 @@ Command Line Arguments
     Enable consistency checks on of the spatial coordinate axes returned by internally managed MCF
     readers. (default: 1)
 
---input_regex INPUT_REGEX
-    a teca_cf_reader regex identifying the set of NetCDF CF2 files to process. When present data is
-    read using the teca_cf_reader. Use one of either `--input_file` or `--input_regex`. (default: None)
-
 --land_mask_file LAND_MASK_FILE
     A regex identifying the land mask file. (default: None)
 
 --land_mask_variable LAND_MASK_VARIABLE
     the name of the land mask variable. Values of this variable should be in 0 to 1. Calculations
     will be skipped where the land mask is 1. (default: None)
+
+--land_mask_threshold LAND_MASK_THRESHOLD
+    the value above which the land mask variable represents land. The calculations of cells over
+    land are skipped. (default: 0.5)
 
 --psl_variable PSL_VARIABLE
     the name of sea level pressure variable (default: None)
@@ -2061,6 +2096,9 @@ Command Line Arguments
 
 --mixing_ratio_variable MIXING_RATIO_VARIABLE
     the name of the mixing ratio variable (default: None)
+
+--ignore_bad_units
+    Force the program to run even if bad units are detected (default: False)
 
 --specific_humidity_variable SPECIFIC_HUMIDITY_VARIABLE
     the name of the specific humidity variable (default: None)
@@ -2082,6 +2120,16 @@ Command Line Arguments
 
 --t_units T_UNITS
     time unit (default: None)
+
+--spatial_partitioning
+    Activates the spatial partitioning engine (default: False)
+
+--spatial_partitions SPATIAL_PARTITIONS
+    Sets the number of spatial partitions. Use zero for automatic partitioning and 1 for no
+    partitioning (default: 0)
+
+--partition_x
+    Partition spatially in the x-direction (default: False)
 
 --first_step FIRST_STEP
     first time step to process (default: 0)
@@ -2156,14 +2204,9 @@ The batch script used in the run is shown here:
     #SBATCH -t 02:00:00
     #SBATCH -A m1517
 
-    module switch PrgEnv-intel/6.0.5 PrgEnv-gnu
-    module use /global/cscratch1/sd/loring/teca_testing/installs/develop-53291486-deps/modulefiles/
+    module switch PrgEnv-intel PrgEnv-gnu
+    module use /global/common/software/m1517/teca/cori/develop/modulefiles
     module load teca
-    source /global/cscratch1/sd/loring/teca_testing/teca_tcpypi_env/bin/activate
-
-    export PATH=/global/cscratch1/sd/loring/teca_testing/TECA/bin/bin/:$PATH
-    export LD_LIBRARY_PATH=/global/cscratch1/sd/loring/teca_testing/TECA/bin/lib/:$LD_LIBRARY_PATH
-    export PYTHONPATH=/global/cscratch1/sd/loring/teca_testing/TECA/bin/lib/:$PYTHONPATH
 
     set -x
 
@@ -2543,16 +2586,26 @@ teca_temporal_reduction
 -----------------------
 The temporal reduction application applies a reduction operator on the time
 axis of a NetCDF CF2 dataset.  The reduction can be applied over a number of
-specific intervals, for instance daily, monthly, or seasonal intervals.
-Minimum, maximum, and average operators are supported.
+specific intervals, for instance daily, monthly, seasonal, yearly, n_steps, and
+all steps intervals. Minimum, maximum, summation, average, and percentile
+operators are supported.
 
 A rule of thumb for when running in parallel one should size the job such that
-there is a rank per interval. For instance, to apply a reduction that computes
-a monthly time series from a 6 hourly time series spanning 10 years one would
-use 120 ranks. In this case the reduction interval is monthly and one arrives
-at 120 MPI ranks by multiplying: 12 months/year * 10 years. The procedure for
-selecting the number of MPI ranks for other intervals and datasets with
-different time spans is similar.
+there is a rank per output interval. For instance, to apply a reduction that
+computes a monthly time series from a 6 hourly time series spanning 10 years
+one would use 120 ranks. In this case the reduction interval is monthly and one
+arrives at 120 MPI ranks by multiplying: 12 months/year * 10 years. The
+procedure for selecting the number of MPI ranks for other intervals and
+datasets with different time spans is similar.
+
+TECA's Spatial parallelism features allow one to partition the spatial domain
+to increase parallelism. This can be helpful when processing high spatial
+resolution data over long time intervals since these result in increased memory
+usage per MPI rank. If the application experiences an OOM condition when
+processing a long reduction interval on high spatial resolution grids, spatial
+parallelism can help.  With spatial partitioning enabled, run the application
+with a factor N > 1 more MPI ranks than output time intervals. In that case the
+partitioner will create N spatial partitions, one per MPI rank.
 
 Inputs
 ~~~~~~
@@ -2564,48 +2617,60 @@ A mesh with a reduced temporal resolution.
 
 Command Line Arguments
 ~~~~~~~~~~~~~~~~~~~~~~
---help
-    show this help message and exit
-
 --input_file INPUT_FILE
-    a teca_multi_cf_reader configuration file identifying the set of NetCDF CF2 files to process.
-    When present data is read using the teca_multi_cf_reader. Use one of either --input_file or
-    --input_regex. (default: None)
+    a teca_multi_cf_reader configuration file identifying the set of NetCDF CF2
+    files to process.  When present data is read using the
+    teca_multi_cf_reader. Use one of either --input_file or --input_regex.
+    (default: None)
 
 --input_regex INPUT_REGEX
-    a teca_cf_reader regex identifying the set of NetCDF CF2 files to process. When present data is
-    read using the teca_cf_reader. Use one of either --input_file or --input_regex. (default: None)
+    a teca_cf_reader regex identifying the set of NetCDF CF2 files to process.
+    When present data is read using the teca_cf_reader. Use one of either
+    --input_file or --input_regex. (default: None)
+
+--time_index_file TIME_INDEX_FILE
+    a text file containing specific time indices to use in the average; each
+    row should have a single integer time value that is within the bounds of
+    the input dataset. (default: None)
 
 --interval INTERVAL
-    interval to reduce the time axis to. One of daily, monthly, or seasonal (default: monthly)
+    interval to reduce the time axis to. One of daily, monthly, seasonal,
+    yearly, all, or N_steps where N is replaced with the desired number of
+    steps (default: monthly)
 
 --operator OPERATOR
-    reduction operator to use. One of minimum, maximum, or average (default: average)
+    reduction operator to use. One of minimum, maximum, average, summation, or
+    Nth_percentile, where N is replaced with a number between 0 and 100
+    indicating which percentile is to be computed (default: average)
 
---point_arrays POINT_ARRAYS [POINT_ARRAYS ...]
+--point_arrays POINT_ARRAYS
     list of point centered arrays to process. (default: None)
 
 --fill_value FILL_VALUE
-    A value that identifies missing or invalid data. Specifying the fill value on the command line
-    overrides array specific fill values stored in the file. (default: None)
+    A value that identifies missing or invalid data. Specifying the fill value
+    on the command line overrides array specific fill values stored in the
+    file. (default: None)
 
 --ignore_fill_value
-    Boolean flag that enables missing or invalid value handling. When enabled NetCDF CF conventions
-    are used to determine fill value. Alternativley one can explicitly provide a fill value on the
-    command line via the --fill_value argument. (default: False)
+    Boolean flag that enables missing or invalid value handling. When enabled
+    NetCDF CF conventions are used to determine fill value. Alternatively one
+    can explicitly provide a fill value on the command line via the
+    --fill_value argument. (default: False)
 
 --output_file OUTPUT_FILE
-    A path and file name pattern for the output NetCDF files. %t% is replaced with a human readable
-    date and time corresponding to the time of the first time step in the file. Use --date_format to
-    change the formatting (default: None)
+    A path and file name pattern for the output NetCDF files. %t% is replaced
+    with a human readable date and time corresponding to the time of the first
+    time step in the file. Use --date_format to change the formatting (default:
+    None)
 
 --file_layout FILE_LAYOUT
-    Selects the size and layout of the set of output files. May be one of number_of_steps, daily,
-    monthly, seasonal, or yearly. Files are structured such that each file contains one of the
-    selected interval. For the number_of_steps option use `--steps_per_file`. (default: yearly)
+    Selects the size and layout of the set of output files. May be one of
+    number_of_steps, daily, monthly, seasonal, or yearly. Files are structured
+    such that each file contains one of the selected interval. For the
+    number_of_steps option use --steps_per_file. (default: yearly)
 
 --steps_per_file STEPS_PER_FILE
-    The number of time steps per output file when `--file_layout number_of_steps` is specified.
+    number of time steps to write to each output file (default: 128)
 
 --x_axis_variable X_AXIS_VARIABLE
     name of the variable to use for x-coordinates (default: lon)
@@ -2614,14 +2679,29 @@ Command Line Arguments
     name of the variable to use for y-coordinates (default: lat)
 
 --z_axis_variable Z_AXIS_VARIABLE
-    name of z coordinate variable. When processing 3D set this to the variable containing vertical
-    coordinates. When empty the data will be treated as 2D. (default: )
+    name of z coordinate variable. When processing 3D set this to the variable
+    containing vertical coordinates. When empty the data will be treated as 2D.
+    (default: )
 
 --t_axis_variable T_AXIS_VARIABLE
     name of the variable to use for t-coordinates (default: time)
 
---n_threads N_THREADS
-    Number of threads to use when stremaing the reduction (default: 2)
+--spatial_partitioning
+    Activates the spatial partitioning engine (default: False)
+
+--spatial_partitions SPATIAL_PARTITIONS
+    Sets the number of spatial partitions. Use zero for automatic partitioning
+    and 1 for no partitioning (default: 0)
+
+--partition_x
+    Partition spatially in the x-direction (default: False)
+
+--python_version
+    Use the Python implemetantion instead of the C++ implementation (default: False)
+
+--n_threads NUMBER_OF_THREADS
+    Sets the number of threads per MPI rank when the C++ implementation is active. Use -1 for
+    automatic sizing such that each core has a single thread node-wide. (default: -1)
 
 --verbose VERBOSE
     enable verbose mode. (default: 0)
@@ -2650,7 +2730,7 @@ simulated time at quarter degree 3 hourly resolution.
     module swap PrgEnv-intel PrgEnv-gnu
 
     # bring a TECA install into your environment
-    module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles
+    module use /global/common/software/m1517/teca/cori/develop/modulefiles
     module load teca
 
     # print the commands as they execute, and error out if any one command fails
@@ -2669,7 +2749,7 @@ simulated time at quarter degree 3 hourly resolution.
     time srun -N 73 -n 146 \
         teca_temporal_reduction \
             --n_threads 2 --verbose 1 --input_regex ${data_dir}/'.*\.nc$' \
-            --interval daily --operator average --point_arrays TS TMQ --ignore_fill_value \
+            --interval daily --operator average --point_arrays TS TMQ \
             --output_file ${out_dir}/CAM5-1-025degree_All-Hist_est1_v3_daily_avg_%t%.nc \
             --file_layout monthly
 
@@ -2695,7 +2775,7 @@ degree, 1 hourly resolution.
     module swap PrgEnv-intel PrgEnv-gnu
 
     # bring a TECA install into your environment
-    module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles
+    module use /global/common/software/m1517/teca/cori/develop/modulefiles
     module load teca
 
     # print the commands as they execute, and error out if any one command fails
@@ -2901,7 +2981,7 @@ ref:`cmip6_ex_desc<teca_bayesian_ar_detect examples>`.
     module swap PrgEnv-intel PrgEnv-gnu
 
     # bring a TECA install into your environment
-    module use /global/cscratch1/sd/loring/teca_testing/installs/develop/modulefiles
+    module use /global/common/software/m1517/teca/cori/develop/modulefiles
     module load teca
 
     # print the commands aas the execute, and error out if any one command fails
@@ -3145,7 +3225,7 @@ ranks.
     module swap PrgEnv-intel PrgEnv-gnu
 
     # bring a TECA install into your environment.
-    module use /global/common/software/m1517/teca/develop/modulefiles
+    module use /global/common/software/m1517/teca/cori/develop/modulefiles
     module load teca
 
     # run with 4 MPI ranks per node
@@ -3213,7 +3293,7 @@ A 2D mesh in NETCDF CF2 format with lapse rate data.
 
 
 Command Line Arguments
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
 
 --input_file arg
     a TECA MCF file containing information about the locations of the temperature and geopotential height data

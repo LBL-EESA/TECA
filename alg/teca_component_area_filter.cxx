@@ -2,6 +2,7 @@
 
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_cartesian_mesh.h"
 #include "teca_string_util.h"
@@ -13,7 +14,84 @@
 #include <boost/program_options.hpp>
 #endif
 
-namespace {
+using namespace teca_variant_array_util;
+using allocator = teca_variant_array::allocator;
+
+#if defined(TECA_HAS_CUDA)
+
+#include "teca_cuda_util.h"
+#include <cuda.h>
+#include <cuda_runtime.h>
+
+namespace cuda_impl {
+
+/** Apply the area threshold and mask out labels that are outside.
+ * This requires 2*n_labels of shared memory.
+ * @param [in] low_area_threshold blobs with area below this value are masked
+ * @param [in] high_area_threshold blobs with area above this value are masked
+ * @param [in] mask_value the value to assign to blobs outside of the thresholds
+ * @param [in] labels_in the labeled image/volume
+ * @param [in] n_elem the total number of elements in the image/volume
+ * @param [in] areas_in the list of blob areas one per blob
+ * @param [in] n_labels the number of blobs
+ * @param [out] labels_out the remaining set of lables after the threshold has been applied
+ * @param [out] areas_out the areas of the remaining blobs
+ * @param [out] label_ids_out the set of labels
+ * @param [out] n_labels_out the number of remaining blobs
+ */
+template <typename label_t, typename area_t>
+__global__
+void mask_area(area_t low, area_t high, label_t mask_value,
+    const label_t * __restrict__ labels_in, size_t n_elem,
+    const label_t * __restrict__ ids_in, const area_t * __restrict__ areas_in, size_t n_labels,
+    label_t * __restrict__ labels_out, label_t * __restrict__ ids_out, area_t * __restrict__ areas_out,
+    size_t * __restrict__ n_labels_out)
+{
+    auto smem = teca_cuda_util::shared_memory_proxy<label_t>();
+
+    label_t *mask_map = smem;
+    label_t *id_map = smem + n_labels;
+
+    // initialize the map in shared memory
+    for (int q = threadIdx.x; q < n_labels; ++q)
+    {
+        area_t A_q = areas_in[q];
+        bool keep = !((areas_in[q] < low) || (areas_in[q] > high));
+        mask_map[q] = keep ? 1 : 0;
+        id_map[q] = keep ? ids_in[q] : mask_value;
+    }
+
+    // wait for all threads to complete initialization
+    __syncthreads();
+
+    // apply the mask
+    size_t tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    size_t stride = blockDim.x * gridDim.x;
+    for (size_t q = tidx; q < n_elem; q += stride)
+    {
+        labels_out[q] = id_map[labels_in[q]];
+    }
+
+    // construct the output
+    if (tidx == 0)
+    {
+        int oid = 0;
+        for (int q = 0; q < n_labels; ++q)
+        {
+            if (mask_map[q])
+            {
+                ids_out[oid] = ids_in[q];
+                areas_out[oid] = areas_in[q];
+                ++oid;
+            }
+        }
+        *n_labels_out = oid;
+    }
+}
+}
+#endif
+
+namespace host_impl {
 
 // this constructs a map from input label id to the output label id, the list
 // of ids that survive and their respective areas. if the area of the label is
@@ -22,8 +100,9 @@ template <typename label_t, typename area_t, typename container_t>
 void build_label_map(const label_t *comp_ids, const area_t *areas,
     size_t n, double low_area_threshold, double high_area_threshold,
     label_t mask_value, container_t &label_map,
-    std::vector<label_t> &ids_out, std::vector<area_t> &areas_out)
+    label_t *ids_out, area_t *areas_out, size_t &n_labels_out)
 {
+    n_labels_out = 0;
     for (size_t i = 0; i < n; ++i)
     {
         if ((areas[i] < low_area_threshold) || (areas[i] > high_area_threshold))
@@ -35,8 +114,11 @@ void build_label_map(const label_t *comp_ids, const area_t *areas,
         {
             // inside the range, pass it through
             label_map[comp_ids[i]] = comp_ids[i];
-            ids_out.push_back(comp_ids[i]);
-            areas_out.push_back(areas[i]);
+
+            ids_out[n_labels_out] = comp_ids[i];
+            areas_out[n_labels_out] = areas[i];
+
+            ++n_labels_out;
         }
     }
 }
@@ -44,13 +126,12 @@ void build_label_map(const label_t *comp_ids, const area_t *areas,
 // visit every point in the data, apply the map. The map is such that labels
 // ouside of the specified range are replaced
 template <typename label_t, typename container_t>
-void apply_label_map(label_t *labels, const label_t *labels_in,
-    container_t &label_map, size_t n)
+void apply_label_map(label_t * __restrict__ labels,
+    const label_t * __restrict__ labels_in, container_t &label_map, size_t n)
 {
     for (unsigned long i = 0; i < n; ++i)
         labels[i] = label_map[labels_in[i]];
 }
-
 }
 
 
@@ -242,7 +323,7 @@ const_p_teca_dataset teca_component_area_filter::execute(
         return nullptr;
     }
 
-    // get the list of component ids, and their corresponding areas
+    // get the list of component ids
     teca_metadata &in_metadata =
         const_cast<teca_metadata&>(in_mesh->get_metadata());
 
@@ -257,6 +338,7 @@ const_p_teca_dataset teca_component_area_filter::execute(
 
     size_t n_ids_in = ids_in->size();
 
+    // get the list of component areas
     const_p_teca_variant_array areas_in
         = in_metadata.get(this->component_area_key);
 
@@ -266,30 +348,8 @@ const_p_teca_dataset teca_component_area_filter::execute(
         return nullptr;
     }
 
-    // get threshold values
-    double low_val = this->low_area_threshold;
-    if (low_val == std::numeric_limits<double>::lowest()
-        && request.has("low_area_threshold"))
-        request.get("low_area_threshold", low_val);
-
-    double high_val = this->high_area_threshold;
-    if (high_val == std::numeric_limits<double>::max()
-        && request.has("high_area_threshold"))
-        request.get("high_area_threshold", high_val);
-
-    // allocate the array to store the output with labels outside the requested
-    // range removed.
-    size_t n_elem = labels_in->size();
-    p_teca_variant_array labels_out = labels_in->new_instance(n_elem);
-
-    // pass to the output
-    std::string labels_var_postfix = this->component_variable + this->variable_postfix;
-    out_mesh->get_point_arrays()->set(labels_var_postfix, labels_out);
-
-    // get the output metadata to add results to after the filter is applied
-    teca_metadata &out_metadata = out_mesh->get_metadata();
-
-    long mask_value = this->mask_value;
+    // get the mask value
+    long long mask_value = this->mask_value;
     if (this->mask_value == -1)
     {
         if (in_metadata.get("background_id", mask_value))
@@ -301,86 +361,170 @@ const_p_teca_dataset teca_component_area_filter::execute(
         }
     }
 
+    // get threshold values. these may be passed from a downstream algorithm
+    // as in the case of the TECA BARD
+    double low_val = this->low_area_threshold;
+    if (low_val == std::numeric_limits<double>::lowest()
+        && request.has("low_area_threshold"))
+        request.get("low_area_threshold", low_val);
+
+    double high_val = this->high_area_threshold;
+    if (high_val == std::numeric_limits<double>::max()
+        && request.has("high_area_threshold"))
+        request.get("high_area_threshold", high_val);
+
+    // determine if the calculation runs on the cpu or gpu
+    allocator alloc = allocator::malloc;
+#if defined(TECA_HAS_CUDA)
+    int device_id = -1;
+    request.get("device_id", device_id);
+
+    // our GPU implementation requires contiguous component ids
+    if (device_id >= 0)
+    {
+        if (!this->contiguous_component_ids)
+        {
+            TECA_WARNING("Requested executiong on device " << device_id
+                << ". Execution moved to host because of non-contiguous"
+                " component ids.")
+            device_id = -1;
+        }
+        else
+        {
+            alloc = allocator::cuda_async;
+        }
+    }
+#endif
+
+    // allocate the array to store the output with labels outside the requested
+    // range removed.
+    size_t n_elem = labels_in->size();
+    p_teca_variant_array labels_out = labels_in->new_instance(n_elem, alloc);
+
+    // pass to the output
+    std::string labels_var_postfix = this->component_variable + this->variable_postfix;
+    out_mesh->get_point_arrays()->set(labels_var_postfix, labels_out);
+
+    // get the output metadata to add results to after the filter is applied
+    teca_metadata &out_metadata = out_mesh->get_metadata();
+
+    size_t n_ids_out = 0;
+    p_teca_variant_array ids_out;
+    p_teca_variant_array areas_out;
+
     // apply the filter
-    NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
-        labels_out.get(),
-        _LABEL,
+    NESTED_VARIANT_ARRAY_DISPATCH_I(
+        labels_out.get(), _LABEL,
 
-        // pointer to input/output labels
-        auto sp_labels_in = static_cast<const TT_LABEL*>(labels_in.get())->get_cpu_accessible();
-        const NT_LABEL *p_labels_in = sp_labels_in.get();
+        NESTED_VARIANT_ARRAY_DISPATCH_FP(
+            areas_in.get(), _AREA,
 
-        auto sp_labels_out = static_cast<TT_LABEL*>(labels_out.get())->get_cpu_accessible();
-        NT_LABEL *p_labels_out = sp_labels_out.get();
+            // get or allocate the outputs
+            auto [p_labels_out] = data<TT_LABEL>(labels_out);
 
-        // pointer to input ids and a container to hold ids which remain
-        // after the filtering operation
-        auto sp_ids_in = static_cast<const TT_LABEL*>(ids_in.get())->get_cpu_accessible();
-        const NT_LABEL *p_ids_in = sp_ids_in.get();
+            NT_LABEL *p_ids_out = nullptr;
+            std::tie(ids_out, p_ids_out) = teca_variant_array_util::New<TT_LABEL>(n_ids_in, alloc);
 
-        std::vector<NT_LABEL> ids_out;
+            NT_AREA *p_areas_out = nullptr;
+            std::tie(areas_out, p_areas_out) = teca_variant_array_util::New<TT_AREA>(n_ids_in, alloc);
 
-        NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
-            areas_in.get(),
-            _AREA,
-
-            // pointer to the areas in and a container to hold areas which
-            // remain after the filtering operation
-            auto sp_areas = static_cast<TT_AREA*>(areas_in.get())->get_cpu_accessible();
-            const NT_AREA *p_areas = sp_areas.get();
-
-            std::vector<NT_AREA> areas_out;
-
-            // if we labels with small values we can speed the calculation by
-            // using a contiguous buffer to hold the map. otherwise we need to
-            // use an associative container
-            if (this->contiguous_component_ids)
+#if defined(TECA_HAS_CUDA)
+            if (device_id >= 0)
             {
-                // find the max label id, used to size the map buffer
-                NT_LABEL max_id = std::numeric_limits<NT_LABEL>::lowest();
-                for (unsigned int i = 0; i < n_ids_in; ++i)
-                    max_id = std::max(max_id, p_ids_in[i]);
+                if (teca_cuda_util::set_device(device_id))
+                    return nullptr;
 
-                // allocate the map
-                std::vector<NT_LABEL> label_map(max_id+1, NT_LABEL(mask_value));
+                // get the inputs
+                auto [sp_labels_in, p_labels_in] = get_cuda_accessible<CTT_LABEL>(labels_in);
+                auto [sp_ids_in, p_ids_in] = get_cuda_accessible<CTT_LABEL>(ids_in);
+                auto [sp_areas_in, p_areas_in] = get_cuda_accessible<CTT_AREA>(areas_in);
 
-                // construct the map from input label to output label.
-                // removing a lable from the output ammounts to applying
-                // the mask value to the labels
-                ::build_label_map(p_ids_in, p_areas, n_ids_in,
-                        low_val, high_val, NT_LABEL(mask_value),
-                        label_map, ids_out, areas_out);
+                size_t n_ids_in = ids_in->size();
 
-                // use the map to mask out removed labels
-                ::apply_label_map(p_labels_out, p_labels_in, label_map, n_elem);
+                hamr::buffer<size_t> n_ids_out_buf(hamr::buffer_allocator::cuda_async, size_t(1), size_t(0));
+
+                int blkDim = 128;
+                int gridDim = n_elem / blkDim + ( n_elem % blkDim ? 1 : 0 );
+                int sharedMem = 2*n_ids_in*sizeof(NT_LABEL);
+                cudaStream_t strm = cudaStreamPerThread;
+
+                // apply the mask
+                cuda_impl::mask_area<<<gridDim, blkDim, sharedMem, strm>>>
+                    (NT_AREA(low_val), NT_AREA(high_val), NT_LABEL(mask_value),
+                    p_labels_in, n_elem, p_ids_in, p_areas_in, n_ids_in,
+                    p_labels_out, p_ids_out, p_areas_out, n_ids_out_buf.data());
+
+                // correct the size of the output
+                n_ids_out_buf.get(0, &n_ids_out, 0, 1);
             }
             else
             {
-                decltype(std::map<NT_LABEL, NT_LABEL>()) label_map;
+#endif
+                // get the inputs
+                auto [sp_labels_in, p_labels_in] = get_host_accessible<CTT_LABEL>(labels_in);
+                auto [sp_ids_in, p_ids_in] = get_host_accessible<CTT_LABEL>(ids_in);
+                auto [sp_areas_in, p_areas_in] = get_host_accessible<CTT_AREA>(areas_in);
 
-                // construct the map from input label to output label.
-                // removing a lable from the output ammounts to applying
-                // the mask value to the labels
-                ::build_label_map(p_ids_in, p_areas, n_ids_in,
-                        low_val, high_val, NT_LABEL(mask_value),
-                        label_map, ids_out, areas_out);
+                sync_host_access_any(labels_in, ids_in, areas_in);
 
-                // use the map to mask out removed labels
-                ::apply_label_map(p_labels_out, p_labels_in, label_map, n_elem);
+                // if we have labels with small values we can speed the calculation by
+                // using a contiguous buffer to hold the map. otherwise we need to
+                // use an associative container
+                if (this->contiguous_component_ids)
+                {
+                    // find the max label id, used to size the map buffer
+                    NT_LABEL max_id = std::numeric_limits<NT_LABEL>::lowest();
+                    for (unsigned int i = 0; i < n_ids_in; ++i)
+                        max_id = std::max(max_id, p_ids_in[i]);
+
+                    // allocate the map
+                    std::vector<NT_LABEL> label_map(max_id+1, NT_LABEL(mask_value));
+
+                    // construct the map from input label to output label.
+                    // removing a lable from the output ammounts to applying
+                    // the mask value to the labels
+                    host_impl::build_label_map(p_ids_in, p_areas_in, n_ids_in,
+                            low_val, high_val, NT_LABEL(mask_value),
+                            label_map, p_ids_out, p_areas_out, n_ids_out);
+
+                    // use the map to mask out removed labels
+                    host_impl::apply_label_map(p_labels_out, p_labels_in, label_map, n_elem);
+                }
+                else
+                {
+                    std::map<NT_LABEL, NT_LABEL> label_map;
+
+                    // construct the map from input label to output label.
+                    // removing a lable from the output ammounts to applying
+                    // the mask value to the labels
+                    host_impl::build_label_map(p_ids_in, p_areas_in, n_ids_in,
+                            low_val, high_val, NT_LABEL(mask_value),
+                            label_map, p_ids_out, p_areas_out, n_ids_out);
+
+                    // use the map to mask out removed labels
+                    host_impl::apply_label_map(p_labels_out, p_labels_in, label_map, n_elem);
+                }
+#if defined(TECA_HAS_CUDA)
             }
-
-            // pass the updated set of component ids and their coresponding areas
-            // to the output
-            out_metadata.set(this->number_of_components_key + this->variable_postfix, ids_out.size());
-            out_metadata.set(this->component_ids_key + this->variable_postfix, ids_out);
-            out_metadata.set(this->component_area_key + this->variable_postfix, areas_out);
-            out_metadata.set("background_id" + this->variable_postfix, mask_value);
-
-            // pass the threshold values used
-            out_metadata.set("low_area_threshold_km", low_val);
-            out_metadata.set("high_area_threshold_km", high_val);
+#endif
             )
         )
+
+    // correct the size of the output
+    ids_out->resize(n_ids_out);
+    areas_out->resize(n_ids_out);
+
+    // pass the updated set of component ids and their coresponding areas
+    // to the output
+    out_metadata.set(this->number_of_components_key + this->variable_postfix, n_ids_out);
+    out_metadata.set(this->component_ids_key + this->variable_postfix, ids_out);
+    out_metadata.set(this->component_area_key + this->variable_postfix, areas_out);
+    out_metadata.set("background_id" + this->variable_postfix, mask_value);
+
+    // pass the threshold values used
+    out_metadata.set("low_area_threshold_km", low_val);
+    out_metadata.set("high_area_threshold_km", high_val);
+
 
     return out_mesh;
 }

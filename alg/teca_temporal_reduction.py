@@ -8,7 +8,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
     Reduce a mesh across the time dimensions by a defined increment using
     a defined operation.
 
-        time increments: daily, monthly, seasonal
+        time increments: daily, monthly, seasonal, all
         reduction operators: average, min, max
 
     The output time axis will be defined using the selected increment.
@@ -421,7 +421,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
                     self.t, self.units, self.calendar, self.year, self.month,
                     self.day, self.hour, self.minutes, self.seconds)
 
-        class n_step_iterator:
+        class n_steps_iterator:
             """ An iterator over intervals of N time steps """
 
             def __init__(self, t, units, calendar, n_steps):
@@ -435,9 +435,32 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
             def __next__(self):
 
                 i0 = self.index
-                i1 = self.index + self.n_steps
+                i1 = self.index + self.n_steps - 1
 
                 if i1 >= len(self.time):
+                    raise StopIteration
+
+                self.index = i1 + 1
+
+                return teca_temporal_reduction. \
+                    time_interval(self.time[i0], i0, i1)
+
+        class all_iterator:
+            """ An iterator over all time steps """
+
+            def __init__(self, t, units, calendar):
+                self.time = t
+                self.index = 0
+
+            def __iter__(self):
+                return self
+
+            def __next__(self):
+
+                i0 = self.index
+                i1 = self.index + len(self.time) - 1
+
+                if i0 != 0:
                     raise StopIteration
 
                 self.index = i1
@@ -799,7 +822,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
                     interval_iterator_collection. \
                         season_iterator(t, units, calendar)
 
-            if interval == 'monthly':
+            elif interval == 'monthly':
 
                 return teca_temporal_reduction. \
                     interval_iterator_collection. \
@@ -811,6 +834,13 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
                     interval_iterator_collection. \
                         day_iterator(t, units, calendar)
 
+            elif interval == 'all':
+
+                return teca_temporal_reduction. \
+                    interval_iterator_collection. \
+                        all_iterator(t, units, calendar)
+
+
             elif (pos := interval.rfind('_steps')) > 0:
 
                 n_steps = int(interval[0:pos])
@@ -821,7 +851,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
 
             else:
 
-                raise RuntimeError('Invlid interval %s' % (interval))
+                raise RuntimeError('Invalid interval %s' % (interval))
 
 
     def __init__(self):
@@ -967,13 +997,13 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
             sys.stderr.write('[%d] teca_temporal_reduction::report\n' % (rank))
 
         # sanity checks
-        if self.interval_name is None:
+        if not self.interval_name:
             raise RuntimeError('No interval specified')
 
-        if self.operator_name is None:
+        if not self.operator_name:
             raise RuntimeError('No operator specified')
 
-        if self.point_arrays is None:
+        if not self.point_arrays:
             raise RuntimeError('No arrays specified')
 
         md_out = md_in[0]
@@ -1126,12 +1156,12 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
         up_reqs = []
         request_key = md['index_request_key']
         req_id = req_in[request_key]
-        ii = self.indices[req_id]
+        ii = self.indices[req_id[0]]
         i = ii.start_index
         while i <= ii.end_index:
             req = teca_metadata(req_in)
             req['arrays'] = req_arrays
-            req[request_key] = i
+            req[request_key] = [i, i]
             up_reqs.append(req)
             i += 1
 
@@ -1145,7 +1175,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
         # get the requested index
         request_key = req_in['index_request_key']
         req_id = req_in[request_key]
-        ii = self.indices[req_id]
+        ii = self.indices[req_id[0]]
 
         # Get the device to execute on
         dev = -1
@@ -1163,7 +1193,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
                 rank = 0
             sys.stderr.write('[%d] teca_temporal_reduction::execute dev'
                              ' %d request %d (%d - %d), reducing %d, %d'
-                             ' remain\n' % (rank, dev, req_id, ii.start_index,
+                             ' remain\n' % (rank, dev, req_id[0], ii.start_index,
                                            ii.end_index, len(data_in),
                                            streaming))
 
@@ -1188,13 +1218,13 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
                 # get the data on the device where it will be used
                 if dev < 0:
                     # arrays
-                    in_array = arrays_in[array].get_cpu_accessible()
-                    out_array = arrays_out[array].get_cpu_accessible()
+                    in_array = arrays_in[array].get_host_accessible()
+                    out_array = arrays_out[array].get_host_accessible()
                     # valid value masks
                     if arrays_in.has(valid):
-                        in_valid = arrays_in[valid].get_cpu_accessible()
+                        in_valid = arrays_in[valid].get_host_accessible()
                     if arrays_out.has(valid):
-                        out_valid = arrays_out[valid].get_cpu_accessible()
+                        out_valid = arrays_out[valid].get_host_accessible()
                 else:
                     # arrays
                     in_array = arrays_in[array].get_cuda_accessible()
@@ -1227,9 +1257,9 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
 
                 # get the data on the device where it will be used
                 if dev < 0:
-                    out_array = arrays_out[array].get_cpu_accessible()
+                    out_array = arrays_out[array].get_host_accessible()
                     if arrays_out.has(valid):
-                        out_valid = arrays_out[valid].get_cpu_accessible()
+                        out_valid = arrays_out[valid].get_host_accessible()
                 else:
                     out_array = arrays_out[array].get_cuda_accessible()
                     if arrays_out.has(valid):
@@ -1246,7 +1276,7 @@ class teca_temporal_reduction(teca_threaded_python_algorithm):
                     arrays_out[valid] = red_valid
 
             # fix time
-            mesh_out.set_time_step(req_id)
+            mesh_out.set_time_step(req_id[0])
             mesh_out.set_time(ii.time)
 
         return mesh_out

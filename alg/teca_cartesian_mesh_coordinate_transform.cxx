@@ -4,6 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_coordinate_util.h"
 
@@ -15,6 +16,8 @@
 #endif
 
 //#define TECA_DEBUG
+
+using namespace teca_variant_array_util;
 
 struct teca_cartesian_mesh_coordinate_transform::internals_t
 {
@@ -130,16 +133,14 @@ void teca_cartesian_mesh_coordinate_transform::internals_t::transform_axes(
             size_t ax_size = ax_in->size();
             ax_out = ax_in->new_instance(ax_size);
 
-            TEMPLATE_DISPATCH(teca_variant_array_impl,
-                ax_out.get(),
+            VARIANT_ARRAY_DISPATCH(ax_out.get(),
 
-                auto sp_ax_out = dynamic_cast<TT*>(ax_out.get())->get_cpu_accessible();
-                NT *p_ax_out = sp_ax_out.get();
+                auto [sp_ax_in, p_ax_in] = get_host_accessible<CTT>(ax_in);
+                auto [p_ax_out] = data<TT>(ax_out);
+
+                sync_host_access_any(ax_in);
 
                 // transform the axis
-                auto sp_ax_in = dynamic_cast<const TT*>(ax_in.get())->get_cpu_accessible();
-                const NT *p_ax_in = sp_ax_in.get();
-
                 teca_cartesian_mesh_coordinate_transform::internals_t::transform_axis(
                     p_ax_out, p_ax_in, ax_size, NT(tgt_bounds[0]), NT(tgt_bounds[1]));
             )
@@ -640,35 +641,19 @@ const_p_teca_dataset teca_cartesian_mesh_coordinate_transform::execute(
     p_teca_variant_array z_out_sub = z_in->new_instance(nz);
 
     // copy the subset
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        x_out.get(),
+    VARIANT_ARRAY_DISPATCH(x_out.get(),
 
-        auto sp_x_out = dynamic_cast<TT*>(x_out.get())->get_cpu_accessible();
-        NT *p_x_out = sp_x_out.get();
-
-        auto sp_x_out_sub = dynamic_cast<TT*>(x_out_sub.get())->get_cpu_accessible();
-        NT *p_x_out_sub = sp_x_out_sub.get();
+        auto [p_xo, p_yo, p_zo] = data<TT>(x_out, y_out, z_out);
+        auto [p_xos, p_yos, p_zos] = data<TT>(x_out_sub, y_out_sub, z_out_sub);
 
         for (unsigned long i = 0; i < nx; ++i)
-            p_x_out_sub[i] = p_x_out[extent[0] +i];
-
-        auto sp_y_out = dynamic_cast<TT*>(y_out.get())->get_cpu_accessible();
-        NT *p_y_out = sp_y_out.get();
-
-        auto sp_y_out_sub = dynamic_cast<TT*>(y_out_sub.get())->get_cpu_accessible();
-        NT *p_y_out_sub = sp_y_out_sub.get();
+            p_xos[i] = p_xo[extent[0] + i];
 
         for (unsigned long i = 0; i < ny; ++i)
-            p_y_out_sub[i] = p_y_out[extent[0] +i];
-
-        auto sp_z_out = dynamic_cast<TT*>(z_out.get())->get_cpu_accessible();
-        NT *p_z_out = sp_z_out.get();
-
-        auto sp_z_out_sub = dynamic_cast<TT*>(z_out_sub.get())->get_cpu_accessible();
-        NT *p_z_out_sub = sp_z_out_sub.get();
+            p_yos[i] = p_yo[extent[2] + i];
 
         for (unsigned long i = 0; i < nz; ++i)
-            p_z_out_sub[i] = p_z_out[extent[0] +i];
+            p_zos[i] = p_zo[extent[4] + i];
         )
 
     // update the mesh

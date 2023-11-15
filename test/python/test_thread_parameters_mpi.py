@@ -22,7 +22,7 @@ if rank == 0:
     sys.stderr.write('\n\nTesting automatic load balancing w/ affiniity map\n')
 try:
     n_threads, affinity, device_ids = \
-        thread_util.thread_parameters(MPI.COMM_WORLD, -1, 1, -1, verbose)
+        thread_util.thread_parameters(MPI.COMM_WORLD, -1, 1, -1, -1, verbose)
 except(RuntimeError):
     sys.stderr.write('Failed to determine threading parameters\n')
 for i in range(n_ranks):
@@ -39,7 +39,7 @@ if rank == 0:
     sys.stderr.write('\n\nTesting automatic load balancing w/o affiniity map\n')
 try:
     n_threads, affinity, device_ids = \
-        thread_util.thread_parameters(MPI.COMM_WORLD, -1, 0, -1, 0)
+        thread_util.thread_parameters(MPI.COMM_WORLD, -1, 0, -1, -1, 0)
 except(RuntimeError):
     sys.stderr.write('Failed to determine threading parameters\n')
 for i in range(n_ranks):
@@ -56,7 +56,7 @@ if rank == 0:
     sys.stderr.write('\n\nTesting explcit load balancing (%d threads per rank) w/ affiniity map\n'%(n_explicit))
 try:
     n_threads, affinity, device_ids = \
-        thread_util.thread_parameters(MPI.COMM_WORLD, n_explicit, 1, -1, verbose)
+        thread_util.thread_parameters(MPI.COMM_WORLD, n_explicit, 1, -1, -1, verbose)
 except(RuntimeError):
     sys.stderr.write('Failed to determine threading parameters\n')
 for i in range(n_ranks):
@@ -73,7 +73,7 @@ if rank == 0:
     sys.stderr.write('\n\nTesting explcit load balancing (%d threads per rank) w/o affiniity map\n'%(n_explicit))
 try:
     n_threads, affinity, device_ids = \
-        thread_util.thread_parameters(MPI.COMM_WORLD, n_explicit, 0, -1, 0)
+        thread_util.thread_parameters(MPI.COMM_WORLD, n_explicit, 0, -1, -1, 0)
 except(RuntimeError):
     sys.stderr.write('Failed to determine threading parameters\n')
 for i in range(n_ranks):

@@ -28,7 +28,7 @@ template<typename coord_t>
 TECA_EXPORT
 int load_polygons(const std::string &filename,
     std::vector<teca_geometry::polygon<coord_t>> &polys,
-    int verbose = 0)
+    int normalize = 0, int verbose = 0)
 {
     if (verbose)
         TECA_STATUS("Opening shape file \"" <<  filename << "\"")
@@ -98,7 +98,9 @@ int load_polygons(const std::string &filename,
             // make a polygon
             teca_geometry::polygon<coord_t> poly;
             poly.copy(obj->padfX + start, obj->padfY + start, n_verts);
-            //poly.normalize_coordinates();
+
+            if (normalize)
+                poly.normalize_coordinates();
 
             // add it to the collection
             polys.push_back(poly);
@@ -119,7 +121,7 @@ template<typename coord_t>
 TECA_EXPORT
 int load_polygons(MPI_Comm comm, const std::string &filename,
     std::vector<teca_geometry::polygon<coord_t>> &polys,
-    int verbose = 0)
+    int normalize = 0, int verbose = 0)
 {
     int rank = 0;
 #if defined(TECA_HAS_MPI)
@@ -136,7 +138,7 @@ int load_polygons(MPI_Comm comm, const std::string &filename,
     if (rank == 0)
     {
         // read the shape file
-        if (teca_shape_file_util::load_polygons(filename, polys, verbose))
+        if (teca_shape_file_util::load_polygons(filename, polys, normalize, verbose))
         {
             TECA_ERROR("Failed to read polygons from \""
                 << filename << "\"")

@@ -22,6 +22,7 @@ set(teca_alg_cxx_srcs
     teca_2d_component_area.cxx
     teca_component_area_filter.cxx
     teca_component_statistics.cxx
+    teca_dataset_source.cxx
     teca_derived_quantity.cxx
     teca_descriptive_statistics.cxx
     teca_elevation_mask.cxx
@@ -38,7 +39,10 @@ set(teca_alg_cxx_srcs
     teca_normalize_coordinates.cxx
     teca_parser.cxx
     teca_rename_variables.cxx
+    teca_regional_moisture_flux.cxx
+    teca_surface_integral.cxx
     teca_table_calendar.cxx
+    teca_table_join.cxx
     teca_table_reduce.cxx
     teca_table_region_mask.cxx
     teca_table_remove_rows.cxx
@@ -48,8 +52,11 @@ set(teca_alg_cxx_srcs
     teca_tc_classify.cxx
     teca_tc_wind_radii.cxx
     teca_tc_trajectory.cxx
+    teca_temporal_index_select.cxx
     teca_time_axis_convolution.cxx
     teca_simple_moving_average.cxx
+    teca_space_time_executive.cxx
+    teca_spatial_executive.cxx
     teca_unpack_data.cxx
     teca_valid_value_mask.cxx
     teca_variant_array_operand.cxx
@@ -57,6 +64,7 @@ set(teca_alg_cxx_srcs
     teca_vertical_reduction.cxx
     teca_vorticity.cxx
     teca_dataset_diff.cxx
+    teca_temporal_reduction.cxx
     )
 
 set(teca_alg_cuda_srcs)

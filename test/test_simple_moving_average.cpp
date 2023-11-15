@@ -58,7 +58,6 @@ int main(int argc, char **argv)
     a->set_filter_type(teca_simple_moving_average::backward);
     a->set_input_connection(dsc->get_output_port());
 
-
     bool do_test = true;
     teca_system_util::get_environment_variable("TECA_DO_TEST", do_test);
     if (do_test)

@@ -110,3 +110,32 @@ as_const_teca_##to_t_name##_array(const_p_teca_variant_array in_inst)
 }
 %}
 %enddef
+
+/* typemaps defining conversions from Python sequence objects to fixed length C - Arrays */
+%typemap(in) double [ANY](double temp[$1_dim0]) {
+  if (teca_py_object::sequence_to_array<float,double>($input, temp, $1_dim0)) {
+    SWIG_fail;
+  }
+  $1 = &temp[0];
+}
+
+%typemap(in) float [ANY](float temp[$1_dim0]) {
+  if (teca_py_object::sequence_to_array<float,float>($input, temp, $1_dim0)) {
+    SWIG_fail;
+  }
+  $1 = &temp[0];
+}
+
+%typemap(in) long [ANY](long temp[$1_dim0]) {
+  if (teca_py_object::sequence_to_array<long,long>($input, temp, $1_dim0)) {
+    SWIG_fail;
+  }
+  $1 = &temp[0];
+}
+
+%typemap(in) unsigned long [ANY](unsigned long temp[$1_dim0]) {
+  if (teca_py_object::sequence_to_array<long,unsigned long>($input, temp, $1_dim0)) {
+    SWIG_fail;
+  }
+  $1 = &temp[0];
+}

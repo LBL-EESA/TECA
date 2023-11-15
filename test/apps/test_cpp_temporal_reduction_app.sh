@@ -1,10 +1,11 @@
 #!/bin/bash
 
-if [[ $# < 7 ]]
+if [[ $# -lt 9 ]]
 then
-    echo "usage: test_temporal_reduction_app.sh [app prefix] " \
+    echo "usage: test_cpp_temporal_reduction_app.sh [app prefix] " \
          "[data root] [input regex] [array name] [interval] " \
-         "[operator] [steps per file] [mpi exec] [test cores]"
+         "[operator] [steps per file] [n threads] [spatial partitioning] " \
+         "[steps per request] [mpi exec] [test cores] $#"
     exit -1
 fi
 
@@ -12,14 +13,37 @@ app_prefix=${1}
 data_root=${2}
 input_regex=${3}
 array_name=${4}
-interval=${5}
+if [[ ${5,,} =~ "_steps" ]]
+then
+    interval=n_steps
+    n=$(echo $5 | cut -d "_" -f 1)
+    number_of_steps="--number_of_steps $n"
+else
+    interval=${5}
+fi
+
 operator=${6}
 steps_per_file=${7}
-
-if [[ $# -eq 9 ]]
+n_threads=${8}
+if [[ ${9} -eq 1 ]]
 then
-    mpi_exec=${8}
-    test_cores=${9}
+    if [[ $# -eq 12 ]]
+    then
+        # with MPI let the partitioner decide
+        spatial_partitioning=--spatial_partitioning
+    else
+        # without MPI, specify the number of partitions
+        spatial_partitioning="--spatial_partitioning --spatial_partitions 7"
+    fi
+fi
+
+steps_per_request=${10}
+
+# use mpi for this run
+if [[ $# -eq 12 ]]
+then
+    mpi_exec=${11}
+    test_cores=${12}
     launcher="${mpi_exec} -n ${test_cores}"
 fi
 
@@ -29,12 +53,13 @@ test_name=test_temporal_reduction
 output_base=${test_name}_${array_name}_${interval}_${operator}
 
 # run the app
-time ${launcher} ${app_prefix}/teca_temporal_reduction                  \
+time ${launcher} ${app_prefix}/teca_cpp_temporal_reduction              \
     --input_regex "${data_root}/${input_regex}" --interval ${interval}  \
     --operator ${operator} --point_arrays ${array_name}                 \
     --file_layout yearly --steps_per_file ${steps_per_file}             \
-    --output_file "${output_base}_%t%.nc"                               \
-    --verbose 1
+    --output_file "${output_base}_%t%.nc" --n_threads ${n_threads}      \
+    ${spatial_partitioning} --verbose 1 ${number_of_steps}              \
+    --steps_per_request ${steps_per_request}
 
 # don't profile the diff
 unset PROFILER_ENABLE

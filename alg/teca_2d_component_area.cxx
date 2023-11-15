@@ -4,6 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_cartesian_mesh.h"
 
@@ -18,8 +19,141 @@
 #include <boost/program_options.hpp>
 #endif
 
-namespace {
+using namespace teca_variant_array_util;
+using allocator = teca_variant_array::allocator;
 
+#if defined(TECA_HAS_CUDA)
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include <thrust/functional.h>
+#include <thrust/reduce.h>
+#include <thrust/execution_policy.h>
+#include <thrust/sequence.h>
+
+namespace cuda_impl
+{
+template<typename coord_t, typename label_t>
+__global__
+void component_area(size_t nx, size_t ny,
+    const coord_t * __restrict__ deg_lon, const coord_t * __restrict__ deg_lat,
+    const label_t * __restrict__ labels, size_t n_labels, double *area)
+{
+    // initialize shared memory to use for the calculations
+    extern __shared__ double sarea[];
+
+    if (threadIdx.y == 0)
+    {
+        for (int q = threadIdx.x; q < n_labels; q += blockDim.x)
+            sarea[q] = 0.0;
+    }
+
+    // wait for all threads to finish initialization
+    __syncthreads();
+
+    // get the coordinates of the labeled image for which we are to compute area
+    int i = blockDim.x * blockIdx.x + threadIdx.x;
+    int j = blockDim.y * blockIdx.y + threadIdx.y;
+
+    // since we're using a guard cell halo to simplify the calculation, skip the guard halo
+    bool threadActive = (i < nx - 1) && (i > 0) && (j < (ny - 1)) && (j > 0);
+
+    if (threadActive)
+    {
+        // each node in the mesh is treated as a cell in the dual mesh
+        // defined by mid points between nodes. the area of the cell is
+        // added to the corresponding label.
+        //
+        // The exact area of the spherical rectangular patch A_i is given by:
+        //
+        // A_q = rho^2(cos(phi_0) - cos(phi_1))(theta_1 - theta_0)
+        //
+        //     = rho^2(sin(rad_lat_0) - sin(rad_lat_1))(theta_1 - theta_0)
+        //
+        // where:
+        //   theta = deg_lon * pi/180
+        //   phi = pi/2 - rad_lat
+        //   rad_lat = deg_lat * pi/180
+        //   sin(rad_lat) = cos(pi/2 - rad_lat)
+
+        constexpr double R_e = 6378.1370; // km
+        constexpr double R_e_sq = R_e*R_e;
+        constexpr double rad_per_deg = M_PI/180.0;
+
+        double cos_phi_1 = sin(0.5*(deg_lat[j - 1] + deg_lat[j    ])*rad_per_deg);
+        double cos_phi_0 = sin(0.5*(deg_lat[j    ] + deg_lat[j + 1])*rad_per_deg);
+        double d_cos_phi_j = cos_phi_0 - cos_phi_1;
+
+        double rho_sq_d_theta_i = R_e_sq*0.5*(deg_lon[i + 1] - deg_lon[i - 1])*rad_per_deg;
+
+        double A_q = rho_sq_d_theta_i*d_cos_phi_j;
+
+        // get the label
+        size_t q = j * nx + i;
+        label_t lab = labels[q];
+
+        // udpate the label's area
+        atomicAdd(&sarea[lab], A_q);
+    }
+
+    // wait for all thread in the block to finish
+    __syncthreads();
+
+    // update this block's results in global memory
+    if (threadIdx.y == 0)
+    {
+        for (int i = threadIdx.x; i < n_labels; i += blockDim.x)
+            atomicAdd(&area[i], sarea[i]);
+    }
+}
+
+/** Component area driver.
+ *
+ *  @param[in] strm the stream to issue work to
+ *  @param[in] nlon the number of longitude points
+ *  @param[in] nlat the number of latitude points
+ *  @param[in] deg_lon the longitude coordinate axis values in decimal degrees
+ *  @param[in] deg_lon the latitude coordinate axis values in decimal degrees
+ *  @param[in] labels the labeled image
+ *  @param[in] n_labels the number of labels
+ *  @param[inout] area the array to store label areas in, must be initialized to 0
+ *  @returns 0 if successful
+ */
+template<typename coord_t, typename component_t>
+int component_area(cudaStream_t strm,
+    size_t nlon, size_t nlat,
+    const coord_t *deg_lon, const coord_t *deg_lat,
+    const component_t *labels, size_t n_labels,
+    double *area)
+{
+    int ntx = 32;
+    int nty = 4;
+
+    int nbx = nlon / ntx + ( nlon % ntx ? 1 : 0 );
+    int nby = nlat / nty + ( nlat % nty ? 1 : 0 );
+
+    dim3 blockDim(ntx, nty);
+    dim3 gridDim(nbx, nby);
+
+    int sharedBytes = n_labels * sizeof(double);
+
+    component_area<<<gridDim, blockDim, sharedBytes, strm>>>(nlon, nlat, deg_lon, deg_lat,
+                                                             labels, n_labels, area);
+
+    cudaError_t ierr = cudaSuccess;
+    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to launch the component area kernel. "
+            << cudaGetErrorString(ierr))
+        return -1;
+    }
+
+    return 0;
+}
+}
+#endif
+
+namespace host_impl
+{
 template <typename component_t>
 component_t get_max_component_id(unsigned long n, const component_t *labels)
 {
@@ -52,8 +186,8 @@ component_t get_max_component_id(unsigned long n, const component_t *labels)
 //
 template<typename coord_t, typename component_t, typename container_t>
 void component_area(unsigned long nlon, unsigned long nlat,
-    const coord_t *deg_lon, const coord_t *deg_lat, const component_t *labels,
-    container_t &area)
+    const coord_t * __restrict__ deg_lon, const coord_t * __restrict__ deg_lat,
+    const component_t * __restrict__ labels, container_t &area)
 {
     // This calculation is sensative to floating point precision and
     // should be done in double precision
@@ -307,61 +441,77 @@ const_p_teca_dataset teca_2d_component_area::execute(
     }
     out_metadata.set("background_id", bg_id);
 
+    // look for the list of components.
+    bool has_component_ids = in_metadata.has("component_ids");
+
+    // determine if the calculation runs on the cpu or gpu
+#if defined(TECA_HAS_CUDA)
+    int device_id = -1;
+    request.get("device_id", device_id);
+
+    // our GPU implementation requires contiguous component ids
+    if ((device_id >= 0) && !(has_component_ids || this->contiguous_component_ids))
+    {
+        TECA_WARNING("Requested execution on device " << device_id
+            << ". Execution moved to host because of non-contiguous"
+            " component ids.")
+        device_id = -1;
+    }
+#endif
+
     // calculate area of components
-    NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
-        xc.get(),
-        _COORD,
+    NESTED_VARIANT_ARRAY_DISPATCH_FP(
+        xc.get(), _COORD,
+
         // the calculation is sensative to floating point precision
         // and should be made in double precision
         using NT_CALC = double;
+        using TT_CALC = teca_double_array;
 
-        auto sp_xc = static_cast<TT_COORD*>(xc.get())->get_cpu_accessible();
-        const NT_COORD *p_xc = sp_xc.get();
+        // get the cooridnate arrays
+        assert_type<CTT_COORD>(yc);
 
-        auto sp_yc = static_cast<TT_COORD*>(yc.get())->get_cpu_accessible();
-        const NT_COORD *p_yc = sp_yc.get();
+        NESTED_VARIANT_ARRAY_DISPATCH_I(
+            component_array.get(), _LABEL,
 
-        NESTED_TEMPLATE_DISPATCH_I(const teca_variant_array_impl,
-            component_array.get(),
-            _LABEL,
-
-            auto sp_labels = static_cast<TT_LABEL*>
-                (component_array.get())->get_cpu_accessible();
-
-            const NT_LABEL *p_labels = sp_labels.get();
-
-            unsigned int n_labels = 0;
-
-            bool has_component_id = in_metadata.has("component_ids");
-            if (this->contiguous_component_ids || has_component_id)
+#if defined(TECA_HAS_CUDA)
+            if (device_id >= 0)
             {
+                if (teca_cuda_util::set_device(device_id))
+                    return nullptr;
+
+                auto [sp_xc, p_xc, sp_yc, p_yc] = get_cuda_accessible<CTT_COORD>(xc, yc);
+                auto [sp_labels, p_labels] = get_cuda_accessible<CTT_LABEL>(component_array);
+
                 // use a contiguous buffer to hold the result, only for
                 // contiguous lables that start at 0
                 p_teca_variant_array component_id;
-                if (has_component_id)
+                unsigned int n_labels = 0;
+
+                if (has_component_ids)
                 {
-                    in_metadata.get("number_of_components", int(0), n_labels);
                     component_id = in_metadata.get("component_ids");
+                    in_metadata.get("number_of_components", int(0), n_labels);
                 }
                 else
                 {
-                    NT_LABEL max_component_id = ::get_max_component_id(nxy, p_labels);
+                    auto ep = thrust::cuda::par.on(cudaStreamPerThread);
+
+                    NT_LABEL max_component_id = thrust::reduce(ep, p_labels, p_labels + nxy,
+                                                               std::numeric_limits<NT_LABEL>::lowest(),
+                                                               thrust::maximum<NT_LABEL>());
                     n_labels = max_component_id + 1;
 
-                    p_teca_variant_array_impl<NT_LABEL> tmp =
-                        teca_variant_array_impl<NT_LABEL>::New(n_labels);
+                    auto [tmp, ptmp] = ::New<TT_LABEL>(n_labels, allocator::cuda_async);
 
-                    auto sptmp = tmp->get_cpu_accessible();
-                    NT_LABEL *ptmp = sptmp.get();
-
-                    for (unsigned int i = 0; i < n_labels; ++i)
-                        ptmp[i] = NT_LABEL(i);
+                    thrust::sequence(ep, ptmp, ptmp + n_labels, NT_LABEL(0), NT_LABEL(1));
 
                     component_id = tmp;
                 }
 
-                std::vector<NT_CALC> component_area(n_labels);
-                ::component_area(nx,ny, p_xc,p_yc, p_labels, component_area);
+                auto [component_area, pcomponent_area] = ::New<teca_double_array>(n_labels, 0.0, allocator::cuda_async);
+
+                cuda_impl::component_area(cudaStreamPerThread, nx,ny, p_xc,p_yc, p_labels, n_labels, pcomponent_area);
 
                 // transfer the result to the output
                 out_metadata.set("number_of_components", n_labels);
@@ -370,38 +520,76 @@ const_p_teca_dataset teca_2d_component_area::execute(
             }
             else
             {
-                // use an associative array to handle any labels
-                //std::map<NT_LABEL, NT_COORD> result;
-                decltype(std::map<NT_LABEL, NT_CALC>()) result;
-                ::component_area(nx,ny, p_xc,p_yc, p_labels, result);
+#endif
+                unsigned int n_labels = 0;
 
-                // transfer the result to the output
-                n_labels = result.size();
+                auto [sp_xc, p_xc, sp_yc, p_yc] = get_host_accessible<CTT_COORD>(xc, yc);
+                auto [sp_labels, p_labels] = get_host_accessible<CTT_LABEL>(component_array);
 
-                p_teca_variant_array_impl<NT_LABEL> component_id =
-                    teca_variant_array_impl<NT_LABEL>::New(n_labels);
-
-                auto spcomponent_id = component_id->get_cpu_accessible();
-                NT_LABEL *pcomponent_id = spcomponent_id.get();
-
-                p_teca_variant_array_impl<NT_CALC> component_area =
-                    teca_variant_array_impl<NT_CALC>::New(n_labels);
-
-                auto spcomponent_area = component_area->get_cpu_accessible();
-                NT_CALC *pcomponent_area = spcomponent_area.get();
-
-                //std::map<NT_LABEL,NT_COORD>::iterator it = result.begin();
-                auto it = result.begin();
-                for (unsigned int i = 0; i < n_labels; ++i,++it)
+                if (this->contiguous_component_ids || has_component_ids)
                 {
-                    pcomponent_id[i] = it->first;
-                    pcomponent_area[i] = it->second;
-                }
+                    // use a contiguous buffer to hold the result, only for
+                    // contiguous lables that start at 0
+                    p_teca_variant_array component_id;
 
-                out_metadata.set("number_of_components", n_labels);
-                out_metadata.set("component_ids", component_id);
-                out_metadata.set("component_area", component_area);
+                    if (has_component_ids)
+                    {
+                        component_id = in_metadata.get("component_ids");
+                        in_metadata.get("number_of_components", int(0), n_labels);
+                    }
+                    else
+                    {
+                        NT_LABEL max_component_id = host_impl::get_max_component_id(nxy, p_labels);
+                        n_labels = max_component_id + 1;
+
+                        auto [tmp, ptmp] = ::New<TT_LABEL>(n_labels);
+
+                        for (unsigned int i = 0; i < n_labels; ++i)
+                            ptmp[i] = NT_LABEL(i);
+
+                        component_id = tmp;
+                    }
+
+                    std::vector<NT_CALC> component_area(n_labels);
+
+                    sync_host_access_any(xc, yc, component_array);
+
+                    host_impl::component_area(nx,ny, p_xc,p_yc, p_labels, component_area);
+
+                    // transfer the result to the output
+                    out_metadata.set("number_of_components", n_labels);
+                    out_metadata.set("component_ids", component_id);
+                    out_metadata.set("component_area", component_area);
+                }
+                else
+                {
+                    // use an associative array to handle any labels
+                    std::map<NT_LABEL, NT_CALC> result;
+
+                    sync_host_access_any(xc, yc, component_array);
+
+                    host_impl::component_area(nx,ny, p_xc,p_yc, p_labels, result);
+
+                    // transfer the result to the output
+                    unsigned int n_labels = result.size();
+
+                    auto [component_id, pcomponent_id] = ::New<TT_LABEL>(n_labels);
+                    auto [component_area, pcomponent_area] = ::New<TT_CALC>(n_labels);
+
+                    auto it = result.begin();
+                    for (unsigned int i = 0; i < n_labels; ++i,++it)
+                    {
+                        pcomponent_id[i] = it->first;
+                        pcomponent_area[i] = it->second;
+                    }
+
+                    out_metadata.set("number_of_components", n_labels);
+                    out_metadata.set("component_ids", component_id);
+                    out_metadata.set("component_area", component_area);
+                }
+#if defined(TECA_HAS_CUDA)
             }
+#endif
             )
         )
 

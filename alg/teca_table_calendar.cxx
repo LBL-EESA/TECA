@@ -4,6 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_array_attributes.h"
 
@@ -28,6 +29,8 @@ using std::vector;
 using std::set;
 using std::cerr;
 using std::endl;
+
+using namespace teca_variant_array_util;
 
 // --------------------------------------------------------------------------
 teca_table_calendar::teca_table_calendar() :
@@ -260,11 +263,11 @@ const_p_teca_dataset teca_table_calendar::execute(
     out_table->get_metadata().set("attributes", atrs);
 
     // make the date computations
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
-        time.get(),
+    VARIANT_ARRAY_DISPATCH(time.get(),
 
-        auto scurr_time = static_cast<TT*>(time.get())->get_cpu_accessible();
-        const NT *curr_time = scurr_time.get();
+        auto [spct, curr_time] = get_host_accessible<CTT>(time);
+
+        sync_host_access_any(time);
 
         for (unsigned long i = 0; i < n_rows; ++i)
         {

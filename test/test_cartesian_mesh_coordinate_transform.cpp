@@ -11,15 +11,18 @@
 #include "teca_metadata.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 
 #include <cmath>
 #include <functional>
+
+using namespace teca_variant_array_util;
 
 
 // generates f = k*nxy + j*nx + i
 struct index_function
 {
-    p_teca_variant_array operator()(const const_p_teca_variant_array &x,
+    p_teca_variant_array operator()(int, const const_p_teca_variant_array &x,
         const const_p_teca_variant_array &y, const const_p_teca_variant_array &z,
         double t)
     {
@@ -32,12 +35,8 @@ struct index_function
 
         p_teca_variant_array f = x->new_instance(nxyz);
 
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            f.get(),
-
-            auto spf = dynamic_cast<TT*>(f.get())->get_cpu_accessible();
-            NT *pf = spf.get();
-
+        VARIANT_ARRAY_DISPATCH(f.get(),
+            auto [pf] = data<TT>(f);
             for (size_t i = 0; i < nxyz; ++i)
             {
                 pf[i] = i;
@@ -70,7 +69,7 @@ int main(int argc, char **argv)
 
     src->append_field_generator({"index",
         teca_array_attributes(teca_variant_array_code<double>::get(),
-            teca_array_attributes::point_centering, 0, "unitless",
+            teca_array_attributes::point_centering, 0, {1,1,1,1}, "unitless",
             "index", "some test data"),
         func});
 

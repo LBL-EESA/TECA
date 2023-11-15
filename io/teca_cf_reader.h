@@ -109,14 +109,14 @@ public:
     ///@}
 
     /** @name periodic_in_x
-     * A flag that indicates a periodic bondary in the z direction
+     * A flag that indicates a periodic bondary in the x direction
      */
     ///@{
     TECA_ALGORITHM_PROPERTY(int, periodic_in_x)
     ///@}
 
     /** @name periodic_in_y
-     * A flag that indicates a periodic bondary in the z direction
+     * A flag that indicates a periodic bondary in the y direction
      */
     ///@{
     TECA_ALGORITHM_PROPERTY(int, periodic_in_y)
@@ -225,6 +225,16 @@ public:
     TECA_ALGORITHM_PROPERTY(int, clamp_dimensions_of_one)
     ///@}
 
+    /** @name collective_buffer
+     * Enables MPI I/O colective buffering. Collective buffering is only valid
+     * when the spatial partitioner is enabled and the number of spatial
+     * partitions is equal to the number of MPI ranks, and the code is single
+     * threaded. This is an experimental feature.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, collective_buffer)
+    ///@}
+
 protected:
     teca_cf_reader();
     void clear_cached_metadata();
@@ -259,6 +269,7 @@ private:
     int periodic_in_z;
     int max_metadata_ranks;
     int clamp_dimensions_of_one;
+    int collective_buffer;
     p_teca_cf_reader_internals internals;
 };
 

@@ -67,7 +67,7 @@ std::vector<teca_metadata> array_time_average::get_upstream_request(
         {
             teca_metadata up_req(request);
             up_req.set("array_name", active_array);
-            up_req.set("time_step", i);
+            up_req.set("time_step", {i, i});
             up_reqs.push_back(up_req);
         }
     }
@@ -94,7 +94,7 @@ const_p_teca_dataset array_time_average::execute(
     (void) port;
     (void) request;
 
-    p_array a_out = array::new_cpu_accessible();
+    p_array a_out = array::new_host_accessible();
 
     const_p_array a_in = std::dynamic_pointer_cast<const array>(input_data[0]);
 
@@ -103,8 +103,7 @@ const_p_teca_dataset array_time_average::execute(
 
     size_t n_elem = a_out->size();
 
-    std::shared_ptr<double> pa_out = a_out->get_cpu_accessible();
-    double *p_out = pa_out.get();
+    double *p_out = a_out->data();
 
     size_t n_times = input_data.size();
     for (size_t i = 1; i < n_times; ++i)
@@ -116,7 +115,7 @@ const_p_teca_dataset array_time_average::execute(
             return p_teca_dataset();
         }
 
-        std::shared_ptr<const double> pa_in = a_in->get_cpu_accessible();
+        std::shared_ptr<const double> pa_in = a_in->get_host_accessible();
         const double *p_in = pa_in.get();
 
         for (size_t j = 0; j < n_elem; ++j)

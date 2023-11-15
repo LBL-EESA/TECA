@@ -1,6 +1,7 @@
 #include "teca_index_executive.h"
 #include "teca_config.h"
 #include "teca_common.h"
+#include "teca_system_util.h"
 #if defined(TECA_HAS_CUDA)
 #include "teca_cuda_util.h"
 #endif
@@ -72,6 +73,12 @@ void teca_index_executive::set_arrays(const std::vector<std::string> &v)
 {
     this->arrays = v;
 }
+// --------------------------------------------------------------------------
+void teca_index_executive::set_device_ids(const std::vector<int> &ids)
+{
+    this->device_ids = ids;
+}
+
 
 // --------------------------------------------------------------------------
 int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
@@ -148,16 +155,23 @@ int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
 
     // determine the available CUDA GPUs
 #if defined(TECA_HAS_CUDA)
-    int ranks_per_device = -1;
-    std::vector<int> device_ids;
-    if (teca_cuda_util::get_local_cuda_devices(comm,
-        ranks_per_device, device_ids))
+    // check for an override to the default number of MPI ranks per device
+    int ranks_per_device = 1;
+    int ranks_per_device_set = teca_system_util::get_environment_variable
+        ("TECA_RANKS_PER_DEVICE", ranks_per_device);
+
+    std::vector<int> devices(this->device_ids);
+    if (devices.empty())
     {
-        TECA_WARNING("Failed to determine the local CUDA device_ids."
-            " Falling back to the default device.")
-        device_ids.resize(1, 0);
+        if (teca_cuda_util::get_local_cuda_devices(comm,
+            ranks_per_device, devices))
+        {
+            TECA_WARNING("Failed to determine the local CUDA device_ids."
+                " Falling back to the default device.")
+            devices.resize(1, 0);
+        }
     }
-    int n_devices = device_ids.size();
+    int n_devices = devices.size();
     size_t q = 0;
 #endif
 
@@ -189,13 +203,13 @@ int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
 #if defined(TECA_HAS_CUDA)
             // assign eaach request a device to execute on
             if (n_devices > 0)
-                device_id = device_ids[q % n_devices];
+                device_id = devices[q % n_devices];
 
             ++q;
 #endif
             this->requests.push_back(base_req);
             this->requests.back().set("index_request_key", this->index_request_key);
-            this->requests.back().set(this->index_request_key, index);
+            this->requests.back().set(this->index_request_key, {index, index});
             this->requests.back().set("device_id", device_id);
         }
     }
@@ -212,8 +226,8 @@ int teca_index_executive::initialize(MPI_Comm comm, const teca_metadata &md)
             << " stride=" << this->stride << " block_start=" << block_start + first
             << " block_size=" << block_size;
 #if defined(TECA_HAS_CUDA)
-        oss << " n_cuda_devices=" << device_ids.size()
-            << " device_ids=" << device_ids;
+        oss << " n_cuda_devices=" << devices.size()
+            << " device_ids=" << devices;
 #endif
         std::cerr << oss.str() << std::endl;
     }
@@ -240,7 +254,7 @@ teca_metadata teca_index_executive::get_next_request()
             std::vector<double> bds;
             req.get("bounds", bds);
 
-            unsigned long index;
+            unsigned long index = 0;
             req.get(this->index_request_key, index);
 
             std::ostringstream oss;
@@ -251,13 +265,11 @@ teca_metadata teca_index_executive::get_next_request()
             if (bds.empty())
             {
                 if (!ext.empty())
-                    oss << " extent=" << ext[0] << ", " << ext[1] << ", "
-                        << ext[2] << ", " << ext[3] << ", " << ext[4] << ", " << ext[5];
+                    oss << " extent=[" << ext << "]";
             }
             else
             {
-                oss << " bounds=" << bds[0] << ", " << bds[1] << ", "
-                    << bds[2] << ", " << bds[3] << ", " << bds[4] << ", " << bds[5];
+                oss << " bounds=[" << bds << "]";
             }
 
 #if defined(TECA_HAS_CUDA)

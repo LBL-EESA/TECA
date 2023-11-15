@@ -13,11 +13,9 @@ class teca_deeplab_ar_detect(teca_pytorch_algorithm):
         self.set_input_variable("IVT")
 
         arp_atts = teca_array_attributes(
-            teca_float_array_code.get(),
-            teca_array_attributes.point_centering,
-            0, 'unitless', 'posterior AR flag',
-            'the posterior probability of the presence '
-            'of an atmospheric river',
+            teca_float_array_code.get(), teca_array_attributes.point_centering,
+            0, teca_array_attributes.xyt_active(), 'unitless', 'posterior AR flag',
+            'the posterior probability of the presence of an atmospheric river',
             None)
 
         self.set_output_variable("ar_probability", arp_atts)

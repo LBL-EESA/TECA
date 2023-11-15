@@ -57,6 +57,13 @@ public:
     TECA_ALGORITHM_PROPERTY(double, absolute_tolerance)
     ///@}
 
+    /** @name skip_arrays
+     * A list of arrays that are ignored during tests.
+     */
+    ///@{
+    TECA_ALGORITHM_VECTOR_PROPERTY(std::string, skip_array)
+    ///@}
+
 protected:
     teca_dataset_diff();
 
@@ -109,6 +116,7 @@ private:
 private:
     double relative_tolerance;
     double absolute_tolerance;
+    std::vector<std::string> skip_arrays;
 };
 
 #endif

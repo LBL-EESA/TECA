@@ -4,8 +4,11 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_coordinate_util.h"
+#include "teca_valid_value_mask.h"
+#include "teca_array_attributes.h"
 
 #include <algorithm>
 #include <iostream>
@@ -21,6 +24,8 @@ using std::vector;
 using std::cerr;
 using std::endl;
 using std::cos;
+
+using namespace teca_variant_array_util;
 
 //#define TECA_DEBUG
 
@@ -199,7 +204,8 @@ teca_metadata teca_integrated_water_vapor::get_output_metadata(
 
         teca_array_attributes iwv_atts(
             type_code, teca_array_attributes::point_centering,
-            0, "kg m^{-2}", "integrated water vapor",
+            0, teca_array_attributes::xyt_active(), "kg m-2",
+            "integrated water vapor",
             "vertically integrated " + this->specific_humidity_variable,
             1, this->fill_value);
 
@@ -314,31 +320,26 @@ const_p_teca_dataset teca_integrated_water_vapor::execute(
     out_mesh->get_point_arrays()->set(this->iwv_variable, iwv);
 
     // calculate IWV
-    NESTED_TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
+    NESTED_VARIANT_ARRAY_DISPATCH_FP(
         p.get(), _COORDS,
 
-        auto sp_p = static_cast<TT_COORDS*>(p.get())->get_cpu_accessible();
-        const NT_COORDS *p_p = sp_p.get();
+        auto [sp_p, p_p] = get_host_accessible<CTT_COORDS>(p);
 
-        NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
+        NESTED_VARIANT_ARRAY_DISPATCH_FP(
             iwv.get(), _DATA,
 
-            auto sp_iwv = static_cast<TT_DATA*>(iwv.get())->get_cpu_accessible();
-            NT_DATA *p_iwv = sp_iwv.get();
-
-            auto sp_q = static_cast<const TT_DATA*>(q.get())->get_cpu_accessible();
-            const NT_DATA *p_q = sp_q.get();
+            auto [sp_q, p_q] = get_host_accessible<CTT_DATA>(q);
+            auto [p_iwv] = data<TT_DATA>(iwv);
 
             if (q_valid)
             {
-                using TT_MASK = teca_char_array;
-                auto sp_q_valid = dynamic_cast<const TT_MASK*>(q_valid.get())->get_cpu_accessible();
-                const char *p_q_valid = sp_q_valid.get();
-
+                auto [spqv, p_q_valid] = get_host_accessible<CTT_MASK>(q_valid);
+                sync_host_access_any(p, q, q_valid);
                 ::cartesian_iwv(nx, ny, nz, p_p, p_q, p_q_valid, p_iwv);
             }
             else
             {
+                sync_host_access_any(p, q);
                 ::cartesian_iwv(nx, ny, nz, p_p, p_q, p_iwv);
             }
             )

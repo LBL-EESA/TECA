@@ -82,7 +82,7 @@ class descr_stats(teca_python_algorithm):
             # get data on the CPU or the GPU
             va = mesh.get_point_arrays().get(var_name)
             if dev < 0:
-                hva = va.get_cpu_accessible()
+                hva = va.get_host_accessible()
             else:
                 hva = va.get_cuda_accessible()
 

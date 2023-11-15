@@ -339,11 +339,12 @@ int generate_report(MPI_Comm comm, int local_proc, int base_id,
 
 // **************************************************************************
 int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
-    int n_per_device, bool bind, bool verbose, int &n_threads,
-    std::deque<int> &affinity, std::vector<int> &device_ids)
+    int threads_per_device, int ranks_per_device, bool bind, bool verbose,
+    int &n_threads, std::deque<int> &affinity, std::vector<int> &device_ids)
 {
 #if !defined(TECA_HAS_CUDA)
-    (void) n_per_device;
+    (void) threads_per_device;
+    (void) ranks_per_device;
 #endif
 
     // this rank is excluded from computations
@@ -379,7 +380,6 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
 
 #if defined(TECA_HAS_CUDA)
     // check for an override to the default number of MPI ranks per device
-    int ranks_per_device = 1;
     int ranks_per_device_set = teca_system_util::get_environment_variable
         ("TECA_RANKS_PER_DEVICE", ranks_per_device);
 
@@ -403,16 +403,16 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
     // determine the number of threads to service each CUDA GPU
     int default_per_device = 8;
 
-    if ((n_per_device < 1) &&
-        !teca_system_util::get_environment_variable
-        ("TECA_THREADS_PER_DEVICE", n_per_device) &&
+    if (!teca_system_util::get_environment_variable
+        ("TECA_THREADS_PER_DEVICE", threads_per_device) &&
         verbose && (rank == 0))
     {
-        TECA_STATUS("TECA_THREADS_PER_DEVICE = " << n_per_device)
+        TECA_STATUS("TECA_THREADS_PER_DEVICE = " << threads_per_device)
     }
 
     int n_device_threads = n_cuda_devices *
-        (n_per_device < 1 ? default_per_device : n_per_device);
+        (threads_per_device < 0 ? default_per_device : threads_per_device);
+
 #endif
 
 #if !defined(_GNU_SOURCE)
@@ -458,7 +458,7 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
     }
 
 #if defined(TECA_HAS_CUDA)
-    // assign CUDA device or a CPU core to eqch thread
+    // assign CUDA device or a CPU core to each thread
     if ((verbose > 1) && (n_threads < n_cuda_devices))
     {
         TECA_WARNING(<< n_threads
@@ -528,16 +528,22 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
 
     // thread pool size is based on core and process count
     int nlg = 0;
+    // map threads to physical cores
+    nlg = cores_per_node % n_procs;
+    n_threads = cores_per_node / n_procs + (proc_id < nlg ? 1 : 0);
     if (n_requested > 0)
     {
-        // user specified override
+        // use exactly this many
         n_threads = n_requested;
+    }
+    else if (n_requested < -1)
+    {
+        // use at most this many
+        n_threads = std::min(-n_requested, n_threads);
+        n_requested = n_threads;
     }
     else
     {
-        // map threads to physical cores
-        nlg = cores_per_node % n_procs;
-        n_threads = cores_per_node/n_procs + (proc_id < nlg ? 1 : 0);
     }
 
     // if the user runs more MPI ranks than cores some of the ranks
@@ -560,7 +566,7 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
 
     // assign each thread to a CUDA device or CPU core
 #if defined(TECA_HAS_CUDA)
-    if (verbose && (n_threads < n_cuda_devices))
+    if (verbose && (n_ranks < 2) && (n_threads < n_cuda_devices))
     {
         TECA_WARNING(<< n_threads
             << " threads is insufficient to service " << n_cuda_devices
@@ -590,7 +596,7 @@ int thread_parameters(MPI_Comm comm, int base_core_id, int n_requested,
     if (!bind)
     {
         if (verbose)
-            TECA_STATUS("thread to core binding disabled")
+            TECA_STATUS("thread to core binding disabled. n_threads=" << n_threads)
 
         return 0;
     }

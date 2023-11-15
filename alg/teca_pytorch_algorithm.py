@@ -145,7 +145,7 @@ class teca_pytorch_algorithm(teca_python_algorithm):
                 n_threads = self.n_threads
 
                 n_threads, affinity, device_ids = \
-                    thread_util.thread_parameters(comm, n_threads, 1, -1,
+                    thread_util.thread_parameters(comm, n_threads, 1, -1, -1,
                                                   0 if self.verbose < 2 else 1)
 
                 # let the user request a bound on the number of threads
@@ -354,7 +354,7 @@ class teca_pytorch_algorithm(teca_python_algorithm):
             raise RuntimeError('empty input, or not a mesh')
 
         arrays = in_mesh.get_point_arrays()
-        in_va = arrays[self.input_variable].get_cpu_accessible()
+        in_va = arrays[self.input_variable].get_host_accessible()
 
         ext = in_mesh.get_extent()
         in_va.shape = (ext[3] - ext[2] + 1,

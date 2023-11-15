@@ -2,6 +2,8 @@
 #include "teca_dataset.h"
 #include "teca_cartesian_mesh.h"
 #include "teca_coordinate_util.h"
+#include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 
 #include <string>
 #include <vector>
@@ -10,8 +12,11 @@
 #include <boost/program_options.hpp>
 #endif
 
-using std::cerr;
-using std::endl;
+#if defined(TECA_HAS_CUDA)
+#include "teca_cuda_util.h"
+#endif
+
+using namespace teca_variant_array_util;
 
 struct teca_cartesian_mesh_source::internals_t
 {
@@ -48,12 +53,13 @@ void teca_cartesian_mesh_source::internals_t::initialize_axis(
     p_teca_variant_array_impl<num_t> x, unsigned long i0, unsigned long i1,
     num_t x0, num_t x1)
 {
+    assert(x->host_accessible());
+
     // generate an equally spaced coordinate axes
     unsigned long nx = i1 - i0 + 1;
     x->resize(nx);
 
-    auto spx = x->get_cpu_accessible();
-    auto px = spx.get();
+    num_t *px = x->data();
 
     // avoid divide by zero
     if (nx < 2)
@@ -81,8 +87,7 @@ void teca_cartesian_mesh_source::internals_t::initialize_axes(int type_code,
     z_axis = x_axis->new_instance();
     t_axis = x_axis->new_instance();
 
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        x_axis.get(),
+    VARIANT_ARRAY_DISPATCH(x_axis.get(),
 
         internals_t::initialize_axis<NT>(std::static_pointer_cast<TT>(x_axis),
             extent[0], extent[1], bounds[0], bounds[1]);
@@ -108,8 +113,7 @@ void teca_cartesian_mesh_source::internals_t::initialize_axes(int type_code,
     y_axis = x_axis->new_instance();
     z_axis = x_axis->new_instance();
 
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        x_axis.get(),
+    VARIANT_ARRAY_DISPATCH(x_axis.get(),
 
         internals_t::initialize_axis<NT>(std::static_pointer_cast<TT>(x_axis),
             extent[0], extent[1], bounds[0], bounds[1]);
@@ -491,8 +495,8 @@ teca_metadata teca_cartesian_mesh_source::get_output_metadata(
     unsigned int port, const std::vector<teca_metadata> &input_md)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_cartesian_mesh_source::get_output_metadata" << endl;
+    std::cerr << teca_parallel_id()
+        << "teca_cartesian_mesh_source::get_output_metadata" << std::endl;
 #endif
     (void)port;
     (void)input_md;
@@ -602,7 +606,7 @@ teca_metadata teca_cartesian_mesh_source::get_output_metadata(
         std::string("number_of_time_steps"));
 
     this->internals->metadata.set("index_request_key",
-        std::string("time_step"));
+        std::string("temporal_extent"));
 
     return this->internals->metadata;
 }
@@ -613,11 +617,24 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
     const teca_metadata &request)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_cartesian_mesh_source::execute" << endl;
+    std::cerr << teca_parallel_id()
+        << "teca_cartesian_mesh_source::execute" << std::endl;
 #endif
     (void)port;
     (void)input_data;
+
+    // get the requested target device
+    int device_id = -1;
+    allocator alloc = allocator::malloc;
+#if defined(TECA_HAS_CUDA)
+    request.get("device_id", device_id);
+    if (device_id >= 0)
+    {
+        // place generated data on the assigned device
+        teca_cuda_util::set_device(device_id);
+        alloc = allocator::cuda_async;
+    }
+#endif
 
     // get coordinates
     teca_metadata coords;
@@ -634,6 +651,10 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
         TECA_FATAL_ERROR("metadata is missing coordinate arrays")
         return nullptr;
     }
+
+    // assume coordinate data is on the CPU
+    assert(in_x->host_accessible() && in_y->host_accessible() &&
+        in_z->host_accessible() && in_t->host_accessible());
 
     // get the extent of the dataset we could generate
     unsigned long md_whole_extent[6] = {0};
@@ -670,34 +691,79 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
         }
     }
 
-    // get the timestep, no matter what the key is named we treat it as
-    // a time step. this is to support metadata provided by another source
-    // eg. a different reader.
-    std::string request_key;
-    if (request.get("index_request_key", request_key))
-    {
-        TECA_FATAL_ERROR("Request is missing the \"index_request_key\"")
-        return nullptr;
-    }
+    // get the actual bounds
+    double bounds[6] = {0.0};
+    in_x->get(req_extent[0], bounds[0]);
+    in_x->get(req_extent[1], bounds[1]);
+    in_y->get(req_extent[2], bounds[2]);
+    in_y->get(req_extent[3], bounds[3]);
+    in_z->get(req_extent[4], bounds[4]);
+    in_z->get(req_extent[5], bounds[5]);
 
-    unsigned long req_index = 0;
-    if (request.get(request_key, req_index))
+    // get requested time extent
+    unsigned long temporal_extent[2] = {0ul};
+    double temporal_bounds[2] = {0.0};
+    if (!request.get("time", temporal_bounds[0]))
     {
-        TECA_FATAL_ERROR("Request is missing \"" << request_key << "\"")
-        return nullptr;
+        // translate time to a time step
+        VARIANT_ARRAY_DISPATCH_FP(
+            in_t.get(),
+            auto [pin_t] = data<CTT>(in_t);
+            if (teca_coordinate_util::index_of(pin_t, 0,
+                in_t->size()-1, static_cast<NT>(temporal_bounds[0]), temporal_extent[0]))
+            {
+                TECA_FATAL_ERROR("requested time " << temporal_bounds[0] << " not found")
+                return nullptr;
+            }
+            )
+        temporal_extent[1] = temporal_extent[0];
+        temporal_bounds[1] = temporal_bounds[0];
     }
-
-    // check that the we have a time value for the requested index.
-    if (req_index >= in_t->size())
+    else if (!request.get("temporal_bounds", temporal_bounds))
     {
-        TECA_FATAL_ERROR("The requested index " << req_index
-            << " is out of bounds [0, " << in_t->size() << "]")
-        return nullptr;
+        // translate time range to a time step range
+        if (teca_coordinate_util::bounds_to_extent(temporal_bounds, in_t, temporal_extent))
+        {
+            TECA_FATAL_ERROR("The requested temporal_bounds ["
+                << temporal_bounds << "] was not found")
+            return nullptr;
+        }
     }
+    else
+    {
+        // get the step number or step range directly
 
-    // get the time
-    double t = 0.;
-    in_t->get(req_index, t);
+        // note: there is no error checking here to support case where only 1
+        // time step is present in a dataset. In that case the single step is
+        // always served regardless of the request (or lack there of).
+        unsigned long n_steps = in_t->size();
+
+        if (request.get("temporal_extent", temporal_extent))
+        {
+           TECA_WARNING("request is missing the index request key"
+            " \"temporal_extent\" step 0 will be returned.")
+           temporal_extent[0] = temporal_extent[1] = 0;
+        }
+
+        if (in_t)
+        {
+            if (in_t->size() == 1)
+            {
+                temporal_extent[0] = temporal_extent[1] = 0;
+            }
+
+            if (!((temporal_extent[0] < n_steps) && (temporal_extent[1] < n_steps)))
+            {
+                TECA_FATAL_ERROR("Invalid time range [" << temporal_extent
+                    << "] requested from data set with " << in_t->size()
+                    << " steps")
+                return nullptr;
+            }
+
+            in_t->get(temporal_extent[0], temporal_bounds[0]);
+            in_t->get(temporal_extent[1], temporal_bounds[1]);
+        }
+    }
 
     // slice axes on the requested extent
     p_teca_variant_array out_x = in_x->new_copy(req_extent[0], req_extent[1] - req_extent[0] + 1);
@@ -717,34 +783,77 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
 
     // get the calendar
     std::string calendar;
+    this->t_axis_attributes.get("calendar", calendar);
+
     std::string units;
-    teca_metadata atts;
-    this->internals->metadata.get("attributes", atts);
-    atts.get("calendar", calendar);
-    atts.get("units", units);
+    this->t_axis_attributes.get("units", units);
 
     // set metadata
     mesh->set_whole_extent(md_whole_extent);
     mesh->set_extent(req_extent);
-    mesh->set_time_step(req_index);
-    mesh->set_time(t);
+    mesh->set_bounds(bounds);
+    mesh->set_temporal_bounds(temporal_bounds);
+    mesh->set_temporal_extent(temporal_extent);
     mesh->set_calendar(calendar);
     mesh->set_time_units(units);
 
     teca_metadata &mesh_md = mesh->get_metadata();
-    mesh_md.set("index_request_key", request_key);
+    mesh_md.set("index_request_key", std::string("temporal_extent"));
+
+    std::ostringstream oss;
+    if (this->get_verbose())
+    {
+        oss << "Generated data on extent = [" << req_extent
+            << "] temporal_extent = [" << temporal_extent << "] for arrays = [";
+    }
 
     // generate fields over the requested subset
     std::vector<field_generator_t>::iterator it = this->field_generators.begin();
     std::vector<field_generator_t>::iterator end = this->field_generators.end();
     for (; it != end; ++it)
     {
-        p_teca_variant_array f_xyzt = it->generator(out_x, out_y, out_z, t);
+        // get the type of the data
+        int type_code = 0;
+        if (it->attributes.get("type_code", type_code))
+        {
+            TECA_FATAL_ERROR("Failed to get the type code for array \""
+                << it->name << "\"")
+            return nullptr;
+        }
+
+        p_teca_variant_array f_xyzt = teca_variant_array_factory::New(type_code, alloc);
+
+        // generate data for each of the requested time steps
+        for (unsigned long q = temporal_extent[0]; q <= temporal_extent[1]; ++q)
+        {
+            // get the time
+            double t = 0.;
+            in_t->get(q, t);
+
+            // append this time step's data
+            f_xyzt->append(it->generator(device_id, out_x, out_y, out_z, t));
+        }
+
         mesh->get_point_arrays()->append(it->name, f_xyzt);
+
+        if (this->get_verbose())
+        {
+            oss << it->name << ", ";
+        }
     }
 
     // pass the attributes
+    teca_metadata atts;
+    this->internals->metadata.get("attributes", atts);
     mesh_md.set("attributes", atts);
+
+    if (this->get_verbose())
+    {
+        if (this->field_generators.size())
+            oss.seekp(-2, std::ios_base::cur);
+        oss << "]";
+        TECA_STATUS(<< oss.str())
+    }
 
     return mesh;
 }

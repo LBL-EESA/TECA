@@ -23,13 +23,16 @@
 
 // **************************************************************************
 p_teca_data_request_queue new_teca_data_request_queue(MPI_Comm comm,
-    int n_threads, int n_threads_per_device, bool bind, bool verbose)
+    int n_threads, int threads_per_device, int ranks_per_device, bool bind,
+    bool verbose)
 {
 #if defined(TECA_HAS_CUDA)
-    return std::make_shared<teca_data_request_queue>(
-        comm, n_threads, n_threads_per_device, bind, verbose);
+    return std::make_shared<teca_data_request_queue>(comm,
+        n_threads, threads_per_device, ranks_per_device, bind,
+        verbose);
 #else
-    (void) n_threads_per_device;
+    (void) threads_per_device;
+    (void) ranks_per_device;
     return std::make_shared<teca_data_request_queue>(
         comm, n_threads, bind, verbose);
 #endif
@@ -42,12 +45,16 @@ class teca_data_request
 public:
     teca_data_request(const p_teca_algorithm &alg,
         const teca_algorithm_output_port up_port,
-        const teca_metadata &up_req) : m_alg(alg),
-        m_up_port(up_port), m_up_req(up_req)
+        const teca_metadata &up_req, int pass_dev) : m_alg(alg),
+        m_up_port(up_port), m_up_req(up_req), m_pass_dev(pass_dev)
     {}
 
     const_p_teca_dataset operator()(int device_id = -1)
     {
+        // use the device assigned downstream
+        if (m_pass_dev)
+            m_up_req.get("device_id", device_id);
+
         // set the device on which to execute this pipeline
         m_up_req.set("device_id", device_id);
 
@@ -59,6 +66,7 @@ public:
     p_teca_algorithm m_alg;
     teca_algorithm_output_port m_up_port;
     teca_metadata m_up_req;
+    int m_pass_dev;
 };
 
 
@@ -69,7 +77,8 @@ public:
     teca_threaded_algorithm_internals() {}
 
     void thread_pool_resize(MPI_Comm comm, int n_threads,
-        int n_threads_per_device, bool bind, bool verbose);
+        int threads_per_device, int ranks_per_device, bool bind,
+        bool verbose);
 
     unsigned int get_thread_pool_size() const noexcept
     { return this->thread_pool ? this->thread_pool->size() : 0; }
@@ -80,10 +89,11 @@ public:
 
 // --------------------------------------------------------------------------
 void teca_threaded_algorithm_internals::thread_pool_resize(MPI_Comm comm,
-    int n_threads, int n_threads_per_device, bool bind, bool verbose)
+    int n_threads, int threads_per_device, int ranks_per_device, bool bind,
+    bool verbose)
 {
-    this->thread_pool = new_teca_data_request_queue(
-        comm, n_threads, n_threads_per_device,  bind, verbose);
+    this->thread_pool = new_teca_data_request_queue(comm,
+        n_threads, threads_per_device, ranks_per_device, bind, verbose);
 }
 
 
@@ -91,7 +101,7 @@ void teca_threaded_algorithm_internals::thread_pool_resize(MPI_Comm comm,
 // --------------------------------------------------------------------------
 teca_threaded_algorithm::teca_threaded_algorithm() :
     bind_threads(1), stream_size(-1), poll_interval(1000000),
-    threads_per_cuda_device(-1),
+    threads_per_device(-1), ranks_per_device(1), propagate_device_assignment(0),
     internals(new teca_threaded_algorithm_internals)
 {
 }
@@ -113,20 +123,25 @@ void teca_threaded_algorithm::get_properties_description(
     opts.add_options()
         TECA_POPTS_GET(int, prefix, bind_threads,
             "bind software threads to hardware cores")
-        TECA_POPTS_GET(int, prefix, verbose,
-            "print a run time report of settings")
         TECA_POPTS_GET(int, prefix, thread_pool_size,
             "number of threads in pool. When n == -1, 1 thread per core is "
             "created")
         TECA_POPTS_GET(int, prefix, stream_size,
             "number of datasests to pass per execute call. -1 means wait "
             "for all.")
-        TECA_POPTS_GET(long, prefix, poll_interval,
+        TECA_POPTS_GET(long long, prefix, poll_interval,
             "number of nanoseconds to wait between scans of the thread pool "
             "for completed tasks")
-        TECA_POPTS_GET(int, prefix, threads_per_cuda_device,
-            "Sets the number of threads that service each CUDA GPU. -1 results "
-            "in all threads servicing CUDA GPUs.")
+        TECA_POPTS_GET(int, prefix, threads_per_device,
+            "Sets the number of threads that service each CUDA GPU. If -1 the "
+            "default of 8 threads per CUDA GPU is used. If 0 only the CPU is used.")
+        TECA_POPTS_GET(int, prefix, ranks_per_device,
+            "Sets the number of threads that service each CUDA GPU. If -1 the "
+            "default of ranks allowed to access each GPU.")
+        TECA_POPTS_GET(int, prefix, propagate_device_assignment,
+            "When set device assignment is taken from the in coming request. "
+            "Otherwise the thread executing the upstream pipeline provides the "
+            "device assignment.")
         ;
 
     this->teca_algorithm::get_properties_description(prefix, opts);
@@ -141,8 +156,13 @@ void teca_threaded_algorithm::set_properties(const std::string &prefix,
     this->teca_algorithm::set_properties(prefix, opts);
 
     TECA_POPTS_SET(opts, int, prefix, bind_threads)
-    TECA_POPTS_SET(opts, int, prefix, verbose)
+    TECA_POPTS_SET(opts, int, prefix, stream_size)
+    TECA_POPTS_SET(opts, long long, prefix, poll_interval)
+    TECA_POPTS_SET(opts, int, prefix, threads_per_device)
+    TECA_POPTS_SET(opts, int, prefix, ranks_per_device)
+    TECA_POPTS_SET(opts, int, prefix, propagate_device_assignment)
 
+    // force update the the thread pool settings
     std::string opt_name = (prefix.empty()?"":prefix+"::") + "thread_pool_size";
     if (opts.count(opt_name))
         this->set_thread_pool_size(opts[opt_name].as<int>());
@@ -154,7 +174,8 @@ void teca_threaded_algorithm::set_thread_pool_size(int n)
 {
     TECA_PROFILE_METHOD(128, this, "set_thread_pool_size",
         this->internals->thread_pool_resize(this->get_communicator(),
-            n, this->threads_per_cuda_device, this->bind_threads, this->verbose);
+            n, this->threads_per_device, this->ranks_per_device,
+            this->bind_threads, this->verbose);
         )
 }
 
@@ -238,10 +259,12 @@ const_p_teca_dataset teca_threaded_algorithm::request_data(
                 if (!up_reqs[i].empty())
                 {
                     teca_algorithm_output_port &up_port
-                        = alg->get_input_connection(i%n_inputs);
+                        = alg->get_input_connection( i % n_inputs );
 
-                    teca_data_request dreq(get_algorithm(up_port), up_port, up_reqs[i]);
-                    teca_data_request_task task(dreq);
+                    teca_data_request_task task(
+                        teca_data_request(get_algorithm(up_port), up_port,
+                                          up_reqs[i], this->propagate_device_assignment)
+                        );
 
                     this->internals->thread_pool->push_task(task);
                 }
@@ -250,10 +273,10 @@ const_p_teca_dataset teca_threaded_algorithm::request_data(
             int n_tasks_remaining = 0;
             do
             {
-               // get the requested data. will block until it's ready.
-               std::vector<const_p_teca_dataset> input_data;
+                // get the requested data. will block until it's ready.
+                std::vector<const_p_teca_dataset> input_data;
 
-               n_tasks_remaining = this->internals->thread_pool->wait_some(
+                n_tasks_remaining = this->internals->thread_pool->wait_some(
                     this->stream_size, this->poll_interval, input_data);
 
                 // when streaming recycle last round's output, this is

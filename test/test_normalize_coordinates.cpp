@@ -11,6 +11,7 @@
 #include "teca_cartesian_mesh.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_file_util.h"
 #include "teca_system_util.h"
 
@@ -21,6 +22,7 @@
 #include <string>
 
 using namespace std;
+using namespace teca_variant_array_util;
 
 // genrates a distance field centered on x0,y0,z0
 struct distance_field
@@ -35,11 +37,11 @@ struct distance_field
         oss << "distance to (" << m_x0 << ", " << m_y0 << ", " << m_z0 << ")";
 
         return teca_array_attributes(teca_variant_array_code<double>::get(),
-            teca_array_attributes::point_centering, 0, "degrees", "distance",
-            oss.str().c_str());
+            teca_array_attributes::point_centering, 0, {1,1,1,1}, "degrees",
+            "distance", oss.str().c_str());
     }
 
-    p_teca_variant_array operator()(const const_p_teca_variant_array &x,
+    p_teca_variant_array operator()(int, const const_p_teca_variant_array &x,
         const const_p_teca_variant_array &y, const const_p_teca_variant_array &z,
         double)
     {
@@ -48,21 +50,14 @@ struct distance_field
         unsigned long nz = z->size();
         unsigned long nxy = nx*ny;
 
-        p_teca_double_array d = teca_double_array::New(nxy*nz);
-        auto spd = d->get_cpu_accessible();
-        double *pd = spd.get();
+        auto [d, pd] = ::New<teca_double_array>(nxy*nz);
 
-        TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
-            x.get(),
+        VARIANT_ARRAY_DISPATCH_FP(x.get(),
 
-            auto spx = std::static_pointer_cast<TT>(x)->get_cpu_accessible();
-            const NT *px = spx.get();
+            assert_type<TT>(y,z);
+            auto [spx, px, spy, py, spz, pz] = get_host_accessible<CTT>(x, y, z);
 
-            auto spy = std::static_pointer_cast<TT>(y)->get_cpu_accessible();
-            const NT *py = spy.get();
-
-            auto spz = std::static_pointer_cast<TT>(z)->get_cpu_accessible();
-            const NT *pz = spz.get();
+            sync_host_access_any(x, y, z);
 
             for (unsigned long k = 0; k < nz; ++k)
             {

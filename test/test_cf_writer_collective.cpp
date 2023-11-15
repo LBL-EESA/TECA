@@ -2,6 +2,7 @@
 #include "teca_metadata.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_array_attributes.h"
 #include "teca_algorithm.h"
 #include "teca_cartesian_mesh_source.h"
@@ -27,6 +28,8 @@
 
 class generate_test_data;
 using p_generate_test_data = std::shared_ptr<generate_test_data>;
+
+using namespace teca_variant_array_util;
 
 // This class generates point centered data according to the function:
 //
@@ -110,20 +113,18 @@ teca_metadata generate_test_data::get_output_metadata(unsigned int port,
     teca_array_attributes z_atts(
         teca_variant_array_code<double>::get(),
         teca_array_attributes::point_centering,
-        ncells, "meters", "height",
+        ncells, teca_array_attributes::xyzt_active(), "meters", "height",
         "height is defined by the function z=sin^2(x*y + t)");
 
     teca_array_attributes zt_atts(
         teca_variant_array_code<double>::get(),
-        teca_array_attributes::no_centering,
-        1, "meters", "threshold height",
-        "value of height used to segment the z data");
+        teca_array_attributes::no_centering, 1, teca_array_attributes::none_active(),
+        "meters", "threshold height", "value of height used to segment the z data");
 
     teca_array_attributes count_atts(
         teca_variant_array_code<int>::get(),
-        teca_array_attributes::no_centering,
-        2, "cells", "number of cells",
-        "number of cells above and below the threshold value");
+        teca_array_attributes::no_centering, 2, teca_array_attributes::none_active(),
+        "cells", "number of cells", "number of cells above and below the threshold value");
 
     // put it in the array attributes
     teca_metadata atts;
@@ -187,31 +188,22 @@ const_p_teca_dataset generate_test_data::execute(unsigned int port,
     const_p_teca_variant_array x_in = mesh_in->get_x_coordinates();
     const_p_teca_variant_array y_in = mesh_in->get_y_coordinates();
 
-    p_teca_double_array x = teca_double_array::New(nx);
-    p_teca_double_array y = teca_double_array::New(ny);
-    p_teca_double_array z = teca_double_array::New(nxy);
+    auto [x, px] = ::New<teca_double_array>(nx);
+    auto [y, py] = ::New<teca_double_array>(ny);
+    auto [z, pz] = ::New<teca_double_array>(nxy);
 
     double rad_per_deg = M_PI/180.0;
 
     unsigned long n_above = 0;
 
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
-        x_in.get(),
+    VARIANT_ARRAY_DISPATCH(x_in.get(),
 
-        auto spx_in = std::static_pointer_cast<const TT>(x_in)->get_cpu_accessible();
-        const NT *px_in = spx_in.get();
+        assert_type<CTT>(y_in);
 
-        auto spy_in = std::static_pointer_cast<const TT>(y_in)->get_cpu_accessible();
-        const NT *py_in = spy_in.get();
+        auto [spx_in, px_in,
+              spy_in, py_in] = get_host_accessible<CTT>(x_in, y_in);
 
-        auto spx = x->get_cpu_accessible();
-        double *px = spx.get();
-
-        auto spy = y->get_cpu_accessible();
-        double *py = spy.get();
-
-        auto spz = z->get_cpu_accessible();
-        double *pz = spz.get();
+        sync_host_access_any(x_in, y_in);
 
         // deg to rad
         for (unsigned long i = 0; i < nx; ++i)
@@ -237,15 +229,11 @@ const_p_teca_dataset generate_test_data::execute(unsigned int port,
         )
 
     // package up counts and thredshold
-    p_teca_int_array counts = teca_int_array::New(2);
-    auto sp_counts = counts->get_cpu_accessible();
-    int *p_counts = sp_counts.get();
+    auto [counts, p_counts] = ::New<teca_int_array>(2);
     p_counts[0] = n_above;
     p_counts[1] = nxy - n_above;
 
-    p_teca_double_array z_threshold = teca_double_array::New(1);
-    auto sp_zt = z_threshold->get_cpu_accessible();
-    double *p_zt = sp_zt.get();
+    auto [z_threshold, p_zt] = ::New<teca_double_array>(1);
     p_zt[0] = this->threshold;
 
     // create the output and add in the arrays

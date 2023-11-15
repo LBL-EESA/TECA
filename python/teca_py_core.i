@@ -3,6 +3,7 @@
 
 #include "teca_calcalcs.h"
 #include "teca_algorithm_executive.h"
+#include "teca_dataset_capture.h"
 #include "teca_index_executive.h"
 #include "teca_metadata.h"
 #include "teca_algorithm.h"
@@ -285,12 +286,11 @@ if get_teca_has_cupy():
             return nullptr;
         }
 
-        TEMPLATE_DISPATCH(teca_variant_array_impl, self,
+        VARIANT_ARRAY_DISPATCH(self,
             TT *varrt = static_cast<TT*>(self);
             return teca_py_object::py_tt<NT>::new_object(varrt->get(i));
             )
-        else TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
-            std::string, self,
+        else VARIANT_ARRAY_DISPATCH_CASE(std::string, self,
             TT *varrt = static_cast<TT*>(self);
             return teca_py_object::py_tt<NT>::new_object(varrt->get(i));
             )
@@ -310,18 +310,24 @@ if get_teca_has_cupy():
     }
 
 #if defined(TECA_NUMPY_ARRAY_INTERFACE)
-    /** zero-copy transfer the data to numpy using the array interface protocol. */
-    PyObject *get_cpu_accessible_impl()
+    /** zero-copy transfer the data to numpy using the array interface
+     * protocol. read only access */
+    PyObject *get_host_accessible_impl()
     {
         teca_py_gil_state gil;
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            self,
+        VARIANT_ARRAY_DISPATCH(self,
 
             TT *tself = static_cast<TT*>(self);
 
+            hamr::stream stream;
+
             hamr::buffer_handle<NT> *ph = new hamr::buffer_handle<NT>(
-                tself->get_cpu_accessible(), tself->size(), 0, 1,
-                tself->cpu_accessible() && tself->cuda_accessible());
+                tself->get_host_accessible(), tself->size(), 1,
+                tself->host_accessible() && tself->cuda_accessible(),
+                stream);
+
+            if (!tself->host_accessible())
+                tself->syncronize();
 
             return SWIG_NewPointerObj(SWIG_as_voidptr(ph),
                 hamr::buffer_handle_tt<NT>::swig_type(), SWIG_POINTER_OWN);
@@ -332,14 +338,14 @@ if get_teca_has_cupy():
 
     %pythoncode
     {
-    def get_cpu_accessible(self, as_array=True, shape=None):
+    def get_host_accessible(self, as_array=True, shape=None):
         r""" return a handle exposing the data via the Numpy array interface """
-        hvarr = self.get_cpu_accessible_impl()
+        hvarr = self.get_host_accessible_impl()
         return np_array(hvarr, copy=False)
     }
 #else
     /** zero-copy transfer the data to numpy using the numpy c-api */
-    PyObject *get_cpu_accessible()
+    PyObject *get_host_accessible()
     {
         teca_py_gil_state gil;
         bool deep_copy = false;
@@ -349,18 +355,20 @@ if get_teca_has_cupy():
 #endif
 
     /** zero-copy transfer the data to cupy using the numba CUDA array
-     * interface protocol. */
+     * interface protocol. read only access */
     PyObject *get_cuda_accessible_impl()
     {
         teca_py_gil_state gil;
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            self,
+        VARIANT_ARRAY_DISPATCH(self,
 
             TT *tself = static_cast<TT*>(self);
 
+            hamr::stream stream;
+
             hamr::buffer_handle<NT> *ph = new hamr::buffer_handle<NT>(
-                tself->get_cuda_accessible(), tself->size(), 0,
-                tself->cpu_accessible() && tself->cuda_accessible(), 1);
+                tself->get_cuda_accessible(), tself->size(),
+                tself->host_accessible() && tself->cuda_accessible(), 1,
+                stream);
 
             return SWIG_NewPointerObj(SWIG_as_voidptr(ph),
                 hamr::buffer_handle_tt<NT>::swig_type(), SWIG_POINTER_OWN);
@@ -370,13 +378,52 @@ if get_teca_has_cupy():
         return nullptr;
     }
 
-    /** zero-copy data access in Numpy/Cupy/Numba via the array interface protocol */
+    /** zero-copy data access in Numpy/Cupy/Numba via the array interface
+     * protocol. read only access. */
     %pythoncode
     {
     def get_cuda_accessible(self):
         r""" return a handle exposing the data via the Numba CUDA array interface. """
         hvarr = self.get_cuda_accessible_impl()
         return cp_array(hvarr, copy=False)
+    }
+
+    /** zero-copy transfer the data to cupy using the numba CUDA array
+     * interface protocol. read/write access. */
+    PyObject *data_impl()
+    {
+        teca_py_gil_state gil;
+        VARIANT_ARRAY_DISPATCH(self,
+
+            TT *tself = static_cast<TT*>(self);
+
+            hamr::stream stream;
+
+            hamr::buffer_handle<NT> *ph = new hamr::buffer_handle<NT>(
+                tself->pointer(), tself->size(), 0,
+                tself->host_accessible(), tself->cuda_accessible(),
+                stream);
+
+            return SWIG_NewPointerObj(SWIG_as_voidptr(ph),
+                hamr::buffer_handle_tt<NT>::swig_type(), SWIG_POINTER_OWN);
+            )
+
+        TECA_PY_ERROR(PyExc_RuntimeError, "Failed to construct a read/write accessible buffer handle")
+        return nullptr;
+    }
+
+    /** zero-copy data access in Numpy/Cupy/Numba via the array interface protocol */
+    %pythoncode
+    {
+    def data(self):
+        r""" return a handle giving read/write access to the data via either
+        the Numba CUDA array interface or the Numpy array interface protocol.
+        Use this only when you know the data is safe to access in place. """
+        hvarr = self.data_impl()
+        if self.cuda_accessible():
+            return cp_array(hvarr, copy=False)
+        else:
+            return np_array(hvarr, copy=False)
     }
 
     PyObject *append(PyObject *obj)
@@ -508,33 +555,28 @@ TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned long long, unsigned_long_long)
         }
         else if (n_elem == 1)
         {
-            TEMPLATE_DISPATCH(teca_variant_array_impl,
-                varr.get(),
+            VARIANT_ARRAY_DISPATCH(varr.get(),
                 TT *varrt = static_cast<TT*>(varr.get());
                 return teca_py_object::py_tt<NT>::new_object(varrt->get(0));
                 )
-            else TEMPLATE_DISPATCH_CASE(const teca_variant_array_impl,
-                std::string, varr.get(),
-                TT *varrt = static_cast<TT*>(varr.get());
+            else VARIANT_ARRAY_DISPATCH_CASE(std::string, varr.get(),
+                const TT *varrt = static_cast<const TT*>(varr.get());
                 return teca_py_object::py_tt<NT>::new_object(varrt->get(0));
                 )
-            else TEMPLATE_DISPATCH_CASE(const teca_variant_array_impl,
-                teca_metadata, varr.get(),
-                TT *varrt = static_cast<TT*>(varr.get());
+            else VARIANT_ARRAY_DISPATCH_CASE(teca_metadata, varr.get(),
+                const TT *varrt = static_cast<const TT*>(varr.get());
                 return teca_py_object::py_tt<NT>::new_object(varrt->get(0));
                 )
         }
         else if (n_elem > 1)
         {
-            TEMPLATE_DISPATCH(teca_variant_array_impl,
-                varr.get(),
+            VARIANT_ARRAY_DISPATCH(varr.get(),
                 TT *varrt = static_cast<TT*>(varr.get());
                 return reinterpret_cast<PyObject*>(
                     teca_py_array::new_object(varrt));
                 )
-            else TEMPLATE_DISPATCH_CASE(const teca_variant_array_impl,
-                std::string, varr.get(),
-                TT *varrt = static_cast<TT*>(varr.get());
+            else VARIANT_ARRAY_DISPATCH_CASE(std::string, varr.get(),
+                const TT *varrt = static_cast<const TT*>(varr.get());
                 PyObject *list = PyList_New(n_elem);
                 for (size_t i = 0; i < n_elem; ++i)
                 {
@@ -543,9 +585,8 @@ TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned long long, unsigned_long_long)
                 }
                 return list;
                 )
-            else TEMPLATE_DISPATCH_CASE(const teca_variant_array_impl,
-                teca_metadata, varr.get(),
-                TT *varrt = static_cast<TT*>(varr.get());
+            else VARIANT_ARRAY_DISPATCH_CASE(teca_metadata, varr.get(),
+                const TT *varrt = static_cast<const TT*>(varr.get());
                 PyObject *list = PyList_New(n_elem);
                 for (size_t i = 0; i < n_elem; ++i)
                 {
@@ -974,14 +1015,6 @@ class teca_algorithm;
 %pythoncode "teca_python_reduce.py"
 
 /***************************************************************************
- dataset_source
- ***************************************************************************/
-%ignore teca_dataset_source::shared_from_this;
-%shared_ptr(teca_dataset_source)
-%ignore teca_dataset_source::operator=;
-%include "teca_dataset_source.h"
-
-/***************************************************************************
  dataset_capture
  ***************************************************************************/
 %ignore teca_dataset_capture::shared_from_this;
@@ -1075,8 +1108,8 @@ struct thread_util
 // each thread.
 static
 PyObject *thread_parameters(MPI_Comm comm,
-    int n_requested, int bind, int n_per_device,
-    int verbose)
+    int n_requested, int bind, int threads_per_device,
+    int ranks_per_device, int verbose)
 {
     teca_py_gil_state gil;
 
@@ -1084,8 +1117,8 @@ PyObject *thread_parameters(MPI_Comm comm,
     std::vector<int> device_ids;
     int n_threads = n_requested;
     if (teca_thread_util::thread_parameters(comm, -1,
-        n_requested, bind, n_per_device, verbose, n_threads,
-        affinity, device_ids))
+        n_requested, bind, threads_per_device, ranks_per_device,
+        verbose, n_threads, affinity, device_ids))
     {
         // caller requested automatic load balancing but this, failed.
         PyErr_Format(PyExc_RuntimeError,

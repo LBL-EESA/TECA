@@ -162,6 +162,7 @@ int main(int argc, char **argv)
 
     p_teca_normalize_coordinates norm_coords = teca_normalize_coordinates::New();
     norm_coords->get_properties_description("norm_coords", advanced_opt_defs);
+    norm_coords->set_enable_unit_conversions(1);
 
     p_teca_valid_value_mask vv_mask = teca_valid_value_mask::New();
     vv_mask->get_properties_description("vv_mask", advanced_opt_defs);

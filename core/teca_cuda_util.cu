@@ -4,12 +4,25 @@
 namespace teca_cuda_util
 {
 // **************************************************************************
-int synchronize()
+int synchronize_device()
 {
     cudaError_t ierr = cudaSuccess;
     if ((ierr = cudaDeviceSynchronize()) != cudaSuccess)
     {
-        TECA_ERROR("Failed to synchronize CUDA execution. "
+        TECA_ERROR("Failed to synchronize the device. "
+            << cudaGetErrorString(ierr))
+        return -1;
+    }
+    return 0;
+}
+
+// **************************************************************************
+int synchronize_stream()
+{
+    cudaError_t ierr = cudaSuccess;
+    if ((ierr = cudaStreamSynchronize(cudaStreamPerThread)) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to synchronize the per-thread stream. "
             << cudaGetErrorString(ierr))
         return -1;
     }
@@ -20,6 +33,10 @@ int synchronize()
 int get_local_cuda_devices(MPI_Comm comm, int &ranks_per_device,
     std::vector<int> &local_dev)
 {
+    // if ranks per device is zero this is a CPU only run
+    if (ranks_per_device == 0)
+        return 0;
+
     cudaError_t ierr = cudaSuccess;
 
     // get the number of CUDA GPU's available on this node
@@ -55,54 +72,46 @@ int get_local_cuda_devices(MPI_Comm comm, int &ranks_per_device,
         MPI_Comm_size(node_comm, &n_node_ranks);
         MPI_Comm_rank(node_comm, &node_rank);
 
-        // adjust the number of devices such that multiple ranks may share a
-        // device.
-        if (ranks_per_device < 0)
+        if (n_node_ranks < n_node_dev)
         {
-            ranks_per_device = n_node_ranks / n_node_dev +
-                (n_node_ranks % n_node_dev ? 1 : 0);
-
-            // limit to at most 8 MPI ranks per GPU
-            ranks_per_device = std::min(ranks_per_device, 8);
-        }
-
-        int n_node_dev_use = n_node_dev * ranks_per_device;
-
-        if (n_node_dev_use >= n_node_ranks)
-        {
+            // more devices than ranks,
             // assign devices evenly between ranks
-            int max_dev = n_node_dev_use - 1;
-            int n_per_rank = std::max(n_node_dev_use / n_node_ranks, 1);
-            int n_larger = n_node_dev_use % n_node_ranks;
+            int n_per_rank = n_node_dev / n_node_ranks;
+            int n_larger = n_node_dev % n_node_ranks;
+            int n_local = n_per_rank + (node_rank < n_larger ? 1 : 0);
 
             int first_dev = n_per_rank * node_rank
                 + (node_rank < n_larger ? node_rank : n_larger);
 
-            first_dev = std::min(max_dev, first_dev);
-
-            int last_dev = first_dev + n_per_rank - 1
-                 + (node_rank < n_larger ? 1 : 0);
-
-            last_dev = std::min(max_dev, last_dev);
-
-            for (int i = first_dev; i <= last_dev; ++i)
-                local_dev.push_back( i % n_node_dev );
+            for (int i = 0; i < n_local; ++i)
+                local_dev.push_back(first_dev + i);
         }
         else
         {
-            // assign at most one MPI rank per GPU
-            if (node_rank < n_node_dev_use)
+            // TODO -- automatic settings
+            if (ranks_per_device < 0)
+                ranks_per_device *= -1;
+
+            // more ranks than devices. round robin assignment such that at
+            // most each device has ranks_per_device. the remaining ranks will
+            // be CPU only.
+            if (node_rank < ranks_per_device * n_node_dev)
+            {
                 local_dev.push_back( node_rank % n_node_dev );
+            }
         }
 
         MPI_Comm_free(&node_comm);
 
-        return 0;
     }
+    else
 #endif
-    // without MPI this process can use all CUDA devices
-    for (int i = 0; i < n_node_dev; ++i)
-        local_dev.push_back(i);
+    if (ranks_per_device != 0)
+    {
+        // without MPI this process can use all CUDA devices
+        for (int i = 0; i < n_node_dev; ++i)
+            local_dev.push_back(i);
+    }
 
     return 0;
 }
@@ -110,8 +119,8 @@ int get_local_cuda_devices(MPI_Comm comm, int &ranks_per_device,
 //-----------------------------------------------------------------------------
 int set_device(int device_id)
 {
+    /*
     int n_devices = 0;
-
     cudaError_t ierr = cudaGetDeviceCount(&n_devices);
     if (ierr != cudaSuccess)
     {
@@ -120,16 +129,16 @@ int set_device(int device_id)
         return -1;
     }
 
-
     if (device_id >= n_devices)
     {
         TECA_ERROR("Attempt to select invalid device "
             << device_id << " of " << n_devices)
         return -1;
     }
+    */
 
-    ierr = cudaSetDevice(device_id);
-    if (ierr)
+    cudaError_t ierr = cudaSetDevice(device_id);
+    if (ierr != cudaSuccess)
     {
         TECA_ERROR("Failed to select device " << device_id << ". "
             <<  cudaGetErrorString(ierr))
@@ -348,6 +357,60 @@ int partition_thread_blocks(int device_id, size_t array_size,
     return partition_thread_blocks(array_size, warps_per_block,
         warp_size, block_grid_max, block_grid, n_blocks,
         thread_grid);
+}
+
+
+
+// --------------------------------------------------------------------------
+cuda_stream_vector::~cuda_stream_vector()
+{
+    this->resize(0);
+}
+
+// --------------------------------------------------------------------------
+int cuda_stream_vector::resize(size_t new_n)
+{
+    cudaError_t ierr;
+    cudaStream_t strm;
+
+    new_n = std::max(size_t(1), new_n);
+
+    size_t cur_n = m_vec.size();
+
+    if (new_n < cur_n)
+    {
+        // deallocate streams
+        for (size_t i = new_n; i < cur_n; ++i)
+        {
+            if ((ierr = cudaStreamDestroy(m_vec[i])) != cudaSuccess)
+            {
+                TECA_ERROR("Failed to destroy stream " << i << " of " << cur_n)
+                return -1;
+            }
+        }
+        // shrink
+        m_vec.resize(new_n);
+    }
+    else if (new_n > cur_n)
+    {
+        // grow
+        m_vec.resize(new_n);
+
+        // allocate streams
+        for (size_t i = cur_n; i < new_n; ++i)
+        {
+            if ((ierr = cudaStreamCreate(&strm)) != cudaSuccess)
+            {
+                TECA_ERROR("Failed to create a CUDA stream. "
+                    << cudaGetErrorString(ierr))
+                return -1;
+            }
+
+            m_vec[i] = strm;
+        }
+    }
+
+    return 0;
 }
 
 }

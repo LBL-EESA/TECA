@@ -30,11 +30,11 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_array_collection_reader)
  *  | variables             | a list of all available variables. |
  *  | attributes            | a metadata object holding all NetCDF attributes for the variables |
  *  | coordinates           | a metadata object holding names and arrays of the coordinate axes |
- *  | files                 | list of files in this dataset |
- *  | step_count            | list of the number of steps in each file |
- *  | index_initializer_key | number_of_time_steps |
- *  | number_of_time_steps  | total number of time steps in all files |
- *  | index_request_key     | time_step |
+ *  | files                 | the list of files in this dataset |
+ *  | step_count            | a list containing the number of steps in each file indiexed by file |
+ *  | index_initializer_key | set to the string "number_of_time_steps" |
+ *  | number_of_time_steps  | set to the total number of time steps in all files |
+ *  | index_request_key     | set to the string "temporal_extent" |
  *
  * ### attribute metadata:
  *
@@ -47,15 +47,21 @@ TECA_SHARED_OBJECT_FORWARD_DECL(teca_array_collection_reader)
  *
  *  | key             | description |
  *  | ----            | ----------- |
- *  | t_axis_variable | name of t axis variable |
- *  | t               | array of t coordinates |
+ *  | x_axis_variable | the name of x axis variable |
+ *  | y_axis_variable | the name of y axis variable |
+ *  | z_axis_variable | the name of z axis variable |
+ *  | t_axis_variable | the name of t axis variable |
+ *  | x               | the array of x coordinates |
+ *  | y               | the array of y coordinates |
+ *  | z               | the array of z coordinates |
+ *  | t               | the array of t coordinates |
  *
  * ### request keys:
  *
- *  | key       | description |
- *  | ----      | ----------- |
- *  | time_step | the time step to read |
- *  | arrays    | list of arrays to read |
+ *  | key             | description |
+ *  | ----            | ----------- |
+ *  | temporal_extent | holds an inclusive range of time step to read [i0, i1] |
+ *  | arrays          | holds a list of arrays to read |
  *
  * ### output:
  * The reader generates a 1,2 or 3D cartesian mesh for the requested timestep

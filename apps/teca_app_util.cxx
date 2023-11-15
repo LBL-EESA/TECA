@@ -45,6 +45,9 @@ int process_command_line_help(int rank, int argc, char **argv,
     boost::program_options::options_description &all_opt_defs,
     boost::program_options::variables_map &opt_vals)
 {
+    // this will prevent typos from being treated as positionals.
+    boost::program_options::positional_options_description pos_opt_defs;
+
     try
     {
         boost::program_options::store(
@@ -52,6 +55,7 @@ int process_command_line_help(int rank, int argc, char **argv,
                 .style(boost::program_options::command_line_style::unix_style ^
                        boost::program_options::command_line_style::allow_short)
                 .options(all_opt_defs)
+                .positional(pos_opt_defs)
                 .run(),
             opt_vals);
 

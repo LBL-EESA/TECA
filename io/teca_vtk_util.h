@@ -79,6 +79,43 @@ TECA_EXPORT
 int deep_copy(vtkRectilinearGrid *output,
     const_p_teca_cartesian_mesh input);
 
+
+/** write spatio-temporal partitions as a VTK unstructured grid that can be
+ * visualized in ParaView
+ */
+class TECA_EXPORT partition_writer
+{
+public:
+    /// create the writer
+    partition_writer(const std::string &file_name,
+        double x0, double y0, double t0,
+        double dx, double dy, double dt) :
+        m_file_name(file_name),
+        m_x0(x0), m_y0(y0), m_t0(t0),
+        m_dx(dx), m_dy(dy), m_dt(dt) {}
+
+    /// add a partition
+    void add_partition(const unsigned long extent[6],
+        const unsigned long temporal_extent[2], int owner);
+
+    /// write the vtk dataset
+    void write();
+
+private:
+    std::string m_file_name;
+    std::vector<double> m_points;
+    std::vector<long> m_cells;
+    std::vector<unsigned char> m_types;
+    std::vector<int> m_owner;
+    double m_x0;
+    double m_y0;
+    double m_t0;
+    double m_dx;
+    double m_dy;
+    double m_dt;
+};
+
+
 };
 
 #endif

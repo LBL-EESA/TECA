@@ -20,6 +20,7 @@
 /***************************************************************************
  array_attributes
  ***************************************************************************/
+%template(std_array_i4) std::array<int,4>;
 %ignore teca_array_attributes::operator=;
 %rename(from_metadata) teca_array_attributes::from;
 %rename(to_metadata) teca_array_attributes::to;
@@ -41,8 +42,8 @@
     // a numerical object of the appropriate type or None to indicate no
     // fill value.
     teca_array_attributes(unsigned int tc, unsigned int cen,
-        unsigned long n, const std::string &un, const std::string &ln,
-        const std::string &descr, PyObject *fv)
+        unsigned long n, const std::array<int,4> &mda, const std::string &un,
+        const std::string &ln, const std::string &descr, PyObject *fv)
     {
         teca_py_gil_state gil;
 
@@ -56,7 +57,7 @@
             }
 
             TECA_PY_OBJECT_DISPATCH_NUM(fv,
-                return new teca_array_attributes(tc, cen, n, un, ln, descr,
+                return new teca_array_attributes(tc, cen, n, mda, un, ln, descr,
                     1, teca_py_object::cpp_tt<OT>::value(fv));
                 )
 
@@ -64,7 +65,7 @@
         }
         else
         {
-            return new teca_array_attributes(tc, cen, n, un, ln, descr);
+            return new teca_array_attributes(tc, cen, n, mda, un, ln, descr);
         }
 
         // the following two statements should never be executed.
@@ -182,6 +183,8 @@ TECA_PY_CONST_CAST(teca_array_collection)
 %ignore teca_mesh::operator=;
 %ignore teca_mesh::get_time(double *) const;
 %ignore teca_mesh::get_time_step(unsigned long *) const;
+%ignore teca_mesh::get_temporal_bounds(double *) const;
+%ignore teca_mesh::get_temporal_extent(unsigned long *) const;
 %ignore teca_mesh::set_calendar(std::string const *);
 %ignore teca_mesh::set_time_units(std::string const *);
 %ignore teca_mesh::set_attributes(teca_metadata const *);
@@ -205,6 +208,8 @@ TECA_PY_CONST_CAST(teca_mesh)
 
     TECA_PY_DATASET_METADATA(double, time)
     TECA_PY_DATASET_METADATA(unsigned long, time_step)
+    TECA_PY_DATASET_VECTOR_METADATA(double, temporal_bounds)
+    TECA_PY_DATASET_VECTOR_METADATA(unsigned long, temporal_extent)
     TECA_PY_DATASET_METADATA(std::string, calendar)
     TECA_PY_DATASET_METADATA(std::string, time_units)
 
@@ -232,6 +237,10 @@ TECA_PY_CONST_CAST(teca_mesh)
 %ignore teca_cartesian_mesh::set_y_coordinate_variable(std::string const *);
 %ignore teca_cartesian_mesh::set_z_coordinate_variable(std::string const *);
 %ignore teca_cartesian_mesh::set_t_coordinate_variable(std::string const *);
+%ignore teca_cartesian_mesh::get_array_extent(const std::string &, unsigned long [8]) const;
+%ignore teca_cartesian_mesh::get_array_shape(const std::string &, unsigned long [4]) const;
+%ignore teca_cartesian_mesh::get_array_extent(const std::string &) const;
+%ignore teca_cartesian_mesh::get_array_shape(const std::string &) const;
 %include "teca_cartesian_mesh.h"
 TECA_PY_DYNAMIC_CAST(teca_cartesian_mesh, teca_dataset)
 TECA_PY_CONST_CAST(teca_cartesian_mesh)
@@ -252,6 +261,46 @@ TECA_PY_CONST_CAST(teca_cartesian_mesh)
     TECA_PY_DATASET_METADATA(std::string, y_coordinate_variable)
     TECA_PY_DATASET_METADATA(std::string, z_coordinate_variable)
     TECA_PY_DATASET_METADATA(std::string, t_coordinate_variable)
+
+    // returns a tuple containing the extent
+    PyObject *get_array_extent(const char *name)
+    {
+        teca_py_gil_state gil;
+
+        unsigned long extent[8] = {0lu};
+        if (self->get_array_extent(name, extent) < 0)
+        {
+            TECA_PY_ERROR(PyExc_RuntimeError,
+                "Failed to get the extent for array \"" << name << "\"")
+            return nullptr;
+        }
+
+        PyObject *extent_out = PyTuple_New(8);
+        for (int i = 0; i < 8; ++i)
+            PyTuple_SET_ITEM(extent_out, i, PyLong_FromLong(extent[i]));
+
+        return extent_out;
+    }
+
+    // returns a tuple containing the shape
+    PyObject *get_array_shape(const char *name)
+    {
+        teca_py_gil_state gil;
+
+        unsigned long shape[4] = {0lu};
+        if (self->get_array_shape(name, shape) < 0)
+        {
+            TECA_PY_ERROR(PyExc_RuntimeError,
+                "Failed to get the shape for array \"" << name << "\"")
+            return nullptr;
+        }
+
+        PyObject *shape_out = PyTuple_New(4);
+        for (int i = 0; i < 4; ++i)
+            PyTuple_SET_ITEM(shape_out, i, PyLong_FromLong(shape[i]));
+
+        return shape_out;
+    }
 }
 
 /***************************************************************************
@@ -342,6 +391,8 @@ TECA_PY_CONST_CAST(teca_arakawa_c_grid)
 %ignore teca_table::operator=;
 %ignore teca_table::set_calendar(std::string const *);
 %ignore teca_table::set_time_units(std::string const *);
+%ignore teca_table::set_attributes(teca_metadata const *);
+%ignore teca_table::get_attributes(teca_metadata *) const;
 %include "teca_table.h"
 TECA_PY_DYNAMIC_CAST(teca_table, teca_dataset)
 TECA_PY_CONST_CAST(teca_table)
@@ -387,8 +438,7 @@ TECA_PY_CONST_CAST(teca_table)
         // numpy scalars
         TECA_PY_ARRAY_SCALAR_DISPATCH(obj,
             ST val = teca_py_array::numpy_scalar_tt<ST>::value(obj);
-            TEMPLATE_DISPATCH(teca_variant_array_impl,
-                col.get(),
+            VARIANT_ARRAY_DISPATCH(col.get(),
                 TT *arr = static_cast<TT*>(col.get());
                 arr->set(r, val);
                 return Py_None;
@@ -398,9 +448,7 @@ TECA_PY_CONST_CAST(teca_table)
         TECA_PY_OBJECT_DISPATCH_NUM(obj,
             teca_py_object::cpp_tt<OT>::type val
                 = teca_py_object::cpp_tt<OT>::value(obj);
-            TEMPLATE_DISPATCH(
-                teca_variant_array_impl,
-                col.get(),
+            VARIANT_ARRAY_DISPATCH(col.get(),
                 TT *arr = static_cast<TT*>(col.get());
                 arr->set(r, val);
                 return Py_None;
@@ -409,10 +457,7 @@ TECA_PY_CONST_CAST(teca_table)
         TECA_PY_OBJECT_DISPATCH_STR(obj,
             teca_py_object::cpp_tt<OT>::type val
                 = teca_py_object::cpp_tt<OT>::value(obj);
-            TEMPLATE_DISPATCH_CASE(
-                teca_variant_array_impl,
-                std::string,
-                col.get(),
+            VARIANT_ARRAY_DISPATCH_CASE(std::string, col.get(),
                 TT *arr = static_cast<TT*>(col.get());
                 arr->set(r, val);
                 return Py_None;
@@ -460,15 +505,12 @@ TECA_PY_CONST_CAST(teca_table)
         }
 
 
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            col.get(),
+        VARIANT_ARRAY_DISPATCH(col.get(),
             TT *arr = static_cast<TT*>(col.get());
             return reinterpret_cast<PyObject*>(
                 teca_py_object::py_tt<NT>::new_object(arr->get(r)));
             )
-        TEMPLATE_DISPATCH_CASE(teca_variant_array_impl,
-            std::string,
-            col.get(),
+        VARIANT_ARRAY_DISPATCH_CASE(std::string, col.get(),
             TT *arr = static_cast<TT*>(col.get());
             return reinterpret_cast<PyObject*>(
                 teca_py_object::py_tt<NT>::new_object(arr->get(r)));
@@ -683,13 +725,12 @@ TECA_PY_CONST_CAST(teca_table)
             p_teca_variant_array tmp =
                 teca_py_array_interface::new_variant_array(obj);
 
-            TEMPLATE_DISPATCH(teca_variant_array_impl,
-                tmp.get(),
+            VARIANT_ARRAY_DISPATCH(tmp.get(),
 
-                TT *ttmp = static_cast<TT*>(tmp.get());
+                using namespace teca_variant_array_util;
+                auto [sptmp, ptmp] = get_host_accessible<TT>(tmp);
 
-                auto sptmp = ttmp->get_cpu_accessible();
-                NT *ptmp = sptmp.get();
+                sync_host_access_any(tmp);
 
                 size_t n_elem = tmp->size();
                 for (size_t i = 0; i < n_elem; ++i)
@@ -772,6 +813,17 @@ TECA_PY_CONST_CAST(teca_table)
         teca_table_append(self, obj);
         return self->shared_from_this();
     }
+
+    /* attribute metadata */
+    teca_metadata get_attributes()
+    {
+        teca_py_gil_state gil;
+
+        teca_metadata atts;
+        self->get_attributes(atts);
+
+        return atts;
+    }
 }
 
 /***************************************************************************
@@ -831,6 +883,28 @@ TECA_PY_CONST_CAST(teca_database)
 %{
 struct coordinate_util
 {
+static
+PyObject *bounds_to_extent(const double bounds[6],
+    const const_p_teca_variant_array &x, const const_p_teca_variant_array &y,
+    const const_p_teca_variant_array &z)
+{
+    unsigned long extent[6] = {0ul};
+    if (teca_coordinate_util::bounds_to_extent(bounds, x, y, z, extent))
+    {
+        TECA_PY_ERROR_NOW(PyExc_RuntimeError,
+            "Failed to get extent from bounds " << bounds)
+        return nullptr;
+    }
+
+    teca_py_gil_state gil;
+
+    PyObject *extent_tup = PyTuple_New(6);
+    for (int i = 0; i < 6; ++i)
+        PyTuple_SET_ITEM(extent_tup, i, PyLong_FromUnsignedLong(extent[i]));
+
+    return extent_tup;
+}
+
 // given a human readable date string in YYYY-MM-DD hh:mm:ss format
 // amd a list of floating point offset times in the specified calendar
 // and units find the closest time step. return 0 if successful
@@ -876,4 +950,84 @@ std::string time_to_string(double val, const std::string &calendar,
     return date;
 }
 };
+%}
+
+%pythoncode
+%{
+def get_typed_scalar(type_code, value):
+    """ Given a teca_variant_array type_code and a value, return a numpy scalar
+    of the mathcing type initialized with the value """
+    if type_code == 11:
+        return np.float32(value)
+    elif type_code == 12:
+        return np.float64(value)
+    elif type_code == 1:
+        return np.int8(value)
+    elif type_code == 2:
+        return np.uint8(value)
+    elif type_code == 3:
+        return np.int32(value)
+    elif type_code == 4:
+        return np.uint32(value)
+    elif type_code == 5:
+        return np.int16(value)
+    elif type_code == 6:
+        return np.uint16(value)
+    elif type_code == 7:
+        return np.int64(value)
+    elif type_code == 8:
+        return np.uint64(value)
+    elif type_code == 9:
+        return np.int64(value)
+    elif type_code == 10:
+        return np.uint64(value)
+    raise ValueError('Urecognized type code %d'%(type_code))
+%}
+
+%inline
+%{
+#define default_fill_value_impl(_VA_TC, _CPP_T, _NP_T, _VAL)    \
+    {                                                           \
+    _CPP_T val(_VAL);                                           \
+    PyArray_Descr *dtype = PyArray_DescrFromType(_NP_T);        \
+    PyObject *scalar = PyArray_Scalar(&val, dtype, nullptr);    \
+    Py_XDECREF(dtype);                                          \
+    return scalar;                                              \
+    }
+
+#define default_fill_value_case(_VA_TC, _CPP_T, _NP_T, _VAL)    \
+    case _VA_TC:                                                \
+    default_fill_value_impl(_VA_TC, _CPP_T, _NP_T, _VAL)        \
+    break;
+
+/** Given a teca_variant_array type code return a new a Numpy scalar instance
+ * intitalized to an appropriate fill value determined from numeric_limits::min
+ * for signed integers. numeric_limits::max for unsigned integers, and
+ * numeric_limits::lowest for floating point types. Note that for double
+ * precision floating point type we use the lowest single precision value work
+ * around a bug in ncview.
+ */
+PyObject *get_default_fill_value(int type_code)
+{
+    switch (type_code)
+    {
+        default_fill_value_case(1, char, NPY_INT8, std::numeric_limits<char>::min())
+        default_fill_value_case(2, unsigned char, NPY_UINT8, std::numeric_limits<unsigned char>::max())
+        default_fill_value_case(3, int, NPY_INT32, std::numeric_limits<int>::min())
+        default_fill_value_case(4, unsigned int, NPY_UINT32, std::numeric_limits<unsigned int>::max())
+        default_fill_value_case(5, short, NPY_INT16, std::numeric_limits<short>::min())
+        default_fill_value_case(6, unsigned short, NPY_UINT16, std::numeric_limits<unsigned short>::max())
+        default_fill_value_case(7, long, NPY_LONG, std::numeric_limits<long>::min())
+        default_fill_value_case(8, unsigned long, NPY_ULONG, std::numeric_limits<unsigned long>::max())
+        default_fill_value_case(9, long long, NPY_LONGLONG, std::numeric_limits<long long>::min())
+        default_fill_value_case(10, unsigned long long, NPY_ULONGLONG, std::numeric_limits<unsigned long long>::max())
+        default_fill_value_case(11, float, NPY_FLOAT32, std::numeric_limits<float>::lowest())
+        default_fill_value_case(12, double, NPY_FLOAT64, std::numeric_limits<float>::lowest())
+    }
+
+    // we were passed an invlaid variant array type code
+    TECA_PY_ERROR(PyExc_ValueError,
+        "Invalid variant array type code " << type_code)
+    return nullptr;
+}
 %}

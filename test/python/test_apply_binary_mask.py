@@ -71,14 +71,14 @@ md["index_request_key"] = "time_step"
 ones_atts = teca_array_attributes(
     teca_double_array_code.get(),
     teca_array_attributes.no_centering,
-    2, 'ones', 'unitless',
+    2, (0,0,0,0), 'ones', 'unitless',
     'an array full of ones',
     None)
 
 zeros_atts = teca_array_attributes(
     teca_double_array_code.get(),
     teca_array_attributes.no_centering,
-    2, 'zeros', 'unitless',
+    2, (0,0,0,0), 'zeros', 'unitless',
     'an array full of zeros',
     None)
 
@@ -116,8 +116,8 @@ out_mesh.copy(ds)
 
 out_arrays = out_mesh.get_point_arrays()
 
-masked_ones_array = out_arrays[prefix + "ones_grid"].get_cpu_accessible()
-masked_zeros_array = out_arrays[prefix + "zeros_grid"].get_cpu_accessible()
+masked_ones_array = out_arrays[prefix + "ones_grid"].get_host_accessible()
+masked_zeros_array = out_arrays[prefix + "zeros_grid"].get_host_accessible()
 
 # check that the sum of ones times the mask is equal to 1
 sum_difference = np.sum(masked_ones_array) - 1

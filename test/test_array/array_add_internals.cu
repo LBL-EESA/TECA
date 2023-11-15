@@ -47,8 +47,6 @@ int cuda_dispatch(int device_id, p_array &result, const const_p_array &array_1,
     result = array::new_cuda_accessible();
     result->resize(n_vals);
 
-    std::shared_ptr<double> presult = result->get_cuda_accessible();
-
     // determine kernel launch parameters
     dim3 block_grid;
     int n_blocks = 0;
@@ -62,7 +60,7 @@ int cuda_dispatch(int device_id, p_array &result, const const_p_array &array_1,
 
     // add the arrays
     array_add_internals::gpu::add<<<block_grid, thread_grid>>>(
-        presult.get(), parray_1.get(), parray_2.get(), n_vals);
+        result->data(), parray_1.get(), parray_2.get(), n_vals);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
         TECA_ERROR("Failed to launch the add kernel. "

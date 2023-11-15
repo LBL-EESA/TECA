@@ -79,16 +79,36 @@ public:
     unsigned int size() const noexcept
     { return m_arrays.size(); }
 
-    /// access an array by its by id
+    /// access an array by its id
     p_teca_variant_array get(unsigned int i)
     { return m_arrays[i]; }
 
-    /// access an array by its by id
+    /// access an array by its id
     const_p_teca_variant_array get(unsigned int i) const
     { return m_arrays[i]; }
 
+    /// access a typed array by id
+    template <typename array_t>
+    std::shared_ptr<array_t> get_as(unsigned int i)
+    { return std::dynamic_pointer_cast<array_t>(m_arrays[i]); }
+
+    /// access a typed array by id
+    template <typename array_t>
+    std::shared_ptr<const array_t> get_as(unsigned int i) const
+    { return std::dynamic_pointer_cast<const array_t>(m_arrays[i]); }
+
     /// test for array
     bool has(const std::string &name) const;
+
+    /// access a typed array by name
+    template <typename array_t>
+    std::shared_ptr<array_t> get_as(const std::string &name)
+    { return std::dynamic_pointer_cast<array_t>(this->get(name)); }
+
+    /// access a typed array by name
+    template <typename array_t>
+    std::shared_ptr<const array_t> get_as(const std::string &name) const
+    { return std::dynamic_pointer_cast<const array_t>(this->get(name)); }
 
     /// access an array by name
     p_teca_variant_array get(const std::string &name);
@@ -192,8 +212,8 @@ template<typename nT, typename aT>
 void teca_array_collection::declare(nT &&a_name, aT)
 {
     unsigned int id = m_arrays.size();
-    m_names.emplace_back(std::forward<nT>(a_name));
-    m_arrays.emplace_back(teca_variant_array_impl<aT>::New(this->default_allocator));
+    m_names.push_back(a_name);
+    m_arrays.push_back(teca_variant_array_impl<aT>::New(this->default_allocator));
     m_name_array_map.emplace(std::forward<nT>(a_name), id);
 }
 

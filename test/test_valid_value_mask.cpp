@@ -10,9 +10,13 @@
 #include "teca_system_interface.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
+#include "teca_array_attributes.h"
 
 #include <cmath>
 #include <functional>
+
+using namespace teca_variant_array_util;
 
 // generates f = cos(x)*cos(y) where f >= m_threshold and m_fill otherwise
 struct cosx_cosy
@@ -22,7 +26,7 @@ struct cosx_cosy
     cosx_cosy(double threshold, double fill) :
         m_threshold(threshold), m_fill(fill) {}
 
-    p_teca_variant_array operator()(const const_p_teca_variant_array &x,
+    p_teca_variant_array operator()(int, const const_p_teca_variant_array &x,
         const const_p_teca_variant_array &y, const const_p_teca_variant_array &z,
         double t)
     {
@@ -35,17 +39,14 @@ struct cosx_cosy
 
         p_teca_variant_array f = x->new_instance(nxy);
 
-        TEMPLATE_DISPATCH(teca_variant_array_impl,
-            f.get(),
+        VARIANT_ARRAY_DISPATCH(x.get(),
 
-            auto spf = dynamic_cast<TT*>(f.get())->get_cpu_accessible();
-            NT *pf = spf.get();
+            assert_type<CTT>(y);
 
-            auto spx = dynamic_cast<const TT*>(x.get())->get_cpu_accessible();
-            const NT *px = spx.get();
+            auto [pf] = data<TT>(f);
+            auto [spx, px, spy, py] = get_host_accessible<CTT>(x, y);
 
-            auto spy = dynamic_cast<const TT*>(y.get())->get_cpu_accessible();
-            const NT *py = spy.get();
+            sync_host_access_any(x, y);
 
             for (size_t j = 0; j < ny; ++j)
             {
@@ -91,7 +92,7 @@ int main(int argc, char **argv)
 
     s->append_field_generator({"func",
         teca_array_attributes(teca_variant_array_code<double>::get(),
-            teca_array_attributes::point_centering, 0, "unitless",
+            teca_array_attributes::point_centering, 0, {1,1,0,1}, "unitless",
             "func", "test data where z = cos(x)*cos(y) where z >= 0.5",
             1, func.m_fill),
             func});

@@ -9,6 +9,17 @@
 #include <string>
 #include <vector>
 
+/// @name mask type aliases
+///@{
+using NT_MASK = char;
+using TT_MASK = teca_variant_array_impl<NT_MASK>;
+using CTT_MASK = teca_variant_array_impl<NT_MASK>;
+using PT_MASK = p_teca_variant_array_impl<NT_MASK>;
+using CPT_MASK = const_p_teca_variant_array_impl<NT_MASK>;
+using SP_MASK = std::shared_ptr<NT_MASK>;
+using CSP_MASK = std::shared_ptr<const NT_MASK>;
+///@}
+
 TECA_SHARED_OBJECT_FORWARD_DECL(teca_valid_value_mask)
 
 /// an algorithm that computes a mask identifying valid values

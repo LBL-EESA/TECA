@@ -2,6 +2,7 @@
 #include "teca_array_attributes.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_file_util.h"
 #include "teca_arakawa_c_grid.h"
 #include "teca_coordinate_util.h"
@@ -23,6 +24,7 @@
 
 using std::endl;
 using std::cerr;
+using namespace teca_variant_array_util;
 
 #if defined(TECA_HAS_MPI)
 #include <mpi.h>
@@ -431,7 +433,7 @@ teca_metadata teca_wrf_reader::get_output_metadata(
 #endif
                 // convert from the netcdf type code
                 NC_DISPATCH(var_nc_type,
-                   var_type = teca_variant_array_code<NC_T>::get();
+                   var_type = teca_variant_array_code<NC_NT>::get();
                    )
 
                 // skip scalars
@@ -534,7 +536,7 @@ teca_metadata teca_wrf_reader::get_output_metadata(
                     else
                     {
                         NC_DISPATCH(att_type,
-                            NC_T *tmp = static_cast<NC_T*>(realloc(att_buffer, sizeof(NC_T)*att_len));
+                            NC_NT *tmp = static_cast<NC_NT*>(realloc(att_buffer, sizeof(NC_NT)*att_len));
 #if !defined(HDF5_THREAD_SAFE)
                             {
                             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
@@ -828,11 +830,10 @@ teca_metadata teca_wrf_reader::get_output_metadata(
 
                 size_t n_files = files.size();
                 NC_DISPATCH_FP(x_t,
-                    p_teca_variant_array_impl<NC_T> t =
-                        teca_variant_array_impl<NC_T>::New(n_files);
+                    auto [t, pt] = ::New<NC_TT>(n_files);
                     for (size_t i = 0; i < n_files; ++i)
                     {
-                        t->set(i, NC_T(i));
+                        pt[i] = NC_NT(i);
                         step_count.push_back(1);
                     }
                     t_axis = t;
@@ -960,12 +961,8 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
     if (!request.get("time", t))
     {
         // translate time to a time step
-        TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-            in_t.get(),
-
-            auto spin_t = dynamic_cast<TT*>(in_t.get())->get_cpu_accessible();
-            NT *pin_t = spin_t.get();
-
+        VARIANT_ARRAY_DISPATCH_FP(in_t.get(),
+            auto [pin_t] = data<TT>(in_t);
             if (teca_coordinate_util::index_of(pin_t, 0,
                 in_t->size()-1, static_cast<NT>(t), time_step))
             {
@@ -1180,14 +1177,8 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
 
         NC_DISPATCH_FP(m_x_type,
             // allocate temporary storage
-            p_teca_variant_array_impl<NC_T> m_x = teca_variant_array_impl<NC_T>::New(n_m_xy);
-            auto spm_x = m_x->get_cpu_accessible();
-            NC_T *pm_x = spm_x.get();
-
-            p_teca_variant_array_impl<NC_T> m_y = teca_variant_array_impl<NC_T>::New(n_m_xy);
-            auto spm_y = m_y->get_cpu_accessible();
-            NC_T *pm_y = spm_y.get();
-
+            auto [m_x, pm_x] = ::New<NC_TT>(n_m_xy);
+            auto [m_y, pm_y] = ::New<NC_TT>(n_m_xy);
 #if !defined(HDF5_THREAD_SAFE)
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
@@ -1258,13 +1249,8 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
 
         NC_DISPATCH_FP(u_x_type,
             // allocate temporary storage
-            p_teca_variant_array_impl<NC_T> u_x = teca_variant_array_impl<NC_T>::New(n_u_xy);
-            auto spu_x = u_x->get_cpu_accessible();
-            NC_T *pu_x = spu_x.get();
-
-            p_teca_variant_array_impl<NC_T> u_y = teca_variant_array_impl<NC_T>::New(n_u_xy);
-            auto spu_y = u_y->get_cpu_accessible();
-            NC_T *pu_y = spu_y.get();
+            auto [u_x, pu_x] = ::New<NC_TT>(n_u_xy);
+            auto [u_y, pu_y] = ::New<NC_TT>(n_u_xy);
 #if !defined(HDF5_THREAD_SAFE)
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
@@ -1335,13 +1321,8 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
 
         NC_DISPATCH_FP(v_x_type,
             // allocate temporary storage
-            p_teca_variant_array_impl<NC_T> v_x = teca_variant_array_impl<NC_T>::New(n_v_xy);
-            auto spv_x = v_x->get_cpu_accessible();
-            NC_T *pv_x = spv_x.get();
-
-            p_teca_variant_array_impl<NC_T> v_y = teca_variant_array_impl<NC_T>::New(n_v_xy);
-            auto spv_y = v_y->get_cpu_accessible();
-            NC_T *pv_y = spv_y.get();
+            auto [v_x, pv_x] = ::New<NC_TT>(n_v_xy);
+            auto [v_y, pv_y] = ::New<NC_TT>(n_v_xy);
 #if !defined(HDF5_THREAD_SAFE)
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
@@ -1396,9 +1377,7 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
 
         NC_DISPATCH_FP(m_z_type,
             // allocate temporary storage
-            p_teca_variant_array_impl<NC_T> m_z = teca_variant_array_impl<NC_T>::New(n_m_z);
-            auto spm_z = m_z->get_cpu_accessible();
-            NC_T *pm_z = spm_z.get();
+            auto [m_z, pm_z] = ::New<NC_TT>(n_m_z);
 #if !defined(HDF5_THREAD_SAFE)
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
@@ -1446,9 +1425,7 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
 
         NC_DISPATCH_FP(w_z_type,
             // allocate temporary storage
-            p_teca_variant_array_impl<NC_T> w_z = teca_variant_array_impl<NC_T>::New(n_w_z);
-            auto spw_z = w_z->get_cpu_accessible();
-            NC_T *pw_z = spw_z.get();
+            auto [w_z, pw_z] = ::New<NC_TT>(n_w_z);
 #if !defined(HDF5_THREAD_SAFE)
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
@@ -1483,7 +1460,7 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
 
     p_teca_double_array t_out = teca_double_array::New(1, t);
     mesh->set_t_coordinates(t_axis_variable, t_out);
-
+    mesh->set_request_index("time_step", time_step);
     mesh->set_time(t);
     mesh->set_time_step(time_step);
     mesh->set_whole_extent(whole_extent);
@@ -1505,16 +1482,11 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
         mesh->set_time_units(units);
     }
 
-    // add the pipeline keys
-    teca_metadata &md = mesh->get_metadata();
-    md.set("index_request_key", std::string("time_step"));
-    md.set("time_step", time_step);
-
     // pass the attributes for the arrays read
     for (unsigned int i = 0; i < n_arrays; ++i)
         out_atrs.set(arrays[i], atrs.get(arrays[i]));
 
-    md.set("attributes", out_atrs);
+    mesh->set_attributes(out_atrs);
 
     // read requested arrays
     for (size_t i = 0; i < n_arrays; ++i)
@@ -1589,9 +1561,7 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
             // read mesh based data
             p_teca_variant_array array;
             NC_DISPATCH(type,
-                p_teca_variant_array_impl<NC_T> a = teca_variant_array_impl<NC_T>::New(mesh_size);
-                auto spa = a->get_cpu_accessible();
-                NC_T *pa = spa.get();
+                auto [a, pa] = ::New<NC_TT>(mesh_size);
 #if !defined(HDF5_THREAD_SAFE)
                 {
                 std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
@@ -1649,9 +1619,7 @@ const_p_teca_dataset teca_wrf_reader::execute(unsigned int port,
             p_teca_variant_array array;
 
             NC_DISPATCH(type,
-                p_teca_variant_array_impl<NC_T> a = teca_variant_array_impl<NC_T>::New(n_vals);
-                auto spa = a->get_cpu_accessible();
-                NC_T *pa = spa.get();
+                auto [a, pa] = ::New<NC_TT>(n_vals);
 #if !defined(HDF5_THREAD_SAFE)
                 {
                 std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());

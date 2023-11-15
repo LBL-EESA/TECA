@@ -218,25 +218,25 @@ teca_add_test(test_2d_component_area
     SOURCES test_2d_component_area.cpp
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_2d_component_area 720 360 0 8 8 0
-    "test_2d_component_area_%t%.%e%")
+    "test_2d_component_area_%t%.bin")
 
 teca_add_test(test_2d_component_area_contiguous_labels
     COMMAND test_2d_component_area 720 360 0 8 8 1
-    "test_2d_component_area_contiguous_labels_%t%.%e%")
+    "test_2d_component_area_contiguous_labels_%t%.bin")
 
 teca_add_test(test_2d_component_area_negative_area
     COMMAND test_2d_component_area 720 360 1 8 8 1
-    "test_2d_component_area_contiguous_labels_%t%.%e%")
+    "test_2d_component_area_contiguous_labels_%t%.bin")
 
 teca_add_test(test_component_area_filter
     SOURCES test_component_area_filter.cpp
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_component_area_filter 720 360 8 8 10000000 0
-    "test_component_area_filter_%t%.%e%")
+    "test_component_area_filter_%t%.bin")
 
 teca_add_test(test_component_area_filter_contiguous_labels
     COMMAND test_component_area_filter 720 360 8 8 10000000 1
-    "test_component_area_filter_%t%.%e%")
+    "test_component_area_filter_%t%.bin")
 
 teca_add_test(test_cartesian_mesh_regrid
     SOURCES test_cartesian_mesh_regrid.cpp
@@ -340,7 +340,7 @@ teca_add_test(test_descriptive_statistics_mpi_threads
 teca_add_test(test_streaming_reduce_threads
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_descriptive_statistics 0
-    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3.*\\.nc"
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3.historical_r1i1p1_19500101-19501231\\.nc"
     "${TECA_DATA_ROOT}/test_streaming_reduce.bin" 0 -1 ${TWICE_TEST_CORES}
     prw
     FEATURES ${TECA_HAS_UDUNITS} ${TECA_HAS_NETCDF}
@@ -349,7 +349,7 @@ teca_add_test(test_streaming_reduce_threads
 teca_add_test(test_streaming_reduce_mpi_threads
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} test_descriptive_statistics 0
-    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3.*\\.nc"
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3.historical_r1i1p1_19500101-19501231\\.nc"
     "${TECA_DATA_ROOT}/test_streaming_reduce.bin" 0 -1 4 prw
     FEATURES ${TECA_HAS_UDUNITS} ${TECA_HAS_NETCDF} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
@@ -542,7 +542,8 @@ teca_add_test(test_event_filter
 teca_add_test(test_binary_segmentation
     SOURCES test_binary_segmentation.cpp
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
-    COMMAND test_binary_segmentation "${TECA_DATA_ROOT}/prw_hus_day_MRI.*\\.nc$"
+    COMMAND test_binary_segmentation
+    "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3.historical_r1i1p1_19500101-19501231\\.nc"
     prw 50 75 "prw_segmentation_50-75_%t%.%e%"
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
@@ -551,7 +552,7 @@ teca_add_test(test_bayesian_ar_detect_serial
     COMMAND test_bayesian_ar_detect
     "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\\.nc$"
     "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" IVT
-    "bayesian_ar_detect_%t%.nc" 1 0 -1
+    "bayesian_ar_detect_%t%.nc" 1 0 -1 1
     FEATURES ${TECA_HAS_NETCDF} ${TECA_SERIAL_TESTS}
     REQ_TECA_DATA)
 
@@ -562,7 +563,7 @@ teca_add_test(test_bayesian_ar_detect_threads
     COMMAND test_bayesian_ar_detect
     "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\\.nc$"
     "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" IVT
-    "bayesian_ar_detect_%t%.nc" -1 0 -1
+    "bayesian_ar_detect_%t%.nc" -1 0 -1 1
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
@@ -570,7 +571,7 @@ teca_add_test(test_bayesian_ar_detect_mpi
     COMMAND ${MPIEXEC} -n ${TEST_CORES} test_bayesian_ar_detect
     "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\\.nc$"
     "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" IVT
-    "bayesian_ar_detect_%t%.nc" -1 0 -1
+    "bayesian_ar_detect_%t%.nc" -1 0 -1 1
     FEATURES ${TECA_HAS_MPI} ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
@@ -578,7 +579,7 @@ teca_add_test(test_bayesian_ar_detect_mpi_threads
     COMMAND ${MPIEXEC} -n ${HALF_TEST_CORES} test_bayesian_ar_detect
     "${TECA_DATA_ROOT}/ARTMIP_MERRA_2D_2017-05.*\\.nc$"
     "${TECA_DATA_ROOT}/test_bayesian_ar_detect.bin" IVT
-    "bayesian_ar_detect_%t%.nc" -1 0 -1
+    "bayesian_ar_detect_%t%.nc" -1 0 -1 1
     FEATURES ${TECA_HAS_MPI} ${TECA_HAS_NETCDF} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
@@ -662,16 +663,23 @@ teca_add_test(test_integrated_water_vapor_elev_mask
     COMMAND test_integrated_water_vapor 1 0 0
     FEATURES ${TECA_HAS_NETCDF})
 
-teca_add_test(test_integrated_vapor_transport_vv_mask
+teca_add_test(test_integrated_vapor_transport_no_mask_fo
     SOURCES test_integrated_vapor_transport.cpp
     EXEC_NAME test_integrated_vapor_transport
     LIBS teca_core teca_data teca_alg teca_io ${teca_test_link}
-    COMMAND test_integrated_vapor_transport 0 0 0
+    COMMAND test_integrated_vapor_transport 2 256 0 0 0 0
     FEATURES ${TECA_HAS_NETCDF})
 
-teca_add_test(test_integrated_vapor_transport_elev_mask
-    LIBS teca_core teca_data teca_alg teca_io ${teca_test_link}
-    COMMAND test_integrated_vapor_transport 1 0 0
+teca_add_test(test_integrated_vapor_transport_no_mask_trap
+    COMMAND test_integrated_vapor_transport 2 256 0 0 0 1
+    FEATURES ${TECA_HAS_NETCDF})
+
+teca_add_test(test_integrated_vapor_transport_vv_mask_trap
+    COMMAND test_integrated_vapor_transport 2 256 1 0 0 1
+    FEATURES ${TECA_HAS_NETCDF})
+
+teca_add_test(test_integrated_vapor_transport_elev_mask_trap
+    COMMAND test_integrated_vapor_transport 2 256 2 0 0 1
     FEATURES ${TECA_HAS_NETCDF})
 
 teca_add_test(test_cf_time_axis_reader
@@ -841,4 +849,207 @@ teca_add_test(test_l2_norm
     SOURCES test_l2_norm.cpp
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_l2_norm "${TECA_DATA_ROOT}/test_l2_norm.bin"
+    REQ_TECA_DATA)
+
+teca_add_test(test_space_time_executive_size
+    SOURCES test_space_time_executive.cpp
+    EXEC_NAME test_space_time_executive
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_space_time_executive 256 256 7 512 8 size 128)
+
+teca_add_test(test_space_time_executive_number
+    COMMAND test_space_time_executive 256 256 7 512 8 number 2)
+
+teca_add_test(test_space_time_executive_number_par
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_space_time_executive
+    256 256 7 512 8 number 2
+    FEATURES ${TECA_HAS_MPI})
+
+teca_add_test(test_space_time_executive_size_par
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_space_time_executive
+    256 256 7 512 8 size 128
+    FEATURES ${TECA_HAS_MPI})
+
+teca_add_test(test_spatial_executive_size
+    SOURCES test_spatial_executive.cpp
+    EXEC_NAME test_spatial_executive
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_spatial_executive 256 256 7 512 size 128)
+
+teca_add_test(test_spatial_executive_number
+    COMMAND test_spatial_executive 256 256 7 512 number 2)
+
+teca_add_test(test_spatial_executive_number_par
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_spatial_executive
+    256 256 7 512 number 2
+    FEATURES ${TECA_HAS_MPI})
+
+teca_add_test(test_spatial_executive_size_par
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_spatial_executive
+    256 256 7 512 size 128
+    FEATURES ${TECA_HAS_MPI})
+
+teca_add_test(test_cf_writer_temporal_partition
+    SOURCES test_cf_writer_partitions.cpp
+    EXEC_NAME test_cf_writer_partitions
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_cf_writer_partitions 129 64 1 257 monthly temporal 0 0 -1
+        ${TECA_DATA_ROOT} test_cf_writer_partitons
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_writer_temporal_partition_mpi
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_writer_partitions 129 64 1 257
+        monthly temporal 0 0 -1 ${TECA_DATA_ROOT} test_cf_writer_partitons
+    FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_writer_space_time_partition
+    COMMAND test_cf_writer_partitions 129 64 1 257 monthly space_time 17 32 -1
+        ${TECA_DATA_ROOT} test_cf_writer_partitons
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_writer_space_time_partition_blocking_mpi
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_writer_partitions 129 64 1 257
+        monthly space_time 17 32 -1 ${TECA_DATA_ROOT} test_cf_writer_partitons
+    FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_writer_space_time_partition_single_mpi
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_writer_partitions 129 64 1 257
+        monthly space_time 257 32 -1 ${TECA_DATA_ROOT} test_cf_writer_partitons
+    FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_writer_spatial_partition
+    COMMAND test_cf_writer_partitions 129 64 1 257 monthly spatial 17 32 -1
+        ${TECA_DATA_ROOT} test_cf_writer_partitons
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_writer_spatial_partition_mpi
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_writer_partitions 129 64 1 257
+        monthly spatial 17 32 -1 ${TECA_DATA_ROOT} test_cf_writer_partitons
+    FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_writer_spatial_partition_mpi_cb
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_writer_partitions 129 64 1 257
+        monthly spatial 17 0 1 ${TECA_DATA_ROOT} test_cf_writer_partitons
+    FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_reader_temporal_partition
+    SOURCES test_cf_reader_partitions.cpp
+    EXEC_NAME test_cf_reader_partitions
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_cf_reader_partitions "${TECA_DATA_ROOT}/test_cf_writer_partitons\\.nc$"
+        temporal 0 0 0 U V R
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_reader_temporal_partition_mpi
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_reader_partitions
+        "${TECA_DATA_ROOT}/test_cf_writer_partitons\\.nc$" temporal 0 0 0 U V R
+    FEATURES ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_reader_space_time_partition
+    COMMAND test_cf_reader_partitions "${TECA_DATA_ROOT}/test_cf_writer_partitons\\.nc$"
+        space_time 8 8 0 U V R
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_reader_space_time_partition_mpi
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_reader_partitions
+        "${TECA_DATA_ROOT}/test_cf_writer_partitons\\.nc$" space_time 8 8 0 U V R
+    FEATURES ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_reader_spatial_partition
+    COMMAND test_cf_reader_partitions "${TECA_DATA_ROOT}/test_cf_writer_partitons\\.nc$"
+        spatial 8 8 0 U V R
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_reader_spatial_partition_mpi
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_cf_reader_partitions
+        "${TECA_DATA_ROOT}/test_cf_writer_partitons\\.nc$" spatial 8 8 0 U V R
+    FEATURES ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(test_temporal_index_select_nompi
+    EXEC_NAME test_temporal_index_select
+    SOURCES test_temporal_index_select.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_temporal_index_select
+        "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc$"
+        "${TECA_DATA_ROOT}/test_temporal_index_select_prw_monthly" "prw" 0 2 181 363
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_temporal_index_select_mpi
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_temporal_index_select
+        "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc$"
+        "${TECA_DATA_ROOT}/test_temporal_index_select_prw_monthly" "prw" 0 2 181 363
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(test_temporal_index_select_mpi_spatial_partition
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_temporal_index_select
+        "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc$"
+        "${TECA_DATA_ROOT}/test_temporal_index_select_prw_monthly" "prw" 1 2 181 363
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(test_temporal_index_select_mpi_space_time_partition
+    COMMAND ${MPIEXEC} -n ${TEST_CORES} test_temporal_index_select
+        "${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\\.nc$"
+        "${TECA_DATA_ROOT}/test_temporal_index_select_prw_monthly" "prw" 2 2 181 363
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_MPI}
+    REQ_TECA_DATA)
+
+teca_add_test(test_table_join
+    SOURCES test_table_join.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_table_join)
+
+teca_add_test(test_ha4_connected_components
+    SOURCES test_ha4_connected_components.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_ha4_connected_components 256 256 14 1 1024 0
+    FEATURES ${TECA_HAS_CUDA})
+
+teca_add_test(test_ha4_connected_components_periodic
+    COMMAND test_ha4_connected_components 256 256 14 1 1024 1
+    FEATURES ${TECA_HAS_CUDA})
+
+teca_add_test(test_cpp_temporal_reduction_inmem
+    SOURCES test_cpp_temporal_reduction_inmem.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_cpp_temporal_reduction_inmem
+    360 180 5 24 1 ${TEST_CORES} ${TEST_CORES} monthly average 1 #TODO -- more than 1 step per req
+    test_cpp_temporal_reduction_inmem_%t%.nc yearly ${TEST_CORES} 1 1 1)
+
+teca_add_test(test_cpp_temporal_reduction_io
+    SOURCES test_cpp_temporal_reduction_io.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_cpp_temporal_reduction_io
+    ${TECA_DATA_ROOT}/prw_hus_day_MRI-CGCM3_historical_r1i1p1_19500101-19501231\.nc
+    lon lat . time prw 0 -1 ${TEST_CORES} ${TEST_CORES} ${TEST_CORES} 4 1 0
+    monthly average 1 # TODO -- more than 1 step per req.
+    ./test_cpp_temporal_reduction_io_%t%.nc yearly
+    ${TEST_CORES} ${TEST_CORES} ${TEST_CORES} 1 1)
+
+teca_add_test(test_regional_moisture_flux
+    SOURCES test_regional_moisture_flux.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_regional_moisture_flux 512 0.002)
+
+teca_add_test(test_regional_surface_flux
+    SOURCES test_regional_surface_flux.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_regional_surface_flux 512 0.009)
+
+teca_add_test(test_regional_surface_area
+    SOURCES test_regional_surface_area.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_regional_surface_area
+         512 "${TECA_DATA_ROOT}/vc965bq8111" 17814000.0 3e3
+    FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_SHAPELIB}
     REQ_TECA_DATA)

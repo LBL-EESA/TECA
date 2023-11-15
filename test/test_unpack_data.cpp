@@ -1,5 +1,6 @@
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_cartesian_mesh_source.h"
 #include "teca_valid_value_mask.h"
 #include "teca_unpack_data.h"
@@ -12,6 +13,8 @@
 #include "teca_file_util.h"
 
 #include "math.h"
+
+using namespace teca_variant_array_util;
 
 
 // compute data to pack
@@ -38,7 +41,7 @@ struct packed_data
     {
         teca_array_attributes aa(teca_variant_array_code<unsigned char>::get(),
            teca_array_attributes::point_centering,
-           0, "unitless", "packed data", "cos(z)*sin(x+t)*sin(x+t)",
+           0, {1,1,1,1}, "unitless", "packed data", "cos(z)*sin(x+t)*sin(x+t)",
            1, m_fill);
 
         teca_metadata atts((teca_metadata)aa);
@@ -49,7 +52,7 @@ struct packed_data
         return atts;
     }
 
-    p_teca_variant_array operator()(
+    p_teca_variant_array operator()(int,
         const const_p_teca_variant_array &x,
         const const_p_teca_variant_array &y,
         const const_p_teca_variant_array &z,
@@ -63,23 +66,19 @@ struct packed_data
         size_t nxyz = nxy*nz;
 
         // allocate f
-        p_teca_float_array f = teca_float_array::New(nxyz);
-        auto sp_f = f->get_cpu_accessible();
-        float *p_f = sp_f.get();
+        auto [f, p_f] = ::New<teca_float_array>(nxyz);
 
         // compute
         // f = cos(z)*sin(x+t)*sin(y+t)
-        TEMPLATE_DISPATCH(const teca_variant_array_impl,
-            x.get(),
+        VARIANT_ARRAY_DISPATCH(x.get(),
 
-            auto sp_x = dynamic_cast<const TT*>(x.get())->get_cpu_accessible();
-            const NT *p_x = sp_x.get();
+            assert_type<CTT>(y, z);
 
-            auto sp_y = dynamic_cast<const TT*>(y.get())->get_cpu_accessible();
-            const NT *p_y = sp_y.get();
+            auto [sp_x, p_x,
+                  sp_y, p_y,
+                  sp_z, p_z] = get_host_accessible<CTT>(x, y, z);
 
-            auto sp_z = dynamic_cast<const TT*>(z.get())->get_cpu_accessible();
-            const NT *p_z = sp_z.get();
+            sync_host_access_any(x, y, z);
 
             for (size_t k = 0; k < nz; ++k)
             {
@@ -93,11 +92,8 @@ struct packed_data
             }
             )
 
-
         // allcate q
-        p_teca_unsigned_char_array q = teca_unsigned_char_array::New(nxyz);
-        auto sp_q = q->get_cpu_accessible();
-        unsigned char *p_q = sp_q.get();
+        auto [q, p_q] = ::New<teca_unsigned_char_array>(nxyz);
 
         // pack
         for (size_t i = 0; i < nxyz; ++i)

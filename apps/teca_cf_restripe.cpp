@@ -34,6 +34,9 @@ int main(int argc, char **argv)
     teca_system_interface::set_stack_trace_on_error();
     teca_system_interface::set_stack_trace_on_mpi_error();
 
+    int rank = mpi_man.get_comm_rank();
+    int n_ranks = mpi_man.get_comm_size();
+
     // initialize command line options description
     // set up some common options to simplify use for most
     // common scenarios
@@ -92,13 +95,19 @@ int main(int argc, char **argv)
             "\nThe new names to use when renaming variables. Use --original_name to set the"
             " list of variables to rename\n")
 
+        ("enable_cb", "\nEnables collective buffering.\n")
+        ("temporal_partitions", value<long>(), "\nThe number of temporal partitions to"
+            " use in collective buffering mode. The default of 1 requires enough RAM to load the"
+            " entire dataset. Increase to reduce memory pressure and stream the partitions"
+            " sequentially\n")
+
         ("first_step", value<long>(), "\nfirst time step to process\n")
         ("last_step", value<long>(), "\nlast time step to process\n")
         ("start_date", value<std::string>(), "\nfirst time to proces in YYYY-MM-DD hh:mm:ss format\n")
         ("end_date", value<std::string>(), "\nfirst time to proces in YYYY-MM-DD hh:mm:ss format\n")
-        ("n_threads", value<int>(), "\nSets the thread pool size on each MPI rank. When the default"
-            " value of -1 is used TECA will coordinate the thread pools across ranks such each"
-            " thread is bound to a unique physical core.\n")
+        ("n_threads", value<int>(), "\nSets the thread pool size on each MPI rank. A value of -1"
+            " will coordinate across MPI ranks such that each thread is bound to a unique physical"
+            " core.\n")
         ("verbose", "\nenable extra terminal output\n")
         ("help", "\ndisplays documentation for application specific command line options\n")
         ("advanced_help", "\ndisplays documentation for algorithm specific command line options\n")
@@ -142,6 +151,7 @@ int main(int argc, char **argv)
     p_teca_cf_writer cf_writer = teca_cf_writer::New();
     cf_writer->get_properties_description("cf_writer", advanced_opt_defs);
     cf_writer->set_layout(teca_cf_writer::monthly);
+    cf_writer->set_threads_per_device(0); // CPU only
 
     // Add an executive for the writer
     p_teca_index_executive exec = teca_index_executive::New();
@@ -154,7 +164,7 @@ int main(int argc, char **argv)
     int ierr = 0;
     variables_map opt_vals;
     if ((ierr = teca_app_util::process_command_line_help(
-        mpi_man.get_comm_rank(), argc, argv, basic_opt_defs,
+        rank, argc, argv, basic_opt_defs,
         advanced_opt_defs, all_opt_defs, opt_vals)))
     {
         if (ierr == 1)
@@ -294,7 +304,7 @@ int main(int argc, char **argv)
     // some minimal check for missing options
     if ((have_file && have_regex) || !(have_file || have_regex))
     {
-        if (mpi_man.get_comm_rank() == 0)
+        if (rank == 0)
         {
             TECA_FATAL_ERROR("Extacly one of --input_file or --input_regex can be specified. "
                 "Use --input_file to activate the multi_cf_reader (HighResMIP datasets) "
@@ -305,7 +315,7 @@ int main(int argc, char **argv)
 
     if (cf_writer->get_file_name().empty())
     {
-        if (mpi_man.get_comm_rank() == 0)
+        if (rank == 0)
         {
             TECA_FATAL_ERROR("missing file name pattern for the NetCDF CF writer. "
                 "See --help for a list of command line options.")
@@ -317,7 +327,7 @@ int main(int argc, char **argv)
     p_teca_algorithm head = reader;
     if (opt_vals.count("normalize_coordinates"))
     {
-        if (mpi_man.get_comm_rank() == 0)
+        if (rank == 0)
             TECA_STATUS("Added cooridnate normalization stage");
 
         norm_coords->set_input_connection(reader->get_output_port());
@@ -380,7 +390,7 @@ int main(int argc, char **argv)
 
         if (atts.empty() && md.get("attributes", atts))
         {
-            if (mpi_man.get_comm_rank() == 0)
+            if (rank == 0)
                 TECA_FATAL_ERROR("metadata missing attributes")
             return -1;
         }
@@ -389,7 +399,7 @@ int main(int argc, char **argv)
            || time_atts.get("calendar", calendar)
            || time_atts.get("units", units))
         {
-            if (mpi_man.get_comm_rank() == 0)
+            if (rank == 0)
                 TECA_FATAL_ERROR("failed to determine the calendaring parameters")
             return -1;
         }
@@ -398,7 +408,7 @@ int main(int argc, char **argv)
         p_teca_variant_array time;
         if (md.get("coordinates", coords) || !(time = coords.get("t")))
         {
-            if (mpi_man.get_comm_rank() == 0)
+            if (rank == 0)
                 TECA_FATAL_ERROR("failed to determine time coordinate")
             return -1;
         }
@@ -411,7 +421,7 @@ int main(int argc, char **argv)
             if (teca_coordinate_util::time_step_of(time, true, true, calendar,
                  units, start_date, first_step))
             {
-                if (mpi_man.get_comm_rank() == 0)
+                if (rank == 0)
                     TECA_FATAL_ERROR("Failed to locate time step for start date \""
                         <<  start_date << "\"")
                 return -1;
@@ -427,7 +437,7 @@ int main(int argc, char **argv)
             if (teca_coordinate_util::time_step_of(time, false, true, calendar,
                  units, end_date, last_step))
             {
-                if (mpi_man.get_comm_rank() == 0)
+                if (rank == 0)
                     TECA_FATAL_ERROR("Failed to locate time step for end date \""
                         <<  end_date << "\"")
                 return -1;
@@ -439,7 +449,7 @@ int main(int argc, char **argv)
     // set up regriding
     if (do_regrid)
     {
-        if (mpi_man.get_comm_rank() == 0)
+        if (rank == 0)
             TECA_STATUS("Added regrid stage");
 
         // run the reporting phase of the pipeline, the resulting metadata
@@ -451,7 +461,7 @@ int main(int argc, char **argv)
         // use the calendar and time axis of the input dataset
         if (regrid_src->set_t_axis_variable(md) || regrid_src->set_t_axis(md))
         {
-            if (mpi_man.get_comm_rank() == 0)
+            if (rank == 0)
                 TECA_WARNING("Failed to determine the time axis, assuming a"
                     " single time step")
 
@@ -474,7 +484,7 @@ int main(int argc, char **argv)
             // try to determine the bounds from the input mesh metadata
             if (regrid_src->set_spatial_bounds(md))
             {
-                if (mpi_man.get_comm_rank() == 0)
+                if (rank == 0)
                     TECA_FATAL_ERROR("Failed to determine target mesh bounds from the"
                         " input metadata. Use --bounds to specify them manually.")
                 return -1;
@@ -496,7 +506,7 @@ int main(int argc, char **argv)
     {
         if (!opt_vals.count("original_name"))
         {
-            if (mpi_man.get_comm_rank() == 0)
+            if (rank == 0)
                 TECA_FATAL_ERROR("--original_name is required when renaming variables")
             return -1;
         }
@@ -506,7 +516,7 @@ int main(int argc, char **argv)
 
         if (!opt_vals.count("new_name"))
         {
-            if (mpi_man.get_comm_rank() == 0)
+            if (rank == 0)
                 TECA_FATAL_ERROR("--new_name is required when renaming variables")
             return -1;
         }
@@ -516,14 +526,14 @@ int main(int argc, char **argv)
 
         if (original_name.size() != new_name.size())
         {
-            if (mpi_man.get_comm_rank() == 0)
+            if (rank == 0)
                 TECA_FATAL_ERROR("--original_name and --new_name must have the same"
                     " number of values")
             return -1;
 
         }
 
-        if (mpi_man.get_comm_rank() == 0)
+        if (rank == 0)
             TECA_STATUS("Added rename stage");
 
         rename->set_input_connection(head->get_output_port());
@@ -531,6 +541,30 @@ int main(int argc, char **argv)
         rename->set_new_variable_names(new_name);
 
         head = rename;
+    }
+
+    // enable collective buffering
+    if (opt_vals.count("enable_cb"))
+    {
+        if (rank == 0)
+            TECA_STATUS("Enabled collective buffer mode")
+
+        cf_reader->set_collective_buffer(1);
+        mcf_reader->set_collective_buffer(1);
+
+        cf_writer->set_partitioner(teca_cf_writer::spatial);
+        cf_writer->set_number_of_spatial_partitions(n_ranks);
+        cf_writer->set_collective_buffer(1);
+
+        if (opt_vals.count("temporal_partitions"))
+        {
+            cf_writer->set_number_of_temporal_partitions
+                (opt_vals["temporal_partitions"].as<long>());
+        }
+        else
+        {
+            cf_writer->set_number_of_temporal_partitions(1);
+        }
     }
 
     // add the writer last

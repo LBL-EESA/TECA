@@ -23,7 +23,7 @@ int teca_cf_time_step_mapper::get_upstream_requests(
     {
         long time_step = i + first;
         up_reqs.push_back(base_req);
-        up_reqs.back().set(this->index_request_key, time_step);
+        up_reqs.back().set(this->index_request_key, {time_step, time_step});
     }
     return 0;
 }

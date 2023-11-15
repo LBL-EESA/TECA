@@ -310,7 +310,9 @@ int ccs_isleap( calcalcs_cal *calendar, int year, int *leap )
     if( calendar->sig != CCS_VALID_SIG ) return(CALCALCS_ERR_INVALID_CALENDAR);
 
     if( year < -4714 ) {
-        sprintf( error_message, "ccs_isleap: year %d is out of range for the %s calendar; dates must not be before 4713 B.C.", year, calendar->name );
+        snprintf( error_message, CCS_ERROR_MESSAGE_LEN,
+            "ccs_isleap: year %d is out of range for the %s calendar; dates must not be before 4713 B.C.",
+            year, calendar->name );
         return( CALCALCS_ERR_OUT_OF_RANGE );
         }
 
@@ -427,7 +429,10 @@ int ccs_date2jday( calcalcs_cal *calendar, int year, int month, int day, int *jd
             c2use = calendar->early_cal;
         else
             {
-            sprintf( error_message, "ccs_date2jday: date %04d-%02d-%02d is not a valid date in the %s calendar; it falls between the last date the %s calendar was used (%04d-%02d-%02d) and the first date the %s calendar was used (%04d-%02d-%02d)",
+            snprintf( error_message, CCS_ERROR_MESSAGE_LEN,
+                "ccs_date2jday: date %04d-%02d-%02d is not a valid date in the %s calendar; "
+                "it falls between the last date the %s calendar was used (%04d-%02d-%02d) and "
+                "the first date the %s calendar was used (%04d-%02d-%02d)",
                 year, month, day, calendar->name,
                 calendar->early_cal->name,
                 calendar->year_px, calendar->month_px, calendar->day_px,
@@ -443,7 +448,8 @@ int ccs_date2jday( calcalcs_cal *calendar, int year, int month, int day, int *jd
         return( ierr );
 
     if( (month < 1) || (month > 12) || (day < 1) || (day > dpm)) {
-        sprintf( error_message, "date2jday passed an date that is invalid in the %s calendar: %04d-%02d-%02d",
+        snprintf( error_message, CCS_ERROR_MESSAGE_LEN,
+            "date2jday passed an date that is invalid in the %s calendar: %04d-%02d-%02d",
             c2use->name, year, month, day );
         return( CALCALCS_ERR_DATE_NOT_IN_CALENDAR );
         }
@@ -475,7 +481,10 @@ int ccs_date2doy( calcalcs_cal *calendar, int year, int month, int day, int *doy
          */
         if( date_gt( year, month, day, calendar->year_px, calendar->month_px, calendar->day_px ) &&
             date_lt( year, month, day, calendar->year_x,  calendar->month_x,  calendar->day_x )) {
-            sprintf( error_message, "ccs_date2doy: date %04d-%02d-%02d is not a valid date in the %s calendar; it falls between the last date the %s calendar was used (%04d-%02d-%02d) and the first date the %s calendar was used (%04d-%02d-%02d)",
+            snprintf( error_message, CCS_ERROR_MESSAGE_LEN,
+                "ccs_date2doy: date %04d-%02d-%02d is not a valid date in the %s calendar; "
+                "it falls between the last date the %s calendar was used (%04d-%02d-%02d) and "
+                "the first date the %s calendar was used (%04d-%02d-%02d)",
                 year, month, day, calendar->name,
                 calendar->early_cal->name,
                 calendar->year_px, calendar->month_px, calendar->day_px,
@@ -586,7 +595,10 @@ int ccs_doy2date( calcalcs_cal *calendar, int year, int doy, int *month, int *da
              * event, return an error.
              */
             if( tyear != year ) {
-                sprintf( error_message, "year %d in the %s calendar (with transition date %04d-%02d-%02d) has less than %d days, but that was the day-of-year number requested in a call to ccs_doy2date\n",
+                snprintf( error_message, CCS_ERROR_MESSAGE_LEN,
+                    "year %d in the %s calendar (with transition date %04d-%02d-%02d) has less "
+                    "than %d days, but that was the day-of-year number requested in a call to "
+                    "ccs_doy2date\n",
                     year, calendar->name, calendar->year_x, calendar->month_x, calendar->day_x, doy );
                 return( CALCALCS_ERR_INVALID_DAY_OF_YEAR );
                 }
@@ -608,7 +620,9 @@ int ccs_doy2date( calcalcs_cal *calendar, int year, int doy, int *month, int *da
         ndays_max = c2use->ndays_reg;
 
     if( (doy < 1) || (doy > ndays_max)) {
-        sprintf( error_message, "routine ccs_doy2date was passed a day-of-year=%d, but for year %d in the %s calendar, the value must be between 1 and %d",
+        snprintf( error_message, CCS_ERROR_MESSAGE_LEN,
+            "routine ccs_doy2date was passed a day-of-year=%d, but for year %d "
+            "in the %s calendar, the value must be between 1 and %d",
             doy, year, c2use->name, ndays_max );
         return( CALCALCS_ERR_INVALID_DAY_OF_YEAR );
         }
@@ -659,7 +673,10 @@ int ccs_dayssince( calcalcs_cal *calendar_orig, int year_orig, int month_orig, i
             c2use_orig = calendar_orig->early_cal;
         else
             {
-            sprintf( error_message, "ccs_dayssince: date %04d-%02d-%02d is not a valid date in the %s calendar; it falls between the last date the %s calendar was used (%04d-%02d-%02d) and the first date the %s calendar was used (%04d-%02d-%02d)",
+            snprintf( error_message, CCS_ERROR_MESSAGE_LEN,
+                "ccs_dayssince: date %04d-%02d-%02d is not a valid date in the %s calendar; "
+                "it falls between the last date the %s calendar was used (%04d-%02d-%02d) and "
+                "the first date the %s calendar was used (%04d-%02d-%02d)",
                 year_orig, month_orig, day_orig, calendar_orig->name,
                 calendar_orig->early_cal->name,
                 calendar_orig->year_px, calendar_orig->month_px, calendar_orig->day_px,
@@ -813,7 +830,9 @@ int ccs_get_xition_date( const char *country_code, int *year, int *month, int *d
             }
         }
 
-    sprintf( error_message, "ccs_get_xition_date: unknown calendar country/region code: \"%s\". Known codes: ", country_code );
+    snprintf( error_message, CCS_ERROR_MESSAGE_LEN,
+        "ccs_get_xition_date: unknown calendar country/region code: \"%s\". Known codes: ",
+        country_code );
     for( i=0; i<ccs_n_country_codes; i++ ) {
         if( (strlen(error_message) + strlen(ccs_xition_dates[i]->code) + strlen(ccs_xition_dates[i]->longname) + 10) < CCS_ERROR_MESSAGE_LEN ) {
             strcat( error_message, ccs_xition_dates[i]->code );
@@ -878,27 +897,23 @@ int ccs_set_xition_date( calcalcs_cal *calendar, int year, int month, int day )
 }
 
 /********************************************************************************************/
-char *ccs_err_str(int ccs_errno)
+const char *ccs_err_str(int ccs_errno)
 {
     if (!ccs_errno)
     {
-        sprintf(error_message, "no error from calcalcs routines version %f", CALCALCS_VERSION_NUMBER );
+        return "no error from calcalcs routines";
     }
     else if (ccs_errno == CALCALCS_ERR_NULL_CALENDAR)
     {
-        sprintf( error_message, "a NULL calendar was passed to the calcalcs routine");
+        return "a NULL calendar was passed to the calcalcs routine";
     }
     else if (ccs_errno == CALCALCS_ERR_INVALID_CALENDAR)
     {
-        sprintf(error_message, "an invalid, malformed, previously-freed, "
-            "or uninitialized calendar was passed to the calcalcs routine");
-    }
-    else
-    {
-        sprintf(error_message, "unknown error");
+        return "an invalid, malformed, previously-freed, "
+               "or uninitialized calendar was passed to the calcalcs routine";
     }
 
-    return error_message;
+    return "unknown error";
 }
 
 /*==================================================================================================
@@ -909,7 +924,7 @@ int c_isleap_julian( int year, int *leap )
     int    tyear;
 
     if( year == 0 ) {
-        sprintf( error_message, "the Julian calendar has no year 0" );
+        snprintf( error_message, CCS_ERROR_MESSAGE_LEN, "the Julian calendar has no year 0" );
         return( CALCALCS_ERR_DATE_NOT_IN_CALENDAR );
         }
 
@@ -934,7 +949,9 @@ int c_isleap_gregorian( int year, int *leap )
     int    tyear;
 
     if( year == 0 ) {
-        sprintf( error_message, "the Gregorian calendar has no year 0. Use the \"Gregorian_y0\" calendar if you want to include year 0." );
+        snprintf( error_message, CCS_ERROR_MESSAGE_LEN,
+            "the Gregorian calendar has no year 0. Use the \"Gregorian_y0\" "
+            "calendar if you want to include year 0." );
         return( CALCALCS_ERR_DATE_NOT_IN_CALENDAR );
         }
 
@@ -977,19 +994,24 @@ int c_date2jday_gregorian( int year, int month, int day, int *jday )
     int    m, leap, *dpm2use, err;
 
     if( (month < 1) || (month > 12) || (day < 1) || (day > 31)) {
-        sprintf( error_message, "date %04d-%02d-%02d does not exist in the Gregorian calendar",
+        snprintf( error_message, CCS_ERROR_MESSAGE_LEN,
+            "date %04d-%02d-%02d does not exist in the Gregorian calendar",
             year, month, day );
         return( CALCALCS_ERR_DATE_NOT_IN_CALENDAR );
         }
 
     if( year == 0 ) {
-        sprintf( error_message, "year 0 does not exist in the Gregorian calendar.  Use the \"Gregorian_y0\" calendar if you want to include year 0" );
+        snprintf( error_message, CCS_ERROR_MESSAGE_LEN,
+            "year 0 does not exist in the Gregorian calendar.  Use the \"Gregorian_y0\" "
+            "calendar if you want to include year 0" );
         return( CALCALCS_ERR_NO_YEAR_ZERO );
         }
 
     /* Limit ourselves to positive Julian Days */
     if( year < -4714 ) {
-        sprintf( error_message, "year %d is out of range of the Gregorian calendar routines; must have year >= -4714", year );
+        snprintf( error_message, CCS_ERROR_MESSAGE_LEN,
+            "year %d is out of range of the Gregorian calendar routines; must have year >= -4714",
+            year );
         return( CALCALCS_ERR_OUT_OF_RANGE );
         }
 
@@ -1039,14 +1061,17 @@ int c_date2jday_gregorian_y0( int year, int month, int day, int *jday )
     int    m, leap, *dpm2use, err;
 
     if( (month < 1) || (month > 12) || (day < 1) || (day > 31)) {
-        sprintf( error_message, "date %04d-%02d-%02d does not exist in the Gregorian calendar",
+        snprintf( error_message, CCS_ERROR_MESSAGE_LEN,
+            "date %04d-%02d-%02d does not exist in the Gregorian calendar",
             year, month, day );
         return( CALCALCS_ERR_DATE_NOT_IN_CALENDAR );
         }
 
     /* Limit ourselves to positive Julian Days */
     if( year < -4714 ) {
-        sprintf( error_message, "year %d is out of range of the Gregorian calendar routines; must have year >= -4714", year );
+        snprintf( error_message, CCS_ERROR_MESSAGE_LEN,
+            "year %d is out of range of the Gregorian calendar routines; must have year >= -4714",
+            year );
         return( CALCALCS_ERR_OUT_OF_RANGE );
         }
 
@@ -1198,19 +1223,23 @@ int c_date2jday_julian( int year, int month, int day, int *jday )
     int    m, leap, *dpm2use, err;
 
     if( (month < 1) || (month > 12) || (day < 1) || (day > 31)) {
-        sprintf( error_message, "date %04d-%02d-%02d does not exist in the Julian calendar",
+        snprintf( error_message, CCS_ERROR_MESSAGE_LEN,
+            "date %04d-%02d-%02d does not exist in the Julian calendar",
             year, month, day );
         return( CALCALCS_ERR_DATE_NOT_IN_CALENDAR );
         }
 
     if( year == 0 ) {
-        sprintf( error_message, "year 0 does not exist in the Julian calendar" );
+        snprintf( error_message, CCS_ERROR_MESSAGE_LEN,
+            "year 0 does not exist in the Julian calendar" );
         return( CALCALCS_ERR_NO_YEAR_ZERO );
         }
 
     /* Limit ourselves to positive Julian Days */
     if( year < -4713 ) {
-        sprintf( error_message, "year %d is out of range of the Julian calendar routines; must have year >= -4713", year );
+        snprintf( error_message, CCS_ERROR_MESSAGE_LEN,
+            "year %d is out of range of the Julian calendar routines; must have year >= -4713",
+            year );
         return( CALCALCS_ERR_OUT_OF_RANGE );
         }
 
@@ -1395,7 +1424,8 @@ int c_date2jday_360_day( int year, int month, int day, int *jday )
     int spm;
 
     if( day > 30) {
-        sprintf( error_message, "date %04d-%02d-%02d does not exist in the 360_day calendar",
+        snprintf( error_message, CCS_ERROR_MESSAGE_LEN,
+            "date %04d-%02d-%02d does not exist in the 360_day calendar",
             year, month, day );
         return( CALCALCS_ERR_DATE_NOT_IN_CALENDAR );
         }
@@ -1411,7 +1441,8 @@ int c_date2jday_360_day( int year, int month, int day, int *jday )
 int c_date2jday_noleap( int year, int month, int day, int *jday )
 {
     if( (month == 2) && (day == 29)) {
-        sprintf( error_message, "date %04d-%02d-%02d does not exist in the noleap calendar",
+        snprintf( error_message, CCS_ERROR_MESSAGE_LEN,
+            "date %04d-%02d-%02d does not exist in the noleap calendar",
             year, month, day );
         return( CALCALCS_ERR_DATE_NOT_IN_CALENDAR );
         }
@@ -1476,7 +1507,8 @@ int c_dpm_gregorian( int year, int month, int *dpm )
     int    ierr, leap;
 
     if( (month<1) || (month>12)) {
-        sprintf( error_message, "month %d does not exist in the Gregorian calendar", month );
+        snprintf( error_message, CCS_ERROR_MESSAGE_LEN,
+            "month %d does not exist in the Gregorian calendar", month );
         return( CALCALCS_ERR_DATE_NOT_IN_CALENDAR );
         }
 
@@ -1498,7 +1530,8 @@ int c_dpm_gregorian_y0( int year, int month, int *dpm )
     int    ierr, leap;
 
     if( (month<1) || (month>12)) {
-        sprintf( error_message, "month %d does not exist in the Gregorian calendar", month );
+        snprintf( error_message, CCS_ERROR_MESSAGE_LEN,
+            "month %d does not exist in the Gregorian calendar", month );
         return( CALCALCS_ERR_DATE_NOT_IN_CALENDAR );
         }
 
@@ -1519,7 +1552,8 @@ int c_dpm_julian( int year, int month, int *dpm )
     int    ierr, leap;
 
     if( (month<1) || (month>12)) {
-        sprintf( error_message, "month %d does not exist in the Julian calendar", month );
+        snprintf( error_message, CCS_ERROR_MESSAGE_LEN,
+            "month %d does not exist in the Julian calendar", month );
         return( CALCALCS_ERR_DATE_NOT_IN_CALENDAR );
         }
 
@@ -1539,7 +1573,8 @@ int c_dpm_360_day( int year, int month, int *dpm )
 {
     (void)year;
     if( (month<1) || (month>12)) {
-        sprintf( error_message, "month %d does not exist in the 360_day calendar", month );
+        snprintf( error_message, CCS_ERROR_MESSAGE_LEN,
+            "month %d does not exist in the 360_day calendar", month );
         return( CALCALCS_ERR_DATE_NOT_IN_CALENDAR );
         }
 
@@ -1553,7 +1588,8 @@ int c_dpm_noleap( int year, int month, int *dpm )
 {
     (void)year;
     if( (month<1) || (month>12)) {
-        sprintf( error_message, "month %d does not exist in the noleap calendar", month );
+        snprintf( error_message, CCS_ERROR_MESSAGE_LEN,
+            "month %d does not exist in the noleap calendar", month );
         return( CALCALCS_ERR_DATE_NOT_IN_CALENDAR );
         }
 
@@ -1570,7 +1606,8 @@ static int set_xition_extra_info( calcalcs_cal *cal )
     /* This is the Julian Day of the transition date */
     if ((ierr = ccs_date2jday( cal->late_cal, cal->year_x, cal->month_x, cal->day_x, &(cal->jday_x))))
     {
-        sprintf(error_message, "Failed to turn the mixed calendar transition "
+        snprintf(error_message, CCS_ERROR_MESSAGE_LEN,
+            "Failed to turn the mixed calendar transition "
             "day %04d-%02d-%02d in the %s calendar into a Julian day!\n", cal->year_x,
             cal->month_x, cal->day_x, cal->name);
         return ierr;
@@ -1582,7 +1619,8 @@ static int set_xition_extra_info( calcalcs_cal *cal )
     if ((ierr = ccs_jday2date(cal->early_cal, (cal->jday_x-1), &(cal->year_px), &(cal->month_px), &(cal->day_px))))
     {
         const char *estr = ccs_err_str(ierr);
-        sprintf(error_message, "Failed to turn the day before the mixed "
+        snprintf(error_message, CCS_ERROR_MESSAGE_LEN,
+            "Failed to turn the day before the mixed "
             "calendar transition day into a date! %s\n", estr);
         return ierr;
     }
@@ -1770,7 +1808,7 @@ static cv_converter *get_user_to_day_converter( ut_unit *uu, int y0, int mon0, i
     ut_unit     *udu_days;
     cv_converter    *conv = nullptr;
 
-    sprintf( daystr, "days since %04d-%02d-%02d %02d:%02d:%f",
+    snprintf( daystr, 1024, "days since %04d-%02d-%02d %02d:%02d:%f",
         y0, mon0, d0, h0, min0, s0 );
 
     udu_days = ut_parse( ut_get_system(uu), daystr, UT_ASCII );
@@ -1799,7 +1837,7 @@ static cv_converter *get_day_to_user_converter( ut_unit *uu, int y0, int mon0, i
     ut_unit     *udu_days;
     cv_converter    *conv;
 
-    sprintf( daystr, "days since %04d-%02d-%02d %02d:%02d:%f",
+    snprintf( daystr, 1024, "days since %04d-%02d-%02d %02d:%02d:%f",
         y0, mon0, d0, h0, min0, s0 );
 
     udu_days = ut_parse( ut_get_system(uu), daystr, UT_ASCII );
@@ -1851,7 +1889,7 @@ static void get_origin( ut_unit *dataunits, int *y0, int *mon0, int *d0, int *h0
 
         tval = 0.0;
         ut_decode_time( tval, &y0lib, &mon0lib, &d0lib, &h0lib, &min0lib, &s0lib, &rez );
-        sprintf( ustr, "seconds since %04d-%02d-%02d %02d:%02d:%f",
+        snprintf( ustr, 1024, "seconds since %04d-%02d-%02d %02d:%02d:%f",
             y0lib, mon0lib, d0lib, h0lib, min0lib, s0lib );
         udu_ref_date = ut_parse( ut_get_system(dataunits), ustr, UT_ASCII );
         if( udu_ref_date == NULL ) {

@@ -1,5 +1,10 @@
 #include "teca_binary_segmentation_internals.h"
 #include "teca_config.h"
+#include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
+
+using namespace teca_variant_array_util;
+
 
 namespace teca_binary_segmentation_internals
 {
@@ -32,16 +37,13 @@ int cpu_dispatch(
 {
     // do segmentation
     size_t n_elem = input_array->size();
-    p_teca_char_array segmentation = teca_char_array::New(n_elem);
+    auto [segmentation, p_seg] = ::New<teca_char_array>(n_elem);
 
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
-        input_array.get(),
+    VARIANT_ARRAY_DISPATCH(input_array.get(),
 
-        auto sp_in = static_cast<TT*>(input_array.get())->get_cpu_accessible();
-        const NT *p_in = sp_in.get();
+        auto [sp_in, p_in] = get_host_accessible<CTT>(input_array);
 
-        auto sp_seg = segmentation->get_cpu_accessible();
-        char *p_seg = sp_seg.get();
+        sync_host_access_any(input_array);
 
         if (threshold_mode == teca_binary_segmentation::BY_VALUE)
         {

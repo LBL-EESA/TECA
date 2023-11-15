@@ -12,6 +12,7 @@
 #include "teca_cartesian_mesh.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_array_attributes.h"
 
 #define _USE_MATH_DEFINES
@@ -20,7 +21,13 @@
 #include <iostream>
 #include <string>
 
+#if defined(TECA_HAS_CUDA)
+#include <cuda.h>
+#include <cuda_runtime.h>
+#endif
+
 using namespace std;
+using namespace teca_variant_array_util;
 
 // genrates a field with nxl by nyl tiles, each having a unique integer id
 struct tile_labeler
@@ -29,7 +36,7 @@ struct tile_labeler
     unsigned long m_nyl;
     int m_consecutive_labels;
 
-    p_teca_variant_array operator()(const const_p_teca_variant_array &x,
+    p_teca_variant_array operator()(int, const const_p_teca_variant_array &x,
         const const_p_teca_variant_array &y, const const_p_teca_variant_array &,
         double)
     {
@@ -45,20 +52,14 @@ struct tile_labeler
         unsigned long ny = y->size();
         unsigned long nxy = nx*ny;
 
-        p_teca_int_array cc = teca_int_array::New(nxy);
-        auto spcc = cc->get_cpu_accessible();
-        int *pcc = spcc.get();
+        auto [cc, pcc] = ::New<teca_int_array>(nxy, int(0));
 
-        memset(pcc,0, nxy*sizeof(int));
+         VARIANT_ARRAY_DISPATCH_FP(x.get(),
 
-         TEMPLATE_DISPATCH_FP(const teca_variant_array_impl,
-             x.get(),
+             assert_type<TT>(y);
+             auto [spx, px, spy, py] = get_host_accessible<CTT>(x, y);
 
-             auto spx = std::static_pointer_cast<TT>(x)->get_cpu_accessible();
-             const NT *px = spx.get();
-
-             auto spy = std::static_pointer_cast<TT>(y)->get_cpu_accessible();
-             const NT *py = spy.get();
+             sync_host_access_any(x, y);
 
              for (unsigned long j = 0; j < ny; ++j)
              {
@@ -113,8 +114,8 @@ int main(int argc, char **argv)
 
     source->append_field_generator({"labels",
         teca_array_attributes(teca_variant_array_code<int>::get(),
-            teca_array_attributes::point_centering, 0, "unitless",
-            "labeled data", "the labels define rectangular tiles"),
+            teca_array_attributes::point_centering, 0, {1,1,0,1},
+            "unitless", "labeled data", "the labels define rectangular tiles"),
         labeler});
 
     p_teca_normalize_coordinates norm_coord = teca_normalize_coordinates::New();
@@ -144,6 +145,10 @@ int main(int argc, char **argv)
 
     const_p_teca_dataset ds = cao->get_dataset();
     teca_metadata mdo = ds->get_metadata();
+
+#if defined(TECA_HAS_CUDA)
+    cudaStreamSynchronize(cudaStreamPerThread);
+#endif
 
     std::vector<int> label_id;
     mdo.get("component_ids", label_id);

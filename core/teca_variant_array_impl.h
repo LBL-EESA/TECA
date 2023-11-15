@@ -13,6 +13,7 @@
 #include "teca_binary_stream.h"
 #include "teca_bad_cast.h"
 #include "teca_shared_object.h"
+#include "teca_variant_array_util.h"
 
 #include <hamr_buffer.h>
 
@@ -34,11 +35,21 @@
 #include <thrust/reduce.h>
 #endif
 
+#if !defined(SWIG)
+using namespace teca_variant_array_util;
+#endif
+
 class teca_metadata;
 
 TECA_SHARED_OBJECT_TEMPLATE_FORWARD_DECL(teca_variant_array_impl)
 
-#ifndef SWIG
+#if !defined(SWIG)
+template<typename T>
+using p_teca_variant_array_impl = std::shared_ptr<teca_variant_array_impl<T>>;
+
+template<typename T>
+using const_p_teca_variant_array_impl = std::shared_ptr<const teca_variant_array_impl<T>>;
+
 using teca_string_array = teca_variant_array_impl<std::string>;
 using p_teca_string_array = std::shared_ptr<teca_variant_array_impl<std::string>>;
 using const_p_teca_string_array = std::shared_ptr<const teca_variant_array_impl<std::string>>;
@@ -132,16 +143,28 @@ struct object_dispatch :
  *
  * The following aliases are provided to know the type within the code to execute.
  *
- *     using TT = tt<nt>;
- *     using NT = nt;
+ *      using NT = nt;
+ *      using CNT = const nt;
+ *      using TT = tt<nt>;
+ *      using CTT = const tt<nt>;
+ *      using PT = std::shared_ptr<tt<nt>>;
+ *      using CPT = std::shared_ptr<const tt<nt>>;
+ *      using SP = std::shared_ptr<nt>;
+ *      using CSP = std::shared_ptr<const nt>;
  *
  */
-#define TEMPLATE_DISPATCH_CASE(tt, nt, p, body) \
-    if (dynamic_cast<tt<nt>*>(p))               \
-    {                                           \
-        using TT = tt<nt>;                      \
-        using NT = nt;                          \
-        body                                    \
+#define TEMPLATE_DISPATCH_CASE(tt, nt, p, ...)      \
+    if (dynamic_cast<const tt<nt>*>(p))             \
+    {                                               \
+        using NT = nt;                              \
+        using CNT = const nt;                       \
+        using TT = tt<nt>;                          \
+        using CTT = const tt<nt>;                   \
+        using PT = std::shared_ptr<tt<nt>>;         \
+        using CPT = std::shared_ptr<const tt<nt>>;  \
+        using SP = std::shared_ptr<nt>;             \
+        using CSP = std::shared_ptr<const nt>;      \
+        __VA_ARGS__                                 \
     }
 
 /** Executes the code in body if p is a tt<nt> an idnetifier disambiguates type
@@ -155,49 +178,61 @@ struct object_dispatch :
  *
  * The following aliases are provided to know the type within the code to execute.
  *
- *     using TT##i = tt<nt>;
- *     using NT##i = nt;
+ *      using NT##i = nt;
+ *      using CNT##i = const nt;
+ *      using TT##i = tt<nt>;
+ *      using CTT##i = const tt<nt>;
+ *      using PT##i = std::shared_ptr<tt<nt>>;
+ *      using CPT##i = std::shared_ptr<const tt<nt>>;
+ *      using SP##i = std::shared_ptr<nt>;
+ *      using CSP##i = std::shared_ptr<const nt>;
  *
  */
-#define NESTED_TEMPLATE_DISPATCH_CASE(tt, nt, p, i, body)   \
-    if (dynamic_cast<tt<nt>*>(p))                           \
+#define NESTED_TEMPLATE_DISPATCH_CASE(tt, nt, p, i, ...)    \
+    if (dynamic_cast<const tt<nt>*>(p))                     \
     {                                                       \
-        using TT##i = tt<nt>;                               \
         using NT##i = nt;                                   \
-        body                                                \
+        using CNT##i = const nt;                            \
+        using TT##i = tt<nt>;                               \
+        using CTT##i = const tt<nt>;                        \
+        using PT##i = std::shared_ptr<tt<nt>>;              \
+        using CPT##i = std::shared_ptr<const tt<nt>>;       \
+        using SP##i = std::shared_ptr<nt>;                  \
+        using CSP##i = std::shared_ptr<const nt>;           \
+        __VA_ARGS__                                         \
     }
 
 /// Executes the code in body if p is a t<nt> where nt is a floating point type
-#define TEMPLATE_DISPATCH_FP(t, p, body)        \
-    TEMPLATE_DISPATCH_CASE(t, float, p, body)   \
-    else TEMPLATE_DISPATCH_CASE(t, double, p, body)
+#define TEMPLATE_DISPATCH_FP(t, p, ...)                 \
+    TEMPLATE_DISPATCH_CASE(t, float, p, __VA_ARGS__)    \
+    else TEMPLATE_DISPATCH_CASE(t, double, p, __VA_ARGS__)
 
 /// Executes the code in body if p is a t<nt> where nt is a signed inetegral type
-#define TEMPLATE_DISPATCH_SI(t, p, body)                        \
-    TEMPLATE_DISPATCH_CASE(t, long long, p, body)               \
-    else TEMPLATE_DISPATCH_CASE(t, long, p, body)               \
-    else TEMPLATE_DISPATCH_CASE(t, int, p, body)                \
-    else TEMPLATE_DISPATCH_CASE(t, short int, p, body)          \
-    else TEMPLATE_DISPATCH_CASE(t, char, p, body)
+#define TEMPLATE_DISPATCH_SI(t, p, ...)                         \
+    TEMPLATE_DISPATCH_CASE(t, long long, p, __VA_ARGS__)        \
+    else TEMPLATE_DISPATCH_CASE(t, long, p, __VA_ARGS__)        \
+    else TEMPLATE_DISPATCH_CASE(t, int, p, __VA_ARGS__)         \
+    else TEMPLATE_DISPATCH_CASE(t, short int, p, __VA_ARGS__)   \
+    else TEMPLATE_DISPATCH_CASE(t, char, p, __VA_ARGS__)
 
 /// Executes the code in body if p is a t<nt> where nt is either a signed integral or floating point type
-#define TEMPLATE_DISPATCH_FP_SI(t, p, body)             \
-    TEMPLATE_DISPATCH_CASE(t, float, p, body)           \
-    else TEMPLATE_DISPATCH_CASE(t, double, p, body)     \
-    else TEMPLATE_DISPATCH_SI(t, p, body)
+#define TEMPLATE_DISPATCH_FP_SI(t, p, ...)                  \
+    TEMPLATE_DISPATCH_CASE(t, float, p, __VA_ARGS__)        \
+    else TEMPLATE_DISPATCH_CASE(t, double, p, __VA_ARGS__)  \
+    else TEMPLATE_DISPATCH_SI(t, p, __VA_ARGS__)
 
 /// Executes the code in body if p is a t<nt> where nt is an integral type
-#define TEMPLATE_DISPATCH_I(t, p, body)                         \
-    TEMPLATE_DISPATCH_CASE(t, long long, p, body)               \
-    else TEMPLATE_DISPATCH_CASE(t, unsigned long long, p, body) \
-    else TEMPLATE_DISPATCH_CASE(t, long, p, body)               \
-    else TEMPLATE_DISPATCH_CASE(t, int, p, body)                \
-    else TEMPLATE_DISPATCH_CASE(t, unsigned int, p, body)       \
-    else TEMPLATE_DISPATCH_CASE(t, unsigned long, p, body)      \
-    else TEMPLATE_DISPATCH_CASE(t, short int, p, body)          \
-    else TEMPLATE_DISPATCH_CASE(t, short unsigned int, p, body) \
-    else TEMPLATE_DISPATCH_CASE(t, char, p, body)               \
-    else TEMPLATE_DISPATCH_CASE(t, unsigned char, p, body)
+#define TEMPLATE_DISPATCH_I(t, p, ...)                                 \
+    TEMPLATE_DISPATCH_CASE(t, long long, p, __VA_ARGS__)               \
+    else TEMPLATE_DISPATCH_CASE(t, unsigned long long, p, __VA_ARGS__) \
+    else TEMPLATE_DISPATCH_CASE(t, long, p, __VA_ARGS__)               \
+    else TEMPLATE_DISPATCH_CASE(t, int, p, __VA_ARGS__)                \
+    else TEMPLATE_DISPATCH_CASE(t, unsigned int, p, __VA_ARGS__)       \
+    else TEMPLATE_DISPATCH_CASE(t, unsigned long, p, __VA_ARGS__)      \
+    else TEMPLATE_DISPATCH_CASE(t, short int, p, __VA_ARGS__)          \
+    else TEMPLATE_DISPATCH_CASE(t, short unsigned int, p, __VA_ARGS__) \
+    else TEMPLATE_DISPATCH_CASE(t, char, p, __VA_ARGS__)               \
+    else TEMPLATE_DISPATCH_CASE(t, unsigned char, p, __VA_ARGS__)
 
 /** A macro for accessing the typed contents of a teca_variant_array
  * @param t    container type
@@ -206,9 +241,9 @@ struct object_dispatch :
  *
  * See #TEMPLATE_DISPATCH_CASE for details.
  */
-#define TEMPLATE_DISPATCH(t, p, body)       \
-    TEMPLATE_DISPATCH_FP(t, p, body)        \
-    else TEMPLATE_DISPATCH_I(t, p, body)
+#define TEMPLATE_DISPATCH(t, p, ...)            \
+    TEMPLATE_DISPATCH_FP(t, p, __VA_ARGS__)     \
+    else TEMPLATE_DISPATCH_I(t, p, __VA_ARGS__)
 
 /** A macro for accessing the typed contents of a teca_variant_array
  * @param t    container type
@@ -217,9 +252,9 @@ struct object_dispatch :
  *
  * See #TEMPLATE_DISPATCH_CASE for details.
  */
-#define TEMPLATE_DISPATCH_OBJ(t, p, body)                               \
-    TEMPLATE_DISPATCH_CASE(t, std::string, p, body)                     \
-    else TEMPLATE_DISPATCH_CASE(t, teca_metadata, p, body)
+#define TEMPLATE_DISPATCH_OBJ(t, p, ...)                            \
+    TEMPLATE_DISPATCH_CASE(t, std::string, p, __VA_ARGS__)          \
+    else TEMPLATE_DISPATCH_CASE(t, teca_metadata, p, __VA_ARGS__)
 
 /** A macro for accessing the typed contents of a teca_variant_array
  * @param t    container type
@@ -228,9 +263,9 @@ struct object_dispatch :
  *
  * See #TEMPLATE_DISPATCH_CASE for details.
  */
-#define TEMPLATE_DISPATCH_PTR(t, p, body)                           \
-    TEMPLATE_DISPATCH_CASE(t, const_p_teca_variant_array, p, body)  \
-    else TEMPLATE_DISPATCH_CASE(t, p_teca_variant_array, p, body)
+#define TEMPLATE_DISPATCH_PTR(t, p, ...)                                    \
+    TEMPLATE_DISPATCH_CASE(t, const_p_teca_variant_array, p, __VA_ARGS__)   \
+    else TEMPLATE_DISPATCH_CASE(t, p_teca_variant_array, p, __VA_ARGS__)
 
 /** A macro for accessing the floating point typed contents of a teca_variant_array
  * @param t    container type
@@ -240,9 +275,9 @@ struct object_dispatch :
  *
  * See #NESTED_TEMPLATE_DISPATCH_CASE for details.
  */
-#define NESTED_TEMPLATE_DISPATCH_FP(t, p, i, body)              \
-    NESTED_TEMPLATE_DISPATCH_CASE(t, float, p, i, body)         \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, double, p, i, body)
+#define NESTED_TEMPLATE_DISPATCH_FP(t, p, i, ...)                       \
+    NESTED_TEMPLATE_DISPATCH_CASE(t, float, p, i, __VA_ARGS__)          \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, double, p, i, __VA_ARGS__)
 
 /** A macro for accessing the inetgral typed contents of a teca_variant_array
  * @param t    container type
@@ -252,17 +287,17 @@ struct object_dispatch :
  *
  * See #NESTED_TEMPLATE_DISPATCH_CASE for details.
  */
-#define NESTED_TEMPLATE_DISPATCH_I(t, p, i, body)                         \
-    NESTED_TEMPLATE_DISPATCH_CASE(t, long long, p, i, body)               \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, unsigned long long, p, i, body) \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, long, p, i, body)               \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, int, p, i, body)                \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, unsigned int, p, i, body)       \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, unsigned long, p, i, body)      \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, short int, p, i, body)          \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, short unsigned int, p, i, body) \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, char, p, i, body)               \
-    else NESTED_TEMPLATE_DISPATCH_CASE(t, unsigned char, p, i, body)
+#define NESTED_TEMPLATE_DISPATCH_I(t, p, i, ...)                                 \
+    NESTED_TEMPLATE_DISPATCH_CASE(t, long long, p, i, __VA_ARGS__)               \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, unsigned long long, p, i, __VA_ARGS__) \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, long, p, i, __VA_ARGS__)               \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, int, p, i, __VA_ARGS__)                \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, unsigned int, p, i, __VA_ARGS__)       \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, unsigned long, p, i, __VA_ARGS__)      \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, short int, p, i, __VA_ARGS__)          \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, short unsigned int, p, i, __VA_ARGS__) \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, char, p, i, __VA_ARGS__)               \
+    else NESTED_TEMPLATE_DISPATCH_CASE(t, unsigned char, p, i, __VA_ARGS__)
 
 /** \def NESTED_TEMPLATE_DISPATCH(t, p, i, body)
  * A macro for accessing the typed contents of a teca_variant_array
@@ -273,9 +308,38 @@ struct object_dispatch :
  *
  * See #NESTED_TEMPLATE_DISPATCH_CASE for details.
  */
-#define NESTED_TEMPLATE_DISPATCH(t, p, i, body)     \
-    NESTED_TEMPLATE_DISPATCH_FP(t, p, i, body)      \
-    else NESTED_TEMPLATE_DISPATCH_I(t, p, i, body)
+#define NESTED_TEMPLATE_DISPATCH(t, p, i, ...)             \
+    NESTED_TEMPLATE_DISPATCH_FP(t, p, i, __VA_ARGS__)      \
+    else NESTED_TEMPLATE_DISPATCH_I(t, p, i, __VA_ARGS__)
+
+/** shortcuts for NESTED_TEMPLATE_DISPATCH macros */
+#define NESTED_VARIANT_ARRAY_DISPATCH(p, i, ...) \
+    NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl, p, i, __VA_ARGS__)
+
+#define NESTED_VARIANT_ARRAY_DISPATCH_FP(p, i, ...) \
+    NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl, p, i, __VA_ARGS__)
+
+#define NESTED_VARIANT_ARRAY_DISPATCH_I(p, i, ...) \
+    NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl, p, i, __VA_ARGS__)
+
+#define NESTED_VARIANT_ARRAY_DISPATCH_CASE(nt, p, i, ...) \
+    TEMPLATE_DISPATCH_CASE(teca_variant_array_impl, nt, p, i, __VA_ARGS__)
+
+/** shortcuts for TEMPLATE_DISPATCH macros */
+#define VARIANT_ARRAY_DISPATCH(p, ...) \
+    TEMPLATE_DISPATCH(teca_variant_array_impl, p, __VA_ARGS__)
+
+#define VARIANT_ARRAY_DISPATCH_FP(p, ...) \
+    TEMPLATE_DISPATCH_FP(teca_variant_array_impl, p, __VA_ARGS__)
+
+#define VARIANT_ARRAY_DISPATCH_I(p, ...) \
+    TEMPLATE_DISPATCH_I(teca_variant_array_impl, p, __VA_ARGS__)
+
+#define VARIANT_ARRAY_DISPATCH_FP_SI(p, ...) \
+    TEMPLATE_DISPATCH_FP_SI(teca_variant_array_impl, p, __VA_ARGS__)
+
+#define VARIANT_ARRAY_DISPATCH_CASE(nt, p, ...) \
+    TEMPLATE_DISPATCH_CASE(teca_variant_array_impl, nt, p, __VA_ARGS__)
 
 /// @cond
 // tag for contiguous arrays, and objects that have
@@ -315,6 +379,9 @@ template<typename T>
 class TECA_EXPORT teca_variant_array_impl : public teca_variant_array
 {
 public:
+    using element_type = T;
+    using pointer_type = std::shared_ptr<T>;
+
     /** @name Array constructors
      * Constructs a new instance containing the templated type.
      */
@@ -430,6 +497,7 @@ public:
     // silence some warning from nvcc
     using teca_variant_array::append;
     using teca_variant_array::assign;
+    using teca_variant_array::copy;
     using teca_variant_array::set;
     using teca_variant_array::get;
 
@@ -734,26 +802,48 @@ public:
      * accelerator device or technology.
      */
     ///@{
-    /// Get a pointer to the data
-    std::shared_ptr<T> get_cpu_accessible()
-    { return m_data.get_cpu_accessible(); }
+    /// Get a pointer to the data accessible on the CPU
+    const std::shared_ptr<const T> get_host_accessible() const
+    { return m_data.get_host_accessible(); }
 
-    const std::shared_ptr<const T> get_cpu_accessible() const
-    { return m_data.get_cpu_accessible(); }
-
-    std::shared_ptr<T> get_cuda_accessible()
-    { return m_data.get_cuda_accessible(); }
-
+    /// Get a pointer to the data accessible within CUDA
     const std::shared_ptr<const T> get_cuda_accessible() const
     { return m_data.get_cuda_accessible(); }
     ///@}
 #endif
 
+    /// Sycnhronize the stream used for data movement
+    void synchronize() const override { m_data.synchronize(); }
+
+    /** direct access to the internal memory. Use this when you are certain
+     * that the data is already accessible in the location where you will
+     * access it to save the cost of the std::shared_ptr copy constructor.
+     */
+    const T *data() const { return m_data.data(); }
+
+    /** direct access to the internal memory. Use this when you are certain
+     * that the data is already accessible in the location where you will
+     * access it to save the cost of the std::shared_ptr copy constructor.
+     */
+    T *data() { return m_data.data(); }
+
+    /** direct access to the internal memory. Use this when you are certain
+     * that the data is already accessible in the location where you will
+     * access it.
+     */
+    const std::shared_ptr<T> &pointer() const { return m_data.pointer(); }
+
+    /** direct access to the internal memory. Use this when you are certain
+     * that the data is already accessible in the location where you will
+     * access it.
+     */
+    std::shared_ptr<T> &pointer() { return m_data.pointer(); }
+
     /// returns true if the data is accessible from CUDA codes
-    int cuda_accessible() const { return m_data.cuda_accessible(); }
+    int cuda_accessible() const noexcept override { return m_data.cuda_accessible(); }
 
     /// returns true if the data is accessible from codes running on the CPU
-    int cpu_accessible() const { return m_data.cpu_accessible(); }
+    int host_accessible() const noexcept override { return m_data.host_accessible(); }
 
     /// Get the current size of the data
     unsigned long size() const noexcept override;
@@ -1210,9 +1300,9 @@ void teca_variant_array::get_dispatch(unsigned long i, T &val,
     typename std::enable_if<pod_dispatch<T>::value, T>::type*) const
 {
     // apply on POD types
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
         this,
-        TT *ptthis = dynamic_cast<TT*>(this);
+        const TT *ptthis = dynamic_cast<const TT*>(this);
         ptthis->get(i, val);
         return;
         )
@@ -1251,9 +1341,9 @@ void teca_variant_array::get_dispatch(std::vector<T> &vals,
     typename std::enable_if<pod_dispatch<T>::value, T>::type*) const
 {
     // apply on POD types
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
         this,
-        TT *ptthis = dynamic_cast<TT*>(this);
+        const TT *ptthis = dynamic_cast<const TT*>(this);
         ptthis->get(vals);
         return;
         )
@@ -1292,9 +1382,9 @@ void teca_variant_array::get_dispatch(size_t src_start, T *dest, size_t dest_sta
     typename std::enable_if<pod_dispatch<T>::value, T>::type*) const
 {
     // apply on POD types
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
         this,
-        TT *ptthis = dynamic_cast<TT*>(this);
+        const TT *ptthis = dynamic_cast<const TT*>(this);
         ptthis->get(src_start, dest, dest_start, n_elem);
         return;
         )
@@ -2016,7 +2106,7 @@ void teca_variant_array_impl<T>::set_dispatch(size_t dest_start,
     const const_p_teca_variant_array &src, size_t src_start, size_t n_elem,
     typename std::enable_if<pod_dispatch<U>::value, U>::type*)
 {
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
         src.get(),
         const_p_teca_variant_array_impl<NT> tp_src =
             std::static_pointer_cast<const teca_variant_array_impl<NT>>(src);
@@ -2059,9 +2149,9 @@ void teca_variant_array_impl<T>::assign_dispatch(
     const const_p_teca_variant_array &src, size_t src_start, size_t n_elem,
     typename std::enable_if<pod_dispatch<U>::value, U>::type*)
 {
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
         src.get(),
-        std::shared_ptr<TT> tp_src = std::static_pointer_cast<TT>(src);
+        std::shared_ptr<const TT> tp_src = std::static_pointer_cast<const TT>(src);
         this->assign_dispatch(tp_src, src_start, n_elem);
         return;
         )
@@ -2100,9 +2190,9 @@ void teca_variant_array_impl<T>::append_dispatch(
     const const_p_teca_variant_array &src, size_t src_start, size_t n_elem,
     typename std::enable_if<pod_dispatch<U>::value, U>::type*)
 {
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    TEMPLATE_DISPATCH(teca_variant_array_impl,
         src.get(),
-        std::shared_ptr<TT> tp_src = std::static_pointer_cast<TT>(src);
+        std::shared_ptr<const TT> tp_src = std::static_pointer_cast<const TT>(src);
         this->append_dispatch(tp_src, src_start, n_elem);
         return;
         )
@@ -2257,11 +2347,13 @@ bool teca_variant_array_impl<T>::equal(const const_p_teca_variant_array &other) 
         if (n_elem != other_t->size())
             return false;
 
-        auto spthis = this->get_cpu_accessible();
+        auto spthis = this->get_host_accessible();
         const NT *pthis = spthis.get();
 
-        auto spother = other_t->get_cpu_accessible();
+        auto spother = other_t->get_host_accessible();
         const NT *pother = spother.get();
+
+        sync_host_access_any(this, other);
 
         for (size_t i = 0; i < n_elem; ++i)
         {
@@ -2283,12 +2375,15 @@ template<typename T>
 void teca_variant_array_impl<T>::to_binary(teca_binary_stream &s,
     typename std::enable_if<pack_array<U>::value, U>::type*) const
 {
+    // access the data on the host
+    std::shared_ptr<const T> pdata = this->get_host_accessible();
+    sync_host_access_any(this);
+
     // pack the size
     unsigned long long n_elem = this->size();
     s.pack(n_elem);
 
-    // pack the data from the CPU
-    std::shared_ptr<const T> pdata = this->get_cpu_accessible();
+    // pack the data
     s.pack(pdata.get(), n_elem);
 }
 
@@ -2304,7 +2399,7 @@ void teca_variant_array_impl<T>::from_binary(teca_binary_stream &s,
 
     // allocate a buffer
     hamr::buffer<T> tmp(allocator::malloc, n_elem);
-    std::shared_ptr<T> sptmp = tmp.get_cpu_accessible();
+    std::shared_ptr<T> sptmp = tmp.pointer();
 
     // unpack the elements  into the buffer
     s.unpack(sptmp.get(), n_elem);
@@ -2324,8 +2419,11 @@ void teca_variant_array_impl<T>::to_binary(teca_binary_stream &s,
     s.pack(n_elem);
 
     // pack the data from the CPU
-    std::shared_ptr<const T> data = this->get_cpu_accessible();
+    std::shared_ptr<const T> data = this->get_host_accessible();
     const T *pdata = data.get();
+
+    sync_host_access_any(this);
+
     for (unsigned long long i = 0; i < n_elem; ++i)
     {
         pdata[i].to_stream(s);
@@ -2366,8 +2464,11 @@ void teca_variant_array_impl<T>::to_binary(
     s.pack(n_elem);
 
     // pack the data from the CPU
-    std::shared_ptr<const T> data = this->get_cpu_accessible();
+    std::shared_ptr<const T> data = this->get_host_accessible();
     const T *pdata = data.get();
+
+    sync_host_access_any(this);
+
     for (unsigned long long i = 0; i < n_elem; ++i)
     {
        pdata[i]->to_stream(s);
@@ -2410,8 +2511,10 @@ void teca_variant_array_impl<T>::to_ascii(
     if (n_elem)
     {
         // serialize from the CPU
-        std::shared_ptr<const T> data = this->get_cpu_accessible();
+        std::shared_ptr<const T> data = this->get_host_accessible();
         const T *pdata = data.get();
+
+        sync_host_access_any(this);
 
         s << STR_DELIM("\"", "") << pdata[0] << STR_DELIM("\"", "");
 
@@ -2443,8 +2546,10 @@ void teca_variant_array_impl<T>::to_ascii(
     if (n_elem)
     {
         // serialize from the CPU
-        std::shared_ptr<const T> data = this->get_cpu_accessible();
+        std::shared_ptr<const T> data = this->get_host_accessible();
         const T *pdata = data.get();
+
+        sync_host_access_any(this);
 
         s << "{";
         pdata[0].to_stream(s);
@@ -2479,8 +2584,10 @@ void teca_variant_array_impl<T>::to_ascii(
     if (n_elem)
     {
         // serialize from the CPU
-        std::shared_ptr<const T> data = this->get_cpu_accessible();
+        std::shared_ptr<const T> data = this->get_host_accessible();
         const T *pdata = data.get();
+
+        sync_host_access_any(this);
 
         s << "{";
         pdata[0]->to_stream(s);

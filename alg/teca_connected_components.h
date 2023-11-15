@@ -50,19 +50,25 @@ public:
     TECA_ALGORITHM_CLASS_NAME(teca_connected_components)
     ~teca_connected_components();
 
-    // set the input array containing a binary segmentation
-    // see teca_binary_segmentation
+    /** @name segmentation_variable
+     * Set the input array containing a binary segmentation.
+     * See teca_binary_segmentation
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, segmentation_variable)
+    void get_segmentation_variable(std::string &var) const;
+    ///@}
 
-    // set the name of the output array to store the component labels in
+    /** @name component_variable
+     * Set the name of the output array to store the component labels in.
+     */
+    ///@{
     TECA_ALGORITHM_PROPERTY(std::string, component_variable)
-
+    void get_component_variable(std::string &var) const;
+    ///@}
 
 protected:
     teca_connected_components();
-
-    std::string get_component_variable(const teca_metadata &request);
-    std::string get_segmentation_variable(const teca_metadata &request);
 
 private:
     using teca_algorithm::get_output_metadata;

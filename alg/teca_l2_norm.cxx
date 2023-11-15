@@ -4,6 +4,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_array_attributes.h"
 
@@ -22,6 +23,9 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #endif
+
+using namespace teca_variant_array_util;
+using allocator = teca_variant_array::allocator;
 
 //#define TECA_DEBUG
 
@@ -70,43 +74,31 @@ int dispatch(p_teca_variant_array &l2_norm,
     // allocate the output array
     unsigned long n_elem = c0->size();
 
-    l2_norm = c0->new_instance();
-    l2_norm->resize(n_elem);
-
-    p_teca_variant_array tmp = c0->new_instance();
-    tmp->resize(n_elem);
+    l2_norm = c0->new_instance(n_elem);
+    p_teca_variant_array tmp = c0->new_instance(n_elem);
 
     // compute l2 norm
-    TEMPLATE_DISPATCH_FP(
-        teca_variant_array_impl,
-        l2_norm.get(),
+    VARIANT_ARRAY_DISPATCH_FP(l2_norm.get(),
 
-        auto spc0 = static_cast<const TT*>(c0.get())->get_cpu_accessible();
-        const NT *pc0 = spc0.get();
+        auto [ptmp, pl2n] = data<TT>(tmp, l2_norm);
+        auto [spc0, pc0] = get_host_accessible<CTT>(c0);
 
-        auto sptmp = static_cast<TT*>(tmp.get())->get_cpu_accessible();
-        NT *ptmp = sptmp.get();
-
+        sync_host_access_any(c0);
         cpu::square(ptmp, pc0, n_elem);
 
         if (c1)
         {
-            auto spc1 = dynamic_cast<const TT*>(c1.get())->get_cpu_accessible();
-            const NT *pc1 = spc1.get();
-
+            auto [spc1, pc1] = get_host_accessible<CTT>(c1);
+            sync_host_access_any(c1);
             cpu::sum_square(ptmp, pc1, n_elem);
         }
 
         if (c2)
         {
-            auto spc2 = dynamic_cast<const TT*>(c2.get())->get_cpu_accessible();
-            const NT *pc2 = spc2.get();
-
+            auto [spc2, pc2] = get_host_accessible<CTT>(c2);
+            sync_host_access_any(c2);
             cpu::sum_square(ptmp, pc2, n_elem);
         }
-
-        auto spl2n = static_cast<TT*>(l2_norm.get())->get_cpu_accessible();
-        NT *pl2n = spl2n.get();
 
         cpu::square_root(pl2n, ptmp, n_elem);
 
@@ -124,7 +116,7 @@ int dispatch(p_teca_variant_array &l2_norm,
 
 #if defined(TECA_HAS_CUDA)
 // CUDA codes
-namespace cuda
+namespace cuda_gpu
 {
 // ***************************************************************************
 template <typename T>
@@ -197,37 +189,25 @@ int dispatch(int device_id, p_teca_variant_array &l2_norm,
         return -1;
     }
 
-    l2_norm = c0->new_instance(teca_variant_array::allocator::cuda);
-    l2_norm->resize(n_elem);
+    l2_norm = c0->new_instance(n_elem, allocator::cuda_async);
 
     // compute l2 norm
-    TEMPLATE_DISPATCH_FP(
-        teca_variant_array_impl,
-        l2_norm.get(),
+    VARIANT_ARRAY_DISPATCH_FP(l2_norm.get(),
 
-        auto spl2n = static_cast<TT*>(l2_norm.get())->get_cuda_accessible();
-        NT *pl2n = spl2n.get();
+        auto [pl2n] = data<TT>(l2_norm);
+        auto [spc0, pc0] = get_cuda_accessible<CTT>(c0);
 
-        auto spc0 = static_cast<const TT*>(c0.get())->get_cuda_accessible();
-        const NT *pc0 = spc0.get();
-
-        decltype(spc0) spc1 = nullptr;
+        CSP spc1;
         const NT *pc1 = nullptr;
         if (c1)
-        {
-            spc1 = dynamic_cast<const TT*>(c1.get())->get_cuda_accessible();
-            pc1 = spc1.get();
-        }
+            std::tie(spc1, pc1) = get_cuda_accessible<CTT>(c1);
 
-        decltype(spc0) spc2 = nullptr;
+        CSP spc2;
         const NT *pc2 = nullptr;
         if (c2)
-        {
-            spc2 = dynamic_cast<const TT*>(c2.get())->get_cuda_accessible();
-            pc2 = spc2.get();
-        }
+            std::tie(spc2, pc2) = get_cuda_accessible<CTT>(c2);
 
-        if (cuda::l2_norm(device_id, pl2n, pc0, pc1, pc2, n_elem))
+        if (cuda_gpu::l2_norm(device_id, pl2n, pc0, pc1, pc2, n_elem))
             return -1;
 
         return 0;
@@ -517,7 +497,7 @@ const_p_teca_dataset teca_l2_norm::execute(unsigned int port,
     request.get("device_id", device_id);
     if (device_id >= 0)
     {
-        if (teca_l2_norm_internals::cuda::dispatch(device_id, l2_norm, c0, c1, c2))
+        if (teca_l2_norm_internals::cuda_gpu::dispatch(device_id, l2_norm, c0, c1, c2))
         {
             TECA_ERROR("Failed to compute the L2 norm using CUDA")
             return nullptr;

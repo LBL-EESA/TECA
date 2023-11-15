@@ -4,8 +4,8 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
-#include "teca_array_attributes.h"
 
 #include <algorithm>
 #include <iostream>
@@ -20,6 +20,9 @@
 #if defined(TECA_HAS_CUDA)
 #include "teca_cuda_util.h"
 #endif
+
+using namespace teca_variant_array_util;
+using allocator = teca_variant_array::allocator;
 
 //#define TECA_DEBUG
 
@@ -65,28 +68,24 @@ int dispatch(const p_teca_variant_array &in_array,
     out_array->resize(n_elem);
 
     // transform arrays
-    NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
-        in_array.get(),
-        _IN,
+    NESTED_VARIANT_ARRAY_DISPATCH(
+        in_array.get(), _IN,
 
-        auto sp_in = dynamic_cast<TT_IN*>(in_array.get())->get_cpu_accessible();
-        NT_IN *p_in = sp_in.get();
+        auto [sp_in, p_in] = get_host_accessible<TT_IN>(in_array);
 
-        NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-            out_array.get(),
-            _OUT,
+        NESTED_VARIANT_ARRAY_DISPATCH_FP(
+            out_array.get(), _OUT,
 
-            auto sp_out = dynamic_cast<TT_OUT*>(out_array.get())->get_cpu_accessible();
-            NT_OUT *p_out = sp_out.get();
+            auto [p_out] = data<TT_OUT>(out_array);
 
             if (mask)
             {
-                NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
-                    mask.get(),
-                    _MASK,
+                NESTED_VARIANT_ARRAY_DISPATCH_I(
+                    mask.get(), _MASK,
 
-                    auto sp_mask = dynamic_cast<TT_MASK*>(mask.get())->get_cpu_accessible();
-                    NT_MASK *p_mask = sp_mask.get();
+                    auto [sp_mask, p_mask] = get_host_accessible<TT_MASK>(mask);
+
+                    sync_host_access_any(in_array, mask);
 
                     cpu::transform(p_out, p_in, p_mask,
                         n_elem, NT_OUT(scale), NT_OUT(offset), NT_OUT(1e20));
@@ -95,6 +94,7 @@ int dispatch(const p_teca_variant_array &in_array,
             }
             else
             {
+                sync_host_access_any(in_array);
                 cpu::transform(p_out, p_in, n_elem, NT_OUT(scale), NT_OUT(offset));
             }
             )
@@ -105,7 +105,7 @@ int dispatch(const p_teca_variant_array &in_array,
 }
 
 #if defined(TECA_HAS_CUDA)
-namespace cuda
+namespace cuda_gpu
 {
 // **************************************************************************
 template <typename input_t, typename output_t>
@@ -155,7 +155,7 @@ int transform(int device_id, output_t *p_out, input_t *p_in,
 
     // unpack the data
     cudaError_t ierr = cudaSuccess;
-    cuda::transform<<<block_grid,thread_grid>>>(p_out,
+    cuda_gpu::transform<<<block_grid,thread_grid>>>(p_out,
         p_in, p_mask, n_elem, scale, offset, fill);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
@@ -185,7 +185,7 @@ int transform(int device_id, output_t *p_out, input_t *p_in,
 
     // unpack the data
     cudaError_t ierr = cudaSuccess;
-    cuda::transform<<<block_grid,thread_grid>>>(p_out,
+    cuda_gpu::transform<<<block_grid,thread_grid>>>(p_out,
         p_in, n_elem, scale, offset);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
@@ -208,8 +208,8 @@ int dispatch(int device_id, const p_teca_variant_array &in_array,
     teca_cuda_util::set_device(device_id);
 
     // allocate the output
-    out_array = teca_variant_array_factory::New(output_data_type,
-        teca_variant_array::allocator::cuda);
+    out_array = teca_variant_array_factory::New
+        (output_data_type, allocator::cuda_async);
 
     if (!out_array)
     {
@@ -221,37 +221,25 @@ int dispatch(int device_id, const p_teca_variant_array &in_array,
     out_array->resize(n_elem);
 
     // transform arrays
-    NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
-        in_array.get(),
-        _IN,
+    NESTED_VARIANT_ARRAY_DISPATCH(
+        in_array.get(), _IN,
 
-        auto sp_in = dynamic_cast<TT_IN*>
-            (in_array.get())->get_cuda_accessible();
+        auto [sp_in, p_in] = get_cuda_accessible<TT_IN>(in_array);
 
-        NT_IN *p_in = sp_in.get();
+        NESTED_VARIANT_ARRAY_DISPATCH_FP(
+            out_array.get(), _OUT,
 
-        NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-            out_array.get(),
-            _OUT,
-
-            auto sp_out = dynamic_cast<TT_OUT*>
-                (out_array.get())->get_cuda_accessible();
-
-            NT_OUT *p_out = sp_out.get();
+            auto [p_out] = data<TT_OUT>(out_array);
 
             if (mask)
             {
-                NESTED_TEMPLATE_DISPATCH_I(teca_variant_array_impl,
-                    mask.get(),
-                    _MASK,
+                NESTED_VARIANT_ARRAY_DISPATCH_I(
+                    mask.get(), _MASK,
 
-                    auto sp_mask = dynamic_cast<TT_MASK*>
-                        (mask.get())->get_cuda_accessible();
-
-                    NT_MASK *p_mask = sp_mask.get();
+                    auto [sp_mask, p_mask] = get_cuda_accessible<TT_MASK>(mask);
 
                     // unpack the data
-                    if (cuda::transform(device_id, p_out, p_in, p_mask,
+                    if (cuda_gpu::transform(device_id, p_out, p_in, p_mask,
                         n_elem, NT_OUT(scale), NT_OUT(offset), NT_OUT(1e20)))
                         return -1;
                     )
@@ -259,7 +247,7 @@ int dispatch(int device_id, const p_teca_variant_array &in_array,
             else
             {
                 // unpack the data
-                if (cuda::transform(device_id, p_out, p_in,
+                if (cuda_gpu::transform(device_id, p_out, p_in,
                     n_elem, NT_OUT(scale), NT_OUT(offset)))
                     return -1;
             }
@@ -543,7 +531,10 @@ const_p_teca_dataset teca_unpack_data::execute(
     request.get("device_id", device_id);
     if (device_id >= 0)
     {
-        if (cuda::dispatch(device_id, in_array, mask, scale,
+        if (teca_cuda_util::set_device(device_id))
+            return nullptr;
+
+        if (cuda_gpu::dispatch(device_id, in_array, mask, scale,
             offset, out_array, this->output_data_type))
         {
             TECA_ERROR("Failed to compute unpack data on the CPU")

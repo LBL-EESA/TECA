@@ -2,24 +2,107 @@
 
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 #include "teca_cartesian_mesh.h"
 #include "teca_string_util.h"
+#include "teca_mpi.h"
 
 #include <iostream>
 #include <set>
+#include <chrono>
 
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
 #endif
 
-#include <complex.h>
+#if defined(TECA_HAS_CUDA)
+#include "teca_cuda_util.h"
+#include <cuda.h>
+#include <cuda_runtime.h>
+#endif
 
-using std::cerr;
-using std::endl;
+using namespace teca_variant_array_util;
+using allocator = teca_variant_array::allocator;
+using seconds_t = std::chrono::duration<double, std::chrono::seconds::period>;
 
 //#define TECA_DEBUG
-namespace {
+#define LDAMP_SINGLE_KERNEL
+
+#if defined(TECA_HAS_CUDA)
+namespace cuda_impl
+{
+#if defined(LDAMP_SINGLE_KERNEL)
+template <typename coord_t, typename data_t>
+__global__
+void filter_by_lat(
+    data_t * __restrict__ output,
+    const data_t* __restrict__ input,
+    const coord_t* __restrict__ lat,
+    unsigned int nlon, unsigned int nlat, coord_t mu, coord_t sigma)
+{
+    unsigned int j = threadIdx.y + blockIdx.y * blockDim.y;
+
+    if (j >= nlat) return;
+
+    coord_t two_sigma_sqr = coord_t(2)*sigma*sigma;
+    coord_t x_min_mu = lat[j] - mu;
+    coord_t neg_x_min_mu_sqr = -x_min_mu*x_min_mu;
+    coord_t filter_j = coord_t(1) - exp(neg_x_min_mu_sqr/two_sigma_sqr);
+
+    size_t jj = j*nlon;
+
+    for (size_t i = threadIdx.x + blockIdx.x*blockDim.x; i < nlon;
+         i += blockDim.x*gridDim.x)
+    {
+        output[jj + i] = filter_j * input[jj + i];
+    }
+}
+#else
+// get the filter ready to be applied in the next steps
+template <typename coord_t>
+__global__
+void get_lat_filter(
+    coord_t *filter, const coord_t *lat, size_t nlat,
+    coord_t mu, coord_t sigma)
+{
+    coord_t two_sigma_sqr = coord_t(2)*sigma*sigma;
+
+    for (size_t i = threadIdx.x + blockIdx.x*blockDim.x; i < nlat;
+         i += blockDim.x*gridDim.x)
+    {
+        coord_t x_min_mu = lat[i] - mu;
+        coord_t neg_x_min_mu_sqr = -x_min_mu*x_min_mu;
+        filter[i] = coord_t(1) - exp(neg_x_min_mu_sqr/two_sigma_sqr);
+    }
+}
+
+template <typename num_t, typename coord_t>
+__global__
+void apply_lat_filter(
+    num_t * __restrict__ output,
+    const num_t * __restrict__ input,
+    const coord_t * __restrict__ filter,
+    size_t nlat, size_t nlon)
+{
+    unsigned int j = threadIdx.y + blockIdx.y * blockDim.y;
+
+    if (j >= nlat) return;
+
+    size_t jj = j*nlon;
+
+    for (size_t i = threadIdx.x + blockIdx.x*blockDim.x; i < nlon;
+         i += blockDim.x*gridDim.x)
+    {
+        output[jj + i] = filter[j] * input[jj + i];
+    }
+}
+#endif
+}
+#endif
+
+namespace host_impl
+{
 
 // get the filter ready to be applied in the next steps
 template <typename coord_t>
@@ -51,8 +134,7 @@ void apply_lat_filter(
         }
     }
 }
-
-};
+}
 
 // --------------------------------------------------------------------------
 teca_latitude_damper::teca_latitude_damper() :
@@ -163,8 +245,8 @@ teca_metadata teca_latitude_damper::get_output_metadata(
     const std::vector<teca_metadata> &input_md)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_latitude_damper::get_output_metadata" << endl;
+    std::cerr << teca_parallel_id()
+        << "teca_latitude_damper::get_output_metadata" << std::endl;
 #endif
     (void)port;
 
@@ -193,8 +275,8 @@ std::vector<teca_metadata> teca_latitude_damper::get_upstream_request(
     const teca_metadata &request)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id()
-        << "teca_latitude_damper::get_upstream_request" << endl;
+    std::cerr << teca_parallel_id()
+        << "teca_latitude_damper::get_upstream_request" << std::endl;
 #endif
     (void) port;
     (void) input_md;
@@ -242,10 +324,20 @@ const_p_teca_dataset teca_latitude_damper::execute(
     const teca_metadata &request)
 {
 #ifdef TECA_DEBUG
-    cerr << teca_parallel_id() << "teca_latitude_damper::execute" << endl;
+    std::cerr << teca_parallel_id() << "teca_latitude_damper::execute" << std::endl;
 #endif
-
     (void)port;
+
+    std::chrono::high_resolution_clock::time_point t0, t1;
+    t0 = std::chrono::high_resolution_clock::now();
+
+    int rank = 0;
+#if defined(TECA_HAS_MPI)
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (is_init)
+        MPI_Comm_rank(this->get_communicator(), &rank);
+#endif
 
     // get the input
     const_p_teca_cartesian_mesh in_mesh =
@@ -287,66 +379,160 @@ const_p_teca_dataset teca_latitude_damper::execute(
     size_t n_lat = lat->size();
     size_t n_lon = lon->size();
 
-    p_teca_variant_array filter_array = lat->new_instance(n_lat);
+    int device_id = -1;
+#if defined(TECA_HAS_CUDA)
+    request.get("device_id", device_id);
+    if (device_id >= 0)
+    {
+        if (teca_cuda_util::set_device(device_id))
+            return nullptr;
 
-    // Get the gaussian filter
-    NESTED_TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-        filter_array.get(),
-        _COORD,
+        cudaError_t ierr = cudaSuccess;
 
-        auto sp_lat = static_cast<const TT_COORD*>
-            (lat.get())->get_cpu_accessible();
+        // domain decomp for the gpu
+        int ntx = 32, nty = 4;
+        dim3 thrs(ntx, nty);
+        dim3 blks(n_lon / ntx + (n_lon % ntx ? 1 : 0),
+                  n_lat / nty + (n_lat % nty ? 1 : 0));
 
-        const NT_COORD *p_lat = sp_lat.get();
+        NESTED_VARIANT_ARRAY_DISPATCH_FP(
+            lat.get(), _COORD,
 
-        NT_COORD *filter = (NT_COORD*)malloc(n_lat*sizeof(NT_COORD));
-        ::get_lat_filter<NT_COORD>(filter, p_lat, n_lat, mu, sigma);
+            // get the lat coordinates
+            auto [sp_lat, p_lat] = get_cuda_accessible<TT_COORD>(lat);
 
-        size_t n_arrays = damped_vars.size();
-        for (size_t i = 0; i < n_arrays; ++i)
-        {
-            // get the input array
-            const_p_teca_variant_array input_array
-                = out_mesh->get_point_arrays()->get(damped_vars[i]);
-            if (!input_array)
+#if !defined(LDAMP_SINGLE_KERNEL)
+            // generate the filter
+            hamr::buffer<NT_COORD> filter(allocator::cuda_async, n_lat);
+
+            int nt1 = 32;
+            int blk1 = ( n_lat / nt1 + ( n_lat % nt1 ? 1 : 0 ) );
+
+            cuda_impl::get_lat_filter<<<blk1, nt1>>>(filter.data(), p_lat, n_lat,
+                                                     NT_COORD(mu), NT_COORD(sigma));
+            ierr = cudaGetLastError();
+            if (ierr != cudaSuccess)
             {
-                TECA_FATAL_ERROR("damper variable \"" << damped_vars[i]
-                    << "\" is not in the input")
+                TECA_FATAL_ERROR("Failed to launch the filter kernel")
                 return nullptr;
             }
+#endif
+            size_t n_arrays = damped_vars.size();
+            for (size_t i = 0; i < n_arrays; ++i)
+            {
+                // get the input array
+                const_p_teca_variant_array input_array
+                    = out_mesh->get_point_arrays()->get(damped_vars[i]);
 
-            // apply the gaussian damper
-            size_t n_elem = input_array->size();
-            p_teca_variant_array damped_array = input_array->new_instance(n_elem);
+                if (!input_array)
+                {
+                    TECA_FATAL_ERROR("damper variable \"" << damped_vars[i]
+                        << "\" is not in the input")
+                    return nullptr;
+                }
 
-            NESTED_TEMPLATE_DISPATCH(teca_variant_array_impl,
-                damped_array.get(),
-                _DATA,
+                NESTED_VARIANT_ARRAY_DISPATCH(
+                    input_array.get(), _DATA,
 
-                auto sp_in = static_cast<const TT_DATA*>
-                    (input_array.get())->get_cpu_accessible();
+                    // read only access to the input
+                    auto [sp_in, p_in] = get_cuda_accessible<CTT_DATA>(input_array);
 
-                const NT_DATA *p_in = sp_in.get();
+                    // allocate the output
+                    size_t n_elem = input_array->size();
+                    auto [sp_out, p_out] = teca_variant_array_util::New<TT_DATA>(n_elem, teca_variant_array::allocator::cuda_async);
 
-                auto sp_damped_array = static_cast<TT_DATA*>
-                    (damped_array.get())->get_cpu_accessible();
+                    // apply the filter
+#if defined(LDAMP_SINGLE_KERNEL)
+                    cuda_impl::filter_by_lat<<<blks,thrs>>>(p_out, p_in, p_lat,
+                                                            int(n_lon), int(n_lat),
+                                                            NT_COORD(mu), NT_COORD(sigma));
+#else
+                    cuda_impl::apply_lat_filter<<<blks,thrs>>>(p_out, p_in, filter.data(),
+                                                               n_lat, n_lon);
+#endif
+                    ierr = cudaGetLastError();
+                    if (ierr != cudaSuccess)
+                    {
+                        TECA_FATAL_ERROR("Failed to launch the filter kernel")
+                        return nullptr;
+                    }
 
-                NT_DATA *p_damped_array = sp_damped_array.get();
+                    // set the damped array in the output
+                    std::string out_var_name = damped_vars[i] + this->variable_postfix;
+                    out_mesh->get_point_arrays()->set(out_var_name, sp_out);
+                )
+            }
+        )
+    }
+    else
+    {
+#endif
+        NESTED_VARIANT_ARRAY_DISPATCH_FP(
+            lat.get(), _COORD,
 
-                ::apply_lat_filter(p_damped_array, p_in, filter, n_lat, n_lon);
-            )
+            // construct the gaussian filter
+            auto [sp_lat, p_lat] = get_host_accessible<TT_COORD>(lat);
 
-            // set the damped array in the output
-            std::string out_var_name = damped_vars[i] + this->variable_postfix;
-            out_mesh->get_point_arrays()->set(out_var_name, damped_array);
-        }
+            sync_host_access_any(lat);
 
-        free(filter);
-    )
+            NT_COORD *filter = (NT_COORD*)malloc(n_lat*sizeof(NT_COORD));
+            host_impl::get_lat_filter<NT_COORD>(filter, p_lat, n_lat, mu, sigma);
+
+            size_t n_arrays = damped_vars.size();
+            for (size_t i = 0; i < n_arrays; ++i)
+            {
+                // get the input array
+                const_p_teca_variant_array input_array
+                    = out_mesh->get_point_arrays()->get(damped_vars[i]);
+
+                if (!input_array)
+                {
+                    TECA_FATAL_ERROR("damper variable \"" << damped_vars[i]
+                        << "\" is not in the input")
+                    return nullptr;
+                }
+
+                // allocate the output
+                size_t n_elem = input_array->size();
+                p_teca_variant_array damped_array = input_array->new_instance(n_elem);
+
+                NESTED_VARIANT_ARRAY_DISPATCH(
+                    input_array.get(), _DATA,
+
+                    auto [sp_in, p_in] = get_host_accessible<CTT_DATA>(input_array);
+                    auto [p_damped_array] = data<TT_DATA>(damped_array);
+
+                    sync_host_access_any(input_array);
+
+                    // apply the filter
+                    host_impl::apply_lat_filter(p_damped_array, p_in, filter, n_lat, n_lon);
+                )
+
+                // set the damped array in the output
+                std::string out_var_name = damped_vars[i] + this->variable_postfix;
+                out_mesh->get_point_arrays()->set(out_var_name, damped_array);
+            }
+
+            free(filter);
+        )
+#if defined(TECA_HAS_CUDA)
+    }
+#endif
 
     teca_metadata &omd = out_mesh->get_metadata();
     omd.set("gaussian_filter_hwhm", sigma);
     omd.set("gaussian_filter_center_lat", mu);
+
+    t1 = std::chrono::high_resolution_clock::now();
+    seconds_t dt(t1 - t0);
+
+    if (this->get_verbose() && (rank == 0))
+    {
+        TECA_STATUS("latitude damper computed on "
+            << (device_id >= 0 ? "CUDA device" : "the host")
+            << "(" << device_id << ") in " << dt.count()
+            << " seconds")
+    }
 
     return out_mesh;
 }

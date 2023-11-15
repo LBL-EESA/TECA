@@ -39,6 +39,12 @@ parser.add_argument('--input_file', type=str, required=False,
          ' using the teca_multi_cf_reader. Use one of either --input_file'
          ' or --input_regex.')
 
+parser.add_argument('--input_regex', type=str, required=False,
+    help='a teca_cf_reader regex identifying the'
+         ' set of NetCDF CF2 files to process. When present data is read'
+         ' using the teca_cf_reader. Use one of either --input_file or '
+         ' --input_regex.')
+
 parser.add_argument('--validate_time_axis', type=int, required=False, default=1,
     help='Enable consistency checks on of the time axis returned by'
          ' internally managed MCF readers.')
@@ -47,12 +53,6 @@ parser.add_argument('--validate_spatial_coordinates', type=int, required=False,
     default=1, help='Enable consistency checks on of the spatial coordinate axes'
                     ' returned by internally managed MCF readers.')
 
-parser.add_argument('--input_regex', type=str, required=False,
-    help='a teca_cf_reader regex identifying the'
-         ' set of NetCDF CF2 files to process. When present data is read'
-         ' using the teca_cf_reader. Use one of either --input_file or '
-         ' --input_regex.')
-
 parser.add_argument('--land_mask_file', type=str, required=False,
     help='A regex identifying the land mask file.')
 
@@ -60,6 +60,10 @@ parser.add_argument('--land_mask_variable', type=str, required=False,
     help='the name of the land mask variable. Values of this variable'
          ' should be in 0 to 1. Calculations will be skipped where the'
          ' land mask is 1.')
+
+parser.add_argument('--land_mask_threshold', type=float, default=0.5, required=False,
+    help='the value above which the land mask variable represents land.'
+         ' The calculations of cells over land are skipped.')
 
 parser.add_argument('--psl_variable', type=str, required=True,
     help='the name of sea level pressure variable')
@@ -72,6 +76,10 @@ parser.add_argument('--air_temperature_variable', type=str, required=True,
 
 parser.add_argument('--mixing_ratio_variable', type=str, required=False,
     help='the name of the mixing ratio variable')
+
+parser.add_argument('--ignore_bad_units', default=False,
+    action='store_true', help='Force the program to run even if'
+                              ' bad units are detected')
 
 parser.add_argument('--specific_humidity_variable', type=str, required=False,
     help='the name of the specific humidity variable')
@@ -93,6 +101,16 @@ parser.add_argument('--calendar', type=str, required=False,
 
 parser.add_argument('--t_units', type=str, required=False,
     help='time unit')
+
+parser.add_argument('--spatial_partitioning', default=False,
+    action='store_true', help='Activates the spatial partitioning engine')
+
+parser.add_argument('--spatial_partitions', type=int, default=0,
+    help='Sets the number of spatial partitions. Use zero for'
+         ' automatic partitioning and 1 for no partitioning')
+
+parser.add_argument('--partition_x', default=False, action='store_true',
+    help='Partition spatially in the x-direction')
 
 parser.add_argument('--first_step', type=int, default=0, required=False,
     help='first time step to process')
@@ -145,9 +163,14 @@ head = coords
 if args.land_mask_file:
     if not args.land_mask_variable:
         raise RuntimeError('No --land_mask_variable was specified')
-    mask_reader = teca_cf_reader.New()
-    mask_reader.set_t_axis_variable('')
-    mask_reader.set_files_regex(args.land_mask_file)
+
+    if args.land_mask_file[-4:] == '.mcf':
+        mask_reader = teca_multi_cf_reader.New()
+        mask_reader.set_input_file(args.land_mask_file)
+    else:
+        mask_reader = teca_cf_reader.New()
+        mask_reader.set_files_regex(args.land_mask_file)
+        mask_reader.set_t_axis_variable('')
 
     mask_coords = teca_normalize_coordinates.New()
     mask_coords.set_input_connection(mask_reader.get_output_port())
@@ -165,7 +188,7 @@ if args.land_mask_file:
 # valid value mask
 vvm = teca_valid_value_mask.New()
 vvm.set_input_connection(head.get_output_port())
-vvm.set_verbose(args.verbose)
+vvm.set_verbose(1 if args.verbose > 1 else 0)
 head = vvm
 
 # unpack NetCDF packed data
@@ -190,9 +213,20 @@ else:
                        ' --specific_humidity_variable must be provided')
 if args.land_mask_variable:
     pint.set_land_mask_variable(args.land_mask_variable)
+    pint.set_land_mask_threshold(args.land_mask_threshold)
+if args.ignore_bad_units:
+    pint.set_bad_units_abort_off()
+else:
+    pint.set_bad_units_abort_on()
 
 # configure the writer
+if args.spatial_partitioning:
+    partitioner = teca_cf_writer.space_time
+else:
+    partitioner = teca_cf_writer.temporal
+
 exe = teca_index_executive.New()
+
 writer = teca_cf_writer.New()
 writer.set_input_connection(pint.get_output_port())
 writer.set_executive(exe)
@@ -200,6 +234,11 @@ writer.set_thread_pool_size(1)
 writer.set_file_name(args.output_file)
 writer.set_layout(args.file_layout)
 writer.set_steps_per_file(args.steps_per_file)
+writer.set_index_executive_compatability(1)
+writer.set_partitioner(partitioner)
+writer.set_number_of_spatial_partitions(args.spatial_partitions)
+writer.set_partition_x(1 if args.partition_x else 0)
+writer.set_partition_z(0)
 writer.set_first_step(args.first_step)
 writer.set_last_step(args.last_step)
 if args.verbose > 1:

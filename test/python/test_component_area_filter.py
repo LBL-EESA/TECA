@@ -117,7 +117,7 @@ filtered_label_id = []
 out_mesh = teca_cartesian_mesh.New()
 out_mesh.copy(va)
 out_arrays = out_mesh.get_point_arrays()
-filtered_labels_all = out_arrays["labels" + postfix].get_cpu_accessible()
+filtered_labels_all = out_arrays["labels" + postfix].get_host_accessible()
 
 component_ids = mdo["component_ids"]
 component_area = mdo["component_area"]

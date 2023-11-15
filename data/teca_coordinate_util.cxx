@@ -1,6 +1,8 @@
 #include "teca_coordinate_util.h"
 
 #include "teca_common.h"
+#include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #if defined(TECA_HAS_UDUNITS)
 #include "teca_calcalcs.h"
 #endif
@@ -10,6 +12,9 @@
 #include <ctime>
 #include <sstream>
 #include <iomanip>
+
+using namespace teca_variant_array_util;
+using allocator = teca_variant_array::allocator;
 
 namespace teca_coordinate_util
 {
@@ -39,14 +44,10 @@ bool equal(const const_p_teca_variant_array &array1,
     }
 
     // handle POD arrays
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
-        array1.get(),
-
-        auto a1 = static_cast<TT*>(array1.get());
+    VARIANT_ARRAY_DISPATCH(array1.get(),
 
         // we know the type of array 1 now, check the type of array 2
-        auto a2 = dynamic_cast<TT*>(array2.get());
-        if (!a2)
+        if (!dynamic_cast<CTT*>(array2.get()))
         {
             oss << "The arrays have different types : "
                 << array1->get_class_name() << " and "
@@ -59,11 +60,10 @@ bool equal(const const_p_teca_variant_array &array1,
         }
 
         // compare elements
-        auto a1a = a1->get_cpu_accessible();
-        auto a2a = a2->get_cpu_accessible();
+        auto [spa1, pa1] = get_host_accessible<CTT>(array1);
+        auto [spa2, pa2] = get_host_accessible<CTT>(array2);
 
-        auto pa1 = a1a.get();
-        auto pa2 = a2a.get();
+        sync_host_access_any(array1, array2);
 
         std::string diagnostic;
         for (size_t i = 0; i < n_elem; ++i)
@@ -107,40 +107,48 @@ bool equal(const const_p_teca_variant_array &array1,
         return true;
         )
     // handle arrays of strings
-    TEMPLATE_DISPATCH_CASE(
-        const teca_variant_array_impl, std::string,
+    VARIANT_ARRAY_DISPATCH_CASE(std::string,
         array1.get(),
-        if (dynamic_cast<const TT*>(array2.get()))
+        // we know the type of array 1 now, check the type of array 2
+        if (!dynamic_cast<CTT*>(array2.get()))
         {
-            auto a1 = static_cast<TT*>(array1.get())->get_cpu_accessible();
-            auto a2 = static_cast<TT*>(array2.get())->get_cpu_accessible();
+            oss << "The arrays have different types : "
+                << array1->get_class_name() << " and "
+                << array2->get_class_name();
 
-            auto pa1 = a1.get();
-            auto pa2 = a2.get();
+            errorStr = oss.str();
+            errorNo = equal_error::type_missmatch;
 
-            for (size_t i = 0; i < n_elem; ++i)
-            {
-                // compare elements
-                const std::string &v1 = pa1[i];
-                const std::string &v2 = pa2[i];
-                if (v1 != v2)
-                {
-                    oss << "string element " << i << " not equal. ref value \""
-                        << v1 << "\" is not equal to test value \"" << v2 << "\"";
-
-                    errorStr = oss.str();
-                    errorNo = equal_error::value_missmatch;
-
-                    return false;
-                }
-            }
-
-            // we are here, arrays are the same
-            errorStr = "The arrays are equal";
-            errorNo = equal_error::no_error;
-
-            return true;
+            return false;
         }
+
+        auto [spa1, pa1] = get_host_accessible<CTT>(array1);
+        auto [spa2, pa2] = get_host_accessible<CTT>(array2);
+
+        sync_host_access_any(array1, array2);
+
+        for (size_t i = 0; i < n_elem; ++i)
+        {
+            // compare elements
+            const std::string &v1 = pa1[i];
+            const std::string &v2 = pa2[i];
+            if (v1 != v2)
+            {
+                oss << "string element " << i << " not equal. ref value \""
+                    << v1 << "\" is not equal to test value \"" << v2 << "\"";
+
+                errorStr = oss.str();
+                errorNo = equal_error::value_missmatch;
+
+                return false;
+            }
+        }
+
+        // we are here, arrays are the same
+        errorStr = "The arrays are equal";
+        errorNo = equal_error::no_error;
+
+        return true;
         )
 
     // we are here, array type is not handled
@@ -188,12 +196,10 @@ int time_step_of(const const_p_teca_variant_array &time,
 
     // locate the nearest time value in the time axis
     unsigned long last = time->size() - 1;
-    TEMPLATE_DISPATCH_FP_SI(const teca_variant_array_impl,
-        time.get(),
+    VARIANT_ARRAY_DISPATCH_FP_SI(time.get(),
 
-        auto ta = std::static_pointer_cast<TT>(time);
-        auto pta = ta->get_cpu_accessible();
-        auto p_time = pta.get();
+        auto [sp_time, p_time] = get_host_accessible<CTT>(time);
+        sync_host_access_any(time);
 
         if (clamp && (t <= p_time[0]))
         {
@@ -315,9 +321,9 @@ int bounds_to_extent(const double *bounds,
     const const_p_teca_variant_array &x, const const_p_teca_variant_array &y,
     const const_p_teca_variant_array &z, unsigned long *extent)
 {
-    TEMPLATE_DISPATCH_FP(
-        const teca_variant_array_impl,
-        x.get(),
+    VARIANT_ARRAY_DISPATCH_FP(x.get(),
+
+        assert_type<TT>(y,z);
 
         // in the following, for each side (low, high) of the bounds in
         // each cooridnate direction we are searching for the index that
@@ -336,9 +342,7 @@ int bounds_to_extent(const double *bounds,
         unsigned long high_i = nx - 1;
         extent[0] = 0;
         extent[1] = high_i;
-        auto xa = std::static_pointer_cast<TT>(x);
-        auto pxa = xa->get_cpu_accessible();
-        const NT *px = pxa.get();
+        auto [spx, px] = get_host_accessible<CTT>(x);
         NT low_x = static_cast<NT>(bounds[0]);
         NT high_x = static_cast<NT>(bounds[1]);
         bool slice_x = equal(low_x, high_x, eps8);
@@ -347,9 +351,7 @@ int bounds_to_extent(const double *bounds,
         unsigned long high_j = ny - 1;
         extent[2] = 0;
         extent[3] = high_j;
-        auto ya = std::dynamic_pointer_cast<TT>(y);
-        auto pya = ya->get_cpu_accessible();
-        const NT *py = pya.get();
+        auto [spy, py] = get_host_accessible<CTT>(y);
         NT low_y = static_cast<NT>(bounds[2]);
         NT high_y = static_cast<NT>(bounds[3]);
         bool slice_y = equal(low_y, high_y, eps8);
@@ -358,12 +360,12 @@ int bounds_to_extent(const double *bounds,
         unsigned long high_k = nz - 1;
         extent[4] = 0;
         extent[5] = high_k;
-        auto za = std::dynamic_pointer_cast<TT>(z);
-        auto pza = za->get_cpu_accessible();
-        const NT *pz = pza.get();
+        auto [spz, pz] = get_host_accessible<CTT>(z);
         NT low_z = static_cast<NT>(bounds[4]);
         NT high_z = static_cast<NT>(bounds[5]);
         bool slice_z = equal(low_z, high_z, eps8);
+
+        sync_host_access_any(x, y, z);
 
         if (((nx > 1) && (((px[high_i] > px[0]) &&
             (teca_coordinate_util::index_of(px, 0, high_i, low_x, true, extent[0])
@@ -405,47 +407,11 @@ int bounds_to_extent(const double *bounds,
 int bounds_to_extent(const double *bounds,
     const const_p_teca_variant_array &x, unsigned long *extent)
 {
-    TEMPLATE_DISPATCH_FP(
-        const teca_variant_array_impl,
-        x.get(),
-
-        // in the following, for each side (low, high) of the bounds in
-        // each cooridnate direction we are searching for the index that
-        // is either just below, just above, or exactly at the given value.
-        // special cases include:
-        //   * x,y,z in descending order. we check for that and
-        //     invert the compare functions that define the bracket
-        //   * bounds describing a plane. we test for this and
-        //     so that both high and low extent return the same value.
-        //   * x,y,z are length 1. we can skip the search in that
-        //     case.
-
-        const NT eps8 = NT(8)*std::numeric_limits<NT>::epsilon();
-
+    VARIANT_ARRAY_DISPATCH_FP(x.get(),
         unsigned long nx = x->size();
-        unsigned long high_i = nx - 1;
-        extent[0] = 0;
-        extent[1] = high_i;
-        auto xa = std::static_pointer_cast<TT>(x);
-        auto pxa = xa->get_cpu_accessible();
-        const NT *px = pxa.get();
-        NT low_x = static_cast<NT>(bounds[0]);
-        NT high_x = static_cast<NT>(bounds[1]);
-        bool slice_x = equal(low_x, high_x, eps8);
-
-        if (((nx > 1) && (((px[high_i] > px[0]) &&
-            (teca_coordinate_util::index_of(px, 0, high_i, low_x, true, extent[0])
-            || teca_coordinate_util::index_of(px, 0, high_i, high_x, slice_x, extent[1]))) ||
-            ((px[high_i] < px[0]) &&
-            (teca_coordinate_util::index_of<NT,descend_bracket<NT>>(px, 0, high_i, low_x, false, extent[0])
-            || teca_coordinate_util::index_of<NT,descend_bracket<NT>>(px, 0, high_i, high_x, !slice_x, extent[1]))))))
-        {
-            TECA_ERROR(<< "requested subset [" << bounds[0] << ", " << bounds[1] << ", "
-                << "] is not contained in the current dataset bounds [" << px[0] << ", "
-                << px[high_i] << "]")
-            return -1;
-        }
-        return 0;
+        auto [spx, px] = get_host_accessible<CTT>(x);
+        sync_host_access_any(x);
+        return bounds_to_extent(bounds, px, nx, extent);
         )
 
     TECA_ERROR("invalid coordinate array type \"" << x->get_class_name() << "\"")
@@ -890,4 +856,225 @@ int teca_coordinate_axis_validator::validate_time_axis(std::string &errorStr)
         m_absolute_tolerance, m_relative_tolerance, errorStr);
 }
 
-};
+// --------------------------------------------------------------------------
+int split(spatial_extent_t &block_1, spatial_extent_t &block_2,
+    int split_dir, unsigned long min_size)
+{
+    // compute length in this direction
+    int i0 = 2*split_dir;
+    int i1 = i0 + 1;
+
+    unsigned long ni = block_1[i1] - block_1[i0] + 1;
+
+    // can't split in this direction
+    if (ni < 2*min_size)
+        return 0;
+
+    // compute the new length
+    unsigned long no = ni/2;
+
+    // copy input
+    block_2 = block_1;
+
+    // split
+    block_1[i1] = block_1[i0] + no;
+    block_2[i0] = std::min(block_2[i1], block_1[i1] + 1);
+
+    return 1;
+}
+
+// --------------------------------------------------------------------------
+int partition(const spatial_extent_t &ext, unsigned int n_blocks,
+    int split_x, int split_y, int split_z,
+    unsigned long min_size_x, unsigned long min_size_y,
+    unsigned long min_size_z, std::deque<spatial_extent_t> &blocks)
+{
+    // get the length in each direction
+    unsigned long nx = ext[1] - ext[0] + 1;
+    unsigned long ny = ext[3] - ext[2] + 1;
+    unsigned long nz = ext[5] - ext[4] + 1;
+
+    // check that it is possible to generate the requested number of blocks
+    unsigned long nbx_max = split_x ? nx / min_size_x + (nx % min_size_x ? 1 : 0) : 1;
+    unsigned long nby_max = split_y ? ny / min_size_y + (ny % min_size_y ? 1 : 0) : 1;
+    unsigned long nbz_max = split_z ? nz / min_size_z + (nz % min_size_z ? 1 : 0) : 1;
+    unsigned long nb_max = nbx_max*nby_max*nbz_max;
+
+    if (nb_max < n_blocks)
+    {
+        TECA_ERROR("Given the constraints, "
+            << " split_x=" << split_x << " min_size_x=" << min_size_x
+            << " split_y=" << split_y << " min_size_y=" << min_size_y
+            << " split_z=" << split_z << " min_size_z=" << min_size_z
+            << ", it is not possible to partition [" << ext << " into "
+            << n_blocks << " blocks. At most " << nb_max << " can be created")
+        return -1;
+    }
+
+    // which directions can we split in?
+    std::vector<int> dirs;
+    std::vector<unsigned long> min_size;
+
+    if (split_z && (nz > min_size_z))
+    {
+        dirs.push_back(2);
+        min_size.push_back(min_size_z);
+    }
+
+    if (split_y && (ny > min_size_y))
+    {
+        dirs.push_back(1);
+        min_size.push_back(min_size_y);
+    }
+
+    if (split_x && (nx > min_size_x))
+    {
+        dirs.push_back(0);
+        min_size.push_back(min_size_x);
+    }
+
+    int n_dirs = dirs.size();
+
+    // start with the full extent
+    blocks.push_back(ext);
+
+    // split each block until the desired number is reached.
+    while (blocks.size() < n_blocks)
+    {
+        // at least on block should be split in each pass
+        int split_one = 0;
+
+        // alternate splitable directions
+        for (int d = 0; d < n_dirs; ++d)
+        {
+            // make a pass overt each block split it into 2 until the
+            // desired number is realized
+            unsigned long n = blocks.size();
+            for (unsigned long i = 0; i < n; ++i)
+            {
+                // take the next block from the front
+                spatial_extent_t b2;
+                spatial_extent_t b1 = blocks.front();
+                blocks.pop_front();
+
+                // add the new blocks to the back
+                if (split(b1, b2, dirs[d], min_size[d]))
+                {
+                    blocks.push_back(b2);
+                    split_one = 1;
+                }
+                blocks.push_back(b1);
+
+                // are we there yet?
+                if (blocks.size() == n_blocks)
+                    return 0;
+            }
+        }
+
+        // catch infinite loop
+        if (!split_one)
+        {
+            TECA_ERROR("Failed to create any new blocks."
+                << " split_x=" << split_x << " min_size_x=" << min_size_x
+                << " split_y=" << split_y << " min_size_y=" << min_size_y
+                << " split_z=" << split_z << " min_size_z=" << min_size_z
+                << " while partitioning [" << ext << " into " << n_blocks
+                << " blocks")
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+int partition(const temporal_extent_t &temporal_extent,
+    long n_temporal_blocks, long temporal_block_size,
+    std::vector<temporal_extent_t> &temporal_blocks)
+{
+    size_t n_steps = temporal_extent[1] - temporal_extent[0] + 1;
+
+    // partition the time axis
+    size_t n_time = 1;
+    size_t t_block_size = n_steps;
+    size_t t_block_rem = 0;
+
+    if (temporal_block_size >= 1)
+    {
+        // partition using a specified block size
+        t_block_size = temporal_block_size;
+        t_block_rem = n_steps % temporal_block_size;
+        n_time = n_steps / temporal_block_size;
+    }
+    else if (n_temporal_blocks >= 1)
+    {
+        // partition into specified number of blocks
+        t_block_size = n_steps / n_temporal_blocks;
+        t_block_rem =  n_steps % n_temporal_blocks;
+        n_time = n_temporal_blocks;
+    }
+
+    for (size_t i = 0; i < n_time; ++i)
+    {
+        unsigned long i0 = temporal_extent[0] + i*t_block_size;
+        unsigned long i1 = i0 + t_block_size - 1;
+        temporal_blocks.push_back({i0, i1});
+    }
+
+    // add a last potentially smaller block to capture the remaining steps
+    if (t_block_rem)
+    {
+        unsigned long i0 = temporal_extent[0] + n_time*t_block_size;
+        unsigned long i1 = i0 + t_block_rem - 1;
+        temporal_blocks.push_back({i0, i1});
+    }
+
+    return 0;
+}
+
+// **************************************************************************
+int find_extent_containing_step(long step,
+    const std::vector<std::pair<long, long>> &step_extents,
+    size_t l, size_t r, long &i)
+{
+    size_t m = (l + r) / 2;
+
+    const std::pair<long, long> &br = step_extents[m];
+
+    if ((step >= br.first) && (step <= br.second))
+    {
+        // found
+        i = m;
+        return 0;
+    }
+    else if (l == r)
+    {
+        // not found
+        return -1;
+    }
+    else if (step < br.first)
+    {
+        // search left
+        return find_extent_containing_step(step, step_extents, l, m, i);
+    }
+    else if (step > br.second)
+    {
+        // search right
+        if (m == l) m = r;
+        return find_extent_containing_step(step, step_extents, m, r, i);
+    }
+
+    // not found
+    return -1;
+}
+
+// **************************************************************************
+int find_extent_containing_step(long step,
+    const std::vector<std::pair<long, long>> &step_extents,
+    long &index)
+{
+    return find_extent_containing_step(step,
+        step_extents, 0, step_extents.size() - 1, index);
+}
+
+}

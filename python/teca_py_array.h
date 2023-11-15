@@ -230,7 +230,7 @@ bool append(teca_variant_array *varr, PyObject *obj)
             return true;
 
         // append
-        TEMPLATE_DISPATCH(teca_variant_array_impl, varr,
+        VARIANT_ARRAY_DISPATCH( varr,
             TT *varrt = static_cast<TT*>(varr);
             varrt->reserve(n_elem);
             TECA_PY_ARRAY_DISPATCH(arr,
@@ -267,7 +267,7 @@ bool append(teca_variant_array *varr, PyObject *obj)
     // numpy scalar
     if (PyArray_CheckScalar(obj))
     {
-        TEMPLATE_DISPATCH(teca_variant_array_impl, varr,
+        VARIANT_ARRAY_DISPATCH( varr,
             TT *varrt = static_cast<TT*>(varr);
             varrt->reserve(1);
 
@@ -307,7 +307,7 @@ bool set(teca_variant_array *varr, unsigned long i, PyObject *obj)
     // numpy scalar
     if (PyArray_CheckScalar(obj))
     {
-        TEMPLATE_DISPATCH(teca_variant_array_impl, varr,
+        VARIANT_ARRAY_DISPATCH( varr,
             TT *varrt = static_cast<TT*>(varr);
             TECA_PY_ARRAY_SCALAR_DISPATCH(obj,
                 varrt->set(i, teca_py_array::numpy_scalar_tt<ST>::value(obj));
@@ -326,59 +326,66 @@ bool set(teca_variant_array *varr, unsigned long i, PyObject *obj)
 TECA_EXPORT
 p_teca_variant_array new_variant_array(PyObject *obj, bool deep_copy = false)
 {
-    // not an array
-    if (!PyArray_Check(obj))
-        return nullptr;
+    if (PyArray_Check(obj))
+    {
+        // numpy array
+        PyArrayObject *arr = reinterpret_cast<PyArrayObject*>(obj);
 
-    PyArrayObject *arr = reinterpret_cast<PyArrayObject*>(obj);
+        // verify that zero-copy is possible, force a deep copy if it is not
+        if (!deep_copy &&
+            !((PyArray_CHKFLAGS(arr, NPY_ARRAY_C_CONTIGUOUS) ||
+            PyArray_CHKFLAGS(arr, NPY_ARRAY_F_CONTIGUOUS)) &&
+            PyArray_CHKFLAGS(arr, NPY_ARRAY_ALIGNED)))
+            deep_copy = true;
 
-    // verify that zero-copy is possible, force a deep copy if it is not
-    if (!deep_copy &&
-        !((PyArray_CHKFLAGS(arr, NPY_ARRAY_C_CONTIGUOUS) ||
-        PyArray_CHKFLAGS(arr, NPY_ARRAY_F_CONTIGUOUS)) &&
-        PyArray_CHKFLAGS(arr, NPY_ARRAY_ALIGNED)))
-        deep_copy = true;
+        TECA_PY_ARRAY_DISPATCH(arr,
+            size_t n_elem = PyArray_SIZE(arr);
 
-    TECA_PY_ARRAY_DISPATCH(arr,
-        size_t n_elem = PyArray_SIZE(arr);
+            p_teca_variant_array_impl<AT> varrt;
 
-        p_teca_variant_array_impl<AT> varrt;
-
-        if (deep_copy)
-        {
-#if defined(TECA_DEBUG)
-            std::cerr << "teca_py_array::new_variant_array deep copy" << std::endl;
-#endif
-            // make a deep copy of the data
-            varrt = teca_variant_array_impl<AT>::New();
-            varrt->reserve(n_elem);
-
-            NpyIter *it = NpyIter_New(arr, NPY_ITER_READONLY,
-                    NPY_KEEPORDER, NPY_NO_CASTING, nullptr);
-            NpyIter_IterNextFunc *next = NpyIter_GetIterNext(it, nullptr);
-            AT **ptrptr = reinterpret_cast<AT**>(NpyIter_GetDataPtrArray(it));
-            do
+            if (deep_copy)
             {
-                varrt->append(**ptrptr);
-            }
-            while (next(it));
-            NpyIter_Deallocate(it);
-        }
-        else
-        {
 #if defined(TECA_DEBUG)
-            std::cerr << "teca_py_array::new_variant_array zero copy" << std::endl;
+                std::cerr << "teca_py_array::new_variant_array deep copy" << std::endl;
 #endif
-            // pass by zero-copy and hold a reference to obj
-            AT *ptr = (AT*)PyArray_DATA(arr);
-            varrt = teca_variant_array_impl<AT>::New(n_elem,
-                ptr, teca_variant_array::allocator::malloc,
-                -1, hamr::python_deleter(ptr, n_elem, obj));
-        }
+                // make a deep copy of the data
+                varrt = teca_variant_array_impl<AT>::New();
+                varrt->reserve(n_elem);
 
-        return varrt;
-        )
+                NpyIter *it = NpyIter_New(arr, NPY_ITER_READONLY,
+                        NPY_KEEPORDER, NPY_NO_CASTING, nullptr);
+                NpyIter_IterNextFunc *next = NpyIter_GetIterNext(it, nullptr);
+                AT **ptrptr = reinterpret_cast<AT**>(NpyIter_GetDataPtrArray(it));
+                do
+                {
+                    varrt->append(**ptrptr);
+                }
+                while (next(it));
+                NpyIter_Deallocate(it);
+            }
+            else
+            {
+#if defined(TECA_DEBUG)
+                std::cerr << "teca_py_array::new_variant_array zero copy" << std::endl;
+#endif
+                // pass by zero-copy and hold a reference to obj
+                AT *ptr = (AT*)PyArray_DATA(arr);
+                varrt = teca_variant_array_impl<AT>::New(n_elem,
+                    ptr, teca_variant_array::allocator::malloc,
+                    -1, hamr::python_deleter(ptr, n_elem, obj));
+            }
 
+            return varrt;
+            )
+    }
+    else if (PyArray_CheckScalar(obj))
+    {
+        // numpy scalar
+        TECA_PY_ARRAY_SCALAR_DISPATCH(obj,
+            return teca_variant_array_impl<ST>::New(1,
+                teca_py_array::numpy_scalar_tt<ST>::value(obj));
+            )
+    }
     // unknown type
     return nullptr;
 }
@@ -420,9 +427,13 @@ PyArrayObject *new_object(teca_variant_array_impl<NT> *varrt, bool deep_copy = f
             return nullptr;
         }
 
-        // copy the data
-        auto spvarrt = varrt->get_cpu_accessible();
-        NT *pvarrt = spvarrt.get();
+        // deep copy the data
+        auto spvarrt = varrt->get_host_accessible();
+
+        if (!varrt->host_accessible())
+            varrt->synchronize();
+
+        const NT *pvarrt = spvarrt.get();
         memcpy(mem, pvarrt, n_bytes);
 
         // put the buffer in to a new numpy object
@@ -436,26 +447,28 @@ PyArrayObject *new_object(teca_variant_array_impl<NT> *varrt, bool deep_copy = f
     }
     else
     {
-        using ptr_t = std::shared_ptr<NT>;
+        using ptr_t = std::shared_ptr<const NT>;
 
         // get a pointer to the data
-        ptr_t *ptr = new ptr_t(std::move(varrt->get_cpu_accessible()));
-
+        ptr_t *ptr = new ptr_t(std::move(varrt->get_host_accessible()));
 
         // create a new numpy array passing the pointer to the data to share
         npy_intp n_elem = varrt->size();
 
         obj = reinterpret_cast<PyArrayObject*>(
-            PyArray_SimpleNewFromData(1, &n_elem, numpy_tt<NT>::code, ptr->get()));
+            PyArray_SimpleNewFromData(1, &n_elem, numpy_tt<NT>::code, (void*)ptr->get()));
 
         // package in a capsule. this holds the reference to keep it alive while
         // Numpy is using it.
-        PyObject *cap = PyCapsule_New(ptr, nullptr, variant_array_capsule_destrcutor<NT>);
+        PyObject *cap = PyCapsule_New(ptr, nullptr, variant_array_capsule_destrcutor<const NT>);
 
         PyArray_SetBaseObject(obj, cap);
 
-        PyArray_ENABLEFLAGS(obj, NPY_ARRAY_WRITEABLE | NPY_ARRAY_NOTSWAPPED |
+        PyArray_ENABLEFLAGS(obj, NPY_ARRAY_NOTSWAPPED |
             NPY_ARRAY_ALIGNED | NPY_ARRAY_C_CONTIGUOUS);
+
+        if (!varrt->host_accessible())
+            varrt->synchronize();
 
 #if defined(TECA_DEBUG)
         std::cerr << "new_object (zero copy) " << size_t(ptr->get()) << std::endl;
@@ -469,7 +482,7 @@ PyArrayObject *new_object(teca_variant_array_impl<NT> *varrt, bool deep_copy = f
 TECA_EXPORT
 PyArrayObject *new_object(teca_variant_array *varr, bool deep_copy = false)
 {
-    TEMPLATE_DISPATCH(teca_variant_array_impl, varr,
+    VARIANT_ARRAY_DISPATCH(varr,
         TT *varrt = static_cast<TT*>(varr);
         return new_object(varrt);
         )

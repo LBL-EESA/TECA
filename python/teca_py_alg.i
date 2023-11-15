@@ -15,7 +15,6 @@
 #include "teca_component_statistics.h"
 #include "teca_component_area_filter.h"
 #include "teca_dataset_diff.h"
-#include "teca_dataset_capture.h"
 #include "teca_dataset_source.h"
 #include "teca_derived_quantity.h"
 #include "teca_derived_quantity_numerics.h"
@@ -29,12 +28,17 @@
 #include "teca_latitude_damper.h"
 #include "teca_mask.h"
 #include "teca_normalize_coordinates.h"
+#include "teca_spatial_executive.h"
+#include "teca_regional_moisture_flux.h"
+#include "teca_surface_integral.h"
 #include "teca_rename_variables.h"
 #include "teca_saffir_simpson.h"
+#include "teca_temporal_reduction.h"
 #if defined(TECA_HAS_SHAPELIB)
 #include "teca_shape_file_mask.h"
 #endif
 #include "teca_table_calendar.h"
+#include "teca_table_join.h"
 #include "teca_table_sort.h"
 #include "teca_table_reduce.h"
 #include "teca_table_region_mask.h"
@@ -44,6 +48,7 @@
 #include "teca_tc_classify.h"
 #include "teca_tc_trajectory.h"
 #include "teca_tc_wind_radii.h"
+#include "teca_temporal_index_select.h"
 #include "teca_simple_moving_average.h"
 #include "teca_time_axis_convolution.h"
 #include "teca_unpack_data.h"
@@ -394,7 +399,15 @@ struct teca_tc_saffir_simpson
 %include "teca_cartesian_mesh_source.h"
 
 /***************************************************************************
- temporal_reduction
+ cpp_temporal_reduction
+ ***************************************************************************/
+%ignore teca_cpp_temporal_reduction::shared_from_this;
+%shared_ptr(teca_cpp_temporal_reduction)
+%ignore teca_cpp_temporal_reduction::operator=;
+%include "teca_temporal_reduction.h"
+
+/***************************************************************************
+ python_temporal_reduction
  ***************************************************************************/
 %pythoncode "teca_temporal_reduction.py"
 
@@ -504,3 +517,61 @@ struct teca_tc_saffir_simpson
  lapse_rate
  ***************************************************************************/
 %pythoncode "teca_lapse_rate.py"
+
+/***************************************************************************
+ spatial_executive
+ ***************************************************************************/
+%ignore teca_spatial_executive::shared_from_this;
+%shared_ptr(teca_spatial_executive)
+%ignore teca_spatial_executive::operator=;
+%include "teca_spatial_executive.h"
+
+/***************************************************************************
+ temporal_index_select
+ ***************************************************************************/
+%ignore teca_temporal_index_select::shared_from_this;
+%shared_ptr(teca_temporal_index_select)
+%ignore teca_temporal_index_select::operator=;
+%include "teca_temporal_index_select.h"
+
+/***************************************************************************
+ temporal_percentile
+ ***************************************************************************/
+%pythoncode "teca_temporal_percentile.py"
+
+/***************************************************************************
+ spectral_filter
+ ***************************************************************************/
+%pythoncode "teca_spectral_filter.py"
+
+/***************************************************************************
+ dataset_source
+ ***************************************************************************/
+%ignore teca_dataset_source::shared_from_this;
+%shared_ptr(teca_dataset_source)
+%ignore teca_dataset_source::operator=;
+%include "teca_dataset_source.h"
+
+/***************************************************************************
+ table_join
+ ***************************************************************************/
+%ignore teca_table_join::shared_from_this;
+%shared_ptr(teca_table_join)
+%ignore teca_table_join::operator=;
+%include "teca_table_join.h"
+
+/***************************************************************************
+ regional_moisture_flux
+ ***************************************************************************/
+%ignore teca_regional_moisture_flux::shared_from_this;
+%shared_ptr(teca_regional_moisture_flux)
+%ignore teca_regional_moisture_flux::operator=;
+%include "teca_regional_moisture_flux.h"
+
+/***************************************************************************
+ surface_integral
+ ***************************************************************************/
+%ignore teca_surface_integral::shared_from_this;
+%shared_ptr(teca_surface_integral)
+%ignore teca_surface_integral::operator=;
+%include "teca_surface_integral.h"

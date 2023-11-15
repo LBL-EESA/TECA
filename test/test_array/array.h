@@ -23,7 +23,7 @@ public:
     ~array();
 
     /// create an array that accessible on the CPU
-    static p_array new_cpu_accessible();
+    static p_array new_host_accessible();
 
     /// create an array that accessible from CUDA
     static p_array new_cuda_accessible();
@@ -36,18 +36,19 @@ public:
     TECA_DATASET_PROPERTY(std::string, name)
 
     // get a pointer to the contained data that is accessible on the CPU
-    std::shared_ptr<double> get_cpu_accessible();
-    std::shared_ptr<const double> get_cpu_accessible() const;
+    std::shared_ptr<const double> get_host_accessible() const;
 
     // get a pointer to the contained data that is accessible from CUDA codes
-    std::shared_ptr<double> get_cuda_accessible();
     std::shared_ptr<const double> get_cuda_accessible() const;
 
     // check if the data is accessible from CUDA
     bool cuda_accessible() const;
 
     // check if the data is accessible from the CPU
-    bool cpu_accessible() const;
+    bool host_accessible() const;
+
+    // get the raw pointer to managed data
+    double *data();
 
     // return a unique string identifier
     std::string get_class_name() const override

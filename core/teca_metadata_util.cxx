@@ -8,9 +8,9 @@ namespace teca_metadata_util
 
 // **************************************************************************
 int get_array_extent(const teca_metadata &array_attributes,
-    const unsigned long mesh_extent[6], unsigned long array_extent[6])
+    const unsigned long mesh_extent[8], unsigned long array_extent[8])
 {
-    for (int i = 0; i < 6; ++i)
+    for (int i = 0; i < 8; ++i)
         array_extent[i] = mesh_extent[i];
 
     unsigned long dim_active[4] = {0ul};
@@ -30,6 +30,9 @@ int get_array_extent(const teca_metadata &array_attributes,
 
     if (!dim_active[2])
         array_extent[5] = array_extent[4] = 0;
+
+    if (!dim_active[3])
+        array_extent[7] = array_extent[8] = 0;
 
     return 0;
 }

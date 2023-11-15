@@ -7,13 +7,22 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_coordinate_util.h"
 #include "teca_mpi_manager.h"
 #include "teca_system_interface.h"
 #include "teca_app_util.h"
+#include "teca_array_attributes.h"
 
 #if defined(TECA_HAS_UDUNITS)
 #include "teca_calcalcs.h"
+
+#include "teca_calendar_util.h"
+
+using teca_calendar_util::day_iterator;
+using teca_calendar_util::month_iterator;
+using teca_calendar_util::season_iterator;
+using teca_calendar_util::year_iterator;
 #endif
 
 #include <vector>
@@ -26,6 +35,30 @@
 
 using namespace std;
 using boost::program_options::value;
+using namespace teca_variant_array_util;
+
+#if defined(TECA_HAS_UDUNITS)
+// --------------------------------------------------------------------------
+template <typename it_t>
+long count(const const_p_teca_variant_array &time,
+    const std::string &calendar, const std::string &units, long i0, long i1)
+{
+    it_t it;
+
+    if (it.initialize(time, units, calendar, i0, i1))
+        return -1;
+
+    long n_int = 0;
+    while (it)
+    {
+        teca_calendar_util::time_point p0, p1;
+        it.get_next_interval(p0, p1);
+        ++n_int;
+    }
+
+    return n_int;
+}
+#endif
 
 // --------------------------------------------------------------------------
 int main(int argc, char **argv)
@@ -236,13 +269,10 @@ int main(int argc, char **argv)
         {
             // convert to double precision
             size_t n = t->size();
-            time = teca_double_array::New(n);
-            auto sp_time = time->get_cpu_accessible();
-            double *p_time = sp_time.get();
-            TEMPLATE_DISPATCH(teca_variant_array_impl,
-                t.get(),
-                auto sp_t = std::dynamic_pointer_cast<TT>(t)->get_cpu_accessible();
-                NT *p_t = sp_t.get();
+            double *p_time = nullptr;
+            std::tie(time, p_time) = ::New<teca_double_array>(n);
+            VARIANT_ARRAY_DISPATCH(t.get(),
+                auto [sp_t, p_t] = get_host_accessible<CTT>(t);
                 for (size_t i = 0; i < n; ++i)
                     p_time[i] = static_cast<double>(p_t[i]);
                 )
@@ -325,8 +355,23 @@ int main(int argc, char **argv)
         {
             oss << " The requested range contains " << i1 - i0 + 1 << " time steps and ranges from "
                 << time_i << " (" << time->get(i0) << ") to " << time_j << " (" << time->get(i1) << ") "
-                << "), starts at time step " << i0 << " and goes to time step " << i1;
+                << "), starts at time step " << i0 << " and goes to time step " << i1 << ".";
         }
+
+#if defined(TECA_HAS_UDUNITS)
+        oss << " The available data contains:";
+        if (long ny = count<year_iterator>(time, calendar, units, i0, i1))
+            oss << " " << ny << " years;";
+
+        if (long ns = count<season_iterator>(time, calendar, units, i0, i1))
+            oss << " " << ns << " seasons;";
+
+        if (long nm = count<month_iterator>(time, calendar, units, i0, i1))
+            oss << " " << nm << " months;";
+
+        if (long nd = count<day_iterator>(time, calendar, units, i0, i1))
+            oss << " " << nd << " days;";
+#endif
 
         std::string report(oss.str());
 
@@ -448,7 +493,7 @@ int main(int argc, char **argv)
 
             // type
             NC_DISPATCH(type,
-                at.push_back(teca_netcdf_util::netcdf_tt<NC_T>::name());
+                at.push_back(teca_netcdf_util::netcdf_tt<NC_NT>::name());
                 )
             atw = std::max<int>(atw, at.back().size() + 4);
 

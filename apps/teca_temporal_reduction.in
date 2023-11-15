@@ -34,13 +34,23 @@ parser.add_argument('--input_regex', type=str, required=False,
                          ' using the teca_cf_reader. Use one of either'
                          ' --input_file or --input_regex.')
 
+parser.add_argument('--time_index_file', type = str, required=False,
+                    help='a text file containing specific time indices to use'
+                         ' in the average; each row should have a single integer'
+                         ' time value that is within the bounds of the input'
+                         ' dataset.')
+
 parser.add_argument('--interval', type=str, default='monthly',
                     help='interval to reduce the time axis to. One of '
-                         'daily, monthly, or seasonal')
+                         'daily, monthly, seasonal, yearly, or N_steps '
+                         'where N is replaced with the desired number of '
+                         'steps')
 
 parser.add_argument('--operator', type=str, default='average',
                     help='reduction operator to use. One of minimum, '
-                         'maximum, or average')
+                         'maximum, average, summation, or Nth_percentile, '
+                         'where N is replaced with a number between 0 and '
+                         '100 indicating which percentile is to be computed')
 
 parser.add_argument('--point_arrays', nargs='+', required=True,
                     help='list of point centered arrays to process.')
@@ -92,10 +102,31 @@ parser.add_argument('--z_axis_variable', type=str, default='',
 parser.add_argument('--t_axis_variable', type=str, default='time',
                     help='name of the variable to use for t-coordinates')
 
+parser.add_argument('--spatial_partitioning', default=False, action='store_true',
+                    help='Activates the spatial partitioning engine')
+
+parser.add_argument('--spatial_partitions', type=int, default=0,
+                    help='Sets the number of spatial partitions. Use zero for'
+                         ' automatic partitioning and 1 for no partitioning')
+
+parser.add_argument('--partition_x', default=False, action='store_true',
+                    help='Partition spatially in the x-direction')
+
+parser.add_argument('--python_version', default=False, action='store_true',
+                    help='Use the Python implemetantion instead of the C++ implementation')
+
+parser.add_argument('--n_threads', type=int, default=-1,
+                    help='Sets the number of threads per MPI rank when the C++'
+                         ' implementation is active. Use -1 for automatic sizing'
+                         ' such that each core has a single thread node-wide.')
+
+parser.add_argument('--steps_per_request', type=int, default=1,
+                    help='Sets the number of time steps per request.')
+
 parser.add_argument('--verbose', type=int, default=0,
                     help='enable verbose mode.')
 
-# prevent spew when running under mpi
+# prevent excessive per rank output when running under mpi
 try:
     args = parser.parse_args()
 except Exception:
@@ -108,28 +139,26 @@ steps_per_file = args.steps_per_file
 interval = args.interval
 operator = args.operator
 point_arrays = args.point_arrays
+steps_per_request = args.steps_per_request
 fill_value = args.fill_value
 ignore_fill_value = args.ignore_fill_value
 x_axis_var = args.x_axis_variable
 y_axis_var = args.y_axis_variable
 z_axis_var = args.z_axis_variable
 t_axis_var = args.t_axis_variable
+if args.spatial_partitioning:
+    partitioner = teca_cf_writer.space_time
+else:
+    partitioner = teca_cf_writer.temporal
+spatial_partitions = args.spatial_partitions
+partition_x = 1 if args.partition_x else 0
 verbose = args.verbose
+time_index_file = args.time_index_file
+number_of_threads = args.n_threads
 
 # give each MPI rank a GPU
-n_threads = 1
 if not 'TECA_RANKS_PER_DEVICE' in os.environ:
     os.environ['TECA_RANKS_PER_DEVICE'] = '-1'
-
-if verbose and rank == 0:
-    sys.stderr.write('running on %d ranks' % (n_ranks))
-    sys.stderr.write('file_layout=%s\n'%(layout))
-    sys.stderr.write('steps_per_file=%d\n' % (steps_per_file))
-    sys.stderr.write('interval=%s\n' % (interval))
-    sys.stderr.write('operator=%s\n' % (operator))
-    sys.stderr.write('point_arrays=%s\n' % (str(point_arrays)))
-    sys.stderr.write('ignore_fill_value=%d\n' % (ignore_fill_value))
-    sys.stderr.write('fill_value=%s\n' % (str(fill_value)))
 
 if args.input_regex:
     cfr = teca_cf_reader.New()
@@ -146,33 +175,124 @@ cfr.set_y_axis_variable(y_axis_var)
 cfr.set_z_axis_variable(z_axis_var)
 cfr.set_t_axis_variable(t_axis_var)
 
+if time_index_file != "" and time_index_file is not None:
+    if not os.path.exists(time_index_file):
+        if rank == 0:
+            raise RuntimeError(f"Could not find file {time_index_file}")
+
+    if rank == 0:
+        # read the time index file
+        with open(time_index_file) as fin:
+            file_lines = [ l.rstrip() for l in fin.readlines()]
+
+        # convert the time indices to a list of integers
+        try:
+            indices = [int(l) for l in file_lines]
+        except:
+            raise RuntimeError(f"Failed to parse {time_index_file}; "
+                "the file should have a single integer index per row")
+    else:
+        indices = []
+
+    # broadcast the time indices
+    indices = MPI.COMM_WORLD.bcast(indices, root = 0)
+
+    # add the temporal index selection pipeline stage
+    select = teca_temporal_index_select.New()
+    select.set_input_connection(cfr.get_output_port())
+    select.set_indices(indices)
+    select.set_verbose(1 if verbose > 1 else 0)
+
+    # insert this into the pipeline
+    upstream = select
+else:
+    upstream = cfr
+
 vvm = teca_valid_value_mask.New()
-vvm.set_input_connection(cfr.get_output_port())
+vvm.set_input_connection(upstream.get_output_port())
 vvm.set_verbose(1 if verbose > 1 else 0)
 
 upd = teca_unpack_data.New()
 upd.set_input_connection(vvm.get_output_port())
 upd.set_verbose(verbose)
 
-mav = teca_temporal_reduction.New()
-mav.set_input_connection(upd.get_output_port())
-mav.set_interval(interval)
-mav.set_operator(operator)
-mav.set_fill_value(fill_value)
-mav.set_use_fill_value( 0 if ignore_fill_value else 1 )
-mav.set_point_arrays(point_arrays)
-mav.set_verbose(verbose)
-mav.set_thread_pool_size(n_threads)
-mav.set_stream_size(2)
+cpp_version = False
+loc = operator.rfind('th_percentile')
+if loc > 0:
+    percentile = float(operator[:loc])
+
+    red = teca_temporal_percentile.New()
+    red.set_input_connection(upd.get_output_port())
+    red.set_interval(interval)
+    red.set_use_fill_value( 0 if ignore_fill_value else 1 )
+    red.set_point_arrays(point_arrays)
+    red.set_percentile(percentile)
+    red.set_verbose(verbose)
+    steps_per_request = 1
+else:
+    if not args.python_version \
+        and operator in ['minimum', 'maximum', 'summation', 'average'] \
+        and (interval in ['daily', 'monthly', 'seasonal', 'yearly', 'all'] or 'steps' in interval):
+        cpp_version = True
+        red = teca_cpp_temporal_reduction.New()
+        red.set_input_connection(upd.get_output_port())
+        red.set_stream_size(1)
+        red.set_verbose(verbose)
+        red.set_thread_pool_size(number_of_threads)
+        if 'steps' in interval:
+           red.set_interval('n_steps')
+           pos = interval.rfind('_steps')
+           n_steps = int(interval[0:pos])
+           red.set_number_of_steps(n_steps)
+        else:
+           red.set_interval(interval)
+        red.set_operation(operator)
+        red.set_point_arrays(point_arrays)
+        red.set_steps_per_request(steps_per_request)
+        if fill_value is not None:
+            red.set_fill_value(fill_value)
+    else:
+        red = teca_temporal_reduction.New()
+        red.set_input_connection(upd.get_output_port())
+        red.set_interval(interval)
+        red.set_operator(operator)
+        red.set_fill_value(fill_value)
+        red.set_use_fill_value( 0 if ignore_fill_value else 1 )
+        red.set_point_arrays(point_arrays)
+        red.set_verbose(verbose)
+        red.set_thread_pool_size(1)
+        red.set_stream_size(2)
+        steps_per_request = 1
 
 cfw = teca_cf_writer.New()
-cfw.set_input_connection(mav.get_output_port())
+cfw.set_input_connection(red.get_output_port())
 cfw.set_verbose(verbose)
-cfw.set_thread_pool_size(1)
-cfw.set_layout(layout)
-cfw.set_steps_per_file(steps_per_file)
+cfw.set_thread_pool_size(number_of_threads if cpp_version else 1)
 cfw.set_file_name(out_files)
+cfw.set_steps_per_file(steps_per_file)
+cfw.set_layout(layout)
 cfw.set_point_arrays(point_arrays)
+cfw.set_index_executive_compatability(1)
+cfw.set_number_of_spatial_partitions(spatial_partitions)
+cfw.set_partitioner(partitioner)
+cfw.set_partition_x(partition_x)
+
+if verbose and rank == 0:
+    sys.stderr.write('running on %d ranks\n' % (n_ranks))
+    sys.stderr.write('file_layout=%s\n'%(layout))
+    sys.stderr.write('steps_per_file=%d\n' % (steps_per_file))
+    sys.stderr.write('steps_per_request=%d\n' % (steps_per_request))
+    sys.stderr.write('interval=%s\n' % (interval))
+    sys.stderr.write('operator=%s\n' % (operator))
+    sys.stderr.write('point_arrays=%s\n' % (str(point_arrays)))
+    sys.stderr.write('ignore_fill_value=%d\n' % (ignore_fill_value))
+    sys.stderr.write('fill_value=%s\n' % (str(fill_value)))
+    sys.stderr.write('spatial_partitioning=%d\n'%(args.spatial_partitioning))
+    sys.stderr.write('spatial_partitions=%d\n' % (spatial_partitions))
+    sys.stderr.write('partition_x=%d\n' % (partition_x))
+    sys.stderr.write('implementation=%s\n' % (red.get_class_name()))
+    sys.stderr.write('number_of_threads=%d\n' % (number_of_threads))
+
 cfw.update()
 
 teca_profiler.end_event('temporal_reduction')

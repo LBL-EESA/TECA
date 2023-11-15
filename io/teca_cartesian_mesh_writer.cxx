@@ -7,9 +7,10 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_file_util.h"
 #include "teca_vtk_util.h"
-
+#include "teca_metadata_util.h"
 
 #if defined(TECA_HAS_VTK) || defined(TECA_HAS_PARAVIEW)
 #include "vtkRectilinearGrid.h"
@@ -28,6 +29,8 @@
 #if defined(TECA_HAS_MPI)
 #include <mpi.h>
 #endif
+
+using namespace teca_variant_array_util;
 
 namespace internals {
 
@@ -86,12 +89,9 @@ void write_vtk_array_data(FILE *ofile,
     if (a)
     {
         size_t na = a->size();
-        TEMPLATE_DISPATCH(const teca_variant_array_impl,
-            a.get(),
-
-            auto spa = static_cast<TT*>(a.get())->get_cpu_accessible();
-            const NT *pa = spa.get();
-
+        VARIANT_ARRAY_DISPATCH(a.get(),
+            auto [spa, pa] = get_host_accessible<CTT>(a);
+            sync_host_access_any(a);
             if (binary)
             {
                 // because VTK's legacy file fomrat  requires big endian storage
@@ -156,7 +156,7 @@ int write_vtk_legacy_rectilinear_header(FILE *ofile,
     size_t nz = (z ? z->size() : 1);
 
     const char *coord_type_str = nullptr;
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    VARIANT_ARRAY_DISPATCH(
         (x ? x.get() : (y ? y.get() : (z ? z.get() : nullptr))),
         coord_type_str = teca_vtk_util::vtk_tt<NT>::str();
         )
@@ -222,7 +222,7 @@ int write_vtk_legacy_arakawa_c_grid_header(FILE *ofile,
     }
 
     const char *coord_type_str = nullptr;
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    VARIANT_ARRAY_DISPATCH(
         (x ? x.get() : (y ? y.get() : (z ? z.get() : nullptr))),
         coord_type_str = teca_vtk_util::vtk_tt<NT>::str();
         )
@@ -236,20 +236,14 @@ int write_vtk_legacy_arakawa_c_grid_header(FILE *ofile,
 
     // convert the WRF coordinate arrays into VTK layout
     p_teca_variant_array xyz = x->new_instance(3*nxyz);
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        xyz.get(),
+    VARIANT_ARRAY_DISPATCH(x.get(),
 
-        auto spx = dynamic_cast<const TT*>(x.get())->get_cpu_accessible();
-        const NT *px = spx.get();
+        assert_type<CTT>(y, z);
 
-        auto spy = dynamic_cast<const TT*>(y.get())->get_cpu_accessible();
-        const NT *py = spy.get();
+        auto [pxyz] = data<TT>(xyz);
+        auto [spx, px, spy, py, spz, pz] = get_host_accessible<CTT>(x, y, z);
 
-        auto spz = dynamic_cast<const TT*>(z.get())->get_cpu_accessible();
-        const NT *pz = spz.get();
-
-        auto spxyz = dynamic_cast<TT*>(xyz.get())->get_cpu_accessible();
-        NT *pxyz = spxyz.get();
+        sync_host_access_any(x, y, z);
 
         for (size_t k = 0; k < nz; ++k)
         {
@@ -314,7 +308,7 @@ int write_vtk_legacy_curvilinear_header(FILE *ofile,
     }
 
     const char *coord_type_str = nullptr;
-    TEMPLATE_DISPATCH(const teca_variant_array_impl,
+    VARIANT_ARRAY_DISPATCH(
         (x ? x.get() : (y ? y.get() : (z ? z.get() : nullptr))),
         coord_type_str = teca_vtk_util::vtk_tt<NT>::str();
         )
@@ -329,24 +323,19 @@ int write_vtk_legacy_curvilinear_header(FILE *ofile,
     // convert the WRF arrays into VTK layout
     p_teca_variant_array xyz = x->new_instance(3*nxyz);
 
-    TEMPLATE_DISPATCH(teca_variant_array_impl,
-        xyz.get(),
+    VARIANT_ARRAY_DISPATCH(x.get(),
 
-        auto spx = dynamic_cast<const TT*>(x.get())->get_cpu_accessible();
-        const NT *px = spx.get();
+        assert_type<CTT>(y, z);
 
-        auto spy = dynamic_cast<const TT*>(y.get())->get_cpu_accessible();
-        const NT *py = spy.get();
+        auto [pxyz] = data<TT>(xyz);
+        auto [spx, px, spy, py] = get_host_accessible<CTT>(x, y);
 
+        CSP spz;
         const NT *pz = nullptr;
         if (z)
-        {
-            auto spz = dynamic_cast<const TT*>(z.get())->get_cpu_accessible();
-            pz = spz.get();
-        }
+            std::tie(spz, pz) = get_host_accessible<CTT>(z);
 
-        auto spxyz = dynamic_cast<TT*>(xyz.get())->get_cpu_accessible();
-        NT *pxyz = spxyz.get();
+        sync_host_access_any(x, y);
 
         for (size_t i = 0; i < nxyz; ++i)
             pxyz[3*i] = px[i];
@@ -400,9 +389,8 @@ int write_vtk_legacy_attribute(FILE *ofile, unsigned long n_vals,
         else
             fprintf(ofile, "%s 1 %zu ", array_name.c_str(), n_elem);
 
-        TEMPLATE_DISPATCH(const teca_variant_array_impl,
-            array.get(), fprintf(ofile, "%s\n",
-            teca_vtk_util::vtk_tt<NT>::str());
+        VARIANT_ARRAY_DISPATCH(array.get(),
+            fprintf(ofile, "%s\n", teca_vtk_util::vtk_tt<NT>::str());
             )
         else
         {
@@ -762,28 +750,17 @@ const_p_teca_dataset teca_cartesian_mesh_writer::execute(
         return nullptr;
     }
 
-    const teca_metadata &md = mesh->get_metadata();
-
-    std::string index_request_key;
-    if (md.get("index_request_key", index_request_key))
-    {
-        TECA_FATAL_ERROR("Dataset metadata is missing the index_request_key key")
-        return nullptr;
-    }
-
     unsigned long index = 0;
-    if (md.get(index_request_key, index))
+    if (mesh->get_request_index(index))
     {
-        TECA_FATAL_ERROR("Dataset metadata is missing the \""
-            << index_request_key << "\" key")
+        TECA_FATAL_ERROR("Failed to determine the requested index")
         return nullptr;
     }
 
     double time = 0.0;
-    if (mesh->get_time(time) &&
-        request.get("time", time))
+    if (mesh->get_time(time) && request.get("time", time))
     {
-        TECA_FATAL_ERROR("request missing \"time\"")
+        TECA_FATAL_ERROR("Failed to determine the time of index " << index)
         return nullptr;
     }
 

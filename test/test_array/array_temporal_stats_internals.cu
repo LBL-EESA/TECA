@@ -54,10 +54,8 @@ int cuda_dispatch(int device_id, p_array &results, const const_p_array &l_in,
     // NOTE : results are always on the CPU!
 
     // allocate space for the output
-    results = array::new_cpu_accessible();
+    results = array::new_host_accessible();
     results->resize(4);
-
-    std::shared_ptr<double> presults = results->get_cpu_accessible();
 
     // cases:
     if (l_active && r_active)
@@ -66,28 +64,24 @@ int cuda_dispatch(int device_id, p_array &results, const const_p_array &l_in,
         // compute stats from left
         std::shared_ptr<const double> pl_in = l_in->get_cuda_accessible();
 
-        p_array res_l = array::new_cpu_accessible();
+        p_array res_l = array::new_host_accessible();
         res_l->resize(4);
 
-        std::shared_ptr<double> pres_l = res_l->get_cpu_accessible();
-
         array_temporal_stats_internals::gpu::compute_stats(
-            pres_l.get(), pl_in.get(), l_in->size());
+            res_l->data(), pl_in.get(), l_in->size());
 
         // compute stats from right
         std::shared_ptr<const double> pr_in = r_in->get_cuda_accessible();
 
-        p_array res_r = array::new_cpu_accessible();
+        p_array res_r = array::new_host_accessible();
         res_r->resize(4);
 
-        std::shared_ptr<double> pres_r = res_r->get_cpu_accessible();
-
         array_temporal_stats_internals::gpu::compute_stats(
-            pres_r.get(), pr_in.get(), r_in->size());
+            res_r->data(), pr_in.get(), r_in->size());
 
         // reduce stats
         array_temporal_stats_internals::cpu::reduce_stats(
-            presults.get(), pres_l.get(), pres_r.get());
+            results->data(), res_l->data(), res_r->data());
     }
     else
     if (l_active)
@@ -97,20 +91,18 @@ int cuda_dispatch(int device_id, p_array &results, const const_p_array &l_in,
         // compute stats from left
         std::shared_ptr<const double> pl_in = l_in->get_cuda_accessible();
 
-        p_array res_l = array::new_cpu_accessible();
+        p_array res_l = array::new_host_accessible();
         res_l->resize(4);
 
-        std::shared_ptr<double> pres_l = res_l->get_cpu_accessible();
-
         array_temporal_stats_internals::gpu::compute_stats(
-            pres_l.get(), pl_in.get(), l_in->size());
+            res_l->data(), pl_in.get(), l_in->size());
 
         // existing stats from right
-        std::shared_ptr<const double> pr_in = r_in->get_cpu_accessible();
+        std::shared_ptr<const double> pr_in = r_in->get_host_accessible();
 
         // reduce stats
         array_temporal_stats_internals::cpu::reduce_stats(
-            presults.get(), pres_l.get(), pr_in.get());
+            results->data(), res_l->data(), pr_in.get());
     }
     else
     if (r_active)
@@ -120,34 +112,32 @@ int cuda_dispatch(int device_id, p_array &results, const const_p_array &l_in,
         // compute stats from right
         std::shared_ptr<const double> pr_in = r_in->get_cuda_accessible();
 
-        p_array res_r = array::new_cpu_accessible();
+        p_array res_r = array::new_host_accessible();
         res_r->resize(4);
 
-        std::shared_ptr<double> pres_r = res_r->get_cpu_accessible();
-
         array_temporal_stats_internals::gpu::compute_stats(
-            pres_r.get(), pr_in.get(), r_in->size());
+            res_r->data(), pr_in.get(), r_in->size());
 
         // existing stats from left
-        std::shared_ptr<const double> pl_in = l_in->get_cpu_accessible();
+        std::shared_ptr<const double> pl_in = l_in->get_host_accessible();
 
         // reduce stats
         array_temporal_stats_internals::cpu::reduce_stats(
-            presults.get(), pl_in.get(), pres_r.get());
+            results->data(), pl_in.get(), res_r->data());
     }
     else
     {
         // both left and right contain stats
 
         // existing stats from left
-        std::shared_ptr<const double> pl_in = l_in->get_cpu_accessible();
+        std::shared_ptr<const double> pl_in = l_in->get_host_accessible();
 
         // existing stats from right
-        std::shared_ptr<const double> pr_in = r_in->get_cpu_accessible();
+        std::shared_ptr<const double> pr_in = r_in->get_host_accessible();
 
         // reduce stats
         array_temporal_stats_internals::cpu::reduce_stats(
-            presults.get(), pl_in.get(), pr_in.get());
+            results->data(), pl_in.get(), pr_in.get());
     }
 
     return 0;

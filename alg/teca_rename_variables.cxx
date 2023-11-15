@@ -4,7 +4,6 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_metadata.h"
-#include "teca_array_attributes.h"
 
 #include <algorithm>
 #include <iostream>
@@ -111,6 +110,8 @@ teca_metadata teca_rename_variables::get_output_metadata(
         out_vars.erase(it);
         out_vars.insert(this->new_variable_names[i]);
     }
+
+    out_md.set("variables", out_vars);
 
     // update the list of attributes to reflect the new names
     teca_metadata attributes;

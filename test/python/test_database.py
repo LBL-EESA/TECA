@@ -8,17 +8,17 @@ t1 = teca_table.New()
 t1.declare_columns(['event','day','strength','magnitude'], ['i','s','f','d'])
 t1.declare_column('flag', 'ull')
 
-c1 = np.array([1,2,3,4,5], dtype=np.int)
+c1 = np.array([1,2,3,4,5], dtype=np.int64)
 c2 = ['Mon', 'Tues', 'Wed', 'Thurs', 'Fri']
 c3 = np.array([1.2,2.3,3.4,4.5,5.6], dtype=np.double)
 c4 = np.array([6,7,8,9,10], dtype=np.double)
-c6 = np.array([0,1,0,1,0], dtype=np.int)
+c6 = np.array([0,1,0,1,0], dtype=np.int64)
 
-t1.set_column('event', np.array([1,2,3,4,5], dtype=np.int))
+t1.set_column('event', np.array([1,2,3,4,5], dtype=np.int64))
 t1.set_column('day', ['Mon', 'Tues', 'Wed', 'Thurs', 'Fri'])
 t1.set_column('strength', np.array([1.2,2.3,3.4,4.5,5.6], dtype=np.double))
 t1.set_column('magnitude', np.array([6,7,8,9,10], dtype=np.double))
-t1.set_column('flag', np.array([0,1,0,1,0], dtype=np.int))
+t1.set_column('flag', np.array([0,1,0,1,0], dtype=np.int64))
 
 sys.stderr.write('dumping table contents...\n')
 sys.stderr.write('%s\n'%(str(t1)))

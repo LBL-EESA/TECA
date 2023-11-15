@@ -37,12 +37,10 @@ public:
      * format.
      */
     int initialize(MPI_Comm comm, long first_step, long last_step,
-        long steps_per_file, const teca_metadata &md);
+        long steps_per_file, const std::string &index_request_key);
 
-    /** given a time step, get the corresponding layout manager that can be
-     * used to create, define and write data to disk.
-     */
     p_teca_cf_layout_manager get_layout_manager(long time_step) override;
+    using teca_cf_time_step_mapper::get_layout_manager;
 
     /// print a summary to the stream
     int to_stream(std::ostream &os) override;

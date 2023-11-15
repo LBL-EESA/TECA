@@ -5,6 +5,7 @@
 #include "teca_array_collection.h"
 #include "teca_variant_array.h"
 #include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 #include "teca_metadata.h"
 
 #include <algorithm>
@@ -19,6 +20,8 @@
 
 using std::cerr;
 using std::endl;
+
+using namespace teca_variant_array_util;
 
 //#define TECA_DEBUG
 
@@ -129,39 +132,25 @@ const_p_teca_dataset teca_component_statistics::execute(
     unsigned long n_comps = component_ids->size();
 
     // make a time column
-    p_teca_double_array time = teca_double_array::New();
-    time->resize(n_comps);
-
-    auto spt = time->get_cpu_accessible();
-    double *pt = spt.get();
+    auto [time, pt] = ::New<teca_double_array>(n_comps);
 
     for (unsigned long i = 0; i < n_comps; ++i)
         pt[i] = t;
 
     // make a time step column
-    p_teca_unsigned_long_array step = teca_unsigned_long_array::New();
-    step->resize(n_comps);
-
-    auto sps = step->get_cpu_accessible();
-    unsigned long *ps = sps.get();
+    auto [step, ps] = ::New<teca_unsigned_long_array>(n_comps);
 
     for (unsigned long i = 0; i < n_comps; ++i)
         ps[i] = s;
 
     // compute a glonbal id, from the time step and component id
-    p_teca_unsigned_long_array global_component_ids =
-        teca_unsigned_long_array::New();
+    auto [global_component_ids, pgcid] = ::New<teca_unsigned_long_array>(n_comps);
 
-    global_component_ids->resize(n_comps);
+    VARIANT_ARRAY_DISPATCH_I(component_ids.get(),
 
-    auto spgcid = global_component_ids->get_cpu_accessible();
-    unsigned long *pgcid = spgcid.get();
+        auto [spcid, pcid] = get_host_accessible<CTT>(component_ids);
 
-    TEMPLATE_DISPATCH_I(teca_variant_array_impl,
-        component_ids.get(),
-
-        auto spcid = static_cast<TT*>(component_ids.get())->get_cpu_accessible();
-        NT *pcid = spcid.get();
+        sync_host_access_any(component_ids);
 
         unsigned long base = s*1000000;
         for (unsigned long i = 0; i < n_comps; ++i)

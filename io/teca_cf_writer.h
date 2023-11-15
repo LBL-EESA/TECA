@@ -148,6 +148,9 @@ public:
         TECA_ERROR("Invalid layout mode " << mode)
         return -1;
     }
+
+    /// @returns a string representation of the current layout
+    const char *get_layout_name() const;
     ///@}
 
     /** @name steps_per_file
@@ -164,7 +167,6 @@ public:
     ///@{
     TECA_ALGORITHM_PROPERTY(int, mode_flags)
     ///@}
-
 
     /** @name use_unlimited_dim
      * if set the slowest varying dimension is specified to be NC_UNLIMITED.
@@ -187,6 +189,17 @@ public:
      */
     ///@{
     TECA_ALGORITHM_PROPERTY(int, compression_level)
+    ///@}
+
+    /** @name collective_buffer
+     * Enables MPI I/O colective buffering. Collective buffering is only valid
+     * when the spatial partitioner is enabled and the number of spatial
+     * partitions is equal to  the number of MPI ranks. If set to -1 (the
+     * default) collective buffering will automatically enabled when it is
+     * possible to do so.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, collective_buffer)
     ///@}
 
     /** @name flush_files
@@ -214,6 +227,127 @@ public:
     TECA_ALGORITHM_VECTOR_PROPERTY(std::string, information_array)
     ///@}
 
+    /** @name spatial_partitioner
+     * Enable spatial partitioner, When spatial partitioner is enabled both
+     * temporal and spatial dimensions of input data are partitioned for load
+     * balancing. The partitioner is controled by the
+     * number_of_spatial_partitions, number_of_temporal_partitions and,
+     * temporal_partition_size properties.
+     */
+    ///@{
+    enum
+    {
+        temporal,  ///< map time steps to MPI ranks
+        spatial,   ///< map spatial extents to MPI ranks, time is processed sequentially
+        space_time ///< both spatial and temporal extents to MPI ranks
+    };
+
+    TECA_ALGORITHM_PROPERTY_V(int, partitioner)
+
+    /// set the partitioner from a string
+    void set_partitioner(const std::string &part);
+
+    /// enables temporal partitioner
+    void set_partitioner_to_temporal() { this->set_partitioner(temporal); }
+
+    /// enables spatial partitioner
+    void set_partitioner_to_spatial() { this->set_partitioner(spatial); }
+
+    /// enables space-time partitioner
+    void set_partitioner_to_space_time() { this->set_partitioner(space_time); }
+
+    /// @returns 0 if the passed value is a valid partitioner mode
+    int validate_partitioner(int mode)
+    {
+        if ((mode == temporal) || (mode == spatial) || (mode ==space_time))
+            return 0;
+
+        TECA_ERROR("Invalid partitioner mode " << mode)
+        return -1;
+    }
+
+    /// @returns the name of the current partitioner mode
+    const char *get_partitioner_name() const;
+    ///@}
+
+    /** @name number_of_spatial_partitions
+     * Set the number of spatial partitions. If less than one then the number of
+     * MPI ranks is used.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(long, number_of_spatial_partitions)
+    ///@}
+
+    /** @name partition_x
+     * enables/disables spatial partitioning in the x-direction
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, partition_x)
+    ///@}
+
+    /** @name partition_y
+     * enables/disables spatial partitioning in the y-direction
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, partition_y)
+    ///@}
+
+    /** @name partition_z
+     * enables/disables spatial partitioning in the z-direction
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, partition_z)
+    ///@}
+
+    /** @name minimum_block_size_x
+     * Sets the minimum block size for spatial partitioning in the x-direction
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(long, minimum_block_size_x)
+    ///@}
+
+    /** @name minimum_block_size_y
+     * Sets the minimum block size for spatial partitioning in the y-direction
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(long, minimum_block_size_y)
+    ///@}
+
+    /** @name minimum_block_size_z
+     * Sets the minimum block size for spatial partitioning in the z-direction
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(long, minimum_block_size_z)
+    ///@}
+    //
+    /** @name number_of_temporal_partitions
+     * Set the number of temporal partitions. If set to less than one then the
+     * number of time steps is used. The temporal_partition_size property takes
+     * precedence, if it is set then the this property is ignored. The default
+     * value is zero.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(long, number_of_temporal_partitions)
+    ///@}
+
+    /** @name temporal_partition_size
+     * Set the size of the temporal partitions. If set to less than one then the
+     * number_of_temporal_partition property is used instead. The default value is
+     * zero.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(long, temporal_partition_size)
+    ///@}
+
+    /** @name index_executive_compatibility
+     * If set and spatial partitioner is enabled, the writer will make one
+     * request per time step using the index_request_key as the
+     * teca_index_executive would. This could be used parallelize existing
+     * algorithms over space and time.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, index_executive_compatability)
+    ///@}
 
 protected:
     teca_cf_writer();
@@ -240,12 +374,24 @@ private:
 private:
     std::string file_name;
     std::string date_format;
+    long number_of_spatial_partitions;
+    int partition_x;
+    int partition_y;
+    int partition_z;
+    long minimum_block_size_x;
+    long minimum_block_size_y;
+    long minimum_block_size_z;
+    long number_of_temporal_partitions;
+    long temporal_partition_size;
     long first_step;
     long last_step;
     int layout;
+    int partitioner;
+    int index_executive_compatability;
     unsigned int steps_per_file;
     int mode_flags;
     int use_unlimited_dim;
+    int collective_buffer;
     int compression_level;
     int flush_files;
 

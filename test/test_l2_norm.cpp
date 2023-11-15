@@ -9,10 +9,14 @@
 #include "teca_system_interface.h"
 #include "teca_index_executive.h"
 #include "teca_array_attributes.h"
+#include "teca_variant_array_impl.h"
+#include "teca_variant_array_util.h"
 
 #include <vector>
 #include <string>
 #include <iostream>
+
+using namespace teca_variant_array_util;
 
 // generates : f(x,y,z) = x - t; or f(x,y,z) = y; or f(x,y,z) = z depending on
 // the value of m_dir. this is used to generate a vector field whose magnitude
@@ -23,7 +27,7 @@ struct fxyz
 
     char m_dir;
 
-    p_teca_variant_array operator()(const const_p_teca_variant_array &x,
+    p_teca_variant_array operator()(int, const const_p_teca_variant_array &x,
         const const_p_teca_variant_array &y, const const_p_teca_variant_array &z,
         double t)
     {
@@ -35,20 +39,14 @@ struct fxyz
 
         p_teca_variant_array f = x->new_instance(nxyz);
 
-        TEMPLATE_DISPATCH_FP(teca_variant_array_impl,
-            f.get(),
+        VARIANT_ARRAY_DISPATCH_FP(f.get(),
 
-            auto spf = dynamic_cast<TT*>(f.get())->get_cpu_accessible();
-            NT *pf = spf.get();
+            assert_type<CTT>(y, z);
 
-            auto spx = dynamic_cast<const TT*>(x.get())->get_cpu_accessible();
-            const NT *px = spx.get();
+            auto [pf] = data<TT>(f);
+            auto [spx, px, spy, py, spz, pz] = get_host_accessible<CTT>(x, y, z);
 
-            auto spy = dynamic_cast<const TT*>(y.get())->get_cpu_accessible();
-            const NT *py = spy.get();
-
-            auto spz = dynamic_cast<const TT*>(z.get())->get_cpu_accessible();
-            const NT *pz = spz.get();
+            sync_host_access_any(x, y, z);
 
             for (size_t k = 0; k < nz; ++k)
             {
@@ -104,19 +102,19 @@ int main(int argc, char **argv)
 
     mesh->append_field_generator({"U",
         teca_array_attributes(teca_variant_array_code<double>::get(),
-            teca_array_attributes::point_centering, 0, "meters",
+            teca_array_attributes::point_centering, 0, {1,1,1,1}, "meters",
             "distance", "distance from x=0"),
             fxyz('x')});
 
     mesh->append_field_generator({"V",
         teca_array_attributes(teca_variant_array_code<double>::get(),
-            teca_array_attributes::point_centering, 0, "meters",
+            teca_array_attributes::point_centering, 0, {1,1,1,1}, "meters",
             "distance", "distance from y = 0"),
             fxyz('y')});
 
     mesh->append_field_generator({"W",
         teca_array_attributes(teca_variant_array_code<double>::get(),
-            teca_array_attributes::point_centering, 0, "meters",
+            teca_array_attributes::point_centering, 0, {1,1,1,1}, "meters",
             "distance", "distance from z = 0"),
             fxyz('z')});
 

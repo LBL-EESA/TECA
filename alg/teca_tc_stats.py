@@ -173,7 +173,8 @@ class teca_tc_stats(teca_python_algorithm):
 
         # dump annual totals
         summary = teca_table.New()
-        summary.set_request_index('table_id', 0)
+        summary.get_metadata().set('index_request_key', 'table_id')
+        summary.get_metadata().set('table_id', 0)
         summary.declare_columns(['year', 'total', 'cat 0', \
              'cat 1', 'cat 2', 'cat 3', 'cat 4', 'cat 5'], \
              ['i', 'ul', 'i', 'i', 'i', 'i', 'i', 'i'])
