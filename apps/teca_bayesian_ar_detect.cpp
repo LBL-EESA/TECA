@@ -184,6 +184,7 @@ int main(int argc, char **argv)
 
     p_teca_multi_cf_reader mcf_reader = teca_multi_cf_reader::New();
     mcf_reader->get_properties_description("mcf_reader", advanced_opt_defs);
+    mcf_reader->set_periodic_in_x(1);
 
     p_teca_valid_value_mask vv_mask = teca_valid_value_mask::New();
     vv_mask->get_properties_description("vv_mask", advanced_opt_defs);
