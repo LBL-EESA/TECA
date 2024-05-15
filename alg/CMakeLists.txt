@@ -65,6 +65,7 @@ set(teca_alg_cxx_srcs
     teca_vorticity.cxx
     teca_dataset_diff.cxx
     teca_temporal_reduction.cxx
+    teca_spatial_reduction.cxx
     )
 
 set(teca_alg_cuda_srcs)
