@@ -115,19 +115,21 @@ class teca_spatial_reduction::internals_t::reduction_operator
 public:
     virtual ~reduction_operator() {}
 
-    reduction_operator() : fill_value(-1), result(nullptr),
+    reduction_operator() : fill_value(-1), result(nullptr), valid(nullptr),
                            land_weights (nullptr), land_weights_norm(1) {}
 
     virtual void initialize(double fill_value);
 
     virtual int update_cpu(int device_id,
           const const_p_teca_variant_array &array,
+          const const_p_teca_variant_array &valid,
           unsigned long timesteps_per_request) = 0;
 
 
 public:
     double fill_value;
     p_teca_variant_array result;
+    p_teca_variant_array valid;
     const_p_teca_variant_array land_weights;
     double land_weights_norm;
 };
@@ -140,6 +142,7 @@ class teca_spatial_reduction::internals_t::average_operator :
 public:
     int update_cpu(int device_id,
           const const_p_teca_variant_array &array,
+          const const_p_teca_variant_array &valid,
           unsigned long timesteps_per_request) override;
 };
 
@@ -168,6 +171,7 @@ void teca_spatial_reduction::internals_t::reduction_operator::initialize(
 int teca_spatial_reduction::internals_t::average_operator::update_cpu(
     int device_id,
     const const_p_teca_variant_array &input_array,
+    const const_p_teca_variant_array &in_valid,
     unsigned long timesteps_per_request)
 {
     (void)device_id;
@@ -182,6 +186,7 @@ int teca_spatial_reduction::internals_t::average_operator::update_cpu(
     VARIANT_ARRAY_DISPATCH(in_array.get(),
 
        NT weights_norm = NT(this->land_weights_norm);
+       NT fill_value = NT(this->fill_value);
 
        auto [sp_in_array, p_in_array] = get_host_accessible<CTT>(in_array);
        auto [sp_weights, p_weights] = get_host_accessible<CTT>(this->land_weights);
@@ -189,16 +194,38 @@ int teca_spatial_reduction::internals_t::average_operator::update_cpu(
        this->result = teca_variant_array_impl<NT>::New(timesteps_per_request, 0.);
        auto [p_res_array] = data<TT>(this->result);
 
-       // update, no missing data
-       //#pragma omp parallel for
-       for (unsigned int i = 0; i < timesteps_per_request; ++i)
+       if (in_valid)
        {
-           //#pragma omp parallel for reduction(+:p_res_array[i])
-           for (unsigned int j = 0; j < n_elem_per_timestep; ++j)
-           {
-               p_res_array[i] += p_in_array[j+i*n_elem_per_timestep] * p_weights[j];
-           }
-           p_res_array[i] = p_res_array[i] / weights_norm;
+          auto [sp_in_valid, p_in_valid] = get_host_accessible<CTT_MASK>(in_valid);
+
+          this->valid = teca_variant_array_impl<NT_MASK>::New(timesteps_per_request, NT_MASK(0));
+          auto [p_res_valid] = data<TT_MASK>(this->valid);
+
+          for (unsigned int i = 0; i < timesteps_per_request; ++i)
+          {
+              for (unsigned int j = 0; j < n_elem_per_timestep; ++j)
+              {
+                  if (p_in_valid[j+i*n_elem_per_timestep])
+                  {
+                      p_res_array[i] += p_in_array[j+i*n_elem_per_timestep] * p_weights[j];
+                      p_res_valid[i] = NT_MASK(1);
+                  }
+              }
+              p_res_array[i] = (!p_res_valid[i]) ?
+                               fill_value : p_res_array[i] / weights_norm;
+          }
+       }
+       else
+       {
+          // update, no missing data
+          for (unsigned int i = 0; i < timesteps_per_request; ++i)
+          {
+              for (unsigned int j = 0; j < n_elem_per_timestep; ++j)
+              {
+                  p_res_array[i] += p_in_array[j+i*n_elem_per_timestep] * p_weights[j];
+              }
+              p_res_array[i] = p_res_array[i] / weights_norm;
+          }
        }
     )
 
@@ -316,7 +343,6 @@ std::vector<teca_metadata> teca_spatial_reduction::get_upstream_request(
     const teca_metadata &req_in)
 {
     (void)port;
-    (void)md_in;
 
     if (this->get_verbose() > 0)
     {
@@ -324,6 +350,18 @@ std::vector<teca_metadata> teca_spatial_reduction::get_upstream_request(
             << "teca_spatial_reduction::get_upstream_request" << std::endl;
     }
 
+    const teca_metadata md = md_in[0];
+
+    // get the available arrays
+    std::set<std::string> vars_in;
+    if (md.has("variables"))
+       md.get("variables", vars_in);
+
+    // get the array attributes
+    teca_metadata atts;
+    md.get("attributes", atts);
+
+    // get the requested arrays
     std::set<std::string> arrays;
     if (req_in.has("arrays"))
         req_in.get("arrays", arrays);
@@ -337,11 +375,35 @@ std::vector<teca_metadata> teca_spatial_reduction::get_upstream_request(
         if (!arrays.count(array))
             arrays.insert(array);
 
+        double fill_value = -1;
+        std::string vv_mask = array + "_valid";
+        if (vars_in.count(vv_mask) && !arrays.count(vv_mask))
+        {
+            // request the associated valid value mask
+            arrays.insert(vv_mask);
+
+            // get the fill value
+            teca_metadata array_atts;
+            atts.get(array, array_atts);
+            if (this->fill_value != -1)
+            {
+                fill_value = this->fill_value;
+            }
+            else if (array_atts.has("_FillValue"))
+            {
+                array_atts.get("_FillValue", fill_value);
+            }
+            else if (array_atts.has("missing_value"))
+            {
+                array_atts.get("missing_value", fill_value);
+            }
+        }
+
         // create and initialize the operator
         internals_t::p_reduction_operator op
              = internals_t::reduction_operator_factory::New(this->operation);
 
-        //op->initialize(fill_value);
+        op->initialize(fill_value);
 
         // save the operator
         this->internals->set_operation(array, op);
@@ -427,12 +489,16 @@ const_p_teca_dataset teca_spatial_reduction::execute(
             return nullptr;
         }
 
+        // get the incoming valid value mask
+        std::string valid = array + "_valid";
+        auto valid_in = arrays_in->get(valid);
+
         // apply the reduction
         auto &op = this->internals->get_operation(array);
 
         op->land_weights = land_weights;
         op->land_weights_norm = this->land_weights_norm;
-        op->update_cpu(device_id, array_in, timesteps_per_request);
+        op->update_cpu(device_id, array_in, valid_in, timesteps_per_request);
 
         out_table->append_column(array, op->result);
     }
