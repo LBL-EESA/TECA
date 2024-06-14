@@ -26,7 +26,7 @@ The [TECA Python package]() is available on PyPi or by installing from sources. 
 ### CI and Testing
 For the latest regression suite results see the [TECA CDash project site](https://my.cdash.org/index.php?project=TECA).
 
-## Copyright Notice
+### Copyright Notice
 TECA, Copyright (c) 2015, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Dept. of Energy).  All rights reserved.
 
 If you have questions about your rights to use or distribute this software, please contact Berkeley Lab's Innovation & Partnerships Office at  IPO@lbl.gov.
