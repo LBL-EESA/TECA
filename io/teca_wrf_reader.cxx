@@ -312,7 +312,9 @@ teca_metadata teca_wrf_reader::get_output_metadata(
             std::string file = path + PATH_SEP + files[0];
 
             // get mesh coordinates and dimensions
+            int x_parent_id = 0;
             int x_id = 0;
+            int z_parent_id = 0;
             int z_id = 0;
             int x_ndims = 0;
             int z_ndims = 0;
@@ -343,12 +345,12 @@ teca_metadata teca_wrf_reader::get_output_metadata(
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-            if (((ierr = nc_inq_varid(fh.get(), m_x_axis_variable.c_str(), &x_id)) != NC_NOERR)
-                || ((ierr = nc_inq_varndims(fh.get(), x_id, &x_ndims)) != NC_NOERR)
-                || ((ierr = nc_inq_vardimid(fh.get(), x_id, x_dims)) != NC_NOERR)
-                || ((ierr = nc_inq_vartype(fh.get(), x_id, &x_t)) != NC_NOERR)
-                || ((ierr = nc_inq_dimlen(fh.get(), x_dims[2], &n_x)) != NC_NOERR)
-                || ((ierr = nc_inq_dimlen(fh.get(), x_dims[1], &n_y)) != NC_NOERR))
+            if (((ierr = get_varid(fh, m_x_axis_variable.c_str(), &x_parent_id, &x_id)) != NC_NOERR)
+                || ((ierr = nc_inq_varndims(x_parent_id, x_id, &x_ndims)) != NC_NOERR)
+                || ((ierr = nc_inq_vardimid(x_parent_id, x_id, x_dims)) != NC_NOERR)
+                || ((ierr = nc_inq_vartype(x_parent_id, x_id, &x_t)) != NC_NOERR)
+                || ((ierr = nc_inq_dimlen(x_parent_id, x_dims[2], &n_x)) != NC_NOERR)
+                || ((ierr = nc_inq_dimlen(x_parent_id, x_dims[1], &n_y)) != NC_NOERR))
             {
                 this->clear_cached_metadata();
                 TECA_FATAL_ERROR(
@@ -363,11 +365,11 @@ teca_metadata teca_wrf_reader::get_output_metadata(
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-            if (((ierr = nc_inq_varid(fh.get(), m_z_axis_variable.c_str(), &z_id)) != NC_NOERR)
-                || ((ierr = nc_inq_varndims(fh.get(), z_id, &z_ndims)) != NC_NOERR)
-                || ((ierr = nc_inq_vardimid(fh.get(), z_id, z_dims)) != NC_NOERR)
-                || ((ierr = nc_inq_vartype(fh.get(), z_id, &z_t)) != NC_NOERR)
-                || ((ierr = nc_inq_dimlen(fh.get(), z_dims[1], &n_z)) != NC_NOERR))
+            if (((ierr = get_varid(fh, m_z_axis_variable.c_str(), &z_parent_id, &z_id)) != NC_NOERR)
+                || ((ierr = nc_inq_varndims(z_parent_id, z_id, &z_ndims)) != NC_NOERR)
+                || ((ierr = nc_inq_vardimid(z_parent_id, z_id, z_dims)) != NC_NOERR)
+                || ((ierr = nc_inq_vartype(z_parent_id, z_id, &z_t)) != NC_NOERR)
+                || ((ierr = nc_inq_dimlen(z_parent_id, z_dims[1], &n_z)) != NC_NOERR))
             {
                 this->clear_cached_metadata();
                 TECA_FATAL_ERROR(
@@ -818,10 +820,11 @@ teca_metadata teca_wrf_reader::get_output_metadata(
                 // ordering of the files and there will be no calendaring
                 // information. As a result many time aware algorithms will not
                 // work.
+                int x_parent_id = 0;
                 int x_id = 0;
                 nc_type x_t = 0;
-                if (((ierr = nc_inq_varid(fh.get(), m_x_axis_variable.c_str(), &x_id)) != NC_NOERR)
-                    || ((ierr = nc_inq_vartype(fh.get(), x_id, &x_t)) != NC_NOERR))
+                if (((ierr = get_varid(fh, m_x_axis_variable.c_str(), &x_parent_id, &x_id)) != NC_NOERR)
+                    || ((ierr = nc_inq_vartype(x_parent_id, x_id, &x_t)) != NC_NOERR))
                 {
                     TECA_FATAL_ERROR("Failed to deduce the time axis type from "
                         << m_x_axis_variable << endl << nc_strerror(ierr))
