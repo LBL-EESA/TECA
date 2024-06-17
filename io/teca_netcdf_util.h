@@ -211,6 +211,7 @@ public:
 
 private:
     int m_handle;
+    //int m_grp_handle;
 };
 
 /**
@@ -219,7 +220,7 @@ private:
  * return is non-zero if an error occurred.
  */
 TECA_EXPORT
-int read_attribute(netcdf_handle &fh, int var_id,
+int read_attribute(int parent_id, int var_id,
     const std::string &att_name, teca_metadata &atts);
 
 /**
@@ -228,7 +229,7 @@ int read_attribute(netcdf_handle &fh, int var_id,
  * return is non-zero if an error occurred.
  */
 TECA_EXPORT
-int read_attribute(netcdf_handle &fh, int var_id,
+int read_attribute(int parent_id, int var_id,
     int att_id, teca_metadata &atts);
 
 /**
@@ -262,7 +263,7 @@ int read_attribute(netcdf_handle &fh, int var_id,
  * returns non-zero if an error occurred.
  */
 TECA_EXPORT
-int read_variable_attributes(netcdf_handle &fh, int var_id,
+int read_variable_attributes(netcdf_handle &fh, int parent_id, int var_id,
     const std::string &x_variable, const std::string &y_variable,
     const std::string &z_variable, const std::string &t_variable,
     int clamp_dimensions_of_one, std::string &name, teca_metadata &atts);
@@ -273,8 +274,16 @@ int read_variable_attributes(netcdf_handle &fh, int var_id,
  * for details of attributes returned. returns non-zero if an error occurred.
  */
 TECA_EXPORT
-int read_variable_attributes(netcdf_handle &fh, int var_id,
+int read_variable_attributes(netcdf_handle &fh, int parent_id, int var_id,
     std::string &name, teca_metadata &atts);
+
+/**
+ * Get the variable ID in a NetCDF file where var_name can be a fully qualified 
+ * path including group names, such as "global/lat"
+ */
+TECA_EXPORT
+int get_varid(netcdf_handle &fh, const std::string &var_name,
+    int *parent_id, int *var_id);
 
 /**
  * Read the specified variable's dimensions, and it's associated

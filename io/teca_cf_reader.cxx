@@ -200,6 +200,60 @@ void teca_cf_reader::clear_cached_metadata()
 }
 
 // --------------------------------------------------------------------------
+void teca_cf_reader::get_variables_in_group(
+    teca_netcdf_util::netcdf_handle& fh,
+    int parent_id,
+    std::string group_name,
+    teca_metadata &atrs,
+    std::vector<std::string> &vars)
+{
+    int n_vars;
+#if !defined(HDF5_THREAD_SAFE)
+    {
+    std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+
+    int ierr;
+    if (((ierr = nc_inq_nvars(parent_id, &n_vars)) != NC_NOERR))
+    {
+        this->clear_cached_metadata();
+        TECA_FATAL_ERROR(
+            << "Failed to get the number of variables." << endl
+            << nc_strerror(ierr))
+    }
+#if !defined(HDF5_THREAD_SAFE)
+    }
+#endif
+    for (int i = 0; i < n_vars; ++i)
+    {
+        std::string name;
+        teca_metadata atts;
+
+        if (teca_netcdf_util::read_variable_attributes(fh, parent_id, i,
+            this->x_axis_variable, this->y_axis_variable,
+            this->z_axis_variable, this->t_axis_variable,
+            this->clamp_dimensions_of_one, name, atts))
+        {
+            this->clear_cached_metadata();
+            TECA_FATAL_ERROR(
+                << "Failed to read " << i <<"th variable attributes")
+        }
+
+        if (group_name.empty())
+        {
+            vars.push_back(name);
+            atrs.set(name, atts);
+        }
+        else
+        {
+            std::string fq_name = group_name + '/' + name;
+            vars.push_back(fq_name);
+            atrs.set(fq_name, atts);
+        }
+    }
+}
+
+// --------------------------------------------------------------------------
 teca_metadata teca_cf_reader::get_output_metadata(
     unsigned int port,
     const std::vector<teca_metadata> &input_md)
@@ -331,49 +385,69 @@ teca_metadata teca_cf_reader::get_output_metadata(
         }
 
         // enumerate mesh arrays and their attributes
-        int n_vars = 0;
         teca_metadata atrs;
         std::vector<std::string> vars;
+
+        // first in root group
+        this->get_variables_in_group(fh, fh.get(), "", atrs, vars);
+
+        // now iterate over all groups
+        // TODO/FIXME: Should do this recursively
+        int n_grps = 0;
+        std::vector<int> grp_ids;
+        std::vector<std::string> grp_names;
 #if !defined(HDF5_THREAD_SAFE)
         {
         std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-        if (((ierr = nc_inq_nvars(fh.get(), &n_vars)) != NC_NOERR))
+        if (((ierr = nc_inq_grps(fh.get(), &n_grps, nullptr)) != NC_NOERR))
         {
             this->clear_cached_metadata();
             TECA_FATAL_ERROR(
-                << "Failed to get the number of variables in file \""
+                << "Failed to get the number of groups in file \""
                 << file << "\"" << endl
                 << nc_strerror(ierr))
             return teca_metadata();
         }
-#if !defined(HDF5_THREAD_SAFE)
-        }
-#endif
-        for (int i = 0; i < n_vars; ++i)
-        {
-            std::string name;
-            teca_metadata atts;
 
-            if (teca_netcdf_util::read_variable_attributes(fh, i,
-                this->x_axis_variable, this->y_axis_variable,
-                this->z_axis_variable, this->t_axis_variable,
-                this->clamp_dimensions_of_one, name, atts))
+        grp_ids.resize(n_grps, 0);
+        if (((ierr = nc_inq_grps(fh.get(), nullptr, grp_ids.data())) != NC_NOERR))
+        {
+            this->clear_cached_metadata();
+            TECA_FATAL_ERROR(
+                << "Failed to get list of group ids in file \""
+                << file << "\"" << endl
+                << nc_strerror(ierr))
+            return teca_metadata();
+        }
+
+        for (int grp_id : grp_ids)
+        {
+            char grp_name[NC_MAX_NAME + 1];
+            if (((ierr = nc_inq_grpname(grp_id, grp_name)) != NC_NOERR))
             {
                 this->clear_cached_metadata();
                 TECA_FATAL_ERROR(
-                    << "Failed to read " << i <<"th variable attributes")
+                    << "Failed to get group name in file \""
+                    << file << "\"" << endl
+                    << nc_strerror(ierr))
                 return teca_metadata();
             }
-
-            vars.push_back(name);
-            atrs.set(name, atts);
+            grp_names.push_back(grp_name);
+        }
+#if !defined(HDF5_THREAD_SAFE)
+        }
+#endif
+        for (int i = 0; i < n_grps; ++i)
+        {
+            this->get_variables_in_group(fh, grp_ids[i], grp_names[i], atrs, vars);
         }
 
         // read spatial coordinate arrays
         double bounds[6] = {0.0};
         unsigned long whole_extent[6] = {0ul};
 
+        int x_parent_id = 0;
         int x_id = 0;
         size_t n_x = 1;
         nc_type x_t = 0;
@@ -383,6 +457,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
         if (atrs.get(x_axis_variable, x_atts) ||
             x_atts.get("cf_dims", n_x) ||
             x_atts.get("cf_type_code", x_t) ||
+            x_atts.get("cf_parent_id", x_parent_id) ||
             x_atts.get("cf_id", x_id))
         {
             this->clear_cached_metadata();
@@ -392,6 +467,11 @@ teca_metadata teca_cf_reader::get_output_metadata(
             return teca_metadata();
         }
 
+        if (x_parent_id == NC_GLOBAL)
+        {
+            x_parent_id = fh.get();
+        }
+
         NC_DISPATCH(x_t,
             size_t x_0 = 0;
             auto [x, px] = ::New<NC_TT>(n_x);
@@ -399,7 +479,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-            if ((ierr = nc_get_vara(fh.get(), x_id, &x_0, &n_x, px)) != NC_NOERR)
+            if ((ierr = nc_get_vara(x_parent_id, x_id, &x_0, &n_x, px)) != NC_NOERR)
             {
                 this->clear_cached_metadata();
                 TECA_FATAL_ERROR(
@@ -432,6 +512,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
             x_t = NC_FLOAT;
         }
 
+        int y_parent_id = 0;
         int y_id = 0;
         size_t n_y = 1;
         nc_type y_t = 0;
@@ -442,6 +523,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
             if (atrs.get(y_axis_variable, y_atts) ||
                 y_atts.get("cf_dims", n_y) ||
                 y_atts.get("cf_type_code", y_t) ||
+                y_atts.get("cf_parent_id", y_parent_id) ||
                 y_atts.get("cf_id", y_id))
             {
                 this->clear_cached_metadata();
@@ -451,6 +533,11 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 return teca_metadata();
             }
 
+            if (y_parent_id == NC_GLOBAL)
+            {
+                y_parent_id = fh.get();
+            }
+
             NC_DISPATCH(y_t,
                 size_t y_0 = 0;
                 auto [y, py] = ::New<NC_TT>(n_y);
@@ -458,7 +545,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 {
                 std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-                if ((ierr = nc_get_vara(fh.get(), y_id, &y_0, &n_y, py)) != NC_NOERR)
+                if ((ierr = nc_get_vara(y_parent_id, y_id, &y_0, &n_y, py)) != NC_NOERR)
                 {
                     this->clear_cached_metadata();
                     TECA_FATAL_ERROR(
@@ -499,6 +586,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 )
         }
 
+        int z_parent_id = 0;
         int z_id = 0;
         size_t n_z = 1;
         nc_type z_t = 0;
@@ -509,6 +597,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
             if (atrs.get(z_axis_variable, z_atts) ||
                 z_atts.get("cf_dims", n_z) ||
                 z_atts.get("cf_type_code", z_t) ||
+                z_atts.get("cf_parent_id", z_parent_id) ||
                 z_atts.get("cf_id", z_id))
             {
                 this->clear_cached_metadata();
@@ -518,6 +607,11 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 return teca_metadata();
             }
 
+            if (z_parent_id == NC_GLOBAL)
+            {
+                z_parent_id = fh.get();
+            }
+
             NC_DISPATCH(z_t,
                 size_t z_0 = 0;
                 auto [z, pz] = ::New<NC_TT>(n_z);
@@ -525,7 +619,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 {
                 std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-                if ((ierr = nc_get_vara(fh.get(), z_id, &z_0, &n_z, pz)) != NC_NOERR)
+                if ((ierr = nc_get_vara(z_parent_id, z_id, &z_0, &n_z, pz)) != NC_NOERR)
                 {
                     this->clear_cached_metadata();
                     TECA_FATAL_ERROR(
@@ -1371,7 +1465,6 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
         // get metadata
         teca_metadata atts;
         int type = 0;
-        int id = 0;
         int have_mesh_dim[4] = {0};
         int mesh_dim_active[4] = {0};
         unsigned int centering = teca_array_attributes::no_centering;
@@ -1379,7 +1472,6 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
 
         if (atrs.get(arrays[i], atts)
             || atts.get("cf_type_code", 0, type)
-            || atts.get("cf_id", 0, id)
             || atts.get("cf_dims", cf_dims)
             || atts.get("centering", centering)
             || atts.get("have_mesh_dim", have_mesh_dim, 4)
@@ -1521,6 +1613,7 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
             // get metadata
             teca_metadata atts;
             int type = 0;
+            int parent_id = 0;
             int id = 0;
             int have_mesh_dim[4] = {0};
             int mesh_dim_active[4] = {0};
@@ -1529,6 +1622,7 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
 
             if (atrs.get(arrays[i], atts)
                 || atts.get("cf_type_code", 0, type)
+                || atts.get("cf_parent_id", 0, parent_id)
                 || atts.get("cf_id", 0, id)
                 || atts.get("cf_dims", cf_dims)
                 || atts.get("centering", centering)
@@ -1537,6 +1631,11 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
             {
                 TECA_FATAL_ERROR("metadata issue can't read \"" << arrays[i] << "\"")
                 continue;
+            }
+
+            if (parent_id == NC_GLOBAL)
+            {
+                parent_id = file_id;
             }
 
             size_t n_vals = 1;
@@ -1556,7 +1655,7 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
                 // the setting must be explicit
                 if ((this->collective_buffer > 0) && is_init)
                 {
-                    if ((ierr = nc_var_par_access(file_id, id, NC_COLLECTIVE)) != NC_NOERR)
+                    if ((ierr = nc_var_par_access(parent_id, id, NC_COLLECTIVE)) != NC_NOERR)
                     {
                         if (rank == 0)
                         {

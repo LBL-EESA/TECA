@@ -5,6 +5,7 @@
 #include "teca_algorithm.h"
 #include "teca_metadata.h"
 #include "teca_shared_object.h"
+#include "teca_netcdf_util.h"
 
 #include <vector>
 #include <string>
@@ -241,6 +242,13 @@ protected:
 
 private:
     using teca_algorithm::get_output_metadata;
+
+    void get_variables_in_group(
+        teca_netcdf_util::netcdf_handle &fh,
+        int parent_id,
+        std::string group_name,
+        teca_metadata &atrs,
+        std::vector<std::string> &vars);
 
     teca_metadata get_output_metadata(
         unsigned int port,

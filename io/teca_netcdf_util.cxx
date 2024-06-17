@@ -261,12 +261,12 @@ int netcdf_handle::close()
 }
 
 // **************************************************************************
-int read_attribute(netcdf_handle &fh, int var_id,
+int read_attribute(int parent_id, int var_id,
     const std::string &att_name, teca_metadata &atts)
 {
     int ierr = 0;
     int att_id = 0;
-    if ((ierr = nc_inq_attid(fh.get(), var_id, att_name.c_str(),
+    if ((ierr = nc_inq_attid(parent_id, var_id, att_name.c_str(),
         &att_id)) != NC_NOERR)
     {
         TECA_ERROR("Failed to get the id of attribute \""
@@ -275,11 +275,11 @@ int read_attribute(netcdf_handle &fh, int var_id,
         return -1;
     }
 
-    return teca_netcdf_util::read_attribute(fh, var_id, att_id, atts);
+    return teca_netcdf_util::read_attribute(parent_id, var_id, att_id, atts);
 }
 
 // **************************************************************************
-int read_attribute(netcdf_handle &fh, int var_id, int att_id, teca_metadata &atts)
+int read_attribute(int parent_id, int var_id, int att_id, teca_metadata &atts)
 {
     int ierr = 0;
     char att_name[NC_MAX_NAME + 1] = {'\0'};
@@ -289,8 +289,8 @@ int read_attribute(netcdf_handle &fh, int var_id, int att_id, teca_metadata &att
     {
     std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-    if (((ierr = nc_inq_attname(fh.get(), var_id, att_id, att_name)) != NC_NOERR)
-        || ((ierr = nc_inq_att(fh.get(), var_id, att_name, &att_type, &att_len)) != NC_NOERR))
+    if (((ierr = nc_inq_attname(parent_id, var_id, att_id, att_name)) != NC_NOERR)
+        || ((ierr = nc_inq_att(parent_id, var_id, att_name, &att_type, &att_len)) != NC_NOERR))
     {
         TECA_ERROR("Failed to query the " << att_id << "th attribute of variable "
             << var_id << std::endl << nc_strerror(ierr))
@@ -307,7 +307,7 @@ int read_attribute(netcdf_handle &fh, int var_id, int att_id, teca_metadata &att
         {
         std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-        if ((ierr = nc_get_att_text(fh.get(), var_id, att_name, tmp)) != NC_NOERR)
+        if ((ierr = nc_get_att_text(parent_id, var_id, att_name, tmp)) != NC_NOERR)
         {
             free(tmp);
             TECA_ERROR("Failed get text from the " << att_id << "th attribute \""
@@ -332,7 +332,7 @@ int read_attribute(netcdf_handle &fh, int var_id, int att_id, teca_metadata &att
         {
         std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-        if ((ierr = nc_get_att_string(fh.get(), var_id, att_name, strs)) != NC_NOERR)
+        if ((ierr = nc_get_att_string(parent_id, var_id, att_name, strs)) != NC_NOERR)
         {
             TECA_ERROR("Failed get string from the " << att_id << "th attribute \""
                 << att_name << "\" of variable " << var_id << std::endl
@@ -361,7 +361,7 @@ int read_attribute(netcdf_handle &fh, int var_id, int att_id, teca_metadata &att
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-            if ((ierr = nc_get_att(fh.get(), var_id, att_name, tmp)) != NC_NOERR)
+            if ((ierr = nc_get_att(parent_id, var_id, att_name, tmp)) != NC_NOERR)
             {
                 TECA_ERROR("Failed get the " << att_id << "th attribute \""
                     << att_name << "\" of variable " << var_id << std::endl
@@ -392,12 +392,37 @@ int read_variable_attributes(netcdf_handle &fh,
 }
 
 // **************************************************************************
+int get_varid(netcdf_handle &fh, const std::string &var_name,
+    int *parent_id, int *var_id)
+{
+    std::string::size_type pos = var_name.rfind('/');
+    if (pos != std::string::npos)
+    {
+        std::string group_name = var_name.substr(0, pos);
+        std::string var_name_in_group = var_name.substr(pos);
+
+        int ierr;
+        if ((ierr = nc_inq_grp_full_ncid(fh.get(), group_name.c_str(),
+                                         parent_id)) != NC_NOERR)
+        {
+            return ierr;
+        }
+    }
+    else
+    {
+        *parent_id = fh.get();
+    }
+    return nc_inq_varid(*parent_id, var_name.c_str(), var_id);
+}
+
+// **************************************************************************
 int read_variable_attributes(netcdf_handle &fh, const std::string &var_name,
     const std::string &x_axis_variable, const std::string &y_axis_variable,
     const std::string &z_axis_variable, const std::string &t_axis_variable,
     int clamp_dimensions_of_one, teca_metadata &atts)
 {
     int ierr = 0;
+    int parent_id = 0;
     int var_id = 0;
     int var_type = 0;
     nc_type var_nc_type = 0;
@@ -409,7 +434,7 @@ int read_variable_attributes(netcdf_handle &fh, const std::string &var_name,
     {
     std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-    if (((ierr = nc_inq_varid(fh.get(), var_name.c_str(), &var_id)) != NC_NOERR)
+    if (((ierr = get_varid(fh, var_name, &parent_id,  &var_id)) != NC_NOERR)
         || ((ierr = nc_inq_var(fh.get(), var_id, nullptr,
         &var_nc_type, &n_dims, dim_id, &n_atts)) != NC_NOERR))
     {
@@ -433,10 +458,10 @@ int read_variable_attributes(netcdf_handle &fh, const std::string &var_name,
     // read attributes
     for (int ii = 0; ii < n_atts; ++ii)
     {
-        if (teca_netcdf_util::read_attribute(fh, var_id, ii, atts))
+        if (teca_netcdf_util::read_attribute(parent_id, var_id, ii, atts))
         {
             TECA_ERROR("Failed to read the " << ii << "th attribute for variable \""
-                << var_name << "\"." << std::endl << nc_strerror(ierr))
+                << var_name << "\".")
             return -1;
         }
     }
@@ -517,6 +542,9 @@ int read_variable_attributes(netcdf_handle &fh, const std::string &var_name,
         centering = teca_array_attributes::point_centering;
     }
 
+    // If parent is file, use NC_GLOBAL identifier instead as file handle
+    // may be closed
+    atts.set("cf_parent_id", parent_id == fh.get() ? NC_GLOBAL : parent_id);
     atts.set("cf_id", var_id);
     atts.set("cf_dims", dims);
     atts.set("cf_dim_names", dim_names);
@@ -532,15 +560,15 @@ int read_variable_attributes(netcdf_handle &fh, const std::string &var_name,
 }
 
 // **************************************************************************
-int read_variable_attributes(netcdf_handle &fh, int var_id,
+int read_variable_attributes(netcdf_handle &fh, int parent_id, int var_id,
     std::string &name, teca_metadata &atts)
 {
-    return teca_netcdf_util::read_variable_attributes(fh,
-        var_id, "", "", "", "", 0, name, atts);
+    return teca_netcdf_util::read_variable_attributes(fh, parent_id, var_id,
+        "", "", "", "", 0, name, atts);
 }
 
 // **************************************************************************
-int read_variable_attributes(netcdf_handle &fh, int var_id,
+int read_variable_attributes(netcdf_handle &fh, int parent_id, int var_id,
     const std::string &x_axis_variable, const std::string &y_axis_variable,
     const std::string &z_axis_variable, const std::string &t_axis_variable,
     int clamp_dimensions_of_one, std::string &name, teca_metadata &atts)
@@ -557,7 +585,7 @@ int read_variable_attributes(netcdf_handle &fh, int var_id,
     {
     std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-    if ((ierr = nc_inq_var(fh.get(), var_id, var_name,
+    if ((ierr = nc_inq_var(parent_id, var_id, var_name,
             &var_nc_type, &n_dims, dim_id, &n_atts)) != NC_NOERR)
     {
         TECA_ERROR("Failed to query " << var_id << "th variable."
@@ -582,7 +610,7 @@ int read_variable_attributes(netcdf_handle &fh, int var_id,
     // read attributes
     for (int ii = 0; ii < n_atts; ++ii)
     {
-        if (teca_netcdf_util::read_attribute(fh, var_id, ii, atts))
+        if (teca_netcdf_util::read_attribute(parent_id, var_id, ii, atts))
         {
             TECA_ERROR("Failed to read the " << ii << "th attribute for variable "
                 << var_name << ". " << std::endl << nc_strerror(ierr))
@@ -608,7 +636,7 @@ int read_variable_attributes(netcdf_handle &fh, int var_id,
         {
         std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-        if ((ierr = nc_inq_dim(fh.get(), dim_id[ii], dim_name, &dim)) != NC_NOERR)
+        if ((ierr = nc_inq_dim(parent_id, dim_id[ii], dim_name, &dim)) != NC_NOERR)
         {
             TECA_ERROR("Failed to query " << ii << "th dimension of variable, "
                 << var_name << ". " << std::endl << nc_strerror(ierr))
@@ -665,6 +693,9 @@ int read_variable_attributes(netcdf_handle &fh, int var_id,
         centering = teca_array_attributes::point_centering;
     }
 
+    // If parent is file, use NC_GLOBAL identifier instead as file handle
+    // may be closed
+    atts.set("cf_parent_id", parent_id == fh.get() ? NC_GLOBAL : parent_id);
     atts.set("cf_id", var_id);
     atts.set("cf_dims", dims);
     atts.set("cf_dim_names", dim_names);
@@ -712,14 +743,21 @@ read_variable_and_attributes::operator()(int device_id)
 
     // get the type and dimensions
     int var_type = 0;
+    int var_parent_id = 0;
     int var_id = 0;
     p_teca_size_t_array dims;
     if (atts.get("cf_type_code", var_type)
+        || atts.get("cf_parent_id", var_parent_id)
         || atts.get("cf_id", var_id)
         || !(dims = std::dynamic_pointer_cast<teca_size_t_array>(atts.get("cf_dims"))))
     {
         TECA_ERROR("Metadata issue can't read \"" << m_variable << "\"")
         return this->package(m_id);
+    }
+
+    if (var_parent_id == NC_GLOBAL)
+    {
+        var_parent_id = fh.get();
     }
 
     // assume data is on the CPU
@@ -746,7 +784,7 @@ read_variable_and_attributes::operator()(int device_id)
         {
         std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-        if ((ierr = nc_get_vara(fh.get(), var_id, start, count, pvar)) != NC_NOERR)
+        if ((ierr = nc_get_vara(var_parent_id, var_id, start, count, pvar)) != NC_NOERR)
         {
             TECA_ERROR("Failed to read variable \"" << m_variable  << "\" from \""
                 << m_file << "\". " << nc_strerror(ierr))
@@ -790,6 +828,7 @@ read_variable::data_t read_variable::operator()(int device_id)
     // query variable attributes
     int file_id = fh.get();
     int dim_id = 0;
+    int parent_id = 0;
     int var_id = 0;
     int var_ndims = 0;
     size_t var_size = 0;
@@ -800,7 +839,7 @@ read_variable::data_t read_variable::operator()(int device_id)
     {
     std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-    if (((ierr = nc_inq_varid(file_id, m_variable.c_str(), &var_id)) != NC_NOERR)
+    if (((ierr = get_varid(fh, m_variable.c_str(), &parent_id, &var_id)) != NC_NOERR)
         || ((ierr = nc_inq_varndims(file_id, var_id, &var_ndims)) != NC_NOERR)
         || (var_ndims != 1)
         || ((ierr = nc_inq_vardimid(file_id, var_id, &dim_id)) != NC_NOERR)
@@ -814,6 +853,8 @@ read_variable::data_t read_variable::operator()(int device_id)
 #if !defined(HDF5_THREAD_SAFE)
     }
 #endif
+
+    if (parent_id == NC_GLOBAL) parent_id = file_id;
 
     // allocate a buffer and read the variable.
     NC_DISPATCH(var_type,
@@ -860,12 +901,12 @@ int write_variable_attributes(netcdf_handle &fh, int var_id,
         // skip non-standard internal book keeping metadata this is
         // potentially OK to pass through but likely of no interest to
         // anyone else
-        if ((att_name == "cf_id") || (att_name == "cf_dims") ||
-            (att_name == "cf_dim_names") || (att_name == "type_code") ||
-            (att_name == "cf_type_code") || (att_name == "centering") ||
-            (att_name == "size") || (att_name == "have_mesh_dim") ||
-            (att_name == "mesh_dim_active") || (att_name == "n_mesh_dims") ||
-            (att_name == "n_active_dims"))
+        if ((att_name == "cf_id") || (att_name == "cf_parent_id") ||
+            (att_name == "cf_dims") || (att_name == "cf_dim_names") ||
+            (att_name == "type_code") || (att_name == "cf_type_code") ||
+            (att_name == "centering") || (att_name == "size") ||
+            (att_name == "have_mesh_dim") || (att_name == "mesh_dim_active") ||
+            (att_name == "n_mesh_dims") || (att_name == "n_active_dims"))
             continue;
 
         // get the attribute value
