@@ -355,6 +355,7 @@ teca_add_test(test_streaming_reduce_mpi_threads
     REQ_TECA_DATA)
 
 teca_add_test(test_binary_stream
+    EXEC_NAME test_binary_stream
     SOURCES test_binary_stream.cpp
     LIBS teca_core teca_data teca_alg ${teca_test_link}
     COMMAND test_binary_stream)

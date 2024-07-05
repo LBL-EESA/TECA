@@ -21,7 +21,7 @@ fi
 
 cat /proc/cpuinfo
 
-export PATH=.:${PATH}
+export PATH=.:${PATH}:${DASHROOT}/build/bin/test
 export PYTHONPATH=${DASHROOT}/build/lib
 export LD_LIBRARY_PATH=${DASHROOT}/build/lib
 export MPLBACKEND=Agg
