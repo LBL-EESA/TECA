@@ -43,7 +43,7 @@ class generate_data(teca_python_algorithm):
         ncells = (wext[1] - wext[0] + 1) * \
                  (wext[3] - wext[2] + 1) * (wext[5] - wext[4] + 1)
 
-        nt = wext[7] - wext[6] + 1
+        nt = float(wext[7] - wext[6] + 1)
         md_out['bounds'] = [0., 360., -90., 90., 0., nt, 0., 9000.]
 
         # create the metadata for the writer
