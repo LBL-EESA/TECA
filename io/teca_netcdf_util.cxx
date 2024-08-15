@@ -430,15 +430,40 @@ int read_variable_attributes(netcdf_handle &fh, const std::string &var_name,
     int dim_id[NC_MAX_VAR_DIMS] = {0};
     int n_atts = 0;
 
+    std::string::size_type pos = var_name.rfind('/');
+    std::string group_name = "";
+
 #if !defined(HDF5_THREAD_SAFE)
     {
     std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-    if (((ierr = get_varid(fh, var_name, &parent_id,  &var_id)) != NC_NOERR)
+    std::string var_name_in_group;
+    if (pos != std::string::npos)
+    {
+        // Variable is in a group. Get group id as parent_id and set variable
+        // name within group.
+        group_name = var_name.substr(0, pos);
+        var_name_in_group = var_name.substr(pos);
+
+        if ((ierr = nc_inq_grp_full_ncid(fh.get(), group_name.c_str(), &parent_id)) != NC_NOERR)
+        {
+            TECA_ERROR("Failed to query \"" << group_name << "\" group."
+                << std::endl << nc_strerror(ierr))
+            return -1;
+        }
+    }
+    else
+    {
+        // Variable in "root" group. Parent id is file id.
+        var_name_in_group = var_name;
+        parent_id = fh.get();
+    }
+
+    if (((ierr = get_varid(fh, var_name_in_group, &parent_id,  &var_id)) != NC_NOERR)
         || ((ierr = nc_inq_var(fh.get(), var_id, nullptr,
         &var_nc_type, &n_dims, dim_id, &n_atts)) != NC_NOERR))
     {
-        TECA_ERROR("Failed to query \"" << var_name << "\" variable."
+        TECA_ERROR("Failed to query \"" << var_name_in_group << "\" variable."
             << std::endl << nc_strerror(ierr))
         return -1;
     }
@@ -544,7 +569,7 @@ int read_variable_attributes(netcdf_handle &fh, const std::string &var_name,
 
     // If parent is file, use NC_GLOBAL identifier instead as file handle
     // may be closed
-    atts.set("cf_parent_id", parent_id == fh.get() ? NC_GLOBAL : parent_id);
+    atts.set("cf_parent_group", group_name);
     atts.set("cf_id", var_id);
     atts.set("cf_dims", dims);
     atts.set("cf_dim_names", dim_names);
@@ -560,18 +585,19 @@ int read_variable_attributes(netcdf_handle &fh, const std::string &var_name,
 }
 
 // **************************************************************************
-int read_variable_attributes(netcdf_handle &fh, int parent_id, int var_id,
-    std::string &name, teca_metadata &atts)
+int read_variable_attributes(netcdf_handle &fh, const std::string& parent_group,
+    int var_id, std::string &name, teca_metadata &atts)
 {
-    return teca_netcdf_util::read_variable_attributes(fh, parent_id, var_id,
+    return teca_netcdf_util::read_variable_attributes(fh, parent_group, var_id,
         "", "", "", "", 0, name, atts);
 }
 
 // **************************************************************************
-int read_variable_attributes(netcdf_handle &fh, int parent_id, int var_id,
-    const std::string &x_axis_variable, const std::string &y_axis_variable,
-    const std::string &z_axis_variable, const std::string &t_axis_variable,
-    int clamp_dimensions_of_one, std::string &name, teca_metadata &atts)
+int read_variable_attributes(netcdf_handle &fh, const std::string& parent_group,
+    int var_id, const std::string &x_axis_variable,
+    const std::string &y_axis_variable, const std::string &z_axis_variable,
+    const std::string &t_axis_variable, int clamp_dimensions_of_one,
+    std::string &name, teca_metadata &atts)
 {
     int ierr = 0;
     char var_name[NC_MAX_NAME + 1] = {'\0'};
@@ -580,11 +606,27 @@ int read_variable_attributes(netcdf_handle &fh, int parent_id, int var_id,
     int n_dims = 0;
     int dim_id[NC_MAX_VAR_DIMS] = {0};
     int n_atts = 0;
+    int parent_id = 0;
 
 #if !defined(HDF5_THREAD_SAFE)
     {
     std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
+
+    if (parent_group.empty())
+    {
+        parent_id = fh.get();
+    }
+    else
+    {
+        if ((ierr = nc_inq_grp_full_ncid(fh.get(), parent_group.c_str(), &parent_id)) != NC_NOERR)
+        {
+            TECA_ERROR("Failed to get group id for group \"" << parent_group << "\""
+                << std::endl << nc_strerror(ierr))
+            return -1;
+        }
+    }
+
     if ((ierr = nc_inq_var(parent_id, var_id, var_name,
             &var_nc_type, &n_dims, dim_id, &n_atts)) != NC_NOERR)
     {
@@ -695,7 +737,7 @@ int read_variable_attributes(netcdf_handle &fh, int parent_id, int var_id,
 
     // If parent is file, use NC_GLOBAL identifier instead as file handle
     // may be closed
-    atts.set("cf_parent_id", parent_id == fh.get() ? NC_GLOBAL : parent_id);
+    atts.set("cf_parent_group", parent_group);
     atts.set("cf_id", var_id);
     atts.set("cf_dims", dims);
     atts.set("cf_dim_names", dim_names);
@@ -743,11 +785,12 @@ read_variable_and_attributes::operator()(int device_id)
 
     // get the type and dimensions
     int var_type = 0;
-    int var_parent_id = 0;
+    std::string var_parent_group;
+
     int var_id = 0;
     p_teca_size_t_array dims;
     if (atts.get("cf_type_code", var_type)
-        || atts.get("cf_parent_id", var_parent_id)
+        || atts.get("cf_parent_group", var_parent_group)
         || atts.get("cf_id", var_id)
         || !(dims = std::dynamic_pointer_cast<teca_size_t_array>(atts.get("cf_dims"))))
     {
@@ -755,11 +798,22 @@ read_variable_and_attributes::operator()(int device_id)
         return this->package(m_id);
     }
 
-    if (var_parent_id == NC_GLOBAL)
+    int var_parent_id = 0;
+    if (var_parent_group.empty())
     {
         var_parent_id = fh.get();
     }
-
+    else
+    {
+        if ((ierr = nc_inq_grp_full_ncid(fh.get(), var_parent_group.c_str(),
+                &var_parent_id)) != NC_NOERR)
+        {
+            TECA_ERROR("Failed to get group id for group \"" << var_parent_group
+                << "\"" << std::endl << nc_strerror(ierr));
+            return this->package(m_id);
+        }
+    }
+ 
     // assume data is on the CPU
     assert(dims->host_accessible());
 
@@ -901,7 +955,7 @@ int write_variable_attributes(netcdf_handle &fh, int var_id,
         // skip non-standard internal book keeping metadata this is
         // potentially OK to pass through but likely of no interest to
         // anyone else
-        if ((att_name == "cf_id") || (att_name == "cf_parent_id") ||
+        if ((att_name == "cf_id") || (att_name == "cf_parent_group") ||
             (att_name == "cf_dims") || (att_name == "cf_dim_names") ||
             (att_name == "type_code") || (att_name == "cf_type_code") ||
             (att_name == "centering") || (att_name == "size") ||

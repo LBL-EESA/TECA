@@ -313,7 +313,7 @@ teca_metadata teca_array_collection_reader::get_output_metadata(unsigned int por
         {
             std::string name;
             teca_metadata atts;
-            if (teca_netcdf_util::read_variable_attributes(fh, fh.get(), i,
+            if (teca_netcdf_util::read_variable_attributes(fh, "", i,
                 "", "", "", t_axis_variable, 0, name, atts))
             {
                 this->clear_cached_metadata();
@@ -941,6 +941,7 @@ const_p_teca_dataset teca_array_collection_reader::execute(unsigned int port,
         // get metadata
         teca_metadata atts;
         int type = 0;
+        std::string parent_group;
         int parent_id = 0;
         int id = 0;
         int have_mesh_dim[4] = {0};
@@ -950,7 +951,7 @@ const_p_teca_dataset teca_array_collection_reader::execute(unsigned int port,
 
         if (atrs.get(arrays[i], atts)
             || atts.get("cf_type_code", 0, type)
-            || atts.get("cf_parent_id", 0, parent_id)
+            || atts.get("cf_parent_group", 0, parent_group)
             || atts.get("cf_id", 0, id)
             || atts.get("cf_dims", cf_dims)
             || atts.get("centering", centering)
@@ -961,9 +962,19 @@ const_p_teca_dataset teca_array_collection_reader::execute(unsigned int port,
             continue;
         }
 
-        if (parent_id == NC_GLOBAL)
+        if (parent_group.empty())
         {
-            parent_id = file_id;
+            parent_id = fh.get();
+        }
+        else
+        {
+            if ((ierr = nc_inq_grp_full_ncid(fh.get(), parent_group.c_str(),
+                    &parent_id)) != NC_NOERR)
+            {
+                TECA_ERROR("Failed to get group id for group \"" << parent_group << "\""
+                    << std::endl << nc_strerror(ierr))
+                continue;
+            }
         }
 
         size_t n_vals = 1;

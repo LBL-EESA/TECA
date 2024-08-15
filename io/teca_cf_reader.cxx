@@ -229,7 +229,7 @@ void teca_cf_reader::get_variables_in_group(
         std::string name;
         teca_metadata atts;
 
-        if (teca_netcdf_util::read_variable_attributes(fh, parent_id, i,
+        if (teca_netcdf_util::read_variable_attributes(fh, group_name, i,
             this->x_axis_variable, this->y_axis_variable,
             this->z_axis_variable, this->t_axis_variable,
             this->clamp_dimensions_of_one, name, atts))
@@ -447,6 +447,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
         double bounds[6] = {0.0};
         unsigned long whole_extent[6] = {0ul};
 
+        std::string x_parent_group = "";
         int x_parent_id = 0;
         int x_id = 0;
         size_t n_x = 1;
@@ -457,7 +458,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
         if (atrs.get(x_axis_variable, x_atts) ||
             x_atts.get("cf_dims", n_x) ||
             x_atts.get("cf_type_code", x_t) ||
-            x_atts.get("cf_parent_id", x_parent_id) ||
+            x_atts.get("cf_parent_group", x_parent_group) ||
             x_atts.get("cf_id", x_id))
         {
             this->clear_cached_metadata();
@@ -467,9 +468,20 @@ teca_metadata teca_cf_reader::get_output_metadata(
             return teca_metadata();
         }
 
-        if (x_parent_id == NC_GLOBAL)
+
+        if (x_parent_group.empty())
         {
             x_parent_id = fh.get();
+        }
+        else
+        {
+            if ((ierr = nc_inq_grp_full_ncid(fh.get(), x_parent_group.c_str(),
+                    &x_parent_id)) != NC_NOERR)
+            {
+                TECA_ERROR("Failed to get group id for group \"" << x_parent_group << "\""
+                    << std::endl << nc_strerror(ierr))
+                return teca_metadata();
+            }
         }
 
         NC_DISPATCH(x_t,
@@ -512,6 +524,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
             x_t = NC_FLOAT;
         }
 
+        std::string y_parent_group = "";
         int y_parent_id = 0;
         int y_id = 0;
         size_t n_y = 1;
@@ -523,7 +536,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
             if (atrs.get(y_axis_variable, y_atts) ||
                 y_atts.get("cf_dims", n_y) ||
                 y_atts.get("cf_type_code", y_t) ||
-                y_atts.get("cf_parent_id", y_parent_id) ||
+                y_atts.get("cf_parent_group", y_parent_group) ||
                 y_atts.get("cf_id", y_id))
             {
                 this->clear_cached_metadata();
@@ -533,9 +546,19 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 return teca_metadata();
             }
 
-            if (y_parent_id == NC_GLOBAL)
+            if (y_parent_group.empty())
             {
                 y_parent_id = fh.get();
+            }
+            else
+            {
+                if ((ierr = nc_inq_grp_full_ncid(fh.get(),
+                        y_parent_group.c_str(), &y_parent_id)) != NC_NOERR)
+                {
+                    TECA_ERROR("Failed to get group id for group \"" << y_parent_group << "\""
+                        << std::endl << nc_strerror(ierr))
+                    return teca_metadata();
+                }
             }
 
             NC_DISPATCH(y_t,
@@ -586,6 +609,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 )
         }
 
+        std::string z_parent_group;
         int z_parent_id = 0;
         int z_id = 0;
         size_t n_z = 1;
@@ -597,7 +621,7 @@ teca_metadata teca_cf_reader::get_output_metadata(
             if (atrs.get(z_axis_variable, z_atts) ||
                 z_atts.get("cf_dims", n_z) ||
                 z_atts.get("cf_type_code", z_t) ||
-                z_atts.get("cf_parent_id", z_parent_id) ||
+                z_atts.get("cf_parent_group", z_parent_group) ||
                 z_atts.get("cf_id", z_id))
             {
                 this->clear_cached_metadata();
@@ -607,9 +631,19 @@ teca_metadata teca_cf_reader::get_output_metadata(
                 return teca_metadata();
             }
 
-            if (z_parent_id == NC_GLOBAL)
+            if (z_parent_group.empty())
             {
                 z_parent_id = fh.get();
+            }
+            else
+            {
+                if ((ierr = nc_inq_grp_full_ncid(fh.get(),
+                        z_parent_group.c_str(), &z_parent_id)) != NC_NOERR)
+                {
+                    TECA_ERROR("Failed to get group id for group \"" << z_parent_group << "\""
+                        << std::endl << nc_strerror(ierr))
+                    return teca_metadata();
+                }
             }
 
             NC_DISPATCH(z_t,
@@ -1613,6 +1647,7 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
             // get metadata
             teca_metadata atts;
             int type = 0;
+            std::string parent_group;
             int parent_id = 0;
             int id = 0;
             int have_mesh_dim[4] = {0};
@@ -1622,7 +1657,7 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
 
             if (atrs.get(arrays[i], atts)
                 || atts.get("cf_type_code", 0, type)
-                || atts.get("cf_parent_id", 0, parent_id)
+                || atts.get("cf_parent_group", 0, parent_group)
                 || atts.get("cf_id", 0, id)
                 || atts.get("cf_dims", cf_dims)
                 || atts.get("centering", centering)
@@ -1633,9 +1668,19 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
                 continue;
             }
 
-            if (parent_id == NC_GLOBAL)
+            if (parent_group.empty())
             {
-                parent_id = file_id;
+                parent_id = fh.get();
+            }
+            else
+            {
+                if ((ierr = nc_inq_grp_full_ncid(fh.get(), parent_group.c_str(),
+                        &parent_id)) != NC_NOERR)
+                {
+                    TECA_ERROR("Failed to get group id for group \"" << parent_group << "\""
+                        << std::endl << nc_strerror(ierr))
+                    continue;
+                }
             }
 
             size_t n_vals = 1;

@@ -241,6 +241,9 @@ int read_attribute(int parent_id, int var_id,
  *
  *  | Key             | Description                                          |
  *  | ----            | -----------                                          |
+ *  | cf_parent_group | The name of the group containing the NetCF variable  |
+ *  |                 | id or an empty string if variable is in the root     |
+ *  |                 | group (likely the most common case)                  |
  *  | cf_id           | The NetCDF variable id that can be used to read the  |
  *  |                 | variable.                                            |
  *  | cf_dims         | A vector of the NetCDF dimension lengths (i.e. the   |
@@ -263,8 +266,8 @@ int read_attribute(int parent_id, int var_id,
  * returns non-zero if an error occurred.
  */
 TECA_EXPORT
-int read_variable_attributes(netcdf_handle &fh, int parent_id, int var_id,
-    const std::string &x_variable, const std::string &y_variable,
+int read_variable_attributes(netcdf_handle &fh, const std::string &parent_group,
+    int var_id, const std::string &x_variable, const std::string &y_variable,
     const std::string &z_variable, const std::string &t_variable,
     int clamp_dimensions_of_one, std::string &name, teca_metadata &atts);
 
@@ -274,8 +277,8 @@ int read_variable_attributes(netcdf_handle &fh, int parent_id, int var_id,
  * for details of attributes returned. returns non-zero if an error occurred.
  */
 TECA_EXPORT
-int read_variable_attributes(netcdf_handle &fh, int parent_id, int var_id,
-    std::string &name, teca_metadata &atts);
+int read_variable_attributes(netcdf_handle &fh, const std::string &parent_group,
+    int var_id, std::string &name, teca_metadata &atts);
 
 /**
  * Get the variable ID in a NetCDF file where var_name can be a fully qualified 
