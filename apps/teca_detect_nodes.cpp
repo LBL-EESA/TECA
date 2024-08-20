@@ -376,8 +376,8 @@ int main(int argc, char **argv)
        }
        thickness->set_execute_callback(point_wise_difference(thickness->get_dependent_variable(0),
                                                              thickness->get_dependent_variable(1),
-                                                             thickness->get_derived_variable()));
-       std::string text = opt_vals["sea_level_pressure"].as<string>()+",200.0,5.5,0;"+thickness->get_derived_variable()+",-6.0,6.5,1.0";
+                                                             thickness->get_derived_variable(0)));
+       std::string text = opt_vals["sea_level_pressure"].as<string>()+",200.0,5.5,0;"+thickness->get_derived_variable(0)+",-6.0,6.5,1.0";
        candidates->set_closed_contour_cmd(text);
     }
 
