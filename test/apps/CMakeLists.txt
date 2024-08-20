@@ -794,8 +794,7 @@ set(app_names
     teca_tc_wind_radii_stats
     teca_temporal_reduction
     teca_cpp_temporal_reduction
-    teca_detect_nodes
-    teca_lapse_rate)
+    teca_detect_nodes)
 
 foreach (app_name ${app_names})
 
