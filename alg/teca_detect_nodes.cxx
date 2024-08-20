@@ -359,7 +359,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
     VARIANT_ARRAY_DISPATCH_FP(y.get(),
 
        DataArray1D<NT> vec_lat(y->size(), false);
-       auto [sp_y, p_y] = get_cpu_accessible<CTT>(y);
+       auto [sp_y, p_y] = get_host_accessible<CTT>(y);
        vec_lat.AttachToData((void*)p_y);
 
        for (int j = 0; j < y->size(); ++j)
@@ -369,7 +369,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
 
        assert_type<CTT>(x);
        DataArray1D<NT> vec_lon(x->size(), false);
-       auto [sp_x, p_x] = get_cpu_accessible<CTT>(x);
+       auto [sp_x, p_x] = get_host_accessible<CTT>(x);
        vec_lon.AttachToData((void*)p_x);
 
        for (int i = 0; i < x->size(); ++i)
@@ -409,7 +409,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
     VARIANT_ARRAY_DISPATCH_FP(search_by.get(),
 
        DataArray1D<NT> data_search(search_by->size(), false);
-       auto [sp_search_by, p_search_by] = get_cpu_accessible<CTT>(search_by);
+       auto [sp_search_by, p_search_by] = get_host_accessible<CTT>(search_by);
        data_search.AttachToData((void*)p_search_by);
 
        // Tag all minima
@@ -641,7 +641,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
        VARIANT_ARRAY_DISPATCH_FP(threshold_var.get(),
 
           DataArray1D<NT> data_state(threshold_var->size(), false);
-          auto [sp_threshold_var, p_threshold_var] = get_cpu_accessible<CTT>(threshold_var);
+          auto [sp_threshold_var, p_threshold_var] = get_host_accessible<CTT>(threshold_var);
           data_state.AttachToData((void*)p_threshold_var);
 
           // Loop through all pressure minima
@@ -696,7 +696,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
        VARIANT_ARRAY_DISPATCH_FP(closed_contour_var.get(),
 
           DataArray1D<NT> data_state(closed_contour_var->size(), false);
-          auto [sp_closed_contour_var, p_closed_contour_var] = get_cpu_accessible<CTT>(closed_contour_var);
+          auto [sp_closed_contour_var, p_closed_contour_var] = get_host_accessible<CTT>(closed_contour_var);
           data_state.AttachToData((void*)p_closed_contour_var);
 
           // Loop through all pressure minima
@@ -751,7 +751,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
        VARIANT_ARRAY_DISPATCH_FP(no_closed_contour_var.get(),
 
           DataArray1D<NT> data_state(no_closed_contour_var->size(), false);
-          auto [sp_no_closed_contour_var, p_no_closed_contour_var] = get_cpu_accessible<CTT>(no_closed_contour_var);
+          auto [sp_no_closed_contour_var, p_no_closed_contour_var] = get_host_accessible<CTT>(no_closed_contour_var);
           data_state.AttachToData((void*)p_no_closed_contour_var);
 
           // Loop through all pressure minima
@@ -1181,7 +1181,7 @@ const_p_teca_dataset teca_detect_nodes::execute(
        VARIANT_ARRAY_DISPATCH_FP(output_var.get(),
 
           DataArray1D<NT> data_state(output_var->size(), false);
-          auto [sp_output_var, p_output_var] = get_cpu_accessible<CTT>(output_var);
+          auto [sp_output_var, p_output_var] = get_host_accessible<CTT>(output_var);
           data_state.AttachToData((void*)p_output_var);
 
           // Loop through all pressure minima
