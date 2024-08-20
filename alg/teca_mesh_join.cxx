@@ -78,6 +78,9 @@ teca_metadata teca_mesh_join::get_output_metadata(
     teca_metadata target_atts;
     input_md[md_target].get("attributes", target_atts);
 
+    teca_metadata target_coords;
+    input_md[md_target].get("coordinates", target_coords);
+
     // work with each source
     unsigned int n_in = this->get_number_of_input_connections();
     for (unsigned int i = 1; i < n_in; ++i)
@@ -90,6 +93,9 @@ teca_metadata teca_mesh_join::get_output_metadata(
 
         teca_metadata source_atts;
         input_md[md_src].get("attributes", source_atts);
+
+        teca_metadata source_coords;
+        input_md[md_src].get("coordinates", source_coords);
 
         // merge metadata from source and target variables should be unique
         // lists.  attributes are indexed by variable names in the case of
@@ -107,6 +113,10 @@ teca_metadata teca_mesh_join::get_output_metadata(
                 teca_metadata atts;
                 source_atts.get(src_var, atts);
                 target_atts.set(src_var, atts);
+
+                teca_metadata coords;
+                source_coords.get(src_var, coords);
+                target_coords.set(src_var, coords);
             }
         }
     }
@@ -114,6 +124,7 @@ teca_metadata teca_mesh_join::get_output_metadata(
     // update with merged lists
     output_md.set("variables", target_vars);
     output_md.set("attributes", target_atts);
+    output_md.set("coordinates", target_coords);
 
     return output_md;
 }
