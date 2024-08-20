@@ -77,7 +77,7 @@ int parse_command_line(int argc, char **argv, int rank,
         if (rank == 0)
         {
             cerr << endl << "Usage error:" << endl
-                << "test_cf_writer [-i input1 input2 input3] [-o output] [-s first step,last step] "
+                << "test_mesh_join [-i input1 input2 input3] [-o output] [-s first step,last step] "
                 << "[-x x axis variable] [-y y axis variable] [-z z axis variable] "
                 << "[-t t axis variable] [-c steps per file] [-n num threads] "
                 << "[-p var0 var1 ...]"
