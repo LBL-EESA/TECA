@@ -1235,9 +1235,9 @@ const_p_teca_dataset teca_detect_nodes::execute(
     out_table->set_time_units(time_units);
 
     // add time stamp
-    out_table->declare_columns("step", long(), "time", double());
+    out_table->declare_columns("step", long(), "time", double(), "ncandidates", long());
     for (unsigned long i = 0; i < set_candidates.size(); ++i)
-       out_table << time_step << time_offset;
+       out_table << time_step << time_offset << set_candidates.size();
 
     // put the arrays into the table
     p_teca_variant_array_impl<double> latitude =
@@ -1260,16 +1260,16 @@ const_p_teca_dataset teca_detect_nodes::execute(
     for (int outc = 0; outc < this->internals->vec_output_op.size(); ++outc)
     {
        i_candidate_ix = 0;
-       std::string * output_array = new std::string[set_candidates.size()];
+       double * output_array = new double[set_candidates.size()];
        std::set<int>::const_iterator iter_candidate = set_candidates.begin();
        for (; iter_candidate != set_candidates.end(); ++iter_candidate)
        {
-          output_array[i_candidate_ix] = vec_output_value[i_candidate_ix][outc];
+          output_array[i_candidate_ix] = std::stod(vec_output_value[i_candidate_ix][outc]);
           i_candidate_ix++;
        }
 
-       p_teca_variant_array_impl<std::string> output =
-          teca_variant_array_impl<std::string>::New(set_candidates.size(),
+       p_teca_variant_array_impl<double> output =
+          teca_variant_array_impl<double>::New(set_candidates.size(),
                                                                 output_array);
 
        Variable &var = this->internals->varreg.Get(
