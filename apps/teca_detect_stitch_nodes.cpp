@@ -8,12 +8,14 @@
 #include "teca_app_util.h"
 #include "teca_table_reduce.h"
 #include "teca_table_sort.h"
+#include "teca_table_calendar.h"
 #include "teca_table_writer.h"
 #include "teca_cartesian_mesh_regrid.h"
 #include "teca_cartesian_mesh_source.h"
 #include "teca_rename_variables.h"
 #include "teca_mesh_join.h"
 #include "teca_detect_nodes.h"
+#include "teca_stitch_nodes.h"
 
 #include <string>
 #include <iostream>
@@ -54,6 +56,10 @@ int main(int argc, char **argv)
             "\nfile path to write the storm candidates to. The extension determines"
             " the file format. May be one of `.nc`, `.csv`, or `.bin`\n")
 
+        ("track_file", value<string>()->default_value("tracks.csv"),
+            "\nfile path to write the storm tracks to. The extension determines"
+            " the file format. May be one of `.nc`, `.csv`, or `.bin`\n")
+
         ("x_axis_variable", value<std::string>()->default_value("lon"),
             "\nName of the variable to use for x-coordinates.\n")
 
@@ -63,44 +69,141 @@ int main(int argc, char **argv)
         ("z_axis_variable", value<std::string>()->default_value("level"),
             "\nName of the variable to use for z-coordinates.\n")
 
-        ("n_threads", value<int>()->default_value(-1), "\nSets the thread pool"
-            " size on each MPI rank. When the default value of -1 is used TECA"
-            " will coordinate the thread pools across ranks such each thread"
-            " is bound to a unique physical core.\n")
-
-        ("in_connect", value<string>()->default_value(""), "\nConnectivity file\n")
+        ("in_connect", value<string>()->default_value(""),
+            "\nConnectivity file that describes the unstructured grid\n")
         ("search_by_min", value<string>()->default_value(""),
-            "\nVariable to search for the minimum\n")
+            "\nThe input variable to use for initially selecting candidate points"
+            " (defined as local minima). At least one (and at most one)"
+            " of --search_by_min or --search_by_max must be specified.\n")
         ("search_by_max", value<string>()->default_value(""),
-            "\nVariable to search for the maximum\n")
+            "\nThe input variable to use for initially selecting candidate points"
+            " (defined as local maxima). At least one (and at most one)"
+            " of --search_by_min or --search_by_max must be specified.\n")
         ("closed_contour_cmd", value<string>()->default_value(""),
-            "\nClosed contour commands [var,delta,dist,minmaxdist;...]\n")
+            "\nEliminate candidates if they do not have a closed contour."
+            " The closed contour is determined by breadth first search:"
+            " if any paths exist from the candidate point"
+            " (or nearby minima/maxima if minmaxdist is specified)"
+            " that reach the specified distance before achieving the specified delta"
+            " then we say no closed contour is present."
+            " Closed contour commands are separated by a semicolon (\"<cmd1>;<cmd2>;...\")."
+            " Each closed contour command takes the form \"var,delta,dist,minmaxdist\"."
+            " These arguments are as follows."
+            " var is the name of the variable used for the contour search."
+            " dist is the great-circle distance (in degrees) from the pivot"
+            " within which the closed_contour criteria must be satisfied."
+            " delta is the amount by which the field must change from the pivot value."
+            " If positive (negative) the field must increase (decrease) by this value along the contour."
+            " minmaxdist is the great-circle distance away from the candidate"
+            " to search for the minima/maxima. If delta is positive (negative),"
+            " the pivot is a local minimum (maximum).\n")
         ("no_closed_contour_cmd", value<string>()->default_value(""),
-            "\nNo closed contour commands [var,delta,dist,minmaxdist;...]\n")
-        ("threshold_cmd", value<string>()->default_value(""),
-            "\nThreshold commands [var,op,value,dist;...]\n")
+            "\nAs --closed_contour_cmd,"
+            " except it eliminates candidates if a closed contour is present.\n")
+        ("candidate_threshold_cmd", value<string>()->default_value(""),
+            "\nThreshold commands for candidates."
+            " Eliminate candidates that do not satisfy a threshold criteria"
+            " (there must exist a point within a given distance of the candidate"
+            " that satisfies a given equality or inequality)."
+            " Search is performed by breadth-first search over the grid."
+            " Threshold commands are separated by a semicolon (\"<cmd1>;<cmd2>;...\")."
+            " Each threshold command takes the form \"var,op,value,dist\"."
+            " These arguments are as follows."
+            " var is the name of the variable used for the thresholding."
+            " op is the operator that must be satisfied for threshold (options include >,>=,<,<=,=,!=)."
+            " value is the value on the right-hand-side of the comparison."
+            " dist is the great-circle distance away from the candidate"
+            " to search for a point that satisfies the threshold.\n")
         ("output_cmd", value<string>()->default_value(""),
-            "\nOutput commands [var,op,dist;...]\n")
+            "\nInclude additional columns in the candidates output file."
+            " Each output command takes the form \"var,op,dist\"."
+            " These arguments are as follows."
+            " var is the name of the variable used for output."
+            " op is the operator that is applied over all points"
+            " within the specified distance of the candidate (options include max, min, avg, maxdist, mindist)."
+            " dist is the great-circle distance away from the candidate wherein the operator is applied.\n")
         ("search_by_threshold", value<string>()->default_value(""),
-            "\nThreshold for search operation\n")
+            "\nThreshold for search operation in the form \"<op><value>\""
+            " These arguments are as follows."
+            " op is the operator that must be satisfied for threshold (options include >,>=,<,<=,=,!=)."
+            " value is the value on the right-hand-side of the comparison.\n")
         ("min_lon", value<double>()->default_value(0.0),
             "\nMinimum longitude in degrees for detection\n")
-        ("max_lon", value<double>()->default_value(10.0),
-            "\nMaximum longitude in degrees for detection\n")
-        ("min_lat", value<double>()->default_value(-20.0),
+        ("max_lon", value<double>()->default_value(0.0),
+            "\nMaximum longitude in degrees for detection"
+            " As longitude is a periodic dimension,"
+            " when --regional is not specified --min_lon may be larger than --max_lon."
+            " If --max_lon and --min_lon are equal then these arguments are ignored.\n")
+        ("min_lat", value<double>()->default_value(0.0),
             "\nMinimum latitude in degrees for detection\n")
-        ("max_lat", value<double>()->default_value(20.0),
-            "\nMaximum latitude in degrees for detection\n")
+        ("max_lat", value<double>()->default_value(0.0),
+            "\nMaximum latitude in degrees for detection"
+            " If --max_lat and --min_lat are equal then these arguments are ignored.\n")
         ("min_abs_lat", value<double>()->default_value(0.0),
-            "\nMinimum absolute value of latitude in degrees for detection\n")
+            "\nMinimum absolute value of latitude in degrees for detection"
+            " This argument has no effect if set to zero.\n")
         ("merge_dist", value<double>()->default_value(6.0),
-            "\nMinimum allowable distance between two candidates in degrees\n")
+            "\nMinimum allowable distance between two candidates in degrees."
+            " Candidate points with a distance (in degrees great-circle-distance)"
+            " shorter than the specified value are merged."
+            " Among two candidates within the merge distance,"
+            " only the candidate with the lowest value of the --search_by_min field"
+            " or highest value of the --search_by_max field are retained.\n")
         ("diag_connect", value<bool>()->default_value(false),
-            "\nDiagonal connectivity for RLL grids\n")
+            "\nWhen the data is on a structured grid,"
+            " consider grid cells to be connected in the diagonal (across the vertex)\n")
         ("regional", value<bool>()->default_value(true),
-            "\nRegional (do not wrap longitudinal boundaries)\n")
+            "\nUsed to indicate that a given latitude-longitude grid"
+            " should not be periodic in the longitudinal direction.\n")
         ("out_header", value<bool>()->default_value(true),
-            "\nOutput header\n")
+            "\nIf present, output a header at the beginning of the output file"
+            " indicating the columns of the file.\n")
+
+        ("in_fmt", value<string>()->default_value(""),
+            "\nA comma-separated list of names of the auxiliary columns"
+            " within the candidates output file."
+            " (namely, the list must not include the time columns).\n")
+        ("min_time", value<string>()->default_value("10"),
+            "\nThe minimum length of a path either in terms of"
+            " number of discrete times or as a duration, e.g. \"24h\"."
+            " Note that the duration of a path is computed as"
+            " the difference between the final time and initial time,"
+            " so a \"24h\" duration correspond to 5 time steps in 6-hourly data"
+            " (i.e. 0h,6,12,18,24UTC).\n")
+        ("cal_type", value<string>()->default_value("standard"),
+            "\nCalendar type\n")
+        ("max_gap", value<string>()->default_value("3"),
+            "\nMaximum time gap (in time steps or duration)"
+            " The number of allowed missing points between spatially proximal candidate nodes"
+            " while still considering them part of the same path.\n")
+        ("track_threshold_cmd", value<string>()->default_value(""),
+            "\nThreshold commands for path"
+            " Filter paths based on the number of times where a particular threshold is satisfied."
+            " Threshold commands are separated by a semicolon (\"<cmd1>;<cmd2>;...\")."
+            " Each threshold command takes the form \"col,op,value,count\"."
+            " These arguments are as follows."
+            " col is the name of the column to use for thresholding, as specified in --in_fmt."
+            " op is the operator that must be satisfied for threshold (options include >,>=,<,<=,=,!=,|>=,|<=)."
+            " value is the value on the right-hand-side of the comparison."
+            " count is either the minimum number of time slices where the threshold must be satisfied"
+            " or the instruction \"all\", \"first\", or \"last\"."
+            " Here \"all\" is used to indicate the threshold must be satisfied at all points along the path,"
+            " \"first\" is used to indicate the threshold must be satisfied only at the first point along the path, and"
+            " \"last\" is used to indicate the threshold must be satisfied only at the last point along the path.\n")
+        ("prioritize", value<string>()->default_value(""),
+            "\nVariable to use when prioritizing paths\n")
+        ("min_path_length", value<int>()->default_value(0),
+            "\nMinimum path length\n")
+        ("range", value<double>()->default_value(8.0),
+            "\nThe maximum distance between candidates"
+            " along a path (in great-circle degrees).\n")
+        ("min_endpoint_distance", value<double>()->default_value(0.0),
+            "\nThe minimum great-circle distance between the first candidate"
+            " on a path and the last candidate (in degrees).\n")
+        ("min_path_distance", value<double>()->default_value(0.0),
+            "\nThe minimum accumulated great-circle distance between nodes in a path (in degrees).\n")
+        ("allow_repeated_times", value<bool>()->default_value(false),
+            "\nAllow repeated times\n")
 
         ("sea_level_pressure", value<string>()->default_value(""),
             "\nname of variable with sea level pressure\n")
@@ -165,6 +268,9 @@ int main(int argc, char **argv)
     p_teca_table_reduce map_reduce = teca_table_reduce::New();
     p_teca_table_sort sort = teca_table_sort::New();
     p_teca_table_writer candidate_writer = teca_table_writer::New();
+    p_teca_stitch_nodes tracks = teca_stitch_nodes::New();
+    p_teca_table_calendar calendar = teca_table_calendar::New();
+    p_teca_table_writer track_writer = teca_table_writer::New();
 
     thickness->set_dependent_variables({"Z500", "Z300"});
     thickness->set_derived_variable("thickness");
@@ -187,6 +293,9 @@ int main(int argc, char **argv)
     map_reduce->get_properties_description("map_reduce", advanced_opt_defs);
     sort->get_properties_description("sort", advanced_opt_defs);
     candidate_writer->get_properties_description("candidate_writer", advanced_opt_defs);
+    tracks->get_properties_description("tracks", advanced_opt_defs);
+    calendar->get_properties_description("calendar", advanced_opt_defs);
+    track_writer->get_properties_description("track_writer", advanced_opt_defs);
 
     // package basic and advanced options for display
     options_description all_opt_defs(help_width, help_width - 4);
@@ -222,6 +331,9 @@ int main(int argc, char **argv)
     map_reduce->set_properties("map_reduce", opt_vals);
     sort->set_properties("sort", opt_vals);
     candidate_writer->set_properties("candidate_writer", opt_vals);
+    tracks->set_properties("tracks", opt_vals);
+    calendar->set_properties("calendar", opt_vals);
+    track_writer->set_properties("track_writer", opt_vals);
 
     // now pass in the basic options, these are processed
     // last so that they will take precedence
@@ -275,6 +387,7 @@ int main(int argc, char **argv)
     if (!opt_vals["in_connect"].defaulted())
     {
         candidates->set_in_connect(opt_vals["in_connect"].as<string>());
+        tracks->set_in_connect(opt_vals["in_connect"].as<string>());
     }
 
     if (!opt_vals["search_by_min"].defaulted())
@@ -386,9 +499,9 @@ int main(int argc, char **argv)
        candidates->set_no_closed_contour_cmd(opt_vals["no_closed_contour_cmd"].as<string>());
     }
 
-    if (!opt_vals["threshold_cmd"].defaulted())
+    if (!opt_vals["candidate_threshold_cmd"].defaulted())
     {
-       candidates->set_threshold_cmd(opt_vals["threshold_cmd"].as<string>());
+       candidates->set_candidate_threshold_cmd(opt_vals["candidate_threshold_cmd"].as<string>());
     }
 
     if (!opt_vals["output_cmd"].defaulted())
@@ -412,6 +525,15 @@ int main(int argc, char **argv)
 
        std::string text = opt_vals["sea_level_pressure"].as<string>()+",min,0;"+surf_wind->get_l2_norm_variable()+",max,2;"+opt_vals["geopotential_at_surface"].as<string>()+",min,0";
        candidates->set_output_cmd(text);
+    }
+    if (!opt_vals["in_fmt"].defaulted())
+    {
+       tracks->set_in_fmt(opt_vals["in_fmt"].as<string>());
+    }
+    else
+    {
+       std::string text = "i,j,lat,lon,"+opt_vals["sea_level_pressure"].as<string>()+","+surf_wind->get_l2_norm_variable()+","+opt_vals["geopotential_at_surface"].as<string>();
+       tracks->set_in_fmt(text);
     }
 
     if (!opt_vals["search_by_threshold"].defaulted())
@@ -480,7 +602,66 @@ int main(int argc, char **argv)
     candidate_writer->set_file_name(opt_vals["candidate_file"].as<string>());
     candidate_writer->set_output_format_auto();
 
-    sort->set_index_column("storm_id");
+    sort->set_index_column("step");
+
+    if (!opt_vals["min_time"].defaulted())
+    {
+       tracks->set_min_time(opt_vals["min_time"].as<string>());
+    }
+
+    if (!opt_vals["cal_type"].defaulted())
+    {
+       tracks->set_cal_type(opt_vals["cal_type"].as<string>());
+    }
+
+    if (!opt_vals["max_gap"].defaulted())
+    {
+       tracks->set_max_gap(opt_vals["max_gap"].as<string>());
+    }
+
+    if (!opt_vals["track_threshold_cmd"].defaulted())
+    {
+       tracks->set_track_threshold_cmd(opt_vals["track_threshold_cmd"].as<string>());
+    }
+    else
+    {
+       std::string text = surf_wind->get_l2_norm_variable()+",>=,10.0,10;lat,<=,50.0,10;lat,>=,-50.0,10;"+opt_vals["geopotential_at_surface"].as<string>()+",<=,15.0,10";
+       tracks->set_track_threshold_cmd(text);
+    }
+
+    if (!opt_vals["prioritize"].defaulted())
+    {
+       tracks->set_prioritize(opt_vals["prioritize"].as<string>());
+    }
+
+    if (!opt_vals["min_path_length"].defaulted())
+    {
+       tracks->set_min_path_length(opt_vals["min_path_length"].as<int>());
+    }
+
+    if (!opt_vals["range"].defaulted())
+    {
+       tracks->set_range(opt_vals["range"].as<double>());
+    }
+
+    if (!opt_vals["min_endpoint_distance"].defaulted())
+    {
+       tracks->set_min_endpoint_distance(opt_vals["min_endpoint_distance"].as<double>());
+    }
+
+    if (!opt_vals["min_path_distance"].defaulted())
+    {
+       tracks->set_min_path_distance(opt_vals["min_path_distance"].as<double>());
+    }
+
+    if (!opt_vals["allow_repeated_times"].defaulted())
+    {
+       tracks->set_allow_repeated_times(opt_vals["allow_repeated_times"].as<bool>());
+    }
+    tracks->initialize();
+
+    track_writer->set_file_name(opt_vals["track_file"].as<string>());
+    track_writer->set_output_format_auto();
 
     // connect all the stages
     thickness->set_input_connection(head->get_output_port());
@@ -489,9 +670,12 @@ int main(int argc, char **argv)
     map_reduce->set_input_connection(candidates->get_output_port());
     candidate_writer->set_input_connection(map_reduce->get_output_port());
     sort->set_input_connection(candidate_writer->get_output_port());
+    calendar->set_input_connection(sort->get_output_port());
+    tracks->set_input_connection(calendar->get_output_port());
+    track_writer->set_input_connection(tracks->get_output_port());
 
     // run the pipeline
-    candidate_writer->update();
+    track_writer->update();
 
     return 0;
 }
