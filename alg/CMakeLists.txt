@@ -67,6 +67,7 @@ set(teca_alg_cxx_srcs
     teca_dataset_diff.cxx
     teca_temporal_reduction.cxx
     teca_detect_nodes.cxx
+    teca_stitch_nodes.cxx
     )
 
 
