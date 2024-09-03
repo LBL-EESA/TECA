@@ -8,12 +8,14 @@
 #include "teca_app_util.h"
 #include "teca_table_reduce.h"
 #include "teca_table_sort.h"
+#include "teca_table_calendar.h"
 #include "teca_table_writer.h"
 #include "teca_cartesian_mesh_regrid.h"
 #include "teca_cartesian_mesh_source.h"
 #include "teca_rename_variables.h"
 #include "teca_mesh_join.h"
 #include "teca_detect_nodes.h"
+#include "teca_stitch_nodes.h"
 
 #include <string>
 #include <iostream>
@@ -52,6 +54,10 @@ int main(int argc, char **argv)
 
         ("candidate_file", value<string>()->default_value("candidates.csv"),
             "\nfile path to write the storm candidates to. The extension determines"
+            " the file format. May be one of `.nc`, `.csv`, or `.bin`\n")
+
+        ("track_file", value<string>()->default_value("track.csv"),
+            "\nfile path to write the storm tracks to. The extension determines"
             " the file format. May be one of `.nc`, `.csv`, or `.bin`\n")
 
         ("x_axis_variable", value<std::string>()->default_value("lon"),
@@ -165,6 +171,9 @@ int main(int argc, char **argv)
     p_teca_table_reduce map_reduce = teca_table_reduce::New();
     p_teca_table_sort sort = teca_table_sort::New();
     p_teca_table_writer candidate_writer = teca_table_writer::New();
+    p_teca_stitch_nodes tracks = teca_stitch_nodes::New();
+    p_teca_table_calendar calendar = teca_table_calendar::New();
+    p_teca_table_writer track_writer = teca_table_writer::New();
 
     thickness->set_dependent_variables({"Z500", "Z300"});
     thickness->set_derived_variable("thickness");
@@ -187,6 +196,9 @@ int main(int argc, char **argv)
     map_reduce->get_properties_description("map_reduce", advanced_opt_defs);
     sort->get_properties_description("sort", advanced_opt_defs);
     candidate_writer->get_properties_description("candidate_writer", advanced_opt_defs);
+    tracks->get_properties_description("tracks", advanced_opt_defs);
+    calendar->get_properties_description("calendar", advanced_opt_defs);
+    track_writer->get_properties_description("track_writer", advanced_opt_defs);
 
     // package basic and advanced options for display
     options_description all_opt_defs(help_width, help_width - 4);
@@ -222,6 +234,9 @@ int main(int argc, char **argv)
     map_reduce->set_properties("map_reduce", opt_vals);
     sort->set_properties("sort", opt_vals);
     candidate_writer->set_properties("candidate_writer", opt_vals);
+    tracks->set_properties("tracks", opt_vals);
+    calendar->set_properties("calendar", opt_vals);
+    track_writer->set_properties("track_writer", opt_vals);
 
     // now pass in the basic options, these are processed
     // last so that they will take precedence
@@ -412,6 +427,8 @@ int main(int argc, char **argv)
 
        std::string text = opt_vals["sea_level_pressure"].as<string>()+",min,0;"+surf_wind->get_l2_norm_variable()+",max,2;"+opt_vals["geopotential_at_surface"].as<string>()+",min,0";
        candidates->set_output_cmd(text);
+       text = "i,j,lat,lon,"+opt_vals["sea_level_pressure"].as<string>()+","+surf_wind->get_l2_norm_variable()+","+opt_vals["geopotential_at_surface"].as<string>();
+       tracks->set_in_fmt(text);
     }
 
     if (!opt_vals["search_by_threshold"].defaulted())
@@ -480,7 +497,14 @@ int main(int argc, char **argv)
     candidate_writer->set_file_name(opt_vals["candidate_file"].as<string>());
     candidate_writer->set_output_format_auto();
 
-    sort->set_index_column("storm_id");
+    sort->set_index_column("step");
+
+    std::string text = surf_wind->get_l2_norm_variable()+",>=,10.0,10;lat,<=,50.0,10;lat,>=,-50.0,10;"+opt_vals["geopotential_at_surface"].as<string>()+",<=,15.0,10";
+    tracks->set_threshold(text);
+    tracks->initialize();
+
+    track_writer->set_file_name(opt_vals["track_file"].as<string>());
+    track_writer->set_output_format_auto();
 
     // connect all the stages
     thickness->set_input_connection(head->get_output_port());
@@ -489,9 +513,12 @@ int main(int argc, char **argv)
     map_reduce->set_input_connection(candidates->get_output_port());
     candidate_writer->set_input_connection(map_reduce->get_output_port());
     sort->set_input_connection(candidate_writer->get_output_port());
+    calendar->set_input_connection(sort->get_output_port());
+    tracks->set_input_connection(calendar->get_output_port());
+    track_writer->set_input_connection(tracks->get_output_port());
 
     // run the pipeline
-    candidate_writer->update();
+    track_writer->update();
 
     return 0;
 }
