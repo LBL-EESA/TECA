@@ -84,9 +84,9 @@ int main(int argc, char **argv)
         ("no_closed_contour_cmd", value<string>()->default_value(""),
             "\nNo closed contour commands [var,delta,dist,minmaxdist;...]\n")
         ("threshold_cmd", value<string>()->default_value(""),
-            "\nThreshold commands [var,op,value,dist;...]\n")
+            "\nThreshold commands for candidates [var,op,value,dist;...]\n")
         ("output_cmd", value<string>()->default_value(""),
-            "\nOutput commands [var,op,dist;...]\n")
+            "\nCandidates output commands [var,op,dist;...]\n")
         ("search_by_threshold", value<string>()->default_value(""),
             "\nThreshold for search operation\n")
         ("min_lon", value<double>()->default_value(0.0),
@@ -107,6 +107,29 @@ int main(int argc, char **argv)
             "\nRegional (do not wrap longitudinal boundaries)\n")
         ("out_header", value<bool>()->default_value(true),
             "\nOutput header\n")
+
+        ("in_fmt", value<string>()->default_value(""),
+            "\nTracks output commands [var,op,dist;...]\n")
+        ("min_time", value<string>()->default_value("10"),
+            "\nMinimum duration of path\n")
+        ("cal_type", value<string>()->default_value("standard"),
+            "\nCalendar type\n")
+        ("max_gap", value<string>()->default_value("3"),
+            "\nMaximum time gap (in time steps or duration)\n")
+        ("threshold", value<string>()->default_value(""),
+            "\nThreshold commands for path [var,op,value,count;...]\n")
+        ("prioritize", value<string>()->default_value(""),
+            "\nVariable to use when prioritizing paths\n")
+        ("min_path_length", value<int>()->default_value(1),
+            "\nMinimum path length\n")
+        ("range", value<double>()->default_value(8.0),
+            "\nRange (in degrees)\n")
+        ("min_endpoint_distance", value<double>()->default_value(0.0),
+            "\nMinimum distance between endpoints of path\n")
+        ("min_path_distance", value<double>()->default_value(0.0),
+            "\nMinimum path length\n")
+        ("allow_repeated_times", value<bool>()->default_value(false),
+            "\nAllow repeated times\n")
 
         ("sea_level_pressure", value<string>()->default_value(""),
             "\nname of variable with sea level pressure\n")
@@ -290,6 +313,7 @@ int main(int argc, char **argv)
     if (!opt_vals["in_connect"].defaulted())
     {
         candidates->set_in_connect(opt_vals["in_connect"].as<string>());
+        tracks->set_in_connect(opt_vals["in_connect"].as<string>());
     }
 
     if (!opt_vals["search_by_min"].defaulted())
@@ -427,7 +451,14 @@ int main(int argc, char **argv)
 
        std::string text = opt_vals["sea_level_pressure"].as<string>()+",min,0;"+surf_wind->get_l2_norm_variable()+",max,2;"+opt_vals["geopotential_at_surface"].as<string>()+",min,0";
        candidates->set_output_cmd(text);
-       text = "i,j,lat,lon,"+opt_vals["sea_level_pressure"].as<string>()+","+surf_wind->get_l2_norm_variable()+","+opt_vals["geopotential_at_surface"].as<string>();
+    }
+    if (!opt_vals["in_fmt"].defaulted())
+    {
+       tracks->set_in_fmt(opt_vals["in_fmt"].as<string>());
+    }
+    else
+    {
+       std::string text = "i,j,lat,lon,"+opt_vals["sea_level_pressure"].as<string>()+","+surf_wind->get_l2_norm_variable()+","+opt_vals["geopotential_at_surface"].as<string>();
        tracks->set_in_fmt(text);
     }
 
@@ -499,8 +530,60 @@ int main(int argc, char **argv)
 
     sort->set_index_column("step");
 
-    std::string text = surf_wind->get_l2_norm_variable()+",>=,10.0,10;lat,<=,50.0,10;lat,>=,-50.0,10;"+opt_vals["geopotential_at_surface"].as<string>()+",<=,15.0,10";
-    tracks->set_threshold(text);
+    if (!opt_vals["min_time"].defaulted())
+    {
+       tracks->set_min_time(opt_vals["min_time"].as<string>());
+    }
+
+    if (!opt_vals["cal_type"].defaulted())
+    {
+       tracks->set_cal_type(opt_vals["cal_type"].as<string>());
+    }
+
+    if (!opt_vals["max_gap"].defaulted())
+    {
+       tracks->set_max_gap(opt_vals["max_gap"].as<string>());
+    }
+
+    if (!opt_vals["threshold"].defaulted())
+    {
+       tracks->set_threshold(opt_vals["threshold"].as<string>());
+    }
+    else
+    {
+       std::string text = surf_wind->get_l2_norm_variable()+",>=,10.0,10;lat,<=,50.0,10;lat,>=,-50.0,10;"+opt_vals["geopotential_at_surface"].as<string>()+",<=,15.0,10";
+       tracks->set_threshold(text);
+    }
+
+    if (!opt_vals["prioritize"].defaulted())
+    {
+       tracks->set_prioritize(opt_vals["prioritize"].as<string>());
+    }
+
+    if (!opt_vals["min_path_length"].defaulted())
+    {
+       tracks->set_min_path_length(opt_vals["min_path_length"].as<int>());
+    }
+
+    if (!opt_vals["range"].defaulted())
+    {
+       tracks->set_range(opt_vals["range"].as<double>());
+    }
+
+    if (!opt_vals["min_endpoint_distance"].defaulted())
+    {
+       tracks->set_min_endpoint_distance(opt_vals["min_endpoint_distance"].as<double>());
+    }
+
+    if (!opt_vals["min_path_distance"].defaulted())
+    {
+       tracks->set_min_path_distance(opt_vals["min_path_distance"].as<double>());
+    }
+
+    if (!opt_vals["allow_repeated_times"].defaulted())
+    {
+       tracks->set_allow_repeated_times(opt_vals["allow_repeated_times"].as<bool>());
+    }
     tracks->initialize();
 
     track_writer->set_file_name(opt_vals["track_file"].as<string>());

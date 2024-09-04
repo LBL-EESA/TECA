@@ -916,7 +916,7 @@ teca_stitch_nodes::teca_stitch_nodes() :
     threshold(""),
     prioritize(""),
     min_path_length(1),
-    d_range(8.0),
+    range(8.0),
     min_endpoint_distance(0.0),
     min_path_distance(0.0),
     allow_repeated_times(false)
@@ -951,7 +951,7 @@ void teca_stitch_nodes::get_properties_description(
         TECA_POPTS_GET(std::string, prefix, threshold, "")
         TECA_POPTS_GET(std::string, prefix, prioritize, "")
         TECA_POPTS_GET(int, prefix, min_path_length, "")
-        TECA_POPTS_GET(double, prefix, d_range, "")
+        TECA_POPTS_GET(double, prefix, range, "")
         TECA_POPTS_GET(double, prefix, min_endpoint_distance, "")
         TECA_POPTS_GET(double, prefix, min_path_distance, "")
         TECA_POPTS_GET(bool, prefix, allow_repeated_times, "")
@@ -976,7 +976,7 @@ void teca_stitch_nodes::set_properties(
     TECA_POPTS_SET(opts, std::string, prefix, threshold)
     TECA_POPTS_SET(opts, std::string, prefix, prioritize)
     TECA_POPTS_SET(opts, int, prefix, min_path_length)
-    TECA_POPTS_SET(opts, double, prefix, d_range)
+    TECA_POPTS_SET(opts, double, prefix, range)
     TECA_POPTS_SET(opts, double, prefix, min_endpoint_distance)
     TECA_POPTS_SET(opts, double, prefix, min_path_distance)
     TECA_POPTS_SET(opts, bool, prefix, allow_repeated_times)
@@ -1293,7 +1293,7 @@ const_p_teca_dataset teca_stitch_nodes::execute(
                                     vecKDTrees,
                                     this->internals->max_gap_steps,
                                     this->internals->max_gap_seconds,
-                                    this->d_range,
+                                    this->range,
                                     vecPathSegmentsSet);
     }
     else
@@ -1319,7 +1319,7 @@ const_p_teca_dataset teca_stitch_nodes::execute(
                                         ixPriorityCol,
                                         this->internals->max_gap_steps,
                                         this->internals->max_gap_seconds,
-                                        this->d_range,
+                                        this->range,
                                         vecPathSegmentsSet);
     }
 

@@ -37,7 +37,7 @@ public:
     TECA_ALGORITHM_PROPERTY(std::string, threshold)
     TECA_ALGORITHM_PROPERTY(std::string, prioritize)
     TECA_ALGORITHM_PROPERTY(int, min_path_length)
-    TECA_ALGORITHM_PROPERTY(double, d_range)
+    TECA_ALGORITHM_PROPERTY(double, range)
     TECA_ALGORITHM_PROPERTY(double, min_endpoint_distance)
     TECA_ALGORITHM_PROPERTY(double, min_path_distance)
     TECA_ALGORITHM_PROPERTY(bool, allow_repeated_times)
@@ -65,7 +65,7 @@ private:
     std::string threshold;
     std::string prioritize;
     int min_path_length;
-    double d_range;
+    double range;
     double min_endpoint_distance;
     double min_path_distance;
     bool allow_repeated_times;
