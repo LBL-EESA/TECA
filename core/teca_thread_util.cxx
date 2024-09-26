@@ -23,7 +23,7 @@ namespace teca_thread_util
 int cpuid(uint64_t leaf, uint64_t level, uint64_t& ra, uint64_t& rb,
     uint64_t& rc, uint64_t& rd)
 {
-#if !defined(_WIN32)
+#if !defined(_WIN32) && !defined(__arm__)
     asm volatile("cpuid\n"
                  : "=a"(ra), "=b"(rb), "=c"(rc), "=d"(rd)
                  : "a"(leaf), "c"(level)
