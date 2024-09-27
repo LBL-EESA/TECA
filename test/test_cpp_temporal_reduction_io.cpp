@@ -92,6 +92,7 @@ int main(int argc, char **argv)
     cf_reader->set_z_axis_variable(z_axis_var == "." ? std::string() : z_axis_var);
     cf_reader->set_t_axis_variable(t_axis_var);
     cf_reader->set_files_regex(files_regex);
+    cf_reader->set_verbose(1);
 
     // temporal reduction
     auto reduc = teca_cpp_temporal_reduction::New();

@@ -14,6 +14,7 @@
 #include <string>
 #include <cmath>
 #include <typeinfo>
+#include <chrono>
 
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
@@ -28,6 +29,7 @@
 using namespace teca_variant_array_util;
 using allocator = teca_variant_array::allocator;
 
+using microseconds_t = std::chrono::duration<double, std::chrono::microseconds::period>;
 
 
 // PIMPL idiom hides internals
@@ -35,7 +37,7 @@ using allocator = teca_variant_array::allocator;
 class teca_cpp_temporal_reduction::internals_t
 {
 public:
-    internals_t() {}
+    internals_t() : m_runtime(0) {}
     ~internals_t() {}
 
     /** check if the passed array contains integer data, if so deep-copy to
@@ -68,6 +70,7 @@ public:
     teca_metadata metadata;
     std::vector<time_interval> indices;
     std::map<std::thread::id, std::map<std::string, p_reduction_operator>> operation;
+    std::atomic<long> m_runtime;
 };
 
 // --------------------------------------------------------------------------
@@ -2478,6 +2481,9 @@ const_p_teca_dataset teca_cpp_temporal_reduction::execute(
 {
     (void)port;
 
+    std::chrono::high_resolution_clock::time_point t0, t1;
+    t0 = std::chrono::high_resolution_clock::now();
+
     // get the requested ind
     unsigned long req_id[2] = {0};
     std::string request_key;
@@ -2492,17 +2498,6 @@ const_p_teca_dataset teca_cpp_temporal_reduction::execute(
     // get the assigned GPU or CPU
     int device_id = -1;
     req_in.get("device_id", device_id);
-
-    if (this->get_verbose())
-    {
-        std::cerr << teca_parallel_id()
-            << "teca_cpp_temporal_reduction::execute request "
-            << req_id[0] << " device " << device_id
-            << " (" << this->internals->indices[req_id[0]].start_index
-            << " - " << this->internals->indices[req_id[0]].end_index
-            << "), reducing " << data_in.size() << ", "
-            << streaming << " remain" << std::endl;
-    }
 
 #if defined(TECA_HAS_CUDA)
     if (device_id >= 0)
@@ -2628,6 +2623,32 @@ const_p_teca_dataset teca_cpp_temporal_reduction::execute(
         // fix time
         mesh_out->set_time_step(req_id[0]);
         mesh_out->set_time(this->internals->indices[req_id[0]].time);
+    }
+
+    t1 = std::chrono::high_resolution_clock::now();
+    microseconds_t dt(t1 - t0);
+
+    this->internals->m_runtime.fetch_add( dt.count(), std::memory_order_relaxed);
+
+    if (this->get_verbose())
+    {
+        std::ostringstream oss;
+        oss << teca_parallel_id()
+            << "teca_cpp_temporal_reduction::execute request "
+            << req_id[0] << " device " << device_id
+            << " (" << this->internals->indices[req_id[0]].start_index
+            << " - " << this->internals->indices[req_id[0]].end_index
+            << "), reducing " << data_in.size() << ", "
+            << streaming << " remain (" << ( dt.count() / 1e6 ) << "s)";
+
+        if (!streaming)
+        {
+            oss << " step " << req_id[0] << " runtime: "
+                << this->internals->m_runtime.load(std::memory_order_relaxed) / 1e6 << "s";
+
+            this->internals->m_runtime.store(0, std::memory_order_relaxed);
+        }
+        std::cerr << oss.str() << std::endl;
     }
 
     return mesh_out;
