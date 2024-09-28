@@ -137,6 +137,7 @@ teca_metadata teca_rename_variables::get_output_metadata(
         attributes.set(this->new_variable_names[i], atts);
     }
 
+    out_md.set("variables", out_vars);
     out_md.set("attributes", attributes);
 
     return out_md;
@@ -205,7 +206,6 @@ const_p_teca_dataset teca_rename_variables::execute(
     p_teca_mesh out_mesh = std::static_pointer_cast<teca_mesh>
         (std::const_pointer_cast<teca_mesh>(in_mesh)->new_shallow_copy());
 
-
     // rename the arrays if they are found
     p_teca_array_collection arrays = out_mesh->get_point_arrays();
 
@@ -219,6 +219,12 @@ const_p_teca_dataset teca_rename_variables::execute(
         {
             arrays->remove(var_name);
             arrays->set(this->new_variable_names[i], array);
+        }
+        else
+        {
+           TECA_STATUS("\"" << var_name
+                 << "\" not found to rename to "
+                 << this->new_variable_names[i])
         }
     }
 

@@ -20,6 +20,7 @@ env:
     - TECA_DIR=/travis_teca_dir
     - TECA_PYTHON_VERSION=3
     - TECA_DATA_REVISION=162
+    - TECA_TELITE_REVISION=188dc11d
   jobs:
     - DOCKER_IMAGE=ubuntu IMAGE_VERSION=22.04 IMAGE_NAME=ubuntu_22_04 REQUIRE_NETCDF_MPI=TRUE
     - DOCKER_IMAGE=ubuntu IMAGE_VERSION=22.04 IMAGE_NAME=ubuntu_22_04 REQUIRE_NETCDF_MPI=FALSE
@@ -66,6 +67,7 @@ install:
     "export TECA_PYTHON_VERSION=${TECA_PYTHON_VERSION} &&
     export TECA_DATA_REVISION=${TECA_DATA_REVISION} &&
     export REQUIRE_NETCDF_MPI=${REQUIRE_NETCDF_MPI} &&
+    export TECA_TELITE_REVISION=${TECA_TELITE_REVISION} &&
     ${TECA_DIR}/test/travis_ci/install_${IMAGE_NAME}.sh";
     fi
 
@@ -83,5 +85,6 @@ script:
     export DOCKER_IMAGE=${DOCKER_IMAGE} &&
     export IMAGE_VERSION=${IMAGE_VERSION} &&
     export REQUIRE_NETCDF_MPI=${REQUIRE_NETCDF_MPI} &&
+    export TECA_TELITE_REVISION=${TECA_TELITE_REVISION} &&
     ${TECA_DIR}/test/travis_ci/ctest_linux.sh";
     fi
