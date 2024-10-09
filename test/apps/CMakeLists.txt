@@ -735,6 +735,11 @@ teca_add_app_test(test_lapse_rate_app teca_lapse_rate
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX}
     REQ_TECA_DATA)
 
+teca_add_app_test(test_lapse_rate_app_with_group teca_lapse_rate
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_lapse_rate_app_with_group.sh
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX}
+    REQ_TECA_DATA)
+
 teca_add_app_test(test_spectral_filter_app
     teca_spectral_filter
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_spectral_filter_app.sh

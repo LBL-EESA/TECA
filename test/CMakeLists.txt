@@ -33,6 +33,9 @@ if (TECA_HAS_DATA)
 
     configure_file(${TECA_DATA_ROOT}/ERA5_lapse_rate_test.mcf.in
          ${CMAKE_CURRENT_BINARY_DIR}/ERA5_lapse_rate_test.mcf)
+
+    configure_file(${TECA_DATA_ROOT}/ERA5_lapse_rate_group_test.mcf.in
+         ${CMAKE_CURRENT_BINARY_DIR}/ERA5_lapse_rate_group_test.mcf)
 endif()
 
 teca_add_test(test_pipeline_time_average
@@ -84,6 +87,13 @@ teca_add_test(test_cf_reader_era5
     COMMAND test_cf_reader
     -i "${TECA_DATA_ROOT}/e5\.oper\.an\.vinteg\.162_072_viwvn.*\.nc"
     -o "test_cf_reader_era5_%t%.%e%" -s 0,-1 -x longitude -y latitude -t time VIWVN
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_reader_era5_group
+    COMMAND test_cf_reader
+    -i "${TECA_DATA_ROOT}/e5_grouptest\.oper\.an\.vinteg\.162_072_viwvn.*\.nc"
+    -o "test_cf_reader_era5_%t%.%e%" -s 0,-1 -x longitude -y latitude -t time variables/VIWVN
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 

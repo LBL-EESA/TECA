@@ -313,7 +313,7 @@ teca_metadata teca_array_collection_reader::get_output_metadata(unsigned int por
         {
             std::string name;
             teca_metadata atts;
-            if (teca_netcdf_util::read_variable_attributes(fh, i,
+            if (teca_netcdf_util::read_variable_attributes(fh, "", i,
                 "", "", "", t_axis_variable, 0, name, atts))
             {
                 this->clear_cached_metadata();
@@ -941,6 +941,8 @@ const_p_teca_dataset teca_array_collection_reader::execute(unsigned int port,
         // get metadata
         teca_metadata atts;
         int type = 0;
+        std::string parent_group;
+        int parent_id = 0;
         int id = 0;
         int have_mesh_dim[4] = {0};
         int mesh_dim_active[4] = {0};
@@ -949,6 +951,7 @@ const_p_teca_dataset teca_array_collection_reader::execute(unsigned int port,
 
         if (atrs.get(arrays[i], atts)
             || atts.get("cf_type_code", 0, type)
+            || atts.get("cf_parent_group", 0, parent_group)
             || atts.get("cf_id", 0, id)
             || atts.get("cf_dims", cf_dims)
             || atts.get("centering", centering)
@@ -957,6 +960,21 @@ const_p_teca_dataset teca_array_collection_reader::execute(unsigned int port,
         {
             TECA_FATAL_ERROR("metadata issue can't read \"" << arrays[i] << "\"")
             continue;
+        }
+
+        if (parent_group.empty())
+        {
+            parent_id = fh.get();
+        }
+        else
+        {
+            if ((ierr = nc_inq_grp_full_ncid(fh.get(), parent_group.c_str(),
+                    &parent_id)) != NC_NOERR)
+            {
+                TECA_ERROR("Failed to get group id for group \"" << parent_group << "\""
+                    << std::endl << nc_strerror(ierr))
+                continue;
+            }
         }
 
         size_t n_vals = 1;
@@ -1000,7 +1018,7 @@ const_p_teca_dataset teca_array_collection_reader::execute(unsigned int port,
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-            if ((ierr = nc_get_vara(file_id,  id, &starts[0], &counts[0], pa)) != NC_NOERR)
+            if ((ierr = nc_get_vara(parent_id,  id, &starts[0], &counts[0], pa)) != NC_NOERR)
             {
                 TECA_FATAL_ERROR("time_step=" << time_step
                     << " Failed to read variable \"" << arrays[i] << "\" "
